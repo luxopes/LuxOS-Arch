@@ -3,6 +3,7 @@
 GET  /authorize   jako accounts.google.com / login.microsoftonline.com: zkontroluje client_id, redirect_uri
                   (loopback), response_type=code, PKCE S256 a state a hned presmeruje (302) zpet na loopback
                   s kodem ("uzivatel" se prihlasil uctem self.email) nebo s error=access_denied (self.deny).
+POST /revoke      odvolani tokenu (RFC 7009) jako oauth2.googleapis.com/revoke: zaznamena token (self.revoked).
 POST /token       authorization_code (kod jen jednou, stejne redirect_uri, overeni code_verifier proti
                   code_challenge, client_secret kdyz je nastaveny) a refresh_token (invalid_grant po revoke_refresh,
                   volitelne rotace obnovovaciho tokenu). Vydany pristupovy token zaregistruje ve falesnem IMAP
@@ -56,6 +57,7 @@ class FakeOAuth:
         self.token_requests = []
         self.errors = []
         self.issued = []
+        self.revoked = []
         outer = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -135,6 +137,16 @@ class FakeOAuth:
                 raw = self.rfile.read(n).decode()
                 f = dict(urllib.parse.parse_qsl(raw, keep_blank_values=True))
                 outer.token_requests.append({"path": self.path, "form": f, "content_type": self.headers.get("Content-Type", "")})
+                if self.path == "/revoke":
+                    # jako oauth2.googleapis.com/revoke (RFC 7009): token jen v tele; odvolani obnovovaciho
+                    # tokenu zrusi cele udeleni
+                    tok = f.get("token", "")
+                    outer.revoked.append(tok)
+                    if outer.refresh_tokens.pop(tok, None) is None:
+                        self.reply(400, {"error": "invalid_token", "error_description": "Token expired or revoked"})
+                        return
+                    self.reply(200, {})
+                    return
                 if self.path not in ("/token", "/consumers/token"):
                     self.reply(404, {"error": "not_found"})
                     return
@@ -237,6 +249,7 @@ def providers_file(path, google=None, microsoft=None, google_imap=None, microsof
     if google is not None:
         g["auth_url"] = google.origin + "/authorize"
         g["token_url"] = google.origin + "/token"
+        g["revoke_url"] = google.origin + "/revoke"
         g["client_id"] = google_id
         g["client_secret"] = google_secret
     if google_imap is not None:

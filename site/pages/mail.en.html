@@ -1,0 +1,51 @@
+    <article class="doc panel app-page">
+      {{CRUMBS}}
+      <div class="app-head">
+        <img src="/assets/luxos-mail.svg" alt="LuxOS Mail icon" width="96" height="96">
+        <div>
+          <h1>LuxOS Mail</h1>
+          <p class="lead">A light, fast desktop mail app for LuxOS. Your mail stays on your computer.</p>
+        </div>
+      </div>
+
+      <p>LuxOS Mail (shown as <strong>Mail</strong> in LuxOS) is the mail client that comes with <a href="/">LuxOS</a>, a free Linux distribution. It is written in LSL, runs entirely on your computer and connects directly to your mail provider over IMAP. It works with Gmail and Google Workspace, Outlook.com and Microsoft 365, Seznam, LuxAI mailboxes and any other IMAP mailbox.</p>
+
+      <figure class="app-shot">
+        <img src="/assets/shots/mail-inbox.webp" width="1102" height="709" alt="LuxOS Mail with the inbox, a message list and an opened message (demo data)" loading="lazy">
+        <figcaption>Three columns: folders, the message list and the message (demo data).</figcaption>
+      </figure>
+
+      <h2 id="features">What it does</h2>
+      <ul>
+        <li><strong>Reads your mail</strong> from any IMAP mailbox, with folders (Inbox, Sent, Drafts, Trash, Gmail labels and your own folders), unread counts and a quick filter.</li>
+        <li><strong>Instant notifications</strong> about new mail (IMAP IDLE) – even when the window is closed.</li>
+        <li><strong>Works offline</strong>: messages you have downloaded stay readable without internet.</li>
+        <li><strong>Safe by default</strong>: HTML mail is shown as text without remote content, so senders cannot track when you read their message. Attachments are saved only when you choose to.</li>
+        <li><strong>Simple setup</strong>: type your address and Mail finds the server settings itself. For Gmail and Microsoft accounts you sign in with your provider in your web browser – Mail never sees your password.</li>
+        <li>Mark messages as read or unread and move them to Trash. Writing and sending messages will come in a later version.</li>
+      </ul>
+
+      <h2 id="google">Sign in with Google</h2>
+      <p>For Gmail and Google Workspace addresses, LuxOS Mail offers <strong>Sign in with Google</strong>. Your web browser opens Google's own sign-in and consent page; after you approve, Google returns a token to LuxOS Mail on your computer, and Mail uses it to connect to <code>imap.gmail.com</code>.</p>
+      <p>LuxOS Mail asks Google for:</p>
+      <ul>
+        <li><code>https://mail.google.com/</code> – access to your Gmail mailbox over IMAP (and SMTP for sending later). Google offers IMAP access only with this scope, so a full mail client needs it.</li>
+        <li><code>openid</code> and <code>email</code> – your e-mail address, to check which account you signed in with.</li>
+      </ul>
+
+      <h2 id="privacy">Your data stays with you</h2>
+      <ul>
+        <li>Your mail, your address and your sign-in token are stored <strong>only on your computer</strong> (mail in your home folder, the token in your encrypted keyring).</li>
+        <li>LuxOS Mail talks to Google directly. <strong>No data from your Google account is ever sent to LuxOS servers</strong> or to anyone else, and nobody at LuxOS can read your mail.</li>
+        <li>Google user data is used only to show and manage your mail in the app – never for ads, never sold, never used to train AI models.</li>
+        <li>Removing the account in Mail deletes the local copy and the token and revokes Mail's access at Google. You can also revoke access any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      </ul>
+      <p>Details are in the <a href="/privacy/#google-user-data">Privacy Policy</a>. LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+      <h2 id="get">Get LuxOS Mail</h2>
+      <p>LuxOS Mail is installed with LuxOS (package <code>luxos-mail</code>) and is free and open source under the GPL-3.0-or-later license. <a href="/#download">Download LuxOS</a>, or install it on LuxOS with <code>lux install luxos-mail</code>.</p>
+
+      <h2 id="contact">Contact</h2>
+      <p>Developer: Antonín Tomeček (LuxOS). Questions, support and privacy requests: <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>.</p>
+      <p class="app-links"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms of Use</a></p>
+    </article>

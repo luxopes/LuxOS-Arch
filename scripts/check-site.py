@@ -19,6 +19,9 @@ SERVER_ONLY = ("/repo/", "/download/", "/stats/")
 # stranka Pouzivani LuxOS (countme) a dokument, na ktery odkazuje (z luxos-docs docs/luxos/countme.md)
 USAGE_PAGES = ("/usage/", "/cs/pouzivani/")
 COUNTME_DOC = "/docs/luxos/countme.html"
+# veta, kterou Google vyzaduje v zasadach ochrany soukromi aplikace s omezenymi rozsahy (Gmail)
+LIMITED_USE = ("LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to "
+               "the Google API Services User Data Policy, including the Limited Use requirements.")
 
 
 class Page(HTMLParser):
@@ -188,6 +191,29 @@ def main():
             warnings.append(f"{up}: no link to {COUNTME_DOC} (luxos/countme.md not in luxos-docs yet?)")
     if exists(COUNTME_DOC) is None:
         warnings.append(f"{COUNTME_DOC} does not exist yet (packages/apps/luxos-docs/docs/luxos/countme.md + index.json)")
+
+    # overeni aplikace OAuth u Googlu: domovska stranka Posty a zasady ochrany soukromi na stejne domene,
+    # oddil o datech Google s presnou vetou Limited Use, odkazy na zasady z domovske stranky a z paticky
+    for up in ("/mail/", "/cs/mail/", "/privacy/", "/cs/privacy/", "/terms/", "/cs/terms/"):
+        f = exists(up)
+        if f is None:
+            errors.append(f"{up}: page missing (Google OAuth verification)")
+            continue
+        text = re.sub(r"<[^>]+>", "", open(f, encoding="utf-8").read())
+        text = re.sub(r"\s+", " ", text)
+        if up.endswith("/privacy/"):
+            if "google-user-data" not in pages[f].ids:
+                errors.append(f"{up}: missing #google-user-data section")
+            if LIMITED_USE not in text:
+                errors.append(f"{up}: missing the Limited Use disclosure sentence")
+        if up.endswith("/mail/"):
+            if not any(l.startswith(("/privacy/", "/cs/privacy/")) for l in pages[f].links):
+                errors.append(f"{up}: no link to the privacy policy")
+            if "LuxOS Mail" not in text:
+                errors.append(f"{up}: app name LuxOS Mail missing")
+    for path, p in pages.items():
+        if p.refresh is None and not any(l in ("/privacy/", "/cs/privacy/") for l in p.links):
+            errors.append(f"{url_of(path)}: no footer link to the privacy policy")
 
     print(f"check-site: {len(pages)} html pages, {n_links} links checked, {len(errors)} problems")
     for err in errors[:80]:
