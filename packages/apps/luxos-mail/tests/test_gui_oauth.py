@@ -207,6 +207,41 @@ class ConfiguredTest(OAuthGuiTest):
                             with open(os.path.join(root, name), "rb") as f:
                                 self.assertNotIn(sec.encode(), f.read(), name)
 
+    def test_microsoft_mailbox_not_connected_banner(self):
+        # ucet Microsoft pridany pres sluzbu; pak Microsoft schranku neotevira ("User is authenticated but not
+        # connected", zadna varianta zachrany nepomuze): pruh s navodem (IMAP v Outlook.com) a "Zkusit znovu",
+        # ne "Prihlasit se znovu" (nove prihlaseni by nepomohlo)
+        env = self.s.env
+        env["LUXOS_MAIL_NOTCONNECTED_WAIT"] = "100"
+        # cesky: overi i preklad navodu
+        env["LANG"] = "cs_CZ.UTF-8"
+        c = self.s.start_service()
+        r = c.call("oauth_start", provider="microsoft", email=OUTLOOK)
+        fo.follow(r["url"])
+        self.assertTrue(mt.wait_for(lambda: len(self.accounts()) == 1, 15), self.s.service_log())
+        acc = self.accounts()[0]["id"]
+        self.assertTrue(mt.wait_for(lambda: [st for st in c.call("hello")["accounts"] if st["account"] == acc][0]["state"] == "online", 15))
+        self.outlook.control("notconnected on")
+        r = c.call("retry_account", account=acc)
+        c.close()
+        self.assertEqual(r["kind"], "notconnected", self.s.service_log())
+        # okno se pripoji k bezici sluzbe a ukaze stav uctu
+        self.start_gui()
+        win = self.window()
+
+        def banner():
+            if not os.path.exists(self.trace):
+                return ""
+            with open(self.trace) as f:
+                lines = [l for l in f.read().split("\n") if l.startswith("banner ")]
+            return lines[-1] if lines else ""
+        self.assertTrue(mt.wait_for(lambda: "Předávání a IMAP" in banner(), 10), banner() + self.gui_log())
+        self.assertIn("account.live.com/activity", banner())
+        self.assertIn("(Server: User is authenticated but not connected.)", banner())
+        xdo(env, "windowactivate", "--sync", win)
+        time.sleep(1.0)
+        self.shot("oauth-15-microsoft-not-connected.png")
+
     def test_app_password_instead(self):
         env = self.s.env
         self.start_gui()

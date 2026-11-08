@@ -6,7 +6,11 @@ GET  /authorize   jako accounts.google.com / login.microsoftonline.com: zkontrol
 POST /token       authorization_code (kod jen jednou, stejne redirect_uri, overeni code_verifier proti
                   code_challenge, client_secret kdyz je nastaveny) a refresh_token (invalid_grant po revoke_refresh,
                   volitelne rotace obnovovaciho tokenu). Vydany pristupovy token zaregistruje ve falesnem IMAP
-                  (rizeni "token TOKEN UZIVATEL"), id_token je nepodepsany JWT s e-mailem.
+                  (rizeni "token TOKEN UZIVATEL AUD"), id_token je nepodepsany JWT s e-mailem.
+POST /consumers/token  totez (Microsoft /consumers pro osobni ucty).
+
+Napodobeni chyb Microsoftu: graph_when_oidc - rozsahy s openid/email/profile daji token pro Graph (IMAP pak
+"User is authenticated but not connected"); username - preferred_username v id_token (jiny nez e-mail).
 
 Prohlizec v testech: follow(url) - GET na /authorize bez automatickeho presmerovani, pak GET na adresu
 z Location (loopback Posty) - jako skutecny prohlizec po prihlaseni.
@@ -33,8 +37,11 @@ def jwt(claims):
 class FakeOAuth:
     def __init__(self, imap_server, email, client_id, client_secret="", redirect_host="127.0.0.1", expires_in=3600,
                  rotate=False, email_claim=True):
-        self.imap = imap_server
+        # jeden falesny IMAP nebo seznam (hlavni a nahradni server poskytovatele)
+        self.imaps = list(imap_server) if isinstance(imap_server, (list, tuple)) else ([imap_server] if imap_server is not None else [])
         self.email = email
+        self.username = None
+        self.graph_when_oidc = False
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_host = redirect_host
@@ -48,6 +55,7 @@ class FakeOAuth:
         self.authorize_requests = []
         self.token_requests = []
         self.errors = []
+        self.issued = []
         outer = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -92,18 +100,22 @@ class FakeOAuth:
                 else:
                     code = secrets.token_urlsafe(24)
                     outer.codes[code] = {"challenge": q["code_challenge"], "redirect_uri": redirect, "client_id": q["client_id"],
-                                         "email": outer.email}
+                                         "email": outer.email, "scope": q.get("scope", "")}
                     location = target + "?" + urllib.parse.urlencode({"code": code, "state": q["state"], "scope": q.get("scope", "")})
                 self.send_response(302)
                 self.send_header("Location", location)
                 self.send_header("Content-Length", "0")
                 self.end_headers()
 
-            def issue(self, email, refresh=None):
+            def issue(self, email, refresh=None, scope=""):
                 access = "ya29." + secrets.token_urlsafe(32)
                 outer.access_tokens.append(access)
-                if outer.imap is not None:
-                    outer.imap.control("token %s %s" % (access, email))
+                aud = "outlook"
+                if outer.graph_when_oidc and set(scope.split()) & {"openid", "email", "profile"}:
+                    aud = "graph"
+                outer.issued.append(aud)
+                for server in outer.imaps:
+                    server.control("token %s %s %s" % (access, email, aud))
                 body = {"access_token": access, "token_type": "Bearer", "expires_in": outer.expires_in,
                         "scope": "https://mail.google.com/"}
                 if refresh is not None:
@@ -113,6 +125,8 @@ class FakeOAuth:
                     claims["email"] = email
                 else:
                     claims["preferred_username"] = email
+                if outer.username is not None:
+                    claims["preferred_username"] = outer.username
                 body["id_token"] = jwt(claims)
                 return body
 
@@ -121,7 +135,7 @@ class FakeOAuth:
                 raw = self.rfile.read(n).decode()
                 f = dict(urllib.parse.parse_qsl(raw, keep_blank_values=True))
                 outer.token_requests.append({"path": self.path, "form": f, "content_type": self.headers.get("Content-Type", "")})
-                if self.path != "/token":
+                if self.path not in ("/token", "/consumers/token"):
                     self.reply(404, {"error": "not_found"})
                     return
                 if f.get("client_id") != outer.client_id or (outer.client_secret and f.get("client_secret") != outer.client_secret):
@@ -144,7 +158,7 @@ class FakeOAuth:
                         return
                     refresh = "1//" + secrets.token_urlsafe(32)
                     outer.refresh_tokens[refresh] = c["email"]
-                    self.reply(200, self.issue(c["email"], refresh))
+                    self.reply(200, self.issue(c["email"], refresh, c["scope"]))
                     return
                 if grant == "refresh_token":
                     rt = f.get("refresh_token", "")
@@ -157,7 +171,7 @@ class FakeOAuth:
                         new = "1//" + secrets.token_urlsafe(32)
                         del outer.refresh_tokens[rt]
                         outer.refresh_tokens[new] = email
-                    self.reply(200, self.issue(email, new))
+                    self.reply(200, self.issue(email, new, f.get("scope", "")))
                     return
                 self.reply(400, {"error": "unsupported_grant_type"})
 
@@ -214,7 +228,7 @@ def get(url, timeout=30):
 
 
 def providers_file(path, google=None, microsoft=None, google_imap=None, microsoft_imap=None, google_id="test-google-client.apps.example",
-                   google_secret="GOCSPX-test-secret", microsoft_id="00000000-1111-2222-3333-444444444444"):
+                   google_secret="GOCSPX-test-secret", microsoft_id="00000000-1111-2222-3333-444444444444", microsoft_alt_imap=None):
     """oauth-providers.json pro test: koncove body falesnych poskytovatelu, IMAP na falesny server."""
     with open(path_of_shipped()) as f:
         data = json.load(f)
@@ -231,8 +245,13 @@ def providers_file(path, google=None, microsoft=None, google_imap=None, microsof
         m["auth_url"] = microsoft.origin + "/authorize"
         m["token_url"] = microsoft.origin + "/token"
         m["client_id"] = microsoft_id
+        m["consumer_token_url"] = microsoft.origin + "/consumers/token"
     if microsoft_imap is not None:
         m["imap"] = {"host": "localhost", "port": microsoft_imap, "security": "ssl"}
+        # nahradni server (imap-mail.outlook.com) nikdy skutecny: jinak falesny, nebo zadny
+        m["imap_alternates"] = []
+    if microsoft_alt_imap is not None:
+        m["imap_alternates"] = [{"host": "localhost", "port": microsoft_alt_imap, "security": "ssl"}]
     with open(path, "w") as f:
         json.dump(data, f)
     return path

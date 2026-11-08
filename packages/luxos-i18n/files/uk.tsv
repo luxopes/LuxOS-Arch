@@ -4831,3 +4831,5 @@ Kept your version of %s	Залишено вашу версію %s
 review a new config file version: combine, keep yours or use the new one	переглянути нову версію файлу конфігурації: поєднати, залишити свою або використати нову
 Review one with: sudo lux config-diff <file>	Перегляньте її командою: sudo lux config-diff <файл>
 New version of a configuration file: %s	Нова версія файлу конфігурації: %s
+Microsoft accepted the sign-in, but did not open the mailbox for Mail. On outlook.com open Settings, Mail, Forwarding and IMAP, turn on "Let devices and apps use IMAP" and save. If Microsoft asks you to confirm the sign-in at account.live.com/activity, choose "This was me". Then try again.	Microsoft прийняв вхід, але не відкрив поштову скриньку для Пошти. На outlook.com відкрийте Параметри, Пошта, Пересилання та IMAP, увімкніть «Дозволити пристроям і програмам використовувати IMAP» і збережіть. Якщо Microsoft попросить підтвердити вхід на account.live.com/activity, виберіть «Це був я». Потім спробуйте ще раз.
+%s accepted the sign-in, but the mail server did not open the mailbox. Try again later.	%s прийняв вхід, але поштовий сервер не відкрив скриньку. Спробуйте пізніше.

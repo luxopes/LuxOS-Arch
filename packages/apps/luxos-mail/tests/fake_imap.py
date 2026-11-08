@@ -11,8 +11,13 @@ Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     expunge MAILBOX UID                 smaze zpravu (* N EXPUNGE)
     flags MAILBOX UID \\Seen ...         nastavi priznaky (* N FETCH (FLAGS ...))
     password NOVE                       zmena hesla (heslo zmenene ve webmailu)
-    token TOKEN UZIVATEL                platny pristupovy token (OAUTHBEARER/XOAUTH2)
+    token TOKEN UZIVATEL [AUD]          platny pristupovy token (OAUTHBEARER/XOAUTH2); AUD = prostredek tokenu
+                                        (outlook | graph), jiny nez outlook -> "not connected" jako Microsoft
     revoke                              zneplatni vsechny tokeny
+    primary UCET SCHRANKA               hlavni adresa schranky uctu (XOAUTH2 user= jiny nez SCHRANKA -> "not connected")
+    notconnected on|off                 kazde prihlaseni tokenem -> "User is authenticated but not connected."
+    ncstyle auth|after                  kde Microsoft chybu posle: v odpovedi na AUTHENTICATE (auth, vychozi), nebo
+                                        AUTHENTICATE OK a chyba az u dalsiho prikazu (after)
     dump                                JSON stav schranek
     log                                 prijate prikazy (heslo zakryte)
 
@@ -77,6 +82,10 @@ class State:
         self.oauth = list(oauth)
         self.sasl_ir = sasl_ir
         self.tokens = {}
+        self.audiences = {}
+        self.primary = {}
+        self.not_connected = False
+        self.nc_style = "auth"
         self.dovecot_flags = False
         self.personality = ""
         self.account_password = None
@@ -272,6 +281,7 @@ class Session(threading.Thread):
         self.pending = []
         self.rbuf = b""
         self.alive = True
+        self.nc = False
 
     def caps(self):
         if self.state.personality == "gmail":
@@ -365,6 +375,9 @@ class Session(threading.Thread):
             cmd = sub[0].upper()
             rest = sub[1] if len(sub) > 1 else ""
             uid = True
+        if self.nc and cmd not in ("LOGOUT",):
+            self.send("%s BAD User is authenticated but not connected.\r\n" % tag)
+            return
         try:
             getattr(self, "cmd_" + cmd.lower(), self.cmd_unknown)(tag, rest, uid)
         except Exception as e:  # noqa: BLE001 - testovaci server: chyba = BAD
@@ -439,7 +452,23 @@ class Session(threading.Thread):
         token = auth[7:] if auth.startswith("Bearer ") else ""
         with LOCK:
             self.state.log.append("AUTH %s user=%s host=%s port=%s" % (mech, user, fields.get("host", "-"), fields.get("port", "-")))
-            ok = bool(token) and self.state.tokens.get(token) == user.lower()
+            account = self.state.tokens.get(token) if token else None
+            primary = self.state.primary.get(account, account)
+            ok = account is not None and user.lower() in (account, primary)
+            # Microsoft: token plati (ucet overen), ale schranka se neotevre - user= neni hlavni adresa (alias), token
+            # pro jiny prostredek (Graph), IMAP vypnuty u uctu
+            nc = False
+            if ok and (user.lower() != primary or self.state.audiences.get(token, "outlook") != "outlook" or self.state.not_connected):
+                nc = True
+                ok = False
+        if nc:
+            if self.state.nc_style == "after":
+                self.user = user
+                self.nc = True
+                self.send("%s OK AUTHENTICATE completed.\r\n" % tag)
+            else:
+                self.send("%s BAD User is authenticated but not connected.\r\n" % tag)
+            return
         if ok:
             self.user = user
             self.send("%s OK [CAPABILITY %s] logged in\r\n" % (tag, self.caps()))
@@ -762,6 +791,13 @@ def control(state, conn):
                         state.users[u] = parts[1]
                 elif parts[0] == "token":
                     state.tokens[parts[1]] = parts[2].lower()
+                    state.audiences[parts[1]] = parts[3] if len(parts) > 3 else "outlook"
+                elif parts[0] == "primary":
+                    state.primary[parts[1].lower()] = parts[2].lower()
+                elif parts[0] == "notconnected":
+                    state.not_connected = parts[1] == "on"
+                elif parts[0] == "ncstyle":
+                    state.nc_style = parts[1]
                 elif parts[0] == "revoke":
                     state.tokens.clear()
                 elif parts[0] == "dump":

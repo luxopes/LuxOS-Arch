@@ -1414,7 +1414,7 @@ function error_text(st):
     if a.get("auth", "") == "luxai" and (kind == "auth" or kind.startswith("luxai_") or kind == "nooauth"):
         return luxai_error_text(kind, detail, a.get("email", ""))
     end
-    if a.get("auth", "") == "oauth" and (kind == "auth" or kind.startswith("oauth_") or kind == "nooauth" or kind == "connect"):
+    if a.get("auth", "") == "oauth" and (kind == "auth" or kind.startswith("oauth_") or kind == "nooauth" or kind == "connect" or kind == "notconnected"):
         return oauth_account_text(a, kind, detail)
     end
     if kind == "auth" or kind == "oauthonly":
@@ -1443,7 +1443,9 @@ function update_banner():
     st = ui["status"].get(ui["current"]["account"], {})
     state = st.get("state", "")
     if state == "error" or (state == "offline" and st.get("kind", "") != ""):
-        call gtk.label_set_text(ui["banner_label"], error_text(st))
+        btext = error_text(st)
+        call gtk.label_set_text(ui["banner_label"], btext)
+        call trace("banner " + btext)
         kind = st.get("kind", "")
         luxai_account = account(st.get("account", "")).get("auth", "") == "luxai"
         oauth_account = account(st.get("account", "")).get("auth", "") == "oauth"
@@ -2150,6 +2152,13 @@ function oauth_kind_text(kind, detail, name, email):
         return i18n.TF("Cannot reach %s. Check your internet connection.", [name])
     elif kind == "auth" or kind == "nooauth":
         return i18n.TF("The mail server did not accept the %s sign-in.", [name]) + server_reason(detail)
+    elif kind == "notconnected":
+        # Microsoft prijal token, ale schranku neotevrel ani po zachrane ve sluzbe (jina adresa, token jen pro
+        # Outlook, jiny server): zbyva nastaveni uctu u Microsoftu
+        if name == "Microsoft":
+            return i18n.T("Microsoft accepted the sign-in, but did not open the mailbox for Mail. On outlook.com open Settings, Mail, Forwarding and IMAP, turn on \"Let devices and apps use IMAP\" and save. If Microsoft asks you to confirm the sign-in at account.live.com/activity, choose \"This was me\". Then try again.") + server_reason(detail)
+        end
+        return i18n.TF("%s accepted the sign-in, but the mail server did not open the mailbox. Try again later.", [name]) + server_reason(detail)
     elif kind == "keyring":
         return i18n.T("The sign-in could not be saved in the keyring.") + " " + detail
     elif kind == "cert" or kind == "timeout" or kind == "closed":

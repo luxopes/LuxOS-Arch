@@ -30,6 +30,7 @@ load mail_secret as secret
 load mail_luxai as luxai
 load mail_provider as provider
 load mail_oauth as oauth
+load mail_oauth_login as ol
 load crypto
 
 ITEMS = "UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODYSTRUCTURE"
@@ -215,7 +216,7 @@ end
 # Chyby, po kterych se samo znovu nezkousi (cekani na uzivatele: nove heslo, prihlaseni k LuxAI)
 function blocked_kind(kind):
     return kind in ["auth", "oauthonly", "nopassword", "luxai_session", "luxai_signedout", "luxai_denied", "nooauth",
-                    "oauth_expired", "oauth_config"]
+                    "oauth_expired", "oauth_config", "notconnected"]
 end
 
 function is_oauth(cfg):
@@ -273,28 +274,19 @@ function oauth_label(p, email):
     return "LuxOS Mail (" + p["name"] + "): " + email
 end
 
-# Spojeni a prihlaseni tokenem; MailError pri chybe (spojeni se zavre)
-function token_connect(s, user, token):
-    conn = imap.connect(s["host"], s["port"], s["security"], 15000)
-    try:
-        call imap.login_oauth(conn, user, token, s["port"])
-    else:
-        err = last_error()
-        call imap.close(conn)
-        Error(MailError: String(err).replace("MailError: ", ""))
-    end
-    return conn
-end
-
-# Prihlaseni uctu OAuth; server odmitl ulozeny (ne cerstvy) token -> jednou novy token a znovu
+# Prihlaseni uctu OAuth; server odmitl ulozeny (ne cerstvy) token -> jednou novy token a znovu.
+# "User is authenticated but not connected" (Microsoft) -> zachrana (ol.recover: jina adresa, token jen pro
+# Outlook, /consumers, jiny server); co pomohlo, se ulozi do uctu a zapise do logu (bez tokenu).
 function oauth_login(st, s):
-    user = String(s.get("user", st["cfg"]["email"]))
+    cfg = st["cfg"]
+    p = account_provider(cfg)
+    user = String(s.get("user", cfg["email"]))
     tok = oauth_access(st, False)
     conn = {}
     retry = False
     err = ""
     try:
-        conn = token_connect(s, user, tok[0])
+        conn = ol.token_connect(s, user, tok[0], p["sasl"], True)
     else:
         err = String(last_error())
         retry = imap.error_kind(err)[0] == "auth" and not tok[1]
@@ -302,12 +294,67 @@ function oauth_login(st, s):
     if err == "":
         return conn
     end
-    if not retry:
+    if retry:
+        st["access"] = ""
+        tok = oauth_access(st, True)
+        err = ""
+        try:
+            conn = ol.token_connect(s, user, tok[0], p["sasl"], True)
+        else:
+            err = String(last_error())
+        end
+        if err == "":
+            return conn
+        end
+    end
+    if imap.error_kind(err)[0] != "notconnected":
         Error(MailError: err.replace("MailError: ", ""))
     end
-    st["access"] = ""
-    tok = oauth_access(st, True)
-    return token_connect(s, user, tok[0])
+    rt = secret.lookup(cfg["id"])
+    rec = {"token": st["access"], "expires_in": st["access_exp"] - now(), "refresh_token": rt, "rt_changed": False}
+    report = []
+    found = ol.recover(p, s, oauth.address_candidates(user, cfg["email"], {}), rec, report)
+    call oauth_keep_tokens(st, p, rec)
+    if not found["ok"]:
+        call log("account " + cfg["id"] + ": mailbox not connected, nothing helped: " + ol.report_text(report))
+        Error(MailError: err.replace("MailError: ", ""))
+    end
+    call log("account " + cfg["id"] + ": mailbox connected with variant '" + found["variant"] + "' on " + found["server"]["host"])
+    imap_cfg = {"host": found["server"]["host"], "port": found["server"]["port"], "security": found["server"]["security"], "user": found["user"]}
+    if imap_cfg["host"] != s["host"] or imap_cfg["port"] != s["port"] or imap_cfg["security"] != s["security"] or imap_cfg["user"] != user:
+        call save_imap(cfg, imap_cfg)
+    end
+    return found["conn"]
+end
+
+# Novy pristupovy/obnovovaci token ze zachrany do pameti a klicenky
+function oauth_keep_tokens(st, p, rec):
+    cfg = st["cfg"]
+    if rec["token"] != "" and rec["token"] != st["access"]:
+        st["access"] = rec["token"]
+        st["access_exp"] = now() + rec["expires_in"]
+    end
+    if rec["rt_changed"]:
+        stored = secret.store(cfg["id"], cfg["email"], cfg["imap"]["host"], rec["refresh_token"], oauth_label(p, cfg["email"]))
+        if stored != True:
+            call log("account " + cfg["id"] + ": the new sign-in could not be saved in the keyring")
+        end
+    end
+    return 0
+end
+
+# Server/adresa IMAP, ktere fungovaly, do uctu (accounts.json a pamet)
+function save_imap(cfg, imap_cfg):
+    cfg["imap"] = imap_cfg
+    out = []
+    for a in store.load_accounts():
+        if a["id"] == cfg["id"]:
+            a["imap"] = imap_cfg
+        end
+        out.append(a)
+    end
+    call store.save_accounts(out)
+    return 0
 end
 
 # Spojeni a prihlaseni tokenem LuxAI (novy token pri kazdem spojeni; plati 15 minut, otevrene spojeni
@@ -1846,7 +1893,38 @@ function complete_flow(flow, code):
     if len(old) > 0:
         s = old["imap"]
     end
-    conn = token_connect(s, String(s.get("user", address)), r["access_token"])
+    user = String(s.get("user", address))
+    err = ""
+    conn = {}
+    try:
+        conn = ol.token_connect(s, user, r["access_token"], p["sasl"], True)
+    else:
+        err = String(last_error())
+    end
+    if err != "":
+        if imap.error_kind(err)[0] != "notconnected":
+            Error(MailError: err.replace("MailError: ", ""))
+        end
+        # Microsoft prijal token, ale schranku neotevrel: zkusit jine adresy, token jen pro Outlook, jiny server
+        rec = {"token": r["access_token"], "expires_in": r["expires_in"], "refresh_token": r["refresh_token"], "rt_changed": False}
+        report = []
+        users = oauth.address_candidates(user, flow["email"], identity)
+        found = ol.recover(p, s, users, rec, report)
+        r["access_token"] = rec["token"]
+        r["expires_in"] = rec["expires_in"]
+        r["refresh_token"] = rec["refresh_token"]
+        if not found["ok"]:
+            call log("sign-in with " + p["name"] + ": mailbox not connected, nothing helped: " + ol.report_text(report))
+            Error(MailError: err.replace("MailError: ", ""))
+        end
+        call log("sign-in with " + p["name"] + ": mailbox connected with variant '" + found["variant"] + "' on " + found["server"]["host"])
+        conn = found["conn"]
+        s = {"host": found["server"]["host"], "port": found["server"]["port"], "security": found["server"]["security"], "user": found["user"]}
+        # nova adresa schranky (hlavni adresa misto aliasu); u Prihlasit se znovu zustava e-mail uctu
+        if len(old) == 0:
+            address = found["user"]
+        end
+    end
     call imap.logout(conn)
     id = store.account_id(address)
     stored = secret.store(id, address, s["host"], r["refresh_token"], oauth_label(p, address))

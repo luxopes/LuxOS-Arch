@@ -4,7 +4,8 @@
 # bez sifrovani se heslo nikdy neposle (security "ssl" = port 993, "starttls" = 143 + STARTTLS).
 # Chyby: Error(MailError: "druh|text"), druh: connect, cert, tls, closed, timeout, auth, nostarttls,
 # insecure, no (server odmitl prikaz), protocol, nooauth (server neumi prihlaseni tokenem), unavailable
-# (docasna chyba overeni na serveru).
+# (docasna chyba overeni na serveru), notconnected (Microsoft prijal token, ale schranku neotevrel:
+# "User is authenticated but not connected").
 load net, json
 load tls
 load mail_bytes as mb
@@ -389,6 +390,9 @@ function finish(conn, tag, strict, timeout):
             end
             result = {"status": parts[0], "code": parts[1], "text": parts[2], "untagged": untagged}
             if strict and parts[0] != "OK":
+                if not_connected(parts[2]):
+                    call fail("notconnected", parts[2])
+                end
                 call fail("no", parts[2])
             end
             return result
@@ -621,8 +625,17 @@ end
 
 # ---- SASL OAUTHBEARER (RFC 7628) a XOAUTH2: pristupovy token misto hesla (schranky LuxAI) -----------------
 
-# Vybrany mechanismus: OAUTHBEARER (standard), jinak XOAUTH2 (Google, Microsoft, starsi Dovecot); "" = zadny
-function oauth_mechanism(caps):
+# "User is authenticated but not connected." (Microsoft: token platny, schranka se neotevrela)
+function not_connected(text):
+    return String(text).lower().find("authenticated but not connected") >= 0
+end
+
+# Vybrany mechanismus: OAUTHBEARER (standard), jinak XOAUTH2 (Google, Microsoft, starsi Dovecot); "" = zadny.
+# prefer: mechanismus poskytovatele (Microsoft: XOAUTH2), kdyz ho server nabizi
+function oauth_mechanism(caps, prefer=""):
+    if prefer != "" and "AUTH=" + prefer in caps:
+        return prefer
+    end
     if "AUTH=OAUTHBEARER" in caps:
         return "OAUTHBEARER"
     elif "AUTH=XOAUTH2" in caps:
@@ -661,8 +674,8 @@ end
 
 # Prihlaseni tokenem. Spatny/odvolany token -> MailError "auth"; docasna chyba serveru (NO [UNAVAILABLE],
 # napr. nedostupna introspekce) -> "unavailable" (opakuje se s odstupem, neni to spatny token).
-function login_oauth(conn, user, token, port=993):
-    mech = oauth_mechanism(conn["caps"])
+function login_oauth(conn, user, token, port=993, prefer=""):
+    mech = oauth_mechanism(conn["caps"], prefer)
     if mech == "":
         call fail("nooauth", "The server does not support signing in with an access token (OAUTHBEARER or XOAUTH2).")
     end
@@ -727,6 +740,9 @@ function login_oauth(conn, user, token, port=993):
         if parts[1].upper().startswith("UNAVAILABLE"):
             call fail("unavailable", text)
         end
+        if not_connected(parts[2]):
+            call fail("notconnected", text)
+        end
         call fail("auth", text)
     end
     if parts[1].upper().startswith("CAPABILITY "):
@@ -734,6 +750,13 @@ function login_oauth(conn, user, token, port=993):
     else:
         call capability(conn)
     end
+    return 0
+end
+
+# Opravdu otevrena schranka (Microsoft muze prijmout AUTHENTICATE a az dalsi prikaz odmitne s "User is
+# authenticated but not connected"): LIST "" "INBOX". MailError notconnected/no pri chybe.
+function check_mailbox(conn):
+    call command(conn, "LIST \"\" \"INBOX\"")
     return 0
 end
 

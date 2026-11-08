@@ -8,13 +8,15 @@
 # duvod odmitnuti od serveru, slozky Gmailu; tlacitko oka u kazdeho pole hesla.
 # Prihlaseni u poskytovatele ("Prihlasit se Googlem/Microsoftem", OAuth2 pro nativni aplikace RFC 8252: prohlizec,
 # loopback, PKCE): poskytovatele v /usr/share/luxos-mail/oauth-providers.json, client ID zatim prazdna (dokud
-# nejsou registrovana, zustava heslo aplikace); prepsani /etc/luxos/mail-oauth.json.
+# nejsou registrovana, zustava heslo aplikace); prepsani /etc/luxos/mail-oauth.json. Microsoft "User is
+# authenticated but not connected": zachrana (jina adresa, token jen pro Outlook, /consumers, imap-mail.outlook.com),
+# diagnostika luxos-mail --diagnose-oauth ADRESA (mail_oauth_login, mail_diagnose).
 # Psani a odesilani (SMTP) prijde ve fazi 2. Moduly LuxOS pro GTK/GLib (luxos_gtk, luxos_glib ...) bere
 # ze zdroju luxos-desktop (files/lsl), stejne jako programy tam.
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=6
+pkgrel=7
 pkgdesc="LuxOS Mail - lightweight mail app with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"

@@ -27,7 +27,10 @@
       "refresh_scope": true,
       "redirect_host": "localhost",
       "redirect_port": 0,
+      "consumer_token_url": "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+      "sasl": "XOAUTH2",
       "imap": {"host": "outlook.office365.com", "port": 993, "security": "ssl"},
+      "imap_alternates": [{"host": "imap-mail.outlook.com", "port": 993, "security": "ssl"}],
       "smtp": {"host": "smtp.office365.com", "port": 587, "security": "starttls"}
     },
     "yahoo": {
