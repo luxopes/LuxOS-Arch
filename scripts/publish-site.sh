@@ -13,7 +13,7 @@ cd "$(dirname "$(readlink -f "$0")")/.."
 SERVER=${LUXOS_SERVER:-root@185.183.156.25}
 DEST=/srv/luxos-site
 STAGE=/srv/luxos-stage/site
-EXCL=(--exclude '/download/*.iso' --exclude '/download/*.iso.sig' --exclude '/download/SHA256SUMS*')
+EXCL=(--exclude '/mail-oauth.json' --exclude '/download/*.iso' --exclude '/download/*.iso.sig' --exclude '/download/SHA256SUMS*')
 
 python3 scripts/build-site.py
 python3 scripts/check-site.py
