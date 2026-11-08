@@ -158,17 +158,79 @@ class GuiTest(unittest.TestCase):
         self.env.pop("LC_ALL", None)
         self.env.pop("LC_MESSAGES", None)
 
+        self.service_pids = []
+
     def tearDown(self):
-        for p in self.procs:
+        # proces sluzby (aktivovany pres soukromou sbernici) neni potomek testu - ukoncit podle PID
+        for pid in self.service_pids:
+            try:
+                os.kill(pid, 15)
+            except OSError:
+                pass
+        for p in reversed(self.procs):
             if p.poll() is None:
                 p.terminate()
                 try:
                     p.wait(5)
                 except subprocess.TimeoutExpired:
                     p.kill()
+            if p.stdout:
+                p.stdout.close()
+        for pid in self.service_pids:
+            for _ in range(50):
+                if not os.path.exists(f"/proc/{pid}"):
+                    break
+                time.sleep(0.1)
+        # zadne okno nesmi zustat do dalsiho testu (pocitani oken, nazev, velikost)
+        for _ in range(50):
+            if not self.windows():
+                break
+            time.sleep(0.1)
         shutil.rmtree(self.home, ignore_errors=True)
 
     # --- pomocne ---
+    def service_env(self, stderr=subprocess.DEVNULL, **extra):
+        """Prostredi pro jeden proces terminalu pro vsechna okna (sluzba cz.luxos.Terminal2).
+        Soukroma sbernice D-Bus jen pro tento test: aktivuje testovany program (LUXOS_TERMINAL_BIN), ne
+        /usr/bin/luxos-terminal ze souboru sluzby v /usr/share/dbus-1/services, a sluzba po testu
+        skonci - na sdilene sbernici dbus-run-session by jeji okna zustala do dalsich testu."""
+        env = dict(self.env, **extra)
+        env.pop("LUXOS_TERMINAL_NEW_PROCESS")
+        bus = os.path.join(self.home, "bus")
+        services = os.path.join(bus, "services")
+        os.makedirs(services)
+        with open(os.path.join(services, "cz.luxos.Terminal2.service"), "w") as f:
+            f.write(f"[D-BUS Service]\nName=cz.luxos.Terminal2\nExec={BIN} --gapplication-service\n")
+        conf = os.path.join(bus, "session.conf")
+        with open(conf, "w") as f:
+            f.write(f"""<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig><type>session</type><listen>unix:dir={bus}</listen><servicedir>{services}</servicedir>
+<policy context="default"><allow send_destination="*" eavesdrop="true"/><allow eavesdrop="true"/>
+<allow own="*"/></policy></busconfig>
+""")
+        daemon = subprocess.Popen(["dbus-daemon", "--config-file", conf, "--nofork", "--print-address=1"],
+                                  env=env, stdout=subprocess.PIPE, stderr=stderr, text=True)
+        self.procs.append(daemon)
+        env["DBUS_SESSION_BUS_ADDRESS"] = daemon.stdout.readline().strip()
+        self.assertTrue(env["DBUS_SESSION_BUS_ADDRESS"], "private D-Bus daemon did not start")
+        return env
+
+    def service_pid(self, env):
+        """PID procesu, ktery na soukrome sbernici drzi jmeno sluzby (0 = nikdo)."""
+        r = subprocess.run(["gdbus", "call", "--address", env["DBUS_SESSION_BUS_ADDRESS"], "--dest",
+                            "org.freedesktop.DBus", "--object-path", "/org/freedesktop/DBus", "--method",
+                            "org.freedesktop.DBus.GetConnectionUnixProcessID", "cz.luxos.Terminal2"],
+                           capture_output=True, text=True, timeout=10)
+        pid = int(r.stdout.split()[1].rstrip(",)")) if r.returncode == 0 else 0
+        if pid and pid not in self.service_pids:
+            self.service_pids.append(pid)
+        return pid
+
+    def window_pids(self):
+        return {subprocess.run(["xdotool", "getwindowpid", w], capture_output=True, text=True).stdout.strip()
+                for w in self.windows()}
+
     def config(self, text):
         d = os.path.join(self.home, ".config", "luxos")
         os.makedirs(d, exist_ok=True)
@@ -372,19 +434,31 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(lines[1], "LuxOS-Terminal xterm-256color")
 
     def test_tabs_one_process(self):
-        env = dict(self.env)
-        env.pop("LUXOS_TERMINAL_NEW_PROCESS")
+        """Vsechna okna a panely v jednom procesu sluzby cz.luxos.Terminal2 (od 1.3.0-2 i prvni okno:
+        kazde volani jen preda prikazovou radku sluzbe a hned skonci - shell panelu pak muze do
+        vlastniho scope s limitem procesu)."""
+        env = self.service_env()
         p1 = self.start("-x", "sh", "-c", "sleep 30", env=env)
+        self.assertEqual(p1.wait(10), 0, "launcher hands the command line to the service")
         self.wait_window()
+        service = self.service_pid(env)
+        self.assertTrue(service, "service owns cz.luxos.Terminal2")
+        self.assertNotEqual(service, p1.pid)
         time.sleep(0.5)
-        # druhe volani preda prikaz bezicimu procesu a hned skonci
         p2 = self.start("--tab", "-T", "Second", "-x", "sh", "-c", "sleep 30", env=env)
         self.assertEqual(p2.wait(10), 0)
         p3 = self.start("-T", "Third", "-x", "sh", "-c", "sleep 30", env=env)
         self.assertEqual(p3.wait(10), 0)
-        time.sleep(1)
-        self.assertIsNone(p1.poll())
+        for _ in range(50):
+            if len(self.windows()) == 2:
+                break
+            time.sleep(0.1)
+        time.sleep(0.5)
         self.assertEqual(len(self.windows()), 2, "--tab adds a tab, plain call a new window")
+        self.assertEqual(self.window_pids(), {str(service)}, "all windows in the one service process")
+        self.assertEqual(self.service_pid(env), service, "no second service process")
+        names = sorted(self.window_name(w) for w in self.windows())
+        self.assertIn("Third", names)
         self.screenshot("tabs")
 
     def test_link_ctrl_click(self):
@@ -441,6 +515,25 @@ class GuiTest(unittest.TestCase):
         geo = subprocess.run(["xdotool", "getwindowgeometry", wid], capture_output=True, text=True).stdout
         w120 = int(geo.split("Geometry: ")[1].split("x")[0])
         self.assertGreater(w120, w60 + 200)
+
+    def test_window_size_saved(self):
+        """Velikost okna zmenena uzivatelem se pri zavreni ulozi do [state] a dalsi okno ji pouzije."""
+        self.config("[terminal]\ntheme=dark\n[state]\ncolumns=60\nrows=12\n")
+        p = self.start("-x", "bash", "--norc", "-c", "bash --norc -i; true")
+        wid = self.wait_window()[0]
+        time.sleep(0.8)
+        subprocess.run(["xdotool", "windowsize", wid, "1000", "600"], env=self.env)
+        time.sleep(1.0)
+        subprocess.run(["xdotool", "mousemove", "--window", wid, "40", "70"], env=self.env)
+        subprocess.run(["xdotool", "key", "ctrl+shift+w"], env=self.env)
+        self.assertEqual(p.wait(10), 0)
+        import configparser
+        c = configparser.ConfigParser()
+        c.read(os.path.join(self.home, ".config", "luxos", "terminal.conf"))
+        cols, rows = c.getint("state", "columns"), c.getint("state", "rows")
+        self.assertGreater(cols, 80, "wider window saved")
+        self.assertGreater(rows, 20, "taller window saved")
+        self.assertEqual(c.get("terminal", "theme"), "dark", "other settings kept")
 
     def test_sixel_image(self):
         if not has_sixel():
@@ -568,22 +661,30 @@ class GuiTest(unittest.TestCase):
         """Opakovane otevirani a zavirani panelu a oken v jednom procesu (regrese: pad pri zavirani -
         uvolneny Win v signalech panelu pri ruseni okna). Uvolnena pamet se prepisuje (MALLOC_PERTURB_),
         takze pristup k ni spadne; proces musi skoncit s kodem 0 a bez varovani."""
-        env = dict(self.env, MALLOC_PERTURB_="165", MALLOC_CHECK_="3", G_SLICE="always-malloc",
-                   G_DEBUG="fatal-criticals")
-        env.pop("LUXOS_TERMINAL_NEW_PROCESS")
         err = os.path.join(self.home, "stderr")
         with open(err, "w") as ef:
-            main = self.start("-x", "sh", "-c", "sleep 9", env=env, stderr=ef)
+            # proces sluzby dedi prostredi i stderr od soukromeho dbus-daemon
+            env = self.service_env(stderr=ef, MALLOC_PERTURB_="165", MALLOC_CHECK_="3",
+                                   G_SLICE="always-malloc", G_DEBUG="fatal-criticals")
+            subprocess.run([BIN, "-x", "sh", "-c", "sleep 9"], env=env, timeout=10, stdout=subprocess.DEVNULL)
             self.wait_window()
+            service = self.service_pid(env)
+            self.assertTrue(service, "service owns cz.luxos.Terminal2")
             for i in range(6):
                 for args in (["--tab", "-x", "sleep", "0.2"], ["-x", "sleep", "0.2"], ["--tab", "-x", "true"],
                              ["-T", "w", "-x", "sh", "-c", "sleep 0.4"]):
-                    subprocess.run([BIN, *args], env=env, timeout=10, stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.DEVNULL)
+                    r = subprocess.run([BIN, *args], env=env, timeout=10, stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL)
+                    self.assertEqual(r.returncode, 0)
                 time.sleep(0.5)
-            rc = main.wait(30)
+            # prvni okno (sleep 9) se zavre samo; sluzba pak bez oken ceka (necinnost 10 s) - nesmi spadnout
+            end = time.time() + 20
+            while self.windows() and time.time() < end:
+                time.sleep(0.2)
+            self.assertFalse(self.windows(), "all windows and tabs closed")
+            time.sleep(1)
+            self.assertEqual(self.service_pid(env), service, "service survived closing every window and tab")
         text = read(err)
-        self.assertEqual(rc, 0, text)
         for bad in ("CRITICAL", "WARNING", "free()", "corrupted"):
             self.assertNotIn(bad, text, text)
 
