@@ -1,10 +1,71 @@
 # LuxOS changelog
 
 LuxOS versions are numbered `X.Y.Z`: `Y` grows with every new ISO, `Z` with bug fixes, and every major
-version carries the name of a star (currently **Polaris**). LuxOS is a rolling release: installed
+version carries the name of a star (currently **Sirius**). LuxOS is a rolling release: installed
 systems update continuously with `lux update`, so the version tells which state the system started
 from. The detailed changelog is maintained in Czech ([Czech version](/cs/zmeny/)); this page
 summarises the recent releases in English.
+
+## 1.0.1 "Sirius" – 2026-11-08 (beta)
+
+A bug-fix release of 1.0.0 "Sirius" with a new ISO. Installed systems get everything with
+`lux update`. The new Mail app stays in the staging test channel for now.
+
+### Stability and security
+- **A fork bomb no longer freezes the computer** – not in the Terminal, not anywhere else, and also
+  right after an update while the old Terminal is still running: every Terminal tab has process and
+  memory limits, and a system-wide guard stops runaway process trees before memory runs out.
+- **/tmp lives on the disk instead of in RAM** – forgotten temporary files no longer fill your
+  memory and swap. It has its own Btrfs subvolume (not part of system snapshots), is emptied at every
+  start, and existing installations switch over by themselves.
+- **Firewall on from the start – and it breaks nothing.** LuxOS has its own firewall in its own
+  nftables table (Tailscale, Podman, libvirt and Docker are left alone). Incoming connections are
+  blocked; printers and scanners, LuxDrop, mDNS, DHCP and your local network keep working. When a
+  program wants to accept connections, a notification asks **Allow / Keep Blocked**. New
+  **Settings › Firewall** and the `luxos-firewall` command.
+- **LuxAI administrator mode no longer gives passwordless root to other programs** – no polkit rule
+  is written any more (old ones are removed on update); the remembered administrator password
+  applies only to the running LuxAI, every other program gets a password dialog.
+- LuxOS Care no longer checks for updates in a predictable `/tmp` folder; kernel addresses are
+  visible only to root (`kptr_restrict`); the Canon UFR II driver no longer leaves world-writable
+  folders.
+
+### New
+- **LuxOS Store: a full description and real screenshots for every LuxOS app**, in all 13 LuxOS
+  languages; the LuxOS Apps section shows the real LuxOS apps, and the update spinner works on the
+  first open.
+- **Weather: a live sky** that matches the weather and time of day (sun, moon in its real phase,
+  clouds, fog, rain, snow, lightning), light on the battery and still when the window is in the
+  background. **No more Fahrenheit in Europe**: an English system with `en_US` now decides by your
+  place and time zone, and Weather asks once which units you want.
+- **Windows like on a Mac**: new windows open in free space, otherwise in a cascade instead of exactly
+  on top of each other. **Alt+`** (the key below Esc, in any keyboard layout) switches between the
+  windows of the current app; optional **grouped Alt+Tab** (one entry per app).
+- **Emoji & Symbols**: **Super+.** or **Ctrl+Super+Space** opens an emoji panel in any app – search
+  in your language, skin tones, recently used, Enter inserts the emoji where you were typing.
+- **Mirror / Extend / External only** in Control Center when two or more monitors are connected,
+  without a popup on connect.
+- **Terminal copies the mouse selection** to the clipboard right away (Ctrl+V elsewhere); it can be
+  turned off with `copy_on_select = false` in `~/.config/luxos/terminal.conf`.
+- **Updates merge configuration files by themselves**: new versions of files like
+  `/etc/lux/lux.conf` are merged automatically and your settings are kept; only real conflicts
+  are left for `sudo lux config-diff`.
+- **Anonymous count of active installations** (like Fedora's countme): at most once a week, no ID,
+  can be turned off; the numbers are public on the [usage page](/usage/).
+- New `line` command to pick lines of output (`line 5`, `line 1-10`, `line -1`).
+
+### Fixes
+- **Notification bell**: a clear red dot for unread notifications on light and dark bars, and a
+  replaced notification updates its history entry instead of adding a new one.
+- **Printers and scanners**: USB printers are set up only by LuxOS (no more wrong Canon CARPS2
+  driver), USB scanners no longer fail with "Invalid argument", and scanner types are shown in plain,
+  translated words.
+- **Lux Guard**: "Run in Sandbox" no longer pops up a terminal window for GUI apps and scripts.
+- **The login progress no longer stutters** and looks like the boot splash.
+- Captive portal sign-in (hotel, train) can be reopened after closing the window; WebGPU works in
+  Chromium; Wi‑Fi QR code Copy button is visible again; `luxos-care rollback` no longer reports an
+  error at the end; the LSL IDE is fully English in an English system.
+- The full list is in the [Czech changelog](/cs/zmeny/).
 
 ## 1.0.0 "Sirius" – 2026-11-04 (beta)
 
