@@ -16,7 +16,7 @@ is in `/usr/share/doc/luxai/rich-blocks.md`.
 | `chart` | bar, horizontal bar, line, area, scatter, pie or donut chart; point at it (or use the arrow keys) to read the values | "Show the population of the five biggest Czech cities as a chart." |
 | `chart` (function) | exact graph of functions like `2*x` or `sin(x)` with labelled points, axes through the origin | "Draw the graph of y = 2x and mark the point (1, 2)." |
 | `chart` (plane) | vectors, points, segments, circles and polygons on a grid with equal axes | "Show the vector (3, 4) and its length." |
-| `quiz` | questions with answer buttons, hints, explanations and a score; **Try again** | "Make a short quiz about the solar system." |
+| `quiz` | one question per card with **Back** / **Next**, hints, explanations, a score summary; **Try again** (also shuffled) or **Show all questions** | "Make a short quiz about the solar system." |
 | `form` | calculator with sliders, number fields, switches, choices and results that update at once; **Send to LuxAI** sends your values as the next message | "Make me a mortgage calculator." |
 | `table` | table sorted by clicking a column header, **Copy CSV** and **CSV** export (also for ordinary Markdown tables) | "Compare these laptops in a table." |
 | `mermaid` | flowchart, sequence diagram, state diagram, timeline or pie chart, drawn without the internet | "Draw the process as a flowchart." |
@@ -30,9 +30,26 @@ is in `/usr/share/doc/luxai/rich-blocks.md`.
 LuxAI tells the model about these blocks in its instructions (Chat and Agent mode, Flash and Lite),
 but plain text stays the default – the model uses a block only when it clearly helps.
 
+## Quizzes
+
+Since LuxAI 2.0.2-6 a quiz with two or more questions shows **one question per card**. The header
+says "Question 2/5" and has a progress bar (green = correct, red = wrong); click a segment to jump
+to that question. **Back** and **Next** slide to the neighbouring card (instantly when animations
+are turned off in LuxOS – "reduce motion"). After you answer, the card shows whether it was right,
+with the explanation. A question with several correct answers has check boxes and **Check answer**.
+
+Keyboard: click anywhere in the quiz, then use **←/→** (or Page Up/Page Down) to move, **1–9** or
+**A–D** to choose an answer, and **Enter** to check the answer or go to the next question.
+
+After the last question, **Show results** opens a summary with your score, every question marked
+✓ or ✗ (click one to go back to it), **Try again**, **Shuffle and try again** (questions in a
+different order) and **Show all questions**, which shows the whole quiz as one list with all answers
+and explanations. **One question at a time** at the top switches back. The model can ask for the
+list for a short self-check (`"mode": "list"` in the block).
+
 ## Your answers are kept
 
-Quiz answers and hints, checklist ticks, calculator values, table sorting and your permission to load
+Quiz answers, hints and the current question, checklist ticks, calculator values, table sorting and your permission to load
 a map or images are saved with the answer in the conversation (`~/.local/share/luxai`). When you open
 the conversation again later, everything is as you left it. Nothing of this is sent to the model; only
 **Send to LuxAI** in a calculator sends a message, and only when you click it.
