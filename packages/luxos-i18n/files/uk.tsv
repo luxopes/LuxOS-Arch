@@ -4831,3 +4831,7 @@ Kept your version of %s	Залишено вашу версію %s
 review a new config file version: combine, keep yours or use the new one	переглянути нову версію файлу конфігурації: поєднати, залишити свою або використати нову
 Review one with: sudo lux config-diff <file>	Перегляньте її командою: sudo lux config-diff <файл>
 New version of a configuration file: %s	Нова версія файлу конфігурації: %s
+Mail uses this access only to download, show and organize your mail on this computer. Your mail and the sign-in stay on this computer and are never sent to LuxOS or anyone else.	Пошта використовує цей доступ лише для завантаження, показу й упорядкування вашої пошти на цьому комп'ютері. Ваша пошта й вхід залишаються на цьому комп'ютері й ніколи не надсилаються LuxOS чи комусь іншому.
+Privacy Policy	Політика конфіденційності
+Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Збережені листи й вхід буде вилучено з цього комп'ютера, а доступ Пошти до вашого облікового запису %s буде відкликано. На сервері нічого не видаляється.
+Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Збережені листи й вхід буде вилучено з цього комп'ютера. На сервері нічого не видаляється.

@@ -167,6 +167,12 @@ function clean_provider(id, p):
     end
     out["auth_params"] = params
     out["refresh_scope"] = p.get("refresh_scope", False) == True
+    # volitelny koncovy bod odvolani (RFC 7009, Google): pri odebrani uctu Posta odvola sve pristupy u poskytovatele
+    revoke = p.get("revoke_url", "")
+    if revoke != "" and not safe_endpoint(revoke):
+        return {}
+    end
+    out["revoke_url"] = revoke
     imap = server(p.get("imap"), 993, "ssl")
     if len(imap) == 0:
         return {}
@@ -523,6 +529,29 @@ function refresh(p, refresh_token):
         pairs.append(["scope", p["scope"]])
     end
     return token_request(p, pairs, True)
+end
+
+# Odvolani pristupu Posty u poskytovatele (RFC 7009) pri odebrani uctu: token jen v tele POST (nikdy v adrese).
+# Po odvolani obnovovaciho tokenu Google zrusi cele udeleni (Posta zmizi z myaccount.google.com/permissions).
+# True = poskytovatel odvolani potvrdil (nebo token uz neplatil); False = nema koncovy bod nebo neni spojeni.
+function revoke(p, token):
+    url = p.get("revoke_url", "")
+    if url == "" or token == "":
+        return False
+    end
+    resp = {}
+    ok = True
+    try:
+        resp = http.post(url, form([["token", token]]), {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}, 8)
+    else:
+        ok = False
+    end
+    if not ok:
+        return False
+    end
+    status = resp.get("status", 0)
+    # 200 odvolano; 400 invalid_token = token uz neplatil (napr. uzivatel pristup odebral sam)
+    return status == 200 or status == 400
 end
 
 # E-mail z id_token (OpenID Connect). Token prisel primo z koncoveho bodu tokenu pres TLS, podpis se proto

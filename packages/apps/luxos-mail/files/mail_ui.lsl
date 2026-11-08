@@ -41,6 +41,8 @@ ROLE_ICONS = {"inbox": ["mail-inbox-symbolic", "mail-unread-symbolic"], "sent": 
               "": ["folder-symbolic", "folder-symbolic"]}
 # radku seznamu najednou (dalsi pri posunu dolu): rychlejsi spusteni a mene widgetu
 PAGE = 25
+PRIVACY_URL = "https://luxos.lux-ai.cz/privacy/#google-user-data"
+PRIVACY_URL_CS = "https://luxos.lux-ai.cz/cs/privacy/#google-user-data"
 
 ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view": 0, "text": 0, "text_scroll": 0,
       "h_from": 0, "h_to": 0, "h_cc": 0, "h_date": 0, "h_subject": 0, "h_note": 0, "att_bar": 0, "att_box": 0,
@@ -1773,9 +1775,21 @@ function on_menu_sign_in_again(id, item):
     return 0
 end
 
+# Text potvrzeni odebrani: u uctu OAuth neni heslo, ale prihlaseni (a u Googlu se pristup Posty i odvola)
+function remove_text(a):
+    if a.get("auth", "") == "oauth":
+        p = oauth.provider(String(a.get("provider", "")))
+        if len(p) > 0 and p.get("revoke_url", "") != "":
+            return i18n.TF("Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.", [p["name"]])
+        end
+        return i18n.T("Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.")
+    end
+    return i18n.T("Saved messages and the password are removed from this computer. Nothing is deleted on the server.")
+end
+
 function on_menu_remove(id, item):
     a = account(id)
-    if confirm(i18n.TF("Remove %s?", [a.get("email", "")]), i18n.T("Saved messages and the password are removed from this computer. Nothing is deleted on the server."), i18n.T("Remove")):
+    if confirm(i18n.TF("Remove %s?", [a.get("email", "")]), remove_text(a), i18n.T("Remove")):
         call request("remove_account", {"account": id}, {})
     end
     return 0
@@ -1948,17 +1962,41 @@ function oauth_widgets():
     call gtk.label_set_line_wrap(l, True)
     call gtk.label_set_max_width_chars(l, 56)
     call gtk.box_pack_start(box, l, False, False, 0)
+    # viditelne upozorneni pred souhlasem u poskytovatele (zasady Google API Services User Data Policy):
+    # k cemu Posta pristup pouzije a ze data zustavaji jen v tomto pocitaci
+    use = label(i18n.T("Mail uses this access only to download, show and organize your mail on this computer. Your mail and the sign-in stay on this computer and are never sent to LuxOS or anyone else."), "dim small")
+    call gtk.label_set_line_wrap(use, True)
+    call gtk.label_set_max_width_chars(use, 56)
+    call gtk.box_pack_start(box, use, False, False, 0)
     b = gtk.button_new("")
     call gtk.widget_add_class(b, "suggested-action")
     call gtk.box_pack_start(box, b, False, False, 0)
+    row = gtk.box_new(gtk.HORIZONTAL, 8)
     alt = gtk.button_new(i18n.T("Use an app password instead"))
     call gtk.button_set_relief(alt, gtk.RELIEF_NONE)
-    call gtk.widget_set_halign(alt, gtk.ALIGN_START)
-    call gtk.box_pack_start(box, alt, False, False, 0)
-    w = {"box": box, "label": l, "button": b, "alt": alt}
+    call gtk.box_pack_start(row, alt, False, False, 0)
+    privacy = gtk.button_new(i18n.T("Privacy Policy"))
+    call gtk.button_set_relief(privacy, gtk.RELIEF_NONE)
+    call gtk.box_pack_end(row, privacy, False, False, 0)
+    call gtk.box_pack_start(box, row, False, False, 0)
+    w = {"box": box, "label": l, "use": use, "button": b, "alt": alt, "privacy": privacy}
     call gtk.connect(b, "clicked", on_oauth_clicked)
     call gtk.connect(alt, "clicked", on_use_password)
+    call gtk.connect(privacy, "clicked", on_privacy_clicked)
     return w
+end
+
+# Zasady ochrany soukromi LuxOS (oddil o datech z Google a dalsich poskytovatelu) v prohlizeci
+function privacy_url():
+    if i18n.lang() == "cs":
+        return PRIVACY_URL_CS
+    end
+    return PRIVACY_URL
+end
+
+function on_privacy_clicked(button):
+    call open_url(privacy_url())
+    return 0
 end
 
 # Rezim okna podle poskytovatele: s client ID tlacitko "Prihlasit se ..." (heslo skryte), jinak heslo

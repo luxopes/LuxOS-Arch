@@ -1,0 +1,106 @@
+    <article class="doc panel legal">
+      {{CRUMBS}}
+      <h1>Zásady ochrany soukromí</h1>
+      <p class="lead">Jak LuxOS a jeho aplikace – včetně Pošty LuxOS (LuxOS Mail) – zacházejí s vašimi daty. Naposledy upraveno: {{UPDATED}}. Závazné je <a href="/privacy/">anglické znění</a>; tento překlad má stejný obsah.</p>
+
+      <p>LuxOS je navržený tak, aby vaše data zůstávala ve vašem počítači. Většina LuxOS funguje úplně bez internetu. Tyto zásady vyjmenovávají všechny případy, kdy software LuxOS posílá data z vašeho počítače na server provozovaný LuxOS, a případy, kdy se vaším jménem připojuje ke službám třetích stran.</p>
+
+      <nav class="legal-toc" aria-label="Obsah">
+        <ol>
+          <li><a href="#who">Kdo odpovídá</a></li>
+          <li><a href="#google-user-data">Pošta LuxOS a data uživatelů Google</a></li>
+          <li><a href="#countme">Anonymní týdenní počítání (countme)</a></li>
+          <li><a href="#luxai">Účet LuxAI a asistent LuxAI</a></li>
+          <li><a href="#feedback">Zpětná vazba a hlášení chyb</a></li>
+          <li><a href="#updates">Aktualizace, Obchod a repozitáře</a></li>
+          <li><a href="#other">Další funkce s internetem</a></li>
+          <li><a href="#website">Tento web</a></li>
+          <li><a href="#rights">Vaše práva</a></li>
+          <li><a href="#changes">Změny zásad</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="who">1. Kdo odpovídá</h2>
+      <p>LuxOS a Poštu LuxOS vyvíjí a provozuje Antonín Tomeček, Česká republika („LuxOS“, „my“). Kontakt pro jakékoli otázky a žádosti týkající se soukromí: <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>. Weby: <a href="https://luxos.lux-ai.cz/cs/">luxos.lux-ai.cz</a> a <a href="https://lux-ai.cz">lux-ai.cz</a>.</p>
+      <p>Osobní údaje neprodáváme, nezobrazujeme reklamu a vaše data nepoužíváme k reklamě ani profilování.</p>
+
+      <h2 id="google-user-data">2. Pošta LuxOS a data uživatelů Google</h2>
+      <p><a href="/cs/mail/">Pošta LuxOS</a> je poštovní aplikace LuxOS. Je to desktopový poštovní klient, který běží celý ve vašem počítači a připojuje se přímo k vašemu poskytovateli pošty přes IMAP. Když u adresy Gmail nebo Google Workspace zvolíte <strong>„Přihlásit se Googlem“</strong>, Pošta získá přístup ke schránce přes Google OAuth. Tento oddíl přesně popisuje, co se děje s daty, která Pošta od Googlu dostane.</p>
+
+      <h3 id="google-data-accessed">K jakým datům Pošta přistupuje</h3>
+      <ul>
+        <li><strong>Schránka Gmail</strong> (rozsah <code>https://mail.google.com/</code>): složky (štítky Gmailu), hlavičky zpráv (odesílatel, příjemci, předmět, datum), texty zpráv a přílohy a příznaky zpráv, např. přečteno/nepřečteno. Poštu Pošta mění jen na váš pokyn (označit jako přečtené/nepřečtené, přesunout do koše). Tento rozsah je nutný, protože Pošta je plnohodnotný poštovní klient IMAP: Google povoluje přístup přes IMAP a SMTP jen s tímto rozsahem.</li>
+        <li><strong>Vaše e-mailová adresa</strong> (rozsahy <code>openid</code> a <code>email</code> – <code>userinfo.email</code>): jen ke kontrole, ke kterému účtu Google jste se přihlásili, aby účet v Poště odpovídal zadané adrese.</li>
+      </ul>
+      <p>Pošta nežádá o přístup ke kontaktům, kalendáři, Disku ani k žádným jiným datům Google.</p>
+
+      <h3 id="google-data-use">K čemu se data používají</h3>
+      <p>Pošta používá data uživatelů Google jen k funkcím, které vidíte a používáte ve svém počítači:</p>
+      <ul>
+        <li>ke stažení zpráv a složek a jejich zobrazení v aplikaci,</li>
+        <li>k uchování místní kopie, abyste mohli poštu číst bez internetu a hledat v ní,</li>
+        <li>k upozornění na novou poštu, když aplikace běží na pozadí,</li>
+        <li>k provedení vašich akcí, např. otevření složky, označení zprávy jako přečtené či nepřečtené nebo přesunu do koše,</li>
+        <li>až přibude odesílání: k odeslání zpráv, které napíšete.</li>
+      </ul>
+      <p>Pošta data uživatelů Google <strong>nepoužívá</strong> k reklamě, neprodává je ani nepředává zprostředkovatelům dat, nepoužívá je k posuzování úvěruschopnosti ani k půjčkám a nepoužívá je k vytváření, trénování ani zlepšování modelů umělé inteligence či strojového učení. Nikdo z LuxOS vaši poštu nečte – data se k nám vůbec nedostanou.</p>
+
+      <h3 id="google-data-storage">Kde jsou data uložená</h3>
+      <ul>
+        <li><strong>Jen ve vašem počítači.</strong> Otevřené či stažené zprávy a seznam složek jsou ve vaší domovské složce (<code>~/.local/share/luxos-mail</code>), abyste je mohli číst offline. Nastavení účtu (adresa, názvy serverů) je v <code>~/.config/luxos-mail</code>.</li>
+        <li><strong>Obnovovací token</strong> Googlu je uložený v klíčence vaší plochy (Secret Service / GNOME Keyring), která je šifrovaná vaším přihlašovacím heslem. Krátkodobý přístupový token je jen v paměti. Tokeny se nikdy nezapisují do logů ani do běžných souborů.</li>
+        <li>Spojení mezi vaším počítačem a Googlem (IMAP, OAuth) je vždy šifrované (TLS).</li>
+      </ul>
+
+      <h3 id="google-data-sharing">Předávání dat</h3>
+      <p>Data uživatelů Google se <strong>nikdy nepřenášejí na servery LuxOS</strong> ani žádné třetí straně. Pošta komunikuje s Googlem (accounts.google.com, oauth2.googleapis.com, imap.gmail.com, smtp.gmail.com) přímo z vašeho počítače. Mezi nimi není žádný server LuxOS a k LuxOS se nedostane žádná část vaší pošty, adresa ani tokeny.</p>
+      <p>Jediný server LuxOS, na který se Pošta obrací, je <code>https://luxos.lux-ai.cz/mail-oauth.json</code> – stažení veřejných identifikátorů klienta OAuth Pošty (nejvýš jednou denně). Tento požadavek neobsahuje žádná data uživatele.</p>
+      <p>Pošta nepředává data uživatelů Google jiným aplikacím. Výjimkou jsou jen akce, které provedete sami – například uložení přílohy do zvolené složky nebo její otevření v jiné aplikaci.</p>
+
+      <h3 id="google-limited-use">Prohlášení o omezeném použití (Limited Use)</h3>
+      <p class="legal-statement" lang="en">LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes">Limited Use requirements</a>.</p>
+      <p>Česky: Používání informací získaných z rozhraní Google API Poštou LuxOS a jejich předávání jiným aplikacím se řídí <a href="https://developers.google.com/terms/api-services-user-data-policy">zásadami Google API Services User Data Policy</a> včetně požadavků na omezené použití (Limited Use).</p>
+
+      <h3 id="google-revoke">Smazání dat a odvolání přístupu</h3>
+      <ul>
+        <li><strong>Odeberte účet v Poště</strong> (nabídka → Odebrat <em>adresu</em>…): Pošta smaže všechny místně uložené zprávy, složky a nastavení účtu, smaže token z klíčenky a požádá Google o zrušení přístupu Pošty (<code>oauth2.googleapis.com/revoke</code>). Ve vaší schránce Gmail se nic nesmaže.</li>
+        <li><strong>Odvolejte přístup v účtu Google</strong> kdykoli: <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> → LuxOS Mail → Smazat všechna propojení. Pošta pak už žádná data nedostane a požádá vás o nové přihlášení.</li>
+        <li>Odinstalování Pošty nemaže domovskou složku; nejdřív odeberte účet v aplikaci, nebo smažte <code>~/.local/share/luxos-mail</code> a <code>~/.config/luxos-mail</code>.</li>
+      </ul>
+      <p>Protože LuxOS žádná vaše data od Googlu nemá, nemáme u sebe co mazat – ale vždy se můžete zeptat na <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>.</p>
+
+      <h3 id="mail-other-providers">Ostatní poskytovatelé pošty</h3>
+      <p>Stejná pravidla platí pro každý účet v Poště (Microsoft, Seznam, vlastní server a další): pošta a hesla či tokeny zůstávají ve vašem počítači a jdou jen k vašemu poskytovateli pošty. K nalezení nastavení serveru pro novou adresu se Pošta ptá na adrese autoconfig samotného poskytovatele, ve veřejné databázi Thunderbird ISPDB (<code>autoconfig.thunderbird.net</code>, která dostane jen doménu adresy, např. <code>gmail.com</code>) a v DNS.</p>
+
+      <h2 id="countme">3. Anonymní týdenní počítání (countme)</h2>
+      <p>Abychom zhruba věděli, kolik počítačů LuxOS používá, správce balíků jednou týdně při aktualizaci seznamu balíků odešle anonymní požadavek: verzi LuxOS, architekturu, kanál aktualizací (stable/staging) a přibližné stáří instalace (první týden, do měsíce, do půl roku, déle). Neukládá se žádný identifikátor, jméno uživatele, údaje o hardwaru ani nic odvozeného z IP adresy – server si drží jen týdenní součty, které jsou veřejné na <a href="/cs/pouzivani/">stránce o používání</a>. Požadavky na tuto adresu se nezapisují do přístupových logů. Ve výchozím stavu je zapnuté; vypnout jde v Aktualizaci softwaru (Soukromí), v instalátoru nebo volbou <code>countme = false</code> v <code>/etc/lux/lux.conf</code>. Z živého ISO se nic neodesílá.</p>
+
+      <h2 id="luxai">4. Účet LuxAI a asistent LuxAI</h2>
+      <p>Účet LuxAI je dobrovolný. LuxOS funguje i bez něj.</p>
+      <ul>
+        <li><strong>Údaje účtu:</strong> při založení účtu na lux-ai.cz ukládáme jméno, e-mail, uživatelské jméno, heslo (v chráněné podobě), vaše nastavení (např. styl odpovědí), verzi přijatých podmínek, měsíční využití asistenta a – pokud je používáte – historii chatu na webu a soubory uložené do cloudu LSL IDE. V počítači je přihlášení uložené v <code>~/.config/luxai/account.json</code>.</li>
+        <li><strong>Asistent LuxAI:</strong> to, na co se ptáte LuxAI, Lux Code nebo LSL IDE (vaše zprávy a cokoli přiložíte, např. snímek obrazovky nebo soubor), se posílá službě LuxAI na lux-ai.cz, aby vznikla odpověď. Konverzace v desktopové aplikaci jsou uložené i místně v <code>~/.local/share/luxai</code>. Vyhledávání na webu jde přes lux-ai.cz, a když není dostupné, přes DuckDuckGo; LuxAI se před použitím sítě zeptá.</li>
+        <li><strong>LuxOS Care</strong> (jste-li přihlášeni): když Care najde vážný problém, který nezná, může LuxAI poslat název problému, jeho diagnózu a nabízené možnosti, aby navrhla řešení. <strong>Instalace komunitních balíků (AUR)</strong> (jste-li přihlášeni): skript sestavení balíku se posílá LuxAI ke kontrole bezpečnosti.</li>
+        <li><strong>Schránky LuxAI</strong> (@lux-ai.cz): poštovní server kvůli bezpečnosti zaznamenává přihlášení (účet a IP adresu), např. k zablokování hádání hesel.</li>
+        <li><strong>Zrušení účtu:</strong> napište na <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a> z adresy svého účtu. Data si můžete vyexportovat v nastavení účtu.</li>
+      </ul>
+      <p>Pošta LuxOS nikdy neposílá data uživatelů Google do LuxAI a LuxAI nemá k poště v Poště přístup.</p>
+
+      <h2 id="feedback">5. Zpětná vazba a hlášení chyb</h2>
+      <p>Zpětná vazba se odešle jen tehdy, když v aplikaci Zpětná vazba stisknete <em>Odeslat</em> (nebo odeslání potvrdíte v LuxAI). Hlášení obsahuje vaši zprávu, druh hlášení a aplikaci; volitelně e-mail pro odpověď, snímek obrazovky (ve výchozím stavu vypnutý) a informace o systému (ve výchozím stavu zapnuté, jde je odškrtnout): systém a verzi, model počítače, procesor, grafiku, paměť a místo na disku, relaci plochy, jazyk, verze důležitých balíků a poslední chybové řádky ze systémových logů. Z řádků logů se před odesláním odstraní cesta k domovské složce, jméno uživatele, název počítače, e-mailové a IP adresy a řetězce podobné tokenům. Jste-li přihlášeni k LuxAI, hlášení se spojí s vaším účtem; jinak je anonymní. Hlášení čte jen vývojář LuxOS kvůli opravě problémů. Automatické hlášení pádů neexistuje.</p>
+
+      <h2 id="updates">6. Aktualizace, Obchod a repozitáře</h2>
+      <p>Aktualizace a aplikace se stahují z repozitářů LuxOS (luxos.lux-ai.cz/repo), ze zrcadel Arch Linuxu a – pokud je používáte – z Flathubu a AUR. Tyto požadavky neobsahují žádné identifikátory uživatele, jen to, co obsahuje každé stahování (vaši IP adresu a požadovaný soubor). Obchod nemá účty, hodnocení ani sledování.</p>
+
+      <h2 id="other">7. Další funkce s internetem</h2>
+      <p>Některé aplikace se při použití obracejí na služby třetích stran: Počasí (Open-Meteo; poloha podle časového pásma, nebo z ipinfo.io až po vašem souhlasu), Mapy (dlaždice OpenStreetMap, vyhledávání Nominatim a Photon, služby pro trasy a veřejnou dopravu; našeptávání pro Česko a Slovensko jde přes luxos.lux-ai.cz/geocode bez logů), kontrola připojení k síti (ping.archlinux.org), synchronizace času a zjištění časového pásma v instalátoru (ip-api.com). Tyto služby dostanou jen to, co je pro požadavek nutné, a platí pro ně jejich vlastní zásady. LuxDrop a LuxOS Companion fungují jen v místní síti nebo přes Bluetooth.</p>
+
+      <h2 id="website">8. Tento web</h2>
+      <p>luxos.lux-ai.cz nepoužívá cookies, analytiku ani sledovací nástroje třetích stran. Volba světlého/tmavého vzhledu se ukládá jen ve vašem prohlížeči (local storage). Jako každý webový server dostává s každým požadavkem vaši IP adresu, aby mohl stránku doručit.</p>
+
+      <h2 id="rights">9. Vaše práva</h2>
+      <p>Podle GDPR máte právo na přístup ke svým osobním údajům, jejich opravu, výmaz a přenesení, na omezení zpracování a vznesení námitky a na odvolání souhlasu kdykoli. Napište na <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>. Stížnost můžete podat také u <a href="https://uoou.gov.cz/">Úřadu pro ochranu osobních údajů</a>. Údaje účtu zpracováváme, abychom poskytli službu, o kterou jste požádali (smlouva), zpětnou vazbu a hlášení na základě vašeho souhlasu a anonymní počítání na základě oprávněného zájmu vědět, jak se LuxOS používá.</p>
+
+      <h2 id="changes">10. Změny zásad</h2>
+      <p>Pokud změníme způsob, jakým LuxOS zachází s daty, upravíme tuto stránku a datum nahoře. Změny v tom, jak Pošta používá data uživatelů Google, vždy oznámíme předem. Viz také <a href="/cs/terms/">Podmínky použití</a>.</p>
+    </article>

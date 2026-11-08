@@ -9,9 +9,10 @@ s novym ISO), verze z packages/luxos-branding/files/version, dokumentace z luxos
 (packages/apps/luxos-docs/docs, stejna jako offline v LuxOS) doplnena strankami z site/content
 (LuxAI, Lux Code, hardware, zkratky, FAQ; cs/ = ceske verze), seznam zmen z CHANGELOG.md
 (cesky) a site/content/en/changes.md (anglicky), stranka o pouzivani (countme) ze sablon
-usage.en.html a usage.cs.html (grafy kresli usage.js z /stats/usage.json, ktery vytvari server).
+usage.en.html a usage.cs.html (grafy kresli usage.js z /stats/usage.json, ktery vytvari server),
+stranky Posty LuxOS, zasad ochrany soukromi a podminek ze site/pages (mail, privacy, terms).
 Vystup: index.html, cs/index.html, release.json (aktualni vydani, nacita ho i stranka), docs/,
-cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, sitemap.xml, robots.txt, download/index.html (presmerovani
+cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), sitemap.xml, robots.txt, download/index.html (presmerovani
 na /#download - ISO a podpisy zustavaji v /download/). Kontrola odkazu: scripts/check-site.py.
 """
 import datetime
@@ -36,6 +37,11 @@ FINGERPRINT = "FD18 5DAB 7701 40E8 9C37 275E 7035 CFDF DCA6 C991"
 LANGS = ("en", "cs")
 OTHER = {"en": "cs", "cs": "en"}
 OG_IMAGE = BASE + "/assets/shots/desktop-dark.webp"
+# Stranky Posty LuxOS a pravni stranky (overeni aplikace OAuth u Googlu: domovska stranka aplikace,
+# zasady ochrany soukromi a podminky na overene domene). Sablony site/pages/<nazev>.<jazyk>.html,
+# datum posledni zmeny zasad a podminek se meni rucne (s obsahem).
+LEGAL_UPDATED = "2026-11-08"
+PAGES = ("mail", "privacy", "terms")
 
 MONTHS_CS = ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září",
              "října", "listopadu", "prosince"]
@@ -88,6 +94,16 @@ T = {
         "usage_title": "LuxOS usage – weekly active computers, versions and retention",
         "usage_desc": ("How many computers run LuxOS each week, how many keep using it and which versions they run. "
                        "Anonymous weekly counts (countme): what is sent and how to turn it off."),
+        "mail": "LuxOS Mail", "privacy": "Privacy", "terms": "Terms",
+        "mail_crumb": "LuxOS Mail", "privacy_crumb": "Privacy Policy", "terms_crumb": "Terms of Use",
+        "mail_title": "LuxOS Mail – light desktop mail app for Gmail and any IMAP mailbox",
+        "mail_desc": ("LuxOS Mail is a light desktop mail client for LuxOS: Gmail, Microsoft and any IMAP mailbox, instant "
+                      "notifications, offline reading. Your mail stays on your computer."),
+        "privacy_title": "Privacy Policy – LuxOS and LuxOS Mail",
+        "privacy_desc": ("How LuxOS and LuxOS Mail handle your data: Google user data stays on your computer, anonymous "
+                         "countme, LuxAI account, feedback reports and your rights."),
+        "terms_title": "Terms of Use – LuxOS and LuxOS Mail",
+        "terms_desc": "Terms of use for LuxOS, LuxOS Mail and the other LuxOS apps: free software, no warranty, third-party services.",
     },
     "cs": {
         "locale": "cs_CZ", "home": "Domů", "features": "Funkce", "gallery": "Galerie",
@@ -114,6 +130,16 @@ T = {
         "usage_title": "Používání LuxOS – aktivní počítače po týdnech, verze a věrnost",
         "usage_desc": ("Kolik počítačů každý týden používá LuxOS, kolik lidí u něj zůstává a jaké verze mají. "
                        "Anonymní týdenní součty (countme): co se odesílá a jak to vypnout."),
+        "mail": "Pošta LuxOS", "privacy": "Soukromí", "terms": "Podmínky",
+        "mail_crumb": "Pošta LuxOS", "privacy_crumb": "Zásady ochrany soukromí", "terms_crumb": "Podmínky použití",
+        "mail_title": "Pošta LuxOS (LuxOS Mail) – lehká poštovní aplikace pro Gmail a IMAP",
+        "mail_desc": ("Pošta LuxOS je lehký poštovní klient pro LuxOS: Gmail, Microsoft a jakákoli schránka IMAP, okamžitá "
+                      "upozornění, čtení offline. Vaše pošta zůstává ve vašem počítači."),
+        "privacy_title": "Zásady ochrany soukromí – LuxOS a Pošta LuxOS",
+        "privacy_desc": ("Jak LuxOS a Pošta LuxOS zacházejí s daty: data uživatelů Google zůstávají ve vašem počítači, anonymní "
+                         "countme, účet LuxAI, hlášení chyb a vaše práva."),
+        "terms_title": "Podmínky použití – LuxOS a Pošta LuxOS",
+        "terms_desc": "Podmínky použití LuxOS, Pošty LuxOS a dalších aplikací LuxOS: svobodný software, bez záruky, služby třetích stran.",
     },
 }
 
@@ -174,6 +200,11 @@ def changes_url(lang):
 
 def usage_url(lang):
     return "/usage/" if lang == "en" else "/cs/pouzivani/"
+
+
+def page_url(lang, name):
+    """Stranky site/pages: /mail/, /privacy/, /terms/ (cs: /cs/mail/ ...)."""
+    return ("/" if lang == "en" else "/cs/") + name + "/"
 
 
 def doc_url(lang, path):
@@ -309,6 +340,9 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
                   f'<a href="{doc_url(lang if lang in DOCS_BY_PATH["luxos/faq.md"]["src"] else "en", "luxos/faq.md")}">{e(t["faq"])}</a>'
                   f'<a href="{changes_url(lang)}">{e(t["changes"])}</a><a href="{usage_url(lang)}">{e(t["usage"])}</a>'
                   f'<a href="/repo/">{e(t["repos"])}</a>'
+                  f'<a href="{page_url(lang, "mail")}">{e(t["mail"])}</a>'
+                  f'<a href="{page_url(lang, "privacy")}">{e(t["privacy"])}</a>'
+                  f'<a href="{page_url(lang, "terms")}">{e(t["terms"])}</a>'
                   f'<a href="https://github.com/luxopes/luxos-kernel">{e(t["kernel"])}</a>'
                   f'<a href="https://lux-ai.cz">lux-ai.cz</a>')
     dlg = ""
@@ -635,6 +669,38 @@ def main():
         write(path.lstrip("/") + "index.html",
               shell(lang, path, t["usage_title"], t["usage_desc"], text.rstrip("\n"), ualt, "", stamp, "website",
                     ld, scripts=("usage.js",)))
+
+    # ---- Posta LuxOS, zasady ochrany soukromi, podminky ----
+    for name in PAGES:
+        palt = {l: page_url(l, name) for l in LANGS}
+        for lang in LANGS:
+            t = T[lang]
+            path = page_url(lang, name)
+            trail = [(t["crumb_home"], home_url(lang)), (t[name + "_crumb"], path)]
+            crumbs = ('<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>'
+                      f'<li><a href="{trail[0][1]}">{e(trail[0][0])}</a></li>'
+                      f'<li aria-current="page">{e(trail[1][0])}</li></ol></nav>')
+            with open(os.path.join(SITE, "pages", f"{name}.{lang}.html")) as f:
+                text = f.read()
+            for k, v in {"CRUMBS": crumbs, "UPDATED": fmt_date(LEGAL_UPDATED, lang)}.items():
+                text = text.replace("{{" + k + "}}", v)
+            left = re.findall(r"\{\{[A-Za-z_:/.-]+\}\}", text)
+            if left:
+                sys.exit(f"build-site: unfilled placeholders in pages/{name}.{lang}.html {left}")
+            ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList",
+                   "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": abs_url(h)}
+                                       for i, (n, h) in enumerate(trail)]}]
+            if name == "mail":
+                ld.append({"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "LuxOS Mail",
+                           "applicationCategory": "CommunicationApplication", "operatingSystem": "LuxOS (Linux)",
+                           "description": t["mail_desc"], "url": abs_url(path), "inLanguage": lang,
+                           "image": BASE + "/assets/luxos-mail.svg",
+                           "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+                           "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+                           "publisher": {"@type": "Organization", "name": "LuxOS", "url": BASE + "/"}})
+            write(path.lstrip("/") + "index.html",
+                  shell(lang, path, t[name + "_title"], t[name + "_desc"], text.rstrip("\n"), palt, "", stamp,
+                        "website", ld))
 
     for name in ("styles.css", "script.js", "usage.js"):
         shutil.copy(os.path.join(SITE, name), os.path.join(OUT, name))

@@ -4830,3 +4830,7 @@ Kept your version of %s	Din version av %s behölls
 review a new config file version: combine, keep yours or use the new one	granska en ny version av en konfigurationsfil: kombinera, behåll din eller använd den nya
 Review one with: sudo lux config-diff <file>	Granska den med: sudo lux config-diff <fil>
 New version of a configuration file: %s	Ny version av en konfigurationsfil: %s
+Mail uses this access only to download, show and organize your mail on this computer. Your mail and the sign-in stay on this computer and are never sent to LuxOS or anyone else.	E-post använder den här åtkomsten bara för att hämta, visa och ordna din e-post på den här datorn. Din e-post och inloggningen stannar på den här datorn och skickas aldrig till LuxOS eller någon annan.
+Privacy Policy	Integritetspolicy
+Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Sparade meddelanden och inloggningen tas bort från den här datorn, och E-posts åtkomst till ditt %s-konto återkallas. Inget raderas på servern.
+Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Sparade meddelanden och inloggningen tas bort från den här datorn. Inget raderas på servern.
