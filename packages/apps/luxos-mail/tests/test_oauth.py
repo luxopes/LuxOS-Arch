@@ -257,9 +257,38 @@ class GoogleOAuthTest(OAuthBase):
     def test_remove_account_clears_keyring(self):
         r, page, ev = self.sign_in("google", GMAIL)
         acc = ev["account"]
-        self.assertNotEqual(self.s.secret_lookup(acc), "")
-        self.c.call("remove_account", account=acc)
+        rt = self.s.secret_lookup(acc)
+        self.assertNotEqual(rt, "")
+        r = self.c.call("remove_account", account=acc)
         self.assertEqual(self.s.secret_lookup(acc), "")
+        # pristup Posty odvolan u Googlu (RFC 7009): obnovovaci token v tele POST, ne v adrese
+        self.assertTrue(r["revoked"], self.s.service_log())
+        self.assertEqual(self.google.revoked, [rt])
+        rev = [x for x in self.google.token_requests if x["path"] == "/revoke"]
+        self.assertEqual(rev[0]["content_type"], "application/x-www-form-urlencoded")
+        self.assertNotIn(rt, self.s.service_log())
+        self.assertEqual(self.accounts(), [])
+        self.assertFalse(os.path.exists(os.path.join(self.s.env["XDG_DATA_HOME"], "luxos-mail", acc)))
+
+    def test_remove_account_revoke_unreachable(self):
+        """Bez spojeni s poskytovatelem se ucet z pocitace smaze stejne (odvolani je jen navic)."""
+        r, page, ev = self.sign_in("google", GMAIL)
+        acc = ev["account"]
+        self.google.stop()
+        r = self.c.call("remove_account", account=acc)
+        self.assertTrue(r["ok"])
+        self.assertFalse(r["revoked"])
+        self.assertEqual(self.s.secret_lookup(acc), "")
+        self.assertEqual(self.accounts(), [])
+
+    def test_remove_account_already_revoked(self):
+        """Uzivatel uz pristup odebral v uctu Google: invalid_token = hotovo, ucet se smaze."""
+        r, page, ev = self.sign_in("google", GMAIL)
+        acc = ev["account"]
+        self.google.revoke_refresh()
+        r = self.c.call("remove_account", account=acc)
+        self.assertTrue(r["revoked"])
+        self.assertEqual(self.accounts(), [])
 
 
 class ExpiringTokenTest(OAuthBase):
@@ -308,6 +337,11 @@ class MicrosoftOAuthTest(OAuthBase):
         self.assertNotEqual(first, second)
         self.assertEqual(second, list(self.ms.refresh_tokens.keys())[0])
         self.assert_no_secrets_in_files(self.ms)
+        # Microsoft nema koncovy bod odvolani: odebrani jen smaze vse mistni
+        r = self.c.call("remove_account", account=acc)
+        self.assertEqual((r["ok"], r["revoked"]), (True, False))
+        self.assertEqual([x for x in self.ms.token_requests if x["path"] == "/revoke"], [])
+        self.assertEqual(self.s.secret_lookup(acc), "")
 
     def test_username_without_email_claim(self):
         # pracovni ucet bez "email" v id_token: zadana adresa
@@ -570,6 +604,9 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(out["google"]["imap"], {"host": "imap.gmail.com", "port": 993, "security": "ssl"})
         self.assertEqual(out["microsoft"]["smtp"], {"host": "smtp.office365.com", "port": 587, "security": "starttls"})
         self.assertEqual(out["microsoft"]["redirect_host"], "localhost")
+        # odvolani pristupu pri odebrani uctu: jen Google (Microsoft koncovy bod nema)
+        self.assertEqual(out["google"]["revoke_url"], "https://oauth2.googleapis.com/revoke")
+        self.assertEqual(out["microsoft"]["revoke_url"], "")
 
     def test_admin_override(self):
         with open(self.s.env["LUXOS_MAIL_OAUTH_ADMIN"], "w") as f:
@@ -586,6 +623,10 @@ class ConfigTest(unittest.TestCase):
         out = self.providers()["providers"]
         self.assertNotIn("microsoft", out)
         self.assertNotIn("google", out)
+        # odvolani jen pres HTTPS (token by jinak sel necifrovane)
+        with open(self.s.env["LUXOS_MAIL_OAUTH_ADMIN"], "w") as f:
+            json.dump({"providers": {"google": {"revoke_url": "http://evil.example/revoke"}}}, f)
+        self.assertNotIn("google", self.providers()["providers"])
 
     def test_remote_ids_fill_only_missing(self):
         self.assertTrue(self.providers()["remote_due"])

@@ -1,0 +1,105 @@
+    <article class="doc panel legal">
+      {{CRUMBS}}
+      <h1>Privacy Policy</h1>
+      <p class="lead">How LuxOS and its apps – including LuxOS Mail – handle your data. Last updated: {{UPDATED}}.</p>
+
+      <p>LuxOS is designed so that your data stays on your computer. Most of LuxOS works fully offline. This policy lists every case where LuxOS software sends data from your computer to a server operated by LuxOS, and the cases where it connects to third-party services on your behalf.</p>
+
+      <nav class="legal-toc" aria-label="Contents">
+        <ol>
+          <li><a href="#who">Who is responsible</a></li>
+          <li><a href="#google-user-data">LuxOS Mail and Google user data</a></li>
+          <li><a href="#countme">Anonymous weekly count (countme)</a></li>
+          <li><a href="#luxai">LuxAI account and the LuxAI assistant</a></li>
+          <li><a href="#feedback">Feedback and bug reports</a></li>
+          <li><a href="#updates">Updates, Store and repositories</a></li>
+          <li><a href="#other">Other online features</a></li>
+          <li><a href="#website">This website</a></li>
+          <li><a href="#rights">Your rights</a></li>
+          <li><a href="#changes">Changes to this policy</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="who">1. Who is responsible</h2>
+      <p>LuxOS and LuxOS Mail are developed and operated by Antonín Tomeček, Czech Republic (“LuxOS”, “we”). Contact for any privacy question or request: <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>. Websites: <a href="https://luxos.lux-ai.cz/">luxos.lux-ai.cz</a> and <a href="https://lux-ai.cz">lux-ai.cz</a>.</p>
+      <p>We do not sell personal data, we do not show ads, and we do not use your data for advertising or profiling.</p>
+
+      <h2 id="google-user-data">2. LuxOS Mail and Google user data</h2>
+      <p><a href="/mail/">LuxOS Mail</a> is the mail app of LuxOS. It is a desktop mail client that runs entirely on your computer and connects directly to your mail provider over IMAP. If you choose <strong>“Sign in with Google”</strong> for a Gmail or Google Workspace address, LuxOS Mail uses Google OAuth to get access to your mailbox. This section describes exactly what happens with the data LuxOS Mail receives from Google.</p>
+
+      <h3 id="google-data-accessed">Data accessed</h3>
+      <ul>
+        <li><strong>Gmail mailbox</strong> (scope <code>https://mail.google.com/</code>): your folders (Gmail labels), message headers (sender, recipients, subject, date), message bodies and attachments, and message flags such as read/unread. LuxOS Mail can change mail only when you ask it to (mark as read/unread, move to Trash). This scope is needed because LuxOS Mail is a full IMAP mail client: Google only allows IMAP and SMTP access with this scope.</li>
+        <li><strong>Your e-mail address</strong> (scopes <code>openid</code> and <code>email</code> – <code>userinfo.email</code>): only to check which Google account you signed in with, so the account in LuxOS Mail matches the address you entered.</li>
+      </ul>
+      <p>LuxOS Mail does not request access to your contacts, calendar, Drive, or any other Google data.</p>
+
+      <h3 id="google-data-use">How the data is used</h3>
+      <p>LuxOS Mail uses Google user data only to provide its user-facing mail features on your computer:</p>
+      <ul>
+        <li>to download your messages and folders and show them to you in the app,</li>
+        <li>to keep a local copy so you can read mail offline and search it,</li>
+        <li>to notify you about new mail while the app runs in the background,</li>
+        <li>to carry out actions you take, such as opening a folder, marking a message as read or unread, or moving it to Trash,</li>
+        <li>when sending is added in a future version: to send the messages you write.</li>
+      </ul>
+      <p>LuxOS Mail does <strong>not</strong> use Google user data for advertising, for selling or sharing with data brokers or information resellers, for determining creditworthiness or for lending, or to create, train or improve any artificial intelligence or machine learning model. Nobody at LuxOS reads your mail: the data never reaches us.</p>
+
+      <h3 id="google-data-storage">Where the data is stored</h3>
+      <ul>
+        <li><strong>Only on your computer.</strong> Messages you have opened or downloaded and the folder list are stored in your home folder (<code>~/.local/share/luxos-mail</code>) so you can read them offline. Account settings (address, server names) are in <code>~/.config/luxos-mail</code>.</li>
+        <li>The Google <strong>refresh token</strong> is stored in your desktop keyring (Secret Service / GNOME Keyring), which is encrypted with your login password. The short-lived access token is kept only in memory. Tokens are never written to log files or ordinary files.</li>
+        <li>The connection between your computer and Google (IMAP, OAuth) is always encrypted with TLS.</li>
+      </ul>
+
+      <h3 id="google-data-sharing">Sharing and transfer</h3>
+      <p>Google user data is <strong>never transferred to LuxOS servers</strong> or to any third party. LuxOS Mail talks to Google (accounts.google.com, oauth2.googleapis.com, imap.gmail.com, smtp.gmail.com) directly from your computer. There is no LuxOS server in between, and no part of your mail, your address or your tokens is sent to LuxOS.</p>
+      <p>The only LuxOS server LuxOS Mail contacts is <code>https://luxos.lux-ai.cz/mail-oauth.json</code>, to download the public OAuth client IDs of LuxOS Mail (at most once a day). This request contains no user data.</p>
+      <p>LuxOS Mail does not pass Google user data to other apps. Exceptions are only actions you take yourself – for example when you save an attachment to a folder of your choice or open it in another app.</p>
+
+      <h3 id="google-limited-use">Limited Use disclosure</h3>
+      <p class="legal-statement">LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes">Limited Use requirements</a>.</p>
+
+      <h3 id="google-revoke">Removing your data and revoking access</h3>
+      <ul>
+        <li><strong>Remove the account in LuxOS Mail</strong> (menu → Remove <em>address</em>…): LuxOS Mail deletes all locally stored messages, folders and settings of the account, deletes the token from the keyring, and asks Google to revoke LuxOS Mail's access (<code>oauth2.googleapis.com/revoke</code>). Nothing is deleted from your Gmail mailbox.</li>
+        <li><strong>Revoke access in your Google Account</strong> at any time: <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> → LuxOS Mail → Delete all connections. LuxOS Mail then stops receiving any data and asks you to sign in again.</li>
+        <li>Uninstalling LuxOS Mail does not delete your home folder; remove the account in the app first, or delete <code>~/.local/share/luxos-mail</code> and <code>~/.config/luxos-mail</code>.</li>
+      </ul>
+      <p>Because LuxOS does not hold any of your Google data, there is nothing for us to delete on our side – but you are always welcome to ask at <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>.</p>
+
+      <h3 id="mail-other-providers">Other mail providers</h3>
+      <p>The same rules apply to every account in LuxOS Mail (Microsoft, Seznam, your own server and others): mail and passwords or tokens stay on your computer and go only to your mail provider. To find the server settings for a new address, LuxOS Mail asks the provider's own autoconfig address, the public Thunderbird ISPDB (<code>autoconfig.thunderbird.net</code>, which receives only the domain part of the address, e.g. <code>gmail.com</code>) and DNS.</p>
+
+      <h2 id="countme">3. Anonymous weekly count (countme)</h2>
+      <p>To know roughly how many computers run LuxOS, the package manager sends one anonymous request per week when it updates the package lists: the LuxOS version, the architecture, the update channel (stable/staging) and a rough age of the installation (first week, up to a month, up to six months, longer). No identifier, user name, hardware details or IP-derived data is stored – the server only keeps weekly totals, which are public on the <a href="/usage/">usage page</a>. Requests to this address are not written to access logs. It is on by default and can be turned off in Software Update (Privacy), in the installer, or with <code>countme = false</code> in <code>/etc/lux/lux.conf</code>. Nothing is sent from the live ISO.</p>
+
+      <h2 id="luxai">4. LuxAI account and the LuxAI assistant</h2>
+      <p>A LuxAI account is optional. LuxOS works without it.</p>
+      <ul>
+        <li><strong>Account data:</strong> when you create an account at lux-ai.cz we store your name, e-mail address, user name, password (in a protected form), your settings (for example the answer style), the version of the terms you accepted, monthly usage of the assistant, and – if you use them – your chat history on the website and files you save to the LSL IDE cloud. On your computer the sign-in is stored in <code>~/.config/luxai/account.json</code>.</li>
+        <li><strong>LuxAI assistant:</strong> what you ask LuxAI, Lux Code or the LSL IDE (your messages and anything you attach, such as a screenshot or a file) is sent to the LuxAI service at lux-ai.cz to generate the answer. Conversations in the desktop app are also stored locally in <code>~/.local/share/luxai</code>. Web search by LuxAI goes through lux-ai.cz and, if that is not available, through DuckDuckGo; LuxAI asks before using the network.</li>
+        <li><strong>LuxOS Care</strong> (if you are signed in): when Care finds a serious problem it does not recognise, it can send the problem title, its diagnosis and the offered options to LuxAI to suggest a fix. <strong>Installing community (AUR) packages</strong> (if you are signed in): the package build script is sent to LuxAI for a safety review.</li>
+        <li><strong>LuxAI mailboxes</strong> (@lux-ai.cz): the mail server logs sign-ins (account and IP address) for security, for example to block password guessing.</li>
+        <li><strong>Deleting the account:</strong> write to <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a> from the address of your account. You can export your data from the account settings.</li>
+      </ul>
+      <p>LuxOS Mail never sends Google user data to LuxAI, and LuxAI has no access to the mail in LuxOS Mail.</p>
+
+      <h2 id="feedback">5. Feedback and bug reports</h2>
+      <p>Feedback is sent only when you press <em>Send</em> in the Feedback app (or confirm it in LuxAI). The report contains your message, the kind of report and the app; optionally your e-mail address for a reply, a screenshot (off by default) and system information (on by default, can be unticked): operating system and version, hardware model, CPU, graphics, memory and disk space, desktop session, language, versions of key packages and the last error lines from the system logs. Your home path, user name, computer name, e-mail and IP addresses and token-like strings are removed from the log lines before sending. If you are signed in to LuxAI, the report is linked to your account; otherwise it is anonymous. Reports are read only by the LuxOS developer to fix problems. There is no automatic crash reporting.</p>
+
+      <h2 id="updates">6. Updates, Store and repositories</h2>
+      <p>Updates and apps are downloaded from the LuxOS repositories (luxos.lux-ai.cz/repo), from Arch Linux mirrors, and – when you use them – from Flathub and the AUR. These requests contain no user identifiers, only what any download contains (your IP address and the requested file). The Store has no accounts, ratings or tracking.</p>
+
+      <h2 id="other">7. Other online features</h2>
+      <p>Some apps contact third-party services when you use them: Weather (Open-Meteo; your location from the time zone, or from ipinfo.io only after you agree), Maps (OpenStreetMap tiles, Nominatim and Photon search, routing and public transport services; search suggestions for Czechia and Slovakia go through luxos.lux-ai.cz/geocode without logs), the network connectivity check (ping.archlinux.org), time synchronisation and the installer's time-zone detection (ip-api.com). These services receive only what is needed for the request and their own privacy policies apply. LuxDrop and LuxOS Companion work only in your local network or over Bluetooth.</p>
+
+      <h2 id="website">8. This website</h2>
+      <p>luxos.lux-ai.cz uses no cookies, no analytics and no third-party trackers. The light/dark choice is stored only in your browser (local storage). Like any web server, it receives your IP address with each request in order to deliver the page.</p>
+
+      <h2 id="rights">9. Your rights</h2>
+      <p>Under the GDPR you have the right to access, correct, delete or export your personal data, to restrict or object to its processing, and to withdraw consent at any time. Write to <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>. You can also lodge a complaint with the Czech data protection authority, <a href="https://uoou.gov.cz/">Úřad pro ochranu osobních údajů</a>. We process account data to provide the service you asked for (contract), feedback and reports on the basis of your consent, and the anonymous count on the basis of our legitimate interest in knowing how LuxOS is used.</p>
+
+      <h2 id="changes">10. Changes to this policy</h2>
+      <p>If we change how LuxOS handles data, we will update this page and the date at the top. Changes to how LuxOS Mail uses Google user data will always be announced before they take effect. See also the <a href="/terms/">Terms of Use</a>.</p>
+    </article>
