@@ -104,6 +104,18 @@ class InlineTest(unittest.TestCase):
         same = lambda url: ("same", "LSL errors")  # noqa: E731
         self.assertEqual(self.r("in [errors.md](errors.md)", same), "in \\(lqLSL errors\\(rq")
 
+    def test_placeholders_stay_text(self):
+        # <jmeno> mimo kod neni HTML znacka: na webu takovy text drive zmizel ("Continue as .")
+        self.assertEqual(self.r("Continue as <name> now"), "Continue as <name> now")
+        self.assertEqual(self.r("**Continue as <name>**"), "\\fBContinue as <name>\\fR")
+        self.assertEqual(self.r("*<app>* and **/safe/<user>**"), "\\fI<app>\\fR and \\fB/safe/<user>\\fR")
+        self.assertEqual(self.r("escaped \\<soubor\\>"), "escaped <soubor>")
+        self.assertEqual(self.r("<b>bold?</b> <br> <a href=x>"), "<b>bold?</b> <br> <a href=x>")
+        self.assertEqual(self.r("<device:1> <x@y>"), "<device:1> <x@y>")
+        self.assertEqual(self.r("[open <name>](https://a.b)"), "open <name> (https://a.b)")
+        # jen skutecny autolink <https://...> ztrati lomene zavorky
+        self.assertEqual(self.r("<https://a.b>"), "https://a.b")
+
 
 class BlockTest(unittest.TestCase):
     def test_headings_and_offset(self):
@@ -150,6 +162,12 @@ class BlockTest(unittest.TestCase):
     def test_table_three_columns_labels(self):
         out = conv("| Key | Value | Meaning |\n|:--|:-:|--:|\n| a | 1 \\| 2 | m |")
         self.assertIn(".TP\na\n\\fIValue:\\fR 1 | 2\n.br\n\\fIMeaning:\\fR m\n", out)
+
+    def test_placeholders_in_blocks(self):
+        out = conv("# Sandbox (/dev/sandbox/<user>)\n\n- pick <device>\n\n| Key | Meaning |\n|---|---|\n"
+                   "| <app> | runs <app> |\n\n> quote <name>")
+        for piece in ("Sandbox (/dev/sandbox/<user>)", "pick <device>", ".TP\n<app>\nruns <app>", "quote <name>"):
+            self.assertIn(piece, out)
 
     def test_blockquote_and_rule(self):
         out = conv("> quoted\n\n---\n\ntext")
@@ -306,6 +324,24 @@ class PagesTest(unittest.TestCase):
                 for ch in "\u2018\u2019\u02c6\u02dc":
                     if ch not in md:
                         self.assertNotIn(ch, rendered)
+
+    @unittest.skipUnless(GROFF, "groff not installed")
+    def test_placeholders_rendered(self):
+        """Kazdy zastupny text <jmeno> z vybraneho Markdownu je ve vykreslene strance i se zavorkami."""
+        token = re.compile(r"<[^<>\s`]+>")
+        checked = 0
+        for page in manpages.PAGES:
+            rel = "man%d/%s.%d" % (page["section"], page["name"], page["section"])
+            with self.subTest(page=rel):
+                rendered = groff_text(os.path.join(self.tmp, rel), width=1000)
+                md = "\n".join(t for _d, _k, t in manpages.select_markdown(page, DOCS))
+                md = re.sub(r"\]\([^)\s]+\)", "]", md)
+                for tok in set(token.findall(md)):
+                    if re.match(r"<(https?|ftp|mailto):", tok):
+                        continue
+                    checked += 1
+                    self.assertIn(tok.replace("\\", ""), rendered)
+        self.assertGreater(checked, 0)   # stranky (safe, sandbox, ...) zastupne texty opravdu obsahuji
 
     @unittest.skipUnless(GROFF, "groff not installed")
     def test_readable_at_80_columns(self):
