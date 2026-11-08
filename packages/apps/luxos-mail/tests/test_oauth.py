@@ -44,6 +44,8 @@ class OAuthBase(unittest.TestCase):
         self.s.env["LUXOS_MAIL_OAUTH_PROVIDERS"] = fo.providers_file(
             os.path.join(self.s.root, "oauth-providers.json"), google=self.google, microsoft=self.ms,
             google_imap=self.gmail.ports["tls"], microsoft_imap=self.outlook.ports["tls"])
+        # kratka pauza pred poslednim pokusem zachrany "not connected" (jinak 3 s)
+        self.s.env["LUXOS_MAIL_NOTCONNECTED_WAIT"] = "100"
         self.c = self.s.start_service()
 
     def tearDown(self):
@@ -300,7 +302,8 @@ class MicrosoftOAuthTest(OAuthBase):
         self.outlook.control("revoke")
         self.assertEqual(self.c.call("retry_account", account=acc)["state"], "online", self.s.service_log())
         f = self.ms.refreshes()[0]["form"]
-        self.assertEqual(f["scope"], q["scope"])
+        # obnoveni jen s rozsahy Outlooku (bez OpenID): pristupovy token vzdy pro https://outlook.office.com
+        self.assertEqual(f["scope"], "https://outlook.office.com/IMAP.AccessAsUser.All https://outlook.office.com/SMTP.Send offline_access")
         second = self.s.secret_lookup(acc)
         self.assertNotEqual(first, second)
         self.assertEqual(second, list(self.ms.refresh_tokens.keys())[0])
@@ -312,6 +315,195 @@ class MicrosoftOAuthTest(OAuthBase):
         r, page, ev = self.sign_in("microsoft", OUTLOOK)
         self.assertTrue(ev["ok"], ev)
         self.assertEqual(self.accounts()[0]["email"], OUTLOOK)
+
+
+ALIAS = "tester.alias@outlook.com"
+
+
+class MicrosoftNotConnectedTest(OAuthBase):
+    """"User is authenticated but not connected." (Microsoft prijal token, schranku neotevrel): zachrana ve sluzbe
+    (jina adresa, token jen pro Outlook, /consumers, nahradni server, pauza) a jeji zaznam v logu bez tokenu."""
+    rotate = True
+
+    def setUp(self):
+        self.alt = None
+        super().setUp()
+
+    def with_alternate(self, oauth="XOAUTH2", personality="microsoft"):
+        # nahradni server (jako imap-mail.outlook.com); tokeny dostava od falesneho Microsoftu taky
+        self.alt = mt.FakeServer(self.s.root, self.s.certs, seed=mt.FIXTURES, personality=personality, user=OUTLOOK,
+                                 password="never", oauth=oauth)
+        self.ms.imaps.append(self.alt)
+        self.c.call("quit")
+        time.sleep(0.3)
+        self.s.env["LUXOS_MAIL_OAUTH_PROVIDERS"] = fo.providers_file(
+            os.path.join(self.s.root, "oauth-providers.json"), google=self.google, microsoft=self.ms,
+            google_imap=self.gmail.ports["tls"], microsoft_imap=self.outlook.ports["tls"], microsoft_alt_imap=self.alt.ports["tls"])
+        self.c = self.s.start_service()
+
+    def tearDown(self):
+        super().tearDown()
+        if self.alt is not None:
+            self.alt.stop()
+
+    def test_graph_token_recovered_with_outlook_scope(self):
+        # token z vymeny kodu (rozsahy s openid/email) je pro Graph: AUTHENTICATE -> BAD not connected;
+        # obnoveni jen s rozsahy Outlooku da spravny token
+        self.ms.graph_when_oidc = True
+        r, page, ev = self.sign_in("microsoft", OUTLOOK)
+        self.assertTrue(ev["ok"], (ev, self.s.service_log()))
+        self.assertEqual(self.ms.issued[:2], ["graph", "outlook"])
+        f = self.ms.refreshes()[0]["form"]
+        self.assertNotIn("openid", f["scope"].split())
+        self.assertNotIn("email", f["scope"].split())
+        self.assertIn("variant 'outlook-scope' on localhost", self.s.service_log())
+        acc = ev["account"]
+        self.assertEqual(self.accounts()[0]["email"], OUTLOOK)
+        # rotovany obnovovaci token ze zachrany je v klicence
+        self.assertEqual(self.s.secret_lookup(acc), list(self.ms.refresh_tokens.keys())[0])
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15), self.s.service_log())
+        auths = self.auth_log(self.outlook)
+        self.assertTrue(all(a.startswith("AUTH XOAUTH2 user=%s " % OUTLOOK) for a in auths), auths)
+        # dalsi obnoveni (novy start sluzby) zase jen s rozsahy Outlooku: hned online, zadna dalsi zachrana
+        self.c.call("quit")
+        time.sleep(0.3)
+        self.c = self.s.start_service()
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15), self.s.service_log())
+        self.assertEqual(self.ms.issued[-1], "outlook")
+        self.assert_no_secrets_in_files(self.ms)
+
+    def test_alias_address_recovered(self):
+        # v prohlizeci prihlaseni aliasem: id_token email = alias, preferred_username = hlavni adresa schranky
+        self.ms.email = ALIAS
+        self.ms.username = OUTLOOK
+        self.outlook.control("primary %s %s" % (ALIAS, OUTLOOK))
+        r, page, ev = self.sign_in("microsoft", ALIAS)
+        self.assertTrue(ev["ok"], (ev, self.s.service_log()))
+        self.assertEqual(ev["email"], OUTLOOK)
+        a = self.accounts()[0]
+        self.assertEqual((a["email"], a["imap"]["user"], a["smtp"]["user"]), (OUTLOOK, OUTLOOK, OUTLOOK))
+        self.assertIn("variant 'address'", self.s.service_log())
+        auths = self.auth_log(self.outlook)
+        self.assertTrue(auths[0].startswith("AUTH XOAUTH2 user=%s " % ALIAS), auths)
+        self.assertTrue(auths[1].startswith("AUTH XOAUTH2 user=%s " % OUTLOOK), auths)
+        acc = ev["account"]
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15), self.s.service_log())
+        # zadne zbytecne obnoveni (stacila jina adresa)
+        self.assertEqual(len(self.ms.refreshes()), 0)
+
+    def test_alternate_host_recovered(self):
+        # hlavni server: AUTHENTICATE OK, ale LIST -> BAD not connected (chyba az u dalsiho prikazu);
+        # nahradni server nabizi i OAUTHBEARER, Microsoft ale vzdy XOAUTH2
+        self.with_alternate(oauth="OAUTHBEARER,XOAUTH2", personality="")
+        self.outlook.control("ncstyle after")
+        self.outlook.control("notconnected on")
+        r, page, ev = self.sign_in("microsoft", OUTLOOK)
+        self.assertTrue(ev["ok"], (ev, self.s.service_log()))
+        a = self.accounts()[0]
+        self.assertEqual(a["imap"], {"host": "localhost", "port": self.alt.ports["tls"], "security": "ssl", "user": OUTLOOK})
+        self.assertIn("variant 'host' on localhost", self.s.service_log())
+        # cestou zkouseny i token jen pro Outlook a /consumers
+        paths = [t["path"] for t in self.ms.refreshes()]
+        self.assertIn("/token", paths)
+        self.assertIn("/consumers/token", paths)
+        acc = ev["account"]
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15), self.s.service_log())
+        self.assertTrue(all(x.startswith("AUTH XOAUTH2 ") for x in self.auth_log(self.alt)), self.auth_log(self.alt))
+        self.assert_no_secrets_in_files(self.ms)
+
+    def test_existing_account_moves_to_alternate_host(self):
+        self.with_alternate()
+        r, page, ev = self.sign_in("microsoft", OUTLOOK)
+        acc = ev["account"]
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15), self.s.service_log())
+        # pozdeji hlavni server prestane schranku otevirat: novy pokus se sam presune na nahradni server
+        self.outlook.control("notconnected on")
+        self.c.call("quit")
+        time.sleep(0.3)
+        self.c = self.s.start_service()
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 20), self.s.service_log())
+        self.assertEqual(self.accounts()[0]["imap"]["port"], self.alt.ports["tls"])
+        self.assertIn("account %s: mailbox connected with variant 'host'" % acc, self.s.service_log())
+
+    def test_nothing_helps(self):
+        # IMAP vypnuty u uctu (vsechny servery): zadna varianta nepomuze -> chyba notconnected, zadny ucet
+        self.with_alternate()
+        self.outlook.control("notconnected on")
+        self.alt.control("notconnected on")
+        r, page, ev = self.sign_in("microsoft", OUTLOOK)
+        self.assertEqual((ev["ok"], ev["kind"]), (False, "notconnected"), ev)
+        self.assertIn("not connected", ev["error"])
+        self.assertEqual(self.accounts(), [])
+        log = self.s.service_log()
+        self.assertIn("mailbox not connected, nothing helped", log)
+        for variant in ("outlook-scope", "consumers", "host localhost", "retry"):
+            self.assertIn(variant, log)
+        self.assert_no_secrets_in_files(self.ms)
+
+    def test_existing_account_not_connected_is_not_retried_forever(self):
+        self.with_alternate()
+        r, page, ev = self.sign_in("microsoft", OUTLOOK)
+        acc = ev["account"]
+        self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15))
+        self.outlook.control("notconnected on")
+        self.alt.control("notconnected on")
+        r = self.c.call("retry_account", account=acc)
+        self.assertEqual((r["state"], r["kind"]), ("error", "notconnected"), self.s.service_log())
+        n = len(self.auth_log(self.outlook))
+        self.c.call("reconnect")
+        time.sleep(1.0)
+        self.assertEqual(len(self.auth_log(self.outlook)), n)
+
+
+class DiagnoseTest(OAuthBase):
+    """luxos-mail --diagnose-oauth ADRESA: varianty a odpovedi serveru, nikdy tokeny."""
+
+    def diagnose(self, *args, browser=True):
+        env = dict(self.s.env)
+        urls = os.path.join(self.s.root, "urls.txt")
+        env["LUXOS_MAIL_OPEN_URL_LOG"] = urls
+        p = subprocess.Popen([mt.binary(), "--diagnose-oauth"] + list(args), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if browser:
+            self.assertTrue(mt.wait_for(lambda: os.path.exists(urls) and open(urls).read().strip(), 20))
+            fo.follow(open(urls).read().strip().splitlines()[-1])
+        out, err = p.communicate(timeout=60)
+        text = out.decode()
+        for sec in self.ms.secrets_seen():
+            self.assertNotIn(sec, text)
+            self.assertNotIn(sec, err.decode())
+        return p.returncode, text
+
+    def test_fresh_sign_in_report(self):
+        self.ms.graph_when_oidc = True
+        code, text = self.diagnose(OUTLOOK)
+        self.assertEqual(code, 0, text)
+        self.assertIn("provider: Microsoft", text)
+        self.assertIn("SASL mechanism: XOAUTH2", text)
+        self.assertIn("new sign-in in the browser", text)
+        self.assertIn("id_token email = te***r@outlook.com (same as typed)", text)
+        self.assertNotIn(OUTLOOK, text)
+        self.assertRegex(text, r"initial te\*\*\*r@outlook.com @localhost -> notconnected: User is authenticated but not connected")
+        self.assertRegex(text, r"outlook-scope te\*\*\*r@outlook.com @localhost -> OK")
+        self.assertIn("RESULT: the mailbox opens with variant 'outlook-scope'", text)
+        # nic ulozeno
+        self.assertEqual(self.accounts(), [])
+
+    def test_stored_sign_in_and_nothing_helps(self):
+        r, page, ev = self.sign_in("microsoft", OUTLOOK)
+        acc = ev["account"]
+        self.outlook.control("notconnected on")
+        code, text = self.diagnose(OUTLOOK, browser=False)
+        self.assertEqual(code, 1, text)
+        self.assertIn("stored in the keyring (account %s)" % acc, text)
+        self.assertIn("RESULT: Microsoft accepts the token but does not open the mailbox", text)
+        self.assertIn("account.live.com/activity", text)
+        # rotovany obnovovaci token ulozen zpet (ucet dal funguje)
+        self.assertEqual(self.s.secret_lookup(acc), list(self.ms.refresh_tokens.keys())[-1])
+
+    def test_usage(self):
+        r = mt.run_bin(["--diagnose-oauth"], env=self.s.env)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn(b"Usage:", r.stdout)
 
 
 class NotConfiguredTest(unittest.TestCase):

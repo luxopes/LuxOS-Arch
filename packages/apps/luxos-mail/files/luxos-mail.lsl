@@ -5,6 +5,8 @@
 #   luxos-mail --background             spusti sluzbu na pozadi (luxos-mail-service: IDLE, upozorneni, synchronizace)
 #   luxos-mail --discover EMAIL [--no-probe]   nalezeni serveru (JSON; okno ho spousti pri pridani uctu)
 #   luxos-mail --oauth-config           stahne client ID pro "Prihlasit se ..." z luxos.lux-ai.cz (JSON; okno)
+#   luxos-mail --diagnose-oauth ADRESA [--fresh] [--provider ID]   diagnostika prihlaseni u poskytovatele (zprava
+#                                       varianta -> odpoved serveru, bez tokenu; mail_diagnose)
 # Testovaci vstupy (JSON na stdout): --test-render SOUBOR.eml, --test-part SOUBOR.eml CESTA VYSTUP,
 #   --test-imap SOUBOR (odpovedi IMAP), --test-oauth-providers, --test-oauth-url POSKYTOVATEL PORT EMAIL, --test-words TEXT, --test-date TEXT, --test-charset SADA SOUBOR
 load env, json, net
@@ -15,6 +17,7 @@ load mail_discover as discover
 load luxos_sys
 load mail_store as store
 load mail_oauth as oauth
+load mail_diagnose as diagnose
 load mail_ui as ui
 
 function arg_or(index, fallback):
@@ -82,6 +85,8 @@ function main():
         probe = not ("--no-probe" in args)
         print json.encode(discover.discover(arg_or(2, ""), probe))
         return 0
+    elif first == "--diagnose-oauth":
+        return diagnose.main(args)
     elif first == "--oauth-config":
         print json.encode(oauth.fetch_remote())
         return 0

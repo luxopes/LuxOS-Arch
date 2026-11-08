@@ -4830,3 +4830,5 @@ Kept your version of %s	Ponechaná vaša verzia %s
 review a new config file version: combine, keep yours or use the new one	prejde novú verziu konfiguračného súboru: spojiť, ponechať svoju alebo použiť novú
 Review one with: sudo lux config-diff <file>	Prejdite ju príkazom: sudo lux config-diff <súbor>
 New version of a configuration file: %s	Nová verzia konfiguračného súboru: %s
+Microsoft accepted the sign-in, but did not open the mailbox for Mail. On outlook.com open Settings, Mail, Forwarding and IMAP, turn on "Let devices and apps use IMAP" and save. If Microsoft asks you to confirm the sign-in at account.live.com/activity, choose "This was me". Then try again.	Microsoft prihlásenie prijal, ale schránku Pošte neotvoril. Na outlook.com otvorte Nastavenia, Pošta, Preposielanie a IMAP, zapnite „Povoliť zariadeniam a aplikáciám používať IMAP“ a uložte. Ak vás Microsoft požiada o potvrdenie prihlásenia na account.live.com/activity, zvoľte „Toto som bol(a) ja“. Potom to skúste znova.
+%s accepted the sign-in, but the mail server did not open the mailbox. Try again later.	%s prihlásenie prijal, ale poštový server schránku neotvoril. Skúste to neskôr.

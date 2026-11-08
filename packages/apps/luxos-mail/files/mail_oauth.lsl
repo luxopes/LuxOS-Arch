@@ -173,6 +173,33 @@ function clean_provider(id, p):
     end
     out["imap"] = imap
     out["smtp"] = server(p.get("smtp"), 465, "ssl")
+    # Mechanismus SASL pro IMAP/SMTP ("" = podle schopnosti serveru; Microsoft: jen XOAUTH2)
+    sasl = String(p.get("sasl", "")).upper()
+    if sasl != "" and sasl != "XOAUTH2" and sasl != "OAUTHBEARER":
+        return {}
+    end
+    out["sasl"] = sasl
+    # Dalsi servery IMAP tehoz poskytovatele (Microsoft: imap-mail.outlook.com pro osobni ucty), zkousi se jen
+    # pri chybe "User is authenticated but not connected"
+    alts = []
+    raw = p.get("imap_alternates", [])
+    if type(raw) != "List":
+        return {}
+    end
+    for a in raw[0:4]:
+        sv = server(a, 993, "ssl")
+        if len(sv) == 0:
+            return {}
+        end
+        alts.append(sv)
+    end
+    out["imap_alternates"] = alts
+    # Koncovy bod tokenu jen pro osobni ucty (Microsoft /consumers), obnoveni tokenu jako dalsi pokus
+    ctu = p.get("consumer_token_url", "")
+    if ctu != "" and not safe_endpoint(ctu):
+        return {}
+    end
+    out["consumer_token_url"] = ctu
     return out
 end
 
@@ -517,12 +544,35 @@ function exchange_code(p, code, verifier, port):
                              ["code_verifier", verifier]], False)
 end
 
-function refresh(p, refresh_token):
+# Rozsahy jen pro pristupovy token: bez OpenID Connect (openid, email, profile). Obnoveni u Microsoftu tak
+# vzdy zada token pro https://outlook.office.com (IMAP/SMTP), nikdy pro jiny prostredek (Graph).
+OIDC_SCOPES = ["openid", "email", "profile"]
+
+function resource_scope(scope):
+    out = []
+    for s in String(scope).split(" "):
+        if s != "" and s not in OIDC_SCOPES:
+            out.append(s)
+        end
+    end
+    return " ".join(out)
+end
+
+# Obnoveni pristupoveho tokenu. token_url: jiny koncovy bod (Microsoft /consumers), "" = p["token_url"]
+function refresh(p, refresh_token, token_url=""):
     pairs = [["grant_type", "refresh_token"], ["refresh_token", refresh_token]]
     if p["refresh_scope"]:
-        pairs.append(["scope", p["scope"]])
+        pairs.append(["scope", resource_scope(p["scope"])])
     end
-    return token_request(p, pairs, True)
+    q = p
+    if token_url != "" and token_url != p["token_url"]:
+        q = {}
+        for k in p.keys():
+            q[k] = p[k]
+        end
+        q["token_url"] = token_url
+    end
+    return token_request(q, pairs, True)
 end
 
 # E-mail z id_token (OpenID Connect). Token prisel primo z koncoveho bodu tokenu pres TLS, podpis se proto
@@ -549,6 +599,25 @@ function id_token_identity(idt):
         out["username"] = u.strip()
     end
     return out
+end
+
+# Adresy pro XOAUTH2 user= k vyzkouseni (bez opakovani stejneho textu): e-mail z id_token, preferred_username,
+# zadana adresa, prvni pouzita. Microsoft prijme token jen s hlavni adresou schranky (alias nebo jine
+# jmeno -> "User is authenticated but not connected").
+function address_candidates(first, typed, identity):
+    out = []
+    for a in [String(first).strip(), identity.get("email", ""), identity.get("username", ""), String(typed).strip()]:
+        if a != "" and a.find("@") > 0 and safe_text(a, 254) and a not in out:
+            out.append(a)
+        end
+    end
+    return out
+end
+
+# Chyba Microsoftu po prijatem tokenu: schranka se neotevrela (spatna adresa user=, token pro jiny prostredek,
+# IMAP vypnuty v nastaveni Outlook.com, prihlaseni ceka na potvrzeni na account.live.com)
+function not_connected(text):
+    return String(text).lower().find("authenticated but not connected") >= 0
 end
 
 # Adresa schranky: e-mail z id_token (uzivatel se v prohlizeci mohl prihlasit jinym uctem nez zadal),

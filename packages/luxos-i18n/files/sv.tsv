@@ -4830,3 +4830,5 @@ Kept your version of %s	Din version av %s behölls
 review a new config file version: combine, keep yours or use the new one	granska en ny version av en konfigurationsfil: kombinera, behåll din eller använd den nya
 Review one with: sudo lux config-diff <file>	Granska den med: sudo lux config-diff <fil>
 New version of a configuration file: %s	Ny version av en konfigurationsfil: %s
+Microsoft accepted the sign-in, but did not open the mailbox for Mail. On outlook.com open Settings, Mail, Forwarding and IMAP, turn on "Let devices and apps use IMAP" and save. If Microsoft asks you to confirm the sign-in at account.live.com/activity, choose "This was me". Then try again.	Microsoft godtog inloggningen men öppnade inte postlådan för E-post. Öppna Inställningar, E-post, Vidarebefordran och IMAP på outlook.com, slå på ”Låt enheter och appar använda IMAP” och spara. Om Microsoft ber dig bekräfta inloggningen på account.live.com/activity väljer du ”Det var jag”. Försök sedan igen.
+%s accepted the sign-in, but the mail server did not open the mailbox. Try again later.	%s godtog inloggningen, men e-postservern öppnade inte postlådan. Försök igen senare.
