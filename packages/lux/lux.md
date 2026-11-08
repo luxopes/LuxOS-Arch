@@ -28,6 +28,7 @@ totéž `lux -Syu`.
 | `/etc/lux/keyring/` | klíčenka GnuPG pro podpisy balíků (`lux fix` ji opraví) |
 | `/etc/lux/hooks/` | vlastní hooky správce (`*.hook`, formát alpm-hooks) |
 | `/run/lux/engine.conf` | **vygenerovaná** konfigurace nástrojů jádra v C – neupravovat, vzniká z `lux.conf` |
+| `/var/lib/lux/pristine/` | kopie souborů `backup=` tak, jak je dodal balík (základ pro samoslučování `*.luxnew`, jen root) |
 
 ## Konfigurace `/etc/lux/lux.conf`
 
@@ -235,6 +236,31 @@ V hlavičce si pamatuje čas změny a velikost každého zdroje; spouštěcí sk
 ověří a při změně vygenerují znovu. Uživatel bez práv k `/run/lux` dostane vlastní kopii
 v `$XDG_RUNTIME_DIR/lux/`. Vygenerovanou konfiguraci ukáže `lux config engine`.
 
+### Nové verze konfiguračních souborů (`*.luxnew`) se slučují samy
+
+Když jste změnili soubor, který balík dodává jako konfiguraci (`backup=`, např. `/etc/lux/lux.conf`
+s `channel = "staging"`), a nová verze balíku změnila jeho výchozí obsah, libalpm váš soubor nechá
+a novou verzi uloží jako `soubor.luxnew`. LuxOS je hned po transakci sloučí sám – nic se nemusí
+slučovat ručně:
+
+- **základ** = soubor ze staré verze balíku: hook `90-lux-config-merge-pre` (a `lux` před transakcí)
+  si ho uloží do `/var/lib/lux/pristine/<cesta>` – z disku, nebo ze staré verze balíku v cache – vždy
+  ověřený kontrolním součtem z databáze balíků;
+- **soubory „klíč = hodnota"** (TOML, INI, `lux.conf`): **hodnota, kterou v souboru máte, zůstane vždy.**
+  Novou výchozí hodnotu dostane klíč jen tehdy, když se vaše hodnota přesně rovná staré výchozí; klíče,
+  které zapisuje `lux-config`/Aktualizace softwaru (`lux.conf`: `channel`, `countme`), patří vám vždy.
+  Nové klíče, sekce a komentáře přibudou, vaše vlastní klíče a komentáře zůstanou;
+- **ostatní textové soubory**: řádkové trojcestné sloučení (diff3), jen bez konfliktu;
+- **bez základu** (např. `*.luxnew` z doby před samoslučováním): jen když nová verze přidává – vaše
+  hodnoty se nemění, přibudou nové klíče a komentáře.
+
+Výsledek se zapíše atomicky, předchozí soubor zůstane jako `soubor.lux-old` (jedna záloha), `*.luxnew`
+zmizí a `lux` napíše klidně „Updated /etc/lux/lux.conf; your settings were kept". Co sloučit bez
+konfliktu nejde, zůstane beze změny (systém dál používá váš soubor), nová verze čeká jako `*.luxnew`
+a `lux` řekne, jak ji projít: `sudo lux config-diff <soubor>` (sloučit / ponechat svou / použít novou).
+Zbylé `*.luxnew` zkusí `lux update` (i bez aktualizací), LuxOS Care a `lux configs` sloučit znovu.
+Ručně: `sudo /usr/lib/lux/lux_configmerge.py merge`.
+
 ### Přechod z LuxOS 0.9.5 a starších (pacman)
 
 Při aktualizaci na `lux-engine` 7.1.0.r9.g54d9411-3.2 hook `00-lux-engine-migrate` (běží ve stejné
@@ -293,6 +319,7 @@ jméno balíku (`@@ERROR corrupt`).
 | `lux clean` | vyčistí cache (ponechá `cache_keep` verzí, odinstalované balíky smaže) a nabídne `autoremove` | `paccache -rk2`, `-ruk0` |
 | `lux fix` | opraví zamčenou databázi (jen když žádný správce balíků neběží), smaže nedokončená stahování, obnoví podpisové klíče (`lux-engine-key --init/--populate`, `archlinux-keyring`, `luxos-keyring`) | |
 | `lux configs` | projde nové konfigurační soubory z aktualizací (`.luxnew`, `.luxsave`; i starší `.pacnew`, `.pacsave`): rozdíl, použít novou verzi, ponechat svou, upravit | `pacdiff` |
+| `lux config-diff <soubor> [--merge\|--keep\|--new]` | nová verze konfiguračního souboru, kterou nešlo sloučit samo: rozdíl a volba – sloučit (doporučeno, vaše hodnoty zůstanou), ponechat svou, použít novou (vaše zůstane jako `soubor.lux-old`) | `pacdiff` |
 | `lux config [check\|show\|edit\|engine\|migrate]` | kontrola (chyby i varování), výpis, úprava `/etc/lux/lux.conf`; `engine` = vygenerovaná konfigurace nástrojů jádra; `migrate` = převod ze starého formátu | |
 | `lux history [počet] [balík]` | poslední změny balíků z `/var/log/lux.log` | |
 | `lux mirrors` | nejrychlejší zrcadla (`reflector`) do `/etc/lux/mirrorlist` | |
@@ -354,6 +381,7 @@ na stdout řádky `@@…` a navíc anglické řádky ve tvaru výstupu libalpm, 
 | `@@SUMMARY <akce> <počet> <stahování> <změna> <sekundy>` | hotovo |
 | `@@ERROR <druh> <věta>` | `locked`, `network`, `keyring`, `disk`, `conflict`, `pkgconflict`, `deps`, `corrupt`, `notfound`, `notinstalled`, `permission`, `confirm`, `cancelled`, `config` (chyba v `lux.conf`), `protected` (chráněné systémové soubory se nepodařilo otevřít pro zápis, viz `system-protection.md`), `unknown` |
 | `@@UNAVAILABLE <důvod>` | pyalpm nelze použít (návratový kód 3) – volající použije `lux-engine` |
+| `@@CONFIG <merged\|conflict> <soubor>` | nová verze konfiguračního souboru z aktualizace: `merged` = sloučeno samo (hodnoty uživatele zůstaly), `conflict` = soubor zůstal beze změny, nová verze čeká jako `soubor.luxnew` (`lux config-diff`) |
 | `@@DONE <kód>` | poslední řádek |
 
 Řádky ve stylu libalpm: `Packages (N) …`, `<soubor> downloading...`,

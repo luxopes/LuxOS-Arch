@@ -4815,3 +4815,18 @@ Use an app password instead	Använd ett applösenord i stället
 You are signed in	Du är inloggad
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Du loggade in som %s i webbläsaren, men det här kontot är %s. Logga in med samma konto.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Din %s-inloggning för %s har gått ut. Logga in igen för att fortsätta få ny e-post.
+Updated %s; your settings were kept	%s uppdaterad; dina inställningar behölls
+The new version of %s could not be combined with your changes automatically.	Den nya versionen av %s kunde inte kombineras automatiskt med dina ändringar.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Din nuvarande fil används fortfarande och systemet fungerar som vanligt. Granska den: sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Ingen ny version av %s väntar – inget att göra.
+(yours, in use)	(din, används)
+(new version)	(ny version)
+LuxOS can combine both: your settings stay, new settings and comments are added.	LuxOS kan kombinera båda: dina inställningar finns kvar, nya inställningar och kommentarer läggs till.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] kombinera (rekommenderas)  [k] behåll din  [n] använd den nya versionen  [d] visa resultatet  [s] hoppa över: 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] behåll din  [n] använd den nya versionen (din sparas som .lux-old)  [s] hoppa över: 
+(combined)	(kombinerad)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	De två versionerna kan inte kombineras automatiskt – välj att behålla din eller använda den nya versionen.
+Kept your version of %s	Din version av %s behölls
+review a new config file version: combine, keep yours or use the new one	granska en ny version av en konfigurationsfil: kombinera, behåll din eller använd den nya
+Review one with: sudo lux config-diff <file>	Granska den med: sudo lux config-diff <fil>
+New version of a configuration file: %s	Ny version av en konfigurationsfil: %s

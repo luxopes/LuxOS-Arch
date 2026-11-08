@@ -689,6 +689,24 @@ class NewConfigs(Root):
         self.assertEqual(care.find_new_configs(), ["/etc/a.conf.luxnew", "/etc/c.conf.pacnew",
                                                    "/etc/d.conf.pacsave", "/etc/x/b.conf.luxsave"])
 
+    def test_merge_runs_first_only_as_root_on_real_system(self):
+        """Pred zapisem do stavu se *.luxnew slouci (lux_configmerge.py merge); v testovacim koreni
+        ani bez rootu se nic nespousti."""
+        with mock.patch.object(care, "run", return_value=(0, "")) as run:
+            care.find_new_configs()                                  # testovaci koren
+            run.assert_not_called()
+            with mock.patch.object(care, "ROOT", ""), mock.patch.object(care.os, "geteuid", return_value=0), \
+                    mock.patch.object(care.os.path, "isfile", return_value=True), \
+                    mock.patch.object(care.os, "walk", return_value=iter(())):
+                care.find_new_configs()
+            run.assert_called_once()
+            self.assertEqual(run.call_args[0][0], ["python3", care.CONFIG_MERGE, "merge", "--quiet"])
+            run.reset_mock()
+            with mock.patch.object(care, "ROOT", ""), mock.patch.object(care.os, "geteuid", return_value=1000), \
+                    mock.patch.object(care.os, "walk", return_value=iter(())):
+                care.find_new_configs()
+            run.assert_not_called()
+
     def test_old_state_key_read(self):
         self.assertEqual(care.new_configs({"pacnew": ["/etc/a.conf.pacnew"]}), ["/etc/a.conf.pacnew"])
         self.assertEqual(care.new_configs({"new_configs": ["/etc/a.conf.luxnew"], "pacnew": ["x"]}),

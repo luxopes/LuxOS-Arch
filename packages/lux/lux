@@ -50,6 +50,9 @@ LUX_ALPM=${LUX_ALPM:-/usr/lib/lux/lux_alpm.py}
 # anonymni tydenni pocitani instalaci (lux config countme)
 LUX_COUNTME=${LUX_COUNTME:-/usr/lib/lux/lux_countme.py}
 [[ -r $LUX_COUNTME ]] || LUX_COUNTME="$(dirname "$LUX_SELF")/lux_countme.py"
+# samoslouceni novych verzi konfigurace z aktualizaci (*.luxnew) a lux config-diff
+LUX_CONFIGMERGE=${LUX_CONFIGMERGE:-/usr/lib/lux/lux_configmerge.py}
+[[ -x $LUX_CONFIGMERGE ]] || LUX_CONFIGMERGE="$(dirname "$LUX_SELF")/lux_configmerge.py"
 # nastroj jadra (lux-engine) pro zalozni backend a dotazy
 LUX_ENGINE=${LUX_ENGINE:-$LUX_ENGINE_BIN/lux-engine}
 # jadro z LuxOS 0.9.0 (luxos-pacman) do vymeny za lux-engine
@@ -673,6 +676,8 @@ cmd_update() {
         fi
         say "$(T "Updating system packages")"
         pac_run -Su $(pac_yes) || exit 1
+        # nove verze konfigurace (*.luxnew) se slouci samy (s pyalpm to dela lux_alpm.py)
+        [[ -f $LUX_CONFIGMERGE ]] && as_root python3 "$LUX_CONFIGMERGE" merge
     fi
 
     if ((AUR)) && [[ $ONLY != repo ]] && command -v jq &>/dev/null && ((EUID != 0)); then
@@ -729,9 +734,8 @@ cmd_update() {
     # Spoustece aplikaci ze sandboxu (prikazy, Launchpad) - i pro aplikace z doby pred jejich zavedenim
     if ((EUID != 0)) && [[ -x $LUX_SANDBOX ]]; then "$LUX_SANDBOX" sync-launchers --quiet &>/dev/null || true; fi
 
-    local luxnew
-    luxnew=$(find /etc \( -name '*.luxnew' -o -name '*.pacnew' \) 2>/dev/null)
-    [[ -n $luxnew ]] && warn "$(T "New config files to review:")"$'\n'"$luxnew"
+    # nove verze konfigurace: slouceni a pripadne nesloucitelne soubory uz vypsal lux_alpm.py /
+    # lux_configmerge.py (srozumitelne, s prikazem lux config-diff) - tady by to bylo podruhe
     [[ ! -d /usr/lib/modules/$(uname -r) ]] && warn "$(T "Kernel was updated - restart to use it.")"
     ok "$(T "System is up to date")"
 }
@@ -992,6 +996,20 @@ pending_configs() {
     find "$LUX_CONFIGS_ROOT" \( -name '*.luxnew' -o -name '*.luxsave' -o -name '*.pacnew' -o -name '*.pacsave' \) \
         -type f 2>/dev/null | sort
 }
+# lux config-diff SOUBOR: rozdil a volba - sloucit (doporuceno) / ponechat svuj / pouzit novy
+cmd_config_diff() {
+    local -a f=()
+    ((YES)) && f+=(-y)
+    if (($# == 0)); then
+        local p
+        p=$(python3 "$LUX_CONFIGMERGE" pending --root "${LUX_CONFIGS_ROOT%/etc}/" 2>/dev/null)
+        if [[ -z $p ]]; then ok "$(T "No pending config files")"; return 0; fi
+        printf '%s\n' "$p"
+        say "$(T "Review one with: sudo lux config-diff <file>")"
+        return 0
+    fi
+    as_root python3 "$LUX_CONFIGMERGE" diff "${f[@]}" "$@"
+}
 cmd_configs() {
     if [[ -z $(pending_configs) ]]; then
         ok "$(T "No pending config files")"; return 0
@@ -1002,6 +1020,10 @@ cmd_configs() {
 }
 lux_configs() {  # jako root: kazdy soubor zvlast - rozdil, nahradit, ponechat, upravit
     local new cur a diffcmd=(diff -u --color=auto)
+    # nejdriv samoslouceni (hodnoty uzivatele zustanou); ruce jen na to, co nejde bez konfliktu
+    if [[ -f $LUX_CONFIGMERGE ]]; then
+        python3 "$LUX_CONFIGMERGE" merge --root "${LUX_CONFIGS_ROOT%/etc}/"
+    fi
     [[ $LUX_COLOR == always ]] && diffcmd=(diff -u --color=always)
     while IFS= read -r new; do
         [[ -f $new ]] || continue
@@ -1272,6 +1294,7 @@ owns <file>|which package owns a file
 clean|clean cache and remove unneeded packages
 fix|repair a locked database and the signing keys
 configs|review and merge new config files (.luxnew)
+config-diff <file>|review a new config file version: combine, keep yours or use the new one
 config check, edit, migrate|check, edit or convert /etc/lux/lux.conf to the new format
 history [n] [pkg]|recent package changes
 pack <dir> [out]|build a .lux package from a directory with lux.json
@@ -1417,6 +1440,7 @@ case $cmd in
     clean)              cmd_clean ;;
     fix)                cmd_fix ;;
     configs)            cmd_configs "$@" ;;
+    config-diff)        cmd_config_diff "$@" ;;
     config)             cmd_config "$@" ;;
     __configs)          ((EUID == 0)) || exit 1; lux_configs ;;
     __mirrors)          ((EUID == 0)) || exit 1; lux_mirrors ;;

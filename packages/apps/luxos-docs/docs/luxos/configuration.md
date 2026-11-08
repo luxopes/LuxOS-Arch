@@ -143,7 +143,11 @@ applied with `lux system apply` - see [system-config.md](system-config.md).
 
 Files under `/usr/lib` belong to packages and are replaced on update; put local overrides in the
 matching `/etc` directory instead (e.g. `/etc/sysctl.d/`, `/etc/systemd/system/<unit>.d/`).
-When an update ships a new version of an edited `/etc` file, merge it with `lux configs`.
+When an update ships a new version of an `/etc` file you edited, LuxOS merges it automatically: your
+values stay, new settings and comments are added (details in
+[lux-engine-and-repos.md](lux-engine-and-repos.md#new-versions-of-configuration-files)). Only a version
+that cannot be combined without a conflict waits as `*.luxnew` — review it with
+`sudo lux config-diff <file>`.
 
 ## Resetting to defaults
 

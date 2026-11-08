@@ -1,0 +1,13 @@
+# LuxOS (lux): pred aktualizaci baliku se soubory v /etc overena kopie soucasne verze kazdeho souboru
+# backup= z baliku (/var/lib/lux/pristine) - zaklad pro samoslouceni nove verze (*.luxnew) po transakci.
+# Chyba transakci nezastavi.
+[Trigger]
+Operation = Upgrade
+Type = Path
+Target = etc/*
+
+[Action]
+Description = Preparing to keep your settings in configuration files...
+When = PreTransaction
+Exec = /usr/lib/lux/lux_configmerge.py pre
+NeedsTargets

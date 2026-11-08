@@ -2,7 +2,7 @@
 
 pkgname=lux
 pkgver=0.3.0
-pkgrel=23
+pkgrel=24
 pkgdesc="LuxOS package manager (libalpm via pyalpm, Flathub, community/AUR in the sandbox and .lux apps)"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -26,6 +26,11 @@ package() {
     install -Dm755 "$startdir/lux_community.py" "$pkgdir/usr/lib/lux/lux_community.py"
     # anonymni tydenni pocitani instalaci (countme): vola ho lux_alpm.py po stazeni seznamu baliku
     install -Dm755 "$startdir/lux_countme.py" "$pkgdir/usr/lib/lux/lux_countme.py"
+    # nove verze konfigurace z aktualizaci (*.luxnew) se slouci samy: hooky pred/po transakci,
+    # lux update, LuxOS Care, lux config-diff (zaklad = kopie verze z baliku v /var/lib/lux/pristine)
+    install -Dm755 "$startdir/lux_configmerge.py" "$pkgdir/usr/lib/lux/lux_configmerge.py"
+    install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$startdir/90-lux-config-merge-pre.hook" \
+        "$startdir/90-lux-config-merge-post.hook"
     # lux system: cely system v jednom souboru LSL (/etc/luxos/system.lsl), vyhodnocuje "lsl config"
     install -Dm755 "$startdir/lux_system.py" "$pkgdir/usr/lib/lux/lux_system.py"
     install -Dm644 "$startdir/system.lsl.example" "$pkgdir/usr/share/doc/lux/system.lsl.example"

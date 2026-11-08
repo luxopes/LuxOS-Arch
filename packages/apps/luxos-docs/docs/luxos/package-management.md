@@ -51,6 +51,7 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux clean` | clean the cache (keeps `cache_keep` versions, removes uninstalled packages), offers `autoremove` |
 | `lux fix` | repair a locked database, unfinished downloads and the signing keys |
 | `lux configs` | review new config files from updates (`.luxnew`, `.luxsave`; older `.pacnew`, `.pacsave` too): diff, use new, keep yours, edit |
+| `lux config-diff <file> [--merge\|--keep\|--new]` | new config version that could not be merged automatically: combine (your values stay), keep yours or use new (yours → `<file>.lux-old`) |
 | `lux config [check\|show\|edit\|engine\|migrate]` | check (errors and warnings), show or edit `/etc/lux/lux.conf`; `engine` prints the generated config of the engine tools; `migrate` converts the old format |
 | `lux history [n] [pkg]` | recent package changes from `/var/log/lux.log` |
 | `lux mirrors` | fastest mirrors (`reflector`) written to `/etc/lux/mirrorlist` |
@@ -243,6 +244,9 @@ and `*.luxsave` (your changed file of a removed package). LuxOS 1.0 renames olde
 `.luxnew`/`.luxsave` is never overwritten; renamed files are listed in `/var/log/lux.log`).
 `lux configs`, `lux doctor` and LuxOS Care still recognise the old names.
 
+Edited config files get new versions merged automatically, see
+[lux-engine-and-repos.md](lux-engine-and-repos.md#new-versions-of-configuration-files).
+
 ## Administrator rights
 
 Run lux as a normal user; it asks for root itself (`sudo` in a terminal, `pkexec` in a graphical
@@ -282,7 +286,8 @@ install rules: [community-aur.md](community-aur.md).
    running is removed (`Removed a stale database lock left by an interrupted update.`).
 2. Refreshes databases, updates `archlinux-keyring` / `luxos-keyring` first, then the full system.
 3. Community (AUR) packages in the system, `.lux` apps, Flatpak apps (then unused Flatpak runtimes are
-   removed); lists new `*.luxnew` files and warns when a restart is needed.
+   removed); new versions of edited config files are merged automatically (only conflicts are listed,
+   with `sudo lux config-diff <file>`), and it warns when a restart is needed.
 
 Automatic background updates are done by LuxOS Care — see [care-updates.md](care-updates.md).
 

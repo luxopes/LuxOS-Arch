@@ -4816,3 +4816,18 @@ Use an app password instead	Użyj zamiast tego hasła aplikacji
 You are signed in	Zalogowano
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	W przeglądarce zalogowano się jako %s, ale to konto to %s. Zaloguj się tym samym kontem.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Twoje logowanie %s dla %s wygasło. Zaloguj się ponownie, aby nadal otrzymywać nową pocztę.
+Updated %s; your settings were kept	Zaktualizowano %s; Twoje ustawienia zostały zachowane
+The new version of %s could not be combined with your changes automatically.	Nowej wersji %s nie udało się automatycznie połączyć z Twoimi zmianami.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Nadal używany jest Twój obecny plik, a system działa normalnie. Aby ją przejrzeć: sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Żadna nowa wersja %s nie czeka – nie ma nic do zrobienia.
+(yours, in use)	(Twoja, używana)
+(new version)	(nowa wersja)
+LuxOS can combine both: your settings stay, new settings and comments are added.	LuxOS może połączyć obie: Twoje ustawienia zostaną, dojdą nowe ustawienia i komentarze.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] połącz (zalecane)  [k] zachowaj swoją  [n] użyj nowej wersji  [d] pokaż wynik  [s] pomiń: 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] zachowaj swoją  [n] użyj nowej wersji (Twoja zostanie jako .lux-old)  [s] pomiń: 
+(combined)	(połączone)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	Obu wersji nie można połączyć automatycznie – wybierz, czy zachować swoją, czy użyć nowej wersji.
+Kept your version of %s	Zachowano Twoją wersję %s
+review a new config file version: combine, keep yours or use the new one	przegląda nową wersję pliku konfiguracyjnego: połącz, zachowaj swoją lub użyj nowej
+Review one with: sudo lux config-diff <file>	Przejrzyj ją poleceniem: sudo lux config-diff <plik>
+New version of a configuration file: %s	Nowa wersja pliku konfiguracyjnego: %s

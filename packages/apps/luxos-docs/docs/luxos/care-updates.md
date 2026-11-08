@@ -49,7 +49,9 @@ The app switches mode through `pkexec /usr/lib/luxos/care/luxos-care-helper set-
 5. Installation from the cache (`-Su`) under `systemd-inhibit` (blocks shutdown, sleep and lid
    switch, "Installing updates"); on shutdown the installation is allowed to finish (up to 30 min).
 6. If a file conflict involves the kept previous kernel, it is released and the install retried.
-7. Old cache cleaned, `.luxnew` files recorded, reboot flagged if the kernel changed, then a
+7. New versions of edited configuration files are merged automatically (your values stay, the
+   `90-lux-config-merge-*` hooks run in every transaction, leftovers are retried here); only files
+   that cannot be combined stay as `.luxnew` and are recorded. Old cache cleaned, reboot flagged if the kernel changed, then a
    problem check runs.
 
 Updates go through `lux` (libalpm) when available, otherwise the internal tool `lux-engine`.
@@ -67,7 +69,9 @@ retried within one run (after 20 s and 90 s).
   connection (Data Saver)", "waiting for the charger or more battery", "waiting for the internet connection").
 - Buttons **Update Now**, **Restart**, **Check for Problems Now**.
 - "When updates are installed": Carefree / Classic.
-- "Available updates" list and new configuration files to review (`lux configs`).
+- "Available updates" list. A configuration file whose new version could not be merged automatically
+  is shown calmly as "New version of a configuration file: …" — your current file stays in use; review
+  it with `sudo lux config-diff <file>`. Automatically merged files are not shown at all.
 - "System health": problems found, the kept previous kernel.
 - "Privacy": switch **Anonymously report that this computer uses LuxOS** (`[general] countme` in
   `/etc/lux/lux.conf`, changed through pkexec `luxos-care-helper set-countme on|off`), see

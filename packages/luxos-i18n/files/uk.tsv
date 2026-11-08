@@ -4816,3 +4816,18 @@ Use an app password instead	Використати пароль застосун
 You are signed in	Ви ввійшли
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	У переглядачі ви ввійшли як %s, але цей обліковий запис — %s. Увійдіть тим самим обліковим записом.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Ваш вхід %s для %s закінчився. Увійдіть знову, щоб і далі отримувати нову пошту.
+Updated %s; your settings were kept	Оновлено %s; ваші налаштування збережено
+The new version of %s could not be combined with your changes automatically.	Нову версію %s не вдалося автоматично поєднати з вашими змінами.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Далі використовується ваш поточний файл, і система працює як звичайно. Щоб переглянути її: sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Жодна нова версія %s не очікує – нічого робити не потрібно.
+(yours, in use)	(ваша, використовується)
+(new version)	(нова версія)
+LuxOS can combine both: your settings stay, new settings and comments are added.	LuxOS може поєднати обидві: ваші налаштування залишаться, додадуться нові налаштування й коментарі.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] поєднати (рекомендовано)  [k] залишити свою  [n] використати нову версію  [d] показати результат  [s] пропустити: 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] залишити свою  [n] використати нову версію (ваша збережеться як .lux-old)  [s] пропустити: 
+(combined)	(поєднано)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	Обидві версії не вдається поєднати автоматично – виберіть: залишити свою чи використати нову версію.
+Kept your version of %s	Залишено вашу версію %s
+review a new config file version: combine, keep yours or use the new one	переглянути нову версію файлу конфігурації: поєднати, залишити свою або використати нову
+Review one with: sudo lux config-diff <file>	Перегляньте її командою: sudo lux config-diff <файл>
+New version of a configuration file: %s	Нова версія файлу конфігурації: %s

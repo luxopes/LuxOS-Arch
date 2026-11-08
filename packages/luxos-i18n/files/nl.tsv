@@ -4815,3 +4815,18 @@ Use an app password instead	Liever een app-wachtwoord gebruiken
 You are signed in	Je bent ingelogd
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Je bent in de browser ingelogd als %s, maar dit account is %s. Log in met hetzelfde account.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Je %s-inlog voor %s is verlopen. Log opnieuw in om nieuwe mail te blijven ontvangen.
+Updated %s; your settings were kept	%s bijgewerkt; uw instellingen zijn behouden
+The new version of %s could not be combined with your changes automatically.	De nieuwe versie van %s kon niet automatisch met uw wijzigingen worden samengevoegd.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Uw huidige bestand blijft in gebruik en het systeem werkt normaal. Bekijken: sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Er wacht geen nieuwe versie van %s – niets te doen.
+(yours, in use)	(van u, in gebruik)
+(new version)	(nieuwe versie)
+LuxOS can combine both: your settings stay, new settings and comments are added.	LuxOS kan beide samenvoegen: uw instellingen blijven, nieuwe instellingen en opmerkingen worden toegevoegd.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] samenvoegen (aanbevolen)  [k] de uwe houden  [n] nieuwe versie gebruiken  [d] resultaat tonen  [s] overslaan: 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] de uwe houden  [n] nieuwe versie gebruiken (de uwe blijft als .lux-old)  [s] overslaan: 
+(combined)	(samengevoegd)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	De twee versies kunnen niet automatisch worden samengevoegd – houd de uwe of gebruik de nieuwe versie.
+Kept your version of %s	Uw versie van %s is behouden
+review a new config file version: combine, keep yours or use the new one	nieuwe versie van een configuratiebestand bekijken: samenvoegen, de uwe houden of de nieuwe gebruiken
+Review one with: sudo lux config-diff <file>	Bekijk deze met: sudo lux config-diff <bestand>
+New version of a configuration file: %s	Nieuwe versie van een configuratiebestand: %s

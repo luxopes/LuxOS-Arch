@@ -423,9 +423,17 @@ class App:
             self.row(self.updates_group, _("No updates are waiting."),
                      _("LuxOS checks for updates automatically."))
         # *.luxnew/*.luxsave (klic "pacnew" zapisoval LuxOS Care do LuxOS 1.0)
+        # nove verze se slouci samy (lux_configmerge.py); zbyde jen to, co nejde bez konfliktu - system
+        # dal pouziva soubor uzivatele, zadne strasidelne hlaseni
         for f in st.get("new_configs", st.get("pacnew", []))[:10]:
-            self.row(self.updates_group, _("New configuration file to review: %s") % f,
-                     _("Your settings were kept. Merge the files when convenient: lux configs"), status="warn")
+            if f.endswith((".luxnew", ".pacnew")):
+                cur = f.rsplit(".", 1)[0]
+                self.row(self.updates_group, _("New version of a configuration file: %s") % cur,
+                         _("Your current file stays in use and the system works normally. "
+                           "To review it: sudo lux config-diff %s") % cur)
+            else:
+                self.row(self.updates_group, _("New configuration file to review: %s") % f,
+                         _("Your settings were kept. Merge the files when convenient: lux configs"), status="warn")
 
         # zdravi
         self.clear(self.health_group)

@@ -60,6 +60,25 @@ except ImportError:
     lux_config = None
 
 
+def _load_configmerge():
+    """lux_configmerge.py vedle tohoto souboru (/usr/lib/lux, pri spusteni z repozitare packages/lux)."""
+    import importlib.util
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lux_configmerge.py")
+    if not os.path.isfile(path):
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("lux_configmerge", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:  # noqa: BLE001 - bez slucovani konfigurace lux funguje dal (jako drive)
+        return None
+
+
+# Nove verze konfigurace z aktualizaci (*.luxnew) se slouci samy (soubory uzivatele zustanou)
+configmerge = _load_configmerge()
+
+
 @contextlib.contextmanager
 def system_writable(flags=None):
     """Ochrana systemu LuxOS (luxos-care, luxos_protect): /usr je jen pro cteni a zapisovatelny jen po
@@ -1276,6 +1295,8 @@ class Lux:
         self.trans = None
         self.interrupted = False
         self.extra = {}
+        self.config_results = []        # slouceni *.luxnew posledni transakce
+        self.config_shown = set()       # soubory, jejichz vysledek uz lux vypsal
         # api/conf predane zvenku = testy a docasne kopie (check-updates): bez countme
         self.injected = api is not None or conf is not None
 
@@ -1323,6 +1344,69 @@ class Lux:
     def need_root(self):
         if os.geteuid() != 0 and not os.environ.get("LUX_ALLOW_NONROOT"):
             raise LuxError("permission", _("This needs administrator rights."))
+
+    # -- nove verze konfigurace (*.luxnew): slouceni (lux_configmerge.py, i hooky 90-lux-config-merge-*)
+    def config_dirs(self):
+        conf = self.conf
+        root = (conf.get("RootDir", "/") if conf else "/") or "/"
+        dbpath = (conf.get("DBPath", DEFAULT_DBPATH) if conf else DEFAULT_DBPATH) or DEFAULT_DBPATH
+        cachedirs = (conf.list("CacheDir") if conf else []) or [DEFAULT_CACHEDIR]
+        return root, dbpath, cachedirs
+
+    def configs_enabled(self):
+        """Testy s napodobeninou pyalpm (konfigurace zvenku, koren /) skutecne /etc nemeni."""
+        if configmerge is None:
+            return False
+        return not self.injected or self.config_dirs()[0].rstrip("/") != ""
+
+    def config_pre(self, names):
+        """Pred transakci: overena kopie soucasne verze souboru backup= (zaklad slouceni). Hook
+        90-lux-config-merge-pre dela totez; tady i pro pripad, ze hooky nebezi (jine HookDir, test)."""
+        if not self.configs_enabled():
+            return
+        root, dbpath, cachedirs = self.config_dirs()
+        try:
+            configmerge.pre(root, dbpath, cachedirs, names=set(names))
+        except Exception:  # noqa: BLE001 - slouceni konfigurace nesmi zastavit aktualizaci
+            pass
+        # hook po transakci vysledky nevypise (lux je vypise v souhrnu), jen zapise
+        os.environ[configmerge.QUIET_ENV] = "1"
+        os.environ[configmerge.RESULT_ENV] = f"/{configmerge.PRISTINE_DIR}/.result-{os.getpid()}.json"
+
+    def config_post(self, names=None, seen=()):
+        """Po transakci (a v lux update): slouceni cekajicich *.luxnew, kopie novych verzi. Vraci
+        vysledky (i ty z hooku), bez souboru uz nahlasenych (seen)."""
+        if not self.configs_enabled():
+            return []
+        root, dbpath, cachedirs = self.config_dirs()
+        hook = []
+        path = os.environ.pop(configmerge.RESULT_ENV, None)
+        os.environ.pop(configmerge.QUIET_ENV, None)
+        try:
+            if path:
+                hook = configmerge.read_results(root, path)
+            res = configmerge.merge_pending(root, dbpath)
+            configmerge.refresh(root, dbpath, cachedirs, names=set(names) if names is not None else None)
+        except Exception as e:  # noqa: BLE001
+            self.ui.compat(f"warning: config merge failed ({e})")
+            res = []
+        return [r for r in configmerge.combine(hook, res) if r["path"] not in seen]
+
+    def show_config_results(self, results):
+        if not results or configmerge is None:
+            return
+        ui = self.ui
+        for r in results:
+            ui.emit("CONFIG", r["status"], r["path"])
+        if ui.machine:
+            return
+        for kind, text in configmerge.messages(results):
+            if kind == "ok":
+                ui.ok(text)
+            elif kind == "warn":
+                ui.warn(text)
+            else:
+                ui.note("  " + text)
 
     # -- obnoveni databazi
     def refresh(self, force=False, attempts=3):
@@ -1593,10 +1677,15 @@ class Lux:
             self.cb.reset("commit", plan["download"], plan["ops"], plan.get("sizes"),
                           list(getattr(self.h, "cachedirs", None) or []), self.hook_plan(to_add, to_remove))
             start = time.time()
+            files = not flags.get("downloadonly")
+            if files:
+                self.config_pre(p.name for p in to_add)
             try:
                 with system_writable(flags):
                     t.commit()
             except api.error as e:
+                if files:
+                    self.config_post([p.name for p in to_add])   # i po chybe: co se stihlo, at se slouci
                 msg, _n, det = alpm_error_parts(e)
                 ui.phase_done(False)
                 ui.compat(f"error: failed to commit transaction ({msg})")
@@ -1624,6 +1713,8 @@ class Lux:
                     raise _RetryCorrupt(err, sorted({package_from_file(f) for f in self.cb.corrupted}))
                 raise err
             ui.phase_done(True)
+            if files:
+                self.config_results = self.config_post([p.name for p in to_add])
             self.summary(action, plan, to_add, to_remove, explicit, time.time() - start, flags)
             return plan["count"]
         finally:
@@ -1741,7 +1832,10 @@ class Lux:
         line = summary_line(action, exp, ndeps, seconds)
         ui.ok(line)
         ui.emit("SUMMARY", action, plan["count"], plan["download"], plan["delta"], f"{seconds:.1f}")
-        if self.cb.pacnew:
+        if self.configs_enabled() and not flags.get("downloadonly"):
+            self.show_config_results(self.config_results)
+            self.config_shown.update(r["path"] for r in self.config_results)
+        elif self.cb.pacnew:
             ui.warn(_("New config files to review: %d (run: lux configs)") % self.cb.pacnew)
         if self.cb.scriptlet and not ui.verbose and not ui.machine:
             for line in self.cb.scriptlet[:5]:
@@ -2024,6 +2118,10 @@ def cmd_upgrade(lux, args):
     if not n:
         lux.ui.compat(" there is nothing to do")
         lux.ui.ok(_("System packages are up to date"))
+    if not args.download_only:
+        # zbyle *.luxnew (i z doby pred samoslucovanim, LuxOS 1.0): slouci se ted; nesloucitelne
+        # se pripomenou (soubor zustava v provozu); kopie verzi z baliku pro pristi slouceni
+        lux.show_config_results(lux.config_post(seen=lux.config_shown))
     return 0
 
 

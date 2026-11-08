@@ -63,7 +63,7 @@ the next restart; then lux removes them together with `/etc/pacman.conf` (copies
 | file conflict ("… exists in filesystem") | `lux owns <file>` shows the owner; files not owned by any package were created manually – move them away only after checking |
 | "Dependencies can not be satisfied" / "unresolvable package conflicts" | usually a partial update – run a full `lux update` first (since 0.9.2 old installs update cleanly) |
 | `pyalpm` problems after an Arch Linux engine update | lux falls back to the internal `lux-engine` tool automatically; `lux doctor` reports when `lux-engine` is behind Arch; diagnose with `/usr/lib/lux/lux_alpm.py --verbose available`, force with `LUX_BACKEND=engine lux update` |
-| new config files from updates | `lux configs` (review `.luxnew`/`.luxsave`: use new, keep yours, edit) |
+| new config files from updates | merged automatically; leftover `.luxnew`: `lux config-diff <file>` |
 | "The package manager configuration has an error" | `lux config check`, see above |
 | "Kernel was updated - restart to use it." | restart |
 
