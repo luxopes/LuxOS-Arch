@@ -1,0 +1,448 @@
+--- a/lib/DockRenderer.vala
++++ b/lib/DockRenderer.vala
+@@ -742,6 +742,18 @@
+ 		
+ 		inline Surface get_item_surface (DockItem item, int icon_size)
+ 		{
++			unowned PositionManager position_manager = controller.position_manager;
++			var max_icon_size = position_manager.ZoomIconSize * window_scale_factor;
++			
++			// LuxOS: mezivelikosti behem zvetsovani (zoom) zmensit z ikony v plne zvetsene velikosti.
++			// Drive se kazda celociselna velikost (48..72 px) vykreslovala z tematu ikon (SVG) zvlast
++			// a synchronne v hlavni smycce - pri prvnim zvetseni (a po zmene tematu ikon nebo po
++			// uklidu vyrovnavaci pameti) desitky vykresleni SVG behem animace. Zakladni a plna
++			// velikost zustavaji vykreslene presne (ostre).
++			if (screen_is_composited && icon_size > position_manager.IconSize * window_scale_factor
++				&& icon_size < max_icon_size)
++				return item.get_surface (max_icon_size, max_icon_size, item_buffer).scaled_copy (icon_size, icon_size);
++			
+ 			var private_icon_surface = item.get_surface (icon_size, icon_size, item_buffer);
+ 			if (!screen_is_composited)
+ 				return private_icon_surface;
+@@ -750,8 +762,6 @@
+ 			// Check if the underlying cache returned a marked surface and if needed
+ 			// request another draw with the currently assumed largest required size
+ 			string? drawing_status;
+-			unowned PositionManager position_manager = controller.position_manager;
+-			var max_icon_size = position_manager.ZoomIconSize * window_scale_factor;
+ 			if (icon_size < max_icon_size
+ 				&& ((drawing_status = private_icon_surface.steal_qdata<string> (quark_surface_stats)) != null
+ 				&& drawing_status == SURFACE_STATS_DRAWING_TIME_EXCEEDED))
+--- a/lib/Drawing/Renderer.vala
++++ b/lib/Drawing/Renderer.vala
+@@ -25,16 +25,33 @@
+ 	 */
+ 	public abstract class Renderer : GLib.Object
+ 	{
++		// LuxOS: hlidac animace - kdyz animace bezi a hodiny snimku (Gdk.FrameClock) presto
++		// STALL_TIMEOUT nedodaly zadny snimek, animace se restartuje a stav doskoci podle casu.
++		const int64 STALL_TIMEOUT = 1000 * 1000;
++		const uint WATCHDOG_INTERVAL = 250U;
++		const uint MAX_STALL_WARNINGS = 3U;
++
+ 		public Gtk.Widget widget { get; construct; }
+-		
++
+ 		[CCode (notify = false)]
+ 		public int64 frame_time { get; private set; }
+-		
+-		uint timer_id = 0U;
++
++		// LuxOS: tick callback je zaregistrovany jen behem animace. GTK pri jeho pridani/odebrani samo
++		// vola begin_updating ()/end_updating () hodin snimku. Drive byl zaregistrovany porad a Plank
++		// volal end_updating () i bez sveho begin_updating () (nevyvazene pocitadlo hodin snimku) a
++		// pri is_updating == true bez dalsich ticku animated_draw () uz nikdy nic neprekreslil.
++		uint tick_id = 0U;
++		uint watchdog_id = 0U;
++		int64 last_tick_time = 0LL;
++		uint stall_warnings = 0U;
+ 		ulong widget_realize_handler_id = 0UL;
+ 		ulong widget_draw_handler_id = 0UL;
+-		bool is_updating = false;
+-		
++
++		// Jen pro testy (packages/plank/tests): prvni snimek po LUXOS_PLANK_TEST_STALL_AFTER sekundach
++		// simuluje hodiny, ktere prestaly dodavat snimky; LUXOS_PLANK_TEST_NO_WATCHDOG vypne hlidace.
++		int64 test_stall_at = 0LL;
++		bool test_no_watchdog = false;
++
+ 		/**
+ 		 * Creates a new animation renderer.
+ 		 */
+@@ -42,32 +59,33 @@
+ 		{
+ 			Object (widget : widget);
+ 		}
+-		
++
+ 		construct
+ 		{
+-			timer_id = widget.add_tick_callback ((Gtk.TickCallback) draw_timeout);
+ 			widget_realize_handler_id = widget.realize.connect (on_widget_realize);
+ 			widget_draw_handler_id = widget.draw.connect (on_widget_draw);
++
++			unowned string? stall = Environment.get_variable ("LUXOS_PLANK_TEST_STALL_AFTER");
++			if (stall != null)
++				test_stall_at = GLib.get_monotonic_time () + (int64) (double.parse (stall) * 1000000.0);
++			test_no_watchdog = (Environment.get_variable ("LUXOS_PLANK_TEST_NO_WATCHDOG") != null);
+ 		}
+-		
++
+ 		~Renderer ()
+ 		{
+-			if (timer_id > 0U) {
+-				widget.remove_tick_callback (timer_id);
+-				timer_id = 0U;
+-			}
+-			
++			stop_animation ();
++
+ 			if (widget_realize_handler_id > 0UL) {
+ 				widget.disconnect (widget_realize_handler_id);
+ 				widget_realize_handler_id = 0UL;
+ 			}
+-			
++
+ 			if (widget_draw_handler_id > 0UL) {
+ 				widget.disconnect (widget_draw_handler_id);
+ 				widget_draw_handler_id = 0UL;
+ 			}
+ 		}
+-		
++
+ 		/**
+ 		 * Determines if animation should continue.
+ 		 *
+@@ -75,21 +93,21 @@
+ 		 * @return if another animation frame is needed
+ 		 */
+ 		protected abstract bool animation_needed (int64 frame_time);
+-		
++
+ 		/**
+ 		 * Preparations which are not requiring a drawing context yet.
+ 		 *
+ 		 * @param frame_time the current time for this frame's render
+ 		 */
+ 		protected abstract void initialize_frame (int64 frame_time);
+-		
++
+ 		/**
+ 		 * Draws onto a context.
+ 		 *
+ 		 * @param cr the context to use for drawing
+ 		 */
+ 		public abstract void draw (Cairo.Context cr, int64 frame_time);
+-		
++
+ 		/**
+ 		 * Force an immediate update of the frame_time property.
+ 		 */
+@@ -97,61 +115,150 @@
+ 		{
+ 			frame_time = GLib.get_monotonic_time ();
+ 		}
+-		
++
+ 		/**
+ 		 * Request re-drawing.
+ 		 */
+ 		public void animated_draw ()
+ 		{
+-			if (is_updating || !widget.get_realized ())
++			if (!widget.get_realized ())
++				return;
++
++			if (tick_id > 0U) {
++				// animace bezi - dalsi snimek pripravi tick callback; kdyz dlouho neprisel, restart
++				if (test_no_watchdog || GLib.get_monotonic_time () - last_tick_time < STALL_TIMEOUT)
++					return;
++				recover_stalled_animation ();
+ 				return;
+-			
++			}
++
+ 			force_frame_time_update ();
+ 			initialize_frame (frame_time);
+-			
++
+ 			widget.queue_draw ();
+-			
+-			if (animation_needed (frame_time)) {
+-				unowned Gdk.FrameClock? frame_clock = widget.get_frame_clock ();
+-				frame_clock.begin_updating ();
+-				is_updating = true;
++
++			if (animation_needed (frame_time))
++				start_animation ();
++		}
++
++		void start_animation ()
++		{
++			last_tick_time = GLib.get_monotonic_time ();
++
++			if (tick_id == 0U)
++				tick_id = widget.add_tick_callback ((Gtk.TickCallback) draw_timeout);
++
++			if (watchdog_id == 0U && !test_no_watchdog)
++				watchdog_id = Gdk.threads_add_timeout (WATCHDOG_INTERVAL, watchdog_check);
++		}
++
++		void stop_animation ()
++		{
++			if (tick_id > 0U) {
++				widget.remove_tick_callback (tick_id);
++				tick_id = 0U;
++			}
++
++			if (watchdog_id > 0U) {
++				GLib.Source.remove (watchdog_id);
++				watchdog_id = 0U;
+ 			}
+ 		}
+-		
++
+ 		[CCode (instance_pos = -1)]
+ 		bool draw_timeout (Gtk.Widget widget, Gdk.FrameClock frame_clock)
+ 		{
+ 			frame_time = GLib.get_monotonic_time ();
++			last_tick_time = frame_time;
++			stall_warnings = 0U;
+ 			initialize_frame (frame_time);
+ 			widget.queue_draw ();
+-			
++
++			if (test_stall_at > 0LL && frame_time >= test_stall_at) {
++				test_stall_at = 0LL;
++				// test: GTK callback odebere, tick_id ale zustane - jako kdyby hodiny prestaly tikat
++				warning ("LuxOS test: simulating a stalled frame clock");
++				return false;
++			}
++
+ 			if (animation_needed (frame_time))
+ 				return true;
+-			
+-			frame_clock.end_updating ();
+-			is_updating = false;
++
++			// hotovo - GTK po vraceni false callback odebere a samo zavola end_updating ()
++			tick_id = 0U;
++			return false;
++		}
++
++		bool watchdog_check ()
++		{
++			if (tick_id == 0U) {
++				watchdog_id = 0U;
++				return false;
++			}
++
++			if (GLib.get_monotonic_time () - last_tick_time >= STALL_TIMEOUT)
++				recover_stalled_animation ();
++
+ 			return true;
+ 		}
+-		
++
++		/**
++		 * LuxOS: animace stoji (zadny snimek za STALL_TIMEOUT) - pripravit snimek podle aktualniho
++		 * casu (vsechny prechody doskoci do konzistentniho stavu) a znovu zaregistrovat tick callback,
++		 * cimz GTK znovu spusti aktualizace hodin snimku.
++		 */
++		void recover_stalled_animation ()
++		{
++			var now = GLib.get_monotonic_time ();
++			unowned Gdk.Window? window = widget.get_window ();
++
++			// nezobrazene okno snimky opravnene nedostava (napr. odmapovane) - neni co opravovat
++			if (window == null || !widget.get_mapped ()
++				|| (window.get_state () & Gdk.WindowState.WITHDRAWN) != 0) {
++				last_tick_time = now;
++				return;
++			}
++
++			if (stall_warnings < MAX_STALL_WARNINGS) {
++				stall_warnings++;
++				warning ("Animation stalled for %" + int64.FORMAT + " ms, restarting frame updates",
++					(now - last_tick_time) / 1000);
++			}
++
++			if (tick_id > 0U) {
++				widget.remove_tick_callback (tick_id);
++				tick_id = 0U;
++			}
++
++			force_frame_time_update ();
++			initialize_frame (frame_time);
++			widget.queue_draw ();
++
++			last_tick_time = now;
++			if (animation_needed (frame_time))
++				tick_id = widget.add_tick_callback ((Gtk.TickCallback) draw_timeout);
++			// hlidac se pri tick_id == 0 zastavi sam pri pristi kontrole
++		}
++
+ 		[CCode (instance_pos = -1)]
+ 		bool on_widget_draw (Gtk.Widget widget, Cairo.Context cr)
+ 		{
+ 			draw (cr, frame_time);
+-		
++
+ 			return Gdk.EVENT_PROPAGATE;
+ 		}
+-		
++
+ 		[CCode (instance_pos = -1)]
+ 		void on_widget_realize (Gtk.Widget widget)
+ 		{
+ 			force_frame_time_update ();
+ 			initialize_frame (frame_time);
+-			
++
+ 			if (widget_realize_handler_id > 0UL) {
+ 				widget.disconnect (widget_realize_handler_id);
+ 				widget_realize_handler_id = 0UL;
+ 			}
+ 		}
+-		
++
+ 	}
+ }
+--- a/lib/Factories/ItemFactory.vala
++++ b/lib/Factories/ItemFactory.vala
+@@ -186,6 +186,13 @@
+ 					if (info.get_is_hidden () || !filename.has_suffix (".dockitem"))
+ 						continue;
+ 					
++					// LuxOS: nazev souboru se uklada do GSettings (dock-items, pole retezcu); GVariant
++					// s neplatnym UTF-8 Plank shodil (SIGSEGV v g_variant_serialiser_needed_size)
++					if (!filename.validate ()) {
++						warning ("Ignoring dock item with a file name that is not valid UTF-8: '%s'", filename);
++						continue;
++					}
++					
+ 					if (count++ >= LAUNCHER_DIR_MAX_FILE_COUNT) {
+ 						critical ("There are way too many files (%u+) in '%s'.", LAUNCHER_DIR_MAX_FILE_COUNT, source_dir.get_path ());
+ 						break;
+--- a/lib/HideManager.vala
++++ b/lib/HideManager.vala
+@@ -60,6 +60,9 @@
+ 		// the results of our update
+ 		const uint UPDATE_TIMEOUT = 200U;
+ 		
++		// LuxOS: jak casto overit polohu mysi, dokud je Dock pod mysi (viz hover_check)
++		const uint HOVER_CHECK_INTERVAL = 500U;
++		
+ #if HAVE_BARRIERS
+ 		// FIXME Use an IconSize-based value?
+ 		const double PRESSURE_THRESHOLD = 60.0;
+@@ -95,6 +98,7 @@
+ 		uint prefs_changed_timer_id = 0U;
+ 		uint geometry_timer_id = 0U;
+ 		uint window_changed_timer_id = 0U;
++		uint hover_check_timer_id = 0U;
+ 		
+ 		bool pointer_update = true;
+ 		bool window_intersect = false;
+@@ -242,9 +246,42 @@
+ 			if (update_needed)
+ 				update_hidden ();
+ 			
++			// LuxOS: dokud je Dock pod mysi, overovat polohu mysi i bez udalosti okna
++			if (Hovered && hover_check_timer_id == 0U)
++				hover_check_timer_id = Gdk.threads_add_timeout (HOVER_CHECK_INTERVAL, hover_check);
++			
+ 			thaw_notify ();
+ 		}
+ 		
++		/**
++		 * LuxOS: Hovered se jinak meni jen udalostmi vstupu/odchodu mysi. Kdyz se udalost odchodu
++		 * ztrati (zmena vstupni oblasti okna pod mysi behem animace, uchop mysi jinou aplikaci),
++		 * zustal by Dock zvetseny a odkryty, i kdyz mys uz davno odjela. Kontroluje se jen plne
++		 * zobrazeny Dock bez menu a tazeni - tehdy je oblast pro mys stejna jako vstupni oblast okna.
++		 */
++		bool hover_check ()
++		{
++			if (!Hovered) {
++				hover_check_timer_id = 0U;
++				return false;
++			}
++			
++			unowned DockWindow window = controller.window;
++			unowned DragManager drag_manager = controller.drag_manager;
++			if (Hidden || controller.renderer.hide_progress > 0.0 || window.menu_is_visible ()
++				|| drag_manager.InternalDragActive || drag_manager.ExternalDragActive)
++				return true;
++			
++			update_hovered ();
++			if (Hovered)
++				return true;
++			
++			// mys je mimo Dock: zrusit i zvyrazneni ikony (jako pri udalosti odchodu)
++			window.update_hovered (-1, -1);
++			hover_check_timer_id = 0U;
++			return false;
++		}
++		
+ 		void prefs_changed (Object prefs, ParamSpec prop)
+ 		{
+ 			switch (prop.name) {
+@@ -595,6 +632,11 @@
+ 				GLib.Source.remove (unhide_timer_id);
+ 				unhide_timer_id = 0U;
+ 			}
++			
++			if (hover_check_timer_id > 0U) {
++				GLib.Source.remove (hover_check_timer_id);
++				hover_check_timer_id = 0U;
++			}
+ 		}
+ 		
+ #if HAVE_BARRIERS
+--- a/lib/Services/Logger.vala
++++ b/lib/Services/Logger.vala
+@@ -214,6 +214,22 @@
+ 			stdout.printf ("\x001b[%dm", color_code);
+ 		}
+ 		
++		/**
++		 * LuxOS: odstrani znaky konce radku bez GRegex. string.replace () z valac pouziva GRegex,
++		 * ktery na neplatnem UTF-8 vrati chybu a vygenerovany kod skonci g_assert_not_reached ()
++		 * - Plank pak na varovani GLib s novym radkem a neplatnym UTF-8 spadl (SIGABRT).
++		 */
++		static string strip_newlines (string msg)
++		{
++			var result = new StringBuilder.sized (msg.length + 1);
++			for (var i = 0; i < msg.length; i++) {
++				var c = msg[i];
++				if (c != '\n' && c != '\r')
++					result.append_c (c);
++			}
++			return (owned) result.str;
++		}
++		
+ 		static void glib_log_func (string? d, LogLevelFlags flags, string msg)
+ 		{
+ 			string domain;
+@@ -224,7 +240,7 @@
+ 			
+ 			string message;
+ 			if (msg.contains ("\n") || msg.contains ("\r"))
+-				message = "%s%s".printf (domain, msg.replace ("\n", "").replace ("\r", ""));
++				message = "%s%s".printf (domain, strip_newlines (msg));
+ 			else
+ 				message = "%s%s".printf (domain, msg);
+ 			
+--- a/lib/Services/Utils.vala
++++ b/lib/Services/Utils.vala
+@@ -114,7 +114,9 @@
+ 	{
+ 		try {
+ 			var info = file.query_info (FileAttribute.STANDARD_NAME + "," + FileAttribute.STANDARD_IS_HIDDEN, 0);
+-			return !info.get_is_hidden () && info.get_name ().has_suffix (".dockitem");
++			// LuxOS: nazev se uklada do GSettings (dock-items) - musi byt platne UTF-8
++			unowned string name = info.get_name ();
++			return !info.get_is_hidden () && name.has_suffix (".dockitem") && name.validate ();
+ 		} catch (Error e) {
+ 			warning (e.message);
+ 		}
