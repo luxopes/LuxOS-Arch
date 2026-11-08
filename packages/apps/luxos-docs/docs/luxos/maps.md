@@ -112,8 +112,11 @@ by itself; **⋯ › Allow My Location** turns the permission off again.
 
 **Phone GPS**: when an Android phone with **LuxOS Companion** is connected and shares its location
 (and **Share phone location with Maps** is on in Settings › Phone), Maps prefers its fresh GPS fix
-(at most 15 s old) and follows it live – the dot moves with the phone and the map stays centred until
-you drag it; a stale phone location turns the dot grey. Without your consent in Maps the phone
+(at most 15 s old) and follows it live – the dot glides smoothly between the phone's updates (about
+once a second; it keeps moving with the phone's speed and direction and eases into each new position
+instead of jumping, the accuracy circle grows and shrinks smoothly) and the map moves with it and stays
+centred until you drag it; zooming while following zooms around the dot. A stale phone location turns
+the dot grey. Without your consent in Maps the phone
 location is never used. See [Phone (LuxOS Companion)](companion.md).
 
 ## geo: links

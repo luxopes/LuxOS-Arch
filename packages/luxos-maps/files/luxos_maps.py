@@ -1922,10 +1922,17 @@ NAV_SPEEDS = {"car": 13.9, "bike": 5.0, "walk": 1.4, TRANSIT: 8.0}   # m/s, jen 
 NAV_MAX_HZ = 5                # nejvys 5 zpracovani polohy za sekundu
 NAV_FPS = 30                  # plynuly pohyb sipky mezi polohami: nejvys 30 snimku/s, jen kdyz se hybe
 NAV_MIN_FPS = 10              # ... pomaly pohyb (chuze) staci 10 snimku/s (asi 1 px na snimek)
-NAV_EXTRAPOLATE_S = 1.5       # s po posledni poloze se sipka posouva podle rychlosti a smeru, pak stoji
-NAV_EASE_S = 0.35             # s, casova konstanta dorovnani sipky na novou polohu (misto skoku)
-NAV_TURN_EASE_S = 0.35        # s, otaceni sipky a mapy (nejkratsi cestou)
-NAV_JUMP_M = 300              # m, vetsi skok (nova trasa, prvni poloha) se neanimuje
+NAV_SAVER_FPS = 15            # ... Uspora baterie: nejvys 15 snimku/s
+NAV_CALM_FPS = 10             # ... Omezit pohyb (animace GTK vypnute): nejvys 10 snimku/s
+NAV_EXTRAPOLATE_S = 1.5       # s po posledni poloze se sipka posouva podle rychlosti a smeru ...
+NAV_COAST_S = 0.6             # ... pak plynule zpomali (casova konstanta, zadne prudke zastaveni) a stoji
+NAV_SPRING_W = 6.0            # 1/s, kriticky tlumene dorovnani na novou polohu (asi 0,8 s, rychlost bez skoku)
+NAV_TURN_W = 7.0              # 1/s, otaceni sipky a mapy (nejkratsi cestou, kriticky tlumene)
+NAV_ACC_W = 5.0               # 1/s, polomer kruhu presnosti
+NAV_HEADING_MIN_SPEED = 0.8   # m/s, pomaleji se kurz nemeni (sum smeru u stojiciho telefonu)
+NAV_JUMP_M = 100              # m, vetsi skok (nova trasa, prvni poloha, chyba polohy) se neanimuje
+NAV_GAP_S = 20                # s bez polohy: dalsi poloha skoci (signal byl ztraceny)
+NAV_SOFT_M = 8                # m, sipka na trase o tolik (nejvys 2x presnost polohy) pred polohou necouva
 NAV_SNAP_M = 30               # m, na trase: sipka na care trasy, je-li poloha bliz (a v ramci presnosti)
 EARTH_R = 6371008.8
 
@@ -1942,6 +1949,42 @@ def bearing(a_lat, a_lon, b_lat, b_lon):
 def angle_diff(a, b):
     """Nejmensi rozdil dvou kurzu (-180..180)."""
     return (b - a + 180.0) % 360.0 - 180.0
+
+
+def spring(e0, u0, w, tau):
+    """Kriticky tlumena pruzina: (odchylka, rychlost odchylky) v case tau od (e0, u0); bez prekmitu,
+    rychlost je spojita (zadne trhnuti na zacatku jako u prosteho exponencialniho dorovnani)."""
+    tau = max(0.0, tau)
+    b = u0 + w * e0
+    k = math.exp(-w * tau)
+    return (e0 + b * tau) * k, (b - w * (e0 + b * tau)) * k
+
+
+class HeadingFilter:
+    """Kurz pohybu z poloh: smer z GNSS jen pri rychlosti aspon 1 m/s, jinak ze dvou poloh vzdalenych
+    aspon 8 m (a aspon 0,8 presnosti: drift polohy stojiciho telefonu neni pohyb). Telefon, ktery hlasi
+    rychlost pod 0,5 m/s, stoji: kurz se nemeni. heading = posledni platny kurz (None = zatim zadny)."""
+
+    def __init__(self):
+        self.heading = None
+        self._pos = None
+
+    def update(self, fix):
+        b, sp = fix.get("bearing"), fix.get("speed")
+        if isinstance(b, (int, float)) and isinstance(sp, (int, float)) and sp >= 1.0 and math.isfinite(b):
+            self.heading = float(b) % 360.0
+            self._pos = (fix["lat"], fix["lon"])
+            return self.heading
+        if self._pos is None:
+            self._pos = (fix["lat"], fix["lon"])
+            return self.heading
+        if isinstance(sp, (int, float)) and math.isfinite(sp) and 0 <= sp < 0.5:
+            return self.heading
+        need = max(8.0, 0.8 * float(fix.get("accuracy") or 0))
+        if distance_m(self._pos[0], self._pos[1], fix["lat"], fix["lon"]) >= need:
+            self.heading = bearing(self._pos[0], self._pos[1], fix["lat"], fix["lon"])
+            self._pos = (fix["lat"], fix["lon"])
+        return self.heading
 
 
 class NavRoute:
@@ -2107,7 +2150,7 @@ class Navigator:
         self.reroute_enabled = reroute
         self.last_reroute = -1e18
         self.heading = None
-        self._head_pos = None
+        self._head = HeadingFilter()
         self.set_route(route)
 
     def set_route(self, route):
@@ -2147,16 +2190,9 @@ class Navigator:
         return max(base, acc)
 
     def _heading(self, fix):
-        b, sp = fix.get("bearing"), fix.get("speed")
-        if isinstance(b, (int, float)) and isinstance(sp, (int, float)) and sp >= 1.0 and math.isfinite(b):
-            self.heading = float(b) % 360.0
-            self._head_pos = (fix["lat"], fix["lon"])
-            return
-        if self._head_pos is None:
-            self._head_pos = (fix["lat"], fix["lon"])
-        elif distance_m(self._head_pos[0], self._head_pos[1], fix["lat"], fix["lon"]) >= 8.0:
-            self.heading = bearing(self._head_pos[0], self._head_pos[1], fix["lat"], fix["lon"])
-            self._head_pos = (fix["lat"], fix["lon"])
+        h = self._head.update(fix)
+        if h is not None:
+            self.heading = h
 
     def _wrong_way(self, fix, along, acc, now):
         """Na trase, ale zpet proti jejimu smeru: median poslednich 3 poloh o vic nez NAV_WRONG_WAY_M
@@ -2245,9 +2281,10 @@ class Navigator:
                     self.next = last
         if self.heading is None:
             self.heading = r.point_at(self.along)[2]
-        # prichyceni k trase (map matching) pro sipku: jen na trase a v ramci presnosti polohy
+        # prichyceni k trase (map matching) pro sipku: jen na trase a v ramci presnosti polohy (1,5x: chyba GPS
+        # casto presahne udanou presnost, sipka by jinak chvilemi uskakovala z trasy a zpet)
         snap = None
-        if self.located and not self.off_route and self.offset <= min(NAV_SNAP_M, max(acc, 10.0)):
+        if self.located and not self.off_route and self.offset <= min(NAV_SNAP_M, max(1.5 * acc, 15.0)):
             snap = r.point_at(self.along)
         nxt = r.steps[self.next]
         rem_s = 0.0 if self.arrived else r.remaining_s(self.along, self.next - 1, now)
@@ -2262,116 +2299,266 @@ class Navigator:
 
 
 class NavMotion:
-    """Plynuly pohyb sipky polohy mezi polohami (bez GTK, hodiny zvenku):
-    - na trase se sipka posouva po care trasy (prichyceni), jinak primo podle smeru,
-    - po posledni poloze jeste NAV_EXTRAPOLATE_S s dopocet podle rychlosti (z telefonu nebo z poslednich poloh),
-    - nova poloha neskoci: rozdil proti zobrazenemu mistu dobehne s casovou konstantou NAV_EASE_S,
-    - otaceni (kurz sipky i mapy po smeru jizdy) nejkratsi cestou s NAV_TURN_EASE_S.
+    """Plynuly pohyb sipky (bodu) polohy mezi polohami jako v Mapach Google/Apple (bez GTK, hodiny zvenku):
+    - dopocet: po posledni poloze se sipka posouva podle rychlosti a smeru (z telefonu, jinak z poslednich
+      poloh) NAV_EXTRAPOLATE_S s, pak plynule zpomali (NAV_COAST_S) a stoji,
+    - na trase (navigace, stav "snap") jede po care trasy: zadne bocni chveni, dorovnani jen podel trasy;
+      je-li sipka kousek pred novou polohou, jen zpomali (necouva),
+    - nova poloha neskoci: rozdil polohy i rychlosti proti zobrazene sipce dobehne kriticky tlumenou pruzinou
+      (NAV_SPRING_W, asi 0,8 s); skok nad NAV_JUMP_M nebo po NAV_GAP_S bez polohy se neanimuje,
+    - otaceni (sipka i mapa po smeru jizdy) nejkratsi cestou a tlumene; pod NAV_HEADING_MIN_SPEED se kurz nemeni,
+    - polomer kruhu presnosti se meni plynule.
     active(t) = jeste je co animovat (jinak zadne snimky = zadna prace procesoru)."""
+
+    H = 0.05                       # s, krok pro odhad rychlosti zobrazene sipky
 
     def __init__(self):
         self.t0 = None
         self.lat0 = self.lon0 = 0.0
         self.speed = 0.0
-        self.course = 0.0              # smer pohybu pro dopocet mimo trasu
+        self.course = None             # smer pohybu pro dopocet mimo trasu (None = neznamy: bez dopoctu)
         self.route = None              # dopocet po trase (NavRoute) od along0
         self.along0 = 0.0
-        self.err = (0.0, 0.0)          # m (vychod, sever): zobrazene minus nove misto v case t0
+        self.err = (0.0, 0.0)          # m (vychod, sever): zobrazene minus predpovidane misto v case t0
+        self.err_v = (0.0, 0.0)        # m/s, rychlost teto odchylky
+        self.aerr = self.aerr_v = 0.0  # na trase: odchylka podel trasy (m, m/s)
+        self.aw = NAV_SPRING_W         # tuhost pruziny podel trasy (mekci = sipka jen zpomali)
+        self.a_floor = None            # na trase pri zpomaleni: sipka necouva pod toto misto (m podel trasy)
+        self.acc = None                # cilovy polomer presnosti (m)
+        self.acc_e = self.acc_v = 0.0
         self.head = None               # zobrazeny kurz
+        self.head_v = 0.0              # stupne/s
         self.target_head = 0.0
         self.t_head = None
         self.prev = None               # (t, lat, lon) predchozi polohy pro odhad rychlosti
 
-    def _predict(self, t):
-        d = self.speed * clamp(t - self.t0, 0.0, NAV_EXTRAPOLATE_S)
+    @staticmethod
+    def _shift(lat, lon, ex, ny):
+        return lat + ny / 111195.0, lon + ex / (111195.0 * math.cos(math.radians(lat)))
+
+    @staticmethod
+    def _en(a, b):
+        """Posun z a do b v metrech (vychod, sever)."""
+        return ((b[1] - a[1]) * 111195.0 * math.cos(math.radians(a[0])), (b[0] - a[0]) * 111195.0)
+
+    def _coast(self, tau):
+        """Ujeta vzdalenost dopoctu za tau s po poloze (po NAV_EXTRAPOLATE_S plynule zpomaleni)."""
+        if self.speed <= 0 or tau <= 0:
+            return 0.0
+        if tau <= NAV_EXTRAPOLATE_S:
+            return self.speed * tau
+        return self.speed * (NAV_EXTRAPOLATE_S + NAV_COAST_S * (1.0 - math.exp(-(tau - NAV_EXTRAPOLATE_S)
+                                                                                / NAV_COAST_S)))
+
+    def _coast_v(self, tau):
+        if self.speed <= 0:
+            return 0.0
+        if tau <= NAV_EXTRAPOLATE_S:
+            return self.speed
+        return self.speed * math.exp(-(tau - NAV_EXTRAPOLATE_S) / NAV_COAST_S)
+
+    def _state(self, t, floor=True):
+        """(lat, lon, m podel trasy nebo None) zobrazene sipky v case t."""
+        tau = max(0.0, t - self.t0)
         if self.route is not None:
-            return self.route.point_at(self.along0 + d)
-        if d <= 0:
-            return self.lat0, self.lon0, self.course
-        a = math.radians(self.course)
-        return (self.lat0 + d * math.cos(a) / 111195.0,
-                self.lon0 + d * math.sin(a) / (111195.0 * math.cos(math.radians(self.lat0))), self.course)
+            a = self.along0 + self._coast(tau) + spring(self.aerr, self.aerr_v, self.aw, tau)[0]
+            if floor and self.a_floor is not None:
+                a = max(a, self.a_floor)
+            a = clamp(a, 0.0, self.route.length)
+            lat, lon, _h = self.route.point_at(a)
+        else:
+            a = None
+            d = self._coast(tau) if self.course is not None else 0.0
+            c = math.radians(self.course or 0.0)
+            lat, lon = self._shift(self.lat0, self.lon0, d * math.sin(c), d * math.cos(c))
+        ex = spring(self.err[0], self.err_v[0], NAV_SPRING_W, tau)[0]
+        ny = spring(self.err[1], self.err_v[1], NAV_SPRING_W, tau)[0]
+        lat, lon = self._shift(lat, lon, ex, ny)
+        return lat, lon, a
 
     def position(self, t):
         """(lat, lon) zobrazene sipky v case t."""
-        lat, lon, _h = self._predict(t)
-        k = math.exp(-max(0.0, t - self.t0) / NAV_EASE_S)
-        ex, ny = self.err[0] * k, self.err[1] * k
-        return lat + ny / 111195.0, lon + ex / (111195.0 * math.cos(math.radians(lat)))
+        return self._state(t)[:2]
+
+    def accuracy(self, t):
+        """Zobrazeny polomer presnosti (m) v case t, None = zatim zadna poloha."""
+        if self.acc is None:
+            return None
+        return max(0.0, self.acc + spring(self.acc_e, self.acc_v, NAV_ACC_W, t - self.t0)[0])
 
     def on_fix(self, t, fix, heading, route=None, along=None):
-        """Nova poloha v case t (monotonni s). heading = kurz z Navigatoru; route+along = poloha prichycena
-        k trase (stav "snap"), jinak se sipka pohybuje volne."""
+        """Nova poloha v case t (monotonni s). heading = kurz pohybu (Navigator, HeadingFilter; None = beze
+        zmeny); route+along = poloha prichycena k trase (stav "snap"), jinak se sipka pohybuje volne."""
         lat, lon = fix["lat"], fix["lon"]
+        acc = float(fix.get("accuracy") or 0)
         sp = fix.get("speed")
-        if isinstance(sp, (int, float)) and math.isfinite(sp) and sp >= 0:
+        if isinstance(sp, (int, float)) and not isinstance(sp, bool) and math.isfinite(sp) and sp >= 0:
             speed = float(sp)
         elif self.prev and 0.2 <= t - self.prev[0] <= 8.0:
             dist = distance_m(self.prev[1], self.prev[2], lat, lon)
-            # posun v ramci sumu polohy neni pohyb
-            speed = dist / (t - self.prev[0]) if dist >= max(2.0, 0.3 * float(fix.get("accuracy") or 0)) else 0.0
+            # posun v ramci sumu polohy neni pohyb; odhad z poloh je hlucny: prumer s predchozim
+            speed = dist / (t - self.prev[0]) if dist >= max(2.0, 0.3 * acc) else 0.0
+            if speed > 0 and self.speed > 0:
+                speed = 0.5 * (speed + self.speed)
         else:
             speed = 0.0
         self.prev = (t, lat, lon)
-        cur = self.position(t) if self.t0 is not None else None
+        cur = None
+        if self.t0 is not None:
+            h = self.H
+            cur = self._state(t)
+            before = self._state(t - h)
+            vd = tuple(x / h for x in self._en(before, cur))
+            a_rate = (cur[2] - before[2]) / h if cur[2] is not None and before[2] is not None else 0.0
+            tau = t - self.t0
+            en_v = (spring(self.err[0], self.err_v[0], NAV_SPRING_W, tau)[1],
+                    spring(self.err[1], self.err_v[1], NAV_SPRING_W, tau)[1])
+            acc_now = self.accuracy(t)
+            acc_rate = spring(self.acc_e, self.acc_v, NAV_ACC_W, tau)[1]
+            old_route, gap = self.route, tau
         self.speed = min(speed, 70.0) if speed >= 0.5 else 0.0
-        self.course = heading % 360.0 if heading is not None else self.course
+        if heading is not None and (self.speed >= NAV_HEADING_MIN_SPEED or self.head is None):
+            self.course = heading % 360.0          # stojici telefon: sum smeru neotaci sipkou
         self.route = None
         if route is not None and along is not None:
-            lat, lon, rhead = route.point_at(along)
-            # po trase jen ve smeru trasy; jinak (otoceni) primo
-            if heading is None or abs(angle_diff(heading, rhead)) < 60:
+            rlat, rlon, _rhead = route.point_at(along)
+            # po trase jen ve smeru trasy (i v zatacce: smer useku pred/za mistem); jinak (otoceni) primo
+            if heading is None or min(abs(angle_diff(heading, route.point_at(along + d)[2]))
+                                      for d in (-12.0, 0.0, 12.0)) < 60:
                 self.route, self.along0 = route, along
+                lat, lon = rlat, rlon
         self.t0, self.lat0, self.lon0 = t, lat, lon
-        self.err = (0.0, 0.0)
-        if cur is not None:
-            ex = (cur[1] - lon) * 111195.0 * math.cos(math.radians(lat))
-            ny = (cur[0] - lat) * 111195.0
-            if math.hypot(ex, ny) < NAV_JUMP_M:
-                self.err = (ex, ny)
-        target = self._predict(t)[2] if self.route is not None else self.course
-        self.target_head = target
-        if self.head is None or cur is None:
-            self.head, self.t_head = target, t
+        self.err = self.err_v = (0.0, 0.0)
+        self.aerr = self.aerr_v = 0.0
+        self.aw, self.a_floor = NAV_SPRING_W, None
+        jump = cur is None or gap > NAV_GAP_S or distance_m(cur[0], cur[1], lat, lon) > NAV_JUMP_M
+        if jump and cur is not None:
+            self.speed = 0.0       # po skoku (prvni poloha po vypadku, chyba polohy) dopocet az od dalsi polohy
+        if self.route is None and self.course is None:
+            self.speed = 0.0       # smer pohybu zatim neznamy: bod stoji (zadny dopocet na sever)
+        if not jump:
+            if self.route is not None and old_route is self.route and cur[2] is not None:
+                # podel trasy: sipka zustava na care, dorovnava se jen poloha podel trasy
+                base = self.route.point_at(clamp(cur[2], 0.0, self.route.length))
+                self.err = self._en(base, cur)            # zbytek drivejsiho bocniho dorovnani
+                self.err_v = en_v
+                e0 = cur[2] - self.along0
+                u0 = clamp(a_rate - self.speed, -30.0, 30.0)
+                if 0 < e0 <= max(1.5 * self.speed, min(2 * acc, NAV_SOFT_M)) and self.speed > 0:
+                    # sipka je kousek pred polohou (v ramci presnosti): jen zpomali, pripadne chvili
+                    # pocka (mekci pruzina, bez couvani); sum polohy podel trasy necouva sipkou
+                    self.aw = clamp(self.speed * math.e / e0, 0.8, NAV_SPRING_W)
+                    self.a_floor = cur[2]
+                    u0 = max(u0, -self.speed)
+                self.aerr, self.aerr_v = e0, u0
+            else:
+                h = self.H
+                p1, p2 = self._state(t), self._state(t + h)
+                vp = tuple(x / h for x in self._en(p1, p2))
+                self.err = self._en(p1, cur)
+                self.err_v = (clamp(vd[0] - vp[0], -30.0, 30.0), clamp(vd[1] - vp[1], -30.0, 30.0))
+        if jump or self.acc is None or acc_now is None:
+            self.acc_e = self.acc_v = 0.0
+        else:
+            self.acc_e, self.acc_v = acc_now - acc, acc_rate
+        self.acc = acc
+        if self.head is None or jump:
+            self.head, self.head_v, self.t_head = None, 0.0, t
+            self.heading(t)
 
-    def heading(self, t):
-        """Zobrazeny kurz v case t (stav: otaceni dobiha k cili nejkratsi cestou)."""
-        if self.route is not None:
-            self.target_head = self._predict(t)[2]
+    def _target(self, along):
+        if self.route is not None and along is not None:
+            # smer trasy v okne kolem sipky (delka podle rychlosti): zatacka se otaci postupne jako auto,
+            # ne skokem ve vrcholu lomene cary trasy
+            half = clamp(self.speed * 0.7, 3.0, 15.0)
+            r = self.route
+            p1, p2 = r.point_at(along - half), r.point_at(along + half)
+            if distance_m(p1[0], p1[1], p2[0], p2[1]) > 1.0:
+                self.target_head = bearing(p1[0], p1[1], p2[0], p2[1])
+            else:
+                self.target_head = r.point_at(along)[2]
+        elif self.course is not None:
+            self.target_head = self.course
+        return self.target_head
+
+    def heading(self, t, along=None):
+        """Zobrazeny kurz v case t (stav: otaceni dobiha k cili nejkratsi cestou, kriticky tlumene)."""
+        if self.route is not None and along is None and self.t0 is not None:
+            along = self._state(t)[2]
+        tgt = self._target(along)
         if self.head is None:
-            self.head = self.target_head
-        dt = max(0.0, t - (self.t_head if self.t_head is not None else t))
-        self.t_head = t
-        d = angle_diff(self.head, self.target_head)
-        self.head = (self.head + d * (1.0 - math.exp(-dt / NAV_TURN_EASE_S))) % 360.0
+            self.head, self.head_v, self.t_head = tgt, 0.0, t
+        last = self.t_head if self.t_head is not None else t
+        dt = clamp(t - last, 0.0, 0.5)
+        self.t_head = max(t, last)
+        e, self.head_v = spring(angle_diff(tgt, self.head), self.head_v, NAV_TURN_W, dt)
+        self.head = (tgt + e) % 360.0
         return self.head
+
+    def _settle(self, t):
+        """Dorovnani skoro dobehlo (pod 5 cm a 5 cm/s): zbytek vynulovat, posledni snimek je presne na miste."""
+        tau = max(0.0, t - self.t0)
+        ex, vx = spring(self.err[0], self.err_v[0], NAV_SPRING_W, tau)
+        ny, vy = spring(self.err[1], self.err_v[1], NAV_SPRING_W, tau)
+        if (self.err != (0.0, 0.0) or self.err_v != (0.0, 0.0)) and math.hypot(ex, ny) < 0.05 \
+                and math.hypot(vx, vy) < 0.05:
+            self.err = self.err_v = (0.0, 0.0)
+        if self.route is not None and (self.aerr or self.aerr_v):
+            ea, va = spring(self.aerr, self.aerr_v, self.aw, tau)
+            if abs(ea) < 0.05 and abs(va) < 0.05:
+                self.aerr = self.aerr_v = 0.0      # a_floor zustava: sipka necouva ani potom
+        ae, av = spring(self.acc_e, self.acc_v, NAV_ACC_W, tau)
+        if (self.acc_e or self.acc_v) and abs(ae) < 0.1 and abs(av) < 0.1:
+            self.acc_e = self.acc_v = 0.0
 
     def frame(self, t):
         """(lat, lon, kurz) pro snimek v case t."""
-        lat, lon = self.position(t)
-        return lat, lon, self.heading(t)
+        if self.t0 is not None:
+            self._settle(t)
+        lat, lon, a = self._state(t)
+        if self.a_floor is not None and a is not None:
+            self.a_floor = max(self.a_floor, a)
+        return lat, lon, self.heading(t, a)
+
+    def _rates(self, t):
+        """(rychlost pohybu sipky m/s, zbyvajici odchylka m, rychlost zmeny presnosti m/s)."""
+        tau = max(0.0, t - self.t0)
+        ex, vx = spring(self.err[0], self.err_v[0], NAV_SPRING_W, tau)
+        ny, vy = spring(self.err[1], self.err_v[1], NAV_SPRING_W, tau)
+        ea, va = spring(self.aerr, self.aerr_v, self.aw, tau) if self.route is not None else (0.0, 0.0)
+        ae, av = spring(self.acc_e, self.acc_v, NAV_ACC_W, tau)
+        move = self._coast_v(tau) + math.hypot(vx, vy) + abs(va)
+        return move, math.hypot(ex, ny) + abs(ea), abs(av) + 2 * abs(ae)
+
+    def _turning(self):
+        return self.head is not None and (abs(angle_diff(self.head, self.target_head)) > 1.0
+                                          or abs(self.head_v) > 2.0)
 
     def fps(self, t, m_per_px):
-        """Kolik snimku za sekundu je potreba: dorovnani skoku a otaceni NAV_FPS, jinak podle rychlosti
-        v pixelech (asi 1 px na snimek, aspon NAV_MIN_FPS) - pomaly pohyb nestoji zbytecne prekreslovani."""
-        k = math.exp(-max(0.0, t - self.t0) / NAV_EASE_S) if self.t0 is not None else 0.0
-        tgt = self._predict(t)[2] if self.route is not None and self.t0 is not None else self.target_head
-        if math.hypot(*self.err) * k > 2 * m_per_px or \
-                (self.head is not None and abs(angle_diff(self.head, tgt)) > 1.0):
+        """Kolik snimku za sekundu je potreba: otaceni NAV_FPS, jinak podle rychlosti v pixelech (asi 1 px
+        na snimek, aspon NAV_MIN_FPS) - pomaly pohyb nestoji zbytecne prekreslovani."""
+        if self.t0 is None:
+            return NAV_MIN_FPS
+        if self._turning():
             return NAV_FPS
-        moving = self.speed if self.t0 is not None and t - self.t0 < NAV_EXTRAPOLATE_S else 0.0
-        return clamp(moving / max(m_per_px, 1e-6), NAV_MIN_FPS, NAV_FPS)
+        move, _e, acc_v = self._rates(t)
+        return clamp(max(move, acc_v) / max(m_per_px, 1e-6), NAV_MIN_FPS, NAV_FPS)
 
     def active(self, t):
         if self.t0 is None:
             return False
-        if self.speed > 0 and t - self.t0 < NAV_EXTRAPOLATE_S:
+        move, err, acc_v = self._rates(t)
+        tau = max(0.0, t - self.t0)
+        # dojezd: zbyva-li po dopoctu mene nez 15 cm (pod 1 px), sipka uz stoji
+        coast = self._coast_v(tau) * (NAV_COAST_S if tau > NAV_EXTRAPOLATE_S else 1.0)
+        if coast > 0.15 or move - self._coast_v(tau) > 0.05 or err > 0.05 or acc_v > 0.1:
             return True
-        k = math.exp(-max(0.0, t - self.t0) / NAV_EASE_S)
-        if math.hypot(*self.err) * k > 0.05:
-            return True
-        tgt = self._predict(t)[2] if self.route is not None else self.target_head
-        return self.head is not None and abs(angle_diff(self.head, tgt)) > 0.2
+        if self.head is None:
+            return False
+        # otaceni od posledniho snimku dal dobiha (stav kurzu se posouva jen ve snimcich)
+        dt = max(0.0, t - (self.t_head if self.t_head is not None else t))
+        e, v = spring(angle_diff(self.target_head, self.head), self.head_v, NAV_TURN_W, dt)
+        return abs(e) > 0.2 or abs(v) > 0.5
 
 
 def simulate_track(route, speed=None, interval=1.0, start=0.0, accuracy=5.0):

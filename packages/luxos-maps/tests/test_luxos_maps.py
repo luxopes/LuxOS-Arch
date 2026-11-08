@@ -1592,14 +1592,18 @@ class TestNavigation(unittest.TestCase):
         lat, lon, h = r.point_at(500)
         mo.on_fix(10.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 10.0}, h, r, 500)
         self.assertTrue(mo.active(10.0))
-        # dopocet po trase rychlosti 10 m/s, nejvys NAV_EXTRAPOLATE_S s, pak stoji (a animace konci)
+        # dopocet po trase rychlosti 10 m/s NAV_EXTRAPOLATE_S s, pak plynule zpomali a stoji (animace konci)
         p = mo.frame(10.5)
         _s, along, off = r.project(p[0], p[1])
         self.assertAlmostEqual(along, 505, delta=0.5)
         self.assertLess(off, 0.1)
-        p = mo.frame(13.0)
+        p = mo.frame(10.0 + lm.NAV_EXTRAPOLATE_S)
         self.assertAlmostEqual(r.project(p[0], p[1])[1], 500 + 10 * lm.NAV_EXTRAPOLATE_S, delta=0.5)
-        self.assertFalse(mo.active(13.0))
+        self.assertTrue(mo.active(10.0 + lm.NAV_EXTRAPOLATE_S + 0.5))       # jeste dojizdi
+        p = mo.frame(13.9)
+        coast = 10 * (lm.NAV_EXTRAPOLATE_S + lm.NAV_COAST_S)
+        self.assertAlmostEqual(r.project(p[0], p[1])[1], 500 + coast, delta=0.3)
+        self.assertFalse(mo.active(14.5))
         # dalsi poloha 3 m za dopoctenym mistem: zadny skok, rozdil dobehne plynule
         lat2, lon2, h2 = r.point_at(518)
         before = mo.frame(14.0)
@@ -1614,14 +1618,15 @@ class TestNavigation(unittest.TestCase):
             prev = cur
         self.assertLess(max(steps), 10.0 / 30 + 0.5)   # zadny snimek neposkoci o vic nez ~rychlost/30 + dorovnani
         self.assertAlmostEqual(r.project(prev[0], prev[1])[1], 518 + 15, delta=1.0)
+        self.assertLess(r.project(prev[0], prev[1])[2], 0.05)        # porad na care trasy
         # stoji (rychlost 0): bez dopoctu, po dorovnani neaktivni
         mo2 = lm.NavMotion()
         mo2.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, 90.0)
         self.assertFalse(mo2.active(0.01))
         # otaceni nejkratsi cestou (350 -> 10 pres sever) a postupne
         mo3 = lm.NavMotion()
-        mo3.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, 350.0)
-        mo3.on_fix(1.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, 10.0)
+        mo3.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 3.0}, 350.0)
+        mo3.on_fix(1.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 3.0}, 10.0)
         hs = [mo3.heading(1.0 + k / 30.0) for k in range(60)]
         self.assertTrue(all(lm.angle_diff(350.0, x) >= -0.01 and lm.angle_diff(x, 10.0) >= -0.01 for x in hs), hs)
         self.assertAlmostEqual(lm.angle_diff(hs[-1], 10.0), 0.0, delta=0.5)
@@ -1633,10 +1638,195 @@ class TestNavigation(unittest.TestCase):
         # rychlost bez udaje telefonu: z poslednich poloh (a sum v ramci presnosti neni pohyb)
         mo4 = lm.NavMotion()
         mo4.on_fix(0.0, offset_fix(r, 100, 0, accuracy=5), None)
-        mo4.on_fix(1.0, offset_fix(r, 112, 0, accuracy=5), None)
+        mo4.on_fix(1.0, offset_fix(r, 112, 0, accuracy=5), r.point_at(112)[2])
         self.assertAlmostEqual(mo4.speed, 12.0, delta=0.5)
+        # smer pohybu zatim neznamy (zadny kurz): bez dopoctu (drive bod ujizdel na sever)
+        mo5 = lm.NavMotion()
+        f5 = offset_fix(r, 100, 0, accuracy=5)
+        mo5.on_fix(0.0, dict(f5, speed=1.3), None)
+        p = mo5.frame(1.0)
+        self.assertLess(lm.distance_m(p[0], p[1], f5["lat"], f5["lon"]), 0.01)
+        self.assertFalse(mo5.active(0.5))
         mo4.on_fix(2.0, offset_fix(r, 113, 0, accuracy=30), None)
         self.assertEqual(mo4.speed, 0.0)
+
+    # ---- plynuly pohyb polohy (NavMotion): sumne polohy po 1 s, snimky 60/s ----
+    @staticmethod
+    def noisy_track(route, speed, sigma, seed, dur=90.0, with_speed=True):
+        """Polohy podel trasy po ~1 s (nepravidelne, Bluetooth) s korelovanou chybou GPS sigma m."""
+        import random
+        rnd = random.Random(seed)
+        t = along = ex = ny = 0.0
+        out = []
+        while along < route.length and t < dur:
+            lat, lon, h = route.point_at(along)
+            ex, ny = 0.7 * ex + rnd.gauss(0, sigma), 0.7 * ny + rnd.gauss(0, sigma)
+            fix = {"lat": lat + ny / 111195.0, "lon": lon + ex / (111195.0 * math.cos(math.radians(lat))),
+                   "accuracy": max(3.0, 2 * sigma), "source": "phone"}
+            if with_speed:
+                fix["speed"] = max(0.0, speed + rnd.gauss(0, 0.3))
+                fix["bearing"] = (h + rnd.gauss(0, 3)) % 360
+            out.append((t, fix))
+            dt = 1.0 + rnd.uniform(-0.25, 0.25)
+            t += dt
+            along += speed * dt
+        return out
+
+    @staticmethod
+    def play(route, fixes, nav, fps=60.0, tail=3.0):
+        """Snimky (t, lat, lon, kurz, presnost) NavMotion pro polohy; nav = prichyceni k trase (Navigator)."""
+        mo = lm.NavMotion()
+        navi = lm.Navigator(route) if nav else None
+        hf = lm.HeadingFilter()
+        frames, i, t = [], 0, fixes[0][0]
+        while t < fixes[-1][0] + tail:
+            while i < len(fixes) and fixes[i][0] <= t:
+                fix = fixes[i][1]
+                if navi:
+                    st = navi.update(fix, 1000 + fixes[i][0])
+                    snap = st["snap"]
+                    mo.on_fix(t, fix, st["heading"], route if snap else None, st["along"] if snap else None)
+                else:
+                    mo.on_fix(t, fix, hf.update(fix))
+                i += 1
+            lat, lon, h = mo.frame(t)
+            frames.append((t, lat, lon, h, mo.accuracy(t)))
+            t += 1.0 / fps
+        return mo, frames
+
+    def test_spring_critically_damped(self):
+        # bez prekmitu, rychlost na zacatku spojita (zadne trhnuti), dobehne do ~1 s
+        e, v = lm.spring(5.0, 0.0, lm.NAV_SPRING_W, 0.0)
+        self.assertEqual((e, v), (5.0, 0.0))
+        vals = [lm.spring(5.0, 0.0, lm.NAV_SPRING_W, k / 60)[0] for k in range(120)]
+        self.assertTrue(all(0 <= b <= a for a, b in zip(vals, vals[1:])))
+        # prvni snimek: skoro beze zmeny (exponencialni dorovnani s 0,35 s by poskocilo o 0,23 m)
+        self.assertLess(abs(vals[1] - vals[0]), 0.03)
+        self.assertLess(lm.spring(5.0, 0.0, lm.NAV_SPRING_W, 1.0)[0], 0.1)
+        # pocatecni rychlost se zachova
+        self.assertAlmostEqual(lm.spring(0.0, 3.0, lm.NAV_SPRING_W, 0.0)[1], 3.0)
+
+    def test_nav_motion_noisy_1hz_continuous(self):
+        # auto 13,9 m/s, telefon po ~1 s se sumem 3 m: bez skoku, bez trhnuti, sipka na care trasy, necouva
+        r = car_route()
+        fixes = self.noisy_track(r, 13.9, 3.0, seed=1)
+        mo, frames = self.play(r, fixes, nav=True)
+        steps = [lm.distance_m(a[1], a[2], b[1], b[2]) for a, b in zip(frames, frames[1:])]
+        self.assertLess(max(steps), 13.9 / 60 * 3)                 # nejvys ~3x bezny krok na snimek
+        speeds = [d * 60 for d in steps]
+        jerks = sorted(abs(b - a) * 60 for a, b in zip(speeds, speeds[1:]))
+        self.assertLess(jerks[int(len(jerks) * 0.99)], 260)        # zmena rychlosti m/s^2 (drive 310+)
+        alongs = [r.project(f[1], f[2])[1:] for f in frames[60:]]
+        self.assertTrue(all(b[0] >= a[0] - 0.01 for a, b in zip(alongs, alongs[1:])))   # necouva
+        self.assertLess(max(off for _a, off in alongs), 0.5)       # map matching: bez bocniho chveni
+        # chodec 1,4 m/s se sumem 2 m (sum vetsi nez krok za sekundu): necouva, porad na care
+        rw = lm.NavRoute.from_osrm(lm.parse_route(fixture("route-foot.json"), "walk"))
+        _mo, fw = self.play(rw, self.noisy_track(rw, 1.4, 2.0, seed=1), nav=True)
+        aw = [rw.project(f[1], f[2])[1:] for f in fw[60:]]
+        self.assertTrue(all(b[0] >= a[0] - 0.01 for a, b in zip(aw, aw[1:])))
+        self.assertLess(max(off for _a, off in aw), 0.5)
+        sw = [lm.distance_m(a[1], a[2], b[1], b[2]) for a, b in zip(fw, fw[1:])]
+        self.assertLess(max(sw), 0.3)
+        # po posledni poloze se zastavi kousek za ni (dopocet + dojezd) a animace skonci
+        last = fixes[-1][1]
+        end = frames[-1]
+        self.assertLess(lm.distance_m(end[1], end[2], last["lat"], last["lon"]),
+                        14.5 * (lm.NAV_EXTRAPOLATE_S + lm.NAV_COAST_S) + 7)
+        self.assertFalse(mo.active(frames[-1][0] + 3))
+
+    def test_nav_motion_follow_without_route(self):
+        # Moje poloha bez navigace (volny pohyb): sum 3 m po 1 s, rychlost bez skoku pri nove poloze
+        r = car_route()
+        fixes = self.noisy_track(r, 13.9, 3.0, seed=2, dur=40)
+        mo, frames = self.play(r, fixes, nav=False)
+        steps = [lm.distance_m(a[1], a[2], b[1], b[2]) for a, b in zip(frames, frames[1:])]
+        self.assertLess(max(steps), 13.9 / 60 * 4)
+        # rychlost zobrazene polohy pred a po prichodu polohy (spojita: zadne trhnuti dorovnanim)
+        times = [t for t, _f in fixes[3:]]
+        for ft in times:
+            k = min(range(len(frames)), key=lambda j: abs(frames[j][0] - ft))
+            if 2 <= k < len(steps) - 2:
+                self.assertLess(abs(steps[k] - steps[k - 2]), 0.08, ft)
+        # konverguje k poloze: stojici telefon (rychlost 0) - bod dojede presne na posledni polohu
+        t_end = fixes[-1][0] + 1.0
+        stop = dict(fixes[-1][1], speed=0.0)
+        mo.on_fix(t_end, stop, None)
+        p = mo.frame(t_end + 2.0)
+        self.assertLess(lm.distance_m(p[0], p[1], stop["lat"], stop["lon"]), 0.05)
+        self.assertFalse(mo.active(t_end + 2.5))
+
+    def test_nav_motion_jumps_heading_accuracy(self):
+        r = car_route()
+        lat, lon, h = r.point_at(300)
+        mo = lm.NavMotion()
+        mo.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 50, "speed": 0.0}, h)
+        self.assertEqual(mo.accuracy(0.0), 50)
+        # velky skok (> NAV_JUMP_M): bez animace
+        far = r.point_at(300 + lm.NAV_JUMP_M + 50)
+        mo.on_fix(1.0, {"lat": far[0], "lon": far[1], "accuracy": 50, "speed": 0.0}, h)
+        p = mo.frame(1.0)
+        self.assertLess(lm.distance_m(p[0], p[1], far[0], far[1]), 0.01)
+        # mensi skok se animuje
+        near = r.point_at(300 + lm.NAV_JUMP_M + 10)
+        mo.on_fix(2.0, {"lat": near[0], "lon": near[1], "accuracy": 50, "speed": 0.0}, h)
+        p = mo.frame(2.0)
+        self.assertGreater(lm.distance_m(p[0], p[1], near[0], near[1]), 30)
+        # po vypadku signalu (> NAV_GAP_S) nova poloha skoci
+        mo.on_fix(2.0 + lm.NAV_GAP_S + 1, {"lat": lat, "lon": lon, "accuracy": 50, "speed": 0.0}, h)
+        p = mo.frame(2.0 + lm.NAV_GAP_S + 1)
+        self.assertLess(lm.distance_m(p[0], p[1], lat, lon), 0.01)
+        # kruh presnosti 50 -> 5 m: plynule, monotonne, bez skoku
+        t0 = 30.0
+        mo.on_fix(t0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.0}, h)
+        accs = [mo.accuracy(t0 + k / 60) for k in range(120)]
+        self.assertAlmostEqual(accs[0], 50, delta=0.01)
+        self.assertTrue(all(b <= a + 1e-9 for a, b in zip(accs, accs[1:])))
+        self.assertLess(max(a - b for a, b in zip(accs, accs[1:])), 3.0)
+        self.assertLess(accs[-1], 5.5)
+        # kurz 359 -> 1 nejkratsi cestou (pres sever, ne o 358 stupnu zpet)
+        mo2 = lm.NavMotion()
+        mo2.on_fix(0.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 5.0}, 359.0)
+        mo2.on_fix(1.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 5.0}, 1.0)
+        hs = [mo2.heading(1.0 + k / 60) for k in range(90)]
+        self.assertTrue(all(abs(lm.angle_diff(359.0, x)) <= 2.0 + 1e-6 for x in hs), hs)
+        steps = [abs(lm.angle_diff(a, b)) for a, b in zip(hs, hs[1:])]
+        self.assertLess(max(steps), 0.5)
+        self.assertAlmostEqual(lm.angle_diff(hs[-1], 1.0), 0.0, delta=0.05)
+        # pomaly pohyb (< NAV_HEADING_MIN_SPEED): sum smeru sipkou neotaci
+        mo2.on_fix(2.0, {"lat": lat, "lon": lon, "accuracy": 5, "speed": 0.3}, 120.0)
+        self.assertAlmostEqual(lm.angle_diff(mo2.heading(4.0), 1.0), 0.0, delta=0.05)
+
+    def test_heading_filter(self):
+        r = car_route()
+        hf = lm.HeadingFilter()
+        a = r.point_at(100)
+        self.assertIsNone(hf.update({"lat": a[0], "lon": a[1], "accuracy": 5}))
+        # GNSS smer jen od 1 m/s
+        self.assertIsNone(hf.update({"lat": a[0], "lon": a[1], "accuracy": 5, "speed": 0.6, "bearing": 200.0}))
+        self.assertEqual(hf.update({"lat": a[0], "lon": a[1], "accuracy": 5, "speed": 1.2, "bearing": 370.0}), 10.0)
+        # drift polohy v ramci presnosti (20 m) neni pohyb, telefon hlasi stani -> kurz beze zmeny
+        d = offset_fix(r, 100, 12, accuracy=20)
+        self.assertEqual(hf.update(d), 10.0)
+        far = offset_fix(r, 100, 30, accuracy=5)
+        self.assertEqual(hf.update(dict(far, speed=0.1)), 10.0)
+        # bez rychlosti: smer ze dvou poloh aspon 8 m od sebe
+        b = r.point_at(140)
+        h = hf.update({"lat": b[0], "lon": b[1], "accuracy": 5})
+        self.assertNotEqual(h, 10.0)
+
+    def test_navigator_snap_to_route(self):
+        # map matching: blizko trasy (v ramci presnosti a NAV_SNAP_M) je sipka na care trasy, jinak volne
+        r = car_route()
+        nav = lm.Navigator(r)
+        st = nav.update(offset_fix(r, 200, 6, accuracy=10), 1000)
+        self.assertIsNotNone(st["snap"])
+        self.assertLess(r.project(st["snap"][0], st["snap"][1])[2], 0.01)
+        self.assertAlmostEqual(st["along"], 200, delta=1.0)
+        st = nav.update(offset_fix(r, 215, 25, accuracy=10), 1001)     # dal nez presnost: bez prichyceni
+        self.assertIsNone(st["snap"])
+        st = nav.update(offset_fix(r, 230, 25, accuracy=40), 1002)     # horsi presnost: prichyceni do 30 m
+        self.assertIsNotNone(st["snap"])
+        self.assertAlmostEqual(st["along"], 230, delta=1.0)
 
     def test_route_bearing_param(self):
         clean_state()
@@ -2555,6 +2745,100 @@ class TestWindow(unittest.TestCase):
         self.assertFalse(win.tracking)
         self.assertIsNone(win.phone_sub)
 
+    def test_smooth_location_follow(self):
+        # Moje poloha mimo navigaci: telefon po ~1 s (auto 13,9 m/s, sum 3 m) - bod i mapa se posouvaji
+        # plynule po snimcich (drive skok bodu o ~20 px pri kazde poloze a prelet mapy 0,3 s)
+        r = car_route()
+        fixes = TestNavigation.noisy_track(r, 13.9, 3.0, seed=3, dur=4.5)
+        start = fixes[0][1]
+        win = self.window(view=(start["lat"], start["lon"], 17), location_consent=True)
+        win.tracking = win.follow = True
+        m = win.map
+        draws = []
+
+        def on_draw(_w, _cr):
+            if m.me:
+                s = m.scale
+                wx, wy = lm.to_world(m.me["lat"], m.me["lon"])
+                draws.append((wx * s, wy * s, m.latlon_to_screen(m.me["lat"], m.me["lon"]), m.me.get("accuracy")))
+            return False
+        m.connect_after("draw", on_draw)
+
+        def phone(fix, **kw):
+            d = {"valid": True, "latitude": fix["lat"], "longitude": fix["lon"], "accuracy": fix["accuracy"],
+                 "timestamp_ms": 1793098800000, "age_ms": 300, "mock": False, "device": "Pixel",
+                 "speed": fix["speed"], "bearing": fix["bearing"]}
+            d.update(kw)
+            return d
+        win.on_phone_location(phone(start))
+        self.settle(0.5)
+        draws.clear()
+        t0 = time.monotonic()
+        for ft, fix in fixes[1:]:
+            self.pump(lambda: time.monotonic() - t0 >= ft, 3)
+            win.on_phone_location(phone(fix))
+        self.pump(lambda: time.monotonic() - t0 >= fixes[-1][0] + 0.8, 3)
+        moving = [d for i, d in enumerate(draws) if i == 0 or d[:2] != draws[i - 1][:2]]
+        self.assertGreater(len(moving), 30)                        # snimky mezi polohami, ne 1 za polohu
+        steps = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(moving, moving[1:])]
+        self.assertLess(max(steps), 3.0, steps)                    # zadny skok bodu
+        w, h = m.get_allocated_width(), m.get_allocated_height()
+        for _x, _y, (sx, sy), _acc in draws:                        # mapa jde s bodem (bod uprostred)
+            self.assertAlmostEqual(sx, w / 2, delta=1.5)
+            self.assertAlmostEqual(sy, h / 2, delta=1.5)
+        # kruh presnosti se meni plynule
+        accs = [d[3] for d in draws]
+        self.assertLess(max(abs(b - a) for a, b in zip(accs, accs[1:])), 1.0)
+        # zoom behem sledovani dobehne cely (kolem bodu) a bod zustane uprostred
+        z = round(m.zoom)
+        m.zoom_by(1)
+        win.on_phone_location(phone(fixes[-1][1]))
+        self.assertTrue(self.pump(lambda: m.anim is None and win.nav_anim_id is None, 8))
+        self.assertEqual(m.zoom, z + 1)
+        sx, sy = m.latlon_to_screen(m.me["lat"], m.me["lon"])
+        self.assertAlmostEqual(sx, w / 2, delta=1.5)
+        self.assertAlmostEqual(sy, h / 2, delta=1.5)
+        # stoji: po dorovnani zadne snimky (zadna prace procesoru)
+        still = dict(fixes[-1][1], speed=0.0)
+        win.on_phone_location(phone(still))
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 4))
+        n = len(draws)
+        self.settle(0.5)
+        self.assertEqual(len(draws), n)
+        # minimalizovane okno: animace stoji, po obnoveni pokracuje
+        moving_fix = dict(still, speed=13.9)
+        win.on_window_state(win, types.SimpleNamespace(new_window_state=self.Gdk.WindowState.ICONIFIED))
+        win.on_phone_location(phone(moving_fix))
+        self.assertIsNone(win.nav_anim_id)
+        win.on_window_state(win, types.SimpleNamespace(new_window_state=self.Gdk.WindowState(0)))
+        self.assertIsNotNone(win.nav_anim_id)
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 6))
+        # Uspora baterie a Omezit pohyb: mene snimku
+        self.assertEqual(win.fps_cap(), lm.NAV_FPS)
+        os.makedirs(os.path.dirname(self.app.POWERSAVER), exist_ok=True)
+        open(self.app.POWERSAVER, "w").close()
+        self.addCleanup(lambda: os.path.exists(self.app.POWERSAVER) and os.remove(self.app.POWERSAVER))
+        win.on_saver_changed()
+        self.assertEqual(win.fps_cap(), lm.NAV_SAVER_FPS)
+        n = len(draws)
+        win.on_phone_location(phone(dict(moving_fix, bearing=moving_fix["bearing"] + 40)))
+        self.settle(1.0)
+        self.assertLessEqual(len(draws) - n, lm.NAV_SAVER_FPS + 4)
+        settings = self.Gtk.Settings.get_default()
+        settings.set_property("gtk-enable-animations", False)
+        self.addCleanup(settings.set_property, "gtk-enable-animations", True)
+        self.assertEqual(win.fps_cap(), lm.NAV_CALM_FPS)
+        # zastarala poloha zustane seda i po dalsim vykresleni polohy
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 6))
+        win.on_phone_location({"valid": False})
+        self.assertTrue(win.map.me.get("stale"))
+        win.loc_show_position()
+        self.assertTrue(win.map.me.get("stale"))
+        # konec sledovani: zadna animace ani bod
+        win.consent_item.set_active(False)
+        self.assertIsNone(win.nav_anim_id)
+        self.assertIsNone(win.map.me)
+
     def overflow(self, page):
         """Viditelne widgety stranky panelu, ktere presahuji jeji sirku (vodorovne preteceni)."""
         width = page.get_allocated_width()
@@ -2750,15 +3034,15 @@ class TestWindow(unittest.TestCase):
         self.assertIs(win.steps_list.get_selected_row(), win.steps_list.get_row_at_index(2))
         self.assertIn(self.app._("Arrival %s") % time.strftime("%H:%M", time.localtime(st["eta"])),
                       win.nav_more.get_text())
-        # mapa po smeru jizdy, poloha ve spodni casti, sipka misto bodu; po animaci (dopocet nejvys 1,5 s)
-        # sipka stoji na trase kousek pred posledni polohou, otoceni dobehlo ke smeru trasy
-        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 4))
+        # mapa po smeru jizdy, poloha ve spodni casti, sipka misto bodu; po animaci (dopocet 1,5 s a plynuly
+        # dojezd) sipka stoji na trase kousek pred posledni polohou, otoceni dobehlo ke smeru trasy
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 6))
         self.assertIsNotNone(win.map.nav_heading)
         self.assertAlmostEqual(win.map.rotation, -math.radians(win.map.nav_heading), places=6)
         self.assertLess(abs(lm.angle_diff(win.map.nav_heading, st["heading"])), 30)
         me = win.map.me
         self.assertLess(lm.distance_m(me["lat"], me["lon"], win.nav_fix["lat"], win.nav_fix["lon"]),
-                        11.0 * lm.NAV_EXTRAPOLATE_S + 1)
+                        11.0 * (lm.NAV_EXTRAPOLATE_S + lm.NAV_COAST_S) + 1)
         self.assertLess(route.project(me["lat"], me["lon"])[2], 1.0)            # prichycena k trase
         x, y = win.map.latlon_to_screen(me["lat"], me["lon"])
         self.assertAlmostEqual(x, win.map.get_allocated_width() / 2, delta=1)
@@ -2769,9 +3053,10 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(win.map.zoom, self.app.NAV_ZOOM["car"])
         self.assertTrue(self.pump(self.tiles_loaded(win)))
         self.shot(win, "maps-nav-heading-up.png")
-        # mezi polohami se sipka i mapa posouvaji plynule (snimky), po dopoctu animace stoji (zadna prace)
+        # mezi polohami se sipka i mapa posouvaji plynule (snimky), po dopoctu animace stoji (zadna prace);
+        # po pauze je dalsi poloha pred dopoctenou sipkou (sipka pred polohou by jen pockala, necouva)
         seen = set()
-        fake.emit(self.phone(track[11]))
+        fake.emit(self.phone(track[13]))
         end = time.time() + 0.8
         while time.time() < end:
             while self.Gtk.events_pending():
@@ -2779,13 +3064,13 @@ class TestWindow(unittest.TestCase):
             seen.add((round(win.map.me["lat"], 7), round(win.map.me["lon"], 7), round(win.map.mx, 9)))
             time.sleep(0.005)
         self.assertGreater(len(seen), 6)
-        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 4))
+        self.assertTrue(self.pump(lambda: win.nav_anim_id is None, 6))
         # nejvys 5 zpracovani za sekundu, i kdyz telefon posle polohy rychleji
         n0 = len(calls)
-        for fix in track[11:21]:
+        for fix in track[14:24]:
             fake.emit(self.phone(fix))
         self.settle(0.5)
-        self.assertTrue(self.pump(lambda: abs(win.nav_fix["lat"] - track[20]["lat"]) < 1e-9))
+        self.assertTrue(self.pump(lambda: abs(win.nav_fix["lat"] - track[23]["lat"]) < 1e-9))
         burst = calls[n0:]
         self.assertLessEqual(len(burst), 4)
         self.assertTrue(all(b - a >= 0.19 for a, b in zip(burst, burst[1:])), burst)

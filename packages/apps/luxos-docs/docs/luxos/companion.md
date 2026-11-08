@@ -77,8 +77,8 @@ Maps uses the phone only when **both** are true:
 - **Share phone location with Maps** is on in the Phone window.
 
 Then **Show My Location** in Maps uses the phone's GPS (accuracy circle in metres) instead of GeoClue
-or the IP address, and Maps **follows the phone**: the blue dot moves with every update and the map
-keeps it centred until you drag the map (press Show My Location again to follow again). When the phone
+or the IP address, and Maps **follows the phone**: the blue dot glides smoothly between updates and the
+map moves with it and keeps it centred until you drag the map (press Show My Location again to follow again). When the phone
 location becomes stale the dot turns grey. `luxos-maps --json where-am-i` reports `"source": "phone"`.
 
 Other applications do not get the phone location: it is published only on the session bus (below).

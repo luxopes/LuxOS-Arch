@@ -68,6 +68,9 @@ LEG_BADGE_MAX = 88          # px, odznak v podrobnostech spojeni (vedle je popis
 SIDEBAR_DEFAULT = 320       # px, sirka postranniho panelu (tazenim lm.SIDEBAR_MIN..lm.SIDEBAR_MAX)
 MAP_MIN_WIDTH = 480         # px, mapa vedle sirokeho panelu (1280x800: panel nejvys 560, mapa >= 680)
 NAV_ZOOM = {"car": 17.0, "bike": 17.5, "walk": 18.0, lm.TRANSIT: 17.0}
+# Uspora baterie zapnuta (priznak luxos-powersaver): animace polohy s mene snimky
+POWERSAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
+                          "luxos", "powersaver")
 # hlasove pokyny jen s nainstalovanym programem (speech-dispatcher nebo espeak-ng); vychozi vypnute
 TTS = shutil.which("spd-say") or shutil.which("espeak-ng")
 NAV_VOICE_M = {"car": (400, 60), "bike": (150, 25), "walk": (60, 12), lm.TRANSIT: (150, 30)}  # (daleko, blizko)
@@ -683,6 +686,25 @@ class MapView(Gtk.DrawingArea):
         self.anim = {"start": None, "dur": duration, "z0": self.zoom, "z1": z1, "x0": self.mx, "y0": self.my,
                      "x1": x1, "y1": y1}
         self._ensure_tick()
+
+    def follow_to(self, lat, lon, ax=0.0, ay=0.0, zoom=None):
+        """Kamera za polohou (kazdy snimek plynule animace polohy): misto lat/lon na posunu (ax, ay) px od
+        stredu (ve smeru sveta, sever nahore). Probihajici zoom (kolecko, klavesy) pokracuje kolem polohy
+        misto kolem mysi a prelet (fly_to) jen zmeni cil - zadne preruseni animace ani skok na jejim konci."""
+        px, py = lm.to_world(lat, lon)
+        self.kinetic = None
+        if self.anim and self.anim.get("anchor"):
+            self.anim["anchor"] = (ax, ay, px, py)
+            self.queue_draw()
+            return
+        if self.anim:
+            s1 = lm.TILE * (2 ** self.anim["z1"])
+            self.anim["x1"], self.anim["y1"] = px - ax / s1, py - ay / s1
+            self.queue_draw()
+            return
+        z = self.zoom if zoom is None else zoom
+        s = lm.TILE * (2 ** z)
+        self.set_view(px - ax / s, py - ay / s, z, notify=False)
 
     def fit_bbox(self, south, north, west, east, max_zoom=17):
         w, h = max(self.get_allocated_width(), 300), max(self.get_allocated_height(), 300)
@@ -1551,8 +1573,14 @@ class MapsWindow(Gtk.Window):
         self.nav_wait_id = None
         self.nav_sim_id = None
         self.nav_motion = None             # lm.NavMotion: plynuly pohyb sipky mezi polohami
-        self.nav_anim_id = None            # tick callback mapy, jen kdyz se sipka hybe
+        self.nav_anim_id = None            # tick callback mapy, jen kdyz se sipka (bod) polohy hybe
         self.nav_anim_last = 0.0
+        self.anim_period = 1 / 60          # s, odhad obnovovaci frekvence displeje (snimkove hodiny)
+        self.anim_frame_t = None
+        self.loc_motion = None             # lm.NavMotion pro "Moje poloha" mimo navigaci (plynuly bod)
+        self.loc_heading = lm.HeadingFilter()
+        self.loc_fix = None                # posledni poloha z telefonu mimo navigaci
+        self.iconified = False             # minimalizovane okno: zadna animace polohy
         self.transit_query = (None, False)  # (cas, prijezd do) posledniho hledani spojeni
         self.nav_spoken = set()
         self.nav_prev_tracking = False
@@ -1638,7 +1666,16 @@ class MapsWindow(Gtk.Window):
 
         self.connect("key-press-event", self.on_key)
         self.connect("destroy", self.on_destroy)
+        self.connect("window-state-event", self.on_window_state)
+        self.map.connect("map", lambda *_a: self.resume_anim())
         settings = Gtk.Settings.get_default()
+        # Uspora baterie (priznak luxos-powersaver, inotify) a Omezit pohyb: mene snimku animace polohy
+        self.saver = os.path.exists(POWERSAVER)
+        try:
+            self.saver_mon = Gio.File.new_for_path(POWERSAVER).monitor_file(Gio.FileMonitorFlags.NONE, None)
+            self.saver_mon.connect("changed", self.on_saver_changed)
+        except GLib.Error:
+            self.saver_mon = None
         settings.connect("notify::gtk-theme-name", lambda *_a: self.apply_appearance())
         settings.connect("notify::gtk-application-prefer-dark-theme", lambda *_a: self.apply_appearance())
         self.apply_appearance()
@@ -2752,6 +2789,14 @@ class MapsWindow(Gtk.Window):
             dlg.show()
             return False
         self.map.me = loc
+        if not self.nav:
+            if loc.get("source") == "phone" and self.loc_motion:
+                # dalsi poloha z telefonu: plynule navazat na pohyb bodu
+                self.loc_fix = loc
+                self.loc_motion.on_fix(time.monotonic(), loc, self.loc_heading.update(loc))
+            else:
+                self.loc_motion = self.loc_fix = None    # jiny zdroj (GeoClue, IP): bod stoji na nove poloze
+                self.nav_stop_anim()
         self.tracking = True
         self.follow = True
         self.watch_phone()
@@ -2779,6 +2824,10 @@ class MapsWindow(Gtk.Window):
     def unwatch_phone(self):
         self.tracking = False
         self.follow = False
+        self.loc_motion = self.loc_fix = None
+        self.loc_heading = lm.HeadingFilter()
+        if not self.nav:
+            self.nav_stop_anim()
         if self.phone_sub is not None and self.phone_bus is not None:
             self.phone_bus.signal_unsubscribe(self.phone_sub)
         self.phone_sub = None
@@ -2805,13 +2854,22 @@ class MapsWindow(Gtk.Window):
             if self.nav:
                 self.nav_on_fix(fix)          # sipku posune plynule animace navigace
                 return
-            self.map.me = fix
-            if self.follow and not self.map.drag:
-                self.map.fly_to(fix["lat"], fix["lon"], None, 0.3)
-            else:
-                self.map.queue_draw()
+            # bod polohy (a mapa za nim) se posouva plynule mezi polohami, ne skokem po kazde poloze
+            now = time.monotonic()
+            if self.loc_motion is None:
+                self.loc_motion = lm.NavMotion()
+            self.loc_fix = fix
+            self.loc_motion.on_fix(now, fix, self.loc_heading.update(fix))
+            if self.nav_anim_id is None:      # bezici animace vykresli novou polohu v dalsim snimku
+                self.loc_show_position(now)
+            self.nav_start_anim()
         elif self.map.me and self.map.me.get("source") == "phone" and not self.map.me.get("stale"):
+            # zastarala poloha: sedy bod zustane sedy i v dalsich snimcich (Vycentrovat, kompas)
             self.map.me = dict(self.map.me, stale=True)
+            if self.nav_fix and self.nav_fix.get("source") == "phone":
+                self.nav_fix = dict(self.nav_fix, stale=True)
+            if self.loc_fix:
+                self.loc_fix = dict(self.loc_fix, stale=True)
             self.map.queue_draw()
             if self.nav and not self.nav_sim_id:
                 self.nav_set_status(_("Location signal lost. Waiting for your location…"))
@@ -3063,6 +3121,9 @@ class MapsWindow(Gtk.Window):
                 GLib.source_remove(sid)
                 setattr(self, attr, None)
         self.nav_stop_anim()
+        if self.nav_prev_tracking and self.nav_motion and self.nav_fix:
+            # "Moje poloha" pokracuje: bod jede plynule dal z mista sipky (bez skoku)
+            self.loc_motion, self.loc_fix = self.nav_motion, self.nav_fix
         self.nav_motion = None
         self.uninhibit()
         if self.geoclue:
@@ -3125,7 +3186,8 @@ class MapsWindow(Gtk.Window):
         snap = st.get("snap")
         self.nav_motion.on_fix(now, fix, st["heading"], self.nav.route if snap else None,
                                st["along"] if snap else None)
-        self.nav_show_position(now)
+        if self.nav_anim_id is None:          # bezici animace vykresli novou polohu v dalsim snimku
+            self.nav_show_position(now)
         self.nav_start_anim()
         if st["reroute"]:
             self.nav_reroute(fix, st)
@@ -3138,31 +3200,63 @@ class MapsWindow(Gtk.Window):
 
     def nav_show_position(self, now=None):
         """Mapa za polohou: sipka ve smeru jizdy, mapa po smeru jizdy (nebo sever nahore), poloha ve spodni
-        tretine. Poloha a kurz z NavMotion (plynule mezi polohami, kratky dopocet, prichyceni k trase)."""
+        tretine. Poloha, kurz a presnost z NavMotion (plynule mezi polohami, dopocet, prichyceni k trase)."""
         fix, st, mo = self.nav_fix, self.nav_state, self.nav_motion
         if not (self.nav and fix and st and mo):
             return
-        lat, lon, head = mo.frame(time.monotonic() if now is None else now)
+        now = time.monotonic() if now is None else now
+        lat, lon, head = mo.frame(now)
         m = self.map
-        m.me = dict(fix, lat=lat, lon=lon)
+        m.me = dict(fix, lat=lat, lon=lon, accuracy=mo.accuracy(now))
         m.nav_heading = head
         m.rotation = -math.radians(head) if self.cfg["nav_heading_up"] else 0.0
         self.nav_compass.queue_draw()
         if not self.follow or m.drag:
             m.queue_draw()
             return
-        zoom = NAV_ZOOM.get(self.nav_mode, 17.0) if self.nav_first else m.zoom
+        zoom = None
+        if self.nav_first:
+            zoom = NAV_ZOOM.get(self.nav_mode, 17.0)
+            m.anim = None
         self.nav_first = False
-        m.anim = m.kinetic = None
-        px, py = lm.to_world(lat, lon)
         ahead = m.get_allocated_height() * 0.22 if self.cfg["nav_heading_up"] else 0.0
         dx, dy = m.unrot(0.0, ahead)
-        s = lm.TILE * (2 ** zoom)
-        m.set_view(px - dx / s, py - dy / s, zoom, notify=False)
+        m.follow_to(lat, lon, dx, dy, zoom)
 
-    # plynuly pohyb: tick callback mapy (snimkove hodiny), nejvys NAV_FPS snimku/s, jen dokud se sipka hybe
+    def loc_show_position(self, now=None):
+        """Moje poloha mimo navigaci: bod a kruh presnosti plynule (NavMotion), mapa za nim, dokud ji
+        uzivatel neposune."""
+        fix, mo = self.loc_fix, self.loc_motion
+        if self.nav or not (fix and mo):
+            return
+        now = time.monotonic() if now is None else now
+        lat, lon, _head = mo.frame(now)
+        m = self.map
+        m.me = dict(fix, lat=lat, lon=lon, accuracy=mo.accuracy(now))
+        if self.follow and not m.drag:
+            m.follow_to(lat, lon)
+        else:
+            m.queue_draw()
+
+    # plynuly pohyb: tick callback mapy (snimkove hodiny), jen dokud se sipka/bod hybe a okno neni
+    # minimalizovane; nejvys NAV_FPS snimku/s (Uspora baterie NAV_SAVER_FPS, Omezit pohyb NAV_CALM_FPS)
+    def anim_motion(self):
+        if self.nav:
+            return self.nav_motion
+        return self.loc_motion if self.tracking and self.loc_fix else None
+
+    def anim_visible(self):
+        return self.map.get_mapped() and not self.iconified
+
+    def fps_cap(self):
+        if not Gtk.Settings.get_default().props.gtk_enable_animations:
+            return lm.NAV_CALM_FPS
+        return lm.NAV_SAVER_FPS if self.saver else lm.NAV_FPS
+
     def nav_start_anim(self):
-        if self.nav_anim_id is None and self.nav_motion and self.nav_motion.active(time.monotonic()):
+        mo = self.anim_motion()
+        if self.nav_anim_id is None and mo and self.anim_visible() and mo.active(time.monotonic()):
+            self.anim_frame_t = None
             self.nav_anim_id = self.map.add_tick_callback(self.nav_anim_tick)
 
     def nav_stop_anim(self):
@@ -3170,18 +3264,52 @@ class MapsWindow(Gtk.Window):
             self.map.remove_tick_callback(self.nav_anim_id)
             self.nav_anim_id = None
 
-    def nav_anim_tick(self, _widget, _clock):
-        if not (self.nav and self.nav_motion):
+    def resume_anim(self):
+        """Okno je zase videt: poloha na aktualni misto (bez dobihani zmeskanych snimku) a animace dal."""
+        if not self.anim_visible():
+            return
+        if self.nav:
+            self.nav_show_position()
+        else:
+            self.loc_show_position()
+        self.nav_start_anim()
+
+    def on_window_state(self, _w, event):
+        hidden = bool(event.new_window_state & (Gdk.WindowState.ICONIFIED | Gdk.WindowState.WITHDRAWN))
+        if hidden != self.iconified:
+            self.iconified = hidden
+            if hidden:
+                self.nav_stop_anim()
+            else:
+                self.resume_anim()
+        return False
+
+    def on_saver_changed(self, *_a):
+        self.saver = os.path.exists(POWERSAVER)
+
+    def nav_anim_tick(self, _widget, clock):
+        mo = self.anim_motion()
+        if mo is None or not self.anim_visible():
             self.nav_anim_id = None
             return False
-        now = time.monotonic()
-        fix = self.nav_fix or {}
+        # cas snimku ze snimkovych hodin (stejne monotonni hodiny jako time.monotonic): rovnomerne kroky
+        now = clock.get_frame_time() / 1e6
+        if self.anim_frame_t is not None and 0.004 < now - self.anim_frame_t < 0.1:
+            self.anim_period += (now - self.anim_frame_t - self.anim_period) * 0.1
+        self.anim_frame_t = now
+        fix = (self.nav_fix if self.nav else self.loc_fix) or {}
         mpp = lm.meters_per_pixel(fix.get("lat", 0.0), self.map.zoom)
-        if now - self.nav_anim_last < 1.0 / self.nav_motion.fps(now, mpp) - 0.003:
+        fps = min(mo.fps(now, mpp), self.fps_cap())
+        # kazdy n-ty snimek displeje (rovnomerne rozestupy, zadne stridani 2 a 3 snimku)
+        n = max(1, round(1.0 / (fps * self.anim_period)))
+        if now - self.nav_anim_last < (n - 0.5) * self.anim_period:
             return True
         self.nav_anim_last = now
-        self.nav_show_position(now)
-        if not self.nav_motion.active(now):
+        if self.nav:
+            self.nav_show_position(now)
+        else:
+            self.loc_show_position(now)
+        if not mo.active(now):
             self.nav_anim_id = None
             return False
         return True
