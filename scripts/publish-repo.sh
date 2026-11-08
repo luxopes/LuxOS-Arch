@@ -8,6 +8,8 @@
 #                                      totez do testovaciho kanalu: prepne odkaz staging misto current
 #                                      (systemy s [general] channel = "staging" v /etc/lux/lux.conf);
 #                                      do current ho pozdeji prevede scripts/promote-staging.sh
+#   LUXOS_REPO_SRC=out/repo-stable scripts/publish-repo.sh
+#                                      nahraje jiny adresar nez out/repo (scripts/compose-stable-repo.sh)
 #
 # Na serveru: /srv/luxos-repo/releases/<cas>/{luxos,luxos-apps}/x86_64, odkaz current
 # ukazuje na posledni vydani (Caddy: https://luxos.lux-ai.cz/repo/), odkaz staging na posledni
@@ -23,7 +25,11 @@ case ${LUXOS_REPO_CHANNEL:-current} in
     staging)        LINK=staging; URL=${LUXOS_REPO_URL:-https://luxos.lux-ai.cz/staging} ;;
     *) echo "LUXOS_REPO_CHANNEL must be current or staging, not '$LUXOS_REPO_CHANNEL'" >&2; exit 2 ;;
 esac
-REPO=out/repo
+# Zdroj vydani: vychozi out/repo (./build.sh packages); LUXOS_REPO_SRC = jiny adresar se stejnou
+# strukturou, napr. out/repo-stable ze scripts/compose-stable-repo.sh (stabilni vydani bez baliku,
+# ktere zustavaji jen ve staging)
+REPO=${LUXOS_REPO_SRC:-out/repo}
+REPO=${REPO%/}
 KEEP=3
 apps_only=0
 [[ ${1:-} == --apps-only ]] && apps_only=1
@@ -31,7 +37,7 @@ apps_only=0
 repos=(luxos luxos-apps)
 ((apps_only)) && repos=(luxos-apps)
 for r in "${repos[@]}"; do
-    [[ -f $REPO/$r/x86_64/$r.db.tar.gz ]] || { echo "Missing $REPO/$r - run ./build.sh packages first" >&2; exit 1; }
+    [[ -f $REPO/$r/x86_64/$r.db.tar.gz ]] || { echo "Missing $REPO/$r - run ./build.sh packages first (or check LUXOS_REPO_SRC)" >&2; exit 1; }
 done
 compgen -G "$REPO/${repos[0]}/x86_64/*.pkg.tar.zst.sig" >/dev/null \
     || { echo "Packages are not signed: unlock the Safe (luxos-safe unlock) with the key in" \
