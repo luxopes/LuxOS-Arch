@@ -1270,13 +1270,14 @@
         {
           "path": "luxos/luxai-rich-answers.md",
           "title": "LuxAI rich answers",
-          "summary": "Charts, quizzes, calculators, diagrams (Mermaid), typeset formulas, sortable tables, maps, galleries, timelines and checklists in LuxAI answers: what to ask for, saved answers, PNG/SVG/CSV export, safety (no code from the model, sanitized SVG, network consent).",
+          "summary": "Charts, quizzes (one question per card), calculators, diagrams (Mermaid), typeset formulas, sortable tables, maps, galleries, timelines and checklists in LuxAI answers: what to ask for, saved answers, PNG/SVG/CSV export, safety (no code from the model, sanitized SVG, network consent).",
           "keywords": [
             "LuxAI",
             "rich answers",
             "chart",
             "graph",
             "quiz",
+            "quiz cards",
             "form",
             "calculator",
             "controls",

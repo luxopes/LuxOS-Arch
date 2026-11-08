@@ -27,6 +27,7 @@ load json
 load rich_expr
 load rich_svg
 load rich_blocks
+load rich_quiz
 load markdown
 output = {}
 output["inline"] = markdown.inline("\\\\(|\\\\vec{v}| = \\\\sqrt{3^2 + 4^2}\\\\)")
@@ -42,6 +43,9 @@ output["chart"] = rich_blocks.parse("chart", "{\"type\": \"bar\", \"series\": [{
 output["bad"] = rich_blocks.parse("quiz", "{\"questions\": [")["ok"]
 output["prompt"] = "chart: " in rich_blocks.RICH_PROMPT and "quiz: " in rich_blocks.RICH_PROMPT and "\"type\":\"function\"" in rich_blocks.RICH_PROMPT
 output["plot"] = rich_blocks.parse("chart", "{\"type\": \"function\", \"x\": [-3, 3], \"functions\": [\"2*x\"], \"points\": [[1, 2]]}")["ok"]
+quiz = rich_blocks.parse("quiz", "{\"questions\": [{\"q\": \"a\", \"options\": [\"x\", \"y\"], \"correct\": 0}, {\"q\": \"b\", \"options\": [\"x\", \"y\"], \"correct\": 1}]}")["spec"]
+state = rich_quiz.normalize(quiz, {"answers": {"0": [0]}, "hints": []})
+output["quiz"] = [quiz["mode"], rich_quiz.mode(quiz, state), state["page"], rich_quiz.answer(quiz, state, 1, [0]), rich_quiz.score(quiz, state)["right"]]
 print json.encode(output)
 '''
 
@@ -57,7 +61,7 @@ class RichBlocksPackage(unittest.TestCase):
         path, version = archive()
         with tarfile.open(path) as tar:
             names = set(tar.getnames())
-        for module in ("rich_blocks", "rich_expr", "rich_svg", "rich_draw", "rich_diagram", "rich_math", "rich_ui"):
+        for module in ("rich_blocks", "rich_expr", "rich_svg", "rich_draw", "rich_diagram", "rich_math", "rich_ui", "rich_quiz"):
             self.assertIn(f"luxai-{version}/lsl/{module}.lsl", names)
         self.assertIn(f"luxai-{version}/docs/rich-blocks.md", names)
         # testovaci ovladace do archivu nepatri jako program aplikace, ale nevadi (preklada se jen main.lsl)
@@ -98,6 +102,8 @@ class RichBlocksPackage(unittest.TestCase):
         self.assertFalse(value["bad"])
         self.assertTrue(value["prompt"])
         self.assertTrue(value["plot"])
+        # 2.0.2-6: kviz po strankach je vychozi, stary stav pokracuje prvni nezodpovezenou otazkou
+        self.assertEqual(value["quiz"], ["pages", "pages", 1, True, 1])
         self.assertIn("v⃗", value["inline"])          # dvojita lomitka od modelu (2.0.2-5)
         self.assertNotIn("vec", value["inline"])
         self.assertTrue(value["fence"].startswith('{"q"'))   # JSON na radku plotu
