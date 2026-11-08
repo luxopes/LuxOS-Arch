@@ -19,7 +19,11 @@
                  "cs": "Všechny klávesové zkratky LuxOS: Hledání, Launchpad, okna, snímky obrazovky, zámek, monitory, LuxAI a Lux Code."}},
     {"path": "luxos/faq.md", "after": "luxos/overview.md",
      "title": {"en": "FAQ", "cs": "Časté otázky"},
-     "summary": {"en": "Frequently asked questions about LuxOS: installation, dual boot, updates, lux instead of pacman, LuxAI, security, drivers and languages.",
-                 "cs": "Časté otázky o LuxOS: instalace, dual boot, aktualizace, lux místo pacmanu, LuxAI, bezpečnost, ovladače a jazyky."}}
+     "summary": {"en": "Answers about LuxOS: what it is, price and licence, Ubuntu, Mint, Zorin, elementary and Arch differences, Windows apps and Steam, hardware, safety and beta.",
+                 "cs": "Odpovědi o LuxOS: co to je, cena a licence, rozdíl proti Ubuntu, Mintu, Zorinu, elementary a Archu, aplikace z Windows a Steam, hardware, bezpečnost a beta."}},
+    {"path": "luxos/compare.md", "after": "luxos/faq.md",
+     "title": {"en": "LuxOS vs Ubuntu, Mint, Zorin, elementary and Arch", "cs": "LuxOS ve srovnání s Ubuntu, Mintem, Zorinem, elementary a Archem"},
+     "summary": {"en": "How LuxOS differs from Ubuntu, Linux Mint, Zorin OS, elementary OS, Manjaro, EndeavourOS and plain Arch Linux: base, desktop, packages, updates and maturity.",
+                 "cs": "Čím se LuxOS liší od Ubuntu, Linux Mintu, Zorin OS, elementary OS, Manjara, EndeavourOS a čistého Arch Linuxu: základ, prostředí, balíky, aktualizace a zralost."}}
   ]
 }
