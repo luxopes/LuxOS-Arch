@@ -13,7 +13,7 @@ stranka o pouzivani (countme) ze sablon usage.en.html a usage.cs.html (grafy kre
 z /stats/usage.json, ktery vytvari server), stranky Posty LuxOS, zasad ochrany soukromi a podminek
 ze site/pages (mail, privacy, terms).
 Vystup: index.html, cs/index.html, release.json (aktualni vydani, nacita ho i stranka), docs/,
-cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), sitemap.xml, robots.txt, download/index.html (presmerovani
+cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), sitemap.xml, robots.txt, llms.txt, llms-full.txt, klic IndexNow (<klic>.txt), download/index.html (presmerovani
 na /#download - ISO a podpisy zustavaji v /download/). Kontrola odkazu: scripts/check-site.py.
 """
 import datetime
@@ -23,6 +23,7 @@ import os
 import posixpath
 import re
 import shutil
+import subprocess
 import sys
 import time
 
@@ -43,6 +44,17 @@ LANGS = ("en", "cs")
 OTHER = {"en": "cs", "cs": "en"}
 # nahled odkazu (1200x630 JPEG z plochy, scripts/site-screenshots) - WebP nekteri klienti v nahledech neukazi
 OG_IMAGE = BASE + "/assets/og-image.jpg"
+# strukturovana data (schema.org): entity s @id definuje uvodni stranka (@graph), ostatni stranky na ne odkazuji
+GITHUB = "https://github.com/luxopes/LuxOS-Arch"
+ORG_ID, AUTHOR_ID, SITE_ID, APP_ID = (BASE + "/#org", BASE + "/#author", BASE + "/#website", BASE + "/#luxos")
+CONTACT = "info@lux-ai.cz"
+AUTHOR = "Antonín Tomeček"
+# IndexNow (Bing, Seznam, Yandex): verejny klic, web ho publikuje jako /<klic>.txt; odeslani URL po zverejneni
+# dela vlastnik scripts/indexnow-submit.sh
+INDEXNOW_KEY_FILE = os.path.join(SITE, "indexnow-key.txt")
+# llms.txt (llmstxt.org): prehled pro jazykove modely; llms-full.txt = vybrane anglicke stranky v jednom souboru
+LLMS_FULL_DOCS = ("luxos/faq.md", "luxos/compare.md", "luxos/overview.md", "luxos/hardware.md", "luxos/installer.md",
+                  "luxos/package-management.md", "luxos/care-updates.md", "luxos/guard.md", "luxos/luxai.md")
 # logo LuxOS ze systemu (packages/luxos-branding/files/logo/luxos-logo.svg, tri zahnute cepele); oriznute
 # na tvar (viewBox), barvy prechodu z CSS (--logo-1..3: svetly a tmavy vzhled), vlozene primo do stranky
 LOGO_PATH = ("M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91Z"
@@ -105,6 +117,8 @@ T = {
         "home_title": "LuxOS – fast, lightweight Linux with a macOS-like desktop | Download ISO",
         "home_desc": ("LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop, "
                       "the lux package manager, automatic drivers and the LuxAI assistant. Download the ISO."),
+        "docs_index_title": "LuxOS documentation – manual for LuxOS, LuxAI, Lux Code and LSL",
+        "app_disambig": "Desktop Linux distribution based on Arch Linux, developed in the Czech Republic.",
         "docs_index_desc": ("LuxOS documentation: installation, the lux package manager, LuxAI, Lux Code, "
                             "drivers, hardware, Store, Care, security (Guard, Safe, Sandbox), LuxDrop and the LSL language."),
         "gallery_label": "Screenshot", "close": "Close", "prev_shot": "Previous", "next_shot": "Next",
@@ -141,6 +155,8 @@ T = {
         "home_title": "LuxOS – rychlý a lehký Linux s prostředím ve stylu macOS | Stáhnout ISO",
         "home_desc": ("LuxOS je rychlý a lehký systém na Arch Linuxu s prostředím ve stylu macOS, správcem balíků lux, "
                       "automatickými ovladači a asistentem LuxAI. Stáhněte si instalační ISO."),
+        "docs_index_title": "Dokumentace LuxOS – příručka k LuxOS, LuxAI, Lux Code a LSL",
+        "app_disambig": "Desktopová linuxová distribuce založená na Arch Linuxu, vyvíjená v Česku.",
         "docs_index_desc": ("Dokumentace LuxOS: instalace, správce balíků lux, LuxAI, Lux Code, ovladače, hardware, "
                             "Obchod, Care, zabezpečení (Guard, Trezor, Sandbox), LuxDrop a jazyk LSL."),
         "gallery_label": "Snímek obrazovky", "close": "Zavřít", "prev_shot": "Předchozí", "next_shot": "Další",
@@ -164,6 +180,7 @@ T = {
 }
 
 SITEMAP = []      # (cesta, {jazyk: cesta}) vsech indexovatelnych stranek
+SOURCES = {}      # cesta -> zdrojove soubory stranky (lastmod v sitemap.xml podle posledniho commitu)
 PAGE_COUNT = {"en": 0, "cs": 0}
 
 
@@ -344,13 +361,35 @@ def hreflang_links(alt):
     return "\n".join(out)
 
 
+def org_ref():
+    """Vydavatel na podstrankach: odkaz na Organization z @graph uvodni stranky (s nazvem pro ctecky bez grafu)."""
+    return {"@type": "Organization", "@id": ORG_ID, "name": "LuxOS", "url": BASE + "/"}
+
+
+def git_date(files, fallback):
+    """Datum posledniho commitu, ktery menil nektery ze souboru (YYYY-MM-DD); necommitovane zmeny = fallback."""
+    files = [f for f in files if f and os.path.exists(f)]
+    if not files:
+        return fallback
+    try:
+        dirty = subprocess.run(["git", "-C", ROOT, "status", "--porcelain", "--", *files],
+                               capture_output=True, text=True, check=True).stdout.strip()
+        if dirty:
+            return fallback
+        out = subprocess.run(["git", "-C", ROOT, "log", "-1", "--format=%cs", "--", *files],
+                             capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return fallback
+    return out or fallback
+
+
 def jsonld(*items):
     return "\n".join('  <script type="application/ld+json">' + json.dumps(i, ensure_ascii=False, separators=(",", ":"))
                      .replace("</", "<\\/") + "</script>" for i in items)
 
 
 def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="website", ld=(), home=False,
-          switch_to=None, noindex=False, sitemap=True, dialog=False, scripts=()):
+          switch_to=None, noindex=False, sitemap=True, dialog=False, scripts=(), src=()):
     """Cela stranka: hlavicka se SEO znackami, navigace s prepinacem jazyka, obsah, paticka."""
     t = T[lang]
     other = OTHER[lang]
@@ -408,6 +447,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
         body = '    <span id="top"></span>\n' + body
     if sitemap and not noindex:
         SITEMAP.append((path, alt))
+        SOURCES[path] = tuple(src)
     PAGE_COUNT[lang] += 1
     return f"""<!doctype html>
 <html lang="{lang}">
@@ -431,6 +471,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
 {og_alt}  <meta property="og:image" content="{OG_IMAGE}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:alt" content="{e('LuxOS desktop' if lang == 'en' else 'Plocha LuxOS')}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{e(full_title)}">
@@ -526,12 +567,13 @@ def render_docs(cols, flat, stamp, md_to_html):
             article = {"@context": "https://schema.org", "@type": "TechArticle", "headline": title,
                        "description": clip(desc), "inLanguage": lang, "url": abs_url(path),
                        "isPartOf": {"@type": "WebSite", "name": "LuxOS", "url": BASE + "/"},
-                       "publisher": {"@type": "Organization", "name": "LuxOS", "url": BASE + "/"}}
+                       "about": {"@id": APP_ID}, "publisher": org_ref()}
             ld = [breadcrumb_ld(*trail), article]
             if d["path"] == "luxos/faq.md":
                 ld.append(faq_ld(text))
             write(path.lstrip("/"), shell(lang, path, f"{title} – {t['docs_suffix']}", desc,
                                           layout(content, d["path"]), alt, "docs", stamp, "article", ld,
+                                          src=[d["src"][lang]],
                                           switch_to=None if OTHER[lang] in alt else docs_index_url(OTHER[lang])))
             count[lang] += 1
         # rozcestnik dokumentace
@@ -553,9 +595,10 @@ def render_docs(cols, flat, stamp, md_to_html):
         coll = {"@context": "https://schema.org", "@type": "CollectionPage", "name": t["docs_h1"] + " – LuxOS",
                 "url": abs_url(ipath), "inLanguage": lang, "description": t["docs_index_desc"]}
         write(ipath.lstrip("/") + "index.html",
-              shell(lang, ipath, f"{t['docs_h1']} – LuxOS" if lang == "cs" else "LuxOS documentation – manual for LuxOS, LuxAI, Lux Code and LSL",
+              shell(lang, ipath, t["docs_index_title"],
                     t["docs_index_desc"], layout(crumb_html + intro + "\n".join(cards)), ialt, "docs", stamp,
-                    "website", [breadcrumb_ld(*trail), coll]))
+                    "website", [breadcrumb_ld(*trail), coll],
+                    src=[os.path.join(DOCS, "index.json"), os.path.join(CONTENT, "docs.json")]))
         count[lang] += 1
     return count
 
@@ -573,6 +616,71 @@ def faq_ld(text):
     return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": qa}
 
 
+def llms_txt(ver, iso, cols):
+    """/llms.txt podle llmstxt.org: nazev, shrnuti, overitelna fakta a odkazy na stranky s jednovetym popisem."""
+    lines = [
+        "# LuxOS",
+        "",
+        "> LuxOS is a fast, lightweight desktop Linux distribution based on Arch Linux with a macOS-like desktop "
+        "(Xfce underneath), its own package manager `lux`, its own kernel build `linux-luxos`, automatic drivers, "
+        "updates with Btrfs snapshots and rollback, and the optional LuxAI assistant. It is free (GPL-3.0-or-later) "
+        "and still in beta.",
+        "",
+        "Key facts:",
+        "",
+        f"- Current version: {ver['VERSION']} \"{ver['CODENAME']}\" (beta), ISO {iso['version']} released {iso['date']}",
+        "- Base: Arch Linux; rolling release (`lux update`); x86_64 PCs with UEFI or BIOS, at least 20 GB disk",
+        "- Desktop: Xfce components (xfwm4, panel) arranged like macOS: top bar, Plank Dock, Launchpad, Search, Control Center",
+        "- Package manager: `lux` (libalpm); Arch and signed LuxOS repositories, Flathub, AUR (checked, built in a sandbox), "
+        "own `.lux` apps; there is no `pacman` command",
+        "- Kernel: `linux-luxos`, vanilla stable kernel.org Linux with Arch's configuration, built by GitHub Actions",
+        "- Maintenance: LuxOS Care (background updates, snapshot before every update, `lux rollback`, read-only /usr)",
+        "- Security: firewall on by default, Lux Guard (checks downloaded programs, sandbox), Safe (encrypted folder)",
+        "- LuxAI: optional AI assistant; needs a LuxAI account with monthly limits; answers come from third-party model providers",
+        f"- Developer: {AUTHOR}, Czech Republic; contact {CONTACT}; source {GITHUB}",
+        "- Not to be confused with LuxOS, the unrelated Bitcoin miner firmware by Luxor.",
+        "",
+        "## Start here",
+        "",
+        f"- [Home and download]({BASE}/): what LuxOS is, screenshots, ISO download and verification",
+        f"- [FAQ]({abs_url(doc_url('en', 'luxos/faq.md'))}): common questions (price, beta status, Windows apps, Steam, hardware)",
+        f"- [LuxOS compared]({abs_url(doc_url('en', 'luxos/compare.md'))}): differences from Ubuntu, Mint, Zorin, elementary OS and Arch",
+        f"- [Changelog]({abs_url(changes_url('en'))}): what changed in each release",
+        f"- [Full text for LLMs]({BASE}/llms-full.txt): FAQ, comparison and the main manual pages in one Markdown file",
+        "",
+    ]
+    for col in cols:
+        lines += [f"## {col['title']}", ""]
+        for d in col["files"]:
+            if "en" not in d["src"]:
+                continue
+            lines.append(f"- [{d['title']['en']}]({abs_url(doc_url('en', d['path']))}): {d['summary']['en']}")
+        lines.append("")
+    lines += ["## Optional", "",
+              f"- [Czech home page]({abs_url(home_url('cs'))}): the site in Czech",
+              f"- [Usage statistics]({abs_url(usage_url('en'))}): anonymous weekly counts of active installations",
+              f"- [Privacy policy]({abs_url(page_url('en', 'privacy'))}): data handling of LuxOS, LuxAI and LuxOS Mail",
+              f"- [Source code]({GITHUB}): GitHub repository (issues for bug reports)",
+              "- [LSL language](https://lsl.lux-ai.cz): website of Lux Simple Lang", ""]
+    return "\n".join(lines)
+
+
+def llms_full_txt(ver, iso):
+    """/llms-full.txt: vybrane anglicke stranky (Markdown) v jednom souboru, kazda s adresou zdroje."""
+    parts = [f"# LuxOS – full reference for language models\n\nLuxOS {ver['VERSION']} \"{ver['CODENAME']}\" (beta), "
+             f"ISO {iso['version']} from {iso['date']}. Website {BASE}/ · source {GITHUB} · contact {CONTACT}.\n"
+             "Each section below is one page of the LuxOS documentation; relative links point to other pages of "
+             f"{BASE}/docs/.\n"]
+    for p in LLMS_FULL_DOCS:
+        d = DOCS_BY_PATH.get(p)
+        if not d or "en" not in d["src"]:
+            continue
+        with open(d["src"]["en"]) as f:
+            text = f.read().strip()
+        parts.append(f"\n---\n\nSource: {abs_url(doc_url('en', p))}\n\n{text}\n")
+    return "".join(parts)
+
+
 def sitemap_xml(today):
     rows = ['<?xml version="1.0" encoding="UTF-8"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">']
@@ -580,7 +688,7 @@ def sitemap_xml(today):
         pri = "1.0" if path in ("/", "/cs/") else ("0.8" if path.count("/") <= 2 else "0.6")
         rows.append("  <url>")
         rows.append(f"    <loc>{abs_url(path)}</loc>")
-        rows.append(f"    <lastmod>{today}</lastmod>")
+        rows.append(f"    <lastmod>{git_date(SOURCES.get(path, ()), today)}</lastmod>")
         rows.append(f"    <priority>{pri}</priority>")
         if len(alt) > 1:
             for lang in LANGS:
@@ -668,21 +776,34 @@ def main():
             sys.exit(f"build-site: unfilled placeholders {left}")
         path = home_url(lang)
         alt = {l: home_url(l) for l in LANGS}
-        site_ld = {"@context": "https://schema.org", "@type": "WebSite", "name": "LuxOS", "url": BASE + "/",
-                   "inLanguage": list(LANGS), "description": T["en"]["home_desc"]}
-        app_ld = {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "LuxOS",
-                  "alternateName": f"LuxOS {ver['VERSION']} {ver['CODENAME']}",
-                  "applicationCategory": "OperatingSystem", "operatingSystem": "Linux (x86_64)",
+        # jeden @graph: projekt (Organization), autor, web a samotny system; LuxOS je operacni system, schema.org
+        # na to nema typ, proto SoftwareApplication s applicationCategory OperatingSystem
+        org_ld = {"@type": "Organization", "@id": ORG_ID, "name": "LuxOS", "url": BASE + "/",
+                  "logo": {"@type": "ImageObject", "url": BASE + "/assets/icon-192.png", "width": 192, "height": 192},
+                  "email": CONTACT, "founder": {"@id": AUTHOR_ID}, "sameAs": [GITHUB]}
+        author_ld = {"@type": "Person", "@id": AUTHOR_ID, "name": AUTHOR,
+                     "address": {"@type": "PostalAddress", "addressCountry": "CZ"}}
+        site_ld = {"@type": "WebSite", "@id": SITE_ID, "name": "LuxOS", "url": BASE + "/",
+                   "inLanguage": list(LANGS), "description": T["en"]["home_desc"], "publisher": {"@id": ORG_ID}}
+        app_ld = {"@type": "SoftwareApplication", "@id": APP_ID, "name": "LuxOS",
+                  "alternateName": ["LuxOS Linux", f"LuxOS {ver['VERSION']} {ver['CODENAME']}"],
+                  "disambiguatingDescription": t["app_disambig"],
+                  "applicationCategory": "OperatingSystem", "operatingSystem": "Linux",
+                  "processorRequirements": "x86-64", "storageRequirements": "20 GB",
                   "softwareVersion": iso["version"], "description": t["home_desc"], "url": abs_url(path),
                   "downloadUrl": f"{BASE}/download/{iso['file']}", "fileSize": fmt_size(iso["size"], "en"),
                   "datePublished": iso["date"], "inLanguage": lang, "image": OG_IMAGE,
-                  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+                  "screenshot": [f"{BASE}{sd}{name}-light.webp" for name, _c in GALLERY[lang]],
+                  "releaseNotes": abs_url(changes_url(lang)),
+                  "softwareHelp": {"@type": "CreativeWork", "url": abs_url(docs_index_url(lang))},
+                  "license": "https://spdx.org/licenses/GPL-3.0-or-later.html", "isAccessibleForFree": True,
                   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
-                  "publisher": {"@type": "Organization", "name": "LuxOS", "url": BASE + "/",
-                                "logo": BASE + "/assets/icon-192.png"}}
+                  "author": {"@id": AUTHOR_ID}, "publisher": {"@id": ORG_ID}, "sameAs": [GITHUB]}
+        graph = {"@context": "https://schema.org", "@graph": [org_ld, author_ld, site_ld, app_ld]}
         write(path.lstrip("/") + "index.html",
               shell(lang, path, t["home_title"], t["home_desc"], text.rstrip("\n"), alt, "", stamp, "website",
-                    [site_ld, app_ld], home=True, dialog=True))
+                    [graph], home=True, dialog=True,
+                    src=[os.path.join(SITE, f"home.{lang}.html"), os.path.join(SITE, "iso.json")]))
 
     # ---- dokumentace ----
     render_docs(cols, flat, stamp, md_to_html)
@@ -704,7 +825,8 @@ def main():
                                    for i, (n, h) in enumerate(trail)]}]
         write(changes_url(lang).lstrip("/") + "index.html",
               shell(lang, changes_url(lang), f"{t['changes_title']} – LuxOS", t["changes_desc"],
-                    f'    <article class="doc panel">{body}</article>', calt, "changes", stamp, "article", ld))
+                    f'    <article class="doc panel">{body}</article>', calt, "changes", stamp, "article", ld,
+                    src=[os.path.join(ROOT, "CHANGELOG.md") if lang == "cs" else os.path.join(CONTENT, "en", "changes")]))
     # stary odkaz /zmeny/ (puvodne cesky) presmeruje na /cs/zmeny/
     write("zmeny/index.html", '<!doctype html><html lang="cs"><meta charset="utf-8"><title>Seznam změn – LuxOS</title>'
           '<meta http-equiv="refresh" content="0; url=/cs/zmeny/"><link rel="canonical" href="https://luxos.lux-ai.cz/cs/zmeny/">'
@@ -743,7 +865,7 @@ def main():
                                    for i, (n, h) in enumerate(trail)]}]
         write(path.lstrip("/") + "index.html",
               shell(lang, path, t["usage_title"], t["usage_desc"], text.rstrip("\n"), ualt, "", stamp, "website",
-                    ld, scripts=("usage.js",)))
+                    ld, scripts=("usage.js",), src=[os.path.join(SITE, f"usage.{lang}.html")]))
 
     # ---- Posta LuxOS, zasady ochrany soukromi, podminky ----
     for name in PAGES:
@@ -772,10 +894,10 @@ def main():
                            "image": BASE + "/assets/luxos-mail.svg",
                            "license": "https://www.gnu.org/licenses/gpl-3.0.html",
                            "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
-                           "publisher": {"@type": "Organization", "name": "LuxOS", "url": BASE + "/"}})
+                           "publisher": org_ref()})
             write(path.lstrip("/") + "index.html",
                   shell(lang, path, t[name + "_title"], t[name + "_desc"], text.rstrip("\n"), palt, "", stamp,
-                        "website", ld))
+                        "website", ld, src=[os.path.join(SITE, "pages", f"{name}.{lang}.html")]))
 
     for name in ("styles.css", "script.js", "usage.js"):
         shutil.copy(os.path.join(SITE, name), os.path.join(OUT, name))
@@ -784,6 +906,13 @@ def main():
         f.write(favicon_ico(os.path.join(SITE, "assets", "favicon-32.png")))
     write("sitemap.xml", sitemap_xml(today))
     write("robots.txt", f"User-agent: *\nAllow: /\nDisallow: /download/\n\nSitemap: {BASE}/sitemap.xml\n")
+    write("llms.txt", llms_txt(ver, iso, cols))
+    write("llms-full.txt", llms_full_txt(ver, iso))
+    with open(INDEXNOW_KEY_FILE) as f:
+        key = f.read().strip()
+    if not re.fullmatch(r"[A-Za-z0-9-]{8,128}", key):
+        sys.exit(f"build-site: invalid IndexNow key in {INDEXNOW_KEY_FILE}")
+    write(f"{key}.txt", key + "\n")
     print(f"site: LuxOS {ver['VERSION']} (ISO {iso['version']}), pages en {PAGE_COUNT['en']}, cs {PAGE_COUNT['cs']}, "
           f"{len(flat)} documents ({sum(1 for d in flat if 'cs' in d['src'])} also in Czech), "
           f"{len(SITEMAP)} urls in sitemap -> {OUT}")

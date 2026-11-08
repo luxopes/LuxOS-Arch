@@ -2,10 +2,12 @@
 """LuxOS - kontrola vysledku scripts/build-site.py (out/site): vnitrni odkazy a kotvy, unikatni
 title a description, canonical, hreflang, jedno h1, alt u obrazku, sitemap.xml a robots.txt,
 anglicky seznam zmen proti CHANGELOG.md (vsechna vydani a polozky, scripts/changelog_sections.py)
-a prepinac jazyka (pevne poradi EN | CS, zvyrazneni aktualniho jazyka). Nic nestahuje (zadne pozadavky na server), jen cte soubory.
+a prepinac jazyka (pevne poradi EN | CS, zvyrazneni aktualniho jazyka), strukturovana data JSON-LD,
+llms.txt a llms-full.txt a klic IndexNow. Nic nestahuje (zadne pozadavky na server), jen cte soubory.
 
   scripts/check-site.py [adresar]      vychozi out/site; navratovy kod 1 pri chybe
 """
+import json
 import os
 import re
 import sys
@@ -43,9 +45,14 @@ class Page(HTMLParser):
         # prepinac jazyka: [(lang, aria-current)] a zda ma vrstvu zvyrazneni
         self.switch, self.switch_pill, self.switch_active, self._in_switch = [], False, None, 0
         self.switch_titles = {}
+        # strukturovana data: text kazdeho <script type="application/ld+json">
+        self.ld, self._in_ld = [], False
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        if tag == "script" and (a.get("type") or "").lower() == "application/ld+json":
+            self._in_ld = True
+            self.ld.append("")
         if "id" in a:
             self.ids.add(a["id"])
         cls = (a.get("class") or "").split()
@@ -110,6 +117,8 @@ class Page(HTMLParser):
             self.errors.append(f"img without alt: {a.get('src')}")
 
     def handle_endtag(self, tag):
+        if tag == "script":
+            self._in_ld = False
         if tag == "title":
             self._in_title = False
         elif tag == "article":
@@ -120,8 +129,156 @@ class Page(HTMLParser):
             self._in_switch -= 1
 
     def handle_data(self, data):
+        if self._in_ld:
+            self.ld[-1] += data
         if self._in_title:
             self.title += data
+
+
+def ld_nodes(value):
+    """Vsechny objekty (dict) ve strukturovanych datech, rekurzivne."""
+    if isinstance(value, dict):
+        yield value
+        for v in value.values():
+            yield from ld_nodes(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from ld_nodes(v)
+
+
+def ld_types(node):
+    t = node.get("@type")
+    return set(t) if isinstance(t, list) else ({t} if t else set())
+
+
+def check_jsonld(pages, url_of, exists, out):
+    """JSON-LD: platny JSON, @context schema.org, typy s povinnymi poli, odkazy @id na entity definovane na webu,
+    URL v url/item existuji, uvodni stranky maji Organization + WebSite + SoftwareApplication s aktualni verzi."""
+    errors, defined, refs = [], set(), []
+    try:
+        with open(os.path.join(out, "release.json"), encoding="utf-8") as f:
+            iso_version = json.load(f)["iso"]["version"]
+    except (OSError, ValueError, KeyError):
+        iso_version = None
+        errors.append("release.json missing or invalid (needed to check softwareVersion)")
+
+    def local(u):
+        return u.startswith(BASE) and not urlparse(u).path.startswith(SERVER_ONLY)
+
+    for path, p in sorted(pages.items()):
+        url = url_of(path)
+        if p.refresh is not None:
+            continue
+        indexable = "noindex" not in p.robots
+        if indexable and not p.ld:
+            errors.append(f"{url}: no JSON-LD structured data")
+        types_on_page = set()
+        for raw in p.ld:
+            try:
+                data = json.loads(raw)
+            except ValueError as ex:
+                errors.append(f"{url}: invalid JSON-LD ({ex})")
+                continue
+            blocks = data if isinstance(data, list) else [data]
+            for b in blocks:
+                if not isinstance(b, dict) or b.get("@context") not in ("https://schema.org", "https://schema.org/"):
+                    errors.append(f"{url}: JSON-LD block without @context https://schema.org")
+                    continue
+                if "@type" not in b and "@graph" not in b:
+                    errors.append(f"{url}: JSON-LD block without @type or @graph")
+            for node in ld_nodes(data):
+                keys = set(node) - {"@context"}
+                if keys == {"@id"}:
+                    refs.append((url, node["@id"]))
+                    continue
+                types = ld_types(node)
+                types_on_page |= types
+                if "@id" in node and types:
+                    defined.add(node["@id"])
+                for k in ("url", "item"):
+                    v = node.get(k)
+                    if isinstance(v, str) and local(v) and not exists(urlparse(v).path or "/"):
+                        errors.append(f"{url}: JSON-LD {k} {v} does not exist")
+                if "SoftwareApplication" in types:
+                    for k in ("name", "applicationCategory", "operatingSystem", "offers"):
+                        if not node.get(k):
+                            errors.append(f"{url}: SoftwareApplication without {k}")
+                    if "price" not in (node.get("offers") or {}):
+                        errors.append(f"{url}: SoftwareApplication offers without price")
+                if "FAQPage" in types:
+                    qs = node.get("mainEntity") or []
+                    if not qs:
+                        errors.append(f"{url}: FAQPage without questions")
+                    for q in qs:
+                        ans = (q.get("acceptedAnswer") or {}).get("text", "")
+                        if "Question" not in ld_types(q) or not q.get("name") or not ans.strip():
+                            errors.append(f"{url}: FAQPage question without name or answer: {q.get('name')!r}")
+                if "BreadcrumbList" in types:
+                    items = node.get("itemListElement") or []
+                    if [i.get("position") for i in items] != list(range(1, len(items) + 1)) or not items:
+                        errors.append(f"{url}: BreadcrumbList positions are not 1..n")
+                    if items and items[-1].get("item") != BASE + url:
+                        errors.append(f"{url}: last breadcrumb item is {items[-1].get('item')}, expected {BASE + url}")
+                if "TechArticle" in types:
+                    if not node.get("headline"):
+                        errors.append(f"{url}: TechArticle without headline")
+                    if node.get("url") != BASE + url:
+                        errors.append(f"{url}: TechArticle url {node.get('url')} is not the page URL")
+        if url in ("/", "/cs/"):
+            for need in ("Organization", "WebSite", "SoftwareApplication", "Person"):
+                if need not in types_on_page:
+                    errors.append(f"{url}: JSON-LD missing {need}")
+            apps = [n for raw in p.ld for n in ld_nodes(json.loads(raw)) if "SoftwareApplication" in ld_types(n)]
+            for a in apps:
+                if iso_version and a.get("softwareVersion") != iso_version:
+                    errors.append(f"{url}: SoftwareApplication softwareVersion {a.get('softwareVersion')}, ISO is {iso_version}")
+                for s in a.get("screenshot") or []:
+                    if not exists(urlparse(s).path):
+                        errors.append(f"{url}: JSON-LD screenshot {s} does not exist")
+    for url, ref in refs:
+        if ref not in defined:
+            errors.append(f"{url}: JSON-LD reference {ref} is not defined on any page")
+    return errors
+
+
+def check_llms_indexnow(out, exists):
+    """llms.txt (llmstxt.org: # nazev, > shrnuti, odkazy existuji, aktualni verze), llms-full.txt, klic IndexNow."""
+    errors = []
+    f = os.path.join(out, "llms.txt")
+    if not os.path.isfile(f):
+        errors.append("missing llms.txt")
+    else:
+        text = open(f, encoding="utf-8").read()
+        lines = text.splitlines()
+        if not lines or lines[0] != "# LuxOS":
+            errors.append("llms.txt: first line must be '# LuxOS'")
+        if not any(l.startswith("> ") for l in lines[:4]):
+            errors.append("llms.txt: missing '> summary' line after the title")
+        try:
+            with open(os.path.join(out, "release.json"), encoding="utf-8") as rf:
+                version = json.load(rf)["version"]
+            if f"Current version: {version} " not in text:
+                errors.append(f"llms.txt: does not state the current version {version}")
+        except (OSError, ValueError, KeyError):
+            pass
+        for href in re.findall(r"\]\((https?://[^)\s]+)\)", text):
+            u = urlparse(href)
+            if u.netloc == "luxos.lux-ai.cz" and not exists(u.path or "/"):
+                errors.append(f"llms.txt: broken link {href}")
+    full = os.path.join(out, "llms-full.txt")
+    if not os.path.isfile(full) or os.path.getsize(full) < 10000:
+        errors.append("llms-full.txt missing or too short")
+    elif "# LuxOS FAQ" not in open(full, encoding="utf-8").read():
+        errors.append("llms-full.txt: FAQ section missing")
+    key_src = os.path.join(ROOT, "site", "indexnow-key.txt")
+    key = open(key_src).read().strip() if os.path.isfile(key_src) else ""
+    if not re.fullmatch(r"[A-Za-z0-9-]{8,128}", key):
+        errors.append("site/indexnow-key.txt missing or invalid")
+    else:
+        kf = os.path.join(out, key + ".txt")
+        if not os.path.isfile(kf) or open(kf).read().strip() != key:
+            errors.append(f"IndexNow key file /{key}.txt missing or wrong content")
+    return errors
 
 
 def main():
@@ -293,6 +450,9 @@ def main():
     for path, p in pages.items():
         if p.refresh is None and not any(l in ("/privacy/", "/cs/privacy/") for l in p.links):
             errors.append(f"{url_of(path)}: no footer link to the privacy policy")
+
+    errors.extend(check_jsonld(pages, url_of, exists, out))
+    errors.extend(check_llms_indexnow(out, exists))
 
     print(f"check-site: {len(pages)} html pages, {n_links} links checked, {len(errors)} problems")
     for err in errors[:80]:
