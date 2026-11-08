@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """LuxOS - kontrola vysledku scripts/build-site.py (out/site): vnitrni odkazy a kotvy, unikatni
-title a description, canonical, hreflang, jedno h1, alt u obrazku, sitemap.xml a robots.txt.
-Nic nestahuje (zadne pozadavky na server), jen cte soubory.
+title a description, canonical, hreflang, jedno h1, alt u obrazku, sitemap.xml a robots.txt,
+anglicky seznam zmen proti CHANGELOG.md (vsechna vydani a polozky, scripts/changelog_sections.py)
+a prepinac jazyka (pevne poradi EN | CS, zvyrazneni aktualniho jazyka). Nic nestahuje (zadne pozadavky na server), jen cte soubory.
 
   scripts/check-site.py [adresar]      vychozi out/site; navratovy kod 1 pri chybe
 """
@@ -11,6 +12,10 @@ import sys
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import unquote, urldefrag, urljoin, urlparse
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import changelog_sections  # noqa: E402
+import site_html  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://luxos.lux-ai.cz"
@@ -22,6 +27,8 @@ COUNTME_DOC = "/docs/luxos/countme.html"
 # veta, kterou Google vyzaduje v zasadach ochrany soukromi aplikace s omezenymi rozsahy (Gmail)
 LIMITED_USE = ("LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to "
                "the Google API Services User Data Policy, including the Limited Use requirements.")
+# nazvy jazyku v prepinaci (title odkazu na druhy jazyk)
+LANG_NAMES = {"en": "English", "cs": "Čeština"}
 
 
 class Page(HTMLParser):
@@ -31,11 +38,35 @@ class Page(HTMLParser):
         self.title, self.desc, self.canon, self.lang, self.h1 = None, None, None, None, 0
         self.hreflang, self.refresh, self.robots = [], None, ""
         self._in_title = False
+        # seznam zmen: nadpisy h2 a polozky li (jen primo v clanku) v <article class="doc ...">
+        self.article_h2, self.article_li, self._article, self._lists = 0, 0, False, 0
+        # prepinac jazyka: [(lang, aria-current)] a zda ma vrstvu zvyrazneni
+        self.switch, self.switch_pill, self.switch_active, self._in_switch = [], False, None, 0
+        self.switch_titles = {}
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         if "id" in a:
             self.ids.add(a["id"])
+        cls = (a.get("class") or "").split()
+        if not site_html.known(tag):
+            self.errors.append(f"unknown element <{tag}> (unescaped <...> placeholder in markdown?)")
+        if tag == "article" and "doc" in cls:
+            self._article = True
+        elif self._article and tag in ("ul", "ol"):
+            self._lists += 1
+        elif self._article and tag == "h2":
+            self.article_h2 += 1
+        elif self._article and tag == "li" and self._lists == 1:
+            self.article_li += 1
+        if tag == "span" and "lang-switch" in cls and not self.switch:
+            self._in_switch, self.switch_active = 1, a.get("data-active")
+        elif self._in_switch and tag == "a":
+            self.switch.append((a.get("lang"), "aria-current" in a))
+            self.switch_titles[a.get("lang")] = a.get("title")
+        elif self._in_switch and tag == "span":
+            self._in_switch += 1
+            self.switch_pill = self.switch_pill or "lang-pill" in cls
         if tag == "html":
             self.lang = a.get("lang")
         elif tag == "title":
@@ -69,6 +100,12 @@ class Page(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "title":
             self._in_title = False
+        elif tag == "article":
+            self._article = False
+        elif self._article and tag in ("ul", "ol"):
+            self._lists -= 1
+        elif tag == "span" and self._in_switch:
+            self._in_switch -= 1
 
     def handle_data(self, data):
         if self._in_title:
@@ -157,6 +194,36 @@ def main():
                 continue
             if frag and f.endswith(".html") and f in pages and frag not in pages[f].ids:
                 errors.append(f"{url}: missing anchor {href}")
+
+    # prepinac jazyka: vsude stejne poradi EN | CS (zvyrazneni prejizdi), aktualni jazyk = jazyk stranky
+    for path, p in sorted(pages.items()):
+        if p.refresh is not None or not p.switch:
+            continue
+        url = url_of(path)
+        langs = [l for l, _cur in p.switch]
+        current = [l for l, cur in p.switch if cur]
+        if langs != ["en", "cs"]:
+            errors.append(f"{url}: language switch order {langs}, expected ['en', 'cs']")
+        if current != [p.lang]:
+            errors.append(f"{url}: language switch marks {current} as current, page is {p.lang}")
+        elif p.switch_active != str(langs.index(p.lang)):
+            errors.append(f"{url}: language switch data-active={p.switch_active}, expected {langs.index(p.lang)}")
+        if not p.switch_pill:
+            errors.append(f"{url}: language switch without .lang-pill")
+        for l, name in LANG_NAMES.items():
+            if l != p.lang and p.switch_titles.get(l) not in (None, name):
+                errors.append(f"{url}: language switch link {l} has title {p.switch_titles[l]!r}, expected {name!r}")
+
+    # seznam zmen: anglicky preklad ma vsechna vydani a polozky z CHANGELOG.md
+    errors.extend(changelog_sections.verify())
+    en_ch, cs_ch = exists("/changes/"), exists("/cs/zmeny/")
+    if en_ch and cs_ch:
+        en_p, cs_p = pages[en_ch], pages[cs_ch]
+        if (en_p.article_h2, en_p.article_li) != (cs_p.article_h2, cs_p.article_li):
+            errors.append(f"/changes/: {en_p.article_h2} releases and {en_p.article_li} items, "
+                          f"/cs/zmeny/ has {cs_p.article_h2} and {cs_p.article_li}")
+    else:
+        errors.append("changes pages /changes/ or /cs/zmeny/ missing")
 
     # sitemap a robots
     sm = os.path.join(out, "sitemap.xml")

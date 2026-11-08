@@ -123,3 +123,31 @@ fetch('/release.json', { cache: 'no-cache' })
     if (note) note.hidden = !(rel.version && iso.version && rel.version !== iso.version);
   })
   .catch(() => { /* zustanou hodnoty ze stranky */ });
+
+// ---- prepinac jazyka: zvyrazneni prejede na druhy jazyk a teprve pak se prejde na jeho stranku ----
+// (nova stranka se uz vykresli se zvyraznenim na spravnem miste; Ctrl/Shift/stredni tlacitko =
+// beznym zpusobem do noveho panelu/okna; pri omezeni pohybu se prejde hned)
+document.querySelectorAll('.lang-switch').forEach(sw => {
+  const links = [...sw.querySelectorAll('a')];
+  links.forEach((link, index) => link.addEventListener('click', event => {
+    if (link.hasAttribute('aria-current') || event.button !== 0 || event.metaKey || event.ctrlKey
+        || event.shiftKey || event.altKey || event.defaultPrevented) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    event.preventDefault();
+    sw.classList.add('switching');
+    sw.dataset.active = String(index);
+    let gone = false;
+    const go = () => { if (!gone) { gone = true; window.location.href = link.href; } };
+    sw.querySelector('.lang-pill')?.addEventListener('transitionend', go, { once: true });
+    window.setTimeout(go, 400);
+  }));
+});
+// navrat tlacitkem Zpet (bfcache): zvyrazneni zpet na aktualni jazyk stranky
+window.addEventListener('pageshow', event => {
+  if (!event.persisted) return;
+  document.querySelectorAll('.lang-switch').forEach(sw => {
+    sw.classList.remove('switching');
+    const current = [...sw.querySelectorAll('a')].findIndex(a => a.hasAttribute('aria-current'));
+    sw.dataset.active = String(Math.max(0, current));
+  });
+});

@@ -13,7 +13,8 @@ Připravené v repozitáři (větev s tímto souborem):
   verzí `seen < verze <= aktuální`, tedy po aktualizaci z 1.0.0 jen 1.0.1. Noví uživatelé ho nevidí
   (mají Prohlídku, `--mark-seen`).
 - `CHANGELOG.md` – sekce `1.0.1 „Sirius“ – 2026-11-08 (beta)`, Pošta přesunutá do „Připravuje se“;
-  anglické poznámky `site/content/en/changes.md`.
+  anglický překlad `site/content/en/changes/<verze>-<datum>.md` (stejné sekce a počty položek,
+  hlídá `scripts/check-site.py`).
 - `scripts/compose-stable-repo.sh` – složí stabilní vydání bez Pošty a se stabilním Lux Code.
 - `scripts/publish-repo.sh` – nově `LUXOS_REPO_SRC` (výchozí dál `out/repo`).
 - `scripts/update-iso-json.sh` – doplní `site/iso.json` z hotového ISO.
