@@ -14,6 +14,8 @@ is in `/usr/share/doc/luxai/rich-blocks.md`.
 | Block | What you see | Example question |
 |---|---|---|
 | `chart` | bar, horizontal bar, line, area, scatter, pie or donut chart; point at it (or use the arrow keys) to read the values | "Show the population of the five biggest Czech cities as a chart." |
+| `chart` (function) | exact graph of functions like `2*x` or `sin(x)` with labelled points, axes through the origin | "Draw the graph of y = 2x and mark the point (1, 2)." |
+| `chart` (plane) | vectors, points, segments, circles and polygons on a grid with equal axes | "Show the vector (3, 4) and its length." |
 | `quiz` | questions with answer buttons, hints, explanations and a score; **Try again** | "Make a short quiz about the solar system." |
 | `form` | calculator with sliders, number fields, switches, choices and results that update at once; **Send to LuxAI** sends your values as the next message | "Make me a mortgage calculator." |
 | `table` | table sorted by clicking a column header, **Copy CSV** and **CSV** export (also for ordinary Markdown tables) | "Compare these laptops in a table." |
@@ -57,6 +59,12 @@ with `=`, `+` or `@` are written as text, not as formulas.
 - Map pictures come from LuxOS Maps (`luxos-maps --render-preview`, OpenStreetMap tiles). Like
   galleries they follow **LuxAI › Settings › Agent permissions › Network access**: "Ask" (default)
   shows **Show map** / **Load images**, "Allow" loads them at once, "Never" never loads them.
+- Model drawings in `svg` get the system font (Inter) when they name none, and labels without a
+  colour follow the light or dark theme. Simple `<style>` class rules are kept. The positions are
+  exactly what the model wrote – graphs and vectors are therefore better asked as charts (above),
+  which LuxAI computes itself.
+- LuxAI forgives common slips of the model: a block written on the same line as its fence, a missing
+  line break before the closing fence, typographic quotes in JSON and LaTeX with doubled backslashes.
 - Big or broken blocks are limited (for example 5000 chart points, 2000 table rows, 120 diagram
   nodes) and shown as code instead of slowing LuxAI down.
 

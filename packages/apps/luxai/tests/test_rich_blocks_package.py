@@ -27,7 +27,10 @@ load json
 load rich_expr
 load rich_svg
 load rich_blocks
+load markdown
 output = {}
+output["inline"] = markdown.inline("\\\\(|\\\\vec{v}| = \\\\sqrt{3^2 + 4^2}\\\\)")
+output["fence"] = markdown.parse_blocks("```quiz {\"q\": \"x\", \"options\": [\"a\", \"b\"], \"correct\": 0}\n```")[0]["text"]
 output["mortgage"] = rich_expr.compute("amount * (rate/1200) / (1 - (1 + rate/1200)^(-years*12))", {"amount": 3000000, "rate": 4.9, "years": 30})
 output["code"] = rich_expr.compute("system(\"id\")", {})
 output["attribute"] = rich_expr.compute("a.b", {"a": 1})
@@ -37,7 +40,8 @@ output["svg"] = svg["svg"]
 output["removed"] = svg["removed"]
 output["chart"] = rich_blocks.parse("chart", "{\"type\": \"bar\", \"series\": [{\"data\": [1, 2]}]}")["ok"]
 output["bad"] = rich_blocks.parse("quiz", "{\"questions\": [")["ok"]
-output["prompt"] = "```chart" in rich_blocks.RICH_PROMPT and "```quiz" in rich_blocks.RICH_PROMPT
+output["prompt"] = "chart: " in rich_blocks.RICH_PROMPT and "quiz: " in rich_blocks.RICH_PROMPT and "\"type\":\"function\"" in rich_blocks.RICH_PROMPT
+output["plot"] = rich_blocks.parse("chart", "{\"type\": \"function\", \"x\": [-3, 3], \"functions\": [\"2*x\"], \"points\": [[1, 2]]}")["ok"]
 print json.encode(output)
 '''
 
@@ -93,6 +97,10 @@ class RichBlocksPackage(unittest.TestCase):
         self.assertTrue(value["chart"])
         self.assertFalse(value["bad"])
         self.assertTrue(value["prompt"])
+        self.assertTrue(value["plot"])
+        self.assertIn("v⃗", value["inline"])          # dvojita lomitka od modelu (2.0.2-5)
+        self.assertNotIn("vec", value["inline"])
+        self.assertTrue(value["fence"].startswith('{"q"'))   # JSON na radku plotu
 
 
 if __name__ == "__main__":
