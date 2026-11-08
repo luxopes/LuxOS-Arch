@@ -6,10 +6,9 @@
 #   "password"      normalni heslo (pripadne heslo aplikace pri dvoufazovem overeni), IMAP nekdy treba povolit
 # Texty pro uzivatele (s preklady) sklada okno; tady jen data bez site.
 #
-# Budouci prihlaseni OAuth2 ("Prihlasit se Googlem"): "oauth_issuer" rika, kde by se ziskal token. Pro zapnuti
-# je potreba registrovany klient OAuth u poskytovatele (Google Cloud: client ID, u omezeneho rozsahu
-# https://mail.google.com/ overeni aplikace Googlem a bezpecnostni posouzeni CASA). Sluzba uz umi SASL
-# OAUTHBEARER/XOAUTH2 (imap.login_oauth, schranky LuxAI); dalsi zdroj tokenu se prida jako "auth": "<id>".
+# Prihlaseni OAuth2 ("Prihlasit se Googlem/Microsoftem") je v mail_oauth (data v oauth-providers.json, stejna
+# id poskytovatelu jako tady); "oauth_issuer" je jen informace, kdo token vydava. Tlacitko se ukaze, az ma
+# poskytovatel registrovane client ID (docs/proposals/mail-oauth-registration.md), do te doby plati "auth" zde.
 
 PROVIDERS = {
     "google": {"name": "Google", "auth": "app_password", "url": "https://myaccount.google.com/apppasswords",

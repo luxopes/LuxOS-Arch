@@ -4875,3 +4875,32 @@ Scanner (eSCL/AirScan)	Skener (eSCL/AirScan)
 Sheet-fed scanner	Skener s podavačem
 Film scanner	Filmový skener
 Handheld scanner	Ruční skener
+%s accepts only “Sign in with %s”, not a password.	%s přijímá jen „Přihlásit se účtem %s“, ne heslo.
+%s did not accept the sign-in for %s. Sign in again.	%s nepřijal přihlášení pro %s. Přihlaste se znovu.
+Cannot reach %s to renew the sign-in. Mail tries again later.	%s není k zastižení kvůli obnovení přihlášení. Pošta to zkusí znovu později.
+Cannot reach %s. Check your internet connection.	%s není k zastižení. Zkontrolujte připojení k internetu.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Pokračujte ve webovém prohlížeči. Pošta účet přidá, jakmile se přihlásíte.
+Mail could not prepare signing in on this computer.	Pošta nemohla na tomto počítači připravit přihlášení.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Pošta nedostala přístup k vašemu účtu %s. Tuto stránku můžete zavřít a vrátit se do Pošty.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Pošta je teď připojená k vašemu účtu %s %s. Tuto stránku můžete zavřít a vrátit se do Pošty.
+Opening the web browser…	Otevírání webového prohlížeče…
+Return to Mail	Zpět do Pošty
+Return to Mail to see what went wrong and try again.	Vraťte se do Pošty, uvidíte, co se pokazilo, a zkuste to znovu.
+Sign In Again to %s…	Přihlásit se znovu k %s…
+Sign In Again…	Přihlásit se znovu…
+Sign in with %s	Přihlásit se účtem %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Přihlaste se účtem %s ve webovém prohlížeči. Pošta vaše heslo nikdy neuvidí.
+Signing in did not finish	Přihlášení se nedokončilo
+Signing in in the browser did not finish in time. Try again.	Přihlášení v prohlížeči se nedokončilo včas. Zkuste to znovu.
+Signing in was cancelled	Přihlášení bylo zrušeno
+Signing in with %s failed.	Přihlášení účtem %s se nepodařilo.
+Signing in with %s is not set up on this computer.	Přihlášení účtem %s není na tomto počítači nastavené.
+Signing in with %s was cancelled in the browser.	Přihlášení účtem %s bylo v prohlížeči zrušeno.
+The browser sent an invalid request.	Prohlížeč poslal neplatný požadavek.
+The mail server did not accept the %s sign-in.	Poštovní server nepřijal přihlášení účtem %s.
+The sign-in could not be saved in the keyring.	Přihlášení se nepodařilo uložit do klíčenky.
+This sign-in page is out of date. Return to Mail and start signing in again.	Tato přihlašovací stránka je zastaralá. Vraťte se do Pošty a začněte přihlášení znovu.
+Use an app password instead	Použít raději heslo aplikace
+You are signed in	Jste přihlášeni
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	V prohlížeči jste se přihlásili jako %s, ale tento účet je %s. Přihlaste se stejným účtem.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Vaše přihlášení %s pro %s vypršelo. Přihlaste se znovu, abyste dál dostávali novou poštu.
