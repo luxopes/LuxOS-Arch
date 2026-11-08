@@ -4787,3 +4787,32 @@ Scanner (eSCL/AirScan)	Сканер (eSCL/AirScan)
 Sheet-fed scanner	Сканер з подавачем
 Film scanner	Плівковий сканер
 Handheld scanner	Ручний сканер
+%s accepts only “Sign in with %s”, not a password.	%s приймає лише «Увійти через %s», а не пароль.
+%s did not accept the sign-in for %s. Sign in again.	%s не прийняв вхід для %s. Увійдіть знову.
+Cannot reach %s to renew the sign-in. Mail tries again later.	Не вдається зв’язатися з %s, щоб поновити вхід. Пошта спробує пізніше.
+Cannot reach %s. Check your internet connection.	Не вдається зв’язатися з %s. Перевірте з’єднання з інтернетом.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Продовжте у вебпереглядачі. Пошта додасть обліковий запис, щойно ви увійдете.
+Mail could not prepare signing in on this computer.	Пошті не вдалося підготувати вхід на цьому комп’ютері.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Пошта не отримала доступу до вашого облікового запису %s. Можете закрити цю сторінку й повернутися до Пошти.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Пошту під’єднано до вашого облікового запису %s %s. Можете закрити цю сторінку й повернутися до Пошти.
+Opening the web browser…	Відкриття вебпереглядача…
+Return to Mail	Повернутися до Пошти
+Return to Mail to see what went wrong and try again.	Поверніться до Пошти, щоб побачити, що пішло не так, і спробуйте знову.
+Sign In Again to %s…	Увійти знову до %s…
+Sign In Again…	Увійти знову…
+Sign in with %s	Увійти через %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Увійдіть з обліковим записом %s у вебпереглядачі. Пошта ніколи не бачить вашого пароля.
+Signing in did not finish	Вхід не завершено
+Signing in in the browser did not finish in time. Try again.	Вхід у переглядачі не завершився вчасно. Спробуйте знову.
+Signing in was cancelled	Вхід скасовано
+Signing in with %s failed.	Не вдалося увійти через %s.
+Signing in with %s is not set up on this computer.	Вхід через %s не налаштовано на цьому комп’ютері.
+Signing in with %s was cancelled in the browser.	Вхід через %s скасовано в переглядачі.
+The browser sent an invalid request.	Переглядач надіслав неправильний запит.
+The mail server did not accept the %s sign-in.	Поштовий сервер не прийняв вхід через %s.
+The sign-in could not be saved in the keyring.	Не вдалося зберегти вхід у в’язці ключів.
+This sign-in page is out of date. Return to Mail and start signing in again.	Ця сторінка входу застаріла. Поверніться до Пошти й почніть вхід знову.
+Use an app password instead	Використати пароль застосунку
+You are signed in	Ви ввійшли
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	У переглядачі ви ввійшли як %s, але цей обліковий запис — %s. Увійдіть тим самим обліковим записом.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Ваш вхід %s для %s закінчився. Увійдіть знову, щоб і далі отримувати нову пошту.

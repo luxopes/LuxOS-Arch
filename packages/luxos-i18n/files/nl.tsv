@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Scanner (eSCL/AirScan)
 Sheet-fed scanner	Doorvoerscanner
 Film scanner	Filmscanner
 Handheld scanner	Handscanner
+%s accepts only “Sign in with %s”, not a password.	%s accepteert alleen ‘Inloggen met %s’, geen wachtwoord.
+%s did not accept the sign-in for %s. Sign in again.	%s heeft het inloggen voor %s niet geaccepteerd. Log opnieuw in.
+Cannot reach %s to renew the sign-in. Mail tries again later.	%s is niet bereikbaar om het inloggen te vernieuwen. Mail probeert het later opnieuw.
+Cannot reach %s. Check your internet connection.	%s is niet bereikbaar. Controleer je internetverbinding.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Ga verder in de webbrowser. Mail voegt het account toe zodra je bent ingelogd.
+Mail could not prepare signing in on this computer.	Mail kon het inloggen op deze computer niet voorbereiden.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Mail heeft geen toegang gekregen tot je %s-account. Je kunt deze pagina sluiten en teruggaan naar Mail.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Mail is nu verbonden met je %s-account %s. Je kunt deze pagina sluiten en teruggaan naar Mail.
+Opening the web browser…	Webbrowser wordt geopend…
+Return to Mail	Terug naar Mail
+Return to Mail to see what went wrong and try again.	Ga terug naar Mail om te zien wat er misging en probeer het opnieuw.
+Sign In Again to %s…	Opnieuw inloggen bij %s…
+Sign In Again…	Opnieuw inloggen…
+Sign in with %s	Inloggen met %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Log in met je %s-account in de webbrowser. Mail ziet je wachtwoord nooit.
+Signing in did not finish	Inloggen is niet voltooid
+Signing in in the browser did not finish in time. Try again.	Inloggen in de browser is niet op tijd voltooid. Probeer het opnieuw.
+Signing in was cancelled	Inloggen is geannuleerd
+Signing in with %s failed.	Inloggen met %s is mislukt.
+Signing in with %s is not set up on this computer.	Inloggen met %s is niet ingesteld op deze computer.
+Signing in with %s was cancelled in the browser.	Inloggen met %s is in de browser geannuleerd.
+The browser sent an invalid request.	De browser heeft een ongeldig verzoek verstuurd.
+The mail server did not accept the %s sign-in.	De mailserver heeft het inloggen met %s niet geaccepteerd.
+The sign-in could not be saved in the keyring.	Het inloggen kon niet in de sleutelbos worden bewaard.
+This sign-in page is out of date. Return to Mail and start signing in again.	Deze inlogpagina is verouderd. Ga terug naar Mail en begin opnieuw met inloggen.
+Use an app password instead	Liever een app-wachtwoord gebruiken
+You are signed in	Je bent ingelogd
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Je bent in de browser ingelogd als %s, maar dit account is %s. Log in met hetzelfde account.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Je %s-inlog voor %s is verlopen. Log opnieuw in om nieuwe mail te blijven ontvangen.

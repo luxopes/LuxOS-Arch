@@ -130,7 +130,11 @@ class Session:
                     "SSL_CERT_FILE": self.certs["ca"], "LANG": "cs_CZ.UTF-8", "LUXOS_MAIL_NO_SYSTEM_BUS": "1",
                     "NO_AT_BRIDGE": "1", "GTK_USE_PORTAL": "0", "GIO_USE_VFS": "local",
                     "LUXOS_MAIL_INSTANCE": "-test%d" % os.getpid(),
-                    "LUXOS_I18N_DIR": os.path.join(HERE, "..", "..", "..", "luxos-i18n", "files")})
+                    "LUXOS_I18N_DIR": os.path.join(HERE, "..", "..", "..", "luxos-i18n", "files"),
+                    # poskytovatele OAuth ze zdroju (prazdna client ID), nikdy /etc ani stahovani z luxos.lux-ai.cz
+                    "LUXOS_MAIL_OAUTH_PROVIDERS": os.path.join(HERE, "..", "files", "oauth-providers.json"),
+                    "LUXOS_MAIL_OAUTH_ADMIN": os.path.join(self.root, "no-admin-mail-oauth.json"),
+                    "LUXOS_MAIL_OAUTH_REMOTE": "off"})
         if not os.path.isdir(env["LUXOS_I18N_DIR"]):
             env["LUXOS_I18N_DIR"] = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
         self.env = env
