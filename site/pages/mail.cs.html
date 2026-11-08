@@ -1,0 +1,51 @@
+    <article class="doc panel app-page">
+      {{CRUMBS}}
+      <div class="app-head">
+        <img src="/assets/luxos-mail.svg" alt="Ikona Pošty LuxOS" width="96" height="96">
+        <div>
+          <h1>Pošta LuxOS (LuxOS Mail)</h1>
+          <p class="lead">Lehká a rychlá poštovní aplikace pro LuxOS. Vaše pošta zůstává ve vašem počítači.</p>
+        </div>
+      </div>
+
+      <p>LuxOS Mail (v LuxOS jako <strong>Pošta</strong>) je poštovní klient, který je součástí <a href="/cs/">LuxOS</a>, svobodné linuxové distribuce. Je napsaný v jazyce LSL, běží celý ve vašem počítači a připojuje se přímo k vašemu poskytovateli pošty přes IMAP. Funguje s Gmailem a Google Workspace, Outlook.com a Microsoft 365, Seznamem, schránkami LuxAI a jakoukoli jinou schránkou IMAP.</p>
+
+      <figure class="app-shot">
+        <img src="/assets/shots/mail-inbox.webp" width="1102" height="709" alt="Pošta LuxOS se složkou Doručená pošta, seznamem zpráv a otevřenou zprávou (ukázková data)" loading="lazy">
+        <figcaption>Tři sloupce: složky, seznam zpráv a zpráva (ukázková data).</figcaption>
+      </figure>
+
+      <h2 id="features">Co umí</h2>
+      <ul>
+        <li><strong>Čte poštu</strong> z jakékoli schránky IMAP – se složkami (Doručená, Odeslaná, Koncepty, Koš, štítky Gmailu i vlastní složky), počty nepřečtených a rychlým filtrem.</li>
+        <li><strong>Okamžitě upozorní</strong> na novou poštu (IMAP IDLE) – i když je okno zavřené.</li>
+        <li><strong>Funguje offline</strong>: stažené zprávy jdou číst i bez internetu.</li>
+        <li><strong>Bezpečná od začátku</strong>: zprávy HTML zobrazuje jako text bez vzdáleného obsahu, takže odesílatel nezjistí, kdy jste zprávu četli. Přílohy se uloží, jen když o to požádáte.</li>
+        <li><strong>Jednoduché nastavení</strong>: zadáte adresu a Pošta najde nastavení serveru sama. U účtů Gmail a Microsoft se přihlásíte u poskytovatele ve webovém prohlížeči – Pošta vaše heslo nikdy neuvidí.</li>
+        <li>Označení zpráv jako přečtené či nepřečtené a přesun do koše. Psaní a odesílání zpráv přibude v některé z dalších verzí.</li>
+      </ul>
+
+      <h2 id="google">Přihlášení Googlem</h2>
+      <p>U adres Gmail a Google Workspace nabízí Pošta tlačítko <strong>Přihlásit se Googlem</strong>. Ve webovém prohlížeči se otevře stránka přihlášení a souhlasu přímo od Googlu; po schválení Google předá token Poště ve vašem počítači a Pošta se s ním připojí k <code>imap.gmail.com</code>.</p>
+      <p>Pošta žádá Google o:</p>
+      <ul>
+        <li><code>https://mail.google.com/</code> – přístup ke schránce Gmail přes IMAP (a později SMTP pro odesílání). Google povoluje přístup přes IMAP jen s tímto rozsahem, plnohodnotný poštovní klient ho proto potřebuje.</li>
+        <li><code>openid</code> a <code>email</code> – vaši e-mailovou adresu, ke kontrole, ke kterému účtu jste se přihlásili.</li>
+      </ul>
+
+      <h2 id="privacy">Vaše data zůstávají u vás</h2>
+      <ul>
+        <li>Pošta, adresa i přihlašovací token jsou uložené <strong>jen ve vašem počítači</strong> (pošta v domovské složce, token v šifrované klíčence).</li>
+        <li>Pošta komunikuje s Googlem přímo. <strong>Žádná data z vašeho účtu Google se nikdy neposílají na servery LuxOS</strong> ani nikomu jinému a nikdo z LuxOS vaši poštu nemůže číst.</li>
+        <li>Data uživatelů Google slouží jen k zobrazení a správě pošty v aplikaci – nikdy k reklamě, nikdy se neprodávají a nikdy se nepoužívají k trénování AI.</li>
+        <li>Odebrání účtu v Poště smaže místní kopii i token a zruší přístup Pošty u Googlu. Přístup můžete kdykoli odvolat i na <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+      </ul>
+      <p>Podrobnosti jsou v <a href="/cs/privacy/#google-user-data">Zásadách ochrany soukromí</a>. <span lang="en">LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</span></p>
+
+      <h2 id="get">Jak Poštu získat</h2>
+      <p>Pošta se instaluje s LuxOS (balík <code>luxos-mail</code>) a je svobodná a otevřená pod licencí GPL-3.0-or-later. <a href="/cs/#download">Stáhněte si LuxOS</a>, nebo ji v LuxOS nainstalujte příkazem <code>lux install luxos-mail</code>.</p>
+
+      <h2 id="contact">Kontakt</h2>
+      <p>Vývojář: Antonín Tomeček (LuxOS). Dotazy, podpora a žádosti týkající se soukromí: <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a>.</p>
+      <p class="app-links"><a href="/cs/privacy/">Zásady ochrany soukromí</a> · <a href="/cs/terms/">Podmínky použití</a></p>
+    </article>

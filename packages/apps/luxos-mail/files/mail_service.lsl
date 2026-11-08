@@ -1908,6 +1908,25 @@ end
 
 function remove_account(req):
     id = req.get("account", "")
+    revoked = False
+    # ucet OAuth: nejdriv odvolat pristup Posty u poskytovatele (kdyz to umi), pak smazat vse mistni.
+    # Odvolani je jen navic - bez site nebo pri chybe se ucet z pocitace smaze stejne.
+    for a in store.load_accounts():
+        if a["id"] == id and a.get("auth", "") == "oauth":
+            p = {}
+            safe:
+                p = account_provider(a)
+            end
+            if len(p) > 0 and p.get("revoke_url", "") != "":
+                revoked = oauth.revoke(p, secret.lookup(id))
+                if revoked:
+                    call log("account " + id + ": access revoked at " + p["name"])
+                else:
+                    call log("account " + id + ": access could not be revoked at " + p["name"])
+                end
+            end
+        end
+    end
     if id in svc["accounts"]:
         call disconnect(svc["accounts"][id])
         call close_note(svc["accounts"][id])
@@ -1924,7 +1943,7 @@ function remove_account(req):
     call store.save_accounts(out)
     call store.remove_tree(store.account_dir(id))
     call update_badge()
-    return {"ok": True}
+    return {"ok": True, "revoked": revoked}
 end
 
 function handle(req):

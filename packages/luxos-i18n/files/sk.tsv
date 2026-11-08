@@ -4830,3 +4830,7 @@ Kept your version of %s	Ponechaná vaša verzia %s
 review a new config file version: combine, keep yours or use the new one	prejde novú verziu konfiguračného súboru: spojiť, ponechať svoju alebo použiť novú
 Review one with: sudo lux config-diff <file>	Prejdite ju príkazom: sudo lux config-diff <súbor>
 New version of a configuration file: %s	Nová verzia konfiguračného súboru: %s
+Mail uses this access only to download, show and organize your mail on this computer. Your mail and the sign-in stay on this computer and are never sent to LuxOS or anyone else.	Pošta tento prístup používa len na stiahnutie, zobrazenie a triedenie vašej pošty v tomto počítači. Vaša pošta aj prihlásenie zostávajú v tomto počítači a nikdy sa neposielajú LuxOS ani nikomu inému.
+Privacy Policy	Zásady ochrany súkromia
+Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Uložené správy a prihlásenie sa z tohto počítača odstránia a prístup Pošty k vášmu účtu %s sa zruší. Na serveri sa nič nezmaže.
+Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Uložené správy a prihlásenie sa z tohto počítača odstránia. Na serveri sa nič nezmaže.

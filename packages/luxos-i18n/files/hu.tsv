@@ -4830,3 +4830,7 @@ Kept your version of %s	A(z) %s saját változata megtartva
 review a new config file version: combine, keep yours or use the new one	konfigurációs fájl új változatának áttekintése: egyesítés, a saját megtartása vagy az új használata
 Review one with: sudo lux config-diff <file>	Áttekintés ezzel: sudo lux config-diff <fájl>
 New version of a configuration file: %s	Konfigurációs fájl új változata: %s
+Mail uses this access only to download, show and organize your mail on this computer. Your mail and the sign-in stay on this computer and are never sent to LuxOS or anyone else.	A Levelezés ezt a hozzáférést csak a levelei letöltésére, megjelenítésére és rendezésére használja ezen a számítógépen. A levelei és a bejelentkezés ezen a számítógépen maradnak, és soha nem kerülnek a LuxOS-hez vagy bárki máshoz.
+Privacy Policy	Adatvédelmi irányelvek
+Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	A mentett üzenetek és a bejelentkezés törlődnek erről a számítógépről, és a Levelezés hozzáférése a(z) %s-fiókjához visszavonásra kerül. A szerveren semmi sem törlődik.
+Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	A mentett üzenetek és a bejelentkezés törlődnek erről a számítógépről. A szerveren semmi sem törlődik.

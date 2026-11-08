@@ -4831,3 +4831,7 @@ Kept your version of %s	Zachowano Twoją wersję %s
 review a new config file version: combine, keep yours or use the new one	przegląda nową wersję pliku konfiguracyjnego: połącz, zachowaj swoją lub użyj nowej
 Review one with: sudo lux config-diff <file>	Przejrzyj ją poleceniem: sudo lux config-diff <plik>
 New version of a configuration file: %s	Nowa wersja pliku konfiguracyjnego: %s
+Mail uses this access only to download, show and organize your mail on this computer. Your mail and the sign-in stay on this computer and are never sent to LuxOS or anyone else.	Poczta używa tego dostępu wyłącznie do pobierania, wyświetlania i porządkowania Twojej poczty na tym komputerze. Twoja poczta i logowanie pozostają na tym komputerze i nigdy nie są wysyłane do LuxOS ani nikomu innemu.
+Privacy Policy	Polityka prywatności
+Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Zapisane wiadomości i logowanie zostaną usunięte z tego komputera, a dostęp Poczty do Twojego konta %s zostanie cofnięty. Na serwerze nic nie zostanie usunięte.
+Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Zapisane wiadomości i logowanie zostaną usunięte z tego komputera. Na serwerze nic nie zostanie usunięte.

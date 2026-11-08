@@ -111,8 +111,11 @@ before each connection Mail renews it when it expires within 5 minutes and signs
 OAUTHBEARER or XOAUTH2. When the provider no longer accepts the sign-in (password changed, access
 removed, or after 7 days while the Google project is in testing), a calm yellow bar says *"Your Google
 sign-in for … has expired"* with **Sign In Again…** (also **… › Sign In Again to …**); Mail does not
-retry by itself. Removing the account deletes the token from the keyring (to revoke the access at
-Google or Microsoft too, use the account's security page).
+retry by itself. Removing the account deletes the token from the keyring; for Google Mail also
+revokes its access at Google (RFC 7009 – LuxOS Mail disappears from myaccount.google.com/permissions; offline
+the account is removed from the computer anyway). For Microsoft, remove the access on the account's security
+page. Before you sign in, the window says what Mail uses the access for (only your mail on this computer,
+never sent to LuxOS) and links the [privacy policy](https://luxos.lux-ai.cz/privacy/#google-user-data).
 
 Setup for the system: the providers are described in `/usr/share/luxos-mail/oauth-providers.json`
 (endpoints, scopes, servers). The **client IDs are empty** until the LuxOS project registers its own
@@ -217,8 +220,8 @@ A small background program, `luxos-mail-service` (no GTK, about 17 MB), starts w
 | `~/.local/share/luxos-mail/<account>/m-<hash>/state.json` | UIDVALIDITY, UIDNEXT, HIGHESTMODSEQ, last notified message |
 | `~/.local/share/luxos-mail/<account>/m-<hash>/bodies/<uid>.eml` | messages that were opened (raw RFC 5322) |
 
-**Remove** an account in the menu (**… › Remove …**): the cache and the keyring entry are deleted,
-nothing is deleted on the server. Deleting `~/.local/share/luxos-mail` only clears the cache; it is
+**Remove** an account in the menu (**… › Remove …**): the cache and the keyring entry are deleted
+(Google accounts: Mail's access is also revoked at Google), nothing is deleted on the server. Deleting `~/.local/share/luxos-mail` only clears the cache; it is
 downloaded again.
 
 ## Technical notes

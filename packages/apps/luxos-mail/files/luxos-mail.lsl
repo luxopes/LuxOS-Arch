@@ -89,7 +89,8 @@ function main():
         out = {}
         for p in oauth.providers().values():
             out[p["id"]] = {"available": len(oauth.available(p["id"])) > 0, "client_id": p["client_id"], "redirect_host": p["redirect_host"],
-                            "imap": p["imap"], "smtp": p["smtp"], "auth_url": p["auth_url"], "token_url": p["token_url"]}
+                            "imap": p["imap"], "smtp": p["smtp"], "auth_url": p["auth_url"], "token_url": p["token_url"],
+                            "revoke_url": p["revoke_url"]}
         end
         print json.encode({"providers": out, "remote_due": oauth.remote_due()})
         return 0
