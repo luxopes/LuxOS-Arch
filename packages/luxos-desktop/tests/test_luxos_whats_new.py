@@ -137,6 +137,59 @@ class WhatsNewIconsTest(unittest.TestCase):
 
 
 
+LANGS = ("en", "cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv")
+VERSION_FILE = os.path.join(ROOT, "luxos-branding", "files", "version")
+
+
+class NotesContentTest(unittest.TestCase):
+    """Obsah whats-new/*.json: od 1.0.0 vsech 13 jazyku LuxOS (starsi jen en + cs), verze = nazev souboru, novinky pro aktualni
+    verzi z files/version (jinak se po aktualizaci okno Co je noveho neukaze vubec)."""
+
+    def notes(self):
+        out = {}
+        for path in sorted(glob.glob(os.path.join(NOTES, "*.json"))):
+            with open(path, encoding="utf-8") as f:
+                out[os.path.basename(path)[:-5]] = json.load(f)
+        return out
+
+    def test_every_language_and_version(self):
+        problems = []
+        for stem, data in self.notes().items():
+            if data.get("version") != stem:
+                problems.append(f"{stem}.json: version {data.get('version')!r}")
+            if not data.get("codename"):
+                problems.append(f"{stem}.json: no codename")
+            if not data.get("items"):
+                problems.append(f"{stem}.json: no items")
+            langs = LANGS if wn.vkey(stem) >= wn.vkey("1.0.0") else ("en", "cs")
+            for i, item in enumerate(data.get("items", [])):
+                for key in ("title", "text"):
+                    value = item.get(key) or {}
+                    missing = [l for l in langs if not str(value.get(l, "")).strip()]
+                    if missing:
+                        problems.append(f"{stem}.json item {i} {key}: missing {missing}")
+        self.assertEqual(problems, [])
+
+    def test_current_version_has_notes(self):
+        wn.VERSION_FILE = VERSION_FILE
+        current = wn.current_version()
+        self.assertRegex(current, r"^\d+\.\d+\.\d+$")
+        self.assertIn(current, self.notes(), "files/version bez whats-new/<verze>.json")
+        with open(VERSION_FILE, encoding="utf-8") as f:
+            codename = [l.split("=", 1)[1].strip() for l in f if l.startswith("CODENAME=")][0]
+        self.assertEqual(self.notes()[current]["codename"], codename)
+
+    def test_shown_once_after_update(self):
+        """Po aktualizaci 1.0.0 -> 1.0.1 se ukaze jen 1.0.1; po zobrazeni (mark_seen) uz nic."""
+        wn.NOTES_DIR = NOTES
+        notes = wn.load_notes()
+        self.assertEqual(wn.pending(notes, "1.0.0", "1.0.1"), ["1.0.1"])
+        self.assertEqual(wn.pending(notes, "0.9.12", "1.0.1"), ["1.0.1", "1.0.0"])
+        self.assertEqual(wn.pending(notes, "1.0.1", "1.0.1"), [])
+        # verze 1.0.10 > 1.0.9 (ne retezcove razeni)
+        self.assertGreater(wn.vkey("1.0.10"), wn.vkey("1.0.9"))
+
+
 class DockTest(unittest.TestCase):
     """Dock (Plank) pozna okno podle StartupWMClass: bez souboru .desktop ukazoval nazev programu
     "luxos-whats-new" a rozmazanou ikonu."""
