@@ -14,7 +14,7 @@ DEMO_INFO = [
     ("\U000f0379  Host", "38;2;255;210;90", "Lux Laptop 14"),
     ("  Kernel", "38;2;95;211;141", "Linux 7.2.13-1-luxos"),
     ("\U000f0150  Uptime", "38;2;90;200;250", "2 hours, 14 mins"),
-    ("\U000f03d6  Packages", "38;2;180;140;255", "1124 (lux), 6 (flatpak)"),
+    ("\U000f03d6  Packages", "38;2;180;140;255", "1042 (lux), 6 (flatpak)"),
     ("\U000f018d  Shell", "38;2;255;122;217", "bash 5.3.3"),
     ("\U000f09e8  Desktop", "38;2;91;140;255", "LuxOS Desktop"),
     ("\U000f07b7  Terminal", "38;2;155;140;255", "LuxOS Terminal 1.3.0"),
