@@ -8,9 +8,10 @@ home.en.html a home.cs.html, styly, skript, obrazky), site/iso.json (posledni IS
 s novym ISO), verze z packages/luxos-branding/files/version, dokumentace z luxos-docs
 (packages/apps/luxos-docs/docs, stejna jako offline v LuxOS) doplnena strankami z site/content
 (LuxAI, Lux Code, hardware, zkratky, FAQ; cs/ = ceske verze), seznam zmen z CHANGELOG.md
-(cesky) a site/content/en/changes.md (anglicky), stranka o pouzivani (countme) ze sablon
-usage.en.html a usage.cs.html (grafy kresli usage.js z /stats/usage.json, ktery vytvari server),
-stranky Posty LuxOS, zasad ochrany soukromi a podminek ze site/pages (mail, privacy, terms).
+(cesky) a jeho anglicky preklad site/content/en/changes/ (soubor na vydani, scripts/changelog_sections.py),
+stranka o pouzivani (countme) ze sablon usage.en.html a usage.cs.html (grafy kresli usage.js
+z /stats/usage.json, ktery vytvari server), stranky Posty LuxOS, zasad ochrany soukromi a podminek
+ze site/pages (mail, privacy, terms).
 Vystup: index.html, cs/index.html, release.json (aktualni vydani, nacita ho i stranka), docs/,
 cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), sitemap.xml, robots.txt, download/index.html (presmerovani
 na /#download - ISO a podpisy zustavaji v /download/). Kontrola odkazu: scripts/check-site.py.
@@ -26,6 +27,10 @@ import sys
 import time
 
 import markdown
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import changelog_sections  # noqa: E402
+import site_html  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
@@ -265,6 +270,7 @@ def make_md_to_html(known):
     def conv(text, cur_path, lang):
         out = markdown.markdown(text, extensions=["tables", "fenced_code", "sane_lists", "toc"],
                                 extension_configs={"toc": {"slugify": gh_slug}}, output_format="html")
+        out = site_html.escape_unknown_tags(out)  # zastupny text <jméno> mimo kod jinak zmizi
 
         def fix(m):
             href = m.group(2)
@@ -329,9 +335,11 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
     sw_target = switch_to or (alt.get(other) if alt.get(other) else home_url(other))
     cur_lang_tag = lang.upper()
     other_tag = other.upper()
-    switch = (f'<span class="lang-switch" role="group" aria-label="{e(t["lang_label"])}">'
-              f'<a href="{path}" lang="{lang}" hreflang="{lang}" aria-current="true">{cur_lang_tag}</a>'
-              f'<a href="{sw_target}" lang="{other}" hreflang="{other}" title="{e(T[other]["other_name"])}" rel="alternate">{other_tag}</a></span>')
+    # pevne poradi EN | CS (aktivni zvyrazneni pak muze plynule prejet na druhy jazyk, script.js)
+    sw_links = {lang: f'<a href="{path}" lang="{lang}" hreflang="{lang}" aria-current="true">{cur_lang_tag}</a>',
+                other: f'<a href="{sw_target}" lang="{other}" hreflang="{other}" title="{e(t["other_name"])}" rel="alternate">{other_tag}</a>'}
+    switch = (f'<span class="lang-switch" role="group" aria-label="{e(t["lang_label"])}" data-active="{LANGS.index(lang)}">'
+              + "".join(sw_links[l] for l in LANGS) + '<span class="lang-pill" aria-hidden="true"></span></span>')
 
     robots = '  <meta name="robots" content="noindex, follow">\n' if noindex else '  <meta name="robots" content="index, follow, max-image-preview:large">\n'
     og_alt = "".join(f'  <meta property="og:locale:alternate" content="{T[l]["locale"]}">\n' for l in LANGS if l != lang and l in alt)
@@ -618,8 +626,11 @@ def main():
     # ---- zmeny ----
     with open(os.path.join(ROOT, "CHANGELOG.md")) as f:
         cs_changes = md_to_html(f.read(), "", "cs")
-    with open(os.path.join(CONTENT, "en", "changes.md")) as f:
-        en_changes = md_to_html(f.read(), "", "en")
+    # anglicky preklad musi mit vsechna vydani, sekce a polozky z CHANGELOG.md (jinak by stranka tise chudla)
+    bad = changelog_sections.verify()
+    if bad:
+        sys.exit("build-site: the English changelog does not match CHANGELOG.md:\n  " + "\n  ".join(bad))
+    en_changes = md_to_html(changelog_sections.en_text(), "", "en")
     calt = {l: changes_url(l) for l in LANGS}
     for lang, body in (("en", en_changes), ("cs", cs_changes)):
         t = T[lang]
