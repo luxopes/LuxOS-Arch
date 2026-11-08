@@ -130,6 +130,19 @@ Repair a locked package database and the signing keys.
 .TP
 .B configs
 Review and merge new configuration files (.luxnew, .luxsave; older .pacnew, .pacsave) left by updates.
+New versions of changed configuration files are normally merged automatically after every update:
+values you set stay, new settings and comments are added, and the previous file is kept as
+.IR file.lux\-old .
+Only a version that cannot be combined without a conflict stays as
+.IR file.luxnew ;
+the system keeps using your current file.
+.TP
+.BI config\-diff " file"
+Show what the new version of a configuration file changes and choose: combine (keeps your settings),
+keep yours, or use the new version (yours is saved as
+.IR file.lux\-old ).
+.BR \-\-merge ", " \-\-keep ", " \-\-new
+choose without asking.
 .TP
 .BR "config check" ", " "config edit" ", " "config migrate"
 Check or edit /etc/lux/lux.conf

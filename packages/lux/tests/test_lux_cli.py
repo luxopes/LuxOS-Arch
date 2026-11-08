@@ -285,6 +285,35 @@ class CLI(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("unshare") and subprocess.run(["unshare", "-r", "true"]).returncode == 0,
                          "unshare -r neni k dispozici")
+    def test_configs_auto_merge_and_config_diff(self):
+        """lux configs nejdriv slouci samo (hodnota uzivatele zustane); lux config-diff vypise cekajici
+        soubory a --keep/--merge rozhodne bez otazky."""
+        etc = os.path.join(self.tmp, "etc")
+        os.makedirs(etc)
+        for name, text in (("a.conf", "[a]\nx = 5\n"), ("a.conf.luxnew", "[a]\nx = 1\nn = 2\n"),
+                           ("b.conf", "opt yes\n"), ("b.conf.luxnew", "opt no\n")):
+            with open(os.path.join(etc, name), "w") as f:
+                f.write(text)
+        env = {"LUX_CONFIGS_ROOT": etc, "LUX_CONFIGMERGE": os.path.join(HERE, "..", "lux_configmerge.py")}
+        rc, out = self.lux("-y", "configs", env=env, prefix=("unshare", "-r"))
+        self.assertEqual(rc, 0, out)
+        self.assertIn("your settings were kept", out)
+        self.assertIn("lux config-diff", out)
+        with open(os.path.join(etc, "a.conf")) as f:
+            self.assertEqual(f.read(), "[a]\nx = 5\nn = 2\n")
+        self.assertEqual(sorted(os.listdir(etc)), ["a.conf", "a.conf.lux-old", "b.conf", "b.conf.luxnew"])
+        rc, out = self.lux("config-diff", env=env, prefix=("unshare", "-r"))
+        self.assertEqual(rc, 0, out)
+        self.assertIn("b.conf.luxnew", out)
+        rc, out = self.lux("config-diff", os.path.join(etc, "b.conf"), "--keep", env=env, prefix=("unshare", "-r"))
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Kept your version", out)
+        self.assertEqual(sorted(os.listdir(etc)), ["a.conf", "a.conf.lux-old", "b.conf"])
+        rc, out = self.lux("config-diff", env=env, prefix=("unshare", "-r"))
+        self.assertIn("No pending config files", out)
+
+    @unittest.skipUnless(shutil.which("unshare") and subprocess.run(["unshare", "-r", "true"]).returncode == 0,
+                         "unshare -r neni k dispozici")
     def test_configs_own_implementation(self):
         """lux configs: vlastni porovnani .luxnew/.luxsave i starsich .pacnew/.pacsave (bez pacdiff);
         s -y se nic nemeni."""

@@ -880,7 +880,19 @@ def clean_cache(keep=2):
 NEW_CONFIG_SUFFIXES = (".luxnew", ".luxsave", ".pacnew", ".pacsave")
 
 
+CONFIG_MERGE = "/usr/lib/lux/lux_configmerge.py"
+
+
+def merge_new_configs():
+    """Nove verze konfigurace (*.luxnew) se slouci samy - hodnoty uzivatele zustanou (lux >= 0.3.0-24;
+    po transakci to dela uz hook, tady zbyle soubory). Jen jako root na skutecnem systemu."""
+    if ROOT or os.geteuid() != 0 or not os.path.isfile(CONFIG_MERGE):
+        return
+    run(["python3", CONFIG_MERGE, "merge", "--quiet"], timeout=120)
+
+
 def find_new_configs():
+    merge_new_configs()
     res = []
     for root, dirs, files in os.walk(P("/etc")):
         dirs[:] = [d for d in dirs if d not in ("ssl", "ca-certificates")]

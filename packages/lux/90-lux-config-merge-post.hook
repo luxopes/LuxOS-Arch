@@ -1,0 +1,14 @@
+# LuxOS (lux): nova verze konfiguracniho souboru z aktualizace (*.luxnew) se slouci se souborem
+# uzivatele (jeho hodnoty zustanou, nove klice a komentare se pridaji); co nejde bez konfliktu,
+# zustane jako *.luxnew a lux/LuxOS Care rekne, jak to projit (sudo lux config-diff SOUBOR).
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = etc/*
+
+[Action]
+Description = Keeping your settings in updated configuration files...
+When = PostTransaction
+Exec = /usr/lib/lux/lux_configmerge.py post
+NeedsTargets

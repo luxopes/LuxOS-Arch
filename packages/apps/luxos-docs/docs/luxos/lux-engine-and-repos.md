@@ -230,3 +230,28 @@ is converted with `lux-config migrate ~/.config/lux/lux.conf`.
   mandatory; local files (`lux install ./x.pkg.tar.zst`) follow `local-signatures optional`.
 - `.lux` packages and the `.lux` index are verified with `gpgv` against the same `luxos.gpg`.
 - Keyring problems: `lux fix` (re-init and re-populate the keyring, reinstall keyrings).
+
+## New versions of configuration files
+
+You never have to merge configuration files by hand. When a package ships a new default for a file
+you changed (for example `/etc/lux/lux.conf` with `channel = "staging"` set by Software Update),
+libalpm keeps your file and saves the new one as `<file>.luxnew`; right after the transaction
+LuxOS merges the two itself (`/usr/lib/lux/lux_configmerge.py`, hooks `90-lux-config-merge-pre` /
+`-post`, also in `lux update` and LuxOS Care):
+
+- the **base** is the file from the old package version, kept in `/var/lib/lux/pristine/<path>` and
+  always verified against the checksum in the package database (taken from disk or from the old
+  package in the cache);
+- **key = value files** (TOML, INI, `lux.conf`): **a value present in your file always stays.** A key
+  only gets a new default when your value is exactly the old default; keys written by `lux-config` /
+  Software Update (`channel`, `countme` in `lux.conf`) are always yours. New keys, sections and
+  comments are added; your own keys and comments stay;
+- **other text files**: a line-based three-way merge, applied only without conflicts;
+- **no base** (for example a `.luxnew` left before LuxOS had this): only when the new version just adds
+  keys, comments or lines — your values never change.
+
+On success the file is written atomically, the previous version is kept as `<file>.lux-old` (one
+backup), `.luxnew` is removed and lux says calmly `Updated /etc/lux/lux.conf; your settings were kept`.
+If it cannot be combined, nothing changes — the system keeps using your file — and lux says so with
+the command to review it: `sudo lux config-diff <file>`. Leftover `.luxnew` files are retried on every
+`lux update`, by LuxOS Care and by `lux configs`.

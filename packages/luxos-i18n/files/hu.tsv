@@ -4815,3 +4815,18 @@ Use an app password instead	Inkább alkalmazásjelszó használata
 You are signed in	Bejelentkezett
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	A böngészőben %s néven jelentkezett be, de ez a fiók %s. Ugyanazzal a fiókkal jelentkezzen be.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	A(z) %s bejelentkezése (%s) lejárt. Jelentkezzen be újra, hogy továbbra is megkapja az új leveleket.
+Updated %s; your settings were kept	%s frissítve; a beállításai megmaradtak
+The new version of %s could not be combined with your changes automatically.	A(z) %s új változatát nem sikerült automatikusan egyesíteni az Ön módosításaival.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Továbbra is a jelenlegi fájlja van használatban, a rendszer rendesen működik. Áttekintés: sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Nem vár a(z) %s új változata – nincs teendő.
+(yours, in use)	(az Öné, használatban)
+(new version)	(új változat)
+LuxOS can combine both: your settings stay, new settings and comments are added.	A LuxOS egyesíteni tudja a kettőt: a beállításai megmaradnak, az új beállítások és megjegyzések bekerülnek.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] egyesítés (ajánlott)  [k] a saját megtartása  [n] az új változat használata  [d] eredmény mutatása  [s] kihagyás: 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] a saját megtartása  [n] az új változat használata (a sajátja .lux-old néven megmarad)  [s] kihagyás: 
+(combined)	(egyesítve)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	A két változat nem egyesíthető automatikusan – válassza a saját megtartását vagy az új változat használatát.
+Kept your version of %s	A(z) %s saját változata megtartva
+review a new config file version: combine, keep yours or use the new one	konfigurációs fájl új változatának áttekintése: egyesítés, a saját megtartása vagy az új használata
+Review one with: sudo lux config-diff <file>	Áttekintés ezzel: sudo lux config-diff <fájl>
+New version of a configuration file: %s	Konfigurációs fájl új változata: %s

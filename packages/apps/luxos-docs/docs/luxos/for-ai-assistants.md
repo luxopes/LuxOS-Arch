@@ -92,7 +92,7 @@ Flatpak (if installed): `lux install org.gimp.GIMP`. A local file: `lux install 
 ### Update the system
 
 Run `lux update` (or press **Update Now** in Software Update). Afterwards: if lux says the kernel
-was updated, suggest a restart; if it lists new config files, `lux configs`.
+was updated, suggest a restart; unmerged config file: `lux config-diff <file>`.
 
 ### Services
 

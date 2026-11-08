@@ -4815,3 +4815,18 @@ Use an app password instead	Použiť radšej heslo aplikácie
 You are signed in	Ste prihlásení
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	V prehliadači ste sa prihlásili ako %s, ale tento účet je %s. Prihláste sa rovnakým účtom.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Vaše prihlásenie %s pre %s vypršalo. Prihláste sa znova, aby ste ďalej dostávali novú poštu.
+Updated %s; your settings were kept	Aktualizované %s; vaše nastavenia zostali
+The new version of %s could not be combined with your changes automatically.	Novú verziu %s sa nepodarilo automaticky spojiť s vašimi zmenami.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Ďalej sa používa váš súčasný súbor a systém funguje normálne. Prejsť ju môžete príkazom: sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Žiadna nová verzia %s nečaká – nie je čo robiť.
+(yours, in use)	(vaša, používaná)
+(new version)	(nová verzia)
+LuxOS can combine both: your settings stay, new settings and comments are added.	LuxOS vie obe spojiť: vaše nastavenia zostanú, pribudnú nové nastavenia a komentáre.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] spojiť (odporúčané)  [k] ponechať svoju  [n] použiť novú verziu  [d] ukázať výsledok  [s] preskočiť: 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] ponechať svoju  [n] použiť novú verziu (vaša zostane ako .lux-old)  [s] preskočiť: 
+(combined)	(spojené)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	Obe verzie nejde spojiť automaticky – zvoľte, či ponechať svoju, alebo použiť novú verziu.
+Kept your version of %s	Ponechaná vaša verzia %s
+review a new config file version: combine, keep yours or use the new one	prejde novú verziu konfiguračného súboru: spojiť, ponechať svoju alebo použiť novú
+Review one with: sudo lux config-diff <file>	Prejdite ju príkazom: sudo lux config-diff <súbor>
+New version of a configuration file: %s	Nová verzia konfiguračného súboru: %s

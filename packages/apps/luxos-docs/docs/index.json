@@ -169,7 +169,9 @@
             "migration",
             "check-updates",
             "luxnew",
-            "pacnew"
+            "pacnew",
+            "config-diff",
+            "merge config files"
           ]
         },
         {

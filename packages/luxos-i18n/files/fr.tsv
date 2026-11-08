@@ -4815,3 +4815,18 @@ Use an app password instead	Utiliser plutôt un mot de passe d’application
 You are signed in	Vous êtes connecté
 You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Vous vous êtes connecté dans le navigateur en tant que %s, mais ce compte est %s. Connectez-vous avec le même compte.
 Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Votre connexion %s pour %s a expiré. Reconnectez-vous pour continuer à recevoir les nouveaux messages.
+Updated %s; your settings were kept	%s mis à jour ; vos réglages ont été conservés
+The new version of %s could not be combined with your changes automatically.	La nouvelle version de %s n’a pas pu être combinée automatiquement avec vos modifications.
+Your current file stays in use and the system works normally. To review it: sudo lux config-diff %s	Votre fichier actuel reste utilisé et le système fonctionne normalement. Pour l’examiner : sudo lux config-diff %s
+No new version of %s is waiting - nothing to do.	Aucune nouvelle version de %s n’est en attente – rien à faire.
+(yours, in use)	(la vôtre, utilisée)
+(new version)	(nouvelle version)
+LuxOS can combine both: your settings stay, new settings and comments are added.	LuxOS peut combiner les deux : vos réglages restent, les nouveaux réglages et commentaires sont ajoutés.
+[m] combine (recommended)  [k] keep yours  [n] use the new version  [d] show the result  [s] skip: 	[m] combiner (recommandé)  [k] garder la vôtre  [n] utiliser la nouvelle version  [d] voir le résultat  [s] passer : 
+[k] keep yours  [n] use the new version (yours is saved as .lux-old)  [s] skip: 	[k] garder la vôtre  [n] utiliser la nouvelle version (la vôtre est gardée en .lux-old)  [s] passer : 
+(combined)	(combinée)
+The two versions cannot be combined automatically - choose to keep yours or use the new version.	Les deux versions ne peuvent pas être combinées automatiquement – gardez la vôtre ou utilisez la nouvelle version.
+Kept your version of %s	Votre version de %s a été gardée
+review a new config file version: combine, keep yours or use the new one	examiner la nouvelle version d’un fichier de configuration : combiner, garder la vôtre ou utiliser la nouvelle
+Review one with: sudo lux config-diff <file>	Pour l’examiner : sudo lux config-diff <fichier>
+New version of a configuration file: %s	Nouvelle version d’un fichier de configuration : %s
