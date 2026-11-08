@@ -1,0 +1,76 @@
+# Maintainer: LuxOS Team
+# Plank (Dock LuxOS) z Archu + opravy LuxOS (luxos-dock.patch):
+#   - animace Docku uz nemuze zustat zamrzla: tick callback hodin snimku je zaregistrovany jen
+#     behem animace (GTK samo vyvazuje begin/end_updating; drive Plank volal end_updating ()
+#     i bez sveho begin_updating () a pri is_updating == true bez dalsich ticku uz animated_draw ()
+#     nic neprekreslil) + hlidac: kdyz animace 1 s nedostala snimek, restartuje se a stav
+#     (odkryti, zvetseni) doskoci podle casu (Renderer.vala)
+#   - dokud je Dock pod mysi, overi se kazdych 500 ms poloha mysi - ztracena udalost odchodu
+#     uz nenecha Dock zvetseny a odkryty (HideManager.vala)
+#   - mezivelikosti ikon behem zvetsovani se zmensuji z ikony v plne velikosti; drive se kazda
+#     velikost 48..72 px vykreslovala z SVG synchronne v hlavni smycce (DockRenderer.vala)
+#   - varovani GLib s novym radkem a neplatnym UTF-8 uz Plank neshodi (SIGABRT v string_replace,
+#     Services/Logger.vala) - to je pad "pri prepnuti svetleho/tmaveho rezimu" z luxos-dock
+#   - .dockitem s nazvem souboru v neplatnem UTF-8 se preskoci; drive Plank spadl (SIGSEGV) pri
+#     ukladani dock-items do GSettings (Factories/ItemFactory.vala, Services/Utils.vala)
+# Testy: packages/plank/tests (izolovana relace Xvfb + xfwm4 s kompozici).
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver/pkgrel podle Archu, LuxOS pkgrel nechat X.1.
+# Puvodni PKGBUILD Archu (udrzovatel Maxime Gauduin) je v PKGBUILD.arch.
+
+pkgname=plank
+pkgver=0.11.89
+pkgrel=6.1
+pkgdesc='Elegant, simple, clean dock (LuxOS: no stuck animations, watchdog, smooth zoom)'
+arch=(x86_64)
+url=https://launchpad.net/plank
+license=(GPL3)
+depends=(
+  atk
+  bamf
+  cairo
+  gdk-pixbuf2
+  glib2
+  glibc
+  gnome-menus
+  gtk3
+  libgee
+  libwnck3
+  libx11
+  libxfixes
+  libxi
+  pango
+)
+makedepends=(
+  git
+  vala
+)
+source=(git+https://github.com/ricotz/plank.git#tag=${pkgver}
+        luxos-dock.patch)
+b2sums=('edaaff7a113a14799c32badc0f686748e08a81a904ca09300db145ad3dac3ad915a188ae5366141c7d253be537542c0c3535806b423967ba02f18abc7a20b460'
+        'be4f2d7492ad8e9f5ee7e171dbf22fe7236079e6ff753a1ff9378c1a8e1f5767c8c2b7270ba7ebd76b2f439dbb759180d32447f014dba14bee8e63f6311bcc0d')
+
+prepare() {
+  cd plank
+  git cherry-pick -n 5967798a47ba8835ae100c01a8d647d2f9a2412f
+  # LuxOS: zamrzla animace, hlidac, zvetsovani bez vykreslovani SVG, Logger a neplatne UTF-8
+  patch -Np1 -i "$srcdir/luxos-dock.patch"
+  sed 's/0.19.6/0.20/' -i configure.ac
+  NOCONFIGURE=1 ./autogen.sh
+}
+
+build() {
+  cd plank
+  ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --disable-apport
+  sed -i -e 's/ -shared / -Wl,-O1,--as-needed\0/g' libtool
+  make
+}
+
+package() {
+  make DESTDIR="${pkgdir}" -C plank install
+}
+
+# vim: ts=2 sw=2 et:
