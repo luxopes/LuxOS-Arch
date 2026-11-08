@@ -1,5 +1,5 @@
 # Posta LuxOS - hesla uctu v klicence Secret Service (gnome-keyring) pres secret-tool (libsecret).
-# Heslo jde programu jen na standardni vstup, nikdy v argumentech ani v souboru.
+# Heslo (u uctu OAuth obnovovaci token) jde programu jen na standardni vstup, nikdy v argumentech ani v souboru.
 # Atributy: service=luxos-mail account=<id uctu> (+ email, server pro prehled v aplikaci Hesla a klice).
 # LUXOS_MAIL_SECRET_TOOL prepise program (testy).
 load env
@@ -17,12 +17,15 @@ function tool():
     return path
 end
 
-# True = ulozeno; jinak text chyby
-function store(id, email, server, password):
+# True = ulozeno; jinak text chyby. Ucty OAuth ukladaji misto hesla obnovovaci token (label "LuxOS Mail (Google): ...").
+function store(id, email, server, password, label=""):
+    if label == "":
+        label = "LuxOS Mail: " + email
+    end
     out = ""
     ok = True
     try:
-        out = capture_input(tool(), ["store", "--label=LuxOS Mail: " + email, "service", "luxos-mail", "account", id, "email", email, "server", server], password)
+        out = capture_input(tool(), ["store", "--label=" + label, "service", "luxos-mail", "account", id, "email", email, "server", server], password)
     else:
         ok = False
     end

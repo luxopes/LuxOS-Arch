@@ -11,6 +11,10 @@
 # Velci poskytovatele (Google, Microsoft, Yahoo, iCloud, Seznam ...): pri pridani uctu napoveda, jake heslo
 # zadat (heslo aplikace) s tlacitkem na stranku poskytovatele; chyby prihlaseni s duvodem od serveru.
 # Pole hesla maji tlacitko oka (zobrazit/skryt heslo, Tab + mezernik). F10 = nabidka.
+# Prihlaseni u poskytovatele (mail_oauth): kdyz ma poskytovatel (Google, Microsoft) vyplnene client ID, pridani
+# uctu ukaze jedno hlavni tlacitko "Prihlasit se Googlem" (prohlizec, bez hesla v Poste); pole hesla je az pod
+# "Pouzit radeji heslo aplikace". Bez client ID zustava napoveda k heslu aplikace. Po prihlaseni se okno Posty
+# samo vrati do popredi; vyprsene prihlaseni ukaze klidny pruh "Prihlasit se znovu".
 load env, json, net
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
@@ -22,6 +26,7 @@ load mail_store as store
 load mail_gtk as mg
 load mail_luxai as luxai
 load mail_provider as provider
+load mail_oauth as oauth
 
 CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n"
 
@@ -50,6 +55,17 @@ ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view"
 
 function log(message):
     return eprint("luxos-mail: " + message)
+end
+
+# Stav okna pro testy (LUXOS_MAIL_UI_TRACE = soubor; jinak nic)
+function trace(text):
+    path = env.get("LUXOS_MAIL_UI_TRACE", "")
+    if path != None and path != "":
+        safe:
+            call appendfile(path, text + "\n")
+        end
+    end
+    return 0
 end
 
 function self_exe():
@@ -1398,6 +1414,9 @@ function error_text(st):
     if a.get("auth", "") == "luxai" and (kind == "auth" or kind.startswith("luxai_") or kind == "nooauth"):
         return luxai_error_text(kind, detail, a.get("email", ""))
     end
+    if a.get("auth", "") == "oauth" and (kind == "auth" or kind.startswith("oauth_") or kind == "nooauth" or kind == "connect"):
+        return oauth_account_text(a, kind, detail)
+    end
     if kind == "auth" or kind == "oauthonly":
         t = i18n.TF("The server rejected the password for %s.", [a.get("email", "")])
         extra = provider_auth_text(provider.of_account(a), kind)
@@ -1427,14 +1446,19 @@ function update_banner():
         call gtk.label_set_text(ui["banner_label"], error_text(st))
         kind = st.get("kind", "")
         luxai_account = account(st.get("account", "")).get("auth", "") == "luxai"
+        oauth_account = account(st.get("account", "")).get("auth", "") == "oauth"
         if luxai_account and (kind == "luxai_session" or kind == "luxai_signedout"):
             call gtk.button_set_label(ui["banner_button"], i18n.T("Sign In…"))
+        elif oauth_account and oauth_needs_sign_in(kind):
+            call gtk.button_set_label(ui["banner_button"], i18n.T("Sign In Again…"))
         elif (kind == "auth" or kind == "nopassword") and not luxai_account:
             call gtk.button_set_label(ui["banner_button"], i18n.T("Enter Password…"))
         else:
             call gtk.button_set_label(ui["banner_button"], i18n.T("Try Again"))
         end
-        call gtk.widget_set_class(ui["banner"], "error", state == "error" or kind == "cert")
+        # vyprsene prihlaseni u poskytovatele je bezna vec (zmena hesla, 7 dni v testovacim rezimu Google):
+        # klidny zluty pruh, ne cervena chyba
+        call gtk.widget_set_class(ui["banner"], "error", (state == "error" or kind == "cert") and kind != "oauth_expired")
         call gtk.widget_show(ui["banner_label"])
         call gtk.widget_show_all(ui["banner_button"])
         call gtk.widget_show(ui["banner"])
@@ -1448,6 +1472,17 @@ function on_banner_clicked(button):
     st = ui["status"].get(ui["current"]["account"], {})
     kind = st.get("kind", "")
     id = ui["current"]["account"]
+    if account(id).get("auth", "") == "oauth":
+        if oauth_needs_sign_in(kind):
+            call oauth_sign_in_again(id)
+        elif st.get("state", "") == "error":
+            call set_busy(True)
+            call request("retry_account", {"account": id}, {"account": id})
+        else:
+            call request("reconnect", {}, {})
+        end
+        return 0
+    end
     if account(id).get("auth", "") == "luxai":
         if kind == "luxai_session" or kind == "luxai_signedout":
             call luxai_login("retry", id)
@@ -1517,6 +1552,8 @@ function on_event(msg):
         ui["status"][msg.get("account", "")] = msg
         call update_banner()
         call build_sidebar()
+    elif ev == "oauth_done":
+        call on_oauth_done(msg)
     end
     return 0
 end
@@ -1566,6 +1603,8 @@ function on_reply(msg, ctx):
         call on_luxai_mailboxes(msg, ctx)
     elif op == "add_luxai_account":
         call on_luxai_added(msg)
+    elif op == "oauth_start":
+        call on_oauth_started(msg, ctx)
     elif op == "retry_account":
         call set_busy(False)
     elif op == "remove_account":
@@ -1699,7 +1738,11 @@ function on_menu_clicked(button):
     cur = ui["current"]["account"]
     if cur != "":
         a = account(cur)
-        if a.get("auth", "") != "luxai":
+        if a.get("auth", "") == "oauth":
+            item = gtk.menu_item_new(i18n.TF("Sign In Again to %s…", [a.get("email", "")]))
+            call gtk.connect_data(item, "activate", 0, on_menu_sign_in_again, cur)
+            call gtk.menu_append(menu, item)
+        elif a.get("auth", "") != "luxai":
             item = gtk.menu_item_new(i18n.TF("Change Password for %s…", [a.get("email", "")]))
             call gtk.connect_data(item, "activate", 0, on_menu_password, cur)
             call gtk.menu_append(menu, item)
@@ -1722,6 +1765,11 @@ end
 
 function on_menu_password(id, item):
     call password_dialog(id)
+    return 0
+end
+
+function on_menu_sign_in_again(id, item):
+    call oauth_sign_in_again(id)
     return 0
 end
 
@@ -1870,7 +1918,8 @@ end
 
 # Otevreni stranky poskytovatele v prohlizeci (testy: LUXOS_MAIL_OPEN_URL_LOG = soubor misto prohlizece)
 function open_url(url):
-    if url == "" or not url.startswith("https://"):
+    # jen HTTPS (testovaci poskytovatel OAuth na http://127.0.0.1 - jen tento pocitac)
+    if url == "" or not (url.startswith("https://") or url.startswith("http://127.0.0.1:")):
         return 0
     end
     log_path = env.get("LUXOS_MAIL_OPEN_URL_LOG", "")
@@ -1885,6 +1934,248 @@ function open_url(url):
         return 0
     end
     call glib.spawn_quiet(["xdg-open", url])
+    return 0
+end
+
+# ---- prihlaseni u poskytovatele (OAuth2 v prohlizeci) ------------------------------------------------------------
+
+# Blok v okne pridani uctu: text, hlavni tlacitko "Prihlasit se Googlem", odkaz "Pouzit radeji heslo aplikace".
+# Tlacitko jen s textem (vlastni neutralni vzhled, zadna loga poskytovatelu).
+function oauth_widgets():
+    box = gtk.box_new(gtk.VERTICAL, 8)
+    call gtk.widget_set_no_show_all(box, True)
+    l = label("", "small")
+    call gtk.label_set_line_wrap(l, True)
+    call gtk.label_set_max_width_chars(l, 56)
+    call gtk.box_pack_start(box, l, False, False, 0)
+    b = gtk.button_new("")
+    call gtk.widget_add_class(b, "suggested-action")
+    call gtk.box_pack_start(box, b, False, False, 0)
+    alt = gtk.button_new(i18n.T("Use an app password instead"))
+    call gtk.button_set_relief(alt, gtk.RELIEF_NONE)
+    call gtk.widget_set_halign(alt, gtk.ALIGN_START)
+    call gtk.box_pack_start(box, alt, False, False, 0)
+    w = {"box": box, "label": l, "button": b, "alt": alt}
+    call gtk.connect(b, "clicked", on_oauth_clicked)
+    call gtk.connect(alt, "clicked", on_use_password)
+    return w
+end
+
+# Rezim okna podle poskytovatele: s client ID tlacitko "Prihlasit se ..." (heslo skryte), jinak heslo
+function update_auth_mode():
+    d = ui["dlg"]
+    if len(d) == 0:
+        return 0
+    end
+    p = {}
+    if d["provider"] != "" and not d["use_password"]:
+        p = oauth.available(d["provider"])
+    end
+    d["oauth"] = p
+    mode = "password"
+    if len(p) > 0:
+        mode = "oauth"
+    end
+    call trace("auth-mode " + d["provider"] + " " + mode)
+    w = d["signin"]
+    if len(p) > 0:
+        call gtk.label_set_text(w["label"], i18n.TF("Sign in with your %s account in your web browser. Mail never sees your password.", [p["name"]]))
+        call gtk.button_set_label(w["button"], i18n.TF("Sign in with %s", [p["name"]]))
+        call gtk.widget_set_no_show_all(w["box"], False)
+        call gtk.widget_show_all(w["box"])
+        # Microsoft nema heslo aplikace pro IMAP: jen prihlaseni u poskytovatele
+        call gtk.widget_set_visible(w["alt"], provider.info(d["provider"]).get("auth", "") == "app_password")
+        call gtk.widget_hide(d["pw_row"])
+        call gtk.widget_hide(d["pw_label"])
+        call gtk.widget_hide(d["hint"]["box"])
+        call gtk.widget_hide(d["details"])
+        call gtk.widget_hide(d["manual"])
+        call gtk.widget_hide(d["ok"])
+    else:
+        call gtk.widget_hide(w["box"])
+        call gtk.widget_show(d["pw_row"])
+        call gtk.widget_show(d["pw_label"])
+        call gtk.widget_show(d["ok"])
+        if d["stage"] == "start":
+            call gtk.widget_show(d["manual"])
+        else:
+            call gtk.widget_show(d["details"])
+        end
+    end
+    return 0
+end
+
+function on_use_password(button):
+    d = ui["dlg"]
+    if len(d) == 0:
+        return 0
+    end
+    call cancel_flow(d)
+    call dlg_busy(False)
+    call dlg_message("", False)
+    d["use_password"] = True
+    call update_auth_mode()
+    call show_hint(d["hint"], d["provider"], provider.domain_of(gtk.entry_get_text(d["email"])))
+    call gtk.widget_grab_focus(d["password"])
+    return 0
+end
+
+function on_oauth_clicked(button):
+    call oauth_begin()
+    return 0
+end
+
+function oauth_begin():
+    d = ui["dlg"]
+    if len(d) == 0 or len(d["oauth"]) == 0:
+        return 0
+    end
+    email = gtk.entry_get_text(d["email"]).strip()
+    call dlg_busy(True)
+    call gtk.widget_set_sensitive(d["signin"]["button"], False)
+    call dlg_message(i18n.T("Opening the web browser…"), False)
+    d["flow_req"] = request("oauth_start", {"provider": d["oauth"]["id"], "email": email, "name": gtk.entry_get_text(d["name"]).strip()},
+                            {"dialog": True})
+    return 0
+end
+
+function cancel_flow(d):
+    if len(d) > 0 and d.get("flow", "") != "":
+        call request("oauth_cancel", {"flow": d["flow"]}, {})
+        d["flow"] = ""
+    end
+    return 0
+end
+
+# Znovu prihlasit ucet OAuth (vyprsene prihlaseni); vysledek prijde jako udalost oauth_done
+function oauth_sign_in_again(id):
+    a = account(id)
+    p = String(a.get("oauth", {}).get("provider", ""))
+    if len(oauth.available(p)) == 0:
+        call message_box(i18n.T("Signing in failed"), oauth_kind_text("oauth_config", "", oauth.provider(p).get("name", p), a.get("email", "")))
+        return 0
+    end
+    ui["reauth"] = id
+    call request("oauth_start", {"provider": p, "account": id}, {"account": id})
+    return 0
+end
+
+function on_oauth_started(msg, ctx):
+    d = ui["dlg"]
+    if ctx.get("dialog", False):
+        if len(d) == 0:
+            # okno pridani uz je zavrene: prihlaseni zrusit
+            if msg.get("ok", False):
+                call request("oauth_cancel", {"flow": msg["flow"]}, {})
+            end
+            return 0
+        end
+        if not msg.get("ok", False):
+            call dlg_busy(False)
+            call gtk.widget_set_sensitive(d["signin"]["button"], True)
+            call dlg_message(oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), d["oauth"].get("name", ""), ""), True)
+            return 0
+        end
+        d["flow"] = msg["flow"]
+        call open_url(msg["url"])
+        # znovu kliknout = nove prihlaseni (zavreny panel prohlizece; stare se zrusi)
+        call gtk.widget_set_sensitive(d["signin"]["button"], True)
+        call dlg_message(i18n.T("Continue in your web browser. Mail adds the account as soon as you have signed in."), False)
+        return 0
+    end
+    if not msg.get("ok", False):
+        a = account(ctx.get("account", ""))
+        call message_box(i18n.T("Signing in failed"), oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), oauth.provider(String(a.get("oauth", {}).get("provider", ""))).get("name", ""), a.get("email", "")))
+        return 0
+    end
+    ui["reauth_flow"] = msg["flow"]
+    call open_url(msg["url"])
+    return 0
+end
+
+# Okno Posty do popredi (po prihlaseni v prohlizeci je v popredi prohlizec)
+function raise_window():
+    call gtk.window_present_with_time(ui["window"], gtk.x11_server_time(ui["window"]))
+    return 0
+end
+
+function on_oauth_done(msg):
+    d = ui["dlg"]
+    name = oauth.provider(msg.get("provider", "")).get("name", msg.get("provider", ""))
+    if len(d) > 0 and d.get("flow", "") != "" and d["flow"] == msg.get("flow", ""):
+        d["flow"] = ""
+        call dlg_busy(False)
+        call gtk.widget_set_sensitive(d["signin"]["button"], True)
+        if msg.get("ok", False):
+            w = d["window"]
+            ui["dlg"] = {}
+            call gtk.widget_destroy(w)
+            call show_new_account(msg.get("account", ""))
+            call raise_window()
+        else:
+            call raise_window()
+            call gtk.window_present(d["window"])
+            call dlg_message(oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), name, msg.get("email", "")), True)
+        end
+        return 0
+    end
+    if ui.get("reauth_flow", "") != "" and ui["reauth_flow"] == msg.get("flow", ""):
+        ui["reauth_flow"] = ""
+        call raise_window()
+        if not msg.get("ok", False):
+            a = account(ui.get("reauth", ""))
+            call message_box(i18n.T("Signing in failed"), oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), name, a.get("email", "")))
+        end
+    end
+    return 0
+end
+
+function oauth_needs_sign_in(kind):
+    return kind == "oauth_expired" or kind == "auth" or kind == "oauth_config" or kind == "oauth_failed"
+end
+
+# Text chyby prihlaseni u poskytovatele (okno pridani, Prihlasit se znovu)
+function oauth_kind_text(kind, detail, name, email):
+    if kind == "oauth_denied":
+        return i18n.TF("Signing in with %s was cancelled in the browser.", [name])
+    elif kind == "oauth_timeout":
+        return i18n.T("Signing in in the browser did not finish in time. Try again.")
+    elif kind == "oauth_config":
+        return i18n.TF("Signing in with %s is not set up on this computer.", [name])
+    elif kind == "oauth_other_account":
+        return i18n.TF("You signed in as %s in the browser, but this account is %s. Sign in with the same account.", [detail, email])
+    elif kind == "oauth_listen":
+        return i18n.T("Mail could not prepare signing in on this computer.") + server_reason(detail)
+    elif kind == "connect":
+        return i18n.TF("Cannot reach %s. Check your internet connection.", [name])
+    elif kind == "auth" or kind == "nooauth":
+        return i18n.TF("The mail server did not accept the %s sign-in.", [name]) + server_reason(detail)
+    elif kind == "keyring":
+        return i18n.T("The sign-in could not be saved in the keyring.") + " " + detail
+    elif kind == "cert" or kind == "timeout" or kind == "closed":
+        return kind_text({"kind": kind, "error": detail}, name)
+    end
+    return i18n.TF("Signing in with %s failed.", [name]) + server_reason(detail)
+end
+
+# Text pruhu u uctu OAuth
+function oauth_account_text(a, kind, detail):
+    name = oauth.provider(String(a.get("oauth", {}).get("provider", ""))).get("name", "")
+    email = a.get("email", "")
+    if kind == "oauth_expired":
+        return i18n.TF("Your %s sign-in for %s has expired. Sign in again to keep getting new mail.", [name, email])
+    elif kind == "auth":
+        return i18n.TF("%s did not accept the sign-in for %s. Sign in again.", [name, email]) + server_reason(detail)
+    elif kind == "oauth_config":
+        return oauth_kind_text(kind, detail, name, email)
+    elif kind == "oauth_server" or kind == "connect":
+        return i18n.TF("Cannot reach %s to renew the sign-in. Mail tries again later.", [name])
+    end
+    return oauth_kind_text(kind, detail, name, email)
+end
+
+function on_oauth_config(unused, output, status):
+    call update_auth_mode()
     return 0
 end
 
@@ -1944,11 +2235,18 @@ function open_add_dialog(prefill, note):
     call gtk.entry_set_placeholder_text(email, "name@example.com")
     call mg.entry_set_input_purpose(email, 5)
     pw = password_entry()
-    call field(grid, 2, i18n.T("Password"), pw[0])
+    # popisek zvlast: v rezimu "Prihlasit se ..." se skryva s polem
+    pw_label = label(i18n.T("Password"), "")
+    call gtk.widget_set_halign(pw_label, gtk.ALIGN_END)
+    call gtk.grid_attach(grid, pw_label, 0, 2, 1, 1)
+    call gtk.widget_set_hexpand(pw[0], True)
+    call gtk.grid_attach(grid, pw[0], 1, 2, 1, 1)
     password = pw[1]
     call gtk.box_pack_start(box, grid, False, False, 0)
     hint = hint_widgets()
     call gtk.box_pack_start(box, hint["box"], False, False, 0)
+    signin = oauth_widgets()
+    call gtk.box_pack_start(box, signin["box"], False, False, 0)
 
     # nastaveni serveru (po hledani)
     details = gtk.box_new(gtk.VERTICAL, 8)
@@ -2000,7 +2298,8 @@ function open_add_dialog(prefill, note):
     ui["dlg"] = {"window": win, "name": name, "email": email, "password": password, "details": details, "found": found,
                  "host": host, "port": port, "sec": sec, "user": user, "shost": shost, "sport": sport, "ssec": ssec,
                  "spinner": spinner, "message": message, "ok": ok, "manual": manual, "stage": "start", "busy": False, "smtp": {},
-                 "eye": pw[2], "hint": hint, "provider": "", "email_text": ""}
+                 "eye": pw[2], "hint": hint, "provider": "", "email_text": "", "pw_row": pw[0], "pw_label": pw_label,
+                 "signin": signin, "oauth": {}, "use_password": False, "flow": "", "flow_req": 0}
     call gtk.connect(email, "activate", on_dlg_activate)
     call gtk.connect(email, "changed", on_dlg_email_changed)
     call gtk.connect(password, "activate", on_dlg_activate)
@@ -2009,9 +2308,17 @@ function open_add_dialog(prefill, note):
     if prefill != "":
         call gtk.entry_set_text(email, prefill)
         call on_dlg_email_changed(email)
-        call gtk.widget_grab_focus(password)
+        if len(ui["dlg"]["oauth"]) > 0:
+            call gtk.widget_grab_focus(signin["button"])
+        else:
+            call gtk.widget_grab_focus(password)
+        end
     else:
         call gtk.widget_grab_focus(email)
+    end
+    # client ID z luxos.lux-ai.cz (bez noveho baliku), nejvys jednou denne, na pozadi
+    if oauth.remote_due():
+        call glib.spawn_capture([self_exe(), "--oauth-config"], on_oauth_config, 0)
     end
     return 0
 end
@@ -2038,7 +2345,9 @@ function on_dlg_email_changed(entry):
         d["stage"] = "start"
     end
     d["provider"] = id
+    d["use_password"] = False
     call show_hint(d["hint"], id, domain)
+    call update_auth_mode()
     return 0
 end
 
@@ -2063,12 +2372,14 @@ function on_dlg_activate(entry):
 end
 
 function on_dlg_delete(event, window):
+    call cancel_flow(ui["dlg"])
     ui["dlg"] = {}
     return False
 end
 
 function on_dlg_cancel(button):
     w = ui["dlg"]["window"]
+    call cancel_flow(ui["dlg"])
     ui["dlg"] = {}
     call gtk.widget_destroy(w)
     return 0
@@ -2125,8 +2436,15 @@ function on_dlg_ok(button):
         call dlg_message(i18n.T("Enter a valid email address."), True)
         return 0
     end
-    if password == "":
+    if len(d["oauth"]) > 0:
+        call oauth_begin()
+        return 0
+    end
+    # neznamy poskytovatel: hledat i bez hesla (Google Workspace / Microsoft 365 na vlastni domene se pozna
+    # az podle MX a pak staci "Prihlasit se ...")
+    if password == "" and not (d["stage"] == "start" and d["provider"] == ""):
         call dlg_message(i18n.T("Enter your password."), True)
+        call gtk.widget_grab_focus(d["password"])
         return 0
     end
     if d["stage"] == "start":
@@ -2201,6 +2519,7 @@ function on_discovered(email, output, status):
         d["provider"] = prov
         call show_hint(d["hint"], prov, provider.domain_of(email))
     end
+    call update_auth_mode()
     text = ""
     if source == "autoconfig":
         text = i18n.T("Settings provided by your email provider.")
@@ -2214,6 +2533,10 @@ function on_discovered(email, output, status):
     call gtk.label_set_text(d["found"], text)
     call gtk.widget_show(d["found"])
     call dlg_message("", False)
+    if len(d["oauth"]) == 0 and gtk.entry_get_text(d["password"]) == "":
+        call dlg_message(i18n.T("Enter your password."), False)
+        call gtk.widget_grab_focus(d["password"])
+    end
     return 0
 end
 
@@ -2224,6 +2547,9 @@ function provider_auth_text(id, kind):
         return ""
     end
     if kind == "oauthonly" or p["auth"] == "oauth":
+        if len(oauth.available(id)) > 0:
+            return i18n.TF("%s accepts only “Sign in with %s”, not a password.", [p["name"], p["name"]])
+        end
         return i18n.TF("%s accepts only “Sign in with %s” (OAuth), not a password. Mail does not support it yet – use the webmail for now.", [p["name"], p["name"]])
     end
     if p["auth"] == "app_password":

@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Scanner (eSCL/AirScan)
 Sheet-fed scanner	Scanner con alimentatore
 Film scanner	Scanner per pellicole
 Handheld scanner	Scanner portatile
+%s accepts only “Sign in with %s”, not a password.	%s accetta solo «Accedi con %s», non una password.
+%s did not accept the sign-in for %s. Sign in again.	%s non ha accettato l’accesso per %s. Accedi di nuovo.
+Cannot reach %s to renew the sign-in. Mail tries again later.	Impossibile raggiungere %s per rinnovare l’accesso. Posta riproverà più tardi.
+Cannot reach %s. Check your internet connection.	Impossibile raggiungere %s. Controlla la connessione a Internet.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Continua nel browser web. Posta aggiunge l’account appena hai effettuato l’accesso.
+Mail could not prepare signing in on this computer.	Posta non è riuscita a preparare l’accesso su questo computer.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Posta non ha ottenuto l’accesso al tuo account %s. Puoi chiudere questa pagina e tornare a Posta.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Posta è ora collegata al tuo account %s %s. Puoi chiudere questa pagina e tornare a Posta.
+Opening the web browser…	Apertura del browser web…
+Return to Mail	Torna a Posta
+Return to Mail to see what went wrong and try again.	Torna a Posta per vedere cosa non ha funzionato e riprova.
+Sign In Again to %s…	Accedi di nuovo a %s…
+Sign In Again…	Accedi di nuovo…
+Sign in with %s	Accedi con %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Accedi con il tuo account %s nel browser web. Posta non vede mai la tua password.
+Signing in did not finish	L’accesso non è stato completato
+Signing in in the browser did not finish in time. Try again.	L’accesso nel browser non è stato completato in tempo. Riprova.
+Signing in was cancelled	L’accesso è stato annullato
+Signing in with %s failed.	Accesso con %s non riuscito.
+Signing in with %s is not set up on this computer.	L’accesso con %s non è configurato su questo computer.
+Signing in with %s was cancelled in the browser.	L’accesso con %s è stato annullato nel browser.
+The browser sent an invalid request.	Il browser ha inviato una richiesta non valida.
+The mail server did not accept the %s sign-in.	Il server di posta non ha accettato l’accesso con %s.
+The sign-in could not be saved in the keyring.	Impossibile salvare l’accesso nel portachiavi.
+This sign-in page is out of date. Return to Mail and start signing in again.	Questa pagina di accesso è scaduta. Torna a Posta e ricomincia l’accesso.
+Use an app password instead	Usa invece una password per app
+You are signed in	Accesso effettuato
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Nel browser hai effettuato l’accesso come %s, ma questo account è %s. Accedi con lo stesso account.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Il tuo accesso %s per %s è scaduto. Accedi di nuovo per continuare a ricevere nuova posta.

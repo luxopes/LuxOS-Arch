@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Szkenner (eSCL/AirScan)
 Sheet-fed scanner	Lapadagolós szkenner
 Film scanner	Filmszkenner
 Handheld scanner	Kézi szkenner
+%s accepts only “Sign in with %s”, not a password.	A(z) %s csak a „Bejelentkezés %s-fiókkal” módot fogadja el, jelszót nem.
+%s did not accept the sign-in for %s. Sign in again.	A(z) %s nem fogadta el a(z) %s bejelentkezését. Jelentkezzen be újra.
+Cannot reach %s to renew the sign-in. Mail tries again later.	A(z) %s nem érhető el a bejelentkezés megújításához. A Levelezés később újra próbálkozik.
+Cannot reach %s. Check your internet connection.	A(z) %s nem érhető el. Ellenőrizze az internetkapcsolatot.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Folytassa a webböngészőben. A Levelezés a bejelentkezés után azonnal hozzáadja a fiókot.
+Mail could not prepare signing in on this computer.	A Levelezés nem tudta előkészíteni a bejelentkezést ezen a számítógépen.
+Mail did not get access to your %s account. You can close this page and return to Mail.	A Levelezés nem kapott hozzáférést a(z) %s-fiókjához. Bezárhatja ezt az oldalt, és visszatérhet a Levelezésbe.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	A Levelezés most már csatlakozik a(z) %s-fiókjához (%s). Bezárhatja ezt az oldalt, és visszatérhet a Levelezésbe.
+Opening the web browser…	Webböngésző megnyitása…
+Return to Mail	Vissza a Levelezésbe
+Return to Mail to see what went wrong and try again.	Térjen vissza a Levelezésbe, nézze meg, mi történt, és próbálja újra.
+Sign In Again to %s…	Újbóli bejelentkezés: %s…
+Sign In Again…	Újbóli bejelentkezés…
+Sign in with %s	Bejelentkezés %s-fiókkal
+Sign in with your %s account in your web browser. Mail never sees your password.	Jelentkezzen be %s-fiókjával a webböngészőben. A Levelezés soha nem látja a jelszavát.
+Signing in did not finish	A bejelentkezés nem fejeződött be
+Signing in in the browser did not finish in time. Try again.	A böngészőben a bejelentkezés nem fejeződött be időben. Próbálja újra.
+Signing in was cancelled	A bejelentkezés megszakadt
+Signing in with %s failed.	A bejelentkezés %s-fiókkal nem sikerült.
+Signing in with %s is not set up on this computer.	A bejelentkezés %s-fiókkal nincs beállítva ezen a számítógépen.
+Signing in with %s was cancelled in the browser.	A bejelentkezést %s-fiókkal megszakították a böngészőben.
+The browser sent an invalid request.	A böngésző érvénytelen kérést küldött.
+The mail server did not accept the %s sign-in.	A levelezőszerver nem fogadta el a(z) %s bejelentkezést.
+The sign-in could not be saved in the keyring.	A bejelentkezést nem sikerült menteni a kulcstartóba.
+This sign-in page is out of date. Return to Mail and start signing in again.	Ez a bejelentkezési oldal elavult. Térjen vissza a Levelezésbe, és kezdje újra a bejelentkezést.
+Use an app password instead	Inkább alkalmazásjelszó használata
+You are signed in	Bejelentkezett
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	A böngészőben %s néven jelentkezett be, de ez a fiók %s. Ugyanazzal a fiókkal jelentkezzen be.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	A(z) %s bejelentkezése (%s) lejárt. Jelentkezzen be újra, hogy továbbra is megkapja az új leveleket.

@@ -7,6 +7,12 @@
 # Spatne heslo se znovu nezkousi (zadne zablokovani uctu na serveru), az po zadani noveho.
 # Schranky LuxAI (ucet "auth": "luxai") heslo nemaji: pred kazdym spojenim si sluzba vyzada od serveru
 # LuxAI kratkodoby token (ucet LuxAI tohoto pocitace, mail_luxai) a prihlasi se SASL OAUTHBEARER/XOAUTH2.
+# Ucty "Prihlasit se Googlem/Microsoftem" ("auth": "oauth", mail_oauth): obnovovaci token v klicence, pristupovy
+# token jen v pameti, obnovi se pred kazdym spojenim, kdyz do vyprseni zbyva mene nez 5 minut. Neplatny
+# obnovovaci token (invalid_grant) -> stav "oauth_expired", okno nabidne "Prihlasit se znovu" (zadne opakovani).
+# Prihlaseni v prohlizeci: oauth_start otevre naslouchani na loopbacku a vrati adresu pro prohlizec, po
+# presmerovani s kodem sluzba vymeni kod za tokeny, overi IMAP, ulozi ucet a vsem oknum posle udalost
+# {"event": "oauth_done", ...}.
 #
 # Okno (luxos-mail) mezipamet jen cte a o vse ostatni zada sluzbu pres abstraktni socket UNIX
 # "luxos-mail-<uid>" (jen procesy tehoz uzivatele): radky JSON {"id", "op", ...} -> {"id", "ok", ...}
@@ -23,6 +29,8 @@ load mail_store as store
 load mail_secret as secret
 load mail_luxai as luxai
 load mail_provider as provider
+load mail_oauth as oauth
+load crypto
 
 ITEMS = "UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODYSTRUCTURE"
 INITIAL = 500
@@ -34,7 +42,7 @@ MAX_BODY = 67108864
 NM = "org.freedesktop.NetworkManager"
 
 svc = {"listen": -1, "clients": [], "session": 0, "system": 0, "notes": {}, "badge": -1, "accounts": {}, "order": [],
-       "nm_state": 0, "exit_timer": 0, "next_note": 0}
+       "nm_state": 0, "exit_timer": 0, "next_note": 0, "flow": {}}
 
 function log(message):
     return eprint("luxos-mail: " + message)
@@ -146,7 +154,7 @@ end
 function new_state(cfg):
     return {"cfg": cfg, "conn": {}, "state": "offline", "kind": "", "error": "", "password": "", "watch": [], "backoff": 0,
             "retry": 0, "idle_timer": 0, "poll_timer": 0, "debounce": 0, "boxes": [], "started": False,
-            "note": {"id": 0, "pending": []}}
+            "note": {"id": 0, "pending": []}, "access": "", "access_exp": 0}
 end
 
 function status_of(st):
@@ -206,7 +214,100 @@ end
 
 # Chyby, po kterych se samo znovu nezkousi (cekani na uzivatele: nove heslo, prihlaseni k LuxAI)
 function blocked_kind(kind):
-    return kind in ["auth", "oauthonly", "nopassword", "luxai_session", "luxai_signedout", "luxai_denied", "nooauth"]
+    return kind in ["auth", "oauthonly", "nopassword", "luxai_session", "luxai_signedout", "luxai_denied", "nooauth",
+                    "oauth_expired", "oauth_config"]
+end
+
+function is_oauth(cfg):
+    return cfg.get("auth", "") == "oauth"
+end
+
+# ---- ucty s prihlasenim u poskytovatele (OAuth2) ---------------------------------------------------------------
+
+# Poskytovatel uctu s client ID, kterym byl token vydan (obnovovaci token patri tomuto klientovi)
+function account_provider(cfg):
+    o = cfg.get("oauth", {})
+    if type(o) != "Dictionary":
+        o = {}
+    end
+    p = oauth.provider(String(o.get("provider", "")))
+    if len(p) == 0 or String(o.get("client_id", "")) == "":
+        call imap.fail("oauth_config", "The sign-in provider of this account is not configured.")
+    end
+    if p["client_id"] != o["client_id"]:
+        p["client_id"] = o["client_id"]
+        p["client_secret"] = String(o.get("client_secret", ""))
+    end
+    return p
+end
+
+# Platny pristupovy token: [token, novy?]. Obnovi ho, kdyz chybi, brzy vyprsi nebo force.
+function oauth_access(st, force):
+    if not force and st["access"] != "" and st["access_exp"] - now() > 300:
+        return [st["access"], False]
+    end
+    cfg = st["cfg"]
+    p = account_provider(cfg)
+    rt = secret.lookup(cfg["id"])
+    if rt == "":
+        call imap.fail("oauth_expired", "The sign-in is not in the keyring.")
+    end
+    r = oauth.refresh(p, rt)
+    if not r["ok"]:
+        st["access"] = ""
+        call imap.fail(r["kind"], r["error"])
+    end
+    # rotace obnovovaciho tokenu (Microsoft): novy nahradi stary
+    if r["refresh_token"] != "" and r["refresh_token"] != rt:
+        stored = secret.store(cfg["id"], cfg["email"], cfg["imap"]["host"], r["refresh_token"], oauth_label(p, cfg["email"]))
+        if stored != True:
+            call log("account " + cfg["id"] + ": the new sign-in could not be saved in the keyring")
+        end
+    end
+    st["access"] = r["access_token"]
+    st["access_exp"] = now() + r["expires_in"]
+    return [st["access"], True]
+end
+
+function oauth_label(p, email):
+    return "LuxOS Mail (" + p["name"] + "): " + email
+end
+
+# Spojeni a prihlaseni tokenem; MailError pri chybe (spojeni se zavre)
+function token_connect(s, user, token):
+    conn = imap.connect(s["host"], s["port"], s["security"], 15000)
+    try:
+        call imap.login_oauth(conn, user, token, s["port"])
+    else:
+        err = last_error()
+        call imap.close(conn)
+        Error(MailError: String(err).replace("MailError: ", ""))
+    end
+    return conn
+end
+
+# Prihlaseni uctu OAuth; server odmitl ulozeny (ne cerstvy) token -> jednou novy token a znovu
+function oauth_login(st, s):
+    user = String(s.get("user", st["cfg"]["email"]))
+    tok = oauth_access(st, False)
+    conn = {}
+    retry = False
+    err = ""
+    try:
+        conn = token_connect(s, user, tok[0])
+    else:
+        err = String(last_error())
+        retry = imap.error_kind(err)[0] == "auth" and not tok[1]
+    end
+    if err == "":
+        return conn
+    end
+    if not retry:
+        Error(MailError: err.replace("MailError: ", ""))
+    end
+    st["access"] = ""
+    tok = oauth_access(st, True)
+    return token_connect(s, user, tok[0])
 end
 
 # Spojeni a prihlaseni tokenem LuxAI (novy token pri kazdem spojeni; plati 15 minut, otevrene spojeni
@@ -232,9 +333,14 @@ end
 function open_connection(st):
     cfg = st["cfg"]
     s = cfg["imap"]
-    if is_luxai(cfg):
+    if is_luxai(cfg) or is_oauth(cfg):
         call set_state(st, "connecting", "", "")
-        conn = luxai_login(cfg, s)
+        conn = {}
+        if is_oauth(cfg):
+            conn = oauth_login(st, s)
+        else:
+            conn = luxai_login(cfg, s)
+        end
         try:
             call imap.enable_extensions(conn)
         else:
@@ -1128,7 +1234,7 @@ end
 function end_op(st, err):
     if err != "":
         kind = imap.error_kind(err)
-        if kind[0] == "closed" or kind[0] == "timeout" or kind[0] == "connect" or kind[0] == "tls" or kind[0] == "unavailable" or kind[0].startswith("luxai_"):
+        if kind[0] == "closed" or kind[0] == "timeout" or kind[0] == "connect" or kind[0] == "tls" or kind[0] == "unavailable" or kind[0].startswith("luxai_") or kind[0] == "oauth_server":
             call connection_failed(st, err)
             return 0
         end
@@ -1446,6 +1552,360 @@ function set_password(req):
     return {"ok": True, "state": st["state"]}
 end
 
+# ---- prihlaseni u poskytovatele v prohlizeci (RFC 8252) ------------------------------------------------------------
+# Jedno prihlaseni najednou; nove prihlaseni nebo zavreni okna prihlaseni (oauth_cancel) predchozi zrusi.
+# Po 10 minutach bez presmerovani se naslouchani zavre.
+
+FLOW_SECONDS = 600
+FLOW_MAX_CONNS = 16
+
+function unwatch(w):
+    if len(w) == 2:
+        call glib.source_remove(w[0])
+        call glib.release(w[1])
+    end
+    return 0
+end
+
+function close_flow_conn(flow, c):
+    call unwatch(c["watch"])
+    c["watch"] = []
+    if c["fd"] >= 0:
+        safe:
+            call net.close(c["fd"])
+        end
+        c["fd"] = -1
+    end
+    if c in flow["conns"]:
+        call flow["conns"].remove(c)
+    end
+    return 0
+end
+
+function close_flow(flow):
+    for c in flow["conns"].copy():
+        call close_flow_conn(flow, c)
+    end
+    for w in flow["watches"]:
+        call unwatch(w)
+    end
+    flow["watches"] = []
+    for fd in flow["listeners"]:
+        safe:
+            call net.close(fd)
+        end
+    end
+    flow["listeners"] = []
+    if flow["timer"] != 0:
+        call glib.source_remove(flow["timer"])
+        flow["timer"] = 0
+    end
+    flow["done"] = True
+    if len(svc["flow"]) > 0 and svc["flow"]["id"] == flow["id"]:
+        svc["flow"] = {}
+    end
+    return 0
+end
+
+function flow_event(flow, result):
+    ev = {"event": "oauth_done", "flow": flow["id"], "provider": flow["provider"]["id"], "ok": result.get("ok", False),
+          "account": result.get("account", ""), "email": result.get("email", flow["email"]), "kind": result.get("kind", ""),
+          "error": result.get("error", ""), "reauth": flow["account"] != ""}
+    call broadcast(ev)
+    return 0
+end
+
+function on_flow_timeout(flow):
+    flow["timer"] = 0
+    if flow["done"]:
+        return False
+    end
+    call close_flow(flow)
+    call flow_event(flow, {"ok": False, "kind": "oauth_timeout", "error": "The sign-in in the browser did not finish in time."})
+    return False
+end
+
+function oauth_start(req):
+    id = String(req.get("provider", ""))
+    p = oauth.available(id)
+    if len(p) == 0:
+        return {"ok": False, "kind": "oauth_config", "error": "Signing in with this provider is not configured."}
+    end
+    account = String(req.get("account", ""))
+    email = String(req.get("email", "")).strip()
+    if account != "":
+        st = account_state(account)
+        email = st["cfg"]["email"]
+    end
+    if len(svc["flow"]) > 0:
+        call close_flow(svc["flow"])
+    end
+    listeners = []
+    port = 0
+    ok = True
+    try:
+        fd = net.tcp_listen("127.0.0.1", p["redirect_port"], 16)
+        listeners.append(fd)
+        port = net.local_address(fd)[1]
+    else:
+        ok = False
+    end
+    if not ok:
+        return {"ok": False, "kind": "oauth_listen", "error": String(last_error())}
+    end
+    # "localhost" muze prohlizec prelozit i na ::1: naslouchat i tam (kdyz IPv6 je)
+    if p["redirect_host"] == "localhost":
+        safe:
+            listeners.append(net.tcp_listen("::1", port, 16))
+        end
+    end
+    flow = {"id": oauth.random_token(9), "provider": p, "port": port, "state": oauth.random_token(24),
+            "verifier": oauth.random_token(48), "email": email, "name": String(req.get("name", "")).strip(),
+            "account": account, "listeners": listeners, "watches": [], "conns": [], "timer": 0, "done": False}
+    for fd in listeners:
+        call net.set_nonblocking(fd, True)
+        flow["watches"].append(glib.fd_add_data(fd, 1, on_flow_accept, flow))
+    end
+    flow["timer"] = glib.timeout_add_seconds_data(FLOW_SECONDS, on_flow_timeout, flow)
+    svc["flow"] = flow
+    url = oauth.authorize_url(p, port, flow["state"], flow["verifier"], email)
+    return {"ok": True, "flow": flow["id"], "url": url, "port": port}
+end
+
+function oauth_cancel(req):
+    flow = svc["flow"]
+    if len(flow) > 0 and (req.get("flow", "") == "" or req.get("flow", "") == flow["id"]):
+        call close_flow(flow)
+    end
+    return {"ok": True}
+end
+
+function on_flow_accept(flow, fd, condition):
+    if flow["done"]:
+        return True
+    end
+    loop:
+        r = []
+        safe:
+            r = net.accept(fd, 0)
+        end
+        if len(r) == 0:
+            break
+        end
+        # jen loopback (naslouchame jen na 127.0.0.1/::1, pro jistotu)
+        if r[1] != "127.0.0.1" and r[1] != "::1":
+            safe:
+                call net.close(r[0])
+            end
+            continue
+        end
+        if len(flow["conns"]) >= FLOW_MAX_CONNS:
+            call close_flow_conn(flow, flow["conns"][0])
+        end
+        call net.set_nonblocking(r[0], True)
+        c = {"fd": r[0], "buf": ByteArray(), "watch": []}
+        flow["conns"].append(c)
+        c["watch"] = glib.fd_add_data(r[0], 1 + 8 + 16, on_flow_data, [flow, c])
+    end
+    return True
+end
+
+function flow_reply(flow, c, status, reason, title, text, ok):
+    body = oauth.page(i18n.lang(), title, text, i18n.T("Return to Mail"), ok)
+    if c["fd"] >= 0:
+        call mb.send(c["fd"], oauth.http_response(status, reason, body))
+    end
+    call close_flow_conn(flow, c)
+    return 0
+end
+
+function on_flow_data(pair, fd, condition):
+    flow = pair[0]
+    c = pair[1]
+    if c["fd"] < 0 or flow["done"]:
+        return True
+    end
+    data = mb.recv(c["fd"], 16384)
+    if data == False:
+        return True
+    end
+    if len(data) == 0:
+        call close_flow_conn(flow, c)
+        return True
+    end
+    c["buf"] = mb.concat(c["buf"], data)
+    if len(c["buf"]) > 32768:
+        call flow_reply(flow, c, 400, "Bad Request", i18n.T("Signing in did not finish"), i18n.T("The browser sent an invalid request."), False)
+        return True
+    end
+    text = net.text(c["buf"])
+    if text.find("\r\n\r\n") < 0 and text.find("\n\n") < 0:
+        return True
+    end
+    r = oauth.parse_request_line(text)
+    if len(r) == 0 or r["method"] != "GET":
+        call flow_reply(flow, c, 400, "Bad Request", i18n.T("Signing in did not finish"), i18n.T("The browser sent an invalid request."), False)
+        return True
+    end
+    if r["path"] != "/":
+        # napr. /favicon.ico: nic, cekat dal na presmerovani
+        if c["fd"] >= 0:
+            call mb.send(c["fd"], "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+        end
+        call close_flow_conn(flow, c)
+        return True
+    end
+    q = r["query"]
+    got = String(q.get("state", ""))
+    if got == "" or len(got) != len(flow["state"]) or not crypto.constant_time_equal(got, flow["state"]):
+        # cizi nebo stara adresa: neukoncit probihajici prihlaseni
+        call flow_reply(flow, c, 400, "Bad Request", i18n.T("Signing in did not finish"), i18n.T("This sign-in page is out of date. Return to Mail and start signing in again."), False)
+        return True
+    end
+    result = {}
+    if "error" in q:
+        kind = "oauth_failed"
+        if q["error"] == "access_denied":
+            kind = "oauth_denied"
+        end
+        detail = String(q["error"]) + ": " + String(q.get("error_description", ""))
+        result = {"ok": False, "kind": kind, "error": oauth_clean(detail)}
+    elif String(q.get("code", "")) == "" or len(q["code"]) > 4096:
+        result = {"ok": False, "kind": "oauth_failed", "error": "The provider sent no authorization code."}
+    else:
+        try:
+            result = complete_flow(flow, q["code"])
+        else:
+            kind = imap.error_kind(last_error())
+            result = {"ok": False, "kind": kind[0], "error": kind[1]}
+        end
+    end
+    name = flow["provider"]["name"]
+    if result.get("ok", False):
+        call log("sign-in with " + name + ": account " + result["account"] + " added")
+    else:
+        call log("sign-in with " + name + " failed: " + String(result.get("kind", "")) + ": " + String(result.get("error", "")))
+    end
+    # naslouchani a ostatni spojeni zavrit; toto spojeni jeste dostane stranku
+    call flow["conns"].remove(c)
+    call close_flow(flow)
+    flow["conns"].append(c)
+    if result.get("ok", False):
+        call flow_reply(flow, c, 200, "OK", i18n.T("You are signed in"), i18n.TF("Mail is now connected to your %s account %s. You can close this page and return to Mail.", [name, result.get("email", "")]), True)
+    elif result.get("kind", "") == "oauth_denied":
+        call flow_reply(flow, c, 200, "OK", i18n.T("Signing in was cancelled"), i18n.TF("Mail did not get access to your %s account. You can close this page and return to Mail.", [name]), False)
+    else:
+        call flow_reply(flow, c, 200, "OK", i18n.T("Signing in did not finish"), i18n.T("Return to Mail to see what went wrong and try again."), False)
+    end
+    call flow_event(flow, result)
+    if result.get("ok", False):
+        st = svc["accounts"].get(result["account"], None)
+        if st != None:
+            # stazeni posty az po odpovedi prohlizeci
+            call glib.timeout_add_data(50, on_start_timer, st)
+        end
+    end
+    return True
+end
+
+function oauth_clean(text):
+    out = []
+    for ch in String(text)[0:300]:
+        if ord(ch) >= 32 and ord(ch) != 127:
+            out.append(ch)
+        end
+    end
+    return "".join(out)
+end
+
+# Kod z prohlizece -> tokeny -> overeni IMAP -> obnovovaci token do klicenky -> ucet ulozen (bez spojeni,
+# to zacne az po odpovedi prohlizeci). {"ok", "account", "email"} nebo chyba
+function complete_flow(flow, code):
+    p = flow["provider"]
+    r = oauth.exchange_code(p, code, flow["verifier"], flow["port"])
+    if not r["ok"]:
+        return r
+    end
+    if r["refresh_token"] == "":
+        return {"ok": False, "kind": "oauth_server", "error": "The provider sent no refresh token."}
+    end
+    identity = oauth.id_token_identity(r["id_token"])
+    address = oauth.mailbox_address(flow["email"], identity)
+    if address == "" or address.find("@") <= 0:
+        return {"ok": False, "kind": "oauth_failed", "error": "The provider did not tell which mailbox the sign-in is for."}
+    end
+    old = {}
+    if flow["account"] != "":
+        old = account_state(flow["account"])["cfg"]
+        if old["email"].lower() != address.lower():
+            return {"ok": False, "kind": "oauth_other_account", "error": address, "email": address}
+        end
+        address = old["email"]
+    end
+    s = {"host": p["imap"]["host"], "port": p["imap"]["port"], "security": p["imap"]["security"], "user": address}
+    if len(old) > 0:
+        s = old["imap"]
+    end
+    conn = token_connect(s, String(s.get("user", address)), r["access_token"])
+    call imap.logout(conn)
+    id = store.account_id(address)
+    stored = secret.store(id, address, s["host"], r["refresh_token"], oauth_label(p, address))
+    if stored != True:
+        call imap.fail("keyring", String(stored))
+    end
+    out = []
+    for a in store.load_accounts():
+        if a["id"] != id:
+            out.append(a)
+        end
+    end
+    smtp = {}
+    if len(p["smtp"]) > 0:
+        smtp = {"host": p["smtp"]["host"], "port": p["smtp"]["port"], "security": p["smtp"]["security"], "user": address, "auth": "xoauth2"}
+    end
+    name = flow["name"]
+    if len(old) > 0:
+        name = String(old.get("name", ""))
+        if len(old.get("smtp", {})) > 0:
+            smtp = old["smtp"]
+        end
+    end
+    cfg = {"id": id, "email": address, "name": name, "auth": "oauth", "provider": p["id"], "imap": s, "smtp": smtp,
+           "oauth": {"provider": p["id"], "client_id": p["client_id"], "client_secret": p["client_secret"]}}
+    if len(provider.info(p["id"])) == 0:
+        call cfg.pop("provider")
+    end
+    out.append(cfg)
+    call store.save_accounts(out)
+    st = {}
+    if id in svc["accounts"]:
+        st = svc["accounts"][id]
+        call disconnect(st)
+        st["cfg"] = cfg
+        st["backoff"] = 0
+        st["password"] = ""
+    else:
+        svc["order"].append(id)
+        st = new_state(cfg)
+        svc["accounts"][id] = st
+    end
+    st["access"] = r["access_token"]
+    st["access_exp"] = now() + r["expires_in"]
+    call set_state(st, "connecting", "", "")
+    return {"ok": True, "account": id, "email": address}
+end
+
+# Poskytovatele s prihlasenim v prohlizeci (okno: tlacitko "Prihlasit se ..."); bez client ID nejsou v seznamu
+function oauth_providers(req):
+    out = []
+    for p in oauth.providers().values():
+        if len(oauth.available(p["id"])) > 0:
+            out.append(p["id"])
+        end
+    end
+    return {"ok": True, "providers": out}
+end
+
 function remove_account(req):
     id = req.get("account", "")
     if id in svc["accounts"]:
@@ -1485,6 +1945,12 @@ function handle(req):
         return add_luxai_account(req)
     elif op == "retry_account":
         return retry_account(req)
+    elif op == "oauth_start":
+        return oauth_start(req)
+    elif op == "oauth_cancel":
+        return oauth_cancel(req)
+    elif op == "oauth_providers":
+        return oauth_providers(req)
     elif op == "remove_account":
         return remove_account(req)
     elif op == "reconnect":

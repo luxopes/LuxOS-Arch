@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Scanner (eSCL/AirScan)
 Sheet-fed scanner	Scanner à défilement
 Film scanner	Scanner de films
 Handheld scanner	Scanner portatif
+%s accepts only “Sign in with %s”, not a password.	%s n’accepte que « Se connecter avec %s », pas de mot de passe.
+%s did not accept the sign-in for %s. Sign in again.	%s n’a pas accepté la connexion pour %s. Reconnectez-vous.
+Cannot reach %s to renew the sign-in. Mail tries again later.	Impossible de joindre %s pour renouveler la connexion. Mail réessaiera plus tard.
+Cannot reach %s. Check your internet connection.	Impossible de joindre %s. Vérifiez votre connexion à Internet.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Continuez dans le navigateur web. Mail ajoute le compte dès que vous êtes connecté.
+Mail could not prepare signing in on this computer.	Mail n’a pas pu préparer la connexion sur cet ordinateur.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Mail n’a pas obtenu l’accès à votre compte %s. Vous pouvez fermer cette page et revenir à Mail.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Mail est maintenant connecté à votre compte %s %s. Vous pouvez fermer cette page et revenir à Mail.
+Opening the web browser…	Ouverture du navigateur web…
+Return to Mail	Revenir à Mail
+Return to Mail to see what went wrong and try again.	Revenez à Mail pour voir ce qui n’a pas fonctionné et réessayez.
+Sign In Again to %s…	Se reconnecter à %s…
+Sign In Again…	Se reconnecter…
+Sign in with %s	Se connecter avec %s
+Sign in with your %s account in your web browser. Mail never sees your password.	Connectez-vous avec votre compte %s dans le navigateur web. Mail ne voit jamais votre mot de passe.
+Signing in did not finish	La connexion n’a pas abouti
+Signing in in the browser did not finish in time. Try again.	La connexion dans le navigateur n’a pas abouti à temps. Réessayez.
+Signing in was cancelled	La connexion a été annulée
+Signing in with %s failed.	La connexion avec %s a échoué.
+Signing in with %s is not set up on this computer.	La connexion avec %s n’est pas configurée sur cet ordinateur.
+Signing in with %s was cancelled in the browser.	La connexion avec %s a été annulée dans le navigateur.
+The browser sent an invalid request.	Le navigateur a envoyé une requête non valide.
+The mail server did not accept the %s sign-in.	Le serveur de messagerie n’a pas accepté la connexion %s.
+The sign-in could not be saved in the keyring.	La connexion n’a pas pu être enregistrée dans le trousseau.
+This sign-in page is out of date. Return to Mail and start signing in again.	Cette page de connexion est périmée. Revenez à Mail et recommencez la connexion.
+Use an app password instead	Utiliser plutôt un mot de passe d’application
+You are signed in	Vous êtes connecté
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Vous vous êtes connecté dans le navigateur en tant que %s, mais ce compte est %s. Connectez-vous avec le même compte.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Votre connexion %s pour %s a expiré. Reconnectez-vous pour continuer à recevoir les nouveaux messages.

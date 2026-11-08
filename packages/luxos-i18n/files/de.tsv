@@ -4786,3 +4786,32 @@ Scanner (eSCL/AirScan)	Scanner (eSCL/AirScan)
 Sheet-fed scanner	Einzugsscanner
 Film scanner	Filmscanner
 Handheld scanner	Handscanner
+%s accepts only “Sign in with %s”, not a password.	%s akzeptiert nur „Mit %s anmelden“, kein Passwort.
+%s did not accept the sign-in for %s. Sign in again.	%s hat die Anmeldung für %s nicht akzeptiert. Melden Sie sich erneut an.
+Cannot reach %s to renew the sign-in. Mail tries again later.	%s ist zum Erneuern der Anmeldung nicht erreichbar. Mail versucht es später erneut.
+Cannot reach %s. Check your internet connection.	%s ist nicht erreichbar. Prüfen Sie Ihre Internetverbindung.
+Continue in your web browser. Mail adds the account as soon as you have signed in.	Fahren Sie im Webbrowser fort. Mail fügt das Konto hinzu, sobald Sie angemeldet sind.
+Mail could not prepare signing in on this computer.	Mail konnte die Anmeldung auf diesem Computer nicht vorbereiten.
+Mail did not get access to your %s account. You can close this page and return to Mail.	Mail hat keinen Zugriff auf Ihr %s-Konto erhalten. Sie können diese Seite schließen und zu Mail zurückkehren.
+Mail is now connected to your %s account %s. You can close this page and return to Mail.	Mail ist jetzt mit Ihrem %s-Konto %s verbunden. Sie können diese Seite schließen und zu Mail zurückkehren.
+Opening the web browser…	Webbrowser wird geöffnet …
+Return to Mail	Zurück zu Mail
+Return to Mail to see what went wrong and try again.	Kehren Sie zu Mail zurück, um zu sehen, was schiefgelaufen ist, und versuchen Sie es erneut.
+Sign In Again to %s…	Erneut bei %s anmelden …
+Sign In Again…	Erneut anmelden …
+Sign in with %s	Mit %s anmelden
+Sign in with your %s account in your web browser. Mail never sees your password.	Melden Sie sich im Webbrowser mit Ihrem %s-Konto an. Mail sieht Ihr Passwort nie.
+Signing in did not finish	Die Anmeldung wurde nicht abgeschlossen
+Signing in in the browser did not finish in time. Try again.	Die Anmeldung im Browser wurde nicht rechtzeitig abgeschlossen. Versuchen Sie es erneut.
+Signing in was cancelled	Die Anmeldung wurde abgebrochen
+Signing in with %s failed.	Die Anmeldung mit %s ist fehlgeschlagen.
+Signing in with %s is not set up on this computer.	Die Anmeldung mit %s ist auf diesem Computer nicht eingerichtet.
+Signing in with %s was cancelled in the browser.	Die Anmeldung mit %s wurde im Browser abgebrochen.
+The browser sent an invalid request.	Der Browser hat eine ungültige Anfrage gesendet.
+The mail server did not accept the %s sign-in.	Der Mailserver hat die Anmeldung mit %s nicht akzeptiert.
+The sign-in could not be saved in the keyring.	Die Anmeldung konnte nicht im Schlüsselbund gespeichert werden.
+This sign-in page is out of date. Return to Mail and start signing in again.	Diese Anmeldeseite ist veraltet. Kehren Sie zu Mail zurück und starten Sie die Anmeldung erneut.
+Use an app password instead	Stattdessen ein App-Passwort verwenden
+You are signed in	Sie sind angemeldet
+You signed in as %s in the browser, but this account is %s. Sign in with the same account.	Sie haben sich im Browser als %s angemeldet, aber dieses Konto ist %s. Melden Sie sich mit demselben Konto an.
+Your %s sign-in for %s has expired. Sign in again to keep getting new mail.	Ihre %s-Anmeldung für %s ist abgelaufen. Melden Sie sich erneut an, um weiterhin neue E-Mails zu erhalten.

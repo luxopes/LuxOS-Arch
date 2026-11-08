@@ -4,8 +4,9 @@
 #   luxos-mail mailto:adresa            psani zatim neni (faze 2): nabidne webmail / zkopirovani adresy
 #   luxos-mail --background             spusti sluzbu na pozadi (luxos-mail-service: IDLE, upozorneni, synchronizace)
 #   luxos-mail --discover EMAIL [--no-probe]   nalezeni serveru (JSON; okno ho spousti pri pridani uctu)
+#   luxos-mail --oauth-config           stahne client ID pro "Prihlasit se ..." z luxos.lux-ai.cz (JSON; okno)
 # Testovaci vstupy (JSON na stdout): --test-render SOUBOR.eml, --test-part SOUBOR.eml CESTA VYSTUP,
-#   --test-imap SOUBOR (odpovedi IMAP), --test-words TEXT, --test-date TEXT, --test-charset SADA SOUBOR
+#   --test-imap SOUBOR (odpovedi IMAP), --test-oauth-providers, --test-oauth-url POSKYTOVATEL PORT EMAIL, --test-words TEXT, --test-date TEXT, --test-charset SADA SOUBOR
 load env, json, net
 load mail_bytes as mb
 load mail_mime as mime
@@ -13,6 +14,7 @@ load mail_imap as imap
 load mail_discover as discover
 load luxos_sys
 load mail_store as store
+load mail_oauth as oauth
 load mail_ui as ui
 
 function arg_or(index, fallback):
@@ -79,6 +81,23 @@ function main():
     elif first == "--discover":
         probe = not ("--no-probe" in args)
         print json.encode(discover.discover(arg_or(2, ""), probe))
+        return 0
+    elif first == "--oauth-config":
+        print json.encode(oauth.fetch_remote())
+        return 0
+    elif first == "--test-oauth-providers":
+        out = {}
+        for p in oauth.providers().values():
+            out[p["id"]] = {"available": len(oauth.available(p["id"])) > 0, "client_id": p["client_id"], "redirect_host": p["redirect_host"],
+                            "imap": p["imap"], "smtp": p["smtp"], "auth_url": p["auth_url"], "token_url": p["token_url"]}
+        end
+        print json.encode({"providers": out, "remote_due": oauth.remote_due()})
+        return 0
+    elif first == "--test-oauth-url":
+        p = oauth.provider(arg_or(2, ""))
+        verifier = oauth.random_token(48)
+        print json.encode({"url": oauth.authorize_url(p, Int(arg_or(3, "0")), "STATE", verifier, arg_or(4, "")), "verifier": verifier,
+                           "challenge": oauth.challenge(verifier)})
         return 0
     elif first == "--test-render":
         print json.encode(mime.render(readbytes(arg_or(2, ""))))
