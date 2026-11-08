@@ -81,7 +81,9 @@ def shots(s):
     port = s.serve_http(Handler)
     srv = "http://127.0.0.1:%d" % port
     cfg = {"locations": [{"name": n, "lat": lat, "lon": lon, "country": c, "tz": "Europe/Prague"}
-                         for n, lat, lon, c, _s, _k in PLACES], "units": "auto", "selected": 0}
+                         for n, lat, lon, c, _s, _k in PLACES], "selected": 0,
+           # vyslovna volba jednotek: jinak by pres oblohu byl jednorazovy dotaz "Which unit do you prefer?"
+           "units": "metric", "units_asked": True, "version": 2}
     s.write(".config/luxos/weather.json", json.dumps(cfg, ensure_ascii=False))
     env = {"LUXOS_WEATHER_API": srv + "/v1/forecast", "LUXOS_WEATHER_GEO": srv + "/v1/search",
            "LUXOS_WEATHER_IP": srv + "/ip", "LUXOS_WEATHER_TZ": "Europe/Prague",

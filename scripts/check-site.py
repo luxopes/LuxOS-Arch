@@ -94,6 +94,18 @@ class Page(HTMLParser):
             self.links.append(a["href"])
         elif tag in ("script", "img", "source") and a.get("src"):
             self.links.append(a["src"])
+        # obrazky pro druhy vzhled a velikosti (srcset, data-light/-dark, data-full-dark): soubor musi existovat,
+        # jinak by se snimek po prepnuti vzhledu nebo na jinem displeji nenacetl
+        if tag in ("img", "source"):
+            for k in ("srcset", "data-light-srcset", "data-dark-srcset"):
+                for part in (a.get(k) or "").split(","):
+                    if part.strip():
+                        self.links.append(part.split()[0])
+            for k in ("data-light", "data-dark"):
+                if a.get(k):
+                    self.links.append(a[k])
+        if tag == "a" and a.get("data-full-dark"):
+            self.links.append(a["data-full-dark"])
         if tag == "img" and "alt" not in a:
             self.errors.append(f"img without alt: {a.get('src')}")
 
