@@ -1,7 +1,11 @@
 #!/bin/bash
 # LuxAI - vytvoreni zdrojoveho archivu pro PKGBUILD z pracovni kopie nativni (LSL) aplikace
 #
-#   packages/apps/luxai/make-source.sh [CESTA_K_LUXAI]     (vychozi ~/Projects/LuxAI-lsl-finish)
+#   packages/apps/luxai/make-source.sh [CESTA_K_LUXAI]     (vychozi ~/Projects/LuxAI-wt-rich)
+#
+# Od 2.0.2-4 se archiv dela z vetve rich-blocks (~/Projects/LuxAI-wt-rich): vychazi z vydane 2.0.2
+# (root-auto-security) + oprava stavoveho radku; pracovni kopie LuxAI-lsl-finish je starsi 2.0.1
+# s rozpracovanymi zmenami vlastnika a do balicku nepatri.
 #
 # Aplikace nema verejny repozitar, proto PKGBUILD bere zdroj z lokalniho archivu
 # luxai-<verze>.tar.gz vedle sebe (verze ze souboru VERSION). Archiv obsahuje jen to, co je
@@ -11,7 +15,7 @@
 # a jejich vysledek je v docs/lsl-verification.json.
 set -euo pipefail
 here=$(dirname "$(readlink -f "$0")")
-src=${1:-$HOME/Projects/LuxAI-lsl-finish}
+src=${1:-$HOME/Projects/LuxAI-wt-rich}
 [[ -f $src/VERSION && -f $src/lsl/main.lsl ]] || { echo "No native LuxAI at $src" >&2; exit 1; }
 ver=$(tr -d '[:space:]' <"$src/VERSION")
 [[ $ver =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid VERSION in $src" >&2; exit 1; }
@@ -20,7 +24,7 @@ out=$here/luxai-$ver.tar.gz
 tar -C "$src" --exclude=__pycache__ --exclude='*.pyc' --transform "s,^,luxai-$ver/," \
     --owner=0 --group=0 --numeric-owner --mtime=@0 --sort=name -czf "$out" \
     VERSION README.md lsl data i18n tools/build-lsl.sh \
-    docs/LSL-MIGRATION.md docs/LSL-ISSUES.md docs/REMOTE-SESSION.md docs/lsl-verification.json
+    docs/LSL-MIGRATION.md docs/LSL-ISSUES.md docs/REMOTE-SESSION.md docs/rich-blocks.md docs/lsl-verification.json
 sha=$(sha256sum "$out" | cut -d' ' -f1)
 sed -i "s/^pkgver=.*/pkgver=$ver/; s/^sha256sums=.*/sha256sums=('$sha')/" "$here/PKGBUILD"
 echo "$out ($ver, sha256 $sha); PKGBUILD updated"

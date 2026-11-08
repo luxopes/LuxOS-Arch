@@ -2,19 +2,20 @@
 # LuxAI - AI asistent pro LuxOS (chat a agent, ktery umi pracovat s pocitacem), nativni program v LSL + GTK 3.
 # Od 2.0.0 nahrazuje Python verzi (1.0.0): stejne nazvy, cesty pomocniku spravce, polkit politika,
 # nastaveni, ucet a historie (~/.config/luxai, ~/.local/share/luxai) beze zmeny.
-# Zdrojovy archiv vytvori make-source.sh z pracovni kopie ~/Projects/LuxAI-lsl-finish (aplikace nema
-# verejny repozitar); preklada se tady prekladacem LSL jako programy v luxos-desktop.
+# Zdrojovy archiv vytvori make-source.sh (od 2.0.2-4 z vetve rich-blocks v ~/Projects/LuxAI-wt-rich;
+# aplikace nema verejny repozitar); preklada se tady prekladacem LSL jako programy v luxos-desktop.
 
 pkgname=luxai
 pkgver=2.0.2
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
 url="https://lux-ai.cz"
 license=(custom)
 # knihovny podle readelf -d (gtk3 -> gdk-pixbuf2, glib2; curl), programy volane za behu:
 # bash (prikazy agenta), setsid z util-linux (spousteni aplikaci), mv z coreutils, pkexec z polkitu
-depends=(gtk3 glib2 gdk-pixbuf2 curl bash coreutils util-linux ca-certificates
+# librsvg: SVG v bohatych odpovedich (```svg, dlopen az pri prvnim vykresleni; GTK ji nacita i pro ikony)
+depends=(gtk3 glib2 gdk-pixbuf2 cairo pango librsvg curl bash coreutils util-linux ca-certificates
          xdotool wmctrl polkit luxos-account luxos-i18n luxos-docs)
 # lsl >= 0.10.6: prekladac (balik z [luxos-apps], packages/apps/lsl), jako u luxos-desktop
 makedepends=('lsl>=0.10.6')
@@ -27,7 +28,7 @@ optdepends=('libnotify: desktop notifications from the agent'
 options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('e7436e8005e82d95f04fa8d17efbfc4f0a28ed85dbf4a2ac239245722e6cb927')
+sha256sums=('e716248f9298780d9f508bd139d04efa58eb70b2e202c1043c9c603b6ff25a14')
 
 build() {
     cd "$pkgname-$pkgver"
@@ -74,7 +75,8 @@ package() {
         install -Dm644 "data/icons/luxai-$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x$s/apps/luxai.png"
     done
     install -Dm644 README.md "$pkgdir/usr/share/doc/luxai/README.md"
+    # rich-blocks.md: format bohatych bloku v odpovedich (```chart, ```quiz, ```form ...), i pro web
     install -Dm644 -t "$pkgdir/usr/share/doc/luxai" docs/LSL-MIGRATION.md docs/LSL-ISSUES.md \
-        docs/REMOTE-SESSION.md docs/lsl-verification.json
+        docs/REMOTE-SESSION.md docs/rich-blocks.md docs/lsl-verification.json
     install -Dm644 lsl/LSL-LICENSE.txt "$pkgdir/usr/share/licenses/luxai/LSL-LICENSE.txt"
 }
