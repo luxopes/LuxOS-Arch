@@ -41,7 +41,13 @@ BASE = "https://luxos.lux-ai.cz"
 FINGERPRINT = "FD18 5DAB 7701 40E8 9C37 275E 7035 CFDF DCA6 C991"
 LANGS = ("en", "cs")
 OTHER = {"en": "cs", "cs": "en"}
-OG_IMAGE = BASE + "/assets/shots/desktop-dark.webp"
+# nahled odkazu (1200x630 JPEG z plochy, scripts/site-screenshots) - WebP nekteri klienti v nahledech neukazi
+OG_IMAGE = BASE + "/assets/og-image.jpg"
+# logo LuxOS ze systemu (packages/luxos-branding/files/logo/luxos-logo.svg, tri zahnute cepele); oriznute
+# na tvar (viewBox), barvy prechodu z CSS (--logo-1..3: svetly a tmavy vzhled), vlozene primo do stranky
+LOGO_PATH = ("M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91Z"
+             "M8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18Z"
+             "M248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z")
 # Stranky Posty LuxOS a pravni stranky (overeni aplikace OAuth u Googlu: domovska stranka aplikace,
 # zasady ochrany soukromi a podminky na overene domene). Sablony site/pages/<nazev>.<jazyk>.html,
 # datum posledni zmeny zasad a podminek se meni rucne (s obsahem).
@@ -53,24 +59,33 @@ MONTHS_CS = ["ledna", "února", "března", "dubna", "května", "června", "červ
 MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
              "October", "November", "December"]
 
+# Galerie: snimky cele plochy ze scripts/site-screenshots (svetly i tmavy vzhled, prepina se s webem);
+# <nazev>-<light|dark>{-small,-960,}.webp = 640, 960 a 1920 px; cestina ma vlastni snimky v shots/cs/
 GALLERY = {
     "cs": [
-        ("launchpad", "Launchpad – všechny aplikace a dotaz pro LuxAI", True),
-        ("control-center", "Ovládací centrum", True),
-        ("calendar", "Kalendář z horní lišty", True),
-        ("store", "Lux Store – aplikace jedním kliknutím", True),
-        ("files-terminal", "Soubory a Terminál", False),
-        ("luxai", "LuxAI – asistent, který rozumí vašemu počítači", False),
+        ("launchpad", "Launchpad – všechny aplikace a dotaz pro LuxAI"),
+        ("control-center", "Ovládací centrum"),
+        ("files", "Soubory"),
+        ("store", "Obchod LuxOS – aplikace jedním kliknutím"),
+        ("weather", "Počasí"),
+        ("luxai", "LuxAI – asistent, který rozumí vašemu počítači"),
+        ("terminal", "Terminál"),
+        ("settings", "Nastavení"),
+        ("calendar", "Kalendář z horní lišty"),
     ],
     "en": [
-        ("launchpad", "Launchpad – all apps and a question box for LuxAI", True),
-        ("control-center", "Control Center", True),
-        ("calendar", "Calendar from the top bar", True),
-        ("store", "Lux Store – apps in one click", True),
-        ("files-terminal", "Files and Terminal", False),
-        ("luxai", "LuxAI – an assistant that understands your computer", False),
+        ("launchpad", "Launchpad – all apps and a question box for LuxAI"),
+        ("control-center", "Control Center"),
+        ("files", "Files"),
+        ("store", "LuxOS Store – apps in one click"),
+        ("weather", "Weather"),
+        ("luxai", "LuxAI – an assistant that understands your computer"),
+        ("terminal", "Terminal"),
+        ("settings", "Settings"),
+        ("calendar", "Calendar from the top bar"),
     ],
 }
+SHOT_SIZES = (("-small", 640), ("-960", 960), ("", 1920))
 
 # texty rozhrani (hlavicka, paticka, dokumentace)
 T = {
@@ -78,7 +93,7 @@ T = {
         "locale": "en_US", "home": "Home", "features": "Features", "gallery": "Gallery",
         "download": "Download", "docs": "Documentation", "changes": "Changes", "luxai": "LuxAI",
         "faq": "FAQ", "repos": "Repositories", "kernel": "Kernel on GitHub",
-        "home_aria": "LuxOS – home", "main_nav": "Main navigation", "mobile_nav": "Mobile navigation",
+        "hero_alt": "LuxOS desktop with the Dock and the top bar", "home_aria": "LuxOS – home", "main_nav": "Main navigation", "mobile_nav": "Mobile navigation",
         "theme": "Switch between light and dark mode", "menu": "Open menu", "skip": "Skip to content",
         "lang_label": "Language", "docs_aria": "Documentation", "docs_h1": "Documentation",
         "docs_lead": ("The LuxOS manual: the same pages LuxOS ships offline (package luxos-docs) and "
@@ -114,7 +129,7 @@ T = {
         "locale": "cs_CZ", "home": "Domů", "features": "Funkce", "gallery": "Galerie",
         "download": "Stáhnout", "docs": "Dokumentace", "changes": "Změny", "luxai": "LuxAI",
         "faq": "Časté otázky", "repos": "Repozitáře", "kernel": "Jádro na GitHubu",
-        "home_aria": "LuxOS – domů", "main_nav": "Hlavní navigace", "mobile_nav": "Mobilní navigace",
+        "hero_alt": "Plocha LuxOS s Dockem a horní lištou", "home_aria": "LuxOS – domů", "main_nav": "Hlavní navigace", "mobile_nav": "Mobilní navigace",
         "theme": "Přepnout světlý a tmavý režim", "menu": "Otevřít nabídku", "skip": "Přejít na obsah",
         "lang_label": "Jazyk", "docs_aria": "Dokumentace", "docs_h1": "Dokumentace",
         "docs_lead": ("Příručka LuxOS: stejné stránky, jaké má LuxOS offline (balík luxos-docs) a ze kterých čerpá "
@@ -182,6 +197,33 @@ def clip(text, n=158):
         return text
     cut = text[:n - 1].rsplit(" ", 1)[0].rstrip(",;:-–")
     return cut + "…"
+
+
+def logo_svg(uid, cls="logo"):
+    """Logo LuxOS jako vlozene SVG (barvy z CSS podle vzhledu); uid = jedinecne id prechodu na strance."""
+    return (f'<svg class="{cls}" viewBox="4 26 249 204" aria-hidden="true" focusable="false">'
+            f'<defs><linearGradient id="lg-{uid}" gradientUnits="userSpaceOnUse" x1="40" y1="30" x2="225" y2="230">'
+            '<stop offset="0" class="ls1"/><stop offset=".5" class="ls2"/><stop offset="1" class="ls3"/>'
+            f'</linearGradient></defs><path fill="url(#lg-{uid})" d="{LOGO_PATH}"/></svg>')
+
+
+def shot_dir(lang):
+    """Snimky galerie a notebooku: cestina ze shots/cs/, pokud tam jsou (jinak anglicke)."""
+    if lang != "en" and os.path.isdir(os.path.join(SITE, "assets", "shots", lang)):
+        return f"/assets/shots/{lang}/"
+    return "/assets/shots/"
+
+
+def shot_srcset(base, name, variant, sizes=SHOT_SIZES):
+    return ", ".join(f"{base}{name}-{variant}{suffix}.webp {w}w" for suffix, w in sizes)
+
+
+def favicon_ico(png_path):
+    """/favicon.ico (prohlizece a ctecky se na nej ptaji i bez odkazu): ICO s jednim obrazkem PNG 32x32."""
+    import struct
+    with open(png_path, "rb") as f:
+        png = f.read()
+    return struct.pack("<HHH", 0, 1, 1) + struct.pack("<BBBBHHII", 32, 32, 0, 0, 1, 32, len(png), 22) + png
 
 
 def write(rel, text):
@@ -377,7 +419,9 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
   <meta name="description" content="{e(clip(desc))}">
 {robots}  <link rel="canonical" href="{canon}">
 {hreflang_links(alt)}
-  <link rel="icon" href="/assets/luxos-logo.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <meta property="og:site_name" content="LuxOS">
   <meta property="og:type" content="{og_type}">
   <meta property="og:title" content="{e(full_title)}">
@@ -385,6 +429,8 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
   <meta property="og:url" content="{canon}">
   <meta property="og:locale" content="{t['locale']}">
 {og_alt}  <meta property="og:image" content="{OG_IMAGE}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="{e('LuxOS desktop' if lang == 'en' else 'Plocha LuxOS')}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{e(full_title)}">
@@ -399,7 +445,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
   <a class="skip-link" href="#content">{e(t["skip"])}</a>
   <div class="site-bg" aria-hidden="true"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="blue-horizon"></div></div>
   <header class="site-header shell">
-    <a class="brand" href="{hu}" aria-label="{e(t["home_aria"])}"><img src="/assets/luxos-logo.svg" alt="" width="32" height="32"><span>LuxOS</span></a>
+    <a class="brand" href="{hu}" aria-label="{e(t["home_aria"])}">{logo_svg("brand")}<span>LuxOS</span></a>
     <nav class="desktop-nav" aria-label="{e(t["main_nav"])}">{desk}</nav>
     {switch}
     <button class="theme-toggle" aria-label="{e(t["theme"])}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><span class="toggle-track"><span class="toggle-knob"></span></span></button>
@@ -408,7 +454,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
   <nav class="mobile-nav shell" aria-label="{e(t["mobile_nav"])}">{mobile}</nav>
   <main id="content" class="shell">
 {body}
-    <footer><span>© 2026 LuxOS</span><span class="footer-links">{foot_links}</span></footer>
+    <footer><span class="footer-brand">{logo_svg("footer", "logo footer-logo")}© 2026 LuxOS</span><span class="footer-links">{foot_links}</span></footer>
   </main>
 {dlg}</body>
 </html>
@@ -572,13 +618,30 @@ def main():
     for lang in LANGS:
         t = T[lang]
         gallery = []
-        for name, caption, has_dark in GALLERY[lang]:
+        sd = shot_dir(lang)
+        small = SHOT_SIZES[:2]
+        for name, caption in GALLERY[lang]:
             c = e(caption)
-            dark = f' data-dark="/assets/shots/{name}-dark-small.webp" data-light="/assets/shots/{name}-light-small.webp"' if has_dark else ""
-            full_dark = f' data-full-dark="/assets/shots/{name}-dark.webp"' if has_dark else ""
-            gallery.append(f'        <a class="gallery-item" href="/assets/shots/{name}-light.webp"{full_dark} data-caption="{c}">'
-                           f'<img src="/assets/shots/{name}-light-small.webp"{dark} width="640" height="360" alt="{c}" loading="lazy">'
-                           f'<span>{c}</span></a>')
+            # svetly vzhled je vychozi v HTML; script.js prepne src/srcset podle vzhledu webu
+            gallery.append(f'        <a class="gallery-item" href="{sd}{name}-light.webp" data-full-dark="{sd}{name}-dark.webp" '
+                           f'data-caption="{c}"><img src="{sd}{name}-light-small.webp" '
+                           f'srcset="{shot_srcset(sd, name, "light", small)}" '
+                           f'sizes="(max-width: 560px) calc(100vw - 32px), (max-width: 1100px) 46vw, 420px" '
+                           f'data-light="{sd}{name}-light-small.webp" data-dark="{sd}{name}-dark-small.webp" '
+                           f'data-light-srcset="{shot_srcset(sd, name, "light", small)}" '
+                           f'data-dark-srcset="{shot_srcset(sd, name, "dark", small)}" '
+                           f'width="640" height="360" alt="{c}" loading="lazy" decoding="async"><span>{c}</span></a>')
+        hero_sizes = SHOT_SIZES[1:]
+        # <picture>: bez JS (a pred nactenim script.js) vybere prohlizec vzhled podle systemu; rucni volbu
+        # na webu prepne script.js (srcset zdroje i obrazku)
+        hero = (f'<picture><source media="(prefers-color-scheme: light)" srcset="{shot_srcset(sd, "desktop", "light", hero_sizes)}" '
+                f'sizes="(max-width: 760px) calc(100vw - 32px), 46vw">'
+                f'<img class="hero-shot" src="{sd}desktop-dark-960.webp" srcset="{shot_srcset(sd, "desktop", "dark", hero_sizes)}" '
+                f'sizes="(max-width: 760px) calc(100vw - 32px), 46vw" '
+                f'data-dark="{sd}desktop-dark-960.webp" data-light="{sd}desktop-light-960.webp" '
+                f'data-dark-srcset="{shot_srcset(sd, "desktop", "dark", hero_sizes)}" '
+                f'data-light-srcset="{shot_srcset(sd, "desktop", "light", hero_sizes)}" '
+                f'width="1920" height="1080" alt="{e(t["hero_alt"])}" fetchpriority="high"></picture>')
         cards = []
         for p in featured:
             d = DOCS_BY_PATH[p]
@@ -591,6 +654,7 @@ def main():
             "ISO_SHA256": iso["sha256"], "FINGERPRINT": FINGERPRINT, "STAMP": stamp,
             "UPDATE_HIDDEN": "" if ver["VERSION"] != iso["version"] else " hidden",
             "GALLERY": "\n".join(gallery), "DOC_CARDS": "\n".join(cards),
+            "HERO_SHOT": hero, "LOGO_HERO": logo_svg("hero", "logo hero-mark"),
             "DOCS": docs_index_url(lang), "CHANGES": changes_url(lang),
         }
         with open(os.path.join(SITE, f"home.{lang}.html")) as f:
@@ -615,7 +679,7 @@ def main():
                   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
                   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
                   "publisher": {"@type": "Organization", "name": "LuxOS", "url": BASE + "/",
-                                "logo": BASE + "/assets/luxos-logo.svg"}}
+                                "logo": BASE + "/assets/icon-192.png"}}
         write(path.lstrip("/") + "index.html",
               shell(lang, path, t["home_title"], t["home_desc"], text.rstrip("\n"), alt, "", stamp, "website",
                     [site_ld, app_ld], home=True, dialog=True))
@@ -716,6 +780,8 @@ def main():
     for name in ("styles.css", "script.js", "usage.js"):
         shutil.copy(os.path.join(SITE, name), os.path.join(OUT, name))
     shutil.copytree(os.path.join(SITE, "assets"), os.path.join(OUT, "assets"))
+    with open(os.path.join(OUT, "favicon.ico"), "wb") as f:
+        f.write(favicon_ico(os.path.join(SITE, "assets", "favicon-32.png")))
     write("sitemap.xml", sitemap_xml(today))
     write("robots.txt", f"User-agent: *\nAllow: /\nDisallow: /download/\n\nSitemap: {BASE}/sitemap.xml\n")
     print(f"site: LuxOS {ver['VERSION']} (ISO {iso['version']}), pages en {PAGE_COUNT['en']}, cs {PAGE_COUNT['cs']}, "

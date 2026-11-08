@@ -25,7 +25,14 @@ const applyTheme = light => {
   const knob = document.querySelector('.toggle-knob');
   if (knob) knob.style.marginLeft = light ? '0' : '10px';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#ecf0fa' : '#080b16');
+  // snimky plochy ve vzhledu webu: src i srcset (jinak by prohlizec dal bral obrazek ze srcset)
   document.querySelectorAll('img[data-dark][data-light]').forEach(img => {
+    const set = light ? img.dataset.lightSrcset : img.dataset.darkSrcset;
+    if (set && img.getAttribute('srcset') !== set) img.setAttribute('srcset', set);
+    // <picture> (notebook na uvodni strance): zdroj podle systemoveho vzhledu musi nest volbu webu
+    if (set && img.parentElement?.tagName === 'PICTURE') {
+      img.parentElement.querySelectorAll('source').forEach(s => { if (s.getAttribute('srcset') !== set) s.setAttribute('srcset', set); });
+    }
     const src = light ? img.dataset.light : img.dataset.dark;
     if (img.getAttribute('src') !== src) img.setAttribute('src', src);
   });
