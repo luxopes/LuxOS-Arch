@@ -126,7 +126,11 @@ class Session:
                          "XDG_CACHE_HOME": os.path.join(self.home, ".cache"),
                          "XDG_STATE_HOME": os.path.join(self.home, ".local", "state"),
                          "LUXOS_I18N_DIR": os.path.join(PACKAGES, "luxos-i18n", "files"),
-                         "PYTHONDONTWRITEBYTECODE": "1"})
+                         "PYTHONDONTWRITEBYTECODE": "1",
+                         # docasny HOME lezi v out/ uvnitr pracovni kopie LuxOS: bez stropu by git (i vyzva
+                         # starship, Lux Code, Textovy editor) nasel nas repozitar a ukazal jeho vetev a cestu
+                         # k HOME vuci nemu; ukazkove repozitare pod HOME (napr. ~/Projects/...) zustavaji videt
+                         "GIT_CEILING_DIRECTORIES": self.tmp})
         self.out_dir = os.path.join(out_dir, app_id)
         self.shots = []
         self.procs = []
