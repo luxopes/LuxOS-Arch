@@ -26,13 +26,22 @@ closing the route also ends it; Esc does not (so it cannot end by accident).
   the map turns with you (**heading up**, your position in the lower part of the map so you see more
   ahead); the compass button switches to **north up** and back (remembered). Dragging the map stops
   following and shows **Re-center**; zooming keeps following.
-- **Smooth movement**: the arrow (and the map following it) glides between positions instead of
-  jumping. On the route the arrow sits on the route line (when the position is within its accuracy);
-  for up to 1.5 seconds after the last position it keeps moving with the phone's speed and direction,
-  then it stops and waits. A new position does not make it jump – the difference is eased in within a
-  fraction of a second, and the map turns along the shortest way. Positions are processed at most
-  5 times per second; the animation draws at most 30 frames per second (about 10 when walking) and
-  only while the arrow moves – without new positions Maps draws nothing.
+- **Smooth movement** (like Google or Apple Maps): the arrow (and the map following it) glides
+  between positions instead of jumping. Between positions it keeps moving with the phone's speed and
+  direction for 1.5 seconds, then slows down smoothly and stops to wait. A new position never makes
+  it jump: the difference in position and speed is eased in within about 0.8 seconds (a critically
+  damped spring, so the arrow never overshoots or jerks); a jump of more than 100 m, or the first
+  position after 20 seconds without signal, is shown at once. **On the route** the arrow sits on the
+  route line (when the position is within 1.5× its accuracy, at most 30 m) and moves along it, so GPS
+  noise does not shake it sideways; when it is a little ahead of the new position it only slows down
+  (or waits a moment) instead of moving back. The arrow and the map turn along the shortest way and
+  gradually through a bend (the direction of the route around the arrow, not of each tiny route
+  segment); below about 0.8 m/s the direction does not change, so a standing phone does not spin the
+  arrow. The accuracy circle grows and shrinks smoothly, and zooming while following zooms around the
+  arrow. Positions are processed at most 5 times per second; the animation draws at most 30 frames
+  per second (about 10 when walking, evenly spaced on the display's refresh), at most 15 with
+  **Battery Saver** and 10 with reduced motion (animations turned off), only while the arrow moves
+  and never while the Maps window is minimised – without new positions Maps draws nothing.
 
 ## Live location
 
