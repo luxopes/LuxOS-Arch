@@ -3,14 +3,39 @@
 # avahi-browse hlasi nove sluzby, po kratke pauze (davka udalosti) probehne luxos-printing-helper sync.
 # Hlida jen _ipp (povinne u IPP Everywhere/AirPrint) a _uscan (eSCL); sync pak projde i _ipps/_uscans.
 # Pameti zabere jen bash a dva male procesy avahi-browse (v C).
+#
+# Pravidelne (po startu a pak kazdych 30 s) luxos-printing-helper autoresume: fronta pozastavena kvuli
+# odpojene nebo vypnute tiskarne se po jejim pripojeni sama povoli a na ulohu cekajici na tiskarnu
+# upozorni oznameni. Python se spusti jen kdyz bezi cupsd (jsou nebo byly ulohy) nebo kdyz je nejaka
+# fronta zastavena - jinak jen systemctl a grep, CUPS se zbytecne neprobouzi.
 set -u
-helper=/usr/lib/luxos/printing/luxos-printing-helper
+helper=${LUXOS_PRINTING_HELPER:-/usr/lib/luxos/printing/luxos-printing-helper}
+conf=${LUXOS_PRINTING_CUPS_CONF:-/etc/cups/printers.conf}
+interval=${LUXOS_PRINTING_WATCH_INTERVAL:-30}
+first=${LUXOS_PRINTING_WATCH_FIRST:-20}
 trap 'kill 0' EXIT
-while IFS= read -r line; do
-    [[ $line == +* ]] || continue
-    # dalsi hlaseni behem 3 s patri ke stejne udalosti (IPv4/IPv6, vic rozhrani)
-    while IFS= read -r -t 3 _more; do :; done
-    "$helper" sync || true
+
+check() {
+    if systemctl is-active --quiet cups.service 2>/dev/null || grep -qs '^State Stopped' "$conf"; then
+        "$helper" autoresume || true
+    fi
+}
+
+next=$((SECONDS + first))
+while :; do
+    wait_s=$((next - SECONDS))
+    ((wait_s < 1)) && wait_s=1
+    if IFS= read -r -t "$wait_s" line; then
+        [[ $line == +* ]] || continue
+        # dalsi hlaseni behem 3 s patri ke stejne udalosti (IPv4/IPv6, vic rozhrani)
+        while IFS= read -r -t 3 _more; do :; done
+        "$helper" sync || true
+    else
+        # >128 = vyprsel cas (pravidelna kontrola), jinak konec vstupu (avahi-browse skoncil)
+        (($? > 128)) || break
+        check
+        next=$((SECONDS + interval))
+    fi
 done < <(avahi-browse -p -k _ipp._tcp & avahi-browse -p -k _uscan._tcp & wait)
 # avahi-browse skoncil (restart avahi-daemon) - systemd sluzbu spusti znovu
 exit 1

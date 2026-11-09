@@ -4836,3 +4836,13 @@ Mail uses this access only to download, show and organize your mail on this comp
 Privacy Policy	Integritetspolicy
 Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Sparade meddelanden och inloggningen tas bort från den här datorn, och E-posts åtkomst till ditt %s-konto återkallas. Inget raderas på servern.
 Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Sparade meddelanden och inloggningen tas bort från den här datorn. Inget raderas på servern.
+Printer “%s” is not connected	Skrivaren ”%s” är inte ansluten
+A document is waiting for printer “%s”	Ett dokument väntar på skrivaren ”%s”
+Turn the printer on and connect it to the same network. The document will print automatically.	Slå på skrivaren och anslut den till samma nätverk. Dokumentet skrivs ut automatiskt.
+Connect the USB cable or turn the printer on. The document will print automatically.	Anslut USB-kabeln eller slå på skrivaren. Dokumentet skrivs ut automatiskt.
+Printer “%s” is connected again	Skrivaren ”%s” är ansluten igen
+Waiting documents are printing now.	Väntande dokument skrivs ut nu.
+Not connected – connect the USB cable or turn the printer on	Inte ansluten – anslut USB-kabeln eller slå på skrivaren
+Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Inte ansluten – anslut USB-kabeln eller slå på skrivaren. Dokumenten skrivs ut automatiskt.
+Offline – turn the printer on. Documents will print automatically.	Offline – slå på skrivaren. Dokumenten skrivs ut automatiskt.
+Waiting for the printer	Väntar på skrivaren

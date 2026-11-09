@@ -4836,3 +4836,13 @@ Mail uses this access only to download, show and organize your mail on this comp
 Privacy Policy	Informativa sulla privacy
 Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	I messaggi salvati e l’accesso vengono rimossi da questo computer e l’accesso di Posta al tuo account %s viene revocato. Sul server non viene eliminato nulla.
 Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	I messaggi salvati e l’accesso vengono rimossi da questo computer. Sul server non viene eliminato nulla.
+Printer “%s” is not connected	La stampante “%s” non è collegata
+A document is waiting for printer “%s”	Un documento è in attesa della stampante “%s”
+Turn the printer on and connect it to the same network. The document will print automatically.	Accendi la stampante e collegala alla stessa rete. Il documento verrà stampato automaticamente.
+Connect the USB cable or turn the printer on. The document will print automatically.	Collega il cavo USB o accendi la stampante. Il documento verrà stampato automaticamente.
+Printer “%s” is connected again	La stampante “%s” è di nuovo collegata
+Waiting documents are printing now.	I documenti in attesa vengono stampati ora.
+Not connected – connect the USB cable or turn the printer on	Non collegata – collega il cavo USB o accendi la stampante
+Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Non collegata – collega il cavo USB o accendi la stampante. I documenti verranno stampati automaticamente.
+Offline – turn the printer on. Documents will print automatically.	Offline – accendi la stampante. I documenti verranno stampati automaticamente.
+Waiting for the printer	In attesa della stampante

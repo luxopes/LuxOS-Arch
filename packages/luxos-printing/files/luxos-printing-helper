@@ -8,6 +8,10 @@
   luxos-printing-helper default FRONTA  vychozi tiskarna
   luxos-printing-helper resume FRONTA   znovu povolit pozastavenou frontu
   luxos-printing-helper cancel ID       zrusit tiskovou ulohu (i cizi)
+  luxos-printing-helper autoresume      fronty pozastavene kvuli odpojene tiskarne povolit, kdyz je
+                                        tiskarna zase pripojena; upozornit na ulohy cekajici na tiskarnu
+                                        (spousti luxos-printing-watch pravidelne, sync po kazde udalosti)
+  luxos-printing-helper migrate         jednorazove nastavit politiku chyb starsim frontam (po aktualizaci)
 
 Sitove tiskarny (IPP Everywhere / AirPrint / Mopria) a USB tiskarny pres ipp-usb dostanou frontu
 bez ovladace (lpadmin -m everywhere). Klasicke USB tiskarny dostanou nejlepsi nainstalovany ovladac;
@@ -30,6 +34,11 @@ STATE = os.environ.get("LUXOS_PRINTING_STATE", "/var/lib/luxos-printing/state.js
 LOCK = os.environ.get("LUXOS_PRINTING_LOCK", "/run/luxos-printing.lock")
 NOTIFY = "/usr/lib/luxos/printing/luxos-printing-notify"
 STALE_DAYS = 60      # automaticky pridana fronta, ktera tak dlouho nebyla videt, se odebere
+PRINTERS_CONF = os.environ.get("LUXOS_PRINTING_CUPS_CONF", "/etc/cups/printers.conf")
+SYSFS_USB = os.environ.get("LUXOS_PRINTING_SYSFS", "/sys/bus/usb/devices")
+POLICY_VERSION = 1   # verze politiky chyb front (printer-error-policy); vyssi = jednorazova migrace
+WAIT_LONG = 300      # uloha ceka na nepripojenou tiskarnu dele nez 5 min -> trvale upozorneni (zvonek)
+BROWSE_EVERY = 300   # pravidelna kontrola: avahi-browse (sitove a ipp-usb tiskarny) nejvys jednou za 5 min
 # Nastroje jadra lux (lux-engine) jsou mimo PATH; potrebuji je hooky a skriptlety instalace ovladacu
 ENGINE_BIN = "/usr/lib/lux/alpm/bin"
 if ENGINE_BIN not in os.environ.get("PATH", "").split(":"):
@@ -64,7 +73,7 @@ def load_state():
             st = json.load(f)
     except (OSError, ValueError):
         st = {}
-    for k in ("queues", "seen_scanners", "notified"):
+    for k in ("queues", "seen_scanners", "notified", "autoresume", "waiting"):
         st.setdefault(k, {})
     st.setdefault("ignored", [])
     return st
@@ -275,7 +284,8 @@ def create_queue(dev, queues):
             return None, "manual"       # sitova tiskarna bez IPP Everywhere - jen Pokrocile
         model = ["-m", "everywhere"]
     cmd = ["lpadmin", "-p", name, "-E", "-v", dev["uri"], *model, "-D", desc, "-L", loc,
-           "-o", "printer-is-shared=false", "-o", "printer-error-policy=retry-job"]
+           "-o", "printer-is-shared=false",
+           "-o", "printer-error-policy=" + lp.error_policy(dev["uri"], dev.get("usb"))]
     rc, _out, err = run(cmd, 120)
     if rc:
         log(f"lpadmin {name} failed: {err}")
@@ -322,16 +332,26 @@ def notify(kind, name, package=""):
 
 # ---- prikazy ----
 
-def lock():
+def lock(wait=True):
+    """Zamek pomocnika; wait=False: kdyz uz bezi jiny (napr. dlouha instalace ovladace), vrati None."""
     os.makedirs(os.path.dirname(LOCK), exist_ok=True)
     f = open(LOCK, "w")
-    fcntl.flock(f, fcntl.LOCK_EX)
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | (0 if wait else fcntl.LOCK_NB))
+    except BlockingIOError:
+        f.close()
+        return None
     return f
 
 
+LAST_SERVICES = None   # sluzby z posledniho avahi-browse v discover() (sync je pouzije i pro autoresume)
+
+
 def discover(st):
+    global LAST_SERVICES
     queues = cups_queues()
-    nets = lp.group_printers(browse(lp.PRINTER_TYPES)).values()
+    LAST_SERVICES = browse(lp.PRINTER_TYPES)
+    nets = lp.group_printers(LAST_SERVICES).values()
     devs = []
     for d in list(nets) + usb_printers():
         devs.append({"key": d["key"], "name": lp.friendly_name(d["name"]), "model": d["model"],
@@ -411,11 +431,223 @@ def cmd_sync(st, only_key=None):
             notify("scanner", lp.friendly_name(s["name"]))
     for _name, desc, uuid in added:
         notify("both" if (uuid in both or lp.friendly_name(desc).lower() in both) else "printer", desc)
+    if only_key is None:
+        # Pripojena tiskarna (udev add / nova sluzba avahi): pozastavene fronty povolit hned
+        auto_resume(st, event=True, services=LAST_SERVICES)
     return [a[0] for a in added]
 
 
+# ---- odpojena tiskarna: samo-obnoveni front a upozorneni na cekajici ulohy ----
+
+def read_printers_conf():
+    try:
+        with open(PRINTERS_CONF, encoding="utf-8", errors="replace") as f:
+            return lp.parse_printers_conf(f.read())
+    except OSError:
+        return None
+
+
+def cups_running():
+    """Bezi cupsd? (cups.socket ho spousti na vyzadani; lpstat by ho zbytecne probudil)."""
+    return run(["systemctl", "is-active", "--quiet", "cups.service"], 10)[0] == 0
+
+
+def queue_overview():
+    """{fronta: {"state", "message", "reasons", "info", "accepting", "uri"}}, None = CUPS nedostupny."""
+    rc, out, err = run(["lpstat", "-l", "-p"], 20)
+    if rc and not out.strip():
+        return {} if "no destinations" in err.lower() else None
+    qs = lp.parse_lpstat_p(out)
+    acc = lp.parse_lpstat_a(run(["lpstat", "-a"], 20)[1])
+    uris = cups_queues()
+    for name, q in qs.items():
+        q["accepting"] = acc.get(name, True)
+        q["uri"] = uris.get(name, "")
+    return qs
+
+
+def cups_jobs():
+    return lp.parse_lpstat_jobs(run(["lpstat", "-l", "-o"], 20)[1])
+
+
+class Presence:
+    """Je tiskarna fronty pripojena? True / False / None (nevime). Vysledky se v jednom behu pamatuji."""
+
+    def __init__(self, services=None, browse_ok=True, lpinfo_ok=True):
+        self.services = services        # vysledek avahi-browse (sync uz ho ma)
+        self.browse_ok = browse_ok      # pomalejsi kontroly (avahi-browse, lpinfo) jsou v tomto behu dovolene
+        self.lpinfo_ok = lpinfo_ok      # lpinfo probudi cupsd - ne v kontrole bez beziciho CUPS
+        self.browsed = False            # tento beh spustil avahi-browse sam
+        self._usb = None
+        self._lpinfo = {}
+
+    def usb_devices(self):
+        if self._usb is None:
+            self._usb = lp.usb_printer_devices(SYSFS_USB)
+        return self._usb
+
+    def lpinfo_has(self, uri):
+        """Pres backend CUPS (pomalejsi, jen kdyz URI nema seriove cislo)."""
+        scheme = lp.uri_scheme(uri)
+        if scheme not in self._lpinfo:
+            self.browsed = True         # pomala kontrola - v pravidelne kontrole nejvys jednou za 5 min
+            rc, out, _err = run(["lpinfo", "--include-schemes", scheme, "-v"], 60)
+            self._lpinfo[scheme] = [ln.split(None, 1)[1].strip() for ln in out.splitlines()
+                                    if len(ln.split(None, 1)) == 2] if rc == 0 else None
+        found = self._lpinfo[scheme]
+        if found is None:
+            return None
+        base, serial = uri.split("?", 1)[0], lp.usb_serial(uri)
+        return any(u.split("?", 1)[0] == base and (not serial or lp.usb_serial(u) in (None, serial))
+                   for u in found)
+
+    def __call__(self, uri):
+        if lp.is_local_uri(uri):
+            devs = self.usb_devices()
+            p = lp.usb_present(uri, devs) if lp.uri_scheme(uri) == "usb" or lp.usb_serial(uri) else None
+            # Seriove cislo v URI muze byt z IEEE 1284 (SERN), ne z USB popisu - kdyz je pripojena nejaka
+            # tiskarna a v sysfs se neshoduje, rozhodne CUPS (lpinfo)
+            if not p and devs and self.browse_ok and self.lpinfo_ok:
+                q = self.lpinfo_has(uri)
+                p = q if q is not None else p
+            return p
+        if lp.uri_scheme(uri) == "dnssd":
+            if self.services is None:
+                if not self.browse_ok:
+                    return None
+                self.services = browse(lp.PRINTER_TYPES)
+                self.browsed = True
+            uuid, svc = lp.uri_uuid(uri), lp.uri_service_name(uri)
+            for p in lp.group_printers(self.services).values():
+                if (uuid and p.get("uuid") == uuid) or (svc and p.get("name") == svc):
+                    return True
+            return False
+        return None         # socket://, ipp://adresa... bez dotazu na sit nevime
+
+
+def migrate(st):
+    """Jednou (po aktualizaci): fronty USB tiskaren dostanou printer-error-policy=retry-current-job.
+
+    Fronty LuxOS (drive retry-job) a fronty USB s vychozi politikou CUPS stop-printer, ktere zalozil
+    nekdo jiny (system-config-printer). Politiku, kterou nekdo zvolil sam (abort-job...), nemeni."""
+    if st.get("policy_version", 0) >= POLICY_VERSION:
+        return
+    rc, out, err = run(["lpstat", "-v"], 20)
+    if rc and not out.strip() and "no destinations" not in err.lower():
+        return                          # CUPS nedostupny (chroot instalatoru) - priste
+    conf = read_printers_conf() or {}
+    ok = True
+    for name, uri in cups_queues().items():
+        own = st["queues"].get(name)
+        if not (lp.is_local_uri(uri) or (own and own.get("usb"))):
+            continue
+        cur = conf.get(name, {}).get("policy")
+        if (own and cur in (None, "retry-job", "stop-printer")) or (not own and cur == "stop-printer"):
+            rc, _o, err = run(["lpadmin", "-p", name, "-o", "printer-error-policy=retry-current-job"], 30)
+            if rc:
+                log(f"lpadmin {name} error policy: {err}")
+                ok = False
+            else:
+                log(f"{name}: printer-error-policy=retry-current-job")
+    if ok:
+        st["policy_version"] = POLICY_VERSION
+
+
+def release_waiting_jobs(name, jobs):
+    """Ulohy pozdrzene kvuli nedostupne tiskarne (retry-job) vytisknout hned, ne az za 5 minut."""
+    for j in jobs:
+        if j["queue"] == name and "resources-are-not-ready" in j["reasons"] and not lp.job_held_by_user(j):
+            run(["lp", "-i", f"{name}-{j['id']}", "-H", "resume"], 20)
+
+
+def resume_backoff(n):
+    """Po kolika sekundach smi byt fronta znovu povolena (tiskarna pritomna, ale fronta se hned zastavi)."""
+    return 0 if n <= 1 else min(6 * 3600, 300 * 2 ** (n - 2))
+
+
+def auto_resume(st, event=False, services=None):
+    """Fronty pozastavene kvuli odpojene tiskarne povolit, kdyz je tiskarna zase pripojena.
+
+    Ulohy cekajici na nepripojenou tiskarnu: hned kratke upozorneni (jen na obrazovce), po WAIT_LONG
+    jedno trvale (zustane ve zvonku). event=True: volano po pripojeni zarizeni (sync) - bez odkladu."""
+    now = int(time.time())
+    migrate(st)
+    qs = queue_overview()
+    if qs is None:
+        return []
+    jobs = cups_jobs() if qs else []
+    pres = Presence(services, browse_ok=event or now - st.get("browsed", 0) >= BROWSE_EVERY)
+    resumed, waiting = [], set()
+    for name, q in qs.items():
+        pending = [j for j in jobs if j["queue"] == name and not lp.job_held_by_user(j)]
+        stopped = q["state"] == "stopped"
+        dev_pause = stopped and lp.paused_for_device(q["message"], q["reasons"])
+        if not (dev_pause or pending):
+            continue
+        present = pres(q["uri"])
+        desc = q.get("info") or name
+        if dev_pause and present:
+            rec = st["autoresume"].get(name, {"t": 0, "n": 0})
+            n = rec["n"] + 1 if now - rec["t"] < 3600 else 1
+            if now - rec["t"] < resume_backoff(n) and not (event and now - rec["t"] >= 60):
+                continue                # znovu a znovu zastavena (vadny ovladac) - nezahlcovat
+            rc, _o, err = run(["cupsenable", name], 20)
+            if rc:
+                log(f"cupsenable {name} failed: {err}")
+                continue
+            if not q["accepting"]:
+                run(["cupsaccept", name], 20)
+            release_waiting_jobs(name, pending)
+            st["autoresume"][name] = {"t": now, "n": n}
+            log(f"{name}: printer is connected again, queue resumed ({q['message'] or 'paused'})")
+            resumed.append(name)
+            if pending:
+                notify("resumed", desc)
+            continue
+        if present and pending:
+            release_waiting_jobs(name, pending)
+            continue
+        absent = present is False or (present is None and (lp.waiting_for_device(q["message"]) or dev_pause))
+        if not (pending and absent):
+            continue
+        waiting.add(name)
+        conn = "usb" if lp.is_local_uri(q["uri"]) or st["queues"].get(name, {}).get("usb") else "network"
+        w = st["waiting"].setdefault(name, {"since": now, "notified": 0, "long": 0})
+        if not w["notified"]:
+            w["notified"] = now
+            notify("waiting", desc, conn)
+        elif not w["long"] and now - w["since"] >= WAIT_LONG:
+            w["long"] = now
+            notify("waiting-long", desc, conn)
+    if pres.browsed:
+        st["browsed"] = now
+    # Zaznam o cekani konci, az na tiskarnu nic neceka (vytisknuto nebo zruseno)
+    for name in list(st["waiting"]):
+        if name not in waiting and not any(j["queue"] == name and not lp.job_held_by_user(j) for j in jobs):
+            st["waiting"].pop(name)
+    for name in list(st["autoresume"]):
+        if name not in qs:
+            st["autoresume"].pop(name)
+    return resumed
+
+
+def cmd_autoresume(st):
+    """Pravidelna kontrola z luxos-printing-watch. Kdyz cupsd nebezi, zadne ulohy necekaji - CUPS se
+    probudi jen tehdy, kdyz printers.conf ma frontu zastavenou kvuli odpojeni a tiskarna uz je pripojena."""
+    if not cups_running():
+        conf = read_printers_conf()
+        if conf is not None:
+            pres = Presence(browse_ok=time.time() - st.get("browsed", 0) >= BROWSE_EVERY, lpinfo_ok=False)
+            if not any(q["stopped"] and lp.paused_for_device(q["message"]) and pres(q["uri"])
+                       for q in conf.values()):
+                if pres.browsed:
+                    st["browsed"] = int(time.time())
+                return []
+    return auto_resume(st)
+
+
 USAGE = ("usage: luxos-printing-helper sync | discover | add KEY | remove QUEUE | default QUEUE | resume QUEUE"
-         " | cancel ID  (used by Printers & Scanners)")
+         " | cancel ID | autoresume | migrate  (used by Printers & Scanners)")
 
 
 def main(argv):
@@ -426,6 +658,18 @@ def main(argv):
     if os.geteuid() != 0:
         print("luxos-printing-helper: run as root (pkexec)", file=sys.stderr)
         return 1
+    if cmd == "autoresume":
+        # pravidelna kontrola: kdyz pomocnik prave pracuje (instalace ovladace), tentokrat nic
+        lk = lock(wait=False)
+        if lk is None:
+            return 0
+        with lk:
+            st = load_state()
+            try:
+                cmd_autoresume(st)
+            finally:
+                save_state(st)
+        return 0
     with lock():
         st = load_state()
         try:
@@ -460,6 +704,8 @@ def main(argv):
                 if rc:
                     print(err, file=sys.stderr)
                     return 1
+            elif cmd == "migrate" and not args:
+                migrate(st)
             elif cmd == "resume" and len(args) == 1:
                 run(["cupsaccept", args[0]], 20)
                 rc, _o, err = run(["cupsenable", "--release", args[0]], 20)

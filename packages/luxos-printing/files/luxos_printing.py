@@ -4,6 +4,7 @@ Jen cista logika bez vedlejsich efektu (cteni vystupu avahi-browse a lpinfo, naz
 volba ovladace, uprava nsswitch.conf) - testy v tests/test_luxos_printing.py.
 """
 import json
+import os
 import re
 import urllib.parse
 
@@ -520,3 +521,240 @@ def parse_ipptool(text):
         out[name] = vals
     # printer-supply: carky oddeluji hodnoty, ale hodnoty samy carky nemaji (klic=hodnota;)
     return out
+
+
+# ---- odpojena / vypnuta tiskarna: chovani front a samo-obnoveni (luxos-printing-helper autoresume) ----
+#
+# CUPS frontu pozastavi (printer-state stopped), kdyz backend skonci chybou: u politiky stop-printer
+# (vychozi v CUPS i na Archu) po kazde chybe, u ostatnich politik po navratovem kodu STOP (napr.
+# "unrecoverable USB error", tiskarna uz neexistuje). udev-configure-printer (system-config-printer)
+# frontu USB tiskarny pri odpojeni pozastavi se zpravou "Unplugged or turned off". Sam ji pak uz
+# NIKDY znovu nepovoli - tiskarna se po pripojeni tvarila odpojena a ulohy jen cekaly.
+
+# Schemata primo pripojenych tiskaren (USB, paralelni, seriove; Canon cnusbufr2:, gutenprint53+usb:)
+LOCAL_SCHEMES = ("usb", "parallel", "serial", "cnusbufr2")
+
+
+def uri_scheme(uri):
+    return uri.split(":", 1)[0].lower() if uri and ":" in uri else ""
+
+
+def is_local_uri(uri):
+    """Tiskarna pripojena kabelem k tomuto pocitaci (ne sit)."""
+    s = uri_scheme(uri)
+    if s in LOCAL_SCHEMES or "usb" in s:
+        return True
+    return (uri or "").lower().startswith(("hp:/usb/", "hpfax:/usb/"))
+
+
+def error_policy(uri, usb=False):
+    """printer-error-policy pro frontu, kterou zaklada LuxOS.
+
+    USB (klasicke i ipp-usb): retry-current-job - po chybe (kabel vytazen nebo tiskarna vypnuta behem
+    tisku) se uloha hned spusti znovu a backend usb / dnssd pak sam ceka, az se tiskarna objevi
+    ("Waiting for printer to become available"). Fronta se nezastavi a uloha se neztrati; retry-job
+    by ji po JobRetryLimit (5) x JobRetryInterval (300 s) zahodil, stop-printer frontu zastavi.
+    Sit: retry-job - backend ipp na vypnutou tiskarnu ceka sam (contimeout 7 dni), chyba je tedy
+    skutecna chyba tiskarny a omezeny pocet pokusu nezpusobi nekonecnou smycku."""
+    return "retry-current-job" if usb or is_local_uri(uri) else "retry-job"
+
+
+# Zpravy (printer-state-message), se kterymi CUPS nebo udev-configure-printer frontu zastavi, protoze
+# tiskarna nebyla k dispozici. Jen takove fronty se po pripojeni tiskarny povoli samy; frontu
+# pozastavenou uzivatelem ("Paused", vlastni duvod) nechame - na to je tlacitko Obnovit.
+DEVICE_GONE = ("unplugged or turned off", "printer stopped due to backend errors",
+               "waiting for printer to become available", "unable to locate printer",
+               "the printer is not responding", "unable to send data to printer",
+               "there was an unrecoverable usb error", "unable to open device",
+               "unable to connect to printer", "the printer may not exist or is unavailable",
+               "connection refused", "no route to host")
+DEVICE_GONE_REASONS = {"offline", "connecting-to-device", "timed-out"}
+
+
+def _clean_reasons(reasons):
+    return {re.sub(r"-(error|warning|report)$", "", r) for r in reasons or () if r and r != "none"}
+
+
+def paused_for_device(message, reasons=()):
+    """Fronta byla zastavena kvuli nedostupne tiskarne (ne uzivatelem)."""
+    m = (message or "").strip().lower()
+    if m:
+        return any(p in m for p in DEVICE_GONE)
+    return bool(_clean_reasons(reasons) & DEVICE_GONE_REASONS)
+
+
+def waiting_for_device(message):
+    """Backend ceka na tiskarnu (usb: "Waiting for printer to become available.", ipp: "Unable to locate…")."""
+    m = (message or "").lower()
+    return any(p in m for p in ("waiting for printer to become available", "unable to locate printer",
+                                "the printer is not responding"))
+
+
+def parse_lpstat_p(text):
+    """`LC_ALL=C lpstat -l -p` -> {fronta: {"state": idle|printing|stopped|holding, "message", "reasons", "info"}}."""
+    out, cur, first = {}, None, False
+    for line in text.splitlines():
+        m = re.match(r"^printer (\S+) (?:is (idle|holding new jobs)\.|now printing \S+\.|(disabled) since)", line)
+        if m:
+            state = "stopped" if m.group(3) else "printing" if not m.group(2) else \
+                ("holding" if m.group(2).startswith("holding") else "idle")
+            cur = out[m.group(1)] = {"state": state, "message": "", "reasons": [], "info": ""}
+            first = True
+            continue
+        if cur is None or not line.startswith("\t"):
+            continue
+        s = line[1:].rstrip()
+        if first and not s.startswith(("Form mounted:", "Description: ", "Alerts: ")) and s != "reason unknown":
+            cur["message"] = s.strip()      # zprava je hned za hlavickou (muze obsahovat i dvojtecku)
+        first = False
+        if s.startswith("Alerts: "):
+            cur["reasons"] = [r for r in s[8:].split() if r != "none"]
+        elif s.startswith("Description: "):
+            cur["info"] = s[13:].strip()
+    return out
+
+
+def parse_lpstat_a(text):
+    """`LC_ALL=C lpstat -a` -> {fronta: prijima ulohy}."""
+    out = {}
+    for line in text.splitlines():
+        m = re.match(r"^(\S+) (not )?accepting requests since ", line)
+        if m and "/" not in m.group(1):
+            out[m.group(1)] = not m.group(2)
+    return out
+
+
+def parse_lpstat_jobs(text):
+    """`LC_ALL=C lpstat -l -o` -> [{"id", "queue", "user", "status", "reasons"}]."""
+    out, cur = [], None
+    for line in text.splitlines():
+        m = re.match(r"^(\S+)-(\d+)\s+(\S+)\s+\d+\s", line)
+        if m:
+            cur = {"id": int(m.group(2)), "queue": m.group(1), "user": m.group(3), "status": "", "reasons": []}
+            out.append(cur)
+            continue
+        s = line.strip()
+        if cur is None or not s:
+            continue
+        if s.startswith("Status: "):
+            cur["status"] = s[8:]
+        elif s.startswith("Alerts: "):
+            cur["reasons"] = [r for r in s[8:].split() if r != "none"]
+    return out
+
+
+def job_held_by_user(job):
+    """Uloha pozdrzena uzivatelem nebo aplikaci (ne kvuli tiskarne) - necheka na tiskarnu."""
+    r = set(job.get("reasons") or ())
+    return "resources-are-not-ready" not in r and bool(r & {
+        "job-hold-until-specified", "cups-held-for-authentication", "job-held-for-review",
+        "account-info-needed", "account-closed", "account-limit-reached", "account-authorization-failed"})
+
+
+def parse_printers_conf(text):
+    """/etc/cups/printers.conf (cte jen root) -> {fronta: {"uri", "stopped", "message", "accepting", "policy"}}.
+
+    Jen pro levnou kontrolu, kdyz cupsd nebezi (bez probuzeni CUPS pres cups.socket)."""
+    out, cur = {}, None
+    for line in text.splitlines():
+        s = line.strip()
+        m = re.match(r"^<(?:Default)?Printer (\S+)>$", s)
+        if m:
+            cur = out[m.group(1)] = {"uri": "", "stopped": False, "message": "", "accepting": True,
+                                     "policy": "stop-printer"}
+            continue
+        if s.startswith("</"):
+            cur = None
+            continue
+        if cur is None:
+            continue
+        k, _sep, v = s.partition(" ")
+        if k == "DeviceURI":
+            cur["uri"] = v.strip()
+        elif k == "State":
+            cur["stopped"] = v.strip().lower() == "stopped"
+        elif k == "StateMessage":
+            cur["message"] = v.strip()
+        elif k == "Accepting":
+            cur["accepting"] = v.strip().lower() != "no"
+        elif k == "ErrorPolicy":
+            cur["policy"] = v.strip()
+    return out
+
+
+def _usb_norm(s):
+    s = re.sub(r"[^a-z0-9]", "", (s or "").lower())
+    return s.removesuffix("series")
+
+
+def usb_printer_devices(base="/sys/bus/usb/devices"):
+    """Pripojena USB zarizeni s rozhranim tiskarny (trida 07): [{"serial", "manufacturer", "product"}].
+
+    Jen cteni sysfs (bez CUPS a bez probouzeni tiskarny)."""
+    out = []
+    try:
+        names = sorted(os.listdir(base))
+    except OSError:
+        return out
+    for d in names:
+        if ":" not in d:
+            continue
+        try:
+            with open(os.path.join(base, d, "bInterfaceClass")) as f:
+                if f.read().strip() != "07":
+                    continue
+        except OSError:
+            continue
+        parent = os.path.join(base, d.split(":", 1)[0])
+        info = {}
+        for k in ("serial", "manufacturer", "product"):
+            try:
+                with open(os.path.join(parent, k)) as f:
+                    info[k] = f.read().strip()
+            except OSError:
+                info[k] = ""
+        if info not in out:
+            out.append(info)
+    return out
+
+
+def usb_present(uri, devices):
+    """Je tiskarna z usb:// URI pripojena? True / False / None (nelze poznat bez CUPS).
+
+    devices = usb_printer_devices(). Shoda podle serioveho cisla; bez nej podle vyrobce a modelu
+    (usb://Canon/MF4100%20Series), ten ale v USB popisu byt nemusi -> None."""
+    serial = usb_serial(uri)
+    if serial:
+        return any(d.get("serial") == serial for d in devices)
+    if not devices:
+        return False
+    path = urllib.parse.unquote((uri or "").split("://", 1)[-1].split("?", 1)[0])
+    make, _sep, model = path.partition("/")
+    for d in devices:
+        if _usb_norm(d.get("manufacturer")) == _usb_norm(make) and _usb_norm(d.get("product")) == _usb_norm(model):
+            return True
+    return None
+
+
+def printer_condition(state, message, reasons, accepting, local, online, jobs):
+    """Stav fronty kvuli pripojeni tiskarny: (klic, ukazat tlacitko Obnovit).
+
+    state: idle | printing | stopped | holding (nebo IPP 3/4/5), local: tiskarna na USB, online:
+    True / False / None (nevime), jobs: pocet cekajicich uloh. Klic:
+      unplugged       USB tiskarna neni pripojena
+      unplugged_auto  USB tiskarna neni pripojena a uloha ceka - vytiskne se sama po pripojeni
+      offline         sitova tiskarna je vypnuta
+      offline_auto    sitova tiskarna je vypnuta a uloha ceka - vytiskne se sama
+      paused          pozastaveno z jineho duvodu (uzivatel, chyba ovladace) -> Obnovit
+      None            nic z toho (pripravena, tiskne, papir... resi aplikace)
+    """
+    stopped = state in ("stopped", 5)
+    device_pause = stopped and paused_for_device(message, reasons)
+    absent = online is False or (online is None and (waiting_for_device(message) or device_pause))
+    if absent:
+        key = ("unplugged" if local else "offline") + ("_auto" if jobs or device_pause else "")
+        # pozastaveno kvuli odpojeni se po pripojeni povoli samo; Obnovit jen pri jinem duvodu
+        return key, (stopped or not accepting) and not device_pause
+    if stopped or not accepting:
+        return "paused", True
+    return None, False

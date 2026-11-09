@@ -4836,3 +4836,13 @@ Mail uses this access only to download, show and organize your mail on this comp
 Privacy Policy	Zásady ochrany súkromia
 Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Uložené správy a prihlásenie sa z tohto počítača odstránia a prístup Pošty k vášmu účtu %s sa zruší. Na serveri sa nič nezmaže.
 Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Uložené správy a prihlásenie sa z tohto počítača odstránia. Na serveri sa nič nezmaže.
+Printer “%s” is not connected	Tlačiareň „%s“ nie je pripojená
+A document is waiting for printer “%s”	Dokument čaká na tlačiareň „%s“
+Turn the printer on and connect it to the same network. The document will print automatically.	Zapnite tlačiareň a pripojte ju k rovnakej sieti. Dokument sa vytlačí automaticky.
+Connect the USB cable or turn the printer on. The document will print automatically.	Pripojte kábel USB alebo zapnite tlačiareň. Dokument sa vytlačí automaticky.
+Printer “%s” is connected again	Tlačiareň „%s“ je opäť pripojená
+Waiting documents are printing now.	Čakajúce dokumenty sa teraz tlačia.
+Not connected – connect the USB cable or turn the printer on	Nepripojená – pripojte kábel USB alebo zapnite tlačiareň
+Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Nepripojená – pripojte kábel USB alebo zapnite tlačiareň. Dokumenty sa vytlačia automaticky.
+Offline – turn the printer on. Documents will print automatically.	Nedostupná – zapnite tlačiareň. Dokumenty sa vytlačia automaticky.
+Waiting for the printer	Čaká na tlačiareň

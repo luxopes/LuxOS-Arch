@@ -4836,3 +4836,13 @@ Mail uses this access only to download, show and organize your mail on this comp
 Privacy Policy	Adatvédelmi irányelvek
 Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	A mentett üzenetek és a bejelentkezés törlődnek erről a számítógépről, és a Levelezés hozzáférése a(z) %s-fiókjához visszavonásra kerül. A szerveren semmi sem törlődik.
 Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	A mentett üzenetek és a bejelentkezés törlődnek erről a számítógépről. A szerveren semmi sem törlődik.
+Printer “%s” is not connected	A(z) „%s” nyomtató nincs csatlakoztatva
+A document is waiting for printer “%s”	Egy dokumentum a(z) „%s” nyomtatóra vár
+Turn the printer on and connect it to the same network. The document will print automatically.	Kapcsold be a nyomtatót, és csatlakoztasd ugyanahhoz a hálózathoz. A dokumentum automatikusan kinyomtatódik.
+Connect the USB cable or turn the printer on. The document will print automatically.	Csatlakoztasd az USB-kábelt, vagy kapcsold be a nyomtatót. A dokumentum automatikusan kinyomtatódik.
+Printer “%s” is connected again	A(z) „%s” nyomtató újra csatlakozik
+Waiting documents are printing now.	A várakozó dokumentumok nyomtatása most folyik.
+Not connected – connect the USB cable or turn the printer on	Nincs csatlakoztatva – csatlakoztasd az USB-kábelt, vagy kapcsold be a nyomtatót
+Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Nincs csatlakoztatva – csatlakoztasd az USB-kábelt, vagy kapcsold be a nyomtatót. A dokumentumok automatikusan kinyomtatódnak.
+Offline – turn the printer on. Documents will print automatically.	Offline – kapcsold be a nyomtatót. A dokumentumok automatikusan kinyomtatódnak.
+Waiting for the printer	A nyomtatóra vár

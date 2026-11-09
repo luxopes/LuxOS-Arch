@@ -152,7 +152,12 @@ class Cups:
                     jobs[int(m.group(2))].setdefault("job-originating-user-name", m.group(1))
         except (OSError, subprocess.TimeoutExpired):
             pass
-        return {"printers": printers, "default": default, "jobs": jobs, "markers": markers}
+        # USB tiskarny: pripojena? (jen cteni sysfs, levne - kazde obnoveni, ne az za 30 s)
+        usb = lp.usb_printer_devices()
+        usb_online = {n: lp.usb_present(p.get("device-uri"), usb) for n, p in printers.items()
+                      if lp.is_local_uri(p.get("device-uri"))}
+        return {"printers": printers, "default": default, "jobs": jobs, "markers": markers,
+                "usb_online": usb_online}
 
     @staticmethod
     def live(printers):
@@ -219,15 +224,37 @@ def markers_of(attrs):
     return out
 
 
-def printer_status(p, live, jobs):
-    """(text, trida) - trida: ok | busy | warn | err."""
+def printer_info(p, live, jobs, usb_online=None):
+    """(text, trida, ukazat Obnovit, klic z lp.printer_condition) - trida: ok | busy | warn | err.
+
+    usb_online: USB tiskarna je pripojena (True/False/None = nevime, viz Cups.snapshot)."""
     reasons = list(p.get("printer-state-reasons") or [])
     if live:
         lr = live.get("printer-state-reasons") or []
         reasons += [lr] if isinstance(lr, str) else list(lr)
     text, serious = lp.reason_text(reasons)
-    if live is not None and not live.get("online"):
-        return _("Offline – make sure the printer is turned on"), "warn"
+    uri = p.get("device-uri") or ""
+    local = lp.is_local_uri(uri) or p.get("printer-location") == "USB"
+    online = usb_online if lp.is_local_uri(uri) else (live.get("online") if live is not None else None)
+    key, resume = lp.printer_condition(p.get("printer-state"), p.get("printer-state-message"), reasons,
+                                       p.get("printer-is-accepting-jobs", True), local, online, len(jobs))
+    gone = {"unplugged": _("Not connected – connect the USB cable or turn the printer on"),
+            "unplugged_auto": _("Not connected – connect the USB cable or turn the printer on. "
+                                "Documents will print automatically."),
+            "offline": _("Offline – make sure the printer is turned on"),
+            "offline_auto": _("Offline – turn the printer on. Documents will print automatically.")}
+    if key in gone:
+        return gone[key], "warn", resume, key
+    text, state = printer_status_text(p, text, serious, jobs)
+    return text, state, resume, key
+
+
+def printer_status(p, live, jobs, usb_online=None):
+    """(text, trida) - trida: ok | busy | warn | err."""
+    return printer_info(p, live, jobs, usb_online)[:2]
+
+
+def printer_status_text(p, text, serious, jobs):
     if p.get("printer-state") == 5:
         return (_(text) if text else _("Paused")), "err"
     if text:
@@ -400,8 +427,8 @@ class PrinterPage(Gtk.ScrolledWindow):
             mk = markers_of(live)
         if not mk:
             mk = markers_of(data["markers"].get(name, {}))
-        status, state = printer_status(p, live, jobs)
-        sig = (name, repr(sorted(p.items())), repr(jobs), repr(mk), status, data["default"])
+        status, state, resume, key = printer_info(p, live, jobs, data.get("usb_online", {}).get(name))
+        sig = (name, repr(sorted(p.items())), repr(jobs), repr(mk), status, resume, key, data["default"])
         if sig == self.sig:
             return
         self.sig = sig
@@ -415,7 +442,8 @@ class PrinterPage(Gtk.ScrolledWindow):
         self.model.set_text(" · ".join(x for x in (model, conn) if x))
         self.dot.set_state(state)
         self.status.set_text(status)
-        self.resume_btn.set_visible(p.get("printer-state") == 5 or not p.get("printer-is-accepting-jobs", True))
+        # Pozastaveno kvuli odpojeni se po pripojeni tiskarny povoli samo - Obnovit jen z jineho duvodu
+        self.resume_btn.set_visible(resume)
         self.default_sw.handler_block(self.default_h)
         self.default_sw.set_active(data["default"] == name)
         self.default_sw.set_sensitive(data["default"] != name)
@@ -442,6 +470,8 @@ class PrinterPage(Gtk.ScrolledWindow):
             t.pack_start(cls(Gtk.Label(label=j.get("job-name") or _("Document"), xalign=0,
                                        ellipsize=Pango.EllipsizeMode.MIDDLE), "dev-name"), False, False, 0)
             js = {3: _("Waiting"), 4: _("On hold"), 5: _("Printing…"), 6: _("Stopped")}.get(j.get("job-state"), "")
+            if key and key != "paused" and j.get("job-state") in (3, 5):
+                js = _("Waiting for the printer")     # tiskarna neni pripojena - backend na ni ceka
             who = j.get("job-originating-user-name") or ""
             t.pack_start(cls(Gtk.Label(label=" · ".join(x for x in (js, who) if x), xalign=0), "dev-sub"),
                          False, False, 0)
@@ -1242,7 +1272,7 @@ class Window(Gtk.Window):
         for name, p in sorted(self.data["printers"].items(), key=lambda x: (x[1].get("printer-info") or x[0]).lower()):
             jobs = [j for j in self.data["jobs"].values()
                     if (j.get("job-printer-uri") or "").rstrip("/").endswith("/" + name)]
-            text, state = printer_status(p, self.live.get(name), jobs)
+            text, state = printer_status(p, self.live.get(name), jobs, self.data.get("usb_online", {}).get(name))
             if self.data["default"] == name:
                 text = _("Default") + " · " + text
             rows.append(("p:" + name, "printer", p.get("printer-info") or name, text, state))
