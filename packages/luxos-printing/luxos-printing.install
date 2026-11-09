@@ -14,7 +14,16 @@ _setup() {
 }
 
 post_install() { _setup; }
-post_upgrade() { _setup; }
+post_upgrade() {
+    _setup
+    if [ -d /run/systemd/system ]; then
+        # Bezici hlidac by jinak zustal ve stare verzi skriptu (bash ho drzi otevreny) az do restartu
+        systemctl try-restart luxos-printing-watch.service >/dev/null 2>&1 || true
+        # Jednou: fronty USB tiskaren printer-error-policy=retry-current-job (kdyz CUPS nebezi, udela
+        # to pomocnik pri prvni kontrole sam - stav je v /var/lib/luxos-printing/state.json)
+        timeout 120 /usr/lib/luxos/printing/luxos-printing-helper migrate >/dev/null 2>&1 || true
+    fi
+}
 
 pre_remove() {
     systemctl disable --now luxos-printing-watch.service >/dev/null 2>&1 || true

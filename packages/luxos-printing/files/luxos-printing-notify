@@ -2,6 +2,10 @@
 # LuxOS - upozorneni "Tiskarna ... je pripravena" (bezi v relaci uzivatele, spousti luxos-printing-helper)
 # Pouziti: luxos-printing-notify printer|scanner|both|driver|manual|plugin NAZEV
 #         luxos-printing-notify aurdriver NAZEV BALIK   (ovladac z AUR, tlacitko Nainstalovat ovladac)
+#         luxos-printing-notify waiting|waiting-long NAZEV usb|network   (uloha ceka na nepripojenou tiskarnu)
+#         luxos-printing-notify resumed NAZEV    (tiskarna je zase pripojena, cekajici ulohy se tisknou)
+# waiting a resumed jsou jen kratka oznameni o stavu (hint transient - nezustanou ve zvonku);
+# waiting-long (uloha ceka dele nez par minut) ve zvonku zustane.
 # shellcheck disable=SC1091,SC2059,SC1111  # preklady z i18n.sh, typograficke uvozovky jsou zamerne
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
 name=$2
@@ -20,9 +24,24 @@ case $1 in
              body=$(T "Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.") ;;
     plugin)  title=$(T "Printer “%s” needs an add-on from HP" "$name")
              body=$(T "Open Terminal and run: hp-plugin") ;;
+    waiting|waiting-long)
+             if [[ $1 == waiting ]]; then
+                 title=$(T "Printer “%s” is not connected" "$name")
+             else
+                 title=$(T "A document is waiting for printer “%s”" "$name")
+             fi
+             if [[ ${3-} == network ]]; then
+                 body=$(T "Turn the printer on and connect it to the same network. The document will print automatically.")
+             else
+                 body=$(T "Connect the USB cable or turn the printer on. The document will print automatically.")
+             fi ;;
+    resumed) title=$(T "Printer “%s” is connected again" "$name")
+             body=$(T "Waiting documents are printing now.") ;;
     *) exit 2 ;;
 esac
 icon=printer app=luxos-printers appname=$(T "Printers & Scanners")
+hints=()
+[[ $1 == waiting || $1 == resumed ]] && hints=(-h boolean:transient:true)
 # Samotny skener: "Otevrit" spusti jednoduchou aplikaci Skener (luxos-scan)
 [[ $1 == scanner ]] && icon=luxos-scan app=luxos-scan appname=$(T "Scanner")
 # -A ceka na kliknuti: "Otevrit" spusti aplikaci
@@ -37,7 +56,7 @@ if [[ $1 == aurdriver ]]; then
         'lux install "$1" && pkexec /usr/lib/luxos/printing/luxos-printing-helper sync; echo; echo "$2"; read -r' \
         _ "$pkg" "$done_msg"
 fi
-action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" \
+action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" "${hints[@]}" \
     -A "open=$(T "Open")" "$title" "$body" 2>/dev/null)
 [[ $action == open ]] && exec "$app"
 exit 0

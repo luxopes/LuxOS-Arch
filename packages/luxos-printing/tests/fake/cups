@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Falesny CUPS pro testy luxos-printing-helper (nikdy se nedotkne skutecneho cupsd ani tiskaren).
+
+Test vytvori v docasnem adresari odkazy lpstat, lpadmin, cupsenable, cupsdisable, cupsaccept, lp,
+lpinfo a systemctl na tento soubor a da ho na zacatek PATH. Stav je v JSON (FAKE_CUPS_STATE):
+
+  {"active": true,                     cupsd bezi (systemctl is-active cups.service)
+   "woken": false,                     klient CUPS spusteny pri active=false (probuzeni pres cups.socket)
+   "queues": {"Q": {"uri", "state": idle|printing|stopped, "message", "reasons": [], "accepting": true,
+                    "policy": "stop-printer", "info": ""}},
+   "jobs": [{"id": 1, "queue": "Q", "user": "u", "state": pending|held|processing, "reasons": []}],
+   "lpinfo": ["direct usb://..."]}
+
+Kazde volani se zapise do FAKE_CUPS_LOG (JSON radek se seznamem argumentu). Po zmene se jako cupsd
+zapise printers.conf (LUXOS_PRINTING_CUPS_CONF), aby slo testovat i levnou kontrolu bez cupsd.
+Vystup lpstat ma stejny tvar jako CUPS 2.4 s LC_ALL=C (systemv/lpstat.c).
+"""
+import json
+import os
+import sys
+
+STATE = os.environ["FAKE_CUPS_STATE"]
+DATE = "Fri Nov  6 10:00:00 2026"
+prog = os.path.basename(sys.argv[0])
+args = sys.argv[1:]
+
+
+def load():
+    with open(STATE) as f:
+        st = json.load(f)
+    st.setdefault("queues", {})
+    st.setdefault("jobs", [])
+    return st
+
+
+def save(st):
+    with open(STATE + ".tmp", "w") as f:
+        json.dump(st, f, indent=1)
+    os.replace(STATE + ".tmp", STATE)
+    conf = os.environ.get("LUXOS_PRINTING_CUPS_CONF")
+    if conf:
+        with open(conf, "w") as f:
+            for name, q in st["queues"].items():
+                f.write(f"<Printer {name}>\nInfo {q.get('info', '')}\nDeviceURI {q['uri']}\n"
+                        f"State {'Stopped' if q['state'] == 'stopped' else 'Idle'}\n")
+                if q.get("message"):
+                    f.write(f"StateMessage {q['message']}\n")
+                f.write(f"Accepting {'Yes' if q.get('accepting', True) else 'No'}\n"
+                        f"ErrorPolicy {q.get('policy', 'stop-printer')}\n</Printer>\n")
+
+
+st = load()
+with open(os.environ["FAKE_CUPS_LOG"], "a") as f:
+    f.write(json.dumps([prog, *args]) + "\n")
+
+if prog == "fake-cupsd-save":       # jen zapsat printers.conf (jako cupsd)
+    save(st)
+    sys.exit(0)
+
+if prog == "systemctl":
+    if args[:1] == ["is-active"] and "cups.service" in args:
+        sys.exit(0 if st.get("active") else 3)
+    sys.exit(0)
+
+# Klient CUPS: pres cups.socket by probudil cupsd
+if not st.get("active"):
+    st["active"] = st["woken"] = True
+    save(st)
+
+
+def queue_or_die(name):
+    if name not in st["queues"]:
+        print(f"{prog}: The printer or class does not exist.", file=sys.stderr)
+        sys.exit(1)
+    return st["queues"][name]
+
+
+if prog == "lpstat":
+    out = []
+    long_ = "-l" in args
+    if not st["queues"] and any(a in args for a in ("-p", "-v", "-a")):
+        print("lpstat: No destinations added.", file=sys.stderr)
+        sys.exit(1)
+    if "-p" in args:
+        for name, q in st["queues"].items():
+            if q["state"] == "stopped":
+                out.append(f"printer {name} disabled since {DATE} -")
+                out.append("\t" + (q.get("message") or "reason unknown"))
+            else:
+                active = [j for j in st["jobs"] if j["queue"] == name and j["state"] == "processing"]
+                if active:
+                    out.append(f"printer {name} now printing {name}-{active[0]['id']}.  enabled since {DATE}")
+                else:
+                    out.append(f"printer {name} is idle.  enabled since {DATE}")
+                if q.get("message"):
+                    out.append("\t" + q["message"])
+            if long_:
+                out += ["\tForm mounted:", "\tContent types: any", "\tPrinter types: unknown",
+                        f"\tDescription: {q.get('info', '')}",
+                        "\tAlerts: " + (" ".join(q.get("reasons") or []) or "none"),
+                        "\tLocation: USB", "\tConnection: direct", "\tOn fault: no alert",
+                        "\tAfter fault: continue", "\tUsers allowed:", "\t\t(all)"]
+    if "-a" in args:
+        for name, q in st["queues"].items():
+            if q.get("accepting", True):
+                out.append(f"{name} accepting requests since {DATE}")
+            else:
+                out += [f"{name} not accepting requests since {DATE} -", "\tRejecting Jobs"]
+    if "-v" in args:
+        for name, q in st["queues"].items():
+            out.append(f"device for {name}: {q['uri']}")
+    if "-o" in args:
+        i = args.index("-o")
+        dest = args[i + 1] if i + 1 < len(args) and not args[i + 1].startswith("-") else None
+        for j in st["jobs"]:
+            if dest and j["queue"] != dest:
+                continue
+            out.append(f"{j['queue']}-{j['id']:<16} {j.get('user', 'user'):<13} {1024:>8}   {DATE}")
+            if long_:
+                if j.get("status"):
+                    out.append(f"\tStatus: {j['status']}")
+                reasons = list(j.get("reasons") or [])
+                if j["state"] == "held" and not reasons:
+                    reasons = ["job-hold-until-specified"]
+                out.append("\tAlerts: " + (" ".join(reasons) or "none"))
+                out.append(f"\tqueued for {j['queue']}")
+    if "-d" in args:
+        out.append(f"system default destination: {st['default']}" if st.get("default")
+                   else "no system default destination")
+    print("\n".join(out))
+    sys.exit(0)
+
+if prog == "cupsenable":
+    names = [a for a in args if not a.startswith("-")]
+    for n in names:
+        q = queue_or_die(n)
+        q["state"], q["message"] = "idle", ""
+        q["reasons"] = [r for r in q.get("reasons", []) if r != "paused"]
+    save(st)
+    sys.exit(0)
+
+if prog == "cupsdisable":
+    reason = args[args.index("-r") + 1] if "-r" in args else "Paused"
+    for n in [a for a in args if not a.startswith("-") and a != reason]:
+        q = queue_or_die(n)
+        q["state"], q["message"], q["reasons"] = "stopped", reason, ["paused"]
+    save(st)
+    sys.exit(0)
+
+if prog == "cupsaccept":
+    for n in args:
+        queue_or_die(n)["accepting"] = True
+    save(st)
+    sys.exit(0)
+
+if prog == "lp":
+    if "-i" in args and "-H" in args:
+        jid = int(args[args.index("-i") + 1].rsplit("-", 1)[-1])
+        for j in st["jobs"]:
+            if j["id"] == jid:
+                if j["state"] != "held":
+                    print(f"lp: Job #{jid} is not held.", file=sys.stderr)
+                    sys.exit(1)
+                j["state"] = "pending"
+                j["reasons"] = []
+                save(st)
+                sys.exit(0)
+        sys.exit(1)
+    sys.exit(2)
+
+if prog == "lpinfo":
+    scheme = args[args.index("--include-schemes") + 1] if "--include-schemes" in args else None
+    for line in st.get("lpinfo", []):
+        if scheme is None or line.split(None, 1)[1].startswith(scheme + ":"):
+            print(line)
+    sys.exit(0)
+
+if prog == "lpadmin":
+    if "-x" in args:
+        queue_or_die(args[args.index("-x") + 1])
+        del st["queues"][args[args.index("-x") + 1]]
+        save(st)
+        sys.exit(0)
+    if "-d" in args:
+        st["default"] = args[args.index("-d") + 1]
+        save(st)
+        sys.exit(0)
+    name = args[args.index("-p") + 1]
+    q = st["queues"].get(name)
+    if q is None:
+        if "-v" not in args:
+            print("lpadmin: The printer or class does not exist.", file=sys.stderr)
+            sys.exit(1)
+        q = st["queues"][name] = {"uri": "", "state": "stopped", "message": "", "reasons": ["paused"],
+                                  "accepting": False, "policy": "stop-printer", "info": ""}
+    for i, a in enumerate(args):
+        nxt = args[i + 1] if i + 1 < len(args) else ""
+        if a == "-v":
+            q["uri"] = nxt
+        elif a == "-D":
+            q["info"] = nxt
+        elif a == "-E":
+            q["state"], q["accepting"], q["reasons"] = "idle", True, []
+        elif a == "-o" and nxt.startswith("printer-error-policy="):
+            q["policy"] = nxt.split("=", 1)[1]
+    save(st)
+    sys.exit(0)
+
+print(f"fake cups: unknown {prog} {args}", file=sys.stderr)
+sys.exit(2)

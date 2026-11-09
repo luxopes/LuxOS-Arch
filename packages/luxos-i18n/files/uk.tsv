@@ -4837,3 +4837,13 @@ Mail uses this access only to download, show and organize your mail on this comp
 Privacy Policy	Політика конфіденційності
 Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Збережені листи й вхід буде вилучено з цього комп'ютера, а доступ Пошти до вашого облікового запису %s буде відкликано. На сервері нічого не видаляється.
 Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Збережені листи й вхід буде вилучено з цього комп'ютера. На сервері нічого не видаляється.
+Printer “%s” is not connected	Принтер «%s» не під’єднано
+A document is waiting for printer “%s”	Документ чекає на принтер «%s»
+Turn the printer on and connect it to the same network. The document will print automatically.	Увімкніть принтер і під’єднайте його до тієї самої мережі. Документ надрукується автоматично.
+Connect the USB cable or turn the printer on. The document will print automatically.	Під’єднайте кабель USB або увімкніть принтер. Документ надрукується автоматично.
+Printer “%s” is connected again	Принтер «%s» знову під’єднано
+Waiting documents are printing now.	Документи в очікуванні зараз друкуються.
+Not connected – connect the USB cable or turn the printer on	Не під’єднано – під’єднайте кабель USB або увімкніть принтер
+Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Не під’єднано – під’єднайте кабель USB або увімкніть принтер. Документи надрукуються автоматично.
+Offline – turn the printer on. Documents will print automatically.	Не в мережі – увімкніть принтер. Документи надрукуються автоматично.
+Waiting for the printer	Очікує на принтер

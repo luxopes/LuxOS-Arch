@@ -13,8 +13,8 @@ USB). Classic USB printers get the best installed driver. Scanners work through 
 | CUPS | `cups.socket` | print server, started on first use |
 | Avahi + nss-mdns | `avahi-daemon.service` | finds network printers and scanners; `.local` names |
 | ipp-usb | started by udev | makes IPP-over-USB printers look like network printers |
-| watcher | `luxos-printing-watch.service` → `/usr/lib/luxos/printing/luxos-printing-watch` | listens to `avahi-browse` for new `_ipp._tcp` and `_uscan._tcp` services (no polling) and runs the helper |
-| USB trigger | `/usr/lib/udev/rules.d/70-luxos-printing.rules` → `luxos-printing-sync.service` | runs the helper when a USB printer or scanner is plugged in |
+| watcher | `luxos-printing-watch.service` → `/usr/lib/luxos/printing/luxos-printing-watch` | listens to `avahi-browse` for new `_ipp._tcp` and `_uscan._tcp` services and runs the helper; every 30 s runs `luxos-printing-helper autoresume`, but only while CUPS is running or a queue is stopped |
+| USB trigger | `/usr/lib/udev/rules.d/99-zz-luxos-printing.rules` → `luxos-printing-sync.service` | runs the helper when a USB printer or scanner is plugged in |
 | helper (root) | `/usr/lib/luxos/printing/luxos-printing-helper` | creates the queues and installs drivers |
 | notifications | `/usr/lib/luxos/printing/luxos-printing-notify` | "Printer “X” is ready" etc. in the user session |
 | mDNS in nsswitch | `/usr/lib/luxos/printing/luxos-nsswitch-mdns` (+ libalpm hook) | adds `mdns_minimal` to the `hosts:` line of `/etc/nsswitch.conf` |
@@ -29,7 +29,8 @@ on purpose.
 `luxos-printing-helper sync` finds devices and handles each kind like this:
 
 - **Network or IPP-USB printers with driverless support** get a queue with `lpadmin -m everywhere`.
-  Queues are not shared and use `printer-error-policy=retry-job`.
+  Queues are not shared. Network queues use `printer-error-policy=retry-job`, USB queues (classic
+  and IPP-USB) `retry-current-job` (see [Printer unplugged or turned off](#printer-unplugged-or-turned-off)).
 - **Classic USB printers** get the best matching installed PPD driver. If none fits, the helper
   installs `hplip` (HP) or `gutenprint` (others) through `lux` (`lux_alpm.py`; it waits if the
   package database is busy). If that is not possible either, it uses a generic PostScript or PCL
@@ -65,7 +66,51 @@ luxos-printing-helper remove QUEUE    # remove (and do not add again)
 luxos-printing-helper default QUEUE   # default printer
 luxos-printing-helper resume QUEUE    # re-enable a paused queue
 luxos-printing-helper cancel ID       # cancel a print job (any user)
+luxos-printing-helper autoresume      # resume queues paused because the printer was away (watcher)
+luxos-printing-helper migrate         # one-time error policy update of older queues (package upgrade)
 ```
+
+## Printer unplugged or turned off
+
+A document printed while the printer is off or unplugged waits and prints by itself as soon as the
+printer is back - no button to press.
+
+- **Error policy.** CUPS (and Arch) default to `stop-printer`: after any backend error the queue is
+  stopped and never started again by CUPS itself. USB queues created by LuxOS use
+  `retry-current-job`: when the cable is pulled or the printer is turned off during a job, the job
+  starts again at once and the CUPS `usb` backend waits for the printer ("Waiting for printer to
+  become available"). `retry-job` is not used for USB because CUPS discards the job after
+  `JobRetryLimit` (5) × `JobRetryInterval` (300 s). Network queues keep `retry-job`: the `ipp`
+  backend already waits for a printer that is off (up to 7 days), so a failure there is a real
+  printer error and the limited retries cannot loop forever.
+- **Migration.** On upgrade (`luxos-printing-helper migrate`, otherwise at the first check) LuxOS
+  sets `retry-current-job` once on its own USB queues and on USB queues created by another tool that
+  still have the CUPS default `stop-printer`. A policy someone chose (for example `abort-job`) is
+  kept. The state is `policy_version` in `/var/lib/luxos-printing/state.json`.
+- **Paused queues are resumed automatically.** A queue can still be stopped: by CUPS when the
+  backend reports a fatal error ("Printer stopped due to backend errors", "unrecoverable USB error")
+  or, on older installs, by system-config-printer's `udev-configure-printer` when the printer was
+  unplugged ("Unplugged or turned off"; LuxOS masks its udev rule, which also removed the part that
+  re-enabled the queue). `luxos-printing-helper autoresume` runs `cupsenable` (and `cupsaccept`)
+  for such queues as soon as their printer is present, and releases jobs held because the printer
+  was unavailable. It runs after every `sync` (a USB printer plugged in, a network or IPP-USB printer
+  announced by Avahi), at start and every 30 s from the watcher.
+  - USB: the serial number from the queue's `usb://…?serial=` URI is matched against
+    `/sys/bus/usb/devices` (printer interface class 07); without a serial number `lpinfo` decides.
+    Network and IPP-USB: the service (UUID or name) must be visible in Avahi.
+  - Only queues stopped because the printer was missing are resumed. A queue paused by you
+    ("Paused" or your own reason) stays paused - use **Resume**.
+  - If CUPS stops the queue again right away (for example a broken driver), the next attempt waits
+    5, 10, 20 … minutes (at most 6 hours).
+  - The watcher does not wake CUPS: when `cups.service` is not running there are no jobs, and it
+    only reads `/etc/cups/printers.conf` until a stopped queue's printer is actually back.
+- **Notifications.** When a document waits for a printer that is not connected, a short notification
+  says "Printer “X” is not connected – Connect the USB cable or turn the printer on. The document
+  will print automatically." (for a network printer: turn it on and connect it to the same network).
+  It is a status message (`transient` hint) and does not stay in the bell. Only when the document is
+  still waiting after 5 minutes does one more notification stay in the bell ("A document is waiting
+  for printer “X”"). When a paused queue is resumed with documents waiting: "Printer “X” is
+  connected again – Waiting documents are printing now."
 
 ## Printers & Scanners app
 
@@ -73,9 +118,14 @@ Run `luxos-printers` (or `luxos-printers --add` to open Add Printer, `--scanner`
 first scanner). It is in Launchpad and Settings.
 
 - **Printers** list with state: Ready, Printing…, N documents waiting, Paused, "Offline – make
-  sure the printer is turned on". Ink and toner levels, and the print queue with per-job Cancel
+  sure the printer is turned on", "Not connected – connect the USB cable or turn the printer on"
+  (USB; checked every 2 s in sysfs) and, when documents wait or the queue was paused because the
+  printer was away, "… Documents will print automatically." (the job then shows "Waiting for the
+  printer" instead of "Printing…"). Ink and toner levels, and the print queue with per-job Cancel
   and Cancel All.
-- Per-printer actions: **Default printer**, **Print Test Page**, **Resume**, **Remove Printer…**.
+- Per-printer actions: **Default printer**, **Print Test Page**, **Resume** (only when the printer
+  is paused for another reason than being unplugged or turned off - that resumes by itself),
+  **Remove Printer…**.
 - **Add Printer…** is a fallback for when the printer was not added automatically. It shows
   "Printers nearby" (USB and network) with an Add button. **Advanced…** opens
   `system-config-printer` for printers that need special setup (LPD, Windows sharing, manual
@@ -115,7 +165,11 @@ Run `luxos-scan` (optionally `--device <SANE device>`). It is a simple scanner w
   `gutenprint` itself. You can also install them by hand: `lux install hplip`.
 - **HP printer needs a plugin**: run `hp-plugin` in a terminal.
 - **Printer not driverless (old network printer)**: use Advanced… (system-config-printer).
-- **Paused printer**: the Resume button in the app, or `luxos-printing-helper resume QUEUE`.
+- **Paused printer**: a printer paused because it was unplugged or off resumes by itself when it
+  is connected again (log: `journalctl -u luxos-printing-watch -u luxos-printing-sync`, "queue
+  resumed"). Otherwise the Resume button in the app, or `luxos-printing-helper resume QUEUE`.
+- **"Not connected" although the cable is in**: `lsusb` must list the printer; if it does not, try
+  another cable or USB port, and turn the printer off and on.
 - **Scanner not found**: `scanimage -L`. The Scanner app says "Scanning support is not installed"
   when SANE is missing (install `luxos-printing`). It says "The scanner does not respond" when the
   device is off or busy.

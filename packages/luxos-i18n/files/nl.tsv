@@ -4836,3 +4836,13 @@ Mail uses this access only to download, show and organize your mail on this comp
 Privacy Policy	Privacybeleid
 Saved messages and the sign-in are removed from this computer, and Mail’s access to your %s account is revoked. Nothing is deleted on the server.	Opgeslagen berichten en de aanmelding worden van deze computer verwijderd en de toegang van Mail tot je %s-account wordt ingetrokken. Op de server wordt niets verwijderd.
 Saved messages and the sign-in are removed from this computer. Nothing is deleted on the server.	Opgeslagen berichten en de aanmelding worden van deze computer verwijderd. Op de server wordt niets verwijderd.
+Printer “%s” is not connected	Printer “%s” is niet verbonden
+A document is waiting for printer “%s”	Een document wacht op printer “%s”
+Turn the printer on and connect it to the same network. The document will print automatically.	Zet de printer aan en verbind hem met hetzelfde netwerk. Het document wordt automatisch afgedrukt.
+Connect the USB cable or turn the printer on. The document will print automatically.	Sluit de USB-kabel aan of zet de printer aan. Het document wordt automatisch afgedrukt.
+Printer “%s” is connected again	Printer “%s” is weer verbonden
+Waiting documents are printing now.	Wachtende documenten worden nu afgedrukt.
+Not connected – connect the USB cable or turn the printer on	Niet verbonden – sluit de USB-kabel aan of zet de printer aan
+Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Niet verbonden – sluit de USB-kabel aan of zet de printer aan. De documenten worden automatisch afgedrukt.
+Offline – turn the printer on. Documents will print automatically.	Offline – zet de printer aan. De documenten worden automatisch afgedrukt.
+Waiting for the printer	Wacht op de printer
