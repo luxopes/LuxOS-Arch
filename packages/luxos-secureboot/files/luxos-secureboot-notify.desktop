@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Secure Boot ready
+Comment=Tells once when Secure Boot can be turned on in the firmware settings
+Comment[cs]=Jednou oznámí, že Secure Boot už jde zapnout v nastavení firmwaru
+Exec=luxos-secureboot notify
+NoDisplay=true
+Terminal=false

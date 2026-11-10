@@ -64,3 +64,12 @@ Když firmware ještě před modrou obrazovkou hlásí „Secure Boot violation�
 verify“, má počítač vypnutý certifikát Microsoftu pro třetí strany (některé notebooky „Secured-core“).
 V nastavení firmwaru na stránce Security nebo Secure Boot zapněte **Allow Microsoft 3rd Party UEFI
 CA** a zkuste to znovu. Secure Boot zůstává zapnutý. Víc v [Secure Boot](secure-boot.html#když-něco-nejde).
+
+## Když se modrá obrazovka neukáže
+
+Modrou obrazovku ukazuje jen shim. Když LuxOS (nebo Windows) nastartuje bez ní, firmware spustil
+nejdřív jinou položku startu: v nabídce startu (často **F12**) vyberte USB, nebo „LuxOS“.
+V nainstalovaném LuxOS dá `sudo luxos-secureboot fix-boot` položku LuxOS → shim na první místo
+v pořadí startu firmwaru a další start pošle přes shim; LuxOS to dělá i sám při každém startu.
+`luxos-secureboot check` řekne, kdy jde Secure Boot zapnout. Víc v
+[Secure Boot](secure-boot.html#pořadí-startu-ve-firmwaru).

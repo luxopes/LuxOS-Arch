@@ -4941,3 +4941,28 @@ show the Secure Boot state, LuxOS key, boot path and signatures	mostrar el estad
 install shim and the signed boot menu on the EFI partition (automatic)	instalar shim y el menú de arranque firmado en la partición EFI (automático)
 prepare enrolling the LuxOS key: shows a one-time password for the next start	preparar el registro de la clave de LuxOS: muestra una contraseña de un solo uso para el próximo arranque
 cancel a prepared enrollment	cancelar un registro preparado
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS"), which shows the blue screen.	El próximo inicio pasará por shim (entrada UEFI Boot%s «LuxOS»), que muestra la pantalla azul.
+If the blue screen does not appear: open the boot menu while the computer starts (often F12, F11, F8 or Esc) and choose "LuxOS".	Si la pantalla azul no aparece: al encender el ordenador, abra el menú de arranque (a menudo F12, F11, F8 o Esc) y elija «LuxOS».
+Note: this start did not go through shim (the firmware started another boot entry first). The boot order has been fixed.	Nota: este inicio no pasó por shim (el firmware arrancó primero otra entrada). El orden de arranque se ha corregido.
+The firmware keeps its own boot order; LuxOS sets the next start through shim at every shutdown instead.	El firmware mantiene su propio orden de arranque; por eso LuxOS fija en cada apagado el próximo inicio por shim.
+Could not create the UEFI boot entry. Choose "LuxOS" or the disk in the boot menu while the computer starts (often F12).	No se pudo crear la entrada de arranque UEFI. Al encender el ordenador, elija «LuxOS» o el disco en el menú de arranque (a menudo F12).
+LuxOS (shim) is the first entry in the firmware boot order.	LuxOS (shim) es la primera entrada del orden de arranque del firmware.
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS").	El próximo inicio pasará por shim (entrada UEFI Boot%s «LuxOS»).
+The next start will not show the enrollment screen (the firmware starts another boot entry first). Run: sudo luxos-secureboot fix-boot	En el próximo inicio no aparecerá la pantalla de registro de la clave (el firmware arranca primero otra entrada). Ejecute: sudo luxos-secureboot fix-boot
+Secure Boot ready: you can now turn it on in the firmware settings.	Secure Boot está listo: ya puede activarlo en la configuración del firmware.
+Some details need root: sudo luxos-secureboot status	Algunos datos necesitan root: sudo luxos-secureboot status
+This computer was not started in UEFI mode - Secure Boot is not available.	Este ordenador no se inició en modo UEFI: Secure Boot no está disponible.
+Secure Boot is on.	Secure Boot está activado.
+Do not turn on Secure Boot yet:	No active Secure Boot todavía:
+the firmware has no Secure Boot keys (Setup Mode): restore the factory keys in the firmware settings	el firmware no tiene claves de Secure Boot (Setup Mode): restaure las claves de fábrica en la configuración del firmware
+the LuxOS key is not enrolled: run sudo luxos-secureboot enroll	la clave de LuxOS no está registrada: ejecute sudo luxos-secureboot enroll
+the LuxOS key waits for confirmation: restart and confirm it in the blue MokManager screen	la clave de LuxOS espera confirmación: reinicie y confírmela en la pantalla azul de MokManager
+cannot check the LuxOS key (mokutil is missing)	no se puede comprobar la clave de LuxOS (falta mokutil)
+LuxOS (shim) is not the first entry in the firmware boot order: run sudo luxos-secureboot fix-boot	LuxOS (shim) no es la primera entrada del orden de arranque del firmware: ejecute sudo luxos-secureboot fix-boot
+this start did not go through shim: restart the computer once more	este inicio no pasó por shim: reinicie el ordenador una vez más
+the kernel is not signed with the LuxOS key: update the system (lux update)	el núcleo no está firmado con la clave de LuxOS: actualice el sistema (lux update)
+cannot check the kernel signature without root: sudo luxos-secureboot check	no se puede comprobar la firma del núcleo sin root: sudo luxos-secureboot check
+Secure Boot ready	Secure Boot está listo
+The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	La clave de LuxOS está registrada y LuxOS arranca por shim. Ya puede activar Secure Boot en la configuración del firmware.
+tell whether Secure Boot can be turned on in the firmware now	indicar si ya se puede activar Secure Boot en el firmware
+put LuxOS (shim) first in the firmware boot order and start through it next time	poner LuxOS (shim) primero en el orden de arranque del firmware y arrancar por él la próxima vez

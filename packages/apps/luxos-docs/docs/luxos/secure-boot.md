@@ -21,6 +21,7 @@ BitLocker does not ask for its recovery key (turning Secure Boot off would make 
 | Part | File on the EFI partition | Signed by |
 |---|---|---|
 | shim | `EFI/LuxOS/shimx64.efi`, fallback `EFI/BOOT/BOOTX64.EFI` | Microsoft |
+| fallback (recreates the boot entry) | `EFI/BOOT/fbx64.efi`, `EFI/LuxOS/BOOTX64.CSV` | Fedora (trusted by shim) |
 | MokManager | `EFI/LuxOS/mmx64.efi` | Fedora (trusted by shim) |
 | boot menu (systemd-boot) | `EFI/LuxOS/grubx64.efi` | LuxOS |
 | kernel | `vmlinuz-linux-luxos` | LuxOS |
@@ -65,8 +66,10 @@ sudo luxos-secureboot enroll
 
 It shows a one-time password of eight digits (only digits, so the keyboard layout does not
 matter). Restart: "Press any key to perform MOK management" appears and waits 60 seconds – press a
-key, choose **Enroll MOK**, **Continue**, **Yes**, type the password, **Reboot**. Then turn on
-Secure Boot in the firmware settings. Alternative without the password: turn Secure Boot on
+key, choose **Enroll MOK**, **Continue**, **Yes**, type the password, **Reboot**. `enroll` also makes
+sure the next start goes through shim (see [Firmware boot order](#firmware-boot-order)) and says which
+boot entry it uses. When `luxos-secureboot check` says "Secure Boot ready" (LuxOS also shows this once
+as a notification), turn on Secure Boot in the firmware settings. Alternative without the password: turn Secure Boot on
 directly; when shim shows the verification error, choose **Enroll key from disk** and the file
 `EFI/LuxOS/luxos-secureboot.cer` on the EFI partition.
 
@@ -79,16 +82,49 @@ start of the installed system: press a key at "Press any key to perform MOK mana
 turned on in the firmware settings at any time, without any further step. Unattended installs
 control this with `SECUREBOOT_ENROLL=auto|yes|no` in `install.conf`.
 
+## Firmware boot order
+
+MokManager is part of shim, so the blue screen appears only when the computer starts through the
+boot entry **LuxOS → `\EFI\LuxOS\shimx64.efi`**. Some firmware has its own ideas about the order:
+Acer (Insyde) creates an entry "Linpus lite" for every `\EFI\Boot\grubx64.efi` and puts it first,
+HP and Lenovo put Windows Boot Manager first again after a Windows update, and some firmware ignores
+changes of the order altogether. LuxOS handles this by itself:
+
+- `EFI/BOOT` contains shim (`BOOTX64.EFI`), MokManager and the shim fallback `fbx64.efi`, but no
+  `grubx64.efi`. If the firmware loses the boot entries (firmware reset, new motherboard battery), it
+  starts `BOOTX64.EFI`, the fallback recreates the entry "LuxOS" from `EFI/LuxOS/BOOTX64.CSV` and
+  starts it – with Secure Boot on as well.
+- At every start the LuxOS entry is put first again; Windows and all other entries keep their order
+  behind it. Entries the firmware created for the old `EFI/BOOT/grubx64.efi` of LuxOS (Acer "Linpus
+  lite") are removed; entries of other systems and other disks are never touched.
+- While an enrollment is waiting, after a start that did not go through shim, and on firmware that
+  does not keep the order, LuxOS also sets **BootNext** – a one-time "start this next" that firmware
+  follows even when it ignores the order – at start and at shutdown.
+
+`sudo luxos-secureboot fix-boot` does all of this immediately and sets BootNext for the next start.
+If the blue screen still does not appear, open the boot menu while the computer starts (often F12)
+and choose "LuxOS".
+
 ## Checking the state
 
 ```
+luxos-secureboot check
 luxos-secureboot status
 mokutil --sb-state
 ```
 
+`luxos-secureboot check` says "Secure Boot ready: you can now turn it on in the firmware settings"
+only when the LuxOS key is enrolled, this start went through shim, the LuxOS entry is first in the
+firmware boot order and the kernel is signed; otherwise it lists what is missing and what to run.
+
 `luxos-secureboot status` prints `secure_boot` (enabled, disabled, setup), `boot_path` (shim or
-direct), `luxos_key` (enrolled, pending, missing), `kernel` (signed or unsigned) and `loader`
-(installed or missing). While an enrollment is waiting, it also shows the password again.
+direct), `luxos_key` (enrolled, pending, missing; unknown after a start without shim, when the key
+list is not visible), `kernel` (signed or unsigned), `loader` (installed or missing), `boot_current`
+and `boot_first` (shim, fallback, direct or other: the entry this start used and the first entry of
+the boot order), `boot_next` (only when set) and `secure_boot_ready` (yes, no, on). Without root the
+EFI partition cannot be read; the values then come from the start-up check (or say `unknown`).
+`hint=` lines explain what to do, for example when the next start would not show the blue screen.
+While an enrollment is waiting, `sudo luxos-secureboot status` also shows the password again.
 `sudo luxos-secureboot cancel` withdraws a prepared enrollment.
 
 ## Drivers (NVIDIA, Wi-Fi)
@@ -104,7 +140,9 @@ same step, if it exists, so these drivers are trusted as well.
 |---|---|
 | Blue screen "Verification failed" on every start | the key was not enrolled: choose OK, then Enroll key from disk (steps above) |
 | "Secure Boot violation" before any LuxOS screen | turn on Microsoft 3rd-party UEFI CA in the firmware (see above) |
-| MokManager did not appear or the time ran out | the request is discarded; run `sudo luxos-secureboot enroll` again and press a key at the blue screen (it waits 60 seconds) |
+| MokManager did not appear after `enroll` | the computer did not start through shim (firmware boot order): run `sudo luxos-secureboot fix-boot` and restart, or choose "LuxOS" in the boot menu (F12) |
+| The time at the blue screen ran out | the request is discarded; run `sudo luxos-secureboot enroll` again and press a key at the blue screen (it waits 60 seconds) |
+| Boot menu shows "Linpus lite" (Acer) | an entry the firmware created for an old LuxOS file; LuxOS removes it at the next start |
 | Boot menu entry ends with "- needs Secure Boot off" | a snapshot or the previous kernel from before signed kernels; it starts only with Secure Boot off. The main LuxOS entry and LuxOS Recovery always start; such entries disappear as old snapshots are removed |
 | Firmware was reset | the MOK list usually survives; if not, enroll the key again from `EFI/LuxOS/luxos-secureboot.cer` |
 
@@ -115,10 +153,12 @@ the live system and the installer are not affected.
 
 | Path | Content |
 |---|---|
-| `/usr/bin/luxos-secureboot` | status, sync, enroll, cancel |
-| `/usr/lib/luxos/secureboot/` | shim, MokManager and signed systemd-boot copied to the EFI partition |
+| `/usr/bin/luxos-secureboot` | status, check, enroll, fix-boot, sync, cancel |
+| `/usr/lib/luxos/secureboot/` | shim, MokManager, fallback, `BOOTX64.CSV` and signed systemd-boot copied to the EFI partition |
 | `/usr/share/luxos/secureboot/luxos-secureboot.pem`, `.cer` | public LuxOS Secure Boot certificate |
-| `luxos-secureboot-sync.service` | checks the EFI partition at every start, removes the old boot entry |
+| `luxos-secureboot-sync.service` | checks the EFI partition and the boot order at every start (BootNext at shutdown where needed), removes the old boot entry |
+| `/run/luxos-secureboot/status` | state from the start-up check for `status` without root (no password) |
+| `/etc/xdg/autostart/luxos-secureboot-notify.desktop` | one-time notification "Secure Boot ready" |
 | `/usr/share/libalpm/hooks/luxos-secureboot.hook` | updates the EFI partition after an update of the package |
 | `/var/lib/luxos-secureboot/enroll-pin` | one-time password of a waiting enrollment (root only, removed after use) |
 

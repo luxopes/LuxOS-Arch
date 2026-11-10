@@ -64,3 +64,12 @@ If the firmware shows "Secure Boot violation" or "Image failed to verify" before
 the computer has the Microsoft 3rd-party certificate turned off (some "Secured-core" laptops). In the
 firmware settings, on the Security or Secure Boot page, turn on **Allow Microsoft 3rd Party UEFI CA**
 and try again. Secure Boot stays on. More in [Secure Boot](secure-boot.html#troubleshooting).
+
+## If the blue screen does not appear
+
+The blue screen comes from shim only. If LuxOS (or Windows) starts without it, the firmware started
+another boot entry first: choose the USB stick, or "LuxOS", in the boot menu (often **F12**). On an
+installed LuxOS, `sudo luxos-secureboot fix-boot` puts the LuxOS → shim entry first in the firmware
+boot order and makes the next start go through shim; LuxOS also does this by itself at every start.
+`luxos-secureboot check` tells when Secure Boot can be turned on. More in
+[Secure Boot](secure-boot.html#firmware-boot-order).

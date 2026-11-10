@@ -1,12 +1,17 @@
 [Unit]
 Description=LuxOS Secure Boot loader check (shim, signed systemd-boot, UEFI boot entry)
-# Kazdy start: oprava po resetu ESP, uklid stare prime polozky UEFI po prvnim startu pres shim
+# Kazdy start: oprava po resetu ESP, polozka LuxOS -> shim na prvni misto BootOrder (firmware ho meni:
+# Acer "Linpus lite", HP/Lenovo), BootNext pri cekajicim zapisu klice, uklid stare prime polozky UEFI
+# po prvnim startu pres shim, stav pro uzivatele bez roota (/run/luxos-secureboot/status).
+# Vypnuti (ExecStop): BootNext na shim jen na firmwaru, ktery poradi nedodrzuje, nebo pri cekajicim zapisu.
 ConditionPathIsDirectory=/sys/firmware/efi/efivars
-After=local-fs.target
+After=local-fs.target sys-firmware-efi-efivars.mount
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/luxos-secureboot sync --quiet
+ExecStop=/usr/bin/luxos-secureboot sync --quiet --shutdown
 Nice=10
 IOSchedulingClass=idle
 

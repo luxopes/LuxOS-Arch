@@ -416,7 +416,7 @@
         {
           "path": "luxos/secure-boot.md",
           "title": "Secure Boot",
-          "summary": "LuxOS starts with Secure Boot on: Microsoft-signed shim, LuxOS key enrolled once in MokManager (Enroll key from disk), luxos-secureboot status/enroll, older installs, Secured-core PCs, DKMS drivers.",
+          "summary": "LuxOS starts with Secure Boot on: Microsoft-signed shim, LuxOS key enrolled once in MokManager (Enroll key from disk), luxos-secureboot status/check/enroll/fix-boot, firmware boot order (Acer Linpus lite, BootNext), older installs, Secured-core PCs, DKMS drivers.",
           "keywords": [
             "Secure Boot",
             "UEFI",
@@ -435,7 +435,12 @@
             "DKMS",
             "NVIDIA",
             "BitLocker",
-            "firmware settings"
+            "firmware settings",
+            "boot order",
+            "BootNext",
+            "Linpus lite",
+            "fix-boot",
+            "MokManager did not appear"
           ]
         },
         {
