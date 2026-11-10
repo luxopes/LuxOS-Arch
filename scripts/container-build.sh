@@ -18,7 +18,7 @@ target=${1:-all}
 #  vte3 = VTE z Archu s obrazky SIXEL pro luxos-terminal,
 #  adcli + realmd = overene kopie z AUR pro luxos-domain - pripojeni k domene Active Directory,
 #  plank = Dock z Archu s opravami LuxOS - zamrzla animace, hlidac, pady Loggeru)
-PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin rofi vte3 xfce4-notifyd xfce4-screensaver xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin plank luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-terminal luxos-text luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-care luxos-guard luxos-backup luxos-firewall luxos-printing adcli realmd luxos-domain luxos-weather luxos-maps luxos-companion luxos-desktop luxos-installer
+PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin rofi vte3 xfce4-notifyd xfce4-screensaver xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin plank luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-terminal luxos-text luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-secureboot luxos-care luxos-guard luxos-backup luxos-firewall luxos-printing adcli realmd luxos-domain luxos-weather luxos-maps luxos-companion luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
@@ -80,6 +80,41 @@ setup_test_signing() {
     cp -r "$ROOT/packages/luxos-branding" "$b"
     sed -i "/^BUILD_ID=@BUILD@\$/a VARIANT=\"TEST build\"\nVARIANT_ID=test" "$b/files/apply-branding"
     grep -q '^VARIANT="TEST build"$' "$b/files/apply-branding" || { echo "os-release VARIANT not added" >&2; exit 1; }
+    # Secure Boot: jednorazovy TESTOVACI klic (zanika s kontejnerem), certifikat do kopie luxos-secureboot
+    # a vedle ISO (out/luxos-test-secureboot.cer - MokManager "Enroll key from disk")
+    rm -rf /tmp/luxos-test-sb
+    bash "$ROOT/scripts/sb-sign.sh" test-key /tmp/luxos-test-sb >/dev/null
+    export LUXOS_SB_DIR=/tmp/luxos-test-sb
+    local s=$TEST_SRC/luxos-secureboot
+    cp -r "$ROOT/packages/luxos-secureboot" "$s"
+    cp /tmp/luxos-test-sb/luxos-secureboot.crt "$s/files/luxos-secureboot.pem"
+    cp /tmp/luxos-test-sb/luxos-secureboot.cer "$OUT/luxos-test-secureboot.cer"
+    msg "TEST build: Secure Boot signing with a throwaway key (out/luxos-test-secureboot.cer)"
+}
+
+# Klic Secure Boot (build.sh pripoji /safe/$USER/luxos-signing-sb nebo ~/.local/share/luxos/signing-sb
+# do /sb-signing; TEST sestaveni ma vlastni jednorazovy klic). Bez klice zustane jadro a systemd-boot
+# nepodepsane - publish-repo.sh takove baliky odmitne zverejnit.
+setup_sb_signing() {
+    [[ -n ${LUXOS_TEST:-} ]] && return 0
+    if [[ -f /sb-signing/luxos-secureboot.key ]]; then
+        export LUXOS_SB_DIR=/sb-signing
+        msg "Secure Boot: signing the kernel and systemd-boot ($(openssl x509 -in /sb-signing/luxos-secureboot.crt -noout -subject))"
+    else
+        msg "WARNING: no Secure Boot key - kernel and systemd-boot stay unsigned (scripts/sb-sign.sh init)"
+    fi
+}
+
+sb_sign_packages() {  # sb_sign_packages ADRESAR_BALIKU - jadro a systemd-boot klicem LuxOS (pred podpisem GPG)
+    [[ -n ${LUXOS_SB_DIR:-} ]] || return 0
+    local -a pkgs=()
+    shopt -s nullglob
+    pkgs=("$1"/linux-luxos-[0-9]*.pkg.tar.zst "$1"/luxos-secureboot-[0-9]*.pkg.tar.zst)
+    shopt -u nullglob
+    ((${#pkgs[@]})) || return 0
+    msg "Secure Boot: signing EFI binaries in ${pkgs[*]##*/}"
+    bash "$ROOT/scripts/sb-sign.sh" package "${pkgs[@]}"
+    LUXOS_SB_CERT=$LUXOS_SB_DIR/luxos-secureboot.crt bash "$ROOT/scripts/sb-sign.sh" verify "${pkgs[@]}"
 }
 
 pkg_src() {  # pkg_src NAZEV -> adresar baliku (v TEST sestaveni pripadne upravena kopie)
@@ -234,6 +269,7 @@ build_packages() {
     check_pacman_version
 
     if [[ -n ${LUXOS_TEST:-} ]]; then setup_test_signing; else setup_signing; fi
+    setup_sb_signing
     rm -rf "$BUILD"
     mkdir -p "$SOURCES" "$BUILD/pkgs/luxos" "$BUILD/pkgs/luxos-apps"
     chown -R builder: "$SOURCES" "$BUILD"
@@ -253,6 +289,7 @@ build_packages() {
     compgen -G "$OUT/kernel/linux-luxos-[0-9]*.pkg.tar.zst" >/dev/null ||
         { echo "Missing out/kernel/linux-luxos-*.pkg.tar.zst (scripts/fetch-kernel.sh)" >&2; exit 1; }
     install -m644 "$OUT"/kernel/linux-luxos-*.pkg.tar.zst "$BUILD/pkgs/luxos/"
+    sb_sign_packages "$BUILD/pkgs/luxos"
 
     make_repo luxos "$BUILD/pkgs/luxos"
     make_repo luxos-apps "$BUILD/pkgs/luxos-apps"
@@ -515,10 +552,32 @@ build_iso() {
     iso_drop_online_only "$PROFILE/airootfs/opt/luxos-repo/luxos/$ARCH"
     rsvg-convert "$ROOT/packages/luxos-branding/files/syslinux/splash.svg" -o "$PROFILE/syslinux/splash.png"
 
+    iso_secureboot "$PROFILE"
     msg "Building ISO (mkarchiso)"
-    mkarchiso -v -w "$WORK" -o "$OUT" "$PROFILE"
+    "$MKARCHISO" -v -w "$WORK" -o "$OUT" "$PROFILE"
     cleanup_work
     ls -lh "$OUT"/*.iso
+}
+
+# Secure Boot v ISO: kopie mkarchiso s doplnkem scripts/mkarchiso-secureboot.sh (shim, podepsany
+# systemd-boot, MokManager, certifikat LuxOS na EFI oddilu). Repozitar bez luxos-secureboot (napr.
+# zverejneny pred prvnim vydanim se Secure Boot) = ISO bez nej, jako driv.
+MKARCHISO=mkarchiso
+iso_secureboot() {  # iso_secureboot PROFIL
+    # (bez grep -q: pri pipefail by predcasne ukonceny tar znamenal "neni v repozitari")
+    if [[ $(tar -tzf "$REPO/luxos/$ARCH/luxos.db.tar.gz" | grep -c '^luxos-secureboot-[0-9]') == 0 ]]; then
+        msg "WARNING: luxos-secureboot is not in [luxos] - ISO without Secure Boot support"
+        sed -i '/^luxos-secureboot$/d' "$1/packages.x86_64"
+        return 0
+    fi
+    MKARCHISO=/tmp/mkarchiso-luxos
+    local src
+    src=$(command -v mkarchiso)
+    # doplnek pred posledni volani (_read_profile ... _build) - funkce mkarchiso uz jsou definovane
+    awk -v add="$ROOT/scripts/mkarchiso-secureboot.sh" '
+        /^_read_profile$/ && !done { print "source \"" add "\""; done = 1 } { print }
+        END { if (!done) exit 1 }' "$src" >"$MKARCHISO" || { echo "mkarchiso: cannot add the Secure Boot step" >&2; exit 1; }
+    chmod 755 "$MKARCHISO"
 }
 
 # Kanal aktualizaci live systemu (LUXOS_CHANNEL=stable|staging, vychozi stable = soubor z repozitare).

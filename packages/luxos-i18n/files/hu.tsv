@@ -4929,3 +4929,15 @@ Send (in the message window)	Küldés (az üzenetablakban)
 Print	Nyomtatás
 Text size of the message	Az üzenet szövegmérete
 Add your email account to write to %s.	Add hozzá az e-mail-fiókodat, hogy írhass ide: %s.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	Érvénytelen SECUREBOOT_ENROLL (auto, yes vagy no adható meg)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	A Secure Boot kulcs regisztrálását nem sikerült előkészíteni (a LuxOS normálisan indul).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot: az első indításkor kék képernyő jelenik meg. Nyomjon meg egy billentyűt, válassza az Enroll MOK, Continue, Yes pontot, írja be a(z) %s jelszót, és válassza a Reboot pontot. Ezután a Secure Boot bármikor bekapcsolható a firmware beállításaiban.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	A LuxOS kulcs már regisztrálva van – a Secure Boot bekapcsolható a firmware beállításaiban.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Kész. Indítsa újra a számítógépet. Megjelenik egy kék „Press any key to perform MOK management” képernyő – %s mp-en belül nyomjon meg egy billentyűt:
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Ezután bekapcsolhatja a Secure Bootot a firmware beállításaiban. A jelszó újra: sudo luxos-secureboot status
+Enrollment cancelled.	Regisztráció megszakítva.
+Usage: luxos-secureboot COMMAND	Használat: luxos-secureboot PARANCS
+show the Secure Boot state, LuxOS key, boot path and signatures	a Secure Boot, a LuxOS kulcs, az indítási út és az aláírások állapota
+install shim and the signed boot menu on the EFI partition (automatic)	a shim és az aláírt indítómenü telepítése az EFI partícióra (automatikus)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	a LuxOS kulcs regisztrálásának előkészítése: egyszeri jelszót mutat a következő indításhoz
+cancel a prepared enrollment	előkészített regisztráció megszakítása

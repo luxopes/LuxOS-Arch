@@ -4930,3 +4930,15 @@ Send (in the message window)	Wyślij (w oknie wiadomości)
 Print	Drukuj
 Text size of the message	Rozmiar tekstu wiadomości
 Add your email account to write to %s.	Dodaj swoje konto e-mail, aby napisać do %s.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	Nieprawidłowe SECUREBOOT_ENROLL (użyj auto, yes lub no)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	Nie udało się przygotować rejestracji klucza Secure Boot (LuxOS uruchomi się normalnie).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot: przy pierwszym uruchomieniu pojawi się niebieski ekran. Naciśnij klawisz, wybierz Enroll MOK, Continue, Yes, wpisz hasło %s i wybierz Reboot. Potem Secure Boot można w każdej chwili włączyć w ustawieniach firmware.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	Klucz LuxOS jest już zarejestrowany – Secure Boot można włączyć w ustawieniach firmware.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Gotowe. Uruchom komputer ponownie. Pojawi się niebieski ekran „Press any key to perform MOK management” – naciśnij klawisz w ciągu %s s:
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Potem możesz włączyć Secure Boot w ustawieniach firmware. Pokaż hasło ponownie: sudo luxos-secureboot status
+Enrollment cancelled.	Rejestracja anulowana.
+Usage: luxos-secureboot COMMAND	Użycie: luxos-secureboot POLECENIE
+show the Secure Boot state, LuxOS key, boot path and signatures	pokaż stan Secure Boot, klucza LuxOS, ścieżki uruchamiania i podpisów
+install shim and the signed boot menu on the EFI partition (automatic)	zainstaluj shim i podpisane menu startowe na partycji EFI (automatycznie)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	przygotuj rejestrację klucza LuxOS: pokazuje hasło jednorazowe na następne uruchomienie
+cancel a prepared enrollment	anuluj przygotowaną rejestrację

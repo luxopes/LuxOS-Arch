@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxOS Secure Boot loader check (shim, signed systemd-boot, UEFI boot entry)
+# Kazdy start: oprava po resetu ESP, uklid stare prime polozky UEFI po prvnim startu pres shim
+ConditionPathIsDirectory=/sys/firmware/efi/efivars
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-secureboot sync --quiet
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

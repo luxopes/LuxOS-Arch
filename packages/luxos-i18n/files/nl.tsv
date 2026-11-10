@@ -4929,3 +4929,15 @@ Send (in the message window)	Verzenden (in het berichtvenster)
 Print	Afdrukken
 Text size of the message	Tekstgrootte van het bericht
 Add your email account to write to %s.	Voeg je e-mailaccount toe om naar %s te schrijven.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	Ongeldige SECUREBOOT_ENROLL (gebruik auto, yes of no)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	Het registreren van de Secure Boot-sleutel kon niet worden voorbereid (LuxOS start normaal).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot: bij de eerste start verschijnt een blauw scherm. Druk op een toets, kies Enroll MOK, Continue, Yes, typ het wachtwoord %s en kies Reboot. Daarna kunt u Secure Boot op elk moment inschakelen in de firmware-instellingen.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	De LuxOS-sleutel is al geregistreerd – Secure Boot kan in de firmware-instellingen worden ingeschakeld.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Klaar. Start de computer opnieuw op. Er verschijnt een blauw scherm „Press any key to perform MOK management” – druk binnen %s s op een toets:
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Daarna kunt u Secure Boot in de firmware-instellingen inschakelen. Wachtwoord opnieuw tonen: sudo luxos-secureboot status
+Enrollment cancelled.	Registratie geannuleerd.
+Usage: luxos-secureboot COMMAND	Gebruik: luxos-secureboot OPDRACHT
+show the Secure Boot state, LuxOS key, boot path and signatures	toon de status van Secure Boot, de LuxOS-sleutel, het opstartpad en de handtekeningen
+install shim and the signed boot menu on the EFI partition (automatic)	shim en het ondertekende opstartmenu op de EFI-partitie installeren (automatisch)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	registratie van de LuxOS-sleutel voorbereiden: toont een eenmalig wachtwoord voor de volgende start
+cancel a prepared enrollment	voorbereide registratie annuleren

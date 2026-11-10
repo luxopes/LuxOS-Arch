@@ -331,6 +331,57 @@ class SdBoot(Env):
         # hlavni polozka beze zmeny
         self.assertNotIn(snap.ENTRY_MARK, self.r("/boot/loader/entries/luxos.conf"))
 
+    @staticmethod
+    def fake_pe(cert=None):
+        """Minimalni PE32+ s tabulkou certifikatu (podpis Authenticode obsahujici `cert`), bez = nepodepsany."""
+        import struct
+        pe = 0x40
+        d = bytearray(0x200)
+        d[0:2] = b"MZ"
+        struct.pack_into("<I", d, 0x3c, pe)
+        d[pe:pe + 4] = b"PE\0\0"
+        struct.pack_into("<H", d, pe + 24, 0x20b)
+        if cert is not None:
+            blob = b"\x30\x82PKCS7..." + cert + b"...end"
+            entry = struct.pack("<IHH", 8 + len(blob), 0x200, 2) + blob
+            entry += b"\0" * (-len(entry) % 8)
+            struct.pack_into("<II", d, pe + 24 + 144, len(d), len(entry))
+            d += entry
+        return bytes(d)
+
+    def test_secure_boot_unsigned_kernel_marked(self):
+        """Secure Boot: sada jadra z doby pred podepisovanim -> polozka s upozornenim, obnova z jadra hlavni
+        polozky (vzdy podepsane); podepsana sada beze zmeny. Bez luxos-secureboot se nic neoznacuje."""
+        meta = snap.create(self.top, now=self.at(3, 12))
+        snap.sync_boot(self.top)
+        e = self.r(f"/boot/loader/entries/snapshot-luxos-{meta['name']}.conf")
+        self.assertIn("title   LuxOS (before update of 2026-10-26 14:03)\n", e)   # bez certifikatu: nic
+        cert = b"LUXOS-TEST-CERT-DER-" + os.urandom(16)
+        os.makedirs(self.root + "/usr/share/luxos/secureboot", exist_ok=True)
+        with open(self.root + care.SB_CERT, "wb") as f:
+            f.write(cert)
+        kv = self.root + f"/boot/luxos-snapshots/{meta['kset']}/vmlinuz"
+        with open(kv, "wb") as f:
+            f.write(self.fake_pe())                     # nepodepsane
+        snap.sync_boot(self.top)
+        e = self.r(f"/boot/loader/entries/snapshot-luxos-{meta['name']}.conf")
+        self.assertIn("title   LuxOS (before update of 2026-10-26 14:03 - needs Secure Boot off)\n", e)
+        self.assertIn(f"linux   /luxos-snapshots/{meta['kset']}/vmlinuz", e)     # polozka zustava
+        r = self.r("/boot/loader/entries/recovery-luxos.conf")
+        self.assertNotIn("luxos-snapshots", r)          # obnova: jadro hlavni polozky
+        self.assertIn("title   LuxOS Recovery", r)
+        with open(kv, "wb") as f:
+            f.write(self.fake_pe(b"JINY-CERTIFIKAT"))   # podpis jinym klicem = taky nepodepsane klicem LuxOS
+        self.assertTrue(care.sb_unsigned(kv))
+        with open(kv, "wb") as f:
+            f.write(self.fake_pe(cert))                 # podepsane klicem LuxOS
+        self.assertFalse(care.sb_unsigned(kv))
+        snap.sync_boot(self.top)
+        e = self.r(f"/boot/loader/entries/snapshot-luxos-{meta['name']}.conf")
+        self.assertIn("title   LuxOS (before update of 2026-10-26 14:03)\n", e)
+        self.assertIn(f"rootflags=subvol=@snapshots/{meta['name']}", self.r("/boot/loader/entries/recovery-luxos.conf"))
+        self.assertFalse(care.sb_unsigned(self.root + "/neni"))                  # chybejici soubor: nic
+
     def test_entries_sort_key_with_care_layout(self):
         self.w("/boot/loader/loader.conf", "# luxos-care: x\ndefault luxos*\ntimeout 0\n")
         self.w("/boot/loader/entries/luxos+3.conf", "title   LuxOS\nsort-key luxos\nlinux   /vmlinuz-linux-luxos\n"

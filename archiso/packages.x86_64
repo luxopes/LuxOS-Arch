@@ -63,5 +63,7 @@ luxos-care
 luxos-guard
 luxos-backup
 luxos-firewall
+# Secure Boot: shim (Microsoft) + systemd-boot a jadro podepsane klicem LuxOS, mokutil (stav, zapis klice)
+luxos-secureboot
 # firemni sit (Active Directory): Najit v instalatoru, Nastaveni > Firemni sit; sluzby se zapnou az pri pripojeni
 luxos-domain

@@ -630,10 +630,18 @@ def sdboot_entries(lay, top, snaps, system):
         if not bootable(lay, top, s):
             continue
         k = f"{store['loader']}/{s['kset']}"
+        title = label(s)
+        # jadro sady z doby pred podepisovanim (Secure Boot): polozka zustava, jen s upozornenim
+        kdir = kset_path(lay, top, s["kset"])
+        if kdir and care.sb_unsigned(os.path.join(kdir, "vmlinuz")):
+            title = title[:-1] + care.SB_SUFFIX + ")" if title.endswith(")") else title + care.SB_SUFFIX
         out[f"snapshot-{lay['name']}-{s['name']}.conf"] = text(
-            label(s), "luxos-snapshot", s["name"], f"{k}/vmlinuz", [f"{k}/initramfs.img"],
+            title, "luxos-snapshot", s["name"], f"{k}/vmlinuz", [f"{k}/initramfs.img"],
             entry_options(options, f"{SNAP_SUBVOL}/{s['name']}", snapshot_params(s["name"])))
     rs = recovery_snapshot(lay, top, snaps)
+    # LuxOS Recovery musi nastartovat vzdy: s nepodepsanym jadrem sady (Secure Boot) radeji jadro hlavni polozky
+    if rs and linux_main and care.sb_unsigned(os.path.join(kset_path(lay, top, rs["kset"]) or "", "vmlinuz")):
+        rs = None
     if rs:
         k = f"{store['loader']}/{rs['kset']}"
         out[f"recovery-{lay['name']}.conf"] = text(

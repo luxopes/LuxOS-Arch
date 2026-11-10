@@ -57,6 +57,26 @@ if [[ -n $key && $key != none && -d $key ]]; then
     signing+=(-v "$key:/signing:ro,z")
 fi
 
+# Klic Secure Boot (jadro a systemd-boot, scripts/sb-sign.sh): LUXOS_SB_DIR (none = nepodepisovat),
+# Trezor /safe/$USER/luxos-signing-sb, ~/.local/share/luxos/signing-sb. Jen u spravce, ne v CI ani
+# v iso-test (ten ma jednorazovy testovaci klic). Z Trezoru kopie v RAM jako u klice repozitare.
+sb_key=
+if [[ ${1:-} != iso-test && ${1:-all} == @(all|packages) ]]; then
+    if [[ -n ${LUXOS_SB_DIR:-} ]]; then sb_key=$LUXOS_SB_DIR
+    elif [[ -f /safe/$USER/luxos-signing-sb/luxos-secureboot.key ]]; then sb_key=/safe/$USER/luxos-signing-sb
+    elif [[ -f $HOME/.local/share/luxos/signing-sb/luxos-secureboot.key ]]; then sb_key=$HOME/.local/share/luxos/signing-sb
+    fi
+fi
+if [[ -n $sb_key && $sb_key != none && -f $sb_key/luxos-secureboot.key ]]; then
+    if [[ $sb_key == /safe/* ]]; then
+        sb_copy=$(mktemp -d "${XDG_RUNTIME_DIR:-/dev/shm}/luxos-signing-sb.XXXXXX")
+        cp -a "$sb_key/." "$sb_copy/"
+        sb_key=$sb_copy
+        trap 'cleanup_signing; rm -rf "$sb_copy"' EXIT
+    fi
+    signing+=(-v "$sb_key:/sb-signing:ro,z")
+fi
+
 # jadro LuxOS (GitHub Actions) do out/kernel, overene - pri stavbe repozitare [luxos]
 case ${1:-all} in all|packages|iso-test) scripts/fetch-kernel.sh ;; esac
 

@@ -38,6 +38,10 @@ CARE_MODE=carefree     # carefree = automaticke aktualizace na pozadi, zalozni j
 PROTECT=1              # ochrana systemu: /usr jen pro cteni, meni ho jen aktualizace a instalace (0 = vypnuto)
 COUNTME=1              # 1 = jednou tydne anonymne nahlasit, ze pocitac pouziva LuxOS (jen verze, kanal a stari
                        #     instalace; zadne ID ani osobni udaje - jako "countme" ve Fedore); 0 = vypnuto
+SECUREBOOT_ENROLL=auto # Secure Boot: auto = pocitac s vypnutym Secure Boot (klice Microsoftu ve firmwaru) dostane
+                       #   pripraveny zapis klice LuxOS - prvni start: MokManager Enroll MOK, Continue, Yes, heslo
+                       #   (ukaze ho instalator), Reboot; pak jde Secure Boot kdykoli zapnout. yes = vzdy, no = nikdy
+                       #   (Secure Boot zapnuty pri startu z USB = klic uz zapsany, nic se nedeje)
 # Nepovinne: sablony softwaru (aplikace navic), vice oddelenych carkou; prazdne/none = jen zaklad
 #   everyday, programming, creative, gaming, security  (seznamy v /usr/share/luxos/installer/templates)
 TEMPLATES=

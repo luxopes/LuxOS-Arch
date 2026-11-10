@@ -4929,3 +4929,15 @@ Send (in the message window)	Envoyer (dans la fenêtre du message)
 Print	Imprimer
 Text size of the message	Taille du texte du message
 Add your email account to write to %s.	Ajoutez votre compte de messagerie pour écrire à %s.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	SECUREBOOT_ENROLL non valide (utilisez auto, yes ou no)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	L’enregistrement de la clé Secure Boot n’a pas pu être préparé (LuxOS démarre normalement).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot : au premier démarrage, un écran bleu apparaît. Appuyez sur une touche, choisissez Enroll MOK, Continue, Yes, tapez le mot de passe %s et choisissez Reboot. Vous pourrez ensuite activer Secure Boot à tout moment dans les réglages du micrologiciel.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	La clé LuxOS est déjà enregistrée – Secure Boot peut être activé dans les réglages du micrologiciel.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Prêt. Redémarrez l’ordinateur. Un écran bleu « Press any key to perform MOK management » apparaît – appuyez sur une touche dans les %s s :
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Vous pourrez ensuite activer Secure Boot dans les réglages du micrologiciel. Revoir le mot de passe : sudo luxos-secureboot status
+Enrollment cancelled.	Enregistrement annulé.
+Usage: luxos-secureboot COMMAND	Utilisation : luxos-secureboot COMMANDE
+show the Secure Boot state, LuxOS key, boot path and signatures	afficher l’état de Secure Boot, la clé LuxOS, le chemin de démarrage et les signatures
+install shim and the signed boot menu on the EFI partition (automatic)	installer shim et le menu de démarrage signé sur la partition EFI (automatique)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	préparer l’enregistrement de la clé LuxOS : affiche un mot de passe à usage unique pour le prochain démarrage
+cancel a prepared enrollment	annuler un enregistrement préparé

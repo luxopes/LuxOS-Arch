@@ -4929,3 +4929,15 @@ Send (in the message window)	Skicka (i meddelandefönstret)
 Print	Skriv ut
 Text size of the message	Textstorlek för meddelandet
 Add your email account to write to %s.	Lägg till ditt e-postkonto för att skriva till %s.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	Ogiltigt SECUREBOOT_ENROLL (använd auto, yes eller no)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	Registreringen av Secure Boot-nyckeln kunde inte förberedas (LuxOS startar som vanligt).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot: vid första starten visas en blå skärm. Tryck på en tangent, välj Enroll MOK, Continue, Yes, skriv lösenordet %s och välj Reboot. Därefter kan Secure Boot slås på när som helst i firmware-inställningarna.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	LuxOS-nyckeln är redan registrerad – Secure Boot kan slås på i firmware-inställningarna.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Klart. Starta om datorn. En blå skärm ”Press any key to perform MOK management” visas – tryck på en tangent inom %s s:
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Därefter kan du slå på Secure Boot i firmware-inställningarna. Visa lösenordet igen: sudo luxos-secureboot status
+Enrollment cancelled.	Registreringen avbröts.
+Usage: luxos-secureboot COMMAND	Användning: luxos-secureboot KOMMANDO
+show the Secure Boot state, LuxOS key, boot path and signatures	visa status för Secure Boot, LuxOS-nyckeln, startvägen och signaturerna
+install shim and the signed boot menu on the EFI partition (automatic)	installera shim och den signerade startmenyn på EFI-partitionen (automatiskt)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	förbered registrering av LuxOS-nyckeln: visar ett engångslösenord för nästa start
+cancel a prepared enrollment	avbryt en förberedd registrering

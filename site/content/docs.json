@@ -1,5 +1,9 @@
 {
-  "comment": "Strankam navic k luxos-docs (psane pro web podle zdrojaku). Zdroje: content/en/<soubor>, content/cs/<soubor>; after = za jaky dokument v sidebaru.",
+  "comment": "cs = cesky nazev a popis stranek luxos-docs s ceskou verzi. Strankam navic k luxos-docs (psane pro web podle zdrojaku). Zdroje: content/en/<soubor>, content/cs/<soubor>; after = za jaky dokument v sidebaru.",
+  "cs": {
+    "luxos/secure-boot.md": {"title": "Secure Boot",
+      "summary": "LuxOS startuje se zapnutým Secure Boot: shim podepsaný Microsoftem, klíč LuxOS jednou zapsaný v MokManageru (Enroll key from disk), luxos-secureboot status/enroll, starší instalace, počítače Secured-core, ovladače DKMS."}
+  },
   "files": [
     {"path": "luxos/luxai.md", "after": "luxos/overview.md",
      "title": {"en": "LuxAI – the AI assistant", "cs": "LuxAI – AI asistent"},
@@ -13,6 +17,10 @@
      "title": {"en": "Hardware support", "cs": "Podporovaný hardware"},
      "summary": {"en": "Hardware supported by LuxOS: x86_64, UEFI and BIOS, Intel, AMD and NVIDIA graphics, Wi-Fi, audio, cameras, fingerprint readers, printers and virtual machines.",
                  "cs": "Hardware podporovaný v LuxOS: x86_64, UEFI a BIOS, grafika Intel, AMD a NVIDIA, Wi-Fi, zvuk, kamery, čtečky otisků, tiskárny a virtuální počítače."}},
+    {"path": "luxos/secure-boot-first-start.md", "after": "luxos/secure-boot.md",
+     "title": {"en": "Secure Boot: first start", "cs": "Secure Boot: první start"},
+     "summary": {"en": "Step by step with screenshots: the first start of LuxOS with Secure Boot on – enroll the LuxOS key once in MokManager, no typing.",
+                 "cs": "Krok za krokem se snímky: první start LuxOS se zapnutým Secure Boot – jednorázový zápis klíče LuxOS v MokManageru, nic se nepíše."}},
     {"path": "luxos/shortcuts.md", "after": "luxos/keyboard.md",
      "title": {"en": "Keyboard shortcuts", "cs": "Klávesové zkratky"},
      "summary": {"en": "All LuxOS keyboard shortcuts: Search, Launchpad, windows, screenshots, lock screen, displays, LuxAI and Lux Code.",

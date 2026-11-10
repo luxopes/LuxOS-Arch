@@ -1115,6 +1115,52 @@ def kernel_pre(targets):
     return 0
 
 
+# ---- Secure Boot ----------------------------------------------------------------------------
+# Jadro (snimku, zalozni) startuje se zapnutym Secure Boot jen podepsane klicem LuxOS (luxos-secureboot,
+# shim). Starsi kopie z doby pred podepisovanim podepsat nejde (klic ma jen spravce) - polozka se proto
+# jen oznaci a obnova pouzije podepsane jadro hlavni polozky.
+SB_CERT = "/usr/share/luxos/secureboot/luxos-secureboot.cer"
+SB_SUFFIX = " - needs Secure Boot off"
+
+
+def pe_signatures(path):
+    """Bloky podpisu Authenticode (tabulka certifikatu PE) souboru EFI -> [bytes] (prazdne = nepodepsany)."""
+    import struct
+    try:
+        with open(path, "rb") as f:
+            d = f.read()
+        pe = struct.unpack_from("<I", d, 0x3c)[0]
+        if d[pe:pe + 4] != b"PE\0\0":
+            return []
+        magic = struct.unpack_from("<H", d, pe + 24)[0]
+        off = pe + 24 + (144 if magic == 0x20b else 128)
+        va, size = struct.unpack_from("<II", d, off)
+        out, p = [], va
+        while size and p + 8 <= min(va + size, len(d)):
+            ln = struct.unpack_from("<I", d, p)[0]
+            if ln < 8:
+                break
+            out.append(d[p + 8:p + ln])
+            p += (ln + 7) & ~7
+        return out
+    except (OSError, struct.error):
+        return []
+
+
+def sb_unsigned(path):
+    """Jadro neni podepsane klicem LuxOS (a luxos-secureboot je nainstalovany) -> se Secure Boot nenastartuje.
+    Bez luxos-secureboot (certifikatu) se nic neoznacuje. Kontrola = certifikat LuxOS v podpisu; kryptografii
+    overuje az shim pri startu."""
+    try:
+        with open(P(SB_CERT), "rb") as f:
+            cert = f.read()
+    except OSError:
+        return False
+    if not cert or not os.path.isfile(path):
+        return False
+    return not any(cert in blob for blob in pe_signatures(path))
+
+
 def _same_file(a, b):
     try:
         if os.path.getsize(a) != os.path.getsize(b):
@@ -1326,7 +1372,10 @@ def prev_entry_text(main_text, lay, ver):
         s = line.strip()
         key = s.split(None, 1)[0] if s else ""
         if key == "title":
-            out.append("title   LuxOS (previous kernel)")
+            title = "LuxOS (previous kernel)"
+            if sb_unsigned(P(lay["prev_vmlinuz"])):
+                title = "LuxOS (previous kernel" + SB_SUFFIX + ")"
+            out.append(f"title   {title}")
         elif key == "linux":
             out.append(f"linux   {rel}/vmlinuz-{kernel}-prev")
         elif key == "initrd" and os.path.basename(s.split(None, 1)[1]) in (f"initramfs-{kernel}.img",
