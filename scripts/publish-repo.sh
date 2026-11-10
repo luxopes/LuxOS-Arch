@@ -43,6 +43,17 @@ compgen -G "$REPO/${repos[0]}/x86_64/*.pkg.tar.zst.sig" >/dev/null \
     || { echo "Packages are not signed: unlock the Safe (luxos-safe unlock) with the key in" \
               "/safe/$USER/luxos-signing (or ~/.local/share/luxos/signing) and run ./build.sh packages again" >&2; exit 1; }
 
+# Secure Boot: jadro a systemd-boot v databazi [luxos] musi byt podepsane klicem LuxOS (scripts/sb-sign.sh),
+# jinak by pocitace se zapnutym Secure Boot po aktualizaci nenastartovaly. LUXOS_ALLOW_UNSIGNED_EFI=1 = preskocit.
+if ((!apps_only)) && [[ -f packages/luxos-secureboot/files/luxos-secureboot.pem && ${LUXOS_ALLOW_UNSIGNED_EFI:-0} != 1 ]]; then
+    mapfile -t efi_pkgs < <(tar -xzOf "$REPO/luxos/x86_64/luxos.db.tar.gz" --wildcards '*/desc' |
+        awk '/^%FILENAME%$/ {getline; print}' | grep -E '^(linux-luxos|luxos-secureboot)-[0-9]' | sed "s|^|$REPO/luxos/x86_64/|")
+    if ((${#efi_pkgs[@]})) && ! scripts/sb-sign.sh verify "${efi_pkgs[@]}"; then
+        echo "Kernel or systemd-boot not signed for Secure Boot: scripts/sb-sign.sh package <files>, sign again (gpg, repo-add)" >&2
+        exit 1
+    fi
+fi
+
 release=$(date -u +%Y%m%d-%H%M%S)
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT

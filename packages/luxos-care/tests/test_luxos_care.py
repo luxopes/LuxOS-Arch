@@ -328,6 +328,12 @@ class BootLayouts(Root):
         self.assertEqual(self.r("/boot/vmlinuz-linux-zen-prev"), "KERNEL " + self.VER)
         self.assertEqual(self.r("/boot/initramfs-linux-zen-prev.img"), "INITRD " + self.VER)
         self.assertIn("sort-key luxos\n", self.r("/boot/loader/entries/luxos.conf"))
+        # Secure Boot (luxos-secureboot nainstalovany): nepodepsane zalozni jadro -> upozorneni v nazvu
+        self.w(care.SB_CERT, "LUXOS-CERT")
+        ok, why = care.install_prev_boot(lay, self.VER)
+        self.assertTrue(ok, why)
+        self.assertIn("title   LuxOS (previous kernel - needs Secure Boot off)",
+                      self.r("/boot/loader/entries/luxos-prev.conf"))
         loader = self.r("/boot/loader/loader.conf")
         self.assertIn("default luxos*", loader)
         self.assertNotIn("default luxos.conf", loader)

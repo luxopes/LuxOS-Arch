@@ -1,0 +1,61 @@
+# Maintainer: LuxOS Team
+# Secure Boot pro LuxOS na beznych pocitacich s Windows (klice Microsoftu v UEFI), bez vypinani Secure Boot:
+#   shimx64.efi + mmx64.efi (MokManager) - beze zmeny z Fedory (shim-x64 16.1-7, Koji), shim podepsany
+#     Microsoft UEFI CA 2011 i 2023 (bezi na starsich i novych pocitacich); licence BSD-2-Clause (shim-COPYRIGHT),
+#     volne sireni (stejny soubor siri Fedora i AUR shim-signed). Vestaveny certifikat dodavatele = Fedora.
+#   systemd-bootx64.efi - z balicku systemd sestavovaciho prostredi; podepisuje ho klicem LuxOS az spravce
+#     (scripts/sb-sign.sh package, build.sh packages) - z CI je nepodepsany a luxos-secureboot sync ho
+#     pak nepouzije (start zustava jako driv).
+#   luxos-secureboot.pem/.cer - verejny certifikat klice Secure Boot LuxOS (zapis do MOK jednou na pocitac).
+# Jadro linux-luxos podepisuje stejny krok spravce (vmlinuz v balicku). Postup a duvody:
+# docs/proposals/secure-boot.md.
+
+pkgname=luxos-secureboot
+pkgver=1.0.0
+pkgrel=1
+_shimver=16.1
+_shimrel=7
+pkgdesc="LuxOS Secure Boot - Microsoft-signed shim, MokManager, systemd-boot signed with the LuxOS key, enrollment tool"
+arch=(x86_64)
+url="https://luxos.lux-ai.cz/"
+license=(GPL-3.0-or-later BSD-2-Clause)
+# sbsigntools: sbverify (podpis klicem LuxOS pred zmenou ESP); mokutil: zapis klice, stav Secure Boot
+depends=(bash efibootmgr mokutil sbsigntools systemd)
+optdepends=('luxos-i18n: translated messages')
+makedepends=(systemd)
+options=(!strip !debug)
+install=luxos-secureboot.install
+source=("https://kojipkgs.fedoraproject.org/packages/shim/$_shimver/$_shimrel/x86_64/shim-x64-$_shimver-$_shimrel.x86_64.rpm")
+sha512sums=('642f7bd66f9d420fed5d5686d968a2065af445b4e7ba3d27a0a4f5852aefadd1835c485968e7bdc7cea5f377095bd3efcc8636837e3059a19cfab1c777e218f0')
+noextract=("shim-x64-$_shimver-$_shimrel.x86_64.rpm")
+
+prepare() {
+    mkdir -p shim
+    bsdtar -xf "shim-x64-$_shimver-$_shimrel.x86_64.rpm" -C shim
+    [[ -f $startdir/files/luxos-secureboot.pem ]] || {
+        echo "Missing files/luxos-secureboot.pem: the maintainer creates the Secure Boot key once with" >&2
+        echo "scripts/sb-sign.sh init (public certificate only goes into the repository)." >&2
+        return 1
+    }
+    openssl x509 -in "$startdir/files/luxos-secureboot.pem" -noout >/dev/null
+}
+
+check() {
+    cd "$startdir"
+    bash tests/test-luxos-secureboot.sh
+}
+
+package() {
+    local s="$srcdir/shim/usr/lib/efi/shim/$_shimver-$_shimrel/EFI" f="$startdir/files"
+    install -Dm644 "$s/fedora/shimx64.efi" "$pkgdir/usr/lib/luxos/secureboot/shimx64.efi"
+    install -Dm644 "$s/fedora/mmx64.efi" "$pkgdir/usr/lib/luxos/secureboot/mmx64.efi"
+    # kopie systemd-boot k podpisu klicem LuxOS (scripts/sb-sign.sh: usr/lib/luxos/secureboot/systemd-boot*.efi)
+    install -Dm644 /usr/lib/systemd/boot/efi/systemd-bootx64.efi "$pkgdir/usr/lib/luxos/secureboot/systemd-bootx64.efi"
+    install -Dm644 "$f/luxos-secureboot.pem" "$pkgdir/usr/share/luxos/secureboot/luxos-secureboot.pem"
+    install -d "$pkgdir/usr/share/luxos/secureboot"
+    openssl x509 -in "$f/luxos-secureboot.pem" -outform DER -out "$pkgdir/usr/share/luxos/secureboot/luxos-secureboot.cer"
+    install -Dm755 "$f/luxos-secureboot" "$pkgdir/usr/bin/luxos-secureboot"
+    install -Dm644 "$f/luxos-secureboot.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-secureboot.hook"
+    install -Dm644 "$f/luxos-secureboot-sync.service" "$pkgdir/usr/lib/systemd/system/luxos-secureboot-sync.service"
+    install -Dm644 "$f/shim-COPYRIGHT" "$pkgdir/usr/share/licenses/$pkgname/shim-COPYRIGHT"
+}

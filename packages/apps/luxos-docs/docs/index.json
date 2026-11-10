@@ -414,6 +414,31 @@
           ]
         },
         {
+          "path": "luxos/secure-boot.md",
+          "title": "Secure Boot",
+          "summary": "LuxOS starts with Secure Boot on: Microsoft-signed shim, LuxOS key enrolled once in MokManager (Enroll key from disk), luxos-secureboot status/enroll, older installs, Secured-core PCs, DKMS drivers.",
+          "keywords": [
+            "Secure Boot",
+            "UEFI",
+            "shim",
+            "MokManager",
+            "MOK",
+            "mokutil",
+            "Enroll key from disk",
+            "LUXOS_ENROLL_THIS_KEY.cer",
+            "luxos-secureboot",
+            "Security Violation",
+            "Verification failed",
+            "Secured-core",
+            "Microsoft 3rd Party UEFI CA",
+            "signed kernel",
+            "DKMS",
+            "NVIDIA",
+            "BitLocker",
+            "firmware settings"
+          ]
+        },
+        {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
           "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, login transition, luxos-hub, multiple monitors and touchpad.",

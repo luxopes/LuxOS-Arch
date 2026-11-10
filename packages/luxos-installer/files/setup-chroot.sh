@@ -36,6 +36,14 @@ other_systems_entries() {  # other_systems_entries ESP -> pocet systemu v nabidc
     echo "$count"
 }
 
+# Secure Boot: shim (Microsoft) + systemd-boot podepsany klicem LuxOS do EFI/LuxOS a zalozni EFI/BOOT
+# (luxos-secureboot). Polozku UEFI "LuxOS" -> shim zapise luxos-install z live systemu (v chrootu ne).
+# Bez baliku nebo s nepodepsanym systemd-boot zustava start primo pres systemd-boot jako driv.
+secureboot_loader() {  # secureboot_loader ESP
+    command -v luxos-secureboot >/dev/null || return 0
+    luxos-secureboot sync --esp "$1" --no-nvram || echo "   (Secure Boot loader not installed - LuxOS starts with Secure Boot off)"
+}
+
 echo "--> Locale ($LOCALE)"
 sed -i -E "s/^#\s*(${LOCALE//./\\.}\s)/\1/; s/^#\s*(en_US\.UTF-8\s)/\1/" /etc/locale.gen
 # OEM: vsechny jazyky LuxOS predem - majitel si jazyk vybere v Pruvodci nastavenim bez cekani
@@ -205,6 +213,7 @@ options $CMDLINE
 E
     others=$(other_systems_entries "$esp")
     ((others == 0)) || echo "   other systems in the boot menu: $others"
+    secureboot_loader "$esp"
     systemctl enable systemd-boot-update.service
 elif [[ $BOOTMODE == uefi ]]; then
     if ((${ESP_KEEP:-0})); then
@@ -249,6 +258,7 @@ initrd  /initramfs-$kernel-fallback.img
 options ${CMDLINE/quiet splash/}
 E
     fi
+    secureboot_loader /boot
     systemctl enable systemd-boot-update.service
 else
     # Skryta nabidka bez cekani (jako systemd-boot timeout 0): drzet Shift nebo mackat Esc pri startu

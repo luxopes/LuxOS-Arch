@@ -1,0 +1,326 @@
+#!/bin/bash
+# LuxOS - start se zapnutym Secure Boot (shim podepsany Microsoftem + klic LuxOS v MOK)
+#
+#   luxos-secureboot status            stav: Secure Boot, klic LuxOS, cesta startu, podpisy
+#   luxos-secureboot sync [--esp DIR] [--no-nvram] [--quiet]
+#                                      shim, MokManager a podepsany systemd-boot na ESP (EFI/LuxOS,
+#                                      zalozni EFI/BOOT), polozka UEFI "LuxOS" -> shim; po prvnim
+#                                      startu pres shim smaze starou primou polozku systemd-boot
+#   luxos-secureboot enroll            pripravi zapis klice LuxOS (a klice DKMS tohoto pocitace) do MOK:
+#                                      ukaze jednorazove heslo (8 cislic) pro MokManager pri dalsim startu
+#   luxos-secureboot cancel            zrusi pripraveny zapis
+#
+# Retez startu: firmware (klice Microsoftu) -> shimx64.efi (Fedora, podepsany Microsoft UEFI CA 2011
+# i 2023) -> grubx64.efi = systemd-boot podepsany klicem LuxOS (shim ho overi klicem z MOK) -> jadro
+# podepsane klicem LuxOS (systemd-boot ho overi pres protokol shim). Bez Secure Boot shim jen spusti
+# systemd-boot - stejny start jako driv. Nikdy se nemeni cizi zavadece ani cizi polozky UEFI; stara
+# primá polozka systemd-boot zustava jako zaloha, dokud jednou nenastartuje cesta pres shim.
+#
+# Promenne pro testy: LUXOS_SB_LIB, LUXOS_SB_SHARE, LUXOS_SB_EFIVARS, LUXOS_SB_STATE, LUXOS_SB_BOOT.
+set -euo pipefail
+
+LIB=${LUXOS_SB_LIB:-/usr/lib/luxos/secureboot}
+SHARE=${LUXOS_SB_SHARE:-/usr/share/luxos/secureboot}
+EFIVARS=${LUXOS_SB_EFIVARS:-/sys/firmware/efi/efivars}
+STATE=${LUXOS_SB_STATE:-/var/lib/luxos-secureboot}
+BOOTDIR=${LUXOS_SB_BOOT:-/boot}
+CERT_PEM=$SHARE/luxos-secureboot.pem
+CERT_DER=$SHARE/luxos-secureboot.cer
+DKMS_KEY=${LUXOS_SB_DKMS_KEY:-/var/lib/dkms/mok.pub}
+GLOBAL=8be4df61-93ca-11d2-aa0d-00e098032b8c
+LOADER=4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+KERNEL=linux-luxos
+MOK_TIMEOUT=60
+quiet=0
+
+# preklady (luxos-i18n); bez nich anglicky
+if [[ -r ${LUXOS_SB_I18N:-/usr/lib/luxos/i18n.sh} ]]; then
+    # shellcheck disable=SC1090
+    . "${LUXOS_SB_I18N:-/usr/lib/luxos/i18n.sh}"
+else
+    # shellcheck disable=SC2059  # format je prekladany text
+    T() { local f=$1; shift; printf -- "$f" "$@"; }
+fi
+
+say() { ((quiet)) || printf '%s\n' "$*"; }
+warn() { printf 'luxos-secureboot: %s\n' "$*" >&2; }
+die() { warn "$*"; exit 1; }
+
+# efivar_byte NAZEV-GUID -> prvni bajt dat promenne EFI (prvni 4 bajty jsou atributy), prazdne = neni
+efivar_byte() {
+    local f=$EFIVARS/$1
+    [[ -r $f ]] || return 0
+    od -An -t u1 -j4 -N1 "$f" 2>/dev/null | tr -d ' '
+}
+
+# efivar_str NAZEV-GUID -> retezec UTF-16LE promenne systemd-boot (napr. LoaderImageIdentifier)
+efivar_str() {
+    local f=$EFIVARS/$1
+    [[ -r $f ]] || return 0
+    tail -c +5 "$f" 2>/dev/null | iconv -f UTF-16LE -t UTF-8 2>/dev/null | tr -d '\0'
+}
+
+sb_state() {  # -> enabled | disabled | setup | unknown
+    local sb setup
+    sb=$(efivar_byte "SecureBoot-$GLOBAL")
+    setup=$(efivar_byte "SetupMode-$GLOBAL")
+    if [[ $setup == 1 ]]; then echo setup
+    elif [[ $sb == 1 ]]; then echo enabled
+    elif [[ $sb == 0 ]]; then echo disabled
+    else echo unknown
+    fi
+}
+
+# signed FILE -> 0 = podpis klicem LuxOS: sbverify (kryptograficky) a navic certifikat LuxOS primo v podpisu -
+# sbverify --cert hlasi "OK" i u nekterych cizich retezcu (napr. shim od Microsoftu s korenem v podpisu)
+hex() { od -An -v -tx1 "$1" | tr -d ' \n'; }
+signed() {
+    [[ -f $1 && -f $CERT_PEM && -f $CERT_DER ]] || return 1
+    sbverify --cert "$CERT_PEM" "$1" >/dev/null 2>&1 || return 1
+    [[ $(hex "$1" | grep -cF "$(hex "$CERT_DER")") != 0 ]]
+}
+
+# ESP: --esp, jinak bootctl, jinak /efi nebo /boot (vfat)
+find_esp() {
+    local p
+    if [[ -n ${ESP:-} ]]; then echo "$ESP"; return; fi
+    p=$(bootctl --print-esp-path 2>/dev/null || true)
+    if [[ -n $p && -d $p/EFI ]]; then echo "$p"; return; fi
+    for p in /efi /boot; do
+        [[ $(findmnt -no FSTYPE --mountpoint "$p" 2>/dev/null | tail -n1) == vfat ]] && { echo "$p"; return; }
+    done
+    return 0
+}
+
+# Zavadecem LuxOS je systemd-boot (polozka LuxOS v loader/entries tohoto ESP)
+luxos_sdboot() { compgen -G "$1/loader/entries/luxos*.conf" >/dev/null; }
+
+# put SRC DST - kopie jen pri zmene, atomicky (.new + mv) a s fsync, at vypadek proudu nenecha pulku souboru
+put() {
+    local src=$1 dst=$2
+    cmp -s "$src" "$dst" 2>/dev/null && return 1
+    mkdir -p "${dst%/*}"
+    cp "$src" "$dst.luxos-new"
+    sync -f "$dst.luxos-new" 2>/dev/null || sync
+    mv -f "$dst.luxos-new" "$dst"
+    return 0
+}
+
+ci_file() {  # ci_file ADRESAR NAZEV -> existujici soubor bez ohledu na velikost pismen (FAT)
+    find "$1" -maxdepth 1 -iname "$2" -print -quit 2>/dev/null || true
+}
+
+is_sdboot() { [[ -f $1 ]] && grep -qa 'systemd-boot' "$1" && grep -qa '#### LoaderInfo: systemd-boot' "$1"; }
+
+install_esp() {  # install_esp ESP -> vypise, co zmenil
+    local esp=$1 dir boot bootx changed=0
+    dir=$(ci_file "$esp/EFI" LuxOS); dir=${dir:-$esp/EFI/LuxOS}
+    put "$LIB/shimx64.efi" "$dir/shimx64.efi" && changed=1
+    put "$LIB/mmx64.efi" "$dir/mmx64.efi" && changed=1
+    put "$LIB/systemd-bootx64.efi" "$dir/grubx64.efi" && changed=1
+    # certifikat pro MokManager "Enroll key from disk" (napr. po resetu firmwaru)
+    put "$CERT_DER" "$dir/luxos-secureboot.cer" && changed=1
+    ((changed)) && say "Secure Boot loader updated in ${dir#"$esp"/}"
+
+    # Zalozni zavadec EFI/BOOT/BOOTX64.EFI: jen kdyz chybi, je to systemd-boot nebo uz nas shim.
+    # Cizi (Windows, shim jine distribuce) se nikdy neprepisuje.
+    boot=$(ci_file "$esp/EFI" BOOT); boot=${boot:-$esp/EFI/BOOT}
+    bootx=$(ci_file "$boot" BOOTX64.EFI); bootx=${bootx:-$boot/BOOTX64.EFI}
+    if [[ ! -e $bootx ]] || cmp -s "$bootx" "$LIB/shimx64.efi" || is_sdboot "$bootx"; then
+        changed=0
+        # nejdriv vse, co shim potrebuje, BOOTX64.EFI az nakonec
+        put "$LIB/systemd-bootx64.efi" "$(ci_file "$boot" grubx64.efi | grep . || echo "$boot/grubx64.efi")" && changed=1
+        put "$LIB/mmx64.efi" "$(ci_file "$boot" mmx64.efi | grep . || echo "$boot/mmx64.efi")" && changed=1
+        put "$LIB/shimx64.efi" "$bootx" && changed=1
+        ((changed)) && say "Fallback loader EFI/BOOT/BOOTX64.EFI: shim + systemd-boot"
+    fi
+    return 0
+}
+
+# Polozky UEFI: vypis efibootmgr -v jednou, hledani podle PARTUUID ESP a cesty (bez ohledu na velikost)
+nvram() {
+    local esp=$1 src part disk partuuid out shim_num img
+    command -v efibootmgr >/dev/null || { warn "efibootmgr missing - UEFI boot entry not changed"; return 0; }
+    [[ -d $EFIVARS ]] || return 0
+    src=$(findmnt -no SOURCE --mountpoint "$esp" 2>/dev/null | tail -n1)
+    [[ -n $src ]] || { warn "ESP $esp is not mounted from a partition - UEFI boot entry not changed"; return 0; }
+    part=$(lsblk -no PARTN "$src" 2>/dev/null | head -n1 | tr -d ' ')
+    disk=$(lsblk -no PKNAME "$src" 2>/dev/null | head -n1 | tr -d ' ')
+    partuuid=$(lsblk -no PARTUUID "$src" 2>/dev/null | head -n1 | tr -d ' ')
+    [[ -n $part && -n $disk && -n $partuuid ]] || { warn "ESP partition not found - UEFI boot entry not changed"; return 0; }
+    out=$(efibootmgr -v 2>/dev/null) || { warn "cannot read UEFI boot entries"; return 0; }
+    shim_num=$(entries "$out" "$partuuid" '\efi\luxos\shimx64.efi' | head -n1)
+    if [[ -z $shim_num ]]; then
+        # --create da polozku na prvni misto BootOrder; stara prima polozka zustava za ni jako zaloha
+        if efibootmgr -q --create --disk "/dev/$disk" --part "$part" --label LuxOS \
+                --loader '\EFI\LuxOS\shimx64.efi' --unicode >/dev/null 2>&1; then
+            say "UEFI boot entry LuxOS -> shim added"
+        else
+            warn "could not add the UEFI boot entry (the fallback loader EFI/BOOT is used)"
+        fi
+        return 0
+    fi
+    # Cesta pres shim uz jednou nastartovala (systemd-boot zapsal, odkud byl spusten):
+    # stare prime polozky "LuxOS" -> systemd-bootx64.efi na nasem ESP uz nejsou potreba
+    img=$(efivar_str "LoaderImageIdentifier-$LOADER")
+    img=${img//\//\\}
+    case ${img,,} in
+        *'\efi\luxos\grubx64.efi'|*'\efi\boot\grubx64.efi') ;;
+        *) return 0 ;;
+    esac
+    local n
+    while read -r n; do
+        [[ -n $n ]] || continue
+        efibootmgr -q -B -b "$n" >/dev/null 2>&1 && say "Removed the old direct UEFI entry Boot$n"
+    done < <(entries "$out" "$partuuid" '\efi\systemd\systemd-bootx64.efi' LuxOS)
+}
+
+# entries VYPIS PARTUUID CESTA [NAZEV] -> cisla polozek (Boot####) s touto cestou na tomto oddilu
+entries() {
+    # cesta pres ENVIRON: awk -v by z "\efi" udelal escape sekvenci
+    SB_U=${2,,} SB_P=${3,,} SB_L=${4-} awk '
+        BEGIN { u = ENVIRON["SB_U"]; p = ENVIRON["SB_P"]; label = ENVIRON["SB_L"] }
+        /^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]/ {
+            low = tolower($0); gsub("/", "\\", low)
+            if (!index(low, u) || !index(low, p)) next
+            if (label != "" && $0 !~ ("[* ]" label "([ \t]|$)")) next
+            print substr($1, 5, 4)
+        }' <<<"$1"
+}
+
+cmd_sync() {
+    local no_nvram=0 esp
+    while (($#)); do
+        case $1 in
+            --esp) ESP=${2:?}; shift ;;
+            --no-nvram) no_nvram=1 ;;
+            --quiet) quiet=1 ;;
+            *) die "unknown option $1" ;;
+        esac
+        shift
+    done
+    [[ -n ${ESP:-} || -d $EFIVARS ]] || { say "Not started in UEFI mode - nothing to do."; return 0; }
+    esp=$(find_esp)
+    [[ -n $esp && -d $esp ]] || { say "No EFI system partition mounted - nothing to do."; return 0; }
+    luxos_sdboot "$esp" || { say "LuxOS does not start with systemd-boot from $esp - nothing to do."; return 0; }
+    local f
+    for f in shimx64.efi mmx64.efi systemd-bootx64.efi; do
+        [[ -f $LIB/$f ]] || die "missing $LIB/$f"
+    done
+    # Nepodepsany systemd-boot (testovaci nebo neoficialni sestaveni): ESP ani polozky beze zmeny
+    if ! signed "$LIB/systemd-bootx64.efi"; then
+        say "systemd-boot in this package is not signed with the LuxOS key - boot loader not changed."
+        return 0
+    fi
+    install_esp "$esp"
+    ((no_nvram)) || nvram "$esp"
+    # zapis klicu probehl (nic neceka v MokNew): jednorazove heslo uz neni potreba
+    if [[ -f $STATE/enroll-pin ]] && command -v mokutil >/dev/null && ! pending; then rm -f "$STATE/enroll-pin"; fi
+    return 0
+}
+
+# (vystup nejdriv cely: grep -q by pri pipefail predcasnym koncem roury hlasil chybu)
+enrolled() { local o; o=$(mokutil --test-key "$1" 2>/dev/null || true); [[ ${o,,} == *'already enrolled'* ]]; }
+
+pending() { local o; o=$(mokutil --list-new 2>/dev/null || true); [[ -n ${o//[[:space:]]/} ]]; }
+
+cmd_enroll() {
+    [[ -d $EFIVARS ]] || die "this computer was not started in UEFI mode"
+    command -v mokutil >/dev/null || die "mokutil is missing"
+    [[ $EUID == 0 ]] || die "run as root: sudo luxos-secureboot enroll"
+    local -a keys=()
+    enrolled "$CERT_DER" || keys+=("$CERT_DER")
+    # klic DKMS tohoto pocitace (moduly NVIDIA a dalsi sestavene zde) ve stejnem kroku - zadny dalsi start
+    if [[ -f $DKMS_KEY ]] && ! enrolled "$DKMS_KEY"; then keys+=("$DKMS_KEY"); fi
+    if ((${#keys[@]} == 0)); then
+        T "The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings."; echo
+        return 0
+    fi
+    pending && mokutil --revoke-import >/dev/null 2>&1 || true
+    local pin hash
+    pin=$(od -An -N8 -tu1 /dev/urandom | awk '{for (i = 1; i <= NF; i++) printf "%d", $i % 10}')
+    hash=$(mktemp)
+    # heslo ne v argumentech procesu (ps): mokutil --generate-hash bez hodnoty ho cte ze stdin; na stdout
+    # pise i vyzvy "input password:", do souboru jen radek s hashem crypt ($6$...)
+    local out
+    out=$(printf '%s\n%s\n' "$pin" "$pin" | mokutil --generate-hash 2>/dev/null || true)
+    out=$(grep -o '\$[0-9a-z]*\$[^[:space:]]*' <<<"$out" | tail -n1 || true)
+    if [[ -z $out ]]; then
+        rm -f "$hash"; die "could not prepare the password (mokutil --generate-hash)"
+    fi
+    printf '%s\n' "$out" >"$hash"
+    if ! mokutil --import "${keys[@]}" --hash-file "$hash" >/dev/null 2>&1; then
+        rm -f "$hash"; die "mokutil --import failed"
+    fi
+    rm -f "$hash"
+    # MokManager ceka na klavesu jen 10 s (pak zadost zahodi) - 60 s staci i netechnikum (promenna MokTimeout)
+    mokutil --timeout "$MOK_TIMEOUT" >/dev/null 2>&1 || true
+    install -d -m700 "$STATE"
+    (umask 077; printf '%s\n' "$pin" >"$STATE/enroll-pin")
+    # nazvy polozek MokManageru zustavaji anglicky - tak je MokManager ukaze
+    T "Ready. Restart the computer. A blue screen \"Press any key to perform MOK management\" appears - press a key within %s s:" "$MOK_TIMEOUT"; echo
+    printf '  1. Enroll MOK  2. Continue  3. Yes  4. Password: %s  5. Reboot\n' "$pin"
+    T "Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status"; echo
+}
+
+cmd_cancel() {
+    [[ $EUID == 0 ]] || die "run as root: sudo luxos-secureboot cancel"
+    mokutil --revoke-import >/dev/null 2>&1 || true
+    rm -f "$STATE/enroll-pin"
+    T "Enrollment cancelled."; echo
+}
+
+cmd_status() {
+    local esp sb img key path kern
+    if [[ ! -d $EFIVARS ]]; then
+        echo "firmware=bios"
+        echo "secure_boot=unsupported"
+        return 0
+    fi
+    sb=$(sb_state)
+    img=$(efivar_str "LoaderImageIdentifier-$LOADER")
+    case ${img,,} in
+        *grubx64.efi) path=shim ;;
+        *systemd-boot*|*bootx64.efi) path=direct ;;
+        *) path=unknown ;;
+    esac
+    if ! command -v mokutil >/dev/null; then key=unknown
+    elif enrolled "$CERT_DER"; then key=enrolled
+    elif pending; then key=pending
+    else key=missing
+    fi
+    # jadro, se kterym system startuje (/boot), v zivem systemu z ISO jen kopie v /usr/lib/modules
+    local vml=$BOOTDIR/vmlinuz-$KERNEL
+    [[ -f $vml ]] || vml=${LUXOS_SB_MODULES:-/usr/lib/modules}/$(uname -r)/vmlinuz
+    kern=unsigned
+    signed "$vml" && kern=signed
+    esp=$(find_esp)
+    echo "firmware=uefi"
+    echo "secure_boot=$sb"
+    echo "boot_path=$path"
+    echo "luxos_key=$key"
+    echo "kernel=$kern"
+    if [[ -n $esp && -f $(ci_file "$esp/EFI" LuxOS)/shimx64.efi ]]; then echo "loader=installed"; else echo "loader=missing"; fi
+    # cekajici zadost (klic LuxOS a/nebo klic DKMS): heslo pro MokManager pri dalsim startu
+    if command -v mokutil >/dev/null && pending; then
+        echo "enroll_pending=yes"
+        [[ -r $STATE/enroll-pin ]] && echo "enroll_password=$(cat "$STATE/enroll-pin")"
+    fi
+}
+
+usage() {
+    T "Usage: luxos-secureboot COMMAND"; echo; echo
+    printf '  %-8s %s\n' status "$(T "show the Secure Boot state, LuxOS key, boot path and signatures")" \
+        sync "$(T "install shim and the signed boot menu on the EFI partition (automatic)")" \
+        enroll "$(T "prepare enrolling the LuxOS key: shows a one-time password for the next start")" \
+        cancel "$(T "cancel a prepared enrollment")"
+}
+
+case ${1:-status} in
+    status) shift || true; cmd_status "$@" ;;
+    sync) shift; cmd_sync "$@" ;;
+    enroll) cmd_enroll ;;
+    cancel) cmd_cancel ;;
+    -h|--help|help) usage ;;
+    *) die "unknown command $1 (status, sync, enroll, cancel)" ;;
+esac

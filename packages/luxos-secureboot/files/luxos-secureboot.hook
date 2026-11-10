@@ -1,0 +1,10 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = luxos-secureboot
+
+[Action]
+Description = Updating the Secure Boot loader (shim + signed systemd-boot)...
+When = PostTransaction
+Exec = /usr/bin/luxos-secureboot sync --quiet

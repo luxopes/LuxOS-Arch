@@ -291,13 +291,17 @@ def load_docs():
     with open(os.path.join(DOCS, "index.json")) as f:
         index = json.load(f)
     with open(os.path.join(CONTENT, "docs.json")) as f:
-        extras = json.load(f)["files"]
+        docs_json = json.load(f)
+    extras = docs_json["files"]
+    # ceske nazvy a popisy stranek z luxos-docs, ktere maji ceskou verzi (site/content/cs/<cesta>)
+    cs_meta = docs_json.get("cs", {})
     cols = []
     for col in index["collections"]:
         files = []
         for d in col["files"]:
-            files.append({"path": d["path"], "title": {"en": d["title"], "cs": d["title"]},
-                          "summary": {"en": d.get("summary", ""), "cs": d.get("summary", "")},
+            cs = cs_meta.get(d["path"], {})
+            files.append({"path": d["path"], "title": {"en": d["title"], "cs": cs.get("title", d["title"])},
+                          "summary": {"en": d.get("summary", ""), "cs": cs.get("summary", d.get("summary", ""))},
                           "src": {"en": os.path.join(DOCS, d["path"])}})
         cols.append({"id": col["id"], "title": col["title"], "files": files})
     for x in extras:

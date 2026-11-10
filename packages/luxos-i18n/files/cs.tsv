@@ -5018,3 +5018,15 @@ Send (in the message window)	Odeslat (v okně zprávy)
 Print	Tisk
 Text size of the message	Velikost textu zprávy
 Add your email account to write to %s.	Chcete-li napsat na %s, přidejte svůj e-mailový účet.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	Neplatné SECUREBOOT_ENROLL (použijte auto, yes nebo no)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	Zápis klíče pro Secure Boot se nepodařilo připravit (LuxOS startuje normálně).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot: při prvním startu se objeví modrá obrazovka. Stiskněte klávesu, vyberte Enroll MOK, Continue, Yes, napište heslo %s a vyberte Reboot. Pak můžete Secure Boot kdykoli zapnout v nastavení firmwaru.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	Klíč LuxOS už je zapsaný – Secure Boot můžete zapnout v nastavení firmwaru.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Hotovo. Restartujte počítač. Objeví se modrá obrazovka „Press any key to perform MOK management“ – do %s s stiskněte klávesu:
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Pak můžete zapnout Secure Boot v nastavení firmwaru. Heslo znovu ukáže: sudo luxos-secureboot status
+Enrollment cancelled.	Zápis klíče zrušen.
+Usage: luxos-secureboot COMMAND	Použití: luxos-secureboot PŘÍKAZ
+show the Secure Boot state, LuxOS key, boot path and signatures	stav Secure Boot, klíče LuxOS, cesty startu a podpisů
+install shim and the signed boot menu on the EFI partition (automatic)	nainstalovat shim a podepsanou nabídku na oddíl EFI (automaticky)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	připravit zápis klíče LuxOS: ukáže jednorázové heslo pro další start
+cancel a prepared enrollment	zrušit připravený zápis

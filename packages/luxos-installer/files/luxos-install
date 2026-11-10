@@ -1801,7 +1801,13 @@ install_packages() {
     local -a pkgs hw
     mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$SHARE/packages")
     if [[ $BOOTLOADER != none ]]; then
-        if [[ $BOOTMODE == uefi ]]; then pkgs+=(efibootmgr); else pkgs+=(grub); fi
+        if [[ $BOOTMODE == uefi ]]; then
+            pkgs+=(efibootmgr)
+            # Secure Boot (shim + systemd-boot a jadro podepsane klicem LuxOS), kdyz je v ISO
+            [[ -d /usr/lib/luxos/secureboot ]] && pkgs+=(luxos-secureboot)
+        else
+            pkgs+=(grub)
+        fi
     fi
     uses_layout && mapfile -t -O "${#pkgs[@]}" pkgs < <(layout_packages)
     # OEM: Pruvodce nastavenim a luxos-oem (balik instalatoru)
@@ -2005,11 +2011,15 @@ ENV
     ((${OEM:-0})) && oem_finish_target
 
     # bootctl v chrootu nezapisuje EFI promenne - polozku "LuxOS" vytvorit z live systemu
+    # Zavadec: shim (Secure Boot, luxos-secureboot na ESP), jinak primo systemd-boot
+    local espdir=$TARGET$esp_mount
+    LUXOS_LOADER='\EFI\systemd\systemd-bootx64.efi'
+    [[ -f $espdir/EFI/LuxOS/shimx64.efi && -f $espdir/EFI/LuxOS/grubx64.efi ]] && LUXOS_LOADER='\EFI\LuxOS\shimx64.efi'
     if [[ $BOOTLOADER != none && $BOOTMODE == uefi ]] && command -v efibootmgr >/dev/null; then
         if [[ $DISK_MODE == erase ]]; then
             efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
             run efibootmgr --create --disk "$DISK" --part 1 --label LuxOS \
-                --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+                --loader "$LUXOS_LOADER" --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
             uefi_luxos_first "${ESP_PART-}"
         elif [[ $DISK_MODE == freespace ]]; then
             shared_esp_entry
@@ -2019,12 +2029,34 @@ ENV
             else
                 efibootmgr -q -B -L LuxOS >/dev/null 2>&1 || true
                 run efibootmgr --create --disk "$(ly_parent_disk "$ESP_PART")" --part "$(ly_partnum "$ESP_PART")" \
-                    --label LuxOS --loader '\EFI\systemd\systemd-bootx64.efi' --unicode ||
+                    --label LuxOS --loader "$LUXOS_LOADER" --unicode ||
                     info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
                 uefi_luxos_first "$ESP_PART"
             fi
         fi
     fi
+    secureboot_stage
+}
+
+# Secure Boot: start z USB byl BEZ Secure Boot (klic LuxOS jeste neni v MOK) -> zapis klice pripravit uz ted
+# (luxos-secureboot enroll v nainstalovanem systemu, mokutil --import s jednorazovym heslem). Pri prvnim startu
+# pak MokManager: Enroll MOK, Continue, Yes, heslo, Reboot - a Secure Boot lze kdykoli zapnout bez dalsiho
+# kroku. Se Secure Boot zapnutym uz klic zapsany je (jinak by USB nenastartovalo) -> nic.
+# SECUREBOOT_ENROLL: auto (vychozi: jen pocitac s klici Microsoftu a vypnutym Secure Boot), yes, no.
+secureboot_stage() {
+    local vars=${LUXOS_EFIVARS:-/sys/firmware/efi/efivars} g=8be4df61-93ca-11d2-aa0d-00e098032b8c sb setup pin
+    [[ ${SECUREBOOT_ENROLL:-auto} != no && ${BOOTMODE-} == uefi && ${BOOTLOADER:-auto} != none ]] || return 0
+    [[ -x $TARGET/usr/bin/luxos-secureboot && -f $TARGET${esp_mount:-/boot}/EFI/LuxOS/shimx64.efi ]] || return 0
+    sb=$(od -An -tu1 -j4 -N1 "$vars/SecureBoot-$g" 2>/dev/null | tr -d ' ')
+    setup=$(od -An -tu1 -j4 -N1 "$vars/SetupMode-$g" 2>/dev/null | tr -d ' ')
+    # auto: jen kdyz firmware Secure Boot umi (klice zapsane, ne Setup Mode) a je vypnuty
+    if [[ ${SECUREBOOT_ENROLL:-auto} == auto ]] && [[ $sb != 0 || $setup != 0 ]]; then return 0; fi
+    arch-chroot "$TARGET" luxos-secureboot enroll >>"$LOG" 2>&1 || { info "$(T "Secure Boot key enrollment could not be prepared (LuxOS starts normally).")"; return 0; }
+    pin=$(cat "$TARGET/var/lib/luxos-secureboot/enroll-pin" 2>/dev/null || true)
+    [[ $pin =~ ^[0-9]{8}$ ]] || return 0
+    SB_NOTICE=$(T "Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time." "$pin")
+    info "$SB_NOTICE"
+    progress "NOTICE $SB_NOTICE"
 }
 
 # --- Sablony softwaru (TEMPLATES) -------------------------------------------
@@ -2212,7 +2244,9 @@ uefi_luxos_first() {  # uefi_luxos_first [ESP_ODDIL]
     num=$(awk -v u="${partuuid,,}" '
         /^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]/ {
             id = substr($1, 5, 4); low = tolower($0)
-            ours = index(low, "systemd-bootx64.efi") && (u == "" || index(low, u))
+            # nas zavadec: systemd-boot nebo shim LuxOS (Secure Boot) na nasem ESP
+            ours = (index(low, "systemd-bootx64.efi") || index(low, "\\efi\\luxos\\shimx64.efi") ||
+                    index(low, "/efi/luxos/shimx64.efi")) && (u == "" || index(low, u))
             if (ours && $0 ~ /[* ]LuxOS([ \t]|$)/) { print id; exit }
             if (ours && first == "") first = id
         }
@@ -2230,11 +2264,13 @@ shared_esp_entry() {
     partn=$(lsblk -no PARTN "$ESP_PART" | tr -d ' ')
     partuuid=$(lsblk -no PARTUUID "$ESP_PART" | tr -d ' ')
     entries=$(efibootmgr -v 2>/dev/null || true)
-    if [[ -n $partuuid ]] && awk -v u="${partuuid,,}" 'index(tolower($0), u) && index(tolower($0), "systemd-bootx64.efi") {f = 1} END {exit !f}' <<<"$entries"; then
+    local want=systemd-bootx64.efi
+    [[ ${LUXOS_LOADER-} == *shimx64.efi ]] && want=luxos/shimx64.efi
+    if [[ -n $partuuid ]] && awk -v u="${partuuid,,}" -v w="$want" '{l = tolower($0); gsub(/\\/, "/", l)} index(l, u) && index(l, w) {f = 1} END {exit !f}' <<<"$entries"; then
         info "$(T "systemd-boot on %s is already in the UEFI boot menu." "$ESP_PART")"
     else
         run efibootmgr --create --disk "$DISK" --part "$partn" --label LuxOS \
-            --loader '\EFI\systemd\systemd-bootx64.efi' --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
+            --loader "${LUXOS_LOADER:-\EFI\systemd\systemd-bootx64.efi}" --unicode || info "$(T "Could not add UEFI boot entry (fallback loader will be used)")"
     fi
     uefi_luxos_first "$ESP_PART"
     # Cizi loader.conf se neprepisuje; skryte menu zviditelnit promennou EFI (LoaderConfigTimeout)
@@ -2437,6 +2473,8 @@ main() {
     [[ $PROTECT == @(0|1) ]] || fail "$(T "Invalid PROTECT (use 0 or 1)")"
     : "${COUNTME:=1}"
     [[ $COUNTME == @(0|1) ]] || fail "$(T "Invalid COUNTME (use 0 or 1)")"
+    : "${SECUREBOOT_ENROLL:=auto}"
+    [[ $SECUREBOOT_ENROLL == @(auto|yes|no) ]] || fail "$(T "Invalid SECUREBOOT_ENROLL (use auto, yes or no)")"
     [[ -n $CONFIG ]] && parse_templates
     if [[ $DISK_MODE == manual ]]; then STEP_TOTAL=4
     elif uses_layout; then STEP_TOTAL=$(($(layout_steps) + 4))

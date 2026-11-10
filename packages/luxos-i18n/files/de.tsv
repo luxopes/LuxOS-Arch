@@ -4929,3 +4929,15 @@ Send (in the message window)	Senden (im E-Mail-Fenster)
 Print	Drucken
 Text size of the message	Textgröße der E-Mail
 Add your email account to write to %s.	Fügen Sie Ihr E-Mail-Konto hinzu, um an %s zu schreiben.
+Invalid SECUREBOOT_ENROLL (use auto, yes or no)	Ungültiges SECUREBOOT_ENROLL (auto, yes oder no verwenden)
+Secure Boot key enrollment could not be prepared (LuxOS starts normally).	Die Schlüsselregistrierung für Secure Boot konnte nicht vorbereitet werden (LuxOS startet normal).
+Secure Boot: on the first start a blue screen appears. Press a key, choose Enroll MOK, Continue, Yes, type the password %s and choose Reboot. Then Secure Boot can be turned on in the firmware settings at any time.	Secure Boot: Beim ersten Start erscheint ein blauer Bildschirm. Drücken Sie eine Taste, wählen Sie Enroll MOK, Continue, Yes, geben Sie das Passwort %s ein und wählen Sie Reboot. Danach kann Secure Boot jederzeit in den Firmware-Einstellungen eingeschaltet werden.
+The LuxOS key is already enrolled - Secure Boot can be turned on in the firmware settings.	Der LuxOS-Schlüssel ist bereits registriert – Secure Boot kann in den Firmware-Einstellungen eingeschaltet werden.
+Ready. Restart the computer. A blue screen "Press any key to perform MOK management" appears - press a key within %s s:	Fertig. Starten Sie den Computer neu. Ein blauer Bildschirm „Press any key to perform MOK management“ erscheint – drücken Sie innerhalb von %s s eine Taste:
+Then you can turn on Secure Boot in the firmware settings. Show the password again: sudo luxos-secureboot status	Danach können Sie Secure Boot in den Firmware-Einstellungen einschalten. Passwort erneut anzeigen: sudo luxos-secureboot status
+Enrollment cancelled.	Registrierung abgebrochen.
+Usage: luxos-secureboot COMMAND	Verwendung: luxos-secureboot BEFEHL
+show the Secure Boot state, LuxOS key, boot path and signatures	Zustand von Secure Boot, LuxOS-Schlüssel, Startpfad und Signaturen anzeigen
+install shim and the signed boot menu on the EFI partition (automatic)	shim und das signierte Startmenü auf der EFI-Partition installieren (automatisch)
+prepare enrolling the LuxOS key: shows a one-time password for the next start	Registrierung des LuxOS-Schlüssels vorbereiten: zeigt ein Einmalpasswort für den nächsten Start
+cancel a prepared enrollment	vorbereitete Registrierung abbrechen

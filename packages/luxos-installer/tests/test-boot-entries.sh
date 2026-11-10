@@ -78,8 +78,47 @@ order_case otherdisk 11111111-2222-3333-4444-555555555555 <<<"$GAB"
 expect "systemd-boot na jinem ESP se nebere" test ! -s "$OUT/otherdisk.cmds"
 order_case nolabel aa636640-a04e-4c1d-b408-c25880321fe8 <<<"${GAB/Boot0003\* LuxOS/Boot0003* Linux Boot Manager}"
 expect "systemd-boot na nasem ESP i bez nazvu LuxOS" grep -qx 'efibootmgr -q -o 0003,0000,0002,2001,2002,2003' "$OUT/nolabel.cmds"
+order_case shim aa636640-a04e-4c1d-b408-c25880321fe8 <<<"${GAB/File(\\EFI\\systemd\\systemd-bootx64.efi)/File(\\EFI\\LuxOS\\shimx64.efi)}"
+expect "Secure Boot: polozka LuxOS -> shim (EFI/LuxOS/shimx64.efi) taky dopredu" grep -qx 'efibootmgr -q -o 0003,0000,0002,2001,2002,2003' "$OUT/shim.cmds"
+order_case othershim aa636640-a04e-4c1d-b408-c25880321fe8 <<<"$(grep -v '^Boot0003' <<<"$GAB")"
+expect "shim jine distribuce (debian) se za LuxOS nepovazuje" test ! -s "$OUT/othershim.cmds"
 order_case noefi "" <<<""
 expect "bez EFI promennych: nic" test ! -s "$OUT/noefi.cmds"
+
+echo "## Secure Boot: zapis klice pripraveny instalatorem (secureboot_stage)"
+sed -n '/^secureboot_stage() {/,/^}/p' "$FILES/luxos-install" >"$OUT/sbstage.sh"
+stage_case() {  # stage_case NAZEV SECUREBOOT_ENROLL SECUREBOOT SETUPMODE [bez-shim] -> $OUT/NAZEV.cmds, .out
+    local name=$1 mode=$2 sbv=$3 setup=$4 noshim=${5-}
+    local tg=$OUT/$name.target vars=$OUT/$name.vars g=8be4df61-93ca-11d2-aa0d-00e098032b8c
+    mkdir -p "$tg/usr/bin" "$tg/boot/EFI/LuxOS" "$tg/var/lib/luxos-secureboot" "$vars"
+    printf '#!/bin/sh\n' >"$tg/usr/bin/luxos-secureboot"; chmod +x "$tg/usr/bin/luxos-secureboot"
+    [[ -n $noshim ]] || touch "$tg/boot/EFI/LuxOS/shimx64.efi"
+    printf "\x07\x00\x00\x00\x$sbv" >"$vars/SecureBoot-$g"
+    printf "\x07\x00\x00\x00\x$setup" >"$vars/SetupMode-$g"
+    : >"$OUT/$name.cmds"
+    (
+        . "$OUT/sbstage.sh"
+        TARGET=$tg BOOTMODE=uefi BOOTLOADER=auto SECUREBOOT_ENROLL=$mode LOG=/dev/null LUXOS_EFIVARS=$vars esp_mount=/boot
+        arch-chroot() { echo "arch-chroot $*" >>"$OUT/$name.cmds"; echo 12345678 >"$tg/var/lib/luxos-secureboot/enroll-pin"; }
+        info() { echo "info $*" >>"$OUT/$name.cmds"; }
+        progress() { echo "progress $*" >>"$OUT/$name.cmds"; }
+        T() { local f=$1; shift; printf -- "$f" "$@"; }
+        secureboot_stage
+    )
+}
+stage_case off auto 00 00
+expect "auto + Secure Boot vypnuty: luxos-secureboot enroll v nainstalovanem systemu" grep -qx "arch-chroot $OUT/off.target luxos-secureboot enroll" "$OUT/off.cmds"
+expect "... heslo v upozorneni na konci instalace (@@NOTICE)" grep -q '^progress NOTICE Secure Boot: .*password 12345678' "$OUT/off.cmds"
+stage_case on auto 01 00
+expect "auto + Secure Boot zapnuty (klic uz zapsany): nic" test ! -s "$OUT/on.cmds"
+stage_case setup auto 00 01
+expect "auto + Setup Mode (firmware bez klicu): nic" test ! -s "$OUT/setup.cmds"
+stage_case no no 00 00
+expect "SECUREBOOT_ENROLL=no: nic" test ! -s "$OUT/no.cmds"
+stage_case yes yes 01 00
+expect "SECUREBOOT_ENROLL=yes: vzdy" grep -q 'luxos-secureboot enroll' "$OUT/yes.cmds"
+stage_case noshim auto 00 00 noshim
+expect "bez shim na ESP (nepodepsany systemd-boot): nic" test ! -s "$OUT/noshim.cmds"
 
 echo
 echo "Vysledek: $NPASS ok, $NFAIL FAIL"

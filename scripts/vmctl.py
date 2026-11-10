@@ -13,6 +13,7 @@ vmctl.py scrollup|scrolldown X Y [W H]  jeden zub kolecka mysi
   vmctl.py ping                    ceka na guest agenta
   vmctl.py wakeup                  probudi uspaneho hosta (QMP system_wakeup)
   vmctl.py status                  stav VM (running, suspended...)
+  vmctl.py quit                    vypne VM okamzite (QMP quit, jako vytazeni napajeni)
 """
 import base64, json, os, socket, sys, time
 
@@ -130,6 +131,11 @@ def main():
     elif c == "wakeup":
         # probuzeni hosta z uspani (systemctl suspend v hostu)
         qmp("system_wakeup")
+    elif c == "quit":
+        try:
+            qmp("quit")
+        except RuntimeError:
+            pass        # QEMU skonci driv, nez odpovi
     elif c == "status":
         print(qmp("query-status").get("status"))
     else:
