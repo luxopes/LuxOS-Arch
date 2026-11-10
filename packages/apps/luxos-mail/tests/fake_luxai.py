@@ -109,6 +109,6 @@ def write_account(session_env, origin, token=SESSION, name="Antonín Test", emai
     return path
 
 
-def mailbox(address, port, host="localhost", name="LuxAI"):
+def mailbox(address, port, host="localhost", name="LuxAI", smtp_port=9):
     return {"address": address, "display_name": name, "imap": {"host": host, "port": port, "security": "ssl"},
-            "smtp": {"host": host, "port": 465, "security": "ssl"}, "auth": "luxai-oauth", "mechanisms": ["OAUTHBEARER", "XOAUTH2"]}
+            "smtp": {"host": host, "port": smtp_port, "security": "ssl"}, "auth": "luxai-oauth", "mechanisms": ["OAUTHBEARER", "XOAUTH2"]}

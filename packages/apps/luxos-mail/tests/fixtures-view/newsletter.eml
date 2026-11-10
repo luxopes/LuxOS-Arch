@@ -1,0 +1,51 @@
+From: Zpravodaj Example <news@news.example.org>
+To: Tester <tester@example.test>
+Subject: =?utf-8?b?VMO9ZGVubsOtIHDFmWVobGVkOiA1IHRpcMWv?= pro Linux
+Date: Tue, 10 Nov 2026 09:12:00 +0100
+Message-ID: <4899076000080312704@example.com>
+List-Unsubscribe: <https://news.example.org/unsubscribe?u=1>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============2899922128562523231=="
+
+--===============2899922128562523231==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+VMO9ZGVubsOtIHDFmWVobGVkIOKAkyB0ZXh0b3bDoSB2ZXJ6ZS4gxIzDrXN0IG9ubGluZTogaHR0
+cHM6Ly9uZXdzLmV4YW1wbGUub3JnL3cvNDUK
+
+--===============2899922128562523231==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head>
+<link rel=3D"stylesheet" href=3D"http://127.0.0.1:9/style.css">
+<style type=3D"text/css">
+@import url("http://127.0.0.1:9/import.css");
+body { background: #eef2f7; }
+.card { background: #ffffff; border-radius: 10px; padding: 16px; }
+h1 { color: #0b3d91; font-size: 26px; }
+.hero { background: url("http://127.0.0.1:9/hero.jpg") no-repeat; height: 120=
+px; }
+td.col { width: 50%; vertical-align: top; }
+</style></head>
+<body>
+<table class=3D"card" width=3D"600" align=3D"center"><tr><td colspan=3D"2"><h=
+1>5 tip=C5=AF pro Linux</h1><div class=3D"hero"></div></td></tr>
+<tr><td class=3D"col"><img src=3D"http://127.0.0.1:9/tip1.jpg" width=3D"280" =
+height=3D"160" alt=3D"Tip 1: kl=C3=A1vesov=C3=A9 zkratky"><h3>Kl=C3=A1vesov=
+=C3=A9 zkratky</h3>
+<p>Nau=C4=8Dte se <b>Super+mezern=C3=ADk</b> a <i>Alt+Tab</i>. <a href=3D"htt=
+ps://news.example.org/a/1">=C4=8C=C3=ADst d=C3=A1l =C2=BB</a></p></td>
+<td class=3D"col"><img src=3D"http://127.0.0.1:9/tip2.jpg" width=3D"280" heig=
+ht=3D"160" alt=3D"Tip 2: z=C3=A1lohy"><h3>Z=C3=A1lohy</h3>
+<ul><li>Jednou t=C3=BDdn=C4=9B</li><li>Na extern=C3=AD disk</li><li>Ov=C4=9B=
+=C5=99te obnovu</li></ul></td></tr>
+<tr><td colspan=3D"2" style=3D"font-size:12px;color:#666">Nechcete dost=C3=A1=
+vat zpravodaj? <a href=3D"https://news.example.org/unsubscribe?u=3D1">Odhl=C3=
+=A1sit</a></td></tr>
+</table></body></html>
+
+--===============2899922128562523231==--

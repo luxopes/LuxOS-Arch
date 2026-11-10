@@ -5,7 +5,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Mail</name>
-  <summary>Read your email and get notified about new messages</summary>
+  <summary>Read, write and send email and get notified about new messages</summary>
   <launchable type="desktop-id">luxos-mail.desktop</launchable>
   <description>
     <p>Mail is a light, fast mail app for any IMAP mailbox. It tells you the moment new mail arrives – even when its window is closed.</p>
@@ -21,19 +21,19 @@
     <p xml:lang="pt">Correio é uma aplicação de e-mail leve e rápida para qualquer caixa IMAP. Avisa-o assim que chega uma mensagem nova, mesmo com a janela fechada.</p>
     <p xml:lang="nl">Mail is een lichte, snelle mail-app voor elke IMAP-mailbox. Je krijgt meteen een melding als er nieuwe mail binnenkomt – ook als het venster gesloten is.</p>
     <p xml:lang="sv">E-post är en lätt och snabb e-postapp för alla IMAP-brevlådor. Den säger till så fort ny e-post kommer – även när fönstret är stängt.</p>
-    <p>This version is for reading mail; writing and sending messages will come in a later update.</p>
-    <p xml:lang="cs">Tato verze slouží ke čtení pošty; psaní a odesílání zpráv přibude v některé z dalších aktualizací.</p>
-    <p xml:lang="sk">Táto verzia slúži na čítanie pošty; písanie a odosielanie správ pribudne v niektorej z ďalších aktualizácií.</p>
-    <p xml:lang="pl">Ta wersja służy do czytania poczty; pisanie i wysyłanie wiadomości pojawi się w jednej z kolejnych aktualizacji.</p>
-    <p xml:lang="uk">Ця версія призначена для читання пошти; написання й надсилання листів з’явиться в одному з наступних оновлень.</p>
-    <p xml:lang="hu">Ez a verzió levelek olvasására szolgál; az írás és a küldés egy későbbi frissítésben érkezik.</p>
-    <p xml:lang="de">Diese Version dient zum Lesen von E-Mails; Schreiben und Senden folgen in einem späteren Update.</p>
-    <p xml:lang="fr">Cette version sert à lire le courrier ; la rédaction et l’envoi de messages arriveront dans une prochaine mise à jour.</p>
-    <p xml:lang="es">Esta versión sirve para leer el correo; redactar y enviar mensajes llegará en una actualización posterior.</p>
-    <p xml:lang="it">Questa versione serve a leggere la posta; scrittura e invio dei messaggi arriveranno con un prossimo aggiornamento.</p>
-    <p xml:lang="pt">Esta versão serve para ler e-mail; escrever e enviar mensagens chegará numa atualização futura.</p>
-    <p xml:lang="nl">Deze versie is bedoeld om mail te lezen; berichten schrijven en verzenden volgt in een latere update.</p>
-    <p xml:lang="sv">Den här versionen är till för att läsa e-post; att skriva och skicka meddelanden kommer i en senare uppdatering.</p>
+    <p>Write, reply and forward with attachments – drafts are saved on the server, and without a connection messages wait in the Outbox and go out by themselves later.</p>
+    <p xml:lang="cs">Pište, odpovídejte a přeposílejte i s přílohami – koncepty se ukládají na server a bez připojení zprávy počkají v odchozí poště a odejdou samy později.</p>
+    <p xml:lang="sk">Píšte, odpovedajte a preposielajte aj s prílohami – koncepty sa ukladajú na server a bez pripojenia správy počkajú v odchádzajúcej pošte a odídu samy neskôr.</p>
+    <p xml:lang="pl">Pisz, odpowiadaj i przekazuj dalej, także z załącznikami – wersje robocze są zapisywane na serwerze, a bez połączenia wiadomości czekają w skrzynce nadawczej i wyjdą same później.</p>
+    <p xml:lang="uk">Пишіть, відповідайте й пересилайте листи з вкладеннями – чернетки зберігаються на сервері, а без з’єднання листи чекають у вихідних і надсилаються самі пізніше.</p>
+    <p xml:lang="hu">Írjon, válaszoljon és továbbítson mellékletekkel együtt – a piszkozatok a kiszolgálóra mentődnek, kapcsolat nélkül pedig az üzenetek a Postázandó mappában várnak, és később maguktól elmennek.</p>
+    <p xml:lang="de">Schreiben, antworten und weiterleiten, auch mit Anhängen – Entwürfe werden auf dem Server gespeichert, und ohne Verbindung warten Nachrichten im Postausgang und werden später von selbst gesendet.</p>
+    <p xml:lang="fr">Rédigez, répondez et transférez avec pièces jointes – les brouillons sont enregistrés sur le serveur et, sans connexion, les messages attendent dans la boîte d’envoi et partent d’eux-mêmes plus tard.</p>
+    <p xml:lang="es">Escriba, responda y reenvíe con adjuntos: los borradores se guardan en el servidor y, sin conexión, los mensajes esperan en la bandeja de salida y se envían solos más tarde.</p>
+    <p xml:lang="it">Scrivi, rispondi e inoltra anche con allegati: le bozze vengono salvate sul server e, senza connessione, i messaggi attendono nella posta in uscita e partono da soli più tardi.</p>
+    <p xml:lang="pt">Escreva, responda e reencaminhe com anexos – os rascunhos são guardados no servidor e, sem ligação, as mensagens esperam na caixa de saída e seguem sozinhas mais tarde.</p>
+    <p xml:lang="nl">Schrijf, beantwoord en stuur door, ook met bijlagen – concepten worden op de server bewaard en zonder verbinding wachten berichten in het Postvak UIT en gaan later vanzelf weg.</p>
+    <p xml:lang="sv">Skriv, svara och vidarebefordra med bilagor – utkast sparas på servern, och utan anslutning väntar meddelanden i utkorgen och skickas av sig själva senare.</p>
     <ul>
       <li>Three columns: mailboxes, message list and the message</li>
       <li xml:lang="cs">Tři sloupce: schránky, seznam zpráv a samotná zpráva</li>
@@ -87,19 +87,19 @@
       <li xml:lang="pt">As palavras-passe ficam apenas no porta-chaves e as ligações são sempre cifradas</li>
       <li xml:lang="nl">Wachtwoorden staan alleen in de sleutelbos en verbindingen zijn altijd versleuteld</li>
       <li xml:lang="sv">Lösenord sparas bara i nyckelringen och anslutningar är alltid krypterade</li>
-      <li>HTML mail is shown as text, with no remote images or tracking</li>
-      <li xml:lang="cs">E-maily v HTML se zobrazí jako text, bez vzdálených obrázků a sledování</li>
-      <li xml:lang="sk">E-maily v HTML sa zobrazia ako text, bez vzdialených obrázkov a sledovania</li>
-      <li xml:lang="pl">Wiadomości HTML są wyświetlane jako tekst, bez zdalnych obrazów i śledzenia</li>
-      <li xml:lang="uk">Листи в HTML показуються як текст, без віддалених зображень і стеження</li>
-      <li xml:lang="hu">A HTML-levelek szövegként jelennek meg, távoli képek és követés nélkül</li>
-      <li xml:lang="de">HTML-Mails werden als Text angezeigt, ohne externe Bilder und Tracking</li>
-      <li xml:lang="fr">Les e-mails HTML s’affichent en texte, sans images distantes ni pistage</li>
-      <li xml:lang="es">Los correos HTML se muestran como texto, sin imágenes remotas ni rastreo</li>
-      <li xml:lang="it">Le e-mail HTML sono mostrate come testo, senza immagini remote né tracciamento</li>
-      <li xml:lang="pt">Os e-mails em HTML são mostrados como texto, sem imagens remotas nem rastreio</li>
-      <li xml:lang="nl">HTML-mail wordt als tekst getoond, zonder externe afbeeldingen of tracking</li>
-      <li xml:lang="sv">HTML-e-post visas som text, utan externa bilder eller spårning</li>
+      <li>HTML mail keeps its layout, links open in your browser; scripts are removed and remote images and tracking pixels stay blocked until you allow them</li>
+      <li xml:lang="cs">E-maily v HTML si zachovají vzhled, odkazy se otevřou v prohlížeči; skripty se odstraní a vzdálené obrázky i sledovací pixely zůstanou zablokované, dokud je nepovolíte</li>
+      <li xml:lang="sk">E-maily v HTML si zachovajú vzhľad, odkazy sa otvoria v prehliadači; skripty sa odstránia a vzdialené obrázky aj sledovacie pixely zostanú zablokované, kým ich nepovolíte</li>
+      <li xml:lang="pl">Wiadomości HTML zachowują wygląd, linki otwierają się w przeglądarce; skrypty są usuwane, a zdalne obrazy i piksele śledzące pozostają zablokowane, dopóki na nie nie zezwolisz</li>
+      <li xml:lang="uk">Листи в HTML зберігають вигляд, посилання відкриваються в браузері; скрипти вилучаються, а віддалені зображення й пікселі стеження блокуються, доки ви їх не дозволите</li>
+      <li xml:lang="hu">A HTML-levelek megtartják megjelenésüket, a hivatkozások a böngészőben nyílnak meg; a szkriptek eltávolításra kerülnek, a távoli képek és követőpixelek pedig tiltva maradnak, amíg nem engedélyezi őket</li>
+      <li xml:lang="de">HTML-Mails behalten ihr Layout, Links öffnen sich im Browser; Skripte werden entfernt, externe Bilder und Tracking-Pixel bleiben blockiert, bis Sie sie erlauben</li>
+      <li xml:lang="fr">Les e-mails HTML gardent leur mise en page, les liens s’ouvrent dans le navigateur ; les scripts sont supprimés et les images distantes et pixels espions restent bloqués tant que vous ne les autorisez pas</li>
+      <li xml:lang="es">Los correos HTML conservan su diseño y los enlaces se abren en el navegador; los scripts se eliminan y las imágenes remotas y píxeles de rastreo siguen bloqueados hasta que los permita</li>
+      <li xml:lang="it">Le e-mail HTML mantengono il loro aspetto e i link si aprono nel browser; gli script vengono rimossi e immagini remote e pixel traccianti restano bloccati finché non li consenti</li>
+      <li xml:lang="pt">Os e-mails em HTML mantêm o aspeto e as ligações abrem no navegador; os scripts são removidos e as imagens remotas e píxeis de rastreio ficam bloqueados até os permitir</li>
+      <li xml:lang="nl">HTML-mail behoudt de opmaak, links openen in je browser; scripts worden verwijderd en externe afbeeldingen en trackingpixels blijven geblokkeerd tot je ze toestaat</li>
+      <li xml:lang="sv">HTML-e-post behåller sin layout och länkar öppnas i webbläsaren; skript tas bort och externa bilder och spårningspixlar förblir blockerade tills du tillåter dem</li>
       <li>Messages you have opened stay readable offline</li>
       <li xml:lang="cs">Jednou otevřené zprávy si přečtete i bez připojení</li>
       <li xml:lang="sk">Raz otvorené správy si prečítate aj bez pripojenia</li>

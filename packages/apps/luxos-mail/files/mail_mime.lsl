@@ -6,8 +6,12 @@
 #   decode_words(s)             hlavicka s kodovanymi slovy =?utf-8?B?...?= -> text
 #   decode_text(b, od, do, cs)  bajty ve znakove sade -> String (UTF-8)
 #   b64_decode / b64_encode / qp_decode, html_to_text, parse_addresses, parse_date, preview_text
+#   compose(zprava)             nova zprava RFC 5322 (UTF-8, RFC 2047 hlavicky, QP/base64, prilohy RFC 2231)
+#   reply_subject / forward_subject / quote_text / thread_references   odpovedi a preposlani
 load env
 load net
+load crypto
+load luxos_glib, glib as glib
 load mail_bytes as mb
 
 B64 = []
@@ -914,7 +918,8 @@ function render(b):
     from_list = parse_addresses(decode_words(header(hs, "from")))
     return {"subject": decode_words(header(hs, "subject")), "from": from_list, "to": parse_addresses(decode_words(header(hs, "to"))),
             "cc": parse_addresses(decode_words(header(hs, "cc"))), "reply_to": parse_addresses(decode_words(header(hs, "reply-to"))),
-            "date": parse_date(header(hs, "date")), "message_id": header(hs, "message-id"), "text": "\n\n".join(ctx["texts"]),
+            "date": parse_date(header(hs, "date")), "message_id": header(hs, "message-id").strip(), "text": "\n\n".join(ctx["texts"]),
+            "references": header(hs, "references"), "in_reply_to": header(hs, "in-reply-to").strip(),
             "html": ctx["html"], "attachments": ctx["attachments"], "list_unsubscribe": header(hs, "list-unsubscribe")}
 end
 
@@ -1458,4 +1463,500 @@ function preview_text(data, encoding, charset, html):
         p = p[0:220]
     end
     return p
+end
+
+# ---- psani zprav: RFC 5322, MIME (RFC 2045-2047), nazvy priloh RFC 2231 -------------------------------------------
+# compose(m) -> ByteArray s konci radku CRLF. m: {"from": [jmeno, adresa], "to"/"cc"/"bcc": [[jmeno, adresa]],
+# "subject", "text", "date" (Unix, 0 = ted), "message_id" ("" = novy), "in_reply_to", "references",
+# "attachments": [{"name", "type", "data": ByteArray}], "draft": True = koncept (Bcc zustane v hlavicce)}.
+# Hlavicky jen ASCII (jine znaky jako kodovana slova UTF-8), radky nejvys 78 znaku (kde to jde), text
+# 7bit / quoted-printable / base64 podle obsahu, nikdy delsi radek nez 998 bajtu.
+
+DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+ATEXT = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-/=?^_`{|}~ "
+ATTR_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$&+-.^_`|~"
+MIME_TYPES = {"pdf": "application/pdf", "txt": "text/plain", "csv": "text/csv", "html": "text/html", "htm": "text/html",
+              "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "gif": "image/gif", "webp": "image/webp",
+              "svg": "image/svg+xml", "heic": "image/heic", "zip": "application/zip", "7z": "application/x-7z-compressed",
+              "gz": "application/gzip", "tar": "application/x-tar", "doc": "application/msword",
+              "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "xls": "application/vnd.ms-excel", "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "ppt": "application/vnd.ms-powerpoint",
+              "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+              "odt": "application/vnd.oasis.opendocument.text", "ods": "application/vnd.oasis.opendocument.spreadsheet",
+              "odp": "application/vnd.oasis.opendocument.presentation", "rtf": "application/rtf", "mp3": "audio/mpeg",
+              "ogg": "audio/ogg", "wav": "audio/wav", "mp4": "video/mp4", "webm": "video/webm", "mov": "video/quicktime",
+              "eml": "message/rfc822", "ics": "text/calendar", "vcf": "text/vcard", "json": "application/json",
+              "xml": "application/xml", "md": "text/markdown", "lsl": "text/plain", "py": "text/x-python"}
+
+function last_index(s, sub):
+    parts = s.split(sub)
+    if len(parts) < 2:
+        return -1
+    end
+    return len(s) - len(parts[len(parts) - 1]) - len(sub)
+end
+
+function mime_type(name):
+    dot = last_index(name, ".")
+    if dot < 0:
+        return "application/octet-stream"
+    end
+    return MIME_TYPES.get(name[dot + 1:].lower(), "application/octet-stream")
+end
+
+function ascii_only(s):
+    b = net.bytes(s)
+    return not has_8bit(b, 0, len(b))
+end
+
+# Text hlavicky bez CR/LF a ridicich znaku (ochrana proti vlozeni hlavicky)
+function header_clean(s):
+    b = net.bytes(String(s))
+    out = ByteArray()
+    for c in b:
+        if c < 32 or c == 127:
+            out.append(32)
+        else:
+            out.append(c)
+        end
+    end
+    return net.text(out).strip()
+end
+
+# UTF-8 text -> kodovana slova =?UTF-8?B?...?= (kazde nejvys 75 znaku, znak se nikdy nerozdeli)
+function encoded_words(text):
+    b = net.bytes(text)
+    n = len(b)
+    words = []
+    start = 0
+    i = 0
+    while i < n:
+        j = i + 1
+        while j < n and (b[j] & 192) == 128:
+            j += 1
+        end
+        if j - start > 45:
+            words.append("=?UTF-8?B?" + b64_encode(mb.sub(b, start, i)) + "?=")
+            start = i
+        end
+        i = j
+    end
+    if start < n:
+        words.append("=?UTF-8?B?" + b64_encode(mb.sub(b, start, n)) + "?=")
+    end
+    return words
+end
+
+# Nestrukturovana hlavicka (Subject): ASCII se zalomi u mezer, jinak kodovana slova na pokracovacich radcich
+function header_text(name, value):
+    v = header_clean(value)
+    if ascii_only(v) and v.find("=?") < 0:
+        out = name + ":"
+        cur = len(out)
+        first = True
+        for w in v.split(" "):
+            if w == "":
+                continue
+            end
+            if not first and cur + 1 + len(w) > 78:
+                out = out + "\r\n " + w
+                cur = 1 + len(w)
+            else:
+                out = out + " " + w
+                cur += 1 + len(w)
+            end
+            first = False
+        end
+        return out
+    end
+    return name + ": " + "\r\n ".join(encoded_words(v))
+end
+
+# Zobrazovane jmeno adresy: atomy, retezec v uvozovkach, nebo kodovana slova
+function phrase(name):
+    n = header_clean(name)
+    if n == "":
+        return ""
+    end
+    if not ascii_only(n):
+        return " ".join(encoded_words(n))
+    end
+    plain = True
+    for ch in n:
+        if ATEXT.find(ch) < 0:
+            plain = False
+            break
+        end
+    end
+    if plain and n.find("=?") < 0:
+        return n
+    end
+    return "\"" + n.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+end
+
+function addr_spec(email):
+    return header_clean(email).replace("<", "").replace(">", "").replace(" ", "").replace(",", "")
+end
+
+function format_address(pair):
+    email = addr_spec(pair[1])
+    p = phrase(pair[0])
+    if p == "":
+        return email
+    end
+    return p + " <" + email + ">"
+end
+
+# Zalomeni dlouhe hlavicky u mezer (RFC 5322 2.2.3: radek nejvys 78 znaku, kde to jde)
+function fold(line):
+    if len(line) <= 78:
+        return line
+    end
+    out = ""
+    cur = 0
+    first = True
+    for w in line.split(" "):
+        if first:
+            out = w
+            cur = len(w)
+            first = False
+        elif cur + 1 + len(w) > 78 and cur > 1 and w != "":
+            out = out + "\r\n " + w
+            cur = 1 + len(w)
+        else:
+            out = out + " " + w
+            cur += 1 + len(w)
+        end
+    end
+    return out
+end
+
+function address_header(name, pairs):
+    items = []
+    for p in pairs:
+        items.append(format_address(p))
+    end
+    return fold(name + ": " + ", ".join(items))
+end
+
+# RFC 5322 datum v mistnim case s posunem: "Tue, 10 Nov 2026 14:03:22 +0100" (anglicke nazvy, ne podle jazyka)
+function rfc_date(t):
+    f = glib.format_unix(t, "%Y %m %d %H %M %S %u %z").split(" ")
+    if len(f) < 8:
+        return ""
+    end
+    return DAY_NAMES[to_int(f[6], 1) - 1] + ", " + String(to_int(f[2], 1)) + " " + MONTH_NAMES[to_int(f[1], 1) - 1] + " " + f[0] + " " + f[3] + ":" + f[4] + ":" + f[5] + " " + f[7]
+end
+
+function random_hex(n):
+    return crypto.hex(crypto.random_bytes(n))
+end
+
+function domain_of(email):
+    at = last_index(email, "@")
+    d = ""
+    if at >= 0:
+        d = addr_spec(email[at + 1:]).lower()
+    end
+    if d == "":
+        d = "luxos.invalid"
+    end
+    return d
+end
+
+function new_message_id(email):
+    return "<" + random_hex(12) + "." + String(glib.now()) + "@" + domain_of(email) + ">"
+end
+
+# Text -> radky bez koncu (CRLF, CR i LF); posledni konec radku nevytvori prazdny radek navic
+function text_lines(text):
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    if len(lines) > 1 and lines[len(lines) - 1] == "":
+        call lines.pop()
+    end
+    return lines
+end
+
+HEX = "0123456789ABCDEF"
+
+function qp_byte(out, c):
+    out.append(61)
+    out.append(ord(HEX[c >> 4]))
+    out.append(ord(HEX[c & 15]))
+    return 3
+end
+
+# quoted-printable (RFC 2045 6.7): radky nejvys 76 znaku s mekkym zalomenim "=", mezera na konci radku =20,
+# tecka a "From " na zacatku radku zakodovane (nic se nemeni pri prenosu SMTP ani v mbox)
+function qp_encode(text):
+    out = ByteArray()
+    first_line = True
+    for line in text_lines(text):
+        if not first_line:
+            out.append(13)
+            out.append(10)
+        end
+        first_line = False
+        b = net.bytes(line)
+        n = len(b)
+        cur = 0
+        i = 0
+        while i < n:
+            c = b[i]
+            literal = (c >= 33 and c <= 126 and c != 61) or ((c == 32 or c == 9) and i < n - 1)
+            if i == 0 and (c == 46 or (c == 70 and n >= 5 and net.text(b, 0, 5) == "From ")):
+                literal = False
+            end
+            width = 1
+            if not literal:
+                width = 3
+            end
+            if cur + width > 75:
+                out.append(61)
+                out.append(13)
+                out.append(10)
+                cur = 0
+            end
+            if literal:
+                out.append(c)
+            else:
+                call qp_byte(out, c)
+            end
+            cur += width
+            i += 1
+        end
+    end
+    out.append(13)
+    out.append(10)
+    return out
+end
+
+# Telo textu: [Content-Transfer-Encoding, bajty]
+function text_body(text):
+    b = net.bytes(text)
+    n = len(b)
+    eight = 0
+    for c in b:
+        if c >= 128:
+            eight += 1
+        end
+    end
+    lines = text_lines(text)
+    longest = 0
+    for l in lines:
+        ll = len(net.bytes(l))
+        if ll > longest:
+            longest = ll
+        end
+    end
+    if eight == 0 and longest <= 76:
+        body = "\r\n".join(lines) + "\r\n"
+        return ["7bit", net.bytes(body)]
+    end
+    if eight * 2 > n:
+        # vetsinou ne-latinka (azbuka): base64 je kratsi nez QP
+        return ["base64", mb.b64_lines(net.bytes("\r\n".join(lines) + "\r\n"))]
+    end
+    return ["quoted-printable", qp_encode(text)]
+end
+
+function percent_attr(value):
+    out = []
+    for c in net.bytes(value):
+        ch = chr(c)
+        if c < 128 and ATTR_CHARS.find(ch) >= 0:
+            out.append(ch)
+        else:
+            out.append("%" + HEX[c >> 4] + HEX[c & 15])
+        end
+    end
+    return out
+end
+
+# Parametr jmena souboru: kratke ASCII jako filename="x"; jinak RFC 2231 (UTF-8, procenta, pokracovani *0*, *1* ...)
+function file_param(name, value):
+    v = header_clean(value).replace("\"", "'").replace("\\", "_")
+    if ascii_only(v) and len(v) <= 60:
+        return name + "=\"" + v + "\""
+    end
+    pieces = percent_attr(v)
+    joined = "".join(pieces)
+    if len(joined) <= 60:
+        return name + "*=UTF-8''" + joined
+    end
+    out = []
+    chunk = ""
+    index = 0
+    for p in pieces:
+        if len(chunk) + len(p) > 54:
+            prefix = ""
+            if index == 0:
+                prefix = "UTF-8''"
+            end
+            out.append(name + "*" + String(index) + "*=" + prefix + chunk)
+            index += 1
+            chunk = ""
+        end
+        chunk = chunk + p
+    end
+    if chunk != "":
+        prefix = ""
+        if index == 0:
+            prefix = "UTF-8''"
+        end
+        out.append(name + "*" + String(index) + "*=" + prefix + chunk)
+    end
+    return ";\r\n ".join(out)
+end
+
+# name= v Content-Type pro stare klienty (Outlook): kratke ASCII primo, jinak kodovana slova v uvozovkach
+function legacy_name(value):
+    v = header_clean(value).replace("\"", "'").replace("\\", "_")
+    if ascii_only(v) and len(v) <= 60:
+        return "name=\"" + v + "\""
+    end
+    return "name=\"" + " ".join(encoded_words(v)) + "\""
+end
+
+function compose(m):
+    sender = m.get("from", ["", ""])
+    now_t = m.get("date", 0)
+    if now_t == 0:
+        now_t = glib.now()
+    end
+    mid = String(m.get("message_id", ""))
+    if mid == "":
+        mid = new_message_id(sender[1])
+    end
+    lines = ["Date: " + rfc_date(now_t), address_header("From", [sender])]
+    to = m.get("to", [])
+    cc = m.get("cc", [])
+    bcc = m.get("bcc", [])
+    if len(to) > 0:
+        lines.append(address_header("To", to))
+    elif len(cc) == 0:
+        lines.append("To: undisclosed-recipients:;")
+    end
+    if len(cc) > 0:
+        lines.append(address_header("Cc", cc))
+    end
+    if len(bcc) > 0 and m.get("draft", False):
+        lines.append(address_header("Bcc", bcc))
+    end
+    lines.append(header_text("Subject", m.get("subject", "")))
+    lines.append("Message-ID: " + header_clean(mid))
+    irt = header_clean(m.get("in_reply_to", ""))
+    if irt != "":
+        lines.append("In-Reply-To: " + irt)
+    end
+    refs = header_clean(m.get("references", ""))
+    if refs != "":
+        lines.append(header_text("References", refs))
+    end
+    lines.append("MIME-Version: 1.0")
+    lines.append("User-Agent: LuxOS Mail")
+    if m.get("draft", False):
+        lines.append("X-Mozilla-Draft-Info: internal/draft; vcard=0; receipt=0; DSN=0; uuencode=0")
+    end
+    body = text_body(m.get("text", ""))
+    atts = m.get("attachments", [])
+    parts = []
+    if len(atts) == 0:
+        lines.append("Content-Type: text/plain; charset=utf-8")
+        lines.append("Content-Transfer-Encoding: " + body[0])
+        parts.append(net.bytes("\r\n".join(lines) + "\r\n\r\n"))
+        parts.append(body[1])
+        return mb.join(parts)
+    end
+    boundary = "----=_LuxOS_" + random_hex(12)
+    lines.append("Content-Type: multipart/mixed;\r\n boundary=\"" + boundary + "\"")
+    parts.append(net.bytes("\r\n".join(lines) + "\r\n\r\nThis is a multi-part message in MIME format.\r\n"))
+    parts.append(net.bytes("--" + boundary + "\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: " + body[0] + "\r\n\r\n"))
+    parts.append(body[1])
+    for a in atts:
+        name = String(a.get("name", "attachment"))
+        t = String(a.get("type", ""))
+        if t == "" or t.find("/") < 0 or t.find("\r") >= 0 or t.find("\n") >= 0 or t.find(";") >= 0:
+            t = mime_type(name)
+        end
+        data = a.get("data", ByteArray())
+        if t.startswith("text/") and is_utf8(data, 0, len(data)):
+            t = t + "; charset=utf-8"
+        end
+        head = "\r\n--" + boundary + "\r\n" + fold("Content-Type: " + t + "; " + legacy_name(name)) + "\r\nContent-Disposition: attachment;\r\n " + file_param("filename", name) + "\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+        parts.append(net.bytes(head))
+        parts.append(mb.b64_lines(data))
+    end
+    parts.append(net.bytes("\r\n--" + boundary + "--\r\n"))
+    return mb.join(parts)
+end
+
+# ---- odpovedi a preposlani -------------------------------------------------------------------------------------
+
+REPLY_PREFIXES = ["re:", "aw:", "odp:", "sv:", "vs:", "antw:", "réf:", "ref:", "rif:", "res:", "odg:", "відп:", "ynt:"]
+FORWARD_PREFIXES = ["fwd:", "fw:", "wg:", "tr:", "pd:", "rv:", "doorst:", "i:", "vb:", "přep:"]
+
+function has_prefix(subject, prefixes):
+    low = subject.strip().lower()
+    for p in prefixes:
+        if low.startswith(p):
+            return True
+        end
+    end
+    return False
+end
+
+function reply_subject(subject):
+    s = subject.strip()
+    if has_prefix(s, REPLY_PREFIXES):
+        return s
+    end
+    return "Re: " + s
+end
+
+function forward_subject(subject):
+    s = subject.strip()
+    if has_prefix(s, FORWARD_PREFIXES):
+        return s
+    end
+    return "Fwd: " + s
+end
+
+# Citace odpovedi: kazdy radek "> " (uz citovane ">"), prazdne konce pryc
+function quote_text(text):
+    lines = text_lines(text)
+    while len(lines) > 0 and lines[len(lines) - 1].strip() == "":
+        call lines.pop()
+    end
+    out = []
+    for l in lines:
+        if l.startswith(">"):
+            out.append(">" + l)
+        elif l == "":
+            out.append(">")
+        else:
+            out.append("> " + l)
+        end
+    end
+    return "\n".join(out)
+end
+
+# References odpovedi (RFC 5322 3.6.4): puvodni References + Message-ID; dlouhy retez zkraceny (prvni + poslednich 10)
+function thread_references(refs, message_id):
+    ids = []
+    for w in header_clean(refs).replace("><", "> <").split(" "):
+        if w.startswith("<") and w.endswith(">") and w not in ids:
+            ids.append(w)
+        end
+    end
+    mid = header_clean(message_id)
+    if mid != "" and mid not in ids:
+        ids.append(mid)
+    end
+    if len(ids) > 11:
+        ids = [ids[0]] + ids[len(ids) - 10:]
+    end
+    return " ".join(ids)
 end

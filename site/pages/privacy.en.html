@@ -25,11 +25,11 @@
       <p>We do not sell personal data, we do not show ads, and we do not use your data for advertising or profiling.</p>
 
       <h2 id="google-user-data">2. LuxOS Mail and Google user data</h2>
-      <p><a href="/mail/">LuxOS Mail</a> is the mail app of LuxOS. It is a desktop mail client that runs entirely on your computer and connects directly to your mail provider over IMAP. If you choose <strong>“Sign in with Google”</strong> for a Gmail or Google Workspace address, LuxOS Mail uses Google OAuth to get access to your mailbox. This section describes exactly what happens with the data LuxOS Mail receives from Google.</p>
+      <p><a href="/mail/">LuxOS Mail</a> is the mail app of LuxOS. It is a desktop mail client that runs entirely on your computer and connects directly to your mail provider over IMAP (reading) and SMTP (sending). If you choose <strong>“Sign in with Google”</strong> for a Gmail or Google Workspace address, LuxOS Mail uses Google OAuth to get access to your mailbox. This section describes exactly what happens with the data LuxOS Mail receives from Google.</p>
 
       <h3 id="google-data-accessed">Data accessed</h3>
       <ul>
-        <li><strong>Gmail mailbox</strong> (scope <code>https://mail.google.com/</code>): your folders (Gmail labels), message headers (sender, recipients, subject, date), message bodies and attachments, and message flags such as read/unread. LuxOS Mail can change mail only when you ask it to (mark as read/unread, move to Trash). This scope is needed because LuxOS Mail is a full IMAP mail client: Google only allows IMAP and SMTP access with this scope.</li>
+        <li><strong>Gmail mailbox</strong> (scope <code>https://mail.google.com/</code>): your folders (Gmail labels), message headers (sender, recipients, subject, date), message bodies and attachments, and message flags such as read/unread. LuxOS Mail can change mail only when you ask it to (mark as read/unread, move to Trash, save a draft you are writing to Drafts, save a sent message to Sent, mark a message as answered). This scope is needed because LuxOS Mail is a full IMAP/SMTP mail client that also sends the messages you write: Google only allows IMAP and SMTP access with this scope.</li>
         <li><strong>Your e-mail address</strong> (scopes <code>openid</code> and <code>email</code> – <code>userinfo.email</code>): only to check which Google account you signed in with, so the account in LuxOS Mail matches the address you entered.</li>
       </ul>
       <p>LuxOS Mail does not request access to your contacts, calendar, Drive, or any other Google data.</p>
@@ -41,7 +41,7 @@
         <li>to keep a local copy so you can read mail offline and search it,</li>
         <li>to notify you about new mail while the app runs in the background,</li>
         <li>to carry out actions you take, such as opening a folder, marking a message as read or unread, or moving it to Trash,</li>
-        <li>when sending is added in a future version: to send the messages you write.</li>
+        <li>to send the messages you write (with their attachments) through Google’s mail server smtp.gmail.com, only when you press Send – including replies and forwards, and messages that waited in the Outbox while you were offline.</li>
       </ul>
       <p>LuxOS Mail does <strong>not</strong> use Google user data for advertising, for selling or sharing with data brokers or information resellers, for determining creditworthiness or for lending, or to create, train or improve any artificial intelligence or machine learning model. Nobody at LuxOS reads your mail: the data never reaches us.</p>
 

@@ -1,17 +1,20 @@
 # Posta LuxOS (luxos-mail) - lehky postovni klient v LSL.
 #   luxos-mail                          okno (tri sloupce: schranky, zpravy, zprava)
 #   luxos-mail --open UCET SCHRANKA UID okno na dane zprave (akce Otevrit v upozorneni)
-#   luxos-mail mailto:adresa            psani zatim neni (faze 2): nabidne webmail / zkopirovani adresy
+#   luxos-mail mailto:adresa[?subject=..] okno psani zpravy (mail_compose)
+#   luxos-mail --outbox                 okno na Odchozi poste (akce Otevrit v upozorneni na neodeslanou zpravu)
 #   luxos-mail --background             spusti sluzbu na pozadi (luxos-mail-service: IDLE, upozorneni, synchronizace)
 #   luxos-mail --discover EMAIL [--no-probe]   nalezeni serveru (JSON; okno ho spousti pri pridani uctu)
 #   luxos-mail --oauth-config           stahne client ID pro "Prihlasit se ..." z luxos.lux-ai.cz (JSON; okno)
 #   luxos-mail --diagnose-oauth ADRESA [--fresh] [--provider ID]   diagnostika prihlaseni u poskytovatele (zprava
 #                                       varianta -> odpoved serveru, bez tokenu; mail_diagnose)
-# Testovaci vstupy (JSON na stdout): --test-render SOUBOR.eml, --test-part SOUBOR.eml CESTA VYSTUP,
+# Testovaci vstupy (JSON na stdout): --test-render SOUBOR.eml, --test-view SOUBOR.eml [--remote] [--dark],
+#   --test-compose ZPRAVA.json VYSTUP.eml, --test-reply SOUBOR.eml, --test-part SOUBOR.eml CESTA VYSTUP,
 #   --test-imap SOUBOR (odpovedi IMAP), --test-oauth-providers, --test-oauth-url POSKYTOVATEL PORT EMAIL, --test-words TEXT, --test-date TEXT, --test-charset SADA SOUBOR
 load env, json, net
 load mail_bytes as mb
 load mail_mime as mime
+load mail_html as html
 load mail_imap as imap
 load mail_discover as discover
 load luxos_sys
@@ -104,6 +107,27 @@ function main():
         verifier = oauth.random_token(48)
         print json.encode({"url": oauth.authorize_url(p, Int(arg_or(3, "0")), "STATE", verifier, arg_or(4, "")), "verifier": verifier,
                            "challenge": oauth.challenge(verifier)})
+        return 0
+    elif first == "--test-compose":
+        # JSON zpravy (prilohy {"name", "path", "type"}) -> soubor .eml
+        m = json.decode(readfile(arg_or(2, "")))
+        atts = []
+        for a in m.get("attachments", []):
+            atts.append({"name": a["name"], "type": a.get("type", ""), "data": readbytes(a["path"])})
+        end
+        m["attachments"] = atts
+        call writebytes(arg_or(3, "/dev/null"), mime.compose(m))
+        return 0
+    elif first == "--test-reply":
+        # odpoved/preposlani z .eml: predmet, citace, References (JSON)
+        r = mime.render(readbytes(arg_or(2, "")))
+        print json.encode({"reply_subject": mime.reply_subject(r["subject"]), "forward_subject": mime.forward_subject(r["subject"]),
+                           "quote": mime.quote_text(r["text"]), "references": mime.thread_references(r["references"], r["message_id"]),
+                           "in_reply_to": r["message_id"], "rfc_date": mime.rfc_date(r["date"])})
+        return 0
+    elif first == "--test-view":
+        # zobrazeni zpravy: bezpecny dokument HTML (JSON); --remote povoli vzdalene obrazky, --dark tmavy vzhled
+        print json.encode(html.document(readbytes(arg_or(2, "")), {"remote": "--remote" in args, "dark": "--dark" in args}))
         return 0
     elif first == "--test-render":
         print json.encode(mime.render(readbytes(arg_or(2, ""))))

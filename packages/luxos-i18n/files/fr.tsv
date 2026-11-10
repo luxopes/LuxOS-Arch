@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Non connectée �
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Non connectée – branchez le câble USB ou allumez l’imprimante. Les documents s’imprimeront automatiquement.
 Offline – turn the printer on. Documents will print automatically.	Hors ligne – allumez l’imprimante. Les documents s’imprimeront automatiquement.
 Waiting for the printer	En attente de l’imprimante
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Envoyer (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Joindre des fichiers… (Ctrl+Shift+A)
+Attach Files…	Joindre des fichiers…
+Delete Draft	Supprimer le brouillon
+From:	De :
+Bcc:	Cci :
+Subject:	Objet :
+%s is not a file that can be attached.	%s n’est pas un fichier pouvant être joint.
+%s cannot be read.	Impossible de lire %s.
+Remove Attachment	Supprimer la pièce jointe
+Remove attachment %s	Supprimer la pièce jointe %s
+Total %s	Total %s
+Total %s – many servers refuse messages over 25 MB	Total %s – de nombreux serveurs refusent les messages de plus de 25 Mo
+Attach Files	Joindre des fichiers
+Attach	Joindre
+Check the address: %s	Vérifiez l’adresse : %s
+Add at least one recipient.	Ajoutez au moins un destinataire.
+Send this message without a subject?	Envoyer ce message sans objet ?
+The attachment %s no longer exists.	La pièce jointe %s n’existe plus.
+The message could not be prepared.	Le message n’a pas pu être préparé.
+The outgoing server did not accept the sign-in for %s.	Le serveur d’envoi n’a pas accepté la connexion pour %s.
+The password is not in the keyring. Enter it again in the main window.	Le mot de passe n’est pas dans le trousseau. Saisissez-le à nouveau dans la fenêtre principale.
+The server refused these recipients: %s	Le serveur a refusé ces destinataires : %s
+The message is too large for the server (at most %s). Remove some attachments.	Le message est trop volumineux pour le serveur (%s au maximum). Supprimez des pièces jointes.
+The message is too large for the server. Remove some attachments.	Le message est trop volumineux pour le serveur. Supprimez des pièces jointes.
+The outgoing server refused the message.	Le serveur d’envoi a refusé le message.
+The outgoing server does not allow this account to sign in.	Le serveur d’envoi n’autorise pas ce compte à se connecter.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Le certificat de sécurité du serveur d’envoi n’est pas valide (%s). Mail n’envoie pas le message afin de protéger votre mot de passe.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Le serveur d’envoi ne propose pas de connexion chiffrée. Mail n’envoie pas votre mot de passe en clair.
+The outgoing server does not accept addresses with accented characters.	Le serveur d’envoi n’accepte pas les adresses contenant des caractères accentués.
+The account of this message no longer exists.	Le compte de ce message n’existe plus.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Votre connexion a expiré. Reconnectez-vous dans la fenêtre principale, puis renvoyez le message.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Votre connexion LuxAI n’est pas disponible. Reconnectez-vous, puis renvoyez le message.
+The message could not be sent.	Le message n’a pas pu être envoyé.
+Draft saved	Brouillon enregistré
+Draft saved on this computer	Brouillon enregistré sur cet ordinateur
+Save this message as a draft?	Enregistrer ce message comme brouillon ?
+You can finish it later in Drafts.	Vous pourrez le terminer plus tard dans Brouillons.
+Delete this message?	Supprimer ce message ?
+The draft is deleted from this computer and from Drafts on the server.	Le brouillon est supprimé de cet ordinateur et des Brouillons sur le serveur.
+Recovered – Mail closed before this message was sent or saved.	Récupéré – Mail s’est fermé avant que ce message soit envoyé ou enregistré.
+A message could not be sent	Un message n’a pas pu être envoyé
+Get Mail (F5)	Relever le courrier (F5)
+Reply (Ctrl+R)	Répondre (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Répondre à tous (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Transférer (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Les images distantes sont masquées pour protéger votre vie privée.
+Load Images	Charger les images
+Always	Toujours
+Find in Message	Rechercher dans le message
+Previous (Shift+Enter)	Précédent (Shift+Enter)
+Next (Enter)	Suivant (Enter)
+Close (Esc)	Fermer (Esc)
+Outbox	Boîte d’envoi
+Some messages could not be sent.	Certains messages n’ont pas pu être envoyés.
+Open or save the attachment	Ouvrir ou enregistrer la pièce jointe
+The attachment could not be opened.	La pièce jointe n’a pas pu être ouverte.
+Always from %s	Toujours pour %s
+The message is still downloading.	Le message est encore en cours de téléchargement.
+Try again when the message is shown.	Réessayez lorsque le message sera affiché.
+Forwarded message	Message transféré
+Date:	Date :
+On %s, %s wrote:	Le %s, %s a écrit :
+Not sent	Non envoyé
+Waiting to be sent – Mail tries again automatically.	En attente d’envoi – Mail réessaiera automatiquement.
+Delete this unsent message?	Supprimer ce message non envoyé ?
+It is removed from the Outbox and will not be sent.	Il sera retiré de la boîte d’envoi et ne sera pas envoyé.
+Send Again	Renvoyer
+Send Now	Envoyer maintenant
+Signature	Signature
+Signature for %s	Signature pour %s
+Added to new messages, replies and forwards, below the line “-- ”.	Ajoutée aux nouveaux messages, réponses et transferts, sous la ligne « -- ».
+Signature for %s…	Signature pour %s…
+Filter the message list; in the message: find in the text	Filtrer la liste des messages ; dans le message : rechercher dans le texte
+New message	Nouveau message
+Reply	Répondre
+Reply all	Répondre à tous
+Forward	Transférer
+Send (in the message window)	Envoyer (dans la fenêtre du message)
+Print	Imprimer
+Text size of the message	Taille du texte du message
+Add your email account to write to %s.	Ajoutez votre compte de messagerie pour écrire à %s.

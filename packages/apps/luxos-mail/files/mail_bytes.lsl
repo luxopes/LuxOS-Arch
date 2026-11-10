@@ -258,3 +258,112 @@ function monotonic_ms():
         return __lsl_qbe_call0(__lsl_symbol("g_get_monotonic_time")) // 1000
     end
 end
+
+# Base64 s radky po 76 znacich a CRLF (prilohy MIME, RFC 2045); rychle pres g_base64_encode a memcpy
+function b64_lines(bytes):
+    unsafe:
+        n = len(bytes)
+        if n == 0:
+            return __lsl_byte_zeros(0)
+        end
+        enc = __lsl_qbe_call2(__lsl_symbol("g_base64_encode"), __lsl_qbe_load64(__lsl_address(bytes) + 24), n)
+        m = ((n + 2) // 3) * 4
+        lines = (m + 75) // 76
+        out = __lsl_byte_zeros(m + lines * 2)
+        base = __lsl_qbe_load64(__lsl_address(out) + 24)
+        src = 0
+        dst = 0
+        while src < m:
+            k = m - src
+            if k > 76:
+                k = 76
+            end
+            call __lsl_qbe_call3(__lsl_symbol("memcpy"), base + dst, enc + src, k)
+            dst += k
+            call __lsl_qbe_store8(base + dst, 13)
+            call __lsl_qbe_store8(base + dst + 1, 10)
+            dst += 2
+            src += k
+        end
+        call __lsl_qbe_call1(__lsl_symbol("g_free"), enc)
+        return out
+    end
+end
+
+# Velikost souboru v bajtech (-1 kdyz nejde otevrit); bez cteni obsahu (prilohy v okne psani)
+function file_size(path):
+    unsafe:
+        fd = __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("open"), cstr(path), 0))
+        if fd < 0:
+            return -1
+        end
+        n = __lsl_qbe_call3(__lsl_symbol("lseek"), fd, 0, 2)
+        call __lsl_qbe_call1(__lsl_symbol("close"), fd)
+        return n
+    end
+end
+
+# Base64 bez zalomeni jako String (adresy data: obrazku ve zprave)
+function b64_text(bytes):
+    unsafe:
+        n = len(bytes)
+        if n == 0:
+            return ""
+        end
+        enc = __lsl_qbe_call2(__lsl_symbol("g_base64_encode"), __lsl_qbe_load64(__lsl_address(bytes) + 24), n)
+        m = ((n + 2) // 3) * 4
+        out = __lsl_byte_zeros(m)
+        call __lsl_qbe_call3(__lsl_symbol("memcpy"), __lsl_qbe_load64(__lsl_address(out) + 24), enc, m)
+        call __lsl_qbe_call1(__lsl_symbol("g_free"), enc)
+        return __lsl_text_from_bytes(out, 0, m)
+    end
+end
+
+# Data pro SMTP DATA (RFC 5321 4.5.2): tecka na zacatku radku se zdvoji (zprava uz ma konce radku CRLF)
+function dot_stuff(bytes):
+    unsafe:
+        n = len(bytes)
+        if n == 0:
+            return bytes
+        end
+        src = __lsl_qbe_load64(__lsl_address(bytes) + 24)
+        # pozice radku zacinajicich teckou
+        starts = []
+        if (__lsl_qbe_load8(src) & 255) == 46:
+            starts.append(0)
+        end
+        i = 0
+        while i < n:
+            p = __lsl_qbe_call3(__lsl_symbol("memchr"), src + i, 10, n - i)
+            if p == 0:
+                break
+            end
+            j = p - src
+            if j + 1 < n and (__lsl_qbe_load8(src + j + 1) & 255) == 46:
+                starts.append(j + 1)
+            end
+            i = j + 1
+        end
+        if len(starts) == 0:
+            return bytes
+        end
+        out = __lsl_byte_zeros(n + len(starts))
+        base = __lsl_qbe_load64(__lsl_address(out) + 24)
+        dst = 0
+        prev = 0
+        for s0 in starts:
+            s = __lsl_unbox_int(s0)
+            if s > prev:
+                call __lsl_qbe_call3(__lsl_symbol("memcpy"), base + dst, src + prev, s - prev)
+                dst += s - prev
+            end
+            call __lsl_qbe_store8(base + dst, 46)
+            dst += 1
+            prev = s
+        end
+        if prev < n:
+            call __lsl_qbe_call3(__lsl_symbol("memcpy"), base + dst, src + prev, n - prev)
+        end
+        return out
+    end
+end

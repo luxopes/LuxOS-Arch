@@ -1,0 +1,57 @@
+From: =?utf-8?b?w5rEjWV0?= Example <no-reply@accounts.example.com>
+To: Tester <tester@example.test>
+Subject: =?utf-8?b?VXBvem9ybsSbbsOtIHphYmV6cGXEjWVuw606IG5vdsOpIHDFmWlobMOh?=
+ =?utf-8?b?xaFlbsOtIHYgc3lzdMOpbXU=?= Linux
+Date: Tue, 10 Nov 2026 09:12:00 +0100
+Message-ID: <4939818515021396690@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============4229312310461672585=="
+
+--===============4229312310461672585==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Nové přihlášení k účtu tester@example.test
+
+Zkontrolovat aktivitu: https://myaccount.example.com/notifications
+
+--===============4229312310461672585==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!DOCTYPE html><html><head><meta name=3D"viewport" content=3D"width=3Ddevice-=
+width"><title>Upozorn=C4=9Bn=C3=AD</title></head>
+<body style=3D"margin:0;padding:0;background-color:#f1f3f4">
+<table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" bgcolor=3D"#f1f3f4"=
+><tr><td align=3D"center" style=3D"padding:24px">
+<table width=3D"520" style=3D"background:#ffffff;border:1px solid #dadce0;bor=
+der-radius:8px;font-family:Arial,sans-serif">
+<tr><td style=3D"padding:32px 40px 12px;text-align:center;border-bottom:1px s=
+olid #dadce0">
+<img src=3D"http://127.0.0.1:9/logo.png" width=3D"74" height=3D"24" alt=3D"Ex=
+ample">
+<div style=3D"font-size:24px;color:#202124;padding-top:16px">Nov=C3=A9 p=C5=
+=99ihl=C3=A1=C5=A1en=C3=AD v syst=C3=A9mu Linux</div>
+<div style=3D"font-size:14px;color:#3c4043;padding-top:8px">tester@example.te=
+st</div></td></tr>
+<tr><td style=3D"padding:20px 40px;font-size:14px;line-height:20px;color:#3c4=
+043">
+Zaznamenali jsme nov=C3=A9 p=C5=99ihl=C3=A1=C5=A1en=C3=AD k va=C5=A1emu =C3=
+=BA=C4=8Dtu na za=C5=99=C3=ADzen=C3=AD se syst=C3=A9mem Linux. Pokud jste to =
+byli vy, nemus=C3=ADte nic d=C4=9Blat.
+Pokud ne, pom=C5=AF=C5=BEeme v=C3=A1m zabezpe=C4=8Dit =C3=BA=C4=8Det.
+<div style=3D"padding-top:28px;text-align:center"><a href=3D"https://myaccoun=
+t.example.com/notifications?x=3D1&amp;y=3D2" style=3D"background:#1a73e8;colo=
+r:#ffffff;padding:10px 24px;border-radius:4px;text-decoration:none;font-weigh=
+t:bold">Zkontrolovat aktivitu</a></div>
+</td></tr></table>
+<div style=3D"font-size:11px;color:#5f6368;padding-top:16px">Tento e-mail v=
+=C3=A1m pos=C3=ADl=C3=A1me kv=C5=AFli d=C5=AFle=C5=BEit=C3=BDm zm=C4=9Bn=C3=
+=A1m ve va=C5=A1em =C3=BA=C4=8Dtu.</div>
+<img src=3D"http://127.0.0.1:9/open-pixel.gif?id=3D123" width=3D"1" height=3D=
+"1" alt=3D"">
+</td></tr></table></body></html>
+
+--===============4229312310461672585==--

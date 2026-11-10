@@ -25,11 +25,11 @@
       <p>Osobní údaje neprodáváme, nezobrazujeme reklamu a vaše data nepoužíváme k reklamě ani profilování.</p>
 
       <h2 id="google-user-data">2. Pošta LuxOS a data uživatelů Google</h2>
-      <p><a href="/cs/mail/">Pošta LuxOS</a> je poštovní aplikace LuxOS. Je to desktopový poštovní klient, který běží celý ve vašem počítači a připojuje se přímo k vašemu poskytovateli pošty přes IMAP. Když u adresy Gmail nebo Google Workspace zvolíte <strong>„Přihlásit se Googlem“</strong>, Pošta získá přístup ke schránce přes Google OAuth. Tento oddíl přesně popisuje, co se děje s daty, která Pošta od Googlu dostane.</p>
+      <p><a href="/cs/mail/">Pošta LuxOS</a> je poštovní aplikace LuxOS. Je to desktopový poštovní klient, který běží celý ve vašem počítači a připojuje se přímo k vašemu poskytovateli pošty přes IMAP (čtení) a SMTP (odesílání). Když u adresy Gmail nebo Google Workspace zvolíte <strong>„Přihlásit se Googlem“</strong>, Pošta získá přístup ke schránce přes Google OAuth. Tento oddíl přesně popisuje, co se děje s daty, která Pošta od Googlu dostane.</p>
 
       <h3 id="google-data-accessed">K jakým datům Pošta přistupuje</h3>
       <ul>
-        <li><strong>Schránka Gmail</strong> (rozsah <code>https://mail.google.com/</code>): složky (štítky Gmailu), hlavičky zpráv (odesílatel, příjemci, předmět, datum), texty zpráv a přílohy a příznaky zpráv, např. přečteno/nepřečteno. Poštu Pošta mění jen na váš pokyn (označit jako přečtené/nepřečtené, přesunout do koše). Tento rozsah je nutný, protože Pošta je plnohodnotný poštovní klient IMAP: Google povoluje přístup přes IMAP a SMTP jen s tímto rozsahem.</li>
+        <li><strong>Schránka Gmail</strong> (rozsah <code>https://mail.google.com/</code>): složky (štítky Gmailu), hlavičky zpráv (odesílatel, příjemci, předmět, datum), texty zpráv a přílohy a příznaky zpráv, např. přečteno/nepřečteno. Poštu Pošta mění jen na váš pokyn (označit jako přečtené/nepřečtené, přesunout do koše, uložit rozepsanou zprávu do Konceptů, uložit odeslanou zprávu do Odeslaných, označit zprávu jako zodpovězenou). Tento rozsah je nutný, protože Pošta je plnohodnotný poštovní klient IMAP/SMTP, který také odesílá zprávy, které napíšete: Google povoluje přístup přes IMAP a SMTP jen s tímto rozsahem.</li>
         <li><strong>Vaše e-mailová adresa</strong> (rozsahy <code>openid</code> a <code>email</code> – <code>userinfo.email</code>): jen ke kontrole, ke kterému účtu Google jste se přihlásili, aby účet v Poště odpovídal zadané adrese.</li>
       </ul>
       <p>Pošta nežádá o přístup ke kontaktům, kalendáři, Disku ani k žádným jiným datům Google.</p>
@@ -41,7 +41,7 @@
         <li>k uchování místní kopie, abyste mohli poštu číst bez internetu a hledat v ní,</li>
         <li>k upozornění na novou poštu, když aplikace běží na pozadí,</li>
         <li>k provedení vašich akcí, např. otevření složky, označení zprávy jako přečtené či nepřečtené nebo přesunu do koše,</li>
-        <li>až přibude odesílání: k odeslání zpráv, které napíšete.</li>
+        <li>k odeslání zpráv, které napíšete (i s přílohami), přes poštovní server Googlu smtp.gmail.com – jen když stisknete Odeslat, včetně odpovědí, přeposlaných zpráv a zpráv, které bez připojení počkaly v odchozí poště.</li>
       </ul>
       <p>Pošta data uživatelů Google <strong>nepoužívá</strong> k reklamě, neprodává je ani nepředává zprostředkovatelům dat, nepoužívá je k posuzování úvěruschopnosti ani k půjčkám a nepoužívá je k vytváření, trénování ani zlepšování modelů umělé inteligence či strojového učení. Nikdo z LuxOS vaši poštu nečte – data se k nám vůbec nedostanou.</p>
 

@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Niet verbonden �
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Niet verbonden – sluit de USB-kabel aan of zet de printer aan. De documenten worden automatisch afgedrukt.
 Offline – turn the printer on. Documents will print automatically.	Offline – zet de printer aan. De documenten worden automatisch afgedrukt.
 Waiting for the printer	Wacht op de printer
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Verzenden (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Voeg bestanden toe… (Ctrl+Shift+A)
+Attach Files…	Voeg bestanden toe…
+Delete Draft	Verwijder concept
+From:	Van:
+Bcc:	Bcc:
+Subject:	Onderwerp:
+%s is not a file that can be attached.	%s is geen bestand dat kan worden bijgevoegd.
+%s cannot be read.	%s kan niet worden gelezen.
+Remove Attachment	Verwijder bijlage
+Remove attachment %s	Verwijder bijlage %s
+Total %s	Totaal %s
+Total %s – many servers refuse messages over 25 MB	Totaal %s – veel servers weigeren berichten groter dan 25 MB
+Attach Files	Voeg bestanden toe
+Attach	Voeg toe
+Check the address: %s	Controleer het adres: %s
+Add at least one recipient.	Voeg minstens één ontvanger toe.
+Send this message without a subject?	Dit bericht zonder onderwerp verzenden?
+The attachment %s no longer exists.	De bijlage %s bestaat niet meer.
+The message could not be prepared.	Het bericht kon niet worden voorbereid.
+The outgoing server did not accept the sign-in for %s.	De server voor uitgaande post heeft het inloggen voor %s niet geaccepteerd.
+The password is not in the keyring. Enter it again in the main window.	Het wachtwoord staat niet in de sleutelbos. Voer het opnieuw in in het hoofdvenster.
+The server refused these recipients: %s	De server heeft deze ontvangers geweigerd: %s
+The message is too large for the server (at most %s). Remove some attachments.	Het bericht is te groot voor de server (maximaal %s). Verwijder enkele bijlagen.
+The message is too large for the server. Remove some attachments.	Het bericht is te groot voor de server. Verwijder enkele bijlagen.
+The outgoing server refused the message.	De server voor uitgaande post heeft het bericht geweigerd.
+The outgoing server does not allow this account to sign in.	De server voor uitgaande post staat niet toe dat deze account inlogt.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Het beveiligingscertificaat van de server voor uitgaande post is niet geldig (%s). Mail verzendt niet om je wachtwoord te beschermen.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	De server voor uitgaande post biedt geen versleutelde verbinding. Mail verzendt je wachtwoord niet onversleuteld.
+The outgoing server does not accept addresses with accented characters.	De server voor uitgaande post accepteert geen adressen met letters met accenten.
+The account of this message no longer exists.	De account van dit bericht bestaat niet meer.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Je aanmelding is verlopen. Log opnieuw in in het hoofdvenster en verzend het bericht dan opnieuw.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Je LuxAI-aanmelding is niet beschikbaar. Log opnieuw in en verzend het bericht dan opnieuw.
+The message could not be sent.	Het bericht kon niet worden verzonden.
+Draft saved	Concept bewaard
+Draft saved on this computer	Concept bewaard op deze computer
+Save this message as a draft?	Dit bericht als concept bewaren?
+You can finish it later in Drafts.	Je kunt het later afmaken in Concepten.
+Delete this message?	Dit bericht verwijderen?
+The draft is deleted from this computer and from Drafts on the server.	Het concept wordt verwijderd van deze computer en uit Concepten op de server.
+Recovered – Mail closed before this message was sent or saved.	Hersteld – Mail werd gesloten voordat dit bericht was verzonden of bewaard.
+A message could not be sent	Een bericht kon niet worden verzonden
+Get Mail (F5)	Mail ophalen (F5)
+Reply (Ctrl+R)	Antwoord (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Allen antwoord (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Stuur door (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Externe afbeeldingen zijn verborgen om je privacy te beschermen.
+Load Images	Laad afbeeldingen
+Always	Altijd
+Find in Message	Zoek in bericht
+Previous (Shift+Enter)	Vorige (Shift+Enter)
+Next (Enter)	Volgende (Enter)
+Close (Esc)	Sluit (Esc)
+Outbox	Postvak UIT
+Some messages could not be sent.	Sommige berichten konden niet worden verzonden.
+Open or save the attachment	Open of bewaar de bijlage
+The attachment could not be opened.	De bijlage kon niet worden geopend.
+Always from %s	Altijd van %s
+The message is still downloading.	Het bericht wordt nog gedownload.
+Try again when the message is shown.	Probeer het opnieuw wanneer het bericht wordt getoond.
+Forwarded message	Doorgestuurd bericht
+Date:	Datum:
+On %s, %s wrote:	Op %s schreef %s:
+Not sent	Niet verzonden
+Waiting to be sent – Mail tries again automatically.	Wacht op verzending – Mail probeert het automatisch opnieuw.
+Delete this unsent message?	Dit niet-verzonden bericht verwijderen?
+It is removed from the Outbox and will not be sent.	Het wordt verwijderd uit Postvak UIT en niet verzonden.
+Send Again	Opnieuw verzenden
+Send Now	Nu verzenden
+Signature	Handtekening
+Signature for %s	Handtekening voor %s
+Added to new messages, replies and forwards, below the line “-- ”.	Toegevoegd aan nieuwe berichten, antwoorden en doorgestuurde berichten, onder de regel “-- ”.
+Signature for %s…	Handtekening voor %s…
+Filter the message list; in the message: find in the text	Filter de berichtenlijst; in het bericht: zoek in de tekst
+New message	Nieuw bericht
+Reply	Antwoord
+Reply all	Allen antwoord
+Forward	Stuur door
+Send (in the message window)	Verzenden (in het berichtvenster)
+Print	Afdrukken
+Text size of the message	Tekstgrootte van het bericht
+Add your email account to write to %s.	Voeg je e-mailaccount toe om naar %s te schrijven.

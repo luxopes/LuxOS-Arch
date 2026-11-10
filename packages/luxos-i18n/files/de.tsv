@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Nicht verbunden �
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Nicht verbunden – schließen Sie das USB-Kabel an oder schalten Sie den Drucker ein. Die Dokumente werden automatisch gedruckt.
 Offline – turn the printer on. Documents will print automatically.	Offline – schalten Sie den Drucker ein. Die Dokumente werden automatisch gedruckt.
 Waiting for the printer	Wartet auf den Drucker
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Senden (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Dateien anhängen … (Ctrl+Shift+A)
+Attach Files…	Dateien anhängen …
+Delete Draft	Entwurf löschen
+From:	Von:
+Bcc:	Blindkopie:
+Subject:	Betreff:
+%s is not a file that can be attached.	%s ist keine Datei, die angehängt werden kann.
+%s cannot be read.	%s kann nicht gelesen werden.
+Remove Attachment	Anhang entfernen
+Remove attachment %s	Anhang %s entfernen
+Total %s	Insgesamt %s
+Total %s – many servers refuse messages over 25 MB	Insgesamt %s – viele Server lehnen E-Mails über 25 MB ab
+Attach Files	Dateien anhängen
+Attach	Anhängen
+Check the address: %s	Überprüfen Sie die Adresse: %s
+Add at least one recipient.	Fügen Sie mindestens einen Empfänger hinzu.
+Send this message without a subject?	Diese E-Mail ohne Betreff senden?
+The attachment %s no longer exists.	Der Anhang %s existiert nicht mehr.
+The message could not be prepared.	Die E-Mail konnte nicht vorbereitet werden.
+The outgoing server did not accept the sign-in for %s.	Der Server für ausgehende E-Mails hat die Anmeldung für %s nicht akzeptiert.
+The password is not in the keyring. Enter it again in the main window.	Das Passwort ist nicht im Schlüsselbund. Geben Sie es im Hauptfenster erneut ein.
+The server refused these recipients: %s	Der Server hat diese Empfänger abgelehnt: %s
+The message is too large for the server (at most %s). Remove some attachments.	Die E-Mail ist für den Server zu groß (höchstens %s). Entfernen Sie einige Anhänge.
+The message is too large for the server. Remove some attachments.	Die E-Mail ist für den Server zu groß. Entfernen Sie einige Anhänge.
+The outgoing server refused the message.	Der Server für ausgehende E-Mails hat die E-Mail abgelehnt.
+The outgoing server does not allow this account to sign in.	Der Server für ausgehende E-Mails erlaubt diesem Account keine Anmeldung.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Das Sicherheitszertifikat des Servers für ausgehende E-Mails ist ungültig (%s). Mail sendet nicht, um Ihr Passwort zu schützen.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Der Server für ausgehende E-Mails bietet keine verschlüsselte Verbindung an. Mail sendet Ihr Passwort nicht unverschlüsselt.
+The outgoing server does not accept addresses with accented characters.	Der Server für ausgehende E-Mails akzeptiert keine Adressen mit Akzentzeichen.
+The account of this message no longer exists.	Der Account dieser E-Mail existiert nicht mehr.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Ihre Anmeldung ist abgelaufen. Melden Sie sich im Hauptfenster erneut an und senden Sie die E-Mail dann erneut.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Ihre LuxAI-Anmeldung ist nicht verfügbar. Melden Sie sich erneut an und senden Sie die E-Mail dann erneut.
+The message could not be sent.	Die E-Mail konnte nicht gesendet werden.
+Draft saved	Entwurf gesichert
+Draft saved on this computer	Entwurf auf diesem Computer gesichert
+Save this message as a draft?	Diese E-Mail als Entwurf sichern?
+You can finish it later in Drafts.	Sie können sie später unter „Entwürfe“ fertigstellen.
+Delete this message?	Diese E-Mail löschen?
+The draft is deleted from this computer and from Drafts on the server.	Der Entwurf wird von diesem Computer und aus „Entwürfe“ auf dem Server gelöscht.
+Recovered – Mail closed before this message was sent or saved.	Wiederhergestellt – Mail wurde beendet, bevor diese E-Mail gesendet oder gesichert wurde.
+A message could not be sent	Eine E-Mail konnte nicht gesendet werden
+Get Mail (F5)	E-Mails abrufen (F5)
+Reply (Ctrl+R)	Antworten (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Allen antworten (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Weiterleiten (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Bilder aus dem Internet werden zum Schutz Ihrer Privatsphäre ausgeblendet.
+Load Images	Bilder laden
+Always	Immer
+Find in Message	In E-Mail suchen
+Previous (Shift+Enter)	Vorheriger (Shift+Enter)
+Next (Enter)	Nächster (Enter)
+Close (Esc)	Schließen (Esc)
+Outbox	Ausgang
+Some messages could not be sent.	Einige E-Mails konnten nicht gesendet werden.
+Open or save the attachment	Anhang öffnen oder sichern
+The attachment could not be opened.	Der Anhang konnte nicht geöffnet werden.
+Always from %s	Immer von %s
+The message is still downloading.	Die E-Mail wird noch geladen.
+Try again when the message is shown.	Versuchen Sie es erneut, wenn die E-Mail angezeigt wird.
+Forwarded message	Weitergeleitete E-Mail
+Date:	Datum:
+On %s, %s wrote:	Am %s schrieb %s:
+Not sent	Nicht gesendet
+Waiting to be sent – Mail tries again automatically.	Wartet auf Versand – Mail versucht es automatisch erneut.
+Delete this unsent message?	Diese nicht gesendete E-Mail löschen?
+It is removed from the Outbox and will not be sent.	Sie wird aus dem Ausgang entfernt und nicht gesendet.
+Send Again	Erneut senden
+Send Now	Jetzt senden
+Signature	Signatur
+Signature for %s	Signatur für %s
+Added to new messages, replies and forwards, below the line “-- ”.	Wird neuen E-Mails, Antworten und Weiterleitungen unter der Linie „-- “ hinzugefügt.
+Signature for %s…	Signatur für %s …
+Filter the message list; in the message: find in the text	E-Mail-Liste filtern; in der E-Mail: im Text suchen
+New message	Neue E-Mail
+Reply	Antworten
+Reply all	Allen antworten
+Forward	Weiterleiten
+Send (in the message window)	Senden (im E-Mail-Fenster)
+Print	Drucken
+Text size of the message	Textgröße der E-Mail
+Add your email account to write to %s.	Fügen Sie Ihr E-Mail-Konto hinzu, um an %s zu schreiben.

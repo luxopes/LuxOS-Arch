@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Inte ansluten –
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Inte ansluten – anslut USB-kabeln eller slå på skrivaren. Dokumenten skrivs ut automatiskt.
 Offline – turn the printer on. Documents will print automatically.	Offline – slå på skrivaren. Dokumenten skrivs ut automatiskt.
 Waiting for the printer	Väntar på skrivaren
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Skicka (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Bifoga filer… (Ctrl+Shift+A)
+Attach Files…	Bifoga filer…
+Delete Draft	Radera utkast
+From:	Från:
+Bcc:	Hemlig kopia:
+Subject:	Ämne:
+%s is not a file that can be attached.	%s är inte en fil som kan bifogas.
+%s cannot be read.	%s kan inte läsas.
+Remove Attachment	Ta bort bilaga
+Remove attachment %s	Ta bort bilagan %s
+Total %s	Totalt %s
+Total %s – many servers refuse messages over 25 MB	Totalt %s – många servrar avvisar meddelanden över 25 MB
+Attach Files	Bifoga filer
+Attach	Bifoga
+Check the address: %s	Kontrollera adressen: %s
+Add at least one recipient.	Lägg till minst en mottagare.
+Send this message without a subject?	Vill du skicka meddelandet utan ämne?
+The attachment %s no longer exists.	Bilagan %s finns inte längre.
+The message could not be prepared.	Meddelandet kunde inte förberedas.
+The outgoing server did not accept the sign-in for %s.	Servern för utgående e-post godkände inte inloggningen för %s.
+The password is not in the keyring. Enter it again in the main window.	Lösenordet finns inte i nyckelringen. Ange det igen i huvudfönstret.
+The server refused these recipients: %s	Servern avvisade dessa mottagare: %s
+The message is too large for the server (at most %s). Remove some attachments.	Meddelandet är för stort för servern (högst %s). Ta bort några bilagor.
+The message is too large for the server. Remove some attachments.	Meddelandet är för stort för servern. Ta bort några bilagor.
+The outgoing server refused the message.	Servern för utgående e-post avvisade meddelandet.
+The outgoing server does not allow this account to sign in.	Servern för utgående e-post tillåter inte att det här kontot loggar in.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Säkerhetscertifikatet för servern för utgående e-post är inte giltigt (%s). E-post skickar inte meddelandet för att skydda ditt lösenord.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Servern för utgående e-post erbjuder ingen krypterad anslutning. E-post skickar inte ditt lösenord okrypterat.
+The outgoing server does not accept addresses with accented characters.	Servern för utgående e-post godtar inte adresser med accenttecken.
+The account of this message no longer exists.	Kontot för det här meddelandet finns inte längre.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Din inloggning har gått ut. Logga in igen i huvudfönstret och skicka sedan meddelandet igen.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Din LuxAI-inloggning är inte tillgänglig. Logga in igen och skicka sedan meddelandet igen.
+The message could not be sent.	Meddelandet kunde inte skickas.
+Draft saved	Utkastet har sparats
+Draft saved on this computer	Utkastet har sparats på den här datorn
+Save this message as a draft?	Vill du spara meddelandet som utkast?
+You can finish it later in Drafts.	Du kan slutföra det senare i Utkast.
+Delete this message?	Vill du radera meddelandet?
+The draft is deleted from this computer and from Drafts on the server.	Utkastet raderas från den här datorn och från Utkast på servern.
+Recovered – Mail closed before this message was sent or saved.	Återställt – E-post stängdes innan meddelandet skickades eller sparades.
+A message could not be sent	Ett meddelande kunde inte skickas
+Get Mail (F5)	Hämta e-post (F5)
+Reply (Ctrl+R)	Svara (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Svara alla (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Vidarebefordra (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Fjärrbilder döljs för att skydda din integritet.
+Load Images	Läs in bilder
+Always	Alltid
+Find in Message	Sök i meddelandet
+Previous (Shift+Enter)	Föregående (Shift+Enter)
+Next (Enter)	Nästa (Enter)
+Close (Esc)	Stäng (Esc)
+Outbox	Utkorg
+Some messages could not be sent.	Vissa meddelanden kunde inte skickas.
+Open or save the attachment	Öppna eller spara bilagan
+The attachment could not be opened.	Bilagan kunde inte öppnas.
+Always from %s	Alltid från %s
+The message is still downloading.	Meddelandet hämtas fortfarande.
+Try again when the message is shown.	Försök igen när meddelandet visas.
+Forwarded message	Vidarebefordrat meddelande
+Date:	Datum:
+On %s, %s wrote:	Den %s skrev %s:
+Not sent	Inte skickat
+Waiting to be sent – Mail tries again automatically.	Väntar på att skickas – E-post försöker igen automatiskt.
+Delete this unsent message?	Vill du radera det oskickade meddelandet?
+It is removed from the Outbox and will not be sent.	Det tas bort från Utkorgen och skickas inte.
+Send Again	Skicka igen
+Send Now	Skicka nu
+Signature	Signatur
+Signature for %s	Signatur för %s
+Added to new messages, replies and forwards, below the line “-- ”.	Läggs till i nya meddelanden, svar och vidarebefordringar, under raden ”-- ”.
+Signature for %s…	Signatur för %s…
+Filter the message list; in the message: find in the text	Filtrera meddelandelistan; i meddelandet: sök i texten
+New message	Nytt meddelande
+Reply	Svara
+Reply all	Svara alla
+Forward	Vidarebefordra
+Send (in the message window)	Skicka (i meddelandefönstret)
+Print	Skriv ut
+Text size of the message	Textstorlek för meddelandet
+Add your email account to write to %s.	Lägg till ditt e-postkonto för att skriva till %s.
