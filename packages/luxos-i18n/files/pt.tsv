@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Não conectada �
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Não conectada – conecte o cabo USB ou ligue a impressora. Os documentos serão impressos automaticamente.
 Offline – turn the printer on. Documents will print automatically.	Offline – ligue a impressora. Os documentos serão impressos automaticamente.
 Waiting for the printer	Aguardando a impressora
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Enviar (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Anexar arquivos… (Ctrl+Shift+A)
+Attach Files…	Anexar arquivos…
+Delete Draft	Apagar rascunho
+From:	De:
+Bcc:	Cco:
+Subject:	Assunto:
+%s is not a file that can be attached.	%s não é um arquivo que possa ser anexado.
+%s cannot be read.	Não é possível ler %s.
+Remove Attachment	Remover anexo
+Remove attachment %s	Remover anexo %s
+Total %s	Total %s
+Total %s – many servers refuse messages over 25 MB	Total %s – muitos servidores recusam mensagens acima de 25 MB
+Attach Files	Anexar arquivos
+Attach	Anexar
+Check the address: %s	Verifique o endereço: %s
+Add at least one recipient.	Adicione pelo menos um destinatário.
+Send this message without a subject?	Enviar esta mensagem sem assunto?
+The attachment %s no longer exists.	O anexo %s não existe mais.
+The message could not be prepared.	Não foi possível preparar a mensagem.
+The outgoing server did not accept the sign-in for %s.	O servidor de envio não aceitou o início de sessão de %s.
+The password is not in the keyring. Enter it again in the main window.	A senha não está no chaveiro. Digite-a novamente na janela principal.
+The server refused these recipients: %s	O servidor recusou estes destinatários: %s
+The message is too large for the server (at most %s). Remove some attachments.	A mensagem é grande demais para o servidor (no máximo %s). Remova alguns anexos.
+The message is too large for the server. Remove some attachments.	A mensagem é grande demais para o servidor. Remova alguns anexos.
+The outgoing server refused the message.	O servidor de envio recusou a mensagem.
+The outgoing server does not allow this account to sign in.	O servidor de envio não permite que esta conta inicie sessão.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	O certificado de segurança do servidor de envio não é válido (%s). O Correio não envia para proteger a sua senha.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	O servidor de envio não oferece uma conexão criptografada. O Correio não envia a sua senha sem criptografia.
+The outgoing server does not accept addresses with accented characters.	O servidor de envio não aceita endereços com caracteres acentuados.
+The account of this message no longer exists.	A conta desta mensagem não existe mais.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	A sua sessão expirou. Inicie sessão novamente na janela principal e envie a mensagem outra vez.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	A sua sessão do LuxAI não está disponível. Inicie sessão novamente e envie a mensagem outra vez.
+The message could not be sent.	Não foi possível enviar a mensagem.
+Draft saved	Rascunho guardado
+Draft saved on this computer	Rascunho guardado neste computador
+Save this message as a draft?	Guardar esta mensagem como rascunho?
+You can finish it later in Drafts.	Você pode terminá-la mais tarde em Rascunhos.
+Delete this message?	Apagar esta mensagem?
+The draft is deleted from this computer and from Drafts on the server.	O rascunho é apagado deste computador e de Rascunhos no servidor.
+Recovered – Mail closed before this message was sent or saved.	Recuperado – O Correio foi fechado antes de esta mensagem ser enviada ou guardada.
+A message could not be sent	Não foi possível enviar uma mensagem
+Get Mail (F5)	Obter correio (F5)
+Reply (Ctrl+R)	Responder (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Responder a todos (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Encaminhar (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	As imagens remotas estão ocultas para proteger a sua privacidade.
+Load Images	Carregar imagens
+Always	Sempre
+Find in Message	Procurar na mensagem
+Previous (Shift+Enter)	Anterior (Shift+Enter)
+Next (Enter)	Seguinte (Enter)
+Close (Esc)	Fechar (Esc)
+Outbox	Caixa de saída
+Some messages could not be sent.	Não foi possível enviar algumas mensagens.
+Open or save the attachment	Abrir ou guardar o anexo
+The attachment could not be opened.	Não foi possível abrir o anexo.
+Always from %s	Sempre de %s
+The message is still downloading.	A mensagem ainda está sendo baixada.
+Try again when the message is shown.	Tente novamente quando a mensagem for exibida.
+Forwarded message	Mensagem encaminhada
+Date:	Data:
+On %s, %s wrote:	Em %s, %s escreveu:
+Not sent	Não enviada
+Waiting to be sent – Mail tries again automatically.	Aguardando envio – O Correio tentará novamente de forma automática.
+Delete this unsent message?	Apagar esta mensagem não enviada?
+It is removed from the Outbox and will not be sent.	Ela será removida da Caixa de saída e não será enviada.
+Send Again	Enviar novamente
+Send Now	Enviar agora
+Signature	Assinatura
+Signature for %s	Assinatura para %s
+Added to new messages, replies and forwards, below the line “-- ”.	Adicionada a novas mensagens, respostas e encaminhamentos, abaixo da linha “-- ”.
+Signature for %s…	Assinatura para %s…
+Filter the message list; in the message: find in the text	Filtrar a lista de mensagens; na mensagem: procurar no texto
+New message	Nova mensagem
+Reply	Responder
+Reply all	Responder a todos
+Forward	Encaminhar
+Send (in the message window)	Enviar (na janela da mensagem)
+Print	Imprimir
+Text size of the message	Tamanho do texto da mensagem
+Add your email account to write to %s.	Adicione sua conta de e-mail para escrever para %s.

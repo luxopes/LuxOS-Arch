@@ -240,7 +240,8 @@ def get(url, timeout=30):
 
 
 def providers_file(path, google=None, microsoft=None, google_imap=None, microsoft_imap=None, google_id="test-google-client.apps.example",
-                   google_secret="GOCSPX-test-secret", microsoft_id="00000000-1111-2222-3333-444444444444", microsoft_alt_imap=None):
+                   google_secret="GOCSPX-test-secret", microsoft_id="00000000-1111-2222-3333-444444444444", microsoft_alt_imap=None,
+                   google_smtp=None, microsoft_smtp=None):
     """oauth-providers.json pro test: koncove body falesnych poskytovatelu, IMAP na falesny server."""
     with open(path_of_shipped()) as f:
         data = json.load(f)
@@ -263,6 +264,9 @@ def providers_file(path, google=None, microsoft=None, google_imap=None, microsof
         m["imap"] = {"host": "localhost", "port": microsoft_imap, "security": "ssl"}
         # nahradni server (imap-mail.outlook.com) nikdy skutecny: jinak falesny, nebo zadny
         m["imap_alternates"] = []
+    # SMTP nikdy skutecny Google/Microsoft: falesny server testu, jinak zavreny mistni port
+    g["smtp"] = google_smtp or {"host": "localhost", "port": 9, "security": "ssl"}
+    m["smtp"] = microsoft_smtp or {"host": "localhost", "port": 9, "security": "starttls"}
     if microsoft_alt_imap is not None:
         m["imap_alternates"] = [{"host": "localhost", "port": microsoft_alt_imap, "security": "ssl"}]
     with open(path, "w") as f:

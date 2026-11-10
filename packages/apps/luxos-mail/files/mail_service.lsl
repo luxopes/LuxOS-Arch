@@ -31,6 +31,7 @@ load mail_luxai as luxai
 load mail_provider as provider
 load mail_oauth as oauth
 load mail_oauth_login as ol
+load mail_smtp as smtp
 load crypto
 
 ITEMS = "UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODYSTRUCTURE"
@@ -43,7 +44,7 @@ MAX_BODY = 67108864
 NM = "org.freedesktop.NetworkManager"
 
 svc = {"listen": -1, "clients": [], "session": 0, "system": 0, "notes": {}, "badge": -1, "accounts": {}, "order": [],
-       "nm_state": 0, "exit_timer": 0, "next_note": 0, "flow": {}}
+       "nm_state": 0, "exit_timer": 0, "next_note": 0, "flow": {}, "outbox_timer": 0, "outbox_when": 0}
 
 function log(message):
     return eprint("luxos-mail: " + message)
@@ -946,6 +947,10 @@ function on_action(sender, path, interface, signal, values):
         return 0
     end
     target = svc["notes"][values[0]]
+    if "outbox" in target:
+        call glib.spawn([store.gui_binary(), "--outbox"])
+        return 0
+    end
     call glib.spawn([store.gui_binary(), "--open", target["account"], target["mailbox"], String(target["uid"])])
     return 0
 end
@@ -1220,6 +1225,10 @@ function reconnect_all(reason):
         end
         st["backoff"] = 0
         call start_account(st)
+    end
+    # Odchozi: zpravy cekajici na sit hned
+    safe:
+        call process_outbox(True)
     end
     return 0
 end
@@ -2024,6 +2033,674 @@ function remove_account(req):
     return {"ok": True, "revoked": revoked}
 end
 
+# ---- odesilani (SMTP), Odchozi a koncepty ----------------------------------------------------------------------
+# Okno slozi zpravu (mail_mime.compose) a ulozi ji do ~/.local/share/luxos-mail/outbox/<id>.eml s popisem
+# <id>.json (ucet, obalka, odpoved na zpravu, koncept na serveru, stav psani pro "Upravit"); pak posle "send".
+# Sluzba zpravu odesle pres SMTP uctu, ulozi kopii do Odeslanych (ne Gmail a Microsoft: ty si ji ulozi samy,
+# kopie by byla dvakrat), oznaci puvodni zpravu \Answered ($Forwarded) a smaze koncept na serveru. Bez site nebo
+# pri docasne chybe serveru zprava zustane v Odchozi a zkousi se znovu (30 s, 1 min, 2 min ... nejvys 15 min, hned
+# po pripojeni site / probuzeni); po 48 hodinach bez uspechu nebo pri trvale chybe (spatne heslo, odmitnuty
+# prijemce, prilis velka zprava) upozorneni "Zpravu se nepodarilo odeslat" a zprava zustane v Odchozi s chybou.
+# Napsana zprava se tak nikdy neztrati (okno navic prubezne uklada rozepsanou zpravu, viz mail_ui).
+
+OUTBOX_GIVE_UP = 172800
+OUTBOX_MAX_DELAY = 900
+
+function outbox_dir():
+    return store.ensure_dir(store.base_data() + "/outbox")
+end
+
+function job_path(id, ext):
+    return outbox_dir() + "/" + id + ext
+end
+
+function valid_job_id(id):
+    if type(id) != "String" or id == "" or len(id) > 64:
+        return False
+    end
+    for ch in id:
+        if "abcdefghijklmnopqrstuvwxyz0123456789-".find(ch) < 0:
+            return False
+        end
+    end
+    return True
+end
+
+function load_job(id):
+    if not valid_job_id(id):
+        return {}
+    end
+    path = job_path(id, ".json")
+    if not exists(path) or not exists(job_path(id, ".eml")):
+        return {}
+    end
+    job = None
+    safe:
+        job = json.decode(readfile(path))
+    end
+    if type(job) != "Dictionary":
+        return {}
+    end
+    job["id"] = id
+    for key in ["attempts", "next", "created"]:
+        if type(job.get(key)) != "Int":
+            job[key] = 0
+        end
+    end
+    return job
+end
+
+function save_job(job):
+    call store.write_private(job_path(job["id"], ".json"), json.encode(job) + "\n")
+    return 0
+end
+
+function remove_job(id):
+    for ext in [".json", ".eml"]:
+        safe:
+            call remove_path(job_path(id, ext))
+        end
+    end
+    return 0
+end
+
+function list_jobs():
+    out = []
+    for name in glib.list_dir(outbox_dir()):
+        if name.endswith(".json"):
+            job = load_job(name[0:len(name) - 5])
+            if len(job) > 0:
+                out.append(job)
+            end
+        end
+    end
+    return out
+end
+
+function outbox_event():
+    call broadcast({"event": "outbox"})
+    return 0
+end
+
+# Nastaveni SMTP uctu; chybi-li (stary ucet), od poskytovatele nebo odhad podle IMAP (smtp.<domena>:587)
+function smtp_settings(cfg):
+    s = cfg.get("smtp", {})
+    if type(s) != "Dictionary":
+        s = {}
+    end
+    if String(s.get("host", "")) == "" and is_oauth(cfg):
+        p = {}
+        safe:
+            p = account_provider(cfg)
+        end
+        if len(p) > 0 and len(p.get("smtp", {})) > 0:
+            s = {"host": p["smtp"]["host"], "port": p["smtp"]["port"], "security": p["smtp"]["security"]}
+        end
+    end
+    if String(s.get("host", "")) == "":
+        ihost = String(cfg["imap"].get("host", ""))
+        host = ihost
+        if ihost.startswith("imap."):
+            host = "smtp." + ihost[5:]
+        end
+        s = {"host": host, "port": 587, "security": "starttls"}
+    end
+    port = s.get("port", 587)
+    if type(port) != "Int":
+        port = mime.to_int(String(port), 587)
+    end
+    security = String(s.get("security", "starttls"))
+    if security != "ssl":
+        security = "starttls"
+    end
+    user = String(s.get("user", ""))
+    if user == "":
+        user = String(cfg["imap"].get("user", cfg["email"]))
+    end
+    if user == "":
+        user = cfg["email"]
+    end
+    return {"host": String(s["host"]).strip(), "port": port, "security": security, "user": user}
+end
+
+# Spojeni SMTP a prihlaseni podle druhu uctu (heslo, token poskytovatele, token LuxAI)
+function smtp_open(st, s):
+    cfg = st["cfg"]
+    if is_oauth(cfg):
+        p = account_provider(cfg)
+        tok = oauth_access(st, False)
+        conn = smtp.connect(s["host"], s["port"], s["security"])
+        err = ""
+        try:
+            call smtp.login_oauth(conn, s["user"], tok[0], s["port"], p["sasl"])
+        else:
+            err = String(last_error())
+            call imap.close(conn)
+        end
+        if err == "":
+            return conn
+        end
+        # ulozeny (ne cerstvy) token server odmitl: jednou novy token a znovu
+        if imap.error_kind(err)[0] != "auth" or tok[1]:
+            Error(MailError: err.replace("MailError: ", ""))
+        end
+        st["access"] = ""
+        tok = oauth_access(st, True)
+        conn = smtp.connect(s["host"], s["port"], s["security"])
+        try:
+            call smtp.login_oauth(conn, s["user"], tok[0], s["port"], p["sasl"])
+        else:
+            err = String(last_error())
+            call imap.close(conn)
+            Error(MailError: err.replace("MailError: ", ""))
+        end
+        return conn
+    end
+    if is_luxai(cfg):
+        t = luxai.token(String(s.get("user", cfg["email"])))
+        if not t["ok"]:
+            call imap.fail(t["kind"], t["error"])
+        end
+        conn = smtp.connect(s["host"], s["port"], s["security"])
+        try:
+            call smtp.login_oauth(conn, s["user"], t["token"], s["port"])
+        else:
+            err = String(last_error())
+            call imap.close(conn)
+            Error(MailError: err.replace("MailError: ", ""))
+        end
+        return conn
+    end
+    if st["password"] == "":
+        st["password"] = secret.lookup(cfg["id"])
+    end
+    if st["password"] == "":
+        call imap.fail("nopassword", "The password is not in the keyring.")
+    end
+    conn = smtp.connect(s["host"], s["port"], s["security"])
+    try:
+        call smtp.login(conn, s["user"], st["password"])
+    else:
+        err = String(last_error())
+        call imap.close(conn)
+        Error(MailError: err.replace("MailError: ", ""))
+    end
+    return conn
+end
+
+# Gmail a Microsoft ukladaji zpravy odeslane pres SMTP do Odeslanych samy; kopie pres APPEND by byla dvakrat
+function server_saves_sent(st):
+    cfg = st["cfg"]
+    prov = provider.of_account(cfg)
+    if prov == "google" or prov == "microsoft":
+        return True
+    end
+    o = cfg.get("oauth", {})
+    if type(o) == "Dictionary" and String(o.get("provider", "")) in ["google", "microsoft"]:
+        return True
+    end
+    host = smtp_settings(cfg)["host"].lower()
+    for suffix in ["gmail.com", "googlemail.com", "office365.com", "outlook.com", "hotmail.com", "live.com"]:
+        if host == suffix or host.endswith("." + suffix):
+            return True
+        end
+    end
+    ihost = String(cfg["imap"].get("host", "")).lower()
+    if ihost.endswith("gmail.com") or ihost.endswith("office365.com") or ihost.endswith("outlook.com"):
+        return True
+    end
+    if connected(st) and imap.has_cap(st["conn"], "X-GM-EXT-1"):
+        return True
+    end
+    return False
+end
+
+# Schranka podle role; kdyz neni, vytvori se (jmeno pro server) a seznam schranek se obnovi
+function ensure_role_box(st, role, name):
+    raw = role_box(st, role)
+    if raw != "":
+        return raw
+    end
+    call imap.create(st["conn"], name)
+    call refresh_mailboxes(st)
+    raw = role_box(st, role)
+    if raw == "":
+        raw = name
+    end
+    return raw
+end
+
+# Zpravy s danym Message-ID ve schrance (koncepty) -> UID
+function find_message_id(st, raw, mid):
+    conn = st["conn"]
+    if conn["selected"] != raw:
+        call imap.select(conn, raw)
+    end
+    if mid == "" or not imap.ascii_safe(mid):
+        return []
+    end
+    return imap.uid_search(conn, "HEADER Message-ID " + imap.quote(mid))
+end
+
+function delete_uids(st, raw, uids):
+    if len(uids) == 0:
+        return 0
+    end
+    conn = st["conn"]
+    if conn["selected"] != raw:
+        call imap.select(conn, raw)
+    end
+    set_text = imap.compress_set(uids)
+    call imap.store_flags(conn, set_text, True, ["\\Deleted"])
+    call imap.expunge(conn, set_text)
+    return 0
+end
+
+# Po synchronizaci schranky s mistni mezipameti (napr. Koncepty otevrene v okne) uvidi okno zmenu hned
+function sync_if_cached(st, raw):
+    if exists(store.mailbox_dir(st["cfg"]["id"], raw) + "/state.json"):
+        safe:
+            call sync_mailbox(st, raw, False)
+        end
+    end
+    return 0
+end
+
+# Kroky po odeslani nad IMAP: kopie do Odeslanych, priznak odpovedi, smazani konceptu. Hotove kroky se
+# zapisou do zakazky (pri vypadku se nezopakuji).
+function post_send(st, job, data):
+    done = job.get("done", [])
+    if "sent" not in done:
+        if not server_saves_sent(st):
+            raw = ensure_role_box(st, "sent", "Sent")
+            uid = 0
+            try:
+                uid = imap.append(st["conn"], raw, ["\\Seen"], data)
+            else:
+                err = String(last_error())
+                if imap.error_kind(err)[0] != "nobox":
+                    Error(MailError: err.replace("MailError: ", ""))
+                end
+                call imap.create(st["conn"], raw)
+                uid = imap.append(st["conn"], raw, ["\\Seen"], data)
+            end
+            call sync_if_cached(st, raw)
+        end
+        done.append("sent")
+        job["done"] = done
+    end
+    reply = job.get("reply", {})
+    if "reply" not in done and type(reply) == "Dictionary" and reply.get("account", "") == st["cfg"]["id"] and type(reply.get("uid")) == "Int" and reply["uid"] > 0:
+        flag = "\\Answered"
+        if reply.get("forward", False):
+            flag = "$Forwarded"
+        end
+        safe:
+            call set_flags(st, String(reply.get("mailbox", "INBOX")), [reply["uid"]], True, [flag])
+        end
+        done.append("reply")
+        job["done"] = done
+    end
+    mid = String(job.get("draft_id", ""))
+    if "draft" not in done and mid != "":
+        raw = role_box(st, "drafts")
+        if raw != "":
+            call delete_uids(st, raw, find_message_id(st, raw, mid))
+            call sync_if_cached(st, raw)
+        end
+        done.append("draft")
+        job["done"] = done
+    end
+    return 0
+end
+
+# Adresy, na ktere uzivatel psal (doplnovani v okne): recipients.json {adresa: {"name", "count", "last"}}
+function remember_recipients(job):
+    path = store.base_data() + "/recipients.json"
+    known = None
+    if exists(path):
+        safe:
+            known = json.decode(readfile(path))
+        end
+    end
+    if type(known) != "Dictionary":
+        known = {}
+    end
+    for pair in job.get("recipients", []):
+        if type(pair) != "List" or len(pair) < 2:
+            continue
+        end
+        email = String(pair[1]).strip().lower()
+        if email == "" or email.find("@") <= 0:
+            continue
+        end
+        prev = known.get(email, {})
+        if type(prev) != "Dictionary":
+            prev = {}
+        end
+        name = String(pair[0]).strip()
+        if name == "":
+            name = String(prev.get("name", ""))
+        end
+        count = prev.get("count", 0)
+        if type(count) != "Int":
+            count = 0
+        end
+        known[email] = {"name": name, "count": count + 1, "last": now()}
+    end
+    call store.ensure_dir(store.base_data())
+    call store.write_private(path, json.encode(known) + "\n")
+    return 0
+end
+
+# Odeslani jedne zakazky: {"ok": True, "sent": True} | {"ok": True, "queued": True, ...} | {"ok": False, ...}
+function deliver(job, interactive):
+    id = job["id"]
+    account = String(job.get("account", ""))
+    if account not in svc["accounts"]:
+        return finish_job_error(job, interactive, "noaccount", "The account of this message no longer exists.")
+    end
+    st = svc["accounts"][account]
+    data = readbytes(job_path(id, ".eml"))
+    rcpts = []
+    for r in job.get("rcpts", []):
+        rcpts.append(String(r))
+    end
+    if len(rcpts) == 0:
+        return finish_job_error(job, interactive, "norcpt", "The message has no recipients.")
+    end
+    if "smtp" not in job.get("done", []):
+        job["state"] = "sending"
+        job["attempts"] = job["attempts"] + 1
+        call save_job(job)
+        err = ""
+        try:
+            s = smtp_settings(st["cfg"])
+            conn = smtp_open(st, s)
+            try:
+                call smtp.send(conn, st["cfg"]["email"], rcpts, data)
+            else:
+                e2 = String(last_error())
+                call smtp.quit(conn)
+                Error(MailError: e2.replace("MailError: ", ""))
+            end
+            call smtp.quit(conn)
+        else:
+            err = String(last_error())
+        end
+        if err != "":
+            kind = imap.error_kind(err)
+            call log("outbox " + id + ": " + kind[0] + ": " + kind[1])
+            if smtp.transient(kind[0]) and now() - job["created"] < OUTBOX_GIVE_UP:
+                return queue_job(job, kind[0], kind[1])
+            end
+            return finish_job_error(job, interactive, kind[0], kind[1])
+        end
+        job["done"] = ["smtp"]
+        job["state"] = "post"
+        job["error"] = ""
+        job["kind"] = ""
+        call save_job(job)
+        call log("outbox " + id + ": sent")
+        safe:
+            call remember_recipients(job)
+        end
+    end
+    perr = ""
+    try:
+        call begin_op(st)
+        call post_send(st, job, data)
+    else:
+        perr = String(last_error())
+    end
+    call end_op(st, perr)
+    if perr != "":
+        # zprava odesla; kopie do Odeslanych / priznak se zkusi pozdeji
+        call log("outbox " + id + ": after sending: " + perr.replace("MailError: ", ""))
+        job["next"] = now() + 60
+        call save_job(job)
+        call schedule_outbox(60)
+    else:
+        call remove_job(id)
+    end
+    call outbox_event()
+    return {"ok": True, "sent": True}
+end
+
+function queue_job(job, kind, error):
+    delay = 30
+    k = 1
+    while k < job["attempts"] and delay < OUTBOX_MAX_DELAY:
+        delay = delay * 2
+        k += 1
+    end
+    delay = min(delay, OUTBOX_MAX_DELAY)
+    job["state"] = "queued"
+    job["kind"] = kind
+    job["error"] = error
+    job["next"] = now() + delay
+    call save_job(job)
+    call schedule_outbox(delay)
+    call outbox_event()
+    return {"ok": True, "queued": True, "kind": kind, "error": error}
+end
+
+# Trvala chyba: pri odeslani z okna zustava zprava v okne psani (zakazka se zrusi); na pozadi zustane v Odchozi
+# jako neodeslana a prijde upozorneni
+function finish_job_error(job, interactive, kind, error):
+    if interactive and job["attempts"] <= 1:
+        call remove_job(job["id"])
+        call outbox_event()
+        return {"ok": False, "kind": kind, "error": error}
+    end
+    job["state"] = "failed"
+    job["kind"] = kind
+    job["error"] = error
+    call save_job(job)
+    call notify_failed(job, kind, error)
+    call outbox_event()
+    return {"ok": False, "kind": kind, "error": error, "failed": True}
+end
+
+function notify_failed(job, kind, error):
+    if svc["session"] == 0:
+        return 0
+    end
+    subject = String(job.get("subject", ""))
+    if subject == "":
+        subject = i18n.T("(no subject)")
+    end
+    body = glib.markup_escape(subject)
+    if error != "":
+        body = body + "\n" + glib.markup_escape(error[0:min(len(error), 160)])
+    end
+    target = {"outbox": job["id"]}
+    actions = ["default", i18n.T("Open")]
+    hints = {"category": ["s", "email"], "desktop-entry": ["s", "luxos-mail"], "x-luxos-keep": ["b", True]}
+    call gio.call_async(svc["session"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
+                        [i18n.T("Mail"), 0, "luxos-mail", i18n.T("A message could not be sent"), body, actions, hints, 0],
+                        "(susssasa{sv}i)", 5000, on_failed_noted, target)
+    return 0
+end
+
+function on_failed_noted(target, values, error):
+    if values == None:
+        call log("notification failed: " + error)
+        return 0
+    end
+    svc["notes"][values[0]] = target
+    if env.get("LUXOS_MAIL_NOTIFY_LOG", "") != "":
+        safe:
+            call appendfile(env.get("LUXOS_MAIL_NOTIFY_LOG", ""), json.encode({"id": values[0], "target": target}) + "\n")
+        end
+    end
+    return 0
+end
+
+function schedule_outbox(delay):
+    when = now() + delay
+    if svc["outbox_timer"] != 0:
+        if svc["outbox_when"] <= when:
+            return 0
+        end
+        call glib.source_remove(svc["outbox_timer"])
+    end
+    svc["outbox_when"] = when
+    svc["outbox_timer"] = glib.timeout_add_seconds_data(max(1, delay), on_outbox_timer, 0)
+    return 0
+end
+
+function on_outbox_timer(unused):
+    svc["outbox_timer"] = 0
+    call process_outbox(False)
+    return False
+end
+
+# Zakazky na rade (force: hned vse ve fronte, napr. po pripojeni site); neodeslane s trvalou chybou ne
+function process_outbox(force):
+    soonest = 0
+    for job in list_jobs():
+        state = String(job.get("state", ""))
+        if state == "failed" or (state == "new" and now() - job["created"] < 600):
+            continue
+        end
+        # odeslana zprava, jen kopie do Odeslanych / priznak se nepovedly (ucet bez spojeni IMAP): po 48 h vzdat
+        if state == "post" and now() - job["created"] > OUTBOX_GIVE_UP:
+            call log("outbox " + job["id"] + ": giving up saving the sent copy")
+            call remove_job(job["id"])
+            continue
+        end
+        if not force and job["next"] > now():
+            wait = job["next"] - now()
+            if soonest == 0 or wait < soonest:
+                soonest = wait
+            end
+            continue
+        end
+        safe:
+            call deliver(job, False)
+        end
+    end
+    if soonest > 0:
+        call schedule_outbox(soonest)
+    end
+    return 0
+end
+
+function send_op(req):
+    job = load_job(String(req.get("job", "")))
+    if len(job) == 0:
+        return {"ok": False, "kind": "invalid", "error": "The message to send was not found."}
+    end
+    if job["created"] == 0:
+        job["created"] = now()
+    end
+    if req.get("retry", False):
+        job["attempts"] = 0
+        job["state"] = "queued"
+        job["created"] = now()
+    end
+    return deliver(job, not req.get("retry", False))
+end
+
+function outbox_delete(req):
+    id = String(req.get("job", ""))
+    job = load_job(id)
+    if len(job) > 0 and job.get("state", "") != "sending":
+        call remove_job(id)
+        call outbox_event()
+    end
+    return {"ok": True}
+end
+
+# Koncept na server (Koncepty, IMAP APPEND s \Draft); starsi verze se stejnym Message-ID se smazou
+function save_draft(req):
+    st = account_state(req.get("account", ""))
+    path = String(req.get("path", ""))
+    mid = String(req.get("message_id", ""))
+    if not path.startswith(store.base_data() + "/drafts/") or path.find("/..") >= 0 or not exists(path):
+        return {"ok": False, "kind": "invalid", "error": "The draft was not found."}
+    end
+    data = readbytes(path)
+    result = {"ok": True}
+    err = ""
+    try:
+        call begin_op(st)
+        raw = ensure_role_box(st, "drafts", "Drafts")
+        uid = imap.append(st["conn"], raw, ["\\Draft", "\\Seen"], data)
+        uids = find_message_id(st, raw, mid)
+        if uid == 0 and len(uids) > 0:
+            uid = uids[len(uids) - 1]
+            for u in uids:
+                if u > uid:
+                    uid = u
+                end
+            end
+        end
+        old = []
+        for u in uids:
+            if u != uid:
+                old.append(u)
+            end
+        end
+        call delete_uids(st, raw, old)
+        call sync_if_cached(st, raw)
+        result["uid"] = uid
+        result["mailbox"] = raw
+    else:
+        err = String(last_error())
+    end
+    call end_op(st, err)
+    if err != "":
+        kind = imap.error_kind(err)
+        return {"ok": False, "kind": kind[0], "error": kind[1]}
+    end
+    return result
+end
+
+function delete_draft(req):
+    st = account_state(req.get("account", ""))
+    mid = String(req.get("message_id", ""))
+    err = ""
+    try:
+        call begin_op(st)
+        raw = role_box(st, "drafts")
+        if raw != "":
+            call delete_uids(st, raw, find_message_id(st, raw, mid))
+            call sync_if_cached(st, raw)
+        end
+    else:
+        err = String(last_error())
+    end
+    call end_op(st, err)
+    if err != "":
+        kind = imap.error_kind(err)
+        return {"ok": False, "kind": kind[0], "error": kind[1]}
+    end
+    return {"ok": True}
+end
+
+# Podpis a zobrazovane jmeno uctu (okno: Nastaveni uctu)
+function account_settings(req):
+    st = account_state(req.get("account", ""))
+    out = []
+    for a in store.load_accounts():
+        if a["id"] == st["cfg"]["id"]:
+            if type(req.get("signature")) == "String":
+                a["signature"] = req["signature"][0:4000]
+            end
+            if type(req.get("name")) == "String":
+                a["name"] = req["name"].strip()[0:200]
+            end
+            st["cfg"]["signature"] = a.get("signature", "")
+            st["cfg"]["name"] = a.get("name", "")
+        end
+        out.append(a)
+    end
+    call store.save_accounts(out)
+    return {"ok": True}
+end
+
 function handle(req):
     op = req.get("op", "")
     if op == "hello" or op == "status":
@@ -2056,6 +2733,19 @@ function handle(req):
     elif op == "quit":
         call glib.main_quit()
         return {"ok": True}
+    elif op == "send":
+        return send_op(req)
+    elif op == "outbox_delete":
+        return outbox_delete(req)
+    elif op == "outbox_retry":
+        req["retry"] = True
+        return send_op(req)
+    elif op == "save_draft":
+        return save_draft(req)
+    elif op == "delete_draft":
+        return delete_draft(req)
+    elif op == "account_settings":
+        return account_settings(req)
     elif op in ["sync", "older", "body", "flags", "trash", "mailboxes"]:
         return account_op(req)
     end
@@ -2137,6 +2827,8 @@ function main():
     end
     call update_badge()
     call start_accounts()
+    # neodeslane zpravy z minula (vypadek site, restart) az po pripojeni uctu
+    call schedule_outbox(5 + len(svc["order"]))
     call schedule_exit_check()
     call glib.main()
     for id in svc["order"]:

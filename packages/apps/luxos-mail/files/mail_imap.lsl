@@ -1366,6 +1366,51 @@ function create(conn, raw):
     return command(conn, "CREATE " + quote(raw), False)
 end
 
+# APPEND (RFC 3501 6.3.11) zpravy do schranky s priznaky; literal synchronizujici, s LITERAL+ bez cekani.
+# Vraci UID nove zpravy z APPENDUID (UIDPLUS, RFC 4315), jinak 0. Bez schranky ([TRYCREATE]) MailError "nobox".
+function append(conn, raw, flags, data):
+    tag = next_tag(conn)
+    plus = has_cap(conn, "LITERAL+")
+    size = String(len(data))
+    if plus:
+        size = size + "+"
+    end
+    call write(conn, tag + " APPEND " + quote(raw) + " (" + " ".join(flags) + ") {" + size + "}\r\n")
+    if not plus:
+        r = read_response(conn, TIMEOUT, False)
+        if r["tag"] != "+":
+            parts = status_parts(first_line(r))
+            if parts[1].upper().startswith("TRYCREATE"):
+                call fail("nobox", parts[2])
+            end
+            call fail("no", parts[2])
+        end
+    end
+    n = len(data)
+    pos = 0
+    while pos < n:
+        stop = min(n, pos + 65536)
+        call write(conn, mb.sub(data, pos, stop))
+        pos = stop
+    end
+    call write(conn, "\r\n")
+    r = finish(conn, tag, False, 120000)
+    if r["status"] != "OK":
+        if r["code"].upper().startswith("TRYCREATE"):
+            call fail("nobox", r["text"])
+        end
+        call fail("no", r["text"])
+    end
+    code = r["code"].upper()
+    if code.startswith("APPENDUID "):
+        w = code.split(" ")
+        if len(w) >= 3:
+            return mime.to_int(w[2], 0)
+        end
+    end
+    return 0
+end
+
 # ---- IDLE (RFC 2177) ------------------------------------------------------------------------------------------
 
 function idle_start(conn):

@@ -4847,3 +4847,86 @@ Not connected – connect the USB cable or turn the printer on	Niepodłączona �
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Niepodłączona – podłącz kabel USB lub włącz drukarkę. Dokumenty wydrukują się automatycznie.
 Offline – turn the printer on. Documents will print automatically.	Offline – włącz drukarkę. Dokumenty wydrukują się automatycznie.
 Waiting for the printer	Czeka na drukarkę
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Wyślij (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Załącz pliki… (Ctrl+Shift+A)
+Attach Files…	Załącz pliki…
+Delete Draft	Usuń szkic
+From:	Od:
+Bcc:	UDW:
+Subject:	Temat:
+%s is not a file that can be attached.	%s nie jest plikiem, który można załączyć.
+%s cannot be read.	Nie można odczytać %s.
+Remove Attachment	Usuń załącznik
+Remove attachment %s	Usuń załącznik %s
+Total %s	Łącznie %s
+Total %s – many servers refuse messages over 25 MB	Łącznie %s – wiele serwerów odrzuca wiadomości większe niż 25 MB
+Attach Files	Załącz pliki
+Attach	Załącz
+Check the address: %s	Sprawdź adres: %s
+Add at least one recipient.	Dodaj co najmniej jednego odbiorcę.
+Send this message without a subject?	Wysłać tę wiadomość bez tematu?
+The attachment %s no longer exists.	Załącznik %s już nie istnieje.
+The message could not be prepared.	Nie udało się przygotować wiadomości.
+The outgoing server did not accept the sign-in for %s.	Serwer poczty wychodzącej nie zaakceptował logowania dla %s.
+The password is not in the keyring. Enter it again in the main window.	Hasła nie ma w bazie kluczy. Wpisz je ponownie w oknie głównym.
+The server refused these recipients: %s	Serwer odrzucił tych odbiorców: %s
+The message is too large for the server (at most %s). Remove some attachments.	Wiadomość jest za duża dla serwera (maksymalnie %s). Usuń niektóre załączniki.
+The message is too large for the server. Remove some attachments.	Wiadomość jest za duża dla serwera. Usuń niektóre załączniki.
+The outgoing server refused the message.	Serwer poczty wychodzącej odrzucił wiadomość.
+The outgoing server does not allow this account to sign in.	Serwer poczty wychodzącej nie pozwala na logowanie tego konta.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Certyfikat bezpieczeństwa serwera poczty wychodzącej jest nieprawidłowy (%s). Poczta nie wysyła wiadomości, aby chronić Twoje hasło.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Serwer poczty wychodzącej nie oferuje szyfrowanego połączenia. Poczta nie wysyła hasła bez szyfrowania.
+The outgoing server does not accept addresses with accented characters.	Serwer poczty wychodzącej nie akceptuje adresów ze znakami diakrytycznymi.
+The account of this message no longer exists.	Konto tej wiadomości już nie istnieje.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Sesja logowania wygasła. Zaloguj się ponownie w oknie głównym, a następnie wyślij wiadomość jeszcze raz.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Logowanie do LuxAI jest niedostępne. Zaloguj się ponownie, a następnie wyślij wiadomość jeszcze raz.
+The message could not be sent.	Nie udało się wysłać wiadomości.
+Draft saved	Zapisano szkic
+Draft saved on this computer	Zapisano szkic na tym komputerze
+Save this message as a draft?	Zapisać tę wiadomość jako szkic?
+You can finish it later in Drafts.	Możesz ją dokończyć później w Szkicach.
+Delete this message?	Usunąć tę wiadomość?
+The draft is deleted from this computer and from Drafts on the server.	Szkic zostanie usunięty z tego komputera i ze Szkiców na serwerze.
+Recovered – Mail closed before this message was sent or saved.	Odzyskano – Poczta została zamknięta, zanim ta wiadomość została wysłana lub zapisana.
+A message could not be sent	Jednej wiadomości nie udało się wysłać
+Get Mail (F5)	Pobierz pocztę (F5)
+Reply (Ctrl+R)	Odpowiedz (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Odpowiedz wszystkim (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Przekaż dalej (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Obrazy zdalne są ukryte, aby chronić Twoją prywatność.
+Load Images	Wczytaj obrazy
+Always	Zawsze
+Find in Message	Znajdź w wiadomości
+Previous (Shift+Enter)	Poprzedni (Shift+Enter)
+Next (Enter)	Następny (Enter)
+Close (Esc)	Zamknij (Esc)
+Outbox	Skrzynka nadawcza
+Some messages could not be sent.	Nie udało się wysłać niektórych wiadomości.
+Open or save the attachment	Otwórz lub zapisz załącznik
+The attachment could not be opened.	Nie udało się otworzyć załącznika.
+Always from %s	Zawsze od %s
+The message is still downloading.	Wiadomość jest jeszcze pobierana.
+Try again when the message is shown.	Spróbuj ponownie, gdy wiadomość zostanie wyświetlona.
+Forwarded message	Przekazana wiadomość
+Date:	Data:
+On %s, %s wrote:	Dnia %s %s napisał(a):
+Not sent	Nie wysłano
+Waiting to be sent – Mail tries again automatically.	Oczekuje na wysłanie – Poczta automatycznie spróbuje ponownie.
+Delete this unsent message?	Usunąć tę niewysłaną wiadomość?
+It is removed from the Outbox and will not be sent.	Zostanie usunięta ze Skrzynki nadawczej i nie zostanie wysłana.
+Send Again	Wyślij ponownie
+Send Now	Wyślij teraz
+Signature	Podpis
+Signature for %s	Podpis dla %s
+Added to new messages, replies and forwards, below the line “-- ”.	Dodawany do nowych wiadomości, odpowiedzi i przekazywanych wiadomości, pod linią „-- ”.
+Signature for %s…	Podpis dla %s…
+Filter the message list; in the message: find in the text	Filtruj listę wiadomości; w wiadomości: znajdź w tekście
+New message	Nowa wiadomość
+Reply	Odpowiedz
+Reply all	Odpowiedz wszystkim
+Forward	Przekaż dalej
+Send (in the message window)	Wyślij (w oknie wiadomości)
+Print	Drukuj
+Text size of the message	Rozmiar tekstu wiadomości
+Add your email account to write to %s.	Dodaj swoje konto e-mail, aby napisać do %s.

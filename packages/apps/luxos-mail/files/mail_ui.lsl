@@ -4,7 +4,13 @@
 # Jedna instance okna: dalsi spusteni (--open z upozorneni, mailto:) preda pozadavek pres socket
 # "luxos-mail-ui-<uid>" a skonci.
 # Klavesnice: sipky v seznamech, Enter = text zpravy, Delete = do Kose, Ctrl+Shift+U = prectena/neprectena,
-# Ctrl+F = filtr seznamu (Esc zrusi), Ctrl+R / F5 = stahnout postu, Ctrl+N = nova zprava (faze 2), Ctrl+Q/W = zavrit.
+# Ctrl+F = filtr seznamu (Esc zrusi; ve zprave hledani v textu), F5 / Ctrl+Shift+N = stahnout postu, Ctrl+N = nova zprava,
+# Ctrl+R = odpovedet, Ctrl+Shift+R = odpovedet vsem, Ctrl+Shift+F = preposlat, Ctrl+P = tisk, Ctrl+plus/minus/0 =
+# velikost textu zpravy, Ctrl+Q/W = zavrit.
+# Zprava se zobrazuje ve WebKitGTK (mail_web) jako bezpecny dokument z mail_html: HTML zpravy s rozvrzenim a obrazky
+# z priloh, prosty text s odkazy a citacemi; odkazy jdou do prohlizece (mailto: do okna psani), vzdalene obrazky az
+# po "Nacist obrazky" (nebo vzdy od odesilatele). Bez WebKitu zustava text v GtkTextView.
+# Psani zprav: mail_compose (okno psani, koncepty, Odchozi).
 # Prvni spusteni s uctem LuxAI v systemu: "Pokracovat jako <jmeno>" nabidne schranky na serveru LuxAI
 # (pridani jednim kliknutim, bez hesla - token uctu LuxAI); "Pouzit jiny ucet" otevre bezne pridani
 # s predvyplnenym registracnim e-mailem.
@@ -27,13 +33,16 @@ load mail_gtk as mg
 load mail_luxai as luxai
 load mail_provider as provider
 load mail_oauth as oauth
+load mail_html as mhtml
+load mail_web as web
+load mail_compose as compose
 
-CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n"
+CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n.compose-head { padding: 10px 16px 8px 16px; }\n.compose-atts { padding: 4px 14px; }\n.att-chip { padding: 0 2px 0 10px; border-radius: 12px; background-color: alpha(currentColor, 0.07); }\n.compose-body { font-size: 13.5px; }\n.view-bar { padding: 6px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); background-color: alpha(@theme_selected_bg_color, 0.10); }\n.link-status { padding: 2px 8px; margin: 6px; border-radius: 6px; background-color: alpha(@theme_bg_color, 0.95); border: 1px solid alpha(currentColor, 0.15); font-size: 11.5px; }\n.outbox-failed { color: #d9534f; }\n"
 
 ROLE_ORDER = {"inbox": 0, "drafts": 2, "sent": 3, "archive": 4, "junk": 5, "trash": 6, "": 9, "starred": 10, "important": 10, "all": 11}
 # Gmail: pohledy na tytez zpravy - v levem sloupci az po "Dalsi"
 HIDDEN_ROLES = ["all", "important", "starred"]
-ROLE_ICONS = {"inbox": ["mail-inbox-symbolic", "mail-unread-symbolic"], "sent": ["mail-sent-symbolic", "mail-send-symbolic"],
+ROLE_ICONS = {"outbox": ["mail-outbox-symbolic", "mail-send-symbolic"], "inbox": ["mail-inbox-symbolic", "mail-unread-symbolic"], "sent": ["mail-sent-symbolic", "mail-send-symbolic"],
               "drafts": ["document-edit-symbolic", "text-editor-symbolic"], "trash": ["user-trash-symbolic", "user-trash-symbolic"],
               "junk": ["mail-mark-junk-symbolic", "dialog-warning-symbolic"], "archive": ["mail-archive-symbolic", "folder-documents-symbolic"],
               "all": ["mail-archive-symbolic", "folder-documents-symbolic"], "starred": ["starred-symbolic", "emblem-favorite-symbolic"],
@@ -53,7 +62,9 @@ ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view"
       "svc_fd": -1, "svc_buf": ByteArray(), "next_id": 1, "pending": {}, "outbox": [], "status": {}, "connecting": False,
       "tries": 0, "message": {}, "body": ByteArray(), "body_uid": 0, "open_target": {}, "ui_listen": -1, "dlg": {},
       "started": 0, "ready_logged": False, "older_row": 0, "welcome_button": 0,
-      "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False, "more": {}, "menu_button": 0}
+      "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False, "more": {}, "menu_button": 0,
+      "web": 0, "body_stack": 0, "images_bar": 0, "images_label": 0, "images_always": 0, "find_bar": 0, "find_entry": 0,
+      "link_status": 0, "zoom": 1.0, "view_remote": False, "reply_buttons": [], "jobs": {}, "outbox_note": 0}
 
 function log(message):
     return eprint("luxos-mail: " + message)
@@ -363,7 +374,7 @@ function build_window():
 
     bar = gtk.box_new(gtk.HORIZONTAL, 4)
     call gtk.widget_add_class(bar, "toolbar")
-    call gtk.box_pack_start(bar, tool_button(["mail-send-receive-symbolic", "view-refresh-symbolic"], i18n.T("Get Mail (Ctrl+R)"), on_refresh_clicked), False, False, 0)
+    call gtk.box_pack_start(bar, tool_button(["mail-send-receive-symbolic", "view-refresh-symbolic"], i18n.T("Get Mail (F5)"), on_refresh_clicked), False, False, 0)
     call gtk.box_pack_start(bar, tool_button(["mail-message-new-symbolic", "document-new-symbolic"], i18n.T("New Message (Ctrl+N)"), on_compose_clicked), False, False, 0)
     call gtk.box_pack_start(bar, gtk.separator_new(gtk.VERTICAL), False, False, 6)
     rb = tool_button(["mail-unread-symbolic", "mail-read-symbolic"], i18n.T("Mark as Read/Unread (Ctrl+Shift+U)"), on_read_clicked)
@@ -372,6 +383,14 @@ function build_window():
     db = tool_button(["user-trash-symbolic"], i18n.T("Move to Trash (Delete)"), on_delete_clicked)
     ui["delete_button"] = db
     call gtk.box_pack_start(bar, db, False, False, 0)
+    call gtk.box_pack_start(bar, gtk.separator_new(gtk.VERTICAL), False, False, 6)
+    r1 = tool_button(["mail-reply-sender-symbolic", "mail-reply-symbolic"], i18n.T("Reply (Ctrl+R)"), on_reply_clicked)
+    r2 = tool_button(["mail-reply-all-symbolic"], i18n.T("Reply All (Ctrl+Shift+R)"), on_reply_all_clicked)
+    r3 = tool_button(["mail-forward-symbolic"], i18n.T("Forward (Ctrl+Shift+F)"), on_forward_clicked)
+    for b in [r1, r2, r3]:
+        call gtk.box_pack_start(bar, b, False, False, 0)
+    end
+    ui["reply_buttons"] = [r1, r2, r3]
     spinner = mg.spinner_new()
     ui["spinner"] = spinner
     call gtk.box_pack_start(bar, spinner, False, False, 8)
@@ -537,6 +556,43 @@ function build_window():
     call gtk.widget_set_no_show_all(att_bar, True)
     ui["att_bar"] = att_bar
     call gtk.box_pack_start(page, att_bar, False, False, 0)
+    # vzdalene obrazky skryte: Nacist obrazky / Vzdy od odesilatele
+    ib = gtk.box_new(gtk.HORIZONTAL, 8)
+    call gtk.widget_add_class(ib, "view-bar")
+    il = label(i18n.T("Remote images are hidden to protect your privacy."), "small")
+    call gtk.label_set_line_wrap(il, True)
+    call gtk.box_pack_start(ib, il, True, True, 0)
+    ui["images_label"] = il
+    lb = gtk.button_new(i18n.T("Load Images"))
+    call gtk.connect(lb, "clicked", on_load_images)
+    call gtk.box_pack_end(ib, lb, False, False, 0)
+    ab = gtk.button_new(i18n.T("Always"))
+    call gtk.button_set_relief(ab, gtk.RELIEF_NONE)
+    call gtk.connect(ab, "clicked", on_always_images)
+    ui["images_always"] = ab
+    call gtk.box_pack_end(ib, ab, False, False, 0)
+    call gtk.widget_set_no_show_all(ib, True)
+    ui["images_bar"] = ib
+    call gtk.box_pack_start(page, ib, False, False, 0)
+    # hledani v textu zpravy (Ctrl+F ve zprave)
+    fb = gtk.box_new(gtk.HORIZONTAL, 4)
+    call gtk.widget_add_class(fb, "view-bar")
+    fe = gtk.search_entry_new()
+    call gtk.entry_set_placeholder_text(fe, i18n.T("Find in Message"))
+    call gtk.entry_set_width_chars(fe, 28)
+    call gtk.accessible_name(fe, i18n.T("Find in Message"))
+    call gtk.connect(fe, "search-changed", on_find_changed)
+    call gtk.connect(fe, "activate", on_find_next)
+    ui["find_entry"] = fe
+    call gtk.box_pack_start(fb, fe, False, False, 0)
+    call gtk.box_pack_start(fb, tool_button(["go-up-symbolic"], i18n.T("Previous (Shift+Enter)"), on_find_prev), False, False, 0)
+    call gtk.box_pack_start(fb, tool_button(["go-down-symbolic"], i18n.T("Next (Enter)"), on_find_next), False, False, 0)
+    call gtk.box_pack_end(fb, tool_button(["window-close-symbolic"], i18n.T("Close (Esc)"), on_find_close), False, False, 0)
+    call gtk.widget_set_no_show_all(fb, True)
+    ui["find_bar"] = fb
+    call gtk.box_pack_start(page, fb, False, False, 0)
+    body_stack = mg.stack_new()
+    ui["body_stack"] = body_stack
     ts = gtk.scrolled_window_new()
     call gtk.scrolled_window_set_policy(ts, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
     ui["text_scroll"] = ts
@@ -545,7 +601,8 @@ function build_window():
     call mg.text_view_set_margins(tv, 22, 22, 14, 22)
     ui["text"] = tv
     call gtk.container_add(ts, tv)
-    call gtk.box_pack_start(page, ts, True, True, 0)
+    call mg.stack_add(body_stack, ts, "text")
+    call gtk.box_pack_start(page, body_stack, True, True, 0)
     call mg.stack_add(view, page, "message")
     call mg.paned_pack2(right, view, True, False)
 
@@ -618,6 +675,28 @@ function build_sidebar():
     rows = []
     selected = -1
     cur = ui["current"]
+    jobs = outbox_jobs()
+    if len(jobs) > 0:
+        failed = 0
+        for j in jobs:
+            if j.get("state", "") == "failed":
+                failed += 1
+            end
+        end
+        ob = {"raw": "__outbox__", "name": i18n.T("Outbox"), "delim": "", "role": "outbox", "unseen": len(jobs)}
+        w = side_row_widget(ob, "")
+        if failed > 0:
+            warn = icon(["dialog-warning-symbolic"], 1)
+            call gtk.widget_add_class(warn, "side-error")
+            call gtk.widget_set_tooltip(warn, i18n.T("Some messages could not be sent."))
+            call gtk.box_pack_end(w, warn, False, False, 0)
+        end
+        call gtk.list_box_insert(side, w, -1)
+        if cur["raw"] == "__outbox__":
+            selected = 0
+        end
+        rows.append({"account": "", "raw": "__outbox__", "role": "outbox", "name": i18n.T("Outbox"), "unseen": len(jobs), "total": len(jobs)})
+    end
     for a in ui["accounts"]:
         title = a.get("name", "")
         if title == "":
@@ -784,6 +863,10 @@ function open_mailbox(account_id, raw, uid):
             name = item["name"]
         end
     end
+    if raw == "__outbox__":
+        role = "outbox"
+        name = i18n.T("Outbox")
+    end
     ui["current"] = {"account": account_id, "raw": raw, "role": role, "name": name}
     ui["selected"] = 0
     call gtk.entry_set_text(ui["search"], "")
@@ -795,6 +878,9 @@ function open_mailbox(account_id, raw, uid):
     if uid > 0:
         call select_uid(uid)
     end
+    if raw == "__outbox__":
+        return 0
+    end
     call set_busy(True)
     call request("sync", {"account": account_id, "mailbox": raw}, {"account": account_id, "mailbox": raw})
     return 0
@@ -802,7 +888,9 @@ end
 
 function load_rows():
     cur = ui["current"]
-    if cur["account"] == "":
+    if cur["raw"] == "__outbox__":
+        ui["rows"] = outbox_rows()
+    elif cur["account"] == "":
         ui["rows"] = []
     else:
         ui["rows"] = store.load_index(cur["account"], cur["raw"])
@@ -875,7 +963,7 @@ function message_row(m):
         who = m["from_email"]
     end
     role = ui["current"]["role"]
-    if (role == "sent" or role == "drafts") and m["to"] != "":
+    if (role == "sent" or role == "drafts" or role == "outbox") and m["to"] != "":
         who = i18n.TF("To: %s", [m["to"]])
     end
     sender = label(who, "sender")
@@ -1048,7 +1136,20 @@ function on_message_selected(row, box):
 end
 
 function on_message_activated(row, box):
-    call gtk.widget_grab_focus(ui["text"])
+    role = ui["current"]["role"]
+    if role == "drafts" and message_shown():
+        call edit_draft()
+        return 0
+    end
+    if ui["current"]["raw"] == "__outbox__":
+        call outbox_edit()
+        return 0
+    end
+    if ui["web"] != 0 and message_shown():
+        call web_focus()
+    else:
+        call gtk.widget_grab_focus(ui["text"])
+    end
     return 0
 end
 
@@ -1093,6 +1194,17 @@ function show_message(m):
     call gtk.widget_hide(ui["h_note"])
     call clear_container(ui["att_bar"])
     call gtk.widget_hide(ui["att_bar"])
+    ui["view_remote"] = False
+    ui["message"] = {}
+    call trace("show " + m["subject"])
+    if cur["raw"] == "__outbox__":
+        call show_outbox_banner()
+        job = outbox_job()
+        if len(job) > 0:
+            call render_body(m["uid"], outbox_dir() + "/" + job["id"] + ".eml")
+        end
+        return 0
+    end
     path = store.body_path(cur["account"], cur["raw"], m["uid"])
     if exists(path):
         call render_body(m["uid"], path)
@@ -1137,15 +1249,12 @@ function render_body(uid, path):
     if text.strip() == "":
         text = i18n.T("(This message has no text.)")
     end
-    if r["html"]:
+    call gtk.widget_hide(ui["h_note"])
+    if r["html"] and ui["web"] == 0 and (env.get("LUXOS_MAIL_NO_WEBKIT", "") != "" or not web.available()):
         call gtk.label_set_text(ui["h_note"], i18n.T("This message was formatted as a web page; Mail shows its text. Images and remote content are not loaded."))
         call gtk.widget_show(ui["h_note"])
-    else:
-        call gtk.widget_hide(ui["h_note"])
     end
-    call mg.text_view_set_text(ui["text"], text)
-    call mg.text_view_scroll_top(ui["text"])
-    call mg.adjustment_set_value(mg.scrolled_vadjustment(ui["text_scroll"]), 0)
+    call show_body(data, r, text)
     bar = ui["att_bar"]
     call clear_container(bar)
     if len(r["attachments"]) > 0:
@@ -1156,8 +1265,8 @@ function render_body(uid, path):
         for a in r["attachments"]:
             b = gtk.button_new(a["name"] + " (" + size_text(a["size"]) + ")")
             call gtk.widget_add_class(b, "att")
-            call gtk.widget_set_tooltip(b, i18n.T("Save attachment…"))
-            call gtk.connect_data(b, "clicked", 0, on_attachment_clicked, a)
+            call gtk.widget_set_tooltip(b, i18n.T("Open or save the attachment"))
+            call gtk.connect_data(b, "clicked", 0, on_attachment_menu, a)
             call gtk.box_pack_start(bar, b, False, False, 0)
             call gtk.widget_show_all(b)
         end
@@ -1182,6 +1291,62 @@ function safe_name(name):
         n = "attachment"
     end
     return n
+end
+
+# Priloha: nabidka Otevrit / Ulozit jako...
+function on_attachment_menu(a, button):
+    menu = gtk.menu_new()
+    item = gtk.menu_item_new(i18n.T("Open"))
+    call gtk.connect_data(item, "activate", 0, on_attachment_open, a)
+    call gtk.menu_append(menu, item)
+    item = gtk.menu_item_new(i18n.T("Save As…"))
+    call gtk.connect_data(item, "activate", 0, on_attachment_save, a)
+    call gtk.menu_append(menu, item)
+    call gtk.widget_show_all(menu)
+    call gtk.menu_attach(menu, button)
+    call mg.menu_popup_below(menu, button)
+    call mg.menu_shell_select_first(menu)
+    return 0
+end
+
+# Otevrit prilohu: do soukrome docasne slozky (~/.cache/luxos-mail/open, 0700/0600), pak vychozi aplikace
+function on_attachment_open(a, item):
+    base = env.get("XDG_CACHE_HOME", "")
+    if base == None or base == "":
+        base = glib.home_dir() + "/.cache"
+    end
+    d = store.ensure_dir(store.ensure_dir(base + "/luxos-mail") + "/open")
+    path = d + "/" + safe_name(a["name"])
+    ok = True
+    try:
+        call writebytes(path, mime.part_bytes(ui["body"], a["path"]))
+        call mb.chmod(path, 384)
+    else:
+        ok = False
+    end
+    if not ok:
+        call message_box(i18n.T("The attachment could not be opened."), String(last_error()))
+        return 0
+    end
+    call open_file(path)
+    return 0
+end
+
+function open_file(path):
+    log_path = env.get("LUXOS_MAIL_OPEN_URL_LOG", "")
+    if log_path != None and log_path != "":
+        safe:
+            call appendfile(log_path, "file://" + path + "\n")
+        end
+        return 0
+    end
+    call glib.spawn_quiet(["xdg-open", path])
+    return 0
+end
+
+function on_attachment_save(a, item):
+    call on_attachment_clicked(a, item)
+    return 0
 end
 
 function on_attachment_clicked(a, button):
@@ -1214,6 +1379,752 @@ function on_attachment_clicked(a, button):
     return 0
 end
 
+
+# ---- zobrazeni tela zpravy (WebKit) ------------------------------------------------------------------------------
+
+function dark_theme():
+    t = env.get("GTK_THEME", "")
+    if t != None and t != "":
+        return t.lower().find("dark") >= 0
+    end
+    name = ""
+    safe:
+        name = gtk.settings_theme_name()
+    end
+    if name.lower().find("dark") >= 0:
+        return True
+    end
+    dark = False
+    safe:
+        dark = gtk.settings_prefer_dark()
+    end
+    return dark == True
+end
+
+function remote_path():
+    return store.base_config() + "/remote-images.json"
+end
+
+function remote_senders():
+    data = None
+    if exists(remote_path()):
+        safe:
+            data = json.decode(readfile(remote_path()))
+        end
+    end
+    if type(data) != "Dictionary" or type(data.get("senders")) != "List":
+        return []
+    end
+    return data["senders"]
+end
+
+function message_sender(r):
+    if len(r.get("from", [])) > 0:
+        return String(r["from"][0][1]).strip().lower()
+    end
+    return ""
+end
+
+function ensure_web():
+    if ui["web"] != 0:
+        return True
+    end
+    if env.get("LUXOS_MAIL_NO_WEBKIT", "") != "" or not web.available():
+        return False
+    end
+    ok = True
+    v = 0
+    try:
+        v = web.view_new()
+    else:
+        ok = False
+        call log("WebKitGTK is not available: " + String(last_error()))
+    end
+    if not ok:
+        return False
+    end
+    ui["web"] = v
+    call gtk.accessible_name(v, i18n.T("Message"))
+    # WebKit si pri nacteni bere fokus: sipky by pak posouvaly zpravu misto vyberu dalsi zpravy v seznamu.
+    # Fokus jen po Enter v seznamu nebo klepnuti do zpravy.
+    call gtk.widget_set_can_focus(v, False)
+    call gtk.connect(v, "button-press-event", on_web_button)
+    call glib.signal_connect(v, "decide-policy", on_web_policy, 2)
+    call glib.signal_connect(v, "mouse-target-changed", on_web_hover, 2)
+    overlay = gtk.overlay_new()
+    call gtk.container_add(overlay, v)
+    st = label("", "link-status")
+    call gtk.label_set_ellipsize(st, 3)
+    call gtk.label_set_max_width_chars(st, 90)
+    call gtk.widget_set_halign(st, gtk.ALIGN_START)
+    call gtk.widget_set_valign(st, gtk.ALIGN_END)
+    call gtk.widget_set_no_show_all(st, True)
+    call gtk.overlay_add_overlay(overlay, st)
+    call mg.overlay_pass_through(overlay, st)
+    ui["link_status"] = st
+    call mg.stack_add(ui["body_stack"], overlay, "web")
+    call gtk.widget_show_all(overlay)
+    return True
+end
+
+# Telo zpravy: bezpecny dokument ve WebKitu (vzdalene obrazky jen s povolenim), bez WebKitu text
+function show_body(data, r, text):
+    if not ensure_web():
+        call mg.stack_show(ui["body_stack"], "text")
+        call mg.text_view_set_text(ui["text"], text)
+        call mg.text_view_scroll_top(ui["text"])
+        call mg.adjustment_set_value(mg.scrolled_vadjustment(ui["text_scroll"]), 0)
+        call gtk.widget_hide(ui["images_bar"])
+        return 0
+    end
+    if not body_has_focus():
+        call gtk.widget_set_can_focus(ui["web"], False)
+    end
+    sender = message_sender(r)
+    allowed = ui["view_remote"] or (sender != "" and sender in remote_senders())
+    dark = dark_theme()
+    doc = {}
+    ok = True
+    try:
+        doc = mhtml.document(data, {"remote": allowed, "dark": dark})
+    else:
+        ok = False
+        call log("message view: " + String(last_error()))
+    end
+    if not ok:
+        doc = {"html": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><pre>" + mhtml.esc(text) + "</pre></body></html>", "remote": 0, "paper": False}
+    end
+    bg = mhtml.PALETTE_LIGHT["bg"]
+    if dark and not doc.get("paper", False):
+        bg = mhtml.PALETTE_DARK["bg"]
+    end
+    call web.set_background(ui["web"], bg)
+    call web.load_html(ui["web"], doc["html"])
+    call web.zoom_set(ui["web"], ui["zoom"])
+    call mg.stack_show(ui["body_stack"], "web")
+    call gtk.widget_hide(ui["link_status"])
+    if doc.get("remote", 0) > 0 and not allowed:
+        call gtk.label_set_text(ui["images_label"], i18n.T("Remote images are hidden to protect your privacy."))
+        if sender != "":
+            call gtk.button_set_label(ui["images_always"], i18n.TF("Always from %s", [sender]))
+            call gtk.widget_show(ui["images_always"])
+        else:
+            call gtk.widget_hide(ui["images_always"])
+        end
+        call gtk.widget_show_all(ui["images_bar"])
+        if sender == "":
+            call gtk.widget_hide(ui["images_always"])
+        end
+    else:
+        call gtk.widget_hide(ui["images_bar"])
+    end
+    call trace("view remote=" + String(doc.get("remote", 0)) + " allowed=" + String(allowed) + " dark=" + String(dark))
+    return 0
+end
+
+function on_load_images(button):
+    ui["view_remote"] = True
+    if len(ui["message"]) > 0:
+        call show_body(ui["body"], ui["message"], ui["message"].get("text", ""))
+    end
+    return 0
+end
+
+function on_always_images(button):
+    sender = message_sender(ui["message"])
+    if sender != "":
+        senders = remote_senders()
+        if sender not in senders:
+            senders.append(sender)
+        end
+        call store.ensure_dir(store.base_config())
+        call store.write_private(remote_path(), json.encode({"senders": senders}) + "\n")
+    end
+    call on_load_images(button)
+    return 0
+end
+
+# Navigace ve WebKitu: nase nacteni dokumentu povolit, odkaz do prohlizece / okna psani, vse ostatni zakazat
+function on_web_policy(decision, kind, view):
+    r = web.decision_uri(decision, kind)
+    if r[1] == "load" or r[1] == "response":
+        call web.decision_use(decision)
+        return True
+    end
+    call web.decision_ignore(decision)
+    if r[1] == "click" and r[0] != "":
+        call open_link(r[0])
+    end
+    return True
+end
+
+function web_focus():
+    if ui["web"] != 0:
+        call gtk.widget_set_can_focus(ui["web"], True)
+        call gtk.widget_grab_focus(ui["web"])
+    end
+    return 0
+end
+
+function on_web_button(event, view):
+    call gtk.widget_set_can_focus(view, True)
+    call gtk.widget_grab_focus(view)
+    return False
+end
+
+function on_web_hover(hit, modifiers, view):
+    uri = web.hit_link(hit)
+    st = ui["link_status"]
+    if uri == "":
+        call gtk.widget_hide(st)
+    else:
+        call gtk.label_set_text(st, uri)
+        call gtk.widget_show(st)
+    end
+    return 0
+end
+
+# Odkaz ze zpravy: http(s) do prohlizece, mailto: do okna psani, tel: vychozi aplikace
+function open_link(uri):
+    low = uri.lower()
+    call trace("link " + uri)
+    if low.startswith("mailto:"):
+        call compose_mailto(uri)
+        return 0
+    end
+    if not (low.startswith("http://") or low.startswith("https://") or low.startswith("tel:")):
+        return 0
+    end
+    log_path = env.get("LUXOS_MAIL_OPEN_URL_LOG", "")
+    if log_path != None and log_path != "":
+        safe:
+            call appendfile(log_path, uri + "\n")
+        end
+        return 0
+    end
+    call glib.spawn_quiet(["xdg-open", uri])
+    return 0
+end
+
+function message_shown():
+    return ui["selected"] != 0 and len(ui["message"]) > 0
+end
+
+function find_open():
+    if ui["web"] == 0 or not message_shown():
+        return 0
+    end
+    call gtk.widget_show_all(ui["find_bar"])
+    call gtk.widget_grab_focus(ui["find_entry"])
+    return 0
+end
+
+function on_find_changed(entry):
+    t = gtk.entry_get_text(entry)
+    if ui["web"] == 0:
+        return 0
+    end
+    if t == "":
+        call web.find_finish(ui["web"])
+    else:
+        call web.find(ui["web"], t)
+    end
+    return 0
+end
+
+function on_find_next(widget):
+    if ui["web"] != 0 and gtk.entry_get_text(ui["find_entry"]) != "":
+        call web.find_next(ui["web"])
+    end
+    return 0
+end
+
+function on_find_prev(widget):
+    if ui["web"] != 0 and gtk.entry_get_text(ui["find_entry"]) != "":
+        call web.find_previous(ui["web"])
+    end
+    return 0
+end
+
+function on_find_close(widget):
+    if ui["web"] != 0:
+        call web.find_finish(ui["web"])
+        call web_focus()
+    end
+    call gtk.entry_set_text(ui["find_entry"], "")
+    call gtk.widget_hide(ui["find_bar"])
+    return 0
+end
+
+function zoom_by(step):
+    if ui["web"] == 0:
+        return 0
+    end
+    if step == 0:
+        ui["zoom"] = 1.0
+    else:
+        ui["zoom"] = max(0.5, min(3.0, ui["zoom"] + step))
+    end
+    call web.zoom_set(ui["web"], ui["zoom"])
+    return 0
+end
+
+function print_message():
+    if ui["web"] != 0 and message_shown():
+        call web.print_dialog(ui["web"], ui["window"])
+    end
+    return 0
+end
+
+function body_has_focus():
+    focus = mg.window_get_focus(ui["window"])
+    return focus != 0 and (focus == ui["web"] or focus == ui["text"])
+end
+
+# ---- psani: nova zprava, odpoved, preposlani, koncept, mailto: -------------------------------------------------------
+
+function compose_host():
+    return {"request": request, "trace": trace, "sent": on_compose_sent, "closed": on_compose_closed}
+end
+
+function on_compose_sent(sent, kind):
+    call trace("compose sent=" + String(sent) + " " + kind)
+    call build_sidebar()
+    return 0
+end
+
+function on_compose_closed():
+    if ui.get("hidden", False) and compose.open_count() == 0:
+        call gtk.main_quit()
+    end
+    return 0
+end
+
+function own_addresses():
+    out = []
+    for a in ui["accounts"]:
+        out.append(a["email"].lower())
+    end
+    return out
+end
+
+function default_account():
+    cur = ui["current"]["account"]
+    if cur != "":
+        return cur
+    end
+    if len(ui["accounts"]) > 0:
+        return ui["accounts"][0]["id"]
+    end
+    return ""
+end
+
+function sig_text(id):
+    sig = compose.signature_block(account(id))
+    if sig == "":
+        return ""
+    end
+    return "\n\n" + sig
+end
+
+function new_message(to):
+    if len(ui["accounts"]) == 0:
+        call open_add_dialog("", "")
+        return 0
+    end
+    id = default_account()
+    call compose.open({"account": id, "to": to, "text": sig_text(id)})
+    return 0
+end
+
+# mailto:adresa?subject=...&cc=...&body=... (RFC 6068)
+function compose_mailto(uri):
+    rest = uri
+    if rest.lower().startswith("mailto:"):
+        rest = rest[7:]
+    end
+    query = ""
+    q = rest.find("?")
+    if q >= 0:
+        query = rest[q + 1:]
+        rest = rest[0:q]
+    end
+    to = mime.parse_addresses(pct(rest))
+    fields = {}
+    for pair in query.split("&"):
+        eq = pair.find("=")
+        if eq > 0:
+            fields[pair[0:eq].lower()] = pct(pair[eq + 1:])
+        end
+    end
+    if "to" in fields:
+        to = to + mime.parse_addresses(fields["to"])
+    end
+    if len(ui["accounts"]) == 0:
+        call open_add_dialog("", i18n.TF("Add your email account to write to %s.", [pct(rest)]))
+        return 0
+    end
+    id = default_account()
+    call compose.open({"account": id, "to": to, "cc": mime.parse_addresses(fields.get("cc", "")), "bcc": mime.parse_addresses(fields.get("bcc", "")),
+                       "subject": fields.get("subject", ""), "text": fields.get("body", "") + sig_text(id)})
+    return 0
+end
+
+function pct(s):
+    b = mime.percent_decode(s.replace("+", "%2B"))
+    return mime.decode_text(b, 0, len(b), "utf-8")
+end
+
+function selected_message():
+    m = find_row(ui["selected"])
+    if len(m) == 0:
+        return [{}, {}]
+    end
+    r = {}
+    if ui["body_uid"] == m["uid"] and len(ui["message"]) > 0:
+        r = ui["message"]
+    end
+    return [m, r]
+end
+
+function remove_own(pairs, own, seen):
+    out = []
+    for p in pairs:
+        e = String(p[1]).strip().lower()
+        if e == "" or e in own or e in seen:
+            continue
+        end
+        seen[e] = True
+        out.append(p)
+    end
+    return out
+end
+
+# Odpoved (all: i ostatnim prijemcum) nebo preposlani vybrane zpravy
+function reply_to_selected(kind):
+    cur = ui["current"]
+    if cur["raw"] == "__outbox__" or cur["account"] == "":
+        return 0
+    end
+    sel = selected_message()
+    m = sel[0]
+    r = sel[1]
+    if len(m) == 0:
+        return 0
+    end
+    if kind == "forward" and len(r) == 0:
+        call message_box(i18n.T("The message is still downloading."), i18n.T("Try again when the message is shown."))
+        return 0
+    end
+    own = own_addresses()
+    sender = [m["from_name"], m["from_email"]]
+    if len(r) > 0 and len(r["from"]) > 0:
+        sender = r["from"][0]
+    end
+    subject = m["subject"]
+    date = m["date"]
+    text = ""
+    to_list = []
+    cc_list = []
+    if len(r) > 0:
+        subject = r["subject"]
+        if r["date"] != 0:
+            date = r["date"]
+        end
+        text = r["text"]
+        to_list = r["to"]
+        cc_list = r["cc"]
+    end
+    sig = compose.signature_block(account(cur["account"]))
+    opts = {"account": cur["account"], "reply": {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"]}}
+    if kind == "forward":
+        lines = ["---------- " + i18n.T("Forwarded message") + " ----------", i18n.T("From:") + " " + mime.address_full(sender),
+                 i18n.T("Date:") + " " + long_date(date), i18n.T("Subject:") + " " + subject]
+        if len(to_list) > 0:
+            lines.append(i18n.T("To:") + " " + addresses_text(to_list))
+        end
+        if len(cc_list) > 0:
+            lines.append(i18n.T("Cc:") + " " + addresses_text(cc_list))
+        end
+        body = "\n\n"
+        if sig != "":
+            body = body + sig + "\n\n"
+        end
+        opts["text"] = body + "\n".join(lines) + "\n\n" + text
+        opts["subject"] = mime.forward_subject(subject)
+        opts["attachments"] = extract_attachments(r["attachments"])
+        opts["reply"]["forward"] = True
+        call compose.open(opts)
+        return 0
+    end
+    seen = {}
+    to = []
+    if String(sender[1]).lower() in own:
+        # odpoved na vlastni zpravu (Odeslane): puvodnim prijemcum
+        to = remove_own(to_list, own, seen)
+        if kind == "all":
+            opts["cc"] = remove_own(cc_list, own, seen)
+        end
+    else:
+        rt = []
+        if len(r) > 0:
+            rt = r.get("reply_to", [])
+        end
+        if len(rt) == 0:
+            rt = [sender]
+        end
+        to = remove_own(rt, [], seen)
+        if kind == "all":
+            opts["cc"] = remove_own(to_list + cc_list, own, seen)
+        end
+    end
+    opts["to"] = to
+    opts["subject"] = mime.reply_subject(subject)
+    who = sender[0]
+    if who == "":
+        who = sender[1]
+    end
+    body = "\n\n"
+    if sig != "":
+        body = body + sig + "\n\n"
+    end
+    if text != "":
+        body = body + i18n.TF("On %s, %s wrote:", [long_date(date), who]) + "\n" + mime.quote_text(text) + "\n"
+    end
+    opts["text"] = body
+    if len(r) > 0:
+        opts["in_reply_to"] = r["message_id"]
+        opts["references"] = mime.thread_references(r.get("references", ""), r["message_id"])
+    end
+    call compose.open(opts)
+    return 0
+end
+
+# Prilohy puvodni zpravy (preposlani, koncept) do soukrome slozky konceptu
+function extract_attachments(list):
+    out = []
+    if len(list) == 0:
+        return out
+    end
+    d = store.ensure_dir(store.ensure_dir(store.base_data() + "/drafts") + "/files-" + mime.random_hex(6))
+    for a in list:
+        path = d + "/" + safe_name(a["name"])
+        safe:
+            call writebytes(path, mime.part_bytes(ui["body"], a["path"]))
+            call mb.chmod(path, 384)
+            out.append({"name": a["name"], "path": path})
+        end
+    end
+    return out
+end
+
+# Koncept ze slozky Koncepty: do okna psani (ulozeni ho na serveru nahradi, odeslani smaze)
+function edit_draft():
+    sel = selected_message()
+    r = sel[1]
+    if len(r) == 0:
+        return 0
+    end
+    hs = mime.parse_message(ui["body"])["headers"]
+    bcc = mime.parse_addresses(mime.decode_words(mime.header(hs, "bcc")))
+    acc = ui["current"]["account"]
+    call compose.open({"account": acc, "to": r["to"], "cc": r["cc"], "bcc": bcc, "subject": r["subject"], "text": r["text"],
+                       "attachments": extract_attachments(r["attachments"]), "draft_mid": r["message_id"],
+                       "in_reply_to": r.get("in_reply_to", ""), "references": r.get("references", "")})
+    return 0
+end
+
+function on_reply_clicked(button):
+    call reply_to_selected("reply")
+    return 0
+end
+
+function on_reply_all_clicked(button):
+    call reply_to_selected("all")
+    return 0
+end
+
+function on_forward_clicked(button):
+    call reply_to_selected("forward")
+    return 0
+end
+
+# ---- Odchozi ------------------------------------------------------------------------------------------------------
+
+function outbox_dir():
+    return store.base_data() + "/outbox"
+end
+
+function outbox_jobs():
+    out = []
+    if not glib.is_dir(outbox_dir()):
+        return out
+    end
+    by = {}
+    keys = []
+    for name in glib.list_dir(outbox_dir()):
+        if not name.endswith(".json"):
+            continue
+        end
+        id = name[0:len(name) - 5]
+        job = None
+        safe:
+            job = json.decode(readfile(outbox_dir() + "/" + name))
+        end
+        if type(job) != "Dictionary" or not exists(outbox_dir() + "/" + id + ".eml"):
+            continue
+        end
+        # uz odeslana (sluzba jen dokoncuje kopii do Odeslanych): v Odchozi neukazovat
+        if job.get("state", "") == "post":
+            continue
+        end
+        job["id"] = id
+        created = job.get("created", 0)
+        if type(created) != "Int":
+            created = 0
+        end
+        key = created * 1000 + len(keys)
+        by[key] = job
+        keys.append(key)
+    end
+    keys.sort()
+    i = len(keys) - 1
+    while i >= 0:
+        out.append(by[keys[i]])
+        i -= 1
+    end
+    return out
+end
+
+function job_state_text(job):
+    state = String(job.get("state", ""))
+    if state == "failed":
+        return i18n.T("Not sent") + ": " + compose.error_text(String(job.get("kind", "")), String(job.get("error", "")), String(job.get("account", "")))
+    elif state == "sending":
+        return i18n.T("Sending…")
+    end
+    return i18n.T("Waiting to be sent – Mail tries again automatically.")
+end
+
+function outbox_rows():
+    rows = []
+    ui["jobs"] = {}
+    uid = 1
+    for job in outbox_jobs():
+        ui["jobs"][uid] = job
+        created = job.get("created", 0)
+        if type(created) != "Int":
+            created = 0
+        end
+        flags = "S"
+        if job.get("state", "") == "failed":
+            flags = "SF"
+        end
+        rows.append({"uid": uid, "flags": flags, "internal": created, "date": created, "from_name": "", "from_email": "",
+                     "to": String(job.get("to_text", "")), "subject": String(job.get("subject", "")), "preview": job_state_text(job),
+                     "size": 0, "att": False})
+        uid += 1
+    end
+    return rows
+end
+
+function outbox_job():
+    return ui["jobs"].get(ui["selected"], {})
+end
+
+function outbox_retry():
+    job = outbox_job()
+    if len(job) > 0:
+        call set_busy(True)
+        call request("outbox_retry", {"job": job["id"]}, {})
+    end
+    return 0
+end
+
+function outbox_edit():
+    job = outbox_job()
+    st = job.get("compose", {})
+    if len(job) == 0 or type(st) != "Dictionary" or len(st) == 0:
+        return 0
+    end
+    opts = st
+    opts.pop("id", None)
+    opts["draft_saved"] = False
+    call compose.open(opts)
+    call request("outbox_delete", {"job": job["id"]}, {})
+    return 0
+end
+
+function outbox_delete():
+    job = outbox_job()
+    if len(job) == 0:
+        return 0
+    end
+    if confirm(i18n.T("Delete this unsent message?"), i18n.T("It is removed from the Outbox and will not be sent."), i18n.T("Delete")):
+        call request("outbox_delete", {"job": job["id"]}, {})
+    end
+    return 0
+end
+
+function show_outbox_banner():
+    job = outbox_job()
+    if len(job) == 0:
+        call gtk.widget_hide(ui["banner"])
+        return 0
+    end
+    call gtk.label_set_text(ui["banner_label"], job_state_text(job))
+    call trace("outbox banner " + job_state_text(job))
+    if job.get("state", "") == "failed":
+        call gtk.button_set_label(ui["banner_button"], i18n.T("Send Again"))
+    else:
+        call gtk.button_set_label(ui["banner_button"], i18n.T("Send Now"))
+    end
+    call gtk.widget_set_class(ui["banner"], "error", job.get("state", "") == "failed")
+    call gtk.widget_show(ui["banner_label"])
+    call gtk.widget_show_all(ui["banner_button"])
+    call gtk.widget_show(ui["banner"])
+    return 0
+end
+
+# ---- podpis ---------------------------------------------------------------------------------------------------------
+
+function on_menu_signature(id, item):
+    a = account(id)
+    d = gtk.dialog_new()
+    call gtk.window_set_title(d, i18n.T("Signature"))
+    call gtk.window_set_transient_for(d, ui["window"])
+    call gtk.window_set_modal(d, True)
+    call gtk.window_set_default_size(d, 460, 260)
+    area = gtk.dialog_get_content_area(d)
+    box = gtk.box_new(gtk.VERTICAL, 8)
+    call gtk.widget_add_class(box, "dialog-box")
+    call gtk.box_pack_start(box, label(i18n.TF("Signature for %s", [a.get("email", "")]), "list-title"), False, False, 0)
+    hint = label(i18n.T("Added to new messages, replies and forwards, below the line “-- ”."), "dim small")
+    call gtk.label_set_line_wrap(hint, True)
+    call gtk.box_pack_start(box, hint, False, False, 0)
+    sc = gtk.scrolled_window_new()
+    call gtk.scrolled_window_set_policy(sc, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+    call gtk.widget_set_size_request(sc, -1, 120)
+    tv = mg.editor_new()
+    call mg.text_view_set_margins(tv, 8, 8, 6, 6)
+    call gtk.accessible_name(tv, i18n.T("Signature"))
+    call mg.text_view_set_text(tv, String(a.get("signature", "")))
+    call gtk.container_add(sc, tv)
+    call gtk.box_pack_start(box, sc, True, True, 0)
+    call gtk.box_pack_start(area, box, True, True, 0)
+    call gtk.dialog_add_button(d, i18n.T("Cancel"), gtk.RESPONSE_CANCEL)
+    call gtk.dialog_add_button(d, i18n.T("Save"), gtk.RESPONSE_OK)
+    call gtk.widget_show_all(d)
+    call gtk.widget_grab_focus(tv)
+    response = gtk.dialog_run(d)
+    text = mg.text_view_get_text(tv)
+    call gtk.widget_destroy(d)
+    if response == gtk.RESPONSE_OK:
+        call request("account_settings", {"account": id, "signature": text.strip()}, {})
+    end
+    return 0
+end
+
 # ---- akce ---------------------------------------------------------------------------------------------------
 
 function set_busy(on):
@@ -1223,6 +2134,9 @@ end
 
 function set_read(m, read):
     cur = ui["current"]
+    if cur["raw"] == "__outbox__":
+        return 0
+    end
     f = m["flags"].replace("S", "")
     if read:
         f = f + "S"
@@ -1258,6 +2172,10 @@ function delete_selected():
         return 0
     end
     cur = ui["current"]
+    if cur["raw"] == "__outbox__":
+        call outbox_delete()
+        return 0
+    end
     if cur["role"] == "trash":
         if not confirm(i18n.T("Delete this message permanently?"), i18n.T("It is already in the Trash. This cannot be undone."), i18n.T("Delete")):
             return 0
@@ -1297,6 +2215,10 @@ end
 
 function refresh():
     cur = ui["current"]
+    if cur["raw"] == "__outbox__":
+        call reload_current(ui["selected"])
+        return 0
+    end
     if cur["account"] == "":
         return 0
     end
@@ -1312,7 +2234,7 @@ function on_refresh_clicked(button):
 end
 
 function on_compose_clicked(button):
-    call compose_unavailable("")
+    call new_message([])
     return 0
 end
 
@@ -1346,16 +2268,64 @@ function on_key(event, window):
     shift = (state & gtk.SHIFT_MASK) != 0
     focus = mg.window_get_focus(window)
     in_entry = mg.is_entry(focus)
-    if ctrl and (key == 102 or key == 70):
-        call gtk.widget_grab_focus(ui["search"])
+    if ctrl and not shift and (key == 102 or key == 70):
+        if body_has_focus() or focus == ui["find_entry"]:
+            call find_open()
+        else:
+            call gtk.widget_grab_focus(ui["search"])
+        end
         return True
     end
-    if (ctrl and (key == 114 or key == 82)) or key == 65474:
+    if key == 65474 or (ctrl and shift and (key == 110 or key == 78)):
         call refresh()
         return True
     end
-    if ctrl and (key == 110 or key == 78):
-        call compose_unavailable("")
+    if ctrl and (key == 114 or key == 82):
+        if shift:
+            call reply_to_selected("all")
+        else:
+            call reply_to_selected("reply")
+        end
+        return True
+    end
+    if ctrl and shift and (key == 102 or key == 70):
+        call reply_to_selected("forward")
+        return True
+    end
+    if ctrl and not shift and (key == 110 or key == 78):
+        call new_message([])
+        return True
+    end
+    if ctrl and (key == 112 or key == 80):
+        call print_message()
+        return True
+    end
+    if ctrl and (key == 43 or key == 61 or key == 65451):
+        call zoom_by(0.1)
+        return True
+    end
+    if ctrl and (key == 45 or key == 65453):
+        call zoom_by(-0.1)
+        return True
+    end
+    if ctrl and (key == 48 or key == 65456):
+        call zoom_by(0)
+        return True
+    end
+    if key == 65472 and gtk.widget_get_visible(ui["find_bar"]):
+        if shift:
+            call on_find_prev(0)
+        else:
+            call on_find_next(0)
+        end
+        return True
+    end
+    if focus == ui["find_entry"] and key == gtk.KEY_Escape:
+        call on_find_close(0)
+        return True
+    end
+    if focus == ui["find_entry"] and shift and key == gtk.KEY_Return:
+        call on_find_prev(0)
         return True
     end
     if ctrl and (key == 113 or key == 81 or key == 119 or key == 87):
@@ -1396,13 +2366,19 @@ function on_key(event, window):
 end
 
 function quit():
+    if compose.open_count() > 0:
+        # rozepsane zpravy: hlavni okno se skryje, Posta skonci az se zavrenim posledniho okna psani
+        ui["hidden"] = True
+        call gtk.widget_hide(ui["window"])
+        return 0
+    end
     call gtk.main_quit()
     return 0
 end
 
 function on_delete_event(event, window):
     call quit()
-    return False
+    return True
 end
 
 # ---- banner stavu uctu ------------------------------------------------------------------------------------------
@@ -1442,6 +2418,10 @@ function error_text(st):
 end
 
 function update_banner():
+    if ui["current"]["raw"] == "__outbox__":
+        call show_outbox_banner()
+        return 0
+    end
     st = ui["status"].get(ui["current"]["account"], {})
     state = st.get("state", "")
     if state == "error" or (state == "offline" and st.get("kind", "") != ""):
@@ -1473,6 +2453,10 @@ function update_banner():
 end
 
 function on_banner_clicked(button):
+    if ui["current"]["raw"] == "__outbox__":
+        call outbox_retry()
+        return 0
+    end
     st = ui["status"].get(ui["current"]["account"], {})
     kind = st.get("kind", "")
     id = ui["current"]["account"]
@@ -1522,6 +2506,10 @@ function reload_accounts():
 end
 
 function reload_current(keep_uid):
+    # radek s fokusem se pri prestaveni seznamu znici: fokus pak vratit na vybranou zpravu (jinak sipky
+    # po synchronizaci na pozadi nic nedelaji)
+    focus = mg.window_get_focus(ui["window"])
+    list_focus = focus != 0 and (focus in ui["row_index"] or focus == ui["list"])
     call load_rows()
     adj = mg.scrolled_vadjustment(ui["list_scroll"])
     pos = mg.adjustment_get_value(adj)
@@ -1536,6 +2524,9 @@ function reload_current(keep_uid):
             ui["building"] = True
             call mg.list_box_select_row(ui["list"], row)
             ui["building"] = False
+            if list_focus:
+                call gtk.widget_grab_focus(row)
+            end
         else:
             ui["selected"] = 0
             call mg.stack_show(ui["view"], "empty")
@@ -1558,6 +2549,12 @@ function on_event(msg):
         call build_sidebar()
     elif ev == "oauth_done":
         call on_oauth_done(msg)
+    elif ev == "outbox":
+        call build_sidebar()
+        if ui["current"]["raw"] == "__outbox__":
+            call reload_current(ui["selected"])
+            call show_outbox_banner()
+        end
     end
     return 0
 end
@@ -1565,6 +2562,25 @@ end
 function on_reply(msg, ctx):
     op = ctx["op"]
     ok = msg.get("ok", False)
+    if "compose" in ctx:
+        call compose.on_reply(msg, ctx)
+        return 0
+    end
+    if op == "account_settings":
+        call reload_accounts()
+        return 0
+    end
+    if op == "outbox_retry" or op == "outbox_delete":
+        call set_busy(False)
+        call build_sidebar()
+        if ui["current"]["raw"] == "__outbox__":
+            call reload_current(0)
+            ui["selected"] = 0
+            call mg.stack_show(ui["view"], "empty")
+            call show_outbox_banner()
+        end
+        return 0
+    end
     if op == "hello":
         for st in msg.get("accounts", []):
             ui["status"][st["account"]] = st
@@ -1616,6 +2632,14 @@ function on_reply(msg, ctx):
         ui["current"] = {"account": "", "raw": "", "role": "", "name": ""}
         call select_first_inbox()
     end
+    return 0
+end
+
+function open_outbox():
+    call build_sidebar()
+    call open_mailbox("", "__outbox__", 0)
+    call select_side("", "__outbox__")
+    call gtk.window_present(ui["window"])
     return 0
 end
 
@@ -1685,36 +2709,6 @@ function confirm(title, text, action):
     return response == gtk.RESPONSE_OK
 end
 
-function compose_unavailable(address):
-    d = gtk.dialog_new()
-    call gtk.window_set_title(d, i18n.T("New Message"))
-    call gtk.window_set_transient_for(d, ui["window"])
-    call gtk.window_set_modal(d, True)
-    area = gtk.dialog_get_content_area(d)
-    box = gtk.box_new(gtk.VERTICAL, 8)
-    call gtk.widget_add_class(box, "dialog-box")
-    call gtk.box_pack_start(box, label(i18n.T("Writing messages is coming soon"), "list-title"), False, False, 0)
-    l = label(i18n.T("This version of Mail reads your mail and notifies you about new messages. Writing and replying will come in a future update; until then use your webmail."), "")
-    call gtk.label_set_line_wrap(l, True)
-    call gtk.label_set_max_width_chars(l, 56)
-    call gtk.box_pack_start(box, l, False, False, 0)
-    if address != "":
-        a = label(i18n.T("Recipient:") + " " + address, "msg-from")
-        call gtk.label_set_selectable(a, True)
-        call gtk.box_pack_start(box, a, False, False, 0)
-        call gtk.dialog_add_button(d, i18n.T("Copy Address"), 1)
-    end
-    call gtk.box_pack_start(area, box, True, True, 0)
-    call gtk.dialog_add_button(d, i18n.T("Close"), gtk.RESPONSE_OK)
-    call gtk.widget_show_all(d)
-    response = gtk.dialog_run(d)
-    call gtk.widget_destroy(d)
-    if response == 1:
-        call gtk.selection_set_text(gtk.SELECTION_CLIPBOARD, address)
-    end
-    return 0
-end
-
 function mailto_address(uri):
     a = uri
     if a.lower().startswith("mailto:"):
@@ -1751,6 +2745,9 @@ function on_menu_clicked(button):
             call gtk.connect_data(item, "activate", 0, on_menu_password, cur)
             call gtk.menu_append(menu, item)
         end
+        item = gtk.menu_item_new(i18n.TF("Signature for %s…", [a.get("email", "")]))
+        call gtk.connect_data(item, "activate", 0, on_menu_signature, cur)
+        call gtk.menu_append(menu, item)
         item = gtk.menu_item_new(i18n.TF("Remove %s…", [a.get("email", "")]))
         call gtk.connect_data(item, "activate", 0, on_menu_remove, cur)
         call gtk.menu_append(menu, item)
@@ -1798,7 +2795,7 @@ function on_menu_remove(id, item):
 end
 
 function on_menu_shortcuts(item):
-    text = "↑ ↓\t" + i18n.T("Previous / next message") + "\nEnter\t" + i18n.T("Read the message text") + "\nDelete\t" + i18n.T("Move to Trash") + "\nCtrl+Shift+U\t" + i18n.T("Mark as read / unread") + "\nCtrl+F\t" + i18n.T("Filter the message list") + "\nCtrl+R, F5\t" + i18n.T("Get mail") + "\nCtrl+Q\t" + i18n.T("Close Mail")
+    text = "↑ ↓\t" + i18n.T("Previous / next message") + "\nEnter\t" + i18n.T("Read the message text") + "\nDelete\t" + i18n.T("Move to Trash") + "\nCtrl+Shift+U\t" + i18n.T("Mark as read / unread") + "\nCtrl+F\t" + i18n.T("Filter the message list; in the message: find in the text") + "\nF5, Ctrl+Shift+N\t" + i18n.T("Get mail") + "\nCtrl+N\t" + i18n.T("New message") + "\nCtrl+R\t" + i18n.T("Reply") + "\nCtrl+Shift+R\t" + i18n.T("Reply all") + "\nCtrl+Shift+F\t" + i18n.T("Forward") + "\nCtrl+Enter\t" + i18n.T("Send (in the message window)") + "\nCtrl+P\t" + i18n.T("Print") + "\nCtrl+ +/−/0\t" + i18n.T("Text size of the message") + "\nCtrl+Q\t" + i18n.T("Close Mail")
     call message_box(i18n.T("Keyboard Shortcuts"), text)
     return 0
 end
@@ -3034,7 +4031,9 @@ function handle_ui_request(req):
         call open_target(req)
     elif op == "mailto":
         call gtk.window_present(ui["window"])
-        call compose_unavailable(req.get("address", ""))
+        call compose_mailto(String(req.get("uri", "mailto:" + req.get("address", ""))))
+    elif op == "outbox":
+        call open_outbox()
     end
     call gtk.window_present(ui["window"])
     return 0
@@ -3130,7 +4129,9 @@ function main(argv):
     if len(argv) >= 5 and argv[1] == "--open":
         req = {"op": "open", "account": argv[2], "mailbox": argv[3], "uid": argv[4]}
     elif len(argv) >= 2 and argv[1].lower().startswith("mailto:"):
-        req = {"op": "mailto", "address": mailto_address(argv[1])}
+        req = {"op": "mailto", "address": mailto_address(argv[1]), "uri": argv[1]}
+    elif len(argv) >= 2 and argv[1] == "--outbox":
+        req = {"op": "outbox"}
     end
     if hand_over(req):
         return 0
@@ -3156,8 +4157,13 @@ function main(argv):
     end
     call ensure_service()
     call glib.idle_add(on_first_idle)
+    call compose.init(compose_host())
+    # rozepsane zpravy po padu / vypnuti se otevrou znovu
+    call compose.restore_all()
     if req["op"] == "mailto":
-        call compose_unavailable(req["address"])
+        call compose_mailto(req["uri"])
+    elif req["op"] == "outbox":
+        call open_outbox()
     end
     call gtk.main()
     return 0

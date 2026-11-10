@@ -70,7 +70,7 @@ class LuxAIMailTest(unittest.TestCase):
         self.assertEqual(accounts[0]["auth"], "luxai")
         self.assertEqual(accounts[0]["email"], mt.USER)
         self.assertEqual(accounts[0]["imap"]["user"], mt.USER)
-        self.assertEqual(accounts[0]["smtp"]["port"], 465)
+        self.assertEqual(accounts[0]["smtp"]["port"], 9)
         # zadne heslo v klicence, zadny token ani session token v souborech Posty
         self.assertEqual(self.s.secret_lookup(acc), "")
         secrets_ = [fl.SESSION.encode()] + [t.encode() for t in self.lux.tokens]

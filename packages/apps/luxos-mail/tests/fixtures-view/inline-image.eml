@@ -1,0 +1,62 @@
+From: Eva =?utf-8?q?Mal=C3=A1?= <eva@example.cz>
+To: Tester <tester@example.test>
+Subject: Fotka z =?utf-8?q?v=C3=BDletu?=
+Date: Tue, 10 Nov 2026 09:12:00 +0100
+Message-ID: <4266786354077954525@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============2715345570512148935=="
+
+--===============2715345570512148935==
+Content-Type: multipart/alternative;
+ boundary="===============6262871705178091179=="
+
+--===============6262871705178091179==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Ahoj, posílám fotku.
+
+--===============6262871705178091179==
+MIME-Version: 1.0
+Content-Type: multipart/related;
+ boundary="===============0192047690017947538=="
+
+--===============0192047690017947538==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><p>Ahoj, pos=C3=ADl=C3=A1m <b>fotku</b>:</p><img src=3D"cid:foto1=
+@example" alt=3D"v=C3=BDlet"></body></html>
+
+--===============0192047690017947538==
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-ID: <foto1@example>
+MIME-Version: 1.0
+Content-Disposition: inline
+
+iVBORw0KGgoAAAANSUhEUgAAACgAAAAYCAIAAAAH5iiXAAAAKElEQVR4nGO4Y6MxIIhh1OJRi0ct
+HrV41OJRi0ctHrV41OJRi4ePxQB9XrA9U9UegAAAAABJRU5ErkJggg==
+
+--===============0192047690017947538==--
+
+--===============6262871705178091179==--
+
+--===============2715345570512148935==
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="mapa trasy.png"
+MIME-Version: 1.0
+
+iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAAJ0lEQVR4nGPQqLhDI8QwavSo0aNG
+jxo9avSo0aNGjxo9avSo0eQjAHXYODyMouQ2AAAAAElFTkSuQmCC
+
+--===============2715345570512148935==
+Content-Type: application/pdf
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="program.pdf"
+MIME-Version: 1.0
+
+JVBERi0xLjQgdGVzdAo=
+
+--===============2715345570512148935==--

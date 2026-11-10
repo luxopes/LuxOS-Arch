@@ -4847,3 +4847,86 @@ Not connected – connect the USB cable or turn the printer on	Не під’є�
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Не під’єднано – під’єднайте кабель USB або увімкніть принтер. Документи надрукуються автоматично.
 Offline – turn the printer on. Documents will print automatically.	Не в мережі – увімкніть принтер. Документи надрукуються автоматично.
 Waiting for the printer	Очікує на принтер
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Надіслати (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Вкласти файли… (Ctrl+Shift+A)
+Attach Files…	Вкласти файли…
+Delete Draft	Видалити чернетку
+From:	Від:
+Bcc:	Прихована копія:
+Subject:	Тема:
+%s is not a file that can be attached.	%s не є файлом, який можна вкласти.
+%s cannot be read.	Не вдається прочитати %s.
+Remove Attachment	Вилучити вкладення
+Remove attachment %s	Вилучити вкладення %s
+Total %s	Усього %s
+Total %s – many servers refuse messages over 25 MB	Усього %s – багато серверів відхиляють листи понад 25 МБ
+Attach Files	Вкласти файли
+Attach	Вкласти
+Check the address: %s	Перевірте адресу: %s
+Add at least one recipient.	Додайте принаймні одного одержувача.
+Send this message without a subject?	Надіслати цей лист без теми?
+The attachment %s no longer exists.	Вкладення %s більше не існує.
+The message could not be prepared.	Не вдалося підготувати лист.
+The outgoing server did not accept the sign-in for %s.	Сервер вихідної пошти не прийняв вхід для %s.
+The password is not in the keyring. Enter it again in the main window.	Пароля немає у сховищі ключів. Введіть його знову в головному вікні.
+The server refused these recipients: %s	Сервер відхилив цих одержувачів: %s
+The message is too large for the server (at most %s). Remove some attachments.	Лист завеликий для сервера (не більше %s). Вилучіть деякі вкладення.
+The message is too large for the server. Remove some attachments.	Лист завеликий для сервера. Вилучіть деякі вкладення.
+The outgoing server refused the message.	Сервер вихідної пошти відхилив лист.
+The outgoing server does not allow this account to sign in.	Сервер вихідної пошти не дозволяє вхід для цього облікового запису.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Сертифікат безпеки сервера вихідної пошти недійсний (%s). Пошта не надсилає лист, щоб захистити ваш пароль.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Сервер вихідної пошти не пропонує зашифрованого з’єднання. Пошта не надсилає ваш пароль без шифрування.
+The outgoing server does not accept addresses with accented characters.	Сервер вихідної пошти не приймає адрес із символами з діакритикою.
+The account of this message no longer exists.	Облікового запису цього листа більше не існує.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Термін дії входу минув. Увійдіть знову в головному вікні, а потім надішліть лист ще раз.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Вхід у LuxAI недоступний. Увійдіть знову, а потім надішліть лист ще раз.
+The message could not be sent.	Не вдалося надіслати лист.
+Draft saved	Чернетку збережено
+Draft saved on this computer	Чернетку збережено на цьому комп’ютері
+Save this message as a draft?	Зберегти цей лист як чернетку?
+You can finish it later in Drafts.	Завершити його можна пізніше в Чернетках.
+Delete this message?	Видалити цей лист?
+The draft is deleted from this computer and from Drafts on the server.	Чернетку буде видалено з цього комп’ютера та з Чернеток на сервері.
+Recovered – Mail closed before this message was sent or saved.	Відновлено – Пошта закрилася до того, як цей лист було надіслано або збережено.
+A message could not be sent	Один лист не вдалося надіслати
+Get Mail (F5)	Отримати пошту (F5)
+Reply (Ctrl+R)	Відповісти (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Відповісти всім (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Переслати (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Зображення з інтернету приховано для захисту вашої приватності.
+Load Images	Завантажити зображення
+Always	Завжди
+Find in Message	Знайти в листі
+Previous (Shift+Enter)	Попередній (Shift+Enter)
+Next (Enter)	Наступний (Enter)
+Close (Esc)	Закрити (Esc)
+Outbox	Вихідні
+Some messages could not be sent.	Деякі листи не вдалося надіслати.
+Open or save the attachment	Відкрити або зберегти вкладення
+The attachment could not be opened.	Не вдалося відкрити вкладення.
+Always from %s	Завжди від %s
+The message is still downloading.	Лист ще завантажується.
+Try again when the message is shown.	Спробуйте ще раз, коли лист з’явиться.
+Forwarded message	Пересланий лист
+Date:	Дата:
+On %s, %s wrote:	%s, %s написав(-ла):
+Not sent	Не надіслано
+Waiting to be sent – Mail tries again automatically.	Очікує надсилання – Пошта автоматично спробує ще раз.
+Delete this unsent message?	Видалити цей ненадісланий лист?
+It is removed from the Outbox and will not be sent.	Його буде вилучено з Вихідних, і його не буде надіслано.
+Send Again	Надіслати ще раз
+Send Now	Надіслати зараз
+Signature	Підпис
+Signature for %s	Підпис для %s
+Added to new messages, replies and forwards, below the line “-- ”.	Додається до нових листів, відповідей і пересланих листів під рядком «-- ».
+Signature for %s…	Підпис для %s…
+Filter the message list; in the message: find in the text	Фільтрувати список листів; у листі: шукати в тексті
+New message	Новий лист
+Reply	Відповісти
+Reply all	Відповісти всім
+Forward	Переслати
+Send (in the message window)	Надіслати (у вікні листа)
+Print	Друк
+Text size of the message	Розмір тексту листа
+Add your email account to write to %s.	Додайте свій обліковий запис e-mail, щоб написати на %s.

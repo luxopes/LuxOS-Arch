@@ -148,14 +148,15 @@ LuxOS Mail is the desktop email client of LuxOS, a free Linux distribution (http
 It is a full IMAP mail client that runs entirely on the user's computer, similar to Thunderbird.
 When the user adds a Gmail or Google Workspace address and clicks "Sign in with Google", the app uses
 OAuth 2.0 for native apps (system browser, loopback redirect, PKCE) and then connects directly from the
-user's computer to imap.gmail.com (and later smtp.gmail.com) with SASL XOAUTH2/OAUTHBEARER.
+user's computer to imap.gmail.com and smtp.gmail.com with SASL XOAUTH2/OAUTHBEARER.
 
 How https://mail.google.com/ is used (all user-facing features of a mail client):
 - list the user's folders/labels and messages, download and display message headers, bodies and attachments;
 - keep a local cache on the user's computer for offline reading and searching;
 - instant new-mail notifications with IMAP IDLE;
 - actions the user takes: mark as read/unread, move to Trash;
-- sending mail via SMTP in an upcoming version (the same scope covers SMTP).
+- writing, replying, forwarding and sending messages (with attachments) via SMTP (smtp.gmail.com, the same
+  scope covers SMTP); drafts are saved to the Gmail Drafts folder, answered messages are marked as answered.
 
 Why narrower scopes are not sufficient: Google allows IMAP, POP and SMTP access with OAuth only with the
 https://mail.google.com/ scope. The narrower Gmail scopes (gmail.readonly, gmail.modify, gmail.send, ...)
@@ -263,10 +264,11 @@ openid and userinfo.email.
 **„The demo video does not show the feature that uses the scope / show sending.“**
 
 ```text
-The current version reads mail: listing folders and messages, reading messages and attachments, marking
-read/unread, moving to Trash, and new-mail notifications (IMAP IDLE) - all shown in part 3 of the video.
-Sending over SMTP will be added in a future version, using the same scope; we will update the
-verification if Google requires it.
+LuxOS Mail reads and sends mail: listing folders and messages, reading messages and attachments, marking
+read/unread, moving to Trash, new-mail notifications (IMAP IDLE), and writing, replying to and forwarding
+messages with attachments, sent through smtp.gmail.com with the same scope (drafts are saved to Gmail
+Drafts; Gmail itself keeps the copy in Sent Mail). Reading is shown in part 3 of the video; sending
+(New Message / Reply, Send, the message arriving in Sent Mail) is shown in the updated video.
 ```
 
 **„The video uses demo data / a different account.“**
@@ -312,7 +314,9 @@ pro instalované aplikace uvádí); Pošta používá PKCE. Tajemství není v g
 2. Změny názvu, loga, domén nebo rozsahů znamenají nové ověření – před změnou si to rozmyslete.
 3. U omezených rozsahů Google kontroluje aplikaci znovu zhruba jednou ročně (e-mail na kontakt projektu);
    udržujte kontaktní e-maily a role Owner/Editor aktuální.
-4. Když Pošta přidá odesílání nebo jiné využití dat, upravte zásady (oddíl 2) a případně zdůvodnění.
+4. Odesílání (SMTP) je hotové a v zásadách (oddíl 2) i ve zdůvodnění popsané; video má ukázat i odeslání zprávy
+   (Nová zpráva nebo Odpovědět, Odeslat, zpráva v Odeslaných) – současné nahrávání (record_demo.py) odeslání zatím
+   neobsahuje, před odesláním žádosti video doplňte. Při dalším novém využití dat upravte zásady a zdůvodnění.
 
 ## Soubory
 

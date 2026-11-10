@@ -4,7 +4,12 @@
 Podmnozina IMAP4rev1, kterou luxos-mail pouziva: TLS (implicitni i STARTTLS), LOGIN,
 AUTHENTICATE PLAIN (SASL-IR), OAUTHBEARER/XOAUTH2 (--oauth, tokeny z rizeni), ENABLE, LIST (SPECIAL-USE priznaky), SELECT (CONDSTORE/QRESYNC),
 STATUS, FETCH/UID FETCH (ENVELOPE, BODYSTRUCTURE, BODY.PEEK[...]<o.n>, CHANGEDSINCE, VANISHED),
-UID SEARCH, UID STORE, UID MOVE/COPY, UID EXPUNGE, EXPUNGE, CREATE, IDLE, LOGOUT.
+UID SEARCH (vcetne HEADER), UID STORE, UID MOVE/COPY, UID EXPUNGE, EXPUNGE, CREATE, APPEND (LITERAL+, APPENDUID,
+TRYCREATE), IDLE, LOGOUT.
+
+S --smtp navic testovaci server SMTP (odesilani, nikdy skutecne dorucovani): implicitni TLS (465) a STARTTLS (587),
+EHLO s SIZE/8BITMIME/SMTPUTF8/AUTH, AUTH PLAIN, LOGIN, XOAUTH2, OAUTHBEARER (stejna hesla a tokeny jako IMAP), MAIL/RCPT/DATA
+s tecek; prijate zpravy jen ulozi ("smtp dump"). gmail: odeslana zprava se jako u Gmailu sama ulozi do [Gmail]/Sent Mail.
 
 Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     deliver MAILBOX CESTA.eml [FLAGS]   prida zpravu (vsem v IDLE posle * N EXISTS)
@@ -19,6 +24,13 @@ Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     ncstyle auth|after                  kde Microsoft chybu posle: v odpovedi na AUTHENTICATE (auth, vychozi), nebo
                                         AUTHENTICATE OK a chyba az u dalsiho prikazu (after)
     dump                                JSON stav schranek
+    raw MAILBOX UID                     zprava (base64)
+    smtp dump | clear                   prijate zpravy SMTP (obalka, data base64, mechanismus prihlaseni, TLS)
+    smtp reject ADRESA                  RCPT TO na adresu -> 550 (odmitnuty prijemce)
+    smtp size N                         limit SIZE v EHLO (0 = bez limitu)
+    smtp temp on|off                    MAIL FROM -> 451 (docasna chyba)
+    smtp down on|off                    spojeni se hned zavre (server nedostupny / bez site)
+    smtp noauth on|off                  EHLO bez AUTH
     log                                 prijate prikazy (heslo zakryte)
 
 Napodobeni velkych poskytovatelu (--personality):
@@ -99,6 +111,7 @@ class State:
         }
         self.sessions = []
         self.log = []
+        self.smtp = {"messages": [], "reject": set(), "size": 0, "temp": False, "down": False, "noauth": False}
 
 
 def quote(value):
@@ -636,8 +649,52 @@ class Session(threading.Thread):
                 parts.append("BODY[%s]%s {%d}\r\n" % (section, origin, len(data)) + data.decode("utf-8", "surrogateescape"))
         return "* %d FETCH (%s)\r\n" % (seq, " ".join(parts))
 
+    def read_exact(self, n):
+        while len(self.rbuf) < n:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise ConnectionError("closed")
+            self.rbuf += chunk
+        data, self.rbuf = self.rbuf[:n], self.rbuf[n:]
+        return data
+
+    def cmd_append(self, tag, rest, uid):
+        m = re.match(r'("(?:[^"\\]|\\.)*"|\S+)(?: \(([^)]*)\))?(?: "[^"]*")? \{(\d+)(\+?)\}$', rest)
+        if not m:
+            self.send("%s BAD append syntax\r\n" % tag)
+            return
+        name = tokenize(m.group(1))[0]
+        flags = (m.group(2) or "").split()
+        n = int(m.group(3))
+        if not m.group(4):
+            if name not in self.state.boxes:
+                self.send("%s NO [TRYCREATE] no such mailbox\r\n" % tag)
+                return
+            self.send("+ go ahead\r\n")
+        data = self.read_exact(n)
+        self.readline()
+        with LOCK:
+            if name not in self.state.boxes:
+                self.send("%s NO [TRYCREATE] no such mailbox\r\n" % tag)
+                return
+            box = self.state.boxes[name]
+            msg = box.add(data, flags)
+            self.state.log.append("APPEND %s %d" % (name, n))
+            for s in self.state.sessions:
+                if s is not self and s.box is box:
+                    s.notify("* %d EXISTS\r\n" % len(box.messages))
+        self.send("%s OK [APPENDUID %d %d] append done\r\n" % (tag, box.uidvalidity, msg.uid))
+
     def cmd_search(self, tag, rest, uid):
         box = self.box
+        hm = re.match(r'(?i)HEADER (\S+) (.*)$', rest)
+        if hm:
+            name = hm.group(1)
+            value = tokenize(hm.group(2))[0].lower()
+            with LOCK:
+                res = [m.uid if uid else i + 1 for i, m in enumerate(box.messages) if value in (m.msg.get(name) or "").lower()]
+            self.send("* SEARCH %s\r\n%s OK search\r\n" % (" ".join(str(x) for x in res), tag))
+            return
         with LOCK:
             msgs = box.messages
             if rest.upper().startswith("UID "):
@@ -755,6 +812,261 @@ class Session(threading.Thread):
         self.alive = False
 
 
+class SmtpSession(threading.Thread):
+    """Testovaci server SMTP: submission s TLS, prihlaseni heslem i tokenem, zpravy jen do pameti."""
+
+    def __init__(self, state, sock, implicit_tls, ctx):
+        super().__init__(daemon=True)
+        self.state = state
+        self.sock = sock
+        self.ctx = ctx
+        self.tls = implicit_tls
+        self.implicit = implicit_tls
+        self.user = None
+        self.mech = ""
+        self.rbuf = b""
+        self.reset()
+
+    def reset(self):
+        self.mail_from = None
+        self.params = ""
+        self.rcpts = []
+
+    def send(self, text):
+        self.sock.sendall(text.encode("utf-8", "surrogateescape"))
+
+    def readline_bytes(self):
+        while b"\r\n" not in self.rbuf:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise ConnectionError("closed")
+            self.rbuf += chunk
+        line, self.rbuf = self.rbuf.split(b"\r\n", 1)
+        return line
+
+    def readline(self):
+        return self.readline_bytes().decode("utf-8", "surrogateescape")
+
+    def ehlo_lines(self):
+        sm = self.state.smtp
+        if self.state.personality == "gmail":
+            lines = ["smtp.gmail.com at your service, [127.0.0.1]", "SIZE %d" % (sm["size"] or 35882577), "8BITMIME"]
+            if not self.tls:
+                lines.append("STARTTLS")
+            elif not sm["noauth"]:
+                lines.append("AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH")
+            return lines + ["ENHANCEDSTATUSCODES", "PIPELINING", "CHUNKING", "SMTPUTF8"]
+        if self.state.personality == "microsoft":
+            lines = ["SN4PR0501CA0001.outlook.office365.com Hello [127.0.0.1]", "SIZE %d" % (sm["size"] or 157286400), "PIPELINING",
+                     "DSN", "ENHANCEDSTATUSCODES"]
+            if not self.tls:
+                lines.append("STARTTLS")
+            elif not sm["noauth"]:
+                lines.append("AUTH LOGIN XOAUTH2")
+            return lines + ["8BITMIME", "BINARYMIME", "CHUNKING", "SMTPUTF8"]
+        lines = ["localhost Hello", "PIPELINING", "8BITMIME", "SMTPUTF8", "ENHANCEDSTATUSCODES"]
+        if sm["size"]:
+            lines.append("SIZE %d" % sm["size"])
+        else:
+            lines.append("SIZE")
+        if not self.tls:
+            lines.append("STARTTLS")
+        elif not sm["noauth"]:
+            lines.append(("AUTH PLAIN LOGIN " + " ".join(self.state.oauth)).strip())
+        return lines
+
+    def log(self, line):
+        safe = re.sub(r"(?i)^(AUTH \S+ ).*", r"\1***", line)
+        if re.match(r"^[A-Za-z0-9+/=]{4,}$", line) and not line.upper() in ("QUIT", "DATA", "RSET", "NOOP"):
+            safe = "***"
+        with LOCK:
+            self.state.log.append("SMTP " + safe)
+
+    def run(self):
+        try:
+            if self.state.smtp["down"]:
+                self.sock.close()
+                return
+            if self.tls:
+                self.sock = self.ctx.wrap_socket(self.sock, server_side=True)
+            self.send("220 localhost ESMTP LuxOS test ready\r\n")
+            while True:
+                line = self.readline()
+                self.log(line)
+                if not self.handle(line):
+                    break
+        except (ConnectionError, OSError, ssl.SSLError):
+            pass
+        finally:
+            try:
+                self.sock.close()
+            except OSError:
+                pass
+
+    def check_token(self, mech, data):
+        try:
+            text = base64.b64decode(data).decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001
+            return None
+        fields = {}
+        user = ""
+        if mech == "OAUTHBEARER":
+            head, _, rest = text.partition("\x01")
+            gs2 = head.split(",")
+            if len(gs2) >= 2 and gs2[1].startswith("a="):
+                user = gs2[1][2:].replace("=2C", ",").replace("=3D", "=")
+            text = rest
+        for item in text.split("\x01"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                fields[k] = v
+        if mech == "XOAUTH2":
+            user = fields.get("user", "")
+        auth = fields.get("auth", "")
+        token = auth[7:] if auth.startswith("Bearer ") else ""
+        with LOCK:
+            self.state.log.append("SMTP AUTH %s user=%s host=%s port=%s" % (mech, user, fields.get("host", "-"), fields.get("port", "-")))
+            account = self.state.tokens.get(token) if token else None
+        if account is not None and user.lower() == account:
+            return user
+        return None
+
+    def handle(self, line):
+        up = line.upper()
+        sm = self.state.smtp
+        if up.startswith("EHLO") or up.startswith("HELO"):
+            lines = self.ehlo_lines()
+            self.send("".join("250-%s\r\n" % l for l in lines[:-1]) + "250 %s\r\n" % lines[-1])
+            return True
+        if up == "STARTTLS":
+            if self.tls:
+                self.send("503 already TLS\r\n")
+                return True
+            self.send("220 2.0.0 Ready to start TLS\r\n")
+            self.sock = self.ctx.wrap_socket(self.sock, server_side=True)
+            self.tls = True
+            self.rbuf = b""
+            return True
+        if up == "QUIT":
+            self.send("221 2.0.0 bye\r\n")
+            return False
+        if up in ("RSET", "NOOP"):
+            self.reset()
+            self.send("250 2.0.0 OK\r\n")
+            return True
+        if up.startswith("AUTH "):
+            if not self.tls:
+                self.send("530 5.7.0 Must issue a STARTTLS command first\r\n")
+                return True
+            parts = line.split(" ")
+            mech = parts[1].upper()
+            if mech in ("XOAUTH2", "OAUTHBEARER") and (mech in self.state.oauth or self.state.personality):
+                data = parts[2] if len(parts) > 2 else None
+                if data is None:
+                    self.send("334 \r\n")
+                    data = self.readline()
+                user = self.check_token(mech, data)
+                if user:
+                    self.user = user
+                    self.mech = mech
+                    self.send("235 2.7.0 Accepted\r\n")
+                    return True
+                self.send("334 %s\r\n" % base64.b64encode(b'{"status":"401","schemes":"bearer","scope":"https://mail.google.com/"}').decode())
+                reply = self.readline()
+                with LOCK:
+                    self.state.log.append("SMTP SASL abort reply=%r" % reply)
+                self.send("535 5.7.8 Username and Password not accepted.\r\n")
+                return True
+            if mech == "PLAIN":
+                data = parts[2] if len(parts) > 2 else None
+                if data is None:
+                    self.send("334 \r\n")
+                    data = self.readline()
+                try:
+                    _, user, password = base64.b64decode(data).split(b"\0")
+                    user, password = user.decode(), password.decode()
+                except Exception:  # noqa: BLE001
+                    user, password = "", None
+            elif mech == "LOGIN":
+                self.send("334 VXNlcm5hbWU6\r\n")
+                user = base64.b64decode(self.readline()).decode()
+                self.send("334 UGFzc3dvcmQ6\r\n")
+                password = base64.b64decode(self.readline()).decode()
+            else:
+                self.send("504 5.5.4 Unrecognized authentication type\r\n")
+                return True
+            if self.state.users.get(user) == password:
+                self.user = user
+                self.mech = mech
+                self.send("235 2.7.0 Authentication successful\r\n")
+            else:
+                time.sleep(0.1)
+                self.send("535 5.7.8 Error: authentication failed\r\n")
+            return True
+        if up.startswith("MAIL FROM:"):
+            if self.user is None:
+                self.send("530 5.7.0 Authentication required\r\n")
+                return True
+            if sm["temp"]:
+                self.send("451 4.3.0 Temporary server error, try again later\r\n")
+                return True
+            m = re.match(r"(?i)MAIL FROM:<([^>]*)>(.*)$", line)
+            params = m.group(2).strip()
+            sz = re.search(r"(?i)SIZE=(\d+)", params)
+            if sz and sm["size"] and int(sz.group(1)) > sm["size"]:
+                self.send("552 5.3.4 Message size exceeds fixed limit\r\n")
+                return True
+            self.mail_from = m.group(1)
+            self.params = params
+            self.send("250 2.1.0 OK\r\n")
+            return True
+        if up.startswith("RCPT TO:"):
+            if self.mail_from is None:
+                self.send("503 5.5.1 need MAIL first\r\n")
+                return True
+            addr = re.match(r"(?i)RCPT TO:<([^>]*)>", line).group(1)
+            if addr.lower() in sm["reject"]:
+                self.send("550 5.1.1 <%s>: Recipient address rejected: User unknown\r\n" % addr)
+                return True
+            self.rcpts.append(addr)
+            self.send("250 2.1.5 OK\r\n")
+            return True
+        if up == "DATA":
+            if not self.rcpts:
+                self.send("503 5.5.1 need RCPT\r\n")
+                return True
+            self.send("354 End data with <CR><LF>.<CR><LF>\r\n")
+            lines = []
+            while True:
+                l = self.readline_bytes()
+                if l == b".":
+                    break
+                if l.startswith(b"."):
+                    l = l[1:]
+                lines.append(l)
+            data = b"\r\n".join(lines) + b"\r\n"
+            if sm["size"] and len(data) > sm["size"]:
+                self.send("552 5.3.4 Message size exceeds fixed limit\r\n")
+                self.reset()
+                return True
+            with LOCK:
+                sm["messages"].append({"from": self.mail_from, "rcpts": list(self.rcpts), "params": self.params, "user": self.user,
+                                       "mech": self.mech, "implicit_tls": self.implicit, "data": base64.b64encode(data).decode()})
+                if self.state.personality == "gmail" and "[Gmail]/Sent Mail" in self.state.boxes:
+                    self.state.boxes["[Gmail]/Sent Mail"].add(data, ["\\Seen"])
+            self.send("250 2.0.0 OK queued as T%d\r\n" % len(sm["messages"]))
+            self.reset()
+            return True
+        self.send("502 5.5.2 Command not recognized\r\n")
+        return True
+
+
+def serve_smtp(listener, state, implicit, ctx):
+    while True:
+        sock, _ = listener.accept()
+        SmtpSession(state, sock, implicit, ctx).start()
+
+
 def control(state, conn):
     f = conn.makefile("rwb")
     for raw in f:
@@ -802,6 +1114,21 @@ def control(state, conn):
                     state.tokens.clear()
                 elif parts[0] == "dump":
                     out["boxes"] = {n: [{"uid": m.uid, "flags": sorted(m.flags)} for m in b.messages] for n, b in state.boxes.items()}
+                elif parts[0] == "raw":
+                    box = state.boxes[parts[1]]
+                    out["raw"] = [base64.b64encode(m.raw).decode() for m in box.messages if m.uid == int(parts[2])][0]
+                elif parts[0] == "smtp":
+                    sm = state.smtp
+                    if parts[1] == "dump":
+                        out["messages"] = sm["messages"]
+                    elif parts[1] == "clear":
+                        sm["messages"] = []
+                    elif parts[1] == "reject":
+                        sm["reject"].add(parts[2].lower())
+                    elif parts[1] == "size":
+                        sm["size"] = int(parts[2])
+                    elif parts[1] in ("temp", "down", "noauth"):
+                        sm[parts[1]] = parts[2] == "on"
                 elif parts[0] == "log":
                     out["log"] = list(state.log)
                 elif parts[0] == "sessions":
@@ -839,6 +1166,7 @@ def main():
     ap.add_argument("--personality", default="", help="gmail | microsoft")
     ap.add_argument("--account-password", default=None, help="gmail: normalni heslo uctu (IMAP ho odmitne s [ALERT])")
     ap.add_argument("--alert-untagged", action="store_true")
+    ap.add_argument("--smtp", action="store_true", help="testovaci server SMTP (smtp_tls jako 465, smtp_starttls jako 587)")
     a = ap.parse_args()
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(a.cert, a.key)
@@ -874,6 +1202,14 @@ def main():
         ls.listen(16)
         ports[kind] = ls.getsockname()[1]
         threading.Thread(target=serve, args=(ls, state, implicit, ctx), daemon=True).start()
+    if a.smtp:
+        for kind, implicit in (("smtp_tls", True), ("smtp_starttls", False)):
+            ls = socket.socket()
+            ls.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            ls.bind(("127.0.0.1", 0))
+            ls.listen(16)
+            ports[kind] = ls.getsockname()[1]
+            threading.Thread(target=serve_smtp, args=(ls, state, implicit, ctx), daemon=True).start()
     cs = socket.socket()
     cs.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     cs.bind(("127.0.0.1", a.control))

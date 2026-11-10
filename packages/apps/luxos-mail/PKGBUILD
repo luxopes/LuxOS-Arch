@@ -13,21 +13,25 @@
 # diagnostika luxos-mail --diagnose-oauth ADRESA (mail_oauth_login, mail_diagnose). Pred prihlasenim okno
 # vysvetli pouziti dat (zustavaji jen v pocitaci, odkaz na zasady ochrany soukromi - overeni aplikace u Googlu);
 # odebrani uctu odvola pristup Posty u Googlu (revoke_url, RFC 7009).
-# Psani a odesilani (SMTP) prijde ve fazi 2. Moduly LuxOS pro GTK/GLib (luxos_gtk, luxos_glib ...) bere
-# ze zdroju luxos-desktop (files/lsl), stejne jako programy tam.
+# Faze 2: psani, odpovedi, preposlani a odesilani (vlastni klient SMTP mail_smtp: TLS 465 / STARTTLS 587,
+# PLAIN/LOGIN, XOAUTH2/OAUTHBEARER), prilohy, koncepty na serveru i v pocitaci (obnoveni po padu), Odchozi
+# s opakovanim bez site, kopie do Odeslanych (ne Gmail/Microsoft). Zprava se zobrazuje v uzamcenem WebKitGTK
+# (mail_web, nacita se az za behu; mail_html cisti HTML, blokuje vzdalene obrazky). Moduly LuxOS pro GTK/GLib
+# (luxos_gtk, luxos_glib ...) bere ze zdroju luxos-desktop (files/lsl), stejne jako programy tam.
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=8
-pkgdesc="LuxOS Mail - lightweight mail app with instant new-mail notifications (IMAP IDLE), written in LSL"
+pkgrel=9
+pkgdesc="LuxOS Mail - lightweight mail app (read, write, send) with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
 license=(GPL-3.0-or-later)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
 options=(!debug !strip)
 # openssl: TLS (moduly net/tls LSL); libsecret: secret-tool; gnome-keyring: klicenka relace;
-# curl: automaticke nalezeni serveru (autoconfig pres HTTPS, modul http LSL)
-depends=(glibc glib2 gtk3 openssl libsecret gnome-keyring curl)
+# curl: automaticke nalezeni serveru (autoconfig pres HTTPS, modul http LSL); webkit2gtk-4.1: zobrazeni zpravy
+# (nacita se za behu, bez nej jen text)
+depends=(glibc glib2 gtk3 openssl libsecret gnome-keyring curl webkit2gtk-4.1)
 optdepends=('luxos-i18n: translated texts'
             'luxos-account: sign in with the LuxAI account (LuxAI mailboxes without a password)'
             'plank: unread count on the Dock icon'
@@ -62,7 +66,7 @@ build() {
 check() {
     cd "$startdir/tests"
     # okno potrebuje xvfb-run (test_gui se bez nej preskoci); sluzba vlastni D-Bus a gnome-keyring
-    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_discover.py test_service.py test_luxai.py test_providers.py test_gui.py test_gui_luxai.py test_gui_providers.py test_notify_bell.py test_oauth.py test_gui_oauth.py
+    LUXOS_MAIL_BIN="$srcdir/luxos-mail" python -m pytest -q -p no:cacheprovider test_mime.py test_compose.py test_view.py test_discover.py test_service.py test_send.py test_luxai.py test_providers.py test_gui.py test_gui_luxai.py test_gui_providers.py test_gui_compose.py test_notify_bell.py test_oauth.py test_gui_oauth.py
 }
 
 package() {

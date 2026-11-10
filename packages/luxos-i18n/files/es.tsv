@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	No conectada: con
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	No conectada: conecta el cable USB o enciende la impresora. Los documentos se imprimirán automáticamente.
 Offline – turn the printer on. Documents will print automatically.	Sin conexión: enciende la impresora. Los documentos se imprimirán automáticamente.
 Waiting for the printer	Esperando a la impresora
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Enviar (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Adjuntar archivos… (Ctrl+Shift+A)
+Attach Files…	Adjuntar archivos…
+Delete Draft	Eliminar borrador
+From:	De:
+Bcc:	CCO:
+Subject:	Asunto:
+%s is not a file that can be attached.	%s no es un archivo que se pueda adjuntar.
+%s cannot be read.	No se puede leer %s.
+Remove Attachment	Quitar adjunto
+Remove attachment %s	Quitar el adjunto %s
+Total %s	Total %s
+Total %s – many servers refuse messages over 25 MB	Total %s – muchos servidores rechazan mensajes de más de 25 MB
+Attach Files	Adjuntar archivos
+Attach	Adjuntar
+Check the address: %s	Revisa la dirección: %s
+Add at least one recipient.	Añade al menos un destinatario.
+Send this message without a subject?	¿Enviar este mensaje sin asunto?
+The attachment %s no longer exists.	El adjunto %s ya no existe.
+The message could not be prepared.	No se ha podido preparar el mensaje.
+The outgoing server did not accept the sign-in for %s.	El servidor de correo saliente no aceptó el inicio de sesión de %s.
+The password is not in the keyring. Enter it again in the main window.	La contraseña no está en el llavero. Vuelve a introducirla en la ventana principal.
+The server refused these recipients: %s	El servidor rechazó estos destinatarios: %s
+The message is too large for the server (at most %s). Remove some attachments.	El mensaje es demasiado grande para el servidor (como máximo %s). Quita algunos adjuntos.
+The message is too large for the server. Remove some attachments.	El mensaje es demasiado grande para el servidor. Quita algunos adjuntos.
+The outgoing server refused the message.	El servidor de correo saliente rechazó el mensaje.
+The outgoing server does not allow this account to sign in.	El servidor de correo saliente no permite iniciar sesión con esta cuenta.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	El certificado de seguridad del servidor de correo saliente no es válido (%s). Correo no envía el mensaje para proteger tu contraseña.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	El servidor de correo saliente no ofrece una conexión cifrada. Correo no envía tu contraseña sin cifrar.
+The outgoing server does not accept addresses with accented characters.	El servidor de correo saliente no acepta direcciones con caracteres acentuados.
+The account of this message no longer exists.	La cuenta de este mensaje ya no existe.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Tu sesión ha caducado. Vuelve a iniciar sesión en la ventana principal y envía el mensaje de nuevo.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Tu sesión de LuxAI no está disponible. Vuelve a iniciar sesión y envía el mensaje de nuevo.
+The message could not be sent.	No se ha podido enviar el mensaje.
+Draft saved	Borrador guardado
+Draft saved on this computer	Borrador guardado en este ordenador
+Save this message as a draft?	¿Guardar este mensaje como borrador?
+You can finish it later in Drafts.	Puedes terminarlo más tarde en Borradores.
+Delete this message?	¿Eliminar este mensaje?
+The draft is deleted from this computer and from Drafts on the server.	El borrador se elimina de este ordenador y de Borradores en el servidor.
+Recovered – Mail closed before this message was sent or saved.	Recuperado – Correo se cerró antes de enviar o guardar este mensaje.
+A message could not be sent	No se ha podido enviar un mensaje
+Get Mail (F5)	Obtener correo (F5)
+Reply (Ctrl+R)	Responder (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Responder a todos (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Reenviar (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Las imágenes remotas se ocultan para proteger tu privacidad.
+Load Images	Cargar imágenes
+Always	Siempre
+Find in Message	Buscar en el mensaje
+Previous (Shift+Enter)	Anterior (Shift+Enter)
+Next (Enter)	Siguiente (Enter)
+Close (Esc)	Cerrar (Esc)
+Outbox	Bandeja de salida
+Some messages could not be sent.	Algunos mensajes no se han podido enviar.
+Open or save the attachment	Abrir o guardar el adjunto
+The attachment could not be opened.	No se ha podido abrir el adjunto.
+Always from %s	Siempre de %s
+The message is still downloading.	El mensaje aún se está descargando.
+Try again when the message is shown.	Vuelve a intentarlo cuando se muestre el mensaje.
+Forwarded message	Mensaje reenviado
+Date:	Fecha:
+On %s, %s wrote:	El %s, %s escribió:
+Not sent	No enviado
+Waiting to be sent – Mail tries again automatically.	Esperando para enviarse – Correo lo volverá a intentar automáticamente.
+Delete this unsent message?	¿Eliminar este mensaje no enviado?
+It is removed from the Outbox and will not be sent.	Se quitará de la Bandeja de salida y no se enviará.
+Send Again	Volver a enviar
+Send Now	Enviar ahora
+Signature	Firma
+Signature for %s	Firma para %s
+Added to new messages, replies and forwards, below the line “-- ”.	Se añade a los mensajes nuevos, respuestas y reenvíos, debajo de la línea «-- ».
+Signature for %s…	Firma para %s…
+Filter the message list; in the message: find in the text	Filtrar la lista de mensajes; en el mensaje: buscar en el texto
+New message	Mensaje nuevo
+Reply	Responder
+Reply all	Responder a todos
+Forward	Reenviar
+Send (in the message window)	Enviar (en la ventana del mensaje)
+Print	Imprimir
+Text size of the message	Tamaño del texto del mensaje
+Add your email account to write to %s.	Añade tu cuenta de correo para escribir a %s.

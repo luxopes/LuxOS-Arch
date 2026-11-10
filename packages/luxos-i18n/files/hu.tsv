@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Nincs csatlakozta
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Nincs csatlakoztatva – csatlakoztasd az USB-kábelt, vagy kapcsold be a nyomtatót. A dokumentumok automatikusan kinyomtatódnak.
 Offline – turn the printer on. Documents will print automatically.	Offline – kapcsold be a nyomtatót. A dokumentumok automatikusan kinyomtatódnak.
 Waiting for the printer	A nyomtatóra vár
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Küldés (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Fájlok csatolása… (Ctrl+Shift+A)
+Attach Files…	Fájlok csatolása…
+Delete Draft	Piszkozat törlése
+From:	Feladó:
+Bcc:	Titkos másolat:
+Subject:	Tárgy:
+%s is not a file that can be attached.	A(z) %s nem csatolható fájl.
+%s cannot be read.	A(z) %s nem olvasható.
+Remove Attachment	Melléklet eltávolítása
+Remove attachment %s	A(z) %s melléklet eltávolítása
+Total %s	Összesen %s
+Total %s – many servers refuse messages over 25 MB	Összesen %s – sok szerver elutasítja a 25 MB-nál nagyobb üzeneteket
+Attach Files	Fájlok csatolása
+Attach	Csatolás
+Check the address: %s	Ellenőrizd a címet: %s
+Add at least one recipient.	Adj meg legalább egy címzettet.
+Send this message without a subject?	Elküldöd az üzenetet tárgy nélkül?
+The attachment %s no longer exists.	A(z) %s melléklet már nem létezik.
+The message could not be prepared.	Az üzenetet nem sikerült előkészíteni.
+The outgoing server did not accept the sign-in for %s.	A kimenő levelek kiszolgálója nem fogadta el a bejelentkezést ehhez: %s.
+The password is not in the keyring. Enter it again in the main window.	A jelszó nincs a kulcstartóban. Add meg újra a főablakban.
+The server refused these recipients: %s	A szerver elutasította ezeket a címzetteket: %s
+The message is too large for the server (at most %s). Remove some attachments.	Az üzenet túl nagy a szerver számára (legfeljebb %s). Távolíts el néhány mellékletet.
+The message is too large for the server. Remove some attachments.	Az üzenet túl nagy a szerver számára. Távolíts el néhány mellékletet.
+The outgoing server refused the message.	A kimenő levelek kiszolgálója elutasította az üzenetet.
+The outgoing server does not allow this account to sign in.	A kimenő levelek kiszolgálója nem engedi bejelentkezni ezt a fiókot.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	A kimenő levelek kiszolgálójának biztonsági tanúsítványa érvénytelen (%s). A Levelezés a jelszavad védelme érdekében nem küldi el az üzenetet.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	A kimenő levelek kiszolgálója nem kínál titkosított kapcsolatot. A Levelezés nem küldi el titkosítatlanul a jelszavadat.
+The outgoing server does not accept addresses with accented characters.	A kimenő levelek kiszolgálója nem fogad el ékezetes karaktereket tartalmazó címeket.
+The account of this message no longer exists.	Az üzenethez tartozó fiók már nem létezik.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	A bejelentkezésed lejárt. Jelentkezz be újra a főablakban, majd küldd el újra az üzenetet.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	A LuxAI-bejelentkezésed nem érhető el. Jelentkezz be újra, majd küldd el újra az üzenetet.
+The message could not be sent.	Az üzenetet nem sikerült elküldeni.
+Draft saved	Piszkozat mentve
+Draft saved on this computer	Piszkozat mentve ezen a számítógépen
+Save this message as a draft?	Mented az üzenetet piszkozatként?
+You can finish it later in Drafts.	Később a Piszkozatok között befejezheted.
+Delete this message?	Törlöd ezt az üzenetet?
+The draft is deleted from this computer and from Drafts on the server.	A piszkozat törlődik erről a számítógépről és a szerveren lévő Piszkozatok közül.
+Recovered – Mail closed before this message was sent or saved.	Helyreállítva – A Levelezés bezárult, mielőtt ez az üzenet el lett volna küldve vagy mentve.
+A message could not be sent	Egy üzenetet nem sikerült elküldeni
+Get Mail (F5)	Levelek letöltése (F5)
+Reply (Ctrl+R)	Válasz (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Válasz mindenkinek (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Továbbítás (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	A távoli képek a magánszférád védelme érdekében rejtve vannak.
+Load Images	Képek betöltése
+Always	Mindig
+Find in Message	Keresés az üzenetben
+Previous (Shift+Enter)	Előző (Shift+Enter)
+Next (Enter)	Következő (Enter)
+Close (Esc)	Bezárás (Esc)
+Outbox	Kimenő
+Some messages could not be sent.	Néhány üzenetet nem sikerült elküldeni.
+Open or save the attachment	Melléklet megnyitása vagy mentése
+The attachment could not be opened.	A mellékletet nem sikerült megnyitni.
+Always from %s	Mindig tőle: %s
+The message is still downloading.	Az üzenet letöltése még folyamatban van.
+Try again when the message is shown.	Próbáld újra, amikor megjelenik az üzenet.
+Forwarded message	Továbbított üzenet
+Date:	Dátum:
+On %s, %s wrote:	%s időpontban %s ezt írta:
+Not sent	Nincs elküldve
+Waiting to be sent – Mail tries again automatically.	Küldésre vár – A Levelezés automatikusan újrapróbálja.
+Delete this unsent message?	Törlöd ezt az el nem küldött üzenetet?
+It is removed from the Outbox and will not be sent.	Az üzenet kikerül a Kimenő mappából, és nem lesz elküldve.
+Send Again	Küldés újra
+Send Now	Küldés most
+Signature	Aláírás
+Signature for %s	Aláírás ehhez: %s
+Added to new messages, replies and forwards, below the line “-- ”.	Az új üzenetekhez, válaszokhoz és továbbításokhoz adódik hozzá, a „-- ” vonal alá.
+Signature for %s…	Aláírás ehhez: %s…
+Filter the message list; in the message: find in the text	Üzenetlista szűrése; az üzenetben: keresés a szövegben
+New message	Új üzenet
+Reply	Válasz
+Reply all	Válasz mindenkinek
+Forward	Továbbítás
+Send (in the message window)	Küldés (az üzenetablakban)
+Print	Nyomtatás
+Text size of the message	Az üzenet szövegmérete
+Add your email account to write to %s.	Add hozzá az e-mail-fiókodat, hogy írhass ide: %s.

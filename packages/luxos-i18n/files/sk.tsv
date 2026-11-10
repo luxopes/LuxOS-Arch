@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Nepripojená – 
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Nepripojená – pripojte kábel USB alebo zapnite tlačiareň. Dokumenty sa vytlačia automaticky.
 Offline – turn the printer on. Documents will print automatically.	Nedostupná – zapnite tlačiareň. Dokumenty sa vytlačia automaticky.
 Waiting for the printer	Čaká na tlačiareň
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Odoslať (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Priložiť súbory… (Ctrl+Shift+A)
+Attach Files…	Priložiť súbory…
+Delete Draft	Vymazať koncept
+From:	Od:
+Bcc:	Skrytá kópia:
+Subject:	Predmet:
+%s is not a file that can be attached.	%s nie je súbor, ktorý sa dá priložiť.
+%s cannot be read.	%s sa nedá prečítať.
+Remove Attachment	Odstrániť prílohu
+Remove attachment %s	Odstrániť prílohu %s
+Total %s	Celkom %s
+Total %s – many servers refuse messages over 25 MB	Celkom %s – mnohé servery odmietajú správy väčšie ako 25 MB
+Attach Files	Priložiť súbory
+Attach	Priložiť
+Check the address: %s	Skontrolujte adresu: %s
+Add at least one recipient.	Pridajte aspoň jedného príjemcu.
+Send this message without a subject?	Odoslať túto správu bez predmetu?
+The attachment %s no longer exists.	Príloha %s už neexistuje.
+The message could not be prepared.	Správu sa nepodarilo pripraviť.
+The outgoing server did not accept the sign-in for %s.	Server odchádzajúcej pošty neprijal prihlásenie pre %s.
+The password is not in the keyring. Enter it again in the main window.	Heslo nie je v kľúčenke. Zadajte ho znova v hlavnom okne.
+The server refused these recipients: %s	Server odmietol týchto príjemcov: %s
+The message is too large for the server (at most %s). Remove some attachments.	Správa je pre server príliš veľká (najviac %s). Odstráňte niektoré prílohy.
+The message is too large for the server. Remove some attachments.	Správa je pre server príliš veľká. Odstráňte niektoré prílohy.
+The outgoing server refused the message.	Server odchádzajúcej pošty správu odmietol.
+The outgoing server does not allow this account to sign in.	Server odchádzajúcej pošty tomuto účtu nepovoľuje prihlásenie.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Bezpečnostný certifikát servera odchádzajúcej pošty nie je platný (%s). Pošta správu neodošle, aby chránila vaše heslo.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Server odchádzajúcej pošty neponúka šifrované spojenie. Pošta neodosiela vaše heslo nešifrovane.
+The outgoing server does not accept addresses with accented characters.	Server odchádzajúcej pošty neprijíma adresy s diakritikou.
+The account of this message no longer exists.	Účet tejto správy už neexistuje.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	Platnosť prihlásenia vypršala. Prihláste sa znova v hlavnom okne a potom správu odošlite znova.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	Prihlásenie do LuxAI nie je k dispozícii. Prihláste sa znova a potom správu odošlite znova.
+The message could not be sent.	Správu sa nepodarilo odoslať.
+Draft saved	Koncept uložený
+Draft saved on this computer	Koncept uložený v tomto počítači
+Save this message as a draft?	Uložiť túto správu ako koncept?
+You can finish it later in Drafts.	Dokončiť ju môžete neskôr v Konceptoch.
+Delete this message?	Vymazať túto správu?
+The draft is deleted from this computer and from Drafts on the server.	Koncept sa vymaže z tohto počítača aj z Konceptov na serveri.
+Recovered – Mail closed before this message was sent or saved.	Obnovené – Pošta sa zatvorila skôr, ako bola táto správa odoslaná alebo uložená.
+A message could not be sent	Jednu správu sa nepodarilo odoslať
+Get Mail (F5)	Stiahnuť poštu (F5)
+Reply (Ctrl+R)	Odpovedať (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Odpovedať všetkým (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Preposlať (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Obrázky z internetu sú skryté na ochranu vášho súkromia.
+Load Images	Načítať obrázky
+Always	Vždy
+Find in Message	Nájsť v správe
+Previous (Shift+Enter)	Predchádzajúci (Shift+Enter)
+Next (Enter)	Ďalší (Enter)
+Close (Esc)	Zavrieť (Esc)
+Outbox	Odchádzajúca pošta
+Some messages could not be sent.	Niektoré správy sa nepodarilo odoslať.
+Open or save the attachment	Otvoriť alebo uložiť prílohu
+The attachment could not be opened.	Prílohu sa nepodarilo otvoriť.
+Always from %s	Vždy od %s
+The message is still downloading.	Správa sa ešte sťahuje.
+Try again when the message is shown.	Skúste to znova, keď sa správa zobrazí.
+Forwarded message	Preposlaná správa
+Date:	Dátum:
+On %s, %s wrote:	Dňa %s %s napísal(a):
+Not sent	Neodoslané
+Waiting to be sent – Mail tries again automatically.	Čaká na odoslanie – Pošta to automaticky skúsi znova.
+Delete this unsent message?	Vymazať túto neodoslanú správu?
+It is removed from the Outbox and will not be sent.	Správa sa odstráni z odchádzajúcej pošty a nebude odoslaná.
+Send Again	Odoslať znova
+Send Now	Odoslať teraz
+Signature	Podpis
+Signature for %s	Podpis pre %s
+Added to new messages, replies and forwards, below the line “-- ”.	Pridáva sa do nových správ, odpovedí a preposlaných správ pod čiaru „-- “.
+Signature for %s…	Podpis pre %s…
+Filter the message list; in the message: find in the text	Filtrovať zoznam správ; v správe: hľadať v texte
+New message	Nová správa
+Reply	Odpovedať
+Reply all	Odpovedať všetkým
+Forward	Preposlať
+Send (in the message window)	Odoslať (v okne správy)
+Print	Tlačiť
+Text size of the message	Veľkosť textu správy
+Add your email account to write to %s.	Ak chcete napísať na %s, pridajte svoj e-mailový účet.

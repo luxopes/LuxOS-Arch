@@ -126,7 +126,7 @@ class GoogleOAuthTest(OAuthBase):
         a = self.accounts()[0]
         self.assertEqual((a["auth"], a["email"], a["provider"], a["name"]), ("oauth", GMAIL, "google", "Tester"))
         self.assertEqual(a["imap"], {"host": "localhost", "port": self.gmail.ports["tls"], "security": "ssl", "user": GMAIL})
-        self.assertEqual(a["smtp"], {"host": "smtp.gmail.com", "port": 465, "security": "ssl", "user": GMAIL, "auth": "xoauth2"})
+        self.assertEqual(a["smtp"], {"host": "localhost", "port": 9, "security": "ssl", "user": GMAIL, "auth": "xoauth2"})
         self.assertEqual(a["oauth"]["client_id"], "test-google-client.apps.example")
         # tajemstvi klienta jde na koncovy bod tokenu (Desktop klient Google), kod jen jednou
         ex = self.google.exchanges()[0]
@@ -321,7 +321,7 @@ class MicrosoftOAuthTest(OAuthBase):
         acc = ev["account"]
         a = self.accounts()[0]
         self.assertEqual((a["provider"], a["auth"]), ("microsoft", "oauth"))
-        self.assertEqual(a["smtp"], {"host": "smtp.office365.com", "port": 587, "security": "starttls", "user": OUTLOOK, "auth": "xoauth2"})
+        self.assertEqual(a["smtp"], {"host": "localhost", "port": 9, "security": "starttls", "user": OUTLOOK, "auth": "xoauth2"})
         # verejny klient: zadne tajemstvi
         self.assertNotIn("client_secret", self.ms.exchanges()[0]["form"])
         self.assertTrue(mt.wait_for(lambda: self.status(acc).get("state") == "online", 15), self.s.service_log())

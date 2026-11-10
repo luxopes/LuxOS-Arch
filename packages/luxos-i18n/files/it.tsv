@@ -4846,3 +4846,86 @@ Not connected – connect the USB cable or turn the printer on	Non collegata –
 Not connected – connect the USB cable or turn the printer on. Documents will print automatically.	Non collegata – collega il cavo USB o accendi la stampante. I documenti verranno stampati automaticamente.
 Offline – turn the printer on. Documents will print automatically.	Offline – accendi la stampante. I documenti verranno stampati automaticamente.
 Waiting for the printer	In attesa della stampante
+# Posta: psani a odesilani, zobrazeni zpravy
+Send (Ctrl+Enter)	Invia (Ctrl+Enter)
+Attach Files… (Ctrl+Shift+A)	Allega file… (Ctrl+Shift+A)
+Attach Files…	Allega file…
+Delete Draft	Elimina bozza
+From:	Da:
+Bcc:	Ccn:
+Subject:	Oggetto:
+%s is not a file that can be attached.	%s non è un file che può essere allegato.
+%s cannot be read.	Impossibile leggere %s.
+Remove Attachment	Rimuovi allegato
+Remove attachment %s	Rimuovi allegato %s
+Total %s	Totale %s
+Total %s – many servers refuse messages over 25 MB	Totale %s – molti server rifiutano messaggi oltre 25 MB
+Attach Files	Allega file
+Attach	Allega
+Check the address: %s	Controlla l’indirizzo: %s
+Add at least one recipient.	Aggiungi almeno un destinatario.
+Send this message without a subject?	Inviare questo messaggio senza oggetto?
+The attachment %s no longer exists.	L’allegato %s non esiste più.
+The message could not be prepared.	Impossibile preparare il messaggio.
+The outgoing server did not accept the sign-in for %s.	Il server della posta in uscita non ha accettato l’accesso per %s.
+The password is not in the keyring. Enter it again in the main window.	La password non è nel portachiavi. Inseriscila di nuovo nella finestra principale.
+The server refused these recipients: %s	Il server ha rifiutato questi destinatari: %s
+The message is too large for the server (at most %s). Remove some attachments.	Il messaggio è troppo grande per il server (al massimo %s). Rimuovi alcuni allegati.
+The message is too large for the server. Remove some attachments.	Il messaggio è troppo grande per il server. Rimuovi alcuni allegati.
+The outgoing server refused the message.	Il server della posta in uscita ha rifiutato il messaggio.
+The outgoing server does not allow this account to sign in.	Il server della posta in uscita non consente l’accesso a questo account.
+The security certificate of the outgoing server is not valid (%s). Mail does not send to protect your password.	Il certificato di sicurezza del server della posta in uscita non è valido (%s). Posta non invia il messaggio per proteggere la tua password.
+The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.	Il server della posta in uscita non offre una connessione cifrata. Posta non invia la tua password senza cifratura.
+The outgoing server does not accept addresses with accented characters.	Il server della posta in uscita non accetta indirizzi con caratteri accentati.
+The account of this message no longer exists.	L’account di questo messaggio non esiste più.
+Your sign-in has expired. Sign in again in the main window, then send the message again.	L’accesso è scaduto. Accedi di nuovo nella finestra principale, poi invia di nuovo il messaggio.
+Your LuxAI sign-in is not available. Sign in again, then send the message again.	L’accesso a LuxAI non è disponibile. Accedi di nuovo, poi invia di nuovo il messaggio.
+The message could not be sent.	Impossibile inviare il messaggio.
+Draft saved	Bozza salvata
+Draft saved on this computer	Bozza salvata su questo computer
+Save this message as a draft?	Salvare questo messaggio come bozza?
+You can finish it later in Drafts.	Puoi completarlo più tardi in Bozze.
+Delete this message?	Eliminare questo messaggio?
+The draft is deleted from this computer and from Drafts on the server.	La bozza viene eliminata da questo computer e da Bozze sul server.
+Recovered – Mail closed before this message was sent or saved.	Recuperato – Posta è stata chiusa prima che questo messaggio fosse inviato o salvato.
+A message could not be sent	Impossibile inviare un messaggio
+Get Mail (F5)	Scarica posta (F5)
+Reply (Ctrl+R)	Rispondi (Ctrl+R)
+Reply All (Ctrl+Shift+R)	Rispondi a tutti (Ctrl+Shift+R)
+Forward (Ctrl+Shift+F)	Inoltra (Ctrl+Shift+F)
+Remote images are hidden to protect your privacy.	Le immagini remote sono nascoste per proteggere la tua privacy.
+Load Images	Carica immagini
+Always	Sempre
+Find in Message	Trova nel messaggio
+Previous (Shift+Enter)	Precedente (Shift+Enter)
+Next (Enter)	Successivo (Enter)
+Close (Esc)	Chiudi (Esc)
+Outbox	Posta in uscita
+Some messages could not be sent.	Alcuni messaggi non sono stati inviati.
+Open or save the attachment	Apri o salva l’allegato
+The attachment could not be opened.	Impossibile aprire l’allegato.
+Always from %s	Sempre da %s
+The message is still downloading.	Il messaggio è ancora in fase di download.
+Try again when the message is shown.	Riprova quando il messaggio viene mostrato.
+Forwarded message	Messaggio inoltrato
+Date:	Data:
+On %s, %s wrote:	Il giorno %s, %s ha scritto:
+Not sent	Non inviato
+Waiting to be sent – Mail tries again automatically.	In attesa di invio – Posta riproverà automaticamente.
+Delete this unsent message?	Eliminare questo messaggio non inviato?
+It is removed from the Outbox and will not be sent.	Verrà rimosso da Posta in uscita e non sarà inviato.
+Send Again	Invia di nuovo
+Send Now	Invia ora
+Signature	Firma
+Signature for %s	Firma per %s
+Added to new messages, replies and forwards, below the line “-- ”.	Aggiunta ai nuovi messaggi, alle risposte e agli inoltri, sotto la riga «-- ».
+Signature for %s…	Firma per %s…
+Filter the message list; in the message: find in the text	Filtra l’elenco dei messaggi; nel messaggio: trova nel testo
+New message	Nuovo messaggio
+Reply	Rispondi
+Reply all	Rispondi a tutti
+Forward	Inoltra
+Send (in the message window)	Invia (nella finestra del messaggio)
+Print	Stampa
+Text size of the message	Dimensione del testo del messaggio
+Add your email account to write to %s.	Aggiungi il tuo account e-mail per scrivere a %s.
