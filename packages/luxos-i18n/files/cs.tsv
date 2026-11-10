@@ -5030,3 +5030,28 @@ show the Secure Boot state, LuxOS key, boot path and signatures	stav Secure Boot
 install shim and the signed boot menu on the EFI partition (automatic)	nainstalovat shim a podepsanou nabídku na oddíl EFI (automaticky)
 prepare enrolling the LuxOS key: shows a one-time password for the next start	připravit zápis klíče LuxOS: ukáže jednorázové heslo pro další start
 cancel a prepared enrollment	zrušit připravený zápis
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS"), which shows the blue screen.	Další start půjde přes shim (položka UEFI Boot%s „LuxOS“), který ukáže modrou obrazovku.
+If the blue screen does not appear: open the boot menu while the computer starts (often F12, F11, F8 or Esc) and choose "LuxOS".	Pokud se modrá obrazovka neobjeví: při startu počítače otevřete nabídku startu (často F12, F11, F8 nebo Esc) a vyberte „LuxOS“.
+Note: this start did not go through shim (the firmware started another boot entry first). The boot order has been fixed.	Poznámka: tento start nešel přes shim (firmware spustil nejdřív jinou položku). Pořadí startu je opravené.
+The firmware keeps its own boot order; LuxOS sets the next start through shim at every shutdown instead.	Firmware si drží vlastní pořadí startu; LuxOS proto při každém vypnutí nastaví další start přes shim.
+Could not create the UEFI boot entry. Choose "LuxOS" or the disk in the boot menu while the computer starts (often F12).	Položku UEFI se nepodařilo vytvořit. Při startu počítače vyberte v nabídce startu (často F12) „LuxOS“ nebo disk.
+LuxOS (shim) is the first entry in the firmware boot order.	LuxOS (shim) je první položkou v pořadí startu firmwaru.
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS").	Další start půjde přes shim (položka UEFI Boot%s „LuxOS“).
+The next start will not show the enrollment screen (the firmware starts another boot entry first). Run: sudo luxos-secureboot fix-boot	Při dalším startu se obrazovka pro zápis klíče neukáže (firmware spouští nejdřív jinou položku). Spusťte: sudo luxos-secureboot fix-boot
+Secure Boot ready: you can now turn it on in the firmware settings.	Secure Boot je připravený: teď ho můžete zapnout v nastavení firmwaru.
+Some details need root: sudo luxos-secureboot status	Některé údaje potřebují roota: sudo luxos-secureboot status
+This computer was not started in UEFI mode - Secure Boot is not available.	Počítač nebyl spuštěn v režimu UEFI – Secure Boot není k dispozici.
+Secure Boot is on.	Secure Boot je zapnutý.
+Do not turn on Secure Boot yet:	Secure Boot zatím nezapínejte:
+the firmware has no Secure Boot keys (Setup Mode): restore the factory keys in the firmware settings	firmware nemá klíče Secure Boot (Setup Mode): v nastavení firmwaru obnovte tovární klíče
+the LuxOS key is not enrolled: run sudo luxos-secureboot enroll	klíč LuxOS není zapsaný: spusťte sudo luxos-secureboot enroll
+the LuxOS key waits for confirmation: restart and confirm it in the blue MokManager screen	klíč LuxOS čeká na potvrzení: restartujte a potvrďte ho na modré obrazovce MokManageru
+cannot check the LuxOS key (mokutil is missing)	klíč LuxOS nelze ověřit (chybí mokutil)
+LuxOS (shim) is not the first entry in the firmware boot order: run sudo luxos-secureboot fix-boot	LuxOS (shim) není první položkou v pořadí startu firmwaru: spusťte sudo luxos-secureboot fix-boot
+this start did not go through shim: restart the computer once more	tento start nešel přes shim: restartujte počítač ještě jednou
+the kernel is not signed with the LuxOS key: update the system (lux update)	jádro není podepsané klíčem LuxOS: aktualizujte systém (lux update)
+cannot check the kernel signature without root: sudo luxos-secureboot check	podpis jádra nelze bez roota ověřit: sudo luxos-secureboot check
+Secure Boot ready	Secure Boot je připravený
+The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	Klíč LuxOS je zapsaný a LuxOS startuje přes shim. Teď můžete zapnout Secure Boot v nastavení firmwaru.
+tell whether Secure Boot can be turned on in the firmware now	zjistit, jestli už jde Secure Boot zapnout ve firmwaru
+put LuxOS (shim) first in the firmware boot order and start through it next time	dát LuxOS (shim) na první místo v pořadí startu firmwaru a příště startovat přes něj

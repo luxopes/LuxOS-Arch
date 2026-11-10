@@ -65,20 +65,25 @@ Návod s obrázky: luxos-docs `luxos/secure-boot.md` (offline v LuxOS) a web
 
 - ESP: `EFI/LuxOS/shimx64.efi`, `mmx64.efi`, `grubx64.efi` (= podepsaný systemd-boot),
   `luxos-secureboot.cer` (pro „Enroll key from disk“ např. po resetu firmwaru).
-- Záložní `EFI/BOOT/BOOTX64.EFI` = shim (+ `grubx64.efi`, `mmx64.efi` vedle) – **jen** když tam
-  nic není, je tam systemd-boot nebo už náš shim. Cizí zavaděč (Windows, shim jiné distribuce) se
-  nikdy nepřepisuje.
-- Položka UEFI „LuxOS“ → `\EFI\LuxOS\shimx64.efi` (efibootmgr ji dá na první místo). Stará přímá
-  položka `\EFI\systemd\systemd-bootx64.efi` zůstává jako záloha, dokud jednou nenastartuje cesta
-  přes shim (systemd-boot zapíše `LoaderImageIdentifier`); pak ji `luxos-secureboot-sync.service`
-  smaže. Smaže se jen položka s názvem LuxOS na našem ESP (ne „Linux Boot Manager“ jiné distribuce).
+- Záložní `EFI/BOOT/BOOTX64.EFI` = shim (+ `fbx64.efi` a `mmx64.efi` vedle, **žádný `grubx64.efi`**,
+  viz 1.6) – **jen** když tam nic není, je tam systemd-boot nebo už náš shim. Cizí zavaděč (Windows,
+  shim jiné distribuce) ani cizí `EFI/BOOT/grubx64.efi` se nikdy nepřepisuje.
+- Položka UEFI „LuxOS“ → `\EFI\LuxOS\shimx64.efi` – první v BootOrder při každém startu (viz 1.6).
+  Stará přímá položka `\EFI\systemd\systemd-bootx64.efi` zůstává jako záloha, dokud jednou
+  nenastartuje cesta přes shim (systemd-boot zapíše `LoaderImageIdentifier` = `…\grubx64.efi` a shim
+  v tomto startu založí `SbatLevelRT`/`MokListRT` – samotný název grubx64.efi nestačí, Acer „Linpus
+  lite“ spouští `EFI/BOOT/grubx64.efi` bez shim); pak ji `luxos-secureboot-sync.service` smaže. Smaže se jen položka s názvem LuxOS na našem ESP (ne „Linux Boot Manager“ jiné distribuce).
 - `systemd-boot` a `vmlinuz` na ESP i ve snímcích (luxos-care kopíruje `/boot/vmlinuz-linux-luxos`)
   jsou podepsané, protože podepsané jsou už v balících – snímky systému tak startují se Secure Boot
   bez další práce.
 - Bez Secure Boot shim jen spustí systemd-boot: start stejný jako dřív.
 - Nepodepsaný systemd-boot v balíku (testovací/neoficiální sestavení) → `sync` nic nemění.
-- Příkazy: `luxos-secureboot status` (secure_boot, boot_path, luxos_key, kernel, loader,
-  enroll_pending/enroll_password), `sudo luxos-secureboot enroll` (příprava zápisu klíče s jednorázovým
+- Příkazy: `luxos-secureboot status` (secure_boot, boot_path, luxos_key, kernel, loader, boot_current,
+  boot_first, boot_next, secure_boot_ready, enroll_pending/enroll_password, rady `hint=`; bez roota
+  hodnoty z oddílu EFI ze stavu služby `/run/luxos-secureboot/status`, jinak `unknown`),
+  `luxos-secureboot check` (připraveno k zapnutí Secure Boot: klíč zapsaný, start přes shim, shim
+  první v pořadí, podepsané jádro; jednou i jako oznámení po přihlášení), `sudo luxos-secureboot
+  fix-boot` (pořadí + BootNext hned), `sudo luxos-secureboot enroll` (příprava zápisu klíče s jednorázovým
   heslem – 8 číslic, stejné na každé klávesnici, protože firmware má vždy americké rozložení; heslo jen
   přes stdin, ne v argumentech procesu; nastaví `MokTimeout` na 60 s místo 10 s – po vypršení shim
   žádost zahodí), `sudo luxos-secureboot cancel`. Hlášky přeložené (luxos-i18n, 13 jazyků).
@@ -142,6 +147,39 @@ podpisy nevynucuje. Ověřeno ve VM testovacím modulem mimo strom (viz Testy).
 - **Ztráta klíče LuxOS** = každý počítač musí zapsat nový klíč. Proto záloha v Trezoru jako klíč
   repozitáře. Únik klíče = kdokoli podepíše zavaděč, kterému věří počítače s klíčem LuxOS v MOK →
   zneplatnit (`mokutil --delete`/MokX z aktualizace) a vydat nový. Proto HSM v bodu 3.
+
+### 1.6 Pořadí startu ve firmwaru (Acer/Insyde, HP, Lenovo)
+
+Skutečný případ (Acer majitele, 2026-11-10): po `enroll` a restartu se MokManager neukázal. Firmware si
+pro záložní `\EFI\Boot\grubx64.efi` (kopie systemd-boot vedle shim v `EFI/BOOT`) sám založil položku
+„Linpus lite“ a dal ji první; položka shim byla čtvrtá za USB, start šel přes starou přímou položku.
+MokManager ukazuje jen shim – start tedy musí jít přes položku shim.
+
+Zvažované možnosti pro záložní `EFI/BOOT` (shim jako `BOOTX64.EFI` napevno spouští `grubx64.efi` ze
+svého adresáře, pokud mu položka nepředá jinou cestu):
+
+| Možnost | Proč (ne) |
+|---|---|
+| (a) dál `EFI/BOOT/grubx64.efi` | Acer pro něj zakládá „Linpus lite“ na prvním místě: start bez shim, se Secure Boot nepodepsaný Microsoftem → selže a MokManager se nikdy neukáže |
+| (b) **fallback shim**: `EFI/BOOT/fbx64.efi` + `EFI/LuxOS/BOOTX64.CSV` | **zvoleno** – standard Fedora/RHEL/Ubuntu; shim spuštěný jako `BOOTX64.EFI` místo `grubx64.efi` spustí fallback (podepsaný Fedorou, vendor cert v shim), ten podle CSV založí nebo vrátí na první místo položku „LuxOS“ → shim a spustí ji. Žádný soubor, pro který by firmware zakládal vlastní položky; po resetu NVRAM se položka obnoví sama |
+| (c) druhá fáze přes load option (`efibootmgr … --unicode '\EFI\LuxOS\grubx64.efi'`) | shim to umí, ale jen u položky UEFI – start záložní cestou (bez položky) žádné load options nemá, takže pro `EFI/BOOT` nepomůže; položka `EFI/LuxOS` ho nepotřebuje |
+| (d) jen přeskládat/mazat položky | nutné i tak (níže), ale samo nestačí – firmware „Linpus lite“ při každém startu znovu založí, dokud soubor existuje |
+
+K (b) navíc (d): `sync` (služba při každém startu, hook po aktualizaci) a `fix-boot`/`enroll`:
+- smaže položky, které ukazují na `EFI/BOOT/grubx64.efi` **na našem ESP**, když tam soubor už není
+  (cizí `grubx64.efi` jiného systému i položky jiných disků zůstávají),
+- dá položku shim na první místo, ostatní (Windows…) ve stejném pořadí za ni,
+- **BootNext** = shim: vždy po `enroll`/`fix-boot`, při startu, když čeká zápis klíče, start nešel přes
+  shim nebo pořadí nejde zapsat; firmware, který pořadí ignoruje nebo ho sám mění (zapamatováno
+  v `/var/lib/luxos-secureboot/firmware-quirk`), dostane BootNext i při každém vypnutí (`ExecStop`).
+  BootNext je jednorázový a firmware ho dodržuje i tam, kde zápis BootOrder ignoruje.
+- Instalátor: `uefi_luxos_first` bere přednostně položku se zavaděčem instalace (shim), ne starou
+  přímou položku na sdíleném ESP, a nastaví BootNext na první start; v chrootu `enroll` položky
+  UEFI nemění (dělá je instalátor z živého systému).
+
+Fallback v `EFI/BOOT` resetuje počítač s TPM po založení položky (kvůli měření) – firmware, který by
+BootOrder ignoroval a startoval jen záložní cestu, by se mohl zacyklit; stejné riziko nesou všechny
+distribuce s fbx64 (Fedora, Ubuntu) a v praxi se neprojevuje, protože položku najde a jen ji spustí.
 
 ## 2. Klíč a podepisování (správce)
 
@@ -259,6 +297,10 @@ podepsané jednorázovým klíčem (`scripts/sb-sign.sh test-key`), ne klíčem 
 | 8 | firmware jen s Microsoft UEFI CA 2011 | shim přijatý (podpis 2011) |
 | 9 | firmware jen s certifikáty Windows (Secured-core bez CA třetích stran) | odmítnuto před shim – návod v dokumentaci |
 
+| 10 | přesný stav z Aceru (stará přímá položka, „Linpus lite“ → `EFI/BOOT/grubx64.efi` první, shim za DVD, starý `enroll`), Secure Boot vypnutý | **dříve:** firmware spustil „Linpus lite“, systemd-boot bez shim, žádný MokManager, `status` hlásil `boot_path=shim` |
+| 11 | nový `sync` na tomto stavu, `enroll`, pak firmware znovu založí „Linpus lite“ první | `EFI/BOOT/grubx64.efi` pryč, „Linpus lite“ smazaná, shim první, BootNext → start přes shim i s „Linpus lite“ první → MokManager → Enroll MOK → heslo; další start přes shim: stará položka smazaná, `check`: „Secure Boot ready“, oznámení |
+| 12 | položky LuxOS smazané (reset NVRAM), Secure Boot zapnutý | firmware → `EFI/BOOT/BOOTX64.EFI` (shim) → `fbx64.efi` založil „LuxOS“ → shim (první) → systemd-boot a jádro ověřené klíčem z MOK → živý systém, `SecureBoot enabled` |
+
 Opraveno při testech: mokutil 0.7 píše výzvy hesla na stdout (soubor s hashem byl neplatný a `enroll`
 selhal), heslo se mazalo i při čekající žádosti, `sbverify --cert` hlásí „OK“ i pro cizí řetězce
 (Microsoft shim) – kontrola teď vyžaduje certifikát LuxOS přímo v podpisu, `grep -q` s pipefail
@@ -266,6 +308,8 @@ v `container-build.sh` (ISO bez Secure Boot), `awk -v` a zpětná lomítka cest,
 v mkarchiso, MokManager 10 s nestačil (`MokTimeout` 60 s).
 
 - Jednotkové: `packages/luxos-secureboot/tests/test-luxos-secureboot.sh` (ESP, záložní zavaděč,
-  cizí zavaděče, položky UEFI a jejich úklid, zápis klíče, heslo, stav), `packages/luxos-installer/tests/
+  cizí zavaděče, položky UEFI a jejich úklid, zápis klíče, heslo, stav; model NVRAM s „firmwarem“:
+  přesný výpis z Aceru, HP/Lenovo vrací Windows dopředu, firmware ignorující BootOrder s BootNext,
+  stav bez roota, `check`, `fix-boot`, `notify`), `packages/luxos-installer/tests/
   test-boot-entries.sh` (položka shim na první místo BootOrder), `packages/luxos-care/tests`
   (označení nepodepsaných sad jádra, LuxOS Recovery, předchozí jádro).

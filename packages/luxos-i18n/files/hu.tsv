@@ -4941,3 +4941,28 @@ show the Secure Boot state, LuxOS key, boot path and signatures	a Secure Boot, a
 install shim and the signed boot menu on the EFI partition (automatic)	a shim és az aláírt indítómenü telepítése az EFI partícióra (automatikus)
 prepare enrolling the LuxOS key: shows a one-time password for the next start	a LuxOS kulcs regisztrálásának előkészítése: egyszeri jelszót mutat a következő indításhoz
 cancel a prepared enrollment	előkészített regisztráció megszakítása
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS"), which shows the blue screen.	A következő indítás a shimen keresztül történik (Boot%s „LuxOS” UEFI-bejegyzés), amely megjeleníti a kék képernyőt.
+If the blue screen does not appear: open the boot menu while the computer starts (often F12, F11, F8 or Esc) and choose "LuxOS".	Ha a kék képernyő nem jelenik meg: a számítógép indításakor nyissa meg a rendszerindító menüt (gyakran F12, F11, F8 vagy Esc), és válassza a „LuxOS” elemet.
+Note: this start did not go through shim (the firmware started another boot entry first). The boot order has been fixed.	Megjegyzés: ez az indítás nem a shimen keresztül történt (a firmware előbb egy másik bejegyzést indított). Az indítási sorrend javítva.
+The firmware keeps its own boot order; LuxOS sets the next start through shim at every shutdown instead.	A firmware a saját indítási sorrendjét tartja meg; ezért a LuxOS minden leállításkor a shimen keresztül állítja be a következő indítást.
+Could not create the UEFI boot entry. Choose "LuxOS" or the disk in the boot menu while the computer starts (often F12).	Az UEFI-bejegyzést nem sikerült létrehozni. A számítógép indításakor válassza a rendszerindító menüben (gyakran F12) a „LuxOS” elemet vagy a lemezt.
+LuxOS (shim) is the first entry in the firmware boot order.	A LuxOS (shim) az első bejegyzés a firmware indítási sorrendjében.
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS").	A következő indítás a shimen keresztül történik (Boot%s „LuxOS” UEFI-bejegyzés).
+The next start will not show the enrollment screen (the firmware starts another boot entry first). Run: sudo luxos-secureboot fix-boot	A következő indításkor nem jelenik meg a kulcsregisztrációs képernyő (a firmware előbb egy másik bejegyzést indít). Futtassa: sudo luxos-secureboot fix-boot
+Secure Boot ready: you can now turn it on in the firmware settings.	A Secure Boot készen áll: most bekapcsolhatja a firmware beállításaiban.
+Some details need root: sudo luxos-secureboot status	Néhány adathoz root szükséges: sudo luxos-secureboot status
+This computer was not started in UEFI mode - Secure Boot is not available.	A számítógép nem UEFI módban indult – a Secure Boot nem érhető el.
+Secure Boot is on.	A Secure Boot be van kapcsolva.
+Do not turn on Secure Boot yet:	Még ne kapcsolja be a Secure Bootot:
+the firmware has no Secure Boot keys (Setup Mode): restore the factory keys in the firmware settings	a firmware-ben nincsenek Secure Boot kulcsok (Setup Mode): állítsa vissza a gyári kulcsokat a firmware beállításaiban
+the LuxOS key is not enrolled: run sudo luxos-secureboot enroll	a LuxOS-kulcs nincs regisztrálva: futtassa a sudo luxos-secureboot enroll parancsot
+the LuxOS key waits for confirmation: restart and confirm it in the blue MokManager screen	a LuxOS-kulcs megerősítésre vár: indítsa újra, és erősítse meg a MokManager kék képernyőjén
+cannot check the LuxOS key (mokutil is missing)	a LuxOS-kulcs nem ellenőrizhető (hiányzik a mokutil)
+LuxOS (shim) is not the first entry in the firmware boot order: run sudo luxos-secureboot fix-boot	a LuxOS (shim) nem az első bejegyzés a firmware indítási sorrendjében: futtassa a sudo luxos-secureboot fix-boot parancsot
+this start did not go through shim: restart the computer once more	ez az indítás nem a shimen keresztül történt: indítsa újra a számítógépet még egyszer
+the kernel is not signed with the LuxOS key: update the system (lux update)	a kernel nincs aláírva a LuxOS-kulccsal: frissítse a rendszert (lux update)
+cannot check the kernel signature without root: sudo luxos-secureboot check	a kernel aláírása root nélkül nem ellenőrizhető: sudo luxos-secureboot check
+Secure Boot ready	A Secure Boot készen áll
+The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	A LuxOS-kulcs regisztrálva van, és a LuxOS a shimen keresztül indul. Most bekapcsolhatja a Secure Bootot a firmware beállításaiban.
+tell whether Secure Boot can be turned on in the firmware now	megmutatja, hogy a Secure Boot most már bekapcsolható-e a firmware-ben
+put LuxOS (shim) first in the firmware boot order and start through it next time	a LuxOS (shim) a firmware indítási sorrendjének első helyére kerül, és legközelebb azon keresztül indul

@@ -21,6 +21,7 @@ nechce obnovovací klíč (vypnutí Secure Boot by si ho vyžádalo).
 | Část | Soubor na oddílu EFI | Podepsal |
 |---|---|---|
 | shim | `EFI/LuxOS/shimx64.efi`, záložní `EFI/BOOT/BOOTX64.EFI` | Microsoft |
+| fallback (obnoví položku startu) | `EFI/BOOT/fbx64.efi`, `EFI/LuxOS/BOOTX64.CSV` | Fedora (shim mu věří) |
 | MokManager | `EFI/LuxOS/mmx64.efi` | Fedora (shim mu věří) |
 | nabídka (systemd-boot) | `EFI/LuxOS/grubx64.efi` | LuxOS |
 | jádro | `vmlinuz-linux-luxos` | LuxOS |
@@ -64,8 +65,10 @@ sudo luxos-secureboot enroll
 
 Ukáže jednorázové heslo z osmi číslic (jen číslice, rozložení klávesnice nevadí). Restartujte:
 objeví se „Press any key to perform MOK management“ a čeká 60 sekund – stiskněte klávesu, vyberte
-**Enroll MOK**, **Continue**, **Yes**, napište heslo, **Reboot**. Pak zapněte
-Secure Boot v nastavení firmwaru. Bez hesla: zapněte Secure Boot rovnou; když shim ukáže chybu
+**Enroll MOK**, **Continue**, **Yes**, napište heslo, **Reboot**. `enroll` zároveň zajistí, že
+další start půjde přes shim (viz [Pořadí startu ve firmwaru](#pořadí-startu-ve-firmwaru)), a vypíše,
+přes kterou položku. Až `luxos-secureboot check` řekne „Secure Boot je připravený“ (LuxOS to jednou
+ukáže i jako oznámení), zapněte Secure Boot v nastavení firmwaru. Bez hesla: zapněte Secure Boot rovnou; když shim ukáže chybu
 ověření, vyberte **Enroll key from disk** a soubor `EFI/LuxOS/luxos-secureboot.cer` na oddílu EFI.
 
 ## Instalace s vypnutým Secure Boot
@@ -76,17 +79,47 @@ any key to perform MOK management“ stiskněte klávesu, vyberte **Enroll MOK**
 napište heslo, **Reboot**. Od té chvíle jde Secure Boot kdykoli zapnout v nastavení firmwaru bez
 dalšího kroku. Instalace bez obsluhy: `SECUREBOOT_ENROLL=auto|yes|no` v `install.conf`.
 
+## Pořadí startu ve firmwaru
+
+MokManager je součást shim, takže modrá obrazovka se ukáže, jen když počítač nastartuje přes položku
+**LuxOS → `\EFI\LuxOS\shimx64.efi`**. Některý firmware má s pořadím vlastní hlavu: Acer (Insyde)
+si pro každý `\EFI\Boot\grubx64.efi` založí položku „Linpus lite“ a dá ji na první místo, HP
+a Lenovo po aktualizaci Windows vrátí dopředu Windows Boot Manager a jiný firmware změny pořadí
+rovnou ignoruje. LuxOS si s tím poradí sám:
+
+- V `EFI/BOOT` je shim (`BOOTX64.EFI`), MokManager a fallback shim `fbx64.efi`, ale žádný
+  `grubx64.efi`. Když firmware položky ztratí (reset firmwaru, nová baterie), spustí `BOOTX64.EFI`
+  a fallback podle `EFI/LuxOS/BOOTX64.CSV` položku „LuxOS“ obnoví a spustí – i se zapnutým Secure
+  Boot.
+- Při každém startu se položka LuxOS vrátí na první místo; Windows a ostatní položky zůstanou za ní
+  ve stejném pořadí. Položky, které firmware založil pro starý `EFI/BOOT/grubx64.efi` LuxOS (Acer
+  „Linpus lite“), se smažou; položek jiných systémů a jiných disků se LuxOS nikdy nedotkne.
+- Když zápis klíče čeká, když start nešel přes shim a na firmwaru, který pořadí nedodrží, nastaví
+  LuxOS navíc **BootNext** – jednorázové „příště spusť tohle“, které firmware dodrží, i když pořadí
+  ignoruje – při startu i při vypnutí.
+
+`sudo luxos-secureboot fix-boot` to všechno udělá hned a další start nastaví přes shim. Když se modrá
+obrazovka přesto neukáže, otevřete při startu nabídku startu (často F12) a vyberte „LuxOS“.
+
 ## Kontrola stavu
 
 ```
+luxos-secureboot check
 luxos-secureboot status
 mokutil --sb-state
 ```
 
+`luxos-secureboot check` řekne „Secure Boot je připravený: teď ho můžete zapnout v nastavení
+firmwaru“, jen když je klíč LuxOS zapsaný, tento start šel přes shim, položka LuxOS je první
+v pořadí startu a jádro je podepsané; jinak vypíše, co chybí a co spustit.
+
 `luxos-secureboot status` vypíše `secure_boot` (enabled, disabled, setup), `boot_path` (shim nebo
-direct), `luxos_key` (enrolled, pending, missing), `kernel` (signed / unsigned) a `loader`
-(installed / missing). Když zápis klíče čeká, ukáže znovu i heslo. `sudo luxos-secureboot cancel`
-připravený zápis zruší.
+direct), `luxos_key` (enrolled, pending, missing; po startu bez shim unknown), `kernel` (signed /
+unsigned), `loader` (installed / missing), `boot_current` a `boot_first` (shim, fallback, direct,
+other: čím nastartoval tento start a co je první v pořadí), `boot_next` (jen když je nastavený)
+a `secure_boot_ready` (yes, no, on). Bez roota nejde oddíl EFI přečíst; hodnoty pak pocházejí z kontroly
+při startu (nebo `unknown`). Řádky `hint=` radí, co dělat. Když zápis klíče čeká, ukáže
+`sudo luxos-secureboot status` znovu i heslo. `sudo luxos-secureboot cancel` připravený zápis zruší.
 
 ## Ovladače (NVIDIA, Wi-Fi)
 
@@ -101,7 +134,9 @@ v počítači (DKMS: NVIDIA, Wi-Fi Broadcom) se se Secure Boot načtou taky, nic
 |---|---|
 | Modrá obrazovka „Verification failed“ při každém startu | klíč není zapsaný: OK, pak Enroll key from disk (postup výše) |
 | „Secure Boot violation“ ještě před obrazovkou LuxOS | ve firmwaru zapnout Microsoft 3rd-party UEFI CA (viz výše) |
-| MokManager se neukázal nebo vypršel čas | žádost se zahodí; znovu `sudo luxos-secureboot enroll` a u modré obrazovky stisknout klávesu (čeká 60 sekund) |
+| MokManager se po `enroll` neukázal | počítač nenastartoval přes shim (pořadí startu ve firmwaru): `sudo luxos-secureboot fix-boot` a restart, nebo v nabídce startu (F12) vybrat „LuxOS“ |
+| U modré obrazovky vypršel čas | žádost se zahodí; znovu `sudo luxos-secureboot enroll` a u modré obrazovky stisknout klávesu (čeká 60 sekund) |
+| V nabídce startu je „Linpus lite“ (Acer) | položka, kterou firmware založil pro starý soubor LuxOS; LuxOS ji při dalším startu smaže |
 | Položka nabídky končí „- needs Secure Boot off“ | snímek nebo předchozí jádro z doby před podepsanými jádry; startuje jen s vypnutým Secure Boot. Hlavní položka LuxOS a LuxOS Recovery startují vždy; takové položky zmizí s úklidem starých snímků |
 | Reset firmwaru | seznam MOK většinou zůstane; jinak klíč znovu z `EFI/LuxOS/luxos-secureboot.cer` |
 

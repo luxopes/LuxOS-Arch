@@ -4941,3 +4941,28 @@ show the Secure Boot state, LuxOS key, boot path and signatures	toon de status v
 install shim and the signed boot menu on the EFI partition (automatic)	shim en het ondertekende opstartmenu op de EFI-partitie installeren (automatisch)
 prepare enrolling the LuxOS key: shows a one-time password for the next start	registratie van de LuxOS-sleutel voorbereiden: toont een eenmalig wachtwoord voor de volgende start
 cancel a prepared enrollment	voorbereide registratie annuleren
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS"), which shows the blue screen.	De volgende start loopt via shim (UEFI-opstartitem Boot%s "LuxOS"), dat het blauwe scherm toont.
+If the blue screen does not appear: open the boot menu while the computer starts (often F12, F11, F8 or Esc) and choose "LuxOS".	Als het blauwe scherm niet verschijnt: open bij het starten van de computer het opstartmenu (vaak F12, F11, F8 of Esc) en kies "LuxOS".
+Note: this start did not go through shim (the firmware started another boot entry first). The boot order has been fixed.	Let op: deze start liep niet via shim (de firmware startte eerst een ander opstartitem). De opstartvolgorde is hersteld.
+The firmware keeps its own boot order; LuxOS sets the next start through shim at every shutdown instead.	De firmware houdt zijn eigen opstartvolgorde aan; daarom stelt LuxOS bij elke keer afsluiten de volgende start via shim in.
+Could not create the UEFI boot entry. Choose "LuxOS" or the disk in the boot menu while the computer starts (often F12).	Het UEFI-opstartitem kon niet worden gemaakt. Kies bij het starten van de computer in het opstartmenu (vaak F12) "LuxOS" of de schijf.
+LuxOS (shim) is the first entry in the firmware boot order.	LuxOS (shim) is het eerste item in de opstartvolgorde van de firmware.
+The next start goes through shim (UEFI boot entry Boot%s "LuxOS").	De volgende start loopt via shim (UEFI-opstartitem Boot%s "LuxOS").
+The next start will not show the enrollment screen (the firmware starts another boot entry first). Run: sudo luxos-secureboot fix-boot	Bij de volgende start verschijnt het scherm voor het registreren van de sleutel niet (de firmware start eerst een ander item). Voer uit: sudo luxos-secureboot fix-boot
+Secure Boot ready: you can now turn it on in the firmware settings.	Secure Boot is klaar: u kunt het nu inschakelen in de firmware-instellingen.
+Some details need root: sudo luxos-secureboot status	Sommige gegevens hebben root nodig: sudo luxos-secureboot status
+This computer was not started in UEFI mode - Secure Boot is not available.	Deze computer is niet in UEFI-modus gestart – Secure Boot is niet beschikbaar.
+Secure Boot is on.	Secure Boot is ingeschakeld.
+Do not turn on Secure Boot yet:	Schakel Secure Boot nog niet in:
+the firmware has no Secure Boot keys (Setup Mode): restore the factory keys in the firmware settings	de firmware heeft geen Secure Boot-sleutels (Setup Mode): herstel de fabriekssleutels in de firmware-instellingen
+the LuxOS key is not enrolled: run sudo luxos-secureboot enroll	de LuxOS-sleutel is niet geregistreerd: voer sudo luxos-secureboot enroll uit
+the LuxOS key waits for confirmation: restart and confirm it in the blue MokManager screen	de LuxOS-sleutel wacht op bevestiging: herstart en bevestig hem in het blauwe MokManager-scherm
+cannot check the LuxOS key (mokutil is missing)	de LuxOS-sleutel kan niet worden gecontroleerd (mokutil ontbreekt)
+LuxOS (shim) is not the first entry in the firmware boot order: run sudo luxos-secureboot fix-boot	LuxOS (shim) is niet het eerste item in de opstartvolgorde van de firmware: voer sudo luxos-secureboot fix-boot uit
+this start did not go through shim: restart the computer once more	deze start liep niet via shim: herstart de computer nog een keer
+the kernel is not signed with the LuxOS key: update the system (lux update)	de kernel is niet ondertekend met de LuxOS-sleutel: werk het systeem bij (lux update)
+cannot check the kernel signature without root: sudo luxos-secureboot check	de kernelhandtekening kan zonder root niet worden gecontroleerd: sudo luxos-secureboot check
+Secure Boot ready	Secure Boot is klaar
+The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	De LuxOS-sleutel is geregistreerd en LuxOS start via shim. U kunt Secure Boot nu inschakelen in de firmware-instellingen.
+tell whether Secure Boot can be turned on in the firmware now	laten zien of Secure Boot nu in de firmware kan worden ingeschakeld
+put LuxOS (shim) first in the firmware boot order and start through it next time	LuxOS (shim) als eerste in de opstartvolgorde van de firmware zetten en de volgende keer daarlangs starten

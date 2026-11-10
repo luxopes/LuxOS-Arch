@@ -71,7 +71,8 @@ Boot2003* EFI Network	RC'
 order_case gab aa636640-a04e-4c1d-b408-c25880321fe8 <<<"$GAB"
 expect "Acer jako u uzivatele: LuxOS dopredu, zbytek ve stejnem poradi" grep -qx 'efibootmgr -q -o 0003,0000,0002,2001,2002,2003' "$OUT/gab.cmds"
 order_case first aa636640-a04e-4c1d-b408-c25880321fe8 <<<"${GAB/BootOrder: 0000,0002,2001,0003,2002,2003/BootOrder: 0003,0000,0002}"
-expect "uz prvni: beze zmeny" test ! -s "$OUT/first.cmds"
+expect "uz prvni: poradi beze zmeny, jen BootNext" bash -c "! grep -q -- ' -o ' '$OUT/first.cmds' && grep -qx 'efibootmgr -q -n 0003' '$OUT/first.cmds'"
+expect "Acer: BootNext na LuxOS (prvni start urcite LuxOS, i kdyz firmware poradi zmeni)" grep -qx 'efibootmgr -q -n 0003' "$OUT/gab.cmds"
 order_case none aa636640-a04e-4c1d-b408-c25880321fe8 <<<"$(grep -v '^Boot0003' <<<"$GAB")"
 expect "bez polozky LuxOS: beze zmeny" test ! -s "$OUT/none.cmds"
 order_case otherdisk 11111111-2222-3333-4444-555555555555 <<<"$GAB"
@@ -82,6 +83,23 @@ order_case shim aa636640-a04e-4c1d-b408-c25880321fe8 <<<"${GAB/File(\\EFI\\syste
 expect "Secure Boot: polozka LuxOS -> shim (EFI/LuxOS/shimx64.efi) taky dopredu" grep -qx 'efibootmgr -q -o 0003,0000,0002,2001,2002,2003' "$OUT/shim.cmds"
 order_case othershim aa636640-a04e-4c1d-b408-c25880321fe8 <<<"$(grep -v '^Boot0003' <<<"$GAB")"
 expect "shim jine distribuce (debian) se za LuxOS nepovazuje" test ! -s "$OUT/othershim.cmds"
+# Sdileny ESP po LuxOS 1.0.x (Acer majitele): stara prima polozka LuxOS 0000 je ve vypisu pred polozkou
+# shim 0003 - s LUXOS_LOADER = shim se musi vybrat shim (jinak se MokManager pri prvnim startu neukaze)
+ACER='BootCurrent: 0000
+Timeout: 0 seconds
+BootOrder: 0002,0000,2001,0003,2002,2003
+Boot0000* LuxOS	HD(1,GPT,aa636640-a04e-4c1d-b408-c25880321fe8,0x800,0x200000)/\EFI\systemd\systemd-bootx64.efi
+Boot0002* Linpus lite	HD(1,GPT,aa636640-a04e-4c1d-b408-c25880321fe8,0x800,0x200000)/\EFI\Boot\grubx64.efi RC
+Boot0003* LuxOS	HD(1,GPT,aa636640-a04e-4c1d-b408-c25880321fe8,0x800,0x200000)/\EFI\LuxOS\shimx64.efi
+Boot0004* Windows Boot Manager	HD(1,GPT,cccc-3333,0x800,0x32000)/\EFI\Microsoft\Boot\bootmgfw.efi
+Boot2001* EFI USB Device	RC
+Boot2002* EFI DVD/CDROM	RC
+Boot2003* EFI Network	RC'
+LUXOS_LOADER='\EFI\LuxOS\shimx64.efi' order_case acershim aa636640-a04e-4c1d-b408-c25880321fe8 <<<"$ACER"
+expect "Secure Boot na sdilenem ESP (Acer): shim 0003 prvni a BootNext, ne stara prima polozka 0000" \
+    bash -c "grep -qx 'efibootmgr -q -o 0003,0002,0000,2001,2002,2003' '$OUT/acershim.cmds' && grep -qx 'efibootmgr -q -n 0003' '$OUT/acershim.cmds'"
+LUXOS_LOADER='\EFI\systemd\systemd-bootx64.efi' order_case acerdirect aa636640-a04e-4c1d-b408-c25880321fe8 <<<"$ACER"
+expect "bez Secure Boot (LUXOS_LOADER = systemd-boot): prima polozka 0000" grep -qx 'efibootmgr -q -o 0000,0002,2001,0003,2002,2003' "$OUT/acerdirect.cmds"
 order_case noefi "" <<<""
 expect "bez EFI promennych: nic" test ! -s "$OUT/noefi.cmds"
 

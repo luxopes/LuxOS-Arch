@@ -1,6 +1,6 @@
 # Maintainer: LuxOS Team
 # Secure Boot pro LuxOS na beznych pocitacich s Windows (klice Microsoftu v UEFI), bez vypinani Secure Boot:
-#   shimx64.efi + mmx64.efi (MokManager) - beze zmeny z Fedory (shim-x64 16.1-7, Koji), shim podepsany
+#   shimx64.efi + mmx64.efi (MokManager) + fbx64.efi (fallback) - beze zmeny z Fedory (shim-x64 16.1-7, Koji), shim podepsany
 #     Microsoft UEFI CA 2011 i 2023 (bezi na starsich i novych pocitacich); licence BSD-2-Clause (shim-COPYRIGHT),
 #     volne sireni (stejny soubor siri Fedora i AUR shim-signed). Vestaveny certifikat dodavatele = Fedora.
 #   systemd-bootx64.efi - z balicku systemd sestavovaciho prostredi; podepisuje ho klicem LuxOS az spravce
@@ -12,7 +12,7 @@
 
 pkgname=luxos-secureboot
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 _shimver=16.1
 _shimrel=7
 pkgdesc="LuxOS Secure Boot - Microsoft-signed shim, MokManager, systemd-boot signed with the LuxOS key, enrollment tool"
@@ -49,6 +49,12 @@ package() {
     local s="$srcdir/shim/usr/lib/efi/shim/$_shimver-$_shimrel/EFI" f="$startdir/files"
     install -Dm644 "$s/fedora/shimx64.efi" "$pkgdir/usr/lib/luxos/secureboot/shimx64.efi"
     install -Dm644 "$s/fedora/mmx64.efi" "$pkgdir/usr/lib/luxos/secureboot/mmx64.efi"
+    # fallback shim do EFI/BOOT misto kopie systemd-boot jako grubx64.efi (Acer "Linpus lite"): podle
+    # EFI/LuxOS/BOOTX64.CSV obnovi polozku UEFI "LuxOS" -> shim a spusti ji (UCS-2 s BOM jako Fedora)
+    install -Dm644 "$s/BOOT/fbx64.efi" "$pkgdir/usr/lib/luxos/secureboot/fbx64.efi"
+    printf 'shimx64.efi,LuxOS,,This is the boot entry for LuxOS\n' | iconv -f UTF-8 -t UTF-16LE |
+        { printf '\xff\xfe'; cat; } >"$pkgdir/usr/lib/luxos/secureboot/BOOTX64.CSV"
+    chmod 644 "$pkgdir/usr/lib/luxos/secureboot/BOOTX64.CSV"
     # kopie systemd-boot k podpisu klicem LuxOS (scripts/sb-sign.sh: usr/lib/luxos/secureboot/systemd-boot*.efi)
     install -Dm644 /usr/lib/systemd/boot/efi/systemd-bootx64.efi "$pkgdir/usr/lib/luxos/secureboot/systemd-bootx64.efi"
     install -Dm644 "$f/luxos-secureboot.pem" "$pkgdir/usr/share/luxos/secureboot/luxos-secureboot.pem"
@@ -57,5 +63,6 @@ package() {
     install -Dm755 "$f/luxos-secureboot" "$pkgdir/usr/bin/luxos-secureboot"
     install -Dm644 "$f/luxos-secureboot.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-secureboot.hook"
     install -Dm644 "$f/luxos-secureboot-sync.service" "$pkgdir/usr/lib/systemd/system/luxos-secureboot-sync.service"
+    install -Dm644 "$f/luxos-secureboot-notify.desktop" "$pkgdir/etc/xdg/autostart/luxos-secureboot-notify.desktop"
     install -Dm644 "$f/shim-COPYRIGHT" "$pkgdir/usr/share/licenses/$pkgname/shim-COPYRIGHT"
 }
