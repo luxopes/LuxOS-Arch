@@ -1,0 +1,75 @@
+#!/bin/bash
+# LuxOS - mkinitcpio hook "luxos-slim": mensi initramfs a zadny poskozeny initramfs na plnem EFI oddilu.
+# Pridava ho /etc/mkinitcpio.conf.d/zz-luxos-slim.conf hned za "autodetect" (bez autodetect na konec).
+#
+# 1. Moduly zakazane v modprobe.d (blacklist) nebo na prikazove radce jadra, ktere zrovna nejsou nactene,
+#    se z autodetekce vyradi - initramfs by je stejne nikdy nenacetl (modconf do nej kopiruje stejny
+#    blacklist). Hlavne nouveau na pocitacich s ovladacem NVIDIA: hook kms ho jinak prida i s firmwarem
+#    vsech generaci karet NVIDIA (~110 MB, uz komprimovaneho zstd) - initramfs mel 172 MB a 1GB EFI
+#    oddil se snimky systemu zaplnil. Moduly v MODULES=() a obrazy bez autodetect se nemeni.
+# 2. Malo mista pro novy obraz: mkinitcpio pise do docasneho souboru jen kdyz je volno aspon 1,25 x
+#    velikost stareho obrazu, jinak primo do nej - pri "No space left on device" by zustal useknuty
+#    initramfs a system by nenastartoval. Hook nejdriv necha LuxOS Care uvolnit misto (stare sady jadra
+#    snimku, zbytky), a kdyz to nestaci, sestaveni zastavi drive, nez se stary obraz zmeni (chyba).
+# Testy: packages/luxos-tweaks/tests/test-slim.sh
+
+build() {
+    _luxos_slim_blacklist
+    _luxos_slim_space
+}
+
+_luxos_slim_blacklist() {
+    local m kw rest p
+    local -A bl=() loaded=()
+    local -a gone=() words=()
+    # autodetect neprobehl (zalozni / genericky obraz, live ISO): nic
+    (( ${#_autodetect_cache[@]} )) || return 0
+    while read -r kw m rest; do
+        [[ $kw == blacklist && -n $m ]] && bl["${m//-/_}"]=1
+    done < <(modprobe -c 2>/dev/null)
+    read -ra words <"${LUXOS_SLIM_CMDLINE:-/proc/cmdline}" 2>/dev/null || true
+    for p in "${words[@]}"; do
+        case $p in
+            module_blacklist=*|modprobe.blacklist=*)
+                IFS=, read -ra rest <<<"${p#*=}"
+                for m in "${rest[@]}"; do [[ -n $m ]] && bl["${m//-/_}"]=1; done ;;
+        esac
+    done
+    (( ${#bl[@]} )) || return 0
+    while read -r m _; do loaded["$m"]=1; done < <(cat "${LUXOS_SLIM_MODULES:-/proc/modules}" 2>/dev/null)
+    for m in "${!bl[@]}"; do
+        if [[ -n ${_autodetect_cache[$m]+x} && -z ${loaded[$m]+x} ]]; then
+            unset "_autodetect_cache[$m]"
+            gone+=("$m")
+        fi
+    done
+    (( ${#gone[@]} )) && msg2 "Blacklisted modules left out (not loaded): %s" "${gone[*]}"
+    return 0
+}
+
+_luxos_slim_space() {
+    local out=${_optgenimg-} dir cur need free
+    [[ -n $out && -f $out ]] || return 0
+    dir=$(dirname -- "$out")
+    cur=$(stat -c %s -- "$out" 2>/dev/null) || return 0
+    # mkinitcpio: docasny soubor jen pri volnu > 1,25 x stary obraz; + 16 MB rezerva
+    need=$(( cur + cur / 4 + 16 * 1024 * 1024 ))
+    free=$(( $(stat -f -c '%a*%S' -- "$dir" 2>/dev/null || echo 0) ))
+    (( free > need )) && return 0
+    if [[ -x ${LUXOS_SLIM_CARE:-/usr/bin/luxos-care} ]]; then
+        "${LUXOS_SLIM_CARE:-/usr/bin/luxos-care}" esp-clean --need "$need" --path "$dir" >/dev/null 2>&1 || true
+        free=$(( $(stat -f -c '%a*%S' -- "$dir" 2>/dev/null || echo 0) ))
+        (( free > need )) && return 0
+    fi
+    error "Not enough space in %s for a new initramfs (%s MB free, %s MB needed). The current image '%s' was kept." \
+        "$dir" "$(( free / 1048576 ))" "$(( (need + 1048575) / 1048576 ))" "$out"
+    exit 1
+}
+
+help() {
+    cat <<HELPEOF
+LuxOS: leaves blacklisted kernel modules that are not loaded (e.g. nouveau next to the NVIDIA
+driver, with the firmware of all NVIDIA GPUs) out of an autodetected image, and refuses to build
+when the boot partition has no room for a new image instead of leaving a truncated one.
+HELPEOF
+}

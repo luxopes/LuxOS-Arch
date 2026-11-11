@@ -163,12 +163,24 @@ set -eu
 . /etc/luxos/esp.conf
 mountpoint -q "${ESP_DIR%%/EFI/*}" || { echo "luxos-esp-sync: ESP is not mounted" >&2; exit 0; }
 mkdir -p "$ESP_DIR"
+# Jadro a initramfs patri k sobe: nejdriv obe kopie (.new, fsync, kontrola obsahu), az pak obe prejmenovat.
+# Plny ESP (No space left on device): .new pryc, funkcni par na ESP zustava, chyba (kod 1).
+todo=()
 for f in "vmlinuz-$KERNEL" "initramfs-$KERNEL.img"; do
     [[ -e /boot/$f ]] || continue
-    cmp -s "/boot/$f" "$ESP_DIR/$f" && continue
-    cp "/boot/$f" "$ESP_DIR/$f.new"
-    mv -f "$ESP_DIR/$f.new" "$ESP_DIR/$f"
+    cmp -s "/boot/$f" "$ESP_DIR/$f" || todo+=("$f")
 done
+((${#todo[@]})) || exit 0
+for f in "${todo[@]}"; do
+    rm -f "$ESP_DIR/$f.new"
+    if ! cp "/boot/$f" "$ESP_DIR/$f.new" || ! sync "$ESP_DIR/$f.new" || ! cmp -s "/boot/$f" "$ESP_DIR/$f.new"; then
+        for g in "${todo[@]}"; do rm -f "$ESP_DIR/$g.new"; done
+        echo "luxos-esp-sync: copying $f to the EFI system partition failed (not enough space?) - the previous kernel there was kept" >&2
+        exit 1
+    fi
+done
+for f in "${todo[@]}"; do mv -f "$ESP_DIR/$f.new" "$ESP_DIR/$f"; done
+sync "$ESP_DIR" 2>/dev/null || true
 S
     # Po kazde transakci spravce baliku (po mkinitcpio) a po rucnim mkinitcpio
     install -Dm644 /dev/stdin /etc/lux/hooks/99-luxos-esp-sync.hook <<'H'

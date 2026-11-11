@@ -4966,3 +4966,20 @@ Secure Boot ready	Secure Boot è pronto
 The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	La chiave LuxOS è registrata e LuxOS si avvia tramite shim. Ora puoi attivare Secure Boot nelle impostazioni del firmware.
 tell whether Secure Boot can be turned on in the firmware now	indica se ora Secure Boot si può attivare nel firmware
 put LuxOS (shim) first in the firmware boot order and start through it next time	mettere LuxOS (shim) al primo posto nell’ordine di avvio del firmware e avviare da lì la prossima volta
+# Partizione EFI: spazio, bootloader e initramfs danneggiati
+Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed.	Spazio insufficiente nella partizione EFI: servono %s MB, liberi %s MB. Non è stato modificato nulla.
+Package file %s is missing or empty - the boot loader was not changed.	Il file del pacchetto %s manca o è vuoto: il bootloader non è stato modificato.
+Writing %s failed: %s. The previous file was kept.	Scrittura di %s non riuscita: %s. Il file precedente è stato mantenuto.
+the copy does not match the package	la copia non corrisponde al pacchetto
+The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync	Non è stato possibile aggiornare il bootloader Secure Boot nella partizione EFI. I file precedenti sono stati mantenuti e LuxOS si avvia come prima. Libera spazio nella partizione EFI (per esempio: sudo luxos-care esp-clean) ed esegui: sudo luxos-secureboot sync
+Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync	I file del bootloader nella partizione EFI sono danneggiati (%s). Esegui: sudo luxos-secureboot sync
+boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync	i file del bootloader nella partizione EFI sono danneggiati (%s): esegui sudo luxos-secureboot sync
+The boot partition is almost full	La partizione di avvio è quasi piena
+The boot image of the kernel is damaged	L'immagine di avvio del kernel è danneggiata
+Boot loader files on the EFI partition are damaged	I file del bootloader nella partizione EFI sono danneggiati
+free space on the boot partition: leftovers and older snapshot kernels (root)	libera spazio nella partizione di avvio: residui e kernel di snapshot meno recenti (root)
+No boot partition with LuxOS kernels was found.	Nessuna partizione di avvio con kernel LuxOS trovata.
+Removed the kernel of older snapshots: %s	Rimosso il kernel di snapshot meno recenti: %s
+Free space on the boot partition: %d MB	Spazio libero nella partizione di avvio: %d MB
+The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	L'immagine di avvio è danneggiata (%s) e non è stato possibile ricrearla. Non riavviare ancora il computer: libera spazio nella partizione di avvio ed esegui: sudo mkinitcpio -P
+The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	La partizione EFI è più piccola di 1 GB: dal menu di avvio si potranno avviare meno snapshot del sistema.

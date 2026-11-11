@@ -114,14 +114,96 @@ find_esp() {
 # Zavadecem LuxOS je systemd-boot (polozka LuxOS v loader/entries tohoto ESP)
 luxos_sdboot() { compgen -G "$1/loader/entries/luxos*.conf" >/dev/null; }
 
-# put SRC DST - kopie jen pri zmene, atomicky (.new + mv) a s fsync, at vypadek proudu nenecha pulku souboru
+# --- Zapis na ESP -----------------------------------------------------------
+# ESP (FAT, casto jen 100 MB - 1 GB) muze byt plny: kazdy zapis nejdriv overi misto, pise do docasneho
+# souboru, fsync, overi velikost a obsah proti balicku a az pak ho atomicky prejmenuje. Pri jakekoli chybe
+# zustava stary (funkcni) soubor, zadny prazdny ani neuplny soubor nezustane a vysledek je chyba (kod != 0).
+# (Drive "put ... && changed=1": set -e v podmince neplati - cp skoncil "No space left on device",
+# ale mv presto prepsal shim prazdnym souborem a BootNext pak vedl do prazdna.)
+ESP_MARGIN=$((1024 * 1024))   # rezerva: clustery FAT, polozky adresare
+WRITE_ERR=""
+
+fsize() { local s; s=$(stat -c %s -- "$1" 2>/dev/null) || s=0; echo "${s:-0}"; }
+
+# esp_free ADRESAR -> volne bajty (prazdne = nelze zjistit)
+esp_free() { df -B1 --output=avail -- "$1" 2>/dev/null | tail -n1 | tr -d ' '; }
+
+# efi_ok SOUBOR -> 0 = neprazdny soubor PE/EFI (zacina "MZ")
+efi_ok() { [[ -f $1 && -s $1 ]] && [[ $(LC_ALL=C head -c2 -- "$1" 2>/dev/null) == MZ ]]; }
+
+# own_leftover SOUBOR ZDROJ... -> 0 = prazdny soubor nebo neuplna kopie (zacatek) nektereho ze zdroju:
+# zbytek naseho preruseneho zapisu, ne cizi zavadec
+own_leftover() {
+    local f=$1 n src; shift
+    [[ -f $f ]] || return 1
+    n=$(fsize "$f")
+    ((n == 0)) && return 0
+    for src; do
+        [[ -f $src ]] && ((n < $(fsize "$src"))) && cmp -s -n "$n" -- "$f" "$src" && return 0
+    done
+    return 1
+}
+
+mb() { echo $((($1 + 1048575) / 1048576)); }  # bajty -> MB (nahoru)
+
+no_space() {  # no_space POTREBA VOLNO -> WRITE_ERR
+    WRITE_ERR=$(T "Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed." \
+        "$(mb "$1")" "$(($2 / 1048576))")
+}
+
+# esp_room ADRESAR SRC DST [SRC DST...] -> 0 = misto pro vsechny zmenene soubory (+ rezerva), jinak WRITE_ERR.
+# Jednou pred celou sadou: radeji nic nez pulka zmen.
+esp_room() {
+    local dir=$1 need=0 free; shift
+    while (($# >= 2)); do
+        cmp -s -- "$1" "$2" 2>/dev/null || need=$((need + $(fsize "$1")))
+        shift 2
+    done
+    ((need)) || return 0
+    need=$((need + ESP_MARGIN))
+    free=$(esp_free "$dir")
+    [[ $free =~ ^[0-9]+$ ]] || return 0
+    ((free >= need)) && return 0
+    no_space "$need" "$free"
+    return 1
+}
+
+write_failed() {  # write_failed CIL CHYBA -> WRITE_ERR
+    WRITE_ERR=$(T "Writing %s failed: %s. The previous file was kept." "${1#"${ESP_DIR:-}"/}" "$2")
+}
+
+# put SRC DST -> 0 = zapsano, 1 = beze zmeny, 2 = chyba (WRITE_ERR; stary soubor beze zmeny)
 put() {
-    local src=$1 dst=$2
-    cmp -s "$src" "$dst" 2>/dev/null && return 1
-    mkdir -p "${dst%/*}"
-    cp "$src" "$dst.luxos-new"
-    sync -f "$dst.luxos-new" 2>/dev/null || sync
-    mv -f "$dst.luxos-new" "$dst"
+    local src=$1 dst=$2 tmp size free err
+    cmp -s -- "$src" "$dst" 2>/dev/null && return 1
+    size=$(fsize "$src")
+    if ((size == 0)); then
+        WRITE_ERR=$(T "Package file %s is missing or empty - the boot loader was not changed." "$src")
+        return 2
+    fi
+    tmp=$dst.luxos-new
+    if ! err=$(mkdir -p -- "${dst%/*}" 2>&1); then write_failed "$dst" "${err##*: }"; return 2; fi
+    rm -f -- "$tmp"
+    free=$(esp_free "${dst%/*}")
+    if [[ $free =~ ^[0-9]+$ ]] && ((free < size + ESP_MARGIN)); then
+        no_space $((size + ESP_MARGIN)) "$free"
+        return 2
+    fi
+    # kopie -> fsync -> stejna velikost a obsah jako v balicku -> prejmenovani (atomicke) -> fsync adresare
+    err=""
+    if ! err=$(cp -- "$src" "$tmp" 2>&1) || ! err=$(sync -- "$tmp" 2>&1) ||
+            [[ $(fsize "$tmp") != "$size" ]] || ! cmp -s -- "$src" "$tmp"; then
+        rm -f -- "$tmp"
+        err=${err##*: }
+        write_failed "$dst" "${err:-$(T "the copy does not match the package")}"
+        return 2
+    fi
+    if ! err=$(mv -f -- "$tmp" "$dst" 2>&1); then
+        rm -f -- "$tmp"
+        write_failed "$dst" "${err##*: }"
+        return 2
+    fi
+    sync -- "${dst%/*}" 2>/dev/null || true
     return 0
 }
 
@@ -131,44 +213,123 @@ ci_file() {  # ci_file ADRESAR NAZEV -> existujici soubor bez ohledu na velikost
 
 is_sdboot() { [[ -f $1 ]] && grep -qa 'systemd-boot' "$1" && grep -qa '#### LoaderInfo: systemd-boot' "$1"; }
 
-install_esp() {  # install_esp ESP -> vypise, co zmenil
-    local esp=$1 dir boot bootx old changed=0
-    dir=$(ci_file "$esp/EFI" LuxOS); dir=${dir:-$esp/EFI/LuxOS}
-    put "$LIB/shimx64.efi" "$dir/shimx64.efi" && changed=1
-    put "$LIB/mmx64.efi" "$dir/mmx64.efi" && changed=1
-    put "$LIB/systemd-bootx64.efi" "$dir/grubx64.efi" && changed=1
-    # certifikat pro MokManager "Enroll key from disk" (napr. po resetu firmwaru)
-    put "$CERT_DER" "$dir/luxos-secureboot.cer" && changed=1
-    # pro fallback shim (EFI/BOOT/fbx64.efi): "shimx64.efi,LuxOS,,..." (UCS-2) - obnovi polozku UEFI
-    if [[ -f $LIB/BOOTX64.CSV ]]; then put "$LIB/BOOTX64.CSV" "$dir/BOOTX64.CSV" && changed=1; fi
-    ((changed)) && say "Secure Boot loader updated in ${dir#"$esp"/}"
+# Soubory, ktere shim LuxOS ke startu potrebuje: EFI/LuxOS/shimx64.efi a grubx64.efi (systemd-boot)
+luxos_dir() { local d; d=$(ci_file "$1/EFI" LuxOS); echo "${d:-$1/EFI/LuxOS}"; }
+shim_ok() { local d; d=$(luxos_dir "$1"); efi_ok "$d/shimx64.efi" && efi_ok "$d/grubx64.efi"; }
 
-    # Zalozni zavadec EFI/BOOT/BOOTX64.EFI: jen kdyz chybi, je to systemd-boot nebo uz nas shim.
-    # Cizi (Windows, shim jine distribuce) se nikdy neprepisuje.
+# broken_files ESP -> poskozene zavadece LuxOS (relativne k ESP, kazdy na radku): prazdne, neuplne nebo bez
+# hlavicky PE v EFI/LuxOS; v EFI/BOOT prazdne soubory a neuplne kopie nasich (cizi zavadece se neposuzuji)
+broken_files() {
+    local esp=$1 dir boot f n
+    dir=$(ci_file "$esp/EFI" LuxOS)
+    if [[ -n $dir ]]; then
+        for n in shimx64.efi mmx64.efi grubx64.efi; do
+            f=$(ci_file "$dir" "$n")
+            if [[ -n $f ]] && ! efi_ok "$f"; then echo "${f#"$esp"/}"; fi
+        done
+    fi
+    boot=$(ci_file "$esp/EFI" BOOT)
+    if [[ -n $boot ]]; then
+        for n in BOOTX64.EFI mmx64.efi fbx64.efi grubx64.efi; do
+            f=$(ci_file "$boot" "$n")
+            [[ -n $f ]] || continue
+            if own_leftover "$f" "$LIB/shimx64.efi" "$LIB/mmx64.efi" "$LIB/fbx64.efi" "$LIB/systemd-bootx64.efi"; then
+                echo "${f#"$esp"/}"
+            fi
+        done
+    fi
+    return 0
+}
+
+# Zbytky prerusenych zapisu (*.luxos-new) v nasich adresarich
+clean_partial() {
+    local d
+    for d in "$(ci_file "$1/EFI" LuxOS)" "$(ci_file "$1/EFI" BOOT)"; do
+        if [[ -n $d ]]; then find "$d" -maxdepth 1 -type f -name '*.luxos-new' -delete 2>/dev/null || true; fi
+    done
+    return 0
+}
+
+# inst SRC DST -> put; CHANGED=1 pri zmene, FAILED=1 + chyba na stderr pri chybe
+CHANGED=0 FAILED=0
+inst() {
+    local rc=0
+    put "$1" "$2" || rc=$?
+    case $rc in
+        0) CHANGED=1 ;;
+        2) FAILED=1; warn "$WRITE_ERR" ;;
+    esac
+    return 0
+}
+
+install_esp() {  # install_esp ESP -> vypise, co zmenil; 1 = neco se nezapsalo (stare soubory zustaly)
+    local esp=$1 dir boot bootx old mm fb rc=0
+    local -a set
+    clean_partial "$esp"
+    dir=$(luxos_dir "$esp")
+    set=("$LIB/systemd-bootx64.efi" "$dir/grubx64.efi" "$LIB/mmx64.efi" "$dir/mmx64.efi"
+         "$LIB/shimx64.efi" "$dir/shimx64.efi" "$CERT_DER" "$dir/luxos-secureboot.cer")
+    # pro fallback shim (EFI/BOOT/fbx64.efi): "shimx64.efi,LuxOS,,..." (UCS-2) - obnovi polozku UEFI
+    if [[ -f $LIB/BOOTX64.CSV ]]; then set+=("$LIB/BOOTX64.CSV" "$dir/BOOTX64.CSV"); fi
+    if ! esp_room "$esp" "${set[@]}"; then
+        warn "$WRITE_ERR"
+        return 1
+    fi
+    CHANGED=0 FAILED=0
+    # systemd-boot (druha faze) a MokManager pred shim: shim se zapise jen kdyz je vse, co spousti, v poradku
+    inst "$LIB/systemd-bootx64.efi" "$dir/grubx64.efi"
+    inst "$LIB/mmx64.efi" "$dir/mmx64.efi"
+    ((FAILED)) || inst "$LIB/shimx64.efi" "$dir/shimx64.efi"
+    # certifikat pro MokManager "Enroll key from disk" (napr. po resetu firmwaru)
+    inst "$CERT_DER" "$dir/luxos-secureboot.cer"
+    if [[ -f $LIB/BOOTX64.CSV ]]; then inst "$LIB/BOOTX64.CSV" "$dir/BOOTX64.CSV"; fi
+    ((FAILED)) && rc=1
+    ((CHANGED && !FAILED)) && say "Secure Boot loader updated in ${dir#"$esp"/}"
+
+    # Zalozni zavadec EFI/BOOT/BOOTX64.EFI: jen kdyz chybi, je to systemd-boot, uz nas shim nebo zbytek
+    # naseho preruseneho zapisu (prazdny / neuplny). Cizi (Windows, shim jine distribuce) se nikdy neprepisuje.
     # BOOTX64.EFI = shim a vedle nej fbx64.efi: shim pak misto grubx64.efi spusti fallback, ktery podle
     # EFI/LuxOS/BOOTX64.CSV zalozi (nebo vrati na prvni misto) polozku "LuxOS" -> shim a spusti ji.
     # grubx64.efi v EFI/BOOT neni: Acer pro nej sam zaklada polozku "Linpus lite" na prvnim miste, ktera
     # spousti systemd-boot bez shim (MokManager se nikdy neukaze, se Secure Boot se nenastartuje).
     boot=$(ci_file "$esp/EFI" BOOT); boot=${boot:-$esp/EFI/BOOT}
     bootx=$(ci_file "$boot" BOOTX64.EFI); bootx=${bootx:-$boot/BOOTX64.EFI}
-    if [[ ! -e $bootx ]] || cmp -s "$bootx" "$LIB/shimx64.efi" || is_sdboot "$bootx"; then
-        changed=0
+    if [[ ! -e $bootx ]] || cmp -s "$bootx" "$LIB/shimx64.efi" || is_sdboot "$bootx" ||
+            own_leftover "$bootx" "$LIB/shimx64.efi" "$LIB/systemd-bootx64.efi"; then
+        mm=$(ci_file "$boot" mmx64.efi); mm=${mm:-$boot/mmx64.efi}
+        fb=$(ci_file "$boot" fbx64.efi); fb=${fb:-$boot/fbx64.efi}
+        old=$(ci_file "$boot" grubx64.efi)
+        CHANGED=0 FAILED=0
         # nejdriv vse, co shim potrebuje, BOOTX64.EFI az potom a stara kopie grubx64.efi az nakonec
-        # (vypadek proudu kdykoli mezi tim: shim najde bud fallback, nebo jeste grubx64.efi)
-        put "$LIB/mmx64.efi" "$(ci_file "$boot" mmx64.efi | grep . || echo "$boot/mmx64.efi")" && changed=1
+        # (vypadek proudu kdykoli mezi tim: shim najde bud fallback, nebo jeste grubx64.efi);
+        # kdyz se neco nezapise, BOOTX64.EFI zustava, jak byl
         if [[ -f $LIB/fbx64.efi && -f $LIB/BOOTX64.CSV ]]; then
-            put "$LIB/fbx64.efi" "$(ci_file "$boot" fbx64.efi | grep . || echo "$boot/fbx64.efi")" && changed=1
-            put "$LIB/shimx64.efi" "$bootx" && changed=1
-            old=$(ci_file "$boot" grubx64.efi)
-            if [[ -n $old ]] && is_sdboot "$old"; then rm -f "$old" && changed=1; fi
+            if esp_room "$esp" "$LIB/mmx64.efi" "$mm" "$LIB/fbx64.efi" "$fb" "$LIB/shimx64.efi" "$bootx"; then
+                inst "$LIB/mmx64.efi" "$mm"
+                inst "$LIB/fbx64.efi" "$fb"
+                ((FAILED)) || inst "$LIB/shimx64.efi" "$bootx"
+                # nase stara kopie systemd-boot nebo jeji prazdny/neuplny zbytek; cizi grubx64.efi zustava
+                if ((!FAILED)) && [[ -n $old ]] && { is_sdboot "$old" || own_leftover "$old" "$LIB/systemd-bootx64.efi"; }; then
+                    rm -f -- "$old" && CHANGED=1
+                fi
+            else
+                warn "$WRITE_ERR"; FAILED=1
+            fi
         else
             # balik bez fallbacku (starsi sestaveni): shim spusti grubx64.efi ze sveho adresare
-            put "$LIB/systemd-bootx64.efi" "$(ci_file "$boot" grubx64.efi | grep . || echo "$boot/grubx64.efi")" && changed=1
-            put "$LIB/shimx64.efi" "$bootx" && changed=1
+            old=${old:-$boot/grubx64.efi}
+            if esp_room "$esp" "$LIB/mmx64.efi" "$mm" "$LIB/systemd-bootx64.efi" "$old" "$LIB/shimx64.efi" "$bootx"; then
+                inst "$LIB/mmx64.efi" "$mm"
+                inst "$LIB/systemd-bootx64.efi" "$old"
+                ((FAILED)) || inst "$LIB/shimx64.efi" "$bootx"
+            else
+                warn "$WRITE_ERR"; FAILED=1
+            fi
         fi
-        ((changed)) && say "Fallback loader EFI/BOOT/BOOTX64.EFI: shim"
+        ((FAILED)) && rc=1
+        ((CHANGED && !FAILED)) && say "Fallback loader EFI/BOOT/BOOTX64.EFI: shim"
     fi
-    return 0
+    return "$rc"
 }
 
 # --- Polozky UEFI ------------------------------------------------------------
@@ -255,6 +416,31 @@ mark_quirk() {  # firmware, ktery poradi nedodrzuje: BootNext pak i pri kazdem v
     { mkdir -p "$STATE" && printf '%s\n' "$1" >"$STATE/firmware-quirk"; } 2>/dev/null || true
 }
 
+# demote_shim VYPIS PARTUUID - shim na ESP je poskozeny: BootNext na nej se zrusi a jeho polozky jdou na konec
+# BootOrder (start pak ostatnimi polozkami, napr. starou primou polozkou systemd-boot); po oprave souboru je
+# dalsi sync zase da na prvni misto
+demote_shim() {
+    local out=$1 partuuid=$2 list order n first="" rest="" tail=""
+    list=$(entries "$out" "$partuuid" '\efi\luxos\shimx64.efi')
+    [[ -n $list ]] || return 0
+    if grep -qxF "$(field "$out" BootNext)" <<<"$list"; then
+        efibootmgr -q -N >/dev/null 2>&1 && warn "BootNext to the damaged shim removed"
+    fi
+    order=$(field "$out" BootOrder)
+    first=${order%%,*}
+    if [[ -n $first ]] && grep -qxF "$first" <<<"$list"; then
+        for n in ${order//,/ }; do
+            if grep -qxF "$n" <<<"$list"; then tail+=",$n"; else rest+=",$n"; fi
+        done
+        rest=${rest#,}
+        if [[ -n $rest ]] && efibootmgr -q -o "$rest$tail" >/dev/null 2>&1; then
+            warn "UEFI boot entry LuxOS (shim) moved to the end of the boot order until the loader is repaired"
+        fi
+    fi
+    rm -f "$STATE/order-ok" 2>/dev/null || true
+    return 0
+}
+
 # nvram ESP MODE - polozka "LuxOS" -> shim: zalozit, uklid, prvni misto BootOrder, BootNext
 #   boot      start systemu a aktualizace (sluzba, hook): BootNext, kdyz ceka zapis klice, tento start nesel
 #             pres shim, poradi nejde zapsat nebo firmware poradi uz jednou sam zmenil
@@ -279,6 +465,13 @@ nvram() {
     out=$(efibootmgr -v 2>/dev/null) || { warn "cannot read UEFI boot entries"; return 0; }
     NV_CURRENT=$(kind_of "$(entry_line "$out" "$(field "$out" BootCurrent)")")
     NV_SHIM=$(shim_entry "$out" "$partuuid")
+    # shim nebo jeho systemd-boot (grubx64.efi) chybi, je prazdny nebo neni soubor EFI: na takovou polozku
+    # nikdy BootNext ani prvni misto BootOrder (firmware by spoustel prazdny soubor) - spis ji odsunout
+    if ! shim_ok "$esp"; then
+        [[ -n $NV_SHIM ]] && demote_shim "$out" "$partuuid"
+        NV_SHIM=""
+        return 0
+    fi
     if [[ -z $NV_SHIM && $mode != shutdown ]]; then
         # --create da polozku na prvni misto BootOrder; stara prima polozka zustava za ni jako zaloha
         if efibootmgr -q --create --disk "/dev/$disk" --part "$part" --label LuxOS \
@@ -361,7 +554,8 @@ nvram() {
     return 0
 }
 
-# boot_setup MODE [NO_NVRAM] -> ESP + polozky UEFI; 0 = shim nainstalovany (ESP_DIR = ESP), jinak duvod v SKIP
+# boot_setup MODE [NO_NVRAM] -> ESP + polozky UEFI; 0 = shim nainstalovany (ESP_DIR = ESP), 3 = zapis na ESP
+# selhal (stare soubory zustaly, polozky UEFI jen na platny shim), jinak duvod v SKIP
 boot_setup() {
     local mode=$1 no_nvram=${2:-0} f
     SKIP="" ESP_DIR=""
@@ -377,9 +571,16 @@ boot_setup() {
         SKIP="systemd-boot in this package is not signed with the LuxOS key - boot loader not changed."
         return 1
     fi
-    install_esp "$ESP_DIR"
+    local rc=0
+    install_esp "$ESP_DIR" || rc=3
+    # i po chybe: nvram polozku shim pouzije jen s platnym shim (stary soubor), poskozenou odsune
     ((no_nvram)) || nvram "$ESP_DIR" "$mode"
-    return 0
+    return "$rc"
+}
+
+# Zapis na ESP selhal: jasna zprava (podrobnosti uz vypsal install_esp)
+esp_failed() {
+    warn "$(T "The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync")"
 }
 
 cmd_sync() {
@@ -398,13 +599,18 @@ cmd_sync() {
         # vypnuti: ESP beze zmeny, jen BootNext tam, kde je potreba
         [[ -d $EFIVARS ]] || return 0
         ESP_DIR=$(find_esp)
-        [[ -n $ESP_DIR ]] && luxos_sdboot "$ESP_DIR" && [[ -f $(ci_file "$ESP_DIR/EFI" LuxOS)/shimx64.efi ]] || return 0
+        [[ -n $ESP_DIR ]] && luxos_sdboot "$ESP_DIR" && [[ -e $(luxos_dir "$ESP_DIR")/shimx64.efi ]] || return 0
         nvram "$ESP_DIR" shutdown
         return 0
     fi
     local rc=0
     boot_setup boot "$no_nvram" || rc=$?
     ((rc != 2)) || die "$SKIP"
+    if ((rc == 3)); then
+        ((no_nvram)) || write_cache
+        esp_failed
+        return 1
+    fi
     if ((rc)); then
         say "$SKIP"
         return 0
@@ -422,7 +628,11 @@ pending() { local o; o=$(mokutil --list-new 2>/dev/null || true); [[ -n ${o//[[:
 
 # Po pripraveni zapisu: dalsi start pres shim (jen tam se objevi MokManager) a co presne bude dal
 report_next_start() {
-    if boot_setup next; then
+    local rc=0
+    boot_setup next || rc=$?
+    if ((rc == 3)); then
+        esp_failed
+    elif ((rc == 0)); then
         if ((NV_NEXT)); then
             line "The next start goes through shim (UEFI boot entry Boot%s \"LuxOS\"), which shows the blue screen." "$NV_SHIM"
         else
@@ -493,6 +703,11 @@ cmd_fix_boot() {
     local rc=0
     boot_setup next || rc=$?
     ((rc != 2)) || die "$SKIP"
+    if ((rc == 3)); then
+        write_cache
+        esp_failed
+        return 1
+    fi
     if ((rc)); then
         say "$SKIP"
         return 0
@@ -546,12 +761,17 @@ collect() {
         signed "$vml" && S_KERN=signed
     fi
     esp=$(find_esp)
+    S_BROKEN=""
     if [[ -n $esp && ( ! -r $esp || ! -x $esp || ( -d $esp/EFI && ! -x $esp/EFI ) ) ]]; then
         S_LOADER=$(cache_get loader); S_LOADER=${S_LOADER:-unknown}
+        S_BROKEN=$(cache_get loader_damaged)
     else
         dir=""
         [[ -n $esp ]] && dir=$(ci_file "$esp/EFI" LuxOS)
         if [[ -n $dir && -f $dir/shimx64.efi ]]; then S_LOADER=installed; else S_LOADER=missing; fi
+        # prazdne / neuplne / ne-EFI soubory zavadece LuxOS (napr. po zapisu na plny ESP)
+        [[ -n $esp ]] && S_BROKEN=$(broken_files "$esp" | paste -sd, -)
+        [[ -n $S_BROKEN ]] && S_LOADER=broken
     fi
     [[ $S_KERN == unknown || $S_LOADER == unknown ]] && S_NEEDROOT=1
     # polozky UEFI (efibootmgr -v umi i bez roota)
@@ -573,7 +793,8 @@ collect() {
     fi
     S_READY=no
     if [[ $S_SB == enabled ]]; then S_READY=on
-    elif [[ $S_SB == disabled && $S_KEY == enrolled && $S_PATH == shim && $S_FIRST == shim && $S_KERN == signed ]]; then
+    elif [[ $S_SB == disabled && $S_KEY == enrolled && $S_PATH == shim && $S_FIRST == shim && $S_KERN == signed &&
+            $S_LOADER != broken ]]; then
         S_READY=yes
     fi
 }
@@ -585,6 +806,7 @@ print_status() {  # key=value (bez hesla)
     echo "luxos_key=$S_KEY"
     echo "kernel=$S_KERN"
     echo "loader=$S_LOADER"
+    [[ -z $S_BROKEN ]] || echo "loader_damaged=$S_BROKEN"
     echo "boot_current=$S_CUR"
     echo "boot_first=$S_FIRST"
     [[ $S_NEXT == none ]] || echo "boot_next=$S_NEXT"
@@ -615,6 +837,8 @@ cmd_status() {
             echo "hint=$(T "The next start will not show the enrollment screen (the firmware starts another boot entry first). Run: sudo luxos-secureboot fix-boot")"
         fi
     fi
+    [[ $S_LOADER == broken ]] &&
+        echo "hint=$(T "Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync" "$S_BROKEN")"
     [[ $S_READY == yes ]] && echo "hint=$(T "Secure Boot ready: you can now turn it on in the firmware settings.")"
     ((S_NEEDROOT)) && echo "hint=$(T "Some details need root: sudo luxos-secureboot status")"
     return 0
@@ -637,6 +861,9 @@ cmd_check() {
         pending) reason "the LuxOS key waits for confirmation: restart and confirm it in the blue MokManager screen" ;;
         unknown) command -v mokutil >/dev/null || reason "cannot check the LuxOS key (mokutil is missing)" ;;
     esac
+    if [[ $S_LOADER == broken ]]; then
+        reason "boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync" "$S_BROKEN"
+    fi
     if [[ $S_FIRST != shim ]]; then
         reason "LuxOS (shim) is not the first entry in the firmware boot order: run sudo luxos-secureboot fix-boot"
     fi

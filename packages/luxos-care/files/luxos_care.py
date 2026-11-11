@@ -245,6 +245,33 @@ def atomic_write(path, text, mode_bits=0o644):
         raise
 
 
+def safe_copy(src, dst, tmp_suffix=".new"):
+    """Kopie na EFI/boot oddil: docasny soubor, fsync, kontrola velikosti, atomicke prejmenovani.
+    Pri chybe (napr. plny oddil) docasny soubor smaze a vyhodi OSError - stary dst zustava beze zmeny."""
+    tmp = dst + tmp_suffix
+    try:
+        shutil.copyfile(src, tmp)
+        with open(tmp, "rb+") as f:
+            os.fsync(f.fileno())
+        if os.path.getsize(tmp) != os.path.getsize(src):
+            raise OSError(f"short copy of {src}")
+        os.replace(tmp, dst)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    try:
+        fd = os.open(os.path.dirname(dst) or ".", os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    except OSError:
+        pass
+
+
 def read_json(path, default):
     try:
         with open(P(path)) as f:
@@ -1458,16 +1485,30 @@ def install_prev_boot(lay, ver, rebuild=False):
         return False, "esp_missing"
     os.makedirs(kdir, exist_ok=True)
     dst_v, dst_i = P(lay["prev_vmlinuz"]), P(lay["prev_initrd"])
-    need = os.path.getsize(vml_src) + os.path.getsize(img) + 4 * 1024 * 1024
-    have_now = free_bytes(kdir) + sum(os.path.getsize(f) for f in (dst_v, dst_i) if os.path.isfile(f))
-    if have_now < need:
-        return False, "esp_full"
-    for src, dst in ((vml_src, dst_v), (img, dst_i)):
-        if os.path.isfile(dst) and _same_file(src, dst):
-            continue
-        tmp = dst + ".new"
-        shutil.copyfile(src, tmp)
-        os.replace(tmp, dst)
+    todo = [(s, d) for s, d in ((vml_src, dst_v), (img, dst_i)) if not (os.path.isfile(d) and _same_file(s, d))]
+    # Novy soubor se pise vedle stareho (.new + prejmenovani): potreba je cela velikost, stare soubory
+    # se nepocitaji (driv ano - na plnem ESP pak zustal neuplny initramfs-...-prev.img.new)
+    need = sum(os.path.getsize(s) for s, _d in todo) + 4 * 1024 * 1024
+    if todo and free_bytes(kdir) < need:
+        try:
+            import luxos_snapshots
+            luxos_snapshots.esp_clean(need=need, reserve=0, lay=lay)
+        except Exception as e:  # noqa: BLE001 - uklid je jen pokus
+            log(f"freeing space for the previous kernel failed: {e}")
+    if todo and free_bytes(kdir) < need:
+        old = sum(os.path.getsize(d) for _s, d in todo if os.path.isfile(d))
+        if free_bytes(kdir) + old < need:
+            return False, "esp_full"
+        # Misto jen bez starych souboru: nejdriv polozku a stare jadro pryc (zadna polozka na pul zapsany
+        # soubor), pak nove
+        remove_prev_boot(lay)
+    for src, dst in todo:
+        try:
+            safe_copy(src, dst)
+        except OSError as e:
+            log(f"copying the previous kernel to {dst} failed: {e}")
+            remove_prev_boot(lay)
+            return False, "esp_full"
     if lay["kind"] == "sdboot":
         with open(P(f"{lay['entries']}/{lay['main']}")) as f:
             main_text = f.read()
@@ -1955,6 +1996,8 @@ CATALOG = {
     "clean_cache": ("Free disk space (package cache, old logs)", None),
     "retry_new_kernel": ("Try the newest kernel again on next boot", None),
     "use_previous_kernel": ("Start the previous kernel on next boot", None),
+    "clean_esp": ("Free space on the boot partition (older snapshot kernels, leftovers)", None),
+    "repair_boot_loader": ("Repair the boot loader files on the EFI partition", None),
 }
 
 
@@ -1990,6 +2033,8 @@ def execute_action(action, target=None):
         rc2, o2 = run(pm(["-Sy", "--needed", "archlinux-keyring"]), timeout=1200)
         return rc1 == 0 and rc2 == 0, (o1 + o2)[-3000:]
     if action == "rebuild_initramfs":
+        # mkinitcpio pise na plny oddil primo do stareho obrazu: nejdriv misto na novy vedle nej
+        esp_make_room(1.25)
         rc, out = run(["mkinitcpio", "-P"], timeout=1800)
         if os.path.exists("/usr/local/sbin/luxos-esp-sync"):
             run(["/usr/local/sbin/luxos-esp-sync"], timeout=300)
@@ -2028,6 +2073,19 @@ def execute_action(action, target=None):
         clean_cache(keep=1)
         run(["journalctl", "--vacuum-size=200M"], timeout=300)
         return True, ""
+    if action == "clean_esp":
+        import luxos_snapshots as snap
+        lay = detect_layout()
+        free, removed = snap.esp_clean(need=snap.kernel_set_size(lay), lay=lay)
+        if free is None:
+            return False, "no boot partition"
+        return free >= snap.ESP_LOW, f"{free // 1024 ** 2} MiB free" + (f", removed {' '.join(removed)}" if removed else "")
+    if action == "repair_boot_loader":
+        if not have("luxos-secureboot"):
+            return False, "luxos-secureboot missing"
+        esp_make_room(0)
+        rc, out = run(["luxos-secureboot", "sync", "--quiet"], timeout=300)
+        return rc == 0, out[-3000:]
     if action == "retry_new_kernel":
         return reset_trial(), ""
     if action == "use_previous_kernel":
@@ -2236,6 +2294,12 @@ def detect_problems():
                                       options=[("clean_cache", None)], detail=f"{mnt}: {free // 1024 ** 2} MiB free"))
             break
 
+    # 7b. EFI/boot oddil: malo mista, poskozeny initramfs nebo zavadec (napr. po zapisu na plny oddil)
+    try:
+        probs.extend(esp_problems(lay))
+    except Exception as e:  # noqa: BLE001 - kontrola nesmi spadnout
+        log(f"boot partition check failed: {e}")
+
     # 8. Chyby souboroveho systemu (jen hlaseni - automaticka oprava neni bezpecna)
     fs = fs_errors()
     if fs:
@@ -2251,6 +2315,118 @@ def detect_problems():
                                   options=[("refresh_keyring", None), ("clean_cache", None), ("complete_upgrade", None)],
                                   detail=err, once_per=str(st.get("failures"))))
     return probs
+
+
+def boot_images(lay):
+    """Initramfs, se kterymi system startuje (hlavni v /boot a na ESP, zalozni) -> [cesta] (existujici)."""
+    k = lay.get("kernel", "")
+    out = []
+    cands = [P(f"/boot/initramfs-{k}.img")]
+    if lay.get("kind") == "sdboot" and lay.get("kdir"):
+        cands.append(P(f"{lay['kdir']}/initramfs-{k}.img"))
+    if lay.get("prev_initrd"):
+        cands.append(P(lay["prev_initrd"]))
+    for c in cands:
+        if os.path.isfile(c) and c not in out:
+            out.append(c)
+    return out
+
+
+def image_ok(path):
+    """Initramfs jde cely precist (lsinitcpio projde vsechny casti) - useknuty po plnem oddilu ne."""
+    try:
+        if os.path.getsize(path) < 1024:
+            return False
+    except OSError:
+        return False
+    if not have("lsinitcpio"):
+        return True
+    rc, _o = run(["lsinitcpio", path], timeout=300)
+    return rc == 0
+
+
+def damaged_images(lay):
+    return [p for p in boot_images(lay) if not image_ok(p)]
+
+
+def loader_damaged():
+    """Poskozene soubory zavadece Secure Boot (luxos-secureboot status, root) -> "seznam" nebo ""."""
+    if not have("luxos-secureboot"):
+        return ""
+    rc, out = run(["luxos-secureboot", "status"], timeout=120)
+    vals = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    if vals.get("loader") != "broken":
+        return ""
+    return vals.get("loader_damaged") or "EFI/LuxOS"
+
+
+def esp_problems(lay):
+    import luxos_snapshots as snap
+    d = snap.esp_dir(lay)
+    if not d:
+        return []
+    probs = []
+    free = free_bytes(d)
+    if free < snap.ESP_LOW:
+        probs.append(make_problem("esp_low_space", "The boot partition is almost full", rules=["clean_esp"],
+                                  options=[("clean_esp", None)], detail=f"{free // 1024 ** 2} MiB free"))
+    bad = damaged_images(lay)
+    if bad:
+        probs.append(make_problem("initramfs_damaged", "The boot image of the kernel is damaged",
+                                  rules=["clean_esp", "rebuild_initramfs"],
+                                  options=[("rebuild_initramfs", None), ("clean_esp", None)],
+                                  detail=", ".join(bad)))
+    broken = loader_damaged()
+    if broken:
+        probs.append(make_problem("boot_loader_damaged", "Boot loader files on the EFI partition are damaged",
+                                  rules=["clean_esp", "repair_boot_loader"],
+                                  options=[("repair_boot_loader", None), ("clean_esp", None)], detail=broken))
+    return probs
+
+
+def esp_make_room(factor):
+    """Pred zapisem na EFI/boot oddil: volno na novy initramfs (factor x soucasny) + rezerva."""
+    try:
+        import luxos_snapshots as snap
+        lay = detect_layout()
+        imgs = boot_images(lay)
+        need = int(max([os.path.getsize(p) for p in imgs] or [0]) * factor)
+        snap.esp_clean(need=need, lay=lay)
+    except Exception as e:  # noqa: BLE001 - uklid je jen pokus
+        log(f"freeing space on the boot partition failed: {e}")
+
+
+def esp_check():
+    """luxos-care esp-check (hook 96-luxos-care-esp-check po kazde transakci): zbytky pryc, initramfs
+    po mkinitcpio cely? Useknuty (plny oddil) -> misto + nove sestaveni, jinak hlasita chyba (kod 1)."""
+    import luxos_snapshots as snap
+    lay = detect_layout()
+    if lay["kind"] == "none":
+        return 0, []
+    for p in snap.clean_stale(lay):
+        log(f"removed leftover {p}")
+    bad = damaged_images(lay)
+    if not bad:
+        return 0, []
+    log(f"damaged boot image after the transaction: {', '.join(bad)} - rebuilding")
+    esp_make_room(1.25)
+    rc, out = run(["mkinitcpio", "-P"], timeout=1800)
+    if os.path.exists("/usr/local/sbin/luxos-esp-sync") and not ROOT:
+        run(["/usr/local/sbin/luxos-esp-sync"], timeout=300)
+    prev = kread("prev")
+    if prev and any(p == P(lay.get("prev_initrd") or "-") for p in bad):
+        install_prev_boot(lay, prev, rebuild=True)
+    snap.clean_stale(lay)
+    bad = damaged_images(lay)
+    if bad:
+        log(f"boot image still damaged after rebuilding: {', '.join(bad)}; mkinitcpio: {out[-500:]}")
+        history("repair", problem="initramfs_damaged", title="The boot image of the kernel is damaged", args=[],
+                action="rebuild_initramfs", target="", source="rule", ok=False, output=redact(out[-600:]))
+        return 1, bad
+    history("repair", problem="initramfs_damaged", title="The boot image of the kernel is damaged", args=[],
+            action="rebuild_initramfs", target="", source="rule", ok=True, output="")
+    add_event("repaired", title="The boot image of the kernel is damaged", args=[])
+    return 0, []
 
 
 def fs_errors():

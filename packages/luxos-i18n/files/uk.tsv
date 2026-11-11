@@ -4967,3 +4967,20 @@ Secure Boot ready	Secure Boot готовий
 The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	Ключ LuxOS зареєстровано, і LuxOS запускається через shim. Тепер можна увімкнути Secure Boot у налаштуваннях мікропрограми.
 tell whether Secure Boot can be turned on in the firmware now	показати, чи можна вже увімкнути Secure Boot у мікропрограмі
 put LuxOS (shim) first in the firmware boot order and start through it next time	поставити LuxOS (shim) першим у порядку завантаження мікропрограми й наступного разу запускатися через нього
+# Rozdil EFI: misce, poshkodzheni zavantazhuvachi ta initramfs
+Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed.	На розділі EFI замало місця: потрібно %s МБ, вільно %s МБ. Нічого не змінено.
+Package file %s is missing or empty - the boot loader was not changed.	Файл пакунка %s відсутній або порожній – завантажувач не змінено.
+Writing %s failed: %s. The previous file was kept.	Не вдалося записати %s: %s. Попередній файл збережено.
+the copy does not match the package	копія не збігається з пакунком
+The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync	Не вдалося оновити завантажувач Secure Boot на розділі EFI. Попередні файли збережено, LuxOS запускається як раніше. Звільніть місце на розділі EFI (наприклад: sudo luxos-care esp-clean) і виконайте: sudo luxos-secureboot sync
+Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync	Файли завантажувача на розділі EFI пошкоджено (%s). Виконайте: sudo luxos-secureboot sync
+boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync	файли завантажувача на розділі EFI пошкоджено (%s): виконайте sudo luxos-secureboot sync
+The boot partition is almost full	Завантажувальний розділ майже заповнений
+The boot image of the kernel is damaged	Завантажувальний образ ядра пошкоджено
+Boot loader files on the EFI partition are damaged	Файли завантажувача на розділі EFI пошкоджено
+free space on the boot partition: leftovers and older snapshot kernels (root)	звільнити місце на завантажувальному розділі: залишки та ядра старіших знімків (root)
+No boot partition with LuxOS kernels was found.	Завантажувальний розділ з ядрами LuxOS не знайдено.
+Removed the kernel of older snapshots: %s	Видалено ядро старіших знімків: %s
+Free space on the boot partition: %d MB	Вільне місце на завантажувальному розділі: %d МБ
+The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Завантажувальний образ пошкоджено (%s), і його не вдалося зібрати знову. Поки не перезавантажуйте комп'ютер: звільніть місце на завантажувальному розділі й виконайте: sudo mkinitcpio -P
+The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Розділ EFI менший за 1 ГБ: з меню завантаження можна буде запустити менше знімків системи.

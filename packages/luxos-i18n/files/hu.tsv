@@ -4966,3 +4966,20 @@ Secure Boot ready	A Secure Boot készen áll
 The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	A LuxOS-kulcs regisztrálva van, és a LuxOS a shimen keresztül indul. Most bekapcsolhatja a Secure Bootot a firmware beállításaiban.
 tell whether Secure Boot can be turned on in the firmware now	megmutatja, hogy a Secure Boot most már bekapcsolható-e a firmware-ben
 put LuxOS (shim) first in the firmware boot order and start through it next time	a LuxOS (shim) a firmware indítási sorrendjének első helyére kerül, és legközelebb azon keresztül indul
+# EFI partíció: hely, sérült rendszerbetöltők és initramfs
+Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed.	Nincs elég hely az EFI partíción: %s MB kell, %s MB szabad. Semmi sem változott.
+Package file %s is missing or empty - the boot loader was not changed.	A(z) %s csomagfájl hiányzik vagy üres – a rendszerbetöltő nem változott.
+Writing %s failed: %s. The previous file was kept.	A(z) %s írása sikertelen: %s. Az előző fájl megmaradt.
+the copy does not match the package	a másolat nem egyezik a csomaggal
+The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync	Az EFI partíción lévő Secure Boot rendszerbetöltőt nem sikerült frissíteni. Az előző fájlok megmaradtak, a LuxOS a korábbiak szerint indul. Szabadítson fel helyet az EFI partíción (például: sudo luxos-care esp-clean), majd futtassa: sudo luxos-secureboot sync
+Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync	Az EFI partíción lévő rendszerbetöltő-fájlok sérültek (%s). Futtassa: sudo luxos-secureboot sync
+boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync	az EFI partíción lévő rendszerbetöltő-fájlok sérültek (%s): futtassa: sudo luxos-secureboot sync
+The boot partition is almost full	A rendszerindító partíció majdnem megtelt
+The boot image of the kernel is damaged	A kernel rendszerindító képe sérült
+Boot loader files on the EFI partition are damaged	Az EFI partíción lévő rendszerbetöltő-fájlok sérültek
+free space on the boot partition: leftovers and older snapshot kernels (root)	hely felszabadítása a rendszerindító partíción: maradványok és régebbi pillanatképek kerneljei (root)
+No boot partition with LuxOS kernels was found.	Nem található rendszerindító partíció LuxOS kernelekkel.
+Removed the kernel of older snapshots: %s	Régebbi pillanatképek kernele eltávolítva: %s
+Free space on the boot partition: %d MB	Szabad hely a rendszerindító partíción: %d MB
+The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	A rendszerindító kép sérült (%s), és nem sikerült újra elkészíteni. Még ne indítsa újra a számítógépet: szabadítson fel helyet a rendszerindító partíción, majd futtassa: sudo mkinitcpio -P
+The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Az EFI partíció kisebb 1 GB-nál: a rendszerbetöltő menüből kevesebb rendszer-pillanatkép indítható.

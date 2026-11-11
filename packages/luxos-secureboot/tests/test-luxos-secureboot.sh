@@ -34,7 +34,7 @@ echo "efibootmgr $*" >>"$T/efibootmgr.log"
 show=0 o="" nx="" del=0 num="" create=0 part=1 label="" loader=""
 while (($#)); do
     case $1 in
-        -v) show=1 ;; -q|-u|--unicode) ;;
+        -v) show=1 ;; -q|-u|--unicode) ;; -N) rm -f "$NV/next" ;;
         -o) o=$2; shift ;; -n) nx=$2; shift ;; -B) del=1 ;; -b) num=$2; shift ;;
         -c|--create) create=1 ;; -d|--disk) shift ;; -p|--part) part=$2; shift ;;
         -L|--label) label=$2; shift ;; -l|--loader) loader=$2; shift ;;
@@ -64,6 +64,24 @@ if ((show)); then
     while IFS='|' read -r n l p; do printf 'Boot%s* %s\t%s\n' "$n" "$l" "$p"; done <"$NV/entries"
 fi
 exit 0
+EOF
+# Plny ESP: $T/esp-avail = volne bajty pro df (jinak 1 GB); $T/cp-enospc = cp do ESP zapise jen tolik
+# bajtu, kolik je v souboru (prazdny = 0), a skonci "No space left on device" - presne jako na plnem FAT
+cat >"$M/df" <<'EOF'
+#!/bin/bash
+# jako skutecny df: -P a --output nejdou spolu
+[[ " $* " == *" -P "* && " $* " == *--output* ]] && { echo "df: options -P and --output are mutually exclusive" >&2; exit 1; }
+echo "Avail"; if [[ -f $T/esp-avail ]]; then cat "$T/esp-avail"; else echo 1073741824; fi
+EOF
+cat >"$M/cp" <<'EOF'
+#!/bin/bash
+args=(); for a; do [[ $a == -- ]] || args+=("$a"); done
+dst=${args[-1]}
+if [[ -f $T/cp-enospc && $dst == "$T/esp/"* ]]; then
+    n=$(cat "$T/cp-enospc"); head -c "${n:-0}" "${args[-2]}" >"$dst"
+    echo "cp: error writing '$dst': No space left on device" >&2; exit 1
+fi
+exec /usr/bin/cp "$@"
 EOF
 cat >"$M/bootctl" <<'EOF'
 #!/bin/bash
@@ -107,20 +125,20 @@ SHIM_GUID=605dab50-e046-4300-abb6-3dd810dd8b23
 setup() {  # setup [unsigned|nofallback]
     chmod -R u+rwx "$T" 2>/dev/null
     rm -rf "${T:?}/lib" "$T/share" "$T/esp" "$T/vars" "$T/state" "$T/run" "$T/nv" "$T/ustate" "$T/boot" "$T"/*.log \
-        "$T/mok."* "$T/hash.used" "$T/in-chroot"
+        "$T/mok."* "$T/hash.used" "$T/in-chroot" "$T/esp-avail" "$T/cp-enospc"
     mkdir -p "$T/lib" "$T/share" "$T/esp/EFI/systemd" "$T/esp/EFI/BOOT" "$T/esp/loader/entries" "$T/vars" "$T/boot" "$T/nv"
-    echo SHIM-FEDORA >"$T/lib/shimx64.efi"
-    echo MOKMANAGER >"$T/lib/mmx64.efi"
+    echo "MZ SHIM-FEDORA $(head -c 3000 /dev/zero | tr "\0" s)" >"$T/lib/shimx64.efi"
+    echo "MZ MOKMANAGER $(head -c 2000 /dev/zero | tr "\0" m)" >"$T/lib/mmx64.efi"
     if [[ ${1-} != nofallback ]]; then
-        echo FALLBACK >"$T/lib/fbx64.efi"
+        echo "MZ FALLBACK" >"$T/lib/fbx64.efi"
         printf 'CSV shimx64.efi,LuxOS' >"$T/lib/BOOTX64.CSV"
     fi
-    if [[ ${1-} == unsigned ]]; then echo 'SDBOOT #### LoaderInfo: systemd-boot 262' >"$T/lib/systemd-bootx64.efi"
-    else echo 'SDBOOT #### LoaderInfo: systemd-boot 262 SIGNED-BY-LUXOS LUXOS-CERT-DER' >"$T/lib/systemd-bootx64.efi"; fi
+    if [[ ${1-} == unsigned ]]; then echo 'MZ SDBOOT #### LoaderInfo: systemd-boot 262' >"$T/lib/systemd-bootx64.efi"
+    else echo 'MZ SDBOOT #### LoaderInfo: systemd-boot 262 SIGNED-BY-LUXOS LUXOS-CERT-DER' >"$T/lib/systemd-bootx64.efi"; fi
     echo PEM >"$T/share/luxos-secureboot.pem"
     printf 'LUXOS-CERT-DER' >"$T/share/luxos-secureboot.cer"
     # systemd-boot z bootctl install: prima cesta i zalozni BOOTX64.EFI
-    echo 'OLD #### LoaderInfo: systemd-boot 257' >"$T/esp/EFI/systemd/systemd-bootx64.efi"
+    echo 'MZ OLD #### LoaderInfo: systemd-boot 257' >"$T/esp/EFI/systemd/systemd-bootx64.efi"
     cp "$T/esp/EFI/systemd/systemd-bootx64.efi" "$T/esp/EFI/BOOT/BOOTX64.EFI"
     printf 'title LuxOS\nlinux /vmlinuz-linux-luxos\n' >"$T/esp/loader/entries/luxos.conf"
     : >"$T/nv/entries"; : >"$T/nv/order"; : >"$T/efibootmgr.log"
@@ -230,7 +248,7 @@ expect "nepodepsany systemd-boot: kod 0, zprava" bash -c "[[ $rc == 0 && '$out' 
 expect "nepodepsany: ESP beze zmeny (zadny EFI/LuxOS)" test ! -e "$T/esp/EFI/LuxOS"
 expect "nepodepsany: BOOTX64.EFI beze zmeny" grep -q 'OLD' "$T/esp/EFI/BOOT/BOOTX64.EFI"
 expect "nepodepsany: zadna polozka UEFI" test ! -s "$T/efibootmgr.log"
-setup; echo 'SDBOOT #### LoaderInfo: systemd-boot 262 SIGNED-BY-LUXOS (cizi koren v podpisu)' >"$T/lib/systemd-bootx64.efi"
+setup; echo 'MZ SDBOOT #### LoaderInfo: systemd-boot 262 SIGNED-BY-LUXOS (cizi koren v podpisu)' >"$T/lib/systemd-bootx64.efi"
 out=$("$BIN" sync 2>&1)
 expect "sbverify OK, ale certifikat LuxOS v podpisu neni: bere se jako nepodepsany" \
     bash -c "[[ '$out' == *'not signed'* && ! -e '$T/esp/EFI/LuxOS' ]]"
@@ -257,7 +275,7 @@ expect "prima cesta EFI/systemd zustala (zaloha bez Secure Boot)" grep -q OLD "$
 expect "zadne docasne soubory .luxos-new" bash -c "! find '$T/esp' -name '*.luxos-new' | grep -q ."
 out2=$("$BIN" sync 2>&1)
 expect "druhe spusteni: nic nezapise (zadna zprava o zmene)" bash -c "[[ '$out2' != *updated* && '$out2' != *Fallback* ]]"
-echo 'SDBOOT #### LoaderInfo: systemd-boot 263 SIGNED-BY-LUXOS LUXOS-CERT-DER' >"$T/lib/systemd-bootx64.efi"
+echo 'MZ SDBOOT #### LoaderInfo: systemd-boot 263 SIGNED-BY-LUXOS LUXOS-CERT-DER' >"$T/lib/systemd-bootx64.efi"
 "$BIN" sync --quiet >/dev/null 2>&1
 expect "novy systemd-boot v baliku: EFI/LuxOS aktualizovany, EFI/BOOT dal bez grubx64.efi" \
     bash -c "grep -q 263 '$T/esp/EFI/LuxOS/grubx64.efi' && [[ ! -e '$T/esp/EFI/BOOT/grubx64.efi' ]]"
@@ -567,6 +585,117 @@ setup; old_layout; nv_load <<<"$ACER"; : >"$T/nv/ignore-order"
 out=$("$T/sb-root" fix-boot 2>&1)
 expect "fix-boot na firmwaru bez zapisu poradi: vysvetleni (BootNext pri kazdem vypnuti)" \
     bash -c "[[ '$out' == *'keeps its own boot order'* && \$(cat '$T/nv/next') == 0003 ]]"
+
+echo "## Plny ESP (incident 2026-11-10: No space left on device -> prazdny shim, BootNext do prazdna)"
+# Puvodni stav jako u majitele: jen stara prima polozka systemd-boot, prvni instalace luxos-secureboot
+DIRECT='BootCurrent: 0000
+BootOrder: 0000,0004
+Boot0000* LuxOS	HD(1,GPT,aaaa-1111,0x800,0x200000)/\EFI\systemd\systemd-bootx64.efi
+Boot0004* Windows Boot Manager	HD(1,GPT,cccc-3333,0x800,0x32000)/\EFI\Microsoft\Boot\bootmgfw.efi'
+setup; nv_load <<<"$DIRECT"
+efivar_utf16 "LoaderImageIdentifier-$LOADER" '\EFI\systemd\systemd-bootx64.efi'
+: >"$T/cp-enospc"   # cp nezapise nic a skonci ENOSPC (df ale misto "ukazuje" - FAT se casto splete)
+out=$("$BIN" sync 2>&1); rc=$?
+expect "ENOSPC pri zapisu: kod != 0" test "$rc" != 0
+expect "... jasna chyba (No space left on device, predchozi soubor zustal)" \
+    bash -c "[[ '$out' == *'No space left on device'* && '$out' == *'previous file was kept'* && '$out' == *'could not be updated'* ]]"
+expect "... zadna zprava 'Secure Boot loader updated' ani 'Fallback loader'" bash -c "[[ '$out' != *updated\ in* && '$out' != *'Fallback loader'* ]]"
+expect "... na ESP zadny prazdny soubor" bash -c "! find '$T/esp' -type f -size 0 | grep -q ."
+expect "... zadne docasne *.luxos-new" bash -c "! find '$T/esp' -name '*.luxos-new' | grep -q ."
+expect "... EFI/LuxOS/shimx64.efi nevznikl" test ! -e "$T/esp/EFI/LuxOS/shimx64.efi"
+expect "... zalozni BOOTX64.EFI dal puvodni systemd-boot" grep -q 'MZ OLD' "$T/esp/EFI/BOOT/BOOTX64.EFI"
+expect "... zadna polozka UEFI na shim, BootOrder ani BootNext beze zmeny" \
+    bash -c "! grep -qE -- '--create| -o | -n ' '$T/efibootmgr.log' && [[ \$(cat '$T/nv/order') == 0000,0004 && ! -s '$T/nv/next' ]]"
+expect "... stav pro uzivatele zapsany (loader=missing)" grep -qx 'loader=missing' "$T/run/status"
+rm -f "$T/cp-enospc"
+out=$("$BIN" sync 2>&1); rc=$?
+expect "po uvolneni mista: dalsi sync vse doplni (kod 0, shim, BootNext)" \
+    bash -c "[[ $rc == 0 ]] && cmp -s '$T/lib/shimx64.efi' '$T/esp/EFI/LuxOS/shimx64.efi' && [[ \$(cat '$T/nv/next') == 0001 ]]"
+
+setup; old_layout; nv_load <<<"$ACER"
+echo "MZ SHIM-FEDORA-NEW $(head -c 4000 /dev/zero | tr '\0' n)" >"$T/lib/shimx64.efi"
+echo 100 >"$T/cp-enospc"   # neuplny zapis (100 B) noveho shim
+out=$("$BIN" sync 2>&1); rc=$?
+expect "neuplny zapis nove verze: kod != 0, stary shim v EFI/LuxOS i EFI/BOOT beze zmeny" \
+    bash -c "[[ $rc != 0 ]] && grep -q 'MZ SHIM-FEDORA ' '$T/esp/EFI/LuxOS/shimx64.efi' && grep -q 'MZ SHIM-FEDORA ' '$T/esp/EFI/BOOT/BOOTX64.EFI'"
+expect "... zadny neuplny ani docasny soubor" bash -c "! find '$T/esp' -name '*.luxos-new' | grep -q . && ! find '$T/esp' -type f -size 0 | grep -q ."
+expect "... platny stary shim: polozky UEFI se dal spravuji (shim prvni)" test "$(nv_order | cut -d, -f1)" = 0003
+
+setup; nv_load <<<"$DIRECT"; echo 500000 >"$T/esp-avail"
+out=$("$BIN" sync 2>&1); rc=$?
+expect "malo mista uz pred zapisem (df): kod != 0, 'Not enough space ... Nothing was changed'" \
+    bash -c "[[ $rc != 0 && '$out' == *'Not enough space on the EFI partition'*'Nothing was changed'* ]]"
+expect "... nic se nezapsalo (zadny EFI/LuxOS), zadna polozka UEFI" \
+    bash -c "[[ ! -e '$T/esp/EFI/LuxOS' ]] && ! grep -qE -- '--create| -o | -n ' '$T/efibootmgr.log'"
+
+setup; nv_load <<<"$DIRECT"; : >"$T/lib/shimx64.efi"
+out=$("$BIN" sync 2>&1); rc=$?
+expect "prazdny soubor v balicku: kod != 0, na ESP nic" \
+    bash -c "[[ $rc != 0 && '$out' == *'missing or empty'* && ! -e '$T/esp/EFI/LuxOS/shimx64.efi' ]]"
+
+echo "## Zbytky po plnem ESP (0 B soubory z 1.0.0-1): rozpoznani a oprava"
+# Stav u majitele: EFI/LuxOS/{shimx64,grubx64}.efi a EFI/BOOT/{BOOTX64,grubx64,mmx64}.efi maji 0 B,
+# polozka shim prvni a BootNext na ni - firmware ji preskocil a nastartoval starou primou polozku
+incident_layout() {
+    mkdir -p "$T/esp/EFI/LuxOS"
+    : >"$T/esp/EFI/LuxOS/shimx64.efi"; : >"$T/esp/EFI/LuxOS/grubx64.efi"
+    cp "$T/lib/mmx64.efi" "$T/share/luxos-secureboot.cer" "$T/esp/EFI/LuxOS/"
+    : >"$T/esp/EFI/BOOT/BOOTX64.EFI"; : >"$T/esp/EFI/BOOT/grubx64.efi"; : >"$T/esp/EFI/BOOT/mmx64.efi"
+    : >"$T/esp/EFI/LuxOS/grubx64.efi.luxos-new"
+    nv_load <<'EOF'
+BootCurrent: 0000
+BootNext: 0003
+BootOrder: 0003,0000,0004
+Boot0000* LuxOS	HD(1,GPT,aaaa-1111,0x800,0x200000)/\EFI\systemd\systemd-bootx64.efi
+Boot0003* LuxOS	HD(1,GPT,aaaa-1111,0x800,0x200000)/\EFI\LuxOS\shimx64.efi
+Boot0004* Windows Boot Manager	HD(1,GPT,cccc-3333,0x800,0x32000)/\EFI\Microsoft\Boot\bootmgfw.efi
+EOF
+    efivar_utf16 "LoaderImageIdentifier-$LOADER" '\EFI\systemd\systemd-bootx64.efi'
+}
+setup; incident_layout
+out=$("$BIN" status 2>&1)
+expect "status: loader=broken + seznam poskozenych souboru + rada sync" \
+    bash -c "[[ '$out' == *loader=broken* && '$out' == *loader_damaged=*EFI/LuxOS/shimx64.efi* && '$out' == *EFI/BOOT/BOOTX64.EFI* && '$out' == *EFI/BOOT/grubx64.efi* && '$out' == *'hint=Boot loader files on the EFI partition are damaged'*'luxos-secureboot sync'* ]]"
+expect "... EFI/LuxOS/mmx64.efi (v poradku) neni v seznamu" bash -c "[[ '$out' != *EFI/LuxOS/mmx64.efi* ]]"
+out=$("$BIN" check 2>&1); rc=$?
+expect "check: kod 1, duvod 'damaged ... sync'" bash -c "[[ $rc == 1 && '$out' == *'boot loader files on the EFI partition are damaged'*'sync'* ]]"
+echo 100000 >"$T/esp-avail"   # ESP porad plny
+out=$("$BIN" sync 2>&1); rc=$?
+expect "ESP porad plny: kod != 0" test "$rc" != 0
+expect "... BootNext na prazdny shim zrusen" test -z "$(nv_next)"
+expect "... polozka shim na konec poradi, stara prima polozka (funkcni) prvni" test "$(nv_order)" = "0000,0004,0003"
+expect "... zadna nova polozka, zadny BootNext" bash -c "! grep -qE -- '--create| -n ' '$T/efibootmgr.log'"
+rm -f "$T/nv/next"; mkdir -p "$T/state"; echo quirk >"$T/state/firmware-quirk"
+"$BIN" sync --quiet --shutdown >/dev/null 2>&1
+expect "vypnuti s poskozenym shim (firmware-quirk): zadny BootNext" test -z "$(nv_next)"
+out=$("$T/sb-root" fix-boot 2>&1); rc=$?
+expect "fix-boot s poskozenym shim a plnym ESP: kod != 0, zadny BootNext" bash -c "[[ $rc != 0 && -z \$(cat '$T/nv/next' 2>/dev/null) ]]"
+rm -f "$T/esp-avail" "$T/state/firmware-quirk"; : >"$T/efibootmgr.log"
+out=$("$BIN" sync 2>&1); rc=$?
+expect "misto uvolnene: sync opravi (kod 0)" test "$rc" = 0
+expect "... EFI/LuxOS/shimx64.efi a grubx64.efi = balicek" \
+    bash -c "cmp -s '$T/lib/shimx64.efi' '$T/esp/EFI/LuxOS/shimx64.efi' && cmp -s '$T/lib/systemd-bootx64.efi' '$T/esp/EFI/LuxOS/grubx64.efi'"
+expect "... prazdny EFI/BOOT/BOOTX64.EFI = shim (nas zbytek, ne cizi zavadec), mmx64/fbx64 doplnene" \
+    bash -c "cmp -s '$T/lib/shimx64.efi' '$T/esp/EFI/BOOT/BOOTX64.EFI' && cmp -s '$T/lib/mmx64.efi' '$T/esp/EFI/BOOT/mmx64.efi' && cmp -s '$T/lib/fbx64.efi' '$T/esp/EFI/BOOT/fbx64.efi'"
+expect "... prazdny EFI/BOOT/grubx64.efi smazany, *.luxos-new smazany" \
+    bash -c "[[ ! -e '$T/esp/EFI/BOOT/grubx64.efi' ]] && ! find '$T/esp' -name '*.luxos-new' | grep -q ."
+expect "... shim zase prvni a BootNext na nej (tento start nesel pres shim)" \
+    bash -c "[[ \$(cat '$T/nv/order') == 0003,* && \$(cat '$T/nv/next') == 0003 ]]"
+out=$("$BIN" status 2>&1)
+expect "... status: loader=installed, nic poskozeneho" bash -c "[[ '$out' == *loader=installed* && '$out' != *loader_damaged* && '$out' != *damaged* ]]"
+
+setup; old_layout; head -c 50 "$T/lib/shimx64.efi" >"$T/esp/EFI/BOOT/BOOTX64.EFI"
+out=$("$BIN" status 2>&1)
+expect "neuplna kopie shim (50 B) v EFI/BOOT: hlasena jako poskozena" bash -c "[[ '$out' == *loader_damaged=EFI/BOOT/BOOTX64.EFI* ]]"
+"$BIN" sync >/dev/null 2>&1
+expect "... a nahrazena celym shim" cmp -s "$T/lib/shimx64.efi" "$T/esp/EFI/BOOT/BOOTX64.EFI"
+setup; old_layout; echo 'MZ Windows Boot Manager bootmgfw' >"$T/esp/EFI/BOOT/BOOTX64.EFI"
+out=$("$BIN" status 2>&1)
+expect "cizi BOOTX64.EFI (Windows): neni 'poskozeny' a zustava" \
+    bash -c "[[ '$out' != *loader_damaged* ]] && '$BIN' sync >/dev/null 2>&1; grep -q 'Windows Boot Manager' '$T/esp/EFI/BOOT/BOOTX64.EFI'"
+setup; mkdir -p "$T/esp/EFI/LuxOS"; echo 'not a PE file' >"$T/esp/EFI/LuxOS/grubx64.efi"
+out=$("$BIN" status 2>&1)
+expect "EFI/LuxOS/grubx64.efi bez hlavicky MZ: poskozeny" bash -c "[[ '$out' == *loader_damaged=EFI/LuxOS/grubx64.efi* ]]"
 
 echo
 echo "luxos-secureboot: $NPASS ok, $NFAIL failed"

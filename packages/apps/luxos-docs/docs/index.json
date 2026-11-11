@@ -444,6 +444,30 @@
           ]
         },
         {
+          "path": "luxos/boot-partition.md",
+          "title": "Boot partition (EFI) space",
+          "summary": "What is on the EFI/boot partition, why the initramfs is small (luxos-slim), how LuxOS keeps free space (merged and pruned snapshot kernel sets, checks before and after updates), luxos-care esp-clean/esp-check.",
+          "keywords": [
+            "EFI partition",
+            "ESP",
+            "/boot",
+            "full",
+            "No space left on device",
+            "initramfs",
+            "size",
+            "mkinitcpio",
+            "luxos-slim",
+            "nouveau",
+            "firmware",
+            "snapshot kernel sets",
+            "esp-clean",
+            "esp-check",
+            "luxos-secureboot",
+            "damaged boot loader",
+            "free space"
+          ]
+        },
+        {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
           "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, login transition, luxos-hub, multiple monitors and touchpad.",

@@ -7,10 +7,19 @@ _boot_hook() {
     mkdir -p "$d" && install -m644 /usr/lib/luxos/boot/zz-luxos-boot.conf "$f"
 }
 
+# Hook initramfs "luxos-slim" (mensi initramfs, zadny useknuty obraz na plnem EFI oddilu): stejne jako
+# luxos-boot; mkinitcpio initramfs sestavi znovu po teto transakci (novy soubor v usr/lib/initcpio).
+_slim_hook() {
+    local d=/etc/mkinitcpio.conf.d f=/etc/mkinitcpio.conf.d/zz-luxos-slim.conf
+    [ -e "$f" ] && return 0
+    mkdir -p "$d" && install -m644 /usr/lib/luxos/boot/zz-luxos-slim.conf "$f"
+}
+
 post_install() {
     systemctl enable earlyoom.service >/dev/null 2>&1 || true
     systemctl enable luxos-scheduler.service >/dev/null 2>&1 || true
     _boot_hook
+    _slim_hook
     /usr/lib/luxos/luxos-faillock-setup || true
     _tmp_on_disk
 }
@@ -23,6 +32,7 @@ _tmp_on_disk() {
 
 post_upgrade() {
     _boot_hook
+    _slim_hook
     /usr/lib/luxos/luxos-faillock-setup || true
     _tmp_on_disk
     systemctl disable systemd-oomd.service systemd-oomd.socket >/dev/null 2>&1 || true
@@ -45,5 +55,5 @@ post_upgrade() {
 }
 
 post_remove() {
-    rm -f /etc/mkinitcpio.conf.d/zz-luxos-boot.conf
+    rm -f /etc/mkinitcpio.conf.d/zz-luxos-boot.conf /etc/mkinitcpio.conf.d/zz-luxos-slim.conf
 }

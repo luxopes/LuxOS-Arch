@@ -4966,3 +4966,20 @@ Secure Boot ready	Secure Boot je pripravený
 The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	Kľúč LuxOS je zapísaný a LuxOS štartuje cez shim. Teraz môžete zapnúť Secure Boot v nastaveniach firmvéru.
 tell whether Secure Boot can be turned on in the firmware now	zistiť, či už sa dá Secure Boot zapnúť vo firmvéri
 put LuxOS (shim) first in the firmware boot order and start through it next time	dať LuxOS (shim) na prvé miesto v poradí štartu firmvéru a nabudúce štartovať cezeň
+# EFI oddiel: miesto, poskodene zavadzace a initramfs
+Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed.	Na oddiele EFI nie je dosť miesta: treba %s MB, voľných %s MB. Nič sa nezmenilo.
+Package file %s is missing or empty - the boot loader was not changed.	Súbor balíka %s chýba alebo je prázdny – zavádzač sa nezmenil.
+Writing %s failed: %s. The previous file was kept.	Zápis %s zlyhal: %s. Pôvodný súbor zostal.
+the copy does not match the package	kópia nezodpovedá balíku
+The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync	Zavádzač Secure Boot na oddiele EFI sa nepodarilo aktualizovať. Pôvodné súbory zostali, LuxOS štartuje ako predtým. Uvoľnite miesto na oddiele EFI (napríklad: sudo luxos-care esp-clean) a spustite: sudo luxos-secureboot sync
+Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync	Súbory zavádzača na oddiele EFI sú poškodené (%s). Spustite: sudo luxos-secureboot sync
+boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync	súbory zavádzača na oddiele EFI sú poškodené (%s): spustite sudo luxos-secureboot sync
+The boot partition is almost full	Zavádzací oddiel je takmer plný
+The boot image of the kernel is damaged	Zavádzací obraz jadra je poškodený
+Boot loader files on the EFI partition are damaged	Súbory zavádzača na oddiele EFI sú poškodené
+free space on the boot partition: leftovers and older snapshot kernels (root)	uvoľniť miesto na zavádzacom oddiele: zvyšky a jadrá starších snímok (root)
+No boot partition with LuxOS kernels was found.	Zavádzací oddiel s jadrami LuxOS sa nenašiel.
+Removed the kernel of older snapshots: %s	Odstránené jadro starších snímok: %s
+Free space on the boot partition: %d MB	Voľné miesto na zavádzacom oddiele: %d MB
+The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Zavádzací obraz je poškodený (%s) a nepodarilo sa ho znova zostaviť. Počítač zatiaľ nereštartujte: uvoľnite miesto na zavádzacom oddiele a spustite: sudo mkinitcpio -P
+The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Oddiel EFI je menší ako 1 GB: zo zavádzacej ponuky pôjde spustiť menej snímok systému.

@@ -183,7 +183,13 @@ def main():
                     f"Description=LuxOS boot splash, {v['name'].lower()} variant\n"
                     "ModuleName=script\n\n[script]\n"
                     f"ImageDir=/usr/share/plymouth/themes/{v['theme']}\n"
-                    f"ScriptFile=/usr/share/plymouth/themes/{v['theme']}/luxos.script\n")
+                    f"ScriptFile=/usr/share/plymouth/themes/{v['theme']}/luxos.script\n"
+                    # Pismo textu (heslo k disku, zpravy) pro hook plymouth v mkinitcpio: bez nej fontconfig
+                    # vybere celou sbirku Inter.ttc (13 MB) a monospace JetBrains Mono Nerd (2x 2,5 MB) -
+                    # o 6 MB vetsi initramfs v kazde kopii jadra na EFI oddilu. Inter Variable = stejne
+                    # pismo (Regular), Noto Sans Mono jen pro vypis zprav startu.
+                    "Font=Inter Variable\n"
+                    "MonospaceFont=Noto Sans Mono\n")
         # nahled pro Nastaveni: stred obrazovky 1920x1080 (logo a bar), at je v malem videt
         preview(d, v, 1920, 1080).crop((480, 220, 1440, 760)).resize((240, 135), Image.LANCZOS).save(
             os.path.join(out, "previews", key + ".png"), optimize=True)
