@@ -4967,3 +4967,20 @@ Secure Boot ready	Secure Boot jest gotowy
 The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	Klucz LuxOS jest zarejestrowany, a LuxOS startuje przez shim. Teraz możesz włączyć Secure Boot w ustawieniach firmware.
 tell whether Secure Boot can be turned on in the firmware now	sprawdzić, czy Secure Boot można już włączyć w firmware
 put LuxOS (shim) first in the firmware boot order and start through it next time	ustawić LuxOS (shim) na pierwszym miejscu kolejności startu firmware i następnym razem startować przez niego
+# Partycja EFI: miejsce, uszkodzone programy rozruchowe i initramfs
+Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed.	Za mało miejsca na partycji EFI: potrzeba %s MB, wolne %s MB. Nic nie zostało zmienione.
+Package file %s is missing or empty - the boot loader was not changed.	Brak pliku pakietu %s lub jest pusty – program rozruchowy nie został zmieniony.
+Writing %s failed: %s. The previous file was kept.	Zapis %s nie powiódł się: %s. Poprzedni plik został zachowany.
+the copy does not match the package	kopia nie zgadza się z pakietem
+The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync	Nie udało się zaktualizować programu rozruchowego Secure Boot na partycji EFI. Poprzednie pliki zostały zachowane, LuxOS uruchamia się jak dotąd. Zwolnij miejsce na partycji EFI (na przykład: sudo luxos-care esp-clean) i uruchom: sudo luxos-secureboot sync
+Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync	Pliki programu rozruchowego na partycji EFI są uszkodzone (%s). Uruchom: sudo luxos-secureboot sync
+boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync	pliki programu rozruchowego na partycji EFI są uszkodzone (%s): uruchom sudo luxos-secureboot sync
+The boot partition is almost full	Partycja rozruchowa jest prawie pełna
+The boot image of the kernel is damaged	Obraz rozruchowy jądra jest uszkodzony
+Boot loader files on the EFI partition are damaged	Pliki programu rozruchowego na partycji EFI są uszkodzone
+free space on the boot partition: leftovers and older snapshot kernels (root)	zwolnij miejsce na partycji rozruchowej: pozostałości i jądra starszych migawek (root)
+No boot partition with LuxOS kernels was found.	Nie znaleziono partycji rozruchowej z jądrami LuxOS.
+Removed the kernel of older snapshots: %s	Usunięto jądro starszych migawek: %s
+Free space on the boot partition: %d MB	Wolne miejsce na partycji rozruchowej: %d MB
+The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Obraz rozruchowy jest uszkodzony (%s) i nie udało się go zbudować ponownie. Nie uruchamiaj jeszcze ponownie komputera: zwolnij miejsce na partycji rozruchowej i uruchom: sudo mkinitcpio -P
+The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Partycja EFI ma mniej niż 1 GB: z menu startowego będzie można uruchomić mniej migawek systemu.

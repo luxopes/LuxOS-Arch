@@ -1,0 +1,15 @@
+# LuxOS Care: po kazde transakci (po 90-mkinitcpio-install a 95-luxos-care-kernel-post, pred
+# 99-luxos-esp-sync) zbytky prerusenych zapisu na EFI/boot oddilu pryc a kontrola, ze initramfs jde
+# cely precist. Useknuty (plny oddil) -> uvolnit misto a sestavit znovu; kdyz to nejde, hlasita chyba
+# (kod != 0, vypis v lux), ne tichy nenastartovatelny system.
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = *
+
+[Action]
+Description = Checking the boot images on the boot partition...
+When = PostTransaction
+Exec = /usr/bin/luxos-care esp-check

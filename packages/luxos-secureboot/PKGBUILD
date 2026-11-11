@@ -12,7 +12,7 @@
 
 pkgname=luxos-secureboot
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 _shimver=16.1
 _shimrel=7
 pkgdesc="LuxOS Secure Boot - Microsoft-signed shim, MokManager, systemd-boot signed with the LuxOS key, enrollment tool"

@@ -24,6 +24,8 @@ declare -ga LY_WARN=()
 declare -ga LY_OPENED=()   # aktivovane LUKS/VG (pro uklid v opacnem poradi)
 
 LY_MIN_ESP=$((300 * 1000 * 1000))
+# Mensi ESP staci, ale jadro + initramfs (~75 MB) je na nem vicekrat: hlavni, zalozni a sady jadra snimku
+LY_WARN_ESP=$((1000 * 1000 * 1000))
 LY_MIN_ROOT=$((8 * 1024 * 1024 * 1024))
 LY_WARN_ROOT=$((20 * 1024 * 1024 * 1024))
 LY_MIN_BOOT=$((300 * 1024 * 1024))
@@ -307,7 +309,8 @@ layout_validate() {  # BOOTMODE, BOOTLOADER -> LY_ERR / LY_WARN (kody stejne jak
             if [[ ${L[${L[$esp.on]-x}.kind]-} == part ]]; then
                 [[ ${L[${L[$esp.on]}.type]-} == esp ]] || ly_err esp_type
                 b=$(ly_bytes "${L[${L[$esp.on]}.size]-}" 2>/dev/null) || b=0
-                ((b < 0 || b >= LY_MIN_ESP)) || ly_err esp_small
+                if ((b >= 0 && b < LY_MIN_ESP)); then ly_err esp_small
+                elif ((b > 0 && b < LY_WARN_ESP)); then ly_warn esp_small_warn; fi
             fi
             [[ ${L[$esp.mount]} == /boot && -n $(ly_fs_by_mount /efi) ]] && ly_err dup_mount /efi
         fi
@@ -397,6 +400,7 @@ ly_error_text() {  # citelna zprava ke kodu chyby/varovani (stejne texty jako GU
         esp_type)        T "The partition mounted at /boot or /efi must be an EFI system partition." ;;
         esp_fstype)      T "The EFI system partition must use FAT32." ;;
         esp_small)       T "The EFI system partition must have at least 300 MB." ;;
+        esp_small_warn)  T "The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu." ;;
         boot_vfat)       T "With the EFI partition at /boot, there cannot be another /boot. Mount the EFI partition at /efi instead." ;;
         boot_encrypted)  T "The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition." ;;
         bios_grub_missing) T "A BIOS boot partition (1 MB) is needed to start from this disk." ;;
@@ -497,7 +501,8 @@ layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS
                         [[ $fst == vfat ]] || ly_err esp_keep_fs "$dev"
                     fi
                     t=$(blockdev --getsize64 "$dev" 2>/dev/null || echo 0)
-                    ((t >= LY_MIN_ESP)) || ly_err esp_keep_small "$dev"
+                    if ((t < LY_MIN_ESP)); then ly_err esp_keep_small "$dev"
+                    elif ((t < LY_WARN_ESP)); then ly_warn esp_small_warn; fi
                 fi ;;
         esac
     done

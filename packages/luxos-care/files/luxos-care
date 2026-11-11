@@ -26,6 +26,12 @@ Snimky systemu (btrfs, viz /usr/lib/luxos/python/luxos_snapshots.py):
   luxos-care snapshot-pre           (root, hook 05-luxos-snapshot; baliky na stdin)
   luxos-care after-rollback         (root, prvni start po navratu)
 
+EFI/boot oddil (sady jadra snimku, zbytky, initramfs):
+  luxos-care esp-clean [--need BAJTY] [--path DIR]
+                                    (root; hook initramfs luxos-slim) uvolni misto: zbytky, duplicitni
+                                    sady jadra, sady nejstarsich snimku; kod 1 = porad malo mista
+  luxos-care esp-check              (root, hook 96-luxos-care-esp-check) initramfs po transakci cely?
+
 Ochrana systemu (/usr jen pro cteni, viz /usr/lib/luxos/python/luxos_protect.py):
   luxos-care protect [status] [--json]  stav ochrany a posledni kontroly souboru (kdokoli)
   luxos-care protect enable|disable (root) zapne/vypne hned i trvale (PROTECT= v care.conf)
@@ -67,6 +73,7 @@ USAGE = (
     ("snapshot [--kind system]", "take a system snapshot now (root)"),
     ("rollback NAME|--booted --yes", "start the snapshot as the system after the next restart (root)"),
     ("boot-entries", "restore the snapshot and recovery entries in the boot menu (root)"),
+    ("esp-clean", "free space on the boot partition: leftovers and older snapshot kernels (root)"),
     ("System protection", ""),
     ("protect [status] [--json]", "system protection and the last check of system files"),
     ("protect enable|disable", "turn system protection on or off (root)"),
@@ -79,7 +86,7 @@ USAGE = (
     ("reinstall --yes", "reinstall the system, keeping /home and user accounts (root)"),
 )
 INTERNAL = ("update, check, apply, boot-check, kernel-pre, kernel-post, release-kept, snapshot-pre, "
-            "after-rollback, protect lock|unlock, verify --auto")
+            "after-rollback, esp-check, protect lock|unlock, verify --auto")
 
 
 def usage(file=sys.stdout):
@@ -253,6 +260,37 @@ def cmd_boot_entries(_args):
     except snap.SnapshotError as e:
         sys.exit(snap_error(e))
     return 0
+
+
+def cmd_esp_clean(args):
+    need_root()
+    need = 0
+    if "--need" in args:
+        i = args.index("--need")
+        if i + 1 >= len(args) or not args[i + 1].isdigit():
+            usage_error("luxos-care esp-clean [--need BYTES] [--path DIR]")
+        need = int(args[i + 1])
+    try:
+        # s --need (hook mkinitcpio): presne tolik; jinak rezerva + misto na dalsi sadu jadra
+        free, removed = snap.esp_clean(need=need, reserve=0 if need else snap.ESP_RESERVE)
+    except snap.SnapshotError as e:
+        sys.exit(snap_error(e))
+    if free is None:
+        print(_("No boot partition with LuxOS kernels was found."))
+        return 0
+    for kid in removed:
+        print(_("Removed the kernel of older snapshots: %s") % kid)
+    print(_("Free space on the boot partition: %d MB") % (free // 1024 ** 2))
+    return 0 if free >= (need or snap.ESP_LOW) else 1
+
+
+def cmd_esp_check(_args):
+    need_root()
+    rc, bad = care.esp_check()
+    if rc:
+        print(_("The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: "
+                "free space on the boot partition and run: sudo mkinitcpio -P") % ", ".join(bad), file=sys.stderr)
+    return rc
 
 
 def cmd_disk_check(args):
@@ -499,6 +537,12 @@ def main(argv):
         need_root()
         rc = care.boot_check()
         try:
+            # EFI/boot oddil: bezpecny uklid (zbytky prerusenych zapisu, duplicitni sady jadra) pred kontrolou
+            for what in snap.esp_safe_clean():
+                care.log(f"boot partition: removed {what}")
+        except Exception as e:  # noqa: BLE001
+            care.log(f"boot partition cleanup: {e}")
+        try:
             with care.CareLock(wait=True):
                 if rc == 0:
                     care.tsc_fix()
@@ -545,7 +589,8 @@ def main(argv):
         return snap.after_rollback()
     handlers = {"snapshots": cmd_snapshots, "snapshot": cmd_snapshot, "rollback": cmd_rollback,
                 "boot-entries": cmd_boot_entries, "disk-check": cmd_disk_check, "reinstall": cmd_reinstall,
-                "protect": cmd_protect, "verify": cmd_verify}
+                "protect": cmd_protect, "verify": cmd_verify, "esp-clean": cmd_esp_clean,
+                "esp-check": cmd_esp_check}
     if cmd in handlers:
         return handlers[cmd](args)
     if cmd in ("kernel-pre", "kernel-post"):

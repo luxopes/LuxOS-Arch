@@ -145,6 +145,7 @@ same step, if it exists, so these drivers are trusted as well.
 | Boot menu shows "Linpus lite" (Acer) | an entry the firmware created for an old LuxOS file; LuxOS removes it at the next start |
 | Boot menu entry ends with "- needs Secure Boot off" | a snapshot or the previous kernel from before signed kernels; it starts only with Secure Boot off. The main LuxOS entry and LuxOS Recovery always start; such entries disappear as old snapshots are removed |
 | Firmware was reset | the MOK list usually survives; if not, enroll the key again from `EFI/LuxOS/luxos-secureboot.cer` |
+| `status` shows `loader=broken` / "Not enough space on the EFI partition" | the EFI partition was full; the previous files are kept and the shim entry is not used. Free space (`sudo luxos-care esp-clean`) and run `sudo luxos-secureboot sync`, see [boot-partition.md](boot-partition.md) |
 
 Memtest86+ and the UEFI shell on the USB stick are not signed and do not start with Secure Boot on;
 the live system and the installer are not affected.

@@ -4966,3 +4966,20 @@ Secure Boot ready	Secure Boot är redo
 The LuxOS key is enrolled and LuxOS starts through shim. You can now turn on Secure Boot in the firmware settings.	LuxOS-nyckeln är registrerad och LuxOS startar via shim. Nu kan du slå på Secure Boot i firmwareinställningarna.
 tell whether Secure Boot can be turned on in the firmware now	visa om Secure Boot kan slås på i firmware nu
 put LuxOS (shim) first in the firmware boot order and start through it next time	sätta LuxOS (shim) först i firmwarens startordning och starta via den nästa gång
+# EFI-partition: utrymme, skadade starthanterare och initramfs
+Not enough space on the EFI partition: %s MB needed, %s MB free. Nothing was changed.	Inte tillräckligt med utrymme på EFI-partitionen: %s MB behövs, %s MB ledigt. Inget har ändrats.
+Package file %s is missing or empty - the boot loader was not changed.	Paketfilen %s saknas eller är tom – starthanteraren har inte ändrats.
+Writing %s failed: %s. The previous file was kept.	Det gick inte att skriva %s: %s. Den tidigare filen behölls.
+the copy does not match the package	kopian stämmer inte med paketet
+The Secure Boot loader on the EFI partition could not be updated. The previous files were kept; LuxOS starts as before. Free space on the EFI partition (for example: sudo luxos-care esp-clean) and run: sudo luxos-secureboot sync	Det gick inte att uppdatera Secure Boot-starthanteraren på EFI-partitionen. De tidigare filerna behölls och LuxOS startar som förut. Frigör utrymme på EFI-partitionen (till exempel: sudo luxos-care esp-clean) och kör: sudo luxos-secureboot sync
+Boot loader files on the EFI partition are damaged (%s). Run: sudo luxos-secureboot sync	Starthanterarens filer på EFI-partitionen är skadade (%s). Kör: sudo luxos-secureboot sync
+boot loader files on the EFI partition are damaged (%s): run sudo luxos-secureboot sync	starthanterarens filer på EFI-partitionen är skadade (%s): kör sudo luxos-secureboot sync
+The boot partition is almost full	Startpartitionen är nästan full
+The boot image of the kernel is damaged	Kärnans startavbild är skadad
+Boot loader files on the EFI partition are damaged	Starthanterarens filer på EFI-partitionen är skadade
+free space on the boot partition: leftovers and older snapshot kernels (root)	frigör utrymme på startpartitionen: rester och kärnor från äldre ögonblicksbilder (root)
+No boot partition with LuxOS kernels was found.	Ingen startpartition med LuxOS-kärnor hittades.
+Removed the kernel of older snapshots: %s	Kärnan för äldre ögonblicksbilder togs bort: %s
+Free space on the boot partition: %d MB	Ledigt utrymme på startpartitionen: %d MB
+The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Startavbilden är skadad (%s) och kunde inte skapas på nytt. Starta inte om datorn än: frigör utrymme på startpartitionen och kör: sudo mkinitcpio -P
+The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	EFI-partitionen är mindre än 1 GB: färre ögonblicksbilder av systemet kan startas från startmenyn.

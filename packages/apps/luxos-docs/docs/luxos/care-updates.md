@@ -170,7 +170,9 @@ kernel and initramfs the system starts with now (checked against `/usr/lib/modul
 set*: `<kernel folder on the ESP>/luxos-snapshots/<version>-<hash>/{vmlinuz,initramfs.img}`
 (`/boot/luxos-snapshots`, with a shared ESP `EFI/LuxOS/<id>/luxos-snapshots`; GRUB with `/boot` inside
 Btrfs: `@snapshots/.kernels`). Snapshots with the same kernel and initramfs share one set, unused
-sets are removed. Without space for the kernel the snapshot is kept but has no boot entry.
+sets are removed; space on the partition is guarded (merged and oldest sets go first, see
+[boot-partition.md](boot-partition.md)). Without space for the kernel the snapshot is kept but has no
+boot entry.
 
 **Boot menu.** Every snapshot with a kernel set gets an entry **"LuxOS (before update of
 YYYY-MM-DD HH:MM)"** (a snapshot taken by `lux system apply` is "before system change of …",

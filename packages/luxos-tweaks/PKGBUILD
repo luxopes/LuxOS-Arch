@@ -2,7 +2,7 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=12
+pkgrel=13
 pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting, /tmp on disk"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -54,6 +54,10 @@ package() {
         "$f/boot/luxos-emergency.conf" "$f/boot/luxos-device-timeout.conf"
     install -Dm644 "$f/boot/luxos-boot.hook" "$pkgdir/usr/lib/initcpio/install/luxos-boot"
     install -Dm644 "$f/boot/zz-luxos-boot.conf" "$pkgdir/usr/lib/luxos/boot/zz-luxos-boot.conf"
+    # hook initramfs "luxos-slim": bez zakazanych nenactenych modulu (nouveau + firmware NVIDIA ~110 MB),
+    # na plnem EFI oddilu stary initramfs radeji ponecha nez prepise useknutym
+    install -Dm644 "$f/boot/luxos-slim.hook" "$pkgdir/usr/lib/initcpio/install/luxos-slim"
+    install -Dm644 "$f/boot/zz-luxos-slim.conf" "$pkgdir/usr/lib/luxos/boot/zz-luxos-slim.conf"
     install -Dm644 "$f/boot/luxos-emergency.conf" "$pkgdir/usr/lib/systemd/system/emergency.service.d/luxos-boot-failure.conf"
     # /tmp na disku misto v pameti (swap je jen zram, tmpfs vzdy zabira RAM): subvolume @tmp nebo
     # slozka korene, vyprazdneni pri startu; prechod u stavajicich instalaci (instalacni skript

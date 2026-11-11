@@ -347,6 +347,7 @@ fs on=esp mount=/boot type=vfat'
 vcheck "chybi /" uefi no_root "$BASE_ESP"
 vcheck "chybi ESP" uefi esp_missing $'part id=r disk=/dev/vda size=rest\nfs on=r mount=/'
 vcheck "maly ESP" uefi esp_small $'part id=esp disk=/dev/vda size=100M type=esp\nfs on=esp mount=/boot type=vfat\npart id=r disk=/dev/vda size=rest\nfs on=r mount=/'
+vcheck "ESP pod 1 GB: varovani (mene sad jadra snimku)" uefi esp_small_warn $'part id=esp disk=/dev/vda size=512M type=esp\nfs on=esp mount=/boot type=vfat\npart id=r disk=/dev/vda size=rest\nfs on=r mount=/'
 vcheck "ESP na LUKS" uefi esp_not_part $'part id=e disk=/dev/vda size=1G\nluks id=c on=e name=x\nfs on=c mount=/boot type=vfat\npart id=r disk=/dev/vda size=rest\nfs on=r mount=/'
 vcheck "/boot vfat bez typu ESP" uefi esp_type $'part id=e disk=/dev/vda size=1G\nfs on=e mount=/boot type=vfat\npart id=r disk=/dev/vda size=rest\nfs on=r mount=/'
 vcheck "ESP v /boot a dalsi /boot" uefi dup_mount "$BASE_ESP"$'\npart id=b disk=/dev/vda size=1G\nfs on=b mount=/boot type=ext4\npart id=r disk=/dev/vda size=rest\nfs on=r mount=/'

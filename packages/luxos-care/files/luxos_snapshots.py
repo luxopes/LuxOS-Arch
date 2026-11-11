@@ -503,7 +503,7 @@ def save_kernel(lay, top, kernel, build=None):
         dst = os.path.join(base, kid)
         if os.path.isfile(os.path.join(dst, "initramfs.img")):
             return kid, ver, overlay
-        need = os.path.getsize(vml) + os.path.getsize(img) + 8 * 1024 * 1024
+        need = os.path.getsize(vml) + os.path.getsize(img) + KSET_MARGIN
         os.makedirs(base, exist_ok=True)
         if care.free_bytes(base) < need:
             care.log(f"not enough space for the kernel of the snapshot in {base}")
@@ -511,11 +511,16 @@ def save_kernel(lay, top, kernel, build=None):
         tmp = dst + ".new"
         shutil.rmtree(tmp, ignore_errors=True)
         os.makedirs(tmp)
-        shutil.copyfile(vml, os.path.join(tmp, "vmlinuz"))
-        shutil.copyfile(img, os.path.join(tmp, "initramfs.img"))
-        with open(os.path.join(tmp, "kernel.json"), "w") as f:
-            json.dump({"kver": ver, "overlay": overlay}, f)
-        os.rename(tmp, dst)
+        try:
+            care.safe_copy(vml, os.path.join(tmp, "vmlinuz"), ".part")
+            care.safe_copy(img, os.path.join(tmp, "initramfs.img"), ".part")
+            with open(os.path.join(tmp, "kernel.json"), "w") as f:
+                json.dump({"kver": ver, "overlay": overlay}, f)
+            os.rename(tmp, dst)
+        except OSError:
+            # plny oddil uprostred kopie: zadna neuplna sada nezustane
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise
         return kid, ver, overlay
     except OSError as e:
         care.log(f"saving the kernel of the snapshot failed: {e}")
@@ -557,6 +562,251 @@ def gc_kernels(lay, top, snaps):
             gone.append(n)
     return gone
 
+
+
+# ---- misto na EFI oddilu (/boot) -------------------------------------------------------------
+# Sady jadra snimku lezi vedle hlavniho a zalozniho jadra na EFI oddilu (FAT, obvykle 1 GB, sdileny
+# ESP s Windows i 100-300 MB). Plny oddil = useknuty initramfs nebo zavadec a nenastartovany system
+# (incident 2026-11-10: 1 GB plny, tri sady jadra po 190 MB). Proto:
+#   - stejne jadro (vmlinuz) ve vice sadach: nejvyse VARIANTS_PER_KERNEL sady (nejnovejsi a nejstarsi),
+#     snimky ostatnich startuji nejblizsi novejsi ponechanou sadu (stejne jadro = stejne moduly),
+#   - pred kazdou transakci (a pred novou sadou) zustane volno ESP_RESERVE + misto na jednu dalsi
+#     sadu jadra (mkinitcpio pise novy initramfs vedle stareho, zalozni jadro), jinak se mazou sady
+#     nejstarsich snimku - nikdy sada nejnovejsiho snimku ani snimku, ze ktereho system bezi; hlavni
+#     a zalozni jadro sadami nejsou,
+#   - zbytky prerusenych zapisu (*.new, *.luxos-new, *.img.tmp od mkinitcpio) se mazou.
+ESP_RESERVE = 100 << 20
+ESP_LOW = 50 << 20                  # kontrola po startu: mene = upozorneni (po automatickem uklidu)
+VARIANTS_PER_KERNEL = 2
+KSET_MARGIN = 8 << 20               # rezerva pri ukladani sady jadra
+
+
+def esp_dir(lay):
+    """Adresar jadra na oddilu, ze ktereho zavadec cte (ESP u systemd-boot, /boot u GRUB) nebo None."""
+    if lay.get("kind") == "sdboot" and lay.get("kdir"):
+        return P(lay["kdir"])
+    if lay.get("kind") == "grub" and is_mountpoint("/boot"):
+        return P("/boot")
+    return None
+
+
+def stale_files(lay):
+    """Zbytky prerusenych zapisu LuxOS a mkinitcpio v adresari jadra -> [cesta] (jen presne vzory)."""
+    d = esp_dir(lay)
+    if not d:
+        return []
+    k = re.escape(lay.get("kernel", ""))
+    pat = re.compile(rf"^(vmlinuz-{k}(-prev)?|initramfs-{k}(-prev|-fallback)?\.img)"
+                     rf"(\.new|\.luxos-new|\.tmp)$")
+    out = []
+    for base in (d, os.path.join(d, KSET_DIR)):
+        try:
+            names = os.listdir(base)
+        except OSError:
+            continue
+        for n in names:
+            p = os.path.join(base, n)
+            if base == d and pat.match(n) and os.path.isfile(p):
+                out.append(p)
+            elif base != d and n.endswith(".new") and KSET_RE.match(n[:-4]):
+                out.append(p)
+    return out
+
+
+def clean_stale(lay):
+    gone = []
+    for p in stale_files(lay):
+        try:
+            if os.path.isdir(p):
+                shutil.rmtree(p)
+            else:
+                os.unlink(p)
+            gone.append(p)
+        except OSError as e:
+            care.log(f"could not remove {p}: {e}")
+    return gone
+
+
+def kernel_set_size(lay):
+    """Velikost jedne sady jadra (hlavni vmlinuz + initramfs) - odhad mista pro dalsi sadu."""
+    k = lay.get("kernel", "")
+    d = esp_dir(lay) or P("/boot")
+    total = 0
+    for f in (f"vmlinuz-{k}", f"initramfs-{k}.img"):
+        for base in (d, P("/boot")):
+            try:
+                total += os.path.getsize(os.path.join(base, f))
+                break
+            except OSError:
+                continue
+    return total
+
+
+def _set_usage(snaps):
+    """{sada: (index nejnovejsiho snimku, ktery ji pouziva, [snimky])}"""
+    use = {}
+    for i, s in enumerate(snaps):
+        k = s.get("kset")
+        if k:
+            _i, lst = use.get(k, (i, []))
+            use[k] = (i, lst + [s])
+    return use
+
+
+def _protected_sets(snaps):
+    """Sady, ktere se nemazou: nejnovejsiho snimku s jadrem a snimku, ze ktereho system bezi."""
+    out = set()
+    for s in reversed(snaps):
+        if s.get("kset"):
+            out.add(s["kset"])
+            break
+    b = booted_snapshot()
+    for s in snaps:
+        if b and s["name"] == b and s.get("kset"):
+            out.add(s["kset"])
+    return out
+
+
+def dedupe_kernels(lay, top, snaps):
+    """Stejne jadro ve vice sadach (initramfs se lisi - jiny systemd, firmware, nastaveni): ponecha
+    nejnovejsi a nejstarsi sadu, snimky ostatnich presmeruje na nejnovejsi. -> [presmerovane snimky]"""
+    store = kernel_store(lay, top)
+    if not store:
+        return []
+    groups = {}
+    usage = _set_usage(snaps)
+    # otisk vmlinuz (~17 MB na sadu) jen tam, kde ma jedna verze jadra vic sad nez VARIANTS_PER_KERNEL
+    per_ver = {}
+    for kid in usage:
+        per_ver[kid.rsplit("-", 1)[0]] = per_ver.get(kid.rsplit("-", 1)[0], 0) + 1
+    for kid, (last, users) in usage.items():
+        if per_ver[kid.rsplit("-", 1)[0]] <= VARIANTS_PER_KERNEL:
+            continue
+        d = kset_path(lay, top, kid)
+        if not d or not all(u.get("overlay") for u in users):
+            continue
+        try:
+            groups.setdefault(digest(os.path.join(d, "vmlinuz")), []).append((last, kid))
+        except OSError:
+            continue
+    keep_always = _protected_sets(snaps)
+    moved = []
+    for sets in groups.values():
+        if len(sets) <= VARIANTS_PER_KERNEL:
+            continue
+        sets.sort()                                    # od nejstarsiho pouziti
+        newest, oldest = sets[-1][1], sets[0][1]
+        for _last, kid in sets[1:-1]:
+            if kid in keep_always:
+                continue
+            for s in snaps:
+                if s.get("kset") == kid:
+                    s["kset"] = newest
+                    write_meta(top, s)
+                    moved.append(s["name"])
+        care.log(f"kernel sets with the same kernel merged into {newest} (kept also {oldest})")
+    return moved
+
+
+def kset_exists(lay, top):
+    """Sada se soucasnym jadrem a initramfs uz je ulozena (novy snimek zadne misto nepotrebuje)."""
+    found = boot_kernel(lay.get("kernel", ""))
+    store = kernel_store(lay, top)
+    if not found or not store:
+        return False
+    ver, vml, img = found
+    try:
+        kid = f"{ver}-{digest(vml, img)}"
+    except OSError:
+        return False
+    return os.path.isfile(os.path.join(store_dir(store, top), kid, "initramfs.img"))
+
+
+def esp_budget(lay, top, snaps, need=0, reserve=None):
+    """Volno v adresari jadra aspon reserve + need: zbytky, duplicitni sady, pak sady nejstarsich snimku.
+    Snimek bez sady zustava (navrat z bezici obnovy), jen bez polozky v nabidce zavadece.
+    -> (volno, [smazane sady]); bez EFI/boot oddilu (napr. GRUB v btrfs) (None, [])."""
+    d = esp_dir(lay)
+    store = kernel_store(lay, top)
+    if not d or not store or not store.get("dir"):
+        return None, []
+    clean_stale(lay)
+    dedupe_kernels(lay, top, snaps)
+    removed = gc_kernels(lay, top, snaps)
+    target = (ESP_RESERVE if reserve is None else reserve) + max(0, need)
+    free = care.free_bytes(d)
+    if free >= target:
+        return free, removed
+    protect = _protected_sets(snaps)
+    use = _set_usage(snaps)
+    order = sorted(use, key=lambda k: use[k][0])       # sady nejstarsich snimku napred
+    kdig = {}
+    for kid in order:
+        kd = kset_path(lay, top, kid)
+        try:
+            kdig[kid] = digest(os.path.join(kd, "vmlinuz")) if kd else None
+        except OSError:
+            kdig[kid] = None
+    for n, kid in enumerate(order):
+        if free >= target:
+            break
+        if kid in protect:
+            continue
+        # stejne jadro v novejsi sade: snimky se na ni presmeruji (polozka zustava), jinak bez sady
+        alt = next((k for k in reversed(order[n + 1:]) if kdig.get(kid) and kdig.get(k) == kdig[kid]), None)
+        users = use[kid][1]
+        for s in users:
+            s["kset"] = alt
+            write_meta(top, s)
+        if alt:
+            use[alt] = (use[alt][0], use[alt][1] + users)
+        path = os.path.join(store_dir(store, top), kid)
+        shutil.rmtree(path, ignore_errors=True)
+        removed.append(kid)
+        care.log(f"kernel set {kid} removed to free space on the boot partition (snapshots "
+                 f"{' '.join(s['name'] for s in users)} " + (f"now start {alt})" if alt else "stay, without a boot entry)"))
+        free = care.free_bytes(d)
+    return free, removed
+
+
+def esp_safe_clean(lay=None):
+    """Kontrola po startu: jen bezpecne veci - zbytky prerusenych zapisu a duplicitni sady jadra
+    (zadny snimek o polozku neprijde). -> [co se smazalo]"""
+    lay = lay or care.detect_layout()
+    if lay["kind"] == "none":
+        return []
+    gone = [os.path.basename(p) for p in clean_stale(lay)]
+    ok, _why = supported()
+    if not ok or in_chroot() or not esp_dir(lay):
+        return gone
+    with snapshot_lock(), top_level() as top:
+        snaps = list_snapshots(top)
+        moved = dedupe_kernels(lay, top, snaps)
+        removed = gc_kernels(lay, top, list_snapshots(top))
+        if moved or removed:
+            sync_boot(top, lay, list_snapshots(top))
+        gone += removed
+    return gone
+
+
+def esp_clean(need=0, reserve=None, lay=None):
+    """luxos-care esp-clean (hook mkinitcpio luxos-slim, akce clean_esp, kontrola po startu)
+    -> (volno, [smazane sady]); polozky zavadece podle zbylych sad."""
+    lay = lay or care.detect_layout()
+    if lay["kind"] == "none":
+        return None, []
+    clean_stale(lay)
+    ok, _why = supported()
+    if not ok or in_chroot():
+        d = esp_dir(lay)
+        return (care.free_bytes(d) if d else None), []
+    with snapshot_lock(), top_level() as top:
+        snaps = list_snapshots(top)
+        free, removed = esp_budget(lay, top, snaps, need=need, reserve=reserve)
+        snaps = list_snapshots(top)
+        gc_kernels(lay, top, snaps)
+        sync_boot(top, lay, snaps)
+    return free, removed
 
 # ---- prikazova radka polozek ----------------------------------------------------------------
 def entry_options(base, subvol, extra=(), drop=()):
@@ -866,8 +1116,14 @@ def pre_transaction(targets, now=None):
     try:
         with snapshot_lock(), top_level() as top:
             lay = care.detect_layout()
+            # Misto na EFI oddilu: pro novou sadu jadra a pro tuto transakci (novy initramfs se pise
+            # vedle stareho, zalozni jadro) - jinak napred stare sady jadra snimku
+            ksize = kernel_set_size(lay)
+            esp_budget(lay, top, list_snapshots(top), need=ksize + (0 if kset_exists(lay, top) else ksize + KSET_MARGIN))
             meta = create(top, "update", targets, now=now, lay=lay)
             gone = prune(top)
+            snaps = list_snapshots(top)
+            esp_budget(lay, top, snaps, need=ksize)
             snaps = list_snapshots(top)
             gc_kernels(lay, top, snaps)
             sync_boot(top, lay, snaps)
@@ -922,9 +1178,7 @@ def copy_boot(files, vml, img):
         if os.path.isfile(d) and care._same_file(src, d):
             continue
         os.makedirs(os.path.dirname(d), exist_ok=True)
-        tmp = d + ".luxos-new"
-        shutil.copyfile(src, tmp)
-        os.replace(tmp, d)
+        care.safe_copy(src, d, ".luxos-new")
 
 
 def reset_counter(lay):
@@ -966,7 +1220,9 @@ def rollback(top, name, now=None, lay=None, kind="before-rollback", build=None):
     src = None
     if files and meta.get("kset") != cur_kid:
         src = snapshot_kernel_source(lay, top, meta)
-        if not src:
+        # sada jadra smazana kvuli mistu na EFI oddilu, ale stejna verze jadra jako ted: moduly
+        # snimku k soucasnemu jadru patri, hlavni polozka zustava
+        if not src and not (meta.get("kver") and meta.get("kver") == cur_ver):
             raise SnapshotError("kernel_missing", meta.get("kver", ""))
     replaced = new_name(top, now)
     os.rename(sys_path, os.path.join(snap_dir(top), replaced))

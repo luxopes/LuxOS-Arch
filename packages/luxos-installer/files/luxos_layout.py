@@ -22,6 +22,7 @@ LUKS_HEADER = 16 * MiB
 LVM_META = 1 * MiB
 EXTENT = 4 * MiB
 MIN_ESP = 300 * 1000 * 1000
+WARN_ESP = 1000 * 1000 * 1000      # mensi ESP: mene sad jadra snimku (stejne jako layout.sh)
 MIN_ROOT = 8 * GiB
 WARN_ROOT = 20 * GiB
 MIN_BOOT = 300 * MiB
@@ -51,6 +52,7 @@ MESSAGES = {
     "esp_type": "The partition mounted at /boot or /efi must be an EFI system partition.",
     "esp_fstype": "The EFI system partition must use FAT32.",
     "esp_small": "The EFI system partition must have at least 300 MB.",
+    "esp_small_warn": "The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.",
     "boot_vfat": "With the EFI partition at /boot, there cannot be another /boot. "
                  "Mount the EFI partition at /efi instead.",
     "boot_encrypted": "The boot loader (GRUB) cannot open encrypted volumes: add an unencrypted /boot partition.",
@@ -71,7 +73,7 @@ MESSAGES = {
     "pass_mismatch": "The passphrases do not match.",
     "preset_small": "The disk %s is too small for this layout (it needs at least %s).",
 }
-WARNINGS = {"root_small_warn", "enc_mismatch", "swap_plain", "unused"}
+WARNINGS = {"root_small_warn", "esp_small_warn", "enc_mismatch", "swap_plain", "unused"}
 
 
 # ---- scan ---------------------------------------------------------------------------
@@ -773,8 +775,12 @@ class Layout:
                             err("esp_keep_fs", esp.dev)
                         if size < MIN_ESP:
                             err("esp_keep_small", esp.dev)
+                        elif size < WARN_ESP:
+                            err("esp_small_warn")
                     elif size and size < MIN_ESP:
                         err("esp_small")
+                    elif size and size < WARN_ESP:
+                        err("esp_small_warn")
                 if esp.use["mount"] == "/boot" and "/efi" in mounts:
                     err("dup_mount", "/efi")
             boot = mounts.get("/boot")
