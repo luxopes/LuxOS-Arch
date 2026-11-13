@@ -806,13 +806,16 @@ def mini_desktop(p, x, y, w, h, dark):
     cr.restore()
 
 
+APPEARANCE_MODES = ("light", "dark", "auto")
+
+
 def draw_appearance(p, mode=None):
     cr = p.cr
     rrect(cr, 0, 0, VW, VH, 18)
     fill(cr, hexc("#1a1c26") if p.dark else hexc("#eef0f8"))
     names = (("light", _("Light")), ("dark", _("Dark")), ("auto", _("Auto")))
     for i, (key, name) in enumerate(names):
-        x, y, w, h = 28 + i * 200, 40, 184, 170
+        x, y, w, h = 28 + i * 200, 40, 184, 170  # Tour.appearance_hit pocita se stejnou mrizkou
         if key == "auto":
             cr.save()
             cr.move_to(x - 20, y - 20)
@@ -1201,6 +1204,12 @@ class TourWindow(Gtk.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin=24, margin_bottom=10)
         area = Gtk.DrawingArea(height_request=VH + 36, vexpand=True)
         area.connect("draw", self.on_draw, draw)
+        if draw is draw_appearance and have("luxos-appearance"):
+            # nahledy Svetly/Tmavy/Auto jdou vybrat i kliknutim, ne jen tlacitky pod nimi
+            area.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK
+                            | Gdk.EventMask.LEAVE_NOTIFY_MASK)
+            area.connect("button-press-event", self.on_appearance_click)
+            area.connect("motion-notify-event", self.on_appearance_motion)
         self.areas.append(area)
         box.pack_start(area, True, True, 0)
         t = Gtk.Label(label=title, wrap=True, justify=Gtk.Justification.CENTER, margin_top=8)
@@ -1256,6 +1265,35 @@ class TourWindow(Gtk.ApplicationWindow):
             draw(p, self.mode)
         else:
             draw(p)
+        return False
+
+    @staticmethod
+    def appearance_hit(area, x, y):
+        """Rezim pod bodem (souradnice okna nahledu) nebo None - stejne prepocty jako on_draw."""
+        w, h = area.get_allocated_width(), area.get_allocated_height()
+        s = min(w / VW, h / VH)
+        if s <= 0:
+            return None
+        vx, vy = (x - (w - VW * s) / 2) / s, y / s
+        for i, key in enumerate(APPEARANCE_MODES):
+            tx = 28 + i * 200
+            # nahled i popisek pod nim
+            if tx - 6 <= vx <= tx + 190 and 34 <= vy <= 252:
+                return key
+        return None
+
+    def on_appearance_click(self, area, ev):
+        key = self.appearance_hit(area, ev.x, ev.y)
+        if ev.button != 1 or key is None or key not in self.mode_buttons:
+            return False
+        self.mode_buttons[key].set_active(True)
+        return True
+
+    def on_appearance_motion(self, area, ev):
+        win = area.get_window()
+        if win:
+            hit = self.appearance_hit(area, ev.x, ev.y) is not None
+            win.set_cursor(Gdk.Cursor.new_from_name(area.get_display(), "pointer") if hit else None)
         return False
 
     def set_mode(self, rb, key):

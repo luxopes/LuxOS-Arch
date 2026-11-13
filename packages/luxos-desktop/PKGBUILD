@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=63
+pkgrel=64
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -28,7 +28,7 @@ sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
             'e83ab0348ec09f4b5bb27f658b9c424c9c8fbf512484b728903515b9f01c3c28')
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
-makedepends=(python xfce4-settings xfce4-session libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6')
+makedepends=(python xfce4-settings xfce4-session libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3)
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -39,6 +39,8 @@ depends=(
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
     # Xfce (jen potrebne casti); xfwm4 z [luxos]: umisteni oken a Alt+` (packages/xfwm4)
     xfce4-session 'xfwm4>=4.20.0-2.1' xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
+    # plugin horni listy luxos-bar (hodiny uprostred, neprusvitna lista pod okny)
+    libwnck3
     xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.3' ffmpeg xfce4-taskmanager
     # Terminal LuxOS misto xfce4-terminal (packages/luxos-terminal, VTE s obrazky SIXEL)
     luxos-terminal
@@ -113,8 +115,11 @@ build() {
     # Pojistka proti fork bombe kdekoli v relaci (systemova sluzba, viz files/src/luxos-forkguard.c);
     # C: smycka bez alokaci se zamcenou pameti i pri vycerpane RAM (sd-bus z libsystemd jen pro upozorneni)
     gcc $CFLAGS $LDFLAGS -o luxos-forkguard "$startdir/files/src/luxos-forkguard.c" -lsystemd
+    # Plugin horni listy (v procesu panelu): hodiny uprostred listy a neprusvitna lista pod okny
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-bar.so "$startdir/files/src/luxos-bar.c" \
+        $(pkg-config --cflags --libs libxfce4panel-2.0 libwnck-3.0 libxfconf-0 gtk+-3.0) -lm
     strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
-    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so
+    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-bar.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
     # hodiny kazde 3 s, baterie kazdych 20 s, nazev aplikace pri kazdem prepnuti okna, prepinace
@@ -140,6 +145,10 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-data.lsl" luxos-emoji-data
     # Nastaveni > Firewall (luxos-firewall: zapnuti, vyjimky, Tailscale, nedavno zablokovane programy)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-firewall-settings.lsl" luxos-firewall-settings
+    # Widgety na plose (cas a pocasi, mesic, vytizeni, hudba); vypnute = po spusteni hned skonci
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-widgets.lsl" luxos-widgets
+    # Hodiny (budik, svetovy cas, stopky, minutka); budiky hlida na pozadi (--background)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-clock-app.lsl" luxos-clock-app
     rm -rf cldr-ann cldr-der emoji-data
     mkdir -p cldr-ann cldr-der
     tar -xzf "cldr-annotations-full-$_cldr.tgz" -C cldr-ann
@@ -160,7 +169,7 @@ package() {
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot luxos-gpu luxos-firewall-settings
+        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
     install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"
@@ -205,6 +214,7 @@ package() {
     for m in genmon systray; do
         ln -s "/usr/lib/xfce4/panel/plugins/lib$m.so" "$pp/lib/xfce4/panel/plugins/lib$m.so"
     done
+    install -Dm755 libluxos-bar.so "$pp/lib/xfce4/panel/plugins/libluxos-bar.so"
     install -Dm644 "$f/rofi/config.rasi" "$pkgdir/etc/rofi.rasi"   # system-wide config rofi 2.x
 
     # Kratke nazvy aplikaci (hook spravce baliku prepise .desktop do /var/lib/luxos/apps)

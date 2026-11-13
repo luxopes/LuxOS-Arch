@@ -4,8 +4,11 @@
 Karty s kruhovymi ukazateli a grafem za posledni minutu (procesor, pamet,
 disk, sit), pod nimi spustene aplikace s ikonou a tlacitkem Ukoncit.
 Technicky vypis vsech procesu je az na prepnuti "Vsechny procesy".
+Seznam jde seradit klikem na zahlavi sloupce (nazev, procesor, pamet; druhy klik obrati poradi),
+volba se pamatuje v ~/.config/luxos/monitor.conf.
 Data cte primo z /proc (bez dalsich zavislosti), obnova kazdou sekundu.
 """
+import json
 import os
 import pwd
 import signal
@@ -40,6 +43,9 @@ CSS = b"""
 .app-name { font-weight: 600; }
 .metric { font-feature-settings: "tnum"; opacity: 0.85; }
 .quit { border-radius: 999px; padding: 2px 12px; }
+button.sort { padding: 2px 6px; min-height: 0; border-radius: 6px; font-size: 11px; }
+button.sort label { opacity: 0.6; }
+button.sort.active label { opacity: 1; font-weight: 700; }
 """
 
 
@@ -147,6 +153,48 @@ class Processes:
                            "ppid": int(fields[1])})
         self.prev, self.prev_time = cur, now
         return result
+
+
+# ---- razeni ------------------------------------------------------------------
+SORT_KEYS = ("name", "cpu", "mem")
+
+
+def sort_conf_path():
+    return os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "luxos", "monitor.conf")
+
+
+def load_sort():
+    """(klic, sestupne) z nastaveni; vychozi procesor sestupne."""
+    try:
+        with open(sort_conf_path()) as f:
+            data = json.load(f)
+        if data.get("sort") in SORT_KEYS:
+            return data["sort"], bool(data.get("descending", data["sort"] != "name"))
+    except (OSError, ValueError, AttributeError):
+        pass
+    return "cpu", True
+
+
+def save_sort(key, descending):
+    path = sort_conf_path()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path + ".tmp", "w") as f:
+            json.dump({"sort": key, "descending": descending}, f)
+        os.replace(path + ".tmp", path)
+    except OSError:
+        pass
+
+
+def sort_groups(groups, key, descending):
+    """[(klic, skupina)] podle sloupce; shoda -> druhy ciselny sloupec a nazev (poradi se neprehazuje)."""
+    def name(kv):
+        return str(kv[1]["name"]).casefold()
+    items = sorted(groups.items(), key=name)
+    if key == "name":
+        return sorted(items, key=name, reverse=descending)
+    other = "mem" if key == "cpu" else "cpu"
+    return sorted(items, key=lambda kv: (kv[1][key], kv[1][other]), reverse=descending)
 
 
 # ---- widgety ----------------------------------------------------------------
@@ -274,12 +322,23 @@ class Monitor(Gtk.Window):
         self.apps_title = Gtk.Label(xalign=0)
         self.apps_title.get_style_context().add_class("section-title")
         page.pack_start(self.apps_title, False, False, 0)
-        head = Gtk.Box(spacing=12, margin_start=56, margin_end=96)
-        head.pack_start(Gtk.Label(label=_("Name"), xalign=0), True, True, 0)
-        for t, wc in ((_("Processor"), 8), (_("Memory"), 10)):
-            lab = Gtk.Label(label=t, xalign=1, width_chars=wc)
-            lab.get_style_context().add_class("card-sub")
-            head.pack_start(lab, False, False, 0)
+        # zahlavi sloupcu = tlacitka razeni
+        self.sort_key, self.sort_desc = load_sort()
+        head = Gtk.Box(spacing=12, margin_start=50, margin_end=90)
+        self.sort_buttons = {}
+        for key, title, wc, expand in (("name", _("Name"), 0, True), ("cpu", _("Processor"), 8, False),
+                                       ("mem", _("Memory"), 10, False)):
+            btn = Gtk.Button(relief=Gtk.ReliefStyle.NONE)
+            btn.get_style_context().add_class("sort")
+            lab = Gtk.Label(xalign=0 if key == "name" else 1, width_chars=wc)
+            btn.add(lab)
+            btn.title = title
+            btn.connect("clicked", self.on_sort, key)
+            head.pack_start(btn, expand, expand, 0)
+            if key == "name":
+                btn.set_halign(Gtk.Align.START)
+            self.sort_buttons[key] = btn
+        self.update_sort_buttons()
         page.pack_start(head, False, False, 0)
         self.listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         self.listbox.get_style_context().add_class("apps-list")
@@ -289,13 +348,32 @@ class Monitor(Gtk.Window):
         self.screen = Wnck.Screen.get_default()
         self.procs = Processes()
         self.rows = {}
-        self.groups = {}
+        self.groups = None
+        self.last_procs = None
         self.cpu_prev = read_cpu()
         self.net_prev = (read_net(), time.monotonic())
         self.disk_prev = read_disk_io()
         self.tick = 0
         self.refresh()
         GLib.timeout_add(1000, self.refresh)
+
+    # ---- razeni ----
+    def on_sort(self, _button, key):
+        if key == self.sort_key:
+            self.sort_desc = not self.sort_desc
+        else:
+            # cisla od nejvetsiho, nazvy od A
+            self.sort_key, self.sort_desc = key, key != "name"
+        save_sort(self.sort_key, self.sort_desc)
+        self.update_sort_buttons()
+        self.refresh_lists(resort_only=True)
+
+    def update_sort_buttons(self):
+        for key, btn in self.sort_buttons.items():
+            arrow = (" ▼" if self.sort_desc else " ▲") if key == self.sort_key else ""
+            btn.get_child().set_text(btn.title + arrow)
+            ctx = btn.get_style_context()
+            (ctx.add_class if key == self.sort_key else ctx.remove_class)("active")
 
     # ---- obnova ----
     def refresh(self):
@@ -345,8 +423,12 @@ class Monitor(Gtk.Window):
                 pass
         return self._cpu_model
 
-    def refresh_lists(self, force=False):
+    def refresh_lists(self, force=False, resort_only=False):
+        if resort_only and self.groups is not None and self.last_procs is not None:
+            self.show_groups(self.groups, self.last_procs, False)
+            return
         procs = self.procs.sample()
+        self.last_procs = procs
         by_pid = {p["pid"]: p for p in procs}
         children = {}
         for p in procs:
@@ -354,7 +436,7 @@ class Monitor(Gtk.Window):
         show_all = self.all_switch.get_active()
         groups = {}
         if show_all:
-            for p in sorted(procs, key=lambda p: (-p["cpu"], -p["mem"]))[:150]:
+            for p in procs:
                 try:
                     user = pwd.getpwuid(p["uid"]).pw_name
                 except KeyError:
@@ -386,12 +468,18 @@ class Monitor(Gtk.Window):
                     g["cpu"] += by_pid[cur]["cpu"]
                     g["mem"] += by_pid[cur]["mem"]
                     stack.extend(children.get(cur, []))
+        self.show_groups(groups, procs, force)
+
+    def show_groups(self, groups, procs, force):
         self.groups = groups
+        show_all = self.all_switch.get_active()
         if force:
             for row in list(self.rows.values()):
                 self.listbox.remove(row)
             self.rows = {}
-        ordered = sorted(groups.items(), key=lambda kv: (-kv[1]["cpu"], -kv[1]["mem"]))
+        ordered = sort_groups(groups, self.sort_key, self.sort_desc)
+        if show_all:
+            ordered = ordered[:150]
         keys = {k for k, _g in ordered}
         for k in list(self.rows):
             if k not in keys:
@@ -413,7 +501,7 @@ class Monitor(Gtk.Window):
     # ---- ukonceni aplikace ----
     def quit_app(self, key):
         """Zavrit okna aplikace (jako krizkem); proces bez okna dostane SIGTERM."""
-        g = self.groups.get(key)
+        g = (self.groups or {}).get(key)
         if not g:
             return
         if g["windows"]:

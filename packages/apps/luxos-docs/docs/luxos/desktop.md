@@ -47,6 +47,10 @@ Its items, from left to right:
 | Notifications | notification plugin (notification history) | - |
 | Clock | e.g. "Wed 22. Oct  14:05" (`luxos-clock`, refreshed every 3 s) | opens or closes the Calendar |
 
+Between the left and the right part is the `luxos-bar` plugin: the bar shows the wallpaper under
+it, and it can show the clock in the middle, have rounded corners, or use white text - see
+[Top bar options and desktop widgets](bar-widgets.md).
+
 `luxos-menubar` (a small C program running in the background) lets you switch between open menus of the top bar with a single
 click (left or right button), as in macOS. While a menu is open, shortcuts with Super, Ctrl+Alt,
 Alt+Tab, Alt+F4 and PrtSc close it and still run. It also watches monitor hotplug through RandR events and pushes the pointer to
@@ -151,7 +155,11 @@ running.
 - **Launchpad** (tap `Super` alone, `Super+A`, `luxos-launchpad`, also the first Dock icon): a grid of all apps
   (rofi theme `luxos-launchpad`). Settings panels of Xfce are hidden there. A few LuxOS settings
   apps get Launchpad-only copies: Displays, Keyboard Layouts, Fingerprint, Printers & Scanners
-  (`X-LuxOS-Launchpad`).
+  (`X-LuxOS-Launchpad`). Standalone apps with the Settings category are shown too: Phone (LuxOS
+  Companion), Bluetooth, Software Update, Firewall, LuxAI Account and Volume Control
+  (`luxos-launchpad` gives rofi a copy without `X-XFCE-SettingsDialog` in
+  `$XDG_RUNTIME_DIR/luxos-launchpad-$UID/share`, list `LAUNCHPAD_APPS`; same desktop id, so usage
+  counts and sorting keep working; the menu and Search are unchanged).
 - **Sorting** (buttons under the Launchpad grid, or `Alt+1`..`Alt+4`): **Alphabetical**, **Recently
   used**, **Most used** (default) and **Category** (Internet, Office, Graphics, Multimedia,
   Development, Education, Games, Science, Accessories, Settings, System, then alphabetically). The
@@ -210,12 +218,13 @@ luxos-appearance status                  # light | dark (current look)
 luxos-appearance mode                    # light | dark | auto (the setting)
 luxos-appearance wallpaper FILE          # wallpaper on all monitors and workspaces
 luxos-appearance bar-opacity 0-100       # top bar opacity (default 62)
+luxos-appearance bar-style|bar-clock|bar-text ...   # see bar-widgets.md
 luxos-appearance dock-opacity 0-100|default
 luxos-appearance greeter-sync            # same wallpaper on the login screen (done automatically)
 ```
 
 - Light mode is the default. The state is stored in `~/.config/luxos/appearance`, and the
-  preferences (`APPEARANCE_AUTO`, `BAR_OPACITY`, `DOCK_OPACITY`) in `~/.config/luxos/appearance.conf`.
+  preferences (`APPEARANCE_AUTO`, `BAR_*`, `DOCK_OPACITY`) in `~/.config/luxos/appearance.conf`.
 - **Auto** computes sunrise and sunset offline from the time zone (`luxos_sun.py`, using the
   coordinates of the zone's city in `/usr/share/zoneinfo/zone1970.tab`, NOAA formula; Prague if the
   zone is unknown). `luxos-hub` checks every 5 minutes. To see today's times, run

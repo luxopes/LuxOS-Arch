@@ -5072,3 +5072,44 @@ Removed the kernel of older snapshots: %s	Odstraněno jádro starších snímků
 Free space on the boot partition: %d MB	Volné místo na zaváděcím oddílu: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Zaváděcí obraz je poškozený (%s) a nepodařilo se ho znovu sestavit. Počítač zatím nerestartujte: uvolněte místo na zaváděcím oddílu a spusťte: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Oddíl EFI je menší než 1 GB: ze zaváděcí nabídky půjde spustit méně snímků systému.
+CPU	Procesor
+Play/Pause	Přehrát/Pozastavit
+Widgets	Widgety
+System Health	Stav systému
+Excellent	Výborné
+Busy	Vytížené
+Alarm	Budík
+Alarms	Budíky
+Clock & Weather	Hodiny a počasí
+Default Layout	Výchozí rozmístění
+Drag a widget on the desktop to move it. Right-click it for more.	Widget na ploše přesunete přetažením. Další možnosti najdete pod pravým tlačítkem.
+Edit Widgets…	Upravit widgety…
+Every day	Každý den
+Label	Popisek
+Lap	Mezičas
+Lap %s	Mezičas %s
+Large time and date with the weather of your place. Click the time for Clock.	Velký čas a datum s počasím vašeho místa. Klik na čas otevře Hodiny.
+Music and videos appear here	Tady se zobrazí hudba a videa
+New Alarm	Nový budík
+No alarms. Add one with +.	Žádné budíky. Přidejte budík tlačítkem +.
+Nothing is playing	Nic nehraje
+Now Playing	Právě hraje
+Once	Jednou
+Pause	Pozastavit
+Put all widgets back under each other in the corner	Vrátit všechny widgety pod sebe do rohu
+Show widgets	Zobrazit widgety
+Snooze	Odložit
+Snoozed alarm	Odložený budík
+Stopwatch	Stopky
+System health with CPU, memory and storage usage.	Stav systému s vytížením procesoru, paměti a úložiště.
+This month with today highlighted.	Tento měsíc se zvýrazněným dneškem.
+Time is up	Čas vypršel
+Tomorrow	Zítra
+Weekdays	Pracovní dny
+Weekends	Víkendy
+What is playing, with Play/Pause and Next. Shown only while something plays.	Co právě hraje, s tlačítky Přehrát/Pozastavit a Další. Zobrazí se, jen když něco hraje.
+Widget	Widget
+World Clock	Světový čas
+h	h
+min	min
+s	s

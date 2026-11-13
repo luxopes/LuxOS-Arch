@@ -33,7 +33,9 @@ class PanelCss(unittest.TestCase):
     def run_css(self, mode):
         with open(os.path.join(self.cfg, "luxos", "appearance"), "w") as f:
             f.write(mode + "\n")
-        env = dict(os.environ, XDG_CONFIG_HOME=self.cfg, PATH=self.bin + ":" + os.environ["PATH"])
+        # bez pluginu luxos-bar: panel-css jinak upravuje rozlozeni listy pres skutecne xfconf-query
+        env = dict(os.environ, XDG_CONFIG_HOME=self.cfg, PATH=self.bin + ":" + os.environ["PATH"],
+                   XDG_DATA_HOME=os.path.join(self.tmp, "data"), XDG_DATA_DIRS=os.path.join(self.tmp, "share"))
         subprocess.run(["bash", SCRIPT, "panel-css"], env=env, check=True, capture_output=True)
 
     def read(self, path):
@@ -55,15 +57,17 @@ class PanelCss(unittest.TestCase):
     def test_light_block(self):
         self.run_css("light")
         css = self.read(self.css)
-        self.assertIn(".xfce4-panel, .xfce4-panel label", css)
-        self.assertIn(".xfce4-panel grid > button:checked { background: alpha(#3d7bff, 0.22); }", css)
+        self.assertIn("#XfcePanelWindow, #XfcePanelWindowWrapper, #XfcePanelWindow label", css)
+        self.assertIn("#XfcePanelWindow grid > button:checked, #XfcePanelWindowWrapper grid > button:checked"
+                      " { background: alpha(#3d7bff, 0.22); }", css)
         self.assertIn("alpha(#1d1d1f, 0.55)", css)
-        self.assertIn(".xfce4-panel wnck-pager { background: transparent; }", css)
+        self.assertIn("#XfcePanelWindow wnck-pager, #XfcePanelWindowWrapper wnck-pager { background: transparent; }", css)
 
     def test_dark_block_without_text_color(self):
         self.run_css("dark")
         css = self.read(self.css)
-        self.assertNotIn(".xfce4-panel, .xfce4-panel label", css)
+        self.assertNotIn("#XfcePanelWindow label", css)
+        self.assertNotIn("color: inherit", css)
         self.assertIn("alpha(#ffffff, 0.55)", css)
 
     def test_panel_restarted_only_on_change_and_user_css_kept(self):

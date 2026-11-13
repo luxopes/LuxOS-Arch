@@ -140,7 +140,24 @@ Run `luxos-monitor`, or press **Super+Alt+Esc** or **Ctrl+Shift+Esc**.
 - Below them, the open apps with icons and a **Quit** button. If an app does not respond, it offers
   "Force Quit" (unsaved changes are lost).
 - A switch shows "All processes" (a technical list with processor and memory use).
+- Click a column header (Name, Processor, Memory) to sort the list by it; a second click reverses
+  the order (arrow next to the header). The choice is remembered in `~/.config/luxos/monitor.conf`.
 - The data is read straight from `/proc` every second.
+
+## Clock
+
+Run `luxos-clock-app` (**Clock** in Launchpad), or click the time on the Clock & Weather widget.
+
+- **Alarm:** alarms with a time, a label and repeat days (or once); a switch turns each on or off,
+  **+** adds one, **×** deletes it. A ringing alarm shows a window above all others with a sound and
+  a notification: **Snooze** (10 minutes) or **Stop**. A one-time alarm turns itself off after ringing.
+- **World Clock:** the local time and chosen cities with the time difference (search by city or time
+  zone, from `/usr/share/zoneinfo/zone1970.tab`).
+- **Stopwatch** with laps and **Timer** (hours, minutes, seconds or 1-30 minute presets); a finished
+  timer rings like an alarm.
+- Closing the window keeps the app in the background while an alarm is on or a timer runs, so alarms
+  ring without the window. At login `luxos-clock-app --background` starts it only when an alarm is on.
+  Opening it again just shows the running app. Data: `~/.local/share/luxos/clock/clock.json`.
 
 ## Screenshot
 

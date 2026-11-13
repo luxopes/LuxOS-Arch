@@ -503,6 +503,36 @@
           ]
         },
         {
+          "path": "luxos/bar-widgets.md",
+          "title": "Top bar options and desktop widgets",
+          "summary": "luxos-bar plugin (opaque bar under maximized and full-screen windows, clock in the middle, rounded bottom corners, white text) and desktop widgets luxos-widgets (time and weather, month, CPU/memory/storage, music).",
+          "keywords": [
+            "top bar",
+            "menu bar",
+            "luxos-bar",
+            "opaque bar",
+            "clock in the middle",
+            "centered clock",
+            "rounded bar",
+            "rounded corners",
+            "white text",
+            "bar-style",
+            "bar-clock",
+            "bar-text",
+            "widgets",
+            "desktop widgets",
+            "luxos-widgets",
+            "weather widget",
+            "system monitor widget",
+            "now playing",
+            "widgets.conf",
+            "move widgets",
+            "widgets gallery",
+            "edit widgets",
+            "android widgets"
+          ]
+        },
+        {
           "path": "luxos/login-lock.md",
           "title": "Login, lock screen and screen saver",
           "summary": "LuxOS login screen (greeter), login transition with spinner, lock screen and unlock dialog, screen savers including LuxOS wallpapers with a clock.",
@@ -648,7 +678,37 @@
             "luxos-netcheck",
             "luxos-weather",
             "luxos-wifi-qr",
-            "scan-wifi"
+            "scan-wifi",
+            "clock",
+            "alarm",
+            "alarm clock",
+            "world clock",
+            "stopwatch",
+            "timer",
+            "luxos-clock-app",
+            "sort processes"
+          ]
+        },
+        {
+          "path": "luxos/development.md",
+          "title": "Developing applications for LuxOS",
+          "summary": "The native LSL developer kit: App Studio project templates, build/run and .lux export; Icon Studio layered .luxicon projects and SVG/PNG assets; reusable GTK UI helpers and design guidelines.",
+          "keywords": [
+            "development",
+            "developer",
+            "SDK",
+            "LSL",
+            "LuxOS App Studio",
+            "LuxOS Icon Studio",
+            "luxos-sdk",
+            "luxui",
+            "templates",
+            "icon",
+            "SVG",
+            "PNG",
+            "luxicon",
+            "package",
+            "build"
           ]
         },
         {

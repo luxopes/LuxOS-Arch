@@ -80,10 +80,9 @@
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Inter Bold 10"/>
     </property>
-    <property name="plugin-3" type="string" value="separator">
-      <property name="expand" type="bool" value="true"/>
-      <property name="style" type="uint" value="0"/>
-    </property>
+    <!-- luxos-bar (luxos-desktop): rozpinaci mezera s hodinami uprostred listy (luxos-appearance
+         bar-clock center) a neprusvitna lista pod okny -->
+    <property name="plugin-3" type="string" value="luxos-bar"/>
     <property name="plugin-4" type="string" value="systray">
       <property name="square-icons" type="bool" value="false"/>
       <property name="icon-size" type="int" value="16"/>

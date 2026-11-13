@@ -4983,3 +4983,41 @@ Removed the kernel of older snapshots: %s	Odstránené jadro starších snímok:
 Free space on the boot partition: %d MB	Voľné miesto na zavádzacom oddiele: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Zavádzací obraz je poškodený (%s) a nepodarilo sa ho znova zostaviť. Počítač zatiaľ nereštartujte: uvoľnite miesto na zavádzacom oddiele a spustite: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Oddiel EFI je menší ako 1 GB: zo zavádzacej ponuky pôjde spustiť menej snímok systému.
+CPU	Procesor
+Play/Pause	Prehrať/Pozastaviť
+Widgets	Widgety
+System Health	Stav systému
+Excellent	Výborné
+Busy	Vyťažené
+Alarm	Budík
+Alarms	Budíky
+Clock & Weather	Hodiny a počasie
+Default Layout	Predvolené rozmiestnenie
+Drag a widget on the desktop to move it. Right-click it for more.	Widget na ploche presuniete potiahnutím. Ďalšie možnosti nájdete pod pravým tlačidlom.
+Edit Widgets…	Upraviť widgety…
+Every day	Každý deň
+Label	Popis
+Lap	Medzičas
+Lap %s	Medzičas %s
+Large time and date with the weather of your place. Click the time for Clock.	Veľký čas a dátum s počasím vášho miesta. Kliknutie na čas otvorí Hodiny.
+Music and videos appear here	Tu sa zobrazí hudba a videá
+New Alarm	Nový budík
+No alarms. Add one with +.	Žiadne budíky. Pridajte budík tlačidlom +.
+Nothing is playing	Nič nehrá
+Now Playing	Práve hrá
+Once	Raz
+Pause	Pozastaviť
+Put all widgets back under each other in the corner	Vrátiť všetky widgety pod seba do rohu
+Show widgets	Zobraziť widgety
+Snooze	Odložiť
+Snoozed alarm	Odložený budík
+Stopwatch	Stopky
+System health with CPU, memory and storage usage.	Stav systému s vyťažením procesora, pamäte a úložiska.
+This month with today highlighted.	Tento mesiac so zvýrazneným dneškom.
+Time is up	Čas vypršal
+Tomorrow	Zajtra
+Weekdays	Pracovné dni
+Weekends	Víkendy
+What is playing, with Play/Pause and Next. Shown only while something plays.	Čo práve hrá, s tlačidlami Prehrať/Pozastaviť a Ďalšie. Zobrazí sa, len keď niečo hrá.
+Widget	Widget
+World Clock	Svetový čas

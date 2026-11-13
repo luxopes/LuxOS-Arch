@@ -1485,12 +1485,26 @@ function hide():
     return 0
 end
 
-# Vpravo pod horni listou na monitoru s kurzorem (sirka okna je pevna)
+# Hodiny uprostred listy? (BAR_CLOCK=center v nastaveni vzhledu, plugin luxos-bar)
+function clock_centered():
+    for line in glib.read_text(glib.user_config_dir() + "/luxos/appearance.conf").split("\n"):
+        if line.strip() == "BAR_CLOCK=center":
+            return True
+        end
+    end
+    return False
+end
+
+# Pod hodinami na monitoru s kurzorem: vpravo, s hodinami uprostred listy na stredu (sirka okna je pevna)
 function place():
     pointer = gtk.pointer_position()
     geo = gtk.monitor_at_point_workarea(pointer[0], pointer[1])
     w = max(WIDTH, gtk.window_get_size(cal["win"])[0], gtk.widget_get_preferred_width(cal["root"])[1])
-    call gtk.window_move(cal["win"], geo[0] + geo[2] - w - 8, geo[1] + 6)
+    x = geo[0] + geo[2] - w - 8
+    if clock_centered():
+        x = geo[0] + (geo[2] - w) // 2
+    end
+    call gtk.window_move(cal["win"], x, geo[1] + 6)
     return 0
 end
 

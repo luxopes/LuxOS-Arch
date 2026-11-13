@@ -216,7 +216,7 @@ Compressed swap in RAM, half of RAM up to 8 GiB.
 |---|---|---|
 | `vm.swappiness` | 180 | zram swap is cheap |
 | `vm.page-cluster` | 0 | no swap read-ahead for zram |
-| `vm.watermark_boost_factor` / `vm.watermark_scale_factor` | 0 / 125 | smoother reclaim |
+| `vm.watermark_boost_factor` / `vm.watermark_scale_factor` | 0 / 10 | smaller reserves |
 | `vm.vfs_cache_pressure` | 50 | keep directory/inode caches |
 | `vm.dirty_bytes` / `vm.dirty_background_bytes` | 256 MiB / 64 MiB | fewer stalls when copying big files |
 | `kernel.nmi_watchdog` | 0 | fewer interrupts |
