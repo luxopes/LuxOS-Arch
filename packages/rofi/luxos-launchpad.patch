@@ -135,7 +135,7 @@ diff --git a/source/view.c b/source/view.c
    g_free(state);
  }
  
-@@ -984,6 +988,71 @@
+@@ -995,6 +999,71 @@
  }
  #endif
  
@@ -207,7 +207,7 @@ diff --git a/source/view.c b/source/view.c
  static void rofi_view_trigger_global_action(KeyBindingAction action) {
    RofiViewState *state = rofi_view_get_active();
    switch (action) {
-@@ -1139,6 +1208,20 @@
+@@ -1150,6 +1219,20 @@
      if (selected < state->filtered_lines) {
        (state->selected_line) = state->line_map[selected];
      }
@@ -228,7 +228,7 @@ diff --git a/source/view.c b/source/view.c
      state->retv = MENU_CUSTOM_COMMAND | ((action - CUSTOM_1) & MENU_LOWER_MASK);
      state->quit = TRUE;
      break;
-@@ -1762,6 +1845,7 @@
+@@ -1773,6 +1856,7 @@
      box_add((box *)parent_widget, WIDGET(t), TRUE);
      widget_set_trigger_action_handler(WIDGET(t), textbox_button_trigger_action,
                                        state);

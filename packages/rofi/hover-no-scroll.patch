@@ -12,17 +12,28 @@ index 4681e0c..a3b5f69 100644
    unsigned int lazy_filter_limit;
    /** Auto select. */
 diff --git a/source/view.c b/source/view.c
-index 28d6fb0..ee8efac 100644
+index 28d6fb0..179117c 100644
 --- a/source/view.c
 +++ b/source/view.c
-@@ -859,6 +859,11 @@ static gboolean rofi_view_refilter_real(RofiViewState *state) {
+@@ -859,6 +859,22 @@ static gboolean rofi_view_refilter_real(RofiViewState *state) {
    }
    TICK_N("Filter matching done");
    listview_set_num_elements(state->list_view, state->filtered_lines);
 +  // LuxOS (-hover-no-scroll): po zmene hledaneho textu je vybrana nejlepsi
-+  // shoda (prvni), ne dlazdice na miste drive zvyraznene mysi
++  // shoda (prvni), ne dlazdice na miste drive zvyraznene mysi. Jen pri zmene
++  // textu: refilter vola i rofi_view_reload() po nacteni ikon na pozadi, a ty
++  // se nacitaji pro nove odkryte radky pri posouvani kolecka - reset vyberu by
++  // pak vratil pohled nahoru (mrizka poskakovala nahoru a dolu).
 +  if (config.hover_no_scroll) {
-+    listview_set_selected(state->list_view, 0);
++    static RofiViewState *luxos_last_state = NULL;
++    static gchar *luxos_last_text = NULL;
++    const char *now = state->text ? state->text->text : "";
++    if (state != luxos_last_state || g_strcmp0(now, luxos_last_text) != 0) {
++      listview_set_selected(state->list_view, 0);
++      g_free(luxos_last_text);
++      luxos_last_text = g_strdup(now);
++      luxos_last_state = state;
++    }
 +  }
  
    if (state->tb_filtered_rows) {
