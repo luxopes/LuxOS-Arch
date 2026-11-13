@@ -7,7 +7,7 @@ pkgdesc="LuxOS Icon Studio - layered icon designer with live previews and SVG/PN
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
 license=(GPL-3.0-or-later)
-depends=(gtk3 glib2 gdk-pixbuf2 librsvg cairo pango)
+depends=(gtk3 glib2 gdk-pixbuf2 librsvg luxos-pixbuf-svg cairo pango)
 makedepends=('lsl>=0.10.8')
 checkdepends=(python xorg-server-xvfb xorg-xauth dbus)
 optdepends=('luxos-app-studio: create and package native LuxOS applications')

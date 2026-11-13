@@ -123,7 +123,7 @@ function from_bytes(bytes, size=512, kind="svg"):
     loader = __lsl_qbe_call2(__lsl_symbol("gdk_pixbuf_loader_new_with_type"), icon_model.cstr(kind), icon_model.data(error))
     call clear_error(error)
     if loader == 0:
-        Error(ExportError: "The image loader is unavailable. Install the librsvg package.")
+        Error(ExportError: "The image loader is unavailable. Install the luxos-pixbuf-svg package.")
     end
     width = size
     height = size
