@@ -1323,7 +1323,9 @@ function account_op(req):
             r = sync_mailbox(st, raw, True)
             result["added"] = len(r["new"])
         elif op == "body":
-            result["path"] = fetch_body(st, raw, req["uid"])
+            body = fetch_body(st, raw, req["uid"], req.get("uidvalidity", 0))
+            result["path"] = body[0]
+            result["uidvalidity"] = body[1]
         elif op == "flags":
             call set_flags(st, raw, req["uids"], req.get("add", True), req["flags"])
         elif op == "trash":
@@ -1343,11 +1345,24 @@ function account_op(req):
     return result
 end
 
-function fetch_body(st, raw, uid):
+# Telo zpravy do mezipameti; vraci [cesta, UIDVALIDITY]. UID plati jen se svou UIDVALIDITY: pri zmene (jina
+# schranka se stejnym jmenem) se telo neulozi pod stare UID, mezipamet schranky se hned obnovi
+function fetch_body(st, raw, uid, expected=0):
     conn = st["conn"]
     id = st["cfg"]["id"]
     if conn["selected"] != raw:
         call imap.select(conn, raw)
+    end
+    validity = conn.get("uidvalidity", 0)
+    known = store.load_state(id, raw).get("uidvalidity", 0)
+    if validity != 0 and ((known != 0 and known != validity) or (expected != 0 and expected != validity)):
+        if known != validity:
+            # mezipamet schranky je ze stare UIDVALIDITY: hned obnovit (smaze ji a nacte seznam znovu)
+            safe:
+                call sync_mailbox(st, raw, False)
+            end
+        end
+        call imap.fail("gone", "The mailbox changed on the server; the message list is being refreshed.")
     end
     res = imap.uid_fetch(conn, String(uid), "UID RFC822.SIZE")
     for f in imap.fetches(res["untagged"]):
@@ -1365,7 +1380,7 @@ function fetch_body(st, raw, uid):
             data = net.bytes(data)
         end
         if type(data) == "ByteArray":
-            return store.save_body(id, raw, uid, data)
+            return [store.save_body(id, raw, uid, data), validity]
         end
     end
     call imap.fail("gone", "The message no longer exists on the server.")

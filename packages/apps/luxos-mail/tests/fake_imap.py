@@ -102,6 +102,8 @@ class State:
         self.personality = ""
         self.account_password = None
         self.alert_untagged = False
+        # (schranka, UID) -> sekundy: pomale stazeni tela zpravy (zavod pri prepnuti vyberu)
+        self.body_delay = {}
         self.boxes = {
             "INBOX": Mailbox("INBOX"),
             "Sent": Mailbox("Sent", "\\Sent"),
@@ -591,6 +593,7 @@ class Session(threading.Thread):
         if "VANISHED" in mods.upper():
             vanished = True
         out = []
+        delay = 0.0
         with LOCK:
             msgs = box.messages
             if uid:
@@ -612,6 +615,11 @@ class Session(threading.Thread):
                 # jako Dovecot: po BODYSTRUCTURE nevyzadana zmena priznaku ($HasNoAttachment) s UID
                 for i, msg in selected:
                     out.append("* %d FETCH (UID %d MODSEQ (%d) FLAGS (%s))\r\n" % (i + 1, msg.uid, msg.modseq, " ".join(sorted(msg.flags | {"$HasNoAttachment"}))))
+            if any(x.upper().startswith(("BODY[", "BODY.PEEK[", "RFC822")) and x.upper() != "RFC822.SIZE" for x in items):
+                for i, msg in selected:
+                    delay = max(delay, self.state.body_delay.get((box.name, msg.uid), 0.0))
+        if delay > 0:
+            time.sleep(delay)
         self.send("".join(out) + "%s OK fetch\r\n" % tag)
 
     def fetch_one(self, seq, msg, items, add_uid):
@@ -1098,6 +1106,22 @@ def control(state, conn):
                             for s in state.sessions:
                                 if s.box is box:
                                     s.notify("* %d FETCH (FLAGS (%s))\r\n" % (i + 1, " ".join(sorted(msg.flags))))
+                elif parts[0] == "recreate":
+                    # schranka smazana a zalozena znovu: nova UIDVALIDITY, zpravy s jinymi UID (stejne UID = jina zprava)
+                    box = state.boxes[parts[1]]
+                    box.uidvalidity += 1000
+                    box.messages.reverse()
+                    for i, msg in enumerate(box.messages):
+                        msg.uid = i + 1
+                    box.uidnext = len(box.messages) + 1
+                    box.expunged = []
+                elif parts[0] == "bodydelay":
+                    # bodydelay SCHRANKA UID SEKUNDY (0 = bez zpozdeni)
+                    key = (parts[1], int(parts[2]))
+                    if float(parts[3]) > 0:
+                        state.body_delay[key] = float(parts[3])
+                    else:
+                        state.body_delay.pop(key, None)
                 elif parts[0] == "password":
                     for u in state.users:
                         state.users[u] = parts[1]

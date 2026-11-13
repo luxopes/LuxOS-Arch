@@ -221,6 +221,46 @@ class ServiceTest(unittest.TestCase):
         self.assertIn(r["kind"], ("connect", "closed", "timeout"))
         self.assertTrue(os.path.exists(os.path.join(glob.glob(os.path.join(cache_dir(self.s, acc), "m-*", "bodies"))[0], "6.eml")))
 
+    def test_body_keyed_by_uidvalidity(self):
+        """UID plati jen se svou UIDVALIDITY: telo ze schranky zalozene znovu se nesmi ulozit ani ukazat pod starym UID."""
+        acc = self.add()["account"]
+        for uid in (6, 7):
+            r = self.c.call("trash", account=acc, mailbox="INBOX", uids=[uid])
+            self.assertEqual(r.get("deleted"), "moved", r)
+        r = self.c.call("sync", account=acc, mailbox="Trash")
+        self.assertTrue(r["ok"], r)
+        trash = [d for d in glob.glob(os.path.join(cache_dir(self.s, acc), "m-*")) if json.load(open(os.path.join(d, "state.json"))).get("raw") == "Trash"][0]
+        validity = json.load(open(os.path.join(trash, "state.json")))["uidvalidity"]
+        self.assertGreater(validity, 0)
+        r = self.c.call("body", account=acc, mailbox="Trash", uid=1, uidvalidity=validity)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["uidvalidity"], validity)
+        first = open(r["path"], "rb").read()
+        # okno s neplatnou UIDVALIDITY (zastarala mezipamet): odmitnuto, nic se neulozi
+        os.remove(r["path"])
+        r = self.c.call("body", account=acc, mailbox="Trash", uid=1, uidvalidity=validity + 5)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(r["kind"], "gone")
+        self.assertFalse(os.path.exists(os.path.join(trash, "bodies", "1.eml")))
+        # Kos smazan a zalozen znovu (jine UID pro stejne zpravy): stare UID 1 je ted jina zprava
+        r = self.c.call("body", account=acc, mailbox="Trash", uid=1, uidvalidity=validity)
+        self.assertTrue(r["ok"], r)
+        self.server.control("recreate Trash")
+        r = self.c.call("sync", account=acc, mailbox="INBOX")    # spojeni zpet na INBOX, Kos se vybere znovu
+        r = self.c.call("body", account=acc, mailbox="Trash", uid=1, uidvalidity=validity)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(r["kind"], "gone")
+        # mezipamet Kose obnovena hned (nova UIDVALIDITY, stare telo pryc)
+        state = json.load(open(os.path.join(trash, "state.json")))
+        self.assertEqual(state["uidvalidity"], validity + 1000, state)
+        self.assertFalse(os.path.exists(os.path.join(trash, "bodies", "1.eml")))
+        r = self.c.call("body", account=acc, mailbox="Trash", uid=1, uidvalidity=validity + 1000)
+        self.assertTrue(r["ok"], r)
+        second = open(r["path"], "rb").read()
+        self.assertNotEqual(first, second)
+        raw = __import__("base64").b64decode(self.server.control("raw Trash 1")["raw"])
+        self.assertEqual(second, raw)
+
     def test_wrong_password_is_not_retried(self):
         r = self.add(password="spatne")
         self.assertFalse(r["ok"])

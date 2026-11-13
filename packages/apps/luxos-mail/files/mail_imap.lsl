@@ -997,6 +997,8 @@ function select(conn, raw, known_validity=0, known_modseq=0):
         info["readonly"] = True
     end
     conn["selected"] = raw
+    # UIDVALIDITY vybrane schranky: UID plati jen spolu s ni (mezipamet tel)
+    conn["uidvalidity"] = info["uidvalidity"]
     return info
 end
 
