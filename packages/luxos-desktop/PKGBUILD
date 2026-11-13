@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=64
+pkgrel=65
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -27,8 +27,9 @@ sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
             'ce415a4898da7a4ca755437de2593863c05045fc6b1649d8da5ee05fa3bdc33b'
             'e83ab0348ec09f4b5bb27f658b9c424c9c8fbf512484b728903515b9f01c3c28')
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
-# balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni
-makedepends=(python xfce4-settings xfce4-session libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3)
+# balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni;
+# xfce4-panel + xfconf: hlavicky pro plugin luxos-bar (libxfce4panel-2.0, libxfconf-0)
+makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3)
 install=luxos-desktop.install
 depends=(
     # LuxOS

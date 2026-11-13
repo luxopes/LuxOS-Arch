@@ -24,8 +24,9 @@
 #   Grafika           rezim Vykon: hry a narocne aplikace na samostatne grafice (luxos_gpu_hub + luxos-gpu)
 #   Snimek obrazovky  lista a okna luxos-screenshot (luxos_shot) pripravena predem; klient luxos-screenshot
 #                     preda prepinace pres abstraktni socket UNIX, lista je videt hned po zkratce
-#   Emoji a symboly   okno vyberu emoji (luxos_emoji) s nactenymi daty pripravene predem; klient luxos-emoji
-#                     (Super+., Ctrl+Super+Mezernik) preda pozadavek stejne jako snimek obrazovky
+#   Emoji a symboly   okno vyberu emoji (luxos_emoji); klient luxos-emoji (Super+., Ctrl+Super+Mezernik)
+#                     preda pozadavek stejne jako snimek obrazovky. Okno a data (~7 MB PSS) vzniknou az pri
+#                     prvnim pouziti a pak zustanou (prvni otevreni ~0,5 s, dalsi hned)
 #
 # Stejny program bezi i jako `luxos-control-center [--panel|--background]` a `luxos-calendar [--background]`
 # (podle nazvu, pod kterym byl spusten): bezici instance (hub nebo samostatna) jen dostane signal.
@@ -725,22 +726,13 @@ end
 
 # ---- okna a signaly ----------------------------------------------------------------------------------------------
 
+# Emoji a symboly se predem nestavi: data a skryte okno stoji ~7 MB PSS a vetsina relaci je nepouzije. Okno vznikne
+# pri prvnim pozadavku klienta luxos-emoji (emoji.start_server) a pak zustane pripravene.
 function prebuild():
     call window_cc()
     call window_cal()
     call window_shot()
-    call window_emoji()
     return False
-end
-
-# Okno Emoji a symbolu s daty (~2 MB) skryte predem: zkratka ho ukaze hned
-function window_emoji():
-    try:
-        call emoji.prebuild()
-    else:
-        call log("emoji: " + String(last_error()))
-    end
-    return 0
 end
 
 # Okna Snimku obrazovky (lista, prekryv, nahled) skryta predem: zkratka je ukaze hned
