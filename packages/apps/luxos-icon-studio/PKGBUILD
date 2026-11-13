@@ -19,6 +19,9 @@ build() {
 
 check() {
     ./luxos-icon-studio --version
+    # V sestavovacim chrootu nebezi hook gdk-pixbuf: cache nacitacu (vcetne SVG z librsvg) vytvorit pro testy
+    gdk-pixbuf-query-loaders > "$srcdir/loaders.cache"
+    export GDK_PIXBUF_MODULE_FILE="$srcdir/loaders.cache"
     env -u DISPLAY -u WAYLAND_DISPLAY LUXOS_ICON_STUDIO_BIN="$srcdir/luxos-icon-studio" python3 -m unittest discover -s "$startdir/tests" -p 'test_*.py' -v
 }
 
