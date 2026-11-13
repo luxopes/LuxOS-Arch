@@ -242,6 +242,39 @@ class TestCalendar(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(len(ics.read_file(self.path).events), 20)
 
+    def test_calendar_deduplication_survives_disconnect(self):
+        svc = make_service(calendar_dir=self.dir)
+        svc.settings.set("allow_luxai", False)
+        msg = note(id="11111111-2222-3333-4444-555555555555")
+        expected_uid = svc.calendar.create(msg["id"], msg)
+        s, phone = connect(svc)
+        phone.send("hello", "h1", protocol=1)
+        self.assertEqual(phone.wait()[0]["type"], "hello.ok")
+        # Nacteme take cache cteni, aby odpojeni proslo celou optimalizovanou cestou.
+        svc.calendar_reader.list_events({"date": "2026-10-28", "timezone": "Europe/Prague"})
+        s.close("disconnected")
+        s, phone = connect(svc)
+        try:
+            phone.send("hello", "h2", protocol=1)
+            self.assertEqual(phone.wait()[0]["type"], "hello.ok")
+            fields = {k: v for k, v in msg.items() if k not in ("v", "type", "id")}
+            phone.send("calendar.note.create", msg["id"], **fields)
+            result = phone.wait()[0]
+            self.assertEqual((result["type"], result["event_id"]), ("calendar.saved", expected_uid))
+            self.assertEqual(len(ics.read_file(self.path).events), 1)
+        finally:
+            s.close("test")
+            svc.probe.close()
+
+    def test_calendar_cache_release_without_glibc_trim(self):
+        from unittest.mock import patch
+        reader = calendar_note.CalendarReader(self.dir)
+        reader.list_events({"date": "2026-10-28", "timezone": "UTC"})
+        with patch("ctypes.CDLL", side_effect=OSError("unavailable")):
+            reader.release_cache()
+        self.assertIsNone(reader.store)
+        self.assertEqual(reader.list_events({"date": "2026-10-28", "timezone": "UTC"}), ([], False))
+
     def test_via_protocol_saved_only_after_write(self):
         svc = make_service(calendar_dir=self.dir)
         s, phone = connect(svc)

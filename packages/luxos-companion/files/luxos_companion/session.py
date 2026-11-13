@@ -13,7 +13,6 @@ import os
 import time
 
 from . import wire
-from .calendar_note import NoteError, fit_events
 from .location import InvalidLocation
 
 HANDSHAKE_S = 20.0
@@ -245,13 +244,15 @@ class Session:
             self.error(msg["id"], "permission_denied",
                        _("Reading the calendar from the phone is turned off on this computer (Phone settings)."))
             return
+        from . import calendar_note
+        calendar_note.set_translator(_)
         try:
             events, truncated = self.hub.calendar_reader.list_events(msg)
-        except NoteError as e:
+        except calendar_note.NoteError as e:
             self.error(msg["id"], e.code, e.message)
             return
         out = wire.message("calendar.events", reply_to=msg["id"], truncated=truncated)
-        out["truncated"] = fit_events(out, events) or truncated
+        out["truncated"] = calendar_note.fit_events(out, events) or truncated
         self.send(out)
 
     def _on_calendar_note_create(self, msg):
@@ -260,9 +261,11 @@ class Session:
                        _("Saving notes from the phone to the calendar is turned off on this computer "
                          "(Phone settings)."))
             return
+        from . import calendar_note
+        calendar_note.set_translator(_)
         try:
             uid = self.hub.calendar.create(msg["id"], msg)
-        except NoteError as e:
+        except calendar_note.NoteError as e:
             self.error(msg["id"], e.code, e.message)
             return
         self.send({"type": "calendar.saved", "reply_to": msg["id"], "event_id": uid})

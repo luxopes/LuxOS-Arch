@@ -9,7 +9,7 @@
 
 pkgname=luxos-companion
 pkgver=1.0.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS Companion - connect the Android app over Bluetooth: phone location for Maps, LuxAI requests and calendar notes"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -26,7 +26,7 @@ check() {
     # falesnemu BlueZ na soukrome sbernici (vlastni dbus-daemon); okno jen pod xvfb-run (test_gui.py)
     cd "$startdir"
     env -u DISPLAY python3 -m unittest tests/test_protocol.py tests/test_features.py tests/test_dbus.py \
-        tests/test_extensions.py
+        tests/test_extensions.py tests/test_memory.py
 }
 
 package() {
