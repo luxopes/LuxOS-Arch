@@ -326,3 +326,27 @@ verzi; žádná část nezůstává v paměti jako Python.
 - Neověřeno: dialogy agenta BlueZ s reálným párováním (jen `AuthorizeService` důvěryhodného zařízení
   a `Release`), skutečné uspání/vík notebooku, LuxAI Flash proti serveru, sestavení balíku v kontejneru
   (čeká na vydání LSL 0.10.6; PKGBUILD `lsl>=0.10.6`, pkgrel 34; luxos-care 9, luxos-drivers 8, luxos-safe 6).
+
+## 7. Lux Guard v sezeni: luxos-guard-agent v LSL (krok 3, 2026-11-13)
+
+Pomocnik Lux Guard bezi v kazde relaci po cely cas (autostart), ale pracuje jen pri udalosti (dotaz pred
+spustenim, zablokovani, nalezeny nebezpecny soubor). Python verze drzela ~12 MB PSS (interpret, json, hashlib,
+tri vlakna). Novy program `packages/luxos-guard/files/luxos-guard-agent.lsl` (+ `luxos_guard_sys.lsl`, vazby na
+libc a `g_checksum` z GLib) ma v klidu 0,5 MB PSS (po udalostech ~1,8 MB), zadna vlakna, jedna smycka `poll()`
+(probouzeni jen kvuli kontrolam relace za 20 s a aktualizace za 60 s, s bezicim pomocnikem po 200 ms).
+
+- Okna a akce zustavaji v Pythonu, ale jen na chvili: `luxos-guard-agent-helper ask|blocked|act|found`
+  (spusteny pres `posix_spawn`, zprava v promenne prostredi `LUXOS_GUARD_MSG`). Odpoved na dotaz posle agent
+  hned po zavreni okna, "Spustit v sandboxu"/"Presunout do kose" pak `act`. Pomocnik nejde spustit nebo do
+  `ASK_TIMEOUT - 2` s neodpovi = "deny" (drive by sluzba stejne zamitla po 90 s).
+- Upozorneni "nebezpecny soubor" jen jednou pro stejny obsah (SHA-256 prvnich 4 MiB, jako drive), okno
+  o zablokovani jen jedno na cestu, radky se ctou cele (MSG_PEEK do `\n`, rozdeleny znak UTF-8 nevadi).
+- `/usr/bin/luxos-guard-agent` je soubor platny pro sh i Python: drive bezici pomocnik v Pythonu se po
+  aktualizaci spousti znovu jako `python3 /usr/bin/luxos-guard-agent` a tim prejde na LSL bez odhlaseni
+  (overeno ve VM: stejne PID, za ~65 s nova verze, dotaz pak funguje).
+- Testy: `tests/test_agent_lsl.py` (20 testu skutecneho programu proti nahradni sluzbe: odpovedi, sandbox/kos,
+  limit, dva dotazy najednou, okna, stejny obsah, rozdelene radky, opetovne pripojeni, konec relace, socket X,
+  aktualizace, klid bez CPU, pamet), `test_agent_notify.py` (pomocnik: upozorneni, kody voleb, kos, spoustec
+  sh/Python), `test_service.py::test_agent_process_answers` (sluzba + LSL agent + skutecny pomocnik).
+- Ve VM navic rucne: dotaz "Presto spustit" / "Nespoustet" / "Spustit v sandboxu", okno zablokovani
+  s "Presunout do kose", upozorneni nalezeneho souboru v cestine.
