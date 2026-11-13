@@ -1,0 +1,4 @@
+#!/bin/sh
+# Rozhrani dostupne od luxos-weather 1.0.0-5. Samostatny nazev umozni LuxAI
+# poznat starsi aplikaci bez spousteni jejiho okna neznamym parametrem --json.
+exec /usr/bin/luxos-weather --json "$@"

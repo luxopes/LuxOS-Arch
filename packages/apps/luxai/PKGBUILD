@@ -7,7 +7,7 @@
 
 pkgname=luxai
 pkgver=2.0.2
-pkgrel=6
+pkgrel=8
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
 url="https://lux-ai.cz"
@@ -23,12 +23,13 @@ optdepends=('libnotify: desktop notifications from the agent'
             'xdg-utils: open links and files'
             'xclip: copied text stays in the clipboard after LuxAI closes; clipboard fallback'
             'grim: screenshots on Wayland'
-            'luxos-maps: maps, routes and public transport timetables (map tools)')
+            'luxos-maps: maps, routes and public transport timetables (map tools)'
+            'luxos-weather>=1.0.0-5: current weather and forecasts (weather tools)')
 # !strip: programy v LSL po strip nejdou spustit (viz luxos-desktop)
 options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('8897185cf3176b1f1d43e57c5fb167029ecd8d6d7789e1c5772ec73fb6c91ddf')
+sha256sums=('e388c5c49eaa1fb337d123b546270d865ee0eace4a1501c6d9fd329c1e6b7f4a')
 
 build() {
     cd "$pkgname-$pkgver"
@@ -77,6 +78,6 @@ package() {
     install -Dm644 README.md "$pkgdir/usr/share/doc/luxai/README.md"
     # rich-blocks.md: format bohatych bloku v odpovedich (```chart, ```quiz, ```form ...), i pro web
     install -Dm644 -t "$pkgdir/usr/share/doc/luxai" docs/LSL-MIGRATION.md docs/LSL-ISSUES.md \
-        docs/REMOTE-SESSION.md docs/rich-blocks.md docs/lsl-verification.json
+        docs/REMOTE-SESSION.md docs/WEATHER.md docs/rich-blocks.md docs/lsl-verification.json
     install -Dm644 lsl/LSL-LICENSE.txt "$pkgdir/usr/share/licenses/luxai/LSL-LICENSE.txt"
 }

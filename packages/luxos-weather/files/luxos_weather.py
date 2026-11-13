@@ -115,6 +115,84 @@ def same_place(a, b):
     return abs(a["lat"] - b["lat"]) < 0.02 and abs(a["lon"] - b["lon"]) < 0.02
 
 
+def json_cli(argv):
+    """Rozhrani luxos-weather --json search|locations|forecast pro LuxAI, bez GTK.
+
+    Nikdy nezjistuje polohu z IP. Bez souradnic pouzije jen ulozene vybrane misto.
+    Nastaveni aplikace nemeni; ctou se i jeji jednotky a sdili se cache predpovedi.
+    """
+    import argparse
+    import copy
+    import math
+
+    class Parser(argparse.ArgumentParser):
+        def error(self, message):
+            raise WeatherError(message)
+
+    parser = Parser(prog="luxos-weather --json", add_help=False)
+    sub = parser.add_subparsers(dest="action", required=True, parser_class=Parser)
+    search_parser = sub.add_parser("search", add_help=False)
+    search_parser.add_argument("query")
+    search_parser.add_argument("--limit", type=int, default=5)
+    sub.add_parser("locations", add_help=False)
+    forecast_parser = sub.add_parser("forecast", add_help=False)
+    forecast_parser.add_argument("--latitude", type=float)
+    forecast_parser.add_argument("--longitude", type=float)
+    forecast_parser.add_argument("--name", default="")
+    forecast_parser.add_argument("--units", choices=("auto", "metric", "imperial"), default="auto")
+    forecast_parser.add_argument("--days", type=int, choices=range(1, 8), default=7)
+    forecast_parser.add_argument("--hours", type=int, choices=range(0, 25), default=24)
+    try:
+        args = parser.parse_args(argv)
+        if args.action == "search":
+            if not 2 <= len(args.query.strip()) <= 200 or not 1 <= args.limit <= 10:
+                raise WeatherError("Give a place name (2-200 characters) and a limit from 1 to 10")
+            language = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or
+                        os.environ.get("LANG") or "en").split("_")[0].split(".")[0]
+            result = {"ok": True, "places": search(args.query, language, args.limit),
+                      "source": "Open-Meteo", "source_url": "https://open-meteo.com/"}
+        else:
+            cfg = load_config()
+            if args.action == "locations":
+                result = {"ok": True, "locations": cfg["locations"], "selected": cfg["selected"],
+                          "units": cfg["units"]}
+            else:
+                if (args.latitude is None) != (args.longitude is None):
+                    raise WeatherError("Give both latitude and longitude")
+                if args.latitude is None and args.name:
+                    raise WeatherError("name is only a display label; search the city and give its coordinates")
+                if args.latitude is not None:
+                    if not (math.isfinite(args.latitude) and math.isfinite(args.longitude) and
+                            -90 <= args.latitude <= 90 and -180 <= args.longitude <= 180):
+                        raise WeatherError("Coordinates are outside their valid range")
+                    loc = {"name": args.name[:200] or f"{args.latitude}, {args.longitude}",
+                           "lat": args.latitude, "lon": args.longitude}
+                elif cfg["locations"]:
+                    loc = cfg["locations"][cfg["selected"]]
+                else:
+                    print(json.dumps({"ok": False, "needs_location": True,
+                                      "error": "No saved weather location. Ask which city, then search for its coordinates."}))
+                    return 1
+                units = resolve_units(cfg["units"] if args.units == "auto" else args.units, places=[loc])
+                prediction = forecast(loc, units)
+                if prediction["data"] is None:
+                    raise WeatherError(prediction["error"] or "Weather is unavailable")
+                data = copy.deepcopy(prediction["data"])
+                data["daily"] = data["daily"][:args.days]
+                data["hourly"] = data["hourly"][:args.hours]
+                for entry in [data["current"], *data["hourly"], *data["daily"]]:
+                    entry["condition"] = condition(entry["code"])
+                result = {"ok": True, "location": loc, "units": unit_labels(units),
+                          "unit_system": units, "data": data, "fetched": prediction["fetched"],
+                          "stale": prediction["stale"], "error": prediction["error"],
+                          "source": "Open-Meteo", "source_url": "https://open-meteo.com/"}
+        print(json.dumps(result, ensure_ascii=False, allow_nan=False))
+        return 0
+    except (WeatherError, ValueError, TypeError, OSError) as error:
+        print(json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False))
+        return 1
+
+
 # ---- jednotky --------------------------------------------------------------------
 def _territory(value):
     """'cs_CZ.UTF-8' -> 'CZ', 'es_419' -> '419'; C, POSIX, C.UTF-8, 'en' (bez uzemi) -> ''."""
