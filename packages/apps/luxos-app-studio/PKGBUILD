@@ -1,0 +1,33 @@
+# Maintainer: LuxOS Team
+pkgname=luxos-app-studio
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Native LuxOS app workshop - LSL editor, one-click run, app details, local install and .lux export"
+arch=(x86_64)
+url="https://luxos.lux-ai.cz/"
+license=(GPL-3.0-or-later)
+depends=(gtk3 glib2 gtksourceview4 'lsl>=0.10.8' util-linux tar zstd)
+makedepends=('lsl>=0.10.8')
+checkdepends=(python xorg-server-xvfb xorg-xauth dbus)
+optdepends=('luxos-text: LSL syntax highlighting and LuxOS editor colors'
+            'lsl-ide: edit projects in the graphical LSL editor'
+            'luxos-icon-studio: design application icons'
+            'lux: native .lux packaging backend')
+options=(!strip !debug)
+
+build() {
+    lsl compile --unsafe --target linux-x86_64-gnu "$startdir/files/main.lsl" "$srcdir/luxos-app-studio"
+}
+
+check() {
+    cd "$startdir"
+    env -u DISPLAY -u WAYLAND_DISPLAY APP_STUDIO_BIN="$srcdir/luxos-app-studio" python3 -m unittest discover -s tests -v
+}
+
+package() {
+    install -Dm755 "$srcdir/luxos-app-studio" "$pkgdir/usr/bin/luxos-app-studio"
+    install -Dm644 "$startdir/files/luxos-app-studio.desktop" "$pkgdir/usr/share/applications/luxos-app-studio.desktop"
+    install -Dm644 "$startdir/files/luxos-app-studio.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-app-studio.svg"
+    install -Dm644 "$startdir/metainfo/luxos-app-studio.metainfo.xml" "$pkgdir/usr/share/metainfo/luxos-app-studio.metainfo.xml"
+    install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/luxos-app-studio/README.md"
+}

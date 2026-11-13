@@ -1,0 +1,32 @@
+# Maintainer: LuxOS Team
+# Native LSL application; no interpreter or background service at runtime.
+pkgname=luxos-icon-studio
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS Icon Studio - layered icon designer with live previews and SVG/PNG export"
+arch=(x86_64)
+url="https://luxos.lux-ai.cz/"
+license=(GPL-3.0-or-later)
+depends=(gtk3 glib2 gdk-pixbuf2 librsvg cairo pango)
+makedepends=('lsl>=0.10.8')
+checkdepends=(python xorg-server-xvfb xorg-xauth dbus)
+optdepends=('luxos-app-studio: create and package native LuxOS applications')
+options=(!strip !debug)
+
+build() {
+    lsl compile --unsafe --target linux-x86_64-gnu "$startdir/files/main.lsl" luxos-icon-studio
+}
+
+check() {
+    ./luxos-icon-studio --version
+    env -u DISPLAY -u WAYLAND_DISPLAY LUXOS_ICON_STUDIO_BIN="$srcdir/luxos-icon-studio" python3 -m unittest discover -s "$startdir/tests" -p 'test_*.py' -v
+}
+
+package() {
+    install -Dm755 luxos-icon-studio "$pkgdir/usr/bin/luxos-icon-studio"
+    install -Dm644 "$startdir/files/luxos-icon-studio.desktop" "$pkgdir/usr/share/applications/luxos-icon-studio.desktop"
+    install -Dm644 "$startdir/files/luxos-icon-studio.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/luxos-icon-studio.svg"
+    install -Dm644 "$startdir/files/luxos-icon-project.xml" "$pkgdir/usr/share/mime/packages/luxos-icon-project.xml"
+    install -Dm644 "$startdir/metainfo/luxos-icon-studio.metainfo.xml" "$pkgdir/usr/share/metainfo/luxos-icon-studio.metainfo.xml"
+    install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/luxos-icon-studio/README.md"
+}

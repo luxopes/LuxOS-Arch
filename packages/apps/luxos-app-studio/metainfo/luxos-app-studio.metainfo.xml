@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<component type="desktop-application">
+ <id>cz.luxos.AppStudio</id>
+ <metadata_license>CC0-1.0</metadata_license>
+ <project_license>GPL-3.0-or-later</project_license>
+ <name>LuxOS App Studio</name>
+ <summary>Create, build and package native LuxOS applications</summary>
+ <summary xml:lang="cs">Vytvářejte, sestavujte a balte nativní aplikace pro LuxOS</summary>
+ <summary xml:lang="sk">Vytvárajte, zostavujte a baľte natívne aplikácie pre LuxOS</summary>
+ <summary xml:lang="pl">Twórz, kompiluj i pakuj natywne aplikacje LuxOS</summary>
+ <summary xml:lang="uk">Створюйте, збирайте й пакуйте нативні застосунки LuxOS</summary>
+ <summary xml:lang="hu">Készítsen, fordítson és csomagoljon natív LuxOS-alkalmazásokat</summary>
+ <summary xml:lang="de">Native LuxOS-Anwendungen erstellen, kompilieren und paketieren</summary>
+ <summary xml:lang="fr">Créez, compilez et empaquetez des applications natives pour LuxOS</summary>
+ <summary xml:lang="es">Cree, compile y empaquete aplicaciones nativas para LuxOS</summary>
+ <summary xml:lang="it">Crea, compila e impacchetta applicazioni native per LuxOS</summary>
+ <summary xml:lang="pt">Crie, compile e empacote aplicações nativas para LuxOS</summary>
+ <summary xml:lang="nl">Maak, compileer en verpak native LuxOS-toepassingen</summary>
+ <summary xml:lang="sv">Skapa, kompilera och paketera inbyggda LuxOS-appar</summary>
+ <description>
+  <p>A native workshop written in Lux Simple Lang. Start with a GTK window or command-line template, edit your project in LSL IDE, build and run it, then export an installable .lux package.</p>
+  <p xml:lang="cs">Nativní dílna napsaná v Lux Simple Lang. Začněte šablonou okna GTK nebo příkazového nástroje, upravte projekt v LSL IDE, sestavte ho a spusťte a exportujte instalační balíček .lux.</p>
+  <p xml:lang="sk">Natívna dielňa napísaná v Lux Simple Lang. Začnite šablónou okna GTK alebo nástroja príkazového riadka, upravte projekt v LSL IDE, zostavte ho a spustite a exportujte inštalačný balíček .lux.</p>
+  <p xml:lang="pl">Natywny warsztat napisany w Lux Simple Lang. Zacznij od szablonu okna GTK lub narzędzia wiersza poleceń, edytuj projekt w LSL IDE, skompiluj i uruchom go, a następnie wyeksportuj pakiet instalacyjny .lux.</p>
+  <p xml:lang="uk">Нативна майстерня, написана на Lux Simple Lang. Почніть із шаблону вікна GTK або засобу командного рядка, відредагуйте проєкт у LSL IDE, зберіть і запустіть його, а потім експортуйте інсталяційний пакунок .lux.</p>
+  <p xml:lang="hu">Lux Simple Lang nyelven írt natív műhely. Induljon GTK-ablakot vagy parancssori eszközt tartalmazó sablonból, szerkessze projektjét az LSL IDE-ben, fordítsa és futtassa, majd exportálja telepíthető .lux csomagként.</p>
+  <p xml:lang="de">Eine native Werkstatt in Lux Simple Lang. Beginnen Sie mit einer Vorlage für ein GTK-Fenster oder ein Befehlszeilenprogramm, bearbeiten Sie das Projekt in LSL IDE, kompilieren und starten Sie es und exportieren Sie ein installierbares .lux-Paket.</p>
+  <p xml:lang="fr">Un atelier natif écrit en Lux Simple Lang. Partez d’un modèle de fenêtre GTK ou d’outil en ligne de commande, modifiez votre projet dans LSL IDE, compilez-le et exécutez-le, puis exportez un paquet .lux installable.</p>
+  <p xml:lang="es">Un taller nativo escrito en Lux Simple Lang. Empiece con una plantilla de ventana GTK o de herramienta de línea de comandos, edite su proyecto en LSL IDE, compílelo y ejecútelo, y exporte un paquete .lux instalable.</p>
+  <p xml:lang="it">Un laboratorio nativo scritto in Lux Simple Lang. Parti da un modello di finestra GTK o di strumento da riga di comando, modifica il progetto in LSL IDE, compilalo ed eseguilo, quindi esporta un pacchetto .lux installabile.</p>
+  <p xml:lang="pt">Uma oficina nativa escrita em Lux Simple Lang. Comece com um modelo de janela GTK ou de ferramenta de linha de comandos, edite o projeto no LSL IDE, compile-o e execute-o, e exporte um pacote .lux instalável.</p>
+  <p xml:lang="nl">Een native werkplaats geschreven in Lux Simple Lang. Begin met een sjabloon voor een GTK-venster of opdrachtregelprogramma, bewerk uw project in LSL IDE, compileer en voer het uit en exporteer vervolgens een installeerbaar .lux-pakket.</p>
+  <p xml:lang="sv">En inbyggd verkstad skriven i Lux Simple Lang. Börja med en mall för ett GTK-fönster eller ett kommandoradsverktyg, redigera projektet i LSL IDE, kompilera och kör det och exportera sedan ett installerbart .lux-paket.</p>
+  <ul>
+   <li>Live build logs and a stop button for the active job</li>
+   <li xml:lang="cs">Průběžný výpis sestavení a tlačítko pro zastavení aktivní úlohy</li>
+   <li xml:lang="sk">Priebežný výpis zostavovania a tlačidlo na zastavenie aktívnej úlohy</li>
+   <li xml:lang="pl">Bieżący dziennik kompilacji i przycisk zatrzymania aktywnego zadania</li>
+   <li xml:lang="uk">Поточний журнал збирання та кнопка зупинки активного завдання</li>
+   <li xml:lang="hu">Élő fordítási napló és az aktív feladatot leállító gomb</li>
+   <li xml:lang="de">Laufende Build-Protokolle und eine Schaltfläche zum Stoppen der aktiven Aufgabe</li>
+   <li xml:lang="fr">Journaux de compilation en direct et bouton d’arrêt de la tâche active</li>
+   <li xml:lang="es">Registros de compilación en directo y un botón para detener la tarea activa</li>
+   <li xml:lang="it">Registri di compilazione in tempo reale e pulsante per fermare l’attività in corso</li>
+   <li xml:lang="pt">Registos de compilação em direto e botão para parar a tarefa ativa</li>
+   <li xml:lang="nl">Live compilatielogboeken en een knop om de actieve taak te stoppen</li>
+   <li xml:lang="sv">Byggloggar i realtid och en knapp som stoppar den aktiva uppgiften</li>
+   <li>Source-aware build validation prevents running or exporting stale builds</li>
+   <li xml:lang="cs">Kontrola zdrojů zabrání spuštění a exportu zastaralého sestavení</li>
+   <li xml:lang="sk">Kontrola zdrojov zabráni spusteniu a exportu neaktuálneho zostavenia</li>
+   <li xml:lang="pl">Sprawdzanie źródeł zapobiega uruchamianiu i eksportowaniu nieaktualnych kompilacji</li>
+   <li xml:lang="uk">Перевірка вихідних файлів запобігає запуску й експорту застарілих збірок</li>
+   <li xml:lang="hu">A források ellenőrzése megakadályozza az elavult fordítások futtatását és exportálását</li>
+   <li xml:lang="de">Die Prüfung der Quellen verhindert das Starten und Exportieren veralteter Builds</li>
+   <li xml:lang="fr">La vérification des sources empêche l’exécution et l’exportation de compilations obsolètes</li>
+   <li xml:lang="es">La comprobación de los archivos fuente impide ejecutar o exportar compilaciones obsoletas</li>
+   <li xml:lang="it">Il controllo dei sorgenti impedisce l’esecuzione e l’esportazione di compilazioni obsolete</li>
+   <li xml:lang="pt">A verificação dos ficheiros de código impede executar ou exportar compilações desatualizadas</li>
+   <li xml:lang="nl">Controle van de bronbestanden voorkomt het uitvoeren en exporteren van verouderde builds</li>
+   <li xml:lang="sv">Kontroll av källfiler hindrar körning och export av inaktuella byggen</li>
+   <li>Desktop entry, metadata and original SVG icon included in each project</li>
+   <li xml:lang="cs">Každý projekt obsahuje zástupce aplikace, metadata a původní ikonu SVG</li>
+   <li xml:lang="sk">Každý projekt obsahuje zástupcu aplikácie, metadáta a pôvodnú ikonu SVG</li>
+   <li xml:lang="pl">Każdy projekt zawiera skrót aplikacji, metadane i oryginalną ikonę SVG</li>
+   <li xml:lang="uk">Кожен проєкт містить ярлик застосунку, метадані та оригінальний значок SVG</li>
+   <li xml:lang="hu">Minden projekt tartalmaz alkalmazásindítót, metaadatokat és eredeti SVG-ikont</li>
+   <li xml:lang="de">Jedes Projekt enthält einen Anwendungsstarter, Metadaten und ein eigenes SVG-Symbol</li>
+   <li xml:lang="fr">Chaque projet inclut un lanceur d’application, des métadonnées et une icône SVG originale</li>
+   <li xml:lang="es">Cada proyecto incluye un lanzador de aplicaciones, metadatos y un icono SVG original</li>
+   <li xml:lang="it">Ogni progetto include un lanciatore di applicazioni, metadati e un’icona SVG originale</li>
+   <li xml:lang="pt">Cada projeto inclui um lançador de aplicações, metadados e um ícone SVG original</li>
+   <li xml:lang="nl">Elk project bevat een toepassingsstarter, metagegevens en een origineel SVG-pictogram</li>
+   <li xml:lang="sv">Varje projekt innehåller en appstartare, metadata och en egen SVG-ikon</li>
+   <li>Export stays local; installation and publication are separate actions</li>
+   <li xml:lang="cs">Export zůstává lokální; instalace a publikace jsou samostatné kroky</li>
+   <li xml:lang="sk">Export zostáva lokálny; inštalácia a publikovanie sú samostatné kroky</li>
+   <li xml:lang="pl">Eksport pozostaje lokalny; instalacja i publikacja to oddzielne działania</li>
+   <li xml:lang="uk">Експорт залишається локальним; установлення й публікація виконуються окремо</li>
+   <li xml:lang="hu">Az exportálás helyben történik; a telepítés és a közzététel külön művelet</li>
+   <li xml:lang="de">Der Export bleibt lokal; Installation und Veröffentlichung sind getrennte Schritte</li>
+   <li xml:lang="fr">L’exportation reste locale ; l’installation et la publication sont des actions distinctes</li>
+   <li xml:lang="es">La exportación es local; la instalación y la publicación son acciones independientes</li>
+   <li xml:lang="it">L’esportazione resta locale; installazione e pubblicazione sono operazioni separate</li>
+   <li xml:lang="pt">A exportação mantém-se local; a instalação e a publicação são ações separadas</li>
+   <li xml:lang="nl">Export blijft lokaal; installatie en publicatie zijn afzonderlijke handelingen</li>
+   <li xml:lang="sv">Exporten förblir lokal; installation och publicering är separata åtgärder</li>
+  </ul>
+ </description>
+ <launchable type="desktop-id">luxos-app-studio.desktop</launchable>
+ <url type="homepage">https://luxos.lux-ai.cz/</url>
+ <developer id="cz.luxos">
+  <name>LuxOS Team</name>
+ </developer>
+ <content_rating type="oars-1.1" />
+ <provides>
+  <binary>luxos-app-studio</binary>
+ </provides>
+ <categories>
+  <category>Development</category>
+  <category>IDE</category>
+ </categories>
+ <releases>
+  <release version="1.0.0" date="2026-11-11" />
+ </releases>
+</component>
