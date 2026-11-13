@@ -31,7 +31,7 @@ import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
-from . import BUS_NAME, INTERFACE, OBJECT_PATH, calendar_note, luxai_bridge, session, store  # noqa: E402
+from . import BUS_NAME, INTERFACE, OBJECT_PATH, luxai_bridge, session, store  # noqa: E402
 from .location import LocationState  # noqa: E402
 
 try:
@@ -41,7 +41,7 @@ except ImportError:  # pragma: no cover
     def _(s):
         return s
 
-for _mod in (calendar_note, luxai_bridge, session):
+for _mod in (luxai_bridge, session):
     _mod.set_translator(_)
 
 NOTIFY = "org.freedesktop.Notifications"
@@ -134,9 +134,10 @@ class Service:
         self.bus = session_bus
         self.clock = clock
         self.settings = settings or store.Settings()
-        self.calendar = calendar or calendar_note.CalendarWriter(
-            done_path=os.path.join(store.state_dir(), "calendar-requests.json"))
-        self.calendar_reader = calendar_reader or calendar_note.CalendarReader(self.calendar.dir)
+        # Bluetooth a poloha nepotrebuji kalendar ani databazi casovych pasem.
+        # Objekty vzniknou az pri prvnim kalendarovem pozadavku.
+        self._calendar = calendar
+        self._calendar_reader = calendar_reader
         self.location = LocationState(clock=clock, on_change=self._location_changed)
         self.location.enabled = self.settings.get("share_location")
         self.notifier = notifier if notifier is not None else (Notifier(session_bus) if session_bus else None)
@@ -150,6 +151,31 @@ class Service:
         self.reg_id = None
         self.settings_stamp = None
         self.approved = {a for a, _n in self.settings.phones()}
+
+    @property
+    def calendar(self):
+        if self._calendar is None:
+            from . import calendar_note
+            calendar_note.set_translator(_)
+            self._calendar = calendar_note.CalendarWriter(
+                done_path=os.path.join(store.state_dir(), "calendar-requests.json"))
+        return self._calendar
+
+    @calendar.setter
+    def calendar(self, value):
+        self._calendar = value
+
+    @property
+    def calendar_reader(self):
+        if self._calendar_reader is None:
+            from . import calendar_note
+            calendar_note.set_translator(_)
+            self._calendar_reader = calendar_note.CalendarReader(self.calendar.dir)
+        return self._calendar_reader
+
+    @calendar_reader.setter
+    def calendar_reader(self, value):
+        self._calendar_reader = value
 
     # ---- D-Bus ----
     def export(self):
@@ -285,6 +311,11 @@ class Service:
 
     def session_closed(self, s):
         self.sessions.pop(s.key, None)
+        if not self.sessions and self._calendar_reader is not None:
+            # Nactene udalosti mohou byt velke. Po dalsim pripojeni se znovu
+            # prectou z disku. Pamet deduplikace zapisu zustava beze zmeny.
+            if hasattr(self._calendar_reader, "release_cache"):
+                self._calendar_reader.release_cache()
         self.location.drop(s.key)
         for p in self.pending.values():
             p["callbacks"] = [(ss, cb) for ss, cb in p["callbacks"] if ss is not s]

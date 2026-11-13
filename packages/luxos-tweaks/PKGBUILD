@@ -2,7 +2,7 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=13
+pkgrel=14
 pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting, /tmp on disk"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"

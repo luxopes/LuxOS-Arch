@@ -446,6 +446,45 @@ class TestCalendarList(Base):
         self.assertLessEqual(frame_size(got[-1]), wire.MAX_FRAME)
         return got[-1]
 
+    def test_calendar_cache_released_and_reloaded_after_disconnect(self):
+        import gc
+        import weakref
+
+        self.write(ICS)
+        s, phone, _ok = self.open()
+        first = self.ask(phone)
+        reader = self.svc.calendar_reader
+        cached = weakref.ref(reader.store)
+        s.close("disconnected")
+        gc.collect()
+        self.assertIsNone(cached(), "parsed calendars remain in memory after disconnect")
+        self.assertIsNone(reader.store)
+
+        # Kalendar se mezitim zmenil na pocitaci; dalsi spojeni dostane aktualni data.
+        self.write(ICS.replace("Schůzka", "Nová schůzka"))
+        _s, phone, _ok = self.open()
+        second = self.ask(phone, "e2")
+        self.assertEqual(first["type"], "calendar.events")
+        titles = {e["title"] for e in second["events"]}
+        self.assertIn("Nová schůzka", titles)
+        self.assertNotIn("Schůzka", titles)
+
+    def test_calendar_cache_kept_while_another_phone_is_connected(self):
+        self.write(ICS)
+        s, phone, _ok = self.open()
+        self.ask(phone)
+        cached = self.svc.calendar_reader.store
+        peer = {"address": "AA:BB:CC:DD:EE:02", "name": "Second phone"}
+        self.svc.settings.approve(peer["address"], peer["name"])
+        second, phone2 = connect(self.svc, peer)
+        self.sessions.append(second)
+        phone2.send("hello", "h2", protocol=1)
+        self.assertEqual(phone2.wait()[0]["type"], "hello.ok")
+        s.close("disconnected")
+        self.assertIs(self.svc.calendar_reader.store, cached)
+        second.close("disconnected")
+        self.assertIsNone(self.svc.calendar_reader.store)
+
     def test_day_listing(self):
         self.write(ICS)
         self.write(OTHER, "other.ics")

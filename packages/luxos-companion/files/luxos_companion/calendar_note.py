@@ -368,6 +368,25 @@ class CalendarReader:
         self.dir = directory or calendar_dir()
         self.store = None
 
+    def release_cache(self):
+        """Uvolni rozparsovane kalendare po odpojeni posledniho telefonu."""
+        if self.store is None:
+            return
+        self.store = None
+        # Python i libc si jinak ponechaji volne stranky po velkem kalendari.
+        # Jen po pouziti kalendare a odpojeni posledniho telefonu, ne v hlavni
+        # smycce nebo pri beznem Bluetooth/poloze. Zive objekty zustavaji platne.
+        import gc
+        gc.collect()
+        try:
+            import ctypes
+            trim = ctypes.CDLL(None).malloc_trim
+            trim.argtypes = [ctypes.c_size_t]
+            trim.restype = ctypes.c_int
+            trim(0)
+        except (ImportError, AttributeError, OSError):
+            pass  # jina libc bez malloc_trim: cache se stale uvolnila
+
     def _store(self):
         try:
             ics = ics_module()
