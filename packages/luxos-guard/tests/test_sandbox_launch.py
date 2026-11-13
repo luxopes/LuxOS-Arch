@@ -644,17 +644,17 @@ def test_desktop_without_exec_notifies(fakes, tmp_path):
 
 
 def test_agent_passes_kind_interp_and_terminal(fakes, elves, tmp_path, monkeypatch):
-    from test_agent_notify import load_agent
-    mod = load_agent()
+    # volba "Spustit v sandboxu" z okna: luxos-guard-agent-helper act sandbox (zprava sluzby beze zmeny)
+    from test_agent_notify import load_helper
+    mod = load_helper()
     monkeypatch.setattr(mod.time, "sleep", lambda s: None)
-    agent = mod.Agent(sock_path=str(tmp_path / "none"))
     tk = write(tmp_path, "tk.py", "import tkinter\ntkinter.Tk().mainloop()\n", 0o755)
-    agent.act("sandbox", {"path": tk, "kind": "script", "interp": "python3", "terminal": False})
+    mod.act("sandbox", {"path": tk, "kind": "script", "interp": "python3", "terminal": False})
     calls = fakes.read("luxos-sandbox")
     assert ["luxos-sandbox", "run", "--gui", "--", tk] in calls
     assert not [c for c in calls if c[0] == "luxos-terminal"]
     # spusteno z terminalu -> terminal i pro program s oknem
-    agent.act("sandbox", {"path": elves["gtk"], "kind": "elf", "terminal": True})
+    mod.act("sandbox", {"path": elves["gtk"], "kind": "elf", "terminal": True})
     t = [c for c in fakes.read("luxos-terminal") if c[0] == "luxos-terminal"]
     assert t and t[0][-5:] == ["luxos-sandbox", "run", "--gui", "--", elves["gtk"]]
     time.sleep(0.3)

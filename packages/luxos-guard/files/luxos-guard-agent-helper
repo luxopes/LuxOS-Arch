@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""Lux Guard - kratce bezici pomocnik pomocnika v sezeni (luxos-guard-agent, LSL).
+
+luxos-guard-agent drzi spojeni se sluzbou bez Pythonu a tento program spusti jen pri udalosti; zprava
+sluzby (JSON) je v promenne prostredi LUXOS_GUARD_MSG (vidi ji jen uzivatel sam, ne jini v /proc).
+
+  luxos-guard-agent-helper ask          okno s dotazem; navratovy kod = volba (odpoved posle agent)
+  luxos-guard-agent-helper blocked      zprava o zablokovani; volbu "Spustit v sandboxu" / "Presunout do
+                                        kose" provede hned sam
+  luxos-guard-agent-helper act VOLBA    "sandbox" nebo "trash" po dotazu (az po odeslani odpovedi)
+  luxos-guard-agent-helper found        upozorneni "nebezpecny soubor" (agent ho posila jen jednou
+                                        pro stejny obsah)
+
+Kody volby: 10 run, 11 sandbox, 12 deny, 13 trash, 14 close.
+"""
+import json
+import os
+import subprocess
+import sys
+import time
+
+# nainstalovany pomocnik (/usr/lib/luxos-guard) bere moduly z /usr/lib/luxos/python, ve zdrojich moduly Lux
+# Guard ze sve slozky (systemova cesta jen pro luxos_i18n)
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), "luxos_guard_core.py")):
+    sys.path.append("/usr/lib/luxos/python")
+else:
+    sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _  # noqa: E402
+except ImportError:
+    def _(text):
+        return text
+import luxos_guard_core as core  # noqa: E402
+from luxos_guard_session import notify, run_in_sandbox, trash  # noqa: E402
+
+GUI = os.environ.get("LUXOS_GUARD_GUI") or "luxos-guard-gui"
+CODES = {"run": 10, "sandbox": 11, "deny": 12, "trash": 13, "close": 14}
+
+
+def dialog(msg, timeout):
+    """Okno luxos-guard-gui; vraci volbu (run|sandbox|deny|trash|close)."""
+    try:
+        r = subprocess.run([GUI, "dialog"], input=json.dumps(msg), capture_output=True, text=True, timeout=timeout)
+        out = (r.stdout or "").strip().splitlines()
+        return out[-1] if out else "deny"
+    except (OSError, subprocess.TimeoutExpired):
+        return "deny"
+
+
+def act(choice, msg):
+    path = msg.get("path") or ""
+    if choice == "sandbox":
+        # chvili pockat: odmitnuty proces muze soubor jeste drzet
+        time.sleep(0.3)
+        # spusteno z terminalu (i "Spustit v terminalu" ve spravci souboru) = uzivatel chce terminal
+        run_in_sandbox(path, msg.get("kind"), msg.get("interp"), True if msg.get("terminal") else None)
+    elif choice == "trash":
+        trash(path)
+
+
+def found(msg):
+    notify(_("Lux Guard: dangerous file"),
+           "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""),
+                            "; ".join(_(r) for r in msg.get("reasons") or []),
+                            _("It will not run outside the sandbox.")), "critical")
+
+
+def main(argv):
+    try:
+        msg = json.loads(os.environ.get("LUXOS_GUARD_MSG") or "{}")
+    except ValueError:
+        msg = {}
+    if not isinstance(msg, dict):
+        msg = {}
+    cmd = argv[0] if argv else ""
+    if cmd == "ask":
+        # agent ceka nejvys ASK_TIMEOUT - 2 s, okno se zavre o 3 s drive
+        choice = dialog({**msg, "mode": "ask"}, core.ASK_TIMEOUT - 5)
+        return CODES[choice] if choice in ("run", "sandbox", "trash") else CODES["deny"]
+    if cmd == "blocked":
+        choice = dialog({**msg, "mode": "blocked"}, 600)
+        act(choice, msg)
+        return CODES.get(choice, CODES["close"])
+    if cmd == "act" and len(argv) > 1:
+        act(argv[1], msg)
+        return 0
+    if cmd == "found":
+        found(msg)
+        return 0
+    print(__doc__, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

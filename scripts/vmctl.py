@@ -31,8 +31,13 @@ def rpc(path, msg, qmp=False, timeout=30):
     else:
         # synchronizace guest agenta
         f.write(b'{"execute":"guest-sync","arguments":{"id":4242}}\n'); f.flush()
-        while b"4242" not in f.readline():
-            pass
+        while True:
+            line = f.readline()
+            if not line:
+                # VM se vypnula / agent skoncil: readline() by vracel b"" porad dokola (100 % CPU)
+                raise RuntimeError("connection closed")
+            if b"4242" in line:
+                break
     f.write(json.dumps(msg).encode() + b"\n"); f.flush()
     while True:
         line = f.readline()

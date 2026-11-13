@@ -1,9 +1,9 @@
 # LuxOS Emoji a symboly - vyber emoji jako Win+. ve Windows a Ctrl+Cmd+Mezernik v macOS (Super+. a
-# Ctrl+Super+Mezernik). Okno bezi primo v luxos-hub (pripravene predem s nactenymi daty, ukaze se hned po
-# zkratce), bez hubu v samostatnem procesu luxos-emoji-ui. Maly klient luxos-emoji jen preda prepinace pres
-# abstraktni socket UNIX (protokol a cista logika v luxos_emoji_base).
+# Ctrl+Super+Mezernik). Okno bezi primo v luxos-hub (vznikne s daty pri prvnim pouziti a pak zustane
+# pripravene, dalsi zkratka ho ukaze hned), bez hubu v samostatnem procesu luxos-emoji-ui. Maly klient
+# luxos-emoji jen preda prepinace pres abstraktni socket UNIX (protokol a cista logika v luxos_emoji_base).
 #
-#   call emoji.prebuild()            skryte okno a data (hub po startu relace)
+#   call emoji.prebuild()            skryte okno a data predem (luxos-emoji-ui s LUXOS_EMOJI_RESIDENT=1)
 #   emoji.start_server(samostatne)   naslouchani na socketu; False kdyz uz posloucha nekdo jiny
 #   call emoji.handle_request(argv, None)   pozadavek primo (samostatny proces)
 #
@@ -169,6 +169,7 @@ function ensure_built():
         return 0
     end
     S["built"] = True
+    call tlog("built")
     call ensure_data()
     S["composited"] = gtk.rgba_available()
     S["dark"] = is_dark()
