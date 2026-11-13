@@ -155,6 +155,10 @@ class Descriptions(unittest.TestCase):
         self.assertEqual(desc["en"][1], {"p": "Second paragraph."})
 
     def test_desktop_id_and_invalid_files(self):
+        self.assertEqual(cat.parse_metainfo('<component><id>cz.luxos.IconStudio</id>'
+                                            '<launchable type="desktop-id">luxos-icon-studio.desktop</launchable>'
+                                            '<description><p>Native icon editor.</p></description></component>'),
+                         ("luxos-icon-studio", {"en": [{"p": "Native icon editor."}]}))
         self.assertEqual(cat.parse_metainfo("<component><id>x.desktop</id><description><p>A</p></description>"
                                             "</component>"), ("x", {"en": [{"p": "A"}]}))
         self.assertEqual(cat.parse_metainfo("<component><id>x</id></component>"), ("x", {}))
@@ -269,7 +273,10 @@ class SourceTree(unittest.TestCase):
             for fname, text in p.get("metainfo", {}).items():
                 root = ET.fromstring(text)
                 did = fname[:-len(".metainfo.xml")]
-                self.assertEqual(root.findtext("id"), did, fname)
+                # AppStream component IDs may use reverse DNS; the launchable
+                # desktop ID is the identity used by the actual store catalog.
+                self.assertTrue(root.findtext("id"), fname)
+                self.assertEqual(cat.parse_metainfo(text)[0], did, fname)
                 self.assertIn(did, p["desktop"], f"{fname}: no {did}.desktop in {p['name']}")
                 entry = cat.parse_desktop(p["desktop"][did])
                 self.assertEqual(root.findtext("name"), entry["Name"], fname)

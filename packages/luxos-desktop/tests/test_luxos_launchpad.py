@@ -390,6 +390,30 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.open()
         self.assertEqual(self.enter(), ["Zebra"])
 
+    def settings_entry(self, did, name):
+        with open(os.path.join(self.t, "sys", "applications", did), "w") as f:
+            f.write("[Desktop Entry]\nType=Application\nName=%s\nExec=sh -c \"echo %s >> %s\"\n"
+                    "Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;GTK;\n"
+                    % (name, name.replace(" ", ""), self.launched))
+
+    def test_selected_settings_apps_in_grid(self):
+        """Samostatne aplikace s kategorii Nastaveni (Bluetooth, Telefon...) v Launchpadu jsou,
+        ostatni panely Nastaveni (X-XFCE-SettingsDialog) dal ne; originalni soubor se nemeni."""
+        self.settings_entry("luxos-bluetooth.desktop", "Zz Bluetooth")
+        self.settings_entry("xfce-mouse-settings.desktop", "Zz Mouse Panel")
+        self.open()
+        xdo("type", "Zz Bluetooth")
+        time.sleep(0.4)
+        self.assertEqual(self.enter(), ["ZzBluetooth"])
+        os.remove(self.launched)
+        xdo("mousemove", 2, 2)
+        self.open()
+        xdo("type", "Zz Mouse")
+        time.sleep(0.4)
+        self.assertNotIn("ZzMousePanel", self.enter())
+        with open(os.path.join(self.t, "sys", "applications", "luxos-bluetooth.desktop")) as f:
+            self.assertIn("X-XFCE-SettingsDialog", f.read())
+
     def test_launchpad_not_in_grid(self):
         """Launchpad se v mrizce nenajde (ani hledanim), v mrizce je jen 60 aplikaci."""
         self.open()

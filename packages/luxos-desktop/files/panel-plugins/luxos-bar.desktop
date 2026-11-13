@@ -1,0 +1,12 @@
+[Xfce Panel]
+Type=X-XFCE-PanelPlugin
+Encoding=UTF-8
+Name=LuxOS Bar
+Name[cs]=Lišta LuxOS
+Comment=Spacer with the clock in the middle of the bar; opaque bar under windows
+Comment[cs]=Mezera s hodinami uprostřed lišty; neprůhledná lišta pod okny
+Icon=luxos-logo-symbolic
+X-XFCE-Module=luxos-bar
+X-XFCE-Internal=TRUE
+X-XFCE-Unique=TRUE
+X-XFCE-API=2.0

@@ -51,7 +51,8 @@ def source_packages():
         metainfo = {}
         installs = re.search(r'usr/share/metainfo"\s+"\$(f|startdir)"/metainfo/\*\.metainfo\.xml', pkgbuild)
         for f in glob.glob(os.path.join(d, "**", "metainfo", "*.metainfo.xml"), recursive=True):
-            if installs and "/tests/" not in f:
+            explicit = f"usr/share/metainfo/{os.path.basename(f)}" in pkgbuild
+            if (installs or explicit) and "/tests/" not in f:
                 metainfo[os.path.basename(f)] = open(f, encoding="utf-8").read()
         m = re.search(r"^depends=\((.*?)\)", re.sub(r"#[^\n]*", "", pkgbuild), re.M | re.S)
         body = m.group(1) if m else ""

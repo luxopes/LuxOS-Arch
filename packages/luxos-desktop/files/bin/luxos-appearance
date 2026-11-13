@@ -3,13 +3,17 @@
 # Pouziti: luxos-appearance [dark|light|auto|toggle|status|mode|watch|reapply|greeter-sync]
 #          auto = podle vychodu/zapadu slunce (poloha z casoveho pasma), watch = hlidani v relaci
 #          luxos-appearance wallpaper SOUBOR | bar-opacity 0-100 | dock-opacity 0-100|default
+#          luxos-appearance bar-style classic|rounded | bar-clock right|center | bar-text auto|white
 set -u
 
 state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 state_file="$state_dir/appearance"
-prefs="$state_dir/appearance.conf"   # BAR_OPACITY, DOCK_OPACITY (nastaveni Plocha a Dock)
+prefs="$state_dir/appearance.conf"   # BAR_*, DOCK_OPACITY (nastaveni Plocha a Dock); cte i plugin luxos-bar
 wall_dir=/usr/share/backgrounds/luxos
 BAR_OPACITY=62
+BAR_STYLE=classic    # rounded = zaoblene spodni rohy listy
+BAR_CLOCK=right      # center = hodiny uprostred listy (plugin luxos-bar)
+BAR_TEXT=auto        # white = bile pismo listy i ve svetlem rezimu
 DOCK_OPACITY=
 APPEARANCE_AUTO=0
 LOGIN_WALLPAPER=1    # 0 = prihlasovaci obrazovka si necha vlastni tapetu
@@ -135,6 +139,17 @@ greeter_sync() {
     fi
 }
 
+# Selektory pro okno listy a okna externich pluginu: bar_sel ' label' ' image' -> "#XfcePanelWindow label, ..."
+bar_sel() {
+    local w x out=
+    for x in "$@"; do
+        for w in '#XfcePanelWindow' '#XfcePanelWindowWrapper'; do
+            out+="${out:+, }$w$x"
+        done
+    done
+    printf '%s' "$out"
+}
+
 # Barva textu horni listy: WhiteSur pocita s tmavou listou, ve svetlem rezimu ji prebarvime.
 # Prepinac ploch (pager, jde pridat do listy): plugin si nastavi vlastni CSS s prioritou uzivatele
 # (sede bloky), proto styl v uzivatelskem gtk.css, ne v tematu - cisla ploch, aktivni modre.
@@ -145,26 +160,101 @@ panel_css() {
     mkdir -p "${css%/*}"
     touch "$css"
     fg='#ffffff'
-    [[ $mode == light ]] && fg='#1d1d1f'
+    [[ $mode == light && $BAR_TEXT != white ]] && fg='#1d1d1f'
     block="/* LuxOS appearance begin */"$'\n'
+    # Jen okno listy (#XfcePanelWindow) a okna externich pluginu (#XfcePanelWindowWrapper):
+    # tridu .xfce4-panel maji i vyskakovaci okna pluginu.
     [[ $mode == light ]] &&
-        block+=".xfce4-panel, .xfce4-panel label, .xfce4-panel button, .xfce4-panel image { color: $fg; }"$'\n'
+        block+="$(bar_sel '' ' label' ' button' ' image') { color: $fg; }"$'\n'
+    # bile pismo na svetle liste: jemny stin, aby bylo citelne i na svetle tapete
+    [[ $mode == light && $BAR_TEXT == white ]] &&
+        block+="$(bar_sel ' label') { text-shadow: 0 1px 2px alpha(black, 0.35); } $(bar_sel ' image') { -gtk-icon-shadow: 0 1px 2px alpha(black, 0.35); }"$'\n'
+    # Nabidky a vyskakovaci okna pluginu (zvuk, Wi-Fi, ...): GTK je ve stromu CSS veda pod tlacitkem
+    # listy (window(XfcePanelWindow) button window.popup menu menuitem label) - barvu a stin vratit
+    # motivu, jinak by byl bily text listy i v bile nabidce.
+    [[ $mode == light ]] &&
+        block+="$(bar_sel ' window label' ' window button' ' window image' ' popover label' ' popover button' ' popover image') { color: inherit; text-shadow: none; -gtk-icon-shadow: none; }"$'\n'
+    # Zaoblene spodni rohy: nahore lista licuje s obrazovkou; pod oknem (trida luxos-covered od pluginu
+    # luxos-bar) rovne, jinak by v rozich prosvitala tapeta. Externi pluginy (vlastni okna ve svem
+    # procesu) maji tutez tridu - bez zaobleni; krajni plugin by kreslil pres roh, proto jsou na
+    # zacatku a na konci listy pruhledne oddelovace (bar_layout).
+    [[ $BAR_STYLE == rounded ]] &&
+        block+="#XfcePanelWindow.xfce4-panel.background { border-radius: 0 0 10px 10px; }"$'\n'"#XfcePanelWindowWrapper.xfce4-panel.background, #XfcePanelWindow.xfce4-panel.background.luxos-covered { border-radius: 0; }"$'\n'
     # pager v rezimu cisel (vychozi LuxOS, luxos-session): tlacitka v mrizce - jine pluginy listy mrizku nemaji
-    block+=".xfce4-panel grid > button { min-width: 20px; min-height: 0; padding: 0 4px; margin: 4px 1px; border-radius: 6px; background: transparent; box-shadow: none; border: none; }"$'\n'
-    block+=".xfce4-panel grid > button label { color: alpha($fg, 0.55); font-weight: 600; }"$'\n'
-    block+=".xfce4-panel grid > button:hover { background: alpha($fg, 0.08); }"$'\n'
-    block+=".xfce4-panel grid > button:checked { background: alpha(#3d7bff, 0.22); }"$'\n'
-    block+=".xfce4-panel grid > button:checked label { color: $fg; }"$'\n'
+    block+="$(bar_sel ' grid > button') { min-width: 20px; min-height: 0; padding: 0 4px; margin: 4px 1px; border-radius: 6px; background: transparent; box-shadow: none; border: none; }"$'\n'
+    block+="$(bar_sel ' grid > button label') { color: alpha($fg, 0.55); font-weight: 600; }"$'\n'
+    block+="$(bar_sel ' grid > button:hover') { background: alpha($fg, 0.08); }"$'\n'
+    block+="$(bar_sel ' grid > button:checked') { background: alpha(#3d7bff, 0.22); }"$'\n'
+    block+="$(bar_sel ' grid > button:checked label') { color: $fg; }"$'\n'
     # miniatury (zapnute v nastaveni pageru): bez sedych bloku; ztmaveni neaktivnich ploch kresli libwnck napevno
-    block+=".xfce4-panel wnck-pager { background: transparent; }"$'\n'
-    block+=".xfce4-panel wnck-pager:hover { background: alpha($fg, 0.08); }"$'\n'
-    block+=".xfce4-panel wnck-pager:selected { background: alpha(#3d7bff, 0.22); }"$'\n'
+    block+="$(bar_sel ' wnck-pager') { background: transparent; }"$'\n'
+    block+="$(bar_sel ' wnck-pager:hover') { background: alpha($fg, 0.08); }"$'\n'
+    block+="$(bar_sel ' wnck-pager:selected') { background: alpha(#3d7bff, 0.22); }"$'\n'
     block+="/* LuxOS appearance end */"
     old=$(sed -n '/\/\* LuxOS appearance begin \*\//,/\/\* LuxOS appearance end \*\//p' "$css")
     [[ $old == "$block" ]] && return 1
     sed -i '/\/\* LuxOS appearance begin \*\//,/\/\* LuxOS appearance end \*\//d' "$css"
     printf '%s\n' "$block" >>"$css"
     return 0
+}
+
+# Je plugin luxos-bar nainstalovany? (panel jinak hlasi chybejici plugin)
+have_bar_plugin() {
+    local d
+    local -a dirs
+    # panel hleda pluginy v XDG_DATA_DIRS i v datove slozce uzivatele
+    IFS=: read -ra dirs <<<"${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    for d in "${dirs[@]}"; do
+        [[ -n $d && -r $d/xfce4/panel/plugins/luxos-bar.desktop ]] && return 0
+    done
+    return 1
+}
+
+# Rozlozeni horni listy (panel-1): rozpinaci oddelovac mezi levou a pravou casti nahradi plugin
+# luxos-bar (hodiny uprostred, neprusvitna lista pod okny); zaoblena lista navic potrebuje
+# pruhledny oddelovac na zacatku. Vlastni lista uzivatele bez rozpinaciho oddelovace zustane.
+# Navratovy kod 0 = zmena pluginu (panel je nacte az po restartu).
+bar_layout() {
+    command -v xfconf-query >/dev/null && have_bar_plugin || return 1
+    local -a q=(xfconf-query -c xfce4-panel) order args=()
+    local ids=/panels/panel-1/plugin-ids p v i max=0 bar= changed=1
+    mapfile -t order < <("${q[@]}" -p "$ids" 2>/dev/null | grep -E '^[0-9]+$')
+    (( ${#order[@]} )) || return 1
+    while read -r p; do
+        v=${p#/plugins/plugin-}
+        (( v > max )) && max=$v
+    done < <("${q[@]}" -l -p /plugins 2>/dev/null | grep -E '^/plugins/plugin-[0-9]+$')
+    for v in "${order[@]}"; do
+        [[ $("${q[@]}" -p "/plugins/plugin-$v" 2>/dev/null) == luxos-bar ]] && bar=$v
+    done
+    if [[ -z $bar ]]; then
+        for i in "${!order[@]}"; do
+            v=${order[i]}
+            [[ $("${q[@]}" -p "/plugins/plugin-$v" 2>/dev/null) == separator &&
+               $("${q[@]}" -p "/plugins/plugin-$v/expand" 2>/dev/null) == true ]] || continue
+            max=$((max + 1))
+            "${q[@]}" -p "/plugins/plugin-$max" -n -t string -s luxos-bar
+            order[i]=$max
+            changed=0
+            break
+        done
+    fi
+    if [[ $BAR_STYLE == rounded && $("${q[@]}" -p "/plugins/plugin-${order[0]}" 2>/dev/null) != separator ]]; then
+        max=$((max + 1))
+        "${q[@]}" -p "/plugins/plugin-$max" -n -t string -s separator
+        "${q[@]}" -p "/plugins/plugin-$max/style" -n -t uint -s 0
+        order=("$max" "${order[@]}")
+        changed=0
+    fi
+    (( changed == 0 )) || return 1
+    for v in "${order[@]}"; do
+        args+=(-t int -s "$v")
+    done
+    "${q[@]}" -p "$ids" --force-array "${args[@]}"
+}
+
+restart_panel() {
+    pgrep -u "$USER" -x xfce4-panel >/dev/null && xfce4-panel -r >/dev/null 2>&1 &
 }
 
 apply() {
@@ -213,14 +303,32 @@ apply() {
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
     . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
     if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
-    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|bar-opacity N|dock-opacity N]"
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white]"
 }
 
 case ${1:-status} in
     # Po aktualizaci LuxOS (luxos-session pri prihlaseni): obnovit spravovany blok, panel jen pri zmene
-    panel-css)  if panel_css "$(current)" && pgrep -u "$USER" -x xfce4-panel >/dev/null; then
-                    xfce4-panel -r >/dev/null 2>&1 &
-                fi ;;
+    # (a doplnit plugin luxos-bar do listy)
+    panel-css)  c=1
+                panel_css "$(current)" && c=0
+                bar_layout && c=0
+                (( c )) || restart_panel ;;
+    # Zaoblene spodni rohy (rounded) nebo klasicka lista; vyska zustava 28 px
+    bar-style)  [[ ${2-} == @(classic|rounded) ]] || usage "bar-style classic|rounded"
+                BAR_STYLE=$2
+                set_pref BAR_STYLE "$2"
+                bar_layout
+                panel_css "$(current)"
+                restart_panel ;;
+    # Hodiny: plugin luxos-bar si zmenu nacte sam (bez restartu), Kalendar se otevre pod nimi
+    bar-clock)  [[ ${2-} == @(right|center) ]] || usage "bar-clock right|center"
+                BAR_CLOCK=$2
+                set_pref BAR_CLOCK "$2"
+                if bar_layout; then restart_panel; fi ;;
+    bar-text)   [[ ${2-} == @(auto|white) ]] || usage "bar-text auto|white"
+                BAR_TEXT=$2
+                set_pref BAR_TEXT "$2"
+                if panel_css "$(current)"; then restart_panel; fi ;;
     dark|light) set_pref APPEARANCE_AUTO 0; apply "$1"; set_wallpaper "$1" 1; greeter_sync ;;
     toggle)     set_pref APPEARANCE_AUTO 0
                 m=$([[ $(current) == dark ]] && echo light || echo dark); apply "$m"; set_wallpaper "$m" 1; greeter_sync ;;

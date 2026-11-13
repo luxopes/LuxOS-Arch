@@ -293,6 +293,10 @@ fi
         sleep 2
     done
 ) &
+# Widgety na plose (luxos-widgets on/off); vypnute hned skonci
+luxos-widgets &
+# Hodiny: zapnute budiky zazvoni i bez otevrene aplikace (bez budiku hned skonci)
+luxos-clock-app --background &
 # Hlidani zamrznuti plochy: kdyz X nebo spravce oken 30 s neodpovida, zapise hlaseni
 # (~/.local/share/luxos/freeze-reports, oprava z konzole: luxos-unfreeze)
 luxos-unfreeze --watch &

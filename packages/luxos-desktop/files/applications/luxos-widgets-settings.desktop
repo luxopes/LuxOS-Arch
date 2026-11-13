@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Widgets
+Name[cs]=Widgety
+Comment=Add, remove and arrange desktop widgets
+Comment[cs]=Přidat, odebrat a rozmístit widgety na ploše
+Exec=luxos-widgets settings
+Icon=preferences-desktop
+Terminal=false
+Categories=Settings;DesktopSettings;GTK;
+Keywords=widgets;desktop;widgety;plocha;
+StartupWMClass=luxos-widgets-settings

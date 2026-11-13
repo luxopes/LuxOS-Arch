@@ -8,6 +8,7 @@
 #   exec(argv)               nahradi proces programem (execvp, hledani v PATH); vraci jen pri chybe
 #   list_dir(path)           serazena jmena polozek adresare ([] kdyz adresar neni)
 #   eprint(text)             radek na stderr
+#   disk_usage(path)         [bloku, volnych, dostupnych] souboroveho systemu (statvfs), [] pri chybe
 #
 # Pravidla uvnitr modulu (viz lsl man gtk): argumenty jsou zabalene, pred predanim do C je rozbali ptr();
 # text z C se kopiruje pres bytes(); ByteArray drzi pamet po dobu volani C.
@@ -163,6 +164,17 @@ function mkdir_p(path):
         end
         buffer = __lsl_byte_zeros(256)
         return __lsl_qbe_call2(__lsl_symbol("stat"), cstr(path), data(buffer)) == 0
+    end
+end
+
+# statvfs: f_blocks (+16), f_bfree (+24), f_bavail (+32) v jednotkach f_frsize; procenta jako df
+function disk_usage(path):
+    unsafe:
+        st = __lsl_byte_zeros(112)
+        if __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("statvfs"), cstr(path), data(st))) != 0:
+            return []
+        end
+        return [__lsl_qbe_load64(data(st) + 16), __lsl_qbe_load64(data(st) + 24), __lsl_qbe_load64(data(st) + 32)]
     end
 end
 

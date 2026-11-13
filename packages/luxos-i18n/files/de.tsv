@@ -4983,3 +4983,41 @@ Removed the kernel of older snapshots: %s	Kernel älterer Schnappschüsse entfer
 Free space on the boot partition: %d MB	Freier Platz auf der Boot-Partition: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Das Boot-Image ist beschädigt (%s) und konnte nicht neu erstellt werden. Starten Sie den Computer noch nicht neu: Schaffen Sie Platz auf der Boot-Partition und führen Sie aus: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Die EFI-Partition ist kleiner als 1 GB: Aus dem Bootmenü lassen sich weniger System-Schnappschüsse starten.
+CPU	Prozessor
+Play/Pause	Wiedergabe/Pause
+Widgets	Widgets
+System Health	Systemzustand
+Excellent	Ausgezeichnet
+Busy	Ausgelastet
+Alarm	Wecker
+Alarms	Wecker
+Clock & Weather	Uhr & Wetter
+Default Layout	Standardanordnung
+Drag a widget on the desktop to move it. Right-click it for more.	Ziehen Sie ein Widget auf dem Schreibtisch, um es zu verschieben. Rechtsklick für mehr.
+Edit Widgets…	Widgets bearbeiten …
+Every day	Täglich
+Label	Bezeichnung
+Lap	Runde
+Lap %s	Runde %s
+Large time and date with the weather of your place. Click the time for Clock.	Große Uhrzeit und Datum mit dem Wetter Ihres Ortes. Ein Klick auf die Uhrzeit öffnet Uhr.
+Music and videos appear here	Musik und Videos erscheinen hier
+New Alarm	Neuer Wecker
+No alarms. Add one with +.	Keine Wecker. Mit + hinzufügen.
+Nothing is playing	Es wird nichts abgespielt
+Now Playing	Wird abgespielt
+Once	Einmal
+Pause	Pause
+Put all widgets back under each other in the corner	Alle Widgets wieder untereinander in die Ecke setzen
+Show widgets	Widgets anzeigen
+Snooze	Schlummern
+Snoozed alarm	Geschlummerter Wecker
+Stopwatch	Stoppuhr
+System health with CPU, memory and storage usage.	Systemzustand mit Prozessor-, Speicher- und Datenträgerauslastung.
+This month with today highlighted.	Dieser Monat mit hervorgehobenem Heute.
+Time is up	Die Zeit ist um
+Tomorrow	Morgen
+Weekdays	Werktags
+Weekends	Wochenenden
+What is playing, with Play/Pause and Next. Shown only while something plays.	Was gerade läuft, mit Wiedergabe/Pause und Weiter. Nur sichtbar, während etwas läuft.
+Widget	Widget
+World Clock	Weltuhr

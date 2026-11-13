@@ -38,6 +38,44 @@ save_sort() {
     mkdir -p "${conf%/*}" && echo "$sort" >"$conf"
 }
 
+# Launchpad skryva panely Nastaveni (-drun-exclude-categories X-XFCE-SettingsDialog), ale tyto
+# samostatne aplikace maji kategorii Nastaveni taky a v mrizce chybely. Pro rofi jejich kopie bez
+# X-XFCE-SettingsDialog v $run/share pred systemovymi adresari: stejne desktop-id (pocty spusteni
+# a razeni plati dal), menu, Hledani a Obchod se nemeni. Prepisuje se jen zmeneny soubor (cas
+# zmeny slozky = nove razeni podle kategorie v prepare_order).
+LAUNCHPAD_APPS=(luxos-companion luxos-bluetooth luxos-update luxos-firewall-settings luxos-account
+                org.pulseaudio.pavucontrol)
+launchpad_apps() {
+    local out=$run/share/applications id d src f keep=" " sys=
+    local -a dirs
+    mkdir -p "$out" || return
+    # bez vlastniho adresare (aplikace spustene z Launchpadu ho zdedi v XDG_DATA_DIRS)
+    IFS=: read -ra dirs <<<"${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    for d in "${dirs[@]}"; do
+        [[ -n $d && $d != "$run/share" ]] && sys+=${sys:+:}$d
+    done
+    [[ -n $sys ]] || sys=/usr/local/share:/usr/share
+    IFS=: read -ra dirs <<<"$sys"
+    for id in "${LAUNCHPAD_APPS[@]}"; do
+        src=
+        for d in "${dirs[@]}"; do
+            [[ -r $d/applications/$id.desktop ]] && { src=$d/applications/$id.desktop; break; }
+        done
+        [[ -n $src ]] || continue
+        keep+="$id.desktop "
+        f=$out/$id.desktop
+        # docasny soubor mimo $out, jinak by se menil cas zmeny slozky i bez zmeny
+        sed -E '/^Categories=/{s/([=;])X-XFCE-SettingsDialog(;|$)/\1/}' "$src" >"$run/launchpad-app.new" &&
+            { cmp -s "$run/launchpad-app.new" "$f" || cp "$run/launchpad-app.new" "$f"; }
+    done
+    rm -f "$run/launchpad-app.new"
+    # odinstalovana aplikace nebo odebrana ze seznamu
+    for f in "$out"/*.desktop; do
+        [[ -e $f && $keep != *" ${f##*/} "* ]] && rm -f "$f"
+    done
+    export XDG_DATA_DIRS="$run/share:$sys"
+}
+
 # --sort N (1..4): vola rofi (-custom-resort) po kliknuti na tlacitko / Alt+N - nova historie
 # a ulozena volba; rofi pak preradi dlazdice na miste bez zavreni okna
 if [[ $1 == --sort ]]; then
@@ -56,6 +94,7 @@ sort=most
 [[ " ${modes[*]} " == *" $sort "* ]] || sort=most
 mkdir -p -m 700 "$run" || exit 1
 self=$0
+launchpad_apps
 
 base=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
 [[ $(luxos-appearance status) == light ]] && base+=(-theme-str '@import "luxos-light-colors"')
@@ -65,6 +104,7 @@ for i in 0 1 2 3; do
 done
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
 # X-LuxOS-Launchpad: vybrane panely Nastaveni (Tiskarny a skenery, Ovladace) maji kopii s OnlyShowIn jen pro Launchpad
+# (samostatne aplikace s kategorii Nastaveni dela launchpad_apps, viz LAUNCHPAD_APPS)
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
 
 while :; do

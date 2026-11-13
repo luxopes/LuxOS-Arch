@@ -17,6 +17,26 @@ date in the Calendar.
 - **Details**: feels like, humidity, wind (speed and direction), precipitation today, UV index,
   pressure, sunrise and sunset.
 
+## Weather in LuxAI
+
+In Chat and Agent mode you can ask, for example, "What's the weather in Prague?", "Will it rain
+tomorrow?" or "Show the temperature forecast as a chart." LuxAI uses Weather's current conditions,
+hourly forecast and 7-day forecast, with the same units and 30-minute cache as the app.
+
+For a named city it searches for coordinates first. Without a city it uses your saved selected
+place; if you have none, it asks which city. These tools do not enable IP-based location or change
+your saved places. Without a network connection the last cached forecast is explicitly marked as
+old data. Turning off network access in LuxAI hides the online weather tools.
+
+The data interface (`luxos-weather 1.0.0-5` or later) also works without opening a window:
+
+```sh
+luxos-weather --json search Praha
+luxos-weather --json locations
+luxos-weather --json forecast
+luxos-weather --json forecast --latitude 50.088 --longitude 14.4208 --name Praha --days 3
+```
+
 ## Places
 
 - The sidebar lists your places with the current temperature; click one to show it.
