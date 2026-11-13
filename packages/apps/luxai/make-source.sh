@@ -24,7 +24,7 @@ out=$here/luxai-$ver.tar.gz
 tar -C "$src" --exclude=__pycache__ --exclude='*.pyc' --transform "s,^,luxai-$ver/," \
     --owner=0 --group=0 --numeric-owner --mtime=@0 --sort=name -czf "$out" \
     VERSION README.md lsl data i18n tools/build-lsl.sh \
-    docs/LSL-MIGRATION.md docs/LSL-ISSUES.md docs/REMOTE-SESSION.md docs/rich-blocks.md docs/lsl-verification.json
+    docs/LSL-MIGRATION.md docs/LSL-ISSUES.md docs/REMOTE-SESSION.md docs/WEATHER.md docs/rich-blocks.md docs/lsl-verification.json
 sha=$(sha256sum "$out" | cut -d' ' -f1)
 sed -i "s/^pkgver=.*/pkgver=$ver/; s/^sha256sums=.*/sha256sums=('$sha')/" "$here/PKGBUILD"
 echo "$out ($ver, sha256 $sha); PKGBUILD updated"

@@ -7,7 +7,7 @@
 
 pkgname=luxos-weather
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS Weather - current conditions, hourly and 7-day forecast (Open-Meteo)"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -27,6 +27,7 @@ check() {
 package() {
     local f="$startdir/files"
     install -Dm755 "$f/luxos-weather" "$pkgdir/usr/bin/luxos-weather"
+    install -Dm755 "$f/luxos-weather-query" "$pkgdir/usr/bin/luxos-weather-query"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f/luxos_weather.py" "$f/luxos_weather_sky.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/share/luxos/weather/icons" "$f"/icons/*.svg

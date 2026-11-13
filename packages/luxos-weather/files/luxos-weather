@@ -20,6 +20,11 @@ import time
 sys.path[:0] = [os.path.dirname(os.path.realpath(__file__)), "/usr/lib/luxos/python"]
 from luxos_i18n import _  # noqa: E402
 import luxos_weather as lw  # noqa: E402
+
+# Datove rozhrani pro LuxAI: stejna data/cache/jednotky, bez GTK a bez okna.
+if __name__ == "__main__" and sys.argv[1:2] == ["--json"]:
+    sys.exit(lw.json_cli(sys.argv[2:]))
+
 import luxos_weather_sky as lsky  # noqa: E402
 
 import gi  # noqa: E402

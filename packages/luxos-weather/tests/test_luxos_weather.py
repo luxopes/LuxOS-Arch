@@ -119,6 +119,115 @@ def tearDownModule():
     shutil.rmtree(TMP, ignore_errors=True)
 
 
+class TestJsonCLI(unittest.TestCase):
+    def setUp(self):
+        self.profile = tempfile.TemporaryDirectory(prefix="weather-cli-")
+        self.env = unittest.mock.patch.dict(os.environ, {
+            "XDG_CACHE_HOME": self.profile.name + "/cache",
+            "XDG_CONFIG_HOME": self.profile.name + "/config",
+        })
+        self.env.start()
+        SERVER.fail = False
+
+    def tearDown(self):
+        SERVER.fail = False
+        self.env.stop()
+        self.profile.cleanup()
+
+    def cli(self, *args):
+        import contextlib
+        import io
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = lw.json_cli(list(args))
+        return status, json.loads(output.getvalue())
+
+    def test_search_and_forecast(self):
+        status, result = self.cli("search", "Praha", "--limit", "3")
+        self.assertEqual(status, 0)
+        self.assertEqual(result["places"][0]["name"], "Praha")
+        self.assertEqual(SERVER.requests[-1][1]["count"], "3")
+        status, result = self.cli("forecast", "--latitude", "50.088", "--longitude", "14.4208",
+                                  "--name", "Praha", "--days", "2", "--hours", "3")
+        self.assertEqual(status, 0)
+        self.assertEqual(result["location"]["name"], "Praha")
+        self.assertEqual(result["data"]["current"]["temp"], 12.9)
+        self.assertEqual(result["data"]["current"]["condition"], "Partly Cloudy")
+        self.assertEqual(len(result["data"]["daily"]), 2)
+        self.assertEqual(len(result["data"]["hourly"]), 3)
+        self.assertEqual(result["units"]["temp"], "°C")
+        self.assertEqual(result["data"]["tz"], "Europe/Prague")
+        self.assertFalse(result["stale"])
+
+    def test_saved_location_and_shared_cache_without_changing_preferences(self):
+        lw.save_config(dict(locations=[PRAGUE], selected=0, units="imperial"))
+        with open(lw.config_path(), "rb") as f:
+            original = f.read()
+        status, places = self.cli("locations")
+        self.assertEqual(places["locations"], [PRAGUE])
+        self.assertEqual(status, 0)
+        start = SERVER.count("/v1/forecast")
+        status, first = self.cli("forecast", "--hours", "0")
+        self.assertEqual(status, 0)
+        self.assertEqual(first["units"]["temp"], "°F")
+        self.assertEqual(first["data"]["hourly"], [])
+        self.assertEqual(SERVER.requests[-1][1]["temperature_unit"], "fahrenheit")
+        self.assertIsNotNone(lw.cached_forecast(PRAGUE, "imperial"))
+        self.assertEqual(self.cli("forecast")[0], 0)
+        self.assertEqual(SERVER.count("/v1/forecast"), start + 1)
+        with open(lw.config_path(), "rb") as f:
+            self.assertEqual(f.read(), original)
+
+    def test_stale_data_is_labelled_when_offline(self):
+        lw.save_config(dict(locations=[PRAGUE], selected=0, units="metric"))
+        lw.forecast(PRAGUE, "metric", force=True, now=time.time() - lw.TTL - 1)
+        SERVER.fail = True
+        status, result = self.cli("forecast")
+        self.assertEqual(status, 0)
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["stale"])
+        self.assertTrue(result["error"])
+
+    def test_missing_place_does_not_detect_location(self):
+        start = len(SERVER.requests)
+        status, result = self.cli("forecast")
+        self.assertEqual(status, 1)
+        self.assertTrue(result["needs_location"])
+        self.assertEqual(len(SERVER.requests), start)
+
+    def test_invalid_arguments_return_json_without_requests(self):
+        start = len(SERVER.requests)
+        for argv in (("forecast", "--latitude", "50"),
+                     ("forecast", "--name", "Praha"),
+                     ("forecast", "--latitude", "nan", "--longitude", "14"),
+                     ("forecast", "--latitude", "91", "--longitude", "14"),
+                     ("forecast", "--units", "kelvin"), ("forecast", "--days", "8"),
+                     ("forecast", "--hours", "25"), ("search", "X"), ("locations", "--unknown")):
+            with self.subTest(argv=argv):
+                status, result = self.cli(*argv)
+                self.assertEqual(status, 1)
+                self.assertFalse(result["ok"])
+        self.assertEqual(len(SERVER.requests), start)
+
+    def test_json_launcher_does_not_import_graphics(self):
+        import subprocess
+        program = os.path.abspath(os.path.join(FILES, "luxos-weather"))
+        code = """
+import runpy, sys
+sys.argv = [sys.argv[1], '--json', 'locations']
+try:
+    runpy.run_path(sys.argv[0], run_name='__main__')
+except SystemExit as e:
+    assert e.code == 0
+assert 'gi' not in sys.modules
+assert 'cairo' not in sys.modules
+"""
+        result = subprocess.run([sys.executable, "-B", "-c", code, program],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)["ok"])
+
+
 class TestParsing(unittest.TestCase):
     def test_forecast_fixture(self):
         d = lw.parse_forecast(fixture("forecast-prague.json"))
