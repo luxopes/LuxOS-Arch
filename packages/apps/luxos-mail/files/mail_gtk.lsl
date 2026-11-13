@@ -192,6 +192,19 @@ function stack_show(stack, name):
     end
 end
 
+# Jmeno viditelne stranky (stopa testu: co uzivatel prave vidi)
+function stack_visible(stack):
+    unsafe:
+        return c_text(__lsl_qbe_call1(__lsl_symbol("gtk_stack_get_visible_child_name"), ptr(stack)))
+    end
+end
+
+function label_text(label):
+    unsafe:
+        return c_text(__lsl_qbe_call1(__lsl_symbol("gtk_label_get_text"), ptr(label)))
+    end
+end
+
 function widget_has_focus(widget):
     unsafe:
         return __lsl_qbe_call1(__lsl_symbol("gtk_widget_has_focus"), ptr(widget)) != 0
