@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+ <defs>
+  <linearGradient id="tile" x2=".8" y2="1"><stop stop-color="#202956"/><stop offset="1" stop-color="#101a35"/></linearGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#79ebeb"/><stop offset="1" stop-color="#4584ff"/></linearGradient>
+  <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b9acff"/><stop offset="1" stop-color="#7561ed"/></linearGradient>
+  <linearGradient id="glass" x2=".6" y2="1"><stop stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#9edcff" stop-opacity=".24"/></linearGradient>
+ </defs>
+ <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#tile)"/>
+ <rect x="9" y="9" width="238" height="238" rx="55" fill="none" stroke="#7ca5eb" stroke-opacity=".22" stroke-width="2"/>
+ <path d="m128 111 78 45q7 4 0 8l-68 39q-10 6-20 0l-68-39q-7-4 0-8z" fill="url(#violet)"/>
+ <path d="m128 78 78 45q7 4 0 8l-68 39q-10 6-20 0l-68-39q-7-4 0-8z" fill="url(#blue)"/>
+ <path d="m128 45 78 45q7 4 0 8l-68 39q-10 6-20 0l-68-39q-7-4 0-8z" fill="url(#glass)" stroke="#d9f5ff" stroke-width="2"/>
+ <path d="m125 72 10 18 20 5-19 9-8 19-7-19-20-7 19-7z" fill="#fff"/>
+</svg>

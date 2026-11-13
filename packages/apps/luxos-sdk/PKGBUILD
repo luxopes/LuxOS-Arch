@@ -1,0 +1,25 @@
+# Maintainer: LuxOS Team
+# Optional developer suite. Does not enable services or add tools to the base desktop.
+pkgname=luxos-sdk
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="LuxOS developer kit - native LSL app and icon studios, UI helpers and examples"
+arch=(any)
+url="https://luxos.lux-ai.cz/"
+license=(MIT)
+depends=('lsl>=0.10.8' luxos-app-studio luxos-icon-studio 'luxos-docs>=1.0.0-58' gtk3)
+checkdepends=(python xorg-server-xvfb xorg-xauth dbus)
+optdepends=('lsl-ide: graphical editor for LSL'
+            'lux-code: native terminal coding assistant')
+
+check() {
+    env -u DISPLAY -u WAYLAND_DISPLAY python3 -m unittest discover -s "$startdir/tests" -v
+}
+
+package() {
+    install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/luxos-sdk/README.md"
+    install -Dm644 "$startdir/DESIGN.md" "$pkgdir/usr/share/doc/luxos-sdk/DESIGN.md"
+    install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/luxos-sdk/LICENSE"
+    install -Dm644 "$startdir/files/luxui.lsl" "$pkgdir/usr/share/luxos-sdk/lsl/luxui.lsl"
+    install -Dm644 "$startdir/files/example.lsl" "$pkgdir/usr/share/luxos-sdk/lsl/example.lsl"
+}

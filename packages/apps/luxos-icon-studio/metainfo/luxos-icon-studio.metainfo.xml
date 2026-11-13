@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<component type="desktop-application">
+ <id>cz.luxos.IconStudio</id>
+ <developer id="cz.luxos">
+  <name>LuxOS Team</name>
+ </developer>
+ <metadata_license>CC0-1.0</metadata_license>
+ <project_license>GPL-3.0-or-later</project_license>
+ <name>LuxOS Icon Studio</name>
+ <summary>Design layered icons for your applications</summary>
+ <summary xml:lang="cs">Navrhujte vrstvené ikony pro své aplikace</summary>
+ <summary xml:lang="sk">Navrhujte vrstvené ikony pre svoje aplikácie</summary>
+ <summary xml:lang="pl">Projektuj warstwowe ikony dla swoich aplikacji</summary>
+ <summary xml:lang="uk">Розробляйте багатошарові значки для своїх застосунків</summary>
+ <summary xml:lang="hu">Tervezzen réteges ikonokat alkalmazásaihoz</summary>
+ <summary xml:lang="de">Mehrschichtige Symbole für Ihre Anwendungen gestalten</summary>
+ <summary xml:lang="fr">Concevez des icônes en couches pour vos applications</summary>
+ <summary xml:lang="es">Diseñe iconos por capas para sus aplicaciones</summary>
+ <summary xml:lang="it">Progetta icone a livelli per le tue applicazioni</summary>
+ <summary xml:lang="pt">Crie ícones em camadas para as suas aplicações</summary>
+ <summary xml:lang="nl">Ontwerp gelaagde pictogrammen voor uw toepassingen</summary>
+ <summary xml:lang="sv">Utforma ikoner i lager för dina appar</summary>
+ <launchable type="desktop-id">luxos-icon-studio.desktop</launchable>
+ <description>
+  <p>Create original application icons in a native LuxOS workspace. Arrange layers, adjust their appearance and see how your design reads at real icon sizes.</p>
+  <p xml:lang="cs">Vytvářejte vlastní ikony aplikací v nativním prostředí LuxOS. Uspořádejte vrstvy, upravte jejich vzhled a sledujte čitelnost návrhu ve skutečných velikostech ikon.</p>
+  <p xml:lang="sk">Vytvárajte vlastné ikony aplikácií v natívnom prostredí LuxOS. Usporiadajte vrstvy, upravte ich vzhľad a sledujte čitateľnosť návrhu pri skutočných veľkostiach ikon.</p>
+  <p xml:lang="pl">Twórz własne ikony aplikacji w natywnym środowisku LuxOS. Rozmieszczaj warstwy, dostosowuj ich wygląd i sprawdzaj czytelność projektu w rzeczywistych rozmiarach ikon.</p>
+  <p xml:lang="uk">Створюйте власні значки застосунків у нативному середовищі LuxOS. Упорядковуйте шари, змінюйте їхній вигляд і перевіряйте читабельність зображення у справжніх розмірах значків.</p>
+  <p xml:lang="hu">Készítsen egyedi alkalmazásikonokat a LuxOS natív munkafelületén. Rendezze el a rétegeket, módosítsa megjelenésüket, és ellenőrizze a terv olvashatóságát az ikonok tényleges méretében.</p>
+  <p xml:lang="de">Erstellen Sie eigene Anwendungssymbole in einer nativen LuxOS-Arbeitsumgebung. Ordnen Sie Ebenen an, passen Sie ihr Aussehen an und prüfen Sie die Erkennbarkeit Ihres Entwurfs in den tatsächlichen Symbolgrößen.</p>
+  <p xml:lang="fr">Créez des icônes originales dans un espace de travail natif de LuxOS. Organisez les couches, ajustez leur apparence et vérifiez la lisibilité de votre création aux tailles réelles des icônes.</p>
+  <p xml:lang="es">Cree iconos originales para aplicaciones en un espacio de trabajo nativo de LuxOS. Organice las capas, ajuste su apariencia y compruebe la legibilidad del diseño en los tamaños reales de los iconos.</p>
+  <p xml:lang="it">Crea icone originali per le applicazioni in un ambiente di lavoro nativo di LuxOS. Disponi i livelli, modificane l’aspetto e controlla la leggibilità del progetto alle dimensioni effettive delle icone.</p>
+  <p xml:lang="pt">Crie ícones originais para aplicações num ambiente de trabalho nativo do LuxOS. Organize as camadas, ajuste o seu aspeto e verifique a legibilidade do desenho nos tamanhos reais dos ícones.</p>
+  <p xml:lang="nl">Maak originele toepassingspictogrammen in een native LuxOS-werkomgeving. Rangschik lagen, pas hun uiterlijk aan en controleer hoe duidelijk uw ontwerp is op de werkelijke pictogramgroottes.</p>
+  <p xml:lang="sv">Skapa egna appikoner i en inbyggd LuxOS-arbetsmiljö. Ordna lager, justera deras utseende och kontrollera hur tydlig din design är i ikonernas verkliga storlekar.</p>
+  <ul>
+   <li>Layered projects with editable shapes, colors and transparency</li>
+   <li xml:lang="cs">Vrstvené projekty s upravitelnými tvary, barvami a průhledností</li>
+   <li xml:lang="sk">Vrstvené projekty s upraviteľnými tvarmi, farbami a priehľadnosťou</li>
+   <li xml:lang="pl">Projekty warstwowe z edytowalnymi kształtami, kolorami i przezroczystością</li>
+   <li xml:lang="uk">Багатошарові проєкти з редагуванням форм, кольорів і прозорості</li>
+   <li xml:lang="hu">Réteges projektek szerkeszthető alakzatokkal, színekkel és átlátszósággal</li>
+   <li xml:lang="de">Mehrschichtige Projekte mit bearbeitbaren Formen, Farben und Transparenz</li>
+   <li xml:lang="fr">Projets en couches avec formes, couleurs et transparence modifiables</li>
+   <li xml:lang="es">Proyectos por capas con formas, colores y transparencia editables</li>
+   <li xml:lang="it">Progetti a livelli con forme, colori e trasparenza modificabili</li>
+   <li xml:lang="pt">Projetos em camadas com formas, cores e transparência editáveis</li>
+   <li xml:lang="nl">Gelaagde projecten met bewerkbare vormen, kleuren en transparantie</li>
+   <li xml:lang="sv">Projekt i lager med redigerbara former, färger och genomskinlighet</li>
+   <li>Light and dark previews and export to SVG and PNG</li>
+   <li xml:lang="cs">Světlé a tmavé náhledy a export do SVG a PNG</li>
+   <li xml:lang="sk">Svetlé a tmavé náhľady a export do SVG a PNG</li>
+   <li xml:lang="pl">Jasne i ciemne podglądy oraz eksport do SVG i PNG</li>
+   <li xml:lang="uk">Світлий і темний попередній перегляд та експорт у SVG і PNG</li>
+   <li xml:lang="hu">Világos és sötét előnézet, valamint SVG- és PNG-exportálás</li>
+   <li xml:lang="de">Helle und dunkle Vorschau sowie Export als SVG und PNG</li>
+   <li xml:lang="fr">Aperçus clairs et sombres et exportation en SVG et PNG</li>
+   <li xml:lang="es">Vistas previas claras y oscuras y exportación a SVG y PNG</li>
+   <li xml:lang="it">Anteprime chiare e scure ed esportazione in SVG e PNG</li>
+   <li xml:lang="pt">Pré-visualizações claras e escuras e exportação para SVG e PNG</li>
+   <li xml:lang="nl">Lichte en donkere voorbeelden en export naar SVG en PNG</li>
+   <li xml:lang="sv">Ljus och mörk förhandsvisning samt export till SVG och PNG</li>
+   <li>Native compiled LSL application with no background service</li>
+   <li xml:lang="cs">Nativní aplikace přeložená z LSL bez služby na pozadí</li>
+   <li xml:lang="sk">Natívna aplikácia preložená z LSL bez služby na pozadí</li>
+   <li xml:lang="pl">Natywna aplikacja skompilowana z LSL, bez usługi działającej w tle</li>
+   <li xml:lang="uk">Нативний застосунок, скомпільований з LSL, без фонової служби</li>
+   <li xml:lang="hu">LSL-ből fordított natív alkalmazás háttérszolgáltatás nélkül</li>
+   <li xml:lang="de">Aus LSL kompilierte native Anwendung ohne Hintergrunddienst</li>
+   <li xml:lang="fr">Application native compilée à partir de LSL, sans service en arrière-plan</li>
+   <li xml:lang="es">Aplicación nativa compilada desde LSL, sin servicio en segundo plano</li>
+   <li xml:lang="it">Applicazione nativa compilata da LSL senza servizi in background</li>
+   <li xml:lang="pt">Aplicação nativa compilada a partir de LSL, sem serviço em segundo plano</li>
+   <li xml:lang="nl">Native toepassing gecompileerd vanuit LSL, zonder achtergrondservice</li>
+   <li xml:lang="sv">Inbyggd app kompilerad från LSL utan bakgrundstjänst</li>
+  </ul>
+ </description>
+ <url type="homepage">https://luxos.lux-ai.cz/</url>
+ <content_rating type="oars-1.1" />
+ <releases>
+  <release version="1.0.0" date="2026-11-11" />
+ </releases>
+</component>
