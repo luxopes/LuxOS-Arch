@@ -64,7 +64,8 @@ ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view"
       "started": 0, "ready_logged": False, "older_row": 0, "welcome_button": 0,
       "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False, "more": {}, "menu_button": 0,
       "web": 0, "body_stack": 0, "images_bar": 0, "images_label": 0, "images_always": 0, "find_bar": 0, "find_entry": 0,
-      "link_status": 0, "zoom": 1.0, "view_remote": False, "reply_buttons": [], "jobs": {}, "outbox_note": 0}
+      "link_status": 0, "zoom": 1.0, "view_remote": False, "reply_buttons": [], "jobs": {}, "outbox_note": 0,
+      "web_subject": "", "body_gen": 0, "body_key": [], "pending_uid": 0}
 
 function log(message):
     return eprint("luxos-mail: " + message)
@@ -78,6 +79,29 @@ function trace(text):
             call appendfile(path, text + "\n")
         end
     end
+    return 0
+end
+
+# Stopa testu: co je v podokne zpravy skutecne videt (hlavicka a stranka tela); hlavicka jedne zpravy s telem
+# jine byla chyba (pomale stazeni tela, presun do Kose)
+function trace_pane(why):
+    path = env.get("LUXOS_MAIL_UI_TRACE", "")
+    if path == None or path == "":
+        return 0
+    end
+    view = mg.stack_visible(ui["view"])
+    if view != "message":
+        call trace("pane " + why + " view=" + view)
+        return 0
+    end
+    page = mg.stack_visible(ui["body_stack"])
+    body = ""
+    if page == "web":
+        body = "web:" + ui["web_subject"]
+    else:
+        body = "text:" + mg.text_view_get_text(ui["text"]).split("\n")[0]
+    end
+    call trace("pane " + why + " head=" + mg.label_text(ui["h_subject"]) + " | body=" + body)
     return 0
 end
 
@@ -875,8 +899,10 @@ function open_mailbox(account_id, raw, uid):
     call build_list(uid)
     call update_banner()
     call mg.stack_show(ui["view"], "empty")
-    if uid > 0:
-        call select_uid(uid)
+    ui["pending_uid"] = 0
+    if uid > 0 and not select_uid(uid):
+        # schranka jeste neni v mezipameti (prvni otevreni): zpravu vybrat az po synchronizaci
+        ui["pending_uid"] = uid
     end
     if raw == "__outbox__":
         return 0
@@ -1127,11 +1153,13 @@ function on_message_selected(row, box):
         return 0
     end
     uid = ui["row_index"][row]
+    ui["pending_uid"] = 0
     if uid == ui["selected"]:
         return 0
     end
     ui["selected"] = uid
     call show_message(find_row(uid))
+    call trace_pane("select")
     return 0
 end
 
@@ -1195,13 +1223,20 @@ function show_message(m):
     call clear_container(ui["att_bar"])
     call gtk.widget_hide(ui["att_bar"])
     ui["view_remote"] = False
+    # nova generace podokna: pozdni telo drivejsiho vyberu se zahodi (on_reply "body")
+    ui["body_gen"] = ui["body_gen"] + 1
     ui["message"] = {}
+    ui["body"] = ByteArray()
+    ui["body_uid"] = 0
+    ui["body_key"] = []
     call trace("show " + m["subject"])
     if cur["raw"] == "__outbox__":
         call show_outbox_banner()
         job = outbox_job()
         if len(job) > 0:
             call render_body(m["uid"], outbox_dir() + "/" + job["id"] + ".eml")
+        else:
+            call pane_wait("")
         end
         return 0
     end
@@ -1209,9 +1244,12 @@ function show_message(m):
     if exists(path):
         call render_body(m["uid"], path)
     else:
-        call mg.text_view_set_text(ui["text"], i18n.T("Loading…"))
+        # telo predchozi zpravy nesmi zustat videt pod hlavickou teto (WebKit drzel stary dokument)
+        call pane_wait(i18n.T("Loading…"))
         call set_busy(True)
-        call request("body", {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"]}, {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"]})
+        validity = store.load_state(cur["account"], cur["raw"]).get("uidvalidity", 0)
+        call request("body", {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"], "uidvalidity": validity},
+                     {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"], "uidvalidity": validity, "gen": ui["body_gen"]})
     end
     if m["flags"].find("S") < 0:
         call set_read(m, True)
@@ -1230,11 +1268,12 @@ function render_body(uid, path):
         ok = False
     end
     if not ok:
-        call mg.text_view_set_text(ui["text"], i18n.T("This message could not be displayed."))
+        call pane_wait(i18n.T("This message could not be displayed."))
         return 0
     end
     ui["body"] = data
     ui["body_uid"] = uid
+    ui["body_key"] = [ui["current"]["account"], ui["current"]["raw"], uid]
     ui["message"] = r
     sender = ""
     if len(r["from"]) > 0:
@@ -1467,6 +1506,23 @@ function ensure_web():
     return True
 end
 
+# Podokno bez tela (nacitani, chyba): textova stranka a prazdny dokument ve WebKitu - dokument predchozi zpravy se
+# nesmi znovu objevit (lupa, hledani, tisk) ani zustat videt pod hlavickou jine zpravy
+function pane_wait(text):
+    call mg.stack_show(ui["body_stack"], "text")
+    call mg.text_view_set_text(ui["text"], text)
+    call mg.text_view_scroll_top(ui["text"])
+    call gtk.widget_hide(ui["images_bar"])
+    if ui["web"] != 0:
+        call gtk.widget_hide(ui["link_status"])
+        if ui["web_subject"] != "":
+            call web.load_html(ui["web"], "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body></body></html>")
+            ui["web_subject"] = ""
+        end
+    end
+    return 0
+end
+
 # Telo zpravy: bezpecny dokument ve WebKitu (vzdalene obrazky jen s povolenim), bez WebKitu text
 function show_body(data, r, text):
     if not ensure_web():
@@ -1500,6 +1556,10 @@ function show_body(data, r, text):
     end
     call web.set_background(ui["web"], bg)
     call web.load_html(ui["web"], doc["html"])
+    ui["web_subject"] = r.get("subject", "")
+    if ui["web_subject"] == "":
+        ui["web_subject"] = i18n.T("(no subject)")
+    end
     call web.zoom_set(ui["web"], ui["zoom"])
     call mg.stack_show(ui["body_stack"], "web")
     call gtk.widget_hide(ui["link_status"])
@@ -1781,7 +1841,7 @@ function selected_message():
         return [{}, {}]
     end
     r = {}
-    if ui["body_uid"] == m["uid"] and len(ui["message"]) > 0:
+    if ui["body_key"] == [ui["current"]["account"], ui["current"]["raw"], m["uid"]] and len(ui["message"]) > 0:
         r = ui["message"]
     end
     return [m, r]
@@ -2210,6 +2270,7 @@ function delete_selected():
         call mg.stack_show(ui["view"], "empty")
     end
     call request("trash", {"account": cur["account"], "mailbox": cur["raw"], "uids": [uid]}, {"account": cur["account"], "mailbox": cur["raw"]})
+    call trace_pane("delete")
     return 0
 end
 
@@ -2533,6 +2594,10 @@ function reload_current(keep_uid):
         end
     end
     call mg.adjustment_set_value(adj, pos)
+    if ui["pending_uid"] > 0 and ui["selected"] == 0 and select_uid(ui["pending_uid"]):
+        ui["pending_uid"] = 0
+    end
+    call trace_pane("reload")
     return 0
 end
 
@@ -2592,12 +2657,26 @@ function on_reply(msg, ctx):
         if op == "mailboxes" and ok:
             call build_sidebar()
         end
-        if op == "older" and ctx.get("account", "") == ui["current"]["account"] and ctx.get("mailbox", "") == ui["current"]["raw"]:
+        same = ctx.get("account", "") == ui["current"]["account"] and ctx.get("mailbox", "") == ui["current"]["raw"]
+        if same and (op == "older" or (op == "sync" and ui["pending_uid"] > 0)):
             call reload_current(ui["selected"])
+        end
+        if op == "sync" and same:
+            ui["pending_uid"] = 0
         end
     elif op == "body":
         call set_busy(False)
-        if ctx["account"] == ui["current"]["account"] and ctx["mailbox"] == ui["current"]["raw"] and ctx["uid"] == ui["selected"]:
+        # jen odpoved na posledni vyber (generace podokna) teze schranky, zpravy a UIDVALIDITY; pozdni telo
+        # drivejsiho vyberu (nebo zpravy z jine slozky se stejnym UID) se zahodi
+        current = ctx.get("gen", -1) == ui["body_gen"] and ctx["account"] == ui["current"]["account"] and ctx["mailbox"] == ui["current"]["raw"] and ctx["uid"] == ui["selected"]
+        if current and ok:
+            validity = msg.get("uidvalidity", 0)
+            if validity != 0 and ctx.get("uidvalidity", 0) != 0 and validity != ctx["uidvalidity"]:
+                current = False
+                call pane_wait(i18n.T("The message no longer exists on the server."))
+            end
+        end
+        if current:
             if ok:
                 call render_body(ctx["uid"], msg["path"])
             else:
@@ -2605,9 +2684,12 @@ function on_reply(msg, ctx):
                 if msg.get("kind", "") == "gone":
                     text = i18n.T("The message no longer exists on the server.")
                 end
-                call mg.text_view_set_text(ui["text"], text + "\n\n" + msg.get("error", ""))
+                call pane_wait(text + "\n\n" + msg.get("error", ""))
             end
+        else:
+            call trace("body dropped uid=" + String(ctx["uid"]) + " gen=" + String(ctx.get("gen", -1)) + "/" + String(ui["body_gen"]))
         end
+        call trace_pane("body")
     elif op == "flags" or op == "trash":
         if not ok:
             call log(op + ": " + msg.get("error", ""))
