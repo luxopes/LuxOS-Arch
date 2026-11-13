@@ -6,7 +6,7 @@
 #   LUXOS_REPO_SRC=out/repo-stable LUXOS_REPO_CHANNEL=stable scripts/publish-repo.sh
 #
 # Z kopie ZDROJE (reflink, zdroj se nemeni):
-#   - LUXOS_STABLE_EXCLUDE (vychozi "luxos-mail"): baliky se z databaze odeberou a jejich soubory
+#   - LUXOS_STABLE_EXCLUDE (vychozi "luxos-mail luxos-app-studio luxos-icon-studio luxos-sdk"): baliky se z databaze odeberou a jejich soubory
 #     (vsechny verze, ikona pro Obchod) smazou - ve stabilnim kanalu nebudou;
 #   - LUXOS_STABLE_KEEP (vychozi "lux-code lux-code-next"): zustane verze, ktera je ted ve stabilnim
 #     kanalu (LUXOS_STABLE_URL, vychozi https://luxos.lux-ai.cz/repo); stahne se i s podpisem,
@@ -22,7 +22,7 @@ SRC=${1:-out/repo}
 DEST=${2:-out/repo-stable}
 ARCH=x86_64
 STABLE_URL=${LUXOS_STABLE_URL:-https://luxos.lux-ai.cz/repo}
-read -r -a EXCLUDE <<<"${LUXOS_STABLE_EXCLUDE-luxos-mail}"
+read -r -a EXCLUDE <<<"${LUXOS_STABLE_EXCLUDE-luxos-mail luxos-app-studio luxos-icon-studio luxos-sdk}"
 read -r -a KEEP <<<"${LUXOS_STABLE_KEEP-lux-code lux-code-next}"
 PUBKEY=${LUXOS_KEYRING_FILE:-packages/luxos-keyring/files/luxos.gpg}
 REPOS=(luxos luxos-apps)
