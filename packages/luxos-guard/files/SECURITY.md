@@ -13,7 +13,7 @@ Není to antivirus: žádná databáze signatur, žádné procházení disku, ž
 | Část | Práva | Co dělá |
 |---|---|---|
 | `luxos-guard service` (`luxos-guard.service`) | root, `CAP_SYS_ADMIN` (fanotify), `CAP_SYS_PTRACE` (/proc), `CAP_DAC_READ_SEARCH`, `CAP_FOWNER` | fanotify, analýza, rozhodování, stav `/var/lib/luxos-guard/state.json` (0600), socket `/run/luxos-guard/guard.sock` |
-| `luxos-guard-agent` (autostart sezení) | uživatel | dotazy a oznámení (okno `luxos-guard-gui dialog`), „Spustit v sandboxu“, „Přesunout do koše“ |
+| `luxos-guard-agent` (autostart sezení; malý program v LSL, `/usr/lib/luxos-guard/luxos-guard-agent`) | uživatel | spojení se službou; při události spustí na chvíli `luxos-guard-agent-helper` (Python): dotazy a oznámení (okno `luxos-guard-gui dialog`), „Spustit v sandboxu“, „Přesunout do koše“. Zpráva služby jde pomocníkovi v proměnné prostředí (ne v argumentech viditelných v `/proc` jiným uživatelům); když pomocník nejde spustit nebo do 88 s neodpoví, agent odpoví „deny“ |
 | `luxos-guard-snapshot.timer` | root | `btrfs subvolume snapshot -r /home …`, úklid starých snímků |
 | `luxos-guard` CLI | uživatel | `status`, `scan`, `allow`, `list`, `snapshots`, `restore` |
 

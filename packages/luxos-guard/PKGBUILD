@@ -5,24 +5,36 @@
 
 pkgname=luxos-guard
 pkgver=1.0.0
-pkgrel=6
+pkgrel=7
 pkgdesc="Lux Guard - checks programs from downloads, attachments and USB drives before they run; /home snapshots"
-arch=(any)
+arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
 license=(GPL-3.0-or-later)
 # btrfs-progs: snimky /home; libnotify: upozorneni; glib2: gio trash; luxos-sandbox: "Spustit v sandboxu"
 depends=(python python-gobject gtk3 glib2 libnotify btrfs-progs luxos-i18n luxos-sandbox)
+# lsl: prekladac lslc pro pomocnika v sezeni luxos-guard-agent (cil linux-x86_64-gnu, jen libc + GLib)
+makedepends=('lsl>=0.10.6')
 checkdepends=(python-pytest)
 install=luxos-guard.install
+# strip rozbije dynamicky ELF cile gnu (viz docs/perf/lsl-rewrite-plan.md)
+options=(!debug !strip)
+
+build() {
+    lslc --target linux-x86_64-gnu "$startdir/files/luxos-guard-agent.lsl" luxos-guard-agent
+}
 
 check() {
     cd "$startdir"
-    python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_gui.py
+    LUXOS_GUARD_AGENT_BIN="$srcdir/luxos-guard-agent" python -m pytest -q -p no:cacheprovider tests --ignore=tests/test_gui.py
 }
 
 package() {
     local f="$startdir/files"
     install -Dm755 "$f/luxos-guard" "$pkgdir/usr/bin/luxos-guard"
+    # pomocnik v sezeni: maly program v LSL, Python (luxos-guard-agent-helper) jen na chvili pri udalosti;
+    # /usr/bin/luxos-guard-agent ho spusti (sh i Python - prechod drive bezicich pomocniku v Pythonu)
+    install -Dm755 "$srcdir/luxos-guard-agent" "$pkgdir/usr/lib/luxos-guard/luxos-guard-agent"
+    install -Dm755 "$f/luxos-guard-agent-helper" "$pkgdir/usr/lib/luxos-guard/luxos-guard-agent-helper"
     install -Dm755 "$f/luxos-guard-agent" "$pkgdir/usr/bin/luxos-guard-agent"
     install -Dm755 "$f/luxos-guard-gui" "$pkgdir/usr/bin/luxos-guard-gui"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/luxos_guard_{core,rules,service,session,snap}.py

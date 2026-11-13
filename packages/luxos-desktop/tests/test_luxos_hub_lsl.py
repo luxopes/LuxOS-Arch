@@ -365,7 +365,8 @@ class Hub(unittest.TestCase):
         self.assertNotIn("LSL callback error", err, err)
 
     def test_emoji_served_by_hub(self):
-        """luxos-emoji preda pozadavek bezicimu hubu: okno s daty pripravene predem, stejna zkratka ho zavre."""
+        """luxos-emoji preda pozadavek bezicimu hubu, stejna zkratka okno zavre. Okno s daty (~7 MB) hub
+        predem nestavi: vznikne az pri prvnim pozadavku a pak zustane (dalsi otevreni bez noveho sestaveni)."""
         data = os.path.join(self.home, "emoji-data")
         os.makedirs(data)
         with open(os.path.join(data, "emoji.tsv"), "w", encoding="utf-8") as f:
@@ -377,9 +378,12 @@ class Hub(unittest.TestCase):
         extra = {"LUXOS_EMOJI_DATA": data, "LUXOS_EMOJI_TEST_LOG": log, "LUXOS_EMOJI_UI": "/nonexistent"}
         hub = self.start_hub(**extra)
         events = lambda: [l.rsplit(" @", 1)[0] for l in open(log, encoding="utf-8").read().splitlines()] if os.path.exists(log) else []
+        time.sleep(1.0)                                     # po LUXOS_HUB_PREBUILD_DELAY=1 (CC, Kalendar, snimek)
+        self.assertNotIn("built", events())                 # emoji se predem nestavi
         r = self.run_prog("luxos-emoji", **extra)
         self.assertEqual(r.returncode, 0, (r.stderr, self.hub_err()))
         self.assertTrue(self.wait_for(lambda: "shown" in events()), (events(), self.hub_err()))
+        self.assertEqual(events().count("built"), 1, events())
         r = self.run_prog("luxos-emoji", **extra)          # stejna zkratka okno zavre
         self.assertEqual(r.returncode, 0)
         self.assertTrue(self.wait_for(lambda: "hidden" in events()), events())
@@ -387,6 +391,7 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: events().count("shown") == 2), events())
         self.assertEqual(self.run_prog("luxos-emoji", "--close", **extra).returncode, 0)
         self.assertTrue(self.wait_for(lambda: events().count("hidden") == 2), events())
+        self.assertEqual(events().count("built"), 1, events())   # druhe otevreni pouzilo hotove okno
         hub.send_signal(signal.SIGTERM)
         self.assertEqual(hub.wait(5), 143)
         err = self.hub_err()

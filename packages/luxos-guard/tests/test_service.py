@@ -483,7 +483,8 @@ def test_socket_protocol(g, tmp_path):
 
 
 def test_agent_process_answers(g, tmp_path):
-    """Skutecny proces luxos-guard-agent: dostane dotaz, spusti okno (nahrada) a vrati jeho volbu."""
+    """Skutecny pomocnik luxos-guard-agent (LSL) + skutecny luxos-guard-agent-helper (Python): dostane dotaz,
+    spusti okno (nahrada) a vrati jeho volbu."""
     import subprocess
     import sys
     import threading
@@ -494,9 +495,11 @@ def test_agent_process_answers(g, tmp_path):
     fake_gui = tmp_path / "fake-gui"
     fake_gui.write_text("#!/bin/sh\ncat > \"$0.in\"\necho run\n")
     os.chmod(fake_gui, 0o755)
-    agent = os.path.join(os.path.dirname(__file__), "..", "files", "luxos-guard-agent")
-    env = dict(os.environ, LUXOS_GUARD_SOCKET=sock, LUXOS_GUARD_GUI=str(fake_gui), PYTHONDONTWRITEBYTECODE="1")
-    proc = subprocess.Popen([sys.executable, agent], env=env)
+    from test_agent_lsl import agent_bin
+    helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "files", "luxos-guard-agent-helper")
+    env = dict(os.environ, LUXOS_GUARD_SOCKET=sock, LUXOS_GUARD_GUI=str(fake_gui), PYTHONDONTWRITEBYTECODE="1",
+               LUXOS_GUARD_HELPER=os.path.abspath(helper))
+    proc = subprocess.Popen([agent_bin()], env=env)
     try:
         uid = os.getuid()
         for _ in range(200):
