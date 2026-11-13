@@ -91,11 +91,7 @@ if [[ $LUXOS_FASTFETCH == 1 && $TERM != linux ]] && (( $+commands[fastfetch] ));
     read -r luxos_parent < /proc/$PPID/comm 2>/dev/null
     case $luxos_parent in
         bash|zsh|sh|lsh|fish|dash|su|sudo|login) ;;
-        *) if [[ ${TERM_PROGRAM-} == LuxOS-Terminal && $TERM == xterm-256color && -r ${LUXOS_TERMINAL_LOGO-} ]]; then
-               fastfetch --logo-type raw --logo "$LUXOS_TERMINAL_LOGO"
-           else
-               fastfetch
-           fi ;;
+        *) fastfetch ;;
     esac
     unset luxos_parent
 fi

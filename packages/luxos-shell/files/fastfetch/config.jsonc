@@ -4,7 +4,7 @@
   "logo": {
     // Logo LuxOS ze znaku Unicode (bloky, sextanty, kliny; 24bit barvy) - scripts/render-terminal-logo.py --rows 12.
     // V Terminalu LuxOS (luxos-terminal, VTE z [luxos] s obrazky SIXEL) se misto nej vypise skutecne logo
-    // jako obrazek: bashrc/zshrc spusti "fastfetch --logo-type raw --logo $LUXOS_TERMINAL_LOGO" - obrazek
+    // jako obrazek: wrapper fastfetch doplni "--logo-type raw --logo $LUXOS_TERMINAL_LOGO" - obrazek
     // pripravi terminal pro velikost pisma; sirka, vyska a okraje (31x12 bunek) plati pro oba druhy loga.
     "type": "file-raw",
     "source": "/usr/share/luxos/fastfetch/logo.ans",

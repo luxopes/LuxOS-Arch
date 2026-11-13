@@ -1,0 +1,14 @@
+#!/bin/sh
+# Stejne vychozi zobrazeni pri otevreni terminalu i po rucnim "fastfetch".
+# Vyslovne volby (vlastni konfigurace, JSON, jine logo, --help...) patri fastfetchi.
+if [ "$#" -gt 0 ]; then
+    exec /usr/bin/fastfetch "$@"
+fi
+if [ -r /etc/xdg/luxos/fastfetch/config.jsonc ]; then
+    set -- --config /etc/xdg/luxos/fastfetch/config.jsonc
+fi
+if [ "${TERM_PROGRAM-}" = LuxOS-Terminal ] && [ "${TERM-}" = xterm-256color ] &&
+   [ -n "${LUXOS_TERMINAL_LOGO-}" ] && [ -r "$LUXOS_TERMINAL_LOGO" ]; then
+    set -- "$@" --logo-type raw --logo "$LUXOS_TERMINAL_LOGO"
+fi
+exec /usr/bin/fastfetch "$@"
