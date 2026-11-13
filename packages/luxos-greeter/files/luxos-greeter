@@ -643,10 +643,20 @@ def battery_state():
         d = os.path.join(base, n)
         if read(d + "/type") == "Battery" and read(d + "/scope", "System") != "Device":
             try:
-                return int(read(d + "/capacity", "-1")), read(d + "/status") == "Charging"
+                return int(read(d + "/capacity", "-1")), battery_plugged(read(d + "/status"), base, names)
             except ValueError:
                 return None
     return None
+
+
+def battery_plugged(status, base, names):
+    # Blesk i pri pripojene nabijecce bez nabijeni (plna baterie, prahy "Not charging").
+    if status == "Charging":
+        return True
+    if status == "Discharging":
+        return False
+    return any(read(os.path.join(base, n, "type")) in ("Mains", "USB") and
+               read(os.path.join(base, n, "online")) == "1" for n in names)
 
 
 def network_state():
@@ -904,11 +914,15 @@ def icon_battery(cr, x, y, h, level, charging):
         cr.set_source_rgba(1.0, 0.36, 0.33, 1)
     else:
         cr.set_source_rgba(1, 1, 1, 0.95)
-    rounded(cr, x + lw + h * 0.08, y + lw + h * 0.08, max(h * 0.12, inner * frac), h - 2 * lw - h * 0.16, h * 0.14)
+    fx, fy = x + lw + h * 0.08, y + lw + h * 0.08
+    fw, fh = max(h * 0.12, inner * frac), h - 2 * lw - h * 0.16
+    rounded(cr, fx, fy, fw, fh, h * 0.14)
     cr.fill()
     if charging:
+        # Blesk je dvoubarevny: bily nad prazdnou casti baterie, tmavy nad vyplni.
+        # Driv byl cely cerny, takze pri nizsim nabiti (stred nevyplneny) nebyl videt.
         cx, cy = x + (w - h * 0.22) / 2, y + h / 2
-        cr.set_source_rgba(0, 0, 0, 0.75)
+        cr.save()
         cr.move_to(cx + h * 0.08, cy - h * 0.42)
         cr.line_to(cx - h * 0.2, cy + h * 0.06)
         cr.line_to(cx - h * 0.01, cy + h * 0.06)
@@ -916,7 +930,14 @@ def icon_battery(cr, x, y, h, level, charging):
         cr.line_to(cx + h * 0.2, cy - h * 0.06)
         cr.line_to(cx + h * 0.01, cy - h * 0.06)
         cr.close_path()
+        cr.clip_preserve()
+        cr.set_source_rgba(1, 1, 1, 0.95)
         cr.fill()
+        cr.rectangle(fx, fy, fw, fh)
+        cr.clip()
+        cr.set_source_rgba(0, 0, 0, 0.75)
+        cr.paint()
+        cr.restore()
 
 
 # ---- hlavni okno -------------------------------------------------------------------------
@@ -1003,7 +1024,7 @@ class Greeter(Gtk.Window):
         self.show_all()
         self.update_status()
         GLib.timeout_add_seconds(1, self.tick)
-        GLib.timeout_add_seconds(30, self.update_status)
+        GLib.timeout_add_seconds(5, self.update_status)
         self.set_login_visible(False)
         self.update_users()
         self.update_session_button()

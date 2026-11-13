@@ -486,11 +486,16 @@ icon_battery (cairo_t *cr, double x, double y, double h, int level, gboolean cha
         cairo_set_source_rgba (cr, 1.0, 0.36, 0.33, 1);
     else
         cairo_set_source_rgba (cr, 1, 1, 1, 0.95);
-    rounded (cr, x + lw + h * 0.08, y + lw + h * 0.08, MAX (h * 0.12, inner * frac), h - 2 * lw - h * 0.16, h * 0.14);
+    double fx = x + lw + h * 0.08, fy = y + lw + h * 0.08;
+    double fw = MAX (h * 0.12, inner * frac), fh = h - 2 * lw - h * 0.16;
+    rounded (cr, fx, fy, fw, fh, h * 0.14);
     cairo_fill (cr);
     if (charging) {
+        /* Blesk je dvoubarevny: bily nad prazdnou casti baterie, tmavy nad vyplni.
+         * Driv byl cely cerny, takze pri nizsim nabiti (stred nevyplneny) na tmavem
+         * pozadi zamku nebyl videt. */
         double cx = x + (w - h * 0.22) / 2, cy = y + h / 2;
-        cairo_set_source_rgba (cr, 0, 0, 0, 0.75);
+        cairo_save (cr);
         cairo_move_to (cr, cx + h * 0.08, cy - h * 0.42);
         cairo_line_to (cr, cx - h * 0.2, cy + h * 0.06);
         cairo_line_to (cr, cx - h * 0.01, cy + h * 0.06);
@@ -498,7 +503,14 @@ icon_battery (cairo_t *cr, double x, double y, double h, int level, gboolean cha
         cairo_line_to (cr, cx + h * 0.2, cy - h * 0.06);
         cairo_line_to (cr, cx + h * 0.01, cy - h * 0.06);
         cairo_close_path (cr);
+        cairo_clip_preserve (cr);
+        cairo_set_source_rgba (cr, 1, 1, 1, 0.95);
         cairo_fill (cr);
+        cairo_rectangle (cr, fx, fy, fw, fh);
+        cairo_clip (cr);
+        cairo_set_source_rgba (cr, 0, 0, 0, 0.75);
+        cairo_paint (cr);
+        cairo_restore (cr);
     }
 }
 
@@ -959,6 +971,40 @@ cmp_str_ptr (gconstpointer a, gconstpointer b) {
     return g_strcmp0 (*(const char *const *) a, *(const char *const *) b);
 }
 
+/* Je napajeci zdroj (Mains/USB) pripojeny? */
+static gboolean
+mains_online (void) {
+    GDir *d = g_dir_open ("/sys/class/power_supply", 0, NULL);
+    const char *n;
+    gboolean on = FALSE;
+    if (!d)
+        return FALSE;
+    while (!on && (n = g_dir_read_name (d))) {
+        char *p1 = g_build_filename ("/sys/class/power_supply", n, "type", NULL);
+        char *p2 = g_build_filename ("/sys/class/power_supply", n, "online", NULL);
+        char *type = read_file (p1), *online = read_file (p2);
+        if ((g_strcmp0 (type, "Mains") == 0 || g_strcmp0 (type, "USB") == 0) && g_strcmp0 (online, "1") == 0)
+            on = TRUE;
+        g_free (type);
+        g_free (online);
+        g_free (p1);
+        g_free (p2);
+    }
+    g_dir_close (d);
+    return on;
+}
+
+/* Blesk ukazat pri nabijeni i kdyz je nabijecka pripojena, ale baterie se nenabiji
+ * (plna, prahy nabijeni "Not charging"). Stejne jako ikona v panelu. */
+static gboolean
+battery_plugged (const char *status) {
+    if (g_strcmp0 (status, "Charging") == 0)
+        return TRUE;
+    if (g_strcmp0 (status, "Discharging") == 0)
+        return FALSE;
+    return mains_online ();
+}
+
 static void
 battery_state (LuxLock *ll) {
     GDir *d = g_dir_open ("/sys/class/power_supply", 0, NULL);
@@ -982,7 +1028,7 @@ battery_state (LuxLock *ll) {
             if (cap) {
                 ll->has_bat = TRUE;
                 ll->bat_level = atoi (cap);
-                ll->bat_charging = g_strcmp0 (st, "Charging") == 0;
+                ll->bat_charging = battery_plugged (st);
             }
             g_free (cap);
             g_free (st);
@@ -1652,7 +1698,7 @@ lux_lock_setup (LuxLock *ll, gint monitor_index) {
     build_backgrounds (ll, monitor ? gdk_monitor_get_model (monitor) : NULL);
     apply_t (ll);
     update_status (ll);
-    ll->status_id = g_timeout_add_seconds (30, update_status, ll);
+    ll->status_id = g_timeout_add_seconds (5, update_status, ll);
     ll->tick_id = g_timeout_add_seconds (1, tick, ll);
 }
 
