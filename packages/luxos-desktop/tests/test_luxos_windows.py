@@ -1,5 +1,6 @@
 """LuxOS - okna jako v macOS: umisteni novych oken (volne misto, jinak kaskada), Alt+` (okna aktualni
-aplikace) a volba "Seskupit okna podle aplikaci v Alt+Tab" (xfwm4 z [luxos], packages/xfwm4).
+aplikace), volba "Seskupit okna podle aplikaci v Alt+Tab" a posun ploch do strany pri prepnuti
+(xfwm4 z [luxos], packages/xfwm4).
 
 Spusteni:  python3 -m unittest packages/luxos-desktop/tests/test_luxos_windows.py -v
 Se spravcem oken (jen pod Xvfb, nikdy na skutecne obrazovce):
@@ -24,6 +25,8 @@ XFCONF_DIR = os.path.join(FILES, "xdg", "xfce4", "xfconf", "xfce-perchannel-xml"
 TMP = tempfile.mkdtemp(prefix="luxos-windows-test-")
 SHOT_DIR = os.environ.get("LUXOS_SHOT_DIR")
 STEP = 28
+SLIDE_SCREEN = (1920, 1080)     # xvfb-run -s "-screen 0 1920x1080x24"
+SLIDE_Y = 420                   # radek obrazovky pres okna testu posunu ploch
 
 
 def patched(path):
@@ -52,6 +55,9 @@ class Defaults(unittest.TestCase):
         self.assertEqual(general["placement_mode"], "luxos")
         self.assertEqual(general["cycle_group_apps"], "false")      # seskupeni vychozi vypnute
         self.assertEqual(general["cycle_preview"], "true")
+        self.assertEqual(general["workspace_slide"], "true")        # posun ploch do strany
+        self.assertEqual(general["workspace_slide_duration"], "280")
+        self.assertEqual(general["use_compositing"], "true")        # posun jen s kompozitorem
 
     def test_shortcut_defaults(self):
         import xml.etree.ElementTree as ET
@@ -254,6 +260,8 @@ class WindowManager(unittest.TestCase):
     def tearDown(self):
         self.close_all()
         self.xfconf("xfwm4", "/general/cycle_group_apps", "false", "bool")
+        self.xfconf("xfwm4", "/general/workspace_slide", "true", "bool")
+        subprocess.run(["xdotool", "set_desktop", "0"], env=self.env)
         subprocess.run(["setxkbmap", "-layout", "us"], env=self.env)
 
     # -- pomocne --
@@ -548,6 +556,72 @@ class WindowManager(unittest.TestCase):
         self.key("key", "alt+grave")
         self.assertIsNone(self.wm.poll())
         self.assertIn(self.active(), {w["a1"], w["a2"], w["a3"]})
+
+    # -- posun ploch do strany --
+    def record_switch(self, desktop, name):
+        """Zaznam obrazovky (60 snimku/s) behem prepnuti na plochu desktop; vrati radky y=SLIDE_Y."""
+        video = os.path.join(TMP, name + ".mkv")
+        rec = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-y", "-f", "x11grab", "-framerate", "60",
+                                "-video_size", "%dx%d" % SLIDE_SCREEN, "-i", self.env["DISPLAY"], "-t", "0.9",
+                                "-c:v", "ffv1", video], env=self.env)
+        time.sleep(0.3)
+        subprocess.run(["xdotool", "set_desktop", str(desktop)], env=self.env, check=True)
+        rec.wait(20)
+        raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", video, "-vf",
+                              "crop=%d:1:0:%d" % (SLIDE_SCREEN[0], SLIDE_Y), "-f", "rawvideo", "-pix_fmt", "gray",
+                              "-"], capture_output=True, check=True).stdout
+        w = SLIDE_SCREEN[0]
+        return [raw[i * w:(i + 1) * w] for i in range(len(raw) // w)]
+
+    @staticmethod
+    def light_spans(line):
+        """Svetle useky (okna) delsi nez 40 px; vzorek pozadi Xvfb (stridave pixely) mezi ne nepatri."""
+        spans, start = [], None
+        for x, v in enumerate(line + b"\0"):
+            if v > 200 and start is None:
+                start = x
+            elif v <= 200 and start is not None:
+                if x - start > 40:
+                    spans.append((start, x))
+                start = None
+        return spans
+
+    def distinct_spans(self, lines):
+        out = []
+        for line in lines:
+            sp = self.light_spans(line)
+            if not out or out[-1] != sp:
+                out.append(sp)
+        return out
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
+    def test_workspace_slide(self):
+        a = self.open("slide-a", "luxslide", 800, 500, "--move", "500", "300")
+        b = self.open("slide-b", "luxslide", 800, 500, "--move", "500", "300")
+        subprocess.run(["xdotool", "set_desktop_for_window", str(b), "1"], env=self.env, check=True)
+        time.sleep(0.5)
+        x0 = self.frame(a)[0]
+        # dalsi plocha: stara okna odjedou doleva, nova prijedou zprava (mezi tim aspon 4 polohy)
+        steps = self.distinct_spans(self.record_switch(1, "slide-next"))
+        self.assertGreaterEqual(len(steps), 6, steps)
+        self.assertEqual(steps[0], steps[-1])                       # okno na stejnem miste
+        middle = steps[1:-1]
+        self.assertTrue(any(sp and sp[0][0] == 0 for sp in middle), middle)                 # vlevo ven
+        self.assertTrue(any(sp and sp[-1][1] == SLIDE_SCREEN[0] for sp in middle), middle)  # zprava dovnitr
+        lefts = [sp[0][0] for sp in middle if len(sp) == 1 and sp[0][0] > x0]
+        self.assertEqual(lefts, sorted(lefts, reverse=True), middle)  # nove okno jede jen doleva
+        self.assertIsNone(self.wm.poll(), "xfwm4 crashed")
+        # predchozi plocha: opacne
+        steps = self.distinct_spans(self.record_switch(0, "slide-prev"))
+        middle = steps[1:-1]
+        self.assertGreaterEqual(len(middle), 4, steps)
+        self.assertTrue(any(sp and sp[-1][1] == SLIDE_SCREEN[0] for sp in middle), middle)  # vpravo ven
+        self.assertTrue(any(sp and sp[0][0] == 0 for sp in middle), middle)                 # zleva dovnitr
+        # vypnuto: prepne se hned, zadne mezipolohy
+        self.xfconf("xfwm4", "/general/workspace_slide", "false", "bool")
+        steps = self.distinct_spans(self.record_switch(1, "slide-off"))
+        self.assertLessEqual(len(steps), 2, steps)
+        self.assertEqual(xprop_root("_NET_CURRENT_DESKTOP").split("=")[1].strip(), "1")
 
 
 if __name__ == "__main__":

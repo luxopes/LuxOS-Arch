@@ -12,14 +12,20 @@
 #   - zkratky s klavesou "grave" plati pro fyzickou klavesu pod Esc (XKB <TLDE>) v kazdem
 #     rozlozeni - v ceskem je na ni ";" a puvodni xfwm4 by "grave" hledal na klavese H.
 #   - zavreni posledniho okna v prepinaci Alt+Tab behem prepinani uz xfwm4 neshodi (tabwin.c).
+# luxos-workspace-slide.patch (kompozitor): pri prepnuti plochy obsah odjede do strany jako Spaces
+#   v macOS - dalsi plocha zprava, predchozi zleva (i skok o vic ploch, preteceni ve smeru klavesy);
+#   tapeta/plocha, lepkava okna, horni lista, Dock, menu a notifikace stoji. Ease-out cubic, vychozi
+#   280 ms; rychle opakovane prepnuti plynule navaze (zadna fronta). Kazdy monitor zvlast. Volby
+#   /general/workspace_slide a /general/workspace_slide_duration; vypnuto bez kompozitoru a pri
+#   "omezit pohyb" (Gtk/EnableAnimations = false).
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Evangelos Foutras, Robin Candau) je v PKGBUILD.arch.
 
 pkgname=xfwm4
 pkgver=4.20.0
-pkgrel=2.1
-pkgdesc='Xfce window manager (LuxOS: free-space/cascade placement, Alt+` switches windows of the app)'
+pkgrel=2.2
+pkgdesc='Xfce window manager (LuxOS: free-space/cascade placement, Alt+` switches windows of the app, workspace slide)'
 arch=('x86_64')
 url="https://docs.xfce.org/xfce/xfwm4/start"
 license=('GPL-2.0-or-later')
@@ -28,14 +34,18 @@ depends=('libxfce4ui' 'xfconf' 'libwnck3' 'libepoxy' 'libxpresent'
          'hicolor-icon-theme')
 makedepends=('git' 'xfce4-dev-tools')
 source=("git+https://gitlab.xfce.org/xfce/xfwm4.git#tag=$pkgname-$pkgver"
-        'luxos-windows.patch')
+        'luxos-windows.patch'
+        'luxos-workspace-slide.patch')
 sha256sums=('68691593f06659f1ba1a0363be161b2cd50a84016612394c909bce1485a75cff'
-            '41e6f423905badac58c5bfce380195deb69a5c4557e2a66232216b5525f6e75c')
+            '41e6f423905badac58c5bfce380195deb69a5c4557e2a66232216b5525f6e75c'
+            '64bcae8d5bb813cdb5d49fc66409438de4d01774c822359225e9ea41ecde7386')
 
 prepare() {
   cd $pkgname
   # LuxOS: umisteni oken, Alt+` a seskupeny Alt+Tab
   patch -Np1 -i "$srcdir/luxos-windows.patch"
+  # LuxOS: posun ploch do strany pri prepnuti (kompozitor)
+  patch -Np1 -i "$srcdir/luxos-workspace-slide.patch"
   NOCONFIGURE=1 ./autogen.sh
 }
 

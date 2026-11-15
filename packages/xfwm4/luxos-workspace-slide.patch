@@ -1,0 +1,988 @@
+--- a/defaults/defaults
++++ b/defaults/defaults
+@@ -72,6 +72,8 @@
+ use_compositing=true
+ vblank_mode=auto
+ workspace_count=4
++workspace_slide=true
++workspace_slide_duration=280
+ wrap_cycle=true
+ wrap_layout=true
+ wrap_resistance=10
+--- a/src/compositor.c
++++ b/src/compositor.c
+@@ -34,6 +34,7 @@
+ #include <glib.h>
+ #include <math.h>
+ #include <string.h>
++#include <gtk/gtk.h>
+ #include <libxfce4util/libxfce4util.h>
+ 
+ #ifdef HAVE_EPOXY
+@@ -163,6 +164,10 @@
+ 
+     guint32 opacity;
+     guint32 bypass_compositor;
++
++    /* LuxOS: namapovano behem posunu ploch (cas) a pocet prekresleni od te doby */
++    gint64 slide_mapped;
++    guint slide_damages;
+ };
+ 
+ static CWindow*
+@@ -2377,6 +2382,493 @@
+     XFixesDestroyRegion (display_info->dpy, opaque_region);
+ }
+ 
++/*
++ * LuxOS: posun ploch do strany pri prepnuti (jako Spaces v macOS).
++ *
++ * Plochy lezi v rade vedle sebe, kazda ve svem "slotu" sirokem jako monitor; pri prepnuti jede
++ * kamera ze slotu stare plochy do slotu nove (ease-out cubic), dalsi plocha je vpravo, predchozi
++ * vlevo (i pri skoku o vic ploch jen o jednu sirku). Posouvaji se jen okna ploch: tapeta/plocha
++ * (xfdesktop), lepkava okna, horni lista, Dock, menu a notifikace stoji. Aktualni plocha se kresli
++ * zive (okna uz jsou na svych skutecnych mistech, vstup se neblokuje, posouva se jen obraz),
++ * opustena plocha jako snimek jejich oken porizeny tesne pred skrytim. Nove prepnuti behem
++ * animace jen zmeni cil kamery (plynule navazani, zadna fronta; zpet na predchozi plochu jede
++ * kamera zpet). Kazdy monitor se posouva o svou sirku a orizne se na sebe (okno patri monitoru
++ * se svym stredem).
++ */
++
++/* Okno namapovane behem posunu ma v pixmape do prvniho prekresleni aplikaci nahodny obsah
++ * (casto prave uvolnenou pixmapu skryteho okna stejne velikosti) - kresli se, az prijde dalsi
++ * poskozeni po tom z namapovani, nejpozdeji po teto dobe. */
++#define SLIDE_NEW_WIN_WAIT_US   150000
++
++static void damage_screen (ScreenInfo *screen_info);
++
++static gdouble
++slide_camera (ScreenInfo *screen_info, gint64 now, gboolean *finished)
++{
++    gdouble t, p;
++
++    t = (gdouble) (now - screen_info->slide_start) / (MAX (screen_info->slide_duration, 1) * 1000.0);
++    if (finished)
++    {
++        *finished = (t >= 1.0);
++    }
++    t = CLAMP (t, 0.0, 1.0);
++    /* ease-out cubic */
++    p = 1.0 - (1.0 - t) * (1.0 - t) * (1.0 - t);
++    return screen_info->slide_cam_from + (screen_info->slide_cam_to - screen_info->slide_cam_from) * p;
++}
++
++static void
++slide_update_monitors (ScreenInfo *screen_info)
++{
++    gint i, n;
++
++    n = myScreenGetNumMonitors (screen_info);
++    screen_info->slide_n_monitors = 0;
++    for (i = 0; i < n && screen_info->slide_n_monitors < SLIDE_MAX_MONITORS; i++)
++    {
++        GdkRectangle *r = &screen_info->slide_monitors[screen_info->slide_n_monitors];
++
++        xfwm_get_monitor_geometry (screen_info->gscr, myScreenGetMonitorIndex (screen_info, i), r, TRUE);
++        if (r->width > 0 && r->height > 0)
++        {
++            screen_info->slide_n_monitors++;
++        }
++    }
++    if (screen_info->slide_n_monitors == 0)
++    {
++        GdkRectangle *r = &screen_info->slide_monitors[0];
++
++        r->x = 0;
++        r->y = 0;
++        r->width = screen_info->width;
++        r->height = screen_info->height;
++        screen_info->slide_n_monitors = 1;
++    }
++}
++
++static GdkRectangle *
++slide_monitor_at (ScreenInfo *screen_info, gint x, gint y)
++{
++    GdkRectangle *best;
++    gint i;
++    gint64 best_dist;
++
++    best = &screen_info->slide_monitors[0];
++    best_dist = G_MAXINT64;
++    for (i = 0; i < screen_info->slide_n_monitors; i++)
++    {
++        GdkRectangle *r = &screen_info->slide_monitors[i];
++        gint64 dx, dy, dist;
++
++        if (x >= r->x && x < r->x + r->width && y >= r->y && y < r->y + r->height)
++        {
++            return r;
++        }
++        dx = (gint64) (r->x + r->width / 2) - x;
++        dy = (gint64) (r->y + r->height / 2) - y;
++        dist = dx * dx + dy * dy;
++        if (dist < best_dist)
++        {
++            best_dist = dist;
++            best = r;
++        }
++    }
++    return best;
++}
++
++static void
++slide_set_clip (Display *dpy, Picture pict, GdkRectangle *r)
++{
++    XRectangle xr;
++
++    if (r == NULL)
++    {
++        XFixesSetPictureClipRegion (dpy, pict, 0, 0, None);
++        return;
++    }
++    xr.x = r->x;
++    xr.y = r->y;
++    xr.width = r->width;
++    xr.height = r->height;
++    XRenderSetPictureClipRectangles (dpy, pict, 0, 0, &xr, 1);
++}
++
++/* Okna, ktera nepatri k zadne plose a stoji: menu/tooltipy/notifikace (bez klienta), lepkava
++ * okna, plocha, horni lista a Dock. */
++static gboolean
++slide_window_is_static (CWindow *cw)
++{
++    Client *c = cw->c;
++
++    if (c == NULL)
++    {
++        return TRUE;
++    }
++    return (FLAG_TEST (c->flags, CLIENT_FLAG_STICKY) || (c->type & (WINDOW_DESKTOP | WINDOW_DOCK)));
++}
++
++/* Posun obsahu slotu na monitoru o sirce width, kdyz je kamera na cam. */
++static gint
++slide_offset (gdouble slot, gdouble cam, gint width)
++{
++    return (gint) lround ((slot - cam) * width);
++}
++
++static void
++slide_paint_layers (ScreenInfo *screen_info, Picture dst, gdouble cam)
++{
++    Display *dpy;
++    gint i, j;
++
++    dpy = myScreenGetXDisplay (screen_info);
++    for (j = 0; j < screen_info->slide_n_layers; j++)
++    {
++        SlideLayer *layer = &screen_info->slide_layers[j];
++
++        for (i = 0; i < screen_info->slide_n_monitors; i++)
++        {
++            GdkRectangle *r = &screen_info->slide_monitors[i];
++            gint dx;
++
++            dx = slide_offset (layer->slot, cam, r->width);
++            if (ABS (dx) >= r->width)
++            {
++                continue;
++            }
++            slide_set_clip (dpy, dst, r);
++            XRenderComposite (dpy, PictOpOver, layer->pict, None, dst,
++                              r->x - dx, r->y, 0, 0, r->x, r->y, r->width, r->height);
++        }
++    }
++}
++
++static gboolean
++slide_prepare_win (CWindow *cw)
++{
++    if (cw->extents == None)
++    {
++        cw->extents = win_extents (cw);
++    }
++    if (cw->picture == None)
++    {
++        cw->picture = get_window_picture (cw);
++    }
++    if (cw->borderSize == None)
++    {
++        cw->borderSize = border_size (cw);
++    }
++    if (cw->clientSize == None)
++    {
++        cw->clientSize = client_size (cw);
++    }
++    return (cw->picture != None);
++}
++
++static gboolean
++slide_win_paintable (ScreenInfo *screen_info, CWindow *cw)
++{
++    if (!WIN_IS_VISIBLE(cw) || !WIN_IS_DAMAGED(cw) || !WIN_IS_REDIRECTED(cw))
++    {
++        return FALSE;
++    }
++    if ((cw->attr.x + cw->attr.width < 1) || (cw->attr.y + cw->attr.height < 1) ||
++        (cw->attr.x >= screen_info->width) || (cw->attr.y >= screen_info->height))
++    {
++        return FALSE;
++    }
++    return TRUE;
++}
++
++static void
++slide_paint_win (CWindow *cw, Picture dst, gint dx, GdkRectangle *clip)
++{
++    ScreenInfo *screen_info;
++    Display *dpy;
++
++    screen_info = cw->screen_info;
++    dpy = myScreenGetXDisplay (screen_info);
++
++    if (cw->shadow)
++    {
++        XserverRegion shadow_clip, border;
++        XRectangle r;
++
++        /* stin jen mimo okno (pod pruhlednymi okny by byl videt), jako v paint_all () */
++        if (clip)
++        {
++            r.x = clip->x;
++            r.y = clip->y;
++            r.width = clip->width;
++            r.height = clip->height;
++        }
++        else
++        {
++            r.x = 0;
++            r.y = 0;
++            r.width = screen_info->width;
++            r.height = screen_info->height;
++        }
++        shadow_clip = XFixesCreateRegion (dpy, &r, 1);
++        border = XFixesCreateRegion (dpy, NULL, 0);
++        XFixesCopyRegion (dpy, border, cw->borderSize);
++        XFixesTranslateRegion (dpy, border, dx, 0);
++        XFixesSubtractRegion (dpy, shadow_clip, shadow_clip, border);
++        XFixesSetPictureClipRegion (dpy, dst, 0, 0, shadow_clip);
++        XRenderComposite (dpy, PictOpOver, screen_info->blackPicture, cw->shadow,
++                          dst, 0, 0, 0, 0,
++                          cw->attr.x + dx + cw->shadow_dx,
++                          cw->attr.y + cw->shadow_dy,
++                          cw->shadow_width, cw->shadow_height);
++        XFixesDestroyRegion (dpy, border);
++        XFixesDestroyRegion (dpy, shadow_clip);
++    }
++
++    if ((cw->opacity != NET_WM_OPAQUE) && !(cw->alphaPict))
++    {
++        cw->alphaPict = solid_picture (screen_info, FALSE,
++                                       (double) cw->opacity / NET_WM_OPAQUE,
++                                       0.0, 0.0, 0.0);
++    }
++    slide_set_clip (dpy, dst, clip);
++    /* paint_win () kresli na cw->attr.x - posun jen po dobu kresleni */
++    cw->attr.x += dx;
++    paint_win (cw, None, dst, FALSE);
++    cw->attr.x -= dx;
++}
++
++/* Jeden snimek animace pres celou obrazovku do dst, kamera na cam. */
++static void
++slide_paint (ScreenInfo *screen_info, Picture dst, gdouble cam, gint64 now)
++{
++    Display *dpy;
++    GList *list;
++    gboolean layers_done;
++
++    dpy = myScreenGetXDisplay (screen_info);
++    layers_done = (screen_info->slide_n_layers == 0);
++
++    slide_set_clip (dpy, dst, NULL);
++    paint_root (screen_info, dst);
++
++    for (list = g_list_last (screen_info->cwindows); list; list = g_list_previous (list))
++    {
++        CWindow *cw = (CWindow *) list->data;
++        GdkRectangle *mon;
++        gboolean fixed;
++        gint dx;
++
++        if (!slide_win_paintable (screen_info, cw))
++        {
++            continue;
++        }
++        fixed = slide_window_is_static (cw) ||
++                (screen_info->slide_fixed != None && cw->id == screen_info->slide_fixed);
++        if (!fixed && (cw->c->win_workspace != screen_info->current_ws))
++        {
++            /* okno opustene plochy, ktere se prave skryva - je ve snimku */
++            continue;
++        }
++
++        /* snimky ploch patri nad plochu (xfdesktop) a okna pod normalni vrstvou */
++        if (!layers_done &&
++            !(fixed && cw->c && ((cw->c->type & WINDOW_DESKTOP) || cw->c->win_layer < WIN_LAYER_NORMAL)))
++        {
++            slide_paint_layers (screen_info, dst, cam);
++            layers_done = TRUE;
++        }
++
++        if (!fixed && cw->slide_mapped != 0)
++        {
++            if ((cw->slide_damages < 1) && (now - cw->slide_mapped < SLIDE_NEW_WIN_WAIT_US))
++            {
++                /* jeste neprekreslene okno nove plochy (stary obsah pixmapy) */
++                continue;
++            }
++            cw->slide_mapped = 0;
++        }
++
++        if (!slide_prepare_win (cw))
++        {
++            continue;
++        }
++        if (fixed)
++        {
++            dx = 0;
++            mon = NULL;
++        }
++        else
++        {
++            mon = slide_monitor_at (screen_info,
++                                    cw->attr.x + cw->attr.width / 2,
++                                    cw->attr.y + cw->attr.height / 2);
++            dx = slide_offset (screen_info->slide_live_slot, cam, mon->width);
++            if (ABS (dx) >= mon->width)
++            {
++                continue;
++            }
++        }
++        slide_paint_win (cw, dst, dx, mon);
++    }
++
++    if (!layers_done)
++    {
++        slide_paint_layers (screen_info, dst, cam);
++    }
++    slide_set_clip (dpy, dst, NULL);
++}
++
++/* Snimek oken aktualni plochy (na jejich mistech, pruhledne pozadi); okno exclude chybi. */
++static Picture
++slide_snapshot (ScreenInfo *screen_info, Window exclude)
++{
++    DisplayInfo *display_info;
++    XRenderPictFormat *format;
++    XRenderColor clear = { 0, 0, 0, 0 };
++    Pixmap pixmap;
++    Picture pict;
++    GList *list;
++
++    display_info = screen_info->display_info;
++    format = XRenderFindStandardFormat (display_info->dpy, PictStandardARGB32);
++    if (format == NULL)
++    {
++        return None;
++    }
++    pixmap = XCreatePixmap (display_info->dpy, screen_info->output,
++                            screen_info->width, screen_info->height, 32);
++    pict = XRenderCreatePicture (display_info->dpy, pixmap, format, 0, NULL);
++    XFreePixmap (display_info->dpy, pixmap);
++    XRenderFillRectangle (display_info->dpy, PictOpSrc, pict, &clear,
++                          0, 0, screen_info->width, screen_info->height);
++
++    for (list = g_list_last (screen_info->cwindows); list; list = g_list_previous (list))
++    {
++        CWindow *cw = (CWindow *) list->data;
++
++        if (!slide_win_paintable (screen_info, cw) || slide_window_is_static (cw) ||
++            (exclude != None && cw->id == exclude) ||
++            (cw->c->win_workspace != screen_info->current_ws))
++        {
++            continue;
++        }
++        if (cw->slide_mapped != 0 && cw->slide_damages < 1)
++        {
++            /* jeste neprekreslene okno (behem predchoziho posunu) */
++            continue;
++        }
++        if (slide_prepare_win (cw))
++        {
++            slide_paint_win (cw, pict, 0, NULL);
++        }
++    }
++    slide_set_clip (display_info->dpy, pict, NULL);
++
++    return pict;
++}
++
++static void
++slide_remove_layer (ScreenInfo *screen_info, gint idx)
++{
++    if (screen_info->slide_layers[idx].pict != None)
++    {
++        XRenderFreePicture (myScreenGetXDisplay (screen_info), screen_info->slide_layers[idx].pict);
++    }
++    screen_info->slide_n_layers--;
++    screen_info->slide_layers[idx] = screen_info->slide_layers[screen_info->slide_n_layers];
++}
++
++static void
++slide_stop (ScreenInfo *screen_info)
++{
++    GList *list;
++
++    if (screen_info->slide_timeout_id != 0)
++    {
++        g_source_remove (screen_info->slide_timeout_id);
++        screen_info->slide_timeout_id = 0;
++    }
++    while (screen_info->slide_n_layers > 0)
++    {
++        slide_remove_layer (screen_info, screen_info->slide_n_layers - 1);
++    }
++    for (list = screen_info->cwindows; list; list = g_list_next (list))
++    {
++        ((CWindow *) list->data)->slide_mapped = 0;
++    }
++    screen_info->slide_active = FALSE;
++    screen_info->slide_finished = FALSE;
++    screen_info->slide_fixed = None;
++}
++
++static gboolean
++slide_timeout_cb (gpointer data)
++{
++    ScreenInfo *screen_info = (ScreenInfo *) data;
++
++    if (!screen_info->slide_active)
++    {
++        screen_info->slide_timeout_id = 0;
++        return FALSE;
++    }
++    /* pojistka: kdyby se nekreslilo (napr. ceka se na vsync, ktery neprijde), animace skonci */
++    if (g_get_monotonic_time () - screen_info->slide_start >
++        (gint64) (screen_info->slide_duration + 1000) * 1000)
++    {
++        screen_info->slide_timeout_id = 0;
++        slide_stop (screen_info);
++        damage_screen (screen_info);
++        return FALSE;
++    }
++    /* bez vsync udava tempo snimku tento casovac; s XPresent/GLX se dalsi snimek zada po kazdem
++     * vykresleni v repair_screen () a tempo urcuje vsync */
++    damage_screen (screen_info);
++    return TRUE;
++}
++
++/* Volano z repair_screen () po vykresleni snimku. */
++static void
++slide_after_paint (ScreenInfo *screen_info)
++{
++    if (!screen_info->slide_active)
++    {
++        return;
++    }
++    if (screen_info->slide_finished)
++    {
++        slide_stop (screen_info);
++        damage_screen (screen_info);
++    }
++    else if (screen_info->use_present || screen_info->use_glx)
++    {
++        damage_screen (screen_info);
++    }
++}
++
++static gboolean
++slide_allowed (ScreenInfo *screen_info)
++{
++    GtkSettings *settings;
++    gboolean animations;
++
++    if (!screen_info->compositor_active || !screen_info->params->workspace_slide ||
++        screen_info->params->workspace_slide_duration <= 0 ||
++        screen_info->zoomed || screen_info->wins_unredirected > 0 ||
++        screen_info->width <= 0 || screen_info->height <= 0)
++    {
++        return FALSE;
++    }
++    /* "omezit pohyb": GTK enable-animations (XSETTINGS Gtk/EnableAnimations) */
++    animations = TRUE;
++    settings = gtk_settings_get_for_screen (screen_info->gscr);
++    if (settings)
++    {
++        g_object_get (G_OBJECT (settings), "gtk-enable-animations", &animations, NULL);
++    }
++    return animations;
++}
++
+ static int
+ get_region_bounds (Display *dpy, XserverRegion region, XRectangle *bounds)
+ {
+@@ -2412,6 +2904,7 @@
+     gint screen_width;
+     gint screen_height;
+     CWindow *cw;
++    XserverRegion slide_region;
+ 
+     TRACE ("buffer %d", buffer);
+     g_return_if_fail (screen_info);
+@@ -2423,6 +2916,14 @@
+ 
+     myDisplayErrorTrapPush (display_info);
+ 
++    /* LuxOS: behem posunu ploch se kresli vzdy cela obrazovka */
++    slide_region = None;
++    if (screen_info->slide_active && !screen_info->zoomed)
++    {
++        slide_region = get_screen_region (screen_info);
++        region = slide_region;
++    }
++
+     /* Create root buffer if not done yet */
+     if (screen_info->rootPixmap[buffer] == None)
+     {
+@@ -2461,6 +2962,22 @@
+     paint_region = XFixesCreateRegion (dpy, NULL, 0);
+     XFixesCopyRegion (dpy, paint_region, region);
+ 
++    if (slide_region != None)
++    {
++        gboolean finished;
++        gint64 now;
++        gdouble cam;
++
++        now = g_get_monotonic_time ();
++        cam = slide_camera (screen_info, now, &finished);
++        if (finished)
++        {
++            screen_info->slide_finished = TRUE;
++        }
++        slide_paint (screen_info, paint_buffer, cam, now);
++        goto slide_painted;
++    }
++
+     /*
+      * Painting from top to bottom, reducing the clipping area at each iteration.
+      * Only the opaque windows are painted 1st.
+@@ -2593,6 +3110,7 @@
+         }
+     }
+ 
++slide_painted:
+     TRACE ("copying data back to screen");
+ #ifdef HAVE_EPOXY
+     if (screen_info->use_glx)
+@@ -2667,6 +3185,10 @@
+     }
+ 
+     XFixesDestroyRegion (dpy, paint_region);
++    if (slide_region != None)
++    {
++        XFixesDestroyRegion (dpy, slide_region);
++    }
+ 
+     myDisplayErrorTrapPopIgnored (display_info);
+ }
+@@ -2772,6 +3294,8 @@
+             XFixesDestroyRegion (display_info->dpy, screen_info->allDamage);
+         }
+         screen_info->allDamage = None;
++
++        slide_after_paint (screen_info);
+     }
+ 
+     return FALSE;
+@@ -2944,6 +3468,32 @@
+         XFixesTranslateRegion (display_info->dpy, parts,
+                                cw->attr.x + cw->attr.border_width,
+                                cw->attr.y + cw->attr.border_width);
++        /* LuxOS: posun ploch - prekreslila se od namapovani aplikace? (ramecek kresli xfwm4 sam,
++         * ten se nepocita) */
++        if (cw->slide_mapped != 0)
++        {
++            XRectangle *rects, b;
++            gint nrects, cx, cy, cwidth, cheight;
++
++            cx = cw->attr.x;
++            cy = cw->attr.y;
++            cwidth = cw->attr.width;
++            cheight = cw->attr.height;
++            if (WIN_HAS_FRAME(cw))
++            {
++                cx += frameLeft (cw->c);
++                cy += frameTop (cw->c);
++                cwidth -= frameLeft (cw->c) + frameRight (cw->c);
++                cheight -= frameTop (cw->c) + frameBottom (cw->c);
++            }
++            rects = XFixesFetchRegionAndBounds (display_info->dpy, parts, &nrects, &b);
++            XFree (rects);
++            if ((nrects > 0) && (b.x < cx + cwidth) && (b.x + b.width > cx) &&
++                (b.y < cy + cheight) && (b.y + b.height > cy))
++            {
++                cw->slide_damages++;
++            }
++        }
+     }
+     else
+     {
+@@ -3133,6 +3683,9 @@
+ 
+     cw->viewable = TRUE;
+     cw->damaged = FALSE;
++    /* LuxOS: behem posunu ploch se okno ukaze az po prekresleni */
++    cw->slide_mapped = screen_info->slide_active ? g_get_monotonic_time () : 0;
++    cw->slide_damages = 0;
+ 
+     /* Check for new windows to un-redirect. */
+     if (WIN_HAS_DAMAGE(cw) && WIN_IS_NATIVE_OPAQUE(cw) &&
+@@ -4898,6 +5451,11 @@
+     screen_info->compositor_timeout_id = 0;
+     screen_info->zoomed = FALSE;
+     screen_info->zoom_timeout_id = 0;
++    screen_info->slide_n_layers = 0;
++    screen_info->slide_active = FALSE;
++    screen_info->slide_finished = FALSE;
++    screen_info->slide_timeout_id = 0;
++    screen_info->slide_fixed = None;
+     screen_info->damages_pending = FALSE;
+     screen_info->current_buffer = 0;
+     memset(screen_info->transform.matrix, 0, 9);
+@@ -5008,6 +5566,7 @@
+     screen_info->compositor_active = FALSE;
+ 
+     remove_timeouts (screen_info);
++    slide_stop (screen_info);
+ 
+     myDisplayErrorTrapPush (display_info);
+ 
+@@ -5225,6 +5784,8 @@
+     }
+ 
+     myDisplayErrorTrapPush (display_info);
++    /* LuxOS: snimky posunu maji starou velikost */
++    slide_stop (screen_info);
+ #if HAVE_OVERLAYS
+     if (display_info->have_overlays)
+     {
+@@ -5323,6 +5884,134 @@
+     }
+     damage_screen (screen_info);
+ #endif /* HAVE_COMPOSITOR */
++}
++
++void
++compositorWorkspaceSlide (ScreenInfo *screen_info, gint old_ws, gint new_ws,
++                          gboolean forward, Client *fixed)
++{
++#ifdef HAVE_COMPOSITOR
++    DisplayInfo *display_info;
++    Picture snapshot;
++    Window fixed_id;
++    gdouble cam, new_slot, lo, hi;
++    gint64 now;
++    gint i;
++
++    g_return_if_fail (screen_info != NULL);
++    TRACE ("workspace %i -> %i", old_ws, new_ws);
++
++    display_info = screen_info->display_info;
++    if (!compositorIsUsable (display_info) || (old_ws == new_ws))
++    {
++        return;
++    }
++    if (!slide_allowed (screen_info))
++    {
++        if (screen_info->slide_active)
++        {
++            slide_stop (screen_info);
++            damage_screen (screen_info);
++        }
++        return;
++    }
++
++    now = g_get_monotonic_time ();
++    if (!screen_info->slide_active)
++    {
++        slide_update_monitors (screen_info);
++        screen_info->slide_live_slot = 0.0;
++        cam = 0.0;
++    }
++    else
++    {
++        /* bezi-li uz posun, kamera pokracuje z mista, kde prave je */
++        cam = slide_camera (screen_info, now, NULL);
++    }
++    fixed_id = fixed ? fixed->frame : None;
++
++    /* snimek oken opoustene plochy (okno, ktere jde s uzivatelem na novou plochu, v nem neni) */
++    myDisplayErrorTrapPush (display_info);
++    snapshot = slide_snapshot (screen_info, fixed_id);
++    if ((myDisplayErrorTrapPop (display_info) != 0) || (snapshot == None))
++    {
++        if (snapshot != None)
++        {
++            XRenderFreePicture (display_info->dpy, snapshot);
++        }
++        if (screen_info->slide_active)
++        {
++            slide_stop (screen_info);
++            damage_screen (screen_info);
++        }
++        return;
++    }
++
++    /* nova plocha: ma-li jeste snimek (navrat behem animace), zustava v jejim slotu jako podklad
++     * pod zivymi okny, nez se prekresli; jinak vedle aktualni - dalsi vpravo, predchozi vlevo
++     * (forward: smer, kterym se prepinalo, i pri preteceni z posledni plochy na prvni) */
++    new_slot = screen_info->slide_live_slot + (forward ? 1.0 : -1.0);
++    for (i = 0; i < screen_info->slide_n_layers; i++)
++    {
++        if (screen_info->slide_layers[i].ws == new_ws)
++        {
++            new_slot = screen_info->slide_layers[i].slot;
++            break;
++        }
++    }
++    /* stara plocha jen jednou a ve slotu nove plochy zadna cizi plocha */
++    for (i = screen_info->slide_n_layers - 1; i >= 0; i--)
++    {
++        SlideLayer *layer = &screen_info->slide_layers[i];
++
++        if ((layer->ws == old_ws) ||
++            (layer->ws != new_ws && fabs (layer->slot - new_slot) < 0.5))
++        {
++            slide_remove_layer (screen_info, i);
++        }
++    }
++    /* plochy, ktere uz cestou kamery nebudou videt */
++    lo = MIN (cam, new_slot) - 1.0;
++    hi = MAX (cam, new_slot) + 1.0;
++    for (i = screen_info->slide_n_layers - 1; i >= 0; i--)
++    {
++        SlideLayer *layer = &screen_info->slide_layers[i];
++
++        if ((layer->slot <= lo || layer->slot >= hi) && layer->ws != new_ws)
++        {
++            slide_remove_layer (screen_info, i);
++        }
++    }
++    if (screen_info->slide_n_layers >= SLIDE_MAX_LAYERS)
++    {
++        slide_remove_layer (screen_info, 0);
++    }
++    i = screen_info->slide_n_layers++;
++    screen_info->slide_layers[i].ws = old_ws;
++    screen_info->slide_layers[i].slot = screen_info->slide_live_slot;
++    screen_info->slide_layers[i].pict = snapshot;
++
++    screen_info->slide_live_slot = new_slot;
++    screen_info->slide_cam_from = cam;
++    screen_info->slide_cam_to = new_slot;
++    screen_info->slide_fixed = fixed_id;
++    screen_info->slide_start = now;
++    screen_info->slide_duration = screen_info->params->workspace_slide_duration;
++    screen_info->slide_active = TRUE;
++    screen_info->slide_finished = FALSE;
++
++    if (screen_info->slide_timeout_id == 0)
++    {
++        gint rate;
++
++        /* bez vsync aspon 60 snimku za sekundu (GDK nezna-li obnovovaci frekvenci, hlasi 30 Hz) */
++        rate = MAX (xfwm_get_primary_refresh_rate (screen_info->gscr), 60);
++        screen_info->slide_timeout_id =
++            g_timeout_add_full (TIMEOUT_REPAINT_PRIORITY, MAX (1000 / rate, 4),
++                                slide_timeout_cb, screen_info, NULL);
++    }
++    damage_screen (screen_info);
++#endif /* HAVE_COMPOSITOR */
+ }
+ 
+ vblankMode
+--- a/src/compositor.h
++++ b/src/compositor.h
+@@ -70,6 +70,11 @@
+                                                                  Window,
+                                                                  guint32);
+ void                     compositorRebuildScreen                (ScreenInfo *);
++void                     compositorWorkspaceSlide               (ScreenInfo *,
++                                                                 gint,
++                                                                 gint,
++                                                                 gboolean,
++                                                                 Client *);
+ vblankMode               compositorParseVblankMode              (const gchar *);
+ void                     compositorSetVblankMode                (ScreenInfo *,
+                                                                  vblankMode);
+--- a/src/screen.h
++++ b/src/screen.h
+@@ -87,6 +87,17 @@
+     VBLANK_ERROR,
+ } vblankMode;
+ 
++/* LuxOS: posun ploch pri prepnuti (kazdy monitor se posouva o svou sirku) */
++#define SLIDE_MAX_MONITORS 8
++#define SLIDE_MAX_LAYERS 4
++
++typedef struct
++{
++    gint ws;                        /* plocha */
++    gdouble slot;                   /* poloha v rade ploch (v sirkach monitoru) */
++    Picture pict;                   /* snimek jejich oken (ARGB, pruhledne pozadi) */
++} SlideLayer;
++
+ struct _ScreenInfo
+ {
+     /* The display this screen belongs to */
+@@ -221,6 +232,23 @@
+     XTransform transform;
+     gboolean zoomed;
+     guint zoom_timeout_id;
++
++    /* LuxOS: posun ploch do strany pri prepnuti (workspace_slide). Plochy lezi v rade vedle sebe
++     * (sloty po sirce monitoru), "kamera" jede ze slot_from na slot_to; aktualni plocha se kresli
++     * zive, opustene plochy jako snimky. */
++    SlideLayer slide_layers[SLIDE_MAX_LAYERS];
++    gint slide_n_layers;
++    gdouble slide_live_slot;        /* slot aktualni plochy */
++    gdouble slide_cam_from;
++    gdouble slide_cam_to;
++    gint64 slide_start;             /* g_get_monotonic_time () zacatku animace */
++    gint slide_duration;            /* ms */
++    gboolean slide_active;
++    gboolean slide_finished;        /* posledni snimek animace uz je vykresleny */
++    guint slide_timeout_id;
++    Window slide_fixed;             /* ramecek okna, ktere se prenasi na novou plochu (stoji) */
++    gint slide_n_monitors;
++    GdkRectangle slide_monitors[SLIDE_MAX_MONITORS];
+     gboolean use_glx;
+     gboolean use_present;
+ 
+--- a/src/settings.c
++++ b/src/settings.c
+@@ -763,6 +763,8 @@
+         {"urgent_blink", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"use_compositing", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"workspace_count", NULL, G_TYPE_INT, TRUE},
++        {"workspace_slide", NULL, G_TYPE_BOOLEAN, TRUE},
++        {"workspace_slide_duration", NULL, G_TYPE_INT, TRUE},
+         {"wrap_cycle", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"wrap_layout", NULL, G_TYPE_BOOLEAN, TRUE},
+         {"wrap_resistance", NULL, G_TYPE_INT, TRUE},
+@@ -880,6 +882,10 @@
+         getBoolValue ("zoom_desktop", rc);
+     screen_info->params->zoom_pointer =
+         getBoolValue ("zoom_pointer", rc);
++    screen_info->params->workspace_slide =
++        getBoolValue ("workspace_slide", rc);
++    screen_info->params->workspace_slide_duration =
++        CLAMP (getIntValue ("workspace_slide_duration", rc), 0, 2000);
+ 
+     screen_info->params->wrap_layout =
+         getBoolValue ("wrap_layout", rc);
+@@ -1263,6 +1269,10 @@
+                 {
+                     screen_info->params->placement_ratio = CLAMP (g_value_get_int(value), 0, 100);
+                 }
++                else if (!strcmp (name, "workspace_slide_duration"))
++                {
++                    screen_info->params->workspace_slide_duration = CLAMP (g_value_get_int(value), 0, 2000);
++                }
+                 else if (!strcmp (name, "cycle_tabwin_mode"))
+                 {
+                     screen_info->params->cycle_tabwin_mode = CLAMP (g_value_get_int(value), 0, 1);
+@@ -1465,6 +1475,10 @@
+                 {
+                     screen_info->params->wrap_cycle = g_value_get_boolean (value);
+                 }
++                else if (!strcmp (name, "workspace_slide"))
++                {
++                    screen_info->params->workspace_slide = g_value_get_boolean (value);
++                }
+                 else if ((!strcmp (name, "full_width_title"))
+                       || (!strcmp (name, "show_app_icon")))
+                 {
+--- a/src/settings.h
++++ b/src/settings.h
+@@ -256,6 +256,8 @@
+     gboolean wrap_workspaces;
+     gboolean zoom_desktop;
+     gboolean zoom_pointer;
++    gboolean workspace_slide;       /* LuxOS: obsah plochy pri prepnuti odjede do strany */
++    gint workspace_slide_duration;  /* LuxOS: delka posunu v ms */
+ };
+ 
+ gboolean                 loadSettings                           (ScreenInfo *);
+--- a/src/workspaces.c
++++ b/src/workspaces.c
+@@ -42,6 +42,7 @@
+ #include "misc.h"
+ #include "transients.h"
+ #include "workspaces.h"
++#include "compositor.h"
+ #include "settings.h"
+ #include "client.h"
+ #include "focus.h"
+@@ -180,6 +181,10 @@
+     return value;
+ }
+ 
++/* LuxOS: smer posunu ploch z workspaceMove () (1 vpravo/dolu, -1 vlevo/nahoru, 0 podle cisla) -
++ * pri preteceni rozlozeni ma posun jet ve smeru klavesy, ne podle cisla plochy */
++static gint slide_direction_hint = 0;
++
+ /* returns TRUE if the workspace was changed, FALSE otherwise */
+ gboolean
+ workspaceMove (ScreenInfo *screen_info, gint rowmod, gint colmod, Client * c, guint32 timestamp)
+@@ -202,6 +207,7 @@
+     }
+ 
+     previous_ws = screen_info->current_ws;
++    slide_direction_hint = (colmod > 0 || (colmod == 0 && rowmod > 0)) ? 1 : -1;
+     if ((n >= 0) && (n < (gint) screen_info->workspace_count))
+     {
+         workspaceSwitch (screen_info, n, c, TRUE, timestamp);
+@@ -235,6 +241,7 @@
+         }
+         workspaceSwitch (screen_info, n, c, TRUE, timestamp);
+     }
++    slide_direction_hint = 0;
+ 
+     return (screen_info->current_ws != previous_ws);
+ }
+@@ -249,6 +256,7 @@
+     Window dr, window;
+     gint rx, ry, wx, wy;
+     unsigned int mask;
++    gboolean forward;
+ 
+     g_return_if_fail (screen_info != NULL);
+ 
+@@ -262,8 +270,12 @@
+ 
+     if (new_ws == (gint) screen_info->current_ws)
+     {
++        slide_direction_hint = 0;
+         return;
+     }
++    /* LuxOS: smer posunu ploch podle pozadavku, pred pretecenim z posledni plochy na prvni */
++    forward = slide_direction_hint ? (slide_direction_hint > 0) : (new_ws > (gint) screen_info->current_ws);
++    slide_direction_hint = 0;
+ 
+     if (screen_info->params->wrap_cycle)
+     {
+@@ -281,6 +293,9 @@
+         return;
+     }
+ 
++    /* LuxOS: snimek oken stavajici plochy pro posun do strany, pred skrytim oken */
++    compositorWorkspaceSlide (screen_info, (gint) screen_info->current_ws, new_ws, forward, c2);
++
+     screen_info->previous_ws = screen_info->current_ws;
+     screen_info->current_ws = new_ws;
+ 
