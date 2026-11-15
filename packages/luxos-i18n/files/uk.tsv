@@ -752,6 +752,8 @@ Username	Ім’я користувача
 Log In	Увійти
 Caps Lock is on	Увімкнено Caps Lock
 Incorrect password. Try again.	Неправильний пароль. Спробуйте ще раз.
+Incorrect password – Caps Lock is on	Неправильний пароль – увімкнено Caps Lock
+Keyboard layout: %s	Розкладка клавіатури: %s
 Could not start the session.	Не вдалося запустити сеанс.
 This action is not available right now.	Ця дія зараз недоступна.
 # LuxDrop

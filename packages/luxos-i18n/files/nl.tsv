@@ -752,6 +752,8 @@ Username	Gebruikersnaam
 Log In	Log in
 Caps Lock is on	Caps Lock is aan
 Incorrect password. Try again.	Onjuist wachtwoord. Probeer het opnieuw.
+Incorrect password – Caps Lock is on	Onjuist wachtwoord – Caps Lock is aan
+Keyboard layout: %s	Toetsenbordindeling: %s
 Could not start the session.	Kan de sessie niet starten.
 This action is not available right now.	Deze actie is momenteel niet beschikbaar.
 # LuxDrop

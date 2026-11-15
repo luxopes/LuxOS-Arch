@@ -752,6 +752,8 @@ Username	Nome utente
 Log In	Accedi
 Caps Lock is on	Il blocco maiuscole è attivo
 Incorrect password. Try again.	Password errata. Riprova.
+Incorrect password – Caps Lock is on	Password errata – il blocco maiuscole è attivo
+Keyboard layout: %s	Layout della tastiera: %s
 Could not start the session.	Impossibile avviare la sessione.
 This action is not available right now.	Questa azione non è disponibile al momento.
 # LuxDrop

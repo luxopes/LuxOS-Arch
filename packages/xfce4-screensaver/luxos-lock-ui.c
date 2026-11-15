@@ -14,7 +14,12 @@
  * Testy (xfce4-screensaver-dialog spusteny samostatne v Xvfb): LUXOS_LOCK_DEMO_NAME (jmeno),
  * LUXOS_LOCK_DEMO_AVATAR (obrazek), LUXOS_LOCK_DEMO_FPRINT=1 (otisk prstu zapnuty),
  * LUXOS_LOCK_DEMO_USERS=N (pocet uzivatelu; tlacitka napajeni pak jen zapisou do logu),
- * LUXOS_I18N_DIR a LUXOS_GREETER_CONF (preklady a nastaveni z jineho mista).
+ * LUXOS_I18N_DIR a LUXOS_GREETER_CONF (preklady a nastaveni z jineho mista), LUXOS_LOCK_DEBUG=1
+ * (stav Caps Locku, rozlozeni, hlasky a pole na stderr), s LUXOS_LOCK_DEMO_USERS signal SIGUSR1
+ * (jako by system prave spal). Testy: tests/test-lock-kbd.c, tests/gui-caps-lock.py.
+ *
+ * Caps Lock a rozlozeni jsou v radku pod polem pro heslo (stav primo ze serveru X, zmeny podle
+ * udalosti XKB), nezavisle na hlaskach - po spatnem hesle s Caps Lockem to rekne i chyba.
  */
 #include <ctype.h>
 #include <math.h>
@@ -23,9 +28,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 #include <unistd.h>
 
+#include <atk/atk.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
 #include <pango/pangocairo.h>
@@ -37,6 +45,7 @@
 #include <libxklavier/xklavier.h>
 #endif
 
+#include "luxos-lock-kbd.h"
 #include "luxos-lock-ui.h"
 
 #define GREETER_CONF "/etc/lightdm/luxos-greeter.conf"
@@ -77,6 +86,12 @@ struct _LuxLock {
     GtkWidget *go;
     GtkWidget *go_area;
     GtkWidget *hint;
+    GtkWidget *kbd_row;
+    GtkWidget *caps_box;
+    GtkWidget *caps_icon;
+    GtkWidget *caps_label;
+    GtkWidget *layout_chip;
+    GtkWidget *layout_chip_label;
     GtkWidget *power;
     GList *rounds;
 
@@ -116,7 +131,8 @@ struct _LuxLock {
 
     char *placeholder;
     gboolean error_shown;
-    gboolean caps_hint;
+    gboolean caps_on;         /* Caps Lock prave ted (XKB) */
+    gboolean caps_at_submit;  /* Caps Lock pri odeslani hesla (hlaska po neuspechu) */
     gboolean fprint;
     gboolean fp_wait;
     gboolean prompted;
@@ -127,6 +143,10 @@ struct _LuxLock {
     char **layouts;
     char **variants;
     int n_layouts;
+    int xkb_event_base;       /* udalosti XKB (zmena Caps Locku / rozlozeni), -1 = nejsou */
+    guint kbd_idle_id;
+    guint demo_sleep_id;
+    gint64 seen_real, seen_mono;  /* posledni udalost (pozna probuzeni z uspani) */
 };
 
 /* ---- preklady (luxos-i18n) ------------------------------------------------------------ */
@@ -393,6 +413,26 @@ icon_arrow (cairo_t *cr, double cx, double cy, double s) {
     cairo_line_to (cr, cx + s * 0.3, cy);
     cairo_line_to (cr, cx + s * 0.05, cy + s * 0.25);
     cairo_stroke (cr);
+}
+
+/* Caps Lock: obrys sipky nahoru s carkou pod ni (jako na klavese) */
+static void
+icon_caps (cairo_t *cr, double cx, double cy, double s) {
+    double w = s * 0.80, stem = s * 0.36, top = cy - s * 0.46, mid = cy - s * 0.02, low = cy + s * 0.22;
+    cairo_set_line_width (cr, MAX (1.3, s * 0.09));
+    cairo_set_line_join (cr, CAIRO_LINE_JOIN_ROUND);
+    cairo_new_path (cr);
+    cairo_move_to (cr, cx, top);
+    cairo_line_to (cr, cx + w / 2, mid);
+    cairo_line_to (cr, cx + stem / 2, mid);
+    cairo_line_to (cr, cx + stem / 2, low);
+    cairo_line_to (cr, cx - stem / 2, low);
+    cairo_line_to (cr, cx - stem / 2, mid);
+    cairo_line_to (cr, cx - w / 2, mid);
+    cairo_close_path (cr);
+    cairo_stroke (cr);
+    cairo_rectangle (cr, cx - stem / 2, cy + s * 0.33, stem, MAX (1.3, s * 0.11));
+    cairo_fill (cr);
 }
 
 static void
@@ -754,6 +794,16 @@ draw_pw (GtkWidget *w, cairo_t *cr, LuxLock *ll) {
 }
 
 static gboolean
+draw_caps (GtkWidget *area, cairo_t *cr, LuxLock *ll) {
+    int aw = gtk_widget_get_allocated_width (area), ah = gtk_widget_get_allocated_height (area);
+    cairo_set_source_rgba (cr, 0, 0, 0, 0.30);
+    icon_caps (cr, aw / 2.0, ah / 2.0 + 1, MIN (aw, ah));
+    cairo_set_source_rgba (cr, 1, 1, 1, 0.95);
+    icon_caps (cr, aw / 2.0, ah / 2.0, MIN (aw, ah));
+    return FALSE;
+}
+
+static gboolean
 draw_go (GtkWidget *area, cairo_t *cr, LuxLock *ll) {
     int ah = gtk_widget_get_allocated_height (area), aw = gtk_widget_get_allocated_width (area);
     double d = ah - MAX (8, (int) round (ll->sz.pw_h * 0.26));
@@ -1101,32 +1151,79 @@ kbd_load (LuxLock *ll) {
     }
 }
 
-static int
-kbd_group (LuxLock *ll) {
+/* stav XKB ze serveru: skupina (rozlozeni) a Caps Lock; FALSE = server X neodpovida */
+static gboolean
+kbd_state (LuxLock *ll, int *group, gboolean *caps) {
 #ifdef ENABLE_X11
     GdkDisplay *disp = gdk_display_get_default ();
     if (GDK_IS_X11_DISPLAY (disp)) {
         XkbStateRec st;
-        if (XkbGetState (GDK_DISPLAY_XDISPLAY (disp), XkbUseCoreKbd, &st) == Success)
-            return st.group % MAX (1, ll->n_layouts);
+        if (XkbGetState (GDK_DISPLAY_XDISPLAY (disp), XkbUseCoreKbd, &st) == Success) {
+            *group = lux_kbd_group_index (st.group, ll->n_layouts);
+            *caps = lux_kbd_caps_from_mods (st.locked_mods);
+            return TRUE;
+        }
     }
 #endif
-    return 0;
+    return FALSE;
+}
+
+static int
+kbd_group (LuxLock *ll) {
+    int g = 0;
+    gboolean caps = FALSE;
+    return kbd_state (ll, &g, &caps) ? g : 0;
+}
+
+/* LUXOS_LOCK_DEBUG=1: stav na stderr (stdout cte xfce4-screensaver) - pro testy v Xvfb */
+static void
+debug_state (LuxLock *ll, const char *why) {
+    static int on = -1;
+    if (on < 0)
+        on = g_strcmp0 (g_getenv ("LUXOS_LOCK_DEBUG"), "1") == 0;
+    if (!on || !ll->hint)
+        return;
+    g_printerr ("luxos-lock: %s caps=%d layout=%s chip=%d hint=[%s] error=%d focus=%d text=%d\n", why,
+                ll->caps_on, gtk_label_get_text (GTK_LABEL (ll->kbd_label)),
+                gtk_widget_get_visible (ll->layout_chip), gtk_label_get_text (GTK_LABEL (ll->hint)),
+                ll->error_shown, gtk_widget_has_focus (ll->entry),
+                (int) strlen (gtk_entry_get_text (GTK_ENTRY (ll->entry))));
+}
+
+/* Caps Lock pod polem pro heslo (ikona + text) a popis pole pro ctecku obrazovky */
+static void
+set_caps (LuxLock *ll, gboolean on) {
+    AtkObject *acc;
+    if (ll->caps_on == on && gtk_widget_get_visible (ll->caps_box) == on)
+        return;
+    ll->caps_on = on;
+    gtk_widget_set_visible (ll->caps_box, on);
+    acc = gtk_widget_get_accessible (ll->entry);
+    if (acc)
+        atk_object_set_description (acc, on ? lux_tr ("Caps Lock is on") : "");
+    debug_state (ll, "caps");
 }
 
 static void
 kbd_update (LuxLock *ll) {
-    int i = MIN (kbd_group (ll), ll->n_layouts - 1), dup = 0;
-    const char *lay = ll->layouts[i];
-    const char *var = ll->variants && (int) g_strv_length (ll->variants) > i ? ll->variants[i] : "";
-    char *up = g_ascii_strup (lay, -1), *label;
-    for (int j = 0; j < ll->n_layouts; j++)
-        dup += g_strcmp0 (ll->layouts[j], lay) == 0;
-    label = dup > 1 && var && *var ? g_strdup_printf ("%s %s", up, var) : g_strdup (up);
-    if (g_strcmp0 (gtk_label_get_text (GTK_LABEL (ll->kbd_label)), label) != 0)
+    int g = 0;
+    gboolean caps = FALSE;
+    char *label;
+    if (!kbd_state (ll, &g, &caps))
+        caps = gdk_keymap_get_caps_lock_state (gdk_keymap_get_for_display (gdk_display_get_default ()));
+    label = lux_kbd_label (ll->layouts, ll->variants, g);
+    if (g_strcmp0 (gtk_label_get_text (GTK_LABEL (ll->kbd_label)), label) != 0
+        || g_strcmp0 (gtk_label_get_text (GTK_LABEL (ll->layout_chip_label)), label) != 0) {
+        char *name = g_strdup_printf (lux_tr ("Keyboard layout: %s"), label);
         gtk_label_set_text (GTK_LABEL (ll->kbd_label), label);
+        gtk_label_set_text (GTK_LABEL (ll->layout_chip_label), label);
+        atk_object_set_name (gtk_widget_get_accessible (ll->kbd_btn), name);
+        atk_object_set_name (gtk_widget_get_accessible (ll->layout_chip), name);
+        g_free (name);
+        debug_state (ll, "layout");
+    }
     g_free (label);
-    g_free (up);
+    set_caps (ll, caps);
 }
 
 static void
@@ -1134,7 +1231,7 @@ kbd_next (GtkButton *b, LuxLock *ll) {
 #ifdef ENABLE_X11
     GdkDisplay *disp = gdk_display_get_default ();
     if (GDK_IS_X11_DISPLAY (disp) && ll->n_layouts > 1) {
-        XkbLockGroup (GDK_DISPLAY_XDISPLAY (disp), XkbUseCoreKbd, (kbd_group (ll) + 1) % ll->n_layouts);
+        XkbLockGroup (GDK_DISPLAY_XDISPLAY (disp), XkbUseCoreKbd, lux_kbd_next_group (kbd_group (ll), ll->n_layouts));
         XFlush (GDK_DISPLAY_XDISPLAY (disp));
     }
 #endif
@@ -1142,11 +1239,30 @@ kbd_next (GtkButton *b, LuxLock *ll) {
     gtk_widget_grab_focus (ll->entry);
 }
 
+#ifdef ENABLE_X11
+static gboolean
+kbd_idle (gpointer data) {
+    LuxLock *ll = data;
+    ll->kbd_idle_id = 0;
+    kbd_update (ll);
+    return G_SOURCE_REMOVE;
+}
+
+/* zmena stavu XKB (Caps Lock, prepnuti rozlozeni zkratkou grp:..., nova klavesnice po probuzeni):
+   GdkKeymap::state-changed pri zmene skupiny nechodi, proto primo udalosti XKB */
+static GdkFilterReturn
+xkb_filter (GdkXEvent *xev, GdkEvent *ev, gpointer data) {
+    LuxLock *ll = data;
+    if (ll->xkb_event_base >= 0 && ((XEvent *) xev)->type == ll->xkb_event_base && !ll->kbd_idle_id)
+        ll->kbd_idle_id = g_idle_add (kbd_idle, ll);
+    return GDK_FILTER_CONTINUE;
+}
+#endif
+
 /* ---- hlasky --------------------------------------------------------------------------- */
 static void
-show_hint (LuxLock *ll, const char *text, gboolean error, gboolean caps) {
+show_hint (LuxLock *ll, const char *text, gboolean error) {
     GtkStyleContext *ctx = gtk_widget_get_style_context (ll->hint);
-    ll->caps_hint = caps && text && *text;
     if (!error)
         ll->error_shown = FALSE;
     gtk_label_set_text (GTK_LABEL (ll->hint), text ? text : "");
@@ -1154,21 +1270,26 @@ show_hint (LuxLock *ll, const char *text, gboolean error, gboolean caps) {
         gtk_style_context_add_class (ctx, "error");
     else
         gtk_style_context_remove_class (ctx, "error");
+    debug_state (ll, "hint");
 }
 
 void
 lux_lock_hint (LuxLock *ll, const char *text, gboolean error) {
-    show_hint (ll, text, error, FALSE);
+    show_hint (ll, text, error);
     if (error)
         ll->error_shown = TRUE;
 }
 
+/* Caps Lock ma vlastni radek pod polem (driv sdilel radek s hlaskami a po spatnem hesle nebo
+   pri napovede otisku prstu se neukazal) - stav vzdy ze serveru X, "on" jen bez X */
 void
 lux_lock_update_caps (LuxLock *ll, gboolean on) {
-    if (on && !ll->error_shown && !*gtk_label_get_text (GTK_LABEL (ll->hint)))
-        show_hint (ll, lux_tr ("Caps Lock is on"), FALSE, TRUE);
-    else if (!on && ll->caps_hint)
-        show_hint (ll, "", FALSE, FALSE);
+    int g = 0;
+    gboolean caps = FALSE;
+    if (kbd_state (ll, &g, &caps))
+        kbd_update (ll);
+    else
+        set_caps (ll, on);
 }
 
 void
@@ -1249,7 +1370,7 @@ lux_lock_pam_message (LuxLock *ll, const char *text, gboolean is_error) {
         if (!is_error) {
             ll->fp_wait = TRUE;
             if (!ll->error_shown)
-                show_hint (ll, lux_tr ("Touch the fingerprint sensor or enter your password"), FALSE, FALSE);
+                show_hint (ll, lux_tr ("Touch the fingerprint sensor or enter your password"), FALSE);
             return;
         }
         if (ll->fp_wait) {
@@ -1279,14 +1400,17 @@ lux_lock_set_prompt (LuxLock *ll, const char *text, gboolean secret) {
         /* otisk vyprsel nebo neprosel: dal uz jen heslo */
         ll->fp_wait = FALSE;
         if (!ll->error_shown)
-            show_hint (ll, "", FALSE, FALSE);
+            show_hint (ll, "", FALSE);
     }
     gtk_widget_queue_draw (ll->pw);
 }
 
 void
 lux_lock_checking (LuxLock *ll) {
-    show_hint (ll, "", FALSE, FALSE);
+    /* heslo bylo napsano s timto Caps Lockem (hlaska pri neuspechu) */
+    kbd_update (ll);
+    ll->caps_at_submit = ll->caps_on;
+    show_hint (ll, "", FALSE);
     gtk_widget_queue_draw (ll->pw);
 }
 
@@ -1296,7 +1420,7 @@ lux_lock_auth_failed (LuxLock *ll, const char *message) {
         lux_lock_hint (ll, ll->locked_hint, TRUE);
         g_clear_pointer (&ll->locked_hint, g_free);
     } else if (!ll->error_shown) {
-        lux_lock_hint (ll, message ? message : lux_tr ("Incorrect password. Try again."), TRUE);
+        lux_lock_hint (ll, message ? message : lux_tr (lux_kbd_failed_text (ll->caps_at_submit)), TRUE);
     }
     ll->error_shown = TRUE;
     ll->prompted = ll->fp_wait = FALSE;
@@ -1309,7 +1433,13 @@ entry_changed (GtkEditable *e, LuxLock *ll) {
     gtk_widget_queue_draw (ll->go_area);
     gtk_widget_queue_draw (ll->pw);
     if (ll->error_shown && *gtk_entry_get_text (GTK_ENTRY (ll->entry)))
-        show_hint (ll, "", FALSE, FALSE);
+        show_hint (ll, "", FALSE);
+    debug_state (ll, "text");
+}
+
+static void
+entry_focus (GObject *o, GParamSpec *ps, LuxLock *ll) {
+    debug_state (ll, "focus");
 }
 
 /* ---- napajeni (logind, bez dotazu na heslo) ------------------------------------------- */
@@ -1439,6 +1569,10 @@ relayout (LuxLock *ll) {
     gtk_widget_set_size_request (ll->pw, ll->sz.pw_w, ll->sz.pw_h);
     gtk_widget_set_size_request (ll->go_area, ll->sz.pw_h, ll->sz.pw_h);
     gtk_widget_set_size_request (ll->hint, -1, px (ll, 22, 16));
+    gtk_widget_set_size_request (ll->kbd_row, -1, px (ll, 24, 18));
+    gtk_box_set_spacing (GTK_BOX (ll->kbd_row), px (ll, 14, 9));
+    gtk_box_set_spacing (GTK_BOX (ll->caps_box), px (ll, 6, 4));
+    gtk_widget_set_size_request (ll->caps_icon, px (ll, 16, 12), px (ll, 16, 12));
     gtk_widget_set_margin_bottom (ll->power, px (ll, 42, 26));
     gtk_box_set_spacing (GTK_BOX (ll->power), px (ll, 40, 26));
     for (GList *l = ll->rounds; l; l = l->next) {
@@ -1455,13 +1589,16 @@ relayout (LuxLock *ll) {
         "label.name { font-size: %dpx; font-weight: 600; }\n"
         "label.small { font-size: %dpx; font-weight: 500; color: rgba(255,255,255,0.92); }\n"
         "label.status { font-size: %dpx; font-weight: 600; }\n"
-        "label.hint { font-size: %dpx; font-weight: 500; color: rgba(255,255,255,0.88); }\n"
-        "label.hint.error { color: #ff8f86; font-weight: 600; }\n"
+        "label.hint { font-size: %dpx; font-weight: 500; color: rgba(255,255,255,0.88); padding: 1px 10px;"
+        " border-radius: 9px; }\n"
+        /* chyba na tmavem podkladu a Caps Lock s vyraznejsim stinem: citelne i na svetle tapete */
+        "label.hint.error { color: #ffb4ad; font-weight: 600; background-color: rgba(0,0,0,0.38); }\n"
+        "label.caps { font-size: %dpx; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }\n"
         "button.pill { padding: %dpx %dpx; }\n"
         "button.pill label { font-size: %dpx; font-weight: 700; letter-spacing: 1px; }\n"
         "entry.pw { font-size: %dpx; padding: 0 0 0 %dpx; }\n",
         ll->font, px (ll, 3, 2), px (ll, 17, 13), px (ll, 13, 11), px (ll, 14, 11), px (ll, 14, 11),
-        px (ll, 3, 2), px (ll, 10, 7), px (ll, 13, 11), ll->sz.pw_font, ll->sz.pw_pad);
+        px (ll, 14, 11), px (ll, 3, 2), px (ll, 10, 7), px (ll, 13, 11), ll->sz.pw_font, ll->sz.pw_pad);
     gtk_css_provider_load_from_data (ll->css, css, -1, NULL);
     g_free (css);
 }
@@ -1552,6 +1689,8 @@ update_status (gpointer data) {
     return G_SOURCE_CONTINUE;
 }
 
+static void check_resume (LuxLock *ll);
+
 static gboolean
 tick (gpointer data) {
     LuxLock *ll = data;
@@ -1562,8 +1701,53 @@ tick (gpointer data) {
         ll->last_minute = tm.tm_min;
         gtk_widget_queue_draw (ll->bg);
     }
+    check_resume (ll);
     kbd_update (ll);
     return G_SOURCE_CONTINUE;
+}
+
+/* Probuzeni z uspani (zavreny a otevreny vika) s uz otevrenym dialogem: hlaska a rozepsane heslo
+   z doby pred uspanim neplati (k rozepsanemu by se pripsalo nove heslo -> "spatne heslo") a stav
+   klavesnice se mohl zmenit (klavesnice znovu pripojena). Kontrola pri kazde klavese a kazdou
+   sekundu - pri klavese jeste predtim, nez znak dojde do pole. */
+static void
+check_resume (LuxLock *ll) {
+    gint64 r = g_get_real_time (), m = g_get_monotonic_time ();
+    gboolean slept = lux_kbd_slept (ll->seen_real, ll->seen_mono, r, m);
+    ll->seen_real = r;
+    ll->seen_mono = m;
+    if (!slept)
+        return;
+    if (gtk_widget_is_sensitive (ll->entry))
+        gtk_entry_set_text (GTK_ENTRY (ll->entry), "");
+    if (!ll->fp_wait)
+        show_hint (ll, "", FALSE);
+    g_clear_pointer (&ll->locked_hint, g_free);
+    if (gtk_widget_is_sensitive (ll->entry) && !gtk_widget_has_focus (ll->entry))
+        gtk_widget_grab_focus (ll->entry);
+    kbd_update (ll);
+    debug_state (ll, "resume");
+}
+
+/* testy: SIGUSR1 = jako by system prave spal 10 minut (jen s LUXOS_LOCK_DEMO_USERS) */
+static gboolean
+demo_sleep (gpointer data) {
+    LuxLock *ll = data;
+    ll->seen_real -= 600 * G_USEC_PER_SEC;
+    return G_SOURCE_CONTINUE;
+}
+
+static gboolean
+plug_key_press (GtkWidget *w, GdkEventKey *ev, LuxLock *ll) {
+    check_resume (ll);
+    return FALSE;
+}
+
+static gboolean
+plug_key_release (GtkWidget *w, GdkEventKey *ev, LuxLock *ll) {
+    /* Caps Lock / prepnuti rozlozeni: stav hned (udalost XKB muze prijit az po klavese) */
+    kbd_update (ll);
+    return FALSE;
 }
 
 static void
@@ -1623,6 +1807,13 @@ lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
     ll->go = OBJ ("auth-unlock-button");
     ll->go_area = OBJ ("go-area");
     ll->hint = OBJ ("auth-hint-label");
+    ll->kbd_row = OBJ ("kbd-row");
+    ll->caps_box = OBJ ("caps-box");
+    ll->caps_icon = OBJ ("caps-icon");
+    ll->caps_label = OBJ ("caps-label");
+    ll->layout_chip = OBJ ("layout-chip");
+    ll->layout_chip_label = OBJ ("layout-chip-label");
+    ll->xkb_event_base = -1;
     ll->power = OBJ ("auth-action-area");
     ll->last_minute = -1;
     ll->scale = 1;
@@ -1633,6 +1824,10 @@ lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
     flat_button (ll->kbd_btn, "pill");
     flat_button (ll->user_btn, "user");
     flat_button (ll->go, "go");
+    flat_button (ll->layout_chip, "pill");
+    gtk_label_set_text (GTK_LABEL (ll->caps_label), lux_tr ("Caps Lock is on"));
+    gtk_widget_set_tooltip_text (ll->kbd_btn, lux_tr ("Switch keyboard layout"));
+    gtk_widget_set_tooltip_text (ll->layout_chip, lux_tr ("Switch keyboard layout"));
     gtk_widget_set_can_focus (ll->user_btn, FALSE);
 
     ll->css = gtk_css_provider_new ();
@@ -1642,6 +1837,11 @@ lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
     g_signal_connect (ll->bg, "draw", G_CALLBACK (draw_bg), ll);
     g_signal_connect (ll->kbd_btn, "draw", G_CALLBACK (draw_kbd), ll);
     g_signal_connect (ll->kbd_btn, "clicked", G_CALLBACK (kbd_next), ll);
+    g_signal_connect (ll->layout_chip, "draw", G_CALLBACK (draw_kbd), ll);
+    g_signal_connect (ll->layout_chip, "clicked", G_CALLBACK (kbd_next), ll);
+    g_signal_connect (ll->caps_icon, "draw", G_CALLBACK (draw_caps), ll);
+    g_signal_connect (plug_widget, "key-press-event", G_CALLBACK (plug_key_press), ll);
+    g_signal_connect (plug_widget, "key-release-event", G_CALLBACK (plug_key_release), ll);
     g_signal_connect (ll->net_icon, "draw", G_CALLBACK (draw_net), ll);
     g_signal_connect (ll->bat_icon, "draw", G_CALLBACK (draw_battery), ll);
     g_signal_connect (ll->avatar, "draw", G_CALLBACK (draw_avatar), ll);
@@ -1649,6 +1849,7 @@ lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
     g_signal_connect (ll->pw, "draw", G_CALLBACK (draw_pw), ll);
     g_signal_connect (ll->go_area, "draw", G_CALLBACK (draw_go), ll);
     g_signal_connect (ll->entry, "changed", G_CALLBACK (entry_changed), ll);
+    g_signal_connect (ll->entry, "notify::has-focus", G_CALLBACK (entry_focus), ll);
     g_signal_connect (plug_widget, "realize", G_CALLBACK (plug_realized), ll);
     gtk_entry_set_placeholder_text (GTK_ENTRY (ll->entry), NULL);
     g_object_set (ll->entry, "caps-lock-warning", FALSE, NULL);
@@ -1668,9 +1869,24 @@ lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
         round_button (ll, "shutdown", lux_tr ("Shut Down"), icon_power, "PowerOff");
 
     kbd_load (ll);
+    /* rozlozeni pod polem jen pri vic rozlozenich (vpravo nahore je vzdy) */
+    gtk_widget_set_visible (ll->layout_chip, lux_kbd_show_layout (ll->n_layouts));
     kbd_update (ll);
     g_signal_connect (gdk_keymap_get_for_display (gdk_display_get_default ()), "state-changed",
                       G_CALLBACK (keymap_changed), ll);
+#ifdef ENABLE_X11
+    if (GDK_IS_X11_DISPLAY (gdk_display_get_default ())) {
+        int op, ev, err, maj = XkbMajorVersion, min = XkbMinorVersion;
+        if (XkbQueryExtension (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), &op, &ev, &err, &maj, &min)) {
+            ll->xkb_event_base = ev;
+            gdk_window_add_filter (NULL, xkb_filter, ll);
+        }
+    }
+#endif
+    ll->seen_real = g_get_real_time ();
+    ll->seen_mono = g_get_monotonic_time ();
+    if (g_getenv ("LUXOS_LOCK_DEMO_USERS"))
+        ll->demo_sleep_id = g_unix_signal_add (SIGUSR1, demo_sleep, ll);
     load_face (ll);
     return ll;
 }
@@ -1714,6 +1930,16 @@ lux_lock_free (LuxLock *ll) {
         g_source_remove (ll->tick_id);
     if (ll->status_id)
         g_source_remove (ll->status_id);
+    if (ll->kbd_idle_id)
+        g_source_remove (ll->kbd_idle_id);
+    if (ll->demo_sleep_id)
+        g_source_remove (ll->demo_sleep_id);
+#ifdef ENABLE_X11
+    if (ll->xkb_event_base >= 0)
+        gdk_window_remove_filter (NULL, xkb_filter, ll);
+#endif
+    g_signal_handlers_disconnect_by_func (gdk_keymap_get_for_display (gdk_display_get_default ()),
+                                          G_CALLBACK (keymap_changed), ll);
     g_list_free_full (ll->rounds, g_free);
     g_clear_pointer (&ll->bg_surf, cairo_surface_destroy);
     g_clear_pointer (&ll->blur_surf, cairo_surface_destroy);

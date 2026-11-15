@@ -7,18 +7,24 @@
 # "Tapeta plochy a hodiny" (luxos-desktop) a zpet. Bezpecnost zustava v xfce4-screensaver:
 # grab vstupu, overeni PAM v procesu dialogu, necinnost a zamykani se nemeni.
 #   luxos-lock-ui.c/.h                 vzhled (kresleni podle luxos-greeter, preklady luxos-i18n)
+#   luxos-lock-kbd.c/.h                Caps Lock, rozlozeni a probuzeni z uspani bez GTK (testy:
+#                                      tests/test-lock-kbd.c, v Xvfb tests/gui-caps-lock.py)
+#   luxos-lock-kbd.c/.h                Caps Lock, rozlozeni a probuzeni z uspani bez GTK (testy:
+#                                      tests/test-lock-kbd.c, v Xvfb tests/gui-caps-lock.py)
 #   xfce4-screensaver-dialog.ui/.css   nahrazuji puvodni rozvrzeni a styl dialogu
 #   luxos-lock-dialog.patch            napojeni na gs-lock-plug.c a xfce4-screensaver-dialog.c,
 #                                      gs-window.c: setric zustane videt, dokud dialog nema okno, a
 #                                      posledni snimek (setric / dialog) je pozadim okna pri prepnuti
-#                                      setric <-> dialog (driv cerna obrazovka pri kazdem probuzeni zamku)
+#                                      setric <-> dialog (driv cerna obrazovka pri kazdem probuzeni zamku);
+#                                      klavesy pred zobrazenim dialogu: fronta 64 (driv 16) bez samotnych
+#                                      modifikatoru - heslo psane hned po otevreni vika se neorizne
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Christian Hesse, Robin Candau) je v PKGBUILD.arch.
 
 pkgname=xfce4-screensaver
 pkgver=4.20.2
-pkgrel=1.4
+pkgrel=1.5
 pkgdesc='Xfce Screensaver (LuxOS: lock screen in the style of the LuxOS login screen)'
 arch=('x86_64')
 url='https://docs.xfce.org/apps/screensaver/start'
@@ -34,20 +40,24 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-screensaver.git#tag=$pkgname-$pk
         'luxos-lock-dialog.patch'
         'luxos-lock-ui.c'
         'luxos-lock-ui.h'
+        'luxos-lock-kbd.c'
+        'luxos-lock-kbd.h'
         'xfce4-screensaver-dialog.ui'
         'xfce4-screensaver-dialog.css')
 sha256sums=('bc84a11d51fbc4222ca43831671de2935e759229d21ee7136443e7250c78498f'
-            '28bd48a15ed4dbcb0cbb314f5c76a4283a256071f859423bb85cf5cfb1d99d2a'
-            '2e6fb8b424a8e670aec32d3de9de1c5830c2c7153b3168769c0014d1318dde8e'
+            'a1373df93ddc39d1438fb16267eac9468a5322867d263b64735e7883f5d0aa73'
+            '3d974f924812a405f55f4ce621cef9374d90de89547e098562643dd855b32394'
             '21bd4eb6eda38bb6b08a10ccadbdbcc7c7a60fb29b70f0f7dd8851e943d4d3ff'
-            'ab3fc7734f8191eed891665e5f2fe199aa72bf2a1454d2ea5b3ce3026bcaec07'
+            'f6ab39a80fc2f793a702f14bd9da4850e186667a0390de62612d4bbb5ed298db'
+            '48d2f2e78418e95cb7ff60ad0c2e5bde39d624285f0345979b2333c5f1ab359a'
+            'e3ef76f51f3ac81cb4bdbe76f85dfeb07f372fa0bb0aa33306f4559d10dcad29'
             '9b194137f753b78192a694c9192642789b7488c612368d730b9eca808f74f082')
 
 prepare() {
   cd $pkgname
   # LuxOS: zamykaci dialog jako luxos-greeter
   patch -Np1 -i "$srcdir/luxos-lock-dialog.patch"
-  cp "$srcdir"/luxos-lock-ui.{c,h} "$srcdir"/xfce4-screensaver-dialog.{ui,css} src/
+  cp "$srcdir"/luxos-lock-{ui,kbd}.{c,h} "$srcdir"/xfce4-screensaver-dialog.{ui,css} src/
 }
 
 build() {

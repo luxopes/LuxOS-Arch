@@ -752,6 +752,8 @@ Username	Uživatelské jméno
 Log In	Přihlásit
 Caps Lock is on	Je zapnutý Caps Lock
 Incorrect password. Try again.	Nesprávné heslo. Zkuste to znovu.
+Incorrect password – Caps Lock is on	Nesprávné heslo – je zapnutý Caps Lock
+Keyboard layout: %s	Rozložení klávesnice: %s
 Could not start the session.	Relaci se nepodařilo spustit.
 This action is not available right now.	Tato akce teď není dostupná.
 # LuxDrop

@@ -752,6 +752,8 @@ Username	Nom d’utilisateur
 Log In	Ouvrir la session
 Caps Lock is on	Le verrouillage des majuscules est activé
 Incorrect password. Try again.	Mot de passe incorrect. Réessayez.
+Incorrect password – Caps Lock is on	Mot de passe incorrect – le verrouillage des majuscules est activé
+Keyboard layout: %s	Disposition du clavier : %s
 Could not start the session.	Impossible de démarrer la session.
 This action is not available right now.	Cette action n’est pas disponible pour le moment.
 # LuxDrop

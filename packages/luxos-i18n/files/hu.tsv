@@ -752,6 +752,8 @@ Username	Felhasználónév
 Log In	Bejelentkezés
 Caps Lock is on	A Caps Lock be van kapcsolva
 Incorrect password. Try again.	Hibás jelszó. Próbáld újra.
+Incorrect password – Caps Lock is on	Hibás jelszó – a Caps Lock be van kapcsolva
+Keyboard layout: %s	Billentyűzetkiosztás: %s
 Could not start the session.	Nem sikerült elindítani a munkamenetet.
 This action is not available right now.	Ez a művelet most nem érhető el.
 # LuxDrop

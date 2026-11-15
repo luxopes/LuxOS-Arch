@@ -165,10 +165,55 @@
             </child>
           </object>
         </child>
+        <!-- pod polem: Caps Lock (ikona + text) a rozlozeni klavesnice (pri vic rozlozenich);
+             misto je vyhrazene vzdy, aby se pri zapnuti Caps Locku nic neposouvalo -->
+        <child>
+          <object class="GtkBox" id="kbd-row">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkBox" id="caps-box">
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <child>
+                  <object class="GtkDrawingArea" id="caps-icon">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="valign">center</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="caps-label">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <style>
+                      <class name="caps"/>
+                    </style>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="layout-chip">
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <property name="valign">center</property>
+                <child>
+                  <object class="GtkLabel" id="layout-chip-label">
+                    <property name="visible">True</property>
+                    <property name="label">US</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
         <child>
           <object class="GtkLabel" id="auth-hint-label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="halign">center</property>
             <property name="wrap">True</property>
             <property name="justify">center</property>
             <property name="max_width_chars">60</property>

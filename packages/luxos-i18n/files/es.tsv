@@ -752,6 +752,8 @@ Username	Nombre de usuario
 Log In	Iniciar sesión
 Caps Lock is on	Bloq Mayús está activado
 Incorrect password. Try again.	Contraseña incorrecta. Inténtalo de nuevo.
+Incorrect password – Caps Lock is on	Contraseña incorrecta – Bloq Mayús está activado
+Keyboard layout: %s	Distribución del teclado: %s
 Could not start the session.	No se ha podido iniciar la sesión.
 This action is not available right now.	Esta acción no está disponible en este momento.
 # LuxDrop

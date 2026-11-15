@@ -10,6 +10,16 @@ or a key shows the avatars, the password field and the power buttons. After 30 s
 to the clock. If a fingerprint reader is set up, you can log in with your finger
 ([settings-apps.md](settings-apps.md#fingerprint)).
 
+Under the password field (on the login and the lock screen) a row shows **Caps Lock is on** with a
+Caps Lock icon whenever Caps Lock is on – also right after opening the lid and after a wrong
+password – and, with more than one keyboard layout, the current layout (e.g. `CZ`); a click on it or
+the layout shortcut (Keyboard Layouts, e.g. both Shift keys) switches it. A wrong password typed with
+Caps Lock on says **Incorrect password – Caps Lock is on**. The state comes straight from the X
+server (XKB), so it is right even if Caps Lock was turned on before the screen was shown. If the
+lock screen was already open when the computer went to sleep, a half-typed password and an old error
+are cleared on wake. Keys typed right after waking, before the password field appears, are kept (up
+to 64 key presses).
+
 The configuration file is `/etc/lightdm/luxos-greeter.conf`, with keys `background`,
 `user-background`, `clock-24h=auto`, `clock-format`, `date-format`, `idle-timeout`, `font`,
 `cursor-theme`, `show-battery` and `show-network`. `/etc/lightdm/lightdm.conf.d/60-luxos-greeter.conf`

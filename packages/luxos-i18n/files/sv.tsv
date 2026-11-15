@@ -752,6 +752,8 @@ Username	Användarnamn
 Log In	Logga in
 Caps Lock is on	Caps Lock är på
 Incorrect password. Try again.	Fel lösenord. Försök igen.
+Incorrect password – Caps Lock is on	Fel lösenord – Caps Lock är på
+Keyboard layout: %s	Tangentbordslayout: %s
 Could not start the session.	Det gick inte att starta sessionen.
 This action is not available right now.	Den här åtgärden är inte tillgänglig just nu.
 # LuxDrop

@@ -87,7 +87,8 @@ def main(argv):
     if cmd == "found":
         found(msg)
         return 0
-    print(__doc__, file=sys.stderr)
+    # spousti jen luxos-guard-agent; spatne argumenty = kratka poznamka do logu (ne cesky docstring)
+    print("usage: luxos-guard-agent-helper ask | blocked | act sandbox|trash | found", file=sys.stderr)
     return 2
 
 

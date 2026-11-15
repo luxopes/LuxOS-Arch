@@ -752,6 +752,8 @@ Username	Nazwa użytkownika
 Log In	Zaloguj
 Caps Lock is on	Caps Lock jest włączony
 Incorrect password. Try again.	Nieprawidłowe hasło. Spróbuj ponownie.
+Incorrect password – Caps Lock is on	Nieprawidłowe hasło – Caps Lock jest włączony
+Keyboard layout: %s	Układ klawiatury: %s
 Could not start the session.	Nie udało się uruchomić sesji.
 This action is not available right now.	Ta czynność jest teraz niedostępna.
 # LuxDrop

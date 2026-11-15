@@ -471,6 +471,15 @@ class Keyboard:
             return 0
         return st.group % max(1, len(self.layouts))
 
+    def caps(self):
+        """Caps Lock ze serveru X (LockMask v uzamcenych modifikatorech), None = nevime."""
+        if not self.dpy:
+            return None
+        st = XkbState()
+        if self.x.XkbGetState(self.dpy, self.USE_CORE_KBD, ctypes.byref(st)) != 0:
+            return None
+        return bool(st.locked_mods & 0x02)
+
     def label(self, i=None):
         i = self.group() if i is None else i
         lay, var = self.layouts[min(i, len(self.layouts) - 1)]
@@ -859,6 +868,22 @@ def icon_arrow(cr, cx, cy, s):
     cr.stroke()
 
 
+def icon_caps(cr, cx, cy, s):
+    """Caps Lock: obrys sipky nahoru s carkou pod ni (jako na klavese; stejne jako zamykaci dialog)."""
+    w, stem, top, mid, low = s * 0.80, s * 0.36, cy - s * 0.46, cy - s * 0.02, cy + s * 0.22
+    cr.set_line_width(max(1.3, s * 0.09))
+    cr.set_line_join(cairo.LINE_JOIN_ROUND)
+    cr.new_path()
+    cr.move_to(cx, top)
+    for x, y in ((cx + w / 2, mid), (cx + stem / 2, mid), (cx + stem / 2, low), (cx - stem / 2, low),
+                 (cx - stem / 2, mid), (cx - w / 2, mid)):
+        cr.line_to(x, y)
+    cr.close_path()
+    cr.stroke()
+    cr.rectangle(cx - stem / 2, cy + s * 0.33, stem, max(1.3, s * 0.11))
+    cr.fill()
+
+
 def icon_person(cr, cx, cy, s):
     cr.arc(cx, cy - s * 0.16, s * 0.17, 0, 2 * math.pi)
     cr.fill()
@@ -974,7 +999,8 @@ class Greeter(Gtk.Window):
         self.last_minute = None
         self.bg_surf = self.blur_surf = self.blur_small = None
         self._battery = self._network = None
-        self._caps_hint = False
+        self.caps_on = False        # Caps Lock prave ted
+        self.caps_at_submit = False  # Caps Lock pri odeslani hesla (hlaska po neuspechu)
         self.leaving = False        # overeno: posledni snimek jen tapeta (prechod na plochu)
         self.frame_hold = FrameHold()
         if not self.demo:
@@ -1006,6 +1032,9 @@ class Greeter(Gtk.Window):
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK
                         | Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.SCROLL_MASK)
         self.connect("key-press-event", self.on_key)
+        # prepnuti rozlozeni zkratkou X (grp:..., napr. obe klavesy Shift) GdkKeymap::state-changed
+        # nehlasi - stav po pusteni modifikatoru
+        self.connect("key-release-event", self.on_key_release)
         self.connect("button-press-event", self.on_button)
         self.connect("motion-notify-event", self.on_motion)
         self.connect("scroll-event", lambda *_a: self.touch() or False)
@@ -1128,11 +1157,39 @@ class Greeter(Gtk.Window):
         self.pw.pack_start(self.entry, True, True, 0)
         self.pw.pack_start(self.go, False, False, 0)
         self.login.pack_start(self.pw, False, False, 0)
+        # pod polem: Caps Lock (ikona + text) a rozlozeni (pri vic rozlozenich); misto je vyhrazene
+        # vzdy, aby se pri zapnuti Caps Locku nic neposouvalo. Driv Caps Lock sdilel radek s hlaskami
+        # a po spatnem hesle (nebo pri napovede otisku prstu) uz se neukazal.
+        self.kbd_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.kbd_row.set_halign(Gtk.Align.CENTER)
+        self.caps_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.caps_box.set_no_show_all(True)
+        self.caps_icon = Gtk.DrawingArea()
+        self.caps_icon.set_valign(Gtk.Align.CENTER)
+        self.caps_icon.connect("draw", self.draw_caps)
+        self.caps_label = Gtk.Label(label=_("Caps Lock is on"))
+        self.caps_label.get_style_context().add_class("caps")
+        self.caps_box.pack_start(self.caps_icon, False, False, 0)
+        self.caps_box.pack_start(self.caps_label, False, False, 0)
+        self.caps_icon.show()
+        self.caps_label.show()
+        self.layout_chip = self.flat_button(Gtk.Label(), "pill")
+        self.layout_chip.set_valign(Gtk.Align.CENTER)
+        self.layout_chip.set_no_show_all(True)
+        self.layout_chip.get_child().show()
+        self.layout_chip.connect("draw", self.draw_frost_widget, 0.5, 0.16)
+        self.layout_chip.connect("clicked", lambda _b: self.switch_layout())
+        self.layout_chip.set_tooltip_text(_("Switch keyboard layout"))
+        self.kbd_btn.set_tooltip_text(_("Switch keyboard layout"))
+        self.kbd_row.pack_start(self.caps_box, False, False, 0)
+        self.kbd_row.pack_start(self.layout_chip, False, False, 0)
+        self.login.pack_start(self.kbd_row, False, False, 0)
         self.hint = Gtk.Label()
         self.hint.get_style_context().add_class("hint")
         self.hint.set_line_wrap(True)
         self.hint.set_justify(Gtk.Justification.CENTER)
         self.hint.set_max_width_chars(60)
+        self.hint.set_halign(Gtk.Align.CENTER)    # tmavy podklad chyby jen pod textem
         self.login.pack_start(self.hint, False, False, 0)
         # domena: "Prihlaseni do domeny FIRMA" / offline stav (oddelene od chybovych hlasek)
         self.domain_label = Gtk.Label()
@@ -1228,6 +1285,10 @@ class Greeter(Gtk.Window):
         self.pw.set_size_request(self.sz["pw_w"], self.sz["pw_h"])
         self.go_area.set_size_request(self.sz["pw_h"], self.sz["pw_h"])
         self.hint.set_size_request(-1, px(22, 16))
+        self.kbd_row.set_size_request(-1, px(24, 18))
+        self.kbd_row.set_spacing(px(14, 9))
+        self.caps_box.set_spacing(px(6, 4))
+        self.caps_icon.set_size_request(px(16, 12), px(16, 12))
         self.power.set_margin_bottom(self.H - (my + mh) + px(42, 26))
         self.power.set_spacing(px(40, 26))
         for b in self.power_buttons:
@@ -1244,8 +1305,10 @@ class Greeter(Gtk.Window):
         label.name {{ font-size: {px(17, 13)}px; font-weight: 600; }}
         label.small {{ font-size: {px(13, 11)}px; font-weight: 500; color: rgba(255,255,255,0.92); }}
         label.status {{ font-size: {px(14, 11)}px; font-weight: 600; }}
-        label.hint {{ font-size: {px(14, 11)}px; font-weight: 500; color: rgba(255,255,255,0.88); }}
-        label.hint.error {{ color: #ff8f86; font-weight: 600; }}
+        label.hint {{ font-size: {px(14, 11)}px; font-weight: 500; color: rgba(255,255,255,0.88);
+                      padding: 1px 10px; border-radius: 9px; }}
+        label.hint.error {{ color: #ffb4ad; font-weight: 600; background-color: rgba(0,0,0,0.38); }}
+        label.caps {{ font-size: {px(14, 11)}px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }}
         label.domain {{ font-size: {px(13, 10)}px; font-weight: 500; color: rgba(255,255,255,0.78); }}
         label.domain.offline {{ color: #ffd479; font-weight: 600; }}
         button.lux {{ background: none; border: none; box-shadow: none; outline: none; padding: 0; margin: 0;
@@ -1390,6 +1453,15 @@ class Greeter(Gtk.Window):
         cr.set_source_rgba(1, 1, 1, border)
         cr.set_line_width(1)
         cr.stroke()
+
+    def draw_caps(self, area, cr):
+        a = area.get_allocation()
+        s = min(a.width, a.height)
+        cr.set_source_rgba(0, 0, 0, 0.30)
+        icon_caps(cr, a.width / 2, a.height / 2 + 1, s)
+        cr.set_source_rgba(1, 1, 1, 0.95)
+        icon_caps(cr, a.width / 2, a.height / 2, s)
+        return False
 
     def draw_frost_widget(self, w, cr, radius_frac, tint):
         a = w.get_allocation()
@@ -1563,6 +1635,8 @@ class Greeter(Gtk.Window):
         return True
 
     def update_status(self):
+        if self.kbd_btn.get_child() is None:
+            return False            # okno zrusene (testy): casovac skoncit
         self._battery = battery_state() if self.cfg["battery"] else None
         self._network = network_state() if self.cfg["network"] else None
         self.bat_icon.set_visible(self._battery is not None)
@@ -1576,18 +1650,33 @@ class Greeter(Gtk.Window):
         return True
 
     def update_keyboard(self):
-        self.kbd_btn.get_child().set_text(self.kbd.label())
-        debug("layout", self.kbd.label())
+        label = self.kbd.label()
+        if self.kbd_btn.get_child().get_text() != label or self.layout_chip.get_child().get_text() != label:
+            self.kbd_btn.get_child().set_text(label)
+            self.layout_chip.get_child().set_text(label)
+            name = _("Keyboard layout: %s") % label
+            for b in (self.kbd_btn, self.layout_chip):
+                acc = b.get_accessible()
+                if acc:
+                    acc.set_name(name)
+            debug("layout", label)
         self.kbd_btn.set_visible(True)
+        # rozlozeni pod polem jen pri vic rozlozenich (vpravo nahore je vzdy)
+        self.layout_chip.set_visible(len(self.kbd.layouts) > 1)
         self.update_caps()
 
     def update_caps(self):
-        km = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
-        caps = km.get_caps_lock_state()
-        if caps and not self.error_shown and not self.hint.get_text():
-            self.show_hint(_("Caps Lock is on"), False, caps=True)
-        elif not caps and getattr(self, "_caps_hint", False):
-            self.show_hint("", False)
+        caps = self.kbd.caps()
+        if caps is None:
+            caps = Gdk.Keymap.get_for_display(Gdk.Display.get_default()).get_caps_lock_state()
+        if caps != self.caps_on or self.caps_box.get_visible() != caps:
+            self.caps_on = caps
+            self.caps_box.set_visible(caps)
+            acc = self.entry.get_accessible()
+            if acc:
+                acc.set_description(_("Caps Lock is on") if caps else "")
+            debug("caps", int(caps))
+        return False
 
     def switch_layout(self):
         self.kbd.next()
@@ -1669,6 +1758,11 @@ class Greeter(Gtk.Window):
             return getattr(self.backend, "state", None) == "wait"
 
     # -- vstup --
+    def on_key_release(self, _w, ev):
+        if (Gdk.keyval_name(ev.keyval) or "") in self.MODIFIERS:
+            self.update_keyboard()
+        return False
+
     def on_key(self, _w, ev):
         self.touch()
         name = Gdk.keyval_name(ev.keyval) or ""
@@ -1961,7 +2055,8 @@ class Greeter(Gtk.Window):
             self.show_hint(_("Incorrect password, or this account has not signed in on this computer yet "
                              "(the first sign-in needs a connection to the organization network)."), True)
         elif not self.error_shown:
-            self.show_hint(_("Incorrect password. Try again."), True)
+            self.show_hint(_("Incorrect password – Caps Lock is on") if self.caps_at_submit
+                           else _("Incorrect password. Try again."), True)
         self.error_shown = True
         self.shake()
         self.entry.set_text("")
@@ -2129,6 +2224,9 @@ class Greeter(Gtk.Window):
         self.respond(text)
 
     def respond(self, text):
+        # heslo bylo napsano s timto Caps Lockem (hlaska pri neuspechu)
+        self.update_caps()
+        self.caps_at_submit = self.caps_on
         self.awaiting = False
         self.entry.set_text("")
         self.entry.set_sensitive(False)
@@ -2138,8 +2236,7 @@ class Greeter(Gtk.Window):
         except GLib.Error as e:
             log("respond:", e.message)
 
-    def show_hint(self, text, error, caps=False):
-        self._caps_hint = caps and bool(text)
+    def show_hint(self, text, error):
         if not error:
             self.error_shown = False
         self.hint.set_text(text or "")

@@ -752,6 +752,8 @@ Username	Nome de usuário
 Log In	Iniciar Sessão
 Caps Lock is on	Caps Lock está ativado
 Incorrect password. Try again.	Senha incorreta. Tente novamente.
+Incorrect password – Caps Lock is on	Senha incorreta – Caps Lock está ativado
+Keyboard layout: %s	Layout de teclado: %s
 Could not start the session.	Não foi possível iniciar a sessão.
 This action is not available right now.	Esta ação não está disponível no momento.
 # LuxDrop

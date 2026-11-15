@@ -752,6 +752,8 @@ Username	Benutzername
 Log In	Anmelden
 Caps Lock is on	Feststelltaste ist aktiviert
 Incorrect password. Try again.	Falsches Passwort. Versuchen Sie es erneut.
+Incorrect password – Caps Lock is on	Falsches Passwort – Feststelltaste ist aktiviert
+Keyboard layout: %s	Tastaturbelegung: %s
 Could not start the session.	Die Sitzung konnte nicht gestartet werden.
 This action is not available right now.	Diese Aktion ist gerade nicht verfügbar.
 # LuxDrop
