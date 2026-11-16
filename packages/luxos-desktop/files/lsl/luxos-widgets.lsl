@@ -8,9 +8,9 @@
 #   music     prave hrajici hudba/video (MPRIS) s Prehrat/Pozastavit a Dalsi; jen kdyz neco hraje
 #   calendar  mesic s vyznacenym dneskem (klik: Kalendar)
 #
-# Vzhled: barevne sklo - kazda karta prebira barvu tapety pod sebou (prumer oblasti za kartou,
-# tmavsi a sytejsi), bile pismo, svetly okraj a mekky stin. Pruhlednost karty se ridi jasem tapety,
-# aby bile pismo bylo citelne i na svetle tapete. Tapeta z xfconf (xfce4-desktop, zmeny hned).
+# Vzhled: prusvitne sklo - rozostrena tapeta, jemny mlecny zavoj a svetly odlesk.
+# Svetle sklo ma tmavy text, tmave bile; kontrast se upravuje jen nezbytnym zavojem.
+# Material se pripravi jen pri zmene tapety/monitoru; pri presunu se meni pouze vyrez.
 #
 # Nastaveni ~/.config/luxos/widgets.conf (zmeny se nacitaji hned, zapisuje ho i galerie):
 #   ENABLED=1                         zapnute (vychozi vypnute: program hned skonci)
@@ -42,39 +42,44 @@ ALL_WIDGETS = ["today", "system", "music", "calendar"]
 GRID = 8
 WEATHER_MAX_AGE = 10800
 SOCKET = "luxos-widgets-"
-TINT_DEFAULT = [0.16, 0.17, 0.24]
+GLASS_RADIUS = 22.0
 
 CSS = ("window.lw { background: transparent; }\n"
     + ".lw-col { padding: 0 24px 12px 24px; }\n"
-    + ".lw-card { background-color: @lw_bg; background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.0));"
-    + " border: 1px solid rgba(255, 255, 255, 0.30); border-radius: 20px; padding: 14px 18px; margin-bottom: 14px; color: white;"
-    + " box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16), inset 0 1px rgba(255, 255, 255, 0.28); }\n"
-    + ".lw-card label { color: white; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }\n"
-    + ".lw-card label.dim { color: rgba(255, 255, 255, 0.88); }\n"
+    + ".lw-card { background: transparent;"
+    + " border: 1px solid rgba(255, 255, 255, 0.38); border-top-color: rgba(255, 255, 255, 0.62); border-bottom-color: rgba(255, 255, 255, 0.20); border-radius: 22px; padding: 16px 18px; color: white;"
+    + " box-shadow: 0 6px 18px rgba(8, 12, 24, 0.12), inset 0 1px rgba(255, 255, 255, 0.18); }\n"
+    + ".lw-card label { color: white; text-shadow: none; }\n"
+    + ".lw-card label.dim { color: rgba(255, 255, 255, 0.90); }\n"
+    + ".lw-card.lw-light label, .lw-card.lw-light image, .lw-card.lw-light button { color: rgb(25, 31, 43); }\n"
+    + ".lw-card.lw-light label.dim { color: rgba(25, 31, 43, 0.90); }\n"
+    + ".lw-card.lw-light .lw-vsep, .lw-card.lw-light .lw-hsep { background-color: rgba(25, 31, 43, 0.12); }\n"
+    + ".lw-card.lw-light .lw-btn, .lw-card.lw-light .lw-art { background-color: rgba(255, 255, 255, 0.28); }\n"
+    + ".lw-card.lw-light button:hover { background-color: rgba(255, 255, 255, 0.42); }\n"
     + ".lw-date { font-size: 13px; font-weight: 600; }\n"
-    + ".lw-time { font-size: 40px; font-weight: 500; }\n"
-    + ".lw-temp { font-size: 25px; font-weight: 500; }\n"
+    + ".lw-time { font-size: 42px; font-weight: 400; }\n"
+    + ".lw-temp { font-size: 26px; font-weight: 400; }\n"
     + ".lw-cond { font-size: 12px; font-weight: 600; }\n"
     + ".lw-small { font-size: 11px; }\n"
-    + ".lw-vsep { background-color: rgba(255, 255, 255, 0.28); min-width: 1px; margin: 4px 16px; }\n"
-    + ".lw-hsep { background-color: rgba(255, 255, 255, 0.24); min-height: 1px; margin: 9px 0 4px 0; }\n"
+    + ".lw-vsep { background-color: rgba(255, 255, 255, 0.14); min-width: 1px; margin: 4px 16px; }\n"
+    + ".lw-hsep { background-color: rgba(255, 255, 255, 0.12); min-height: 1px; margin: 12px 0 6px 0; }\n"
     + ".lw-title { font-size: 14px; font-weight: 600; }\n"
     + ".lw-health { font-size: 12px; font-weight: 600; }\n"
-    + ".lw-card image { color: white; -gtk-icon-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }\n"
-    + "button.lw-btn { border-radius: 999px; min-width: 32px; min-height: 32px; padding: 0; background-color: rgba(255, 255, 255, 0.16); background-image: none; border: none; box-shadow: none; color: white; outline: none; }\n"
+    + ".lw-card image { color: white; -gtk-icon-shadow: none; }\n"
+    + "button.lw-btn { border-radius: 999px; min-width: 32px; min-height: 32px; padding: 0; background-color: rgba(255, 255, 255, 0.10); background-image: none; border: none; box-shadow: none; color: white; outline: none; }\n"
     + "button.lw-btn:hover { background-color: rgba(255, 255, 255, 0.28); }\n"
     + "button.lw-more { border-radius: 999px; min-width: 24px; min-height: 22px; padding: 0 2px; background: none; border: none; box-shadow: none; color: white; outline: none; }\n"
     + "button.lw-more:hover { background-color: rgba(255, 255, 255, 0.18); }\n"
     + "button.lw-more label { font-size: 15px; font-weight: 700; }\n"
-    + ".lw-art { background-color: rgba(255, 255, 255, 0.16); border-radius: 12px; min-width: 44px; min-height: 44px; }\n")
+    + ".lw-art { background-color: rgba(255, 255, 255, 0.10); border-radius: 12px; min-width: 44px; min-height: 44px; }\n")
 
-# oblouky: [zacatek, konec] barevneho prechodu - procesor, pamet, disk
-RING_COLORS = [[[1.0, 0.62, 0.26], [0.36, 0.89, 0.46]], [[0.53, 0.93, 0.35], [0.12, 0.84, 0.55]], [[0.25, 0.86, 0.85], [0.33, 0.62, 1.0]]]
+# Tlumene akcenty: procesor, pamet, disk. Barva slouzi jen k rozliseni metrik.
+RING_COLORS = [[[0.65, 0.76, 1.0], [0.78, 0.85, 1.0]], [[0.52, 0.83, 0.77], [0.72, 0.92, 0.84]], [[0.72, 0.66, 0.94], [0.85, 0.79, 1.0]]]
 
 conf = {"enabled": True, "widgets": [], "side": "right", "pos": {}}
 # wins: nazev -> okno karty; placed: nazev -> [x, y] na obrazovce; settings = galerie (nahledy)
 ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}}
-theme = {"provider": 0, "wallpaper": "", "surface": 0, "map": []}
+theme = {"provider": 0, "wallpaper": "", "surface": 0, "map": [], "geometry": []}
 drag = {"name": "", "start": [], "origin": [], "moved": False}
 cpu = {"busy": 0, "total": 0, "pct": 0, "recent": []}
 stats = {"cpu": 0, "mem": 0, "disk": 0, "disk_at": 0.0}
@@ -151,68 +156,10 @@ function set_widgets(names):
     return write_conf_value("WIDGETS", ",".join(names))
 end
 
-# ---- barevne sklo podle tapety --------------------------------------------------------------
+# ---- matne sklo podle tapety ---------------------------------------------------------------
 
 function clamp(x, lo, hi):
     return max(lo, min(hi, x))
-end
-
-# [r, g, b] 0-1 -> [h 0-1, s, l]
-function rgb_to_hsl(c):
-    mx = max(c[0], c[1], c[2])
-    mn = min(c[0], c[1], c[2])
-    l = (mx + mn) / 2.0
-    if mx - mn < 0.0001:
-        return [0.0, 0.0, l]
-    end
-    d = mx - mn
-    s = d / (mx + mn)
-    if l > 0.5:
-        s = d / (2.0 - mx - mn)
-    end
-    h = 0.0
-    if mx == c[0]:
-        h = (c[1] - c[2]) / d
-        if c[1] < c[2]:
-            h = h + 6.0
-        end
-    elif mx == c[1]:
-        h = (c[2] - c[0]) / d + 2.0
-    else:
-        h = (c[0] - c[1]) / d + 4.0
-    end
-    return [h / 6.0, s, l]
-end
-
-function hue_part(p, q, t):
-    if t < 0.0:
-        t = t + 1.0
-    end
-    if t > 1.0:
-        t = t - 1.0
-    end
-    if t < 1.0 / 6.0:
-        return p + (q - p) * 6.0 * t
-    end
-    if t < 0.5:
-        return q
-    end
-    if t < 2.0 / 3.0:
-        return p + (q - p) * (2.0 / 3.0 - t) * 6.0
-    end
-    return p
-end
-
-function hsl_to_rgb(h, s, l):
-    if s < 0.0001:
-        return [l, l, l]
-    end
-    q = l + s - l * s
-    if l < 0.5:
-        q = l * (1.0 + s)
-    end
-    p = 2.0 * l - q
-    return [hue_part(p, q, h + 1.0 / 3.0), hue_part(p, q, h), hue_part(p, q, h - 1.0 / 3.0)]
 end
 
 # Tapeta plochy z xfconf (LuxOS ma na vsech monitorech a plochach stejnou)
@@ -240,122 +187,191 @@ function wallpaper_path():
     return best
 end
 
-# Tapeta zmensena do obrazku cairo (vzorkovani barvy pod kartami); map = [sirka, vyska, meritko, posun x, y]
+# Dvoupruchodovy Gaussuv filtr na malem obrazku (1, 4, 6, 4, 1).
+# Barvy tapety zustanou viditelne, s mirnou desaturaci a mlecnym zavojem.
+# Kontrast se resi az podle oblasti karty, nikoli ztmavenim cele tapety.
+function glass_surface(source, w, h):
+    weights = [1.0, 4.0, 6.0, 4.0, 1.0]
+    for axis in range(2):
+        out = cairo.image_surface_create(cairo.FORMAT_RGB24, w, h)
+        cr = cairo.create(out)
+        for y in range(h):
+            for x in range(w):
+                rgb = [0.0, 0.0, 0.0]
+                for k in range(5):
+                    sx = x
+                    sy = y
+                    if axis == 0:
+                        sx = Int(clamp(x + k - 2, 0, w - 1))
+                    else:
+                        sy = Int(clamp(y + k - 2, 0, h - 1))
+                    end
+                    px = cairo.image_surface_pixel(source, sx, sy)
+                    rgb[0] = rgb[0] + Float((px >> 16) & 255) * weights[k] / 4080.0
+                    rgb[1] = rgb[1] + Float((px >> 8) & 255) * weights[k] / 4080.0
+                    rgb[2] = rgb[2] + Float(px & 255) * weights[k] / 4080.0
+                end
+                if axis == 1:
+                    lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+                    rgb = [0.22 + (rgb[0] * 0.72 + lum * 0.28) * 0.72,
+                           0.22 + (rgb[1] * 0.72 + lum * 0.28) * 0.72,
+                           0.22 + (rgb[2] * 0.72 + lum * 0.28) * 0.72]
+                end
+                call cairo.set_source_rgb(cr, rgb[0], rgb[1], rgb[2])
+                call cairo.rectangle(cr, x, y, 1, 1)
+                call cairo.fill(cr)
+            end
+        end
+        call cairo.destroy(cr)
+        call cairo.surface_destroy(source)
+        source = out
+    end
+    return source
+end
+
+# [svetle sklo, nepruhlednost zavoje]. Extremy se berou z celeho vyrezu v malem
+# podkladu: i na tapete s prechodem drzi citelnost jednotna barva textu v cele karte.
+function glass_style(surface, sx, sy, sw, sh):
+    pw = cairo.image_surface_get_width(surface)
+    ph = cairo.image_surface_get_height(surface)
+    lo = 1.0
+    hi = 0.0
+    total = 0.0
+    count = 0
+    for y in range(Int(max(0, sy)), Int(min(ph - 1, sy + sh + 1)) + 1):
+        for x in range(Int(max(0, sx)), Int(min(pw - 1, sx + sw + 1)) + 1):
+            px = cairo.image_surface_pixel(surface, x, y)
+            r = Float((px >> 16) & 255) / 255.0
+            g = Float((px >> 8) & 255) / 255.0
+            b = Float(px & 255) / 255.0
+            lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            # RMS drzi rezervu i pro syte cervene/modre pozadi (prostemu prumeru by uniklo).
+            energy = 0.2126 * r * r + 0.7152 * g * g + 0.0722 * b * b
+            peak = 1.0
+            for step in range(6):
+                peak = (peak + energy / peak) / 2.0
+            end
+            lo = min(lo, lum)
+            hi = max(hi, peak)
+            total = total + lum
+            count = count + 1
+        end
+    end
+    light = total / Float(max(1, count)) >= 0.56
+    if light:
+        return [True, clamp((0.64 - lo) / max(0.001, 1.0 - lo), 0.0, 1.0)]
+    end
+    return [False, clamp(1.0 - 0.37 / max(0.001, hi), 0.0, 1.0)]
+end
+
+# Jeden sdileny rozostreny podklad pro vsechny karty; bez snimani obrazovky a bez kompozitoroveho blur.
+# Mapa = [sirka, vyska, meritko, posun x, y], tapeta "priblizit" vyplni monitor a prebytek orizne.
 function load_wallpaper(path):
     if theme["surface"] != 0:
         call cairo.surface_destroy(theme["surface"])
         theme["surface"] = 0
     end
+    geo = gtk.monitor_geometry(0)
+    theme["geometry"] = geo
     if path == "" or not exists(path):
         return 0
     end
-    pb = gtk.pixbuf_new_from_file_at_scale(path, 320, 320, True)
+    pb = gtk.pixbuf_new_from_file_at_scale(path, 96, 96, True)
     if pb == 0:
         return 0
     end
     pw = gtk.pixbuf_get_width(pb)
     ph = gtk.pixbuf_get_height(pb)
-    surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, pw, ph)
+    surface = cairo.image_surface_create(cairo.FORMAT_RGB24, pw, ph)
     cr = cairo.create(surface)
+    call cairo.set_source_rgb(cr, 0.15, 0.17, 0.21)
+    call cairo.paint(cr)
     call gtk.cairo_set_source_pixbuf(cr, pb, 0, 0)
     call cairo.paint(cr)
     call cairo.destroy(cr)
     call glib.object_unref(pb)
-    # tapeta "priblizit" (vyplni obrazovku, prebytek oriznuty)
-    geo = gtk.monitor_geometry(0)
     mw = Float(max(1, geo[2]))
     mh = Float(max(1, geo[3]))
-    sc = max(Float(pw) / mw, Float(ph) / mh)
-    theme["surface"] = surface
+    sc = min(Float(pw) / mw, Float(ph) / mh)
+    theme["surface"] = glass_surface(surface, pw, ph)
     theme["map"] = [pw, ph, sc, (Float(pw) - mw * sc) / 2.0 - Float(geo[0]) * sc, (Float(ph) - mh * sc) / 2.0 - Float(geo[1]) * sc]
     return 0
 end
 
-# Prumerna barva tapety v obdelniku obrazovky ([r, g, b] 0-1) nebo None
-function sample_rect(x, y, w, h):
-    if theme["surface"] == 0:
-        return None
+# Podklad pred detmi event boxu; False ponecha GTK vykreslit text a ovladaci prvky.
+function on_card_draw(cr, widget):
+    c = card_of(widget)
+    if c == None:
+        return False
     end
-    m = theme["map"]
-    rx0 = Int(clamp(m[3] + Float(x) * m[2], 0.0, Float(m[0] - 1)))
-    rx1 = Int(clamp(m[3] + Float(x + w) * m[2], 0.0, Float(m[0] - 1)))
-    ry0 = Int(clamp(m[4] + Float(y) * m[2], 0.0, Float(m[1] - 1)))
-    ry1 = Int(clamp(m[4] + Float(y + h) * m[2], 0.0, Float(m[1] - 1)))
-    r = 0.0
-    g = 0.0
-    b = 0.0
-    n = 0
-    yy = ry0
-    while yy <= ry1:
-        xx = rx0
-        while xx <= rx1:
-            px = cairo.image_surface_pixel(theme["surface"], xx, yy)
-            r = r + Float((px >> 16) & 255)
-            g = g + Float((px >> 8) & 255)
-            b = b + Float(px & 255)
-            n = n + 1
-            xx = xx + 2
-        end
-        yy = yy + 2
+    a = gtk.widget_get_allocation(c["box"])
+    e = gtk.widget_get_allocation(widget)
+    x = Float(a[0] - e[0])
+    y = Float(a[1] - e[1])
+    w = Float(a[2])
+    h = Float(a[3])
+    if w < 2.0 or h < 2.0:
+        return False
     end
-    if n == 0:
-        return None
-    end
-    return [r / Float(n) / 255.0, g / Float(n) / 255.0, b / Float(n) / 255.0]
-end
-
-# Barva skla: odstin tapety, tmavsi a sytejsi. Vetsinou pruhledne (tapeta prosvita); na svetle tapete
-# o neco hustsi, citelnost bileho pisma drzi hlavne stin textu (CSS text-shadow, shadow_text).
-function tint_rgba(avg):
-    if avg == None:
-        avg = TINT_DEFAULT
-    end
-    hsl = rgb_to_hsl(avg)
-    sat = clamp(hsl[1] * 1.3 + 0.15, 0.0, 0.9)
-    card = hsl_to_rgb(hsl[0], sat, 0.34)
-    lum_wall = 0.2126 * avg[0] + 0.7152 * avg[1] + 0.0722 * avg[2]
-    alpha = 0.18
-    if lum_wall > 0.40:
-        alpha = clamp(0.18 + (lum_wall - 0.40) * 0.45, 0.18, 0.34)
-    end
-    return ("rgba(" + String(Int(card[0] * 255.0)) + ", " + String(Int(card[1] * 255.0)) + ", "
-            + String(Int(card[2] * 255.0)) + ", " + String(Float(Int(alpha * 100.0)) / 100.0) + ")")
-end
-
-# CSS: vychozi barva (stred tapety, nahledy v galerii) a barva kazde umistene karty podle tapety pod ni
-function theme_css():
-    geo = gtk.primary_monitor_workarea()
-    bg = tint_rgba(sample_rect(geo[0] + geo[2] // 3, geo[1] + geo[3] // 3, geo[2] // 3, geo[3] // 3))
-    if ui["settings"]:
-        # nahledy v galerii: svetle sklo na barevnem podkladu
-        bg = "rgba(255, 255, 255, 0.16)"
-    end
-    css = "@define-color lw_bg " + bg + ";\n" + CSS
-    for name in ui["placed"].keys():
-        xy = ui["placed"][name]
-        win = ui["wins"].get(name, 0)
-        h = 140
+    call cairo.save(cr)
+    call cairo.rounded_rectangle(cr, x, y, w, h, GLASS_RADIUS)
+    call cairo.clip(cr)
+    call cairo.set_source_rgba(cr, 0.92, 0.94, 0.98, 0.86)
+    call cairo.paint(cr)
+    style = [True, 0.0]
+    if theme["surface"] != 0:
+        m = theme["map"]
+        geo = gtk.primary_monitor_workarea()
+        pos = [geo[0] + geo[2] // 2, geo[1] + geo[3] // 3]
+        win = ui["wins"].get(c["name"], 0)
         if win != 0:
-            h = max(60, gtk.window_get_size(win)[1])
+            pos = gtk.window_get_position(win)
+            pos = [pos[0] + e[0], pos[1] + e[1]]
         end
-        css = css + ".lw-card.lw-" + name + " { background-color: " + tint_rgba(sample_rect(xy[0] + PAD, xy[1], WIDTH - 2 * PAD, h)) + "; }\n"
+        # Polovicni pixel navic drzi bilinearni filtr uvnitr obrazku i na hrane monitoru.
+        sx = clamp(m[3] + Float(pos[0]) * m[2], 0.5, Float(m[0]) - 0.5 - w * m[2])
+        sy = clamp(m[4] + Float(pos[1]) * m[2], 0.5, Float(m[1]) - 0.5 - h * m[2])
+        style = glass_style(theme["surface"], sx, sy, w * m[2], h * m[2])
+        call cairo.save(cr)
+        call cairo.translate(cr, x, y)
+        call cairo.scale(cr, 1.0 / m[2], 1.0 / m[2])
+        call cairo.set_source_surface(cr, theme["surface"], -sx, -sy)
+        call cairo.paint(cr)
+        call cairo.restore(cr)
     end
-    return css
+    if c.get("light") != style[0]:
+        c["light"] = style[0]
+        call gtk.widget_set_class(c["box"], "lw-light", style[0])
+    end
+    veil = 0.0
+    if style[0]:
+        veil = 1.0
+    end
+    call cairo.set_source_rgba(cr, veil, veil, veil, style[1])
+    call cairo.paint(cr)
+    sheen = cairo.pattern_create_linear(x, y, x + w * 0.35, y + h)
+    call cairo.pattern_add_color_stop_rgba(sheen, 0.0, 1.0, 1.0, 1.0, 0.08)
+    call cairo.pattern_add_color_stop_rgba(sheen, 1.0, 1.0, 1.0, 1.0, 0.0)
+    call cairo.set_source(cr, sheen)
+    call cairo.paint(cr)
+    call cairo.pattern_destroy(sheen)
+    call cairo.restore(cr)
+    return False
 end
 
 function theme_refresh():
-    css = theme_css()
-    if theme["provider"] == 0:
-        theme["provider"] = gtk.css_load(css)
-    else:
-        call gtk.css_set(theme["provider"], css)
+    for c in ui["cards"].values():
+        call gtk.widget_queue_draw(c["ev"])
     end
     return 0
 end
 
 function theme_apply():
+    if theme["provider"] == 0:
+        theme["provider"] = gtk.css_load(CSS)
+    end
     path = wallpaper_path()
-    if path != theme["wallpaper"] or theme["surface"] == 0:
+    if path != theme["wallpaper"] or theme["geometry"] != gtk.monitor_geometry(0):
         theme["wallpaper"] = path
         call load_wallpaper(path)
     end
@@ -389,11 +405,13 @@ end
 function card_new(name, on_click, orientation):
     ev = gtk.event_box_new()
     call gtk.event_box_set_visible_window(ev, False)
+    call gtk.widget_set_margins(ev, 0, 0, 0, 14)
     call gtk.widget_add_events(ev, gtk.BUTTON_PRESS_MASK + gtk.BUTTON_RELEASE_MASK + gtk.POINTER_MOTION_MASK)
     box = gtk.box_new(orientation, 0)
     call gtk.widget_add_class(box, "lw-card")
     call gtk.widget_add_class(box, "lw-" + name)
     call gtk.container_add(ev, box)
+    call gtk.connect(ev, "draw", on_card_draw)
     c = {"ev": ev, "box": box, "name": name, "click": on_click}
     if not ui["settings"]:
         call gtk.connect(ev, "button-press-event", on_card_press)
@@ -457,6 +475,7 @@ function on_card_motion(event, widget):
     win = ui["wins"].get(drag["name"], 0)
     if win != 0:
         call gtk.window_move(win, drag["origin"][0] + Int(dx), drag["origin"][1] + Int(dy))
+        call gtk.widget_queue_draw(widget)
     end
     return True
 end
@@ -596,8 +615,13 @@ function draw_cloud(cr, x, y, w, shade):
     # tri kruhy a zaobleny spodek, svetly prechod
     h = w * 0.58
     pat = cairo.pattern_create_linear(x, y, x, y + h)
-    call cairo.pattern_add_color_stop_rgba(pat, 0.0, 1.0, 1.0, 1.0, 1.0)
-    call cairo.pattern_add_color_stop_rgba(pat, 1.0, shade, shade, shade + 0.04, 1.0)
+    if ui["cards"].get("today", {}).get("light", False):
+        call cairo.pattern_add_color_stop_rgba(pat, 0.0, 0.65, 0.70, 0.79, 1.0)
+        call cairo.pattern_add_color_stop_rgba(pat, 1.0, 0.48, 0.55, 0.66, 1.0)
+    else:
+        call cairo.pattern_add_color_stop_rgba(pat, 0.0, 1.0, 1.0, 1.0, 1.0)
+        call cairo.pattern_add_color_stop_rgba(pat, 1.0, shade, shade, shade + 0.04, 1.0)
+    end
     call cairo.set_source(cr, pat)
     call cairo.new_path(cr)
     call cairo.arc(cr, x + w * 0.30, y + h * 0.62, h * 0.36, 0.0, 2.0 * cairo.PI)
@@ -907,11 +931,18 @@ function on_calendar_click(event, widget):
     return True
 end
 
-# Text kresleny cairem se stinem jako CSS text-shadow karet (citelnost na pruhlednem skle)
-function shadow_text(cr, x, y, text, font, alpha):
-    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.40 * alpha)
-    call pango.draw_text(cr, Float(x), Float(y) + 1.0, text, font)
-    call white(cr, alpha)
+# Text je citelny diky omezenemu jasu skla, bez tvrdeho obrysu a stinu.
+function ink(cr, name, alpha):
+    if ui["cards"].get(name, {}).get("light", False):
+        call cairo.set_source_rgba(cr, 0.098, 0.122, 0.169, alpha)
+    else:
+        call white(cr, alpha)
+    end
+    return 0
+end
+
+function glass_text(cr, name, x, y, text, font, alpha):
+    call ink(cr, name, alpha)
     call pango.draw_text(cr, Float(x), Float(y), text, font)
     return 0
 end
@@ -922,7 +953,7 @@ function on_calendar_draw(cr, area):
     year = d[0]
     month = d[1]
     today = d[2]
-    call shadow_text(cr, 2, 0, glib.format_date(year, month, 1, "%OB %Y"), "Inter Bold 10", 1.0)
+    call glass_text(cr, "calendar", 2, 0, glib.format_date(year, month, 1, "%OB %Y"), "Inter Bold 10", 1.0)
     first = glib.first_weekday()
     col_w = width / 7.0
     # zkratky dnu (2024-01-01 je pondeli)
@@ -930,7 +961,7 @@ function on_calendar_draw(cr, area):
         wd = ((first - 1 + i) % 7) + 1
         name = glib.format_date(2024, 1, wd, "%a")
         size = pango.text_size(cr, name, "Inter 8")
-        call shadow_text(cr, Float(i) * col_w + (col_w - Float(size[0])) / 2.0, 22, name, "Inter 8", 0.75)
+        call glass_text(cr, "calendar", Float(i) * col_w + (col_w - Float(size[0])) / 2.0, 22, name, "Inter 8", 0.90)
     end
     offset = (glib.weekday(year, month, 1) - first + 7) % 7
     days = glib.days_in_month(year, month)
@@ -943,19 +974,23 @@ function on_calendar_draw(cr, area):
         font = "Inter 9"
         if day == today:
             font = "Inter Bold 9"
-            call white(cr, 1.0)
+            call ink(cr, "calendar", 1.0)
             call cairo.arc(cr, x + col_w / 2.0, y + 8.0, 9.5, 0.0, 2.0 * cairo.PI)
             call cairo.fill(cr)
         end
         size = pango.text_size(cr, num, font)
         tx = x + (col_w - Float(size[0])) / 2.0
         if day == today:
-            call cairo.set_source_rgba(cr, 0.10, 0.10, 0.14, 1.0)
+            if ui["cards"]["calendar"].get("light", False):
+                call white(cr, 1.0)
+            else:
+                call cairo.set_source_rgba(cr, 0.10, 0.10, 0.14, 1.0)
+            end
             call pango.draw_text(cr, tx, y, num, font)
         elif glib.weekday(year, month, day) >= 6:
-            call shadow_text(cr, tx, y, num, font, 0.72)
+            call glass_text(cr, "calendar", tx, y, num, font, 0.90)
         else:
-            call shadow_text(cr, tx, y, num, font, 1.0)
+            call glass_text(cr, "calendar", tx, y, num, font, 1.0)
         end
     end
     return True
@@ -1111,7 +1146,7 @@ end
 
 # male ikony uvnitr oblouku (bile obrysy): 0 procesor, 1 pamet, 2 disk
 function draw_gauge_icon(cr, kind, cx, cy):
-    call white(cr, 0.95)
+    call ink(cr, "system", 0.95)
     call cairo.set_line_width(cr, 1.4)
     call cairo.set_line_cap(cr, 1)
     if kind == 0:
@@ -1164,15 +1199,18 @@ function on_system_draw(cr, area):
     for i in range(3):
         cx = Float(i) * col_w + col_w / 2.0
         cy = 34.0
-        call cairo.set_line_width(cr, 5.0)
+        call cairo.set_line_width(cr, 3.5)
         call cairo.set_line_cap(cr, 1)
-        call white(cr, 0.22)
+        call ink(cr, "system", 0.14)
         call cairo.new_path(cr)
         call cairo.arc(cr, cx, cy, r, start, start + sweep)
         call cairo.stroke(cr)
         frac = Float(max(0, min(100, values[i]))) / 100.0
         if frac > 0.0:
             colors = RING_COLORS[i]
+            if ui["cards"]["system"].get("light", False):
+                colors = [[[0.20, 0.37, 0.70], [0.31, 0.49, 0.83]], [[0.10, 0.44, 0.36], [0.17, 0.56, 0.43]], [[0.43, 0.29, 0.67], [0.57, 0.40, 0.78]]][i]
+            end
             pat = cairo.pattern_create_linear(cx - r, cy + r, cx + r, cy - r)
             call cairo.pattern_add_color_stop_rgba(pat, 0.0, colors[0][0], colors[0][1], colors[0][2], 1.0)
             call cairo.pattern_add_color_stop_rgba(pat, 1.0, colors[1][0], colors[1][1], colors[1][2], 1.0)
@@ -1183,11 +1221,11 @@ function on_system_draw(cr, area):
             call cairo.pattern_destroy(pat)
         end
         call draw_gauge_icon(cr, i, cx, cy - 9.0)
-        num = String(values[i]) + " %"
+        num = String(values[i]) + "%"
         size = pango.text_size(cr, num, "Inter Bold 10")
-        call shadow_text(cr, cx - Float(size[0]) / 2.0, cy + 3.0, num, "Inter Bold 10", 1.0)
+        call glass_text(cr, "system", cx - Float(size[0]) / 2.0, cy + 3.0, num, "Inter Bold 10", 1.0)
         size = pango.text_size(cr, names[i], "Inter 9")
-        call shadow_text(cr, cx - Float(size[0]) / 2.0, cy + r - 1.0, names[i], "Inter 9", 0.9)
+        call glass_text(cr, "system", cx - Float(size[0]) / 2.0, cy + r + 3.0, names[i], "Inter 9", 0.90)
     end
     return True
 end
@@ -1239,7 +1277,7 @@ function build_system():
     call gtk.box_pack_start(c["box"], sep, False, False, 0)
 
     area = area_new()
-    call gtk.widget_set_size_request(area, WIDTH - 2 * PAD - 38, 82)
+    call gtk.widget_set_size_request(area, WIDTH - 2 * PAD - 38, 88)
     call gtk.connect(area, "draw", on_system_draw)
     call gtk.box_pack_start(c["box"], area, False, False, 0)
     c["area"] = area
@@ -1445,6 +1483,9 @@ end
 
 # Pracovni plocha se meni (lista nastavi rezervovane misto az po startu, jiny monitor, vyska listy)
 function place_tick():
+    if theme["geometry"] != gtk.monitor_geometry(0):
+        call theme_apply()
+    end
     call place_all()
     return True
 end
@@ -1570,7 +1611,7 @@ WIDGET_DESCRIPTIONS = {"today": "Large time and date with the weather of your pl
                        "music": "What is playing, with Play/Pause and Next. Shown only while something plays.",
                        "calendar": "This month with today highlighted."}
 
-GALLERY_CSS = (".lw-stage { background-image: linear-gradient(135deg, #3a1c71, #d76d77 55%, #ffaf7b); border-radius: 18px; padding: 18px 0 4px 0; }\n"
+GALLERY_CSS = (".lw-stage { background-image: linear-gradient(135deg, #23334f, #65798f); border-radius: 18px; padding: 18px 0 4px 0; }\n"
     + ".lw-gname { font-weight: 700; font-size: 14px; }\n"
     + ".lw-gdesc { font-size: 12px; opacity: 0.7; }\n"
     + "button.lw-add { border-radius: 999px; padding: 4px 16px; font-weight: 600; }\n"
