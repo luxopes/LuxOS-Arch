@@ -5,7 +5,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Mail</name>
-  <summary>Read, write and send email and get notified about new messages</summary>
+  <summary>Read, write and send email; get notified about new messages</summary>
   <launchable type="desktop-id">luxos-mail.desktop</launchable>
   <description>
     <p>Mail is a light, fast mail app for any IMAP mailbox. It tells you the moment new mail arrives – even when its window is closed.</p>

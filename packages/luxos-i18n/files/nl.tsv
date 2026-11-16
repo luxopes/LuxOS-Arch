@@ -5215,3 +5215,6 @@ Generic Monitor	Algemene monitor
 Show output of a command.	Uitvoer van een opdracht tonen.
 Status Tray Plugin	Statusvak
 Provides status notifier items (application indicators) and legacy systray items	Toont statuspictogrammen van apps (indicatoren) en oudere pictogrammen in het statusvak
+# Posta pro odkazy mailto (luxos-mail-reader)
+No mail app is installed	Er is geen mail-app geïnstalleerd
+Install one from the LuxOS Store, for example Thunderbird.	Installeer er een uit de LuxOS Store, bijvoorbeeld Thunderbird.

@@ -5216,3 +5216,6 @@ Generic Monitor	Monitor ogólny
 Show output of a command.	Pokaż wynik polecenia.
 Status Tray Plugin	Obszar powiadomień
 Provides status notifier items (application indicators) and legacy systray items	Wyświetla ikony stanu aplikacji (wskaźniki) i starsze ikony obszaru powiadomień
+# Posta pro odkazy mailto (luxos-mail-reader)
+No mail app is installed	Nie zainstalowano żadnej aplikacji pocztowej
+Install one from the LuxOS Store, for example Thunderbird.	Zainstaluj ją ze Sklepu LuxOS, na przykład Thunderbird.

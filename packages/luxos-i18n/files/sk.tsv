@@ -5215,3 +5215,6 @@ Generic Monitor	Všeobecné sledovanie
 Show output of a command.	Zobraziť výstup príkazu.
 Status Tray Plugin	Oznamovacia oblasť
 Provides status notifier items (application indicators) and legacy systray items	Zobrazuje ikony stavu aplikácií (indikátory) a staršie ikony oznamovacej oblasti
+# Posta pro odkazy mailto (luxos-mail-reader)
+No mail app is installed	Nie je nainštalovaná žiadna poštová aplikácia
+Install one from the LuxOS Store, for example Thunderbird.	Nainštalujte si ju z Obchodu LuxOS, napríklad Thunderbird.

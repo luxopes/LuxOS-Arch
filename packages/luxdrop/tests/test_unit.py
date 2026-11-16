@@ -532,5 +532,15 @@ class TestStore(unittest.TestCase):
         self.assertEqual(transfer.fmt_addr("::1", 5), "[::1]:5")
 
 
+class DesktopFileTest(unittest.TestCase):
+    def test_app_claims_no_file_types(self):
+        """Dvojklik na neznamy soubor nebo slozku nesmi otevrit LuxDrop; posila se pres Odeslat do."""
+        files = os.path.join(HERE, "..", "files")
+        with open(os.path.join(files, "luxdrop.desktop"), encoding="utf-8") as f:
+            self.assertNotIn("\nMimeType=", "\n" + f.read())
+        with open(os.path.join(files, "thunar", "luxdrop-sendto.desktop"), encoding="utf-8") as f:
+            self.assertIn("MimeType=application/octet-stream;inode/directory;", f.read())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

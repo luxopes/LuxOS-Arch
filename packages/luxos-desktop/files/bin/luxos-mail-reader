@@ -1,0 +1,36 @@
+#!/bin/bash
+# LuxOS - postovni aplikace pro exo-open (MailReader v helpers.rc): odkazy mailto: ze Souboru, xdg-email.
+#   luxos-mail-reader [mailto:adresa?subject=...]
+# 1) aplikace nastavena pro odkazy mailto (vlastni volba, LuxOS Mail, Thunderbird z Obchodu ...)
+# 2) nainstalovana znama postovni aplikace (LuxOS Mail, Thunderbird i z Flathubu)
+# 3) zadna: oznameni a Obchod LuxOS s hledanim postovnich aplikaci (driv chybejici Thunderbird
+#    ukazal jen dialog exo "Vyberte postovni aplikaci" bez jedine moznosti)
+url=${1-}
+[[ -n $url && $url != mailto:* && $url == *@* ]] && url="mailto:$url"
+
+launch() {  # launch DESKTOP-ID
+    gio launch "$(desktop_path "${1%.desktop}")" ${url:+"$url"} >/dev/null 2>&1
+}
+
+desktop_path() {  # cesta k .desktop podle XDG (gio launch chce soubor)
+    local d dirs
+    IFS=: read -ra dirs <<<"${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    for d in "${dirs[@]}"; do
+        [[ -f $d/applications/$1.desktop ]] && { printf '%s\n' "$d/applications/$1.desktop"; return; }
+    done
+    printf '%s\n' "$1.desktop"
+}
+
+app=$(xdg-mime query default x-scheme-handler/mailto 2>/dev/null)
+if [[ -n $app && $app != luxos-mail-reader* ]] && [[ -f $(desktop_path "${app%.desktop}") ]]; then
+    launch "$app" && exit 0
+fi
+for id in luxos-mail org.mozilla.Thunderbird thunderbird org.gnome.Evolution org.gnome.Geary; do
+    [[ -f $(desktop_path "$id") ]] && launch "$id" && exit 0
+done
+
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
+notify-send -a "$(T "LuxOS Store")" -i mail-unread "$(T "No mail app is installed")" \
+    "$(T "Install one from the LuxOS Store, for example Thunderbird.")" 2>/dev/null
+command -v luxos-store >/dev/null && exec luxos-store "mail"
+exit 1

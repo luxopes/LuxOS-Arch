@@ -5215,3 +5215,6 @@ Generic Monitor	Monitor genérico
 Show output of a command.	Mostrar la salida de un comando.
 Status Tray Plugin	Área de notificación
 Provides status notifier items (application indicators) and legacy systray items	Muestra los iconos de estado de las apps (indicadores) y los iconos antiguos del área de notificación
+# Posta pro odkazy mailto (luxos-mail-reader)
+No mail app is installed	No hay ninguna aplicación de correo instalada
+Install one from the LuxOS Store, for example Thunderbird.	Instala una desde la tienda de LuxOS, por ejemplo Thunderbird.
