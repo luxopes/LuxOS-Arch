@@ -2,7 +2,7 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=14
+pkgrel=15
 pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting, /tmp on disk"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -59,6 +59,9 @@ package() {
     install -Dm644 "$f/boot/luxos-slim.hook" "$pkgdir/usr/lib/initcpio/install/luxos-slim"
     install -Dm644 "$f/boot/zz-luxos-slim.conf" "$pkgdir/usr/lib/luxos/boot/zz-luxos-slim.conf"
     install -Dm644 "$f/boot/luxos-emergency.conf" "$pkgdir/usr/lib/systemd/system/emergency.service.d/luxos-boot-failure.conf"
+    # Kontrola zavadece Secure Boot (luxos-secureboot) dobehne na pozadi, prihlasovaci obrazovka na ni neceka
+    install -Dm644 "$f/boot/secureboot-sync-nowait.conf" \
+        "$pkgdir/usr/lib/systemd/system/luxos-secureboot-sync.service.d/10-luxos-no-wait.conf"
     # /tmp na disku misto v pameti (swap je jen zram, tmpfs vzdy zabira RAM): subvolume @tmp nebo
     # slozka korene, vyprazdneni pri startu; prechod u stavajicich instalaci (instalacni skript
     # a jednou pri startu), live ISO zustava s tmpfs

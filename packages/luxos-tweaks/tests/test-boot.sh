@@ -130,6 +130,21 @@ DESC="systemd initramfs: hook pridan"; ok test "$(hooks "base systemd plymouth b
 DESC="uz pridany: neopakuje se"; ok test "$(hooks "base systemd luxos-boot")" = "base systemd luxos-boot"
 DESC="live ISO (udev, bez systemd): beze zmeny"; ok test "$(hooks "base udev archiso block")" = "base udev archiso block"
 
+echo "## luxos-secureboot-sync nezdrzuje graphical.target (audit 1.0.2: 8,8 s -> 3,2 s ve VM)"
+D=$B/secureboot-sync-nowait.conf
+key() { sed -n "s/^$1=//p" "$D" | tr '\n' ' '; }
+DESC="drop-in: bez vychozich zavislosti (cil na sluzbu neceka)"; ok test "$(key DefaultDependencies)" = "no "
+DESC="drop-in: po sysinit.target"; ok test "$(key After)" = "sysinit.target "
+DESC="drop-in: zastavi se pred vypnutim (ExecStop nastavi BootNext)"; ok test "$(key Conflicts)$(key Before)" = "shutdown.target shutdown.target "
+DESC="PKGBUILD: drop-in pro luxos-secureboot-sync.service"; ok grep -q 'luxos-secureboot-sync.service.d/10-luxos-no-wait.conf' "$HERE/../PKGBUILD"
+if command -v systemd-analyze >/dev/null; then
+    mkdir -p "$T/units/luxos-secureboot-sync.service.d"
+    cp "$HERE/../../luxos-secureboot/files/luxos-secureboot-sync.service" "$T/units/"
+    cp "$D" "$T/units/luxos-secureboot-sync.service.d/10-luxos-no-wait.conf"
+    DESC="systemd-analyze verify: jednotka s drop-inem je platna"
+    ok bash -c 'SYSTEMD_UNIT_PATH="$1:" systemd-analyze verify --man=no "$1/luxos-secureboot-sync.service" 2>&1 | grep -v "luxos-secureboot\b.*not executable\|is not executable\|Command .* is not executable" | { ! grep -qi "error\|unknown"; }' _ "$T/units"
+fi
+
 echo
 echo "Vysledek: $FAIL FAIL"
 exit $((FAIL > 0))
