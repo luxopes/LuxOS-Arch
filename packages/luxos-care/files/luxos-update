@@ -103,6 +103,29 @@ def history(limit=40):
     return out[-limit:][::-1]
 
 
+def last_upgrade(log=None, limit=262144):
+    """Cas posledni aktualizace baliku podle zaznamu spravce baliku ("[...] [ALPM] upgraded ...").
+    Aktualizace prikazem lux update (Terminal, tlacitko v uvitacim okne) LuxOS Care nezapise -
+    okno pak ukazovalo "Posledni aktualizace: nikdy" hned po aktualizaci. 0 = nevime."""
+    import datetime
+    log = log or ROOT + "/var/log/lux.log"
+    try:
+        with open(log, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - limit))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return 0
+    for line in reversed(lines):
+        if "] [ALPM] upgraded " not in line or not line.startswith("["):
+            continue
+        try:
+            return int(datetime.datetime.strptime(line[1:line.index("]")], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+        except ValueError:
+            continue
+    return 0
+
+
 def when(t):
     if not t:
         return _("never")
@@ -396,7 +419,7 @@ class App:
             self.title.set_text(_("Updates could not be installed"))
         else:
             self.title.set_text(_("LuxOS is up to date"))
-        sub = [_("Last update: %s") % when(st.get("last_update")),
+        sub = [_("Last update: %s") % when(max(int(st.get("last_update", 0) or 0), last_upgrade())),
                _("Last check: %s") % when(max(int(st.get("last_check", 0) or 0),
                                               int(st.get("last_check_updates", 0) or 0)))]
         if mode == "carefree" and st.get("last_skip_reason") and not prog:
