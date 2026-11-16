@@ -85,6 +85,24 @@ class TestSources(unittest.TestCase):
             self.skipTest("prebuilt module given")
         self.assertTrue(os.path.exists(build_module(d)))
 
+    def test_module_stays_resident(self):
+        """Odebrani z Gtk/Modules (GTK zavola g_module_close) modul neuvolni - jinak spadnou vsechny aplikace."""
+        d = workdir("test-scroll-resident-")
+        self.addCleanup(shutil.rmtree, d, True)
+        so = build_module(d)
+        code = (
+            "import ctypes, sys\n"
+            "g = ctypes.CDLL('libgmodule-2.0.so.0')\n"
+            "g.g_module_open.restype = ctypes.c_void_p\n"
+            "g.g_module_open.argtypes = [ctypes.c_char_p, ctypes.c_int]\n"
+            "g.g_module_close.argtypes = [ctypes.c_void_p]\n"
+            "m = g.g_module_open(sys.argv[1].encode(), 0)\n"
+            "assert m, 'open failed'\n"
+            "g.g_module_close(m)\n"
+            "print(sys.argv[1] in open('/proc/self/maps').read())\n")
+        out = subprocess.run([sys.executable, "-c", code, so], capture_output=True, text=True, check=True)
+        self.assertEqual(out.stdout.strip(), "True", out.stderr)
+
     def test_loaded_by_xsettings(self):
         """Modul nacita xsettings Gtk/Modules (vychozi kanal i blok luxos-session)."""
         with open(os.path.join(FILES, "xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")) as f:
