@@ -885,6 +885,13 @@ class Channel(Base):
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("update channel: staging", r.stdout)
+        # cesky "lux config check" (regrese audit 1.0.2: radek s kanalem jen anglicky)
+        i18n = os.path.join(PKG, "..", "luxos-i18n", "files")
+        r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "check", conf],
+                           capture_output=True, text=True,
+                           env=dict(os.environ, LANG="cs_CZ.UTF-8", LC_ALL="", LC_MESSAGES="",
+                                    PYTHONPATH=i18n, LUXOS_I18N_DIR=i18n))
+        self.assertIn("kanál aktualizací: staging (testovací", r.stdout)
         env = dict(os.environ, XDG_CONFIG_HOME=self.path("none"), XDG_RUNTIME_DIR=self.path("run"))
         os.makedirs(self.path("run"), exist_ok=True)
         r = subprocess.run([sys.executable, os.path.join(PKG, "lux_config.py"), "get", "general.channel",

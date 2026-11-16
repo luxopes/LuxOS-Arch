@@ -5218,3 +5218,5 @@ Provides status notifier items (application indicators) and legacy systray items
 # Posta pro odkazy mailto (luxos-mail-reader)
 No mail app is installed	Nincs telepítve levelezőalkalmazás
 Install one from the LuxOS Store, for example Thunderbird.	Telepítsen egyet a LuxOS Áruházból, például a Thunderbirdöt.
+test builds before a release - for testers	kiadás előtti tesztverziók – tesztelőknek
+Preparing the package signing keys…	Csomagellenőrző kulcsok előkészítése…

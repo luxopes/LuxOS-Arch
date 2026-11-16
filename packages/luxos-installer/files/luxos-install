@@ -1909,6 +1909,12 @@ install_packages() {
     engine_conf=$("$LUX_CONFIG_TOOL" ensure --quiet) || fail "$(T "The package manager configuration of the live system is broken.")"
     local -a conf=(-C "$engine_conf")
     engine_shim
+    # Live ISO: klicenka podpisu (lux-keyring-init) se pripravuje na pozadi po startu, aby nezdrzovala
+    # plochu - pacstrap ji potrebuje hotovou (kopiruje ji a overuje s ni podpisy). Hotova = hned zpet.
+    if [[ -d /run/archiso ]] && ! systemctl is-active --quiet lux-keyring-init.service 2>/dev/null; then
+        progress "STATUS $(T "Preparing the package signing keys…")"
+        systemctl start lux-keyring-init.service >>"$LOG" 2>&1 || true
+    fi
     local log_from missing
     for attempt in 1 2 3 4 5; do
         log_from=$(($(wc -l <"$LOG" 2>/dev/null || echo 0) + 1))

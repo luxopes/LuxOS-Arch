@@ -1512,7 +1512,7 @@ class Lux:
             p = db.get_pkg(target)
             if p:
                 return [p]
-        name = re.split(r"[<>=]", target, 1)[0]
+        name = re.split(r"[<>=]", target, maxsplit=1)[0]
         if name == target:
             for db in dbs:
                 grp = db.read_grp(target) if hasattr(db, "read_grp") else None
@@ -1568,7 +1568,7 @@ class Lux:
         extra = []
         for p in pulled:
             for prov in p.provides:
-                virt = re.split(r"[<>=]", prov, 1)[0]
+                virt = re.split(r"[<>=]", prov, maxsplit=1)[0]
                 if not virt.endswith("-driver"):
                     continue
                 for name in prefer + GPU_FALLBACK.get(virt, []):
@@ -1577,7 +1577,7 @@ class Lux:
                     cand = next((db.get_pkg(name) for db in dbs if db.get_pkg(name)), None)
                     if cand is None:
                         continue
-                    if name == virt or any(re.split(r"[<>=]", x, 1)[0] == virt for x in cand.provides):
+                    if name == virt or any(re.split(r"[<>=]", x, maxsplit=1)[0] == virt for x in cand.provides):
                         extra.append(cand)
                         planned.add(name)
                         break
@@ -2576,6 +2576,26 @@ def migration_pending(root="/"):
                 os.path.lexists(p("var/log/pacman.log")), os.path.islink(p("var/cache/pacman/pkg"))))
 
 
+LIVE_KEYRING_UNIT = "lux-keyring-init.service"
+
+
+def wait_live_keyring(ui, live="/run/archiso", run=subprocess.run):
+    """Live ISO: klicenka podpisu se pripravuje na pozadi po startu (nezdrzuje plochu). Transakce
+    (Obchod, lux install hned po startu) na ni pocka - jinak by overeni podpisu selhalo."""
+    if not os.path.isdir(live) or os.geteuid() != 0:
+        return
+    try:
+        if run(["systemctl", "is-active", "--quiet", LIVE_KEYRING_UNIT]).returncode == 0:
+            return
+        if run(["systemctl", "cat", LIVE_KEYRING_UNIT], stdout=subprocess.DEVNULL,
+               stderr=subprocess.DEVNULL).returncode != 0:
+            return
+        ui.note(_("Preparing the package signing keys…"))
+        run(["systemctl", "start", LIVE_KEYRING_UNIT])
+    except OSError:
+        pass
+
+
 def maybe_migrate(ui, now=False, force=False):
     """Root: dokonci prechod z pacmanu, kdyz ho hook pri aktualizaci nestihl (stary proces jadra,
     instalace s --nohooks...), a po restartu uklidi pozustatky. Zamek: stara cesta /var/lib/pacman/db.lck
@@ -2715,6 +2735,7 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
     rc = 0
     if args.cmd in ROOT_CMDS and conf is None:
         maybe_migrate(ui)
+        wait_live_keyring(ui)
     global TRANSACTION
     TRANSACTION = args.cmd in ROOT_CMDS
     try:

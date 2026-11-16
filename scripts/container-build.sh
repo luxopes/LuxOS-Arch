@@ -564,19 +564,24 @@ build_iso() {
 # zverejneny pred prvnim vydanim se Secure Boot) = ISO bez nej, jako driv.
 MKARCHISO=mkarchiso
 iso_secureboot() {  # iso_secureboot PROFIL
+    # Doplnky do kopie mkarchiso pred posledni volani (_read_profile ... _build) - funkce mkarchiso uz
+    # jsou definovane: vzdy scripts/mkarchiso-luxos.sh (bez ldconfig pri startu, popisek EFI LUXOS),
+    # se Secure Boot navic mkarchiso-secureboot.sh
+    local -a add=("$ROOT/scripts/mkarchiso-luxos.sh")
     # (bez grep -q: pri pipefail by predcasne ukonceny tar znamenal "neni v repozitari")
     if [[ $(tar -tzf "$REPO/luxos/$ARCH/luxos.db.tar.gz" | grep -c '^luxos-secureboot-[0-9]') == 0 ]]; then
         msg "WARNING: luxos-secureboot is not in [luxos] - ISO without Secure Boot support"
         sed -i '/^luxos-secureboot$/d' "$1/packages.x86_64"
-        return 0
+    else
+        add+=("$ROOT/scripts/mkarchiso-secureboot.sh")
     fi
     MKARCHISO=/tmp/mkarchiso-luxos
     local src
     src=$(command -v mkarchiso)
-    # doplnek pred posledni volani (_read_profile ... _build) - funkce mkarchiso uz jsou definovane
-    awk -v add="$ROOT/scripts/mkarchiso-secureboot.sh" '
-        /^_read_profile$/ && !done { print "source \"" add "\""; done = 1 } { print }
-        END { if (!done) exit 1 }' "$src" >"$MKARCHISO" || { echo "mkarchiso: cannot add the Secure Boot step" >&2; exit 1; }
+    awk -v add="${add[*]}" '
+        /^_read_profile$/ && !done { n = split(add, a, " "); for (i = 1; i <= n; i++) print "source \"" a[i] "\""; done = 1 }
+        { print }
+        END { if (!done) exit 1 }' "$src" >"$MKARCHISO" || { echo "mkarchiso: cannot add the LuxOS steps" >&2; exit 1; }
     chmod 755 "$MKARCHISO"
 }
 

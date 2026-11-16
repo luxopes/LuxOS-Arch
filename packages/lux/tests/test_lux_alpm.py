@@ -157,6 +157,37 @@ class Format(unittest.TestCase):
         self.assertEqual(lux_alpm.fmt_duration(8.2), "8.2 s")
         self.assertEqual(lux_alpm.fmt_duration(72), "1 min 12 s")
 
+    def test_no_positional_maxsplit(self):
+        # Python 3.13+: re.split(..., 1) vypise DeprecationWarning primo uzivateli do terminalu (audit 1.0.2)
+        import re as _re
+        src = open(lux_alpm.__file__, encoding="utf-8").read()
+        self.assertEqual(_re.findall(r're\.(?:split|sub)\([^()\n]*, \d+\)', src), [])
+
+    def test_live_keyring_wait(self):
+        # live ISO: klicenka se pripravuje na pozadi; transakce na ni pocka (audit 1.0.2)
+        from unittest import mock
+
+        class R:
+            def __init__(self, rc):
+                self.returncode = rc
+        calls, notes = [], []
+        ui = types.SimpleNamespace(note=notes.append)
+
+        def run(cmd, **_kw):
+            calls.append(cmd[1])
+            return R({"is-active": 3, "cat": 0, "start": 0}[cmd[1]])
+        live = tempfile.mkdtemp()
+        with mock.patch.object(lux_alpm.os, "geteuid", return_value=0):
+            lux_alpm.wait_live_keyring(ui, live=live, run=run)
+            self.assertEqual(calls, ["is-active", "cat", "start"])
+            self.assertEqual(len(notes), 1)
+            calls.clear()
+            lux_alpm.wait_live_keyring(ui, live=live, run=lambda c, **k: (calls.append(c[1]), R(0))[1])
+            self.assertEqual(calls, ["is-active"])                      # uz hotova: nic necekat
+            calls.clear()
+            lux_alpm.wait_live_keyring(ui, live="/nonexistent-live", run=run)
+            self.assertEqual(calls, [])                                 # nainstalovany system: nic
+
     def test_decimal_comma_outside_english(self):
         # cesky (a v dalsich jazycich LuxOS) desetinna carka - regrese audit 1.0.2 ("12.4 MB" v cestine)
         from unittest import mock

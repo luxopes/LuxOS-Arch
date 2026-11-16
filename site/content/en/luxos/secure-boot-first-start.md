@@ -26,7 +26,7 @@ The blue **MokManager** menu **Perform MOK management** opens. Press the down ar
 
 ## 3. Choose the USB stick
 
-Choose the LuxOS USB stick (labelled **ARCHISO_EFI**, usually the only item) and press **Enter**.
+Choose the LuxOS USB stick (labelled **LUXOS** – on older ISOs **ARCHISO_EFI** – usually the only item) and press **Enter**.
 
 ![MokManager: choose the disk](/assets/secureboot/sb-03-select-disk.webp)
 

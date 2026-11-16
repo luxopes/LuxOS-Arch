@@ -98,7 +98,8 @@ digits() {
 }
 
 confirm() {  # confirm "otazka" -> 0 = ano (vychozi ne)
-    if ((GUM)); then gum confirm --default=false "$1"; return; fi
+    # tlacitka v jazyce systemu (gum bez --affirmative/--negative ukaze anglicke "Yes"/"No")
+    if ((GUM)); then gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$1"; return; fi
     local a
     printf '%s [y/N] ' "$1" >&2
     read -r a || return 1

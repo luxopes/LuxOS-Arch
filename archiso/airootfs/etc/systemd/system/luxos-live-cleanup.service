@@ -8,5 +8,4 @@ After=lux-keyring-init.service
 Type=oneshot
 ExecStart=/usr/share/libalpm/scripts/lux-engine-migrate finish --now
 
-[Install]
-WantedBy=multi-user.target
+# Spousti ho lux-keyring-init.service (Wants=), az po klicence na pozadi - nezdrzuje plochu

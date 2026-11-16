@@ -5218,3 +5218,5 @@ Provides status notifier items (application indicators) and legacy systray items
 # Posta pro odkazy mailto (luxos-mail-reader)
 No mail app is installed	No hay ninguna aplicación de correo instalada
 Install one from the LuxOS Store, for example Thunderbird.	Instala una desde la tienda de LuxOS, por ejemplo Thunderbird.
+test builds before a release - for testers	versiones de prueba antes de una publicación: para probadores
+Preparing the package signing keys…	Preparando las claves de verificación de paquetes…

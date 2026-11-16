@@ -466,6 +466,11 @@ class SignInPanel(Gtk.Box):
              "code-email": self.code_email, "code-verify": self.code_login.entry,
              "register-form": self.reg_name if not self.reg_name.get_text() else self.reg_email,
              "register-verify": self.code_reg.entry}.get(name)
+        # Prazdne pole s napovedou ("E-mail") se nezameruje: GTK 3 napovedu v zamerenem poli skryje
+        # a zbylo by prazdne pole bez popisku (instalator, krok LuxAI). Pole kodu se zameruje vzdy.
+        if (w in (self.pw_email, self.code_email, self.reg_name, self.reg_email)
+                and not w.get_text() and w.get_placeholder_text()):
+            return False
         if w and w.get_mapped() and w.get_sensitive():
             w.grab_focus_without_selecting()
         return False
