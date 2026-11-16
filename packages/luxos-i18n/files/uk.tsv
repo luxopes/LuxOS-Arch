@@ -5036,6 +5036,116 @@ Time is up	Час вийшов
 Tomorrow	Завтра
 Weekdays	Робочі дні
 Weekends	Вихідні
+No snapshots yet. One is taken before every update.	Знімків ще немає. Знімок створюється перед кожним оновленням.
+running now	зараз запущено
+not in the boot menu	немає в меню завантаження
+Snapshot %s created.	Знімок %s створено.
+Add --yes to confirm (lux rollback asks first).	Підтвердьте параметром --yes (lux rollback спершу запитає).
+Done. After a restart LuxOS starts as it was: %s	Готово. Після перезавантаження LuxOS запуститься в стані: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Поточну систему збережено як знімок %s (нічого не видалено).
+No problems found.	Проблем не знайдено.
+Problems found: %d	Знайдено проблем: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Підтвердьте параметром --yes (LuxOS Recovery спершу запитає).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS переінстальовано. Ваші файли та облікові записи збережено.
+The previous system was kept as the snapshot %s (nothing was deleted).	Попередню систему збережено як знімок %s (нічого не видалено).
+Not reinstalled (not from the repositories): %s	Не переінстальовано (не з репозиторіїв): %s
+Usage: luxos-app-reset reset <app>	Використання: luxos-app-reset reset <програма>
+No settings found for %s.	Для %s не знайдено жодних налаштувань.
+%s is running. Quit it first.	%s запущено. Спершу закрийте програму.
+These folders will be moved to a backup (nothing is deleted):	Ці папки буде переміщено до резервної копії (нічого не видаляється):
+Reset the settings of %s?	Скинути налаштування %s?
+Done. The previous settings are in %s	Готово. Попередні налаштування в %s
+Usage: luxos-app-reset restore <backup folder>	Використання: luxos-app-reset restore <папка резервної копії>
+The backup could not be restored: %s	Не вдалося відновити резервну копію: %s
+The settings were restored.	Налаштування відновлено.
+The settings from before the restore are in %s	Налаштування до відновлення в %s
+Reset App Settings	Скидання налаштувань програм
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Програма, яка поводиться дивно, часто знову працює зі стандартними налаштуваннями. Скидання переміщує її налаштування до папки з резервною копією – нічого не видаляється, і пізніше їх можна відновити.
+Looking for apps…	Пошук програм…
+Other folders with settings	Інші папки з налаштуваннями
+%d apps with settings	Програм із налаштуваннями: %d
+%s is running	%s запущено
+Quit the app first, then reset its settings.	Спершу закрийте програму, потім скиньте її налаштування.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Програма запуститься, наче щойно інстальована. Ці папки буде переміщено до резервної копії (нічого не видаляється):
+Reset	Скинути
+The settings could not be moved	Не вдалося перемістити налаштування
+Settings of %s were reset	Налаштування %s скинуто
+The previous settings are in %s	Попередні налаштування в %s
+Show Backup	Показати резервну копію
+Restore the settings of %s?	Відновити налаштування %s з резервної копії?
+Settings the app has now are moved to a new backup first.	Поточні налаштування програми спершу буде переміщено до нової резервної копії.
+Check the disk	Перевірити диск
+Checking the disk without changing anything. This can take several minutes.	Перевірка диска без жодних змін. Це може тривати кілька хвилин.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS може виправити те, що безпечно виправити: дані з другою копією на диску та завантажувальний розділ.
+Repair now?	Виправити зараз?
+Restore a snapshot	Відновити знімок
+Which state should LuxOS return to?	До якого стану має повернутися LuxOS?
+LuxOS will start as it was: %s	LuxOS запуститься в стані: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Ваші файли в /home не змінюються. Поточну систему буде збережено як знімок.
+Restore this snapshot?	Відновити цей знімок?
+Restart the computer to finish.	Щоб завершити, перезавантажте комп’ютер.
+Reinstall LuxOS	Переінсталювати LuxOS
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS буде знову завантажено й інстальовано з тими самими програмами. Збережуться: ваші файли (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	облікові записи й паролі, мова, клавіатура, мережі Wi-Fi і шифрування диска.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Системні налаштування, які ви змінили самі, буде скинуто. Поточну систему буде збережено як знімок.
+Needs the internet and takes a while (like an update of the whole system).	Потрібен інтернет, триває певний час (як оновлення всієї системи).
+REINSTALL	REINSTALL
+Type %s to continue:	Щоб продовжити, введіть %s:
+The internet is not connected.	Інтернет не під’єднано.
+Connect to Wi-Fi now?	Під’єднатися до Wi-Fi зараз?
+What do you want to do?	Що ви хочете зробити?
+Restore a snapshot (state before an update)	Відновити знімок (стан перед оновленням)
+Reinstall LuxOS (keeps your files and accounts)	Переінсталювати LuxOS (файли й облікові записи збережуться)
+Shut down	Вимкнути
+LuxOS was restored	LuxOS відновлено
+LuxOS is back in the state: %s	LuxOS знову в стані: %s
+LuxOS is running from a snapshot	LuxOS працює зі знімка
+This is LuxOS before the update of %s. Changes are lost after a restart.	Це LuxOS до оновлення від %s. Після перезавантаження зміни буде втрачено.
+Keep this version	Залишити цю версію
+No such snapshot: %s	Знімка %s не існує
+Another package operation is running. Try it again when it finishes.	Триває інша операція з пакетами. Спробуйте ще раз, коли вона завершиться.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	Ядро цього знімка (%s) не збережено, його не можна запустити.
+The system subvolume %s was not found.	Системний підтом %s не знайдено.
+The kernel could not be copied to the boot partition: %s	Не вдалося скопіювати ядро на завантажувальний розділ: %s
+The system disk could not be opened: %s	Не вдалося відкрити системний диск: %s
+The system disk was not found.	Системний диск не знайдено.
+The snapshot could not be created: %s	Не вдалося створити знімок: %s
+The snapshot could not be deleted: %s	Не вдалося видалити знімок: %s
+The list of installed packages could not be read.	Не вдалося прочитати список інстальованих пакетів.
+The current kernel could not be saved, the reinstall was not started.	Не вдалося зберегти поточне ядро, переінсталяцію не розпочато.
+Installing the packages failed (is the internet connected?): %s	Не вдалося інсталювати пакети (чи під’єднано інтернет?): %s
+Creating the initramfs failed: %s	Не вдалося створити initramfs: %s
+Updating the boot loader failed: %s	Не вдалося оновити завантажувач: %s
+Snapshots are not available in the live system.	У живій системі знімки недоступні.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Знімки вимкнено (SNAPSHOTS=no в /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Для знімків потрібна файлова система Btrfs (LuxOS інсталюється на Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Для знімків система має бути на підтомі Btrfs (LuxOS інсталює її як @).
+LuxOS is running from a snapshot.	LuxOS працює зі знімка.
+System snapshots need LuxOS Care (lux install luxos-care).	Для знімків системи потрібен LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS працює зі знімка. Повернення залишить цю версію назавжди.
+Usage: lux rollback <snapshot> (see lux snapshots)	Використання: lux rollback <знімок> (див. lux snapshots)
+Return to which state? (number)	До якого стану повернутися? (номер)
+Return LuxOS to: %s?	Повернути LuxOS до стану: %s?
+CPU	Процесор
+Play/Pause	Відтворити/Пауза
+Widgets	Віджети
+System Health	Стан системи
+Excellent	Відмінний
+Busy	Завантажений
+Clock & Weather	Годинник і погода
+Default Layout	Стандартне розташування
+Drag a widget on the desktop to move it. Right-click it for more.	Перетягніть віджет на робочому столі, щоб перемістити його. Інші дії – через клік правою кнопкою.
+Edit Widgets…	Редагувати віджети…
+Large time and date with the weather of your place. Click the time for Clock.	Великі час і дата з погодою у вашому місці. Клацніть час, щоб відкрити Годинник.
+Music and videos appear here	Тут з’являться музика й відео
+Nothing is playing	Нічого не відтворюється
+Now Playing	Зараз відтворюється
+Put all widgets back under each other in the corner	Знову розмістити всі віджети один під одним у куті
+Show widgets	Показати віджети
+System health with CPU, memory and storage usage.	Стан системи з використанням процесора, пам’яті та сховища.
+This month with today highlighted.	Цей місяць із виділеним сьогоднішнім днем.
+What is playing, with Play/Pause and Next. Shown only while something plays.	Що зараз відтворюється, з кнопками Відтворити/Пауза і Далі. Показується лише під час відтворення.
+Widget	Віджет
 World Clock	Світовий час
 h	год
 min	хв
@@ -5049,3 +5159,5 @@ Archive Manager	Менеджер архівів
 Files Settings	Параметри файлів
 Windows - Advanced	Вікна - додатково
 Web Browser	Веб-браузер
+Sandbox: %s	Пісочниця: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Використання: luxos-sandbox build-install [--asdeps] [--deps "a b"] <назва> < каталог.tar

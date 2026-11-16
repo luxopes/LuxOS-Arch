@@ -2715,7 +2715,7 @@ Done. After a restart LuxOS starts as it was: %s	Hotovo. Po restartu se LuxOS sp
 The current system was kept as the snapshot %s (nothing was deleted).	Současný systém zůstal jako snímek %s (nic se nesmazalo).
 No problems found.	Nenalezeny žádné problémy.
 Problems found: %d	Nalezené problémy: %d
-Add --yes to confirm (LuxOS Recovery asks first).	Potvrďte volbou --yes (Obnova LuxOS se nejdřív zeptá).
+Add --yes to confirm (LuxOS Recovery asks first).	Potvrďte volbou --yes (LuxOS Recovery se nejdřív zeptá).
 LuxOS was reinstalled. Your files and accounts were kept.	LuxOS je přeinstalovaný. Vaše soubory a účty zůstaly.
 The previous system was kept as the snapshot %s (nothing was deleted).	Předchozí systém zůstal jako snímek %s (nic se nesmazalo).
 Not reinstalled (not from the repositories): %s	Nepřeinstalováno (není z repozitářů): %s
@@ -5157,3 +5157,5 @@ Archive Manager	Správce archivů
 Files Settings	Nastavení souborů
 Windows - Advanced	Okna - pokročilé
 Web Browser	Webový prohlížeč
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Použití: luxos-sandbox build-install [--asdeps] [--deps "a b"] <název> < adresář.tar

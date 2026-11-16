@@ -5065,3 +5065,98 @@ Archive Manager	Archivverwaltung
 Files Settings	Dateien-Einstellungen
 Windows - Advanced	Fenster - erweitert
 Web Browser	Webbrowser
+No snapshots yet. One is taken before every update.	Noch keine Schnappschüsse. Vor jedem Update wird einer erstellt.
+running now	läuft gerade
+not in the boot menu	nicht im Startmenü
+Snapshot %s created.	Schnappschuss %s erstellt.
+Add --yes to confirm (lux rollback asks first).	Mit --yes bestätigen (lux rollback fragt vorher nach).
+Done. After a restart LuxOS starts as it was: %s	Fertig. Nach einem Neustart startet LuxOS im Zustand: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Das aktuelle System wurde als Schnappschuss %s behalten (nichts wurde gelöscht).
+No problems found.	Keine Probleme gefunden.
+Problems found: %d	Gefundene Probleme: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Mit --yes bestätigen (LuxOS Recovery fragt vorher nach).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS wurde neu installiert. Ihre Dateien und Konten wurden behalten.
+The previous system was kept as the snapshot %s (nothing was deleted).	Das vorherige System wurde als Schnappschuss %s behalten (nichts wurde gelöscht).
+Not reinstalled (not from the repositories): %s	Nicht neu installiert (nicht aus den Paketquellen): %s
+Usage: luxos-app-reset reset <app>	Verwendung: luxos-app-reset reset <App>
+No settings found for %s.	Keine Einstellungen für %s gefunden.
+%s is running. Quit it first.	%s läuft. Beenden Sie die App zuerst.
+These folders will be moved to a backup (nothing is deleted):	Diese Ordner werden in ein Backup verschoben (nichts wird gelöscht):
+Reset the settings of %s?	Einstellungen von %s zurücksetzen?
+Done. The previous settings are in %s	Fertig. Die vorherigen Einstellungen befinden sich in %s
+Usage: luxos-app-reset restore <backup folder>	Verwendung: luxos-app-reset restore <Backup-Ordner>
+The backup could not be restored: %s	Das Backup konnte nicht wiederhergestellt werden: %s
+The settings were restored.	Die Einstellungen wurden wiederhergestellt.
+The settings from before the restore are in %s	Die Einstellungen vor der Wiederherstellung befinden sich in %s
+Reset App Settings	App-Einstellungen zurücksetzen
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Eine App, die sich seltsam verhält, funktioniert mit den Standardeinstellungen oft wieder. Beim Zurücksetzen werden ihre Einstellungen in einen Backup-Ordner verschoben – nichts wird gelöscht und Sie können sie später wiederherstellen.
+Looking for apps…	Apps werden gesucht …
+Other folders with settings	Weitere Ordner mit Einstellungen
+%d apps with settings	Apps mit Einstellungen: %d
+%s is running	%s läuft
+Quit the app first, then reset its settings.	Beenden Sie zuerst die App und setzen Sie dann ihre Einstellungen zurück.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Die App startet wie frisch installiert. Diese Ordner werden in ein Backup verschoben (nichts wird gelöscht):
+Reset	Zurücksetzen
+The settings could not be moved	Die Einstellungen konnten nicht verschoben werden
+Settings of %s were reset	Einstellungen von %s wurden zurückgesetzt
+The previous settings are in %s	Die vorherigen Einstellungen befinden sich in %s
+Show Backup	Backup anzeigen
+Restore the settings of %s?	Einstellungen von %s aus dem Backup wiederherstellen?
+Settings the app has now are moved to a new backup first.	Die aktuellen Einstellungen der App werden zuerst in ein neues Backup verschoben.
+Check the disk	Festplatte prüfen
+Checking the disk without changing anything. This can take several minutes.	Die Festplatte wird geprüft, ohne etwas zu ändern. Das kann einige Minuten dauern.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS kann reparieren, was sich sicher reparieren lässt: Daten mit einer zweiten Kopie auf der Festplatte und die Boot-Partition.
+Repair now?	Jetzt reparieren?
+Restore a snapshot	Schnappschuss wiederherstellen
+Which state should LuxOS return to?	In welchen Zustand soll LuxOS zurückkehren?
+LuxOS will start as it was: %s	LuxOS startet im Zustand: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Ihre Dateien in /home werden nicht geändert. Das aktuelle System wird als Schnappschuss behalten.
+Restore this snapshot?	Diesen Schnappschuss wiederherstellen?
+Restart the computer to finish.	Starten Sie den Computer neu, um den Vorgang abzuschließen.
+Reinstall LuxOS	LuxOS neu installieren
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS wird mit denselben Apps erneut geladen und installiert. Erhalten bleiben: Ihre Dateien (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	Benutzerkonten und Passwörter, Sprache, Tastatur, WLAN-Netzwerke und Festplattenverschlüsselung.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Systemeinstellungen, die Sie selbst geändert haben, werden zurückgesetzt. Das aktuelle System wird als Schnappschuss behalten.
+Needs the internet and takes a while (like an update of the whole system).	Erfordert eine Internetverbindung und dauert eine Weile (wie ein Update des gesamten Systems).
+REINSTALL	NEU INSTALLIEREN
+Type %s to continue:	Geben Sie %s ein, um fortzufahren:
+The internet is not connected.	Keine Internetverbindung.
+Connect to Wi-Fi now?	Jetzt mit einem WLAN verbinden?
+What do you want to do?	Was möchten Sie tun?
+Restore a snapshot (state before an update)	Schnappschuss wiederherstellen (Zustand vor einem Update)
+Reinstall LuxOS (keeps your files and accounts)	LuxOS neu installieren (Dateien und Konten bleiben erhalten)
+Shut down	Ausschalten
+LuxOS was restored	LuxOS wurde wiederhergestellt
+LuxOS is back in the state: %s	LuxOS ist wieder im Zustand: %s
+LuxOS is running from a snapshot	LuxOS läuft von einem Schnappschuss
+This is LuxOS before the update of %s. Changes are lost after a restart.	Dies ist LuxOS vor dem Update vom %s. Änderungen gehen nach einem Neustart verloren.
+Keep this version	Diese Version behalten
+No such snapshot: %s	Schnappschuss %s existiert nicht
+Another package operation is running. Try it again when it finishes.	Ein anderer Paketvorgang läuft gerade. Versuchen Sie es erneut, wenn er abgeschlossen ist.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	Der Kernel dieses Schnappschusses (%s) wurde nicht behalten, er kann nicht gestartet werden.
+The system subvolume %s was not found.	Das System-Subvolume %s wurde nicht gefunden.
+The kernel could not be copied to the boot partition: %s	Der Kernel konnte nicht auf die Boot-Partition kopiert werden: %s
+The system disk could not be opened: %s	Die Systemfestplatte konnte nicht geöffnet werden: %s
+The system disk was not found.	Die Systemfestplatte wurde nicht gefunden.
+The snapshot could not be created: %s	Der Schnappschuss konnte nicht erstellt werden: %s
+The snapshot could not be deleted: %s	Der Schnappschuss konnte nicht gelöscht werden: %s
+The list of installed packages could not be read.	Die Liste der installierten Pakete konnte nicht gelesen werden.
+The current kernel could not be saved, the reinstall was not started.	Der aktuelle Kernel konnte nicht gesichert werden, die Neuinstallation wurde nicht gestartet.
+Installing the packages failed (is the internet connected?): %s	Installation der Pakete fehlgeschlagen (besteht eine Internetverbindung?): %s
+Creating the initramfs failed: %s	Erstellen des initramfs fehlgeschlagen: %s
+Updating the boot loader failed: %s	Aktualisieren des Bootloaders fehlgeschlagen: %s
+Snapshots are not available in the live system.	Im Live-System sind keine Schnappschüsse verfügbar.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Schnappschüsse sind deaktiviert (SNAPSHOTS=no in /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Schnappschüsse erfordern das Dateisystem Btrfs (LuxOS wird auf Btrfs installiert).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Schnappschüsse erfordern das System auf einem Btrfs-Subvolume (LuxOS installiert es als @).
+LuxOS is running from a snapshot.	LuxOS läuft von einem Schnappschuss.
+System snapshots need LuxOS Care (lux install luxos-care).	System-Schnappschüsse erfordern LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS läuft von einem Schnappschuss. Die Rückkehr behält diese Version dauerhaft.
+Usage: lux rollback <snapshot> (see lux snapshots)	Verwendung: lux rollback <Schnappschuss> (siehe lux snapshots)
+Return to which state? (number)	In welchen Zustand zurückkehren? (Nummer)
+Return LuxOS to: %s?	LuxOS in den Zustand %s zurückversetzen?
+h	h
+min	min
+s	s
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Verwendung: luxos-sandbox build-install [--asdeps] [--deps "a b"] <Name> < Verzeichnis.tar

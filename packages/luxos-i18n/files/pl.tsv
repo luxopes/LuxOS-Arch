@@ -5021,6 +5021,106 @@ Generating the language failed: %s	Generowanie języka nie powiodło się: %s
 # Hodiny (luxos-clock-app)
 Alarm	Budzik
 Alarms	Budziki
+No snapshots yet. One is taken before every update.	Brak migawek. Migawka jest tworzona przed każdym uaktualnieniem.
+running now	działa teraz
+not in the boot menu	nie ma w menu rozruchowym
+Snapshot %s created.	Utworzono migawkę %s.
+Add --yes to confirm (lux rollback asks first).	Potwierdź opcją --yes (lux rollback najpierw pyta).
+Done. After a restart LuxOS starts as it was: %s	Gotowe. Po ponownym uruchomieniu LuxOS uruchomi się w stanie: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Obecny system zachowano jako migawkę %s (nic nie zostało usunięte).
+No problems found.	Nie znaleziono problemów.
+Problems found: %d	Znalezione problemy: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Potwierdź opcją --yes (LuxOS Recovery najpierw pyta).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS został zainstalowany ponownie. Twoje pliki i konta zostały zachowane.
+The previous system was kept as the snapshot %s (nothing was deleted).	Poprzedni system zachowano jako migawkę %s (nic nie zostało usunięte).
+Not reinstalled (not from the repositories): %s	Nie zainstalowano ponownie (nie pochodzi z repozytoriów): %s
+Usage: luxos-app-reset reset <app>	Użycie: luxos-app-reset reset <aplikacja>
+No settings found for %s.	Nie znaleziono ustawień dla %s.
+%s is running. Quit it first.	%s działa. Najpierw zakończ aplikację.
+These folders will be moved to a backup (nothing is deleted):	Te foldery zostaną przeniesione do kopii zapasowej (nic nie zostanie usunięte):
+Reset the settings of %s?	Przywrócić domyślne ustawienia %s?
+Done. The previous settings are in %s	Gotowe. Poprzednie ustawienia są w %s
+Usage: luxos-app-reset restore <backup folder>	Użycie: luxos-app-reset restore <folder kopii zapasowej>
+The backup could not be restored: %s	Nie udało się odtworzyć kopii zapasowej: %s
+The settings were restored.	Ustawienia zostały odtworzone.
+The settings from before the restore are in %s	Ustawienia sprzed odtworzenia są w %s
+Reset App Settings	Domyślne ustawienia aplikacji
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Aplikacja, która działa nieprawidłowo, często znów działa z ustawieniami domyślnymi. Resetowanie przenosi jej ustawienia do folderu z kopią zapasową – nic nie zostanie usunięte i możesz je później odtworzyć.
+Looking for apps…	Szukanie aplikacji…
+Other folders with settings	Inne foldery z ustawieniami
+%d apps with settings	Aplikacje z ustawieniami: %d
+%s is running	%s działa
+Quit the app first, then reset its settings.	Najpierw zakończ aplikację, a potem zresetuj jej ustawienia.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Aplikacja uruchomi się jak świeżo zainstalowana. Te foldery zostaną przeniesione do kopii zapasowej (nic nie zostanie usunięte):
+Reset	Resetuj
+The settings could not be moved	Nie udało się przenieść ustawień
+Settings of %s were reset	Zresetowano ustawienia %s
+The previous settings are in %s	Poprzednie ustawienia są w %s
+Show Backup	Pokaż kopię zapasową
+Restore the settings of %s?	Odtworzyć ustawienia %s z kopii zapasowej?
+Settings the app has now are moved to a new backup first.	Obecne ustawienia aplikacji zostaną najpierw przeniesione do nowej kopii zapasowej.
+Check the disk	Sprawdź dysk
+Checking the disk without changing anything. This can take several minutes.	Sprawdzanie dysku bez wprowadzania zmian. Może to potrwać kilka minut.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS może naprawić to, co da się bezpiecznie naprawić: dane z drugą kopią na dysku i partycję rozruchową.
+Repair now?	Naprawić teraz?
+Restore a snapshot	Odtwórz migawkę
+Which state should LuxOS return to?	Do jakiego stanu ma wrócić LuxOS?
+LuxOS will start as it was: %s	LuxOS uruchomi się w stanie: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Twoje pliki w /home nie zostaną zmienione. Obecny system zostanie zachowany jako migawka.
+Restore this snapshot?	Odtworzyć tę migawkę?
+Restart the computer to finish.	Aby dokończyć, uruchom ponownie komputer.
+Reinstall LuxOS	Zainstaluj ponownie LuxOS
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS zostanie ponownie pobrany i zainstalowany z tymi samymi aplikacjami. Zachowane zostaną: Twoje pliki (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	konta użytkowników i hasła, język, klawiatura, sieci Wi-Fi i szyfrowanie dysku.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Ustawienia systemowe zmienione przez Ciebie zostaną zresetowane. Obecny system zostanie zachowany jako migawka.
+Needs the internet and takes a while (like an update of the whole system).	Wymaga internetu i trwa chwilę (jak uaktualnienie całego systemu).
+REINSTALL	REINSTALUJ
+Type %s to continue:	Aby kontynuować, wpisz %s:
+The internet is not connected.	Brak połączenia z internetem.
+Connect to Wi-Fi now?	Połączyć teraz z siecią Wi-Fi?
+What do you want to do?	Co chcesz zrobić?
+Restore a snapshot (state before an update)	Odtwórz migawkę (stan sprzed uaktualnienia)
+Reinstall LuxOS (keeps your files and accounts)	Zainstaluj ponownie LuxOS (pliki i konta zostaną zachowane)
+Shut down	Wyłącz
+LuxOS was restored	LuxOS został odtworzony
+LuxOS is back in the state: %s	LuxOS wrócił do stanu: %s
+LuxOS is running from a snapshot	LuxOS działa z migawki
+This is LuxOS before the update of %s. Changes are lost after a restart.	To jest LuxOS sprzed uaktualnienia z %s. Zmiany zostaną utracone po ponownym uruchomieniu.
+Keep this version	Zachowaj tę wersję
+No such snapshot: %s	Migawka %s nie istnieje
+Another package operation is running. Try it again when it finishes.	Trwa inna operacja na pakietach. Spróbuj ponownie, gdy się zakończy.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	Jądro tej migawki (%s) nie zostało zachowane, nie można jej uruchomić.
+The system subvolume %s was not found.	Nie znaleziono podwoluminu systemowego %s.
+The kernel could not be copied to the boot partition: %s	Nie udało się skopiować jądra na partycję rozruchową: %s
+The system disk could not be opened: %s	Nie udało się otworzyć dysku systemowego: %s
+The system disk was not found.	Nie znaleziono dysku systemowego.
+The snapshot could not be created: %s	Nie udało się utworzyć migawki: %s
+The snapshot could not be deleted: %s	Nie udało się usunąć migawki: %s
+The list of installed packages could not be read.	Nie udało się odczytać listy zainstalowanych pakietów.
+The current kernel could not be saved, the reinstall was not started.	Nie udało się zachować obecnego jądra, ponowna instalacja nie została rozpoczęta.
+Installing the packages failed (is the internet connected?): %s	Instalacja pakietów nie powiodła się (czy jest połączenie z internetem?): %s
+Creating the initramfs failed: %s	Tworzenie initramfs nie powiodło się: %s
+Updating the boot loader failed: %s	Uaktualnianie programu rozruchowego nie powiodło się: %s
+Snapshots are not available in the live system.	Migawki nie są dostępne w systemie live.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Migawki są wyłączone (SNAPSHOTS=no w /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Migawki wymagają systemu plików Btrfs (LuxOS instaluje się na Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Migawki wymagają systemu w podwoluminie Btrfs (LuxOS instaluje go jako @).
+LuxOS is running from a snapshot.	LuxOS działa z migawki.
+System snapshots need LuxOS Care (lux install luxos-care).	Migawki systemu wymagają LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS działa z migawki. Powrót zachowa tę wersję na stałe.
+Usage: lux rollback <snapshot> (see lux snapshots)	Użycie: lux rollback <migawka> (zobacz lux snapshots)
+Return to which state? (number)	Do którego stanu wrócić? (numer)
+Return LuxOS to: %s?	Przywrócić LuxOS do stanu: %s?
+CPU	Procesor
+Play/Pause	Odtwarzaj/wstrzymaj
+Widgets	Widżety
+System Health	Stan systemu
+Excellent	Doskonały
+Busy	Obciążony
+Clock & Weather	Zegar i pogoda
+Default Layout	Domyślny układ
+Drag a widget on the desktop to move it. Right-click it for more.	Przeciągnij widżet na biurku, aby go przenieść. Więcej opcji znajdziesz pod prawym przyciskiem.
+Edit Widgets…	Edytuj widżety…
 Every day	Codziennie
 Label	Etykieta
 Lap	Okrążenie
@@ -5032,6 +5132,14 @@ Pause	Wstrzymaj
 Snooze	Drzemka
 Snoozed alarm	Odłożony budzik
 Stopwatch	Stoper
+Large time and date with the weather of your place. Click the time for Clock.	Duża godzina i data z pogodą w Twojej okolicy. Kliknij godzinę, aby otworzyć Zegar.
+Music and videos appear here	Tutaj pojawią się muzyka i wideo
+Nothing is playing	Nic nie jest odtwarzane
+Now Playing	Teraz odtwarzane
+Put all widgets back under each other in the corner	Ułóż wszystkie widżety z powrotem jeden pod drugim w rogu
+Show widgets	Pokaż widżety
+System health with CPU, memory and storage usage.	Stan systemu z użyciem procesora, pamięci i pamięci masowej.
+This month with today highlighted.	Bieżący miesiąc z wyróżnionym dzisiejszym dniem.
 Time is up	Czas minął
 Tomorrow	Jutro
 Weekdays	Dni robocze
@@ -5046,3 +5154,10 @@ Archive Manager	Menedżer archiwów
 Files Settings	Ustawienia plików
 Windows - Advanced	Okna - zaawansowane
 Web Browser	Przeglądarka internetowa
+What is playing, with Play/Pause and Next. Shown only while something plays.	Co jest odtwarzane, z przyciskami Odtwarzaj/wstrzymaj i Dalej. Widoczny tylko podczas odtwarzania.
+Widget	Widżet
+h	godz.
+min	min
+s	s
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Użycie: luxos-sandbox build-install [--asdeps] [--deps "a b"] <nazwa> < katalog.tar

@@ -5065,3 +5065,98 @@ Archive Manager	Správca archívov
 Files Settings	Nastavenia súborov
 Windows - Advanced	Okná - pokročilé
 Web Browser	Webový prehliadač
+No snapshots yet. One is taken before every update.	Zatiaľ žiadne snímky. Pred každou aktualizáciou sa vytvorí snímka.
+running now	práve beží
+not in the boot menu	nie je v ponuke spúšťania
+Snapshot %s created.	Snímka %s je vytvorená.
+Add --yes to confirm (lux rollback asks first).	Potvrďte voľbou --yes (lux rollback sa najprv opýta).
+Done. After a restart LuxOS starts as it was: %s	Hotovo. Po reštarte sa LuxOS spustí v stave: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Súčasný systém zostal ako snímka %s (nič sa nevymazalo).
+No problems found.	Nenašli sa žiadne problémy.
+Problems found: %d	Nájdené problémy: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Potvrďte voľbou --yes (LuxOS Recovery sa najprv opýta).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS je preinštalovaný. Vaše súbory a účty zostali zachované.
+The previous system was kept as the snapshot %s (nothing was deleted).	Predchádzajúci systém zostal ako snímka %s (nič sa nevymazalo).
+Not reinstalled (not from the repositories): %s	Nepreinštalované (nie je z repozitárov): %s
+Usage: luxos-app-reset reset <app>	Použitie: luxos-app-reset reset <aplikácia>
+No settings found for %s.	Pre %s sa nenašli žiadne nastavenia.
+%s is running. Quit it first.	%s je spustená. Najprv aplikáciu ukončite.
+These folders will be moved to a backup (nothing is deleted):	Tieto priečinky sa presunú do zálohy (nič sa nevymaže):
+Reset the settings of %s?	Obnoviť predvolené nastavenia aplikácie %s?
+Done. The previous settings are in %s	Hotovo. Predchádzajúce nastavenia sú v %s
+Usage: luxos-app-reset restore <backup folder>	Použitie: luxos-app-reset restore <priečinok zálohy>
+The backup could not be restored: %s	Zálohu sa nepodarilo obnoviť: %s
+The settings were restored.	Nastavenia sú obnovené.
+The settings from before the restore are in %s	Nastavenia spred obnovenia sú v %s
+Reset App Settings	Predvolené nastavenia aplikácií
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Aplikácia, ktorá sa správa zvláštne, často znova funguje s predvolenými nastaveniami. Obnovenie presunie jej nastavenia do priečinka so zálohou – nič sa nevymaže a neskôr ich môžete vrátiť.
+Looking for apps…	Hľadajú sa aplikácie…
+Other folders with settings	Ďalšie priečinky s nastaveniami
+%d apps with settings	Aplikácie s nastaveniami: %d
+%s is running	%s je spustená
+Quit the app first, then reset its settings.	Najprv aplikáciu ukončite, potom obnovte jej nastavenia.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Aplikácia sa spustí ako po inštalácii. Tieto priečinky sa presunú do zálohy (nič sa nevymaže):
+Reset	Obnoviť predvolené
+The settings could not be moved	Nastavenia sa nepodarilo presunúť
+Settings of %s were reset	%s má predvolené nastavenia
+The previous settings are in %s	Predchádzajúce nastavenia sú v %s
+Show Backup	Zobraziť zálohu
+Restore the settings of %s?	Obnoviť nastavenia aplikácie %s zo zálohy?
+Settings the app has now are moved to a new backup first.	Súčasné nastavenia aplikácie sa najprv presunú do novej zálohy.
+Check the disk	Skontrolovať disk
+Checking the disk without changing anything. This can take several minutes.	Kontrola disku bez akýchkoľvek zmien. Môže trvať niekoľko minút.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS môže opraviť to, čo sa dá opraviť bezpečne: dáta s druhou kópiou na disku a zavádzací oddiel.
+Repair now?	Opraviť teraz?
+Restore a snapshot	Obnoviť snímku
+Which state should LuxOS return to?	Do akého stavu sa má LuxOS vrátiť?
+LuxOS will start as it was: %s	LuxOS sa spustí v stave: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Vaše súbory v /home sa nezmenia. Súčasný systém zostane ako snímka.
+Restore this snapshot?	Obnoviť túto snímku?
+Restart the computer to finish.	Na dokončenie reštartujte počítač.
+Reinstall LuxOS	Preinštalovať LuxOS
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS sa znova stiahne a nainštaluje s rovnakými aplikáciami. Zostanú: vaše súbory (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	používateľské účty a heslá, jazyk, klávesnica, siete Wi-Fi a šifrovanie disku.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Systémové nastavenia, ktoré ste sami zmenili, sa vrátia na predvolené. Súčasný systém zostane ako snímka.
+Needs the internet and takes a while (like an update of the whole system).	Vyžaduje internet a chvíľu trvá (ako aktualizácia celého systému).
+REINSTALL	PREINŠTALOVAŤ
+Type %s to continue:	Ak chcete pokračovať, napíšte %s:
+The internet is not connected.	Internet nie je pripojený.
+Connect to Wi-Fi now?	Pripojiť sa teraz k Wi-Fi?
+What do you want to do?	Čo chcete urobiť?
+Restore a snapshot (state before an update)	Obnoviť snímku (stav pred aktualizáciou)
+Reinstall LuxOS (keeps your files and accounts)	Preinštalovať LuxOS (súbory a účty zostanú)
+Shut down	Vypnúť
+LuxOS was restored	LuxOS je obnovený
+LuxOS is back in the state: %s	LuxOS je späť v stave: %s
+LuxOS is running from a snapshot	LuxOS beží zo snímky
+This is LuxOS before the update of %s. Changes are lost after a restart.	Toto je LuxOS pred aktualizáciou z %s. Zmeny sa po reštarte stratia.
+Keep this version	Ponechať túto verziu
+No such snapshot: %s	Snímka %s neexistuje
+Another package operation is running. Try it again when it finishes.	Práve prebieha iná operácia s balíkmi. Skúste to znova, keď skončí.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	Jadro tejto snímky (%s) sa nezachovalo, snímku nemožno spustiť.
+The system subvolume %s was not found.	Systémový subvolume %s sa nenašiel.
+The kernel could not be copied to the boot partition: %s	Jadro sa nepodarilo skopírovať na zavádzací oddiel: %s
+The system disk could not be opened: %s	Systémový disk sa nepodarilo otvoriť: %s
+The system disk was not found.	Systémový disk sa nenašiel.
+The snapshot could not be created: %s	Snímku sa nepodarilo vytvoriť: %s
+The snapshot could not be deleted: %s	Snímku sa nepodarilo vymazať: %s
+The list of installed packages could not be read.	Zoznam nainštalovaných balíkov sa nepodarilo prečítať.
+The current kernel could not be saved, the reinstall was not started.	Súčasné jadro sa nepodarilo uložiť, preinštalovanie sa nezačalo.
+Installing the packages failed (is the internet connected?): %s	Inštalácia balíkov zlyhala (je pripojený internet?): %s
+Creating the initramfs failed: %s	Vytvorenie initramfs zlyhalo: %s
+Updating the boot loader failed: %s	Aktualizácia zavádzača zlyhala: %s
+Snapshots are not available in the live system.	V živom systéme nie sú snímky k dispozícii.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Snímky sú vypnuté (SNAPSHOTS=no v /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Snímky vyžadujú súborový systém Btrfs (LuxOS sa inštaluje na Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Snímky vyžadujú systém v subvolume Btrfs (LuxOS ho inštaluje ako @).
+LuxOS is running from a snapshot.	LuxOS beží zo snímky.
+System snapshots need LuxOS Care (lux install luxos-care).	Snímky systému vyžadujú LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS beží zo snímky. Návrat ponechá túto verziu natrvalo.
+Usage: lux rollback <snapshot> (see lux snapshots)	Použitie: lux rollback <snímka> (pozri lux snapshots)
+Return to which state? (number)	Do ktorého stavu sa vrátiť? (číslo)
+Return LuxOS to: %s?	Vrátiť LuxOS do stavu: %s?
+h	h
+min	min
+s	s
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Použitie: luxos-sandbox build-install [--asdeps] [--deps "a b"] <názov> < adresár.tar

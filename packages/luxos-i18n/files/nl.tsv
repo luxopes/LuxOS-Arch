@@ -3718,7 +3718,7 @@ Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Ongeldige DOMAIN_USER,
 Invalid domain name: %s	Ongeldige domeinnaam: %s
 Join an Organization Network	Word lid van een Organisatienetwerk
 Join the domain %s?	Lid worden van het domein %s?
-Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Join: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Lid worden: sudo lux domain join DOMAIN -U ADMINISTRATOR
 Joined	Verbonden
 Joining a domain needs the administrator name and password.	Om lid te worden van een domein zijn de naam en het wachtwoord van de beheerder nodig.
 Joining failed.	Lid worden mislukt.
@@ -5020,6 +5020,106 @@ Generating the language failed: %s	Genereren van de taal mislukt: %s
 # Hodiny (luxos-clock-app)
 Alarm	Wekker
 Alarms	Wekkers
+No snapshots yet. One is taken before every update.	Nog geen momentopnamen. Voor elke update wordt er een gemaakt.
+running now	nu actief
+not in the boot menu	niet in het opstartmenu
+Snapshot %s created.	Momentopname %s aangemaakt.
+Add --yes to confirm (lux rollback asks first).	Voeg --yes toe om te bevestigen (lux rollback vraagt het eerst).
+Done. After a restart LuxOS starts as it was: %s	Klaar. Na een herstart start LuxOS in de toestand: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Het huidige systeem is bewaard als momentopname %s (er is niets verwijderd).
+No problems found.	Geen problemen gevonden.
+Problems found: %d	Gevonden problemen: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Voeg --yes toe om te bevestigen (LuxOS Recovery vraagt het eerst).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS is opnieuw geïnstalleerd. Je bestanden en accounts zijn bewaard.
+The previous system was kept as the snapshot %s (nothing was deleted).	Het vorige systeem is bewaard als momentopname %s (er is niets verwijderd).
+Not reinstalled (not from the repositories): %s	Niet opnieuw geïnstalleerd (niet uit de pakketbronnen): %s
+Usage: luxos-app-reset reset <app>	Gebruik: luxos-app-reset reset <app>
+No settings found for %s.	Geen instellingen gevonden voor %s.
+%s is running. Quit it first.	%s is actief. Stop de app eerst.
+These folders will be moved to a backup (nothing is deleted):	Deze mappen worden naar een reservekopie verplaatst (er wordt niets verwijderd):
+Reset the settings of %s?	Instellingen van %s opnieuw instellen?
+Done. The previous settings are in %s	Klaar. De vorige instellingen staan in %s
+Usage: luxos-app-reset restore <backup folder>	Gebruik: luxos-app-reset restore <reservekopiemap>
+The backup could not be restored: %s	De reservekopie kan niet worden teruggezet: %s
+The settings were restored.	De instellingen zijn teruggezet.
+The settings from before the restore are in %s	De instellingen van vóór het terugzetten staan in %s
+Reset App Settings	App-instellingen opnieuw instellen
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Een app die vreemd doet, werkt vaak weer met de standaardinstellingen. Opnieuw instellen verplaatst de instellingen naar een reservekopiemap – er wordt niets verwijderd en je kunt ze later terugzetten.
+Looking for apps…	Apps zoeken…
+Other folders with settings	Andere mappen met instellingen
+%d apps with settings	Apps met instellingen: %d
+%s is running	%s is actief
+Quit the app first, then reset its settings.	Stop eerst de app en stel daarna de instellingen opnieuw in.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	De app start alsof hij net is geïnstalleerd. Deze mappen worden naar een reservekopie verplaatst (er wordt niets verwijderd):
+Reset	Stel opnieuw in
+The settings could not be moved	De instellingen kunnen niet worden verplaatst
+Settings of %s were reset	Instellingen van %s zijn opnieuw ingesteld
+The previous settings are in %s	De vorige instellingen staan in %s
+Show Backup	Toon reservekopie
+Restore the settings of %s?	Instellingen van %s terugzetten uit de reservekopie?
+Settings the app has now are moved to a new backup first.	De huidige instellingen van de app worden eerst naar een nieuwe reservekopie verplaatst.
+Check the disk	Controleer de schijf
+Checking the disk without changing anything. This can take several minutes.	De schijf wordt gecontroleerd zonder iets te wijzigen. Dit kan enkele minuten duren.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS kan repareren wat veilig gerepareerd kan worden: gegevens met een tweede kopie op de schijf en de opstartpartitie.
+Repair now?	Nu repareren?
+Restore a snapshot	Zet een momentopname terug
+Which state should LuxOS return to?	Naar welke toestand moet LuxOS terugkeren?
+LuxOS will start as it was: %s	LuxOS start in de toestand: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Je bestanden in /home worden niet gewijzigd. Het huidige systeem wordt bewaard als momentopname.
+Restore this snapshot?	Deze momentopname terugzetten?
+Restart the computer to finish.	Herstart de computer om te voltooien.
+Reinstall LuxOS	Installeer LuxOS opnieuw
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS wordt opnieuw gedownload en geïnstalleerd met dezelfde apps. Bewaard blijven: je bestanden (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	gebruikersaccounts en wachtwoorden, taal, toetsenbord, wifinetwerken en schijfversleuteling.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Systeeminstellingen die je zelf hebt gewijzigd, worden teruggezet naar de standaard. Het huidige systeem wordt bewaard als momentopname.
+Needs the internet and takes a while (like an update of the whole system).	Vereist internet en duurt even (zoals een update van het hele systeem).
+REINSTALL	HERINSTALLEREN
+Type %s to continue:	Typ %s om door te gaan:
+The internet is not connected.	Er is geen internetverbinding.
+Connect to Wi-Fi now?	Nu verbinding maken met wifi?
+What do you want to do?	Wat wil je doen?
+Restore a snapshot (state before an update)	Zet een momentopname terug (toestand vóór een update)
+Reinstall LuxOS (keeps your files and accounts)	Installeer LuxOS opnieuw (je bestanden en accounts blijven bewaard)
+Shut down	Zet uit
+LuxOS was restored	LuxOS is hersteld
+LuxOS is back in the state: %s	LuxOS is terug in de toestand: %s
+LuxOS is running from a snapshot	LuxOS draait vanaf een momentopname
+This is LuxOS before the update of %s. Changes are lost after a restart.	Dit is LuxOS van vóór de update van %s. Wijzigingen gaan na een herstart verloren.
+Keep this version	Behoud deze versie
+No such snapshot: %s	Momentopname bestaat niet: %s
+Another package operation is running. Try it again when it finishes.	Er loopt al een andere pakketbewerking. Probeer het opnieuw wanneer die klaar is.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	De kernel van deze momentopname (%s) is niet bewaard; de momentopname kan niet worden gestart.
+The system subvolume %s was not found.	Het systeemsubvolume %s is niet gevonden.
+The kernel could not be copied to the boot partition: %s	De kernel kan niet naar de opstartpartitie worden gekopieerd: %s
+The system disk could not be opened: %s	De systeemschijf kan niet worden geopend: %s
+The system disk was not found.	De systeemschijf is niet gevonden.
+The snapshot could not be created: %s	De momentopname kan niet worden aangemaakt: %s
+The snapshot could not be deleted: %s	De momentopname kan niet worden verwijderd: %s
+The list of installed packages could not be read.	De lijst met geïnstalleerde pakketten kan niet worden gelezen.
+The current kernel could not be saved, the reinstall was not started.	De huidige kernel kan niet worden bewaard; de herinstallatie is niet gestart.
+Installing the packages failed (is the internet connected?): %s	Installeren van de pakketten is mislukt (is er een internetverbinding?): %s
+Creating the initramfs failed: %s	Aanmaken van de initramfs is mislukt: %s
+Updating the boot loader failed: %s	Bijwerken van de opstartlader is mislukt: %s
+Snapshots are not available in the live system.	Momentopnamen zijn niet beschikbaar in het livesysteem.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Momentopnamen zijn uitgeschakeld (SNAPSHOTS=no in /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Momentopnamen vereisen het Btrfs-bestandssysteem (LuxOS installeert op Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Momentopnamen vereisen dat het systeem op een Btrfs-subvolume staat (LuxOS installeert het als @).
+LuxOS is running from a snapshot.	LuxOS draait vanaf een momentopname.
+System snapshots need LuxOS Care (lux install luxos-care).	Systeemmomentopnamen vereisen LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS draait vanaf een momentopname. Terugdraaien behoudt deze versie definitief.
+Usage: lux rollback <snapshot> (see lux snapshots)	Gebruik: lux rollback <momentopname> (zie lux snapshots)
+Return to which state? (number)	Naar welke toestand terugkeren? (nummer)
+Return LuxOS to: %s?	LuxOS terugzetten naar: %s?
+CPU	Processor
+Play/Pause	Afspelen/Pauzeren
+Widgets	Widgets
+System Health	Systeemstatus
+Excellent	Uitstekend
+Busy	Druk
+Clock & Weather	Klok en weer
+Default Layout	Standaardindeling
+Drag a widget on the desktop to move it. Right-click it for more.	Sleep een widget op het bureaublad om hem te verplaatsen. Klik met de rechtermuisknop voor meer.
+Edit Widgets…	Wijzig widgets…
 Every day	Elke dag
 Label	Label
 Lap	Ronde
@@ -5045,3 +5145,18 @@ Archive Manager	Archiefbeheer
 Files Settings	Instellingen voor Bestanden
 Windows - Advanced	Vensters - geavanceerd
 Web Browser	Webbrowser
+Large time and date with the weather of your place. Click the time for Clock.	Grote tijd en datum met het weer van je locatie. Klik op de tijd om Klok te openen.
+Music and videos appear here	Muziek en video's verschijnen hier
+Nothing is playing	Er wordt niets afgespeeld
+Now Playing	Speelt nu
+Put all widgets back under each other in the corner	Zet alle widgets weer onder elkaar in de hoek
+Show widgets	Toon widgets
+System health with CPU, memory and storage usage.	Systeemstatus met gebruik van processor, geheugen en opslag.
+This month with today highlighted.	Deze maand met vandaag gemarkeerd.
+What is playing, with Play/Pause and Next. Shown only while something plays.	Wat er nu speelt, met Afspelen/Pauzeren en Volgende. Alleen zichtbaar als er iets speelt.
+Widget	Widget
+h	u
+min	min
+s	s
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Gebruik: luxos-sandbox build-install [--asdeps] [--deps "a b"] <naam> < map.tar

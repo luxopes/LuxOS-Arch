@@ -3718,7 +3718,7 @@ Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	Ogiltig DOMAIN_USER, D
 Invalid domain name: %s	Ogiltigt domännamn: %s
 Join an Organization Network	Anslut till ett Organisationsnätverk
 Join the domain %s?	Ansluta till domänen %s?
-Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Join: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Anslutning: sudo lux domain join DOMAIN -U ADMINISTRATOR
 Joined	Ansluten
 Joining a domain needs the administrator name and password.	För att ansluta till en domän krävs administratörens namn och lösenord.
 Joining failed.	Anslutningen misslyckades.
@@ -5020,6 +5020,106 @@ Generating the language failed: %s	Det gick inte att generera språket: %s
 # Hodiny (luxos-clock-app)
 Alarm	Alarm
 Alarms	Alarm
+No snapshots yet. One is taken before every update.	Inga ögonblicksbilder ännu. En skapas före varje uppdatering.
+running now	körs nu
+not in the boot menu	inte i startmenyn
+Snapshot %s created.	Ögonblicksbilden %s har skapats.
+Add --yes to confirm (lux rollback asks first).	Lägg till --yes för att bekräfta (lux rollback frågar först).
+Done. After a restart LuxOS starts as it was: %s	Klart. Efter en omstart startar LuxOS i läget: %s
+The current system was kept as the snapshot %s (nothing was deleted).	Det nuvarande systemet sparades som ögonblicksbilden %s (inget raderades).
+No problems found.	Inga problem hittades.
+Problems found: %d	Hittade problem: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Lägg till --yes för att bekräfta (LuxOS Recovery frågar först).
+LuxOS was reinstalled. Your files and accounts were kept.	LuxOS har installerats om. Dina filer och konton finns kvar.
+The previous system was kept as the snapshot %s (nothing was deleted).	Det tidigare systemet sparades som ögonblicksbilden %s (inget raderades).
+Not reinstalled (not from the repositories): %s	Installerades inte om (kommer inte från förråden): %s
+Usage: luxos-app-reset reset <app>	Användning: luxos-app-reset reset <app>
+No settings found for %s.	Inga inställningar hittades för %s.
+%s is running. Quit it first.	%s körs. Avsluta appen först.
+These folders will be moved to a backup (nothing is deleted):	De här mapparna flyttas till en säkerhetskopia (inget raderas):
+Reset the settings of %s?	Vill du återställa inställningarna för %s?
+Done. The previous settings are in %s	Klart. De tidigare inställningarna finns i %s
+Usage: luxos-app-reset restore <backup folder>	Användning: luxos-app-reset restore <säkerhetskopiemapp>
+The backup could not be restored: %s	Det gick inte att återställa säkerhetskopian: %s
+The settings were restored.	Inställningarna har återställts.
+The settings from before the restore are in %s	Inställningarna från före återställningen finns i %s
+Reset App Settings	Återställ appinställningar
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	En app som beter sig konstigt fungerar ofta igen med standardinställningarna. Återställningen flyttar dess inställningar till en säkerhetskopiemapp – inget raderas och du kan återställa dem senare.
+Looking for apps…	Söker efter appar…
+Other folders with settings	Andra mappar med inställningar
+%d apps with settings	Appar med inställningar: %d
+%s is running	%s körs
+Quit the app first, then reset its settings.	Avsluta appen först och återställ sedan dess inställningar.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Appen startar som om den precis hade installerats. De här mapparna flyttas till en säkerhetskopia (inget raderas):
+Reset	Återställ
+The settings could not be moved	Det gick inte att flytta inställningarna
+Settings of %s were reset	Inställningarna för %s har återställts
+The previous settings are in %s	De tidigare inställningarna finns i %s
+Show Backup	Visa säkerhetskopia
+Restore the settings of %s?	Vill du återställa inställningarna för %s från säkerhetskopian?
+Settings the app has now are moved to a new backup first.	Appens nuvarande inställningar flyttas först till en ny säkerhetskopia.
+Check the disk	Kontrollera disken
+Checking the disk without changing anything. This can take several minutes.	Disken kontrolleras utan att något ändras. Det kan ta flera minuter.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	LuxOS kan reparera det som är säkert att reparera: data med en andra kopia på disken och startpartitionen.
+Repair now?	Vill du reparera nu?
+Restore a snapshot	Återställ en ögonblicksbild
+Which state should LuxOS return to?	Vilket läge ska LuxOS återgå till?
+LuxOS will start as it was: %s	LuxOS startar i läget: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Dina filer i /home ändras inte. Det nuvarande systemet sparas som en ögonblicksbild.
+Restore this snapshot?	Vill du återställa den här ögonblicksbilden?
+Restart the computer to finish.	Starta om datorn för att slutföra.
+Reinstall LuxOS	Installera om LuxOS
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	LuxOS hämtas och installeras igen med samma appar. Behålls: dina filer (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	användarkonton och lösenord, språk, tangentbord, Wi-Fi-nätverk och diskkryptering.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Systeminställningar som du själv har ändrat återställs. Det nuvarande systemet sparas som en ögonblicksbild.
+Needs the internet and takes a while (like an update of the whole system).	Kräver internet och tar en stund (som en uppdatering av hela systemet).
+REINSTALL	OMINSTALLERA
+Type %s to continue:	Skriv %s för att fortsätta:
+The internet is not connected.	Internet är inte anslutet.
+Connect to Wi-Fi now?	Vill du ansluta till Wi-Fi nu?
+What do you want to do?	Vad vill du göra?
+Restore a snapshot (state before an update)	Återställ en ögonblicksbild (läget före en uppdatering)
+Reinstall LuxOS (keeps your files and accounts)	Installera om LuxOS (dina filer och konton behålls)
+Shut down	Stäng av
+LuxOS was restored	LuxOS har återställts
+LuxOS is back in the state: %s	LuxOS är tillbaka i läget: %s
+LuxOS is running from a snapshot	LuxOS körs från en ögonblicksbild
+This is LuxOS before the update of %s. Changes are lost after a restart.	Det här är LuxOS före uppdateringen från %s. Ändringar går förlorade efter en omstart.
+Keep this version	Behåll den här versionen
+No such snapshot: %s	Ögonblicksbilden finns inte: %s
+Another package operation is running. Try it again when it finishes.	En annan paketåtgärd pågår. Försök igen när den är klar.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	Kärnan för den här ögonblicksbilden (%s) behölls inte, så den kan inte startas.
+The system subvolume %s was not found.	Systemets subvolym %s hittades inte.
+The kernel could not be copied to the boot partition: %s	Det gick inte att kopiera kärnan till startpartitionen: %s
+The system disk could not be opened: %s	Det gick inte att öppna systemdisken: %s
+The system disk was not found.	Systemdisken hittades inte.
+The snapshot could not be created: %s	Det gick inte att skapa ögonblicksbilden: %s
+The snapshot could not be deleted: %s	Det gick inte att radera ögonblicksbilden: %s
+The list of installed packages could not be read.	Det gick inte att läsa listan över installerade paket.
+The current kernel could not be saved, the reinstall was not started.	Det gick inte att spara den nuvarande kärnan, ominstallationen startades inte.
+Installing the packages failed (is the internet connected?): %s	Det gick inte att installera paketen (är internet anslutet?): %s
+Creating the initramfs failed: %s	Det gick inte att skapa initramfs: %s
+Updating the boot loader failed: %s	Det gick inte att uppdatera startladdaren: %s
+Snapshots are not available in the live system.	Ögonblicksbilder är inte tillgängliga i live-systemet.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Ögonblicksbilder är avstängda (SNAPSHOTS=no i /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Ögonblicksbilder kräver filsystemet Btrfs (LuxOS installeras på Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Ögonblicksbilder kräver att systemet ligger på en Btrfs-subvolym (LuxOS installerar det som @).
+LuxOS is running from a snapshot.	LuxOS körs från en ögonblicksbild.
+System snapshots need LuxOS Care (lux install luxos-care).	Systemets ögonblicksbilder kräver LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	LuxOS körs från en ögonblicksbild. Återgång behåller den här versionen permanent.
+Usage: lux rollback <snapshot> (see lux snapshots)	Användning: lux rollback <ögonblicksbild> (se lux snapshots)
+Return to which state? (number)	Vilket läge vill du återgå till? (nummer)
+Return LuxOS to: %s?	Vill du återställa LuxOS till: %s?
+CPU	Processor
+Play/Pause	Spela/Pausa
+Widgets	Widgetar
+System Health	Systemhälsa
+Excellent	Utmärkt
+Busy	Belastad
+Clock & Weather	Klocka och väder
+Default Layout	Standardlayout
+Drag a widget on the desktop to move it. Right-click it for more.	Dra en widget på skrivbordet för att flytta den. Högerklicka för fler alternativ.
+Edit Widgets…	Redigera widgetar…
 Every day	Varje dag
 Label	Etikett
 Lap	Varv
@@ -5031,6 +5131,14 @@ Pause	Pausa
 Snooze	Snooza
 Snoozed alarm	Snoozat alarm
 Stopwatch	Tidtagarur
+Large time and date with the weather of your place. Click the time for Clock.	Stor tid och datum med vädret där du är. Klicka på tiden för att öppna Klocka.
+Music and videos appear here	Musik och videor visas här
+Nothing is playing	Inget spelas
+Now Playing	Spelas nu
+Put all widgets back under each other in the corner	Placera alla widgetar under varandra i hörnet igen
+Show widgets	Visa widgetar
+System health with CPU, memory and storage usage.	Systemhälsa med användning av processor, minne och lagring.
+This month with today highlighted.	Den här månaden med dagens datum markerat.
 Time is up	Tiden är ute
 Tomorrow	I morgon
 Weekdays	Vardagar
@@ -5045,3 +5153,10 @@ Archive Manager	Arkivhanterare
 Files Settings	Inställningar för Filer
 Windows - Advanced	Fönster - avancerat
 Web Browser	Webbläsare
+What is playing, with Play/Pause and Next. Shown only while something plays.	Det som spelas, med Spela/Pausa och Nästa. Visas bara när något spelas.
+Widget	Widget
+h	h
+min	min
+s	s
+Sandbox: %s	Sandlåda: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Användning: luxos-sandbox build-install [--asdeps] [--deps "a b"] <namn> < katalog.tar

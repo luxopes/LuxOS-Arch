@@ -3718,7 +3718,7 @@ Invalid DOMAIN_USER, DOMAIN_PASSWORD, OU or DOMAIN_ADMINS	DOMAIN_USER, DOMAIN_PA
 Invalid domain name: %s	Nome de domínio inválido: %s
 Join an Organization Network	Ingressar em uma Rede da organização
 Join the domain %s?	Ingressar no domínio %s?
-Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Join: sudo lux domain join DOMAIN -U ADMINISTRATOR
+Join: sudo lux domain join DOMAIN -U ADMINISTRATOR	Ingressar: sudo lux domain join DOMAIN -U ADMINISTRATOR
 Joined	Conectado
 Joining a domain needs the administrator name and password.	Para ingressar em um domínio são necessários o nome e a senha do administrador.
 Joining failed.	Falha ao ingressar.
@@ -5031,6 +5031,114 @@ Pause	Pausar
 Snooze	Soneca
 Snoozed alarm	Alarme adiado
 Stopwatch	Cronômetro
+No snapshots yet. One is taken before every update.	Ainda não há instantâneos. Um é criado antes de cada atualização.
+running now	em execução
+not in the boot menu	não está no menu de inicialização
+Snapshot %s created.	Instantâneo %s criado.
+Add --yes to confirm (lux rollback asks first).	Adicione --yes para confirmar (lux rollback pergunta antes).
+Done. After a restart LuxOS starts as it was: %s	Concluído. Após reiniciar, o LuxOS iniciará como estava: %s
+The current system was kept as the snapshot %s (nothing was deleted).	O sistema atual foi mantido como o instantâneo %s (nada foi apagado).
+No problems found.	Nenhum problema encontrado.
+Problems found: %d	Problemas encontrados: %d
+Add --yes to confirm (LuxOS Recovery asks first).	Adicione --yes para confirmar (o LuxOS Recovery pergunta antes).
+LuxOS was reinstalled. Your files and accounts were kept.	O LuxOS foi reinstalado. Seus arquivos e contas foram mantidos.
+The previous system was kept as the snapshot %s (nothing was deleted).	O sistema anterior foi mantido como o instantâneo %s (nada foi apagado).
+Not reinstalled (not from the repositories): %s	Não reinstalado (não vem dos repositórios): %s
+Usage: luxos-app-reset reset <app>	Uso: luxos-app-reset reset <app>
+No settings found for %s.	Nenhum ajuste encontrado para %s.
+%s is running. Quit it first.	%s está aberto. Encerre-o primeiro.
+These folders will be moved to a backup (nothing is deleted):	Estas pastas serão movidas para um backup (nada é apagado):
+Reset the settings of %s?	Redefinir os ajustes de %s?
+Done. The previous settings are in %s	Concluído. Os ajustes anteriores estão em %s
+Usage: luxos-app-reset restore <backup folder>	Uso: luxos-app-reset restore <pasta de backup>
+The backup could not be restored: %s	Não foi possível restaurar o backup: %s
+The settings were restored.	Os ajustes foram restaurados.
+The settings from before the restore are in %s	Os ajustes de antes da restauração estão em %s
+Reset App Settings	Redefinir Ajustes de Apps
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	Um app que não funciona bem muitas vezes volta a funcionar com os ajustes padrão. Redefinir move os ajustes dele para uma pasta de backup – nada é apagado e você pode restaurá-los depois.
+Looking for apps…	Procurando apps…
+Other folders with settings	Outras pastas com ajustes
+%d apps with settings	Apps com ajustes: %d
+%s is running	%s está aberto
+Quit the app first, then reset its settings.	Encerre o app primeiro e depois redefina os ajustes dele.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	O app será iniciado como se tivesse acabado de ser instalado. Estas pastas serão movidas para um backup (nada é apagado):
+Reset	Redefinir
+The settings could not be moved	Não foi possível mover os ajustes
+Settings of %s were reset	Os ajustes de %s foram redefinidos
+The previous settings are in %s	Os ajustes anteriores estão em %s
+Show Backup	Mostrar Backup
+Restore the settings of %s?	Restaurar os ajustes de %s?
+Settings the app has now are moved to a new backup first.	Os ajustes atuais do app serão movidos primeiro para um novo backup.
+Check the disk	Verificar o disco
+Checking the disk without changing anything. This can take several minutes.	Verificando o disco sem alterar nada. Isso pode levar vários minutos.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	O LuxOS pode reparar o que é seguro reparar: dados com uma segunda cópia no disco e a partição de inicialização.
+Repair now?	Reparar agora?
+Restore a snapshot	Restaurar um instantâneo
+Which state should LuxOS return to?	Para qual estado o LuxOS deve voltar?
+LuxOS will start as it was: %s	O LuxOS iniciará como estava: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	Seus arquivos em /home não são alterados. O sistema atual é mantido como instantâneo.
+Restore this snapshot?	Restaurar este instantâneo?
+Restart the computer to finish.	Reinicie o computador para concluir.
+Reinstall LuxOS	Reinstalar o LuxOS
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	O LuxOS será baixado e instalado novamente com os mesmos apps. São mantidos: seus arquivos (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	contas de usuário e senhas, idioma, teclado, redes Wi-Fi e criptografia do disco.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Os ajustes do sistema que você mesmo alterou são redefinidos. O sistema atual é mantido como instantâneo.
+Needs the internet and takes a while (like an update of the whole system).	Requer internet e leva algum tempo (como uma atualização do sistema inteiro).
+REINSTALL	REINSTALAR
+Type %s to continue:	Digite %s para continuar:
+The internet is not connected.	A internet não está conectada.
+Connect to Wi-Fi now?	Conectar-se ao Wi-Fi agora?
+What do you want to do?	O que você deseja fazer?
+Restore a snapshot (state before an update)	Restaurar um instantâneo (estado antes de uma atualização)
+Reinstall LuxOS (keeps your files and accounts)	Reinstalar o LuxOS (mantém seus arquivos e contas)
+Shut down	Desligar
+LuxOS was restored	O LuxOS foi restaurado
+LuxOS is back in the state: %s	O LuxOS voltou ao estado: %s
+LuxOS is running from a snapshot	O LuxOS está sendo executado a partir de um instantâneo
+This is LuxOS before the update of %s. Changes are lost after a restart.	Este é o LuxOS antes da atualização de %s. As alterações serão perdidas após reiniciar.
+Keep this version	Manter esta versão
+No such snapshot: %s	O instantâneo %s não existe
+Another package operation is running. Try it again when it finishes.	Outra operação com pacotes está em andamento. Tente novamente quando ela terminar.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	O kernel deste instantâneo (%s) não foi mantido, ele não pode ser iniciado.
+The system subvolume %s was not found.	O subvolume do sistema %s não foi encontrado.
+The kernel could not be copied to the boot partition: %s	Não foi possível copiar o kernel para a partição de inicialização: %s
+The system disk could not be opened: %s	Não foi possível abrir o disco do sistema: %s
+The system disk was not found.	O disco do sistema não foi encontrado.
+The snapshot could not be created: %s	Não foi possível criar o instantâneo: %s
+The snapshot could not be deleted: %s	Não foi possível apagar o instantâneo: %s
+The list of installed packages could not be read.	Não foi possível ler a lista de pacotes instalados.
+The current kernel could not be saved, the reinstall was not started.	Não foi possível salvar o kernel atual; a reinstalação não foi iniciada.
+Installing the packages failed (is the internet connected?): %s	Falha ao instalar os pacotes (a internet está conectada?): %s
+Creating the initramfs failed: %s	Falha ao criar o initramfs: %s
+Updating the boot loader failed: %s	Falha ao atualizar o carregador de inicialização: %s
+Snapshots are not available in the live system.	Instantâneos não estão disponíveis no sistema live.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	Os instantâneos estão desativados (SNAPSHOTS=no em /etc/luxos/care.conf).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	Os instantâneos requerem o sistema de arquivos Btrfs (o LuxOS é instalado em Btrfs).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	Os instantâneos requerem o sistema em um subvolume Btrfs (o LuxOS o instala como @).
+LuxOS is running from a snapshot.	O LuxOS está sendo executado a partir de um instantâneo.
+System snapshots need LuxOS Care (lux install luxos-care).	Os instantâneos do sistema requerem o LuxOS Care (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	O LuxOS está sendo executado a partir de um instantâneo. A reversão mantém esta versão definitivamente.
+Usage: lux rollback <snapshot> (see lux snapshots)	Uso: lux rollback <instantâneo> (veja lux snapshots)
+Return to which state? (number)	Voltar para qual estado? (número)
+Return LuxOS to: %s?	Voltar o LuxOS para o estado: %s?
+CPU	CPU
+Play/Pause	Reproduzir/Pausar
+Widgets	Widgets
+System Health	Saúde do Sistema
+Excellent	Excelente
+Busy	Ocupado
+Clock & Weather	Relógio e Tempo
+Default Layout	Disposição Padrão
+Drag a widget on the desktop to move it. Right-click it for more.	Arraste um widget na mesa para movê-lo. Clique nele com o botão direito para mais opções.
+Edit Widgets…	Editar Widgets…
+Large time and date with the weather of your place. Click the time for Clock.	Hora e data grandes com o tempo do seu local. Clique na hora para abrir o Relógio.
+Music and videos appear here	Músicas e vídeos aparecem aqui
+Nothing is playing	Nada está sendo reproduzido
+Now Playing	Reproduzindo
+Put all widgets back under each other in the corner	Colocar todos os widgets de volta, um abaixo do outro, no canto
+Show widgets	Mostrar widgets
+System health with CPU, memory and storage usage.	Saúde do sistema com o uso de CPU, memória e armazenamento.
+This month with today highlighted.	Este mês com o dia de hoje destacado.
 Time is up	O tempo acabou
 Tomorrow	Amanhã
 Weekdays	Dias úteis
@@ -5045,3 +5153,10 @@ Archive Manager	Gerenciador de Arquivos Compactados
 Files Settings	Ajustes de Arquivos
 Windows - Advanced	Janelas - avançado
 Web Browser	Navegador da Web
+What is playing, with Play/Pause and Next. Shown only while something plays.	O que está tocando, com Reproduzir/Pausar e Seguinte. Mostrado somente enquanto algo estiver tocando.
+Widget	Widget
+h	h
+min	min
+s	s
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Uso: luxos-sandbox build-install [--asdeps] [--deps "a b"] <nome> < diretório.tar

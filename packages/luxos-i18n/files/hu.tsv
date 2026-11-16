@@ -5045,3 +5045,118 @@ Archive Manager	Archívumkezelő
 Files Settings	Fájlok beállításai
 Windows - Advanced	Ablakok - speciális
 Web Browser	Webböngésző
+No snapshots yet. One is taken before every update.	Még nincsenek pillanatképek. Minden frissítés előtt készül egy.
+running now	éppen fut
+not in the boot menu	nincs a rendszerindító menüben
+Snapshot %s created.	Pillanatkép elkészült: %s
+Add --yes to confirm (lux rollback asks first).	A megerősítéshez add hozzá a --yes kapcsolót (a lux rollback előbb rákérdez).
+Done. After a restart LuxOS starts as it was: %s	Kész. Újraindítás után a LuxOS ebben az állapotban indul: %s
+The current system was kept as the snapshot %s (nothing was deleted).	A jelenlegi rendszer pillanatképként megmaradt: %s (semmi sem lett törölve).
+No problems found.	Nem található probléma.
+Problems found: %d	Talált problémák: %d
+Add --yes to confirm (LuxOS Recovery asks first).	A megerősítéshez add hozzá a --yes kapcsolót (a LuxOS Recovery előbb rákérdez).
+LuxOS was reinstalled. Your files and accounts were kept.	A LuxOS újratelepítve. A fájljaid és a fiókjaid megmaradtak.
+The previous system was kept as the snapshot %s (nothing was deleted).	Az előző rendszer pillanatképként megmaradt: %s (semmi sem lett törölve).
+Not reinstalled (not from the repositories): %s	Nincs újratelepítve (nem a tárolókból származik): %s
+Usage: luxos-app-reset reset <app>	Használat: luxos-app-reset reset <alkalmazás>
+No settings found for %s.	Nem található beállítás ehhez: %s.
+%s is running. Quit it first.	%s fut. Előbb lépj ki belőle.
+These folders will be moved to a backup (nothing is deleted):	Ezek a mappák biztonsági mentésbe kerülnek (semmi sem törlődik):
+Reset the settings of %s?	Visszaállítod a(z) %s beállításait az alapértelmezésre?
+Done. The previous settings are in %s	Kész. Az előző beállítások itt vannak: %s
+Usage: luxos-app-reset restore <backup folder>	Használat: luxos-app-reset restore <mentési mappa>
+The backup could not be restored: %s	A biztonsági mentést nem sikerült visszaállítani: %s
+The settings were restored.	A beállítások visszaállítva.
+The settings from before the restore are in %s	A visszaállítás előtti beállítások itt vannak: %s
+Reset App Settings	Alkalmazásbeállítások visszaállítása
+An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later.	A rosszul működő alkalmazás az alapértelmezett beállításokkal gyakran újra rendben működik. A visszaállítás a beállításait egy biztonsági mentési mappába helyezi át – semmi sem törlődik, és később visszaállíthatod őket.
+Looking for apps…	Alkalmazások keresése…
+Other folders with settings	További mappák beállításokkal
+%d apps with settings	Beállításokkal rendelkező alkalmazások: %d
+%s is running	%s fut
+Quit the app first, then reset its settings.	Előbb lépj ki az alkalmazásból, majd állítsd vissza a beállításait.
+The app will start as if it was just installed. These folders are moved to a backup (nothing is deleted):	Az alkalmazás úgy indul el, mintha most telepítetted volna. Ezek a mappák biztonsági mentésbe kerülnek (semmi sem törlődik):
+Reset	Visszaállítás
+The settings could not be moved	A beállításokat nem sikerült áthelyezni
+Settings of %s were reset	A(z) %s beállításai visszaállítva
+The previous settings are in %s	Az előző beállítások itt vannak: %s
+Show Backup	Mentés megjelenítése
+Restore the settings of %s?	Visszaállítod a(z) %s beállításait a mentésből?
+Settings the app has now are moved to a new backup first.	Az alkalmazás jelenlegi beállításai előbb egy új biztonsági mentésbe kerülnek.
+Check the disk	Lemez ellenőrzése
+Checking the disk without changing anything. This can take several minutes.	A lemez ellenőrzése változtatás nélkül. Ez több percig is tarthat.
+LuxOS can repair what is safe to repair: data with a second copy on the disk and the boot partition.	A LuxOS kijavíthatja, amit biztonságosan lehet: a lemezen második példánnyal rendelkező adatokat és a rendszerindító partíciót.
+Repair now?	Kijavítod most?
+Restore a snapshot	Pillanatkép visszaállítása
+Which state should LuxOS return to?	Melyik állapotba térjen vissza a LuxOS?
+LuxOS will start as it was: %s	A LuxOS ebben az állapotban indul: %s
+Your files in /home are not changed. The current system is kept as a snapshot.	A /home mappában lévő fájljaid nem változnak. A jelenlegi rendszer pillanatképként megmarad.
+Restore this snapshot?	Visszaállítod ezt a pillanatképet?
+Restart the computer to finish.	A befejezéshez indítsd újra a számítógépet.
+Reinstall LuxOS	LuxOS újratelepítése
+LuxOS will be downloaded and installed again with the same apps. Kept: your files (/home),	A LuxOS újra letöltődik és települ ugyanazokkal az alkalmazásokkal. Megmarad: a fájljaid (/home),
+user accounts and passwords, language, keyboard, Wi-Fi networks and disk encryption.	a felhasználói fiókok és jelszavak, a nyelv, a billentyűzet, a Wi-Fi-hálózatok és a lemeztitkosítás.
+System settings you changed yourself are reset. The current system is kept as a snapshot.	Az általad módosított rendszerbeállítások visszaállnak az alapértelmezésre. A jelenlegi rendszer pillanatképként megmarad.
+Needs the internet and takes a while (like an update of the whole system).	Internetkapcsolat szükséges, és eltart egy ideig (mint a teljes rendszer frissítése).
+REINSTALL	ÚJRATELEPÍTÉS
+Type %s to continue:	A folytatáshoz írd be: %s
+The internet is not connected.	Nincs internetkapcsolat.
+Connect to Wi-Fi now?	Csatlakozol most Wi-Fi-hálózathoz?
+What do you want to do?	Mit szeretnél tenni?
+Restore a snapshot (state before an update)	Pillanatkép visszaállítása (frissítés előtti állapot)
+Reinstall LuxOS (keeps your files and accounts)	LuxOS újratelepítése (a fájlok és a fiókok megmaradnak)
+Shut down	Leállítás
+LuxOS was restored	A LuxOS helyreállítva
+LuxOS is back in the state: %s	A LuxOS visszaállt ebbe az állapotba: %s
+LuxOS is running from a snapshot	A LuxOS pillanatképből fut
+This is LuxOS before the update of %s. Changes are lost after a restart.	Ez a LuxOS a frissítés előtti állapotban (%s). Újraindítás után a változtatások elvesznek.
+Keep this version	Verzió megtartása
+No such snapshot: %s	Nincs ilyen pillanatkép: %s
+Another package operation is running. Try it again when it finishes.	Egy másik csomagművelet fut. Próbáld újra, ha befejeződött.
+The kernel of this snapshot (%s) was not kept, it cannot be started.	A pillanatkép kernele (%s) nem maradt meg, ezért nem indítható.
+The system subvolume %s was not found.	A rendszer alkötete nem található: %s
+The kernel could not be copied to the boot partition: %s	A kernelt nem sikerült a rendszerindító partícióra másolni: %s
+The system disk could not be opened: %s	A rendszerlemezt nem sikerült megnyitni: %s
+The system disk was not found.	A rendszerlemez nem található.
+The snapshot could not be created: %s	A pillanatképet nem sikerült létrehozni: %s
+The snapshot could not be deleted: %s	A pillanatképet nem sikerült törölni: %s
+The list of installed packages could not be read.	A telepített csomagok listáját nem sikerült beolvasni.
+The current kernel could not be saved, the reinstall was not started.	A jelenlegi kernelt nem sikerült elmenteni, az újratelepítés nem indult el.
+Installing the packages failed (is the internet connected?): %s	A csomagok telepítése nem sikerült (van internetkapcsolat?): %s
+Creating the initramfs failed: %s	Az initramfs létrehozása nem sikerült: %s
+Updating the boot loader failed: %s	A rendszerbetöltő frissítése nem sikerült: %s
+Snapshots are not available in the live system.	Élő rendszerben a pillanatképek nem érhetők el.
+Snapshots are turned off (SNAPSHOTS=no in /etc/luxos/care.conf).	A pillanatképek ki vannak kapcsolva (SNAPSHOTS=no az /etc/luxos/care.conf fájlban).
+Snapshots need the Btrfs file system (LuxOS installs on Btrfs).	A pillanatképekhez Btrfs fájlrendszer szükséges (a LuxOS Btrfs-re települ).
+Snapshots need the system on a Btrfs subvolume (LuxOS installs it as @).	A pillanatképekhez a rendszernek Btrfs-alkötetben kell lennie (a LuxOS @ néven telepíti).
+LuxOS is running from a snapshot.	A LuxOS pillanatképből fut.
+System snapshots need LuxOS Care (lux install luxos-care).	A rendszer-pillanatképekhez LuxOS Care szükséges (lux install luxos-care).
+LuxOS is running from a snapshot. Rollback keeps this version for good.	A LuxOS pillanatképből fut. A visszaállás véglegesen megtartja ezt a verziót.
+Usage: lux rollback <snapshot> (see lux snapshots)	Használat: lux rollback <pillanatkép> (lásd: lux snapshots)
+Return to which state? (number)	Melyik állapotba térjen vissza? (szám)
+Return LuxOS to: %s?	Visszaállítod a LuxOS-t erre az állapotra: %s?
+CPU	Processzor
+Play/Pause	Lejátszás/Szünet
+Widgets	Widgetek
+System Health	Rendszerállapot
+Excellent	Kiváló
+Busy	Terhelt
+Clock & Weather	Óra és időjárás
+Default Layout	Alapértelmezett elrendezés
+Drag a widget on the desktop to move it. Right-click it for more.	Egy widget áthelyezéséhez húzd el az íróasztalon. További lehetőségekért kattints rá a jobb gombbal.
+Edit Widgets…	Widgetek szerkesztése…
+Large time and date with the weather of your place. Click the time for Clock.	Nagy méretű idő és dátum a helyi időjárással. Az időre kattintva megnyílik az Óra.
+Music and videos appear here	Itt jelenik meg a zene és a videó
+Nothing is playing	Nincs lejátszás
+Now Playing	Most játszott
+Put all widgets back under each other in the corner	Az összes widget visszahelyezése egymás alá a sarokba
+Show widgets	Widgetek megjelenítése
+System health with CPU, memory and storage usage.	Rendszerállapot a processzor, a memória és a tárhely kihasználtságával.
+This month with today highlighted.	Az aktuális hónap a mai nap kiemelésével.
+What is playing, with Play/Pause and Next. Shown only while something plays.	Az éppen szóló tartalom Lejátszás/Szünet és Következő gombbal. Csak lejátszás közben látható.
+Widget	Widget
+h	ó
+min	perc
+s	mp
+Sandbox: %s	Sandbox: %s
+Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Használat: luxos-sandbox build-install [--asdeps] [--deps "a b"] <név> < könyvtár.tar
