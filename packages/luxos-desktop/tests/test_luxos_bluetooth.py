@@ -186,6 +186,18 @@ class BusFixture(unittest.TestCase):
 
 
 class FakeBluez(BusFixture):
+    def test_system_bus_address_is_honoured(self):
+        # scripts/check-titlebars.sh pousti okno nad soukromou sbernici pres DBUS_SYSTEM_BUS_ADDRESS -
+        # skutecny adapter se nesmi zapnout, zviditelnit ani prohledavat okoli
+        code = ("import importlib.machinery, importlib.util, sys\n"
+                "l = importlib.machinery.SourceFileLoader('b', sys.argv[1])\n"
+                "s = importlib.util.spec_from_loader('b', l); m = importlib.util.module_from_spec(s); l.exec_module(m)\n"
+                "print(m.Bluez(lambda: None).adapter()[1].get('Alias'))\n")
+        env = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=self.addr, PYTHONPATH=I18N)
+        out = subprocess.run([sys.executable, "-c", code, os.path.join(BIN, "luxos-bluetooth")], env=env,
+                             capture_output=True, text=True, timeout=30)
+        self.assertEqual(out.stdout.strip(), "luxos-pc", out.stderr)
+
     def test_bluez_layer_sets_alias(self):
         changes = []
         bz = bt.Bluez(lambda: changes.append(1))
@@ -517,6 +529,35 @@ class Window(BusFixture):
             self.assertEqual((out, len(shown)), ({"r": ()}, n))
         finally:
             Gtk.Dialog.run = orig
+
+
+@unittest.skipUnless(os.environ.get("DISPLAY"), "potrebuje X (xvfb-run)")
+class NoAdapter(unittest.TestCase):
+    """Pocitac bez adapteru (BlueZ nebezi): jen hlaska, bez Prejmenovat u prazdneho jmena a bez "Hledam…"."""
+
+    def test_window_without_bluez(self):
+        from gi.repository import Gtk
+        proc = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
+                                stdout=subprocess.PIPE, text=True)
+        self.addCleanup(lambda: (proc.terminate(), proc.wait(5)))
+        addr = proc.stdout.readline().strip()
+        bt.BUS = lambda: Gio.DBusConnection.new_for_address_sync(
+            addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+            None, None)
+        self.addCleanup(setattr, bt, "BUS", bt.system_bus)
+        win = bt.BluetoothWindow()
+        self.addCleanup(win.destroy)
+        win.show_all()                  # jako main()
+        win.refresh()
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
+        self.assertFalse(win.name_group.get_visible())
+        self.assertFalse(win.head_nearby.get_visible())
+        self.assertFalse(any(lb.get_visible() for lb in win.lists.values()))
+        self.assertFalse(win.power.get_sensitive())
+        with open(os.path.join(BIN, "luxos-bluetooth")) as f:
+            main = f.read().split("def main():")[1]
+        self.assertLess(main.index("win.show_all()"), main.index("win.refresh()"))
 
 
 if __name__ == "__main__":
