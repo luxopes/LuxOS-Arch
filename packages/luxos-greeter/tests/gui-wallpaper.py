@@ -8,6 +8,16 @@ zapisuje luxos-appearance greeter-sync), stejna tapeta i po prepnuti na jineho u
 necitelna nebo chybejici tapeta -> vychozi (svetla, jako vychozi rezim plochy), vyslovne
 user-background=false a vlastni background= v konfiguraci.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import argparse
 import os
 import sys

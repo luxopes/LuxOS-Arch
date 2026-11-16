@@ -2,6 +2,16 @@
 """Aktualizace softwaru: "Posledni aktualizace" i po lux update z Terminalu (regrese audit 1.0.2:
 po aktualizaci tlacitkem v uvitacim okne okno ukazovalo "Last update: never").
     python3 packages/luxos-care/tests/test_update_last.py"""
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import datetime
 import os
 import tempfile

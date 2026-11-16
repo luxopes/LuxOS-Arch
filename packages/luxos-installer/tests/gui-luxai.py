@@ -6,6 +6,16 @@
 Zadne skutecne ucty ani e-maily: server je packages/luxos-account/tests/mock_luxai.py na 127.0.0.1.
 S --shots ulozi snimky jednotlivych podstranek v cestine a anglictine.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import os
 import sys
 import tempfile

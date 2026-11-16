@@ -10,6 +10,11 @@
 #       > out/plank-root/run-plank.sh && chmod +x out/plank-root/run-plank.sh
 #   packages/plank/tests/run-all.sh "$PWD/out/plank-root/run-plank.sh"
 set -u
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 here=$(dirname "$(readlink -f "$0")")
 plank=$(readlink -f "${1:?cesta k Planku}")
 w=$(readlink -m "${2:-$here/../../../out/plank-tests}")

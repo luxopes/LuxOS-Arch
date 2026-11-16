@@ -8,6 +8,16 @@
    kontrola v backendu (domain_config), upozorneni @@NOTICE na posledni strance,
 2) Pruvodce nastavenim: krok Firemni sit jen s lux-domain, data pro luxos-oem finish, @@WARN pred prihlasenim.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import os
 import subprocess
 import sys

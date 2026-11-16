@@ -7,6 +7,11 @@
 # Funkce se vezmou primo z luxos-install, gum je nahrazen skriptovanymi odpovedmi. Nic se nezapisuje
 # do /etc ani nesaha na displej (DISPLAY a SUDO_USER jsou zrusene, setxkbmap je napodoba).
 set -uo pipefail
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 unset DISPLAY SUDO_USER WAYLAND_DISPLAY
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
