@@ -55,7 +55,8 @@ system_part() {  # system_part start|stop
 # ---- jas podsviceni (notebook) ----
 bright_pct() {  # aktualni jas v % nebo nic
     local b m c
-    b=$(compgen -G "$backlight/*" | head -n1) || return
+    b=$(compgen -G "$backlight/*" | head -n1)
+    [[ -n $b ]] || return 0     # bez podsviceni (stolni pocitac): drive chyba "/max_brightness" na stderr
     m=$(<"$b/max_brightness") && c=$(<"$b/brightness") && (( m > 0 )) && echo $(( (c * 100 + m / 2) / m ))
 }
 

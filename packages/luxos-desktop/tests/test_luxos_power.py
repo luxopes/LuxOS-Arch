@@ -315,6 +315,15 @@ class PowersaverScript(unittest.TestCase):
         self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "true")
         self.assertFalse(os.path.exists(f"{self.cfg}/luxos/dock-zoom"))
 
+    def test_no_backlight_no_error(self):
+        """Stolni pocitac bez podsviceni: zapnuti/vypnuti bez chyby "/max_brightness" na stderr."""
+        self.env["LUXOS_BACKLIGHT"] = os.path.join(self.d, "no-backlight")
+        for cmd in ("on", "off"):
+            r = subprocess.run(["bash", os.path.join(BIN, "luxos-powersaver"), cmd], env=self.env,
+                               capture_output=True, text=True, timeout=30)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(r.stderr, "")
+
     def test_zoom_kept_for_retry_when_gsettings_fails(self):
         """Bez D-Bus (gsettings selze) se ulozena hodnota nesmaze - zkusi se znovu pri prihlaseni."""
         write(f"{self.cfg}/luxos/powersaver.saved", "dock-zoom=true\n")
