@@ -193,6 +193,22 @@ def engine_conf():
     return "".join(line + "\n" for line in text.splitlines() if not line.startswith("#@"))
 
 
+def outside_session(cmd, cgroup_file="/proc/self/cgroup"):
+    """pacstrap mimo relaci uzivatele: helper spousti pkexec z relace (session-N.scope, limit uloh
+    luxos-tweaks 5 % - na 4 GB RAM ~1 500) a pacstrap po kazdem overeni podpisu nechava zombie gpg.
+    Na limitu by selhalo overeni podpisu ("missing required signature") jako u instalatoru (audit 1.0.2).
+    systemd-run --scope spusti prikaz v novem scope v system.slice bez limitu, ve stejnem prostredi."""
+    try:
+        with open(cgroup_file) as f:
+            in_user = any(line.startswith("0::/user.slice/") for line in f)
+    except OSError:
+        in_user = False
+    if not in_user or not os.path.isdir("/run/systemd/system") or not shutil.which("systemd-run"):
+        return cmd
+    return ["systemd-run", "--quiet", "--scope", "--collect", "--slice=system.slice", "-p", "TasksMax=infinity",
+            "--description=LuxOS sandbox setup", "--", *cmd]
+
+
 def pacstrap_env(shim):
     """PATH pro pacstrap: docasne odkazy pacman* -> nastroje jadra lux, pak nastroje jadra a /usr/bin."""
     for name, target in PACSTRAP_SHIM.items():
@@ -277,7 +293,8 @@ def create(base_fd, pw):
         shim = os.path.join(work, "bin")
         os.mkdir(shim, 0o700)
         # -M: seznam zrcadel uz je v konfiguraci (zadny /etc/pacman.d/mirrorlist v LuxOS neni)
-        r = subprocess.run(["pacstrap", "-c", "-K", "-M", "-C", conf, path, *PACKAGES], env=pacstrap_env(shim))
+        r = subprocess.run(outside_session(["pacstrap", "-c", "-K", "-M", "-C", conf, path, *PACKAGES]),
+                           env=pacstrap_env(shim))
         if r.returncode != 0:
             die("pacstrap failed")
         configure(top_fd, pw, conf_text)
