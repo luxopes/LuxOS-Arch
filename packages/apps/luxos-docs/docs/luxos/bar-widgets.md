@@ -28,6 +28,17 @@ Between the left and the right part of the top bar is the `luxos-bar` plugin (a 
   `bar-style classic` has square corners.
 - **White text** (`luxos-appearance bar-text white`): white text in light mode as well, with a soft
   shadow; the bar is then tinted dark (smoked glass) so the text stays readable on any wallpaper.
+  On a wallpaper that is too light for white text (white, beige, LuxOS Light/Citrus) the bar switches
+  by itself to dark text and dark icons (clock, app name, status icons incl. the Wi-Fi indicator,
+  workspace numbers, battery) with a light tint, and back to white on a darker wallpaper. The plugin
+  decides from the WCAG contrast of white text over the wallpaper area under the bar (on the monitor
+  with the bar, wallpaper of the active workspace): dark text below 2.0 : 1, white again above
+  2.3 : 1, so a wallpaper on the edge does not make the bar flicker. Lighter but still readable
+  wallpapers such as Sunrise (about 2.4 : 1, plus the shadow and the soft veil) keep white text.
+  The decision is stored in `~/.config/luxos/bar-ink` and applied with
+  `luxos-appearance bar-ink dark|white` (managed `gtk.css` block, panel restart - the same as
+  switching light/dark mode). It is re-checked when the wallpaper, workspace, monitor or bar
+  opacity changes.
 
 ```
 luxos-appearance bar-style classic|rounded    # square / rounded bottom corners

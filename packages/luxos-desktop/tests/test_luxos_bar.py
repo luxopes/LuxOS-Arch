@@ -219,6 +219,41 @@ class Bar(unittest.TestCase):
         self.assertIn("color: #1d1d1f; }", css)
         self.assertNotIn("text-shadow: 0", css)
 
+    def test_white_text_switches_to_dark_on_light_wallpaper(self):
+        """Plugin luxos-bar rozhodne podle tapety (bar-ink): tmave pismo bez stinu, zpet bile se stinem."""
+        self.run_appearance("bar-text", "white")
+        open(self.log, "w").close()
+        self.run_appearance("bar-ink", "dark")
+        css = self.read(self.css)
+        self.assertIn("#XfcePanelWindowWrapper image { color: #1d1d1f; }", css)
+        self.assertNotIn("text-shadow: 0", css)
+        self.assertNotIn("-gtk-icon-shadow: 0", css)
+        self.assertIn("grid > button:checked label { color: #1d1d1f; }", css)   # cisla ploch
+        self.assertEqual(self.read(os.path.join(self.cfg, "luxos", "bar-ink")).strip(), "dark")
+        self.assertEqual(self.restarts(), 1, "barvu textu externich pluginu nacte panel az po restartu")
+        # stejne rozhodnuti znovu: bez restartu
+        open(self.log, "w").close()
+        self.run_appearance("bar-ink", "dark")
+        self.assertEqual(self.restarts(), 0)
+        self.run_appearance("bar-ink", "white")
+        css = self.read(self.css)
+        self.assertIn("image { color: #ffffff; }", css)
+        self.assertIn("text-shadow: 0 1px 2px", css)
+        self.assertFalse(os.path.exists(os.path.join(self.cfg, "luxos", "bar-ink")))
+        self.assertEqual(self.restarts(), 1)
+
+    def test_bar_ink_only_affects_white_text_in_light_mode(self):
+        """Ulozene rozhodnuti nemeni tmavy rezim ani vychozi pismo (bar-text auto)."""
+        self.run_appearance("bar-ink", "dark")
+        self.assertIn("color: #1d1d1f; }", self.read(self.css))   # auto: tmave jako vzdy
+        with open(os.path.join(self.cfg, "luxos", "appearance"), "w") as f:
+            f.write("dark\n")
+        self.run_appearance("bar-text", "white")
+        css = self.read(self.css)
+        self.assertIn("color: #ffffff; }", css)
+        self.assertNotIn("#1d1d1f", css)
+        self.assertEqual(self.run_appearance("bar-ink", "grey", check=False).returncode, 2)
+
     def test_plugin_menus_keep_theme_colors(self):
         """Nabidka zvuku/Wi-Fi je ve stromu CSS pod tlacitkem listy: bily text listy do ni nesmi."""
         self.run_appearance("bar-text", "white")

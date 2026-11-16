@@ -9,6 +9,7 @@ set -u
 state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 state_file="$state_dir/appearance"
 prefs="$state_dir/appearance.conf"   # BAR_*, DOCK_OPACITY (nastaveni Plocha a Dock); cte i plugin luxos-bar
+ink_file="$state_dir/bar-ink"       # dark = bile pismo listy prepnute na tmave (svetla tapeta, rozhoduje luxos-bar)
 wall_dir=/usr/share/backgrounds/luxos
 BAR_OPACITY=62
 BAR_STYLE=classic    # rounded = zaoblene spodni rohy listy
@@ -159,15 +160,18 @@ panel_css() {
     local mode=$1 css="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/gtk.css" fg block old
     mkdir -p "${css%/*}"
     touch "$css"
+    # Bile pismo ve svetlem rezimu na prilis svetle tapete: tmave pismo (rozhodnuti pluginu luxos-bar)
+    local white=0
+    [[ $mode == light && $BAR_TEXT == white && $(cat "$ink_file" 2>/dev/null) != dark ]] && white=1
     fg='#ffffff'
-    [[ $mode == light && $BAR_TEXT != white ]] && fg='#1d1d1f'
+    [[ $mode == light && $white == 0 ]] && fg='#1d1d1f'
     block="/* LuxOS appearance begin */"$'\n'
     # Jen okno listy (#XfcePanelWindow) a okna externich pluginu (#XfcePanelWindowWrapper):
     # tridu .xfce4-panel maji i vyskakovaci okna pluginu.
     [[ $mode == light ]] &&
         block+="$(bar_sel '' ' label' ' button' ' image') { color: $fg; }"$'\n'
     # bile pismo na svetle liste: jemny stin, aby bylo citelne i na svetle tapete
-    [[ $mode == light && $BAR_TEXT == white ]] &&
+    [[ $mode == light && $white == 1 ]] &&
         block+="$(bar_sel ' label') { text-shadow: 0 1px 2px alpha(black, 0.35); } $(bar_sel ' image') { -gtk-icon-shadow: 0 1px 2px alpha(black, 0.35); }"$'\n'
     # Nabidky a vyskakovaci okna pluginu (zvuk, Wi-Fi, ...): GTK je ve stromu CSS veda pod tlacitkem
     # listy (window(XfcePanelWindow) button window.popup menu menuitem label) - barvu a stin vratit
@@ -371,6 +375,11 @@ case ${1:-status} in
                 BAR_CLOCK=$2
                 set_pref BAR_CLOCK "$2"
                 if bar_layout; then restart_panel; fi ;;
+    # Interni (plugin luxos-bar): bile pismo na svetle tapete prepnout na tmave a zpet
+    bar-ink)    [[ ${2-} == @(dark|white) ]] || usage "bar-ink dark|white"
+                mkdir -p "$state_dir"
+                if [[ $2 == dark ]]; then echo dark >"$ink_file"; else rm -f "$ink_file"; fi
+                if panel_css "$(current)"; then restart_panel; fi ;;
     bar-text)   [[ ${2-} == @(auto|white) ]] || usage "bar-text auto|white"
                 BAR_TEXT=$2
                 set_pref BAR_TEXT "$2"
