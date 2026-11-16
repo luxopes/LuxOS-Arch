@@ -49,6 +49,9 @@ package() {
     install -Dm755 "$f/boot/luxos-boot-failure" "$pkgdir/usr/lib/luxos/luxos-boot-failure"
     # Mirnejsi docasne zamceni uctu (10 chyb / 15 min -> 1 minuta), viz luxos.install
     install -Dm755 "$f/security/luxos-faillock-setup" "$pkgdir/usr/lib/luxos/luxos-faillock-setup"
+    # sudo bez anglicke "lecture" pri prvnim pouziti (adresar se stejnymi pravy jako v baliku sudo)
+    install -dm750 "$pkgdir/etc/sudoers.d"
+    install -m440 "$f/security/sudoers-luxos-lecture" "$pkgdir/etc/sudoers.d/05-luxos-lecture"
     install -Dm755 "$f/boot/luxos-boot-watch" "$pkgdir/usr/lib/luxos/boot/luxos-boot-watch"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/boot" "$f/boot/luxos-boot-watch.service" "$f/boot/luxos-retry.conf" \
         "$f/boot/luxos-emergency.conf" "$f/boot/luxos-device-timeout.conf"

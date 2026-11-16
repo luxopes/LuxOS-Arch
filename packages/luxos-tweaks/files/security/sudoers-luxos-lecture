@@ -1,0 +1,3 @@
+# LuxOS - bez "We trust you have received the usual lecture..." pri prvnim sudo (napr. tlacitko
+# Aktualizovat v uvitacim okne otevre Terminal se sudo lux update); heslo se zepta jako vzdy.
+Defaults lecture=never
