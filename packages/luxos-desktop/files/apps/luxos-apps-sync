@@ -9,6 +9,7 @@
 # i zde je pro nabidku, Launchpad (rofi) i GLib jedna aplikace (plati prvni slozka).
 # Cesty jde pro testy zmenit promennymi LUXOS_APPS_*.
 conf=${LUXOS_APPS_RENAME_CONF:-/usr/share/luxos/apps/rename.conf}
+i18n=${LUXOS_I18N_DIR:-/usr/share/luxos/i18n}
 apps=${LUXOS_APPS_SOURCE:-/usr/share/applications}
 base=${LUXOS_APPS_DIR:-/var/lib/luxos/apps}
 flatpak=${LUXOS_APPS_FLATPAK_EXPORTS:-/var/lib/flatpak/exports/share}
@@ -26,7 +27,18 @@ while IFS='|' read -r id name name_cs icon; do
     src=$apps/$id.desktop
     [[ -r $src ]] || continue
     keep[$id]=1
-    awk -v n="$name" -v cs="$name_cs" -v ic="$icon" '
+    # Nazev ve vsech jazycich LuxOS z luxos-i18n (puvodni Name[..] se zahazuji - bez toho by nemecky
+    # zustalo jen anglicke "Files"); Name[cs] z rename.conf ma prednost
+    names=
+    for tsv in "$i18n"/*.tsv; do
+        [[ -r $tsv ]] || continue
+        lang=${tsv##*/}
+        lang=${lang%.tsv}
+        [[ $lang == cs && -n $name_cs ]] && continue
+        tr=$(awk -F'\t' -v k="$name" '$1 == k && $2 != "" { print $2; exit }' "$tsv")
+        [[ -n $tr ]] && names+="Name[$lang]=$tr"$'\n'
+    done
+    awk -v n="$name" -v cs="$name_cs" -v ic="$icon" -v names="$names" '
         /^\[/ { sect = $0 }
         sect == "[Desktop Entry]" && /^Name(\[[^]]*\])?=/ { next }
         sect == "[Desktop Entry]" && ic != "" && /^Icon=/ { next }
@@ -34,6 +46,7 @@ while IFS='|' read -r id name name_cs icon; do
         $0 == "[Desktop Entry]" {
             print "Name=" n
             if (cs != "") print "Name[cs]=" cs
+            printf "%s", names
             if (ic != "") print "Icon=" ic
         }' "$src" >"$out/$id.desktop.tmp" && mv "$out/$id.desktop.tmp" "$out/$id.desktop"
 done <"$conf"
