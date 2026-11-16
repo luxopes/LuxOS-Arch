@@ -269,12 +269,18 @@ def load_templates():
     return sorted(out, key=lambda t: (t["order"], t["id"]))
 
 
+def decimal(text):
+    """Desetinna carka misto tecky ve vsech jazycich pruvodce krome anglictiny (1,4 GB, 4,5 MB/s)."""
+    lang = os.environ.get("LANG", "en")
+    return text if lang.startswith("en") or lang in ("C", "POSIX") else text.replace(".", ",")
+
+
 def size_text(n):
     """Velikost v jednotkach SI (stejne jako numfmt --to=si v TUI)."""
     n = float(n)
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if n < 1000 or unit == "TB":
-            return f"{n:.0f} {unit}" if n >= 10 or unit == "B" else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}" if n >= 10 or unit == "B" else decimal(f"{n:.1f} {unit}")
         n /= 1000
     return ""
 
@@ -284,7 +290,7 @@ def size_bin(n):
     n = float(n)
     for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
         if n < 1024 or unit == "TiB":
-            return f"{n:.0f} {unit}" if n >= 100 or unit == "B" else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}" if n >= 100 or unit == "B" else decimal(f"{n:.1f} {unit}")
         n /= 1024
     return ""
 
