@@ -122,6 +122,66 @@ def test_main_window_without_service(monkeypatch, tmp_path):
     w.destroy()
 
 
+def test_main_window_hides_deleted_files(tmp_path):
+    kept = tmp_path / "game.sh"
+    kept.write_text("#!/bin/sh\n")
+    w = gui.GuardWindow.__new__(gui.GuardWindow)
+    Gtk.Window.__init__(w)
+    page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    w.add(page)
+    w.badge = Gtk.Label()
+    w.g_files, w.g_log, w.g_snap = (gui.Group(page, t) for t in ("files", "log", "snap"))
+    gone = dict(CRIT, path=str(tmp_path / "deleted.sh"), t=2, status="flagged")
+    here = dict(CRIT, path=str(kept), t=1, status="flagged")
+    w.fill({"op": "status"}, {"entries": [gone, here], "log": []}, [], False)
+    texts = labels(w.g_files)
+    assert "game.sh" in texts and "deleted.sh" not in texts
+    assert len([b for b in buttons(w.g_files) if b.get_label() == "Run in Sandbox"]) == 1
+    # jen smazane soubory -> prazdny stav
+    w.fill({"op": "status"}, {"entries": [gone], "log": []}, [], False)
+    assert labels(w.g_files) == ["No programs from outside this computer yet."]
+    w.destroy()
+
+
+def test_restore_runs_once_at_a_time(monkeypatch, tmp_path):
+    import datetime
+    import threading
+    import time
+    started, release, calls = threading.Event(), threading.Event(), []
+
+    def fake_restore(src, dst, overwrite, skip_top):
+        calls.append(overwrite)
+        started.set()
+        release.wait(5)
+        return 3, 1
+
+    monkeypatch.setattr(gui.snap, "restore", fake_restore)
+    w = gui.GuardWindow.__new__(gui.GuardWindow)
+    Gtk.Window.__init__(w)
+    w.state_label = Gtk.Label()
+    w.user_dir = lambda p: str(tmp_path)
+    t = datetime.datetime(2026, 11, 16, 10, 0)
+    w.restore(t, "p", False)
+    assert started.wait(5)
+    w.restore(t, "p", True)                      # druhe kliknuti behem obnovy nic nespusti
+    release.set()
+    for _ in range(100):
+        flush()
+        if not w.restoring:
+            break
+        time.sleep(0.02)
+    assert calls == [False]
+    assert w.state_label.get_text().startswith("Restored 3 files")
+    w.restore(t, "p", True)                      # po dokonceni jde obnovit znovu
+    for _ in range(100):
+        flush()
+        if not w.restoring:
+            break
+        time.sleep(0.02)
+    assert calls == [False, True]
+    w.destroy()
+
+
 # ---- okno s vystupem behu bez okna (Zobrazit vystup) -------------------------------------------------
 def textview(widget):
     if isinstance(widget, Gtk.TextView):

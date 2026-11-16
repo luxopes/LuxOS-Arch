@@ -379,7 +379,10 @@ class GuardWindow(Gtk.Window):
             self.badge.set_text(_("Not running"))
             ctx.add_class("off")
         self.g_files.clear()
-        entries = sorted(((lst or {}).get("entries") or []), key=lambda e: -(e.get("t") or 0))
+        # Smazane nebo presunute soubory sluzba dal pamatuje (podle inode) - v okne by zustaly
+        # navzdy i s tlacitkem Spustit v sandboxu, ktere by nic nespustilo
+        entries = sorted((e for e in ((lst or {}).get("entries") or []) if os.path.lexists(e.get("path") or "")),
+                         key=lambda e: -(e.get("t") or 0))
         if not entries:
             self.g_files.row(label(_("No programs from outside this computer yet."), "hint"))
         for e in entries[:30]:
@@ -461,8 +464,17 @@ class GuardWindow(Gtk.Window):
             self.restore(t, p, True)
 
     def restore(self, t, p, overwrite):
+        # Jedna obnova najednou: druhe kliknuti behem obnovy by kopirovalo stejne soubory soubezne
+        if getattr(self, "restoring", False):
+            return
+        self.restoring = True
         home = os.path.realpath(os.path.expanduser("~"))
         self.state_label.set_text(_("Restoring files…"))
+
+        def finished(text):
+            self.restoring = False
+            self.state_label.set_text(text)
+            return False
 
         def work():
             try:
@@ -471,7 +483,7 @@ class GuardWindow(Gtk.Window):
                     done, t.strftime("%Y-%m-%d %H:%M"), kept)
             except OSError as e:
                 text = str(e)
-            GLib.idle_add(self.state_label.set_text, text)
+            GLib.idle_add(finished, text)
         threading.Thread(target=work, daemon=True).start()
 
 
