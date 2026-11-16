@@ -29,6 +29,9 @@ CARRY = [
     "etc/lux/lux.conf", "etc/lux/conf.d", "etc/lux/mirrorlist", "etc/lux/hooks",
     "etc/luxos", "etc/sudoers.d/10-luxos", "etc/lightdm/lightdm.conf.d/60-autologin.conf",
     "etc/NetworkManager/system-connections", "var/lib/bluetooth",
+    # klicenka lux (mistni klic + duvera klicum repozitaru): bez ni novy system neaktualizoval ("unable
+    # to update database" - overeno ve VM); subuid/subgid = rozsahy ID lidskych uctu (kontejnery)
+    "etc/lux/keyring", "etc/subuid", "etc/subgid",
     "usr/local/sbin/luxos-esp-sync", "etc/initcpio/post/luxos-esp-sync",
 ]
 ACCOUNT_FILES = ("etc/passwd", "etc/group", "etc/shadow", "etc/gshadow")
@@ -37,12 +40,15 @@ ACCOUNT_FILES = ("etc/passwd", "etc/group", "etc/shadow", "etc/gshadow")
 CARRY_DATA = ["var/lib/flatpak"]
 # Soubory v /etc, ktere nepatri zadnemu baliku, ale vytvari je system sam (v seznamu ztrat nemaji co delat)
 GENERATED = ("etc/ssl/", "etc/ca-certificates/", "etc/pacman.d/gnupg/", "etc/lux/gnupg/", "etc/ld.so.cache",
-             "etc/.pwd.lock", "etc/.updated", "etc/adjtime", "etc/passwd-", "etc/group-", "etc/shadow-",
+             "etc/.pwd.lock", "etc/.updated", "etc/lux/keyring/", "etc/systemd/user/", "etc/adjtime", "etc/passwd-", "etc/group-", "etc/shadow-",
              "etc/gshadow-", "etc/subuid", "etc/subgid", "etc/subuid-", "etc/subgid-", "etc/resolv.conf",
              "etc/systemd/system/", "etc/mtab", "etc/os-release", "etc/machine-info", "etc/udev/hwdb.bin",
              "etc/xml/catalog", "etc/fonts/conf.d/", "etc/pki/", "etc/ssh/ssh_host_", "etc/lux/engine",
              "etc/.luxos", "etc/mkinitcpio.d/", "etc/initcpio/", "etc/lightdm/lightdm.conf.d/",
-             "etc/plymouth/", "etc/gtk-", "etc/dconf/db/")
+             "etc/plymouth/", "etc/gtk-", "etc/dconf/db/",
+             # upravuji instalacni skripty baliku LuxOS - nova instalace je nastavi stejne (overeno ve VM)
+             "etc/default/useradd", "etc/issue", "etc/nsswitch.conf", "etc/security/faillock.conf",
+             "etc/shells", "etc/skel/")
 PLAN_MAX = 30
 UID_MIN, UID_MAX = 1000, 60000
 ESSENTIAL = ("base", "lux-engine", "lux", "luxos-care")
@@ -291,7 +297,19 @@ def copy_path(src_root, dst_root, rel):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     st = os.lstat(src)
     if stat.S_ISDIR(st.st_mode):
-        shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True)
+        # sokety a jine specialni soubory (napr. gpg-agent S.*) copytree neumi - preskocit
+        def special(d, names):
+            out = []
+            for n in names:
+                try:
+                    m = os.lstat(os.path.join(d, n)).st_mode
+                except OSError:
+                    out.append(n)
+                    continue
+                if not (stat.S_ISDIR(m) or stat.S_ISREG(m) or stat.S_ISLNK(m)):
+                    out.append(n)
+            return out
+        shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True, ignore=special)
         shutil.copystat(src, dst)
     else:
         if os.path.lexists(dst) or os.path.islink(dst):
@@ -332,18 +350,27 @@ def changed_settings(old):
     -> serazeny seznam cest ("/etc/...")."""
     db = os.path.join(old, "var/lib/lux")
     out = set()
+    prefix = old.rstrip("/")
+
+    def rel_of(path):
+        # s --root vypisuje lux-engine cesty i s korenem (/run/.../@/etc/x)
+        path = path.strip()
+        if path.startswith(prefix + "/"):
+            path = path[len(prefix):]
+        return path.lstrip("/").rstrip("/")
     rc, text = snap.sh([care.ENGINE, "--root", old, "--dbpath", db, "-Qii"], timeout=300)
-    owned = set()
     if rc == 0:
         for ln in text.splitlines():
-            m = re.match(r"^\s*(?:Backup Files\s*:\s*)?MODIFIED\s+(/\S+)", ln)
+            # "Backup Files    : /etc/x [modified]" / "                  /etc/y [modified]"
+            m = re.match(r"^\s*(?:Backup Files\s*:\s*)?(/\S+) \[modified\]\s*$", ln) or \
+                re.match(r"^\s*MODIFIED\s+(/\S+)", ln)
             if m:
-                rel = m.group(1).lstrip("/")
-                if rel.startswith("etc/") and not _carried(rel):
+                rel = rel_of(m.group(1))
+                if rel.startswith("etc/") and not _carried(rel) and not rel.startswith(GENERATED):
                     out.add("/" + rel)
     rc2, files = snap.sh([care.ENGINE, "--root", old, "--dbpath", db, "-Qlq"], timeout=300)
     if rc2 == 0:
-        owned = {f.strip().lstrip("/").rstrip("/") for f in files.splitlines() if f.strip()}
+        owned = {rel_of(f) for f in files.splitlines() if f.strip()}
         base = os.path.join(old, "etc")
         for d, dirs, names in os.walk(base):
             dirs.sort()
@@ -366,8 +393,12 @@ def extra_places(old):
             continue
         for n in names:
             r = f"{rel}/{n}"
-            if not _carried(r) and n not in ("man",):
-                out.append("/" + r)
+            p = os.path.join(old, r)
+            # odkazy (napr. /usr/local/bin/mousepad -> luxos-text) a prazdne slozky (/opt/lux) vytvari
+            # LuxOS sam a nova instalace je vytvori znovu
+            if _carried(r) or n == "man" or os.path.islink(p) or (os.path.isdir(p) and not os.listdir(p)):
+                continue
+            out.append("/" + r)
     return out
 
 
@@ -433,7 +464,9 @@ def carry_services(old, new):
             p = os.path.join(d, f)
             if not os.path.islink(p):
                 continue
-            if not (rel_dir.endswith((".wants", ".requires")) or (rel_dir == "." and f == "default.target")):
+            # *.wants/*.requires, vychozi cil a aliasy (display-manager.service -> lightdm.service,
+            # dbus-org.*.service) - bez aliasu display-manager po preinstalaci nenabehlo prihlaseni (VM)
+            if not (rel_dir.endswith((".wants", ".requires")) or rel_dir == "."):
                 continue
             target = os.readlink(p)
             unit = os.path.basename(target)
@@ -490,9 +523,16 @@ def reinstall(top, out=print, now=None, lay=None):
             if snap.is_mountpoint(mp):
                 mounts.mount(["mount", "--bind", P(mp)], os.path.join(new, mp.lstrip("/")))
         out("installing %d packages" % len(native))
+        # --disable-sandbox: stahovani pod uzivatelem alpm (lux.conf [downloads] user) by do noveho
+        # systemu pod /run/luxos-snapshots (0700) nezapsalo - ve VM "luxos.db.part: Permission denied".
+        # Baliky dal overuje podpis.
         rc, o = snap.sh([care.ENGINE, "--root", new, "--dbpath", os.path.join(new, "var/lib/lux"),
-                         "--cachedir", os.path.join(new, "var/cache/lux/pkg"), "--noconfirm", "--needed",
-                         "-Sy", "--"] + native, timeout=6 * 3600)
+                         "--cachedir", os.path.join(new, "var/cache/lux/pkg"), "--disable-sandbox",
+                         # /boot (/efi) je pripojeny EFI oddil puvodniho systemu: soubory baliku na nem
+                         # (amd-ucode.img, intel-ucode.img) nova databaze nezna - ve VM "conflicting files";
+                         # s --root plati jen vzor bez uvodniho / (overeno ve VM, "/boot/*" nezabral)
+                         "--overwrite", "boot/*", "--overwrite", "efi/*",
+                         "--noconfirm", "--needed", "-Sy", "--"] + native, timeout=6 * 3600)
         if rc != 0:
             raise snap.SnapshotError("install_failed", o.strip()[-1500:])
         out("copying accounts and settings")

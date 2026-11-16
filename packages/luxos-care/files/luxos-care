@@ -249,7 +249,7 @@ def cmd_rollback(args):
     except snap.SnapshotError as e:
         care.history("rollback", ok=False, to=name, error=e.code)
         sys.exit(snap_error(e))
-    print(_("Done. After a restart LuxOS starts as it was: %s") % res["label"])
+    print(_("Done. After a restart LuxOS starts as it was: %s") % snap.label({"name": res["target"], "kind": res.get("kind")}, _))
     print(_("The current system was kept as the snapshot %s (nothing was deleted).") % res["replaced"])
     return 0
 

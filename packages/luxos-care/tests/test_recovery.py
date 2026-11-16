@@ -81,15 +81,24 @@ class Recovery(Env):
                    os.path.join(self.old, "etc/systemd/system/multi-user.target.wants/gone.service"))
         os.symlink("/usr/lib/systemd/system/graphical.target",
                    os.path.join(self.old, "etc/systemd/system/default.target"))
+        os.symlink("/usr/lib/systemd/system/lightdm.service",
+                   os.path.join(self.old, "etc/systemd/system/display-manager.service"))
+        self.sysfile("/etc/lux/keyring/pubring.gpg", "keys")
+        self.sysfile("/etc/subuid", "anna:100000:65536\n")
 
     def fake_sh(self, cmd, timeout=600):
         if cmd[0] == care.ENGINE and "-Qii" in cmd:
-            return 0, ("Name            : pacman-conf\nBackup Files    : MODIFIED\t/etc/lux/lux.conf\n"
-                       "                  MODIFIED\t/etc/sysctl.d/99-mine.conf\n"
-                       "                  UNMODIFIED\t/etc/default/useradd\n"
-                       "Name            : x\nBackup Files    : MODIFIED\t/etc/makepkg.conf\n")
+            # skutecny vystup lux-engine (VM): "cesta [modified]"
+            return 0, ("Name            : lux-engine\nBackup Files    : /etc/lux/lux.conf [modified]\n"
+                       "                  /etc/sysctl.d/99-mine.conf [modified]\n"
+                       "                  /etc/default/useradd [unmodified]\n"
+                       "Name            : x\nBackup Files    : /etc/makepkg.conf [modified]\n"
+                       "Name            : y\nBackup Files    : None\n")
         if cmd[0] == care.ENGINE and "-Qlq" in cmd:
-            return 0, "/etc/\n/etc/sysctl.d/\n/etc/sysctl.d/99-mine.conf\n/etc/makepkg.conf\n/etc/locale.conf\n"
+            # s --root jsou cesty i s korenem
+            r = cmd[cmd.index("--root") + 1]
+            return 0, "".join(r + p + "\n" for p in ("/etc/", "/etc/sysctl.d/", "/etc/sysctl.d/99-mine.conf",
+                                                     "/etc/makepkg.conf", "/etc/locale.conf", "/etc/ssl/"))
         if cmd[:3] == ["cp", "-a", "--reflink=auto"]:
             self.cmds.append(cmd)
             import shutil
@@ -113,7 +122,7 @@ class Recovery(Env):
                 with open(p, "w") as fh:
                     fh.write(t)
             os.makedirs(os.path.join(new, "usr/lib/systemd/system"), exist_ok=True)
-            for u in ("NetworkManager.service", "graphical.target"):
+            for u in ("NetworkManager.service", "graphical.target", "lightdm.service"):
                 open(os.path.join(new, "usr/lib/systemd/system", u), "w").close()
             with open(os.path.join(new, "etc/hostname"), "w") as fh:
                 fh.write("archlinux\n")
@@ -127,6 +136,9 @@ class Recovery(Env):
         """Pred potvrzenim: cizi baliky jmenem, zmenena nastaveni (mimo prenasena), co zustane; nic se nemeni."""
         self.sysfile("/var/lib/flatpak/app/org.gimp.GIMP/x", "1")
         self.sysfile("/opt/myapp/run", "1")
+        os.makedirs(os.path.join(self.old, "opt/lux"))                      # prazdna slozka LuxOS
+        os.makedirs(os.path.join(self.old, "usr/local/bin"), exist_ok=True)
+        os.symlink("/usr/bin/luxos-text", os.path.join(self.old, "usr/local/bin/mousepad"))
         self.sysfile("/etc/ssl/certs/ca.pem", "x")                       # generovany - neni ztrata
         before = sorted(os.walk(self.top))
         plan = rec.reinstall_plan(self.top)
@@ -151,6 +163,9 @@ class Recovery(Env):
         res = rec.reinstall(self.top, out=lambda *a: None, now=self.at(45))
         self.assertEqual(res["kept"], "2026-10-26_14-45-00")
         self.assertEqual(res["foreign"], ["yay-bin"])
+        inst = [c for c in self.cmds if c[0] == care.ENGINE and "-Sy" in c][0]
+        self.assertIn("--disable-sandbox", inst)        # stahovani pod alpm do /run/luxos-snapshots (0700) selze
+        self.assertEqual(inst[inst.index("--overwrite") + 1], "boot/*")   # ucode na ESP puvodniho systemu
         for p in ("base", "firefox", "linux-luxos", "luxos-desktop", "lux-engine", "lux", "luxos-care"):
             self.assertIn(p, self.installed)
         new = os.path.join(self.top, "@")
@@ -164,6 +179,13 @@ class Recovery(Env):
         self.assertTrue(os.path.islink(os.path.join(new, "etc/systemd/system/multi-user.target.wants/NetworkManager.service")))
         self.assertFalse(os.path.lexists(os.path.join(new, "etc/systemd/system/multi-user.target.wants/gone.service")))
         self.assertTrue(os.path.islink(os.path.join(new, "etc/systemd/system/default.target")))
+        # alias display-manager (jinak po preinstalaci zadne prihlaseni) a klicenka lux (jinak zadne aktualizace)
+        self.assertEqual(os.readlink(os.path.join(new, "etc/systemd/system/display-manager.service")),
+                         "/usr/lib/systemd/system/lightdm.service")
+        with open(os.path.join(new, "etc/lux/keyring/pubring.gpg")) as f:
+            self.assertEqual(f.read(), "keys")
+        with open(os.path.join(new, "etc/subuid")) as f:
+            self.assertEqual(f.read(), "anna:100000:65536\n")
         # puvodni system je snimek "pred preinstalaci" s puvodnim jadrem
         kept = os.path.join(self.top, "@snapshots", res["kept"])
         with open(os.path.join(kept, "etc/broken-by-user.conf")) as f:
@@ -339,6 +361,26 @@ class Recovery(Env):
         with mock.patch.object(snap, "sh", sh):
             res = rec.disk_check(self.top, out=lambda *a: None)
         self.assertEqual([t for t, ok, _o in res if not ok], ["fsck /boot"])
+
+
+class CopyPath(unittest.TestCase):
+    def test_skips_sockets(self):
+        import socket
+        import tempfile
+        d = tempfile.mkdtemp(prefix="luxos-copy-")
+        try:
+            os.makedirs(os.path.join(d, "old/etc/luxos"))
+            with open(os.path.join(d, "old/etc/luxos/care.conf"), "w") as f:
+                f.write("MODE=carefree\n")
+            s = socket.socket(socket.AF_UNIX)
+            s.bind(os.path.join(d, "old/etc/luxos/S.agent"))
+            self.assertTrue(rec.copy_path(os.path.join(d, "old"), os.path.join(d, "new"), "etc/luxos"))
+            s.close()
+            self.assertTrue(os.path.isfile(os.path.join(d, "new/etc/luxos/care.conf")))
+            self.assertFalse(os.path.exists(os.path.join(d, "new/etc/luxos/S.agent")))
+        finally:
+            import shutil
+            shutil.rmtree(d, ignore_errors=True)
 
 
 if __name__ == "__main__":

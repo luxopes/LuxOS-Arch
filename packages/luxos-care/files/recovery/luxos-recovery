@@ -162,7 +162,8 @@ reinstall() {
     printf '%s ' "$(T "Type %s to continue:" "$word")" >&2
     local a
     read -r a || return
-    if [[ $a != "$word" && $a != REINSTALL ]]; then
+    # Velka/mala pismena a hacky se neporovnavaji: velke Ř se na ceske klavesnici pise jen s Caps Lock
+    if [[ $(plain_word "$a") != "$(plain_word "$word")" && $(plain_word "$a") != reinstall ]]; then
         echo "$(T "Cancelled.")"; pause; return
     fi
     if ! net_ok; then
@@ -172,6 +173,14 @@ reinstall() {
     fi
     "$CARE" reinstall --yes && echo && echo "$(T "Restart the computer to finish.")"
     pause
+}
+
+plain_word() {  # "PŘEINSTALOVAT" -> "preinstalovat"
+    local w
+    # napred bez hacku (iconv), pak mala pismena - ${,,} na Ř nefunguje bez vygenerovaneho locale
+    w=$(printf '%s' "$1" | LC_ALL=C.UTF-8 iconv -f UTF-8 -t ASCII//TRANSLIT 2>/dev/null) || w=$1
+    w=$(printf '%s' "$w" | tr 'A-Z' 'a-z')
+    printf '%s' "${w//[^a-z]/}"
 }
 
 net_ok() {

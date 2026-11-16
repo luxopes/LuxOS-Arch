@@ -833,7 +833,9 @@ def snapshot_params(name):
 
 
 def recovery_params():
-    return [f"systemd.unit={RECOVERY_TARGET}", "plymouth.enable=0"]
+    # vconsole.font: pismo s ě/ř/ů pro konzoli obnovy. setfont v nabidce nestaci - systemd-vconsole-setup
+    # (udev po prevzeti konzole grafikou) ho ve VM prepsal vychozim pismem 0,1 s po startu nabidky
+    return [f"systemd.unit={RECOVERY_TARGET}", "plymouth.enable=0", "vconsole.font=eurlatgr"]
 
 
 def bootable(lay, top, meta):
@@ -1271,7 +1273,7 @@ def rollback(top, name, now=None, lay=None, kind="before-rollback", build=None):
     gc_kernels(lay, top, snaps)
     sync_boot(top, lay, snaps)
     care.history("rollback", ok=True, to=name, replaced=replaced, target_kind=kind)
-    return {"target": name, "replaced": replaced, "label": label(meta)}
+    return {"target": name, "replaced": replaced, "label": label(meta), "kind": meta.get("kind")}
 
 
 def after_rollback():

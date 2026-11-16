@@ -323,6 +323,8 @@ class SdBoot(Env):
         self.assertIn("title   LuxOS Recovery", r)
         self.assertIn("systemd.unit=luxos-recovery.target", r)
         self.assertIn("plymouth.enable=0", r)
+        self.assertIn("vconsole.font=eurlatgr", r)       # cesky text v konzoli obnovy (ě, ř, ů)
+        self.assertNotIn("vconsole.font", e)              # bezne polozky beze zmeny
         self.assertNotIn(" quiet", r)
         self.assertNotIn("splash", r)
         self.assertNotIn("vt.global_cursor_default", r)

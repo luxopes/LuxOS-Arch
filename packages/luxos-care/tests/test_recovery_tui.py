@@ -121,6 +121,14 @@ class Tui(unittest.TestCase):
         self.run_tui("3\nREINSTALL\n\n", LUXOS_RECOVERY_NET="0")
         self.assertEqual(self.calls()[-2:], ["reinstall --plan", "reinstall --yes"])
 
+    def test_reinstall_word_any_case_without_diacritics(self):
+        """Ceska klavesnice: velke Ř jde jen s Caps Lock - staci "preinstalovat" i "přeinstalovat"."""
+        for typed in ("preinstalovat", "přeinstalovat", "reinstall", "PREINSTALOVAT"):
+            self.run_tui("3\n%s\n\n" % typed, LUXOS_RECOVERY_NET="0", LANG="cs_CZ.UTF-8")
+            self.assertEqual(self.calls()[-1], "reinstall --yes", typed)
+        self.run_tui("3\npreinstal\n\n", LUXOS_RECOVERY_NET="0", LANG="cs_CZ.UTF-8")
+        self.assertEqual(self.calls()[-1], "reinstall --plan")
+
     def test_reinstall_lists_losses_before_word(self):
         """Cizi aplikace jmenem a zmenena nastaveni se ukazou drive, nez se pta na potvrzovaci slovo."""
         out = self.run_tui("3\nno\n\n", PLAN="LOST - apps: yay-bin spotify\nLOST - settings: /etc/foo.conf")
