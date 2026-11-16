@@ -19,6 +19,18 @@
  *    zakourena (bez oken slabsi pruhlednost, pod oknem neprusvitna) - na svetle liste by bile
  *    pismo nebylo citelne.
  *
+ * 3. Bile pismo na prilis svetle tapete (BAR_TEXT=white ve svetlem rezimu): kdyz je kontrast bileho
+ *    pisma na vyrezu tapety pod listou (s kourovym tonem listy) nizky - bila, bezova nebo jina velmi
+ *    svetla tapeta -, prepne se lista na tmave pismo se svetlym tonem; na tmavsi tapete zpet na bile.
+ *    Rozhoduje kontrast podle WCAG (prumer linearniho jasu vyrezu) s hysterezi, aby lista neblikala.
+ *    Pocita se pro monitor s listou a tapetu aktivni plochy, znovu pri zmene tapety, plochy
+ *    a monitoru. Bez restartu panelu: plugin prepne tridu okna listy (luxos-ink-dark / luxos-ink-white,
+ *    pravidla ve spravovanem bloku gtk.css) - pluginy v procesu panelu se prebarvi hned. Rozhodnuti
+ *    zapise "luxos-appearance bar-ink dark|white live" (zakladni pravidla bloku pro externi pluginy)
+ *    a po jeho dobehnuti plugin restartuje externi pluginy (wrapper-2.0 = vlastni procesy: logo,
+ *    rozlozeni klavesnice, zvuk, zvonek) signalem SIGUSR1 - panel je spusti znovu bez ptani
+ *    a nactou novy blok. Lista ani tapeta pod ni nezmizi.
+ *
  * Zmeny appearance.conf se nacitaji hned (GFileMonitor), bez restartu panelu.
  */
 #define WNCK_I_KNOW_THIS_IS_UNSTABLE
@@ -27,6 +39,10 @@
 #include <libxfce4panel/libxfce4panel.h>
 #include <xfconf/xfconf.h>
 #include <glib/gstdio.h>
+#include <signal.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -47,6 +63,14 @@ typedef struct {
     gboolean center;            /* BAR_CLOCK=center */
     gint opacity;               /* BAR_OPACITY 0-100 */
     gboolean white;             /* BAR_TEXT=white */
+    gboolean dark_ink;          /* ~/.config/luxos/bar-ink = dark: bile pismo prepnute na tmave (svetla tapeta) */
+    gchar *ink_path;
+    gchar *ink_key;             /* tapeta a ton, pro ktere uz bylo pismo rozhodnuto */
+    gint64 ink_spawned;         /* kdy naposledy spusten luxos-appearance bar-ink (us) */
+    gboolean ext_ink;           /* pismo, se kterym bezi externi pluginy (nactene z gtk.css) */
+    guint ext_id;               /* odlozeny restart externich pluginu */
+    gboolean ink_path_read;
+    gint ext_tries;
     gint cover;                 /* BAR_COVER: COVER_WALLPAPER (vychozi), _TRANSLUCENT, _SOLID */
     gchar *bg_key;              /* naposledy vykreslena tapeta (zdroj, rozmery, ton) */
     gchar *bg_file;             /* obrazek pozadi listy v ~/.cache/luxos */
@@ -94,6 +118,13 @@ read_conf (Bar *bar) {
     g_free (data);
 }
 
+static void
+read_ink (Bar *bar) {
+    gchar *data = NULL;
+    bar->dark_ink = g_file_get_contents (bar->ink_path, &data, NULL, NULL) && g_str_has_prefix (data, "dark");
+    g_free (data);
+}
+
 /* ---- hodiny vpravo (genmon s prikazem luxos-clock) ------------------------------------- */
 static gboolean
 is_clock_plugin (gint id) {
@@ -124,6 +155,17 @@ sync_right_clock (Bar *bar) {
 }
 
 /* ---- pruhlednost listy ----------------------------------------------------------------- */
+/* Ton listy bez okna pod ni. smoked = kourovy (tmavy) ton pod bilym pismem ve svetlem rezimu;
+ * light_ink = bile pismo prepnute na tmave kvuli svetle tapete - svetly ton se stejnou slabou alfou. */
+static void
+tint_for (Bar *bar, gboolean dark_ink, GdkRGBA *c) {
+    gboolean dark = xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
+    gboolean faint = bar->white && !dark;
+    gboolean smoked = faint && !dark_ink;
+    *c = dark || smoked ? (GdkRGBA) { 0.09, 0.09, 0.12, 1 } : (GdkRGBA) { 0.96, 0.96, 0.97, 1 };
+    c->alpha = bar->opacity / 100.0 * (faint ? 0.45 : 1.0);
+}
+
 static void
 apply_alpha (Bar *bar) {
     GdkRGBA *rgba = NULL;
@@ -133,10 +175,10 @@ apply_alpha (Bar *bar) {
     if (!rgba)
         return;
     /* barvy jako luxos-appearance apply() */
-    gboolean dark = xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
-    gboolean smoked = bar->white && !dark;
-    GdkRGBA want = dark || smoked ? (GdkRGBA) { 0.09, 0.09, 0.12, 1 } : (GdkRGBA) { 0.96, 0.96, 0.97, 1 };
-    want.alpha = bar->covered ? 1.0 : bar->opacity / 100.0 * (smoked ? 0.45 : 1.0);
+    GdkRGBA want;
+    tint_for (bar, bar->dark_ink, &want);
+    if (bar->covered)
+        want.alpha = 1.0;
     if (fabs (rgba->alpha - want.alpha) > 0.004 || fabs (rgba->red - want.red) > 0.004
         || fabs (rgba->green - want.green) > 0.004 || fabs (rgba->blue - want.blue) > 0.004) {
         *rgba = want;
@@ -242,10 +284,179 @@ wallpaper_for (Bar *bar, GdkMonitor *mon, gint *style) {
 /* Barva a alfa tonu listy (jako apply_alpha bez okna pod listou) */
 static void
 bar_tint (Bar *bar, GdkRGBA *c) {
-    gboolean dark = xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
-    gboolean smoked = bar->white && !dark;
-    *c = dark || smoked ? (GdkRGBA) { 0.09, 0.09, 0.12, 1 } : (GdkRGBA) { 0.96, 0.96, 0.97, 1 };
-    c->alpha = bar->opacity / 100.0 * (smoked ? 0.45 : 1.0);
+    tint_for (bar, bar->dark_ink, c);
+}
+
+/* ---- bile nebo tmave pismo podle tapety -------------------------------------------------
+ * Kontrast bileho pisma podle WCAG: (1,05) / (L + 0,05), L = prumerny linearni jas vyrezu tapety
+ * po kourovem tonu listy. Prahy jsou nastavene podle skutecnych tapet: svetla tapeta Sunrise
+ * (~2,4 : 1, pod bilym pismem jeste jemny tmavy zavoj readable_alpha a stin textu) zustava bila,
+ * Light/Citrus (~1,5), bezova a bila (~1,0-1,2) prepnou na tmave pismo. Hystereze: na tmave pod
+ * 2,0, zpet na bile az nad 2,3 - tapeta na hranici nebo drobna zmena tonu listu nerozblika. */
+#define INK_DARK_BELOW 2.0
+#define INK_WHITE_ABOVE 2.3
+
+static gdouble
+srgb_linear (guchar v) {
+    gdouble c = v / 255.0;
+    return c <= 0.04045 ? c / 12.92 : pow ((c + 0.055) / 1.055, 2.4);
+}
+
+static gdouble
+white_contrast (GdkPixbuf *pb, const GdkRGBA *tint) {
+    static gdouble lut[256];
+    static gboolean lut_ready;
+    if (!lut_ready) {
+        for (gint i = 0; i < 256; i++)
+            lut[i] = srgb_linear ((guchar) i);
+        lut_ready = TRUE;
+    }
+    gint w = gdk_pixbuf_get_width (pb), h = gdk_pixbuf_get_height (pb);
+    gint rs = gdk_pixbuf_get_rowstride (pb), n = gdk_pixbuf_get_n_channels (pb);
+    const guchar *px = gdk_pixbuf_read_pixels (pb);
+    gdouble a = CLAMP (tint->alpha, 0.0, 1.0);
+    gdouble tc[3] = { tint->red, tint->green, tint->blue };
+    gdouble sum = 0.0;
+    for (gint y = 0; y < h; y++)
+        for (gint x = 0; x < w; x++) {
+            const guchar *p = px + y * rs + x * n;
+            gdouble lin[3];
+            for (gint i = 0; i < 3; i++) {
+                /* ton se michá v sRGB jako pri kresleni listy */
+                gdouble v = p[i] * (1.0 - a) + tc[i] * 255.0 * a;
+                lin[i] = lut[(guchar) CLAMP (v + 0.5, 0, 255)];
+            }
+            sum += 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+        }
+    gdouble l = w > 0 && h > 0 ? sum / ((gdouble) w * h) : 0.0;
+    return 1.05 / (l + 0.05);
+}
+
+/* Rozhoduje se jen pro bile pismo ve svetlem rezimu (v tmavem je lista tmava vzdy) */
+static gboolean
+ink_needed (Bar *bar) {
+    return bar->white && !xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
+}
+
+/* Trida okna listy podle pisma (pravidla v gtk.css od luxos-appearance) */
+static void
+apply_ink_class (Bar *bar) {
+    GtkStyleContext *ctx = bar->toplevel ? gtk_widget_get_style_context (bar->toplevel) : NULL;
+    if (!ctx)
+        return;
+    gboolean need = ink_needed (bar);
+    gboolean dark = need && bar->dark_ink, white = need && !bar->dark_ink;
+    if (dark != gtk_style_context_has_class (ctx, "luxos-ink-dark")) {
+        if (dark)
+            gtk_style_context_add_class (ctx, "luxos-ink-dark");
+        else
+            gtk_style_context_remove_class (ctx, "luxos-ink-dark");
+    }
+    if (white != gtk_style_context_has_class (ctx, "luxos-ink-white")) {
+        if (white)
+            gtk_style_context_add_class (ctx, "luxos-ink-white");
+        else
+            gtk_style_context_remove_class (ctx, "luxos-ink-white");
+    }
+}
+
+/* Externi pluginy teto listy = deti procesu panelu "wrapper-2.0"; SIGUSR1 = panel je spusti znovu
+ * bez ptani (panel_plugin_external_child_watch: "the panel asked for a restart") */
+static void
+restart_external_plugins (void) {
+    GDir *dir = g_dir_open ("/proc", 0, NULL);
+    if (!dir)
+        return;
+    pid_t self = getpid ();
+    const gchar *name;
+    while ((name = g_dir_read_name (dir))) {
+        if (name[0] < '0' || name[0] > '9')
+            continue;
+        gchar *path = g_build_filename ("/proc", name, "stat", NULL), *stat = NULL;
+        gboolean ok = g_file_get_contents (path, &stat, NULL, NULL);
+        g_free (path);
+        /* pid (comm) stav ppid ... - comm muze obsahovat mezery, ppid az za posledni ')' */
+        const gchar *rp = ok ? strrchr (stat, ')') : NULL;
+        const gchar *lp = ok ? strchr (stat, '(') : NULL;
+        gint ppid = 0;
+        if (rp && lp && sscanf (rp + 1, " %*c %d", &ppid) == 1 && ppid == self
+            && g_str_has_prefix (lp + 1, "wrapper-2.0)")) {
+            pid_t pid = (pid_t) g_ascii_strtoll (name, NULL, 10);
+            if (pid > 1)
+                kill (pid, SIGUSR1);
+        }
+        g_free (stat);
+    }
+    g_dir_close (dir);
+}
+
+/* Ikony StatusNotifier v oznamovaci oblasti (systray v procesu panelu: nm-applet --indicator, blueman, ...)
+ * si symbolickou ikonu prebarvi jen pri zmene motivu ikon - stejny nazev motivu je jen znovu nacte
+ * (GtkIconTheme se nemeni). Starsi ikony XEmbed (GtkStatusIcon v GTK 3) barvu listy prevezmou jen pri
+ * svem spusteni; pozdejsi zmenu barvy (_NET_SYSTEM_TRAY_COLORS) ani nove ukotveni neprekresli. */
+static void
+refresh_tray_icons (void) {
+    g_object_notify (G_OBJECT (gtk_settings_get_default ()), "gtk-icon-theme-name");
+}
+
+/* Externi pluginy restartovat az po zapsani gtk.css a az se pismo ustali (rychle prepinani ploch
+ * s ruznymi tapetami: jeden restart na konci); kdyz se pismo vratilo na puvodni, restart neni potreba */
+static gboolean
+ext_restart_timeout (gpointer data) {
+    Bar *bar = data;
+    bar->ext_id = 0;
+    if (bar->dark_ink == bar->ext_ink)
+        return G_SOURCE_REMOVE;
+    gchar *ink = NULL;
+    gboolean file_dark = g_file_get_contents (bar->ink_path, &ink, NULL, NULL) && g_str_has_prefix (ink, "dark");
+    g_free (ink);
+    if (file_dark != bar->dark_ink) {
+        /* luxos-appearance jeste nedobehl (nejdele ~3 s, pak az pri dalsi zmene) */
+        if (++bar->ext_tries < 10)
+            bar->ext_id = g_timeout_add (300, ext_restart_timeout, bar);
+        return G_SOURCE_REMOVE;
+    }
+    restart_external_plugins ();
+    bar->ext_ink = bar->dark_ink;
+    return G_SOURCE_REMOVE;
+}
+
+/* TRUE = tmave pismo. current = dosavadni rozhodnuti (hystereze) */
+static gboolean
+want_dark_ink (gdouble contrast, gboolean current) {
+    return current ? contrast < INK_WHITE_ABOVE : contrast < INK_DARK_BELOW;
+}
+
+/* Rozhodnout pismo pro vyrez tapety pod listou (pred tonem) */
+static void
+decide_ink (Bar *bar, GdkPixbuf *strip, const gchar *key) {
+    if (!ink_needed (bar) || g_strcmp0 (key, bar->ink_key) == 0)
+        return;
+    GdkRGBA smoke;
+    tint_for (bar, FALSE, &smoke);
+    gboolean want = want_dark_ink (white_contrast (strip, &smoke), bar->dark_ink);
+    if (want != bar->dark_ink) {
+        /* nejvys jednou za 1 s (prepinani ploch s ruznymi tapetami, prezentace tapet); jinak pri
+         * dalsi udalosti */
+        gint64 now = g_get_monotonic_time ();
+        if (bar->ink_spawned && now - bar->ink_spawned < G_USEC_PER_SEC)
+            return;
+        gchar *argv[] = { "luxos-appearance", "bar-ink", want ? "dark" : "white", "live", NULL };
+        if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL
+                            | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL))
+            return;
+        if (bar->ext_id)
+            g_source_remove (bar->ext_id);
+        bar->ext_tries = 0;
+        bar->ext_id = g_timeout_add (800, ext_restart_timeout, bar);
+        bar->ink_spawned = now;
+        bar->dark_ink = want;
+        /* pluginy v procesu panelu hned */
+        apply_ink_class (bar);
+        refresh_tray_icons ();
+    }
+    g_free (bar->ink_key);
+    bar->ink_key = g_strdup (key);
 }
 
 /* Alfa tonu, se kterou je text listy citelny: nejmene nastavena (BAR_OPACITY), na prilis svetle
@@ -283,9 +494,12 @@ readable_alpha (GdkPixbuf *pb, const GdkRGBA *tint) {
     return MAX (tint->alpha, need);
 }
 
-/* Vykresli vyrez tapety pod listou do PNG; NULL kdyz neni tapeta (pak pruhledna lista) */
-static gchar *
-render_wallpaper (Bar *bar) {
+/* Vyrez tapety, ktery na obrazovce lezi presne pod listou (bez tonu). *skey = zdroj, styl a rozmery
+ * (g_free). Obrazek se nenacita (vraci NULL) s key_only nebo kdyz je klic stejny jako skip_key.
+ * *skey NULL: neni tapeta nebo okno listy. */
+static GdkPixbuf *
+wallpaper_strip (Bar *bar, gchar **skey, const gchar *skip_key, gboolean key_only) {
+    *skey = NULL;
     GdkWindow *gw = bar->toplevel ? gtk_widget_get_window (bar->toplevel) : NULL;
     if (!gw)
         return NULL;
@@ -303,25 +517,17 @@ render_wallpaper (Bar *bar) {
     gint scale = gdk_window_get_scale_factor (gw);
     gint W = geo.width * scale, H = geo.height * scale;
     gint bx = (r.x - geo.x) * scale, by = (r.y - geo.y) * scale, bw = r.width * scale, bh = r.height * scale;
-    GdkRGBA tint;
-    bar_tint (bar, &tint);
     GStatBuf st;
     gint64 mtime = g_stat (path, &st) == 0 ? (gint64) st.st_mtime : 0;
-    gchar *key = g_strdup_printf ("%s|%" G_GINT64_FORMAT "|%d|%dx%d|%d,%d,%dx%d|%.3f,%.3f,%.3f,%.3f",
-                                  path, mtime, style, W, H, bx, by, bw, bh,
-                                  tint.red, tint.green, tint.blue, tint.alpha);
-    if (bar->bg_key && bar->bg_file && strcmp (key, bar->bg_key) == 0
-        && g_file_test (bar->bg_file, G_FILE_TEST_IS_REGULAR)) {
-        g_free (key);
+    *skey = g_strdup_printf ("%s|%" G_GINT64_FORMAT "|%d|%dx%d|%d,%d,%dx%d", path, mtime, style, W, H, bx, by, bw, bh);
+    if (key_only || (skip_key && strcmp (*skey, skip_key) == 0)) {
         g_free (path);
-        return g_strdup (bar->bg_file);
+        return NULL;
     }
     GdkPixbuf *src = bw > 0 && bh > 0 ? gdk_pixbuf_new_from_file (path, NULL) : NULL;
     g_free (path);
-    if (!src) {
-        g_free (key);
+    if (!src)
         return NULL;
-    }
     gdouble iw = gdk_pixbuf_get_width (src), ih = gdk_pixbuf_get_height (src);
     gdouble sx, sy;
     switch (style) {
@@ -347,6 +553,53 @@ render_wallpaper (Bar *bar) {
     if (x1 > x0 && y1 > y0)
         gdk_pixbuf_scale (src, dest, x0, y0, x1 - x0, y1 - y0, ox, oy, sx, sy, GDK_INTERP_BILINEAR);
     g_object_unref (src);
+    return dest;
+}
+
+/* Bez tapety pod listou (BAR_COVER=translucent/solid) se pismo rozhoduje taky - prosvita tapeta */
+static void
+update_ink (Bar *bar) {
+    gchar *skey = NULL;
+    GdkPixbuf *strip = ink_needed (bar) ? wallpaper_strip (bar, &skey, bar->ink_key, FALSE) : NULL;
+    if (strip) {
+        decide_ink (bar, strip, skey);
+        g_object_unref (strip);
+    }
+    g_free (skey);
+}
+
+/* Vykresli vyrez tapety pod listou do PNG; NULL kdyz neni tapeta (pak pruhledna lista) */
+static gchar *
+render_wallpaper (Bar *bar) {
+    GdkRGBA tint;
+    gchar *skey = NULL;
+    /* bez nacteni obrazku: stejna tapeta, rozmery i ton jako minule -> hotovy soubor */
+    if (bar->bg_key && bar->bg_file && g_file_test (bar->bg_file, G_FILE_TEST_IS_REGULAR)) {
+        wallpaper_strip (bar, &skey, NULL, TRUE);
+        if (!skey)
+            return NULL;
+        bar_tint (bar, &tint);
+        gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha);
+        gboolean same = strcmp (key, bar->bg_key) == 0;
+        g_free (key);
+        if (same && (!ink_needed (bar) || g_strcmp0 (skey, bar->ink_key) == 0)) {
+            g_free (skey);
+            return g_strdup (bar->bg_file);
+        }
+        g_free (skey);
+        skey = NULL;
+    }
+    GdkPixbuf *dest = wallpaper_strip (bar, &skey, NULL, FALSE);
+    if (!dest) {
+        g_free (skey);
+        return NULL;
+    }
+    /* bile/tmave pismo podle tapety (muze zmenit ton) */
+    decide_ink (bar, dest, skey);
+    bar_tint (bar, &tint);
+    gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha);
+    g_free (skey);
+    gint bw = gdk_pixbuf_get_width (dest), bh = gdk_pixbuf_get_height (dest);
     /* ton listy pres tapetu: stejne jako pruhledna lista nad tapetou */
     guchar *px = gdk_pixbuf_get_pixels (dest);
     gint rs = gdk_pixbuf_get_rowstride (dest), n = gdk_pixbuf_get_n_channels (dest);
@@ -402,6 +655,8 @@ apply_background (Bar *bar) {
     } else {
         if (panel_get_uint (obj, "background-style") == 2)
             panel_set_uint (obj, "background-style", 1);
+        if (bar->cover != COVER_WALLPAPER)
+            update_ink (bar);
         apply_alpha (bar);
     }
     bar->setting_bg = FALSE;
@@ -447,7 +702,8 @@ on_rgba_changed (GObject *obj, GParamSpec *pspec, Bar *bar) {
     (void) pspec;
     if (!bar->setting_rgba) {
         apply_alpha (bar);
-        /* svetly/tmavy rezim: jiny ton tapety */
+        /* svetly/tmavy rezim: jiny ton tapety, pismo rozhodnout znovu */
+        g_clear_pointer (&bar->ink_key, g_free);
         queue_background (bar);
     }
 }
@@ -676,6 +932,15 @@ on_tooltip (GtkWidget *w, gint x, gint y, gboolean kb, GtkTooltip *tip, Bar *bar
 static void
 apply_conf (Bar *bar) {
     read_conf (bar);
+    read_ink (bar);
+    if (!bar->ink_path_read) {
+        /* externi pluginy se spustily s blokem gtk.css podle ulozeneho rozhodnuti */
+        bar->ext_ink = bar->dark_ink;
+        bar->ink_path_read = TRUE;
+    }
+    apply_ink_class (bar);
+    /* jine nastaveni (pruhlednost, bile pismo) - pismo rozhodnout znovu */
+    g_clear_pointer (&bar->ink_key, g_free);
     sync_right_clock (bar);
     gtk_widget_queue_draw (bar->area);
     queue_eval (bar);
@@ -734,6 +999,8 @@ bar_free (XfcePanelPlugin *plugin, Bar *bar) {
         g_source_remove (bar->eval_id);
     if (bar->bg_id)
         g_source_remove (bar->bg_id);
+    if (bar->ext_id)
+        g_source_remove (bar->ext_id);
     g_signal_handlers_disconnect_by_data (xfconf_channel_get ("xfce4-desktop"), bar);
     if (bar->screen) {
         g_signal_handlers_disconnect_by_data (bar->screen, bar);
@@ -757,6 +1024,8 @@ bar_free (XfcePanelPlugin *plugin, Bar *bar) {
     if (bar->monitor)
         g_object_unref (bar->monitor);
     g_free (bar->conf_path);
+    g_free (bar->ink_path);
+    g_free (bar->ink_key);
     g_free (bar->text);
     g_free (bar);
 }
@@ -768,6 +1037,7 @@ construct (XfcePanelPlugin *plugin) {
     xfconf_init (NULL);
     xfce_panel_plugin_set_expand (plugin, TRUE);
     bar->conf_path = g_build_filename (g_get_user_config_dir (), "luxos", "appearance.conf", NULL);
+    bar->ink_path = g_build_filename (g_get_user_config_dir (), "luxos", "bar-ink", NULL);
 
     bar->area = gtk_drawing_area_new ();
     gtk_widget_add_events (bar->area, GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK);

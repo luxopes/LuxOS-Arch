@@ -28,6 +28,24 @@ Between the left and the right part of the top bar is the `luxos-bar` plugin (a 
   `bar-style classic` has square corners.
 - **White text** (`luxos-appearance bar-text white`): white text in light mode as well, with a soft
   shadow; the bar is then tinted dark (smoked glass) so the text stays readable on any wallpaper.
+  On a wallpaper that is too light for white text (white, beige, LuxOS Light/Citrus) the bar switches
+  by itself to dark text and dark icons (clock, app name, status icons incl. the Wi-Fi indicator,
+  workspace numbers, battery) with a light tint, and back to white on a darker wallpaper. The plugin
+  decides from the WCAG contrast of white text over the wallpaper area under the bar (on the monitor
+  with the bar, wallpaper of the active workspace): dark text below 2.0 : 1, white again above
+  2.3 : 1, so a wallpaper on the edge does not make the bar flicker. Lighter but still readable
+  wallpapers such as Sunrise (about 2.4 : 1, plus the shadow and the soft veil) keep white text.
+  The switch needs no panel restart: the plugin sets the class `luxos-ink-dark` / `luxos-ink-white`
+  on the bar window (rules in the managed `gtk.css` block), so everything drawn by the panel itself
+  changes at once; the decision is stored in `~/.config/luxos/bar-ink` by
+  `luxos-appearance bar-ink dark|white live`, and the plugins running in their own processes (logo
+  menu, keyboard layout, sound, notifications bell) are restarted by the panel in a fraction of a
+  second to load it. Switching back and forth quickly (workspaces with different wallpapers)
+  restarts them only once at the end. It is re-checked when the wallpaper, workspace, monitor or bar
+  opacity changes. Legacy XEmbed tray icons (GtkStatusIcon in GTK 3 apps) take the bar colour only
+  when the app starts - GTK does not repaint them later; StatusNotifier icons (Wi-Fi, Bluetooth and
+  most apps) follow at once. Without `live` (`luxos-appearance bar-ink dark|white`) the panel is
+  restarted.
 
 ```
 luxos-appearance bar-style classic|rounded    # square / rounded bottom corners

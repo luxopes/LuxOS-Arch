@@ -85,17 +85,22 @@ class SearchPanel(unittest.TestCase):
         os.makedirs(fake)
         progs = {"xfconf-query": FAKE_XFCONF,
                  "pgrep": "#!/bin/sh\nexit 0\n",
-                 "xfce4-panel": '#!/bin/sh\necho "xfce4-panel $*" >>"$FAKE_LOG"\n'}
+                 "xfce4-panel": '#!/bin/sh\necho "xfce4-panel $*" >>"$FAKE_LOG"\n',
+                 # panel na sbernici relace nabizi /org/xfce/Panel (bezi a odpovida)
+                 "gdbus": '#!/bin/sh\ncase "$*" in *GetNameOwner*) echo "(\':1.$(date +%N)\',)"; exit;; esac\n[ -e "${FAKE_NO_PANEL_NAME:-/nonexistent}" ] && echo "node {}" || echo "  interface org.xfce.Panel {"\n'}
         for name, body in progs.items():
             p = os.path.join(fake, name)
             with open(p, "w") as f:
                 f.write(body)
             os.chmod(p, 0o755)
+        # restart panelu (luxos-appearance restart-panel) z tohoto stromu, ne nainstalovany
+        os.symlink(os.path.join(os.path.dirname(SEARCH), "luxos-appearance"), os.path.join(fake, "luxos-appearance"))
         self.xfconf = os.path.join(self.tmp, "panel.json")
         self.log = os.path.join(self.tmp, "calls.log")
         self.cfg = os.path.join(self.tmp, "config")
         self.env = {"PATH": fake + ":/usr/bin:/bin", "HOME": self.tmp, "XDG_CONFIG_HOME": self.cfg, "USER": "test",
-                    "LANG": "C", "FAKE_XFCONF": self.xfconf, "FAKE_LOG": self.log, "LUXOS_I18N_DIR": I18N}
+                    "LANG": "C", "FAKE_XFCONF": self.xfconf, "FAKE_LOG": self.log, "LUXOS_I18N_DIR": I18N,
+                    "XDG_RUNTIME_DIR": self.tmp}
 
     def write_channel(self, data):
         with open(self.xfconf, "w") as f:

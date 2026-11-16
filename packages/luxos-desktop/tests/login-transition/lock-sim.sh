@@ -4,6 +4,11 @@
 # Bez systemove sbernice (logind): nic se nedostane do skutecne relace. Klavesa Shift probudi zamek,
 # heslo se nezadava. Promenne: EVERY (ulozit kazdy N-ty snimek), WALL.
 set -u
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 # SAVER_ENGINE=program: setric z repozitare misto nainstalovaneho /usr/lib/xfce4-screensaver/luxos
 # (xfce4-screensaver spousti jen programy ze svych slozek) - v soukromem jmennem prostoru (unshare,
 # bez roota) se tam jen pro tento test pripoji; system se nemeni

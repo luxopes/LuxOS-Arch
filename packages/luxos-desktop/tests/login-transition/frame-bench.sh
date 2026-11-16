@@ -10,6 +10,11 @@
 # p50/p99/max intervalu snimku; selze pri mezere nad 50 ms (drive kontrola plochy ve stejne smycce jako
 # kresleni: mezery 70-130 ms, viditelne trhani). Pousti se bez nice - meri se bezna priorita.
 set -u
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 HERE=$(cd "$(dirname "$0")" && pwd)
 RUNS=${1:-3}
 for t in Xvfb xfwm4 xfdesktop xfce4-panel plank xfsettingsd dbus-run-session gcc xprop; do

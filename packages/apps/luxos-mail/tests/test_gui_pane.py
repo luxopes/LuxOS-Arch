@@ -12,6 +12,16 @@ v mezipameti), A dorazi pozde -> podokno ukazuje B; Kos + automaticky vyber dals
 Docasny HOME a vsechny XDG_* (test odmitne bezet, kdyby nektera vedla do skutecneho domova), soukrome
 XDG_RUNTIME_DIR (0700), vlastni D-Bus a klicenka, nikdy DISPLAY=:0.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import os
 import shutil
 import subprocess

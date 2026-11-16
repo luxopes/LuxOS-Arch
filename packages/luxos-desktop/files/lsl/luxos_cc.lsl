@@ -22,6 +22,7 @@ CSS = ("window.cc { background: transparent; }\n"
     + ".tile .bubble { background-color: @cc_bubble; border-radius: 999px; min-width: 30px; min-height: 30px; color: @cc_fg; }\n"
     + ".tile.on .bubble { background-color: #3d7bff; color: white; }\n"
     + ".tile .title { font-weight: 600; font-size: 12px; }\n"
+    + ".tile .title.long { font-size: 11px; }\n"
     + ".tile .sub { font-size: 11px; color: @cc_dim; }\n"
     + ".tile:disabled { opacity: 0.45; }\n"
     + ".tile.mode { padding: 8px 4px 6px 4px; }\n"
@@ -263,10 +264,18 @@ function tile_new(icon, title, action):
     call gtk.box_pack_start(box, bubble, False, False, 0)
     column = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(column, gtk.ALIGN_CENTER)
-    # pevna sirka: delsi preklady ("Sporic baterie") se zkrati, okno se nerozsiri za okraj
+    # pevna sirka (okno se nerozsiri za okraj): delsi preklad mensim pismem ("Datensparmodus") a na dva
+    # radky ("Economiseur de / batterie"), az pak se zkrati
     title_label = label(title, "title", 0)
+    call gtk.label_set_line_wrap(title_label, True)
+    call gtk.label_set_lines(title_label, 2)
     call gtk.label_set_ellipsize(title_label, gtk.ELLIPSIZE_END)
     call gtk.label_set_max_width_chars(title_label, 12)
+    if len(title) > 12:
+        # mensi pismo: na radek se vejde vic znaku ("Ne pas deranger" zustane na jednom)
+        call gtk.widget_add_class(title_label, "long")
+        call gtk.label_set_max_width_chars(title_label, 15)
+    end
     call gtk.widget_set_tooltip(title_label, title)
     sub = label("", "sub", 0)
     call gtk.label_set_ellipsize(sub, gtk.ELLIPSIZE_END)
@@ -877,7 +886,8 @@ function on_wifi_list(on, output, status):
     if status == 0:
         for line in output.split("\n"):
             if line.startswith("yes:"):
-                ssid = line[4:]
+                # nmcli -t escapuje ":" a "\\" v hodnotach (sit "Kavarna: 5G" -> "Kavarna\\: 5G")
+                ssid = line[4:].replace("\\:", ":").replace("\\\\", "\\")
                 break
             end
         end

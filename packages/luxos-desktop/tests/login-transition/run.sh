@@ -14,6 +14,11 @@
 # z vetsi casti cerny (>= 25 %). Varianty: normal slow cm-late nocomp powersaver (vychozi vsechny).
 # Vysledky (frames.log, events.log, cover.log, cerne snimky jako PPM) v $OUT (mktemp).
 set -u
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 HERE=$(cd "$(dirname "$0")" && pwd)
 RUNS=${1:-1}
 shift || true

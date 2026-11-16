@@ -9,6 +9,7 @@ set -u
 state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 state_file="$state_dir/appearance"
 prefs="$state_dir/appearance.conf"   # BAR_*, DOCK_OPACITY (nastaveni Plocha a Dock); cte i plugin luxos-bar
+ink_file="$state_dir/bar-ink"       # dark = bile pismo listy prepnute na tmave (svetla tapeta, rozhoduje luxos-bar)
 wall_dir=/usr/share/backgrounds/luxos
 BAR_OPACITY=62
 BAR_STYLE=classic    # rounded = zaoblene spodni rohy listy
@@ -140,14 +141,35 @@ greeter_sync() {
 }
 
 # Selektory pro okno listy a okna externich pluginu: bar_sel ' label' ' image' -> "#XfcePanelWindow label, ..."
+bar_windows=('#XfcePanelWindow' '#XfcePanelWindowWrapper')
 bar_sel() {
     local w x out=
     for x in "$@"; do
-        for w in '#XfcePanelWindow' '#XfcePanelWindowWrapper'; do
+        for w in "${bar_windows[@]}"; do
             out+="${out:+, }$w$x"
         done
     done
     printf '%s' "$out"
+}
+
+# Barva textu a ikon listy pro okna v bar_windows: ink_rules BARVA STIN(0/1)
+ink_rules() {
+    local fg=$1 shadow=$2
+    printf '%s { color: %s; }\n' "$(bar_sel '' ' label' ' button' ' image')" "$fg"
+    if (( shadow )); then
+        printf '%s { text-shadow: 0 1px 2px alpha(black, 0.35); } %s { -gtk-icon-shadow: 0 1px 2px alpha(black, 0.35); }\n' \
+            "$(bar_sel ' label')" "$(bar_sel ' image')"
+    else
+        printf '%s { text-shadow: none; -gtk-icon-shadow: none; }\n' "$(bar_sel ' label' ' image')"
+    fi
+    # Nabidky a vyskakovaci okna pluginu (zvuk, Wi-Fi, ...): GTK je ve stromu CSS veda pod tlacitkem
+    # listy (window(XfcePanelWindow) button window.popup menu menuitem label) - barvu a stin vratit
+    # motivu, jinak by byl text listy i v nabidce.
+    printf '%s { color: inherit; text-shadow: none; -gtk-icon-shadow: none; }\n' \
+        "$(bar_sel ' window label' ' window button' ' window image' ' popover label' ' popover button' ' popover image')"
+    # cisla ploch (pager)
+    printf '%s { color: alpha(%s, 0.55); }\n' "$(bar_sel ' grid > button label')" "$fg"
+    printf '%s { color: %s; }\n' "$(bar_sel ' grid > button:checked label')" "$fg"
 }
 
 # Barva textu horni listy: WhiteSur pocita s tmavou listou, ve svetlem rezimu ji prebarvime.
@@ -159,21 +181,27 @@ panel_css() {
     local mode=$1 css="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/gtk.css" fg block old
     mkdir -p "${css%/*}"
     touch "$css"
+    # Bile pismo ve svetlem rezimu na prilis svetle tapete: tmave pismo (rozhodnuti pluginu luxos-bar)
+    local white=0
+    [[ $mode == light && $BAR_TEXT == white && $(cat "$ink_file" 2>/dev/null) != dark ]] && white=1
     fg='#ffffff'
-    [[ $mode == light && $BAR_TEXT != white ]] && fg='#1d1d1f'
+    [[ $mode == light && $white == 0 ]] && fg='#1d1d1f'
     block="/* LuxOS appearance begin */"$'\n'
     # Jen okno listy (#XfcePanelWindow) a okna externich pluginu (#XfcePanelWindowWrapper):
     # tridu .xfce4-panel maji i vyskakovaci okna pluginu.
-    [[ $mode == light ]] &&
-        block+="$(bar_sel '' ' label' ' button' ' image') { color: $fg; }"$'\n'
-    # bile pismo na svetle liste: jemny stin, aby bylo citelne i na svetle tapete
-    [[ $mode == light && $BAR_TEXT == white ]] &&
-        block+="$(bar_sel ' label') { text-shadow: 0 1px 2px alpha(black, 0.35); } $(bar_sel ' image') { -gtk-icon-shadow: 0 1px 2px alpha(black, 0.35); }"$'\n'
-    # Nabidky a vyskakovaci okna pluginu (zvuk, Wi-Fi, ...): GTK je ve stromu CSS veda pod tlacitkem
-    # listy (window(XfcePanelWindow) button window.popup menu menuitem label) - barvu a stin vratit
-    # motivu, jinak by byl bily text listy i v bile nabidce.
-    [[ $mode == light ]] &&
-        block+="$(bar_sel ' window label' ' window button' ' window image' ' popover label' ' popover button' ' popover image') { color: inherit; text-shadow: none; -gtk-icon-shadow: none; }"$'\n'
+    # Bile pismo na svetle liste ma jemny stin, aby bylo citelne i na svetle tapete.
+    [[ $mode == light ]] && block+=$(ink_rules "$fg" "$white")$'\n'
+    # Bile pismo ve svetlem rezimu: plugin luxos-bar prepina pismo podle tapety bez restartu panelu
+    # tridou okna listy (luxos-ink-dark / luxos-ink-white) - pluginy v procesu panelu se prebarvi hned;
+    # externi pluginy (vlastni procesy) plugin restartuje a ty nactou zakladni pravidla vyse (bar-ink).
+    if [[ $mode == light && $BAR_TEXT == white ]]; then
+        local -a saved=("${bar_windows[@]}")
+        bar_windows=('#XfcePanelWindow.luxos-ink-dark')
+        block+=$(ink_rules '#1d1d1f' 0)$'\n'
+        bar_windows=('#XfcePanelWindow.luxos-ink-white')
+        block+=$(ink_rules '#ffffff' 1)$'\n'
+        bar_windows=("${saved[@]}")
+    fi
     # Zaoblene spodni rohy: nahore lista licuje s obrazovkou; pod oknem (trida luxos-covered od pluginu
     # luxos-bar) rovne, jinak by v rozich prosvitala tapeta. Externi pluginy (vlastni okna ve svem
     # procesu) maji tutez tridu - bez zaobleni; krajni plugin by kreslil pres roh, proto jsou na
@@ -182,10 +210,10 @@ panel_css() {
         block+="#XfcePanelWindow.xfce4-panel.background { border-radius: 0 0 10px 10px; }"$'\n'"#XfcePanelWindowWrapper.xfce4-panel.background, #XfcePanelWindow.xfce4-panel.background.luxos-covered { border-radius: 0; }"$'\n'
     # pager v rezimu cisel (vychozi LuxOS, luxos-session): tlacitka v mrizce - jine pluginy listy mrizku nemaji
     block+="$(bar_sel ' grid > button') { min-width: 20px; min-height: 0; padding: 0 4px; margin: 4px 1px; border-radius: 6px; background: transparent; box-shadow: none; border: none; }"$'\n'
-    block+="$(bar_sel ' grid > button label') { color: alpha($fg, 0.55); font-weight: 600; }"$'\n'
+    block+="$(bar_sel ' grid > button label') { font-weight: 600; }"$'\n'
+    [[ $mode == light ]] || block+="$(bar_sel ' grid > button label') { color: alpha($fg, 0.55); }"$'\n'"$(bar_sel ' grid > button:checked label') { color: $fg; }"$'\n'
     block+="$(bar_sel ' grid > button:hover') { background: alpha($fg, 0.08); }"$'\n'
     block+="$(bar_sel ' grid > button:checked') { background: alpha(#3d7bff, 0.22); }"$'\n'
-    block+="$(bar_sel ' grid > button:checked label') { color: $fg; }"$'\n'
     # miniatury (zapnute v nastaveni pageru): bez sedych bloku; ztmaveni neaktivnich ploch kresli libwnck napevno
     block+="$(bar_sel ' wnck-pager') { background: transparent; }"$'\n'
     block+="$(bar_sel ' wnck-pager:hover') { background: alpha($fg, 0.08); }"$'\n'
@@ -297,8 +325,45 @@ wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light nebo WhiteSur-Light-xh
     fi
 }
 
+# Restart panelu teto relace. pgrep -u vidi i panel jine relace stejneho uzivatele a panel, ktery se
+# prave spousti (pri prihlaseni, po predchozim restartu), jeste nemusi nabizet objekt /org/xfce/Panel -
+# "xfce4-panel -r" by pak ukazal okno "Failed to restart the panel". Stejne tak dva restarty tesne po
+# sobe (pri prihlaseni luxos-appearance a luxos-search --add-to-panel): druhy by trefil konciici nebo
+# startujici panel. Proto: restarty po jednom (zamek), az kdyz panel objekt opravdu nabizi, a dalsi
+# restart az po nabehnuti noveho panelu (jiny vlastnik jmena na sbernici).
+panel_ready() {
+    gdbus introspect --session --dest org.xfce.Panel --object-path /org/xfce/Panel 2>/dev/null |
+        grep -q 'interface org\.xfce\.Panel '
+}
+panel_owner() {
+    gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.GetNameOwner org.xfce.Panel 2>/dev/null
+}
 restart_panel() {
-    pgrep -u "$USER" -x xfce4-panel >/dev/null && xfce4-panel -r >/dev/null 2>&1 &
+    pgrep -u "$USER" -x xfce4-panel >/dev/null || return 0
+    local lock="${XDG_RUNTIME_DIR:-/tmp}/luxos-panel-restart.lock" old _
+    {
+        # Bezny pripad (panel bezi, nikdo jiny nerestartuje): volajici pocka jen na prikaz restartu.
+        # Jinak se na pozadi ceka (nejdele ~10 s) - vystup presmerovat, at na to nikdo, kdo cte
+        # vystup luxos-appearance, neceka.
+        if ! { flock -n 9 && panel_ready; }; then
+            exec >/dev/null 2>&1
+            flock -w 20 9 || exit 0
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+                panel_ready && break
+                sleep 0.5
+            done
+            panel_ready || exit 0
+        fi
+        old=$(panel_owner)
+        xfce4-panel -r >/dev/null 2>&1
+        exec >/dev/null 2>&1
+        # zamek drzet, dokud novy panel nenabehne
+        for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+            sleep 0.5
+            [[ $(panel_owner) != "$old" ]] && panel_ready && break
+        done
+    } 9>"$lock" &
 }
 
 apply() {
@@ -340,9 +405,7 @@ apply() {
     mkdir -p "$state_dir"
     echo "$mode" > "$state_file"
     # Panel nacita gtk.css jen pri startu
-    if [[ $old != "$mode" ]] && pgrep -u "$USER" -x xfce4-panel >/dev/null; then
-        xfce4-panel -r >/dev/null 2>&1 &
-    fi
+    if [[ $old != "$mode" ]]; then restart_panel; fi
 }
 
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
@@ -371,6 +434,14 @@ case ${1:-status} in
                 BAR_CLOCK=$2
                 set_pref BAR_CLOCK "$2"
                 if bar_layout; then restart_panel; fi ;;
+    # Interni: restart panelu teto relace po jednom (luxos-search --add-to-panel)
+    restart-panel) restart_panel ;;
+    # Interni (plugin luxos-bar): bile pismo na svetle tapete prepnout na tmave a zpet
+    # "live" = plugin pismo prepne sam bez restartu panelu (trida okna listy, restart externich pluginu)
+    bar-ink)    [[ ${2-} == @(dark|white) && ${3-live} == live ]] || usage "bar-ink dark|white [live]"
+                mkdir -p "$state_dir"
+                if [[ $2 == dark ]]; then echo dark >"$ink_file"; else rm -f "$ink_file"; fi
+                if panel_css "$(current)" && [[ ${3-} != live ]]; then restart_panel; fi ;;
     bar-text)   [[ ${2-} == @(auto|white) ]] || usage "bar-text auto|white"
                 BAR_TEXT=$2
                 set_pref BAR_TEXT "$2"

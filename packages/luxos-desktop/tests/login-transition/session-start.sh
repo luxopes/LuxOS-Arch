@@ -7,6 +7,11 @@
 # Bez systemove sbernice, vlastni HOME/XDG_*/DBus: autostart LuxOS (/etc/xdg/luxos, luxos-session) se
 # nespousti, programy z /etc/xdg/autostart bezi bez systemove sbernice - nic se nedotkne skutecne relace.
 set -u
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 COVER=$1 MODE=${2:-cover} OUT=${3:-}
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../../../.." && pwd)

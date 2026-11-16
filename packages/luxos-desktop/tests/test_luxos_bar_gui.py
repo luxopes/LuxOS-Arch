@@ -13,6 +13,16 @@ a ~/.local/lib), panel ho nacte jako uzivatelsky plugin. Overuje se:
     (panel background-style 2) - okno za listou neprosvita,
   - BAR_CLOCK=center: cas uprostred listy (pixely textu na stredu obrazovky), bez restartu panelu.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import os
 import shutil
 import subprocess
@@ -93,6 +103,11 @@ Gtk.main()
 # Scenar uvnitr dbus-run-session; vysledky radky "KROK alfa"
 SCENARIO = r"""
 set -u
+# luxos-appearance napodoba: plugin jen zapise rozhodnuti o pismu (bar-ink)
+mkdir -p "$T/bin"
+printf '#!/bin/sh\necho "$*" >>"$T/appearance.log"\n' >"$T/bin/luxos-appearance"
+chmod +x "$T/bin/luxos-appearance"
+export PATH="$T/bin:$PATH"
 alpha() { xfconf-query -c xfce4-panel -p /panels/panel-1/background-rgba | grep -E '^[0-9.]+$' | tail -1; }
 wait_alpha() {  # wait_alpha hodnota: az 5 s
     for _ in $(seq 50); do [ "$(alpha)" = "$1" ] && break; sleep 0.1; done
@@ -146,6 +161,19 @@ python3 "$T/win.py" small & W=$!
 sleep 2
 python3 "$T/shot.py" "$T/wallpaper.png" 300
 kill $F $W
+# bile pismo ve svetlem rezimu: na bile tapete tmave pismo, na tmave zpet bile (zivě, bez restartu)
+printf 'BAR_TEXT=white\n' > "$XDG_CONFIG_HOME/luxos/appearance.conf"
+python3 "$T/solid.py" "$T/white.png" 0xffffffff
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/last-image -s "$T/white.png"
+for _ in $(seq 50); do grep -q 'bar-ink dark' "$T/appearance.log" 2>/dev/null && break; sleep 0.1; done
+echo "ink-white-wallpaper $(tail -1 "$T/appearance.log" 2>/dev/null | tr ' ' _)"
+sleep 1.3
+python3 "$T/solid.py" "$T/dark.png" 0x203050ff
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/last-image -s "$T/dark.png"
+for _ in $(seq 50); do grep -q 'bar-ink white' "$T/appearance.log" 2>/dev/null && break; sleep 0.1; done
+echo "ink-dark-wallpaper $(tail -1 "$T/appearance.log" 2>/dev/null | tr ' ' _)"
+echo "ink-calls $(wc -l < "$T/appearance.log")"
+kill -0 $P 2>/dev/null && echo "ink-same-panel yes"
 xfce4-panel -q 2>/dev/null
 sleep 0.5
 """
@@ -155,7 +183,7 @@ import sys, gi
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf
 p = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 640, 400)
-p.fill(0xc03020ff)
+p.fill(int(sys.argv[2], 16) if len(sys.argv) > 2 else 0xc03020ff)
 p.savev(sys.argv[1], "png", [], [])
 """
 
@@ -259,6 +287,13 @@ class BarPlugin(unittest.TestCase):
         # pod listou je opravdu bile okno
         o = 200 * rs + 300 * n
         self.assertEqual(list(px[o:o + 3]), [255, 255, 255])
+
+    def test_white_text_switches_to_dark_on_white_wallpaper(self):
+        """BAR_TEXT=white: bila tapeta -> luxos-appearance bar-ink dark, tmava tapeta -> bar-ink white."""
+        self.assertEqual(self.out.get("ink-white-wallpaper"), "bar-ink_dark_live", self.stdout + self.panel_log[-2000:])
+        self.assertEqual(self.out.get("ink-dark-wallpaper"), "bar-ink_white_live", self.stdout)
+        self.assertEqual(self.out.get("ink-calls"), "2", "kazde rozhodnuti jen jednou")
+        self.assertEqual(self.out.get("ink-same-panel"), "yes", "pismo se prepina bez restartu panelu")
 
     def test_clock_in_the_middle_without_restart(self):
         self.assertEqual(self.out.get("same-panel"), "yes", "panel se nerestartoval")

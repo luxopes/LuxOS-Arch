@@ -5,10 +5,12 @@
 #   env -u DISPLAY xvfb-run -a scripts/check-titlebars.sh
 set -u
 cd "$(dirname "$(readlink -f "$0")")/.."
-if [[ ${XAUTHORITY-} != *xvfb-run* && ${LUXOS_TEST_X-} != 1 ]]; then
-    echo "Run under xvfb-run - never on a real display." >&2; exit 2
+# Skutecnou obrazovku nikdy (ani s LUXOS_TEST_X): DISPLAY jiny nez Xvfb tohoto uzivatele nahradi vlastni Xvfb
+. scripts/luxos-testguard.sh
+if [[ -z ${DISPLAY-} ]]; then
+    echo "Needs Xvfb (or run under xvfb-run) - never on a real display." >&2; exit 2
 fi
-tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"; _luxos_tg_cleanup' EXIT
 export HOME=$tmp XDG_CONFIG_HOME=$tmp/config XDG_CACHE_HOME=$tmp/cache XDG_DATA_HOME=$tmp/data
 # Vlastni XDG_RUNTIME_DIR: testy nesmi sdilet /run/user/UID skutecne relace (portaly, gvfs, klicenka,
 # at-spi by se pripojily ke skutecnym sluzbam uzivatele)

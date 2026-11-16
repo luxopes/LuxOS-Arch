@@ -5,6 +5,11 @@
 # Prikaz bezi uvnitr relace (DISPLAY, DBUS_SESSION_BUS_ADDRESS, HOME jsou nastavene);
 # framebuffer Xvfb je v PRACOVNI_ADRESAR/fb/Xvfb_screen0 (XWD).
 set -u
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 W=$(readlink -f "${1:?pracovni adresar}"); shift
 D=${LUXOS_TEST_DISPLAY:-:57}
 mkdir -p "$W"

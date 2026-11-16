@@ -9,6 +9,16 @@ Spousti skutecny xfce4-notifyd (LUXOS_NOTIFYD = sestaveni packages/xfce4-notifyd
 s docasnym HOME. Falesna okna Ovladaciho centra (WM_CLASS luxos-control-center) a rofi (override-redirect)
 kresli maly pomocny program GTK. Jen pod xvfb-run; bez upraveneho notifyd se preskoci.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import os
 import shutil
 import subprocess

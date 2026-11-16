@@ -8,6 +8,16 @@ pgrep a xfce4-panel jen zapisuji volani; nastaveni, gtk.css a datove slozky v do
 Plugin samotny (hodiny uprostred, neprusvitna lista pod okny) se zkousi pod Xvfb s xfwm4 a panelem,
 viz docs v hlavicce files/src/luxos-bar.c.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import json
 import os
 import shutil
@@ -84,6 +94,9 @@ class Bar(unittest.TestCase):
         for name in ("pgrep", "xfce4-panel"):
             self.script(name, '#!/bin/sh\necho "%s $*" >> "$FAKE_LOG"\nexit 0\n' % name)
         self.script("xfconf-query", FAKE_XFCONF)
+        # panel na sbernici relace nabizi /org/xfce/Panel; s FAKE_NO_PANEL_NAME (soubor existuje) jeste ne
+        self.script("gdbus", '#!/bin/sh\ncase "$*" in *GetNameOwner*) echo "(\':1.$(date +%N)\',)"; exit;; esac\n[ -e "${FAKE_NO_PANEL_NAME:-/nonexistent}" ] && echo "node {}" || echo "  interface org.xfce.Panel {"\n')
+        self.no_name = os.path.join(self.tmp, "no-panel-name")
         self.share = os.path.join(self.tmp, "share")
         self.set_panel(DEFAULT_PANEL)
         self.install_plugin()
@@ -119,13 +132,14 @@ class Bar(unittest.TestCase):
 
     def run_appearance(self, *args, check=True):
         env = dict(os.environ, XDG_CONFIG_HOME=self.cfg, HOME=self.tmp, PATH=self.bin + ":" + os.environ["PATH"],
+                   XDG_RUNTIME_DIR=self.tmp, DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent",
                    XDG_DATA_HOME=os.path.join(self.tmp, "data"), XDG_DATA_DIRS=self.share,
-                   FAKE_XFCONF=self.db, FAKE_LOG=self.log, USER="test", LANG="C")
+                   FAKE_XFCONF=self.db, FAKE_LOG=self.log, USER="test", LANG="C", FAKE_NO_PANEL_NAME=self.no_name)
         return subprocess.run(["bash", SCRIPT, *args], env=env, check=check, capture_output=True, text=True)
 
     def restarts(self):
-        # restart panelu bezi na pozadi (&)
-        time.sleep(0.3)
+        # restart panelu bezi na pozadi (&); dalsi restart ceka, az predchozi panel nabehne (~0,5 s s napodobou)
+        time.sleep(1.2)
         return self.read(self.log).count("xfce4-panel -r")
 
     def ids(self):
@@ -219,12 +233,86 @@ class Bar(unittest.TestCase):
         self.assertIn("color: #1d1d1f; }", css)
         self.assertNotIn("text-shadow: 0", css)
 
+    def test_white_text_switches_to_dark_on_light_wallpaper(self):
+        """Plugin luxos-bar rozhodne podle tapety (bar-ink): tmave pismo bez stinu, zpet bile se stinem."""
+        self.run_appearance("bar-text", "white")
+        open(self.log, "w").close()
+        self.run_appearance("bar-ink", "dark")
+        css = self.read(self.css)
+        self.assertIn("#XfcePanelWindowWrapper image { color: #1d1d1f; }", css)
+        # zakladni pravidla (externi pluginy) bez stinu; stin jen u tridy luxos-ink-white
+        self.assertNotIn("#XfcePanelWindowWrapper label { text-shadow: 0", css)
+        self.assertNotIn("#XfcePanelWindowWrapper image { -gtk-icon-shadow: 0", css)
+        self.assertIn("grid > button:checked label { color: #1d1d1f; }", css)   # cisla ploch
+        self.assertEqual(self.read(os.path.join(self.cfg, "luxos", "bar-ink")).strip(), "dark")
+        self.assertEqual(self.restarts(), 1, "barvu textu externich pluginu nacte panel az po restartu")
+        # stejne rozhodnuti znovu: bez restartu
+        open(self.log, "w").close()
+        self.run_appearance("bar-ink", "dark")
+        self.assertEqual(self.restarts(), 0)
+        self.run_appearance("bar-ink", "white")
+        css = self.read(self.css)
+        self.assertIn("image { color: #ffffff; }", css)
+        self.assertIn("text-shadow: 0 1px 2px", css)
+        self.assertFalse(os.path.exists(os.path.join(self.cfg, "luxos", "bar-ink")))
+        self.assertEqual(self.restarts(), 1)
+
+    def test_no_restart_of_panel_without_bus_name(self):
+        """Panel jine relace stejneho uzivatele nebo panel, ktery se prave spousti (pgrep ho vidi, ale jmeno
+        org.xfce.Panel na sbernici teto relace jeste neni): zadne "xfce4-panel -r" - to by ukazalo okno
+        "Failed to restart the panel"."""
+        open(self.no_name, "w").close()
+        self.run_appearance("bar-text", "white")
+        time.sleep(0.8)
+        self.assertEqual(self.read(self.log).count("xfce4-panel -r"), 0)
+        # jmeno se objevi do 5 s (panel dobehl): restart probehne
+        os.unlink(self.no_name)
+        for _ in range(40):
+            if self.read(self.log).count("xfce4-panel -r"):
+                break
+            time.sleep(0.1)
+        self.assertEqual(self.read(self.log).count("xfce4-panel -r"), 1)
+
+    def test_bar_ink_live_without_restart_and_class_rules(self):
+        """Plugin prepina pismo bez restartu panelu: "bar-ink X live" jen zapise blok; v bloku jsou pravidla
+        pro tridu okna listy luxos-ink-dark / luxos-ink-white (pluginy v procesu panelu se prebarvi hned),
+        vcetne vraceni barvy v nabidkach pluginu."""
+        self.run_appearance("bar-text", "white")
+        open(self.log, "w").close()
+        self.run_appearance("bar-ink", "dark", "live")
+        self.assertEqual(self.restarts(), 0)
+        css = self.read(self.css)
+        self.assertIn("#XfcePanelWindowWrapper image { color: #1d1d1f; }", css)   # externi pluginy: zaklad
+        self.assertIn("#XfcePanelWindow.luxos-ink-dark image { color: #1d1d1f; }", css)
+        self.assertIn("#XfcePanelWindow.luxos-ink-white image { color: #ffffff; }", css)
+        self.assertIn("#XfcePanelWindow.luxos-ink-white label { text-shadow: 0 1px 2px", css)
+        self.assertIn("#XfcePanelWindow.luxos-ink-dark label, #XfcePanelWindow.luxos-ink-dark image { text-shadow: none;", css)
+        # nabidky: reset s tridou az za pravidlem tridy (vyssi specificita a pozdeji)
+        self.assertGreater(css.index("#XfcePanelWindow.luxos-ink-dark window label"),
+                           css.index("#XfcePanelWindow.luxos-ink-dark image { color"))
+        self.assertIn("#XfcePanelWindow.luxos-ink-dark grid > button:checked label { color: #1d1d1f; }", css)
+        self.assertEqual(self.run_appearance("bar-ink", "dark", "now", check=False).returncode, 2)
+
+    def test_bar_ink_only_affects_white_text_in_light_mode(self):
+        """Ulozene rozhodnuti nemeni tmavy rezim ani vychozi pismo (bar-text auto)."""
+        self.run_appearance("bar-ink", "dark")
+        self.assertIn("color: #1d1d1f; }", self.read(self.css))   # auto: tmave jako vzdy
+        with open(os.path.join(self.cfg, "luxos", "appearance"), "w") as f:
+            f.write("dark\n")
+        self.run_appearance("bar-text", "white")
+        css = self.read(self.css)
+        self.assertIn("color: #ffffff; }", css)
+        self.assertNotIn("#1d1d1f", css)
+        self.assertEqual(self.run_appearance("bar-ink", "grey", check=False).returncode, 2)
+
     def test_plugin_menus_keep_theme_colors(self):
         """Nabidka zvuku/Wi-Fi je ve stromu CSS pod tlacitkem listy: bily text listy do ni nesmi."""
         self.run_appearance("bar-text", "white")
         css = self.read(self.css)
-        reset = [l for l in css.splitlines() if "color: inherit" in l]
+        # zakladni pravidlo (+ stejne pro tridy luxos-ink-dark / luxos-ink-white)
+        reset = [l for l in css.splitlines() if "color: inherit" in l and "#XfcePanelWindowWrapper window" in l]
         self.assertEqual(len(reset), 1, css)
+        self.assertEqual(len([l for l in css.splitlines() if "color: inherit" in l]), 3)
         for sel in ("#XfcePanelWindow window label", "#XfcePanelWindow window image", "#XfcePanelWindow popover label",
                     "#XfcePanelWindowWrapper window label"):
             self.assertIn(sel, reset[0])

@@ -7,6 +7,11 @@
 # luxos-oem se nacte (source) s OEM_ROOT = docasny adresar; systemove prikazy (cryptsetup, useradd,
 # localectl, mkinitcpio, systemctl...) nahrazuji funkce nize. LUKS je napodoben sloty v souborech.
 set -uo pipefail
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
+_tg=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+while [[ -n $_tg && ! -f $_tg/scripts/luxos-testguard.sh ]]; do _tg=${_tg%/*}; done
+if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; fi
+unset _tg
 unset DISPLAY SUDO_USER WAYLAND_DISPLAY
 HERE=$(cd "$(dirname "$0")" && pwd)
 FILES=$HERE/../files
