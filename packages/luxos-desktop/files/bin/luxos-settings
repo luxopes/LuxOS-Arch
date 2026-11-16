@@ -309,6 +309,8 @@ class Settings(Gtk.Window):
         group.pack_start(box, False, False, 0)
         status = Gtk.Box(spacing=8, margin_start=14, margin_end=14, margin_bottom=10)
         self.splash_spinner = Gtk.Spinner()
+        # Skryty mimo prubeh zmeny: jinak odsazuje popisek oproti ostatnim napovedam
+        self.splash_spinner.set_no_show_all(True)
         self.splash_label = Gtk.Label(label=_("Shown while the computer starts. A change rebuilds the boot image, "
                                               "which takes about a minute."), xalign=0, wrap=True)
         self.splash_label.get_style_context().add_class("hint")
@@ -328,6 +330,7 @@ class Settings(Gtk.Window):
         self.mark_splash(key)
         for b in self.splash_buttons.values():
             b.set_sensitive(False)
+        self.splash_spinner.show()
         self.splash_spinner.start()
         self.splash_label.set_text(_("Applying the boot screen…"))
         try:
@@ -349,6 +352,7 @@ class Settings(Gtk.Window):
     def splash_done(self, key, code, out):
         self.splash_busy = False
         self.splash_spinner.stop()
+        self.splash_spinner.hide()
         for b in self.splash_buttons.values():
             b.set_sensitive(True)
         if code == 0:
@@ -365,8 +369,8 @@ class Settings(Gtk.Window):
     # ---- Tapeta -------------------------------------------------------------
     def build_wallpaper(self, page):
         group = Group(page, _("Wallpaper"))
-        current = run("xfconf-query", "-c", "xfce4-desktop", "-p",
-                      self.first_backdrop_prop()) if self.first_backdrop_prop() else ""
+        prop = self.first_backdrop_prop()
+        current = run("xfconf-query", "-c", "xfce4-desktop", "-p", prop) if prop else ""
         current = os.path.realpath(current) if current else ""
         flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=4,
                            column_spacing=6, row_spacing=6, margin=10, homogeneous=True)
@@ -453,10 +457,16 @@ class Settings(Gtk.Window):
         group.row(_("Size"), slider(32, 80, d.get_int("icon-size"), lambda v: d.set_int("icon-size", v)))
 
         zoom = Gtk.Switch(active=d.get_boolean("zoom-enabled"))
-        zoom.connect("notify::active", lambda s, _p: d.set_boolean("zoom-enabled", s.get_active()))
         group.row(_("Magnification"), zoom)
-        group.row(_("Magnification size"), slider(110, 200, d.get_int("zoom-percent"),
-                                                  lambda v: d.set_int("zoom-percent", v)))
+        zoom_size = slider(110, 200, d.get_int("zoom-percent"), lambda v: d.set_int("zoom-percent", v))
+        group.row(_("Magnification size"), zoom_size)
+        # Velikost zvetseni jen se zapnutym zvetsovanim (jako v macOS)
+        zoom_size.set_sensitive(zoom.get_active())
+
+        def on_zoom(s, _p):
+            d.set_boolean("zoom-enabled", s.get_active())
+            zoom_size.set_sensitive(s.get_active())
+        zoom.connect("notify::active", on_zoom)
 
         pos = Gtk.ComboBoxText()
         for key, label in (("bottom", _("Bottom")), ("left", _("Left")), ("right", _("Right"))):

@@ -852,3 +852,87 @@ class CleanHistory(unittest.TestCase):
         raw = [(0, 80.0, 2), (600, 79.0, 2), (20000, 60.0, 2)]
         pts = m.clean_history(raw, "charge", {"Percentage": 60.0, "State": 2}, now=20100)
         self.assertIn(None, pts)                             # uspani/vypnuti: zadna sikma cara
+
+
+@unittest.skipUnless(os.environ.get("DISPLAY"), "potrebuje X (xvfb-run)")
+class WindowOpensAtTop(unittest.TestCase):
+    """Okno Baterie a napajeni se otvira nahore (stav baterie), ne odscrollovane k rezimum napajeni."""
+
+    def test_opens_scrolled_to_top(self):
+        os.environ["LUXOS_POWER_DEMO"] = "1"
+        try:
+            m = load_power()
+        finally:
+            os.environ.pop("LUXOS_POWER_DEMO", None)
+
+        class FakeBattery:
+            bus = None
+
+            def info(self):
+                return m.demo_info()
+
+            def history(self, kind, **_kw):
+                return m.demo_history(kind)
+
+        m.Battery = FakeBattery
+        m.ppd_state = lambda _bus: ("balanced", ["power-saver", "balanced", "performance"])
+        m.gpu_info = lambda: None
+        win = m.PowerWindow()
+        win.resize(820, 500)                       # nizke okno: rezimy jsou az pod grafy
+        m.show_window(win)
+        adj = win.scroll.get_vadjustment()
+        spin(lambda: adj.get_upper() > adj.get_page_size() > 0)
+        spin(lambda: False, 0.3)
+        self.assertGreater(adj.get_upper(), adj.get_page_size())
+        self.assertEqual(adj.get_value(), 0)
+        self.assertIsNone(win.get_focus())
+        win.destroy()
+
+    def test_mode_and_saver_follow_system(self):
+        # Sporic zapnuty jinde (Ovladaci centrum, 20 %) prepne profil na Usporny - okno to ukaze
+        os.environ["LUXOS_POWER_DEMO"] = "1"
+        try:
+            m = load_power()
+        finally:
+            os.environ.pop("LUXOS_POWER_DEMO", None)
+        tmp = tempfile.mkdtemp(prefix="luxos-power-ui-")
+        m.SAVER_STATE = os.path.join(tmp, "powersaver")
+
+        class FakeBattery:
+            bus = None
+
+            def info(self):
+                return m.demo_info()
+
+            def history(self, kind, **_kw):
+                return m.demo_history(kind)
+
+        state = {"profile": "balanced"}
+        sets, runs = [], []
+        m.Battery = FakeBattery
+        m.ppd_state = lambda _bus: (state["profile"], ["power-saver", "balanced", "performance"])
+        m.ppd_set = lambda _bus, p: sets.append(p) or True
+        m.gpu_info = lambda: None
+        m.run = lambda *_a: ""                       # xfconf-query a dalsi prikazy: nic
+        from unittest import mock
+        patch = mock.patch.object(m.subprocess, "Popen", lambda *a, **k: runs.append(a))
+        patch.start()
+        self.addCleanup(patch.stop)
+        win = m.PowerWindow()
+        self.assertTrue(win.mode_buttons["balanced"][0].get_active())
+        self.assertFalse(win.saver.get_active())
+        state["profile"] = "power-saver"
+        open(m.SAVER_STATE, "w").close()
+        win.refresh()
+        self.assertTrue(win.mode_buttons["power-saver"][0].get_active())
+        self.assertTrue(win.saver.get_active())
+        self.assertEqual(sets, [])                   # jen zobrazeni, zadna zmena profilu
+        self.assertEqual(runs, [])                   # ani spusteni luxos-powersaver
+        # uzivatel Sporic prave vypnul - soubor jeste existuje, prepinac se nevrati zpet
+        win.saver.set_active(False)
+        self.assertEqual(len(runs), 1)
+        win.refresh()
+        self.assertFalse(win.saver.get_active())
+        win.destroy()
+        shutil.rmtree(tmp, ignore_errors=True)
+

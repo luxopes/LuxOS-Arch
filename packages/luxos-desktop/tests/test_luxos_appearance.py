@@ -170,6 +170,21 @@ class GreeterSync(unittest.TestCase):
         self.run_sync()
         self.assertFalse(os.path.exists(os.path.join(self.state, "greeter-wallpaper")))
 
+    def wallpaper_sets(self, count):
+        with open(os.path.join(self.tmp, "fake", "xfconf-query"), "a") as f:
+            f.write('[ "$*" = "-c xfwm4 -p /general/workspace_count" ] && echo %s\n' % count)
+        self.run_sync("wallpaper", READABLE)
+        with open(self.log) as f:
+            return sorted({line.split("/workspace")[1].split("/")[0] for line in f
+                           if "last-image" in line and READABLE in line}, key=int)
+
+    def test_wallpaper_on_every_workspace(self):
+        # Vic nez 4 plochy: tapeta i na pate a dalsi (drive jen plochy 0-3)
+        self.assertEqual(self.wallpaper_sets(6), ["0", "1", "2", "3", "4", "5"])
+
+    def test_wallpaper_at_least_four_workspaces(self):
+        self.assertEqual(self.wallpaper_sets(2), ["0", "1", "2", "3"])
+
     def test_world_readable_needs_whole_path(self):
         # soubor 644 ve slozce 711 (lze projit) je citelny, ve slozce 700 ne
         d = os.path.join(self.tmp, "pub")

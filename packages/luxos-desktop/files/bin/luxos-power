@@ -446,6 +446,7 @@ class PowerWindow(Gtk.Window):
         self.bat = Battery()
 
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.scroll = scroll
         self.add(scroll)
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=22)
         scroll.add(page)
@@ -510,6 +511,7 @@ class PowerWindow(Gtk.Window):
         # Primo pres D-Bus (powerprofilesctl je skript v Pythonu, kazde spusteni ~0,1 s)
         current, available = ppd_state(self.bat.bus)
         first = None
+        self.mode_buttons = {}
         for key, label, hint in (("power-saver", _("Power Saver"), _("Longest battery life")),
                                  ("balanced", _("Balanced"), _("Recommended")),
                                  ("performance", _("Performance"), _("Fastest, uses more power"))):
@@ -526,7 +528,8 @@ class PowerWindow(Gtk.Window):
             inner.pack_start(h, False, False, 0)
             b.add(inner)
             b.set_active(key == current)
-            b.connect("toggled", lambda btn, k=key: btn.get_active() and self.set_mode(k))
+            hid = b.connect("toggled", lambda btn, k=key: btn.get_active() and self.set_mode(k))
+            self.mode_buttons[key] = (b, hid)
             modes.pack_start(b, True, True, 0)
         page.pack_start(modes, False, False, 0)
         # Grafika v rezimu Vykon (luxos-gpu): radek jen u pocitace se samostatnou grafikou
@@ -541,9 +544,8 @@ class PowerWindow(Gtk.Window):
         saver = Gtk.Switch(active=os.path.exists(SAVER_STATE))
         self.saver = saver
         # Na pozadi: prepnuti monitoru na 60 Hz apod. nesmi zdrzet okno
-        self.saver_handler = saver.connect("notify::active", lambda s, _p: subprocess.Popen(
-            ["luxos-powersaver", "on" if s.get_active() else "off"], stdout=subprocess.DEVNULL,
-            start_new_session=True))
+        self.saver_touched = -60.0
+        self.saver_handler = saver.connect("notify::active", self.toggle_saver)
         self.row(group, _("Battery Saver"), saver,
                  _("Longer battery life: slower processor without turbo, slightly lower brightness, "
                    "idle devices sleep and background tasks pause."))
@@ -590,6 +592,21 @@ class PowerWindow(Gtk.Window):
             self.saver.handler_unblock(self.saver_handler)
         ppd_set(self.bat.bus, key)
         self.update_gpu(key)
+
+    def sync_controls(self, profile):
+        if profile in self.mode_buttons:
+            b, hid = self.mode_buttons[profile]
+            if not b.get_active():
+                b.handler_block(hid)
+                b.set_active(True)
+                b.handler_unblock(hid)
+        saver_on = os.path.exists(SAVER_STATE)
+        # luxos-powersaver bezi na pozadi par sekund - mezitim prepinac nevracet podle souboru
+        if self.saver.get_active() != saver_on and time.monotonic() - self.saver_touched > 15:
+            self.saver.handler_block(self.saver_handler)
+            self.saver.set_active(saver_on)
+            self.saver.handler_unblock(self.saver_handler)
+        self.update_gpu(profile)
 
     def update_gpu(self, profile):
         if not self.gpu:
@@ -657,6 +674,11 @@ class PowerWindow(Gtk.Window):
         c.connect("changed", changed)
         return c
 
+    def toggle_saver(self, switch, _p):
+        self.saver_touched = time.monotonic()
+        subprocess.Popen(["luxos-powersaver", "on" if switch.get_active() else "off"],
+                         stdout=subprocess.DEVNULL, start_new_session=True)
+
     def toggle_playing(self, switch, _p):
         # luxos-hub sleduje priznak (inotify) a pripadne hned vrati nastaveni uspavani
         if switch.get_active():
@@ -682,9 +704,9 @@ class PowerWindow(Gtk.Window):
 
     # ---- obnova ----
     def refresh(self):
-        if self.gpu:
-            # profil mohl zmenit Sporic baterie nebo jina aplikace
-            self.update_gpu(ppd_state(self.bat.bus)[0])
+        # Profil a Sporic baterie mohla zmenit jina aplikace (Ovladaci centrum, automaticky Sporic pri
+        # 20 %) nebo prepinac Sporice tady (prepne profil na Usporny) - okno ukazuje skutecny stav
+        self.sync_controls(ppd_state(self.bat.bus)[0])
         info = self.bat.info()
         has = bool(info) and info.get("IsPresent", True)
         self.battery_box.set_visible(has)
@@ -742,6 +764,15 @@ class PowerWindow(Gtk.Window):
         return True
 
 
+def show_window(win):
+    """Zobrazi okno od zacatku. GTK po zobrazeni da fokus prvnimu ovladaci prvku (tlacitko
+    vykonoveho rezimu pod grafy) a posune k nemu - okno se pak otviralo odscrollovane dolu
+    bez stavu baterie nahore. Tab dal funguje: prvni stisk vybere prvni prvek."""
+    win.show_all()
+    win.set_focus(None)
+    win.scroll.get_vadjustment().set_value(0)
+
+
 def main():
     GLib.set_prgname("luxos-power")
     provider = Gtk.CssProvider()
@@ -750,7 +781,7 @@ def main():
                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     win = PowerWindow()
     win.connect("destroy", Gtk.main_quit)
-    win.show_all()
+    show_window(win)
     win.refresh()
     Gtk.main()
 

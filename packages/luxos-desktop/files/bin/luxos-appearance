@@ -50,6 +50,16 @@ sun_mode() {
     python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null || current
 }
 
+# Cisla ploch pro tapetu: aspon 0-3, pri vic plochach (Prepinac ploch, "+") vsechny - jinak mela
+# pata a dalsi plocha porad starou tapetu
+workspaces() {
+    local n
+    n=$(xfconf-query -c xfwm4 -p /general/workspace_count 2>/dev/null)
+    [[ $n =~ ^[0-9]+$ && $n -gt 4 ]] || n=4
+    ((n > 32)) && n=32
+    seq 0 $((n - 1))
+}
+
 # Nastavi tapetu LuxOS na vsech monitorech a plochach.
 # force=0: jen tam, kde zadna tapeta neni; force=1 i misto vychozi tapety druheho
 # rezimu (jinou vybranou tapetu, i z galerie LuxOS, nemeni).
@@ -66,7 +76,7 @@ set_wallpaper() {
         have[$prop]=${cur#"${cur%%[![:space:]]*}"}
     done < <(xfconf-query -c xfce4-desktop -l -v 2>/dev/null)
     for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
-        for ws in 0 1 2 3; do
+        for ws in $(workspaces); do
             prop="/backdrop/screen0/monitor$mon/workspace$ws"
             cur=${have[$prop/last-image]-}
             if [[ -z $cur ]] || [[ $force == 1 && $cur == "$wall_dir"/luxos-@(dark|light).jpg ]]; then
@@ -402,7 +412,7 @@ case ${1:-status} in
     wallpaper)
         [[ -r ${2-} ]] || usage "wallpaper FILE"
         for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
-            for ws in 0 1 2 3; do
+            for ws in $(workspaces); do
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$2"
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/image-style" -n -t int -s 5
             done
