@@ -741,6 +741,12 @@ class Grub(Env):
         # nabidka po nepovedenem startu (luxos_menu v grubenv) - pred polozkami, bez grub-mkconfig
         self.assertIn('if [ "${luxos_menu}" = "1" ]; then\n\tset timeout_style=menu\n\tset timeout=10\nfi\n', cfg)
         self.assertLess(cfg.index("luxos_menu"), cfg.index("menuentry"))
+        # dva snimky ve stejne minute: GRUB je jinak nerozlisi (ve VM dvakrat stejny nazev)
+        snap.create(self.top, now=self.at(3, 40))
+        snap.sync_boot(self.top)
+        cfg = self.r(snap.GRUB_CFG)
+        self.assertIn("menuentry 'LuxOS (before update of 2026-10-26 14:03:12)'", cfg)
+        self.assertIn("menuentry 'LuxOS (before update of 2026-10-26 14:03:40)'", cfg)
         # grub.cfg uz luxos-snapshots.cfg nacita: zadny grub-mkconfig
         self.assertFalse(any(c[0] == "grub-mkconfig" for c in self.cmds))
 
@@ -778,6 +784,15 @@ class Grub(Env):
         with open(self.root + "/boot/vmlinuz-linux-luxos", "rb") as f:
             self.assertEqual(f.read(), b"kernel-1")
         self.assertIn(["grub-editenv", "/boot/grub/grubenv", "unset", "luxos_tries"], self.cmds)
+
+
+class BtrfsCommands(unittest.TestCase):
+    def test_delete_recursive(self):
+        """Snimek "pred navratem" je puvodni @ i s vnorenymi subvolume systemd - mazat rekurzivne."""
+        calls = []
+        with mock.patch.object(snap, "sh", lambda cmd, timeout=600: calls.append(cmd) or (0, "")):
+            snap.Btrfs().delete("/top/@snapshots/2026-11-16_12-05-35")
+        self.assertEqual(calls, [["btrfs", "subvolume", "delete", "-R", "/top/@snapshots/2026-11-16_12-05-35"]])
 
 
 if __name__ == "__main__":

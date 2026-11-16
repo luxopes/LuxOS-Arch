@@ -94,7 +94,10 @@ class Btrfs:
             raise SnapshotError("subvolume_failed", out.strip()[-500:])
 
     def delete(self, path):
-        rc, out = sh(["btrfs", "subvolume", "delete", path])
+        # -R: system odlozeny navratem/preinstalaci (puvodni @) obsahuje vnorene subvolume systemd
+        # (var/lib/machines, var/lib/portables) - bez -R "Directory not empty" a snimky se nikdy
+        # nemazaly (ve VM 9 snimku misto 5)
+        rc, out = sh(["btrfs", "subvolume", "delete", "-R", path])
         if rc != 0:
             raise SnapshotError("delete_failed", out.strip()[-500:])
 
@@ -337,11 +340,12 @@ LABEL_FMT = {
 }
 
 
-def label(meta, tr=None):
+def label(meta, tr=None, seconds=False):
     """Nazev v nabidce zavadece (zavadec neumi preklady - anglicky); tr = preklad (luxos_i18n._)
-    pro LuxOS Recovery a prikazovou radku."""
+    pro LuxOS Recovery a prikazovou radku; seconds = cas i se sekundami (dva snimky v jedne minute)."""
     try:
-        t = datetime.datetime.strptime(meta["name"], NAME_FMT).strftime("%Y-%m-%d %H:%M")
+        t = datetime.datetime.strptime(meta["name"], NAME_FMT).strftime(
+            "%Y-%m-%d %H:%M:%S" if seconds else "%Y-%m-%d %H:%M")
     except ValueError:
         t = meta["name"]
     fmt = LABEL_FMT.get(meta.get("kind"), LABEL_FMT["update"])
@@ -971,11 +975,16 @@ def grub_cfg(lay, top, snaps, system, kernel):
              f"\tset timeout_style=menu\n\tset timeout={care.RESCUE_MENU_SECONDS}\nfi\n"]
     uuid = fs_uuid(store["grub"]["path"]) if store else ""
     if store and uuid:
+        # GRUB stejne nazvy nerozlisi (systemd-boot pripise version) - pri shode cas i se sekundami
+        counts = {}
+        for s in snaps:
+            counts[label(s)] = counts.get(label(s), 0) + 1
         for s in reversed(snaps):
             if not bootable(lay, top, s):
                 continue
             k = f"{store['loader']}/{s['kset']}"
-            parts.append(grub_entry(label(s), f"luxos-snapshot-{s['name']}", uuid, f"{k}/vmlinuz",
+            title = label(s, seconds=counts[label(s)] > 1)
+            parts.append(grub_entry(title, f"luxos-snapshot-{s['name']}", uuid, f"{k}/vmlinuz",
                                     f"{k}/initramfs.img",
                                     entry_options(base, f"{SNAP_SUBVOL}/{s['name']}", snapshot_params(s["name"]))))
     rs = recovery_snapshot(lay, top, snaps) if store and uuid else None
