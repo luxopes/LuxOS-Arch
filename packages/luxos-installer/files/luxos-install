@@ -328,7 +328,9 @@ list_disks() {
         [[ $name == /dev/zram* || $name == /dev/loop* ]] && continue
         [[ -n $iso && $name == "/dev/$iso" ]] && continue
         ((size >= 20 * 1000 * 1000 * 1000)) || continue
-        printf '%s|%s  %s  %s\n' "$name" "$name" "$(numfmt --to=si --suffix=B "$size")" "${model:-disk}"
+        # "43 GB" s mezerou jako v GUI; disk bez modelu (virtio) jako "Disk" v jazyce pruvodce
+        printf '%s|%s  %s  %s\n' "$name" "$name" "$(numfmt --to=si --suffix=B "$size" | sed -E 's/([0-9])([kKMGTP]?B)$/\1 \2/')" \
+            "${model:-$(T "Disk")}"
     done
 }
 
