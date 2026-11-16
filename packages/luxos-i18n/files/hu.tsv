@@ -2706,7 +2706,7 @@ The package lists are out of date: the server no longer has this version. Update
 More details: run the command again with --verbose	További részletek: futtassa újra a parancsot a --verbose kapcsolóval
 The list of apps is out of date. Install the updates first, then try again.	Az alkalmazáslista elavult. Előbb telepítse a frissítéseket, majd próbálja újra.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	A számítógép dátuma és ideje hibás, ezért nem lehetséges biztonságos kapcsolat. Ellenőrizze az időbeállításokat.
-Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, nincs nagyítás a Dockban, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
+Longer battery life: slower processor without turbo, slightly lower brightness, idle devices sleep and background tasks pause.	Hosszabb akkumulátor-üzemidő: lassabb processzor turbó nélkül, kissé kisebb fényerő, a nem használt eszközök alvó állapotba kerülnek, a háttérfeladatok szünetelnek.
 # LuxOS Zalohy (luxos-backup)
 Paused on battery – backs up when the computer is charging	Akkumulátoros üzemben szünetel – töltés közben ment
 Paused by Battery Saver	Az Akkukímélő miatt szünetel
