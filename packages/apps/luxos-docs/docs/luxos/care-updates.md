@@ -206,27 +206,11 @@ sudo luxos-care boot-entries   # rewrite the snapshot and recovery boot entries
 
 ## LuxOS Recovery
 
-The boot menu entry **"LuxOS Recovery"** starts `luxos-recovery.target` (text menu on tty1,
-`/usr/lib/luxos/care/luxos-recovery`) from the newest snapshot that contains it – so it works even
-when the last update broke the system – or, without snapshots, from the current system. Options:
-
-- **Check the disk**: `btrfs device stats`, `btrfs scrub` read-only, `btrfs check --readonly`
-  (on the mounted file system, may report false alarms), `fsck` of the EFI / boot partition without
-  changes. Repair only after confirmation: scrub repairs from the second copy, `fsck.fat -a` /
-  `e2fsck -p` on the unmounted boot partition. `btrfs check --repair` is never used.
-- **Restore a snapshot** – the rollback above (asks first).
-- **Reinstall LuxOS (keeps your files and accounts)** – after typing the confirmation word: a new
-  system subvolume is installed from the repositories with the same explicitly installed packages
-  (`lux-engine --root`, packages not from the repositories are listed), user accounts and passwords
-  (system accounts come from the new install), language, keyboard, time zone, fstab and disk
-  encryption, mkinitcpio, lux and LuxOS settings, Wi‑Fi networks, Bluetooth pairings, enabled
-  services and boot loader settings are copied over; `@home` is not touched. Only when the new
-  system is complete is the old one renamed to "LuxOS (before reinstall of …)" and the new one
-  becomes `@`; on any error the old system and its kernel stay. Needs the internet (the menu offers
-  `nmtui`).
-- Connect to the internet, Restart, Shut down.
-
-Command line (root): `luxos-care disk-check [--repair]`, `luxos-care reinstall --yes`.
+The boot menu entry **"LuxOS Recovery"** (disk check, restore a snapshot, reinstall keeping `/home`
+and accounts) starts from the newest snapshot, so it works even when the last update broke the
+system; nothing runs without confirmation. After every system change the next start is watched: if it
+fails, the following start shows the boot menu for 10 s by itself. How to open it, what each option
+does and what a reinstall keeps or loses: [recovery.md](recovery.md).
 
 ## Switch to the LuxOS kernel
 

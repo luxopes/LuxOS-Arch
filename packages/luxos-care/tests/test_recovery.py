@@ -324,9 +324,10 @@ class Recovery(Env):
                 with open(dev, "rb") as f:
                     f.seek(6 * 512)
                     same = f.read(512) == boot
-                return (0, "fsck.fat 4.2\n/dev/x: 1 files\n") if same else (1, self.BACKUP)
+                # jako skutecny fsck.fat na odpojenem oddilu: rozdil zalohy = navratovy kod 0
+                return (0, "fsck.fat 4.2\n/dev/x: 1 files\n") if same else (0, self.BACKUP.replace("  65:01/00, ", "  "))
             if cmd[:2] == ["fsck.fat", "-a"]:
-                return 1, self.BACKUP                               # "opraveno" - ale nic neudelal
+                return 0, self.BACKUP                               # "v poradku" - ale nic neudelal
             return 0, ""
         with mock.patch.object(snap, "sh", sh):
             ok, out = rec.repair_boot_partition("vfat", dev)

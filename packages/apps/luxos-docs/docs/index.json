@@ -297,6 +297,36 @@
           ]
         },
         {
+          "path": "luxos/recovery.md",
+          "title": "LuxOS Recovery",
+          "summary": "LuxOS Recovery in the boot menu: how to open it (Space while starting, menu shown by itself after a failed start), that nothing runs without confirmation, disk check, restore a snapshot, reinstall keeping /home, accounts, Wi-Fi and Flathub apps, and exactly what a reinstall loses.",
+          "keywords": [
+            "recovery",
+            "LuxOS Recovery",
+            "boot menu",
+            "Space",
+            "systemd-boot",
+            "GRUB",
+            "failed start",
+            "broken update",
+            "rollback",
+            "snapshot",
+            "restore",
+            "reinstall",
+            "keep files",
+            "disk check",
+            "btrfs scrub",
+            "fsck",
+            "safe",
+            "nothing changes",
+            "Secure Boot",
+            "bootctl",
+            "LoaderConfigTimeout",
+            "AUR lost",
+            "Flathub"
+          ]
+        },
+        {
           "path": "luxos/countme.md",
           "title": "Anonymous usage count (countme)",
           "summary": "Weekly anonymous count of active LuxOS installs (like Fedora countme): exactly what is sent (v, arch, ch, age), when not, never slows updates, what the server stores (no IPs), lux config countme, turning it off (Software Update > Privacy, lux.conf, system.lsl, installer).",

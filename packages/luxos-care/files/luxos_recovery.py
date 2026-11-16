@@ -155,7 +155,9 @@ def repair_boot_partition(fstype, dev):
     rc, o = snap.sh(fsck_cmd(fstype, dev, True), timeout=3600)
     log = o
     rc2, o2 = snap.sh(fsck_cmd(fstype, dev, False), timeout=3600)
-    if fstype == "vfat" and rc2 != 0 and fat_backup_only(o2):
+    # fsck.fat -n vraci 0 i pri rozdilu boot sektoru a zalohy ("mostly harmless") - kontrola na
+    # pripojenem oddilu ho ale hlasi (overeno ve VM: oprava hlasila uspech a rozdil zustal)
+    if fstype == "vfat" and "differences between boot sector and its backup" in o2 and fat_backup_only(o2):
         try:
             copied = fat_copy_backup(dev)
         except OSError as e:

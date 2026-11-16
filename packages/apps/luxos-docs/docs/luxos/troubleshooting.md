@@ -94,9 +94,8 @@ After failures LuxOS Care waits 1 h, 2 h, 4 h … up to 24 h and notifies after 
 - An interrupted update is finished automatically by LuxOS Care (or run `lux update`).
 - Something else broke after an update: hold **Space** (GRUB: hold **Shift** or press **Esc**) while the computer starts and
   choose **"LuxOS (before update of …)"**. If it works, keep it with **Keep this version** /
-  `lux rollback`. **"LuxOS Recovery"** in the same menu checks the disk, restores a snapshot,
-  repairs the settings from `/etc/luxos/system.lsl` or reinstalls LuxOS keeping `/home` and
-  accounts. See [care-updates.md](care-updates.md).
+  `lux rollback`. **"LuxOS Recovery"** in the same menu checks the disk, restores a snapshot or
+  reinstalls LuxOS keeping `/home`. After a failed start the menu appears by itself: [recovery.md](recovery.md).
 
 ## A setting changed by itself (printer gone, lid, network, service off)
 
