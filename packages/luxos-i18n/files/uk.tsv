@@ -2707,7 +2707,7 @@ The package lists are out of date: the server no longer has this version. Update
 More details: run the command again with --verbose	Докладніше: запустіть команду знову з --verbose
 The list of apps is out of date. Install the updates first, then try again.	Список застосунків застарів. Спочатку встановіть оновлення, а потім спробуйте знову.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Дата й час комп'ютера неправильні, тому безпечне з'єднання неможливе. Перевірте налаштування часу.
-Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, без збільшення в Dock, невикористовувані пристрої засинають, фонові завдання призупиняються.
+Longer battery life: slower processor without turbo, slightly lower brightness, idle devices sleep and background tasks pause.	Довша робота від батареї: повільніший процесор без турбо, трохи нижча яскравість, невикористовувані пристрої засинають, фонові завдання призупиняються.
 # LuxOS Zalohy (luxos-backup)
 Paused on battery – backs up when the computer is charging	Призупинено на батареї – копіювання почнеться, коли комп’ютер заряджатиметься
 Paused by Battery Saver	Призупинено Економією заряду

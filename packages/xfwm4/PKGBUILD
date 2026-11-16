@@ -14,18 +14,26 @@
 #   - zavreni posledniho okna v prepinaci Alt+Tab behem prepinani uz xfwm4 neshodi (tabwin.c).
 # luxos-workspace-slide.patch (kompozitor): pri prepnuti plochy obsah odjede do strany jako Spaces
 #   v macOS - dalsi plocha zprava, predchozi zleva (i skok o vic ploch, preteceni ve smeru klavesy);
-#   tapeta/plocha, lepkava okna, horni lista, Dock, menu a notifikace stoji. Ease-out cubic, vychozi
-#   280 ms; rychle opakovane prepnuti plynule navaze (zadna fronta). Kazdy monitor zvlast. Volby
+#   tapeta/plocha, lepkava okna, horni lista, Dock, menu a notifikace stoji. Krivka "ease"
+#   (cubic-bezier 0.25,0.1,0.25,1), vychozi 420 ms, stejne kroky po intervalech obnovy, dojezd
+#   o zlomky pixelu; rychle opakovane prepnuti navaze i rychlosti (zadna fronta). Kazdy monitor zvlast. Volby
 #   /general/workspace_slide a /general/workspace_slide_duration; vypnuto bez kompozitoru a pri
-#   "omezit pohyb" (Gtk/EnableAnimations = false).
+#   "omezit pohyb" (Gtk/EnableAnimations = false). Vychozi activate_action "switch" (ne "bring") a okno
+#   na jine plose, ktere se samo vytahne nahoru (XRaiseWindow), jen zada o pozornost - aplikace
+#   z jine plochy se uz neobjevi na aktualni.
+# luxos-fullscreen-layer.patch: zamerene celoobrazovkove okno zustava nad horni listou a Dockem.
+#   Drive ho xfwm4 dal pod listu predem, uz kdyz se aktivovalo/namapovalo jine okno (napr. karta
+#   Hudba widgetu LuxOS pri prehravani videa, Dock), a to zamereni pak neprevzalo - video zustalo
+#   zamerene, ale lista pres nej, a klik nepomohl. Ted jen pro okno, ktere zamereni urcite prevezme
+#   (input hint, modalni); klik do zamereneho celoobrazovkoveho okna ho do vrstvy vzdy vrati.
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
 # verzi v Archu zvysit pkgver (a sha256sums), pkgrel nechat X.1.
 # Puvodni PKGBUILD Archu (udrzovatele Evangelos Foutras, Robin Candau) je v PKGBUILD.arch.
 
 pkgname=xfwm4
 pkgver=4.20.0
-pkgrel=2.2
-pkgdesc='Xfce window manager (LuxOS: free-space/cascade placement, Alt+` switches windows of the app, workspace slide)'
+pkgrel=2.4
+pkgdesc='Xfce window manager (LuxOS: free-space/cascade placement, Alt+` switches windows of the app, workspace slide, fullscreen above the bar)'
 arch=('x86_64')
 url="https://docs.xfce.org/xfce/xfwm4/start"
 license=('GPL-2.0-or-later')
@@ -35,10 +43,12 @@ depends=('libxfce4ui' 'xfconf' 'libwnck3' 'libepoxy' 'libxpresent'
 makedepends=('git' 'xfce4-dev-tools')
 source=("git+https://gitlab.xfce.org/xfce/xfwm4.git#tag=$pkgname-$pkgver"
         'luxos-windows.patch'
-        'luxos-workspace-slide.patch')
+        'luxos-workspace-slide.patch'
+        'luxos-fullscreen-layer.patch')
 sha256sums=('68691593f06659f1ba1a0363be161b2cd50a84016612394c909bce1485a75cff'
             '41e6f423905badac58c5bfce380195deb69a5c4557e2a66232216b5525f6e75c'
-            '64bcae8d5bb813cdb5d49fc66409438de4d01774c822359225e9ea41ecde7386')
+            '1aeace15cdd2d73adac769bd34cc94afc854f21032e1c7b2226c0af38c9bd999'
+            '66055009259cf9ef1a084e889bd3d64e528c7d63ab1c3ec5b9ef31cd78d0ebf3')
 
 prepare() {
   cd $pkgname
@@ -46,6 +56,8 @@ prepare() {
   patch -Np1 -i "$srcdir/luxos-windows.patch"
   # LuxOS: posun ploch do strany pri prepnuti (kompozitor)
   patch -Np1 -i "$srcdir/luxos-workspace-slide.patch"
+  # LuxOS: celoobrazovkove okno nad listou a Dockem i po aktivaci okna bez zamereni
+  patch -Np1 -i "$srcdir/luxos-fullscreen-layer.patch"
   NOCONFIGURE=1 ./autogen.sh
 }
 

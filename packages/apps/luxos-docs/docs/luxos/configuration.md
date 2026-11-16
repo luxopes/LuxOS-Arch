@@ -76,7 +76,7 @@ contain defaults for the **Plank Dock** (`net.launchpad.plank.dock.settings`
 | `appearance` | luxos-appearance | current mode (light/dark) |
 | `appearance.conf` | Desktop & Dock (`luxos-settings`) | `APPEARANCE_AUTO`, bar/dock opacity etc. |
 | `dock-autohide` | luxos-session / menubar | flag: Dock hides |
-| `dock-zoom` | luxos-powersaver (older versions) | Dock zoom value to restore |
+| `dock-zoom` | luxos-powersaver (older versions) | Dock zoom value, restored once and removed |
 | `powersaver.saved` | luxos-powersaver | original values restored when Battery Saver turns off |
 | `sleep-while-playing` | Battery & Power | flag: sleep even while media plays (option off) |
 | `sleep-override` | luxos-hub | xfce4-power-manager values replaced while media plays |

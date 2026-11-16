@@ -249,7 +249,8 @@ class PowersaverScript(unittest.TestCase):
         self.ps("on")
         self.assertEqual(self.ps("status").strip(), "on")
         self.assertEqual(read(f"{self.state}/profile"), "power-saver")
-        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "false")
+        # zvetsovani v Docku zustava (sporic na nem nic neusetri; Dock se "nekdy" nezvetsoval)
+        self.assertFalse(os.path.exists(f"{self.state}/gs-zoom-enabled"))
         # animace GTK zustavaji (jinak stoji i kolecka prubehu v aplikacich)
         self.assertFalse(os.path.exists(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"))
         self.assertEqual(self.rate(), ["2560x1600", "165.00"])   # 60 Hz jen na prani (displej zcerna)
@@ -261,7 +262,7 @@ class PowersaverScript(unittest.TestCase):
         self.ps("off")
         self.assertEqual(self.ps("status").strip(), "off")
         self.assertEqual(read(f"{self.state}/profile"), "performance")   # puvodni profil, ne "balanced"
-        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "true")
+        self.assertFalse(os.path.exists(f"{self.state}/gs-zoom-enabled"))
         self.assertFalse(os.path.exists(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"))   # vychozi
         self.assertEqual(self.rate(), ["2560x1600", "165.00"])
         self.assertEqual(read(f"{self.bl}/bl/brightness"), "900")
@@ -276,6 +277,59 @@ class PowersaverScript(unittest.TestCase):
         self.ps("reapply")
         self.assertFalse(os.path.exists(f"{self.state}/xf-xsettings_Gtk_EnableAnimations"))
         self.assertNotIn("animations=", read(f"{self.cfg}/luxos/powersaver.saved"))
+
+    def test_zoom_from_old_version_restored_while_on(self):
+        """Sporic do 1.0.x vypnul zvetsovani v Docku: pri reapply (prihlaseni) se vrati hned, i kdyz
+        sporic zustava zapnuty; pri dalsim zapnuti/vypnuti uz se zvetsovani nemeni."""
+        write(f"{self.cfg}/luxos/powersaver", "")
+        write(f"{self.cfg}/luxos/powersaver.saved", "profile=balanced\ndock-zoom=true\n")
+        write(f"{self.state}/gs-zoom-enabled", "false")
+        self.ps("reapply")
+        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "true")
+        self.assertNotIn("dock-zoom=", read(f"{self.cfg}/luxos/powersaver.saved"))
+        self.assertIn("profile=balanced", read(f"{self.cfg}/luxos/powersaver.saved"))
+        self.ps("on")
+        self.ps("off")
+        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "true")
+        self.assertEqual(read(f"{self.state}/profile"), "balanced")
+
+    def test_zoom_restore_after_update_and_user_choice_kept(self):
+        """restore-zoom (po aktualizaci v bezici relaci): puvodni hodnotu "false" uzivatele zachova,
+        bez ulozene hodnoty nic nemeni, starsi soubor dock-zoom take obnovi."""
+        write(f"{self.cfg}/luxos/powersaver", "")
+        write(f"{self.cfg}/luxos/powersaver.saved", "dock-zoom=false\n")
+        write(f"{self.state}/gs-zoom-enabled", "false")
+        self.ps("restore-zoom")
+        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "false")
+        self.assertNotIn("dock-zoom=", read(f"{self.cfg}/luxos/powersaver.saved"))
+        # uzivatel si zvetseni pak zapne sam - nic ho uz nevypne
+        write(f"{self.state}/gs-zoom-enabled", "true")
+        self.ps("restore-zoom")
+        self.ps("reapply")
+        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "true")
+        # nejstarsi verze: ~/.config/luxos/dock-zoom, sporic uz vypnuty
+        os.unlink(f"{self.cfg}/luxos/powersaver")
+        write(f"{self.cfg}/luxos/dock-zoom", "true")
+        write(f"{self.state}/gs-zoom-enabled", "false")
+        self.ps("reapply")
+        self.assertEqual(read(f"{self.state}/gs-zoom-enabled"), "true")
+        self.assertFalse(os.path.exists(f"{self.cfg}/luxos/dock-zoom"))
+
+    def test_no_backlight_no_error(self):
+        """Stolni pocitac bez podsviceni: zapnuti/vypnuti bez chyby "/max_brightness" na stderr."""
+        self.env["LUXOS_BACKLIGHT"] = os.path.join(self.d, "no-backlight")
+        for cmd in ("on", "off"):
+            r = subprocess.run(["bash", os.path.join(BIN, "luxos-powersaver"), cmd], env=self.env,
+                               capture_output=True, text=True, timeout=30)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(r.stderr, "")
+
+    def test_zoom_kept_for_retry_when_gsettings_fails(self):
+        """Bez D-Bus (gsettings selze) se ulozena hodnota nesmaze - zkusi se znovu pri prihlaseni."""
+        write(f"{self.cfg}/luxos/powersaver.saved", "dock-zoom=true\n")
+        write(os.path.join(self.bin, "gsettings"), "#!/bin/bash\nexit 1\n")
+        self.ps("restore-zoom")
+        self.assertIn("dock-zoom=true", read(f"{self.cfg}/luxos/powersaver.saved"))
 
     def test_60hz_opt_in(self):
         write(f"{self.cfg}/luxos/powersaver-60hz", "")
@@ -321,6 +375,61 @@ class PowersaverScript(unittest.TestCase):
         os.unlink(f"{self.state}/log")
         self.ps("reapply")
         self.assertEqual(self.log(), "")
+
+
+class InstallDockZoom(unittest.TestCase):
+    """luxos-desktop.install: po aktualizaci se bezicim relacim vrati zvetsovani v Docku, ktere
+    vypnul Sporic baterie do 1.0.x - jen tam, kde je ulozena puvodni hodnota."""
+
+    def test_running_sessions(self):
+        import socket
+        d = tempfile.mkdtemp(prefix="luxos-ps-inst-")
+        self.addCleanup(shutil.rmtree, d, True)
+        fb, st = os.path.join(d, "bin"), os.path.join(d, "state")
+        os.makedirs(st)
+        users = {"1000": "anna", "1001": "bob", "1002": "cyril"}
+        socks = []
+        for uid, name in users.items():
+            os.makedirs(f"{d}/run/user/{uid}")
+            s = socket.socket(socket.AF_UNIX)
+            s.bind(f"{d}/run/user/{uid}/bus")
+            socks.append(s)
+            os.makedirs(f"{d}/home/{name}/.config/luxos")
+            write(f"{st}/gs-{name}", "false")
+        self.addCleanup(lambda: [s.close() for s in socks])
+        write(f"{d}/home/anna/.config/luxos/powersaver.saved", "profile=balanced\ndock-zoom=true\n")
+        write(f"{d}/home/anna/.config/luxos/powersaver", "")           # sporic porad zapnuty
+        write(f"{d}/home/bob/.config/luxos/dock-zoom", "true")          # nejstarsi verze
+        # cyril: nic ulozeno -> vlastni volba "false" zustava
+        fakes = {
+            "getent": f'#!/bin/bash\ncase $2 in 1000) n=anna;; 1001) n=bob;; 1002) n=cyril;; *) exit 2;; esac\n'
+                      f'echo "$n:x:$2:$2::{d}/home/$n:/bin/bash"\n',
+            "runuser": '#!/bin/bash\n[[ $1 == -u && $3 == -- ]] || exit 9\nexport FAKE_USER=$2\nshift 3\nexec "$@"\n',
+            "gsettings": f'#!/bin/bash\n[[ $DBUS_SESSION_BUS_ADDRESS == unix:path={d}/run/user/*/bus ]] || exit 1\n'
+                         f'[[ $1 == set ]] && echo "$4" >"{st}/gs-$FAKE_USER"\n',
+        }
+        os.makedirs(fb)
+        for name, text in fakes.items():
+            write(os.path.join(fb, name), text)
+            os.chmod(os.path.join(fb, name), 0o755)
+        # v repozitari neni spustitelny (PKGBUILD instaluje s pravy 755)
+        write(os.path.join(fb, "luxos-powersaver"),
+              f'#!/bin/bash\nexec bash "{os.path.join(BIN, "luxos-powersaver")}" "$@"\n')
+        os.chmod(os.path.join(fb, "luxos-powersaver"), 0o755)
+        inst = os.path.join(HERE, "..", "luxos-desktop.install")
+        env = dict(os.environ, PATH=fb + os.pathsep + os.environ["PATH"], LUXOS_SYSROOT=d,
+                   XDG_CONFIG_HOME=os.path.join(d, "root-config"))
+        r = subprocess.run(["bash", "-c", f'. "{inst}"; _luxos_dock_zoom'], env=env,
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(read(f"{st}/gs-anna"), "true")
+        self.assertEqual(read(f"{st}/gs-bob"), "true")
+        self.assertEqual(read(f"{st}/gs-cyril"), "false")
+        self.assertNotIn("dock-zoom", read(f"{d}/home/anna/.config/luxos/powersaver.saved"))
+        self.assertFalse(os.path.exists(f"{d}/home/bob/.config/luxos/dock-zoom"))
+        self.assertFalse(os.path.exists(os.path.join(d, "root-config")))
+        with open(inst) as f:
+            self.assertIn("_luxos_dock_zoom", f.read().split("post_upgrade()")[1].splitlines()[0])
 
 
 class RateCap(unittest.TestCase):

@@ -34,12 +34,15 @@
     <property name="snap_to_windows" type="bool" value="true"/>
     <property name="tile_on_move" type="bool" value="true"/>
     <property name="double_click_action" type="string" value="maximize"/>
+    <!-- okno, ktere aplikace aktivuje na jine plose (Dock, odkaz v bezicim prohlizeci, oznameni), prepne
+         na jeho plochu jako v macOS; vychozi "bring" xfwm4 by ho presunulo na aktualni plochu -->
+    <property name="activate_action" type="string" value="switch"/>
     <property name="workspace_count" type="int" value="2"/>
     <property name="wrap_workspaces" type="bool" value="false"/>
     <!-- pri prepnuti plochy obsah odjede do strany jako Spaces v macOS (xfwm4 z [luxos]); tapeta, horni
          lista a Dock stoji. Bez kompozitoru a pri "omezit pohyb" (Gtk/EnableAnimations) se neposouva. -->
     <property name="workspace_slide" type="bool" value="true"/>
-    <property name="workspace_slide_duration" type="int" value="280"/>
+    <property name="workspace_slide_duration" type="int" value="420"/>
     <property name="zoom_desktop" type="bool" value="false"/>
     <property name="borderless_maximize" type="bool" value="true"/>
     <property name="titleless_maximize" type="bool" value="false"/>

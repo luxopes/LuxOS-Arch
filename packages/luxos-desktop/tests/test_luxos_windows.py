@@ -56,8 +56,9 @@ class Defaults(unittest.TestCase):
         self.assertEqual(general["cycle_group_apps"], "false")      # seskupeni vychozi vypnute
         self.assertEqual(general["cycle_preview"], "true")
         self.assertEqual(general["workspace_slide"], "true")        # posun ploch do strany
-        self.assertEqual(general["workspace_slide_duration"], "280")
+        self.assertEqual(general["workspace_slide_duration"], "420")
         self.assertEqual(general["use_compositing"], "true")        # posun jen s kompozitorem
+        self.assertEqual(general["activate_action"], "switch")      # okno z jine plochy se nepresouva
 
     def test_shortcut_defaults(self):
         import xml.etree.ElementTree as ET
@@ -131,6 +132,65 @@ class SessionMigration(unittest.TestCase):
         with open(state) as f:
             return json.load(f), sorted(os.listdir(cfg))
 
+    def test_slide_duration_migrated_once(self):
+        with open(os.path.join(FILES, "bin", "luxos-session"), encoding="utf-8") as f:
+            src = f.read()
+        block = src[src.index("# Posun ploch (xfwm4 z [luxos])"):src.index("# Aktivace okna na jine plose")]
+        for before, after in (("280", "420"), ("600", "600"), (None, None)):
+            home = tempfile.mkdtemp(dir=TMP)
+            fake = os.path.join(home, "bin")
+            os.makedirs(fake)
+            shutil.copy(os.path.join(HERE, "fake-shortcuts", "xfconf-query"), fake)
+            state = os.path.join(home, "xfconf.json")
+            user = {"/general/theme": "WhiteSur-Light"}
+            if before:
+                user["/general/workspace_slide_duration"] = before
+            with open(state, "w") as f:
+                json.dump(user, f)
+            cfg = os.path.join(home, "cfg")
+            os.makedirs(cfg)
+            for _ in range(2):          # podruhe uz nic (znacka)
+                r = subprocess.run(["bash", "-c", "cfg=%s\n%s" % (cfg, block)], capture_output=True, text=True,
+                                   env={"PATH": fake + ":/usr/bin:/bin", "FAKE_XFCONF": state, "HOME": home})
+                self.assertEqual(r.returncode, 0, r.stderr)
+            with open(state) as f:
+                self.assertEqual(json.load(f).get("/general/workspace_slide_duration"), after, before)
+            self.assertEqual(os.listdir(cfg), ["workspace-slide-420"])
+
+    def test_activate_action_migrated_once(self):
+        with open(os.path.join(FILES, "bin", "luxos-session"), encoding="utf-8") as f:
+            src = f.read()
+        block = src[src.index("# Aktivace okna na jine plose"):src.index("# Nove okno na volne misto")]
+        for before, after in (("bring", "switch"), ("none", "none"), ("switch", "switch"), (None, None)):
+            home = tempfile.mkdtemp(dir=TMP)
+            fake = os.path.join(home, "bin")
+            os.makedirs(fake)
+            shutil.copy(os.path.join(HERE, "fake-shortcuts", "xfconf-query"), fake)
+            state = os.path.join(home, "xfconf.json")
+            user = {"/general/theme": "WhiteSur-Light"}
+            if before:
+                user["/general/activate_action"] = before
+            with open(state, "w") as f:
+                json.dump(user, f)
+            cfg = os.path.join(home, "cfg")
+            os.makedirs(cfg)
+            for step in range(2):
+                r = subprocess.run(["bash", "-c", "cfg=%s\n%s" % (cfg, block)], capture_output=True, text=True,
+                                   env={"PATH": fake + ":/usr/bin:/bin", "FAKE_XFCONF": state, "HOME": home})
+                self.assertEqual(r.returncode, 0, r.stderr)
+                if step == 0 and before == "bring":
+                    # uzivatel si pak sam zvoli "bring" - podruhe se uz nemeni
+                    with open(state) as f:
+                        data = json.load(f)
+                    self.assertEqual(data["/general/activate_action"], "switch")
+                    data["/general/activate_action"] = "bring"
+                    with open(state, "w") as f:
+                        json.dump(data, f)
+                    after = "bring"
+            with open(state) as f:
+                self.assertEqual(json.load(f).get("/general/activate_action"), after, before)
+            self.assertEqual(os.listdir(cfg), ["activate-switch"])
+
     def test_old_default_switched_once(self):
         home = tempfile.mkdtemp(dir=TMP)
         old = {"/general/placement_mode": "center", "/general/placement_ratio": "50"}
@@ -176,14 +236,42 @@ opts = sys.argv[5:]
 GLib.set_prgname(cls)           # WM_CLASS - pred inicializaci GTK (import Gtk)
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+from gi.repository import Gdk
 win = Gtk.Window(title=title)
 win.set_default_size(w, h)
-win.add(Gtk.Label(label=title))
+if "--color" in opts:
+    # jednobarevne okno (kontrola, co je na obrazovce navrchu)
+    rgb = [int(opts[opts.index("--color") + 1][k:k + 2], 16) / 255 for k in (0, 2, 4)]
+    area = Gtk.DrawingArea()
+    area.connect("draw", lambda _w, cr: (cr.set_source_rgb(*rgb), cr.paint()))
+    win.add(area)
+else:
+    win.add(Gtk.Label(label=title))
+if "--dock" in opts:
+    # lista/Dock: okno typu DOCK na vsech plochach; jako Plank bez zamereni (input = False),
+    # s --focusable jako xfce4-panel
+    win.set_type_hint(Gdk.WindowTypeHint.DOCK)
+    win.set_decorated(False)
+    win.set_accept_focus("--focusable" in opts)
+    win.stick()
+if "--no-focus" in opts:
+    win.set_accept_focus(False)         # input = False, zamereni nebere
 if "--move" in opts:
     i = opts.index("--move")
     win.move(int(opts[i + 1]), int(opts[i + 2]))
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
+if "--fullscreen" in opts:
+    GLib.timeout_add(300, lambda: win.fullscreen())
+if "--unfullscreen-on-usr1" in opts:
+    import signal
+    try:
+        gi.require_version("GLibUnix", "2.0")
+        from gi.repository import GLibUnix
+        add_signal = GLibUnix.signal_add
+    except (ValueError, ImportError):
+        add_signal = GLib.unix_signal_add
+    add_signal(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, lambda: (win.unfullscreen(), True)[1])
 if "--dialog" in opts:
     def dialog():
         d = Gtk.Window(title=title + "-dialog", transient_for=win, type_hint=1)  # DIALOG
@@ -206,12 +294,48 @@ KEYCODE = ("import ctypes, sys\nx = ctypes.CDLL('libX11.so.6')\nx.XOpenDisplay.r
            "d = x.XOpenDisplay(None)\nprint(x.XKeysymToKeycode(d, x.XStringToKeysym(sys.argv[1].encode())))\n")
 
 
+PIXELS = ("import sys, gi\ngi.require_version('Gdk', '3.0')\nfrom gi.repository import Gdk\n"
+          "r = Gdk.get_default_root_window()\n"
+          "for a in sys.argv[1:]:\n"
+          "    x, y = [int(v) for v in a.split(',')]\n"
+          "    p = Gdk.pixbuf_get_from_window(r, x, y, 1, 1).get_pixels()\n"
+          "    print(p[0], p[1], p[2])\n")
+
+# _NET_ACTIVE_WINDOW se zdrojem pozadavku (1 = aplikace, 2 = pager/xdotool) - jako Plank nebo jine okno
+ACTIVATE = r'''
+import ctypes, sys
+x = ctypes.CDLL("libX11.so.6")
+class Ev(ctypes.Structure):
+    _fields_ = [("type", ctypes.c_int), ("serial", ctypes.c_ulong), ("send_event", ctypes.c_int),
+                ("display", ctypes.c_void_p), ("window", ctypes.c_ulong), ("message_type", ctypes.c_ulong),
+                ("format", ctypes.c_int), ("data", ctypes.c_long * 5), ("pad", ctypes.c_char * 96)]
+x.XOpenDisplay.restype = ctypes.c_void_p
+x.XInternAtom.restype = ctypes.c_ulong
+x.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+x.XDefaultRootWindow.restype = ctypes.c_ulong
+x.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+x.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.c_void_p]
+x.XFlush.argtypes = [ctypes.c_void_p]
+d = x.XOpenDisplay(None)
+e = Ev(type=33, send_event=1, window=int(sys.argv[1]), format=32,
+       message_type=x.XInternAtom(d, b"_NET_ACTIVE_WINDOW", 0))
+e.data[0] = int(sys.argv[2])
+x.XSendEvent(d, x.XDefaultRootWindow(d), 0, (1 << 19) | (1 << 20), ctypes.byref(e))
+x.XFlush(d)
+'''
+
+
 def xprop_root(prop):
     return subprocess.run(["xprop", "-root", prop], capture_output=True, text=True).stdout
 
 
-@unittest.skipUnless(XFWM4 and HAVE_DISPLAY, "needs patched xfwm4 (LUXOS_XFWM4) and Xvfb (xvfb-run) with xdotool")
-class WindowManager(unittest.TestCase):
+NEEDS_WM = "needs patched xfwm4 (LUXOS_XFWM4) and Xvfb (xvfb-run) with xdotool"
+
+
+class WindowManagerBase(unittest.TestCase):
+    """Vlastni xfwm4 pod Xvfb (bez testu); COMPOSITOR = volba --compositor."""
+    COMPOSITOR = "on"
+
     @classmethod
     def setUpClass(cls):
         cls.home = tempfile.mkdtemp(prefix="home-", dir=TMP)
@@ -232,7 +356,7 @@ class WindowManager(unittest.TestCase):
         cls.env["DBUS_SESSION_BUS_ADDRESS"] = cls.bus.stdout.readline().strip()
         subprocess.run(["setxkbmap", "-layout", "us"], env=cls.env, check=True)
         cls.wm_log = open(os.path.join(cls.home, "xfwm4.log"), "w")
-        cls.wm = subprocess.Popen([XFWM4, "--compositor=on", "--sm-client-disable"], env=cls.env,
+        cls.wm = subprocess.Popen([XFWM4, "--compositor=" + cls.COMPOSITOR, "--sm-client-disable"], env=cls.env,
                                   stdout=subprocess.DEVNULL, stderr=cls.wm_log)
         for _ in range(100):
             if "window id" in xprop_root("_NET_SUPPORTING_WM_CHECK"):
@@ -337,6 +461,10 @@ class WindowManager(unittest.TestCase):
                 self.assertFalse(abs(a[0] - b[0]) < STEP // 2 and abs(a[1] - b[1]) < STEP // 2,
                                  "window %s on top of %s" % (a, b))
 
+
+
+@unittest.skipUnless(XFWM4 and HAVE_DISPLAY, NEEDS_WM)
+class WindowManager(WindowManagerBase):
     # -- umisteni --
     def test_free_space_then_cascade_small(self):
         sx, sy, sw, sh = self.screen()
@@ -557,12 +685,47 @@ class WindowManager(unittest.TestCase):
         self.assertIsNone(self.wm.poll())
         self.assertIn(self.active(), {w["a1"], w["a2"], w["a3"]})
 
+    # -- okno z jine plochy se nepresouva na aktualni (activate_action "switch", XRaiseWindow) --
+    def desktop_of(self, wid):
+        out = subprocess.run(["xprop", "-id", str(wid), "_NET_WM_DESKTOP"], env=self.env,
+                             capture_output=True, text=True).stdout
+        return int(out.split("=")[1])
+
+    def current_desktop(self):
+        return int(xprop_root("_NET_CURRENT_DESKTOP").split("=")[1])
+
+    def test_window_from_other_workspace_stays(self):
+        a = self.open("ws-stay-a", "luxwsa", 500, 300)
+        b = self.open("ws-stay-b", "luxwsb", 500, 300)
+        subprocess.run(["xdotool", "set_desktop_for_window", str(b), "1"], env=self.env, check=True)
+        for _ in range(30):
+            if self.desktop_of(b) == 1:
+                break
+            time.sleep(0.1)
+        subprocess.run(["xdotool", "set_desktop", "0"], env=self.env, check=True)
+        time.sleep(0.6)
+        subprocess.run(["xdotool", "windowactivate", "--sync", str(a)], env=self.env, check=True)
+        time.sleep(0.3)             # posledni vytazene okno je a (xfwm4 si zadosti okna o vytazeni jinak nevsima)
+        self.assertEqual((self.desktop_of(a), self.desktop_of(b), self.current_desktop()), (0, 1, 0))
+        # aplikace na pozadi se sama vytahne nahoru (XRaiseWindow): zustane na sve plose, plocha se nemeni
+        subprocess.run(["xdotool", "windowraise", str(b)], env=self.env, check=True)
+        time.sleep(0.6)
+        self.assertEqual((self.desktop_of(b), self.current_desktop()), (1, 0))
+        net = subprocess.run(["xprop", "-id", str(b), "_NET_WM_STATE"], env=self.env, capture_output=True,
+                             text=True).stdout
+        self.assertIn("_NET_WM_STATE_DEMANDS_ATTENTION", net)
+        # aktivace (Dock, prepinac oken): prepne na plochu okna jako macOS, okno se nepresouva
+        subprocess.run(["xdotool", "windowactivate", str(b)], env=self.env, check=True)
+        time.sleep(0.8)
+        self.assertEqual((self.desktop_of(a), self.desktop_of(b), self.current_desktop()), (0, 1, 1))
+        self.assertEqual(self.active(), b)
+
     # -- posun ploch do strany --
     def record_switch(self, desktop, name):
         """Zaznam obrazovky (60 snimku/s) behem prepnuti na plochu desktop; vrati radky y=SLIDE_Y."""
         video = os.path.join(TMP, name + ".mkv")
         rec = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-y", "-f", "x11grab", "-framerate", "60",
-                                "-video_size", "%dx%d" % SLIDE_SCREEN, "-i", self.env["DISPLAY"], "-t", "0.9",
+                                "-video_size", "%dx%d" % SLIDE_SCREEN, "-i", self.env["DISPLAY"], "-t", "1.4",
                                 "-c:v", "ffv1", video], env=self.env)
         time.sleep(0.3)
         subprocess.run(["xdotool", "set_desktop", str(desktop)], env=self.env, check=True)
@@ -599,13 +762,20 @@ class WindowManager(unittest.TestCase):
         a = self.open("slide-a", "luxslide", 800, 500, "--move", "500", "300")
         b = self.open("slide-b", "luxslide", 800, 500, "--move", "500", "300")
         subprocess.run(["xdotool", "set_desktop_for_window", str(b), "1"], env=self.env, check=True)
-        time.sleep(0.5)
+        for _ in range(30):
+            if self.desktop_of(b) == 1:
+                break
+            time.sleep(0.1)
+        time.sleep(0.3)
         x0 = self.frame(a)[0]
         # dalsi plocha: stara okna odjedou doleva, nova prijedou zprava (mezi tim aspon 4 polohy)
         steps = self.distinct_spans(self.record_switch(1, "slide-next"))
         self.assertGreaterEqual(len(steps), 6, steps)
         self.assertEqual(steps[0], steps[-1])                       # okno na stejnem miste
         middle = steps[1:-1]
+        # mirny rozjezd (ne ease-out s nejvetsim krokem hned na zacatku): prvni posun je maly
+        first = middle[0][0][0] if middle[0] else 0
+        self.assertLess(x0 - first, 150, middle[:3])
         self.assertTrue(any(sp and sp[0][0] == 0 for sp in middle), middle)                 # vlevo ven
         self.assertTrue(any(sp and sp[-1][1] == SLIDE_SCREEN[0] for sp in middle), middle)  # zprava dovnitr
         lefts = [sp[0][0] for sp in middle if len(sp) == 1 and sp[0][0] > x0]
@@ -622,6 +792,176 @@ class WindowManager(unittest.TestCase):
         steps = self.distinct_spans(self.record_switch(1, "slide-off"))
         self.assertLessEqual(len(steps), 2, steps)
         self.assertEqual(xprop_root("_NET_CURRENT_DESKTOP").split("=")[1].strip(), "1")
+
+
+# ---- celoobrazovkove okno nad horni listou a Dockem -------------------------------------------------------
+
+RED, BLUE, GREEN = (255, 0, 0), (0, 0, 255), (0, 255, 0)
+BAR_PT = (960, 14)              # uprostred horni listy (28 px)
+DOCK_PT = (960, 1040)           # uprostred Docku
+
+
+class FullscreenTests:
+    """Celoobrazovkove okno (video ve Firefoxu, prezentace) zakryje horni listu i Dock - jako v macOS.
+    Chyba: po aktivaci okna, ktere zamereni neprevzalo (Dock), zustalo celoobrazovkove okno zamerene,
+    ale pod listou, a klik do nej uz nepomohl."""
+
+    def setUp(self):
+        out = subprocess.run(["xdotool", "getdisplaygeometry"], env=self.env, capture_output=True,
+                             text=True).stdout.split()
+        if [int(v) for v in out] != list(SLIDE_SCREEN):
+            self.skipTest("needs xvfb-run -s \"-screen 0 1920x1080x24\"")
+        # lista nahore jako xfce4-panel (bere zamereni, rezervuje 28 px), Dock dole jako Plank (nebere)
+        self.bar = self.open("fs-bar", "luxfsbar", SLIDE_SCREEN[0], 28, "--dock", "--focusable",
+                             "--color", "0000ff", "--move", "0", "0")
+        subprocess.run(["xprop", "-id", str(self.bar), "-f", "_NET_WM_STRUT", "32c", "-set", "_NET_WM_STRUT",
+                        "0, 0, 28, 0"], env=self.env, check=True)
+        self.dock = self.open("fs-dock", "luxfsdock", 800, 80, "--dock", "--color", "00ff00",
+                              "--move", "560", "1000")
+        self.fs = self.open("fs-video", "luxfsvideo", 800, 500, "--color", "ff0000", "--fullscreen",
+                            "--unfullscreen-on-usr1")
+        time.sleep(1.0)
+
+    def wait_active(self, wid, timeout=4.0):
+        """Zamerene okno (pod zatezi muze xfwm4 chvili trvat)."""
+        end = time.time() + timeout
+        while self.active() != wid and time.time() < end:
+            time.sleep(0.1)
+        self.assertEqual(self.active(), wid)
+
+    def stacking(self):
+        out = xprop_root("_NET_CLIENT_LIST_STACKING")
+        return [int(v.strip(), 16) for v in out.split("#")[1].split(",")]
+
+    def pixels(self, *pts):
+        r = subprocess.run([sys.executable, "-c", PIXELS] + ["%d,%d" % p for p in pts], env=self.env,
+                           capture_output=True, text=True, check=True)
+        return [tuple(int(v) for v in line.split()) for line in r.stdout.splitlines()]
+
+    def state(self, wid):
+        return subprocess.run(["xprop", "-id", str(wid), "_NET_WM_STATE"], env=self.env,
+                              capture_output=True, text=True).stdout
+
+    def click_fs(self):
+        subprocess.run(["xdotool", "mousemove", "960", "540", "click", "1"], env=self.env, check=True)
+        time.sleep(0.8)
+
+    def assert_on_top(self, what):
+        stack = self.stacking()
+        self.assertIn("_NET_WM_STATE_FULLSCREEN", self.state(self.fs), what)
+        self.assertGreater(stack.index(self.fs), stack.index(self.bar), "%s: bar above fullscreen" % what)
+        self.assertGreater(stack.index(self.fs), stack.index(self.dock), "%s: dock above fullscreen" % what)
+        # co je opravdu videt (s kompozitorem kresli xfwm4, bez nej X server)
+        self.assertEqual(self.pixels(BAR_PT, DOCK_PT), [RED, RED], what)
+
+    def test_fullscreen_covers_bar_and_dock(self):
+        g = subprocess.run(["xdotool", "getwindowgeometry", "--shell", str(self.fs)], env=self.env,
+                           capture_output=True, text=True).stdout
+        geo = dict(line.split("=", 1) for line in g.split())
+        self.assertEqual((int(geo["X"]), int(geo["Y"]), int(geo["WIDTH"]), int(geo["HEIGHT"])),
+                         (0, 0) + SLIDE_SCREEN)
+        self.wait_active(self.fs)
+        self.shot("fullscreen-%s" % self.COMPOSITOR)
+        self.assert_on_top("fullscreen")
+        # konec celoobrazovkoveho rezimu: lista a Dock zase navrchu
+        self.procs["fs-video"].send_signal(10)          # SIGUSR1 -> unfullscreen
+        time.sleep(1.0)
+        self.assertNotIn("_NET_WM_STATE_FULLSCREEN", self.state(self.fs))
+        stack = self.stacking()
+        self.assertGreater(stack.index(self.bar), stack.index(self.fs))
+        self.assertEqual(self.pixels(BAR_PT, DOCK_PT), [BLUE, GREEN])
+
+    def test_dock_activation_keeps_fullscreen_on_top(self):
+        # Dock bez zamereni pozada o aktivaci (pager i aplikace): zamereni zustane celoobrazovkovemu
+        # oknu a to musi zustat nad listou a Dockem (drive kleslo pod ne)
+        for source in ("2", "1"):
+            subprocess.run([sys.executable, "-c", ACTIVATE, str(self.dock), source], env=self.env, check=True)
+            time.sleep(0.8)
+            self.wait_active(self.fs)
+            self.assert_on_top("dock activation, source %s" % source)
+        subprocess.run(["xdotool", "windowactivate", str(self.dock)], env=self.env)
+        time.sleep(0.8)
+        self.shot("fullscreen-dock-activated-%s" % self.COMPOSITOR)
+        self.assert_on_top("xdotool windowactivate dock")
+        # lista, ktera zamereni vezme: ta je chvili navrchu, klik do celoobrazovkoveho okna ho vrati nahoru
+        subprocess.run([sys.executable, "-c", ACTIVATE, str(self.bar), "2"], env=self.env, check=True)
+        time.sleep(0.8)
+        self.click_fs()
+        self.wait_active(self.fs)
+        self.assert_on_top("click after bar activation")
+
+    def test_focus_changes(self):
+        other = self.open("fs-other", "luxfsother", 600, 400)
+        self.wait_active(other)
+        # jine okno vepredu: celoobrazovkove okno jde pod listu (lista je videt)
+        self.assertEqual(self.pixels(BAR_PT), [BLUE])
+        # klik zpet do celoobrazovkoveho okna
+        self.click_fs()
+        self.wait_active(self.fs)
+        self.assert_on_top("click back")
+        # Alt+Tab pryc a zpet
+        self.key("key", "alt+Tab")
+        self.wait_active(other)
+        self.key("key", "alt+Tab")
+        self.wait_active(self.fs)
+        self.assert_on_top("alt+tab back")
+        # opakovany klik do zamereneho okna nic nerozbije
+        self.click_fs()
+        self.assert_on_top("click on focused")
+
+    def test_window_without_focus_appears(self):
+        # Skutecna chyba: pri prehravani videa se ukaze karta Hudba widgetu LuxOS (okno bez zamereni,
+        # vzdy vespod, na vsech plochach). xfwm4 dal celoobrazovkove okno pod listu uz pri namapovani
+        # noveho okna, to zamereni odmitlo -> video zustalo zamerene, ale lista pres nej (i po kliku).
+        widget = self.open("fs-widget", "luxos-widgets", 340, 120, "--no-focus", "--move", "1216", "40")
+        subprocess.run(["wmctrl", "-i", "-r", str(widget), "-b", "add,below,sticky"], env=self.env)
+        time.sleep(0.5)
+        self.wait_active(self.fs)
+        self.shot("fullscreen-widget-%s" % self.COMPOSITOR)
+        self.assert_on_top("widget mapped")
+        # znovu skryti a ukazani karty (dalsi skladba)
+        subprocess.run(["xdotool", "windowunmap", "--sync", str(widget)], env=self.env, check=True)
+        subprocess.run(["xdotool", "windowmap", "--sync", str(widget)], env=self.env, check=True)
+        time.sleep(0.8)
+        self.wait_active(self.fs)
+        self.assert_on_top("widget remapped")
+        # obycejne okno bez zamereni (input = False) a Alt+Tab na nej: zamereni i vrch zustava videu
+        self.open("fs-nofocus", "luxfsnofocus", 600, 400, "--no-focus")
+        self.wait_active(self.fs)
+        self.assert_on_top("normal window without focus")
+        self.key("key", "alt+Tab")
+        self.wait_active(self.fs)
+        self.assert_on_top("alt+tab to window without focus")
+        self.click_fs()
+        self.assert_on_top("click")
+
+    def check_workspace_switch(self, slide):
+        self.xfconf("xfwm4", "/general/workspace_slide", "true" if slide else "false", "bool")
+        subprocess.run(["xdotool", "set_desktop", "1"], env=self.env, check=True)
+        time.sleep(1.0)
+        # jina plocha: lista a Dock (na vsech plochach) videt, celoobrazovkove okno ne
+        self.assertEqual(self.pixels(BAR_PT, DOCK_PT), [BLUE, GREEN])
+        subprocess.run(["xdotool", "set_desktop", "0"], env=self.env, check=True)
+        time.sleep(1.0)
+        self.wait_active(self.fs)
+        self.assert_on_top("workspace switch back (slide %s)" % slide)
+        self.assertIsNone(self.wm.poll(), "xfwm4 crashed")
+
+    def test_workspace_switch_with_slide(self):
+        self.check_workspace_switch(True)
+
+    def test_workspace_switch_without_slide(self):
+        self.check_workspace_switch(False)
+
+
+@unittest.skipUnless(XFWM4 and HAVE_DISPLAY, NEEDS_WM)
+class Fullscreen(FullscreenTests, WindowManagerBase):
+    COMPOSITOR = "on"
+
+
+@unittest.skipUnless(XFWM4 and HAVE_DISPLAY, NEEDS_WM)
+class FullscreenNoCompositor(FullscreenTests, WindowManagerBase):
+    COMPOSITOR = "off"
 
 
 if __name__ == "__main__":

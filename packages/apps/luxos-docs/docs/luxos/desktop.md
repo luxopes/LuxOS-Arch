@@ -114,7 +114,7 @@ Contents:
   - **Dark Mode**: `luxos-appearance toggle`.
   - **Data Saver**: `luxos-datasaver toggle` (marks the connection as metered and skips background
     update checks).
-  - **Battery Saver**: `luxos-powersaver toggle` (power-saver profile, no Dock magnification).
+  - **Battery Saver**: `luxos-powersaver toggle` (power-saver profile, lower brightness).
 - **Share Wi-Fi with QR Code…** under the tiles while connected to Wi-Fi (`luxos-wifi-qr`), or
   **Join Wi-Fi with QR Code…** when Wi-Fi is on but not connected (`luxos-wifi-qr --scan`); see
   [wifi-qr.md](wifi-qr.md).
@@ -141,7 +141,8 @@ More detail on Data Saver and Battery Saver: [power-and-performance.md](power-an
 
 The Dock is Plank, started by `luxos-dock`, which restarts Plank after a crash. It sits at the
 bottom with 48 px icons and 150 % magnification, and it hides itself when a window covers it
-("window-dodge"). The default items are Launchpad, LuxAI, LuxOS Store, Files, Firefox, Terminal,
+("window-dodge"). Magnification works whenever the pointer is over the icons, also in Battery Saver;
+it is off only when you turn it off in Desktop & Dock (`zoom-enabled`). The default items are Launchpad, LuxAI, LuxOS Store, Files, Firefox, Terminal,
 Text Editor, Settings and Trash. Settings are in dconf (`net.launchpad.plank.dock.settings`,
 `/net/launchpad/plank/docks/dock1/`), and the launchers are in `~/.config/plank/dock1/launchers`.
 
