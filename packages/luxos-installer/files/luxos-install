@@ -435,6 +435,8 @@ interactive() {
     done
     AUTOLOGIN=0
     gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Log in automatically without a password?")" && AUTOLOGIN=1
+    # zvolene udaje pod nadpisem (gum po odpovedi otazky smaze)
+    info "$FULLNAME ($USERNAME) · $HOSTNAME_SEL"
     ask_domain
     ask_care
     ask_templates
