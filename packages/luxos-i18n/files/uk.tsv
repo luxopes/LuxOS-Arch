@@ -5216,3 +5216,4 @@ Generic Monitor	Загальний монітор
 Show output of a command.	Показати вивід команди.
 Status Tray Plugin	Область сповіщень
 Provides status notifier items (application indicators) and legacy systray items	Показує значки стану програм (індикатори) і старі значки області сповіщень
+test builds before a release - for testers	тестові збірки перед випуском – для тестувальників

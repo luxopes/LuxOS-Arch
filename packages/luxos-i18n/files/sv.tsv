@@ -5215,3 +5215,4 @@ Generic Monitor	Allmän övervakare
 Show output of a command.	Visa utdata från ett kommando.
 Status Tray Plugin	Statusfält
 Provides status notifier items (application indicators) and legacy systray items	Visar appars statusikoner (indikatorer) och äldre ikoner i statusfältet
+test builds before a release - for testers	testversioner före en utgåva – för testare

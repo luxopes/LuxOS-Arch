@@ -5215,3 +5215,4 @@ Generic Monitor	Moniteur générique
 Show output of a command.	Afficher la sortie d’une commande.
 Status Tray Plugin	Zone de notification
 Provides status notifier items (application indicators) and legacy systray items	Affiche les icônes d’état des apps (indicateurs) et les anciennes icônes de la zone de notification
+test builds before a release - for testers	versions de test avant une publication – pour les testeurs

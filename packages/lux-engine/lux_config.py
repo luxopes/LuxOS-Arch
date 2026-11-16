@@ -67,6 +67,24 @@ TEMPLATE = "/usr/share/lux/lux.conf.default"
 USER_CONF = "lux/lux.conf"   # v $XDG_CONFIG_HOME: jen nastaveni lux (aur, flatpak...)
 MAX_INCLUDE_DEPTH = 10
 
+
+def _tr(text):
+    """Preklad hlasky pro uzivatele (lux config check) z luxos-i18n; bez nej anglicky."""
+    global _tr_fn
+    if _tr_fn is None:
+        _tr_fn = lambda t: t  # noqa: E731
+        if "/usr/lib/luxos/python" not in sys.path:
+            sys.path.append("/usr/lib/luxos/python")
+        try:
+            from luxos_i18n import _ as tr
+            _tr_fn = tr
+        except ImportError:
+            pass
+    return _tr_fn(text)
+
+
+_tr_fn = None
+
 ON = {"on", "yes", "true", "1"}
 OFF = {"off", "no", "false", "0"}
 SIG = {  # signatures -> SigLevel pacmanu
@@ -1910,8 +1928,8 @@ def main(argv):
                 print(f"{f}: OK" + (f" ({len(cfg.warnings)} warning{'s' if len(cfg.warnings) != 1 else ''})"
                                     if cfg.warnings else ""))
                 ch = cfg.get("channel")
-                print(f"update channel: {ch}" + (" (test builds before a release - for testers)"
-                                                 if ch == "staging" else ""))
+                print(_tr("update channel: %s") % ch
+                      + (" (" + _tr("test builds before a release - for testers") + ")" if ch == "staging" else ""))
             return rc
         if cmd == "migrate":
             dry = "--dry-run" in args

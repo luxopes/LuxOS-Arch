@@ -5215,3 +5215,4 @@ Generic Monitor	Algemene monitor
 Show output of a command.	Uitvoer van een opdracht tonen.
 Status Tray Plugin	Statusvak
 Provides status notifier items (application indicators) and legacy systray items	Toont statuspictogrammen van apps (indicatoren) en oudere pictogrammen in het statusvak
+test builds before a release - for testers	testversies vóór een release – voor testers
