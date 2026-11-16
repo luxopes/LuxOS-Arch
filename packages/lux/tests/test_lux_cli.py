@@ -425,6 +425,20 @@ class CLI(unittest.TestCase):
         self.assertTrue(any(x.startswith("-Ss") for x in real_calls), real_calls)
         self.assertEqual(self.calls("lux-engine"), [])
 
+    def test_doctor_no_all_good_after_warnings(self):
+        """lux doctor: po upozorneni (nepotrebny balik) uz ne "Everything looks good" (regrese audit 1.0.2)."""
+        alpm = os.path.join(self.tmp, "alpm-doc")
+        os.makedirs(alpm)
+        real = os.path.join(alpm, "lux-engine")
+        with open(real, "w") as f:
+            f.write(STUB)
+        os.chmod(real, 0o755)
+        rc, out = self.lux("doctor", env={"LUX_BACKEND": "engine", "LUX_ENGINE": real})
+        self.assertIn("unneeded package", out)
+        self.assertNotIn("Everything looks good", out)
+        if rc == 0:
+            self.assertIn("No serious problems - see the notes above", out)
+
     def test_luxos_090_engine_before_replacement(self):
         """LuxOS 0.9.0 (luxos-pacman): jen alpm/pacman a bez lux-config - lux funguje, lux update jadro vymeni."""
         alpm = os.path.join(self.tmp, "old-alpm")

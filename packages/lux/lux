@@ -1157,7 +1157,7 @@ cmd_check() {  # lux check: dostupne aktualizace (cerstve seznamy, bez prav root
 }
 
 cmd_doctor() {
-    local issues=0 n
+    local issues=0 notes=0 n   # issues = problem (navratovy kod 1), notes = jen upozorneni
     say "$(T "LuxOS system check")"
     n=$(systemctl --failed --no-legend 2>/dev/null | wc -l)
     if ((n)); then warn "$(T "%s failed service(s):" "$n")"; systemctl --failed --no-legend; ((issues++)); else ok "$(T "Services running")"; fi
@@ -1166,10 +1166,10 @@ cmd_doctor() {
     local use; use=$(df --output=pcent / | tail -1 | tr -dc 0-9)
     ((use > 90)) && { warn "$(T "Root filesystem is %s%% full" "${use}")"; ((issues++)); } || ok "$(T "Disk usage %s%%" "${use}")"
     n=$("$LUX_ENGINE" -Qdtq 2>/dev/null | wc -l)
-    ((n)) && warn "$(T "%s unneeded package(s) - run: lux clean" "$n")" || ok "$(T "No orphaned packages")"
+    ((n)) && { warn "$(T "%s unneeded package(s) - run: lux clean" "$n")"; ((++notes)); } || ok "$(T "No orphaned packages")"
     if alpm_ok; then
         n=$(alpm check-updates 2>/dev/null | wc -l)
-        ((n)) && warn "$(T "%s update(s) available - run: lux update" "$n")" || ok "$(T "System up to date")"
+        ((n)) && { warn "$(T "%s update(s) available - run: lux update" "$n")"; ((++notes)); } || ok "$(T "System up to date")"
     fi
     if "$LUX_CONFIG" check &>/dev/null; then ok "$(T "Package manager configuration OK")"
     else warn "$(T "The package manager configuration has an error - run: lux config check")"; ((issues++)); fi
@@ -1182,11 +1182,14 @@ cmd_doctor() {
     upstream=$(LC_ALL=C "$LUX_ENGINE" -Si core/pacman 2>/dev/null | awk -F': ' '/^Version/ {print $2; exit}')
     if [[ -n $own && -n $upstream ]] && (($(vercmp "$upstream" "$own" 2>/dev/null || echo 0) > 0)); then
         warn "$(T "The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow" "$own" "$upstream")"
+        ((++notes))
     fi
     [[ -d /usr/lib/modules/$(uname -r) ]] || { warn "$(T "Running kernel was replaced - restart")"; ((issues++)); }
     n=$(journalctl -b -p err --no-pager -q 2>/dev/null | wc -l)
-    ((n)) && warn "$(T "%s error message(s) in this boot's log (journalctl -b -p err)" "$n")"
-    ((issues)) && return 1 || ok "$(T "Everything looks good")"
+    ((n)) && { warn "$(T "%s error message(s) in this boot's log (journalctl -b -p err)" "$n")"; ((++notes)); }
+    ((issues)) && return 1
+    # po upozornenich ne "Vse vypada v poradku" (protimluv pod vykricniky)
+    if ((notes)); then ok "$(T "No serious problems - see the notes above")"; else ok "$(T "Everything looks good")"; fi
 }
 
 # --- Snimky systemu (LuxOS Care): pred kazdou aktualizaci, navrat i z nabidky zavadece ---------
