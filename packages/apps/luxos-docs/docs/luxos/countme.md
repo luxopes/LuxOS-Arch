@@ -12,21 +12,18 @@ It is **on by default** and easy to turn off (see [Turning it off](#turning-it-o
 
 At most **once per calendar week** (ISO week starting on Monday, UTC), when the package manager
 `lux` already downloads the package lists as root (LuxOS Care does this automatically, or
-`sudo lux update`), it makes **one** extra request:
+`sudo lux update`), it makes **one** small extra request to the LuxOS server with exactly four
+values:
 
-```
-GET https://luxos.lux-ai.cz/countme?v=1.0.0&arch=x86_64&ch=stable&age=2
-```
+| Value | Where it comes from |
+|---|---|
+| LuxOS version, e.g. 1.0.1 | `/usr/lib/luxos/version`, else `VERSION_ID` in os-release |
+| processor architecture | currently always x86_64 |
+| update channel: stable or staging | `[general] channel` in `/etc/lux/lux.conf` |
+| install age group: first week, up to 1 month, up to 6 months, or longer | install time (see below) |
 
-| Parameter | Meaning | Values |
-|---|---|---|
-| `v` | LuxOS version (from `/usr/lib/luxos/version`, else `VERSION_ID` in os-release) | `X.Y.Z`, e.g. `1.0.0` |
-| `arch` | processor architecture | `x86_64` |
-| `ch` | update channel (`[general] channel` in `/etc/lux/lux.conf`) | `stable` or `staging` |
-| `age` | how long ago this LuxOS was installed | `1` = first week, `2` = up to 1 month, `3` = up to 6 months, `4` = longer |
-
-The HTTP headers are only `Host: luxos.lux-ai.cz`, `User-Agent: LuxOS-countme` and
-`Connection: close` — no cookies, no Python version, no computer name.
+The HTTP headers carry no cookies, no Python version and no computer name. To see the exact request
+your computer would send, run `lux config countme` (see below).
 
 **Not sent:** no unique ID, no machine-id, no computer name, no user name, no hardware, no list of
 installed apps, no location, no files, nothing about what you do.
@@ -63,7 +60,7 @@ The week is recorded only after the server answered.
 
 `since` is the install time (time of `/var/log/luxos-install.log` from the installer, or the end of
 the Setup Assistant on OEM computers, or the first run); `last_week` is the last counted week.
-Delete the file and the next count starts again with `age=1`.
+Delete the file and the next count starts again in the first-week group.
 
 See exactly what would be sent and whether this week was counted:
 
@@ -76,16 +73,19 @@ lux config countme
 The server (`server/countme/` in the LuxOS repository, a small service in LSL behind the web server)
 keeps **only counters**: for each week, version, architecture, channel and age group, a number. It
 does not store IP addresses, user agents or times finer than the week. Web server access logging is
-switched off for `/countme`.
+switched off for these requests.
 
 To make spamming harder (one computer sending many counts), the server remembers, **only in memory
 and only for the current week**, a keyed hash (HMAC-SHA512 with a random key that is created every
-week and never written anywhere) of the sender's IP address together with version and channel. The
-same IP is counted at most once per week per version and channel, and at most 60 requests per hour
-are looked at. When the week changes, the key and the whole table are thrown away. This is a
-heuristic: many computers behind one shared IP (a school, a company, a VPN exit) count as one per
-version and channel per week, so the numbers are a lower estimate. Computers that are off or
-offline for a whole week are not counted either.
+week and never written anywhere) of the sender's network: the IPv4 address, or for IPv6 only the
+network part (the first 64 bits, which one computer usually owns as a whole). Each network is
+counted at most once per week, whatever values it sends, and only versions of LuxOS that were
+actually released (or the next ones) are accepted. When the week changes, the key and the whole
+table are thrown away. This is a heuristic: many computers behind one shared IP (a school, a
+company, a VPN exit) count as one per week, so the numbers are an approximate lower bound.
+Computers that are off or offline for a whole week are not counted either. The count cannot be made
+tamper-proof without identifying computers, which LuxOS deliberately does not do: someone with many
+IP addresses can still inflate it.
 
 The aggregated numbers are public: `https://luxos.lux-ai.cz/stats/usage.json` (last 26 weeks:
 totals, age groups, versions, channels).

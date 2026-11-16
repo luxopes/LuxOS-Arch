@@ -41,23 +41,20 @@
       </div>
 
       <h2 id="co-se-odesila">Co přesně se odesílá</h2>
-      <p>Jednou za kalendářní týden (týden podle ISO začíná pondělím, počítá se v UTC), když správce balíků <code>lux</code> stahuje seznamy balíků – LuxOS Care to dělá automaticky – pošle navíc jeden požadavek na <code>https://luxos.lux-ai.cz/countme</code>, a to jen s těmito čtyřmi údaji:</p>
-      <table>
-        <thead><tr><th scope="col">Údaj</th><th scope="col">Význam</th><th scope="col">Příklad</th></tr></thead>
-        <tbody>
-          <tr><td><code>v</code></td><td>Verze LuxOS</td><td><code>1.0.0</code></td></tr>
-          <tr><td><code>arch</code></td><td>Architektura procesoru</td><td><code>x86_64</code></td></tr>
-          <tr><td><code>ch</code></td><td>Kanál aktualizací</td><td><code>stable</code> nebo <code>staging</code></td></tr>
-          <tr><td><code>age</code></td><td>Jak dlouho je systém nainstalovaný: 1 = první týden, 2 = do měsíce, 3 = do půl roku, 4 = déle</td><td><code>3</code></td></tr>
-        </tbody>
-      </table>
-      <p>Celý požadavek pak vypadá takto:</p>
-      <pre><code>https://luxos.lux-ai.cz/countme?v=1.0.0&amp;arch=x86_64&amp;ch=stable&amp;age=3</code></pre>
+      <p>Jednou za kalendářní týden (týden podle ISO začíná pondělím, počítá se v UTC), když správce balíků <code>lux</code> stahuje seznamy balíků – LuxOS Care to dělá automaticky – pošle navíc jeden malý požadavek na server LuxOS, a to jen s těmito čtyřmi údaji:</p>
+      <ul>
+        <li><strong>verze LuxOS</strong>,</li>
+        <li><strong>architektura procesoru</strong>,</li>
+        <li><strong>kanál aktualizací</strong> (stabilní, nebo testovací),</li>
+        <li><strong>jak dlouho je systém nainstalovaný</strong>, jen jako skupina: první týden, do měsíce, do půl roku, nebo déle.</li>
+      </ul>
+      <p>Co přesně by váš počítač tento týden poslal, ukáže v terminálu příkaz <code>lux config countme</code>.</p>
       <ul>
         <li><strong>Nic jiného se neposílá:</strong> žádný jedinečný identifikátor, název počítače, údaje o hardwaru, seznam nainstalovaných aplikací ani data uživatele.</li>
         <li><strong>Server si ukládá jen týdenní počítadla</strong> pro každou kombinaci týdne, verze, architektury, kanálu a stáří – nic víc tato stránka ani neukazuje.</li>
-        <li><strong>IP adresy se neukládají.</strong> Záznam přístupů je pro <code>/countme</code> vypnutý. Kvůli odfiltrování duplicit server používá klíčovaný otisk (hash) IP adresy; klíč je náhodný, existuje jen v paměti a každý týden se zahodí, takže otisky nejde přiřadit k nikomu ani propojit mezi týdny.</li>
-        <li><strong>Čísla jsou odhad.</strong> Počítače, které jsou celý týden vypnuté nebo bez internetu, se nezapočítají. Více počítačů za jednou sdílenou IP adresou (škola, kancelář) se může započítat jen jednou za týden a verzi – jde o jednoduchou ochranu proti zahlcení falešnými požadavky.</li>
+        <li><strong>IP adresy se neukládají.</strong> Záznam přístupů je pro tyto požadavky vypnutý. Kvůli odfiltrování duplicit server používá klíčovaný otisk (hash) IP adresy, u IPv6 jen její síťové části; klíč je náhodný, existuje jen v paměti a každý týden se zahodí, takže otisky nejde přiřadit k nikomu ani propojit mezi týdny.</li>
+        <li><strong>Čísla jsou odhad.</strong> Počítače, které jsou celý týden vypnuté nebo bez internetu, se nezapočítají. Více počítačů za jednou sdílenou IP adresou (škola, kancelář) se započítá jen jednou za týden – jde o jednoduchou ochranu proti falešným požadavkům.</li>
+        <li><strong>Čísla jsou přibližná spodní hranice a nejdou udělat odolná proti podvržení</strong>, aniž by se počítače identifikovaly – a to LuxOS záměrně nedělá. Kdo má k dispozici mnoho IP adres, může čísla uměle navýšit.</li>
       </ul>
       <p>Nápad vychází z funkce countme ve správci balíků DNF v distribuci Fedora.</p>
 

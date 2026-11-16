@@ -41,23 +41,20 @@
       </div>
 
       <h2 id="what-is-sent">What exactly is sent</h2>
-      <p>Once per calendar week (an ISO week starting on Monday, in UTC), when the package manager <code>lux</code> downloads the package lists – LuxOS Care does this automatically – it makes one extra request to <code>https://luxos.lux-ai.cz/countme</code> with only these four values:</p>
-      <table>
-        <thead><tr><th scope="col">Value</th><th scope="col">Meaning</th><th scope="col">Example</th></tr></thead>
-        <tbody>
-          <tr><td><code>v</code></td><td>LuxOS version</td><td><code>1.0.0</code></td></tr>
-          <tr><td><code>arch</code></td><td>Processor architecture</td><td><code>x86_64</code></td></tr>
-          <tr><td><code>ch</code></td><td>Update channel</td><td><code>stable</code> or <code>staging</code></td></tr>
-          <tr><td><code>age</code></td><td>How long the system has been installed: 1 = first week, 2 = up to a month, 3 = up to six months, 4 = longer</td><td><code>3</code></td></tr>
-        </tbody>
-      </table>
-      <p>The whole request then looks like this:</p>
-      <pre><code>https://luxos.lux-ai.cz/countme?v=1.0.0&amp;arch=x86_64&amp;ch=stable&amp;age=3</code></pre>
+      <p>Once per calendar week (an ISO week starting on Monday, in UTC), when the package manager <code>lux</code> downloads the package lists – LuxOS Care does this automatically – it makes one small extra request to the LuxOS server with only these four values:</p>
+      <ul>
+        <li><strong>the LuxOS version</strong>,</li>
+        <li><strong>the processor architecture</strong>,</li>
+        <li><strong>the update channel</strong> (stable or testing),</li>
+        <li><strong>how long the system has been installed</strong>, only as a group: first week, up to a month, up to six months, or longer.</li>
+      </ul>
+      <p>To see exactly what your computer would send this week, run <code>lux config countme</code> in a terminal.</p>
       <ul>
         <li><strong>Nothing else is sent:</strong> no unique ID, no computer name, no hardware details, no list of installed apps and no user data.</li>
         <li><strong>The server keeps only weekly counters</strong> for each combination of week, version, architecture, channel and age – that is all this page shows.</li>
-        <li><strong>IP addresses are not stored.</strong> Access logging is switched off for <code>/countme</code>. To filter out duplicates the server uses a keyed hash of the IP address; the key is random, lives only in memory and is thrown away every week, so the hashes cannot be linked to anyone or across weeks.</li>
-        <li><strong>The numbers are an estimate.</strong> Computers that are switched off or offline for a whole week are not counted. Several computers behind one shared IP address (a school, an office) may be counted only once per week and version – a simple protection against spamming.</li>
+        <li><strong>IP addresses are not stored.</strong> Access logging is switched off for these requests. To filter out duplicates the server uses a keyed hash of the IP address (for IPv6 only its network part); the key is random, lives only in memory and is thrown away every week, so the hashes cannot be linked to anyone or across weeks.</li>
+        <li><strong>The numbers are an estimate.</strong> Computers that are switched off or offline for a whole week are not counted. Several computers behind one shared IP address (a school, an office) are counted only once per week – a simple protection against fake requests.</li>
+        <li><strong>The numbers are an approximate lower bound and cannot be made tamper-proof</strong> without identifying computers, which LuxOS deliberately does not do. Someone with many IP addresses can still inflate them.</li>
       </ul>
       <p>The idea is inspired by Fedora’s DNF countme.</p>
 

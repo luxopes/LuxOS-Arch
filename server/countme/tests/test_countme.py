@@ -179,6 +179,13 @@ class CountmeTest(unittest.TestCase):
         self.set_time(self.now + 601)
         return s.stats()
 
+    def versions_file(self, text):
+        path = os.path.join(self.tmp, "versions.txt")
+        with open(path + ".new", "w") as f:
+            f.write(text)
+        os.replace(path + ".new", path)
+        return path
+
     def state_file(self):
         with open(os.path.join(self.state, "counts.json")) as f:
             return json.load(f)
@@ -187,7 +194,8 @@ class CountmeTest(unittest.TestCase):
     def test_validation(self):
         s = self.server()
         self.assertEqual(s.request("GET", VALID), (204, b""))
-        self.assertEqual(s.request("GET", "/countme?age=4&ch=staging&v=99.999.999&arch=x86_64")[0], 204)
+        self.assertEqual(s.request("GET", "/countme?age=4&ch=staging&v=1.0.1&arch=x86_64",
+                                   {"X-Forwarded-For": "198.51.100.99"})[0], 204)
         self.assertEqual(s.request("HEAD", VALID)[0], 204)
         bad = [
             "/countme", "/countme?",
@@ -219,6 +227,8 @@ class CountmeTest(unittest.TestCase):
             "/countme?v=1.0.0&arch=x86_64&ch=stable&age=+1",
             "/countme?V=1.0.0&arch=x86_64&ch=stable&age=1",
             "/countme?v=1.0.0&arch=x86_64&ch=stable&age=1&pad=" + "x" * 120,  # > 160 znaku
+            "/countme?v=99.999.999&arch=x86_64&ch=stable&age=1",           # nevydana verze
+            "/countme?age=4&ch=staging&v=99.999.999&arch=x86_64",
         ]
         for target in bad:
             with self.subTest(target=target):
@@ -236,16 +246,16 @@ class CountmeTest(unittest.TestCase):
             with self.subTest(target=target):
                 self.assertEqual(s.request("GET", target)[0], 404)
         self.assertEqual(s.request("GET", "/health"), (200, b"ok\n"))
-        # jen dva platne pozadavky (GET a HEAD z jedne IP s v/ch shodnymi = 1) + jeden s jinym v/ch
+        # GET a HEAD bez XFF = jedna sit (1) + jeden pozadavek z jine IP
         st = s.stats()
         self.assertEqual(st["totals"][-1], 2)
-        self.assertEqual(list(st["by_version"]), ["1.0.0", "99.999.999"])
+        self.assertEqual(list(st["by_version"]), ["1.0.0", "1.0.1"])
 
     # --- pocitani a agregace ---
     def test_aggregation(self):
         # dva tydny zpet, pak minuly a aktualni tyden
         self.set_time(T0 - 14 * 86400)
-        s = self.server()
+        s = self.server(["--versions", self.versions_file("0.9.10\n1.0.0\n1.0.1\n")])
         s.count("198.51.100.1", v="0.9.10", ch="staging", age="3")
         s.count("198.51.100.2", v="0.9.10", ch="stable", age="4")
         self.set_time(T0 - 7 * 86400)
@@ -315,37 +325,174 @@ class CountmeTest(unittest.TestCase):
     def test_dedupe(self):
         s = self.server()
         s.count("203.0.113.10")
-        s.count("203.0.113.10")                                  # stejna IP+v+arch+ch
-        s.count("203.0.113.10", age="2")                         # age neni v klici -> duplicita
+        s.count("203.0.113.10")                                  # stejna IP
+        s.count("203.0.113.10", age="2")
         s.count("198.51.100.200, 203.0.113.10")                  # posledni prvek XFF = stejna IP
+        s.count("203.0.113.10", v="1.0.1")                       # jina verze: porad stejna sit
+        s.count("203.0.113.10", ch="staging")                    # jiny kanal: taky
+        s.count("203.0.113.010")                                 # nuly navic = stejna adresa
         self.assertEqual(self.total(s), 1)
         s.count("203.0.113.11")                                  # jina IP
         s.count("203.0.113.10, 203.0.113.12")                    # posledni prvek XFF rozhoduje
-        s.count("203.0.113.10", v="1.0.1")                       # jina verze
-        s.count("203.0.113.10", ch="staging")                    # jiny kanal
         s.count(None)                                            # bez XFF -> "none"
         s.count(None)
         s.count("  ")                                            # prazdne XFF -> "none"
         st = self.fresh_stats(s)
-        self.assertEqual(st["totals"][-1], 6)
-        self.assertEqual(st["by_version"]["1.0.1"][-1], 1)
+        self.assertEqual(st["totals"][-1], 4)
+        self.assertEqual(st["by_version"], {"1.0.0": [0] * 25 + [4]})
+        self.assertEqual(st["by_channel"]["staging"][-1], 0)
+
+    def test_param_variation_counts_once(self):
+        # podvrh /countme s ruznymi parametry z jedne IP: jeden zapocet za tyden, prvni vyhrava
+        s = self.server()
+        s.count("203.0.113.15", v="1.0.1", ch="staging", age="3")
+        for v in ("1.0.0", "1.0.1", "1.0.2", "1.1.0", "2.0.0"):
+            for ch in ("stable", "staging"):
+                for age in "1234":
+                    s.count("203.0.113.15", v=v, ch=ch, age=age)
+        st = self.fresh_stats(s)
+        self.assertEqual(st["totals"][-1], 1)
+        self.assertEqual(list(st["by_version"]), ["1.0.1"])
         self.assertEqual(st["by_channel"]["staging"][-1], 1)
+        self.assertEqual(st["by_age"]["3"][-1], 1)
+        self.set_time(T0 + 7 * 86400)                      # novy tyden: zase jednou
+        s.count("203.0.113.15", v="1.0.0")
+        s.count("203.0.113.15", v="1.0.1")
+        self.assertEqual(s.stats()["totals"][-2:], [1, 1])
+
+    def test_ipv6_prefix(self):
+        s = self.server()
+        same = ["2001:db8:1:2::1", "2001:db8:1:2:ffff:ffff:ffff:ffff", "2001:DB8:1:2:0:0:0:5",
+                "2001:0db8:0001:0002::9", "2001:db8:1:2:a:b:c:d", "[2001:db8:1:2::7]",
+                "2001:db8:1:2::8%eth0", "2001:db8:1:2:0:0:198.51.100.1", "203.0.113.1, 2001:db8:1:2::77"]
+        for ip in same:
+            s.count(ip)
+        self.assertEqual(self.total(s), 1)
+        s.count("2001:db8:1:3::1")                          # jina /64
+        s.count("2001:db8::1")                              # 2001:db8:0:0::/64
+        s.count("2001:db8:0:0:1::1")                        # stejna /64 jako predchozi
+        s.count("::1")
+        s.count("::")                                       # ::/64 (stejna jako ::1)
+        s.count("fe80::1")
+        st = self.fresh_stats(s)
+        self.assertEqual(st["totals"][-1], 5)
+        # nevalidni zapis: necha se jako cely text, nespadne, pocita se jednou
+        for ip in ["1::2::3", "2001:db8:1:2:3:4:5:6:7", "gggg::1", "2001:db8:12345::1", "1:2:3",
+                   "::ffff:300.1.1.1", "1.2.3", "999.1.1.1", "not-an-ip"]:
+            s.count(ip)
+            s.count(ip)
+        st = self.fresh_stats(s)
+        self.assertEqual(st["totals"][-1], 14)
+        self.assertEqual(s.request("GET", "/health"), (200, b"ok\n"))
+
+    def test_ipv4_mapped(self):
+        s = self.server()
+        for ip in ["198.51.100.9", "::ffff:198.51.100.9", "::FFFF:198.51.100.9", "::ffff:c633:6409",
+                   "0:0:0:0:0:ffff:198.51.100.9", "64:ff9b::198.51.100.9", "64:ff9b::c633:6409"]:
+            s.count(ip)
+        self.assertEqual(self.total(s), 1)
+        s.count("::ffff:198.51.100.10")
+        s.count("64:ff9b::198.51.100.11")                   # NAT64: kazda IPv4 zvlast, ne jedna /64
+        self.assertEqual(self.fresh_stats(s)["totals"][-1], 3)
+
+    def test_versions(self):
+        s = self.server()                                  # vestaveny seznam 1.0.0, 1.0.1
+        ok = ["1.0.0", "1.0.1", "1.0.2", "1.0.4", "1.1.0", "1.1.2", "2.0.0", "2.0.2"]
+        junk = ["99.999.999", "1.0.5", "1.0.99", "1.1.3", "1.2.0", "2.0.3", "2.1.0", "3.0.0",
+                "0.9.10", "0.0.0", "0.9.0", "1.00.1", "01.0.1", "1.0.02", "1.01.0"]  # nuly navic
+        for i, v in enumerate(ok):
+            s.count(f"198.51.100.{i + 1}", v=v)
+        for i, v in enumerate(junk):
+            with self.subTest(v=v):
+                status = s.request("GET", f"/countme?v={v}&arch=x86_64&ch=stable&age=1",
+                                   {"X-Forwarded-For": f"203.0.113.{i + 1}"})[0]
+                self.assertEqual(status, 400)
+        st = self.fresh_stats(s)
+        self.assertEqual(list(st["by_version"]), ok)
+        self.assertEqual(st["totals"][-1], len(ok))
+
+    def test_versions_file(self):
+        path = self.versions_file("# vydane verze LuxOS\n0.9.10\n1.0.0\n\n 1.0.1 \n1.0.2  # komentar\nsmeti\n")
+        self.set_time(utc(2026, 11, 4, 10, 0, 0))
+        s = self.server(["--versions", path])
+        accepted = ["0.9.10", "1.0.2", "1.0.5", "1.1.2"]
+        for i, v in enumerate(accepted):
+            s.count(f"198.51.100.{i + 1}", v=v)
+        for v in ["0.9.9", "1.0.6", "1.1.3", "99.999.999"]:
+            self.assertEqual(s.request("GET", f"/countme?v={v}&arch=x86_64&ch=stable&age=1")[0], 400, v)
+        # vydani 1.0.5: soubor se znovu nacte s novou hodinou, 1.0.8 pak projde
+        self.versions_file("0.9.10\n1.0.0\n1.0.1\n1.0.2\n1.0.3\n1.0.4\n1.0.5\n")
+        self.assertEqual(s.request("GET", "/countme?v=1.0.8&arch=x86_64&ch=stable&age=1")[0], 400)
+        self.set_time(utc(2026, 11, 4, 11, 0, 0))
+        s.count("198.51.100.50", v="1.0.8")
+        s.count("198.51.100.51", v="1.0.2")                # starsi vydana verze dal plati
+        self.set_time(utc(2026, 11, 4, 11, 20, 0))
+        st = s.stats()
+        self.assertEqual(st["totals"][-1], 6)
+        self.assertEqual(list(st["by_version"]), ["0.9.10", "1.0.2", "1.0.5", "1.0.8", "1.1.2"])
+        out = s.stop()
+        self.assertIn("4 released versions, highest 1.0.2", out)
+        self.assertIn("7 released versions, highest 1.0.5", out)
+        self.servers.remove(s)
+        # nepouzitelny soubor (zadna platna verze) nebo chybejici soubor -> vestaveny seznam
+        for text in ("smeti\n1.0\n", None):
+            with self.subTest(text=text):
+                if text is None:
+                    os.remove(path)
+                else:
+                    self.versions_file(text)
+                s = self.server(["--versions", path])
+                self.assertEqual(s.request("GET", "/countme?v=0.9.10&arch=x86_64&ch=stable&age=1")[0], 400)
+                self.assertEqual(s.request("GET", "/countme?v=1.0.4&arch=x86_64&ch=stable&age=1")[0], 204)
+                self.assertIn("2 released versions, highest 1.0.1", s.stop())
+                self.servers.remove(s)
+
+    def test_old_junk_hidden(self):
+        # smeti ze stavu pred seznamem verzi: soubor neni poskozeny, zustane, ale neukaze se
+        with open(os.path.join(self.state, "counts.json"), "w") as f:
+            json.dump({"schema": 1, "counts": {"2026-W45": {"99.999.999|x86_64|stable|1": 500,
+                                                            "1.0.0|x86_64|stable|1": 2}}}, f)
+        s = self.server()
+        st = s.stats()
+        self.assertEqual(st["totals"][-1], 2)
+        self.assertEqual(list(st["by_version"]), ["1.0.0"])
+        s.count("198.51.100.1")
+        out = s.stop()
+        self.assertNotIn("corrupt", out)
+        self.assertEqual(self.state_file()["counts"]["2026-W45"]["99.999.999|x86_64|stable|1"], 500)
+
+    def test_inflation_alarm(self):
+        s = self.server()
+        self.set_time(T0 - 7 * 86400)
+        for i in range(5):
+            s.count(f"198.51.100.{i + 1}")                 # minuly tyden: 5
+        self.set_time(T0)
+        for i in range(100):
+            s.count(f"203.0.{i // 200}.{i % 200 + 1}")     # 100 = 10x max(5, 10): jeste ne
+        time.sleep(0.2)
+        self.assertNotIn("inflation", s.output())
+        for i in range(100, 103):
+            s.count(f"203.0.{i // 200}.{i % 200 + 1}")
+        out = s.stop()
+        self.assertEqual(out.count("check for inflation"), 1)
+        self.assertIn("this week's count (101) is over 10x last week's (5)", out)
+        self.assertNotIn("203.0.", out)
+        self.assertNotIn("198.51.100", out)
 
     def test_hourly_cap(self):
+        # limit drzi zatez; zapocet je i tak jen jeden za sit a tyden
         self.set_time(utc(2026, 11, 4, 10, 0, 0))
         s = self.server()
-        for i in range(60):
-            s.count("203.0.113.20", v=f"1.0.{i}")
-        for i in range(60, 70):
-            s.count("203.0.113.20", v=f"1.0.{i}")          # nad limit: 204, ale nepocita se
-        s.count("203.0.113.21", v="1.0.65")                # jina IP neni omezena
+        for i in range(70):
+            s.count("203.0.113.20", v="1.0.1" if i % 2 else "1.0.0", age=str(i % 4 + 1))
+        s.count("203.0.113.21")                            # jina IP neni omezena
         self.set_time(utc(2026, 11, 4, 10, 30, 0))
-        self.assertEqual(s.stats()["totals"][-1], 61)
+        self.assertEqual(s.stats()["totals"][-1], 2)
         self.set_time(utc(2026, 11, 4, 11, 0, 0))          # nova hodina, stejny tyden
-        s.count("203.0.113.20", v="1.0.65")
-        s.count("203.0.113.20", v="1.0.3")                 # porad deduplikovano za tyden
+        s.count("203.0.113.20")
+        s.count("203.0.113.22")
         self.set_time(utc(2026, 11, 4, 11, 20, 0))
-        self.assertEqual(s.stats()["totals"][-1], 62)
+        self.assertEqual(s.stats()["totals"][-1], 3)
 
     def test_weekly_salt_rotation(self):
         s = self.server()
@@ -477,7 +624,7 @@ class CountmeTest(unittest.TestCase):
                 self.assertRegex(key, KEY_RE)
                 self.assertIsInstance(n, int)
         self.assertEqual(data["counts"], {
-            "2026-W45": {"1.0.0|x86_64|stable|1": 3, "1.0.1|x86_64|staging|2": 3},
+            "2026-W45": {"1.0.0|x86_64|stable|1": 3},
             "2026-W46": {"1.0.0|x86_64|stable|1": 2}})
 
 

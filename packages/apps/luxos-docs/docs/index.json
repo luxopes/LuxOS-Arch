@@ -329,7 +329,7 @@
         {
           "path": "luxos/countme.md",
           "title": "Anonymous usage count (countme)",
-          "summary": "Weekly anonymous count of active LuxOS installs (like Fedora countme): exactly what is sent (v, arch, ch, age), when not, never slows updates, what the server stores (no IPs), lux config countme, turning it off (Software Update > Privacy, lux.conf, system.lsl, installer).",
+          "summary": "Weekly anonymous count of active LuxOS installs (like Fedora countme): exactly what is sent (version, architecture, channel, install age), when not, never slows updates, what the server stores (no IPs), lux config countme, turning it off (Software Update > Privacy, lux.conf, system.lsl, installer).",
           "keywords": [
             "countme",
             "telemetry",

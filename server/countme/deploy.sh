@@ -4,7 +4,8 @@
 #   server/countme/deploy.sh [ssh-cil]          (vychozi cil: $COUNTME_SSH, napr. root@server)
 #
 # Kroky: 1) prelozi luxos_countme.lsl mistne na statickou binarku (lsl compile, LSL na serveru neni),
-# 2) pusti mistni testy proti teto binarce, 3) nahraje /opt/luxos-countme/luxos-countme (0755)
+# 1b) vytvori versions.txt (vydane verze z CHANGELOG.md), 2) pusti mistni testy proti teto binarce,
+# 3) nahraje /opt/luxos-countme/luxos-countme (0755), versions.txt
 # a /etc/systemd/system/luxos-countme.service, 4) daemon-reload, enable + restart (pri restartu
 # sluzba citace zapise; stav v /var/lib/luxos-countme zustava), 5) overi /health a /stats/usage.json
 # na 127.0.0.1:8766 (nic nezapocita), 6) vypise blok pro Caddy (vlozit rucne, viz Caddyfile.snippet).
@@ -27,14 +28,28 @@ if command -v file >/dev/null; then
 fi
 echo "   ok: $(du -h "$TMPD/luxos-countme" | cut -f1), sha256 $(sha256sum "$TMPD/luxos-countme" | cut -c1-16)"
 
+# seznam vydanych verzi LuxOS: nadpisy "## X.Y.Z" z CHANGELOG.md + verze z luxos-branding (staging ji
+# hlasi uz pred vydanim); sluzba nad nejvyssi prijme jeste nejblizsi dalsi patch/minor verze, takze
+# vydani bez noveho nasazeni nic neztrati - po vydani staci deploy.sh znovu (soubor cte kazdou hodinu)
+REPO=$(cd "$HERE/../.." && pwd)
+{
+    echo "# vydane verze LuxOS pro luxos-countme (generuje deploy.sh)"
+    grep -oE '^## [0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}( |$)' "$REPO/CHANGELOG.md" | awk '{print $2}'
+    sed -n 's/^VERSION=\([0-9.]*\)$/\1/p' "$REPO/packages/luxos-branding/files/version"
+} | awk '!seen[$0]++' >"$TMPD/versions.txt"
+echo "   verze: $(grep -vc '^#' "$TMPD/versions.txt"), nejvyssi $(grep -v '^#' "$TMPD/versions.txt" | sort -V | tail -1)"
+
 echo "== testy"
 COUNTME_BIN="$TMPD/luxos-countme" nice -n 10 python3 -I "$HERE/tests/test_countme.py"
 
 echo "== instaluji na $TARGET"
 ssh "$TARGET" "mkdir -p /opt/luxos-countme && chmod 755 /opt/luxos-countme"
 rsync "$TMPD/luxos-countme" "$TARGET:/opt/luxos-countme/luxos-countme.new"
+rsync "$TMPD/versions.txt" "$TARGET:/opt/luxos-countme/versions.txt.new"
 rsync "$HERE/luxos-countme.service" "$TARGET:/etc/systemd/system/luxos-countme.service"
 ssh "$TARGET" "set -e; chmod 755 /opt/luxos-countme/luxos-countme.new;
+               chmod 644 /opt/luxos-countme/versions.txt.new;
+               mv -f /opt/luxos-countme/versions.txt.new /opt/luxos-countme/versions.txt;
                mv -f /opt/luxos-countme/luxos-countme.new /opt/luxos-countme/luxos-countme;
                chmod 644 /etc/systemd/system/luxos-countme.service; systemctl daemon-reload;
                systemctl enable --quiet luxos-countme && systemctl restart luxos-countme"

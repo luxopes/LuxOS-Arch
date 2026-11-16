@@ -6,7 +6,8 @@ After=network.target
 [Service]
 Type=simple
 # staticka binarka z luxos_countme.lsl (lsl compile); na serveru neni potreba LSL ani Python
-ExecStart=/opt/luxos-countme/luxos-countme --bind 127.0.0.1 --port 8766 --state /var/lib/luxos-countme
+# versions.txt = vydane verze LuxOS (deploy.sh z CHANGELOG.md), cte se znovu kazdou hodinu
+ExecStart=/opt/luxos-countme/luxos-countme --bind 127.0.0.1 --port 8766 --state /var/lib/luxos-countme --versions /opt/luxos-countme/versions.txt
 Restart=on-failure
 RestartSec=2s
 # SIGTERM: sluzba zapise rozpracovane citace a skonci (smycka ho kontroluje kazdou sekundu)
