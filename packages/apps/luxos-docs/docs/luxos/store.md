@@ -75,7 +75,7 @@ by `/usr/lib/luxos/python/luxos_app_catalog.py generate REPO_ROOT`.
   OBS Studio, Kdenlive, Audacity, Blender, Telegram, Signal, Discord, Code - OSS, …).
 - LuxOS Apps: "Apps made for LuxOS, signed by the LuxOS team." – all apps of the LuxOS app catalog.
 - Search box "Search apps" (at least 2 characters; matches name, package name and summary,
-  LuxOS apps ranked first).
+  LuxOS apps ranked first). **Ctrl+F** jumps to it; **Ctrl+W** or **Ctrl+Q** closes the window.
 - App detail: icon, name, **Get** / **Open** / **Update** button, **Remove** for installed apps (not for parts of the system), Version, Size,
   Package, screenshots, About (description: paragraphs and a bullet list of features) and Website.
 - Screenshots: a horizontal strip of thumbnails with arrow buttons; Tab/arrow keys move between them, a

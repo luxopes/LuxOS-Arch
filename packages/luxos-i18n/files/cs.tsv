@@ -5147,3 +5147,13 @@ Removing an unfinished reinstall	Odstraňuji nedokončenou přeinstalaci
 Copying accounts and settings	Kopíruji účty a nastavení
 Creating the initramfs	Vytvářím initramfs
 Generating the language failed: %s	Vygenerování jazyka selhalo: %s
+# Hodiny (luxos-clock-app)
+Reset@stopwatch	Vynulovat
+Alarms, world clock, stopwatch and timer	Budík, světový čas, stopky a minutka
+# Textovy editor: ulozeni bez opravneni
+You don’t have permission to save here. You can save a copy under another name or in another folder.	Sem nemáte oprávnění ukládat. Kopii můžete uložit pod jiným názvem nebo do jiné složky.
+# Kratke nazvy aplikaci (luxos-apps-sync, rename.conf)
+Archive Manager	Správce archivů
+Files Settings	Nastavení souborů
+Windows - Advanced	Okna - pokročilé
+Web Browser	Webový prohlížeč

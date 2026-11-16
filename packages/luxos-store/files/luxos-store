@@ -30,6 +30,14 @@ gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("AppStream", "1.0")
 from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
 
+# GLib 2.86+: DesktopAppInfo je v GioUnix (Gio.DesktopAppInfo pri kazdem pouziti varuje na stderr)
+try:
+    gi.require_version("GioUnix", "2.0")
+    from gi.repository import GioUnix  # noqa: E402
+    DesktopAppInfo = GioUnix.DesktopAppInfo
+except (ValueError, ImportError):
+    DesktopAppInfo = Gio.DesktopAppInfo
+
 HELPER = "/usr/lib/luxos/luxos-store-helper"
 LUX_DB = "/var/lib/lux/installed"
 # Nastroje jadra lux (lux-engine, lux-engine-conf) jsou mimo PATH. Dostanou je jen spoustene nastroje
@@ -608,7 +616,7 @@ ACTION_LABELS = {"open": lambda: _("Open"), "get": lambda: _("Get"), "update": l
 
 def desktop_installed(desktop_id):
     try:
-        return Gio.DesktopAppInfo.new(desktop_id) is not None
+        return DesktopAppInfo.new(desktop_id) is not None
     except TypeError:
         return False
 
@@ -1221,7 +1229,12 @@ class Store(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("LuxOS Store"))
         self.set_default_size(1080, 720)
-        self.set_icon_name("luxos-store")
+        try:
+            from luxos_wm_icon import set_window_icons
+            set_window_icons(self, "luxos-store")    # ostra ikona 16-256 px (Dock, Alt+Tab)
+        except ImportError:
+            self.set_icon_name("luxos-store")
+        self.connect("key-press-event", self.on_window_key)
         self.catalog = Catalog()
         self.busy = {}
         self.cards = []
@@ -1647,6 +1660,19 @@ class Store(Gtk.Window):
         threading.Thread(target=lambda: GLib.idle_add(show, self.catalog.flathub_size(app.pkg)), daemon=True).start()
         return note
 
+    def on_window_key(self, _w, ev):
+        """Ctrl+F hledani, Ctrl+W / Ctrl+Q zavre okno (jako ostatni aplikace LuxOS)."""
+        if not ev.state & Gdk.ModifierType.CONTROL_MASK:
+            return False
+        key = Gdk.keyval_to_lower(ev.keyval)
+        if key == Gdk.KEY_f:
+            self.search.grab_focus()
+            return True
+        if key in (Gdk.KEY_w, Gdk.KEY_q):
+            self.close()
+            return True
+        return False
+
     # ---- akce ----
     def primary_action(self, app):
         if self.app_state(app) == "update":
@@ -1654,7 +1680,7 @@ class Store(Gtk.Window):
             return
         if app.pkg in self.catalog.installed:
             try:
-                info = Gio.DesktopAppInfo.new(app.desktop_id())
+                info = DesktopAppInfo.new(app.desktop_id())
             except TypeError:
                 info = None
             if info:

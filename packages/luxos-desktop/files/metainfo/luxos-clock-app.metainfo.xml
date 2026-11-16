@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-clock-app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Clock</name>
+  <summary>Alarms, world clock, stopwatch and timer</summary>
+  <launchable type="desktop-id">luxos-clock-app.desktop</launchable>
+  <description>
+    <p>Alarms, the time around the world, a stopwatch and a timer in one window. Alarms ring even when the window is closed, and clicking the time in the top bar opens Clock.</p>
+    <p xml:lang="cs">Budíky, čas ve světě, stopky a minutka v jednom okně. Budíky zazvoní i se zavřeným oknem a kliknutí na čas v horní liště otevře Hodiny.</p>
+    <p xml:lang="sk">Budíky, čas vo svete, stopky a minútka v jednom okne. Budíky zazvonia aj so zatvoreným oknom a kliknutie na čas v hornej lište otvorí Hodiny.</p>
+    <p xml:lang="pl">Budziki, czas na świecie, stoper i minutnik w jednym oknie. Budziki dzwonią nawet przy zamkniętym oknie, a kliknięcie godziny na górnym pasku otwiera Zegar.</p>
+    <p xml:lang="uk">Будильники, час у світі, секундомір і таймер в одному вікні. Будильники дзвонять навіть із закритим вікном, а клік на час у верхній панелі відкриває Годинник.</p>
+    <p xml:lang="hu">Ébresztők, a világ időzónái, stopper és időzítő egy ablakban. Az ébresztők bezárt ablaknál is megszólalnak, a felső sávban az időre kattintva megnyílik az Óra.</p>
+    <p xml:lang="de">Wecker, die Uhrzeit in aller Welt, Stoppuhr und Timer in einem Fenster. Wecker klingeln auch bei geschlossenem Fenster, ein Klick auf die Uhrzeit in der oberen Leiste öffnet die Uhr.</p>
+    <p xml:lang="fr">Alarmes, l’heure dans le monde, un chronomètre et un minuteur dans une seule fenêtre. Les alarmes sonnent même fenêtre fermée, et un clic sur l’heure dans la barre du haut ouvre Horloge.</p>
+    <p xml:lang="es">Alarmas, la hora en el mundo, un cronómetro y un temporizador en una sola ventana. Las alarmas suenan aunque la ventana esté cerrada y al hacer clic en la hora de la barra superior se abre Reloj.</p>
+    <p xml:lang="it">Sveglie, l’ora nel mondo, un cronometro e un timer in un’unica finestra. Le sveglie suonano anche a finestra chiusa e un clic sull’ora nella barra in alto apre Orologio.</p>
+    <p xml:lang="pt">Alarmes, a hora no mundo, um cronômetro e um temporizador numa só janela. Os alarmes tocam mesmo com a janela fechada, e clicar na hora da barra superior abre o Relógio.</p>
+    <p xml:lang="nl">Wekkers, de tijd overal ter wereld, een stopwatch en een timer in één venster. Wekkers gaan ook af als het venster dicht is, en een klik op de tijd in de bovenbalk opent Klok.</p>
+    <p xml:lang="sv">Alarm, tiden runt om i världen, tidtagarur och timer i ett fönster. Alarmen ringer även när fönstret är stängt, och ett klick på tiden i övre fältet öppnar Klocka.</p>
+    <ul>
+      <li>Alarms once or on chosen days of the week, with snooze</li>
+      <li xml:lang="cs">Budíky jednou nebo ve vybrané dny v týdnu, s odložením</li>
+      <li xml:lang="sk">Budíky raz alebo vo vybrané dni v týždni, s odložením</li>
+      <li xml:lang="pl">Budziki jednorazowe lub w wybrane dni tygodnia, z drzemką</li>
+      <li xml:lang="uk">Будильники один раз або у вибрані дні тижня, з відкладенням</li>
+      <li xml:lang="hu">Egyszeri vagy a hét kiválasztott napjain szóló ébresztők szundival</li>
+      <li xml:lang="de">Wecker einmalig oder an gewählten Wochentagen, mit Schlummerfunktion</li>
+      <li xml:lang="fr">Alarmes ponctuelles ou certains jours de la semaine, avec répétition</li>
+      <li xml:lang="es">Alarmas una vez o en los días de la semana elegidos, con posponer</li>
+      <li xml:lang="it">Sveglie una tantum o nei giorni della settimana scelti, con posticipo</li>
+      <li xml:lang="pt">Alarmes uma vez ou nos dias da semana escolhidos, com soneca</li>
+      <li xml:lang="nl">Wekkers eenmalig of op gekozen weekdagen, met snooze</li>
+      <li xml:lang="sv">Alarm en gång eller valda veckodagar, med snooze</li>
+      <li>World clock with the time difference of each city</li>
+      <li xml:lang="cs">Světový čas s časovým rozdílem každého města</li>
+      <li xml:lang="sk">Svetový čas s časovým rozdielom každého mesta</li>
+      <li xml:lang="pl">Czas na świecie z różnicą czasu każdego miasta</li>
+      <li xml:lang="uk">Світовий час із різницею в часі для кожного міста</li>
+      <li xml:lang="hu">Világóra az egyes városok időeltolódásával</li>
+      <li xml:lang="de">Weltuhr mit der Zeitverschiebung jeder Stadt</li>
+      <li xml:lang="fr">Horloge mondiale avec le décalage horaire de chaque ville</li>
+      <li xml:lang="es">Reloj mundial con la diferencia horaria de cada ciudad</li>
+      <li xml:lang="it">Orologio mondiale con la differenza di orario di ogni città</li>
+      <li xml:lang="pt">Relógio mundial com a diferença de horário de cada cidade</li>
+      <li xml:lang="nl">Wereldklok met het tijdsverschil van elke stad</li>
+      <li xml:lang="sv">Världsklocka med tidsskillnaden för varje stad</li>
+      <li>Stopwatch with lap times</li>
+      <li xml:lang="cs">Stopky s mezičasy</li>
+      <li xml:lang="sk">Stopky s medzičasmi</li>
+      <li xml:lang="pl">Stoper z międzyczasami</li>
+      <li xml:lang="uk">Секундомір із проміжним часом</li>
+      <li xml:lang="hu">Stopper részidőkkel</li>
+      <li xml:lang="de">Stoppuhr mit Rundenzeiten</li>
+      <li xml:lang="fr">Chronomètre avec temps intermédiaires</li>
+      <li xml:lang="es">Cronómetro con tiempos por vuelta</li>
+      <li xml:lang="it">Cronometro con tempi parziali</li>
+      <li xml:lang="pt">Cronômetro com tempos de volta</li>
+      <li xml:lang="nl">Stopwatch met rondetijden</li>
+      <li xml:lang="sv">Tidtagarur med varvtider</li>
+      <li>Timer with quick choices from 1 to 30 minutes</li>
+      <li xml:lang="cs">Minutka s rychlou volbou od 1 do 30 minut</li>
+      <li xml:lang="sk">Minútka s rýchlou voľbou od 1 do 30 minút</li>
+      <li xml:lang="pl">Minutnik z szybkim wyborem od 1 do 30 minut</li>
+      <li xml:lang="uk">Таймер зі швидким вибором від 1 до 30 хвилин</li>
+      <li xml:lang="hu">Időzítő gyors választással 1 és 30 perc között</li>
+      <li xml:lang="de">Timer mit Schnellauswahl von 1 bis 30 Minuten</li>
+      <li xml:lang="fr">Minuteur avec choix rapide de 1 à 30 minutes</li>
+      <li xml:lang="es">Temporizador con elección rápida de 1 a 30 minutos</li>
+      <li xml:lang="it">Timer con scelta rapida da 1 a 30 minuti</li>
+      <li xml:lang="pt">Temporizador com escolha rápida de 1 a 30 minutos</li>
+      <li xml:lang="nl">Timer met snelkeuze van 1 tot 30 minuten</li>
+      <li xml:lang="sv">Timer med snabbval från 1 till 30 minuter</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>

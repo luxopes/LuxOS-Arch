@@ -688,6 +688,8 @@ static void update_tab_label(Doc *d)
     gboolean mod = gtk_text_buffer_get_modified(GTK_TEXT_BUFFER(d->buf));
     char *t = mod ? g_strconcat("• ", name, NULL) : g_strdup(name);
     gtk_label_set_text(GTK_LABEL(d->tab_label), t);
+    /* posuvne karty dostanou jen minimum - bez sirky v znacich by z nazvu zbylo jen "..." */
+    gtk_label_set_width_chars(GTK_LABEL(d->tab_label), MIN((int)g_utf8_strlen(t, -1), 16));
     gtk_widget_set_tooltip_text(d->tab_label, d->path ? d->path : name);
     g_free(t);
     g_free(name);
@@ -1136,12 +1138,26 @@ static gboolean save_doc(Doc *d, gboolean as)
     if (!ok) {
         char *base = g_path_get_basename(path);
         char *msg = g_strdup_printf(T("Could not save “%s”."), base);
-        message(d->win->win, msg, err->message);
+        gboolean denied = g_error_matches(err, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED) ||
+                          g_error_matches(err, G_IO_ERROR, G_IO_ERROR_READ_ONLY);
+        gboolean save_as = FALSE;
+        if (denied) {
+            /* soubor jen pro cteni / cizi slozka: rovnou nabidnout ulozeni kopie (jinak by zmeny nesly ulozit
+             * ani pri zavirani okna) */
+            GtkWidget *m = gtk_message_dialog_new(d->win->win, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                  GTK_MESSAGE_ERROR, GTK_BUTTONS_NONE, "%s", msg);
+            gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(m), "%s",
+                T("You don’t have permission to save here. You can save a copy under another name or in another folder."));
+            gtk_dialog_add_buttons(GTK_DIALOG(m), T("Cancel"), GTK_RESPONSE_CANCEL, T("Save As…"), GTK_RESPONSE_ACCEPT, NULL);
+            gtk_dialog_set_default_response(GTK_DIALOG(m), GTK_RESPONSE_ACCEPT);
+            save_as = gtk_dialog_run(GTK_DIALOG(m)) == GTK_RESPONSE_ACCEPT;
+            gtk_widget_destroy(m);
+        } else message(d->win->win, msg, err->message);
         g_free(msg);
         g_free(base);
         g_error_free(err);
         g_free(path);
-        return FALSE;
+        return save_as ? save_doc(d, TRUE) : FALSE;
     }
     gboolean renamed = g_strcmp0(d->path, path) != 0;
     g_free(d->path);

@@ -48,6 +48,8 @@ luxos-weather --json forecast --latitude 50.088 --longitude 14.4208 --name Praha
 - On the first start, Weather adds the city of the computer's time zone (for example
   `Europe/Prague` → Praha). This is a city search, not a location service.
 - Remove a place with right-click on it in the sidebar, or with **⋯ › Remove Location**.
+- Keyboard: **Ctrl+F** or **Ctrl+N** opens the city search, **Ctrl+R** refreshes, **Ctrl+W** or
+  **Ctrl+Q** closes the window.
 
 ## Units
 

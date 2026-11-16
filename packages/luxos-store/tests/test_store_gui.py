@@ -557,6 +557,28 @@ class StoreGui(unittest.TestCase):
         self.assertFalse([w for w in Gtk.Window.list_toplevels() if isinstance(w, store.ScreenshotViewer)
                           and w.get_visible()])
 
+    def test_10b_window_shortcuts(self):
+        # Ctrl+F hleda; Ctrl+W zavre okno jako krizek (delete-event, zablokovany - okno zustane testum)
+        ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+        ev.keyval = Gdk.KEY_f
+        ev.state = Gdk.ModifierType.CONTROL_MASK
+        self.assertTrue(self.win.on_window_key(self.win, ev))
+        pump(timeout=0.2)
+        self.assertIs(self.win.get_focus(), self.win.search)
+        closed = []
+        hid = self.win.connect("delete-event", lambda *_a: closed.append(1) or True)
+        try:
+            for key in (Gdk.KEY_w, Gdk.KEY_Q):
+                ev.keyval = key
+                self.assertTrue(self.win.on_window_key(self.win, ev))
+                pump(timeout=0.2)
+        finally:
+            self.win.disconnect(hid)
+        self.assertEqual(len(closed), 2)
+        ev.state = 0
+        ev.keyval = Gdk.KEY_w
+        self.assertFalse(self.win.on_window_key(self.win, ev))   # samotne "w" se pise do hledani
+
     def test_11_offline_screenshots_and_no_screenshots(self):
         # Mapy: snimky v katalogu, soubory nedostupne (offline) -> poznamka misto prazdnych nahledu
         self.open_detail("Maps")

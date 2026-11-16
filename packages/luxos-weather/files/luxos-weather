@@ -86,7 +86,9 @@ _PIX = {}
 
 def weather_image(name, size):
     """Ikona pocasi ze SVG (ostra i pri HiDPI: Cairo surface s meritkem okna)."""
-    scale = max(1, Gdk.Screen.get_default().get_monitor_scale_factor(0) if Gdk.Screen.get_default() else 1)
+    display = Gdk.Display.get_default()
+    monitor = display.get_monitor(0) if display else None
+    scale = max(1, monitor.get_scale_factor() if monitor else 1)
     key = (name, size, scale)
     pix = _PIX.get(key)
     if pix is None:
@@ -328,7 +330,12 @@ class WeatherWindow(Gtk.Window):
         super().__init__(title=_("Weather"))
         self.set_default_size(900, 680)
         self.set_size_request(640, 480)
-        self.set_icon_name(APP)
+        try:
+            from luxos_wm_icon import set_window_icons
+            set_window_icons(self, APP)      # ostra ikona 16-256 px (Dock, Alt+Tab)
+        except ImportError:
+            self.set_icon_name(APP)
+        self.connect("key-press-event", self.on_window_key)
         self.cfg = lw.load_config()
         self.results = {}           # index mista -> vysledek lw.forecast
         self.loading = set()
@@ -783,6 +790,23 @@ class WeatherWindow(Gtk.Window):
         self.units_banner.set_reveal_child(False)
 
     # ---- data ----
+    def on_window_key(self, _w, ev):
+        """Ctrl+F / Ctrl+N pridat misto, Ctrl+R obnovit, Ctrl+W / Ctrl+Q zavrit (jako ostatni aplikace)."""
+        if not ev.state & Gdk.ModifierType.CONTROL_MASK:
+            return False
+        key = Gdk.keyval_to_lower(ev.keyval)
+        if key in (Gdk.KEY_f, Gdk.KEY_n):
+            self.add_btn.set_active(True)
+            return True
+        if key == Gdk.KEY_r:
+            if self.refresh_btn.get_sensitive():
+                self.refresh_selected(force=True)
+            return True
+        if key in (Gdk.KEY_w, Gdk.KEY_q):
+            self.close()
+            return True
+        return False
+
     def refresh_all(self):
         """Nejdriv data z mezipameti (okamzite, i bez site), pak zastarala stahnout."""
         units = self.units()

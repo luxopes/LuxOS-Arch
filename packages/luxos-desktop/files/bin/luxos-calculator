@@ -397,6 +397,10 @@ class Calculator(Gtk.Window):
 
     def equals(self):
         if not self.tokens:
+            if self.entry:                 # samotne cislo + "=": dalsi cislice zacne nove cislo
+                self.result = Decimal(self.entry)
+                self.entry, self.fresh = "", False
+                self.refresh()
             return
         if self.entry:
             self.push_entry()
@@ -570,10 +574,14 @@ class Calculator(Gtk.Window):
             text = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text() or ""
             text = text.strip().replace(GROUP, "").replace(" ", "").replace(DEC, ".")
             try:
-                Decimal(text)
+                value = Decimal(text)
             except InvalidOperation:
                 return True
-            self.entry, self.fresh = text, False
+            if not value.is_finite():      # "NaN", "Infinity" nejsou cisla pro kalkulacku
+                return True
+            # 1e5 -> 100000; delsi cislo nez displej se ukaze zaokrouhlene (jako vysledek funkce)
+            self.entry = format(value, "f")
+            self.fresh = len(self.entry.lstrip("-").replace(".", "").lstrip("0")) > MAX_DIGITS
             self.refresh()
         elif ch.isdigit():
             self.digit(ch)

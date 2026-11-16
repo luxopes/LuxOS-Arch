@@ -18,6 +18,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "..", "files")
 SYNC = os.path.join(FILES, "apps", "luxos-apps-sync")
 UNITS = os.path.join(FILES, "apps")
+I18N = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
+LANGS = ("cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv")
 
 
 def desktop(name, extra=""):
@@ -39,7 +41,8 @@ class AppsSyncTest(unittest.TestCase):
             f.write("# test\nthunar|Files|Soubory|luxos-files\nmissing-app|X|X|\n")
         self.env = dict(os.environ, LUXOS_APPS_RENAME_CONF=self.conf, LUXOS_APPS_SOURCE=self.apps,
                         LUXOS_APPS_DIR=self.base, LUXOS_APPS_FLATPAK_EXPORTS=self.exports,
-                        LUXOS_APPS_GPU="/nonexistent")   # grafika her: test_luxos_gpu.py
+                        LUXOS_APPS_GPU="/nonexistent",   # grafika her: test_luxos_gpu.py
+                        LUXOS_I18N_DIR=I18N)
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -92,6 +95,32 @@ class AppsSyncTest(unittest.TestCase):
         self.assertEqual(cp["Desktop Entry"]["Name[cs]"], "Soubory")
         self.assertEqual(cp["Desktop Entry"]["Icon"], "luxos-files")
         self.assertFalse(os.path.islink(self.out("thunar.desktop")))
+
+    def test_renamed_apps_in_every_language(self):
+        """Kratky nazev i v ostatnich jazycich LuxOS (z luxos-i18n), ne anglicky ani puvodni "Thunar"."""
+        with open(os.path.join(self.apps, "thunar.desktop"), "a") as f:
+            f.write("Name[de]=Thunar Dateiverwaltung\nName[uk]=Thunar\n")
+        self.sync()
+        cp = configparser.ConfigParser(interpolation=None, strict=False)
+        cp.optionxform = str
+        cp.read(self.out("thunar.desktop"))
+        entry = cp["Desktop Entry"]
+        self.assertEqual(entry["Name[de]"], "Dateien")
+        self.assertEqual(entry["Name[uk]"], "Файли")
+        self.assertEqual(entry["Name[cs]"], "Soubory")          # z rename.conf
+        with open(self.out("thunar.desktop"), encoding="utf-8") as f:
+            self.assertEqual(f.read().count("Name[de]="), 1)
+
+    def test_every_rename_name_is_translated(self):
+        tables = {}
+        for lang in LANGS:
+            with open(os.path.join(I18N, lang + ".tsv"), encoding="utf-8") as f:
+                tables[lang] = {line.split("\t", 1)[0] for line in f
+                                if "\t" in line and not line.startswith("#") and line.split("\t", 1)[1].strip()}
+        with open(os.path.join(FILES, "apps", "rename.conf"), encoding="utf-8") as f:
+            names = [line.split("|")[1] for line in f if line.strip() and not line.startswith("#")]
+        missing = [(lang, n) for n in names for lang in LANGS if n not in tables[lang]]
+        self.assertEqual(missing, [])
 
     def test_rename_removed_when_app_uninstalled(self):
         self.sync()

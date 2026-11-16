@@ -5017,3 +5017,31 @@ Removing an unfinished reinstall	Suppression d'une réinstallation inachevée
 Copying accounts and settings	Copie des comptes et des réglages
 Creating the initramfs	Création de l'initramfs
 Generating the language failed: %s	La génération de la langue a échoué : %s
+# Hodiny (luxos-clock-app)
+Alarm	Alarme
+Alarms	Alarmes
+Every day	Tous les jours
+Label	Libellé
+Lap	Tour
+Lap %s	Tour %s
+New Alarm	Nouvelle alarme
+No alarms. Add one with +.	Aucune alarme. Ajoutez-en une avec +.
+Once	Une fois
+Pause	Pause
+Snooze	Répéter
+Snoozed alarm	Alarme reportée
+Stopwatch	Chronomètre
+Time is up	Temps écoulé
+Tomorrow	Demain
+Weekdays	En semaine
+Weekends	Le week-end
+World Clock	Horloge mondiale
+Reset@stopwatch	Réinitialiser
+Alarms, world clock, stopwatch and timer	Alarmes, horloge mondiale, chronomètre et minuteur
+# Textovy editor: ulozeni bez opravneni
+You don’t have permission to save here. You can save a copy under another name or in another folder.	Vous n’avez pas l’autorisation d’enregistrer ici. Vous pouvez enregistrer une copie sous un autre nom ou dans un autre dossier.
+# Kratke nazvy aplikaci (luxos-apps-sync, rename.conf)
+Archive Manager	Gestionnaire d’archives
+Files Settings	Réglages de Fichiers
+Windows - Advanced	Fenêtres - avancé
+Web Browser	Navigateur web

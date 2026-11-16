@@ -3725,10 +3725,11 @@ class MapsWindow(Gtk.Window):
     def on_key(self, _w, ev):
         ctrl = ev.state & Gdk.ModifierType.CONTROL_MASK
         key = ev.keyval
-        if ctrl and key in (Gdk.KEY_f, Gdk.KEY_l):
+        letter = Gdk.keyval_to_lower(key)      # Ctrl+F i se zapnutym Caps Lockem (F)
+        if ctrl and letter in (Gdk.KEY_f, Gdk.KEY_l):
             self.search_entry.grab_focus()
             return True
-        if ctrl and key in (Gdk.KEY_q, Gdk.KEY_w):
+        if ctrl and letter in (Gdk.KEY_q, Gdk.KEY_w):
             self.close()
             return True
         if key == Gdk.KEY_Escape and not isinstance(self.get_focus(), Gtk.Entry):

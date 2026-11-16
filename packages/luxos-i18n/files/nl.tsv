@@ -5017,3 +5017,31 @@ Removing an unfinished reinstall	Een onvoltooide herinstallatie verwijderen
 Copying accounts and settings	Accounts en instellingen kopiëren
 Creating the initramfs	De initramfs maken
 Generating the language failed: %s	Genereren van de taal mislukt: %s
+# Hodiny (luxos-clock-app)
+Alarm	Wekker
+Alarms	Wekkers
+Every day	Elke dag
+Label	Label
+Lap	Ronde
+Lap %s	Ronde %s
+New Alarm	Nieuwe wekker
+No alarms. Add one with +.	Geen wekkers. Voeg er een toe met +.
+Once	Eenmalig
+Pause	Pauzeren
+Snooze	Snooze
+Snoozed alarm	Uitgestelde wekker
+Stopwatch	Stopwatch
+Time is up	De tijd is om
+Tomorrow	Morgen
+Weekdays	Werkdagen
+Weekends	Weekenden
+World Clock	Wereldklok
+Reset@stopwatch	Herstellen
+Alarms, world clock, stopwatch and timer	Wekkers, wereldklok, stopwatch en timer
+# Textovy editor: ulozeni bez opravneni
+You don’t have permission to save here. You can save a copy under another name or in another folder.	Je hebt geen toestemming om hier te bewaren. Je kunt een kopie onder een andere naam of in een andere map bewaren.
+# Kratke nazvy aplikaci (luxos-apps-sync, rename.conf)
+Archive Manager	Archiefbeheer
+Files Settings	Instellingen voor Bestanden
+Windows - Advanced	Vensters - geavanceerd
+Web Browser	Webbrowser
