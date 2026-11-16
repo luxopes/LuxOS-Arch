@@ -5004,3 +5004,12 @@ LuxOS (before rollback of %s)	LuxOS (przed przywróceniem %s)
 LuxOS (before reinstall of %s)	LuxOS (przed ponowną instalacją %s)
 LuxOS (snapshot of %s)	LuxOS (migawka %s)
 LuxOS (before system change of %s)	LuxOS (przed zmianą systemu %s)
+Scrolling	Przewijanie
+Smooth scrolling with the mouse wheel	Płynne przewijanie kółkiem myszy
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Strona płynnie dojeżdża do nowego miejsca zamiast przeskakiwać. Wyłączone, gdy animacje są wyłączone (oszczędzanie baterii).
+Inertia on the touchpad	Bezwładność na touchpadzie
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Po szybkim przesunięciu po touchpadzie zawartość jeszcze się przesuwa i zwalnia. Ruch wskaźnika lub kliknięcie ją zatrzymuje.
+Mouse and touchpad	Mysz i touchpad
+Mouse and touchpad settings	Ustawienia myszy i touchpada
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Szybkość wskaźnika, kierunek przewijania, przewijanie przy krawędzi lub dwoma palcami, stuknięcie jako kliknięcie.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Zmiany działają od razu, także w otwartych oknach. Firefox i Poczta przewijają płynnie same.

@@ -8,7 +8,7 @@
 
 pkgname=luxos-terminal
 pkgver=1.3.0
-pkgrel=5
+pkgrel=6
 pkgdesc="LuxOS Terminal - light GTK3/VTE terminal with tabs, light/dark profiles and SIXEL images"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -22,7 +22,7 @@ license=(GPL-3.0-or-later)
 depends=(gtk3 vte3 glib2 pango cairo gdk-pixbuf2 xdg-terminal-exec luxos-i18n luxos-branding
          ttf-jetbrains-mono-nerd)
 makedepends=(gcc pkgconf pcre2 gtk3 vte3)
-checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xdotool dbus ttf-jetbrains-mono-nerd)
+checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xdotool dbus ttf-jetbrains-mono-nerd less)
 
 build() {
     gcc $CPPFLAGS $CFLAGS $LDFLAGS -DLUXOS_TERMINAL_VERSION="\"$pkgver\"" -o luxos-terminal \

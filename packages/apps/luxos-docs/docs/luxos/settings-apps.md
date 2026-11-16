@@ -20,6 +20,7 @@ redirected to the LuxOS apps through wrappers in `/usr/lib/luxos/override-bin`:
 | Fingerprint | `luxos-fingerprint` | fingerprints for login, lock, sudo, polkit |
 | Profile Picture | `luxos-profile-picture` | the picture of your account (login and lock screen, menu, Control Center) |
 | Screen Saver & Lock | `luxos-lock-settings` | screen saver, when to ask for the password |
+| Scrolling | `luxos-scrolling` | smooth mouse wheel, touchpad inertia ([scrolling.md](scrolling.md)) |
 | Control Center | `luxos-control-center` | quick toggles ([desktop.md](desktop.md#control-center)) |
 | Printers & Scanners | `luxos-printers` | [printing-scanning.md](printing-scanning.md) |
 | LuxAI Account | `luxos-account` | [luxai-account.md](luxai-account.md) |

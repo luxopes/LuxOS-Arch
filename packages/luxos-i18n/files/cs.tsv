@@ -5133,3 +5133,12 @@ LuxOS (before rollback of %s)	LuxOS (před návratem %s)
 LuxOS (before reinstall of %s)	LuxOS (před přeinstalací %s)
 LuxOS (snapshot of %s)	LuxOS (snímek %s)
 LuxOS (before system change of %s)	LuxOS (před změnou systému %s)
+Scrolling	Posouvání
+Smooth scrolling with the mouse wheel	Plynulé posouvání kolečkem myši
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Stránka dojede na nové místo plynule, místo aby skočila. Při vypnutých animacích (úspora baterie) se nepoužije.
+Inertia on the touchpad	Setrvačnost na touchpadu
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Po rychlém tahu po touchpadu obsah ještě chvíli jede a zpomaluje. Pohyb ukazatele nebo kliknutí ho zastaví.
+Mouse and touchpad	Myš a touchpad
+Mouse and touchpad settings	Nastavení myši a touchpadu
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Rychlost ukazatele, směr posouvání, posouvání u okraje nebo dvěma prsty, klepnutí jako kliknutí.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Změny platí hned, i v otevřených oknech. Firefox a Pošta posouvají plynule samy.

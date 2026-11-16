@@ -533,6 +533,32 @@
           ]
         },
         {
+          "path": "luxos/scrolling.md",
+          "title": "Scrolling, Mouse and Touchpad",
+          "summary": "Touchpad inertia (kinetic scrolling) and smooth mouse-wheel scrolling in GTK 3 apps, Terminal, Firefox and Mail; Settings › Scrolling (luxos-scrolling), scrolling.conf, the luxos-scroll GTK module, MOZ_USE_XINPUT2, touchpad driver settings and troubleshooting.",
+          "keywords": [
+            "scrolling",
+            "smooth scrolling",
+            "kinetic scrolling",
+            "inertia",
+            "momentum",
+            "touchpad",
+            "mouse wheel",
+            "luxos-scrolling",
+            "luxos-scroll",
+            "scrolling.conf",
+            "Gtk/Modules",
+            "MOZ_USE_XINPUT2",
+            "libinput",
+            "edge scrolling",
+            "two-finger scrolling",
+            "natural scrolling",
+            "xfce4-mouse-settings",
+            "terminal scrolling",
+            "firefox"
+          ]
+        },
+        {
           "path": "luxos/bar-widgets.md",
           "title": "Top bar options and desktop widgets",
           "summary": "luxos-bar plugin (opaque bar under maximized and full-screen windows, clock in the middle, rounded bottom corners, white text) and desktop widgets luxos-widgets (time and weather, month, CPU/memory/storage, music).",

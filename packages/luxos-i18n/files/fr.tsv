@@ -5003,3 +5003,12 @@ LuxOS (before rollback of %s)	LuxOS (avant la restauration du %s)
 LuxOS (before reinstall of %s)	LuxOS (avant la réinstallation du %s)
 LuxOS (snapshot of %s)	LuxOS (instantané du %s)
 LuxOS (before system change of %s)	LuxOS (avant la modification du système du %s)
+Scrolling	Défilement
+Smooth scrolling with the mouse wheel	Défilement fluide à la molette
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	La page glisse vers sa nouvelle position au lieu de sauter. Désactivé quand les animations sont désactivées (économie de batterie).
+Inertia on the touchpad	Inertie sur le pavé tactile
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Après un glissement rapide sur le pavé tactile, le contenu continue puis ralentit. Bouger le pointeur ou cliquer l’arrête.
+Mouse and touchpad	Souris et pavé tactile
+Mouse and touchpad settings	Réglages de la souris et du pavé tactile
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Vitesse du pointeur, sens du défilement, défilement sur le bord ou à deux doigts, toucher pour cliquer.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Les changements s’appliquent tout de suite, aussi dans les fenêtres ouvertes. Firefox et Mail défilent seuls en douceur.

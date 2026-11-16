@@ -302,6 +302,7 @@ Displays app. Details: [settings-apps.md](settings-apps.md#displays).
 `/etc/X11/xorg.conf.d/30-luxos-touchpad.conf` (libinput) sets: tap to click, two-finger tap for the
 right button, tap-and-drag, scrolling by dragging along the right (and bottom) edge, click-finger
 method, touchpad off while typing, and adaptive acceleration.
+Inertia, smooth wheel: [scrolling.md](scrolling.md).
 
 ## Keyboard shortcuts
 

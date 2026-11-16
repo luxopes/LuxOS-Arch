@@ -5003,3 +5003,12 @@ LuxOS (before rollback of %s)	LuxOS (antes do restauro de %s)
 LuxOS (before reinstall of %s)	LuxOS (antes da reinstalação de %s)
 LuxOS (snapshot of %s)	LuxOS (instantâneo de %s)
 LuxOS (before system change of %s)	LuxOS (antes da alteração do sistema de %s)
+Scrolling	Deslocamento
+Smooth scrolling with the mouse wheel	Deslocamento suave com a roda do rato
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	A página desliza para a nova posição em vez de saltar. Desligado enquanto as animações estão desligadas (poupança de bateria).
+Inertia on the touchpad	Inércia no touchpad
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Depois de um gesto rápido no touchpad, o conteúdo continua a mover-se e abranda. Mover o ponteiro ou clicar para-o.
+Mouse and touchpad	Rato e touchpad
+Mouse and touchpad settings	Definições do rato e do touchpad
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocidade do ponteiro, direção do deslocamento, deslocamento na margem ou com dois dedos, tocar para clicar.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	As alterações aplicam-se de imediato, também nas janelas abertas. O Firefox e o Correio deslocam-se suavemente sozinhos.

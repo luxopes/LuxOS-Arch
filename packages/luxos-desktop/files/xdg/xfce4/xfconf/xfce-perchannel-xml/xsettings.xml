@@ -22,5 +22,7 @@
     <property name="DialogsUseHeader" type="bool" value="false"/>
     <property name="MenuImages" type="bool" value="false"/>
     <property name="ButtonImages" type="bool" value="false"/>
+    <!-- plynule kolecko a setrvacnost touchpadu v aplikacich GTK 3 (luxos-scroll, luxos-scrolling) -->
+    <property name="Modules" type="string" value="luxos-scroll"/>
   </property>
 </channel>

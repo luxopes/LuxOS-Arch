@@ -5041,3 +5041,12 @@ LuxOS (before rollback of %s)	LuxOS (vor der Wiederherstellung vom %s)
 LuxOS (before reinstall of %s)	LuxOS (vor der Neuinstallation vom %s)
 LuxOS (snapshot of %s)	LuxOS (Snapshot vom %s)
 LuxOS (before system change of %s)	LuxOS (vor der Systemänderung vom %s)
+Scrolling	Scrollen
+Smooth scrolling with the mouse wheel	Sanftes Scrollen mit dem Mausrad
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Die Seite gleitet zur neuen Position, statt zu springen. Aus, solange Animationen aus sind (Akkusparmodus).
+Inertia on the touchpad	Trägheit auf dem Touchpad
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Nach einem schnellen Wisch auf dem Touchpad läuft der Inhalt weiter und wird langsamer. Zeigerbewegung oder Klick stoppt ihn.
+Mouse and touchpad	Maus und Touchpad
+Mouse and touchpad settings	Maus- und Touchpad-Einstellungen
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Zeigergeschwindigkeit, Scrollrichtung, Scrollen am Rand oder mit zwei Fingern, Tippen zum Klicken.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Änderungen gelten sofort, auch in geöffneten Fenstern. Firefox und Mail scrollen selbst sanft.

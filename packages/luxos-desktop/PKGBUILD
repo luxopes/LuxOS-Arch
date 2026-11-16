@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=69
+pkgrel=70
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -119,8 +119,12 @@ build() {
     # Plugin horni listy (v procesu panelu): hodiny uprostred listy a neprusvitna lista pod okny
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-bar.so "$startdir/files/src/luxos-bar.c" \
         $(pkg-config --cflags --libs libxfce4panel-2.0 libwnck-3.0 libxfconf-0 gtk+-3.0) -lm
+    # Plynule kolecko a setrvacnost touchpadu v aplikacich GTK 3 (xsettings Gtk/Modules, files/src/luxos-scroll.c)
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-scroll.so "$startdir/files/src/luxos-scroll.c" \
+        $(pkg-config --cflags --libs gtk+-3.0 xi x11) -lm
     strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
-    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-bar.so
+    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-bar.so \
+        libluxos-scroll.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
     # hodiny kazde 3 s, baterie kazdych 20 s, nazev aplikace pri kazdem prepnuti okna, prepinace
@@ -150,6 +154,8 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-widgets.lsl" luxos-widgets
     # Hodiny (budik, svetovy cas, stopky, minutka); budiky hlida na pozadi (--background)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-clock-app.lsl" luxos-clock-app
+    # Nastaveni > Posouvani (plynule kolecko, setrvacnost touchpadu; ~/.config/luxos/scrolling.conf)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-scrolling.lsl" luxos-scrolling
     rm -rf cldr-ann cldr-der emoji-data
     mkdir -p cldr-ann cldr-der
     tar -xzf "cldr-annotations-full-$_cldr.tgz" -C cldr-ann
@@ -170,7 +176,7 @@ package() {
 
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app
+        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
     install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"
@@ -266,15 +272,18 @@ package() {
     install -Dm644 "$f/lightdm/50-luxos.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/50-luxos.conf"
     # Prechod po prihlaseni: posledni snimek prihlaseni zakryje skladani plochy (luxos-session-cover --login)
     install -Dm755 "$f/xinit/60-luxos-login-cover.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh"
+    # Firefox s XInput2: touchpad jako gesto posunu se setrvacnosti (MOZ_USE_XINPUT2=1 v relaci)
+    install -Dm755 "$f/xinit/50-luxos-firefox-xinput2.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/50-luxos-firefox-xinput2.sh"
     install -Dm755 -t "$pkgdir/usr/lib/luxos/lightdm" "$f/lightdm/luxos-greeter-setup" "$f/lightdm/luxos-session-setup" \
         "$f/lightdm/luxos-greeter-wrapper"
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
+    install -Dm755 libluxos-scroll.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-scroll.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
 
-    # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti
+    # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti, plynule posouvani
     install -Dm644 "$f/firefox/luxos.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos.js"
 
     install -Dm644 "$f/networkmanager/30-luxos-connectivity.conf" \

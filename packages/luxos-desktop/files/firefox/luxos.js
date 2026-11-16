@@ -8,4 +8,10 @@ pref("browser.tabs.unloadOnLowMemory", true);
 pref("browser.sessionstore.interval", 60000);
 // Prekryvne posuvniky a plynule posouvani jako v macOS
 pref("widget.gtk.overlay-scrollbars.enabled", true);
+pref("general.smoothScroll", true);
 pref("general.smoothScroll.msdPhysics.enabled", true);
+// Touchpad po pixelech se setrvacnosti po zvednuti prstu: gesto posunu z XInput2 (MOZ_USE_XINPUT2=1 nastavuje
+// /etc/X11/xinit/xinitrc.d/50-luxos-firefox-xinput2.sh), konec gesta posila xf86-input-libinput po zvednuti
+// prstu; vypnuti v Nastaveni > Posouvani resi modul luxos-scroll (konec gesta prijde pozdeji, rychlost 0)
+pref("apz.gtk.pangesture.enabled", true);
+pref("apz.gtk.kinetic_scroll.enabled", true);

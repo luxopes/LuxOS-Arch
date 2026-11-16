@@ -1067,6 +1067,11 @@ static void new_tab(Win *w, Spawn *s)
     vte_terminal_set_scroll_on_output(term, FALSE);
     vte_terminal_set_mouse_autohide(term, TRUE);
     vte_terminal_set_bold_is_bright(term, FALSE);
+    /* Posouvani historie po pixelech pres GtkScrolledWindow (jako GNOME Console): touchpad plynule
+     * a se setrvacnosti, kolecko plynule (modul luxos-scroll). Aplikace s mysi (htop, mc) a less/man
+     * na alternativni obrazovce dostavaji posun od VTE jako dosud. */
+    vte_terminal_set_scroll_unit_is_pixels(term, TRUE);
+    vte_terminal_set_enable_fallback_scrolling(term, FALSE);
     if (sixel_available && cfg.sixel) vte_terminal_set_enable_sixel(term, TRUE);
     if (url_regex) {
         url_tag = vte_terminal_match_add_regex(term, url_regex, 0);

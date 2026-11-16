@@ -5003,3 +5003,12 @@ LuxOS (before rollback of %s)	LuxOS (visszaállítás előtt, %s)
 LuxOS (before reinstall of %s)	LuxOS (újratelepítés előtt, %s)
 LuxOS (snapshot of %s)	LuxOS (pillanatkép, %s)
 LuxOS (before system change of %s)	LuxOS (rendszermódosítás előtt, %s)
+Scrolling	Görgetés
+Smooth scrolling with the mouse wheel	Sima görgetés az egérgörgővel
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Az oldal ugrás helyett simán siklik az új helyre. Kikapcsolt animációk esetén (energiatakarékos mód) nem működik.
+Inertia on the touchpad	Tehetetlenség az érintőpadon
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Egy gyors húzás után a tartalom még mozog és lassul. A mutató mozgatása vagy egy kattintás megállítja.
+Mouse and touchpad	Egér és érintőpad
+Mouse and touchpad settings	Egér és érintőpad beállításai
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Mutatósebesség, görgetési irány, görgetés a szélén vagy két ujjal, koppintás kattintásként.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	A változások azonnal érvényesek, a nyitott ablakokban is. A Firefox és a Levelezés maguktól simán görgetnek.

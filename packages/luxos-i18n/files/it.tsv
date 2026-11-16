@@ -5003,3 +5003,12 @@ LuxOS (before rollback of %s)	LuxOS (prima del ripristino del %s)
 LuxOS (before reinstall of %s)	LuxOS (prima della reinstallazione del %s)
 LuxOS (snapshot of %s)	LuxOS (snapshot del %s)
 LuxOS (before system change of %s)	LuxOS (prima della modifica di sistema del %s)
+Scrolling	Scorrimento
+Smooth scrolling with the mouse wheel	Scorrimento fluido con la rotellina del mouse
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	La pagina scivola nella nuova posizione invece di saltare. Disattivato quando le animazioni sono disattivate (risparmio batteria).
+Inertia on the touchpad	Inerzia sul touchpad
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Dopo uno scorrimento rapido sul touchpad il contenuto continua a muoversi e rallenta. Muovere il puntatore o fare clic lo ferma.
+Mouse and touchpad	Mouse e touchpad
+Mouse and touchpad settings	Impostazioni di mouse e touchpad
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocità del puntatore, direzione di scorrimento, scorrimento sul bordo o con due dita, tocco per fare clic.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Le modifiche valgono subito, anche nelle finestre aperte. Firefox e Posta scorrono fluidi da soli.
