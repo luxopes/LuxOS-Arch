@@ -167,6 +167,23 @@ if [[ ! -e $cfg/alttab-previews ]]; then
     : >"$cfg/alttab-previews"
 fi
 
+# Posun ploch (xfwm4 z [luxos]): delka 280 ms z prvni verze -> nova vychozi 420 ms (jednou). Jen kdyz
+# ma profil v xfconf porad starou vychozi hodnotu; profily bez vlastni hodnoty berou /etc/xdg.
+if [[ ! -e $cfg/workspace-slide-420 ]] && xfconf-query -c xfwm4 -l >/dev/null 2>&1; then
+    if [[ $(xfconf-query -c xfwm4 -p /general/workspace_slide_duration 2>/dev/null) == 280 ]]; then
+        xfconf-query -c xfwm4 -p /general/workspace_slide_duration -s 420 2>/dev/null
+    fi
+    : >"$cfg/workspace-slide-420"
+fi
+# Aktivace okna na jine plose: "bring" (vychozi xfwm4, zapsane do profilu) presouvalo okno aplikace
+# z jine plochy na aktualni - nove se prepne na jeho plochu (jednou; vlastni volbu "none" nemeni)
+if [[ ! -e $cfg/activate-switch ]] && xfconf-query -c xfwm4 -l >/dev/null 2>&1; then
+    if [[ $(xfconf-query -c xfwm4 -p /general/activate_action 2>/dev/null) == bring ]]; then
+        xfconf-query -c xfwm4 -p /general/activate_action -s switch 2>/dev/null
+    fi
+    : >"$cfg/activate-switch"
+fi
+
 # Nove okno na volne misto, jinak kaskadou od posledniho okna stejne aplikace (xfwm4 z [luxos], jednou):
 # jen kdyz ma profil v xfconf porad puvodni vychozi hodnotu LuxOS (center a placement_ratio 50) -
 # vlastni volbu uzivatele nemeni. Profily bez vlastni hodnoty berou novou vychozi z /etc/xdg.

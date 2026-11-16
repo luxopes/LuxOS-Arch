@@ -1,14 +1,34 @@
 --- a/defaults/defaults
 +++ b/defaults/defaults
+@@ -1,4 +1,4 @@
+-activate_action=bring
++activate_action=switch
+ borderless_maximize=true
+ box_move=false
+ box_resize=false
 @@ -72,6 +72,8 @@
  use_compositing=true
  vblank_mode=auto
  workspace_count=4
 +workspace_slide=true
-+workspace_slide_duration=280
++workspace_slide_duration=420
  wrap_cycle=true
  wrap_layout=true
  wrap_resistance=10
+--- a/src/client.c
++++ b/src/client.c
+@@ -971,7 +971,10 @@
+         last_raised = clientGetLastRaise (screen_info);
+         if (last_raised && (c != last_raised))
+         {
+-            if ((screen_info->params->prevent_focus_stealing) && (screen_info->params->activate_action == ACTIVATE_ACTION_NONE))
++            /* LuxOS: okno na jine plose, ktere se samo vytahne nahoru (XRaiseWindow), uz se nepresune
++             * na aktualni plochu (activate_action "bring") ani neprepne plochu - jen pozada o pozornost */
++            if (((screen_info->params->prevent_focus_stealing) && (screen_info->params->activate_action == ACTIVATE_ACTION_NONE)) ||
++                ((c->win_workspace != screen_info->current_ws) && !FLAG_TEST (c->flags, CLIENT_FLAG_STICKY)))
+             {
+                 mask &= ~(CWSibling | CWStackMode);
+                 TRACE ("setting WM_STATE_DEMANDS_ATTENTION flag on \"%s\" (0x%lx)", c->name, c->window);
 --- a/src/compositor.c
 +++ b/src/compositor.c
 @@ -34,6 +34,7 @@
@@ -30,7 +50,7 @@
  };
  
  static CWindow*
-@@ -2377,6 +2382,493 @@
+@@ -2377,6 +2382,659 @@
      XFixesDestroyRegion (display_info->dpy, opaque_region);
  }
  
@@ -55,20 +75,122 @@
 +
 +static void damage_screen (ScreenInfo *screen_info);
 +
-+static gdouble
-+slide_camera (ScreenInfo *screen_info, gint64 now, gboolean *finished)
-+{
-+    gdouble t, p;
++/* Pod tuto rychlost (px za snimek) se obsah posouva o zlomky pixelu (bilinearne) - pomaly dojezd
++ * jinak skace po celych pixelech v nepravidelnych odstupech. */
++#define SLIDE_SUBPIXEL_MAX_STEP 6.0
 +
-+    t = (gdouble) (now - screen_info->slide_start) / (MAX (screen_info->slide_duration, 1) * 1000.0);
++/*
++ * Krivka posunu: cubic-bezier (0.25, y1, 0.25, 1) - pro nove prepnuti y1 = 0.1 (CSS "ease", jako
++ * Spaces v macOS): mirny rozjezd, plynule zrychleni a dlouhy mekky dojezd bez zastaveni naraz.
++ * Pri novem prepnuti behem animace se y1 spocita z aktualni rychlosti (sklon na zacatku krivky je
++ * 4 * y1), takze rychlost navaze bez skoku. t v <0, 1>, vraci postup a jeho derivaci podle t.
++ */
++static gdouble
++slide_curve (gdouble y1, gdouble t, gdouble *slope)
++{
++    gdouble u, x, dx, dy, lo, hi;
++    gint i;
++
++    if (t <= 0.0)
++    {
++        *slope = 4.0 * y1;
++        return 0.0;
++    }
++    if (t >= 1.0)
++    {
++        *slope = 0.0;
++        return 1.0;
++    }
++    /* x (u) = 0.75 u (1 - u) + u^3 je rostouci (x' > 0): Newton, s pojistkou puleni */
++    lo = 0.0;
++    hi = 1.0;
++    u = t;
++    for (i = 0; i < 12; i++)
++    {
++        x = 0.75 * u * (1.0 - u) + u * u * u - t;
++        if (fabs (x) < 1e-7)
++        {
++            break;
++        }
++        if (x > 0.0)
++        {
++            hi = u;
++        }
++        else
++        {
++            lo = u;
++        }
++        dx = 0.75 - 1.5 * u + 3.0 * u * u;
++        u -= x / dx;
++        if (u <= lo || u >= hi)
++        {
++            u = (lo + hi) / 2.0;
++        }
++    }
++    dx = 0.75 - 1.5 * u + 3.0 * u * u;
++    dy = 3.0 * y1 * (1.0 - u) * (1.0 - 3.0 * u) + 3.0 * u * (2.0 - 3.0 * u) + 3.0 * u * u;
++    *slope = dy / dx;
++    return 3.0 * (1.0 - u) * (1.0 - u) * u * y1 + 3.0 * (1.0 - u) * u * u + u * u * u;
++}
++
++/* Poloha kamery (a rychlost ve slotech za us) v case animace t (us od zacatku useku). */
++static gdouble
++slide_camera (ScreenInfo *screen_info, gint64 t, gboolean *finished, gdouble *velocity)
++{
++    gdouble duration, p, slope, dist;
++
++    duration = MAX (screen_info->slide_duration, 1) * 1000.0;
++    dist = screen_info->slide_cam_to - screen_info->slide_cam_from;
++    p = slide_curve (screen_info->slide_y1, t / duration, &slope);
 +    if (finished)
 +    {
-+        *finished = (t >= 1.0);
++        *finished = (t >= duration);
 +    }
-+    t = CLAMP (t, 0.0, 1.0);
-+    /* ease-out cubic */
-+    p = 1.0 - (1.0 - t) * (1.0 - t) * (1.0 - t);
-+    return screen_info->slide_cam_from + (screen_info->slide_cam_to - screen_info->slide_cam_from) * p;
++    if (velocity)
++    {
++        *velocity = dist * slope / duration;
++    }
++    return screen_info->slide_cam_from + dist * p;
++}
++
++/*
++ * Cas animace pro dalsi snimek: o jeden interval obnovy dal (s vsync je kazde vykresleni jeden
++ * zobrazeny snimek, takze kroky mezi snimky jsou stejne). Zpozdeni proti hodinam se dohani jen
++ * z poloviny na snimek - zadrhnuti neudela dvojity skok, rozlozi se do dalsich snimku. Bez vsync muze dalsi
++ * poskozeni prekreslit tentyz snimek (krok 0).
++ */
++/* Kresli se v rytmu vsync? (GLX jen s rizenim intervalu vymeny, jinak by snimky bezely naprazdno) */
++static gboolean
++slide_vsync (ScreenInfo *screen_info)
++{
++#ifdef HAVE_EPOXY
++    if (screen_info->use_glx)
++    {
++        return (screen_info->has_mesa_swap_control || screen_info->has_ext_swap_control);
++    }
++#endif /* HAVE_EPOXY */
++    return screen_info->use_present;
++}
++
++static gint64
++slide_next_frame_time (ScreenInfo *screen_info, gint64 now)
++{
++    gint64 interval, behind, advance;
++
++    interval = MAX (screen_info->slide_interval, 1000);
++    behind = (now - screen_info->slide_start) - screen_info->slide_frame_t;
++    advance = interval + (behind - interval) / 2;
++    if ((screen_info->slide_frame_t < 3 * interval) && (behind > interval))
++    {
++        /* prvni snimky: aplikace prave prekresluji nove namapovana okna - zpozdeni se odpusti
++         * (posun se o nej protahne), aby pozdeji neposkocil */
++        screen_info->slide_start += behind - interval;
++        advance = interval;
++    }
++    /* s vsync aspon 3/4 intervalu (snimky dopredu ve fronte GPU se zobrazi po jednom), bez nej
++     * i 0; kdyz vymena bufferu neceka na vsync, drzi krok realny cas */
++    advance = CLAMP (advance, slide_vsync (screen_info) ? interval * 3 / 4 : 0, 3 * interval);
++    return screen_info->slide_frame_t + advance;
 +}
 +
 +static void
@@ -161,11 +283,48 @@
 +    return (FLAG_TEST (c->flags, CLIENT_FLAG_STICKY) || (c->type & (WINDOW_DESKTOP | WINDOW_DOCK)));
 +}
 +
-+/* Posun obsahu slotu na monitoru o sirce width, kdyz je kamera na cam. */
-+static gint
++/* Posun obsahu slotu na monitoru o sirce width, kdyz je kamera na cam (px, i zlomky). */
++static gdouble
 +slide_offset (gdouble slot, gdouble cam, gint width)
 +{
-+    return (gint) lround ((slot - cam) * width);
++    return (slot - cam) * width;
++}
++
++/* Rozdeli posun na cele pixely a zbytek; zlomky jen pri pomalem posunu (jinak jsou zbytecne). */
++static gint
++slide_split (ScreenInfo *screen_info, gdouble dx, gint width, gdouble *frac)
++{
++    gint n;
++
++    if (fabs (screen_info->slide_step) * width < SLIDE_SUBPIXEL_MAX_STEP)
++    {
++        n = (gint) floor (dx);
++        *frac = dx - n;
++        if (*frac < 0.02)
++        {
++            *frac = 0.0;
++        }
++        else if (*frac > 0.98)
++        {
++            *frac = 0.0;
++            n++;
++        }
++        return n;
++    }
++    *frac = 0.0;
++    return (gint) lround (dx);
++}
++
++/* Obraz pict posunuty o frac px doprava (bilinearne), nebo bez posunu pro frac = 0. */
++static void
++slide_set_frac (Display *dpy, Picture pict, gdouble frac)
++{
++    XTransform xf = {{{ XDoubleToFixed (1.0), 0, XDoubleToFixed (-frac) },
++                      { 0, XDoubleToFixed (1.0), 0 },
++                      { 0, 0, XDoubleToFixed (1.0) }}};
++
++    XRenderSetPictureTransform (dpy, pict, &xf);
++    XRenderSetPictureFilter (dpy, pict, (frac != 0.0) ? FilterBilinear : FilterNearest, NULL, 0);
 +}
 +
 +static void
@@ -182,16 +341,25 @@
 +        for (i = 0; i < screen_info->slide_n_monitors; i++)
 +        {
 +            GdkRectangle *r = &screen_info->slide_monitors[i];
++            gdouble frac;
 +            gint dx;
 +
-+            dx = slide_offset (layer->slot, cam, r->width);
++            dx = slide_split (screen_info, slide_offset (layer->slot, cam, r->width), r->width, &frac);
 +            if (ABS (dx) >= r->width)
 +            {
 +                continue;
 +            }
 +            slide_set_clip (dpy, dst, r);
++            if (frac != 0.0)
++            {
++                slide_set_frac (dpy, layer->pict, frac);
++            }
 +            XRenderComposite (dpy, PictOpOver, layer->pict, None, dst,
 +                              r->x - dx, r->y, 0, 0, r->x, r->y, r->width, r->height);
++            if (frac != 0.0)
++            {
++                slide_set_frac (dpy, layer->pict, 0.0);
++            }
 +        }
 +    }
 +}
@@ -234,46 +402,50 @@
 +}
 +
 +static void
-+slide_paint_win (CWindow *cw, Picture dst, gint dx, GdkRectangle *clip)
++slide_paint_win (CWindow *cw, Picture dst, gint dx, gdouble frac, GdkRectangle *clip)
 +{
 +    ScreenInfo *screen_info;
 +    Display *dpy;
 +
++    XserverRegion area, border;
++    XRectangle r;
++
 +    screen_info = cw->screen_info;
 +    dpy = myScreenGetXDisplay (screen_info);
 +
++    if (clip)
++    {
++        r.x = clip->x;
++        r.y = clip->y;
++        r.width = clip->width;
++        r.height = clip->height;
++    }
++    else
++    {
++        r.x = 0;
++        r.y = 0;
++        r.width = screen_info->width;
++        r.height = screen_info->height;
++    }
++    area = XFixesCreateRegion (dpy, &r, 1);
++    /* tvar okna (zaoblene rohy): mimo nej je v pixmape cerno - jako v paint_all () se kresli jen
++     * uvnitr tvaru, stin jen mimo nej (pod pruhlednymi okny by byl videt) */
++    border = XFixesCreateRegion (dpy, NULL, 0);
++    XFixesCopyRegion (dpy, border, cw->borderSize);
++    XFixesTranslateRegion (dpy, border, dx, 0);
++
 +    if (cw->shadow)
 +    {
-+        XserverRegion shadow_clip, border;
-+        XRectangle r;
++        XserverRegion shadow_clip;
 +
-+        /* stin jen mimo okno (pod pruhlednymi okny by byl videt), jako v paint_all () */
-+        if (clip)
-+        {
-+            r.x = clip->x;
-+            r.y = clip->y;
-+            r.width = clip->width;
-+            r.height = clip->height;
-+        }
-+        else
-+        {
-+            r.x = 0;
-+            r.y = 0;
-+            r.width = screen_info->width;
-+            r.height = screen_info->height;
-+        }
-+        shadow_clip = XFixesCreateRegion (dpy, &r, 1);
-+        border = XFixesCreateRegion (dpy, NULL, 0);
-+        XFixesCopyRegion (dpy, border, cw->borderSize);
-+        XFixesTranslateRegion (dpy, border, dx, 0);
-+        XFixesSubtractRegion (dpy, shadow_clip, shadow_clip, border);
++        shadow_clip = XFixesCreateRegion (dpy, NULL, 0);
++        XFixesSubtractRegion (dpy, shadow_clip, area, border);
 +        XFixesSetPictureClipRegion (dpy, dst, 0, 0, shadow_clip);
 +        XRenderComposite (dpy, PictOpOver, screen_info->blackPicture, cw->shadow,
 +                          dst, 0, 0, 0, 0,
 +                          cw->attr.x + dx + cw->shadow_dx,
 +                          cw->attr.y + cw->shadow_dy,
 +                          cw->shadow_width, cw->shadow_height);
-+        XFixesDestroyRegion (dpy, border);
 +        XFixesDestroyRegion (dpy, shadow_clip);
 +    }
 +
@@ -283,11 +455,22 @@
 +                                       (double) cw->opacity / NET_WM_OPAQUE,
 +                                       0.0, 0.0, 0.0);
 +    }
-+    slide_set_clip (dpy, dst, clip);
++    XFixesIntersectRegion (dpy, area, area, border);
++    XFixesSetPictureClipRegion (dpy, dst, 0, 0, area);
++    XFixesDestroyRegion (dpy, border);
++    XFixesDestroyRegion (dpy, area);
++    if (frac != 0.0)
++    {
++        slide_set_frac (dpy, cw->picture, frac);
++    }
 +    /* paint_win () kresli na cw->attr.x - posun jen po dobu kresleni */
 +    cw->attr.x += dx;
 +    paint_win (cw, None, dst, FALSE);
 +    cw->attr.x -= dx;
++    if (frac != 0.0)
++    {
++        slide_set_frac (dpy, cw->picture, 0.0);
++    }
 +}
 +
 +/* Jeden snimek animace pres celou obrazovku do dst, kamera na cam. */
@@ -309,6 +492,7 @@
 +        CWindow *cw = (CWindow *) list->data;
 +        GdkRectangle *mon;
 +        gboolean fixed;
++        gdouble frac;
 +        gint dx;
 +
 +        if (!slide_win_paintable (screen_info, cw))
@@ -345,6 +529,7 @@
 +        {
 +            continue;
 +        }
++        frac = 0.0;
 +        if (fixed)
 +        {
 +            dx = 0;
@@ -355,13 +540,14 @@
 +            mon = slide_monitor_at (screen_info,
 +                                    cw->attr.x + cw->attr.width / 2,
 +                                    cw->attr.y + cw->attr.height / 2);
-+            dx = slide_offset (screen_info->slide_live_slot, cam, mon->width);
++            dx = slide_split (screen_info, slide_offset (screen_info->slide_live_slot, cam, mon->width),
++                              mon->width, &frac);
 +            if (ABS (dx) >= mon->width)
 +            {
 +                continue;
 +            }
 +        }
-+        slide_paint_win (cw, dst, dx, mon);
++        slide_paint_win (cw, dst, dx, frac, mon);
 +    }
 +
 +    if (!layers_done)
@@ -412,7 +598,7 @@
 +        }
 +        if (slide_prepare_win (cw))
 +        {
-+            slide_paint_win (cw, pict, 0, NULL);
++            slide_paint_win (cw, pict, 0, 0.0, NULL);
 +        }
 +    }
 +    slide_set_clip (display_info->dpy, pict, NULL);
@@ -492,7 +678,7 @@
 +        slide_stop (screen_info);
 +        damage_screen (screen_info);
 +    }
-+    else if (screen_info->use_present || screen_info->use_glx)
++    else if (slide_vsync (screen_info))
 +    {
 +        damage_screen (screen_info);
 +    }
@@ -524,7 +710,7 @@
  static int
  get_region_bounds (Display *dpy, XserverRegion region, XRectangle *bounds)
  {
-@@ -2412,6 +2904,7 @@
+@@ -2412,6 +3070,7 @@
      gint screen_width;
      gint screen_height;
      CWindow *cw;
@@ -532,7 +718,7 @@
  
      TRACE ("buffer %d", buffer);
      g_return_if_fail (screen_info);
-@@ -2423,6 +2916,14 @@
+@@ -2423,6 +3082,14 @@
  
      myDisplayErrorTrapPush (display_info);
  
@@ -547,18 +733,22 @@
      /* Create root buffer if not done yet */
      if (screen_info->rootPixmap[buffer] == None)
      {
-@@ -2461,6 +2962,22 @@
+@@ -2461,6 +3128,26 @@
      paint_region = XFixesCreateRegion (dpy, NULL, 0);
      XFixesCopyRegion (dpy, paint_region, region);
  
 +    if (slide_region != None)
 +    {
 +        gboolean finished;
-+        gint64 now;
-+        gdouble cam;
++        gint64 now, t;
++        gdouble cam, prev;
 +
 +        now = g_get_monotonic_time ();
-+        cam = slide_camera (screen_info, now, &finished);
++        t = slide_next_frame_time (screen_info, now);
++        prev = slide_camera (screen_info, screen_info->slide_frame_t, NULL, NULL);
++        cam = slide_camera (screen_info, t, &finished, NULL);
++        screen_info->slide_step = cam - prev;
++        screen_info->slide_frame_t = t;
 +        if (finished)
 +        {
 +            screen_info->slide_finished = TRUE;
@@ -570,7 +760,7 @@
      /*
       * Painting from top to bottom, reducing the clipping area at each iteration.
       * Only the opaque windows are painted 1st.
-@@ -2593,6 +3110,7 @@
+@@ -2593,6 +3280,7 @@
          }
      }
  
@@ -578,7 +768,7 @@
      TRACE ("copying data back to screen");
  #ifdef HAVE_EPOXY
      if (screen_info->use_glx)
-@@ -2667,6 +3185,10 @@
+@@ -2667,6 +3355,10 @@
      }
  
      XFixesDestroyRegion (dpy, paint_region);
@@ -589,7 +779,7 @@
  
      myDisplayErrorTrapPopIgnored (display_info);
  }
-@@ -2772,6 +3294,8 @@
+@@ -2772,6 +3464,8 @@
              XFixesDestroyRegion (display_info->dpy, screen_info->allDamage);
          }
          screen_info->allDamage = None;
@@ -598,7 +788,7 @@
      }
  
      return FALSE;
-@@ -2944,6 +3468,32 @@
+@@ -2944,6 +3638,32 @@
          XFixesTranslateRegion (display_info->dpy, parts,
                                 cw->attr.x + cw->attr.border_width,
                                 cw->attr.y + cw->attr.border_width);
@@ -631,7 +821,7 @@
      }
      else
      {
-@@ -3133,6 +3683,9 @@
+@@ -3133,6 +3853,9 @@
  
      cw->viewable = TRUE;
      cw->damaged = FALSE;
@@ -641,7 +831,7 @@
  
      /* Check for new windows to un-redirect. */
      if (WIN_HAS_DAMAGE(cw) && WIN_IS_NATIVE_OPAQUE(cw) &&
-@@ -4898,6 +5451,11 @@
+@@ -4898,6 +5621,11 @@
      screen_info->compositor_timeout_id = 0;
      screen_info->zoomed = FALSE;
      screen_info->zoom_timeout_id = 0;
@@ -653,7 +843,7 @@
      screen_info->damages_pending = FALSE;
      screen_info->current_buffer = 0;
      memset(screen_info->transform.matrix, 0, 9);
-@@ -5008,6 +5566,7 @@
+@@ -5008,6 +5736,7 @@
      screen_info->compositor_active = FALSE;
  
      remove_timeouts (screen_info);
@@ -661,7 +851,7 @@
  
      myDisplayErrorTrapPush (display_info);
  
-@@ -5225,6 +5784,8 @@
+@@ -5225,6 +5954,8 @@
      }
  
      myDisplayErrorTrapPush (display_info);
@@ -670,7 +860,7 @@
  #if HAVE_OVERLAYS
      if (display_info->have_overlays)
      {
-@@ -5323,6 +5884,134 @@
+@@ -5323,6 +6054,156 @@
      }
      damage_screen (screen_info);
  #endif /* HAVE_COMPOSITOR */
@@ -684,7 +874,7 @@
 +    DisplayInfo *display_info;
 +    Picture snapshot;
 +    Window fixed_id;
-+    gdouble cam, new_slot, lo, hi;
++    gdouble cam, new_slot, lo, hi, velocity, slope;
 +    gint64 now;
 +    gint i;
 +
@@ -707,16 +897,26 @@
 +    }
 +
 +    now = g_get_monotonic_time ();
++    velocity = 0.0;
 +    if (!screen_info->slide_active)
 +    {
++        gint rate;
++
 +        slide_update_monitors (screen_info);
 +        screen_info->slide_live_slot = 0.0;
 +        cam = 0.0;
++        /* obnovovaci frekvence (GDK nezna-li ji, hlasi 30 Hz - pak 60) */
++        rate = xfwm_get_primary_refresh_rate (screen_info->gscr);
++        if (rate < 50)
++        {
++            rate = 60;
++        }
++        screen_info->slide_interval = 1000000 / rate;
 +    }
 +    else
 +    {
-+        /* bezi-li uz posun, kamera pokracuje z mista, kde prave je */
-+        cam = slide_camera (screen_info, now, NULL);
++        /* bezi-li uz posun, kamera pokracuje z mista a rychlosti posledniho snimku */
++        cam = slide_camera (screen_info, screen_info->slide_frame_t, NULL, &velocity);
 +    }
 +    fixed_id = fixed ? fixed->frame : None;
 +
@@ -782,11 +982,23 @@
 +    screen_info->slide_layers[i].pict = snapshot;
 +
 +    screen_info->slide_live_slot = new_slot;
++    /* delsi cesta (rychle prepnuti o vic ploch za sebou) trva umerne dele, ne jen rychleji */
++    screen_info->slide_duration =
++        (gint) (screen_info->params->workspace_slide_duration * sqrt (MAX (1.0, fabs (new_slot - cam))));
++    /* pocatecni sklon krivky z aktualni rychlosti (nove prepnuti: 0.4 = "ease"); omezeny, aby
++     * posun nepreletel cil, a pri obratu smeru jen kratce pokracoval puvodnim smerem */
++    slope = 0.4;
++    if (screen_info->slide_active && fabs (new_slot - cam) > 0.01)
++    {
++        slope = CLAMP (velocity * screen_info->slide_duration * 1000.0 / (new_slot - cam), -6.0, 2.0);
++    }
++    screen_info->slide_y1 = slope / 4.0;
 +    screen_info->slide_cam_from = cam;
 +    screen_info->slide_cam_to = new_slot;
 +    screen_info->slide_fixed = fixed_id;
 +    screen_info->slide_start = now;
-+    screen_info->slide_duration = screen_info->params->workspace_slide_duration;
++    screen_info->slide_frame_t = 0;
++    screen_info->slide_step = 0.0;
 +    screen_info->slide_active = TRUE;
 +    screen_info->slide_finished = FALSE;
 +
@@ -794,8 +1006,8 @@
 +    {
 +        gint rate;
 +
-+        /* bez vsync aspon 60 snimku za sekundu (GDK nezna-li obnovovaci frekvenci, hlasi 30 Hz) */
-+        rate = MAX (xfwm_get_primary_refresh_rate (screen_info->gscr), 60);
++        /* bez vsync udava tempo snimku tento casovac (po intervalu obnovy) */
++        rate = (gint) (1000000 / MAX (screen_info->slide_interval, 1000));
 +        screen_info->slide_timeout_id =
 +            g_timeout_add_full (TIMEOUT_REPAINT_PRIORITY, MAX (1000 / rate, 4),
 +                                slide_timeout_cb, screen_info, NULL);
@@ -839,7 +1051,7 @@
  struct _ScreenInfo
  {
      /* The display this screen belongs to */
-@@ -221,6 +232,23 @@
+@@ -221,6 +232,27 @@
      XTransform transform;
      gboolean zoomed;
      guint zoom_timeout_id;
@@ -852,7 +1064,11 @@
 +    gdouble slide_live_slot;        /* slot aktualni plochy */
 +    gdouble slide_cam_from;
 +    gdouble slide_cam_to;
-+    gint64 slide_start;             /* g_get_monotonic_time () zacatku animace */
++    gdouble slide_y1;               /* krivka: y prvniho ridiciho bodu (pocatecni rychlost) */
++    gdouble slide_step;             /* posun kamery mezi poslednimi dvema snimky (sloty) */
++    gint64 slide_start;             /* g_get_monotonic_time () zacatku (useku) animace */
++    gint64 slide_frame_t;           /* cas animace posledniho vykresleneho snimku (us) */
++    gint64 slide_interval;          /* us mezi snimky (obnovovaci frekvence) */
 +    gint slide_duration;            /* ms */
 +    gboolean slide_active;
 +    gboolean slide_finished;        /* posledni snimek animace uz je vykresleny */
