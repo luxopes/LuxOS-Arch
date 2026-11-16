@@ -75,6 +75,19 @@ class DefaultApps(unittest.TestCase):
         self.assertEqual(got["application/pdf"], "firefox.desktop")
         self.assertEqual(got["image/png"], "org.xfce.ristretto.desktop")
 
+    def test_launcher_names_localized(self):
+        """Kalkulacka, Hodiny a Obchod maji v Launchpadu a Docku nazev i popis ve vsech 12 jazycich."""
+        root = os.path.join(HERE, "..", "..")
+        for path in ("luxos-desktop/files/applications/luxos-calculator.desktop",
+                     "luxos-desktop/files/applications/luxos-clock-app.desktop",
+                     "luxos-store/files/luxos-store.desktop"):
+            with open(os.path.join(root, path), encoding="utf-8") as f:
+                keys = dict(line.rstrip("\n").split("=", 1) for line in f if "=" in line and not line.startswith("#"))
+            for lang in ("cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv"):
+                for key in ("Name", "Comment"):
+                    self.assertTrue(keys.get(f"{key}[{lang}]"), f"{path}: {key}[{lang}]")
+            self.assertNotEqual(keys["Comment[de]"], keys["Comment"], path)
+
     def test_default_apps_are_dependencies(self):
         with open(os.path.join(HERE, "..", "PKGBUILD"), encoding="utf-8") as f:
             deps = f.read().split("depends=(", 1)[1].split("\n)", 1)[0]
