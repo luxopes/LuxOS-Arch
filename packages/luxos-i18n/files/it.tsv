@@ -4985,3 +4985,12 @@ Removed the kernel of older snapshots: %s	Rimosso il kernel di snapshot meno rec
 Free space on the boot partition: %d MB	Spazio libero nella partizione di avvio: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	L'immagine di avvio è danneggiata (%s) e non è stato possibile ricrearla. Non riavviare ancora il computer: libera spazio nella partizione di avvio ed esegui: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	La partizione EFI è più piccola di 1 GB: dal menu di avvio si potranno avviare meno snapshot del sistema.
+Scrolling	Scorrimento
+Smooth scrolling with the mouse wheel	Scorrimento fluido con la rotellina del mouse
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	La pagina scivola nella nuova posizione invece di saltare. Disattivato quando le animazioni sono disattivate (risparmio batteria).
+Inertia on the touchpad	Inerzia sul touchpad
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Dopo uno scorrimento rapido sul touchpad il contenuto continua a muoversi e rallenta. Muovere il puntatore o fare clic lo ferma.
+Mouse and touchpad	Mouse e touchpad
+Mouse and touchpad settings	Impostazioni di mouse e touchpad
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocità del puntatore, direzione di scorrimento, scorrimento sul bordo o con due dita, tocco per fare clic.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Le modifiche valgono subito, anche nelle finestre aperte. Firefox e Posta scorrono fluidi da soli.

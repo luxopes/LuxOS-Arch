@@ -92,6 +92,7 @@ contain defaults for the **Plank Dock** (`net.launchpad.plank.dock.settings`
 | `calculator` | Calculator | calculator state |
 | `safe.json` | Safe | `idle_minutes`, `lock_on_screen_lock` |
 | `shell.conf` | bash/lsh/zsh setup | `LUXOS_BLESH=0`, `LUXOS_FASTFETCH=0` |
+| `scrolling.conf` | Scrolling (`luxos-scrolling`) | `[scrolling] smooth_wheel`, `kinetic` ([scrolling.md](scrolling.md)) |
 | `drivers-ignored` | Drivers notifier | hardware the user chose to ignore |
 | `netcheck-added` | luxos-hub | top-bar network check plugin added |
 | `calendar-clock-migrated` | Calendar | one-time migration flag |
@@ -131,6 +132,7 @@ applied with `lux system apply` - see [system-config.md](system-config.md).
 | `/etc/profile.d/luxos.sh` | luxos-shell | XDG/PATH environment |
 | `/etc/X11/xorg.conf.d/00-keyboard.conf`, `/etc/vconsole.conf` | Keyboard Layouts (`localectl`) | system keyboard layouts, also for the login screen |
 | `/etc/X11/xorg.conf.d/30-luxos-touchpad.conf` | luxos-desktop | tap-to-click, two-finger right click, edge scrolling |
+| `/etc/X11/xinit/xinitrc.d/50-luxos-firefox-xinput2.sh` | luxos-desktop | `MOZ_USE_XINPUT2=1`: Firefox touchpad scrolling with inertia ([scrolling.md](scrolling.md)) |
 | `/etc/lightdm/lightdm.conf.d/50-luxos.conf` | luxos-desktop | login manager |
 | `/etc/systemd/zram-generator.conf` | luxos-tweaks | zram size/compression (backup file) |
 | `/usr/lib/sysctl.d/99-luxos.conf`, `60-luxos-safe.conf` | luxos-tweaks, luxos-safe | kernel tuning (override in `/etc/sysctl.d/`) |

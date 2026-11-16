@@ -750,6 +750,42 @@ class GuiTest(unittest.TestCase):
         self.select_first_word()
         self.assertEqual(self.clipboard(), "before", "copy_on_select=false leaves the clipboard alone")
 
+    # --- posouvani historie (po pixelech pres GtkScrolledWindow, kolecko/touchpad) ---
+    def scroll_marker_visible(self, name):
+        """Je videt cervena znacka (prvni radek vypisu)?"""
+        time.sleep(0.8)
+        return self.count(self.window_area(self.screenshot(name)), (0xff, 0x6b, 0x81)) > 200
+
+    def wheel(self, wid, button, clicks):
+        subprocess.run(["xdotool", "mousemove", "--window", wid, "300", "200"], env=self.env)
+        subprocess.run(["xdotool", "click", "--repeat", str(clicks), "--delay", "15", str(button)], env=self.env)
+
+    def test_wheel_scrolls_history(self):
+        """Kolecko posouva historii (VTE po pixelech, bez nahradniho posouvani VTE) tam i zpet."""
+        self.config("[terminal]\ntheme=dark\n")
+        self.start("-x", "sh", "-c", r"printf '\033[41m%s\033[0m\n' '          '; seq 1 300; sleep 30")
+        wid = self.wait_window()[0]
+        time.sleep(1.0)
+        self.assertFalse(self.scroll_marker_visible("history-bottom"), "marker scrolled out of view")
+        self.wheel(wid, 4, 150)          # nahoru az na zacatek
+        self.assertTrue(self.scroll_marker_visible("history-top"), "wheel up reaches the first line")
+        self.wheel(wid, 5, 150)
+        self.assertFalse(self.scroll_marker_visible("history-down"), "wheel down goes back")
+
+    def test_wheel_in_alternate_screen_app(self):
+        """less na alternativni obrazovce dostava kolecko dal jako sipky (VTE), historie se nehybe."""
+        self.config("[terminal]\ntheme=dark\n")
+        text = os.path.join(self.home, "text")
+        with open(text, "w") as f:
+            f.write("".join(f"line {i}\n" for i in range(60)) + "\033[41m          \033[0m\n"
+                    + "".join(f"more {i}\n" for i in range(200)))
+        self.start("-x", "sh", "-c", f"LESS= less -R {text}; sleep 30")
+        wid = self.wait_window()[0]
+        time.sleep(1.5)
+        self.assertFalse(self.scroll_marker_visible("less-start"))
+        self.wheel(wid, 5, 15)
+        self.assertTrue(self.scroll_marker_visible("less-scrolled"), "less scrolled with the wheel")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4985,3 +4985,12 @@ Removed the kernel of older snapshots: %s	Kärnan för äldre ögonblicksbilder 
 Free space on the boot partition: %d MB	Ledigt utrymme på startpartitionen: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Startavbilden är skadad (%s) och kunde inte skapas på nytt. Starta inte om datorn än: frigör utrymme på startpartitionen och kör: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	EFI-partitionen är mindre än 1 GB: färre ögonblicksbilder av systemet kan startas från startmenyn.
+Scrolling	Rullning
+Smooth scrolling with the mouse wheel	Mjuk rullning med mushjulet
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Sidan glider till den nya platsen i stället för att hoppa. Av när animationer är avstängda (batterisparläge).
+Inertia on the touchpad	Tröghet på styrplattan
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Efter ett snabbt svep på styrplattan fortsätter innehållet att röra sig och saktar in. Att flytta pekaren eller klicka stoppar det.
+Mouse and touchpad	Mus och styrplatta
+Mouse and touchpad settings	Inställningar för mus och styrplatta
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Pekarhastighet, rullningsriktning, rullning vid kanten eller med två fingrar, tryck för att klicka.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Ändringar gäller direkt, även i öppna fönster. Firefox och E-post rullar mjukt av sig själva.

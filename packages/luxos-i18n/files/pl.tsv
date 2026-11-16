@@ -4986,3 +4986,12 @@ Removed the kernel of older snapshots: %s	Usunięto jądro starszych migawek: %s
 Free space on the boot partition: %d MB	Wolne miejsce na partycji rozruchowej: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Obraz rozruchowy jest uszkodzony (%s) i nie udało się go zbudować ponownie. Nie uruchamiaj jeszcze ponownie komputera: zwolnij miejsce na partycji rozruchowej i uruchom: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Partycja EFI ma mniej niż 1 GB: z menu startowego będzie można uruchomić mniej migawek systemu.
+Scrolling	Przewijanie
+Smooth scrolling with the mouse wheel	Płynne przewijanie kółkiem myszy
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Strona płynnie dojeżdża do nowego miejsca zamiast przeskakiwać. Wyłączone, gdy animacje są wyłączone (oszczędzanie baterii).
+Inertia on the touchpad	Bezwładność na touchpadzie
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Po szybkim przesunięciu po touchpadzie zawartość jeszcze się przesuwa i zwalnia. Ruch wskaźnika lub kliknięcie ją zatrzymuje.
+Mouse and touchpad	Mysz i touchpad
+Mouse and touchpad settings	Ustawienia myszy i touchpada
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Szybkość wskaźnika, kierunek przewijania, przewijanie przy krawędzi lub dwoma palcami, stuknięcie jako kliknięcie.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Zmiany działają od razu, także w otwartych oknach. Firefox i Poczta przewijają płynnie same.

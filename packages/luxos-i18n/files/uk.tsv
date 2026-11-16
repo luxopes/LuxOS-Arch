@@ -4986,3 +4986,12 @@ Removed the kernel of older snapshots: %s	Видалено ядро старіш
 Free space on the boot partition: %d MB	Вільне місце на завантажувальному розділі: %d МБ
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Завантажувальний образ пошкоджено (%s), і його не вдалося зібрати знову. Поки не перезавантажуйте комп'ютер: звільніть місце на завантажувальному розділі й виконайте: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Розділ EFI менший за 1 ГБ: з меню завантаження можна буде запустити менше знімків системи.
+Scrolling	Прокручування
+Smooth scrolling with the mouse wheel	Плавне прокручування коліщатком миші
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	Сторінка плавно доїжджає до нового місця замість стрибка. Вимкнено, коли анімації вимкнені (економія батареї).
+Inertia on the touchpad	Інерція на тачпаді
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Після швидкого руху по тачпаду вміст ще трохи рухається й сповільнюється. Рух вказівника або клацання його зупиняє.
+Mouse and touchpad	Миша й тачпад
+Mouse and touchpad settings	Налаштування миші й тачпада
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Швидкість вказівника, напрямок прокручування, прокручування біля краю або двома пальцями, дотик як клацання.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Зміни діють одразу, також у відкритих вікнах. Firefox і Пошта прокручують плавно самі.

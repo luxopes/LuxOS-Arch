@@ -4985,3 +4985,12 @@ Removed the kernel of older snapshots: %s	Se eliminó el kernel de instantáneas
 Free space on the boot partition: %d MB	Espacio libre en la partición de arranque: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	La imagen de arranque está dañada (%s) y no se pudo volver a crear. No reinicie todavía el equipo: libere espacio en la partición de arranque y ejecute: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	La partición EFI tiene menos de 1 GB: se podrán iniciar menos instantáneas del sistema desde el menú de arranque.
+Scrolling	Desplazamiento
+Smooth scrolling with the mouse wheel	Desplazamiento suave con la rueda del ratón
+The page glides to the new position instead of jumping. Off while animations are off (battery saver).	La página se desliza a la nueva posición en lugar de saltar. Desactivado mientras las animaciones están desactivadas (ahorro de batería).
+Inertia on the touchpad	Inercia en el panel táctil
+After a quick swipe on the touchpad the content keeps moving and slows down. Moving the pointer or clicking stops it.	Tras un deslizamiento rápido en el panel táctil, el contenido sigue moviéndose y se frena. Mover el puntero o hacer clic lo detiene.
+Mouse and touchpad	Ratón y panel táctil
+Mouse and touchpad settings	Ajustes del ratón y del panel táctil
+Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocidad del puntero, dirección del desplazamiento, desplazamiento en el borde o con dos dedos, tocar para hacer clic.
+Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Los cambios se aplican al instante, también en las ventanas abiertas. Firefox y Correo se desplazan suavemente por sí mismos.
