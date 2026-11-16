@@ -370,7 +370,7 @@ expect "C5: GUI model: novy oddil, formatovane LV, nove LV v zachovane VG; ne /h
 # ---------------------------------------------------------------------------------
 echo "## D: automaticke rezimy (prepare_disk, prepare_freespace z luxos-install)"
 # Funkce z instalatoru; [[ -b ]] nelze nahradit funkci -> v kopii pres ly_isblk (emulace)
-for f in part_path encrypt_root mount_root prepare_disk prepare_freespace free_partnum; do
+for f in part_path encrypt_root wipe_new_parts mount_root prepare_disk prepare_freespace free_partnum; do
     sed -n "/^$f() {/,/^}/p" "$FILES/luxos-install"
 done | sed -e 's/\[\[ -b \$BOOTPART && -b \$rootpart \]\]/{ ly_isblk "$BOOTPART" \&\& ly_isblk "$rootpart"; }/' \
            -e 's/\[\[ -b \$rootpart \]\]/ly_isblk "$rootpart"/' \
@@ -400,6 +400,10 @@ expect "D1: smazany jen novy ESP a oddil LuxOS" test "$(cut -d' ' -f2 "$OUT/D1/w
 expect "D1: po rozdeleni" before "$c" "sgdisk -n 1:0:+1024M" "wipe-chunk"
 expect "D1: pred LUKS a mkfs" bash -c "$(declare -f before); before '$c' wipe-chunk 'cryptsetup luksFormat' && before '$c' wipe-chunk mkfs."
 expect "D1: krok mazani" grep -q "@@STEP Erasing the space for LuxOS" "$c"
+# stare podpisy (hlavicka LUKS predchozi sifrovane instalace) pryc pred LUKS/mkfs, mount jen jako btrfs
+expect "D1: wipefs novych oddilu" bash -c "grep -qx 'wipefs -af /dev/vda1' '$c' && grep -qx 'wipefs -af /dev/vda2' '$c'"
+expect "D1: wipefs pred LUKS" before "$c" "wipefs -af /dev/vda2" "cryptsetup luksFormat"
+expect "D1: mount -t btrfs" bash -c "grep -q '^mount -t btrfs ' '$c' && ! grep -qE '^mount (-o [^ ]+ )?/dev/mapper' '$c'"
 auto_case D1n "vda:32G" 'DISK=/dev/vda; WIPE=none; prepare_disk'
 expect "D1n: WIPE=none -> zadne mazani" bash -c "rc=\$(cat '$OUT/D1n/rc'); [[ \$rc == 0 ]] && test ! -s '$OUT/D1n/wipe' && ! grep -q Erasing '$OUT/D1n/cmds'"
 auto_case D2 "vda:64G" '
@@ -412,6 +416,7 @@ expect "D2: probehlo (vedle Windows)" rc_is D2 0
 expect "D2: smazan jen novy oddil vda3" test "$(cut -d' ' -f2 "$OUT/D2/wipe" | sort -u)" == /dev/vda3
 expect "D2: novy oddil cely" covers "$OUT/D2/wipe" /dev/vda3 $(((60 * 1024 * 2048 - 22 * 1024 * 2048 + 1) * 512))
 expect "D2: pred mkfs" before "$c" "wipe-chunk" "mkfs.btrfs"
+expect "D2: wipefs jen novy oddil (Windows a ESP ne)" test "$(grep '^wipefs' "$c" | sort -u)" == "wipefs -af /dev/vda3"
 
 # ---------------------------------------------------------------------------------
 echo "## F: TUI - dotaz a souhrn (ask_wipe, wipe_text z luxos-install)"

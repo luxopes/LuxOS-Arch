@@ -5176,3 +5176,4 @@ turned off (countme = false in /etc/lux/lux.conf)	desactivado (countme = false e
 unknown channel	canal desconocido
 unknown LuxOS version	versión de LuxOS desconocida
 unsupported architecture	arquitectura no compatible
+%d%%	%d %%

@@ -5177,3 +5177,4 @@ turned off (countme = false in /etc/lux/lux.conf)	вимкнено (countme = fa
 unknown channel	невідомий канал
 unknown LuxOS version	невідома версія LuxOS
 unsupported architecture	непідтримувана архітектура
+%d%%	%d %%

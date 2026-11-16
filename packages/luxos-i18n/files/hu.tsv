@@ -5176,3 +5176,4 @@ turned off (countme = false in /etc/lux/lux.conf)	kikapcsolva (countme = false i
 unknown channel	ismeretlen csatorna
 unknown LuxOS version	ismeretlen LuxOS-verzió
 unsupported architecture	nem támogatott architektúra
+%d%%	%d%%

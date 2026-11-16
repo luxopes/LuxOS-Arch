@@ -3432,7 +3432,7 @@ class Installer(Gtk.Window):
 
     def update_bar(self):
         self.bar.set_fraction(min(self.shown, 1.0))
-        self.pct_label.set_text(f"{int(self.shown * 100)} %")
+        self.pct_label.set_text(_("%d%%") % int(self.shown * 100))   # cesky "42 %", anglicky "42%"
 
     def next_slide(self):
         if not self.installing:
