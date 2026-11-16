@@ -301,8 +301,43 @@ wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light nebo WhiteSur-Light-xh
     fi
 }
 
+# Restart panelu teto relace. pgrep -u vidi i panel jine relace stejneho uzivatele a panel, ktery se
+# prave spousti (pri prihlaseni, po predchozim restartu), jeste nemusi nabizet objekt /org/xfce/Panel -
+# "xfce4-panel -r" by pak ukazal okno "Failed to restart the panel". Stejne tak dva restarty tesne po
+# sobe (pri prihlaseni luxos-appearance a luxos-search --add-to-panel): druhy by trefil konciici nebo
+# startujici panel. Proto: restarty po jednom (zamek), az kdyz panel objekt opravdu nabizi, a dalsi
+# restart az po nabehnuti noveho panelu (jiny vlastnik jmena na sbernici).
+panel_ready() {
+    gdbus introspect --session --dest org.xfce.Panel --object-path /org/xfce/Panel 2>/dev/null |
+        grep -q 'interface org\.xfce\.Panel '
+panel_owner() {
+    gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.GetNameOwner org.xfce.Panel 2>/dev/null
 restart_panel() {
-    pgrep -u "$USER" -x xfce4-panel >/dev/null && xfce4-panel -r >/dev/null 2>&1 &
+    pgrep -u "$USER" -x xfce4-panel >/dev/null || return 0
+    local lock="${XDG_RUNTIME_DIR:-/tmp}/luxos-panel-restart.lock" old _
+    {
+        # Bezny pripad (panel bezi, nikdo jiny nerestartuje): volajici pocka jen na prikaz restartu.
+        # Jinak se na pozadi ceka (nejdele ~10 s) - vystup presmerovat, at na to nikdo, kdo cte
+        # vystup luxos-appearance, neceka.
+        if ! { flock -n 9 && panel_ready; }; then
+            exec >/dev/null 2>&1
+            flock -w 20 9 || exit 0
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+                panel_ready && break
+                sleep 0.5
+            done
+            panel_ready || exit 0
+        fi
+        old=$(panel_owner)
+        xfce4-panel -r >/dev/null 2>&1
+        exec >/dev/null 2>&1
+        # zamek drzet, dokud novy panel nenabehne
+        for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+            sleep 0.5
+            [[ $(panel_owner) != "$old" ]] && panel_ready && break
+        done
+    } 9>"$lock" &
 }
 
 apply() {
@@ -344,9 +379,7 @@ apply() {
     mkdir -p "$state_dir"
     echo "$mode" > "$state_file"
     # Panel nacita gtk.css jen pri startu
-    if [[ $old != "$mode" ]] && pgrep -u "$USER" -x xfce4-panel >/dev/null; then
-        xfce4-panel -r >/dev/null 2>&1 &
-    fi
+    if [[ $old != "$mode" ]]; then restart_panel; fi
 }
 
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
@@ -375,6 +408,8 @@ case ${1:-status} in
                 BAR_CLOCK=$2
                 set_pref BAR_CLOCK "$2"
                 if bar_layout; then restart_panel; fi ;;
+    # Interni: restart panelu teto relace po jednom (luxos-search --add-to-panel)
+    restart-panel) restart_panel ;;
     # Interni (plugin luxos-bar): bile pismo na svetle tapete prepnout na tmave a zpet
     bar-ink)    [[ ${2-} == @(dark|white) ]] || usage "bar-ink dark|white"
                 mkdir -p "$state_dir"

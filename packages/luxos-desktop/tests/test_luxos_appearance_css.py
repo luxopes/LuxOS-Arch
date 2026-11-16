@@ -28,13 +28,19 @@ class PanelCss(unittest.TestCase):
             with open(path, "w") as f:
                 f.write('#!/bin/sh\necho "%s $*" >> "%s"\nexit 0\n' % (name, self.log))
             os.chmod(path, 0o755)
+        # panel teto relace nabizi /org/xfce/Panel na sbernici
+        path = os.path.join(self.bin, "gdbus")
+        with open(path, "w") as f:
+            f.write('#!/bin/sh\ncase "$*" in *GetNameOwner*) echo "(\':1.$(date +%N)\',)"; exit;; esac\necho "  interface org.xfce.Panel {"\n')
+        os.chmod(path, 0o755)
         self.css = os.path.join(self.cfg, "gtk-3.0", "gtk.css")
 
     def run_css(self, mode):
         with open(os.path.join(self.cfg, "luxos", "appearance"), "w") as f:
             f.write(mode + "\n")
         # bez pluginu luxos-bar: panel-css jinak upravuje rozlozeni listy pres skutecne xfconf-query
-        env = dict(os.environ, XDG_CONFIG_HOME=self.cfg, PATH=self.bin + ":" + os.environ["PATH"],
+        env = dict(os.environ, XDG_CONFIG_HOME=self.cfg, PATH=self.bin + ":" + os.environ["PATH"], XDG_RUNTIME_DIR=self.tmp,
+                   DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent",
                    XDG_DATA_HOME=os.path.join(self.tmp, "data"), XDG_DATA_DIRS=os.path.join(self.tmp, "share"))
         subprocess.run(["bash", SCRIPT, "panel-css"], env=env, check=True, capture_output=True)
 

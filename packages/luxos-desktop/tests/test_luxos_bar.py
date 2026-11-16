@@ -84,6 +84,9 @@ class Bar(unittest.TestCase):
         for name in ("pgrep", "xfce4-panel"):
             self.script(name, '#!/bin/sh\necho "%s $*" >> "$FAKE_LOG"\nexit 0\n' % name)
         self.script("xfconf-query", FAKE_XFCONF)
+        # panel na sbernici relace nabizi /org/xfce/Panel; s FAKE_NO_PANEL_NAME (soubor existuje) jeste ne
+        self.script("gdbus", '#!/bin/sh\ncase "$*" in *GetNameOwner*) echo "(\':1.$(date +%N)\',)"; exit;; esac\n[ -e "${FAKE_NO_PANEL_NAME:-/nonexistent}" ] && echo "node {}" || echo "  interface org.xfce.Panel {"\n')
+        self.no_name = os.path.join(self.tmp, "no-panel-name")
         self.share = os.path.join(self.tmp, "share")
         self.set_panel(DEFAULT_PANEL)
         self.install_plugin()
@@ -119,13 +122,14 @@ class Bar(unittest.TestCase):
 
     def run_appearance(self, *args, check=True):
         env = dict(os.environ, XDG_CONFIG_HOME=self.cfg, HOME=self.tmp, PATH=self.bin + ":" + os.environ["PATH"],
+                   XDG_RUNTIME_DIR=self.tmp, DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent",
                    XDG_DATA_HOME=os.path.join(self.tmp, "data"), XDG_DATA_DIRS=self.share,
-                   FAKE_XFCONF=self.db, FAKE_LOG=self.log, USER="test", LANG="C")
+                   FAKE_XFCONF=self.db, FAKE_LOG=self.log, USER="test", LANG="C", FAKE_NO_PANEL_NAME=self.no_name)
         return subprocess.run(["bash", SCRIPT, *args], env=env, check=check, capture_output=True, text=True)
 
     def restarts(self):
-        # restart panelu bezi na pozadi (&)
-        time.sleep(0.3)
+        # restart panelu bezi na pozadi (&); dalsi restart ceka, az predchozi panel nabehne (~0,5 s s napodobou)
+        time.sleep(1.2)
         return self.read(self.log).count("xfce4-panel -r")
 
     def ids(self):
@@ -241,6 +245,22 @@ class Bar(unittest.TestCase):
         self.assertIn("text-shadow: 0 1px 2px", css)
         self.assertFalse(os.path.exists(os.path.join(self.cfg, "luxos", "bar-ink")))
         self.assertEqual(self.restarts(), 1)
+
+    def test_no_restart_of_panel_without_bus_name(self):
+        """Panel jine relace stejneho uzivatele nebo panel, ktery se prave spousti (pgrep ho vidi, ale jmeno
+        org.xfce.Panel na sbernici teto relace jeste neni): zadne "xfce4-panel -r" - to by ukazalo okno
+        "Failed to restart the panel"."""
+        open(self.no_name, "w").close()
+        self.run_appearance("bar-text", "white")
+        time.sleep(0.8)
+        self.assertEqual(self.read(self.log).count("xfce4-panel -r"), 0)
+        # jmeno se objevi do 5 s (panel dobehl): restart probehne
+        os.unlink(self.no_name)
+        for _ in range(40):
+            if self.read(self.log).count("xfce4-panel -r"):
+                break
+            time.sleep(0.1)
+        self.assertEqual(self.read(self.log).count("xfce4-panel -r"), 1)
 
     def test_bar_ink_only_affects_white_text_in_light_mode(self):
         """Ulozene rozhodnuti nemeni tmavy rezim ani vychozi pismo (bar-text auto)."""

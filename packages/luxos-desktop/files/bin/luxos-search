@@ -47,7 +47,8 @@ if [[ $1 == --add-to-panel ]]; then
             q -p "$panel" --force-array "${args[@]}"
             : >"$mark"
             # Panel novy plugin nacte az po restartu (pri prihlaseni to zakryva prechod na plochu)
-            pgrep -u "$USER" -x xfce4-panel >/dev/null && xfce4-panel -r 2>/dev/null
+            # (po jednom s ostatnimi restarty a az panel opravdu bezi - jinak okno "Failed to restart the panel")
+            luxos-appearance restart-panel
             exit 0
         done
     fi
