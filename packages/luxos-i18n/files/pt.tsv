@@ -5017,3 +5017,6 @@ Removing an unfinished reinstall	A remover uma reinstalação incompleta
 Copying accounts and settings	A copiar contas e definições
 Creating the initramfs	A criar o initramfs
 Generating the language failed: %s	A geração do idioma falhou: %s
+Enter the server address.	Digite o endereço do servidor.
+Backups on an SFTP server cannot be encrypted.	Backups em um servidor SFTP não podem ser criptografados.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A criptografia funciona com discos USB e pastas compartilhadas (SMB). Desative Criptografar backups ou use uma pasta compartilhada.

@@ -5055,3 +5055,6 @@ Removing an unfinished reinstall	Odstraňujem nedokončené preinštalovanie
 Copying accounts and settings	Kopírujem účty a nastavenia
 Creating the initramfs	Vytváram initramfs
 Generating the language failed: %s	Vygenerovanie jazyka zlyhalo: %s
+Enter the server address.	Zadajte adresu servera.
+Backups on an SFTP server cannot be encrypted.	Zálohy na serveri SFTP nie je možné šifrovať.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Šifrovanie funguje s diskami USB a zdieľanými priečinkami (SMB). Vypnite Šifrovať zálohy alebo použite zdieľaný priečinok.

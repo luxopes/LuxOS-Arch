@@ -5017,3 +5017,6 @@ Removing an unfinished reinstall	Tar bort en ofullständig ominstallation
 Copying accounts and settings	Kopierar konton och inställningar
 Creating the initramfs	Skapar initramfs
 Generating the language failed: %s	Det gick inte att generera språket: %s
+Enter the server address.	Ange serverns adress.
+Backups on an SFTP server cannot be encrypted.	Säkerhetskopior på en SFTP-server kan inte krypteras.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Kryptering fungerar med USB-diskar och delade mappar (SMB). Stäng av Kryptera säkerhetskopior eller använd en delad mapp.

@@ -164,6 +164,41 @@ class GuiTest(unittest.TestCase):
         dlg.destroy()
         win.destroy()
 
+    def add_disk_with(self, choices):
+        """add_disk s falesnym dialogem: postupne volby, pak Zrusit; vraci zobrazene zpravy."""
+        shown = []
+
+        class FakeDialog:
+            def __init__(self, *_a):
+                self.left = list(choices)
+
+            def run(self):
+                return Gtk.ResponseType.OK if self.left else Gtk.ResponseType.CANCEL
+
+            def choice(self):
+                return self.left.pop(0)
+
+            def destroy(self):
+                pass
+
+        win = gui.BackupWindow()
+        with mock.patch.object(gui, "AddDiskDialog", FakeDialog), \
+                mock.patch.object(gui, "message", lambda _p, title, *_a: shown.append(title)), \
+                mock.patch.object(core, "add_sftp_disk", side_effect=AssertionError("must not be called")), \
+                mock.patch.object(core, "add_smb_disk", side_effect=AssertionError("must not be called")):
+            win.add_disk()
+        win.destroy()
+        return shown
+
+    def test_add_disk_sftp_encryption_refused(self):
+        # SFTP neumi sifrovat - heslo se nesmi tise zahodit (zalohy by byly nesifrovane)
+        shown = self.add_disk_with([(("net", "sftp://anna@nas/backup", ""), "secret")])
+        self.assertEqual(shown, ["Backups on an SFTP server cannot be encrypted."])
+
+    def test_add_disk_empty_address_explained(self):
+        shown = self.add_disk_with([(("net", "", ""), None)])
+        self.assertEqual(shown, ["Enter the server address."])
+
 
 if __name__ == "__main__":
     unittest.main()

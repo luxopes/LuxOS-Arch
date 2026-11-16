@@ -466,7 +466,17 @@ class BackupWindow(Gtk.Window):
                 message(dlg, _("The passwords do not match."), _("Type the same password twice."),
                         Gtk.MessageType.WARNING)
                 continue
-            if what is None or (what[0] == "net" and not what[1]):
+            if what is not None and what[0] == "net" and not what[1]:
+                message(dlg, _("Enter the server address."), "sftp://user@server/folder  ·  smb://user@server/share",
+                        Gtk.MessageType.WARNING)
+                continue
+            if what is None:
+                continue
+            if pw and what[0] == "net" and not what[1].startswith("smb://"):
+                # SFTP zalohuje rsync primo do slozky na serveru - heslo sifrovani by se tise zahodilo
+                message(dlg, _("Backups on an SFTP server cannot be encrypted."),
+                        _("Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, "
+                          "or use a shared folder."), Gtk.MessageType.WARNING)
                 continue
             break
         dlg.destroy()

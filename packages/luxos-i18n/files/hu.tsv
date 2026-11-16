@@ -5017,3 +5017,6 @@ Removing an unfinished reinstall	Befejezetlen újratelepítés eltávolítása
 Copying accounts and settings	Fiókok és beállítások másolása
 Creating the initramfs	Az initramfs létrehozása
 Generating the language failed: %s	A nyelv előállítása nem sikerült: %s
+Enter the server address.	Adja meg a kiszolgáló címét.
+Backups on an SFTP server cannot be encrypted.	Az SFTP-kiszolgálón lévő biztonsági mentések nem titkosíthatók.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A titkosítás USB-lemezekkel és megosztott mappákkal (SMB) működik. Kapcsolja ki a Mentések titkosítása lehetőséget, vagy használjon megosztott mappát.

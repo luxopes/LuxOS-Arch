@@ -5017,3 +5017,6 @@ Removing an unfinished reinstall	Rimozione di una reinstallazione non completata
 Copying accounts and settings	Copia di account e impostazioni
 Creating the initramfs	Creazione dell'initramfs
 Generating the language failed: %s	Generazione della lingua non riuscita: %s
+Enter the server address.	Inserisci l’indirizzo del server.
+Backups on an SFTP server cannot be encrypted.	I backup su un server SFTP non possono essere cifrati.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	La cifratura funziona con dischi USB e cartelle condivise (SMB). Disattiva Cifra i backup oppure usa una cartella condivisa.

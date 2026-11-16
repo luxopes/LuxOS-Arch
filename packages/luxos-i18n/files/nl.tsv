@@ -5017,3 +5017,6 @@ Removing an unfinished reinstall	Een onvoltooide herinstallatie verwijderen
 Copying accounts and settings	Accounts en instellingen kopiëren
 Creating the initramfs	De initramfs maken
 Generating the language failed: %s	Genereren van de taal mislukt: %s
+Enter the server address.	Voer het serveradres in.
+Backups on an SFTP server cannot be encrypted.	Back-ups op een SFTP-server kunnen niet worden versleuteld.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Versleuteling werkt met USB-schijven en gedeelde mappen (SMB). Zet Versleutel back-ups uit of gebruik een gedeelde map.

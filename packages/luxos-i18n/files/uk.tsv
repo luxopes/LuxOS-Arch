@@ -5018,3 +5018,6 @@ Removing an unfinished reinstall	Вилучаю незавершене пере�
 Copying accounts and settings	Копіюю облікові записи та налаштування
 Creating the initramfs	Створюю initramfs
 Generating the language failed: %s	Не вдалося згенерувати мову: %s
+Enter the server address.	Введіть адресу сервера.
+Backups on an SFTP server cannot be encrypted.	Резервні копії на сервері SFTP не можна зашифрувати.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Шифрування працює з USB-дисками та спільними папками (SMB). Вимкніть «Шифрувати резервні копії» або скористайтеся спільною папкою.
