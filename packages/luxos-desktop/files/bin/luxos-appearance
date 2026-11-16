@@ -334,9 +334,11 @@ wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light nebo WhiteSur-Light-xh
 panel_ready() {
     gdbus introspect --session --dest org.xfce.Panel --object-path /org/xfce/Panel 2>/dev/null |
         grep -q 'interface org\.xfce\.Panel '
+}
 panel_owner() {
     gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
         --method org.freedesktop.DBus.GetNameOwner org.xfce.Panel 2>/dev/null
+}
 restart_panel() {
     pgrep -u "$USER" -x xfce4-panel >/dev/null || return 0
     local lock="${XDG_RUNTIME_DIR:-/tmp}/luxos-panel-restart.lock" old _
