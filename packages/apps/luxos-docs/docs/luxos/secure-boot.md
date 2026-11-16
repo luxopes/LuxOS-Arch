@@ -36,7 +36,7 @@ BitLocker does not ask for its recovery key (turning Secure Boot off would make 
    key). If the time runs out, the blue screen from step 2 simply comes back.
 4. MokManager: **Perform MOK management**. Choose **Enroll key from disk** (one down arrow) and press
    Enter.
-5. Choose the disk (the LuxOS USB stick, labelled `ARCHISO_EFI`).
+5. Choose the disk (the LuxOS USB stick, labelled `LUXOS`; older ISOs: `ARCHISO_EFI`).
 6. The file **LUXOS_ENROLL_THIS_KEY.cer** is at the top: press Enter.
 7. Choose **Continue**, then **Yes** to "Enroll the key(s)?".
 8. Choose **Reboot**. The computer starts again from the USB stick, the LuxOS menu appears and the

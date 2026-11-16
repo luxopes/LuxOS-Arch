@@ -26,7 +26,7 @@ Otevře se modrá nabídka **MokManageru** **Perform MOK management**. Šipkou d
 
 ## 3. Vyberte USB
 
-Vyberte USB s LuxOS (popisek **ARCHISO_EFI**, většinou jediná položka) a stiskněte **Enter**.
+Vyberte USB s LuxOS (popisek **LUXOS** – u starších ISO **ARCHISO_EFI** – většinou jediná položka) a stiskněte **Enter**.
 
 ![MokManager: výběr disku](/assets/secureboot/sb-03-select-disk.webp)
 

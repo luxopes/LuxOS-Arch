@@ -5215,3 +5215,4 @@ Show output of a command.	Zobrazit výstup příkazu.
 Status Tray Plugin	Oznamovací oblast
 Provides status notifier items (application indicators) and legacy systray items	Zobrazuje ikony stavu aplikací (indikátory) a starší ikony oznamovací oblasti
 test builds before a release - for testers	testovací sestavení před vydáním – pro testery
+Preparing the package signing keys…	Připravuji klíče pro ověření balíků…

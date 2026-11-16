@@ -5216,3 +5216,4 @@ Show output of a command.	Mostrar la salida de un comando.
 Status Tray Plugin	Área de notificación
 Provides status notifier items (application indicators) and legacy systray items	Muestra los iconos de estado de las apps (indicadores) y los iconos antiguos del área de notificación
 test builds before a release - for testers	versiones de prueba antes de una publicación: para probadores
+Preparing the package signing keys…	Preparando las claves de verificación de paquetes…

@@ -2576,6 +2576,26 @@ def migration_pending(root="/"):
                 os.path.lexists(p("var/log/pacman.log")), os.path.islink(p("var/cache/pacman/pkg"))))
 
 
+LIVE_KEYRING_UNIT = "lux-keyring-init.service"
+
+
+def wait_live_keyring(ui, live="/run/archiso", run=subprocess.run):
+    """Live ISO: klicenka podpisu se pripravuje na pozadi po startu (nezdrzuje plochu). Transakce
+    (Obchod, lux install hned po startu) na ni pocka - jinak by overeni podpisu selhalo."""
+    if not os.path.isdir(live) or os.geteuid() != 0:
+        return
+    try:
+        if run(["systemctl", "is-active", "--quiet", LIVE_KEYRING_UNIT]).returncode == 0:
+            return
+        if run(["systemctl", "cat", LIVE_KEYRING_UNIT], stdout=subprocess.DEVNULL,
+               stderr=subprocess.DEVNULL).returncode != 0:
+            return
+        ui.note(_("Preparing the package signing keys…"))
+        run(["systemctl", "start", LIVE_KEYRING_UNIT])
+    except OSError:
+        pass
+
+
 def maybe_migrate(ui, now=False, force=False):
     """Root: dokonci prechod z pacmanu, kdyz ho hook pri aktualizaci nestihl (stary proces jadra,
     instalace s --nohooks...), a po restartu uklidi pozustatky. Zamek: stara cesta /var/lib/pacman/db.lck
@@ -2715,6 +2735,7 @@ def main(argv=None, api=None, conf=None, out=None, inp=None):
     rc = 0
     if args.cmd in ROOT_CMDS and conf is None:
         maybe_migrate(ui)
+        wait_live_keyring(ui)
     global TRANSACTION
     TRANSACTION = args.cmd in ROOT_CMDS
     try:

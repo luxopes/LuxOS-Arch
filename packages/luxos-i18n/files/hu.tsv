@@ -5216,3 +5216,4 @@ Show output of a command.	Parancs kimenetének megjelenítése.
 Status Tray Plugin	Értesítési terület
 Provides status notifier items (application indicators) and legacy systray items	Megjeleníti az alkalmazások állapotikonjait (indikátorokat) és a régi értesítési ikonokat
 test builds before a release - for testers	kiadás előtti tesztverziók – tesztelőknek
+Preparing the package signing keys…	Csomagellenőrző kulcsok előkészítése…

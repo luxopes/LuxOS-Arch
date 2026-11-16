@@ -1,0 +1,13 @@
+[Unit]
+Description=Initialize the package signing keyring in the background after start
+# LuxOS live: klicenka (gpg, ~13 s) se driv pripravovala jako soucast multi-user.target a plocha na ni
+# cekala. Casovac ji spusti hned po startu samostatne - plocha se ukaze o tolik driv. Instalator
+# a lux (transakce) na ni pred pouzitim pockaji (systemctl start lux-keyring-init.service).
+
+[Timer]
+OnActiveSec=1s
+AccuracySec=1s
+RemainAfterElapse=yes
+
+[Install]
+WantedBy=timers.target

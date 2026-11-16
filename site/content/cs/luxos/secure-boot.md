@@ -35,7 +35,7 @@ nechce obnovovací klíč (vypnutí Secure Boot by si ho vyžádalo).
 3. „Press any key to perform MOK management“ odpočítává 10 sekund: stiskněte **mezerník** (jakoukoli
    klávesu). Když čas vyprší, modrá obrazovka z kroku 2 se prostě vrátí.
 4. MokManager: **Perform MOK management**. Vyberte **Enroll key from disk** (jednou šipka dolů) a Enter.
-5. Vyberte disk (USB s LuxOS, popisek `ARCHISO_EFI`).
+5. Vyberte disk (USB s LuxOS, popisek `LUXOS`; u starších ISO `ARCHISO_EFI`).
 6. Soubor **LUXOS_ENROLL_THIS_KEY.cer** je nahoře: Enter.
 7. Vyberte **Continue**, pak **Yes** u „Enroll the key(s)?“.
 8. Vyberte **Reboot**. Počítač znovu nastartuje z USB, objeví se nabídka LuxOS a živý systém
