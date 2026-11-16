@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - vzhled: svetly/tmavy rezim, tapeta, pruhlednost horni listy a docku
-# Pouziti: luxos-appearance [dark|light|auto|toggle|status|mode|watch|reapply|greeter-sync]
+# Pouziti: luxos-appearance [dark|light|auto|toggle|status|mode|watch|reapply|greeter-sync|wm-theme]
 #          auto = podle vychodu/zapadu slunce (poloha z casoveho pasma), watch = hlidani v relaci
 #          luxos-appearance wallpaper SOUBOR | bar-opacity 0-100 | dock-opacity 0-100|default
 #          luxos-appearance bar-style classic|rounded | bar-clock right|center | bar-text auto|white
@@ -198,6 +198,36 @@ panel_css() {
     return 0
 }
 
+# Tlacitka oken aplikaci GTK 4/libadwaita (Videa - Celluloid a dalsi): libadwaita tema GTK nepouziva
+# a kreslila by sede kulate x - □ misto barevnych tlacitek jako ostatni okna (xfwm4 WhiteSur).
+# Uzivatelsky ~/.config/gtk-4.0/gtk.css cte kazda aplikace GTK 4 vcetne libadwaita; spravovany blok,
+# ostatni obsah souboru zustava. Barvy jsou stejne ve svetlem i tmavem rezimu.
+gtk4_css() {
+    local css="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-4.0/gtk.css" block old b='windowcontrols > button'
+    mkdir -p "${css%/*}"
+    touch "$css"
+    block="/* LuxOS window buttons begin */"$'\n'
+    # kolecko kresli obrazek v tlacitku (tlacitko samo se v zahlavi roztahne na celou vysku)
+    block+="windowcontrols { border-spacing: 0; }"$'\n'
+    block+="$b, $b:hover, $b:active, $b:backdrop { min-width: 0; min-height: 0; padding: 0 5px; margin: 0;"
+    block+=" border: none; background: none; box-shadow: none; transition: none; }"$'\n'
+    block+="$b > image { min-width: 0; min-height: 0; padding: 1px; margin: 0; border-radius: 999px;"
+    block+=" background-image: none; box-shadow: inset 0 0 0 1px alpha(black, 0.12); color: transparent;"
+    block+=" -gtk-icon-size: 12px; }"$'\n'
+    block+="$b.close > image { background-color: #ff5f57; }"$'\n'
+    block+="$b.minimize > image { background-color: #febc2e; }"$'\n'
+    block+="$b.maximize > image { background-color: #28c840; }"$'\n'
+    block+="$b:hover > image { color: alpha(black, 0.55); }"$'\n'
+    block+="$b:active > image { filter: brightness(0.85); }"$'\n'
+    # neaktivni okno: sede jako v macOS, pod mysi zase barevne
+    block+="$b:backdrop:not(:hover) > image { background-color: alpha(currentColor, 0.2); box-shadow: none; }"$'\n'
+    block+="/* LuxOS window buttons end */"
+    old=$(sed -n '/\/\* LuxOS window buttons begin \*\//,/\/\* LuxOS window buttons end \*\//p' "$css")
+    [[ $old == "$block" ]] && return 0
+    sed -i '/\/\* LuxOS window buttons begin \*\//,/\/\* LuxOS window buttons end \*\//d' "$css"
+    printf '%s\n' "$block" >>"$css"
+}
+
 # Je plugin luxos-bar nainstalovany? (panel jinak hlasi chybejici plugin)
 have_bar_plugin() {
     local d
@@ -253,6 +283,20 @@ bar_layout() {
     "${q[@]}" -p "$ids" --force-array "${args[@]}"
 }
 
+# Tema ramecku oken xfwm4: pri meritku oken 2x (Nastaveni > Vzhled > Meritko oken) varianta -xhdpi
+# s dvojnasobnymi obrazky, jinak by byla lista okna polovicni a titulek oriznuty.
+# Zmenu meritka hlida luxos-hub (luxos-appearance wm-theme).
+themes_dir=${LUXOS_THEMES_DIR:-/usr/share/themes}
+wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light nebo WhiteSur-Light-xhdpi
+    local scale
+    scale=$(xfconf-query -c xsettings -p /Gdk/WindowScalingFactor 2>/dev/null)
+    if [[ $scale =~ ^[0-9]+$ ]] && (( scale >= 2 )) && [[ -r $themes_dir/$1-xhdpi/xfwm4/themerc ]]; then
+        echo "$1-xhdpi"
+    else
+        echo "$1"
+    fi
+}
+
 restart_panel() {
     pgrep -u "$USER" -x xfce4-panel >/dev/null && xfce4-panel -r >/dev/null 2>&1 &
 }
@@ -272,7 +316,7 @@ apply() {
     if command -v xfconf-query >/dev/null; then
         xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s "$gtk"
         xfconf-query -c xsettings -p /Net/IconThemeName -n -t string -s "$icons"
-        xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$gtk"
+        xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$(wm_theme "$gtk")"
         xfconf-query -c xfce4-notifyd -p /theme -n -t string -s "$gtk"
         xfconf-query -c xfce4-panel -p /panels/dark-mode -n -t bool -s "$([[ $mode == dark ]] && echo true || echo false)"
         xfconf-query -c xfce4-panel -p /panels/panel-1/background-rgba -n \
@@ -292,6 +336,7 @@ apply() {
     local old
     old=$(cat "$state_file" 2>/dev/null)
     panel_css "$mode" || true
+    gtk4_css
     mkdir -p "$state_dir"
     echo "$mode" > "$state_file"
     # Panel nacita gtk.css jen pri startu
@@ -303,13 +348,14 @@ apply() {
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
     . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
     if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
-    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white]"
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|wm-theme|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white]"
 }
 
 case ${1:-status} in
     # Po aktualizaci LuxOS (luxos-session pri prihlaseni): obnovit spravovany blok, panel jen pri zmene
     # (a doplnit plugin luxos-bar do listy)
     panel-css)  c=1
+                gtk4_css
                 panel_css "$(current)" && c=0
                 bar_layout && c=0
                 (( c )) || restart_panel ;;
@@ -344,6 +390,13 @@ case ${1:-status} in
             [[ $m == "$(current)" ]] || { apply "$m"; set_wallpaper "$m" 1; greeter_sync; }
         done ;;
     reapply)    set_wallpaper "$(current)" 0 ;;
+    # Po zmene meritka oken: jen tema ramecku (vlastni tema xfwm4 mimo WhiteSur zustava)
+    wm-theme)   cur=$(xfconf-query -c xfwm4 -p /general/theme 2>/dev/null)
+                if [[ -z $cur || $cur == WhiteSur-@(Light|Dark)?(-xhdpi) ]]; then
+                    m=$([[ $(current) == dark ]] && echo Dark || echo Light)
+                    want=$(wm_theme "WhiteSur-$m")
+                    [[ $cur == "$want" ]] || xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$want"
+                fi ;;
     greeter-sync) greeter_sync ;;
     status)     current ;;
     wallpaper)

@@ -1033,6 +1033,25 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: len(syncs()) == 2, 5), self.calls())
         self.assertEqual(self.hub.poll(), None)
 
+    def test_window_scaling_syncs_wm_theme(self):
+        """Zmena meritka oken (xsettings /Gdk/WindowScalingFactor) -> luxos-appearance wm-theme (ramecky -xhdpi)."""
+        xfconf = self.service("org.xfce.Xfconf", [("/org/xfce/Xfconf", XFCONF_SIGNAL_XML)])
+        self.start_hub()
+
+        def emit(channel, prop, value):
+            xfconf.emit("/org/xfce/Xfconf", "org.xfce.Xfconf", "PropertyChanged",
+                        GLib.Variant("(ssv)", (channel, prop, value)))
+
+        def syncs():
+            return [c for c in self.calls() if c == "luxos-appearance wm-theme"]
+        emit("xsettings", "/Xft/DPI", GLib.Variant("i", 120))
+        emit("xfwm4", "/Gdk/WindowScalingFactor", GLib.Variant("i", 2))
+        time.sleep(1.0)
+        self.assertEqual(syncs(), [])
+        emit("xsettings", "/Gdk/WindowScalingFactor", GLib.Variant("i", 2))
+        self.assertTrue(self.wait_for(lambda: len(syncs()) == 1, 5), self.calls())
+        self.assertEqual(self.hub.poll(), None)
+
     # ---- LuxOS Care a Ovladace -----------------------------------------------------------------------------------
     def test_gpu_follows_power_profile(self):
         """Grafika podle rezimu napajeni: luxos-gpu apply po startu a po kazde zmene ActiveProfile (signal,
