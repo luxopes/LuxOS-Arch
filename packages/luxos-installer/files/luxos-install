@@ -341,7 +341,10 @@ interactive() {
         LOCALE=${sel##*|}
     fi
     ui_lang "$LOCALE"
-    info "$(T "Language: %s" "$LOCALE")"
+    # nazev jazyka ("Čeština"), ne kod locale; "Jiny…" = vybrane locale
+    local lang_name=${sel%%|*}
+    [[ $sel == "Other…" ]] && lang_name=$LOCALE
+    info "$(T "Language: %s" "$(T "${lang_name%% · *}")")"
     info "$(T "The installation takes about 10 minutes.")"
 
     ensure_internet
@@ -566,11 +569,12 @@ OEM_USER=oem
 OEM_LUKS_NAME=cryptroot
 
 ask_oem() {
-    title "$(T "Who will use this computer?")"
+    title "$(T "Account")"     # otazka je v hlavicce vyberu (ne dvakrat pod sebou)
     local me other sel
     me=$(T "Me - set up my account now")
     other=$(T "Prepare for another person (OEM)")
     sel=$(gum choose --header "$(T "Who will use this computer?")" "$me" "$other") || exit 1
+    info "$sel"
     OEM=0
     [[ $sel == "$other" ]] && OEM=1
     ((${OEM:-0})) && info "$(T "The owner creates their account in the setup assistant at the first start.")"
