@@ -5023,3 +5023,16 @@ Weekends	Wochenenden
 What is playing, with Play/Pause and Next. Shown only while something plays.	Was gerade läuft, mit Wiedergabe/Pause und Weiter. Nur sichtbar, während etwas läuft.
 Widget	Widget
 World Clock	Weltuhr
+Nothing is changed until you choose an action and confirm it.	Nichts wird geändert, bis Sie eine Aktion wählen und bestätigen.
+Checking what will be kept and what will be lost...	Prüfe, was erhalten bleibt und was verloren geht...
+Copying the apps from Flathub to the new system failed: %s	Das Kopieren der Flathub-Apps in das neue System ist fehlgeschlagen: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Erhalten bleiben: Ihre Dateien in /home, Benutzerkonten und Passwörter (%s), Sprache, Tastatur, Zeitzone, Festplattenverschlüsselung und die Bootloader-Einstellungen.
+Kept Wi-Fi and network connections: %s	Erhalten bleiben WLAN- und Netzwerkverbindungen: %s
+Installed again from the LuxOS repositories: %d packages.	Neu installiert aus den LuxOS-Paketquellen: %d Pakete.
+Kept apps from Flathub: %d.	Erhalten bleiben Apps von Flathub: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	GEHT VERLOREN - Apps, die nicht aus den LuxOS-Paketquellen stammen (AUR, Community, von Hand installiert); installieren Sie sie danach neu:
+LOST - system settings you changed yourself (they return to the defaults):	GEHT VERLOREN - Systemeinstellungen, die Sie selbst geändert haben (sie werden auf die Standardwerte zurückgesetzt):
+LOST - programs installed outside the package manager:	GEHT VERLOREN - Programme, die außerhalb der Paketverwaltung installiert wurden:
+Nothing else is lost.	Sonst geht nichts verloren.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Alles bleibt im Snapshot „vor der Neuinstallation“ erhalten - in LuxOS Recovery können Sie dorthin zurückkehren.
+show what a reinstall keeps and what is lost, without changing anything (root)	zeigt, was eine Neuinstallation behält und was verloren geht, ohne etwas zu ändern (root)

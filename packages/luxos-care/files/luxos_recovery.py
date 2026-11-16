@@ -32,6 +32,18 @@ CARRY = [
     "usr/local/sbin/luxos-esp-sync", "etc/initcpio/post/luxos-esp-sync",
 ]
 ACCOUNT_FILES = ("etc/passwd", "etc/group", "etc/shadow", "etc/gshadow")
+# Data aplikaci mimo /home, ktera se prenesou cela (kopie s reflink na stejnem btrfs = bez mista navic):
+# aplikace z Flathubu pro vsechny uzivatele (lux, Obchod: flatpak --system)
+CARRY_DATA = ["var/lib/flatpak"]
+# Soubory v /etc, ktere nepatri zadnemu baliku, ale vytvari je system sam (v seznamu ztrat nemaji co delat)
+GENERATED = ("etc/ssl/", "etc/ca-certificates/", "etc/pacman.d/gnupg/", "etc/lux/gnupg/", "etc/ld.so.cache",
+             "etc/.pwd.lock", "etc/.updated", "etc/adjtime", "etc/passwd-", "etc/group-", "etc/shadow-",
+             "etc/gshadow-", "etc/subuid", "etc/subgid", "etc/subuid-", "etc/subgid-", "etc/resolv.conf",
+             "etc/systemd/system/", "etc/mtab", "etc/os-release", "etc/machine-info", "etc/udev/hwdb.bin",
+             "etc/xml/catalog", "etc/fonts/conf.d/", "etc/pki/", "etc/ssh/ssh_host_", "etc/lux/engine",
+             "etc/.luxos", "etc/mkinitcpio.d/", "etc/initcpio/", "etc/lightdm/lightdm.conf.d/",
+             "etc/plymouth/", "etc/gtk-", "etc/dconf/db/")
+PLAN_MAX = 30
 UID_MIN, UID_MAX = 1000, 60000
 ESSENTIAL = ("base", "lux-engine", "lux", "luxos-care")
 
@@ -229,6 +241,107 @@ def copy_path(src_root, dst_root, rel):
     return True
 
 
+def carry_data(old, new):
+    """Data aplikaci (CARRY_DATA): cp --reflink=auto (stejny btrfs: sdilene bloky, hned hotovo)."""
+    done = []
+    for rel in CARRY_DATA:
+        src = os.path.join(old, rel)
+        if not os.path.isdir(src) or os.path.islink(src):
+            continue
+        dst = os.path.join(new, rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        if os.path.isdir(dst):
+            shutil.rmtree(dst, ignore_errors=True)
+        rc, o = snap.sh(["cp", "-a", "--reflink=auto", src, dst], timeout=3600)
+        if rc != 0:
+            raise snap.SnapshotError("copy_failed", f"{rel}: {o.strip()[-300:]}")
+        done.append(rel)
+    return done
+
+
+def _carried(rel):
+    return any(rel == c or rel.startswith(c.rstrip("/") + "/") for c in CARRY + list(ACCOUNT_FILES))
+
+
+def changed_settings(old):
+    """Nastaveni systemu, ktera preinstalace vrati do vychoziho stavu (prenasi se jen CARRY):
+    upravene konfiguracni soubory baliku (backup, MODIFIED) a vlastni soubory v /etc mimo baliky.
+    -> serazeny seznam cest ("/etc/...")."""
+    db = os.path.join(old, "var/lib/lux")
+    out = set()
+    rc, text = snap.sh([care.ENGINE, "--root", old, "--dbpath", db, "-Qii"], timeout=300)
+    owned = set()
+    if rc == 0:
+        for ln in text.splitlines():
+            m = re.match(r"^\s*(?:Backup Files\s*:\s*)?MODIFIED\s+(/\S+)", ln)
+            if m:
+                rel = m.group(1).lstrip("/")
+                if rel.startswith("etc/") and not _carried(rel):
+                    out.add("/" + rel)
+    rc2, files = snap.sh([care.ENGINE, "--root", old, "--dbpath", db, "-Qlq"], timeout=300)
+    if rc2 == 0:
+        owned = {f.strip().lstrip("/").rstrip("/") for f in files.splitlines() if f.strip()}
+        base = os.path.join(old, "etc")
+        for d, dirs, names in os.walk(base):
+            dirs.sort()
+            for n in sorted(names):
+                rel = os.path.relpath(os.path.join(d, n), old)
+                if rel in owned or _carried(rel) or rel.startswith(GENERATED) \
+                        or rel.endswith((".luxnew", ".luxsave", ".pacnew", ".pacsave", "~")):
+                    continue
+                out.add("/" + rel)
+    return sorted(out)
+
+
+def extra_places(old):
+    """Vlastni programy mimo baliky, ktere preinstalace neprenese: /opt, /usr/local (krome LuxOS)."""
+    out = []
+    for rel in ("opt", "usr/local/bin", "usr/local/sbin", "usr/local/lib", "usr/local/share"):
+        try:
+            names = sorted(os.listdir(os.path.join(old, rel)))
+        except OSError:
+            continue
+        for n in names:
+            r = f"{rel}/{n}"
+            if not _carried(r) and n not in ("man",):
+                out.append("/" + r)
+    return out
+
+
+def reinstall_plan(top):
+    """Co preinstalace prenese a co ne (zobrazi se pred potvrzenim). -> dict."""
+    snaps = snap.list_snapshots(top)
+    system = snap.system_subvol(top, snaps)
+    old = os.path.join(top, system)
+    if not snap.BTRFS.is_subvolume(old):
+        raise snap.SnapshotError("no_subvolume", system)
+    native, foreign = explicit_packages(old)
+    if not native:
+        raise snap.SnapshotError("no_packages")
+    flatpaks = []
+    try:
+        flatpaks = sorted(os.listdir(os.path.join(old, "var/lib/flatpak/app")))
+    except OSError:
+        pass
+    users = human_users(_read(os.path.join(old, "etc/passwd")))
+    wifi = []
+    try:
+        wifi = sorted(n.rsplit(".nmconnection", 1)[0] for n in os.listdir(
+            os.path.join(old, "etc/NetworkManager/system-connections")) if n.endswith(".nmconnection"))
+    except OSError:
+        pass
+    return {"system": system, "packages": len(native), "foreign": foreign, "flatpaks": flatpaks,
+            "settings": changed_settings(old), "extra": extra_places(old), "users": users, "wifi": wifi}
+
+
+def _read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
 def carry_config(old, new):
     copied = [rel for rel in CARRY if copy_path(old, new, rel)]
     texts_old, texts_new = {}, {}
@@ -322,6 +435,9 @@ def reinstall(top, out=print, now=None, lay=None):
         out("copying accounts and settings")
         carry_config(old, new)
         carry_services(old, new)
+        carry_data(old, new)
+        # prvni start noveho systemu se overi (nabidka zavadece pri dalsim startu, kdyz selze)
+        care.atomic_write(os.path.join(new, care.VERIFY_BOOT.lstrip("/")), f"{care.now()}\n")
         rc, o = snap.sh(["chroot", new, "systemctl", "set-default", "graphical.target"], timeout=120)
         out("creating the initramfs")
         rc, o = snap.sh(["chroot", new, "mkinitcpio", "-P"], timeout=1800)

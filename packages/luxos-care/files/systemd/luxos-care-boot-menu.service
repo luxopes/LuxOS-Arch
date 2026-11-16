@@ -1,0 +1,18 @@
+[Unit]
+Description=LuxOS Care: show the boot menu at the next start if this start fails
+Documentation=https://luxos.lux-ai.cz/docs/luxos/recovery/
+# Prvni start po zmene systemu (znacka verify-boot z hooku pred transakci, navratu, preinstalace):
+# nabidka systemd-boot na 10 s pri pristim startu; uspesny start (luxos-care-boot.service) ji vypne.
+DefaultDependencies=no
+After=local-fs.target sys-firmware-efi-efivars.mount
+Before=sysinit.target shutdown.target
+Conflicts=shutdown.target
+ConditionPathExists=/var/lib/luxos-care/verify-boot
+ConditionPathIsDirectory=/sys/firmware/efi/efivars
+ConditionKernelCommandLine=!luxos.snapshot
+ConditionPathExists=!/run/archiso
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/luxos-care boot-menu arm

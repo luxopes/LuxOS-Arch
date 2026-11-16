@@ -570,6 +570,8 @@ class SdBoot(Env):
         with open(os.path.join(self.top, "@", snap.AFTER_ROLLBACK.lstrip("/"))) as f:
             flag = json.load(f)
         self.assertEqual(flag["to"], a["name"])
+        # prvni start obnoveneho systemu se overi (nabidka zavadece, kdyz selze)
+        self.assertTrue(os.path.exists(os.path.join(self.top, "@", care.VERIFY_BOOT.lstrip("/"))))
         with open(os.path.join(self.top, "@/var/lib/luxos-care/state.json")) as f:
             self.assertGreater(json.load(f)["next_attempt"], care.now() + 2 * 24 * 3600)
         self.assertIn(f"snapshot-luxos-{res['replaced']}.conf", self.entries())

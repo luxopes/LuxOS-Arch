@@ -1924,6 +1924,73 @@ def boot_check(wait=True):
     return 0
 
 
+# ---- nabidka zavadece po nepovedenem startu ------------------------------------------------
+# systemd-boot ma u LuxOS timeout 0 (nabidka jen pri drzeni mezerniku). Po zmene systemu (aktualizace,
+# instalace, navrat, preinstalace) se zapise znacka VERIFY_BOOT; prvni start po ni hned na zacatku
+# zapne nabidku na RESCUE_MENU_SECONDS (promenna UEFI LoaderConfigTimeout, bootctl set-timeout)
+# a az uspesny start (boot-check) ji zase vypne. Kdyz start selze (system nenabehne, nenabehne
+# prihlaseni, vypadek proudu), dalsi start ukaze nabidku s "LuxOS Recovery" a snimky sam.
+# Bezne starty i prvni start po aktualizaci jsou stejne rychle; do NVRAM se pise jen po zmene systemu.
+# Promenna s jinou hodnotou (uzivatel si timeout nastavil sam, klavesa t v nabidce) se nemeni.
+VERIFY_BOOT = STATE_DIR + "/verify-boot"
+RESCUE_MENU_SECONDS = 10
+LOADER_GUID = "4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
+EFIVARS = "/sys/firmware/efi/efivars"
+TIMEOUT_VAR = f"{EFIVARS}/LoaderConfigTimeout-{LOADER_GUID}"
+
+
+def loader_timeout_var():
+    """Hodnota LoaderConfigTimeout (retezec UTF-16 po 4 bajtech atributu) nebo None."""
+    try:
+        with open(P(TIMEOUT_VAR), "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+    return data[4:].decode("utf-16-le", "replace").rstrip("\0").strip()
+
+
+def rescue_menu_supported(lay=None):
+    lay = lay or detect_layout()
+    return lay["kind"] == "sdboot" and os.path.isdir(P(EFIVARS)) and have("bootctl")
+
+
+def mark_verify_boot():
+    """Po zmene systemu: prvni start se ma overit (jen znacka na disku, NVRAM az pri startu)."""
+    try:
+        atomic_write(P(VERIFY_BOOT), f"{now()}\n", 0o644)
+    except OSError as e:
+        log(f"could not mark the next start for checking: {e}")
+
+
+def rescue_menu_arm(lay=None):
+    """Nabidka zavadece pri pristim startu (dokud tento start neskonci uspechem). -> True = zapsano."""
+    if not rescue_menu_supported(lay):
+        return False
+    cur = loader_timeout_var()
+    if cur is not None:
+        return False            # uz zapnuto (nami nebo uzivatelem) - nic nepsat
+    rc, out = run(["bootctl", "set-timeout", str(RESCUE_MENU_SECONDS)], timeout=30)
+    if rc != 0:
+        log(f"boot menu after a failed start not armed: {out.strip()[-300:]}")
+        return False
+    return True
+
+
+def rescue_menu_disarm():
+    """Start se povedl: zase bez nabidky. Jen nase hodnota; znacka VERIFY_BOOT pryc."""
+    try:
+        os.unlink(P(VERIFY_BOOT))
+    except OSError:
+        pass
+    if loader_timeout_var() != str(RESCUE_MENU_SECONDS) or not have("bootctl"):
+        return False
+    rc, out = run(["bootctl", "set-timeout", ""], timeout=30)
+    if rc != 0:
+        log(f"boot menu timeout not reset: {out.strip()[-300:]}")
+        return False
+    return True
+
+
 def is_prev_running():
     prev = kread("prev")
     return bool(prev) and prev == running_kernel()

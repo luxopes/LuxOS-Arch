@@ -1145,3 +1145,64 @@ class TscFix(Root):
         lay = care.detect_layout()
         text = care.prev_entry_text(self.r("/boot/loader/entries/luxos.conf"), lay, "7.2.11-zen1-1-zen")
         self.assertIn("tsc=nowatchdog", text)
+
+
+# ---- nabidka zavadece po nepovedenem startu --------------------------------------------------
+class RescueMenu(Root):
+    """Prvni start po zmene systemu zapne nabidku systemd-boot pro pristi start (LoaderConfigTimeout),
+    uspesny start ji vypne; hodnotu, kterou si nastavil uzivatel, LuxOS nemeni."""
+
+    def setUp(self):
+        super().setUp()
+        self.w("/boot/loader/entries/luxos.conf", "title LuxOS\nlinux /vmlinuz-linux-luxos\n")
+        self.w("/boot/loader/loader.conf", "default luxos.conf\ntimeout 0\nconsole-mode max\neditor no\n")
+        os.makedirs(self.root + care.EFIVARS)
+        self.calls = []
+        p1 = mock.patch.object(care, "run", self.fake_run)
+        p2 = mock.patch.object(care, "have", lambda c: True)
+        p1.start()
+        p2.start()
+        self.addCleanup(p1.stop)
+        self.addCleanup(p2.stop)
+
+    def setvar(self, value):
+        with open(self.root + care.TIMEOUT_VAR, "wb") as f:
+            f.write(b"\x07\x00\x00\x00" + (value + "\0").encode("utf-16-le"))
+
+    def fake_run(self, cmd, timeout=600, **_kw):
+        self.calls.append(cmd)
+        if cmd[:2] == ["bootctl", "set-timeout"]:
+            if cmd[2]:
+                self.setvar(cmd[2])
+            else:
+                os.unlink(self.root + care.TIMEOUT_VAR)
+        return 0, ""
+
+    def test_arm_then_disarm(self):
+        care.mark_verify_boot()
+        self.assertTrue(os.path.exists(self.root + care.VERIFY_BOOT))
+        self.assertTrue(care.rescue_menu_arm())
+        self.assertEqual(care.loader_timeout_var(), "10")
+        self.assertFalse(care.rescue_menu_arm())              # uz zapnuto: zadny dalsi zapis do NVRAM
+        self.assertEqual(len(self.calls), 1)
+        self.assertTrue(care.rescue_menu_disarm())
+        self.assertIsNone(care.loader_timeout_var())
+        self.assertFalse(os.path.exists(self.root + care.VERIFY_BOOT))
+
+    def test_user_timeout_untouched(self):
+        self.setvar("5")
+        self.assertFalse(care.rescue_menu_arm())
+        self.assertFalse(care.rescue_menu_disarm())
+        self.assertEqual(care.loader_timeout_var(), "5")
+        self.assertEqual(self.calls, [])
+
+    def test_disarm_without_var_writes_nothing(self):
+        self.assertFalse(care.rescue_menu_disarm())
+        self.assertEqual(self.calls, [])
+
+    def test_not_on_grub_or_bios(self):
+        shutil.rmtree(self.root + "/boot/loader")
+        self.w("/boot/grub/grub.cfg", "")
+        self.assertFalse(care.rescue_menu_arm())
+        shutil.rmtree(self.root + "/boot/grub")
+        self.assertEqual(self.calls, [])

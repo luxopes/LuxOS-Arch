@@ -4985,3 +4985,16 @@ Removed the kernel of older snapshots: %s	Kärnan för äldre ögonblicksbilder 
 Free space on the boot partition: %d MB	Ledigt utrymme på startpartitionen: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Startavbilden är skadad (%s) och kunde inte skapas på nytt. Starta inte om datorn än: frigör utrymme på startpartitionen och kör: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	EFI-partitionen är mindre än 1 GB: färre ögonblicksbilder av systemet kan startas från startmenyn.
+Nothing is changed until you choose an action and confirm it.	Ingenting ändras förrän du väljer en åtgärd och bekräftar den.
+Checking what will be kept and what will be lost...	Kontrollerar vad som behålls och vad som går förlorat...
+Copying the apps from Flathub to the new system failed: %s	Det gick inte att kopiera apparna från Flathub till det nya systemet: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Behålls: dina filer i /home, användarkonton och lösenord (%s), språk, tangentbord, tidszon, diskkryptering och starthanterarens inställningar.
+Kept Wi-Fi and network connections: %s	Wi-Fi-nätverk och anslutningar som behålls: %s
+Installed again from the LuxOS repositories: %d packages.	Installeras om från LuxOS-förråden: %d paket.
+Kept apps from Flathub: %d.	Appar från Flathub som behålls: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	GÅR FÖRLORAT - appar som inte kommer från LuxOS-förråden (AUR, community, installerade för hand); installera dem igen efteråt:
+LOST - system settings you changed yourself (they return to the defaults):	GÅR FÖRLORAT - systeminställningar som du själv har ändrat (de återgår till standard):
+LOST - programs installed outside the package manager:	GÅR FÖRLORAT - program som installerats utanför pakethanteraren:
+Nothing else is lost.	Inget annat går förlorat.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Allt finns kvar i ögonblicksbilden ”före ominstallation” - du kan gå tillbaka till den i LuxOS Recovery.
+show what a reinstall keeps and what is lost, without changing anything (root)	visar vad en ominstallation behåller och vad som går förlorat, utan att ändra något (root)

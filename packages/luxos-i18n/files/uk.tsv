@@ -4986,3 +4986,16 @@ Removed the kernel of older snapshots: %s	Видалено ядро старіш
 Free space on the boot partition: %d MB	Вільне місце на завантажувальному розділі: %d МБ
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	Завантажувальний образ пошкоджено (%s), і його не вдалося зібрати знову. Поки не перезавантажуйте комп'ютер: звільніть місце на завантажувальному розділі й виконайте: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Розділ EFI менший за 1 ГБ: з меню завантаження можна буде запустити менше знімків системи.
+Nothing is changed until you choose an action and confirm it.	Нічого не зміниться, доки ви не виберете дію і не підтвердите її.
+Checking what will be kept and what will be lost...	Перевіряю, що залишиться, а що буде втрачено...
+Copying the apps from Flathub to the new system failed: %s	Не вдалося скопіювати застосунки з Flathub у нову систему: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Залишиться: ваші файли в /home, облікові записи та паролі (%s), мова, клавіатура, часовий пояс, шифрування диска і налаштування завантажувача.
+Kept Wi-Fi and network connections: %s	Залишаться мережі Wi-Fi та з'єднання: %s
+Installed again from the LuxOS repositories: %d packages.	Буде перевстановлено з репозиторіїв LuxOS: %d пакетів.
+Kept apps from Flathub: %d.	Залишаться застосунки з Flathub: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	БУДЕ ВТРАЧЕНО - застосунки не з репозиторіїв LuxOS (AUR, спільнота, встановлені вручну); потім встановіть їх знову:
+LOST - system settings you changed yourself (they return to the defaults):	БУДЕ ВТРАЧЕНО - системні налаштування, які ви змінили самі (повернуться до типових):
+LOST - programs installed outside the package manager:	БУДЕ ВТРАЧЕНО - програми, встановлені поза менеджером пакетів:
+Nothing else is lost.	Більше нічого не буде втрачено.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Усе залишиться в знімку «перед перевстановленням» - у LuxOS Recovery до нього можна повернутися.
+show what a reinstall keeps and what is lost, without changing anything (root)	показує, що перевстановлення збереже, а що буде втрачено, нічого не змінюючи (root)

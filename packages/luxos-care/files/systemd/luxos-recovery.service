@@ -2,7 +2,7 @@
 Description=LuxOS Recovery (disk check, snapshots, reinstall)
 DefaultDependencies=no
 Conflicts=shutdown.target
-After=sysinit.target plymouth-start.service
+After=sysinit.target plymouth-start.service systemd-vconsole-setup.service
 Before=shutdown.target
 
 [Service]

@@ -4985,3 +4985,16 @@ Removed the kernel of older snapshots: %s	Rimosso il kernel di snapshot meno rec
 Free space on the boot partition: %d MB	Spazio libero nella partizione di avvio: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	L'immagine di avvio è danneggiata (%s) e non è stato possibile ricrearla. Non riavviare ancora il computer: libera spazio nella partizione di avvio ed esegui: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	La partizione EFI è più piccola di 1 GB: dal menu di avvio si potranno avviare meno snapshot del sistema.
+Nothing is changed until you choose an action and confirm it.	Non viene modificato nulla finché non scegli un'azione e la confermi.
+Checking what will be kept and what will be lost...	Verifica di cosa verrà mantenuto e cosa verrà perso...
+Copying the apps from Flathub to the new system failed: %s	La copia delle app di Flathub nel nuovo sistema non è riuscita: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Mantenuti: i tuoi file in /home, gli account utente e le password (%s), la lingua, la tastiera, il fuso orario, la cifratura del disco e le impostazioni del boot loader.
+Kept Wi-Fi and network connections: %s	Reti Wi-Fi e connessioni mantenute: %s
+Installed again from the LuxOS repositories: %d packages.	Reinstallati dai repository di LuxOS: %d pacchetti.
+Kept apps from Flathub: %d.	App di Flathub mantenute: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	PERSO - app che non provengono dai repository di LuxOS (AUR, community, installate a mano); reinstallale dopo:
+LOST - system settings you changed yourself (they return to the defaults):	PERSO - impostazioni di sistema che hai modificato tu (tornano ai valori predefiniti):
+LOST - programs installed outside the package manager:	PERSO - programmi installati al di fuori del gestore dei pacchetti:
+Nothing else is lost.	Nient'altro viene perso.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Tutto resta nello snapshot «prima della reinstallazione»: puoi tornarci da LuxOS Recovery.
+show what a reinstall keeps and what is lost, without changing anything (root)	mostra cosa mantiene una reinstallazione e cosa viene perso, senza modificare nulla (root)

@@ -83,6 +83,18 @@ class Recovery(Env):
                    os.path.join(self.old, "etc/systemd/system/default.target"))
 
     def fake_sh(self, cmd, timeout=600):
+        if cmd[0] == care.ENGINE and "-Qii" in cmd:
+            return 0, ("Name            : pacman-conf\nBackup Files    : MODIFIED\t/etc/lux/lux.conf\n"
+                       "                  MODIFIED\t/etc/sysctl.d/99-mine.conf\n"
+                       "                  UNMODIFIED\t/etc/default/useradd\n"
+                       "Name            : x\nBackup Files    : MODIFIED\t/etc/makepkg.conf\n")
+        if cmd[0] == care.ENGINE and "-Qlq" in cmd:
+            return 0, "/etc/\n/etc/sysctl.d/\n/etc/sysctl.d/99-mine.conf\n/etc/makepkg.conf\n/etc/locale.conf\n"
+        if cmd[:3] == ["cp", "-a", "--reflink=auto"]:
+            self.cmds.append(cmd)
+            import shutil
+            shutil.copytree(cmd[3], cmd[4], symlinks=True)
+            return 0, ""
         if cmd[0] == care.ENGINE and "-Qqen" in cmd:
             self.cmds.append(cmd)
             return 0, "base\nfirefox\nlinux-luxos\nluxos-desktop\n"
@@ -111,6 +123,30 @@ class Recovery(Env):
             return 0, ""
         return super().fake_sh(cmd, timeout)
 
+    def test_reinstall_plan(self):
+        """Pred potvrzenim: cizi baliky jmenem, zmenena nastaveni (mimo prenasena), co zustane; nic se nemeni."""
+        self.sysfile("/var/lib/flatpak/app/org.gimp.GIMP/x", "1")
+        self.sysfile("/opt/myapp/run", "1")
+        self.sysfile("/etc/ssl/certs/ca.pem", "x")                       # generovany - neni ztrata
+        before = sorted(os.walk(self.top))
+        plan = rec.reinstall_plan(self.top)
+        self.assertEqual(plan["foreign"], ["yay-bin"])
+        self.assertEqual(plan["flatpaks"], ["org.gimp.GIMP"])
+        self.assertEqual(plan["users"], ["anna", "host"])
+        self.assertEqual(plan["wifi"], ["Home"])
+        self.assertEqual(plan["extra"], ["/opt/myapp"])
+        # /etc/lux/lux.conf a locale.conf se prenaseji; makepkg.conf a sysctl zmenene, broken-by-user mimo baliky
+        self.assertEqual(plan["settings"], ["/etc/broken-by-user.conf", "/etc/makepkg.conf",
+                                            "/etc/sysctl.d/99-mine.conf"])
+        self.assertEqual(sorted(os.walk(self.top)), before)
+        self.assertFalse(any("-Sy" in c for c in self.cmds))
+
+    def test_reinstall_keeps_flatpak_apps(self):
+        self.sysfile("/var/lib/flatpak/app/org.gimp.GIMP/current", "gimp")
+        rec.reinstall(self.top, out=lambda *a: None, now=self.at(45))
+        with open(os.path.join(self.top, "@/var/lib/flatpak/app/org.gimp.GIMP/current")) as f:
+            self.assertEqual(f.read(), "gimp")
+
     def test_reinstall(self):
         res = rec.reinstall(self.top, out=lambda *a: None, now=self.at(45))
         self.assertEqual(res["kept"], "2026-10-26_14-45-00")
@@ -121,6 +157,7 @@ class Recovery(Env):
         with open(os.path.join(new, "etc/hostname")) as f:
             self.assertEqual(f.read(), "luxos\n")                         # prenesene nastaveni
         self.assertTrue(os.path.exists(os.path.join(new, "etc/NetworkManager/system-connections/Home.nmconnection")))
+        self.assertTrue(os.path.exists(os.path.join(new, care.VERIFY_BOOT.lstrip("/"))))
         self.assertFalse(os.path.exists(os.path.join(new, "etc/broken-by-user.conf")))   # zbytek je cisty
         with open(os.path.join(new, "etc/passwd")) as f:
             self.assertIn("anna:x:1000", f.read())

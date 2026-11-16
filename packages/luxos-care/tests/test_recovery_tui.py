@@ -20,6 +20,7 @@ FAKE_CARE = """#!/bin/bash
 echo "$*" >>"$LOG"
 case $1 in
   snapshots) printf '%s' "$SNAPS" ;;
+  reinstall) [[ " $* " == *" --plan "* ]] && { printf "%s\\n" "${PLAN:-LOST - apps: yay}"; exit ${PLAN_RC:-0}; } ;;
   disk-check) [[ " $* " == *" --repair "* ]] && exit 0; exit ${CHECK_RC:-0} ;;
 esac
 exit 0
@@ -61,6 +62,22 @@ class Tui(unittest.TestCase):
             self.assertIn(t, out)
         self.assertEqual(self.calls(), [])
 
+    def test_menu_says_nothing_changes(self):
+        out = self.run_tui("\n")
+        self.assertIn("Nothing is changed until you choose an action and confirm it.", out)
+
+    def test_czech_keyboard_number_row(self):
+        """Ceska klavesnice: 6 bez Shiftu napise ž - nabidka ho bere jako 6 (Restartovat)."""
+        fake = os.path.join(self.tmp, "bin")
+        os.makedirs(fake)
+        with open(os.path.join(fake, "systemctl"), "w") as f:
+            f.write('#!/bin/bash\necho "systemctl $*" >>"$LOG"\n')
+        os.chmod(os.path.join(fake, "systemctl"), 0o755)
+        self.run_tui("ž\n", PATH=fake + ":/usr/bin:/bin")
+        self.assertEqual(self.calls(), ["systemctl reboot"])
+        self.run_tui("+\n\n")                                      # + = 1 (Zkontrolovat disk)
+        self.assertEqual(self.calls()[-1], "disk-check")
+
     def test_disk_check_ok_no_repair(self):
         self.run_tui("1\n\n")
         self.assertEqual(self.calls(), ["disk-check"])
@@ -76,6 +93,15 @@ class Tui(unittest.TestCase):
         self.assertLess(out.index("2026-10-26 14:03"), out.index("2026-10-25 10:00"))
         self.assertEqual(self.calls(), ["snapshots --json", "rollback 2026-10-26_14-03-12 --yes"])
 
+    def test_rollback_list_shows_packages(self):
+        snaps = [{"name": "2026-11-16_09-01-33", "label": "LuxOS (before update of 2026-11-16 09:01)",
+                  "packages": ["moje-app"], "count": 1},
+                 {"name": "2026-11-16_09-01-47", "label": "LuxOS (before update of 2026-11-16 09:01)",
+                  "packages": ["htop", "a", "b", "c"], "count": 9}]
+        out = self.run_tui("2\n3\n", SNAPS=json.dumps(snaps))
+        self.assertIn("09:01) - htop, a, b +6", out)
+        self.assertIn("09:01) - moje-app", out)
+
     def test_rollback_declined(self):
         self.run_tui("2\n2\nn\n\n")
         self.assertEqual(self.calls(), ["snapshots --json"])
@@ -84,9 +110,22 @@ class Tui(unittest.TestCase):
 
     def test_reinstall_needs_typed_word(self):
         self.run_tui("3\nyes\n\n", LUXOS_RECOVERY_NET="0")
-        self.assertEqual(self.calls(), [])
+        self.assertEqual(self.calls(), ["reinstall --plan"])
         self.run_tui("3\nREINSTALL\n\n", LUXOS_RECOVERY_NET="0")
-        self.assertEqual(self.calls(), ["reinstall --yes"])
+        self.assertEqual(self.calls()[-2:], ["reinstall --plan", "reinstall --yes"])
+
+    def test_reinstall_lists_losses_before_word(self):
+        """Cizi aplikace jmenem a zmenena nastaveni se ukazou drive, nez se pta na potvrzovaci slovo."""
+        out = self.run_tui("3\nno\n\n", PLAN="LOST - apps: yay-bin spotify\nLOST - settings: /etc/foo.conf")
+        self.assertIn("yay-bin spotify", out)
+        self.assertLess(out.index("/etc/foo.conf"), out.index("REINSTALL"))
+        self.assertEqual(self.calls(), ["reinstall --plan"])
+
+    def test_reinstall_plan_failure_cancels(self):
+        out = self.run_tui("3\nREINSTALL\n\n", PLAN="The system disk was not found.", PLAN_RC="1",
+                           LUXOS_RECOVERY_NET="0")
+        self.assertIn("Cancelled.", out)
+        self.assertEqual(self.calls(), ["reinstall --plan"])
 
     @unittest.skipUnless(os.path.exists("/usr/lib/luxos/i18n.sh"), "needs luxos-i18n")
     def test_czech_from_locale_conf(self):
@@ -96,7 +135,7 @@ class Tui(unittest.TestCase):
             f.write("LANG=cs_CZ.UTF-8\n")
         out = self.run_tui("3\nPŘEINSTALOVAT\n\n", LANG="C", LUXOS_RECOVERY_NET="0")
         self.assertIn("Přeinstalovat LuxOS", out)
-        self.assertEqual(self.calls(), ["reinstall --yes"])
+        self.assertEqual(self.calls(), ["reinstall --plan", "reinstall --yes"])
 
     def test_system_fix(self):
         """Oprava nastaveni podle /etc/luxos/system.lsl: lux system fix (ten sam ukaze rozdil a zepta se)."""
@@ -114,7 +153,7 @@ class Tui(unittest.TestCase):
 
     def test_reinstall_offline_cancelled(self):
         self.run_tui("3\nREINSTALL\nn\n\n", LUXOS_RECOVERY_NET="1")
-        self.assertEqual(self.calls(), [])
+        self.assertEqual(self.calls(), ["reinstall --plan"])
 
 
 class Files(unittest.TestCase):

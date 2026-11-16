@@ -7,7 +7,7 @@
 
 pkgname=luxos-care
 pkgver=1.0.0
-pkgrel=17
+pkgrel=18
 pkgdesc="LuxOS Care - automatic updates, previous kernel fallback, self-repair, system snapshots, recovery and system protection"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"
@@ -38,6 +38,10 @@ package() {
         "$f/luxos_snapshots.py" "$f/luxos_recovery.py" "$f/luxos_protect.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
+    # Nabidka zavadece po nepovedenem startu: zapnuta staticky (i u starsich instalaci bez enable)
+    install -dm755 "$pkgdir/usr/lib/systemd/system/sysinit.target.wants" "$pkgdir/usr/lib/systemd/system/emergency.target.wants"
+    ln -s ../luxos-care-boot-menu.service "$pkgdir/usr/lib/systemd/system/sysinit.target.wants/luxos-care-boot-menu.service"
+    ln -s ../luxos-care-boot-menu.service "$pkgdir/usr/lib/systemd/system/emergency.target.wants/luxos-care-boot-menu.service"
     install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$f"/hooks/*.hook
     install -Dm755 "$f/grub/11_luxos_previous" "$pkgdir/etc/grub.d/11_luxos_previous"
     # Snimky systemu: start z nabidky zavadece (hook initramfs, drop-in kopiruje luxos-care.install)

@@ -4985,3 +4985,16 @@ Removed the kernel of older snapshots: %s	Régebbi pillanatképek kernele eltáv
 Free space on the boot partition: %d MB	Szabad hely a rendszerindító partíción: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	A rendszerindító kép sérült (%s), és nem sikerült újra elkészíteni. Még ne indítsa újra a számítógépet: szabadítson fel helyet a rendszerindító partíción, majd futtassa: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	Az EFI partíció kisebb 1 GB-nál: a rendszerbetöltő menüből kevesebb rendszer-pillanatkép indítható.
+Nothing is changed until you choose an action and confirm it.	Semmi sem változik, amíg ki nem választ és meg nem erősít egy műveletet.
+Checking what will be kept and what will be lost...	Annak ellenőrzése, mi marad meg és mi vész el...
+Copying the apps from Flathub to the new system failed: %s	A Flathub-alkalmazások átmásolása az új rendszerbe nem sikerült: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Megmarad: a fájljai a /home mappában, a felhasználói fiókok és jelszavak (%s), a nyelv, a billentyűzet, az időzóna, a lemeztitkosítás és a rendszerbetöltő beállításai.
+Kept Wi-Fi and network connections: %s	Megmaradnak a Wi-Fi-hálózatok és kapcsolatok: %s
+Installed again from the LuxOS repositories: %d packages.	Újratelepítés a LuxOS tárolóiból: %d csomag.
+Kept apps from Flathub: %d.	Megmaradnak a Flathub-alkalmazások: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	ELVÉSZ - nem a LuxOS tárolóiból származó alkalmazások (AUR, közösségi, kézzel telepített); utána telepítse őket újra:
+LOST - system settings you changed yourself (they return to the defaults):	ELVÉSZ - az Ön által módosított rendszerbeállítások (visszaállnak az alapértékre):
+LOST - programs installed outside the package manager:	ELVÉSZ - a csomagkezelőn kívül telepített programok:
+Nothing else is lost.	Más nem vész el.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Minden megmarad az „újratelepítés előtt” pillanatképben - a LuxOS Recoveryben visszatérhet hozzá.
+show what a reinstall keeps and what is lost, without changing anything (root)	megmutatja, mit tart meg az újratelepítés és mi vész el, semmit sem módosít (root)

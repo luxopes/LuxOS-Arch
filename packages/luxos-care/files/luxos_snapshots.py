@@ -1251,6 +1251,8 @@ def rollback(top, name, now=None, lay=None, kind="before-rollback", build=None):
     flag = {"time": care.now(), "from": replaced, "to": name, "label": label(meta), "kind": kind}
     try:
         care.atomic_write(os.path.join(sys_path, AFTER_ROLLBACK.lstrip("/")), json.dumps(flag) + "\n")
+        # prvni start obnoveneho systemu se overi: kdyz selze, dalsi start ukaze nabidku zavadece
+        care.atomic_write(os.path.join(sys_path, care.VERIFY_BOOT.lstrip("/")), f"{care.now()}\n")
         # Stejna aktualizace by se hned nainstalovala znovu: automaticke aktualizace pockaji
         st_path = os.path.join(sys_path, care.STATE.lstrip("/"))
         try:

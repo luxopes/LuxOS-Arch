@@ -4985,3 +4985,16 @@ Removed the kernel of older snapshots: %s	Kernel van oudere momentopnamen verwij
 Free space on the boot partition: %d MB	Vrije ruimte op de opstartpartitie: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	De opstartimage is beschadigd (%s) en kon niet opnieuw worden gemaakt. Start de computer nog niet opnieuw op: maak ruimte vrij op de opstartpartitie en voer uit: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	De EFI-partitie is kleiner dan 1 GB: er kunnen minder momentopnamen van het systeem vanuit het opstartmenu worden gestart.
+Nothing is changed until you choose an action and confirm it.	Er verandert niets totdat u een actie kiest en bevestigt.
+Checking what will be kept and what will be lost...	Controleren wat behouden blijft en wat verloren gaat...
+Copying the apps from Flathub to the new system failed: %s	Het kopiëren van de Flathub-apps naar het nieuwe systeem is mislukt: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Behouden: uw bestanden in /home, gebruikersaccounts en wachtwoorden (%s), taal, toetsenbord, tijdzone, schijfversleuteling en de bootloaderinstellingen.
+Kept Wi-Fi and network connections: %s	Behouden wifi-netwerken en verbindingen: %s
+Installed again from the LuxOS repositories: %d packages.	Opnieuw geïnstalleerd uit de LuxOS-pakketbronnen: %d pakketten.
+Kept apps from Flathub: %d.	Behouden apps van Flathub: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	GAAT VERLOREN - apps die niet uit de LuxOS-pakketbronnen komen (AUR, community, handmatig geïnstalleerd); installeer ze daarna opnieuw:
+LOST - system settings you changed yourself (they return to the defaults):	GAAT VERLOREN - systeeminstellingen die u zelf hebt gewijzigd (ze gaan terug naar de standaard):
+LOST - programs installed outside the package manager:	GAAT VERLOREN - programma's die buiten het pakketbeheer zijn geïnstalleerd:
+Nothing else is lost.	Verder gaat er niets verloren.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Alles blijft bewaard in de snapshot „vóór herinstallatie” - in LuxOS Recovery kunt u ernaar terugkeren.
+show what a reinstall keeps and what is lost, without changing anything (root)	toont wat een herinstallatie behoudt en wat verloren gaat, zonder iets te wijzigen (root)

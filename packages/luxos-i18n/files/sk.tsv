@@ -5023,3 +5023,16 @@ Weekends	Víkendy
 What is playing, with Play/Pause and Next. Shown only while something plays.	Čo práve hrá, s tlačidlami Prehrať/Pozastaviť a Ďalšie. Zobrazí sa, len keď niečo hrá.
 Widget	Widget
 World Clock	Svetový čas
+Nothing is changed until you choose an action and confirm it.	Nič sa nezmení, kým nevyberiete akciu a nepotvrdíte ju.
+Checking what will be kept and what will be lost...	Zisťujem, čo zostane a čo sa stratí...
+Copying the apps from Flathub to the new system failed: %s	Kopírovanie aplikácií z Flathubu do nového systému zlyhalo: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Zostane: vaše súbory v /home, používateľské účty a heslá (%s), jazyk, klávesnica, časové pásmo, šifrovanie disku a nastavenie zavádzača.
+Kept Wi-Fi and network connections: %s	Zostanú siete Wi-Fi a pripojenia: %s
+Installed again from the LuxOS repositories: %d packages.	Znovu sa nainštaluje z repozitárov LuxOS: %d balíkov.
+Kept apps from Flathub: %d.	Zostanú aplikácie z Flathubu: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	STRATÍ SA - aplikácie, ktoré nie sú z repozitárov LuxOS (AUR, komunita, ručne inštalované); potom ich nainštalujte znova:
+LOST - system settings you changed yourself (they return to the defaults):	STRATÍ SA - nastavenia systému, ktoré ste zmenili sami (vrátia sa na predvolené):
+LOST - programs installed outside the package manager:	STRATÍ SA - programy nainštalované mimo správcu balíkov:
+Nothing else is lost.	Nič ďalšie sa nestratí.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Všetko zostane v snímke „pred preinštalovaním“ - v LuxOS Recovery sa k nej môžete vrátiť.
+show what a reinstall keeps and what is lost, without changing anything (root)	ukáže, čo preinštalovanie zachová a čo sa stratí, nič nemení (root)

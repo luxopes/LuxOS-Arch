@@ -4985,3 +4985,16 @@ Removed the kernel of older snapshots: %s	Removido o kernel de instantâneos ant
 Free space on the boot partition: %d MB	Espaço livre na partição de arranque: %d MB
 The boot image is damaged (%s) and could not be rebuilt. Do not restart the computer yet: free space on the boot partition and run: sudo mkinitcpio -P	A imagem de arranque está danificada (%s) e não foi possível recriá-la. Não reinicie ainda o computador: liberte espaço na partição de arranque e execute: sudo mkinitcpio -P
 The EFI system partition is smaller than 1 GB: fewer system snapshots can be started from the boot menu.	A partição EFI tem menos de 1 GB: será possível iniciar menos instantâneos do sistema a partir do menu de arranque.
+Nothing is changed until you choose an action and confirm it.	Nada é alterado até escolher uma ação e confirmá-la.
+Checking what will be kept and what will be lost...	A verificar o que será mantido e o que será perdido...
+Copying the apps from Flathub to the new system failed: %s	A cópia das aplicações do Flathub para o novo sistema falhou: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Mantém-se: os seus ficheiros em /home, as contas de utilizador e palavras-passe (%s), o idioma, o teclado, o fuso horário, a encriptação do disco e as definições do gestor de arranque.
+Kept Wi-Fi and network connections: %s	Mantêm-se as redes Wi-Fi e ligações: %s
+Installed again from the LuxOS repositories: %d packages.	Reinstalado a partir dos repositórios do LuxOS: %d pacotes.
+Kept apps from Flathub: %d.	Mantêm-se as aplicações do Flathub: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	PERDE-SE - aplicações que não são dos repositórios do LuxOS (AUR, comunidade, instaladas à mão); volte a instalá-las depois:
+LOST - system settings you changed yourself (they return to the defaults):	PERDE-SE - definições do sistema que alterou (voltam aos valores predefinidos):
+LOST - programs installed outside the package manager:	PERDE-SE - programas instalados fora do gestor de pacotes:
+Nothing else is lost.	Não se perde mais nada.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Tudo fica no instantâneo «antes da reinstalação» - pode voltar a ele no LuxOS Recovery.
+show what a reinstall keeps and what is lost, without changing anything (root)	mostra o que uma reinstalação mantém e o que se perde, sem alterar nada (root)

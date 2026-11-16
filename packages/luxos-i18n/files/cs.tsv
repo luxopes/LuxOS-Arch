@@ -5115,3 +5115,16 @@ World Clock	Světový čas
 h	h
 min	min
 s	s
+Nothing is changed until you choose an action and confirm it.	Nic se nezmění, dokud nevyberete akci a nepotvrdíte ji.
+Checking what will be kept and what will be lost...	Zjišťuji, co zůstane a co se ztratí...
+Copying the apps from Flathub to the new system failed: %s	Kopírování aplikací z Flathubu do nového systému selhalo: %s
+Kept: your files in /home, user accounts and passwords (%s), language, keyboard, time zone, disk encryption and the boot settings.	Zůstane: vaše soubory v /home, uživatelské účty a hesla (%s), jazyk, klávesnice, časové pásmo, šifrování disku a nastavení zavaděče.
+Kept Wi-Fi and network connections: %s	Zůstanou sítě Wi-Fi a připojení: %s
+Installed again from the LuxOS repositories: %d packages.	Znovu se nainstaluje z repozitářů LuxOS: %d balíků.
+Kept apps from Flathub: %d.	Zůstanou aplikace z Flathubu: %d.
+LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); install them again afterwards:	ZTRATÍ SE - aplikace, které nejsou z repozitářů LuxOS (AUR, komunita, ručně instalované); potom je nainstalujte znovu:
+LOST - system settings you changed yourself (they return to the defaults):	ZTRATÍ SE - nastavení systému, která jste změnili sami (vrátí se na výchozí):
+LOST - programs installed outside the package manager:	ZTRATÍ SE - programy nainstalované mimo správce balíků:
+Nothing else is lost.	Nic dalšího se neztratí.
+Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Vše zůstane ve snímku „před přeinstalací“ - v LuxOS Recovery se k němu můžete vrátit.
+show what a reinstall keeps and what is lost, without changing anything (root)	ukáže, co přeinstalace zachová a co se ztratí, nic nemění (root)

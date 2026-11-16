@@ -11,6 +11,8 @@
   luxos-care check [--updates]      (root, luxos-care-check.service)
   luxos-care apply ID-N             (root, luxos-care-apply@ID-N.service: volba LuxAI)
   luxos-care boot-check             (root, pred boot-complete.target)
+  luxos-care boot-menu arm          (root, luxos-care-boot-menu.service) prvni start po zmene systemu:
+                                    nabidka zavadece pri pristim startu, dokud se tento nepovede
   luxos-care kernel-pre|kernel-post (root, hooky jadra lux; cile na stdin)
   luxos-care kernel-switch          (root) prechod na jadro LuxOS (linux-luxos), puvodni zustane
                                     jako zalozni; spousti ho i `lux update` (after-update.d)
@@ -84,8 +86,9 @@ USAGE = (
     ("Recovery", ""),
     ("disk-check [--repair] [--json]", "check the disk; without --repair nothing is written (root)"),
     ("reinstall --yes", "reinstall the system, keeping /home and user accounts (root)"),
+    ("reinstall --plan [--json]", "show what a reinstall keeps and what is lost, without changing anything (root)"),
 )
-INTERNAL = ("update, check, apply, boot-check, kernel-pre, kernel-post, release-kept, snapshot-pre, "
+INTERNAL = ("update, check, apply, boot-check, boot-menu, kernel-pre, kernel-post, release-kept, snapshot-pre, "
             "after-rollback, esp-check, protect lock|unlock, verify --auto")
 
 
@@ -155,6 +158,7 @@ SNAP_ERRORS = {
     "delete_failed": "The snapshot could not be deleted: %s",
     "no_packages": "The list of installed packages could not be read.",
     "kernel_not_saved": "The current kernel could not be saved, the reinstall was not started.",
+    "copy_failed": "Copying the apps from Flathub to the new system failed: %s",
     "install_failed": "Installing the packages failed (is the internet connected?): %s",
     "initramfs_failed": "Creating the initramfs failed: %s",
     "bootloader_failed": "Updating the boot loader failed: %s",
@@ -313,8 +317,53 @@ def cmd_disk_check(args):
     return 0 if all(ok for _t, ok, _o in res) else 1
 
 
+def print_list(title, items, limit=rec.PLAN_MAX):
+    print(title)
+    for x in items[:limit]:
+        print("    " + x)
+    if len(items) > limit:
+        print("    … " + _("and %d more") % (len(items) - limit))
+
+
+def cmd_reinstall_plan(args):
+    """Co preinstalace zachova a co se ztrati - LuxOS Recovery to ukaze pred potvrzenim."""
+    try:
+        with snap.snapshot_lock(), snap.top_level() as top:
+            plan = rec.reinstall_plan(top)
+    except snap.SnapshotError as e:
+        sys.exit(snap_error(e))
+    if "--json" in args:
+        print(json.dumps(plan, ensure_ascii=False))
+        return 0
+    print(_("Kept: your files in /home, user accounts and passwords (%s), language, keyboard, "
+            "time zone, disk encryption and the boot settings.") % (", ".join(plan["users"]) or "-"))
+    if plan["wifi"]:
+        print(_("Kept Wi-Fi and network connections: %s") % ", ".join(plan["wifi"]))
+    print(_("Installed again from the LuxOS repositories: %d packages.") % plan["packages"])
+    if plan["flatpaks"]:
+        print(_("Kept apps from Flathub: %d.") % len(plan["flatpaks"]))
+    print()
+    lost = False
+    if plan["foreign"]:
+        lost = True
+        print_list(_("LOST - apps not from the LuxOS repositories (AUR, community, installed by hand); "
+                     "install them again afterwards:"), plan["foreign"])
+    if plan["settings"]:
+        lost = True
+        print_list(_("LOST - system settings you changed yourself (they return to the defaults):"), plan["settings"])
+    if plan["extra"]:
+        lost = True
+        print_list(_("LOST - programs installed outside the package manager:"), plan["extra"])
+    if not lost:
+        print(_("Nothing else is lost."))
+    print(_("Everything stays in the snapshot \"before reinstall\" - you can return to it in LuxOS Recovery."))
+    return 0
+
+
 def cmd_reinstall(args):
     need_root()
+    if "--plan" in args:
+        return cmd_reinstall_plan(args)
     if "--yes" not in args:
         sys.exit(_("Add --yes to confirm (LuxOS Recovery asks first)."))
     ok, why = snap.supported()
@@ -551,6 +600,10 @@ def main(argv):
             care.log(f"check after boot failed: {e}")
         if rc == 0:
             try:
+                care.rescue_menu_disarm()
+            except Exception as e:  # noqa: BLE001
+                care.log(f"boot menu timeout: {e}")
+            try:
                 snap.ensure_entries()
             except Exception as e:  # noqa: BLE001
                 care.log(f"snapshot boot entries: {e}")
@@ -561,6 +614,16 @@ def main(argv):
             except Exception as e:  # noqa: BLE001
                 care.log(f"boot menu timeout: {e}")
         return rc
+    if cmd == "boot-menu":
+        # luxos-care-boot-menu.service: prvni start po zmene systemu - nabidka pri pristim startu,
+        # dokud se tento nepovede (vypina ji boot-check)
+        need_root()
+        if args[:1] != ["arm"]:
+            usage_error("luxos-care boot-menu arm")
+        if snap.booted_snapshot() or not os.path.exists(care.P(care.VERIFY_BOOT)):
+            return 0
+        care.rescue_menu_arm()
+        return 0
     if cmd == "kernel-switch":
         need_root()
         try:
@@ -579,6 +642,9 @@ def main(argv):
         # Hook pred transakci (AbortOnFail): chyba snimku nevadi, transakce pri startu ze snimku ano
         need_root()
         targets = [] if sys.stdin.isatty() else sys.stdin.read().split()
+        if not snap.in_chroot() and not snap.booted_snapshot():
+            # prvni start po zmene se overi (nabidka zavadece, kdyz selze); znacka jde i do snimku
+            care.mark_verify_boot()
         rc = snap.pre_transaction(targets)
         if rc:
             print(_("LuxOS is running from a snapshot, changes would be lost after a restart. "
