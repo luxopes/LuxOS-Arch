@@ -503,6 +503,7 @@ ask_domain() {  # TUI: komu pocitac patri (osobni / organizace s domenou Windows
     me=$(T "Me (personal computer)")
     org=$(T "An organization (Windows domain)")
     sel=$(gum choose --header "$(T "Who does this computer belong to?")" "$me" "$org") || return 0
+    info "$sel"
     [[ $sel == "$org" ]] || return 0
     while :; do
         DOMAIN=$(gum input --header "$(T "Domain (e.g. firma.local)")" --value "$DOMAIN") || { DOMAIN=""; return 0; }
