@@ -298,7 +298,28 @@ def walk(w):
             yield from walk(c)
 
 
+def focus_hint():
+    """Prazdne pole e-mailu se nezameruje (GTK 3 by skrylo napovedu "E-mail" - instalator, krok LuxAI)."""
+    for email, want in (("", None), ("jan@example.com", "pw_pass")):
+        win = Gtk.Window()
+        btn = Gtk.Button(label="Continue", can_default=True)
+        p = accgtk.SignInPanel(lambda _a: None, email=email)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.pack_start(p, False, False, 0)
+        box.pack_start(btn, False, False, 0)
+        win.add(box)
+        win.show_all()
+        btn.grab_focus()
+        pump(0.3)
+        if want is None:
+            check("prazdny e-mail: pole se nezameri, napoveda zustane videt", win.get_focus() is not p.pw_email)
+        else:
+            check("vyplneny e-mail: zameri se heslo", win.get_focus() is getattr(p, want))
+        win.destroy()
+
+
 def main():
+    focus_hint()
     if SHOTS:
         os.makedirs(SHOTS, exist_ok=True)
     accgtk.open_url = lambda _w, url: OPENED.append(url)
