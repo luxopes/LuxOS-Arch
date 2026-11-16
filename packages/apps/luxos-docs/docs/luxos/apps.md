@@ -47,6 +47,11 @@ RAR, tar.*) in Xarchiver - also after you install another app that handles the s
 launcher that opens ZIP files). Your own choice in *Open With › Other Application*
 (`~/.config/mimeapps.list`) always wins; a default app that is not installed is skipped.
 
+E-mail links (`mailto:` in Files, `xdg-email`) go through `luxos-mail-reader` (exo helper `MailReader` in
+`/etc/xdg/luxos/xfce4/helpers.rc`): the app set for `mailto` links, otherwise an installed mail app (LuxOS
+Mail, Thunderbird also from Flathub, Evolution, Geary). No mail app is installed by default; then a
+notification appears and the LuxOS Store opens with a search for mail apps.
+
 ## About This Computer
 
 Run `luxos-about`, or use the LuxOS logo menu (first favourite). It shows the LuxOS version and

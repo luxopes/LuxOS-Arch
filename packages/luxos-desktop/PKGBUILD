@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=72
+pkgrel=73
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -174,6 +174,8 @@ package() {
     python3 "$f/merge-xfconf.py" /etc/xdg/xfce4/xfconf/xfce-perchannel-xml \
         "$f/xdg/xfce4/xfconf/xfce-perchannel-xml" "$pkgdir/etc/xdg/luxos/xfce4/xfconf/xfce-perchannel-xml"
 
+    # posta pro exo-open (MailReader v helpers.rc)
+    install -Dm644 -t "$pkgdir/usr/share/xfce4/helpers" "$f"/helpers/*.desktop
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling

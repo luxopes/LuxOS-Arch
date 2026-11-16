@@ -3,6 +3,7 @@
 # Vlastni volba uzivatele: ~/.config/xfce4/helpers.rc
 #
 WebBrowser=firefox
-MailReader=thunderbird
+# posta: aplikace pro mailto (vlastni volba, LuxOS Mail, Thunderbird), bez ni Obchod (luxos-mail-reader)
+MailReader=luxos-mail-reader
 TerminalEmulator=luxos-terminal
 FileManager=thunar
