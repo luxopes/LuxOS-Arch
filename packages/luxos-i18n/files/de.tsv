@@ -2706,7 +2706,7 @@ The package lists are out of date: the server no longer has this version. Update
 More details: run the command again with --verbose	Weitere Details: Befehl erneut mit --verbose ausführen
 The list of apps is out of date. Install the updates first, then try again.	Die App-Liste ist veraltet. Installieren Sie zuerst die Updates und versuchen Sie es dann erneut.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum und Uhrzeit des Computers sind falsch, daher ist keine sichere Verbindung möglich. Prüfen Sie die Zeiteinstellungen.
-Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, keine Dock-Vergrößerung, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.
+Longer battery life: slower processor without turbo, slightly lower brightness, idle devices sleep and background tasks pause.	Längere Akkulaufzeit: langsamerer Prozessor ohne Turbo, etwas geringere Helligkeit, ungenutzte Geräte ruhen und Hintergrundaufgaben pausieren.
 # LuxOS Zalohy (luxos-backup)
 Paused on battery – backs up when the computer is charging	Im Akkubetrieb pausiert – sichert, wenn der Computer lädt
 Paused by Battery Saver	Durch Stromsparmodus pausiert

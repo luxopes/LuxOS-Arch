@@ -7,8 +7,9 @@
 #     procesor bez turbo/boost, usporny zvukovy kodek, nepouzivana USB zarizeni (kamera, ctecka
 #     karet) se uspavaji, mene probouzeni disku zapisem, pozastavene tezke ulohy na pozadi
 #     (man-db, kontrola LuxOS Care) a bez automatickych aktualizaci na baterii
-#   - jas o petinu nizsi, bez zvetsovani v Docku (animace GTK zustavaji: bez nich stoji i ukazatele
-#     prubehu - kolecko v Obchode vypadalo jako zaseknute - a usetri se temer nic)
+#   - jas o petinu nizsi (animace GTK i zvetsovani ikon v Docku zustavaji: bez animaci stoji
+#     i ukazatele prubehu - kolecko v Obchode vypadalo jako zaseknute; zvetseni v Docku se kresli
+#     jen pri najeti mysi - usetri se temer nic a uzivatel nechape, proc se ikony "nekdy" nezvetsuji)
 #   - volitelne (~/.config/luxos/powersaver-60hz, Baterie a napajeni) displej nejvys 60 Hz: zmena
 #     frekvence obrazovku na okamzik zcerna, proto jen na prani
 # Puvodni hodnoty relace: ~/.config/luxos/powersaver.saved ("klic=hodnota"), systemove /run/luxos.
@@ -71,15 +72,32 @@ restore_animations() {
     sed -i '/^animations=/d' "$saved"
 }
 
+# Do LuxOS 1.0.x sporic vypinal zvetsovani v Docku (Dock se pak "nekdy" nezvetsoval - kdykoli byl
+# sporic zapnuty, i automaticky pri 20 %): puvodni hodnotu vratit (jednou), i se zapnutym sporicem.
+# Radek/soubor se smaze az po uspesnem zapisu (bez D-Bus se zkusi znovu pri dalsim prihlaseni).
+restore_zoom() {
+    local v
+    if grep -q '^dock-zoom=' "$saved" 2>/dev/null; then
+        v=$(get dock-zoom)
+    elif [[ -f $cfg/dock-zoom ]]; then
+        v=$(<"$cfg/dock-zoom")
+    else
+        return 0
+    fi
+    [[ $v == false ]] || v=true
+    gsettings set "$dock" zoom-enabled "$v" 2>/dev/null || return 0
+    if [[ -f $saved ]]; then sed -i '/^dock-zoom=/d' "$saved"; fi
+    rm -f "$cfg/dock-zoom"
+}
+
 apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodnoty, ztlumit)
     local p name mode rate
     if [[ ${1:-} == first ]]; then
         p=$(get_profile); [[ -n $p && $p != power-saver ]] && put profile "$p"
-        put dock-zoom "$(cat "$cfg/dock-zoom" 2>/dev/null || gsettings get "$dock" zoom-enabled 2>/dev/null || echo true)"
     fi
     set_profile power-saver
     system_part start
-    gsettings set "$dock" zoom-enabled false 2>/dev/null
+    restore_zoom
     restore_animations
     # Displeje s 90-165 Hz: 60 Hz setri asi 0,5-1,5 W (vyrobce panelu i macOS to delaji stejne)
     if [[ -e $cap60 && -n ${DISPLAY:-} && -r $displays ]]; then
@@ -101,7 +119,7 @@ apply_off() {
     local v line name
     v=$(get profile); set_profile "${v:-balanced}"
     system_part stop
-    v=$(get dock-zoom); gsettings set "$dock" zoom-enabled "${v:-true}" 2>/dev/null
+    restore_zoom
     restore_animations
     if [[ -n ${DISPLAY:-} && -r $displays && -f $saved ]]; then
         while IFS= read -r line; do
@@ -130,9 +148,14 @@ case ${1:-status} in
         # Po prihlaseni: systemova cast a 60 Hz se restartem ztrati, ostatni zustava ulozene
         if [[ -e $state ]]; then
             apply_on
-        elif [[ -e ${LUXOS_SYSROOT:-}/run/luxos/powersaver ]]; then
-            system_part stop        # zbylo po jinem uzivateli / padu relace
+        else
+            restore_zoom
+            if [[ -e ${LUXOS_SYSROOT:-}/run/luxos/powersaver ]]; then
+                system_part stop        # zbylo po jinem uzivateli / padu relace
+            fi
         fi ;;
+    restore-zoom)   # po aktualizaci balicku v bezici relaci (luxos-desktop.install)
+        restore_zoom ;;
     -h|--help) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply]"; exit 0 ;;
     *) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply]" >&2; exit 2 ;;
 esac

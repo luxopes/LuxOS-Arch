@@ -28,6 +28,7 @@ run() {   # nazev display prikaz...
 run logger-utf8 :61 "$here/logger_utf8.sh" "$w/logger-utf8" "$plank"
 run watchdog :61 python3 "$here/dock_watchdog.py" "$w/watchdog" "$plank"
 run watchdog-off :61 python3 "$here/dock_watchdog.py" "$w/watchdog-off" "$plank" --no-watchdog
+run zoom :61 python3 "$here/dock_zoom.py" "$w/zoom" "$plank"
 run stress :61 python3 "$here/dock_stress.py" "$w/stress" --cycles "$cycles" --plank "$plank"
 run stress-churn :61 python3 "$here/dock_stress.py" "$w/stress-churn" --cycles "$cycles" --churn --tooltips --plank "$plank"
 echo "selhalo: $fails"

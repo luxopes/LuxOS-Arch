@@ -34,6 +34,22 @@ sys.exit(0 if sa is not None and sa.get("value") is not None else 1)
 PY
         runuser -u "$user" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
             timeout 5 xfconf-query -c xfce4-screensaver -p /lock/saver-activation/delay -n -t int -s 0 \
+            || true
+    done
+}
+# Dock: Sporic baterie do 1.0.x vypinal zvetsovani ikon ("nekdy se nezvetsuji"). Bezicim relacim
+# se puvodni hodnota vrati hned (bez prihlaseni); kde neni ulozena, nic se nemeni.
+_luxos_dock_zoom() {
+    local bus uid user home run=${LUXOS_SYSROOT:-}/run/user     # LUXOS_SYSROOT jen pro testy
+    for bus in "$run"/[0-9]*/bus; do
+        [[ -S $bus ]] || continue
+        uid=${bus#"$run"/}; uid=${uid%/bus}
+        user=$(getent passwd "$uid" | cut -d: -f1)
+        home=$(getent passwd "$uid" | cut -d: -f6)
+        [[ -n $user && -n $home ]] || continue
+        grep -qs '^dock-zoom=' "$home/.config/luxos/powersaver.saved" || [[ -f $home/.config/luxos/dock-zoom ]] || continue
+        runuser -u "$user" -- env -u XDG_CONFIG_HOME HOME="$home" XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" timeout 5 luxos-powersaver restore-zoom \
             >/dev/null 2>&1 || true
     done
 }
@@ -45,6 +61,6 @@ _luxos_forkguard() {
     systemctl restart luxos-forkguard.service >/dev/null 2>&1 || true
 }
 post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_forkguard; }
-post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_forkguard; }
+post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_dock_zoom; _luxos_forkguard; }
 # Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
 pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }

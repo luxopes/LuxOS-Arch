@@ -2705,7 +2705,7 @@ The package lists are out of date: the server no longer has this version. Update
 More details: run the command again with --verbose	Další podrobnosti: spusťte příkaz znovu s --verbose
 The list of apps is out of date. Install the updates first, then try again.	Seznam aplikací je zastaralý. Nejdřív nainstalujte aktualizace a pak to zkuste znovu.
 The computer's date and time are wrong, so a secure connection is not possible. Check the time settings.	Datum a čas počítače nejsou správně, proto není možné zabezpečené připojení. Zkontrolujte nastavení času.
-Longer battery life: slower processor without turbo, slightly lower brightness, no Dock magnification, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, bez zvětšování v Docku, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
+Longer battery life: slower processor without turbo, slightly lower brightness, idle devices sleep and background tasks pause.	Delší výdrž baterie: pomalejší procesor bez turba, o něco nižší jas, nepoužívaná zařízení se uspí a úlohy na pozadí se pozastaví.
 No snapshots yet. One is taken before every update.	Zatím žádné snímky. Snímek se pořídí před každou aktualizací.
 running now	právě běží
 not in the boot menu	není v nabídce při startu
