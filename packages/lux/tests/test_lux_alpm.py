@@ -157,6 +157,12 @@ class Format(unittest.TestCase):
         self.assertEqual(lux_alpm.fmt_duration(8.2), "8.2 s")
         self.assertEqual(lux_alpm.fmt_duration(72), "1 min 12 s")
 
+    def test_no_positional_maxsplit(self):
+        # Python 3.13+: re.split(..., 1) vypise DeprecationWarning primo uzivateli do terminalu (audit 1.0.2)
+        import re as _re
+        src = open(lux_alpm.__file__, encoding="utf-8").read()
+        self.assertEqual(_re.findall(r're\.(?:split|sub)\([^()\n]*, \d+\)', src), [])
+
     def test_live_keyring_wait(self):
         # live ISO: klicenka se pripravuje na pozadi; transakce na ni pocka (audit 1.0.2)
         from unittest import mock

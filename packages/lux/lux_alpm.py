@@ -1512,7 +1512,7 @@ class Lux:
             p = db.get_pkg(target)
             if p:
                 return [p]
-        name = re.split(r"[<>=]", target, 1)[0]
+        name = re.split(r"[<>=]", target, maxsplit=1)[0]
         if name == target:
             for db in dbs:
                 grp = db.read_grp(target) if hasattr(db, "read_grp") else None
@@ -1568,7 +1568,7 @@ class Lux:
         extra = []
         for p in pulled:
             for prov in p.provides:
-                virt = re.split(r"[<>=]", prov, 1)[0]
+                virt = re.split(r"[<>=]", prov, maxsplit=1)[0]
                 if not virt.endswith("-driver"):
                     continue
                 for name in prefer + GPU_FALLBACK.get(virt, []):
@@ -1577,7 +1577,7 @@ class Lux:
                     cand = next((db.get_pkg(name) for db in dbs if db.get_pkg(name)), None)
                     if cand is None:
                         continue
-                    if name == virt or any(re.split(r"[<>=]", x, 1)[0] == virt for x in cand.provides):
+                    if name == virt or any(re.split(r"[<>=]", x, maxsplit=1)[0] == virt for x in cand.provides):
                         extra.append(cand)
                         planned.add(name)
                         break
