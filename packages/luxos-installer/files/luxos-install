@@ -956,6 +956,26 @@ ask_password() {
     printf '%s' "$p1"
 }
 
+# Tabulka "popisek  hodnota" zarovnana podle poctu znaku (ne bajtu) nejdelsiho popisku
+kv_table() {
+    local LC_ALL=C.UTF-8 w=0 i pad label
+    for ((i = 1; i <= $#; i += 2)); do label=${!i}; ((${#label} > w)) && w=${#label}; done
+    while (($# >= 2)); do
+        printf -v pad '%*s' $((w + 2 - ${#1})) ''
+        printf '%s%s%s\n' "$1" "$pad" "$2"
+        shift 2
+    done
+}
+
+# Jazyk v souhrnu nazvem ("Čeština"), nezname locale kodem
+lang_text() {
+    local l
+    for l in "${LANGS[@]}"; do
+        [[ ${l##*|} == "$LOCALE" ]] && { l=${l%%|*}; T "${l%% · *}"; return; }
+    done
+    printf '%s' "$LOCALE"
+}
+
 summary() {
     local disk_text boot_text
     case $DISK_MODE in
@@ -969,22 +989,26 @@ summary() {
     uses_layout && [[ -n $(ly_ids luks) ]] && enc=1
     boot_text=${BOOTMODE^^}
     [[ $BOOTLOADER == none ]] && boot_text+=" ($(T "no boot loader"))"
-    local -a lines=(
-        "$(printf '%-13s%s' "$(T "Language")" "$LOCALE")"
-        "$(printf '%-13s%s' "$(T "Keyboard")" "$(xkb_text)")"
-        "$(printf '%-13s%s' "$(T "Time zone")" "$TIMEZONE")"
-        "$(printf '%-13s%s' "$(T "Disk")" "$disk_text")"
-        "$(printf '%-13s%s' "$(T "Encryption")" "$([[ $enc == 1 ]] && T "yes" || T "no")")"
-        "$(printf '%-13s%s' "$(T "Erase first")" "$(wipe_text)")"
-        "$(printf '%-13s%s' "$(T "User")" "$( ((${OEM:-0})) && oem_user_text || echo "$FULLNAME ($USERNAME)")")"
-        "$(printf '%-13s%s' "$(T "Computer")" "$HOSTNAME_SEL")"
-        "$(printf '%-13s%s' "$(T "Boot mode")" "$boot_text")"
-        "$(printf '%-13s%s' "$(T "Maintenance")" "$(care_text "$CARE_MODE")")"
-        "$(printf '%-13s%s' "$(T "Usage count")" "$( ((${COUNTME:-1})) && T "anonymous, weekly" || T "off")")"
-        "$(printf '%-13s%s' "$(T "Software")" "$(templates_text)")"
-        "$(printf '%-13s%s' "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")")"
+    # popisek a hodnota; zarovnani podle nejdelsiho popisku ve znacich (printf %-13s pocita bajty:
+    # cesky "Časové pásmoEurope/Prague", "Režim spouštěníBIOS")
+    local -a kv=(
+        "$(T "Language")" "$(lang_text)"
+        "$(T "Keyboard")" "$(xkb_text)"
+        "$(T "Time zone")" "$TIMEZONE"
+        "$(T "Disk")" "$disk_text"
+        "$(T "Encryption")" "$([[ $enc == 1 ]] && T "yes" || T "no")"
+        "$(T "Erase first")" "$(wipe_text)"
+        "$(T "User")" "$( ((${OEM:-0})) && oem_user_text || echo "$FULLNAME ($USERNAME)")"
+        "$(T "Computer")" "$HOSTNAME_SEL"
+        "$(T "Boot mode")" "$boot_text"
+        "$(T "Maintenance")" "$(care_text "$CARE_MODE")"
+        "$(T "Usage count")" "$( ((${COUNTME:-1})) && T "anonymous, weekly" || T "off")"
+        "$(T "Software")" "$(templates_text)"
+        "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")"
     )
-    [[ -n ${DOMAIN-} ]] && lines+=("$(printf '%-13s%s' "$(T "Organization")" "$(domain_text)")")
+    [[ -n ${DOMAIN-} ]] && kv+=("$(T "Organization")" "$(domain_text)")
+    local -a lines=()
+    mapfile -t lines < <(kv_table "${kv[@]}")
     if [[ $DISK_MODE == layout ]]; then
         # Rozlozeni a seznam toho, co se smaze (nic se zatim nemeni)
         local l
