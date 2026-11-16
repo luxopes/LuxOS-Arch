@@ -362,8 +362,9 @@ if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev
         [[ -e $cfg/welcome-done ]] || luxos-welcome
     ) &
 elif [[ ! -e $cfg/welcome-done ]]; then
-    sleep 3
-    luxos-welcome &
+    # Plocha, lista a Dock uz bezi (cekani vyse na xfdesktop): kratka pauza staci - drive 3 s,
+    # na live ISO se Uvitani ukazalo az ~10 s po startu X (luxos-session sam startuje az po ~6 s)
+    (sleep 1; luxos-welcome) &
 elif [[ ! -d /run/archiso ]]; then
     (sleep 3; luxos-whats-new --auto) &
 fi
