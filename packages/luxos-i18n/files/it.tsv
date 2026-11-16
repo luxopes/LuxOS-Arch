@@ -4998,3 +4998,8 @@ LOST - programs installed outside the package manager:	PERSO - programmi install
 Nothing else is lost.	Nient'altro viene perso.
 Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Tutto resta nello snapshot «prima della reinstallazione»: puoi tornarci da LuxOS Recovery.
 show what a reinstall keeps and what is lost, without changing anything (root)	mostra cosa mantiene una reinstallazione e cosa viene perso, senza modificare nulla (root)
+LuxOS (before update of %s)	LuxOS (prima dell'aggiornamento del %s)
+LuxOS (before rollback of %s)	LuxOS (prima del ripristino del %s)
+LuxOS (before reinstall of %s)	LuxOS (prima della reinstallazione del %s)
+LuxOS (snapshot of %s)	LuxOS (snapshot del %s)
+LuxOS (before system change of %s)	LuxOS (prima della modifica di sistema del %s)

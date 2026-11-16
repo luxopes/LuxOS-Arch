@@ -4999,3 +4999,8 @@ LOST - programs installed outside the package manager:	БУДЕ ВТРАЧЕНО
 Nothing else is lost.	Більше нічого не буде втрачено.
 Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Усе залишиться в знімку «перед перевстановленням» - у LuxOS Recovery до нього можна повернутися.
 show what a reinstall keeps and what is lost, without changing anything (root)	показує, що перевстановлення збереже, а що буде втрачено, нічого не змінюючи (root)
+LuxOS (before update of %s)	LuxOS (перед оновленням %s)
+LuxOS (before rollback of %s)	LuxOS (перед поверненням %s)
+LuxOS (before reinstall of %s)	LuxOS (перед перевстановленням %s)
+LuxOS (snapshot of %s)	LuxOS (знімок %s)
+LuxOS (before system change of %s)	LuxOS (перед зміною системи %s)

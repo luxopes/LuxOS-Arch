@@ -100,6 +100,67 @@ def fat_only_dirty(output):
     return dirty
 
 
+_FAT_DIFF_LINE = re.compile(r"^[, ]*\d+:[0-9a-fA-F]{2}/[0-9a-fA-F]{2}(?:, \d+:[0-9a-fA-F]{2}/[0-9a-fA-F]{2})*,?$")
+
+
+def fat_backup_only(output):
+    """True, kdyz fsck.fat -n hlasi jen rozdil hlavniho a zalozniho boot sektoru (pripadne s priznakem
+    dirty) a nic jineho. fsck.fat -a takovy rozdil neopravi ("Not automatically fixing this")."""
+    found = False
+    for ln in output.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        if ln.startswith("There are differences between boot sector and its backup"):
+            found = True
+            continue
+        if _FAT_DIFF_LINE.match(ln) or any(r.match(ln) for r in _FAT_HARMLESS):
+            continue
+        return False
+    return found
+
+
+def fat_copy_backup(dev):
+    """Hlavni boot sektor FAT32 do zalozniho (BPB_BkBootSec) - totez, co nabizi interaktivni fsck.fat
+    ("Copy original to backup"). Jen na odpojenem oddilu. -> True = zapsano."""
+    import struct
+    fd = os.open(dev, os.O_RDWR)
+    try:
+        boot = os.pread(fd, 512, 0)
+        if len(boot) != 512 or boot[510:512] != b"\x55\xaa":
+            return False
+        bps = struct.unpack_from("<H", boot, 11)[0]
+        fat16_size = struct.unpack_from("<H", boot, 22)[0]
+        bk = struct.unpack_from("<H", boot, 50)[0]
+        if fat16_size != 0 or bps not in (512, 1024, 2048, 4096) or not 1 <= bk <= 32:
+            return False                         # zalozni sektor ma jen FAT32
+        sector = os.pread(fd, bps, 0)
+        if os.pwrite(fd, sector, bk * bps) != bps:
+            return False
+        os.fsync(fd)
+        return True
+    finally:
+        os.close(fd)
+
+
+def repair_boot_partition(fstype, dev):
+    """Oprava odpojeneho EFI/boot oddilu a kontrola po ni. -> (ok, vystup). ok podle kontroly
+    PO oprave (fsck.fat -a vraci uspech i kdyz rozdil boot sektoru nechal byt)."""
+    rc, o = snap.sh(fsck_cmd(fstype, dev, True), timeout=3600)
+    log = o
+    rc2, o2 = snap.sh(fsck_cmd(fstype, dev, False), timeout=3600)
+    if fstype == "vfat" and rc2 != 0 and fat_backup_only(o2):
+        try:
+            copied = fat_copy_backup(dev)
+        except OSError as e:
+            copied = False
+            log += f"\ncopying the boot sector to its backup failed: {e}"
+        if copied:
+            log += "\nboot sector copied to its backup"
+            rc2, o2 = snap.sh(fsck_cmd(fstype, dev, False), timeout=3600)
+    return rc2 == 0, (log + "\n" + o2).strip()
+
+
 def disk_check(top, repair=False, out=print):
     """Kontrola (repair=False: nic se nezapisuje). -> [(krok, ok, vystup)]."""
     results = []
@@ -128,8 +189,10 @@ def disk_check(top, repair=False, out=print):
             results.append((f"fsck {mp}", False, o.strip()))
             continue
         try:
-            # fsck.fat -a: 0 = v poradku, 1 = opraveno; e2fsck -p: 0/1 = v poradku/opraveno
-            step(f"fsck {mp}", fsck_cmd(fstype, bdev, True), ok_codes=(0, 1))
+            # vysledek podle kontroly po oprave, ne podle navratoveho kodu opravy
+            out(f"fsck {mp}")
+            ok, o = repair_boot_partition(fstype, bdev)
+            results.append((f"fsck {mp}", ok, o[-4000:]))
         finally:
             snap.sh(["mount", mp], timeout=120)
     return results

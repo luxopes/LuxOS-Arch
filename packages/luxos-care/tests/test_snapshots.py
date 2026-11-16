@@ -688,11 +688,13 @@ class SdBoot(Env):
 
     def test_after_rollback(self):
         self.w(snap.AFTER_ROLLBACK, json.dumps({"from": "a", "to": "b", "label": "LuxOS (x)", "kind": "before-rollback"}))
-        with mock.patch.object(care, "add_event") as ev:
-            snap.after_rollback()
+        # skutecny add_event (drive mock skryl TypeError "multiple values for argument 'kind'" -
+        # sluzba po navratu ve VM selhala a upozorneni "LuxOS byl obnoven" se neukazalo)
+        self.assertEqual(snap.after_rollback(), 0)
         self.assertFalse(os.path.exists(self.root + snap.AFTER_ROLLBACK))
         self.assertIn(["mkinitcpio", "-P"], self.cmds)
-        ev.assert_called_once_with("rolled_back", label="LuxOS (x)", kind="before-rollback")
+        ev = json.loads(self.r(care.EVENTS))["events"][-1]
+        self.assertEqual((ev["kind"], ev["label"], ev["target_kind"]), ("rolled_back", "LuxOS (x)", "before-rollback"))
 
     def test_describe_and_hint(self):
         a = snap.create(self.top, "manual", now=self.at(1))

@@ -226,7 +226,8 @@ class Recovery(Env):
         self.assertIn(["btrfs", "scrub", "start", "-B", "-d", self.top], self.cmds)
         i = self.cmds.index(["umount", "/boot"])
         self.assertEqual(self.cmds[i + 1], ["fsck.fat", "-a", "-w", "/dev/nvme0n1p1"])
-        self.assertEqual(self.cmds[i + 2], ["mount", "/boot"])
+        self.assertEqual(self.cmds[i + 2], ["fsck.fat", "-n", "/dev/nvme0n1p1"])   # kontrola po oprave
+        self.assertEqual(self.cmds[i + 3], ["mount", "/boot"])
         self.assertFalse(any("--repair" in c for c in self.cmds))
 
     DIRTY = ("fsck.fat 4.2 (2021-01-31)\n"
@@ -256,6 +257,80 @@ class Recovery(Env):
         with mock.patch.object(snap, "sh", sh):
             res = rec.disk_check(self.top, out=lambda *a: None)
         self.assertTrue(all(ok for _t, ok, _o in res), res)
+
+    BACKUP = ("fsck.fat 4.2 (2021-01-31)\n"
+              "There are differences between boot sector and its backup.\n"
+              "This is mostly harmless. Differences: (offset:original/backup)\n"
+              "  65:01/00, 71:45/58, 72:46/58, 73:49/58, 74:20/58, 75:20/58, 76:20/58\n"
+              "  , 77:20/58, 78:20/58, 79:20/58, 80:20/58, 81:20/58\n"
+              "  Not automatically fixing this.\n"
+              "Leaving filesystem unchanged.\n"
+              "/dev/vda1: 40 files, 33845/261627 clusters\n")
+
+    def test_fat_backup_only(self):
+        self.assertTrue(rec.fat_backup_only(self.BACKUP))
+        self.assertTrue(rec.fat_backup_only(self.DIRTY))
+        self.assertFalse(rec.fat_only_dirty(self.BACKUP))           # vic nez priznak dirty = problem
+        self.assertFalse(rec.fat_backup_only(self.BACKUP.replace(
+            "Leaving", "/EFI/x\n  File size is 0 bytes, cluster chain length is > 0.\nLeaving")))
+        self.assertFalse(rec.fat_backup_only("fsck.fat 4.2\n/dev/x: 1 files, 1/2 clusters\n"))
+
+    def fat32_image(self, path, backup_label=b"XXXXXXXXXXX"):
+        import struct
+        boot = bytearray(512)
+        struct.pack_into("<H", boot, 11, 512)
+        struct.pack_into("<H", boot, 22, 0)                         # FAT32: velikost FAT16 = 0
+        struct.pack_into("<H", boot, 50, 6)                         # zalozni boot sektor = 6
+        boot[71:82] = b"EFI        "
+        boot[510:512] = b"\x55\xaa"
+        bk = bytearray(boot)
+        bk[71:82] = backup_label
+        with open(path, "wb") as f:
+            f.write(bytes(boot) + b"\0" * 512 * 5 + bytes(bk) + b"\0" * 512 * 10)
+        return bytes(boot)
+
+    def test_repair_copies_boot_sector_to_backup_and_verifies(self):
+        """Skutecny pripad z VM: fsck.fat -a rozdil boot sektoru neopravi a vrati uspech - oprava ho
+        prepise hlavnim sektorem a uspech hlasi az podle kontroly po oprave."""
+        dev = os.path.join(self.root, "esp.img")
+        boot = self.fat32_image(dev)
+        state = {"fixed": False}
+
+        def sh(cmd, timeout=600):
+            self.cmds.append(cmd)
+            if cmd[:2] == ["fsck.fat", "-n"]:
+                with open(dev, "rb") as f:
+                    f.seek(6 * 512)
+                    same = f.read(512) == boot
+                return (0, "fsck.fat 4.2\n/dev/x: 1 files\n") if same else (1, self.BACKUP)
+            if cmd[:2] == ["fsck.fat", "-a"]:
+                return 1, self.BACKUP                               # "opraveno" - ale nic neudelal
+            return 0, ""
+        with mock.patch.object(snap, "sh", sh):
+            ok, out = rec.repair_boot_partition("vfat", dev)
+        self.assertTrue(ok, out)
+        with open(dev, "rb") as f:
+            data = f.read()
+        self.assertEqual(data[6 * 512:7 * 512], boot)
+        self.assertEqual(data[:512], boot)                          # hlavni sektor beze zmeny
+
+    def test_repair_reports_unfixed_problem(self):
+        def sh(cmd, timeout=600):
+            self.cmds.append(cmd)
+            if cmd[0] == "fsck.fat":
+                return (1, "fsck.fat 4.2\n/EFI/x\n  File size is 0 bytes, cluster chain length is > 0.\n")
+            return 0, ""
+        with mock.patch.object(snap, "sh", sh):
+            res = rec.disk_check(self.top, repair=True, out=lambda *a: None)
+        self.assertEqual([t for t, ok, _o in res if not ok], ["fsck /boot"])
+
+    def test_fat_copy_backup_refuses_non_fat32(self):
+        dev = os.path.join(self.root, "fat16.img")
+        self.fat32_image(dev)
+        with open(dev, "r+b") as f:
+            f.seek(22)
+            f.write(b"\x10\x00")                                     # FAT16: bez zalozniho sektoru
+        self.assertFalse(rec.fat_copy_backup(dev))
 
     def test_disk_check_reports_errors(self):
         def sh(cmd, timeout=600):

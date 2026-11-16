@@ -102,6 +102,13 @@ class Tui(unittest.TestCase):
         self.assertIn("09:01) - htop, a, b +6", out)
         self.assertIn("09:01) - moje-app", out)
 
+    def test_rollback_list_in_system_language(self):
+        snaps = [{"name": "2026-11-16_09-01-33", "label": "LuxOS (before update of 2026-11-16 09:01)",
+                  "label_local": "LuxOS (před aktualizací 2026-11-16 09:01)", "booted": True}]
+        out = self.run_tui("2\n2\n", SNAPS=json.dumps(snaps))
+        self.assertIn("LuxOS (před aktualizací 2026-11-16 09:01)", out)
+        self.assertNotIn("before update", out)
+
     def test_rollback_declined(self):
         self.run_tui("2\n2\nn\n\n")
         self.assertEqual(self.calls(), ["snapshots --json"])

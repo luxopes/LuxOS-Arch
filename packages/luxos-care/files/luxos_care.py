@@ -326,7 +326,9 @@ def history(kind, **data):
             atomic_write(path, "".join(lines))
     except OSError:
         pass
-    log(f"{kind}: {json.dumps(data, ensure_ascii=False)}")
+    # LuxOS Recovery (LUXOS_CARE_QUIET=1): zaznam jen do historie, ne technicky radek na obrazovku
+    if not os.environ.get("LUXOS_CARE_QUIET"):
+        log(f"{kind}: {json.dumps(data, ensure_ascii=False)}")
     return item
 
 

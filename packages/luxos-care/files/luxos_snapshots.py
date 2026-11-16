@@ -328,22 +328,24 @@ def new_name(top, now=None):
     return name
 
 
-def label(meta):
-    """Nazev v nabidce zavadece (zavadec neumi preklady - anglicky)."""
+LABEL_FMT = {
+    "before-rollback": "LuxOS (before rollback of %s)",
+    "before-reinstall": "LuxOS (before reinstall of %s)",
+    "manual": "LuxOS (snapshot of %s)",
+    "system": "LuxOS (before system change of %s)",
+    "update": "LuxOS (before update of %s)",
+}
+
+
+def label(meta, tr=None):
+    """Nazev v nabidce zavadece (zavadec neumi preklady - anglicky); tr = preklad (luxos_i18n._)
+    pro LuxOS Recovery a prikazovou radku."""
     try:
         t = datetime.datetime.strptime(meta["name"], NAME_FMT).strftime("%Y-%m-%d %H:%M")
     except ValueError:
         t = meta["name"]
-    kind = meta.get("kind")
-    if kind == "before-rollback":
-        return f"LuxOS (before rollback of {t})"
-    if kind == "before-reinstall":
-        return f"LuxOS (before reinstall of {t})"
-    if kind == "manual":
-        return f"LuxOS (snapshot of {t})"
-    if kind == "system":
-        return f"LuxOS (before system change of {t})"
-    return f"LuxOS (before update of {t})"
+    fmt = LABEL_FMT.get(meta.get("kind"), LABEL_FMT["update"])
+    return (tr(fmt) if tr else fmt) % t
 
 
 # ---- uchovavani ----------------------------------------------------------------------------
@@ -1291,7 +1293,7 @@ def after_rollback():
     if os.path.exists("/usr/local/sbin/luxos-esp-sync") and not care.ROOT:
         sh(["/usr/local/sbin/luxos-esp-sync"], timeout=300)
     care.history("rollback_done", ok=True, **{("target_kind" if k == "kind" else k): flag.get(k) for k in ("from", "to", "kind")})
-    care.add_event("rolled_back", label=flag.get("label", ""), kind=flag.get("kind", "before-rollback"))
+    care.add_event("rolled_back", label=flag.get("label", ""), target_kind=flag.get("kind", "before-rollback"))
     return 0
 
 

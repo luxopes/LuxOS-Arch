@@ -15,6 +15,8 @@
 set -u
 
 CARE=${LUXOS_CARE:-/usr/bin/luxos-care}
+# zaznamy historie LuxOS Care (JSON) nepatri na obrazovku obnovy - zustanou v history.jsonl
+export LUXOS_CARE_QUIET=1
 LUX_SYSTEM=${LUXOS_LUX_SYSTEM:-/usr/lib/lux/lux_system.py}
 ROOT=${LUXOS_RECOVERY_ROOT-}
 
@@ -24,11 +26,13 @@ if [[ -z ${LANG-} || $LANG == C* ]] && [[ -r $ROOT/etc/locale.conf ]]; then
 fi
 export LANG=${LANG:-C.UTF-8}
 [[ ${LANG%%_*} == uk ]] && export LANG=C.UTF-8      # cyrilice v konzoli neni - anglicky
-# Pismo s diakritikou: systemd-vconsole-setup (udev, nastup grafiky) ho muze prepsat i po startu
-# obnovy - proto pred kazdym vykreslenim nabidky znovu a obrazovka nacisto (text vypsany starym
-# pismem by zustal bez hacku a carek)
+# Pismo s diakritikou: fbcon prevezme konzoli az pri prvnim vypisu (odlozene prevzeti) a nastavi
+# vychozi pismo bez ě/ř/ů - setfont pred tim nema ucinek (overeno ve VM: obnova startuje 0,1 s pred
+# prevzetim). Proto napred vypis (clear), pak pismo, pak obrazovka nacisto - pred kazdym vykreslenim
+# nabidky (pismo muze prepsat i systemd-vconsole-setup pri nastupu grafiky).
 console_font() {
     [[ -z ${LUXOS_RECOVERY_PLAIN-} && -t 0 ]] || return 0
+    clear
     command -v setfont >/dev/null && setfont eurlatgr 2>/dev/null
     clear
 }
@@ -121,7 +125,7 @@ for s in reversed(json.load(sys.stdin)):
     p = s.get("packages") or []
     n = max(int(s.get("count") or 0), len(p))
     extra = (" - " + ", ".join(p[:3]) + (" +%d" % (n - 3) if n > 3 else "")) if p else ""
-    print(s["name"] + "\t" + s["label"] + extra + ("  *" if s.get("booted") else ""))' <<<"$json")
+    print(s["name"] + "\t" + (s.get("label_local") or s["label"]) + extra)' <<<"$json")
     if ((${#names[@]} == 0)); then
         echo "$(T "No snapshots yet. One is taken before every update.")"; pause; return
     fi

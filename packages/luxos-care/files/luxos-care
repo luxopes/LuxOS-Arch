@@ -189,6 +189,9 @@ def cmd_snapshots(args):
             items = snap.describe(top)
     except snap.SnapshotError as e:
         sys.exit(snap_error(e))
+    for s in items:
+        # "label" zustava anglicky (jako v nabidce zavadece), "label_local" v jazyce systemu
+        s["label_local"] = snap.label({"name": s["name"], "kind": s.get("kind")}, _)
     if "--json" in args:
         print(json.dumps(items, indent=1, ensure_ascii=False))
         return 0
@@ -202,7 +205,7 @@ def cmd_snapshots(args):
         if not s["bootable"]:
             flags.append(_("not in the boot menu"))
         pk = " ".join(s["packages"][:6]) + (" …" if s["count"] > 6 else "")
-        print(f"{i:2}  {s['name']}  {s['label']}" + (f"  [{', '.join(flags)}]" if flags else ""))
+        print(f"{i:2}  {s['name']}  {s['label_local']}" + (f"  [{', '.join(flags)}]" if flags else ""))
         if pk:
             print("      " + pk)
     return 0

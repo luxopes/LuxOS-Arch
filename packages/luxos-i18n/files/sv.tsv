@@ -4998,3 +4998,8 @@ LOST - programs installed outside the package manager:	GÅR FÖRLORAT - program 
 Nothing else is lost.	Inget annat går förlorat.
 Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Allt finns kvar i ögonblicksbilden ”före ominstallation” - du kan gå tillbaka till den i LuxOS Recovery.
 show what a reinstall keeps and what is lost, without changing anything (root)	visar vad en ominstallation behåller och vad som går förlorat, utan att ändra något (root)
+LuxOS (before update of %s)	LuxOS (före uppdatering %s)
+LuxOS (before rollback of %s)	LuxOS (före återställning %s)
+LuxOS (before reinstall of %s)	LuxOS (före ominstallation %s)
+LuxOS (snapshot of %s)	LuxOS (ögonblicksbild %s)
+LuxOS (before system change of %s)	LuxOS (före systemändring %s)

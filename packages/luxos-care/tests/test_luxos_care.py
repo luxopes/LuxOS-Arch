@@ -1206,3 +1206,14 @@ class RescueMenu(Root):
         self.assertFalse(care.rescue_menu_arm())
         shutil.rmtree(self.root + "/boot/grub")
         self.assertEqual(self.calls, [])
+
+
+class QuietHistory(Root):
+    def test_quiet_keeps_file_record(self):
+        with mock.patch.dict(os.environ, {"LUXOS_CARE_QUIET": "1"}), mock.patch.object(care, "log") as lg:
+            care.history("rollback", ok=True)
+        lg.assert_not_called()
+        self.assertIn('"kind": "rollback"', self.r(care.HISTORY))
+        with mock.patch.dict(os.environ, {"LUXOS_CARE_QUIET": ""}), mock.patch.object(care, "log") as lg:
+            care.history("rollback", ok=True)
+        lg.assert_called_once()

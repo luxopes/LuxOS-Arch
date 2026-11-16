@@ -5036,3 +5036,8 @@ LOST - programs installed outside the package manager:	STRATÍ SA - programy nai
 Nothing else is lost.	Nič ďalšie sa nestratí.
 Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Všetko zostane v snímke „pred preinštalovaním“ - v LuxOS Recovery sa k nej môžete vrátiť.
 show what a reinstall keeps and what is lost, without changing anything (root)	ukáže, čo preinštalovanie zachová a čo sa stratí, nič nemení (root)
+LuxOS (before update of %s)	LuxOS (pred aktualizáciou %s)
+LuxOS (before rollback of %s)	LuxOS (pred návratom %s)
+LuxOS (before reinstall of %s)	LuxOS (pred preinštalovaním %s)
+LuxOS (snapshot of %s)	LuxOS (snímka %s)
+LuxOS (before system change of %s)	LuxOS (pred zmenou systému %s)

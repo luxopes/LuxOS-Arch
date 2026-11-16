@@ -4999,3 +4999,8 @@ LOST - programs installed outside the package manager:	ZOSTANIE UTRACONE - progr
 Nothing else is lost.	Nic więcej nie zostanie utracone.
 Everything stays in the snapshot "before reinstall" - you can return to it in LuxOS Recovery.	Wszystko zostaje w migawce „przed ponowną instalacją” - w LuxOS Recovery możesz do niej wrócić.
 show what a reinstall keeps and what is lost, without changing anything (root)	pokazuje, co ponowna instalacja zachowa, a co zostanie utracone, niczego nie zmienia (root)
+LuxOS (before update of %s)	LuxOS (przed aktualizacją %s)
+LuxOS (before rollback of %s)	LuxOS (przed przywróceniem %s)
+LuxOS (before reinstall of %s)	LuxOS (przed ponowną instalacją %s)
+LuxOS (snapshot of %s)	LuxOS (migawka %s)
+LuxOS (before system change of %s)	LuxOS (przed zmianą systemu %s)
