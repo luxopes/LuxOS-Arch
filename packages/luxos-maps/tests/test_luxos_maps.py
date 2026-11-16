@@ -2312,6 +2312,12 @@ class TestWindow(unittest.TestCase):
         win.map.grab_focus()
         win.on_key(win, ev)
         self.assertTrue(self.pump(lambda: win.map.anim is None and abs(win.map.zoom - z - 1) < 1e-6))
+        # Ctrl+F do hledani i se zapnutym Caps Lockem (keyval "F")
+        ev.keyval = self.Gdk.KEY_F
+        ev.state = self.Gdk.ModifierType.CONTROL_MASK | self.Gdk.ModifierType.LOCK_MASK
+        self.assertTrue(win.on_key(win, ev))
+        self.assertTrue(self.pump(lambda: win.get_focus() is win.search_entry))
+        win.map.grab_focus()
         mx = win.map.mx
         E = types.SimpleNamespace
         press = E(type=self.Gdk.EventType.BUTTON_PRESS, button=1, x=500, y=300, time=1000, state=0)
