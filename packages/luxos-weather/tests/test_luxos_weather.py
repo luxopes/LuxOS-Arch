@@ -94,7 +94,7 @@ class FakeServer:
 
 SERVER = FakeServer()
 TMP = tempfile.mkdtemp(prefix="luxos-weather-test-")
-os.environ.update({
+ENV = {
     "LUXOS_WEATHER_API": SERVER.base + "/v1/forecast",
     "LUXOS_WEATHER_GEO": SERVER.base + "/v1/search",
     "LUXOS_WEATHER_IP": SERVER.base + "/ip",
@@ -104,8 +104,11 @@ os.environ.update({
     "XDG_CACHE_HOME": os.path.join(TMP, "cache"),
     "XDG_CONFIG_HOME": os.path.join(TMP, "config"),
     "LANG": os.environ.get("LUXOS_TEST_LANG") or "en_GB.UTF-8",   # jednotky jako fixture: °C, km/h
-})
-os.environ["LUXOS_WEATHER_LOCALE_CONF"] = ""          # locale.conf systemu testy necte
+}
+ENV["LUXOS_WEATHER_LOCALE_CONF"] = ""          # locale.conf systemu testy necte
+# testy Map a Pocasi muzou bezet v jednom procesu: prostredi se nastavi znovu pred testy
+# tohoto modulu (setUpModule) a pak se vrati
+os.environ.update(ENV)
 for _var in ("LC_ALL", "LC_MESSAGES", "LC_MEASUREMENT"):
     os.environ.pop(_var, None)
 
@@ -114,9 +117,25 @@ import luxos_weather as lw  # noqa: E402
 PRAGUE = {"name": "Praha", "lat": 50.088, "lon": 14.4208, "country": "Česko", "tz": "Europe/Prague"}
 
 
+_SAVED = {}
+
+
+def setUpModule():
+    for k in list(ENV) + ["LC_ALL", "LC_MESSAGES", "LC_MEASUREMENT"]:
+        _SAVED[k] = os.environ.get(k)
+    os.environ.update(ENV)
+    for k in ("LC_ALL", "LC_MESSAGES", "LC_MEASUREMENT"):
+        os.environ.pop(k, None)
+
+
 def tearDownModule():
     SERVER.close()
     shutil.rmtree(TMP, ignore_errors=True)
+    for k, v in _SAVED.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
 
 class TestJsonCLI(unittest.TestCase):

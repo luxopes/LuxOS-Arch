@@ -303,7 +303,7 @@ class FakeServer:
 
 SERVER = FakeServer()
 TMP = tempfile.mkdtemp(prefix="luxos-maps-test-")
-os.environ.update({
+ENV = {
     "LUXOS_MAPS_TILES": SERVER.base + "/tiles/{z}/{x}/{y}.png",
     "LUXOS_MAPS_SEARCH": SERVER.base + "/search",
     "LUXOS_MAPS_REVERSE": SERVER.base + "/reverse",
@@ -320,16 +320,35 @@ os.environ.update({
     "XDG_CACHE_HOME": os.path.join(TMP, "cache"),
     "XDG_CONFIG_HOME": os.path.join(TMP, "config"),
     "LANG": os.environ.get("LUXOS_TEST_LANG") or "en_GB.UTF-8",
-})
+}
+# testy Map a Pocasi muzou bezet v jednom procesu: prostredi se nastavi znovu pred testy
+# tohoto modulu (setUpModule) a pak se vrati
+os.environ.update(ENV)
 for _var in ("LC_ALL", "LC_MESSAGES", "LC_MEASUREMENT"):
     os.environ.pop(_var, None)
 
 import luxos_maps as lm  # noqa: E402
 
 
+_SAVED = {}
+
+
+def setUpModule():
+    for k in list(ENV) + ["LC_ALL", "LC_MESSAGES", "LC_MEASUREMENT"]:
+        _SAVED[k] = os.environ.get(k)
+    os.environ.update(ENV)
+    for k in ("LC_ALL", "LC_MESSAGES", "LC_MEASUREMENT"):
+        os.environ.pop(k, None)
+
+
 def tearDownModule():
     SERVER.close()
     shutil.rmtree(TMP, ignore_errors=True)
+    for k, v in _SAVED.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
 
 def clean_state():
