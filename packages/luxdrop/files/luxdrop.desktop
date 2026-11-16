@@ -10,6 +10,7 @@ Icon=luxdrop
 Terminal=false
 Categories=Network;FileTransfer;GTK;
 Keywords=share;send;transfer;nearby;LocalSend;sdílet;poslat;přenos;
-MimeType=application/octet-stream;inode/directory;
+# Bez MimeType: aplikace se k zadnemu typu nehlasi, jinak by dvojklik na neznamy soubor (octet-stream)
+# nebo slozku mohl otevrit LuxDrop misto Souboru. Posila se z Thunaru pres Odeslat do > LuxDrop.
 StartupNotify=true
 StartupWMClass=luxdrop
