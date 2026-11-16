@@ -47,6 +47,32 @@ RAR, tar.*) in Xarchiver - also after you install another app that handles the s
 launcher that opens ZIP files). Your own choice in *Open With › Other Application*
 (`~/.config/mimeapps.list`) always wins; a default app that is not installed is skipped.
 
+### Firefox in LuxOS
+
+LuxOS ships Firefox defaults in `/usr/lib/firefox` (package `luxos-desktop`); you can change every
+one of them in Firefox Settings or `about:config`:
+
+- **Window buttons like other LuxOS windows**: the close, minimize and maximize buttons in the tab
+  strip are the red, yellow and green circles of the LuxOS window frames, on the same side and in the
+  same order (from `gtk-decoration-layout`), grey in an inactive window, showing ×, − and arrows under
+  the mouse; correct in light and dark mode, private windows, with the menu bar or vertical tabs and
+  at 2x scaling. Firefox loads the style `luxos/titlebar.css` through the autoconfig file
+  `luxos.cfg` only into browser windows - your own `userChrome.css` keeps working and wins. Turn it
+  off with `luxos.titlebar.trafficlights = false` in `about:config` (applies immediately). If a new
+  Firefox version renames its buttons, Firefox simply shows its own buttons again.
+- **LuxOS welcome page on the first start**: a new Firefox profile opens a local page (no internet
+  needed, no tracking) in the system language: import bookmarks and passwords from Chrome or Edge
+  (the button opens Firefox's import wizard; bookmarks exported as HTML and passwords as CSV on
+  Windows work too), the privacy settings below and links to the LuxOS help, Store, LuxAI, keyboard
+  shortcuts and problem reports. It opens only once per profile - not on later starts or after
+  Firefox updates - and it does not replace your home page. Mozilla's privacy notice tab and
+  `about:welcome` are not shown.
+- **Privacy**: no telemetry or technical data to Mozilla (`datareporting.healthreport.uploadEnabled`,
+  `toolkit.telemetry.*`), no studies (`app.shield.optoutstudies.enabled`, `app.normandy.enabled`), no
+  sponsored shortcuts or stories on the new tab page.
+- **Speed and scrolling**: hardware video decoding (VA-API), unloading unused tabs when memory is low,
+  smooth scrolling with touchpad inertia ([scrolling.md](scrolling.md)).
+
 ## About This Computer
 
 Run `luxos-about`, or use the LuxOS logo menu (first favourite). It shows the LuxOS version and

@@ -15,3 +15,23 @@ pref("general.smoothScroll.msdPhysics.enabled", true);
 // prstu; vypnuti v Nastaveni > Posouvani resi modul luxos-scroll (konec gesta prijde pozdeji, rychlost 0)
 pref("apz.gtk.pangesture.enabled", true);
 pref("apz.gtk.kinetic_scroll.enabled", true);
+
+// Prvni spusteni: misto oznameni o soukromi Mozilly a about:welcome uvitaci stranka LuxOS (jednou pro novy
+// profil; adresu v jazyce systemu nastavuje /usr/lib/firefox/luxos.cfg). Po aktualizaci Firefoxu zadna
+// stranka "Co je noveho" z webu Mozilly.
+pref("datareporting.policy.firstRunURL", "");
+pref("browser.aboutwelcome.enabled", false);
+pref("startup.homepage_override_url", "");
+// Soukromi: Firefox neposila telemetrii ani technicka data Mozille, zadne studie, zadne sponzorovane
+// zkratky a clanky na nove karte (uvitaci stranka LuxOS uvadi presne tyto volby)
+pref("datareporting.healthreport.uploadEnabled", false);
+pref("datareporting.policy.dataSubmissionEnabled", false);
+pref("toolkit.telemetry.enabled", false);
+pref("toolkit.telemetry.unified", false);
+pref("toolkit.telemetry.archive.enabled", false);
+pref("app.shield.optoutstudies.enabled", false);
+pref("app.normandy.enabled", false);
+pref("browser.newtabpage.activity-stream.showSponsored", false);
+pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
+pref("browser.newtabpage.activity-stream.telemetry", false);

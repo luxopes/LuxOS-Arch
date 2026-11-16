@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=73
+pkgrel=74
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -30,6 +30,8 @@ sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni;
 # xfce4-panel + xfconf: hlavicky pro plugin luxos-bar (libxfce4panel-2.0, libxfconf-0)
 makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3)
+# hlidac tlacitek okna Firefoxu: selektory luxos/titlebar.css proti omni.ja nainstalovaneho Firefoxu
+checkdepends=(python firefox unzip nodejs)
 install=luxos-desktop.install
 depends=(
     # LuxOS
@@ -164,6 +166,12 @@ build() {
         emoji-data cs sk de fr es it pl pt nl sv hu uk
 }
 
+check() {
+    # Firefox: luxos.cfg, titlebar.css (styl musi cilit na tlacitka teto verze Firefoxu), uvitaci stranka;
+    # cast se skutecnym Firefoxem bezi jen pod xvfb-run (tady se preskoci)
+    env -u DISPLAY python3 -I "$startdir/tests/test_firefox_titlebar.py"
+}
+
 package() {
     local f="$startdir/files"
 
@@ -283,8 +291,15 @@ package() {
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
 
-    # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti, plynule posouvani
+    # Firefox: hardwarove dekodovani videa, uvolnovani panelu pri nedostatku pameti, plynule posouvani,
+    # bez telemetrie a sponzorovaneho obsahu
     install -Dm644 "$f/firefox/luxos.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos.js"
+    # Firefox autoconfig (luxos.cfg): tlacitka okna jako barevna kolecka LuxOS (titlebar.css, vypnuti
+    # luxos.titlebar.trafficlights) a uvitaci stranka LuxOS pri prvnim spusteni profilu v jazyce systemu
+    install -Dm644 "$f/firefox/luxos-autoconfig.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos-autoconfig.js"
+    install -Dm644 "$f/firefox/luxos.cfg" "$pkgdir/usr/lib/firefox/luxos.cfg"
+    install -Dm644 "$f/firefox/titlebar.css" "$pkgdir/usr/lib/firefox/luxos/titlebar.css"
+    install -Dm644 -t "$pkgdir/usr/lib/firefox/luxos/welcome" "$f"/firefox/welcome/{index.html,strings.js,welcome.js}
 
     install -Dm644 "$f/networkmanager/30-luxos-connectivity.conf" \
         "$pkgdir/usr/lib/NetworkManager/conf.d/30-luxos-connectivity.conf"

@@ -1,0 +1,147 @@
+<!doctype html>
+<!-- LuxOS - uvitaci stranka Firefoxu pri prvnim spusteni noveho profilu (startup.homepage_welcome_url
+     z /usr/lib/firefox/luxos.cfg, ?lang= podle jazyka systemu). Jen mistni soubory: zadne vzdalene
+     pisma, skripty ani mereni. Texty ve strings.js (anglictina je primo zde, kdyby skript nebezel). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title data-i18n="page_title">Welcome to LuxOS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath fill='%235b7cff' d='M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91ZM8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18ZM248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z'/%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --line: rgba(0, 0, 0, 0.08);
+    --accent: #3d7bff;
+    --accent-text: #ffffff;
+    --tile: #f0f2f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --card: #2c2c2e;
+      --text: #f5f5f7;
+      --muted: #a1a1a6;
+      --line: rgba(255, 255, 255, 0.10);
+      --accent: #5b8cff;
+      --tile: #3a3a3c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 Inter, "Noto Sans", "DejaVu Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 48px 24px 32px; }
+  header { display: flex; align-items: center; gap: 20px; margin-bottom: 32px; }
+  header svg { width: 72px; height: 72px; flex: none; }
+  h1 { font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .lead { margin: 0; color: var(--muted); font-size: 17px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; }
+  section.wide { grid-column: 1 / -1; }
+  h2 { font-size: 18px; font-weight: 650; margin: 0 0 8px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: 13.5px; margin: 12px 0 0; }
+  .button {
+    display: inline-block; background: var(--accent); color: var(--accent-text); text-decoration: none;
+    font-weight: 600; padding: 9px 18px; border-radius: 10px;
+  }
+  .button:hover { filter: brightness(1.08); }
+  .button:focus-visible, .links a:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+  ul.checks { list-style: none; margin: 0; padding: 0; }
+  ul.checks li { position: relative; padding-left: 28px; margin: 0 0 8px; }
+  ul.checks li::before {
+    content: ""; position: absolute; left: 0; top: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: #28c840 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M5 9.4l2.6 2.6L13 6.4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 18px no-repeat;
+  }
+  .links { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+  .links a {
+    display: block; padding: 12px 14px; border-radius: 12px; background: var(--tile); color: inherit;
+    text-decoration: none;
+  }
+  .links a:hover { background: color-mix(in srgb, var(--accent) 14%, var(--tile)); }
+  .links strong { display: block; font-weight: 600; }
+  .links span { color: var(--muted); font-size: 13.5px; }
+  kbd {
+    font: inherit; font-size: 0.92em; padding: 0 5px; border-radius: 5px; border: 1px solid var(--line);
+    background: var(--tile);
+  }
+  footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 28px; }
+  @media (max-width: 680px) {
+    main { padding: 28px 16px; }
+    .grid { grid-template-columns: 1fr; }
+    header { gap: 14px; }
+    header svg { width: 56px; height: 56px; }
+    h1 { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg viewBox="0 0 256 256" role="img" aria-label="LuxOS">
+      <defs>
+        <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="40" y1="30" x2="225" y2="230">
+          <stop offset="0" stop-color="#7ab8ff"/>
+          <stop offset="0.5" stop-color="#5b7cff"/>
+          <stop offset="1" stop-color="#a06bff"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#g)" d="M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140.58 158.36 161.65 246.27 209.91ZM8.09 211.18C89.02 173.90 133.08 136.86 126.09 40.64C105.95 110.22 62.88 165.17 8.09 211.18ZM248.64 226.09C158.26 151.17 105.77 146.57 13.73 222.82C95.86 182.21 167.60 183.49 248.64 226.09Z"/>
+    </svg>
+    <div>
+      <h1 data-i18n="title">Welcome to LuxOS</h1>
+      <p class="lead" data-i18n="lead">Firefox is ready. A few tips to make yourself at home.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section id="import">
+      <h2 data-i18n="import_h">Bring your bookmarks and passwords</h2>
+      <p data-i18n="import_p">Firefox can import bookmarks, passwords and history from Chrome, Edge or Chromium on this computer, or from files exported on Windows (bookmarks as HTML, passwords as CSV).</p>
+      <a class="button" id="import-button" href="#import" data-i18n="import_btn">Import from another browser</a>
+      <p class="muted" data-i18n="import_later">Later: menu ☰ → Settings → General → Import browser data.</p>
+    </section>
+
+    <section id="privacy">
+      <h2 data-i18n="privacy_h">Privacy set up by LuxOS</h2>
+      <ul class="checks">
+        <li data-i18n="privacy_1">No telemetry or technical data is sent to Mozilla</li>
+        <li data-i18n="privacy_2">No studies or experiments</li>
+        <li data-i18n="privacy_3">No sponsored shortcuts or stories on the new tab page</li>
+      </ul>
+      <p class="muted" data-i18n="privacy_4">You can change this in Settings → Privacy &amp; Security.</p>
+    </section>
+
+    <section class="wide" id="more">
+      <h2 data-i18n="help_h">Help and more</h2>
+      <div class="links">
+        <a id="link-help" href="https://luxos.lux-ai.cz/docs/" target="_blank" rel="noopener noreferrer">
+          <strong data-i18n="link_help">LuxOS Help</strong><span data-i18n="link_help_d">Guides for everything in LuxOS</span></a>
+        <a id="link-store" href="https://luxos.lux-ai.cz/docs/luxos/store.html" target="_blank" rel="noopener noreferrer">
+          <strong data-i18n="link_store">LuxOS Store</strong><span data-i18n="link_store_d">Apps installed in one click, open Store from the Dock</span></a>
+        <a id="link-luxai" href="https://luxos.lux-ai.cz/docs/luxos/luxai.html" target="_blank" rel="noopener noreferrer">
+          <strong data-i18n="link_luxai">LuxAI</strong><span data-i18n="link_luxai_d">The AI assistant built into LuxOS, it knows the offline manual</span></a>
+        <a id="link-keys" href="https://luxos.lux-ai.cz/docs/luxos/shortcuts.html" target="_blank" rel="noopener noreferrer">
+          <strong data-i18n="link_keys">Keyboard shortcuts</strong><span data-i18n="link_keys_d">Super, Ctrl and Alt shortcuts at a glance</span></a>
+        <a id="link-report" href="https://github.com/luxopes/LuxOS-Arch/issues" target="_blank" rel="noopener noreferrer">
+          <strong data-i18n="link_report">Report a problem</strong><span data-i18n="link_report_d">Use the Feedback app or write to us on GitHub</span></a>
+      </div>
+    </section>
+  </div>
+
+  <footer data-i18n="footer">This page is stored on your computer and opens only once. No tracking.</footer>
+</main>
+<script src="strings.js"></script>
+<script src="welcome.js"></script>
+</body>
+</html>
