@@ -141,14 +141,35 @@ greeter_sync() {
 }
 
 # Selektory pro okno listy a okna externich pluginu: bar_sel ' label' ' image' -> "#XfcePanelWindow label, ..."
+bar_windows=('#XfcePanelWindow' '#XfcePanelWindowWrapper')
 bar_sel() {
     local w x out=
     for x in "$@"; do
-        for w in '#XfcePanelWindow' '#XfcePanelWindowWrapper'; do
+        for w in "${bar_windows[@]}"; do
             out+="${out:+, }$w$x"
         done
     done
     printf '%s' "$out"
+}
+
+# Barva textu a ikon listy pro okna v bar_windows: ink_rules BARVA STIN(0/1)
+ink_rules() {
+    local fg=$1 shadow=$2
+    printf '%s { color: %s; }\n' "$(bar_sel '' ' label' ' button' ' image')" "$fg"
+    if (( shadow )); then
+        printf '%s { text-shadow: 0 1px 2px alpha(black, 0.35); } %s { -gtk-icon-shadow: 0 1px 2px alpha(black, 0.35); }\n' \
+            "$(bar_sel ' label')" "$(bar_sel ' image')"
+    else
+        printf '%s { text-shadow: none; -gtk-icon-shadow: none; }\n' "$(bar_sel ' label' ' image')"
+    fi
+    # Nabidky a vyskakovaci okna pluginu (zvuk, Wi-Fi, ...): GTK je ve stromu CSS veda pod tlacitkem
+    # listy (window(XfcePanelWindow) button window.popup menu menuitem label) - barvu a stin vratit
+    # motivu, jinak by byl text listy i v nabidce.
+    printf '%s { color: inherit; text-shadow: none; -gtk-icon-shadow: none; }\n' \
+        "$(bar_sel ' window label' ' window button' ' window image' ' popover label' ' popover button' ' popover image')"
+    # cisla ploch (pager)
+    printf '%s { color: alpha(%s, 0.55); }\n' "$(bar_sel ' grid > button label')" "$fg"
+    printf '%s { color: %s; }\n' "$(bar_sel ' grid > button:checked label')" "$fg"
 }
 
 # Barva textu horni listy: WhiteSur pocita s tmavou listou, ve svetlem rezimu ji prebarvime.
@@ -168,16 +189,19 @@ panel_css() {
     block="/* LuxOS appearance begin */"$'\n'
     # Jen okno listy (#XfcePanelWindow) a okna externich pluginu (#XfcePanelWindowWrapper):
     # tridu .xfce4-panel maji i vyskakovaci okna pluginu.
-    [[ $mode == light ]] &&
-        block+="$(bar_sel '' ' label' ' button' ' image') { color: $fg; }"$'\n'
-    # bile pismo na svetle liste: jemny stin, aby bylo citelne i na svetle tapete
-    [[ $mode == light && $white == 1 ]] &&
-        block+="$(bar_sel ' label') { text-shadow: 0 1px 2px alpha(black, 0.35); } $(bar_sel ' image') { -gtk-icon-shadow: 0 1px 2px alpha(black, 0.35); }"$'\n'
-    # Nabidky a vyskakovaci okna pluginu (zvuk, Wi-Fi, ...): GTK je ve stromu CSS veda pod tlacitkem
-    # listy (window(XfcePanelWindow) button window.popup menu menuitem label) - barvu a stin vratit
-    # motivu, jinak by byl bily text listy i v bile nabidce.
-    [[ $mode == light ]] &&
-        block+="$(bar_sel ' window label' ' window button' ' window image' ' popover label' ' popover button' ' popover image') { color: inherit; text-shadow: none; -gtk-icon-shadow: none; }"$'\n'
+    # Bile pismo na svetle liste ma jemny stin, aby bylo citelne i na svetle tapete.
+    [[ $mode == light ]] && block+=$(ink_rules "$fg" "$white")$'\n'
+    # Bile pismo ve svetlem rezimu: plugin luxos-bar prepina pismo podle tapety bez restartu panelu
+    # tridou okna listy (luxos-ink-dark / luxos-ink-white) - pluginy v procesu panelu se prebarvi hned;
+    # externi pluginy (vlastni procesy) plugin restartuje a ty nactou zakladni pravidla vyse (bar-ink).
+    if [[ $mode == light && $BAR_TEXT == white ]]; then
+        local -a saved=("${bar_windows[@]}")
+        bar_windows=('#XfcePanelWindow.luxos-ink-dark')
+        block+=$(ink_rules '#1d1d1f' 0)$'\n'
+        bar_windows=('#XfcePanelWindow.luxos-ink-white')
+        block+=$(ink_rules '#ffffff' 1)$'\n'
+        bar_windows=("${saved[@]}")
+    fi
     # Zaoblene spodni rohy: nahore lista licuje s obrazovkou; pod oknem (trida luxos-covered od pluginu
     # luxos-bar) rovne, jinak by v rozich prosvitala tapeta. Externi pluginy (vlastni okna ve svem
     # procesu) maji tutez tridu - bez zaobleni; krajni plugin by kreslil pres roh, proto jsou na
@@ -186,10 +210,10 @@ panel_css() {
         block+="#XfcePanelWindow.xfce4-panel.background { border-radius: 0 0 10px 10px; }"$'\n'"#XfcePanelWindowWrapper.xfce4-panel.background, #XfcePanelWindow.xfce4-panel.background.luxos-covered { border-radius: 0; }"$'\n'
     # pager v rezimu cisel (vychozi LuxOS, luxos-session): tlacitka v mrizce - jine pluginy listy mrizku nemaji
     block+="$(bar_sel ' grid > button') { min-width: 20px; min-height: 0; padding: 0 4px; margin: 4px 1px; border-radius: 6px; background: transparent; box-shadow: none; border: none; }"$'\n'
-    block+="$(bar_sel ' grid > button label') { color: alpha($fg, 0.55); font-weight: 600; }"$'\n'
+    block+="$(bar_sel ' grid > button label') { font-weight: 600; }"$'\n'
+    [[ $mode == light ]] || block+="$(bar_sel ' grid > button label') { color: alpha($fg, 0.55); }"$'\n'"$(bar_sel ' grid > button:checked label') { color: $fg; }"$'\n'
     block+="$(bar_sel ' grid > button:hover') { background: alpha($fg, 0.08); }"$'\n'
     block+="$(bar_sel ' grid > button:checked') { background: alpha(#3d7bff, 0.22); }"$'\n'
-    block+="$(bar_sel ' grid > button:checked label') { color: $fg; }"$'\n'
     # miniatury (zapnute v nastaveni pageru): bez sedych bloku; ztmaveni neaktivnich ploch kresli libwnck napevno
     block+="$(bar_sel ' wnck-pager') { background: transparent; }"$'\n'
     block+="$(bar_sel ' wnck-pager:hover') { background: alpha($fg, 0.08); }"$'\n'
@@ -411,10 +435,11 @@ case ${1:-status} in
     # Interni: restart panelu teto relace po jednom (luxos-search --add-to-panel)
     restart-panel) restart_panel ;;
     # Interni (plugin luxos-bar): bile pismo na svetle tapete prepnout na tmave a zpet
-    bar-ink)    [[ ${2-} == @(dark|white) ]] || usage "bar-ink dark|white"
+    # "live" = plugin pismo prepne sam bez restartu panelu (trida okna listy, restart externich pluginu)
+    bar-ink)    [[ ${2-} == @(dark|white) && ${3-live} == live ]] || usage "bar-ink dark|white [live]"
                 mkdir -p "$state_dir"
                 if [[ $2 == dark ]]; then echo dark >"$ink_file"; else rm -f "$ink_file"; fi
-                if panel_css "$(current)"; then restart_panel; fi ;;
+                if panel_css "$(current)" && [[ ${3-} != live ]]; then restart_panel; fi ;;
     bar-text)   [[ ${2-} == @(auto|white) ]] || usage "bar-text auto|white"
                 BAR_TEXT=$2
                 set_pref BAR_TEXT "$2"

@@ -24,9 +24,12 @@
  *    svetla tapeta -, prepne se lista na tmave pismo se svetlym tonem; na tmavsi tapete zpet na bile.
  *    Rozhoduje kontrast podle WCAG (prumer linearniho jasu vyrezu) s hysterezi, aby lista neblikala.
  *    Pocita se pro monitor s listou a tapetu aktivni plochy, znovu pri zmene tapety, plochy
- *    a monitoru. Barvu textu a ikon vsech pluginu (i externich procesu) urcuje spravovany blok
- *    gtk.css - plugin zapise rozhodnuti pres "luxos-appearance bar-ink dark|white", ktery blok
- *    prepise a panel restartuje (stejne jako pri prepnuti svetleho/tmaveho rezimu).
+ *    a monitoru. Bez restartu panelu: plugin prepne tridu okna listy (luxos-ink-dark / luxos-ink-white,
+ *    pravidla ve spravovanem bloku gtk.css) - pluginy v procesu panelu se prebarvi hned. Rozhodnuti
+ *    zapise "luxos-appearance bar-ink dark|white live" (zakladni pravidla bloku pro externi pluginy)
+ *    a po jeho dobehnuti plugin restartuje externi pluginy (wrapper-2.0 = vlastni procesy: logo,
+ *    rozlozeni klavesnice, zvuk, zvonek) signalem SIGUSR1 - panel je spusti znovu bez ptani
+ *    a nactou novy blok. Lista ani tapeta pod ni nezmizi.
  *
  * Zmeny appearance.conf se nacitaji hned (GFileMonitor), bez restartu panelu.
  */
@@ -36,6 +39,10 @@
 #include <libxfce4panel/libxfce4panel.h>
 #include <xfconf/xfconf.h>
 #include <glib/gstdio.h>
+#include <signal.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -60,6 +67,10 @@ typedef struct {
     gchar *ink_path;
     gchar *ink_key;             /* tapeta a ton, pro ktere uz bylo pismo rozhodnuto */
     gint64 ink_spawned;         /* kdy naposledy spusten luxos-appearance bar-ink (us) */
+    gboolean ext_ink;           /* pismo, se kterym bezi externi pluginy (nactene z gtk.css) */
+    guint ext_id;               /* odlozeny restart externich pluginu */
+    gboolean ink_path_read;
+    gint ext_tries;
     gint cover;                 /* BAR_COVER: COVER_WALLPAPER (vychozi), _TRANSLUCENT, _SOLID */
     gchar *bg_key;              /* naposledy vykreslena tapeta (zdroj, rozmery, ton) */
     gchar *bg_file;             /* obrazek pozadi listy v ~/.cache/luxos */
@@ -321,16 +332,99 @@ white_contrast (GdkPixbuf *pb, const GdkRGBA *tint) {
     return 1.05 / (l + 0.05);
 }
 
-/* TRUE = tmave pismo. current = dosavadni rozhodnuti (hystereze) */
-static gboolean
-want_dark_ink (gdouble contrast, gboolean current) {
-    return current ? contrast < INK_WHITE_ABOVE : contrast < INK_DARK_BELOW;
-}
-
 /* Rozhoduje se jen pro bile pismo ve svetlem rezimu (v tmavem je lista tmava vzdy) */
 static gboolean
 ink_needed (Bar *bar) {
     return bar->white && !xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
+}
+
+/* Trida okna listy podle pisma (pravidla v gtk.css od luxos-appearance) */
+static void
+apply_ink_class (Bar *bar) {
+    GtkStyleContext *ctx = bar->toplevel ? gtk_widget_get_style_context (bar->toplevel) : NULL;
+    if (!ctx)
+        return;
+    gboolean need = ink_needed (bar);
+    gboolean dark = need && bar->dark_ink, white = need && !bar->dark_ink;
+    if (dark != gtk_style_context_has_class (ctx, "luxos-ink-dark")) {
+        if (dark)
+            gtk_style_context_add_class (ctx, "luxos-ink-dark");
+        else
+            gtk_style_context_remove_class (ctx, "luxos-ink-dark");
+    }
+    if (white != gtk_style_context_has_class (ctx, "luxos-ink-white")) {
+        if (white)
+            gtk_style_context_add_class (ctx, "luxos-ink-white");
+        else
+            gtk_style_context_remove_class (ctx, "luxos-ink-white");
+    }
+}
+
+/* Externi pluginy teto listy = deti procesu panelu "wrapper-2.0"; SIGUSR1 = panel je spusti znovu
+ * bez ptani (panel_plugin_external_child_watch: "the panel asked for a restart") */
+static void
+restart_external_plugins (void) {
+    GDir *dir = g_dir_open ("/proc", 0, NULL);
+    if (!dir)
+        return;
+    pid_t self = getpid ();
+    const gchar *name;
+    while ((name = g_dir_read_name (dir))) {
+        if (name[0] < '0' || name[0] > '9')
+            continue;
+        gchar *path = g_build_filename ("/proc", name, "stat", NULL), *stat = NULL;
+        gboolean ok = g_file_get_contents (path, &stat, NULL, NULL);
+        g_free (path);
+        /* pid (comm) stav ppid ... - comm muze obsahovat mezery, ppid az za posledni ')' */
+        const gchar *rp = ok ? strrchr (stat, ')') : NULL;
+        const gchar *lp = ok ? strchr (stat, '(') : NULL;
+        gint ppid = 0;
+        if (rp && lp && sscanf (rp + 1, " %*c %d", &ppid) == 1 && ppid == self
+            && g_str_has_prefix (lp + 1, "wrapper-2.0)")) {
+            pid_t pid = (pid_t) g_ascii_strtoll (name, NULL, 10);
+            if (pid > 1)
+                kill (pid, SIGUSR1);
+        }
+        g_free (stat);
+    }
+    g_dir_close (dir);
+}
+
+/* Ikony StatusNotifier v oznamovaci oblasti (systray v procesu panelu: nm-applet --indicator, blueman, ...)
+ * si symbolickou ikonu prebarvi jen pri zmene motivu ikon - stejny nazev motivu je jen znovu nacte
+ * (GtkIconTheme se nemeni). Starsi ikony XEmbed (GtkStatusIcon v GTK 3) barvu listy prevezmou jen pri
+ * svem spusteni; pozdejsi zmenu barvy (_NET_SYSTEM_TRAY_COLORS) ani nove ukotveni neprekresli. */
+static void
+refresh_tray_icons (void) {
+    g_object_notify (G_OBJECT (gtk_settings_get_default ()), "gtk-icon-theme-name");
+}
+
+/* Externi pluginy restartovat az po zapsani gtk.css a az se pismo ustali (rychle prepinani ploch
+ * s ruznymi tapetami: jeden restart na konci); kdyz se pismo vratilo na puvodni, restart neni potreba */
+static gboolean
+ext_restart_timeout (gpointer data) {
+    Bar *bar = data;
+    bar->ext_id = 0;
+    if (bar->dark_ink == bar->ext_ink)
+        return G_SOURCE_REMOVE;
+    gchar *ink = NULL;
+    gboolean file_dark = g_file_get_contents (bar->ink_path, &ink, NULL, NULL) && g_str_has_prefix (ink, "dark");
+    g_free (ink);
+    if (file_dark != bar->dark_ink) {
+        /* luxos-appearance jeste nedobehl (nejdele ~3 s, pak az pri dalsi zmene) */
+        if (++bar->ext_tries < 10)
+            bar->ext_id = g_timeout_add (300, ext_restart_timeout, bar);
+        return G_SOURCE_REMOVE;
+    }
+    restart_external_plugins ();
+    bar->ext_ink = bar->dark_ink;
+    return G_SOURCE_REMOVE;
+}
+
+/* TRUE = tmave pismo. current = dosavadni rozhodnuti (hystereze) */
+static gboolean
+want_dark_ink (gdouble contrast, gboolean current) {
+    return current ? contrast < INK_WHITE_ABOVE : contrast < INK_DARK_BELOW;
 }
 
 /* Rozhodnout pismo pro vyrez tapety pod listou (pred tonem) */
@@ -342,15 +436,24 @@ decide_ink (Bar *bar, GdkPixbuf *strip, const gchar *key) {
     tint_for (bar, FALSE, &smoke);
     gboolean want = want_dark_ink (white_contrast (strip, &smoke), bar->dark_ink);
     if (want != bar->dark_ink) {
-        /* nejvys jednou za 3 s (restart panelu, opakovane zmeny tapety); jinak pri dalsi udalosti */
+        /* nejvys jednou za 1 s (prepinani ploch s ruznymi tapetami, prezentace tapet); jinak pri
+         * dalsi udalosti */
         gint64 now = g_get_monotonic_time ();
-        if (bar->ink_spawned && now - bar->ink_spawned < 3 * G_USEC_PER_SEC)
+        if (bar->ink_spawned && now - bar->ink_spawned < G_USEC_PER_SEC)
             return;
-        gchar *argv[] = { "luxos-appearance", "bar-ink", want ? "dark" : "white", NULL };
-        if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL))
+        gchar *argv[] = { "luxos-appearance", "bar-ink", want ? "dark" : "white", "live", NULL };
+        if (!g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL
+                            | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL))
             return;
+        if (bar->ext_id)
+            g_source_remove (bar->ext_id);
+        bar->ext_tries = 0;
+        bar->ext_id = g_timeout_add (800, ext_restart_timeout, bar);
         bar->ink_spawned = now;
         bar->dark_ink = want;
+        /* pluginy v procesu panelu hned */
+        apply_ink_class (bar);
+        refresh_tray_icons ();
     }
     g_free (bar->ink_key);
     bar->ink_key = g_strdup (key);
@@ -830,6 +933,12 @@ static void
 apply_conf (Bar *bar) {
     read_conf (bar);
     read_ink (bar);
+    if (!bar->ink_path_read) {
+        /* externi pluginy se spustily s blokem gtk.css podle ulozeneho rozhodnuti */
+        bar->ext_ink = bar->dark_ink;
+        bar->ink_path_read = TRUE;
+    }
+    apply_ink_class (bar);
     /* jine nastaveni (pruhlednost, bile pismo) - pismo rozhodnout znovu */
     g_clear_pointer (&bar->ink_key, g_free);
     sync_right_clock (bar);
@@ -890,6 +999,8 @@ bar_free (XfcePanelPlugin *plugin, Bar *bar) {
         g_source_remove (bar->eval_id);
     if (bar->bg_id)
         g_source_remove (bar->bg_id);
+    if (bar->ext_id)
+        g_source_remove (bar->ext_id);
     g_signal_handlers_disconnect_by_data (xfconf_channel_get ("xfce4-desktop"), bar);
     if (bar->screen) {
         g_signal_handlers_disconnect_by_data (bar->screen, bar);

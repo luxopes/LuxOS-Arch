@@ -157,12 +157,13 @@ python3 "$T/solid.py" "$T/white.png" 0xffffffff
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/last-image -s "$T/white.png"
 for _ in $(seq 50); do grep -q 'bar-ink dark' "$T/appearance.log" 2>/dev/null && break; sleep 0.1; done
 echo "ink-white-wallpaper $(tail -1 "$T/appearance.log" 2>/dev/null | tr ' ' _)"
-sleep 3.2
+sleep 1.3
 python3 "$T/solid.py" "$T/dark.png" 0x203050ff
 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/last-image -s "$T/dark.png"
 for _ in $(seq 50); do grep -q 'bar-ink white' "$T/appearance.log" 2>/dev/null && break; sleep 0.1; done
 echo "ink-dark-wallpaper $(tail -1 "$T/appearance.log" 2>/dev/null | tr ' ' _)"
 echo "ink-calls $(wc -l < "$T/appearance.log")"
+kill -0 $P 2>/dev/null && echo "ink-same-panel yes"
 xfce4-panel -q 2>/dev/null
 sleep 0.5
 """
@@ -279,9 +280,10 @@ class BarPlugin(unittest.TestCase):
 
     def test_white_text_switches_to_dark_on_white_wallpaper(self):
         """BAR_TEXT=white: bila tapeta -> luxos-appearance bar-ink dark, tmava tapeta -> bar-ink white."""
-        self.assertEqual(self.out.get("ink-white-wallpaper"), "bar-ink_dark", self.stdout + self.panel_log[-2000:])
-        self.assertEqual(self.out.get("ink-dark-wallpaper"), "bar-ink_white", self.stdout)
+        self.assertEqual(self.out.get("ink-white-wallpaper"), "bar-ink_dark_live", self.stdout + self.panel_log[-2000:])
+        self.assertEqual(self.out.get("ink-dark-wallpaper"), "bar-ink_white_live", self.stdout)
         self.assertEqual(self.out.get("ink-calls"), "2", "kazde rozhodnuti jen jednou")
+        self.assertEqual(self.out.get("ink-same-panel"), "yes", "pismo se prepina bez restartu panelu")
 
     def test_clock_in_the_middle_without_restart(self):
         self.assertEqual(self.out.get("same-panel"), "yes", "panel se nerestartoval")

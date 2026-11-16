@@ -230,8 +230,9 @@ class Bar(unittest.TestCase):
         self.run_appearance("bar-ink", "dark")
         css = self.read(self.css)
         self.assertIn("#XfcePanelWindowWrapper image { color: #1d1d1f; }", css)
-        self.assertNotIn("text-shadow: 0", css)
-        self.assertNotIn("-gtk-icon-shadow: 0", css)
+        # zakladni pravidla (externi pluginy) bez stinu; stin jen u tridy luxos-ink-white
+        self.assertNotIn("#XfcePanelWindowWrapper label { text-shadow: 0", css)
+        self.assertNotIn("#XfcePanelWindowWrapper image { -gtk-icon-shadow: 0", css)
         self.assertIn("grid > button:checked label { color: #1d1d1f; }", css)   # cisla ploch
         self.assertEqual(self.read(os.path.join(self.cfg, "luxos", "bar-ink")).strip(), "dark")
         self.assertEqual(self.restarts(), 1, "barvu textu externich pluginu nacte panel az po restartu")
@@ -262,6 +263,26 @@ class Bar(unittest.TestCase):
             time.sleep(0.1)
         self.assertEqual(self.read(self.log).count("xfce4-panel -r"), 1)
 
+    def test_bar_ink_live_without_restart_and_class_rules(self):
+        """Plugin prepina pismo bez restartu panelu: "bar-ink X live" jen zapise blok; v bloku jsou pravidla
+        pro tridu okna listy luxos-ink-dark / luxos-ink-white (pluginy v procesu panelu se prebarvi hned),
+        vcetne vraceni barvy v nabidkach pluginu."""
+        self.run_appearance("bar-text", "white")
+        open(self.log, "w").close()
+        self.run_appearance("bar-ink", "dark", "live")
+        self.assertEqual(self.restarts(), 0)
+        css = self.read(self.css)
+        self.assertIn("#XfcePanelWindowWrapper image { color: #1d1d1f; }", css)   # externi pluginy: zaklad
+        self.assertIn("#XfcePanelWindow.luxos-ink-dark image { color: #1d1d1f; }", css)
+        self.assertIn("#XfcePanelWindow.luxos-ink-white image { color: #ffffff; }", css)
+        self.assertIn("#XfcePanelWindow.luxos-ink-white label { text-shadow: 0 1px 2px", css)
+        self.assertIn("#XfcePanelWindow.luxos-ink-dark label, #XfcePanelWindow.luxos-ink-dark image { text-shadow: none;", css)
+        # nabidky: reset s tridou az za pravidlem tridy (vyssi specificita a pozdeji)
+        self.assertGreater(css.index("#XfcePanelWindow.luxos-ink-dark window label"),
+                           css.index("#XfcePanelWindow.luxos-ink-dark image { color"))
+        self.assertIn("#XfcePanelWindow.luxos-ink-dark grid > button:checked label { color: #1d1d1f; }", css)
+        self.assertEqual(self.run_appearance("bar-ink", "dark", "now", check=False).returncode, 2)
+
     def test_bar_ink_only_affects_white_text_in_light_mode(self):
         """Ulozene rozhodnuti nemeni tmavy rezim ani vychozi pismo (bar-text auto)."""
         self.run_appearance("bar-ink", "dark")
@@ -278,8 +299,10 @@ class Bar(unittest.TestCase):
         """Nabidka zvuku/Wi-Fi je ve stromu CSS pod tlacitkem listy: bily text listy do ni nesmi."""
         self.run_appearance("bar-text", "white")
         css = self.read(self.css)
-        reset = [l for l in css.splitlines() if "color: inherit" in l]
+        # zakladni pravidlo (+ stejne pro tridy luxos-ink-dark / luxos-ink-white)
+        reset = [l for l in css.splitlines() if "color: inherit" in l and "#XfcePanelWindowWrapper window" in l]
         self.assertEqual(len(reset), 1, css)
+        self.assertEqual(len([l for l in css.splitlines() if "color: inherit" in l]), 3)
         for sel in ("#XfcePanelWindow window label", "#XfcePanelWindow window image", "#XfcePanelWindow popover label",
                     "#XfcePanelWindowWrapper window label"):
             self.assertIn(sel, reset[0])
