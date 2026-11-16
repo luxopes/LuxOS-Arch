@@ -18,7 +18,7 @@ uspesne odpovedi serveru; chyba = zkusi se pri pristim behu lux (zadne dalsi opa
 
 Nikdy nezdrzuje aktualizaci: pozadavek bezi ve vlakne na pozadi (casovy limit 5 s), chyby se
 ignoruji. Neposila se: z live ISO, v kontejneru, pro jiny koren nez /, bez prav roota, pri
-[general] countme = false v /etc/lux/lux.conf (lux-config set-countme off, Aktualizace softwaru >
+[general] countme = false v /etc/lux/lux.conf (lux config countme off, Aktualizace softwaru >
 Soukromi, instalator) a pred dokoncenim Pruvodce nastavenim u OEM instalaci.
 
   lux_countme.py status      co by se poslalo a proc (ne)
@@ -33,6 +33,14 @@ import sys
 import threading
 import time
 import urllib.parse
+
+# preklady jen pro vypis "lux config countme" (duvody v kodu zustavaji anglicke - porovnavaji se)
+sys.path.insert(0, "/usr/lib/luxos/python")
+try:
+    from luxos_i18n import _
+except ImportError:
+    def _(text):
+        return text
 
 HOST = "luxos.lux-ai.cz"
 PATH = "/countme"
@@ -322,19 +330,24 @@ def finish(interactive=None):
     t.join(max(0.0, t.deadline - time.monotonic()))
 
 
-def status_text():
-    params, st = plan(check_week=False, euid=0)     # co by poslal root (lux update, LuxOS Care)
-    last = load_state().get("last_week") or "never"
-    lines = [f"countme: last counted week: {last}"]
+def status_text(conf=LUX_CONF, root="", state_path=STATE):
+    # co by poslal root (lux update, LuxOS Care)
+    params, st = plan(conf=conf, root=root, state_path=state_path, check_week=False, euid=0)
+    last = load_state(state_path).get("last_week") or _("never")
+    lines = [_("countme: last counted week: %s") % last]
     if params is None:
-        lines.append(f"countme: not sent - {st}")
+        lines.append(_("countme: not sent - %s") % _(st))
     else:
-        lines.append(f"countme: request (once per week, when the package lists are refreshed): "
-                     f"https://{HOST}{query(params)}")
-        lines.append(f"countme: headers: Host: {HOST}, User-Agent: {USER_AGENT}, Connection: close")
+        lines.append(_("countme: request (once per week, when the package lists are refreshed): %s")
+                     % f"https://{HOST}{query(params)}")
+        lines.append(_("countme: headers: %s") % f"Host: {HOST}, User-Agent: {USER_AGENT}, Connection: close")
         if st.get("last_week") == iso_week():
-            lines.append("countme: this week is already counted")
-    lines.append("countme: turn off: sudo lux-config set-countme off")
+            lines.append(_("countme: this week is already counted"))
+    # lux-config je vnitrni nastroj mimo PATH - radit prikaz lux
+    if settings(conf, root)[0]:
+        lines.append(_("countme: turn off: lux config countme off"))
+    else:
+        lines.append(_("countme: turn on: lux config countme on"))
     return "\n".join(lines)
 
 

@@ -96,7 +96,8 @@ Any of these (each sets `[general] countme = false` in `/etc/lux/lux.conf`):
 
 - **Software Update** (Aktualizace softwaru) › **Privacy** › switch "Anonymously report that this
   computer uses LuxOS";
-- `lux config countme off` (or `sudo lux-config set-countme off`); `on` turns it back on;
+- `lux config countme off` (it asks for the administrator password); `lux config countme on` turns it
+  back on, `lux config countme` shows the state and the exact request;
 - in [`/etc/luxos/system.lsl`](system-config.md): `"updates": {"countme": False}` and
   `sudo lux system apply`;
 - edit `/etc/lux/lux.conf`: `countme = false` in `[general]` (a file in `/etc/lux/conf.d/` can also

@@ -5160,3 +5160,19 @@ min	perc
 s	mp
 Sandbox: %s	Sandbox: %s
 Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Használat: luxos-sandbox build-install [--asdeps] [--deps "a b"] <név> < könyvtár.tar
+countme: last counted week: %s	countme: utoljára számolt hét: %s
+countme: not sent - %s	countme: nem küldi – %s
+countme: request (once per week, when the package lists are refreshed): %s	countme: kérés (hetente egyszer, a csomaglisták frissítésekor): %s
+countme: headers: %s	countme: fejlécek: %s
+countme: this week is already counted	countme: ez a hét már számolva van
+countme: turn off: lux config countme off	countme: kikapcsolás: lux config countme off
+countme: turn on: lux config countme on	countme: bekapcsolás: lux config countme on
+not root	root jogok nélkül
+other root	más gyökérkönyvtár
+live system	élő rendszer
+container	konténer
+setup assistant not finished (OEM)	a beállítási segéd még nem fejeződött be (OEM)
+turned off (countme = false in /etc/lux/lux.conf)	kikapcsolva (countme = false itt: /etc/lux/lux.conf)
+unknown channel	ismeretlen csatorna
+unknown LuxOS version	ismeretlen LuxOS-verzió
+unsupported architecture	nem támogatott architektúra

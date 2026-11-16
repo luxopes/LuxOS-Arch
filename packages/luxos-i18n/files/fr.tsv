@@ -5160,3 +5160,19 @@ min	min
 s	s
 Sandbox: %s	Bac à sable : %s
 Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Utilisation : luxos-sandbox build-install [--asdeps] [--deps "a b"] <nom> < dossier.tar
+countme: last counted week: %s	countme : dernière semaine comptée : %s
+countme: not sent - %s	countme : non envoyé – %s
+countme: request (once per week, when the package lists are refreshed): %s	countme : requête (une fois par semaine, lors de l’actualisation des listes de paquets) : %s
+countme: headers: %s	countme : en-têtes : %s
+countme: this week is already counted	countme : cette semaine est déjà comptée
+countme: turn off: lux config countme off	countme : désactiver : lux config countme off
+countme: turn on: lux config countme on	countme : activer : lux config countme on
+not root	sans droits root
+other root	autre répertoire racine
+live system	système live
+container	conteneur
+setup assistant not finished (OEM)	assistant de configuration pas encore terminé (OEM)
+turned off (countme = false in /etc/lux/lux.conf)	désactivé (countme = false dans /etc/lux/lux.conf)
+unknown channel	canal inconnu
+unknown LuxOS version	version de LuxOS inconnue
+unsupported architecture	architecture non prise en charge

@@ -169,6 +169,19 @@ class Plan(Base):
         lux_config.set_countme(True, "/etc/lux/lux.conf", root=self.root)
         self.assertEqual(self.run_once(self.NOW), "sent")
 
+    def test_status_suggests_the_lux_command(self):
+        # lux-config je mimo PATH: vypis "lux config countme" radi prikaz lux (regrese audit 1.0.2)
+        kw = {"root": self.root, "state_path": self.state}
+        out = cm.status_text(**kw)
+        self.assertIn("lux config countme off", out)
+        self.assertNotIn("lux-config", out)
+        self.assertIn("ch=stable", out)
+        lux_config.set_countme(False, "/etc/lux/lux.conf", root=self.root)
+        out = cm.status_text(**kw)
+        self.assertIn("turned off", out)
+        self.assertIn("lux config countme on", out)
+        self.assertNotIn("https://", out)
+
     def test_opt_out_in_conf_d_and_broken_config(self):
         self.write("etc/lux/conf.d/zz.conf", "[general]\ncountme = false\n")
         self.assertIn("turned off", cm.plan(self.NOW, **self.kw())[1])

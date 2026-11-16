@@ -5160,3 +5160,19 @@ min	min
 s	s
 Sandbox: %s	Sandbox: %s
 Usage: luxos-sandbox build-install [--asdeps] [--deps "a b"] <name> < directory.tar	Použitie: luxos-sandbox build-install [--asdeps] [--deps "a b"] <názov> < adresár.tar
+countme: last counted week: %s	countme: naposledy započítaný týždeň: %s
+countme: not sent - %s	countme: neodosiela sa – %s
+countme: request (once per week, when the package lists are refreshed): %s	countme: požiadavka (raz týždenne, pri stiahnutí zoznamov balíkov): %s
+countme: headers: %s	countme: hlavičky: %s
+countme: this week is already counted	countme: tento týždeň je už započítaný
+countme: turn off: lux config countme off	countme: vypnutie: lux config countme off
+countme: turn on: lux config countme on	countme: zapnutie: lux config countme on
+not root	bez práv roota
+other root	iný koreňový adresár
+live system	živý systém
+container	kontajner
+setup assistant not finished (OEM)	Sprievodca nastavením ešte neprebehol (OEM)
+turned off (countme = false in /etc/lux/lux.conf)	vypnuté (countme = false v /etc/lux/lux.conf)
+unknown channel	neznámy kanál
+unknown LuxOS version	neznáma verzia LuxOS
+unsupported architecture	nepodporovaná architektúra
