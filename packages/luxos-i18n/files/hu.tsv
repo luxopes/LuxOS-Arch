@@ -5220,3 +5220,6 @@ No mail app is installed	Nincs telepítve levelezőalkalmazás
 Install one from the LuxOS Store, for example Thunderbird.	Telepítsen egyet a LuxOS Áruházból, például a Thunderbirdöt.
 test builds before a release - for testers	kiadás előtti tesztverziók – tesztelőknek
 Preparing the package signing keys…	Csomagellenőrző kulcsok előkészítése…
+Enter the server address.	Adja meg a kiszolgáló címét.
+Backups on an SFTP server cannot be encrypted.	Az SFTP-kiszolgálón lévő biztonsági mentések nem titkosíthatók.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A titkosítás USB-lemezekkel és megosztott mappákkal (SMB) működik. Kapcsolja ki a Mentések titkosítása lehetőséget, vagy használjon megosztott mappát.

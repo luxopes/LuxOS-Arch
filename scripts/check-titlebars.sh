@@ -10,7 +10,13 @@ cd "$(dirname "$(readlink -f "$0")")/.."
 if [[ -z ${DISPLAY-} ]]; then
     echo "Needs Xvfb (or run under xvfb-run) - never on a real display." >&2; exit 2
 fi
-tmp=$(mktemp -d); trap 'rm -rf "$tmp"; _luxos_tg_cleanup' EXIT
+tmp=$(mktemp -d); trap 'kill $sysbus_pid 2>/dev/null; rm -rf "$tmp"; _luxos_tg_cleanup' EXIT
+# Soukroma prazdna "systemova" sbernice: Bluetooth, Telefon, Baterie a dalsi okna nesmi sahat na skutecny
+# BlueZ (zapnuti viditelnosti, hledani zarizeni v okoli), UPower ani jine systemove sluzby pocitace
+dbus-daemon --session --address="unix:path=$tmp/sysbus" --nofork --nopidfile >/dev/null 2>&1 & sysbus_pid=$!
+for _ in $(seq 50); do [[ -S $tmp/sysbus ]] && break; sleep 0.1; done
+[[ -S $tmp/sysbus ]] || { echo "private system bus did not start" >&2; exit 2; }
+export DBUS_SYSTEM_BUS_ADDRESS=unix:path=$tmp/sysbus
 export HOME=$tmp XDG_CONFIG_HOME=$tmp/config XDG_CACHE_HOME=$tmp/cache XDG_DATA_HOME=$tmp/data
 # Vlastni XDG_RUNTIME_DIR: testy nesmi sdilet /run/user/UID skutecne relace (portaly, gvfs, klicenka,
 # at-spi by se pripojily ke skutecnym sluzbam uzivatele)

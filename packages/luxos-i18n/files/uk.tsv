@@ -5221,3 +5221,6 @@ No mail app is installed	Не встановлено жодного поштов
 Install one from the LuxOS Store, for example Thunderbird.	Установіть його з Крамниці LuxOS, наприклад Thunderbird.
 test builds before a release - for testers	тестові збірки перед випуском – для тестувальників
 Preparing the package signing keys…	Підготовка ключів для перевірки пакетів…
+Enter the server address.	Введіть адресу сервера.
+Backups on an SFTP server cannot be encrypted.	Резервні копії на сервері SFTP не можна зашифрувати.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Шифрування працює з USB-дисками та спільними папками (SMB). Вимкніть «Шифрувати резервні копії» або скористайтеся спільною папкою.

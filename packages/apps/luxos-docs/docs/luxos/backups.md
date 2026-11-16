@@ -22,7 +22,8 @@ folder, or for the whole home folder on a new installation. Unlike the hourly `/
 - Network disks: `sftp://user@server/folder` (the server needs `rsync`; host key accepted on first
   use, password from the keyring through `SSH_ASKPASS`) or `smb://user@server/share` (gvfs; the
   backups go into one image file `LuxOS-Backups/<computer>-<user>.img` on the share, formatted as
-  btrfs, optionally encrypted).
+  btrfs, optionally encrypted). An SFTP server cannot be encrypted (rsync writes plain folders on the
+  server) – with **Encrypt backups** turned on, Add Disk says so instead of adding it unencrypted.
 
 Command line:
 

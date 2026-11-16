@@ -5220,3 +5220,6 @@ No mail app is installed	Ingen e-postapp är installerad
 Install one from the LuxOS Store, for example Thunderbird.	Installera en från LuxOS Store, till exempel Thunderbird.
 test builds before a release - for testers	testversioner före en utgåva – för testare
 Preparing the package signing keys…	Förbereder nycklar för paketkontroll…
+Enter the server address.	Ange serverns adress.
+Backups on an SFTP server cannot be encrypted.	Säkerhetskopior på en SFTP-server kan inte krypteras.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Kryptering fungerar med USB-diskar och delade mappar (SMB). Stäng av Kryptera säkerhetskopior eller använd en delad mapp.

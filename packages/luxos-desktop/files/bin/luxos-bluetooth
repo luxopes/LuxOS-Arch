@@ -59,6 +59,8 @@ ALIAS_MAX = 248   # nejdelsi jmeno zarizeni v Bluetooth (HCI local name, bajty U
 
 
 def system_bus():
+    # GIO respektuje DBUS_SYSTEM_BUS_ADDRESS: testy a scripts/check-titlebars.sh tak okno pusti nad
+    # soukromou sbernici (bez BlueZ nebo s falesnym) - skutecny adapter se nezapne ani nezviditelni
     return Gio.bus_get_sync(Gio.BusType.SYSTEM)
 
 
@@ -675,6 +677,9 @@ def main():
     win = BluetoothWindow()
     win.connect("destroy", Gtk.main_quit)
     win.show_all()
+    # show_all znovu ukazal i casti skryte prvnim refresh() (pocitac bez adapteru: Prejmenovat
+    # u prazdneho jmena a "Hledam…") - stav podle skutecneho adapteru az po zobrazeni okna
+    win.refresh()
     Gtk.main()
 
 

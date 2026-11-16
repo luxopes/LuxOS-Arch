@@ -15,6 +15,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
+gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
 
 from . import BUS_NAME, INTERFACE, OBJECT_PATH, bluez, store  # noqa: E402

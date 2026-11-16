@@ -5220,3 +5220,6 @@ No mail app is installed	Er is geen mail-app geïnstalleerd
 Install one from the LuxOS Store, for example Thunderbird.	Installeer er een uit de LuxOS Store, bijvoorbeeld Thunderbird.
 test builds before a release - for testers	testversies vóór een release – voor testers
 Preparing the package signing keys…	Sleutels voor pakketcontrole voorbereiden…
+Enter the server address.	Voer het serveradres in.
+Backups on an SFTP server cannot be encrypted.	Back-ups op een SFTP-server kunnen niet worden versleuteld.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Versleuteling werkt met USB-schijven en gedeelde mappen (SMB). Zet Versleutel back-ups uit of gebruik een gedeelde map.

@@ -5220,3 +5220,6 @@ No mail app is installed	Nenhum aplicativo de e-mail instalado
 Install one from the LuxOS Store, for example Thunderbird.	Instale um pela Loja do LuxOS, por exemplo o Thunderbird.
 test builds before a release - for testers	versões de teste antes de um lançamento – para testadores
 Preparing the package signing keys…	Preparando as chaves de verificação dos pacotes…
+Enter the server address.	Digite o endereço do servidor.
+Backups on an SFTP server cannot be encrypted.	Backups em um servidor SFTP não podem ser criptografados.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A criptografia funciona com discos USB e pastas compartilhadas (SMB). Desative Criptografar backups ou use uma pasta compartilhada.

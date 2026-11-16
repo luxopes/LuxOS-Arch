@@ -2,9 +2,18 @@
 # LuxOS - "O tomto pocitaci"
 . /usr/lib/luxos/i18n.sh
 . /etc/os-release
+gpu_names() {
+    sed -E 's/ \(rev.*//
+        s/^Advanced Micro Devices, Inc\. \[AMD\/ATI\]/AMD/; s/^NVIDIA Corporation/NVIDIA/; s/^Intel Corporation/Intel/
+        s/^(AMD|NVIDIA|Intel) [^[]*\[([^]]+)\]$/\1 \2/'
+}
 cpu=$(awk -F': ' '/model name/ {print $2; exit}' /proc/cpuinfo | sed 's/ \+/ /g')
-mem=$(awk '/MemTotal/ {printf "%.1f GB", $2/1024/1024}' /proc/meminfo)
-gpu=$(lspci 2>/dev/null | awk -F': ' '/VGA|3D|Display/ {print $2}' | sed 's/ (rev.*//' | head -2 | paste -sd '\n')
+# Nainstalovana pamet jako na krabici (16 GB): MemTotal je bez pameti grafiky a firmwaru
+# (na 16GB notebooku 14,95 GiB, drive se ukazovalo "15.0 GB") - nahoru na cele GB, od 4 GB na sude
+mem=$(awk '/MemTotal/ {g = $2 / 1048576; n = int(g); if (n < g) n++; if (n >= 4 && n % 2) n++; printf "%d GB", n}' /proc/meminfo)
+# Kratke nazvy grafiky ("NVIDIA GeForce GTX 1650 Mobile / Max-Q" misto "NVIDIA Corporation TU117M [...]"):
+# dlouhe nazvy z lspci roztahly okno na sirku pres pul obrazovky
+gpu=$(lspci 2>/dev/null | awk -F': ' '/VGA|3D|Display/ {print $2}' | gpu_names | head -2 | paste -sd '\n')
 [[ -z $gpu ]] && gpu="-"
 read -r avail size < <(df -h --output=avail,size / | awk 'NR==2 {print $1, $2}')
 model=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
@@ -14,6 +23,10 @@ battery=""
 for b in /sys/class/power_supply/BAT*; do
     [[ -r $b/capacity ]] && battery="<b>$(T "Battery")</b>   $(<"$b/capacity") %"$'\n'
 done
+
+# Texty z hardwaru do Pango markup ("&" nebo "<" v nazvu vyrobce by zobrazeni rozbily)
+esc() { local s=${1//&/"&amp;"}; s=${s//</"&lt;"}; printf '%s' "${s//>/"&gt;"}"; }
+vendor=$(esc "$vendor") model=$(esc "$model") cpu=$(esc "$cpu") gpu=$(esc "$gpu")
 
 text="<span size='xx-large' weight='bold'>LuxOS</span>
 <span foreground='#8e8e93'>$(T "Version %s" "${VERSION:-$VERSION_ID}")${BUILD_ID:+ · $(T "build %s" "$BUILD_ID")}

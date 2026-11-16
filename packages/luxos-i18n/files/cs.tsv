@@ -5219,3 +5219,6 @@ No mail app is installed	Není nainstalovaná žádná poštovní aplikace
 Install one from the LuxOS Store, for example Thunderbird.	Nainstalujte si ji z Obchodu LuxOS, třeba Thunderbird.
 test builds before a release - for testers	testovací sestavení před vydáním – pro testery
 Preparing the package signing keys…	Připravuji klíče pro ověření balíků…
+Enter the server address.	Zadejte adresu serveru.
+Backups on an SFTP server cannot be encrypted.	Zálohy na serveru SFTP nelze šifrovat.
+Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Šifrování funguje s disky USB a sdílenými složkami (SMB). Vypněte Šifrovat zálohy, nebo použijte sdílenou složku.
