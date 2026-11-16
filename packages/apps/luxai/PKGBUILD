@@ -7,7 +7,7 @@
 
 pkgname=luxai
 pkgver=2.0.2
-pkgrel=8
+pkgrel=9
 pkgdesc="LuxAI - AI assistant that can work with your computer (chat and agent mode)"
 arch=(x86_64)
 url="https://lux-ai.cz"
@@ -29,7 +29,7 @@ optdepends=('libnotify: desktop notifications from the agent'
 options=(!strip !debug)
 install=luxai.install
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('e388c5c49eaa1fb337d123b546270d865ee0eace4a1501c6d9fd329c1e6b7f4a')
+sha256sums=('c1c1a8fb6728861f4e0fa1607266c1a0373bac008369d66b081d9298c0f1e327')
 
 build() {
     cd "$pkgname-$pkgver"
