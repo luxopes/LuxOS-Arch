@@ -711,9 +711,18 @@ function greeter_sync():
     return 0
 end
 
+# Zmena meritka oken (Nastaveni > Vzhled): ramecky oken xfwm4 v odpovidajici velikosti (WhiteSur -xhdpi)
+function wm_theme_sync():
+    call glib.spawn_quiet(["luxos-appearance", "wm-theme"])
+    return 0
+end
+
 function on_xfconf_changed(sender, path, interface, signal, values):
     if len(values) >= 2 and values[0] == "xfce4-desktop" and String(values[1]).endswith("/last-image"):
         call debounce_trigger(wallsync["debounce"])
+    end
+    if len(values) >= 2 and values[0] == "xsettings" and values[1] == "/Gdk/WindowScalingFactor":
+        call wm_theme_sync()
     end
     return 0
 end

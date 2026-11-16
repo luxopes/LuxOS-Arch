@@ -108,6 +108,7 @@ Other per-user locations:
 | `~/.config/luxdrop/` | LuxDrop settings (`settings.json`) and data |
 | `~/.local/share/luxos/calendar/events.ics` | Calendar events (other `*.ics` there are read-only) |
 | `~/.config/gtk-3.0/gtk.css` | LuxOS keeps a managed block there for appearance; the rest is yours |
+| `~/.config/gtk-4.0/gtk.css` | managed block with the window buttons of GTK 4/libadwaita apps; the rest is yours |
 | `~/.config/gtk-3.0/bookmarks` | Files sidebar (Safe bookmark) |
 | `~/.lshrc`, `~/.lsh_history`, `~/.config/starship.toml` | shell, see [Shell](shell.md) |
 | `~/.config/plank/dock1/launchers/` | Dock items |

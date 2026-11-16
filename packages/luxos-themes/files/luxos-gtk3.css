@@ -1,8 +1,10 @@
 /* LuxOS - nabidky a vyskakovaci okna ve stylu macOS: zaoblene a mirne pruhledne.
-   Pripojuje se na konec gtk.css temat WhiteSur (luxos-themes). */
+   Pripojuje se na konec gtk.css temat WhiteSur (luxos-themes).
+   Kompozitor xfwm4 pozadi nerozmazava (macOS ano): pri 84 % byly ikony a text okna pod nabidkou
+   videt mezi polozkami a rusily cteni - 94 % necha jen naznak pruhlednosti. */
 .background.csd > menu,
 .background.popup > menu {
-    background-color: alpha(@theme_bg_color, 0.84);
+    background-color: alpha(@theme_bg_color, 0.94);
     border-radius: 12px;
     padding: 5px;
 }
@@ -378,3 +380,50 @@ window#whiskermenu-window .title-area > button.command-button:hover {
    takze vypadala jako vyplnena hodnota nebo chyba ("Heslo", "administrator", "Hledat...").
    Nepruhledna smes barev: GTK 3 kresli napovedu bez pruhlednosti (alpha() by byla cerna). */
 @define-color placeholder_text_color mix(@theme_fg_color, @theme_base_color, 0.5);
+
+/* Klavesnicovy fokus (Tab) jako v macOS: modry ramecek. WhiteSur ma vsude outline-width: 0, takze pri
+   ovladani klavesnici nebylo videt, ktere tlacitko, prepinac nebo zalozka je vybrana. GTK 3 kresli
+   ramecek jen po pouziti klavesnice (focus-visible), po kliknuti mysi ne. Pole pro text maji vlastni
+   modry okraj. */
+button:focus,
+checkbutton:focus,
+radiobutton:focus,
+notebook:focus > header > tabs > tab:checked,
+list > row:focus,
+flowbox > flowboxchild:focus,
+expander:focus,
+treeview.view:focus {
+    outline-color: alpha(#3d7bff, 0.7);
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 1px;
+}
+
+list > row:focus,
+treeview.view:focus {
+    outline-offset: -2px;
+}
+
+/* zaskrtavatko a prepinac: ramecek kolem zaskrtavatka s popiskem, ne pres sousedni prvky */
+checkbutton:focus,
+radiobutton:focus {
+    outline-offset: 0;
+    -gtk-outline-radius: 6px;
+}
+
+/* vlastni vzhled vyberu maji Alt+Tab a nabidka LuxOS (vybrana polozka = podklad) */
+#xfwm-tabwin button:focus,
+window#whiskermenu-window button:focus,
+window#whiskermenu-window treeview.view:focus {
+    outline-width: 0;
+}
+
+/* Posuvnik se znackami (Monitory > Velikost textu): jezdec WhiteSur ma u znacek spicku, ktera
+   prekryvala popisek znacky pod sebou (Vychozi) - popisky o kus dal od drahy */
+scale.horizontal marks.bottom {
+    margin-top: 7px;
+}
+
+scale.horizontal marks.top {
+    margin-bottom: 7px;
+}

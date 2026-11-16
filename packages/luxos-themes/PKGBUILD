@@ -4,7 +4,7 @@
 
 pkgname=luxos-themes
 pkgver=2025.12.27
-pkgrel=10
+pkgrel=11
 pkgdesc="LuxOS macOS-like themes (WhiteSur GTK, xfwm4, Plank, icons and cursors)"
 arch=(any)
 url="https://github.com/vinceliuice"
@@ -39,6 +39,17 @@ package() {
         ln -s "../../themes/WhiteSur-$v/plank" "$pkgdir/usr/share/plank/themes/WhiteSur-$v"
         # Oznameni (xfce4-notifyd, tema = tema GTK, nastavuje luxos-appearance)
         install -Dm644 "$startdir/files/notify/$v.css" "$themes/WhiteSur-$v/xfce-notify-4.0/gtk.css"
+        # Ramecky oken xfwm4 pro HiDPI (release archiv je nema): pri meritku oken 2x by byly listy
+        # oken polovicni a titulek oriznuty. Vybira je luxos-appearance podle Gdk/WindowScalingFactor.
+        local s
+        for s in hdpi xhdpi; do
+            install -dm755 "$themes/WhiteSur-$v-$s/xfwm4"
+            install -m644 "$srcdir/WhiteSur-gtk-theme/src/assets/xfwm4/assets-$v-$s"/*.png "$themes/WhiteSur-$v-$s/xfwm4/"
+            # odsazeni tlacitek a titulku je v pixelech: zvetsit jako obrazky (1,5x / 2x)
+            awk -F= -v k="$([[ $s == hdpi ]] && echo 1.5 || echo 2)" \
+                '$1 ~ /^(button_offset|title_horizontal_offset)$/ { printf "%s=%d\n", $1, $2 * k + 0.5; next } { print }' \
+                "$themes/WhiteSur-$v/xfwm4/themerc" >"$themes/WhiteSur-$v-$s/xfwm4/themerc"
+        done
     done
 
     # Ikony: WhiteSur, WhiteSur-light, WhiteSur-dark
@@ -79,6 +90,14 @@ package() {
 
     # Kurzory
     cp -a "$srcdir/WhiteSur-cursors/dist" "$icons/WhiteSur-cursors"
+    # Chybejici nazvy kurzoru (CSS a XDG: Firefox, GTK 4, Qt): bez nich libXcursor sahne po tematu
+    # "default" (Adwaita) a nad delici sloupcu, pri tazeni apod. by se ukazal kurzor jineho vzhledu
+    local cur
+    for cur in ew-resize:size_hor ns-resize:size_ver all-resize:fleur dnd-link:link dnd-ask:help \
+               X_cursor:x-cursor target:crosshair dotbox:crosshair; do
+        [[ -e $icons/WhiteSur-cursors/cursors/${cur%%:*} ]] ||
+            ln -s "${cur#*:}" "$icons/WhiteSur-cursors/cursors/${cur%%:*}"
+    done
 
     install -Dm644 "$srcdir/WhiteSur-gtk-theme/COPYING" "$pkgdir/usr/share/licenses/$pkgname/WhiteSur-gtk-theme.COPYING"
     install -Dm644 "$srcdir/WhiteSur-icon-theme/COPYING" "$pkgdir/usr/share/licenses/$pkgname/WhiteSur-icon-theme.COPYING"

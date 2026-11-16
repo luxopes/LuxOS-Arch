@@ -54,6 +54,8 @@ There are two tools:
 - **Displays app**: `luxos-display-settings`. Also opens when you click the brightness icon in
   Control Center.
 - **Quick menu**: `Super+P` or the Display key (`luxos-displays menu`).
+- **Window scaling 2x** (Settings › Appearance, HiDPI): window frames switch to `WhiteSur-*-xhdpi`
+  automatically (`luxos-appearance wm-theme`, run by `luxos-hub`); a custom xfwm4 theme is kept.
 - **Control Center › Screens** (only with two or more monitors connected): Mirror, Extend and, with
   a built-in panel, External Only. No window pops up when a monitor is connected.
 

@@ -18,6 +18,7 @@
  */
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <gmodule.h>
 #include <X11/extensions/XInput2.h>
 #include <math.h>
 #include <string.h>
@@ -552,6 +553,16 @@ static void event_handler(GdkEvent *e, gpointer data)
     if ((e->type == GDK_MOTION_NOTIFY && event_source(e) == GDK_SOURCE_TOUCHPAD) || e->type == GDK_BUTTON_PRESS)
         glide_cancel();
     gtk_main_do_event(e);
+}
+
+/* Modul zustava v pameti: GTK 3 modul z Gtk/Modules uvolni (g_module_close), kdyz ho nekdo z hodnoty
+   odebere (Editor nastaveni, jiny program prepise Gtk/Modules). Prepsana metoda GtkScrolledWindow a obsluha
+   udalosti by pak ukazovaly do uvolneneho kodu a spadly by vsechny bezici aplikace GTK 3 vcetne xfsettingsd
+   (s nim by se ztratilo tema, pisma i tmavy rezim). */
+G_MODULE_EXPORT const gchar *g_module_check_init(GModule *module)
+{
+    g_module_make_resident(module);
+    return NULL;
 }
 
 G_MODULE_EXPORT void gtk_module_init(gint *argc, gchar ***argv)
