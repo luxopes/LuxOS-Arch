@@ -86,7 +86,9 @@ _PIX = {}
 
 def weather_image(name, size):
     """Ikona pocasi ze SVG (ostra i pri HiDPI: Cairo surface s meritkem okna)."""
-    scale = max(1, Gdk.Screen.get_default().get_monitor_scale_factor(0) if Gdk.Screen.get_default() else 1)
+    display = Gdk.Display.get_default()
+    monitor = display.get_monitor(0) if display else None
+    scale = max(1, monitor.get_scale_factor() if monitor else 1)
     key = (name, size, scale)
     pix = _PIX.get(key)
     if pix is None:

@@ -30,6 +30,14 @@ gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("AppStream", "1.0")
 from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
 
+# GLib 2.86+: DesktopAppInfo je v GioUnix (Gio.DesktopAppInfo pri kazdem pouziti varuje na stderr)
+try:
+    gi.require_version("GioUnix", "2.0")
+    from gi.repository import GioUnix  # noqa: E402
+    DesktopAppInfo = GioUnix.DesktopAppInfo
+except (ValueError, ImportError):
+    DesktopAppInfo = Gio.DesktopAppInfo
+
 HELPER = "/usr/lib/luxos/luxos-store-helper"
 LUX_DB = "/var/lib/lux/installed"
 # Nastroje jadra lux (lux-engine, lux-engine-conf) jsou mimo PATH. Dostanou je jen spoustene nastroje
@@ -608,7 +616,7 @@ ACTION_LABELS = {"open": lambda: _("Open"), "get": lambda: _("Get"), "update": l
 
 def desktop_installed(desktop_id):
     try:
-        return Gio.DesktopAppInfo.new(desktop_id) is not None
+        return DesktopAppInfo.new(desktop_id) is not None
     except TypeError:
         return False
 
@@ -1654,7 +1662,7 @@ class Store(Gtk.Window):
             return
         if app.pkg in self.catalog.installed:
             try:
-                info = Gio.DesktopAppInfo.new(app.desktop_id())
+                info = DesktopAppInfo.new(app.desktop_id())
             except TypeError:
                 info = None
             if info:
