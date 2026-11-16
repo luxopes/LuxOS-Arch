@@ -11,7 +11,7 @@
 
 pkgname=luxos-text
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS Text Editor - fast GTK3/GtkSourceView text and code editor with folder sidebar, outline and encodings"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
