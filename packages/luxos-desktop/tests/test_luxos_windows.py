@@ -56,8 +56,9 @@ class Defaults(unittest.TestCase):
         self.assertEqual(general["cycle_group_apps"], "false")      # seskupeni vychozi vypnute
         self.assertEqual(general["cycle_preview"], "true")
         self.assertEqual(general["workspace_slide"], "true")        # posun ploch do strany
-        self.assertEqual(general["workspace_slide_duration"], "280")
+        self.assertEqual(general["workspace_slide_duration"], "420")
         self.assertEqual(general["use_compositing"], "true")        # posun jen s kompozitorem
+        self.assertEqual(general["activate_action"], "switch")      # okno z jine plochy se nepresouva
 
     def test_shortcut_defaults(self):
         import xml.etree.ElementTree as ET
@@ -130,6 +131,65 @@ class SessionMigration(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         with open(state) as f:
             return json.load(f), sorted(os.listdir(cfg))
+
+    def test_slide_duration_migrated_once(self):
+        with open(os.path.join(FILES, "bin", "luxos-session"), encoding="utf-8") as f:
+            src = f.read()
+        block = src[src.index("# Posun ploch (xfwm4 z [luxos])"):src.index("# Aktivace okna na jine plose")]
+        for before, after in (("280", "420"), ("600", "600"), (None, None)):
+            home = tempfile.mkdtemp(dir=TMP)
+            fake = os.path.join(home, "bin")
+            os.makedirs(fake)
+            shutil.copy(os.path.join(HERE, "fake-shortcuts", "xfconf-query"), fake)
+            state = os.path.join(home, "xfconf.json")
+            user = {"/general/theme": "WhiteSur-Light"}
+            if before:
+                user["/general/workspace_slide_duration"] = before
+            with open(state, "w") as f:
+                json.dump(user, f)
+            cfg = os.path.join(home, "cfg")
+            os.makedirs(cfg)
+            for _ in range(2):          # podruhe uz nic (znacka)
+                r = subprocess.run(["bash", "-c", "cfg=%s\n%s" % (cfg, block)], capture_output=True, text=True,
+                                   env={"PATH": fake + ":/usr/bin:/bin", "FAKE_XFCONF": state, "HOME": home})
+                self.assertEqual(r.returncode, 0, r.stderr)
+            with open(state) as f:
+                self.assertEqual(json.load(f).get("/general/workspace_slide_duration"), after, before)
+            self.assertEqual(os.listdir(cfg), ["workspace-slide-420"])
+
+    def test_activate_action_migrated_once(self):
+        with open(os.path.join(FILES, "bin", "luxos-session"), encoding="utf-8") as f:
+            src = f.read()
+        block = src[src.index("# Aktivace okna na jine plose"):src.index("# Nove okno na volne misto")]
+        for before, after in (("bring", "switch"), ("none", "none"), ("switch", "switch"), (None, None)):
+            home = tempfile.mkdtemp(dir=TMP)
+            fake = os.path.join(home, "bin")
+            os.makedirs(fake)
+            shutil.copy(os.path.join(HERE, "fake-shortcuts", "xfconf-query"), fake)
+            state = os.path.join(home, "xfconf.json")
+            user = {"/general/theme": "WhiteSur-Light"}
+            if before:
+                user["/general/activate_action"] = before
+            with open(state, "w") as f:
+                json.dump(user, f)
+            cfg = os.path.join(home, "cfg")
+            os.makedirs(cfg)
+            for step in range(2):
+                r = subprocess.run(["bash", "-c", "cfg=%s\n%s" % (cfg, block)], capture_output=True, text=True,
+                                   env={"PATH": fake + ":/usr/bin:/bin", "FAKE_XFCONF": state, "HOME": home})
+                self.assertEqual(r.returncode, 0, r.stderr)
+                if step == 0 and before == "bring":
+                    # uzivatel si pak sam zvoli "bring" - podruhe se uz nemeni
+                    with open(state) as f:
+                        data = json.load(f)
+                    self.assertEqual(data["/general/activate_action"], "switch")
+                    data["/general/activate_action"] = "bring"
+                    with open(state, "w") as f:
+                        json.dump(data, f)
+                    after = "bring"
+            with open(state) as f:
+                self.assertEqual(json.load(f).get("/general/activate_action"), after, before)
+            self.assertEqual(os.listdir(cfg), ["activate-switch"])
 
     def test_old_default_switched_once(self):
         home = tempfile.mkdtemp(dir=TMP)
@@ -557,12 +617,47 @@ class WindowManager(unittest.TestCase):
         self.assertIsNone(self.wm.poll())
         self.assertIn(self.active(), {w["a1"], w["a2"], w["a3"]})
 
+    # -- okno z jine plochy se nepresouva na aktualni (activate_action "switch", XRaiseWindow) --
+    def desktop_of(self, wid):
+        out = subprocess.run(["xprop", "-id", str(wid), "_NET_WM_DESKTOP"], env=self.env,
+                             capture_output=True, text=True).stdout
+        return int(out.split("=")[1])
+
+    def current_desktop(self):
+        return int(xprop_root("_NET_CURRENT_DESKTOP").split("=")[1])
+
+    def test_window_from_other_workspace_stays(self):
+        a = self.open("ws-stay-a", "luxwsa", 500, 300)
+        b = self.open("ws-stay-b", "luxwsb", 500, 300)
+        subprocess.run(["xdotool", "set_desktop_for_window", str(b), "1"], env=self.env, check=True)
+        for _ in range(30):
+            if self.desktop_of(b) == 1:
+                break
+            time.sleep(0.1)
+        subprocess.run(["xdotool", "set_desktop", "0"], env=self.env, check=True)
+        time.sleep(0.6)
+        subprocess.run(["xdotool", "windowactivate", "--sync", str(a)], env=self.env, check=True)
+        time.sleep(0.3)             # posledni vytazene okno je a (xfwm4 si zadosti okna o vytazeni jinak nevsima)
+        self.assertEqual((self.desktop_of(a), self.desktop_of(b), self.current_desktop()), (0, 1, 0))
+        # aplikace na pozadi se sama vytahne nahoru (XRaiseWindow): zustane na sve plose, plocha se nemeni
+        subprocess.run(["xdotool", "windowraise", str(b)], env=self.env, check=True)
+        time.sleep(0.6)
+        self.assertEqual((self.desktop_of(b), self.current_desktop()), (1, 0))
+        net = subprocess.run(["xprop", "-id", str(b), "_NET_WM_STATE"], env=self.env, capture_output=True,
+                             text=True).stdout
+        self.assertIn("_NET_WM_STATE_DEMANDS_ATTENTION", net)
+        # aktivace (Dock, prepinac oken): prepne na plochu okna jako macOS, okno se nepresouva
+        subprocess.run(["xdotool", "windowactivate", str(b)], env=self.env, check=True)
+        time.sleep(0.8)
+        self.assertEqual((self.desktop_of(a), self.desktop_of(b), self.current_desktop()), (0, 1, 1))
+        self.assertEqual(self.active(), b)
+
     # -- posun ploch do strany --
     def record_switch(self, desktop, name):
         """Zaznam obrazovky (60 snimku/s) behem prepnuti na plochu desktop; vrati radky y=SLIDE_Y."""
         video = os.path.join(TMP, name + ".mkv")
         rec = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-y", "-f", "x11grab", "-framerate", "60",
-                                "-video_size", "%dx%d" % SLIDE_SCREEN, "-i", self.env["DISPLAY"], "-t", "0.9",
+                                "-video_size", "%dx%d" % SLIDE_SCREEN, "-i", self.env["DISPLAY"], "-t", "1.4",
                                 "-c:v", "ffv1", video], env=self.env)
         time.sleep(0.3)
         subprocess.run(["xdotool", "set_desktop", str(desktop)], env=self.env, check=True)
@@ -599,13 +694,20 @@ class WindowManager(unittest.TestCase):
         a = self.open("slide-a", "luxslide", 800, 500, "--move", "500", "300")
         b = self.open("slide-b", "luxslide", 800, 500, "--move", "500", "300")
         subprocess.run(["xdotool", "set_desktop_for_window", str(b), "1"], env=self.env, check=True)
-        time.sleep(0.5)
+        for _ in range(30):
+            if self.desktop_of(b) == 1:
+                break
+            time.sleep(0.1)
+        time.sleep(0.3)
         x0 = self.frame(a)[0]
         # dalsi plocha: stara okna odjedou doleva, nova prijedou zprava (mezi tim aspon 4 polohy)
         steps = self.distinct_spans(self.record_switch(1, "slide-next"))
         self.assertGreaterEqual(len(steps), 6, steps)
         self.assertEqual(steps[0], steps[-1])                       # okno na stejnem miste
         middle = steps[1:-1]
+        # mirny rozjezd (ne ease-out s nejvetsim krokem hned na zacatku): prvni posun je maly
+        first = middle[0][0][0] if middle[0] else 0
+        self.assertLess(x0 - first, 150, middle[:3])
         self.assertTrue(any(sp and sp[0][0] == 0 for sp in middle), middle)                 # vlevo ven
         self.assertTrue(any(sp and sp[-1][1] == SLIDE_SCREEN[0] for sp in middle), middle)  # zprava dovnitr
         lefts = [sp[0][0] for sp in middle if len(sp) == 1 and sp[0][0] > x0]

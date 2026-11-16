@@ -14,8 +14,9 @@
 #   - zavreni posledniho okna v prepinaci Alt+Tab behem prepinani uz xfwm4 neshodi (tabwin.c).
 # luxos-workspace-slide.patch (kompozitor): pri prepnuti plochy obsah odjede do strany jako Spaces
 #   v macOS - dalsi plocha zprava, predchozi zleva (i skok o vic ploch, preteceni ve smeru klavesy);
-#   tapeta/plocha, lepkava okna, horni lista, Dock, menu a notifikace stoji. Ease-out cubic, vychozi
-#   280 ms; rychle opakovane prepnuti plynule navaze (zadna fronta). Kazdy monitor zvlast. Volby
+#   tapeta/plocha, lepkava okna, horni lista, Dock, menu a notifikace stoji. Krivka "ease"
+#   (cubic-bezier 0.25,0.1,0.25,1), vychozi 420 ms, stejne kroky po intervalech obnovy, dojezd
+#   o zlomky pixelu; rychle opakovane prepnuti navaze i rychlosti (zadna fronta). Kazdy monitor zvlast. Volby
 #   /general/workspace_slide a /general/workspace_slide_duration; vypnuto bez kompozitoru a pri
 #   "omezit pohyb" (Gtk/EnableAnimations = false).
 # Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
@@ -24,7 +25,7 @@
 
 pkgname=xfwm4
 pkgver=4.20.0
-pkgrel=2.2
+pkgrel=2.4
 pkgdesc='Xfce window manager (LuxOS: free-space/cascade placement, Alt+` switches windows of the app, workspace slide)'
 arch=('x86_64')
 url="https://docs.xfce.org/xfce/xfwm4/start"
@@ -38,7 +39,7 @@ source=("git+https://gitlab.xfce.org/xfce/xfwm4.git#tag=$pkgname-$pkgver"
         'luxos-workspace-slide.patch')
 sha256sums=('68691593f06659f1ba1a0363be161b2cd50a84016612394c909bce1485a75cff'
             '41e6f423905badac58c5bfce380195deb69a5c4557e2a66232216b5525f6e75c'
-            '64bcae8d5bb813cdb5d49fc66409438de4d01774c822359225e9ea41ecde7386')
+            '255becfb9d6e69609de7795fb5b55e9aae81b90c11f1c850805e9d867236c7c6')
 
 prepare() {
   cd $pkgname
