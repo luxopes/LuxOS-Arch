@@ -5178,3 +5178,40 @@ unknown LuxOS version	ismeretlen LuxOS-verzió
 unsupported architecture	nem támogatott architektúra
 %d%%	%d%%
 No serious problems - see the notes above	Nincs komoly probléma – lásd a fenti megjegyzéseket
+Launchpad	Launchpad
+System information	Rendszerinformáció
+Switch between light and dark appearance	Váltás világos és sötét megjelenés között
+Show all applications	Összes alkalmazás megjelenítése
+Search applications and files	Alkalmazások és fájlok keresése
+Get started with LuxOS	Első lépések a LuxOS-szel
+Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver	Wi-Fi, Bluetooth, hang, kijelző, adattakarékos mód és akkukímélő
+When the screen saver starts and when to ask for the password	Mikor induljon a képernyővédő, és mikor kérje a jelszót
+Wallpaper, appearance, Dock and menu bar	Háttérkép, megjelenés, Dock és menüsor
+Toggle Dark Mode	Sötét mód be/ki
+Sign in to a Wi-Fi network that requires it (hotel, train, airport)	Bejelentkezés olyan Wi-Fi-hálózatba, amely ezt kéri (szálloda, vonat, repülőtér)
+Reset an app that misbehaves to its default settings (the old settings are kept in a backup)	Hibásan működő alkalmazás visszaállítása az alapbeállításokra (a régi beállítások biztonsági mentésben maradnak)
+Network administration	Hálózatkezelés
+Log in and unlock with your fingerprint	Bejelentkezés és feloldás ujjlenyomattal
+Connect headphones, a mouse, a keyboard or a phone	Fejhallgató, egér, billentyűzet vagy telefon csatlakoztatása
+Battery level, usage history, power mode and sleep settings	Akkumulátor töltöttsége, használati előzmények, energiamód és alvás
+Add, remove and arrange desktop widgets	Asztali widgetek hozzáadása, eltávolítása és elrendezése
+Network Sign-In	Hálózati bejelentkezés
+LuxOS	LuxOS
+Desktop Wallpaper	Asztali háttérkép
+Your desktop wallpaper with a large clock	Az asztali háttérkép nagy órával
+LuxOS wallpapers with a large clock	LuxOS-háttérképek nagy órával
+LuxOS wallpapers fading into each other with a large analog clock and the date	Egymásba úszó LuxOS-háttérképek nagy mutatós órával és dátummal
+Slowly flowing colored light	Lassan áramló színes fény
+Slideshow of your Pictures folder	Diavetítés a Képek mappából
+The LuxOS logo slowly floating around	A lassan lebegő LuxOS-logó
+Large clock on black, slowly moving	Nagy óra fekete háttéren, lassan mozog
+Finish the preparation: at the next start the owner creates their account	Előkészítés befejezése: a következő indításkor a tulajdonos létrehozza a fiókját
+Install LuxOS to this computer	A LuxOS telepítése erre a számítógépre
+Software Update & Care	Frissítések és karbantartás
+Updates, automatic repairs and the previous kernel fallback	Frissítések, automatikus javítások és az előző kernel tartaléknak
+LuxOS Bar	LuxOS-sáv
+Spacer with the clock in the middle of the bar; opaque bar under windows	Térköz órával a sáv közepén; átlátszatlan sáv az ablakok alatt
+Generic Monitor	Általános figyelő
+Show output of a command.	Parancs kimenetének megjelenítése.
+Status Tray Plugin	Értesítési terület
+Provides status notifier items (application indicators) and legacy systray items	Megjeleníti az alkalmazások állapotikonjait (indikátorokat) és a régi értesítési ikonokat

@@ -58,4 +58,11 @@ package() {
     install -Dm644 "$f/50-luxos-care.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-care.rules"
     install -Dm644 "$f/luxos-update.desktop" "$pkgdir/usr/share/applications/luxos-update.desktop"
     install -dm755 "$pkgdir/var/lib/luxos-care"
+    # Name/GenericName/Comment ve vsech 12 jazycich z tabulek luxos-i18n (rucni preklady maji prednost)
+    local i18n
+    for i18n in "$startdir/../luxos-i18n/files" "$startdir/../../luxos-i18n/files"; do
+        [[ -f $i18n/desktop-i18n.py ]] && break
+    done
+    [[ -f $i18n/desktop-i18n.py ]] || { echo "luxos-i18n/files/desktop-i18n.py not found" >&2; return 1; }
+    python "$i18n/desktop-i18n.py" "$i18n" "$pkgdir/usr/share/applications/luxos-update.desktop"
 }

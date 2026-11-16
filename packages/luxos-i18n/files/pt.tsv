@@ -5178,3 +5178,40 @@ unknown LuxOS version	versão do LuxOS desconhecida
 unsupported architecture	arquitetura não suportada
 %d%%	%d%%
 No serious problems - see the notes above	Nenhum problema grave – veja os avisos acima
+Launchpad	Launchpad
+System information	Informações do sistema
+Switch between light and dark appearance	Alternar entre aparência clara e escura
+Show all applications	Mostrar todos os apps
+Search applications and files	Buscar apps e arquivos
+Get started with LuxOS	Comece a usar o LuxOS
+Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver	Wi-Fi, Bluetooth, som, tela, Economia de Dados e Economia de Bateria
+When the screen saver starts and when to ask for the password	Quando o protetor de tela inicia e quando pedir a senha
+Wallpaper, appearance, Dock and menu bar	Papel de parede, aparência, Dock e barra de menus
+Toggle Dark Mode	Alternar modo escuro
+Sign in to a Wi-Fi network that requires it (hotel, train, airport)	Entrar em uma rede Wi-Fi que exige login (hotel, trem, aeroporto)
+Reset an app that misbehaves to its default settings (the old settings are kept in a backup)	Redefinir um app com problemas para os ajustes padrão (os ajustes antigos ficam em um backup)
+Network administration	Administração de rede
+Log in and unlock with your fingerprint	Entre e desbloqueie com sua impressão digital
+Connect headphones, a mouse, a keyboard or a phone	Conecte fones de ouvido, um mouse, um teclado ou um celular
+Battery level, usage history, power mode and sleep settings	Nível da bateria, histórico de uso, modo de energia e repouso
+Add, remove and arrange desktop widgets	Adicionar, remover e organizar widgets da mesa
+Network Sign-In	Login na rede
+LuxOS	LuxOS
+Desktop Wallpaper	Papel de parede da mesa
+Your desktop wallpaper with a large clock	Seu papel de parede com um relógio grande
+LuxOS wallpapers with a large clock	Papéis de parede do LuxOS com um relógio grande
+LuxOS wallpapers fading into each other with a large analog clock and the date	Papéis de parede do LuxOS em transição com um grande relógio analógico e a data
+Slowly flowing colored light	Luz colorida fluindo lentamente
+Slideshow of your Pictures folder	Apresentação da sua pasta Imagens
+The LuxOS logo slowly floating around	O logotipo do LuxOS flutuando lentamente
+Large clock on black, slowly moving	Relógio grande sobre fundo preto, movendo-se lentamente
+Finish the preparation: at the next start the owner creates their account	Concluir a preparação: na próxima inicialização o proprietário cria a conta
+Install LuxOS to this computer	Instalar o LuxOS neste computador
+Software Update & Care	Atualizações e manutenção
+Updates, automatic repairs and the previous kernel fallback	Atualizações, reparos automáticos e o kernel anterior como reserva
+LuxOS Bar	Barra do LuxOS
+Spacer with the clock in the middle of the bar; opaque bar under windows	Espaçador com o relógio no meio da barra; barra opaca sob as janelas
+Generic Monitor	Monitor genérico
+Show output of a command.	Mostrar a saída de um comando.
+Status Tray Plugin	Área de notificação
+Provides status notifier items (application indicators) and legacy systray items	Mostra os ícones de status dos apps (indicadores) e os ícones antigos da área de notificação

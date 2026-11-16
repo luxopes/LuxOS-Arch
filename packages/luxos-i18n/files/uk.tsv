@@ -5179,3 +5179,40 @@ unknown LuxOS version	невідома версія LuxOS
 unsupported architecture	непідтримувана архітектура
 %d%%	%d %%
 No serious problems - see the notes above	Серйозних проблем немає – див. примітки вище
+Launchpad	Launchpad
+System information	Відомості про систему
+Switch between light and dark appearance	Перемикання між світлим і темним оформленням
+Show all applications	Показати всі програми
+Search applications and files	Пошук програм і файлів
+Get started with LuxOS	Почніть роботу з LuxOS
+Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver	Wi-Fi, Bluetooth, звук, екран, Економія даних і Економія заряду
+When the screen saver starts and when to ask for the password	Коли вмикається заставка і коли запитувати пароль
+Wallpaper, appearance, Dock and menu bar	Шпалери, оформлення, Dock і рядок меню
+Toggle Dark Mode	Перемкнути темний режим
+Sign in to a Wi-Fi network that requires it (hotel, train, airport)	Вхід до мережі Wi-Fi, яка цього вимагає (готель, потяг, аеропорт)
+Reset an app that misbehaves to its default settings (the old settings are kept in a backup)	Повернути програму, яка працює неправильно, до стандартних налаштувань (старі налаштування збережуться в резервній копії)
+Network administration	Адміністрування мережі
+Log in and unlock with your fingerprint	Вхід і розблокування відбитком пальця
+Connect headphones, a mouse, a keyboard or a phone	Підключення навушників, миші, клавіатури або телефону
+Battery level, usage history, power mode and sleep settings	Рівень заряду, історія використання, режим живлення і сон
+Add, remove and arrange desktop widgets	Додавання, вилучення та розташування віджетів на робочому столі
+Network Sign-In	Вхід до мережі
+LuxOS	LuxOS
+Desktop Wallpaper	Шпалери робочого столу
+Your desktop wallpaper with a large clock	Шпалери робочого столу з великим годинником
+LuxOS wallpapers with a large clock	Шпалери LuxOS з великим годинником
+LuxOS wallpapers fading into each other with a large analog clock and the date	Шпалери LuxOS, що плавно змінюються, з великим стрілковим годинником і датою
+Slowly flowing colored light	Повільно мінливе кольорове світло
+Slideshow of your Pictures folder	Слайд-шоу з теки «Зображення»
+The LuxOS logo slowly floating around	Логотип LuxOS повільно пливе екраном
+Large clock on black, slowly moving	Великий годинник на чорному тлі, повільно рухається
+Finish the preparation: at the next start the owner creates their account	Завершити підготовку: під час наступного запуску власник створить свій обліковий запис
+Install LuxOS to this computer	Установити LuxOS на цей комп’ютер
+Software Update & Care	Оновлення та догляд за системою
+Updates, automatic repairs and the previous kernel fallback	Оновлення, автоматичні виправлення та резервне ядро
+LuxOS Bar	Панель LuxOS
+Spacer with the clock in the middle of the bar; opaque bar under windows	Проміжок із годинником посередині панелі; непрозора панель під вікнами
+Generic Monitor	Загальний монітор
+Show output of a command.	Показати вивід команди.
+Status Tray Plugin	Область сповіщень
+Provides status notifier items (application indicators) and legacy systray items	Показує значки стану програм (індикатори) і старі значки області сповіщень

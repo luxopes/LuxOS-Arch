@@ -5178,3 +5178,40 @@ unknown LuxOS version	okänd LuxOS-version
 unsupported architecture	arkitekturen stöds inte
 %d%%	%d %%
 No serious problems - see the notes above	Inga allvarliga problem – se anmärkningarna ovan
+Launchpad	Launchpad
+System information	Systeminformation
+Switch between light and dark appearance	Växla mellan ljust och mörkt utseende
+Show all applications	Visa alla appar
+Search applications and files	Sök efter appar och filer
+Get started with LuxOS	Kom igång med LuxOS
+Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver	Wi-Fi, Bluetooth, ljud, skärm, datasparläge och batterisparläge
+When the screen saver starts and when to ask for the password	När skärmsläckaren startar och när lösenordet ska krävas
+Wallpaper, appearance, Dock and menu bar	Bakgrund, utseende, Dock och menyrad
+Toggle Dark Mode	Växla mörkt läge
+Sign in to a Wi-Fi network that requires it (hotel, train, airport)	Logga in på ett Wi-Fi-nätverk som kräver det (hotell, tåg, flygplats)
+Reset an app that misbehaves to its default settings (the old settings are kept in a backup)	Återställ en app som krånglar till standardinställningarna (de gamla inställningarna sparas i en säkerhetskopia)
+Network administration	Nätverksadministration
+Log in and unlock with your fingerprint	Logga in och lås upp med fingeravtryck
+Connect headphones, a mouse, a keyboard or a phone	Anslut hörlurar, en mus, ett tangentbord eller en telefon
+Battery level, usage history, power mode and sleep settings	Batterinivå, användningshistorik, energiläge och vila
+Add, remove and arrange desktop widgets	Lägg till, ta bort och ordna widgetar på skrivbordet
+Network Sign-In	Nätverksinloggning
+LuxOS	LuxOS
+Desktop Wallpaper	Skrivbordsbakgrund
+Your desktop wallpaper with a large clock	Din skrivbordsbakgrund med en stor klocka
+LuxOS wallpapers with a large clock	LuxOS-bakgrunder med en stor klocka
+LuxOS wallpapers fading into each other with a large analog clock and the date	LuxOS-bakgrunder som tonar över i varandra med en stor analog klocka och datum
+Slowly flowing colored light	Långsamt flödande färgat ljus
+Slideshow of your Pictures folder	Bildspel från mappen Bilder
+The LuxOS logo slowly floating around	LuxOS-logotypen svävar långsamt omkring
+Large clock on black, slowly moving	Stor klocka på svart, rör sig långsamt
+Finish the preparation: at the next start the owner creates their account	Slutför förberedelsen: vid nästa start skapar ägaren sitt konto
+Install LuxOS to this computer	Installera LuxOS på den här datorn
+Software Update & Care	Uppdateringar och underhåll
+Updates, automatic repairs and the previous kernel fallback	Uppdateringar, automatiska reparationer och föregående kärna som reserv
+LuxOS Bar	LuxOS-fält
+Spacer with the clock in the middle of the bar; opaque bar under windows	Mellanrum med klockan mitt i fältet; ogenomskinligt fält under fönster
+Generic Monitor	Allmän övervakare
+Show output of a command.	Visa utdata från ett kommando.
+Status Tray Plugin	Statusfält
+Provides status notifier items (application indicators) and legacy systray items	Visar appars statusikoner (indikatorer) och äldre ikoner i statusfältet

@@ -5177,3 +5177,40 @@ unknown LuxOS version	neznámá verze LuxOS
 unsupported architecture	nepodporovaná architektura
 %d%%	%d %%
 No serious problems - see the notes above	Žádné vážné problémy – viz upozornění výše
+Launchpad	Launchpad
+System information	Informace o systému
+Switch between light and dark appearance	Přepínání mezi světlým a tmavým vzhledem
+Show all applications	Zobrazit všechny aplikace
+Search applications and files	Hledání aplikací a souborů
+Get started with LuxOS	Začněte s LuxOS
+Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver	Wi-Fi, Bluetooth, zvuk, jas, Spořič dat a Spořič baterie
+When the screen saver starts and when to ask for the password	Kdy se spustí spořič obrazovky a kdy chtít heslo
+Wallpaper, appearance, Dock and menu bar	Tapeta, vzhled, Dock a horní lišta
+Toggle Dark Mode	Přepnout tmavý režim
+Sign in to a Wi-Fi network that requires it (hotel, train, airport)	Přihlášení k Wi-Fi, která ho vyžaduje (hotel, vlak, letiště)
+Reset an app that misbehaves to its default settings (the old settings are kept in a backup)	Vrátí aplikaci, která nefunguje správně, do výchozího nastavení (staré nastavení zůstane v záloze)
+Network administration	Správa sítě
+Log in and unlock with your fingerprint	Přihlášení a odemknutí otiskem prstu
+Connect headphones, a mouse, a keyboard or a phone	Připojení sluchátek, myši, klávesnice nebo telefonu
+Battery level, usage history, power mode and sleep settings	Stav baterie, historie spotřeby, výkonový režim a uspání
+Add, remove and arrange desktop widgets	Přidat, odebrat a rozmístit widgety na ploše
+Network Sign-In	Přihlášení do sítě
+LuxOS	LuxOS
+Desktop Wallpaper	Tapeta plochy
+Your desktop wallpaper with a large clock	Tapeta plochy s velkými hodinami
+LuxOS wallpapers with a large clock	Tapety LuxOS s velkými hodinami
+LuxOS wallpapers fading into each other with a large analog clock and the date	Prolínající se tapety LuxOS s velkými ručičkovými hodinami a datem
+Slowly flowing colored light	Pomalu se přelévající barevné světlo
+Slideshow of your Pictures folder	Prezentace fotek ze složky Obrázky
+The LuxOS logo slowly floating around	Logo LuxOS pomalu pluje po obrazovce
+Large clock on black, slowly moving	Velké hodiny na černém pozadí, pomalu se posouvají
+Finish the preparation: at the next start the owner creates their account	Dokončit přípravu: při dalším startu si majitel založí účet
+Install LuxOS to this computer	Nainstalovat LuxOS do tohoto počítače
+Software Update & Care	Aktualizace a péče o systém
+Updates, automatic repairs and the previous kernel fallback	Aktualizace, automatické opravy a záložní jádro
+LuxOS Bar	Lišta LuxOS
+Spacer with the clock in the middle of the bar; opaque bar under windows	Mezera s hodinami uprostřed lišty; neprůhledná lišta pod okny
+Generic Monitor	Obecné sledování
+Show output of a command.	Zobrazit výstup příkazu.
+Status Tray Plugin	Oznamovací oblast
+Provides status notifier items (application indicators) and legacy systray items	Zobrazuje ikony stavu aplikací (indikátory) a starší ikony oznamovací oblasti

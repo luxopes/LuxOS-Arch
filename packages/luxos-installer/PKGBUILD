@@ -2,9 +2,10 @@
 
 pkgname=luxos-installer
 pkgver=1.1.0
-pkgrel=39
+pkgrel=40
 pkgdesc="LuxOS installer"
 arch=(any)
+makedepends=(python)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 depends=(bash gum arch-install-scripts gptfdisk dosfstools e2fsprogs btrfs-progs cryptsetup parted lvm2 xfsprogs f2fs-tools
@@ -31,4 +32,11 @@ package() {
     install -Dm644 "$f/luxos-setup.desktop" "$pkgdir/usr/share/xgreeters/luxos-setup.desktop"
     install -Dm644 "$f/luxos-oem-seal.desktop" "$pkgdir/usr/share/applications/luxos-oem-seal.desktop"
     install -Dm644 "$f/luxos-oem-firstboot.service" "$pkgdir/usr/lib/systemd/system/luxos-oem-firstboot.service"
+    # Name/GenericName/Comment ve vsech 12 jazycich z tabulek luxos-i18n (rucni preklady maji prednost)
+    local i18n
+    for i18n in "$startdir/../luxos-i18n/files" "$startdir/../../luxos-i18n/files"; do
+        [[ -f $i18n/desktop-i18n.py ]] && break
+    done
+    [[ -f $i18n/desktop-i18n.py ]] || { echo "luxos-i18n/files/desktop-i18n.py not found" >&2; return 1; }
+    python "$i18n/desktop-i18n.py" "$i18n" "$pkgdir"/usr/share/applications/luxos-*.desktop
 }

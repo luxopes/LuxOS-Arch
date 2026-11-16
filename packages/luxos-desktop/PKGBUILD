@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=72
+pkgrel=73
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -299,4 +299,14 @@ package() {
     install -Dm644 "$f/fontconfig/60-luxos.conf" "$pkgdir/usr/share/fontconfig/conf.avail/60-luxos.conf"
     install -dm755 "$pkgdir/etc/fonts/conf.d"
     ln -s /usr/share/fontconfig/conf.avail/60-luxos.conf "$pkgdir/etc/fonts/conf.d/60-luxos.conf"
+
+    # Nazvy a popisy aplikaci (Launchpad, Hledani, nabidka) ve vsech 12 jazycich z tabulek luxos-i18n -
+    # ne jen Name[cs]; rucne napsane preklady v souborech maji prednost
+    local i18n
+    for i18n in "$startdir/../luxos-i18n/files" "$startdir/../../luxos-i18n/files"; do
+        [[ -f $i18n/desktop-i18n.py ]] && break
+    done
+    [[ -f $i18n/desktop-i18n.py ]] || { echo "luxos-i18n/files/desktop-i18n.py not found" >&2; return 1; }
+    python "$i18n/desktop-i18n.py" "$i18n" "$pkgdir"/usr/share/applications/*.desktop \
+        "$pkgdir"/usr/share/applications/screensavers/*.desktop "$pkgdir"/usr/lib/luxos/panel/share/xfce4/panel/plugins/*.desktop
 }

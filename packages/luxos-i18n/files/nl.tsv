@@ -5178,3 +5178,40 @@ unknown LuxOS version	onbekende LuxOS-versie
 unsupported architecture	niet-ondersteunde architectuur
 %d%%	%d%%
 No serious problems - see the notes above	Geen ernstige problemen – zie de opmerkingen hierboven
+Launchpad	Launchpad
+System information	Systeeminformatie
+Switch between light and dark appearance	Wisselen tussen lichte en donkere weergave
+Show all applications	Alle apps tonen
+Search applications and files	Apps en bestanden zoeken
+Get started with LuxOS	Aan de slag met LuxOS
+Wi-Fi, Bluetooth, sound, display, Data Saver and Battery Saver	Wifi, Bluetooth, geluid, beeldscherm, databesparing en batterijbesparing
+When the screen saver starts and when to ask for the password	Wanneer de schermbeveiliging start en wanneer om het wachtwoord wordt gevraagd
+Wallpaper, appearance, Dock and menu bar	Achtergrond, weergave, Dock en menubalk
+Toggle Dark Mode	Donkere modus aan/uit
+Sign in to a Wi-Fi network that requires it (hotel, train, airport)	Aanmelden bij een wifinetwerk dat dat vraagt (hotel, trein, luchthaven)
+Reset an app that misbehaves to its default settings (the old settings are kept in a backup)	Een app die niet goed werkt terugzetten naar de standaardinstellingen (de oude instellingen blijven in een back-up)
+Network administration	Netwerkbeheer
+Log in and unlock with your fingerprint	Inloggen en ontgrendelen met je vingerafdruk
+Connect headphones, a mouse, a keyboard or a phone	Koptelefoon, muis, toetsenbord of telefoon verbinden
+Battery level, usage history, power mode and sleep settings	Batterijniveau, gebruiksgeschiedenis, energiemodus en slaapstand
+Add, remove and arrange desktop widgets	Widgets op het bureaublad toevoegen, verwijderen en ordenen
+Network Sign-In	Netwerkaanmelding
+LuxOS	LuxOS
+Desktop Wallpaper	Bureaubladachtergrond
+Your desktop wallpaper with a large clock	Je bureaubladachtergrond met een grote klok
+LuxOS wallpapers with a large clock	LuxOS-achtergronden met een grote klok
+LuxOS wallpapers fading into each other with a large analog clock and the date	In elkaar overvloeiende LuxOS-achtergronden met een grote analoge klok en de datum
+Slowly flowing colored light	Langzaam stromend gekleurd licht
+Slideshow of your Pictures folder	Diavoorstelling van je map Afbeeldingen
+The LuxOS logo slowly floating around	Het LuxOS-logo dat langzaam rondzweeft
+Large clock on black, slowly moving	Grote klok op zwart, langzaam bewegend
+Finish the preparation: at the next start the owner creates their account	Voorbereiding afronden: bij de volgende start maakt de eigenaar een account aan
+Install LuxOS to this computer	LuxOS op deze computer installeren
+Software Update & Care	Updates en onderhoud
+Updates, automatic repairs and the previous kernel fallback	Updates, automatische reparaties en de vorige kernel als reserve
+LuxOS Bar	LuxOS-balk
+Spacer with the clock in the middle of the bar; opaque bar under windows	Tussenruimte met de klok midden in de balk; ondoorzichtige balk onder vensters
+Generic Monitor	Algemene monitor
+Show output of a command.	Uitvoer van een opdracht tonen.
+Status Tray Plugin	Statusvak
+Provides status notifier items (application indicators) and legacy systray items	Toont statuspictogrammen van apps (indicatoren) en oudere pictogrammen in het statusvak
