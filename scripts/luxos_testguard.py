@@ -7,7 +7,7 @@ Importuje ho kazdy test, ktery spousti okna, xdotool, setxkbmap, spravce oken ne
     napr. z xvfb-run), se nahradi vlastnim Xvfb (ukonci se s testem); bez Xvfb se DISPLAY odebere
     a testy GUI se preskoci. Nevyplneny DISPLAY zustava (testy GUI se preskoci jako dosud).
   - XAUTHORITY skutecne relace se odebere, sbernice D-Bus skutecne relace
-    (DBUS_SESSION_BUS_ADDRESS = /run/user/UID/bus) take - testy si spousti vlastni.
+    (DBUS_SESSION_BUS_ADDRESS = /run/user/UID/bus) se nahradi vlastni (dbus-daemon, skonci s testem).
   - HOME, XDG_RUNTIME_DIR a XDG_CONFIG/DATA/CACHE/STATE_HOME ukazujici do skutecneho domova nebo
     /run/user/UID se nahradi docasnou slozkou (xfconf, dconf, gtk.css, klavesnice skutecneho
     uzivatele se nikdy nezmeni).
@@ -130,6 +130,19 @@ def _start_xvfb():
     return ":%d" % n
 
 
+def _start_bus():
+    if not shutil.which("dbus-daemon"):
+        return None
+    p = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"], stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL, text=True, preexec_fn=_die_with_parent)
+    addr = p.stdout.readline().strip()
+    if not addr:
+        p.kill()
+        return None
+    _procs.append(p)
+    return addr
+
+
 def _cleanup():
     for p in _procs:
         p.terminate()
@@ -160,8 +173,6 @@ def protect():
             env["DISPLAY"] = own
         else:
             env.pop("DISPLAY", None)
-    if env.get("DBUS_SESSION_BUS_ADDRESS", "").startswith(_REAL_BUS):
-        env.pop("DBUS_SESSION_BUS_ADDRESS", None)
     if _real_path(env.get("XDG_RUNTIME_DIR")):
         run = os.path.join(_private_dir(), "run")
         os.makedirs(run, mode=0o700, exist_ok=True)
@@ -173,6 +184,14 @@ def protect():
                      ("XDG_CACHE_HOME", ".cache"), ("XDG_STATE_HOME", ".local/state")):
         if _real_path(env.get(var)):
             env[var] = os.path.join(env["HOME"], sub)
+    # sbernice skutecne relace -> vlastni (az s docasnym HOME: sluzby aktivovane D-Bus ho zdedi)
+    # bez sbernice (xvfb-run bez dbus-run-session) take vlastni - jinak GLib zkusi dbus-launch
+    if env.get("DBUS_SESSION_BUS_ADDRESS", "").startswith(_REAL_BUS) or \
+            (env.get("DISPLAY") and not env.get("DBUS_SESSION_BUS_ADDRESS")):
+        env.pop("DBUS_SESSION_BUS_ADDRESS", None)
+        bus = _start_bus()
+        if bus:
+            env["DBUS_SESSION_BUS_ADDRESS"] = bus
     check_env(env)
 
 

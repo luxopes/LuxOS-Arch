@@ -52,7 +52,8 @@ class Guard(unittest.TestCase):
             self.assertTrue(data["DISPLAY"].startswith(":"))
         self.assertFalse(data["HOME"].startswith(REAL_HOME + os.sep) or data["HOME"] == REAL_HOME, data)
         self.assertFalse((data["XDG_RUNTIME_DIR"] or "").startswith("/run/user/"), data)
-        self.assertFalse(data["DBUS_SESSION_BUS_ADDRESS"], data)
+        # vlastni sbernice misto skutecne (/run/user/UID/bus)
+        self.assertFalse((data["DBUS_SESSION_BUS_ADDRESS"] or "").startswith("unix:path=/run/user/"), data)
         self.assertFalse((data["XDG_CONFIG_HOME"] or "").startswith(REAL_HOME), data)
 
     def test_python_replaces_real_session(self):

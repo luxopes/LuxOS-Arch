@@ -29,6 +29,7 @@ chmod 700 "$luxos_tg_tmp"
 luxos_tg_xvfb=
 _luxos_tg_cleanup() {
     [[ -n $luxos_tg_xvfb ]] && kill "$luxos_tg_xvfb" 2>/dev/null
+    [[ -n ${luxos_tg_buspid-} ]] && kill "$luxos_tg_buspid" 2>/dev/null
     rm -rf "$luxos_tg_tmp"
 }
 trap _luxos_tg_cleanup EXIT
@@ -52,7 +53,6 @@ if [[ -n ${DISPLAY-} ]] && ! _luxos_tg_private "$DISPLAY"; then
         unset DISPLAY
     fi
 fi
-[[ ${DBUS_SESSION_BUS_ADDRESS-} == unix:path=/run/user/$(id -u)/bus* ]] && unset DBUS_SESSION_BUS_ADDRESS
 if _luxos_tg_real "${XDG_RUNTIME_DIR-}"; then
     mkdir -p "$luxos_tg_tmp/run"; chmod 700 "$luxos_tg_tmp/run"
     export XDG_RUNTIME_DIR=$luxos_tg_tmp/run
@@ -65,3 +65,12 @@ for _v in XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME XDG_STATE_HOME; do
     _luxos_tg_real "${!_v-}" && unset "$_v"
 done
 unset _v
+# sbernice skutecne relace -> vlastni (az s docasnym HOME; ukonci se pri skonceni skriptu)
+luxos_tg_buspid=
+if [[ ${DBUS_SESSION_BUS_ADDRESS-} == unix:path=/run/user/$(id -u)/bus* ]]; then
+    unset DBUS_SESSION_BUS_ADDRESS
+    if command -v dbus-daemon >/dev/null; then
+        { read -r luxos_tg_bus; read -r luxos_tg_buspid; } < <(dbus-daemon --session --fork --print-address=1 --print-pid=1 2>/dev/null)
+        [[ -n ${luxos_tg_bus-} ]] && export DBUS_SESSION_BUS_ADDRESS=$luxos_tg_bus
+    fi
+fi
