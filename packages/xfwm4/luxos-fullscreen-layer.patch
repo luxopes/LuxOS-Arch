@@ -1,0 +1,106 @@
+--- a/src/client.c
++++ b/src/client.c
+@@ -2643,7 +2643,12 @@
+ 
+     if ((screen_info->current_ws == c->win_workspace) || (screen_info->params->activate_action != ACTIVATE_ACTION_NONE))
+     {
+-        if ((focused) && (c != focused))
++        /* LuxOS: celoobrazovkove okno jde predem pod listu a Dock jen tehdy, kdyz zamereni urcite
++         * prevezme aktivovane okno (bere vstup, neni to Dock). Dock, okno bez vstupu nebo okno, ktere
++         * o zamereni rozhoduje samo (jen WM_TAKE_FOCUS) by ho jinak nechalo zamerene, ale pod listou -
++         * a klik by uz nepomohl. Prevezme-li zamereni pozdeji, vrstvu upravi clientUpdateFocus (). */
++        if ((focused) && (c != focused) && !(c->type & WINDOW_TYPE_DONT_FOCUS) &&
++            luxosClientTakesFocus (c) && (!source_is_application || screen_info->params->click_to_focus))
+         {
+             /* We might be able to avoid this if we are about to switch workspace */
+             clientAdjustFullscreenLayer (focused, FALSE);
+--- a/src/cycle.c
++++ b/src/cycle.c
+@@ -276,7 +276,8 @@
+     workspace = c->win_workspace;
+     focused = clientGetFocus ();
+ 
+-    if ((focused) && (c != focused))
++    /* LuxOS: celoobrazovkove okno pod listu jen pro okno, ktere zamereni urcite prevezme */
++    if ((focused) && (c != focused) && luxosClientTakesFocus (c))
+     {
+         /* We might be able to avoid this if we are about to switch workspace */
+         clientAdjustFullscreenLayer (focused, FALSE);
+--- a/src/focus.c
++++ b/src/focus.c
+@@ -139,6 +139,17 @@
+     }
+ }
+ 
++/* LuxOS: prevezme okno zamereni urcite (bere vstup, nebo je modalni)? Okno jen s WM_TAKE_FOCUS
++ * (input = False) o zamereni rozhoduje samo - GTK okno s accept-focus = FALSE ho odmitne. */
++gboolean
++luxosClientTakesFocus (Client * c)
++{
++    g_return_val_if_fail (c != NULL, FALSE);
++
++    return (FLAG_TEST (c->flags, CLIENT_FLAG_STATE_MODAL) || FLAG_TEST (c->wm_flags, WM_FLAG_INPUT) ||
++            !c->screen_info->params->focus_hint);
++}
++
+ gboolean
+ clientFocusNew(Client * c)
+ {
+@@ -210,7 +221,10 @@
+     }
+     if (give_focus)
+     {
+-        if (client_focus)
++        /* LuxOS: jen kdyz nove okno zamereni urcite prevezme (napr. widget LuxOS bez zamereni
++         * - karta Hudba se ukaze pri prehravani videa - by jinak nechal celoobrazovkove okno
++         * zamerene, ale pod listou) */
++        if ((client_focus) && luxosClientTakesFocus (c))
+         {
+             clientAdjustFullscreenLayer (client_focus, FALSE);
+         }
+@@ -475,6 +489,19 @@
+     XSetInputFocus (myScreenGetXDisplay (screen_info), screen_info->xfwm4_win, RevertToPointerRoot, timestamp);
+ }
+ 
++/* LuxOS: zamerene celoobrazovkove okno patri do vrstvy celoobrazovkovych oken, nad horni listu
++ * a Dock. Kdyby z ni vypadlo (aktivovalo se okno, ktere zamereni nakonec neprevzalo), vrati ho
++ * do ni klik na okno nebo jeho nova aktivace - jinak by lista zustala pres celou obrazovku. */
++static void
++luxosRestoreFullscreenLayer (Client *c)
++{
++    if (FLAG_TEST (c->flags, CLIENT_FLAG_FULLSCREEN) && (c->win_layer < WIN_LAYER_FULLSCREEN))
++    {
++        TRACE ("restoring fullscreen layer for \"%s\" (0x%lx)", c->name, c->window);
++        clientAdjustFullscreenLayer (c, TRUE);
++    }
++}
++
+ void
+ clientUpdateFocus (ScreenInfo *screen_info, Client * c, unsigned short flags)
+ {
+@@ -494,6 +521,7 @@
+     if ((c) && (c == client_focus) && !(flags & FOCUS_FORCE))
+     {
+         TRACE ("client \"%s\" (0x%lx) is already focused, ignoring request", c->name, c->window);
++        luxosRestoreFullscreenLayer (c);
+         pending_focus = NULL;
+         return;
+     }
+@@ -572,6 +600,7 @@
+         if ((c == client_focus) && !(flags & FOCUS_FORCE))
+         {
+             TRACE ("client \"%s\" (0x%lx) is already focused, ignoring request", c->name, c->window);
++            luxosRestoreFullscreenLayer (c);
+             return;
+         }
+         if (!clientAcceptFocus (c))
+--- a/src/focus.h
++++ b/src/focus.h
+@@ -58,6 +58,7 @@
+                                                                  Client *,
+                                                                  GList *);
+ gboolean                 clientAcceptFocus                      (Client *);
++gboolean                 luxosClientTakesFocus                  (Client *);
+ void                     clientSortRing                         (Client *);
+ void                     clientSetLast                          (Client *);
+ void                     clientUpdateFocus                      (ScreenInfo *,
