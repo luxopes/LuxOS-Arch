@@ -772,6 +772,7 @@ class GuiTest(unittest.TestCase):
         self.wheel(wid, 5, 150)
         self.assertFalse(self.scroll_marker_visible("history-down"), "wheel down goes back")
 
+    @unittest.skipUnless(shutil.which("less"), "needs less")
     def test_wheel_in_alternate_screen_app(self):
         """less na alternativni obrazovce dostava kolecko dal jako sipky (VTE), historie se nehybe."""
         self.config("[terminal]\ntheme=dark\n")

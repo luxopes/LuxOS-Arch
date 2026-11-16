@@ -22,7 +22,7 @@ license=(GPL-3.0-or-later)
 depends=(gtk3 vte3 glib2 pango cairo gdk-pixbuf2 xdg-terminal-exec luxos-i18n luxos-branding
          ttf-jetbrains-mono-nerd)
 makedepends=(gcc pkgconf pcre2 gtk3 vte3)
-checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xdotool dbus ttf-jetbrains-mono-nerd)
+checkdepends=(python python-gobject xorg-server-xvfb xorg-xauth xdotool dbus ttf-jetbrains-mono-nerd less)
 
 build() {
     gcc $CPPFLAGS $CFLAGS $LDFLAGS -DLUXOS_TERMINAL_VERSION="\"$pkgver\"" -o luxos-terminal \
