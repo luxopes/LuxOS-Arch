@@ -851,6 +851,27 @@ class TestWindow(unittest.TestCase):
                 out += self.labels(c)
         return out
 
+    def test_window_shortcuts(self):
+        win = self.app.WeatherWindow()
+        win.show_all()
+        self.addCleanup(win.destroy)
+        Gdk = self.Gdk
+        ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+        ev.state = Gdk.ModifierType.CONTROL_MASK
+        ev.keyval = Gdk.KEY_f
+        self.assertTrue(win.on_window_key(win, ev))
+        self.assertTrue(win.add_btn.get_active(), "Ctrl+F otevre hledani mesta")
+        win.add_btn.set_active(False)
+        closed = []
+        win.connect("delete-event", lambda *_a: closed.append(1) or True)
+        for key in (Gdk.KEY_w, Gdk.KEY_q):
+            ev.keyval = key
+            self.assertTrue(win.on_window_key(win, ev))
+            self.pump(lambda: False, 0.1)
+        self.assertEqual(len(closed), 2, "Ctrl+W / Ctrl+Q zavre okno jako krizek")
+        ev.state = 0
+        self.assertFalse(win.on_window_key(win, ev))
+
     def test_first_run_and_offline(self):
         win = self.app.WeatherWindow()
         win.show_all()

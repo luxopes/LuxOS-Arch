@@ -40,6 +40,13 @@ with the `lsh` shell, [terminal.md](terminal.md)), Text Editor (`luxos-text`, [t
 Celluloid (video). In the top bar, some of them get short names such as "Files", "Terminal", "Text
 Editor", "Image Viewer" and "Document Viewer".
 
+Double-clicking a file in Files opens the default app from `/etc/xdg/luxos/mimeapps.list` (package
+`luxos-desktop`): text and source files in Text Editor, PDF, PostScript, DjVu, XPS and comic books
+(CBZ/CBR) in Evince, images (PNG, JPEG, GIF, WebP, BMP, TIFF, SVG) in Ristretto and archives (ZIP, 7z,
+RAR, tar.*) in Xarchiver - also after you install another app that handles the same type (e.g. a game
+launcher that opens ZIP files). Your own choice in *Open With › Other Application*
+(`~/.config/mimeapps.list`) always wins; a default app that is not installed is skipped.
+
 ## About This Computer
 
 Run `luxos-about`, or use the LuxOS logo menu (first favourite). It shows the LuxOS version and
@@ -95,7 +102,9 @@ Run `luxos-calculator`, or press the Calculator key. It uses decimal arithmetic,
 
 - Basic mode is **Ctrl+1**, scientific mode is **Ctrl+2**. Scientific mode adds powers, roots,
   logarithms, trigonometric functions (degrees/radians), factorial and constants.
-- Keyboard: digits, `+ - * / ^ ( )`, Enter, Backspace, Esc, `%`, Ctrl+C and Ctrl+V.
+- Keyboard: digits, `+ - * / ^ ( )`, Enter, Backspace, Esc, `%`, Ctrl+C and Ctrl+V, Ctrl+W or Ctrl+Q
+  closes it. Ctrl+V pastes a number (also `1e5`); a number longer than the display is rounded and
+  text that is not a number is ignored.
 
 ## Calendar
 
@@ -158,6 +167,8 @@ Run `luxos-clock-app` (**Clock** in Launchpad), or click the time on the Clock &
 - Closing the window keeps the app in the background while an alarm is on or a timer runs, so alarms
   ring without the window. At login `luxos-clock-app --background` starts it only when an alarm is on.
   Opening it again just shows the running app. Data: `~/.local/share/luxos/clock/clock.json`.
+- **Ctrl+W** or **Ctrl+Q** closes the window (alarms keep running in the background), **Esc** closes
+  the new-alarm form.
 
 ## Screenshot
 

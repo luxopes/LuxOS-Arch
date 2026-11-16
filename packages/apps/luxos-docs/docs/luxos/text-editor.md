@@ -48,6 +48,8 @@ with counts, encoding and line endings. Open it from Launchpad, the Dock, Search
 - **Open Recent** in the ⋯ menu lists the last 15 files (with *Clear Menu*).
 - Drag files from Files onto the text to open them (a folder opens in the sidebar).
 - **Unsaved changes**: closing a tab or window asks *Save*, *Don't Save* or *Cancel*.
+- A file you may not change (read-only, or in a folder of another user or the system) cannot be saved in
+  place: saving offers **Save As…** to keep a copy under another name or in another folder.
 - **Changed on disk**: when another program changes or deletes the open file, a bar above the text
   offers *Reload* or *Ignore* (it also checks when the window gets focus again).
 
@@ -104,7 +106,8 @@ one, *Replace All* reports how many were replaced; Ctrl+Z undoes it in one step.
 
 - `/etc/xdg/luxos/mimeapps.list` (package `luxos-desktop`) makes Text Editor the default for
   `text/plain` and the common source and data types (Markdown, Python, C/C++, shell, JSON, XML, YAML,
-  TOML, CSS, JavaScript, logs, patches…). HTML and SVG stay with the web browser. Your own choice in
+  TOML, CSS, JavaScript, logs, patches…). HTML stays with the web browser, SVG opens in Ristretto
+  (see [apps.md](apps.md)). Your own choice in
   *Open With › Other Application* (`~/.config/mimeapps.list`) always wins.
 - New users get Text Editor in the Dock and in the LuxOS menu favourites. On the first login after the
   update, older profiles are switched once (`luxos-session`, marker `~/.config/luxos/text-editor-migrated`):
