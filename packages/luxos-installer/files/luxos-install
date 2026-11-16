@@ -1700,7 +1700,8 @@ pac_friendly() {  # surovy radek jadra -> srozumitelna veta (prazdny vystup = ra
     return 0
 }
 
-human_bytes() { numfmt --to=si --suffix=B --format=%.1f "$1" 2>/dev/null || echo "$1 B"; }
+# "43.0 GB" (mezera pred jednotkou jako v GUI; desetinny oddelovac podle locale)
+human_bytes() { { numfmt --to=si --suffix=B --format=%.1f "$1" 2>/dev/null || echo "$1B"; } | sed -E 's/([0-9])([kKMGTPE]?B)$/\1 \2/'; }
 
 # Prubeh stahovani: velikost cache v cili - pacstrap stahuje do $TARGET/var/cache/pacman/pkg (cesta
 # z arch-install-scripts; po hooku lux-engine-migrate odkaz na var/cache/lux/pkg), jadro v cili do

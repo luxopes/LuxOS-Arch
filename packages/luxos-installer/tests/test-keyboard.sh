@@ -70,7 +70,7 @@ check "cs: US je predvybrana" grep -q -- '--selected English (US)' "$TMP/gum.log
 check "cs: nejvyse 3 dalsi" grep -q -- '--limit 3' "$TMP/gum.log"
 check "cs: nabidka obsahuje 'Only Czech' jako prvni" test "$(head -1 "$TMP/gum.items")" == "Only Czech"
 check "cs: vychozi rozlozeni neni v nabidce dalsich" test "$(grep -cx 'Czech' "$TMP/gum.items")" == 0
-check "cs: info v souhrnu" grep -q "Keyboard: cz, us" "$TMP/info"
+check "cs: info v souhrnu" grep -q "Keyboard: Czech, English (US)" "$TMP/info"
 eq "cs: jen Czech (bez US)" "cz||" "$(kbd cs_CZ.UTF-8 "Czech" "Only Czech")"
 eq "cs: Czech (QWERTY) + US + German" "cz,us,de|qwerty,,|grp:shifts_toggle" \
     "$(kbd cs_CZ.UTF-8 "Czech (QWERTY)" "English (US)|German")"

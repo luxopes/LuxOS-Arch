@@ -310,7 +310,7 @@ expect "D: env: CMDLINE root=UUID" grep -q '^CMDLINE=.*root=UUID=fs-uuid-vda4\\ 
 expect "D: polozka UEFI na disk ESP" grep -q 'efibootmgr --create --disk /dev/vda --part 1 --label LuxOS' "$OUT/D/efi"
 s=$OUT/D/summary
 expect "D: souhrn: rezim a oddil" has "$s" "partition /dev/vda4  (will be ERASED, other partitions are kept)"
-expect "D: souhrn: co se smaze vcetne obsahu" has "$s" "! ERASE partition /dev/vda4  64.5GB  ext4  \"Data\": Files (no operating system found)"
+expect "D: souhrn: co se smaze vcetne obsahu" has "$s" "! ERASE partition /dev/vda4  64.5 GB  ext4  \"Data\": Files (no operating system found)"
 expect "D: souhrn: ostatni oddily zustanou" has "$s" "All other partitions are kept unchanged."
 expect "D: souhrn: @@ERASE pro GUI" grep -q '^@@ERASE ERASE partition /dev/vda4' "$s"
 expect "D: souhrn: bez varovani o systemu" hasnot "$s" "@@WARN"
@@ -339,7 +339,7 @@ expect "E: fstab: /home zachovany" grep -qP '^UUID=fs-uuid-vda6\t/home\t' "$OUT/
 expect "E: varovani: /home nesifrovany" grep -q '^enc_mismatch|/home' "$OUT/E/warnings"
 expect "E: heslo neni v LAYOUT" hasnot "$OUT/E/layout" "tajne"
 s=$OUT/E/summary
-expect "E: souhrn: Windows bude smazan" has "$s" "! ERASE partition /dev/vda3  107.4GB  ntfs  \"Windows\": Operating system: Windows"
+expect "E: souhrn: Windows bude smazan" has "$s" "! ERASE partition /dev/vda3  107.4 GB  ntfs  \"Windows\": Operating system: Windows"
 expect "E: souhrn: silne varovani" has "$s" "!! WARNING: /dev/vda3 contains Windows. It will be deleted and will no longer start."
 expect "E: souhrn: @@WARN pro GUI" grep -q '^@@WARN WARNING: /dev/vda3 contains Windows' "$s"
 expect "E: souhrn: /home keep data" grep -qE '^ +/home +ext4 +/dev/vda6 \(keep data\)' "$s"

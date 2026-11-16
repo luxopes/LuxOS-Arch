@@ -429,9 +429,9 @@ tui_case() {  # tui_case JMENO DISKY KOD
 }
 tui_case F1 "vda:64G" 'DISK=/dev/vda DISK_MODE=erase; gum() { echo "GUM $*"; return 0; }; ask_wipe; echo "WIPE=$WIPE"; echo "TEXT=$(wipe_text)"'
 expect "F1: potvrzeno -> WIPE=zero" grep -qx 'WIPE=zero' "$OUT/F1/out"
-expect "F1: odhad z velikosti disku" grep -q '^INFO Area: 68.8GB. This can take long: about 9 min' "$OUT/F1/out"
+expect "F1: odhad z velikosti disku" grep -q '^INFO Area: 68.8 GB. This can take long: about 9 min' "$OUT/F1/out"
 expect "F1: vychozi volba Ne" grep -q 'GUM confirm --default=false' "$OUT/F1/out"
-expect "F1: souhrn" grep -qx 'TEXT=yes, 68.8GB (about 9 min)' "$OUT/F1/out"
+expect "F1: souhrn" grep -qx 'TEXT=yes, 68.8 GB (about 9 min)' "$OUT/F1/out"
 tui_case F2 "vda:64G" 'DISK=/dev/vda DISK_MODE=erase ENCRYPT=1; gum() { return 1; }; ask_wipe; echo "WIPE=$WIPE"; echo "TEXT=$(wipe_text)"'
 expect "F2: odmitnuto -> none" grep -qx 'WIPE=none' "$OUT/F2/out"
 expect "F2: se sifrovanim doporuceno" grep -q '^INFO Recommended with encryption' "$OUT/F2/out"
@@ -439,14 +439,14 @@ expect "F2: souhrn no" grep -qx 'TEXT=no' "$OUT/F2/out"
 tui_case F3 "vda:64G" 'DISK=manual DISK_MODE=manual; gum() { echo GUM; return 0; }; ask_wipe; echo "WIPE=$WIPE"'
 expect "F3: manual -> bez dotazu, none" bash -c "grep -qx 'WIPE=none' '$OUT/F3/out' && ! grep -q GUM '$OUT/F3/out'"
 tui_case F4 "vda:64G" 'addp vda 3 25600 8300; DISK=/dev/vda DISK_MODE=partition ROOT_PART=/dev/vda3; gum() { return 0; }; ask_wipe; echo "TEXT=$(wipe_text)"'
-expect "F4: existujici oddil: velikost oddilu" grep -qx 'TEXT=yes, 26.9GB (about 4 min)' "$OUT/F4/out"
+expect "F4: existujici oddil: velikost oddilu" grep -qx 'TEXT=yes, 26.9 GB (about 4 min)' "$OUT/F4/out"
 LAYOUT_TEXT='disk dev=/dev/vda table=new
 part id=esp disk=/dev/vda size=1G type=esp
 part id=r disk=/dev/vda size=rest
 fs on=esp mount=/boot type=vfat
 fs on=r mount=/ type=btrfs' tui_case F5 "vda:32G" 'DISK=layout DISK_MODE=layout; layout_parse "$LAYOUT_TEXT"; layout_validate; layout_check_devices
     gum() { return 0; }; ask_wipe; echo "TEXT=$(wipe_text)"'
-expect "F5: rucni rozdeleni: soucet novych oddilu" grep -qx 'TEXT=yes, 34.4GB (about 5 min)' "$OUT/F5/out"
+expect "F5: rucni rozdeleni: soucet novych oddilu" grep -qx 'TEXT=yes, 34.4 GB (about 5 min)' "$OUT/F5/out"
 
 # ---------------------------------------------------------------------------------
 echo "## E: bezpecnost testu"

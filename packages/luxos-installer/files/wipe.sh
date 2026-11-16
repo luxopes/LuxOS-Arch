@@ -57,7 +57,7 @@ wipe_cancel_requested() {
     return 1
 }
 
-wipe_human() { numfmt --to=si --suffix=B --format=%.1f "$1" 2>/dev/null || echo "$1 B"; }
+wipe_human() { { numfmt --to=si --suffix=B --format=%.1f "$1" 2>/dev/null || echo "$1B"; } | sed -E 's/([0-9])([kKMGTPE]?B)$/\1 \2/'; }
 
 wipe_eta_text() {  # sekundy -> "about 3 min left"
     local s=$1
