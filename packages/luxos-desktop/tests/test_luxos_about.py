@@ -32,6 +32,18 @@ class About(unittest.TestCase):
         self.assertEqual(self.mem(1900000), "2 GB")       # mala VM
         self.assertEqual(self.mem(16777216), "16 GB")     # presne 16 GiB
 
+    def test_short_gpu_names(self):
+        # Dlouhe nazvy z lspci roztahly okno pres pul obrazovky
+        fn = re.search(r"^gpu_names\(\) \{.*?^\}$", source(), re.M | re.S).group(0)
+        lines = ["NVIDIA Corporation TU117M [GeForce GTX 1650 Mobile / Max-Q] (rev a1)",
+                 "Advanced Micro Devices, Inc. [AMD/ATI] Lucienne (rev c1)",
+                 "Intel Corporation Alder Lake-P GT2 [Iris Xe Graphics] (rev 0c)",
+                 "Red Hat, Inc. Virtio 1.0 GPU (rev 01)"]
+        out = subprocess.run(["bash", "-c", fn + "\ngpu_names"], input="\n".join(lines) + "\n",
+                             capture_output=True, text=True, check=True).stdout.splitlines()
+        self.assertEqual(out, ["NVIDIA GeForce GTX 1650 Mobile / Max-Q", "AMD Lucienne", "Intel Iris Xe Graphics",
+                               "Red Hat, Inc. Virtio 1.0 GPU"])
+
     def test_markup_escaped(self):
         fn = re.search(r"^esc\(\) \{.*\}$", source(), re.M).group(0)
         out = subprocess.run(["bash", "-c", fn + '\nesc "AT&T <Inc> \'x\'"'], capture_output=True, text=True,
