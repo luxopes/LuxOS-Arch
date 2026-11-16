@@ -26,13 +26,30 @@ if [[ -z ${LANG-} || $LANG == C* ]] && [[ -r $ROOT/etc/locale.conf ]]; then
 fi
 export LANG=${LANG:-C.UTF-8}
 [[ ${LANG%%_*} == uk ]] && export LANG=C.UTF-8      # cyrilice v konzoli neni - anglicky
-# Pismo s diakritikou: fbcon prevezme konzoli az pri prvnim vypisu (odlozene prevzeti) a nastavi
-# vychozi pismo bez ě/ř/ů - setfont pred tim nema ucinek (overeno ve VM: obnova startuje 0,1 s pred
-# prevzetim). Proto napred vypis (clear), pak pismo, pak obrazovka nacisto - pred kazdym vykreslenim
-# nabidky (pismo muze prepsat i systemd-vconsole-setup pri nastupu grafiky).
+# Pismo s diakritikou (eurlatgr, i vconsole.font= v polozce obnovy) pred kazdym vykreslenim nabidky.
 console_font() {
     [[ -z ${LUXOS_RECOVERY_PLAIN-} && -t 0 ]] || return 0
-    clear
+    if [[ -z ${FONT_DONE-} ]]; then
+        # Poprve: pockat, az konzoli prevezme fbcon (odlozene prevzeti - ve VM az 0,6 s po startu obnovy)
+        # a dobehne systemd-vconsole-setup, ktery pri tom pismo nastavi znovu. Jinak se prvni radky
+        # vypsaly vychozim pismem bez ě/ř a "í" se po zmene pisma rozbilo (overeno ve VM).
+        local i v st
+        for ((i = 0; i < 30; i++)); do
+            printf '\r'
+            for v in /sys/class/vtconsole/vtcon*; do
+                [[ $(cat "$v/name" 2>/dev/null) == *"frame buffer"* && $(cat "$v/bind" 2>/dev/null) == 1 ]] && break 2
+            done
+            [[ -e /sys/class/graphics/fb0 ]] || break           # bez framebufferu neni na co cekat
+            sleep 0.1
+        done
+        command -v udevadm >/dev/null && udevadm settle --timeout=5 2>/dev/null
+        for ((i = 0; i < 50; i++)); do
+            st=$(systemctl is-active systemd-vconsole-setup.service 2>/dev/null)
+            [[ $st == activating ]] || systemctl list-jobs --no-legend 2>/dev/null | grep -q systemd-vconsole-setup || break
+            sleep 0.1
+        done
+        FONT_DONE=1
+    fi
     command -v setfont >/dev/null && setfont eurlatgr 2>/dev/null
     clear
 }
@@ -212,6 +229,13 @@ system_fix() {
 }
 
 main_menu() {
+    # Prvni vykresleni ve VM melo v prvnim radku s diakritikou jine pismo nez zbytek (konzole se
+    # dokonfiguruje az pri prvnim vypisu) - napred jednou "nanecisto", pak cista nabidka
+    if [[ -z ${LUXOS_RECOVERY_PLAIN-} && -t 0 ]]; then
+        console_font
+        echo "$(T "Nothing is changed until you choose an action and confirm it.")"
+        sleep 0.5
+    fi
     while true; do
         console_font
         title "LuxOS Recovery"

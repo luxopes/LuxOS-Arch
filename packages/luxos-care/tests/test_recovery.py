@@ -126,6 +126,8 @@ class Recovery(Env):
                 open(os.path.join(new, "usr/lib/systemd/system", u), "w").close()
             with open(os.path.join(new, "etc/hostname"), "w") as fh:
                 fh.write("archlinux\n")
+            os.makedirs(os.path.join(new, "usr/bin"), exist_ok=True)
+            open(os.path.join(new, "usr/bin/locale-gen"), "w").close()
             # instalace jadra prepise /boot (mkinitcpio v chrootu)
             self.w("/boot/vmlinuz-linux-luxos", b"kernel-new")
             self.w("/boot/initramfs-linux-luxos.img", b"initramfs-new")
@@ -196,6 +198,7 @@ class Recovery(Env):
         self.assertTrue(os.path.isfile(self.root + f"/boot/luxos-snapshots/{m['kset']}/vmlinuz"))
         self.assertFalse(os.path.exists(os.path.join(self.top, rec.NEW_SUBVOL)))
         self.assertIn(["chroot", os.path.join(self.top, rec.NEW_SUBVOL), "mkinitcpio", "-P"], self.cmds)
+        self.assertIn(["chroot", os.path.join(self.top, rec.NEW_SUBVOL), "locale-gen"], self.cmds)
         # vse odpojeno
         mounted = [c[-1] for c in self.cmds if c[0] == "mount"]
         unmounted = [c[-1] for c in self.cmds if c[:2] == ["umount", "-R"]]

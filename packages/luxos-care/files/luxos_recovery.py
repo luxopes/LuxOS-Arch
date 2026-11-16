@@ -544,6 +544,12 @@ def reinstall(top, out=print, now=None, lay=None):
         # prvni start noveho systemu se overi (nabidka zavadece pri dalsim startu, kdyz selze)
         care.atomic_write(os.path.join(new, care.VERIFY_BOOT.lstrip("/")), f"{care.now()}\n")
         rc, o = snap.sh(["chroot", new, "systemctl", "set-default", "graphical.target"], timeout=120)
+        # jazyk: prenesene /etc/locale.gen se musi i vygenerovat (jinak po preinstalaci "Cannot set
+        # LC_CTYPE" a aplikace anglicky - overeno ve VM); dela to i instalator (setup-chroot.sh)
+        if os.path.exists(os.path.join(new, "usr/bin/locale-gen")):
+            rc, o = snap.sh(["chroot", new, "locale-gen"], timeout=600)
+            if rc != 0:
+                out("locale-gen failed: " + o.strip()[-300:])
         out("creating the initramfs")
         rc, o = snap.sh(["chroot", new, "mkinitcpio", "-P"], timeout=1800)
         if rc != 0:
