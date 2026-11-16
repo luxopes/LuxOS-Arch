@@ -163,9 +163,9 @@ CSS = """
 .step-dot { border-radius: 99px; min-width: 9px; min-height: 9px; background-color: alpha(currentColor, 0.25); }
 .step.current .step-dot { background-color: ACCENT; }
 .step.done .step-dot { background-color: #30d158; }
-.title { font-size: 24px; font-weight: 800; }
+.page-title { font-size: 24px; font-weight: 800; }
 .big-title { font-size: 30px; font-weight: 800; }
-.subtitle { opacity: 0.72; }
+.page-subtitle { opacity: 0.72; }
 .hint { font-size: 12px; opacity: 0.65; }
 .error { color: #ff453a; }
 .good { color: #30d158; }
@@ -862,11 +862,11 @@ class Installer(Gtk.Window):
     # ---- stavebni prvky ----
     def heading(self, page, title, subtitle=None):
         t = Gtk.Label(label=title, xalign=0, wrap=True)
-        t.get_style_context().add_class("title")
+        t.get_style_context().add_class("page-title")
         page.pack_start(t, False, False, 0)
         if subtitle:
             s = Gtk.Label(label=subtitle, xalign=0, wrap=True, max_width_chars=70)
-            s.get_style_context().add_class("subtitle")
+            s.get_style_context().add_class("page-subtitle")
             page.pack_start(s, False, False, 0)
 
     @staticmethod
@@ -987,7 +987,7 @@ class Installer(Gtk.Window):
         texts.pack_start(t, False, False, 0)
         s = Gtk.Label(label=_("This assistant installs LuxOS on your computer. It takes about 10 minutes."),
                       xalign=0, wrap=True)
-        s.get_style_context().add_class("subtitle")
+        s.get_style_context().add_class("page-subtitle")
         texts.pack_start(s, False, False, 0)
         top.pack_start(texts, True, True, 0)
         page.pack_start(top, False, False, 6)
@@ -2019,7 +2019,7 @@ class Installer(Gtk.Window):
 
         def row(label, w):
             lab = Gtk.Label(label=label, xalign=1)
-            lab.get_style_context().add_class("subtitle")
+            lab.get_style_context().add_class("page-subtitle")
             grid.attach(lab, 0, r[0], 1, 1)
             grid.attach(w, 1, r[0], 1, 1)
             r[0] += 1
@@ -2367,7 +2367,7 @@ class Installer(Gtk.Window):
 
         def add(label, widget, msg=None):
             lab = Gtk.Label(label=label, xalign=1)
-            lab.get_style_context().add_class("subtitle")
+            lab.get_style_context().add_class("page-subtitle")
             grid.attach(lab, 0, rows[0], 1, 1)
             widget.set_hexpand(True)
             grid.attach(widget, 1, rows[0], 1, 1)
@@ -2492,7 +2492,7 @@ class Installer(Gtk.Window):
 
         def add(label, widget):
             lab = Gtk.Label(label=label, xalign=1)
-            lab.get_style_context().add_class("subtitle")
+            lab.get_style_context().add_class("page-subtitle")
             grid.attach(lab, 0, rows[0], 1, 1)
             widget.set_hexpand(True)
             grid.attach(widget, 1, rows[0], 1, 1)
@@ -2823,7 +2823,7 @@ class Installer(Gtk.Window):
             rows = [(k, who) if k == _("User") else (k, v) for k, v in rows]
         for i, (k, v) in enumerate(rows):
             lab = Gtk.Label(label=k, xalign=0)
-            lab.get_style_context().add_class("subtitle")
+            lab.get_style_context().add_class("page-subtitle")
             grid.attach(lab, 0, i, 1, 1)
             val = Gtk.Label(label=v, xalign=0, wrap=True, max_width_chars=50, selectable=False)
             if k == _("Disk") and self.s["mode"] in ("erase", "partition"):
@@ -3101,7 +3101,7 @@ class Installer(Gtk.Window):
         page.pack_start(t, False, False, 0)
         if ok:
             s = Gtk.Label(label=_("Remove the installation media and restart your computer."), wrap=True)
-            s.get_style_context().add_class("subtitle")
+            s.get_style_context().add_class("page-subtitle")
             page.pack_start(s, False, False, 0)
             for text in self.notices:
                 warn = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=10)

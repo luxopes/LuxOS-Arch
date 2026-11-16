@@ -217,7 +217,7 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 CSS = b"""
-.title { font-size: 20px; font-weight: 800; }
+.page-title { font-size: 20px; font-weight: 800; }
 .dim { opacity: 0.65; }
 .kind { border-radius: 14px; padding: 12px 8px; background-image: none; box-shadow: none;
         border: 2px solid alpha(currentColor, 0.10); background-color: alpha(currentColor, 0.04); }
@@ -285,7 +285,7 @@ class FeedbackWindow(Gtk.Window):
         self.info = label("", "info")
         self.info.set_no_show_all(True)
         box.pack_start(self.info, False, False, 0)
-        box.pack_start(label(_("Help us improve LuxOS"), "title"), False, False, 0)
+        box.pack_start(label(_("Help us improve LuxOS"), "page-title"), False, False, 0)
         box.pack_start(label(_("Your report goes directly to the author of LuxOS."), "dim"), False, False, 0)
 
         cards = Gtk.Box(spacing=10, homogeneous=True, margin_top=6)

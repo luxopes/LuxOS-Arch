@@ -48,7 +48,7 @@ CSS = b"""
 .side-title { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 14px 18px 4px; }
 .dev-name { font-weight: 600; }
 .dev-sub { font-size: 11px; opacity: 0.62; }
-.title { font-size: 20px; font-weight: 700; }
+.dev-title { font-size: 20px; font-weight: 700; }
 .section-title { font-size: 12px; font-weight: 700; opacity: 0.6; margin: 18px 4px 6px; }
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
 .group row { padding: 8px 12px; }
@@ -352,7 +352,7 @@ class PrinterPage(Gtk.ScrolledWindow):
         head = Gtk.Box(spacing=16)
         head.pack_start(Gtk.Image.new_from_icon_name("printer", Gtk.IconSize.DIALOG), False, False, 0)
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, spacing=2)
-        self.title = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END), "title")
+        self.title = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END), "dev-title")
         self.model = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END), "hint")
         st = Gtk.Box(spacing=6)
         self.dot = Dot()
@@ -603,7 +603,7 @@ class ScannerPage(Gtk.Box):
         side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         side.set_size_request(250, -1)
         top.pack_start(side, False, False, 0)
-        self.title = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, max_width_chars=24), "title")
+        self.title = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, max_width_chars=24), "dev-title")
         side.pack_start(self.title, False, False, 0)
         self.sub = cls(Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END, max_width_chars=30), "hint")
         side.pack_start(self.sub, False, False, 0)
