@@ -5018,3 +5018,27 @@ Removing an unfinished reinstall	Вилучаю незавершене пере�
 Copying accounts and settings	Копіюю облікові записи та налаштування
 Creating the initramfs	Створюю initramfs
 Generating the language failed: %s	Не вдалося згенерувати мову: %s
+# Hodiny (luxos-clock-app)
+Alarm	Будильник
+Alarms	Будильники
+Every day	Щодня
+Label	Підпис
+Lap	Коло
+Lap %s	Коло %s
+New Alarm	Новий будильник
+No alarms. Add one with +.	Немає будильників. Додайте будильник кнопкою +.
+Once	Один раз
+Pause	Пауза
+Snooze	Відкласти
+Snoozed alarm	Відкладений будильник
+Stopwatch	Секундомір
+Time is up	Час вийшов
+Tomorrow	Завтра
+Weekdays	Робочі дні
+Weekends	Вихідні
+World Clock	Світовий час
+h	год
+min	хв
+s	с
+Reset@stopwatch	Скинути
+Alarms, world clock, stopwatch and timer	Будильник, світовий час, секундомір і таймер

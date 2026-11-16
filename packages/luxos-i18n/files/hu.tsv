@@ -5017,3 +5017,24 @@ Removing an unfinished reinstall	Befejezetlen újratelepítés eltávolítása
 Copying accounts and settings	Fiókok és beállítások másolása
 Creating the initramfs	Az initramfs létrehozása
 Generating the language failed: %s	A nyelv előállítása nem sikerült: %s
+# Hodiny (luxos-clock-app)
+Alarm	Ébresztő
+Alarms	Ébresztők
+Every day	Minden nap
+Label	Címke
+Lap	Kör
+Lap %s	%s. kör
+New Alarm	Új ébresztő
+No alarms. Add one with +.	Nincs ébresztő. Adjon hozzá egyet a + gombbal.
+Once	Egyszer
+Pause	Szünet
+Snooze	Szundi
+Snoozed alarm	Elhalasztott ébresztő
+Stopwatch	Stopper
+Time is up	Lejárt az idő
+Tomorrow	Holnap
+Weekdays	Hétköznap
+Weekends	Hétvégén
+World Clock	Világóra
+Reset@stopwatch	Nullázás
+Alarms, world clock, stopwatch and timer	Ébresztő, világóra, stopper és időzítő

@@ -118,6 +118,23 @@ class ClockApp(unittest.TestCase):
         self.assertEqual(second.wait(timeout=20), 0, "druhe spusteni jen preda pozadavek")
         self.assertTrue(self.wait_for(lambda: self.windows("--class", "luxos-clock-app")), "bezici instance ukaze okno")
 
+    def test_sharp_icon_and_ctrl_w_closes(self):
+        self.write([{"h": 7, "m": 0, "label": "", "days": [], "on": False}])
+        p = self.start()
+        self.assertTrue(self.wait_for(lambda: self.windows("--class", "luxos-clock-app")), "okno")
+        win = self.windows("--class", "luxos-clock-app")[0]
+        icon = subprocess.run(["xprop", "-id", win, "_NET_WM_ICON"], capture_output=True, text=True).stdout
+        for size in ("16 x 16", "32 x 32", "64 x 64", "128 x 128"):
+            self.assertIn(f"Icon ({size})", icon, "ostra ikona v Docku a Alt+Tab")
+        # Esc zavre formular noveho budiku, okno zustane
+        subprocess.run(["xdotool", "windowactivate", "--sync", win], capture_output=True)
+        subprocess.run(["xdotool", "key", "--window", win, "Escape"])
+        time.sleep(0.5)
+        self.assertIsNone(p.poll(), "Esc okno nezavira")
+        # Ctrl+W zavre okno; bez zapnuteho budiku proces skonci
+        subprocess.run(["xdotool", "key", "--window", win, "ctrl+w"])
+        self.assertEqual(p.wait(timeout=10), 0)
+
     def test_alarm_rings_once_and_turns_off(self):
         nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
         self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Test", "days": [], "on": True}])

@@ -5017,3 +5017,24 @@ Removing an unfinished reinstall	A remover uma reinstalação incompleta
 Copying accounts and settings	A copiar contas e definições
 Creating the initramfs	A criar o initramfs
 Generating the language failed: %s	A geração do idioma falhou: %s
+# Hodiny (luxos-clock-app)
+Alarm	Alarme
+Alarms	Alarmes
+Every day	Todos os dias
+Label	Rótulo
+Lap	Volta
+Lap %s	Volta %s
+New Alarm	Novo alarme
+No alarms. Add one with +.	Nenhum alarme. Adicione um com +.
+Once	Uma vez
+Pause	Pausar
+Snooze	Soneca
+Snoozed alarm	Alarme adiado
+Stopwatch	Cronômetro
+Time is up	O tempo acabou
+Tomorrow	Amanhã
+Weekdays	Dias úteis
+Weekends	Fins de semana
+World Clock	Relógio mundial
+Reset@stopwatch	Zerar
+Alarms, world clock, stopwatch and timer	Alarmes, relógio mundial, cronômetro e temporizador

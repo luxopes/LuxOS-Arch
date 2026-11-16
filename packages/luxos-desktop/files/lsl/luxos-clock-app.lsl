@@ -20,6 +20,9 @@ SNOOZE_MIN = 10
 SOCKET = "luxos-clock-app-"
 DAY_KEYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 DEFAULT_CITIES = ["Europe/London", "America/New_York", "Asia/Tokyo"]
+KEY_ESCAPE = 65307
+KEY_Q = 113
+KEY_W = 119
 
 CSS = ("window.lca { background-color: @c_bg; }\n"
     + ".lca label { color: @c_fg; }\n"
@@ -33,7 +36,7 @@ CSS = ("window.lca { background-color: @c_bg; }\n"
     + ".lca-row.off label { color: @c_dim; }\n"
     + ".lca-title { font-size: 13px; font-weight: 600; }\n"
     + ".lca-small { font-size: 12px; }\n"
-    + "button.lca-round { border-radius: 999px; min-width: 64px; min-height: 64px; padding: 0; font-weight: 600; border: none; box-shadow: none; background-image: none; background-color: @c_tile; color: @c_fg; }\n"
+    + "button.lca-round { border-radius: 999px; min-width: 64px; min-height: 64px; padding: 0 12px; font-weight: 600; border: none; box-shadow: none; background-image: none; background-color: @c_tile; color: @c_fg; }\n"
     + "button.lca-round.go { background-color: @c_accent; color: white; }\n"
     + "button.lca-round.go label { color: white; }\n"
     + "button.lca-round:disabled { opacity: 0.4; }\n"
@@ -204,6 +207,15 @@ function days_text(days):
     return " ".join(names)
 end
 
+# "Vynulovat" u stopek a minutky: vlastni klic prekladu ("Reset" je jinde "Obnovit vychozi"), anglicky "Reset"
+function reset_text():
+    text = i18n.T("Reset@stopwatch")
+    if text == "Reset@stopwatch":
+        return "Reset"
+    end
+    return text
+end
+
 # zkratka dne podle jazyka (2024-01-01 je pondeli)
 function day_short(d):
     return glib.format_date(2024, 1, d + 1, "%a")
@@ -317,6 +329,7 @@ function on_alarm_add(button):
     call gtk.box_pack_start(times, ms, False, False, 0)
     entry = gtk.entry_new()
     call gtk.entry_set_placeholder_text(entry, i18n.T("Label"))
+    call gtk.entry_set_width_chars(entry, 6)     # formular se vejde do okna (jinak se okno rozsiri)
     call gtk.box_pack_start(times, entry, True, True, 8)
     call gtk.box_pack_start(box, times, False, False, 0)
     days = gtk.box_new(gtk.HORIZONTAL, 4)
@@ -684,7 +697,7 @@ function stopwatch_buttons():
         call gtk.button_set_label(stopwatch["lap"], i18n.T("Lap"))
     else:
         call gtk.button_set_label(stopwatch["go"], i18n.T("Start"))
-        call gtk.button_set_label(stopwatch["lap"], i18n.T("Reset"))
+        call gtk.button_set_label(stopwatch["lap"], reset_text())
     end
     call gtk.widget_set_sensitive(stopwatch["lap"], stopwatch["running"] or stopwatch["elapsed"] > 0.0)
     return 0
@@ -791,7 +804,7 @@ function build_timer():
     call gtk.box_pack_start(view, presets, False, False, 0)
     buttons = gtk.box_new(gtk.HORIZONTAL, 40)
     call gtk.widget_set_halign(buttons, gtk.ALIGN_CENTER)
-    reset = gtk.button_new(i18n.T("Reset"))
+    reset = gtk.button_new(reset_text())
     timer["go"] = gtk.button_new(i18n.T("Start"))
     for b in [reset, timer["go"]]:
         call gtk.widget_add_class(b, "lca-round")
@@ -917,10 +930,11 @@ function build_window():
     win = gtk.window_new(i18n.T("Clock"))
     ui["win"] = win
     call gtk.widget_add_class(win, "lca")
-    call gtk.window_set_default_size(win, 440, 600)
-    call gtk.window_set_icon_name(win, "org.gnome.clocks")
+    call gtk.window_set_default_size(win, 470, 600)   # minutka i formular budiku se vejdou (i ukrajinsky)
+    call gtk.window_set_icon_list(win, "org.gnome.clocks")   # ostra ikona 16-256 px (Dock, Alt+Tab)
     call gtk.window_set_wmclass(win, "luxos-clock-app", "Luxos-clock-app")
     call gtk.connect(win, "delete-event", on_close)
+    call gtk.connect(win, "key-press-event", on_key)
     root = gtk.box_new(gtk.VERTICAL, 14)
     call gtk.widget_set_margins(root, 20, 20, 16, 20)
     seg = gtk.box_new(gtk.HORIZONTAL, 0)
@@ -969,6 +983,21 @@ function on_close(event, window):
     ui["visible"] = False
     call maybe_quit()
     return True
+end
+
+# Klavesy jako v ostatnich aplikacich: Ctrl+W / Ctrl+Q zavre okno (budiky dal hlida proces na pozadi),
+# Esc zavre formular noveho budiku
+function on_key(event, window):
+    key = gtk.event_key_keyval(event)
+    ctrl = (gtk.event_key_state(event) & gtk.CONTROL_MASK) != 0
+    if ctrl and (key == KEY_W or key == KEY_Q or key == KEY_W - 32 or key == KEY_Q - 32):
+        return on_close(event, window)
+    end
+    if key == KEY_ESCAPE and ui["tab"] == "alarms" and len(gtk.container_get_children(alarm_ui["form"])) > 0:
+        call clear(alarm_ui["form"])
+        return True
+    end
+    return False
 end
 
 function maybe_quit():
