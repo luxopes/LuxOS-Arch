@@ -237,7 +237,15 @@ xkb_text() {
     local i out=()
     IFS=, read -ra lays <<<"$XKB_LAYOUT"
     IFS=, read -ra vars <<<"$XKB_VARIANT"
-    for i in "${!lays[@]}"; do out+=("${lays[i]}${vars[i]:+ (${vars[i]})}"); done
+    local k name
+    for i in "${!lays[@]}"; do
+        # znama rozlozeni nazvem v jazyce pruvodce ("Čeština, Angličtina (USA)"), jina kodem ("cz, us")
+        name="${lays[i]}${vars[i]:+ (${vars[i]})}"
+        for k in "${KEYMAPS[@]}"; do
+            [[ ${k#*|} == "${lays[i]}|${vars[i]-}" ]] && { name=$(T "${k%%|*}"); break; }
+        done
+        out+=("$name")
+    done
     local IFS=,
     echo "${out[*]}" | sed 's/,/, /g'
 }
@@ -357,7 +365,7 @@ interactive() {
     local detected
     detected=$(curl -fs --max-time 5 'http://ip-api.com/line/?fields=timezone' 2>/dev/null || true)
     if [[ -n $detected && -e /usr/share/zoneinfo/$detected ]] && \
-       gum confirm "$(T "Use detected time zone %s?" "$detected")"; then
+       gum confirm --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Use detected time zone %s?" "$detected")"; then
         TIMEZONE=$detected
     else
         TIMEZONE=$(timedatectl list-timezones | gum filter --header "$(T "Choose time zone")" --height 14) || exit 1
