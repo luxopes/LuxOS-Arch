@@ -6,6 +6,16 @@ s falesnymi sluzbami a falesnymi programy v PATH; okna pod Xvfb.
 Spusteni: env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_hub_lsl.py -v
 LUXOS_LSLC: prekladac lslc (LSL >= 0.10.6, jinak se testy preskoci). Nikdy ne na skutecne obrazovce.
 """
+# LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
+import os as _tg_os, sys as _tg_sys  # noqa: E401
+_tg_d = _tg_os.path.dirname(_tg_os.path.abspath(__file__))
+while _tg_d != "/" and not _tg_os.path.exists(_tg_os.path.join(_tg_d, "scripts", "luxos_testguard.py")):
+    _tg_d = _tg_os.path.dirname(_tg_d)
+if _tg_d != "/":
+    _tg_sys.path.insert(0, _tg_os.path.join(_tg_d, "scripts"))
+    import luxos_testguard  # noqa: E402,F401
+else:
+    _tg_os.environ.pop("DISPLAY", None)
 import glob
 import json
 import os
@@ -474,6 +484,28 @@ class Hub(unittest.TestCase):
             self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log")[-1] == "hidden"))
         err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
+
+    def test_control_center_long_tile_titles(self):
+        """Dlazdice s dlouhym prekladem (Datensparmodus, Economiseur de batterie, Oszczedzanie danych, ...):
+        mensi pismo a dva radky misto zkraceni; Ovladaci centrum se ukaze bez chyby v kazdem jazyce.
+        LUXOS_TEST_SHOTS ulozi snimky cc-tiles-<jazyk>.png."""
+        for lang in ("de_DE.UTF-8", "fr_FR.UTF-8", "pl_PL.UTF-8", "hu_HU.UTF-8", "uk_UA.UTF-8", "cs_CZ.UTF-8"):
+            hub = self.start_hub(LANG=lang)
+            try:
+                hub.send_signal(signal.SIGUSR1)
+                self.assertTrue(self.wait_for(lambda: "shown" in self.ui_log("cc.log")), lang)
+                if os.environ.get("LUXOS_TEST_SHOTS"):
+                    time.sleep(1.0)
+                    subprocess.run([sys.executable, "-c", SHOT, os.path.join(
+                        os.environ["LUXOS_TEST_SHOTS"], "cc-tiles-%s.png" % lang[:2])], env=dict(os.environ), timeout=20)
+            finally:
+                hub.send_signal(signal.SIGTERM)
+                hub.wait(5)
+            err = self.hub_err()
+            self.assertNotIn("LSL callback error", err, (lang, err))
+            self.assertNotIn("CRITICAL", err, (lang, err))
+            if os.path.exists(os.path.join(self.home, "cc.log")):
+                os.unlink(os.path.join(self.home, "cc.log"))
 
     @unittest.skipUnless(shutil.which("xdotool"), "xdotool neni nainstalovany")
     def test_control_center_screens_mirror_extend(self):
