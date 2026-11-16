@@ -877,7 +877,8 @@ function on_wifi_list(on, output, status):
     if status == 0:
         for line in output.split("\n"):
             if line.startswith("yes:"):
-                ssid = line[4:]
+                # nmcli -t escapuje ":" a "\\" v hodnotach (sit "Kavarna: 5G" -> "Kavarna\\: 5G")
+                ssid = line[4:].replace("\\:", ":").replace("\\\\", "\\")
                 break
             end
         end

@@ -447,15 +447,18 @@ class Hub(unittest.TestCase):
         with open(os.path.join(fake, "nmcli"), "w") as f:
             f.write('#!/bin/sh\nst=$(cat "%s")\ncase "$*" in\n'
                     '  "radio wifi") [ "$st" = off ] && echo disabled || echo enabled;;\n'
-                    '  "-t -f ACTIVE,SSID device wifi") case $st in on|portal) printf "no:Soused\\nyes:Domov\\n";; *) echo "no:Soused";; esac;;\n'
-                    '  "-t -f CONNECTIVITY general") [ "$st" = portal ] && echo limited || echo full;;\n'
+                    '  "-t -f ACTIVE,SSID device wifi") case $st in on|portal) printf "no:Soused\\nyes:Domov\\n";;'
+                    ' colon) printf "yes:Kavarna\\\\:5G\\n";; *) echo "no:Soused";; esac;;\n'
+                    '  "-t -f CONNECTIVITY general") case $st in portal|colon) echo limited;; *) echo full;; esac;;\n'
                     '  "-t -f TYPE,STATE device") echo "wifi:disconnected";;\n'
                     'esac\n' % state)
         os.chmod(os.path.join(fake, "nmcli"), 0o755)
         hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin")
         shown = 0
         # portal / omezene pripojeni: "Prihlasit se do site „Domov“…" (i po zavrenem okne prihlaseni)
-        for st, expect in (("on", "wifi-qr:share"), ("portal", "wifi-signin:Domov"), ("noconn", "wifi-qr:scan"), ("off", "wifi-qr:")):
+        for st, expect in (("on", "wifi-qr:share"), ("portal", "wifi-signin:Domov"), ("noconn", "wifi-qr:scan"), ("off", "wifi-qr:"),
+                          # nmcli -t escapuje dvojtecku v nazvu site
+                          ("colon", "wifi-signin:Kavarna:5G")):
             with open(state, "w") as f:
                 f.write(st)
             hub.send_signal(signal.SIGUSR1)
