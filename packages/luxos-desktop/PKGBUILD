@@ -63,6 +63,9 @@ depends=(
     # Snimek obrazovky: obrazek ve schrance drzi xclip i po skonceni programu; kurzor ve snimku (XFixes)
     xclip libxfixes libxrender
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer poppler-glib
+    # Nahledy EPUB, ODF (LibreOffice) a RAW fotek: tumbler tyto pluginy nacita vzdy a bez knihoven pri kazdem
+    # startu tumblerd hlasi "Failed to load plugin"; dohromady ~5 MB (webkit2gtk-4.1 pro libgepub uz je nize)
+    libgepub libgsf libopenraw
     # Dock, Hledani, prihlaseni
     # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll a -custom-exit (packages/rofi)
     plank 'rofi>=2.0.0-1.2' lightdm lightdm-gtk-greeter dconf yad
