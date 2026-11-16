@@ -157,6 +157,18 @@ class Format(unittest.TestCase):
         self.assertEqual(lux_alpm.fmt_duration(8.2), "8.2 s")
         self.assertEqual(lux_alpm.fmt_duration(72), "1 min 12 s")
 
+    def test_decimal_comma_outside_english(self):
+        # cesky (a v dalsich jazycich LuxOS) desetinna carka - regrese audit 1.0.2 ("12.4 MB" v cestine)
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"LANG": "cs_CZ.UTF-8", "LC_ALL": "", "LC_MESSAGES": ""}):
+            self.assertEqual(lux_alpm.fmt_size(12_400_000), "12,4 MB")
+            self.assertEqual(lux_alpm.fmt_size(48_000_000), "48 MB")
+            self.assertEqual(lux_alpm.fmt_delta(-3_100_000), "-3,1 MB")
+            self.assertEqual(lux_alpm.fmt_duration(8.2), "8,2 s")
+            self.assertEqual(lux_alpm.human_size(1536), "1,5 kB")
+        with mock.patch.dict(os.environ, {"LANG": "en_US.UTF-8", "LC_ALL": "", "LC_MESSAGES": ""}):
+            self.assertEqual(lux_alpm.fmt_size(12_400_000), "12.4 MB")
+
     def test_question_exact(self):
         self.assertEqual(lux_alpm.plan_question("install", 3, 12_400_000, 48_000_000),
                          "Install 3 packages (12.4 MB download, +48 MB disk)?")

@@ -147,14 +147,19 @@ def n_packages(n):
 
 
 # ---- formatovani ---------------------------------------------------------------------------
+def decimal(text):
+    """Desetinna carka ve vsech jazycich LuxOS krome anglictiny (12,4 MB, 3,2 s)."""
+    return text if lang() in ("en", "C", "POSIX") else text.replace(".", ",")
+
+
 def fmt_size(n):
-    """Velikost v jednotkach SI: 12.4 MB, 48 MB, 950 kB."""
+    """Velikost v jednotkach SI: 12.4 MB, 48 MB, 950 kB (cesky 12,4 MB)."""
     n = abs(int(n or 0))
     for unit, div in (("GB", 1e9), ("MB", 1e6), ("kB", 1e3)):
         if n >= div:
             v = n / div
             s = f"{v:.1f}" if v < 100 else f"{v:.0f}"
-            return (s[:-2] if s.endswith(".0") else s) + " " + unit
+            return decimal(s[:-2] if s.endswith(".0") else s) + " " + unit
     return f"{n} B"
 
 
@@ -164,7 +169,7 @@ def fmt_delta(n):
 
 def fmt_duration(sec):
     if sec < 60:
-        return f"{sec:.1f} s"
+        return decimal(f"{sec:.1f} s")
     m, s = divmod(int(round(sec)), 60)
     return f"{m} min {s} s"
 
@@ -2557,7 +2562,7 @@ def cmd_clean(lux, args):
 def human_size(n):
     for unit in ("B", "kB", "MB", "GB"):
         if abs(n) < 1024 or unit == "GB":
-            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}" if unit == "B" else decimal(f"{n:.1f} {unit}")
         n /= 1024
     return str(n)
 
