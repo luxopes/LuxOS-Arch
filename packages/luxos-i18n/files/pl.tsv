@@ -5013,3 +5013,8 @@ Mouse and touchpad	Mysz i touchpad
 Mouse and touchpad settings	Ustawienia myszy i touchpada
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Szybkość wskaźnika, kierunek przewijania, przewijanie przy krawędzi lub dwoma palcami, stuknięcie jako kliknięcie.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Zmiany działają od razu, także w otwartych oknach. Firefox i Poczta przewijają płynnie same.
+Installing %d packages	Instalowanie %d pakietów
+Removing an unfinished reinstall	Usuwanie nieukończonej ponownej instalacji
+Copying accounts and settings	Kopiowanie kont i ustawień
+Creating the initramfs	Tworzenie initramfs
+Generating the language failed: %s	Generowanie języka nie powiodło się: %s

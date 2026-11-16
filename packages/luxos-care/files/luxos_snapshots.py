@@ -965,7 +965,10 @@ def grub_entry(title, ident, uuid, linux, initrd, opts):
 def grub_cfg(lay, top, snaps, system, kernel):
     store = kernel_store(lay, top)
     base = grub_options()
-    parts = ["# LuxOS snapshots and recovery - managed automatically by luxos-care (do not edit)\n"]
+    parts = ["# LuxOS snapshots and recovery - managed automatically by luxos-care (do not edit)\n",
+             # predchozi start po zmene systemu selhal (luxos_menu v grubenv, luxos-care): nabidka 10 s
+             f'if [ "${{{care.GRUB_MENU_VAR}}}" = "1" ]; then\n'
+             f"\tset timeout_style=menu\n\tset timeout={care.RESCUE_MENU_SECONDS}\nfi\n"]
     uuid = fs_uuid(store["grub"]["path"]) if store else ""
     if store and uuid:
         for s in reversed(snaps):
@@ -1039,6 +1042,10 @@ def sync_boot(top, lay=None, snaps=None):
     if lay["kind"] == "sdboot" and lay.get("main"):
         files = sdboot_entries(lay, top, snaps, system)
         write_sdboot(lay, files)
+        try:
+            care.hide_auto_entries(lay)
+        except OSError as e:
+            care.log(f"loader.conf: {e}")
         return sorted(files)
     if lay["kind"] == "grub":
         write_grub(grub_cfg(lay, top, snaps, system, lay["kernel"]))
@@ -1252,7 +1259,8 @@ def rollback(top, name, now=None, lay=None, kind="before-rollback", build=None):
     write_meta(top, {"name": replaced, "time": care.now(), "kind": kind, "source": system, "kver": cur_ver,
                      "kset": cur_kid, "overlay": cur_overlay, "recovery": os.path.exists(P(RECOVERY_BIN)),
                      "packages": [], "count": 0, "version": os_version()})
-    flag = {"time": care.now(), "from": replaced, "to": name, "label": label(meta), "kind": kind}
+    flag = {"time": care.now(), "from": replaced, "to": name, "label": label(meta), "kind": kind,
+            "to_kind": meta.get("kind")}
     try:
         care.atomic_write(os.path.join(sys_path, AFTER_ROLLBACK.lstrip("/")), json.dumps(flag) + "\n")
         # prvni start obnoveneho systemu se overi: kdyz selze, dalsi start ukaze nabidku zavadece
@@ -1295,7 +1303,15 @@ def after_rollback():
     if os.path.exists("/usr/local/sbin/luxos-esp-sync") and not care.ROOT:
         sh(["/usr/local/sbin/luxos-esp-sync"], timeout=300)
     care.history("rollback_done", ok=True, **{("target_kind" if k == "kind" else k): flag.get(k) for k in ("from", "to", "kind")})
-    care.add_event("rolled_back", label=flag.get("label", ""), target_kind=flag.get("kind", "before-rollback"))
+    # Upozorneni v jazyce systemu (sluzba dostane LANG z /etc/locale.conf); zavadec zustava anglicky
+    lab = flag.get("label", "")
+    if NAME_RE.match(flag.get("to") or "") and flag.get("to_kind"):
+        try:
+            from luxos_i18n import _ as tr
+        except ImportError:
+            tr = None
+        lab = label({"name": flag["to"], "kind": flag["to_kind"]}, tr)
+    care.add_event("rolled_back", label=lab, target_kind=flag.get("kind", "before-rollback"))
     return 0
 
 

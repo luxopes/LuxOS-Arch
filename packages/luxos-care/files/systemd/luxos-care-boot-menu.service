@@ -8,7 +8,6 @@ After=local-fs.target sys-firmware-efi-efivars.mount
 Before=sysinit.target shutdown.target
 Conflicts=shutdown.target
 ConditionPathExists=/var/lib/luxos-care/verify-boot
-ConditionPathIsDirectory=/sys/firmware/efi/efivars
 ConditionKernelCommandLine=!luxos.snapshot
 ConditionPathExists=!/run/archiso
 

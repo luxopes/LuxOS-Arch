@@ -5012,3 +5012,8 @@ Mouse and touchpad	Rato e touchpad
 Mouse and touchpad settings	Definições do rato e do touchpad
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocidade do ponteiro, direção do deslocamento, deslocamento na margem ou com dois dedos, tocar para clicar.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	As alterações aplicam-se de imediato, também nas janelas abertas. O Firefox e o Correio deslocam-se suavemente sozinhos.
+Installing %d packages	A instalar %d pacotes
+Removing an unfinished reinstall	A remover uma reinstalação incompleta
+Copying accounts and settings	A copiar contas e definições
+Creating the initramfs	A criar o initramfs
+Generating the language failed: %s	A geração do idioma falhou: %s

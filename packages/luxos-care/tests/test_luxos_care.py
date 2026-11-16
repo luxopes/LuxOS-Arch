@@ -1200,12 +1200,50 @@ class RescueMenu(Root):
         self.assertFalse(care.rescue_menu_disarm())
         self.assertEqual(self.calls, [])
 
-    def test_not_on_grub_or_bios(self):
+    def test_no_bootloader_writes_nothing(self):
         shutil.rmtree(self.root + "/boot/loader")
-        self.w("/boot/grub/grub.cfg", "")
         self.assertFalse(care.rescue_menu_arm())
-        shutil.rmtree(self.root + "/boot/grub")
         self.assertEqual(self.calls, [])
+
+
+class RescueMenuGrub(Root):
+    """BIOS (GRUB): luxos_menu=1 v grubenv, luxos-snapshots.cfg pak ukaze nabidku na 10 s."""
+
+    def setUp(self):
+        super().setUp()
+        self.w("/boot/grub/grub.cfg", "")
+        self.w(care.GRUBENV, "# GRUB Environment Block\n")
+        self.env = {}
+        self.calls = []
+        for p in (mock.patch.object(care, "run", self.fake_run), mock.patch.object(care, "have", lambda c: True)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def fake_run(self, cmd, timeout=600, **_kw):
+        self.calls.append(cmd)
+        if cmd[0] == "grub-editenv":
+            if cmd[2] == "list":
+                return 0, "".join(f"{k}={v}\n" for k, v in self.env.items())
+            if cmd[2] == "set":
+                k, v = cmd[3].split("=", 1)
+                self.env[k] = v
+            if cmd[2] == "unset":
+                self.env.pop(cmd[3], None)
+        return 0, ""
+
+    def test_arm_then_disarm(self):
+        self.env["luxos_tries"] = "2"
+        self.assertTrue(care.rescue_menu_arm())
+        self.assertEqual(self.env, {"luxos_tries": "2", "luxos_menu": "1"})
+        n = len(self.calls)
+        self.assertFalse(care.rescue_menu_arm())               # uz zapnuto - nic nepsat
+        self.assertFalse(any(c[2] == "set" for c in self.calls[n:]))
+        self.assertTrue(care.rescue_menu_disarm())
+        self.assertEqual(self.env, {"luxos_tries": "2"})       # pocitadlo jadra zustava
+
+    def test_disarm_without_var_writes_nothing(self):
+        self.assertFalse(care.rescue_menu_disarm())
+        self.assertFalse(any(c[2] in ("set", "unset") for c in self.calls if c[0] == "grub-editenv"))
 
 
 class QuietHistory(Root):
@@ -1217,3 +1255,34 @@ class QuietHistory(Root):
         with mock.patch.dict(os.environ, {"LUXOS_CARE_QUIET": ""}), mock.patch.object(care, "log") as lg:
             care.history("rollback", ok=True)
         lg.assert_called_once()
+
+
+class HideAutoEntries(Root):
+    """Zalozni shim v EFI/BOOT/BOOTX64.EFI: systemd-boot ho ukazoval jako "EFI Default Loader"."""
+
+    def setUp(self):
+        super().setUp()
+        self.w("/boot/loader/entries/luxos.conf", "title LuxOS\nlinux /vmlinuz-linux-luxos\n")
+        self.w("/boot/loader/loader.conf", "default luxos.conf\ntimeout 0\nconsole-mode max\neditor no\n")
+        for d in ("BOOT", "LuxOS", "systemd", "Linux"):
+            os.makedirs(self.root + "/boot/EFI/" + d, exist_ok=True)
+
+    def test_whole_disk_hidden_once(self):
+        lay = care.detect_layout()
+        self.assertTrue(care.hide_auto_entries(lay))
+        text = self.r("/boot/loader/loader.conf")
+        self.assertIn("\nauto-entries no\n", text)
+        self.assertIn("default luxos.conf", text)
+        lay = care.detect_layout()
+        self.assertTrue(lay["loader_owned"])                    # loader.conf porad patri LuxOS
+        self.assertFalse(care.hide_auto_entries(lay))           # jen jednou
+
+    def test_other_system_on_esp_keeps_auto_entries(self):
+        os.makedirs(self.root + "/boot/EFI/Microsoft")
+        self.assertFalse(care.hide_auto_entries(care.detect_layout()))
+        self.assertNotIn("auto-entries", self.r("/boot/loader/loader.conf"))
+
+    def test_foreign_loader_conf_untouched(self):
+        self.w("/boot/loader/loader.conf", "default arch.conf\ntimeout 5\n")
+        self.assertFalse(care.hide_auto_entries(care.detect_layout()))
+        self.assertEqual(self.r("/boot/loader/loader.conf"), "default arch.conf\ntimeout 5\n")

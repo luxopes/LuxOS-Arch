@@ -489,6 +489,15 @@ class CLI(unittest.TestCase):
         self.assertEqual(self.calls("luxos-care"), ["snapshots --json", "rollback 2026-10-26_14-03-12 --yes"])
 
     @unittest.skipUnless(shutil.which("jq"), "jq")
+    def test_rollback_localized_names(self):
+        env = self.care_stub()
+        env["SNAPS"] = ('[{"name": "2026-10-26_14-03-12", "label": "LuxOS (before update of 2026-10-26 14:03)",'
+                        ' "label_local": "LuxOS (před aktualizací 2026-10-26 14:03)"}]')
+        rc, out = self.lux_input("1\nn\n", "rollback", env=env)
+        self.assertIn("LuxOS (před aktualizací 2026-10-26 14:03)", out)
+        self.assertNotIn("before update", out)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq")
     def test_rollback_default_no(self):
         env = self.care_stub()
         rc, out = self.lux_input("2\n\n", "rollback", env=env)

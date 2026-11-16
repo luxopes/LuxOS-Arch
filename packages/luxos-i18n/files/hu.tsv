@@ -5012,3 +5012,8 @@ Mouse and touchpad	Egér és érintőpad
 Mouse and touchpad settings	Egér és érintőpad beállításai
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Mutatósebesség, görgetési irány, görgetés a szélén vagy két ujjal, koppintás kattintásként.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	A változások azonnal érvényesek, a nyitott ablakokban is. A Firefox és a Levelezés maguktól simán görgetnek.
+Installing %d packages	%d csomag telepítése
+Removing an unfinished reinstall	Befejezetlen újratelepítés eltávolítása
+Copying accounts and settings	Fiókok és beállítások másolása
+Creating the initramfs	Az initramfs létrehozása
+Generating the language failed: %s	A nyelv előállítása nem sikerült: %s

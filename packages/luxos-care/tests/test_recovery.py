@@ -162,7 +162,11 @@ class Recovery(Env):
             self.assertEqual(f.read(), "gimp")
 
     def test_reinstall(self):
-        res = rec.reinstall(self.top, out=lambda *a: None, now=self.at(45))
+        lines = []
+        res = rec.reinstall(self.top, out=lambda *a: lines.append(a), now=self.at(45))
+        # prubeh se prekladam v luxos-care: text a argumenty zvlast
+        self.assertIn(("Installing %d packages", len(self.installed)), lines)
+        self.assertIn(("Copying accounts and settings",), lines)
         self.assertEqual(res["kept"], "2026-10-26_14-45-00")
         self.assertEqual(res["foreign"], ["yay-bin"])
         inst = [c for c in self.cmds if c[0] == care.ENGINE and "-Sy" in c][0]

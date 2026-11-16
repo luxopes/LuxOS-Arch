@@ -23,8 +23,8 @@ installing or removing an app, restoring a snapshot, reinstall) LuxOS watches th
 that start does not finish (LuxOS or the login screen does not come up, or the power goes off), the
 next start shows the boot menu for 10 seconds, so you can pick LuxOS Recovery or a snapshot without
 pressing anything. After a successful start the menu is hidden again. Normal starts are not slower.
-(This needs systemd-boot, the standard boot loader of LuxOS on UEFI computers. It works with
-Secure Boot on.)
+This works with systemd-boot (UEFI computers, also with Secure Boot on) and with GRUB (older
+computers without UEFI).
 
 The boot menu shows:
 
@@ -32,7 +32,13 @@ The boot menu shows:
 - **LuxOS (before update of DATE TIME)** – one entry per snapshot: starts LuxOS exactly as it was
   before that change, without changing anything (changes made in this mode disappear after a restart),
 - **LuxOS (previous kernel)** – after a kernel update, the kernel that worked before,
-- **LuxOS Recovery**.
+- **LuxOS Recovery**,
+- **Reboot Into Firmware Interface** – the computer's own setup (UEFI).
+
+On a disk with only LuxOS the menu no longer shows the extra "EFI Default Loader": it was the same
+LuxOS start again (the fallback copy of the loader that some computers, such as Acer, need – the file
+stays, only the duplicate menu entry is hidden with `auto-entries no` in `loader.conf`). With Windows or
+another system on the same EFI partition LuxOS leaves the menu as it is.
 
 ## The menu
 
@@ -97,7 +103,8 @@ installation), it starts from the current system.
   On the next start `luxos-care-boot-menu.service` sets the UEFI variable `LoaderConfigTimeout`
   to 10 s (`bootctl set-timeout 10`); a successful start (`luxos-care boot-check`, the same check that
   confirms a new kernel) removes it again. A timeout you set yourself (`bootctl set-timeout`, key
-  `t` in the menu) is never changed.
+  `t` in the menu) is never changed. GRUB: the variable `luxos_menu=1` in `/boot/grub/grubenv`
+  (`grub-editenv`); `/boot/grub/luxos-snapshots.cfg` then sets `timeout_style=menu` and `timeout=10`.
 - Command line (root): `luxos-care disk-check [--repair]`, `luxos-care snapshots`,
   `luxos-care rollback NAME --yes`, `luxos-care reinstall --plan` (what is kept and lost, changes
   nothing), `luxos-care reinstall --yes`.

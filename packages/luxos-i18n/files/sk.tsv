@@ -5050,3 +5050,8 @@ Mouse and touchpad	Myš a touchpad
 Mouse and touchpad settings	Nastavenia myši a touchpadu
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Rýchlosť ukazovateľa, smer posúvania, posúvanie pri okraji alebo dvoma prstami, ťuknutie ako kliknutie.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Zmeny platia hneď, aj v otvorených oknách. Firefox a Pošta posúvajú plynulo samy.
+Installing %d packages	Inštalujem %d balíkov
+Removing an unfinished reinstall	Odstraňujem nedokončené preinštalovanie
+Copying accounts and settings	Kopírujem účty a nastavenia
+Creating the initramfs	Vytváram initramfs
+Generating the language failed: %s	Vygenerovanie jazyka zlyhalo: %s

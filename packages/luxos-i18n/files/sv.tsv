@@ -5012,3 +5012,8 @@ Mouse and touchpad	Mus och styrplatta
 Mouse and touchpad settings	Inställningar för mus och styrplatta
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Pekarhastighet, rullningsriktning, rullning vid kanten eller med två fingrar, tryck för att klicka.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Ändringar gäller direkt, även i öppna fönster. Firefox och E-post rullar mjukt av sig själva.
+Installing %d packages	Installerar %d paket
+Removing an unfinished reinstall	Tar bort en ofullständig ominstallation
+Copying accounts and settings	Kopierar konton och inställningar
+Creating the initramfs	Skapar initramfs
+Generating the language failed: %s	Det gick inte att generera språket: %s

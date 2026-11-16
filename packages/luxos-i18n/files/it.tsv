@@ -5012,3 +5012,8 @@ Mouse and touchpad	Mouse e touchpad
 Mouse and touchpad settings	Impostazioni di mouse e touchpad
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocità del puntatore, direzione di scorrimento, scorrimento sul bordo o con due dita, tocco per fare clic.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Le modifiche valgono subito, anche nelle finestre aperte. Firefox e Posta scorrono fluidi da soli.
+Installing %d packages	Installazione di %d pacchetti
+Removing an unfinished reinstall	Rimozione di una reinstallazione non completata
+Copying accounts and settings	Copia di account e impostazioni
+Creating the initramfs	Creazione dell'initramfs
+Generating the language failed: %s	Generazione della lingua non riuscita: %s

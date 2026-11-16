@@ -374,7 +374,8 @@ def cmd_reinstall(args):
         sys.exit(_(UNSUPPORTED.get(why, why)))
     try:
         with snap.snapshot_lock(), snap.top_level() as top:
-            res = rec.reinstall(top, out=lambda t: print("… " + t, flush=True))
+            # prubeh v jazyce systemu (texty a argumenty zvlast: "Installing %d packages", 41)
+            res = rec.reinstall(top, out=lambda t, *a: print("… " + (_(t) % a if a else _(t)), flush=True))
     except snap.SnapshotError as e:
         care.history("reinstall", ok=False, error=e.code)
         sys.exit(snap_error(e))
@@ -602,6 +603,10 @@ def main(argv):
         except Exception as e:  # noqa: BLE001 - vysledek startu rozhoduje boot_check
             care.log(f"check after boot failed: {e}")
         if rc == 0:
+            try:
+                care.hide_auto_entries(care.detect_layout())
+            except Exception as e:  # noqa: BLE001
+                care.log(f"loader.conf: {e}")
             try:
                 care.rescue_menu_disarm()
             except Exception as e:  # noqa: BLE001

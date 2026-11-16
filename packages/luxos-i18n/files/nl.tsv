@@ -5012,3 +5012,8 @@ Mouse and touchpad	Muis en touchpad
 Mouse and touchpad settings	Instellingen voor muis en touchpad
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Aanwijzersnelheid, scrollrichting, scrollen langs de rand of met twee vingers, tikken om te klikken.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Wijzigingen gelden meteen, ook in open vensters. Firefox en Mail scrollen zelf vloeiend.
+Installing %d packages	%d pakketten installeren
+Removing an unfinished reinstall	Een onvoltooide herinstallatie verwijderen
+Copying accounts and settings	Accounts en instellingen kopiëren
+Creating the initramfs	De initramfs maken
+Generating the language failed: %s	Genereren van de taal mislukt: %s

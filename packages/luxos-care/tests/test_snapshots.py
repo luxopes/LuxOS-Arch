@@ -11,6 +11,7 @@ import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -572,6 +573,7 @@ class SdBoot(Env):
         with open(os.path.join(self.top, "@", snap.AFTER_ROLLBACK.lstrip("/"))) as f:
             flag = json.load(f)
         self.assertEqual(flag["to"], a["name"])
+        self.assertEqual(flag["to_kind"], a["kind"])
         # prvni start obnoveneho systemu se overi (nabidka zavadece, kdyz selze)
         self.assertTrue(os.path.exists(os.path.join(self.top, "@", care.VERIFY_BOOT.lstrip("/"))))
         with open(os.path.join(self.top, "@/var/lib/luxos-care/state.json")) as f:
@@ -698,6 +700,16 @@ class SdBoot(Env):
         ev = json.loads(self.r(care.EVENTS))["events"][-1]
         self.assertEqual((ev["kind"], ev["label"], ev["target_kind"]), ("rolled_back", "LuxOS (x)", "before-rollback"))
 
+    def test_after_rollback_label_in_system_language(self):
+        self.w(snap.AFTER_ROLLBACK, json.dumps({"from": "a", "to": "2026-11-16_13-30-00", "label": "LuxOS (x)",
+                                                "kind": "before-rollback", "to_kind": "update"}))
+        fake = types.ModuleType("luxos_i18n")
+        fake._ = lambda t: {"LuxOS (before update of %s)": "LuxOS (před aktualizací %s)"}.get(t, t)
+        with mock.patch.dict(sys.modules, {"luxos_i18n": fake}):
+            snap.after_rollback()
+        ev = json.loads(self.r(care.EVENTS))["events"][-1]
+        self.assertEqual(ev["label"], "LuxOS (před aktualizací 2026-11-16 13:30)")
+
     def test_describe_and_hint(self):
         a = snap.create(self.top, "manual", now=self.at(1))
         d = snap.describe(self.top)
@@ -726,6 +738,9 @@ class Grub(Env):
         self.assertIn(f"rootflags=subvol=@snapshots/{meta['name']}", cfg)
         self.assertNotIn("initrd=\\initramfs", cfg)              # z /proc/cmdline jen volby
         self.assertIn("menuentry 'LuxOS Recovery'", cfg)
+        # nabidka po nepovedenem startu (luxos_menu v grubenv) - pred polozkami, bez grub-mkconfig
+        self.assertIn('if [ "${luxos_menu}" = "1" ]; then\n\tset timeout_style=menu\n\tset timeout=10\nfi\n', cfg)
+        self.assertLess(cfg.index("luxos_menu"), cfg.index("menuentry"))
         # grub.cfg uz luxos-snapshots.cfg nacita: zadny grub-mkconfig
         self.assertFalse(any(c[0] == "grub-mkconfig" for c in self.cmds))
 

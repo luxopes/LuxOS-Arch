@@ -5012,3 +5012,8 @@ Mouse and touchpad	Souris et pavé tactile
 Mouse and touchpad settings	Réglages de la souris et du pavé tactile
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Vitesse du pointeur, sens du défilement, défilement sur le bord ou à deux doigts, toucher pour cliquer.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Les changements s’appliquent tout de suite, aussi dans les fenêtres ouvertes. Firefox et Mail défilent seuls en douceur.
+Installing %d packages	Installation de %d paquets
+Removing an unfinished reinstall	Suppression d'une réinstallation inachevée
+Copying accounts and settings	Copie des comptes et des réglages
+Creating the initramfs	Création de l'initramfs
+Generating the language failed: %s	La génération de la langue a échoué : %s

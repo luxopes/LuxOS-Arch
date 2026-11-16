@@ -5012,3 +5012,8 @@ Mouse and touchpad	Ratón y panel táctil
 Mouse and touchpad settings	Ajustes del ratón y del panel táctil
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Velocidad del puntero, dirección del desplazamiento, desplazamiento en el borde o con dos dedos, tocar para hacer clic.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Los cambios se aplican al instante, también en las ventanas abiertas. Firefox y Correo se desplazan suavemente por sí mismos.
+Installing %d packages	Instalando %d paquetes
+Removing an unfinished reinstall	Eliminando una reinstalación sin terminar
+Copying accounts and settings	Copiando cuentas y ajustes
+Creating the initramfs	Creando el initramfs
+Generating the language failed: %s	Ha fallado la generación del idioma: %s

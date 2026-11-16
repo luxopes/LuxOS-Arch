@@ -1447,6 +1447,38 @@ def ensure_main_sort_key(lay):
         atomic_write(lpath, "\n".join(lines) + "\n")
 
 
+ESP_OWN_DIRS = {"boot", "luxos", "systemd", "linux"}
+
+
+def hide_auto_entries(lay):
+    """systemd-boot ukazuje "EFI Default Loader" pro EFI/BOOT/BOOTX64.EFI - u LuxOS je to zalozni shim
+    (luxos-secureboot, kvuli firmwaru jako Acer), tedy jen druha polozka LuxOS. Na vlastnim loader.conf
+    (instalace na cely disk) bez jinych systemu na ESP: auto-entries no. Soubor BOOTX64.EFI zustava,
+    firmware ho dal pouzije. Polozka "Reboot Into Firmware Interface" (auto-firmware) zustava.
+    -> True, kdyz se loader.conf zmenil."""
+    if lay.get("kind") != "sdboot" or lay.get("name") != "luxos" or not lay.get("loader_owned"):
+        return False
+    try:
+        others = [d for d in os.listdir(P(f"{lay['esp']}/EFI")) if d.lower() not in ESP_OWN_DIRS]
+    except OSError:
+        return False
+    if others:                                  # Windows apod.: jejich automaticke polozky nechat
+        return False
+    path = P(f"{lay['esp']}/loader/loader.conf")
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        return False
+    if re.search(r"^\s*auto-entries\s", text, re.M):
+        return False
+    lines = text.rstrip("\n").splitlines()
+    lines += [f"{CARE_MARK} no duplicate \"EFI Default Loader\" entry (EFI/BOOT/BOOTX64.EFI is the LuxOS shim)",
+              "auto-entries no"]
+    atomic_write(path, "\n".join(lines) + "\n")
+    return True
+
+
 def free_bytes(path):
     try:
         s = os.statvfs(path)
@@ -1951,8 +1983,25 @@ def loader_timeout_var():
     return data[4:].decode("utf-16-le", "replace").rstrip("\0").strip()
 
 
+# GRUB (BIOS): promenna luxos_menu=1 v grubenv; luxos-snapshots.cfg (nacita ho grub.cfg) pak nastavi
+# timeout_style=menu a timeout 10 s. Promennou nastavuje a maze jen Linux (GRUB na btrfs nezapisuje).
+GRUB_MENU_VAR = "luxos_menu"
+
+
+def grub_env():
+    """{promenna: hodnota} z grubenv (grub-editenv list) nebo None (neni GRUB / chyba)."""
+    if not (os.path.isfile(P(GRUBENV)) and have("grub-editenv")):
+        return None
+    rc, out = run(["grub-editenv", GRUBENV, "list"], timeout=30)
+    if rc != 0:
+        return None
+    return dict(ln.split("=", 1) for ln in out.splitlines() if "=" in ln)
+
+
 def rescue_menu_supported(lay=None):
     lay = lay or detect_layout()
+    if lay["kind"] == "grub":
+        return grub_env() is not None
     return lay["kind"] == "sdboot" and os.path.isdir(P(EFIVARS)) and have("bootctl")
 
 
@@ -1966,8 +2015,16 @@ def mark_verify_boot():
 
 def rescue_menu_arm(lay=None):
     """Nabidka zavadece pri pristim startu (dokud tento start neskonci uspechem). -> True = zapsano."""
+    lay = lay or detect_layout()
     if not rescue_menu_supported(lay):
         return False
+    if lay["kind"] == "grub":
+        if grub_env().get(GRUB_MENU_VAR) == "1":
+            return False
+        rc, out = run(["grub-editenv", GRUBENV, "set", f"{GRUB_MENU_VAR}=1"], timeout=30)
+        if rc != 0:
+            log(f"boot menu after a failed start not armed: {out.strip()[-300:]}")
+        return rc == 0
     cur = loader_timeout_var()
     if cur is not None:
         return False            # uz zapnuto (nami nebo uzivatelem) - nic nepsat
@@ -1984,6 +2041,12 @@ def rescue_menu_disarm():
         os.unlink(P(VERIFY_BOOT))
     except OSError:
         pass
+    env = grub_env()
+    if env is not None and GRUB_MENU_VAR in env:
+        rc, out = run(["grub-editenv", GRUBENV, "unset", GRUB_MENU_VAR], timeout=30)
+        if rc != 0:
+            log(f"boot menu after a failed start not reset: {out.strip()[-300:]}")
+        return rc == 0
     if loader_timeout_var() != str(RESCUE_MENU_SECONDS) or not have("bootctl"):
         return False
     rc, out = run(["bootctl", "set-timeout", ""], timeout=30)

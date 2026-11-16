@@ -509,7 +509,7 @@ def reinstall(top, out=print, now=None, lay=None):
     if files and not old_kernel:
         raise snap.SnapshotError("kernel_not_saved")
     if os.path.lexists(new):
-        out("removing an unfinished reinstall")
+        out("Removing an unfinished reinstall")
         snap.BTRFS.delete(new)
     mounts = Mounts()
     swapped = False
@@ -524,7 +524,7 @@ def reinstall(top, out=print, now=None, lay=None):
         for mp in ("/boot", "/efi", "/var/cache", "/var/log"):
             if snap.is_mountpoint(mp):
                 mounts.mount(["mount", "--bind", P(mp)], os.path.join(new, mp.lstrip("/")))
-        out("installing %d packages" % len(native))
+        out("Installing %d packages", len(native))
         # --disable-sandbox: stahovani pod uzivatelem alpm (lux.conf [downloads] user) by do noveho
         # systemu pod /run/luxos-snapshots (0700) nezapsalo - ve VM "luxos.db.part: Permission denied".
         # Baliky dal overuje podpis.
@@ -537,7 +537,7 @@ def reinstall(top, out=print, now=None, lay=None):
                          "--noconfirm", "--needed", "-Sy", "--"] + native, timeout=6 * 3600)
         if rc != 0:
             raise snap.SnapshotError("install_failed", o.strip()[-1500:])
-        out("copying accounts and settings")
+        out("Copying accounts and settings")
         carry_config(old, new)
         carry_services(old, new)
         carry_data(old, new)
@@ -549,8 +549,8 @@ def reinstall(top, out=print, now=None, lay=None):
         if os.path.exists(os.path.join(new, "usr/bin/locale-gen")):
             rc, o = snap.sh(["chroot", new, "locale-gen"], timeout=600)
             if rc != 0:
-                out("locale-gen failed: " + o.strip()[-300:])
-        out("creating the initramfs")
+                out("Generating the language failed: %s", o.strip()[-300:])
+        out("Creating the initramfs")
         rc, o = snap.sh(["chroot", new, "mkinitcpio", "-P"], timeout=1800)
         if rc != 0:
             raise snap.SnapshotError("initramfs_failed", o.strip()[-1500:])

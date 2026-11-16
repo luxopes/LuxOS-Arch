@@ -5013,3 +5013,8 @@ Mouse and touchpad	Миша й тачпад
 Mouse and touchpad settings	Налаштування миші й тачпада
 Pointer speed, scrolling direction, edge or two-finger scrolling, tap to click.	Швидкість вказівника, напрямок прокручування, прокручування біля краю або двома пальцями, дотик як клацання.
 Changes apply right away, also in open windows. Firefox and Mail scroll smoothly by themselves.	Зміни діють одразу, також у відкритих вікнах. Firefox і Пошта прокручують плавно самі.
+Installing %d packages	Встановлюю %d пакетів
+Removing an unfinished reinstall	Вилучаю незавершене перевстановлення
+Copying accounts and settings	Копіюю облікові записи та налаштування
+Creating the initramfs	Створюю initramfs
+Generating the language failed: %s	Не вдалося згенерувати мову: %s

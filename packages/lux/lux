@@ -1200,7 +1200,8 @@ cmd_rollback() {  # lux rollback [jmeno]: bez jmena snimek, ze ktereho system be
     json=$(as_root "$LUX_CARE" snapshots --json) || exit 1
     local -a names=() labels=()
     mapfile -t names < <(jq -r 'reverse | .[].name' <<<"$json")
-    mapfile -t labels < <(jq -r 'reverse | .[].label' <<<"$json")
+    # label_local: nazev v jazyce systemu (luxos-care 18+), label: anglicky jako v nabidce zavadece
+    mapfile -t labels < <(jq -r 'reverse | .[] | (.label_local // .label)' <<<"$json")
     ((${#names[@]})) || die "$(T "No snapshots yet. One is taken before every update.")"
     if [[ -z $name && -n $booted ]]; then
         name=$booted
