@@ -563,6 +563,30 @@ class GuiTest(unittest.TestCase):
             time.sleep(0.1)
         self.assertEqual(read(p), "Xabc\n")
 
+    def test_read_only_file_offers_save_as(self):
+        p = self.write("ro.txt", "abc\n")
+        os.chmod(p, 0o444)
+        ed = self.start(p)
+        ed.wait(lambda s: s.get("path") == p)
+        ed.call("test-type", "X")
+        ed.wait(lambda s: s["modified"])
+        ed.key("ctrl+s")
+        time.sleep(0.7)
+        # chyba ulozeni nabidne Ulozit jako... (vychozi tlacitko) - otevre se vyber souboru
+        subprocess.run(["xdotool", "key", "Return"], env=ed.env, timeout=10)
+        found = ""
+        for _ in range(40):
+            found = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Save As$"], env=ed.env,
+                                   capture_output=True, text=True).stdout.strip()
+            if found:
+                break
+            time.sleep(0.1)
+        self.assertTrue(found, "Save As dialog")
+        subprocess.run(["xdotool", "key", "Escape"], env=ed.env, timeout=10)
+        s = ed.wait(lambda s: s["modified"])
+        self.assertEqual(s["path"], p)
+        self.assertEqual(read(p), "abc\n")
+
     def test_single_instance_new_window(self):
         a = self.write("a.txt", "A\n")
         b = self.write("b.txt", "B\n")

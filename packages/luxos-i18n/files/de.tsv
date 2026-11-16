@@ -5058,3 +5058,5 @@ Generating the language failed: %s	Erzeugen der Sprache fehlgeschlagen: %s
 # Hodiny (luxos-clock-app)
 Reset@stopwatch	Zurücksetzen
 Alarms, world clock, stopwatch and timer	Wecker, Weltuhr, Stoppuhr und Timer
+# Textovy editor: ulozeni bez opravneni
+You don’t have permission to save here. You can save a copy under another name or in another folder.	Sie haben keine Berechtigung, hier zu sichern. Sie können eine Kopie unter einem anderen Namen oder in einem anderen Ordner sichern.
