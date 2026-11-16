@@ -17,6 +17,7 @@ load luxos_sys as sys
 
 SOUND = "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
 SNOOZE_MIN = 10
+RING_MAX_SEC = 600      # bez reakce zvoneni po 10 minutach utichne (oznameni zustane), jako v Androidu
 SOCKET = "luxos-clock-app-"
 DAY_KEYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 DEFAULT_CITIES = ["Europe/London", "America/New_York", "Asia/Tokyo"]
@@ -61,7 +62,7 @@ alarm_ui = {"list": 0, "form": 0}
 world_ui = {"list": 0, "results": 0, "entry": 0, "local": 0, "rows": []}
 stopwatch = {"running": False, "start": 0.0, "elapsed": 0.0, "laps": [], "label": 0, "laps_box": 0, "go": 0, "lap": 0, "timer": 0}
 timer = {"running": False, "end": 0.0, "left": 0.0, "total": 0.0, "label": 0, "go": 0, "spins": [], "timer": 0}
-ringing = {"win": 0, "sound": 0, "what": ""}
+ringing = {"win": 0, "sound": 0, "what": "", "timer": 0}
 snoozed = []      # [unix cas] odlozenych budiku
 last_minute = {"key": ""}
 zones = []        # [[mesto, identifikator]]
@@ -452,10 +453,27 @@ function ring(title, big):
     call gtk.container_add(win, box)
     call gtk.widget_show_all(win)
     call gtk.window_present(win)
+    limit = RING_MAX_SEC
+    if env.get("LUXOS_CLOCK_RING_SECONDS", "") != "":
+        limit = Int(env.get("LUXOS_CLOCK_RING_SECONDS", ""))
+    end
+    ringing["timer"] = glib.timeout_add(limit * 1000, on_ring_timeout)
     return 0
 end
 
+# Nikdo nereaguje (pocitac bez obsluhy): zvuk a okno skonci, oznameni v centru oznameni zustane
+function on_ring_timeout():
+    ringing["timer"] = 0
+    call stop_ringing()
+    call maybe_quit()
+    return False
+end
+
 function stop_ringing():
+    if ringing["timer"] != 0:
+        call glib.source_remove(ringing["timer"])
+        ringing["timer"] = 0
+    end
     if ringing["sound"] != 0:
         # cela skupina procesu (sh + paplay, spusteno v nove relaci)
         call glib.kill(-ringing["sound"], 15)

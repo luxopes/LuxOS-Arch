@@ -135,6 +135,17 @@ class ClockApp(unittest.TestCase):
         subprocess.run(["xdotool", "key", "--window", win, "ctrl+w"])
         self.assertEqual(p.wait(timeout=10), 0)
 
+    def test_unattended_alarm_goes_quiet(self):
+        # bez reakce zvoneni po case utichne (v aplikaci 10 minut, tady 3 s) a proces bez budiku skonci
+        nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
+        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Away", "days": [], "on": True}])
+        self.env["LUXOS_CLOCK_RING_SECONDS"] = "3"
+        p = self.start("--background")
+        self.assertTrue(self.wait_for(lambda: self.sound_loops() == 1, timeout=75), "zvoni")
+        self.assertTrue(self.wait_for(lambda: self.sound_loops() == 0, timeout=10), "utichne samo")
+        self.assertFalse(self.windows("--name", "^Clock$"), "okno zvoneni zmizi")
+        self.assertEqual(p.wait(timeout=10), 0)
+
     def test_alarm_rings_once_and_turns_off(self):
         nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
         self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Test", "days": [], "on": True}])

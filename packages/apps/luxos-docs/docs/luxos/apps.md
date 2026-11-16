@@ -160,6 +160,7 @@ Run `luxos-clock-app` (**Clock** in Launchpad), or click the time on the Clock &
 - **Alarm:** alarms with a time, a label and repeat days (or once); a switch turns each on or off,
   **+** adds one, **×** deletes it. A ringing alarm shows a window above all others with a sound and
   a notification: **Snooze** (10 minutes) or **Stop**. A one-time alarm turns itself off after ringing.
+  Nobody reacts: the sound and the window stop after 10 minutes, the notification stays.
 - **World Clock:** the local time and chosen cities with the time difference (search by city or time
   zone, from `/usr/share/zoneinfo/zone1970.tab`).
 - **Stopwatch** with laps and **Timer** (hours, minutes, seconds or 1-30 minute presets); a finished
