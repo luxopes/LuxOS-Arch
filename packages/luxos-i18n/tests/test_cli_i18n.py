@@ -181,8 +181,9 @@ class CliHelpI18n(unittest.TestCase):
                 self.check_translated(code)
 
 
-# Zdroje, ktere se nedodavaji uzivatelum (sestaveni balicku, vyvojove nastroje)
-NOT_SHIPPED = re.compile(r"/(tests|tools|lsl-ide|src|pkg)/|/(make-[\w-]+\.py|merge-xfconf\.py|gen-[\w-]+\.py)$")
+# Zdroje, ktere se nedodavaji uzivatelum (sestaveni balicku, vyvojove nastroje; desktop-i18n.py pouzivaji jen
+# PKGBUILDy pri sestaveni, luxos-i18n ho neinstaluje)
+NOT_SHIPPED = re.compile(r"/(tests|tools|lsl-ide|src|pkg)/|/(make-[\w-]+\.py|merge-xfconf\.py|gen-[\w-]+\.py|desktop-i18n\.py)$")
 PRINT_DOC = re.compile(r"(print|write|exit)\s*\(\s*__doc__|__doc__\s*\.\s*(strip|split)")
 SHELL_SELF = re.compile(r"\b(sed|head|tail|grep|awk|cat)\b[^|\n]*\"?\$(0|\{0\}|\{BASH_SOURCE)")
 

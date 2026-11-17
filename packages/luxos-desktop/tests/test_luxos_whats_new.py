@@ -189,6 +189,21 @@ class NotesContentTest(unittest.TestCase):
             codename = [l.split("=", 1)[1].strip() for l in f if l.startswith("CODENAME=")][0]
         self.assertEqual(self.notes()[current]["codename"], codename)
 
+    def test_current_notes_skip_staging_only_apps(self):
+        """Co je noveho aktualni verze jde do stabilniho kanalu: nesmi slibovat aplikace, ktere tam nejsou
+        (scripts/compose-stable-repo.sh: Posta, App Studio, Icon Studio, SDK; Lux Code ve stabilni verzi)."""
+        wn.VERSION_FILE = VERSION_FILE
+        data = self.notes()[wn.current_version()]
+        bad = []
+        for i, item in enumerate(data["items"]):
+            for key in ("title", "text"):
+                for lang in ("en", "cs"):
+                    text = item[key][lang]
+                    for word in ("Mail", "Pošt", "Lux Code", "App Studio", "Icon Studio", "SDK"):
+                        if word in text:
+                            bad.append(f"item {i} {key} {lang}: {word}")
+        self.assertEqual(bad, [])
+
     def test_shown_once_after_update(self):
         """Po aktualizaci 1.0.0 -> 1.0.1 se ukaze jen 1.0.1; po zobrazeni (mark_seen) uz nic."""
         wn.NOTES_DIR = NOTES
@@ -196,6 +211,10 @@ class NotesContentTest(unittest.TestCase):
         self.assertEqual(wn.pending(notes, "1.0.0", "1.0.1"), ["1.0.1"])
         self.assertEqual(wn.pending(notes, "0.9.12", "1.0.1"), ["1.0.1", "1.0.0"])
         self.assertEqual(wn.pending(notes, "1.0.1", "1.0.1"), [])
+        # 1.0.1 -> 1.0.2: jen 1.0.2; ze 1.0.0 obe (nejnovejsi prvni)
+        self.assertEqual(wn.pending(notes, "1.0.1", "1.0.2"), ["1.0.2"])
+        self.assertEqual(wn.pending(notes, "1.0.0", "1.0.2"), ["1.0.2", "1.0.1"])
+        self.assertEqual(wn.pending(notes, "1.0.2", "1.0.2"), [])
         # verze 1.0.10 > 1.0.9 (ne retezcove razeni)
         self.assertGreater(wn.vkey("1.0.10"), wn.vkey("1.0.9"))
 
