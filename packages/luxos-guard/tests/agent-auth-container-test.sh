@@ -42,6 +42,10 @@ done
 SITE=$(runuser -u alice -- python3 -c 'import site; print(site.getusersitepackages())')
 runuser -u alice -- mkdir -p "$SITE"
 echo "import os; open('/run/lg-test/pth-ran', 'w').close()" | runuser -u alice -- tee "$SITE/evil.pth" >/dev/null
+# kontrola testu: obycejny python3 uzivatele soubor .pth opravdu nacte (pomocnik s -I ne)
+runuser -u alice -- env HOME=/home/alice python3 -c pass
+[[ -e /run/lg-test/pth-ran ]] && ok "control: user .pth runs in plain python3" || bad "control: .pth not loaded"
+rm -f /run/lg-test/{pth-ran,evil-helper-ran,evil-gui-ran,evil-py-ran}
 printf '#!/bin/sh\ntouch /run/lg-test/evil-helper-ran\nexit 10\n' | runuser -u alice -- tee /home/alice/evil/helper >/dev/null
 printf '#!/bin/sh\ntouch /run/lg-test/evil-gui-ran\necho run\n' | runuser -u alice -- tee /home/alice/evil/luxos-guard-gui >/dev/null
 chmod 755 /home/alice/evil/helper /home/alice/evil/luxos-guard-gui
@@ -278,6 +282,6 @@ for pr in (a, b):
 print("python: %d passed, %d failed" % (results["pass"], results["fail"]))
 sys.exit(1 if results["fail"] else 0)
 PYEOF
-rc=$?
+rc=$?; ((fail)) && rc=1
 echo "== result: $([[ $rc -eq 0 ]] && echo OK || echo FAILED)"
 exit $rc
