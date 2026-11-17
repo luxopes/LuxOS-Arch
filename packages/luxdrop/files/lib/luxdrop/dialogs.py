@@ -48,6 +48,8 @@ CSS = b"""
 .badge { font-size: 10px; font-weight: 700; border-radius: 6px; padding: 1px 6px;
          background-color: alpha(#2e9d55, 0.16); color: #2e9d55; }
 .badge.warn { background-color: alpha(#d93025, 0.14); color: #d93025; }
+.badge.plain { background-color: alpha(currentColor, 0.10); color: inherit; }
+.code { font-family: monospace; font-weight: 700; }
 .empty { opacity: 0.6; padding: 18px; }
 .sas { font-family: monospace; font-size: 34px; font-weight: 800; letter-spacing: 6px; }
 .sas-box { border-radius: 12px; background-color: alpha(#1f8fe8, 0.10); padding: 10px 22px; }
@@ -169,6 +171,42 @@ def kind_label(protocol, device_type, device_model=""):
     return "LocalSend · " + label
 
 
+def localsend_notice(area, req, ask_confirm=True):
+    """Upozorneni u zarizeni LocalSend: totoznost neoverena kodem, kratky kod otisku, zmena klice.
+
+    Vrati zaskrtavaci policko vyslovneho potvrzeni (jen pri zmene klice), jinak None."""
+    if req.protocol != "localsend":
+        return None
+    confirm = None
+    if getattr(req, "key_changed", False):
+        w = Gtk.Label(label=_("Warning: a device with this name sent you files before, but with a different "
+                              "key. It may be another device pretending to be it."),
+                      xalign=0, wrap=True, max_width_chars=48)
+        w.get_style_context().add_class("warn")
+        area.pack_start(w, False, False, 0)
+        if ask_confirm:
+            confirm = Gtk.CheckButton(label=_("I have checked that it really is this device"), active=False)
+    if not req.verified:
+        text = _("The identity of this device cannot be verified (old LocalSend version). "
+                 "Accept only if you expect these files.")
+    else:
+        text = _("LocalSend device: its identity is not verified with a code. Accept only if you expect "
+                 "these files.")
+    w = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=48)
+    w.get_style_context().add_class("dim")
+    area.pack_start(w, False, False, 0)
+    code = getattr(req, "short_code", "")
+    if code:
+        row = Gtk.Label(label=_("Device code: %s") % code, xalign=0, selectable=True)
+        row.get_style_context().add_class("code")
+        row.set_tooltip_text(_("The beginning of the device's certificate fingerprint. You can compare it "
+                               "with the fingerprint shown on the sending device."))
+        area.pack_start(row, False, False, 0)
+    if confirm is not None:
+        area.pack_start(confirm, False, False, 0)
+    return confirm
+
+
 def accept_dialog(req, on_done, parent=None):
     """Dialog prijeti (nebo zobrazeni zpravy). on_done((prijmout, duverovat)) se zavola prave jednou."""
     load_css()
@@ -212,11 +250,7 @@ def accept_dialog(req, on_done, parent=None):
                               "different. It may be someone else."), xalign=0, wrap=True, max_width_chars=48)
         w.get_style_context().add_class("warn")
         area.pack_start(w, False, False, 0)
-    if req.protocol == "localsend" and not req.verified:
-        w = Gtk.Label(label=_("The identity of this device cannot be verified (old LocalSend version). "
-                              "Accept only if you expect these files."), xalign=0, wrap=True, max_width_chars=48)
-        w.get_style_context().add_class("dim")
-        area.pack_start(w, False, False, 0)
+    confirm_cb = localsend_notice(area, req)
     trust_cb = None
     if req.sas:
         area.pack_start(Gtk.Label(label=_("Verification code"), xalign=0), False, False, 0)
@@ -226,9 +260,17 @@ def accept_dialog(req, on_done, parent=None):
         trust_cb = Gtk.CheckButton(label=_("Trust this device (no code next time)"), active=True)
         area.pack_start(trust_cb, False, False, 0)
     elif req.can_trust:
-        trust_cb = Gtk.CheckButton(label=_("Trust this device (save its files without asking next time)"),
+        trust_cb = Gtk.CheckButton(label=_("Trust this device (allowed to send also in “Trusted devices only” mode)"),
                                    active=False)
         area.pack_start(trust_cb, False, False, 0)
+    if confirm_cb is not None:
+        # zmeneny klic: "Prijmout" az po vyslovnem potvrzeni
+        ok = dlg.get_widget_for_response(Gtk.ResponseType.OK)
+        ok.get_style_context().remove_class("suggested-action")
+        ok.get_style_context().add_class("destructive-action")
+        ok.set_sensitive(False)
+        confirm_cb.connect("toggled", lambda b: ok.set_sensitive(b.get_active()))
+        dlg.set_default_response(Gtk.ResponseType.CANCEL)
     dlg.show_all()
     dlg.present()
     state = {"done": False}
@@ -247,7 +289,8 @@ def accept_dialog(req, on_done, parent=None):
     GLib.timeout_add(300, watch)
 
     def on_response(d, r):
-        finish((r == Gtk.ResponseType.OK, bool(trust_cb and trust_cb.get_active())))
+        accept = r == Gtk.ResponseType.OK and (confirm_cb is None or confirm_cb.get_active())
+        finish((accept, accept and bool(trust_cb and trust_cb.get_active())))
         d.destroy()
 
     dlg.connect("response", on_response)
@@ -271,6 +314,7 @@ def message_dialog(req, on_done, parent=None):
     t.set_markup("<b>%s</b>" % GLib.markup_escape_text(_("Message from “%s”") % req.peer_name))
     head.pack_start(t, True, True, 0)
     area.pack_start(head, False, False, 0)
+    localsend_notice(area, req, ask_confirm=False)  # zprava se jen zobrazuje - potvrzeni neni potreba
     sw = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
     sw.get_style_context().add_class("card")
     tv = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD_CHAR, cursor_visible=False,

@@ -1,0 +1,3 @@
+# Lux Guard: skupina setgid programu luxos-guard-agent - sluzba prijme roli "agent" (odpovedi na dotazy)
+# jen od procesu s touto efektivni skupinou (viz luxos_guard_core.agent_peer_ok)
+g luxos-guard - -

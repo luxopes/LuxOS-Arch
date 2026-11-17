@@ -136,6 +136,24 @@ class MimeTest(unittest.TestCase):
                 self.assertEqual(r.stdout.decode().rstrip("\n"), s, cs)
 
 
+class ImapQuoteTest(unittest.TestCase):
+    """Jmeno schranky (muze prijit od serveru) se do prikazu dava v uvozovkach; CR/LF/NUL nesmi projit."""
+
+    def quote(self, value):
+        r = mt.run_bin(["--test-imap-quote", json.dumps(value)])
+        self.assertEqual(r.returncode, 0, r.stderr.decode())
+        return json.loads(r.stdout)
+
+    def test_plain_and_escaped(self):
+        self.assertEqual(self.quote("INBOX"), {"quoted": '"INBOX"'})
+        self.assertEqual(self.quote('Sent "old"\\x'), {"quoted": '"Sent \\"old\\"\\\\x"'})
+        self.assertEqual(self.quote("Odeslan&AOk-"), {"quoted": '"Odeslan&AOk-"'})
+
+    def test_line_breaks_and_nul_rejected(self):
+        for bad in ("Box\r\nA1 DELETE INBOX", "Box\nX", "Box\rX", "Box\x00X", "\r\n"):
+            self.assertEqual(self.quote(bad), {"error": "protocol"}, repr(bad))
+
+
 class ImapParserTest(unittest.TestCase):
     def setUp(self):
         r = mt.run_bin(["--test-imap", os.path.join(mt.FIXTURES, "imap-responses.txt")])

@@ -190,13 +190,16 @@ def removable_mounts(mounts):
 
 # ---- klient na socketu ------------------------------------------------------------------------
 class Client:
-    def __init__(self, sock, uid, pid):
+    def __init__(self, sock, uid, pid, gid=None, pidfd=None):
         self.sock = sock
         self.uid = uid
         self.pid = pid
+        self.gid = gid
+        self.pidfd = pidfd          # SO_PEERPIDFD: presne proces, ktery se pripojil (ne jen cislo PID)
         self.buf = b""
         self.fds = []
         self.agent = False
+        self.closed = False
 
     def send(self, obj):
         data = (json.dumps(obj, ensure_ascii=False) + "\n").encode()
@@ -214,9 +217,12 @@ class Client:
                 pass
 
     def close(self):
+        self.closed = True
         for fd in self.fds:
             close_fd(fd)
         self.fds = []
+        close_fd(self.pidfd)
+        self.pidfd = None
         try:
             self.sock.close()
         except OSError:
@@ -228,7 +234,7 @@ class Guard:
     """Rozhodovani o udalostech. fan_perm/fan_notif jsou objekty s rozhranim Fanotify (v testech nahrady)."""
 
     def __init__(self, fan_perm, fan_notif=None, state=None, proc=None, users=None, clock=time.time,
-                 classify_limit=rules.MAX_READ):
+                 classify_limit=rules.MAX_READ, agent_check=None):
         self.perm = fan_perm
         self.notif = fan_notif
         self.state = state or core.State()
@@ -246,7 +252,10 @@ class Guard:
         self.next_id = 1
         self.denied = {}            # (uid, klic) -> do kdy zamitat bez dotazu
         self.exec_ok = {}           # (pid, klic) -> do kdy povolit (interpret po povolenem execve)
-        self.agents = {}            # uid -> [Client]
+        self.agents = {}            # uid -> [Client] - jen overene pomocniky (agent_check)
+        # Overeni pomocnika v sezeni: kdo se prohlasi za "agent", musi to byt skutecny luxos-guard-agent
+        # (jinak by si kazdy program uzivatele mohl sam odpovidat "Presto spustit")
+        self.agent_check = agent_check or (lambda c: core.agent_peer_ok(c.pid, c.uid, c.gid, c.pidfd))
         self.jobs = queue.Queue(maxsize=4096)
         self.results = queue.Queue()
         self.wake_r, self.wake_w = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
@@ -413,7 +422,7 @@ class Guard:
         rid = self.next_id
         self.next_id += 1
         self.asks[rid] = {"key": key, "uid": uid, "fds": [fd], "t": self.clock(), "entry": entry,
-                          "pid": pid, "fd0": os.dup(fd)}
+                          "pid": pid, "fd0": os.dup(fd), "client": None}
         self.ask_index[(uid, key)] = rid
         msg = {"op": "ask", "id": rid, "program": self.proc.comm(pid), "terminal": self.proc.has_tty(pid),
                **self._public(entry)}
@@ -433,8 +442,10 @@ class Guard:
         if a is None:
             return
         key, uid, entry = a["key"], a["uid"], a["entry"]
-        self.ask_index.pop((uid, key), None)
+        if self.ask_index.get((uid, key)) == rid:
+            self.ask_index.pop((uid, key), None)
         allow = choice == "run" and entry.get("level") != core.CRITICAL
+        confirm = a.get("client") is not None      # "luxos-guard allow" potvrzeny v okne pomocnika
         if allow:
             entry["status"] = core.ALLOWED
             entry["allowed_by"] = uid
@@ -442,12 +453,15 @@ class Guard:
             self.state.allow_hash(entry.get("sha256"), uid, entry.get("path"))
             if not entry.get("mount_mark"):
                 self.unmark_inode(a["fd0"])
-            self.exec_ok[(a["pid"], key)] = self.clock() + core.EXEC_MEMORY
-        else:
+            if not confirm:
+                self.exec_ok[(a["pid"], key)] = self.clock() + core.EXEC_MEMORY
+        elif not confirm:
             self.denied[(uid, key)] = self.clock() + core.DENY_MEMORY
         close_fd(a["fd0"])
         for fd in a["fds"]:
             self.respond(fd, allow)
+        if confirm and not a["client"].closed:
+            a["client"].send({"op": "allow", "ok": True} if allow else {"op": "error", "error": "not confirmed"})
         action = "allowed" if allow else {"sandbox": "sandbox", "trash": "trash"}.get(choice, "denied")
         log(f"{action}: {entry.get('path')} (uid {uid}){' - ' + reason if reason else ''}")
         self.state.add_log(path=entry.get("path"), level=entry.get("level"), action=action, uid=uid)
@@ -481,11 +495,23 @@ class Guard:
     def on_message(self, client, msg):
         op = msg.get("op")
         if op == "hello":
-            if msg.get("role") == "agent":
-                client.agent = True
-                lst = self.agents.setdefault(client.uid, [])
-                lst.insert(0, client)
-            return {"op": "hello", "version": core.VERSION}
+            reply = {"op": "hello", "version": core.VERSION}
+            if msg.get("role") == "agent" and not client.agent:
+                ok = False
+                try:
+                    ok = bool(self.agent_check(client))
+                except Exception as e:  # noqa: BLE001 - chyba kontroly = neovereny
+                    log(f"agent check failed: {e}")
+                if ok:
+                    client.agent = True
+                    lst = self.agents.setdefault(client.uid, [])
+                    lst.insert(0, client)
+                else:
+                    log(f"refused agent role for pid {client.pid} (uid {client.uid}): not luxos-guard-agent")
+                reply["agent"] = ok
+            elif client.agent:
+                reply["agent"] = True
+            return reply
         if op == "answer":
             rid = msg.get("id")
             a = self.asks.get(rid)
@@ -531,6 +557,10 @@ class Guard:
             return {"op": "error", "error": "critical"}
         if client.uid != 0 and client.uid not in (st.st_uid, entry.get("uid")):
             return {"op": "error", "error": "not yours"}
+        if client.uid != 0 and entry.get("status") != core.ALLOWED:
+            # Povoleni od uzivatele (ne root) jen potvrzenim v okne overeneho pomocnika v sezeni - program
+            # uzivatele by si jinak rizikovy soubor povolil sam (stejne jako "Presto spustit" v dotazu)
+            return self._confirm_allow(client, fd, key, entry)
         entry["status"] = core.ALLOWED
         entry["allowed_by"] = client.uid
         if entry.get("level") == core.CRITICAL:
@@ -545,6 +575,20 @@ class Guard:
         log(f"allowed by command: {entry.get('path')} (uid {client.uid})")
         self.state.add_log(path=entry.get("path"), level=entry.get("level"), action="allowed", uid=client.uid)
         return {"op": "allow", "ok": True}
+
+    def _confirm_allow(self, client, fd, key, entry):
+        uid = client.uid
+        if not self.agents.get(uid):
+            return {"op": "error", "error": "no session"}
+        rid = self.next_id
+        self.next_id += 1
+        self.asks[rid] = {"key": key, "uid": uid, "fds": [], "t": self.clock(), "entry": entry,
+                          "pid": client.pid, "fd0": os.dup(fd), "client": client}
+        msg = {"op": "ask", "id": rid, "program": "luxos-guard allow", "terminal": True, **self._public(entry)}
+        if not self._to_agent(uid, msg):
+            close_fd(self.asks.pop(rid)["fd0"])
+            return {"op": "error", "error": "no session"}
+        return None                 # odpoved az po volbe v okne (_finish_ask) nebo po ASK_TIMEOUT
 
     def drop_client(self, client):
         if client.agent:
@@ -809,6 +853,17 @@ class Guard:
 
 
 # ---- hlavni smycka --------------------------------------------------------------------------------------
+SO_PEERPIDFD = getattr(socket, "SO_PEERPIDFD", 77)     # Linux 6.5+
+
+
+def peer_pidfd(conn):
+    """pidfd procesu, ktery se pripojil (jadro ho drzi od connect(), PID nemuze mezitim dostat jiny proces)."""
+    try:
+        return struct.unpack("i", conn.getsockopt(socket.SOL_SOCKET, SO_PEERPIDFD, 4))[0]
+    except OSError:
+        return None
+
+
 def serve(guard, sock_path=core.SOCKET):
     os.makedirs(os.path.dirname(sock_path), mode=0o755, exist_ok=True)
     os.chmod(os.path.dirname(sock_path), 0o755)     # UMask=0077 v jednotce
@@ -842,9 +897,9 @@ def serve(guard, sock_path=core.SOCKET):
                 except OSError:
                     continue
                 conn.setblocking(False)
-                pid, uid, _gid = struct.unpack("3i", conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED,
-                                                                     struct.calcsize("3i")))
-                c = Client(conn, uid, pid)
+                pid, uid, gid = struct.unpack("3i", conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED,
+                                                                    struct.calcsize("3i")))
+                c = Client(conn, uid, pid, gid, peer_pidfd(conn))
                 clients[conn.fileno()] = c
                 poller.register(conn.fileno(), select.POLLIN)
             elif fdno == guard.wake_r:

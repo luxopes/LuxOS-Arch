@@ -242,6 +242,8 @@ or luxos-desktop are installed, upgraded or removed.
 - sudo, polkit and the lock screen: `timeout=10`.
 - The password always works. Without a reader or enrolled fingers, pam_fprintd returns
   "unavailable" at once.
+- A fingerprint replaces only the password: lockout, `/etc/nologin`, login shell and account checks
+  still apply ([login-lock.md](login-lock.md#fingerprint-and-account-checks)).
 - Check or repair (root): `/usr/lib/luxos/luxos-fingerprint-pam status|sync|apply|remove`.
 
 ## Profile Picture

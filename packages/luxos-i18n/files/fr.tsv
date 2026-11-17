@@ -5223,3 +5223,30 @@ Preparing the package signing keys…	Préparation des clés de vérification de
 Enter the server address.	Saisissez l’adresse du serveur.
 Backups on an SFTP server cannot be encrypted.	Les sauvegardes sur un serveur SFTP ne peuvent pas être chiffrées.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Le chiffrement fonctionne avec les disques USB et les dossiers partagés (SMB). Désactivez Chiffrer les sauvegardes ou utilisez un dossier partagé.
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Attention : un appareil portant ce nom vous a déjà envoyé des fichiers, mais avec une autre clé. Il peut s’agir d’un autre appareil qui se fait passer pour lui.
+I have checked that it really is this device	J’ai vérifié qu’il s’agit bien de cet appareil
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	Appareil LocalSend : son identité n’est pas vérifiée par un code. N’acceptez que les fichiers que vous attendez.
+Device code: %s	Code de l’appareil : %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Le début de l’empreinte du certificat de l’appareil. Vous pouvez la comparer avec l’empreinte affichée sur l’appareil qui envoie.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Faire confiance à cet appareil (peut aussi envoyer en mode « Appareils de confiance uniquement »)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Enregistrer sans demander les fichiers des ordinateurs LuxOS de confiance. Pour les appareils LocalSend, la question est toujours posée.
+Key changed	Clé modifiée
+Not verified	Non vérifié
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Attention : un appareil portant ce nom utilisait auparavant une autre clé. Il peut s’agir d’un autre appareil qui se fait passer pour lui.
+LocalSend devices are not verified with a code - check that it is the right device.	Les appareils LocalSend ne sont pas vérifiés par un code – vérifiez qu’il s’agit du bon appareil.
+“%s” has a different key than before	« %s » a une autre clé qu’auparavant
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Un appareil portant ce nom utilisait auparavant une autre clé. Il peut s’agir d’un autre appareil qui se fait passer pour lui. N’envoyez que si vous êtes sûr qu’il s’agit du bon appareil (par exemple, il a été réinstallé).
+Send anyway	Envoyer quand même
+LocalSend device, not verified with a code	Appareil LocalSend, non vérifié par un code
+WARNING: a device with this name sent you files before, but with a different key!	ATTENTION : un appareil portant ce nom vous a déjà envoyé des fichiers, mais avec une autre clé !
+LocalSend devices are not verified with a code.	Les appareils LocalSend ne sont pas vérifiés par un code.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	ATTENTION : un appareil portant ce nom vous a déjà envoyé des fichiers, mais avec une autre clé ! Il peut s’agir d’un autre appareil qui se fait passer pour lui.
+Type 'yes' to accept anyway, anything else declines: 	Tapez 'yes' pour accepter quand même, toute autre réponse refuse : 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	ATTENTION : un appareil portant ce nom utilisait auparavant une autre clé. Il peut s’agir d’un autre appareil qui se fait passer pour lui.
+Type 'yes' to send anyway, anything else cancels: 	Tapez 'yes' pour envoyer quand même, toute autre réponse annule : 
+Nothing was sent.	Rien n’a été envoyé.
+KEY CHANGED	CLÉ MODIFIÉE
+not verified	non vérifié
+Confirm in the Lux Guard window...	Confirmez dans la fenêtre Lux Guard...
+Not allowed - it was not confirmed in the Lux Guard window.	Non autorisé : cela n’a pas été confirmé dans la fenêtre Lux Guard.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	L’autorisation nécessite la fenêtre Lux Guard dans votre session de bureau (ou en administrateur : sudo luxos-guard allow FICHIER).

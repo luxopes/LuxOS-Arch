@@ -241,6 +241,15 @@ def cmd_send(args):
         device = resolve_localsend(ctx, args.target)
         if device["kind"] == "luxdrop":
             print(_("%s is a LuxOS computer - using the LuxDrop protocol") % device["name"], file=sys.stderr)
+        elif device.get("key_changed"):
+            # Stejne jmeno, jiny klic nez pri drivejsim prenosu: bez vyslovneho "yes" nic neposlat
+            print(_("WARNING: a device with this name used a different key before. It may be another device "
+                    "pretending to be it.") + (" " + _("Device code: %s") % device["short_code"]
+                                               if device.get("short_code") else ""), file=sys.stderr)
+            a = ask_line(_("Type 'yes' to send anyway, anything else cancels: ")) if sys.stdin.isatty() else None
+            if a not in ("yes", "ano"):
+                print(_("Nothing was sent."), file=sys.stderr)
+                return EXIT_KEY
 
         def run():
             from .engine import Engine
@@ -303,6 +312,17 @@ class CliReceive(transfer.Handler):
         if req.protocol == "localsend":
             print(_("Sent with LocalSend from a %s device") % req.device_type
                   + ("" if req.verified else " - " + _("identity not verified (old LocalSend version)")))
+            print(_("LocalSend devices are not verified with a code.")
+                  + (" " + _("Device code: %s") % req.short_code if req.short_code else ""))
+        if getattr(req, "key_changed", False):
+            # Zmeneny klic: jen vyslovne "yes" (ne y/a); pak se pripne novy klic
+            print(_("WARNING: a device with this name sent you files before, but with a different key! "
+                    "It may be another device pretending to be it."))
+            a = ask_line(_("Type 'yes' to accept anyway, anything else declines: "), abort=req.withdrawn.is_set)
+            if a is None or req.withdrawn.is_set():
+                print(_("The sender cancelled the request."))
+                return False, False
+            return a in ("yes", "ano"), False
         if req.sas:
             print(_("Verification code: %s  (must be the same on the sender's screen)") % proto.format_sas(req.sas))
             a = ask_line(_("Accept? [y]es / [a]ccept and trust this device / [N]o: "), abort=req.withdrawn.is_set)
@@ -400,6 +420,9 @@ def cmd_devices(args):
         for d in found.values():
             mark = _("trusted") if d["trusted"] else ""
             kind = "LuxOS" if d["kind"] == "luxdrop" else "LocalSend/" + d["device_type"]
+            if d["kind"] == "localsend":
+                mark = (mark + ", " if mark else "") + (_("KEY CHANGED") if d.get("key_changed") else
+                                                       _("not verified"))
             if d["kind"] == "localsend" and not d["secure"]:
                 mark = _("unencrypted - not supported")
             print("  %-28s %-16s %-18s %s  %s" % (d["name"], d["id"], kind, transfer.fmt_addr(d["host"], d["port"]),

@@ -13,6 +13,7 @@ Puvod "zvenku" (jen takove soubory Lux Guard hlida):
     otevreny soubor zvenku (rozbalovani archivu ze Stazenych, kopirovani z USB),
   - kopie hlidaneho souboru (stejny obsah - porovna se velikost a pak SHA-256).
 """
+import grp
 import hashlib
 import json
 import os
@@ -27,6 +28,9 @@ DB_PATH = STATE_DIR + "/state.json"
 RUN_DIR = "/run/luxos-guard"
 SOCKET = RUN_DIR + "/guard.sock"
 SNAP_DIR_NAME = ".luxos-guard-snapshots"
+# Pomocnik v sezeni: jen tento program (setgid skupina AGENT_GROUP) smi u sluzby odpovidat na dotazy
+AGENT_EXE = "/usr/lib/luxos-guard/luxos-guard-agent"
+AGENT_GROUP = "luxos-guard"
 VERSION = "1.0.0"
 
 RISKY = "risky"
@@ -380,6 +384,57 @@ class Users:
 SKIP_PARTS = ("/.cache/", "/.mozilla/", "/.thunderbird/", "/.config/chromium/", "/.config/google-chrome/",
               "/.config/BraveSoftware/", "/.local/share/Trash/", "/.git/", "/node_modules/", "/.npm/",
               "/.cargo/registry/", "/.rustup/", "/.var/app/", "/" + SNAP_DIR_NAME + "/")
+
+
+def agent_gid(group=AGENT_GROUP):
+    try:
+        return grp.getgrnam(group).gr_gid
+    except KeyError:
+        return None
+
+
+def _pidfd_alive(pidfd):
+    """True, dokud proces za pidfd bezi (pidfd je citelny az po skonceni procesu)."""
+    import select
+    p = select.poll()
+    p.register(pidfd, select.POLLIN)
+    return not p.poll(0)
+
+
+def agent_peer_ok(pid, uid, gid, pidfd=None, exe_path=AGENT_EXE, group_gid=None, proc_root="/proc"):
+    """Je protistrana socketu (SO_PEERCRED v okamziku connect) skutecny luxos-guard-agent?
+
+    - root (uid 0) smi vse,
+    - jinak efektivni GID pri connect() = skupina luxos-guard: tu dostane jen proces spusteneho programu
+      AGENT_EXE (setgid, root:luxos-guard 2755). Jadro zaroven takovy proces chrani pred ptrace a cizim
+      ctenim /proc/<pid>/{mem,environ,fd} - jiny program uzivatele nemuze prevzit jeho spojeni.
+    - navic /proc/<pid>/exe = AGENT_EXE (i "(deleted)" po aktualizaci baliku: stary program bezi do
+      prechodu na novy) a soubor programu patri rootu, nikdo jiny do nej nesmi zapisovat;
+    - pidfd (SO_PEERPIDFD) drzi presne proces, ktery se pripojil: kdyz behem kontroly skoncil (PID by
+      mohl dostat jiny proces), kontrola neplati.
+    """
+    if uid == 0:
+        return True
+    if group_gid is None:
+        group_gid = agent_gid()
+    if group_gid is None or gid != group_gid or pid is None or pid <= 0:
+        return False
+    try:
+        target = os.readlink(f"{proc_root}/{pid}/exe")
+        st = os.stat(f"{proc_root}/{pid}/exe")
+    except OSError:
+        return False
+    if target not in (exe_path, exe_path + " (deleted)"):
+        return False
+    if not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or st.st_mode & 0o022:
+        return False
+    if pidfd is not None:
+        try:
+            if not _pidfd_alive(pidfd):
+                return False
+        except (OSError, ValueError):
+            return False
+    return True
 
 
 def location_origin(path, users):

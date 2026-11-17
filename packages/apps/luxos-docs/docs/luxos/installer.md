@@ -209,6 +209,11 @@ UI: "Who will use this computer?"; unattended: `OEM=1`.
   power loss the assistant starts again on the same page. The root part is
   `sudo luxos-oem finish` (allowed for `lightdm` only while sealed); every step is journaled in
   `/var/lib/luxos/oem/journal` and can be repeated. `luxos-oem status` shows the state.
+  The sudo rule (`/etc/sudoers.d/90-luxos-oem`) names exactly `luxos-oem status` and
+  `luxos-oem finish` without wildcards; `finish` refuses to run when the computer is not sealed.
+  The rule and the polkit Wi-Fi rule for `lightdm` are removed when the assistant finishes; if the
+  power fails in the middle of that, `luxos-oem-firstboot.service` removes the leftovers at the next
+  start and only then switches itself off.
 - **Encryption**: the disk is encrypted with a random temporary key that is also in the initramfs
   (`/etc/cryptsetup-keys.d/cryptroot.key`), so the computer starts without a password until the
   owner chooses one (default: the account password). The assistant adds and verifies the owner's
@@ -230,6 +235,23 @@ See [luxai-account.md](luxai-account.md).
 
 "LuxOS is installed — Remove the installation media and restart your computer."
 On first login the LuxOS Tour starts. Updates afterwards: `lux update` or Software Update.
+
+## Live system security
+
+The live system on the USB stick is made for trying LuxOS and installing it, so it starts without
+a password:
+
+- The live user `lux` has no password, signs in automatically and may use `sudo` without a
+  password (the installer needs administrator rights). This is intended.
+- The `root` password is **locked** – nobody can sign in as `root` with an empty password. Use
+  `sudo` (or `sudo -i`) in the live session. The emergency and rescue shells still open.
+- The SSH server is not switched on. If someone starts it anyway, the live configuration
+  (`/etc/ssh/sshd_config.d/10-luxos-live.conf`) refuses empty passwords and `root` logins.
+- The firewall is on; Lux Guard does not run in the live system (see [guard.md](guard.md)).
+
+None of this is copied to the installed system: it gets your account with your password, Lux Guard,
+the firewall and system protection (`/usr` read-only, see
+[system-protection.md](system-protection.md)) from the first start.
 
 ## Installer tests (developers)
 

@@ -5223,3 +5223,30 @@ Preparing the package signing keys…	Sleutels voor pakketcontrole voorbereiden�
 Enter the server address.	Voer het serveradres in.
 Backups on an SFTP server cannot be encrypted.	Back-ups op een SFTP-server kunnen niet worden versleuteld.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Versleuteling werkt met USB-schijven en gedeelde mappen (SMB). Zet Versleutel back-ups uit of gebruik een gedeelde map.
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Let op: een apparaat met deze naam heeft u eerder bestanden gestuurd, maar met een andere sleutel. Het kan een ander apparaat zijn dat zich ervoor uitgeeft.
+I have checked that it really is this device	Ik heb gecontroleerd dat het echt dit apparaat is
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	LocalSend-apparaat: de identiteit is niet met een code bevestigd. Accepteer alleen bestanden die u verwacht.
+Device code: %s	Apparaatcode: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Het begin van de certificaatvingerafdruk van het apparaat. U kunt het vergelijken met de vingerafdruk op het verzendende apparaat.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Dit apparaat vertrouwen (mag ook versturen in de modus ‘Alleen vertrouwde apparaten’)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Bestanden van vertrouwde LuxOS-computers zonder vragen opslaan. Bij LocalSend-apparaten wordt altijd gevraagd.
+Key changed	Sleutel gewijzigd
+Not verified	Niet bevestigd
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Let op: een apparaat met deze naam gebruikte eerder een andere sleutel. Het kan een ander apparaat zijn dat zich ervoor uitgeeft.
+LocalSend devices are not verified with a code - check that it is the right device.	LocalSend-apparaten worden niet met een code bevestigd – controleer of het het juiste apparaat is.
+“%s” has a different key than before	‘%s’ heeft een andere sleutel dan eerder
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Een apparaat met deze naam gebruikte eerder een andere sleutel. Het kan een ander apparaat zijn dat zich ervoor uitgeeft. Verstuur alleen als u zeker weet dat het het juiste apparaat is (het is bijvoorbeeld opnieuw geïnstalleerd).
+Send anyway	Toch versturen
+LocalSend device, not verified with a code	LocalSend-apparaat, niet met een code bevestigd
+WARNING: a device with this name sent you files before, but with a different key!	LET OP: een apparaat met deze naam heeft u eerder bestanden gestuurd, maar met een andere sleutel!
+LocalSend devices are not verified with a code.	LocalSend-apparaten worden niet met een code bevestigd.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	LET OP: een apparaat met deze naam heeft u eerder bestanden gestuurd, maar met een andere sleutel! Het kan een ander apparaat zijn dat zich ervoor uitgeeft.
+Type 'yes' to accept anyway, anything else declines: 	Typ 'yes' om toch te accepteren, al het andere weigert: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	LET OP: een apparaat met deze naam gebruikte eerder een andere sleutel. Het kan een ander apparaat zijn dat zich ervoor uitgeeft.
+Type 'yes' to send anyway, anything else cancels: 	Typ 'yes' om toch te versturen, al het andere annuleert: 
+Nothing was sent.	Er is niets verstuurd.
+KEY CHANGED	SLEUTEL GEWIJZIGD
+not verified	niet bevestigd
+Confirm in the Lux Guard window...	Bevestig in het Lux Guard-venster...
+Not allowed - it was not confirmed in the Lux Guard window.	Niet toegestaan – niet bevestigd in het Lux Guard-venster.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Toestaan vereist het Lux Guard-venster in uw bureaubladsessie (of als beheerder: sudo luxos-guard allow BESTAND).

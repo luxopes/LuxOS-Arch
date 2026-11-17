@@ -109,6 +109,14 @@ Exit codes of `verify`: 0 no changes, 1 changes found (or repair failed).
 | kernel parameter `luxos.protect=0` | off for one start (press `e` in the boot menu) |
 | `PROTECT=0` in the installer configuration | install without protection |
 
+## Defaults
+
+New installations have the protection **on** from the first start: the installer writes
+`PROTECT=yes` unless `PROTECT=0` is set in its configuration, and a computer prepared for another
+person (OEM) keeps the installer's choice. Updates on such a system are unaffected (every package
+transaction makes `/usr` writable for its duration), so there is nothing to click. Check the state
+with `luxos-care protect status`.
+
 ## Existing installations
 
 Installations from before LuxOS 1.0 keep working as they were: the protection is off until you turn

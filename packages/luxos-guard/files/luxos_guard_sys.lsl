@@ -34,6 +34,40 @@ function getuid():
     end
 end
 
+function getgid():
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call0(__lsl_symbol("getgid")))
+    end
+end
+
+function getegid():
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call0(__lsl_symbol("getegid")))
+    end
+end
+
+# Nazvy promennych prostredi (GLib g_listenv)
+function env_names():
+    unsafe:
+        out = []
+        names = __lsl_qbe_call0(__lsl_symbol("g_listenv"))
+        index = 0
+        while True:
+            item = __lsl_qbe_load64(names + index * 8)
+            if item == 0:
+                break
+            end
+            length = __lsl_qbe_call1(__lsl_symbol("strlen"), item)
+            buffer = __lsl_byte_zeros(length)
+            call __lsl_qbe_call3(__lsl_symbol("memcpy"), data(buffer), item, length)
+            call out.append(__lsl_text_from_bytes(buffer, 0, length))
+            index += 1
+        end
+        call __lsl_qbe_call1(__lsl_symbol("g_strfreev"), names)
+        return out
+    end
+end
+
 function getppid():
     unsafe:
         return __lsl_qbe_s32(__lsl_qbe_call0(__lsl_symbol("getppid")))
@@ -173,21 +207,35 @@ function cstr_array(items):
     end
 end
 
-# Spusti program (cela cesta v argv[0]) s promennou prostredi name=value navic; pid nebo -1
-function spawn(argv, name, value):
+# Spusti program (cela cesta v argv[0]) s promennou prostredi name=value navic; pid nebo -1.
+# secure (pomocnik spusteny setgid): potomek bez promennych z drop, s PATH = path a s puvodnimi pravy
+# (POSIX_SPAWN_RESETIDS - efektivni GID skupiny luxos-guard se nededi)
+function spawn(argv, name, value, secure, drop, path):
     unsafe:
         array = cstr_array(argv)
-        if name != "":
-            call __lsl_qbe_call3(__lsl_symbol("setenv"), cstr(name), cstr(value), 1)
-        end
         cell = __lsl_byte_zeros(8)
-        # kopie prostredi vcetne promenne vyse (GLib; adresa promenne environ z LSL neni dostupna)
+        # kopie prostredi (GLib; adresa promenne environ z LSL neni dostupna), vlastni prostredi se nemeni
         environ = __lsl_qbe_call0(__lsl_symbol("g_get_environ"))
-        rc = __lsl_qbe_s32(__lsl_qbe_call6(__lsl_symbol("posix_spawn"), data(cell), cstr(argv[0]), 0, 0, data(array), environ))
-        call __lsl_qbe_call1(__lsl_symbol("g_strfreev"), environ)
-        if name != "":
-            call __lsl_qbe_call1(__lsl_symbol("unsetenv"), cstr(name))
+        attr = 0
+        holder = __lsl_byte_zeros(512)
+        if secure:
+            for variable in drop:
+                environ = __lsl_qbe_call2(__lsl_symbol("g_environ_unsetenv"), environ, cstr(variable))
+            end
+            environ = __lsl_qbe_call4(__lsl_symbol("g_environ_setenv"), environ, cstr("PATH"), cstr(path), 1)
+            attr = data(holder)
+            call __lsl_qbe_call1(__lsl_symbol("posix_spawnattr_init"), attr)
+            # POSIX_SPAWN_RESETIDS 1
+            call __lsl_qbe_call2(__lsl_symbol("posix_spawnattr_setflags"), attr, 1)
         end
+        if name != "":
+            environ = __lsl_qbe_call4(__lsl_symbol("g_environ_setenv"), environ, cstr(name), cstr(value), 1)
+        end
+        rc = __lsl_qbe_s32(__lsl_qbe_call6(__lsl_symbol("posix_spawn"), data(cell), cstr(argv[0]), 0, attr, data(array), environ))
+        if secure:
+            call __lsl_qbe_call1(__lsl_symbol("posix_spawnattr_destroy"), attr)
+        end
+        call __lsl_qbe_call1(__lsl_symbol("g_strfreev"), environ)
         if rc != 0:
             return -1
         end
@@ -230,7 +278,8 @@ function readlink(path):
     end
 end
 
-# Razitko souboru "inode:mtime_ns" ("" kdyz soubor neni): nahrazeni balikem (novy inode) i prepsani
+# Razitko souboru "inode:mtime_ns:mode" ("" kdyz soubor neni): nahrazeni balikem (novy inode), prepsani
+# i zmena prav (instalace nastavi setgid az po rozbaleni souboru)
 function stamp(path):
     unsafe:
         st = __lsl_byte_zeros(256)
@@ -240,7 +289,9 @@ function stamp(path):
         # struct stat (x86_64): st_ino 8, st_mtim 88 (tv_sec) + 96 (tv_nsec)
         ino = __lsl_qbe_load64(data(st) + 8)
         mtime = __lsl_qbe_load64(data(st) + 88) * 1000000000 + __lsl_qbe_load64(data(st) + 96)
-        return String(ino) + ":" + String(mtime)
+        # st_mode 24 (32 bitu)
+        mode = __lsl_qbe_load32(data(st) + 24) & 65535
+        return String(ino) + ":" + String(mtime) + ":" + String(mode)
     end
 end
 

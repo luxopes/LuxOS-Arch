@@ -1,7 +1,11 @@
 /* LuxOS - testovaci PAM modul (bez hlavicek libpam-dev): napodobi pam_fprintd nebo pam_unix.
  *   auth ... fake_pam.so finger    -> chovani podle FAKE_FP: match | nomatch | unavail
  *   auth ... fake_pam.so password  -> vyzva "Password: ", spravne heslo je "secret"
- * Kazde volani zapise do souboru FAKE_LOG (je-li nastaven) radek "finger" / "password". */
+ *   auth ... fake_pam.so faillock preauth|authsucc  -> pam_faillock: FAKE_LOCKED=1 = ucet zamceny
+ *   auth ... fake_pam.so nologin   -> pam_nologin: FAKE_NOLOGIN=1 = /etc/nologin existuje
+ *   auth ... fake_pam.so shells    -> pam_shells: FAKE_BADSHELL=1 = shell neni v /etc/shells
+ * Kazde volani zapise do souboru FAKE_LOG (je-li nastaven) radek "finger" / "password" /
+ * "preauth" / "authsucc" / "nologin" / "shells". */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,9 +50,31 @@ static void note(const char *what)
     if (p && (f = fopen(p, "a"))) { fprintf(f, "%s\n", what); fclose(f); }
 }
 
+static int env_on(const char *name)
+{
+    const char *v = getenv(name);
+    return v && strcmp(v, "1") == 0;
+}
+
 int pam_sm_authenticate(pam_handle_t *h, int flags, int argc, const char **argv)
 {
     (void)flags;
+    if (argc > 1 && strcmp(argv[0], "faillock") == 0) {
+        note(argv[1]);
+        if (strcmp(argv[1], "preauth") == 0 && env_on("FAKE_LOCKED")) {
+            say(h, PAM_ERROR_MSG, "The account is locked due to 20 failed logins.", NULL);
+            return PAM_AUTH_ERR;
+        }
+        return PAM_SUCCESS;
+    }
+    if (argc > 0 && strcmp(argv[0], "nologin") == 0) {
+        note("nologin");
+        return env_on("FAKE_NOLOGIN") ? PAM_AUTH_ERR : PAM_SUCCESS;
+    }
+    if (argc > 0 && strcmp(argv[0], "shells") == 0) {
+        note("shells");
+        return env_on("FAKE_BADSHELL") ? PAM_AUTH_ERR : PAM_SUCCESS;
+    }
     if (argc > 0 && strcmp(argv[0], "finger") == 0) {
         const char *mode = getenv("FAKE_FP");
         note("finger");

@@ -82,3 +82,14 @@ the dialog closes without unlocking (Esc, timeout), the screen saver's own last 
 and its whole window is exposed, so the screen saver draws the full screen again at once; the screen
 savers themselves (`luxos-screensaver`) redraw the whole screen after every expose, after a pause and
 at least every 5 s, even the ones that otherwise redraw only the clock.
+
+## Fingerprint and account checks
+
+A fingerprint replaces only the password, not the account checks. Before the reader is asked, the
+same checks run as before a password: `pam_faillock preauth` (an account temporarily locked after a
+brute-force burst – 20 failures within 30 s, 1 minute – is refused with a fingerprint too) and, for
+the login screen (`system-login`), `pam_nologin` (`/etc/nologin`, except root) and `pam_shells`.
+A recognised fingerprint resets the failure counter like a correct password (`pam_faillock
+authsucc`). The `account` part of each service is untouched, so an expired or disabled account,
+`pam_access` and `pam_time` apply to fingerprints as well. Fingerprints stay allowed for the login
+screen, the lock screen, sudo and polkit.

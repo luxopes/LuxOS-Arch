@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3 -I
 """Lux Guard - okna: dotaz u rizikoveho programu, zprava o zablokovani a okno Lux Guard (stav, obnova).
 
   luxos-guard-gui                 okno Lux Guard (hlidane soubory, posledni rozhodnuti, Obnovit soubory)

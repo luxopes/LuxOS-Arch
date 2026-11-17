@@ -251,7 +251,7 @@ class Window(Gtk.ApplicationWindow):
         c.add(row(_("Who can send"), self.who, _("Every transfer from other devices must be accepted.")))
         self.quick = Gtk.Switch()
         self.quick.connect("notify::active", lambda s, _p: self._set("auto_accept_trusted", s.get_active()))
-        c.add(row(_("Quick save"), self.quick, _("Save files from trusted devices without asking.")))
+        c.add(row(_("Quick save"), self.quick, _("Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.")))
         box.pack_start(c, False, False, 0)
 
         self.in_title = section(_("Receiving"))
@@ -603,6 +603,17 @@ class Window(Gtk.ApplicationWindow):
             b.get_style_context().add_class("badge")
             b.get_style_context().add_class("warn")
             top.pack_start(b, False, False, 0)
+        if d.get("key_changed"):
+            b = Gtk.Label(label=_("Key changed"))
+            b.get_style_context().add_class("badge")
+            b.get_style_context().add_class("warn")
+            top.pack_start(b, False, False, 0)
+        elif d["kind"] == "localsend":
+            # LocalSend nema overovaci kod: totoznost zarizeni neni overena (na rozdil od LuxOS)
+            b = Gtk.Label(label=_("Not verified"))
+            b.get_style_context().add_class("badge")
+            b.get_style_context().add_class("plain")
+            top.pack_start(b, False, False, 0)
         v.pack_start(top, False, False, 0)
         sub = Gtk.Label(label=kind_label(d["kind"], d.get("device_type", "desktop"), d.get("device_model", ""))
                         if not d.get("manual") else transfer.fmt_addr(d["host"], d["port"]), xalign=0,
@@ -613,6 +624,15 @@ class Window(Gtk.ApplicationWindow):
         h.pack_start(v, True, True, 0)
         h.pack_end(Gtk.Image.new_from_icon_name("go-next-symbolic", Gtk.IconSize.MENU), False, False, 0)
         tip = "%s\n%s" % (d["name"], transfer.fmt_addr(d["host"], d["port"]))
+        if d["kind"] == "localsend":
+            if d.get("short_code"):
+                tip += "\n" + _("Device code: %s") % d["short_code"]
+            if d.get("key_changed"):
+                tip += "\n" + _("Warning: a device with this name used a different key before. It may be "
+                                "another device pretending to be it.")
+            else:
+                tip += "\n" + _("LocalSend devices are not verified with a code - check that it is the right "
+                                "device.")
         if not secure:
             tip += "\n" + _("This LocalSend device has encryption turned off. Turn on “Encryption” in "
                             "LocalSend settings to send files to it.")
@@ -669,6 +689,8 @@ class Window(Gtk.ApplicationWindow):
     # --- Odesilani -------------------------------------------------------------
 
     def send_to(self, device, paths=None):
+        if device.get("key_changed") and not self.confirm_key_changed(device):
+            return
         paths = paths or list(self.selection)
         text = self.text if not paths else None
         if not paths and text is None:
@@ -680,6 +702,22 @@ class Window(Gtk.ApplicationWindow):
                                    done=lambda tr: GLib.idle_add(self.transfer_finished, tr))
         self.add_transfer_row(t)
         self.clear_selection()
+
+    def confirm_key_changed(self, device):
+        """Zarizeni LocalSend se jmenem, ktere drive pouzivalo jiny klic: odeslat jen po potvrzeni."""
+        dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
+                                buttons=Gtk.ButtonsType.NONE,
+                                text=_("“%s” has a different key than before") % device["name"])
+        dlg.format_secondary_text(
+            _("A device with this name used a different key before. It may be another device pretending to "
+              "be it. Send only if you are sure it is the right device (for example, it was reinstalled).")
+            + ("\n\n" + _("Device code: %s") % device["short_code"] if device.get("short_code") else ""))
+        dlg.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Send anyway"), Gtk.ResponseType.OK)
+        dlg.get_widget_for_response(Gtk.ResponseType.OK).get_style_context().add_class("destructive-action")
+        dlg.set_default_response(Gtk.ResponseType.CANCEL)
+        r = dlg.run()
+        dlg.destroy()
+        return r == Gtk.ResponseType.OK
 
     # --- Prubeh prenosu -------------------------------------------------------
 

@@ -9,6 +9,10 @@
    pam_fprintd nahradi testovaci modul fake_pam.so (otisk: shoda / neshoda / bez ctecky)
    a pam_unix jeho rezim "password" (heslo "secret"). Overuje, ze heslo funguje vzdy, spatne
    heslo nikdy neprojde a ze greeterem zapsany uzivatel otisk preskoci.
+3. Otisk nahrazuje jen heslo: docasne zamceny ucet (pam_faillock), /etc/nologin a neplatny shell
+   (sluzby prihlaseni) neprojdou ani otiskem; uspesny otisk vynuluje pocitadlo chyb (authsucc).
+   Skutecne moduly Arch Linuxu (pam_faillock, pam_nologin, pam_shells, pam_unix account - vyprseny
+   ucet) overuje tests/fingerprint/container-pam-test.sh v kontejneru.
 """
 import ctypes
 import os
@@ -80,13 +84,28 @@ class ScriptTest(unittest.TestCase):
         lines = read(self.p("lightdm")).splitlines()
         self.assertEqual(lines[0], "#%PAM-1.0")
         self.assertEqual(lines[1], BEGIN)
+        end = lines.index("# LuxOS fingerprint: end")
+        blk = [x.split() for x in lines[2:end]]
+        # sluzba prihlaseni: nologin a shells (jako system-login), zamek pam_faillock, pak otisk
+        self.assertEqual(blk[0], ["auth", "requisite", "pam_nologin.so"])
+        self.assertEqual(blk[1], ["auth", "requisite", "pam_shells.so"])
+        self.assertEqual(blk[2], ["auth", "requisite", "pam_faillock.so", "preauth"])
         self.assertIn("pam_listfile.so item=user sense=deny file=/run/luxos-fingerprint/password-only onerr=succeed",
-                      lines[2])
-        self.assertTrue(lines[3].startswith("-auth") and "pam_fprintd.so" in lines[3])
-        self.assertEqual(lines[5].split(), ["auth", "include", "system-login"])
+                      lines[2 + 3])
+        self.assertEqual(blk[4][:3], ["-auth", "[success=1", "default=ignore]"])
+        self.assertEqual(blk[4][3], "pam_fprintd.so")
+        self.assertEqual(blk[5], ["auth", "[default=1]", "pam_permit.so"])
+        self.assertEqual(blk[6], ["auth", "sufficient", "pam_faillock.so", "authsucc"])
+        self.assertEqual(lines[end + 1].split(), ["auth", "include", "system-login"])
+        self.assertNotIn("sufficient  pam_fprintd", read(self.p("lightdm")), "fingerprint never 'sufficient'")
         sudo = read(self.p("sudo"))
-        self.assertIn("-auth      sufficient  pam_fprintd.so max-tries=3 timeout=10", sudo)
+        self.assertIn("-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=10", sudo)
+        self.assertIn("auth       requisite   pam_faillock.so preauth", sudo)
         self.assertNotIn("pam_listfile", sudo)
+        # sudo/polkit nejsou sluzby prihlaseni: bez nologin/shells (puvodni sluzba je take nema)
+        self.assertNotIn("pam_nologin", sudo)
+        self.assertNotIn("pam_shells", sudo)
+        self.assertNotIn("pam_nologin", read(self.p("polkit-1")))
         self.assertEqual(os.stat(self.p("sudo")).st_mode & 0o777, 0o640, "permissions kept")
         # polkit: kopie z /usr/lib/pam.d, puvodni soubor nedotcen
         self.assertTrue(read(self.p("polkit-1")).startswith("# LuxOS fingerprint: copy of /usr/lib/pam.d\n"))
@@ -126,6 +145,20 @@ class ScriptTest(unittest.TestCase):
         write(self.p("lightdm"), LIGHTDM)
         run(self.root, "apply")
         self.assertEqual(read(self.p("lightdm")).count(BEGIN), 1)
+
+    def test_migrates_old_block(self):
+        # instalace se starsim blokem (otisk "sufficient" pred vsim) -> po aktualizaci jen novy blok
+        old = ("#%PAM-1.0\n" + BEGIN + "\n-auth      sufficient  pam_fprintd.so max-tries=3 timeout=10\n"
+               "# LuxOS fingerprint: end\n" + SUDO.split("\n", 1)[1])
+        write(self.p("sudo"), old)
+        r = run(self.root, "apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        text = read(self.p("sudo"))
+        self.assertEqual(text.count(BEGIN), 1)
+        self.assertNotIn("sufficient  pam_fprintd", text)
+        self.assertIn("pam_faillock.so preauth", text)
+        run(self.root, "remove")
+        self.assertEqual(read(self.p("sudo")), SUDO)
 
     def test_sync_follows_module(self):
         r = run(self.root, "sync")
@@ -235,18 +268,21 @@ class PamStackTest(unittest.TestCase):
             text = read(f"{root}/etc/pam.d/{svc}")
             text = text.replace("pam_fprintd.so", cls.fake + " finger").replace(
                 "/run/luxos-fingerprint/password-only", cls.skip)
+            for mod in ("faillock", "nologin", "shells"):
+                text = text.replace(f"pam_{mod}.so", f"{cls.fake} {mod}")
             # moduly, ktere tu nejsou (gnome-keyring), PAM tise preskoci diky "-"
             write(os.path.join(cls.conf, svc), text)
         # verze bez pam_fprintd (balik odinstalovan, radky zustaly)
         write(os.path.join(cls.conf, "lightdm-nofp"),
               read(os.path.join(cls.conf, "lightdm")).replace(cls.fake + " finger", "/nonexistent/pam_fprintd.so"))
         # Arch: system-login (shells, nologin) + system-auth (faillock, unix, faillock authfail, env)
-        write(os.path.join(cls.conf, "system-login"), "auth required pam_permit.so\n"
-              "auth requisite pam_permit.so\nauth include system-auth\n"
+        write(os.path.join(cls.conf, "system-login"), f"auth required {cls.fake} shells\n"
+              f"auth requisite {cls.fake} nologin\nauth include system-auth\n"
               "account required pam_permit.so\npassword required pam_permit.so\nsession required pam_permit.so\n")
-        write(os.path.join(cls.conf, "system-auth"), "auth required pam_permit.so\n"
+        write(os.path.join(cls.conf, "system-auth"), f"auth required {cls.fake} faillock preauth\n"
               f"auth [success=1 default=bad] {cls.fake} password\n"
-              "auth [default=die] pam_deny.so\nauth optional pam_permit.so\nauth required pam_permit.so\n"
+              f"auth [default=die] {cls.fake} faillock authfail\nauth optional pam_permit.so\n"
+              f"auth required pam_permit.so\nauth required {cls.fake} faillock authsucc\n"
               "account required pam_permit.so\npassword required pam_permit.so\nsession required pam_permit.so\n")
         cls.log = os.path.join(cls.tmp, "calls")
 
@@ -254,8 +290,10 @@ class PamStackTest(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp)
 
-    def auth(self, service, fp, password, skip_users=None):
+    def auth(self, service, fp, password, skip_users=None, all_calls=False, **flags):
         os.environ["FAKE_FP"] = fp
+        for name in ("FAKE_LOCKED", "FAKE_NOLOGIN", "FAKE_BADSHELL"):
+            os.environ[name] = "1" if flags.get(name.lower()[5:]) else "0"
         os.environ["FAKE_LOG"] = self.log
         if skip_users is None:
             if os.path.exists(self.skip):
@@ -267,6 +305,8 @@ class PamStackTest(unittest.TestCase):
             os.remove(self.log)
         rc, msgs, prompts = pam_auth(self.conf, service, "anna", password)
         calls = read(self.log).split() if os.path.exists(self.log) else []
+        if not all_calls:
+            calls = [c for c in calls if c in ("finger", "password")]
         return rc, msgs, prompts, calls
 
     def test_finger_match_logs_in_without_password(self):
@@ -309,11 +349,47 @@ class PamStackTest(unittest.TestCase):
         rc, _m, prompts, calls = self.auth("lightdm", "unavail", "secret", None)
         self.assertEqual((rc, prompts, calls), (0, 1, ["finger", "password"]))
 
+    def test_finger_match_runs_account_checks_first(self):
+        rc, _m, prompts, calls = self.auth("lightdm", "match", "wrong", [], all_calls=True)
+        self.assertEqual((rc, prompts), (0, 0))
+        self.assertEqual(calls, ["nologin", "shells", "preauth", "finger", "authsucc"])
+        rc, _m, prompts, calls = self.auth("sudo", "match", "wrong", [], all_calls=True)
+        self.assertEqual((rc, prompts, calls), (0, 0, ["preauth", "finger", "authsucc"]))
+
+    def test_locked_account_refused_even_with_finger(self):
+        for svc in ("lightdm", "sudo"):
+            rc, msgs, prompts, calls = self.auth(svc, "match", "secret", [], locked=True)
+            self.assertNotEqual(rc, 0, f"{svc}: locked account must not pass with a fingerprint")
+            self.assertEqual((prompts, calls), (0, []), f"{svc}: no reader wait, no password prompt")
+            self.assertTrue(any("locked" in t for _k, t in msgs), msgs)
+            # ani spravne heslo behem zamku (jako dosud), heslo pres greeter (password-only) take ne
+            self.assertNotEqual(self.auth(svc, "unavail", "secret", [], locked=True)[0], 0, svc)
+        self.assertNotEqual(self.auth("lightdm", "match", "secret", ["anna"], locked=True)[0], 0)
+
+    def test_nologin_refuses_finger_on_login(self):
+        rc, _m, prompts, calls = self.auth("lightdm", "match", "secret", [], nologin=True)
+        self.assertNotEqual(rc, 0)
+        self.assertEqual((prompts, calls), (0, []))
+        # sudo neni sluzba prihlaseni - /etc/nologin ho neovlivni (stejne jako s heslem)
+        self.assertEqual(self.auth("sudo", "match", "x", [], nologin=True)[0], 0)
+
+    def test_bad_shell_refuses_finger_on_login(self):
+        rc, _m, prompts, calls = self.auth("lightdm", "match", "secret", [], badshell=True)
+        self.assertNotEqual(rc, 0)
+        self.assertEqual((prompts, calls), (0, []))
+        self.assertNotEqual(self.auth("lightdm", "unavail", "secret", [], badshell=True)[0], 0)
+
+    def test_failed_finger_does_not_reset_counter(self):
+        rc, _m, _p, calls = self.auth("sudo", "nomatch", "wrong", [], all_calls=True)
+        self.assertNotEqual(rc, 0)
+        self.assertNotIn("authsucc", calls)
+        self.assertIn("authfail", calls, "wrong password after failed finger is still counted")
+
     def test_world_writable_skip_file_means_password(self):
         # pam_listfile odmita soubor zapisovatelny vsemi -> bezpecny smer: jen heslo
         write(self.skip, "")
         os.chmod(self.skip, 0o666)
-        os.environ.update(FAKE_FP="match", FAKE_LOG=self.log)
+        os.environ.update(FAKE_FP="match", FAKE_LOG=self.log, FAKE_LOCKED="0", FAKE_NOLOGIN="0", FAKE_BADSHELL="0")
         rc, _m, prompts = pam_auth(self.conf, "lightdm", "anna", "wrong")
         self.assertNotEqual(rc, 0)
         self.assertEqual(prompts, 1)

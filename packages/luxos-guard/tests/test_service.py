@@ -56,9 +56,13 @@ class FakeFan:
 
 
 class FakeClient(S.Client):
-    def __init__(self, uid, answer=None):
+    """verified: projde overenim pomocnika (v testech nahrada core.agent_peer_ok - skutecny setgid program
+    overuje tests/agent-auth-container-test.sh)."""
+
+    def __init__(self, uid, answer=None, verified=False):
         super().__init__(None, uid, 1)
         self.sent = []
+        self.verified = verified
 
     def send(self, obj):
         self.sent.append(obj)
@@ -76,14 +80,16 @@ def g(tmp_path):
     (home / "bin").mkdir()
     users = FakeUsers({str(home): 1000})
     fan = FakeFan()
-    guard = S.Guard(fan, None, C.State(str(tmp_path / "state.json")), C.Proc(proc_root.root), users)
+    guard = S.Guard(fan, None, C.State(str(tmp_path / "state.json")), C.Proc(proc_root.root), users,
+                    agent_check=lambda c: getattr(c, "verified", False) or c.pid in guard.trusted_pids)
+    guard.trusted_pids = set()
     guard.clock = lambda: guard._now
     guard._now = 1000.0
     guard.fan = fan
     guard.fp = proc_root
     guard.home = home
-    agent = FakeClient(1000)
-    guard.on_message(agent, {"op": "hello", "role": "agent"})
+    agent = FakeClient(1000, verified=True)
+    assert guard.on_message(agent, {"op": "hello", "role": "agent"})["agent"] is True
     guard.agent = agent
     proc_root.add(50, "/usr/bin/bash", ["bash", "evil.sh"], cwd=str(home / "Downloads"), loginuid=1000)
     proc_root.add(51, "/usr/bin/mousepad", ["mousepad"], loginuid=1000)
@@ -329,7 +335,13 @@ def test_allow_command(g):
     user = FakeClient(1000)
     fd = os.open(p, os.O_RDONLY)
     user.fds.append(fd)
-    assert g.on_message(user, {"op": "allow"})["ok"]
+    # povoleni od uzivatele potvrzuje okno overeneho pomocnika (dotaz), odpoved CLI az po volbe
+    assert g.on_message(user, {"op": "allow"}) is None
+    ask = [m for m in g.agent.sent if m["op"] == "ask"][-1]
+    assert ask["path"] == p and ask["program"] == "luxos-guard allow"
+    assert ident(p) in g.fan.marks
+    g.on_message(g.agent, {"op": "answer", "id": ask["id"], "choice": "run"})
+    assert user.sent[-1] == {"op": "allow", "ok": True}
     assert ident(p) not in g.fan.marks
     user.fds.append(os.open(c, os.O_RDONLY))
     assert g.on_message(user, {"op": "allow"})["error"] == "critical"
@@ -342,6 +354,126 @@ def test_allow_command(g):
     root.fds.append(os.open(c, os.O_RDONLY))
     assert g.on_message(root, {"op": "allow", "force": True})["ok"]
     assert ident(c) not in g.fan.marks and g.state.get(ident(c)) is None
+
+
+def test_allow_command_needs_confirmation(g):
+    """Program uzivatele si rizikovy soubor nepovoli sam pres "luxos-guard allow"."""
+    p = write(g.home / "Downloads" / "game.sh", GAME)
+    close_write(g, p, 52)
+    user = FakeClient(1000)
+    user.fds.append(os.open(p, os.O_RDONLY))
+    assert g.on_message(user, {"op": "allow"}) is None
+    ask = [m for m in g.agent.sent if m["op"] == "ask"][-1]
+    # odpoved od neovereneho klienta (i stejneho uzivatele) se nebere
+    assert g.on_message(user, {"op": "answer", "id": ask["id"], "choice": "run"})["op"] == "error"
+    g.on_message(g.agent, {"op": "answer", "id": ask["id"], "choice": "deny"})
+    assert user.sent[-1] == {"op": "error", "error": "not confirmed"}
+    assert g.state.get(ident(p))["status"] == C.FLAGGED and ident(p) in g.fan.marks
+    # "Nespoustet" v okne po "luxos-guard allow" neblokuje dalsi spusteni bez dotazu
+    assert (1000, ident(p)) not in g.denied
+    # bez odpovedi do limitu = nepotvrzeno
+    user.fds.append(os.open(p, os.O_RDONLY))
+    assert g.on_message(user, {"op": "allow"}) is None
+    g._now += C.ASK_TIMEOUT + 1
+    g.tick()
+    assert user.sent[-1] == {"op": "error", "error": "not confirmed"} and not g.asks
+    assert g.state.get(ident(p))["status"] == C.FLAGGED
+    # bez pomocnika v sezeni nejde povolit vubec (root ano)
+    g.drop_client(g.agent)
+    user.fds.append(os.open(p, os.O_RDONLY))
+    assert g.on_message(user, {"op": "allow"}) == {"op": "error", "error": "no session"}
+    assert g.state.get(ident(p))["status"] == C.FLAGGED
+    root = FakeClient(0)
+    root.fds.append(os.open(p, os.O_RDONLY))
+    assert g.on_message(root, {"op": "allow"})["ok"]
+    assert g.state.get(ident(p))["status"] == C.ALLOWED
+
+
+def test_impostor_agent_refused(g):
+    """"hello agent" od programu, ktery neni overeny luxos-guard-agent, nic neda - dotazy dal chodi jen
+    skutecnemu pomocnikovi a odpoved podvodnika se ignoruje."""
+    fake = FakeClient(1000)
+    assert g.on_message(fake, {"op": "hello", "role": "agent"})["agent"] is False
+    assert fake.agent is False and g.agents[1000] == [g.agent]
+    p = write(g.home / "Downloads" / "game.sh", GAME)
+    close_write(g, p, 52)
+    assert perm(g, p, S.PERM_EXEC, 54) is None
+    assert not [m for m in fake.sent if m["op"] == "ask"]
+    ask = [m for m in g.agent.sent if m["op"] == "ask"][-1]
+    assert g.on_message(fake, {"op": "answer", "id": ask["id"], "choice": "run"})["op"] == "error"
+    assert ask["id"] in g.asks and g.state.get(ident(p))["status"] == C.FLAGGED
+    # bez skutecneho pomocnika: podvodnik nedostane dotaz, spusteni se zamitne
+    g.drop_client(g.agent)
+    g.on_message(fake, {"op": "hello", "role": "agent"})
+    q = write(g.home / "Downloads" / "game2.sh", GAME + b"#2\n")
+    close_write(g, q, 52)
+    assert perm(g, q, S.PERM_EXEC, 54) is False
+    assert not [m for m in fake.sent if m["op"] == "ask"]
+    assert g.on_message(FakeClient(1000), {"op": "status"})["agent"] is False
+
+
+def test_agent_check_error_means_refused(g):
+    def boom(_c):
+        raise OSError("proc gone")
+    g.agent_check = boom
+    c = FakeClient(1000, verified=True)
+    assert g.on_message(c, {"op": "hello", "role": "agent"})["agent"] is False
+
+
+def test_agents_of_two_users_are_separate(g):
+    """Vic uzivatelu: overeny pomocnik dostane jen dotazy sveho uzivatele a odpovi jen na ne."""
+    bob = FakeClient(1001, verified=True)
+    assert g.on_message(bob, {"op": "hello", "role": "agent"})["agent"] is True
+    p = write(g.home / "Downloads" / "game.sh", GAME)
+    close_write(g, p, 52)
+    perm(g, p, S.PERM_EXEC, 54)
+    ask = [m for m in g.agent.sent if m["op"] == "ask"][-1]
+    assert not [m for m in bob.sent if m["op"] == "ask"]
+    assert g.on_message(bob, {"op": "answer", "id": ask["id"], "choice": "run"})["op"] == "error"
+    g.on_message(g.agent, {"op": "answer", "id": ask["id"], "choice": "run"})
+    assert g.state.get(ident(p))["status"] == C.ALLOWED
+
+
+def test_agent_peer_check_real_processes(tmp_path):
+    """core.agent_peer_ok proti skutecnym procesum: spravny program + skupina projde, jiny program, jina
+    skupina nebo skonceny proces ne (pidfd)."""
+    import subprocess
+    gid = os.getegid()
+    sleeper = subprocess.Popen(["/usr/bin/sleep", "30"])
+    other = subprocess.Popen(["/usr/bin/tail", "-f", "/dev/null"])
+    try:
+        uid = os.getuid() or 1000
+        ok = C.agent_peer_ok(sleeper.pid, uid, gid, exe_path="/usr/bin/sleep", group_gid=gid)
+        assert ok is True
+        assert C.agent_peer_ok(sleeper.pid, uid, gid + 1, exe_path="/usr/bin/sleep", group_gid=gid) is False
+        assert C.agent_peer_ok(other.pid, uid, gid, exe_path="/usr/bin/sleep", group_gid=gid) is False
+        assert C.agent_peer_ok(sleeper.pid, uid, gid, exe_path="/usr/bin/sleep", group_gid=None) is (
+            C.agent_gid() == gid)
+        # vlastni kopie programu (patri uzivateli, ne rootu) neprojde ani se spravnou cestou
+        own = tmp_path / "agent"
+        own.write_bytes(open("/usr/bin/sleep", "rb").read())
+        os.chmod(own, 0o755)
+        mine = subprocess.Popen([str(own), "30"])
+        try:
+            if os.getuid() != 0:
+                assert C.agent_peer_ok(mine.pid, uid, gid, exe_path=str(own), group_gid=gid) is False
+        finally:
+            mine.kill()
+            mine.wait()
+        pidfd = os.pidfd_open(sleeper.pid)
+        try:
+            assert C.agent_peer_ok(sleeper.pid, uid, gid, pidfd=pidfd, exe_path="/usr/bin/sleep", group_gid=gid)
+            sleeper.kill()
+            sleeper.wait()
+            assert C.agent_peer_ok(sleeper.pid, uid, gid, pidfd=pidfd, exe_path="/usr/bin/sleep",
+                                   group_gid=gid) is False
+        finally:
+            os.close(pidfd)
+        assert C.agent_peer_ok(sleeper.pid, 0, 0) is True            # root smi vse
+    finally:
+        for pr in (sleeper, other):
+            pr.kill()
+            pr.wait()
 
 
 def test_list_and_status_per_user(g):
@@ -462,11 +594,20 @@ def test_socket_protocol(g, tmp_path):
         os.close(fd)
     assert r["entry"]["path"] == p and r["entry"]["level"] == C.RISKY
     # pomocnik v sezeni: pripoji se, dostane dotaz, odpovi "run"
+    # podvodnik (tento proces neni overeny pomocnik): role agent se neprijme
+    bad = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    bad.connect(sock)
+    bad.sendall(b'{"op": "hello", "role": "agent"}\n')
+    reply = json.loads(bad.makefile("rb").readline())
+    assert reply["op"] == "hello" and reply["agent"] is False and not g.agents
+    bad.close()
     a = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     a.connect(sock)
+    g.trusted_pids.add(os.getpid())         # pomocnik = tento proces (setgid overuje kontejnerovy test)
     a.sendall(b'{"op": "hello", "role": "agent"}\n')
     f = a.makefile("rb")
-    assert json.loads(f.readline())["op"] == "hello"
+    assert json.loads(f.readline())["agent"] is True
+    g.agents[1000] = g.agents.pop(os.getuid())
     g.agents[1000][0].uid = 1000            # testy bezi pod jinym UID nez 1000
     ev = os.open(p, os.O_RDONLY)
     g.post(("call", None))                  # probudit smycku (zadna akce)
@@ -500,6 +641,7 @@ def test_agent_process_answers(g, tmp_path):
     env = dict(os.environ, LUXOS_GUARD_SOCKET=sock, LUXOS_GUARD_GUI=str(fake_gui), PYTHONDONTWRITEBYTECODE="1",
                LUXOS_GUARD_HELPER=os.path.abspath(helper))
     proc = subprocess.Popen([agent_bin()], env=env)
+    g.trusted_pids.add(proc.pid)
     try:
         uid = os.getuid()
         for _ in range(200):

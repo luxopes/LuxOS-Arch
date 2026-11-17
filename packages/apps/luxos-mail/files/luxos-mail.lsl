@@ -138,6 +138,18 @@ function main():
     elif first == "--test-imap":
         print json.encode(test_imap(arg_or(2, "")))
         return 0
+    elif first == "--test-imap-quote":
+        # argument v JSON (radky i NUL): {"quoted": ...} nebo {"error": druh chyby}
+        out = {}
+        value = json.decode(arg_or(2, "\"\""))
+        safe:
+            out["quoted"] = imap.quote(value)
+        end
+        if len(out) == 0:
+            out["error"] = imap.error_kind(last_error())[0]
+        end
+        print json.encode(out)
+        return 0
     elif first == "--test-words":
         print json.encode({"text": mime.decode_words(arg_or(2, "")), "addresses": mime.parse_addresses(mime.decode_words(arg_or(2, "")))})
         return 0

@@ -57,7 +57,12 @@ else
     as "$DL/lg-risky.sh" >/dev/null 2>&1 && bad "risky ran" || ok "risky denied in dialog"
     sleep 61
 fi
-as luxos-guard allow "$DL/lg-risky.sh" && ok "allow risky" || bad "allow risky"
+# uzivatel povoluje jen potvrzenim v okne pomocnika v sezeni (bez sezeni zamitnuto), root primo
+if as luxos-guard status | grep -q "session helper is not running"; then
+    as luxos-guard allow "$DL/lg-risky.sh" 2>/dev/null && bad "user allow without session accepted" \
+        || ok "user allow without session refused"
+fi
+luxos-guard allow "$DL/lg-risky.sh" && ok "allow risky (root)" || bad "allow risky (root)"
 [[ $(as "$DL/lg-risky.sh") == LG-RISKY ]] && ok "allowed risky runs" || bad "allowed risky still blocked"
 
 echo "== 5. ELF program stazeny prohlizecem (podvrzeno: xattr user.xdg.origin.url mimo Stazene)"

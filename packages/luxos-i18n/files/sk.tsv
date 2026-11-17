@@ -5223,3 +5223,30 @@ Preparing the package signing keys…	Pripravujem kľúče na overenie balíkov�
 Enter the server address.	Zadajte adresu servera.
 Backups on an SFTP server cannot be encrypted.	Zálohy na serveri SFTP nie je možné šifrovať.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Šifrovanie funguje s diskami USB a zdieľanými priečinkami (SMB). Vypnite Šifrovať zálohy alebo použite zdieľaný priečinok.
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Pozor: zariadenie s týmto názvom vám už predtým posielalo súbory, ale s iným kľúčom. Môže ísť o iné zariadenie, ktoré sa zaň vydáva.
+I have checked that it really is this device	Overil(a) som, že je to naozaj toto zariadenie
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	Zariadenie LocalSend: jeho totožnosť nie je overená kódom. Prijmite len súbory, ktoré čakáte.
+Device code: %s	Kód zariadenia: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Začiatok odtlačku certifikátu zariadenia. Môžete ho porovnať s odtlačkom zobrazeným na odosielajúcom zariadení.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Dôverovať tomuto zariadeniu (smie posielať aj v režime „Len dôveryhodné zariadenia“)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Ukladať súbory z dôveryhodných počítačov LuxOS bez pýtania. Pri zariadeniach LocalSend sa vždy opýta.
+Key changed	Zmenený kľúč
+Not verified	Neoverené
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Pozor: zariadenie s týmto názvom predtým používalo iný kľúč. Môže ísť o iné zariadenie, ktoré sa zaň vydáva.
+LocalSend devices are not verified with a code - check that it is the right device.	Zariadenia LocalSend nie sú overené kódom – skontrolujte, že je to správne zariadenie.
+“%s” has a different key than before	„%s“ má iný kľúč ako predtým
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Zariadenie s týmto názvom predtým používalo iný kľúč. Môže ísť o iné zariadenie, ktoré sa zaň vydáva. Posielajte len vtedy, keď viete, že je to správne zariadenie (napríklad bolo preinštalované).
+Send anyway	Napriek tomu poslať
+LocalSend device, not verified with a code	Zariadenie LocalSend, neoverené kódom
+WARNING: a device with this name sent you files before, but with a different key!	POZOR: zariadenie s týmto názvom vám už predtým posielalo súbory, ale s iným kľúčom!
+LocalSend devices are not verified with a code.	Zariadenia LocalSend nie sú overené kódom.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	POZOR: zariadenie s týmto názvom vám už predtým posielalo súbory, ale s iným kľúčom! Môže ísť o iné zariadenie, ktoré sa zaň vydáva.
+Type 'yes' to accept anyway, anything else declines: 	Napíšte 'yes' na prijatie, čokoľvek iné odmietne: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	POZOR: zariadenie s týmto názvom predtým používalo iný kľúč. Môže ísť o iné zariadenie, ktoré sa zaň vydáva.
+Type 'yes' to send anyway, anything else cancels: 	Napíšte 'yes' na odoslanie, čokoľvek iné zruší: 
+Nothing was sent.	Nič nebolo odoslané.
+KEY CHANGED	ZMENENÝ KĽÚČ
+not verified	neoverené
+Confirm in the Lux Guard window...	Potvrďte v okne Lux Guard...
+Not allowed - it was not confirmed in the Lux Guard window.	Nepovolené – v okne Lux Guard to nebolo potvrdené.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Povolenie potrebuje okno Lux Guard vo vašej grafickej relácii (alebo ako správca: sudo luxos-guard allow SÚBOR).

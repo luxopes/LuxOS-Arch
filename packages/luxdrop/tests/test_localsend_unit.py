@@ -255,5 +255,108 @@ class TestHTTP(unittest.TestCase):
         self.assertIn(b"Content-Length: 0", lshttp.response_bytes(204))
 
 
+class TestLocalSendUnverified(unittest.TestCase):
+    """L-04: zarizeni LocalSend jsou neoverena - pripnuti klice ke jmenu, zmena klice, zadne rychle ulozeni."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        from luxdrop import store
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        self.trust = store.TrustStore(self.dir)
+        self.k1, self.k2 = bytes(range(32)), bytes(range(1, 33))
+
+    def test_short_code(self):
+        self.assertEqual(localsend.short_code(LS_CERT_FP), "4BAD DE53 A7F7 CDEE")
+        self.assertEqual(localsend.short_code(LS_CERT_FP.lower()), "4BAD DE53 A7F7 CDEE")
+        self.assertEqual(localsend.short_code("addr:1.2.3.4:53317"), "")
+        self.assertEqual(localsend.short_code(None), "")
+
+    def test_pin_and_change(self):
+        t = self.trust
+        self.assertIsNone(t.ls_pin_get("Phone"))
+        self.assertFalse(t.ls_pin_changed("Phone", self.k1))   # nezname jmeno = zadne varovani
+        self.assertFalse(t.ls_pin_changed("Phone", None))
+        t.ls_pin_set("Phone", self.k1, LS_CERT_FP)
+        self.assertFalse(t.ls_pin_changed("Phone", self.k1))
+        self.assertFalse(t.ls_pin_changed("  phone ", self.k1))  # velikost pismen a mezery nerozhoduji
+        self.assertTrue(t.ls_pin_changed("PHONE", self.k2))      # stejne jmeno, jiny klic
+        self.assertTrue(t.ls_pin_changed("Phone", None))         # stejne jmeno bez certifikatu
+        self.assertFalse(t.ls_pin_changed("Phone 2", self.k2))
+        self.assertEqual(t.ls_pin_get("phone")["cert_fp"], LS_CERT_FP)
+        path = os.path.join(self.dir, "localsend_pins.json")
+        self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
+        # potvrzena zmena klice = novy pin
+        t.ls_pin_set("Phone", self.k2)
+        self.assertFalse(t.ls_pin_changed("Phone", self.k2))
+        self.assertTrue(t.ls_pin_changed("Phone", self.k1))
+        self.assertTrue(t.ls_pin_remove("phone"))
+        self.assertFalse(t.ls_pin_changed("Phone", self.k1))
+
+    def test_pin_ignores_bad_data(self):
+        with open(os.path.join(self.dir, "localsend_pins.json"), "w") as f:
+            json.dump({"phone": {"spki": "nothex"}, "x": "y"}, f)
+        self.assertIsNone(self.trust.ls_pin_get("phone"))
+        self.trust.ls_pin_set("", self.k1)          # bez jmena / klice se nic neulozi
+        self.trust.ls_pin_set("Phone", None)
+        self.assertIsNone(self.trust.ls_pin_get("phone"))
+
+    def test_engine_marks(self):
+        from luxdrop import engine
+        e = engine.Engine.__new__(engine.Engine)
+        e.trust = self.trust
+        d = {"name": "Phone", "fingerprint": LS_CERT_FP, "spki": self.k1}
+        m = e.ls_marks(d)
+        self.assertEqual(m, {"unverified": True, "short_code": "4BAD DE53 A7F7 CDEE", "key_changed": False})
+        self.trust.ls_pin_set("Phone", self.k2)
+        self.assertTrue(e.ls_marks(d)["key_changed"])
+
+    def _server(self, trusted_auto=True):
+        from luxdrop import lsserver, store
+        s = store.Settings.__new__(store.Settings)
+        s.data = dict(store.Settings.DEFAULTS, auto_accept_trusted=trusted_auto)
+        srv = lsserver.LocalSendServer.__new__(lsserver.LocalSendServer)
+        srv.settings = s
+        asked = []
+
+        class H:
+            def ask(self, req):
+                asked.append(req)
+                return False, False
+        srv.handler = H()
+        import threading
+        srv._prompt_sem = threading.BoundedSemaphore(2)
+        srv._stop = threading.Event()
+        return srv, asked
+
+    def test_never_auto_accept(self):
+        """Duveryhodne zarizeni LocalSend + "Rychle ulozeni" -> stejne dotaz (driv prijato bez dotazu)."""
+        import socket
+        import threading
+        from luxdrop import transfer
+        srv, asked = self._server(trusted_auto=True)
+        a, b = socket.socketpair()
+        self.addCleanup(a.close)
+        self.addCleanup(b.close)
+
+        class Conn:
+            sock = a
+
+            @staticmethod
+            def pending():
+                return False
+        t = transfer.Transfer("in", "Phone", "4badde53")
+        info = {"deviceModel": "Samsung"}
+        accept, remember = srv._decide(t, None, Conn, self.k1, True, False, [], info, True, threading.Event(),
+                                       key_changed=True, code="4BAD DE53 A7F7 CDEE")
+        self.assertEqual((accept, remember), (False, False))
+        self.assertEqual(len(asked), 1)
+        r = asked[0]
+        self.assertTrue(r.key_changed)
+        self.assertEqual(r.short_code, "4BAD DE53 A7F7 CDEE")
+        self.assertEqual(r.protocol, "localsend")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

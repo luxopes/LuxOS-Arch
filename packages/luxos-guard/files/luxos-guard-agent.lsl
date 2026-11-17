@@ -17,17 +17,38 @@
 # nova verze (autostart by ho jinak znovu nespustil az do dalsiho prihlaseni). Pomocnik je Python
 # spousteny pokazde znovu, jeho aktualizace se projevi hned.
 #
-# Promenne pro testy: LUXOS_GUARD_SOCKET, LUXOS_GUARD_HELPER, LUXOS_GUARD_ASK_TIMEOUT (s),
+# Overeni u sluzby: nainstalovany program je setgid (root:luxos-guard 2755). Sluzba prijme roli "agent" jen
+# od procesu, ktery se pripojil s efektivni skupinou luxos-guard a bezi z /usr/lib/luxos-guard/luxos-guard-agent
+# (jiny program uzivatele si tak nemuze sam odpovidat "Presto spustit"). V tomto rezimu (secure) se
+# ignoruji promenne pro testy nize, pomocnik se spousti s puvodnimi pravy, pevnou PATH a bez promennych,
+# ktere by do nej nacetly cizi kod (LD_*, PYTHON*, moduly GTK/GIO ...).
+#
+# Promenne pro testy (jen bez setgid): LUXOS_GUARD_SOCKET, LUXOS_GUARD_HELPER, LUXOS_GUARD_ASK_TIMEOUT (s),
 # LUXOS_GUARD_AGENT_SESSION_CHECK (s), LUXOS_GUARD_AGENT_UPDATE_CHECK (s), LUXOS_GUARD_AGENT_UPDATE_DELAY (s),
 # LUXOS_GUARD_AGENT_XDIR (slozka socketu X serveru misto /tmp/.X11-unix).
 load env, json
 load luxos_guard_sys as sys
 
-SOCKET = env.get("LUXOS_GUARD_SOCKET", "")
+SECURE = sys.getegid() != sys.getgid()
+SAFE_PATH = "/usr/local/sbin:/usr/local/bin:/usr/bin"
+# Promenne, ktere pomocnik (Python + GTK) v rezimu secure nedostane: presne nazvy a zacatky nazvu
+DROP_EXACT = ["BASH_ENV", "ENV", "GCONV_PATH", "GTK_MODULES", "GTK3_MODULES", "GTK_PATH", "GTK_EXE_PREFIX",
+              "GTK_DATA_PREFIX", "GTK_IM_MODULE_FILE", "LIBGL_DRIVERS_PATH", "VK_ICD_FILENAMES", "VK_LAYER_PATH",
+              "PERL5LIB", "PERL5OPT", "RUBYOPT", "NODE_OPTIONS"]
+DROP_PREFIX = ["LD_", "PYTHON", "LUXOS_GUARD_", "GI_", "GIO_", "GDK_PIXBUF_", "GST_", "__EGL_"]
+
+function test_setting(name):
+    if SECURE:
+        return ""
+    end
+    return env.get(name, "")
+end
+
+SOCKET = test_setting("LUXOS_GUARD_SOCKET")
 if SOCKET == "":
     SOCKET = "/run/luxos-guard/guard.sock"
 end
-HELPER = env.get("LUXOS_GUARD_HELPER", "")
+HELPER = test_setting("LUXOS_GUARD_HELPER")
 if HELPER == "":
     HELPER = "/usr/lib/luxos-guard/luxos-guard-agent-helper"
 end
@@ -37,7 +58,7 @@ FOUND_HEAD = 4194304          # 4 MiB jako drive v Pythonu (found_key)
 CHOICES = ["run", "sandbox", "deny", "trash", "close"]
 
 function seconds(name, default_value):
-    value = env.get(name, "")
+    value = test_setting(name)
     if value == "":
         return default_value
     end
@@ -53,7 +74,7 @@ UPDATE_CHECK = seconds("LUXOS_GUARD_AGENT_UPDATE_CHECK", 60)
 UPDATE_DELAY = seconds("LUXOS_GUARD_AGENT_UPDATE_DELAY", 5)
 
 # Stav: spojeni, rozpracovane dotazy a okna, uz ohlasene soubory
-G = {"fd": -1, "delay": 1, "connect_at": 0, "partial": False}
+G = {"fd": -1, "delay": 1, "connect_at": 0, "partial": False, "refused": False}
 children = {}       # pid -> {"kind": ask|blocked|act|found, "msg": ..., "answered": Bool, "deadline": ms}
 showing = {}        # cesta -> True: okno o zablokovani je prave otevrene
 found = {}          # klic obsahu -> True
@@ -70,12 +91,31 @@ function send(obj):
     return sys.send_text(G["fd"], json.encode(obj) + "\n")
 end
 
+function dropped_env():
+    out = []
+    if not SECURE:
+        return out
+    end
+    for name in sys.env_names():
+        drop = name in DROP_EXACT
+        for prefix in DROP_PREFIX:
+            if name.startswith(prefix):
+                drop = True
+            end
+        end
+        if drop:
+            call out.append(name)
+        end
+    end
+    return out
+end
+
 function spawn_helper(kind, msg, args):
     argv = [HELPER, kind]
     for a in args:
         call argv.append(a)
     end
-    pid = sys.spawn(argv, MSG_ENV, json.encode(msg))
+    pid = sys.spawn(argv, MSG_ENV, json.encode(msg), SECURE, dropped_env(), SAFE_PATH)
     if pid <= 0:
         call log("cannot start " + HELPER)
         return 0
@@ -114,7 +154,13 @@ end
 
 function handle(msg):
     op = msg.get("op")
-    if op == "ask":
+    if op == "hello":
+        # sluzba roli neprijala (program neni nainstalovany setgid): dotazy nedostaneme - jen zaznam do logu
+        if msg.get("agent") == False and not G["refused"]:
+            G["refused"] = True
+            call log("the service did not accept this helper (expected setgid luxos-guard program)")
+        end
+    elif op == "ask":
         if spawn_helper("ask", msg, []) <= 0:
             # pomocnik nejde spustit: zamitnout hned (sluzba by jinak cekala na limit)
             call send({"op": "answer", "id": msg.get("id"), "choice": "deny"})
