@@ -4,6 +4,7 @@
 #          auto = podle vychodu/zapadu slunce (poloha z casoveho pasma), watch = hlidani v relaci
 #          luxos-appearance wallpaper SOUBOR | bar-opacity 0-100 | dock-opacity 0-100|default
 #          luxos-appearance bar-style classic|rounded | bar-clock right|center | bar-text auto|white
+#          luxos-appearance desktop-scrim on|off (ztmaveni velmi svetle tapety pod listou a widgety)
 set -u
 
 state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
@@ -18,6 +19,7 @@ BAR_TEXT=auto        # white = bile pismo listy i ve svetlem rezimu
 DOCK_OPACITY=
 APPEARANCE_AUTO=0
 LOGIN_WALLPAPER=1    # 0 = prihlasovaci obrazovka si necha vlastni tapetu
+DESKTOP_SCRIM=1      # 0 = bez ztmaveni velmi svetle tapety pod listou a widgety (plugin luxos-bar, luxos-widgets)
 [[ -r $prefs ]] && . "$prefs"
 
 set_pref() {  # set_pref KLIC HODNOTA
@@ -421,7 +423,7 @@ apply() {
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
     . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
     if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
-    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|wm-theme|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white]"
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|wm-theme|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off]"
 }
 
 case ${1:-status} in
@@ -452,6 +454,11 @@ case ${1:-status} in
                 mkdir -p "$state_dir"
                 if [[ $2 == dark ]]; then echo dark >"$ink_file"; else rm -f "$ink_file"; fi
                 if panel_css "$(current)" && [[ ${3-} != live ]]; then restart_panel; fi ;;
+    # Ztmaveni velmi svetle tapety pod listou a kolem widgetu (jako macOS); plugin luxos-bar
+    # i luxos-widgets si zmenu appearance.conf nactou samy, bez restartu
+    desktop-scrim) [[ ${2-} == @(on|off) ]] || usage "desktop-scrim on|off"
+                DESKTOP_SCRIM=$([[ $2 == on ]] && echo 1 || echo 0)
+                set_pref DESKTOP_SCRIM "$DESKTOP_SCRIM" ;;
     bar-text)   [[ ${2-} == @(auto|white) ]] || usage "bar-text auto|white"
                 BAR_TEXT=$2
                 set_pref BAR_TEXT "$2"

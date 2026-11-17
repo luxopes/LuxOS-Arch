@@ -5223,3 +5223,9 @@ Preparing the package signing keys…	Förbereder nycklar för paketkontroll…
 Enter the server address.	Ange serverns adress.
 Backups on an SFTP server cannot be encrypted.	Säkerhetskopior på en SFTP-server kan inte krypteras.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Kryptering fungerar med USB-diskar och delade mappar (SMB). Stäng av Kryptera säkerhetskopior eller använd en delad mapp.
+Darken bright wallpaper under the menu bar and widgets	Gör ljus skrivbordsbild mörkare under menyraden och widgetarna
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	På en mycket ljus skrivbordsbild får området under menyraden och runt widgetarna en mjuk skugga så att vit text förblir läsbar.
+Show widgets on the desktop	Visa widgetar på skrivbordet
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Kort för Klocka och väder, Systemhälsa, Spelas nu och Kalender på skrivbordet.
+Choose and arrange widgets	Välj och ordna widgetar
+You can also right-click a widget or the desktop and choose Edit Widgets…	Du kan också högerklicka på en widget eller skrivbordet och välja Redigera widgetar…

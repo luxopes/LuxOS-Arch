@@ -5224,3 +5224,9 @@ Preparing the package signing keys…	Підготовка ключів для �
 Enter the server address.	Введіть адресу сервера.
 Backups on an SFTP server cannot be encrypted.	Резервні копії на сервері SFTP не можна зашифрувати.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Шифрування працює з USB-дисками та спільними папками (SMB). Вимкніть «Шифрувати резервні копії» або скористайтеся спільною папкою.
+Darken bright wallpaper under the menu bar and widgets	Затемнювати світлі шпалери під рядком меню та віджетами
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	На дуже світлих шпалерах область під рядком меню та навколо віджетів отримує м’яку тінь, тож білий текст лишається читабельним.
+Show widgets on the desktop	Показувати віджети на робочому столі
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Картки «Годинник і погода», «Стан системи», «Зараз грає» та «Календар» на робочому столі.
+Choose and arrange widgets	Вибрати й упорядкувати віджети
+You can also right-click a widget or the desktop and choose Edit Widgets…	Також можна клацнути правою кнопкою на віджеті або робочому столі й вибрати «Редагувати віджети…»

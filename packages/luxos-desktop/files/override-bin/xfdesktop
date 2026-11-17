@@ -1,0 +1,8 @@
+#!/bin/sh
+# LuxOS - plocha s modulem luxos-desktop-menu (v nabidce plochy "Upravit widgety..."); modul se
+# spoustenym aplikacim z GTK_MODULES sam odebere
+case ":${GTK_MODULES:-}:" in
+    *:luxos-desktop-menu:*) ;;
+    *) GTK_MODULES="${GTK_MODULES:+$GTK_MODULES:}luxos-desktop-menu"; export GTK_MODULES ;;
+esac
+exec /usr/bin/xfdesktop "$@"

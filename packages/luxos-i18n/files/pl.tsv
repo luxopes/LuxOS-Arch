@@ -5224,3 +5224,9 @@ Preparing the package signing keys…	Przygotowywanie kluczy do weryfikacji paki
 Enter the server address.	Wpisz adres serwera.
 Backups on an SFTP server cannot be encrypted.	Kopii zapasowych na serwerze SFTP nie można zaszyfrować.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Szyfrowanie działa z dyskami USB i folderami udostępnionymi (SMB). Wyłącz Szyfruj kopie zapasowe albo użyj folderu udostępnionego.
+Darken bright wallpaper under the menu bar and widgets	Przyciemniaj jasną tapetę pod paskiem menu i widżetami
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	Na bardzo jasnej tapecie obszar pod paskiem menu i wokół widżetów zostaje delikatnie przyciemniony, dzięki czemu biały tekst pozostaje czytelny.
+Show widgets on the desktop	Pokazuj widżety na pulpicie
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Karty Zegar i pogoda, Stan systemu, Teraz odtwarzane i Kalendarz na pulpicie.
+Choose and arrange widgets	Wybierz i rozmieść widżety
+You can also right-click a widget or the desktop and choose Edit Widgets…	Możesz też kliknąć prawym przyciskiem widżet lub pulpit i wybrać Edytuj widżety…

@@ -5222,3 +5222,9 @@ Preparing the package signing keys…	Připravuji klíče pro ověření balík�
 Enter the server address.	Zadejte adresu serveru.
 Backups on an SFTP server cannot be encrypted.	Zálohy na serveru SFTP nelze šifrovat.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Šifrování funguje s disky USB a sdílenými složkami (SMB). Vypněte Šifrovat zálohy, nebo použijte sdílenou složku.
+Darken bright wallpaper under the menu bar and widgets	Ztmavit světlou tapetu pod horní lištou a widgety
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	Na velmi světlé tapetě dostane oblast pod horní lištou a kolem widgetů jemný stín, takže bílý text zůstane čitelný.
+Show widgets on the desktop	Zobrazit widgety na ploše
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Karty Hodiny a počasí, Stav systému, Právě hraje a Kalendář na ploše.
+Choose and arrange widgets	Vybrat a uspořádat widgety
+You can also right-click a widget or the desktop and choose Edit Widgets…	Můžete také klepnout pravým tlačítkem na widget nebo na plochu a zvolit Upravit widgety…

@@ -5223,3 +5223,9 @@ Preparing the package signing keys…	Sleutels voor pakketcontrole voorbereiden�
 Enter the server address.	Voer het serveradres in.
 Backups on an SFTP server cannot be encrypted.	Back-ups op een SFTP-server kunnen niet worden versleuteld.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Versleuteling werkt met USB-schijven en gedeelde mappen (SMB). Zet Versleutel back-ups uit of gebruik een gedeelde map.
+Darken bright wallpaper under the menu bar and widgets	Lichte achtergrond onder de menubalk en widgets donkerder maken
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	Bij een zeer lichte achtergrond krijgt het gebied onder de menubalk en rond widgets een zachte schaduw, zodat witte tekst leesbaar blijft.
+Show widgets on the desktop	Widgets op het bureaublad tonen
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Kaarten Klok en weer, Systeemstatus, Nu aan het spelen en Agenda op het bureaublad.
+Choose and arrange widgets	Widgets kiezen en ordenen
+You can also right-click a widget or the desktop and choose Edit Widgets…	Je kunt ook met de rechtermuisknop op een widget of het bureaublad klikken en Wijzig widgets… kiezen.

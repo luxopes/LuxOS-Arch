@@ -7,7 +7,8 @@
 #   atom(name), window_list() -> [[x, y, w, h], ...] od nejvyssiho (viditelna okna aplikaci na aktivni plose)
 #   grab_key(keysym, mods) / ungrab_key(keysym, mods)   klavesa na korenovem okne (vcetne NumLock/CapsLock)
 #   root_filter(f, data)       f(data, typ udalosti, okno, atom/keycode, stav) pro udalosti korenoveho okna;
-#                              filtr se pridava jen jednou, root_watch(True/False) zapne/vypne sledovani
+#                              filtr se pridava jen jednou, root_watch(True/False) zapne/vypne sledovani,
+#                              root_watch_properties() jen zmeny vlastnosti (aktivni plocha)
 #   cursor_surface() -> [surface ARGB32, x, y, w, h] nebo [] (pixely zarizeni)
 #   Emoji a symboly: active_window(), wm_class(okno) -> [jmeno, trida], window_alive(okno),
 #   activate(okno, cas), release_modifiers(), send_keys([keysym modifikatoru...], keysym) pres XTEST
@@ -268,6 +269,18 @@ function filter_trampoline(unused, xevent, event):
     end
     call handler(state["data"], kind, window, detail, mods)
     return 0
+end
+
+# Jen udalosti zmen vlastnosti korenoveho okna (aktivni plocha _NET_CURRENT_DESKTOP) - bez udalosti
+# podoken, ktere chodi pri kazdem pohybu okna (widgety plochy)
+function root_watch_properties():
+    unsafe:
+        root = __lsl_qbe_call0(__lsl_symbol("gdk_get_default_root_window"))
+        mask = __lsl_qbe_call1(__lsl_symbol("gdk_window_get_events"), root)
+        # GDK_PROPERTY_CHANGE_MASK 1 << 16
+        call __lsl_qbe_call2(__lsl_symbol("gdk_window_set_events"), root, ptr(mask) | 65536)
+        return 0
+    end
 end
 
 # Udalosti zmen vlastnosti (aktivni okno, poradi oken) a podoken (prekryti) korenoveho okna; vypnuti vrati masku

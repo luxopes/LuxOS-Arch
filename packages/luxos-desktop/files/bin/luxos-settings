@@ -6,6 +6,7 @@ pres GSettings Planku, vzhled a pruhlednost pres luxos-appearance.
 """
 import hashlib
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -64,6 +65,7 @@ DOCK_SCHEMA = "net.launchpad.plank.dock.settings"
 DOCK_PATH = "/net/launchpad/plank/docks/dock1/"
 PREFS = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/appearance.conf")
 NOTIFY_PREFS = os.path.join(os.path.dirname(PREFS), "notifications.conf")
+WIDGETS_CONF = os.path.join(os.path.dirname(PREFS), "widgets.conf")
 
 CSS = b"""
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
@@ -86,7 +88,7 @@ def run(*cmd):
 
 
 def read_prefs():
-    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": ""}
+    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1"}
     try:
         with open(PREFS) as f:
             for line in f:
@@ -199,6 +201,7 @@ class Settings(Gtk.Window):
         self.build_appearance(page)
         self.build_boot_screen(page)
         self.build_wallpaper(page)
+        self.build_widgets(page)
         if self.dock:
             self.build_dock(page)
         self.build_bar(page)
@@ -393,6 +396,13 @@ class Settings(Gtk.Window):
         choose.connect("clicked", self.choose_wallpaper)
         group.pack_start(flow, False, False, 0)
         group.row(_("Your own picture"), choose)
+        # Ztmaveni velmi svetle tapety pod listou a kolem widgetu (luxos-bar, luxos-widgets)
+        scrim = Gtk.Switch(active=self.prefs["DESKTOP_SCRIM"] != "0")
+        scrim.connect("notify::active", lambda s, _p: subprocess.Popen(
+            ["luxos-appearance", "desktop-scrim", "on" if s.get_active() else "off"], start_new_session=True))
+        group.row(_("Darken bright wallpaper under the menu bar and widgets"), scrim,
+                  _("On a very bright wallpaper the area under the menu bar and around widgets gets "
+                    "a soft shade, so white text stays readable."))
 
     def first_backdrop_prop(self):
         props = run("xfconf-query", "-c", "xfce4-desktop", "-l")
@@ -443,6 +453,33 @@ class Settings(Gtk.Window):
         dlg.add_filter(flt)
         if dlg.run() == Gtk.ResponseType.ACCEPT:
             self.set_wallpaper(dlg.get_filename())
+
+    # ---- Widgety na plose (luxos-widgets) -----------------------------------
+    def build_widgets(self, page):
+        """Vypinac widgetu a galerie - drive dosazitelna jen z Launchpadu nebo hledanim."""
+        if not shutil.which("luxos-widgets"):
+            return
+        group = Group(page, _("Widgets"))
+        self.widgets_switch = Gtk.Switch(active=read_kv(WIDGETS_CONF).get("ENABLED") == "1")
+        self.widgets_handler = self.widgets_switch.connect("notify::active", self.toggle_widgets)
+        group.row(_("Show widgets on the desktop"), self.widgets_switch,
+                  _("Clock & Weather, System Health, Now Playing and Calendar cards on the desktop."))
+        edit = Gtk.Button(label=_("Edit Widgets…"))
+        edit.connect("clicked", lambda _b: subprocess.Popen(["luxos-widgets", "settings"], start_new_session=True))
+        group.row(_("Choose and arrange widgets"), edit,
+                  _("You can also right-click a widget or the desktop and choose Edit Widgets…"))
+        # Vypnuti/zapnuti z galerie nebo z nabidky widgetu: vypinac sleduje widgets.conf
+        self.widgets_monitor = Gio.File.new_for_path(WIDGETS_CONF).monitor_file(Gio.FileMonitorFlags.WATCH_MOVES, None)
+        self.widgets_monitor.connect("changed", self.on_widgets_conf)
+
+    def toggle_widgets(self, switch, _p):
+        subprocess.Popen(["luxos-widgets", "on" if switch.get_active() else "off"], start_new_session=True)
+
+    def on_widgets_conf(self, *_args):
+        on = read_kv(WIDGETS_CONF).get("ENABLED") == "1"
+        if on != self.widgets_switch.get_active():
+            with self.widgets_switch.handler_block(self.widgets_handler):
+                self.widgets_switch.set_active(on)
 
     # ---- Dock -------------------------------------------------------------
     def build_dock(self, page):

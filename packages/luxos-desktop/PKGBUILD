@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=78
+pkgrel=79
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -120,6 +120,9 @@ build() {
     # Kontextove nabidky horni listy bez sedeho nazvu pluginu
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-panel-menus.so "$startdir/files/src/luxos-panel-menus.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
+    # Nabidka plochy (xfdesktop) s polozkou "Upravit widgety..."
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-desktop-menu.so "$startdir/files/src/luxos-desktop-menu.c" \
+        $(pkg-config --cflags --libs gtk+-3.0)
     # Pojistka proti fork bombe kdekoli v relaci (systemova sluzba, viz files/src/luxos-forkguard.c);
     # C: smycka bez alokaci se zamcenou pameti i pri vycerpane RAM (sd-bus z libsystemd jen pro upozorneni)
     gcc $CFLAGS $LDFLAGS -o luxos-forkguard "$startdir/files/src/luxos-forkguard.c" -lsystemd
@@ -130,7 +133,7 @@ build() {
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-scroll.so "$startdir/files/src/luxos-scroll.c" \
         $(pkg-config --cflags --libs gtk+-3.0 xi x11) -lm
     strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
-    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-bar.so \
+    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-desktop-menu.so libluxos-bar.so \
         libluxos-scroll.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
@@ -294,6 +297,7 @@ package() {
     install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
+    install -Dm755 libluxos-desktop-menu.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-desktop-menu.so"
     install -Dm755 libluxos-scroll.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-scroll.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"

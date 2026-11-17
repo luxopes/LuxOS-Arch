@@ -11,7 +11,7 @@ redirected to the LuxOS apps through wrappers in `/usr/lib/luxos/override-bin`:
 
 | App | Command | What it sets |
 |---|---|---|
-| Desktop & Dock | `luxos-settings` | appearance, boot screen, wallpaper, Dock, menu bar |
+| Desktop & Dock | `luxos-settings` | appearance, boot screen, wallpaper, widgets, Dock, menu bar |
 | Displays | `luxos-display-settings` | resolution, refresh rate, rotation, text size, multiple monitors |
 | Keyboard Layouts | `luxos-keyboard` | layouts and switching, for all users ([keyboard.md](keyboard.md)) |
 | Keyboard Shortcuts | `luxos-shortcuts` | global shortcuts ([keyboard.md](keyboard.md)) |
@@ -38,7 +38,10 @@ settings. Sections:
 - **Boot Screen**: Blue, Purple, Orange, Green or White. It runs `luxos-splash set` through pkexec
   and rebuilds the initramfs, and it takes effect at the next boot.
 - **Wallpaper**: thumbnails from `/usr/share/backgrounds/luxos` and `~/Pictures/Wallpapers`, plus
-  Choose… for your own picture.
+  Choose… for your own picture, and "Darken bright wallpaper under the menu bar and widgets"
+  (`luxos-appearance desktop-scrim on|off`, see [bar-widgets.md](bar-widgets.md)).
+- **Widgets**: "Show widgets on the desktop" (`luxos-widgets on|off`; follows changes made in the
+  gallery) and Edit Widgets… (the widgets gallery, `luxos-widgets settings`).
 - **Dock**: "Automatically hide and show the Dock" (it appears when you move the pointer to the
   bottom edge), Size, Magnification and its size, Position on screen (Bottom/Left/Right), Dock
   opacity. These are stored in Plank's GSettings, and opacity goes through

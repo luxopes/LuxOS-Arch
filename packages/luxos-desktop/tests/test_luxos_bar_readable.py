@@ -27,7 +27,7 @@ int main (int argc, char **argv) {
             for (int x = 0; x < 13; x++)
                 memset (gdk_pixbuf_get_pixels (pb) + y * gdk_pixbuf_get_rowstride (pb) + x * 3, 250, 3);
     GdkRGBA t = { atof (argv[4]), atof (argv[5]), atof (argv[6]), atof (argv[7]) };
-    printf ("%%.4f\n", readable_alpha (pb, &t));
+    printf ("%%.4f\n", readable_alpha (pb, &t, 0.0));
     return 0;
 }
 '''

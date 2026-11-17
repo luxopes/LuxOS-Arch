@@ -46,14 +46,34 @@ Between the left and the right part of the top bar is the `luxos-bar` plugin (a 
   when the app starts - GTK does not repaint them later; StatusNotifier icons (Wi-Fi, Bluetooth and
   most apps) follow at once. Without `live` (`luxos-appearance bar-ink dark|white`) the panel is
   restarted.
+- **Shade under the bar on a very bright wallpaper** (like macOS): when the bar text is white (dark
+  mode, or `bar-text white`) and the wallpaper at the top of the screen is very bright (white, beige,
+  a white linen texture), the wallpaper under the bar and a little below it gets darker with a smooth
+  fade to nothing - up to 38 % black at the top edge, gone after 128 px. It is not a darker bar: the
+  plugin paints the shade into the wallpaper strip of the bar and below the bar into its own
+  transparent desktop window (above the wallpaper, below widgets and windows, sticky, it takes no
+  clicks - right-click on the desktop works there as everywhere). With it the white text keeps at
+  least 4.5 : 1 contrast (WCAG AA), so it stays white; dark text is used only when even that is not
+  enough. Strength follows the brightness of the wallpaper band under the bar (stored per wallpaper,
+  so switching workspaces only repaints the fade): none on ordinary wallpapers - Sunrise, Lagoon and
+  all dark ones look exactly as before -, partial on LuxOS Light/Citrus, full on white. It follows the
+  wallpaper of the active workspace and goes away by itself with a normal wallpaper. It needs the
+  compositor (the default); without it the bar behaves as before. Turn it off with
+  `luxos-appearance desktop-scrim off` (`DESKTOP_SCRIM=0`) or in **Desktop & Dock › Wallpaper**;
+  the same switch turns off the widget shadows below.
+- **Wallpaper of all workspaces:** like xfdesktop, the bar takes the wallpaper of workspace 0 for
+  every workspace unless "Apply to all workspaces" is turned off in the advanced desktop settings
+  (`/backdrop/single-workspace-mode`); earlier it painted a stale wallpaper of the workspace instead.
 
 ```
 luxos-appearance bar-style classic|rounded    # square / rounded bottom corners
 luxos-appearance bar-clock right|center       # clock on the right / in the middle of the bar
 luxos-appearance bar-text auto|white          # text colour of the bar (white also in light mode)
+luxos-appearance desktop-scrim on|off         # shade under the bar and widgets on a very bright wallpaper
 ```
 
-The choices are stored in `~/.config/luxos/appearance.conf` (`BAR_STYLE`, `BAR_CLOCK`, `BAR_TEXT`).
+The choices are stored in `~/.config/luxos/appearance.conf` (`BAR_STYLE`, `BAR_CLOCK`, `BAR_TEXT`,
+`DESKTOP_SCRIM`).
 At login `luxos-appearance panel-css` puts `luxos-bar` in place of the expanding separator of a bar
 from older versions (a customised bar without that separator stays as it is). For the rest of the
 top bar see [The LuxOS Desktop](desktop.md).
@@ -66,6 +86,11 @@ top bar see [The LuxOS Desktop](desktop.md).
   (`POS_<widget>=x,y` relative to the work area of the primary monitor). Cards without a saved
   place stack in the top corner under the bar.
 - **Right-click** a card: **Edit Widgets…** (the gallery) or **Remove**.
+- **Right-click the desktop:** **Edit Widgets…** under **Desktop Settings…** (GTK module
+  `luxos-desktop-menu` loaded into xfdesktop by `/usr/lib/luxos/override-bin/xfdesktop`; it is shown
+  only when `luxos-widgets` is installed and is not passed on to apps started from the desktop).
+- **Desktop & Dock › Widgets:** **Show widgets on the desktop** (the same as `luxos-widgets on|off`;
+  the switch follows changes made in the gallery) and **Edit Widgets…**.
 - **Widgets gallery** (`luxos-widgets settings`, **Widgets** in Launchpad): live previews of all
   widgets with **Add** / **Remove**, a switch to show or hide all widgets and **Default Layout**
   (forget the saved places).
@@ -82,9 +107,18 @@ The widgets:
   player has something.
 - **Calendar:** the current month with today highlighted. Click: Calendar.
 
-Each card is tinted glass: its colour is the average colour of the wallpaper right behind it, darker
-and more saturated, with white text, a light border and a soft shadow. Over a bright wallpaper the
-card is less transparent, so the white text stays readable. A new wallpaper or a move recolours it.
+Each card is frosted glass made from the blurred wallpaper right behind it: light glass with dark
+text over a light wallpaper, darker glass with white text over a dark one, always with at least
+4.5 : 1 contrast, a light border and a soft shadow. The wallpaper is the one the desktop shows: the
+primary monitor and the active workspace (like the bar; earlier always workspace 0 of the last
+monitor in xfconf - with a different wallpaper per workspace or an old monitor entry the cards were
+coloured after a wallpaper that was not on screen). On a very bright wallpaper (white, beige, white
+linen) each card also gets a soft dark shadow cast below it, so the light card stands out from the
+light desktop like on macOS; ordinary wallpapers (Sunrise and darker) have no extra shadow.
+`DESKTOP_SCRIM=0` turns the shadow off together with the shade under the bar. The transparent edge
+of a card window takes no clicks any more - they go to the desktop. A new wallpaper, workspace or a
+move recolours the card; materials are kept per wallpaper, so switching workspaces does not reload
+anything.
 
 ```
 luxos-widgets on          # turn widgets on (and start them)
