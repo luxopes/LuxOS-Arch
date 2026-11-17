@@ -209,6 +209,36 @@ def test_writer_origin(env):
     assert C.writer_origin(C.writer_info(proc, 404), state, users, str(home / "bin/a.out")) is None
 
 
+def test_writer_origin_watched_fd_needs_real_copy(env):
+    """F-13: git s otevrenym (nesouvisejicim) hlidanym souborem nedela ze vsech zapsanych skriptu kopie."""
+    p, tmp, home = env
+    users = FakeUsers({str(home): 1000})
+    state = C.State(str(tmp / "state.json"))
+    watched = home / "src" / "a" / "helper.sh"
+    watched.parent.mkdir(parents=True)
+    watched.write_bytes(b"#!/bin/sh\necho watched helper\n")
+    st = os.stat(watched)
+    state.put((st.st_dev, st.st_ino), {"path": str(watched), "size": st.st_size, "level": C.RISKY,
+                                       "status": C.FLAGGED})
+    other = home / "src" / "b" / "build.sh"
+    other.parent.mkdir(parents=True)
+    other.write_bytes(b"#!/bin/sh\nmake -j4 all && echo done building\n")
+    proc = p.add(410, "/usr/bin/git", ["git", "worktree", "add", "b"], fds=[str(watched), str(other)])
+    assert C.writer_origin(C.writer_info(proc, 410), state, users, str(other)) is None
+    # skutecna kopie (cp) hlidaneho souboru: stejna velikost -> kopie
+    copy = home / "bin" / "helper.sh"
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    copy.write_bytes(watched.read_bytes())
+    proc = p.add(411, "/usr/bin/cp", ["cp", str(watched), str(copy)], fds=[str(watched), str(copy)])
+    assert C.writer_origin(C.writer_info(proc, 411), state, users, str(copy)) == ("copy", str(watched))
+    # rozbaleni archivu ze Stazenych zustava kopii i s jinou velikosti
+    arch = home / "Downloads" / "tool.tar"
+    arch.parent.mkdir(exist_ok=True)
+    arch.write_bytes(b"x" * 999)
+    proc = p.add(412, "/usr/bin/tar", ["tar", "xf", str(arch)], fds=[str(arch), str(other)])
+    assert C.writer_origin(C.writer_info(proc, 412), state, users, str(other)) == ("copy", str(arch))
+
+
 # ---- stav -------------------------------------------------------------------------------------------
 def test_state_roundtrip(tmp_path):
     s = C.State(str(tmp_path / "d" / "state.json"))

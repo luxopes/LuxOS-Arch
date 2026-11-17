@@ -15,8 +15,12 @@ Only executable content from outside:
 - files with the `user.xdg.origin.url` attribute (set by browsers and `wget --xattr`),
 - files written anywhere in a home folder by a browser, mail, download, torrent or chat app,
 - files written by a program that itself came from outside (droppers) or by a program that has a
-  file from outside open (unpacking an archive from Downloads, copying from USB),
+  file from outside open (unpacking an archive from Downloads, copying from USB) – a watched file
+  that the program has open counts only when the new file has its size (a real copy; git reading
+  many files at once no longer turns every script it writes into a "copy"),
 - copies of a watched file (same size and SHA-256).
+
+Git hook templates (`.git/hooks/*.sample`) are never watched – git does not run them.
 
 Executable content = ELF programs, AppImages, scripts with `#!` or with `.sh/.py/.pl/.rb/.lsl`
 extensions, `.desktop` launchers, `.jar` and Windows `.exe` (via Wine). Documents, pictures,

@@ -9,17 +9,25 @@
 #     - nepouzivana USB zarizeni s ovladacem, ktery uspavani zvlada (kamera, ctecka karet), nebo
 #       bez ovladace se uspavaji; vstup, zvuk, Bluetooth, sit a disky se nemeni (vypadky, zpozdeni)
 #     - zapis na disk po 15 s misto 5 s (disk/NVMe dele v usporem stavu)
-#     - pozastavi tezke ulohy na pozadi (man-db, kontrola LuxOS Care); Persistent casovace
-#       dobehnou po vypnuti sporice
+#     - pozastavi tezke ulohy na pozadi (man-db); casovac dobehne po vypnuti sporice.
+#       Kontrola LuxOS Care (luxos-care-check.timer) bezi dal: hlida bezpecnost a aktualizace, sama
+#       ma nizkou prioritu a tezkou tydenni kontrolu souboru bez nabijecky odlozi. Starsi verze ji
+#       zastavovaly - casovac zastaveny touto cestou se pri zapnuti znovu spusti.
 #     - priznak /run/luxos/powersaver: LuxOS Care neaktualizuje automaticky bez nabijecky
 # off vrati vse ulozene. /run se restartem vymaze - po prihlaseni ho obnovi luxos-powersaver reapply.
-# LUXOS_SYSROOT = falesny koren pro testy (/sys, /proc, /run).
+# LUXOS_SYSROOT = falesny koren pro testy (/sys, /proc, /run), LUXOS_SYSTEMCTL = zastupce systemctl
+# (bez nej se s falesnym korenem casovace neresi).
 set -u
 root=${LUXOS_SYSROOT:-}
 dir=$root/run/luxos
 saved=$dir/powersaver.saved
 mark=$dir/powersaver
-TIMERS=(man-db.timer luxos-care-check.timer)
+systemctl=${LUXOS_SYSTEMCTL:-systemctl}
+units=0
+[[ -z $root || -n ${LUXOS_SYSTEMCTL:-} ]] && units=1
+TIMERS=(man-db.timer)
+# Uz se nezastavuji (bezpecnostni kontrola a kontrola aktualizaci musi bezet i na baterii)
+KEEP_TIMERS=(luxos-care-check.timer)
 # Ovladace USB, u kterych je automaticke uspani bezpecne (kamera, ctecky karet)
 USB_SAFE=" uvcvideo rtsx_usb rtsx_usb_ms rtsx_usb_sdmmc ums-realtek "
 
@@ -64,10 +72,19 @@ on() {
         usb_safe "$dev" && set_value "$dev/power/control" auto
     done
     # Tezke ulohy na pozadi
-    if [[ -z $root ]]; then
+    if [[ $units == 1 ]]; then
         for t in "${TIMERS[@]}"; do
-            if systemctl is-active --quiet "$t" && systemctl stop --no-block "$t" 2>/dev/null; then
+            if $systemctl is-active --quiet "$t" && $systemctl stop --no-block "$t" 2>/dev/null; then
                 recorded "timer:$t" || printf 'timer:%s\t\n' "$t" >>"$saved"
+            fi
+        done
+        # Prechod ze starsi verze: casovac zastaveny sporicem znovu spustit (zapnuty, ale neaktivni)
+        for t in "${KEEP_TIMERS[@]}"; do
+            if recorded "timer:$t"; then
+                $systemctl start --no-block "$t" 2>/dev/null
+                sed -i "/^timer:${t//./\\.}\t/d" "$saved"
+            elif $systemctl is-enabled --quiet "$t" 2>/dev/null && ! $systemctl is-active --quiet "$t"; then
+                $systemctl start --no-block "$t" 2>/dev/null
             fi
         done
     fi
@@ -79,7 +96,7 @@ off() {
     if [[ -f $saved ]]; then
         while IFS=$'\t' read -r f v; do
             case $f in
-                timer:*) [[ -z $root ]] && systemctl start --no-block "${f#timer:}" 2>/dev/null ;;
+                timer:*) [[ $units == 1 ]] && $systemctl start --no-block "${f#timer:}" 2>/dev/null ;;
                 *) [[ -f $f ]] && { printf '%s\n' "$v" >"$f"; } 2>/dev/null ;;
             esac
         done <"$saved"

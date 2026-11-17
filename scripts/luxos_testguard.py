@@ -72,6 +72,9 @@ def _real_path(path):
     if not path:
         return False
     path = os.path.realpath(path)
+    # vlastni docasna slozka testu (TMPDIR muze byt v domove, napr. ~/LuxOS-Arch/out) neni skutecna relace
+    if _tmp and (path == os.path.realpath(_tmp) or path.startswith(os.path.realpath(_tmp) + os.sep)):
+        return False
     return path == os.path.realpath(_REAL_HOME) or path.startswith(os.path.realpath(_REAL_HOME) + os.sep) \
         or path == _REAL_RUNTIME or path.startswith(_REAL_RUNTIME + os.sep)
 

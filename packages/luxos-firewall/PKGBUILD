@@ -7,7 +7,7 @@
 
 pkgname=luxos-firewall
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS firewall - on by default, own nftables table, LAN-only app ports, notifications for blocked programs"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"

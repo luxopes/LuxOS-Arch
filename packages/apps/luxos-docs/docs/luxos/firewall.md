@@ -44,10 +44,10 @@ accepts connections exactly as without a firewall.
 | Getting an address: DHCP, IPv6 router advertisements, neighbour discovery, DHCPv6, path MTU | – | everywhere |
 | mDNS (printers, scanners, LuxDrop, `.local` names) and replies when searching for devices (SSDP, WS-Discovery, SNMP, Canon BJNP, Epson, NetBIOS, LLMNR) | 5353 and replies | this network |
 | Ping | ICMP echo | this network |
-| LuxDrop (when installed; also ports changed in its settings) | TCP 47923-47924, TCP/UDP 53317 | this network |
-| Steam Remote Play and game transfer (when Steam is installed) | UDP 27031-27036, TCP 27036-27037 | this network |
-| KDE Connect / GSConnect (when installed) | TCP/UDP 1714-1764 | this network |
-| Syncthing (when installed) | TCP/UDP 22000, UDP 21027 | this network |
+| LuxDrop (while it runs; 47924 only while folder sharing is on; also ports changed in its settings) | TCP 47923-47924, TCP/UDP 53317 | this network |
+| Steam Remote Play and game transfer (while Steam runs) | UDP 27031-27036, TCP 27036-27037 | this network |
+| KDE Connect / GSConnect (while it runs) | TCP/UDP 1714-1764 | this network |
+| Syncthing (while it runs) | TCP/UDP 22000, UDP 21027 | this network |
 | Printer sharing (only when CUPS shares printers, e.g. `cupsctl --share-printers`) | TCP 631 | this network |
 | SSH server (only while `sshd` is enabled or running; ports from `sshd_config`) | TCP 22 | everywhere |
 | Tailscale (when installed; WireGuard port from `/etc/default/tailscaled`) | UDP 41641 | everywhere |
@@ -58,6 +58,14 @@ accepts connections exactly as without a firewall.
 to right now (so public IPv6 addresses of devices in your home network count too). The list of
 connected networks follows Wi-Fi and cable changes within 10 seconds. VPN interfaces (`wg*`,
 `tun*`, `ppp*`) and Tailscale are not "this network".
+
+**App ports only while the app listens.** For LuxDrop, Steam, KDE Connect and Syncthing only the
+ports from the table on which the app is listening right now are open (sets `app_tcp`/`app_udp`,
+updated every 2 seconds by `luxos-firewall-watch.service`; a connection attempt to such a port opens
+it at once when the app listens). An installed app that is not running – or LuxDrop with folder
+sharing off – has no open port. Steam Remote Play and LAN game transfer work as soon as Steam runs;
+nothing to set up. `luxos-firewall status --json` lists for each app rule `"when": "running"` and the
+ports that are `"open"` now.
 
 Everything else is blocked, for example a database or development server started by a rootless
 Podman container (`-p 5432:5432`): it works on the computer itself (`localhost` and the computer's

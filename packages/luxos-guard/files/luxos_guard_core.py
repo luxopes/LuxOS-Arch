@@ -495,9 +495,24 @@ def writer_origin(info, state, users, path):
     for fd_path in info.get("fds") or ():
         if fd_path == path:
             continue
-        if location_origin(fd_path, users) or state.by_path(fd_path):
+        if location_origin(fd_path, users):
+            return ("copy", fd_path)        # rozbaleni/kopie ze Stazenych, USB, prilohy
+        e = state.by_path(fd_path)
+        if e and _copy_of(e, path):
             return ("copy", fd_path)
     return None
+
+
+def _copy_of(entry, path):
+    """Zapsany soubor je kopie hlidaneho souboru, ktery ma zapisujici proces otevreny (stejna velikost).
+    Drive stacilo, ze proces mel hlidany soubor otevreny: git (clone, worktree, checkout) cte mnoho
+    souboru naraz a kazdy jim zapsany skript se stal "kopii" - hooky gitu i skripty repozitare
+    majitele pak byly rizikove a jeden kriticky (F-13). Upravena kopie (jina velikost) se pozna
+    podle otisku (stejny obsah) nebo zustane nehlidana jako vlastni soubor uzivatele."""
+    try:
+        return entry.get("size") == os.stat(path).st_size
+    except OSError:
+        return False
 
 
 def sha256_fd(fd, limit=None):

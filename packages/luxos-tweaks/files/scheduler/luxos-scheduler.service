@@ -7,17 +7,23 @@ After=graphical.target
 ConditionPathExists=/sys/kernel/sched_ext
 ConditionPathExists=!/etc/systemd/system/multi-user.target.wants/scx_loader.service
 Conflicts=scx_loader.service
-# Opakovany pad (napr. jadro planovac vyradi) = po 3 pokusech za 10 min zustava planovac jadra
-StartLimitIntervalSec=10min
-StartLimitBurst=3
+# Opakovany pad: luxos-scheduler po 3 padech za 24 h sam zustane u planovace jadra (konec s 0, zadna
+# selhana sluzba); StartLimit je jen pojistka proti rychlemu cyklu
+StartLimitIntervalSec=1h
+StartLimitBurst=8
 
 [Service]
 Type=simple
 ExecStart=/usr/lib/luxos/luxos-scheduler
+# Pad: jadro hned prejde na EEVDF, novy pokus po 10 s, 30 s ... nejvys po 10 min (nacteni programu
+# BPF bere procesor - zadne rychle opakovani pri zatizeni)
 Restart=on-failure
-RestartSec=5
-# scx_* se pri SIGINT ukonci cisty (jadro prejde zpet na EEVDF)
+RestartSec=10
+RestartSteps=4
+RestartMaxDelaySec=10min
+# scx_* se pri SIGINT ukonci cisty (jadro prejde zpet na EEVDF); luxos-scheduler signal preda
 KillSignal=SIGINT
+KillMode=mixed
 TimeoutStopSec=10
 ProtectSystem=full
 ProtectHome=yes

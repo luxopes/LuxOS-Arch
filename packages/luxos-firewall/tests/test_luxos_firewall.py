@@ -56,6 +56,30 @@ fd7a115ca1e0ab120000000000000000 3000000000000000000000000000000000 00 000000000
 """
 
 
+# /proc/net/tcp a udp: kdo posloucha (mistni adresa:port hex, stav 0A = LISTEN, 07 = UDP socket)
+TCP_HEAD = "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n"
+
+
+def tcp_line(addr_hex, port, state="0A"):
+    return "   0: %s:%04X 00000000:0000 %s 00000000:00000000 00:00000000 00000000  1000        0 1 1\n" % (
+        addr_hex, port, state)
+
+
+def tcp6_line(addr_hex, port, state="0A"):
+    return ("   0: %s:%04X 00000000000000000000000000000000:0000 %s 00000000:00000000 00:00000000 00000000  "
+            "1000        0 1 1\n" % (addr_hex, port, state))
+
+
+ANY4 = "00000000"
+LO4 = "0100007F"
+ANY6 = "00000000000000000000000000000000"
+LO6 = "00000000000000000000000001000000"
+
+
+def set_of(out, name):
+    return out.split("set " + name)[1].split("}")[0]
+
+
 class FirewallTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="luxos-fw-root-")
@@ -128,13 +152,35 @@ class FirewallTest(unittest.TestCase):
         self.assertNotIn("hook output", out)
         self.assertIn("policy accept", out)
 
+    def state(self):
+        with open(os.path.join(self.root, "run/luxos-firewall/state.json"), encoding="utf-8") as f:
+            return json.load(f)
+
+    def nft_input(self):
+        with open(os.path.join(self.root, "nft-input"), encoding="utf-8") as f:
+            return f.read()
+
+    def listen(self, tcp=(), udp=(), tcp6=(), udp6=()):
+        """Poslouchajici porty: seznamy (adresa_hex, port)."""
+        self.write("proc/net/tcp", TCP_HEAD + "".join(tcp_line(a, p) for a, p in tcp))
+        self.write("proc/net/udp", TCP_HEAD + "".join(tcp_line(a, p, "07") for a, p in udp))
+        self.write("proc/net/tcp6", TCP_HEAD + "".join(tcp6_line(a, p) for a, p in tcp6))
+        self.write("proc/net/udp6", TCP_HEAD + "".join(tcp6_line(a, p, "07") for a, p in udp6))
+
     def test_luxdrop_lan_only_and_essentials(self):
+        self.listen(tcp=[(ANY4, 47923)], udp=[(ANY4, 53317)], tcp6=[(ANY6, 53317)])
         out = self.run_fw("render").stdout
-        lan_tcp = out.split("set lan_tcp")[1].split("}")[0]
-        self.assertIn("47923-47924", lan_tcp)
-        self.assertIn("53317", lan_tcp)
+        app_tcp = set_of(out, "app_tcp")
+        self.assertIn("47923", app_tcp)
+        self.assertIn("53317", app_tcp)
+        self.assertIn("53317", set_of(out, "app_udp"))
+        self.assertNotIn("47924", out)                  # sdileni slozek vypnute = nikdo neposlouca
+        self.assertNotIn("47923", set_of(out, "lan_tcp"))
         any_tcp = out.split("set any_tcp")[1].split("}")[0]
         self.assertNotIn("47923", any_tcp)
+        # sady aplikaci jen z mistni site (retez from_lan), ne v retezci input pro vsechny
+        self.assertIn("tcp dport @app_tcp accept", out.split("chain from_lan")[1].split("}")[0])
+        self.assertNotIn("@app_tcp", out.split("chain input")[1].split("chain from_lan")[0])
         for essential in ("udp sport 67 udp dport 68 accept", "nd-neighbor-solicit", "nd-router-advert",
                           "packet-too-big", "ip daddr 224.0.0.251 udp dport 5353 accept", "meta l4proto igmp accept",
                           "udp sport 547 udp dport 546 accept", 'iif "lo" accept', "ct state established,related accept",
@@ -143,17 +189,89 @@ class FirewallTest(unittest.TestCase):
 
     def test_no_luxdrop_when_not_installed(self):
         os.remove(os.path.join(self.root, "usr/bin/luxdrop"))
+        self.listen(tcp=[(ANY4, 47923)])                # jiny program na portu LuxDropu se neotevre
         out = self.run_fw("render").stdout
         self.assertNotIn("47923", out)
 
+    # ---- porty aplikaci jen za behu (F-08: nainstalovana, ale nespustena aplikace nema otevreny port) ----
+    def test_installed_but_not_running_opens_nothing(self):
+        os.makedirs(os.path.join(self.root, "home/jana/.local/share/flatpak/app/com.valvesoftware.Steam"))
+        self.write("usr/bin/syncthing", "")
+        self.listen()
+        out = self.run_fw("render").stdout
+        for name in ("app_tcp", "app_udp", "lan_tcp", "lan_udp"):
+            self.assertNotIn("elements", set_of(out, name), name)
+        for port in ("47923", "47924", "27036", "22000", "53317"):
+            self.assertNotIn(port, out, port)
+
+    def test_luxdrop_sharing_port_only_while_sharing(self):
+        self.listen(tcp=[(ANY4, 47923)])
+        self.assertNotIn("47924", self.run_fw("render").stdout)
+        self.listen(tcp=[(ANY4, 47923)], tcp6=[(ANY6, 47924)])
+        app_tcp = set_of(self.run_fw("render").stdout, "app_tcp")
+        self.assertIn("47923", app_tcp)
+        self.assertIn("47924", app_tcp)
+
+    def test_loopback_listeners_stay_closed(self):
+        self.listen(tcp=[(LO4, 47923)], tcp6=[(LO6, 47924), ("0000000000000000FFFF00000100007F", 53317)])
+        out = self.run_fw("render").stdout
+        self.assertNotIn("elements", set_of(out, "app_tcp"))
+
+    def test_steam_ports_while_running(self):
+        os.makedirs(os.path.join(self.root, "home/jana/.local/share/flatpak/app/com.valvesoftware.Steam"))
+        # Steam bezi: TCP 27036 (Remote Play / prenos her v LAN), UDP 27036 (hledani v LAN)
+        self.listen(tcp=[(ANY4, 27036), (ANY4, 27040)], udp=[(ANY4, 27036), (ANY4, 27031)])
+        out = self.run_fw("render").stdout
+        self.assertEqual(set_of(out, "app_tcp").split("elements = {")[1].strip(), "27036")
+        app_udp = set_of(out, "app_udp")
+        self.assertIn("27031", app_udp)
+        self.assertIn("27036", app_udp)
+        self.assertNotIn("27040", out)                  # mimo rozsah pravidla Steamu
+
+    def test_apps_refresh_and_state(self):
+        self.listen()
+        self.run_fw("load")
+        state = self.state()
+        self.assertEqual(state["app_open"], "|")
+        luxdrop = [r for r in state["rules"] if r["name"] == "LuxDrop" and r["proto"] == "tcp"]
+        self.assertTrue(luxdrop and all(r["when"] == "running" and r["open"] == [] for r in luxdrop))
+        before = self.nft_input()
+        # nic se nezmenilo -> zadne volani nft
+        self.run_fw("apps")
+        self.assertEqual(self.nft_input(), before)
+        # LuxDrop se spustil -> jen sady aplikaci (bez nahrani cele tabulky)
+        self.listen(tcp=[(ANY4, 47923)], udp=[(ANY4, 53317)])
+        self.run_fw("apps")
+        delta = self.nft_input()[len(before):]
+        self.assertIn("flush set inet luxos app_tcp", delta)
+        self.assertIn("add element inet luxos app_tcp { 47923 }", delta)
+        self.assertIn("add element inet luxos app_udp { 53317 }", delta)
+        self.assertNotIn("delete table", delta)
+        state = self.state()
+        self.assertEqual(state["app_open"], "47923|53317")
+        status = json.loads(self.run_fw("status", "--json").stdout)
+        opened = {r["port"]: r.get("open") for r in status["rules"] if r["name"] == "LuxDrop" and r["proto"] == "tcp"}
+        self.assertEqual(opened.get("47923-47924"), ["47923"])
+        # LuxDrop skoncil -> porty zase zavrene
+        self.listen()
+        self.run_fw("apps")
+        delta = self.nft_input()
+        self.assertTrue(delta.rstrip().endswith("flush set inet luxos app_udp"), delta[-200:])
+        self.assertEqual(self.state()["app_open"], "|")
+
+    def test_apps_without_loaded_table_does_nothing(self):
+        self.listen(tcp=[(ANY4, 47923)])
+        self.run_fw("apps")
+        self.assertFalse(os.path.exists(os.path.join(self.root, "nft-input")))
+
     def test_luxdrop_custom_port_from_user_settings(self):
         self.write("home/jana/.config/luxdrop/settings.json", json.dumps({"port": 48000, "localsend_port": 53318}))
+        self.listen(tcp=[(ANY4, 48000), (ANY4, 53318)], udp6=[(ANY6, 53318)])
         out = self.run_fw("render").stdout
-        lan_tcp = out.split("set lan_tcp")[1].split("}")[0]
-        lan_udp = out.split("set lan_udp")[1].split("}")[0]
-        self.assertIn("48000", lan_tcp)
-        self.assertIn("53318", lan_tcp)
-        self.assertIn("53318", lan_udp)
+        app_tcp = set_of(out, "app_tcp")
+        self.assertIn("48000", app_tcp)
+        self.assertIn("53318", app_tcp)
+        self.assertIn("53318", set_of(out, "app_udp"))
 
     def test_sshd_dynamic(self):
         self.write("usr/bin/sshd", "")
@@ -174,11 +292,15 @@ class FirewallTest(unittest.TestCase):
         self.assertIn("41700", self.run_fw("render").stdout.split("set any_udp")[1].split("}")[0])
 
     def test_steam_flatpak_per_user(self):
+        self.listen(tcp=[(ANY4, 27036)], udp=[(ANY4, 27036)])
         self.assertNotIn("27036", self.run_fw("render").stdout)
         os.makedirs(os.path.join(self.root, "home/jana/.local/share/flatpak/app/com.valvesoftware.Steam"))
         out = self.run_fw("render").stdout
-        self.assertIn("27036-27037", out.split("set lan_tcp")[1].split("}")[0])
-        self.assertIn("27031-27036", out.split("set lan_udp")[1].split("}")[0])
+        self.assertIn("27036", set_of(out, "app_tcp"))
+        self.assertIn("27036", set_of(out, "app_udp"))
+        status = json.loads(self.run_fw("status", "--json").stdout)
+        self.assertIn({"name": "Steam", "port": "27036-27037", "proto": "tcp", "from": "lan", "when": "running"},
+                      [{k: v for k, v in r.items() if k != "open"} for r in status["rules"]])
 
     def test_connected_networks(self):
         out = self.run_fw("render").stdout
@@ -228,7 +350,7 @@ class FirewallTest(unittest.TestCase):
         self.run_fw("deny", "8000-8010/udp")
         self.assertNotIn({"port": "8000-8010", "proto": "udp", "from": "any"}, self.config()["allow"])
         self.assertEqual(self.run_fw("deny", "9999", check=False).returncode, 1)
-        state = json.load(open(os.path.join(self.root, "run/luxos-firewall/state.json")))
+        state = self.state()
         self.assertTrue(state["loaded"])
         self.assertEqual(os.stat(os.path.join(self.root, "etc/luxos/firewall.json")).st_mode & 0o777, 0o644)
 
@@ -287,6 +409,21 @@ class FirewallTest(unittest.TestCase):
         self.assertNotIn("table inet luxos", after)
         self.assertIn("table ip filter", after)
         self.assertIn("table inet netavark", after)
+
+    @unittest.skipUnless(NETNS, "unshare -rn + nft not available")
+    def test_kernel_accepts_app_sets_update(self):
+        self.listen(tcp=[(ANY4, 47923)], udp=[(ANY4, 53317)])
+        rules = self.write("rules.nft", self.run_fw("render").stdout)
+        upd = ("flush set inet luxos app_tcp\nflush set inet luxos app_udp\n"
+               "add element inet luxos app_tcp { 47923, 47924 }\n")
+        script = ('set -e; nft -f "$1"; printf "%s" "$2" | nft -f -; nft list set inet luxos app_tcp; '
+                  'echo ---; nft list set inet luxos app_udp')
+        r = subprocess.run(["unshare", "-rn", "sh", "-c", script, "sh", rules, upd], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        tcp, udp = r.stdout.split("---")
+        self.assertIn("47923", tcp)
+        self.assertIn("47924", tcp)
+        self.assertNotIn("53317", udp)
 
     @unittest.skipUnless(NETNS, "unshare -rn + nft not available")
     def test_load_unload_in_netns(self):
