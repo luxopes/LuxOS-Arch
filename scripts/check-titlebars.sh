@@ -48,7 +48,6 @@ apps=(
     packages/luxos-sandbox/files/luxos-sandbox-gui
     packages/luxos-store/files/luxos-store      # potrebuje AppStream (na LuxOS je)
     packages/luxos-care/files/luxos-update
-    "$priv/packages/luxos-domain/files/luxos-domain-settings"   # LUXOS_DOMAIN_CLI = zastupny prikaz (bez domeny)
 )
 fail=0
 for a in "${apps[@]}"; do
@@ -59,4 +58,19 @@ for a in "${apps[@]}"; do
     printf '%-60s %s\n' "$a" "${out#LUXOS-TITLEBAR }"
     [[ $out == *FAIL* ]] && fail=1
 done
+# Firemni sit (luxos-domain-settings) je od 1.0.0-3 nativni program v LSL: horni listu se zaviracim
+# tlacitkem overuje jeho vlastni test GUI v soukromem repozitari (zastupny lux-domain, stejna Xvfb)
+dt=$priv/packages/luxos-domain/tests/gui-settings.py
+if [[ -f $dt ]]; then
+    if out=$(LUXOS_PUBLIC_DIR=$PWD timeout 600 dbus-run-session -- python3 "$dt" 2>&1 </dev/null) \
+        && grep -q '^ok *title bar visible with close button' <<<"$out"; then
+        printf '%-60s %s\n' "luxos-domain-settings (LSL, private tests/gui-settings.py)" "ok"
+    else
+        printf '%-60s %s\n' "luxos-domain-settings (LSL, private tests/gui-settings.py)" "FAIL"
+        grep -v '^ok' <<<"$out" | tail -20
+        fail=1
+    fi
+else
+    echo "skipped luxos-domain-settings (proprietary, set LUXOS_PRIVATE_DIR)"
+fi
 exit $fail
