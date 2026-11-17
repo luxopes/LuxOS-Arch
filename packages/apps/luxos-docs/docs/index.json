@@ -683,6 +683,25 @@
           ]
         },
         {
+          "path": "luxos/displays.md",
+          "title": "Displays",
+          "summary": "Displays settings: monitor arrangement per set of monitors, main display, mirroring, Super+P, resolution, text size and the 15 s confirmation.",
+          "keywords": [
+            "displays",
+            "luxos-display-settings",
+            "luxos-displays",
+            "resolution",
+            "multiple monitors",
+            "arrangement",
+            "main display",
+            "primary monitor",
+            "mirror",
+            "layouts",
+            "super+p",
+            "text size"
+          ]
+        },
+        {
           "path": "luxos/network-admin.md",
           "title": "Router app (network administration)",
           "summary": "Router app (luxos-router): network details, default gateway, router web admin inside the app limited to the home network, self-signed certificates, devices on the LAN with vendor lookup, ping/DNS/speed tests.",
