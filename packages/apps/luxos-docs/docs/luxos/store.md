@@ -5,7 +5,8 @@ install with one click, open, remove and update apps from the LuxOS and Arch Lin
 
 - Launch: Launchpad/Search "LuxOS Store", or `luxos-store [search text]` (the optional argument
   pre-fills the search box).
-- Package: `luxos-store` in `[luxos]` (`/usr/bin/luxos-store`, Python + GTK 3).
+- Package: `luxos-store` in `[luxos]` (`/usr/bin/luxos-store`, Python + GTK 3; the code is the precompiled
+  module `/usr/lib/luxos/python/luxos_store_app.py`).
 - Root actions: `/usr/lib/luxos/luxos-store-helper` through `pkexec`
   (polkit action `org.luxos.store.manage`, admin password, remembered for a short time).
 
@@ -63,8 +64,24 @@ by `/usr/lib/luxos/python/luxos_app_catalog.py generate REPO_ROOT`.
   arrived in a newer package version than the installed one (its `.desktop` is not on the system yet) –
   Update opens the Updates page.
 - The Store keeps the catalog in `~/.cache/luxos-store/apps.json`; an older copy (6 hours) is used
-  immediately and refreshed in the background. Without any catalog (first start offline) the same
-  selection is built from the `.desktop` files of the installed LuxOS packages.
+  immediately and refreshed in the background (conditional download with ETag – an unchanged catalog is
+  not downloaded again); a changed catalog updates the open page in place. Without any catalog (first
+  start offline) the same selection is built from the `.desktop` files of the installed LuxOS packages.
+
+## Start-up
+
+- The app list appears immediately: the Store shows the list from its last run
+  (`~/.cache/luxos-store/store-snapshot.json`, per language and catalog channel) and loads everything
+  in the background – repository databases, installed packages and AppStream at the same time. When the
+  load finishes, the open page only gets the new state (buttons, icons, new or removed apps) without
+  jumping back to the top; an app page opened from the quick list fills in its description and
+  screenshots. Nothing waits for the network: the catalog, missing icons (all in one parallel download)
+  and the `.lux` index arrive later and are added as they come.
+- First start (no list from a previous run): placeholder cards, LuxOS apps as soon as the repository
+  databases are read, Arch apps when AppStream has loaded (building the AppStream cache after an update of
+  `archlinux-appstream-data` takes a few seconds).
+- Long lists (a category with hundreds of apps) show the first screen at once and add the rest in
+  batches; icons are decoded in the background at display size and kept in memory.
 
 ## Layout
 

@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import queue
 import re
 import subprocess
 import sys
@@ -28,7 +29,23 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("AppStream", "1.0")
-from gi.repository import AppStream, Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
+
+
+class _LazyAppStream:
+    """gi.repository.AppStream az pri prvnim pouziti (nacteni ~50 ms zdrzovalo prvni zobrazeni; potrebuje ho
+    az uplne nacteni katalogu na pozadi)."""
+
+    def __getattr__(self, name):
+        from gi.repository import AppStream as mod
+        return getattr(mod, name)
+
+    def __setattr__(self, name, value):
+        from gi.repository import AppStream as mod
+        setattr(mod, name, value)
+
+
+AppStream = _LazyAppStream()
 
 # GLib 2.86+: DesktopAppInfo je v GioUnix (Gio.DesktopAppInfo pri kazdem pouziti varuje na stderr)
 try:
@@ -72,6 +89,14 @@ SCREEN_CACHE = os.path.join(CACHE_DIR, "screens")
 SCREEN_THUMB_HEIGHT = 230        # vyska nahledu snimku na strance aplikace
 METAINFO_DIR = "/usr/share/metainfo/"
 CATALOG_MAX_AGE = 6 * 3600      # starsi katalog se pouzije hned a obnovi na pozadi
+# Kopie seznamu aplikaci z minuleho spusteni: seznam je na obrazovce hned, uplne nacteni (databaze
+# repozitaru, AppStream - 1-6 s) bezi na pozadi a seznam pak jen doplni
+SNAPSHOT = os.path.join(CACHE_DIR, "store-snapshot.json")
+SNAPSHOT_FORMAT = 1
+FIRST_CATALOG_WAIT = 2.0        # prvni spusteni bez katalogu: tak dlouho se ceka na stazeni (pak bez nej)
+LUX_INDEX_WAIT = 0.3            # index .lux (muze cekat na sit) se pak doplni dodatecne
+GRID_FIRST = 30                 # karty hned (prvni obrazovka), dalsi po davkach v necinnosti
+GRID_BATCH = 60
 # Katalog v mistnim repozitari live systemu (ISO, instalace bez internetu)
 LOCAL_CATALOGS = ("/opt/luxos-repo/apps.json",)
 OUR_REPOS = ("luxos", "luxos-apps")
@@ -157,6 +182,7 @@ CSS = b"""
 .shot-viewer { background-color: #15161d; }
 .shot-viewer .shot-nav { color: white; background-color: alpha(white, 0.14); border-color: alpha(white, 0.2); }
 .shot-count { font-weight: 700; opacity: 0.7; }
+.skeleton { border-radius: 8px; background-color: alpha(currentColor, 0.09); }
 """
 
 # Balicky, po jejichz aktualizaci je potreba restart (jadro, ovladace, zakladni knihovny)
@@ -181,6 +207,9 @@ class App:
         self.featured, self.system = featured, system
         # dlouhy popis ([{"p": text} | {"ul": [text]}]) a snimky ([{"url", "width", "height", "dark"}])
         self.blocks, self.screenshots = blocks, screenshots
+        # klic v Catalog.apps (stejna aplikace po obnoveni katalogu), .desktop aplikace AppStream
+        # a partial = rychla kopie z minuleho spusteni (popis a snimky az po uplnem nacteni)
+        self.key, self.launchable, self.partial = pkg, None, False
 
     def description_blocks(self):
         if self.blocks is None:
@@ -224,44 +253,155 @@ class App:
             lc = self.component.get_launchable(AppStream.LaunchableKind.DESKTOP_ID)
             if lc and lc.get_entries():
                 return lc.get_entries()[0]
+        if self.launchable:
+            return self.launchable
         return f"{self.pkg}.desktop"
 
-    def icon_pixbuf(self, size):
+    def appstream_icon(self, size):
+        """Ikona komponenty AppStream: (nazev ikony z motivu, soubor v mezipameti nejblizsi velikosti)."""
+        stock, best = None, None
+        for ic in self.component.get_icons() if self.component else []:
+            if ic.get_kind() == AppStream.IconKind.STOCK and not stock:
+                stock = ic.get_name()
+            if ic.get_filename() and (best is None or abs(ic.get_width() - size) < abs(best.get_width() - size)):
+                best = ic
+        return stock, best.get_filename() if best else None
+
+    def icon_sources(self, size):
+        """Zdroje ikony v poradi: soubory (nacitaji se ve vlakne na pozadi), nebo hotovy obrazek z motivu
+        bez souboru (vestavene ikony). Hledani v motivu je rychle; dekodovani obrazku ne."""
         theme = Gtk.IconTheme.get_default()
-        if self.icon_name and theme.has_icon(self.icon_name):
+        stock, as_file = self.appstream_icon(size) if self.component else (None, None)
+        names = [self.icon_name, stock]
+        files = [self.icon_file, as_file]
+        out = []
+
+        def themed(name):
+            if not name or not theme.has_icon(name):
+                return None
+            info = theme.lookup_icon(name, size, Gtk.IconLookupFlags.FORCE_SIZE)
+            if info is None:
+                return None
+            if info.get_filename():
+                return info.get_filename()
             try:
-                return theme.load_icon(self.icon_name, size, Gtk.IconLookupFlags.FORCE_SIZE)
+                return info.load_icon()
             except GLib.Error:
-                pass
-        if self.icon_file:
-            try:
-                return GdkPixbuf.Pixbuf.new_from_file_at_size(self.icon_file, size, size)
-            except GLib.Error:
-                pass
-        if self.component:
-            best = None
-            for ic in self.component.get_icons():
-                kind = ic.get_kind()
-                if kind == AppStream.IconKind.STOCK and theme.has_icon(ic.get_name()):
-                    try:
-                        return theme.load_icon(ic.get_name(), size, Gtk.IconLookupFlags.FORCE_SIZE)
-                    except GLib.Error:
-                        pass
-                if ic.get_filename() and (best is None or abs(ic.get_width() - size) < abs(best.get_width() - size)):
-                    best = ic
-            if best:
-                try:
-                    return GdkPixbuf.Pixbuf.new_from_file_at_size(best.get_filename(), size, size)
-                except GLib.Error:
-                    pass
+                return None
+        # poradi jako drive: ikona z motivu, stazena ikona, AppStream (motiv, soubor), nahradni ikony
+        for src in (themed(names[0]), files[0], themed(names[1]), files[1]):
+            if src is not None and (not isinstance(src, str) or os.path.exists(src)):
+                out.append(src)
         fallback = "luxos-app" if self.is_luxos else "application-x-executable"
         for name in (self.pkg, fallback, "application-x-executable"):
-            if theme.has_icon(name):
-                try:
-                    return theme.load_icon(name, size, Gtk.IconLookupFlags.FORCE_SIZE)
-                except GLib.Error:
-                    continue
+            src = themed(name)
+            if src is not None:
+                out.append(src)
+                break
+        return out
+
+    def icon_pixbuf(self, size):
+        """Ikona hned (stranka aplikace, seznam aktualizaci); karty v seznamech ji nacitaji na pozadi."""
+        return ICONS.load_sync(self, size)
+
+    def to_snapshot(self):
+        """Zaznam pro rychle zobrazeni pri pristim spusteni (bez objektu AppStream)."""
+        d = {"key": self.key, "pkg": self.pkg, "name": self.name, "summary": self.summary, "repo": self.repo,
+             "version": self.version, "size": self.size, "categories": list(self.categories or []),
+             "luxos": self.luxos, "desktop": self.desktop, "icon_name": self.icon_name,
+             "icon_file": self.icon_file, "featured": self.featured, "system": self.system,
+             "description": self.description, "launchable": self.launchable}
+        if self.component:
+            # popis, snimky a odkaz doplni az uplne nacteni (komponenta AppStream)
+            d["partial"] = True
+            stock, as_file = self.appstream_icon(ICON_SIZE)
+            d["icon_name"], d["icon_file"] = self.icon_name or stock, self.icon_file or as_file
+            d["launchable"] = self.desktop_id()
+        else:
+            d["blocks"], d["screenshots"] = self.blocks, self.screenshots
+        return d
+
+    @classmethod
+    def from_snapshot(cls, d):
+        app = cls(d["pkg"], d["name"], d.get("summary") or "", d["repo"], d.get("version") or "",
+                  int(d.get("size") or 0), description=d.get("description") or "", icon_file=d.get("icon_file"),
+                  categories=d.get("categories") or [], luxos=bool(d.get("luxos")), desktop=d.get("desktop"),
+                  icon_name=d.get("icon_name"), featured=int(d.get("featured") or 0),
+                  system=bool(d.get("system")), blocks=d.get("blocks"), screenshots=d.get("screenshots"))
+        app.key, app.launchable, app.partial = d["key"], d.get("launchable"), bool(d.get("partial"))
+        return app
+
+
+class IconLoader:
+    """Ikony karet: zdroj se najde v hlavnim vlakne (motiv), soubor se dekoduje a zmensi na velikost
+    zobrazeni ve vlakne na pozadi; hotove obrazky zustavaji v pameti (dalsi stranky jsou hned)."""
+
+    def __init__(self):
+        self.cache = {}             # (zdroje, velikost) -> Pixbuf | None
+        self.waiting = {}           # (zdroje, velikost) -> [callback]
+        self.queue = queue.Queue()
+        self.lock = threading.Lock()
+        self.thread = None
+
+    @staticmethod
+    def _key(sources, size):
+        return tuple(s if isinstance(s, str) else id(s) for s in sources), size
+
+    @staticmethod
+    def _decode(sources, size):
+        for src in sources:
+            if not isinstance(src, str):
+                return src
+            try:
+                return GdkPixbuf.Pixbuf.new_from_file_at_size(src, size, size)
+            except GLib.Error:
+                continue
         return None
+
+    def load_sync(self, app, size):
+        sources = app.icon_sources(size)
+        key = self._key(sources, size)
+        if key not in self.cache:
+            self.cache[key] = self._decode(sources, size)
+        return self.cache[key]
+
+    def request(self, app, size, callback):
+        """callback(pixbuf) hned (v pameti), nebo pozdeji z hlavni smycky. Vraci True = hned."""
+        sources = app.icon_sources(size)
+        key = self._key(sources, size)
+        if key in self.cache:
+            if self.cache[key] is not None:
+                callback(self.cache[key])
+            return True
+        if not sources:
+            self.cache[key] = None
+            return True
+        if key in self.waiting:
+            self.waiting[key].append(callback)
+            return False
+        self.waiting[key] = [callback]
+        self.queue.put((key, sources, size))
+        with self.lock:
+            if self.thread is None:
+                self.thread = threading.Thread(target=self._work, daemon=True)
+                self.thread.start()
+        return False
+
+    def _work(self):
+        while True:
+            key, sources, size = self.queue.get()
+            pix = self._decode(sources, size)
+            GLib.idle_add(self._done, key, pix)
+
+    def _done(self, key, pix):
+        self.cache[key] = pix
+        for cb in self.waiting.pop(key, []):
+            if pix is not None:
+                cb(pix)
+        return False
+
+
+ICONS = IconLoader()
 
 
 def run(*cmd, timeout=60):
@@ -341,43 +481,70 @@ def prefers_dark():
 
 
 class Catalog:
-    """Vsechny aplikace a stav nainstalovanych balicku."""
+    """Vsechny aplikace a stav nainstalovanych balicku.
+
+    Zobrazeni nikdy neceka na sit: pri spusteni se hned ukaze kopie z minuleho spusteni (load_snapshot),
+    uplne nacteni (load) bezi na pozadi a jeho zdroje soubezne; katalog LuxOS se obnovuje na pozadi
+    (ETag) a balicky .lux se doplni, az dorazi. Kazdou pozdejsi zmenu hlasi on_change (z vlakna na pozadi)."""
 
     def __init__(self):
         self.apps = {}
         self.installed = set()
         self.updates = []
         self.update_info = {}
-        self.pending_icons = []
+        self.pending_icons = []             # [(klic aplikace, adresa, soubor)]
         self.flathub_apps = []
-        self.catalog_refresh = False        # katalog LuxOS stahnout znovu na pozadi (starsi kopie)
+        self.flatpaks = []                  # nainstalovane aplikace Flatpak (stranka Nainstalovane)
         self.catalog_base = CATALOG_URL.rsplit("/", 1)[0]     # adresa, vuci ktere jsou snimky v katalogu
+        self.lock = threading.RLock()
+        self.loaded = False                 # uplne nacteni hotove (ne jen kopie z minuleho spusteni)
+        self.sync = {}
+        self.lux_index = None
+        self.on_change = None
+
+    def notify(self):
+        if self.on_change:
+            self.on_change()
+
+    @staticmethod
+    def background(fn, *args):
+        t = threading.Thread(target=fn, args=args, daemon=True)
+        t.start()
+        return t
 
     def load(self):
-        # bez cerstveho katalogu LuxOS: stahuje se soubezne s nacitanim repozitaru
+        """Uplne nacteni: databaze repozitaru, nainstalovane baliky a AppStream soubezne (driv po sobe)."""
+        have_catalog = any(os.path.exists(p) for p in (CATALOG_CACHE,) + LOCAL_CATALOGS)
         fetch = None
         if not self.catalog_fresh():
-            fetch = threading.Thread(target=self.fetch_catalog, daemon=True)
-            fetch.start()
-        sync = {}
-        # repo, nazev, verze, velikost po instalaci, popis (lux_alpm list --sync); bez pyalpm aspon
-        # nazvy a verze z lux-engine -Sl
-        out = run(LUX_ALPM, "--color=never", "list", "--sync", timeout=120)
-        if not out.strip():
-            out = "\n".join("\t".join(ln.split()[:3] + ["0", ""]) for ln in run(ENGINE, "-Sl", timeout=120).splitlines()
-                            if len(ln.split()) >= 3)
-        for line in out.splitlines():
-            parts = line.split("\t")
-            if len(parts) == 5 and parts[1] not in sync:
-                sync[parts[1]] = parts
-        self.refresh_installed()
-        pool = AppStream.Pool()
-        try:
-            pool.load()
-            box = pool.get_components_by_kind(AppStream.ComponentKind.DESKTOP_APP)
-            comps = box.as_array()
-        except GLib.Error:
-            comps = []
+            # starsi katalog se pouzije hned, novy nahradi aplikace LuxOS, az dorazi
+            fetch = self.background(self.refresh_catalog, CATALOG_URL, CATALOG_CACHE)
+        lux = self.background(self.fetch_lux_index)
+        res = {}
+        work = [self.background(lambda: res.__setitem__("sync", self.read_sync())),
+                self.background(lambda: res.__setitem__("installed", self.query_installed()))]
+        pool = self.background(lambda: res.__setitem__("comps", self.appstream_components()))
+        for t in work:
+            t.join()
+        sync = res.get("sync", {})
+        if fetch and not have_catalog:
+            # prvni spusteni bez katalogu: chvili pockat, jinak aplikace z nainstalovanych baliku
+            fetch.join(FIRST_CATALOG_WAIT)
+        if pool.is_alive():
+            # AppStream jeste nacita (prvni spusteni, po aktualizaci dat AppStream az 4 s): bez kopie
+            # z minuleho spusteni zatim aspon aplikace LuxOS
+            early = False
+            with self.lock:
+                if not self.apps and not self.loaded:
+                    first = {}
+                    self.installed, self.sync = res.get("installed", set()), sync
+                    self.load_luxos_apps(first, sync)
+                    self.apps, early = first, bool(first)
+            if early:
+                self.notify()
+            pool.join()
+        comps = res.get("comps", [])
+        lux.join(LUX_INDEX_WAIT)
         apps = {}
         for c in comps:
             pkg = c.get_pkgname()
@@ -386,11 +553,77 @@ class Catalog:
                 continue
             repo, _n, ver, size, _d = sync[pkg]
             apps[pkg] = App(pkg, c.get_name() or pkg, c.get_summary() or "", repo, ver, int(size or 0), c)
-        if fetch:
-            fetch.join()
-        self.load_luxos_apps(apps, sync)
-        self.load_lux(apps)
-        self.apps = apps
+        with self.lock:
+            self.installed = res.get("installed", set())
+            self.sync = sync
+            self.load_luxos_apps(apps, sync)
+            if self.lux_index is not None:
+                self.load_lux(apps, self.lux_index)
+            self.apps = apps
+            self.loaded = True
+
+    @staticmethod
+    def appstream_components():
+        pool = AppStream.Pool()
+        try:
+            pool.load()
+            return pool.get_components_by_kind(AppStream.ComponentKind.DESKTOP_APP).as_array()
+        except GLib.Error:
+            return []
+
+    def read_sync(self):
+        """repo, nazev, verze, velikost po instalaci, popis (lux_alpm list --sync); bez pyalpm aspon
+        nazvy a verze z lux-engine -Sl"""
+        sync = {}
+        out = run(LUX_ALPM, "--color=never", "list", "--sync", timeout=120)
+        if not out.strip():
+            out = "\n".join("\t".join(ln.split()[:3] + ["0", ""]) for ln in run(ENGINE, "-Sl", timeout=120).splitlines()
+                            if len(ln.split()) >= 3)
+        for line in out.splitlines():
+            parts = line.split("\t")
+            if len(parts) == 5 and parts[1] not in sync:
+                sync[parts[1]] = parts
+        return sync
+
+    # ---- kopie z minuleho spusteni ----
+    def load_snapshot(self):
+        """Aplikace z minuleho spusteni (stejny jazyk a kanal katalogu). True = jsou k zobrazeni."""
+        try:
+            with open(SNAPSHOT, encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("format") != SNAPSHOT_FORMAT or data.get("lang") != LANG or \
+                    data.get("catalog") != CATALOG_URL:
+                return False
+            apps = {}
+            for d in data["apps"]:
+                app = App.from_snapshot(d)
+                apps[app.key] = app
+            installed = set(data.get("installed") or [])
+            base = data.get("catalog_base") or self.catalog_base
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            return False
+        if not apps:
+            return False
+        with self.lock:
+            if self.loaded:             # uplne nacteni bylo rychlejsi
+                return True
+            self.apps, self.installed, self.catalog_base = apps, installed, base
+        return True
+
+    def save_snapshot(self):
+        with self.lock:
+            apps, installed = list(self.apps.values()), sorted(self.installed)
+        try:
+            data = {"format": SNAPSHOT_FORMAT, "lang": LANG, "catalog": CATALOG_URL,
+                    "catalog_base": self.catalog_base, "installed": installed,
+                    "apps": [a.to_snapshot() for a in apps]}
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            tmp = f"{SNAPSHOT}.{os.getpid()}.part"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+            os.replace(tmp, SNAPSHOT)
+        except (OSError, TypeError, ValueError):
+            pass
 
     # ---- katalog aplikaci LuxOS ----
     def catalog_fresh(self):
@@ -399,23 +632,59 @@ class Catalog:
         except OSError:
             return False
 
-    def fetch_catalog(self):
-        """Stazeni katalogu do mezipameti (jen platny katalog nahradi predchozi). True = stazen."""
-        if os.path.exists(DATASAVER) and os.path.exists(CATALOG_CACHE):
+    def fetch_catalog(self, url=None, cache=None):
+        """Stazeni katalogu do mezipameti (jen platny katalog nahradi predchozi; podminene podle ETag,
+        nezmeneny katalog se znovu nestahuje). True = katalog se zmenil."""
+        url, cache = url or CATALOG_URL, cache or CATALOG_CACHE
+        if os.path.exists(DATASAVER) and os.path.exists(cache):
             return False        # setric dat: starsi katalog staci
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        tmp = CATALOG_CACHE + ".part"
-        run("curl", "-fsSL", "--max-time", "8", "-o", tmp, CATALOG_URL, timeout=10)
-        try:
-            with open(tmp, encoding="utf-8") as f:
-                ok = luxos_app_catalog.load_catalog(f.read()) is not None
-        except (OSError, UnicodeDecodeError):
-            ok = False
-        if ok:
-            os.replace(tmp, CATALOG_CACHE)
-        elif os.path.exists(tmp):
-            os.unlink(tmp)
-        return ok
+        os.makedirs(os.path.dirname(cache), exist_ok=True)
+        tmp, etag, etag_new = cache + ".part", cache + ".etag", cache + ".etag.new"
+        cond = ["--etag-compare", etag] if os.path.exists(cache) and os.path.exists(etag) else []
+        code = run("curl", "-fsSL", "--connect-timeout", "5", "--max-time", "8", "-o", tmp, "-w", "%{http_code}",
+                   *cond, "--etag-save", etag_new, url, timeout=10).strip()
+        changed = False
+        if code == "304":
+            # nezmeneny katalog: kopie v mezipameti je opet cerstva
+            try:
+                os.utime(cache)
+            except OSError:
+                pass
+        else:
+            try:
+                with open(tmp, encoding="utf-8") as f:
+                    text = f.read()
+                ok = luxos_app_catalog.load_catalog(text) is not None
+            except (OSError, UnicodeDecodeError):
+                ok, text = False, None
+            if ok:
+                try:
+                    with open(cache, encoding="utf-8") as f:
+                        changed = f.read() != text
+                except (OSError, UnicodeDecodeError):
+                    changed = True
+                os.replace(tmp, cache)
+                if os.path.exists(etag_new) and os.path.getsize(etag_new):
+                    os.replace(etag_new, etag)
+                elif os.path.exists(etag):
+                    os.unlink(etag)         # server bez ETag: priste cely katalog
+        for p in (tmp, etag_new):
+            if os.path.exists(p):
+                os.unlink(p)
+        return changed
+
+    def refresh_catalog(self, url=None, cache=None):
+        """Obnoveni katalogu na pozadi; zmeneny katalog nahradi aplikace LuxOS (po uplnem nacteni)."""
+        if not self.fetch_catalog(url, cache):
+            return False
+        with self.lock:
+            if not self.loaded:
+                return True             # uplne nacteni teprve precte katalog
+            apps = {k: a for k, a in self.apps.items() if not a.luxos}
+            self.load_luxos_apps(apps, self.sync)
+            self.apps = apps
+        self.notify()
+        return True
 
     def read_catalog(self):
         """Katalog: mezipamet (i starsi, obnovi se na pozadi), katalog mistniho repozitare, jinak None."""
@@ -426,11 +695,9 @@ class Catalog:
             except (OSError, UnicodeDecodeError):
                 continue
             if data:
-                self.catalog_refresh = path != CATALOG_CACHE or not self.catalog_fresh()
                 self.catalog_base = (CATALOG_URL.rsplit("/", 1)[0] if path == CATALOG_CACHE
                                      else "file://" + os.path.dirname(path))
                 return data
-        self.catalog_refresh = True
         return None
 
     def installed_catalog(self, sync):
@@ -470,16 +737,18 @@ class Catalog:
                 # nenainstalovana aplikace: ikona ze serveru (nainstalovana ma ikonu v motivu)
                 icon = os.path.join(ICON_CACHE, "app-" + os.path.basename(e["icon_file"]))
                 if not (os.path.exists(icon) and os.path.getsize(icon)):
-                    self.pending_icons.append((key, [(f"{icon_base}/{os.path.basename(e['icon_file'])}", icon)]))
+                    self.pending_icons.append((key, f"{icon_base}/{os.path.basename(e['icon_file'])}", icon))
                     icon = None
             names, summaries = e.get("names") or {}, e.get("summaries") or {}
             desc = e.get("description") if isinstance(e.get("description"), dict) else {}
             blocks = [b for b in (desc.get(LANG) or desc.get("en") or []) if isinstance(b, dict)]
-            apps[key] = App(pkg, names.get(LANG) or _(e["name"]), summaries.get(LANG) or _(e.get("summary", "")),
-                            repo, ver, int(size or 0), icon_file=icon, categories=e.get("categories") or ["System"],
-                            luxos=True, desktop=e["id"], icon_name=e.get("icon") or None,
-                            featured=int(e.get("featured") or 0), system=bool(e.get("system")),
-                            blocks=blocks, screenshots=self.catalog_screens(e))
+            app = App(pkg, names.get(LANG) or _(e["name"]), summaries.get(LANG) or _(e.get("summary", "")),
+                      repo, ver, int(size or 0), icon_file=icon, categories=e.get("categories") or ["System"],
+                      luxos=True, desktop=e["id"], icon_name=e.get("icon") or None,
+                      featured=int(e.get("featured") or 0), system=bool(e.get("system")),
+                      blocks=blocks, screenshots=self.catalog_screens(e))
+            app.key = key
+            apps[key] = app
 
     def catalog_screens(self, entry):
         """Snimky aplikace z katalogu: adresy vuci umisteni katalogu (jen relativni cesty app-screens/...)."""
@@ -499,32 +768,52 @@ class Catalog:
         return out
 
     def fetch_icons(self):
-        """Stazeni chybejicich ikon na pozadi (pomala sit nesmi zdrzet zobrazeni obchodu)."""
-        changed = False
-        os.makedirs(ICON_CACHE, exist_ok=True)
+        """Stazeni chybejicich ikon na pozadi, vsech jednim curl soubezne (driv kazda zvlast az 6 s).
+        Vraci klice aplikaci s novou ikonou."""
         pending, self.pending_icons = self.pending_icons, []
-        for pkg, candidates in pending:
-            for url, path in candidates:
-                run("curl", "-fsSL", "--max-time", "6", "-o", path, url, timeout=8)
-                if os.path.exists(path) and os.path.getsize(path):
-                    if pkg in self.apps:        # klic aplikace (balik nebo desktop-id aplikace LuxOS)
-                        self.apps[pkg].icon_file = path
-                    for a in self.flathub_apps:
-                        if a.pkg == pkg:
-                            a.icon_file = path
-                    changed = True
-                    break
-                if os.path.exists(path):
-                    os.unlink(path)
+        todo = {}
+        for key, url, path in pending:
+            todo.setdefault(path, (url, set()))[1].add(key)
+        if not todo:
+            return set()
+        os.makedirs(ICON_CACHE, exist_ok=True)
+        args = []
+        for path, (url, _keys) in todo.items():
+            if not (os.path.exists(path) and os.path.getsize(path)):
+                args += ["-o", path + ".part", url]
+        if args:
+            run("curl", "-fsSL", "--parallel", "--parallel-max", "8", "--connect-timeout", "5", "--max-time", "10",
+                *args, timeout=20)
+        changed = set()
+        for path, (_url, keys) in todo.items():
+            part = path + ".part"
+            if os.path.exists(part) and os.path.getsize(part):
+                os.replace(part, path)
+            elif os.path.exists(part):
+                os.unlink(part)
+            if not (os.path.exists(path) and os.path.getsize(path)):
+                continue
+            apps = self.apps                # klic aplikace (balik nebo desktop-id aplikace LuxOS)
+            for key in keys:
+                if key in apps:
+                    apps[key].icon_file = path
+                for a in self.flathub_apps:
+                    if a.pkg == key:
+                        a.icon_file = path
+                changed.add(key)
         return changed
 
-    def refresh_installed(self):
-        self.installed = set(run(ENGINE, "-Qq").split())
+    def query_installed(self):
+        installed = set(run(ENGINE, "-Qq").split())
         try:
-            self.installed |= {f[:-5] for f in os.listdir(LUX_DB) if f.endswith(".json")}
+            installed |= {f[:-5] for f in os.listdir(LUX_DB) if f.endswith(".json")}
         except OSError:
             pass
-        self.installed |= set(run("flatpak", "list", "--app", "--columns=application", timeout=20).split())
+        installed |= set(run("flatpak", "list", "--app", "--columns=application", timeout=20).split())
+        return installed
+
+    def refresh_installed(self):
+        self.installed = self.query_installed()
 
     def flathub_search(self, text):
         """Aplikace z Flathubu pro hledany text (bez tech, ktere uz jsou v repozitarich)."""
@@ -543,7 +832,7 @@ class Catalog:
             if os.path.exists(path) and os.path.getsize(path):
                 icon = path
             elif len(parts) > 3 and parts[3].startswith("https://dl.flathub.org/"):
-                self.pending_icons.append((app_id, [(parts[3], path)]))
+                self.pending_icons.append((app_id, parts[3], path))
             apps.append(App(app_id, name, summary, "flathub", icon_file=icon))
             if len(apps) >= FLATHUB_SEARCH_LIMIT:
                 break
@@ -563,22 +852,36 @@ class Catalog:
         except ValueError:
             return None
 
-    def load_lux(self, apps):
-        """Balicky ve vlastnim formatu LuxOS (overeny index z lux __index)."""
+    def fetch_lux_index(self):
+        """Overeny index balicku .lux (lux __index; muze cekat na sit) - aplikace se doplni, az dorazi."""
         try:
             index = json.loads(run("lux", "__index", timeout=15) or "{}")
         except ValueError:
-            return
-        os.makedirs(ICON_CACHE, exist_ok=True)
-        for p in index.get("packages", []):
-            name = p.get("name")
+            index = {}
+        if not isinstance(index, dict):
+            index = {}
+        with self.lock:
+            self.lux_index = index
+            if not self.loaded:
+                return
+            apps = dict(self.apps)
+            self.load_lux(apps, index)
+            if len(apps) == len(self.apps):
+                return
+            self.apps = apps
+        self.notify()
+
+    def load_lux(self, apps, index):
+        """Balicky ve vlastnim formatu LuxOS (overeny index z lux __index)."""
+        for p in index.get("packages") or []:
+            name = p.get("name") if isinstance(p, dict) else None
             if not name or name in apps:
                 continue
             icon = None
             if p.get("icon"):
                 icon = os.path.join(ICON_CACHE, p["icon"])
                 if not os.path.exists(icon):
-                    self.pending_icons.append((name, [(f"{LUX_INDEX_URL}/{p['icon']}", icon)]))
+                    self.pending_icons.append((name, f"{LUX_INDEX_URL}/{p['icon']}", icon))
                     icon = None
             apps[name] = App(name, p.get("title") or name, p.get("summary", ""), "lux",
                              f"{p.get('version', '')}-{p.get('release', 1)}", int(p.get("size", 0)),
@@ -646,18 +949,24 @@ class AppCard(Gtk.EventBox):
         box.pack_start(text, True, True, 0)
         self.button = Gtk.Button(valign=Gtk.Align.CENTER, can_focus=False)
         self.button.get_style_context().add_class("get")
-        self.button.connect("clicked", lambda _b: store.primary_action(app))
+        # self.app: po obnoveni katalogu muze karta dostat novejsi objekt teze aplikace (rebind)
+        self.button.connect("clicked", lambda _b: store.primary_action(self.app))
         box.pack_end(self.button, False, False, 0)
         self.add(box)
         self.connect("button-release-event", self.on_click)
         self.update()
-        GLib.idle_add(self.load_icon)
+        self.load_icon()
 
     def load_icon(self):
-        pix = self.app.icon_pixbuf(ICON_SIZE)
-        if pix:
-            self.image.set_from_pixbuf(pix)
+        """Ikona z pameti hned, jinak se dekoduje na pozadi (karta je na obrazovce hned bez ni)."""
+        ICONS.request(self.app, ICON_SIZE, self.image.set_from_pixbuf)
         return False
+
+    def rebind(self, app):
+        """Novejsi zaznam teze aplikace (stejny nazev a popis): jen stav tlacitka a ikona."""
+        self.app = app
+        self.update()
+        self.load_icon()
 
     def on_click(self, _w, ev):
         if ev.button == 1:
@@ -1229,11 +1538,12 @@ class Store(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("LuxOS Store"))
         self.set_default_size(1080, 720)
-        try:
-            from luxos_wm_icon import set_window_icons
-            set_window_icons(self, "luxos-store")    # ostra ikona 16-256 px (Dock, Alt+Tab)
-        except ImportError:
-            self.set_icon_name("luxos-store")
+        # ostra ikona 16-256 px (Dock, Alt+Tab) az po prvnim vykresleni (zmenseni ikon ~90 ms); do te doby
+        # ikona podle nazvu
+        self.set_icon_name("luxos-store")
+        self.icons_set = False
+        self.load_after_draw = self.load_started = False
+        self.connect_after("draw", self.on_first_draw)
         self.connect("key-press-event", self.on_window_key)
         self.catalog = Catalog()
         self.busy = {}
@@ -1307,10 +1617,44 @@ class Store(Gtk.Window):
         self.history = []
         self.current = ("discover", None)
 
-        spinner = Gtk.Spinner(active=True, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
-        spinner.set_size_request(32, 32)
-        self.scroll.add(spinner)
-        threading.Thread(target=self.load_catalog, daemon=True).start()
+        self.page_gen = 0               # cislo vykreslene stranky (davky karet patri jen k ni)
+        self.page_sig = None            # obsah vykreslene stranky (obnoveni katalogu: prekreslit jen pri zmene)
+        self.page_map = {}              # klic -> aplikace pro karty, ktere se jeste dostavuji po davkach
+        self.flathub_box = None
+        self.icon_fetch = False
+        self.snapshot_save = False
+        self.catalog.on_change = lambda: GLib.idle_add(self.catalog_changed)
+        # seznam hned: kopie z minuleho spusteni, jinak zastupne karty (zadne kolecko pres celou stranku)
+        if self.catalog.load_snapshot():
+            self.show_page("discover")
+            # uplne nacteni az po prvnim vykresleni (vlakno na pozadi by o GIL zdrzelo prvni snimek)
+            self.load_after_draw = True
+            GLib.timeout_add(400, self.start_load)      # okno, ktere se nevykresli (skryte)
+        else:
+            self.set_content(self.skeleton())
+            self.start_load()
+
+    def start_load(self):
+        if not self.load_started:
+            self.load_started, self.load_after_draw = True, False
+            threading.Thread(target=self.load_catalog, daemon=True).start()
+        return False
+
+    def on_first_draw(self, *_a):
+        if self.load_after_draw:
+            GLib.idle_add(self.start_load)
+        if not self.icons_set:
+            self.icons_set = True
+
+            def set_icons():
+                try:
+                    from luxos_wm_icon import set_window_icons
+                    set_window_icons(self, "luxos-store")
+                except ImportError:
+                    pass
+                return False
+            GLib.idle_add(set_icons, priority=GLib.PRIORITY_LOW)
+        return False
 
     def add_side(self, key, label, icon, listbox=None):
         row = Gtk.ListBoxRow()
@@ -1325,13 +1669,87 @@ class Store(Gtk.Window):
 
     def load_catalog(self):
         self.catalog.load()
-        GLib.idle_add(self.show_page, "discover")
-        if self.catalog.fetch_icons():
-            # stazene ikony: znovu vykreslit aktualni stranku
-            GLib.idle_add(lambda: self.show_page(*self.current) or False)
-        if self.catalog.catalog_refresh:
-            # starsi katalog LuxOS: novy pro pristi spusteni (zobrazeni neblokuje)
-            self.catalog.fetch_catalog()
+        GLib.idle_add(self.catalog_changed)
+
+    def catalog_changed(self):
+        """Uplne nacteni nebo pozdejsi zmena katalogu: aktualni stranka se doplni (zadny skok na Objevovat,
+        zadny posun na zacatek), chybejici ikony se stahnou a kopie pro pristi spusteni ulozi."""
+        self.refresh_page()
+        self.start_icon_fetch()
+        self.save_snapshot()
+        return False
+
+    def save_snapshot(self):
+        """Kopie seznamu pro pristi spusteni (na pozadi; jen z uplneho nacteni)."""
+        if self.catalog.loaded and not self.snapshot_save:
+            self.snapshot_save = True
+
+            def save():
+                self.catalog.save_snapshot()
+                GLib.idle_add(lambda: setattr(self, "snapshot_save", False) or False)
+            threading.Thread(target=save, daemon=True).start()
+
+    def start_icon_fetch(self):
+        if self.catalog.pending_icons and not self.icon_fetch:
+            self.icon_fetch = True
+            threading.Thread(target=lambda: GLib.idle_add(self.icons_fetched, self.catalog.fetch_icons()),
+                             daemon=True).start()
+
+    def icons_fetched(self, keys):
+        """Stazene ikony: jen dotcene karty a ikona na strance aplikace (driv se prekreslila cela stranka
+        - posun nahoru a prazdna stranka aplikace)."""
+        self.icon_fetch = False
+        for c in self.cards:
+            if c.app.key in keys or c.app.pkg in keys:
+                c.load_icon()
+        if self.current[0] == "detail" and getattr(self, "detail_image", None) and \
+                (self.current[1].key in keys or self.current[1].pkg in keys):
+            pix = self.current[1].icon_pixbuf(112)
+            if pix:
+                self.detail_image.set_from_pixbuf(pix)
+        self.start_icon_fetch()
+        return False
+
+    def refresh_page(self):
+        key, arg = self.current
+        if key == "detail":
+            # stranka aplikace z kopie: popis, snimky a odkaz doplni uplne nacteni
+            app = arg
+            new = self.catalog.apps.get(app.key)
+            if new is not None and new is not app and app.partial:
+                self.show_detail(new, push=False)
+            return
+        if key == "updates":
+            return
+        self.show_page(key, arg, refresh=True)
+
+    def skeleton(self):
+        """Zastupne karty pri prvnim spusteni (jeste bez kopie seznamu)."""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        box.pack_start(self.hero(), False, False, 0)
+        box.pack_start(self.skeleton_grid(9), False, False, 0)
+        return box
+
+    def skeleton_grid(self, count):
+        flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=12, row_spacing=12,
+                           homogeneous=True, min_children_per_line=1, max_children_per_line=3)
+        for _i in range(count):
+            card = Gtk.Box(spacing=12)
+            card.get_style_context().add_class("card")
+            card.set_size_request(300, -1)
+            icon = Gtk.Box()
+            icon.set_size_request(ICON_SIZE, ICON_SIZE)
+            icon.get_style_context().add_class("skeleton")
+            card.pack_start(icon, False, False, 0)
+            lines = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, valign=Gtk.Align.CENTER)
+            for w in (140, 200):
+                line = Gtk.Box()
+                line.set_size_request(w, 12)
+                line.get_style_context().add_class("skeleton")
+                lines.pack_start(line, False, False, 0)
+            card.pack_start(lines, True, True, 0)
+            flow.add(card)
+        return flow
 
     # ---- navigace ----
     def on_side(self, listbox, row):
@@ -1358,55 +1776,133 @@ class Store(Gtk.Window):
             key, arg = self.history.pop()
             self.show_page(key, arg)
 
-    def set_content(self, widget):
+    def begin_page(self):
+        """Nova stranka: karty a davky predchozi stranky uz neplati (driv set_content mazal seznam karet
+        az po jejich vytvoreni - po instalaci se tlacitka v seznamu neaktualizovala)."""
+        self.page_gen += 1
+        self.cards = []
+        self.page_map = {}
+        self.detail_image = None
+
+    def set_content(self, widget, keep_scroll=False):
+        adj = self.scroll.get_vadjustment()
+        pos = adj.get_value()
         child = self.scroll.get_child()
         if child:
             self.scroll.remove(child)
-        self.cards = []
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=24)
         page.pack_start(widget, False, False, 0)
         self.scroll.add(page)
-        self.scroll.get_vadjustment().set_value(0)
+        adj.set_value(0)
+        if keep_scroll and pos:
+            # doplneny seznam: stejne misto (az po rozmisteni noveho obsahu, pred vykreslenim)
+            GLib.idle_add(lambda: adj.set_value(min(pos, adj.get_upper() - adj.get_page_size())) or False,
+                          priority=GLib.PRIORITY_HIGH_IDLE + 15)
         self.back.set_visible(bool(self.history))
         self.scroll.show_all()
 
-    def show_page(self, key, arg=None):
-        self.current = (key, arg)
+    def page_sections(self, key, arg):
+        """Obsah stranky seznamu: [(druh, hodnota)] - nadpisy, mrizky aplikaci, vysledky Flathubu."""
         apps = self.catalog.apps
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        out = []
         if key == "discover":
-            box.pack_start(self.hero(), False, False, 0)
+            out.append(("hero", len(apps)))
             lux = [a for a in self.luxos_apps() if a.featured][:DISCOVER_LUXOS]
             if lux:
-                box.pack_start(self.section(_("From LuxOS")), False, False, 0)
-                box.pack_start(self.grid(lux), False, False, 0)
-            popular = [apps[p] for p in POPULAR if p in apps]
-            box.pack_start(self.section(_("Popular apps")), False, False, 0)
-            box.pack_start(self.grid(popular), False, False, 0)
+                out += [("section", _("From LuxOS")), ("grid", lux)]
+            out += [("section", _("Popular apps")), ("grid", [apps[p] for p in POPULAR if p in apps])]
         elif key == "luxos":
-            box.pack_start(self.title(_("LuxOS Apps")), False, False, 0)
-            box.pack_start(self.dim(_("Apps made for LuxOS, signed by the LuxOS team.")), False, False, 0)
-            box.pack_start(self.grid(self.luxos_apps()), False, False, 0)
+            out += [("title", _("LuxOS Apps")), ("dim", _("Apps made for LuxOS, signed by the LuxOS team.")),
+                    ("grid", self.luxos_apps())]
         elif key == "installed":
-            self.catalog.refresh_installed()
-            box.pack_start(self.title(_("Installed")), False, False, 0)
             inst = [a for a in apps.values() if a.pkg in self.catalog.installed]
-            inst += [a for a in self.catalog.installed_flatpaks() if a.pkg not in apps]
-            box.pack_start(self.grid(sorted(inst, key=lambda a: a.name.lower())), False, False, 0)
-        elif key == "updates":
-            box.pack_start(self.updates_page(arg), False, False, 0)
+            inst += [a for a in self.catalog.flatpaks if a.pkg not in apps]
+            out += [("title", _("Installed")), ("grid", sorted(inst, key=lambda a: a.name.lower()))]
         elif key == "search":
-            box.pack_start(self.title(_("Results for “%s”") % arg), False, False, 0)
-            box.pack_start(self.grid(self.find(arg)), False, False, 0)
-            box.pack_start(self.flathub_section(arg), False, False, 0)
+            out += [("title", _("Results for “%s”") % arg), ("grid", self.find(arg)), ("flathub", arg)]
         else:
             for ckey, label, cats, _icon in CATEGORIES:
                 if ckey == key:
-                    box.pack_start(self.title(_(label)), False, False, 0)
                     found = [a for a in apps.values() if any(c in cats for c in a.categories)]
                     found.sort(key=lambda a: (a.pkg not in POPULAR, a.name.lower()))
-                    box.pack_start(self.grid(found), False, False, 0)
-        self.set_content(box)
+                    out += [("title", _(label)), ("grid", found)]
+        return out
+
+    @staticmethod
+    def sections_sig(sections):
+        return tuple((kind, tuple((a.key, a.name, a.summary, a.is_luxos, a.is_flatpak) for a in value))
+                     if kind == "grid" else (kind, value) for kind, value in sections)
+
+    def show_page(self, key, arg=None, refresh=False):
+        """Stranka seznamu. refresh = doplneni po zmene katalogu: beze zmeny obsahu jen stav tlacitek
+        a ikony, jinak nove vykresleni na stejnem miste."""
+        if key == "updates":
+            self.current = (key, arg)
+            self.begin_page()
+            self.page_sig = None
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+            box.pack_start(self.updates_page(arg), False, False, 0)
+            self.set_content(box)
+            return
+        if key == "installed" and not refresh:
+            self.refresh_installed_page()
+        sections = self.page_sections(key, arg)
+        # zastupne karty (prazdna mrizka pred uplnym nactenim) se po nacteni vzdy nahradi
+        skeleton = not self.catalog.loaded and any(kind == "grid" and not value for kind, value in sections)
+        sig = (key, arg, skeleton, self.sections_sig(sections))
+        if refresh and sig == self.page_sig:
+            self.page_map = {a.key: a for kind, value in sections if kind == "grid" for a in value}
+            for c in self.cards:
+                new = self.page_map.get(c.app.key)
+                if new is not None and new is not c.app:
+                    c.rebind(new)
+                else:
+                    c.update()
+            return
+        self.current = (key, arg)
+        old_flathub = self.flathub_box
+        self.begin_page()
+        self.page_sig = sig
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        for kind, value in sections:
+            if kind == "hero":
+                w = self.hero()
+            elif kind == "grid":
+                w = self.grid(value)
+            elif kind == "flathub":
+                if refresh and old_flathub is not None and old_flathub.text == value and old_flathub.get_parent():
+                    # vysledky Flathubu zustavaji (zadne nove hledani)
+                    w = old_flathub
+                    w.get_parent().remove(w)
+                    self.cards += [c for c in self.descendants(w) if isinstance(c, AppCard)]
+                else:
+                    w = self.flathub_section(value)
+                self.flathub_box = w
+            else:
+                w = getattr(self, kind)(value)
+            box.pack_start(w, False, False, 0)
+        self.set_content(box, keep_scroll=refresh)
+
+    @staticmethod
+    def descendants(w):
+        out = [w]
+        if isinstance(w, Gtk.Container):
+            for c in w.get_children():
+                out += Store.descendants(c)
+        return out
+
+    def refresh_installed_page(self):
+        """Nainstalovane baliky a Flatpaky na pozadi (driv lux-engine a flatpak blokovaly okno)."""
+        def work():
+            inst, flatpaks = self.catalog.query_installed(), self.catalog.installed_flatpaks()
+
+            def apply():
+                self.catalog.installed, self.catalog.flatpaks = inst, flatpaks
+                if self.current[0] == "installed":
+                    self.show_page("installed", refresh=True)
+                return False
+            GLib.idle_add(apply)
+        threading.Thread(target=work, daemon=True).start()
 
     def luxos_apps(self):
         """Aplikace LuxOS: doporucene v danem poradi, pak ostatni podle (prelozeneho) nazvu; balicky .lux."""
@@ -1425,6 +1921,7 @@ class Store(Gtk.Window):
     def flathub_section(self, text):
         """Vysledky z Flathubu (nacitaji se na pozadi; mezitim kolecko)."""
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.text = text
         if os.path.exists(DATASAVER) or not os.path.exists(LUX_COMMUNITY):
             return box
         box.pack_start(self.section(_("From Flathub")), False, False, 0)
@@ -1445,10 +1942,7 @@ class Store(Gtk.Window):
                 box.pack_start(self.dim(_("Nothing found on Flathub.")), False, False, 0)
             box.pack_start(hint, False, False, 0)
             box.show_all()
-            if self.catalog.pending_icons:
-                threading.Thread(target=lambda: self.catalog.fetch_icons() and
-                                 GLib.idle_add(lambda: [c.load_icon() for c in self.cards] and False),
-                                 daemon=True).start()
+            self.start_icon_fetch()
             return False
 
         def work():
@@ -1502,20 +1996,40 @@ class Store(Gtk.Window):
         t = Gtk.Label(label=_("Welcome to the LuxOS Store"), xalign=0)
         t.get_style_context().add_class("hero-title")
         box.pack_start(t, False, False, 0)
-        box.pack_start(Gtk.Label(label=_("%d apps from LuxOS and Arch Linux, installed with one click.")
-                                 % len(self.catalog.apps), xalign=0), False, False, 0)
+        if self.catalog.apps:       # zastupne karty pri prvnim spusteni: bez "0 aplikaci"
+            box.pack_start(Gtk.Label(label=_("%d apps from LuxOS and Arch Linux, installed with one click.")
+                                     % len(self.catalog.apps), xalign=0), False, False, 0)
         return box
 
     def grid(self, apps):
         flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=12, row_spacing=12,
                            homogeneous=True, min_children_per_line=1, max_children_per_line=3)
         if not apps:
-            return self.dim(_("Nothing here yet."))
-        for a in apps:
-            card = AppCard(self, a)
-            self.cards.append(card)
-            flow.add(card)
+            # katalog se teprve nacita (prvni spusteni): zastupne karty, ne "Zatim tu nic neni"
+            return self.skeleton_grid(6) if not self.catalog.loaded else self.dim(_("Nothing here yet."))
+        for a in apps[:GRID_FIRST]:
+            self.add_card(flow, a)
+        rest, gen = apps[GRID_FIRST:], self.page_gen
+
+        def more():
+            # dalsi karty po davkach: prvni obrazovka je hned, okno mezitim reaguje
+            if gen != self.page_gen or not rest:
+                return False
+            for a in rest[:GRID_BATCH]:
+                card = self.add_card(flow, self.page_map.get(a.key, a))
+                card.show_all()
+                card.get_parent().show()
+            del rest[:GRID_BATCH]
+            return bool(rest)
+        if rest:
+            GLib.idle_add(more)
         return flow
+
+    def add_card(self, flow, app):
+        card = AppCard(self, app)
+        self.cards.append(card)
+        flow.add(card)
+        return card
 
     def updates_page(self, arg=None):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -1575,12 +2089,16 @@ class Store(Gtk.Window):
         return box
 
     # ---- detail aplikace ----
-    def show_detail(self, app):
-        self.history.append(self.current)
+    def show_detail(self, app, push=True):
+        """Stranka aplikace; push=False = jen znovu vykreslit (po instalaci, doplneni z kopie)."""
+        if push:
+            self.history.append(self.current)
         self.current = ("detail", app)
+        self.begin_page()
+        self.page_sig = None
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         top = Gtk.Box(spacing=18)
-        img = Gtk.Image()
+        img = self.detail_image = Gtk.Image()
         pix = app.icon_pixbuf(112)
         if pix:
             img.set_from_pixbuf(pix)
@@ -1718,7 +2236,7 @@ class Store(Gtk.Window):
         Prubeh flatpaku neni strojove citelny: jen pulzujici ukazatel."""
         self.busy[app.pkg] = "…"
         for c in self.cards:
-            if c.app is app:
+            if c.app.pkg == app.pkg:
                 c.update()
         self.flash(message)
         self.progress.show()
@@ -1751,6 +2269,7 @@ class Store(Gtk.Window):
             self.progress.hide()
             self.busy.pop(app.pkg, None)
             self.catalog.refresh_installed()
+            self.save_snapshot()
             if rc == 0:
                 self.flash(_("Done."))
                 GLib.timeout_add_seconds(4, lambda: self.status_bar.hide() or False)
@@ -1759,10 +2278,7 @@ class Store(Gtk.Window):
             for c in self.cards:
                 c.update()
             if self.current[0] == "detail":
-                cur = self.current[1]
-                if self.history:
-                    self.history.pop()
-                self.show_detail(cur)
+                self.show_detail(self.current[1], push=False)
             return False
 
         threading.Thread(target=work, daemon=True).start()
@@ -1773,7 +2289,7 @@ class Store(Gtk.Window):
         if app:
             self.busy[app.pkg] = "0 %"
             for c in self.cards:
-                if c.app is app:
+                if c.app.pkg == app.pkg:
                     c.update()
         if view:
             # prubeh ukazuje stranka aktualizaci, spodni lista zustava skryta
@@ -1842,7 +2358,7 @@ class Store(Gtk.Window):
             if app:
                 self.busy[app.pkg] = "%d %%" % round(frac * 100)
                 for c in self.cards:
-                    if c.app is app:
+                    if c.app.pkg == app.pkg:
                         c.update()
             return False
 
@@ -1918,6 +2434,7 @@ class Store(Gtk.Window):
             if app:
                 self.busy.pop(app.pkg, None)
             self.catalog.refresh_installed()
+            self.save_snapshot()
             if rc == 0:
                 self.flash(_("Done."))
                 GLib.timeout_add_seconds(4, lambda: self.status_bar.hide() or False)
@@ -1934,10 +2451,7 @@ class Store(Gtk.Window):
             for c in self.cards:
                 c.update()
             if self.current[0] == "detail":
-                cur = self.current[1]
-                if self.history:
-                    self.history.pop()
-                self.show_detail(cur)
+                self.show_detail(self.current[1], push=False)
             return False
 
         threading.Thread(target=work, daemon=True).start()

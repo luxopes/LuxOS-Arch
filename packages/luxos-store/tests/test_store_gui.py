@@ -618,6 +618,51 @@ class StoreGui(unittest.TestCase):
         finally:
             os.unlink(store.DATASAVER)
 
+    def test_12b_install_updates_card_in_list(self):
+        """Instalace z karty v seznamu: tlacitko ukazuje prubeh a po dokonceni Otevrit (driv se seznam
+        karet stranky vymazal hned po vytvoreni a karta zustala na Ziskat). Zadna skutecna instalace:
+        pkexec je nahrazeny."""
+        lines, calls = threading.Event(), []
+
+        class FakeHelper:
+            def __init__(self, cmd, **_kw):
+                calls.append(tuple(cmd))
+                self.stdout = self.out()
+
+            @staticmethod
+            def out():
+                yield "@@PROGRESS download 50 luxos-mail\n"
+                lines.wait(10)
+                yield "@@PROGRESS install 100 1/1 luxos-mail\n"
+
+            def wait(self):
+                return 0
+        old_popen, old_query = store.subprocess.Popen, store.Catalog.query_installed
+        desktop = os.path.join(DATA, "applications", "luxos-mail.desktop")
+        store.subprocess.Popen = FakeHelper
+        try:
+            self.luxos_names()
+            self.assertEqual(len(self.win.cards), len(cards(self.win)))
+            mail = card(self.win, "Mail")
+            self.assertEqual(mail.button.get_label(), "Get")
+            mail.button.clicked()
+            self.assertTrue(pump(lambda: mail.button.get_label().endswith("%") and
+                                 not mail.button.get_sensitive(), 5))
+            store.Catalog.query_installed = lambda cat: old_query(cat) | {"luxos-mail"}
+            with open(desktop, "w") as f:
+                f.write("[Desktop Entry]\nType=Application\nName=Mail\nExec=true\n")
+            lines.set()
+            self.assertTrue(pump(lambda: mail.button.get_label() == "Open", 5))
+            self.assertTrue(mail.button.get_sensitive())
+            self.assertEqual(calls, [("pkexec", store.HELPER, "install", "luxos-mail")])
+        finally:
+            lines.set()
+            store.subprocess.Popen, store.Catalog.query_installed = old_popen, old_query
+            if os.path.exists(desktop):
+                os.unlink(desktop)
+            self.win.catalog.refresh_installed()
+            self.win.status_bar.hide()
+
     def test_13_appstream_description(self):
         """Aplikace z Archu: popis AppStream jako odstavce a seznam (driv prosty text s tecnami)."""
         self.open_detail("Firefox", page="discover")

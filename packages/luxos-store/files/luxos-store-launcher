@@ -1,0 +1,12 @@
+#!/usr/bin/python3
+"""LuxOS Store - spoustec /usr/bin/luxos-store.
+
+Kod obchodu je predkompilovany modul /usr/lib/luxos/python/luxos_store_app.py (zdroj files/luxos-store):
+skript v /usr/bin se pri kazdem spusteni prekladal znovu (~60 ms pred prvnim zobrazenim).
+"""
+import sys
+
+sys.path.insert(0, "/usr/lib/luxos/python")
+from luxos_store_app import main  # noqa: E402
+
+main()

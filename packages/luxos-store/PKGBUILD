@@ -3,7 +3,7 @@
 
 pkgname=luxos-store
 pkgver=1.0.0
-pkgrel=19
+pkgrel=20
 pkgdesc="LuxOS Store - install apps from LuxOS and Arch Linux"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"
@@ -14,7 +14,9 @@ depends=(python python-gobject gtk3 appstream archlinux-appstream-data polkit lu
 
 package() {
     local f="$startdir/files"
-    install -Dm755 "$f/luxos-store" "$pkgdir/usr/bin/luxos-store"
+    # kod obchodu jako predkompilovany modul (rychlejsi start), /usr/bin/luxos-store ho jen spusti
+    install -Dm644 "$f/luxos-store" "$pkgdir/usr/lib/luxos/python/luxos_store_app.py"
+    install -Dm755 "$f/luxos-store-launcher" "$pkgdir/usr/bin/luxos-store"
     install -Dm755 "$f/luxos-store-helper" "$pkgdir/usr/lib/luxos/luxos-store-helper"
     # katalog aplikaci LuxOS (vyber aplikaci z .desktop; generuje i apps.json pri zverejneni repozitare)
     install -Dm644 "$f/luxos_app_catalog.py" "$pkgdir/usr/lib/luxos/python/luxos_app_catalog.py"
