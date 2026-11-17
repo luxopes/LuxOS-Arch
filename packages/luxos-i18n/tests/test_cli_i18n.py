@@ -76,6 +76,20 @@ TOOLS = (
     ("luxos-desktop/files/fingerprint/luxos-fingerprint-pam", ["--help"], True),
     ("lux-engine/lux_config.py", ["--help"], True),
 )
+
+
+def pk(rel):
+    """Cesta k nastroji: packages/<rel>, proprietarni soucasti (luxos-domain) ze soukromeho repozitare
+    luxos-private, pokud je LUXOS_PRIVATE_DIR nastavene (ve verejnem repozitari jsou jen zastupne slozky)."""
+    path = os.path.join(PK, rel)
+    private = os.environ.get("LUXOS_PRIVATE_DIR")
+    if not os.path.exists(path) and private:
+        return os.path.join(private, "packages", rel)
+    return path
+
+
+# bez soukromeho repozitare se nastroje proprietarnich soucasti preskoci
+TOOLS = tuple(t for t in TOOLS if os.path.exists(pk(t[0])))
 LANGS = ("cs", "sk", "pl", "uk", "hu", "de", "fr", "es", "it", "pt", "nl", "sv")
 LOCALES = {"cs": "cs_CZ", "sk": "sk_SK", "pl": "pl_PL", "uk": "uk_UA", "hu": "hu_HU", "de": "de_DE",
            "fr": "fr_FR", "es": "es_ES", "it": "it_IT", "pt": "pt_BR", "nl": "nl_NL", "sv": "sv_SE"}
@@ -93,14 +107,16 @@ DIACRITICS = re.compile(r"[áéíóúýěščřžůňťďÁÉÍÓÚÝĚŠČŘŽ�
 
 
 def run(rel, args, lang, tmp):
-    path = os.path.join(PK, rel)
+    path = pk(rel)
     home = tempfile.mkdtemp(dir=tmp)
     os.makedirs(os.path.join(home, "run"), mode=0o700)
     env = {"PATH": "/usr/bin:/bin", "HOME": home, "XDG_RUNTIME_DIR": os.path.join(home, "run"),
            "XDG_CONFIG_HOME": os.path.join(home, ".config"), "XDG_DATA_HOME": os.path.join(home, ".local/share"),
            "XDG_CACHE_HOME": os.path.join(home, ".cache"), "XDG_STATE_HOME": os.path.join(home, ".local/state"),
            "LANG": lang, "LUXOS_I18N_DIR": I18N, "TERM": "dumb", "NO_COLOR": "1", "PYTHONDONTWRITEBYTECODE": "1",
-           "LUX_DOMAIN": os.path.join(PK, "luxos-domain", "files", "lux-domain")}
+           "LUX_DOMAIN": pk("luxos-domain/files/lux-domain")}
+    if os.environ.get("LUXOS_PRIVATE_DIR"):
+        env["LUXOS_PRIVATE_DIR"] = os.environ["LUXOS_PRIVATE_DIR"]   # moduly proprietarnich soucasti (run_tool.py)
     with open(path, encoding="utf-8") as f:
         first = f.readline()
     cmd = [sys.executable, RUN, path] if "python" in first else ["bash", path]
@@ -152,7 +168,7 @@ class CliHelpI18n(unittest.TestCase):
         for rel, args, internal in TOOLS:
             if internal:
                 continue
-            if not HAVE_SH_I18N and "python" not in open(os.path.join(PK, rel), encoding="utf-8").readline():
+            if not HAVE_SH_I18N and "python" not in open(pk(rel), encoding="utf-8").readline():
                 continue
             with self.subTest(lang=code, tool=rel, args=args):
                 rc_en, en = self.english(rel, args)

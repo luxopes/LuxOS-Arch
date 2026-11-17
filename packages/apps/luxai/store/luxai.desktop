@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=LuxAI
+GenericName=AI Assistant
+GenericName[cs]=AI asistent
+Comment=AI assistant that can work with your computer
+Comment[cs]=AI asistent, který umí pracovat s vaším počítačem
+Exec=luxai
+Icon=luxai
+Terminal=false
+Categories=Utility;
+Keywords=AI;assistant;chat;agent;LuxAI;
+Keywords[cs]=AI;asistent;chat;agent;LuxAI;umělá inteligence;
+StartupNotify=true
+StartupWMClass=luxai

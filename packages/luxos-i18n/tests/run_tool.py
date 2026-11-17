@@ -17,6 +17,10 @@ SRC = [os.path.join(PK, "luxos-i18n", "files")]
 SRC += sorted(d for d in glob.glob(os.path.join(PK, "*", "files", "python")) if os.path.isdir(d))
 SRC += sorted(d for d in glob.glob(os.path.join(PK, "*", "files")) if os.path.isdir(d))
 SRC += [os.path.join(PK, p) for p in ("lux", "lux-engine", "luxos-drivers")]
+# proprietarni soucasti (luxos-domain): moduly ze soukromeho repozitare luxos-private (LUXOS_PRIVATE_DIR)
+if os.environ.get("LUXOS_PRIVATE_DIR"):
+    SRC += sorted(d for d in glob.glob(os.path.join(os.environ["LUXOS_PRIVATE_DIR"], "packages", "*", "files"))
+                  if os.path.isdir(d))
 MAP = {"/usr/lib/luxos/python": SRC, "/usr/lib/luxdrop": [os.path.join(PK, "luxdrop", "files", "lib")],
        "/usr/lib/lux": [os.path.join(PK, "lux"), os.path.join(PK, "lux-engine")]}
 

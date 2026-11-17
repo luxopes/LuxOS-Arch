@@ -18,7 +18,7 @@
   <img alt="Status: beta" src="https://img.shields.io/badge/status-beta-f59e0b">
   <img alt="Based on Arch Linux" src="https://img.shields.io/badge/based%20on-Arch%20Linux-1793d1">
   <img alt="x86_64, UEFI and BIOS" src="https://img.shields.io/badge/platform-x86__64%20%C2%B7%20UEFI%20%26%20BIOS-64748b">
-  <a href="LICENSE"><img alt="License: GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-16a34a"></a>
+  <a href="LICENSES/README.md"><img alt="License: GPL-3.0-or-later, some apps proprietary" src="https://img.shields.io/badge/license-GPL--3.0--or--later%20%2B%20proprietary%20apps-16a34a"></a>
 </p>
 
 ![LuxOS desktop in light mode](site/assets/shots/desktop-light-960.webp)
@@ -106,6 +106,12 @@ The full developer guide (repositories, signing, `lux` internals, project layout
 
 ## License
 
-LuxOS's own code (the `luxos-*` packages, `lux`, `luxdrop`, scripts and the installer) is licensed
-**GPL-3.0-or-later** – see [LICENSE](LICENSE). Third-party packages and patches (kernel, NVIDIA
-drivers, WhiteSur themes, ble.sh, LSL, …) keep their own licenses, listed in their `PKGBUILD`s.
+LuxOS's own open code (the `luxos-*` packages, `lux`, `luxdrop`, scripts and the installer) is licensed
+**GPL-3.0-or-later** – see [LICENSE](LICENSE) and the [additional permission](LICENSES/LuxOS-GPL-exception.md).
+Third-party packages and patches (kernel, NVIDIA drivers, WhiteSur themes, ble.sh, LSL, …) keep their
+own licenses, listed in their `PKGBUILD`s.
+
+A few components are **proprietary** and are not in this repository: LuxAI, Lux Code, LSL IDE and
+the Organization network (Active Directory, `luxos-domain`). They are free to use on LuxOS and ship
+as signed binary packages from the LuxOS repository – see [LICENSES/README.md](LICENSES/README.md).
+Versions published here before the license change stay under the license they were published with.

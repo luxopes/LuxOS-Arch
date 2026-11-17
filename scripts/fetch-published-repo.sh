@@ -8,6 +8,10 @@
 # LuxOS nikdy neni na GitHubu), workflow z nich pak postavi ISO (./build.sh iso). Seznam souboru
 # bere z databaze repozitare (%FILENAME%), ne z vypisu adresare. Podpis databaze i kazdeho baliku
 # se overi verejnym klicem LuxOS (packages/luxos-keyring), takze podvrzeny server neprojde.
+#
+# Jen nektere baliky (proprietarni soucasti pri sestaveni z verejneho repozitare, viz PROPRIETARY
+# v packages/ a scripts/container-build.sh):
+#   LUXOS_FETCH_REPOS="luxos-apps" LUXOS_FETCH_ONLY="luxai lux-code" LUXOS_FETCH_OUT=/cesta scripts/fetch-published-repo.sh
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 BASE=${1:-https://luxos.lux-ai.cz/repo}
@@ -24,7 +28,10 @@ key=$(find "$KEYRING" -name '*.gpg' -o -name '*.asc' | head -1)
 gpg --quiet --import "$key"
 verify() { gpg --quiet --status-fd 1 --verify "$1.sig" "$1" 2>/dev/null | grep -q '^\[GNUPG:\] VALIDSIG'; }
 
-for repo in luxos luxos-apps; do
+read -ra REPOS <<<"${LUXOS_FETCH_REPOS:-luxos luxos-apps}"
+read -ra ONLY <<<"${LUXOS_FETCH_ONLY:-}"
+for repo in "${REPOS[@]}"; do
+    [[ $repo == @(luxos|luxos-apps) ]] || { echo "Unknown repository: $repo" >&2; exit 1; }
     dir=$OUT/$repo/$ARCH
     rm -rf "$OUT/$repo"
     mkdir -p "$dir"
@@ -36,7 +43,23 @@ for repo in luxos luxos-apps; do
     done
     ln -sf "$repo.db.tar.gz" "$dir/$repo.db"; ln -sf "$repo.db.tar.gz.sig" "$dir/$repo.db.sig"
     ln -sf "$repo.files.tar.gz" "$dir/$repo.files"; ln -sf "$repo.files.tar.gz.sig" "$dir/$repo.files.sig"
-    mapfile -t files < <(tar -xzOf "$dir/$repo.db.tar.gz" --wildcards '*/desc' | awk 'p {print; p=0} /^%FILENAME%$/ {p=1}')
+    # "NAZEV SOUBOR" pro kazdy balik databaze (%NAME% a %FILENAME% v kazdem desc)
+    mapfile -t entries < <(tar -xzOf "$dir/$repo.db.tar.gz" --wildcards '*/desc' |
+        awk 'f {file=$0; f=0} n {name=$0; n=0} /^%FILENAME%$/ {f=1} /^%NAME%$/ {n=1}
+             /^%FILENAME%$/ || /^%NAME%$/ {next} file != "" && name != "" {print name, file; file=""; name=""}
+             END {if (file != "" && name != "") print name, file}')
+    files=()
+    for e in "${entries[@]}"; do
+        if ((${#ONLY[@]})); then
+            want=0
+            for o in "${ONLY[@]}"; do [[ ${e%% *} == "$o" ]] && want=1; done
+            ((want)) || continue
+        fi
+        files+=("${e#* }")
+    done
+    if ((${#ONLY[@]})) && ((${#files[@]} == 0)); then
+        echo "None of the packages ${ONLY[*]} is in [$repo] at $BASE" >&2; exit 1
+    fi
     echo "==> [$repo] ${#files[@]} packages"
     for f in "${files[@]}"; do
         [[ $f =~ ^[A-Za-z0-9@._+-]+\.pkg\.tar\.zst$ ]] || { echo "Unexpected file name: $f" >&2; exit 1; }

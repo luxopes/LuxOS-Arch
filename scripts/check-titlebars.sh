@@ -30,8 +30,10 @@ export LUXOS_I18N_DIR=$PWD/packages/luxos-i18n/files
 export LUXOS_WEATHER_API=http://127.0.0.1:9/v1/forecast LUXOS_WEATHER_GEO=http://127.0.0.1:9/v1/search \
     LUXOS_WEATHER_IP=http://127.0.0.1:9/ip LUXOS_WEATHER_ICONS=$PWD/packages/luxos-weather/files/icons LUXOS_NMCLI=false
 export LUXOS_MAPS_TILES='http://127.0.0.1:9/{z}/{x}/{y}.png' LUXOS_MAPS_GEOCLUE=0
-# Firemni sit bez skutecne domeny: zastupny lux-domain z testu (stav "nepripojeno")
-export LUXOS_DOMAIN_CLI=$PWD/packages/luxos-domain/tests/fake-gui/lux-domain FAKE_DOMAIN_DIR=$tmp
+# Firemni sit bez skutecne domeny: zastupny lux-domain z testu (stav "nepripojeno"). luxos-domain je
+# proprietarni - zdroje jen v soukromem repozitari (LUXOS_PRIVATE_DIR=cesta k luxos-private), jinak se preskoci.
+priv=${LUXOS_PRIVATE_DIR:-/nonexistent}
+export LUXOS_DOMAIN_CLI=$priv/packages/luxos-domain/tests/fake-gui/lux-domain FAKE_DOMAIN_DIR=$tmp
 apps=(
     packages/luxos-account/files/luxos-account
     packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,router,settings,shortcuts,tour,whats-new,wifi-qr}
@@ -46,10 +48,11 @@ apps=(
     packages/luxos-sandbox/files/luxos-sandbox-gui
     packages/luxos-store/files/luxos-store      # potrebuje AppStream (na LuxOS je)
     packages/luxos-care/files/luxos-update
-    packages/luxos-domain/files/luxos-domain-settings   # LUXOS_DOMAIN_CLI = zastupny prikaz (bez domeny)
+    "$priv/packages/luxos-domain/files/luxos-domain-settings"   # LUXOS_DOMAIN_CLI = zastupny prikaz (bez domeny)
 )
 fail=0
 for a in "${apps[@]}"; do
+    [[ $a == "$priv"/* && ! -f $a ]] && { echo "skipped ${a#"$priv"/} (proprietary, set LUXOS_PRIVATE_DIR)"; continue; }
     [[ -f $a ]] || { echo "missing $a"; continue; }
     out=$(timeout 25 dbus-run-session -- python3 "$a" 2>&1 </dev/null | grep '^LUXOS-TITLEBAR' | tail -1)
     [[ -n $out ]] || out="LUXOS-TITLEBAR (did not start here - check manually)"

@@ -7,7 +7,8 @@ Rychlý a lehký Linux na Arch Linuxu s prostředím ve stylu macOS.
 > **English:** LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop
 > (Xfce underneath), its own package manager `lux`, its own kernel build, hassle-free drivers, the LuxAI
 > assistant and its own language [LSL](https://lsl.lux-ai.cz). Download: <https://luxos.lux-ai.cz>.
-> License: GPL-3.0-or-later (see [LICENSE](../LICENSE)); bundled third-party packages keep their own licenses.
+> License: GPL-3.0-or-later (see [LICENSE](../LICENSE)); bundled third-party packages keep their own licenses;
+> LuxAI, Lux Code, LSL IDE and luxos-domain are proprietary (see [LICENSES/README.md](../LICENSES/README.md)).
 
 - **Rychlost a nenáročnost:** Xfce + vestavěný kompozitor xfwm4 (žádný těžký shell), vlastní jádro `linux-luxos` (stabilní jádro z kernel.org, plánovač scx_lavd),
   zram swap (zstd), ladění sysctl, I/O plánovače podle typu disku, systemd-oomd, Btrfs se zstd kompresí,
@@ -142,9 +143,10 @@ podpis každého balíku klíčem z `luxos-keyring`. Live ISO instaluje z kopie 
 Přidání aplikace:
 
 ```bash
-mkdir packages/apps/lux-code            # PKGBUILD jako u packages/apps/lsl
-                                        # (lsl-ide: zdrojový archiv vytvoří packages/apps/lsl-ide/make-source.sh)
+mkdir packages/apps/moje-aplikace       # PKGBUILD jako u packages/apps/lsl
 ./build.sh apps                         # sestaví a podepíše jen [luxos-apps] (./build.sh packages = oba repozitáře)
+                                        # proprietární aplikace (LuxAI, Lux Code, LSL IDE) ze zdrojů:
+                                        # LUXOS_PRIVATE_DIR=~/luxos-private ./build.sh apps
 scripts/publish-repo.sh                 # nahraje na server a přepne vydání (ponechá 3 předchozí)
 ```
 
@@ -275,9 +277,18 @@ Komponenty třetích stran: lsh: GPL‑3.0 (fork GNU bash). LSL: MIT. Témata Wh
 
 ## Licence
 
-Kód LuxOS (balíčky `luxos-*`, `lux`, `luxdrop`, skripty a instalátor) je pod licencí
-**GPL-3.0-or-later** – viz [LICENSE](../LICENSE). Balíčky a záplaty třetích stran (rofi, xfce4-genmon-plugin,
-ovladače NVIDIA, jádro Linux, LSL…) mají vlastní licence uvedené v jejich `PKGBUILD`.
+Otevřený kód LuxOS (balíčky `luxos-*`, `lux`, `luxdrop`, skripty a instalátor) je pod licencí
+**GPL-3.0-or-later** – viz [LICENSE](../LICENSE) a [dodatečné svolení](../LICENSES/LuxOS-GPL-exception.md).
+Balíčky a záplaty třetích stran (rofi, xfce4-genmon-plugin, ovladače NVIDIA, jádro Linux, LSL…) mají
+vlastní licence uvedené v jejich `PKGBUILD`.
+
+**Proprietární součásti** – LuxAI (`luxai`), Lux Code (`lux-code`), LSL IDE (`lsl-ide`) a Firemní síť
+(`luxos-domain`) – v tomto repozitáři nejsou. V LuxOS jsou zdarma jako podepsané binární balíčky
+z repozitáře LuxOS ([LICENSES/README.md](../LICENSES/README.md)). Jejich složky v `packages/` obsahují
+jen `README.md` a značku `PROPRIETARY`: `./build.sh` (i GitHub Actions) tyto balíčky stáhne ze
+zveřejněného repozitáře a ověří podpis; ze zdrojů je postaví jen s `LUXOS_PRIVATE_DIR=<pracovní kopie
+soukromého repozitáře luxos-private>`. Verze zveřejněné zde před změnou licence zůstávají pod licencí,
+pod kterou vyšly.
 
 ## Sestavení
 
