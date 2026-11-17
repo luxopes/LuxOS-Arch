@@ -124,12 +124,12 @@ xfwm4 --compositor=on >/dev/null 2>&1 &
 sleep 1.5
 xfdesktop >/dev/null 2>&1 &
 xfce4-panel >"$T/panel.log" 2>&1 &
+pp=$!
 for _ in $(seq 80); do xprop -root _NET_WORKAREA 2>/dev/null | grep -q ', 28,' && break; sleep 0.1; done
 [ -x "$T/luxos-widgets" ] && "$T/luxos-widgets" >/dev/null 2>&1 &
 sleep 4
 echo "white-scrim $(scrim)"
 # v klidu panel nepracuje (okno zavoje se nesmi samo dokola znovu mapovat)
-pp=$(pgrep -u "$USER" -x xfce4-panel | head -1)
 c0=$(awk '{print $14 + $15}' "/proc/$pp/stat")
 sleep 3
 echo "idle-ticks $(( $(awk '{print $14 + $15}' "/proc/$pp/stat") - c0 ))"

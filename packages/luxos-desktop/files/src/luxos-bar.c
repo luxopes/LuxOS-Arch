@@ -107,6 +107,7 @@ typedef struct {
     gboolean scrim_enabled;     /* DESKTOP_SCRIM (vychozi 1) */
     gdouble scrim;              /* aktualni sila zavoje 0-1 */
     GtkWidget *scrim_win;       /* zavoj pod listou (okno plochy) */
+    GdkRectangle scrim_geo;     /* naposledy nastavena poloha a velikost okna zavoje */
     GHashTable *lum_cache;      /* tapeta|mtime|styl|rozmery -> jas pasu zavoje (gdouble *) */
     gchar *scrim_key;           /* vyrez, pro ktery uz byl zavoj rozhodnut (pruhledna lista) */
     guint precompute_id;
@@ -828,10 +829,15 @@ scrim_set (Bar *bar, gdouble s) {
     }
     GdkRectangle geo;
     gdk_monitor_get_geometry (mon, &geo);
-    GtkWindow *win = GTK_WINDOW (bar->scrim_win);
-    gtk_widget_set_size_request (bar->scrim_win, geo.width, MIN (geo.height, SCRIM_HEIGHT));
-    gtk_window_resize (win, geo.width, MIN (geo.height, SCRIM_HEIGHT));
-    gtk_window_move (win, geo.x, geo.y);
+    geo.height = MIN (geo.height, SCRIM_HEIGHT);
+    /* jen pri zmene: kazde presunuti okna = udalost oken -> evaluate -> scrim_set (smycka) */
+    if (memcmp (&geo, &bar->scrim_geo, sizeof geo) != 0) {
+        GtkWindow *win = GTK_WINDOW (bar->scrim_win);
+        gtk_widget_set_size_request (bar->scrim_win, geo.width, geo.height);
+        gtk_window_resize (win, geo.width, geo.height);
+        gtk_window_move (win, geo.x, geo.y);
+        bar->scrim_geo = geo;
+    }
     if (!gtk_widget_get_visible (bar->scrim_win))
         gtk_widget_show (bar->scrim_win);
 }
