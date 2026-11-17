@@ -219,8 +219,7 @@ luxos-appearance status                  # light | dark (current look)
 luxos-appearance mode                    # light | dark | auto (the setting)
 luxos-appearance wallpaper FILE          # wallpaper on all monitors and workspaces
 luxos-appearance bar-opacity 0-100       # top bar opacity (default 62)
-luxos-appearance bar-style|bar-clock|bar-text ...   # see bar-widgets.md
-luxos-appearance desktop-scrim on|off    # shade under the bar and widgets on a very bright wallpaper
+luxos-appearance bar-style|bar-text|desktop-scrim ...  # bar-widgets.md
 luxos-appearance dock-opacity 0-100|default
 luxos-appearance greeter-sync            # same wallpaper on the login screen (done automatically)
 ```
@@ -245,15 +244,6 @@ picked yourself stays.
 Choose one in **Desktop & Dock › Wallpaper**. That panel also shows pictures from
 `~/Pictures/Wallpapers`, and "Choose…" accepts any picture. From the command line:
 `luxos-appearance wallpaper /path/picture.jpg` (stored in the xfconf channel `xfce4-desktop`).
-
-On a very bright wallpaper (white, beige, a white linen texture) the area under the menu bar and
-around desktop widgets gets a soft dark shade with a smooth fade, like on macOS, so white text stays
-readable; ordinary wallpapers are unchanged. The switch **Darken bright wallpaper under the menu bar
-and widgets** in **Desktop & Dock › Wallpaper** (or `luxos-appearance desktop-scrim off`) turns it
-off - see [Top bar options and desktop widgets](bar-widgets.md).
-
-**Desktop & Dock › Widgets** turns the desktop widgets on and off and opens the widgets gallery
-(**Edit Widgets…**); the gallery is also in a right-click on the desktop or on a widget.
 
 ## Boot splash
 
