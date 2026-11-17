@@ -2,6 +2,6 @@
 Type=Application
 Name=LuxOS Session
 Comment=Applies LuxOS defaults (wallpaper, appearance) for the current user
-Exec=luxos-session
+Exec=/usr/bin/luxos-session
 OnlyShowIn=XFCE;
 NoDisplay=true

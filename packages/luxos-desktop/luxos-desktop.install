@@ -60,7 +60,26 @@ _luxos_forkguard() {
     systemctl daemon-reload >/dev/null 2>&1 || true
     systemctl restart luxos-forkguard.service >/dev/null 2>&1 || true
 }
+# Pristup k obrazovce i po zmene nazvu pocitace: bezicim relacim hned (bez odhlaseni) polozka FamilyWild
+# v ~/.Xauthority - i relaci, ktere uz nazev zmenily a nove programy nespusti (overi se, ktery cookie
+# X server prijima). Cookie nikdy neprochazi argumenty ani vystupem.
+_luxos_xauth_now() {
+    local pid uid user home env d xa proc=/proc
+    for pid in $(pgrep -x xfce4-session 2>/dev/null); do
+        uid=$(stat -c %u "$proc/$pid" 2>/dev/null) || continue
+        [[ $uid != 0 ]] || continue
+        user=$(getent passwd "$uid" | cut -d: -f1)
+        home=$(getent passwd "$uid" | cut -d: -f6)
+        [[ -n $user && -n $home ]] || continue
+        env=$(tr '\0' '\n' <"$proc/$pid/environ" 2>/dev/null) || continue
+        d=$(sed -n 's/^DISPLAY=//p' <<<"$env" | head -1)
+        xa=$(sed -n 's/^XAUTHORITY=//p' <<<"$env" | head -1)
+        [[ -n $d ]] || continue
+        runuser -u "$user" -- env DISPLAY="$d" XAUTHORITY="${xa:-$home/.Xauthority}" HOME="$home" \
+            XDG_RUNTIME_DIR="/run/user/$uid" timeout 15 /usr/lib/luxos/luxos-xauth-wildcard >/dev/null 2>&1 || true
+    done
+}
 post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_forkguard; }
-post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_dock_zoom; _luxos_forkguard; }
+post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_dock_zoom; _luxos_forkguard; _luxos_xauth_now; }
 # Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
 pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }

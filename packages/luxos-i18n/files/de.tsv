@@ -5223,3 +5223,5 @@ Preparing the package signing keys…	Schlüssel für die Paketprüfung werden v
 Enter the server address.	Geben Sie die Serveradresse ein.
 Backups on an SFTP server cannot be encrypted.	Sicherungen auf einem SFTP-Server können nicht verschlüsselt werden.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Die Verschlüsselung funktioniert mit USB-Festplatten und freigegebenen Ordnern (SMB). Schalten Sie „Sicherungen verschlüsseln“ aus oder verwenden Sie einen freigegebenen Ordner.
+Old copies of %s were replaced by the system version	Alte Kopien von %s wurden durch die Systemversion ersetzt
+The old copies were moved to %s. Nothing was deleted.	Die alten Kopien wurden nach %s verschoben. Es wurde nichts gelöscht.

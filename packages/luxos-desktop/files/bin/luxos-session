@@ -6,12 +6,20 @@ mkdir -p "$cfg"
 
 # Pojistka: snimek prihlasovaci obrazovky, ktery server drzi po skonceni greeteru, prevezme hned po startu
 # relace luxos-session-cover --login; kdyby se to nepovedlo, nesmi zustat pres plochu
-luxos-session-cover --release 2>/dev/null &
+/usr/bin/luxos-session-cover --release 2>/dev/null &
+
+# Stare vyvojove kopie programu LuxOS v ~/.local/bin a ~/.local/share/applications (starsi nez soubor
+# z balicku) presunout stranou drive, nez se spusti soucasti relace - jinak by nahradily systemove.
+# Soucasti relace se nize spousteji s celou cestou /usr/bin, aby je kopie v PATH nikdy nezakryla.
+[[ -x /usr/lib/luxos/luxos-shadow-guard ]] && /usr/lib/luxos/luxos-shadow-guard >/dev/null 2>&1
+# Pristup k obrazovce i po zmene nazvu pocitace (polozka FamilyWild v ~/.Xauthority; pri prihlaseni
+# pres LightDM uz probehlo v /etc/X11/xinit/xinitrc.d, tady jen pojistka - bez zmeny se nic neprepisuje)
+[[ -x /usr/lib/luxos/luxos-xauth-wildcard ]] && /usr/lib/luxos/luxos-xauth-wildcard >/dev/null 2>&1 &
 
 # Prvni prihlaseni: standardni adresare a vychozi vzhled
 if [[ ! -e $cfg/initialized ]]; then
     xdg-user-dirs-update 2>/dev/null
-    luxos-appearance "$(luxos-appearance status)"
+    /usr/bin/luxos-appearance "$(/usr/bin/luxos-appearance status)"
     # Vychozi nastaveni novych uzivatelu od spravce (lux system, sekce new_users): vzhled, Dock,
     # vychozi aplikace, zamceni obrazovky - jen tady, stavajici uzivatele se nemeni
     [[ -r /etc/luxos/new-users.conf ]] && /usr/lib/luxos/luxos-new-user-defaults
@@ -39,7 +47,7 @@ fi
 
 # Lupa (Hledani) v horni liste i u profilu z drivejsich verzi: jednou, pred Ovladaci centrum. Restart
 # listy hned po prihlaseni zakryje prechod na plochu (luxos-session-cover --login).
-[[ -e $cfg/search-icon-added ]] || luxos-search --add-to-panel &
+[[ -e $cfg/search-icon-added ]] || /usr/bin/luxos-search --add-to-panel &
 
 # Emoji a symboly i u profilu z drivejsich verzi (jednou): Super+. a Ctrl+Super+Mezernik -> luxos-emoji.
 # Jen volne zkratky - vlastni prirazeni uzivatele (i vypnuta zkratka v Klavesovych zkratkach) zustava.
@@ -235,7 +243,7 @@ fi
 unset p ws_names ws_count ws_nums ws_args i
 
 # Spravovany blok v ~/.config/gtk-3.0/gtk.css (barvy listy, vzhled prepinace ploch) po aktualizaci LuxOS
-luxos-appearance panel-css 2>/dev/null
+/usr/bin/luxos-appearance panel-css 2>/dev/null
 
 # Starsi profily: klik na uzivatele v nabidce otevre Ucet LuxAI (mugshot neni nainstalovany)
 [[ $(xfconf-query -c xfce4-panel -p /plugins/plugin-1/command-profile 2>/dev/null) == luxos-account ]] ||
@@ -261,9 +269,9 @@ if [[ ! -e $cfg/menu-layout-2 ]]; then
 fi
 
 # Svetly/tmavy rezim: automaticky podle vychodu a zapadu slunce (je-li zapnuto)
-if [[ $(luxos-appearance mode) == auto ]]; then
+if [[ $(/usr/bin/luxos-appearance mode) == auto ]]; then
     m=$(python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null)
-    [[ -n $m && $m != "$(luxos-appearance status)" ]] && luxos-appearance auto
+    [[ -n $m && $m != "$(/usr/bin/luxos-appearance status)" ]] && /usr/bin/luxos-appearance auto
 fi
 
 # Pripojeni monitoru nikdy neotevre okno s volbami (dialog Xfce "minimal"): rezim resi luxos-displays
@@ -277,25 +285,25 @@ unset _n
 # Sporic baterie: systemova cast a 60 Hz restart neprezije - obnovit az po rozvrzeni monitoru
 (
     if [[ -f $cfg/displays.json || -f $cfg/displays-mode ]]; then
-        luxos-displays auto
+        /usr/bin/luxos-displays auto
     fi
-    luxos-powersaver reapply >/dev/null
+    /usr/bin/luxos-powersaver reapply >/dev/null
 ) &
 
 # Softwarovy jas monitoru (Ovladaci centrum, monitory bez podsviceni)
 if [[ -f $cfg/brightness ]] && ! compgen -G '/sys/class/backlight/*' >/dev/null; then
-    luxos-displays brightness "$(cat "$cfg/brightness")" &
+    /usr/bin/luxos-displays brightness "$(cat "$cfg/brightness")" &
 fi
 
 # Nazev aktivni aplikace v horni liste, prepinani jejich nabidek jednim klikem
-luxos-appname watch &
+/usr/bin/luxos-appname watch &
 # Priznak skryvaneho Docku pro luxos-menubar: Dock se skryva (i "uhyba oknum") -> vysunout u okraje
 if [[ $(gsettings get net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ hide-mode 2>/dev/null) != "'none'" ]]; then
     : >"$cfg/dock-autohide"
 else
     rm -f "$cfg/dock-autohide"
 fi
-pgrep -u "$USER" -x luxos-menubar >/dev/null || { luxos-menubar & }
+pgrep -u "$USER" -x luxos-menubar >/dev/null || { /usr/bin/luxos-menubar & }
 # Trezor: zamceni pri odhlaseni (sluzba) a zalozka v Souborech; zamceni obrazovky a uspani hlida luxos-hub
 if command -v luxos-safe >/dev/null; then
     systemctl --user start luxos-safe-watch.service 2>/dev/null &
@@ -315,29 +323,29 @@ fi
 # Jeden proces pro Ovladaci centrum, Kalendar (predem nactene, klik v liste je ukaze okamzite),
 # Trezor, Sporic dat a automaticky vzhled. Pri padu se znovu spusti (dokud bezi X).
 (
-    until luxos-hub; do
+    until /usr/bin/luxos-hub; do
         xprop -root _NET_SUPPORTED >/dev/null 2>&1 || break
         sleep 2
     done
 ) &
 # Widgety na plose (luxos-widgets on/off); vypnute hned skonci
-luxos-widgets &
+/usr/bin/luxos-widgets &
 # Hodiny: zapnute budiky zazvoni i bez otevrene aplikace (bez budiku hned skonci)
-luxos-clock-app --background &
+/usr/bin/luxos-clock-app --background &
 # Hlidani zamrznuti plochy: kdyz X nebo spravce oken 30 s neodpovida, zapise hlaseni
 # (~/.local/share/luxos/freeze-reports, oprava z konzole: luxos-unfreeze)
-luxos-unfreeze --watch &
+/usr/bin/luxos-unfreeze --watch &
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
-luxos-datasaver reapply &
+/usr/bin/luxos-datasaver reapply &
 
 # Tapeta i pro nove pripojene monitory (xfdesktop musi uz bezet)
 for _ in 1 2 3 4 5 6 7 8 9 10; do
     pgrep -u "$USER" -x xfdesktop >/dev/null && break
     sleep 0.5
 done
-luxos-appearance reapply
+/usr/bin/luxos-appearance reapply
 # Stejna tapeta i na prihlasovaci obrazovce (i u profilu z drivejsich verzi; dalsi zmeny hlida luxos-hub)
-luxos-appearance greeter-sync &
+/usr/bin/luxos-appearance greeter-sync &
 # Pripojeni/odpojeni monitoru hlida luxos-menubar (udalosti RandR, bez dotazovani)
 
 # Live ISO: ikona instalatoru na plose
@@ -355,16 +363,16 @@ fi
 # s instalaci - prohlidka je tam z Uvitani/Launchpadu, at se okna nepretahuji o pozornost.
 # Po aktualizaci na novou verzi LuxOS: Co je noveho (novy uzivatel ma misto toho Prohlidku).
 if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev/null; then
-    luxos-whats-new --mark-seen 2>/dev/null
+    /usr/bin/luxos-whats-new --mark-seen 2>/dev/null
     (
         sleep 3
-        luxos-tour --first-run
-        [[ -e $cfg/welcome-done ]] || luxos-welcome
+        /usr/bin/luxos-tour --first-run
+        [[ -e $cfg/welcome-done ]] || /usr/bin/luxos-welcome
     ) &
 elif [[ ! -e $cfg/welcome-done ]]; then
     # Plocha, lista a Dock uz bezi (cekani vyse na xfdesktop): kratka pauza staci - drive 3 s,
     # na live ISO se Uvitani ukazalo az ~10 s po startu X (luxos-session sam startuje az po ~6 s)
-    (sleep 1; luxos-welcome) &
+    (sleep 1; /usr/bin/luxos-welcome) &
 elif [[ ! -d /run/archiso ]]; then
-    (sleep 3; luxos-whats-new --auto) &
+    (sleep 3; /usr/bin/luxos-whats-new --auto) &
 fi
