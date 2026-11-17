@@ -389,6 +389,19 @@ build_drivers() {
 CFLAGS+=" -std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=incompatible-pointer-types -Wno-error=int-conversion"
 export CC="gcc -std=gnu17 -fpermissive"
 EOF
+    # Prava v balicich ovladacu: setuid/setgid a zapis pro vsechny odebere krok tidy makepkg (jen pro ovladace:
+    # kopie /usr/share/makepkg + drivers/makepkg-tidy-luxos-perms.sh), hotovy balik pak zkontroluje luxdrv.py perms
+    local mklib=$BUILD/makepkg-luxdrv
+    rm -rf "$mklib"
+    cp -a /usr/share/makepkg "$mklib"
+    install -m644 "$ROOT/drivers/makepkg-tidy-luxos-perms.sh" "$mklib/tidy/95-luxos-perms.sh"
+    python3 "$ROOT/drivers/luxdrv.py" perms-allow-tsv "$BUILD/perms-allow.tsv" ||
+        { echo "drivers/perms-allow.json is invalid" >&2; exit 1; }
+    chmod -R a+rX "$mklib" "$BUILD/perms-allow.tsv"
+    # klic sestaveni (commit + zaplaty LuxOS + verze pravidel prav): zmena = balik se sestavi znovu
+    local -A bkey=()
+    local kb kv
+    while IFS=$'\t' read -r kb kv; do bkey[$kb]=$kv; done < <(python3 "$ROOT/drivers/luxdrv.py" build-keys)
     local base commit dir n=0 failed=() rest progress f line
     rm -f "$BUILD"/drvmiss-*
     mapfile -t rest < <(jq -r 'to_entries[] | "\(.key) \(.value.commit)"' "$manifest" | sort)
@@ -453,7 +466,7 @@ EOF
                 fi
                 failed+=("$base (package $clash already exists in Arch Linux)"); continue
             fi
-            [[ $(head -1 "$DREPO/built/$base" 2>/dev/null) == "$commit" ]] && continue
+            [[ $(head -1 "$DREPO/built/$base" 2>/dev/null) == "${bkey[$base]}" ]] && continue
             dir=$BUILD/drv/$base
             rm -rf "$dir"
             # soubory presne overeneho commitu z mistniho zrcadla AUR (drivers/luxdrv.py verify)
@@ -506,10 +519,14 @@ EOF
             ((srcok)) || { failed+=("$base (verified source $sf missing - run drivers/luxdrv.py verify)"); continue; }
             chown -R builder: "$BUILD/drvsrc" "$BUILD/drvout"
             if (cd "$dir" && unshare -n sudo -u builder env -u GNUPGHOME HOME=/home/builder SRCDEST="$BUILD/drvsrc" \
-                    PKGDEST="$BUILD/drvout" makepkg --force --nodeps --noconfirm --cleanbuild >"$dir/.log" 2>&1); then
-                # stare verze baliku z tohoto pkgbase pryc, nove dovnitr (znacka: commit + nazvy baliku)
-                echo "$commit" >"$DREPO/built/$base.new"
-                rm -f "$BUILD"/drvout/*-debug-*.pkg.tar.zst
+                    PKGDEST="$BUILD/drvout" MAKEPKG_LIBRARY="$mklib" LUXDRV_PERMS_ALLOW_TSV="$BUILD/perms-allow.tsv" \
+                    makepkg --force --nodeps --noconfirm --cleanbuild >"$dir/.log" 2>&1) &&
+                    rm -f "$BUILD"/drvout/*-debug-*.pkg.tar.zst &&
+                    # zbyl setuid/setgid nebo zapis pro vsechny (i v .INSTALL) bez vyjimky -> nezverejnit
+                    { python3 "$ROOT/drivers/luxdrv.py" perms "$BUILD"/drvout/*.pkg.tar.zst >"$dir/.perms" 2>&1 ||
+                      { echo "LUXOS-PERMS" >>"$dir/.log"; false; }; }; then
+                # stare verze baliku z tohoto pkgbase pryc, nove dovnitr (znacka: klic sestaveni + nazvy baliku)
+                echo "${bkey[$base]}" >"$DREPO/built/$base.new"
                 for f in "$BUILD"/drvout/*.pkg.tar.zst; do
                     nm=$(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1=="pkgname"{print $2; exit}')
                     drv_pkgfiles "$DREPO/pkgs" "$nm" | xargs -r rm -f
@@ -518,6 +535,14 @@ EOF
                 mv "$BUILD"/drvout/*.pkg.tar.zst "$DREPO/pkgs/"
                 mv "$DREPO/built/$base.new" "$DREPO/built/$base"
                 n=$((n + 1)); progress=1
+            elif grep -qx LUXOS-PERMS "$dir/.log"; then
+                # starsi zverejnena verze muze mit stejny problem - pryc z repozitare, dokud se neopravi
+                mkdir -p "$DREPO/logs"; cat "$dir/.log" "$dir/.perms" >"$DREPO/logs/$base.log"
+                if [[ -f $DREPO/built/$base ]]; then
+                    tail -n +2 "$DREPO/built/$base" | while read -r nm; do drv_pkgfiles "$DREPO/pkgs" "$nm" | xargs -r rm -f; done
+                    rm -f "$DREPO/built/$base"
+                fi
+                failed+=("$base (forbidden permissions: $(grep -m1 -v '^perms:' "$dir/.perms"))")
             else
                 mkdir -p "$DREPO/logs"; cp "$dir/.log" "$DREPO/logs/$base.log"
                 { echo "--- zdroje (SRCDEST, src):"; ls -la "$BUILD/drvsrc" "$dir/src" 2>&1 | head -40; } >>"$DREPO/logs/$base.log"

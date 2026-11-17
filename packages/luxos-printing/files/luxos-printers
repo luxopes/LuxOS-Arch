@@ -39,6 +39,8 @@ except ImportError:  # pragma: no cover
     cups = None
 
 HELPER = "/usr/lib/luxos/printing/luxos-printing-helper"
+# odebrani tiskarny a zruseni cizi ulohy: polkit org.luxos.printing.admin (heslo spravce)
+ADMIN_HELPER = "/usr/lib/luxos/printing/luxos-printing-admin"
 APP_ID = "luxos-printers"
 
 CSS = b"""
@@ -73,9 +75,11 @@ def esc(s):
     return GLib.markup_escape_text(s or "")
 
 
-def run_helper(args, done):
-    """Pomocnik s pravy roota (pkexec; polkit povoli aktivnimu uzivateli bez hesla). done(rc, out, err)."""
-    cmd = [HELPER, *args] if os.geteuid() == 0 else ["pkexec", HELPER, *args]
+def run_helper(args, done, admin=False):
+    """Pomocnik s pravy roota pres pkexec. done(rc, out, err).
+    Bezne akce polkit povoli aktivnimu uzivateli bez hesla; admin=True (odebrat tiskarnu, zrusit cizi
+    ulohu) chce heslo spravce (luxos-printing-admin, org.luxos.printing.admin)."""
+    cmd = [HELPER, *args] if os.geteuid() == 0 else ["pkexec", ADMIN_HELPER if admin else HELPER, *args]
 
     def work():
         try:
@@ -1348,7 +1352,7 @@ class Window(Gtk.Window):
         def done(res):
             if isinstance(res, Exception):
                 # cizi uloha - zrusi pomocnik s pravy roota
-                run_helper(["cancel", str(jid)], lambda rc, o, e: self.after_admin(rc, e))
+                run_helper(["cancel", str(jid)], lambda rc, o, e: self.after_admin(rc, e), admin=True)
             else:
                 self.refresh()
         in_thread(work, done)
@@ -1365,7 +1369,7 @@ class Window(Gtk.Window):
         ok = dlg.run() == Gtk.ResponseType.OK
         dlg.destroy()
         if ok:
-            run_helper(["remove", name], lambda rc, o, e: self.after_admin(rc, e))
+            run_helper(["remove", name], lambda rc, o, e: self.after_admin(rc, e), admin=True)
 
     def add_printer(self):
         AddDialog(self)

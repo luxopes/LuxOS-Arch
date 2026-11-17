@@ -153,6 +153,13 @@ How a driver gets into the repository (`drivers/luxdrv.py` in the LuxOS source t
    the already verified sources and **no network access during the build**, then signs the
    packages and the repository with the LuxOS key. It also builds `luxos-drivers-index`: the map
    printer model (PPD `*1284DeviceID`) and scanner USB ID (udev rules) → package.
+   **File permissions:** vendor installers often ship setuid-root programs or world-writable files
+   and folders. During the build a LuxOS makepkg step (`drivers/makepkg-tidy-luxos-perms.sh`) removes
+   setuid/setgid and write access for others (the `cups` group, GID 209, may still write - some CUPS
+   filters store job settings there). The finished package is then checked (`luxdrv.py perms`, also
+   chmod/install/mkdir in `.INSTALL`); anything left that is not listed with a reason in
+   `drivers/perms-allow.json` is **not published**, and an older published version of that package is
+   removed. `luxdrv.py perms --report DIR` checks a whole repository.
 4. `scripts/publish-repo.sh` uploads `[luxos-drivers]` together with the other repositories.
 
 Plug and play: `luxos-printing-helper` installs the printer driver by model (see

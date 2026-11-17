@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""LuxOS - spravcovske akce tiskaren: odebrat frontu, zrusit tiskovou ulohu jineho uzivatele.
+
+  pkexec /usr/lib/luxos/printing/luxos-printing-admin remove FRONTA
+  pkexec /usr/lib/luxos/printing/luxos-printing-admin cancel ID
+
+Polkit org.luxos.printing.admin chce heslo spravce (auth_admin_keep: na 5 minut zapamatovane). Bezne
+akce (pridat tiskarnu, vychozi, obnovit frontu) jdou dal bez hesla pres luxos-printing-helper
+(org.luxos.printing.manage). Logika je jen v luxos-printing-helper - tento soubor ji spusti s priznakem,
+ze uzivatel prosel overenim spravce (globalni promenna, ne prostredi: pkexec prostredi vycisti).
+"""
+import runpy
+import sys
+
+HELPER = "/usr/lib/luxos/printing/luxos-printing-helper"
+
+if __name__ == "__main__":
+    sys.argv[0] = HELPER
+    runpy.run_path(HELPER, init_globals={"LUXOS_PRINTING_ADMIN": True}, run_name="__main__")
