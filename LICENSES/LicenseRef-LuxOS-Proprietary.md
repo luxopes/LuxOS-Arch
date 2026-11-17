@@ -1,10 +1,6 @@
 # LuxOS Proprietary Software License / Licence k proprietárnímu softwaru LuxOS
 
-SPDX identifier: `LicenseRef-LuxOS-Proprietary` · Version 1.0 (DRAFT, [DATE])
-
-> **DRAFT – not yet in force.** Placeholders in square brackets are filled in once the company is
-> registered. Until then the licensor is Antonín Tomeček, Czech Republic (info@lux-ai.cz).
-> This draft is not legal advice; have it reviewed by a lawyer before publishing.
+SPDX identifier: `LicenseRef-LuxOS-Proprietary` · Version 1.0 (2026-11-17)
 
 Česká verze je níže. / The Czech version follows the English one. In case of doubt, the Czech
 version prevails for users in the Czech Republic.
@@ -13,10 +9,10 @@ version prevails for users in the Czech Republic.
 
 ## English
 
-**Licensor:** [COMPANY NAME], Company ID [IČO], registered office [ADDRESS] ("we").
+**Licensor:** Antonín Tomeček, Czech Republic, info@lux-ai.cz ("we").
 **Software:** the LuxOS components distributed under this license, namely LuxAI (`luxai`),
 Lux Code (`lux-code`), LSL IDE (`lsl-ide`) and LuxOS Organization network (`luxos-domain`), in
-the versions released after [EFFECTIVE DATE], including their updates, data files and documentation
+the versions released after 17 November 2026, including their updates, data files and documentation
 ("Software"). Versions released earlier under an open-source license stay under that license.
 
 1. **License grant.** We grant you a free of charge, non-exclusive, non-transferable, worldwide
@@ -55,15 +51,15 @@ the versions released after [EFFECTIVE DATE], including their updates, data file
    using and distributing the Software. Points 6 to 10 survive termination.
 10. **Governing law.** Czech law applies, excluding its conflict-of-law rules. Mandatory consumer
     protection rules of the country of your habitual residence are not affected. Contact:
-    [CONTACT E-MAIL, ADDRESS].
+    info@lux-ai.cz.
 
 ---
 
 ## Česky
 
-**Poskytovatel:** [NÁZEV SPOLEČNOSTI], IČO [IČO], sídlo [ADRESA] („my“).
+**Poskytovatel:** Antonín Tomeček, Česká republika, info@lux-ai.cz („my“).
 **Software:** součásti LuxOS šířené pod touto licencí, tj. LuxAI (`luxai`), Lux Code (`lux-code`),
-LSL IDE (`lsl-ide`) a Firemní síť LuxOS (`luxos-domain`), ve verzích vydaných po [DATUM ÚČINNOSTI],
+LSL IDE (`lsl-ide`) a Firemní síť LuxOS (`luxos-domain`), ve verzích vydaných po 17. listopadu 2026,
 včetně aktualizací, datových souborů a dokumentace („Software“). Verze vydané dříve pod licencí
 open source zůstávají pod touto licencí.
 
@@ -102,4 +98,4 @@ open source zůstávají pod touto licencí.
    užívat a šířit. Body 6 až 10 platí i po zániku licence.
 10. **Rozhodné právo.** Platí české právo s vyloučením kolizních norem. Kogentní pravidla ochrany
     spotřebitele státu vašeho obvyklého bydliště zůstávají nedotčena. Kontakt:
-    [KONTAKTNÍ E-MAIL, ADRESA].
+    info@lux-ai.cz.

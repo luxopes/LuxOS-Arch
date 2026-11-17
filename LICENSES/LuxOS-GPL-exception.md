@@ -1,10 +1,10 @@
 # LuxOS additional permission (GPL-3.0 section 7)
 
-Status: DRAFT ([DATE]).
+Version 1.0 (2026-11-17).
 
 This additional permission applies to the LuxOS code in this repository that is licensed under the
 GNU General Public License version 3 or later ("GPL"), as published by its copyright holder
-[COMPANY NAME] / Antonín Tomeček.
+Antonín Tomeček.
 
 **Additional permission under GNU GPL version 3 section 7**
 

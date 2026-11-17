@@ -6,14 +6,14 @@ third-party software listed below. Each of these components stays under its own 
 LuxOS proprietary license does not restrict any right those licenses give you. The full license
 texts are installed with each package in `/usr/share/licenses/<package>/`.
 
-Status: DRAFT ([DATE]). Keep this file in sync with the private repository (`NOTICE.md` there) on
+Status: 2026-11-17. Keep this file in sync with the private repository (`NOTICE.md` there) on
 every release of a proprietary package.
 
 ## Contained in the package (statically compiled in or shipped as files)
 
 | Package | Component | License | How it is used |
 |---|---|---|---|
-| `luxai`, `lux-code` | LSL standard library and runtime (Lux Simple Lang, <https://lsl.lux-ai.cz>) | MIT | compiled into the program by the LSL compiler; license text in `/usr/share/licenses/<package>/LSL-LICENSE.txt` |
+| `luxai`, `lux-code`, `luxos-domain` | LSL standard library and runtime (Lux Simple Lang, <https://lsl.lux-ai.cz>) | MIT | compiled into the program by the LSL compiler; license text in `/usr/share/licenses/<package>/LSL-LICENSE.txt` |
 | `lsl-ide` | pyte – VT100/VT220 terminal emulator (© 2011-2012 Selectel, © 2012-2017 pyte authors and contributors) | LGPL-3.0-only | unmodified Python source in `/usr/lib/lsl-ide/lslide/vendor/pyte/` – it can be replaced by a modified version; license text next to it |
 | `luxos-domain` | PAM configuration template `templates/system-auth` (structure follows Arch Linux `pambase`) | GPL-3.0-or-later (as published in LuxOS before the license change) | separate configuration file shipped with the package (aggregation), not part of the program |
 
@@ -29,7 +29,7 @@ their own licenses and source code available from Arch Linux and LuxOS.
 | `luxai` | bash, coreutils, util-linux, xdotool, wmctrl, polkit (`pkexec`) | GPL / LGPL / MIT | separate programs started as processes |
 | `lux-code` | git, ripgrep, diffutils, findutils, grep, sed, tar, unzip, xclip | GPL / MIT / Unlicense | separate programs started as processes |
 | `lsl-ide` | Python, PySide6 / Qt 6, python-wcwidth | PSF-2.0, LGPL-3.0-only, MIT | interpreter and dynamically loaded modules |
-| `luxos-domain` | Python, PyGObject, GTK 3 | PSF-2.0, LGPL-2.1-or-later | interpreter and dynamically loaded modules |
+| `luxos-domain` | GTK 3, GDK, GLib/GObject, GdkPixbuf (settings window) | LGPL-2.1-or-later | dynamic linking |
 | `luxos-domain` | SSSD, realmd, adcli, Samba (`cifs-utils`, `gvfs-smb`), MIT Kerberos, OpenLDAP, Linux-PAM, polkit, sudo | GPL / LGPL / MIT / OpenLDAP / BSD | separate programs, system services and PAM modules configured and started as processes |
 
 ## LGPL notice
