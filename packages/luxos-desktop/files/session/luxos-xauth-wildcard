@@ -1,0 +1,111 @@
+#!/bin/bash
+# LuxOS - pristup k obrazovce nezavisly na nazvu pocitace (spousti /etc/X11/xinit/xinitrc.d pri
+# prihlaseni, luxos-session a po aktualizaci luxos-desktop.install v bezicich relacich).
+#
+# LightDM zapise do ~/.Xauthority cookie jen pro "<nazev pocitace>/unix:0". Kdyz se nazev za behu
+# relace zmeni (Nastaveni, hostnamectl, lux system, pripojeni k domene), kazdy nove spusteny program
+# hleda cookie pro novy nazev, nenajde ho a X ho odmitne ("Authorization required ... Failed to open
+# display") - Launchpad, Hodiny, snimky obrazovky prestanou fungovat. Tady se pro aktualni displej
+# prida polozka FamilyWild (plati pro jakykoli nazev) s cookie, ktery X server prave prijima; polozka
+# pro nazev pocitace zustava. Stare polozky tehoz displeje s jinym cookie se odeberou: xauth zapisuje
+# polozky FamilyWild na konec souboru a libXau bere prvni vyhovujici - stara polozka pro novy nazev
+# (z drivejska) by jinak zakryla platnou polozku FamilyWild.
+#
+# Cookie se nikdy nevypisuje ani nepredava v argumentech (xauth nlist/nmerge pres rouru).
+# Na sitovem disku (sdileny domov vice pocitacu) se nic nemeni: polozka FamilyWild by platila i pro
+# displej :0 jineho pocitace. Bez zmeny obsahu se soubor neprepisuje.
+set -u
+umask 077
+
+dpy=${DISPLAY-}
+case $dpy in
+    :[0-9]* | unix:[0-9]*) ;;
+    *) exit 0 ;;   # jen mistni displej
+esac
+num=${dpy#*:}
+num=${num%%.*}
+[[ $num =~ ^[0-9]+$ ]] || exit 0
+file=${XAUTHORITY:-${HOME:-}/.Xauthority}
+[[ -f $file && ! -L $file && -O $file ]] || exit 0
+command -v xauth >/dev/null && command -v xprop >/dev/null || exit 0
+
+fstype=${LUXOS_XAUTH_FSTYPE:-$(stat -f -c %T -- "$file" 2>/dev/null)}   # LUXOS_XAUTH_FSTYPE jen pro testy
+case $fstype in
+    nfs* | cifs | smb* | fuse* | 9p | afs | ceph | gluster* | lustre | gfs* | ocfs* | autofs | coda) exit 0 ;;
+esac
+
+hex() { printf %s "$1" | od -An -tx1 -v | tr -d ' \n'; }
+mit=$(hex MIT-MAGIC-COOKIE-1)
+numhex=$(hex "$num")
+hosthex=$(hex "$(uname -n)")
+
+# Polozka "rodina delka adresa delka cislo delka jmeno delka data" (prazdne pole = dve mezery)
+split() {  # split RADEK -> f_fam f_addr f_num f_name
+    local r=$1
+    f_fam=${r%% *}; r=${r#* }
+    r=${r#* }; f_addr=${r%% *}; r=${r#* }
+    r=${r#* }; f_num=${r%% *}; r=${r#* }
+    r=${r#* }; f_name=${r%% *}
+}
+
+mapfile -t lines < <(xauth -f "$file" nlist 2>/dev/null)
+((${#lines[@]})) || exit 0
+
+# Kandidati: polozky tohoto displeje (MIT-MAGIC-COOKIE-1) pro jakykoli nazev pocitace, aktualni nazev prvni
+first=() rest=()
+for l in "${lines[@]}"; do
+    split "$l"
+    [[ $f_num == "$numhex" && $f_name == "$mit" && ($f_fam == 0100 || $f_fam == ffff) ]] || continue
+    if [[ $f_fam == 0100 && $f_addr == "$hosthex" ]]; then first+=("$l"); else rest+=("$l"); fi
+done
+cands=("${first[@]}" "${rest[@]}")
+((${#cands[@]})) || exit 0
+
+run=${XDG_RUNTIME_DIR:-}
+[[ -n $run && -d $run && -O $run ]] || run=${file%/*}
+tmp=$(mktemp -d "$run/luxos-xauth.XXXXXX") || exit 1
+trap 'rm -rf "$tmp"' EXIT
+
+works() {  # works SOUBOR -> X server prijme spojeni s timto souborem autorizace
+    XAUTHORITY=$1 timeout 3 xprop -display "$dpy" -root -len 0 _NET_SUPPORTED >/dev/null 2>&1
+}
+wild() { printf 'ffff%s\n' "${1:4}"; }
+
+# Ktery cookie X server prave prijima: kazdy kandidat sam v docasnem souboru. Kdyz server pusti i bez
+# cookie (xhost), nejde to poznat - pak plati polozka pro aktualni nazev pocitace.
+: >"$tmp/none"
+good= verified=1
+if works "$tmp/none"; then
+    verified=
+    ((${#first[@]})) && good=${first[0]}
+else
+    for c in "${cands[@]}"; do
+        rm -f "$tmp/try"
+        wild "$c" | xauth -f "$tmp/try" nmerge - 2>/dev/null || continue
+        if works "$tmp/try"; then good=$c; break; fi
+    done
+fi
+[[ -n $good ]] || exit 0
+data=${good##* }
+
+new=("$(wild "$good")")
+for l in "${lines[@]}"; do
+    split "$l"
+    if [[ $f_num == "$numhex" ]]; then
+        [[ $f_fam == ffff ]] && continue                      # stare polozky FamilyWild tohoto displeje
+        # polozky tohoto displeje s cookie, ktery server neprijima (jen kdyz to slo overit)
+        [[ -n $verified && $f_fam == 0100 && $f_name == "$mit" && ${l##* } != "$data" ]] && continue
+    fi
+    new+=("$l")
+done
+sorted() { printf '%s\n' "$@" | LC_ALL=C sort; }
+[[ "$(sorted "${new[@]}")" == "$(sorted "${lines[@]}")" ]] && exit 0   # uz je hotovo
+
+# xauth zapise polozky FamilyWild na konec, poradi ostatnich zustava
+out=$(mktemp "$file.luxos-XXXXXX") || exit 1
+if printf '%s\n' "${new[@]}" | xauth -f "$out" nmerge - 2>/dev/null &&
+   [[ "$(xauth -f "$out" nlist 2>/dev/null | LC_ALL=C sort)" == "$(sorted "${new[@]}")" ]]; then
+    chmod 600 "$out" && mv -f "$out" "$file" && exit 0
+fi
+rm -f "$out"
+exit 1

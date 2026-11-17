@@ -5223,3 +5223,5 @@ Preparing the package signing keys…	Préparation des clés de vérification de
 Enter the server address.	Saisissez l’adresse du serveur.
 Backups on an SFTP server cannot be encrypted.	Les sauvegardes sur un serveur SFTP ne peuvent pas être chiffrées.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Le chiffrement fonctionne avec les disques USB et les dossiers partagés (SMB). Désactivez Chiffrer les sauvegardes ou utilisez un dossier partagé.
+Old copies of %s were replaced by the system version	Les anciennes copies de %s ont été remplacées par la version du système
+The old copies were moved to %s. Nothing was deleted.	Les anciennes copies ont été déplacées vers %s. Rien n’a été supprimé.

@@ -5223,3 +5223,5 @@ Preparing the package signing keys…	Csomagellenőrző kulcsok előkészítése
 Enter the server address.	Adja meg a kiszolgáló címét.
 Backups on an SFTP server cannot be encrypted.	Az SFTP-kiszolgálón lévő biztonsági mentések nem titkosíthatók.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A titkosítás USB-lemezekkel és megosztott mappákkal (SMB) működik. Kapcsolja ki a Mentések titkosítása lehetőséget, vagy használjon megosztott mappát.
+Old copies of %s were replaced by the system version	A(z) %s régi másolatait a rendszer verziója váltotta fel
+The old copies were moved to %s. Nothing was deleted.	A régi másolatok ide kerültek: %s. Semmi sem lett törölve.

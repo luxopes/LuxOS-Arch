@@ -5223,3 +5223,5 @@ Preparing the package signing keys…	Sleutels voor pakketcontrole voorbereiden�
 Enter the server address.	Voer het serveradres in.
 Backups on an SFTP server cannot be encrypted.	Back-ups op een SFTP-server kunnen niet worden versleuteld.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Versleuteling werkt met USB-schijven en gedeelde mappen (SMB). Zet Versleutel back-ups uit of gebruik een gedeelde map.
+Old copies of %s were replaced by the system version	Oude kopieën van %s zijn vervangen door de systeemversie
+The old copies were moved to %s. Nothing was deleted.	De oude kopieën zijn verplaatst naar %s. Er is niets verwijderd.

@@ -5224,3 +5224,5 @@ Preparing the package signing keys…	Przygotowywanie kluczy do weryfikacji paki
 Enter the server address.	Wpisz adres serwera.
 Backups on an SFTP server cannot be encrypted.	Kopii zapasowych na serwerze SFTP nie można zaszyfrować.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Szyfrowanie działa z dyskami USB i folderami udostępnionymi (SMB). Wyłącz Szyfruj kopie zapasowe albo użyj folderu udostępnionego.
+Old copies of %s were replaced by the system version	Stare kopie %s zastąpiła wersja systemowa
+The old copies were moved to %s. Nothing was deleted.	Stare kopie przeniesiono do %s. Nic nie zostało usunięte.

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=78
+pkgrel=79
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -49,7 +49,8 @@ depends=(
     luxos-terminal
     'xfce4-whiskermenu-plugin>=2.10.1-2.1' xfce4-genmon-plugin 'xfce4-pulseaudio-plugin>=0.5.1-1.1' xfce4-xkb-plugin
     xfce4-cpugraph-plugin  # graf vytizeni CPU (jde pridat do listy, ve vychozi liste neni)
-    xorg-setxkbmap xorg-xprop libxi libxtst libxrandr
+    # xorg-xauth: luxos-xauth-wildcard (pristup k obrazovce i po zmene nazvu pocitace)
+    xorg-setxkbmap xorg-xprop xorg-xauth libxi libxtst libxrandr
     brightnessctl luxos-i18n luxos-store luxos-account
     # Lux Guard: kontrola stazenych programu a snimky /home (i u starsich instalaci pres lux update)
     luxos-guard
@@ -204,6 +205,10 @@ package() {
     ln -s luxos-search "$pkgdir/usr/bin/luxos-spotlight"   # starsi zkratky v xfconf
     # Vychozi nastaveni NOVYCH uzivatelu od spravce (/etc/luxos/new-users.conf z lux system), pri prvnim prihlaseni
     install -Dm755 "$f/session/luxos-new-user-defaults" "$pkgdir/usr/lib/luxos/luxos-new-user-defaults"
+    # Pristup k obrazovce nezavisly na nazvu pocitace (FamilyWild v ~/.Xauthority) a presun starych kopii
+    # programu LuxOS z ~/.local (pri prihlaseni: xinitrc.d a luxos-session)
+    install -Dm755 -t "$pkgdir/usr/lib/luxos" "$f/session/luxos-xauth-wildcard" "$f/session/luxos-shadow-guard"
+    install -Dm755 "$f/xinit/10-luxos-xauth.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/10-luxos-xauth.sh"
     # Sledovani aktivniho okna (bash, xprop -spy) pro "luxos-appname watch"
     install -Dm755 "$f/luxos-appname-watch" "$pkgdir/usr/lib/luxos/luxos-appname-watch"
     install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/python/*.py

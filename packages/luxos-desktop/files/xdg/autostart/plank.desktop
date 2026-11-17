@@ -2,7 +2,7 @@
 Type=Application
 Name=Dock
 Comment=LuxOS dock
-Exec=luxos-dock
+Exec=/usr/bin/luxos-dock
 Icon=plank
 OnlyShowIn=XFCE;
 X-GNOME-Autostart-Delay=1

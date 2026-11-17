@@ -5223,3 +5223,5 @@ Preparing the package signing keys…	Preparando las claves de verificación de 
 Enter the server address.	Introduzca la dirección del servidor.
 Backups on an SFTP server cannot be encrypted.	Las copias de seguridad en un servidor SFTP no se pueden cifrar.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	El cifrado funciona con discos USB y carpetas compartidas (SMB). Desactive Cifrar las copias o use una carpeta compartida.
+Old copies of %s were replaced by the system version	Las copias antiguas de %s se han sustituido por la versión del sistema
+The old copies were moved to %s. Nothing was deleted.	Las copias antiguas se han movido a %s. No se ha borrado nada.

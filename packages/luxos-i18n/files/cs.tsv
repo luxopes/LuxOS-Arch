@@ -5222,3 +5222,5 @@ Preparing the package signing keys…	Připravuji klíče pro ověření balík�
 Enter the server address.	Zadejte adresu serveru.
 Backups on an SFTP server cannot be encrypted.	Zálohy na serveru SFTP nelze šifrovat.
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Šifrování funguje s disky USB a sdílenými složkami (SMB). Vypněte Šifrovat zálohy, nebo použijte sdílenou složku.
+Old copies of %s were replaced by the system version	Staré kopie %s nahradila verze ze systému
+The old copies were moved to %s. Nothing was deleted.	Staré kopie jsou přesunuté do %s. Nic se nesmazalo.

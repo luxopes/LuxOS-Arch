@@ -1,0 +1,77 @@
+#!/bin/bash
+# LuxOS - stare vyvojove kopie programu LuxOS v ~/.local/bin a ~/.local/share/applications nesmi
+# potichu nahradit systemove (spousti luxos-session pri prihlaseni, pred spustenim soucasti relace).
+#
+# ~/.local/bin je v PATH pred /usr/bin: stara kopie luxos-widgets z drivejsiho pokusu se spoustela misto
+# aktualni verze z balicku (i v autostartu) a stary luxos-tour.desktop zakryl systemovy. Soubor lux*
+# se presune do ~/.local/share/luxos/shadowed/<datum>/, jen kdyz:
+#   - stejne pojmenovany soubor v /usr/bin (/usr/share/applications) patri baliku (databaze balicku lux),
+#   - a mistni kopie je STARSI nez soubor z balicku. Novejsi kopie (vyvojar na ni prave pracuje) zustava.
+# Nic se nemaze. Polozky skryte uzivatelem (NoDisplay/Hidden) zustavaji. Jedno klidne upozorneni.
+# Vypnuti: soubor ~/.config/luxos/keep-local-overrides nebo KEEP_LOCAL_OVERRIDES=1 v appearance.conf.
+# LUXOS_SYSROOT a LUXOS_PKG_DB jen pro testy.
+set -u
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+root=${LUXOS_SYSROOT:-}
+
+[[ -e $cfg/keep-local-overrides ]] && exit 0
+grep -qsE '^KEEP_LOCAL_OVERRIDES=("|'"'"')?(1|true|yes)' "$cfg/appearance.conf" && exit 0
+
+db=${LUXOS_PKG_DB:-$root/var/lib/lux/local}
+[[ -d $db ]] || db=$root/var/lib/pacman/local      # starsi instalace pred prechodem na lux
+[[ -d $db ]] || exit 0
+
+# Kandidati: mistni soubor lux* starsi nez stejne pojmenovany systemovy soubor
+cands=() rels=()
+add() {  # add MISTNI SYSTEMOVY RELATIVNI_CESTA
+    [[ -f $2 && -f $1 ]] || return 0                # i odkaz na soubor; rozbity odkaz nic nezakryva
+    [[ $1 -ef $2 ]] && return 0                     # odkaz na systemovy soubor taky ne
+    [[ $1 -ot $2 ]] || return 0                     # stejne stara nebo novejsi kopie zustava
+    cands+=("$1"); rels+=("$3")
+}
+shopt -s nullglob
+for f in "$HOME/.local/bin"/lux*; do
+    add "$f" "$root/usr/bin/${f##*/}" "usr/bin/${f##*/}"
+done
+for f in "$data/applications"/lux*.desktop; do
+    grep -qsE '^(NoDisplay|Hidden)=true' "$f" && continue   # uzivatel aplikaci skryl
+    add "$f" "$root/usr/share/applications/${f##*/}" "usr/share/applications/${f##*/}"
+done
+((${#cands[@]})) || exit 0
+
+# Jen soubory, ktere opravdu instaluje balik (jeden pruchod databazi)
+owned=$(printf '%s\n' "${rels[@]}" | grep -Fxh -f - "$db"/*/files 2>/dev/null)
+[[ -n $owned ]] || exit 0
+
+dest="$data/luxos/shadowed/$(date +%F)"
+moved=() names=()
+for i in "${!cands[@]}"; do
+    grep -Fxq -- "${rels[i]}" <<<"$owned" || continue
+    src=${cands[i]}
+    sub=bin
+    [[ ${rels[i]} == usr/share/applications/* ]] && sub=applications
+    mkdir -p "$dest/$sub" || continue
+    t="$dest/$sub/${src##*/}" n=1
+    while [[ -e $t || -L $t ]]; do t="$dest/$sub/${src##*/}.$n"; n=$((n + 1)); done
+    mv -n -- "$src" "$t" 2>/dev/null || continue
+    [[ -e $src || -L $src ]] && continue
+    moved+=("$src")
+    n=${src##*/}; n=${n%.desktop}
+    [[ " ${names[*]} " == *" $n "* ]] || names+=("$n")
+done
+((${#moved[@]})) || exit 0
+
+hash -r 2>/dev/null
+[[ -f $data/applications/mimeinfo.cache ]] && update-desktop-database -q "$data/applications" 2>/dev/null
+printf '%s\n' "${moved[@]}"   # pro luxos-session / testy: presunute soubory
+
+. /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+list=$(printf '%s, ' "${names[@]}"); list=${list%, }
+show=${dest/#"$HOME"/\~}
+if command -v notify-send >/dev/null; then
+    notify-send -a LuxOS -i system-software-update -u low \
+        "$(T "Old copies of %s were replaced by the system version" "$list")" \
+        "$(T "The old copies were moved to %s. Nothing was deleted." "$show")" >/dev/null 2>&1 &
+fi
+exit 0
