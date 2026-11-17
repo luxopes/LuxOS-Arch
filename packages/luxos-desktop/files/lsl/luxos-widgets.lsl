@@ -6,6 +6,8 @@
 #   today     datum a velky cas (klik: Hodiny), vpravo pocasi z aplikace Pocasi (klik: Pocasi)
 #   system    nazev systemu, stav (Vyborne / Dobre / Vytizene) a oblouky procesor, pamet, disk
 #   music     prave hrajici hudba/video (MPRIS) s Prehrat/Pozastavit a Dalsi; jen kdyz neco hraje
+#             nebo je pozastavene. Ve vychozim rozmisteni drzi sve misto i skryta (ostatni karty se
+#             pri jejim ukazani/skryti nehybou); tlacitko posila Play/Pause podle zobrazene ikony.
 #   calendar  mesic s vyznacenym dneskem (klik: Kalendar)
 #
 # Vzhled: prusvitne sklo - rozostrena tapeta, jemny mlecny zavoj a svetly odlesk.
@@ -1500,16 +1502,23 @@ end
 
 # ---- karta Hudba ----------------------------------------------------------------------------
 
+# Tlacitko dela to, co ukazuje: ikona Pozastavit = Pause, ikona Prehrat = Play. PlayPause by stav
+# prepnul i tehdy, kdyz karta ukazuje zastaraly stav (prehravac, ktery se znovu prihlasil, zmena
+# z prohlizece) - klik na "Prehrat" by pak hudbu zastavil.
 function on_play(button):
-    cur = mpris.current()
+    cur = music_player()
     if cur != None:
-        call mpris.send(cur["bus"], "PlayPause")
+        method = "Play"
+        if cur["playing"]:
+            method = "Pause"
+        end
+        call mpris.send(cur["bus"], method)
     end
     return 0
 end
 
 function on_next(button):
-    cur = mpris.current()
+    cur = music_player()
     if cur != None:
         call mpris.send(cur["bus"], "Next")
     end
@@ -1552,12 +1561,47 @@ function build_music():
     return c
 end
 
+# Prehravac karty Hudba: aktualni, jinak naposledy zobrazeny jeste MUSIC_GRACE s po odchodu
+# (Firefox pri zmene stranky/medii odhlasi a hned znovu prihlasi svuj nazev MPRIS - karta nemrka);
+# LUXOS_WIDGETS_MUSIC_GRACE pro testy
+MUSIC_GRACE = text.to_int(env.get("LUXOS_WIDGETS_MUSIC_GRACE", ""), 8)
+music = {"last": None, "timer": 0}
+
+function music_player():
+    cur = mpris.current()
+    if cur != None:
+        return cur
+    end
+    return music["last"]
+end
+
+function on_music_grace():
+    music["timer"] = 0
+    music["last"] = None
+    call update_music()
+    return False
+end
+
 function update_music():
     if "music" not in ui["cards"]:
         return 0
     end
     c = ui["cards"]["music"]
     cur = mpris.current()
+    if cur != None:
+        music["last"] = cur
+        if music["timer"] != 0:
+            call glib.source_remove(music["timer"])
+            music["timer"] = 0
+        end
+    elif music["last"] != None and not ui["settings"]:
+        # prehravac prave odesel: chvili pockat, jestli se vrati (zobrazi se pozastaveny)
+        if music["timer"] == 0:
+            music["timer"] = glib.timeout_add_seconds(MUSIC_GRACE, on_music_grace)
+        end
+        cur = music["last"]
+        cur["playing"] = False
+    end
     if cur == None and ui["settings"]:
         # nahled v galerii
         call gtk.label_set_text(c["title"], i18n.T("Nothing is playing"))
@@ -1571,7 +1615,6 @@ function update_music():
         if win != 0:
             call gtk.widget_hide(win)
         end
-        call place_all()
         return 0
     end
     title = cur["title"]
@@ -1590,14 +1633,16 @@ function update_music():
     end
     call gtk.button_set_image(c["play"], gtk.image_new_from_icon_name(icon, 4))
     call gtk.widget_set_sensitive(c["next"], cur["can_next"])
-    was = gtk.widget_get_visible(c["ev"])
     call gtk.widget_show(c["ev"])
-    if win != 0:
+    if win != 0 and not gtk.widget_get_visible(win):
+        # GTK po skryti okna zapomene jeho pozici a spravce oken by ho pri novem namapovani umistil
+        # sam (kaskada LuxOS mimo okna): pozice az pred zobrazenim, kontrola po namapovani v place_all
+        xy = ui["placed"].get("music")
+        if xy != None:
+            call gtk.window_move(win, xy[0], xy[1])
+        end
         call gtk.widget_show(win)
-    end
-    if not was:
-        # karta pod ostatnimi: vychozi rozmisteni pocita jen viditelne karty
-        call place_all()
+        call glib.timeout_add(300, place_once)
     end
     return 0
 end
@@ -1658,7 +1703,29 @@ function clamp_to_area(name, x, y):
     return [x, y]
 end
 
-# Ulozene pozice, ostatni karty pod sebou na zvolene strane (jako drive v jednom sloupci)
+# Vyska okna karty pro vychozi rozmisteni. Skryta karta Hudba (nic nehraje) drzi sve misto
+# (posledni zmerena vyska, jinak MUSIC_HEIGHT): kdyz se ukaze nebo skryje, ostatni karty se nehnou.
+MUSIC_HEIGHT = 104
+heights = {}
+
+function slot_height(name, win):
+    if gtk.widget_get_visible(ui["cards"][name]["ev"]):
+        heights[name] = gtk.widget_get_preferred_height(win)[1]
+    end
+    if name == "music":
+        return heights.get(name, MUSIC_HEIGHT)
+    end
+    return heights.get(name, 0)
+end
+
+function place_once():
+    call place_all()
+    return False
+end
+
+# Ulozene pozice, ostatni karty pod sebou na zvolene strane (jako drive v jednom sloupci).
+# Karta, kterou presunul nekdo jiny (spravce oken pri namapovani, restart spravce oken), se vrati
+# na sve misto - karty stoji presne tam, kam je uzivatel dal.
 function place_all():
     geo = gtk.primary_monitor_workarea()
     x_default = geo[0] + geo[2] - WIDTH
@@ -1672,17 +1739,21 @@ function place_all():
         if win == 0:
             continue
         end
-        h = gtk.widget_get_preferred_height(win)[1]
-        visible = gtk.widget_get_visible(ui["cards"][name]["ev"])
+        h = slot_height(name, win)
         if name in conf["pos"]:
             xy = clamp_to_area(name, geo[0] + conf["pos"][name][0], geo[1] + conf["pos"][name][1])
         else:
             xy = [x_default, y_next]
-            if visible:
-                y_next = y_next + h
-            end
+            y_next = y_next + h
         end
-        if ui["placed"].get(name) != xy:
+        if drag["name"] == name and drag["moved"]:
+            continue
+        end
+        moved = ui["placed"].get(name) != xy
+        if not moved and gtk.widget_get_visible(win) and gtk.window_get_position(win) != xy:
+            moved = True
+        end
+        if moved:
             ui["placed"][name] = xy
             call gtk.window_move(win, xy[0], xy[1])
             changed = True

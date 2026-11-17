@@ -18,6 +18,7 @@ else:
     _tg_os.environ.pop("DISPLAY", None)
 import json
 import os
+import shlex
 import shutil
 import signal
 import subprocess
@@ -27,6 +28,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "files", "lsl", "luxos-widgets.lsl")
+PLAYER = os.path.join(HERE, "fake_mpris_player.py")
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 UNDER_XVFB = bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("XAUTHORITY", "")
 BIN = tempfile.mkdtemp(prefix="luxos-widgets-bin-")
@@ -250,6 +252,101 @@ class Widgets(unittest.TestCase):
         self.assertTrue(r, "okno galerie")
         path = os.path.join(self.home, ".config", "luxos", "widgets.conf")
         self.assertIn("WIDGETS=system", self.read(path), "galerie sama nic nemeni")
+
+    # ---- karta Hudba (napodoba prehravace MPRIS, jako Firefox) --------------------------------
+
+    def start_music(self, widgets="today,music,system"):
+        """Napodoba prehravace a widgety na stejne docasne sbernici; vraci PID napodoby."""
+        self.conf("ENABLED=1\nWIDGETS=%s\n" % widgets)
+        self.env["LUXOS_WIDGETS_MUSIC_GRACE"] = "2"
+        pidfile = os.path.join(self.t, "player.pid")
+        script = ('python3 %s & echo $! > %s; sleep 0.5; exec %s'
+                  % (shlex.quote(PLAYER), shlex.quote(pidfile), shlex.quote(os.path.join(self.fake, "luxos-widgets"))))
+        p = subprocess.Popen(["dbus-run-session", "--", "sh", "-c", script], env=self.env,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        self.procs.append(p)
+        self.assertTrue(self.wait_for(lambda: self.read(pidfile).strip() != ""))
+        n = len(widgets.split(","))
+        self.assertTrue(self.wait_for(lambda: len(self.windows()) == n, 10), "karta Hudba se ukaze")
+        time.sleep(0.6)
+        return int(self.read(pidfile))
+
+    def positions(self):
+        """{vyska okna: (x, y)} - karty se lisi vyskou (Hudba je nejnizsi)."""
+        out = {}
+        for w in self.windows():
+            x, y, _w, h = self.geometry(w)
+            out[h] = (x, y)
+        return out
+
+    def music_window(self):
+        wins = sorted(self.windows(), key=lambda w: self.geometry(w)[3])
+        return wins[0] if wins else None
+
+    def calls(self):
+        return [l.split(" call ", 1)[1] for l in self.read(self.log).splitlines() if " call " in l]
+
+    def click_play(self):
+        x, y, _w, h = self.geometry(self.music_window())
+        # Prehrat/Pozastavit: druhe tlacitko zprava (okraj okna 24, karta 18, Dalsi 32, mezera 12)
+        subprocess.run(["xdotool", "mousemove", str(x + 238), str(y + (h - 26) // 2), "click", "1"])
+
+    def test_music_card_appearing_never_moves_other_cards(self):
+        pid = self.start_music()
+        before = self.positions()
+        self.assertEqual(len(before), 3)
+        music_h = min(before)
+        others = {h: xy for h, xy in before.items() if h != music_h}
+        # prehravac odejde (Firefox zavrel stranku): karta Hudba zmizi po chvili, ostatni stoji
+        os.kill(pid, signal.SIGUSR1)
+        self.assertTrue(self.wait_for(lambda: len(self.windows()) == 2, 8), "karta Hudba zmizi")
+        time.sleep(0.5)
+        self.assertEqual(self.positions(), others, "ostatni karty se po skryti Hudby nehnou")
+        # prehravac se vrati: Hudba na svem puvodnim miste, ostatni porad stoji
+        os.kill(pid, signal.SIGUSR2)
+        self.assertTrue(self.wait_for(lambda: len(self.windows()) == 3, 8), "karta Hudba se vrati")
+        time.sleep(0.8)
+        self.assertEqual(self.positions(), before)
+
+    def test_player_reregistering_keeps_music_card(self):
+        """Firefox odhlasi a hned znovu prihlasi nazev MPRIS (nova stranka/media) - karta nemrka."""
+        pid = self.start_music()
+        os.kill(pid, signal.SIGUSR1)
+        for _ in range(8):
+            self.assertEqual(len(self.windows()), 3, "karta Hudba zustava videt i bez prehravace")
+            time.sleep(0.1)
+        os.kill(pid, signal.SIGUSR2)
+        for _ in range(25):
+            self.assertEqual(len(self.windows()), 3, "karta Hudba zustava videt")
+            time.sleep(0.1)
+
+    def test_play_button_sends_what_it_shows(self):
+        pid = self.start_music()
+        self.click_play()            # hraje -> ikona Pozastavit
+        self.assertTrue(self.wait_for(lambda: self.calls() == ["Player Pause"]), self.calls())
+        time.sleep(0.5)
+        self.click_play()            # pozastaveno -> ikona Prehrat
+        self.assertTrue(self.wait_for(lambda: self.calls() == ["Player Pause", "Player Play"]), self.calls())
+        # prehravac se pozastavi sam (stranka, jine ovladani): klik na Prehrat ho pusti, nikdy nezastavi
+        time.sleep(0.5)
+        os.kill(pid, signal.SIGHUP)
+        time.sleep(0.8)
+        self.click_play()
+        self.assertTrue(self.wait_for(lambda: len(self.calls()) == 3), self.calls())
+        self.assertEqual(self.calls()[2], "Player Play")
+        self.assertNotIn("Player PlayPause", self.calls())
+
+    def test_card_moved_by_someone_else_returns(self):
+        """Spravce oken (umisteni pri namapovani, restart) kartu presune - vrati se na sve misto."""
+        self.start_music()
+        before = self.positions()
+        tallest = max(before)
+        win = [w for w in self.windows() if self.geometry(w)[3] == tallest][0]
+        subprocess.run(["xdotool", "windowmove", win, "300", "500"])
+        self.assertTrue(self.wait_for(lambda: self.geometry(win)[:2] == (300, 500), 3))
+        self.assertTrue(self.wait_for(lambda: self.positions() == before, 8), self.positions())
+        path = os.path.join(self.home, ".config", "luxos", "widgets.conf")
+        self.assertNotIn("POS_", self.read(path), "nic se neulozi")
 
     def script(self, name, body):
         p = os.path.join(self.fake, name)

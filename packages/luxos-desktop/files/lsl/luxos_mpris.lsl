@@ -4,7 +4,7 @@
 #   call mpris.connect(f)             f() po zmene (stav, metadata, prehravac prisel/odesel)
 #   mpris.current()                   hrajici prehravac (jinak pozastaveny s titulkem) nebo None
 #   mpris.playing()                   True, kdyz aspon jeden prehravac hraje
-#   call mpris.send(name, "PlayPause") asynchronni volani; ikona se zmeni hned (optimisticky)
+#   call mpris.send(name, "Pause")    asynchronni volani (Play, Pause, PlayPause, Next...); ikona se zmeni hned
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 
@@ -127,18 +127,25 @@ function playing():
     return False
 end
 
-# Ovladani prehravace; PlayPause hned prepne stav lokalne, skutecny stav pak prijde signalem
+# Ovladani prehravace; Play/Pause/PlayPause hned nastavi stav lokalne, skutecny stav pak prijde signalem
 function send(name, method):
     if name not in players:
         return 0
     end
-    if method == "PlayPause":
-        props = players[name]
+    props = players[name]
+    want = ""
+    if method == "Play":
+        want = "Playing"
+    elif method == "Pause":
+        want = "Paused"
+    elif method == "PlayPause":
+        want = "Playing"
         if props.get("PlaybackStatus") == "Playing":
-            props["PlaybackStatus"] = "Paused"
-        else:
-            props["PlaybackStatus"] = "Playing"
+            want = "Paused"
         end
+    end
+    if want != "":
+        props["PlaybackStatus"] = want
         call changed()
     end
     call gio.call_async(bus, name, PATH, IFACE, method, [], "", 3000, on_called, name)
