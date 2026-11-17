@@ -83,18 +83,23 @@ rm -rf out/ci-pub/luxos-branding
 gh run download -R luxopes/LuxOS-Arch <ID> -n single -D out/ci-pub/luxos-branding
 ```
 
-Artefakt `single` obsahuje nepodepsaný balík a `SHA256SUMS`. Kontrola:
+Artefakt `single` obsahuje `SHA256SUMS` a podsložku `single/` s nepodepsaným balíkem (s `-n single`
+leží v `out/ci-pub/<balík>/single/`, pomocník `build.sh` stahuje bez `-n`, takže o úroveň hlouběji –
+proto `find`). Kontrola:
 
 ```bash
-cd out/ci-pub/luxos-branding && sha256sum -c SHA256SUMS && cd -
-P=out/ci-pub/luxos-branding/luxos-branding-1.1.0-29-any.pkg.tar.zst
+P=$(find out/ci-pub/luxos-branding -name 'luxos-branding-1.1.0-29-any.pkg.tar.zst')
+D=$(find out/ci-pub/luxos-docs -name 'luxos-docs-1.0.0-70-any.pkg.tar.zst')
+for f in $P $D; do (cd "$(dirname "$(dirname "$f")")" && sha256sum -c SHA256SUMS); done
 tar --zstd -xOf $P usr/lib/luxos/version | grep '^VERSION=1.0.2$'
 tar --zstd -tf $P | grep 'usr/share/luxos/whats-new/1.0.2.json'
 tar --zstd -xOf $P usr/lib/luxos/apply-branding | grep 'PRETTY_NAME="LuxOS 1.0.2 Sirius"'
-cd out/ci-pub/luxos-docs && sha256sum -c SHA256SUMS && cd -
-D=out/ci-pub/luxos-docs/luxos-docs-1.0.0-70-any.pkg.tar.zst
 tar --zstd -xOf $D usr/share/luxos/docs/luxos/overview.md | grep '1.0.2 "Sirius"'
 ```
+
+Ověřeno na větvi `release-1.0.2` (běh 44056595180, `--ref release-1.0.2`): `sha256sum` OK,
+`VERSION=1.0.2`, `CODENAME=Sirius`, `whats-new/1.0.2.json` (shodný se zdrojem), `PRETTY_NAME="LuxOS 1.0.2 Sirius"`.
+Pro vydání se balík staví znovu z `main` (krok 1) – obsah je stejný, jen z ověřeného `main`.
 
 ## 3. Podpis a přidání do out/repo ([luxos] a [luxos-apps])
 
@@ -223,6 +228,7 @@ gh run list -R luxopes/LuxOS-Arch -w build.yml -L1
 gh run watch -R luxopes/LuxOS-Arch <ID> --exit-status        # limit běhu 300 min
 rm -rf out/iso-1.0.2
 gh run download -R luxopes/LuxOS-Arch <ID> -n iso -D out/iso-1.0.2
+I=$(dirname "$(find out/iso-1.0.2 -name 'luxos-1.0.2-x86_64.iso')")   # podle verze gh přímo out/iso-1.0.2 nebo out/iso-1.0.2/iso
 ```
 
 Co workflow dělá: `scripts/fetch-published-repo.sh` stáhne `[luxos]` a `[luxos-apps]` z
@@ -237,12 +243,12 @@ krok Checksums vytvoří `out/SHA256SUMS` (jen toto ISO); artefakt **`iso`** = I
 ## 7. Ověření a podpis ISO
 
 ```bash
-cd out/iso-1.0.2
+cd $I
 sha256sum -c SHA256SUMS
 ls -l luxos-1.0.2-x86_64.iso
 cd -
-LUXOS_VM_ISO=out/iso-1.0.2/luxos-1.0.2-x86_64.iso scripts/test-vm.sh live
-LUXOS_VM_ISO=out/iso-1.0.2/luxos-1.0.2-x86_64.iso scripts/test-vm.sh live --secureboot   # OVMF se Secure Boot a klíči Microsoftu
+LUXOS_VM_ISO=$I/luxos-1.0.2-x86_64.iso scripts/test-vm.sh live
+LUXOS_VM_ISO=$I/luxos-1.0.2-x86_64.iso scripts/test-vm.sh live --secureboot   # OVMF se Secure Boot a klíči Microsoftu
 ```
 
 Ve VM: start (se Secure Boot: modrá obrazovka shim → Enroll key from disk → `LUXOS_ENROLL_THIS_KEY.cer`),
@@ -254,14 +260,15 @@ Rozložení `/download/`: `luxos-<verze>-x86_64.iso`, `luxos-<verze>-x86_64.iso.
 podpis), `SHA256SUMS` (řádky všech nabízených ISO, nejnovější první) a `SHA256SUMS.sig`.
 
 ```bash
-cd out/iso-1.0.2
+cd $I
 GNUPGHOME=$SIGN gpg --detach-sign --no-armor -u $KEY luxos-1.0.2-x86_64.iso
 curl -fsS https://luxos.lux-ai.cz/download/SHA256SUMS -o SHA256SUMS.server
 cp SHA256SUMS SHA256SUMS.ci
 { cat SHA256SUMS.ci; grep -v ' luxos-1.0.2-x86_64.iso$' SHA256SUMS.server; } > SHA256SUMS
 GNUPGHOME=$SIGN gpg --detach-sign --no-armor -u $KEY SHA256SUMS
 # ověření veřejným klíčem jako návštěvník webu (dočasný adresář pod out/, ne /tmp)
-g=$(mktemp -d -p ../); gpg --homedir $g -q --import ../../packages/luxos-keyring/files/luxos.gpg
+K=~/LuxOS-Arch/packages/luxos-keyring/files/luxos.gpg
+g=$(mktemp -d -p ~/LuxOS-Arch/out); gpg --homedir $g -q --import $K
 gpg --homedir $g --verify luxos-1.0.2-x86_64.iso.sig luxos-1.0.2-x86_64.iso
 gpg --homedir $g --verify SHA256SUMS.sig SHA256SUMS
 sha256sum -c --ignore-missing SHA256SUMS; gpgconf --homedir $g --kill gpg-agent; rm -rf $g
@@ -272,8 +279,8 @@ cd -
 
 ```bash
 S=root@185.183.156.25:/srv/luxos-site/download
-rsync -P --chmod=F644 out/iso-1.0.2/luxos-1.0.2-x86_64.iso out/iso-1.0.2/luxos-1.0.2-x86_64.iso.sig $S/
-rsync --chmod=F644 out/iso-1.0.2/SHA256SUMS out/iso-1.0.2/SHA256SUMS.sig $S/
+rsync -P --chmod=F644 $I/luxos-1.0.2-x86_64.iso $I/luxos-1.0.2-x86_64.iso.sig $S/
+rsync --chmod=F644 $I/SHA256SUMS $I/SHA256SUMS.sig $S/
 curl -sI https://luxos.lux-ai.cz/download/luxos-1.0.2-x86_64.iso | head -3
 ```
 
@@ -283,7 +290,7 @@ Guard na serveru blokuje IP při náporu dotazů).
 ## 9. site/iso.json
 
 ```bash
-scripts/update-iso-json.sh out/iso-1.0.2/luxos-1.0.2-x86_64.iso
+scripts/update-iso-json.sh $I/luxos-1.0.2-x86_64.iso
 git add site/iso.json && git commit -m "Website: ISO 1.0.2 Sirius"
 git push origin main
 ```
