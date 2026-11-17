@@ -129,6 +129,60 @@ class Files(unittest.TestCase):
         for a in re.findall(r'<a [^>]*href="https://[^"]*"[^>]*>', html):
             self.assertIn('rel="noopener noreferrer"', a)
 
+    def test_welcome_small_and_accessible(self):
+        d = os.path.join(FF, "welcome")
+        total = sum(os.path.getsize(os.path.join(d, n)) for n in os.listdir(d))
+        self.assertLess(total, 300 * 1024, "welcome page must stay small")
+        html = read(os.path.join(d, "index.html"))
+        self.assertIn('<html lang="en">', html)
+        self.assertIn('<meta name="viewport"', html)
+        # zadne obrazky ani pisma zvenku ani ze souboru: ikony jsou inline SVG, pismo Inter je systemove
+        self.assertNotRegex(html, r"<img\b|@font-face")
+        # animace jen s ohledem na prefers-reduced-motion, viditelny fokus pro klavesnici
+        rm = re.search(r"@media \(prefers-reduced-motion: reduce\) \{(.*?)\n  \}", html, re.S)
+        self.assertTrue(rm and "animation: none" in rm.group(1) and "transition: none" in rm.group(1))
+        self.assertRegex(html, r"\.button:focus-visible, \.tile:focus-visible \{\s*outline: 3px solid")
+        self.assertIn("@media (prefers-color-scheme: dark)", html)
+        # kazda sekce ma nadpis (aria-labelledby ukazuje na existujici id)
+        for ref in re.findall(r'aria-labelledby="([^"]+)"', html):
+            self.assertIn('id="%s"' % ref, html)
+        # ceska verze s diakritikou
+        src = read(os.path.join(d, "strings.js"))
+        cs = re.search(r"\n  cs: \{(.*?)\n  \},", src, re.S).group(1)
+        for word in ("Vítejte", "záložky", "Soukromí", "Nápověda", "Žádné sledování"):
+            self.assertIn(word, cs)
+
+    def test_welcome_apps_match_cfg(self):
+        """Dlazdice aplikaci (data-app) maji v luxos.cfg aplikaci a webovou napovedu, ktera existuje."""
+        html = read(os.path.join(FF, "welcome", "index.html"))
+        cfg = read(os.path.join(FF, "luxos.cfg"))
+        apps = re.findall(r'data-app="([a-z]+)"', html)
+        self.assertEqual(sorted(apps), ["keys", "luxai", "report", "store"])
+        for app in apps:
+            self.assertRegex(cfg, r'\n      %s: \["(luxos-[a-z]+|luxai)", ' % app)
+        docs = os.path.join(HERE, "..", "..", "apps", "luxos-docs", "docs", "luxos")
+        site = os.path.join(HERE, "..", "..", "..", "site", "content", "en", "luxos")
+        pages = re.findall(r'(?:docs \+ "|"https://luxos\.lux-ai\.cz/docs/luxos/)([a-z-]+)\.html"', cfg) + \
+            re.findall(r'href="https://luxos\.lux-ai\.cz/docs/luxos/([a-z-]+)\.html"', html)
+        self.assertEqual(len(pages), 6)
+        if os.path.isdir(docs):
+            for page in pages:
+                self.assertTrue(os.path.exists(os.path.join(docs, page + ".md")) or
+                                os.path.exists(os.path.join(site, page + ".md")), page)
+        # ceska verze webu (/cs/docs/) jen u stranek, ktere cesky existuji (obchod cesky neni -> 404)
+        cs_site = os.path.join(HERE, "..", "..", "..", "site", "content", "cs", "luxos")
+        cs_pages = re.findall(r'docs \+ "([a-z-]+)\.html"', cfg) + [
+            m for m in re.findall(r'<a [^>]*data-cs[^>]*href="https://luxos\.lux-ai\.cz/docs/(?:luxos/([a-z-]+)\.html)?"',
+                                  html) if m]
+        self.assertEqual(len(cs_pages), 4)
+        if os.path.isdir(cs_site):
+            for page in cs_pages:
+                self.assertTrue(os.path.exists(os.path.join(cs_site, page + ".md")), page)
+        self.assertNotRegex(html, r'<a [^>]*id="link-store"[^>]*data-cs')
+        # akce jen ze stranky uvitani, jen cerstve a jednou
+        self.assertIn("location.spec.startsWith(welcome)", cfg)
+        self.assertIn("Date.now() - t) < 60000", cfg)
+
     @unittest.skipUnless(os.path.exists(BRANDING_LOGO), "needs the repository (luxos-branding)")
     def test_welcome_logo_is_branding_logo(self):
         logo = re.search(r' d="([^"]+)"', read(BRANDING_LOGO)).group(1)
@@ -603,6 +657,9 @@ class FirstRunWelcome(unittest.TestCase):
         self.assertEqual(content_js(s.mn, "return document.querySelector('h1').textContent"), "Vítejte v LuxOS")
         self.assertEqual(content_js(s.mn, "return document.documentElement.lang"), "cs")
         self.assertIn("/cs/docs/", content_js(s.mn, "return document.getElementById('link-help').href"))
+        self.assertIn("/cs/docs/", content_js(s.mn, "return document.getElementById('link-luxai').href"))
+        # Obchod cesky na webu neni: anglicka stranka (ne 404)
+        self.assertIn("lux-ai.cz/docs/luxos/store.html", content_js(s.mn, "return document.getElementById('link-store').href"))
         # zadne vzdalene nacitani (jen mistni soubory stranky)
         res = content_js(s.mn, "return performance.getEntriesByType('resource').map(e => e.name)")
         self.assertTrue(all(r.startswith("file://") for r in res), res)   # skripty bezely: h1 je cesky
@@ -636,6 +693,123 @@ class FirstRunWelcome(unittest.TestCase):
         s.quit_firefox()
 
 
+@unittest.skipUnless(GUI, NEEDS_GUI)
+class WelcomeActions(unittest.TestCase):
+    """Dlazdice otevrou aplikace LuxOS (testovaci napodobeniny), bez aplikace web; tlacitko Zpet akci
+    neopakuje; prefers-reduced-motion vypne animace; fokus z klavesnice je videt."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tl.build_root(os.path.join(tl.OUT, "ffroot-actions"), PKG)
+        cls.apps = os.path.join(tl.OUT, "fake-apps")
+        cls.marker = os.path.join(tl.OUT, "fake-apps.log")
+        shutil.rmtree(cls.apps, ignore_errors=True)
+        os.makedirs(cls.apps)
+        if os.path.exists(cls.marker):
+            os.unlink(cls.marker)
+        for name in ("luxos-store", "luxai", "luxos-shortcuts"):      # luxos-feedback schvalne chybi
+            path = os.path.join(cls.apps, name)
+            with open(path, "w") as f:
+                f.write("#!/bin/sh\necho %s >> '%s'\n" % (name, cls.marker))
+            os.chmod(path, 0o755)
+        cls.s = tl.Session(name="welcome-actions")
+        prefs = ('user_pref("luxos.welcome.appdir", "%s");\n' % cls.apps +
+                 # zadna skutecna sit: nahradni stranka webu jen jako adresa nove karty
+                 'user_pref("network.proxy.type", 1);\nuser_pref("network.proxy.http", "127.0.0.1");\n'
+                 'user_pref("network.proxy.http_port", 9);\nuser_pref("network.proxy.ssl", "127.0.0.1");\n'
+                 'user_pref("network.proxy.ssl_port", 9);\nuser_pref("ui.prefersReducedMotion", 1);\n')
+        try:
+            cls.s.start_firefox(cls.root, prefs, size=(1200, 860))
+        except Exception:
+            cls.s.stop()
+            raise
+        cls.page = "file://" + os.path.join(cls.root, "luxos", "welcome", "index.html")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.stop()
+
+    def load(self, lang="en"):
+        self.s.mn.js("gBrowser.selectedTab = gBrowser.tabs[0]; gBrowser.selectedBrowser.fixupAndLoadURIString("
+                     "arguments[0], {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()})",
+                     self.page + "?lang=" + lang)
+        time.sleep(0.5)
+        wait_for(lambda: content_js(self.s.mn, "return document.readyState == 'complete' && "
+                                               "document.documentElement.lang") == lang)
+
+    def launched(self):
+        if not os.path.exists(self.marker):
+            return []
+        with open(self.marker) as f:
+            return f.read().split()
+
+    def click(self, element_id):
+        content_js(self.s.mn, "document.getElementById(%r).click()" % element_id)
+
+    def test_1_tiles_open_apps(self):
+        self.load()
+        for tile, app in (("link-store", "luxos-store"), ("link-luxai", "luxai"), ("link-keys", "luxos-shortcuts")):
+            before = len(self.launched())
+            tabs = len(self.s.tab_urls())
+            self.click(tile)
+            self.assertTrue(wait_for(lambda: len(self.launched()) > before, 10), tile)
+            self.assertEqual(self.launched()[-1], app)
+            time.sleep(0.8)
+            self.assertEqual(len(self.s.tab_urls()), tabs, "app opened, no extra tab")
+        # adresa stranky je zase bez # (Zpet / obnoveni relace nic neopakuje)
+        self.assertTrue(wait_for(lambda: "#" not in self.s.tab_urls()[0], 5), self.s.tab_urls())
+
+    def test_2_missing_app_opens_help_page(self):
+        self.load("cs")
+        self.click("link-report")
+        urls = wait_for(lambda: [u for u in self.s.tab_urls() if "/luxopes/LuxOS-Arch/issues" in u], 10)
+        self.assertTrue(urls, self.s.tab_urls())
+        self.assertNotIn("luxos-feedback", self.launched())
+        self.s.mn.js("for (const t of gBrowser.tabs.slice(1)) gBrowser.removeTab(t)")
+
+    def test_3_stale_or_repeated_links_ignored(self):
+        self.load()
+        n = len(self.launched())
+        old = self.page + "?lang=en#open-store-1000"                    # stary cas (napr. obnovena relace)
+        self.s.mn.js("gBrowser.selectedBrowser.fixupAndLoadURIString(arguments[0], "
+                     "{triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()})", old)
+        time.sleep(1.5)
+        self.assertEqual(len(self.launched()), n)
+        # stejny odkaz podruhe (tlacitko Zpet na adresu s #): nic
+        ref = "open-luxai-%d" % int(time.time() * 1000)
+        content_js(self.s.mn, "location.replace('#%s')" % ref)
+        self.assertTrue(wait_for(lambda: len(self.launched()) == n + 1, 10))
+        content_js(self.s.mn, "location.replace('#x')")
+        time.sleep(0.3)
+        content_js(self.s.mn, "location.replace('#%s')" % ref)
+        time.sleep(1.5)
+        self.assertEqual(len(self.launched()), n + 1)
+        # cizi nazev aplikace: nic nespusti, zadna nova karta
+        tabs = len(self.s.tab_urls())
+        content_js(self.s.mn, "location.replace('#open-sh-' + Date.now())")
+        time.sleep(1.5)
+        self.assertEqual(len(self.launched()), n + 1)
+        self.assertEqual(len(self.s.tab_urls()), tabs)
+
+    def test_4_reduced_motion_and_focus(self):
+        self.load("de")
+        st = content_js(self.s.mn, "return [matchMedia('(prefers-reduced-motion: reduce)').matches,"
+                                   " document.getAnimations().length,"
+                                   " getComputedStyle(document.querySelector('h1')).opacity]")
+        self.assertEqual(st, [True, 0, "1"])
+        # Tab z klavesnice: prvni prvek je tlacitko importu s viditelnym obrysem
+        xid = self.s.xid("Mozilla Firefox")[0]
+        self.s.xdo("windowactivate", "--sync", xid)
+        self.s.mn.js("gBrowser.selectedBrowser.focus()")
+        time.sleep(0.4)
+        self.s.xdo("key", "Tab")
+        time.sleep(0.5)
+        focus = content_js(self.s.mn, "const e = document.activeElement, c = getComputedStyle(e);"
+                                      " return [e.id, e.matches(':focus-visible'), c.outlineStyle, c.outlineWidth]")
+        self.assertEqual(focus, ["import-button", True, "solid", "3px"])
+        shot(self.s, "welcome-focus-import")
+
+
 class WelcomeShots(unittest.TestCase):
     DARK = False
 
@@ -648,7 +822,7 @@ class WelcomeShots(unittest.TestCase):
                 s.start_firefox(root, 'user_pref("ui.systemUsesDarkTheme", 1);\n' if dark else "", size=(1200, 860))
                 page = "file://" + os.path.join(root, "luxos", "welcome", "index.html")
                 titles = {}
-                for lang in ("cs", "en", "de", "uk") + (() if dark else ("sk", "fr", "pl")):
+                for lang in ("cs", "en", "de", "uk") + (() if dark else tuple(sorted(set(LANGS) - {"cs", "en", "de", "uk"}))):
                     s.mn.js("gBrowser.selectedBrowser.fixupAndLoadURIString(arguments[0], "
                             "{triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()})",
                             page + "?lang=" + lang)
@@ -657,6 +831,8 @@ class WelcomeShots(unittest.TestCase):
                                                     " matchMedia('(prefers-color-scheme: dark)').matches,"
                                                     " document.body.scrollWidth <= innerWidth]")
                     self.assertEqual(titles[lang][0], lang)
+                    if lang != "en":
+                        self.assertNotEqual(titles[lang][1], "Welcome to LuxOS", lang)
                     self.assertEqual(titles[lang][2], dark)
                     self.assertTrue(titles[lang][3], "no horizontal scroll")
                     shot(s, "welcome-%s-%s" % (lang, "dark" if dark else "light"))
