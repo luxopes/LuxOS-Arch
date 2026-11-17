@@ -4,7 +4,8 @@
 # jen svou tabulku, vzdy jednou atomickou transakci `nft -f -` (pri chybe zustane puvodni stav).
 # Prichozi nova spojeni zahodi krome: navazanych, loopbacku, nezbytneho ICMP/ICMPv6 (sousede, router,
 # PMTU), DHCP klienta, mDNS, odpovedi pri hledani zarizeni (SSDP, WS-Discovery, BJNP ...), aplikaci
-# LuxOS jen z mistni site (LuxDrop, Steam, KDE Connect, Syncthing - kdyz jsou nainstalovane),
+# LuxOS jen z mistni site (LuxDrop, Steam, KDE Connect, Syncthing - kdyz jsou nainstalovane, a jen porty,
+# na kterych aplikace prave posloucha: sady app_tcp/app_udp aktualizuje `watch` kazde 2 s),
 # SSH odkudkoli jen se zapnutym sshd, sdileni tiskaren z mistni site jen se zapnutym sdilenim v CUPS,
 # port Tailscale (WireGuard) a vyjimek uzivatele. Forward neresi (kontejnery, VM, exit node Tailscale).
 # Zahozena nova spojeni na porty, kde posloucha mistni program, zapise jadro (s omezenim rychlosti)
@@ -17,6 +18,7 @@
 #   luxos-firewall tailscale on | off                 zarizeni v Tailscale jako mistni sit (LuxDrop, vyjimky)
 #   luxos-firewall load | refresh | unload            pro luxos-firewall.service a spousteni po zmenach
 #   luxos-firewall watch                              pro luxos-firewall-watch.service (cte /dev/kmsg)
+#   luxos-firewall apps                               jednou: porty aplikaci podle poslouchajicich programu
 #   luxos-firewall render                             vypise pravidla nftables (bez nahrani)
 #
 # Nastaveni: /etc/luxos/firewall.json (pise jen tento program a lux system), stav pro uzivatele:
@@ -361,6 +363,15 @@ function rule(name, port, proto, source):
     return {"name": name, "port": port, "proto": proto, "from": source}
 end
 
+# Port aplikace jen za behu (jen z mistni site): otevre se jen ten port z rozsahu, na kterem prave
+# posloucha mistni program (sady app_tcp/app_udp). Nainstalovana, ale nespustena aplikace (Steam,
+# LuxDrop se sdilenim vypnutym - port 47924) nema otevreny zadny port.
+function app_rule(name, port, proto):
+    r = rule(name, port, proto, "lan")
+    r["when"] = "running"
+    return r
+end
+
 # Porty LuxDrop z nastaveni uzivatelu (~/.config/luxdrop/settings.json: port, localsend_port)
 function luxdrop_user_ports():
     tcp = []
@@ -504,24 +515,24 @@ function detect():
             end
         end
         for p in tcp:
-            rules.append(rule("LuxDrop", p, "tcp", "lan"))
+            rules.append(app_rule("LuxDrop", p, "tcp"))
         end
         for p in udp:
-            rules.append(rule("LuxDrop", p, "udp", "lan"))
+            rules.append(app_rule("LuxDrop", p, "udp"))
         end
     end
     if any_exists(["/usr/bin/steam", "/usr/lib/steam"]) or flatpak_installed("com.valvesoftware.Steam"):
-        rules.append(rule("Steam", "27036-27037", "tcp", "lan"))
-        rules.append(rule("Steam", "27031-27036", "udp", "lan"))
+        rules.append(app_rule("Steam", "27036-27037", "tcp"))
+        rules.append(app_rule("Steam", "27031-27036", "udp"))
     end
     if any_exists(["/usr/bin/kdeconnectd", "/usr/lib/kdeconnectd", "/usr/share/gnome-shell/extensions/gsconnect@andyholmes.github.io"]) or flatpak_installed("org.kde.kdeconnect"):
-        rules.append(rule("KDE Connect", "1714-1764", "tcp", "lan"))
-        rules.append(rule("KDE Connect", "1714-1764", "udp", "lan"))
+        rules.append(app_rule("KDE Connect", "1714-1764", "tcp"))
+        rules.append(app_rule("KDE Connect", "1714-1764", "udp"))
     end
     if any_exists(["/usr/bin/syncthing"]) or flatpak_installed("com.github.zocker_160.SyncThingy"):
-        rules.append(rule("Syncthing", "22000", "tcp", "lan"))
-        rules.append(rule("Syncthing", "21027", "udp", "lan"))
-        rules.append(rule("Syncthing", "22000", "udp", "lan"))
+        rules.append(app_rule("Syncthing", "22000", "tcp"))
+        rules.append(app_rule("Syncthing", "21027", "udp"))
+        rules.append(app_rule("Syncthing", "22000", "udp"))
     end
     if cups_shared():
         rules.append(rule("Printer sharing", "631", "tcp", "lan"))
@@ -653,6 +664,9 @@ end
 function ports_for(rules, allow, proto, source):
     out = []
     for r in rules:
+        if r.get("when", "") == "running":
+            continue
+        end
         if r["proto"] == proto and r["from"] == source and not (r["port"] in out):
             out.append(r["port"])
         end
@@ -665,7 +679,147 @@ function ports_for(rules, allow, proto, source):
     return out
 end
 
-function render(cfg, rules, nets):
+# "27036-27037" / "22000" -> [od, do] nebo None
+function port_range(text):
+    cut = text.find("-")
+    if cut < 0:
+        p = to_port(text)
+        if p == None:
+            return None
+        end
+        return [p, p]
+    end
+    a = to_port(text[0:cut])
+    b = to_port(text[cut + 1:])
+    if a == None or b == None or b < a:
+        return None
+    end
+    return [a, b]
+end
+
+# Mistni adresa z /proc/net/{tcp,udp}[6] (hex, poradi bajtu jadra) je loopback (127.x, ::1, ::ffff:127.x)?
+function loopback_hex(addr):
+    a = addr.upper()
+    if len(a) == 8:
+        return a[6:8] == "7F"
+    end
+    if len(a) == 32:
+        if a == "00000000000000000000000001000000":
+            return True
+        end
+        return a.startswith("0000000000000000FFFF0000") and a[30:32] == "7F"
+    end
+    return False
+end
+
+# Porty (Int), na kterych posloucha program mimo loopback, z jednoho souboru /proc/net
+# (TCP: stav 0A = LISTEN, UDP: 07 = otevreny socket)
+function scan_ports(name, wanted):
+    out = []
+    first = True
+    for line in read_text(ROOT + "/proc/net/" + name).split("\n"):
+        if first:
+            first = False
+            continue
+        end
+        f = fields(line)
+        if len(f) < 4 or f[3].upper() != wanted:
+            continue
+        end
+        cut = f[1].find(":")
+        if cut < 0 or loopback_hex(f[1][0:cut]):
+            continue
+        end
+        port = hexval(f[1][cut + 1:])
+        if port > 0 and not (port in out):
+            out.append(port)
+        end
+    end
+    return out
+end
+
+# [tcp, udp] - porty, na kterych prave nekdo posloucha
+function listening_ports():
+    tcp = scan_ports("tcp", "0A")
+    for p in scan_ports("tcp6", "0A"):
+        if not (p in tcp):
+            tcp.append(p)
+        end
+    end
+    udp = scan_ports("udp", "07")
+    for p in scan_ports("udp6", "07"):
+        if not (p in udp):
+            udp.append(p)
+        end
+    end
+    return [sorted(tcp), sorted(udp)]
+end
+
+# Pravidlo aplikace "jen za behu" pokryva port/proto?
+function app_port(rules, proto, port):
+    for r in rules:
+        if type(r) == "Dictionary" and r.get("when", "") == "running" and r.get("proto") == proto:
+            rng = port_range(String(r.get("port", "")))
+            if rng != None and port >= rng[0] and port <= rng[1]:
+                return True
+            end
+        end
+    end
+    return False
+end
+
+# [tcp, udp] - porty aplikaci k otevreni (texty, serazene): poslouchajici porty z rozsahu pravidel
+function app_open(rules, listening):
+    tcp = []
+    udp = []
+    for p in listening[0]:
+        if app_port(rules, "tcp", p):
+            tcp.append(String(p))
+        end
+    end
+    for p in listening[1]:
+        if app_port(rules, "udp", p):
+            udp.append(String(p))
+        end
+    end
+    return [tcp, udp]
+end
+
+function open_key(opened):
+    return ",".join(opened[0]) + "|" + ",".join(opened[1])
+end
+
+# Pravidla se seznamem "open" (porty aplikace prave otevrene) pro stav a `status --json`
+function mark_open(rules, opened):
+    out = []
+    for r in rules:
+        if type(r) != "Dictionary":
+            continue
+        end
+        item = {}
+        for k in r.keys():
+            item[k] = r[k]
+        end
+        if r.get("when", "") == "running":
+            ports = opened[0]
+            if r.get("proto") == "udp":
+                ports = opened[1]
+            end
+            open_now = []
+            rng = port_range(String(r.get("port", "")))
+            for p in ports:
+                if rng != None and Int(p) >= rng[0] and Int(p) <= rng[1]:
+                    open_now.append(p)
+                end
+            end
+            item["open"] = open_now
+        end
+        out.append(item)
+    end
+    return out
+end
+
+function render(cfg, rules, nets, opened):
     allow = cfg["allow"]
     t = "# LuxOS firewall (luxos-firewall " + VERSION + ") - only table inet " + TABLE + "\n"
     # vytvorit a hned smazat: stejny skript funguje s tabulkou i bez ni, vse v jedne transakci
@@ -686,6 +840,7 @@ function render(cfg, rules, nets):
     t = t + element_set("lan_udp", "inet_service", ports_for(rules, allow, "udp", "lan"))
     t = t + element_set("any_tcp", "inet_service", ports_for(rules, allow, "tcp", "any"))
     t = t + element_set("any_udp", "inet_service", ports_for(rules, allow, "udp", "any"))
+    t = t + element_set("app_tcp", "inet_service", opened[0]) + element_set("app_udp", "inet_service", opened[1])
     t = t + "\n\tchain input {\n\t\ttype filter hook input priority filter + 10; policy accept;\n"
     t = t + "\t\tiif \"lo\" accept\n"
     t = t + "\t\tct state established,related accept\n"
@@ -713,6 +868,7 @@ function render(cfg, rules, nets):
     t = t + "\n\tchain from_lan {\n"
     t = t + "\t\ticmp type echo-request accept\n\t\ticmpv6 type echo-request accept\n"
     t = t + "\t\ttcp dport @lan_tcp accept\n\t\tudp dport @lan_udp accept\n"
+    t = t + "\t\ttcp dport @app_tcp accept\n\t\tudp dport @app_udp accept\n"
     t = t + "\t\tudp dport 5353 accept\n"
     t = t + "\t\tip daddr 239.255.255.250 udp dport { 1900, 3702 } accept\n"
     t = t + "\t\tip6 daddr ff02::c udp dport { 1900, 3702 } accept\n"
@@ -748,11 +904,11 @@ function nft_run(script):
     return result
 end
 
-function write_state(cfg, rules, nets, loaded, error):
+function write_state(cfg, rules, nets, loaded, error, opened):
     call sys.mkdir(RUN_DIR, 493)
     state = {"version": VERSION, "enable": cfg["enable"], "loaded": loaded, "error": error, "time": now(),
-             "trust_tailscale": cfg["trust_tailscale"], "rules": rules, "allow": cfg["allow"],
-             "nets": nets[0] + nets[1], "shared": nets[2]}
+             "trust_tailscale": cfg["trust_tailscale"], "rules": mark_open(rules, opened), "allow": cfg["allow"],
+             "nets": nets[0] + nets[1], "shared": nets[2], "app_open": open_key(opened)}
     if config_error != "":
         state["config_error"] = config_error
     end
@@ -771,21 +927,22 @@ function apply():
     cfg = load_config()
     rules = detect()
     nets = read_nets()
+    opened = app_open(rules, listening_ports())
     if not cfg["enable"]:
         result = unload_table()
-        call write_state(cfg, rules, nets, False, result["error"])
+        call write_state(cfg, rules, nets, False, result["error"], [[], []])
         if not result["ok"]:
             call eprint("luxos-firewall: " + result["error"])
         end
         return result["ok"]
     end
-    result = nft_run(render(cfg, rules, nets))
+    result = nft_run(render(cfg, rules, nets, opened))
     if not result["ok"]:
         call eprint("luxos-firewall: " + T("the firewall rules could not be loaded:") + " " + result["error"])
-        call write_state(cfg, rules, nets, False, result["error"])
+        call write_state(cfg, rules, nets, False, result["error"], opened)
         return False
     end
-    call write_state(cfg, rules, nets, True, "")
+    call write_state(cfg, rules, nets, True, "", opened)
     return True
 end
 
@@ -1137,6 +1294,12 @@ function on_drop(text):
     if not lan and not iface.startswith("tailscale"):
         return 0
     end
+    # Port aplikace LuxOS (Steam, LuxDrop ...): otevre se sam, jakmile aplikace posloucha - bez dotazu
+    rules = read_state().get("rules")
+    if type(rules) == "List" and app_port(rules, proto, port):
+        call refresh_apps()
+        return 0
+    end
     key = String(port) + "/" + proto
     t = now()
     if key in seen and t - seen[key] < REQUEST_EVERY:
@@ -1183,6 +1346,44 @@ function update_nets(nets):
     return nft_run(script)
 end
 
+# Porty aplikaci v nahrane tabulce podle toho, kdo prave posloucha (bez nahrani cele tabulky)
+function update_apps(opened):
+    script = "flush set inet " + TABLE + " app_tcp\nflush set inet " + TABLE + " app_udp\n"
+    if len(opened[0]) > 0:
+        script = script + "add element inet " + TABLE + " app_tcp { " + ", ".join(opened[0]) + " }\n"
+    end
+    if len(opened[1]) > 0:
+        script = script + "add element inet " + TABLE + " app_udp { " + ", ".join(opened[1]) + " }\n"
+    end
+    return nft_run(script)
+end
+
+# Aplikace zacala/prestala poslouchat -> otevrit/zavrit jeji port; vraci True pri zmene
+function refresh_apps():
+    state = read_state()
+    rules = state.get("rules")
+    if state.get("loaded") != True or type(rules) != "List":
+        return False
+    end
+    opened = app_open(rules, listening_ports())
+    key = open_key(opened)
+    if key == state.get("app_open", ""):
+        return False
+    end
+    result = update_apps(opened)
+    if not result["ok"]:
+        call eprint("luxos-firewall: app ports: " + result["error"])
+        return False
+    end
+    state["app_open"] = key
+    state["rules"] = mark_open(rules, opened)
+    safe:
+        call write_file(STATE, json.pretty(state) + "\n")
+    end
+    call eprint("app ports open: " + key)
+    return True
+end
+
 function nets_key(nets):
     return ",".join(nets[0] + nets[1]) + "|" + ",".join(nets[2])
 end
@@ -1202,7 +1403,7 @@ function watch():
     last_check = 0
     while True:
         if fd >= 0:
-            if sys.wait_readable(fd, 10000):
+            if sys.wait_readable(fd, 2000):
                 count = 0
                 while count < 200:
                     record = sys.read_record(fd)
@@ -1218,7 +1419,10 @@ function watch():
                 end
             end
         else:
-            call sys.sleep_ms(10000)
+            call sys.sleep_ms(2000)
+        end
+        safe:
+            call refresh_apps()
         end
         t = now()
         if t - last_check >= 10:
@@ -1326,7 +1530,8 @@ function main():
     end
     if command == "render":
         cfg = load_config()
-        print render(cfg, detect(), read_nets())
+        rules = detect()
+        print render(cfg, rules, read_nets(), app_open(rules, listening_ports()))
         return 0
     end
     if command == "blocked":
@@ -1345,7 +1550,7 @@ function main():
         call need_root()
         result = unload_table()
         cfg = load_config()
-        call write_state(cfg, [], [[], [], []], False, "")
+        call write_state(cfg, [], [[], [], []], False, "", [[], []])
         if not result["ok"]:
             call eprint("luxos-firewall: " + result["error"])
             return 1
@@ -1355,6 +1560,12 @@ function main():
     if command == "watch":
         call need_root()
         return watch()
+    end
+    # jednou to, co `watch` dela kazde 2 s: porty aplikaci podle toho, kdo prave posloucha
+    if command == "apps":
+        call need_root()
+        call refresh_apps()
+        return 0
     end
     if command == "on" or command == "off":
         call need_root()

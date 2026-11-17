@@ -98,8 +98,9 @@ connected. The protocol is described in `/usr/share/doc/luxdrop/PROTOCOL.md` (Pa
 - **"… does not share any folders"**: sharing was turned off, or all shared folders were removed
   or deleted.
 - **"… denied access"**: the owner chose Deny. Ask again after 5 minutes.
-- **Firewall**: LuxOS has none by default. With firewalld or ufw allow TCP 47924 only on private
-  networks (the `luxdrop` firewalld service and the ufw profile include it).
+- **Firewall**: the LuxOS firewall opens TCP 47924 for this network only while sharing is on
+  ([firewall.md](firewall.md)). With firewalld or ufw allow it only on private networks (the
+  `luxdrop` firewalld service and the ufw profile include it).
 - **The other computer went away**: the connection is detected as dead within about 45 s, then
   the folder disappears from Files. Nothing freezes.
 - Connecting needs FUSE (`/dev/fuse`, `fusermount3`); sharing needs user namespaces for

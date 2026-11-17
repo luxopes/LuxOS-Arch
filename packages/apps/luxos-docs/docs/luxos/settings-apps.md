@@ -152,16 +152,14 @@ D-Bus (`net.reactivated.Fprint`).
 How login works: `/usr/lib/luxos/luxos-fingerprint-pam` inserts a managed block with
 `pam_fprintd.so` into the PAM services `lightdm`, `sudo`, `polkit-1` and `xfce4-screensaver`. The
 block sits between the markers `# LuxOS fingerprint: begin/end`. A libalpm hook
-(`luxos-fingerprint.hook`) re-runs `sync` after fprintd, lightdm, sudo, polkit, xfce4-screensaver
-or luxos-desktop are installed, upgraded or removed.
+(`luxos-fingerprint.hook`) re-runs `sync` when one of these packages or luxos-desktop changes.
 
 - Login screen: `max-tries=3 timeout=30`. When you start typing the password, the greeter skips
   the fingerprint (`/run/luxos-fingerprint/password-only`).
 - sudo, polkit and the lock screen: `timeout=10`.
-- The password always works. Without a reader or enrolled fingers, pam_fprintd returns
-  "unavailable" at once.
-- A fingerprint replaces only the password: lockout, `/etc/nologin`, login shell and account checks
-  still apply ([login-lock.md](login-lock.md#fingerprint-and-account-checks)).
+- The password always works; without a reader or fingers pam_fprintd fails at once.
+- A fingerprint replaces only the password: lockout, nologin, shell and account checks still
+  apply ([login-lock.md](login-lock.md#fingerprint-and-account-checks)).
 - Check or repair (root): `/usr/lib/luxos/luxos-fingerprint-pam status|sync|apply|remove`.
 
 ## Profile Picture

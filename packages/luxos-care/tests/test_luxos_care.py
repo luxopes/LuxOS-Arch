@@ -552,6 +552,28 @@ class KernelHooks(Root):
             care.cleanup_kept("other")
         self.assertTrue(os.path.exists(self.root + "/usr/lib/modules/old-running/vmlinuz"))
 
+    def test_removed_kept_kernel_forgets_dkms(self):
+        """Smazane zalozni jadro: zaznamy DKMS pryc (jinak dkms remove + depmod na neexistujici jadro)."""
+        gone, keep = "7.2.12-1-luxos", "7.2.13-1-luxos"
+        care.kwrite("kept", gone)
+        self.w(f"/usr/lib/modules/{gone}/vmlinuz", "x")
+        for k in (gone, keep):
+            self.w(f"/var/lib/dkms/nvidia/615.78.08/{k}/x86_64/module/nvidia.ko.zst", "ko")
+        os.symlink(f"615.78.08/{gone}/x86_64", self.root + f"/var/lib/dkms/nvidia/kernel-{gone}-x86_64")
+        os.symlink(f"615.78.08/{keep}/x86_64", self.root + f"/var/lib/dkms/nvidia/kernel-{keep}-x86_64")
+        self.w("/var/lib/dkms/nvidia/615.78.08/source/dkms.conf", "PACKAGE_NAME=nvidia")
+        with mock.patch.object(care, "running_kernel", return_value=keep):
+            care.cleanup_kept(keep)
+        d = self.root + "/var/lib/dkms/nvidia"
+        self.assertFalse(os.path.exists(f"{d}/615.78.08/{gone}"))
+        self.assertFalse(os.path.lexists(f"{d}/kernel-{gone}-x86_64"))
+        self.assertTrue(os.path.exists(f"{d}/615.78.08/{keep}/x86_64/module/nvidia.ko.zst"))
+        self.assertTrue(os.path.islink(f"{d}/kernel-{keep}-x86_64"))
+        self.assertTrue(os.path.exists(f"{d}/615.78.08/source/dkms.conf"))
+        # nesmyslne jmeno jadra nic nesmaze
+        self.assertEqual(care.dkms_forget(".."), [])
+        self.assertEqual(care.dkms_forget(""), [])
+
     def test_other_kernel_package_ignored(self):
         self.w(f"/usr/lib/modules/6.6-lts/vmlinuz", "lts")
         self.w(f"/usr/lib/modules/6.6-lts/pkgbase", "linux-lts\n")

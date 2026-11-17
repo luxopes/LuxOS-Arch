@@ -172,8 +172,8 @@ or as a dialog when a display is available.
 | UDP 53317 | LocalSend multicast discovery, group 224.0.0.167 (link-local) |
 | UDP 5353 | mDNS (Avahi) |
 
-The LuxOS firewall ([firewall.md](firewall.md)) opens these ports automatically, **only for this
-network** (private addresses and networks the computer is connected to; also ports changed in
+The LuxOS firewall ([firewall.md](firewall.md)) opens these ports automatically while LuxDrop
+listens on them (47924 only while sharing is on), **only for this network** (private addresses and networks the computer is connected to; also ports changed in
 LuxDrop's settings). From the internet and over VPNs they stay closed; over Tailscale only with
 *Treat Tailscale devices as this network* in Settings › Firewall. If you use ufw or firewalld
 instead, allow the ports only on private networks; the package includes a firewalld service and a

@@ -1261,6 +1261,34 @@ def release_kept_conflicts(output):
     return sorted(hit)
 
 
+def dkms_forget(kver):
+    """Zaznamy DKMS (/var/lib/dkms/MODUL/VERZE/JADRO, MODUL/kernel-JADRO-ARCH) smazaneho zalozniho jadra.
+    Bez toho hook 71-dkms-remove pri dalsi aktualizaci ovladace (NVIDIA) volal "dkms remove" a depmod
+    pro jadro, ktere uz neexistuje ("depmod: ERROR: could not open directory /lib/modules/...",
+    /var/log/lux.log majitele 13. 11. 2026)."""
+    base = P("/var/lib/dkms")
+    if not kver or "/" in kver or kver in (".", "..") or not os.path.isdir(base):
+        return []
+    removed = []
+    for mod in sorted(os.listdir(base)):
+        mdir = os.path.join(base, mod)
+        if not os.path.isdir(mdir) or os.path.islink(mdir):
+            continue
+        for entry in sorted(os.listdir(mdir)):
+            path = os.path.join(mdir, entry)
+            if entry.startswith(f"kernel-{kver}-") and os.path.islink(path):
+                os.unlink(path)
+                removed.append(f"{mod}/{entry}")
+            elif os.path.isdir(path) and not os.path.islink(path):
+                kdir = os.path.join(path, kver)
+                if os.path.isdir(kdir) and not os.path.islink(kdir):
+                    shutil.rmtree(kdir, ignore_errors=True)
+                    removed.append(f"{mod}/{entry}/{kver}")
+    if removed:
+        log(f"forgot DKMS builds of removed kernel {kver}: {' '.join(removed)}")
+    return removed
+
+
 def cleanup_kept(prev):
     """Drzet presne jedno zalozni jadro; starsi odstranit (nikdy ne bezici)."""
     keep = []
@@ -1277,6 +1305,7 @@ def cleanup_kept(prev):
                 os.unlink(P(f"{KSTATE}/initramfs-{v}.img"))
             except OSError:
                 pass
+            dkms_forget(v)
             log(f"removed older kept kernel {v}")
     if prev and prev not in keep and os.path.isdir(P(f"{MODULES}/{prev}")):
         keep.append(prev)

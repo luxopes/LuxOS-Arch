@@ -1,15 +1,48 @@
 #!/bin/bash
 # LuxOS - spusti planovac procesu sched_ext podle /etc/luxos/scheduler.conf (luxos-scheduler.service)
 # Nikdy nevadi startu: bez podpory v jadre, bez programu, s SCHEDULER=default nebo kdyz uz bezi
-# jiny planovac sched_ext skonci s 0 a zustava planovac jadra. Opakovany pad hlida systemd
-# (Restart + StartLimit v jednotce); pri padu planovace jadro samo prejde zpet na EEVDF.
-# LUXOS_SCHEDULER_CONF, LUXOS_SYSROOT a LUXOS_SCX_BIN = jine cesty pro testy.
+# jiny planovac sched_ext skonci s 0 a zustava planovac jadra. Pri padu planovace jadro samo hned
+# prejde zpet na EEVDF (zadne zaseknuti), systemd ho po chvili spusti znovu (Restart s rostouci
+# prodlevou v jednotce).
+# Opakovany pad: scx_lavd 1.1.4 skoncil pri "scx_alloc failed" - pri fork() se nepodarilo
+# pridelit stranku areny BPF pro data noveho vlakna (alokace bez cekani, selze pri nedostatku
+# souvislych stranek pameti, napr. pri velkem zatizeni a zaplnenem zram); scx_lavd tuto chybu bere
+# jako konecnou. Po FALLBACK_CRASHES padech za 24 h zustava planovac jadra a v zaznamu je klidna
+# zprava; novy pokus po 24 h, po restartu se zmenenou konfiguraci nebo po aktualizaci scx_lavd.
+# LUXOS_SCHEDULER_CONF, LUXOS_SYSROOT, LUXOS_SCX_BIN, LUXOS_SCHEDULER_STATE, LUXOS_SCHEDULER_RUN
+# a LUXOS_NOW = jine cesty a cas pro testy.
 set -u
 conf=${LUXOS_SCHEDULER_CONF:-/etc/luxos/scheduler.conf}
 sys=${LUXOS_SYSROOT:-}/sys/kernel/sched_ext
 bindir=${LUXOS_SCX_BIN:-/usr/bin}
+state_dir=${LUXOS_SCHEDULER_STATE:-/var/lib/luxos}
+run_dir=${LUXOS_SCHEDULER_RUN:-/run/luxos}
+crashes_file=$state_dir/scheduler-crashes
+fallback_file=$run_dir/scheduler-fallback
+FALLBACK_CRASHES=3
+WINDOW=86400
 sched=lavd
 args=""
+
+now() { echo "${LUXOS_NOW:-$(date +%s)}"; }
+mtime() { stat -c %Y "$1" 2>/dev/null || echo 0; }
+
+# Casy padu za poslednich 24 h (starsi zapomene); po zmene konfigurace nebo noveho programu planovace
+# po poslednim padu zacina pocitani znovu
+recent_crashes() {
+    local t newest=0 cutoff list=()
+    cutoff=$(($(now) - WINDOW))
+    [[ -r $crashes_file ]] || return 0
+    while IFS= read -r t; do
+        [[ $t =~ ^[0-9]+$ ]] || continue
+        ((t > cutoff)) && list+=("$t")
+        ((t > newest)) && newest=$t
+    done <"$crashes_file"
+    if ((newest > 0)) && { (($(mtime "$conf") > newest)) || (($(mtime "$1") > newest)); }; then
+        return 0
+    fi
+    ((${#list[@]})) && printf '%s\n' "${list[@]}"
+}
 
 if [[ -r $conf ]]; then
     while IFS= read -r line; do
@@ -57,4 +90,52 @@ for a in "${extra[@]}"; do
         break
     fi
 done
-exec "$bin" "${extra[@]}"
+
+mapfile -t crashes < <(recent_crashes "$bin")
+if ((${#crashes[@]} >= FALLBACK_CRASHES)); then
+    retry=$((crashes[0] + WINDOW))
+    mkdir -p "$run_dir" 2>/dev/null
+    printf 'scheduler=%s\ncrashes=%s\nretry=%s\n' "$sched" "${#crashes[@]}" "$retry" >"$fallback_file" 2>/dev/null
+    echo "<5>luxos-scheduler: scx_$sched stopped unexpectedly ${#crashes[@]} times in 24 hours, so the computer keeps" \
+        "using the normal kernel scheduler - everything works as usual, nothing to do." \
+        "LuxOS tries scx_$sched again after $(date -d "@$retry" '+%F %R' 2>/dev/null || echo "$retry") or after an update."
+    exit 0
+fi
+rm -f "$fallback_file" 2>/dev/null
+
+# Planovac jako podproces: pri zastaveni sluzby (SIGINT/SIGTERM) ho ukonci cisty, pri padu zapise cas
+stopping=0
+child=0
+stop() {
+    stopping=1
+    ((child > 0)) && kill -INT "$child" 2>/dev/null
+}
+trap stop INT TERM
+# bash na pozadi neinteraktivniho skriptu nastavi podprocesu SIGINT na "ignorovat" - env ho vrati na
+# vychozi, jinak by SIGINT od systemd (KillSignal) planovac neukoncil cisty
+env --default-signal=INT,TERM "$bin" "${extra[@]}" &
+child=$!
+while true; do
+    wait "$child"
+    rc=$?
+    # wait prerusena signalem (rc > 128), podproces jeste bezi -> pockat na jeho konec
+    kill -0 "$child" 2>/dev/null || break
+done
+trap - INT TERM
+if ((stopping)) || ((rc == 0)); then
+    exit 0
+fi
+mkdir -p "$state_dir" 2>/dev/null
+{ ((${#crashes[@]})) && printf '%s\n' "${crashes[@]}"; now; } >"$crashes_file.tmp" 2>/dev/null &&
+    mv -f "$crashes_file.tmp" "$crashes_file" 2>/dev/null
+count=$((${#crashes[@]} + 1))
+if ((count >= FALLBACK_CRASHES)); then
+    mkdir -p "$run_dir" 2>/dev/null
+    printf 'scheduler=%s\ncrashes=%s\nretry=%s\n' "$sched" "$count" "$(($(now) + WINDOW))" >"$fallback_file" 2>/dev/null
+    echo "<5>luxos-scheduler: scx_$sched stopped unexpectedly again ($count times in 24 hours)." \
+        "The normal kernel scheduler took over right away and stays on for now - nothing to do."
+    exit 0
+fi
+echo "<5>luxos-scheduler: scx_$sched stopped unexpectedly (exit $rc). The normal kernel scheduler took over" \
+    "right away; LuxOS starts scx_$sched again shortly ($count of $FALLBACK_CRASHES in 24 hours)."
+exit "$rc"

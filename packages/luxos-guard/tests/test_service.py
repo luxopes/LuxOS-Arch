@@ -662,3 +662,89 @@ def test_agent_process_answers(g, tmp_path):
         assert '"path"' in (tmp_path / "fake-gui.in").read_text()
     finally:
         proc.kill()
+
+
+# ---- odlozene ulohy (stahovani pod docasnym jmenem): jedno vlakno, omezena fronta -------------------
+
+def test_temp_download_burst_creates_no_threads(g, monkeypatch):
+    """Davka zapisu *.part/*.tmp: drive vlakno (threading.Timer) na kazdou udalost -> "can't start new
+    thread" a ztracena udalost. Ted fronta v jednom vlakne, zadne nove vlakno pri udalosti."""
+    import threading
+
+    def no_thread(*a, **k):
+        raise AssertionError("event path must not start a thread")
+    monkeypatch.setattr(threading.Thread, "start", no_thread)
+    fds = []
+    for i in range(300):
+        p = write(g.home / "Downloads" / ("file%d.part" % i), b"echo installing\nrm -rf ~/*\n", 0o644)
+        fd = os.open(p, os.O_RDONLY)
+        assert g.on_close_write(fd, 52) is True
+        fds.append(fd)
+    assert g.delayed.pending() == 300 and g.jobs.qsize() == 0
+
+
+def test_temp_download_retried_after_rename(g):
+    now = [100.0]
+    g.delayed.clock = lambda: now[0]
+    part = g.home / "Downloads" / "setup.sh.part"
+    write(part, b"echo installing\nrm -rf ~/*\n", 0o644)     # bez #! - druh az podle jmena .sh
+    fd = os.open(str(part), os.O_RDONLY)
+    assert g.on_close_write(fd, 52)
+    assert g.delayed.due() == []                    # jeste ne (3 s)
+    final = g.home / "Downloads" / "setup.sh"
+    os.rename(str(part), str(final))                # prohlizec prejmenuje po dokonceni
+    now[0] += 3.1
+    assert g.delayed.run_once(max_wait=0) == 1      # preda se do fronty analyzy
+    g.analyze(g.jobs.get_nowait())
+    g.on_results()
+    e = g.state.get(ident(str(final)))
+    assert e and e["level"] == C.CRITICAL and e["path"] == str(final)
+
+
+def test_delayed_queue_full_counts_overflow(g):
+    g.delayed.limit = 2
+    taken = []
+    for i in range(3):
+        p = write(g.home / "Downloads" / ("x%d.tmp" % i), b"echo hi\n", 0o644)
+        fd = os.open(p, os.O_RDONLY)
+        ok = g.on_close_write(fd, 52)
+        taken.append(ok)
+        if not ok:
+            os.close(fd)                            # volajici (ctecka) fd zavre
+    assert taken == [True, True, False]
+    assert g.stats["overflows"] == 1 and g.delayed.pending() == 2
+
+
+def test_delayed_run_once_survives_bad_job():
+    seen = []
+
+    def deliver(job):
+        if job == "bad":
+            raise ValueError("boom")
+        seen.append(job)
+    d = S.Delayed(deliver, clock=lambda: 10.0)
+    d.add(0, "bad")
+    d.add(0, "good")
+    assert d.run_once(max_wait=0) == 2 and seen == ["good"]
+
+
+def test_git_hook_samples_not_watched(g):
+    """F-13: .git/hooks/*.sample (git je nikdy nespousti) se nehlidaji; skutecny hook ano."""
+    hooks = g.home / "Downloads" / "repo" / ".git" / "hooks"
+    hooks.mkdir(parents=True)
+    for rel in ("repo/.git/hooks/pre-commit.sample", "repo/.git/worktrees/wt/hooks/update.sample",
+                "bare.git/hooks/pre-push.sample"):
+        path = g.home / "Downloads" / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        write(path, WIPER)
+        fd = os.open(str(path), os.O_RDONLY)
+        try:
+            assert g.on_close_write(fd, 52) is False, rel
+        finally:
+            os.close(fd)
+    hook = write(hooks / "pre-commit", WIPER)
+    fd = os.open(hook, os.O_RDONLY)
+    assert g.on_close_write(fd, 52) is True
+    g.analyze(g.jobs.get_nowait())
+    g.on_results()
+    assert g.state.get(ident(hook))["level"] == C.CRITICAL

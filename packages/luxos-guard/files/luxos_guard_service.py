@@ -16,6 +16,7 @@ cekajici udalosti povoli (fanotify) - systemd ji proto restartuje (Restart=alway
 import ctypes
 import ctypes.util
 import errno
+import heapq
 import json
 import os
 import queue
@@ -140,6 +141,8 @@ WATCH_PREFIXES = ("/home/", "/tmp/", "/var/tmp/", "/dev/shm/", "/root/") + core.
 SKIP_FS = {"proc", "sysfs", "devpts", "cgroup", "cgroup2", "debugfs", "tracefs", "securityfs", "pstore",
            "bpf", "configfs", "fusectl", "mqueue", "hugetlbfs", "autofs", "binfmt_misc", "efivarfs", "nsfs",
            "ramfs", "squashfs", "iso9660", "overlay", "fuse.gvfsd-fuse", "fuse.portal", "fuse.gocryptfs"}
+# .git/hooks/*.sample (git init/clone je kopiruje ze sablony systemu; spousti se jen hooky bez .sample)
+GIT_HOOK_SAMPLE = re.compile(r"/\.git/(?:worktrees/[^/]+/)?hooks/[^/]+\.sample$|/[^/]+\.git/hooks/[^/]+\.sample$")
 TEMP_DOWNLOAD = re.compile(r"\.(?:part|crdownload|download|partial|tmp)$|/\.[^/]*\.part$|Unconfirmed \d+")
 
 
@@ -230,6 +233,65 @@ class Client:
 
 
 # ---- sluzba ------------------------------------------------------------------------------------------
+class Delayed:
+    """Odlozene ulohy (stahovani pod docasnym jmenem: znovu za 3 s, az ma soubor konecne jmeno) v jednom
+    vlakne s frontou. Drive vlakno (threading.Timer) na kazdou udalost: davka zapisu *.tmp/*.part
+    vytvorila stovky vlaken a pri selhani clone() ("can't start new thread", 17. 11. 2026 soucasne
+    s padem scx_lavd) se udalost ztratila. Plna fronta = uloha se zahodi a zapocita jako preteceni."""
+    LIMIT = 1024
+
+    def __init__(self, deliver, clock=time.monotonic, limit=LIMIT):
+        self.deliver = deliver
+        self.clock = clock
+        self.limit = limit
+        self.heap = []
+        self.seq = 0
+        self.cond = threading.Condition()
+
+    def add(self, delay, job):
+        with self.cond:
+            if len(self.heap) >= self.limit:
+                return False
+            heapq.heappush(self.heap, (self.clock() + delay, self.seq, job))
+            self.seq += 1
+            self.cond.notify()
+        return True
+
+    def pending(self):
+        with self.cond:
+            return len(self.heap)
+
+    def due(self):
+        """Ulohy, jejichz cas uz nastal (vyjme je z fronty)."""
+        out = []
+        with self.cond:
+            now = self.clock()
+            while self.heap and self.heap[0][0] <= now:
+                out.append(heapq.heappop(self.heap)[2])
+        return out
+
+    def run_once(self, max_wait=None):
+        """Pocka na nejblizsi ulohu (nejvys max_wait s) a preda vsechny splatne; vraci jejich pocet."""
+        with self.cond:
+            if not self.heap:
+                self.cond.wait(max_wait)
+            if self.heap:
+                wait = self.heap[0][0] - self.clock()
+                if wait > 0:
+                    self.cond.wait(wait if max_wait is None else min(wait, max_wait))
+        jobs = self.due()
+        for job in jobs:
+            try:
+                self.deliver(job)
+            except Exception as e:  # noqa: BLE001 - vlakno nesmi skoncit
+                log(f"delayed job error: {e}")
+        return len(jobs)
+
+    def run(self):
+        while True:
+            self.run_once()
+
+
 class Guard:
     """Rozhodovani o udalostech. fan_perm/fan_notif jsou objekty s rozhranim Fanotify (v testech nahrady)."""
 
@@ -260,6 +322,7 @@ class Guard:
         self.results = queue.Queue()
         self.wake_r, self.wake_w = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
         self.lock = threading.Lock()
+        self.delayed = Delayed(self._queue)
         self.stats = {"perm_events": 0, "notif_events": 0, "analyzed": 0, "flagged": 0, "overflows": 0}
 
     # ---- znacky
@@ -610,6 +673,8 @@ class Guard:
             return False
         if "/" + core.SNAP_DIR_NAME + "/" in path:
             return False
+        if GIT_HOOK_SAMPLE.search(path):
+            return False                    # vzory hooku gitu: git je nikdy nespousti (jen bez .sample)
         try:
             head = os.pread(fd, 64, 0)
         except OSError:
@@ -617,12 +682,11 @@ class Guard:
         kind = rules.detect_kind(head, os.path.basename(path))
         if kind is None:
             if TEMP_DOWNLOAD.search(path) and head:
-                # stahovani pod docasnym jmenem: priponu (.sh) zjistime po prejmenovani
-                t = threading.Timer(3, self._queue, args=({"fd": fd, "path": path, "pid": pid, "retry": 1,
-                                                           "info": None},))
-                t.daemon = True
-                t.start()
-                return True
+                # stahovani pod docasnym jmenem: priponu (.sh) zjistime po prejmenovani (za 3 s, jedno
+                # vlakno pro vsechny odlozene ulohy - zadne nove vlakno na udalost)
+                if self.delayed.add(3, {"fd": fd, "path": path, "pid": pid, "retry": 1, "info": None}):
+                    return True
+                self.stats["overflows"] += 1
             return False
         return self._candidate(fd, path, pid, kind)
 
@@ -1009,6 +1073,7 @@ def run_service():
     log(f"Lux Guard {core.VERSION} active: {n} watched files, writes watched on {', '.join(watch_mounts(mounts))}")
     threading.Thread(target=notif_reader, args=(guard,), daemon=True, name="reader").start()
     threading.Thread(target=worker, args=(guard,), daemon=True, name="analysis").start()
+    threading.Thread(target=guard.delayed.run, daemon=True, name="delayed").start()
     threading.Thread(target=guard.initial_scan, daemon=True, name="scan").start()
     try:
         state.save()

@@ -124,6 +124,21 @@ def run(rel, args, lang, tmp):
     return r.returncode, r.stdout + r.stderr
 
 
+# Chybejici cizi modul Pythonu (cista nadoba bez python-cryptography, python-gobject ...): nastroj se
+# preskoci s duvodem. Chybejici vlastni modul LuxOS (luxos_*, luxdrop, lux_*) je chyba a test selze.
+MISSING_MODULE = re.compile(r"ModuleNotFoundError: No module named '([A-Za-z0-9_.]+)'")
+OWN_MODULE = re.compile(r"^(luxos|luxdrop|lux_|lux$)")
+
+
+def missing_dependency(out):
+    """Jmeno chybejiciho ciziho modulu Pythonu z vystupu nastroje, jinak None."""
+    m = MISSING_MODULE.search(out)
+    if not m:
+        return None
+    top = m.group(1).split(".")[0]
+    return None if OWN_MODULE.match(top) else top
+
+
 def prose(line):
     """Radek s anglickou vetou (aspon 3 slova z pismen za sebou) - musi se prelozit; syntaxe prikazu
     ("sudo luxos-oem seal [--yes]", "exclude [list | add PATH]") vetou neni."""
@@ -134,6 +149,15 @@ def prose(line):
         if words >= 3:
             return True
     return False
+
+
+class MissingDependency(unittest.TestCase):
+    def test_foreign_module_is_skipped_own_module_fails(self):
+        self.assertEqual(missing_dependency("ModuleNotFoundError: No module named 'cryptography'"), "cryptography")
+        self.assertEqual(missing_dependency("ModuleNotFoundError: No module named 'gi.repository'"), "gi")
+        for own in ("luxos_care", "luxdrop.cli", "lux_system", "lux"):
+            self.assertIsNone(missing_dependency("ModuleNotFoundError: No module named '%s'" % own), own)
+        self.assertIsNone(missing_dependency("Usage: luxos-care [-h]"))
 
 
 class CliHelpI18n(unittest.TestCase):
@@ -156,6 +180,9 @@ class CliHelpI18n(unittest.TestCase):
         for rel, args, _internal in TOOLS:
             with self.subTest(tool=rel, args=args):
                 rc, out = self.english(rel, args)
+                dep = missing_dependency(out)
+                if dep:
+                    self.skipTest("%s needs the Python module %s (not installed here)" % (rel, dep))
                 self.assertIn(rc, (0, 1, 2), out)
                 self.assertTrue(out.strip(), "empty help")
                 self.assertNotIn("Traceback", out)
@@ -168,10 +195,15 @@ class CliHelpI18n(unittest.TestCase):
         for rel, args, internal in TOOLS:
             if internal:
                 continue
-            if not HAVE_SH_I18N and "python" not in open(pk(rel), encoding="utf-8").readline():
+            with open(pk(rel), encoding="utf-8") as f:
+                python_tool = "python" in f.readline()
+            if not HAVE_SH_I18N and not python_tool:
                 continue
             with self.subTest(lang=code, tool=rel, args=args):
                 rc_en, en = self.english(rel, args)
+                dep = missing_dependency(en)
+                if dep:
+                    self.skipTest("%s needs the Python module %s (not installed here)" % (rel, dep))
                 rc, out = run(rel, args, locale, self.tmp)
                 self.assertEqual(rc, rc_en, out)
                 self.assertNotIn("Traceback", out)

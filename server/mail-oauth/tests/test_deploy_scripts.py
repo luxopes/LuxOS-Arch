@@ -98,6 +98,13 @@ elif name == "openssl":
         os.execv("/usr/bin/openssl", ["openssl"] + args)
     sys.stdin.read()
     print("* OK [CAPABILITY IMAP4rev1 SASL-IR AUTH=PLAIN AUTH=LOGIN AUTH=XOAUTH2 AUTH=OAUTHBEARER] Dovecot ready.")
+elif name == "doveadm":
+    # "doveadm user ADRESA": uzivatel z /etc/dovecot/users (prazdny argument = chyba jako na serveru)
+    users = open(os.path.join(root, "etc/dovecot/users")).read().splitlines()
+    if args[:1] != ["user"] or len(args) < 2 or args[1] not in [u.split(":")[0] for u in users if u]:
+        print("userdb lookup: user %s doesn't exist" % (args[1] if len(args) > 1 else ""), file=sys.stderr)
+        sys.exit(2)
+    print("field\tvalue\nuser\t%s" % args[1])
 elif name == "doveconf":
     if "-h" in args:
         print("plain login xoauth2 oauthbearer")
@@ -168,7 +175,8 @@ class DeployScriptTest(unittest.TestCase):
                  "etc/nftables.conf": 'flush ruleset\ninclude "/etc/nftables.d/*.nft"\n',
                  "usr/local/sbin/lux-mail-sync-cert": SYNC, "etc/postfix/master.cf": MASTER,
                  "etc/postfix/main.cf": "myhostname = mail.lux-ai.cz\n", "etc/lux-mail/tls/fullchain.pem": "CERT\n",
-                 "etc/lux-account-mailboxes.json": json.dumps(MAILBOXES)}
+                 "etc/lux-account-mailboxes.json": json.dumps(MAILBOXES),
+                 "etc/dovecot/users": "info@lux-ai.cz:{CRYPT}$2y$05$test-hash-only::::::\n"}
         for rel, text in files.items():
             with open(os.path.join(self.root, rel), "w") as f:
                 f.write(text)
@@ -176,11 +184,12 @@ class DeployScriptTest(unittest.TestCase):
         with open(stub, "w") as f:
             f.write(STUB)
         os.chmod(stub, 0o755)
-        for name in ("dovecot", "systemctl", "ss", "curl", "openssl", "doveconf", "postconf", "postmap", "postfix",
+        # doveadm je jen na serveru: zastupce cte etc/dovecot/users, testy tak nepotrebuji Dovecot
+        for name in ("dovecot", "doveadm", "systemctl", "ss", "curl", "openssl", "doveconf", "postconf", "postmap", "postfix",
                      "fail2ban-client", "nft", "node", "chgrp"):
             os.symlink(stub, os.path.join(self.bin, name))
         self.original = tree_snapshot(self.root)
-        assert len(self.original) == 9, self.original.keys()
+        assert len(self.original) == 10, self.original.keys()
         self.env = dict(os.environ, ROOT=self.root, STUB_STATE=self.state, PATH=self.bin + ":" + os.environ.get("PATH", "/usr/bin"))
 
     def tearDown(self):
@@ -211,7 +220,8 @@ class DeployScriptTest(unittest.TestCase):
         for rel in ("etc/lux-account-mail-oauth.env", "etc/dovecot/luxai-oauth2-secret.conf"):
             self.assertEqual(stat.S_IMODE(os.stat(os.path.join(self.root, rel)).st_mode), 0o600, rel)
         self.assertIn("http://lux-dovecot:%s@127.0.0.1:3020/oauth/introspect" % secret, self.read("etc/dovecot/luxai-oauth2-secret.conf"))
-        self.assertIn("mail_oauth_patch", "".join(open(os.path.join(BASE, "remote-apply.sh")).read()))
+        with open(os.path.join(BASE, "remote-apply.sh")) as f:
+            self.assertIn("mail_oauth_patch", f.read())
         self.assertIn(patch.MARK, self.read("opt/lux-account/server.js"))
         self.assertIn("EnvironmentFile=/etc/lux-account-mail-oauth.env", self.read("etc/systemd/system/lux-account.service.d/mail-oauth.conf"))
         local = self.read("etc/dovecot/local.conf")
@@ -275,10 +285,30 @@ class DeployScriptTest(unittest.TestCase):
             f.write("table inet lux_filter {\n}\n")
         r = self.run_script("remote-apply.sh", "20261107180000")
         self.assertNotEqual(r.returncode, 0)
+        # predchozi kroky musely projit - jinak by test "prosel" na jine chybe (napr. chybejici doveadm)
+        self.assertIn("== 8/9 fail2ban", r.stdout, r.stdout + r.stderr)
+        self.assertIn("== 9/9 firewall", r.stdout, r.stdout + r.stderr)
         self.assertIn("firewall anchor not found", r.stderr)
+        self.assertNotIn("== done", r.stdout)
+        self.assertEqual(self.read("etc/nftables.d/lux-filter.nft"), "table inet lux_filter {\n}\n")
+        self.assertEqual([c for c in self.calls() if c[:3] == ["nft", "add", "rule"]], [])
+
+    def test_stops_on_unknown_lmtp_user(self):
+        # userdb nenajde uzivatele z etc/dovecot/users -> konec pred restartem Dovecotu a firewallem
+        with open(os.path.join(self.root, "etc/dovecot/users"), "w") as f:
+            f.write("nobody@example.test:x::::::\n")
+        os.remove(os.path.join(self.bin, "doveadm"))    # odkaz na spolecny zastupce - neprepsat ho
+        with open(os.path.join(self.bin, "doveadm"), "w") as f:
+            f.write("#!/bin/sh\necho \"userdb lookup: user $2 doesn't exist\" >&2\nexit 2\n")
+        os.chmod(os.path.join(self.bin, "doveadm"), 0o755)
+        r = self.run_script("remote-apply.sh", "20261107180000")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("userdb lookup for LMTP delivery fails", r.stderr)
+        self.assertNotIn(["systemctl", "restart", "dovecot"], [c[:3] for c in self.calls()])
         self.assertEqual([c for c in self.calls() if c[:3] == ["nft", "add", "rule"]], [])
 
     def test_refuses_dovecot_23(self):
+        os.remove(os.path.join(self.bin, "dovecot"))    # odkaz na spolecny zastupce - neprepsat ho
         with open(os.path.join(self.bin, "dovecot"), "w") as f:
             f.write("#!/bin/sh\necho 2.3.21\n")
         os.chmod(os.path.join(self.bin, "dovecot"), 0o755)

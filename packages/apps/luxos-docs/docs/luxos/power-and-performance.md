@@ -58,7 +58,7 @@ luxos-powersaver on|off|toggle|status
   - USB autosuspend for idle devices whose driver handles it (webcam `uvcvideo`, Realtek card readers)
     or that have no driver; input, audio, Bluetooth, network, storage and hubs are left alone;
   - `vm.dirty_writeback_centisecs` 500 → 1500 (fewer disk wake-ups);
-  - pauses `man-db.timer` and `luxos-care-check.timer` (they catch up when the saver turns off);
+  - pauses `man-db.timer` (the Care check keeps running);
   - marker `/run/luxos/powersaver`: LuxOS Care does not update automatically unless charging.
 - Off: everything restored (previous power profile, refresh rate, brightness if you did not change
   it meanwhile; the service's stop restores the system values).
@@ -190,7 +190,8 @@ Related cgroup limits:
 - `user-.slice`: `MemoryHigh=92%` – user programs are throttled (pushed to zram) instead of freezing
   the desktop.
 - `lightdm.service`: `MemoryLow=200M` – the display server and login stay responsive.
-- Fork bombs: `luxos-forkguard` and `TasksMax` 8 % per user / 5 % per session, see
+- Fork bombs: `luxos-forkguard` and `TasksMax` 8 % per user / 5 % per session, at least
+  min(4096, RAM MB / 2) per session (`luxos-tasks-generator`), see
   [troubleshooting.md](troubleshooting.md#a-runaway-program-was-stopped-fork-bomb).
 
 ## zram swap
@@ -243,15 +244,16 @@ balanced or performance by load.
   default` or `sudo luxos-care scheduler lavd` writes the file and switches immediately.
 - In [system.lsl](system-config.md) the same setting is the key
   `kernel.scheduler = "lavd" | "default"` (written to `SCHEDULER=` in `/etc/luxos/scheduler.conf`).
-- `luxos-scheduler.service` (`/usr/lib/luxos/luxos-scheduler`) starts it **after** the login screen
-  (`After=graphical.target`), so loading the BPF program never delays booting and nothing waits for it.
+- `luxos-scheduler.service` starts it **after** the login screen (`After=graphical.target`), so
+  loading the BPF program never delays booting.
 - Safe fallback: without sched_ext in the kernel the unit is skipped; if scx_lavd is missing or the
   setting is `default` it exits quietly. If the scheduler crashes or the kernel ejects it (watchdog),
-  the kernel switches back to EEVDF by itself; systemd retries 3× within 10 minutes and then leaves the
-  kernel scheduler running. An enabled `scx_loader.service` (package `scx-tools`) takes precedence.
+  the kernel switches back to EEVDF at once; restart after 10 s with growing delays, after 3 crashes
+  in 24 h the kernel scheduler stays (`/run/luxos/scheduler-fallback`) until 24 h pass, an update or
+  `sudo luxos-care scheduler lavd`. An enabled `scx_loader.service` (package `scx-tools`) takes precedence.
 - Overhead: one mostly idle process (≈ 10 MB binary, typically 10–20 MB RSS) and BPF maps of a few MB;
   the scheduling decisions run in the kernel. Disk: `scx-scheds` installs all upstream schedulers
-  (≈ 160 MB, 18 MB download).
+  (≈ 160 MB).
 - Check: `systemctl status luxos-scheduler`, `cat /sys/kernel/sched_ext/state` (`enabled`),
   `cat /sys/kernel/sched_ext/root/ops` (`lavd_…`).
 

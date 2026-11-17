@@ -2,7 +2,7 @@
 
 pkgname=luxos-tweaks
 pkgver=1.0.0
-pkgrel=16
+pkgrel=17
 pkgdesc="LuxOS performance defaults: zram, sysctl, I/O schedulers, CPU scheduler (sched_ext scx_lavd), low-memory safeguard (earlyoom), Battery/Data Saver system parts, boot failure reporting, /tmp on disk"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -30,6 +30,8 @@ package() {
     # Limit procesu podle RAM (fork bomba nevycerpa pamet): uzivatel 8 %, jedna relace 5 % maxima jadra
     install -Dm644 "$f/tasks-user.conf"      "$pkgdir/usr/lib/systemd/system/user-.slice.d/10-luxos-tasks.conf"
     install -Dm644 "$f/tasks-session.conf"   "$pkgdir/usr/lib/systemd/system/session-.scope.d/10-luxos-tasks.conf"
+    # ... s pevnym spodnim limitem podle RAM (4-8 GB: prohlizec + Steam + IDE se vejdou); prepise oba drop-iny
+    install -Dm755 "$f/tasks/luxos-tasks-generator" "$pkgdir/usr/lib/systemd/system-generators/luxos-tasks-generator"
     install -Dm644 "$f/makepkg.conf"         "$pkgdir/etc/makepkg.conf.d/luxos.conf"
     install -Dm644 "$f/services"             "$pkgdir/usr/lib/luxos/services"
     # Planovac procesu sched_ext (scx_lavd z scx-scheds): /etc/luxos/scheduler.conf, spousti ho
