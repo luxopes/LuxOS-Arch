@@ -77,6 +77,7 @@
   }
 
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html { font-size: 16px; -webkit-text-size-adjust: 100%; }
   @media (min-width: 2200px) { html { font-size: 19px; } }
   @media (min-width: 3000px) { html { font-size: 23px; } }
@@ -210,6 +211,10 @@
   .button svg { width: 20px; height: 20px; flex: none; }
   .button:hover { transform: translateY(-1px); filter: brightness(1.08); }
   .button:active { transform: translateY(0); filter: brightness(0.96); }
+  .import .import-help {
+    margin: 18px 0 0; padding: 12px 16px; border-radius: 14px; font-size: 0.95rem; color: var(--text);
+    background: var(--kbd); border: 1px solid var(--stroke-hover); outline: none;
+  }
   .import .later { margin: 0; font-size: 0.9rem; color: var(--soft); max-width: 28rem; }
 
   /* ---- nadpisy sekci ---- */
@@ -220,7 +225,7 @@
 
   /* ---- 3) soukromi ---- */
   .privacy { margin-bottom: clamp(40px, 6vh, 64px); }
-  .badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 16px; }
   .badge { display: flex; gap: 14px; align-items: flex-start; padding: 20px; border-radius: 20px; }
   .badge strong { display: block; font-size: 1.02rem; font-weight: 650; line-height: 1.3; margin-top: 2px; }
   .badge div > span { display: block; color: var(--muted); font-size: 0.93rem; line-height: 1.45; margin-top: 3px; }
@@ -273,6 +278,9 @@
   footer svg { width: 15px; height: 15px; flex: none; }
 
   /* ---- uzsi okna ---- */
+  @media (max-width: 1180px) and (min-width: 921px) {
+    .badges:has(#badge-ubo:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 920px) {
     .badges { grid-template-columns: minmax(0, 1fr); max-width: 36rem; margin: 0 auto; }
     .badge { align-items: center; padding: 16px 18px; }
@@ -382,6 +390,7 @@
         </a>
         <p class="later" data-i18n="import_later">Or later: menu ☰ → Settings → General → Import browser data.</p>
       </div>
+      <p class="import-help" id="import-help" role="status" tabindex="-1" hidden data-i18n="import_help">Didn’t the import window open? Use menu ☰ → Settings → General → Import browser data. After restarting Firefox this button and the app tiles work directly.</p>
     </div>
   </section>
 
@@ -400,6 +409,9 @@
         <span class="icon g-rose" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5l6 4.5v-14l-6 4.5z"/><path d="M17 9.5a3.5 3.5 0 0 1 0 5"/><path d="M3.5 3.5l17 17"/></svg></span>
         <div><strong data-i18n="privacy_3">No sponsored content</strong><span data-i18n="privacy_3_d">A clean new tab without ads or sponsored shortcuts.</span></div>
       </li>
+      <li class="card badge" id="badge-ubo" hidden>
+        <span class="icon g-amber" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3z"/><path d="M8.5 12h7"/></svg></span>
+        <div><strong data-i18n="privacy_5">Ads and trackers blocked</strong><span data-i18n="privacy_5_d">uBlock Origin is built in and updates with LuxOS.</span></div>      </li>
     </ul>
     <p class="note" data-i18n="privacy_4">Change anything in Settings → Privacy &amp; Security.</p>
   </section>

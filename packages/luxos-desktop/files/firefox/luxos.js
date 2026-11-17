@@ -35,3 +35,7 @@ pref("browser.newtabpage.activity-stream.showSponsored", false);
 pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
 pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
 pref("browser.newtabpage.activity-stream.telemetry", false);
+// Blokovani reklam: uBlock Origin z balicku firefox-ublock-origin (/usr/lib/firefox/browser/extensions)
+// se v novych i stavajicich profilech zapne bez dotazu - doplnky v adresari aplikace (rozsah 4) se
+// nevypinaji. Stejnou hodnotu ma vendor.js Firefoxu z Archu; tady pro jistotu, kdyby ji zmenil.
+pref("extensions.autoDisableScopes", 11);

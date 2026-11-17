@@ -63,10 +63,22 @@ one of them in Firefox Settings or `about:config`:
 - **LuxOS welcome page on the first start**: a new Firefox profile opens a local page (no internet
   needed, no tracking) in the system language: import bookmarks and passwords from Chrome or Edge
   (the button opens Firefox's import wizard; bookmarks exported as HTML and passwords as CSV on
-  Windows work too), the privacy settings below and links to the LuxOS help, Store, LuxAI, keyboard
-  shortcuts and problem reports. It opens only once per profile - not on later starts or after
+  Windows work too), the privacy settings below and tiles for the LuxOS help (web), LuxAI, Store,
+  Keyboard Shortcuts and Feedback - the last four open the app directly, or its help page on the web
+  when the app is not installed. It opens only once per profile - not on later starts or after
   Firefox updates - and it does not replace your home page. Mozilla's privacy notice tab and
-  `about:welcome` are not shown.
+  `about:welcome` are not shown. You can open it again any time:
+  `firefox /usr/lib/firefox/luxos/welcome/index.html`. In a Firefox window that was already running
+  before a LuxOS update installed a new version of the page, the tiles open the web pages and the
+  import button also shows where to find the import in Settings; after restarting Firefox they work
+  directly.
+- **No ads: uBlock Origin built in**: the ad and tracker blocker uBlock Origin (package
+  `firefox-ublock-origin`, installed with `luxos-desktop`, also on older installations with
+  `lux update`) is in `/usr/lib/firefox/browser/extensions` and is on in every profile, new and
+  existing, without asking. It works offline from the first start with its built-in filter lists and
+  updates the lists itself later; the add-on itself is updated with the system. Its icon is in the
+  toolbar: click it to switch blocking off for one site, or manage it in `about:addons`, where you can
+  also turn it off (it stays off). The welcome page shows "Ads and trackers blocked" when it is on.
 - **Privacy**: no telemetry or technical data to Mozilla (`datareporting.healthreport.uploadEnabled`,
   `toolkit.telemetry.*`), no studies (`app.shield.optoutstudies.enabled`, `app.normandy.enabled`), no
   sponsored shortcuts or stories on the new tab page.

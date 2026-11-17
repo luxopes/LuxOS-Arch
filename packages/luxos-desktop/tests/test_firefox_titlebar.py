@@ -85,6 +85,31 @@ class Files(unittest.TestCase):
         # domovska stranka se nevnucuje (uvitaci stranka jen pri prvnim spusteni profilu)
         self.assertNotIn("browser.startup.homepage\"", js)
 
+    def test_ublock_origin_by_default(self):
+        """uBlock Origin z balicku Archu (doplnek v adresari aplikace), zapnuty bez dotazu, bez policies.json."""
+        pb = read(PKGBUILD)
+        deps = re.search(r"\ndepends=\((.*?)\n\)", pb, re.S).group(1)
+        self.assertRegex(deps, r"\n    firefox-ublock-origin\n")
+        js = read(os.path.join(FF, "luxos.js"))
+        m = re.search(r'pref\("extensions\.autoDisableScopes", (\d+)\);', js)
+        self.assertTrue(m)
+        self.assertFalse(int(m.group(1)) & 4, "application scope (browser/extensions) must not be auto-disabled")
+        self.assertNotIn("enabledScopes", js)
+        cfg = read(os.path.join(FF, "luxos.cfg"))
+        self.assertIn('getAddonByID("uBlock0@raymondhill.net")', cfg)
+
+    def test_welcome_handshake(self):
+        """Stranka vi, jestli luxos.cfg odpovida (#hello -> #ok); bez odpovedi web a navod, ne ticho."""
+        cfg = read(os.path.join(FF, "luxos.cfg"))
+        js = read(os.path.join(FF, "welcome", "welcome.js"))
+        html = read(os.path.join(FF, "welcome", "index.html"))
+        self.assertIn('"#ok-" + stamp + flags', cfg)
+        self.assertIn("LOAD_FLAGS_REPLACE_HISTORY", cfg)
+        self.assertIn('location.replace("#hello-" + Date.now())', js)
+        self.assertIn('window.open(a.href, "_blank", "noopener,noreferrer")', js)
+        self.assertRegex(html, r'<p class="import-help" id="import-help" role="status"[^>]* hidden')
+        self.assertRegex(html, r'<li class="card badge" id="badge-ubo" hidden>')
+
     def test_pkgbuild_installs(self):
         pb = read(PKGBUILD)
         for s in ('"$f/firefox/luxos-autoconfig.js" "$pkgdir/usr/lib/firefox/defaults/pref/luxos-autoconfig.js"',
@@ -616,6 +641,20 @@ def content_js(mn, script):
         mn.cmd("Marionette:SetContext", {"value": "chrome"})
 
 
+def switch_tab(mn, needle):
+    """Marionette (obsah) na kartu, jejiz adresa obsahuje needle; vybere ji i v okne."""
+    mn.cmd("Marionette:SetContext", {"value": "content"})
+    try:
+        for h in mn.cmd("WebDriver:GetWindowHandles"):
+            mn.cmd("WebDriver:SwitchToWindow", {"handle": h, "focus": True})
+            url = mn.cmd("WebDriver:GetCurrentURL")
+            if needle in (url.get("value", url) if isinstance(url, dict) else url):
+                return True
+        return False
+    finally:
+        mn.cmd("Marionette:SetContext", {"value": "chrome"})
+
+
 def wait_for(fn, timeout=15):
     end = time.time() + timeout
     while True:
@@ -713,7 +752,7 @@ class WelcomeActions(unittest.TestCase):
                 f.write("#!/bin/sh\necho %s >> '%s'\n" % (name, cls.marker))
             os.chmod(path, 0o755)
         cls.s = tl.Session(name="welcome-actions")
-        prefs = ('user_pref("luxos.welcome.appdir", "%s");\n' % cls.apps +
+        cls.prefs = prefs = ('user_pref("luxos.welcome.appdir", "%s");\n' % cls.apps +
                  # zadna skutecna sit: nahradni stranka webu jen jako adresa nove karty
                  'user_pref("network.proxy.type", 1);\nuser_pref("network.proxy.http", "127.0.0.1");\n'
                  'user_pref("network.proxy.http_port", 9);\nuser_pref("network.proxy.ssl", "127.0.0.1");\n'
@@ -745,6 +784,17 @@ class WelcomeActions(unittest.TestCase):
 
     def click(self, element_id):
         content_js(self.s.mn, "document.getElementById(%r).click()" % element_id)
+
+    def test_0_handshake(self):
+        self.load()
+        st = wait_for(lambda: content_js(self.s.mn, "return document.documentElement.dataset.hook"), 5)
+        self.assertEqual(st, "on")
+        # odpoved jen zmenila # (zadne nove nacteni), adresa je zase cista, uBlock tu neni -> bez odznaku
+        content_js(self.s.mn, "window.__luxos_mark = 7")
+        time.sleep(0.6)
+        self.assertEqual(content_js(self.s.mn, "return [window.__luxos_mark, location.hash, "
+                                               "document.getElementById('badge-ubo').hidden, history.length]"),
+                         [7, "", True, 2])
 
     def test_1_tiles_open_apps(self):
         self.load()
@@ -791,6 +841,43 @@ class WelcomeActions(unittest.TestCase):
         self.assertEqual(len(self.launched()), n + 1)
         self.assertEqual(len(self.s.tab_urls()), tabs)
 
+    def test_5_new_window(self):
+        """Hak funguje i v dalsim okne otevrenem pozdeji."""
+        before = set(self.s.mn.windows())
+        main = self.s.mn.cmd("WebDriver:GetWindowHandle")
+        main = main.get("value", main) if isinstance(main, dict) else main
+        self.s.mn.js("OpenBrowserWindow()")
+        new = wait_for(lambda: set(self.s.mn.windows()) - before, 10)
+        self.s.mn.switch(new.pop())
+        try:
+            self.s.wait_window()
+            self.load("sk")
+            self.assertEqual(wait_for(lambda: content_js(self.s.mn, "return document.documentElement.dataset.hook"), 5),
+                             "on")
+            n = len(self.launched())
+            self.click("link-store")
+            self.assertTrue(wait_for(lambda: len(self.launched()) > n, 10))
+        finally:
+            self.s.mn.js("window.close()")
+            self.s.mn.switch(main)
+            time.sleep(1.0)
+
+    def test_9_after_session_restore(self):
+        """Po obnoveni relace (restart Firefoxu) odpovida luxos.cfg obnovene strance znovu."""
+        self.load("pl")
+        time.sleep(1.0)
+        self.s.quit_firefox()
+        self.s.start_firefox(self.root, self.prefs + 'user_pref("browser.startup.page", 3);\n', size=(1200, 860),
+                             url=None)
+        self.assertTrue(wait_for(lambda: any("/luxos/welcome/" in u for u in self.s.tab_urls()), 15), self.s.tab_urls())
+        self.s.mn.js("gBrowser.selectedTab = gBrowser.tabs.find(t => t.linkedBrowser.currentURI.spec.includes('/luxos/welcome/'))")
+        self.assertEqual(wait_for(lambda: content_js(self.s.mn, "return document.readyState == 'complete' && "
+                                                                "document.documentElement.dataset.hook"), 10), "on")
+        n = len(self.launched())
+        self.click("link-keys")
+        self.assertTrue(wait_for(lambda: len(self.launched()) > n, 10))
+        self.assertEqual(self.launched()[-1], "luxos-shortcuts")
+
     def test_4_reduced_motion_and_focus(self):
         self.load("de")
         st = content_js(self.s.mn, "return [matchMedia('(prefers-reduced-motion: reduce)').matches,"
@@ -808,6 +895,185 @@ class WelcomeActions(unittest.TestCase):
                                       " return [e.id, e.matches(':focus-visible'), c.outlineStyle, c.outlineWidth]")
         self.assertEqual(focus, ["import-button", True, "solid", "3px"])
         shot(self.s, "welcome-focus-import")
+
+
+@unittest.skipUnless(GUI, NEEDS_GUI)
+class WelcomeWithoutAnswer(unittest.TestCase):
+    """Firefox spusteny pred aktualizaci LuxOS (starsi luxos.cfg bez odpovedi na #hello) a stranka otevrena
+    pozdeji: dlazdice vedou na web, import zkusi pruvodce a ukaze navod - nic nezustane bez reakce."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tl.build_root(os.path.join(tl.OUT, "ffroot-noanswer"), PKG)
+        cfg = os.path.join(cls.root, "luxos.cfg")
+        with open(cfg) as f:
+            text = f.read()
+        os.unlink(cfg)
+        with open(cfg, "w") as f:
+            f.write(text.replace("m = /^hello-", "m = /^nohello-"))
+        cls.apps = os.path.join(tl.OUT, "fake-apps-noanswer")
+        cls.marker = os.path.join(tl.OUT, "fake-apps-noanswer.log")
+        shutil.rmtree(cls.apps, ignore_errors=True)
+        os.makedirs(cls.apps)
+        if os.path.exists(cls.marker):
+            os.unlink(cls.marker)
+        with open(os.path.join(cls.apps, "luxos-store"), "w") as f:
+            f.write("#!/bin/sh\necho luxos-store >> '%s'\n" % cls.marker)
+        os.chmod(os.path.join(cls.apps, "luxos-store"), 0o755)
+        cls.s = tl.Session(name="welcome-noanswer")
+        prefs = ('user_pref("luxos.welcome.appdir", "%s");\n' % cls.apps +
+                 'user_pref("network.proxy.type", 1);\nuser_pref("network.proxy.http", "127.0.0.1");\n'
+                 'user_pref("network.proxy.http_port", 9);\nuser_pref("network.proxy.ssl", "127.0.0.1");\n'
+                 'user_pref("network.proxy.ssl_port", 9);\n')
+        try:
+            cls.s.start_firefox(cls.root, prefs, size=(1200, 860))
+        except Exception:
+            cls.s.stop()
+            raise
+        page = "file://" + os.path.join(cls.root, "luxos", "welcome", "index.html") + "?lang=cs"
+        # jako "firefox URL" do bezici instance
+        subprocess.run([os.path.join(cls.root, "firefox"), "--profile", cls.s.profile, page], env=cls.s.env,
+                       capture_output=True, timeout=60)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.stop()
+
+    def welcome(self):
+        self.assertTrue(switch_tab(self.s.mn, "/luxos/welcome/"), self.s.tab_urls())
+
+    def test_1_tiles_fall_back_to_web(self):
+        self.assertTrue(wait_for(lambda: any("/luxos/welcome/" in u for u in self.s.tab_urls()), 15), self.s.tab_urls())
+        self.welcome()
+        self.assertEqual(wait_for(lambda: content_js(self.s.mn, "return document.documentElement.dataset.hook"), 5), "off")
+        self.assertEqual(content_js(self.s.mn, "return location.hash"), "")
+        content_js(self.s.mn, "document.getElementById('link-store').click()")
+        urls = wait_for(lambda: [u for u in self.s.tab_urls() if u.endswith("/docs/luxos/store.html")], 10)
+        self.assertTrue(urls, self.s.tab_urls())
+        self.assertFalse(os.path.exists(self.marker), "no app launched without the answer")
+        self.s.mn.js("for (const t of gBrowser.tabs.filter(t => t.linkedBrowser.currentURI.spec.includes('store.html')))"
+                     " gBrowser.removeTab(t)")
+
+    def test_2_import_shows_instructions(self):
+        self.welcome()
+        content_js(self.s.mn, "document.getElementById('import-button').click()")
+        time.sleep(1.0)
+        st = content_js(self.s.mn, "const h = document.getElementById('import-help');"
+                                   " return [h.hidden, h.textContent, document.activeElement === h]")
+        self.assertFalse(st[0])
+        self.assertIn("Nastavení → Obecné → Importovat data prohlížeče", st[1])
+        self.assertTrue(st[2])
+        # starsi luxos.cfg import umel: pruvodce se otevre i tak
+        self.assertTrue(wait_for(lambda: [u for u in self.s.tab_urls() if u.startswith("about:preferences")], 10))
+        shot(self.s, "welcome-noanswer-import")
+
+
+UBO_XPI = os.environ.get("LUXOS_UBO_XPI") or "/usr/lib/firefox/browser/extensions/uBlock0@raymondhill.net.xpi"
+ADDON_JS = """return (async () => {
+  const {AddonManager} = ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');
+  const a = await AddonManager.getAddonByID('uBlock0@raymondhill.net');
+  const {ExtensionsUI} = ChromeUtils.importESModule('resource:///modules/ExtensionsUI.sys.mjs');
+  return [a && a.isActive, a && a.userDisabled, a && a.scope, ExtensionsUI.sideloaded.size,
+          document.getElementById('PanelUI-menu-button').getAttribute('badge-status') || ''];
+})()"""
+
+
+@unittest.skipUnless(GUI and os.path.exists(UBO_XPI), NEEDS_GUI + " and firefox-ublock-origin (or LUXOS_UBO_XPI)")
+class UBlockOrigin(unittest.TestCase):
+    """uBlock Origin z balicku: zapnuty bez dotazu v novem i stavajicim profilu, blokuje reklamy bez site,
+    uvitaci stranka ukaze odznak a funguje dal."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tl.build_root(os.path.join(tl.OUT, "ffroot-ubo"), PKG, extensions=[UBO_XPI])
+        cls.plain = tl.build_root(os.path.join(tl.OUT, "ffroot-ubo-before"), PKG)
+        # mistni "web s reklamami": vsechny nazvy -> 127.0.0.1 (network.dns.forceResolve), zadna skutecna sit
+        cls.www = os.path.join(tl.OUT, "ad-test")
+        shutil.rmtree(cls.www, ignore_errors=True)
+        os.makedirs(os.path.join(cls.www, "pagead", "js"))
+        cls.port = tl.free_port()
+        with open(os.path.join(cls.www, "index.html"), "w") as f:
+            f.write('<!doctype html><title>news</title><h1>News</h1>'
+                    '<div id="bait" class="ad-slot google-ad" style="display:block;width:300px;height:250px">AD</div>'
+                    '<script src="http://pagead2.googlesyndication.com:%d/pagead/js/adsbygoogle.js"></script>'
+                    '<script src="/site.js"></script>' % cls.port)
+        with open(os.path.join(cls.www, "pagead", "js", "adsbygoogle.js"), "w") as f:
+            f.write("window.__ad_loaded = 1;")
+        with open(os.path.join(cls.www, "site.js"), "w") as f:
+            f.write("window.__site_loaded = 1;")
+        cls.log = open(os.path.join(tl.OUT, "ad-test.log"), "w")
+        cls.http = subprocess.Popen([sys.executable, "-m", "http.server", str(cls.port), "--bind", "127.0.0.1",
+                                     "--directory", cls.www], stdout=cls.log, stderr=subprocess.STDOUT)
+        cls.prefs = ('user_pref("network.dns.forceResolve", "127.0.0.1");\nuser_pref("network.proxy.type", 0);\n'
+                     'user_pref("network.dns.disableIPv6", true);\n')
+        cls.s = tl.Session(name="ubo")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.stop()
+        cls.http.terminate()
+        cls.http.wait()
+        cls.log.close()
+
+    def ad_page(self, s):
+        s.mn.js("gBrowser.selectedBrowser.fixupAndLoadURIString(arguments[0], "
+                "{triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()})",
+                "http://news.example:%d/?%d" % (self.port, time.time() * 1000))
+        time.sleep(2.0)
+        try:
+            return content_js(s.mn, "return [document.title, !!window.__site_loaded, !!window.__ad_loaded,"
+                                    " document.getElementById('bait').offsetHeight]")
+        except RuntimeError:
+            return None                                # jeste se nacita (uBlock pri startu pozdrzi sit)
+
+    def test_1_existing_profile_gets_it_enabled(self):
+        s = self.s
+        s.start_firefox(self.plain, self.prefs)
+        self.assertEqual(s.mn.js(ADDON_JS)[0], None, "not there before the update")
+        # kontrola testu: bez uBlocku se reklama nacte
+        st = wait_for(lambda: self.ad_page(s), 20)
+        self.assertEqual(st, ["news", True, True, 250])
+        s.quit_firefox()
+        # "aktualizace": stejny profil, Firefox uz s doplnkem v browser/extensions
+        s.start_firefox(self.root, self.prefs, size=(1200, 860))
+        st = wait_for(lambda: s.mn.js(ADDON_JS)[0] and s.mn.js(ADDON_JS), 15)
+        self.assertEqual(st, [True, False, 4, 0, ""], "enabled without any prompt or menu badge")
+        s.quit_firefox()
+
+    def test_2_new_profile_blocks_ads_offline(self):
+        s = tl.Session(name="ubo-new")
+        try:
+            s.start_firefox(self.root, self.prefs, size=(1200, 860))
+            st = wait_for(lambda: s.mn.js(ADDON_JS)[0] and s.mn.js(ADDON_JS), 15)
+            self.assertEqual(st, [True, False, 4, 0, ""])
+            # zadna stranka uBlocku navic, ikona na liste
+            self.assertEqual([u for u in s.tab_urls() if u.startswith("moz-extension:")], [])
+            self.assertTrue(s.mn.js("return !!document.querySelector('[data-extensionid=\"uBlock0@raymondhill.net\"]')"))
+
+            with open(os.path.join(tl.OUT, "ad-test.log")) as f:
+                seen = f.read().count("adsbygoogle.js")       # z kontroly bez uBlocku v testu 1
+
+            def blocked():
+                st = self.ad_page(s)
+                return st if st and st[1] and not st[2] and st[3] == 0 else None
+            st = wait_for(blocked, 40)
+            self.assertTrue(st, "ad script and ad box blocked, the page itself loads")
+            with open(os.path.join(tl.OUT, "ad-test.log")) as f:
+                self.assertEqual(f.read().count("adsbygoogle.js"), seen, "the ad request never left Firefox")
+            shot(s, "ublock-ad-test")
+            # uvitaci stranka: odznak uBlocku, vse funguje
+            page = "file://" + os.path.join(self.root, "luxos", "welcome", "index.html") + "?lang=de"
+            s.mn.js("gBrowser.selectedBrowser.fixupAndLoadURIString(arguments[0], "
+                    "{triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()})", page)
+            st = wait_for(lambda: content_js(s.mn, "return document.documentElement.dataset.hook == 'on' && "
+                                                   "[document.getElementById('badge-ubo').hidden,"
+                                                   " document.querySelector('#badge-ubo strong').textContent,"
+                                                   " getComputedStyle(document.querySelector('.mark svg')).display,"
+                                                   " document.querySelectorAll('.badges > li:not([hidden])').length]"), 10)
+            self.assertEqual(st, [False, "Werbung und Tracker blockiert", "block", 4])
+            shot(s, "welcome-ublock-badge")
+        finally:
+            s.stop()
 
 
 class WelcomeShots(unittest.TestCase):

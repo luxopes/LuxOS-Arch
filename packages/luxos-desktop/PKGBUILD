@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=77
+pkgrel=78
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -86,6 +86,8 @@ depends=(
     webkit2gtk-4.1 iputils hwdata
     # Textovy editor LuxOS misto Mousepadu (packages/luxos-text); Mousepad nahradi (replaces v luxos-text)
     luxos-text
+    # Firefox bez reklam: uBlock Origin jako doplnek v adresari aplikace (zapne se sam, aktualizuje se se systemem)
+    firefox-ublock-origin
     firefox ristretto evince xarchiver 7zip unzip zip celluloid python-gobject python-cairo libwnck3 upower libnotify wmctrl
     # Kamera (luxos-camera): v4l2src, jpegdec, videoflip, vp8enc/webmmux, pulsesrc (good); opusenc (base)
     gstreamer gst-plugins-base gst-plugins-good

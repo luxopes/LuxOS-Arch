@@ -46,9 +46,10 @@ def on_test_display():
                                                 or os.environ.get("LUXOS_TEST_X") == "1")
 
 
-def build_root(dest, cfg_dir=None):
+def build_root(dest, cfg_dir=None, extensions=()):
     """Instalace Firefoxu pod dest: firefox zkopirovany, ostatni odkazy; LuxOS soubory z cfg_dir
-    (koren rozbaleneho balicku) nebo z files/ repozitare."""
+    (koren rozbaleneho balicku) nebo z files/ repozitare. extensions: soubory .xpi do
+    browser/extensions (doplnky v adresari aplikace jako z balicku firefox-ublock-origin)."""
     if os.path.exists(dest):
         shutil.rmtree(dest)
     os.makedirs(os.path.join(dest, "defaults", "pref"))
@@ -58,6 +59,14 @@ def build_root(dest, cfg_dir=None):
             continue
         if name == "firefox":
             shutil.copy2(src, os.path.join(dest, name))
+        elif name == "browser":
+            # vlastni browser/extensions (skutecny adresar Firefoxu se nemeni), zbytek odkazy
+            os.makedirs(os.path.join(dest, "browser", "extensions"))
+            for sub in os.listdir(src):
+                if sub != "extensions":
+                    os.symlink(os.path.realpath(os.path.join(src, sub)), os.path.join(dest, "browser", sub))
+            for xpi in extensions:
+                shutil.copy2(xpi, os.path.join(dest, "browser", "extensions", os.path.basename(xpi)))
         else:
             os.symlink(os.path.realpath(src), os.path.join(dest, name))
     for name in os.listdir(os.path.join(FIREFOX_DIR, "defaults", "pref")):
