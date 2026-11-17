@@ -251,8 +251,11 @@ except SystemExit as e:
 assert 'gi' not in sys.modules
 assert 'cairo' not in sys.modules
 """
+        # luxos_i18n ze zdroju (sys.path vyse) i v podprocesu - v kontejneru sestaveni neni nainstalovany
+        env = dict(os.environ, PYTHONPATH=os.pathsep.join(
+            [os.path.join(ROOT, "luxos-i18n", "files")] + [x for x in os.environ.get("PYTHONPATH", "").split(os.pathsep) if x]))
         result = subprocess.run([sys.executable, "-B", "-c", code, program],
-                                capture_output=True, text=True, timeout=10)
+                                capture_output=True, text=True, timeout=10, env=env)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(json.loads(result.stdout)["ok"])
 
