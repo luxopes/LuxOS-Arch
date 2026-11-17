@@ -5225,3 +5225,9 @@ Backups on an SFTP server cannot be encrypted.	Zálohy na serveri SFTP nie je mo
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	Šifrovanie funguje s diskami USB a zdieľanými priečinkami (SMB). Vypnite Šifrovať zálohy alebo použite zdieľaný priečinok.
 Old copies of %s were replaced by the system version	Staré kópie %s nahradila verzia zo systému
 The old copies were moved to %s. Nothing was deleted.	Staré kópie sú presunuté do %s. Nič sa nevymazalo.
+Darken bright wallpaper under the menu bar and widgets	Stmaviť svetlú tapetu pod hornou lištou a widgetmi
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	Na veľmi svetlej tapete dostane oblasť pod hornou lištou a okolo widgetov jemný tieň, takže biely text zostane čitateľný.
+Show widgets on the desktop	Zobraziť widgety na ploche
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Karty Hodiny a počasie, Stav systému, Práve hrá a Kalendár na ploche.
+Choose and arrange widgets	Vybrať a usporiadať widgety
+You can also right-click a widget or the desktop and choose Edit Widgets…	Môžete tiež kliknúť pravým tlačidlom na widget alebo na plochu a zvoliť Upraviť widgety…

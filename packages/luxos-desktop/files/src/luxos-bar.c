@@ -31,10 +31,22 @@
  *    rozlozeni klavesnice, zvuk, zvonek) signalem SIGUSR1 - panel je spusti znovu bez ptani
  *    a nactou novy blok. Lista ani tapeta pod ni nezmizi.
  *
+ * 4. Zavoj pod listou na velmi svetle tapete (jako macOS): kdyz je pismo listy bile (tmavy rezim nebo
+ *    BAR_TEXT=white) a tapeta nahore svetla (bila, bezova, bily len), ztmavi se tapeta pod listou
+ *    a kousek pod ni plynulym prechodem do cerne (nahore nejvys SCRIM_MAX, do ztracena na SCRIM_HEIGHT
+ *    px). Neni to ton listy: plugin zavoj kresli do vyrezu tapety v liste a pod listou samostatnym
+ *    pruhlednym oknem plochy (typ DESKTOP, nad tapetou xfdesktop, pod widgety a okny, bez vstupu -
+ *    kliky jdou na plochu). Sila podle jasu tapety v pasu pod listou (prumerny linearni jas, ulozeny
+ *    pro kazdou tapetu - prepnuti plochy jen prekresli prechod); bezne tapety vcetne svetle Sunrise
+ *    zustavaji beze zmeny. Bile pismo tak zustava bile a citelne, tmave pismo jen kdyz ani se zavojem
+ *    kontrast nestaci. Vypnuti: DESKTOP_SCRIM=0 v appearance.conf (luxos-appearance desktop-scrim off).
+ *    Bez kompozitoru zavoj neni (okno by nebylo pruhledne) - pak jako drive tmave pismo (bod 3).
+ *
  * Zmeny appearance.conf se nacitaji hned (GFileMonitor), bez restartu panelu.
  */
 #define WNCK_I_KNOW_THIS_IS_UNSTABLE
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 #include <libwnck/libwnck.h>
 #include <libxfce4panel/libxfce4panel.h>
 #include <xfconf/xfconf.h>
@@ -51,6 +63,14 @@
 enum { COVER_WALLPAPER, COVER_TRANSLUCENT, COVER_SOLID };
 #define CLOCK_FORMAT "%a %-d. %b  %H:%M"
 #define TOOLTIP_FORMAT "%A %-d. %B %Y"
+
+/* Zavoj pod listou (bod 4): vyska v logickych px od horniho okraje monitoru, nejvyssi alfa cerne
+ * nahore. Sila 0-1 podle kontrastu bileho pisma na tapete v pasu zavoje: nad SCRIM_C_NONE zadny
+ * (Sunrise ~2,2 : 1, Lagoon ~2,3), pod SCRIM_C_FULL plny (bila 1,0, bezova ~1,2, bily len ~1,15). */
+#define SCRIM_HEIGHT 128
+#define SCRIM_MAX 0.38
+#define SCRIM_C_NONE 2.0
+#define SCRIM_C_FULL 1.3
 
 typedef struct {
     XfcePanelPlugin *plugin;
@@ -84,6 +104,13 @@ typedef struct {
     guint eval_id;
     gulong rgba_handler;
     gboolean setting_rgba;
+    gboolean scrim_enabled;     /* DESKTOP_SCRIM (vychozi 1) */
+    gdouble scrim;              /* aktualni sila zavoje 0-1 */
+    GtkWidget *scrim_win;       /* zavoj pod listou (okno plochy) */
+    GdkRectangle scrim_geo;     /* naposledy nastavena poloha a velikost okna zavoje */
+    GHashTable *lum_cache;      /* tapeta|mtime|styl|rozmery -> jas pasu zavoje (gdouble *) */
+    gchar *scrim_key;           /* vyrez, pro ktery uz byl zavoj rozhodnut (pruhledna lista) */
+    guint precompute_id;
 } Bar;
 
 /* ---- nastaveni ------------------------------------------------------------------------- */
@@ -94,6 +121,7 @@ read_conf (Bar *bar) {
     bar->opacity = DEFAULT_OPACITY;
     bar->white = FALSE;
     bar->cover = COVER_WALLPAPER;
+    bar->scrim_enabled = TRUE;
     if (!g_file_get_contents (bar->conf_path, &data, NULL, NULL))
         return;
     gchar **lines = g_strsplit (data, "\n", -1);
@@ -113,6 +141,8 @@ read_conf (Bar *bar) {
         else if (strcmp (*l, "BAR_COVER") == 0)
             bar->cover = strcmp (v, "solid") == 0 ? COVER_SOLID
                          : strcmp (v, "translucent") == 0 ? COVER_TRANSLUCENT : COVER_WALLPAPER;
+        else if (strcmp (*l, "DESKTOP_SCRIM") == 0)
+            bar->scrim_enabled = strcmp (v, "0") != 0;
     }
     g_strfreev (lines);
     g_free (data);
@@ -226,15 +256,18 @@ panel_get_uint (GObject *obj, const gchar *name) {
     return r;
 }
 
-/* Tapeta monitoru s listou na aktivni plose: cesta (g_free) a styl xfdesktop (image-style) */
+/* Tapeta monitoru s listou na plose ws (-1 = aktivni): cesta (g_free) a styl xfdesktop (image-style) */
 static gchar *
-wallpaper_for (Bar *bar, GdkMonitor *mon, gint *style) {
+wallpaper_for (Bar *bar, GdkMonitor *mon, gint ws, gint *style) {
     XfconfChannel *ch = xfconf_channel_get ("xfce4-desktop");
-    gint ws = 0;
-    if (xfconf_channel_get_bool (ch, "/backdrop/single-workspace-mode", FALSE))
+    /* xfdesktop bez ulozene volby ukazuje na vsech plochach tapetu plochy single-workspace-number
+     * (vychozi TRUE, "Pouzit pro vsechny plochy"); drive tu bylo FALSE - lista pak na dalsich plochach
+     * kreslila starou tapetu te plochy, ktera na plose videt nebyla */
+    if (xfconf_channel_get_bool (ch, "/backdrop/single-workspace-mode", TRUE))
         ws = xfconf_channel_get_int (ch, "/backdrop/single-workspace-number", 0);
-    else if (bar->screen && wnck_screen_get_active_workspace (bar->screen))
+    else if (ws < 0 && bar->screen && wnck_screen_get_active_workspace (bar->screen))
         ws = wnck_workspace_get_number (wnck_screen_get_active_workspace (bar->screen));
+    ws = MAX (ws, 0);
     const gchar *model = mon ? gdk_monitor_get_model (mon) : NULL;
     gchar *want = g_strdup_printf ("/workspace%d/last-image", ws);
     gchar *best = NULL;
@@ -464,8 +497,11 @@ decide_ink (Bar *bar, GdkPixbuf *strip, const gchar *key) {
  * vyrezu, aby rozhodovala svetla mista, ne prumer. */
 #define READABLE_LIGHT_TEXT 0.58    /* nejvyssi jas pozadi pod bilym textem */
 #define READABLE_DARK_TEXT 0.62     /* nejnizsi jas pozadi pod tmavym textem */
+/* Se zavojem (svetla tapeta, bod 4) prisnejsi strop pod bilym textem: plny zavoj ~4,5 : 1 (WCAG AA);
+ * bez zavoje (vsechny bezne tapety) beze zmeny. */
+#define READABLE_LIGHT_TEXT_SCRIM 0.45
 static gdouble
-readable_alpha (GdkPixbuf *pb, const GdkRGBA *tint) {
+readable_alpha (GdkPixbuf *pb, const GdkRGBA *tint, gdouble scrim) {
     gint w = gdk_pixbuf_get_width (pb), h = gdk_pixbuf_get_height (pb);
     gint rs = gdk_pixbuf_get_rowstride (pb), n = gdk_pixbuf_get_n_channels (pb);
     const guchar *px = gdk_pixbuf_read_pixels (pb);
@@ -486,49 +522,21 @@ readable_alpha (GdkPixbuf *pb, const GdkRGBA *tint) {
     }
     gdouble l = CLAMP (v, 0, 255) / 255.0;
     gdouble t = 0.2126 * tint->red + 0.7152 * tint->green + 0.0722 * tint->blue;
-    gdouble need = 0.0;
-    if (light_text && l > READABLE_LIGHT_TEXT && l > t)
-        need = (l - READABLE_LIGHT_TEXT) / (l - t);
+    gdouble need = 0.0, cap = READABLE_LIGHT_TEXT - (READABLE_LIGHT_TEXT - READABLE_LIGHT_TEXT_SCRIM) * CLAMP (scrim, 0.0, 1.0);
+    if (light_text && l > cap && l > t)
+        need = (l - cap) / (l - t);
     else if (!light_text && l < READABLE_DARK_TEXT && l < t)
         need = (READABLE_DARK_TEXT - l) / (t - l);
     return MAX (tint->alpha, need);
 }
 
-/* Vyrez tapety, ktery na obrazovce lezi presne pod listou (bez tonu). *skey = zdroj, styl a rozmery
- * (g_free). Obrazek se nenacita (vraci NULL) s key_only nebo kdyz je klic stejny jako skip_key.
- * *skey NULL: neni tapeta nebo okno listy. */
+/* Obdelnik monitoru (rx, ry, rw, rh v px zarizeni, monitor W x H) z obrazku tapety src se stylem
+ * xfdesktop do noveho obrazku out_w x out_h. src muze byt zmenseny: orig_w x orig_h = rozmery
+ * puvodniho souboru (styl "na stred" pocita s puvodni velikosti). Mimo tapetu cerna. */
 static GdkPixbuf *
-wallpaper_strip (Bar *bar, gchar **skey, const gchar *skip_key, gboolean key_only) {
-    *skey = NULL;
-    GdkWindow *gw = bar->toplevel ? gtk_widget_get_window (bar->toplevel) : NULL;
-    if (!gw)
-        return NULL;
-    GdkDisplay *display = gdk_window_get_display (gw);
-    GdkMonitor *mon = gdk_display_get_monitor_at_window (display, gw);
-    if (!mon)
-        return NULL;
-    gint style = 5;
-    gchar *path = wallpaper_for (bar, mon, &style);
-    if (!path)
-        return NULL;
-    GdkRectangle geo, r;
-    gdk_monitor_get_geometry (mon, &geo);
-    gdk_window_get_frame_extents (gw, &r);
-    gint scale = gdk_window_get_scale_factor (gw);
-    gint W = geo.width * scale, H = geo.height * scale;
-    gint bx = (r.x - geo.x) * scale, by = (r.y - geo.y) * scale, bw = r.width * scale, bh = r.height * scale;
-    GStatBuf st;
-    gint64 mtime = g_stat (path, &st) == 0 ? (gint64) st.st_mtime : 0;
-    *skey = g_strdup_printf ("%s|%" G_GINT64_FORMAT "|%d|%dx%d|%d,%d,%dx%d", path, mtime, style, W, H, bx, by, bw, bh);
-    if (key_only || (skip_key && strcmp (*skey, skip_key) == 0)) {
-        g_free (path);
-        return NULL;
-    }
-    GdkPixbuf *src = bw > 0 && bh > 0 ? gdk_pixbuf_new_from_file (path, NULL) : NULL;
-    g_free (path);
-    if (!src)
-        return NULL;
-    gdouble iw = gdk_pixbuf_get_width (src), ih = gdk_pixbuf_get_height (src);
+wallpaper_region (GdkPixbuf *src, gint orig_w, gint orig_h, gint style, gint W, gint H,
+                  gint rx, gint ry, gint rw, gint rh, gint out_w, gint out_h) {
+    gdouble iw = orig_w, ih = orig_h;
     gdouble sx, sy;
     switch (style) {
     case 3: /* roztazeny */
@@ -545,27 +553,383 @@ wallpaper_strip (Bar *bar, gchar **skey, const gchar *skip_key, gboolean key_onl
         sx = sy = MAX (W / iw, H / ih);
         break;
     }
-    gdouble ox = (W - iw * sx) / 2.0 - bx, oy = (H - ih * sy) / 2.0 - by;
-    GdkPixbuf *dest = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE, 8, bw, bh);
+    /* monitor -> vystup */
+    gdouble fx = (gdouble) out_w / rw, fy = (gdouble) out_h / rh;
+    gdouble ox = ((W - iw * sx) / 2.0 - rx) * fx, oy = ((H - ih * sy) / 2.0 - ry) * fy;
+    /* puvodni px -> px zdroje */
+    gdouble kx = gdk_pixbuf_get_width (src) / iw, ky = gdk_pixbuf_get_height (src) / ih;
+    gdouble scx = sx * fx / kx, scy = sy * fy / ky;
+    GdkPixbuf *dest = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE, 8, out_w, out_h);
     gdk_pixbuf_fill (dest, 0x000000ff);
     gint x0 = MAX (0, (gint) ceil (ox)), y0 = MAX (0, (gint) ceil (oy));
-    gint x1 = MIN (bw, (gint) floor (ox + iw * sx)), y1 = MIN (bh, (gint) floor (oy + ih * sy));
+    gint x1 = MIN (out_w, (gint) floor (ox + iw * sx * fx)), y1 = MIN (out_h, (gint) floor (oy + ih * sy * fy));
     if (x1 > x0 && y1 > y0)
-        gdk_pixbuf_scale (src, dest, x0, y0, x1 - x0, y1 - y0, ox, oy, sx, sy, GDK_INTERP_BILINEAR);
+        gdk_pixbuf_scale (src, dest, x0, y0, x1 - x0, y1 - y0, ox, oy, scx, scy, GDK_INTERP_BILINEAR);
+    return dest;
+}
+
+/* Monitor s listou, jeho rozmery a poloha listy na nem v px zarizeni; FALSE = neni okno listy */
+static gboolean
+bar_geometry (Bar *bar, GdkMonitor **mon, gint *W, gint *H, GdkRectangle *b, gint *scale) {
+    GdkWindow *gw = bar->toplevel ? gtk_widget_get_window (bar->toplevel) : NULL;
+    if (!gw)
+        return FALSE;
+    *mon = gdk_display_get_monitor_at_window (gdk_window_get_display (gw), gw);
+    if (!*mon)
+        return FALSE;
+    GdkRectangle geo, r;
+    gdk_monitor_get_geometry (*mon, &geo);
+    gdk_window_get_frame_extents (gw, &r);
+    *scale = gdk_window_get_scale_factor (gw);
+    *W = geo.width * *scale;
+    *H = geo.height * *scale;
+    *b = (GdkRectangle) { (r.x - geo.x) * *scale, (r.y - geo.y) * *scale, r.width * *scale, r.height * *scale };
+    return TRUE;
+}
+
+/* Klic tapety pro mezipamet jasu: zdroj, zmena souboru, styl, rozmery monitoru (g_free) */
+static gchar *
+wall_key (const gchar *path, gint style, gint W, gint H) {
+    GStatBuf st;
+    gint64 mtime = g_stat (path, &st) == 0 ? (gint64) st.st_mtime : 0;
+    return g_strdup_printf ("%s|%" G_GINT64_FORMAT "|%d|%dx%d", path, mtime, style, W, H);
+}
+
+/* Vyrez tapety, ktery na obrazovce lezi presne pod listou (bez tonu). *skey = zdroj, styl a rozmery
+ * (g_free). Obrazek se nenacita (vraci NULL) s key_only nebo kdyz je klic stejny jako skip_key.
+ * *skey NULL: neni tapeta nebo okno listy. *wkey (muze byt NULL) = klic tapety (wall_key). */
+static GdkPixbuf *
+wallpaper_strip (Bar *bar, gchar **skey, gchar **wkey, const gchar *skip_key, gboolean key_only) {
+    *skey = NULL;
+    if (wkey)
+        *wkey = NULL;
+    GdkMonitor *mon;
+    GdkRectangle b;
+    gint W, H, scale, style = 5;
+    if (!bar_geometry (bar, &mon, &W, &H, &b, &scale))
+        return NULL;
+    gchar *path = wallpaper_for (bar, mon, -1, &style);
+    if (!path)
+        return NULL;
+    gchar *wk = wall_key (path, style, W, H);
+    *skey = g_strdup_printf ("%s|%d,%d,%dx%d", wk, b.x, b.y, b.width, b.height);
+    if (wkey)
+        *wkey = wk;
+    else
+        g_free (wk);
+    if (key_only || (skip_key && strcmp (*skey, skip_key) == 0)) {
+        g_free (path);
+        return NULL;
+    }
+    GdkPixbuf *src = b.width > 0 && b.height > 0 ? gdk_pixbuf_new_from_file (path, NULL) : NULL;
+    g_free (path);
+    if (!src)
+        return NULL;
+    GdkPixbuf *dest = wallpaper_region (src, gdk_pixbuf_get_width (src), gdk_pixbuf_get_height (src), style,
+                                        W, H, b.x, b.y, b.width, b.height, b.width, b.height);
     g_object_unref (src);
     return dest;
 }
 
-/* Bez tapety pod listou (BAR_COVER=translucent/solid) se pismo rozhoduje taky - prosvita tapeta */
+/* ---- zavoj pod listou na svetle tapete (bod 4) ----------------------------------------- */
+
+/* Prubeh zavoje: 1 nahore, 0 na SCRIM_HEIGHT, s nulovou smernici na obou koncich (bez hrany) */
+static gdouble
+scrim_profile (gdouble t) {
+    t = CLAMP (t, 0.0, 1.0);
+    return 1.0 - t * t * (3.0 - 2.0 * t);
+}
+
+/* Sila zavoje 0-1 podle prumerneho linearniho jasu tapety v pasu zavoje */
+static gdouble
+scrim_strength (gdouble lum) {
+    gdouble c = 1.05 / (lum + 0.05);
+    gdouble t = CLAMP ((SCRIM_C_NONE - c) / (SCRIM_C_NONE - SCRIM_C_FULL), 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+}
+
+/* Prumerny linearni jas tapety v pasu 0..SCRIM_HEIGHT px nahore na monitoru W x H (px zarizeni).
+ * Obrazek se nacte zmenseny (rychle i u velkeho JPEG); -1 = neni tapeta. */
+static gdouble
+measure_top_lum (const gchar *path, gint style, gint W, gint H, gint scale) {
+    gint ow = 0, oh = 0;
+    if (!gdk_pixbuf_get_file_info (path, &ow, &oh) || ow <= 0 || oh <= 0)
+        return -1.0;
+    GdkPixbuf *src = gdk_pixbuf_new_from_file_at_scale (path, MIN (ow, 480), MIN (oh, 480), TRUE, NULL);
+    if (!src)
+        return -1.0;
+    gint rh = MIN (H, SCRIM_HEIGHT * scale);
+    gint out_w = MAX (1, MIN (W, 240)), out_h = MAX (1, rh * out_w / MAX (1, W));
+    GdkPixbuf *pb = wallpaper_region (src, ow, oh, style, W, H, 0, 0, W, rh, out_w, out_h);
+    g_object_unref (src);
+    gint rs = gdk_pixbuf_get_rowstride (pb), n = gdk_pixbuf_get_n_channels (pb);
+    const guchar *px = gdk_pixbuf_read_pixels (pb);
+    gdouble sum = 0.0;
+    for (gint y = 0; y < out_h; y++)
+        for (gint x = 0; x < out_w; x++) {
+            const guchar *p = px + y * rs + x * n;
+            sum += 0.2126 * srgb_linear (p[0]) + 0.7152 * srgb_linear (p[1]) + 0.0722 * srgb_linear (p[2]);
+        }
+    g_object_unref (pb);
+    return sum / ((gdouble) out_w * out_h);
+}
+
+/* Jas pasu zavoje pro tapetu (z mezipameti; nacte jen s compute) */
+static gdouble
+top_lum (Bar *bar, const gchar *path, gint style, gint W, gint H, gint scale, gboolean compute) {
+    gchar *key = wall_key (path, style, W, H);
+    gdouble *v = g_hash_table_lookup (bar->lum_cache, key);
+    if (v || !compute) {
+        g_free (key);
+        return v ? *v : -2.0;
+    }
+    gdouble l = measure_top_lum (path, style, W, H, scale);
+    if (g_hash_table_size (bar->lum_cache) > 64)
+        g_hash_table_remove_all (bar->lum_cache);
+    g_hash_table_insert (bar->lum_cache, key, g_memdup2 (&l, sizeof l));
+    return l;
+}
+
+/* Zavoj jen s kompozitorem: bez nej by okno zavoje pod listou nebylo pruhledne a ztmavena by byla
+ * jen sama lista - pak jako drive tmave pismo na svetle tapete (rozhodnuti bar-ink) */
+static gboolean
+scrim_possible (Bar *bar) {
+    GdkScreen *screen = bar->toplevel ? gtk_widget_get_screen (bar->toplevel) : NULL;
+    return screen && gdk_screen_is_composited (screen) && gdk_screen_get_rgba_visual (screen);
+}
+
+/* Muze byt pismo listy bile? (tmavy rezim, nebo BAR_TEXT=white ve svetlem) */
+static gboolean
+text_may_be_white (Bar *bar) {
+    return bar->white || xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
+}
+
+/* Sila zavoje pro bile pismo na aktivni plose; compute = smi nacist tapetu, -1 = neni v mezipameti */
+static gdouble
+scrim_for_active (Bar *bar, gboolean compute) {
+    if (!bar->scrim_enabled || !text_may_be_white (bar) || !scrim_possible (bar))
+        return 0.0;
+    GdkMonitor *mon;
+    GdkRectangle b;
+    gint W, H, scale, style = 5;
+    if (!bar_geometry (bar, &mon, &W, &H, &b, &scale))
+        return 0.0;
+    gchar *path = wallpaper_for (bar, mon, -1, &style);
+    if (!path)
+        return 0.0;
+    gdouble l = top_lum (bar, path, style, W, H, scale, compute);
+    g_free (path);
+    if (l < -1.5)
+        return -1.0;
+    return l < 0 ? 0.0 : scrim_strength (l);
+}
+
+/* Zavoj do vyrezu tapety pod listou: radek -> logicka vyska od horniho okraje monitoru */
+static void
+apply_scrim_rows (GdkPixbuf *pb, gdouble s, gint top, gint scale) {
+    if (s <= 0.0)
+        return;
+    gint w = gdk_pixbuf_get_width (pb), h = gdk_pixbuf_get_height (pb);
+    gint rs = gdk_pixbuf_get_rowstride (pb), n = gdk_pixbuf_get_n_channels (pb);
+    guchar *px = gdk_pixbuf_get_pixels (pb);
+    for (gint y = 0; y < h; y++) {
+        gdouble keep = 1.0 - s * SCRIM_MAX * scrim_profile ((top + y + 0.5) / (gdouble) scale / SCRIM_HEIGHT);
+        if (keep >= 1.0)
+            continue;
+        for (gint x = 0; x < w; x++) {
+            guchar *p = px + y * rs + x * n;
+            for (gint i = 0; i < 3; i++)
+                p[i] = (guchar) CLAMP (p[i] * keep + 0.5, 0, 255);
+        }
+    }
+}
+
+static gboolean
+scrim_draw (GtkWidget *w, cairo_t *cr, Bar *bar) {
+    (void) w;
+    cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+    cairo_pattern_t *p = cairo_pattern_create_linear (0, 0, 0, SCRIM_HEIGHT);
+    for (gint i = 0; i <= 32; i++) {
+        gdouble t = i / 32.0;
+        cairo_pattern_add_color_stop_rgba (p, t, 0, 0, 0, bar->scrim * SCRIM_MAX * scrim_profile (t));
+    }
+    cairo_set_source (cr, p);
+    cairo_paint (cr);
+    cairo_pattern_destroy (p);
+    return TRUE;
+}
+
+/* Bez vstupu: kliky (i pravym tlacitkem - nabidka plochy) jdou na plochu pod oknem zavoje. Vstupni
+ * tvar 1 px v levem hornim rohu (pod listou, kam nikdo neklikne): prazdny tvar xfwm4 na ramecek okna
+ * neprenese. Znovu po namapovani - xfwm4 tvar klienta na ramecek kopiruje az pri zmene (ShapeNotify),
+ * tvar nastaveny pred prevzetim okna ignoruje a ramecek by kliky bral. */
+static void
+scrim_input_shape (GtkWidget *w) {
+    cairo_region_t *corner = cairo_region_create_rectangle (&(cairo_rectangle_int_t) { 0, 0, 1, 1 });
+    gtk_widget_input_shape_combine_region (w, NULL);
+    gtk_widget_input_shape_combine_region (w, corner);
+    cairo_region_destroy (corner);
+}
+
+static gboolean
+scrim_mapped (GtkWidget *w, GdkEvent *ev, Bar *bar) {
+    (void) ev;
+    (void) bar;
+    scrim_input_shape (w);
+    return FALSE;
+}
+
+/* Okno zavoje nad tapetou plochy: nove okno plochy (xfdesktop spusteny az po liste nebo znovu) by ho
+ * prekrylo. xfwm4 okna typu DESKTOP na pozadani nevytahuje - znovu namapovane okno je navrchu vrstvy. */
+static void
+scrim_raise (Bar *bar) {
+    if (bar->scrim_win && gtk_widget_get_visible (bar->scrim_win)) {
+        gtk_widget_hide (bar->scrim_win);
+        gtk_widget_show (bar->scrim_win);
+    }
+}
+
+/* Zobrazit / skryt a prekreslit zavoj pod listou se silou s */
+static void
+scrim_set (Bar *bar, gdouble s) {
+    GdkScreen *screen = bar->toplevel ? gtk_widget_get_screen (bar->toplevel) : NULL;
+    GdkMonitor *mon = NULL;
+    GdkWindow *gw = bar->toplevel ? gtk_widget_get_window (bar->toplevel) : NULL;
+    if (gw)
+        mon = gdk_display_get_monitor_at_window (gdk_window_get_display (gw), gw);
+    gboolean show = s > 0.004 && screen && mon && gdk_screen_is_composited (screen)
+                    && gdk_screen_get_rgba_visual (screen);
+    if (fabs (s - bar->scrim) > 0.004) {
+        bar->scrim = s;
+        if (bar->scrim_win)
+            gtk_widget_queue_draw (bar->scrim_win);
+    }
+    if (!show) {
+        if (bar->scrim_win)
+            gtk_widget_hide (bar->scrim_win);
+        return;
+    }
+    if (!bar->scrim_win) {
+        GtkWidget *w = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+        gtk_widget_set_visual (w, gdk_screen_get_rgba_visual (screen));
+        gtk_widget_set_app_paintable (w, TRUE);
+        gtk_window_set_title (GTK_WINDOW (w), "LuxOS menu bar scrim");
+        gtk_window_set_role (GTK_WINDOW (w), "luxos-scrim");
+        gtk_window_set_decorated (GTK_WINDOW (w), FALSE);
+        gtk_window_set_type_hint (GTK_WINDOW (w), GDK_WINDOW_TYPE_HINT_DESKTOP);
+        gtk_window_set_skip_taskbar_hint (GTK_WINDOW (w), TRUE);
+        gtk_window_set_skip_pager_hint (GTK_WINDOW (w), TRUE);
+        gtk_window_set_accept_focus (GTK_WINDOW (w), FALSE);
+        gtk_window_set_focus_on_map (GTK_WINDOW (w), FALSE);
+        gtk_window_stick (GTK_WINDOW (w));
+        g_signal_connect (w, "draw", G_CALLBACK (scrim_draw), bar);
+        scrim_input_shape (w);
+        g_signal_connect (w, "map-event", G_CALLBACK (scrim_mapped), bar);
+        bar->scrim_win = w;
+    }
+    GdkRectangle geo;
+    gdk_monitor_get_geometry (mon, &geo);
+    geo.height = MIN (geo.height, SCRIM_HEIGHT);
+    /* jen pri zmene: kazde presunuti okna = udalost oken -> evaluate -> scrim_set (smycka) */
+    if (memcmp (&geo, &bar->scrim_geo, sizeof geo) != 0) {
+        GtkWindow *win = GTK_WINDOW (bar->scrim_win);
+        gtk_widget_set_size_request (bar->scrim_win, geo.width, geo.height);
+        gtk_window_resize (win, geo.width, geo.height);
+        gtk_window_move (win, geo.x, geo.y);
+        bar->scrim_geo = geo;
+    }
+    if (!gtk_widget_get_visible (bar->scrim_win))
+        gtk_widget_show (bar->scrim_win);
+}
+
+/* Prepnuti plochy: zavoj hned podle ulozeneho jasu (vyrez listy dobehne pozdeji) */
+static void
+scrim_quick (Bar *bar) {
+    gdouble s = scrim_for_active (bar, FALSE);
+    if (s < 0)
+        return;
+    if (bar->white && bar->dark_ink
+        && !xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE))
+        s = 0.0;
+    scrim_set (bar, s);
+}
+
+/* Jas pasu zavoje pro tapety vsech ploch predem (prepnuti plochy pak nic nenacita) */
+static gboolean
+precompute_idle (gpointer data) {
+    Bar *bar = data;
+    bar->precompute_id = 0;
+    GdkMonitor *mon;
+    GdkRectangle b;
+    gint W, H, scale;
+    if (!bar->scrim_enabled || !text_may_be_white (bar) || !scrim_possible (bar)
+        || !bar_geometry (bar, &mon, &W, &H, &b, &scale))
+        return G_SOURCE_REMOVE;
+    gint n = bar->screen ? wnck_screen_get_workspace_count (bar->screen) : 1;
+    for (gint ws = 0; ws < MIN (n, 32); ws++) {
+        gint style = 5;
+        gchar *path = wallpaper_for (bar, mon, ws, &style);
+        if (path)
+            top_lum (bar, path, style, W, H, scale, TRUE);
+        g_free (path);
+    }
+    return G_SOURCE_REMOVE;
+}
+
+static void
+queue_precompute (Bar *bar) {
+    if (!bar->precompute_id)
+        bar->precompute_id = g_timeout_add (1500, precompute_idle, bar);
+}
+
+/* Vyrez tapety pod listou se zavojem a rozhodnutim o pismu. Zavoj patri jen pod bile pismo: kdyz
+ * ani se zavojem bile pismo nestaci (tmave pismo), vyrez zustane bez zavoje. Vraci silu zavoje. */
+static gdouble
+scrim_strip (Bar *bar, GdkPixbuf *strip, const gchar *skey) {
+    gdouble s = scrim_for_active (bar, TRUE);
+    GdkMonitor *mon;
+    GdkRectangle b = { 0 };
+    gint W, H, scale = 1;
+    bar_geometry (bar, &mon, &W, &H, &b, &scale);
+    GdkPixbuf *raw = s > 0.0 && ink_needed (bar) ? gdk_pixbuf_copy (strip) : NULL;
+    apply_scrim_rows (strip, s, b.y, scale);
+    decide_ink (bar, strip, skey);
+    if (s > 0.0 && ink_needed (bar) && bar->dark_ink) {
+        s = 0.0;
+        if (raw)
+            gdk_pixbuf_copy_area (raw, 0, 0, gdk_pixbuf_get_width (raw), gdk_pixbuf_get_height (raw), strip, 0, 0);
+    }
+    if (raw)
+        g_object_unref (raw);
+    return s;
+}
+
+/* Bez tapety pod listou (BAR_COVER=translucent/solid) se pismo rozhoduje taky - prosvita tapeta;
+ * zavoj pod pruhlednou listou kresli jen okno zavoje */
 static void
 update_ink (Bar *bar) {
     gchar *skey = NULL;
-    GdkPixbuf *strip = ink_needed (bar) ? wallpaper_strip (bar, &skey, bar->ink_key, FALSE) : NULL;
+    /* udalosti oken chodi casto: tapeta se nacita jen pri zmene vyrezu nebo nastaveni */
+    GdkPixbuf *strip = wallpaper_strip (bar, &skey, NULL, bar->scrim_key, FALSE);
     if (strip) {
-        decide_ink (bar, strip, skey);
+        scrim_set (bar, scrim_strip (bar, strip, skey));
         g_object_unref (strip);
+        g_free (bar->scrim_key);
+        bar->scrim_key = g_strdup (skey);
+    } else if (!skey) {
+        scrim_set (bar, 0.0);
+        g_clear_pointer (&bar->scrim_key, g_free);
     }
     g_free (skey);
+}
+
+/* Sila zavoje bez nacteni tapety (z mezipameti) pro dosavadni rozhodnuti o pismu; -1 = nevi se */
+static gdouble
+known_scrim (Bar *bar) {
+    gdouble s = scrim_for_active (bar, FALSE);
+    if (s > 0.0 && ink_needed (bar) && bar->dark_ink)
+        s = 0.0;
+    return s;
 }
 
 /* Vykresli vyrez tapety pod listou do PNG; NULL kdyz neni tapeta (pak pruhledna lista) */
@@ -573,37 +937,39 @@ static gchar *
 render_wallpaper (Bar *bar) {
     GdkRGBA tint;
     gchar *skey = NULL;
-    /* bez nacteni obrazku: stejna tapeta, rozmery i ton jako minule -> hotovy soubor */
+    /* bez nacteni obrazku: stejna tapeta, rozmery, ton i zavoj jako minule -> hotovy soubor */
     if (bar->bg_key && bar->bg_file && g_file_test (bar->bg_file, G_FILE_TEST_IS_REGULAR)) {
-        wallpaper_strip (bar, &skey, NULL, TRUE);
+        wallpaper_strip (bar, &skey, NULL, NULL, TRUE);
         if (!skey)
             return NULL;
+        gdouble s = known_scrim (bar);
         bar_tint (bar, &tint);
-        gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha);
-        gboolean same = strcmp (key, bar->bg_key) == 0;
+        gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f|%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha, s);
+        gboolean same = s >= 0 && strcmp (key, bar->bg_key) == 0;
         g_free (key);
         if (same && (!ink_needed (bar) || g_strcmp0 (skey, bar->ink_key) == 0)) {
             g_free (skey);
+            scrim_set (bar, s);
             return g_strdup (bar->bg_file);
         }
         g_free (skey);
         skey = NULL;
     }
-    GdkPixbuf *dest = wallpaper_strip (bar, &skey, NULL, FALSE);
+    GdkPixbuf *dest = wallpaper_strip (bar, &skey, NULL, NULL, FALSE);
     if (!dest) {
         g_free (skey);
         return NULL;
     }
-    /* bile/tmave pismo podle tapety (muze zmenit ton) */
-    decide_ink (bar, dest, skey);
+    /* zavoj a bile/tmave pismo podle tapety (muze zmenit ton) */
+    gdouble s = scrim_strip (bar, dest, skey);
     bar_tint (bar, &tint);
-    gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha);
+    gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f|%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha, s);
     g_free (skey);
     gint bw = gdk_pixbuf_get_width (dest), bh = gdk_pixbuf_get_height (dest);
     /* ton listy pres tapetu: stejne jako pruhledna lista nad tapetou */
     guchar *px = gdk_pixbuf_get_pixels (dest);
     gint rs = gdk_pixbuf_get_rowstride (dest), n = gdk_pixbuf_get_n_channels (dest);
-    gdouble a = CLAMP (readable_alpha (dest, &tint), 0.0, 1.0);
+    gdouble a = CLAMP (readable_alpha (dest, &tint, s), 0.0, 1.0);
     gdouble tc[3] = { tint.red * 255.0 * a, tint.green * 255.0 * a, tint.blue * 255.0 * a };
     for (gint y = 0; y < bh; y++)
         for (gint x = 0; x < bw; x++) {
@@ -631,6 +997,7 @@ render_wallpaper (Bar *bar) {
     bar->bg_file = g_strdup (file);
     g_free (bar->bg_key);
     bar->bg_key = key;
+    scrim_set (bar, s);
     return file;
 }
 
@@ -657,6 +1024,8 @@ apply_background (Bar *bar) {
             panel_set_uint (obj, "background-style", 1);
         if (bar->cover != COVER_WALLPAPER)
             update_ink (bar);
+        else
+            scrim_set (bar, 0.0);
         apply_alpha (bar);
     }
     bar->setting_bg = FALSE;
@@ -681,8 +1050,10 @@ static void
 on_desktop_changed (XfconfChannel *ch, const gchar *prop, const GValue *v, Bar *bar) {
     (void) ch;
     (void) v;
-    if (g_str_has_prefix (prop, "/backdrop/"))
+    if (g_str_has_prefix (prop, "/backdrop/")) {
         queue_background (bar);
+        queue_precompute (bar);
+    }
 }
 
 /* nekdo jiny (nastaveni panelu, luxos-appearance) zmenil styl pozadi - tapetu vratit */
@@ -702,8 +1073,10 @@ on_rgba_changed (GObject *obj, GParamSpec *pspec, Bar *bar) {
     (void) pspec;
     if (!bar->setting_rgba) {
         apply_alpha (bar);
-        /* svetly/tmavy rezim: jiny ton tapety, pismo rozhodnout znovu */
+        /* svetly/tmavy rezim: jiny ton tapety, pismo (a zavoj) rozhodnout znovu */
         g_clear_pointer (&bar->ink_key, g_free);
+        g_clear_pointer (&bar->scrim_key, g_free);
+        queue_precompute (bar);
         queue_background (bar);
     }
 }
@@ -786,6 +1159,37 @@ on_window_opened (WnckScreen *s, WnckWindow *w, Bar *bar) {
 }
 
 static void on_screen_changed (WnckScreen *s, gpointer x, Bar *bar) { (void) s; (void) x; queue_eval (bar); }
+
+/* jina plocha: zavoj hned (jas tapety je predem spocitany), vyrez listy po queue_eval */
+static void
+on_workspace_changed (WnckScreen *s, WnckWorkspace *prev, Bar *bar) {
+    (void) s;
+    (void) prev;
+    scrim_quick (bar);
+    queue_eval (bar);
+}
+
+/* nove okno plochy (xfdesktop spusteny znovu): zavoj zase nad nim */
+static void
+on_window_opened_desktop (WnckScreen *s, WnckWindow *w, Bar *bar) {
+    (void) s;
+    /* vlastni okno zavoje (typ DESKTOP) ne - znovu namapovane by se otevrelo zas a dokola */
+    GdkWindow *own = bar->scrim_win ? gtk_widget_get_window (bar->scrim_win) : NULL;
+    if (own && GDK_IS_X11_WINDOW (own) && wnck_window_get_xid (w) == gdk_x11_window_get_xid (own))
+        return;
+    if (wnck_window_get_window_type (w) == WNCK_WINDOW_DESKTOP)
+        scrim_raise (bar);
+}
+
+/* kompozitor zapnut/vypnut: okno zavoje jen s nim (pruhlednost) */
+static void
+on_composited_changed (GdkScreen *screen, Bar *bar) {
+    (void) screen;
+    g_clear_pointer (&bar->scrim_key, g_free);
+    g_free (bar->bg_key);
+    bar->bg_key = NULL;
+    queue_eval (bar);
+}
 static void on_stacking_changed (WnckScreen *s, Bar *bar) { (void) s; queue_eval (bar); }
 
 /* ---- kresleni hodin -------------------------------------------------------------------- */
@@ -939,8 +1343,10 @@ apply_conf (Bar *bar) {
         bar->ink_path_read = TRUE;
     }
     apply_ink_class (bar);
-    /* jine nastaveni (pruhlednost, bile pismo) - pismo rozhodnout znovu */
+    /* jine nastaveni (pruhlednost, bile pismo, zavoj) - pismo rozhodnout znovu */
     g_clear_pointer (&bar->ink_key, g_free);
+    g_clear_pointer (&bar->scrim_key, g_free);
+    queue_precompute (bar);
     sync_right_clock (bar);
     gtk_widget_queue_draw (bar->area);
     queue_eval (bar);
@@ -974,6 +1380,9 @@ late_init (gpointer data) {
             g_signal_connect (bar->toplevel, "notify::background-style", G_CALLBACK (on_style_changed), bar);
     }
     g_signal_connect (xfconf_channel_get ("xfce4-desktop"), "property-changed", G_CALLBACK (on_desktop_changed), bar);
+    if (bar->toplevel)
+        g_signal_connect (gtk_widget_get_screen (bar->toplevel), "composited-changed",
+                          G_CALLBACK (on_composited_changed), bar);
     bar->handle = wnck_handle_new (WNCK_CLIENT_TYPE_APPLICATION);
     bar->screen = wnck_handle_get_default_screen (bar->handle);
     if (bar->screen) {
@@ -982,7 +1391,8 @@ late_init (gpointer data) {
             watch_window (bar, l->data);
         g_signal_connect (bar->screen, "window-opened", G_CALLBACK (on_window_opened), bar);
         g_signal_connect (bar->screen, "window-closed", G_CALLBACK (on_screen_changed), bar);
-        g_signal_connect (bar->screen, "active-workspace-changed", G_CALLBACK (on_screen_changed), bar);
+        g_signal_connect (bar->screen, "active-workspace-changed", G_CALLBACK (on_workspace_changed), bar);
+        g_signal_connect (bar->screen, "window-opened", G_CALLBACK (on_window_opened_desktop), bar);
         g_signal_connect (bar->screen, "window-stacking-changed", G_CALLBACK (on_stacking_changed), bar);
     }
     apply_conf (bar);
@@ -1001,7 +1411,11 @@ bar_free (XfcePanelPlugin *plugin, Bar *bar) {
         g_source_remove (bar->bg_id);
     if (bar->ext_id)
         g_source_remove (bar->ext_id);
+    if (bar->precompute_id)
+        g_source_remove (bar->precompute_id);
     g_signal_handlers_disconnect_by_data (xfconf_channel_get ("xfce4-desktop"), bar);
+    if (bar->toplevel)
+        g_signal_handlers_disconnect_by_data (gtk_widget_get_screen (bar->toplevel), bar);
     if (bar->screen) {
         g_signal_handlers_disconnect_by_data (bar->screen, bar);
         for (GList *l = wnck_screen_get_windows (bar->screen); l; l = l->next)
@@ -1016,9 +1430,14 @@ bar_free (XfcePanelPlugin *plugin, Bar *bar) {
     sync_right_clock (bar);
     bar->covered = FALSE;
     bar->cover = COVER_TRANSLUCENT;
+    bar->scrim_enabled = FALSE;
     apply_background (bar);
     if (bar->bg_file)
         g_unlink (bar->bg_file);
+    if (bar->scrim_win)
+        gtk_widget_destroy (bar->scrim_win);
+    g_hash_table_destroy (bar->lum_cache);
+    g_free (bar->scrim_key);
     g_free (bar->bg_file);
     g_free (bar->bg_key);
     if (bar->monitor)
@@ -1038,6 +1457,7 @@ construct (XfcePanelPlugin *plugin) {
     xfce_panel_plugin_set_expand (plugin, TRUE);
     bar->conf_path = g_build_filename (g_get_user_config_dir (), "luxos", "appearance.conf", NULL);
     bar->ink_path = g_build_filename (g_get_user_config_dir (), "luxos", "bar-ink", NULL);
+    bar->lum_cache = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
     bar->area = gtk_drawing_area_new ();
     gtk_widget_add_events (bar->area, GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK);

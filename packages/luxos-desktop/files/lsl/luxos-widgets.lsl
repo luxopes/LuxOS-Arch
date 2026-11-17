@@ -10,7 +10,12 @@
 #
 # Vzhled: prusvitne sklo - rozostrena tapeta, jemny mlecny zavoj a svetly odlesk.
 # Svetle sklo ma tmavy text, tmave bile; kontrast se upravuje jen nezbytnym zavojem.
-# Material se pripravi jen pri zmene tapety/monitoru; pri presunu se meni pouze vyrez.
+# Material se pripravi jen pri zmene tapety/monitoru/plochy; pri presunu se meni pouze vyrez.
+# Tapeta = tapeta hlavniho monitoru na aktivni plose (stejne jako horni lista luxos-bar).
+# Na velmi svetle tapete (bila, bezova, bily len) ma kazda karta pod sebou mekky tmavy "stin"
+# (jako macOS): tapeta kolem karty plynule ztmavne, svetla karta s tmavym textem se od tapety odlisi.
+# Bezne tapety vcetne Sunrise beze zmeny. Vypnuti spolu se zavojem pod listou: DESKTOP_SCRIM=0
+# v ~/.config/luxos/appearance.conf.
 #
 # Nastaveni ~/.config/luxos/widgets.conf (zmeny se nacitaji hned, zapisuje ho i galerie):
 #   ENABLED=1                         zapnute (vychozi vypnute: program hned skonci)
@@ -34,9 +39,19 @@ load luxos_i18n as i18n
 load luxos_sys as sys
 load luxos_mpris as mpris
 load luxos_text as text
+load luxos_x11 as x11
 
 WIDTH = 340
 PAD = 24
+# Stin na svetle tapete (jako vrzeny shora): dosah do stran, dolu navic POOL_OFFSET, nahore
+# nic (okno karty zacina hornim okrajem karty, spravce oken ho nepusti pod listu); nejvyssi alfa
+# cerne u karty; sila podle prumerneho linearniho jasu tapety kolem karty od POOL_LUM_NONE
+# (zadny) do POOL_LUM_FULL (plny). Dosah se vejde do pruhledneho okraje okna (24 px do stran, 26 dolu).
+POOL_REACH = 20.0
+POOL_OFFSET = 4.0
+POOL_MAX = 0.20
+POOL_LUM_NONE = 0.72
+POOL_LUM_FULL = 0.85
 DEFAULT_WIDGETS = "today,system,music"
 ALL_WIDGETS = ["today", "system", "music", "calendar"]
 GRID = 8
@@ -48,7 +63,7 @@ CSS = ("window.lw { background: transparent; }\n"
     + ".lw-col { padding: 0 24px 12px 24px; }\n"
     + ".lw-card { background: transparent;"
     + " border: 1px solid rgba(255, 255, 255, 0.38); border-top-color: rgba(255, 255, 255, 0.62); border-bottom-color: rgba(255, 255, 255, 0.20); border-radius: 22px; padding: 16px 18px; color: white;"
-    + " box-shadow: 0 6px 18px rgba(8, 12, 24, 0.12), inset 0 1px rgba(255, 255, 255, 0.18); }\n"
+    + " box-shadow: 0 8px 16px -8px rgba(8, 12, 24, 0.16), inset 0 1px rgba(255, 255, 255, 0.18); }\n"
     + ".lw-card label { color: white; text-shadow: none; }\n"
     + ".lw-card label.dim { color: rgba(255, 255, 255, 0.90); }\n"
     + ".lw-card.lw-light label, .lw-card.lw-light image, .lw-card.lw-light button { color: rgb(25, 31, 43); }\n"
@@ -79,7 +94,7 @@ RING_COLORS = [[[0.65, 0.76, 1.0], [0.78, 0.85, 1.0]], [[0.52, 0.83, 0.77], [0.7
 conf = {"enabled": True, "widgets": [], "side": "right", "pos": {}}
 # wins: nazev -> okno karty; placed: nazev -> [x, y] na obrazovce; settings = galerie (nahledy)
 ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}}
-theme = {"provider": 0, "wallpaper": "", "surface": 0, "map": [], "geometry": []}
+theme = {"provider": 0, "wallpaper": "", "surface": 0, "raw": 0, "map": [], "geometry": [], "pool": True, "cache": {}}
 drag = {"name": "", "start": [], "origin": [], "moved": False}
 cpu = {"busy": 0, "total": 0, "pct": 0, "recent": []}
 stats = {"cpu": 0, "mem": 0, "disk": 0, "disk_at": 0.0}
@@ -162,7 +177,22 @@ function clamp(x, lo, hi):
     return max(lo, min(hi, x))
 end
 
-# Tapeta plochy z xfconf (LuxOS ma na vsech monitorech a plochach stejnou)
+# Aktivni plocha (_NET_CURRENT_DESKTOP korenoveho okna), 0 kdyz neni spravce oken
+function current_workspace():
+    value = []
+    safe:
+        value = x11.cardinals(x11.root_xid(), "_NET_CURRENT_DESKTOP")
+    end
+    if len(value) > 0:
+        return Int(value[0])
+    end
+    return 0
+end
+
+# Tapeta hlavniho monitoru na aktivni plose z xfconf - stejny vyber jako lista (luxos-bar wallpaper_for):
+# nejlepe monitor i plocha, pak monitor, pak plocha, jinak jakakoli. Drive vzdy plocha 0 posledniho
+# monitoru v abecede - se starymi zaznamy jinych monitoru (jiny vystup, drive pripojeny monitor) mely
+# karty sklo i barvu textu podle jine tapety, nez byla videt.
 function wallpaper_path():
     if bus["session"] == 0:
         return ""
@@ -175,13 +205,32 @@ function wallpaper_path():
     if props == None or len(props) == 0 or type(props[0]) != "Dictionary":
         return ""
     end
+    return pick_wallpaper(props[0], current_workspace(), String(gtk.primary_monitor_info()[4]))
+end
+
+# Vyber z vlastnosti /backdrop (slovnik): ws = aktivni plocha, model = nazev vystupu hlavniho monitoru
+function pick_wallpaper(values, ws, model):
+    # xfdesktop bez ulozene volby: tapeta jedne plochy pro vsechny (vychozi zapnuto)
+    if values.get("/backdrop/single-workspace-mode", True) == True:
+        ws = Int(values.get("/backdrop/single-workspace-number", 0))
+    end
     best = ""
-    for key in sorted(props[0].keys()):
-        if key.endswith("/workspace0/last-image"):
-            value = String(props[0][key])
-            if best == "" or key.find("monitorHDMI") < 0:
-                best = value
-            end
+    score = -1
+    for key in sorted(values.keys()):
+        if not key.endswith("/last-image"):
+            continue
+        end
+        sc = 0
+        if model != "" and key.find("/monitor" + model + "/") >= 0:
+            sc = sc + 2
+        end
+        if key.endswith("/workspace" + String(ws) + "/last-image"):
+            sc = sc + 1
+        end
+        value = String(values[key])
+        if sc > score and value != "" and exists(value):
+            best = value
+            score = sc
         end
     end
     return best
@@ -266,35 +315,162 @@ end
 
 # Jeden sdileny rozostreny podklad pro vsechny karty; bez snimani obrazovky a bez kompozitoroveho blur.
 # Mapa = [sirka, vyska, meritko, posun x, y], tapeta "priblizit" vyplni monitor a prebytek orizne.
+# Pripravene materialy podle tapety (prepinani ploch s ruznymi tapetami nic znovu nenacita):
+# cesta|velikost a zmena souboru|monitor -> [sklo, puvodni maly obrazek (jas pro stin), mapa]
 function load_wallpaper(path):
-    if theme["surface"] != 0:
-        call cairo.surface_destroy(theme["surface"])
-        theme["surface"] = 0
-    end
-    geo = gtk.monitor_geometry(0)
+    geo = primary_geometry()
     theme["geometry"] = geo
+    theme["surface"] = 0
+    theme["raw"] = 0
     if path == "" or not exists(path):
         return 0
     end
+    key = path + "|" + String(glib.stat(path)) + "|" + String(geo)
+    hit = theme["cache"].get(key)
+    if hit == None:
+        hit = prepare_wallpaper(path, geo)
+        if hit == None:
+            return 0
+        end
+        if len(theme["cache"]) >= 8:
+            for old in theme["cache"].values():
+                call cairo.surface_destroy(old[0])
+                call cairo.surface_destroy(old[1])
+            end
+            theme["cache"] = {}
+        end
+        theme["cache"][key] = hit
+    end
+    theme["surface"] = hit[0]
+    theme["raw"] = hit[1]
+    theme["map"] = hit[2]
+    return 0
+end
+
+function prepare_wallpaper(path, geo):
     pb = gtk.pixbuf_new_from_file_at_scale(path, 96, 96, True)
     if pb == 0:
-        return 0
+        return None
     end
     pw = gtk.pixbuf_get_width(pb)
     ph = gtk.pixbuf_get_height(pb)
-    surface = cairo.image_surface_create(cairo.FORMAT_RGB24, pw, ph)
-    cr = cairo.create(surface)
-    call cairo.set_source_rgb(cr, 0.15, 0.17, 0.21)
-    call cairo.paint(cr)
-    call gtk.cairo_set_source_pixbuf(cr, pb, 0, 0)
-    call cairo.paint(cr)
-    call cairo.destroy(cr)
+    surfaces = []
+    for i in range(2):
+        surface = cairo.image_surface_create(cairo.FORMAT_RGB24, pw, ph)
+        cr = cairo.create(surface)
+        call cairo.set_source_rgb(cr, 0.15, 0.17, 0.21)
+        call cairo.paint(cr)
+        call gtk.cairo_set_source_pixbuf(cr, pb, 0, 0)
+        call cairo.paint(cr)
+        call cairo.destroy(cr)
+        surfaces.append(surface)
+    end
     call glib.object_unref(pb)
     mw = Float(max(1, geo[2]))
     mh = Float(max(1, geo[3]))
     sc = min(Float(pw) / mw, Float(ph) / mh)
-    theme["surface"] = glass_surface(surface, pw, ph)
-    theme["map"] = [pw, ph, sc, (Float(pw) - mw * sc) / 2.0 - Float(geo[0]) * sc, (Float(ph) - mh * sc) / 2.0 - Float(geo[1]) * sc]
+    return [glass_surface(surfaces[0], pw, ph), surfaces[1],
+            [pw, ph, sc, (Float(pw) - mw * sc) / 2.0 - Float(geo[0]) * sc, (Float(ph) - mh * sc) / 2.0 - Float(geo[1]) * sc]]
+end
+
+# ---- stin karty na svetle tapete --------------------------------------------------------------
+
+# sRGB -> linearni jas (polynom, odchylka od presne krivky pod 1 %)
+function srgb_linear(v):
+    return v * (v * (v * 0.305306011 + 0.682171111) + 0.012522878)
+end
+
+# Sila stinu 0-1: prumerny linearni jas puvodni tapety v okoli karty (x, y, w, h na obrazovce)
+function pool_strength(x, y, w, h):
+    surface = theme["raw"]
+    if surface == 0 or not theme["pool"]:
+        return 0.0
+    end
+    m = theme["map"]
+    pw = cairo.image_surface_get_width(surface)
+    ph = cairo.image_surface_get_height(surface)
+    x0 = Int(clamp(m[3] + (x - POOL_REACH) * m[2], 0.0, Float(pw - 1)))
+    x1 = Int(clamp(m[3] + (x + w + POOL_REACH) * m[2], 0.0, Float(pw - 1)))
+    y0 = Int(clamp(m[4] + (y - POOL_REACH) * m[2], 0.0, Float(ph - 1)))
+    y1 = Int(clamp(m[4] + (y + h + POOL_REACH) * m[2], 0.0, Float(ph - 1)))
+    total = 0.0
+    count = 0
+    for py in range(y0, y1 + 1):
+        for px in range(x0, x1 + 1):
+            v = cairo.image_surface_pixel(surface, px, py)
+            total = total + 0.2126 * srgb_linear(Float((v >> 16) & 255) / 255.0) + 0.7152 * srgb_linear(Float((v >> 8) & 255) / 255.0) + 0.0722 * srgb_linear(Float(v & 255) / 255.0)
+            count = count + 1
+        end
+    end
+    t = clamp((total / Float(max(1, count)) - POOL_LUM_NONE) / (POOL_LUM_FULL - POOL_LUM_NONE), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+end
+
+# Alfa stinu ve vzdalenosti d px od okraje karty (u karty nejvys, na dosahu nula bez hrany)
+function pool_alpha(strength, d):
+    if d >= POOL_REACH:
+        return 0.0
+    end
+    u = d / POOL_REACH
+    e = (1.0 - u * u) * (1.0 - u * u)
+    return strength * POOL_MAX * e * e
+end
+
+# Stin pod kartou v okne karty (pred kartou; okolo pruhledne, skutecna pruhlednost s kompozitorem).
+# Vrstvy po 1 px od nejvzdalenejsi: pres sebe davaji pozadovany prubeh alfy. Horni hrana vrstvy
+# klesa s dosahem - na hornim okraji okna je jen vrstva pod samotnou kartou (bez hrany nahore).
+function on_window_draw(cr, window):
+    name = ""
+    for n in ui["wins"].keys():
+        if ui["wins"][n] == window:
+            name = n
+        end
+    end
+    c = ui["cards"].get(name)
+    if c == None or not gtk.widget_get_visible(c["ev"]):
+        return False
+    end
+    a = gtk.widget_get_allocation(c["box"])
+    if a[2] < 2 or a[3] < 2:
+        return False
+    end
+    pos = gtk.window_get_position(window)
+    strength = pool_strength(Float(pos[0] + a[0]), Float(pos[1] + a[1]), Float(a[2]), Float(a[3]))
+    c["pool"] = strength
+    if strength <= 0.004:
+        return False
+    end
+    steps = Int(POOL_REACH)
+    prev = 0.0
+    for i in range(steps + 1):
+        d = POOL_REACH - Float(i)
+        want = pool_alpha(strength, d)
+        if want <= prev:
+            continue
+        end
+        step = 1.0 - (1.0 - want) / (1.0 - prev)
+        prev = want
+        top = Float(a[1]) + 0.6 * d
+        bottom = Float(a[1] + a[3]) + d + POOL_OFFSET * d / POOL_REACH
+        call cairo.rounded_rectangle(cr, Float(a[0]) - d, top, Float(a[2]) + 2.0 * d, bottom - top, GLASS_RADIUS + 0.8 * d)
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, step)
+        call cairo.fill(cr)
+    end
+    return False
+end
+
+# Mys jen nad kartou: pruhledny okraj okna (stin) kliky nebere, jdou na plochu pod nim
+function on_box_allocate(alloc, box):
+    for name in ui["cards"].keys():
+        c = ui["cards"][name]
+        if c["box"] == box:
+            win = ui["wins"].get(name, 0)
+            a = gtk.widget_get_allocation(box)
+            if win != 0:
+                call gtk.widget_input_rect(win, a[0], a[1], a[2], a[3])
+            end
+        end
+    end
     return 0
 end
 
@@ -366,16 +542,53 @@ function theme_refresh():
     return 0
 end
 
+function primary_geometry():
+    geo = gtk.primary_monitor_info()
+    return [geo[0], geo[1], geo[2], geo[3]]
+end
+
 function theme_apply():
     if theme["provider"] == 0:
         theme["provider"] = gtk.css_load(CSS)
     end
+    theme["pool"] = read_scrim_pref()
     path = wallpaper_path()
-    if path != theme["wallpaper"] or theme["geometry"] != gtk.monitor_geometry(0):
+    if path != theme["wallpaper"] or theme["geometry"] != primary_geometry():
         theme["wallpaper"] = path
         call load_wallpaper(path)
     end
     call theme_refresh()
+    return 0
+end
+
+# DESKTOP_SCRIM=0 v appearance.conf vypne stin karet (spolu se zavojem pod listou)
+function appearance_path():
+    return glib.user_config_dir() + "/luxos/appearance.conf"
+end
+
+function read_scrim_pref():
+    on = True
+    for line in glib.read_text(appearance_path()).split("\n"):
+        parts = line.split("=")
+        if len(parts) >= 2 and parts[0].strip() == "DESKTOP_SCRIM":
+            on = parts[1].strip() != "0"
+        end
+    end
+    return on
+end
+
+function on_appearance_event(path, event, other):
+    if read_scrim_pref() != theme["pool"]:
+        call theme_apply()
+    end
+    return 0
+end
+
+# Jina aktivni plocha: tapeta te plochy (pripravena z mezipameti, kdyz uz byla videt)
+function on_root_property(bound, kind, window, detail, mods):
+    if kind == x11.PROPERTY_NOTIFY and detail == x11.atom("_NET_CURRENT_DESKTOP"):
+        call glib.timeout_add(0, theme_once)
+    end
     return 0
 end
 
@@ -1413,6 +1626,7 @@ function create_window(name):
     call gtk.widget_set_size_request(box, WIDTH, -1)
     call gtk.container_add(win, box)
     call gtk.connect(win, "delete-event", on_delete)
+    call gtk.connect(win, "draw", on_window_draw)
     return [win, box]
 end
 
@@ -1483,7 +1697,7 @@ end
 
 # Pracovni plocha se meni (lista nastavi rezervovane misto az po startu, jiny monitor, vyska listy)
 function place_tick():
-    if theme["geometry"] != gtk.monitor_geometry(0):
+    if theme["geometry"] != primary_geometry():
         call theme_apply()
     end
     call place_all()
@@ -1509,6 +1723,7 @@ function rebuild():
         c = build_card(name)
         ui["cards"][name] = c
         ui["wins"][name] = pair[0]
+        call gtk.connect(c["box"], "size-allocate", on_box_allocate)
         call gtk.box_pack_start(pair[1], c["ev"], False, False, 0)
         if name != "music":
             call gtk.widget_show_all(c["ev"])
@@ -1575,6 +1790,15 @@ function start_common():
     safe:
         call sys.mkdir_p(glib.user_config_dir() + "/luxos")
         call gio.file_monitor(conf_path(), on_conf_event)
+    end
+    safe:
+        call gio.file_monitor(appearance_path(), on_appearance_event)
+    end
+    if not ui["settings"]:
+        safe:
+            call x11.root_filter(on_root_property, 0)
+            call x11.root_watch_properties()
+        end
     end
     safe:
         call sys.mkdir_p(cache_dir() + "/luxos/weather")

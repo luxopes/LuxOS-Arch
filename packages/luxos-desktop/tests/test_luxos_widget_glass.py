@@ -113,5 +113,83 @@ print(json.encode([solid, edge, styles]))
         self.assertEqual(self.edge[-1], self.solid[1])
 
 
+POOL_HARNESS = '''
+theme = {"raw": 0, "pool": True, "map": []}
+alpha = []
+for d in range(0, 24):
+    alpha.append(pool_alpha(1.0, Float(d)))
+end
+lin = []
+for i in range(0, 11):
+    lin.append(srgb_linear(Float(i) / 10.0))
+end
+A = "%(a)s"
+B = "%(b)s"
+C = "%(c)s"
+D = "%(d)s"
+base = {"/backdrop/screen0/monitoreDP-1/workspace0/last-image": A,
+        "/backdrop/screen0/monitoreDP-1/workspace2/last-image": B,
+        "/backdrop/screen0/monitorzz-old/workspace0/last-image": C,
+        "/backdrop/screen0/monitorzz-old/workspace2/last-image": D}
+per_ws = {"/backdrop/single-workspace-mode": False}
+for k in base.keys():
+    per_ws[k] = base[k]
+end
+picks = [pick_wallpaper(base, 2, "eDP-1"), pick_wallpaper(per_ws, 2, "eDP-1"), pick_wallpaper(per_ws, 0, "eDP-1"),
+         pick_wallpaper(per_ws, 2, "HDMI-1"), pick_wallpaper({}, 0, "eDP-1")]
+print(json.encode([alpha, lin, picks]))
+'''
+
+
+@unittest.skipUnless(LSLC, "needs lslc with the linux-x86_64-gnu target")
+class PoolAndWallpaper(unittest.TestCase):
+    """Stin karty na svetle tapete a vyber tapety (hlavni monitor, aktivni plocha)."""
+
+    @classmethod
+    def setUpClass(cls):
+        source = SRC.read_text()
+        consts = "\n".join(line for line in source.splitlines() if line.startswith(("POOL_", "GLASS_RADIUS")))
+        cls.tmp = tempfile.mkdtemp(prefix="widget-pool-")
+        cls.walls = {}
+        for name in ("a", "b", "c", "d"):
+            cls.walls[name] = os.path.join(cls.tmp, name + ".png")
+            Path(cls.walls[name]).write_bytes(b"x")
+        harness = "load cairo, json\n" + consts + "\n" + "\n".join(
+            function(source, n) for n in ("clamp", "srgb_linear", "pool_alpha", "pick_wallpaper"))
+        harness += POOL_HARNESS % cls.walls
+        src, binary = Path(cls.tmp) / "pool.lsl", Path(cls.tmp) / "pool"
+        src.write_text(harness)
+        result = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(src), str(binary)],
+                                capture_output=True, text=True, timeout=120)
+        if result.returncode:
+            raise AssertionError(result.stdout + result.stderr)
+        cls.alpha, cls.lin, cls.picks = json.loads(subprocess.check_output([str(binary)], text=True, timeout=10))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, True)
+
+    def test_pool_fades_to_zero_without_edge(self):
+        self.assertAlmostEqual(self.alpha[0], 0.20, places=3)
+        self.assertEqual(self.alpha[20:], [0.0] * 4)
+        self.assertLess(self.alpha[19], 0.002, "na dosahu prakticky nula - bez hrany na okraji okna")
+        self.assertEqual(self.alpha[:21], sorted(self.alpha[:21], reverse=True))
+
+    def test_linear_light_approximation(self):
+        for i, v in enumerate(self.lin):
+            self.assertAlmostEqual(v, luminance([i / 10] * 3), delta=0.01)
+
+    def test_wallpaper_of_primary_monitor_and_active_workspace(self):
+        w = self.walls
+        # bez ulozene volby xfdesktop: jedna tapeta (plocha 0) na vsech plochach, stary monitor nevadi
+        self.assertEqual(self.picks[0], w["a"])
+        # tapeta pro kazdou plochu zvlast: aktivni plocha hlavniho monitoru
+        self.assertEqual(self.picks[1], w["b"])
+        self.assertEqual(self.picks[2], w["a"])
+        # neznamy monitor: aspon spravna plocha
+        self.assertIn(self.picks[3], (w["b"], w["d"]))
+        self.assertEqual(self.picks[4], "")
+
+
 if __name__ == "__main__":
     unittest.main()

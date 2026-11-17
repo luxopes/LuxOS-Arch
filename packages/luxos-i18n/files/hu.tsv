@@ -5225,3 +5225,9 @@ Backups on an SFTP server cannot be encrypted.	Az SFTP-kiszolgálón lévő bizt
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A titkosítás USB-lemezekkel és megosztott mappákkal (SMB) működik. Kapcsolja ki a Mentések titkosítása lehetőséget, vagy használjon megosztott mappát.
 Old copies of %s were replaced by the system version	A(z) %s régi másolatait a rendszer verziója váltotta fel
 The old copies were moved to %s. Nothing was deleted.	A régi másolatok ide kerültek: %s. Semmi sem lett törölve.
+Darken bright wallpaper under the menu bar and widgets	Világos háttérkép sötétítése a menüsor és a widgetek alatt
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	Nagyon világos háttérképen a menüsor alatti és a widgetek körüli terület enyhe árnyékot kap, így a fehér szöveg olvasható marad.
+Show widgets on the desktop	Widgetek megjelenítése az asztalon
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Óra és időjárás, Rendszerállapot, Most szól és Naptár kártyák az asztalon.
+Choose and arrange widgets	Widgetek kiválasztása és elrendezése
+You can also right-click a widget or the desktop and choose Edit Widgets…	A widgetre vagy az asztalra jobb gombbal kattintva is választhatja a Widgetek szerkesztése… lehetőséget.

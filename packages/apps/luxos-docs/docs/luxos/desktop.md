@@ -219,7 +219,7 @@ luxos-appearance status                  # light | dark (current look)
 luxos-appearance mode                    # light | dark | auto (the setting)
 luxos-appearance wallpaper FILE          # wallpaper on all monitors and workspaces
 luxos-appearance bar-opacity 0-100       # top bar opacity (default 62)
-luxos-appearance bar-style|bar-clock|bar-text ...   # see bar-widgets.md
+luxos-appearance bar-style|bar-text|desktop-scrim ...  # bar-widgets.md
 luxos-appearance dock-opacity 0-100|default
 luxos-appearance greeter-sync            # same wallpaper on the login screen (done automatically)
 ```

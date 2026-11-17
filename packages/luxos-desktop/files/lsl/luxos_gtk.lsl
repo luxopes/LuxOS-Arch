@@ -11,7 +11,8 @@
 #   pointer_position() -> [x, y], screen_active_window() (GdkWindow aktivniho okna podle spravce oken, 0 kdyz neni;
 #   nova reference -> glib.object_unref), window_set_rgba(okno) (RGBA visual + app paintable, jen s kompozitorem),
 #   Emoji a symboly: selection_set_text/_image, selection_owned, selection_request_text/_image (asynchronne,
-#   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px
+#   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
+#   primary_monitor_info() -> [x, y, w, h, nazev vystupu] (widgety plochy: tapeta hlavniho monitoru)
 load glib, gtk, cairo
 load luxos_glib
 
@@ -289,6 +290,29 @@ function rgba_available():
     unsafe:
         screen = __lsl_qbe_call0(__lsl_symbol("gdk_screen_get_default"))
         return __lsl_qbe_call1(__lsl_symbol("gdk_screen_get_rgba_visual"), screen) != 0 and __lsl_qbe_call1(__lsl_symbol("gdk_screen_is_composited"), screen) != 0
+    end
+end
+
+# Hlavni monitor: [x, y, sirka, vyska, nazev vystupu] (cely monitor; nazev jako v xfconf xfdesktop,
+# napr. "eDP-1"; "" kdyz ho GDK nezna)
+function primary_monitor_info():
+    unsafe:
+        display = __lsl_qbe_call0(__lsl_symbol("gdk_display_get_default"))
+        monitor = __lsl_qbe_call1(__lsl_symbol("gdk_display_get_primary_monitor"), display)
+        if monitor == 0:
+            monitor = __lsl_qbe_call2(__lsl_symbol("gdk_display_get_monitor"), display, 0)
+        end
+        if monitor == 0:
+            return [0, 0, 0, 0, ""]
+        end
+        out = gtk.rectangle_of(monitor, False)
+        model = __lsl_qbe_call1(__lsl_symbol("gdk_monitor_get_model"), monitor)
+        if model == 0:
+            out.append("")
+        else:
+            out.append(glib.from_c(model))
+        end
+        return out
     end
 end
 

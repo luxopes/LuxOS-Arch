@@ -5225,3 +5225,9 @@ Backups on an SFTP server cannot be encrypted.	Backups em um servidor SFTP não 
 Encryption works with USB disks and shared folders (SMB). Turn off Encrypt backups, or use a shared folder.	A criptografia funciona com discos USB e pastas compartilhadas (SMB). Desative Criptografar backups ou use uma pasta compartilhada.
 Old copies of %s were replaced by the system version	As cópias antigas de %s foram substituídas pela versão do sistema
 The old copies were moved to %s. Nothing was deleted.	As cópias antigas foram movidas para %s. Nada foi apagado.
+Darken bright wallpaper under the menu bar and widgets	Escurecer o papel de parede claro sob a barra de menus e os widgets
+On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable.	Num papel de parede muito claro, a área sob a barra de menus e à volta dos widgets recebe uma sombra suave, para que o texto branco continue legível.
+Show widgets on the desktop	Mostrar widgets na área de trabalho
+Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Cartões Relógio e tempo, Estado do sistema, A reproduzir e Calendário na área de trabalho.
+Choose and arrange widgets	Escolher e organizar widgets
+You can also right-click a widget or the desktop and choose Edit Widgets…	Também pode clicar com o botão direito num widget ou na área de trabalho e escolher Editar Widgets…
