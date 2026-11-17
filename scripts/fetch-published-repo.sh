@@ -18,7 +18,8 @@ BASE=${1:-https://luxos.lux-ai.cz/repo}
 ARCH=x86_64
 OUT=${LUXOS_FETCH_OUT:-out/repo}
 KEYRING=packages/luxos-keyring
-get() { curl -fsSL --retry 4 --retry-delay 3 -o "$2" "$1"; }
+# --retry-all-errors: i nepodarene spojeni (curl 7) - server obcas na GitHub Actions neodpovi (iso-test 2026-11-17)
+get() { curl -fsSL --retry 6 --retry-delay 5 --retry-all-errors --connect-timeout 20 -o "$2" "$1"; }
 
 gnupg=$(mktemp -d "${TMPDIR:-/tmp}/luxos-fetch.XXXXXX")
 trap 'rm -rf "$gnupg"' EXIT
