@@ -10,14 +10,16 @@ and its own programming language, LSL. It is a rolling release; the current vers
 
 ## Is LuxOS free? What licence does it use?
 
-Yes, the ISO is a free download from the LuxOS website and there is no paid edition. The LuxOS code
-(the `luxos-*` packages, `lux`, `luxdrop`, scripts and the installer) is licensed GPL-3.0-or-later;
-bundled third-party packages keep their own licences. The optional LuxAI assistant uses a LuxAI
-account, which has a monthly usage limit.
+Yes, the ISO is a free download from the LuxOS website and there is no paid edition. Most of the
+LuxOS code (the `luxos-*` packages, `lux`, `luxdrop`, scripts and the installer) is open source under
+GPL-3.0-or-later; bundled third-party packages keep their own licences. A few apps – LuxAI, Lux Code,
+LSL IDE and the Organization network (Active Directory) – are proprietary: they are free to use on
+LuxOS, but their source code is not public. The optional LuxAI assistant uses a LuxAI account, which
+has a monthly usage limit.
 
 ## Who makes LuxOS?
 
-LuxOS is developed by Antonín Tomeček in the Czech Republic. The source code is on
+LuxOS is developed by Antonín Tomeček in the Czech Republic. The source code of the open parts is on
 [GitHub](https://github.com/luxopes/LuxOS-Arch) and the contact address is info@lux-ai.cz. It is a
 small, young project: the public repository started in October 2026.
 

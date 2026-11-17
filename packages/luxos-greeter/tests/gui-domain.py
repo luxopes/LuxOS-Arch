@@ -3,7 +3,8 @@
 
     env -u DISPLAY xvfb-run -a dbus-run-session -- python3 packages/luxos-greeter/tests/gui-domain.py [--shots DIR]
 
-Rezim --demo bez LightDM; stav domeny z LUXOS_GREETER_DOMAIN_INFO (JSON jako luxos_domain.greeter_info()).
+Rezim --demo bez LightDM; stav domeny z LUXOS_GREETER_DOMAIN_INFO (JSON jako domain_info()), rozhrani
+"lux-domain status --json" (domain_status) se zastupnym programem v LUXOS_GREETER_DOMAIN_CLI.
 Overuje: dlazdici Jiny uzivatel, zastupny text "Jmeno (jan nebo jan@firma.local)", radek "Prihlaseni
 do domeny", rucni jmeno + heslo, offline radek se zbyvajicimi dny, chybu offline odlisenou od
 spatneho hesla, zamek uctu domenou (ne pam_faillock), vyprsele heslo a vyzvy ke zmene hesla.
@@ -120,6 +121,29 @@ set_info({"domain": "firma.local"})
 d = g.domain_info()
 check("domain_info: defaults filled", d and d["short"] == "FIRMA" and d["example"] == "jan@firma.local"
       and d["online"] is None, d)
+# 0c. stav z "lux-domain status --json" (stabilni rozhrani luxos-domain v LSL)
+FAKE_CLI = os.path.join(TMP, "lux-domain")
+FAKE_STATUS = os.path.join(TMP, "status.json")
+with open(FAKE_CLI, "w") as f:
+    f.write('#!/bin/sh\n[ "$1 $2" = "status --json" ] || exit 2\ncat "%s"\n' % FAKE_STATUS)
+os.chmod(FAKE_CLI, 0o755)
+with open(FAKE_STATUS, "w") as f:
+    json.dump({"joined": True, "domain": "firma.local", "realm": "FIRMA.LOCAL", "short": "FIRMA", "online": False,
+               "last_online": "2026-10-20T08:00:00+01:00", "offline_days": 30, "offline_left_days": 9,
+               "admin_groups": ["Domain Admins"], "admins_active": True}, f)
+set_info(None)
+g.DOMAIN_CLI = FAKE_CLI
+d = g.domain_info()
+check("domain_info from lux-domain status --json", d == {"domain": "firma.local", "short": "FIRMA", "online": False,
+                                                         "offline_left_days": 9, "example": "jan@firma.local"}, d)
+with open(FAKE_STATUS, "w") as f:
+    json.dump({"joined": False}, f)
+check("domain_info: not joined -> None", g.domain_info() is None)
+with open(FAKE_STATUS, "w") as f:
+    f.write("not json")
+check("domain_info: bad output -> None", g.domain_info() is None)
+g.DOMAIN_CLI = os.path.join(TMP, "missing-lux-domain")
+check("domain_info: luxos-domain not installed -> None", g.domain_info() is None)
 check("domain_message: cached credentials", g.domain_message("Authenticated with cached credentials.") == "offline")
 check("domain_message: expired", g.domain_message("Password expired. Change your password now.") == "expired")
 check("domain_message: domain lock", g.domain_message("Account is locked by the domain administrator.") == "domain-locked")

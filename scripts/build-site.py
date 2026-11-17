@@ -63,7 +63,7 @@ LOGO_PATH = ("M246.27 209.91C188.18 163.23 147.07 104.71 133.55 30.45C116.12 140
 # Stranky Posty LuxOS a pravni stranky (overeni aplikace OAuth u Googlu: domovska stranka aplikace,
 # zasady ochrany soukromi a podminky na overene domene). Sablony site/pages/<nazev>.<jazyk>.html,
 # datum posledni zmeny zasad a podminek se meni rucne (s obsahem).
-LEGAL_UPDATED = "2026-11-08"
+LEGAL_UPDATED = "2026-11-17"
 PAGES = ("mail", "privacy", "terms")
 
 MONTHS_CS = ["ledna", "února", "března", "dubna", "května", "června", "července", "srpna", "září",

@@ -30,8 +30,10 @@ export LUXOS_I18N_DIR=$PWD/packages/luxos-i18n/files
 export LUXOS_WEATHER_API=http://127.0.0.1:9/v1/forecast LUXOS_WEATHER_GEO=http://127.0.0.1:9/v1/search \
     LUXOS_WEATHER_IP=http://127.0.0.1:9/ip LUXOS_WEATHER_ICONS=$PWD/packages/luxos-weather/files/icons LUXOS_NMCLI=false
 export LUXOS_MAPS_TILES='http://127.0.0.1:9/{z}/{x}/{y}.png' LUXOS_MAPS_GEOCLUE=0
-# Firemni sit bez skutecne domeny: zastupny lux-domain z testu (stav "nepripojeno")
-export LUXOS_DOMAIN_CLI=$PWD/packages/luxos-domain/tests/fake-gui/lux-domain FAKE_DOMAIN_DIR=$tmp
+# Firemni sit bez skutecne domeny: zastupny lux-domain z testu (stav "nepripojeno"). luxos-domain je
+# proprietarni - zdroje jen v soukromem repozitari (LUXOS_PRIVATE_DIR=cesta k luxos-private), jinak se preskoci.
+priv=${LUXOS_PRIVATE_DIR:-/nonexistent}
+export LUXOS_DOMAIN_CLI=$priv/packages/luxos-domain/tests/fake-gui/lux-domain FAKE_DOMAIN_DIR=$tmp
 apps=(
     packages/luxos-account/files/luxos-account
     packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,router,settings,shortcuts,tour,whats-new,wifi-qr}
@@ -46,14 +48,29 @@ apps=(
     packages/luxos-sandbox/files/luxos-sandbox-gui
     packages/luxos-store/files/luxos-store      # potrebuje AppStream (na LuxOS je)
     packages/luxos-care/files/luxos-update
-    packages/luxos-domain/files/luxos-domain-settings   # LUXOS_DOMAIN_CLI = zastupny prikaz (bez domeny)
 )
 fail=0
 for a in "${apps[@]}"; do
+    [[ $a == "$priv"/* && ! -f $a ]] && { echo "skipped ${a#"$priv"/} (proprietary, set LUXOS_PRIVATE_DIR)"; continue; }
     [[ -f $a ]] || { echo "missing $a"; continue; }
     out=$(timeout 25 dbus-run-session -- python3 "$a" 2>&1 </dev/null | grep '^LUXOS-TITLEBAR' | tail -1)
     [[ -n $out ]] || out="LUXOS-TITLEBAR (did not start here - check manually)"
     printf '%-60s %s\n' "$a" "${out#LUXOS-TITLEBAR }"
     [[ $out == *FAIL* ]] && fail=1
 done
+# Firemni sit (luxos-domain-settings) je od 1.0.0-3 nativni program v LSL: horni listu se zaviracim
+# tlacitkem overuje jeho vlastni test GUI v soukromem repozitari (zastupny lux-domain, stejna Xvfb)
+dt=$priv/packages/luxos-domain/tests/gui-settings.py
+if [[ -f $dt ]]; then
+    if out=$(LUXOS_PUBLIC_DIR=$PWD timeout 600 dbus-run-session -- python3 "$dt" 2>&1 </dev/null) \
+        && grep -q '^ok *title bar visible with close button' <<<"$out"; then
+        printf '%-60s %s\n' "luxos-domain-settings (LSL, private tests/gui-settings.py)" "ok"
+    else
+        printf '%-60s %s\n' "luxos-domain-settings (LSL, private tests/gui-settings.py)" "FAIL"
+        grep -v '^ok' <<<"$out" | tail -20
+        fail=1
+    fi
+else
+    echo "skipped luxos-domain-settings (proprietary, set LUXOS_PRIVATE_DIR)"
+fi
 exit $fail

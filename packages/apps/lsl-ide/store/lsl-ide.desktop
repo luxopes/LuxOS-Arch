@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=LSL IDE
+Comment=Development environment for Lux Simple Lang
+Comment[cs]=Vývojové prostředí pro Lux Simple Lang
+Exec=lsl-ide %F
+Icon=lsl-ide
+Terminal=false
+Categories=Development;IDE;
+MimeType=text/x-lsl;
+Keywords=LSL;Lux;IDE;

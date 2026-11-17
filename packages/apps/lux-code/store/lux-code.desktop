@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Lux Code
+GenericName=AI Coding Agent
+GenericName[cs]=AI agent pro programování
+Comment=Build, edit and debug projects with an AI coding agent
+Comment[cs]=Vývoj, úpravy a ladění projektů s AI agentem
+Exec=lux-code
+Icon=lux-code
+Terminal=true
+Categories=Development;IDE;
+Keywords=AI;code;terminal;agent;LuxAI;
+StartupNotify=false

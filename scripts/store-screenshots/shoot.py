@@ -138,8 +138,13 @@ class Session:
 
     # -- cesty a sestaveni --
     def src(self, rel):
-        """Cesta ve zdrojich: packages/<rel>."""
-        return os.path.join(PACKAGES, rel)
+        """Cesta ve zdrojich: packages/<rel>; proprietarni soucasti (LuxAI, Lux Code, LSL IDE) ze soukromeho
+        repozitare luxos-private, pokud je nastavene LUXOS_PRIVATE_DIR (ve verejnem jsou jen zastupne slozky)."""
+        path = os.path.join(PACKAGES, rel)
+        private = os.environ.get("LUXOS_PRIVATE_DIR")
+        if not os.path.exists(path) and private:
+            return os.path.join(private, "packages", rel)
+        return path
 
     def lslc(self, main, extra_dirs=(), name=None):
         """Prelozi program v LSL (packages/<main>) do docasne slozky; extra_dirs = slozky s moduly (packages/...),

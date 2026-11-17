@@ -16,9 +16,10 @@ target=${1:-all}
 # (lux-engine = jadro lux: libalpm a nastroje z pacmanu Arch Linuxu, bez prikazu pacman; potrebuji ho lux, pyalpm i base;
 #  gdk-pixbuf2 = nahrada baliku z Archu bez glycinu, obrazky se dekoduji v procesu, luxos-pixbuf-svg = zavadec SVG,
 #  vte3 = VTE z Archu s obrazky SIXEL pro luxos-terminal,
+#  xfwm4 = xfwm4 z Archu s okny LuxOS (umisteni, Alt+`, prechod ploch) - luxos-desktop ho vyzaduje,
 #  adcli + realmd = overene kopie z AUR pro luxos-domain - pripojeni k domene Active Directory,
 #  plank = Dock z Archu s opravami LuxOS - zamrzla animace, hlidac, pady Loggeru)
-PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin rofi vte3 xfce4-notifyd xfce4-screensaver xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin plank luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-terminal luxos-text luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-secureboot luxos-care luxos-guard luxos-backup luxos-firewall luxos-printing adcli realmd luxos-domain luxos-weather luxos-maps luxos-companion luxos-desktop luxos-installer
+PACKAGES=(lux-engine gdk-pixbuf2 luxos-pixbuf-svg libfprint xfce4-genmon-plugin rofi vte3 xfwm4 xfce4-notifyd xfce4-screensaver xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin plank luxos-keyring luxos-i18n blesh lsh luxos-themes luxos-branding luxos-shell luxos-terminal luxos-text luxos-tweaks luxos-drivers lux luxos-account luxos-sandbox luxos-safe luxos-store luxos-greeter luxdrop luxos-secureboot luxos-care luxos-guard luxos-backup luxos-firewall luxos-printing adcli realmd luxos-domain luxos-weather luxos-maps luxos-companion luxos-desktop luxos-installer
           # Legacy ovladace NVIDIA z AUR (Maxwell/Pascal/Volta 580xx, Kepler 470xx) - jen online, ne v ISO
           nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-470xx-utils lib32-nvidia-470xx-utils)
 # Baliky, ktere se nekopiruji do mistniho repozitare v ISO (velke, potrebuje je jen malo pocitacu;
@@ -117,8 +118,43 @@ sb_sign_packages() {  # sb_sign_packages ADRESAR_BALIKU - jadro a systemd-boot k
     LUXOS_SB_CERT=$LUXOS_SB_DIR/luxos-secureboot.crt bash "$ROOT/scripts/sb-sign.sh" verify "${pkgs[@]}"
 }
 
-pkg_src() {  # pkg_src NAZEV -> adresar baliku (v TEST sestaveni pripadne upravena kopie)
-    if [[ -n ${LUXOS_TEST:-} && -d $TEST_SRC/$1 ]]; then echo "$TEST_SRC/$1"; else echo "$ROOT/packages/$1"; fi
+pkg_src() {  # pkg_src NAZEV|apps/NAZEV -> adresar se zdroji (v TEST sestaveni pripadne upravena kopie),
+              # prazdne = proprietarni soucast bez zdroju (soubor PROPRIETARY, viz use_prebuilt)
+    if [[ -n ${LUXOS_TEST:-} && -d $TEST_SRC/$1 ]]; then echo "$TEST_SRC/$1"
+    elif [[ -f $ROOT/packages/$1/PKGBUILD ]]; then echo "$ROOT/packages/$1"
+    elif [[ -n $PRIVATE && -f $PRIVATE/packages/$1/PKGBUILD ]]; then echo "$PRIVATE/packages/$1"
+    elif [[ ! -f $ROOT/packages/$1/PROPRIETARY ]]; then echo "$ROOT/packages/$1"   # chybu ohlasi build_one
+    fi
+}
+
+# Proprietarni soucasti LuxOS (LuxAI, Lux Code, LSL IDE, luxos-domain): ve verejnem repozitari je misto
+# zdroju jen README.md a PROPRIETARY (repo=..., pkgnames=...). Zdroje jsou v soukromem repozitari
+# luxos-private: build.sh ho pripoji do /luxos-private (LUXOS_PRIVATE_DIR=cesta), pak se stavi jako ostatni
+# baliky. Bez nej se vezme podepsany balik ze zverejneneho repozitare LuxOS (podpis overi
+# scripts/fetch-published-repo.sh klicem z packages/luxos-keyring) - verejne CI zdroje nikdy nepotrebuje.
+PRIVATE=${LUXOS_PRIVATE:-}
+published_url() {
+    if [[ -n ${LUXOS_REPO_URL:-} ]]; then echo "$LUXOS_REPO_URL"
+    elif [[ ${LUXOS_CHANNEL:-stable} == staging ]]; then echo https://luxos.lux-ai.cz/staging
+    else echo https://luxos.lux-ai.cz/repo; fi
+}
+use_prebuilt() {  # use_prebuilt NAZEV|apps/NAZEV CIL_PKGDEST
+    local marker=$ROOT/packages/$1/PROPRIETARY dest=$2 repo names
+    [[ -f $marker ]] || { echo "packages/$1: no PKGBUILD and no PROPRIETARY marker" >&2; exit 1; }
+    repo=$(sed -n 's/^repo=//p' "$marker")
+    names=$(sed -n 's/^pkgnames=//p' "$marker")
+    [[ $repo == @(luxos|luxos-apps) && -n $names ]] || { echo "Bad marker $marker" >&2; exit 1; }
+    msg "Proprietary package(s) $names: signed binary from the LuxOS repository ($(published_url))"
+    rm -rf "$BUILD/prebuilt"
+    LUXOS_FETCH_OUT=$BUILD/prebuilt LUXOS_FETCH_REPOS=$repo LUXOS_FETCH_ONLY=$names \
+        bash "$ROOT/scripts/fetch-published-repo.sh" "$(published_url)" >/dev/null
+    install -m644 "$BUILD/prebuilt/$repo/$ARCH"/*.pkg.tar.zst "$dest/"
+    rm -rf "$BUILD/prebuilt"
+}
+build_or_fetch() {  # build_or_fetch NAZEV|apps/NAZEV CIL_PKGDEST
+    local src
+    src=$(pkg_src "$1")
+    if [[ -n $src ]]; then build_one "$src" "$2"; else use_prebuilt "$1" "$2"; fi
 }
 
 build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
@@ -278,10 +314,10 @@ build_packages() {
 
     local p
     for p in "${APPS[@]}"; do
-        build_one "$ROOT/packages/apps/$p" "$BUILD/pkgs/luxos-apps"
+        build_or_fetch "apps/$p" "$BUILD/pkgs/luxos-apps"
     done
     for p in "${PACKAGES[@]}"; do
-        build_one "$(pkg_src "$p")" "$BUILD/pkgs/luxos"
+        build_or_fetch "$p" "$BUILD/pkgs/luxos"
     done
     chown -R root: "$SOURCES"
     # Jadro LuxOS se stavi na GitHub Actions (luxopes/luxos-kernel); build.sh ho stahne a overi
@@ -311,7 +347,7 @@ build_apps() {
 
     local p
     for p in "${APPS[@]}"; do
-        build_one "$ROOT/packages/apps/$p" "$BUILD/pkgs/luxos-apps"
+        build_or_fetch "apps/$p" "$BUILD/pkgs/luxos-apps"
     done
     chown -R root: "$SOURCES"
 
@@ -647,9 +683,16 @@ use_published_repos() {
 
 build_single() {
     local p=${1:?package name} src
-    src=$ROOT/packages/$p
-    [[ -f $src/PKGBUILD ]] || src=$ROOT/packages/apps/$p
-    [[ -f $src/PKGBUILD ]] || { echo "No package $p" >&2; exit 2; }
+    src=$(pkg_src "$p")
+    [[ -f $src/PKGBUILD ]] || src=$(pkg_src "apps/$p")
+    if [[ ! -f $src/PKGBUILD ]]; then
+        if [[ -f $ROOT/packages/$p/PROPRIETARY || -f $ROOT/packages/apps/$p/PROPRIETARY ]]; then
+            echo "$p is a proprietary component: build it with LUXOS_PRIVATE_DIR=<luxos-private checkout> ./build.sh one $p" >&2
+        else
+            echo "No package $p" >&2
+        fi
+        exit 2
+    fi
     msg "Updating build container"
     pacman -Syu --noconfirm --needed >/dev/null
     # az po aktualizaci kontejneru: lux-engine z [luxos] nahrazuje pacman (ten kontejner potrebuje)

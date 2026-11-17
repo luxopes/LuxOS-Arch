@@ -127,12 +127,34 @@ class User:
 
 # ---- domena (luxos-domain): stav pro prihlasovaci obrazovku --------------------------------
 DOMAIN_UID_MIN = 100000
+# Stabilni rozhrani baliku luxos-domain (od 1.0.0-3 nativni program, uz ne modul Pythonu): jen cte
+# /var/lib/luxos/domain/state.json a /run/luxos/domain/status.json, nic nemeni, bezi za milisekundy.
+DOMAIN_CLI = os.environ.get("LUXOS_GREETER_DOMAIN_CLI") or "/usr/bin/lux-domain"
+
+
+def domain_status():
+    """"lux-domain status --json" -> {"domain", "short", "online", "offline_left_days"} nebo None
+    (mimo domenu, balik luxos-domain neni nainstalovany, chyba)."""
+    if not os.access(DOMAIN_CLI, os.X_OK):
+        return None
+    import json
+    try:
+        r = subprocess.run([DOMAIN_CLI, "status", "--json"], stdin=subprocess.DEVNULL, capture_output=True,
+                           text=True, timeout=3, env=dict(os.environ, NO_COLOR="1"))
+        st = json.loads(r.stdout or "{}")
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        log("domain info:", e)
+        return None
+    if not isinstance(st, dict) or not st.get("joined"):
+        return None
+    return {"domain": st.get("domain"), "short": st.get("short", ""), "online": st.get("online"),
+            "offline_left_days": st.get("offline_left_days")}
 
 
 def domain_info(demo=None):
     """Pocitac v domene -> {"domain", "short", "online", "offline_left_days", "example"}, jinak None.
-    Cte jen soubory (luxos_domain.greeter_info), nic nespousti. LUXOS_GREETER_DOMAIN_INFO = cesta
-    k JSON (testy, demo); demo = "online" | "offline" bez souboru."""
+    Stav z "lux-domain status --json" (domain_status). LUXOS_GREETER_DOMAIN_INFO = cesta k JSON
+    (testy, demo); demo = "online" | "offline" bez souboru."""
     import json
     path = os.environ.get("LUXOS_GREETER_DOMAIN_INFO")
     info = None
@@ -146,13 +168,7 @@ def domain_info(demo=None):
         info = {"domain": "firma.local", "short": "FIRMA", "online": demo != "offline",
                 "offline_left_days": 12 if demo == "offline" else 30, "example": "jan@firma.local"}
     else:
-        try:
-            import luxos_domain
-            info = luxos_domain.greeter_info()
-        except Exception as e:  # noqa: BLE001 - balik luxos-domain neni nainstalovany / poskozeny stav
-            if not isinstance(e, ImportError):
-                log("domain info:", e)
-            info = None
+        info = domain_status()
     if not isinstance(info, dict) or not info.get("domain"):
         return None
     info.setdefault("short", str(info["domain"]).split(".")[0].upper())

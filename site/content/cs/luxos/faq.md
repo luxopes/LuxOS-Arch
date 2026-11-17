@@ -10,13 +10,15 @@ je 1.0.2 „Sirius“, stále ve fázi beta.
 
 ## Je LuxOS zdarma? Jakou má licenci?
 
-Ano, ISO si můžete zdarma stáhnout z webu LuxOS a placená edice neexistuje. Kód LuxOS (balíky `luxos-*`,
-`lux`, `luxdrop`, skripty a instalátor) je pod licencí GPL-3.0-or-later; balíčky třetích stran mají
-vlastní licence. Volitelný asistent LuxAI používá účet LuxAI s měsíčním limitem spotřeby.
+Ano, ISO si můžete zdarma stáhnout z webu LuxOS a placená edice neexistuje. Většina kódu LuxOS (balíky
+`luxos-*`, `lux`, `luxdrop`, skripty a instalátor) je otevřená pod licencí GPL-3.0-or-later; balíčky
+třetích stran mají vlastní licence. Několik aplikací – LuxAI, Lux Code, LSL IDE a Firemní síť (Active
+Directory) – je proprietárních: v LuxOS je používáte zdarma, jejich zdrojový kód ale není veřejný.
+Volitelný asistent LuxAI používá účet LuxAI s měsíčním limitem spotřeby.
 
 ## Kdo LuxOS dělá?
 
-LuxOS vyvíjí Antonín Tomeček v Česku. Zdrojový kód je na
+LuxOS vyvíjí Antonín Tomeček v Česku. Zdrojový kód otevřených částí je na
 [GitHubu](https://github.com/luxopes/LuxOS-Arch), kontakt je info@lux-ai.cz. Jde o malý a mladý
 projekt: veřejný repozitář vznikl v říjnu 2026.
 

@@ -11,6 +11,8 @@
 #   LUXOS_CHANNEL=staging ./build.sh iso   ISO s kanalem aktualizaci staging (live i nainstalovany system,
 #                         /etc/lux/lux.conf channel = "staging"); baliky predem: scripts/fetch-published-repo.sh
 #                         https://luxos.lux-ai.cz/staging
+#   LUXOS_PRIVATE_DIR=~/luxos-private ./build.sh ...   proprietarni baliky (LuxAI, Lux Code, LSL IDE,
+#                         luxos-domain) ze zdroju soukromeho repozitare; bez nej podepsane z repozitare LuxOS
 #
 # Potrebuje podman (doporuceno) nebo docker; vse ostatni bezi v Arch kontejneru.
 set -euo pipefail
@@ -77,6 +79,15 @@ if [[ -n $sb_key && $sb_key != none && -f $sb_key/luxos-secureboot.key ]]; then
     signing+=(-v "$sb_key:/sb-signing:ro,z")
 fi
 
+# Proprietarni soucasti (packages/*/PROPRIETARY: LuxAI, Lux Code, LSL IDE, luxos-domain): zdroje jsou
+# v soukromem repozitari luxos-private. LUXOS_PRIVATE_DIR=cesta k jeho pracovni kopii je pripoji
+# (jen ke cteni) a baliky se postavi; bez nej se vezmou podepsane ze zverejneneho repozitare LuxOS.
+private=()
+if [[ -n ${LUXOS_PRIVATE_DIR:-} ]]; then
+    [[ -d $LUXOS_PRIVATE_DIR/packages ]] || { echo "LUXOS_PRIVATE_DIR=$LUXOS_PRIVATE_DIR has no packages/ folder." >&2; exit 1; }
+    private=(-v "$(readlink -f "$LUXOS_PRIVATE_DIR"):/luxos-private:ro,z" -e LUXOS_PRIVATE=/luxos-private)
+fi
+
 # jadro LuxOS (GitHub Actions) do out/kernel, overene - pri stavbe repozitare [luxos]
 case ${1:-all} in all|packages|iso-test) scripts/fetch-kernel.sh ;; esac
 
@@ -86,5 +97,6 @@ mkdir -p out/pkgcache
     -v "$PWD:/luxos:z" \
     -v "$PWD/out/pkgcache:/var/cache/pacman/pkg:z" \
     "${signing[@]}" \
+    "${private[@]}" \
     ${LUXOS_CHANNEL:+-e "LUXOS_CHANNEL=$LUXOS_CHANNEL"} \
     luxos-builder /luxos/scripts/container-build.sh "${@:-all}"
