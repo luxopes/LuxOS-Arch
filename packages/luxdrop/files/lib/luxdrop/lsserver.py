@@ -276,6 +276,9 @@ class LocalSendServer:
         t.items, t.total = tops, total
         t.files = [{"name": f["rel"], "size": f["size"], "done": 0, "state": "waiting"} for f in files]
         clash = (not trusted) and t.peer_name.lower() in self.trust.names()
+        # Pripnuti podle jmena: stejne jmeno uz drive poslalo soubory s jinym klicem
+        key_changed = self.trust.ls_pin_changed(info["alias"], fp_spki)
+        code = localsend.short_code(cert_fp)
 
         if message is not None:
             # Textova zprava: zobrazit (neblokujici), nic se neuklada -> 204
@@ -283,7 +286,8 @@ class LocalSendServer:
                 raise lshttp.HTTPError(429, "Too many requests")
             r = transfer.IncomingRequest(t, fp_spki, trusted, None, clash, files, [], protocol="localsend",
                                          can_trust=False, verified=bool(cert_fp), message=message,
-                                         device_model=info["deviceModel"])
+                                         device_model=info["deviceModel"], key_changed=key_changed,
+                                         short_code=code)
 
             def show():
                 try:
@@ -311,7 +315,7 @@ class LocalSendServer:
                 self.handler.finished(t)
                 raise lshttp.HTTPError(507, "Not enough disk space on the receiver")
             accept, remember = self._decide(t, req, conn, fp_spki, trusted, clash, files, info, bool(cert_fp),
-                                            withdrawn)
+                                            withdrawn, key_changed, code)
             if not accept:
                 t.state = "declined" if t.code != proto.E_CANCELLED else "cancelled"
                 self.handler.finished(t)
@@ -321,6 +325,9 @@ class LocalSendServer:
             if remember and fp_spki and not trusted:
                 self.trust.add(fp_spki, info["alias"], addr=transfer.fmt_addr(req.ip, info["port"]),
                                kind="localsend", cert_fp=cert_fp, device_type=info["deviceType"])
+            if fp_spki:
+                # prvni prijaty prenos pripne klic k jmenu (zmenu klice uzivatel prave vyslovne potvrdil)
+                self.trust.ls_pin_set(info["alias"], fp_spki, cert_fp)
             sid = str(uuid.uuid4())
             s = LocalSendSession(sid, req.ip, info, files, t, dest, fp_spki, cert_fp)
             t.on_cancel = lambda: self._receiver_cancel(s)
@@ -334,15 +341,17 @@ class LocalSendServer:
         log("session %s from %s (%s): %d file(s), %d bytes" % (sid, req.ip, info["alias"], len(files), total))
         return 200, {"sessionId": sid, "files": {fid: f["token"] for fid, f in s.files.items()}}
 
-    def _decide(self, t, req, conn, fp_spki, trusted, clash, files, info, verified, withdrawn):
-        if trusted and self.settings["auto_accept_trusted"]:
-            return True, False
+    def _decide(self, t, req, conn, fp_spki, trusted, clash, files, info, verified, withdrawn, key_changed=False,
+                code=""):
+        # Zarizeni LocalSend se nikdy neprijimaji bez dotazu (ani duveryhodna s "Rychlym ulozenim"):
+        # nemaji overovaci kod, jejich totoznost potvrzuje jen uzivatel v dialogu.
         if not self._prompt_sem.acquire(blocking=False):
             raise lshttp.HTTPError(429, "Too many requests")
         try:
             r = transfer.IncomingRequest(t, fp_spki, trusted, None, clash, files, [], protocol="localsend",
                                          can_trust=bool(fp_spki) and not trusted, verified=verified,
-                                         device_model=info["deviceModel"])
+                                         device_model=info["deviceModel"], key_changed=key_changed,
+                                         short_code=code)
             r.withdrawn = withdrawn
             t.state = "waiting"
             box, done = {}, threading.Event()

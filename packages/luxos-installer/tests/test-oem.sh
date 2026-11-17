@@ -278,6 +278,7 @@ check "armed" test -e "$R/var/lib/luxos/oem/armed"
 check "greeter = Pruvodce nastavenim" grep -qx "greeter-session=luxos-setup" "$R/etc/lightdm/lightdm.conf.d/90-luxos-oem.conf"
 check "sudoers jen status a finish" grep -qx "lightdm ALL=(root) NOPASSWD: /usr/bin/luxos-oem status, /usr/bin/luxos-oem finish" "$R/etc/sudoers.d/90-luxos-oem"
 eq "sudoers 0440" 440 "$(stat -c %a "$R/etc/sudoers.d/90-luxos-oem")"
+check "sudoers: jediny radek pravidla, bez zastupnych znaku" bash -c "[[ \$(grep -vc '^#' '$R/etc/sudoers.d/90-luxos-oem') == 1 ]] && ! grep -q '[*?]' '$R/etc/sudoers.d/90-luxos-oem'"
 check "polkit: Wi-Fi pro lightdm" grep -q 'subject.user == "lightdm"' "$R/etc/polkit-1/rules.d/49-luxos-oem.rules"
 check "sluzba prvniho startu zapnuta" grep -q "systemctl enable luxos-oem-firstboot.service" "$TMP/cmds"
 check "ucet oem zamknut" grep -q "passwd -l oem" "$TMP/cmds"
@@ -370,6 +371,19 @@ check "sluzba prvniho startu vypnuta" grep -q "systemctl disable luxos-oem-first
 check "system.lsl s uctem majitele (init --refresh)" grep -qx "lux_system init --refresh" "$TMP/luxsys.log"
 (load_oem; main finish <<<"$INPUT") >"$TMP/out" 2>&1
 check "druhy finish: odmitnut (uz neni aktivni)" grep -q "not active" "$TMP/out"
+check "sluzba vypnuta az po odebrani sudoers" bash -c "tail -n 3 '$TMP/cmds' | grep -q 'systemctl disable luxos-oem-firstboot.service'"
+# vypadek proudu tesne pred smazanim sudoers (done uz je): dalsi start po sobe uklidi
+install -m440 /dev/stdin "$R/etc/sudoers.d/90-luxos-oem" <<<"lightdm ALL=(root) NOPASSWD: /usr/bin/luxos-oem status, /usr/bin/luxos-oem finish"
+: >"$R/etc/polkit-1/rules.d/49-luxos-oem.rules"
+: >"$TMP/cmds"
+(load_oem; main firstboot) >/dev/null 2>&1
+check "firstboot po dokonceni: zbytek sudoers smazan" test ! -e "$R/etc/sudoers.d/90-luxos-oem"
+check "firstboot po dokonceni: zbytek polkit smazan" test ! -e "$R/etc/polkit-1/rules.d/49-luxos-oem.rules"
+check "firstboot po dokonceni: greeter se nevraci" test ! -e "$R/etc/lightdm/lightdm.conf.d/90-luxos-oem.conf"
+check "firstboot po dokonceni: sluzba vypnuta" grep -q "systemctl disable luxos-oem-firstboot.service" "$TMP/cmds"
+check "firstboot po dokonceni: nezapeceteno" test ! -e "$R/var/lib/luxos/oem/armed"
+out=$(load_oem; main status)
+check "status po dokonceni: ARMED=0 DONE=1" bash -c "grep -qx ARMED=0 <<<'$out' && grep -qx DONE=1 <<<'$out'"
 
 echo "## luxos-oem finish: kontrola vstupu"
 setup_root 0 ""

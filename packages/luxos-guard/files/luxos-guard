@@ -139,8 +139,11 @@ def cmd_allow(args):
     if len(paths) != 1:
         die(_("Usage: luxos-guard allow FILE"))
     fd = open_file(paths[0])
+    if os.getuid() != 0:
+        # povoleni od uzivatele potvrzuje okno Lux Guard v sezeni (jako "Presto spustit")
+        print(_("Confirm in the Lux Guard window..."), file=sys.stderr, flush=True)
     try:
-        r = request({"op": "allow", "force": force}, fd=fd)
+        r = request({"op": "allow", "force": force}, fd=fd, timeout=core.ASK_TIMEOUT + 10)
     finally:
         os.close(fd)
     if r is None:
@@ -150,6 +153,10 @@ def cmd_allow(args):
             die(_("This file is critical - it can only be run in the sandbox: luxos-sandbox run %s") % paths[0])
         if r.get("error") == "not yours":
             die(_("This file belongs to another user."))
+        if r.get("error") == "not confirmed":
+            die(_("Not allowed - it was not confirmed in the Lux Guard window."))
+        if r.get("error") == "no session":
+            die(_("Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE)."))
         die(r.get("error", "error"))
     print(_("Allowed: %s") % paths[0])
     return 0

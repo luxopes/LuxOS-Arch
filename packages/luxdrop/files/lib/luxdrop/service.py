@@ -134,9 +134,17 @@ class ServiceHandler(transfer.Handler):
                         % proto.format_sas(req.sas)
                 if req.name_clash:
                     body += "\n" + _("WARNING: this device uses the name of a trusted device, but a different key!")
+                if req.protocol == "localsend":
+                    body += "\n" + _("LocalSend device, not verified with a code") + (
+                        " · " + _("Device code: %s") % req.short_code if req.short_code else "")
                 actions = ["decline", _("Decline"), "accept", _("Accept")]
                 if req.sas:
                     actions += ["trust", _("Accept and trust")]
+                if getattr(req, "key_changed", False):
+                    # zmeneny klic: prijmout jen v dialogu s vyslovnym potvrzenim, ne tlacitkem v oznameni
+                    body += "\n" + _("WARNING: a device with this name sent you files before, but with a "
+                                     "different key!")
+                    actions = ["decline", _("Decline")]
             if self.use_gtk:
                 from . import dialogs
                 ui["dlg"] = dialogs.accept_dialog(req, lambda v: answer(v, "dialog"))

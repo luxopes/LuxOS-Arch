@@ -5230,3 +5230,30 @@ Show widgets on the desktop	Zobrazit widgety na ploše
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Karty Hodiny a počasí, Stav systému, Právě hraje a Kalendář na ploše.
 Choose and arrange widgets	Vybrat a uspořádat widgety
 You can also right-click a widget or the desktop and choose Edit Widgets…	Můžete také klepnout pravým tlačítkem na widget nebo na plochu a zvolit Upravit widgety…
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Pozor: zařízení s tímto názvem vám už dříve posílalo soubory, ale s jiným klíčem. Může jít o jiné zařízení, které se za něj vydává.
+I have checked that it really is this device	Ověřil(a) jsem, že je to opravdu toto zařízení
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	Zařízení LocalSend: jeho totožnost není ověřená kódem. Přijměte jen soubory, které čekáte.
+Device code: %s	Kód zařízení: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Začátek otisku certifikátu zařízení. Můžete ho porovnat s otiskem zobrazeným na odesílajícím zařízení.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Důvěřovat tomuto zařízení (smí posílat i v režimu „Jen důvěryhodná zařízení“)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Ukládat soubory z důvěryhodných počítačů LuxOS bez ptaní. U zařízení LocalSend se vždy zeptá.
+Key changed	Změněný klíč
+Not verified	Neověřeno
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Pozor: zařízení s tímto názvem dříve používalo jiný klíč. Může jít o jiné zařízení, které se za něj vydává.
+LocalSend devices are not verified with a code - check that it is the right device.	Zařízení LocalSend nejsou ověřená kódem – zkontrolujte, že je to správné zařízení.
+“%s” has a different key than before	„%s“ má jiný klíč než dříve
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Zařízení s tímto názvem dříve používalo jiný klíč. Může jít o jiné zařízení, které se za něj vydává. Posílejte jen tehdy, když víte, že je to správné zařízení (například bylo přeinstalované).
+Send anyway	Přesto poslat
+LocalSend device, not verified with a code	Zařízení LocalSend, neověřené kódem
+WARNING: a device with this name sent you files before, but with a different key!	POZOR: zařízení s tímto názvem vám už dříve posílalo soubory, ale s jiným klíčem!
+LocalSend devices are not verified with a code.	Zařízení LocalSend nejsou ověřená kódem.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	POZOR: zařízení s tímto názvem vám už dříve posílalo soubory, ale s jiným klíčem! Může jít o jiné zařízení, které se za něj vydává.
+Type 'yes' to accept anyway, anything else declines: 	Napište 'ano' pro přijetí, cokoli jiného odmítne: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	POZOR: zařízení s tímto názvem dříve používalo jiný klíč. Může jít o jiné zařízení, které se za něj vydává.
+Type 'yes' to send anyway, anything else cancels: 	Napište 'ano' pro odeslání, cokoli jiného zruší: 
+Nothing was sent.	Nic nebylo odesláno.
+KEY CHANGED	ZMĚNĚNÝ KLÍČ
+not verified	neověřeno
+Confirm in the Lux Guard window...	Potvrďte v okně Lux Guard...
+Not allowed - it was not confirmed in the Lux Guard window.	Nepovoleno – v okně Lux Guard to nebylo potvrzeno.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Povolení potřebuje okno Lux Guard ve vašem grafickém sezení (nebo jako správce: sudo luxos-guard allow SOUBOR).

@@ -483,7 +483,10 @@ text messages, PIN, decline and multicast discovery.
 5. A single `text/plain` file with `preview` is a **text message**: it is shown
    (with a Copy button) and the answer is `204` – nothing is saved.
 6. Otherwise the user must Accept (dialog with device name and type, file list, total
-   size) – unless the sender's key is trusted and "Quick save" is on. Decline/timeout
+   size, "not verified" note and the short device code = first 16 hex characters of the
+   certificate fingerprint). LocalSend senders are never accepted without asking, not
+   even trusted ones with "Quick save" on. If the alias was already pinned to a different
+   key (see below), the dialog warns and Accept needs an explicit confirmation. Decline/timeout
    (120 s) → `403`. If the sender closes the connection or calls `/cancel` meanwhile,
    the dialog closes.
 7. Accept → `200 {"sessionId": uuid4, "files": {fileId: token}}` (tokens: 192 random
@@ -518,7 +521,7 @@ LocalSend). LocalSend cannot transfer empty folders; they are skipped.
 | Receiver identity | pinned key; first contact: 6-digit SAS on both screens | certificate fingerprint from discovery, checked before sending; pinned key for trusted devices |
 | Sender identity | ECDSA signature inside TLS + SAS | client certificate (mTLS) of current LocalSend apps; old apps: unverified |
 | Man-in-the-middle on first contact | detected by the SAS (10⁻⁶ chance per attempt) | **not detectable** – LocalSend has no verification code (trust on first use) |
-| Incoming transfer | always needs Accept, unless pinned + Quick save | always needs Accept, unless pinned (via mTLS) + Quick save; optional PIN |
+| Incoming transfer | always needs Accept, unless pinned + Quick save | always needs Accept (no Quick save); optional PIN; alias pinned to its key after the first accepted transfer, a different key needs an explicit confirmation |
 | Integrity | SHA-256 of every file | TLS + SHA-256 when the sender provides it (LuxDrop always does) |
 
 Why both protocols: LocalSend's model protects against passive eavesdropping and against
@@ -528,7 +531,13 @@ own protocol closes this gap with the SAS, so it stays the default between LuxOS
 computers; LocalSend is used only for devices that cannot speak it. Trusting a LocalSend
 device ("Trust this device" in the accept dialog, off by default) pins the key of its
 client certificate; afterwards a different key with the same name is not trusted and the
-dialog warns about it.
+dialog warns about it. Independently of trust, the first accepted transfer from (or the
+first successful send to) a LocalSend device pins its alias to its key
+(`localsend_pins.json`, case-insensitive alias → SPKI hash). A later device with the same
+alias but another key (or no client certificate) is marked "Key changed" in the device
+list; sending needs "Send anyway", receiving needs an explicit confirmation (GUI check
+box, CLI `yes`, no Accept button in notifications) and only then re-pins the new key.
+LocalSend devices are always marked "Not verified" in the UI.
 
 ## 16. Part C – shared folders ("Connect to Computer")
 

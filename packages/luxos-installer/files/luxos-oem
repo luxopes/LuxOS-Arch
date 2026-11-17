@@ -212,6 +212,10 @@ cmd_firstboot() {
     # Zapeceteno, ale chybi soubory (napr. rucni zasah): Pruvodce musi zustat dostupny
     if armed && [[ ! -e $STATE/done ]]; then
         [[ -e $GREETER_CONF && -e $SUDOERS ]] || arm
+    elif [[ -e $STATE/done ]]; then
+        # Pruvodce dokoncen (i kdyz dokonceni prerusil vypadek proudu): NOPASSWD pro lightdm a polkit pryc
+        rm -f "$STATE/armed"
+        leftovers
     fi
     return 0
 }
@@ -491,13 +495,22 @@ write_system_config() {
 
 disarm() {
     rm -f "$GREETER_CONF" "$POLKIT_RULE"
-    systemctl disable "$UNIT" >/dev/null 2>&1 || true
     rm -rf "$SETUP_HOME/.local/state/luxos-setup" 2>/dev/null || true
     : >"$STATE/done"
     rm -f "$STATE/armed"
     sync
-    # posledni: Pruvodce (lightdm) uz nesmi nic dalsiho
+    # Pruvodce (lightdm) uz nesmi nic dalsiho
     rm -f "$SUDOERS"
+    sync
+    # sluzba prvniho startu az nakonec: kdyby proud vypadl drive, pri dalsim startu po sobe uklidi
+    # (cmd_firstboot - pravidlo sudo ani polkit pro lightdm nezustane)
+    systemctl disable "$UNIT" >/dev/null 2>&1 || true
+}
+
+leftovers() {  # Pruvodce dokoncen: pravidla pro lightdm nesmi zustat (vypadek proudu, rucni zasah)
+    rm -f "$SUDOERS" "$POLKIT_RULE" "$GREETER_CONF"
+    systemctl disable "$UNIT" >/dev/null 2>&1 || true
+    return 0
 }
 
 cmd_finish() {

@@ -48,6 +48,29 @@ Není to antivirus: žádná databáze signatur, žádné procházení disku, ž
   `O_NOFOLLOW` jako text (nic se neinterpretuje). Název souboru v upozornění je escapovaný.
   „Zastavit“ posílá signály jen skupině procesů vlastního běhu (vlastní sezení), nikdy podle názvu.
 
+### Pomocník v sezení (kdo smí odpovídat)
+
+Socket `/run/luxos-guard/guard.sock` je 0666 – `status`, `list`, `scan` a `check` smí každý (vidí jen
+své soubory). Odpovídat na dotazy smí jen **ověřený** `luxos-guard-agent`:
+
+- program `/usr/lib/luxos-guard/luxos-guard-agent` je setgid `root:luxos-guard` (2755; skupinu
+  založí `systemd-sysusers`, práva nastaví `luxos-guard.install`),
+- služba roli `agent` přijme jen od spojení, jehož efektivní skupina v okamžiku `connect()` byla
+  `luxos-guard` (`SO_PEERCRED`, údaj jádra), proces běží z tohoto souboru (`/proc/<pid>/exe`, soubor
+  patří rootu) a pořád je to tentýž proces (`SO_PEERPIDFD` – číslo PID nemůže mezitím dostat jiný),
+- setgid proces jádro chrání před `ptrace` a čtením `/proc/<pid>/{mem,environ,fd}` jiným programem
+  uživatele, jeho spojení tedy nikdo nepřevezme; spojení otevřené jiným programem a zděděné
+  pomocníkem se nepočítá (skupina se bere z okamžiku `connect()`),
+- setgid pomocník ignoruje proměnné pro testy (`LUXOS_GUARD_SOCKET`, `LUXOS_GUARD_HELPER` …), okno
+  dotazu spouští s původními právy (`POSIX_SPAWN_RESETIDS`), pevnou `PATH` a bez `LD_*`, `PYTHON*`,
+  `GTK_MODULES`, `GIO_*` …; Python okna běží `python3 -I` (bez uživatelských site-packages),
+- `luxos-guard allow` od uživatele (ne root) se potvrzuje stejným oknem v sezení; bez pomocníka v
+  sezení povolí soubor jen root (`sudo luxos-guard allow SOUBOR`).
+
+Po aktualizaci balíku běžící pomocník pozná nový program (i změnu práv) a do několika sekund se
+spustí znovu – bez odhlášení. Kontrola: `tests/agent-auth-container-test.sh` v kontejneru (podvodník
+odmítnut, zděděné spojení odmítnuto, podvržené prostředí bez účinku, opětovné přihlášení, dva uživatelé).
+
 ### Rozhodnutí
 
 - kritický + spuštění mimo sandbox → **vždy zamítnout**; výjimku smí udělat jen root
@@ -72,8 +95,11 @@ Uchovává se 24 h po hodinách a 7 dní po dnech; při < 5 % / 2 GiB volného m
 
 - **Kód spuštěný jako root** může službu vypnout, smazat stav i snímky.
 - **Povolený program** („Přesto spustit“) běží s právy uživatele: smí smazat vše, co uživatel
-  (snímky zůstanou). Agent v sezení ověřuje jen UID – program uživatele se může vydávat za agenta
-  a rizikové soubory si povolit sám (kritické ne).
+  (snímky zůstanou).
+- **Program uživatele, který ovládá jeho grafické sezení**: na X11 může jiný program téhož
+  uživatele posílat okno dotazu stisky kláves a kliknutí, nebo do oken GTK načíst modul přes
+  nastavení sezení (`gtk-modules`). Prosté vydávání se za pomocníka už nefunguje (viz níže),
+  „kliknout“ za uživatele ale izolace X11 nezabrání.
 - Kód, který se hlídaného souboru nedotkne: vložený do terminálu, `cat x.sh | sh`, `curl … | sh`
   napsané ručně, zneužití chyby prohlížeče, interpret mimo seznam (`make -f`, `gdb -x` …), knihovny
   načtené přes `LD_PRELOAD`/`dlopen`, Flatpak a jiné aplikace s vlastním jmenným prostorem připojení

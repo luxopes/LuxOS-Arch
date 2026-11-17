@@ -5232,3 +5232,30 @@ Show widgets on the desktop	Показувати віджети на робоч�
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Картки «Годинник і погода», «Стан системи», «Зараз грає» та «Календар» на робочому столі.
 Choose and arrange widgets	Вибрати й упорядкувати віджети
 You can also right-click a widget or the desktop and choose Edit Widgets…	Також можна клацнути правою кнопкою на віджеті або робочому столі й вибрати «Редагувати віджети…»
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Увага: пристрій із цією назвою вже надсилав вам файли раніше, але з іншим ключем. Можливо, це інший пристрій, який видає себе за нього.
+I have checked that it really is this device	Я перевірив(-ла), що це справді цей пристрій
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	Пристрій LocalSend: його особу не підтверджено кодом. Приймайте лише файли, на які чекаєте.
+Device code: %s	Код пристрою: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Початок відбитка сертифіката пристрою. Можна порівняти його з відбитком, показаним на пристрої-відправнику.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Довіряти цьому пристрою (може надсилати й у режимі «Лише довірені пристрої»)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Зберігати файли з довірених комп’ютерів LuxOS без запиту. Для пристроїв LocalSend завжди запитувати.
+Key changed	Ключ змінено
+Not verified	Не перевірено
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Увага: пристрій із цією назвою раніше використовував інший ключ. Можливо, це інший пристрій, який видає себе за нього.
+LocalSend devices are not verified with a code - check that it is the right device.	Пристрої LocalSend не перевіряються кодом – переконайтеся, що це потрібний пристрій.
+“%s” has a different key than before	«%s» має інший ключ, ніж раніше
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Пристрій із цією назвою раніше використовував інший ключ. Можливо, це інший пристрій, який видає себе за нього. Надсилайте, лише якщо впевнені, що це потрібний пристрій (наприклад, його перевстановили).
+Send anyway	Усе одно надіслати
+LocalSend device, not verified with a code	Пристрій LocalSend, не перевірений кодом
+WARNING: a device with this name sent you files before, but with a different key!	УВАГА: пристрій із цією назвою вже надсилав вам файли раніше, але з іншим ключем!
+LocalSend devices are not verified with a code.	Пристрої LocalSend не перевіряються кодом.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	УВАГА: пристрій із цією назвою вже надсилав вам файли раніше, але з іншим ключем! Можливо, це інший пристрій, який видає себе за нього.
+Type 'yes' to accept anyway, anything else declines: 	Введіть 'yes', щоб усе одно прийняти, будь-що інше відхиляє: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	УВАГА: пристрій із цією назвою раніше використовував інший ключ. Можливо, це інший пристрій, який видає себе за нього.
+Type 'yes' to send anyway, anything else cancels: 	Введіть 'yes', щоб усе одно надіслати, будь-що інше скасовує: 
+Nothing was sent.	Нічого не надіслано.
+KEY CHANGED	КЛЮЧ ЗМІНЕНО
+not verified	не перевірено
+Confirm in the Lux Guard window...	Підтвердьте у вікні Lux Guard...
+Not allowed - it was not confirmed in the Lux Guard window.	Не дозволено – у вікні Lux Guard це не підтверджено.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Для дозволу потрібне вікно Lux Guard у вашому графічному сеансі (або як адміністратор: sudo luxos-guard allow ФАЙЛ).

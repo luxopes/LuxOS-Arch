@@ -3,7 +3,7 @@
 #
 # Pouziti: luxos-fingerprint-pam [sync|apply|remove|status]
 #   sync    apply, pokud je nainstalovany pam_fprintd (balik fprintd), jinak remove (vychozi)
-#   apply   vlozi blok s pam_fprintd pred prvni radek "auth" kazde sluzby
+#   apply   vlozi blok (kontroly zamceni/nologin/shells, pak pam_fprintd) pred prvni radek "auth" kazde sluzby
 #   remove  blok odebere (kopie z /usr/lib/pam.d, ktere vytvoril apply, smaze)
 #   status  vypise stav sluzeb
 #
@@ -12,6 +12,13 @@
 # aktualizaci techto baliku obnovi. Radky "-auth" PAM tise preskoci, kdyz modul chybi,
 # a pam_fprintd bez ctecky / bez ulozenych otisku / pri vzdalenem prihlaseni hned vraci
 # PAM_AUTHINFO_UNAVAIL - heslo tak funguje vzdy.
+#
+# Otisk nahrazuje jen heslo, ne kontroly uctu. Blok proto pred otiskem provede to, co by sluzba
+# udelala pred heslem: pam_faillock preauth (docasne zamceny ucet neprojde ani otiskem; pravidla
+# zamceni v /etc/security/faillock.conf se nemeni) a u sluzeb prihlaseni (system-login:
+# LightDM) i pam_nologin a pam_shells. Po uspesnem otisku pam_faillock authsucc vynuluje
+# pocitadlo chyb jako po spravnem hesle. Cast "account" sluzby (vyprseny/zamceny ucet,
+# pam_nologin, pam_access, pam_time) zustava nedotcena a plati pro otisk stejne jako pro heslo.
 set -euo pipefail
 
 R=${LUXOS_PAM_ROOT:-}                 # koren pro testy
@@ -26,16 +33,31 @@ COPY="# LuxOS fingerprint: copy of /usr/lib/pam.d"
 SKIP=/run/luxos-fingerprint/password-only
 SERVICES=(lightdm sudo polkit-1 xfce4-screensaver)
 
-block() {  # block SLUZBA - radky vkladane do sluzby
+login_service() {  # login_service SOUBOR - sluzba prihlaseni (auth include system-login apod.)
+    grep -Eq '^[[:space:]]*-?auth[[:space:]]+(include|substack)[[:space:]]+system-(local-|remote-)?login([[:space:]]|$)' "$1"
+}
+
+block() {  # block SLUZBA ZDROJ - radky vkladane do sluzby
     printf '%s\n' "$BEGIN"
+    if login_service "$2"; then
+        # stejne kontroly jako system-login pred heslem (root projde pam_nologin i tak)
+        printf '%s\n' "auth       requisite   pam_nologin.so"
+        printf '%s\n' "auth       requisite   pam_shells.so"
+    fi
+    # docasne zamceny ucet (pam_faillock) neprojde ani otiskem; requisite = hned konec, bez cekani na ctecku
+    printf '%s\n' "auth       requisite   pam_faillock.so preauth"
     if [[ $1 == lightdm ]]; then
         # uzivatel v souboru -> preskocit pam_fprintd (default=1); jinak i bez souboru pokracovat
         printf '%s\n' "auth       [success=ignore default=1]  pam_listfile.so item=user sense=deny file=$SKIP onerr=succeed"
-        printf '%s\n' "-auth      sufficient  pam_fprintd.so max-tries=3 timeout=30"
+        printf '%s\n' "-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=30"
     else
         # sudo, polkit a zamek obrazovky neumi heslo a otisk soubezne: kratky timeout
-        printf '%s\n' "-auth      sufficient  pam_fprintd.so max-tries=3 timeout=10"
+        printf '%s\n' "-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=10"
     fi
+    # otisk nepouzit / nerozpoznan / bez ctecky: preskocit dalsi radek a pokracovat heslem (puvodni sluzba)
+    printf '%s\n' "auth       [default=1]  pam_permit.so"
+    # otisk rozpoznan: vynulovat pocitadlo chyb pam_faillock a hotovo (cast account sluzby probehne dal)
+    printf '%s\n' "auth       sufficient  pam_faillock.so authsucc"
     printf '%s\n' "$END"
 }
 
@@ -45,7 +67,7 @@ strip_block() {  # obsah souboru bez naseho bloku
 
 with_block() {  # with_block SOUBOR SLUZBA - obsah s blokem pred prvnim radkem auth
     local blk
-    blk=$(block "$2")
+    blk=$(block "$2" "$1")
     strip_block "$1" | awk -v blk="$blk" '
         !done && $0 ~ /^[[:space:]]*-?auth[[:space:]]/ { print blk; done = 1 }
         { print }
@@ -128,7 +150,8 @@ luxos-fingerprint-pam - fingerprint sign-in in PAM services (LightDM, sudo, polk
 
 Usage: luxos-fingerprint-pam [sync|apply|remove|status]
   sync    apply when pam_fprintd is installed (package fprintd), otherwise remove (default)
-  apply   add the pam_fprintd block before the first "auth" line of each service
+  apply   add the pam_fprintd block (after the lockout/nologin/shell checks) before the
+          first "auth" line of each service
   remove  remove the block
   status  show the state of the services
 EOF

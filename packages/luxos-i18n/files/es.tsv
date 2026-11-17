@@ -5231,3 +5231,30 @@ Show widgets on the desktop	Mostrar widgets en el escritorio
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Tarjetas de Reloj y tiempo, Estado del sistema, Reproduciendo y Calendario en el escritorio.
 Choose and arrange widgets	Elegir y organizar widgets
 You can also right-click a widget or the desktop and choose Edit Widgets…	También puedes hacer clic derecho en un widget o en el escritorio y elegir Editar widgets…
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Atención: un dispositivo con este nombre ya le envió archivos antes, pero con otra clave. Puede ser otro dispositivo que se hace pasar por él.
+I have checked that it really is this device	He comprobado que realmente es este dispositivo
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	Dispositivo LocalSend: su identidad no está verificada con un código. Acepte solo archivos que espere.
+Device code: %s	Código del dispositivo: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	El comienzo de la huella del certificado del dispositivo. Puede compararlo con la huella que muestra el dispositivo que envía.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Confiar en este dispositivo (puede enviar también en el modo «Solo dispositivos de confianza»)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Guardar sin preguntar los archivos de equipos LuxOS de confianza. Con los dispositivos LocalSend siempre se pregunta.
+Key changed	Clave cambiada
+Not verified	No verificado
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Atención: un dispositivo con este nombre usaba antes otra clave. Puede ser otro dispositivo que se hace pasar por él.
+LocalSend devices are not verified with a code - check that it is the right device.	Los dispositivos LocalSend no se verifican con un código: compruebe que es el dispositivo correcto.
+“%s” has a different key than before	«%s» tiene una clave distinta de la anterior
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Un dispositivo con este nombre usaba antes otra clave. Puede ser otro dispositivo que se hace pasar por él. Envíe solo si está seguro de que es el dispositivo correcto (por ejemplo, se reinstaló).
+Send anyway	Enviar de todos modos
+LocalSend device, not verified with a code	Dispositivo LocalSend, no verificado con un código
+WARNING: a device with this name sent you files before, but with a different key!	ATENCIÓN: un dispositivo con este nombre ya le envió archivos antes, pero con otra clave.
+LocalSend devices are not verified with a code.	Los dispositivos LocalSend no se verifican con un código.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	ATENCIÓN: un dispositivo con este nombre ya le envió archivos antes, pero con otra clave. Puede ser otro dispositivo que se hace pasar por él.
+Type 'yes' to accept anyway, anything else declines: 	Escriba 'yes' para aceptar de todos modos; cualquier otra cosa lo rechaza: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	ATENCIÓN: un dispositivo con este nombre usaba antes otra clave. Puede ser otro dispositivo que se hace pasar por él.
+Type 'yes' to send anyway, anything else cancels: 	Escriba 'yes' para enviar de todos modos; cualquier otra cosa cancela: 
+Nothing was sent.	No se envió nada.
+KEY CHANGED	CLAVE CAMBIADA
+not verified	no verificado
+Confirm in the Lux Guard window...	Confirme en la ventana de Lux Guard...
+Not allowed - it was not confirmed in the Lux Guard window.	No permitido: no se confirmó en la ventana de Lux Guard.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Para permitirlo se necesita la ventana de Lux Guard en su sesión de escritorio (o como administrador: sudo luxos-guard allow ARCHIVO).

@@ -165,7 +165,7 @@ class IncomingRequest:
     """Dotaz na prijemce: prijmout prenos?"""
 
     def __init__(self, transfer, fp, trusted, sas, name_clash, files, dirs, protocol="luxdrop",
-                 can_trust=None, verified=True, message=None, device_model=""):
+                 can_trust=None, verified=True, message=None, device_model="", key_changed=False, short_code=""):
         self.transfer = transfer
         self.fp = fp
         self.peer_name = transfer.peer_name
@@ -185,6 +185,10 @@ class IncomingRequest:
         self.can_trust = bool(sas) if can_trust is None else can_trust
         self.verified = verified
         self.message = message  # textova zprava (LocalSend) - jen zobrazit
+        # LocalSend: jmeno zname z drivejska, ale ozvalo se s jinym klicem -> hlasite varovani a vyslovne
+        # potvrzeni (prijmout = pripnout novy klic)
+        self.key_changed = key_changed
+        self.short_code = short_code  # kratky kod otisku pro rucni porovnani (LocalSend)
 
 
 class Handler:

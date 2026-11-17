@@ -26,7 +26,8 @@ Files (Thunar), right-click › **Send To › LuxDrop** (`/usr/share/Thunar/send
   Recently received files have "Open folder" and "Show in folder".
 - **Settings**:
   - Device name, Save to (folder).
-  - **Quick save**: save files from trusted devices without asking.
+  - **Quick save**: save files from trusted LuxOS computers without asking (LocalSend devices are
+    always asked).
   - **Receive when LuxDrop is closed**: enables the background service. Requests then appear as
     notifications.
   - **Work with LocalSend apps** (port 53317), PIN for LocalSend senders.
@@ -45,16 +46,34 @@ If a trusted device later shows a different key, the transfer is aborted with `k
 ("someone may be impersonating the device"). There is no fallback to code pairing. To pair again,
 first remove the device from Trusted devices (`luxdrop trust remove <ID>`).
 
-LocalSend has no verification code, so trust works on first use. "Trust this device" is off by
-default for LocalSend devices. Plain-HTTP LocalSend devices (encryption turned off in LocalSend)
-are shown as "Unencrypted", and nothing is sent to them or accepted from them.
+LocalSend has no verification code, and LocalSend devices announce themselves on the network
+without any proof of who they are - anyone nearby can use any device name. LuxDrop therefore treats
+LocalSend devices as **not verified**:
+
+- In the device list they carry a **Not verified** badge (LuxOS computers paired with the code do
+  not). The tooltip, the accept dialog and the notification show a short **device code** - the
+  first 16 characters of the device's certificate fingerprint (e.g. `4BAD DE53 A7F7 CDEE`) - which
+  you can compare with the fingerprint shown on the other device (`luxdrop id` on LuxOS).
+- Files from a LocalSend device are **never saved without asking**, even when the device is
+  trusted and Quick save is on. "Trust this device" (off by default for LocalSend) only lets the
+  device send in the "Trusted devices only" mode.
+- After the first accepted transfer (or the first successful send to it) LuxDrop remembers the key
+  of the device with that name (`localsend_pins.json`). If a device with the same name later shows
+  a **different key** (or no certificate at all), LuxDrop warns loudly: the device list shows **Key
+  changed**, sending needs "Send anyway", and receiving needs the box "I have checked that it really
+  is this device" before Accept works (on the command line you must type `yes`; the notification
+  has no Accept button). Accepting the new key replaces the remembered one - do it only when you
+  know the device was reinstalled or reset.
+
+Plain-HTTP LocalSend devices (encryption turned off in LocalSend) are shown as "Unencrypted", and
+nothing is sent to them or accepted from them.
 
 ## Who may send (receive modes)
 
 | Mode | Trusted device | Unknown device |
 |---|---|---|
 | `off` | refused | refused |
-| `trusted` | allowed (auto-saved with Quick save, otherwise asked) | refused without asking |
+| `trusted` | allowed (LuxOS: auto-saved with Quick save, otherwise asked; LocalSend: always asked) | refused without asking |
 | `everyone` (default) | allowed | you must Accept after comparing the code |
 
 `everyone` can be limited in time (at most 10 minutes, then back to `trusted`). Every transfer from
@@ -140,6 +159,7 @@ or as a dialog when a display is available.
 | Settings | `~/.config/luxdrop/settings.json` (`name`, `receive_mode`, `download_dir`, `port`, `background`, `auto_accept_trusted`, `localsend`, `localsend_port`, `pin`) |
 | Identity key and certificate | `~/.local/share/luxdrop/identity-key.pem`, `identity-cert.pem` (EC P-256) |
 | Trusted devices, history | `~/.local/share/luxdrop/trusted.json`, `history.json` |
+| Remembered LocalSend device keys | `~/.local/share/luxdrop/localsend_pins.json` (name → key; delete the line or the file to forget a device) |
 | Shared folders, computers with access | `~/.config/luxdrop/shares.json`, `~/.local/share/luxdrop/file-access.json` |
 
 ## Ports and firewall

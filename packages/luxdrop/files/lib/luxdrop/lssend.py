@@ -69,6 +69,12 @@ def send(identity, settings, trust, history, device, callbacks, paths=None, text
             t.state, t.code = "failed", proto.E_PROTOCOL
             t.error = ("connection lost: %s" if t.state in ("transferring", "waiting") else
                        "connection failed: %s") % detail
+    if t.state == "done" and device.get("spki"):
+        # prvni uspesny prenos pripne klic k jmenu zarizeni (zmena klice se pak v seznamu hlasite ukaze)
+        try:
+            trust.ls_pin_set(device["name"], device["spki"], localsend.norm_fp(device.get("fingerprint")))
+        except OSError:
+            pass
     if t.items:
         try:
             history.add({"direction": "out", "peer": t.peer_name, "peer_id": t.peer_id, "protocol": "localsend",

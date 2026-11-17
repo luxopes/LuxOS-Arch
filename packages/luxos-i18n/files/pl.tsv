@@ -5232,3 +5232,30 @@ Show widgets on the desktop	Pokazuj widżety na pulpicie
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Karty Zegar i pogoda, Stan systemu, Teraz odtwarzane i Kalendarz na pulpicie.
 Choose and arrange widgets	Wybierz i rozmieść widżety
 You can also right-click a widget or the desktop and choose Edit Widgets…	Możesz też kliknąć prawym przyciskiem widżet lub pulpit i wybrać Edytuj widżety…
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Uwaga: urządzenie o tej nazwie wysyłało już wcześniej pliki, ale z innym kluczem. Może to być inne urządzenie, które się pod nie podszywa.
+I have checked that it really is this device	Sprawdziłem(-am), że to naprawdę to urządzenie
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	Urządzenie LocalSend: jego tożsamość nie jest potwierdzona kodem. Przyjmuj tylko pliki, których się spodziewasz.
+Device code: %s	Kod urządzenia: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Początek odcisku certyfikatu urządzenia. Możesz go porównać z odciskiem widocznym na urządzeniu wysyłającym.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Ufaj temu urządzeniu (może wysyłać także w trybie „Tylko zaufane urządzenia”)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Zapisuj pliki z zaufanych komputerów LuxOS bez pytania. W przypadku urządzeń LocalSend zawsze pyta.
+Key changed	Zmieniony klucz
+Not verified	Niepotwierdzone
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Uwaga: urządzenie o tej nazwie używało wcześniej innego klucza. Może to być inne urządzenie, które się pod nie podszywa.
+LocalSend devices are not verified with a code - check that it is the right device.	Urządzenia LocalSend nie są potwierdzane kodem – sprawdź, czy to właściwe urządzenie.
+“%s” has a different key than before	„%s” ma inny klucz niż wcześniej
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Urządzenie o tej nazwie używało wcześniej innego klucza. Może to być inne urządzenie, które się pod nie podszywa. Wysyłaj tylko wtedy, gdy masz pewność, że to właściwe urządzenie (na przykład zostało ponownie zainstalowane).
+Send anyway	Wyślij mimo to
+LocalSend device, not verified with a code	Urządzenie LocalSend, niepotwierdzone kodem
+WARNING: a device with this name sent you files before, but with a different key!	UWAGA: urządzenie o tej nazwie wysyłało już wcześniej pliki, ale z innym kluczem!
+LocalSend devices are not verified with a code.	Urządzenia LocalSend nie są potwierdzane kodem.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	UWAGA: urządzenie o tej nazwie wysyłało już wcześniej pliki, ale z innym kluczem! Może to być inne urządzenie, które się pod nie podszywa.
+Type 'yes' to accept anyway, anything else declines: 	Wpisz 'yes', aby mimo to przyjąć, cokolwiek innego odrzuca: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	UWAGA: urządzenie o tej nazwie używało wcześniej innego klucza. Może to być inne urządzenie, które się pod nie podszywa.
+Type 'yes' to send anyway, anything else cancels: 	Wpisz 'yes', aby mimo to wysłać, cokolwiek innego anuluje: 
+Nothing was sent.	Nic nie zostało wysłane.
+KEY CHANGED	ZMIENIONY KLUCZ
+not verified	niepotwierdzone
+Confirm in the Lux Guard window...	Potwierdź w oknie Lux Guard...
+Not allowed - it was not confirmed in the Lux Guard window.	Nie zezwolono – nie potwierdzono w oknie Lux Guard.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Zezwolenie wymaga okna Lux Guard w sesji graficznej (lub jako administrator: sudo luxos-guard allow PLIK).

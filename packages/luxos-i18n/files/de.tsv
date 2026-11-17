@@ -5231,3 +5231,30 @@ Show widgets on the desktop	Widgets auf dem Schreibtisch anzeigen
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Karten für Uhr & Wetter, Systemzustand, Aktuelle Wiedergabe und Kalender auf dem Schreibtisch.
 Choose and arrange widgets	Widgets auswählen und anordnen
 You can also right-click a widget or the desktop and choose Edit Widgets…	Du kannst auch mit der rechten Maustaste auf ein Widget oder den Schreibtisch klicken und „Widgets bearbeiten …“ wählen.
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Achtung: Ein Gerät mit diesem Namen hat Ihnen schon früher Dateien gesendet, aber mit einem anderen Schlüssel. Es könnte ein anderes Gerät sein, das sich als dieses ausgibt.
+I have checked that it really is this device	Ich habe geprüft, dass es wirklich dieses Gerät ist
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	LocalSend-Gerät: Seine Identität ist nicht mit einem Code bestätigt. Nehmen Sie nur Dateien an, die Sie erwarten.
+Device code: %s	Gerätecode: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Der Anfang des Zertifikat-Fingerabdrucks des Geräts. Sie können ihn mit dem Fingerabdruck auf dem sendenden Gerät vergleichen.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Diesem Gerät vertrauen (darf auch im Modus „Nur vertrauenswürdige Geräte“ senden)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Dateien von vertrauenswürdigen LuxOS-Computern ohne Nachfrage speichern. Bei LocalSend-Geräten wird immer gefragt.
+Key changed	Schlüssel geändert
+Not verified	Nicht bestätigt
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Achtung: Ein Gerät mit diesem Namen hat früher einen anderen Schlüssel verwendet. Es könnte ein anderes Gerät sein, das sich als dieses ausgibt.
+LocalSend devices are not verified with a code - check that it is the right device.	LocalSend-Geräte werden nicht mit einem Code bestätigt – prüfen Sie, ob es das richtige Gerät ist.
+“%s” has a different key than before	„%s“ hat einen anderen Schlüssel als zuvor
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Ein Gerät mit diesem Namen hat früher einen anderen Schlüssel verwendet. Es könnte ein anderes Gerät sein, das sich als dieses ausgibt. Senden Sie nur, wenn Sie sicher sind, dass es das richtige Gerät ist (z. B. wurde es neu installiert).
+Send anyway	Trotzdem senden
+LocalSend device, not verified with a code	LocalSend-Gerät, nicht mit einem Code bestätigt
+WARNING: a device with this name sent you files before, but with a different key!	ACHTUNG: Ein Gerät mit diesem Namen hat Ihnen schon früher Dateien gesendet, aber mit einem anderen Schlüssel!
+LocalSend devices are not verified with a code.	LocalSend-Geräte werden nicht mit einem Code bestätigt.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	ACHTUNG: Ein Gerät mit diesem Namen hat Ihnen schon früher Dateien gesendet, aber mit einem anderen Schlüssel! Es könnte ein anderes Gerät sein, das sich als dieses ausgibt.
+Type 'yes' to accept anyway, anything else declines: 	Geben Sie 'yes' ein, um trotzdem anzunehmen, alles andere lehnt ab: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	ACHTUNG: Ein Gerät mit diesem Namen hat früher einen anderen Schlüssel verwendet. Es könnte ein anderes Gerät sein, das sich als dieses ausgibt.
+Type 'yes' to send anyway, anything else cancels: 	Geben Sie 'yes' ein, um trotzdem zu senden, alles andere bricht ab: 
+Nothing was sent.	Es wurde nichts gesendet.
+KEY CHANGED	SCHLÜSSEL GEÄNDERT
+not verified	nicht bestätigt
+Confirm in the Lux Guard window...	Bitte im Lux-Guard-Fenster bestätigen...
+Not allowed - it was not confirmed in the Lux Guard window.	Nicht erlaubt – im Lux-Guard-Fenster nicht bestätigt.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Zum Erlauben wird das Lux-Guard-Fenster in Ihrer Desktop-Sitzung benötigt (oder als Administrator: sudo luxos-guard allow DATEI).

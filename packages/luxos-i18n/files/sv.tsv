@@ -5231,3 +5231,30 @@ Show widgets on the desktop	Visa widgetar på skrivbordet
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Kort för Klocka och väder, Systemhälsa, Spelas nu och Kalender på skrivbordet.
 Choose and arrange widgets	Välj och ordna widgetar
 You can also right-click a widget or the desktop and choose Edit Widgets…	Du kan också högerklicka på en widget eller skrivbordet och välja Redigera widgetar…
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Varning: en enhet med det här namnet har skickat filer till dig tidigare, men med en annan nyckel. Det kan vara en annan enhet som utger sig för att vara den.
+I have checked that it really is this device	Jag har kontrollerat att det verkligen är den här enheten
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	LocalSend-enhet: dess identitet är inte bekräftad med en kod. Ta bara emot filer som du väntar på.
+Device code: %s	Enhetskod: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Början av enhetens certifikatfingeravtryck. Du kan jämföra det med fingeravtrycket som visas på den sändande enheten.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Lita på den här enheten (får skicka även i läget ”Endast betrodda enheter”)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Spara filer från betrodda LuxOS-datorer utan att fråga. För LocalSend-enheter frågas alltid.
+Key changed	Nyckeln har ändrats
+Not verified	Ej bekräftad
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Varning: en enhet med det här namnet använde tidigare en annan nyckel. Det kan vara en annan enhet som utger sig för att vara den.
+LocalSend devices are not verified with a code - check that it is the right device.	LocalSend-enheter bekräftas inte med en kod – kontrollera att det är rätt enhet.
+“%s” has a different key than before	”%s” har en annan nyckel än tidigare
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	En enhet med det här namnet använde tidigare en annan nyckel. Det kan vara en annan enhet som utger sig för att vara den. Skicka bara om du är säker på att det är rätt enhet (den har till exempel installerats om).
+Send anyway	Skicka ändå
+LocalSend device, not verified with a code	LocalSend-enhet, ej bekräftad med en kod
+WARNING: a device with this name sent you files before, but with a different key!	VARNING: en enhet med det här namnet har skickat filer till dig tidigare, men med en annan nyckel!
+LocalSend devices are not verified with a code.	LocalSend-enheter bekräftas inte med en kod.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	VARNING: en enhet med det här namnet har skickat filer till dig tidigare, men med en annan nyckel! Det kan vara en annan enhet som utger sig för att vara den.
+Type 'yes' to accept anyway, anything else declines: 	Skriv 'yes' för att ta emot ändå, allt annat avböjer: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	VARNING: en enhet med det här namnet använde tidigare en annan nyckel. Det kan vara en annan enhet som utger sig för att vara den.
+Type 'yes' to send anyway, anything else cancels: 	Skriv 'yes' för att skicka ändå, allt annat avbryter: 
+Nothing was sent.	Ingenting skickades.
+KEY CHANGED	NYCKELN HAR ÄNDRATS
+not verified	ej bekräftad
+Confirm in the Lux Guard window...	Bekräfta i Lux Guard-fönstret...
+Not allowed - it was not confirmed in the Lux Guard window.	Inte tillåtet – det bekräftades inte i Lux Guard-fönstret.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	För att tillåta behövs Lux Guard-fönstret i din skrivbordssession (eller som administratör: sudo luxos-guard allow FIL).

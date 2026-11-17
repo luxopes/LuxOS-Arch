@@ -48,6 +48,14 @@ def norm_fp(fp):
     return fp if re.fullmatch(r"[0-9A-F]{64}", fp) else ""
 
 
+def short_code(cert_fp):
+    """Kratky kod pro rucni porovnani: prvnich 16 znaku otisku LocalSend ve skupinach po 4."""
+    fp = norm_fp(cert_fp)
+    if not fp:
+        return ""
+    return " ".join(fp[i:i + 4] for i in range(0, 16, 4))
+
+
 def spki_fingerprint_der(cert_der):
     """SHA-256 z SubjectPublicKeyInfo certifikatu (libovolny typ klice, napr. RSA u LocalSend).
 

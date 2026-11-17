@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3 -I
 """Lux Guard - kratce bezici pomocnik pomocnika v sezeni (luxos-guard-agent, LSL).
 
 luxos-guard-agent drzi spojeni se sluzbou bez Pythonu a tento program spusti jen pri udalosti; zprava
@@ -20,8 +20,12 @@ import sys
 import time
 
 # nainstalovany pomocnik (/usr/lib/luxos-guard) bere moduly z /usr/lib/luxos/python, ve zdrojich moduly Lux
-# Guard ze sve slozky (systemova cesta jen pro luxos_i18n)
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), "luxos_guard_core.py")):
+# Guard ze sve slozky (systemova cesta jen pro luxos_i18n). Spousti se "python3 -I": bez PYTHON* promennych
+# a bez uzivatelskych site-packages (.pth tam by do okna dotazu nacetl cizi kod), slozku skriptu pridava sam.
+_HERE = os.path.dirname(os.path.realpath(__file__))
+if os.path.exists(os.path.join(_HERE, "luxos_guard_core.py")):
+    if _HERE not in sys.path:
+        sys.path.insert(0, _HERE)
     sys.path.append("/usr/lib/luxos/python")
 else:
     sys.path.insert(0, "/usr/lib/luxos/python")

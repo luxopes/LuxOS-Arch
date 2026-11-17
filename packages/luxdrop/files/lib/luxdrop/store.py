@@ -219,6 +219,56 @@ class TrustStore:
         self.reload()
         return {e.get("name", "").lower() for e in self.peers.values()}
 
+    # --- Pripnuti zarizeni LocalSend (localsend_pins.json, 0600) -------------------------------
+    # LocalSend nema overovaci kod a zarizeni se ohlasuji neoverenym multicastem: jmeno muze kdokoli
+    # na siti pouzit. Po prvnim prijatem prenosu si proto pamatujeme klic zarizeni s danym jmenem;
+    # kdyz se pozdeji stejne jmeno ozve s jinym klicem (nebo bez certifikatu), dialog hlasite varuje
+    # a prijem vyzaduje vyslovne potvrzeni.
+
+    @staticmethod
+    def _pin_key(name):
+        return " ".join(str(name or "").split()).casefold()[:63]
+
+    def _pins(self):
+        data = _load_json(os.path.join(self.dir, "localsend_pins.json"), {})
+        return {k: v for k, v in data.items()
+                if isinstance(v, dict) and isinstance(v.get("spki"), str) and re.fullmatch(r"[0-9a-f]{64}", v["spki"])}
+
+    def ls_pin_get(self, name):
+        """Pripnuty zaznam {"spki", "cert_fp", "name", ...} zarizeni LocalSend s timto jmenem nebo None."""
+        k = self._pin_key(name)
+        return self._pins().get(k) if k else None
+
+    def ls_pin_changed(self, name, spki):
+        """True, kdyz je jmeno pripnute k jinemu klici (spki None = zarizeni bez certifikatu)."""
+        e = self.ls_pin_get(name)
+        return e is not None and (spki is None or e["spki"] != spki.hex())
+
+    def ls_pin_set(self, name, spki, cert_fp=None):
+        k = self._pin_key(name)
+        if not k or not spki:
+            return
+        pins = self._pins()
+        e = pins.get(k, {"added": time.time()})
+        e.update({"name": str(name)[:63], "spki": spki.hex(), "last_seen": time.time()})
+        if cert_fp:
+            e["cert_fp"] = cert_fp
+        pins[k] = e
+        if len(pins) > 500:  # strop: nejstarsi zaznamy pryc
+            for old in sorted(pins, key=lambda x: pins[x].get("last_seen", 0))[:len(pins) - 500]:
+                del pins[old]
+        identity.ensure_private_dir(self.dir)
+        _save_json(os.path.join(self.dir, "localsend_pins.json"), pins)
+
+    def ls_pin_remove(self, name):
+        k = self._pin_key(name)
+        pins = self._pins()
+        if k in pins:
+            del pins[k]
+            _save_json(os.path.join(self.dir, "localsend_pins.json"), pins)
+            return True
+        return False
+
 
 class History:
     def __init__(self, directory=None):

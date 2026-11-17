@@ -169,8 +169,14 @@ class Engine:
                 spki = d.get("spki")
                 out[k] = dict(d, key=k, kind="localsend", id=d["fingerprint"][:16].lower(),
                               trusted=bool(spki) and spki.hex() in self.trust.peers,
-                              secure=d["protocol"] == "https")
+                              secure=d["protocol"] == "https", **self.ls_marks(d))
         return sorted(out.values(), key=lambda d: (not d["trusted"], d["name"].lower()))
+
+    def ls_marks(self, d):
+        """Zarizeni LocalSend: vzdy neoverene (bez overovaciho kodu), kratky kod otisku a zmena klice
+        oproti zarizeni se stejnym jmenem, kteremu jsme uz drive posilali nebo od nej prijali."""
+        return {"unverified": True, "short_code": localsend.short_code(d.get("fingerprint")),
+                "key_changed": self.trust.ls_pin_changed(d.get("name"), d.get("spki"))}
 
     def add_manual(self, text, localsend_proto=False, prefer_luxdrop=True):
         """Zarizeni zadane adresou. LocalSend: overi se dotazem /register (vrati zaznam/None).
@@ -188,7 +194,8 @@ class Engine:
                 for d in self.lsd.list():
                     if d["host"] == host and d["port"] == port:
                         return dict(d, key="ls:" + d["fingerprint"], kind="localsend", trusted=False,
-                                    id=d["fingerprint"][:16].lower(), secure=d["protocol"] == "https")
+                                    id=d["fingerprint"][:16].lower(), secure=d["protocol"] == "https",
+                                    **self.ls_marks(d))
                 return None
             for d in self.devices():
                 if d["host"] == host and d["port"] == port or (d["kind"] == "luxdrop" and d["host"] == host):

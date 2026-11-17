@@ -5231,3 +5231,30 @@ Show widgets on the desktop	Widgetek megjelenítése az asztalon
 Clock & Weather, System Health, Now Playing and Calendar cards on the desktop.	Óra és időjárás, Rendszerállapot, Most szól és Naptár kártyák az asztalon.
 Choose and arrange widgets	Widgetek kiválasztása és elrendezése
 You can also right-click a widget or the desktop and choose Edit Widgets…	A widgetre vagy az asztalra jobb gombbal kattintva is választhatja a Widgetek szerkesztése… lehetőséget.
+Warning: a device with this name sent you files before, but with a different key. It may be another device pretending to be it.	Figyelem: egy ilyen nevű eszköz korábban már küldött Önnek fájlokat, de más kulccsal. Lehet, hogy egy másik eszköz adja ki magát érte.
+I have checked that it really is this device	Ellenőriztem, hogy valóban erről az eszközről van szó
+LocalSend device: its identity is not verified with a code. Accept only if you expect these files.	LocalSend-eszköz: a személyazonossága nincs kóddal ellenőrizve. Csak olyan fájlokat fogadjon el, amelyeket vár.
+Device code: %s	Eszközkód: %s
+The beginning of the device's certificate fingerprint. You can compare it with the fingerprint shown on the sending device.	Az eszköz tanúsítvány-ujjlenyomatának eleje. Összevetheti a küldő eszközön látható ujjlenyomattal.
+Trust this device (allowed to send also in “Trusted devices only” mode)	Megbízom ebben az eszközben (a „Csak megbízható eszközök” módban is küldhet)
+Save files from trusted LuxOS computers without asking. LocalSend devices are always asked.	Megbízható LuxOS-számítógépek fájljainak mentése kérdés nélkül. LocalSend-eszközöknél mindig rákérdez.
+Key changed	Megváltozott kulcs
+Not verified	Nincs ellenőrizve
+Warning: a device with this name used a different key before. It may be another device pretending to be it.	Figyelem: egy ilyen nevű eszköz korábban más kulcsot használt. Lehet, hogy egy másik eszköz adja ki magát érte.
+LocalSend devices are not verified with a code - check that it is the right device.	A LocalSend-eszközök nincsenek kóddal ellenőrizve – ellenőrizze, hogy a megfelelő eszközről van-e szó.
+“%s” has a different key than before	„%s” kulcsa más, mint korábban
+A device with this name used a different key before. It may be another device pretending to be it. Send only if you are sure it is the right device (for example, it was reinstalled).	Egy ilyen nevű eszköz korábban más kulcsot használt. Lehet, hogy egy másik eszköz adja ki magát érte. Csak akkor küldjön, ha biztos benne, hogy ez a megfelelő eszköz (például újratelepítették).
+Send anyway	Küldés mégis
+LocalSend device, not verified with a code	LocalSend-eszköz, kóddal nem ellenőrzött
+WARNING: a device with this name sent you files before, but with a different key!	FIGYELEM: egy ilyen nevű eszköz korábban már küldött Önnek fájlokat, de más kulccsal!
+LocalSend devices are not verified with a code.	A LocalSend-eszközök nincsenek kóddal ellenőrizve.
+WARNING: a device with this name sent you files before, but with a different key! It may be another device pretending to be it.	FIGYELEM: egy ilyen nevű eszköz korábban már küldött Önnek fájlokat, de más kulccsal! Lehet, hogy egy másik eszköz adja ki magát érte.
+Type 'yes' to accept anyway, anything else declines: 	Írja be: 'yes' az elfogadáshoz, bármi más elutasítja: 
+WARNING: a device with this name used a different key before. It may be another device pretending to be it.	FIGYELEM: egy ilyen nevű eszköz korábban más kulcsot használt. Lehet, hogy egy másik eszköz adja ki magát érte.
+Type 'yes' to send anyway, anything else cancels: 	Írja be: 'yes' a küldéshez, bármi más megszakítja: 
+Nothing was sent.	Semmi sem lett elküldve.
+KEY CHANGED	MEGVÁLTOZOTT KULCS
+not verified	nincs ellenőrizve
+Confirm in the Lux Guard window...	Erősítse meg a Lux Guard ablakában...
+Not allowed - it was not confirmed in the Lux Guard window.	Nem engedélyezve – a Lux Guard ablakában nem lett megerősítve.
+Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Az engedélyezéshez a Lux Guard ablaka szükséges az asztali munkamenetben (vagy rendszergazdaként: sudo luxos-guard allow FÁJL).

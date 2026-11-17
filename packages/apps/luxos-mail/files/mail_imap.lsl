@@ -412,7 +412,21 @@ function finish(conn, tag, strict, timeout):
     end
 end
 
+# Retezec v uvozovkach (IMAP quoted). CR, LF a NUL v nem byt nesmi (RFC 3501) - jmeno schranky ze serveru
+# by jinak mohlo ukoncit prikaz a pridat dalsi; takovou hodnotu odmitne (MailError "protocol")
+function has_line_break(s):
+    for c in net.bytes(s):
+        if c == 0 or c == 10 or c == 13:
+            return True
+        end
+    end
+    return False
+end
+
 function quote(s):
+    if has_line_break(s):
+        call fail("protocol", "A mailbox name or value contains a line break.")
+    end
     return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 end
 
@@ -950,6 +964,9 @@ function list_mailboxes(conn):
         end
         delim = tstr(t[2])
         raw = tstr(t[3])
+        if has_line_break(raw):
+            continue                # jmeno se zalomenim radku (literal od serveru) nejde bezpecne poslat zpet
+        end
         name = mutf7_decode(raw)
         if raw.upper() == "INBOX":
             raw = "INBOX"

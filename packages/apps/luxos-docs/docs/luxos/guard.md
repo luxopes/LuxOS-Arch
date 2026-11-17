@@ -33,7 +33,11 @@ archives and videos are never touched.
 and starts at full speed. **Don't Run** or no answer within 90 s refuses the start (the program
 gets "Permission denied"); the same file is not asked about again for 60 s. If no Lux Guard session
 helper runs for that user (no graphical session, SSH), risky files are refused without asking –
-use `luxos-guard allow FILE`.
+an administrator can release one with `sudo luxos-guard allow FILE`.
+
+`luxos-guard allow FILE` run as a normal user opens the same Lux Guard dialog in the desktop
+session ("Confirm in the Lux Guard window..."): the file is allowed only after **Run Anyway** there.
+Without a session helper it is refused; as administrator (`sudo`) it works directly.
 
 Critical findings (reasons shown in the dialog):
 
@@ -148,6 +152,13 @@ On ext4/xfs or when `/home` is not a subvolume there are no snapshots (`luxos-gu
 - The service runs as root (`systemctl status luxos-guard`); the session helper
   `luxos-guard-agent` (autostart) shows the dialogs. Kernel option needed:
   `CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y` (set in `linux-luxos` and Arch kernels).
+- Only the real session helper may answer the dialogs: `/usr/lib/luxos-guard/luxos-guard-agent`
+  is setgid `luxos-guard` and the service accepts answers only from a connection opened by that
+  program (group and process checked by the kernel, `SO_PEERCRED` + `SO_PEERPIDFD`). Another
+  program of the same user cannot pretend to be the helper and allow files for itself. The dialog
+  itself runs with the user's normal rights and a clean environment. After an update the running
+  helper switches to the new version by itself within seconds (no new login).
+  `luxos-guard status` warns when no verified helper is connected.
 
 ## Limits
 
@@ -160,6 +171,9 @@ On ext4/xfs or when `/home` is not a subvolume there are no snapshots (`luxos-gu
 - Content analysis is pattern based: well-hidden or compiled malware is only **risky** (the user
   still gets the dialog). A file run in the first milliseconds after download may start before the
   check (normally the mark is set before a user could click).
+- On X11 any program of the user can send key presses and clicks to the user's windows, including
+  the Lux Guard dialog. Lux Guard cannot stop a program that already runs as the user from
+  "clicking" Run Anyway for a risky file this way (critical files stay blocked).
 - `.desktop` launchers: a critical one cannot even be read (Files cannot start it); a risky one is
   not asked about – what it starts is checked only if that file is watched.
 

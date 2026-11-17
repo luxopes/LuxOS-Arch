@@ -191,12 +191,15 @@ class LocalSendE2E(unittest.TestCase):
         self.assertEqual(t["kind"], "localsend")
         self.assertEqual(t["cert_fp"], localsend.cert_fingerprint(self.ident("A").cert_der))
         rb.stop()
-        # Duveryhodne + rychle ulozeni -> bez dotazu i v rezimu "trusted"
+        # Duveryhodne zarizeni LocalSend smi poslat i v rezimu "trusted", ale "Rychle ulozeni" pro LocalSend
+        # neplati: bez overovaciho kodu se vzdy pta (L-04)
         rb = self.receiver(mode="trusted")
         s = self.sender([os.path.join(self.src, "empty.bin")])
+        rb.expect(r"LocalSend devices are not verified with a code\. Device code: [0-9A-F]{4} ")
+        rb.expect(r"Accept\? \[y/N\]: ")
+        rb.send("y")
         self.assertEqual(s.wait(30), 0)
         rb.expect(r"Received from Alice-PC")
-        self.assertNotIn("Accept?", rb.buf[rb.buf.rfind("LocalSend: port"):])
         self.assertTrue(os.path.exists(self.dl("B", "empty.bin")))
         # Jiny klic se stejnym jmenem neni duveryhodny (impersonace)
         mallory = tempfile.mkdtemp(dir=self.root)
@@ -207,9 +210,71 @@ class LocalSendE2E(unittest.TestCase):
                            os.path.join(self.src, "doc.pdf")])
         self.procs.append(m)
         self.assertEqual(m.wait(20), 3)  # trusted mode -> 403
-        print("\n   untrusted rejected silently, 'accept and trust' pinned the key, quick save worked, "
-              "same name with another key rejected")
+        print("\n   untrusted rejected silently, 'accept and trust' pinned the key, trusted LocalSend device "
+              "still asked (no quick save), same name with another key rejected")
         os.unlink(os.path.join(self.homes["B"], ".local", "share", "luxdrop", "trusted.json"))
+        self.unpin("B")
+
+    def unpin(self, who):
+        try:
+            os.unlink(os.path.join(self.homes[who], ".local", "share", "luxdrop", "localsend_pins.json"))
+        except FileNotFoundError:
+            pass
+
+    def pins(self, who):
+        try:
+            with open(os.path.join(self.homes[who], ".local", "share", "luxdrop", "localsend_pins.json")) as f:
+                return json.load(f)
+        except OSError:
+            return {}
+
+    def test_11_key_change_warning(self):
+        """L-04: jmeno pripnute po prvnim prijatem prenosu; jiny klic se stejnym jmenem = hlasite varovani,
+        prijem jen po vyslovnem 'yes' (pak se pripne novy klic), 'y' nestaci."""
+        self.clean_dl("B")
+        self.unpin("B")
+        rb = self.receiver()
+        s = self.sender([os.path.join(self.src, "doc.pdf")])
+        rb.expect(r"\[a\]ccept and trust this device / \[N\]o: ")
+        self.assertNotIn("different key", rb.buf)
+        rb.send("y")
+        self.assertEqual(s.wait(30), 0)
+        alice_fp = localsend.cert_fingerprint(self.ident("A").cert_der)
+        pin = self.pins("B")["alice-pc"]
+        self.assertEqual(pin["cert_fp"], alice_fp)
+        self.assertEqual(os.stat(os.path.join(self.homes["B"], ".local", "share", "luxdrop",
+                                              "localsend_pins.json")).st_mode & 0o777, 0o600)
+        # Druhy prenos od skutecne Alice: bez varovani
+        start = len(rb.buf)
+        s = self.sender([os.path.join(self.src, "empty.bin")])
+        rb.expect(r"\[a\]ccept and trust this device / \[N\]o: ")
+        self.assertNotIn("different key", rb.buf[start:])
+        rb.send("n")
+        self.assertEqual(s.wait(30), 3)
+        # Mallory se jmenem Alice-PC (jiny klic)
+        mallory = tempfile.mkdtemp(dir=self.root)
+        os.makedirs(os.path.join(mallory, ".config", "luxdrop"))
+        with open(os.path.join(mallory, ".config", "luxdrop", "settings.json"), "w") as f:
+            json.dump({"name": "alice-pc"}, f)  # jina velikost pismen = stejne jmeno
+        for answer, code in (("y", 3), ("a", 3), ("yes", 0)):
+            start = len(rb.buf)
+            m = Proc(mallory, ["send", "--localsend", "127.0.0.1:%d" % self.ports["B"][1],
+                               os.path.join(self.src, "empty.bin")])
+            self.procs.append(m)
+            rb.expect(r"WARNING: a device with this name sent you files before, but with a different key!")
+            rb.expect(r"Type 'yes' to accept anyway")
+            self.assertNotIn("[a]ccept and trust", rb.buf[start:])
+            rb.send(answer)
+            self.assertEqual(m.wait(30), code, answer)
+            if code:
+                self.assertEqual(self.pins("B")["alice-pc"]["cert_fp"], alice_fp)  # odmitnuto = pin beze zmeny
+        mallory_fp = localsend.cert_fingerprint(
+            identity.Identity.load_or_create(os.path.join(mallory, ".local", "share", "luxdrop")).cert_der)
+        self.assertEqual(self.pins("B")["alice-pc"]["cert_fp"], mallory_fp)  # vyslovne potvrzeno = novy klic
+        self.assertNotIn("Alice-PC", self.trusted("B"))
+        rb.stop()
+        self.unpin("B")
+        print("\n   first accept pinned the key, same name + other key warned, 'y'/'a' declined, 'yes' re-pinned")
 
     def test_06_malicious_offers(self):
         self.clean_dl("B")
