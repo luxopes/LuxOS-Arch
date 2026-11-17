@@ -1,0 +1,4 @@
+{
+ "_doc": "Vyjimky z pravidel prav v balicich [luxos-drivers] (drivers/luxdrv.py perms, makepkg-tidy-luxos-perms.sh). Bez vyjimky se souboru odebere setuid/setgid a souboru ci adresari zapisovatelnemu pro vsechny zapis pro ostatni (zapisovat smi skupina cups 209). Format: {\"allow\": {\"pkgname\": [{\"path\": \"usr/bin/x\", \"mode\": \"4755\", \"why\": \"proc je to nutne a proc je to bezpecne (aspon 20 znaku)\"}]}}. Kazdou vyjimku je nutne s kazdou novou verzi ovladace posoudit znovu.",
+ "allow": {}
+}

@@ -10,6 +10,10 @@
   drivers/luxdrv.py index DIR [OUT]       mapa zarizeni -> balik z hotovych baliku (PPD 1284, udev USB ID)
                                           -> OUT/drivers-index.json a OUT/drivers-usb.tsv (vychozi state/)
   drivers/luxdrv.py report                souhrn (overeno / odmitnuto a proc)
+  drivers/luxdrv.py perms BALIK.pkg.tar.zst...   hotove baliky: setuid/setgid, zapis pro vsechny (i v .INSTALL)
+                                          mimo perms-allow.json -> nenulovy navrat (sestaveni balik nezverejni)
+  drivers/luxdrv.py perms --report DIR    totez pro cely adresar baliku (napr. stazeny [luxos-drivers])
+  drivers/luxdrv.py build-keys            klic sestaveni kazdeho baliku (commit + zaplaty + pravidla prav)
 
 Zasady (pri KAZDE zmene v AUR se overuje znovu cely PKGBUILD i rozdil proti poslednimu overenemu):
   - PKGBUILD mimo funkce jen prirazeni bez $(...) a `...` (nacteni nesmi nic spustit); nacita se
@@ -26,6 +30,9 @@ Zasady (pri KAZDE zmene v AUR se overuje znovu cely PKGBUILD i rozdil proti posl
     vysledny PKGBUILD; sha256 zaplat je v manifestu a sestaveni pouzije jen presne tyto zaplaty
   - volitelne LUXOS_DRIVERS_REVIEW=prikaz: dostane JSON (PKGBUILD, .install, diff) na stdin, nenulovy
     navratovy kod = odmitnuto (napr. kontrola LuxAI)
+  - hotovy balik bez setuid/setgid a bez souboru/adresaru zapisovatelnych pro vsechny: sestaveni je samo
+    odebere (makepkg-tidy-luxos-perms.sh) a pak balik zkontroluje (perms); vyjimky jen v perms-allow.json
+    s duvodem
 Co neprojde, se NESESTAVI - duvody jsou v state/rejected.json.
 """
 import hashlib
@@ -971,7 +978,7 @@ def cmd_build_list():
     lines = []
     for base, m in sorted(manifest.items()):
         mark = os.path.join(built, base)
-        if os.path.exists(mark) and readtext(mark).split("\n", 1)[0].strip() == m["commit"]:
+        if os.path.exists(mark) and readtext(mark).split("\n", 1)[0].strip() == build_key(m):
             continue
         lines.append(f"{base}\t{m['commit']}")
     os.makedirs(WORK, exist_ok=True)
@@ -1136,6 +1143,183 @@ def cmd_index(pkgdir, outdir=None):
     return 0
 
 
+# ---- prava souboru v hotovych balicich ------------------------------------------------------------
+# Ovladace vyrobcu casto instaluji programy setuid root nebo adresare a soubory zapisovatelne pro vsechny
+# (napr. Canon /etc/cngplp2 777, Brother inf/*rc 666). Pri sestaveni je LuxOS odebere (makepkg-tidy-luxos-perms.sh
+# pres MAKEPKG_LIBRARY) a hotovy balik se pred zverejnenim zkontroluje: co zustane a neni v perms-allow.json
+# (s duvodem), se NEZVEREJNI. Kontroluje se i .INSTALL (chmod/install/mkdir s takovymi pravy pri instalaci).
+PERMS_ALLOW = os.environ.get("LUXDRV_PERMS_ALLOW", os.path.join(HERE, "perms-allow.json"))
+PERMS_POLICY = 1        # verze pravidel prav; vyssi = vsechny ovladace se sestavi znovu (klic v built/)
+MODE_RE = re.compile(r"^[0-7]{3,4}$")
+
+
+def load_perms_allow(path=None):
+    """perms-allow.json -> ({pkgname: {cesta: mod}}, [problemy]). Kazda vyjimka musi mit duvod."""
+    data = load(path or PERMS_ALLOW, None)
+    if not isinstance(data, dict) or not isinstance(data.get("allow"), dict):
+        return {}, [f"{path or PERMS_ALLOW}: missing or not {{\"allow\": {{...}}}}"]
+    out, problems = {}, []
+    for pkg, entries in data["allow"].items():
+        if not isinstance(entries, list):
+            problems.append(f"{pkg}: entries must be a list")
+            continue
+        for e in entries:
+            p, m, why = (e.get("path"), e.get("mode"), e.get("why")) if isinstance(e, dict) else (None, None, None)
+            if not (isinstance(p, str) and p and not p.startswith("/") and ".." not in p.split("/")):
+                problems.append(f"{pkg}: bad path {p!r} (relative path inside the package)")
+            elif not (isinstance(m, str) and MODE_RE.match(m)):
+                problems.append(f"{pkg}: {p}: bad mode {m!r} (octal like \"4755\")")
+            elif not (isinstance(why, str) and len(why.strip()) >= 20):
+                problems.append(f"{pkg}: {p}: missing justification (\"why\")")
+            else:
+                out.setdefault(pkg, {})[p.rstrip("/")] = int(m, 8)
+    return out, problems
+
+
+def perm_issues(entries):
+    """[(cesta, mod, druh 'f'|'d'|'l')] -> [(cesta, mod, co)]: setuid/setgid u souboru, zapis pro vsechny
+    u souboru i adresaru (i se sticky bitem). Odkazy maji vzdy 777 - nekontroluji se."""
+    out = []
+    for path, mode, kind in entries:
+        what = []
+        if kind == "f" and mode & 0o4000:
+            what.append("setuid")
+        if kind == "f" and mode & 0o2000:
+            what.append("setgid")
+        if kind in ("f", "d") and mode & 0o002:
+            what.append("world-writable " + ("directory" if kind == "d" else "file"))
+        if what:
+            out.append((path, mode, ", ".join(what)))
+    return out
+
+
+_CHMOD_SYM = re.compile(r"(?:^|,)[ugoa]*[+=][rwxXt]*s|(?:^|,)[ugo]*[oa][ugo]*[+=][rwxXst]*w")
+
+
+def _bad_mode_arg(arg):
+    """Mod pro chmod/install -m/mkdir -m: setuid, setgid nebo zapis pro vsechny?"""
+    if MODE_RE.match(arg):
+        m = int(arg, 8)
+        return bool(m & 0o6000 and len(arg) == 4 or m & 0o002)
+    return bool(_CHMOD_SYM.search(arg))
+
+
+def install_perm_problems(text):
+    """.INSTALL: chmod / install -m / mkdir -m, ktere pri instalaci nastavi setuid/setgid nebo zapis pro vsechny."""
+    problems = []
+    for n, raw in enumerate(text.splitlines(), 1):
+        code = raw.split("#", 1)[0] if not raw.lstrip().startswith("#") else ""
+        for part in re.split(r"[;&|]+|\$\(|`", code):
+            try:
+                words = shlex.split(part, posix=True)
+            except ValueError:
+                words = part.split()
+            if not words:
+                continue
+            cmd = os.path.basename(words[0])
+            modes = []
+            if cmd == "chmod":
+                modes = [w for w in words[1:] if not w.startswith("-") or re.match(r"^-[rwxXst]+$", w)][:1]
+            elif cmd in ("install", "mkdir"):
+                for i, w in enumerate(words[1:], 1):
+                    if w in ("-m", "--mode") and i + 1 < len(words):
+                        modes.append(words[i + 1])
+                    elif w.startswith("--mode="):
+                        modes.append(w[7:])
+                    elif re.match(r"^-[a-zA-Z]*m.+", w) and not w.startswith("--"):
+                        modes.append(w[w.index("m") + 1:])
+            for m in modes:
+                if _bad_mode_arg(m.lstrip("-") if cmd == "chmod" and m.startswith("-") else m):
+                    problems.append(f".INSTALL line {n}: sets setuid/setgid or world-writable: {raw.strip()[:100]}")
+                    break
+    return problems
+
+
+def package_members(pkgfile):
+    """Hotovy balik -> (pkgname, [(cesta, mod, druh)], text .INSTALL)."""
+    import io
+    import tarfile
+    p = subprocess.run(["zstd", "-dc", pkgfile], capture_output=True)
+    if p.returncode:
+        raise ValueError(f"{pkgfile}: cannot decompress")
+    tf = tarfile.open(fileobj=io.BytesIO(p.stdout))
+    name, entries, inst = "", [], ""
+    for m in tf.getmembers():
+        if m.name == ".PKGINFO":
+            mm = re.search(r"^pkgname = (.+)$", tf.extractfile(m).read().decode("utf-8", "replace"), re.M)
+            name = mm.group(1).strip() if mm else ""
+        elif m.name == ".INSTALL":
+            inst = tf.extractfile(m).read().decode("utf-8", "replace")
+        if m.name.startswith("."):
+            continue
+        kind = "f" if m.isfile() or m.islnk() else "d" if m.isdir() else "l" if m.issym() else "o"
+        entries.append((m.name.rstrip("/"), m.mode, kind))
+    return name, entries, inst
+
+
+def check_package_perms(pkgfile, allow):
+    """-> (pkgname, [problemy]) - co zustalo po sestaveni a neni povolene v perms-allow.json."""
+    name, entries, inst = package_members(pkgfile)
+    ok = allow.get(name, {})
+    problems = [f"/{p} {oct(m)[2:].zfill(4)}: {what}" for p, m, what in perm_issues(entries)
+                if ok.get(p) != (m & 0o7777)]
+    problems += install_perm_problems(inst)
+    return name, problems
+
+
+def cmd_perms(files, report=False):
+    """perms BALIK.pkg.tar.zst...: nenulovy navrat, kdyz nektery balik porusuje pravidla (sestaveni ho nezverejni).
+    perms --report ADRESAR: souhrn pro cely repozitar (i povolene vyjimky)."""
+    allow, bad = load_perms_allow()
+    if bad:
+        print("perms-allow.json: " + "; ".join(bad), file=sys.stderr)
+        return 2
+    if report:
+        files = sorted(os.path.join(files[0], f) for f in os.listdir(files[0]) if f.endswith(".pkg.tar.zst"))
+    failed = 0
+    for f in files:
+        try:
+            name, problems = check_package_perms(f, allow)
+        except (OSError, ValueError) as e:
+            name, problems = os.path.basename(f), [f"cannot read: {e}"]
+        if problems:
+            failed += 1
+            for p in problems:
+                print(f"{name}: {p}")
+    print(f"perms: {len(files)} packages, {failed} with forbidden permissions", file=sys.stderr)
+    return 1 if failed else 0
+
+
+def cmd_perms_allow_tsv(out):
+    """Vyjimky pro makepkg-tidy-luxos-perms.sh: radky 'pkgname<TAB>cesta<TAB>mod' (mod jako stat %a)."""
+    allow, bad = load_perms_allow()
+    if bad:
+        print("perms-allow.json: " + "; ".join(bad), file=sys.stderr)
+        return 2
+    with open(out, "w", encoding="utf-8") as f:
+        for pkg, paths in sorted(allow.items()):
+            for p, m in sorted(paths.items()):
+                f.write(f"{pkg}\t{p}\t{oct(m)[2:]}\n")
+    return 0
+
+
+def build_key(m):
+    """Klic hotoveho sestaveni (prvni radek out/drivers-repo/built/BALIK): overeny commit, zaplaty LuxOS
+    a verze pravidel prav - zmena kterehokoli = sestavit znovu."""
+    key = m["commit"]
+    pats = m.get("patches") or {}
+    if pats:
+        key += " patches:" + hashlib.sha256(",".join(f"{k}={v}" for k, v in sorted(pats.items())).encode()).hexdigest()[:16]
+    return key + f" perms:{PERMS_POLICY}"
+
+
+def cmd_build_keys():
+    manifest = load(os.path.join(STATE, "manifest.json"), {})
+    for base, m in sorted(manifest.items()):
+        print(f"{base}\t{build_key(m)}")
+    return 0
+
+
 def cmd_report():
     manifest = load(os.path.join(STATE, "manifest.json"), {})
     rejected = load(os.path.join(STATE, "rejected.json"), {})
@@ -1174,6 +1358,14 @@ def main(argv):
         return cmd_index(args[0], args[1] if len(args) > 1 else None)
     if cmd == "report":
         return cmd_report()
+    if cmd == "perms" and args:
+        if args[0] == "--report" and len(args) == 2:
+            return cmd_perms(args[1:], report=True)
+        return cmd_perms(args)
+    if cmd == "perms-allow-tsv" and len(args) == 1:
+        return cmd_perms_allow_tsv(args[0])
+    if cmd == "build-keys":
+        return cmd_build_keys()
     print(__doc__, file=sys.stderr)
     return 2
 

@@ -16,9 +16,11 @@ USB). Classic USB printers get the best installed driver. Scanners work through 
 | watcher | `luxos-printing-watch.service` → `/usr/lib/luxos/printing/luxos-printing-watch` | listens to `avahi-browse` for new `_ipp._tcp` and `_uscan._tcp` services and runs the helper; every 30 s runs `luxos-printing-helper autoresume`, but only while CUPS is running or a queue is stopped |
 | USB trigger | `/usr/lib/udev/rules.d/99-zz-luxos-printing.rules` → `luxos-printing-sync.service` | runs the helper when a USB printer or scanner is plugged in |
 | helper (root) | `/usr/lib/luxos/printing/luxos-printing-helper` | creates the queues and installs drivers |
+| admin entry | `/usr/lib/luxos/printing/luxos-printing-admin` | the same helper for removing a queue and cancelling another user's job |
 | notifications | `/usr/lib/luxos/printing/luxos-printing-notify` | "Printer “X” is ready" etc. in the user session |
 | mDNS in nsswitch | `/usr/lib/luxos/printing/luxos-nsswitch-mdns` (+ libalpm hook) | adds `mdns_minimal` to the `hosts:` line of `/etc/nsswitch.conf` |
-| polkit | `org.luxos.printing.manage` | lets the active user run the helper through `pkexec` without a password |
+| polkit | `org.luxos.printing.manage` | lets the active user run the helper through `pkexec` without a password (add, default, resume, discover) |
+| polkit | `org.luxos.printing.admin` | removing a printer and cancelling another user's job ask for an administrator password (`auth_admin_keep`, remembered for a few minutes) |
 
 The package's install script enables `cups.socket`, `avahi-daemon.service` and
 `luxos-printing-watch.service`. The print-queue applet (system-config-printer-applet) is disabled
@@ -29,7 +31,14 @@ on purpose.
 `luxos-printing-helper sync` finds devices and handles each kind like this:
 
 - **Network or IPP-USB printers with driverless support** get a queue with `lpadmin -m everywhere`.
-  Queues are not shared. Network queues use `printer-error-policy=retry-job`, USB queues (classic
+  Queues are not shared. mDNS announcements are not authenticated, so everything from them is
+  checked first: only `_ipp`/`_ipps` services in the `local` domain, DNS-SD names up to 63 bytes
+  without control characters, the `UUID` only in UUID format (anything else is dropped, never put
+  into the `dnssd://` URI), the queue URI must have exactly the `dnssd://NAME._ipp._tcp.local/?uuid=…`
+  shape. At most 5 network queues are added automatically per hour and 20 in total; more can be
+  added with + in Printers & Scanners. The watcher runs `sync` at most every 10 seconds, also when
+  the network floods it with announcements. Drivers are never installed because of a network
+  announcement - only for USB printers. Network queues use `printer-error-policy=retry-job`, USB queues (classic
   and IPP-USB) `retry-current-job` (see [Printer unplugged or turned off](#printer-unplugged-or-turned-off)).
 - **Classic USB printers** get the best matching installed PPD driver. If none fits, the helper
   installs `hplip` (HP) or `gutenprint` (others) through `lux` (`lux_alpm.py`; it waits if the
@@ -62,10 +71,10 @@ Other helper commands (root, or through `pkexec`):
 ```
 luxos-printing-helper discover        # JSON of all found printers
 luxos-printing-helper add KEY         # add one from discover (also a removed one)
-luxos-printing-helper remove QUEUE    # remove (and do not add again)
+luxos-printing-helper remove QUEUE    # remove (and do not add again) - via pkexec only luxos-printing-admin
 luxos-printing-helper default QUEUE   # default printer
 luxos-printing-helper resume QUEUE    # re-enable a paused queue
-luxos-printing-helper cancel ID       # cancel a print job (any user)
+luxos-printing-helper cancel ID       # cancel a print job (any user) - via pkexec only luxos-printing-admin
 luxos-printing-helper autoresume      # resume queues paused because the printer was away (watcher)
 luxos-printing-helper migrate         # one-time error policy update of older queues (package upgrade)
 ```

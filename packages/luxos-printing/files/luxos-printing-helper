@@ -4,10 +4,10 @@
   luxos-printing-helper sync            najit tiskarny a skenery, pridat nove fronty, upozornit uzivatele
   luxos-printing-helper discover        JSON se vsemi nalezenymi tiskarnami (pro "Pridat tiskarnu")
   luxos-printing-helper add KLIC        pridat tiskarnu z discover (i drive odebranou)
-  luxos-printing-helper remove FRONTA   odebrat (a uz ji sam znovu nepridavat)
+  luxos-printing-helper remove FRONTA   odebrat (a uz ji sam znovu nepridavat)           [spravce]
   luxos-printing-helper default FRONTA  vychozi tiskarna
   luxos-printing-helper resume FRONTA   znovu povolit pozastavenou frontu
-  luxos-printing-helper cancel ID       zrusit tiskovou ulohu (i cizi)
+  luxos-printing-helper cancel ID       zrusit tiskovou ulohu (i cizi)                   [spravce]
   luxos-printing-helper autoresume      fronty pozastavene kvuli odpojene tiskarne povolit, kdyz je
                                         tiskarna zase pripojena; upozornit na ulohy cekajici na tiskarnu
                                         (spousti luxos-printing-watch pravidelne, sync po kazde udalosti)
@@ -18,6 +18,12 @@ bez ovladace (lpadmin -m everywhere). Klasicke USB tiskarny dostanou nejlepsi na
 kdyz zadny nepasuje, doinstaluje se hplip (HP) nebo gutenprint (ostatni), jinak obecny ovladac
 podle jazyka tiskarny (PostScript / PCL). Pridane fronty si pamatuje ve stavu, takze nikdy nesahne
 na fronty, ktere vytvoril nekdo jiny. Volani z aplikace pres pkexec (polkit org.luxos.printing.manage).
+
+Sam (sync po udalosti v siti) pridava jen tiskarny IPP Everywhere / AirPrint s overenym ohlasenim
+(luxos_printing.parse_avahi, valid_dnssd_uri) a nejvys AUTO_PER_HOUR za hodinu / AUTO_MAX celkem; dalsi
+jde pridat rucne (+ v Tiskarny a skenery). Ovladace instaluje jen pro tiskarny na USB, nikdy kvuli sitove udalosti.
+[spravce]: pres pkexec jen z luxos-printing-admin (polkit org.luxos.printing.admin, heslo spravce) - odebrani
+fronty a zruseni cizi ulohy nesmi kterykoli prihlaseny uzivatel. Root bez pkexec (sluzby) smi vse.
 """
 import fcntl
 import json
@@ -33,6 +39,7 @@ import luxos_printing as lp  # noqa: E402
 STATE = os.environ.get("LUXOS_PRINTING_STATE", "/var/lib/luxos-printing/state.json")
 LOCK = os.environ.get("LUXOS_PRINTING_LOCK", "/run/luxos-printing.lock")
 NOTIFY = "/usr/lib/luxos/printing/luxos-printing-notify"
+ADMIN = "/usr/lib/luxos/printing/luxos-printing-admin"
 STALE_DAYS = 60      # automaticky pridana fronta, ktera tak dlouho nebyla videt, se odebere
 PRINTERS_CONF = os.environ.get("LUXOS_PRINTING_CUPS_CONF", "/etc/cups/printers.conf")
 SYSFS_USB = os.environ.get("LUXOS_PRINTING_SYSFS", "/sys/bus/usb/devices")
@@ -51,6 +58,16 @@ DB_LOCK = "/var/lib/lux/db.lck"
 
 
 FAILED = {}    # klic zarizeni -> {"why", "package"} posledniho neuspesneho pridani (prikaz add)
+
+# Samo (bez uzivatele) pridane sitove fronty: nejvys tolik za hodinu a celkem (zaplava ohlaseni v siti)
+AUTO_PER_HOUR = 5
+AUTO_MAX = 20
+# Prikazy jen pro spravce (pres pkexec jen z luxos-printing-admin); luxos-printing-admin nastavi
+# LUXOS_PRINTING_ADMIN = True pres runpy.run_path(init_globals=...) - z prostredi to nastavit nejde
+ADMIN_COMMANDS = ("remove", "cancel")
+ADMIN_ENTRY = globals().get("LUXOS_PRINTING_ADMIN") is True
+# Nazev fronty v argumentu: jako v CUPS (tisknutelne znaky bez mezer, / # \ ' "), ne jako prepinac
+QUEUE_RE = re.compile(r"[^\s/#\\'\"-][^\s/#\\'\"]{0,126}")
 
 
 def log(msg):
@@ -76,6 +93,7 @@ def load_state():
     for k in ("queues", "seen_scanners", "notified", "autoresume", "waiting"):
         st.setdefault(k, {})
     st.setdefault("ignored", [])
+    st.setdefault("auto_net", [])
     return st
 
 
@@ -219,7 +237,9 @@ def drivers_index():
 
 
 def install_driver(pkg):
-    """Doinstaluje balik s ovladacem (bez -y: zadna castecna aktualizace systemu)."""
+    """Doinstaluje balik s ovladacem (bez -y: zadna castecna aktualizace systemu).
+    Vola se jen pro tiskarny na USB (create_queue: dev["classic"]) a pro index ovladacu - nikdy kvuli
+    ohlaseni v siti."""
     if installed(pkg) or os.environ.get("LUXOS_PRINTING_NO_INSTALL"):
         return False
     if os.path.exists(DB_LOCK):
@@ -246,7 +266,11 @@ def create_queue(dev, queues):
     name = lp.queue_name(dev["model"] if dev.get("classic") else dev["name"], queues)
     desc = lp.friendly_name(dev["name"])
     loc = "USB" if dev.get("usb") else "Network"
-    if dev.get("classic"):
+    classic = dev.get("classic") and dev.get("uri", "").startswith("usb://")
+    if not classic and not lp.valid_dnssd_uri(dev.get("uri")):
+        log(f"not adding {desc!r}: unexpected device URI")
+        return None, "manual"
+    if classic:
         models_cache = models()
         ppd = lp.pick_ppd(models_cache, dev["device_id"])
         missing = None
@@ -360,8 +384,17 @@ def discover(st):
     return devs, queues
 
 
+def auto_limit(st, now):
+    """Smi sync sam pridat dalsi sitovou frontu? (nejvys AUTO_PER_HOUR za hodinu, AUTO_MAX celkem)"""
+    st["auto_net"] = [t for t in st.get("auto_net", []) if now - t < 3600]
+    total = sum(1 for q in st["queues"].values() if not q.get("classic", not q.get("uuid") and
+                                                                 str(q.get("uri", "")).startswith("usb:")))
+    return len(st["auto_net"]) < AUTO_PER_HOUR and total < AUTO_MAX
+
+
 def cmd_sync(st, only_key=None):
     now = int(time.time())
+    limited = False
     # Fronty odebrane jinym nastrojem: uzivatel je nechce, znovu je nepridavat
     queues = cups_queues()
     for name in list(st["queues"]):
@@ -384,10 +417,17 @@ def cmd_sync(st, only_key=None):
             if only_key is None:
                 continue
             st["ignored"].remove(d["key"])
+        if only_key is None and not dev.get("classic") and dev.get("driverless") and not auto_limit(st, now):
+            if not limited:
+                log("too many new network printers - not adding more automatically (Printers & Scanners: +)")
+            limited = True
+            continue
         name, why = create_queue(dev, queues)
         if name:
             st["queues"][name] = {"key": d["key"], "uri": dev["uri"], "added": now, "seen": now,
-                                  "usb": dev["usb"], "uuid": dev.get("uuid")}
+                                  "usb": dev["usb"], "uuid": dev.get("uuid"), "classic": bool(dev.get("classic"))}
+            if only_key is None and not dev.get("classic"):
+                st["auto_net"].append(now)
             added.append((name, d["name"], dev.get("uuid")))
             if dev.get("needs_plugin"):
                 notify("plugin", d["name"])
@@ -658,6 +698,13 @@ def main(argv):
     if os.geteuid() != 0:
         print("luxos-printing-helper: run as root (pkexec)", file=sys.stderr)
         return 1
+    if cmd in ADMIN_COMMANDS and "PKEXEC_UID" in os.environ and not ADMIN_ENTRY:
+        # polkit org.luxos.printing.manage (bez hesla) na tohle nestaci
+        print(f"luxos-printing-helper: '{cmd}' needs an administrator (pkexec {ADMIN})", file=sys.stderr)
+        return 4
+    if cmd in ("remove", "default", "resume") and not (len(args) == 1 and QUEUE_RE.fullmatch(args[0])):
+        print(USAGE, file=sys.stderr)
+        return 2
     if cmd == "autoresume":
         # pravidelna kontrola: kdyz pomocnik prave pracuje (instalace ovladace), tentokrat nic
         lk = lock(wait=False)

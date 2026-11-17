@@ -623,9 +623,11 @@ class Migration(FakeCups):
         dev = {"key": CANON_URI, "uri": CANON_URI, "name": "Canon MF4100 Series", "model": "Canon MF4100 Series",
                "usb": True, "classic": True, "device_id": "MFG:Canon;MDL:MF4100 Series;CMD:LIPSLX,CPCA;"}
         self.assertEqual(self.h.create_queue(dev, {})[1], None)
-        net = {"key": "uuid:2", "uri": "dnssd://HP._ipp._tcp.local/?uuid=2", "name": "HP", "model": "HP",
+        # (UUID jen v platnem tvaru - jinak fronta ze site nevznikne, valid_dnssd_uri)
+        u2, u3 = "00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000003"
+        net = {"key": "uuid:" + u2, "uri": "dnssd://HP._ipp._tcp.local/?uuid=" + u2, "name": "HP", "model": "HP",
                "usb": False, "driverless": True}
-        ippusb = dict(net, uri="dnssd://Canon%20USB._ipp._tcp.local/?uuid=3", name="Canon USB", usb=True)
+        ippusb = dict(net, uri="dnssd://Canon%20USB._ipp._tcp.local/?uuid=" + u3, name="Canon USB", usb=True)
         self.h.create_queue(net, {})
         self.h.create_queue(ippusb, {})
         pol = [next(a for a in c if a.startswith("printer-error-policy=")) for c in cmds if c[:1] == ["lpadmin"]]

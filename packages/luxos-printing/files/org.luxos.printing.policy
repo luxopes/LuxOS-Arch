@@ -3,6 +3,8 @@
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
   <vendor>LuxOS</vendor>
+  <!-- Bezne akce bez hesla: pridat nalezenou tiskarnu, vychozi tiskarna, obnovit pozastavenou frontu,
+       hledani tiskaren. Odebrani fronty a zruseni cizi ulohy luxos-printing-helper pres tuto akci odmitne. -->
   <action id="org.luxos.printing.manage">
     <description>Manage printers</description>
     <description xml:lang="cs">Správa tiskáren</description>
@@ -15,5 +17,19 @@
       <allow_active>yes</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/luxos/printing/luxos-printing-helper</annotate>
+  </action>
+  <!-- Odebrat tiskarnu, zrusit tiskovou ulohu jineho uzivatele: heslo spravce (na chvili zapamatovane) -->
+  <action id="org.luxos.printing.admin">
+    <description>Remove printers and cancel other users' print jobs</description>
+    <description xml:lang="cs">Odebrání tiskáren a rušení tiskových úloh jiných uživatelů</description>
+    <message>Authentication is required to remove a printer or cancel another user's print job</message>
+    <message xml:lang="cs">K odebrání tiskárny nebo zrušení úlohy jiného uživatele je potřeba ověření</message>
+    <icon_name>printer</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/luxos/printing/luxos-printing-admin</annotate>
   </action>
 </policyconfig>

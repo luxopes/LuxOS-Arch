@@ -6,12 +6,46 @@ volba ovladace, uprava nsswitch.conf) - testy v tests/test_luxos_printing.py.
 import json
 import os
 import re
+import unicodedata
 import urllib.parse
 
 # Formaty, ktere umi CUPS posilat tiskarne bez ovladace (IPP Everywhere, AirPrint, Mopria)
 DRIVERLESS_PDL = ("image/pwg-raster", "image/urf", "application/pdf")
 PRINTER_TYPES = ("_ipp._tcp", "_ipps._tcp")
 SCANNER_TYPES = ("_uscan._tcp", "_uscans._tcp")
+SERVICE_TYPES = PRINTER_TYPES + SCANNER_TYPES
+
+# Ohlaseni mDNS z mistni site nikdo neoveruje (kdokoli v siti muze ohlasit cokoli) - vse z nej se overi:
+# UUID presne ve tvaru UUID, nazev sluzby jako v DNS-SD (nejvys 63 bajtu, bez ridicich znaku), jen domena
+# local, port 1-65535, cesta tiskarny (rp) jen bezne znaky. Co neprojde, se ignoruje.
+UUID_RE = re.compile(r"(?:urn:uuid:)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", re.I)
+RP_RE = re.compile(r"[A-Za-z0-9._~/-]{0,127}")
+MAX_SERVICE_NAME = 63      # bajtu UTF-8 (RFC 6763, jeden stitek DNS)
+
+
+def clean_uuid(value):
+    """UUID z TXT zaznamu -> kanonicky tvar malymi pismeny; cokoli jineho (i 'x&contimeout=1') -> None."""
+    m = UUID_RE.fullmatch((value or "").strip())
+    return m.group(1).lower() if m else None
+
+
+def clean_text(s, limit=127):
+    """Text pro uzivatele a CUPS (printer-info): bez ridicich a formatovacich znaku, jedna mezera, zkraceny."""
+    s = "".join(" " if unicodedata.category(c) in ("Cc", "Cf", "Zl", "Zp") else c for c in (s or ""))
+    return re.sub(r"\s+", " ", s).strip()[:limit]
+
+
+def valid_service_name(name):
+    """Nazev sluzby DNS-SD: 1-63 bajtu UTF-8, bez ridicich znaku."""
+    if not name or len(name.encode("utf-8", "surrogatepass")) > MAX_SERVICE_NAME:
+        return False
+    return not any(unicodedata.category(c) in ("Cc", "Cf", "Cs", "Zl", "Zp") for c in name)
+
+
+def clean_rp(rp):
+    """Cesta tiskarny z TXT (rp=ipp/print) - jen bezne znaky a bez '..', jinak vychozi."""
+    rp = (rp or "").strip().lstrip("/")
+    return rp if RP_RE.fullmatch(rp) and ".." not in rp.split("/") else "ipp/print"
 
 
 def avahi_unescape(s):
@@ -43,22 +77,40 @@ def parse_avahi(text):
             port = int(f[8])
         except ValueError:
             continue
-        out.append({"iface": f[1], "proto": f[2], "name": avahi_unescape(f[3]), "type": f[4], "domain": f[5],
+        name = avahi_unescape(f[3])
+        # neoverene ohlaseni ze site: jen zname typy sluzeb v domene local se spravnym nazvem a portem
+        if f[4] not in SERVICE_TYPES or f[5].lower() != "local" or not valid_service_name(name) or \
+                not 0 < port < 65536:
+            continue
+        out.append({"iface": f[1], "proto": f[2], "name": name, "type": f[4], "domain": "local",
                     "host": f[6], "address": f[7], "port": port, "txt": parse_txt(f[9])})
     return out
 
 
 def dnssd_uri(name, stype, uuid=None, domain="local"):
-    """URI ve tvaru, jaky pouziva CUPS: odolne vuci zmene IP adresy tiskarny."""
+    """URI ve tvaru, jaky pouziva CUPS: odolne vuci zmene IP adresy tiskarny.
+    Nazev je cely zakodovany (%XX), typ jen ze seznamu, UUID jen platne - nic z ohlaseni nezmeni tvar URI."""
+    if stype not in SERVICE_TYPES or domain != "local":
+        raise ValueError(f"unexpected service type {stype!r}.{domain!r}")
     uri = f"dnssd://{urllib.parse.quote(name, safe='')}.{stype}.{domain}/"
+    uuid = clean_uuid(uuid)
     if uuid:
         uri += f"?uuid={uuid}"
     return uri
 
 
+DNSSD_URI_RE = re.compile(r"dnssd://[A-Za-z0-9%._~-]{1,400}\._ipps?\._tcp\.local/(\?uuid=[0-9a-f]{8}-[0-9a-f]{4}-"
+                          r"[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?")
+
+
+def valid_dnssd_uri(uri):
+    """URI fronty pro tiskarnu z mDNS presne ve tvaru z dnssd_uri() (kontrola pred lpadmin -v)."""
+    return bool(DNSSD_URI_RE.fullmatch(uri or ""))
+
+
 def uri_uuid(uri):
-    m = re.search(r"[?&]uuid=([0-9a-fA-F-]{8,})", uri or "")
-    return m.group(1).lower() if m else None
+    m = re.search(r"[?&]uuid=([0-9a-fA-F-]{36})(?:&|$)", uri or "")
+    return clean_uuid(m.group(1)) if m else None
 
 
 def uri_service_name(uri):
@@ -76,7 +128,7 @@ def is_driverless(txt):
 
 
 def device_key(svc):
-    uuid = (svc["txt"].get("uuid") or "").lower()
+    uuid = clean_uuid(svc["txt"].get("uuid"))
     return f"uuid:{uuid}" if uuid else f"dnssd:{svc['name']}"
 
 
@@ -90,13 +142,13 @@ def group_printers(services):
         if s["type"] not in PRINTER_TYPES:
             continue
         key = device_key(s)
-        p = out.setdefault(key, {"key": key, "name": s["name"], "uuid": s["txt"].get("uuid", "").lower() or None,
-                                 "model": s["txt"].get("ty") or s["name"], "types": set(), "usb": False,
-                                 "txt": s["txt"], "addrs": []})
+        p = out.setdefault(key, {"key": key, "name": s["name"], "uuid": clean_uuid(s["txt"].get("uuid")),
+                                 "model": clean_text(s["txt"].get("ty")) or clean_text(s["name"]), "types": set(),
+                                 "usb": False, "txt": s["txt"], "addrs": []})
         p["types"].add(s["type"])
         if s["iface"] == "lo":
             p["usb"] = True
-        p["addrs"].append((s["type"], s["address"], s["port"], s["txt"].get("rp", "ipp/print")))
+        p["addrs"].append((s["type"], s["address"], s["port"], clean_rp(s["txt"].get("rp", "ipp/print"))))
     for p in out.values():
         # _ipp ma prednost (sifrovane _ipps jen kdyz jine neni)
         stype = "_ipp._tcp" if "_ipp._tcp" in p["types"] else "_ipps._tcp"
@@ -112,18 +164,19 @@ def group_scanners(services):
     for s in services:
         if s["type"] not in SCANNER_TYPES:
             continue
-        uuid = (s["txt"].get("uuid") or "").lower()
+        uuid = clean_uuid(s["txt"].get("uuid"))
         key = f"uuid:{uuid}" if uuid else f"escl:{s['name']}"
-        model = s["txt"].get("ty") or s["name"]
+        model = clean_text(s["txt"].get("ty")) or clean_text(s["name"])
         out.setdefault(key, {"key": key, "name": s["name"], "model": model, "usb": s["iface"] == "lo"})
     return out
 
 
 def friendly_name(name):
     """Nazev sluzby bez technickych pripon: 'HP LaserJet M110w (A1B2C3)' / '... @ host' / '[serial]'."""
-    n = re.sub(r"\s*@\s*\S+$", "", name or "").strip()
+    name = clean_text(name)
+    n = re.sub(r"\s*@\s*\S+$", "", name).strip()
     n = re.sub(r"\s*[\[(][0-9A-Fa-f:]{4,}[\])]$", "", n).strip()
-    return n or (name or "Printer")
+    return n or name or "Printer"
 
 
 def queue_name(text, existing):
