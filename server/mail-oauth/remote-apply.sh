@@ -169,7 +169,8 @@ doveconf -h auth_mechanisms | grep -q oauthbearer || die "auth_mechanisms withou
 # (platne adresaty uz overil Postfix: virtual_mailbox_maps). Chyba z prvniho nasazeni 2026-11-07.
 PWF=$DOVE/conf.d/auth-passwdfile.conf.ext
 if [[ -f $PWF ]] && grep -q '^userdb static {' "$PWF" && ! grep -q 'allow_all_users' "$PWF"; then
-    cp -a "$PWF" "$BACKUP/" 2>/dev/null || true
+    # zaloha jako ostatni soubory (files/...orig): remote-rollback.sh ji vrati
+    backup "$PWF"
     sed -i 's/^userdb static {$/userdb static {\n  allow_all_users = yes/' "$PWF"
 fi
 doveadm user "$(awk -F: 'NR==1{print $1}' "$DOVE/users")" > /dev/null || die "userdb lookup for LMTP delivery fails"

@@ -346,7 +346,19 @@ function send(conn, mail_from, rcpts, data):
     if n < 2 or body[n - 2] != 13 or body[n - 1] != 10:
         call imap.write(conn, "\r\n")
     end
-    r = command(conn, ".", DATA_TIMEOUT)
+    # Spojeni spadlo az po "." (bez odpovedi): server zpravu mozna prijal. Ne opakovat samo (dvojite odeslani),
+    # ale trvala chyba "smtp_unknown" - uzivatel se rozhodne (Odeslane / Odeslat znovu).
+    r = {}
+    lost = ""
+    try:
+        r = command(conn, ".", DATA_TIMEOUT)
+    else:
+        lost = String(last_error())
+    end
+    if lost != "":
+        # jakakoli chyba pred odpovedi serveru (vyprseni, zavrene spojeni, TLS EOF): vysledek neznamy
+        call fail("smtp_unknown", imap.error_kind(lost)[1])
+    end
     if r["code"] != 250:
         call reply_error(r, "")
     end

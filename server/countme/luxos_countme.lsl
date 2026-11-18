@@ -513,7 +513,9 @@ function load_counts(t):
     if ok:
         return data["counts"]
     end
-    # poskozeny soubor: odlozit vedle (nic nemazat) a zacit znovu
+    # jen nektere zaznamy neplatne (rucni uprava, starsi/novejsi server s jinymi klici): platne zustanou,
+    # puvodni soubor se odlozi vedle beze zmeny (nic se neztrati) a vycisteny stav se hned zapise
+    kept = salvage_counts(data)
     target = STATE_FILE + ".corrupt-" + iso_week(t)
     n = 1
     while exists(target):
@@ -521,8 +523,37 @@ function load_counts(t):
         target = STATE_FILE + ".corrupt-" + iso_week(t) + "-" + String(n)
     end
     call sys_rename(STATE_FILE, target)
+    if len(kept) > 0:
+        print "countme: state file has invalid entries, original moved aside to " + target + ", valid entries kept"
+        COUNTS[0] = kept
+        call flush(t)
+        return kept
+    end
     print "countme: state file is corrupt, moved aside to " + target + ", starting empty"
     return {}
+end
+
+# Platne tydny a klice z jinak neplatneho stavu ({} kdyz soubor nema ani spravny tvar)
+function salvage_counts(data):
+    kept = {}
+    if type(data) != "Dictionary" or data.get("schema") != 1 or type(data.get("counts")) != "Dictionary":
+        return kept
+    end
+    for week, per_week in data["counts"].items():
+        if not valid_week_key(week) or type(per_week) != "Dictionary":
+            continue
+        end
+        good = {}
+        for key, count in per_week.items():
+            if valid_count_key(key) and type(count) == "Int" and count >= 0:
+                good[key] = count
+            end
+        end
+        if len(good) > 0:
+            kept[week] = good
+        end
+    end
+    return kept
 end
 
 function valid_state(data):

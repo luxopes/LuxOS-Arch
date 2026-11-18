@@ -390,7 +390,9 @@ function open(opts):
          "loading": True, "dirty": False}
     if c["draft_mid"] == "":
         c["draft_mid"] = mime.new_message_id(account_of(account).get("email", ""))
-    else:
+    elif "draft_saved" not in opts:
+        # koncept otevreny ze slozky Koncepty; zprava z Odchozi preda draft_saved sama (jeji Message-ID
+        # nemusi byt na serveru - pak by zavreni bez zmen zpravu ztratilo)
         c["draft_saved"] = True
     end
     if type(c["reply"]) != "Dictionary":
@@ -898,6 +900,8 @@ function error_text(kind, detail, account):
         return i18n.T("The outgoing server does not offer an encrypted connection. Mail does not send your password unencrypted.")
     elif kind == "smtp_utf8":
         return i18n.T("The outgoing server does not accept addresses with accented characters.")
+    elif kind == "smtp_unknown":
+        return i18n.T("The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.")
     elif kind == "noaccount":
         return i18n.T("The account of this message no longer exists.")
     elif kind.startswith("oauth_"):
@@ -937,6 +941,24 @@ function close_window(c):
     return 0
 end
 
+function drop_unclaimed_job(job):
+    path = outbox_dir() + "/" + job + ".json"
+    st = None
+    safe:
+        st = json.decode(readfile(path))
+    end
+    if type(st) != "Dictionary" or st.get("state", "") != "new":
+        # sluzba uz zacala odesilat: zustava v Odchozi (Odeslat nyni / smazat)
+        return 0
+    end
+    for ext in [".json", ".eml"]:
+        safe:
+            call remove_path(outbox_dir() + "/" + job + ext)
+        end
+    end
+    return 0
+end
+
 # Odpoved sluzby na pozadavek okna psani (mail_ui.on_reply preda ctx s "compose")
 function on_reply(msg, ctx):
     c = cs["windows"].get(ctx.get("compose", ""), None)
@@ -954,6 +976,8 @@ function on_reply(msg, ctx):
                 call set_status(c, i18n.T("Draft saved"), False)
             end
         elif not c["closed"]:
+            # na server se neulozil: zmeny zustavaji neulozene (zavreni se zepta, pozdeji se zkusi znovu)
+            c["dirty"] = True
             call set_status(c, i18n.T("Draft saved on this computer"), False)
         end
         return 0
@@ -967,6 +991,11 @@ function on_reply(msg, ctx):
         call cs["windows"].pop(c["id"])
         call host_call("sent", [msg.get("sent", False), String(msg.get("kind", ""))])
         return 0
+    end
+    # Sluzba skoncila drive, nez zakazku prevzala (stav "new"): zprava zustava v okne, zakazku z Odchozi odebrat,
+    # jinak by ji sluzba po 10 min odeslala sama a po novem Odeslat by odesla dvakrat
+    if msg.get("kind", "") == "service" and c.get("job", "") != "":
+        call drop_unclaimed_job(c["job"])
     end
     call set_busy(c, False)
     call set_status(c, error_text(String(msg.get("kind", "")), String(msg.get("error", "")), account_id(c)), True)

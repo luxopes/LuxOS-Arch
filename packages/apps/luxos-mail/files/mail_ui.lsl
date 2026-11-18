@@ -166,6 +166,13 @@ function on_svc_retry():
     if ui["tries"] > 60:
         ui["connecting"] = False
         call log("the background service did not start")
+        # cekajici pozadavky selhaly (jinak by okno psani zustalo navzdy v "Odesilani…"); dalsi pozadavek
+        # zkusi sluzbu spustit znovu
+        ui["outbox"] = []
+        for id in list_keys(ui["pending"]):
+            ctx = ui["pending"].pop(id)
+            call on_reply({"ok": False, "kind": "service", "error": i18n.T("The mail service stopped.")}, ctx)
+        end
         return False
     end
     return True
@@ -1754,6 +1761,10 @@ function on_compose_sent(sent, kind):
 end
 
 function on_compose_closed():
+    # hlavni okno mezitim znovu otevrene (spusteni Posty, upozorneni): Posta bezi dal
+    if ui.get("hidden", False) and mg.widget_get_visible(ui["window"]):
+        ui["hidden"] = False
+    end
     if ui.get("hidden", False) and compose.open_count() == 0:
         call gtk.main_quit()
     end
@@ -1967,8 +1978,17 @@ function extract_attachments(list):
         return out
     end
     d = store.ensure_dir(store.ensure_dir(store.base_data() + "/drafts") + "/files-" + mime.random_hex(6))
+    used = {}
+    n = 0
     for a in list:
-        path = d + "/" + safe_name(a["name"])
+        n += 1
+        fname = safe_name(a["name"])
+        # stejne jmeno dvou priloh: druha nesmi prepsat prvni (jmeno v okne zustava puvodni)
+        if fname in used:
+            fname = String(n) + "-" + fname
+        end
+        used[fname] = True
+        path = d + "/" + fname
         safe:
             call writebytes(path, mime.part_bytes(ui["body"], a["path"]))
             call mb.chmod(path, 384)
@@ -2066,11 +2086,18 @@ function job_state_text(job):
     return i18n.T("Waiting to be sent – Mail tries again automatically.")
 end
 
+# UID radku Odchozi je stale cislo zakazky (ne poradi v seznamu): po pridani nove zakazky vybrany radek dal ukazuje
+# na tutez zpravu, Smazat / Odeslat nyni nezasahne jinou
 function outbox_rows():
     rows = []
     ui["jobs"] = {}
-    uid = 1
+    known = ui.get("job_uids", {})
     for job in outbox_jobs():
+        if job["id"] not in known:
+            ui["job_next"] = ui.get("job_next", 0) + 1
+            known[job["id"]] = ui["job_next"]
+        end
+        uid = known[job["id"]]
         ui["jobs"][uid] = job
         created = job.get("created", 0)
         if type(created) != "Int":
@@ -2083,8 +2110,8 @@ function outbox_rows():
         rows.append({"uid": uid, "flags": flags, "internal": created, "date": created, "from_name": "", "from_email": "",
                      "to": String(job.get("to_text", "")), "subject": String(job.get("subject", "")), "preview": job_state_text(job),
                      "size": 0, "att": False})
-        uid += 1
     end
+    ui["job_uids"] = known
     return rows
 end
 
@@ -2109,7 +2136,10 @@ function outbox_edit():
     end
     opts = st
     opts.pop("id", None)
-    opts["draft_saved"] = False
+    # koncept na serveru jen kdyz ho zakazka uvadi; okno jako obnovene (neulozene zmeny: hned se ulozi
+    # v pocitaci a pri zavreni se zepta) - zakazka se z Odchozi smaze, zprava se nesmi ztratit
+    opts["draft_saved"] = String(job.get("draft_id", "")) != ""
+    opts["restored"] = True
     call compose.open(opts)
     call request("outbox_delete", {"job": job["id"]}, {})
     return 0
@@ -2213,7 +2243,9 @@ function set_read(m, read):
         end
     end
     call update_title()
-    call request("flags", {"account": cur["account"], "mailbox": cur["raw"], "uids": [m["uid"]], "add": read, "flags": ["\\Seen"]}, {"account": cur["account"], "mailbox": cur["raw"]})
+    validity = store.load_state(cur["account"], cur["raw"]).get("uidvalidity", 0)
+    call request("flags", {"account": cur["account"], "mailbox": cur["raw"], "uids": [m["uid"]], "add": read, "flags": ["\\Seen"], "uidvalidity": validity},
+                 {"account": cur["account"], "mailbox": cur["raw"]})
     return 0
 end
 
@@ -2269,7 +2301,10 @@ function delete_selected():
     else:
         call mg.stack_show(ui["view"], "empty")
     end
-    call request("trash", {"account": cur["account"], "mailbox": cur["raw"], "uids": [uid]}, {"account": cur["account"], "mailbox": cur["raw"]})
+    # UIDVALIDITY seznamu: zprava ze zastarale mezipameti se nesmaze (v Kosi by se smazala jina natrvalo)
+    validity = store.load_state(cur["account"], cur["raw"]).get("uidvalidity", 0)
+    call request("trash", {"account": cur["account"], "mailbox": cur["raw"], "uids": [uid], "uidvalidity": validity},
+                 {"account": cur["account"], "mailbox": cur["raw"]})
     call trace_pane("delete")
     return 0
 end

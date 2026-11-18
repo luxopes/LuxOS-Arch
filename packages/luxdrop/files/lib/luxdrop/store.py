@@ -1,8 +1,11 @@
 """LuxDrop - nastaveni, duveryhodna zarizeni (pripnute otisky) a historie prenosu."""
+import contextlib
+import fcntl
 import json
 import os
 import re
 import socket
+import threading
 import time
 
 from . import identity, proto
@@ -47,6 +50,24 @@ def _load_json(path, default):
 
 def _save_json(path, data):
     identity.write_private(path, json.dumps(data, indent=1, ensure_ascii=False).encode("utf-8"))
+
+
+_LOCK = threading.RLock()
+
+
+@contextlib.contextmanager
+def _locked(directory):
+    """Cteni-uprava-zapis duveryhodnych zarizeni a historie jen jeden najednou: vlakna prijimace, okno i sluzba
+    (jiny proces) by si jinak prepsaly zmeny, nebo zapisovaly do tehoz .tmp a soubor poskodily (= ztrata vsech
+    duveryhodnych zarizeni)."""
+    with _LOCK:
+        identity.ensure_private_dir(directory)
+        fd = os.open(os.path.join(directory, ".store.lock"), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            os.close(fd)
 
 
 class Settings:
@@ -171,39 +192,42 @@ class TrustStore:
 
     def add(self, fp, name, addr=None, kind="luxdrop", cert_fp=None, device_type=None):
         """fp = SHA-256 klice (SPKI). kind: "luxdrop" nebo "localsend" (cert_fp = otisk LocalSend)."""
-        self.reload()
-        e = self.peers.get(fp.hex(), {"added": time.time()})
-        e.update({"name": str(name)[:63], "id": proto.short_id(fp), "last_seen": time.time(), "kind": kind})
-        if addr:
-            e["last_addr"] = addr
-        if cert_fp:
-            e["cert_fp"] = cert_fp
-        if device_type:
-            e["device_type"] = device_type
-        self.peers[fp.hex()] = e
-        self.save()
+        with _locked(self.dir):
+            self.reload()
+            e = self.peers.get(fp.hex(), {"added": time.time()})
+            e.update({"name": str(name)[:63], "id": proto.short_id(fp), "last_seen": time.time(), "kind": kind})
+            if addr:
+                e["last_addr"] = addr
+            if cert_fp:
+                e["cert_fp"] = cert_fp
+            if device_type:
+                e["device_type"] = device_type
+            self.peers[fp.hex()] = e
+            self.save()
 
     def touch(self, fp, name=None, addr=None):
-        self.reload()
-        e = self.peers.get(fp.hex())
-        if e is None:
-            return
-        e["last_seen"] = time.time()
-        if name:
-            e["name"] = str(name)[:63]
-        if addr:
-            e["last_addr"] = addr
-        self.save()
+        with _locked(self.dir):
+            self.reload()
+            e = self.peers.get(fp.hex())
+            if e is None:
+                return
+            e["last_seen"] = time.time()
+            if name:
+                e["name"] = str(name)[:63]
+            if addr:
+                e["last_addr"] = addr
+            self.save()
 
     def remove(self, key):
         """Odebere podle celeho otisku, kratkeho ID nebo jmena; vrati pocet odebranych."""
-        self.reload()
-        hits = self.find(key)
-        for fp_hex, _e in hits:
-            del self.peers[fp_hex]
-        if hits:
-            self.save()
-        return len(hits)
+        with _locked(self.dir):
+            self.reload()
+            hits = self.find(key)
+            for fp_hex, _e in hits:
+                del self.peers[fp_hex]
+            if hits:
+                self.save()
+            return len(hits)
 
     def find(self, key):
         """Najde zarizeni podle otisku, kratkeho ID (prefix) nebo jmena."""
@@ -245,29 +269,31 @@ class TrustStore:
         return e is not None and (spki is None or e["spki"] != spki.hex())
 
     def ls_pin_set(self, name, spki, cert_fp=None):
-        k = self._pin_key(name)
-        if not k or not spki:
-            return
-        pins = self._pins()
-        e = pins.get(k, {"added": time.time()})
-        e.update({"name": str(name)[:63], "spki": spki.hex(), "last_seen": time.time()})
-        if cert_fp:
-            e["cert_fp"] = cert_fp
-        pins[k] = e
-        if len(pins) > 500:  # strop: nejstarsi zaznamy pryc
-            for old in sorted(pins, key=lambda x: pins[x].get("last_seen", 0))[:len(pins) - 500]:
-                del pins[old]
-        identity.ensure_private_dir(self.dir)
-        _save_json(os.path.join(self.dir, "localsend_pins.json"), pins)
+        with _locked(self.dir):
+            k = self._pin_key(name)
+            if not k or not spki:
+                return
+            pins = self._pins()
+            e = pins.get(k, {"added": time.time()})
+            e.update({"name": str(name)[:63], "spki": spki.hex(), "last_seen": time.time()})
+            if cert_fp:
+                e["cert_fp"] = cert_fp
+            pins[k] = e
+            if len(pins) > 500:  # strop: nejstarsi zaznamy pryc
+                for old in sorted(pins, key=lambda x: pins[x].get("last_seen", 0))[:len(pins) - 500]:
+                    del pins[old]
+            identity.ensure_private_dir(self.dir)
+            _save_json(os.path.join(self.dir, "localsend_pins.json"), pins)
 
     def ls_pin_remove(self, name):
-        k = self._pin_key(name)
-        pins = self._pins()
-        if k in pins:
-            del pins[k]
-            _save_json(os.path.join(self.dir, "localsend_pins.json"), pins)
-            return True
-        return False
+        with _locked(self.dir):
+            k = self._pin_key(name)
+            pins = self._pins()
+            if k in pins:
+                del pins[k]
+                _save_json(os.path.join(self.dir, "localsend_pins.json"), pins)
+                return True
+            return False
 
 
 class History:
@@ -279,11 +305,13 @@ class History:
         return [e for e in _load_json(self.path, []) if isinstance(e, dict)]
 
     def add(self, entry):
-        items = self.items()
-        entry = dict(entry, time=time.time())
-        items.insert(0, entry)
-        identity.ensure_private_dir(self.dir)
-        _save_json(self.path, items[:HISTORY_MAX])
+        with _locked(self.dir):
+            items = self.items()
+            entry = dict(entry, time=time.time())
+            items.insert(0, entry)
+            identity.ensure_private_dir(self.dir)
+            _save_json(self.path, items[:HISTORY_MAX])
 
     def clear(self):
-        _save_json(self.path, [])
+        with _locked(self.dir):
+            _save_json(self.path, [])

@@ -14,7 +14,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.environ.get("LUXDROP_LIB", os.path.join(HERE, "..", "files", "lib")))
 
-from luxdrop import localsend, lshttp  # noqa: E402
+from luxdrop import localsend, lshttp, lsserver, lssend, transfer  # noqa: E402
 
 # Testovaci certifikat a otisk z oficialni implementace LocalSend
 # (packages/core/src/crypto/cert.rs, test_fingerprint_from_cert_der)
@@ -360,3 +360,46 @@ class TestLocalSendUnverified(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestPinGlobalLimit(unittest.TestCase):
+    """PIN: kromě 3 pokusu z jedne adresy i strop pro vsechny adresy dohromady (zkouseni z mnoha adres IPv6)."""
+
+    def test_many_addresses_hit_global_limit(self):
+        class S:
+            pin = "4711"
+        srv = lsserver.LocalSendServer.__new__(lsserver.LocalSendServer)
+        srv.settings = S()
+        srv.pin_fail, srv.pin_global = {}, []
+
+        class Req:
+            def __init__(self, ip, pin):
+                self.ip, self.query = ip, {"pin": pin}
+        codes = []
+        for i in range(lsserver.PIN_GLOBAL_MAX + 3):
+            try:
+                srv._check_pin(Req("fd00::%x" % i, "0000"), False)
+            except lshttp.HTTPError as e:
+                codes.append(e.status)
+        self.assertEqual(codes[:lsserver.PIN_GLOBAL_MAX], [401] * lsserver.PIN_GLOBAL_MAX)
+        self.assertEqual(codes[lsserver.PIN_GLOBAL_MAX:], [429] * 3)
+        # duveryhodne zarizeni PIN nepotrebuje ani behem blokovani
+        srv._check_pin(Req("fd00::ffff", None), True)
+
+
+class TestSendHttpException(unittest.TestCase):
+    def test_broken_reply_is_failed_transfer(self):
+        """Poskozena odpoved prijemce (http.client.HTTPException) = neuspesny prenos, ne pad vlakna."""
+        import http.client
+        import unittest.mock as um
+
+        class CB:
+            def update(self, t):
+                pass
+
+        class Hist:
+            def add(self, e):
+                pass
+        with um.patch.object(lssend, "_send", side_effect=http.client.BadStatusLine("garbage")):
+            t = lssend.send(None, None, None, Hist(), {"name": "Phone", "fingerprint": "AB" * 32}, CB(), paths=[])
+        self.assertEqual(t.state, "failed")
