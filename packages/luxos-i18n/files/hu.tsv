@@ -2838,6 +2838,13 @@ Back up again	Mentés újra
 Backing up…	Mentés…
 You can keep working, or close this window.	Dolgozhatsz tovább, vagy bezárhatod ezt az ablakot.
 Backups already on the disk are kept.	A lemezen lévő mentések megmaradnak.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	A hálózati lemezen már vannak titkosítatlan biztonsági mentések erről a számítógépről. A további használatukhoz kapcsolja ki a Mentések titkosítása lehetőséget.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	A számítógép biztonsági mentései a hálózati lemezen titkosítottak. A további használatukhoz kapcsolja be a Mentések titkosítása lehetőséget, és adja meg a jelszavukat.
+Wrong password for the encrypted backups on the network disk.	Hibás jelszó a hálózati lemezen lévő titkosított mentésekhez.
+The backup image on the network disk contains other data.	A hálózati lemezen lévő mentési lemezkép más adatokat tartalmaz.
+The backup image is in use. Try again later.	A mentési lemezkép jelenleg használatban van. Próbálja újra később.
+Erase backups on %s?	Törli a mentéseket innen: %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	A törlés eltávolítja a számítógép összes mentését a hálózati lemezről. Ez nem vonható vissza.
 Stop Using	Nem használom
 Exclude Folder	Mappa kizárása
 Modified	Módosítva

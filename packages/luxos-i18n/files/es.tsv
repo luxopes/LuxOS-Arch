@@ -2838,6 +2838,13 @@ Back up again	Volver a hacer copia
 Backing up…	Haciendo copia…
 You can keep working, or close this window.	Puedes seguir trabajando o cerrar esta ventana.
 Backups already on the disk are kept.	Las copias que ya hay en el disco se conservan.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	El disco de red ya tiene copias sin cifrar de este equipo. Desactiva Cifrar las copias para seguir usándolas.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Las copias de este equipo en el disco de red están cifradas. Activa Cifrar las copias e introduce su contraseña para seguir usándolas.
+Wrong password for the encrypted backups on the network disk.	Contraseña incorrecta para las copias cifradas del disco de red.
+The backup image on the network disk contains other data.	La imagen de copias del disco de red contiene otros datos.
+The backup image is in use. Try again later.	La imagen de copias está en uso. Inténtalo más tarde.
+Erase backups on %s?	¿Borrar las copias en %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Al borrar se eliminan todas las copias de este equipo en el disco de red. Esto no se puede deshacer.
 Stop Using	Dejar de usar
 Exclude Folder	Excluir carpeta
 Modified	Modificado

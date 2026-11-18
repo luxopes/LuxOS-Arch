@@ -2839,6 +2839,13 @@ Back up again	Створити копію знову
 Backing up…	Резервне копіювання…
 You can keep working, or close this window.	Можете продовжувати роботу або закрити це вікно.
 Backups already on the disk are kept.	Резервні копії, які вже є на диску, буде збережено.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	Мережевий диск уже містить незашифровані резервні копії цього комп’ютера. Щоб і далі ними користуватися, вимкніть «Шифрувати резервні копії».
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Резервні копії цього комп’ютера на мережевому диску зашифровані. Щоб і далі ними користуватися, увімкніть «Шифрувати резервні копії» та введіть їхній пароль.
+Wrong password for the encrypted backups on the network disk.	Неправильний пароль до зашифрованих резервних копій на мережевому диску.
+The backup image on the network disk contains other data.	Образ резервних копій на мережевому диску містить інші дані.
+The backup image is in use. Try again later.	Образ резервних копій зараз використовується. Спробуйте пізніше.
+Erase backups on %s?	Стерти резервні копії на %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Стирання видалить усі резервні копії цього комп’ютера на мережевому диску. Цю дію не можна скасувати.
 Stop Using	Припинити використання
 Exclude Folder	Виключити теку
 Modified	Змінено

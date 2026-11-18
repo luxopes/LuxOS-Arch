@@ -42,9 +42,10 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   (`AF_PACKET`, `AF_VSOCK`, Bluetooth, …); 32bitová a x32 ABI se odmítají.
 - **Síť:** bez `--net` jen vlastní loopback (žádné rozhraní ven, ani abstraktní unixové sockety
   hostitele, např. `@/tmp/.X11-unix/X0`). S `--net` NAT přes `pasta` s volbami `--no-map-gw -t none
-  -u none -T none -U none`; v síťovém namespace se navíc zakáže (`prohibit`) celá místní síť
-  (RFC 1918, CGNAT 100.64/10, link-local, ULA, multicast) a všechny adresy hostitele – sandbox vidí jen
-  internet. DNS jde přes přesměrování `pasta` (169.254.1.53) na resolver hostitele.
+  -u none -T none -U none`; v síťovém namespace zůstane jen výchozí trasa (ostatní trasy se smažou,
+  ohlášení routeru se vypnou) a zakáže se (`prohibit`) celá místní síť (RFC 1918, CGNAT 100.64/10,
+  link-local, ULA, multicast), sítě přímo připojené k hostiteli včetně veřejných IPv6 prefixů LAN
+  a všechny adresy hostitele – sandbox vidí jen internet. Když některý krok selže, sandbox se nespustí. DNS jde přes přesměrování `pasta` (169.254.1.53) na resolver hostitele.
 - **Sezení:** žádný D-Bus (session ani system), PulseAudio/PipeWire, Wayland, X11 hostitele, SSH
   agent, klíčenka. Proměnné prostředí se mažou (`--clearenv`).
 - **GUI (`--gui`):** aplikace dostane jen socket vlastního X serveru **Xephyr** v okně

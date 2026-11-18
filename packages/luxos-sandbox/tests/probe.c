@@ -2,7 +2,7 @@
  *
  *   probe ptrace PID            PTRACE_ATTACH na proces
  *   probe ptrace-self-child     fork + PTRACE_ATTACH na vlastniho potomka
- *   probe connect IP PORT       TCP spojeni (IPv4)
+ *   probe connect IP PORT       TCP spojeni (IPv4 i IPv6)
  *   probe unix PATH             spojeni na unix socket (cesta)
  *   probe abstract NAME         spojeni na abstraktni unix socket (@NAME)
  *   probe syscalls              zkusi zakazana volani a vypise vysledky
@@ -66,12 +66,18 @@ int main(int argc, char **argv) {
         return r;
     }
     if (!strcmp(cmd, "connect") && argc == 4) {
-        int s = socket(AF_INET, SOCK_STREAM, 0);
+        int v6 = strchr(argv[2], ':') != NULL;
+        int s = socket(v6 ? AF_INET6 : AF_INET, SOCK_STREAM, 0);
         if (s < 0) return report(NULL, -1);
-        struct sockaddr_in a = {.sin_family = AF_INET, .sin_port = htons(atoi(argv[3]))};
-        inet_pton(AF_INET, argv[2], &a.sin_addr);
         struct timeval tv = {.tv_sec = 5};
         setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        if (v6) {
+            struct sockaddr_in6 a6 = {.sin6_family = AF_INET6, .sin6_port = htons(atoi(argv[3]))};
+            inet_pton(AF_INET6, argv[2], &a6.sin6_addr);
+            return report(NULL, connect(s, (struct sockaddr *)&a6, sizeof(a6)));
+        }
+        struct sockaddr_in a = {.sin_family = AF_INET, .sin_port = htons(atoi(argv[3]))};
+        inet_pton(AF_INET, argv[2], &a.sin_addr);
         return report(NULL, connect(s, (struct sockaddr *)&a, sizeof(a)));
     }
     if (!strcmp(cmd, "unix") && argc == 3) return do_unix(argv[2], 0);

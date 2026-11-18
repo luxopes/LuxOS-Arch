@@ -2839,6 +2839,13 @@ Back up again	Utwórz kopię ponownie
 Backing up…	Tworzenie kopii zapasowej…
 You can keep working, or close this window.	Możesz dalej pracować albo zamknąć to okno.
 Backups already on the disk are kept.	Kopie zapasowe, które już są na dysku, zostaną zachowane.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	Dysk sieciowy zawiera już niezaszyfrowane kopie zapasowe tego komputera. Wyłącz Szyfruj kopie zapasowe, aby nadal ich używać.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Kopie zapasowe tego komputera na dysku sieciowym są zaszyfrowane. Włącz Szyfruj kopie zapasowe i wpisz ich hasło, aby nadal ich używać.
+Wrong password for the encrypted backups on the network disk.	Nieprawidłowe hasło do zaszyfrowanych kopii zapasowych na dysku sieciowym.
+The backup image on the network disk contains other data.	Obraz kopii zapasowych na dysku sieciowym zawiera inne dane.
+The backup image is in use. Try again later.	Obraz kopii zapasowych jest właśnie używany. Spróbuj ponownie później.
+Erase backups on %s?	Usunąć kopie zapasowe na %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Usunięcie skasuje wszystkie kopie zapasowe tego komputera na dysku sieciowym. Tej operacji nie można cofnąć.
 Stop Using	Przestań używać
 Exclude Folder	Wyklucz folder
 Modified	Zmodyfikowano

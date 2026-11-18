@@ -42,8 +42,12 @@ def load():
     return mod
 
 
+# jadro ze zdrojoveho stromu: okno si jinak pridava /usr/lib/luxos/python na zacatek sys.path
+# a testovalo by nainstalovanou verzi
+import luxos_backup  # noqa: E402,F401
 gui = load()
 core = gui.core
+assert os.path.dirname(os.path.abspath(core.__file__)) == FILES, core.__file__
 Gtk = gui.Gtk
 
 
@@ -208,6 +212,48 @@ class GuiTest(unittest.TestCase):
     def test_add_disk_empty_address_explained(self):
         shown = self.add_disk_with([(("net", "", ""), None)])
         self.assertEqual(shown, ["Enter the server address."])
+
+
+    def test_smb_existing_backups_erased_only_after_confirmation(self):
+        """Znovu pridany sitovy disk SMB s obrazem zaloh: smazani jen po potvrzeni (Zrusit = nic)."""
+        class FakeDialog:
+            def __init__(self, *_a):
+                self.left = [(("net", "smb://anna@nas/Backups", "netpw"), None)]
+
+            def run(self):
+                return Gtk.ResponseType.OK if self.left else Gtk.ResponseType.CANCEL
+
+            def choice(self):
+                return self.left.pop(0)
+
+            def destroy(self):
+                pass
+
+        def sync(work, done):
+            try:
+                res, err = work(), None
+            except Exception as e:      # noqa: BLE001
+                res, err = None, e
+            done(res, err)
+
+        for answer in (False, True):
+            calls, asked, shown = [], [], []
+
+            def add(cfg, url, password=None, encrypt_pw=None, erase=False, **_k):
+                calls.append(erase)
+                if not erase:
+                    raise core.ExistingBackups("The network disk already has unencrypted backups of this computer.")
+                return {"id": "x"}
+            win = gui.BackupWindow()
+            with mock.patch.object(gui, "AddDiskDialog", FakeDialog), mock.patch.object(gui, "in_thread", sync), \
+                    mock.patch.object(gui, "message", lambda _p, title, *_a: shown.append(title)), \
+                    mock.patch.object(gui, "confirm", lambda _p, title, *_a, **_k: asked.append(title) or answer), \
+                    mock.patch.object(core, "add_smb_disk", add):
+                win.add_disk()
+            win.destroy()
+            self.assertEqual(asked[0], "Erase backups on smb://anna@nas/Backups?")
+            self.assertEqual(calls, [False, True] if answer else [False])
+            self.assertEqual(shown, [])                   # zadna chybova zprava navic
 
 
 if __name__ == "__main__":

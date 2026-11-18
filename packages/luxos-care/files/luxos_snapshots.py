@@ -290,9 +290,10 @@ def read_meta(top, name):
         with open(os.path.join(snap_dir(top), name + ".json")) as f:
             m = json.load(f)
         if not isinstance(m, dict):
-            m = {}
+            m = {"_unreadable": True}
     except (OSError, ValueError):
-        m = {}
+        # Popis chybi nebo je necitelny: nevime, kterou sadu jadra snimek pouziva (gc_kernels)
+        m = {"_unreadable": True}
     m["name"] = name
     m.setdefault("kind", "update")
     m.setdefault("source", "@")
@@ -300,7 +301,7 @@ def read_meta(top, name):
 
 
 def write_meta(top, meta):
-    data = {k: v for k, v in meta.items() if k != "name"}
+    data = {k: v for k, v in meta.items() if k != "name" and not k.startswith("_")}
     care.atomic_write(os.path.join(snap_dir(top), meta["name"] + ".json"),
                       json.dumps(data, indent=1, ensure_ascii=False) + "\n", 0o600)
 
@@ -549,23 +550,34 @@ def kset_path(lay, top, kid):
     return None
 
 
-def gc_kernels(lay, top, snaps):
-    """Smaze sady jadra, ktere uz zadny snimek nepouziva."""
+def gc_kernels(lay, top, snaps, force=False):
+    """Smaze sady jadra, ktere uz zadny snimek nepouziva. Kdyz popis nektereho snimku nejde precist,
+    nevime, kterou sadu pouziva - pak se mazou jen zbytky *.new (force: nedostatek mista, esp_budget)."""
     store = kernel_store(lay, top)
     if not store:
         return []
     base = store_dir(store, top)
     used = {s.get("kset") for s in snaps}
+    unsure = [s["name"] for s in snaps if s.get("_unreadable")]
     gone = []
     try:
         names = os.listdir(base)
     except OSError:
         return gone
+    kept = []
     for n in names:
         p = os.path.join(base, n)
-        if n.endswith(".new") or (KSET_RE.match(n) and n not in used):
+        if n.endswith(".new"):
             shutil.rmtree(p, ignore_errors=True)
             gone.append(n)
+        elif KSET_RE.match(n) and n not in used:
+            if unsure and not force:
+                kept.append(n)
+                continue
+            shutil.rmtree(p, ignore_errors=True)
+            gone.append(n)
+    if kept:
+        care.log(f"kernel sets {' '.join(sorted(kept))} kept: unreadable description of snapshots {' '.join(unsure)}")
     return gone
 
 
@@ -743,6 +755,12 @@ def esp_budget(lay, top, snaps, need=0, reserve=None):
     free = care.free_bytes(d)
     if free >= target:
         return free, removed
+    # Nejdriv sady bez odkazu ponechane kvuli necitelnemu popisu (snimek bez popisu nema polozku)
+    if any(s.get("_unreadable") for s in snaps):
+        removed += gc_kernels(lay, top, snaps, force=True)
+        free = care.free_bytes(d)
+        if free >= target:
+            return free, removed
     protect = _protected_sets(snaps)
     use = _set_usage(snaps)
     order = sorted(use, key=lambda k: use[k][0])       # sady nejstarsich snimku napred

@@ -18,6 +18,7 @@ Hostitelska strana proto do nej nikdy nezapisuje pres cesty (symlinky!): adresar
 se otviraji s O_NOFOLLOW a do bwrap se predavaji jako FD (--bind-fd), kopirovani
 souboru dovnitr dela proces uvnitr sandboxu (data jdou pres stdin).
 """
+import ipaddress
 import json
 import os
 import re
@@ -260,6 +261,11 @@ class Xephyr:
 
 
 # ---- sit ------------------------------------------------------------------------
+# pasta preklada pakety z namespace na sokety hostitele: kam se paket z namespace dostane k paste,
+# tam se pripoji hostitel (i do LAN). Smerovaci tabulka namespace je proto jedina zabrana:
+# v namespace zustane jen vychozi trasa (+ DNS forwarder pasty), vse ostatni pryc, a pro soukrome
+# rozsahy, adresy hostitele a site primo pripojene k hostiteli (LAN vcetne verejnych IPv6 /64
+# z ohlaseni routeru) trasy "prohibit". Kazda chyba = sandbox se nespusti (fail closed).
 def host_addresses():
     """Vsechny adresy hostitele (aby na ne sandbox se site nedosahl)."""
     try:
@@ -274,41 +280,117 @@ def host_addresses():
         return []
 
 
+def _onlink_prefixes(addr_json, route_json, family):
+    """Site primo pripojene k hostiteli: prefixy jeho adres a trasy bez brany (hlavni tabulka).
+    Trasy pres branu (napr. VPN 0.0.0.0/1) ne - to je cesta do internetu, ne LAN."""
+    v6 = family == 6
+    minlen = 16 if v6 else 8
+    out = set()
+
+    def norm(dst):
+        try:
+            net = ipaddress.ip_network(dst, strict=False)
+        except ValueError:
+            return
+        if net.version != family or net.prefixlen < minlen or net.is_link_local or net.is_multicast \
+                or net.is_loopback:
+            return
+        out.add(str(net))
+    for link in addr_json:
+        for a in link.get("addr_info", []):
+            if a.get("local") and a.get("prefixlen") is not None:
+                norm(f"{a['local']}/{a['prefixlen']}")
+    for r in route_json:
+        dst = r.get("dst")
+        if not dst or dst == "default" or r.get("gateway") or r.get("type", "unicast") != "unicast":
+            continue
+        norm(dst)
+    return sorted(out)
+
+
+def host_networks():
+    """[prefix] sit primo pripojenych k hostiteli (obe rodiny) nebo None (nejde zjistit)."""
+    try:
+        addrs = json.loads(subprocess.run(["ip", "-j", "addr"], capture_output=True, text=True,
+                                          timeout=5).stdout or "[]")
+        nets = []
+        for fam in (4, 6):
+            routes = json.loads(subprocess.run(["ip", "-j", f"-{fam}", "route"], capture_output=True,
+                                               text=True, timeout=5).stdout or "[]")
+            nets += _onlink_prefixes(addrs, routes, fam)
+        return nets
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
 # Soukrome a specialni rozsahy - sandbox se siti vidi jen internet, ne LAN ani hostitele
 BLOCK4 = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10", "169.254.0.0/16",
           "192.0.0.0/24", "198.18.0.0/15", "224.0.0.0/4", "240.0.0.0/4", "0.0.0.0/8")
-BLOCK6 = ("fc00::/7", "fec0::/10", "ff00::/8")
+BLOCK6 = ("fc00::/7", "fec0::/10", "ff00::/8", "::ffff:0:0/96")
 
 
 def ip(*args, check=False):
     return subprocess.run(["ip", *args], capture_output=True, text=True, check=check)
 
 
+def _ip_must(*args):
+    r = ip(*args)
+    if r.returncode != 0:
+        raise OSError(f"ip {' '.join(args)}: {(r.stderr or r.stdout).strip()}")
+    return r
+
+
+def _prohibit(net):
+    # IPv6: metrika 1 - trasa z pripadneho pozdejsiho RA (metrika 256+) zakaz nepredbehne
+    if ":" in net:
+        _ip_must("-6", "route", "replace", "prohibit", net, "metric", "1")
+    else:
+        _ip_must("-4", "route", "replace", "prohibit", net)
+
+
 def setup_netns(spec):
-    """Bezi v net namespace od pasty (jsme tam root): zakazat LAN a adresy hostitele."""
-    routes = json.loads(ip("-j", "-4", "route").stdout or "[]")
-    default = next((r for r in routes if r.get("dst") == "default" and r.get("gateway")), None)
-    if default:
-        dev, gw = default["dev"], default["gateway"]
-        # Primo pripojene site (LAN) pryc; brana zustane dosazitelna jako onlink
+    """Bezi v net namespace od pasty (jsme tam root): jen vychozi trasa, zakazat LAN a hostitele."""
+    if spec.get("host_nets") is None:
+        raise OSError("host networks unknown")
+    # Ohlaseni routeru (pasta je umi posilat) by smazanou trasu do LAN vratilo - v namespace vypnout
+    # (/proc/sys/net patri namespace, ve kterem bezime)
+    conf = "/proc/sys/net/ipv6/conf"
+    for name in sorted(os.listdir(conf)) if os.path.isdir(conf) else []:
+        with open(f"{conf}/{name}/accept_ra", "w") as f:
+            f.write("0\n")
+    for fam in ("-4", "-6"):
+        routes = json.loads(_ip_must("-j", fam, "route").stdout or "[]")
+        default = next((r for r in routes if r.get("dst") == "default" and r.get("gateway")), None)
+        # Vse krome vychozi trasy pryc (primo pripojene site, trasy z RA/DHCP, staticke); IPv6
+        # brana je link-local (fe80::/64 zustava, pres pastu se link-local adresy nepripoji)
         for r in routes:
-            if r.get("protocol") == "kernel" and r.get("scope") == "link":
-                ip("-4", "route", "del", r["dst"], "dev", r["dev"])
-        ip("-4", "route", "replace", "default", "via", gw, "dev", dev, "onlink", check=True)
-        ip("-4", "route", "add", DNS_ADDR + "/32", "dev", dev)
-    for pfx in BLOCK4:
-        ip("-4", "route", "add", "prohibit", pfx)
-    for pfx in BLOCK6:
-        ip("-6", "route", "add", "prohibit", pfx)
+            dst = r.get("dst")
+            if dst == "default" or (fam == "-6" and dst and dst.startswith("fe80:")):
+                continue
+            cmd = [fam, "route", "del"] + ([r["type"]] if r.get("type") else []) + [dst] \
+                + (["dev", r["dev"]] if r.get("dev") else [])
+            if r.get("metric") is not None:
+                cmd += ["metric", str(r["metric"])]
+            _ip_must(*cmd)
+        if default and fam == "-4":
+            dev, gw = default["dev"], default["gateway"]
+            # brana bez trasy do jeji site: onlink
+            _ip_must("-4", "route", "replace", "default", "via", gw, "dev", dev, "onlink")
+            _ip_must("-4", "route", "add", DNS_ADDR + "/32", "dev", dev)
+    # zbyly jen vychozi trasy a fe80::/64 - nic jineho uz zakazy nepredbehne (nejdelsi prefix)
+    for pfx in BLOCK4 + BLOCK6:
+        _prohibit(pfx)
     local = set()
-    for link in json.loads(ip("-j", "addr").stdout or "[]"):
+    for link in json.loads(_ip_must("-j", "addr").stdout or "[]"):
         for a in link.get("addr_info", []):
             local.add(a.get("local"))
+    for net in spec["host_nets"]:
+        # sit LAN hostitele; DNS forwarder pasty (169.254.1.53) ma vlastni /32, ten vyhraje
+        _prohibit(net)
     for a in spec.get("host_addrs", []):
         if a in local or a.startswith("fe80:"):
             continue   # adresa namespace sameho (nebo link-local) - pakety k hostiteli nevedou
-        fam = "-6" if ":" in a else "-4"
-        ip(fam, "route", "add", "prohibit", a + ("/128" if ":" in a else "/32"))
+        _prohibit(a + ("/128" if ":" in a else "/32"))
 
 
 # ---- spusteni -------------------------------------------------------------------
@@ -326,6 +408,9 @@ def launch(spec, stdin=None):
         if not shutil.which("pasta"):
             die(_("Network for the sandbox needs pasta (package passt)."))
         spec["host_addrs"] = host_addresses()
+        spec["host_nets"] = host_networks()
+        if spec["host_nets"] is None:
+            die(_("Could not set up the sandbox network: %s") % "ip -j route")
     cmd = [sys.executable, "-I", os.path.realpath(__file__), "__enter"]
     env = dict(os.environ)
     env["LUXOS_SANDBOX_SPEC"] = json.dumps(spec)

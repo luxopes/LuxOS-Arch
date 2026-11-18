@@ -2838,6 +2838,13 @@ Back up again	Sauvegarder à nouveau
 Backing up…	Sauvegarde…
 You can keep working, or close this window.	Vous pouvez continuer à travailler ou fermer cette fenêtre.
 Backups already on the disk are kept.	Les sauvegardes déjà présentes sur le disque sont conservées.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	Le disque réseau contient déjà des sauvegardes non chiffrées de cet ordinateur. Désactivez Chiffrer les sauvegardes pour continuer à les utiliser.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Les sauvegardes de cet ordinateur sur le disque réseau sont chiffrées. Activez Chiffrer les sauvegardes et saisissez leur mot de passe pour continuer à les utiliser.
+Wrong password for the encrypted backups on the network disk.	Mot de passe incorrect pour les sauvegardes chiffrées du disque réseau.
+The backup image on the network disk contains other data.	L’image de sauvegarde sur le disque réseau contient d’autres données.
+The backup image is in use. Try again later.	L’image de sauvegarde est en cours d’utilisation. Réessayez plus tard.
+Erase backups on %s?	Effacer les sauvegardes sur %s ?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	L’effacement supprime toutes les sauvegardes de cet ordinateur sur le disque réseau. Cette action est irréversible.
 Stop Using	Ne plus utiliser
 Exclude Folder	Exclure un dossier
 Modified	Modifié

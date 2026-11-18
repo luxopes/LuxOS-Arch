@@ -158,6 +158,10 @@ if command -v pasta >/dev/null && command -v ip >/dev/null; then
         expect "--net: host address $a:$PORT not reachable as host service" "FAIL" -- S run --net probe connect "$a" "$PORT"
     done
     expect "--net: LAN range 192.168.1.1 blocked" "FAIL" -- S run --net probe connect 192.168.1.1 80
+    # verejny IPv6 prefix LAN (z ohlaseni routeru) - neni v zadnem soukromem rozsahu
+    for p6 in $(ip -j -6 route | python3 -c 'import json,sys; print(" ".join(r["dst"].split("/")[0] for r in json.load(sys.stdin) if r.get("dst","").endswith("::/64") and not r.get("gateway") and not r["dst"].startswith(("fe80:", "fd", "fc"))))'); do
+        expect "--net: host on-link IPv6 LAN ${p6}1 blocked (prohibit, not refused by the LAN host)" "FAIL EACCES" -- S run --net probe connect "${p6}1" 80
+    done
     if [[ $("$T/probe-host" connect 1.1.1.1 443) == OK ]]; then
         expect "--net: internet reachable (1.1.1.1:443)" "OK" -- S run --net probe connect 1.1.1.1 443
         expect "--net: resolv.conf points to pasta DNS forwarder" "169.254.1.53" -- S run --net cat /etc/resolv.conf
