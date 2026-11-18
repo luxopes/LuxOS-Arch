@@ -525,6 +525,31 @@ class TestStore(unittest.TestCase):
         finally:
             shutil.rmtree(d)
 
+    def test_trust_concurrent_writers_lose_nothing(self):
+        """Soubezne pridavani z vice vlaken (prijimac, okno): zadne zarizeni se neztrati, soubor zustane platny."""
+        import threading
+        d = tempfile.mkdtemp()
+        try:
+            stores = [store.TrustStore(os.path.join(d, "data")) for _ in range(4)]
+            errors = []
+
+            def work(k):
+                try:
+                    for i in range(25):
+                        stores[k].add(hashlib.sha256(b"peer-%d-%d" % (k, i)).digest(), "Peer %d %d" % (k, i))
+                        stores[k].touch(hashlib.sha256(b"peer-%d-0" % k).digest())
+                except Exception as e:  # noqa: BLE001
+                    errors.append(e)
+            ths = [threading.Thread(target=work, args=(k,)) for k in range(4)]
+            for th in ths:
+                th.start()
+            for th in ths:
+                th.join()
+            self.assertEqual(errors, [])
+            self.assertEqual(len(store.TrustStore(os.path.join(d, "data")).peers), 100)
+        finally:
+            shutil.rmtree(d)
+
     def test_parse_addr(self):
         self.assertEqual(transfer.parse_addr("10.0.0.5"), ("10.0.0.5", proto.DEFAULT_PORT))
         self.assertEqual(transfer.parse_addr("10.0.0.5:1234"), ("10.0.0.5", 1234))

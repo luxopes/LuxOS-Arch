@@ -242,6 +242,35 @@ class SendTest(SendBase):
         self.c.call("outbox_delete", job=job)
         self.assertEqual(self.jobs(), [])
 
+    def test_connection_lost_after_data_is_not_resent(self):
+        """Spojeni spadlo az po "." (server zpravu mozna prijal): zadne samocinne opakovani (dvojite odeslani)."""
+        acc = self.add()
+        self.server.control("smtp dropdata on")
+        job = self.queue(acc, subject="Mozna odeslana")
+        r = self.c.call("send", job=job)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(r["kind"], "smtp_unknown", r)
+        self.assertNotIn("queued", r)
+        # z okna: zakazka zrusena, zprava zustava v okne psani a uzivatel se rozhodne
+        self.assertEqual(self.jobs(), [])
+        self.server.control("smtp dropdata off")
+        self.c.call("reconnect")
+        time.sleep(1.5)
+        self.assertEqual(len(self.sent()), 1)
+        # na pozadi (Odeslat nyni po neuspechu): neodeslana s upozornenim, ne znovu ve fronte
+        self.server.control("smtp clear")
+        self.server.control("smtp dropdata on")
+        job = self.queue(acc, subject="Na pozadi")
+        r = self.c.call("outbox_retry", job=job)
+        self.assertEqual(r.get("kind"), "smtp_unknown", r)
+        with open(os.path.join(self.outbox(), job + ".json")) as f:
+            desc = json.load(f)
+        self.assertEqual((desc["state"], desc["kind"]), ("failed", "smtp_unknown"))
+        self.server.control("smtp dropdata off")
+        self.c.call("reconnect")
+        time.sleep(1.5)
+        self.assertEqual(len(self.sent()), 1)
+
     def test_drafts_saved_replaced_and_deleted_after_send(self):
         acc = self.add()
         d = os.path.join(self.s.env["XDG_DATA_HOME"], "luxos-mail", "drafts")

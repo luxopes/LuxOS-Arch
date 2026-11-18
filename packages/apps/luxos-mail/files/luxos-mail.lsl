@@ -151,7 +151,7 @@ function main():
         print json.encode(out)
         return 0
     elif first == "--test-words":
-        print json.encode({"text": mime.decode_words(arg_or(2, "")), "addresses": mime.parse_addresses(mime.decode_words(arg_or(2, "")))})
+        print json.encode({"text": mime.decode_words(arg_or(2, "")), "addresses": mime.parse_addresses(arg_or(2, ""))})
         return 0
     elif first == "--test-date":
         print mime.parse_date(arg_or(2, ""))

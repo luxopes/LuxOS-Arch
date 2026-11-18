@@ -26,6 +26,7 @@ import http.server
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -435,6 +436,41 @@ class ComposeGuiTest(unittest.TestCase):
         self.assertTrue(mt.wait_for(lambda: len(self.box("Drafts")) == 1, 10), self.box("Drafts"))
         self.assertTrue(mt.wait_for(lambda: [n for n in os.listdir(drafts_dir) if n.endswith(".json")] == [], 10))
 
+
+    def test_service_stopped_before_sending_no_duplicate(self):
+        """Sluzba skoncila drive, nez zakazku prevzala: zprava zustava v okne psani a v Odchozi nezustane
+        (drive ji sluzba po 10 min odeslala sama a po novem Odeslat odesla dvakrat)."""
+        self.start_gui()
+        outbox = os.path.join(self.s.env["XDG_DATA_HOME"], "luxos-mail", "outbox")
+        self.compose_new("rcpt@example.org", "Bez dvojiteho odeslani", "Ahoj")
+        svc = self.s.service.pid
+        os.kill(svc, signal.SIGSTOP)
+        n = len(self.trace())
+        self.key("ctrl+Return")
+        self.assertTrue(mt.wait_for(lambda: os.path.isdir(outbox) and [x for x in os.listdir(outbox) if x.endswith(".json")], 10))
+        time.sleep(0.5)
+        os.kill(svc, signal.SIGKILL)
+        self.s.service.wait(5)
+        self.wait_trace("compose status", n + 1)
+        self.assertTrue(mt.wait_for(lambda: [x for x in os.listdir(outbox) if x.endswith(".json")] == [], 5), os.listdir(outbox))
+        self.assertNotIn("compose closed", " ".join(self.trace()[n:]))
+        # okno sluzbu spusti znovu; zprava odejde jen jednou az po novem Odeslat
+        self.c = mt.wait_for(lambda: self._client(), 15)
+        self.assertTrue(self.c)
+        time.sleep(1.5)
+        self.assertEqual(self.sent(), [])
+        n = len(self.trace())
+        self.key("ctrl+Return")
+        self.assertTrue(mt.wait_for(lambda: len(self.sent()) == 1, 20), (self.trace()[-10:], self.s.service_log()))
+        self.wait_trace("compose closed", n)
+        time.sleep(1.5)
+        self.assertEqual(len(self.sent()), 1)
+
+    def _client(self):
+        try:
+            return mt.Client(self.s)
+        except OSError:
+            return None
 
     @unittest.skipUnless(os.environ.get("LUXOS_MAIL_TEST_DND") == "1",
                          "xdotool drag between windows does not start a GTK drag under plain xvfb (even GTK to GTK); "

@@ -606,10 +606,21 @@ function parse_params(value):
     end
     for base in pieces.keys():
         items = pieces[base]
+        # razeni podle indexu v linearnim case (dvojity cyklus byl kvadraticky - tisice casti zablokovaly sluzbu)
+        n_items = len(items)
+        buckets = {}
+        for it in items:
+            if it[0] < n_items:
+                if it[0] not in buckets:
+                    buckets[it[0]] = []
+                end
+                buckets[it[0]].append(it)
+            end
+        end
         ordered = []
-        for k in range(len(items)):
-            for it in items:
-                if it[0] == k:
+        for k in range(n_items):
+            if k in buckets:
+                for it in buckets[k]:
                     ordered.append(it)
                 end
             end
@@ -657,6 +668,19 @@ function child_path(path, index):
     return path + "." + String(index)
 end
 
+# Za hranici smi byt jen "--" (konec) a mezery do konce radku (RFC 2046 5.1.1); jinak je to delsi hranice
+# vnorene casti ("--XX" neni oddelovac radku "--XXY")
+function delimiter_line_ok(b, pos, stop):
+    i = pos
+    if i + 1 < stop and b[i] == 45 and b[i + 1] == 45:
+        i += 2
+    end
+    while i < stop and (b[i] == 32 or b[i] == 9):
+        i += 1
+    end
+    return i >= stop or b[i] == 13 or b[i] == 10
+end
+
 # Oddelovac "--hranice" na zacatku radku od pozice `pos`; [zacatek, konec radku (za LF), uzaviraci?] nebo []
 function find_delimiter(b, delim, pos, stop, body_start):
     p = pos
@@ -665,7 +689,7 @@ function find_delimiter(b, delim, pos, stop, body_start):
         if hit < 0 or hit >= stop:
             return []
         end
-        if hit == body_start or b[hit - 1] == 10:
+        if (hit == body_start or b[hit - 1] == 10) and delimiter_line_ok(b, hit + len(delim), stop):
             closing = hit + len(delim) + 1 < stop and b[hit + len(delim)] == 45 and b[hit + len(delim) + 1] == 45
             nl = mb.find_byte(b, 10, hit, stop)
             after = stop
@@ -915,9 +939,9 @@ function render(b):
     hs = tree["headers"]
     ctx = {"texts": [], "attachments": [], "html": False}
     call collect(b, tree, ctx, False)
-    from_list = parse_addresses(decode_words(header(hs, "from")))
-    return {"subject": decode_words(header(hs, "subject")), "from": from_list, "to": parse_addresses(decode_words(header(hs, "to"))),
-            "cc": parse_addresses(decode_words(header(hs, "cc"))), "reply_to": parse_addresses(decode_words(header(hs, "reply-to"))),
+    from_list = parse_addresses(header(hs, "from"))
+    return {"subject": decode_words(header(hs, "subject")), "from": from_list, "to": parse_addresses(header(hs, "to")),
+            "cc": parse_addresses(header(hs, "cc")), "reply_to": parse_addresses(header(hs, "reply-to")),
             "date": parse_date(header(hs, "date")), "message_id": header(hs, "message-id").strip(), "text": "\n\n".join(ctx["texts"]),
             "references": header(hs, "references"), "in_reply_to": header(hs, "in-reply-to").strip(),
             "html": ctx["html"], "attachments": ctx["attachments"], "list_unsubscribe": header(hs, "list-unsubscribe")}
@@ -1097,7 +1121,13 @@ function html_to_text(html):
             end
             if not closing and name in SKIP_TAGS:
                 endtag = mb.find(low, "</" + name, i)
-                if endtag < 0:
+                if endtag < 0 and name == "head":
+                    # neuzavrena <head>: konci u <body> (jako v prohlizeci), jinak by zmizel cely text zpravy
+                    body = mb.find(low, "<body", i)
+                    if body >= 0:
+                        i = body
+                    end
+                elif endtag < 0:
                     i = n
                 else:
                     close = mb.find_byte(b, 62, endtag, n)
@@ -1200,95 +1230,155 @@ end
 
 # ---- adresy -------------------------------------------------------------------------------------------------
 
-function split_addresses(s):
-    b = net.bytes(s)
-    items = []
-    start = 0
-    inq = False
-    angle = 0
-    paren = 0
-    i = 0
-    n = len(b)
-    while i < n:
-        c = b[i]
-        if inq:
-            if c == 92:
-                i += 2
-                continue
-            end
-            if c == 34:
-                inq = False
-            end
-        elif c == 34:
-            inq = True
-        elif c == 60:
-            angle += 1
-        elif c == 62:
-            angle = max(0, angle - 1)
-        elif c == 40:
-            paren += 1
-        elif c == 41:
-            paren = max(0, paren - 1)
-        elif (c == 44 or c == 59) and angle == 0 and paren == 0:
-            items.append(net.text(b, start, i - start))
-            start = i + 1
-        end
-        i += 1
-    end
-    items.append(net.text(b, start, n - start))
-    return items
-end
-
+# Seznam adres podle RFC 5322: skupiny ("Tym: a@x, b@y;"), retezce v uvozovkach (carka, "<", ":" uvnitr jmena),
+# komentare "(...)", adresy v <>, doslovne domeny "[IPv6:2001:db8::1]". Zakodovana slova (RFC 2047) se dekoduji az
+# ve jmenu po rozdeleni - carka v zakodovanem jmenu tak nevytvori dalsiho odesilatele.
 # "Jan Novak <jan@x.cz>, b@y.cz" -> [[jmeno, adresa], ...]
 function parse_addresses(s):
     out = []
     if s == None or s.strip() == "":
         return out
     end
-    for raw in split_addresses(s):
-        item = raw.strip()
-        colon = item.find(":")
-        lt = item.find("<")
-        if colon >= 0 and (lt < 0 or colon < lt) and item.find("\"") < 0:
-            # skupina "Jmeno: a@b, c@d;" - jmeno skupiny vynechat
-            item = item[colon + 1:].strip()
-            lt = item.find("<")
-        end
-        if item == "":
-            continue
-        end
-        name = ""
-        email = ""
-        if lt >= 0:
-            gt = item.find(">")
-            if gt < lt:
-                gt = len(item)
-            end
-            email = item[lt + 1:gt].strip()
-            name = item[0:lt].strip()
-        else:
-            lp = item.find("(")
-            if lp >= 0:
-                rp = item.find(")")
-                if rp < lp:
-                    rp = len(item)
+    b = net.bytes(s)
+    n = len(b)
+    st = new_mailbox()
+    i = 0
+    while i < n:
+        c = b[i]
+        if c == 34:
+            # retezec v uvozovkach: do jmena bez uvozovek, do adresy (local-part) i s nimi
+            st["raw"].append(34)
+            i += 1
+            while i < n and b[i] != 34:
+                if b[i] == 92 and i + 1 < n:
+                    i += 1
                 end
-                name = item[lp + 1:rp].strip()
-                email = item[0:lp].strip()
-            else:
-                email = item
+                st["phrase"].append(b[i])
+                st["raw"].append(b[i])
+                i += 1
             end
-        end
-        name = unquote(name)
-        if name == email:
-            name = ""
-        end
-        if email == "" and name == "":
+            st["raw"].append(34)
+            st["quoted"] = True
+            i += 1
             continue
         end
-        out.append([name, email])
+        if c == 40:
+            # komentar (i vnoreny); text posledniho slouzi jako jmeno u adresy bez <>
+            depth = 1
+            com = ByteArray()
+            i += 1
+            while i < n and depth > 0:
+                if b[i] == 92 and i + 1 < n:
+                    com.append(b[i + 1])
+                    i += 2
+                    continue
+                end
+                if b[i] == 40:
+                    depth += 1
+                elif b[i] == 41:
+                    depth -= 1
+                    if depth == 0:
+                        break
+                    end
+                end
+                com.append(b[i])
+                i += 1
+            end
+            st["comment"] = net.text(com, 0, len(com))
+            st["phrase"].append(32)
+            st["raw"].append(32)
+            i += 1
+            continue
+        end
+        if c == 60:
+            gt = i + 1
+            q = False
+            while gt < n and (q or b[gt] != 62):
+                if b[gt] == 34:
+                    q = not q
+                end
+                gt += 1
+            end
+            st["angle"] = net.text(b, i + 1, min(gt, n) - i - 1)
+            st["has_angle"] = True
+            i = gt + 1
+            continue
+        end
+        if c == 91:
+            # doslovna domena: ":" uvnitr neni skupina
+            while i < n and b[i] != 93:
+                st["raw"].append(b[i])
+                st["phrase"].append(b[i])
+                i += 1
+            end
+            if i < n:
+                st["raw"].append(93)
+                st["phrase"].append(93)
+            end
+            i += 1
+            continue
+        end
+        if c == 58 and not st["has_angle"]:
+            # zacatek skupiny: jmeno skupiny vynechat
+            st = new_mailbox()
+            i += 1
+            continue
+        end
+        if c == 44 or c == 59:
+            call finish_mailbox(st, out)
+            st = new_mailbox()
+            i += 1
+            continue
+        end
+        st["phrase"].append(c)
+        st["raw"].append(c)
+        i += 1
     end
+    call finish_mailbox(st, out)
     return out
+end
+
+function new_mailbox():
+    return {"phrase": ByteArray(), "raw": ByteArray(), "angle": "", "has_angle": False, "comment": "", "quoted": False}
+end
+
+function squeeze(text):
+    parts = []
+    for w in text.replace("\t", " ").replace("\r", " ").replace("\n", " ").split(" "):
+        if w != "":
+            parts.append(w)
+        end
+    end
+    return " ".join(parts)
+end
+
+function finish_mailbox(st, out):
+    phrase = squeeze(net.text(st["phrase"], 0, len(st["phrase"])))
+    name = ""
+    email = ""
+    if st["has_angle"]:
+        email = st["angle"].strip()
+        # zastarala zdrojova cesta "<@a.cz,@b.cz:jan@x.cz>"
+        if email.startswith("@") and email.find(":") > 0:
+            email = email[email.find(":") + 1:].strip()
+        end
+        name = phrase
+    else:
+        email = net.text(st["raw"], 0, len(st["raw"])).strip()
+        if not st["quoted"]:
+            email = squeeze(email).replace(" ", "")
+        end
+        name = squeeze(st["comment"])
+    end
+    name = decode_words(name)
+    if name == email:
+        name = ""
+    end
+    if email == "" and name == "":
+        return 0
+    end
+    out.append([name, email])
+    return 0
 end
 
 function address_display(pair):

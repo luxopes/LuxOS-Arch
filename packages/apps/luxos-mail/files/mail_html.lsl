@@ -244,6 +244,11 @@ function parse_attrs(b, start, stop):
         while i < stop and b[i] != 61 and b[i] != 32 and b[i] != 9 and b[i] != 10 and b[i] != 13 and b[i] != 47 and b[i] != 62:
             i += 1
         end
+        if i == ns and b[i] == 62:
+            # ">" uvnitr znacky (napr. <p a=="b>c">): preskocit, jinak se cyklus nikdy nepohne
+            i += 1
+            continue
+        end
         name = net.text(b, ns, i - ns).lower()
         while i < stop and (b[i] == 32 or b[i] == 9 or b[i] == 10 or b[i] == 13):
             i += 1

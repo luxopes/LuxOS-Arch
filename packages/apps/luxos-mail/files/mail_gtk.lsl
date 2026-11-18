@@ -192,6 +192,12 @@ function stack_show(stack, name):
     end
 end
 
+function widget_get_visible(widget):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("gtk_widget_get_visible"), ptr(widget)) != 0
+    end
+end
+
 # Jmeno viditelne stranky (stopa testu: co uzivatel prave vidi)
 function stack_visible(stack):
     unsafe:

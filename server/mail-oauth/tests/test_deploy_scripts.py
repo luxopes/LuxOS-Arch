@@ -160,7 +160,7 @@ class DeployScriptTest(unittest.TestCase):
         self.root = os.path.join(self.tmp, "root")
         self.state = os.path.join(self.tmp, "state")
         self.bin = os.path.join(self.tmp, "bin")
-        for d in ("opt/lux-account", "etc/dovecot", "etc/nftables.d", "usr/local/sbin", "etc/postfix",
+        for d in ("opt/lux-account", "etc/dovecot", "etc/dovecot/conf.d", "etc/nftables.d", "usr/local/sbin", "etc/postfix",
                   "etc/fail2ban/filter.d", "etc/fail2ban/jail.d", "etc/lux-mail/tls", "etc/systemd/system", "root"):
             os.makedirs(os.path.join(self.root, d))
         os.makedirs(self.state)
@@ -176,7 +176,10 @@ class DeployScriptTest(unittest.TestCase):
                  "usr/local/sbin/lux-mail-sync-cert": SYNC, "etc/postfix/master.cf": MASTER,
                  "etc/postfix/main.cf": "myhostname = mail.lux-ai.cz\n", "etc/lux-mail/tls/fullchain.pem": "CERT\n",
                  "etc/lux-account-mailboxes.json": json.dumps(MAILBOXES),
-                 "etc/dovecot/users": "info@lux-ai.cz:{CRYPT}$2y$05$test-hash-only::::::\n"}
+                 "etc/dovecot/users": "info@lux-ai.cz:{CRYPT}$2y$05$test-hash-only::::::\n",
+                 # userdb static bez allow_all_users: nasazeni ho doplni, navrat musi vratit puvodni soubor
+                 "etc/dovecot/conf.d/auth-passwdfile.conf.ext": "passdb passwd-file {\n  passwd_file_path = /etc/dovecot/users\n}\n"
+                                                              "userdb static {\n  fields {\n    home = /var/mail/%{user}\n  }\n}\n"}
         for rel, text in files.items():
             with open(os.path.join(self.root, rel), "w") as f:
                 f.write(text)
@@ -189,7 +192,7 @@ class DeployScriptTest(unittest.TestCase):
                      "fail2ban-client", "nft", "node", "chgrp"):
             os.symlink(stub, os.path.join(self.bin, name))
         self.original = tree_snapshot(self.root)
-        assert len(self.original) == 10, self.original.keys()
+        assert len(self.original) == 11, self.original.keys()
         self.env = dict(os.environ, ROOT=self.root, STUB_STATE=self.state, PATH=self.bin + ":" + os.environ.get("PATH", "/usr/bin"))
 
     def tearDown(self):
@@ -224,6 +227,7 @@ class DeployScriptTest(unittest.TestCase):
             self.assertIn("mail_oauth_patch", f.read())
         self.assertIn(patch.MARK, self.read("opt/lux-account/server.js"))
         self.assertIn("EnvironmentFile=/etc/lux-account-mail-oauth.env", self.read("etc/systemd/system/lux-account.service.d/mail-oauth.conf"))
+        self.assertIn("userdb static {\n  allow_all_users = yes", self.read("etc/dovecot/conf.d/auth-passwdfile.conf.ext"))
         local = self.read("etc/dovecot/local.conf")
         self.assertEqual(local.count("!include_try luxai-oauth2.conf"), 1)
         self.assertTrue(local.startswith(LOCAL_CONF))

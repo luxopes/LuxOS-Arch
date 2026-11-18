@@ -21,7 +21,7 @@
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=13
+pkgrel=14
 pkgdesc="LuxOS Mail - lightweight mail app (read, write, send) with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
