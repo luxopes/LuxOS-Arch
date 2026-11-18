@@ -2006,7 +2006,7 @@ function edit_draft():
         return 0
     end
     hs = mime.parse_message(ui["body"])["headers"]
-    bcc = mime.parse_addresses(mime.decode_words(mime.header(hs, "bcc")))
+    bcc = mime.parse_addresses(mime.header(hs, "bcc"))
     acc = ui["current"]["account"]
     call compose.open({"account": acc, "to": r["to"], "cc": r["cc"], "bcc": bcc, "subject": r["subject"], "text": r["text"],
                        "attachments": extract_attachments(r["attachments"]), "draft_mid": r["message_id"],

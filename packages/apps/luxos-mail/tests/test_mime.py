@@ -114,6 +114,29 @@ class MimeTest(unittest.TestCase):
         r = mt.run_bin(["--test-words", '"Novák, Jan" <jan@x.cz>, b@y.cz (Bob), Skupina: c@z.cz, d@z.cz;, =?utf-8?Q?=C5=BDofie?= <z@x.cz>'])
         self.assertEqual(json.loads(r.stdout)["addresses"], [["Novák, Jan", "jan@x.cz"], ["Bob", "b@y.cz"], ["", "c@z.cz"], ["", "d@z.cz"], ["Žofie", "z@x.cz"]])
 
+    def addrs(self, raw):
+        r = mt.run_bin(["--test-words", raw])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return json.loads(r.stdout)["addresses"]
+
+    def test_addresses_rfc5322_hard_cases(self):
+        # carka v zakodovanem jmenu (RFC 2047) nevytvori dalsiho odesilatele
+        self.assertEqual(self.addrs("=?utf-8?Q?Dvo=C5=99=C3=A1k=2C_Jan?= <jan@x.cz>"), [["Dvořák, Jan", "jan@x.cz"]])
+        self.assertEqual(self.addrs("=?utf-8?B?Tm92w6FrLCBKYW4=?= <jan@x.cz>, b@y.cz"), [["Novák, Jan", "jan@x.cz"], ["", "b@y.cz"]])
+        # "<" uvnitr jmena v uvozovkach neni adresa
+        self.assertEqual(self.addrs('"Alice <Support>" <alice@x.cz>'), [["Alice <Support>", "alice@x.cz"]])
+        # skupina s jmenem v uvozovkach (i s carkou a dvojteckou)
+        self.assertEqual(self.addrs('"Tým: vývoj, test": a@x.cz, "B, B" <b@x.cz>; c@y.cz'),
+                         [["", "a@x.cz"], ["B, B", "b@x.cz"], ["", "c@y.cz"]])
+        self.assertEqual(self.addrs("undisclosed-recipients:;"), [])
+        # doslovna domena IPv6: dvojtecka neni zacatek skupiny
+        self.assertEqual(self.addrs("user@[IPv6:2001:db8::1]"), [["", "user@[IPv6:2001:db8::1]"]])
+        self.assertEqual(self.addrs("Jan <user@[IPv6:2001:db8::1]>, x@y.cz"), [["Jan", "user@[IPv6:2001:db8::1]"], ["", "x@y.cz"]])
+        # komentare, escapovani, zdrojova cesta, local-part v uvozovkach
+        self.assertEqual(self.addrs('jan@x.cz (Jan (Honza) Novák), "A \\"B\\"" <a@b.cz>'), [["Jan (Honza) Novák", "jan@x.cz"], ['A "B"', "a@b.cz"]])
+        self.assertEqual(self.addrs("<@relay.cz:jan@x.cz>"), [["", "jan@x.cz"]])
+        self.assertEqual(self.addrs('"jan novak"@x.cz'), [["", '"jan novak"@x.cz']])
+
     def test_dates(self):
         for d in ("Tue, 5 Nov 2026 14:03:22 +0100 (CET)", "5 Nov 2026 14:03:22 -0730", "Thu, 29 Feb 2024 23:59:59 GMT",
                   "Mon, 1 Jan 2001 00:00:00 +0000"):
