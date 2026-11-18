@@ -421,8 +421,14 @@ function ring(title, big):
     call stop_ringing()
     ringing["what"] = title
     # zvuk dokola, dokud se zvoneni nevypne
-    ringing["sound"] = glib.spawn(["sh", "-c", "while :; do paplay " + glib.shell_quote(SOUND) + " 2>/dev/null || sleep 2; done"])
-    call glib.spawn_quiet(["notify-send", "-a", i18n.T("Clock"), "-i", "org.gnome.clocks", "-u", "critical", big, title])
+    # Smycka skonci i po padu aplikace: PR_SET_PDEATHSIG (setpriv) a kontrola, ze aplikace jeste bezi
+    sound_loop = "while :; do paplay " + glib.shell_quote(SOUND) + " 2>/dev/null || sleep 2; kill -0 " + String(glib.getpid()) + " 2>/dev/null || exit 0; done"
+    argv = ["sh", "-c", sound_loop]
+    if glib.find_program_in_path("setpriv") != "":
+        argv = ["setpriv", "--pdeathsig", "TERM", "sh", "-c", sound_loop]
+    end
+    ringing["sound"] = glib.spawn(argv)
+    call glib.spawn_quiet(["notify-send", "-a", i18n.T("Clock"), "-i", "org.gnome.clocks", "-u", "critical", "--", big, title])
     win = gtk.window_new(i18n.T("Clock"))
     ringing["win"] = win
     call gtk.widget_add_class(win, "lca")

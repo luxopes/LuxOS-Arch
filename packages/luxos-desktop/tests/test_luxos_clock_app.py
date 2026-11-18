@@ -173,6 +173,16 @@ class ClockApp(unittest.TestCase):
         subprocess.run(["xdotool", "mousemove", str(x + w // 2 + 44), str(y + h - 62), "click", "1"])
         self.assertTrue(self.wait_for(lambda: self.sound_loops() == 0), "Vypnout zastavi zvuk")
 
+    def test_ringing_stops_when_app_crashes(self):
+        # Zvoneni nesmi hrat navzdy po padu aplikace (SIGKILL: zadny uklid v aplikaci)
+        nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
+        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Crash", "days": [], "on": True}])
+        p = self.start("--background")
+        self.assertTrue(self.wait_for(lambda: self.sound_loops() == 1, timeout=75), "zvoni")
+        os.kill(p.pid, signal.SIGKILL)
+        p.wait(timeout=10)
+        self.assertTrue(self.wait_for(lambda: self.sound_loops() == 0, timeout=5), "smycka zvuku skonci s aplikaci")
+
 
 if __name__ == "__main__":
     unittest.main()

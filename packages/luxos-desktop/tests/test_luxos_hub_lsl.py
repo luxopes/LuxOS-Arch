@@ -910,7 +910,8 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: any("firefox" in c for c in self.calls()), 5))
         note = [c for c in self.calls() if c.startswith("notify-send")][0]
         self.assertIn("-u critical", note)
-        self.assertIn(translation("Memory is running low"), note)
+        # text odvozeny od nazvu programu nesmi notify-send brat jako volbu
+        self.assertIn("-i dialog-warning -- " + translation("Memory is running low"), note)
         self.assertIn(translation("“%s” used too much memory and was closed so the computer would not freeze.").replace("%s", "firefox"), note)
         # davka stejnych signalu -> jedno upozorneni
         earlyoom.emit("/", "net.nuetzlich.SystemNotifications", "Notify", GLib.Variant("(ss)", ("process 4242 firefox;", "")))

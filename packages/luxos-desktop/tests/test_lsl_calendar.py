@@ -359,6 +359,23 @@ class LslCalendar(unittest.TestCase):
         self.assertEqual(self.rule("20261021", "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYSETPOS=2;COUNT=3", "-",
                                    "20260101", "20280101"), ["20261021", "20261028", "20261104"])
 
+    def test_yearly_without_bymonth_expands_all_months(self):
+        self.assertEqual(self.rule("20260101", "FREQ=YEARLY;BYMONTHDAY=1;COUNT=14", "-", "20260101", "20280101"),
+                         ["2026%02d01" % m for m in range(1, 13)] + ["20270101", "20270201"])
+        mondays = self.rule("20260105", "FREQ=YEARLY;BYDAY=MO;COUNT=60", "-", "20260101", "20280101")
+        self.assertEqual(len(mondays), 60)
+        self.assertIn("20260706", mondays)
+        self.assertEqual(self.rule("20260518", "FREQ=YEARLY;BYDAY=20MO;COUNT=2", "-", "20260101", "20280101"),
+                         ["20260518", "20270517"])
+
+    def test_missing_end_does_not_swallow_next_event(self):
+        path = self.write("noend.ics", "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a\nDTSTART:20261020T090000\nSUMMARY:A\n"
+                          "BEGIN:VEVENT\nUID:b\nDTSTART:20261021T090000\nSUMMARY:B\nEND:VEVENT\n"
+                          "BEGIN:VEVENT\nUID:c\nDTSTART:20261022T090000\nSUMMARY:C\nEND:VCALENDAR\n")
+        rows = self.lines("parse", path)
+        self.assertTrue(rows[0].startswith("errors 0"), rows)
+        self.assertEqual([r.split("|")[1] for r in rows[1:]], ["A", "B", "C"])
+
     def test_exdate_without_rrule(self):
         path = self.write("x.ics", "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART:20261020T090000\nDTEND:20261020T100000\n"
                           "EXDATE:20261020T090000\nSUMMARY:Nic\nEND:VEVENT\nEND:VCALENDAR\n")

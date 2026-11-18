@@ -140,7 +140,7 @@ def unescape(v):
 
 def escape(v):
     return (v.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
-            .replace("\r\n", "\\n").replace("\n", "\\n"))
+            .replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n"))
 
 
 def local_tz_name():
@@ -151,7 +151,11 @@ def local_tz_name():
     try:
         target = os.path.realpath("/etc/localtime")
         if "/zoneinfo/" in target:
-            return target.split("/zoneinfo/", 1)[1]
+            name = target.split("/zoneinfo/", 1)[1]
+            # zoneinfo/posix/Europe/Prague: TZID musi byt "Europe/Prague" (jine kalendare "posix/..." neznaji)
+            if name.startswith(("posix/", "right/")):
+                name = name[6:]
+            return name
     except OSError:
         pass
     return None
@@ -522,6 +526,22 @@ def _month_days(year, month, r, start_day):
     return [dt.date(year, month, d) for d in sorted(days)]
 
 
+def _year_weekdays(year, byday):
+    """Dny roku podle BYDAY bez BYMONTH: n-ty den v tydnu v ramci celeho roku."""
+    first = dt.date(year, 1, 1)
+    count = (dt.date(year + 1, 1, 1) - first).days if year < 9999 else 365
+    days = set()
+    for nth, wd in byday:
+        matches = [first + dt.timedelta(days=k) for k in range(count) if (first + dt.timedelta(days=k)).weekday() == wd]
+        if nth is None:
+            days.update(matches)
+        elif 0 < nth <= len(matches):
+            days.add(matches[nth - 1])
+        elif nth < 0 and -nth <= len(matches):
+            days.add(matches[nth])
+    return sorted(days)
+
+
 def _rrule_days(freq, interval, r, start_day, until_day=None):
     """Generator kandidatnich dnu (vzestupne), konci nejpozdeji v roce 9999."""
     try:
@@ -564,8 +584,12 @@ def _rrule_days_raw(freq, interval, r, start_day, until_day=None):
         y = start_day.year
         while True:
             year_days = []      # BYSETPOS vybira z mnoziny celeho roku
-            if bymonth or r.get("BYDAY") or r.get("BYMONTHDAY"):
-                for m in sorted(bymonth or {start_day.month}):
+            if not bymonth and r.get("BYDAY") and not r.get("BYMONTHDAY"):
+                # BYDAY bez BYMONTH plati pro cely rok (20MO = 20. pondeli roku, MO = kazde pondeli)
+                year_days = _year_weekdays(y, _byday(r.get("BYDAY")))
+            elif bymonth or r.get("BYDAY") or r.get("BYMONTHDAY"):
+                # BYMONTHDAY bez BYMONTH: kazdy mesic (RFC 5545), ne jen mesic zacatku
+                for m in sorted(bymonth or range(1, 13)):
                     year_days.extend(_month_days(y, m, r, start_day))
             elif start_day.day <= days_in_month(y, start_day.month):  # 29. 2. jen v prestupnem roce
                 year_days.append(dt.date(y, start_day.month, start_day.day))
@@ -683,6 +707,9 @@ def _event_from_lines(lines):
     return ev
 
 
+TOP_BEGIN = {"BEGIN:VEVENT", "BEGIN:VTODO", "BEGIN:VJOURNAL", "BEGIN:VFREEBUSY", "BEGIN:VTIMEZONE"}
+
+
 def parse(text):
     """Text .ics -> Calendar. Chybne VEVENT se preskoci (cal.errors), zbytek se nacte."""
     cal = Calendar()
@@ -707,6 +734,10 @@ def parse(text):
             i += 1
             while i < n and depth:
                 u = lines[i].upper().strip()
+                # chybejici END: dalsi komponenta nejvyssi urovne nebo konec kalendare ukonci blok,
+                # jinak by udalost bez END:VEVENT spolkla nasledujici udalosti
+                if u == "END:VCALENDAR" or u in TOP_BEGIN:
+                    break
                 if u.startswith("BEGIN:"):
                     depth += 1
                 elif u.startswith("END:"):

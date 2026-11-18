@@ -394,6 +394,64 @@ class Restore(Env):
                 mock.patch.object(core, "run_rsync", return_value=(24, "")):
             self.assertEqual(core.restore_all(s, self.name, target, replace=True, log=lambda *_a: None), 0)
 
+    def sftp_session(self, remote_dir):
+        disk = dict(core.parse_sftp("sftp://anna@nas" + remote_dir), kind="sftp", id="test", machine="pc")
+
+        def local_ssh(sess, script, timeout=120):
+            # Server zastoupi mistni shell nad stejnou slozkou
+            r = subprocess.run(["sh", "-c", script], capture_output=True, text=True, timeout=timeout)
+            return r.returncode, r.stdout, r.stderr
+        return core.Session(disk), mock.patch.object(core, "ssh_run", side_effect=local_ssh)
+
+    def test_sftp_orphaned_partials_reused_and_cleaned(self):
+        # (8) prerusena zaloha na SFTP: nejnovejsi .partial se dokonci pod novym jmenem, starsi zmizi,
+        # .partial se nepocitaji mezi zalohy (make_space kvuli nim nemaze skutecne zalohy)
+        remote = os.path.join(self.tmp, "nas")
+        base = os.path.join(remote, core.TOP, "pc")
+        for n in ("2026-01-01-000000", "2026-02-01-000000.partial", "2026-03-01-000000.partial", "foreign.partial"):
+            write(os.path.join(base, n, "home", "f.txt"), n)
+        session, patch = self.sftp_session(remote)
+        with session as s, patch:
+            self.assertEqual(core.list_snapshots(s), ["2026-01-01-000000"])
+            core._reuse_partial_remote(s, "2026-04-01-000000")
+        self.assertEqual(sorted(os.listdir(base)), ["2026-01-01-000000", "2026-04-01-000000.partial", "foreign.partial"])
+        self.assertEqual(read(os.path.join(base, "2026-04-01-000000.partial", "home", "f.txt")), "2026-03-01-000000.partial")
+
+    def test_delete_snapshot_only_valid_names(self):
+        with self.sess() as s:
+            for bad in ("..", "../x", "2026-01-01-000000/..", "x.partial", "../2026-01-01-000000.partial",
+                        "2026-01-01-000000\n", "2026-01-01-000000.partial.partial", ""):
+                with self.subTest(name=bad), self.assertRaises(core.BackupError):
+                    core.delete_snapshot(s, bad)
+            write(os.path.join(self.root, "2026-01-01-000000.partial", "x"), "y")
+            core.delete_snapshot(s, "2026-01-01-000000.partial")
+            self.assertFalse(os.path.exists(os.path.join(self.root, "2026-01-01-000000.partial")))
+
+    def test_fixed_path_disk_unmounted_is_not_connected(self):
+        # (9) /mnt/zalohy po odpojeni: slozka zustane na systemovem disku - nesmi se do ni zalohovat
+        target = os.path.join(self.tmp, "zalohy")
+        os.makedirs(target)
+        with mock.patch.object(core, "fs_uuid", return_value=("u-usb", "/mnt/zalohy")):
+            disk = core.add_local_disk({"disks": []}, target)
+        self.assertEqual((disk["fs_target"], disk["fs_uuid"]), ("/mnt/zalohy", "u-usb"))
+        with mock.patch.object(core, "fs_uuid", return_value=("u-root", "/")), \
+                self.assertRaises(core.NotConnected):
+            with core.Session(disk):
+                pass
+        with mock.patch.object(core, "fs_uuid", return_value=("u-other", "/mnt/zalohy")), \
+                self.assertRaises(core.NotConnected):
+            with core.Session(disk):
+                pass
+        with mock.patch.object(core, "fs_uuid", return_value=("u-usb", "/mnt/zalohy")):
+            with core.Session(disk) as s:
+                self.assertTrue(s.root.startswith(target))
+        # starsi nastaveni bez zaznamu: slozka v /mnt primo na korenovem systemu se odmitne
+        if os.path.isdir("/mnt"):
+            with mock.patch.object(core, "fs_uuid", return_value=("u-root", "/")), \
+                    self.assertRaises(core.NotConnected):
+                with core.Session({"id": "old", "kind": "local", "path": "/mnt"}):
+                    pass
+
     def test_list_dir_and_when(self):
         with self.sess() as s:
             items = core.list_dir(s, self.name, "Documents")

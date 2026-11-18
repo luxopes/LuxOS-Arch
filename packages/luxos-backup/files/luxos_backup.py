@@ -718,6 +718,7 @@ class Session:
         if d.get("path"):
             if not os.path.isdir(d["path"]):
                 raise NotConnected(_("The backup disk is not connected."))
+            check_fixed_path(d)
             return d["path"]
         return os.path.join(self.mount_uuid(d.get("uuid"), d.get("luks_uuid")), d.get("subdir") or "")
 
@@ -892,7 +893,9 @@ def free_space(sess):
 
 
 def delete_snapshot(sess, name):
-    if not (SNAP_RE.match(name) or name.endswith(".partial")):
+    # jen skutecne jmeno zalohy nebo jeji rozpracovana .partial - nikdy "..", cesty ani jine slozky
+    if not isinstance(name, str) or not (SNAP_RE.fullmatch(name) or
+                                         (name.endswith(".partial") and SNAP_RE.fullmatch(name[:-8]))):
         raise BackupError(f"refusing to delete {name}")
     if sess.remote:
         ssh_run(sess, "rm -rf -- " + shlex.quote(posix_join(sess.remote[1], name)), timeout=3600)
@@ -1193,6 +1196,10 @@ def backup(disk, cfg, log=print, on_progress=None):
         if not sess.remote:
             check_target_fs(sess.root)
         eng = engine_for(sess)
+        if sess.remote:
+            # rozpracovanou zalohu z preruseneho behu dokoncit pod novym jmenem, ostatni smazat - jinak
+            # by osirele .partial plnily server a make_space by kvuli nim mazal skutecne zalohy
+            _reuse_partial_remote(sess, name)
         deleted = make_space(sess, log=log)
         names = list_snapshots(sess)
         prev = names[-1] if names else None
@@ -1368,6 +1375,22 @@ def _reuse_partial(sess, part):
         if n.endswith(".partial") and os.path.join(sess.root, n) != part:
             os.rename(os.path.join(sess.root, n), part)
             break
+
+
+def _reuse_partial_remote(sess, name):
+    """SFTP: nejnovejsi platnou .partial prejmenovat na <name>.partial (rsync doplni zbytek), starsi smazat."""
+    rc, out, _e = ssh_run(sess, "ls -1 -- " + shlex.quote(sess.remote[1]) + " 2>/dev/null")
+    parts = sorted(n for n in out.split("\n")
+                   if n.endswith(".partial") and SNAP_RE.fullmatch(n[:-8]) and n != name + ".partial")
+    if not parts:
+        return
+    keep = parts.pop()
+    rc, _o, err = ssh_run(sess, "mv -- %s %s" % (shlex.quote(posix_join(sess.remote[1], keep)),
+                                                 shlex.quote(posix_join(sess.remote[1], name + ".partial"))))
+    if rc:
+        parts.append(keep)          # nejde prejmenovat: aspon uvolnit misto
+    for n in parts:
+        delete_snapshot(sess, n)
 
 
 def _finish_local(part, final, info, warnings):
@@ -1688,6 +1711,26 @@ def restore_all(sess, name, target=None, replace=False, log=print):
 
 
 # ---- pridani a priprava disku ------------------------------------------------------
+MOUNT_AREAS = ("/mnt", "/media", "/run/media", "/srv")
+
+
+def check_fixed_path(disk):
+    """Disk ulozeny pevnou cestou (napr. /mnt/zalohy): po odpojeni slozka zustane na systemovem
+    disku a zaloha by ho zaplnila. Cesta musi lezet na stejnem souborovem systemu (pripojeni a UUID)
+    jako pri pridani; u starsich nastaveni bez tohoto zaznamu se odmitne slozka v /mnt, /media...,
+    ktera lezi primo na korenovem souborovem systemu."""
+    path = disk["path"]
+    uuid, target = fs_uuid(path)
+    if target is None:
+        return                                    # findmnt nevi - jako drive
+    if disk.get("fs_target"):
+        if target != disk["fs_target"] or (disk.get("fs_uuid") and uuid and uuid != disk["fs_uuid"]):
+            raise NotConnected(_("The backup disk is not connected."))
+        return
+    if target == "/" and any(path == a or path.startswith(a + "/") for a in MOUNT_AREAS):
+        raise NotConnected(_("The backup disk is not connected."))
+
+
 def add_local_disk(cfg, path, name=None):
     """Slozka na pripojenem disku (napr. /run/media/anna/USB)."""
     path = os.path.abspath(path)
@@ -1708,6 +1751,10 @@ def add_local_disk(cfg, path, name=None):
             disk["luks_uuid"], disk["encrypted"] = parent, True
     else:
         disk["path"] = path
+        if target:                                # pozdeji poznat odpojeny disk (check_fixed_path)
+            disk["fs_target"] = target
+            if uuid:
+                disk["fs_uuid"] = uuid
     test = os.path.join(path, f".luxos-backup-test{os.getpid()}")
     try:
         os.makedirs(os.path.join(path, TOP), exist_ok=True)

@@ -543,6 +543,39 @@ class TestRfcFixes(unittest.TestCase):
         e = self.ev(D(2026, 10, 21), "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYSETPOS=2;COUNT=3")
         self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)), [D(2026, 10, 21), D(2026, 10, 28), D(2026, 11, 4)])
 
+    def test_yearly_without_bymonth_expands_all_months(self):
+        # YEARLY;BYMONTHDAY bez BYMONTH = kazdy mesic, YEARLY;BYDAY bez BYMONTH = cely rok
+        e = self.ev(D(2026, 1, 1), "FREQ=YEARLY;BYMONTHDAY=1;COUNT=14")
+        got = days(e, D(2026, 1, 1), D(2028, 1, 1))
+        self.assertEqual(got, [D(2026, m, 1) for m in range(1, 13)] + [D(2027, 1, 1), D(2027, 2, 1)])
+        e = self.ev(D(2026, 1, 5), "FREQ=YEARLY;BYDAY=MO;COUNT=60")
+        got = days(e, D(2026, 1, 1), D(2028, 1, 1))
+        self.assertEqual(len(got), 60)
+        self.assertTrue(all(d.weekday() == 0 for d in got))
+        self.assertIn(D(2026, 7, 6), got)
+        e = self.ev(D(2026, 5, 18), "FREQ=YEARLY;BYDAY=20MO;COUNT=2")    # 20. pondeli roku
+        self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)), [D(2026, 5, 18), D(2027, 5, 17)])
+
+    def test_missing_end_does_not_swallow_next_event(self):
+        cal = ics.parse("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a\nDTSTART:20261020T090000\nSUMMARY:A\n"
+                        "BEGIN:VEVENT\nUID:b\nDTSTART:20261021T090000\nSUMMARY:B\nEND:VEVENT\n"
+                        "BEGIN:VEVENT\nUID:c\nDTSTART:20261022T090000\nSUMMARY:C\nEND:VCALENDAR\n")
+        self.assertEqual([e.summary for e in cal.events], ["A", "B", "C"])
+        self.assertEqual(cal.errors, 0)
+
+    def test_escape_lone_cr(self):
+        self.assertEqual(ics.escape("a\rb"), "a\\nb")
+        self.assertNotIn("\r", ics.escape("x\ry\r\nz"))
+
+    def test_local_tz_name_posix_and_right_links(self):
+        from unittest import mock
+        for target, want in (("/usr/share/zoneinfo/posix/Europe/Prague", "Europe/Prague"),
+                             ("/usr/share/zoneinfo/right/America/New_York", "America/New_York"),
+                             ("/usr/share/zoneinfo/Europe/Prague", "Europe/Prague")):
+            with self.subTest(target=target), mock.patch.dict(os.environ, {"TZ": ""}), \
+                    mock.patch.object(ics.os.path, "realpath", return_value=target):
+                self.assertEqual(ics.local_tz_name(), want)
+
     def test_exdate_without_rrule(self):
         # C-17
         ev = ics.parse("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART:20261020T090000\nDTEND:20261020T100000\n"

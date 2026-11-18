@@ -28,6 +28,8 @@ CSS_NAMES = {"tomato": "red", "crimson": "red", "darkorange": "orange", "gold": 
              "seagreen": "green", "dodgerblue": "blue", "royalblue": "blue", "navy": "blue", "violet": "purple",
              "magenta": "purple", "orchid": "purple"}
 
+TOP_BEGIN = ["BEGIN:VEVENT", "BEGIN:VTODO", "BEGIN:VJOURNAL", "BEGIN:VFREEBUSY", "BEGIN:VTIMEZONE"]
+
 # ---- radky a hodnoty ----------------------------------------------------------------------------
 
 # Rozbali zalomene radky (CRLF/LF + mezera nebo tabulator)
@@ -615,6 +617,44 @@ function month_days(year, month, r, start_day):
     return out
 end
 
+# Dny roku podle BYDAY bez BYMONTH: n-ty den v tydnu v ramci celeho roku (ordinaly, serazene)
+function year_weekdays(year, rule_days):
+    first = date.ordinal(year, 1, 1)
+    count = 365
+    if date.is_leap(year):
+        count = 366
+    end
+    days = []
+    for item in rule_days:
+        nth = item[0]
+        wd = item[1]
+        matches = []
+        k = 0
+        while k < count:
+            if date.weekday(first + k) == wd:
+                matches.append(first + k)
+            end
+            k += 1
+        end
+        if nth == None:
+            for m in matches:
+                if m not in days:
+                    days.append(m)
+                end
+            end
+        elif nth > 0 and nth <= len(matches):
+            if matches[nth - 1] not in days:
+                days.append(matches[nth - 1])
+            end
+        elif nth < 0 and 0 - nth <= len(matches):
+            if matches[len(matches) + nth] not in days:
+                days.append(matches[len(matches) + nth])
+            end
+        end
+    end
+    return sorted(days)
+end
+
 # BYSETPOS: vyber ze serazene mnoziny dnu jednoho obdobi (1 = prvni, -1 = posledni)
 function setpos(days, r):
     spec = r.get("BYSETPOS")
@@ -825,10 +865,14 @@ function rule_starts(ev, until_day, from_day):
         while not state["done"]:
             # BYSETPOS vybira z mnoziny celeho roku
             year_days = []
-            if explicit:
+            if len(bymonth) == 0 and r.get("BYDAY") != None and r.get("BYMONTHDAY") == None:
+                # BYDAY bez BYMONTH plati pro cely rok (20MO = 20. pondeli roku, MO = kazde pondeli)
+                year_days = year_weekdays(y, byday(r.get("BYDAY")))
+            elif explicit:
+                # BYMONTHDAY bez BYMONTH: kazdy mesic (RFC 5545), ne jen mesic zacatku
                 months = bymonth
                 if len(months) == 0:
-                    months = [start_month]
+                    months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
                 end
                 for m in sorted(months):
                     year_days.extend(month_days(y, m, r, start_day))
@@ -1114,6 +1158,11 @@ function parse(source):
             i += 1
             while i < n and depth > 0:
                 u = lines[i].upper().strip()
+                # chybejici END: dalsi komponenta nejvyssi urovne nebo konec kalendare ukonci blok,
+                # jinak by udalost bez END:VEVENT spolkla nasledujici udalosti
+                if u == "END:VCALENDAR" or u in TOP_BEGIN:
+                    break
+                end
                 if u.startswith("BEGIN:"):
                     depth += 1
                 elif u.startswith("END:"):

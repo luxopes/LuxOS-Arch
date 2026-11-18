@@ -270,7 +270,7 @@ function connectivity_update():
         # internet: okno portalu uz neni potreba (i rucne otevrene z listy nebo Ovladaciho centra)
         call portal_close_window()
         if last == 2 or hub["portal_found"]:
-            call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "network-wireless-symbolic", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
+            call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "network-wireless-symbolic", "--", i18n.T("Connected to the internet"), i18n.T("You are signed in to the network.")])
         end
     end
     if c != 2 and c != 3:
@@ -464,7 +464,7 @@ function noinet_check():
     hub["noinet_timer"] = False
     if hub["connectivity"] == 3 and connectivity() == 3 and not hub["portal_found"]:
         # -e: prechodne (stav je videt na ikone site), do historie oznameni nepatri
-        call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "luxos-network-no-internet-symbolic", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
+        call glib.spawn(["notify-send", "-a", "LuxOS", "-e", "-i", "luxos-network-no-internet-symbolic", "--", i18n.T("No internet connection"), i18n.T("You are connected to the network, but the internet is not available.")])
     end
     return False
 end
@@ -636,7 +636,7 @@ function on_low_memory(sender, path, interface, signal, values):
     if name != "":
         body = i18n.TF("“%s” used too much memory and was closed so the computer would not freeze.", [name])
     end
-    call glib.spawn(["notify-send", "-a", "LuxOS", "-u", "critical", "-i", "dialog-warning", i18n.T("Memory is running low"), body])
+    call glib.spawn(["notify-send", "-a", "LuxOS", "-u", "critical", "-i", "dialog-warning", "--", i18n.T("Memory is running low"), body])
     return 0
 end
 
@@ -648,7 +648,7 @@ function on_fork_bomb(sender, path, interface, signal, values):
         return 0
     end
     body = i18n.TF("“%s” started thousands of processes and was stopped so the computer would not freeze.", [String(values[0])])
-    call glib.spawn(["notify-send", "-a", "LuxOS", "-u", "critical", "-i", "dialog-warning", i18n.T("Runaway program stopped"), body])
+    call glib.spawn(["notify-send", "-a", "LuxOS", "-u", "critical", "-i", "dialog-warning", "--", i18n.T("Runaway program stopped"), body])
     return 0
 end
 
