@@ -16,8 +16,8 @@
  * LUXOS_LOCK_DEMO_USERS=N (pocet uzivatelu; tlacitka napajeni pak jen zapisou do logu),
  * LUXOS_I18N_DIR a LUXOS_GREETER_CONF (preklady a nastaveni z jineho mista), LUXOS_LOCK_DEBUG=1
  * (stav Caps Locku, rozlozeni, hlasky a pole na stderr), s LUXOS_LOCK_DEMO_USERS signal SIGUSR1
- * (jako by system prave spal), LUXOS_LOCK_DEMO_POWER_SUPPLY (s LUXOS_LOCK_DEMO_USERS: adresar misto
- * /sys/class/power_supply). Testy: tests/test-lock-kbd.c, tests/test-lock-battery.c (ikona baterie,
+ * (jako by system prave spal), LUXOS_LOCK_DEMO_POWER_SUPPLY a LUXOS_LOCK_DEMO_NET (s LUXOS_LOCK_DEMO_USERS:
+ * adresar misto /sys/class/power_supply a /sys/class/net). Testy: tests/test-lock-kbd.c, tests/test-lock-battery.c (ikona baterie,
  * luxos-lock-battery.c), tests/gui-caps-lock.py, tests/gui-battery.py.
  *
  * Caps Lock a rozlozeni jsou v radku pod polem pro heslo (stav primo ze serveru X, zmeny podle
@@ -981,14 +981,19 @@ cmp_str_ptr (gconstpointer a, gconstpointer b) {
     return g_strcmp0 (*(const char *const *) a, *(const char *const *) b);
 }
 
-/* Adresar napajecich zdroju; testy: LUXOS_LOCK_DEMO_POWER_SUPPLY (napodobeny /sys/class/power_supply,
- * jen spolu s LUXOS_LOCK_DEMO_USERS) */
+/* Adresar ze sysfs; testy: LUXOS_LOCK_DEMO_POWER_SUPPLY / LUXOS_LOCK_DEMO_NET (napodobeny
+ * /sys/class/power_supply / /sys/class/net, jen spolu s LUXOS_LOCK_DEMO_USERS) */
 static const char *
-power_supply_dir (void) {
-    const char *demo = g_getenv ("LUXOS_LOCK_DEMO_POWER_SUPPLY");
+demo_dir (const char *var, const char *real) {
+    const char *demo = g_getenv (var);
     if (demo && *demo && g_getenv ("LUXOS_LOCK_DEMO_USERS"))
         return demo;
-    return "/sys/class/power_supply";
+    return real;
+}
+
+static const char *
+power_supply_dir (void) {
+    return demo_dir ("LUXOS_LOCK_DEMO_POWER_SUPPLY", "/sys/class/power_supply");
 }
 
 /* Je napajeci zdroj (Mains/USB) pripojeny? */
@@ -1068,7 +1073,7 @@ out:
 
 static void
 network_state (LuxLock *ll) {
-    GDir *d = g_dir_open ("/sys/class/net", 0, NULL);
+    GDir *d = g_dir_open (demo_dir ("LUXOS_LOCK_DEMO_NET", "/sys/class/net"), 0, NULL);
     const char *n;
     ll->net = 0;
     if (!d)
@@ -1077,7 +1082,7 @@ network_state (LuxLock *ll) {
         char *base, *p, *st;
         if (g_strcmp0 (n, "lo") == 0)
             continue;
-        base = g_build_filename ("/sys/class/net", n, NULL);
+        base = g_build_filename (demo_dir ("LUXOS_LOCK_DEMO_NET", "/sys/class/net"), n, NULL);
         p = g_build_filename (base, "operstate", NULL);
         st = read_file (p);
         if (g_strcmp0 (st, "up") == 0) {

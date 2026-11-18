@@ -48,7 +48,7 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-screensaver.git#tag=$pkgname-$pk
         'xfce4-screensaver-dialog.css')
 sha256sums=('bc84a11d51fbc4222ca43831671de2935e759229d21ee7136443e7250c78498f'
             'a41c59d7caa51ae55b19b8f227d9405a0c4a68743ed1780ef170e1efa352f6ea'
-            'f9c9ffb7c50bc04bdb956d6fb57a1d5faef85728ab94ae176bfb0c5adc5d3bf1'
+            '22c4b799bf12fb4a6f8a1649c8200391adc232513362dad43d4b6d193a0c9010'
             '21bd4eb6eda38bb6b08a10ccadbdbcc7c7a60fb29b70f0f7dd8851e943d4d3ff'
             'f6ab39a80fc2f793a702f14bd9da4850e186667a0390de62612d4bbb5ed298db'
             '48d2f2e78418e95cb7ff60ad0c2e5bde39d624285f0345979b2333c5f1ab359a'

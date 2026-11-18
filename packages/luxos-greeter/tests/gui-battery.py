@@ -267,6 +267,9 @@ def test_window(shots):
                 os.environ["LUXOS_GREETER_DEMO_POWER_SUPPLY"] = power_dir(level, status if plugged else "Discharging",
                                                                          plugged)
                 os.environ["LUXOS_GREETER_DEMO_BACKGROUND"] = wall
+                # bez site: ikona site se mezi snimky nemeni podle rozhrani pocitace
+                os.environ["LUXOS_GREETER_DEMO_NET"] = os.path.join(TMP, "net-empty")
+                os.makedirs(os.environ["LUXOS_GREETER_DEMO_NET"], exist_ok=True)
                 g.DEMO_FPRINT = None
                 win = g.Greeter(argparse.Namespace(demo=True, users=1, sessions=1, lock=True))
                 pump(0.6)

@@ -6,7 +6,8 @@
         --dialog BUILD/src/xfce4-screensaver-dialog --fake-pam fake-pam.so [--shots DIR]
 
 Prostredi jako tests/gui-caps-lock.py (vlastni Xvfb, D-Bus, HOME, napodobeny libpam). Baterie je
-napodobeny adresar /sys/class/power_supply (LUXOS_LOCK_DEMO_POWER_SUPPLY): BAT0 + AC.
+napodobeny adresar /sys/class/power_supply (LUXOS_LOCK_DEMO_POWER_SUPPLY): BAT0 + AC; sit prazdny
+/sys/class/net (LUXOS_LOCK_DEMO_NET), aby stav rozhrani pocitace nemenil stavovy radek mezi snimky.
 
 Overuje pri meritku 1x a 2x, na tmave, svetle a bile tapete a pri nabiti 10/50/95/100 % (100 % jako
 "Full" a 80 % jako "Not charging" s pripojenou nabijeckou): ikona baterie je videt a blesk se v ni
@@ -51,6 +52,27 @@ def shot(env, path):
     ok = r.returncode == 0 and os.path.exists(path)
     check(ok, f"screenshot {os.path.basename(path)} {r.stderr[-300:]}")
     return ok
+
+
+def status_pixels(path, scale):
+    s, data, st = load(path)
+    w = s.get_width()
+    return [lum(data, st, x, y) for y in range(0, int(80 * scale), 2) for x in range(w - int(320 * scale), w, 2)]
+
+
+def settled_shot(env, path, scale, timeout=6.0):
+    """Snimek az se stavovy radek prestane menit (prechod dialogu, prekresleni ikon)."""
+    time.sleep(1.0)
+    prev, t0 = None, time.time()
+    while shot(env, path):
+        cur = status_pixels(path, scale)
+        if prev is not None and max(abs(a - b) for a, b in zip(cur, prev)) < 0.02:
+            return
+        if time.time() - t0 > timeout:
+            check(False, f"{os.path.basename(path)}: status row did not settle")
+            return
+        prev = cur
+        time.sleep(0.4)
 
 
 def power_supply(base, level, status, online):
@@ -130,6 +152,9 @@ def run(args, base, scale):
                    extra_env={"GDK_SCALE": str(scale)} if scale != 1 else None)
     shots = args.shots or os.path.join(env.dir, "shots")
     os.makedirs(shots, exist_ok=True)
+    # bez site (prazdny /sys/class/net): ikona site se nemeni podle rozhrani pocitace (podman, VM...)
+    net = os.path.join(env.dir, "net-empty")
+    os.makedirs(net, exist_ok=True)
     white = os.path.join(env.dir, "white.png")
     white_wallpaper(white)
     walls = (("dark", "/usr/share/backgrounds/luxos/luxos-dark.jpg"),
@@ -147,12 +172,12 @@ def run(args, base, scale):
                 paths = {}
                 for plugged in (True, False):
                     ps = power_supply(env.dir, level, status if plugged else "Discharging", plugged)
-                    d = caps.Dialog(env, args.dialog, args.fake_pam, extra_env={"LUXOS_LOCK_DEMO_POWER_SUPPLY": ps},
+                    d = caps.Dialog(env, args.dialog, args.fake_pam,
+                                    extra_env={"LUXOS_LOCK_DEMO_POWER_SUPPLY": ps, "LUXOS_LOCK_DEMO_NET": net},
                                     size=(w, h))
                     check(d.wid is not None, f"{tag}: dialog shown (plugged={plugged})")
-                    time.sleep(1.0)
                     p = os.path.join(shots if plugged else env.dir, f"lock-{tag}{'' if plugged else '-unplugged'}.png")
-                    shot(env, p)
+                    settled_shot(env, p, scale)
                     paths[plugged] = p
                     d.close()
                 if all(os.path.exists(p) for p in paths.values()):
@@ -163,11 +188,11 @@ def run(args, base, scale):
         os.makedirs(empty, exist_ok=True)
         got = {}
         for name, ps in (("none", empty), ("nocap", power_supply(env.dir, "", "Charging", True))):
-            d = caps.Dialog(env, args.dialog, args.fake_pam, extra_env={"LUXOS_LOCK_DEMO_POWER_SUPPLY": ps},
+            d = caps.Dialog(env, args.dialog, args.fake_pam,
+                            extra_env={"LUXOS_LOCK_DEMO_POWER_SUPPLY": ps, "LUXOS_LOCK_DEMO_NET": net},
                             size=(w, h))
-            time.sleep(1.0)
             got[name] = os.path.join(env.dir, f"lock-battery-{name}-{scale}x.png")
-            shot(env, got[name])
+            settled_shot(env, got[name], scale)
             d.close()
         if all(os.path.exists(p) for p in got.values()):
             a, da, st = load(got["none"])

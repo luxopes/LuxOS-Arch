@@ -685,8 +685,7 @@ def battery_plugged(status, base, names):
                read(os.path.join(base, n, "online")) == "1" for n in names)
 
 
-def network_state():
-    base = "/sys/class/net"
+def network_state(base="/sys/class/net"):
     try:
         names = sorted(os.listdir(base))
     except OSError:
@@ -1702,10 +1701,12 @@ class Greeter(Gtk.Window):
     def update_status(self):
         if self.kbd_btn.get_child() is None:
             return False            # okno zrusene (testy): casovac skoncit
-        # testy: v rezimu --demo napodobeny /sys/class/power_supply (LUXOS_GREETER_DEMO_POWER_SUPPLY)
+        # testy: v rezimu --demo napodobeny /sys/class/power_supply a /sys/class/net
+        # (LUXOS_GREETER_DEMO_POWER_SUPPLY, LUXOS_GREETER_DEMO_NET)
         ps = (self.demo and os.environ.get("LUXOS_GREETER_DEMO_POWER_SUPPLY")) or "/sys/class/power_supply"
+        net = (self.demo and os.environ.get("LUXOS_GREETER_DEMO_NET")) or "/sys/class/net"
         self._battery = battery_state(ps) if self.cfg["battery"] else None
-        self._network = network_state() if self.cfg["network"] else None
+        self._network = network_state(net) if self.cfg["network"] else None
         self.bat_icon.set_visible(self._battery is not None)
         self.bat_label.set_visible(self._battery is not None)
         if self._battery is not None:
