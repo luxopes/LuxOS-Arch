@@ -8,6 +8,7 @@ jeste pred odeslanim jakychkoli dat.
 """
 import http.client
 import json
+import re
 import socket
 import ssl
 import struct
@@ -152,6 +153,8 @@ class Reader:
         while True:
             i = self.buf.find(b"\n")
             if i >= 0:
+                if i + 1 > MAX_LINE:
+                    raise HTTPError(431, "line too long")
                 line = bytes(self.buf[:i + 1])
                 del self.buf[:i + 1]
                 return line
@@ -204,10 +207,10 @@ class Body:
             line = self.r.readline()
             if not line:
                 raise ConnectionError("body ended early")
-            try:
-                size = int(line.split(b";")[0].strip(), 16)
-            except ValueError:
-                raise HTTPError(400, "invalid chunk") from None
+            raw_size = line.split(b";")[0].strip()
+            if not re.fullmatch(rb"[0-9a-fA-F]+", raw_size):
+                raise HTTPError(400, "invalid chunk")
+            size = int(raw_size, 16)
             if size == 0:
                 while True:  # trailery az po prazdny radek
                     t = self.r.readline()

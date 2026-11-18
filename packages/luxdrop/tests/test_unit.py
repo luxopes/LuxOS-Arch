@@ -468,7 +468,7 @@ class TestHashAndFinalize(unittest.TestCase):
                              os.O_WRONLY | os.O_CREAT, 0o600, dir_fd=part_fd)
                 os.write(fd, content)
                 os.close(fd)
-            names = transfer.Receiver._finalize(dest, part_fd, fp, files, dirs)
+            names = transfer.Receiver._finalize(dest, part_fd, fp, files, dirs, trusted=True)
         finally:
             os.close(part_fd)
         self.assertEqual(sorted(names), ["a (1).txt", "folder (1)"])
@@ -479,6 +479,29 @@ class TestHashAndFinalize(unittest.TestCase):
         self.assertEqual(os.stat(y).st_mode & 0o777, 0o755)
         self.assertTrue(os.path.isdir(os.path.join(dest, "folder (1)", "empty")))
         self.assertEqual(os.listdir(os.path.join(dest, ".luxdrop-partial")), [])
+
+    def test_finalize_exec_bit_only_from_trusted(self):
+        # Spustitelny soubor od neduveryhodneho odesilatele prijde jako data (0644)
+        for trusted, mode in ((False, 0o644), (True, 0o755)):
+            dest = os.path.join(self.dir, "exec-%s" % trusted)
+            os.mkdir(dest)
+            part_fd = transfer.Receiver._open_part_dir(dest)
+            try:
+                fp = b"\2" * 32
+                files, dirs, _t = pathsafe.check_offer({"files": [
+                    {"path": "run.sh", "size": 2, "sha256": hashlib.sha256(b"#!").hexdigest(), "exec": True},
+                    {"path": "dir/tool", "size": 2, "sha256": hashlib.sha256(b"#!").hexdigest(), "exec": True},
+                ], "dirs": ["dir"]})
+                for f in files:
+                    fd = os.open(transfer.part_name(fp, f["path"], f["sha256"], f["size"]),
+                                 os.O_WRONLY | os.O_CREAT, 0o600, dir_fd=part_fd)
+                    os.write(fd, b"#!")
+                    os.close(fd)
+                transfer.Receiver._finalize(dest, part_fd, fp, files, dirs, trusted=trusted)
+            finally:
+                os.close(part_fd)
+            self.assertEqual(os.stat(os.path.join(dest, "run.sh")).st_mode & 0o777, mode)
+            self.assertEqual(os.stat(os.path.join(dest, "dir", "tool")).st_mode & 0o777, mode)
 
     def test_partial_dir_symlink_refused(self):
         dest = os.path.join(self.dir, "d2")
@@ -565,6 +588,87 @@ class DesktopFileTest(unittest.TestCase):
             self.assertNotIn("\nMimeType=", "\n" + f.read())
         with open(os.path.join(files, "thunar", "luxdrop-sendto.desktop"), encoding="utf-8") as f:
             self.assertIn("MimeType=application/octet-stream;inode/directory;", f.read())
+
+
+class TestReceiverLimits(unittest.TestCase):
+    """Prijimac nelze vycerpat neoverenymi spojenimi z jedne adresy ani pomalym kapanim bajtu."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="luxdrop-limits-")
+        ident = identity.Identity.load_or_create(os.path.join(self.dir, "id"))
+        settings = store.Settings(os.path.join(self.dir, "cfg"))
+        settings.data["download_dir"] = os.path.join(self.dir, "dl")
+        self.rx = transfer.Receiver(ident, settings, store.TrustStore(os.path.join(self.dir, "data")),
+                                    store.History(os.path.join(self.dir, "data")), transfer.Handler(),
+                                    bind="127.0.0.1", port=FreePort.get())
+        self.port = self.rx.start()
+        self.socks = []
+
+    def tearDown(self):
+        for s in self.socks:
+            s.close()
+        self.rx.stop()
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def connect(self):
+        s = socket.create_connection(("127.0.0.1", self.port), timeout=5)
+        self.socks.append(s)
+        return s
+
+    @staticmethod
+    def closed(s, wait=3.0):
+        """Server spojeni zavrel (EOF nebo reset) do wait sekund."""
+        s.settimeout(wait)
+        try:
+            return s.recv(1) == b""
+        except socket.timeout:
+            return False
+        except OSError:
+            return True
+
+    def test_per_ip_cap(self):
+        held = [self.connect() for _ in range(transfer.MAX_PER_IP)]
+        time.sleep(0.3)
+        extra = self.connect()
+        self.assertTrue(self.closed(extra), "spojeni nad limit jedne adresy se hned zavre")
+        for s in held:
+            self.assertFalse(self.closed(s, 0.2), "povolena spojeni zustanou")
+        held[0].close()
+        time.sleep(0.5)
+        again = self.connect()
+        self.assertFalse(self.closed(again, 0.5), "po uvolneni se lze zase pripojit")
+
+    def test_preauth_deadline_against_trickle(self):
+        old = transfer.PREAUTH_TIMEOUT
+        transfer.PREAUTH_TIMEOUT = 1.5
+        try:
+            # platny zacatek TLS ClientHello posilany po bajtu: kazde cteni stihne casovy limit soketu (20 s)
+            import ssl
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            incoming, outgoing = ssl.MemoryBIO(), ssl.MemoryBIO()
+            obj = ctx.wrap_bio(incoming, outgoing)
+            with self.assertRaises(ssl.SSLWantReadError):
+                obj.do_handshake()
+            hello = outgoing.read()
+            self.assertGreater(len(hello), 100)
+            s = self.connect()
+            start = time.monotonic()
+            done = False
+            for i in range(len(hello) - 1):
+                try:
+                    s.send(hello[i:i + 1])
+                except OSError:
+                    done = True
+                    break
+                if self.closed(s, 0.05):
+                    done = True
+                    break
+            self.assertTrue(done, "neovereny klient nesmi spojeni drzet dlouho")
+            self.assertLess(time.monotonic() - start, 6)
+        finally:
+            transfer.PREAUTH_TIMEOUT = old
 
 
 if __name__ == "__main__":

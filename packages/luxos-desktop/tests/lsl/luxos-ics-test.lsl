@@ -252,6 +252,84 @@ elif command == "sorting":
 elif command == "overnight":
     ev = ics.event_new("Noc", False, date.make(date.ordinal(2026, 10, 20), 22, 0, 0), date.make(date.ordinal(2026, 10, 21), 2, 0, 0), None)
     print len(ics.occurrences(ev, date.ordinal(2026, 10, 21), date.ordinal(2026, 10, 22))), len(ics.occurrences(ev, date.ordinal(2026, 10, 22), date.ordinal(2026, 10, 23)))
+elif command == "instances":
+    # vyskyty ve slozce: instances DIR OD DO
+    st = ics.store_new(arg(2))
+    call ics.reload_if_changed(st)
+    for item in ics.instances(st, parse_value(arg(3))[1], parse_value(arg(4))[1]):
+        print item[0]["summary"] + "|" + fmt(item[0], item[1])
+    end
+elif command == "shift":
+    # posun prvni udalosti o N sekund v mistnim case a zapis (cizi TZID zustava)
+    cal = ics.read_file(arg(2))
+    ev = cal["events"][0]
+    ev["start"] = ev["start"] + Int(arg(3))
+    ev["end"] = ev["end"] + Int(arg(3))
+    print ics.to_text(cal, "Europe/Prague")
+elif command == "delmoved":
+    # smazani presunuteho vyskytu (RECURRENCE-ID) dne DEN: delmoved DIR DEN
+    st = ics.store_new(arg(2))
+    call ics.reload_if_changed(st)
+    d = parse_value(arg(3))[1]
+    items = ics.day_instances(st, d)
+    print "rid", items[0][0]["recurrence_id"] != None
+    call ics.delete(st, items[0][0])
+    print readfile(arg(2) + "/events.ics")
+elif command == "delall":
+    st = ics.store_new(arg(2))
+    call ics.reload_if_changed(st)
+    call ics.delete(st, ics.find(st, arg(3), None))
+    st2 = ics.store_new(arg(2))
+    call ics.reload_if_changed(st2)
+    print "own", len(st2["own"]["events"])
+elif command == "concurrent":
+    # C-04: dve instance (Kalendar a jiny proces) nad jednim souborem
+    dir = arg(2)
+    d = date.ordinal(2026, 10, 20)
+    st = ics.store_new(dir)
+    call ics.reload_if_changed(st)
+    a = ics.event_new("A", False, date.make(d, 8, 0, 0), date.make(d, 9, 0, 0), None)
+    a["uid"] = "a"
+    b = ics.event_new("B", False, date.make(d, 10, 0, 0), date.make(d, 11, 0, 0), None)
+    b["uid"] = "b"
+    call ics.add(st, a)
+    call ics.add(st, b)
+    mode = arg(3)
+    other = ics.store_new(dir)
+    call ics.reload_if_changed(other)
+    if mode == "update" or mode == "delete":
+        ob = ics.find(other, "b", None)
+        ob["summary"] = "B jinde"
+        call ics.update(other, ob)
+        if mode == "update":
+            sa = ics.find(st, "a", None)
+            sa["summary"] = "A zde"
+            call ics.update(st, sa)
+        else:
+            call ics.delete(st, ics.find(st, "a", None))
+        end
+    elif mode == "conflict":
+        call ics.delete(other, ics.find(other, "a", None))
+        sa = ics.find(st, "a", None)
+        sa["summary"] = "A zde"
+        result = "ok"
+        try:
+            call ics.update(st, sa)
+        else:
+            result = "conflict " + String(ics.is_conflict(last_error()))
+        end
+        print result
+        print "memory", ics.find(st, "a", None) == None
+        # smazani uz smazane udalosti neni chyba
+        call ics.delete(st, sa)
+    end
+    st3 = ics.store_new(dir)
+    call ics.reload_if_changed(st3)
+    names = []
+    for item in ics.day_instances(st3, d):
+        names.append(item[0]["summary"])
+    end
+    print text.join(names, ";")
 elif command == "duration":
     cal = ics.read_file(arg(2))
     ev = cal["events"][0]

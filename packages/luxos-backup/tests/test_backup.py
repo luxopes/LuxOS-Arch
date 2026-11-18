@@ -188,9 +188,35 @@ class LinkDestMixin:
         self.assertEqual(read(os.path.join(self.root, snaps[-1], "home", "Documents", "report.txt")), "v3")
         self.assertFalse([n for n in os.listdir(self.root) if n.endswith(".partial")])
 
+    def test_interrupted_backup_drops_deleted_and_excluded_files(self):
+        now = time.time()
+        self.assertEqual(self.backup(now - 7200), 0)
+        part = os.path.join(self.root, _name(now - 5000) + ".partial")
+        write(os.path.join(part, "home", "deleted.txt"), "deleted since interruption")
+        write(os.path.join(part, "home", ".cache", "private"), "excluded")
+        write(os.path.join(part, "system", "etc", "old.conf"), "system now disabled")
+        write(os.path.join(part, "safe", "vault", "old"), "vault no longer available")
+        self.assertEqual(self.backup(now - 3600), 0)
+        final = os.path.join(self.root, _name(now - 3600))
+        for rel in ("home/deleted.txt", "home/.cache", "system", "safe"):
+            with self.subTest(path=rel):
+                self.assertFalse(os.path.lexists(os.path.join(final, rel)))
+        self.assertEqual(read(os.path.join(final, "home", "Documents", "report.txt")), "v1")
+
 
 class PythonEngine(Env, LinkDestMixin):
     engine = "python"
+
+    @unittest.skipIf(os.geteuid() == 0, "root can read directories without read permission")
+    def test_unreadable_directory_warns(self):
+        folder = os.path.join(self.home, "private")
+        write(os.path.join(folder, "data"), "cannot traverse")
+        os.chmod(folder, 0)
+        try:
+            self.assertEqual(self.backup(), 0)
+            self.assertGreater(core.load_status()["last_warnings"], 0)
+        finally:
+            os.chmod(folder, 0o700)
 
 
 @unittest.skipUnless(HAVE_RSYNC, "rsync not installed")
@@ -255,6 +281,118 @@ class Restore(Env):
         aside = [n for n in os.listdir(new_home) if n.startswith(".luxos-backup-replaced-")]
         self.assertEqual(len(aside), 1)
         self.assertEqual(read(os.path.join(new_home, aside[0], ".config", "app.conf")), "skel default")
+
+    def test_restore_all_python_directory_conflicts(self):
+        for kind in ("file", "symlink"):
+            for replace in (False, True):
+                with self.subTest(kind=kind, replace=replace):
+                    target = os.path.join(self.tmp, f"restore-{kind}-{replace}")
+                    conflict = os.path.join(target, "Documents")
+                    outside = os.path.join(self.tmp, f"outside-{kind}-{replace}")
+                    write(os.path.join(outside, "report.txt"), "keep outside")
+                    os.makedirs(target)
+                    if kind == "file":
+                        write(conflict, "keep file")
+                    else:
+                        os.symlink(outside, conflict)
+                    with self.sess() as s, mock.patch.object(core, "have", return_value=False):
+                        skipped = core.restore_all(s, self.name, target, replace=replace, log=lambda *_a: None)
+                    self.assertEqual(read(os.path.join(outside, "report.txt")), "keep outside")
+                    self.assertFalse(os.path.exists(os.path.join(outside, "big.bin")))
+                    if replace:
+                        self.assertFalse(os.path.islink(conflict))
+                        self.assertEqual(read(os.path.join(conflict, "report.txt")), "v1")
+                        aside = next(n for n in os.listdir(target) if n.startswith(".luxos-backup-replaced-"))
+                        saved = os.path.join(target, aside, "Documents")
+                        if kind == "file":
+                            self.assertEqual(read(saved), "keep file")
+                        else:
+                            self.assertEqual(os.readlink(saved), outside)
+                    else:
+                        self.assertGreater(skipped, 0)
+                        if kind == "file":
+                            self.assertEqual(read(conflict), "keep file")
+                        else:
+                            self.assertEqual(os.readlink(conflict), outside)
+
+    def test_restore_all_sftp(self):
+        disk = dict(core.parse_sftp("sftp://anna@nas/backup"), kind="sftp", id="test")
+        target = os.path.join(self.tmp, "sftp-restore")
+
+        def copy_remote(cmd, **kw):
+            # Sit zastoupi skutecna kopie z mistni zalohy do noveho domova.
+            self.assertIn("anna@nas:", cmd[-2])
+            core.py_copy(os.path.join(self.root, self.name, "home"), cmd[-1], one_fs=False)
+            return 0, ""
+
+        with core.Session(disk) as s, mock.patch.object(core, "have", return_value=True), \
+                mock.patch.object(core, "run_rsync", side_effect=copy_remote):
+            self.assertEqual(core.restore_all(s, self.name, target, log=lambda *_a: None), 0)
+        self.assertEqual(read(os.path.join(target, "Documents", "report.txt")), "v1")
+
+    @unittest.skipIf(os.geteuid() == 0, "root can read files without read permission")
+    def test_restore_reports_unreadable_files_and_directories(self):
+        for kind in ("file", "directory"):
+            with self.subTest(kind=kind):
+                folder = os.path.join(self.root, self.name, "home", "Unreadable")
+                hidden = os.path.join(folder, "private")
+                if kind == "file":
+                    write(hidden, "cannot read")
+                else:
+                    write(os.path.join(hidden, "data"), "cannot traverse")
+                mode = os.stat(hidden).st_mode
+                os.chmod(hidden, 0)
+                messages = []
+                try:
+                    with self.sess() as s, self.assertRaises(core.BackupError):
+                        core.restore(s, self.name, ["Unreadable"],
+                                     to=os.path.join(self.tmp, f"unreadable-{kind}"), log=messages.append)
+                    self.assertEqual(messages, [])
+                finally:
+                    os.chmod(hidden, mode)
+                    copied = os.path.join(self.tmp, f"unreadable-{kind}", "Unreadable", "private")
+                    if os.path.isdir(copied):
+                        os.chmod(copied, 0o700)
+                    shutil.rmtree(folder)
+
+    @unittest.skipIf(os.geteuid() == 0, "root can read files without read permission")
+    def test_restore_all_reports_unreadable_files_python(self):
+        # C-01: obnova celeho domova bez rsync nesmi hlasit uspech, kdyz cast souboru chybi
+        hidden = os.path.join(self.root, self.name, "home", "Documents", "private.txt")
+        write(hidden, "cannot read")
+        os.chmod(hidden, 0)
+        try:
+            for replace in (False, True):
+                with self.subTest(replace=replace):
+                    target = os.path.join(self.tmp, f"all-unreadable-{replace}")
+                    with self.sess() as s, mock.patch.object(core, "have", return_value=False), \
+                            self.assertRaises(core.BackupError) as cm:
+                        core.restore_all(s, self.name, target, replace=replace, log=lambda *_a: None)
+                    self.assertIn("(1)", str(cm.exception))
+                    # citelne soubory se presto obnovily
+                    self.assertEqual(read(os.path.join(target, "Documents", "report.txt")), "v1")
+        finally:
+            os.chmod(hidden, 0o600)
+            os.unlink(hidden)
+        # existujici soubory ponechane bez --replace chybou nejsou
+        target = os.path.join(self.tmp, "all-existing")
+        write(os.path.join(target, "Documents", "report.txt"), "mine")
+        with self.sess() as s, mock.patch.object(core, "have", return_value=False):
+            self.assertEqual(core.restore_all(s, self.name, target, replace=False, log=lambda *_a: None), 1)
+
+    def test_restore_all_rsync_partial_is_error(self):
+        # C-01: rsync s kodem 23 (nektere soubory nesly precist) neni uspesna obnova
+        target = os.path.join(self.tmp, "all-partial")
+        logged = []
+        with self.sess() as s, mock.patch.object(core, "have", return_value=True), \
+                mock.patch.object(core, "run_rsync", return_value=(23, "rsync: open \"x\" failed: Permission denied")), \
+                self.assertRaises(core.BackupError) as cm:
+            core.restore_all(s, self.name, target, replace=True, log=logged.append)
+        self.assertIn("Permission denied", str(cm.exception))
+        self.assertFalse(any("restored from the backup" in m for m in logged), logged)
+        with self.sess() as s, mock.patch.object(core, "have", return_value=True), \
+                mock.patch.object(core, "run_rsync", return_value=(24, "")):
+            self.assertEqual(core.restore_all(s, self.name, target, replace=True, log=lambda *_a: None), 0)
 
     def test_list_dir_and_when(self):
         with self.sess() as s:

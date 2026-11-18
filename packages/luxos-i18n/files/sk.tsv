@@ -2867,6 +2867,8 @@ Back up now?	Zálohovať teraz?
 The first backup can take a while. You can keep working.	Prvé zálohovanie môže chvíľu trvať. Môžete ďalej pracovať.
 Backup from %s	Záloha z %s
 Restore failed	Obnovenie zlyhalo
+Some files could not be restored (%d).	Niektoré súbory sa nepodarilo obnoviť (%d).
+Some files could not be restored.	Niektoré súbory sa nepodarilo obnoviť.
 Files that already exist were kept; the restored copies have “restored” in their name.	Súbory, ktoré už existujú, zostali zachované; obnovené kópie majú v názve „obnovené“.
 Restore everything from %s?	Obnoviť všetko zo zálohy z %s?
 External disk	Externý disk
@@ -5270,3 +5272,5 @@ not verified	neoverené
 Confirm in the Lux Guard window...	Potvrďte v okne Lux Guard...
 Not allowed - it was not confirmed in the Lux Guard window.	Nepovolené – v okne Lux Guard to nebolo potvrdené.
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Povolenie potrebuje okno Lux Guard vo vašej grafickej relácii (alebo ako správca: sudo luxos-guard allow SÚBOR).
+The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	Spojenie sa prerušilo hneď po odovzdaní správy serveru. Správa možno odišla; skôr než ju pošlete znova, pozrite sa do Odoslaných.
+This event was changed or deleted elsewhere.	Táto udalosť bola medzitým zmenená alebo odstránená inde.

@@ -149,41 +149,44 @@ class Shares:
         return out
 
     def add(self, path, allow_home=False):
-        real, home = check_share_path(path)
-        if home and not allow_home:
-            raise ShareError("sharing the whole home folder must be confirmed")
-        self.reload()
-        if real not in [os.path.realpath(os.path.expanduser(p)) for p in self.paths]:
-            self.paths.append(real)
-            self.configured = True
-            self.save()
-        return real
+        with store._locked(self.dir):
+            real, home = check_share_path(path)
+            if home and not allow_home:
+                raise ShareError("sharing the whole home folder must be confirmed")
+            self.reload()
+            if real not in [os.path.realpath(os.path.expanduser(p)) for p in self.paths]:
+                self.paths.append(real)
+                self.configured = True
+                self.save()
+            return real
 
     def remove(self, key):
-        self.reload()
-        real = os.path.realpath(os.path.expanduser(key))
-        names = {f["name"].lower(): f["path"] for f in self.folders()}
-        target = names.get(key.strip().lower(), real)
-        before = len(self.paths)
-        self.paths = [p for p in self.paths if os.path.realpath(os.path.expanduser(p)) != target]
-        self.configured = True
-        if len(self.paths) != before:
-            self.save()
-        return before - len(self.paths)
+        with store._locked(self.dir):
+            self.reload()
+            real = os.path.realpath(os.path.expanduser(key))
+            names = {f["name"].lower(): f["path"] for f in self.folders()}
+            target = names.get(key.strip().lower(), real)
+            before = len(self.paths)
+            self.paths = [p for p in self.paths if os.path.realpath(os.path.expanduser(p)) != target]
+            self.configured = True
+            if len(self.paths) != before:
+                self.save()
+            return before - len(self.paths)
 
     def set_enabled(self, on):
-        self.reload()
-        if on and not self.configured:
-            # Prvni zapnuti: sdili se jen slozka Verejne (vytvori se)
-            pub = public_dir()
-            try:
-                os.makedirs(pub, exist_ok=True)
-                self.paths = [os.path.realpath(pub)]
-            except OSError:
-                self.paths = []
-            self.configured = True
-        self.enabled = bool(on)
-        self.save()
+        with store._locked(self.dir):
+            self.reload()
+            if on and not self.configured:
+                # Prvni zapnuti: sdili se jen slozka Verejne (vytvori se)
+                pub = public_dir()
+                try:
+                    os.makedirs(pub, exist_ok=True)
+                    self.paths = [os.path.realpath(pub)]
+                except OSError:
+                    self.paths = []
+                self.configured = True
+            self.enabled = bool(on)
+            self.save()
 
 
 class Access:
@@ -211,19 +214,21 @@ class Access:
         return self.peers.get(fp.hex())
 
     def allow(self, fp, name, write):
-        self.reload()
-        e = self.peers.get(fp.hex(), {"added": time.time()})
-        e.update({"name": transfer.clean_name(name), "id": proto.short_id(fp), "write": bool(write),
-                  "last_seen": time.time()})
-        self.peers[fp.hex()] = e
-        self.save()
+        with store._locked(self.dir):
+            self.reload()
+            e = self.peers.get(fp.hex(), {"added": time.time()})
+            e.update({"name": transfer.clean_name(name), "id": proto.short_id(fp), "write": bool(write),
+                      "last_seen": time.time()})
+            self.peers[fp.hex()] = e
+            self.save()
 
     def touch(self, fp):
-        self.reload()
-        e = self.peers.get(fp.hex())
-        if e is not None:
-            e["last_seen"] = time.time()
-            self.save()
+        with store._locked(self.dir):
+            self.reload()
+            e = self.peers.get(fp.hex())
+            if e is not None:
+                e["last_seen"] = time.time()
+                self.save()
 
     def find(self, key):
         self.reload()
@@ -232,20 +237,22 @@ class Access:
                 if (len(k) >= 8 and h.startswith(k)) or e.get("name", "").lower() == key.strip().lower()]
 
     def remove(self, key):
-        hits = self.find(key)
-        for h, _e in hits:
-            del self.peers[h]
-        if hits:
-            self.save()
-        return len(hits)
+        with store._locked(self.dir):
+            hits = self.find(key)
+            for h, _e in hits:
+                del self.peers[h]
+            if hits:
+                self.save()
+            return len(hits)
 
     def set_write(self, key, write):
-        hits = self.find(key)
-        for h, _e in hits:
-            self.peers[h]["write"] = bool(write)
-        if hits:
-            self.save()
-        return len(hits)
+        with store._locked(self.dir):
+            hits = self.find(key)
+            for h, _e in hits:
+                self.peers[h]["write"] = bool(write)
+            if hits:
+                self.save()
+            return len(hits)
 
 
 # --- Sandbox se sftp-server ------------------------------------------------------

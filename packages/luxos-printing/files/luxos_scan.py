@@ -19,13 +19,40 @@ LIST_FORMAT = "%d\t%v\t%m\t%t%n"
 
 # ---- seznam skeneru ----
 
+def _identity(dev):
+    """Totoznost fyzickeho skeneru: airscan ohlasuje tentyz skener pres eSCL i WSD pod stejnym
+    jmenem sluzby (airscan:e0:JMENO / airscan:w1:JMENO), ostatni backendy maji v id vlastni adresu
+    nebo seriove cislo (pixma:04A91234_SERIOVE, hpaio:...?serial=...)."""
+    parts = dev.split(":", 2)
+    if dev.startswith("airscan:") and len(parts) == 3:
+        return "airscan:" + parts[2].strip().lower()
+    return dev
+
+
+def _label(dev, model):
+    """Kratke rozliseni dvou skeneru stejneho modelu: seriove cislo / pripona sluzby / adresa."""
+    m = re.search(r"[\[(]([0-9A-Fa-f:]{4,})[\])]\s*$", model)
+    if m:
+        return m.group(1)
+    m = re.search(r"serial=([^&;]+)", dev)
+    if m:
+        return m.group(1)
+    if dev.startswith("airscan:"):
+        return dev.split(":", 2)[-1].strip()
+    m = re.match(r"pixma:[0-9A-Fa-f]{8}_(.+)$", dev)
+    if m:
+        return m.group(1)
+    return dev
+
+
 def parse_devices(text):
     """Vystup `scanimage -f LIST_FORMAT` -> [{id, name, type, conn}] serazene podle nazvu.
 
     Stejny skener pres vic backendu (airscan eSCL/WSD, vlastni ovladac) jen jednou: eSCL ma prednost,
-    WSD je posledni moznost. conn: network | usb | "" (aplikace prelozi).
+    WSD je posledni moznost. Dva skenery stejneho modelu (jine id/seriove cislo) zustanou dva,
+    s rozlisenim v nazvu (C-11). conn: network | usb | "" (aplikace prelozi).
     """
-    best = {}
+    groups = {}     # nazev -> {totoznost: (priorita, polozka, rozliseni)}
     for line in text.splitlines():
         f = line.split("\t")
         if len(f) < 4 or not f[0].strip():
@@ -37,10 +64,28 @@ def parse_devices(text):
         name = lp.friendly_name(name or dev)
         prio = 0 if dev.startswith("airscan:e") else 2 if dev.startswith("airscan:w") else 1
         conn = lp.scanner_conn(dev, name)   # ipp-usb: USB skener se ohlasuje jako sitovy na localhost
-        key = name.lower()
-        if key not in best or prio < best[key][0]:
-            best[key] = (prio, {"id": dev, "name": name, "type": typ, "conn": conn})
-    return [v[1] for v in sorted(best.values(), key=lambda v: v[1]["name"].lower())]
+        same = groups.setdefault(name.lower(), {})
+        ident = _identity(dev)
+        if ident not in same or prio < same[ident][0]:
+            same[ident] = (prio, {"id": dev, "name": name, "type": typ, "conn": conn}, _label(dev, model))
+    out = []
+    for same in groups.values():
+        entries = list(same.items())
+        airscan = sum(1 for ident, _v in entries if ident.startswith("airscan:"))
+        if airscan <= 1 and len(entries) - airscan <= 1:
+            # jeden skener (pripadne pres airscan i vlastni ovladac): jen nejlepsi cesta
+            out.append(min((v for _i, v in entries), key=lambda v: v[0])[1])
+            continue
+        used = set()
+        for _ident, (_prio, item, label) in sorted(entries, key=lambda e: (e[1][2].lower(), e[1][1]["id"])):
+            name = f"{item['name']} ({label})"
+            n = 2
+            while name.lower() in used:
+                name = f"{item['name']} ({label} {n})"
+                n += 1
+            used.add(name.lower())
+            out.append(dict(item, name=name))
+    return sorted(out, key=lambda v: (v["name"].lower(), v["id"]))
 
 
 # Skener USB (napr. Canon pixma) smi mit otevreny jen jeden proces: soubezne `scanimage -L` (hledani)
@@ -184,10 +229,11 @@ def clean_stderr(text):
 
 
 class ScanError(Exception):
-    def __init__(self, kind, details=""):
+    def __init__(self, kind, details="", files=()):
         super().__init__(details or kind)
         self.kind = kind
         self.details = details
+        self.files = list(files)       # hotove stranky pred chybou podavace zustanou k dispozici
 
 
 # ---- skenovani ----
@@ -214,12 +260,20 @@ class Scan:
     def run(self, progress=None):
         """Vrati seznam naskenovanych souboru, jinak ScanError."""
         for attempt in range(OPEN_RETRIES):
-            with SANE_LOCK:
+            # Zruseni musi fungovat i behem cekani na jine hledani nebo skenovani.
+            while not SANE_LOCK.acquire(timeout=0.1):
+                if self.cancelled:
+                    raise ScanError("cancelled")
+            try:
+                if self.cancelled:
+                    raise ScanError("cancelled")
                 try:
                     return self._run_once(progress)
                 except ScanError as e:
-                    if self.cancelled or not OPEN_FAILED.search(e.details or "") or attempt == OPEN_RETRIES - 1:
+                    if self.cancelled or e.files or not OPEN_FAILED.search(e.details or "") or attempt == OPEN_RETRIES - 1:
                         raise
+            finally:
+                SANE_LOCK.release()
             time.sleep(OPEN_RETRY_DELAY)    # skener drzi jiny proces - zkusit znovu, nez se ukaze chyba
 
     def _run_once(self, progress=None):
@@ -228,6 +282,9 @@ class Scan:
                                          start_new_session=True)
         except OSError as e:
             raise ScanError("missing", str(e)) from e
+        # Zruseni mohlo prijit mezi kontrolou pod zamkem a prirazenim noveho procesu.
+        if self.cancelled:
+            self.cancel()
         err, buf = b"", b""
         while True:
             ch = os.read(self.proc.stderr.fileno(), 512)     # vrati hned, co je k dispozici
@@ -248,7 +305,9 @@ class Scan:
                 _unlink(f)
             raise ScanError("cancelled", text)
         if self.batch and files:
-            return files            # podavac dosel: posledni list hlasi "out of documents", to neni chyba
+            if rc == 0 or error_kind(text) == "no_paper":
+                return files        # prazdny podavac po hotovych strankach je normalni konec
+            raise ScanError(error_kind(text), text or f"scanimage: exit status {rc}", files=files)
         if rc == 0 and files:
             return files
         for f in files:

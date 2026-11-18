@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import types
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -341,6 +342,26 @@ def load_app():
     mod = importlib.util.module_from_spec(spec)
     loader.exec_module(mod)
     return mod
+
+
+class Drawing(unittest.TestCase):
+    """Skutecne vykresleni nahledu do Cairo povrchu bez X serveru."""
+
+    def test_display_labels_stay_inside_their_rectangles(self):
+        import cairo
+        app = load_app()
+        for label in ("DELL U2419H (DisplayPort-0)", "Built-in Display = DELL U2419H", "HDMI-1"):
+            with self.subTest(label=label):
+                surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 400, 160)
+                cr = cairo.Context(surface)
+                fg = types.SimpleNamespace(red=0.1, green=0.1, blue=0.1)
+                app.Arrangement.draw_display(None, cr, 150, 40, 100, 70, label, True, fg)
+                surface.flush()
+                data, stride = bytes(surface.get_data()), surface.get_stride()
+                outside = sum(
+                    any(data[y * stride + x * 4:y * stride + x * 4 + 4])
+                    for y in range(160) for x in range(400) if not (150 <= x < 250 and 40 <= y < 110))
+                self.assertEqual(outside, 0, "nazev monitoru nesmi zasahovat do sousedniho nahledu")
 
 
 # Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1 ve VM) - nikdy skutecna obrazovka

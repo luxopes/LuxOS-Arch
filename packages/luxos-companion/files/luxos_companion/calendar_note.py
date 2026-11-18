@@ -347,7 +347,7 @@ class CalendarWriter:
 def _occurrence_id(ev, start, used):
     """Jedinecne ID vyskytu (UID, u opakovani UID/zacatek), nejvys 200 znaku."""
     base = wire.clean_text(ev.uid or "", 1000, False)
-    if ev.rrule or ev.recurrence_id is not None:
+    if ev.rrule or getattr(ev, "rdates", None) or ev.recurrence_id is not None:
         base += "/" + (start.strftime("%Y%m%dT%H%M%S") if isinstance(start, dt.datetime) else start.strftime("%Y%m%d"))
     if ev.source:
         base = ev.source + ":" + base

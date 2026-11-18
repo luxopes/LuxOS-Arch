@@ -109,6 +109,10 @@ if batch:
         progress()
         page(batch % (start + i))
         sys.stderr.write(f"Scanned page {start + i}. (scanner status = 5)\n")
+        if mode == "adf-jam":
+            page(batch % (start + i + 1), full=False)
+            sys.stderr.write("scanimage: sane_read: Document feeder jammed\n")
+            sys.exit(1)
     sys.stderr.write("scanimage: sane_start: Document feeder out of documents\n")
     sys.exit(7 if n == 0 else 0)
 

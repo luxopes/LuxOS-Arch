@@ -109,6 +109,51 @@ class AccessTest(HomeCase):
         self.assertEqual(os.stat(a.path).st_mode & 0o777, 0o600)
 
 
+    def test_concurrent_writers_lose_nothing(self):
+        """Soubezne povoleni z vlaken i z jineho procesu (okno, sluzba): zadne zarizeni se neztrati."""
+        import hashlib
+        import subprocess
+        accesses = [remote.Access() for _ in range(4)]
+        errors = []
+
+        def work(k):
+            try:
+                for i in range(25):
+                    accesses[k].allow(hashlib.sha256(b"peer-%d-%d" % (k, i)).digest(), "Peer %d %d" % (k, i), i % 2)
+                    accesses[k].touch(hashlib.sha256(b"peer-%d-0" % k).digest())
+            except Exception as e:  # noqa: BLE001
+                errors.append(e)
+        child = subprocess.Popen([sys.executable, "-c", (
+            "import hashlib, sys; sys.path.insert(0, %r)\n"
+            "from luxdrop import remote\n"
+            "a = remote.Access()\n"
+            "for i in range(25):\n"
+            "    a.allow(hashlib.sha256(b'proc-%%d' %% i).digest(), 'Proc %%d' %% i, False)\n") % sys.path[0]],
+            env=dict(os.environ))
+        ths = [threading.Thread(target=work, args=(k,)) for k in range(4)]
+        for th in ths:
+            th.start()
+        for th in ths:
+            th.join()
+        self.assertEqual(child.wait(timeout=60), 0)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(remote.Access().peers), 125)
+
+    def test_shares_concurrent_add(self):
+        folders = []
+        for i in range(20):
+            d = os.path.join(self.home, "share%d" % i)
+            os.makedirs(d)
+            folders.append(d)
+        shares = [remote.Shares() for _ in range(4)]
+        ths = [threading.Thread(target=lambda k=k: [shares[k].add(f) for f in folders[k::4]]) for k in range(4)]
+        for th in ths:
+            th.start()
+        for th in ths:
+            th.join()
+        self.assertEqual(len(remote.Shares().paths), 20)
+
+
 class SandboxTest(HomeCase):
     def test_read_only_argv(self):
         pub = os.path.join(self.home, "Public")

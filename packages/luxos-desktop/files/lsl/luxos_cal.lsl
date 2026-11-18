@@ -389,7 +389,7 @@ function event_card(ev, s, e, day, ids):
     call gtk.label_set_ellipsize(sub_label, gtk.ELLIPSIZE_END)
     call gtk.box_pack_start(column, sub_label, False, False, 0)
     call gtk.box_pack_start(row, column, True, True, 0)
-    if ev["rrule"] != None:
+    if ics.is_recurring(ev):
         img = gtk.image_new_from_icon_name("view-refresh-symbolic", gtk.ICON_MENU)
         call gtk.widget_set_margins(img, 0, 8, 0, 0)
         call gtk.widget_set_opacity(img, 0.5)
@@ -1107,20 +1107,22 @@ function form_load(ev, day):
                 simple = k
             end
         end
-        if raw == "":
+        # jen RDATE (bez RRULE) je vlastni opakovani - "Nikdy" by dalsi data pri ulozeni smazalo
+        recurring = ics.is_recurring(ev)
+        if not recurring:
             call segmented_set(f["repeat"], "", False)
         elif simple != "":
             call segmented_set(f["repeat"], simple, False)
         else:
             call segmented_set(f["repeat"], "custom", False)
         end
-        call gtk.widget_set_visible(f["repeat"]["buttons"]["custom"], raw != "" and simple == "")
+        call gtk.widget_set_visible(f["repeat"]["buttons"]["custom"], recurring and simple == "")
         call form_set_color(ics.event_color(ev))
         call gtk.switch_set_active(f["remind"], ics.reminder_minutes(ev) != None)
         notes = []
         if f["readonly"]:
             notes.append(i18n.TF("Read-only calendar: %s", [ev["source"]]))
-        elif ev["rrule"] != None:
+        elif ics.is_recurring(ev):
             notes.append(i18n.T("Changes apply to all occurrences."))
         end
         call gtk.label_set_text(f["note"], text.join(notes, " "))
@@ -1215,6 +1217,8 @@ function form_save():
         if rep == "":
             ev["exdate_lines"] = []
             ev["exdates"] = []
+            ev["rdate_lines"] = []
+            ev["rdates"] = []
         end
     end
     if not allday:
@@ -1241,6 +1245,10 @@ function form_save():
         if is_new:
             call ics.forget(store, ev)
         end
+        if ics.is_conflict(message):
+            # udalost mezitim zmenil nebo smazal jiny proces; Kalendar uz ukazuje stav ze souboru
+            return form_fail(i18n.T("This event was changed or deleted elsewhere."), 0)
+        end
         return form_fail(i18n.TF("Could not save: %s", [message]), 0)
     end
     cal["day"] = day
@@ -1255,7 +1263,7 @@ function form_delete():
     f = form
     if not f["confirm"]:
         f["confirm"] = True
-        if f["ev"]["rrule"] != None:
+        if ics.is_recurring(f["ev"]):
             call gtk.button_set_label(f["delete_btn"], i18n.T("Delete All?"))
         else:
             call gtk.button_set_label(f["delete_btn"], i18n.T("Delete Event?"))

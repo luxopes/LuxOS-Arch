@@ -29,6 +29,8 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 getcontext().prec = 34
 MAX_DIGITS = 15
+MAX_PASTE = 200      # nejvys znaku vlozeneho cisla (vic neni cislo pro kalkulacku)
+PI = Decimal("3.14159265358979323846264338327950")
 
 try:
     locale.setlocale(locale.LC_ALL, "")
@@ -95,6 +97,44 @@ def to_dec(x):
     if math.isnan(x) or math.isinf(x):
         raise InvalidOperation
     return Decimal(f"{x:.15g}")
+
+
+def entry_text_for(value):
+    """Decimal -> text rozpracovaneho cisla; extremni exponent vedecky (jinak by "f" zapis
+    1e999999999 alokoval miliardu znaku)."""
+    return format(value.normalize(), "f") if abs(value.adjusted()) < 40 else str(value)
+
+
+def in_range(value):
+    """Cislo v rozsahu desitkove aritmetiky (exponent i pocet cislic omezene)."""
+    ctx = getcontext()
+    return (value.is_finite() and len(value.as_tuple().digits) <= MAX_PASTE
+            and (value.is_zero() or ctx.Etiny() <= value.adjusted() <= ctx.Emax))
+
+
+def trig(name, x, degrees):
+    """sin/cos/tan v desitkove podobe. Presne nuly (a 1, -1) jen pro presne uhly: nasobky 90 stupnu,
+    v radianech nasobky pi/2 (s tolerenci na presnost konstanty pi); jinak skutecna hodnota, i velmi
+    mala (vedecky zapis), misto zaokrouhleni na nulu."""
+    # x = q * (pravy uhel) + r, |r| <= polovina praveho uhlu; zbytek v desitkove aritmetice, aby
+    # sin(180,0000000001 stupne) nezanikl v chybe zaokrouhleni pi ve float
+    right = Decimal(90) if degrees else PI / 2
+    q = (x / right).to_integral_value()
+    r = x - q * right
+    quarter = int(q % 4)
+    if r == 0 or (not degrees and abs(r) < Decimal("1e-30")):
+        exact = {"sin": (0, 1, 0, -1), "cos": (1, 0, -1, 0), "tan": (0, None, 0, None)}[name][quarter]
+        if exact is None:
+            raise ValueError                 # tan(90 stupnu) neexistuje
+        return Decimal(exact)
+    a = math.radians(float(r)) if degrees else float(r)
+    s_, c_ = math.sin(a), math.cos(a)
+    sin_v, cos_v = ((s_, c_), (c_, -s_), (-s_, -c_), (-c_, s_))[quarter]
+    if name == "sin":
+        return to_dec(sin_v)
+    if name == "cos":
+        return to_dec(cos_v)
+    return to_dec(sin_v / cos_v)
 
 
 def power(a, b):
@@ -335,12 +375,38 @@ class Calculator(Gtk.Window):
     def open_parens(self):
         return self.tokens.count("(") - self.tokens.count(")")
 
+    def operand_start(self):
+        """Zacatek uzavrene zavorky na konci vyrazu, kterou funkce nahradi jednim cislem."""
+        if self.entry or self.last() != ")":
+            return None
+        depth = 0
+        for i in range(len(self.tokens) - 1, -1, -1):
+            if self.tokens[i] == ")":
+                depth += 1
+            elif self.tokens[i] == "(":
+                depth -= 1
+                if depth == 0:
+                    return i
+        return None
+
     def current(self):
         if self.entry:
             return Decimal(self.entry)
+        start = self.operand_start()
+        if start is not None:
+            return evaluate(self.tokens[start:])
         if self.result is not None:
             return self.result
         return Decimal(0)
+
+    def set_current(self, value):
+        start = self.operand_start()
+        if start is not None:
+            del self.tokens[start:]
+        if not self.tokens:
+            self.result = None
+        self.entry = entry_text_for(value)
+        self.fresh = True
 
     def digit(self, d):
         if self.result is not None and not self.tokens:
@@ -424,17 +490,13 @@ class Calculator(Gtk.Window):
 
     def func(self, name):
         """Funkce jedne promenne na aktualni hodnotu (jako v macOS)."""
-        x = self.current()
         try:
-            r = self.compute(name, x)
+            r = self.compute(name, self.current())
         except (ValueError, OverflowError, ArithmeticError):
             self.entry, self.fresh = "", False
             self.show(self.expression_text(), _("Error"))
             return
-        if self.result is not None and not self.entry and not self.tokens:
-            self.result = None
-        self.entry = format(r.normalize(), "f") if abs(r.adjusted()) < 40 else str(r)
-        self.fresh = True
+        self.set_current(r)
         self.refresh()
 
     def compute(self, name, x):
@@ -468,13 +530,11 @@ class Calculator(Gtk.Window):
                 return Decimal(math.factorial(int(x)))
             return to_dec(math.gamma(f + 1))
         if name in ("sin", "cos", "tan"):
-            a = math.radians(f) if self.degrees else f
-            if name == "tan" and abs(math.cos(a)) < 1e-15:
-                raise ValueError
-            return to_dec(round(getattr(math, name)(a), 13))   # sin(180 deg) = 0, ne 1,2e-16
+            return trig(name, x, self.degrees)     # sin(180 deg) = 0 presne, sin(1e-14) ne
         if name in ("asin", "acos", "atan"):
             v = getattr(math, name)(f)
-            return to_dec(round(math.degrees(v) if self.degrees else v, 12))
+            # 15 platnych cislic (asin(0,5) = 30), male vysledky zustanou (zadne zaokrouhleni na 0)
+            return to_dec(math.degrees(v) if self.degrees else v)
         raise ValueError
 
     def constant(self, value):
@@ -500,17 +560,46 @@ class Calculator(Gtk.Window):
             self.entry = self.entry[1:] if self.entry.startswith("-") else "-" + self.entry
         elif self.result is not None:
             self.result = -self.result
+        elif self.operand_start() is not None:
+            try:
+                self.set_current(-self.current())
+            except ArithmeticError:
+                self.show(self.expression_text(), _("Error"))
+                return
         self.refresh()
 
+    def left_side(self, prefix):
+        """Levy operand pred koncovym + nebo -: cely vyraz od posledni neuzavrene zavorky (nebo od
+        zacatku), at je to cislo, zavorka nebo soucin. None, kdyz zadny neni."""
+        depth = 0
+        start = len(prefix) - 1
+        for i in range(len(prefix) - 2, -1, -1):
+            t = prefix[i]
+            if t == ")":
+                depth += 1
+            elif t == "(":
+                if depth == 0:
+                    break
+                depth -= 1
+            start = i
+        left = prefix[start:-1]
+        return left or None
+
     def percent(self):
-        value = self.current()
-        if (len(self.tokens) >= 2 and self.tokens[-1] in ("+", "-")
-                and isinstance(self.tokens[-2], Decimal)):
-            value = self.tokens[-2] * value / 100   # 200 + 10 % -> 200 + 20
-        else:
-            value = value / 100
-        self.entry = format(value.normalize(), "f")
-        self.fresh = True
+        try:
+            value = self.current()
+            start = self.operand_start()
+            prefix = self.tokens[:start] if start is not None else self.tokens
+            left = self.left_side(prefix) if prefix and prefix[-1] in ("+", "-") else None
+            if left:
+                # 200 + 10 % -> 200 + 20; stejne (200) + 10 % i 2 x 100 + 10 % (C-19)
+                value = evaluate(left) * value / 100
+            else:
+                value = value / 100
+            self.set_current(value)
+        except ArithmeticError:
+            self.show(self.expression_text(), _("Error"))
+            return
         self.refresh()
 
     def backspace(self):
@@ -573,15 +662,22 @@ class Calculator(Gtk.Window):
         elif ctrl and key.lower() == "v":
             text = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text() or ""
             text = text.strip().replace(GROUP, "").replace(" ", "").replace(DEC, ".")
+            if len(text) > MAX_PASTE:
+                return True
             try:
                 value = Decimal(text)
             except InvalidOperation:
                 return True
             if not value.is_finite():      # "NaN", "Infinity" nejsou cisla pro kalkulacku
                 return True
+            if not in_range(value):        # 1e999999999: mimo rozsah, zadna obri alokace (C-05)
+                self.entry, self.fresh = "", False
+                self.show(self.expression_text(), _("Error"))
+                return True
             # 1e5 -> 100000; delsi cislo nez displej se ukaze zaokrouhlene (jako vysledek funkce)
-            self.entry = format(value, "f")
-            self.fresh = len(self.entry.lstrip("-").replace(".", "").lstrip("0")) > MAX_DIGITS
+            self.entry = format(value, "f") if abs(value.adjusted()) < 40 else str(value)
+            self.fresh = (abs(value.adjusted()) >= 40 or
+                          len(self.entry.lstrip("-").replace(".", "").lstrip("0")) > MAX_DIGITS)
             self.refresh()
         elif ch.isdigit():
             self.digit(ch)

@@ -159,6 +159,18 @@ function local_from_zone(moment, zone):
     return local_from_unix(t)
 end
 
+# Naivni mistni cas -> naivni cas v jinem pasmu (opak local_from_zone); nezname pasmo = beze zmeny
+function zone_from_local(moment, zone):
+    if zone == "" or not exists("/usr/share/zoneinfo/" + zone):
+        return moment
+    end
+    t = unix_from_local(moment)
+    call glib.set_tz(zone)
+    f = glib.localtime(t)
+    call glib.unset_tz()
+    return make(ordinal(f[0], f[1], f[2]), f[3], f[4], f[5])
+end
+
 # Naivni cas v UTC -> naivni mistni cas
 function local_from_utc(moment):
     ymd = from_ordinal(date_of(moment))

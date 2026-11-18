@@ -2867,6 +2867,8 @@ Back up now?	Sauvegarder maintenant ?
 The first backup can take a while. You can keep working.	La première sauvegarde peut prendre un moment. Vous pouvez continuer à travailler.
 Backup from %s	Sauvegarde du %s
 Restore failed	Échec de la restauration
+Some files could not be restored (%d).	Certains fichiers n’ont pas pu être restaurés (%d).
+Some files could not be restored.	Certains fichiers n’ont pas pu être restaurés.
 Files that already exist were kept; the restored copies have “restored” in their name.	Les fichiers existants ont été conservés ; les copies restaurées ont « restauré » dans leur nom.
 Restore everything from %s?	Tout restaurer à partir du %s ?
 External disk	Disque externe
@@ -5270,3 +5272,5 @@ not verified	non vérifié
 Confirm in the Lux Guard window...	Confirmez dans la fenêtre Lux Guard...
 Not allowed - it was not confirmed in the Lux Guard window.	Non autorisé : cela n’a pas été confirmé dans la fenêtre Lux Guard.
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	L’autorisation nécessite la fenêtre Lux Guard dans votre session de bureau (ou en administrateur : sudo luxos-guard allow FICHIER).
+The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	La connexion a été perdue juste après la remise du message au serveur. Il a peut-être été envoyé ; vérifiez les messages envoyés avant de le renvoyer.
+This event was changed or deleted elsewhere.	Cet événement a été modifié ou supprimé ailleurs.

@@ -1015,18 +1015,27 @@ def same_file(a, b):
             stat.S_IMODE(a.st_mode) == stat.S_IMODE(b.st_mode))
 
 
-def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_dir=None, one_fs=True):
+def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_dir=None, one_fs=True, stats=None):
     """Kopie stromu bez rsync. link_dest: nezmeneny soubor = pevny odkaz na predchozi zalohu.
     skip_existing: existujici cil nechat; backup_dir: existujici cil presunout sem (obnova vseho).
-    Vrati pocet preskocenych (necitelnych nebo existujicich) souboru."""
+    Vrati pocet preskocenych (necitelnych nebo existujicich) souboru. stats (dict) dostane
+    "failed" = pocet polozek, ktere se zkopirovat nepodarilo (bez zamerne ponechanych existujicich)."""
     skipped = 0
+    failed = 0
     try:
         root_dev = os.lstat(src).st_dev
     except OSError as e:
         raise BackupError(str(e))
     os.makedirs(dst, exist_ok=True)
     dirs_meta = []
-    for cur, dnames, fnames in os.walk(src):
+
+    def walk_error(_exc):
+        # os.walk jinak necitelnou slozku potichu vynecha vcetne celeho obsahu.
+        nonlocal skipped, failed
+        skipped += 1
+        failed += 1
+
+    for cur, dnames, fnames in os.walk(src, onerror=walk_error):
         rel_dir = os.path.relpath(cur, src)
         rel_dir = "" if rel_dir == "." else rel_dir
         keep = []
@@ -1037,20 +1046,21 @@ def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_d
                 st = os.lstat(sp)
             except OSError:
                 skipped += 1
+                failed += 1
                 continue
             if stat.S_ISLNK(st.st_mode):
                 fnames.append(d)
                 continue
             if is_excluded(rel, True, patterns) or (one_fs and st.st_dev != root_dev):
                 continue
-            keep.append(d)
             dp = os.path.join(dst, rel)
-            if os.path.lexists(dp) and not os.path.isdir(dp):
+            if os.path.lexists(dp) and (os.path.islink(dp) or not os.path.isdir(dp)):
                 if skip_existing and not backup_dir:
                     skipped += 1
                     continue
                 replace_path(dp, dst, backup_dir)
             os.makedirs(dp, exist_ok=True)
+            keep.append(d)
             dirs_meta.append((sp, dp))
         dnames[:] = keep
         for fn in fnames:
@@ -1060,6 +1070,7 @@ def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_d
                 st = os.lstat(sp)
             except OSError:
                 skipped += 1
+                failed += 1
                 continue
             if is_excluded(rel, False, patterns):
                 continue
@@ -1087,9 +1098,12 @@ def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_d
                 if e.errno == errno.ENOSPC:
                     raise DiskFull(str(e))
                 skipped += 1
+                failed += 1
     for sp, dp in reversed(dirs_meta):
         with contextlib.suppress(OSError):
             shutil.copystat(sp, dp, follow_symlinks=False)
+    if stats is not None:
+        stats["failed"] = failed
     return skipped
 
 
@@ -1232,6 +1246,9 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
     if eng == "python":
         part = os.path.join(sess.root, name + ".partial")
         _reuse_partial(sess, part)
+        # py_copy nema --delete: rozpracovany strom postavit znovu, jinak v nem zustanou
+        # smazane/vyloucene soubory. Pevne odkazy se znovu pouziji z posledni hotove zalohy.
+        rmtree(part)
         try:
             warnings += py_copy(src, os.path.join(part, "home"), pats,
                                 os.path.join(sess.root, prev, "home") if prev else None)
@@ -1333,10 +1350,14 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
                        os.path.join(sess.root, prev, "system", "etc") if prev else None, progress=False)
         if os.path.exists(os.path.join(meta, "system", "packages.txt")):
             shutil.copy2(os.path.join(meta, "system", "packages.txt"), os.path.join(part, "system"))
+    else:
+        rmtree(os.path.join(part, "system"))
     if vault:
         os.makedirs(os.path.join(part, "safe", "vault"), exist_ok=True)
         warnings += go(vault, os.path.join(part, "safe", "vault"), None,
                        os.path.join(sess.root, prev, "safe", "vault") if prev else None, progress=False)
+    else:
+        rmtree(os.path.join(part, "safe"))
     _finish_local(part, os.path.join(sess.root, name), info, warnings)
     return warnings
 
@@ -1572,8 +1593,10 @@ def _copy_out(sess, src, dst):
             raise BackupError(err.strip()[-500:])
         return
     if os.path.isdir(src) and not os.path.islink(src):
-        py_copy(src, dst, one_fs=False)
+        skipped = py_copy(src, dst, one_fs=False)
         _fix_mode(dst)
+        if skipped:
+            raise BackupError(_("Some files could not be restored (%d).") % skipped)
     elif os.path.islink(src):
         os.symlink(os.readlink(src), dst)
     else:
@@ -1631,18 +1654,25 @@ def restore_all(sess, name, target=None, replace=False, log=print):
             cmd += [src + "/"]
         cmd += [target.rstrip("/") + "/"]
         rc, err = run_rsync(cmd, env=ssh_env(sess.disk))
-        if rc not in RSYNC_OK + (RSYNC_PARTIAL,):
+        if rc == RSYNC_PARTIAL:
+            # cast souboru se obnovit nepodarila: nehlasit uspech (C-01)
+            raise BackupError(_("Some files could not be restored.") + "\n" + err.strip()[-800:])
+        if rc not in RSYNC_OK:
             raise BackupError(err.strip()[-800:])
         skipped = 0
     else:
         if sess.remote:
             raise BackupError("rsync: not found")
-        skipped = py_copy(src, target, skip_existing=not replace, backup_dir=backup_dir, one_fs=False)
+        stats = {}
+        skipped = py_copy(src, target, skip_existing=not replace, backup_dir=backup_dir, one_fs=False, stats=stats)
         if owner:
             for cur, dnames, fnames in os.walk(target):
                 for n in dnames + fnames:
                     with contextlib.suppress(OSError):
                         os.lchown(os.path.join(cur, n), *owner)
+        if stats["failed"]:
+            # necitelne soubory nejsou "ponechane existujici": nehlasit uspech (C-01)
+            raise BackupError(_("Some files could not be restored (%d).") % stats["failed"])
     log(_("Home folder restored from the backup from %s.") % snap_label(name))
     if backup_dir and os.path.isdir(backup_dir):
         log(_("Replaced files were moved to %s") % backup_dir)
@@ -1650,9 +1680,10 @@ def restore_all(sess, name, target=None, replace=False, log=print):
         os.path.join(sess.root, name, "system", "packages.txt")
     if not sess.remote and os.path.exists(pk):
         log(_("Apps installed on the old system: %s (install them with: lux install $(cat FILE))") % pk)
-    vault = os.path.join(sess.root, name, "safe", "vault")
-    if not sess.remote and os.path.isfile(os.path.join(vault, "gocryptfs.conf")):
-        log(_("The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)") % vault)
+    if not sess.remote:
+        vault = os.path.join(sess.root, name, "safe", "vault")
+        if os.path.isfile(os.path.join(vault, "gocryptfs.conf")):
+            log(_("The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)") % vault)
     return skipped
 
 

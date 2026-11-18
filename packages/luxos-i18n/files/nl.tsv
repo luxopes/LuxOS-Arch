@@ -2867,6 +2867,8 @@ Back up now?	Nu een back-up maken?
 The first backup can take a while. You can keep working.	De eerste back-up kan even duren. Je kunt gewoon doorwerken.
 Backup from %s	Back-up van %s
 Restore failed	Herstellen mislukt
+Some files could not be restored (%d).	Sommige bestanden konden niet worden hersteld (%d).
+Some files could not be restored.	Sommige bestanden konden niet worden hersteld.
 Files that already exist were kept; the restored copies have “restored” in their name.	Bestaande bestanden zijn bewaard; de herstelde kopieën hebben “hersteld” in hun naam.
 Restore everything from %s?	Alles herstellen uit de back-up van %s?
 External disk	Externe schijf
@@ -5270,3 +5272,5 @@ not verified	niet bevestigd
 Confirm in the Lux Guard window...	Bevestig in het Lux Guard-venster...
 Not allowed - it was not confirmed in the Lux Guard window.	Niet toegestaan – niet bevestigd in het Lux Guard-venster.
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Toestaan vereist het Lux Guard-venster in uw bureaubladsessie (of als beheerder: sudo luxos-guard allow BESTAND).
+The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	De verbinding werd verbroken net nadat het bericht aan de server was overgedragen. Het is mogelijk verzonden; controleer Verzonden voordat u het opnieuw verstuurt.
+This event was changed or deleted elsewhere.	Deze afspraak is elders gewijzigd of verwijderd.

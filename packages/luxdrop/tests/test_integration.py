@@ -357,6 +357,25 @@ class LuxDropIntegration(unittest.TestCase):
         self.assertNotIn("Carol-PC", self.trusted("B"))
         rb.stop()
 
+    def test_08b_untrusted_folder_without_exec_bit(self):
+        # Slozka od neduveryhodneho zarizeni: obsah stejny, ale nic neprijde jako spustitelne
+        rb = self.receiver("B", "everyone")
+        before = set(os.listdir(os.path.join(self.homes["B"], "Downloads")))
+        s = self.sender("C", self.addr("B"), [os.path.join(self.src, "Projekt")])
+        s.expect(r"\[N\]o: ")
+        s.send("y")
+        rb.expect(r"\[N\]o: ")
+        rb.send("y")  # prijmout jednou, neduverovat
+        self.assertEqual(s.wait(), 0, s.buf)
+        rb.expect(r"Received from Carol-PC")
+        new = [n for n in os.listdir(os.path.join(self.homes["B"], "Downloads")) if n not in before]
+        self.assertEqual(len(new), 1, new)
+        got = self.dl("B", new[0], "run.sh")
+        self.assertEqual(sha(got), sha(os.path.join(self.src, "Projekt", "run.sh")))
+        self.assertFalse(os.access(got, os.X_OK))
+        self.assertNotIn("Carol-PC", self.trusted("B"))
+        rb.stop()
+
     # --- zlomyslny odesilatel (primo pres knihovnu) -----------------------------
 
     def raw_session(self, who_sender, who_receiver, offer):

@@ -66,6 +66,82 @@ END:VTODO\r
 END:VCALENDAR\r
 """
 
+# Tydenni schuzka v New Yorku (C-13): DST v USA (8. 3., 1. 11.) a v Evrope (29. 3., 25. 10.) se lisi
+NY_WEEKLY = """BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:ny@example.com
+DTSTART;TZID=America/New_York:20260302T090000
+DTEND;TZID=America/New_York:20260302T100000
+RRULE:FREQ=WEEKLY;COUNT=40
+EXDATE;TZID=America/New_York:20260309T090000
+SUMMARY:NY
+END:VEVENT
+BEGIN:VEVENT
+UID:ny@example.com
+RECURRENCE-ID;TZID=America/New_York:20260316T090000
+DTSTART;TZID=America/New_York:20260316T110000
+DTEND;TZID=America/New_York:20260316T120000
+SUMMARY:NY presunuto
+END:VEVENT
+END:VCALENDAR
+"""
+
+# RDATE (C-14): seznam, TZID, PERIOD, DATE; EXDATE plati i pro RDATE
+RDATES = """BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:rd
+DTSTART:20261019T090000
+DTEND:20261019T100000
+RDATE:20261021T140000,20261023T090000
+RDATE;TZID=America/New_York:20261024T090000
+RDATE;VALUE=PERIOD:20261026T080000Z/PT1H
+RDATE;VALUE=DATE:20261027
+EXDATE:20261023T090000
+SUMMARY:Extra
+END:VEVENT
+BEGIN:VEVENT
+UID:rd2
+DTSTART;VALUE=DATE:20261001
+RRULE:FREQ=MONTHLY;COUNT=2
+RDATE;VALUE=DATE:20261015
+SUMMARY:Cely den
+END:VEVENT
+END:VCALENDAR
+"""
+
+# STATUS:CANCELLED (C-18): zrusena udalost a zruseny jediny vyskyt serie
+CANCELLED = """BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:s
+DTSTART:20261019T090000
+DTEND:20261019T100000
+RRULE:FREQ=DAILY;COUNT=3
+SUMMARY:Serie
+END:VEVENT
+BEGIN:VEVENT
+UID:s
+RECURRENCE-ID:20261020T090000
+DTSTART:20261020T090000
+DTEND:20261020T100000
+STATUS:CANCELLED
+SUMMARY:Serie
+END:VEVENT
+BEGIN:VEVENT
+UID:z
+DTSTART:20261019T100000
+DTEND:20261019T110000
+STATUS:CANCELLED
+SUMMARY:Zruseno
+END:VEVENT
+END:VCALENDAR
+"""
+
+# Serie s presunutym vyskytem (RECURRENCE-ID) - C-03
+MOVED = ("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s\nDTSTART:20261019T090000\nDTEND:20261019T100000\n"
+         "RRULE:FREQ=DAILY;COUNT=3\nSUMMARY:Serie\nEND:VEVENT\n"
+         "BEGIN:VEVENT\nUID:s\nRECURRENCE-ID:20261020T090000\nDTSTART:20261020T150000\n"
+         "DTEND:20261020T160000\nSUMMARY:Presunuto\nEND:VEVENT\nEND:VCALENDAR\n")
+
 
 class TestDateMath(unittest.TestCase):
     def test_leap(self):
@@ -261,6 +337,30 @@ class TestRecurrence(unittest.TestCase):
         e = self.ev(D(2026, 10, 1), "FREQ=DAILY;INTERVAL=10;UNTIL=20261031")
         self.assertEqual(days(e, D(2026, 9, 1), D(2027, 1, 1)), [D(2026, 10, 1), D(2026, 10, 11), D(2026, 10, 21), D(2026, 10, 31)])
 
+    def test_daily_filters_weekdays_before_counting(self):
+        e = self.ev(D(2026, 10, 23), "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR;COUNT=4")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2026, 11, 1)),
+                         [D(2026, 10, 23), D(2026, 10, 26), D(2026, 10, 27), D(2026, 10, 28)])
+
+    def test_daily_filters_month_days(self):
+        e = self.ev(D(2026, 10, 31), "FREQ=DAILY;BYMONTHDAY=-1;COUNT=3")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2027, 1, 1)),
+                         [D(2026, 10, 31), D(2026, 11, 30), D(2026, 12, 31)])
+
+    def test_daily_filter_with_no_matching_dates(self):
+        e = self.ev(D(2026, 1, 1), "FREQ=DAILY;BYMONTH=2;BYMONTHDAY=30")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2026, 3, 1)), [D(2026, 1, 1)])
+
+    def test_monthly_intersects_month_days_and_weekdays(self):
+        e = self.ev(D(2026, 10, 5), "FREQ=MONTHLY;BYMONTHDAY=1,2,3,4,5,6,7;BYDAY=MO;COUNT=3")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2027, 1, 1)),
+                         [D(2026, 10, 5), D(2026, 11, 2), D(2026, 12, 7)])
+
+    def test_monthly_intersection_with_ordinal_weekday(self):
+        e = self.ev(D(2026, 10, 30), "FREQ=MONTHLY;BYMONTHDAY=-1,-2,-3;BYDAY=-1FR;COUNT=2")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2027, 6, 1)),
+                         [D(2026, 10, 30), D(2027, 1, 29)])
+
     def test_until_utc_inclusive(self):
         e = self.ev(T(2026, 10, 1, 9), "FREQ=DAILY;UNTIL=20261003T070000Z")  # 9:00 Praha = 7:00 UTC
         self.assertEqual(len(days(e, D(2026, 9, 1), D(2026, 12, 1))), 3)
@@ -402,6 +502,223 @@ class TestStore(unittest.TestCase):
         self.assertEqual(ics.event_color(e), ics.DEFAULT_COLOR)
         e.source = "google.ics"
         self.assertIn(ics.event_color(e), ics.COLORS)
+
+
+class TestRfcFixes(unittest.TestCase):
+    """Regresni testy C-13 az C-18 (opakovani podle RFC 5545)."""
+
+    def ev(self, start, rrule, end=None):
+        e = ics.Event("R", start, end)
+        e.set_rrule(rrule)
+        return e
+
+    def test_weekdays_only_never_on_weekend(self):
+        # C-15: "kazdy pracovni den" v ruznych zapisech (Google, Outlook s WKST=SU, DAILY + BYDAY)
+        for rule in ("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", "FREQ=WEEKLY;WKST=SU;BYDAY=MO,TU,WE,TH,FR",
+                     "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR", "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR,TH,WE,TU,MO;COUNT=30",
+                     "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR"):
+            for start in (T(2026, 10, 19, 9), D(2026, 10, 19)):
+                got = days(self.ev(start, rule), D(2026, 10, 1), D(2027, 1, 1))
+                self.assertTrue(got, rule)
+                weekend = [d for d in got if d.weekday() >= 5]
+                self.assertEqual(weekend, [], rule)
+        got = days(self.ev(D(2026, 10, 19), "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"), D(2026, 10, 19), D(2026, 10, 27))
+        self.assertEqual(got, [D(2026, 10, 19), D(2026, 10, 20), D(2026, 10, 21), D(2026, 10, 22), D(2026, 10, 23),
+                               D(2026, 10, 26)])
+
+    def test_bysetpos_last_working_day_of_month(self):
+        # C-16
+        e = self.ev(D(2026, 10, 30), "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1;COUNT=4")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)),
+                         [D(2026, 10, 30), D(2026, 11, 30), D(2026, 12, 31), D(2027, 1, 29)])
+        e = self.ev(T(2026, 10, 1, 8), "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1,-1;COUNT=4")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)),
+                         [T(2026, 10, 1, 8), T(2026, 10, 30, 8), T(2026, 11, 2, 8), T(2026, 11, 30, 8)])
+
+    def test_bysetpos_yearly_and_weekly(self):
+        # mnozina pro BYSETPOS je cely rok: prvni nedele v breznu a posledni nedele v rijnu
+        e = self.ev(D(2026, 3, 1), "FREQ=YEARLY;BYMONTH=3,10;BYDAY=SU;BYSETPOS=1,-1;COUNT=4")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)),
+                         [D(2026, 3, 1), D(2026, 10, 25), D(2027, 3, 7), D(2027, 10, 31)])
+        e = self.ev(D(2026, 10, 21), "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYSETPOS=2;COUNT=3")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)), [D(2026, 10, 21), D(2026, 10, 28), D(2026, 11, 4)])
+
+    def test_exdate_without_rrule(self):
+        # C-17
+        ev = ics.parse("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART:20261020T090000\nDTEND:20261020T100000\n"
+                       "EXDATE:20261020T090000\nSUMMARY:Nic\nEND:VEVENT\nEND:VCALENDAR\n").events[0]
+        self.assertEqual(days(ev, D(2026, 10, 1), D(2026, 11, 1)), [])
+        ev = ics.parse("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20261020\n"
+                       "EXDATE;VALUE=DATE:20261020\nSUMMARY:Nic\nEND:VEVENT\nEND:VCALENDAR\n").events[0]
+        self.assertEqual(days(ev, D(2026, 10, 1), D(2026, 11, 1)), [])
+
+    def test_rdate(self):
+        # C-14
+        cal = ics.parse(RDATES)
+        self.assertEqual(days(cal.events[0], D(2026, 10, 1), D(2026, 11, 1)),
+                         [T(2026, 10, 19, 9), T(2026, 10, 21, 14), T(2026, 10, 24, 15), T(2026, 10, 26, 9),
+                          T(2026, 10, 27, 9)])
+        self.assertEqual(days(cal.events[0], D(2026, 10, 24), D(2026, 10, 25)), [T(2026, 10, 24, 15)])
+        self.assertEqual(days(cal.events[1], D(2026, 10, 1), D(2027, 1, 1)),
+                         [D(2026, 10, 1), D(2026, 10, 15), D(2026, 11, 1)])
+        text = cal.to_text("Europe/Prague")
+        for needle in ("RDATE:20261021T140000,20261023T090000", "RDATE;TZID=America/New_York:20261024T090000",
+                       "RDATE;VALUE=PERIOD:20261026T080000Z/PT1H", "RDATE;VALUE=DATE:20261027",
+                       "RDATE;VALUE=DATE:20261015"):
+            self.assertIn(needle, text)
+        self.assertEqual(text.count("RDATE"), 5)
+        self.assertEqual(days(ics.parse(text).events[0], D(2026, 10, 1), D(2026, 11, 1)),
+                         days(cal.events[0], D(2026, 10, 1), D(2026, 11, 1)))
+
+    def test_foreign_timezone_recurrence_across_dst(self):
+        # C-13: TZ=Europe/Prague, schuzka v 9:00 v New Yorku
+        cal = ics.parse(NY_WEEKLY)
+        ev = cal.events[0]
+        self.assertEqual(days(ev, D(2026, 3, 1), D(2026, 4, 6)),
+                         [T(2026, 3, 2, 15), T(2026, 3, 16, 14), T(2026, 3, 23, 14), T(2026, 3, 30, 15)])
+        self.assertEqual(days(ev, D(2026, 10, 19), D(2026, 11, 10)),
+                         [T(2026, 10, 19, 15), T(2026, 10, 26, 14), T(2026, 11, 2, 15), T(2026, 11, 9, 15)])
+        # COUNT=40 konci 30. 11.; UNTIL v UTC (9:00 EST = 14:00Z) je vcetne
+        self.assertEqual(days(ev, D(2026, 11, 20), D(2027, 1, 1)), [T(2026, 11, 23, 15), T(2026, 11, 30, 15)])
+        until = ics.parse(NY_WEEKLY.replace("COUNT=40", "UNTIL=20261109T140000Z")).events[0]
+        self.assertEqual(days(until, D(2026, 11, 1), D(2027, 1, 1)), [T(2026, 11, 2, 15), T(2026, 11, 9, 15)])
+        text = cal.to_text("Europe/Prague")
+        self.assertIn("DTSTART;TZID=America/New_York:20260302T090000", text)
+        self.assertIn("DTEND;TZID=America/New_York:20260302T100000", text)
+        self.assertIn("RECURRENCE-ID;TZID=America/New_York:20260316T090000", text)
+        self.assertIn("DTSTART;TZID=America/New_York:20260316T110000", text)
+        self.assertEqual(days(ics.parse(text).events[0], D(2026, 10, 19), D(2026, 11, 10)),
+                         days(ev, D(2026, 10, 19), D(2026, 11, 10)))
+        # posunuti udalosti v mistnim case se zapise zpet v puvodnim pasmu
+        ev.start = T(2026, 3, 2, 16)
+        ev.end = T(2026, 3, 2, 17)
+        self.assertIn("DTSTART;TZID=America/New_York:20260302T100000", cal.to_text("Europe/Prague"))
+
+    def test_foreign_timezone_in_store_with_override(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "events.ics"), "w") as f:
+                f.write(NY_WEEKLY)
+            st = ics.Store(d)
+            st.reload_if_changed()
+            self.assertEqual([(i[0].summary, i[1]) for i in st.instances(D(2026, 3, 9), D(2026, 3, 17))],
+                             [("NY presunuto", T(2026, 3, 16, 16))])
+            self.assertEqual([(i[0].summary, i[1]) for i in st.instances(D(2026, 10, 26), D(2026, 10, 27))],
+                             [("NY", T(2026, 10, 26, 14))])
+
+    def test_cancelled_events_hidden(self):
+        # C-18
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "events.ics"), "w") as f:
+                f.write(CANCELLED)
+            st = ics.Store(d)
+            st.reload_if_changed()
+            self.assertEqual([i[0].summary for i in st.day_instances(D(2026, 10, 19))], ["Serie"])
+            self.assertEqual(st.day_instances(D(2026, 10, 20)), [])
+            self.assertEqual([i[0].summary for i in st.day_instances(D(2026, 10, 21))], ["Serie"])
+            self.assertEqual(st.busy_days(D(2026, 10, 1), D(2026, 11, 1)), {D(2026, 10, 19): "blue", D(2026, 10, 21): "blue"})
+            # STATUS se pri zapisu zachova
+            st.add(ics.Event("Nova", T(2026, 10, 22, 9), T(2026, 10, 22, 10)))
+            with open(os.path.join(d, "events.ics")) as f:
+                self.assertEqual(f.read().count("STATUS:CANCELLED"), 2)
+
+
+class TestStoreConcurrency(unittest.TestCase):
+    """C-03 (smazani jednoho presunuteho vyskytu) a C-04 (soubezny zapis jineho procesu)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = self.tmp.name
+        self.path = os.path.join(self.dir, "events.ics")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def store(self):
+        st = ics.Store(self.dir)
+        st.reload_if_changed()
+        return st
+
+    def summaries(self, st, day):
+        return [(i[0].summary, i[1]) for i in st.day_instances(day)]
+
+    def test_delete_single_moved_occurrence(self):
+        with open(self.path, "w") as f:
+            f.write(MOVED)
+        st = self.store()
+        moved = [i[0] for i in st.day_instances(D(2026, 10, 20))][0]
+        self.assertIsNotNone(moved.recurrence_id)
+        st.delete(moved)
+        st2 = self.store()
+        self.assertEqual(self.summaries(st2, D(2026, 10, 19)), [("Serie", T(2026, 10, 19, 9))])
+        self.assertEqual(self.summaries(st2, D(2026, 10, 20)), [])
+        self.assertEqual(self.summaries(st2, D(2026, 10, 21)), [("Serie", T(2026, 10, 21, 9))])
+        with open(self.path) as f:
+            text = f.read()
+        self.assertEqual(text.count("BEGIN:VEVENT"), 1)
+        self.assertIn("EXDATE;TZID=Europe/Prague:20261020T090000", text)
+        # smazani cele serie dal maze vse
+        st2.delete(st2.find("s"))
+        self.assertEqual(self.store().own.events, [])
+
+    def test_concurrent_update_keeps_other_changes(self):
+        st = self.store()
+        st.add(ics.Event("A", T(2026, 10, 20, 8), T(2026, 10, 20, 9), uid="a"))
+        st.add(ics.Event("B", T(2026, 10, 20, 10), T(2026, 10, 20, 11), uid="b"))
+        other = self.store()                       # LuxOS Companion / druha instance
+        b = other.find("b")
+        b.summary = "B jinde"
+        other.update(b)
+        a = st.find("a")                           # Kalendar zmenu jeste nenacetl
+        a.summary = "A zde"
+        st.update(a)
+        self.assertEqual([i[0].summary for i in self.store().day_instances(D(2026, 10, 20))], ["A zde", "B jinde"])
+
+    def test_update_of_event_deleted_elsewhere_is_conflict(self):
+        st = self.store()
+        st.add(ics.Event("A", T(2026, 10, 20, 8), T(2026, 10, 20, 9), uid="a"))
+        st.add(ics.Event("B", T(2026, 10, 20, 10), T(2026, 10, 20, 11), uid="b"))
+        other = self.store()
+        other.delete(other.find("a"))
+        a = st.find("a")
+        a.summary = "A zde"
+        with self.assertRaises(ics.Conflict):
+            st.update(a)
+        self.assertEqual([i[0].summary for i in self.store().day_instances(D(2026, 10, 20))], ["B"])
+        self.assertIsNone(st.find("a"))           # Kalendar po konfliktu ukazuje stav ze souboru
+        # smazani uz smazane udalosti neni chyba a nic nevrati
+        st.delete(a)
+        self.assertEqual([i[0].summary for i in self.store().day_instances(D(2026, 10, 20))], ["B"])
+
+    def test_delete_does_not_drop_concurrent_edit(self):
+        st = self.store()
+        st.add(ics.Event("A", T(2026, 10, 20, 8), T(2026, 10, 20, 9), uid="a"))
+        st.add(ics.Event("B", T(2026, 10, 20, 10), T(2026, 10, 20, 11), uid="b"))
+        other = self.store()
+        b = other.find("b")
+        b.summary = "B jinde"
+        other.update(b)
+        st.delete(st.find("a"))
+        self.assertEqual([i[0].summary for i in self.store().day_instances(D(2026, 10, 20))], ["B jinde"])
+
+    def test_write_retries_when_file_changes_before_rename(self):
+        st = self.store()
+        st.add(ics.Event("A", T(2026, 10, 20, 8), T(2026, 10, 20, 9), uid="a"))
+        calls = []
+
+        def meanwhile():
+            # zapis procesu bez zamku (Kalendar v LSL) mezi ctenim a prejmenovanim
+            if not calls:
+                calls.append(1)
+                cal = ics.read_file(self.path)
+                cal.events.append(ics.Event("Z telefonu", T(2026, 10, 20, 10), T(2026, 10, 20, 11), uid="z"))
+                with open(self.path + ".jinde", "w", encoding="utf-8", newline="") as f:
+                    f.write(cal.to_text("Europe/Prague"))
+                os.replace(self.path + ".jinde", self.path)
+        st.before_replace = meanwhile
+        st.add(ics.Event("C", T(2026, 10, 20, 12), T(2026, 10, 20, 13), uid="c"))
+        self.assertEqual(calls, [1])
+        self.assertEqual([i[0].summary for i in self.store().day_instances(D(2026, 10, 20))], ["A", "Z telefonu", "C"])
+        self.assertFalse([n for n in os.listdir(self.dir) if ".tmp-" in n])
 
 
 def _stamp(cal):

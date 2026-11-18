@@ -8,6 +8,7 @@ Prubeh (podrobne v PROTOCOL.md):
   klient -> file + data ... -> end    server -> result
 """
 import base64
+import errno
 import hashlib
 import hmac
 import os
@@ -27,6 +28,8 @@ DECISION_TIMEOUT = 120
 DISK_RESERVE = 256 * 1024 * 1024
 PART_DIR = ".luxdrop-partial"
 MAX_CONNECTIONS = 8
+MAX_PER_IP = 4              # jedna adresa nesmi obsadit vsechna spojeni (ostatni by se k prijmu nedostali)
+PREAUTH_TIMEOUT = 30        # celkovy cas na TLS + hello + auth; pomale kapani bajtu neprodluzuje
 MAX_PROMPTS = 3
 
 
@@ -220,6 +223,8 @@ class Receiver:
         self.sock = None
         self.active = set()
         self._conn_sem = threading.BoundedSemaphore(MAX_CONNECTIONS)
+        self._per_ip = {}         # ip -> pocet otevrenych spojeni
+        self._per_ip_lock = threading.Lock()
         self._prompt_sem = threading.BoundedSemaphore(MAX_PROMPTS)
         self._stop = threading.Event()
         self._parts_lock = threading.Lock()
@@ -256,20 +261,47 @@ class Receiver:
                     return
                 time.sleep(0.2)
                 continue
-            if not self._conn_sem.acquire(blocking=False):
-                conn.close()
-                continue
-            threading.Thread(target=self._serve, args=(conn, addr), daemon=True).start()
+            ip = addr[0][7:] if addr[0].startswith("::ffff:") else addr[0]
+            with self._per_ip_lock:
+                if self._per_ip.get(ip, 0) >= MAX_PER_IP or not self._conn_sem.acquire(blocking=False):
+                    conn.close()
+                    continue
+                self._per_ip[ip] = self._per_ip.get(ip, 0) + 1
+            threading.Thread(target=self._serve, args=(conn, addr, ip), daemon=True).start()
 
-    def _serve(self, conn, addr):
+    def _serve(self, conn, addr, ip=None):
         try:
             self.handle(conn, addr)
         finally:
+            if ip is not None:
+                with self._per_ip_lock:
+                    n = self._per_ip.get(ip, 1) - 1
+                    if n > 0:
+                        self._per_ip[ip] = n
+                    else:
+                        self._per_ip.pop(ip, None)
             self._conn_sem.release()
 
     def handle(self, conn, addr):
         t = Transfer("in")
         ch = None
+        # Hlidac pred overenim: neovereny klient (kdokoli v siti) smi spojeni drzet jen PREAUTH_TIMEOUT
+        # celkem - casovy limit soketu plati na kazde cteni zvlast a kapani po bajtu by ho obchazelo.
+        t.preauth_expired = threading.Event()
+        # wrap_socket() puvodni soket hned odpoji (fileno -1) - hlidac potrebuje vlastni duplikat
+        # deskriptoru; shutdown() na nem ukonci spojeni pro vsechny kopie, i uprostred TLS handshaku
+        watch = socket.socket(fileno=os.dup(conn.fileno()))
+
+        def expire():
+            t.preauth_expired.set()
+            try:
+                watch.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
+        t.preauth_timer = threading.Timer(PREAUTH_TIMEOUT, expire)
+        t.preauth_timer.daemon = True
+        t.preauth_timer.start()
         try:
             conn.settimeout(HANDSHAKE_TIMEOUT)
             tls = self.ctx.wrap_socket(conn, server_side=True)
@@ -294,6 +326,10 @@ class Receiver:
             if ch:
                 ch.error(proto.E_INTERNAL, "internal error")
         finally:
+            t.preauth_timer.cancel()
+            watch.close()
+            if t.preauth_expired.is_set() and t.state == "failed" and not t.items:
+                t.error = "not authenticated in time"
             self.active.discard(t)
             # wrap_socket() prevzal deskriptor - zavrit se musi TLS soket. Jinak by zustal otevreny,
             # dokud UI drzi Transfer (t.sock), a odesilatel (napr. Android) by cekal na konec spojeni.
@@ -358,6 +394,9 @@ class Receiver:
             raise proto.ProtocolError(proto.E_RECEIVING_OFF, "receiving is turned off")
         if not trusted and mode != "everyone":
             raise proto.ProtocolError(proto.E_NOT_TRUSTED, "only trusted devices can send to this computer")
+        t.preauth_timer.cancel()
+        if t.preauth_expired.is_set():
+            raise proto.ProtocolError(proto.E_TIMEOUT, "not authenticated in time")
         ch.send({"type": "auth_ok", "trusted": trusted})
         if trusted:
             self.trust.touch(fp_c, addr=None)
@@ -416,7 +455,7 @@ class Receiver:
             t.state = "transferring"
             self.handler.update(t)
             self._receive_files(ch, t, part_fd, fp_c, files, offsets)
-            names = self._finalize(dest, part_fd, fp_c, files, dirs)
+            names = self._finalize(dest, part_fd, fp_c, files, dirs, trusted)
         finally:
             os.close(part_fd)
         try:
@@ -595,8 +634,9 @@ class Receiver:
                                       "checksum mismatch: %s" % ", ".join(f["path"] for f in bad[:5]))
 
     @staticmethod
-    def _finalize(dest, part_fd, fp_c, files, dirs):
-        """Presune overene soubory z .luxdrop-partial do cile; nic neprepise."""
+    def _finalize(dest, part_fd, fp_c, files, dirs, trusted=False):
+        """Presune overene soubory z .luxdrop-partial do cile; nic neprepise. Priznak spustitelnosti
+        zustane jen od duveryhodneho zarizeni - od kohokoli jineho prijde soubor vzdy jako data."""
         dfd = os.open(dest, os.O_RDONLY | os.O_DIRECTORY)
         names = {}
         try:
@@ -628,7 +668,7 @@ class Receiver:
                     src = part_name(fp_c, f["path"], f["sha256"], f["size"])
                     fd = os.open(src, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=part_fd)
                     try:
-                        os.fchmod(fd, 0o755 if f["exec"] else 0o644)
+                        os.fchmod(fd, 0o755 if f["exec"] and trusted else 0o644)
                     finally:
                         os.close(fd)
                     if len(f["parts"]) == 1:
@@ -646,12 +686,9 @@ class Receiver:
 
 def _unique_names(name):
     yield name
-    stem, ext = os.path.splitext(name)
-    if not stem:
-        stem, ext = name, ""
     n = 1
     while True:
-        yield "%s (%d)%s" % (stem, n, ext)
+        yield pathsafe.collision_name(name, n)
         n += 1
 
 
@@ -664,27 +701,42 @@ def _reserve_dir(dfd, name):
             continue
 
 
+def _rename_noreplace(src_fd, src, dst_fd, dst):
+    """Atomicke prejmenovani bez prepsani i na disku bez pevnych odkazu (Linux)."""
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    try:
+        rename = libc.renameat2
+    except AttributeError:
+        raise OSError(errno.ENOSYS, "renameat2 is unavailable", dst) from None
+    rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    rename.restype = ctypes.c_int
+    if rename(src_fd, os.fsencode(src), dst_fd, os.fsencode(dst), 1) != 0:  # RENAME_NOREPLACE
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), dst)
+
+
 def _place_file(src_fd, src, dst_fd, name, unique=True):
     """Presun bez prepsani: link() selze, pokud cil existuje."""
     for cand in (_unique_names(name) if unique else [name]):
         try:
             os.link(src, cand, src_dir_fd=src_fd, dst_dir_fd=dst_fd, follow_symlinks=False)
-            os.unlink(src, dir_fd=src_fd)
-            return cand
         except FileExistsError:
             if not unique:
                 raise proto.ProtocolError(proto.E_INVALID_OFFER, "file already exists: %s" % name) from None
             continue
         except OSError:
-            # Souborovy system bez hardlinku (FAT/exFAT): kontrola + rename
+            # FAT/exFAT: samostatna kontrola existence a rename mohou pri soubehu prepsat soubor.
             try:
-                os.stat(cand, dir_fd=dst_fd, follow_symlinks=False)
+                _rename_noreplace(src_fd, src, dst_fd, cand)
+                return cand
+            except FileExistsError:
                 if not unique:
                     raise proto.ProtocolError(proto.E_INVALID_OFFER, "file already exists: %s" % name)
                 continue
-            except FileNotFoundError:
-                os.rename(src, cand, src_dir_fd=src_fd, dst_dir_fd=dst_fd)
-                return cand
+        # Chyba uklidu po uspesnem linku neni chyba ulozeni: neopakovat ho pod dalsim nazvem.
+        os.unlink(src, dir_fd=src_fd)
+        return cand
     raise proto.ProtocolError(proto.E_INTERNAL, "cannot place file")
 
 

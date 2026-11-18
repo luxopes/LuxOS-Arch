@@ -17,7 +17,7 @@ LSL = os.path.join(HERE, "..", "files", "lsl")
 TMP = tempfile.mkdtemp(prefix="luxos-lsl-cal-")
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 sys.path.insert(0, HERE)
-from test_luxos_calendar_ics import GOOGLE  # noqa: E402 - stejna testovaci data jako puvodni modul
+from test_luxos_calendar_ics import CANCELLED, GOOGLE, MOVED, NY_WEEKLY, RDATES  # noqa: E402 - stejna data
 
 
 def build():
@@ -310,6 +310,128 @@ class LslCalendar(unittest.TestCase):
 
     def test_sorting_all_day_first(self):
         self.assertEqual(self.lines("sorting", self.dir), ["Celodenni;A rano;B pozde"])
+
+    # ---- port opravy "wip fixes" z luxos_calendar_ics.py ------------------------------------------------
+    def test_daily_filters_weekdays_before_counting(self):
+        self.assertEqual(self.rule("20261023", "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR;COUNT=4", "-", "20261001", "20261101"),
+                         ["20261023", "20261026", "20261027", "20261028"])
+
+    def test_daily_filters_month_days(self):
+        self.assertEqual(self.rule("20261031", "FREQ=DAILY;BYMONTHDAY=-1;COUNT=3", "-", "20261001", "20270101"),
+                         ["20261031", "20261130", "20261231"])
+
+    def test_daily_filter_with_no_matching_dates(self):
+        self.assertEqual(self.rule("20260101", "FREQ=DAILY;BYMONTH=2;BYMONTHDAY=30", "-", "20260101", "20260301"),
+                         ["20260101"])
+
+    def test_monthly_intersects_month_days_and_weekdays(self):
+        self.assertEqual(self.rule("20261005", "FREQ=MONTHLY;BYMONTHDAY=1,2,3,4,5,6,7;BYDAY=MO;COUNT=3", "-",
+                                   "20261001", "20270101"), ["20261005", "20261102", "20261207"])
+
+    def test_monthly_intersection_with_ordinal_weekday(self):
+        self.assertEqual(self.rule("20261030", "FREQ=MONTHLY;BYMONTHDAY=-1,-2,-3;BYDAY=-1FR;COUNT=2", "-",
+                                   "20261001", "20270601"), ["20261030", "20270129"])
+
+    # ---- C-13 az C-18 (stejne pripady jako TestRfcFixes v test_luxos_calendar_ics.py) --------------------
+    def test_weekdays_only_never_on_weekend(self):
+        import datetime as dt
+        for rule in ("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", "FREQ=WEEKLY;WKST=SU;BYDAY=MO,TU,WE,TH,FR",
+                     "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR", "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR,TH,WE,TU,MO;COUNT=30",
+                     "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR"):
+            for start in ("20261019T090000", "20261019"):
+                got = self.rule(start, rule, "-", "20261001", "20270101")
+                self.assertTrue(got, rule)
+                weekend = [d for d in got if dt.date(int(d[0:4]), int(d[4:6]), int(d[6:8])).weekday() >= 5]
+                self.assertEqual(weekend, [], rule)
+        self.assertEqual(self.rule("20261019", "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR", "-", "20261019", "20261027"),
+                         ["20261019", "20261020", "20261021", "20261022", "20261023", "20261026"])
+
+    def test_bysetpos_last_working_day_of_month(self):
+        self.assertEqual(self.rule("20261030", "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1;COUNT=4", "-",
+                                   "20260101", "20280101"), ["20261030", "20261130", "20261231", "20270129"])
+        self.assertEqual(self.rule("20261001T080000", "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1,-1;COUNT=4", "-",
+                                   "20260101", "20280101"),
+                         ["20261001T080000", "20261030T080000", "20261102T080000", "20261130T080000"])
+
+    def test_bysetpos_yearly_and_weekly(self):
+        self.assertEqual(self.rule("20260301", "FREQ=YEARLY;BYMONTH=3,10;BYDAY=SU;BYSETPOS=1,-1;COUNT=4", "-",
+                                   "20260101", "20280101"), ["20260301", "20261025", "20270307", "20271031"])
+        self.assertEqual(self.rule("20261021", "FREQ=WEEKLY;BYDAY=MO,WE,FR;BYSETPOS=2;COUNT=3", "-",
+                                   "20260101", "20280101"), ["20261021", "20261028", "20261104"])
+
+    def test_exdate_without_rrule(self):
+        path = self.write("x.ics", "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART:20261020T090000\nDTEND:20261020T100000\n"
+                          "EXDATE:20261020T090000\nSUMMARY:Nic\nEND:VEVENT\nEND:VCALENDAR\n")
+        self.assertEqual(self.lines("days", path, "20261001", "20261101", "0"), [""])
+        path = self.write("y.ics", "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20261020\n"
+                          "EXDATE;VALUE=DATE:20261020\nSUMMARY:Nic\nEND:VEVENT\nEND:VCALENDAR\n")
+        self.assertEqual(self.lines("days", path, "20261001", "20261101", "0"), [""])
+
+    def test_rdate(self):
+        path = self.write("rd.ics", RDATES)
+        self.assertEqual(self.lines("days", path, "20261001", "20261101", "0"),
+                         ["20261019T090000", "20261021T140000", "20261024T150000", "20261026T090000", "20261027T090000"])
+        self.assertEqual(self.lines("days", path, "20261024", "20261025", "0"), ["20261024T150000"])
+        self.assertEqual(self.lines("days", path, "20261001", "20270101", "1"), ["20261001", "20261015", "20261101"])
+        text = self.run_prog("text", path, "Europe/Prague")
+        for needle in ("RDATE:20261021T140000,20261023T090000", "RDATE;TZID=America/New_York:20261024T090000",
+                       "RDATE;VALUE=PERIOD:20261026T080000Z/PT1H", "RDATE;VALUE=DATE:20261027",
+                       "RDATE;VALUE=DATE:20261015"):
+            self.assertIn(needle, text)
+        self.assertEqual(text.count("RDATE"), 5)
+        path2 = self.write("rd2.ics", text[:text.rindex("\n") + 1])
+        self.assertEqual(self.lines("days", path2, "20261001", "20261101", "0"),
+                         self.lines("days", path, "20261001", "20261101", "0"))
+
+    def test_foreign_timezone_recurrence_across_dst(self):
+        path = self.write("ny.ics", NY_WEEKLY)
+        self.assertEqual(self.lines("days", path, "20260301", "20260406", "0"),
+                         ["20260302T150000", "20260316T140000", "20260323T140000", "20260330T150000"])
+        self.assertEqual(self.lines("days", path, "20261019", "20261110", "0"),
+                         ["20261019T150000", "20261026T140000", "20261102T150000", "20261109T150000"])
+        self.assertEqual(self.lines("days", path, "20261120", "20270101", "0"), ["20261123T150000", "20261130T150000"])
+        until = self.write("until.ics", NY_WEEKLY.replace("COUNT=40", "UNTIL=20261109T140000Z"))
+        self.assertEqual(self.lines("days", until, "20261101", "20270101", "0"), ["20261102T150000", "20261109T150000"])
+        text = self.run_prog("text", path, "Europe/Prague")
+        for needle in ("DTSTART;TZID=America/New_York:20260302T090000", "DTEND;TZID=America/New_York:20260302T100000",
+                       "RECURRENCE-ID;TZID=America/New_York:20260316T090000",
+                       "DTSTART;TZID=America/New_York:20260316T110000"):
+            self.assertIn(needle, text)
+        path2 = self.write("ny2.ics", text[:text.rindex("\n") + 1])
+        self.assertEqual(self.lines("days", path2, "20261019", "20261110", "0"),
+                         self.lines("days", path, "20261019", "20261110", "0"))
+        self.assertIn("DTSTART;TZID=America/New_York:20260302T100000", self.run_prog("shift", path, "3600"))
+
+    def test_foreign_timezone_in_store_with_override(self):
+        self.write("events.ics", NY_WEEKLY)
+        self.assertEqual(self.lines("instances", self.dir, "20260309", "20260317"), ["NY presunuto|20260316T160000"])
+        self.assertEqual(self.lines("instances", self.dir, "20261026", "20261027"), ["NY|20261026T140000"])
+
+    def test_cancelled_events_hidden(self):
+        self.write("events.ics", CANCELLED)
+        self.assertEqual(self.lines("instances", self.dir, "20261019", "20261020"), ["Serie|20261019T090000"])
+        self.assertEqual(self.lines("instances", self.dir, "20261020", "20261021"), [""])
+        self.assertEqual(self.lines("instances", self.dir, "20261021", "20261022"), ["Serie|20261021T090000"])
+        self.assertEqual(self.run_prog("text", os.path.join(self.dir, "events.ics"), "").count("STATUS:CANCELLED"), 2)
+
+    def test_delete_single_moved_occurrence(self):
+        self.write("events.ics", MOVED)
+        out = self.run_prog("delmoved", self.dir, "20261020")
+        self.assertTrue(out.startswith("rid True\n"))
+        self.assertEqual(out.count("BEGIN:VEVENT"), 1)
+        self.assertIn("EXDATE;TZID=Europe/Prague:20261020T090000", out)
+        self.assertEqual(self.lines("instances", self.dir, "20261019", "20261022"),
+                         ["Serie|20261019T090000", "Serie|20261021T090000"])
+        self.assertEqual(self.lines("delall", self.dir, "s"), ["own 0"])
+
+    def test_concurrent_update_keeps_other_changes(self):
+        self.assertEqual(self.lines("concurrent", self.dir, "update"), ["A zde;B jinde"])
+
+    def test_delete_does_not_drop_concurrent_edit(self):
+        self.assertEqual(self.lines("concurrent", self.dir, "delete"), ["B jinde"])
+
+    def test_update_of_event_deleted_elsewhere_is_conflict(self):
+        self.assertEqual(self.lines("concurrent", self.dir, "conflict"), ["conflict True", "memory True", "B"])
 
     def test_colors(self):
         self.assertEqual(self.lines("color", "purple", "-"), ["purple"])

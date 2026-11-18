@@ -2,11 +2,13 @@
 
 Bez zavislosti mimo standardni knihovnu (python-icalendar je zbytecne tezky pro proces na pozadi).
 Podporuje VEVENT: SUMMARY, DTSTART/DTEND/DURATION (datum, UTC, TZID, plovouci cas),
-RRULE (FREQ=DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, COUNT, UNTIL, BYDAY, BYMONTHDAY, BYMONTH),
-EXDATE, RECURRENCE-ID, COLOR (RFC 7986) a VALARM. Nezname vlastnosti a komponenty se
+RRULE (FREQ=DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, COUNT, UNTIL, BYDAY, BYMONTHDAY, BYMONTH, BYSETPOS),
+RDATE, EXDATE, RECURRENCE-ID, STATUS (zrusene se nezobrazuji), COLOR (RFC 7986) a VALARM. Opakovani
+udalosti s cizim TZID se rozvine v case toho pasma a teprve vyskyty se prevedou na mistni cas. Nezname vlastnosti a komponenty se
 zachovavaji beze zmeny (import/export bez ztraty dat).
 """
 import datetime as dt
+import fcntl
 import os
 import re
 import uuid
@@ -194,6 +196,16 @@ def parse_duration(v):
     return sign * dt.timedelta(weeks=w, days=d, hours=h, minutes=mi, seconds=s)
 
 
+def _to_zone(value, name):
+    """Naivni mistni datetime -> naivni cas v pasmu name."""
+    return value.astimezone(_zone(name)).replace(tzinfo=None)
+
+
+def _from_zone(value, name):
+    """Naivni cas v pasmu name -> naivni mistni datetime."""
+    return value.replace(tzinfo=_zone(name)).astimezone().replace(tzinfo=None)
+
+
 def format_dt(value, tzname=None):
     """date/datetime -> (parametry, hodnota) pro zapis."""
     if not isinstance(value, dt.datetime):
@@ -204,7 +216,7 @@ def format_dt(value, tzname=None):
 
 
 # ---- udalost ------------------------------------------------------------------------
-KNOWN = {"UID", "SUMMARY", "DTSTART", "DTEND", "DURATION", "RRULE", "EXDATE", "COLOR",
+KNOWN = {"UID", "SUMMARY", "DTSTART", "DTEND", "DURATION", "RRULE", "EXDATE", "RDATE", "COLOR",
          "RECURRENCE-ID", "DESCRIPTION", "LOCATION"}
 
 
@@ -223,7 +235,11 @@ class Event:
         self.rrule_raw = None      # puvodni text RRULE (zapis beze zmen)
         self.exdates = []          # seznam date/datetime
         self.exdate_lines = []     # puvodni radky EXDATE
+        self.rdates = []           # dalsi vyskyty (RDATE) jako date/datetime
+        self.rdate_lines = []      # puvodni radky RDATE
         self.recurrence_id = None
+        self.tzid = None           # cizi TZID z DTSTART (opakovani v jeho case, zapis zpet beze ztraty)
+        self.status = None         # STATUS (radek zustava v extra)
         self.extra = []            # nezname vlastnosti (puvodni rozbalene radky)
         self.alarms = []           # VALARM bloky (seznam radku vcetne BEGIN/END)
         self.source = None         # nazev souboru (cteni) - None = vlastni kalendar
@@ -271,18 +287,45 @@ class Event:
             self.alarms.append(["BEGIN:VALARM", "ACTION:DISPLAY", f"DESCRIPTION:{escape(self.summary or 'Reminder')}",
                                 f"TRIGGER:-PT{int(minutes)}M", "END:VALARM"])
 
+    def _zone_name(self):
+        """Cizi pasmo udalosti, ve kterem se rozviji opakovani, jinak None."""
+        if self.all_day or not self.tzid or self.tzid == local_tz_name() or _zone(self.tzid) is None:
+            return None
+        return self.tzid
+
+    def _format(self, value, tzname):
+        zone = self._zone_name()
+        if zone and isinstance(value, dt.datetime):
+            return format_dt(_to_zone(value, zone), zone)
+        return format_dt(value, tzname)
+
+    def add_exdate(self, value, tzname=None):
+        """Vynecha vyskyt (EXDATE) - smazani jednoho presunuteho vyskytu serie."""
+        if self.all_day and isinstance(value, dt.datetime):
+            value = value.date()
+        elif not self.all_day and not isinstance(value, dt.datetime):
+            value = dt.datetime.combine(value, self.start.time())
+        if value in self.exdates:
+            return
+        self.exdates.append(value)
+        p, v = self._format(value, tzname)
+        self.exdate_lines.append(f"EXDATE{p}:{v}")
+
+    def is_recurring(self):
+        return bool(self.rrule or self.rdates)
+
     def to_lines(self, tzname=None):
         lines = ["BEGIN:VEVENT", f"UID:{self.uid}"]
         stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         if not any(x.upper().startswith("DTSTAMP") for x in self.extra):
             lines.append(f"DTSTAMP:{stamp}")
         if self.recurrence_id is not None:
-            p, v = format_dt(self.recurrence_id, tzname)
+            p, v = self._format(self.recurrence_id, tzname)
             lines.append(f"RECURRENCE-ID{p}:{v}")
-        p, v = format_dt(self.start, tzname)
+        p, v = self._format(self.start, tzname)
         lines.append(f"DTSTART{p}:{v}")
         if self.end is not None:
-            p, v = format_dt(self.end, tzname)
+            p, v = self._format(self.end, tzname)
             lines.append(f"DTEND{p}:{v}")
         lines.append(f"SUMMARY:{escape(self.summary)}")
         if self.description:
@@ -294,6 +337,7 @@ class Event:
         if self.rrule_raw:
             lines.append(f"RRULE:{self.rrule_raw}")
         lines.extend(self.exdate_lines)
+        lines.extend(self.rdate_lines)
         lines.extend(self.extra)
         for block in self.alarms:
             lines.extend(block)
@@ -311,6 +355,8 @@ class Event:
 
         zacatek/konec jsou stejneho typu jako start (date nebo datetime).
         """
+        if self.status == "CANCELLED":
+            return []              # zrusena udalost (nebo zruseny vyskyt serie) se nezobrazuje
         dur = self.duration()
         rs = range_start if self.all_day else dt.datetime.combine(range_start, dt.time())
         re_ = range_end if self.all_day else dt.datetime.combine(range_end, dt.time())
@@ -324,7 +370,26 @@ class Event:
         return out
 
     def _starts(self, until_day):
-        """Generator zacatku vyskytu (vzestupne) do dne until_day (bez nej)."""
+        """Zacatky vyskytu (vzestupne, mistni cas) do dne until_day (bez nej): DTSTART, RRULE a RDATE
+        bez EXDATE (EXDATE plati i bez RRULE)."""
+        excluded = set(self.exdates)
+        out = set(self._rule_starts(until_day))
+        for r in self.rdates:
+            if self.all_day:
+                out.add(r.date() if isinstance(r, dt.datetime) else r)
+            else:
+                out.add(r if isinstance(r, dt.datetime) else dt.datetime.combine(r, self.start.time()))
+        keep = []
+        for s in sorted(out):
+            if (s if self.all_day else s.date()) >= until_day:
+                break
+            if s in excluded or (not self.all_day and s.date() in excluded):
+                continue
+            keep.append(s)
+        return keep
+
+    def _rule_starts(self, until_day):
+        """Generator zacatku z DTSTART a RRULE (vzestupne) do dne until_day (bez nej)."""
         if not self.rrule:
             yield self.start
             return
@@ -341,40 +406,40 @@ class Event:
                 until = parse_dt(r["UNTIL"])
             except ValueError:
                 until = None
-        excluded = set(self.exdates)
-        start = self.start
+        if isinstance(until, dt.datetime) and self.all_day:
+            until = until.date()
+        elif until is not None and not isinstance(until, dt.datetime) and not self.all_day:
+            until = dt.datetime.combine(until, dt.time(23, 59, 59))
+        # cizi pasmo: opakovani v jeho mistnim case (letni cas tam), vyskyty se pak prevedou na mistni cas
+        zone = self._zone_name()
+        start = self.start if zone is None else _to_zone(self.start, zone)
         start_day = start if self.all_day else start.date()
         tod = None if self.all_day else start.time()
-        limit_day = until_day
         produced = 0
         n = 0
 
         def mk(day):
-            return day if tod is None else dt.datetime.combine(day, tod)
+            if tod is None:
+                return day
+            wall = dt.datetime.combine(day, tod)
+            return wall if zone is None else _from_zone(wall, zone)
 
+        # dny v pasmu udalosti se od mistnich lisi nejvys o den
+        gen_until = until_day if zone is None else until_day + dt.timedelta(days=2)
         # DTSTART je vzdy prvni vyskyt (RFC 5545), i kdyz pravidlu neodpovida
-        days = _rrule_days(freq, interval, r, start_day)
-        first = [start_day]
-        for day in _chain_first(first, days, start_day):
+        days = _rrule_days(freq, interval, r, start_day, gen_until)
+        for day in _chain_first([start_day], days, start_day):
             n += 1
             if n > MAX_INSTANCES:
                 return
-            s = mk(day)
-            if until is not None:
-                u = until
-                if isinstance(u, dt.datetime) and self.all_day:
-                    u = u.date()
-                elif not isinstance(u, dt.datetime) and not self.all_day:
-                    u = dt.datetime.combine(u, dt.time(23, 59, 59))
-                if s > u:
-                    return
+            s = self.start if day == start_day else mk(day)
+            if until is not None and s > until:
+                return
             produced += 1
             if count is not None and produced > count:
                 return
-            if day >= limit_day:
+            if (s if self.all_day else s.date()) >= until_day:
                 return
-            if s in excluded or (not self.all_day and s.date() in excluded):
-                continue
             yield s
 
 
@@ -412,6 +477,21 @@ def _byday(spec):
     return out
 
 
+def _setpos(days, r):
+    """BYSETPOS: vyber ze serazene mnoziny dnu jednoho obdobi (1 = prvni, -1 = posledni)."""
+    spec = r.get("BYSETPOS")
+    if not spec:
+        return days
+    out = set()
+    for x in spec.split(","):
+        p = _int(x, 0)
+        if 0 < p <= len(days):
+            out.add(days[p - 1])
+        elif p < 0 and -p <= len(days):
+            out.add(days[p])
+    return sorted(out)
+
+
 def _month_days(year, month, r, start_day):
     """Dny v mesici podle BYMONTHDAY/BYDAY (jinak den mesice ze startu), serazene."""
     dim = days_in_month(year, month)
@@ -425,34 +505,43 @@ def _month_days(year, month, r, start_day):
                 days.add(v)
             elif v < 0 and -v <= dim:
                 days.add(dim + v + 1)
-    elif byday:
+    if byday:
+        weekdays = set()
         for nth, wd in byday:
             matches = [d for d in range(1, dim + 1) if dt.date(year, month, d).weekday() == wd]
             if nth is None:
-                days.update(matches)
+                weekdays.update(matches)
             elif 0 < nth <= len(matches):
-                days.add(matches[nth - 1])
+                weekdays.add(matches[nth - 1])
             elif nth < 0 and -nth <= len(matches):
-                days.add(matches[nth])
-    elif start_day.day <= dim:  # 31. v kratsim mesici se podle RFC preskakuje
+                weekdays.add(matches[nth])
+        # BYDAY omezuje uz vybrane BYMONTHDAY; nejde o dve alternativni pravidla.
+        days = days & weekdays if bymd else weekdays
+    elif not bymd and start_day.day <= dim:  # 31. v kratsim mesici se podle RFC preskakuje
         days.add(start_day.day)
     return [dt.date(year, month, d) for d in sorted(days)]
 
 
-def _rrule_days(freq, interval, r, start_day):
+def _rrule_days(freq, interval, r, start_day, until_day=None):
     """Generator kandidatnich dnu (vzestupne), konci nejpozdeji v roce 9999."""
     try:
-        yield from _rrule_days_raw(freq, interval, r, start_day)
+        yield from _rrule_days_raw(freq, interval, r, start_day, until_day)
     except (OverflowError, ValueError):
         return
 
 
-def _rrule_days_raw(freq, interval, r, start_day):
+def _rrule_days_raw(freq, interval, r, start_day, until_day=None):
     bymonth = {m for m in (_int(x, 0) for x in (r.get("BYMONTH") or "").split(",")) if 1 <= m <= 12}
     if freq == "DAILY":
         d = start_day
-        while True:
-            if not bymonth or d.month in bymonth:
+        filtered = bool(r.get("BYMONTHDAY") or r.get("BYDAY"))
+        month, allowed = None, set()
+        # I pravidlo bez jedineho vyhovujiciho dne musi skoncit na konci zobrazeneho obdobi.
+        while until_day is None or d < until_day:
+            if filtered and month != (d.year, d.month):
+                month = (d.year, d.month)
+                allowed = set(_month_days(d.year, d.month, r, start_day))
+            if (not bymonth or d.month in bymonth) and (not filtered or d in allowed) and _setpos([d], r):
                 yield d
             d += dt.timedelta(days=interval)
     elif freq == "WEEKLY":
@@ -461,26 +550,26 @@ def _rrule_days_raw(freq, interval, r, start_day):
         week = start_day - dt.timedelta(days=(start_day.weekday() - wkst) % 7)
         while True:
             days = sorted(week + dt.timedelta(days=(wd - wkst) % 7) for wd in wds)
-            for d in days:
-                if not bymonth or d.month in bymonth:
-                    yield d
+            yield from _setpos([d for d in days if not bymonth or d.month in bymonth], r)
             week += dt.timedelta(weeks=interval)
     elif freq == "MONTHLY":
         y, m = start_day.year, start_day.month
         while True:
             if not bymonth or m in bymonth:
-                yield from _month_days(y, m, r, start_day)
+                yield from _setpos(_month_days(y, m, r, start_day), r)
             y, m = add_months(y, m, interval)
             if y > 9999:
                 return
     else:  # YEARLY
         y = start_day.year
         while True:
+            year_days = []      # BYSETPOS vybira z mnoziny celeho roku
             if bymonth or r.get("BYDAY") or r.get("BYMONTHDAY"):
                 for m in sorted(bymonth or {start_day.month}):
-                    yield from _month_days(y, m, r, start_day)
+                    year_days.extend(_month_days(y, m, r, start_day))
             elif start_day.day <= days_in_month(y, start_day.month):  # 29. 2. jen v prestupnem roce
-                yield dt.date(y, start_day.month, start_day.day)
+                year_days.append(dt.date(y, start_day.month, start_day.day))
+            yield from _setpos(year_days, r)
             y += interval
             if y > 9999:
                 return
@@ -537,6 +626,8 @@ def _event_from_lines(lines):
             ev.extra.append(line)
             continue
         name, params, value = p
+        if name == "STATUS":
+            ev.status = value.strip().upper()     # radek zustava v extra (zapis beze zmen)
         if name not in KNOWN:
             ev.extra.append(line)
         elif name == "UID":
@@ -551,6 +642,9 @@ def _event_from_lines(lines):
             ev.color = value.strip().lower()
         elif name == "DTSTART":
             ev.start = parse_dt(value, params)
+            if (isinstance(ev.start, dt.datetime) and not value.strip().endswith("Z")
+                    and _zone(params.get("TZID")) is not None):
+                ev.tzid = params["TZID"]
         elif name == "DTEND":
             ev.end = parse_dt(value, params)
         elif name == "DURATION":
@@ -564,6 +658,16 @@ def _event_from_lines(lines):
             for v in value.split(","):
                 if v.strip():
                     ev.exdates.append(parse_dt(v, params))
+        elif name == "RDATE":
+            ev.rdate_lines.append(line)
+            for v in value.split(","):
+                v = v.split("/", 1)[0]          # PERIOD: plati zacatek
+                if not v.strip():
+                    continue
+                try:
+                    ev.rdates.append(parse_dt(v, params))
+                except ValueError:
+                    pass                        # chybna hodnota: radek se zachova, vyskyt ne
     if ev.start is None:
         raise ValueError("VEVENT without DTSTART")
     dur = getattr(ev, "_duration", None)
@@ -630,7 +734,10 @@ def parse(text):
 
 def read_file(path):
     with open(path, "rb") as f:
-        data = f.read()
+        return parse_bytes(f.read())
+
+
+def parse_bytes(data):
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
@@ -655,6 +762,10 @@ def default_dir():
     return os.path.join(base, "luxos", "calendar")
 
 
+class Conflict(KeyError):
+    """Udalost byla mezitim zmenena nebo smazana jinde (jiny proces zapsal events.ics)."""
+
+
 class Store:
     """Vlastni kalendar events.ics (cteni i zapis) + ostatni *.ics ve slozce (jen cteni)."""
 
@@ -669,7 +780,8 @@ class Store:
         self.version = 0        # zvysi se pri kazde zmene (invalidace cache v UI)
         self.tzname = local_tz_name()
         self._cache = {}
-        self._known = set()     # UID vlastnich udalosti pri poslednim nacteni ze souboru
+        self._own_raw = None    # obsah events.ics pri poslednim nacteni/zapisu (None = soubor neni)
+        self.before_replace = None  # testy: zapis jineho procesu tesne pred prejmenovanim
 
     def _scan(self):
         out = {}
@@ -694,48 +806,72 @@ class Store:
         self._stamp = stamp
         self.own = Calendar()
         self.foreign = {}
+        self._own_raw = None
         for name in stamp:
             path = os.path.join(self.dir, name)
             try:
-                cal = read_file(path)
+                with open(path, "rb") as f:
+                    raw = f.read()
             except OSError:
                 continue
+            cal = parse_bytes(raw)
             if name == self.OWN:
                 self.own = cal
+                self._own_raw = raw
             else:
                 for ev in cal.events:
                     ev.source = name
                     ev.readonly = True
                 self.foreign[name] = cal
-        self._known = {e.uid for e in self.own.events}
         self.version += 1
         self._cache = {}
         return True
 
-    def _merge_external(self):
-        """Zmenil-li events.ics nekdo jiny (LuxOS Companion, import) od posledniho nacteni, prevzit jeho
-        nove udalosti - zapis z pameti by je jinak smazal. Smazane zde (znamy UID) se nevraceji."""
+    def _disk_raw(self):
         try:
-            st = os.stat(self.own_path)
-        except OSError:
-            return
-        if self._stamp is not None and self._stamp.get(self.OWN) == (st.st_mtime_ns, st.st_size):
-            return
+            with open(self.own_path, "rb") as f:
+                return f.read()
+        except FileNotFoundError:
+            return None
+
+    def _commit(self, change):
+        """Zapise jednu zmenu. Zmenil-li events.ics nekdo jiny (LuxOS Companion, druha instance, import)
+        od posledniho nacteni, zmena se pouzije na cerstvy obsah souboru (podle UID a RECURRENCE-ID),
+        aby se neprepsaly cizi zmeny ani nevratily jinde smazane udalosti. Zmeni-li se soubor jeste
+        pred prejmenovanim, zapis se opakuje. change(cal) muze vyhodit Conflict."""
+        os.makedirs(self.dir, exist_ok=True)
         try:
-            cal = read_file(self.own_path)
-        except OSError:
-            return
-        present = {e.uid for e in self.own.events}
-        for ev in cal.events:
-            if ev.uid not in self._known and ev.uid not in present:
-                self.own.events.append(ev)
-                present.add(ev.uid)
+            with open(os.path.join(self.dir, ".events.ics.lock"), "a") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)    # stejny zamek jako LuxOS Companion
+                for _attempt in range(5):
+                    raw = self._disk_raw()
+                    if raw == self._own_raw:
+                        base = self.own
+                    else:
+                        base = parse_bytes(raw) if raw is not None else Calendar()
+                    change(base)
+                    tmp = f"{self.own_path}.tmp-{os.getpid()}"
+                    with open(tmp, "w", encoding="utf-8", newline="") as f:
+                        f.write(base.to_text(self.tzname))
+                        f.flush()
+                        os.fsync(f.fileno())
+                    if self.before_replace:
+                        self.before_replace()
+                    if self._disk_raw() != raw:
+                        os.unlink(tmp)              # jiny proces mezitim zapsal - znovu nad novym obsahem
+                        self._own_raw = object()    # pamet uz neodpovida souboru
+                        continue
+                    os.replace(tmp, self.own_path)
+                    break
+                else:
+                    raise OSError(0, "the calendar file keeps changing, try again")
+        finally:
+            self._stamp = None
+            self.reload_if_changed()
 
     def save(self):
-        self._merge_external()
-        write_file(self.own_path, self.own, self.tzname)
-        self._stamp = None
-        self.reload_if_changed()
+        """Zapise vlastni kalendar z pameti (bez slouceni; zmeny udalosti pres add/update/delete)."""
+        self._commit(lambda cal: None)
 
     def all_events(self):
         evs = list(self.own.events)
@@ -752,23 +888,36 @@ class Store:
         return None
 
     def add(self, ev):
-        self.own.events.append(ev)
-        self.save()
+        def change(cal):
+            if ev not in cal.events:
+                cal.events.append(ev)
+        self._commit(change)
 
     def update(self, ev):
-        found = False
-        for i, e in enumerate(self.own.events):
-            if e.uid == ev.uid and e.recurrence_id == ev.recurrence_id:
-                self.own.events[i] = ev     # po nacteni zmen ze souboru je v pameti nova kopie
-                found = True
-        if not found:
-            raise KeyError(ev.uid)
-        self.save()
+        """Ulozi zmenenou udalost. Byla-li mezitim jinde smazana -> Conflict (nevrati se)."""
+        def change(cal):
+            found = False
+            for i, e in enumerate(cal.events):
+                if e.uid == ev.uid and e.recurrence_id == ev.recurrence_id:
+                    cal.events[i] = ev
+                    found = True
+            if not found:
+                raise Conflict(ev.uid)
+        self._commit(change)
 
     def delete(self, ev):
-        # serie vcetne vyjimek (RECURRENCE-ID se stejnym UID)
-        self.own.events = [e for e in self.own.events if e.uid != ev.uid]
-        self.save()
+        """Smaze celou serii (vcetne vyjimek), nebo jen jeden presunuty vyskyt (RECURRENCE-ID): ten se
+        odstrani a do serie se prida EXDATE, serie zustane. Uz smazana udalost neni chyba."""
+        def change(cal):
+            if ev.recurrence_id is None:
+                cal.events = [e for e in cal.events if e.uid != ev.uid]
+                return
+            cal.events = [e for e in cal.events if not (e.uid == ev.uid and e.recurrence_id == ev.recurrence_id)]
+            for e in cal.events:
+                if e.uid == ev.uid and e.recurrence_id is None:
+                    e.add_exdate(ev.recurrence_id, self.tzname)
+        self._commit(change)
+
 
     def instances(self, start, end):
         """Vyskyty vsech udalosti v intervalu dnu <start, end): seznam (Event, zacatek, konec)
@@ -782,7 +931,7 @@ class Store:
                 overrides.setdefault((ev.source, ev.uid), set()).add(ev.recurrence_id)
         out = []
         for ev in self.all_events():
-            skip = overrides.get((ev.source, ev.uid), ()) if ev.recurrence_id is None and ev.rrule else ()
+            skip = overrides.get((ev.source, ev.uid), ()) if ev.recurrence_id is None and ev.is_recurring() else ()
             for s, e in ev.occurrences(start, end):
                 if s in skip:
                     continue

@@ -1,12 +1,16 @@
 # LuxOS Kalendar - minimalni, odolne cteni a zapis iCalendar (RFC 5545) a vyskyty udalosti.
 # Prepis luxos_calendar_ics.py do LSL se stejnym chovanim: VEVENT (SUMMARY, DTSTART/DTEND/DURATION,
-# RRULE DAILY/WEEKLY/MONTHLY/YEARLY s INTERVAL/COUNT/UNTIL/BYDAY/BYMONTHDAY/BYMONTH, EXDATE, RECURRENCE-ID,
-# COLOR, VALARM); nezname vlastnosti a komponenty se zachovavaji beze zmeny.
+# RRULE DAILY/WEEKLY/MONTHLY/YEARLY s INTERVAL/COUNT/UNTIL/BYDAY/BYMONTHDAY/BYMONTH/BYSETPOS, RDATE, EXDATE,
+# RECURRENCE-ID, STATUS (zrusene se nezobrazuji), COLOR, VALARM); nezname vlastnosti a komponenty se
+# zachovavaji beze zmeny. Opakovani udalosti s cizim TZID se rozvine v case toho pasma a teprve vyskyty
+# se prevedou na mistni cas.
 #
 # Udalost je Dictionary: uid, summary, all_day (Bool), start, end (Int: den jako ordinal, nebo naivni
 # mistni cas v sekundach; end muze byt None), color, description, location, rrule (Dictionary/None),
-# rrule_raw, exdates ([[kind, hodnota]], kind "D"/"T"), exdate_lines, recurrence_id ([kind, hodnota]/None),
-# extra (radky), alarms (seznam bloku radku), source (nazev souboru / None), readonly, duration_prop.
+# rrule_raw, exdates ([[kind, hodnota]], kind "D"/"T"), exdate_lines, rdates ([[kind, hodnota]]),
+# rdate_lines, recurrence_id ([kind, hodnota]/None), tzid (cizi TZID z DTSTART / None), status (/None,
+# radek zustava v extra), extra (radky), alarms (seznam bloku radku), source (nazev souboru / None),
+# readonly, duration_prop.
 # Kalendar: {header, events, other, errors}. Uloziste: viz store_new.
 load env
 load luxos_glib, glib as glib
@@ -19,7 +23,7 @@ DEFAULT_COLOR = "blue"
 WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
 MAX_INSTANCES = 50000
 PRODID = "-//LuxOS//Calendar 1.0//EN"
-KNOWN = ["UID", "SUMMARY", "DTSTART", "DTEND", "DURATION", "RRULE", "EXDATE", "COLOR", "RECURRENCE-ID", "DESCRIPTION", "LOCATION"]
+KNOWN = ["UID", "SUMMARY", "DTSTART", "DTEND", "DURATION", "RRULE", "EXDATE", "RDATE", "COLOR", "RECURRENCE-ID", "DESCRIPTION", "LOCATION"]
 CSS_NAMES = {"tomato": "red", "crimson": "red", "darkorange": "orange", "gold": "yellow", "limegreen": "green",
              "seagreen": "green", "dodgerblue": "blue", "royalblue": "blue", "navy": "blue", "violet": "purple",
              "magenta": "purple", "orchid": "purple"}
@@ -289,7 +293,51 @@ end
 function event_new(summary, all_day, start, finish, color):
     return {"uid": new_uid(), "summary": summary, "all_day": all_day, "start": start, "end": finish, "color": color,
             "description": "", "location": "", "rrule": None, "rrule_raw": None, "exdates": [], "exdate_lines": [],
-            "recurrence_id": None, "extra": [], "alarms": [], "source": None, "readonly": False, "duration_prop": None}
+            "recurrence_id": None, "extra": [], "alarms": [], "source": None, "readonly": False, "duration_prop": None,
+            "rdates": [], "rdate_lines": [], "tzid": None, "status": None}
+end
+
+# Cizi pasmo udalosti, ve kterem se rozviji opakovani, jinak None
+function zone_name(ev):
+    z = ev.get("tzid")
+    if ev["all_day"] or z == None or z == "" or z == date.local_tz_name() or not zone_known(z):
+        return None
+    end
+    return z
+end
+
+# [parametry, hodnota] pro zapis casu udalosti: cizi TZID zustava (prevod z mistniho casu zpet)
+function format_ev(ev, kind, value, tzname):
+    zone = zone_name(ev)
+    if zone != None and kind == "T":
+        return format_dt("T", date.zone_from_local(value, zone), zone)
+    end
+    return format_dt(kind, value, tzname)
+end
+
+# Opakuje se udalost (RRULE nebo RDATE)?
+function is_recurring(ev):
+    return ev["rrule"] != None or len(ev.get("rdates", [])) > 0
+end
+
+# Vynecha vyskyt (EXDATE) - smazani jednoho presunuteho vyskytu serie; kv = [kind, hodnota]
+function add_exdate(ev, kv, tzname):
+    value = kv[1]
+    kind = kind_of(ev)
+    if kind == "D" and kv[0] == "T":
+        value = date.date_of(value)
+    elif kind == "T" and kv[0] == "D":
+        value = value * date.DAY + (ev["start"] - date.date_of(ev["start"]) * date.DAY)
+    end
+    for ex in ev["exdates"]:
+        if ex[0] == kind and ex[1] == value:
+            return 0
+        end
+    end
+    ev["exdates"].append([kind, value])
+    pv = format_ev(ev, kind, value, tzname)
+    ev["exdate_lines"].append("EXDATE" + pv[0] + ":" + pv[1])
+    return 0
 end
 
 function kind_of(ev):
@@ -404,13 +452,13 @@ function to_lines(ev, tzname):
     kind = kind_of(ev)
     if ev["recurrence_id"] != None:
         rid = ev["recurrence_id"]
-        pv = format_dt(rid[0], rid[1], tzname)
+        pv = format_ev(ev, rid[0], rid[1], tzname)
         lines.append("RECURRENCE-ID" + pv[0] + ":" + pv[1])
     end
-    pv = format_dt(kind, ev["start"], tzname)
+    pv = format_ev(ev, kind, ev["start"], tzname)
     lines.append("DTSTART" + pv[0] + ":" + pv[1])
     if ev["end"] != None:
-        pv = format_dt(kind, ev["end"], tzname)
+        pv = format_ev(ev, kind, ev["end"], tzname)
         lines.append("DTEND" + pv[0] + ":" + pv[1])
     end
     lines.append("SUMMARY:" + escape(ev["summary"]))
@@ -427,6 +475,7 @@ function to_lines(ev, tzname):
         lines.append("RRULE:" + ev["rrule_raw"])
     end
     lines.extend(ev["exdate_lines"])
+    lines.extend(ev.get("rdate_lines", []))
     lines.extend(ev["extra"])
     for block in ev["alarms"]:
         lines.extend(block)
@@ -515,7 +564,10 @@ function month_days(year, month, r, start_day):
                 days.append(dim + v + 1)
             end
         end
-    elif len(rule_days) > 0:
+    end
+    if len(rule_days) > 0:
+        by_md = days
+        days = []
         for item in rule_days:
             nth = item[0]
             wd = item[1]
@@ -543,7 +595,17 @@ function month_days(year, month, r, start_day):
                 end
             end
         end
-    elif date.day_of(start_day) <= dim:
+        # BYDAY omezuje uz vybrane BYMONTHDAY; nejde o dve alternativni pravidla
+        if len(bymd) > 0:
+            both = []
+            for d in days:
+                if d in by_md:
+                    both.append(d)
+                end
+            end
+            days = both
+        end
+    elif len(bymd) == 0 and date.day_of(start_day) <= dim:
         days.append(date.day_of(start_day))
     end
     out = []
@@ -553,8 +615,79 @@ function month_days(year, month, r, start_day):
     return out
 end
 
-# Zacatky vyskytu (vzestupne) do dne until_day (bez nej), v domene udalosti
-function starts(ev, until_day):
+# BYSETPOS: vyber ze serazene mnoziny dnu jednoho obdobi (1 = prvni, -1 = posledni)
+function setpos(days, r):
+    spec = r.get("BYSETPOS")
+    if spec == None or spec == "":
+        return days
+    end
+    n = len(days)
+    picked = []
+    for x in spec.split(","):
+        p = text.to_int(x, 0)
+        if p > 0 and p <= n and days[p - 1] not in picked:
+            picked.append(days[p - 1])
+        elif p < 0 and 0 - p <= n and days[n + p] not in picked:
+            picked.append(days[n + p])
+        end
+    end
+    return sorted(picked)
+end
+
+# Zacatky vyskytu (vzestupne, mistni cas) do dne until_day (bez nej), v domene udalosti: DTSTART, RRULE
+# a RDATE bez EXDATE (EXDATE plati i bez RRULE)
+function starts(ev, until_day, from_day):
+    found = {}
+    for s in rule_starts(ev, until_day, from_day):
+        found[s] = True
+    end
+    for kv in ev.get("rdates", []):
+        found[rdate_value(ev, kv)] = True
+    end
+    out = []
+    for s in sorted(found.keys()):
+        day = s
+        if not ev["all_day"]:
+            day = date.date_of(s)
+        end
+        if day >= until_day:
+            break
+        end
+        if not excluded(ev, s, day):
+            out.append(s)
+        end
+    end
+    return out
+end
+
+# Hodnota RDATE v domene udalosti (datum u udalosti s casem dostane cas zacatku)
+function rdate_value(ev, kv):
+    if ev["all_day"]:
+        if kv[0] == "T":
+            return date.date_of(kv[1])
+        end
+        return kv[1]
+    end
+    if kv[0] == "D":
+        return kv[1] * date.DAY + (ev["start"] - date.date_of(ev["start"]) * date.DAY)
+    end
+    return kv[1]
+end
+
+function excluded(ev, s, day):
+    for ex in ev["exdates"]:
+        if ex[0] == "D" and ex[1] == day:
+            return True
+        end
+        if ex[0] == "T" and not ev["all_day"] and ex[1] == s:
+            return True
+        end
+    end
+    return False
+end
+
+# Zacatky z DTSTART a RRULE (vzestupne) do dne until_day (bez nej)
+function rule_starts(ev, until_day, from_day):
     r = ev["rrule"]
     if r == None:
         return [ev["start"]]
@@ -572,14 +705,19 @@ function starts(ev, until_day):
         end
     end
     all_day = ev["all_day"]
+    # cizi pasmo: opakovani v jeho mistnim case (letni cas tam), vyskyty se pak prevedou na mistni cas
+    zone = zone_name(ev)
     start = ev["start"]
+    if zone != None:
+        start = date.zone_from_local(start, zone)
+    end
     start_day = start
     tod = 0
     if not all_day:
         start_day = date.date_of(start)
         tod = start - start_day * date.DAY
     end
-    # mez UNTIL v domene udalosti
+    # mez UNTIL v domene udalosti (mistni cas)
     until_value = None
     if until != None:
         if until[0] == "T" and all_day:
@@ -590,21 +728,41 @@ function starts(ev, until_day):
             until_value = until[1]
         end
     end
+    # dny v pasmu udalosti se od mistnich lisi nejvys o den
+    gen_until = until_day
+    if zone != None:
+        gen_until = until_day + 2
+    end
     state = {"out": [], "n": 0, "produced": 0, "done": False, "count": count, "until": until_value,
-             "limit": until_day, "all_day": all_day, "tod": tod, "start_day": start_day, "excluded": ev["exdates"]}
+             "limit": until_day, "all_day": all_day, "tod": tod, "start_day": start_day, "zone": zone,
+             "start": ev["start"], "skip_before": None, "until_wall": None}
+    if zone != None:
+        # vyskyty, ktere konci davno pred zobrazenym obdobim, se nepreskladaji do mistniho casu
+        # (prevod pres TZ je drahy); den v pasmu udalosti se od mistniho lisi nejvys o den
+        state["skip_before"] = from_day - 1
+        if until_value != None:
+            state["until_wall"] = date.zone_from_local(until_value, zone)
+        end
+    end
     # DTSTART je vzdy prvni vyskyt (RFC 5545), i kdyz pravidlu neodpovida
     call emit_day(state, start_day)
     bymonth = bymonth_set(r)
     if freq == "DAILY":
+        filtered = (r.get("BYMONTHDAY") != None and r.get("BYMONTHDAY") != "") or (r.get("BYDAY") != None and r.get("BYDAY") != "")
+        month_key = -1
+        allowed = []
         d = start_day
-        while not state["done"]:
-            if len(bymonth) == 0 or date.month_of(d) in bymonth:
+        # i pravidlo bez jedineho vyhovujiciho dne musi skoncit na konci zobrazeneho obdobi
+        while not state["done"] and d < gen_until:
+            ymd = date.from_ordinal(d)
+            if filtered and month_key != ymd[0] * 12 + ymd[1]:
+                month_key = ymd[0] * 12 + ymd[1]
+                allowed = month_days(ymd[0], ymd[1], r, start_day)
+            end
+            if (len(bymonth) == 0 or ymd[1] in bymonth) and (not filtered or d in allowed) and len(setpos([d], r)) > 0:
                 call candidate(state, d)
             end
             d += interval
-            if d >= until_day and d > start_day:
-                break
-            end
         end
     elif freq == "WEEKLY":
         wds = []
@@ -627,13 +785,17 @@ function starts(ev, until_day):
             for wd in wds:
                 days.append(week + (wd - wkst) % 7)
             end
+            chosen = []
             for d in sorted(days):
                 if len(bymonth) == 0 or date.month_of(d) in bymonth:
-                    call candidate(state, d)
+                    chosen.append(d)
                 end
             end
+            for d in setpos(chosen, r):
+                call candidate(state, d)
+            end
             week += 7 * interval
-            if week >= until_day:
+            if week >= gen_until:
                 break
             end
         end
@@ -643,14 +805,14 @@ function starts(ev, until_day):
         m = ym[1]
         while not state["done"]:
             if len(bymonth) == 0 or m in bymonth:
-                for d in month_days(y, m, r, start_day):
+                for d in setpos(month_days(y, m, r, start_day), r):
                     call candidate(state, d)
                 end
             end
             ym = date.add_months(y, m, interval)
             y = ym[0]
             m = ym[1]
-            if y > 9999 or date.ordinal(y, m, 1) >= until_day:
+            if y > 9999 or date.ordinal(y, m, 1) >= gen_until:
                 break
             end
         end
@@ -661,21 +823,24 @@ function starts(ev, until_day):
         start_dom = ym[2]
         explicit = len(bymonth) > 0 or r.get("BYDAY") != None or r.get("BYMONTHDAY") != None
         while not state["done"]:
+            # BYSETPOS vybira z mnoziny celeho roku
+            year_days = []
             if explicit:
                 months = bymonth
                 if len(months) == 0:
                     months = [start_month]
                 end
                 for m in sorted(months):
-                    for d in month_days(y, m, r, start_day):
-                        call candidate(state, d)
-                    end
+                    year_days.extend(month_days(y, m, r, start_day))
                 end
             elif start_dom <= date.days_in_month(y, start_month):
-                call candidate(state, date.ordinal(y, start_month, start_dom))
+                year_days.append(date.ordinal(y, start_month, start_dom))
+            end
+            for d in setpos(year_days, r):
+                call candidate(state, d)
             end
             y += interval
-            if y > 9999 or date.ordinal(y, 1, 1) >= until_day:
+            if y > 9999 or date.ordinal(y, 1, 1) >= gen_until:
                 break
             end
         end
@@ -701,8 +866,29 @@ function emit_day(state, day):
         return 0
     end
     s = day
+    local_day = day
+    if state["skip_before"] != None and day < state["skip_before"] and day != state["start_day"]:
+        # jen pro COUNT a UNTIL (v case pasma udalosti); do vysledku se nedostane
+        if state["until_wall"] != None and day * date.DAY + state["tod"] > state["until_wall"]:
+            state["done"] = True
+            return 0
+        end
+        state["produced"] += 1
+        if state["count"] != None and state["produced"] > state["count"]:
+            state["done"] = True
+        end
+        return 0
+    end
     if not state["all_day"]:
         s = day * date.DAY + state["tod"]
+        if state["zone"] != None:
+            if day == state["start_day"]:
+                s = state["start"]
+            else:
+                s = date.local_from_zone(s, state["zone"])
+            end
+        end
+        local_day = date.date_of(s)
     end
     if state["until"] != None and s > state["until"]:
         state["done"] = True
@@ -713,17 +899,9 @@ function emit_day(state, day):
         state["done"] = True
         return 0
     end
-    if day >= state["limit"]:
+    if local_day >= state["limit"]:
         state["done"] = True
         return 0
-    end
-    for ex in state["excluded"]:
-        if ex[0] == "D" and ex[1] == day:
-            return 0
-        end
-        if ex[0] == "T" and not state["all_day"] and ex[1] == s:
-            return 0
-        end
     end
     state["out"].append(s)
     return 0
@@ -731,6 +909,10 @@ end
 
 # Vyskyty [[zacatek, konec]] protinajici interval dnu <range_start, range_end), v domene udalosti
 function occurrences(ev, range_start, range_end):
+    if ev.get("status") == "CANCELLED":
+        # zrusena udalost (nebo zruseny vyskyt serie) se nezobrazuje
+        return []
+    end
     dur = duration(ev)
     rs = range_start
     re_ = range_end
@@ -739,7 +921,7 @@ function occurrences(ev, range_start, range_end):
         re_ = range_end * date.DAY
     end
     out = []
-    for s in starts(ev, range_end):
+    for s in starts(ev, range_end, range_start - dur // date.DAY - 2):
         e = s + dur
         if s >= re_:
             break
@@ -815,6 +997,10 @@ function event_from_lines(lines):
         name = p[0]
         params = p[1]
         value = p[2]
+        if name == "STATUS":
+            # radek zustava v extra (zapis beze zmen)
+            ev["status"] = value.strip().upper()
+        end
         if name not in KNOWN:
             ev["extra"].append(line)
         elif name == "UID":
@@ -832,6 +1018,10 @@ function event_from_lines(lines):
             ev["all_day"] = kv[0] == "D"
             ev["start"] = kv[1]
             ev["start_kind"] = kv[0]
+            zone = params.get("TZID", "")
+            if kv[0] == "T" and not value.strip().endswith("Z") and zone_known(zone):
+                ev["tzid"] = zone
+            end
         elif name == "DTEND":
             kv = parse_dt(value, params)
             ev["end"] = kv[1]
@@ -847,6 +1037,18 @@ function event_from_lines(lines):
             for v in value.split(","):
                 if v.strip() != "":
                     ev["exdates"].append(parse_dt(v, params))
+                end
+            end
+        elif name == "RDATE":
+            ev["rdate_lines"].append(line)
+            for raw in value.split(","):
+                # PERIOD: plati zacatek
+                v = text.partition(raw, "/")[0]
+                if v.strip() != "":
+                    # chybna hodnota: radek se zachova, vyskyt ne
+                    safe:
+                        ev["rdates"].append(parse_dt(v, params))
+                    end
                 end
             end
         end
@@ -996,8 +1198,9 @@ function store_new(directory):
     if dir == "" or dir == None:
         dir = default_dir()
     end
-    return {"dir": dir, "own_path": dir + "/" + OWN, "own": calendar_new(), "foreign": {}, "stamp": None, "known": {},
-            "version": 0, "tzname": date.local_tz_name(), "cache": {}}
+    # own_raw: obsah events.ics pri poslednim nacteni (None = soubor neni); own_dirty: pamet neodpovida souboru
+    return {"dir": dir, "own_path": dir + "/" + OWN, "own": calendar_new(), "foreign": {}, "stamp": None,
+            "own_raw": None, "own_dirty": False, "version": 0, "tzname": date.local_tz_name(), "cache": {}}
 end
 
 function scan(store):
@@ -1021,12 +1224,16 @@ function reload_if_changed(store):
     end
     store["stamp"] = stamp
     store["own"] = calendar_new()
+    store["own_raw"] = None
+    store["own_dirty"] = False
     store["foreign"] = {}
     for name in sorted(stamp.keys()):
         cal = None
+        raw = ""
         ok = True
         try:
-            cal = read_file(store["dir"] + "/" + name)
+            raw = readfile(store["dir"] + "/" + name)
+            cal = parse(raw)
         else:
             ok = False
         end
@@ -1035,6 +1242,7 @@ function reload_if_changed(store):
         end
         if name == OWN:
             store["own"] = cal
+            store["own_raw"] = raw
         else:
             for ev in cal["events"]:
                 ev["source"] = name
@@ -1043,63 +1251,130 @@ function reload_if_changed(store):
             store["foreign"][name] = cal
         end
     end
-    call remember_known(store)
     store["version"] += 1
     store["cache"] = {}
     return True
 end
 
-# UID udalosti vlastniho kalendare podle posledniho nacteni ze souboru
-function remember_known(store):
-    known = {}
-    for ev in store["own"]["events"]:
-        known[ev["uid"]] = True
+# Aktualni obsah events.ics, None kdyz soubor neni
+function disk_raw(store):
+    if not exists(store["own_path"]):
+        return None
     end
-    store["known"] = known
-    return 0
+    raw = None
+    safe:
+        raw = readfile(store["own_path"])
+    end
+    return raw
 end
 
-# Pred zapisem: zmenil-li soubor nekdo jiny (LuxOS Companion z telefonu, import) a Kalendar to jeste
-# nenacetl, prevzit jeho nove udalosti - jinak by je zapis z pameti smazal. Udalosti smazane zde
-# (byly pri poslednim nacteni) se nevraceji.
-function merge_external(store):
-    st = glib.stat(store["own_path"])
-    if len(st) != 2:
-        return 0
-    end
-    disk = String(st[1]) + ":" + String(st[0])
-    if store["stamp"] != None and store["stamp"].get(OWN) == disk:
-        return 0
-    end
-    cal = None
-    ok = True
-    try:
-        cal = read_file(store["own_path"])
-    else:
-        ok = False
-    end
-    if not ok:
-        return 0
-    end
-    present = {}
-    for ev in store["own"]["events"]:
-        present[ev["uid"]] = True
-    end
-    for ev in cal["events"]:
-        if store["known"].get(ev["uid"]) == None and present.get(ev["uid"]) == None:
-            store["own"]["events"].append(ev)
-            present[ev["uid"]] = True
+function same_occurrence(a, b):
+    return a["uid"] == b["uid"] and a["recurrence_id"] == b["recurrence_id"]
+end
+
+# Pouzije jednu zmenu na kalendar; False = konflikt (upravovana udalost uz v souboru neni)
+function apply_change(cal, op, ev, tzname):
+    events = cal["events"]
+    if op == "add" or op == "update":
+        found = False
+        index = 0
+        while index < len(events):
+            if same_occurrence(events[index], ev):
+                # po nacteni zmen ze souboru je v pameti nova kopie udalosti - ulozit upravenou
+                events[index] = ev
+                found = True
+            end
+            index += 1
+        end
+        if not found:
+            if op == "update":
+                return False
+            end
+            events.append(ev)
+        end
+    elif op == "delete":
+        kept = []
+        for e in events:
+            if ev["recurrence_id"] == None:
+                # serie vcetne vyjimek (RECURRENCE-ID se stejnym UID)
+                if e["uid"] != ev["uid"]:
+                    kept.append(e)
+                end
+            elif not same_occurrence(e, ev):
+                kept.append(e)
+            end
+        end
+        cal["events"] = kept
+        if ev["recurrence_id"] != None:
+            # jen jeden presunuty vyskyt: serie zustava, vyskyt se v ni vynecha
+            for e in kept:
+                if e["uid"] == ev["uid"] and e["recurrence_id"] == None:
+                    call add_exdate(e, ev["recurrence_id"], tzname)
+                end
+            end
         end
     end
+    return True
+end
+
+# Zapise jednu zmenu (op = add/update/delete/save). Zmenil-li events.ics nekdo jiny (LuxOS Companion
+# z telefonu, druha instance, import) od posledniho nacteni, zmena se pouzije na cerstvy obsah souboru
+# (podle UID a RECURRENCE-ID), aby se neprepsaly cizi zmeny ani nevratily jinde smazane udalosti.
+# Zmeni-li se soubor jeste pred prejmenovanim, zapis se opakuje. Upravovana udalost jinde smazana ->
+# CalendarConflict (viz is_conflict).
+function commit(store, op, ev):
+    path = store["own_path"]
+    cut = text.rfind(path, "/")
+    if cut > 0:
+        call glib.mkdir_p(path[0:cut])
+    end
+    attempt = 0
+    written = False
+    conflict = False
+    while attempt < 5 and not written:
+        attempt += 1
+        raw = disk_raw(store)
+        base = store["own"]
+        if store["own_dirty"] or raw != store["own_raw"]:
+            base = calendar_new()
+            if raw != None:
+                base = parse(raw)
+            end
+        end
+        if not apply_change(base, op, ev, store["tzname"]):
+            conflict = True
+            break
+        end
+        tmp = path + ".tmp-" + String(glib.getpid())
+        call writefile(tmp, to_text(base, store["tzname"]))
+        if disk_raw(store) != raw:
+            # jiny proces mezitim zapsal - znovu nad novym obsahem
+            call glib.unlink(tmp)
+            store["own_dirty"] = True
+            continue
+        end
+        call glib.rename(tmp, path)
+        written = True
+    end
+    store["stamp"] = None
+    call reload_if_changed(store)
+    if conflict:
+        Error(CalendarConflict: changed_elsewhere)
+    end
+    if not written:
+        Error(FileError: calendar_keeps_changing)
+    end
     return 0
 end
 
+# Je text chyby (last_error) konflikt se zmenou jinde?
+function is_conflict(message):
+    return message != None and String(message).find("CalendarConflict") >= 0
+end
+
+# Zapise vlastni kalendar z pameti (zmeny udalosti pres add/update/delete)
 function save(store):
-    call merge_external(store)
-    call write_file(store["own_path"], store["own"], store["tzname"])
-    store["stamp"] = None
-    call reload_if_changed(store)
-    return 0
+    return commit(store, "save", None)
 end
 
 function all_events(store):
@@ -1130,48 +1405,18 @@ function find(store, uid, source):
 end
 
 function add(store, ev):
-    store["own"]["events"].append(ev)
-    return save(store)
+    return commit(store, "add", ev)
 end
 
+# Ulozi zmenenou udalost; byla-li mezitim jinde smazana -> CalendarConflict (nevrati se)
 function update(store, ev):
-    found = False
-    events = store["own"]["events"]
-    index = 0
-    while index < len(events):
-        e = events[index]
-        if e["uid"] == ev["uid"] and e["recurrence_id"] == ev["recurrence_id"]:
-            found = True
-            # po nacteni zmen ze souboru (inotify) je v pameti nova kopie udalosti - ulozit upravenou
-            events[index] = ev
-        end
-        index += 1
-    end
-    if not found:
-        Error(KeyError: event_not_in_own_calendar)
-    end
-    return save(store)
+    return commit(store, "update", ev)
 end
 
-# Smaze udalost; upraveny vyskyt opakovane udalosti (RECURRENCE-ID) smaze jen ten vyskyt (EXDATE
-# v hlavni udalosti), ne celou serii
+# Smaze celou serii, nebo jen jeden presunuty vyskyt (RECURRENCE-ID): ten zmizi a do serie se prida
+# EXDATE. Uz smazana udalost neni chyba.
 function delete(store, ev):
-    kept = []
-    rid = ev["recurrence_id"]
-    for e in store["own"]["events"]:
-        if e["uid"] != ev["uid"]:
-            kept.append(e)
-        elif rid != None and e["recurrence_id"] != rid:
-            if e["recurrence_id"] == None:
-                e["exdates"].append(rid)
-                pv = format_dt(rid[0], rid[1], store["tzname"])
-                e["exdate_lines"].append("EXDATE" + pv[0] + ":" + pv[1])
-            end
-            kept.append(e)
-        end
-    end
-    store["own"]["events"] = kept
-    return save(store)
+    return commit(store, "delete", ev)
 end
 
 # Odstrani udalost z vlastniho kalendare bez ulozeni (zruseni po chybe zapisu)
@@ -1217,7 +1462,7 @@ function instances(store, start, finish):
     buckets = {}
     for ev in events:
         skip = []
-        if ev["recurrence_id"] == None and ev["rrule"] != None:
+        if ev["recurrence_id"] == None and is_recurring(ev):
             skip = overrides.get(String(ev["source"]) + "|" + ev["uid"], [])
         end
         kind = kind_of(ev)
