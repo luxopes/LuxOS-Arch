@@ -505,6 +505,15 @@ class BackupWindow(Gtk.Window):
         self.sub.set_text("")
 
         def done(disk, err):
+            if isinstance(err, core.ExistingBackups) and what[0] == "net":
+                # Obraz na sitovem disku uz ma zalohy: smazat jen po vyslovnem potvrzeni
+                if confirm(self, _("Erase backups on %s?") % what[1],
+                           str(err) + " " + _("Erasing deletes all backups of this computer on the network disk. "
+                                              "This cannot be undone."), _("Erase and Use"), danger=True):
+                    in_thread(lambda: core.add_smb_disk(core.load_config(), what[1], what[2] or None,
+                                                        encrypt_pw=pw, erase=True), done)
+                    return
+                err = None
             if err:
                 message(self, _("The disk could not be used"), str(err), Gtk.MessageType.ERROR)
             self.cfg = core.load_config()

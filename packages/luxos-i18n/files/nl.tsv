@@ -2834,6 +2834,13 @@ Back up again	Maak opnieuw een back-up
 Backing up…	Back-up maken…
 You can keep working, or close this window.	Je kunt doorwerken of dit venster sluiten.
 Backups already on the disk are kept.	Back-ups die al op de schijf staan, blijven bewaard.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	De netwerkschijf bevat al onversleutelde back-ups van deze computer. Zet Versleutel back-ups uit om ze te blijven gebruiken.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	De back-ups van deze computer op de netwerkschijf zijn versleuteld. Zet Versleutel back-ups aan en voer hun wachtwoord in om ze te blijven gebruiken.
+Wrong password for the encrypted backups on the network disk.	Onjuist wachtwoord voor de versleutelde back-ups op de netwerkschijf.
+The backup image on the network disk contains other data.	De back-upkopie op de netwerkschijf bevat andere gegevens.
+The backup image is in use. Try again later.	De back-upkopie is in gebruik. Probeer het later opnieuw.
+Erase backups on %s?	Back-ups op %s wissen?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Wissen verwijdert alle back-ups van deze computer op de netwerkschijf. Dit kan niet ongedaan worden gemaakt.
 Stop Using	Stop met gebruiken
 Exclude Folder	Sluit map uit
 Modified	Gewijzigd

@@ -2834,6 +2834,13 @@ Back up again	Säkerhetskopiera igen
 Backing up…	Säkerhetskopierar…
 You can keep working, or close this window.	Du kan fortsätta arbeta eller stänga det här fönstret.
 Backups already on the disk are kept.	Säkerhetskopior som redan finns på disken behålls.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	Nätverksdisken har redan okrypterade säkerhetskopior av den här datorn. Stäng av Kryptera säkerhetskopior för att fortsätta använda dem.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Säkerhetskopiorna av den här datorn på nätverksdisken är krypterade. Slå på Kryptera säkerhetskopior och ange deras lösenord för att fortsätta använda dem.
+Wrong password for the encrypted backups on the network disk.	Fel lösenord för de krypterade säkerhetskopiorna på nätverksdisken.
+The backup image on the network disk contains other data.	Säkerhetskopieavbilden på nätverksdisken innehåller andra data.
+The backup image is in use. Try again later.	Säkerhetskopieavbilden används just nu. Försök igen senare.
+Erase backups on %s?	Radera säkerhetskopior på %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Radering tar bort alla säkerhetskopior av den här datorn på nätverksdisken. Det går inte att ångra.
 Stop Using	Sluta använda
 Exclude Folder	Undanta mapp
 Modified	Ändrad

@@ -378,11 +378,27 @@ def changed_settings(old):
             dirs.sort()
             for n in sorted(names):
                 rel = os.path.relpath(os.path.join(d, n), old)
-                if rel in owned or _carried(rel) or rel.startswith(GENERATED) \
+                if rel in owned or _carried(rel) or (rel.startswith(GENERATED) and not custom_unit(old, rel)) \
                         or rel.endswith((".luxnew", ".luxsave", ".pacnew", ".pacsave", "~")):
                     continue
                 out.add("/" + rel)
     return sorted(out)
+
+
+# Masky, ktere LuxOS vytvari sam (luxos-tweaks: tmp.mount pri malo RAM) - novy system je zalozi znovu
+OWN_MASKS = ("etc/systemd/system/tmp.mount",)
+
+
+def custom_unit(old, rel):
+    """Vlastni jednotka spravce v /etc/systemd/system (soubor jednotky, doplnek *.d/*.conf nebo maska
+    -> /dev/null). Preinstalace prenese jen odkazy zapnutych sluzeb (carry_services), tyto ne -
+    patri do seznamu ztrat. Ostatni odkazy (*.wants, aliasy) vytvari systemctl enable."""
+    if not rel.startswith("etc/systemd/system/"):
+        return False
+    p = os.path.join(old, rel)
+    if os.path.islink(p):
+        return os.readlink(p) == "/dev/null" and rel not in OWN_MASKS
+    return os.path.isfile(p)
 
 
 def extra_places(old):

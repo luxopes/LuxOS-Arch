@@ -155,6 +155,22 @@ class Recovery(Env):
         self.assertEqual(sorted(os.walk(self.top)), before)
         self.assertFalse(any("-Sy" in c for c in self.cmds))
 
+    def test_reinstall_plan_lists_custom_units(self):
+        """Vlastni jednotky, doplnky a masky v /etc/systemd/system se neprenaseji -> seznam ztrat
+        (ne tise); odkazy zapnutych sluzeb a maska tmp.mount od LuxOS ne."""
+        self.sysfile("/etc/systemd/system/myapp.service", "[Service]\nExecStart=/opt/myapp/run\n")
+        self.sysfile("/etc/systemd/system/sshd.service.d/override.conf", "[Service]\nNice=5\n")
+        os.symlink("/etc/systemd/system/myapp.service",
+                   os.path.join(self.old, "etc/systemd/system/multi-user.target.wants/myapp.service"))
+        os.symlink("/dev/null", os.path.join(self.old, "etc/systemd/system/bluetooth.service"))
+        os.symlink("/dev/null", os.path.join(self.old, "etc/systemd/system/tmp.mount"))
+        plan = rec.reinstall_plan(self.top)
+        self.assertEqual(plan["settings"], ["/etc/broken-by-user.conf", "/etc/makepkg.conf",
+                                            "/etc/sysctl.d/99-mine.conf",
+                                            "/etc/systemd/system/bluetooth.service",
+                                            "/etc/systemd/system/myapp.service",
+                                            "/etc/systemd/system/sshd.service.d/override.conf"])
+
     def test_reinstall_keeps_flatpak_apps(self):
         self.sysfile("/var/lib/flatpak/app/org.gimp.GIMP/current", "gimp")
         rec.reinstall(self.top, out=lambda *a: None, now=self.at(45))

@@ -404,12 +404,18 @@ class IconLoader:
 ICONS = IconLoader()
 
 
-def run(*cmd, timeout=60):
+def run_rc(*cmd, timeout=60):
+    """(navratovy kod, stdout); -1 = nespustitelne nebo vyprsel cas. Neplatne UTF-8 ve vystupu
+    (skriptlet balicku, server) se nahradi - jinak by vyjimka ukoncila vlakno."""
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        return r.stdout
+        r = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=timeout)
+        return r.returncode, r.stdout
     except (OSError, subprocess.TimeoutExpired):
-        return ""
+        return -1, ""
+
+
+def run(*cmd, timeout=60):
+    return run_rc(*cmd, timeout=timeout)[1]
 
 
 def description_text(component):
@@ -463,13 +469,58 @@ def fetch_screenshot(url):
         return path
     os.makedirs(SCREEN_CACHE, exist_ok=True)
     tmp = path + ".part"
-    run("curl", "-fsSL", "--max-time", "15", "--max-filesize", "8000000", "-o", tmp, url, timeout=18)
-    if os.path.exists(tmp) and os.path.getsize(tmp):
+    # jen uplne stazeny soubor (curl 0): useknuty po --max-time by v mezipameti zustal navzdy
+    rc, _out = run_rc("curl", "-fsSL", "--max-time", "15", "--max-filesize", "8000000", "-o", tmp, url, timeout=18)
+    if rc == 0 and os.path.exists(tmp) and os.path.getsize(tmp):
         os.replace(tmp, path)
         return path
     if os.path.exists(tmp):
         os.unlink(tmp)
     return None
+
+
+def follow(proc, on_line, error):
+    """Cte vystup operace az do konce a pocka na ni -> (kod, chyba). Chyba pri zpracovani radku
+    nesmi ukoncit cteni: operace (lux drzi zamek databaze balicku) by se zasekla na plne roure
+    a okno by ukazovalo prubeh navzdy."""
+    failed = None
+    try:
+        for line in proc.stdout:
+            try:
+                on_line(line)
+            except Exception as e:  # noqa: BLE001 - radek se preskoci, cteni pokracuje
+                failed = failed or e
+    except (OSError, ValueError) as e:
+        failed = failed or e
+        # text dal cist nejde: zbytek vystupu precist bez dekodovani, operace dobehne
+        # (zavrena roura by ji ukoncila uprostred transakce)
+        try:
+            while proc.stdout.buffer.read(65536):
+                pass
+        except (OSError, ValueError, AttributeError):
+            proc.stdout.close()
+    rc = proc.wait()
+    close = getattr(proc.stdout, "close", None)
+    if close:
+        close()
+    err = error()
+    if failed is not None and not err:
+        err = str(failed)
+    return rc, err
+
+
+def curl_complete(out):
+    """Vystup curl -w "%{exitcode} %{size_download} %{filename_effective}" -> soubory stazene cele."""
+    done = set()
+    for ln in (out or "").splitlines():
+        parts = ln.split(" ", 2)
+        if len(parts) == 3 and parts[0] == "0" and parts[1].isdigit():
+            try:
+                if os.path.getsize(parts[2]) == int(parts[1]):
+                    done.add(parts[2])
+            except OSError:
+                pass
+    return done
 
 
 def prefers_dark():
@@ -781,13 +832,18 @@ class Catalog:
         for path, (url, _keys) in todo.items():
             if not (os.path.exists(path) and os.path.getsize(path)):
                 args += ["-o", path + ".part", url]
+        complete = set()
         if args:
-            run("curl", "-fsSL", "--parallel", "--parallel-max", "8", "--connect-timeout", "5", "--max-time", "10",
-                *args, timeout=20)
+            # kod a velikost kazdeho prenosu zvlast: do mezipameti jen uplne stazene (useknuta ikona
+            # po --max-time by zustala navzdy)
+            _rc, out = run_rc("curl", "-fsSL", "--parallel", "--parallel-max", "8", "--connect-timeout", "5",
+                              "--max-time", "10", "-w", "%{exitcode} %{size_download} %{filename_effective}\n",
+                              *args, timeout=20)
+            complete = curl_complete(out)
         changed = set()
         for path, (_url, keys) in todo.items():
             part = path + ".part"
-            if os.path.exists(part) and os.path.getsize(part):
+            if part in complete and os.path.exists(part) and os.path.getsize(part):
                 os.replace(part, path)
             elif os.path.exists(part):
                 os.unlink(part)
@@ -892,7 +948,7 @@ class Catalog:
         2 = nejsou, jinak chyba/sit)."""
         try:
             r = subprocess.run([LUX_ALPM, "--color=never", "check-updates"], capture_output=True, text=True,
-                               timeout=180, env=ENGINE_ENV)
+                               errors="replace", timeout=180, env=ENGINE_ENV)
         except (OSError, subprocess.TimeoutExpired):
             self.update_error = None
             return False
@@ -2253,16 +2309,17 @@ class Store(Gtk.Window):
         def work():
             try:
                 p = subprocess.Popen(["lux", "-y", action, app.pkg], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                     stdin=subprocess.DEVNULL, text=True, bufsize=1,
+                                     stdin=subprocess.DEVNULL, text=True, errors="replace", bufsize=1,
                                      env=dict(ENGINE_ENV, NO_COLOR="1", LUX_COLOR="never"))
             except OSError as e:
                 GLib.idle_add(done, 1, str(e))
                 return
-            for line in p.stdout:
+
+            def line_cb(line):
                 line = line.strip()
                 if line:
                     state["last"] = line.lstrip("✗!✦✓ ").strip()
-            GLib.idle_add(done, p.wait(), state["last"])
+            GLib.idle_add(done, *follow(p, line_cb, lambda: state["last"]))
 
         def done(rc, last):
             state["running"] = False
@@ -2413,13 +2470,11 @@ class Store(Gtk.Window):
         def work():
             try:
                 p = subprocess.Popen(["pkexec", HELPER, action, *pkgs], stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT, text=True, bufsize=1)
+                                     stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1)
             except OSError as e:
                 GLib.idle_add(done, 1, str(e))
                 return
-            for line in p.stdout:
-                parse(line.strip())
-            GLib.idle_add(done, p.wait(), prog["err"])
+            GLib.idle_add(done, *follow(p, lambda line: parse(line.strip()), lambda: prog["err"]))
 
         def done(rc, err):
             if view:

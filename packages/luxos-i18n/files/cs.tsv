@@ -2927,6 +2927,13 @@ Back up again	Zálohovat znovu
 Backing up…	Zálohuji…
 You can keep working, or close this window.	Můžete dál pracovat, nebo toto okno zavřít.
 Backups already on the disk are kept.	Zálohy, které už jsou na disku, zůstanou zachovány.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	Síťový disk už obsahuje nešifrované zálohy tohoto počítače. Chcete-li je dál používat, vypněte Šifrovat zálohy.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Zálohy tohoto počítače na síťovém disku jsou šifrované. Chcete-li je dál používat, zapněte Šifrovat zálohy a zadejte jejich heslo.
+Wrong password for the encrypted backups on the network disk.	Nesprávné heslo k šifrovaným zálohám na síťovém disku.
+The backup image on the network disk contains other data.	Obraz záloh na síťovém disku obsahuje jiná data.
+The backup image is in use. Try again later.	Obraz záloh se právě používá. Zkuste to později.
+Erase backups on %s?	Smazat zálohy na %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Smazáním zmizí všechny zálohy tohoto počítače na síťovém disku. Tuto akci nelze vrátit.
 Stop Using	Přestat používat
 Exclude Folder	Vyloučit složku
 Modified	Změněno

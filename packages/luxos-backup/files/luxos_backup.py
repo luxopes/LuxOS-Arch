@@ -41,6 +41,7 @@ import getpass
 import json
 import os
 import re
+import secrets
 import shlex
 import shutil
 import socket
@@ -611,8 +612,70 @@ def find_disk(cfg, ident=None):
     raise BackupError(_("Unknown backup disk: %s") % ident)
 
 
+# ---- sdilene pouziti disku vice procesy -------------------------------------------------
+# Okno Zaloh (prochazeni, obnova) a hodinova zaloha z casovace pouzivaji stejny disk kazdy ve svem
+# procesu. Kdo disk pripojil, ten ho na konci odpojil - i kdyz ho druhy proces jeste pouzival
+# (prochazeni zaloh v okne pak selhalo). Proto evidence uzivatelu disku: kazda Session se zapise
+# (pid), na konci se odpoji jen posledni; kdo konci driv, preda svoje kroky odpojeni ostatnim.
+def use_dir():
+    rt = os.environ.get("XDG_RUNTIME_DIR")
+    base = os.path.join(rt, "luxos-backup") if rt and os.path.isdir(rt) else os.path.join(state_dir(), "run")
+    os.makedirs(base, mode=0o700, exist_ok=True)
+    return base
+
+
+def _pid_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _undo_order(cmd):
+    """Poradi kroku navratu: odpojit, zamknout LUKS, uvolnit loop zarizeni."""
+    for n, word in enumerate(("unmount", "lock", "loop-delete")):
+        if word in cmd:
+            return n
+    return 3
+
+
+class _DiskUse:
+    """Zapis uzivatelu jednoho disku (soubor JSON pod zamkem flock)."""
+
+    def __init__(self, disk_id):
+        name = safe_name(str(disk_id)) or "disk"
+        self.path = os.path.join(use_dir(), f"use-{name}.json")
+        self.fd = None
+
+    def __enter__(self):
+        self.fd = os.open(self.path + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
+        fcntl.flock(self.fd, fcntl.LOCK_EX)
+        st = read_json(self.path, {}) or {}
+        holders = [h for h in st.get("holders", []) if isinstance(h, str) and h.split(":")[0].isdigit()]
+        self.holders = [h for h in holders if _pid_alive(int(h.split(":")[0]))]
+        self.undo = [c for c in st.get("undo", []) if isinstance(c, list)] if self.holders else []
+        return self
+
+    def save(self):
+        if self.holders:
+            write_json(self.path, {"holders": self.holders, "undo": self.undo})
+        else:
+            try:
+                os.unlink(self.path)
+            except FileNotFoundError:
+                pass
+
+    def __exit__(self, *exc):
+        os.close(self.fd)
+        return False
+
+
 class Session:
-    """Pristup k disku zaloh po dobu jedne operace: pripoji/odemkne a pak vrati, jak bylo."""
+    """Pristup k disku zaloh po dobu jedne operace: pripoji/odemkne a pak vrati, jak bylo
+    (kdyz disk mezitim nepouziva jiny proces LuxOS Zaloh - ten ho vrati, az skonci)."""
 
     def __init__(self, disk, mount=True):
         self.disk = disk
@@ -620,13 +683,30 @@ class Session:
         self.undo = []
         self.root = None          # mistni slozka <disk>/LuxOS-Backups/<pocitac> nebo None u sftp
         self.remote = None        # (ssh argumenty, vzdalena slozka) u sftp
+        self.token = None
+
+    def _register(self):
+        try:
+            with _DiskUse(self.disk.get("id")) as use:
+                self.token = f"{os.getpid()}:{secrets.token_hex(4)}"
+                use.holders.append(self.token)
+                use.save()
+        except OSError:
+            self.token = None             # bez evidence jako drive (vlastni odpojeni)
 
     def __enter__(self):
-        kind = self.disk["kind"]
-        if kind == "sftp":
+        if self.disk["kind"] == "sftp":
             self.remote = (ssh_base(self.disk), posix_join(self.disk.get("path") or ".", TOP,
                                                            self.disk.get("machine") or machine_name()))
             return self
+        self._register()
+        try:
+            return self._enter_local()
+        except BaseException:
+            self.__exit__()
+            raise
+
+    def _enter_local(self):
         mnt = self.local_mount()
         self.root = os.path.join(mnt, TOP, self.disk.get("machine") or machine_name())
         return self
@@ -685,7 +765,32 @@ class Session:
         return self.mount_uuid(self.disk.get("uuid"), self.disk.get("luks_uuid"))
 
     def __exit__(self, *exc):
-        for cmd in self.undo:
+        undo = self.undo
+        self.undo = []
+        if self.token:
+            try:
+                with _DiskUse(self.disk.get("id")) as use:
+                    if self.token in use.holders:
+                        use.holders.remove(self.token)
+                    merged = list(use.undo)
+                    for cmd in undo:
+                        if cmd not in merged:
+                            merged.append(cmd)
+                    merged.sort(key=_undo_order)
+                    if use.holders:
+                        use.undo = merged        # disk jeste pouziva jiny proces - vrati ho on
+                        use.save()
+                        merged = []
+                    else:
+                        use.save()
+                    for cmd in merged:
+                        run(cmd, timeout=120)
+                    self.token = None
+                    return False
+            except OSError:
+                pass
+            self.token = None
+        for cmd in undo:
             run(cmd, timeout=120)
         return False
 
@@ -735,10 +840,14 @@ def posix_join(*parts):
 
 
 def ssh_base(disk):
-    args = ["ssh", "-p", str(disk.get("port") or 22), "-o", "StrictHostKeyChecking=accept-new",
-            "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3", "-o", "ConnectTimeout=20"]
-    user = disk.get("user")
-    return args + [f"{user}@{disk['host']}" if user else disk["host"]]
+    """ssh argumenty; posledni je cil (rsync -e dostane vse pred nim), pred cilem "--" -
+    nic za nim uz ssh nebere jako volbu (ani prikaz v ssh_run)."""
+    user, host = disk.get("user") or "", str(disk.get("host") or "")
+    if not SSH_HOST_RE.match(host) or (user and not SSH_USER_RE.match(user)):
+        raise BackupError(_("Use a network address like sftp://user@server/folder"))
+    args = ["ssh", "-p", str(int(disk.get("port") or 22)), "-o", "StrictHostKeyChecking=accept-new",
+            "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3", "-o", "ConnectTimeout=20", "--"]
+    return args + [f"{user}@{host}" if user else host]
 
 
 def ssh_env(disk):
@@ -750,7 +859,7 @@ def ssh_env(disk):
 
 def ssh_run(sess, script, timeout=120):
     """Prikaz na serveru (sh -c); argumenty se citují shlex.quote."""
-    rc, out, err = run(sess.remote[0] + ["--", script], env=ssh_env(sess.disk), timeout=timeout)
+    rc, out, err = run(sess.remote[0] + [script], env=ssh_env(sess.disk), timeout=timeout)
     if rc == 255:
         raise NotConnected(err.strip() or _("Could not connect to the server."))
     return rc, out, err
@@ -1596,9 +1705,16 @@ def _add(cfg, disk):
     save_config(cfg)
 
 
+# Jmeno serveru a uzivatele pro ssh: jen bezne znaky a ne pomlcka na zacatku (jinak by je ssh
+# vzalo jako volbu, napr. -oProxyCommand=... = spusteni prikazu na tomto pocitaci)
+SSH_HOST_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,252}$")
+SSH_USER_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$")
+
+
 def parse_sftp(url):
     m = re.match(r"^(?:sftp|ssh)://(?:([^@/:]+)@)?([^/:]+)(?::(\d+))?(/.*)?$", url)
-    if not m:
+    if not m or not SSH_HOST_RE.match(m.group(2)) or (m.group(1) and not SSH_USER_RE.match(m.group(1))) \
+            or not 0 < int(m.group(3) or 22) < 65536:
         raise BackupError(_("Use a network address like sftp://user@server/folder"))
     return {"user": m.group(1) or "", "host": m.group(2), "port": int(m.group(3) or 22),
             "path": m.group(4) or "."}
@@ -1620,13 +1736,65 @@ def add_sftp_disk(cfg, url, password=None, name=None, check=True):
     return disk
 
 
-def add_smb_disk(cfg, url, password=None, size_gb=None, encrypt_pw=None, name=None):
-    """Sitova slozka SMB: obraz disku <sdileni>/LuxOS-Backups/<pocitac>.img naformatovany jako btrfs."""
+class ExistingBackups(BackupError):
+    """Na cili uz jsou zalohy (nebo cizi data), ktere by pripraveni smazalo - jen s potvrzenim."""
+
+
+def _dev_info(dev):
+    run(["udevadm", "settle"], timeout=30)
+    return next((d for d in flatten(lsblk()) if d.get("path") == dev), None) or {}
+
+
+def _reuse_image(dev, encrypt_pw):
+    """Obraz uz obsahuje zalohy tohoto pocitace (po "Prestat pouzivat" a novem pridani): pouzit ho,
+    nemazat. -> uuids, nebo None (prazdny obraz - lze pripravit). ExistingBackups, kdyz by se mazalo."""
+    info = _dev_info(dev)
+    fstype = info.get("fstype")
+    if not fstype:
+        return None                                   # prazdny (napr. prerusene pridani)
+    if fstype == "btrfs" and not encrypt_pw:
+        return {"uuid": info.get("uuid"), "encrypted": False}
+    if fstype == "btrfs":
+        raise ExistingBackups(_("The network disk already has unencrypted backups of this computer. "
+                                "Turn off Encrypt backups to keep using them."))
+    if fstype == "crypto_LUKS" and not encrypt_pw:
+        raise ExistingBackups(_("The backups of this computer on the network disk are encrypted. "
+                                "Turn on Encrypt backups and enter their password to keep using them."))
+    if fstype == "crypto_LUKS":
+        opened = next((c for c in info.get("children") or [] if c.get("type") == "crypt"), None)
+        if opened:                                    # odemceny jinou operaci: heslo overit nejde
+            raise BackupError(_("The backup image is in use. Try again later."))
+        try:
+            clear = udisks_unlock(dev, encrypt_pw)
+        except NotConnected:
+            raise BackupError(_("Wrong password for the encrypted backups on the network disk.")) from None
+        try:
+            inner = _dev_info(clear)
+        finally:
+            run(["udisksctl", "lock", "-b", dev, "--no-user-interaction"], timeout=60)
+        if inner.get("fstype") == "btrfs":
+            return {"uuid": inner.get("uuid"), "luks_uuid": info.get("uuid"), "encrypted": True}
+    raise ExistingBackups(_("The backup image on the network disk contains other data."))
+
+
+def add_smb_disk(cfg, url, password=None, size_gb=None, encrypt_pw=None, name=None, erase=False):
+    """Sitova slozka SMB: obraz disku <sdileni>/LuxOS-Backups/<pocitac>.img naformatovany jako btrfs.
+    Existujici obraz se zalohami se pouzije tak, jak je; smaze se jen s erase=True (potvrzeni)."""
     p = smb_parse(url)
     disk = {"id": new_disk_id(), "kind": "smb", "name": name or f"{p['host']}/{p['share']}", "url": url,
             "machine": machine_name(), "added": snap_name()}
+    if any(d.get("url") == url for d in cfg["disks"]):     # driv nez se obraz pripadne smaze
+        raise BackupError(_("This disk is already used for backups."))
     if password:
         secret_set(disk["id"], _("LuxOS Backups: %s") % disk["name"], password)
+    try:
+        return _add_smb_image(cfg, disk, size_gb, encrypt_pw, erase)
+    except BaseException:
+        secret_clear(disk["id"])                  # disk nepridan - heslo v klicence nenechat
+        raise
+
+
+def _add_smb_image(cfg, disk, size_gb, encrypt_pw, erase):
     share = smb_fuse_path(disk)
     folder = os.path.join(share, TOP)
     os.makedirs(folder, exist_ok=True)
@@ -1639,15 +1807,23 @@ def add_smb_disk(cfg, url, password=None, size_gb=None, encrypt_pw=None, name=No
             raise BackupError(_("The network disk needs at least 8 GB of free space."))
         with open(image, "wb") as f:
             f.truncate(size)                      # ridky soubor - zabira jen zapsana data
-    rc, out, err = run(["udisksctl", "loop-setup", "-f", image, "--no-user-interaction"], timeout=60)
-    m = re.search(r" as (/dev/loop\d+)", out)
-    if rc or not m:
-        raise BackupError(err.strip() or _("Could not open the backup image"))
-    dev = m.group(1)
+    dev = loop_for(image)
+    own = dev is None
+    if own:
+        rc, out, err = run(["udisksctl", "loop-setup", "-f", image, "--no-user-interaction"], timeout=60)
+        m = re.search(r" as (/dev/loop\d+)", out)
+        if rc or not m:
+            raise BackupError(err.strip() or _("Could not open the backup image"))
+        dev = m.group(1)
     try:
-        uuids = format_device(dev, encrypt_pw, label="LuxOS Backups")
+        uuids = None if erase else _reuse_image(dev, encrypt_pw)
+        if uuids is None:
+            if not own:
+                raise BackupError(_("The backup image is in use. Try again later."))
+            uuids = format_device(dev, encrypt_pw, label="LuxOS Backups")
     finally:
-        run(["udisksctl", "loop-delete", "-b", dev, "--no-user-interaction"], timeout=60)
+        if own:
+            run(["udisksctl", "loop-delete", "-b", dev, "--no-user-interaction"], timeout=60)
     disk.update(uuids)
     if encrypt_pw:
         secret_set(luks_secret(disk), _("LuxOS Backups: %s") % disk["name"], encrypt_pw)
@@ -1679,9 +1855,23 @@ def format_device(dev, passphrase=None, label="LuxOS Backups"):
     return {"uuid": info.get("uuid"), "encrypted": False}
 
 
+SYSTEM_MOUNTS = ("/", "/home", "/boot", "/efi", "/boot/efi", "/usr", "/var", "[SWAP]")
+
+
+def system_devices():
+    """Zarizeni, na kterych lezi bezici system - vcetne disku a oddilu pod LUKS a LVM
+    (pripojena je jen /dev/mapper/..., smazat ale nejde ani oddil, ani cely disk pod nim)."""
+    out = set()
+    for d in flatten(lsblk()):
+        if any(m in SYSTEM_MOUNTS for sub in flatten([d]) for m in (sub.get("mountpoints") or []) if m):
+            out.add(d.get("path"))
+    out.discard(None)
+    return out
+
+
 def prepare_disk(cfg, device, passphrase=None, name=None):
     """Smaze disk/oddil a pripravi ho pro zalohy (btrfs se zstd, volitelne sifrovani)."""
-    system = {d.get("path") for d in flatten(lsblk()) if mountpoint(d) in ("/", "/home", "/boot", "/efi")}
+    system = system_devices()
     cands = {d["path"] for d in external_disks()} | {d["drive"] for d in external_disks()}
     if device not in cands:
         raise BackupError(_("%s is not an external disk.") % device)

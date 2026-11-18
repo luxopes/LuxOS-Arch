@@ -501,6 +501,42 @@ class SdBoot(Env):
         self.assertEqual(set(os.listdir(self.root + "/boot/luxos-snapshots")), kept)
         self.assertEqual(len(kept), 2)
 
+    def test_gc_keeps_kernel_set_when_description_unreadable(self):
+        a = snap.create(self.top, now=self.at(0))
+        self.kernel(KVER2, b"kernel-2")
+        b = snap.create(self.top, now=self.at(1))
+        self.assertNotEqual(a["kset"], b["kset"])
+        store = self.root + "/boot/luxos-snapshots"
+        os.makedirs(os.path.join(store, "x.new"))
+        meta = os.path.join(snap.snap_dir(self.top), a["name"] + ".json")
+        for broken in ("{not json", None):           # poskozeny popis, chybejici popis
+            if broken is None:
+                os.unlink(meta)
+            else:
+                with open(meta, "w") as f:
+                    f.write(broken)
+            snaps = snap.list_snapshots(self.top)
+            self.assertTrue(snaps[0].get("_unreadable"))
+            gone = snap.gc_kernels(snap.care.detect_layout(), self.top, snaps)
+            self.assertEqual(gone, ["x.new"] if broken else [])     # zbytek zapisu ano, sady ne
+            self.assertEqual(set(os.listdir(store)), {a["kset"], b["kset"]})
+        # nedostatek mista: sada bez odkazu jde jako prvni, sada citelneho snimku zustava
+        with mock.patch.object(care, "free_bytes", side_effect=[0, 10 << 30]):
+            _free, removed = snap.esp_budget(snap.care.detect_layout(), self.top, snap.list_snapshots(self.top))
+        self.assertEqual(removed, [a["kset"]])
+        self.assertEqual(os.listdir(store), [b["kset"]])
+
+    def test_write_meta_drops_internal_keys(self):
+        a = snap.create(self.top, now=self.at(0))
+        meta = os.path.join(snap.snap_dir(self.top), a["name"] + ".json")
+        with open(meta, "w") as f:
+            f.write("[]")
+        m = snap.read_meta(self.top, a["name"])
+        self.assertTrue(m["_unreadable"])
+        snap.write_meta(self.top, m)
+        with open(meta) as f:
+            self.assertNotIn("_unreadable", json.load(f))
+
     def test_pre_transaction_skipped_after_system_apply_snapshot(self):
         # lux system apply uz snimek udelal (kind "system"); transakce uvnitr apply druhy nedela
         meta = snap.create(self.top, "system", now=self.at(0))

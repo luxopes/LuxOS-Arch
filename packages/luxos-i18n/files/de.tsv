@@ -2834,6 +2834,13 @@ Back up again	Erneut sichern
 Backing up…	Wird gesichert…
 You can keep working, or close this window.	Sie können weiterarbeiten oder dieses Fenster schließen.
 Backups already on the disk are kept.	Vorhandene Sicherungen auf der Festplatte bleiben erhalten.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	Die Netzwerkfestplatte enthält bereits unverschlüsselte Sicherungen dieses Computers. Schalten Sie „Sicherungen verschlüsseln“ aus, um sie weiter zu verwenden.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Die Sicherungen dieses Computers auf der Netzwerkfestplatte sind verschlüsselt. Schalten Sie „Sicherungen verschlüsseln“ ein und geben Sie ihr Passwort ein, um sie weiter zu verwenden.
+Wrong password for the encrypted backups on the network disk.	Falsches Passwort für die verschlüsselten Sicherungen auf der Netzwerkfestplatte.
+The backup image on the network disk contains other data.	Das Sicherungsabbild auf der Netzwerkfestplatte enthält andere Daten.
+The backup image is in use. Try again later.	Das Sicherungsabbild wird gerade verwendet. Versuchen Sie es später erneut.
+Erase backups on %s?	Sicherungen auf %s löschen?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Beim Löschen werden alle Sicherungen dieses Computers auf der Netzwerkfestplatte entfernt. Dies kann nicht rückgängig gemacht werden.
 Stop Using	Nicht mehr verwenden
 Exclude Folder	Ordner ausschließen
 Modified	Geändert

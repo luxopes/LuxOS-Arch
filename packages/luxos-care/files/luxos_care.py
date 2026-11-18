@@ -1949,18 +1949,35 @@ def kernel_migrate():
 
 
 # ---- kontrola po startu (pred boot-complete.target) --------------------------------------
+def unit_props(unit):
+    """{vlastnost: hodnota} pro LoadState/ActiveState/UnitFileState (bez --value: poradi vystupu
+    neurcuje poradi -p a prazdna hodnota by posunula ostatni)."""
+    rc, out = run(["systemctl", "show", "-p", "LoadState", "-p", "ActiveState", "-p", "UnitFileState", unit],
+                  timeout=20)
+    return dict(ln.split("=", 1) for ln in (out or "").splitlines() if "=" in ln)
+
+
 def unit_state(unit):
-    rc, out = run(["systemctl", "show", "-p", "ActiveState", "-p", "UnitFileState", "--value", unit], timeout=20)
-    vals = out.split()
-    return (vals[0] if vals else "", vals[1] if len(vals) > 1 else "")
+    p = unit_props(unit)
+    return p.get("ActiveState", ""), p.get("UnitFileState", "")
+
+
+def dm_expected():
+    """Ma se pri startu cekat na display-manager.service? Neexistujici jednotka hlasi ActiveState
+    "inactive" (neprazdny retezec), proto rozhoduje LoadState: jen nactena a zapnuta nebo spustena."""
+    p = unit_props("display-manager.service")
+    if p.get("LoadState") != "loaded":
+        return False
+    return p.get("UnitFileState") in ("enabled", "enabled-runtime", "static", "alias", "indirect", "generated") \
+        or p.get("ActiveState") in ("active", "activating", "reloading", "failed")
 
 
 def boot_check(wait=True):
     """Start je v poradku? Pri uspechu zaznamena overene jadro (pro zalozni) a GRUB pocitadlo.
     Neuspech -> boot-complete.target selze, systemd-bless-boot polozku neoznaci za dobrou."""
     problems = []
-    dm_active, dm_enabled = unit_state("display-manager.service")
-    if dm_enabled or dm_active:
+    if dm_expected():
+        dm_active = ""
         for _i in range(30 if wait else 1):
             dm_active, _e = unit_state("display-manager.service")
             if dm_active == "active":

@@ -2834,6 +2834,13 @@ Back up again	Fazer backup novamente
 Backing up…	Fazendo backup…
 You can keep working, or close this window.	Você pode continuar trabalhando ou fechar esta janela.
 Backups already on the disk are kept.	Os backups que já estão no disco são mantidos.
+The network disk already has unencrypted backups of this computer. Turn off Encrypt backups to keep using them.	O disco de rede já tem backups não criptografados deste computador. Desative Criptografar backups para continuar a usá-los.
+The backups of this computer on the network disk are encrypted. Turn on Encrypt backups and enter their password to keep using them.	Os backups deste computador no disco de rede estão criptografados. Ative Criptografar backups e introduza a senha deles para continuar a usá-los.
+Wrong password for the encrypted backups on the network disk.	Senha incorreta para os backups criptografados no disco de rede.
+The backup image on the network disk contains other data.	A imagem de backups no disco de rede contém outros dados.
+The backup image is in use. Try again later.	A imagem de backups está em uso. Tente novamente mais tarde.
+Erase backups on %s?	Apagar os backups em %s?
+Erasing deletes all backups of this computer on the network disk. This cannot be undone.	Apagar elimina todos os backups deste computador no disco de rede. Esta ação não pode ser desfeita.
 Stop Using	Parar de usar
 Exclude Folder	Excluir pasta
 Modified	Modificado
