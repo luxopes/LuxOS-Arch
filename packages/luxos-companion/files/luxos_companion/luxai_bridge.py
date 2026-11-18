@@ -208,6 +208,7 @@ class LuxAIBridge:
         self.pending_models = {}
         self.approvals = {}
         self.before_ready = []
+        self._reset_writes()
         proc, self.proc = self.proc, None
         if proc is None:
             return
@@ -223,6 +224,12 @@ class LuxAIBridge:
     @staticmethod
     def _approval_gone_text():
         return _("This approval is no longer valid (already answered, expired or the request has ended).")
+
+    def _reset_writes(self):
+        """Neodeslane radky patri jen procesu, kteremu byly urceny: po jeho konci je zahodit, jinak by
+        stary pozadavek nebo souhlas dostal novy proces LuxAI (dalsi pozadavek telefonu)."""
+        self.write_queue = []
+        self.writing = False
 
     def _changed(self):
         if self.on_change:
@@ -248,6 +255,7 @@ class LuxAIBridge:
             self.proc = None
             return False
         self.ready = False
+        self._reset_writes()
         self.luxai_caps = set()
         self.out_buf = b""
         self.err_tail = b""
@@ -306,6 +314,7 @@ class LuxAIBridge:
         self.proc = None
         self.ready = False
         self.before_ready = []
+        self._reset_writes()
         a, self.active = self.active, None
         models, self.pending_models = self.pending_models, {}
         if self.approvals:
@@ -483,13 +492,15 @@ class LuxAIBridge:
         stream = proc.get_stdin_pipe()
 
         def done(src, res, _d):
-            self.writing = False
             try:
                 n = src.write_bytes_finish(res)
             except GLib.Error:
+                if proc is self.proc:
+                    self.writing = False
                 return               # proces skoncil; chybu ohlasi _on_exit
             if proc is not self.proc:
-                return
+                return               # zapis pro uz skonceny proces (stav zapisu noveho se nemeni)
+            self.writing = False
             if n < len(chunk):
                 self.write_queue.insert(0, chunk[n:])     # castecny zapis
             self._flush()

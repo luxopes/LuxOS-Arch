@@ -748,3 +748,164 @@ def test_git_hook_samples_not_watched(g):
     g.analyze(g.jobs.get_nowait())
     g.on_results()
     assert g.state.get(ident(hook))["level"] == C.CRITICAL
+
+
+# ---- odolnost socketu: zadna zprava od uzivatele nesmi sluzbu shodit ani zablokovat -----------------
+
+def _start_serve(g, tmp_path):
+    import threading
+    import time
+    sock = str(tmp_path / "guard.sock")
+    g.drop_client(g.agent)
+    t = threading.Thread(target=S.serve, args=(g, sock), daemon=True)
+    t.start()
+    for _ in range(100):
+        if os.path.exists(sock):
+            break
+        time.sleep(0.02)
+    return sock, t
+
+
+def _ask(sock, raw, timeout=5):
+    import json
+    import socket
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(timeout)
+    try:
+        s.connect(sock)
+        s.sendall(raw)
+        buf = b""
+        while b"\n" not in buf:
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+        return json.loads(buf.split(b"\n", 1)[0]) if buf else None
+    finally:
+        s.close()
+
+
+def test_malformed_messages_do_not_kill_service(g, tmp_path):
+    """Neplatne typy (id jako seznam/slovnik), hluboce vnoreny JSON, nesmyslne op: sluzba odpovi chybou nebo
+    zpravu zahodi a dal bezi (drive TypeError/RecursionError ukoncil smycku a po 5 padech Guard zustal vypnuty)."""
+    import json
+    sock, t = _start_serve(g, tmp_path)
+    bad = [b'{"op": "answer", "id": []}\n', b'{"op": "answer", "id": {"a": 1}}\n',
+           b'{"op": "answer", "id": 1.5, "choice": ["run"]}\n', b'{"op": ["hello"]}\n', b'{"op": {"x": 1}}\n',
+           b'{"op": "hello", "role": ["agent"]}\n', b'{"op": "allow"}\n',
+           b"[" * 100000 + b"]" * 100000 + b"\n", b'{"a":' * 50000 + b"1" + b"}" * 50000 + b"\n"]
+    for raw in bad:
+        try:
+            _ask(sock, raw, timeout=2)
+        except OSError:
+            pass
+        assert t.is_alive(), raw[:40]
+        assert _ask(sock, b'{"op": "status"}\n')["active"] is True, raw[:40]
+    # jedna spojena zprava: spatny radek a hned za nim platny - platny se stale zpracuje
+    assert _ask(sock, b'{"op": "answer", "id": []}\n{"op": "status"}\n')["op"] in ("error", "status")
+    assert json.dumps(g.stats)       # stav sluzby porad citelny
+
+
+def test_client_that_never_reads_does_not_block_service(g, tmp_path):
+    """Klient posila dotazy a odpovedi necte: sluzba nesmi cekat na jeho socket (drive blokujici sendall
+    s limitem 2 s v hlavni smycce = zdrzene odpovedi na spousteni programu v celem systemu)."""
+    import socket
+    import time
+    sock, t = _start_serve(g, tmp_path)
+    hog = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    hog.connect(sock)
+    hog.setblocking(False)
+    line = b'{"op": "status"}\n' * 2000
+    sent = 0
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 3:
+        try:
+            sent += hog.send(line)
+        except BlockingIOError:
+            time.sleep(0.01)
+        except OSError:
+            break                    # sluzba zahltiveho klienta odpojila - v poradku
+    start = time.monotonic()
+    assert _ask(sock, b'{"op": "status"}\n', timeout=5)["active"] is True
+    assert time.monotonic() - start < 1.0
+    assert t.is_alive()
+    hog.close()
+
+
+def test_passed_descriptors_are_bounded(g, tmp_path):
+    """Deskriptory predane pres SCM_RIGHTS bez prikazu, ktery je pouzije, se nesmi hromadit (vycerpani fd)."""
+    import socket
+    import time
+    sock, t = _start_serve(g, tmp_path)
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(sock)
+    r, w = os.pipe()
+    try:
+        for _ in range(300):
+            socket.send_fds(s, [b" "], [r, w, r, w])
+        s.sendall(b'{"op": "status"}\n')
+        s.settimeout(5)
+        assert b"status" in s.recv(65536)
+        time.sleep(0.1)
+        held = [c for c in getattr(g, "_clients", {}).values()] if hasattr(g, "_clients") else []
+        for c in held:
+            assert len(c.fds) <= S.MAX_CLIENT_FDS
+        assert t.is_alive()
+    finally:
+        s.close()
+        os.close(r)
+        os.close(w)
+
+
+def test_connections_per_user_are_bounded(g, tmp_path):
+    """Mnoho otevrenych spojeni jednoho uzivatele: nad limit se dalsi hned zavrou, sluzba dal odpovida."""
+    import socket
+    sock, t = _start_serve(g, tmp_path)
+    conns = []
+    try:
+        for _ in range(S.MAX_CLIENTS_PER_UID + 20):
+            c = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            c.connect(sock)
+            conns.append(c)
+        import time
+        time.sleep(0.3)
+        assert len(g._clients) <= S.MAX_CLIENTS_PER_UID
+        # stara necinna spojeni zavrit -> nove zase projde
+        for c in conns:
+            c.close()
+        conns = []
+        time.sleep(0.3)
+        assert _ask(sock, b'{"op": "status"}\n')["active"] is True
+    finally:
+        for c in conns:
+            c.close()
+
+
+def test_mounts_octal_escapes(tmp_path):
+    """mountinfo koduje mezeru, tabulator, novy radek i zpetne lomitko (\\040 \\011 \\012 \\134)."""
+    mi = tmp_path / "mountinfo"
+    mi.write_text("27 22 8:17 / /run/media/anna/A\\134B\\011C\\012D\\040E rw - vfat /dev/sdb1 rw\n")
+    assert S.read_mounts(str(mi)) == [("/run/media/anna/A\\B\tC\nD E", "vfat")]
+
+
+def test_big_single_reply_is_delivered(g, tmp_path):
+    """Jedna velka odpoved (seznam tisicu hlidanych souboru) se pomalu ctoucimu klientovi doruci cela."""
+    import json
+    import socket
+    import time
+    for i in range(3000):
+        g.state.entries[(1, i)] = {"path": f"/home/anna/Downloads/{'x' * 200}-{i}.sh", "uid": os.getuid(),
+                                   "level": C.RISKY, "status": C.FLAGGED, "t": i}
+    sock, t = _start_serve(g, tmp_path)
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(sock)
+    s.sendall(b'{"op": "list"}\n')
+    time.sleep(0.5)                  # klient chvili necte
+    s.settimeout(5)
+    buf = b""
+    while not buf.endswith(b"\n"):
+        chunk = s.recv(1 << 20)
+        assert chunk
+        buf += chunk
+    assert len(buf) > S.MAX_CLIENT_OUT and len(json.loads(buf)["entries"]) == 3000
+    s.close()

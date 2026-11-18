@@ -343,3 +343,27 @@ def test_long_lines_do_not_hang():
 def test_empty_file_is_not_executable_content(data):
     assert R.classify(data, "__init__.py") is None
     assert R.classify(data, "install.sh") is None
+
+
+@pytest.mark.parametrize("cmd,fed", [
+    ("echo pw | sudo -S rm x", True), ("sudo -u root -S id", True), ("sudo -p -S id", True),
+    ("/usr/bin/sudo --user=a --stdin id", True), ("x=$(echo a|sudo -kS true)", True), ("sudo -uS x", True),
+    ("sudo -S;echo", True), ("sudo -p '' -S true", True), ("sudo -u root id", False), ("sudo -i", False),
+    ("xsudo -S", False), ("a.sudo -S", False), ("sudo echo -S", False), ("sudo -u -S", True),
+])
+def test_sudo_stdin_detection(cmd, fed):
+    assert R.feeds_password(cmd) is fed
+
+
+def test_sudo_options_no_redos():
+    """Mnoho voleb za sudo (drive exponencialni cas: 34x "-p" = 9 s v analyze) - linearni, detekce trva."""
+    import time
+    for n in (34, 60, 5000):
+        t = time.monotonic()
+        assert R.feeds_password("sudo " + "-p " * n + "x") is False
+        assert R.feeds_password("sudo " + "-p " * n + "-S x") is True
+        assert time.monotonic() - t < 1, n
+    t = time.monotonic()
+    R.feeds_password("sudo -u " * 120000)
+    R.feeds_password("sudo " * 200000)
+    assert time.monotonic() - t < 5

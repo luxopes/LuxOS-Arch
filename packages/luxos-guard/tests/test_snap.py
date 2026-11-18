@@ -1,6 +1,7 @@
 """Lux Guard - snimky /home: uchovavani, podpora btrfs, obnova souboru (bez rootu, bez btrfs)."""
 import datetime
 import os
+import shutil
 import types
 
 import luxos_guard_snap as S
@@ -86,6 +87,44 @@ def test_restore_missing_and_overwrite(tmp_path):
     # jeden soubor
     (home / "Pictures/p.jpg").unlink()
     assert S.restore(str(snap / "Pictures/p.jpg"), str(home / "Pictures/p.jpg")) == (1, 0)
+
+
+def test_restore_overwrite_keeps_current_versions(tmp_path):
+    """Obnova s prepsanim: soucasna verze (treba upravena po snimku) se presune do zalohy, neztrati se."""
+    snap = tmp_path / "snap"
+    home = tmp_path / "home"
+    make_tree(snap, {"Documents/a.txt": b"OLD", "b.txt": b"B", "same.txt": b"S"})
+    make_tree(home, {"Documents/a.txt": b"EDITED TODAY", "b.txt": b"CHANGED", "new.txt": b"N"})
+    shutil.copy2(snap / "same.txt", home / "same.txt")
+    backup = S.before_restore_dir(str(home), now=1_800_000_000)
+    assert backup.startswith(str(home / ".local/share/luxos-guard/before-restore/"))
+    done, kept = S.restore(str(snap), str(home), overwrite=True, backup=backup)
+    assert (home / "Documents/a.txt").read_bytes() == b"OLD"
+    with open(os.path.join(backup, "Documents/a.txt"), "rb") as f:
+        assert f.read() == b"EDITED TODAY"
+    with open(os.path.join(backup, "b.txt"), "rb") as f:
+        assert f.read() == b"CHANGED"
+    assert not os.path.exists(os.path.join(backup, "same.txt"))       # beze zmeny: nic k zaloze
+    assert (home / "new.txt").read_bytes() == b"N"
+    assert done == 2
+    # jeden soubor
+    (home / "b.txt").write_bytes(b"AGAIN")
+    b2 = str(tmp_path / "b2")
+    assert S.restore(str(snap / "b.txt"), str(home / "b.txt"), overwrite=True, backup=b2) == (1, 0)
+    with open(os.path.join(b2, "b.txt"), "rb") as f:
+        assert f.read() == b"AGAIN"
+
+
+def test_restore_overwrite_backup_failure_keeps_file(tmp_path):
+    """Kdyz zalohu nejde vytvorit, soubor se neprepise (zadna ztrata)."""
+    snap = tmp_path / "snap"
+    home = tmp_path / "home"
+    make_tree(snap, {"a.txt": b"OLD"})
+    make_tree(home, {"a.txt": b"NEW"})
+    blocker = tmp_path / "blocker"
+    blocker.write_text("x")                       # zaloha "uvnitr souboru" = chyba
+    assert S.restore(str(snap), str(home), overwrite=True, backup=str(blocker / "b")) == (0, 1)
+    assert (home / "a.txt").read_bytes() == b"NEW"
 
 
 def test_restore_dry_run(tmp_path):

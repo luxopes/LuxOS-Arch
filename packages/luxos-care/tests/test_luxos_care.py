@@ -148,6 +148,30 @@ class Pacman(unittest.TestCase):
         self.assertFalse(care.stale_lock(True, False, 30))        # cerstvy zamek
         self.assertFalse(care.stale_lock(False, False, 6000))
 
+    def test_lock_holders_known(self):
+        """Kazdy, kdo muze drzet db.lck, je v seznamu (jinak by Pece smazala zamek bezici transakce)."""
+        for name in ("lux", "lux_alpm.py", "lux-engine", "pamac-daemon", "packagekitd"):
+            self.assertIn(name, care.PKG_MANAGERS)
+
+    def test_engine_running_sees_lux(self):
+        import subprocess
+        d = tempfile.mkdtemp(prefix="care-comm-")
+        self.addCleanup(shutil.rmtree, d, True)
+        exe = os.path.join(d, "lux")
+        os.symlink(shutil.which("sleep"), exe)
+        p = subprocess.Popen([exe, "30"])
+        self.addCleanup(p.wait)
+        self.addCleanup(p.kill)
+        for _ in range(50):
+            try:
+                with open(f"/proc/{p.pid}/comm") as f:
+                    if f.read().strip() == "lux":
+                        break
+            except OSError:
+                pass
+            time.sleep(0.02)
+        self.assertTrue(care.engine_running())
+
     def test_errors(self):
         self.assertEqual(care.classify_engine_error("error: failed to init transaction (unable to lock database)"),
                          "locked")

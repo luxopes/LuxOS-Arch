@@ -562,8 +562,10 @@ def update_due(st, t=None, every=UPDATE_EVERY):
 
 
 # ---- spravce baliku: blokovani a aktualizace ---------------------------------------------------
-PKG_MANAGERS = {"lux-engine", "lux-engine-key", "pacman", "yay", "paru", "pamac", "pacman-key", "makepkg",
-                "pacstrap", "lux_alpm.py"}
+# stejne jako PKG_MANAGERS v /usr/bin/lux; navic samotny lux (mezi kroky transakce) a demoni pamac/PackageKit,
+# kteri drzi db.lck - beh kohokoli z nich = zamek neni opusteny
+PKG_MANAGERS = {"lux", "lux-engine", "lux-engine-key", "pacman", "yay", "paru", "pamac", "pacman-key", "makepkg",
+                "pacstrap", "lux_alpm.py", "pamac-daemon", "packagekitd"}
 
 # Transakce dela lux (libalpm: stejna databaze, podpisy a hooky jako jadro) ve strojovem rezimu;
 # jeho vystup obsahuje i radky ve stylu jadra ("upgrading x...", "error: ...", "x: /f exists in

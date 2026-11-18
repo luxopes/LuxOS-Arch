@@ -361,6 +361,122 @@ class Manage(Base):
         self.assertIsNone(acc.load())
 
 
+class Hardening(Base):
+    """Cookie uctu nejde na cil presmerovani, http jen na tento pocitac, neplatna odpoved = AccountError,
+    prihlaseni prohlizecem: cizi callback nic nerusi, zruseny pokus hned skonci."""
+
+    def _server(self, handler_cls):
+        import threading
+        from http.server import HTTPServer
+        srv = HTTPServer(("127.0.0.1", 0), handler_cls)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        return f"http://127.0.0.1:{srv.server_address[1]}"
+
+    def test_origin_rules(self):
+        self.assertEqual(acc._origin("https://staging.lux-ai.cz/"), "https://staging.lux-ai.cz")
+        self.assertEqual(acc._origin("http://127.0.0.1:8080"), "http://127.0.0.1:8080")
+        self.assertEqual(acc._origin("http://localhost:1"), "http://localhost:1")
+        for bad in ("http://lux-ai.cz", "http://192.168.1.5:80", "ftp://x", "", "lux-ai.cz", "https://"):
+            self.assertEqual(acc._origin(bad), acc.DEFAULT_ORIGIN, bad)
+
+    def test_cookie_not_forwarded_on_redirect(self):
+        from http.server import BaseHTTPRequestHandler
+        seen = {}
+
+        class Target(BaseHTTPRequestHandler):
+            def log_message(self, *_a):
+                pass
+
+            def do_GET(self):  # noqa: N802
+                seen["cookie"] = self.headers.get("Cookie")
+                body = b'{"ok": true}'
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        target = self._server(Target)
+
+        class Redirect(BaseHTTPRequestHandler):
+            def log_message(self, *_a):
+                pass
+
+            def do_GET(self):  # noqa: N802
+                seen["first"] = self.headers.get("Cookie")
+                self.send_response(302)
+                self.send_header("Location", target + "/elsewhere")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+        origin = self._server(Redirect)
+        self.assertEqual(acc.request("GET", "/api/me", token="SECRET", origin=origin), {"ok": True})
+        self.assertIn("SECRET", seen["first"])
+        self.assertIsNone(seen["cookie"])
+
+    def test_non_json_and_non_object_answers(self):
+        from http.server import BaseHTTPRequestHandler
+        bodies = iter([b"<html>captive portal</html>", b"[1, 2]", b'"text"'])
+
+        class Junk(BaseHTTPRequestHandler):
+            def log_message(self, *_a):
+                pass
+
+            def do_GET(self):  # noqa: N802
+                body = next(bodies)
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        origin = self._server(Junk)
+        for _ in range(3):
+            e = self.err(acc.request, "GET", "/api/me", None, None, origin)
+            self.assertEqual(e.code, "http")
+
+    def _callback(self, login, query):
+        import urllib.error
+        import urllib.request
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{login.port}/callback?{query}", timeout=5) as r:
+                return r.status
+        except urllib.error.HTTPError as e:
+            return e.code
+
+    def test_web_login_foreign_callback_ignored(self):
+        login = acc.WebLogin()
+        self.addCleanup(login.close)
+        self.assertEqual(self._callback(login, "state=wrong&code=abc"), 400)
+        self.assertEqual(self._callback(login, "code=abc"), 400)
+        self.assertEqual(self._callback(login, "error=access_denied"), 400)
+        self.assertFalse(login.done.is_set(), "cizi callback nesmi ukoncit prihlaseni")
+        self.assertEqual(self._callback(login, f"state={login.state}&error=access_denied"), 200)
+        e = self.err(login.wait, 5)
+        self.assertEqual(e.code, "access_denied")
+
+    def test_web_login_close_ends_wait_at_once(self):
+        import threading
+        import time
+        login = acc.WebLogin()
+        res = {}
+
+        def run():
+            try:
+                login.wait(600)
+            except acc.AccountError as e:
+                res["code"] = e.code
+        t = threading.Thread(target=run, daemon=True)
+        t.start()
+        time.sleep(0.1)
+        t0 = time.monotonic()
+        login.close()
+        t.join(5)
+        self.assertFalse(t.is_alive())
+        self.assertLess(time.monotonic() - t0, 2)
+        self.assertEqual(res.get("code"), "cancelled")
+
+
 if __name__ == "__main__":
     try:
         unittest.main()

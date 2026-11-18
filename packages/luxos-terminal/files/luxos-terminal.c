@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 /* Tmave pozadi jako drive xfce4-terminal v LuxOS (#1c1c22, pruhlednost 0.94) */
@@ -984,16 +985,23 @@ static GString *sixel_encode(GdkPixbuf *pb, const GdkRGBA *bg)
 static char *logo_render(long cw, long ch, gboolean dark)
 {
     if (cw < 2 || ch < 4 || cw > 200 || ch > 400) return NULL;
-    char *name = g_strdup_printf("logo2-%ldx%ld-%s.six", cw, ch, dark ? "dark" : "light");
-    char *path = g_build_filename(g_get_user_cache_dir(), "luxos", "terminal", name, NULL);
-    g_free(name);
-    if (g_file_test(path, G_FILE_TEST_EXISTS)) return path;
-
     /* barevne logo (stejne jako ikona a znakove logo fastfetche): vektor v presne velikosti
      * (zavadec SVG luxos-pixbuf-svg), jinak PNG 256 px z luxos-branding */
     const char *srcs[] = {g_getenv("LUXOS_TERMINAL_LOGO_SOURCE"), "/usr/share/luxos/terminal/logo.png",
                           "/usr/share/luxos/logo/luxos-logo.svg",
                           "/usr/share/pixmaps/luxos-logo.png"};
+    /* jmeno v mezipameti obsahuje i zdroj (poradi, cas zmeny, velikost): nove logo po aktualizaci
+     * brandingu se pouzije hned, ne az po smazani ~/.cache */
+    guint src_idx = 0;
+    struct stat sst = {0};
+    for (; src_idx < G_N_ELEMENTS(srcs); src_idx++)
+        if (srcs[src_idx] && *srcs[src_idx] && stat(srcs[src_idx], &sst) == 0) break;
+    char *name = g_strdup_printf("logo3-%ldx%ld-%s-%u-%llx-%llx.six", cw, ch, dark ? "dark" : "light", src_idx,
+                                 (unsigned long long)sst.st_mtime, (unsigned long long)sst.st_size);
+    char *path = g_build_filename(g_get_user_cache_dir(), "luxos", "terminal", name, NULL);
+    g_free(name);
+    if (g_file_test(path, G_FILE_TEST_EXISTS)) return path;
+
     /* logo do pole loga (sirka LOGO_COLS, vyska bez posledniho radku pro kurzor), pomer stran zachovan -
      * siroke logo tak vyplni celou vysku jako drivejsi ctvercove */
     GdkPixbuf *pb = NULL;

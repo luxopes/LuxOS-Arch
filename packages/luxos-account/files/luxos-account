@@ -321,7 +321,8 @@ class AccountWindow(Gtk.Window):
             subprocess.Popen(["xdg-open", self.web.url])
         self.busy(True, _("Confirm the sign-in in the browser…"))
         web = self.web
-        run_async(web.wait, self.signed)
+        # vysledek predchoziho (zruseneho) pokusu uz nesmi zmenit stav noveho
+        run_async(web.wait, lambda res, err: self.signed(res, err) if web is self.web else False)
 
     # ---- profil a sprava uctu (jako stranka lux-ai.cz/settings) ----
     def show_profile(self, a, data=None):

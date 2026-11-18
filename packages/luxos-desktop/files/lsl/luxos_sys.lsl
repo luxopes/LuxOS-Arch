@@ -234,7 +234,8 @@ function abstract_address(name):
     end
 end
 
-# Spojeni se serverem; popisovac nebo -1 (nikdo neposloucha)
+# Spojeni se serverem; popisovac nebo -1 (nikdo neposloucha). Server musi patrit stejnemu uzivateli:
+# abstraktni jmeno muze predem obsadit kdokoli (jiny uzivatel by jinak dostaval pozadavky klienta).
 function unix_connect(name):
     unsafe:
         fd = __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("socket"), 1, 524289, 0))
@@ -246,8 +247,12 @@ function unix_connect(name):
             call __lsl_qbe_call1(__lsl_symbol("close"), fd)
             return -1
         end
-        return fd
     end
+    if peer_uid(fd) != getuid():
+        call close(fd)
+        return -1
+    end
+    return fd
 end
 
 # Naslouchajici neblokujici socket; popisovac, -EADDRINUSE kdyz uz nekdo posloucha, jinak -1

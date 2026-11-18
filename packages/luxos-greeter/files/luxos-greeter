@@ -19,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import warnings
 
@@ -723,12 +724,13 @@ FRAME_SMALL_NAME = "login-frame-small.raw"  # mala rozmazana tapeta: nahrada, kd
 def write_frame(path, surf):
     """ImageSurface RGB24 do souboru pro luxos-session-cover: "LUXFRAME1 <w> <h>\\n" + w*h*4 bajtu BGRx
     (pamet cairo na little-endian). Docasny soubor + prejmenovani: prechod nikdy nenacte pulku snimku.
-    Cist ho musi uzivatel relace (slozka LightDM je jeho, soubor patri greeteru) - proto 0644."""
+    Cist ho musi uzivatel relace (slozka LightDM je jeho, soubor patri greeteru) - proto 0644.
+    Do slozky muze zapisovat i uzivatel: docasny soubor proto vzdy novy s nahodnym jmenem (O_EXCL, nikdy
+    pres symbolicky odkaz) a prava pres fchmod - jinak by greeter prepsal nebo zpristupnil cizi soubor."""
     surf.flush()
     w, h, stride = surf.get_width(), surf.get_height(), surf.get_stride()
     data = surf.get_data()
-    tmp = path + ".tmp"
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".tmp", dir=os.path.dirname(path))
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(b"LUXFRAME1 %d %d\n" % (w, h))
@@ -738,7 +740,7 @@ def write_frame(path, surf):
                 mv = memoryview(data)
                 for y in range(h):
                     f.write(mv[y * stride:y * stride + w * 4])
-        os.chmod(tmp, 0o644)        # umask greeteru
+            os.fchmod(f.fileno(), 0o644)    # mkstemp vytvari 0600
         os.replace(tmp, path)
     except OSError:
         try:

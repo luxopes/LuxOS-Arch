@@ -379,6 +379,15 @@ class FirewallTest(unittest.TestCase):
         self.assertIn("damaged", r.stdout)
         self.assertIn("table inet luxos {", self.run_fw("render").stdout)
 
+    def test_damaged_config_backed_up_before_save(self):
+        """Zmena nastaveni pri poskozenem souboru: puvodni obsah zustane v firewall.json.damaged."""
+        self.write("etc/luxos/firewall.json", "{not json, allow 8080")
+        self.run_fw("allow", "8080/tcp")
+        with open(os.path.join(self.root, "etc/luxos/firewall.json.damaged")) as f:
+            self.assertEqual(f.read(), "{not json, allow 8080")
+        self.assertIn("8080", json.dumps(self.config()))
+        self.assertNotIn("damaged", self.run_fw("status").stdout)
+
     def test_bad_entries_ignored(self):
         self.write("etc/luxos/firewall.json", json.dumps({"enable": True, "allow": [
             {"port": "70000", "proto": "tcp"}, {"port": "22", "proto": "icmp"}, "x",
