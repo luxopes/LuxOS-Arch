@@ -478,9 +478,13 @@ class GuardWindow(Gtk.Window):
 
         def work():
             try:
-                done, kept = snap.restore(self.user_dir(p), home, overwrite=overwrite, skip_top=(".cache",))
+                backup = snap.before_restore_dir(home) if overwrite else None
+                done, kept = snap.restore(self.user_dir(p), home, overwrite=overwrite, skip_top=(".cache",),
+                                          backup=backup)
                 text = _("Restored %d files from %s (%d unchanged or newer kept).") % (
                     done, t.strftime("%Y-%m-%d %H:%M"), kept)
+                if backup and os.path.isdir(backup):
+                    text += " " + _("Replaced versions of the files were moved to %s.") % backup
             except OSError as e:
                 text = str(e)
             GLib.idle_add(finished, text)

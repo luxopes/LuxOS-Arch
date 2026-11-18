@@ -143,6 +143,24 @@ class Unlock(Base):
         self.assertEqual(args[0][-3:], ["-nonempty", VAULT, MNT])
         self.assertIn("-i", args[0])
 
+    def test_bad_settings_do_not_block_unlock(self):
+        """Rucne upraveny safe.json (text misto cisla, seznam, nesmysl): odemceni funguje s vychozimi hodnotami."""
+        for raw, idle in (('{"idle_minutes": "abc"}', 15), ('{"idle_minutes": "30"}', 30), ('[1, 2]', 15),
+                          ('{"idle_minutes": -5}', 15), ('{"idle_minutes": null}', 0), ('{"idle_minutes": [1]}', 15),
+                          ('not json', 15), ('{"idle_minutes": 0, "lock_on_screen_lock": "x"}', 0)):
+            with open(safe.CONF, "w") as f:
+                f.write(raw)
+            conf = safe.settings()
+            self.assertEqual(conf["idle_minutes"], idle, raw)
+            self.assertIsInstance(conf["lock_on_screen_lock"], bool)
+            self.set_mounts(*LOCKED)
+            args = []
+            with mock.patch.object(safe, "run_helper", lambda c: None), mock.patch.object(safe, "trust_launcher"), \
+                    mock.patch.object(safe, "run_pw", lambda a, p: args.append(a) or (0, "")), \
+                    mock.patch.object(safe, "state", lambda: "locked"):
+                self.assertIsNone(safe.unlock("password1"), raw)
+            self.assertEqual("-i" in args[0], idle > 0, raw)
+
     def test_wrong_password(self):
         self.set_mounts(*LOCKED)
         with mock.patch.object(safe, "run_helper") as rh, mock.patch.object(safe, "trust_launcher"), \

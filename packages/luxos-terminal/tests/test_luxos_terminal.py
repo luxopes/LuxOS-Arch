@@ -130,7 +130,8 @@ class CliTest(unittest.TestCase):
                 r = subprocess.run([BIN, "--logo-sixel", cell, mode], capture_output=True, env=env, timeout=30)
                 self.assertEqual(r.returncode, 0, r.stderr)
                 data, path = r.stdout.decode("latin-1").rsplit("\n", 2)[:2]
-                self.assertEqual(path, os.path.join(tmp, "luxos", "terminal", f"logo2-{cell}-{mode}.six"))
+                self.assertEqual(os.path.dirname(path), os.path.join(tmp, "luxos", "terminal"))
+                self.assertRegex(os.path.basename(path), rf"^logo3-{cell}-{mode}-\d+-[0-9a-f]+-[0-9a-f]+\.six$")
                 self.assertTrue(data.startswith("\x1bP0;1;0q"), "P2=1 (transparent background)")
                 cw, ch = map(int, cell.split("x"))
                 w, h, px = decode(data)
@@ -142,8 +143,17 @@ class CliTest(unittest.TestCase):
                 other = (255, 255, 255) if mode == "dark" else (0, 0, 0)
                 self.assertNotIn(other, set(px.values()))
             # podruhe z mezipameti (stejny soubor)
+            first = subprocess.run([BIN, "--logo-sixel", "9x20", "dark"], capture_output=True, env=env, timeout=30)
             r = subprocess.run([BIN, "--logo-sixel", "9x20", "dark"], capture_output=True, env=env, timeout=30)
-            self.assertTrue(r.stdout.decode("latin-1").endswith("logo2-9x20-dark.six\n"))
+            self.assertEqual(r.stdout, first.stdout)
+            # jiny zdroj loga (aktualizace brandingu): novy soubor v mezipameti, ne stary obrazek
+            src = os.path.join(tmp, "logo-copy" + os.path.splitext(logo_source())[1])
+            shutil.copy(logo_source(), src)
+            os.utime(src, (1000000000, 1000000000))
+            env2 = dict(env, LUXOS_TERMINAL_LOGO_SOURCE=src)
+            r2 = subprocess.run([BIN, "--logo-sixel", "9x20", "dark"], capture_output=True, env=env2, timeout=30)
+            self.assertNotEqual(r2.stdout.decode("latin-1").rsplit("\n", 2)[1],
+                                r.stdout.decode("latin-1").rsplit("\n", 2)[1])
 
 
 @unittest.skipUnless(UNDER_XVFB, "GUI only under xvfb-run (never on a real display)")
@@ -622,7 +632,7 @@ class GuiTest(unittest.TestCase):
         self.screenshot("fastfetch-logo")
         self.assertGreater(blue, 3000, "LuxOS logo image not drawn")
         caches = os.listdir(os.path.join(self.home, ".cache", "luxos", "terminal"))
-        self.assertTrue(any(c.endswith("-dark.six") for c in caches), caches)
+        self.assertTrue(any(c.startswith("logo3-") and "-dark-" in c for c in caches), caches)
 
     def x_server_ticks(self):
         """Cas CPU (tiky) X serveru teto virtualni obrazovky."""

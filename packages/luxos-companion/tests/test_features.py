@@ -527,6 +527,21 @@ class TestLuxAI(unittest.TestCase):
         rid = self.ask("znovu")                                             # novy proces
         self.assertEqual(self.until_done(rid)[-1]["type"], "luxai.done")
 
+    def test_unsent_lines_not_delivered_to_next_process(self):
+        """Radky, ktere se staremu procesu LuxAI nestihly zapsat (plna roura), po jeho padu zahodit -
+        jinak by je dostal novy proces (stary pozadavek nebo souhlas v nove relaci)."""
+        rid = self.ask("crash")
+        self.assertTrue(pump(lambda: os.path.exists(self.log) and '"crash"' in open(self.log, encoding="utf-8").read(), 8))
+        br = self.s.luxai
+        stale = json.dumps({"type": "request", "id": "stale-1", "text": "STALE", "mode": "agent"}).encode() + b"\n"
+        br.write_queue.append(stale)        # cekajici zapis pro stary proces (roura plna)
+        br.writing = True
+        got = self.until_done(rid)
+        self.assertEqual((got[-1]["type"], got[-1]["code"]), ("error", "luxai_failed"))
+        rid = self.ask("znovu")
+        self.assertEqual(self.until_done(rid)[-1]["type"], "luxai.done")
+        self.assertNotIn("STALE", json.dumps(self.logged()))
+
     def test_big_delta_is_split_into_frames(self):
         rid = self.ask("big")
         got = self.until_done(rid)

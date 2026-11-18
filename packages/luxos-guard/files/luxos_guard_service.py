@@ -146,6 +146,15 @@ GIT_HOOK_SAMPLE = re.compile(r"/\.git/(?:worktrees/[^/]+/)?hooks/[^/]+\.sample$|
 TEMP_DOWNLOAD = re.compile(r"\.(?:part|crdownload|download|partial|tmp)$|/\.[^/]*\.part$|Unconfirmed \d+")
 
 
+MOUNT_ESCAPE = re.compile(r"\\([0-7]{3})")
+
+
+def unescape_mount(text):
+    """Jadro v mountinfo koduje mezeru, tabulator, novy radek a zpetne lomitko oktalove (\\040 \\011 \\012
+    \\134). Drive se dekodovala jen mezera - USB s takovym znakem v nazvu se pak nedalo hlidat."""
+    return MOUNT_ESCAPE.sub(lambda m: chr(int(m.group(1), 8)), text)
+
+
 def read_mounts(path="/proc/self/mountinfo"):
     """[(bod pripojeni, typ FS)]"""
     out = []
@@ -157,7 +166,7 @@ def read_mounts(path="/proc/self/mountinfo"):
                     sep = parts.index("-")
                 except ValueError:
                     continue
-                out.append((parts[4].replace("\\040", " "), parts[sep + 1]))
+                out.append((unescape_mount(parts[4]), parts[sep + 1]))
     except OSError:
         pass
     return out
@@ -192,6 +201,15 @@ def removable_mounts(mounts):
 
 
 # ---- klient na socketu ------------------------------------------------------------------------
+# Socket je 0666 (prikazy luxos-guard pro kazdeho uzivatele), takze vse od klienta je neduveryhodne:
+# omezeny pocet spojeni, predanych deskriptoru i neodeslanych odpovedi; hlavni smycka nikdy neceka
+# na socket klienta (na ni cekaji odpovedi fanotify = spousteni programu v celem systemu).
+MAX_CLIENTS = 128               # vsech spojeni
+MAX_CLIENTS_PER_UID = 32        # jednoho uzivatele (root bez limitu)
+MAX_CLIENT_FDS = 2              # predane soubory cekajici na prikaz allow/check
+MAX_CLIENT_OUT = 256 * 1024     # neodeslane odpovedi navic k jedne cekajici; vic = klient necte -> odpojit
+
+
 class Client:
     def __init__(self, sock, uid, pid, gid=None, pidfd=None):
         self.sock = sock
@@ -200,24 +218,45 @@ class Client:
         self.gid = gid
         self.pidfd = pidfd          # SO_PEERPIDFD: presne proces, ktery se pripojil (ne jen cislo PID)
         self.buf = b""
+        self.out = b""
         self.fds = []
         self.agent = False
         self.closed = False
+        self.broken = False         # necte odpovedi / chyba socketu: smycka serve() ho odpoji
+        self.pollout = False        # smycka hlida i POLLOUT (ceka neodeslana odpoved)
 
     def send(self, obj):
-        data = (json.dumps(obj, ensure_ascii=False) + "\n").encode()
-        try:
-            self.sock.setblocking(True)
-            self.sock.settimeout(2)
-            self.sock.sendall(data)
-            return True
-        except OSError:
+        """Bez blokovani: co se nevejde do socketu, ceka v self.out (odesle smycka pri POLLOUT)."""
+        if self.closed or self.broken:
             return False
-        finally:
+        data = (json.dumps(obj, ensure_ascii=False) + "\n").encode()
+        if self.out and len(self.out) + len(data) > MAX_CLIENT_OUT:
+            # predchozi odpovedi porad necte (jedna velka odpoved, napr. "list", projde vzdy)
+            self.broken = True
+            self.out = b""
+            return False
+        self.out += data
+        return self.flush()
+
+    def flush(self):
+        while self.out:
             try:
-                self.sock.setblocking(False)
+                n = self.sock.send(self.out, socket.MSG_DONTWAIT | socket.MSG_NOSIGNAL)
+            except (BlockingIOError, InterruptedError):
+                return True
             except OSError:
-                pass
+                self.broken = True
+                self.out = b""
+                return False
+            self.out = self.out[n:]
+        return True
+
+    def add_fds(self, fds):
+        for fd in fds:
+            if len(self.fds) < MAX_CLIENT_FDS:
+                self.fds.append(fd)
+            else:
+                close_fd(fd)
 
     def close(self):
         self.closed = True
@@ -557,6 +596,8 @@ class Guard:
     # ---- odpovedi a prikazy klientu
     def on_message(self, client, msg):
         op = msg.get("op")
+        if not isinstance(op, str):
+            return {"op": "error", "error": "unknown op"}
         if op == "hello":
             reply = {"op": "hello", "version": core.VERSION}
             if msg.get("role") == "agent" and not client.agent:
@@ -577,7 +618,7 @@ class Guard:
             return reply
         if op == "answer":
             rid = msg.get("id")
-            a = self.asks.get(rid)
+            a = self.asks.get(rid) if type(rid) is int else None
             if a is None or not client.agent or (a["uid"] != client.uid and client.uid != 0):
                 return {"op": "error", "error": "unknown request"}
             choice = msg.get("choice")
@@ -946,8 +987,15 @@ def serve(guard, sock_path=core.SOCKET):
     mi = open("/proc/self/mountinfo", "rb")
     poller.register(mi.fileno(), select.POLLPRI | select.POLLERR)
     clients = {}
+    guard._clients = clients
     last_save = 0
     while True:
+        for fdno, c in list(clients.items()):
+            if c.broken or c.closed:
+                _drop(guard, poller, clients, fdno)
+            elif bool(c.out) != c.pollout:
+                c.pollout = bool(c.out)
+                poller.modify(fdno, select.POLLIN | (select.POLLOUT if c.pollout else 0))
         for fdno, ev in poller.poll(1000):
             if fdno == guard.perm.fileno():
                 for mask, fd, pid in guard.perm.read():
@@ -963,6 +1011,11 @@ def serve(guard, sock_path=core.SOCKET):
                 conn.setblocking(False)
                 pid, uid, gid = struct.unpack("3i", conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED,
                                                                     struct.calcsize("3i")))
+                if uid != 0 and (len(clients) >= MAX_CLIENTS or
+                                 sum(1 for x in clients.values() if x.uid == uid) >= MAX_CLIENTS_PER_UID):
+                    guard.stats["refused_clients"] = guard.stats.get("refused_clients", 0) + 1
+                    conn.close()
+                    continue
                 c = Client(conn, uid, pid, gid, peer_pidfd(conn))
                 clients[conn.fileno()] = c
                 poller.register(conn.fileno(), select.POLLIN)
@@ -974,39 +1027,10 @@ def serve(guard, sock_path=core.SOCKET):
                 guard.update_mounts()
             elif fdno in clients:
                 c = clients[fdno]
-                try:
-                    data, anc, _fl, _ad = c.sock.recvmsg(65536, socket.CMSG_SPACE(4 * 4))
-                except (BlockingIOError, InterruptedError):
-                    continue
-                except OSError:
-                    data = b""
-                    anc = []
-                for level, typ, cdata in anc:
-                    if level == socket.SOL_SOCKET and typ == socket.SCM_RIGHTS:
-                        n = len(cdata) // 4
-                        c.fds.extend(struct.unpack(f"{n}i", cdata[:n * 4]))
-                if not data:
-                    poller.unregister(fdno)
-                    clients.pop(fdno, None)
-                    guard.drop_client(c)
-                    continue
-                c.buf += data
-                if len(c.buf) > 256 * 1024:
-                    poller.unregister(fdno)
-                    clients.pop(fdno, None)
-                    guard.drop_client(c)
-                    continue
-                while b"\n" in c.buf:
-                    line, c.buf = c.buf.split(b"\n", 1)
-                    try:
-                        msg = json.loads(line)
-                        if not isinstance(msg, dict):
-                            raise ValueError
-                    except ValueError:
-                        continue
-                    reply = guard.on_message(c, msg)
-                    if reply is not None:
-                        c.send(reply)
+                if ev & select.POLLOUT:
+                    c.flush()
+                if ev & (select.POLLIN | select.POLLHUP | select.POLLERR):
+                    on_client_data(guard, poller, clients, fdno, c)
         guard.tick()
         if guard.state.dirty and time.monotonic() - last_save > 2:
             try:
@@ -1014,6 +1038,52 @@ def serve(guard, sock_path=core.SOCKET):
             except OSError as e:
                 log(f"saving state failed: {e}")
             last_save = time.monotonic()
+
+
+def _drop(guard, poller, clients, fdno):
+    try:
+        poller.unregister(fdno)
+    except (KeyError, ValueError):
+        pass
+    c = clients.pop(fdno, None)
+    if c is not None:
+        guard.drop_client(c)
+
+
+def on_client_data(guard, poller, clients, fdno, c):
+    try:
+        data, anc, _fl, _ad = c.sock.recvmsg(65536, socket.CMSG_SPACE(4 * 4))
+    except (BlockingIOError, InterruptedError):
+        return
+    except OSError:
+        data = b""
+        anc = []
+    for level, typ, cdata in anc:
+        if level == socket.SOL_SOCKET and typ == socket.SCM_RIGHTS:
+            n = len(cdata) // 4
+            c.add_fds(struct.unpack(f"{n}i", cdata[:n * 4]))
+    if not data:
+        _drop(guard, poller, clients, fdno)
+        return
+    c.buf += data
+    if len(c.buf) > 256 * 1024:
+        _drop(guard, poller, clients, fdno)
+        return
+    while b"\n" in c.buf and not c.closed:
+        line, c.buf = c.buf.split(b"\n", 1)
+        try:
+            msg = json.loads(line)
+            if not isinstance(msg, dict):
+                raise ValueError
+        except (ValueError, RecursionError):
+            continue
+        try:
+            reply = guard.on_message(c, msg)
+        except Exception as e:  # noqa: BLE001 - zprava od klienta nesmi ukoncit sluzbu
+            log(f"bad request from pid {c.pid} (uid {c.uid}): {type(e).__name__}")
+            reply = {"op": "error", "error": "bad request"}
+        if reply is not None:
+            c.send(reply)
 
 
 def notif_reader(guard):

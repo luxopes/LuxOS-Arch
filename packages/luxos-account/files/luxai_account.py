@@ -35,7 +35,21 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
-ORIGIN = os.environ.get("LUXAI_ORIGIN", "https://lux-ai.cz")
+DEFAULT_ORIGIN = "https://lux-ai.cz"
+
+
+def _origin(value):
+    """LUXAI_ORIGIN (vyvoj, testy): https kamkoli, http jen na tento pocitac - session cookie nesmi jit
+    nesifrovane po siti."""
+    u = urlparse(value or "")
+    if u.scheme == "https" and u.hostname:
+        return value.rstrip("/")
+    if u.scheme == "http" and u.hostname in ("127.0.0.1", "localhost", "::1"):
+        return value.rstrip("/")
+    return DEFAULT_ORIGIN
+
+
+ORIGIN = _origin(os.environ.get("LUXAI_ORIGIN", DEFAULT_ORIGIN))
 COOKIE = "lux_account_session"
 CLIENT = "luxos"
 CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxai")
@@ -176,7 +190,8 @@ def request(method, path, body=None, token=None, origin=ORIGIN, timeout=20):
     if data is not None:
         req.add_header("Content-Type", "application/json")
     if token:
-        req.add_header("Cookie", f"{COOKIE}={token}")
+        # jen pro tento pozadavek: urllib jinak cookie preda i na cil presmerovani (jiny server, http)
+        req.add_unredirected_header("Cookie", f"{COOKIE}={token}")
     for attempt in range(NET_RETRIES):
         try:
             return _send(req, timeout)
@@ -210,7 +225,13 @@ def _send(req, timeout):
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=ssl.create_default_context()) as r:
             raw = r.read()
-            return json.loads(raw or b"{}")
+        try:
+            data = json.loads(raw or b"{}")
+        except ValueError:
+            data = None             # napr. HTML stranka proxy nebo portalu Wi-Fi misto API
+        if not isinstance(data, dict):
+            raise AccountError("http", r.status)
+        return data
     except urllib.error.HTTPError as e:
         try:
             with e:
@@ -596,6 +617,7 @@ class WebLogin:
         self.challenge = base64.urlsafe_b64encode(hashlib.sha256(self.verifier.encode()).digest()).rstrip(b"=").decode()
         self.code = self.error = ""
         self.done = threading.Event()
+        self.closed = False
         login = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -608,6 +630,11 @@ class WebLogin:
                 ok = u.path == "/callback" and q.get("state", [""])[0] == login.state and q.get("code", [""])[0]
                 if u.path != "/callback":
                     self.send_response(404)
+                    self.end_headers()
+                    return
+                if not secrets.compare_digest(q.get("state", [""])[0].encode(), login.state.encode()):
+                    # cizi odkaz (jina stranka, stary pokus): probihajici prihlaseni nerusit
+                    self.send_response(400)
                     self.end_headers()
                     return
                 if ok:
@@ -644,6 +671,8 @@ class WebLogin:
         try:
             if not self.done.wait(timeout):
                 raise AccountError("timeout")
+            if self.closed and not self.code:
+                raise AccountError("cancelled")
             if not self.code:
                 raise AccountError(self.error or "cancelled")
             return _finish(request("POST", "/api/ide/token", {"code": self.code, "verifier": self.verifier}))
@@ -651,6 +680,9 @@ class WebLogin:
             self.close()
 
     def close(self):
+        """Ukonci cekani (wait() hned skonci "cancelled", ne az po 10 minutach) i server pro callback."""
+        self.closed = True
+        self.done.set()
         try:
             self.server.shutdown()
             self.server.server_close()

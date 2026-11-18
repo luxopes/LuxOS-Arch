@@ -113,12 +113,23 @@ def state():
 
 
 def settings():
+    """Nastaveni z ~/.config; rucne upraveny nebo poskozeny soubor nesmi zablokovat odemceni
+    (napr. "idle_minutes": "15" nebo "abc" - neplatna hodnota = vychozi)."""
     data = {"idle_minutes": 15, "lock_on_screen_lock": True}
     try:
         with open(CONF) as f:
-            data.update(json.load(f))
+            raw = json.load(f)
     except (OSError, ValueError):
-        pass
+        raw = None
+    if isinstance(raw, dict):
+        data.update(raw)
+    try:
+        idle = int(data.get("idle_minutes") or 0)
+    except (TypeError, ValueError):
+        idle = 15
+    data["idle_minutes"] = idle if 0 <= idle <= 24 * 60 else 15
+    if not isinstance(data.get("lock_on_screen_lock"), bool):
+        data["lock_on_screen_lock"] = True
     return data
 
 

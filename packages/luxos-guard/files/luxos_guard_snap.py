@@ -17,6 +17,7 @@ import re
 import shutil
 import stat
 import subprocess
+import time
 
 from luxos_guard_core import SNAP_DIR_NAME
 
@@ -169,12 +170,33 @@ def user_snapshot_dir(snap_path, home_dir, home=HOME):
     return os.path.join(snap_path, rel)
 
 
-def restore(src, dest, overwrite=False, dry_run=False, skip_top=()):
+def before_restore_dir(home_dir, now=None):
+    """Kam obnova s prepsanim presune soucasne verze souboru: ~/.local/share/luxos-guard/before-restore/<cas>
+    (stejny souborovy system jako domov - presun nezabira misto)."""
+    stamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(now))
+    return os.path.join(home_dir, ".local", "share", "luxos-guard", "before-restore", stamp)
+
+
+def restore(src, dest, overwrite=False, dry_run=False, skip_top=(), backup=None):
     """Zkopiruje src (soubor nebo slozku ve snimku) do dest. Bez overwrite jen chybejici soubory
     (obnova smazanych), s overwrite i zmenene (napr. zasifrovane ransomwarem). Novejsi soubory, ktere
     ve snimku nejsou, nemaze nikdy. Symlinky kopiruje jako symlinky. skip_top: jmena v nejvyssi urovni,
-    ktera se preskoci (cela slozka domova bez .cache). Vraci (obnoveno, preskoceno)."""
+    ktera se preskoci (cela slozka domova bez .cache). backup: slozka, kam se pred prepsanim presune
+    soucasna verze (se stejnou relativni cestou) - zmeny od snimku se tak neztrati; kdyz presun selze,
+    soubor se neprepise. Vraci (obnoveno, preskoceno)."""
     restored = skipped = 0
+    dest_root = dest
+
+    def keep_current(d):
+        """Presune soucasnou verzi d do zalohy; False = nepodarilo se (soubor pak zustane)."""
+        rel = os.path.relpath(d, dest_root) if d != dest_root else os.path.basename(d)
+        b = os.path.join(backup, rel)
+        try:
+            os.makedirs(os.path.dirname(b), exist_ok=True)
+            os.rename(d, b)
+            return True
+        except OSError:
+            return False
 
     def copy_file(s, d):
         nonlocal restored, skipped
@@ -196,7 +218,12 @@ def restore(src, dest, overwrite=False, dry_run=False, skip_top=()):
             restored += 1
             return
         if dst is not None:
-            os.unlink(d)
+            if backup:
+                if not keep_current(d):
+                    skipped += 1
+                    return
+            else:
+                os.unlink(d)
         if stat.S_ISLNK(sst.st_mode):
             os.symlink(os.readlink(s), d)
         elif stat.S_ISREG(sst.st_mode):

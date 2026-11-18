@@ -313,8 +313,15 @@ function load_config():
 end
 
 function save_config(cfg):
+    global config_error
     call sys.mkdir(ROOT + "/etc", 493)
     call sys.mkdir(ROOT + "/etc/luxos", 493)
+    if config_error != "" and exists(CONFIG):
+        # poskozeny soubor neprepsat bez zalohy (vyjimky v nem lze dohledat a obnovit rucne)
+        if sys.rename(CONFIG, CONFIG + ".damaged"):
+            config_error = ""
+        end
+    end
     call write_file(CONFIG, json.pretty(cfg) + "\n")
     return None
 end

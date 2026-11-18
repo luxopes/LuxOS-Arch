@@ -63,10 +63,42 @@ R_SELF = R_GUARD
 R_UNSURE = "the target of a destructive command cannot be verified"
 
 # ---- predani hesla do sudo/su ----------------------------------------------------------------
-_SUDO_OPT = (r"(?:-[A-Za-z]*[ugpChDrtTU]\s+\S+|--(?:user|group|prompt|close-from|host|chdir|role|type|"
-             r"command-timeout|other-user)(?:=\S+|\s+\S+)|-[A-Za-z]+|--[\w-]+(?:=\S+)?)")
-_SUDO_STDIN = re.compile(r"(?:^|[^\w.-])(?:\S*/)?sudo(?:\s+" + _SUDO_OPT +
-                         r")*?\s+(?:-[A-Za-z]*S[A-Za-z]*|--stdin)(?=$|[\s'\";|&)])")
+# Drive jeden regularni vyraz se zanorenym opakovanim voleb: "sudo -p -p -p ... x" mel exponencialni
+# cas (34 opakovani = 9 s v analyze). Ted text projde jednou po slovech (linearne): za kazdym sudo se
+# sleduji vsechna mista, kde muze zacinat dalsi volba (volba muze, ale nemusi brat argument).
+_SUDO_END = re.compile(r"(?:^|.*[^\w.-])sudo")                    # slovo konci samostatnym sudo / cestou .../sudo
+_SUDO_S = re.compile(r"(?:-[A-Za-z]*S[A-Za-z]*|--stdin)(?:$|['\";|&)])")
+_SUDO_ARG_SHORT = re.compile(r"-[A-Za-z]*[ugpChDrtTU]")            # cele slovo; dalsi slovo = argument
+_SUDO_ARG_LONG = re.compile(r"--(?:user|group|prompt|close-from|host|chdir|role|type|command-timeout|other-user)")
+_SUDO_FLAG = re.compile(r"-[A-Za-z]+|--[\w-]+(?:=\S+)?")
+_WORD = re.compile(r"\S+")
+
+
+def _sudo_stdin(text):
+    """True, kdyz nektere volani sudo ma mezi volbami -S/--stdin (napr. sudo -u root -S prikaz)."""
+    if "sudo" not in text:
+        return False
+    reach = set()                       # poradi slov, kde muze zacinat volba nektereho sudo
+    for k, wm in enumerate(_WORD.finditer(text)):
+        w = wm.group()
+        if k in reach:
+            reach.discard(k)
+            if _SUDO_S.match(w):
+                return True
+            if _SUDO_ARG_SHORT.fullmatch(w) or _SUDO_ARG_LONG.fullmatch(w):
+                reach.add(k + 2)        # volba s argumentem v dalsim slove
+            if _SUDO_FLAG.fullmatch(w):
+                reach.add(k + 1)        # volba bez argumentu (nebo --volba=hodnota)
+        if w.endswith("sudo") and _SUDO_END.fullmatch(w):
+            reach.add(k + 1)
+    return False
+
+
+class _SudoStdin:
+    search = staticmethod(_sudo_stdin)
+
+
+_SUDO_STDIN = _SudoStdin()
 _PASSWORD_FEED = (
     _SUDO_STDIN,
     re.compile(r"\bSUDO_ASKPASS\s*="),

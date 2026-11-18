@@ -243,10 +243,13 @@ def cmd_restore(args):
     src = os.path.join(snap.user_snapshot_dir(sp, home), os.path.relpath(target, home))
     if not os.path.lexists(src):
         die(_("%s is not in the snapshot from %s.") % (target, t.strftime("%Y-%m-%d %H:%M")))
-    done, skipped = snap.restore(src, target, overwrite=overwrite, dry_run=dry)
+    backup = snap.before_restore_dir(home) if overwrite and not dry else None
+    done, skipped = snap.restore(src, target, overwrite=overwrite, dry_run=dry, backup=backup)
     msg = _("Would restore %d files (%d unchanged or newer kept).") if dry else \
         _("Restored %d files from %s (%d unchanged or newer kept).")
     print(msg % (done, skipped) if dry else msg % (done, t.strftime("%Y-%m-%d %H:%M"), skipped))
+    if backup and os.path.isdir(backup):
+        print(_("Replaced versions of the files were moved to %s.") % backup)
     return 0
 
 
