@@ -306,6 +306,7 @@ Later	Később
 Restart now?	Újraindítod most?
 Config needs DISK, USERNAME and PASSWORD	A konfigurációnak tartalmaznia kell a DISK, USERNAME és PASSWORD értéket
 Invalid USERNAME	Érvénytelen USERNAME
+Invalid PASSWORD	Érvénytelen PASSWORD
 Invalid HOSTNAME_SEL	Érvénytelen HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	Az ENCRYPT=1 beállításhoz LUKS_PASS szükséges
 # Rozlozeni klavesnice (instalator)
@@ -1689,6 +1690,8 @@ The volume group %s was not found.	A(z) %s kötetcsoport nem található.
 The logical volume %s was not found.	A(z) %s logikai kötet nem található.
 The name %s is already used by an open volume.	A(z) %s nevet már egy megnyitott kötet használja.
 %s cannot be resized (only ext4, btrfs and NTFS).	A(z) %s mérete nem módosítható (csak ext4, btrfs és NTFS).
+Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again.	A(z) %s Windows rendszere nincs teljesen leállítva (hibernálás vagy gyors rendszerindítás). Indítsa el a Windowst, és a Shift billentyűt nyomva tartva állítsa le, majd próbálja újra.
+Windows must check the disk %s first. Start Windows, restart it once, then try again.	A Windowsnak előbb ellenőriznie kell a(z) %s lemezt. Indítsa el a Windowst, indítsa újra egyszer, majd próbálja újra.
 The kept EFI system partition %s is not FAT32.	A megtartott %s EFI rendszerpartíció nem FAT32.
 The EFI system partition %s is smaller than 300 MB.	A(z) %s EFI rendszerpartíció kisebb 300 MB-nál.
 ERASE the whole disk %s	A teljes %s lemez TÖRLÉSE
@@ -1984,6 +1987,7 @@ DISK_MODE=partition needs ROOT_PART	A DISK_MODE=partition módhoz ROOT_PART szü
 %s cannot be used as /home: %s	A(z) %s nem használható /home-ként: %s
 does not exist	nem létezik
 not a partition	nem partíció
+not a whole disk	nem teljes lemez
 installation medium	telepítő adathordozó
 in use (mounted)	használatban (csatolva)
 extended partition	kiterjesztett partíció

@@ -9,6 +9,9 @@
 #    dlouho). Mimo cekani na heslo se ale pocita nejvys LUXOS_ROOT_WAIT s (90, parametr jadra
 #    luxos.root_wait=); kdyz se koren do te doby neobjevi, spusti se nouzovy rezim:
 #    luxos-boot-failure ulozi zaznam na EFI oddil a vypise, co delat.
+#    Jakmile se systemovy disk objevi (initrd-root-device.target), limit konci: kontrola disku
+#    (fsck muze trvat i minuty) a pripojeni korene hlida systemd sam (selhani -> nouzovy rezim
+#    se zaznamem pres luxos-emergency.conf), dlouha kontrola tedy neni "neuspesny start".
 set -u
 ROOT=${LUXOS_BOOT_ROOT:-}
 SYSROOT=${LUXOS_BOOT_SYSROOT:-/sysroot}
@@ -69,6 +72,10 @@ asking() {  # ceka se na heslo (systemd-ask-password) - cas na psani se nepocita
     compgen -G "$ROOT/run/systemd/ask-password/ask.*" >/dev/null
 }
 
+root_found() {  # systemovy disk se objevil (dalsi kroky - fsck, pripojeni - uz hlida systemd)
+    systemctl is-active --quiet initrd-root-device.target 2>/dev/null
+}
+
 timeout_now() {
     echo "$TTY_ROOT_TIMEOUT" >"$ROOT/run/luxos-boot-reason" 2>/dev/null
     say "$MSG_ROOT_TIMEOUT" "$TTY_ROOT_TIMEOUT"
@@ -80,6 +87,7 @@ watch_root() {
     # tak skonci nouzovym rezimem se zaznamem, i kdyz je na zarizeni limit vypnuty
     local waited=0
     until mountpoint -q "$SYSROOT"; do
+        root_found && return 0
         if asking; then
             waited=0
         elif ((waited >= WAIT)); then

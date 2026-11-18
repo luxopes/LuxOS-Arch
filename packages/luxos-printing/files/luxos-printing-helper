@@ -127,8 +127,13 @@ def browse(types):
 
 
 def cups_queues():
-    """{fronta: device-uri} (lpstat -v, bez zavislosti na jazyku)."""
-    rc, out, _err = run(["lpstat", "-v"], 20)
+    """{fronta: device-uri} (lpstat -v, bez zavislosti na jazyku), None = CUPS nedostupny.
+
+    Prazdny seznam a nedostupny cupsd se musi lisit: jinak by sync povazoval vsechny fronty
+    za odebrane uzivatelem a uz je nikdy nepridal."""
+    rc, out, err = run(["lpstat", "-v"], 20)
+    if rc and not out.strip():
+        return {} if "no destinations" in err.lower() else None
     q = {}
     for line in out.splitlines():
         m = re.match(r"^device for (\S+): (.*)$", line)
@@ -373,7 +378,7 @@ LAST_SERVICES = None   # sluzby z posledniho avahi-browse v discover() (sync je 
 
 def discover(st):
     global LAST_SERVICES
-    queues = cups_queues()
+    queues = cups_queues() or {}
     LAST_SERVICES = browse(lp.PRINTER_TYPES)
     nets = lp.group_printers(LAST_SERVICES).values()
     devs = []
@@ -397,6 +402,10 @@ def cmd_sync(st, only_key=None):
     limited = False
     # Fronty odebrane jinym nastrojem: uzivatel je nechce, znovu je nepridavat
     queues = cups_queues()
+    if queues is None:
+        # cupsd nebezi / neodpovida: o frontach nic nevime, nic neoznacovat ani nezakladat
+        log("CUPS is not available - printers not synchronized")
+        return []
     for name in list(st["queues"]):
         if name not in queues:
             key = st["queues"].pop(name)["key"]
@@ -499,7 +508,7 @@ def queue_overview():
         return {} if "no destinations" in err.lower() else None
     qs = lp.parse_lpstat_p(out)
     acc = lp.parse_lpstat_a(run(["lpstat", "-a"], 20)[1])
-    uris = cups_queues()
+    uris = cups_queues() or {}
     for name, q in qs.items():
         q["accepting"] = acc.get(name, True)
         q["uri"] = uris.get(name, "")
@@ -572,12 +581,12 @@ def migrate(st):
     nekdo jiny (system-config-printer). Politiku, kterou nekdo zvolil sam (abort-job...), nemeni."""
     if st.get("policy_version", 0) >= POLICY_VERSION:
         return
-    rc, out, err = run(["lpstat", "-v"], 20)
-    if rc and not out.strip() and "no destinations" not in err.lower():
+    queues = cups_queues()
+    if queues is None:
         return                          # CUPS nedostupny (chroot instalatoru) - priste
     conf = read_printers_conf() or {}
     ok = True
-    for name, uri in cups_queues().items():
+    for name, uri in queues.items():
         own = st["queues"].get(name)
         if not (lp.is_local_uri(uri) or (own and own.get("usb"))):
             continue
@@ -737,7 +746,7 @@ def main(argv):
             elif cmd == "remove" and len(args) == 1:
                 name = args[0]
                 q = st["queues"].pop(name, None)
-                uri = cups_queues().get(name)
+                uri = (cups_queues() or {}).get(name)
                 rc, _o, err = run(["lpadmin", "-x", name], 30)
                 if rc:
                     print(err, file=sys.stderr)

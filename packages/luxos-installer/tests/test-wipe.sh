@@ -370,14 +370,15 @@ expect "C5: GUI model: novy oddil, formatovane LV, nove LV v zachovane VG; ne /h
 # ---------------------------------------------------------------------------------
 echo "## D: automaticke rezimy (prepare_disk, prepare_freespace z luxos-install)"
 # Funkce z instalatoru; [[ -b ]] nelze nahradit funkci -> v kopii pres ly_isblk (emulace)
-for f in part_path encrypt_root wipe_new_parts mount_root prepare_disk prepare_freespace free_partnum; do
+for f in part_path encrypt_root wipe_new_parts mount_root prepare_disk prepare_freespace free_partnum \
+         disk_check require_disk part_reason; do
     sed -n "/^$f() {/,/^}/p" "$FILES/luxos-install"
 done | sed -e 's/\[\[ -b \$BOOTPART && -b \$rootpart \]\]/{ ly_isblk "$BOOTPART" \&\& ly_isblk "$rootpart"; }/' \
            -e 's/\[\[ -b \$rootpart \]\]/ly_isblk "$rootpart"/' \
            -e 's/\[\[ -b \$p \]\]/ly_isblk "$p"/' >"$OUT/auto.sh"
 expect "D: extrakce a nahrada -b" bash -c "grep -q '^prepare_disk() {' '$OUT/auto.sh' && ! grep -q '\[\[ -b' '$OUT/auto.sh'"
 auto_case() {  # auto_case JMENO DISKY KOD
-    run_case "$1" "$2" '. "'"$OUT"'/auto.sh"; ENCRYPT=${ENCRYPT:-1}
+    run_case "$1" "$2" '. "'"$OUT"'/auto.sh"; ENCRYPT=${ENCRYPT:-1}; iso_disk() { :; }
         # instalator pise "-n1:0:+1G" (spojene, G); emulace umi "-n 1:0:+1024M"
         eval "mock_sgdisk_orig () $(declare -f sgdisk | tail -n +2)"
         sgdisk() {

@@ -306,6 +306,7 @@ Later	Пізніше
 Restart now?	Перезавантажити зараз?
 Config needs DISK, USERNAME and PASSWORD	Конфігурація має містити DISK, USERNAME і PASSWORD
 Invalid USERNAME	Недійсне значення USERNAME
+Invalid PASSWORD	Недійсний PASSWORD
 Invalid HOSTNAME_SEL	Недійсне значення HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 потребує LUKS_PASS
 # Rozlozeni klavesnice (instalator)
@@ -1690,6 +1691,8 @@ The volume group %s was not found.	Групу томів %s не знайден�
 The logical volume %s was not found.	Логічний том %s не знайдено.
 The name %s is already used by an open volume.	Назву %s уже використовує відкритий том.
 %s cannot be resized (only ext4, btrfs and NTFS).	Розмір %s не можна змінити (лише ext4, btrfs і NTFS).
+Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again.	Windows на %s вимкнено не повністю (глибокий сон або швидкий запуск). Запустіть Windows і вимкніть її, утримуючи Shift, потім спробуйте ще раз.
+Windows must check the disk %s first. Start Windows, restart it once, then try again.	Windows має спочатку перевірити диск %s. Запустіть Windows, перезапустіть її один раз і спробуйте ще раз.
 The kept EFI system partition %s is not FAT32.	Збережений системний розділ EFI %s не є FAT32.
 The EFI system partition %s is smaller than 300 MB.	Системний розділ EFI %s менший за 300 МБ.
 ERASE the whole disk %s	СТЕРТИ весь диск %s
@@ -1985,6 +1988,7 @@ DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition потребує ROOT_PA
 %s cannot be used as /home: %s	%s не можна використати як /home: %s
 does not exist	не існує
 not a partition	не розділ
+not a whole disk	не цілий диск
 installation medium	інсталяційний носій
 in use (mounted)	використовується (змонтовано)
 extended partition	розширений розділ

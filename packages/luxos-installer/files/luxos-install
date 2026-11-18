@@ -650,10 +650,15 @@ oem_user_text() {
     else T "the owner creates it at the first start (OEM); until sealing: temporary account %s" "$OEM_USER"; fi
 }
 
+oem_encrypted() {  # / je sifrovany docasnym klicem (Sifrovat LuxOS: erase/freespace i existujici oddil)
+    # Rezim partition popisuje sifrovani v LAYOUT (ENCRYPT=0, PART_ENCRYPT=1), svazek je take cryptroot
+    ((ENCRYPT || ${PART_ENCRYPT:-0}))
+}
+
 oem_prepare_target() {  # pred setup-chroot (mkinitcpio): stav OEM, docasny klic disku do initramfs
     local user="" luks=""
     ((${OEM_SEAL:-1})) || user=$OEM_USER
-    ((ENCRYPT)) && luks=$OEM_LUKS_NAME
+    oem_encrypted && luks=$OEM_LUKS_NAME
     install -Dm644 /dev/stdin "$TARGET/etc/luxos/oem.conf" <<C
 # LuxOS - pocitac pripraveny pro jineho cloveka (luxos-oem)
 OEM=1
@@ -671,7 +676,7 @@ Exec=luxos-install-gui
 NoDisplay=true
 Hidden=true
 C
-    if ((ENCRYPT)); then
+    if oem_encrypted; then
         install -d -m700 "$TARGET/etc/cryptsetup-keys.d"
         (umask 077; printf '%s' "$LUKS_PASS" >"$TARGET/etc/cryptsetup-keys.d/$OEM_LUKS_NAME.key")
         chmod 0400 "$TARGET/etc/cryptsetup-keys.d/$OEM_LUKS_NAME.key"
@@ -1315,10 +1320,35 @@ part_peek() {  # part_peek DEV FSTYPE -> PP_CONTENT, PP_NAME, PP_SUBVOL (pripoji
 
 part_other_os() { [[ $1 == @(windows|os|macos|bitlocker) ]]; }   # obsah = jiny operacni system
 
+disk_check() {  # disk_check DISK REZIM(erase|freespace) -> duvod (part_reason), proc disk nelze pouzit; prazdne = lze
+    # DISK muze prijit z --config (bez vyberu ze seznamu): overit cely disk, ne instalacni medium, nic pripojeneho
+    local disk=$1 real iso m
+    ly_isblk "$disk" || { echo not_found; return 0; }
+    real=$(readlink -f -- "$disk" 2>/dev/null || echo "$disk")
+    [[ $(lsblk -dno TYPE "$disk" 2>/dev/null | tr -d ' ') == disk ]] || { echo not_disk; return 0; }
+    iso=$(iso_disk)
+    [[ -n $iso && $real == "/dev/$iso" ]] && { echo iso; return 0; }
+    if [[ $2 == erase ]]; then
+        # swap a $TARGET odpoji prepare_disk sam; cokoli jineho pripojeneho by smazani rozbilo napul
+        while read -r m; do
+            [[ -z $m || $m == "[SWAP]" || $m == "$TARGET" || $m == "$TARGET"/* ]] && continue
+            echo busy; return 0
+        done < <(lsblk -nrpo MOUNTPOINTS "$disk" 2>/dev/null | sed 's/\\x0a/\n/g')
+    fi
+    return 0
+}
+
+require_disk() {  # konec s chybou, kdyz DISK pro erase/freespace nelze pouzit
+    local err
+    err=$(disk_check "$DISK" "${DISK_MODE:-erase}")
+    [[ -z $err ]] || fail "$(T "%s cannot be used for LuxOS: %s" "$DISK" "$(part_reason "$err")")"
+}
+
 part_reason() {  # kratky duvod, proc oddil nelze pouzit
     case $1 in
         not_found) T "does not exist" ;;
         not_part)  T "not a partition" ;;
+        not_disk)  T "not a whole disk" ;;
         iso)       T "installation medium" ;;
         busy)      T "in use (mounted)" ;;
         esp)       T "EFI system partition" ;;
@@ -1575,6 +1605,7 @@ mount_root() {
 }
 
 prepare_disk() {
+    require_disk   # znovu tesne pred smazanim (mezi souhrnem a instalaci se mohlo neco pripojit)
     step "$(T "Preparing disk %s" "$DISK")"
     swapoff -a 2>/dev/null || true
     umount -R "$TARGET" 2>/dev/null || true
@@ -1616,6 +1647,7 @@ prepare_disk() {
 
 # Novy oddil jen v nejvetsi volne oblasti; existujici oddily ani ESP se neformatuji
 prepare_freespace() {
+    require_disk
     step "$(T "Preparing disk %s" "$DISK")"
     umount -R "$TARGET" 2>/dev/null || true
     [[ -e /dev/mapper/cryptroot ]] && cryptsetup close cryptroot 2>/dev/null || true
@@ -2538,12 +2570,16 @@ main() {
         domain_config
         oem_luks_key   # OEM se sifrovanim: docasny klic disku
     fi
+    # Ucet overit pred jakoukoli zmenou disku: chpasswd cte radky "jmeno:heslo" (zalomeni v hesle by
+    # nastavilo heslo jinemu uctu), useradd -c odmitne ":" a zalomeni ve jmene (instalace by spadla az po smazani disku)
+    no_newline "${PASSWORD-}" || fail "$(T "Invalid PASSWORD")"
+    FULLNAME=${FULLNAME-}; FULLNAME=${FULLNAME//[:$'\n'$'\r']/ }
     # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), partition (existujici oddil),
     # layout (rucni rozdeleni), manual (pripojeno v $TARGET)
     [[ $DISK == manual ]] && DISK_MODE=manual
     : "${DISK_MODE:=erase}"
     case $DISK_MODE in
-        erase|freespace) ;;
+        erase|freespace) require_disk ;;
         manual) DISK=manual ;;
         layout) ENCRYPT=0; load_layout; oem_check_mode ;;   # sifrovani popisuje LAYOUT (luks)
         partition) part_setup ;;            # sestavi LAYOUT (ENCRYPT -> luks)

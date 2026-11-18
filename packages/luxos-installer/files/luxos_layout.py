@@ -916,8 +916,19 @@ class Layout:
             if n.kind == "lv" and n.existing and n.delete:
                 out.append(("DELETE logical volume %s", (self.label(n),)))
                 continue
-            if n.existing and n.kind in ("part", "lv") and not n.delete:
+            if n.existing and n.kind in ("part", "lv", "luks") and not n.delete:
                 if n.kind == "part" and self.disk_node(n.disk).wipe:
+                    continue
+                if n.kind == "luks":
+                    # Odemceny existujici LUKS: formatovani obsahu (nebo nova VG) smaze data uvnitr
+                    base = self.nodes.get(n.on)
+                    if base is None or base.delete or (base.kind == "part" and self.disk_node(base.disk).wipe):
+                        continue
+                    what = f"{self.label(base)} (LUKS {self.label(n)})"
+                    if any(not c.existing and c.kind == "vg" for c in self.consumers(n.id)):
+                        out.append(("ERASE %s (new LVM physical volume)", (what,)))
+                    if n.use and n.use.get("format", True):
+                        out.append(("FORMAT %s", (what,)))
                     continue
                 for c in self.consumers(n.id):
                     if not c.existing and c.kind == "luks":

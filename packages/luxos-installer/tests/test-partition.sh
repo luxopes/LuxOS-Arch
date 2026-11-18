@@ -385,6 +385,35 @@ err_case H11 ': >"$MOCK/espbad"; ROOT_PART=/dev/vda4' "/dev/vda1 could not be re
 err_case H12 'ROOT_PART=/dev/vda4 ENCRYPT=1 LUKS_PASS=""' "Enter a passphrase"
 err_case H13 'ROOT_PART=""' "DISK_MODE=partition needs ROOT_PART"
 
+echo "## K: cely disk z --config (erase/freespace): existuje, je to disk, ne instalacni medium, nic pripojeneho"
+extract prepare_disk >"$OUT/prep.sh"
+(
+    setup_env "vda:200G vdb:200G"
+    . "$OUT/prep.sh"
+    addp vda 1 512 ef00 vfat
+    iso_disk() { echo vdb; }
+    dc() { disk_check "$@"; }
+    expect "K: /dev/vda erase lze" test -z "$(dc /dev/vda erase)"
+    expect "K: neexistujici disk" test "$(dc /dev/vdz erase)" == not_found
+    expect "K: oddil misto disku" test "$(dc /dev/vda1 erase)" == not_disk
+    expect "K: oddil misto disku (freespace)" test "$(dc /dev/vda1 freespace)" == not_disk
+    expect "K: instalacni medium" test "$(dc /dev/vdb erase)" == iso
+    expect "K: instalacni medium (freespace)" test "$(dc /dev/vdb freespace)" == iso
+    : >"$MOCK/busy/vda"
+    expect "K: pripojeny oddil -> erase ne" test "$(dc /dev/vda erase)" == busy
+    expect "K: pripojeny oddil -> freespace ano (jine oddily se nemeni)" test -z "$(dc /dev/vda freespace)"
+    expect "K: text chyby" test "$(T "%s cannot be used for LuxOS: %s" /dev/vda1 "$(part_reason not_disk)")" == "/dev/vda1 cannot be used for LuxOS: not a whole disk"
+    DISK=/dev/vdb DISK_MODE=erase
+    if ( prepare_disk ) >/dev/null 2>&1; then bad "K: prepare_disk na instalacnim mediu"
+    elif grep -qE '^(wipefs|sgdisk)' "$MOCK/cmds"; then bad "K: prepare_disk zmenil disk" "$(cat "$MOCK/cmds")"
+    else ok "K: prepare_disk na instalacnim mediu skonci bez zmeny"; fi
+    # swap a $TARGET odpoji prepare_disk sam
+    lsblk() { if [[ $* == *MOUNTPOINTS* ]]; then printf '%s\n' "[SWAP]" "$TARGET" "$TARGET/boot"; else echo disk; fi; }
+    expect "K: swap a TARGET nevadi" test -z "$(disk_check /dev/vda erase)"
+) >"$OUT/K.out" 2>&1
+cat "$OUT/K.out" | grep -E '^(ok|FAIL)' || true
+NPASS=$((NPASS + $(grep -c '^ok' "$OUT/K.out"))); NFAIL=$((NFAIL + $(grep -c '^FAIL' "$OUT/K.out")))
+
 echo "## J: textovy instalator (ask_partition) s nahradou gum"
 (
     setup_env "vda:200G vdb:200G"

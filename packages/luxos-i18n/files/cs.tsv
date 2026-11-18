@@ -306,6 +306,7 @@ Later	Později
 Restart now?	Restartovat teď?
 Config needs DISK, USERNAME and PASSWORD	Konfigurace musí obsahovat DISK, USERNAME a PASSWORD
 Invalid USERNAME	Neplatné USERNAME
+Invalid PASSWORD	Neplatné PASSWORD
 Invalid HOSTNAME_SEL	Neplatné HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vyžaduje LUKS_PASS
 # Rozlozeni klavesnice (instalator)
@@ -1689,6 +1690,8 @@ The volume group %s was not found.	Skupina svazků %s nebyla nalezena.
 The logical volume %s was not found.	Logický svazek %s nebyl nalezen.
 The name %s is already used by an open volume.	Název %s už používá otevřený svazek.
 %s cannot be resized (only ext4, btrfs and NTFS).	Velikost %s nelze změnit (jen ext4, btrfs a NTFS).
+Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again.	Windows na %s není úplně vypnutý (hibernace nebo Rychlé spuštění). Spusťte Windows a vypněte je se stisknutou klávesou Shift, pak to zkuste znovu.
+Windows must check the disk %s first. Start Windows, restart it once, then try again.	Windows musí nejdřív zkontrolovat disk %s. Spusťte Windows, jednou je restartujte a pak to zkuste znovu.
 The kept EFI system partition %s is not FAT32.	Ponechaný systémový oddíl EFI %s není FAT32.
 The EFI system partition %s is smaller than 300 MB.	Systémový oddíl EFI %s je menší než 300 MB.
 ERASE the whole disk %s	SMAZAT celý disk %s
@@ -1984,6 +1987,7 @@ DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition vyžaduje ROOT_PART
 %s cannot be used as /home: %s	%s nelze použít jako /home: %s
 does not exist	neexistuje
 not a partition	není oddíl
+not a whole disk	není celý disk
 installation medium	instalační médium
 in use (mounted)	používá se (připojeno)
 extended partition	rozšířený oddíl

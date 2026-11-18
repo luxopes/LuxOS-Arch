@@ -306,6 +306,7 @@ Later	Más tarde
 Restart now?	¿Reiniciar ahora?
 Config needs DISK, USERNAME and PASSWORD	La configuración necesita DISK, USERNAME y PASSWORD
 Invalid USERNAME	USERNAME no válido
+Invalid PASSWORD	PASSWORD no válido
 Invalid HOSTNAME_SEL	HOSTNAME_SEL no válido
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 necesita LUKS_PASS
 # Rozlozeni klavesnice (instalator)
@@ -1689,6 +1690,8 @@ The volume group %s was not found.	No se encontró el grupo de volúmenes %s.
 The logical volume %s was not found.	No se encontró el volumen lógico %s.
 The name %s is already used by an open volume.	El nombre %s ya lo usa un volumen abierto.
 %s cannot be resized (only ext4, btrfs and NTFS).	No se puede cambiar el tamaño de %s (solo ext4, btrfs y NTFS).
+Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again.	Windows en %s no está completamente apagado (hibernación o Inicio rápido). Inicie Windows y apáguelo manteniendo pulsada la tecla Mayús; luego inténtelo de nuevo.
+Windows must check the disk %s first. Start Windows, restart it once, then try again.	Windows debe comprobar primero el disco %s. Inicie Windows, reinícielo una vez y vuelva a intentarlo.
 The kept EFI system partition %s is not FAT32.	La partición del sistema EFI conservada %s no es FAT32.
 The EFI system partition %s is smaller than 300 MB.	La partición del sistema EFI %s tiene menos de 300 MB.
 ERASE the whole disk %s	BORRAR todo el disco %s
@@ -1984,6 +1987,7 @@ DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition necesita ROOT_PART
 %s cannot be used as /home: %s	%s no se puede usar como /home: %s
 does not exist	no existe
 not a partition	no es una partición
+not a whole disk	no es un disco completo
 installation medium	medio de instalación
 in use (mounted)	en uso (montada)
 extended partition	partición extendida

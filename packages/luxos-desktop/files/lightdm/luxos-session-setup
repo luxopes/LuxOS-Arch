@@ -1,4 +1,17 @@
 #!/bin/sh
-# LuxOS - pred spustenim relace: ukoncit kompozitor prihlasovaci obrazovky (relace ma vlastni xfwm4)
-pkill -x xcompmgr 2>/dev/null
+# LuxOS - pred spustenim relace: ukoncit kompozitor prihlasovaci obrazovky (relace ma vlastni xfwm4).
+# Bezi jako root: jen kompozitor greeteru tohoto displeje (PID z luxos-greeter-setup), nikdy
+# xcompmgr jinych uzivatelu.
+d=${DISPLAY#*:}; d=${d%%.*}
+f=${LUXOS_GREETER_PIDDIR:-/run}/luxos-greeter-xcompmgr.${d:-0}
+if [ -r "$f" ]; then
+    pid=$(cat "$f" 2>/dev/null); rm -f "$f"
+    case $pid in
+        ''|*[!0-9]*) ;;
+        *) [ "$(cat "${LUXOS_PROC:-/proc}/$pid/comm" 2>/dev/null)" = xcompmgr ] && kill "$pid" 2>/dev/null ;;
+    esac
+else
+    # greeter spusteny starsi verzi skriptu (bez PID): jen kompozitor roota
+    pkill -x -u root xcompmgr 2>/dev/null
+fi
 exit 0

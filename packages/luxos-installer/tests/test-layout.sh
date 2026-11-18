@@ -246,8 +246,10 @@ fs     on=root mount=/ type=btrfs
 scenario E uefi "sda:500G" "$LE" "$PREP_E"
 expect "E: probehlo" rc_is E 0
 c=$OUT/E/cmds
-expect "E: NTFS se nejdriv zkusi (no-action)" before "$c" "ntfsresize --no-action" "ntfsresize --force --size"
-expect "E: zmenseni FS pred oddilem" before "$c" "ntfsresize --force --size 161061273600 /dev/sda2" "sgdisk -d 2 -n 2:616448:"
+expect "E: NTFS se nejdriv zkusi (no-action)" before "$c" "ntfsresize --no-action" "ntfsresize --size"
+expect "E: zmenseni FS pred oddilem" before "$c" "ntfsresize --size 161061273600 /dev/sda2" "sgdisk -d 2 -n 2:616448:"
+expect "E: ntfsresize nikdy s --force (obchazi kontrolu disku Windows)" hasnot "$c" "ntfsresize --force"
+expect "E: pred zmenou overena hibernace" before "$c" "ntfs-3g.probe --readwrite /dev/sda2" "ntfsresize --no-action"
 expect "E: oddil 2 se stejnym zacatkem, typem a PARTUUID" has "$c" "-t 2:00000000-0000-0000-0000-000000000700 -u 2:11111111-2222-3333-4444-000000000002 -c 2:Windows"
 expect "E: zmenseni pred smazanim" before "$c" "sgdisk -d 2 -n" "sgdisk -d 3 /dev/sda"
 expect "E: smazani pred novym oddilem" before "$c" "sgdisk -d 3 /dev/sda" "sgdisk -n 3:0:0"
@@ -257,6 +259,70 @@ expect "E: Windows oddil zustal (velikost 150 GiB)" grep -qE '^2 616448 31518924
 expect "E: souhrn: zmenseni a smazani" bash -c "grep -q 'Resize /dev/sda2 to 150G' '$OUT/E/destroy' && grep -q 'DELETE partition /dev/sda3' '$OUT/E/destroy'"
 expect "E: souhrn: ESP se neformatuje" hasnot "$OUT/E/destroy" "/dev/sda1"
 expect "E: nesifrovany btrfs root" test "$(<"$OUT/E/cmdline")" == "root=UUID=fs-uuid-sda3 rootflags=subvol=@"
+
+# Windows v hibernaci / Rychle spusteni / naplanovany chkdsk: nic se nezmeni, srozumitelna chyba
+for st in hibernated:ntfs_hibernated unclean:ntfs_hibernated dirty:ntfs_check; do
+    scenario "E-${st%%:*}" uefi "sda:500G" "$LE" "$PREP_E
+mkdir -p \"\$MOCK/ntfs\"; echo ${st%%:*} >\"\$MOCK/ntfs/sda2\""
+    expect "E-${st%%:*}: odmitnuto pred souhrnem" rc_is "E-${st%%:*}" 3
+    expect "E-${st%%:*}: chyba ${st#*:}" err_is "E-${st%%:*}" "${st#*:}"
+    expect "E-${st%%:*}: na disk se nesahlo" bash -c "! grep -qE '^(sgdisk -[dn]|ntfsresize --size|wipefs)' '$OUT/E-${st%%:*}/cmds'"
+done
+# Disk s MBR: smazani ani zmena velikosti oddilu (sgdisk by MBR tise prevedl na GPT a rozbil start Windows)
+LE_MBR='
+use    id=win dev=/dev/sda2 resize=150G
+delete dev=/dev/sda3
+use    id=r dev=/dev/sda1
+fs     on=r mount=/ type=btrfs
+'
+scenario E-mbr bios "sda:500G" "$LE_MBR" "$PREP_E
+mkdir -p \"\$MOCK/dos\"; : >\"\$MOCK/dos/sda\""
+expect "E-mbr: odmitnuto (not_gpt)" bash -c "[[ \$(cat '$OUT/E-mbr/rc') == 3 ]] && grep -q '^not_gpt|/dev/sda' '$OUT/E-mbr/errors'"
+expect "E-mbr: na disk se nesahlo" bash -c "! grep -qE '^(sgdisk -[dnto]|ntfsresize --size|wipefs|mkfs)' '$OUT/E-mbr/cmds'"
+scenario E-mbr2 bios "sda:500G" "${LE_MBR/ resize=150G/}" "$PREP_E
+mkdir -p \"\$MOCK/dos\"; : >\"\$MOCK/dos/sda\""
+expect "E-mbr2: jen smazani oddilu na MBR tez odmitnuto" bash -c "grep -q '^not_gpt|/dev/sda' '$OUT/E-mbr2/errors'"
+# Zmenseni s jinym mazanym diskem: nejdriv zmenseni, az pak smazani disku; prilis velke zmenseni
+# se odhali uz pred souhrnem (nanecisto), ne az po smazani druheho disku
+LE_W="disk dev=/dev/vdb table=new
+part id=r disk=/dev/vdb size=rest
+${LE/part   id=root disk=\/dev\/sda size=rest/part   id=dat disk=/dev/sda size=rest}"
+LE_W=${LE_W/fs     on=root mount=\/ type=btrfs/fs     on=r mount=\/ type=btrfs}
+scenario E-w uefi "sda:500G vdb:64G" "$LE_W" "$PREP_E"
+expect "E-w: probehlo" rc_is E-w 0
+expect "E-w: zmenseni NTFS pred smazanim druheho disku" before "$OUT/E-w/cmds" "ntfsresize --size" "sgdisk --zap-all /dev/vdb"
+scenario E-full uefi "sda:500G vdb:64G" "$LE_W" "$PREP_E
+mkdir -p \"\$MOCK/ntfs\"; echo full >\"\$MOCK/ntfs/sda2\""
+expect "E-full: odmitnuto pred souhrnem (shrink_much)" bash -c "[[ \$(cat '$OUT/E-full/rc') == 3 ]] && grep -q '^shrink_much|/dev/sda2' '$OUT/E-full/errors'"
+expect "E-full: druhy disk nesmazan" hasnot "$OUT/E-full/cmds" "sgdisk --zap-all"
+# BIOS: novy oddil na zachovanem disku GPT, ktery uz ma oddil BIOS boot (EF02) - drive odmitnuto
+PREP_BG='
+cat >"$MOCK/disks/vda.tbl" <<T
+1 2048 4095 ef02 BIOS
+2 4096 20975615 8300 old
+T
+'
+scenario BG bios "vda:64G" $'part id=r disk=/dev/vda size=rest\nfs on=r mount=/ type=btrfs' "$PREP_BG"
+expect "BG: existujici BIOS boot na zachovanem disku staci" rc_is BG 0
+scenario BG2 bios "vda:64G" $'part id=r disk=/dev/vda size=rest\nfs on=r mount=/ type=btrfs' "${PREP_BG/ef02/8300}"
+expect "BG2: bez BIOS boot odmitnuto" bash -c "grep -q '^bios_grub_missing' '$OUT/BG2/errors'"
+# Velikost se nemeni (resize = soucasna velikost): hibernace nevadi, nic se nezmensuje
+scenario E-same uefi "sda:500G" "${LE/resize=150G/resize=200G}" "$PREP_E
+mkdir -p \"\$MOCK/ntfs\"; echo hibernated >\"\$MOCK/ntfs/sda2\""
+expect "E-same: probehlo" rc_is E-same 0
+expect "E-same: NTFS beze zmeny" hasnot "$OUT/E-same/cmds" "ntfsresize"
+# Ochrana i primo v ly_resize (kdyby se stav zmenil po kontrole)
+expect "ly_resize: hibernace -> konec bez zmeny" bash -c '
+    set -Eeuo pipefail
+    . "'"$FILES"'/layout.sh"; . "'"$HERE"'/mock-env.sh"; mock_init "sda:500G"
+    cat >"$MOCK/disks/sda.tbl" <<T
+2 616448 420046847 0700 Windows
+T
+    echo ntfs >"$MOCK/fs/sda2"; mkdir -p "$MOCK/ntfs" "$MOCK/size"; echo hibernated >"$MOCK/ntfs/sda2"
+    echo $((200 * 1024 ** 3)) >"$MOCK/size/sda2"
+    declare -gA L=([w.dev]=/dev/sda2 [w.resize]=150G)
+    ( ly_resize w shrink ) 2>/dev/null && exit 1
+    grep -q "^FAIL Windows on /dev/sda2 is not fully shut down" "$MOCK/cmds" && ! grep -qE "^(ntfsresize|sgdisk)" "$MOCK/cmds"'
 
 # ---------------------------------------------------------------------------------
 echo "## F: existujici sifrovany disk se starou VG (odemknout, /home ponechat) + novy sifrovany /"
@@ -327,6 +393,43 @@ expect "F3: crypttab.initramfs" has "$OUT/F3/crypttab.initramfs" "cryptlvm UUID=
 expect "F3: stary LUKS bez luksFormat" hasnot "$OUT/F3/cmds" "luksFormat"
 expect "F3: ESP se neformatuje" hasnot "$OUT/F3/cmds" "mkfs.vfat"
 
+# Odemceny existujici LUKS s formatovanym obsahem: souhrn musi rict, ze se data smazou
+PREP_F4='
+cat >"$MOCK/disks/vdb.tbl" <<T
+1 2048 67108830 8309 data
+T
+printf stare >"$MOCK/luks/vdb1"
+'
+LF4='
+disk dev=/dev/vda table=new
+part id=esp disk=/dev/vda size=1G type=esp
+part id=r disk=/dev/vda size=rest
+use  id=old dev=/dev/vdb1
+luks id=co on=old name=cryptdata keep=1
+fs   on=esp mount=/boot type=vfat
+fs   on=r mount=/ type=btrfs
+fs   on=co mount=/data type=ext4
+'
+LUKS_PASS_CO=stare scenario F4 uefi "vda:40G vdb:32G" "$LF4" "$PREP_F4"
+expect "F4: souhrn: FORMAT obsahu odemceneho LUKS" has "$OUT/F4/destroy" "FORMAT /dev/vdb1 (LUKS cryptdata)"
+LUKS_PASS_CO=stare scenario F5 uefi "vda:40G vdb:32G" "${LF4/type=ext4/type=ext4 format=0}" "$PREP_F4"
+expect "F5: obsah LUKS ponechan: v souhrnu nic z vdb" hasnot "$OUT/F5/destroy" "vdb"
+# Stejne v modelu GUI (luxos_layout.destroy_list)
+expect "F4: GUI souhrn: FORMAT obsahu odemceneho LUKS" python3 -I - "$FILES" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import luxos_layout as m
+L = m.Layout({"bootmode": "uefi", "vgs": [], "disks": []})
+part = L.add(m.Node("part", "p_vdb1", existing=True, dev="/dev/vdb1", disk="/dev/vdb"))
+L.add(m.Node("disk", "d_vdb", existing=True, dev="/dev/vdb"))
+luks = L.add(m.Node("luks", "c_vdb1", existing=True, on=part.id))
+luks.use = {"type": "fs", "mount": "/data", "fstype": "ext4", "format": True}
+txt = [t % a for t, a in L.destroy_list()]
+assert any(x.startswith("FORMAT /dev/vdb1 (LUKS ") for x in txt), txt
+luks.use["format"] = False
+assert not L.destroy_list(), L.destroy_list()
+PY
+
 # ---------------------------------------------------------------------------------
 echo "## G: chyby a varovani kontroly (bash)"
 vcheck() {  # vcheck POPIS BOOTMODE KOD LAYOUT  -> kontrola obsahuje KOD
@@ -366,13 +469,21 @@ vcheck "spatne id" uefi bad_id "$BASE_ESP"$'\npart id=R-1 disk=/dev/vda size=res
 vcheck "spatna velikost" uefi bad_size "$BASE_ESP"$'\npart id=r disk=/dev/vda size=12parsecs\nfs on=r mount=/'
 vcheck "maly /" uefi root_small "$BASE_ESP"$'\npart id=r disk=/dev/vda size=4G\nfs on=r mount=/'
 vcheck "BIOS: sifrovany / bez /boot" bios boot_encrypted $'part id=b disk=/dev/vda size=1M type=bios\npart id=r disk=/dev/vda size=rest\nluks id=c on=r name=cr\nfs on=c mount=/'
-vcheck "BIOS: chybi BIOS boot" bios bios_grub_missing $'part id=r disk=/dev/vda size=rest\nfs on=r mount=/'
+vcheck "BIOS: chybi BIOS boot" bios bios_grub_missing $'disk dev=/dev/vda table=new\npart id=r disk=/dev/vda size=rest\nfs on=r mount=/'
 vcheck "sifrovany / a nesifrovany swap" uefi swap_plain "$BASE_ESP"$'\npart id=r disk=/dev/vda size=20G\nluks id=c on=r name=cr\nfs on=c mount=/\npart id=s disk=/dev/vda size=2G\nswap on=s'
 vcheck "sifrovany / a nesifrovany /home" uefi enc_mismatch "$BASE_ESP"$'\npart id=r disk=/dev/vda size=20G\nluks id=c on=r name=cr\nfs on=c mount=/\npart id=h disk=/dev/vda size=rest\nfs on=h mount=/home'
 LUKS_PASS= vcheck "chybi heslo" uefi luks_no_pass "$BASE_ESP"$'\npart id=r disk=/dev/vda size=20G\nluks id=c on=r name=cr\nfs on=c mount=/'
 vcheck "dve LUKS stejne jmeno" uefi dup_name "$BASE_ESP"$'\npart id=r disk=/dev/vda size=20G\nluks id=c on=r name=cr\nfs on=c mount=/\npart id=h disk=/dev/vda size=2G\nluks id=c2 on=h name=cr\nfs on=c2 mount=/home'
 vcheck "existujici LV v nove VG" uefi keep_on_new "$BASE_ESP"$'\npart id=p disk=/dev/vda size=rest\nvg id=v name=a pvs=p\nlv id=l vg=v name=r keep=1\nfs on=l mount=/'
 vcheck "pouziti oddilu na mazanem disku" uefi use_on_wiped $'disk dev=/dev/vda table=new\nuse id=x dev=/dev/vda1\n'"$BASE_ESP"
+vcheck "pouziti oddilu na mazanem NVMe" uefi use_on_wiped $'disk dev=/dev/nvme0n1 table=new\nuse id=x dev=/dev/nvme0n1p2\n'"$BASE_ESP"
+# Jiny disk se stejnym zacatkem nazvu (sda / sdaa, nvme0n1 / nvme0n10) neni mazany disk
+for pair in "/dev/sda /dev/sdaa1" "/dev/nvme0n1 /dev/nvme0n10p1"; do
+    got=$(. "$FILES/layout.sh"; T() { :; }; BOOTMODE=uefi BOOTLOADER=auto LUKS_PASS=x
+          layout_parse "disk dev=${pair% *} table=new"$'\n'"use id=x dev=${pair#* }"$'\n'"$BASE_ESP"; layout_validate
+          printf '%s\n' "${LY_ERR[@]}" | cut -d'|' -f1)
+    if grep -qx use_on_wiped <<<"$got"; then bad "G: ${pair#* } neni na mazanem ${pair% *}"; else ok "G: ${pair#* } neni na mazanem ${pair% *}"; fi
+done
 vcheck "nepouzity novy oddil (varovani)" uefi unused "$BASE_ESP"$'\npart id=r disk=/dev/vda size=20G\nfs on=r mount=/\npart id=z disk=/dev/vda size=2G'
 
 # Bez chyb: platna rozlozeni nemaji zadnou chybu

@@ -191,7 +191,9 @@ blkid() {
             if [[ -e $MOCK/luks/$k ]]; then echo crypto_LUKS
             elif [[ -e $MOCK/fs/$k ]]; then cat "$MOCK/fs/$k"
             else return 2; fi ;;
-        PTTYPE) [[ -e $MOCK/disks/${dev#/dev/}.tbl ]] && echo gpt ;;
+        PTTYPE)  # $MOCK/dos/<disk> = tabulka MBR
+            if [[ -e $MOCK/dos/${dev#/dev/} ]]; then echo dos
+            elif [[ -e $MOCK/disks/${dev#/dev/}.tbl ]]; then echo gpt; fi ;;
     esac
 }
 
@@ -271,7 +273,19 @@ udevadm()    { :; }
 swapoff()    { :; }
 e2fsck()     { mock_log "e2fsck $*"; }
 resize2fs()  { mock_log "resize2fs $*"; }
-ntfsresize() { mock_log "ntfsresize $*"; }
+# Stav NTFS: $MOCK/ntfs/<klic> = hibernated | unclean | dirty (jinak cisty, jako ntfs-3g 2026.9)
+mock_ntfs() { cat "$MOCK/ntfs/$(mk_key "$1")" 2>/dev/null; }
+ntfs-3g.probe() {  # 14 = hibernace, 15 = neuzavreny zurnal; priznak dirty probe nehlasi
+    mock_log "ntfs-3g.probe $*"
+    case $(mock_ntfs "${!#}") in hibernated) return 14 ;; unclean) return 15 ;; esac
+    return 0
+}
+ntfsresize() {  # bez --force odmitne dirty svazek; hibernaci nekontroluje (overeno na ntfsprogs 2026.9.28)
+    mock_log "ntfsresize $*"
+    [[ " $* " != *" --force "* && $(mock_ntfs "${!#}") == dirty ]] && return 1
+    [[ " $* " == *" --size "* && $(mock_ntfs "${!#}") == full ]] && return 1   # malo volneho mista
+    return 0
+}
 sleep()      { :; }
 
 # --- funkce volajiciho (luxos-install) ---------------------------------------------

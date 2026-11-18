@@ -85,6 +85,16 @@ echo "## Instalator: OEM=1 v konfiguraci"
     eq "klic disku = docasny klic (bez noveho radku)" "klic123" "$(cat "$TARGET/etc/cryptsetup-keys.d/cryptroot.key")"
     eq "klic jen pro roota" 400 "$(stat -c %a "$TARGET/etc/cryptsetup-keys.d/cryptroot.key")"
     check "initramfs: FILES s klicem" grep -qx 'FILES+=(/etc/cryptsetup-keys.d/cryptroot.key)' "$TARGET/etc/mkinitcpio.conf.d/luxos-oem.conf"
+    # Existujici oddil (DISK_MODE=partition): sifrovani je v LAYOUT (ENCRYPT=0, PART_ENCRYPT=1), svazek cryptroot.
+    # Drive se klic ani LUKS_NAME nezapsaly: disk zasifrovany nahodnym heslem, ktere nikdo nezna.
+    rm -rf "$TARGET"; mkdir -p "$TARGET"
+    OEM_SEAL=1 ENCRYPT=0 PART_ENCRYPT=1 LUKS_PASS=klic456
+    oem_prepare_target
+    check "partition + sifrovani: svazek cryptroot v oem.conf" grep -qx "LUKS_NAME=cryptroot" "$TARGET/etc/luxos/oem.conf"
+    eq "partition + sifrovani: docasny klic disku" "klic456" "$(cat "$TARGET/etc/cryptsetup-keys.d/cryptroot.key" 2>/dev/null)"
+    check "partition + sifrovani: klic v initramfs" grep -qx 'FILES+=(/etc/cryptsetup-keys.d/cryptroot.key)' "$TARGET/etc/mkinitcpio.conf.d/luxos-oem.conf"
+    check "partition: svazek v LAYOUT se jmenuje stejne (cryptroot)" grep -q 'echo "luks id=croot on=root name=cryptroot"' "$FILES/luxos-install"
+    PART_ENCRYPT=0
     rm -rf "$TARGET"; mkdir -p "$TARGET"
     OEM_SEAL=1 ENCRYPT=0
     oem_prepare_target

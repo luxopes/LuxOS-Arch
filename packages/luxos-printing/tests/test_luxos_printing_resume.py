@@ -635,6 +635,56 @@ class Migration(FakeCups):
                                "printer-error-policy=retry-current-job"])
 
 
+class SyncCupsDown(FakeCups):
+    """cupsd nebezi: sync nesmi vlastni fronty oznacit jako "odebrane uzivatelem" (pak by se nikdy nepridaly)."""
+
+    def setUp(self):
+        super().setUp()
+        self._geteuid = os.geteuid
+        os.geteuid = lambda: 0
+        self.cups({"active": True, "jobs": [],
+                   "queues": {"HP": {"uri": "dnssd://HP._ipp._tcp.local/?uuid=2", "state": "idle"}}})
+        st = self.h.load_state()
+        st["queues"]["HP"] = {"key": "uuid:2", "uri": "dnssd://HP._ipp._tcp.local/?uuid=2", "usb": False,
+                              "added": 1, "seen": int(self.now)}
+        self.h.save_state(st)
+
+    def tearDown(self):
+        os.geteuid = self._geteuid
+        super().tearDown()
+
+    def lpstat_fails(self, msg):
+        os.remove(os.path.join(self.bin, "lpstat"))
+        with open(os.path.join(self.bin, "lpstat"), "w") as f:
+            f.write(f"#!/bin/sh\necho 'lpstat: {msg}' >&2\nexit 1\n")
+        os.chmod(os.path.join(self.bin, "lpstat"), 0o755)
+
+    def test_cups_down_keeps_queues(self):
+        for msg in ("Scheduler is not running.", "Bad file descriptor", "Connection refused"):
+            self.lpstat_fails(msg)
+            self.assertIsNone(self.h.cups_queues())
+            self.assertEqual(self.h.main(["sync"]), 0)
+            st = self.h.load_state()
+            self.assertIn("HP", st["queues"], msg)
+            self.assertEqual(st["ignored"], [], msg)
+            self.assertFalse(any(c[0] == "lpadmin" for c in self.calls()), msg)
+
+    def test_no_destinations_is_empty(self):
+        """CUPS bezi, ale fronta HP byla smazana jinym nastrojem: to je volba uzivatele (ignorovat)."""
+        self.edit(lambda d: d["queues"].clear())
+        self.assertEqual(self.h.cups_queues(), {})
+        self.h.main(["sync"])
+        st = self.h.load_state()
+        self.assertNotIn("HP", st["queues"])
+        self.assertEqual(st["ignored"], ["uuid:2"])
+
+    def test_cups_up_keeps_queue(self):
+        self.h.main(["sync"])
+        st = self.h.load_state()
+        self.assertIn("HP", st["queues"])
+        self.assertEqual(st["ignored"], [])
+
+
 class AppStatus(unittest.TestCase):
     """Aplikace Tiskarny a skenery: srozumitelny stav misto "Paused"/"Printing…" u odpojene tiskarny."""
 
