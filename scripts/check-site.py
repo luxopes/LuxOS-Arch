@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """LuxOS - kontrola vysledku scripts/build-site.py (out/site): vnitrni odkazy a kotvy, unikatni
-title a description, canonical, hreflang, jedno h1, alt u obrazku, sitemap.xml a robots.txt,
+title (<= 60 znaku) a description (<= 155), canonical, hreflang (sam na sebe, x-default, druhy jazyk odkazuje
+zpet), nahled odkazu (og:*, twitter:*, obrazek existuje), jedno h1, alt a width/height u obrazku, sitemap.xml a robots.txt,
 anglicky seznam zmen proti CHANGELOG.md (vsechna vydani a polozky, scripts/changelog_sections.py)
-a prepinac jazyka (pevne poradi EN | CS, zvyrazneni aktualniho jazyka), strukturovana data JSON-LD,
+a prepinac jazyka (pevne poradi EN | CS, zvyrazneni aktualniho jazyka), strukturovana data JSON-LD (FAQPage jen s otazkami viditelnymi na strance, SoftwareApplication s verzi ISO
+i na strankach Stahnout),
 llms.txt a llms-full.txt a klic IndexNow. Nic nestahuje (zadne pozadavky na server), jen cte soubory.
 
   scripts/check-site.py [adresar]      vychozi out/site; navratovy kod 1 pri chybe
@@ -18,6 +20,7 @@ from urllib.parse import unquote, urldefrag, urljoin, urlparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import changelog_sections  # noqa: E402
 import site_html  # noqa: E402
+import site_seo  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://luxos.lux-ai.cz"
@@ -25,6 +28,8 @@ BASE = "https://luxos.lux-ai.cz"
 SERVER_ONLY = ("/repo/", "/download/", "/stats/")
 # stranka Pouzivani LuxOS (countme) a dokument, na ktery odkazuje (z luxos-docs docs/luxos/countme.md)
 USAGE_PAGES = ("/usage/", "/cs/pouzivani/")
+# stranky Stahnout (site/landing/pages.json): SoftwareApplication s downloadUrl a fileSize
+DOWNLOAD_PAGES = ("/download/", "/cs/stahnout/")
 COUNTME_DOC = "/docs/luxos/countme.html"
 # veta, kterou Google vyzaduje v zasadach ochrany soukromi aplikace s omezenymi rozsahy (Gmail)
 LIMITED_USE = ("LuxOS Mail's use and transfer to any other app of information received from Google APIs will adhere to "
@@ -47,6 +52,8 @@ class Page(HTMLParser):
         self.switch_titles = {}
         # strukturovana data: text kazdeho <script type="application/ld+json">
         self.ld, self._in_ld = [], False
+        # nahled odkazu (og:*, twitter:*), obrazky bez rozmeru (CLS) a viditelny text (otazky FAQPage)
+        self.meta, self.img_nodims, self.text, self._skip = {}, [], [], 0
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -85,6 +92,8 @@ class Page(HTMLParser):
             n = (a.get("name") or "").lower()
             if n == "description":
                 self.desc = a.get("content", "")
+            elif n.startswith("twitter:") or (a.get("property") or "").startswith("og:"):
+                self.meta.setdefault(n or a.get("property"), a.get("content", ""))
             elif n == "robots":
                 self.robots = a.get("content", "")
             elif (a.get("http-equiv") or "").lower() == "refresh":
@@ -113,10 +122,16 @@ class Page(HTMLParser):
                     self.links.append(a[k])
         if tag == "a" and a.get("data-full-dark"):
             self.links.append(a["data-full-dark"])
+        if tag == "img" and a.get("src") and not (a.get("width") and a.get("height")):
+            self.img_nodims.append(a["src"])
+        if tag in ("script", "style", "template"):
+            self._skip += 1
         if tag == "img" and "alt" not in a:
             self.errors.append(f"img without alt: {a.get('src')}")
 
     def handle_endtag(self, tag):
+        if tag in ("script", "style", "template") and self._skip:
+            self._skip -= 1
         if tag == "script":
             self._in_ld = False
         if tag == "title":
@@ -129,6 +144,8 @@ class Page(HTMLParser):
             self._in_switch -= 1
 
     def handle_data(self, data):
+        if not self._skip:
+            self.text.append(data)
         if self._in_ld:
             self.ld[-1] += data
         if self._in_title:
@@ -209,6 +226,10 @@ def check_jsonld(pages, url_of, exists, out):
                     qs = node.get("mainEntity") or []
                     if not qs:
                         errors.append(f"{url}: FAQPage without questions")
+                    visible = re.sub(r"\s+", " ", " ".join(p.text))
+                    for q in qs:
+                        if q.get("name") and re.sub(r"\s+", " ", q["name"]) not in visible:
+                            errors.append(f"{url}: FAQPage question not visible on the page: {q['name']!r}")
                     for q in qs:
                         ans = (q.get("acceptedAnswer") or {}).get("text", "")
                         if "Question" not in ld_types(q) or not q.get("name") or not ans.strip():
@@ -224,6 +245,24 @@ def check_jsonld(pages, url_of, exists, out):
                         errors.append(f"{url}: TechArticle without headline")
                     if node.get("url") != BASE + url:
                         errors.append(f"{url}: TechArticle url {node.get('url')} is not the page URL")
+        # LuxOS jako SoftwareApplication (uvodni stranky a stranky Stahnout): aktualni verze, existujici snimky,
+        # na strankach Stahnout i odkaz na ISO a velikost
+        for raw in p.ld:
+            try:
+                nodes = list(ld_nodes(json.loads(raw)))
+            except ValueError:
+                continue
+            for a in nodes:
+                if "SoftwareApplication" not in ld_types(a) or a.get("@id") != BASE + "/#luxos":
+                    continue
+                if iso_version and a.get("softwareVersion") != iso_version:
+                    errors.append(f"{url}: SoftwareApplication softwareVersion {a.get('softwareVersion')}, ISO is {iso_version}")
+                if url not in ("/", "/cs/") and url in DOWNLOAD_PAGES:
+                    for k in ("downloadUrl", "fileSize"):
+                        if not a.get(k):
+                            errors.append(f"{url}: SoftwareApplication without {k}")
+        if url in DOWNLOAD_PAGES and "SoftwareApplication" not in types_on_page:
+            errors.append(f"{url}: download page without SoftwareApplication")
         if url in ("/", "/cs/"):
             for need in ("Organization", "WebSite", "SoftwareApplication", "Person"):
                 if need not in types_on_page:
@@ -332,16 +371,45 @@ def main():
             if p.title in seen_title:
                 errors.append(f"{url}: duplicate title with {seen_title[p.title]}")
             seen_title[p.title] = url
-            if len(p.title) > 90:
-                errors.append(f"{url}: title too long ({len(p.title)})")
+            if len(p.title) > site_seo.TITLE_MAX:
+                errors.append(f"{url}: title too long ({len(p.title)} > {site_seo.TITLE_MAX}): {p.title}")
         if not p.desc:
             errors.append(f"{url}: missing meta description")
         elif indexable:
             if p.desc in seen_desc:
                 errors.append(f"{url}: duplicate description with {seen_desc[p.desc]}")
             seen_desc[p.desc] = url
-            if len(p.desc) > 165:
-                errors.append(f"{url}: description too long ({len(p.desc)})")
+            if len(p.desc) > site_seo.DESC_MAX:
+                errors.append(f"{url}: description too long ({len(p.desc)} > {site_seo.DESC_MAX})")
+            elif len(p.desc) < 50:
+                errors.append(f"{url}: description too short ({len(p.desc)})")
+        if indexable:
+            # nahled odkazu: og:title/description/image a twitter:card, obrazek existuje na webu
+            for k in ("og:title", "og:description", "og:image", "og:url", "twitter:card", "twitter:image"):
+                if not p.meta.get(k):
+                    errors.append(f"{url}: missing <meta {k}>")
+            for k in ("og:image", "twitter:image"):
+                v = p.meta.get(k, "")
+                if v.startswith(BASE) and not exists(urlparse(v).path):
+                    errors.append(f"{url}: {k} {v} does not exist")
+            if p.meta.get("og:url") and p.meta["og:url"] != p.canon:
+                errors.append(f"{url}: og:url {p.meta['og:url']} differs from canonical {p.canon}")
+            # obrazky s rozmery (bez poskakovani stranky pri nacitani)
+            for src in p.img_nodims:
+                errors.append(f"{url}: <img> without width/height: {src}")
+            # hreflang: sam na sebe, x-default, a druha jazykova verze odkazuje zpet
+            if p.hreflang:
+                hl = dict(p.hreflang)
+                if hl.get(p.lang) != BASE + url:
+                    errors.append(f"{url}: hreflang {p.lang} is {hl.get(p.lang)}, expected {BASE + url}")
+                if "x-default" not in hl:
+                    errors.append(f"{url}: hreflang without x-default")
+                for lang, href in p.hreflang:
+                    if lang in ("x-default", p.lang) or not href.startswith(BASE):
+                        continue
+                    other = exists(urlparse(href).path)
+                    if other and other in pages and dict(pages[other].hreflang).get(p.lang) != BASE + url:
+                        errors.append(f"{url}: hreflang {lang} -> {href} does not link back")
         if indexable and p.canon != BASE + url:
             errors.append(f"{url}: canonical is {p.canon}, expected {BASE + url}")
         if indexable and p.h1 != 1:

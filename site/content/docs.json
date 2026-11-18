@@ -1,8 +1,16 @@
 {
-  "comment": "cs = cesky nazev a popis stranek luxos-docs s ceskou verzi. Strankam navic k luxos-docs (psane pro web podle zdrojaku). Zdroje: content/en/<soubor>, content/cs/<soubor>; after = za jaky dokument v sidebaru.",
+  "comment": "seo_title = vlastni titulek stranky ve vysledcich hledani (nejvyse 60 znaku, jinak nazev + pripona). cs = cesky nazev a popis stranek luxos-docs s ceskou verzi. Strankam navic k luxos-docs (psane pro web podle zdrojaku). Zdroje: content/en/<soubor>, content/cs/<soubor>; after = za jaky dokument v sidebaru.",
   "cs": {
     "luxos/secure-boot.md": {"title": "Secure Boot",
-      "summary": "LuxOS startuje se zapnutým Secure Boot: shim podepsaný Microsoftem, klíč LuxOS jednou zapsaný v MokManageru (Enroll key from disk), luxos-secureboot status/enroll, starší instalace, počítače Secured-core, ovladače DKMS."}
+      "summary": "LuxOS startuje se zapnutým Secure Boot: shim podepsaný Microsoftem, jednorázový zápis klíče LuxOS v MokManageru, luxos-secureboot, starší instalace, DKMS."}
+  },
+  "seo_title": {
+    "luxos/lux-code.md": {"en": "Lux Code – AI coding agent for the terminal | LuxOS",
+                          "cs": "Lux Code – AI agent pro programování v terminálu | LuxOS"},
+    "luxos/compare.md": {"en": "LuxOS vs Ubuntu, Mint, Zorin, elementary OS and Arch",
+                         "cs": "LuxOS vs Ubuntu, Mint, Zorin, elementary OS a Arch"},
+    "luxos/faq.md": {"en": "LuxOS FAQ – price, hardware, Windows apps, games",
+                     "cs": "LuxOS: časté otázky – cena, hardware, aplikace, hry"}
   },
   "files": [
     {"path": "luxos/luxai.md", "after": "luxos/overview.md",
@@ -11,11 +19,11 @@
                  "cs": "LuxAI je AI asistent systému LuxOS: režimy Chat a Agent, hledání na webu, offline příručka, oprávnění, účet LuxAI a soukromí."}},
     {"path": "luxos/lux-code.md", "after": "luxos/luxai.md",
      "title": {"en": "Lux Code – terminal AI coding agent", "cs": "Lux Code – terminálový AI agent"},
-     "summary": {"en": "Lux Code, the terminal AI coding agent of LuxOS: installation, sign-in with the LuxAI account, commands, tools, permissions and configuration.",
-                 "cs": "Lux Code, terminálový AI agent pro programování v LuxOS: instalace, přihlášení účtem LuxAI, příkazy, nástroje, oprávnění a nastavení."}},
+     "summary": {"en": "Lux Code is an AI coding agent in your terminal: it reads your project, edits files, runs commands and tests. Install with one command, sign in with LuxAI.",
+                 "cs": "Lux Code je AI agent pro programování v terminálu: čte projekt, upravuje soubory, spouští příkazy a testy. Instalace jedním příkazem, přihlášení LuxAI."}},
     {"path": "luxos/hardware.md", "after": "luxos/installer.md",
      "title": {"en": "Hardware support", "cs": "Podporovaný hardware"},
-     "summary": {"en": "Hardware supported by LuxOS: x86_64, UEFI and BIOS, Intel, AMD and NVIDIA graphics, Wi-Fi, audio, cameras, fingerprint readers, printers and virtual machines.",
+     "summary": {"en": "Hardware supported by LuxOS: x86_64, UEFI and BIOS, Intel, AMD and NVIDIA graphics, Wi-Fi, audio, cameras, fingerprint readers, printers and VMs.",
                  "cs": "Hardware podporovaný v LuxOS: x86_64, UEFI a BIOS, grafika Intel, AMD a NVIDIA, Wi-Fi, zvuk, kamery, čtečky otisků, tiskárny a virtuální počítače."}},
     {"path": "luxos/secure-boot-first-start.md", "after": "luxos/secure-boot.md",
      "title": {"en": "Secure Boot: first start", "cs": "Secure Boot: první start"},
@@ -27,11 +35,11 @@
                  "cs": "Všechny klávesové zkratky LuxOS: Hledání, Launchpad, okna, snímky obrazovky, zámek, monitory, LuxAI a Lux Code."}},
     {"path": "luxos/faq.md", "after": "luxos/overview.md",
      "title": {"en": "FAQ", "cs": "Časté otázky"},
-     "summary": {"en": "Answers about LuxOS: what it is, price and licence, Ubuntu, Mint, Zorin, elementary and Arch differences, Windows apps and Steam, hardware, safety and beta.",
-                 "cs": "Odpovědi o LuxOS: co to je, cena a licence, rozdíl proti Ubuntu, Mintu, Zorinu, elementary a Archu, aplikace z Windows a Steam, hardware, bezpečnost a beta."}},
+     "summary": {"en": "Answers about LuxOS: what it is, price and licence, Ubuntu, Mint, Zorin, elementary and Arch differences, Windows apps, Steam, hardware, safety, beta.",
+                 "cs": "Odpovědi o LuxOS: co to je, cena a licence, rozdíl proti Ubuntu, Mintu, Zorinu, elementary a Archu, aplikace z Windows, Steam, hardware, bezpečnost."}},
     {"path": "luxos/compare.md", "after": "luxos/faq.md",
      "title": {"en": "LuxOS vs Ubuntu, Mint, Zorin, elementary and Arch", "cs": "LuxOS ve srovnání s Ubuntu, Mintem, Zorinem, elementary a Archem"},
-     "summary": {"en": "How LuxOS differs from Ubuntu, Linux Mint, Zorin OS, elementary OS, Manjaro, EndeavourOS and plain Arch Linux: base, desktop, packages, updates and maturity.",
-                 "cs": "Čím se LuxOS liší od Ubuntu, Linux Mintu, Zorin OS, elementary OS, Manjara, EndeavourOS a čistého Arch Linuxu: základ, prostředí, balíky, aktualizace a zralost."}}
+     "summary": {"en": "How LuxOS differs from Ubuntu, Linux Mint, Zorin OS, elementary OS, Manjaro, EndeavourOS and Arch Linux: base, desktop, packages, updates, maturity.",
+                 "cs": "Čím se LuxOS liší od Ubuntu, Linux Mintu, Zorin OS, elementary OS, Manjara, EndeavourOS a Arch Linuxu: základ, prostředí, balíky, aktualizace, zralost."}}
   ]
 }

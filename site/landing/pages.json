@@ -1,0 +1,82 @@
+{
+  "comment": "Stranky pro konkretni hledani (scripts/build-site.py): sablona site/landing/<klic>.<jazyk>.html, tady adresa, titulek (<= 60 znaku), popis (<= 155), drobecek a kratky text karty (odkazy z uvodni stranky a 'Dalsi stranky'). {ISO_VERSION} a {ISO_SIZE} se doplni z site/iso.json. group = compare: stranka patri pod rozcestnik srovnani (compare_hub). Poradi = poradi karet.",
+  "compare_hub": {
+    "en": {"path": "/compare/", "title": "LuxOS compared with Zorin OS, elementary OS, Windows 11",
+           "desc": "Fair, sourced comparisons of LuxOS with Zorin OS, elementary OS and Windows 11: desktop, requirements, updates, price and maturity. LuxOS is beta.",
+           "crumb": "Compare", "h1": "LuxOS compared",
+           "lead": "Side-by-side comparisons with facts from the official websites of the other systems. Where another system is the better choice, we say so."},
+    "cs": {"path": "/cs/srovnani/", "title": "LuxOS ve srovnání se Zorin OS, elementary OS a Windows 11",
+           "desc": "Férová srovnání LuxOS se Zorin OS, elementary OS a Windows 11 se zdroji: prostředí, požadavky, aktualizace, cena a zralost. LuxOS je zatím beta.",
+           "crumb": "Srovnání", "h1": "LuxOS ve srovnání",
+           "lead": "Srovnání bok po boku s fakty z oficiálních webů ostatních systémů. Kde je jiný systém lepší volbou, řekneme to."}
+  },
+  "pages": {
+    "download": {
+      "en": {"path": "/download/", "title": "Download LuxOS {ISO_VERSION} – free ISO, checksums and USB guide",
+             "desc": "Download the free LuxOS {ISO_VERSION} ISO ({ISO_SIZE}). Check SHA-256 and the GPG signature, write it to USB with Ventoy, Etcher or dd and try it live.",
+             "crumb": "Download", "card": "Free ISO, SHA-256 and GPG verification, system requirements and how to write a USB stick."},
+      "cs": {"path": "/cs/stahnout/", "title": "Stáhnout LuxOS {ISO_VERSION} zdarma – ISO, ověření a USB",
+             "desc": "Stáhněte si LuxOS {ISO_VERSION} zdarma (ISO {ISO_SIZE}). Ověřte SHA-256 a podpis GPG, zapište ISO na USB přes Ventoy, Etcher nebo dd a vyzkoušejte ho.",
+             "crumb": "Stáhnout", "card": "ISO zdarma, ověření SHA-256 a GPG, požadavky na počítač a zápis na USB disk."}
+    },
+    "windows-10": {
+      "en": {"path": "/windows-10-end-of-support/", "title": "Windows 10 support has ended – what now? | LuxOS",
+             "desc": "Windows 10 support ended in October 2025. Your options: ESU, Windows 11 if your PC qualifies, or a free Linux like LuxOS for an older PC – honestly.",
+             "crumb": "Windows 10 has ended", "card": "Your options after the end of support, and what works and what does not on Linux."},
+      "cs": {"path": "/cs/konec-podpory-windows-10/", "title": "Konec podpory Windows 10 – co dál? | LuxOS",
+             "desc": "Podpora Windows 10 skončila v říjnu 2025. Možnosti: ESU, Windows 11, pokud ho počítač zvládne, nebo Linux zdarma jako LuxOS pro starší počítač.",
+             "crumb": "Konec Windows 10", "card": "Jaké máte možnosti po konci podpory a co na Linuxu funguje a co ne."}
+    },
+    "macos-like": {
+      "en": {"path": "/macos-like-linux/", "title": "A Linux that looks and feels like macOS – LuxOS",
+             "desc": "LuxOS is a free Linux with a macOS-like desktop out of the box: top bar, Dock, Launchpad, quick search and Control Center, on almost any 64-bit PC.",
+             "crumb": "Linux like macOS", "card": "Top bar, Dock, Launchpad and Control Center – ready after installation."},
+      "cs": {"path": "/cs/linux-jako-macos/", "title": "Linux jako macOS – vzhled a ovládání jako na Macu | LuxOS",
+             "desc": "LuxOS je Linux zdarma s prostředím ve stylu macOS hned po instalaci: horní lišta, Dock, Launchpad, rychlé hledání a Ovládací centrum na běžném PC.",
+             "crumb": "Linux jako macOS", "card": "Horní lišta, Dock, Launchpad a Ovládací centrum – hotové hned po instalaci."}
+    },
+    "old-computers": {
+      "en": {"path": "/linux-for-old-computers/", "title": "Linux for old computers – LuxOS runs on 4 GB RAM",
+             "desc": "Give an older PC a second life: LuxOS installs on 4 GB of RAM, needs a 20 GB disk and a 64-bit CPU. Real requirements, tips for older hardware and limits.",
+             "crumb": "Linux for old computers", "card": "Real minimum and recommended specs, and tips for older laptops and PCs."},
+      "cs": {"path": "/cs/system-pro-starsi-pocitac/", "title": "Systém pro starší počítač – LuxOS běží i se 4 GB RAM",
+             "desc": "Dejte staršímu počítači druhý život: LuxOS se nainstaluje se 4 GB RAM, stačí mu 20GB disk a 64bitový procesor. Skutečné požadavky, tipy a omezení.",
+             "crumb": "Systém pro starší počítač", "card": "Skutečné minimální a doporučené požadavky a tipy pro starší notebooky a PC."}
+    },
+    "schools": {
+      "en": {"path": "/schools/", "title": "LuxOS for schools – free Linux for classrooms",
+             "desc": "LuxOS for schools: free, joins an existing Active Directory or Samba domain, works offline, no ads, undoable updates. What it can do and what not yet.",
+             "crumb": "For schools", "card": "Free, joins your Active Directory or Samba domain, works offline, privacy first."},
+      "cs": {"path": "/cs/pro-skoly/", "title": "LuxOS pro školy – Linux zdarma do učeben",
+             "desc": "LuxOS pro školy: zdarma, připojí se k vaší doméně Active Directory nebo Samba, funguje offline, bez reklam, aktualizace jdou vrátit. Co umí a co zatím ne.",
+             "crumb": "Pro školy", "card": "Zdarma, připojení k doméně Active Directory nebo Samba, funguje offline, soukromí."}
+    },
+    "vs-zorin": {
+      "group": "compare",
+      "en": {"path": "/compare/luxos-vs-zorin-os/", "title": "LuxOS vs Zorin OS – an honest comparison",
+             "desc": "LuxOS vs Zorin OS: base, desktop layouts (the macOS-like one is Pro-only in Zorin), updates, requirements, price and maturity – with sources.",
+             "crumb": "LuxOS vs Zorin OS", "card": "Ubuntu LTS and paid Pro layouts vs Arch rolling release with a free macOS-like desktop."},
+      "cs": {"path": "/cs/srovnani/luxos-vs-zorin-os/", "title": "LuxOS vs Zorin OS – férové srovnání",
+             "desc": "LuxOS vs Zorin OS: základ, rozvržení plochy (to jako macOS má Zorin jen v placené verzi Pro), aktualizace, požadavky, cena a zralost – se zdroji.",
+             "crumb": "LuxOS vs Zorin OS", "card": "Ubuntu LTS a placená rozvržení Pro proti Arch s průběžnými aktualizacemi a plochou jako macOS zdarma."}
+    },
+    "vs-elementary": {
+      "group": "compare",
+      "en": {"path": "/compare/luxos-vs-elementary-os/", "title": "LuxOS vs elementary OS – an honest comparison",
+             "desc": "LuxOS vs elementary OS: two Mac-inspired Linux desktops. Base, apps, updates, requirements, price and maturity compared fairly, with sources.",
+             "crumb": "LuxOS vs elementary OS", "card": "Two Mac-inspired desktops: Pantheon on Ubuntu LTS vs Xfce parts on Arch."},
+      "cs": {"path": "/cs/srovnani/luxos-vs-elementary-os/", "title": "LuxOS vs elementary OS – férové srovnání",
+             "desc": "LuxOS vs elementary OS: dvě linuxová prostředí inspirovaná Macem. Základ, aplikace, aktualizace, požadavky, cena a zralost férově a se zdroji.",
+             "crumb": "LuxOS vs elementary OS", "card": "Dvě prostředí inspirovaná Macem: Pantheon na Ubuntu LTS proti dílům Xfce na Archu."}
+    },
+    "vs-windows-11": {
+      "group": "compare",
+      "en": {"path": "/compare/luxos-vs-windows-11/", "title": "LuxOS vs Windows 11 – which one suits your PC?",
+             "desc": "LuxOS vs Windows 11: hardware requirements (TPM 2.0, supported CPUs), apps and games, price, privacy and updates. When to stay on Windows and when not.",
+             "crumb": "LuxOS vs Windows 11", "card": "Hardware requirements, apps, games, price and privacy – and when Windows is the better choice."},
+      "cs": {"path": "/cs/srovnani/luxos-vs-windows-11/", "title": "LuxOS vs Windows 11 – co se hodí pro váš počítač?",
+             "desc": "LuxOS vs Windows 11: požadavky na hardware (TPM 2.0, podporované procesory), aplikace a hry, cena, soukromí a aktualizace. Kdy zůstat u Windows a kdy ne.",
+             "crumb": "LuxOS vs Windows 11", "card": "Požadavky na hardware, aplikace, hry, cena a soukromí – a kdy jsou lepší volbou Windows."}
+    }
+  }
+}

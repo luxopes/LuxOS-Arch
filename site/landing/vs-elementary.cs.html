@@ -1,0 +1,54 @@
+      {{CRUMBS}}
+      <h1>LuxOS vs elementary OS</h1>
+      <p class="lead">elementary OS a LuxOS jsou dva linuxové systémy, které se nejčastěji doporučují lidem, jimž sedí klidný a jednoduchý styl Macu. Každý k tomu jde jinou cestou. Férové srovnání – elementary OS je z těch dvou zralejší, LuxOS je beta.</p>
+
+      <h2 id="prehled">Přehled</h2>
+      <table>
+        <thead><tr><th></th><th>LuxOS {{ISO_VERSION}}</th><th>elementary OS 8.1</th></tr></thead>
+        <tbody>
+          <tr><td>Základ</td><td>Arch Linux, průběžné aktualizace (rolling)</td><td>Ubuntu LTS s novějším jádrem a grafikou z Ubuntu (ve verzi 8.1 Linux 6.14 a Mesa 25)</td></tr>
+          <tr><td>Prostředí</td><td>díly Xfce uspořádané jako macOS: horní lišta, Dock, Launchpad, Hledání, Ovládací centrum</td><td>vlastní prostředí Pantheon (Gala, Panel, Dock); výchozí je zabezpečená relace na Waylandu</td></tr>
+          <tr><td>Design</td><td>věrná kopie způsobu práce na Macu (tlačítka oken vlevo, zkratky jako na Macu)</td><td>vlastní designový jazyk inspirovaný Macem s vlastními aplikacemi</td></tr>
+          <tr><td>Aplikace</td><td>Obchod LuxOS: repozitáře Arch Linuxu, Flathub, prověřené komunitní balíky (AUR) v sandboxu</td><td>AppCenter – obchod nezávislých vývojářů s platbou podle možností – a Flathub</td></tr>
+          <tr><td>Cena</td><td>zdarma</td><td>zaplaťte, kolik můžete (libovolná částka)</td></tr>
+          <tr><td>Hardware</td><td>64bitové PC (x86_64), 4 GB RAM, 20GB disk; UEFI i BIOS</td><td>doporučeno: novější Intel Core i3 nebo podobný dvoujádrový 64bitový procesor, 4 GB RAM, SSD s 32 GB volného místa, displej 1024 × 768; také verze pro ARM64 se UEFI</td></tr>
+          <tr><td>Navíc</td><td>automatické rozpoznání ovladačů, Lux Guard, Trezor (šifrovaná složka), volitelný asistent LuxAI</td><td>ucelená sada vlastních aplikací</td></tr>
+          <tr><td>Velikost ISO</td><td>{{ISO_SIZE}}</td><td>3,3 GB (8.1.1)</td></tr>
+          <tr><td>Zralost</td><td>beta, jeden vývojář</td><td>zralý, přes deset let vydání, tým a komunita</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="kde-elementary">Kde je lepší volbou elementary OS</h2>
+      <ul>
+        <li><strong>Vyladěnost a jednota.</strong> elementary navrhuje prostředí i aplikace společně; celý systém působí uceleně.</li>
+        <li><strong>Stabilita.</strong> Základ Ubuntu LTS se mění pomalu, což se hodí pro počítače, které nikoho nesmí překvapit.</li>
+        <li><strong>Zralost a komunita.</strong> Roky vydání, tým v pozadí a spousta pomoci na internetu. LuxOS je beta.</li>
+        <li><strong>Zařízení ARM.</strong> elementary OS nabízí verzi pro ARM64; LuxOS je jen pro x86_64.</li>
+      </ul>
+
+      <h2 id="cim-se-lisi-luxos">Čím se liší LuxOS</h2>
+      <ul>
+        <li><strong>Blíž rozvržení Macu</strong>: horní lišta s názvem aktivní aplikace, Dock se zvětšováním, Launchpad, Ovládací centrum, červené, žluté a zelené tlačítko oken vlevo a <kbd>Super</kbd> v roli <kbd>Cmd</kbd>.</li>
+        <li><strong>Lehký základ Xfce</strong>, který se hodí i pro starší počítače, včetně těch se systémem BIOS.</li>
+        <li><strong>Obrovský výběr softwaru</strong>: celé repozitáře Arch Linuxu a Flathub; komunitní balíky (AUR) se před instalací prověří a instalují do sandboxu.</li>
+        <li><strong>Záchranná síť pro aktualizace</strong>: snímek Btrfs před každou aktualizací a návrat ze spouštěcí nabídky.</li>
+        <li><strong>Automatické ovladače</strong> pro NVIDIA podle generace, Wi-Fi Broadcom, kamery Intel a zvuk.</li>
+      </ul>
+      {{SHOT:control-center|Ovládací centrum LuxOS s dlaždicemi Wi-Fi, Bluetooth, Nerušit a Tmavý režim a posuvníky jasu a hlasitosti|LuxOS: Ovládací centrum pod horní lištou, jako na Macu.}}
+
+      <h2 id="kdo">Kdo by si měl vybrat co?</h2>
+      <p><strong>Vyberte elementary OS</strong>, pokud chcete klidný, pečlivě navržený systém, který se mění pomalu, a oceníte jeho vlastní aplikace. <strong>Vyberte LuxOS</strong>, pokud chcete způsob práce co nejblíž Macu, novější software se snímkem za každou aktualizací nebo lehčí systém pro starší počítač – a nevadí vám beta. Oba systémy jde vyzkoušet z USB disku bez instalace.</p>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Zdroje</h2>
+        <ul>
+          <li><a href="https://elementary.io/">elementary OS – oficiální web</a> (verze 8.1.1, platba podle možností, AppCenter; anglicky)</li>
+          <li><a href="https://blog.elementary.io/os-8-1-available-now/">elementary OS 8.1 Available Now</a> (jádro a grafika z Ubuntu LTS, výchozí zabezpečená relace, Flathub, ARM64; anglicky)</li>
+          <li><a href="https://elementary.io/docs/installation">Instalace elementary OS – doporučené požadavky</a> (anglicky)</li>
+          <li><a href="https://elementary.io/open-source">elementary OS – open source</a> (prostředí Pantheon: Gala, Panel, Dock; anglicky)</li>
+          <li>LuxOS: <a href="{{DOC:luxos/compare.md}}">LuxOS ve srovnání s dalšími distribucemi</a>, <a href="{{DOC:luxos/desktop.md}}">prostředí LuxOS</a></li>
+        </ul>
+        <p class="checked">Údaje o elementary OS ověřeny na oficiálním webu 18. listopadu 2026. Mezi vydáními se můžou měnit.</p>
+      </section>

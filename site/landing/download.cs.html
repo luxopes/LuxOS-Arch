@@ -1,0 +1,71 @@
+      {{CRUMBS}}
+      <h1>Stáhnout LuxOS {{ISO_VERSION}}</h1>
+      <p class="lead">LuxOS je zdarma. Stáhněte ISO, zapište ho na USB disk a vyzkoušejte LuxOS bez instalace – na váš disk se nesáhne, dokud se sami nerozhodnete instalovat.</p>
+
+      <div class="download-box">
+        <div class="download-copy"><h2>LuxOS <span data-release="iso_version">{{ISO_VERSION}}</span> „<span data-release="codename">{{CODENAME}}</span>“ <span class="beta">beta</span></h2>
+          <p>64bitové PC (x86_64) · ISO <span data-release="iso_size">{{ISO_SIZE}}</span> · vydáno <span data-release="iso_date">{{ISO_DATE}}</span> · zdarma, bez registrace</p>
+          <p class="unstable-warning">⚠ LuxOS je zatím beta: počítejte s chybami. Před instalací si zálohujte data.</p>
+          <div class="download-links"><a href="/download/SHA256SUMS" data-release-href="sums"><span>▤</span> SHA256SUMS</a><a href="/download/{{ISO_FILE}}.sig" data-release-href="sig"><span>♧</span> Podpis ISO</a><a href="/repo/luxos.gpg"><span>♧</span> Klíč LuxOS</a><a href="{{CHANGES}}"><span>✦</span> Co je nového</a></div>
+        </div>
+        <a href="/download/{{ISO_FILE}}" data-release-href="iso" class="button button-primary iso-button" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg><span>Stáhnout ISO<small data-release="iso_size">{{ISO_SIZE}}</small></span></a>
+      </div>
+      <p>LuxOS už používáte? ISO nepotřebujete: LuxOS se aktualizuje sám na pozadí, případně spusťte <code>lux update</code>.</p>
+
+      <h2 id="pozadavky">Požadavky na počítač</h2>
+      <table>
+        <thead><tr><th></th><th>Minimum</th><th>Doporučeno</th></tr></thead>
+        <tbody>
+          <tr><td>Procesor</td><td>64bitový Intel nebo AMD (x86-64)</td><td>2 jádra a víc</td></tr>
+          <tr><td>Paměť</td><td>4 GB RAM</td><td>8 GB RAM</td></tr>
+          <tr><td>Disk</td><td>20 GB</td><td>SSD, 64 GB a víc</td></tr>
+          <tr><td>Firmware</td><td>UEFI i starší BIOS, TPM není potřeba</td><td>UEFI se zapnutým Secure Boot</td></tr>
+          <tr><td>USB disk</td><td>4 GB a víc</td><td>USB 3</td></tr>
+          <tr><td>Internet</td><td colspan="2">potřeba během instalace (stahují se aktuální balíky, asi 10 minut)</td></tr>
+        </tbody>
+      </table>
+      <p>Grafika (Intel, AMD, NVIDIA), Wi-Fi, zvuk a tiskárny se rozpoznají samy. Víc v přehledu <a href="{{DOC:luxos/hardware.md}}">podporovaného hardwaru</a> a na stránce <a href="{{URL:old-computers}}">LuxOS na starším počítači</a>.</p>
+
+      <h2 id="verify">Ověření staženého souboru</h2>
+      <p>Ověřte, že je soubor celý a opravdu pochází od LuxOS. Dejte ISO, <code>SHA256SUMS</code> a soubor <code>.sig</code> do jedné složky a v terminálu spusťte:</p>
+      <div class="terminal"><pre><code><span class="terminal-prompt">$</span> sha256sum -c SHA256SUMS
+<span class="terminal-prompt">$</span> gpg --import luxos.gpg
+<span class="terminal-prompt">$</span> gpg --verify <span data-release="iso_file">{{ISO_FILE}}</span>.sig <span data-release="iso_file">{{ISO_FILE}}</span></code></pre><button class="copy" data-copy="sha256sum -c SHA256SUMS&#10;gpg --import luxos.gpg&#10;gpg --verify {{ISO_FILE}}.sig {{ISO_FILE}}" aria-label="Kopírovat příkazy">⧉</button></div>
+      <div class="fingerprint"><span>SHA-256:</span><code data-release="iso_sha256">{{ISO_SHA256}}</code><button class="copy" data-copy="{{ISO_SHA256}}" data-release-copy="iso_sha256" aria-label="Kopírovat kontrolní součet">⧉</button></div>
+      <div class="fingerprint"><span>Otisk klíče LuxOS:</span><code>{{FINGERPRINT}}</code><button class="copy" data-copy="{{FINGERPRINT}}" aria-label="Kopírovat otisk">⧉</button></div>
+      <p><code>sha256sum</code> musí vypsat <strong>OK</strong> (v češtině <strong>V POŘÁDKU</strong>) a <code>gpg</code> <strong>Good signature</strong> (<strong>Dobrý podpis</strong>) klíčem s otiskem výše. Ve Windows porovnejte součet příkazem <code>Get-FileHash .\{{ISO_FILE}}</code> v PowerShellu, na Macu příkazem <code>shasum -a 256 {{ISO_FILE}}</code>. Podpis ve Windows ověříte programem Gpg4win.</p>
+
+      <h2 id="usb">Zápis ISO na USB disk</h2>
+      <p>Všechno na USB disku se smaže. Vyberte jeden nástroj:</p>
+      <ul>
+        <li><strong>Ventoy</strong> (Windows, Linux): Ventoy na disk jednou nainstalujete a pak na něj ISO jen zkopírujete – na jednom disku můžete mít víc systémů. Se zapnutým Secure Boot při instalaci Ventoy na disk zapněte volbu <em>Secure Boot Support</em>.</li>
+        <li><strong>balenaEtcher</strong> (Windows, macOS, Linux): <em>Flash from file</em> → vyberte ISO → vyberte USB disk → <em>Flash</em>.</li>
+        <li><strong>Fedora Media Writer</strong> (Windows, macOS, Linux): zvolte vlastní soubor .iso (<em>Select .iso file</em>) → vyberte disk → zapište.</li>
+        <li><strong>Rufus</strong> (Windows): vyberte ISO a až se Rufus zeptá, zvolte zápis v režimu <em>DD</em>.</li>
+        <li><strong>dd</strong> (Linux): najděte USB disk příkazem <code>lsblk</code> (třeba <code>/dev/sdb</code> – zkontrolujte to dvakrát, špatné zařízení znamená ztracená data) a spusťte <code>sudo dd if={{ISO_FILE}} of=/dev/sdX bs=4M status=progress oflag=sync</code>.</li>
+      </ul>
+
+      <h2 id="secure-boot">Secure Boot nechte zapnutý</h2>
+      <p>LuxOS startuje se zapnutým Secure Boot – ve firmwaru nemusíte nic měnit. Při úplně prvním startu z USB disku se počítač jednou zeptá, jestli má důvěřovat klíči LuxOS: stiskněte <kbd>Enter</kbd>, zvolte <strong>Enroll key from disk</strong>, vyberte klíč LuxOS a potvrďte. Trvá to méně než minutu a nic se nepíše. <a href="{{DOC:luxos/secure-boot-first-start.md}}">Návod krok za krokem se snímky</a>.</p>
+      <figure class="app-shot sb-shot"><img src="/assets/secureboot/sb-04-select-file.webp" alt="MokManager při prvním startu: na USB disku LuxOS je vybraný soubor LUXOS_ENROLL_THIS_KEY.cer"><figcaption>Jednorázový krok: vyberte <code>LUXOS_ENROLL_THIS_KEY.cer</code> a potvrďte.</figcaption></figure>
+
+      <h2 id="instalace">Vyzkoušení a instalace</h2>
+      <ol>
+        <li>Zasuňte USB disk, zapněte počítač a otevřete nabídku spouštění – obvykle <kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd> nebo <kbd>Esc</kbd>.</li>
+        <li>LuxOS se spustí z USB disku. Vyzkoušejte Wi-Fi, zvuk a grafiku.</li>
+        <li>Spusťte <strong>Nainstalovat LuxOS</strong>. Vyberte celý disk, volné místo vedle Windows (dual boot) nebo existující oddíl, volitelně se šifrováním.</li>
+        <li>Po instalaci se LuxOS aktualizuje sám na pozadí; každou aktualizaci jde vrátit.</li>
+      </ol>
+      <p>Podrobnosti: <a href="{{DOC:luxos/installer.md}}">instalace LuxOS (anglicky)</a>. Přecházíte z Windows 10? Nejdřív si přečtěte, <a href="{{URL:windows-10}}">co funguje a co ne</a>.</p>
+
+      <section class="faq" id="faq">
+        <h2>Časté otázky</h2>
+        <h3>Je LuxOS zdarma?</h3>
+        <p>Ano. ISO stáhnete i používáte zdarma, bez registrace a bez placené edice. Většina LuxOS je otevřený software pod licencí GPL-3.0-or-later.</p>
+        <h3>Musím vypnout Secure Boot?</h3>
+        <p>Ne. LuxOS startuje se zapnutým Secure Boot. Při prvním startu z USB disku se počítač jednou zeptá, jestli má důvěřovat klíči LuxOS, což trvá méně než minutu.</p>
+        <h3>Můžu LuxOS vyzkoušet bez instalace?</h3>
+        <p>Ano. LuxOS běží přímo z USB disku. Na vašem disku se nic nezmění, dokud nespustíte instalátor a nevyberete, kam instalovat.</p>
+        <h3>Který soubor potřebuju?</h3>
+        <p>Jen soubor ISO. SHA256SUMS, podpis .sig a klíč LuxOS slouží k ověření, že je stažený soubor celý a pravý.</p>
+      </section>

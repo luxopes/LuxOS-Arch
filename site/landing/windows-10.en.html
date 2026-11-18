@@ -1,0 +1,84 @@
+      {{CRUMBS}}
+      <h1>Windows 10 support has ended – what now?</h1>
+      <p class="lead">Microsoft ended support for Windows 10 on 14 October 2025. Your computer still works, but it is time to decide what comes next. Here are your options, honestly – including when LuxOS is <em>not</em> the right answer.</p>
+
+      <h2 id="what-it-means">What the end of support means</h2>
+      <p>After 14 October 2025 Microsoft no longer provides security fixes, feature updates or technical help for Windows 10. The PC keeps starting and your programs keep running. The risk grows slowly: every security hole discovered from now on stays open on computers that do not get Extended Security Updates. For a computer you use for e-mail, online banking or downloading files, that matters more every month.</p>
+
+      <h2 id="options">Your four options</h2>
+      <table>
+        <thead><tr><th>Option</th><th>Cost</th><th>Good for</th><th>Watch out</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Extended Security Updates (ESU)</strong></td><td>free when you sync settings with Windows Backup, 1,000 Microsoft Rewards points, or US$30</td><td>buying time until you decide</td><td>security fixes only; needs Windows 10 version 22H2 and a Microsoft account with administrator rights; coverage ends on 12 October 2027</td></tr>
+          <tr><td><strong>Upgrade to Windows 11</strong></td><td>free on eligible PCs</td><td>PCs that meet the requirements, people who need Windows-only software</td><td>needs TPM 2.0, UEFI with Secure Boot, a processor from Microsoft's list, 4 GB RAM and 64 GB storage; Home needs a Microsoft account</td></tr>
+          <tr><td><strong>Buy a new PC</strong></td><td>hundreds of euros or dollars</td><td>very old or broken hardware</td><td>your current PC may still be perfectly fine</td></tr>
+          <tr><td><strong>Switch to Linux, e.g. LuxOS</strong></td><td>free</td><td>PCs that cannot run Windows 11, web, office, photos, many games</td><td>some Windows programs do not run (see below); LuxOS is beta</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="windows-11">Can my PC run Windows 11?</h2>
+      <p>Open <strong>Settings › Update &amp; Security › Windows Update</strong> on Windows 10 or run Microsoft's PC Health Check app. The usual blockers on PCs from before 2018 are the processor (it must be on Microsoft's list of supported CPUs) and the missing or disabled TPM 2.0. If your PC passes, upgrading to Windows 11 is free and is the easiest path when you depend on Windows software.</p>
+
+      <h2 id="luxos">LuxOS: a free option for PCs that Windows 11 leaves behind</h2>
+      <p><a href="{{HOME}}">LuxOS</a> is a free Linux system with a desktop in the style you know from the Mac. It needs no TPM, no Microsoft account and no particular processor generation – a 64-bit PC with 4 GB of RAM and a 20 GB disk is enough (<a href="{{URL:old-computers}}">full requirements</a>). It gets updates continuously, takes a snapshot before every update so a bad one can be undone, and finds drivers for graphics, Wi-Fi and printers by itself.</p>
+      {{SHOT:desktop|The LuxOS desktop with the top bar, the Dock at the bottom and the default wallpaper|The LuxOS desktop: top bar, Dock and Launchpad – no learning a new system from scratch.}}
+
+      <h2 id="what-works">What works on LuxOS – and what does not</h2>
+      <table>
+        <thead><tr><th>You use on Windows</th><th>On LuxOS</th></tr></thead>
+        <tbody>
+          <tr><td>Chrome, Edge, web apps, Gmail, Microsoft 365 on the web</td><td>✓ Firefox comes with an ad blocker built in; Chromium, Google Chrome and other browsers are in the LuxOS Store (Flathub). Web versions of Office, Teams and Google Docs work in the browser.</td></tr>
+          <tr><td>Word, Excel, PowerPoint (desktop)</td><td>≈ LibreOffice opens and saves Office files (the <em>Everyday</em> app set); complex macros and some layouts may differ. Or use Office on the web.</td></tr>
+          <tr><td>Photos, music, videos, USB drives, printers</td><td>✓ Built in. Most printers work without installing a driver.</td></tr>
+          <tr><td>Steam games</td><td>✓ Many Windows games run through Steam's Proton (<em>Gaming</em> app set).</td></tr>
+          <tr><td>Games with kernel-level anti-cheat (e.g. Valorant, Fortnite)</td><td>✗ Do not run on Linux. Check your games on <a href="https://areweanticheatyet.com/">Are We Anti-Cheat Yet?</a></td></tr>
+          <tr><td>Adobe Photoshop, Premiere, Illustrator, Lightroom</td><td>✗ Adobe makes no Linux versions. Alternatives: GIMP, Krita, Inkscape, darktable, Kdenlive (<em>Video &amp; Photo</em> app set).</td></tr>
+          <tr><td>Other Windows programs</td><td>≈ Some run with Wine via the Bottles app; it depends on the program. Specialised software (accounting, CAD, school or bank tools) may need Windows.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Need one Windows-only program or game?</strong> Install LuxOS next to Windows (dual boot) and choose the system when the computer starts. The installer can use free space on the disk and keeps Windows untouched. Keep in mind that an unsupported Windows 10 is best used only for that one thing.</p>
+
+      <h2 id="try">Try it from a USB stick first – nothing is installed</h2>
+      <ol>
+        <li><a href="{{URL:download}}">Download the LuxOS ISO</a> ({{ISO_SIZE}}) and write it to a USB stick of 4 GB or more with Ventoy, balenaEtcher or Fedora Media Writer.</li>
+        <li>Restart the PC and open the boot menu (usually <kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd> or <kbd>Esc</kbd> right after switching on) and choose the USB stick.</li>
+        <li>With Secure Boot on, the computer asks once to trust the LuxOS key – <a href="{{DOC:luxos/secure-boot-first-start.md}}">a one-minute step with pictures</a>. You do not need to turn Secure Boot off.</li>
+        <li>LuxOS starts from the stick. Try the Wi-Fi, sound, the touchpad and your websites. Your disk is not touched until you click <strong>Install LuxOS</strong>.</li>
+      </ol>
+
+      <h2 id="data">Moving your files from Windows</h2>
+      <ul>
+        <li><strong>Before installing</strong>, copy Documents, Pictures, Desktop, Downloads and Music to an external drive or a cloud service. LuxOS is beta: a backup is a must.</li>
+        <li><strong>Browser:</strong> sign in to Firefox or Chrome sync, or export bookmarks and passwords to a file.</li>
+        <li><strong>E-mail:</strong> webmail just works; for desktop mail, Thunderbird is part of the <em>Everyday</em> app set.</li>
+        <li><strong>Dual boot:</strong> LuxOS can open the Windows disk in Files. Turn off <em>Fast Startup</em> in Windows first, otherwise the Windows disk may open read-only.</li>
+        <li>After installation, set up automatic <a href="{{DOC:luxos/backups.md}}">backups</a> to an external or network disk.</li>
+      </ul>
+
+      <section class="faq" id="faq">
+        <h2>Common questions</h2>
+        <h3>Can I keep using Windows 10 after the end of support?</h3>
+        <p>Yes, it keeps working. Without Extended Security Updates it no longer gets security fixes, so new vulnerabilities stay open. Keep it off risky tasks such as online banking, or enrol in ESU while you decide.</p>
+        <h3>Is LuxOS really free?</h3>
+        <p>Yes. The ISO is a free download and there is no paid edition. The optional LuxAI assistant needs a LuxAI account with monthly usage limits; LuxOS works fully without it.</p>
+        <h3>Will LuxOS delete Windows?</h3>
+        <p>Only if you choose to erase the whole disk. The installer can also install LuxOS into free space next to Windows, and trying LuxOS from the USB stick changes nothing on the disk.</p>
+        <h3>Is LuxOS safe without antivirus?</h3>
+        <p>LuxOS has a firewall on by default, signed packages and Lux Guard, which checks programs downloaded from the internet and runs dangerous ones only in a sandbox. Hourly snapshots of your home folder let you restore deleted or encrypted files.</p>
+        <h3>Is LuxOS ready for my parents' computer?</h3>
+        <p>LuxOS is still beta, made by one developer. For a computer that must never surprise anyone, an established system such as Windows 11 on eligible hardware, Linux Mint or Zorin OS is the safer choice today.</p>
+      </section>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Sources</h2>
+        <ul>
+          <li><a href="https://support.microsoft.com/en-us/windows/windows-10-support-has-ended-on-october-14-2025-2ca8b313-1946-43d3-b55c-2b95b107f281">Microsoft: Windows 10 support has ended on October 14, 2025</a></li>
+          <li><a href="https://www.microsoft.com/en-us/windows/extended-security-updates">Microsoft: Windows 10 Extended Security Updates – cost, requirements, end date</a></li>
+          <li><a href="https://www.microsoft.com/en-us/windows/windows-11-specifications">Microsoft: Windows 11 specifications and system requirements</a></li>
+          <li><a href="https://areweanticheatyet.com/">Are We Anti-Cheat Yet? – games with anti-cheat on Linux</a></li>
+          <li>LuxOS: <a href="{{DOC:luxos/hardware.md}}">hardware support</a>, <a href="{{DOC:luxos/installer.md}}">installation</a>, <a href="{{DOC:luxos/faq.md}}">FAQ</a></li>
+        </ul>
+        <p class="checked">Facts about Windows checked on 18 November 2026.</p>
+      </section>

@@ -1,0 +1,68 @@
+      {{CRUMBS}}
+      <h1>Linux for old computers</h1>
+      <p class="lead">An older PC or laptop is often too slow for today's Windows, or not allowed to run Windows 11 at all – but still good for the web, documents, photos and video calls. LuxOS is a free, lightweight Linux that gives such computers a second life, with a modern desktop.</p>
+
+      <h2 id="requirements">What LuxOS needs</h2>
+      <table>
+        <thead><tr><th></th><th>Minimum</th><th>Recommended</th></tr></thead>
+        <tbody>
+          <tr><td>Processor</td><td>64-bit Intel or AMD (x86-64)</td><td>2 cores or more</td></tr>
+          <tr><td>Memory (RAM)</td><td>4 GB – installation tested on a 4 GB machine</td><td>8 GB for many browser tabs</td></tr>
+          <tr><td>Disk</td><td>20 GB</td><td>SSD with 64 GB or more</td></tr>
+          <tr><td>Firmware</td><td>UEFI or older BIOS – no TPM needed</td><td>UEFI (Secure Boot can stay on)</td></tr>
+          <tr><td>Graphics</td><td>Intel, AMD or NVIDIA – the driver is chosen automatically</td><td>–</td></tr>
+          <tr><td>Installation</td><td>USB stick of 4 GB or more, internet connection (about 10 minutes)</td><td>wired or good Wi-Fi connection</td></tr>
+        </tbody>
+      </table>
+      <p>Right after login LuxOS uses roughly 1 to 1.4 GB of RAM, depending on the hardware – in our 4 GB test machine it was under 1 GB, leaving the rest to your apps. The ISO you download is {{ISO_SIZE}}.</p>
+
+      <h2 id="why-light">Why it stays fast on older hardware</h2>
+      <ul>
+        <li><strong>Lightweight desktop</strong>: built from Xfce components, which need far less memory and graphics power than heavier desktops, yet looks modern.</li>
+        <li><strong>Compressed memory (zram)</strong>: when RAM gets full, LuxOS compresses memory instead of swapping to a slow disk.</li>
+        <li><strong>No freezing when memory runs out</strong>: if one program eats all memory, LuxOS stops just that program and tells you, instead of the whole computer locking up.</li>
+        <li><strong>Compressed file system</strong> (Btrfs with zstd) saves space on small disks.</li>
+        <li><strong>Ad blocker in Firefox</strong> out of the box: fewer scripts and ads mean lighter web pages.</li>
+        <li><strong>Battery Saver</strong> and <strong>Data Saver</strong> in Control Center for older laptops and mobile hotspots.</li>
+        <li><strong>Own native apps</strong> such as Terminal and Text Editor, written in C or LSL rather than heavy frameworks.</li>
+      </ul>
+      {{SHOT:files|The Files app in LuxOS showing a folder of holiday photos with thumbnails|Files, Firefox, office and photo apps run comfortably on modest hardware.}}
+
+      <h2 id="drivers">Older hardware and drivers</h2>
+      <p>LuxOS detects the hardware during installation and after every start: Intel and AMD graphics work out of the box, NVIDIA cards get the right driver for their generation (newer ones the open NVIDIA driver, Maxwell to Volta the 580xx driver, older cards the open-source nouveau), Broadcom Wi-Fi chips get their driver, and printers usually work without installing anything. Details are in <a href="{{DOC:luxos/hardware.md}}">hardware support</a>.</p>
+
+      <h2 id="tips">Tips that help most</h2>
+      <ol>
+        <li><strong>Replace a spinning hard disk with an SSD.</strong> It is the biggest speed-up for an old computer and costs little.</li>
+        <li><strong>Add RAM if you can</strong>: going from 4 to 8 GB makes many browser tabs comfortable.</li>
+        <li><strong>Try it from USB first</strong>: LuxOS runs from the stick without installing, so you see whether Wi-Fi, sound and graphics work before you change anything.</li>
+      </ol>
+
+      <h2 id="limits">Honest limits</h2>
+      <ul>
+        <li>32-bit processors and Apple Silicon Macs are not supported.</li>
+        <li>On 4 GB of RAM, heavy web apps and dozens of tabs will still be slow – that is the browser, not the system.</li>
+        <li>Installation downloads current packages, so it needs an internet connection.</li>
+        <li>LuxOS is beta. For a very old machine that must just work, lighter established systems such as Linux Mint Xfce or Zorin OS Lite are worth a look too.</li>
+      </ul>
+
+      <section class="faq" id="faq">
+        <h2>Common questions</h2>
+        <h3>How much RAM does LuxOS need?</h3>
+        <p>4 GB is the minimum we test installation on; after login LuxOS itself uses roughly 1 to 1.4 GB. 8 GB is recommended if you keep many browser tabs open.</p>
+        <h3>Does LuxOS work on a computer without UEFI?</h3>
+        <p>Yes. LuxOS installs on computers with UEFI and on older ones with legacy BIOS. A TPM chip is not needed.</p>
+        <h3>Can I install LuxOS on a computer that cannot run Windows 11?</h3>
+        <p>Yes, as long as it has a 64-bit processor, at least 4 GB of RAM and a 20 GB disk. LuxOS has none of the TPM or processor-generation requirements of Windows 11.</p>
+      </section>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">More in the documentation</h2>
+        <ul>
+          <li><a href="{{DOC:luxos/hardware.md}}">Hardware support</a> and <a href="{{DOC:luxos/drivers.md}}">drivers and hardware detection</a></li>
+          <li><a href="{{DOC:luxos/power-and-performance.md}}">Power, performance and memory (zram, low-memory protection)</a></li>
+          <li><a href="{{DOC:luxos/installer.md}}">Installing LuxOS</a></li>
+        </ul>
+      </section>

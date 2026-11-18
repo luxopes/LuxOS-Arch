@@ -1,0 +1,56 @@
+      {{CRUMBS}}
+      <h1>LuxOS vs Zorin OS</h1>
+      <p class="lead">Both make Linux friendly for people coming from Windows or macOS. Zorin OS is a mature, polished system on Ubuntu LTS; LuxOS is a young, free Arch-based system with a macOS-like desktop by default. A fair comparison – LuxOS is beta, and we say where Zorin OS is the better choice.</p>
+
+      <h2 id="at-a-glance">At a glance</h2>
+      <table>
+        <thead><tr><th></th><th>LuxOS {{ISO_VERSION}}</th><th>Zorin OS 18</th></tr></thead>
+        <tbody>
+          <tr><td>Base</td><td>Arch Linux</td><td>Ubuntu 24.04 LTS</td></tr>
+          <tr><td>Release model</td><td>rolling: continuous updates, numbered ISO snapshots</td><td>fixed release; updates and security patches until at least June 2029, a new major version about every two years</td></tr>
+          <tr><td>Desktop</td><td>Xfce components in a macOS-like layout: top bar, Dock, Launchpad, Control Center</td><td>GNOME Shell with Zorin's layouts (Lite edition: Xfce)</td></tr>
+          <tr><td>macOS-like layout</td><td>default, free</td><td>only in the paid Pro edition (Core has 4 layouts: Windows-like, Windows List-like, Touch and GNOME Shell-like; Pro has 12)</td></tr>
+          <tr><td>Price</td><td>free, no paid edition</td><td>Core, Lite and Education free; Pro is a one-time payment with extra apps, layouts and installation support</td></tr>
+          <tr><td>Minimum hardware</td><td>64-bit CPU, 4 GB RAM, 20 GB disk</td><td>1 GHz dual-core 64-bit CPU, 2 GB RAM, 15 GB disk (Core), 800 × 600 display</td></tr>
+          <tr><td>Apps</td><td>LuxOS Store: Arch repositories, Flathub, checked community packages (AUR) in a sandbox</td><td>built-in Software store with thousands of apps</td></tr>
+          <tr><td>Windows apps</td><td>Wine through the Bottles app</td><td>built-in Windows App Support (double-click .exe and .msi installers)</td></tr>
+          <tr><td>Drivers</td><td>detected automatically during and after installation (NVIDIA by generation, Wi-Fi, audio, cameras)</td><td>NVIDIA, AMD and Intel graphics drivers included</td></tr>
+          <tr><td>AI assistant</td><td>optional LuxAI (account with monthly limits)</td><td>–</td></tr>
+          <tr><td>Maturity</td><td>beta, one developer, public since October 2026</td><td>mature, many years of releases, large user base</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="zorin-better">Where Zorin OS is the better choice</h2>
+      <ul>
+        <li><strong>Stability and long support.</strong> A fixed Ubuntu LTS base with updates promised until at least June 2029 – fewer changes, fewer surprises.</li>
+        <li><strong>Maturity.</strong> Zorin OS has years of releases, a large community and many guides. LuxOS is beta.</li>
+        <li><strong>Windows apps.</strong> Windows App Support is integrated more deeply than in LuxOS.</li>
+        <li><strong>Very old or weak hardware.</strong> Zorin OS lists 2 GB of RAM as the minimum and has a Lite edition; LuxOS is tested from 4 GB.</li>
+        <li><strong>Paid support.</strong> Zorin OS Pro includes installation support; LuxOS has no paid support.</li>
+      </ul>
+
+      <h2 id="luxos-different">Where LuxOS differs</h2>
+      <ul>
+        <li><strong>macOS-like desktop for free</strong>, finished out of the box – top bar, Dock with magnification, Launchpad, Control Center and Mac-style shortcuts.</li>
+        <li><strong>Newer software</strong> soon after upstream releases thanks to the Arch base, without a big upgrade every two years.</li>
+        <li><strong>Updates you can undo</strong>: a snapshot before each update, and rollback from the boot menu if something breaks.</li>
+        <li><strong>Its own tools</strong>: the <code>lux</code> package manager, Lux Guard for programs downloaded from the internet, automatic hardware detection and the optional LuxAI assistant.</li>
+      </ul>
+      {{SHOT:launchpad|LuxOS Launchpad with a grid of apps and a search box for apps or questions to LuxAI|LuxOS: Launchpad and Dock, part of the free default desktop.}}
+
+      <h2 id="who">Who should pick which?</h2>
+      <p><strong>Pick Zorin OS</strong> if the computer must simply work for years, if you want a Windows-like layout or paid help, or if you rely on Windows programs. <strong>Pick LuxOS</strong> if you want a Mac-like desktop without paying for it, like new software with a safety net, and are fine with a beta. Not sure? Both run from a USB stick without installing – try each for an afternoon.</p>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Sources</h2>
+        <ul>
+          <li><a href="https://zorin.com/os/">Zorin OS – official website</a> (editions, support until June 2029, Windows App Support, drivers)</li>
+          <li><a href="https://zorin.com/os/details/">Zorin OS 18 – technical details</a> (Ubuntu 24.04 LTS base, GNOME Shell, Lite with Xfce)</li>
+          <li><a href="https://zorin.com/os/pro/">Zorin OS Pro</a> (layouts in Core and Pro, what Pro adds)</li>
+          <li><a href="https://help.zorin.com/docs/getting-started/system-requirements/">Zorin OS system requirements</a></li>
+          <li>LuxOS: <a href="{{DOC:luxos/compare.md}}">LuxOS compared with other distributions</a>, <a href="{{DOC:luxos/hardware.md}}">hardware support</a></li>
+        </ul>
+        <p class="checked">Facts about Zorin OS checked on the official website on 18 November 2026. Details change between releases.</p>
+      </section>

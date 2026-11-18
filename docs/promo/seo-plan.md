@@ -132,3 +132,25 @@ the version can't go stale.
   article on phones like the other docs tables.
 - `scripts/indexnow-submit.sh` refuses to submit while the key file is not live (checked: exits 1 with a
   message, nothing sent).
+
+## 10. Phase 3 (on-site, November 2026)
+
+Search Console after the first weeks: almost only branded queries, poor CTR on `/changes/` and
+`docs/luxos/lux-code.html`, no page for "lux os download". Changes:
+
+- Intent pages from `site/landing/` (EN + CS, metadata in `site/landing/pages.json`): `/download/`
+  (`/cs/stahnout/`, replaces the old redirect to `/#download`; `robots.txt` now allows `/download/$` and
+  still disallows the ISO files), `/windows-10-end-of-support/`, `/macos-like-linux/`,
+  `/linux-for-old-computers/`, `/schools/`, `/compare/` with `luxos-vs-zorin-os/`, `luxos-vs-elementary-os/`
+  and `luxos-vs-windows-11/` (competitor facts from their official sites, sources listed on each page).
+  Navigation "Download" points to the download page; the home page links all of them ("LuxOS for you").
+- Titles at most 60 characters, hand-written descriptions at most 155 (build fails otherwise; doc titles
+  shorten their suffix automatically, `seo_title` in `site/content/docs.json` overrides). New titles for
+  home, `/changes/` ("LuxOS 1.0.2 – What's new: …", rewrite on each release), Lux Code, FAQ, comparison.
+- JSON-LD: WebPage + BreadcrumbList on every intent page, SoftwareApplication (same `@id` as the home
+  page) on the download pages, FAQPage generated only from the visible `<section class="faq">`.
+- New share images `og-image.jpg` / `og-image-cs.jpg` from `scripts/site-og/render-og.sh`.
+- Every `<img>` gets width/height (doc images: read from the file) and lazy loading below the fold.
+- `check-site.py` also checks: title/description length, hreflang reciprocity and x-default, og/twitter
+  tags and image file, img dimensions, FAQ questions visible on the page, SoftwareApplication version on
+  the download pages.

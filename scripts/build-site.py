@@ -11,10 +11,13 @@ s novym ISO), verze z packages/luxos-branding/files/version, dokumentace z luxos
 (cesky) a jeho anglicky preklad site/content/en/changes/ (soubor na vydani, scripts/changelog_sections.py),
 stranka o pouzivani (countme) ze sablon usage.en.html a usage.cs.html (grafy kresli usage.js
 z /stats/usage.json, ktery vytvari server), stranky Posty LuxOS, zasad ochrany soukromi a podminek
-ze site/pages (mail, privacy, terms).
+ze site/pages (mail, privacy, terms), stranky pro konkretni hledani a stranka Stahnout ze site/landing
+(pages.json: adresy, titulky, popisy; Windows 10, Linux jako macOS, starsi pocitace, skoly, srovnani).
 Vystup: index.html, cs/index.html, release.json (aktualni vydani, nacita ho i stranka), docs/,
-cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), sitemap.xml, robots.txt, llms.txt, llms-full.txt, klic IndexNow (<klic>.txt), download/index.html (presmerovani
-na /#download - ISO a podpisy zustavaji v /download/). Kontrola odkazu: scripts/check-site.py.
+cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), download/ a cs/stahnout/
+(stranka Stahnout; ISO a podpisy lezi na serveru vedle ni v /download/), compare/ a cs/srovnani/, sitemap.xml,
+robots.txt, llms.txt, llms-full.txt, klic IndexNow (<klic>.txt). Titulky nejvyse 60 a rucne psane popisy
+nejvyse 155 znaku (jinak sestaveni skonci chybou). Kontrola: scripts/check-site.py.
 """
 import datetime
 import html
@@ -32,6 +35,7 @@ import markdown
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import changelog_sections  # noqa: E402
 import site_html  # noqa: E402
+import site_seo  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
@@ -42,8 +46,12 @@ BASE = "https://luxos.lux-ai.cz"
 FINGERPRINT = "FD18 5DAB 7701 40E8 9C37 275E 7035 CFDF DCA6 C991"
 LANGS = ("en", "cs")
 OTHER = {"en": "cs", "cs": "en"}
-# nahled odkazu (1200x630 JPEG z plochy, scripts/site-screenshots) - WebP nekteri klienti v nahledech neukazi
-OG_IMAGE = BASE + "/assets/og-image.jpg"
+# nahled odkazu (1200x630 JPEG - WebP nekteri klienti v nahledech neukazi):: obrazek s logem, nazvem a plochou (scripts/site-og/render-og.sh), cestina ma vlastni text
+OG_IMAGE = {"en": BASE + "/assets/og-image.jpg", "cs": BASE + "/assets/og-image-cs.jpg"}
+OG_ALT = {"en": "LuxOS – fast, lightweight Linux with a macOS-like desktop, free download",
+          "cs": "LuxOS – rychlý a lehký Linux s prostředím jako macOS, ke stažení zdarma"}
+# stranky pro konkretni hledani (Windows 10, macOS, starsi pocitace, skoly, srovnani, stazeni): site/landing
+LANDING = os.path.join(SITE, "landing")
 # strukturovana data (schema.org): entity s @id definuje uvodni stranka (@graph), ostatni stranky na ne odkazuji
 GITHUB = "https://github.com/luxopes/LuxOS-Arch"
 ORG_ID, AUTHOR_ID, SITE_ID, APP_ID = (BASE + "/#org", BASE + "/#author", BASE + "/#website", BASE + "/#luxos")
@@ -112,27 +120,34 @@ T = {
                       "that LuxAI reads, with extra guides for LuxAI, Lux Code, hardware, shortcuts and the FAQ. "
                       "The documentation is in English."),
         "crumb_home": "LuxOS", "crumb_docs": "Documentation", "prev": "Previous", "next": "Next",
-        "title_suffix": "LuxOS", "docs_suffix": "LuxOS documentation", "changes_title": "Changelog",
-        "changes_desc": "What is new in each LuxOS release: LuxAI, lux, drivers, installer, security and desktop changes.",
-        "home_title": "LuxOS – fast, lightweight Linux with a macOS-like desktop | Download ISO",
-        "home_desc": ("LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop, "
-                      "the lux package manager, automatic drivers and the LuxAI assistant. Download the ISO."),
-        "docs_index_title": "LuxOS documentation – manual for LuxOS, LuxAI, Lux Code and LSL",
+        "title_suffix": "LuxOS", "docs_suffix": "LuxOS documentation",
+        "docs_suffixes": (" – LuxOS documentation", " – LuxOS docs", " | LuxOS"),
+        # titulek a popis seznamu zmen: hlavni novinky posledniho vydani (pri novem vydani prepsat)
+        "changes_title": "LuxOS {version} – What's new: Secure Boot, AI, ad-free Firefox",
+        "changes_desc": ("Changelog of every LuxOS release. {version} “{codename}”: starts with Secure Boot on, new top bar "
+                         "and widgets, LuxAI charts and quizzes, Firefox without ads."),
+        "home_title": "LuxOS – free, fast Linux with a macOS-like desktop",
+        "home_desc": "LuxOS is a free, lightweight Linux based on Arch with a macOS-like desktop, automatic drivers, undoable updates and the LuxAI assistant. Download the ISO.",
+        "site_desc": ("LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop, "
+                      "the lux package manager, automatic drivers and the LuxAI assistant."),
+        "landing_title": "LuxOS for you", "more_pages": "More about LuxOS", "compare_more": "More comparisons",
+        "cta_title": "Try LuxOS {ISO_VERSION} for free", "cta_text": ("64-bit PC · ISO {ISO_SIZE} · try it from a USB stick "
+                     "without installing. LuxOS is beta: back up your data before installing."),
+        "cta_button": "Download LuxOS", "cta_secondary": "Installation guide",
+        "sources": "Sources", "checked": "checked",
+        "docs_index_title": "LuxOS documentation – LuxOS, LuxAI, Lux Code and LSL",
         "app_disambig": "Desktop Linux distribution based on Arch Linux, developed in the Czech Republic.",
-        "docs_index_desc": ("LuxOS documentation: installation, the lux package manager, LuxAI, Lux Code, "
-                            "drivers, hardware, Store, Care, security (Guard, Safe, Sandbox), LuxDrop and the LSL language."),
+        "docs_index_desc": "LuxOS manual: installation, the lux package manager, LuxAI, Lux Code, drivers, Store, Care, Guard, Safe, Sandbox, LuxDrop and the LSL language.",
         "gallery_label": "Screenshot", "close": "Close", "prev_shot": "Previous", "next_shot": "Next",
         "copy_https": "Copying works only over HTTPS.", "other_name": "Čeština",
         "doc_note_en": "", "footer_docs": "Documentation", "en_only": "EN",
         "en_only_title": "English only", "usage": "Usage",
-        "usage_title": "LuxOS usage – weekly active computers, versions and retention",
-        "usage_desc": ("How many computers run LuxOS each week, how many keep using it and which versions they run. "
-                       "Anonymous weekly counts (countme): what is sent and how to turn it off."),
+        "usage_title": "LuxOS usage – weekly active computers and versions",
+        "usage_desc": "How many computers run LuxOS each week, how many keep using it and which versions they run. Anonymous weekly counts: what is sent and how to turn it off.",
         "mail": "LuxOS Mail", "privacy": "Privacy", "terms": "Terms",
         "mail_crumb": "LuxOS Mail", "privacy_crumb": "Privacy Policy", "terms_crumb": "Terms of Use",
-        "mail_title": "LuxOS Mail – light desktop mail app for Gmail and any IMAP mailbox",
-        "mail_desc": ("LuxOS Mail is a light desktop mail client for LuxOS: Gmail, Microsoft and any IMAP mailbox, instant "
-                      "notifications, offline reading. Your mail stays on your computer."),
+        "mail_title": "LuxOS Mail – light mail app for Gmail and any IMAP mailbox",
+        "mail_desc": "LuxOS Mail is a light desktop mail app for LuxOS: Gmail, Microsoft and any IMAP mailbox, instant notifications, offline reading. Mail stays on your PC.",
         "privacy_title": "Privacy Policy – LuxOS and LuxOS Mail",
         "privacy_desc": ("How LuxOS and LuxOS Mail handle your data: Google user data stays on your computer, anonymous "
                          "countme, LuxAI account, feedback reports and your rights."),
@@ -150,27 +165,34 @@ T = {
                       "i LuxAI, doplněné o návody k LuxAI, Lux Code, hardwaru, zkratkám a často kladené otázky. "
                       "Většina dokumentace je v angličtině (značka EN); české jsou stránky bez značky."),
         "crumb_home": "LuxOS", "crumb_docs": "Dokumentace", "prev": "Předchozí", "next": "Další",
-        "title_suffix": "LuxOS", "docs_suffix": "Dokumentace LuxOS", "changes_title": "Seznam změn",
-        "changes_desc": "Co je nového v jednotlivých verzích LuxOS: LuxAI, lux, ovladače, instalátor, bezpečnost a plocha.",
-        "home_title": "LuxOS – rychlý a lehký Linux s prostředím ve stylu macOS | Stáhnout ISO",
-        "home_desc": ("LuxOS je rychlý a lehký systém na Arch Linuxu s prostředím ve stylu macOS, správcem balíků lux, "
-                      "automatickými ovladači a asistentem LuxAI. Stáhněte si instalační ISO."),
+        "title_suffix": "LuxOS", "docs_suffix": "Dokumentace LuxOS",
+        "docs_suffixes": (" – Dokumentace LuxOS", " | LuxOS"),
+        "changes_title": "LuxOS {version} – novinky: Secure Boot, AI a Firefox bez reklam",
+        "changes_desc": ("Seznam změn všech verzí LuxOS. {version} „{codename}“: start se zapnutým Secure Boot, nová horní "
+                         "lišta a widgety, grafy a kvízy v LuxAI, Firefox bez reklam."),
+        "home_title": "LuxOS – rychlý Linux zdarma s prostředím jako macOS",
+        "home_desc": "LuxOS je lehký systém zdarma na Arch Linuxu: prostředí jako macOS, ovladače se najdou samy, aktualizace jdou vrátit, pomůže asistent LuxAI. Stáhněte ISO.",
+        "site_desc": ("LuxOS je rychlý a lehký systém na Arch Linuxu s prostředím ve stylu macOS, správcem balíků lux, "
+                      "automatickými ovladači a asistentem LuxAI."),
+        "landing_title": "LuxOS pro vás", "more_pages": "Další o LuxOS", "compare_more": "Další srovnání",
+        "cta_title": "Vyzkoušejte LuxOS {ISO_VERSION} zdarma", "cta_text": ("64bitové PC · ISO {ISO_SIZE} · vyzkoušíte ho z USB "
+                     "disku bez instalace. LuxOS je beta: před instalací si zálohujte data."),
+        "cta_button": "Stáhnout LuxOS", "cta_secondary": "Návod k instalaci",
+        "sources": "Zdroje", "checked": "ověřeno",
         "docs_index_title": "Dokumentace LuxOS – příručka k LuxOS, LuxAI, Lux Code a LSL",
         "app_disambig": "Desktopová linuxová distribuce založená na Arch Linuxu, vyvíjená v Česku.",
-        "docs_index_desc": ("Dokumentace LuxOS: instalace, správce balíků lux, LuxAI, Lux Code, ovladače, hardware, "
-                            "Obchod, Care, zabezpečení (Guard, Trezor, Sandbox), LuxDrop a jazyk LSL."),
+        "docs_index_desc": "Příručka LuxOS: instalace, správce balíků lux, LuxAI, Lux Code, ovladače, Obchod, Care, Guard, Trezor, Sandbox, LuxDrop a jazyk LSL.",
         "gallery_label": "Snímek obrazovky", "close": "Zavřít", "prev_shot": "Předchozí", "next_shot": "Další",
         "copy_https": "Kopírování funguje jen přes HTTPS.", "other_name": "English",
         "doc_note_en": "", "footer_docs": "Dokumentace", "en_only": "EN",
         "en_only_title": "Pouze anglicky", "usage": "Používání LuxOS",
-        "usage_title": "Používání LuxOS – aktivní počítače po týdnech, verze a věrnost",
+        "usage_title": "Používání LuxOS – aktivní počítače, verze a věrnost",
         "usage_desc": ("Kolik počítačů každý týden používá LuxOS, kolik lidí u něj zůstává a jaké verze mají. "
                        "Anonymní týdenní součty (countme): co se odesílá a jak to vypnout."),
         "mail": "Pošta LuxOS", "privacy": "Soukromí", "terms": "Podmínky",
         "mail_crumb": "Pošta LuxOS", "privacy_crumb": "Zásady ochrany soukromí", "terms_crumb": "Podmínky použití",
-        "mail_title": "Pošta LuxOS (LuxOS Mail) – lehká poštovní aplikace pro Gmail a IMAP",
-        "mail_desc": ("Pošta LuxOS je lehký poštovní klient pro LuxOS: Gmail, Microsoft a jakákoli schránka IMAP, okamžitá "
-                      "upozornění, čtení offline. Vaše pošta zůstává ve vašem počítači."),
+        "mail_title": "Pošta LuxOS – lehká poštovní aplikace pro Gmail a IMAP",
+        "mail_desc": "Pošta LuxOS je lehká poštovní aplikace pro LuxOS: Gmail, Microsoft i jakákoli schránka IMAP, okamžitá upozornění, čtení offline. Pošta zůstává u vás.",
         "privacy_title": "Zásady ochrany soukromí – LuxOS a Pošta LuxOS",
         "privacy_desc": ("Jak LuxOS a Pošta LuxOS zacházejí s daty: data uživatelů Google zůstávají ve vašem počítači, anonymní "
                          "countme, účet LuxAI, hlášení chyb a vaše práva."),
@@ -207,7 +229,7 @@ def fmt_size(n, lang):
     return (s.replace(".", ",") if lang == "cs" else s) + " GB"
 
 
-def clip(text, n=158):
+def clip(text, n=site_seo.DESC_MAX):
     """Popis do meta description: nejvyse n znaku, rez na hranici slova."""
     text = re.sub(r"\s+", " ", text).strip()
     if len(text) <= n:
@@ -295,6 +317,8 @@ def load_docs():
     extras = docs_json["files"]
     # ceske nazvy a popisy stranek z luxos-docs, ktere maji ceskou verzi (site/content/cs/<cesta>)
     cs_meta = docs_json.get("cs", {})
+    # vlastni titulky stranek do vysledku hledani ({cesta: {jazyk: titulek}}, nejvyse 60 znaku)
+    seo = docs_json.get("seo_title", {})
     cols = []
     for col in index["collections"]:
         files = []
@@ -302,11 +326,14 @@ def load_docs():
             cs = cs_meta.get(d["path"], {})
             files.append({"path": d["path"], "title": {"en": d["title"], "cs": cs.get("title", d["title"])},
                           "summary": {"en": d.get("summary", ""), "cs": cs.get("summary", d.get("summary", ""))},
-                          "src": {"en": os.path.join(DOCS, d["path"])}})
+                          "src": {"en": os.path.join(DOCS, d["path"])}, "seo_title": seo.get(d["path"], {}),
+                          # popisy psane pro web (docs.json) musi mit do 155 znaku, popisy z luxos-docs se zkrati
+                          "own_summary": {"cs"} if "summary" in cs else set()})
         cols.append({"id": col["id"], "title": col["title"], "files": files})
     for x in extras:
         col = next(c for c in cols if c["id"] == x["path"].split("/")[0])
-        item = {"path": x["path"], "title": x["title"], "summary": x["summary"], "src": {}}
+        item = {"path": x["path"], "title": x["title"], "summary": x["summary"], "src": {},
+                "seo_title": seo.get(x["path"], {}), "own_summary": set(LANGS)}
         for lang in LANGS:
             p = os.path.join(CONTENT, lang, x["path"])
             if os.path.isfile(p):
@@ -392,12 +419,17 @@ def jsonld(*items):
                      .replace("</", "<\\/") + "</script>" for i in items)
 
 
-def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="website", ld=(), home=False,
+def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="website", ld=(), home=False, desc_exact=True,
           switch_to=None, noindex=False, sitemap=True, dialog=False, scripts=(), src=()):
     """Cela stranka: hlavicka se SEO znackami, navigace s prepinacem jazyka, obsah, paticka."""
     t = T[lang]
     other = OTHER[lang]
     full_title = title
+    # rucne psane titulky a popisy se nezkracuji: delsi nez ukaze Google = chyba sestaveni (opravit text)
+    if len(title) > site_seo.TITLE_MAX:
+        sys.exit(f"build-site: {path}: title longer than {site_seo.TITLE_MAX} characters: {title}")
+    if desc_exact and len(re.sub(r"\s+", " ", desc).strip()) > site_seo.DESC_MAX:
+        sys.exit(f"build-site: {path}: description longer than {site_seo.DESC_MAX} characters: {desc}")
     canon = abs_url(path)
     hu = home_url(lang)
 
@@ -407,7 +439,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
     items = [("home", t["home"], "#top" if home else hu),
              ("features", t["features"], nav_href("#features")),
              ("gallery", t["gallery"], nav_href("#gallery")),
-             ("download", t["download"], nav_href("#download")),
+             ("download", t["download"], landing_url(lang, "download")),
              ("luxai", t["luxai"], doc_url(lang if lang in DOCS_BY_PATH["luxos/luxai.md"]["src"] else "en", "luxos/luxai.md")),
              ("docs", t["docs"], docs_index_url(lang)),
              ("changes", t["changes"], changes_url(lang))]
@@ -449,6 +481,8 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
     extra_js = "".join(f'  <script src="/{s}?v={stamp}" defer></script>\n' for s in scripts)
     if home:
         body = '    <span id="top"></span>\n' + body
+    # kazdy obrazek s rozmery (bez poskakovani pri nacitani) a mimo prvni obrazovku az pri posunu
+    body = site_seo.add_img_dims(body, SITE)
     if sitemap and not noindex:
         SITEMAP.append((path, alt))
         SOURCES[path] = tuple(src)
@@ -472,15 +506,16 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
   <meta property="og:description" content="{e(clip(desc))}">
   <meta property="og:url" content="{canon}">
   <meta property="og:locale" content="{t['locale']}">
-{og_alt}  <meta property="og:image" content="{OG_IMAGE}">
+{og_alt}  <meta property="og:image" content="{OG_IMAGE[lang]}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/jpeg">
-  <meta property="og:image:alt" content="{e('LuxOS desktop' if lang == 'en' else 'Plocha LuxOS')}">
+  <meta property="og:image:alt" content="{e(OG_ALT[lang])}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{e(full_title)}">
   <meta name="twitter:description" content="{e(clip(desc))}">
-  <meta name="twitter:image" content="{OG_IMAGE}">
+  <meta name="twitter:image" content="{OG_IMAGE[lang]}">
+  <meta name="twitter:image:alt" content="{e(OG_ALT[lang])}">
 {jsonld(*ld) if ld else ""}
   <link rel="stylesheet" href="/styles.css?v={stamp}">
   <script src="/script.js?v={stamp}" defer></script>
@@ -575,9 +610,11 @@ def render_docs(cols, flat, stamp, md_to_html):
             ld = [breadcrumb_ld(*trail), article]
             if d["path"] == "luxos/faq.md":
                 ld.append(faq_ld(text))
-            write(path.lstrip("/"), shell(lang, path, f"{title} – {t['docs_suffix']}", desc,
+            # titulek do 60 znaku: vlastni seo_title (docs.json) nebo nazev s co nejdelsi priponou
+            page_title = d.get("seo_title", {}).get(lang) or site_seo.fit_title(title, t["docs_suffixes"])
+            write(path.lstrip("/"), shell(lang, path, page_title, desc,
                                           layout(content, d["path"]), alt, "docs", stamp, "article", ld,
-                                          src=[d["src"][lang]],
+                                          desc_exact=lang in d.get("own_summary", ()), src=[d["src"][lang]],
                                           switch_to=None if OTHER[lang] in alt else docs_index_url(OTHER[lang])))
             count[lang] += 1
         # rozcestnik dokumentace
@@ -620,6 +657,187 @@ def faq_ld(text):
     return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": qa}
 
 
+# ---- stranky pro konkretni hledani (site/landing) ----
+
+with open(os.path.join(LANDING, "pages.json")) as _f:
+    LANDING_META = json.load(_f)
+
+
+def landing_url(lang, key):
+    """Adresa stranky ze site/landing/pages.json ('compare' = rozcestnik srovnani)."""
+    if key == "compare":
+        return LANDING_META["compare_hub"][lang]["path"]
+    return LANDING_META["pages"][key][lang]["path"]
+
+
+def landing_alt(key):
+    return {l: landing_url(l, key) for l in LANGS}
+
+
+def iso_fill(text, iso, lang):
+    """{ISO_VERSION} a {ISO_SIZE} v titulcich, popisech a textech vyzvy (pages.json, T)."""
+    return text.replace("{ISO_VERSION}", iso["version"]).replace("{ISO_SIZE}", fmt_size(iso["size"], lang))
+
+
+def breadcrumbs_html(trail):
+    ol = "".join(f'<li><a href="{h}">{e(n)}</a></li>' if k < len(trail) - 1 else f'<li aria-current="page">{e(n)}</li>'
+                 for k, (n, h) in enumerate(trail))
+    return f'<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>{ol}</ol></nav>'
+
+
+def breadcrumb_ld_list(trail):
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList",
+            "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": abs_url(h)}
+                                for i, (n, h) in enumerate(trail)]}
+
+
+def shot_figure(lang, name, alt, caption="", eager=False):
+    """Snimek plochy (svetly/tmavy podle webu jako v galerii): 960 px, na hustych displejich 1920 px."""
+    sd = shot_dir(lang)
+    if not os.path.isfile(os.path.join(SITE, sd.lstrip("/"), f"{name}-light-960.webp")):
+        sd = "/assets/shots/"
+    sizes = SHOT_SIZES[1:]
+    load = 'fetchpriority="high"' if eager else 'loading="lazy"'
+    cap = f"<figcaption>{e(caption)}</figcaption>" if caption else ""
+    return (f'<figure class="app-shot landing-shot"><img src="{sd}{name}-light-960.webp" '
+            f'srcset="{shot_srcset(sd, name, "light", sizes)}" sizes="(max-width: 980px) calc(100vw - 64px), 860px" '
+            f'data-light="{sd}{name}-light-960.webp" data-dark="{sd}{name}-dark-960.webp" '
+            f'data-light-srcset="{shot_srcset(sd, name, "light", sizes)}" '
+            f'data-dark-srcset="{shot_srcset(sd, name, "dark", sizes)}" '
+            f'width="1920" height="1080" alt="{e(alt)}" {load} decoding="async">{cap}</figure>')
+
+
+def cta_html(lang, iso):
+    """Vyzva ke stazeni na konci stranek pro konkretni hledani (odkaz na stranku Stahnout, ne primo na ISO)."""
+    t = T[lang]
+    inst = doc_url(lang if lang in DOCS_BY_PATH["luxos/installer.md"]["src"] else "en", "luxos/installer.md")
+    return (f'<aside class="landing-cta" aria-label="{e(t["cta_button"])}">{logo_svg("cta", "logo cta-logo")}'
+            f'<div class="cta-copy"><h2>{e(iso_fill(t["cta_title"], iso, lang))} <span class="beta">beta</span></h2>'
+            f'<p>{e(iso_fill(t["cta_text"], iso, lang))}</p></div>'
+            f'<div class="cta-actions"><a class="button button-primary" href="{landing_url(lang, "download")}">'
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">'
+            f'<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg>{e(t["cta_button"])}</a>'
+            f'<a class="button button-outline" href="{inst}">{e(t["cta_secondary"])}</a></div></aside>')
+
+
+def landing_cards(lang, keys):
+    items = []
+    for k in keys:
+        m = LANDING_META["pages"][k][lang]
+        items.append(f'<li><a href="{m["path"]}"><strong>{e(m["crumb"])}</strong><span>{e(m["card"])}</span></a></li>')
+    return '<ul class="doc-index landing-cards">' + "".join(items) + "</ul>"
+
+
+def app_ld(lang, iso, ver, url, description):
+    """LuxOS jako SoftwareApplication (applicationCategory OperatingSystem; schema.org typ pro OS nema).
+    Stejne @id na uvodni strance i na strance Stahnout. RAM 4 GB = instalace overena v 4GB VM (1.0.2)."""
+    sd = shot_dir(lang)
+    return {"@type": "SoftwareApplication", "@id": APP_ID, "name": "LuxOS",
+            "alternateName": ["LuxOS Linux", f"LuxOS {ver['VERSION']} {ver['CODENAME']}"],
+            "disambiguatingDescription": T[lang]["app_disambig"],
+            "applicationCategory": "OperatingSystem", "operatingSystem": "Linux",
+            "processorRequirements": "x86-64", "memoryRequirements": "4 GB", "storageRequirements": "20 GB",
+            "softwareVersion": iso["version"], "description": description, "url": abs_url(url),
+            "downloadUrl": f"{BASE}/download/{iso['file']}", "fileSize": fmt_size(iso["size"], "en"),
+            "datePublished": iso["date"], "inLanguage": lang, "image": OG_IMAGE[lang],
+            "screenshot": [f"{BASE}{sd}{name}-light.webp" for name, _c in GALLERY[lang]],
+            "releaseNotes": abs_url(changes_url(lang)),
+            "softwareHelp": {"@type": "CreativeWork", "url": abs_url(docs_index_url(lang))},
+            "license": "https://spdx.org/licenses/GPL-3.0-or-later.html", "isAccessibleForFree": True,
+            "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD",
+                       "url": abs_url(landing_url(lang, "download"))},
+            "author": {"@id": AUTHOR_ID}, "publisher": {"@id": ORG_ID}, "sameAs": [GITHUB]}
+
+
+def faq_page_ld(pairs):
+    return {"@context": "https://schema.org", "@type": "FAQPage",
+            "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}}
+                           for q, a in pairs]}
+
+
+def render_landing(stamp, iso, ver):
+    """Stranky ze site/landing: drobecky, vyzva ke stazeni, souvisejici stranky, JSON-LD (WebPage,
+    BreadcrumbList, FAQPage jen z viditelnych otazek, na strance Stahnout i SoftwareApplication)
+    a rozcestnik srovnani."""
+    pages = LANDING_META["pages"]
+    compare_keys = [k for k, v in pages.items() if v.get("group") == "compare"]
+    guide_keys = [k for k in pages if k not in compare_keys and k != "download"]
+    for key, meta in pages.items():
+        alt = landing_alt(key)
+        for lang in LANGS:
+            t = T[lang]
+            m = meta[lang]
+            path = m["path"]
+            trail = [(t["crumb_home"], home_url(lang))]
+            if meta.get("group") == "compare":
+                trail.append((LANDING_META["compare_hub"][lang]["crumb"], landing_url(lang, "compare")))
+            trail.append((m["crumb"], path))
+            src = os.path.join(LANDING, f"{key}.{lang}.html")
+            with open(src) as f:
+                text = f.read()
+            values = {"CRUMBS": breadcrumbs_html(trail), "CTA": cta_html(lang, iso),
+                      "ISO_VERSION": iso["version"], "ISO_FILE": iso["file"], "ISO_SIZE": fmt_size(iso["size"], lang),
+                      "ISO_DATE": fmt_date(iso["date"], lang), "ISO_SHA256": iso["sha256"], "FINGERPRINT": FINGERPRINT,
+                      "CODENAME": ver["CODENAME"], "VERSION": ver["VERSION"], "HOME": home_url(lang),
+                      "DOCS": docs_index_url(lang), "CHANGES": changes_url(lang)}
+            for k, v in values.items():
+                text = text.replace("{{" + k + "}}", v)
+            text = re.sub(r"\{\{DOC:([^}#]+)(#[^}]*)?\}\}",
+                          lambda mm: doc_url(lang if lang in DOCS_BY_PATH[mm.group(1)]["src"] else "en", mm.group(1))
+                          + (mm.group(2) or ""), text)
+            text = re.sub(r"\{\{URL:([a-z0-9-]+)\}\}", lambda mm: landing_url(lang, mm.group(1)), text)
+            # {{SHOT:nazev|alt|popisek}} nebo {{SHOT:nazev|alt|popisek|eager}} (prvni obrazovka)
+            text = re.sub(r"\{\{SHOT:([a-z-]+)\|([^|}]+)\|([^|}]*)(\|eager)?\}\}",
+                          lambda mm: shot_figure(lang, mm.group(1), mm.group(2), mm.group(3), bool(mm.group(4))), text)
+            left = re.findall(r"\{\{[^}]*\}\}", text)
+            if left:
+                sys.exit(f"build-site: unfilled placeholders in landing/{key}.{lang}.html {left}")
+            # souvisejici stranky: u srovnani ostatni srovnani, jinak ostatni pruvodci
+            if meta.get("group") == "compare":
+                rel, rel_title = [k for k in compare_keys if k != key], t["compare_more"]
+            else:
+                rel = [k for k in guide_keys if k != key] + (compare_keys if key == "download" else [])
+                rel_title = t["more_pages"]
+            related = (f'<section class="landing-related" aria-labelledby="related-title"><h2 id="related-title">'
+                       f'{e(rel_title)}</h2>{landing_cards(lang, rel)}</section>')
+            body = f'    <article class="doc panel landing">{text.rstrip()}\n{related}</article>'
+            title, desc = iso_fill(m["title"], iso, lang), iso_fill(m["desc"], iso, lang)
+            crumb_ld = breadcrumb_ld_list(trail)
+            crumb_ld["@id"] = abs_url(path) + "#breadcrumb"
+            page = {"@context": "https://schema.org", "@type": "WebPage", "@id": abs_url(path) + "#page",
+                    "name": title, "description": desc, "url": abs_url(path), "inLanguage": lang,
+                    "isPartOf": {"@id": SITE_ID}, "about": {"@id": APP_ID}, "publisher": org_ref(),
+                    "breadcrumb": {"@id": abs_url(path) + "#breadcrumb"}}
+            ld = [crumb_ld, page]
+            if key == "download":
+                app = {"@context": "https://schema.org"}
+                app.update(app_ld(lang, iso, ver, path, desc))
+                ld.append(app)
+            pairs = site_seo.faq_pairs(text)
+            if pairs:
+                ld.append(faq_page_ld(pairs))
+            write(path.lstrip("/") + "index.html",
+                  shell(lang, path, title, desc, body, alt, "download" if key == "download" else "", stamp,
+                        "website", ld, src=[src, os.path.join(LANDING, "pages.json")]
+                        + ([os.path.join(SITE, "iso.json")] if key == "download" else [])))
+    # rozcestnik srovnani: karty srovnani a odkaz na srovnani s dalsimi distribucemi v dokumentaci
+    for lang in LANGS:
+        t = T[lang]
+        m = LANDING_META["compare_hub"][lang]
+        path = m["path"]
+        trail = [(t["crumb_home"], home_url(lang)), (m["crumb"], path)]
+        cmp_doc = DOCS_BY_PATH["luxos/compare.md"]
+        cl = lang if lang in cmp_doc["src"] else "en"
+        more = f'<p class="more-link"><a href="{doc_url(cl, "luxos/compare.md")}">{e(cmp_doc["title"][cl])} ›</a></p>'
+        body = (f'    <article class="doc panel landing">{breadcrumbs_html(trail)}<h1>{e(m["h1"])}</h1>'
+                f'<p class="lead">{e(m["lead"])}</p>{landing_cards(lang, compare_keys)}{more}{cta_html(lang, iso)}</article>')
+        coll = {"@context": "https://schema.org", "@type": "CollectionPage", "name": m["title"], "url": abs_url(path),
+                "inLanguage": lang, "description": m["desc"], "isPartOf": {"@id": SITE_ID}}
+        write(path.lstrip("/") + "index.html",
+              shell(lang, path, m["title"], m["desc"], body, landing_alt("compare"), "", stamp, "website",
+                    [breadcrumb_ld_list(trail), coll], src=[os.path.join(LANDING, "pages.json")]))
+
+
 def llms_txt(ver, iso, cols):
     """/llms.txt podle llmstxt.org: nazev, shrnuti, overitelna fakta a odkazy na stranky s jednovetym popisem."""
     lines = [
@@ -649,10 +867,19 @@ def llms_txt(ver, iso, cols):
         f"- [Home and download]({BASE}/): what LuxOS is, screenshots, ISO download and verification",
         f"- [FAQ]({abs_url(doc_url('en', 'luxos/faq.md'))}): common questions (price, beta status, Windows apps, Steam, hardware)",
         f"- [LuxOS compared]({abs_url(doc_url('en', 'luxos/compare.md'))}): differences from Ubuntu, Mint, Zorin, elementary OS and Arch",
+        f"- [Download]({abs_url(landing_url('en', 'download'))}): free ISO, SHA-256 and GPG verification, "
+        "system requirements, writing a USB stick, Secure Boot",
         f"- [Changelog]({abs_url(changes_url('en'))}): what changed in each release",
         f"- [Full text for LLMs]({BASE}/llms-full.txt): FAQ, comparison and the main manual pages in one Markdown file",
         "",
+        "## Guides and comparisons",
+        "",
     ]
+    for key, meta in LANDING_META["pages"].items():
+        if key != "download":
+            m = meta["en"]
+            lines.append(f"- [{m['crumb']}]({abs_url(m['path'])}): {m['card']}")
+    lines.append("")
     for col in cols:
         lines += [f"## {col['title']}", ""]
         for d in col["files"]:
@@ -768,6 +995,9 @@ def main():
             "GALLERY": "\n".join(gallery), "DOC_CARDS": "\n".join(cards),
             "HERO_SHOT": hero, "LOGO_HERO": logo_svg("hero", "logo hero-mark"),
             "DOCS": docs_index_url(lang), "CHANGES": changes_url(lang),
+            "DOWNLOAD": landing_url(lang, "download"),
+            "LANDING_CARDS": landing_cards(lang, [k for k in LANDING_META["pages"] if k != "download"]),
+            "COMPARE": landing_url(lang, "compare"),
         }
         with open(os.path.join(SITE, f"home.{lang}.html")) as f:
             text = f.read()
@@ -788,22 +1018,9 @@ def main():
         author_ld = {"@type": "Person", "@id": AUTHOR_ID, "name": AUTHOR,
                      "address": {"@type": "PostalAddress", "addressCountry": "CZ"}}
         site_ld = {"@type": "WebSite", "@id": SITE_ID, "name": "LuxOS", "url": BASE + "/",
-                   "inLanguage": list(LANGS), "description": T["en"]["home_desc"], "publisher": {"@id": ORG_ID}}
-        app_ld = {"@type": "SoftwareApplication", "@id": APP_ID, "name": "LuxOS",
-                  "alternateName": ["LuxOS Linux", f"LuxOS {ver['VERSION']} {ver['CODENAME']}"],
-                  "disambiguatingDescription": t["app_disambig"],
-                  "applicationCategory": "OperatingSystem", "operatingSystem": "Linux",
-                  "processorRequirements": "x86-64", "storageRequirements": "20 GB",
-                  "softwareVersion": iso["version"], "description": t["home_desc"], "url": abs_url(path),
-                  "downloadUrl": f"{BASE}/download/{iso['file']}", "fileSize": fmt_size(iso["size"], "en"),
-                  "datePublished": iso["date"], "inLanguage": lang, "image": OG_IMAGE,
-                  "screenshot": [f"{BASE}{sd}{name}-light.webp" for name, _c in GALLERY[lang]],
-                  "releaseNotes": abs_url(changes_url(lang)),
-                  "softwareHelp": {"@type": "CreativeWork", "url": abs_url(docs_index_url(lang))},
-                  "license": "https://spdx.org/licenses/GPL-3.0-or-later.html", "isAccessibleForFree": True,
-                  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
-                  "author": {"@id": AUTHOR_ID}, "publisher": {"@id": ORG_ID}, "sameAs": [GITHUB]}
-        graph = {"@context": "https://schema.org", "@graph": [org_ld, author_ld, site_ld, app_ld]}
+                   "inLanguage": list(LANGS), "description": T["en"]["site_desc"], "publisher": {"@id": ORG_ID}}
+        app = app_ld(lang, iso, ver, path, t["home_desc"])
+        graph = {"@context": "https://schema.org", "@graph": [org_ld, author_ld, site_ld, app]}
         write(path.lstrip("/") + "index.html",
               shell(lang, path, t["home_title"], t["home_desc"], text.rstrip("\n"), alt, "", stamp, "website",
                     [graph], home=True, dialog=True,
@@ -828,16 +1045,17 @@ def main():
                "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": abs_url(h)}
                                    for i, (n, h) in enumerate(trail)]}]
         write(changes_url(lang).lstrip("/") + "index.html",
-              shell(lang, changes_url(lang), f"{t['changes_title']} – LuxOS", t["changes_desc"],
+              shell(lang, changes_url(lang), t["changes_title"].format(version=ver["VERSION"]),
+                    t["changes_desc"].format(version=ver["VERSION"], codename=ver["CODENAME"]),
                     f'    <article class="doc panel">{body}</article>', calt, "changes", stamp, "article", ld,
                     src=[os.path.join(ROOT, "CHANGELOG.md") if lang == "cs" else os.path.join(CONTENT, "en", "changes")]))
     # stary odkaz /zmeny/ (puvodne cesky) presmeruje na /cs/zmeny/
     write("zmeny/index.html", '<!doctype html><html lang="cs"><meta charset="utf-8"><title>Seznam změn – LuxOS</title>'
           '<meta http-equiv="refresh" content="0; url=/cs/zmeny/"><link rel="canonical" href="https://luxos.lux-ai.cz/cs/zmeny/">'
           '<meta name="robots" content="noindex"><a href="/cs/zmeny/">Seznam změn</a>\n')
-    write("download/index.html", '<!doctype html><html lang="en"><meta charset="utf-8"><title>Download LuxOS</title>'
-          '<meta http-equiv="refresh" content="0; url=/#download"><link rel="canonical" href="https://luxos.lux-ai.cz/#download">'
-          '<meta name="robots" content="noindex"><a href="/#download">Download LuxOS</a>\n')
+
+    # ---- stranky pro konkretni hledani, stranka Stahnout (/download/, ISO a podpisy lezi vedle ni) ----
+    render_landing(stamp, iso, ver)
 
     # ---- pouzivani (countme): data nacita usage.js z /stats/usage.json na serveru ----
     countme = DOCS_BY_PATH.get("luxos/countme.md")
@@ -909,7 +1127,8 @@ def main():
     with open(os.path.join(OUT, "favicon.ico"), "wb") as f:
         f.write(favicon_ico(os.path.join(SITE, "assets", "favicon-32.png")))
     write("sitemap.xml", sitemap_xml(today))
-    write("robots.txt", f"User-agent: *\nAllow: /\nDisallow: /download/\n\nSitemap: {BASE}/sitemap.xml\n")
+    # stranka Stahnout (/download/) se indexuje, ISO a podpisy vedle ni ne (nejdelsi pravidlo vyhrava)
+    write("robots.txt", f"User-agent: *\nAllow: /\nAllow: /download/$\nDisallow: /download/\n\nSitemap: {BASE}/sitemap.xml\n")
     write("llms.txt", llms_txt(ver, iso, cols))
     write("llms-full.txt", llms_full_txt(ver, iso))
     with open(INDEXNOW_KEY_FILE) as f:

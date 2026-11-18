@@ -1,0 +1,68 @@
+      {{CRUMBS}}
+      <h1>Systém pro starší počítač</h1>
+      <p class="lead">Starší počítač nebo notebook je na dnešní Windows často pomalý, nebo na něj Windows 11 vůbec nesmí – na web, dokumenty, fotky a videohovory ale pořád stačí. LuxOS je lehký Linux zdarma, který takovým počítačům dá druhý život a moderní prostředí.</p>
+
+      <h2 id="pozadavky">Co LuxOS potřebuje</h2>
+      <table>
+        <thead><tr><th></th><th>Minimum</th><th>Doporučeno</th></tr></thead>
+        <tbody>
+          <tr><td>Procesor</td><td>64bitový Intel nebo AMD (x86-64)</td><td>2 jádra a víc</td></tr>
+          <tr><td>Paměť (RAM)</td><td>4 GB – instalaci zkoušíme na počítači se 4 GB</td><td>8 GB pro hodně panelů v prohlížeči</td></tr>
+          <tr><td>Disk</td><td>20 GB</td><td>SSD s 64 GB a víc</td></tr>
+          <tr><td>Firmware</td><td>UEFI i starší BIOS – TPM není potřeba</td><td>UEFI (Secure Boot může zůstat zapnutý)</td></tr>
+          <tr><td>Grafika</td><td>Intel, AMD nebo NVIDIA – ovladač se vybere sám</td><td>–</td></tr>
+          <tr><td>Instalace</td><td>USB disk s 4 GB a víc, připojení k internetu (asi 10 minut)</td><td>kabel nebo dobrá Wi-Fi</td></tr>
+        </tbody>
+      </table>
+      <p>Hned po přihlášení LuxOS zabírá zhruba 1 až 1,4 GB RAM podle hardwaru – na našem testovacím počítači se 4 GB to bylo pod 1 GB a zbytek zůstává vašim aplikacím. Stahované ISO má {{ISO_SIZE}}.</p>
+
+      <h2 id="proc-je-rychly">Proč je rychlý i na starším hardwaru</h2>
+      <ul>
+        <li><strong>Lehké prostředí</strong> z dílů Xfce, které potřebují mnohem méně paměti i grafického výkonu než těžší prostředí, a přitom vypadá moderně.</li>
+        <li><strong>Komprimovaná paměť (zram)</strong>: když se RAM zaplní, LuxOS paměť zkomprimuje místo odkládání na pomalý disk.</li>
+        <li><strong>Žádné zamrznutí při nedostatku paměti</strong>: když jeden program sní všechnu paměť, LuxOS ukončí jen ten program a dá vám vědět, místo aby zamrzl celý počítač.</li>
+        <li><strong>Komprimovaný souborový systém</strong> (Btrfs se zstd) ušetří místo na malých discích.</li>
+        <li><strong>Blokovač reklam ve Firefoxu</strong> hned od začátku: méně skriptů a reklam znamená lehčí stránky.</li>
+        <li><strong>Spořič baterie</strong> a <strong>Spořič dat</strong> v Ovládacím centru pro starší notebooky a mobilní připojení.</li>
+        <li><strong>Vlastní nativní aplikace</strong>, například Terminál a Textový editor, napsané v C nebo LSL místo těžkých frameworků.</li>
+      </ul>
+      {{SHOT:files|Aplikace Soubory v LuxOS se složkou fotek z dovolené a jejich náhledy|Soubory, Firefox, kancelářské a fotografické aplikace běží pohodlně i na skromném hardwaru.}}
+
+      <h2 id="ovladace">Starší hardware a ovladače</h2>
+      <p>LuxOS rozpozná hardware při instalaci i po každém startu: grafiky Intel a AMD fungují hned, karty NVIDIA dostanou ovladač podle své generace (novější otevřený ovladač NVIDIA, Maxwell až Volta ovladač 580xx, starší karty otevřený nouveau), čipy Wi-Fi Broadcom svůj ovladač a tiskárny obvykle fungují bez instalace čehokoli. Podrobnosti najdete v přehledu <a href="{{DOC:luxos/hardware.md}}">podporovaného hardwaru</a>.</p>
+
+      <h2 id="tipy">Tipy, které pomůžou nejvíc</h2>
+      <ol>
+        <li><strong>Vyměňte plotnový disk za SSD.</strong> U starého počítače je to největší zrychlení a stojí málo.</li>
+        <li><strong>Přidejte RAM, pokud to jde</strong>: se 8 GB místo 4 GB je i hodně panelů v prohlížeči pohodlných.</li>
+        <li><strong>Nejdřív vyzkoušejte z USB</strong>: LuxOS běží z USB disku bez instalace, takže uvidíte, jestli funguje Wi-Fi, zvuk a grafika, ještě než cokoli změníte.</li>
+      </ol>
+
+      <h2 id="omezeni">Upřímná omezení</h2>
+      <ul>
+        <li>32bitové procesory a Macy s čipy Apple Silicon podporované nejsou.</li>
+        <li>Se 4 GB RAM budou těžké webové aplikace a desítky panelů pořád pomalé – to je prohlížečem, ne systémem.</li>
+        <li>Instalace stahuje aktuální balíky, takže potřebuje připojení k internetu.</li>
+        <li>LuxOS je beta. Pro velmi starý počítač, který musí prostě fungovat, stojí za pohled i zavedené lehké systémy jako Linux Mint Xfce nebo Zorin OS Lite.</li>
+      </ul>
+
+      <section class="faq" id="faq">
+        <h2>Časté otázky</h2>
+        <h3>Kolik RAM LuxOS potřebuje?</h3>
+        <p>Instalaci zkoušíme na počítači se 4 GB, to je minimum; po přihlášení samotný LuxOS zabírá zhruba 1 až 1,4 GB. Pokud máte otevřeno hodně panelů v prohlížeči, doporučujeme 8 GB.</p>
+        <h3>Funguje LuxOS na počítači bez UEFI?</h3>
+        <p>Ano. LuxOS se nainstaluje na počítače s UEFI i na starší se systémem BIOS. Čip TPM není potřeba.</p>
+        <h3>Můžu LuxOS nainstalovat na počítač, který nezvládne Windows 11?</h3>
+        <p>Ano, pokud má 64bitový procesor, aspoň 4 GB RAM a 20GB disk. LuxOS nemá žádné požadavky na TPM ani generaci procesoru jako Windows 11.</p>
+      </section>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Více v dokumentaci</h2>
+        <ul>
+          <li><a href="{{DOC:luxos/hardware.md}}">Podporovaný hardware</a> a <a href="{{DOC:luxos/drivers.md}}">ovladače a rozpoznání hardwaru (anglicky)</a></li>
+          <li><a href="{{DOC:luxos/power-and-performance.md}}">Napájení, výkon a paměť – zram, ochrana při nedostatku paměti (anglicky)</a></li>
+          <li><a href="{{DOC:luxos/installer.md}}">Instalace LuxOS (anglicky)</a></li>
+        </ul>
+      </section>

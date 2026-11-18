@@ -1,0 +1,70 @@
+      {{CRUMBS}}
+      <h1>LuxOS pro školy</h1>
+      <p class="lead">Moderní systém zdarma do tříd a počítačových učeben: žádné licenční poplatky, přihlašování stávajícími školními účty z domény, funguje offline, bez reklam. Co LuxOS škole nabízí už dnes – a co zatím neumí.</p>
+      {{SHOT:desktop|Plocha LuxOS s horní lištou a Dockem|Povědomé prostředí, které se žáci naučí za pár minut.|eager}}
+
+      <h2 id="co-nabizi">Co LuxOS škole nabízí</h2>
+      <table>
+        <thead><tr><th>Potřeba</th><th>Jak to LuxOS řeší</th></tr></thead>
+        <tbody>
+          <tr><td>Rozpočet</td><td>Zdarma, bez licencí na počítač a bez placené edice. Běží i na starších počítačích, které Windows 11 nepodporují (<a href="{{URL:old-computers}}">požadavky</a>).</td></tr>
+          <tr><td>Účty</td><td><strong>Firemní síť</strong> připojí počítač ke stávající doméně Microsoft Active Directory (Windows Server 2016–2025) nebo Samba 4 AD – na straně domény se nic nemění. Žáci a učitelé se přihlásí doménovým jménem a heslem, dostanou domovskou složku a otevřou sdílené složky a tiskárny školy bez dalšího hesla.</td></tr>
+          <tr><td>Kdo se smí přihlásit a spravovat</td><td>Přihlášení jde povolit jen vybraným doménovým skupinám; členové vybraných skupin (třeba správci IT) počítače spravují.</td></tr>
+          <tr><td>Práce offline</td><td>Nainstalovaný LuxOS funguje bez internetu. Doménové účty se umí přihlásit i offline z uloženého hesla (výchozí 30 dní, dá se změnit). Příručka je na každém počítači.</td></tr>
+          <tr><td>Soukromí</td><td>Žádné reklamy ani reklamní identifikátor. Ve výchozím stavu se odesílá jen anonymní týdenní součet (verze, kanál aktualizací, přibližné stáří instalace) – vypnete ho už v instalátoru. Volitelný asistent LuxAI posílá dotazy poskytovatelům AI, proto ho žákům bez souhlasu nezapínejte.</td></tr>
+          <tr><td>Hodně počítačů se stejným nastavením</td><td>Instalace bez obsluhy podle konfiguračního souboru. Celý systém – aplikace, uživatelé, tiskárny, síť, aktualizace – popisuje jeden soubor (<code>/etc/luxos/system.lsl</code>), který <code>lux system</code> použije a umí vrátit.</td></tr>
+          <tr><td>Aktualizace bez překvapení</td><td>Vyberte automatické aktualizace, nebo <em>Klasickou</em> správu, ve které o aktualizaci rozhoduje IT. Před každou aktualizací se uloží snímek systému, ke kterému se jde vrátit ze spouštěcí nabídky.</td></tr>
+          <tr><td>Bezpečnost</td><td>Výchozí zapnutý firewall, podepsané balíky, Lux Guard kontroluje programy stažené z internetu a nebezpečné spouští jen v sandboxu; snímky domovských složek každou hodinu vrátí i smazané soubory.</td></tr>
+          <tr><td>Jazyky</td><td>Systém a aplikace LuxOS ve 13 jazycích, mimo jiné v češtině, slovenštině, angličtině, němčině, polštině a ukrajinštině.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="vyuka">Aplikace pro výuku</h2>
+      <p>Instalátor nabízí sady aplikací, které se hodí k předmětům:</p>
+      <ul>
+        <li><strong>Každodenní použití</strong>: LibreOffice (otevře i uloží soubory Word, Excel a PowerPoint), Thunderbird, kalkulačka.</li>
+        <li><strong>Programování</strong>: Python, Node.js, Git, editor Code - OSS a AI agent pro programování Lux Code; LuxOS má i vlastní jednoduchý programovací jazyk <a href="{{DOC:lsl/overview.md}}">LSL</a>.</li>
+        <li><strong>Video a foto</strong>: GIMP, Inkscape, darktable, Kdenlive, Audacity a OBS Studio.</li>
+        <li><strong>Bezpečnost a sítě</strong> pro hodiny informatiky: Wireshark, Nmap, tcpdump, KeePassXC a další.</li>
+      </ul>
+      <p>Tisíce dalších aplikací jsou v Obchodě LuxOS. <a href="{{DOC:luxos/luxdrop.md}}">LuxDrop</a> posílá soubory mezi počítači v učebně a telefony (kompatibilní s LocalSend).</p>
+      {{SHOT:store|Obchod LuxOS s kategoriemi aplikací, mimo jiné Internet, Kancelář, Grafika, Vzdělávání a věda|Aplikace pro výuku jedním kliknutím z Obchodu LuxOS.}}
+
+      <h2 id="zatim-ne">Co LuxOS (zatím) neumí</h2>
+      <ul>
+        <li><strong>Žádná centrální konzole pro správu.</strong> LuxOS využívá vaši stávající Active Directory pro účty, skupiny, práva správců, sdílené složky a tiskárny. Nepoužívá nastavení zásad skupiny (GPO) Windows, neinstaluje software z domény a nemá přehled typu MDM.</li>
+        <li><strong>Žádná rodičovská kontrola ani limity času u obrazovky.</strong></li>
+        <li><strong>Některé programy jen pro Windows nepoběží</strong> – speciální školní, testovací nebo maturitní software může Windows potřebovat. Nejdřív si projděte, co používáte (<a href="{{URL:windows-10}}">co funguje a co ne</a>).</li>
+        <li><strong>Beta a projekt jednoho člověka</strong> bez smlouvy o komerční podpoře. Začněte pilotem v jedné učebně, nechte si cestu zpátky a dejte nám vědět, na co narazíte.</li>
+      </ul>
+
+      <h2 id="pilot">Jak začít s pilotem</h2>
+      <ol>
+        <li><a href="{{URL:download}}">Stáhněte LuxOS</a> a vyzkoušejte ho z USB disku na počítačích v učebně – nic se neinstaluje.</li>
+        <li>Nainstalujte jeden počítač a připojte ho k doméně v <strong>Nastavení › Firemní síť</strong> (nebo příkazem <code>lux domain join</code>).</li>
+        <li>Doladěné nastavení pak použijte pro instalaci dalších počítačů bez obsluhy.</li>
+        <li>Dotazy a problémy: napište na <a href="mailto:info@lux-ai.cz">info@lux-ai.cz</a> nebo založte issue na <a href="https://github.com/luxopes/LuxOS-Arch/issues">GitHubu</a>.</li>
+      </ol>
+
+      <section class="faq" id="faq">
+        <h2>Časté otázky</h2>
+        <h3>Stojí LuxOS školy něco?</h3>
+        <p>Ne. LuxOS je zdarma pro všechny včetně škol, bez licencí na počítač. Funkci Firemní síť lze v LuxOS také používat zdarma.</p>
+        <h3>Můžou se žáci přihlašovat školními účty?</h3>
+        <p>Ano, pokud má škola doménu Microsoft Active Directory nebo Samba AD. Po připojení počítače k doméně se žáci přihlásí doménovým jménem a heslem a otevřou sdílené složky a tiskárny bez dalšího hesla.</p>
+        <h3>Potřebuje LuxOS v učebně internet?</h3>
+        <p>Instalace a aktualizace internet potřebují. Běžná práce ne: aplikace, soubory, příručka i přihlášení k doméně z uloženého hesla fungují offline.</p>
+      </section>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Více v dokumentaci</h2>
+        <ul>
+          <li><a href="{{DOC:luxos/domain.md}}">Firemní síť: připojení k doméně Active Directory nebo Samba (anglicky)</a></li>
+          <li><a href="{{DOC:luxos/system-config.md}}">Nastavení celého systému v jednom souboru – lux system (anglicky)</a></li>
+          <li><a href="{{DOC:luxos/installer.md#unattended-installation}}">Instalace bez obsluhy (anglicky)</a></li>
+          <li><a href="{{DOC:luxos/care-updates.md}}">LuxOS Care: aktualizace, snímky a návrat (anglicky)</a></li>
+          <li><a href="/cs/privacy/">Zásady ochrany soukromí</a> a <a href="{{DOC:luxos/countme.md}}">anonymní týdenní součet (anglicky)</a></li>
+        </ul>
+      </section>

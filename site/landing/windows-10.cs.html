@@ -1,0 +1,84 @@
+      {{CRUMBS}}
+      <h1>Konec podpory Windows 10 – co dál?</h1>
+      <p class="lead">Microsoft ukončil podporu Windows 10 14. října 2025. Počítač dál funguje, ale je čas rozhodnout, co dál. Tady jsou vaše možnosti, upřímně – i s tím, kdy LuxOS <em>není</em> správná volba.</p>
+
+      <h2 id="co-to-znamena">Co konec podpory znamená</h2>
+      <p>Od 14. října 2025 Microsoft pro Windows 10 nevydává bezpečnostní opravy, nové funkce ani technickou pomoc. Počítač se dál spustí a programy dál běží. Riziko ale pomalu roste: každá bezpečnostní chyba objevená od teď zůstane otevřená na počítačích, které nedostávají rozšířené bezpečnostní aktualizace (ESU). U počítače, na kterém čtete e-maily, platíte v internetovém bankovnictví nebo stahujete soubory, to s každým měsícem hraje větší roli.</p>
+
+      <h2 id="moznosti">Čtyři možnosti</h2>
+      <table>
+        <thead><tr><th>Možnost</th><th>Cena</th><th>Hodí se pro</th><th>Pozor na</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Rozšířené bezpečnostní aktualizace (ESU)</strong></td><td>zdarma při synchronizaci nastavení přes Zálohování Windows, za 1 000 bodů Microsoft Rewards, nebo 30 USD</td><td>získání času na rozhodnutí</td><td>jen bezpečnostní opravy; potřebuje Windows 10 verze 22H2 a účet Microsoft s právy správce; končí 12. října 2027</td></tr>
+          <tr><td><strong>Přechod na Windows 11</strong></td><td>zdarma na způsobilých počítačích</td><td>počítače, které splní požadavky, a lidi, kteří potřebují programy jen pro Windows</td><td>vyžaduje TPM 2.0, UEFI se Secure Boot, procesor ze seznamu Microsoftu, 4 GB RAM a 64 GB úložiště; edice Home potřebuje účet Microsoft</td></tr>
+          <tr><td><strong>Nový počítač</strong></td><td>tisíce až desítky tisíc korun</td><td>velmi starý nebo nefunkční hardware</td><td>stávající počítač přitom může být úplně v pořádku</td></tr>
+          <tr><td><strong>Přechod na Linux, např. LuxOS</strong></td><td>zdarma</td><td>počítače, které Windows 11 nezvládnou; web, kancelář, fotky, řada her</td><td>některé programy pro Windows nefungují (viz níže); LuxOS je zatím beta</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="windows-11">Zvládne můj počítač Windows 11?</h2>
+      <p>Ve Windows 10 otevřete <strong>Nastavení › Aktualizace a zabezpečení › Windows Update</strong> nebo spusťte aplikaci Kontrola stavu počítače od Microsoftu. U počítačů starších než zhruba rok 2018 obvykle vadí procesor (musí být na seznamu podporovaných procesorů Microsoftu) a chybějící nebo vypnutý čip TPM 2.0. Pokud počítač projde, je přechod na Windows 11 zdarma a pro lidi závislé na programech pro Windows je to nejjednodušší cesta.</p>
+
+      <h2 id="luxos">LuxOS: možnost zdarma pro počítače, se kterými Windows 11 nepočítají</h2>
+      <p><a href="{{HOME}}">LuxOS</a> je linuxový systém zdarma s prostředím ve stylu, jaký znáte z Macu. Nepotřebuje TPM, účet Microsoft ani určitou generaci procesoru – stačí 64bitový počítač se 4 GB RAM a 20GB diskem (<a href="{{URL:old-computers}}">všechny požadavky</a>). Aktualizuje se průběžně, před každou aktualizací si uloží snímek systému, takže nepovedenou aktualizaci jde vrátit, a ovladače pro grafiku, Wi-Fi i tiskárny najde sám.</p>
+      {{SHOT:desktop|Plocha LuxOS s horní lištou, Dockem dole a výchozí tapetou|Plocha LuxOS: horní lišta, Dock a Launchpad – žádné učení úplně nového systému.}}
+
+      <h2 id="co-funguje">Co v LuxOS funguje – a co ne</h2>
+      <table>
+        <thead><tr><th>Ve Windows používáte</th><th>V LuxOS</th></tr></thead>
+        <tbody>
+          <tr><td>Chrome, Edge, webové aplikace, Gmail, Microsoft 365 na webu</td><td>✓ Firefox má vestavěný blokovač reklam; Chromium, Google Chrome a další prohlížeče jsou v Obchodě LuxOS (Flathub). Webové verze Office, Teams a Dokumentů Google fungují v prohlížeči.</td></tr>
+          <tr><td>Word, Excel, PowerPoint (desktopové)</td><td>≈ LibreOffice otevře i uloží soubory Office (sada aplikací <em>Každodenní použití</em>); složitá makra a některé rozvržení se můžou lišit. Nebo použijte Office na webu.</td></tr>
+          <tr><td>Fotky, hudba, videa, USB disky, tiskárny</td><td>✓ Vše vestavěné. Většina tiskáren funguje bez instalace ovladače.</td></tr>
+          <tr><td>Hry ze Steamu</td><td>✓ Spousta her pro Windows běží přes Proton ve Steamu (sada aplikací <em>Hry</em>).</td></tr>
+          <tr><td>Hry s anti-cheatem v jádře (např. Valorant, Fortnite)</td><td>✗ Na Linuxu nefungují. Své hry si ověřte na <a href="https://areweanticheatyet.com/">Are We Anti-Cheat Yet?</a></td></tr>
+          <tr><td>Adobe Photoshop, Premiere, Illustrator, Lightroom</td><td>✗ Adobe linuxové verze nevydává. Náhrady: GIMP, Krita, Inkscape, darktable, Kdenlive (sada <em>Video a foto</em>).</td></tr>
+          <tr><td>Další programy pro Windows</td><td>≈ Některé běží přes Wine v aplikaci Bottles; záleží na programu. Speciální software (účetnictví, CAD, školní nebo bankovní aplikace) může Windows potřebovat.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Potřebujete jeden program nebo hru jen pro Windows?</strong> Nainstalujte LuxOS vedle Windows (dual boot) a systém si vyberete při startu počítače. Instalátor umí využít volné místo na disku a Windows nechá být. Nepodporované Windows 10 ale pak používejte jen na tu jednu věc.</p>
+
+      <h2 id="vyzkouset">Nejdřív vyzkoušet z USB – nic se neinstaluje</h2>
+      <ol>
+        <li><a href="{{URL:download}}">Stáhněte ISO LuxOS</a> ({{ISO_SIZE}}) a zapište ho na USB disk s kapacitou aspoň 4 GB pomocí Ventoy, balenaEtcher nebo Fedora Media Writer.</li>
+        <li>Restartujte počítač, otevřete nabídku spouštění (obvykle <kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd> nebo <kbd>Esc</kbd> hned po zapnutí) a vyberte USB disk.</li>
+        <li>Se zapnutým Secure Boot se počítač jednou zeptá, jestli má důvěřovat klíči LuxOS – <a href="{{DOC:luxos/secure-boot-first-start.md}}">minutový krok s obrázky</a>. Secure Boot vypínat nemusíte.</li>
+        <li>LuxOS se spustí z USB disku. Vyzkoušejte Wi-Fi, zvuk, touchpad a své oblíbené weby. Na disk se nesáhne, dokud nekliknete na <strong>Nainstalovat LuxOS</strong>.</li>
+      </ol>
+
+      <h2 id="data">Jak přenést soubory z Windows</h2>
+      <ul>
+        <li><strong>Před instalací</strong> zkopírujte Dokumenty, Obrázky, Plochu, Stažené soubory a Hudbu na externí disk nebo do cloudu. LuxOS je beta: záloha je nutnost.</li>
+        <li><strong>Prohlížeč:</strong> přihlaste se k synchronizaci Firefoxu nebo Chromu, nebo záložky a hesla vyexportujte do souboru.</li>
+        <li><strong>E-mail:</strong> webová pošta funguje hned; pro poštu na počítači je Thunderbird v sadě <em>Každodenní použití</em>.</li>
+        <li><strong>Dual boot:</strong> LuxOS umí otevřít disk s Windows v Souborech. Ve Windows ale nejdřív vypněte <em>Rychlé spuštění</em>, jinak se disk může otevřít jen pro čtení.</li>
+        <li>Po instalaci si zapněte automatické <a href="{{DOC:luxos/backups.md}}">zálohy</a> na externí nebo síťový disk.</li>
+      </ul>
+
+      <section class="faq" id="faq">
+        <h2>Časté otázky</h2>
+        <h3>Můžu Windows 10 používat i po konci podpory?</h3>
+        <p>Ano, dál fungují. Bez rozšířených bezpečnostních aktualizací (ESU) ale nedostávají bezpečnostní opravy, takže nové zranitelnosti zůstávají otevřené. Nepoužívejte je na rizikové věci, jako je internetové bankovnictví, nebo se do ESU přihlaste, než se rozhodnete.</p>
+        <h3>Je LuxOS opravdu zdarma?</h3>
+        <p>Ano. ISO se stahuje zdarma a placená edice neexistuje. Volitelný asistent LuxAI potřebuje účet LuxAI s měsíčními limity; LuxOS bez něj funguje naplno.</p>
+        <h3>Smaže LuxOS Windows?</h3>
+        <p>Jen pokud zvolíte smazání celého disku. Instalátor umí LuxOS nainstalovat i do volného místa vedle Windows a zkoušení z USB disku na disku nic nemění.</p>
+        <h3>Je LuxOS bezpečný i bez antiviru?</h3>
+        <p>LuxOS má výchozí zapnutý firewall, podepsané balíky a Lux Guard, který kontroluje programy stažené z internetu a nebezpečné spouští jen v izolovaném sandboxu. Snímky domovské složky každou hodinu umožní obnovit smazané nebo zašifrované soubory.</p>
+        <h3>Hodí se LuxOS na počítač pro rodiče?</h3>
+        <p>LuxOS je zatím beta od jednoho vývojáře. Pro počítač, který nikoho nesmí překvapit, je dnes bezpečnější volbou zavedený systém – Windows 11 na způsobilém hardwaru, Linux Mint nebo Zorin OS.</p>
+      </section>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Zdroje</h2>
+        <ul>
+          <li><a href="https://support.microsoft.com/cs-cz/windows/windows-10-support-has-ended-on-october-14-2025-2ca8b313-1946-43d3-b55c-2b95b107f281">Microsoft: Podpora Windows 10 skončila 14. října 2025</a></li>
+          <li><a href="https://www.microsoft.com/en-us/windows/extended-security-updates">Microsoft: rozšířené bezpečnostní aktualizace Windows 10 – cena, požadavky, konec (anglicky)</a></li>
+          <li><a href="https://www.microsoft.com/cs-cz/windows/windows-11-specifications">Microsoft: specifikace a systémové požadavky Windows 11</a></li>
+          <li><a href="https://areweanticheatyet.com/">Are We Anti-Cheat Yet? – hry s anti-cheatem na Linuxu (anglicky)</a></li>
+          <li>LuxOS: <a href="{{DOC:luxos/hardware.md}}">podporovaný hardware</a>, <a href="{{DOC:luxos/installer.md}}">instalace</a>, <a href="{{DOC:luxos/faq.md}}">časté otázky</a></li>
+        </ul>
+        <p class="checked">Údaje o Windows ověřeny 18. listopadu 2026.</p>
+      </section>

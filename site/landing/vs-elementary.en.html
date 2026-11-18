@@ -1,0 +1,54 @@
+      {{CRUMBS}}
+      <h1>LuxOS vs elementary OS</h1>
+      <p class="lead">elementary OS and LuxOS are the two Linux systems most often recommended to people who like the Mac's calm, simple style. They get there in different ways. A fair comparison – elementary OS is the more mature of the two, LuxOS is beta.</p>
+
+      <h2 id="at-a-glance">At a glance</h2>
+      <table>
+        <thead><tr><th></th><th>LuxOS {{ISO_VERSION}}</th><th>elementary OS 8.1</th></tr></thead>
+        <tbody>
+          <tr><td>Base</td><td>Arch Linux, rolling release</td><td>Ubuntu LTS with Ubuntu's hardware enablement stack (Linux 6.14, Mesa 25 in 8.1)</td></tr>
+          <tr><td>Desktop</td><td>Xfce components arranged like macOS: top bar, Dock, Launchpad, Search, Control Center</td><td>its own Pantheon desktop shell (Gala, Panel, Dock); the Wayland-based Secure Session is the default</td></tr>
+          <tr><td>Design</td><td>a close copy of the Mac's way of working (window buttons on the left, Mac-style shortcuts)</td><td>its own Mac-inspired design language with its own apps</td></tr>
+          <tr><td>Apps</td><td>LuxOS Store: Arch repositories, Flathub, checked community packages (AUR) in a sandbox</td><td>AppCenter – a pay-what-you-can store for indie developers – plus Flathub</td></tr>
+          <tr><td>Price</td><td>free</td><td>pay what you can (any amount)</td></tr>
+          <tr><td>Hardware</td><td>64-bit PC (x86_64), 4 GB RAM, 20 GB disk; UEFI or BIOS</td><td>recommended: recent Intel Core i3 or comparable dual-core 64-bit CPU, 4 GB RAM, SSD with 32 GB free, 1024 × 768 display; also ARM64 builds for UEFI devices</td></tr>
+          <tr><td>Extras</td><td>automatic driver detection, Lux Guard, Safe (encrypted folder), optional LuxAI assistant</td><td>a coherent set of its own apps</td></tr>
+          <tr><td>ISO size</td><td>{{ISO_SIZE}}</td><td>3.3 GB (8.1.1)</td></tr>
+          <tr><td>Maturity</td><td>beta, one developer</td><td>mature, more than a decade of releases, team and community</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="elementary-better">Where elementary OS is the better choice</h2>
+      <ul>
+        <li><strong>Polish and coherence.</strong> elementary designs its desktop and apps together; the whole system feels consistent.</li>
+        <li><strong>Stability.</strong> An Ubuntu LTS base changes slowly, which suits computers that must not surprise anyone.</li>
+        <li><strong>Maturity and community.</strong> Years of releases, a team behind it and plenty of help online. LuxOS is beta.</li>
+        <li><strong>ARM devices.</strong> elementary OS offers ARM64 builds; LuxOS is x86_64 only.</li>
+      </ul>
+
+      <h2 id="luxos-different">Where LuxOS differs</h2>
+      <ul>
+        <li><strong>Closer to the Mac layout</strong>: a top bar with the active app's name, a Dock with magnification, Launchpad, Control Center, red-yellow-green window buttons on the left and <kbd>Super</kbd> in the role of <kbd>Cmd</kbd>.</li>
+        <li><strong>A lightweight Xfce base</strong> that suits older PCs, including ones with legacy BIOS.</li>
+        <li><strong>Huge software choice</strong>: the full Arch Linux repositories and Flathub; community (AUR) packages are checked and installed in a sandbox.</li>
+        <li><strong>Safety net for updates</strong>: a Btrfs snapshot before each update and rollback from the boot menu.</li>
+        <li><strong>Automatic drivers</strong> for NVIDIA by generation, Broadcom Wi-Fi, Intel cameras and audio.</li>
+      </ul>
+      {{SHOT:control-center|LuxOS Control Center with Wi-Fi, Bluetooth, Do Not Disturb and Dark Mode tiles, brightness and volume sliders|LuxOS: Control Center under the top bar, as on a Mac.}}
+
+      <h2 id="who">Who should pick which?</h2>
+      <p><strong>Pick elementary OS</strong> if you want a calm, carefully designed system that changes slowly and you value its own apps. <strong>Pick LuxOS</strong> if you want the Mac way of working as closely as possible, newer software with snapshots behind every update, or a lighter system for an older PC – and you are fine with a beta. Both can be tried from a USB stick without installing.</p>
+
+      {{CTA}}
+
+      <section class="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Sources</h2>
+        <ul>
+          <li><a href="https://elementary.io/">elementary OS – official website</a> (version 8.1.1, pay what you can, AppCenter)</li>
+          <li><a href="https://blog.elementary.io/os-8-1-available-now/">elementary OS 8.1 Available Now</a> (Ubuntu LTS hardware enablement stack, Secure Session by default, Flathub, ARM64)</li>
+          <li><a href="https://elementary.io/docs/installation">elementary OS installation – recommended system specs</a></li>
+          <li><a href="https://elementary.io/open-source">elementary OS open source</a> (Pantheon desktop shell: Gala, Panel, Dock)</li>
+          <li>LuxOS: <a href="{{DOC:luxos/compare.md}}">LuxOS compared with other distributions</a>, <a href="{{DOC:luxos/desktop.md}}">the LuxOS desktop</a></li>
+        </ul>
+        <p class="checked">Facts about elementary OS checked on the official website on 18 November 2026. Details change between releases.</p>
+      </section>

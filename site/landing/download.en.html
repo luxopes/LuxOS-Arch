@@ -1,0 +1,71 @@
+      {{CRUMBS}}
+      <h1>Download LuxOS {{ISO_VERSION}}</h1>
+      <p class="lead">LuxOS is free. Download the ISO, write it to a USB stick and try LuxOS without installing – your disk is not touched until you choose to install.</p>
+
+      <div class="download-box">
+        <div class="download-copy"><h2>LuxOS <span data-release="iso_version">{{ISO_VERSION}}</span> “<span data-release="codename">{{CODENAME}}</span>” <span class="beta">beta</span></h2>
+          <p>64-bit PC (x86_64) · ISO <span data-release="iso_size">{{ISO_SIZE}}</span> · released <span data-release="iso_date">{{ISO_DATE}}</span> · free, no registration</p>
+          <p class="unstable-warning">⚠ LuxOS is still beta: expect bugs. Back up your data before installing.</p>
+          <div class="download-links"><a href="/download/SHA256SUMS" data-release-href="sums"><span>▤</span> SHA256SUMS</a><a href="/download/{{ISO_FILE}}.sig" data-release-href="sig"><span>♧</span> ISO signature</a><a href="/repo/luxos.gpg"><span>♧</span> LuxOS key</a><a href="{{CHANGES}}"><span>✦</span> What's new</a></div>
+        </div>
+        <a href="/download/{{ISO_FILE}}" data-release-href="iso" class="button button-primary iso-button" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg><span>Download ISO<small data-release="iso_size">{{ISO_SIZE}}</small></span></a>
+      </div>
+      <p>Already running LuxOS? You do not need the ISO: LuxOS updates itself in the background, or run <code>lux update</code>.</p>
+
+      <h2 id="requirements">System requirements</h2>
+      <table>
+        <thead><tr><th></th><th>Minimum</th><th>Recommended</th></tr></thead>
+        <tbody>
+          <tr><td>Processor</td><td>64-bit Intel or AMD (x86-64)</td><td>2 cores or more</td></tr>
+          <tr><td>Memory</td><td>4 GB RAM</td><td>8 GB RAM</td></tr>
+          <tr><td>Disk</td><td>20 GB</td><td>SSD, 64 GB or more</td></tr>
+          <tr><td>Firmware</td><td>UEFI or legacy BIOS, no TPM needed</td><td>UEFI with Secure Boot on</td></tr>
+          <tr><td>USB stick</td><td>4 GB or more</td><td>USB 3</td></tr>
+          <tr><td>Internet</td><td colspan="2">needed during installation (current packages are downloaded, about 10 minutes)</td></tr>
+        </tbody>
+      </table>
+      <p>Graphics (Intel, AMD, NVIDIA), Wi-Fi, sound and printers are detected automatically. More in <a href="{{DOC:luxos/hardware.md}}">hardware support</a> and <a href="{{URL:old-computers}}">LuxOS on older computers</a>.</p>
+
+      <h2 id="verify">Verify the download</h2>
+      <p>Check that the file is complete and really comes from LuxOS. Put the ISO, <code>SHA256SUMS</code> and the <code>.sig</code> file in one folder and run in a terminal:</p>
+      <div class="terminal"><pre><code><span class="terminal-prompt">$</span> sha256sum -c SHA256SUMS
+<span class="terminal-prompt">$</span> gpg --import luxos.gpg
+<span class="terminal-prompt">$</span> gpg --verify <span data-release="iso_file">{{ISO_FILE}}</span>.sig <span data-release="iso_file">{{ISO_FILE}}</span></code></pre><button class="copy" data-copy="sha256sum -c SHA256SUMS&#10;gpg --import luxos.gpg&#10;gpg --verify {{ISO_FILE}}.sig {{ISO_FILE}}" aria-label="Copy commands">⧉</button></div>
+      <div class="fingerprint"><span>SHA-256:</span><code data-release="iso_sha256">{{ISO_SHA256}}</code><button class="copy" data-copy="{{ISO_SHA256}}" data-release-copy="iso_sha256" aria-label="Copy checksum">⧉</button></div>
+      <div class="fingerprint"><span>LuxOS key fingerprint:</span><code>{{FINGERPRINT}}</code><button class="copy" data-copy="{{FINGERPRINT}}" aria-label="Copy fingerprint">⧉</button></div>
+      <p><code>sha256sum</code> must print <strong>OK</strong> and <code>gpg</code> <strong>Good signature</strong> from the key with the fingerprint above. On Windows, compare the checksum with <code>Get-FileHash .\{{ISO_FILE}}</code> in PowerShell; on a Mac with <code>shasum -a 256 {{ISO_FILE}}</code>. For the signature on Windows use Gpg4win.</p>
+
+      <h2 id="usb">Write the ISO to a USB stick</h2>
+      <p>Everything on the stick will be erased. Pick one tool:</p>
+      <ul>
+        <li><strong>Ventoy</strong> (Windows, Linux): install Ventoy on the stick once, then just copy the ISO file onto it – you can keep several systems on one stick. With Secure Boot on, enable Ventoy's <em>Secure Boot Support</em> option when you install Ventoy on the stick.</li>
+        <li><strong>balenaEtcher</strong> (Windows, macOS, Linux): <em>Flash from file</em> → choose the ISO → choose the USB stick → <em>Flash</em>.</li>
+        <li><strong>Fedora Media Writer</strong> (Windows, macOS, Linux): <em>Select .iso file</em> → choose the stick → <em>Write</em>.</li>
+        <li><strong>Rufus</strong> (Windows): choose the ISO and, when Rufus asks, <em>DD image</em> mode.</li>
+        <li><strong>dd</strong> (Linux): find the stick with <code>lsblk</code> (for example <code>/dev/sdb</code> – double-check, the wrong device means lost data), then <code>sudo dd if={{ISO_FILE}} of=/dev/sdX bs=4M status=progress oflag=sync</code>.</li>
+      </ul>
+
+      <h2 id="secure-boot">Secure Boot: leave it on</h2>
+      <p>LuxOS starts with Secure Boot on – you do not need to change anything in the firmware. On the very first start from the stick the computer asks once to trust the LuxOS key: press <kbd>Enter</kbd>, choose <strong>Enroll key from disk</strong>, select the LuxOS key and confirm. It takes under a minute and nothing has to be typed. <a href="{{DOC:luxos/secure-boot-first-start.md}}">Step-by-step guide with screenshots</a>.</p>
+      <figure class="app-shot sb-shot"><img src="/assets/secureboot/sb-04-select-file.webp" alt="MokManager on the first start: the file LUXOS_ENROLL_THIS_KEY.cer selected on the LuxOS USB stick"><figcaption>The one-time step: select <code>LUXOS_ENROLL_THIS_KEY.cer</code> and confirm.</figcaption></figure>
+
+      <h2 id="install">Try and install</h2>
+      <ol>
+        <li>Plug in the stick, switch the computer on and open the boot menu – usually <kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd> or <kbd>Esc</kbd>.</li>
+        <li>LuxOS starts from the stick. Try Wi-Fi, sound and graphics.</li>
+        <li>Start <strong>Install LuxOS</strong>. Choose the whole disk, free space next to Windows (dual boot) or an existing partition, optionally with encryption.</li>
+        <li>After installation LuxOS updates itself in the background; every update can be undone.</li>
+      </ol>
+      <p>Details: <a href="{{DOC:luxos/installer.md}}">installing LuxOS</a>. Coming from Windows 10? Read <a href="{{URL:windows-10}}">what works and what does not</a> first.</p>
+
+      <section class="faq" id="faq">
+        <h2>Common questions</h2>
+        <h3>Is LuxOS free?</h3>
+        <p>Yes. The ISO is free to download and use, with no registration and no paid edition. Most of LuxOS is open source under GPL-3.0-or-later.</p>
+        <h3>Do I have to turn off Secure Boot?</h3>
+        <p>No. LuxOS starts with Secure Boot on. On the first start from the USB stick the computer asks once to trust the LuxOS key, which takes under a minute.</p>
+        <h3>Can I try LuxOS without installing it?</h3>
+        <p>Yes. LuxOS runs straight from the USB stick. Nothing on your disk changes until you start the installer and choose where to install.</p>
+        <h3>Which file do I need?</h3>
+        <p>Only the ISO file. SHA256SUMS, the .sig signature and the LuxOS key are for checking that the download is complete and genuine.</p>
+      </section>
