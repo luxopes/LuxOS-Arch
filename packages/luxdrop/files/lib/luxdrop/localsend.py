@@ -238,8 +238,8 @@ def parse_prepare_upload(obj):
         # Kolize nazvu (napr. NFC/NFD nebo nahrazene znaky): pridat " (2)"
         base, n = rel, 2
         while rel.casefold() in seen:
-            stem, ext = os.path.splitext(base)
-            rel = "%s (%d)%s" % (stem, n, ext)
+            parent, name = base.rsplit("/", 1) if "/" in base else ("", base)
+            rel = (parent + "/" if parent else "") + pathsafe.collision_name(name, n)
             n += 1
         seen[rel.casefold()] = True
         out.append({"id": fid, "rel": rel, "parts": tuple(rel.split("/")), "size": size, "sha256": digest,

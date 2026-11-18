@@ -28,6 +28,7 @@
         <value type="int" value="3"/>
         <value type="int" value="11"/>
         <value type="int" value="4"/>
+        <value type="int" value="16"/>
         <value type="int" value="14"/>
         <value type="int" value="5"/>
         <value type="int" value="10"/>
@@ -44,6 +45,8 @@
       <property name="button-icon" type="string" value="luxos-logo-symbolic"/>
       <property name="show-button-title" type="bool" value="false"/>
       <property name="show-button-icon" type="bool" value="true"/>
+      <!-- sekce nabidky (kategorie) se prepinaji uz najetim mysi, bez kliknuti -->
+      <property name="hover-switch-category" type="bool" value="true"/>
       <!-- Vzhled LuxOS (upraveny xfce4-whiskermenu-plugin): nahore fotka a hledani, dole lista
            Zamknout obrazovku / Restartovat / Uspat / Vypnout s popisky (commands-alternate=false),
            Odhlasit v zahlavi. menu-opacity < 100 = pruhledne zaoblene rohy (styl v luxos.css). -->
@@ -105,6 +108,16 @@
       <property name="icon-size" type="int" value="16"/>
       <property name="single-row" type="bool" value="true"/>
       <property name="symbolic-icons" type="bool" value="true"/>
+      <property name="hidden-items" type="array">
+        <value type="string" value="nm-applet"/>
+      </property>
+    </property>
+    <!-- Wi-Fi: vlastni ikona a okno LuxOS (luxos-bar-popup, misto ikony nm-applet v systray) -->
+    <property name="plugin-16" type="string" value="genmon">
+      <property name="command" type="string" value="luxos-bar-popup --panel wifi"/>
+      <property name="update-period" type="int" value="10000"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="enable-single-row" type="bool" value="true"/>
     </property>
     <property name="plugin-14" type="string" value="genmon">
       <property name="command" type="string" value="luxos-netcheck"/>
@@ -125,15 +138,9 @@
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Inter Semi-Bold 10"/>
     </property>
-    <!-- Rozlozeni klavesnice (vlajka statu, prepinani obema klavesami Shift nebo klikem) -->
-    <property name="plugin-11" type="string" value="xkb">
-      <property name="display-type" type="uint" value="0"/>
-      <property name="display-name" type="uint" value="0"/>
-      <property name="display-scale" type="uint" value="55"/>
-      <property name="caps-lock-indicator" type="bool" value="true"/>
-      <property name="display-tooltip-icon" type="bool" value="false"/>
-      <property name="group-policy" type="uint" value="0"/>
-    </property>
+    <!-- Rozlozeni klavesnice jako text (US, CZ; files/src/luxos-xkb.c misto vlajky z pluginu xkb),
+         prepinani obema klavesami Shift nebo klikem -->
+    <property name="plugin-11" type="string" value="luxos-xkb"/>
     <!-- Lupa: Hledani (jako Super+Mezernik) -->
     <property name="plugin-15" type="string" value="genmon">
       <property name="command" type="string" value="luxos-search --panel"/>

@@ -184,10 +184,11 @@ def clean_stderr(text):
 
 
 class ScanError(Exception):
-    def __init__(self, kind, details=""):
+    def __init__(self, kind, details="", files=()):
         super().__init__(details or kind)
         self.kind = kind
         self.details = details
+        self.files = list(files)       # hotove stranky pred chybou podavace zustanou k dispozici
 
 
 # ---- skenovani ----
@@ -214,12 +215,20 @@ class Scan:
     def run(self, progress=None):
         """Vrati seznam naskenovanych souboru, jinak ScanError."""
         for attempt in range(OPEN_RETRIES):
-            with SANE_LOCK:
+            # Zruseni musi fungovat i behem cekani na jine hledani nebo skenovani.
+            while not SANE_LOCK.acquire(timeout=0.1):
+                if self.cancelled:
+                    raise ScanError("cancelled")
+            try:
+                if self.cancelled:
+                    raise ScanError("cancelled")
                 try:
                     return self._run_once(progress)
                 except ScanError as e:
-                    if self.cancelled or not OPEN_FAILED.search(e.details or "") or attempt == OPEN_RETRIES - 1:
+                    if self.cancelled or e.files or not OPEN_FAILED.search(e.details or "") or attempt == OPEN_RETRIES - 1:
                         raise
+            finally:
+                SANE_LOCK.release()
             time.sleep(OPEN_RETRY_DELAY)    # skener drzi jiny proces - zkusit znovu, nez se ukaze chyba
 
     def _run_once(self, progress=None):
@@ -228,6 +237,9 @@ class Scan:
                                          start_new_session=True)
         except OSError as e:
             raise ScanError("missing", str(e)) from e
+        # Zruseni mohlo prijit mezi kontrolou pod zamkem a prirazenim noveho procesu.
+        if self.cancelled:
+            self.cancel()
         err, buf = b"", b""
         while True:
             ch = os.read(self.proc.stderr.fileno(), 512)     # vrati hned, co je k dispozici
@@ -248,7 +260,9 @@ class Scan:
                 _unlink(f)
             raise ScanError("cancelled", text)
         if self.batch and files:
-            return files            # podavac dosel: posledni list hlasi "out of documents", to neni chyba
+            if rc == 0 or error_kind(text) == "no_paper":
+                return files        # prazdny podavac po hotovych strankach je normalni konec
+            raise ScanError(error_kind(text), text or f"scanimage: exit status {rc}", files=files)
         if rc == 0 and files:
             return files
         for f in files:

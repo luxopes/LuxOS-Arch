@@ -8,6 +8,7 @@ Prubeh (podrobne v PROTOCOL.md):
   klient -> file + data ... -> end    server -> result
 """
 import base64
+import errno
 import hashlib
 import hmac
 import os
@@ -642,12 +643,9 @@ class Receiver:
 
 def _unique_names(name):
     yield name
-    stem, ext = os.path.splitext(name)
-    if not stem:
-        stem, ext = name, ""
     n = 1
     while True:
-        yield "%s (%d)%s" % (stem, n, ext)
+        yield pathsafe.collision_name(name, n)
         n += 1
 
 
@@ -660,27 +658,42 @@ def _reserve_dir(dfd, name):
             continue
 
 
+def _rename_noreplace(src_fd, src, dst_fd, dst):
+    """Atomicke prejmenovani bez prepsani i na disku bez pevnych odkazu (Linux)."""
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    try:
+        rename = libc.renameat2
+    except AttributeError:
+        raise OSError(errno.ENOSYS, "renameat2 is unavailable", dst) from None
+    rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    rename.restype = ctypes.c_int
+    if rename(src_fd, os.fsencode(src), dst_fd, os.fsencode(dst), 1) != 0:  # RENAME_NOREPLACE
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), dst)
+
+
 def _place_file(src_fd, src, dst_fd, name, unique=True):
     """Presun bez prepsani: link() selze, pokud cil existuje."""
     for cand in (_unique_names(name) if unique else [name]):
         try:
             os.link(src, cand, src_dir_fd=src_fd, dst_dir_fd=dst_fd, follow_symlinks=False)
-            os.unlink(src, dir_fd=src_fd)
-            return cand
         except FileExistsError:
             if not unique:
                 raise proto.ProtocolError(proto.E_INVALID_OFFER, "file already exists: %s" % name) from None
             continue
         except OSError:
-            # Souborovy system bez hardlinku (FAT/exFAT): kontrola + rename
+            # FAT/exFAT: samostatna kontrola existence a rename mohou pri soubehu prepsat soubor.
             try:
-                os.stat(cand, dir_fd=dst_fd, follow_symlinks=False)
+                _rename_noreplace(src_fd, src, dst_fd, cand)
+                return cand
+            except FileExistsError:
                 if not unique:
                     raise proto.ProtocolError(proto.E_INVALID_OFFER, "file already exists: %s" % name)
                 continue
-            except FileNotFoundError:
-                os.rename(src, cand, src_dir_fd=src_fd, dst_dir_fd=dst_fd)
-                return cand
+        # Chyba uklidu po uspesnem linku neni chyba ulozeni: neopakovat ho pod dalsim nazvem.
+        os.unlink(src, dir_fd=src_fd)
+        return cand
     raise proto.ProtocolError(proto.E_INTERNAL, "cannot place file")
 
 

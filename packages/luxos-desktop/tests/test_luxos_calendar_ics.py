@@ -261,6 +261,30 @@ class TestRecurrence(unittest.TestCase):
         e = self.ev(D(2026, 10, 1), "FREQ=DAILY;INTERVAL=10;UNTIL=20261031")
         self.assertEqual(days(e, D(2026, 9, 1), D(2027, 1, 1)), [D(2026, 10, 1), D(2026, 10, 11), D(2026, 10, 21), D(2026, 10, 31)])
 
+    def test_daily_filters_weekdays_before_counting(self):
+        e = self.ev(D(2026, 10, 23), "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR;COUNT=4")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2026, 11, 1)),
+                         [D(2026, 10, 23), D(2026, 10, 26), D(2026, 10, 27), D(2026, 10, 28)])
+
+    def test_daily_filters_month_days(self):
+        e = self.ev(D(2026, 10, 31), "FREQ=DAILY;BYMONTHDAY=-1;COUNT=3")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2027, 1, 1)),
+                         [D(2026, 10, 31), D(2026, 11, 30), D(2026, 12, 31)])
+
+    def test_daily_filter_with_no_matching_dates(self):
+        e = self.ev(D(2026, 1, 1), "FREQ=DAILY;BYMONTH=2;BYMONTHDAY=30")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2026, 3, 1)), [D(2026, 1, 1)])
+
+    def test_monthly_intersects_month_days_and_weekdays(self):
+        e = self.ev(D(2026, 10, 5), "FREQ=MONTHLY;BYMONTHDAY=1,2,3,4,5,6,7;BYDAY=MO;COUNT=3")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2027, 1, 1)),
+                         [D(2026, 10, 5), D(2026, 11, 2), D(2026, 12, 7)])
+
+    def test_monthly_intersection_with_ordinal_weekday(self):
+        e = self.ev(D(2026, 10, 30), "FREQ=MONTHLY;BYMONTHDAY=-1,-2,-3;BYDAY=-1FR;COUNT=2")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2027, 6, 1)),
+                         [D(2026, 10, 30), D(2027, 1, 29)])
+
     def test_until_utc_inclusive(self):
         e = self.ev(T(2026, 10, 1, 9), "FREQ=DAILY;UNTIL=20261003T070000Z")  # 9:00 Praha = 7:00 UTC
         self.assertEqual(len(days(e, D(2026, 9, 1), D(2026, 12, 1))), 3)

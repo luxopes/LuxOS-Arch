@@ -9,6 +9,7 @@ arch=(any)
 url="https://lux-ai.cz"
 license=(GPL-3.0-or-later)
 depends=(python python-gobject gtk3 luxos-i18n xdg-utils)
+optdepends=("luxos-desktop: okno z matneho skla jako Hodiny (luxos_glass.py), jinak klasicke okno")
 makedepends=(python)
 
 package() {

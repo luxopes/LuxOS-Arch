@@ -6,7 +6,10 @@
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 
 if [[ $1 == --panel ]]; then
-    printf '<icon>luxos-search-symbolic</icon><iconclick>luxos-search</iconclick><tool>%s</tool>\n' "$(T "Search")"
+    # klik spusti tentyz skript (plna cesta: lista spustena sezenim nemusi mit jeho slozku v PATH)
+    self=$(readlink -f "$0" 2>/dev/null)
+    [[ -n $self && $self != *" "* ]] || self=luxos-search
+    printf '<icon>luxos-search-symbolic</icon><iconclick>%s</iconclick><tool>%s</tool>\n' "$self" "$(T "Search")"
     exit 0
 fi
 
@@ -56,9 +59,48 @@ if [[ $1 == --add-to-panel ]]; then
     exit 0
 fi
 
+# Sklo jako widgety na plose: rofi dostane jako pozadi okna vyrez rozostrene tapety presne z mista,
+# kde okno lezi (nahore uprostred monitoru s mysi, 20 % vysky, sirka 680 px jako luxos-search.rasi;
+# okno roste jen dolu, proto obrazek saha az k dolnimu okraji). Obrazek z luxos-glass-image se
+# uklada do mezipameti podle tapety, monitoru a rezimu. Bez tapety/nastroje zustane barva motivu.
+glass_args() {
+    local mode=$1 mx=0 my=0 line idx= gx gy gw gh key png cache tool
+    # nastroj vedle skriptu (lista spustena sezenim nemusi mit jeho slozku v PATH), jinak z PATH
+    tool=$(dirname "$(readlink -f "$0")")/luxos-glass-image
+    [[ -x $tool ]] || tool=$(command -v luxos-glass-image) || return 0
+    if command -v xdotool >/dev/null; then
+        eval "$(xdotool getmouselocation --shell 2>/dev/null | grep -E '^[XY]=[0-9]+$' | sed 's/^/m/')"
+        mx=${mX:-0} my=${mY:-0}
+    fi
+    # " 0: +*eDP-1 1920/344x1080/193+0+0  eDP-1" - monitor s mysi, jinak primarni (*)
+    while read -r line; do
+        [[ $line =~ ^([0-9]+):\ \+(\*?)[^\ ]+\ ([0-9]+)/[0-9]+x([0-9]+)/[0-9]+\+([0-9]+)\+([0-9]+) ]] || continue
+        local i=${BASH_REMATCH[1]} star=${BASH_REMATCH[2]} w=${BASH_REMATCH[3]} h=${BASH_REMATCH[4]} x=${BASH_REMATCH[5]} y=${BASH_REMATCH[6]}
+        if (( mx >= x && mx < x + w && my >= y && my < y + h )) || [[ -z $idx && $star == '*' ]]; then
+            idx=$i gx=$x gy=$y gw=$w gh=$h
+            (( mx >= x && mx < x + w && my >= y && my < y + h )) && break
+        fi
+    done < <(xrandr --listactivemonitors 2>/dev/null)
+    [[ -n $idx ]] || return 0
+    local wx=$(( gx + (gw - 680) / 2 )) wy=$(( gy + gh * 20 / 100 )) ww=680 wh=$(( gh - gh * 20 / 100 ))
+    cache=${XDG_CACHE_HOME:-$HOME/.cache}/luxos
+    key=$( { xfconf-query -c xfce4-desktop -l -v 2>/dev/null | grep '/last-image'
+             echo "$wx $wy $ww $wh $mode"; } | md5sum | cut -c1-12)
+    png=$cache/search-glass-$key.png
+    if [[ ! -s $png ]]; then
+        mkdir -p "$cache"
+        rm -f "$cache"/search-glass-*.png
+        "$tool" "$wx" "$wy" "$ww" "$wh" "$mode" "$png.tmp" 2>/dev/null && mv "$png.tmp" "$png" || { rm -f "$png.tmp"; return 0; }
+    fi
+    extra+=(-m "$idx" -theme-str "window { background-image: url(\"$png\", width); background-color: transparent;
+        border-color: rgba(255, 255, 255, 38%); }")
+}
+
 if pkill -x rofi; then exit 0; fi
 extra=(-theme-str "entry { placeholder: \"$(T "Search or ask LuxAI")\"; }")
-[[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
+mode=$(luxos-appearance status)
+[[ $mode == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
+glass_args "$([[ $mode == light ]] && echo light || echo dark)"
 # Bez -hover-select: Enter spusti prvni (nejlepsi) shodu, ne polozku pod kurzorem mysi
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
 exec rofi -show combi -modi 'combi,window,filebrowser,run' -combi-modi 'luxai:luxos-luxai-rofi,drun' -combi-hide-mode-prefix \

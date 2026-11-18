@@ -779,7 +779,7 @@ end
 # x-luxos-keep se ulozi do historie oznameni (zvonek v liste, cervena tecka = neprectene). Dalsi nove
 # zpravy ho nahradi (stejne id -> souhrn "Nove zpravy: N", xfce4-notifyd prepise i zaznam v historii).
 # Kdyz jsou vsechny ohlasene zpravy prectene (v Poste nebo jinde - IMAP \Seen), upozorneni se zavre
-# (CloseNotification, zaznam v historii se oznaci jako precteny).
+# (CloseNotification) a zmizi i z historie oznameni (modul luxos-notifyd v xfce4-notifyd, jako v Androidu).
 NOTE_LINES = 3
 
 function notify_new(st, raw, result):

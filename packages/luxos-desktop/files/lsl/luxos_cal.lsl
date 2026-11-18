@@ -17,6 +17,7 @@ load luxos_i18n as i18n
 load luxos_date as date
 load luxos_ics as ics
 load luxos_text as text
+load luxos_glass as glass
 
 WIDTH = 324
 REMINDER_MIN = 10
@@ -31,6 +32,9 @@ REPEAT_NAMES = ["Never", "Daily", "Weekly", "Monthly", "Yearly"]
 
 CSS = ("window.lc { background: transparent; }\n"
     + ".lc-box { background-color: @lc_bg; border-radius: 18px; border: 1px solid @lc_border; padding: 14px; color: @lc_fg; }\n"
+    # sklo jako widgety na plose (luxos_glass.panel): pod panelem rozostrena tapeta, okraj karty widgetu
+    + ".lc-box.lg-panel { background-color: transparent; border-color: rgba(255, 255, 255, 0.38);"
+    + " border-top-color: rgba(255, 255, 255, 0.62); border-bottom-color: rgba(255, 255, 255, 0.20); box-shadow: inset 0 1px rgba(255, 255, 255, 0.18); }\n"
     + ".lc-box label { color: @lc_fg; }\n"
     + ".lc-box label.dim, .lc-dim { color: @lc_dim; }\n"
     + ".lc-daynum { font-size: 44px; font-weight: 700; }\n"
@@ -1766,6 +1770,7 @@ function create(background):
     call gtk.widget_add_class(root, "lc-box")
     call gtk.widget_set_size_request(root, WIDTH, -1)
     call gtk.container_add(win, root)
+    call glass.panel(win, root, 18)
     cal["root"] = root
     top = gtk.box_new(gtk.HORIZONTAL, 8)
     cal["seg"] = segmented_new(["day", "month", "year"], [i18n.T("Day"), i18n.T("Month"), i18n.T("Year")], on_seg_change, False)

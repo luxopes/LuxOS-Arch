@@ -14,6 +14,8 @@ if _tg_d != "/":
 else:
     _tg_os.environ.pop("DISPLAY", None)
 import datetime
+import importlib.machinery
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -22,6 +24,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "files"))
@@ -267,6 +270,38 @@ class Scanning(FakePath):
             ls.Scan("test:0", ["--source", "ADF"], self.tmp, batch=True).run()
         self.assertEqual(c.exception.kind, "no_paper")
 
+    def test_adf_jam_reports_error_and_preserves_complete_pages(self):
+        os.environ["FAKE_SCAN"] = "adf-jam"
+        with self.assertRaises(ls.ScanError) as c:
+            ls.Scan("test:0", ["--source", "ADF"], self.tmp, batch=True).run()
+        self.assertEqual(c.exception.kind, "jammed")
+        self.assertEqual(c.exception.files, [os.path.join(self.tmp, "page-001.pnm")])
+        self.assertTrue(ls.pnm_complete(c.exception.files[0]))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "page-002.pnm")))
+
+    def test_cancelled_waiting_scan_does_not_start_device(self):
+        log = os.path.join(self.tmp, "calls")
+        scan = ls.Scan("test:0", [], self.tmp)
+        result = []
+
+        def work():
+            try:
+                scan.run()
+            except ls.ScanError as e:
+                result.append(e.kind)
+
+        with mock.patch.dict(os.environ, FAKE_SCAN_LOG=log):
+            with ls.SANE_LOCK:
+                t = threading.Thread(target=work)
+                t.start()
+                scan.cancel()
+                t.join(1)
+                self.assertFalse(t.is_alive(), "zruseni nesmi cekat na uvolneni skeneru")
+            t.join(5)
+        self.assertFalse(t.is_alive())
+        self.assertEqual(result, ["cancelled"])
+        self.assertFalse(os.path.exists(log), "zruseny pozadavek nesmi spustit skener")
+
     def test_errors(self):
         for mode, kind in (("busy", "busy"), ("jam", "jammed")):
             os.environ["FAKE_SCAN"] = mode
@@ -312,6 +347,58 @@ class Scanning(FakePath):
         self.assertLess(time.monotonic() - t0, 8)
         self.assertEqual(res.get("kind"), "cancelled")
         self.assertEqual(os.listdir(self.tmp), [])      # rozpracovany list smazany
+
+
+class ScanFlow(FakePath):
+    """Skutecne skenovani a nacteni nahledu; ovladaci prvky okna zastupuji napodoby bez X."""
+
+    def setUp(self):
+        super().setUp()
+        path = os.path.join(HERE, "..", "files", "luxos-scan")
+        loader = importlib.machinery.SourceFileLoader("scan_flow_app", path)
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        self.app = importlib.util.module_from_spec(spec)
+        loader.exec_module(self.app)
+        self.window = mock.Mock(dev={"id": "test:0"}, scan=None, probing=False, opts={},
+                                tmp=self.tmp, counter=1, pages=[], sel=-1, dirty=False, saved_files=[])
+        self.window.source_kind.return_value = ("ADF", "adf")
+        self.window.kind.return_value = "document"
+        self.window.color.return_value = False
+
+    def scan(self):
+        def in_thread(work, done):
+            try:
+                result = work()
+            except Exception as e:
+                result = e
+            done(result)
+
+        with mock.patch.object(self.app, "in_thread", in_thread), \
+                mock.patch.object(self.app.GLib, "timeout_add", return_value=1), \
+                mock.patch.object(self.app.GLib, "source_remove"), \
+                mock.patch.object(self.app.GLib, "idle_add"):
+            self.app.ScanWindow.start_scan(self.window)
+
+    def test_jammed_pages_remain_available_with_visible_error(self):
+        os.environ["FAKE_SCAN"] = "adf-jam"
+        self.scan()
+        self.assertEqual(len(self.window.pages), 1)
+        self.assertEqual(self.window.counter, 2)
+        self.assertTrue(self.window.dirty)
+        self.window.show_problem.assert_called_once()
+        self.assertEqual(self.window.show_problem.call_args.args[0], "jammed")
+        self.assertIsNotNone(self.window.pages[0]["preview"])
+
+    def test_page_numbers_above_999_do_not_overwrite_previous_pages(self):
+        self.window.counter = 1000
+        self.scan()
+        first = [p["path"] for p in self.window.pages]
+        self.assertEqual(self.window.counter, 1002)
+        self.scan()
+        self.assertEqual(self.window.counter, 1004)
+        self.assertEqual(len(set(p["path"] for p in self.window.pages)), 4)
+        self.assertTrue(all(os.path.isfile(p) for p in first))
+        self.window.show_problem.assert_not_called()
 
 
 class Pnm(FakePath):

@@ -19,6 +19,7 @@ import importlib.machinery
 import importlib.util
 import os
 import tempfile
+import types
 import unittest
 from decimal import Decimal, DivisionByZero
 
@@ -51,6 +52,90 @@ class Logic(unittest.TestCase):
         self.assertEqual(calc.fmt(Decimal(0)), "0")
         self.assertIn("e", calc.fmt(Decimal(10) ** 20))
         self.assertIn("e", calc.fmt(Decimal("1e-12")))
+
+
+class OperandLogic(unittest.TestCase):
+    """Klavesove sekvence nad skutecnymi metodami kalkulacky, bez widgetu a bez X serveru."""
+
+    def setUp(self):
+        self.shown = None
+        self.c = types.SimpleNamespace(tokens=[], entry="", fresh=False, result=None, degrees=True,
+                                       op_buttons={})
+        for name, method in calc.Calculator.__dict__.items():
+            if callable(method) and not name.startswith("__"):
+                setattr(self.c, name, types.MethodType(method, self.c))
+        self.c.refresh = lambda: None
+        self.c.show = lambda expr, value: setattr(self, "shown", value)
+        self.c.update_ops = lambda: None
+
+    def keys(self, seq):
+        for key in seq:
+            if key.isdigit():
+                self.c.digit(key)
+            elif key in "()":
+                self.c.paren(key)
+            elif key == "=":
+                self.c.equals()
+            else:
+                self.c.operator(key)
+
+    def test_function_on_parenthesized_expression(self):
+        self.keys("(2+3)")
+        self.c.func("sq")
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(25))
+
+    def test_function_replaces_only_trailing_operand(self):
+        self.keys("10+(2+3)")
+        self.c.func("sq")
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(35))
+
+    def test_nested_parentheses(self):
+        self.keys("2*((1+2)*3)")
+        self.c.func("sqrt")
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(6))
+
+    def test_percent_on_parenthesized_expression(self):
+        self.keys("(100+100)")
+        self.c.percent()
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(2))
+
+    def test_negate_parenthesized_expression(self):
+        self.keys("(2+3)")
+        self.c.negate()
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(-5))
+
+    def test_invalid_function_shows_error(self):
+        self.keys("(1-5)")
+        self.c.func("sqrt")
+        self.assertEqual(self.shown, calc._("Error"))
+
+    def test_relative_percent_on_parenthesized_operand(self):
+        self.keys("200+(5+5)")
+        self.c.percent()
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(220))
+
+    def test_functions_on_numbers_and_results(self):
+        self.keys("9")
+        self.c.func("sqrt")
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(3))
+        self.c.func("sq")
+        self.c.equals()
+        self.assertEqual(self.c.result, Decimal(9))
+
+    def test_unary_operations_report_invalid_parenthesized_expression(self):
+        for operation in ("percent", "negate"):
+            with self.subTest(operation=operation):
+                self.setUp()
+                self.keys("(1/0)")
+                getattr(self.c, operation)()
+                self.assertEqual(self.shown, calc._("Error"))
 
 
 # Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1) - nikdy skutecna obrazovka

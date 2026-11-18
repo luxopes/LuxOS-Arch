@@ -14,6 +14,19 @@ MAX_TOTAL = 1 << 53  # bezpecne cele cislo i v JSON/JavaScriptu
 BIDI = set("\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")
 
 
+def collision_name(name, number):
+    """Nazev s cislem kolize, stale do 255 bajtu a bez rozdeleni znaku UTF-8."""
+    stem, ext = os.path.splitext(name)
+    if not stem:
+        stem, ext = name, ""
+    suffix = " (%d)" % number
+    limit = MAX_COMPONENT - len(suffix.encode("utf-8"))
+    ext_limit = max(0, limit - len(stem[0].encode("utf-8")))
+    tail = ext.encode("utf-8")[:ext_limit].decode("utf-8", "ignore")
+    head = stem.encode("utf-8")[:limit - len(tail.encode("utf-8"))].decode("utf-8", "ignore")
+    return head + suffix + tail
+
+
 def _bad(msg):
     return proto.ProtocolError(proto.E_INVALID_OFFER, msg)
 
@@ -117,6 +130,8 @@ def collect(paths, on_skip=None):
         base, n = top, 2
         while top.casefold() in used_top:
             top = "%s (%d)" % (base, n)
+            if len(top.encode("utf-8")) > MAX_COMPONENT:
+                top = collision_name(base, n)
             n += 1
         used_top.add(top.casefold())
         if stat.S_ISREG(st.st_mode):
@@ -140,8 +155,13 @@ def _walk(root, rel_root, items, dirs, on_skip):
         if on_skip:
             on_skip(root, e.strerror or str(e))
         return
+    used_names = set()
     for e in entries:
         name = unicodedata.normalize("NFC", e.name)
+        base, n = name, 2
+        while name in used_names:
+            name = collision_name(base, n)
+            n += 1
         rel = rel_root + "/" + name
         try:
             check_relpath(rel)
@@ -159,8 +179,10 @@ def _walk(root, rel_root, items, dirs, on_skip):
             if on_skip:
                 on_skip(e.path, "symbolic link")
         elif stat.S_ISREG(st.st_mode):
+            used_names.add(name)
             items.append((e.path, rel, st.st_size, bool(st.st_mode & 0o111)))
         elif stat.S_ISDIR(st.st_mode):
+            used_names.add(name)
             dirs.append(rel)
             _walk(e.path, rel, items, dirs, on_skip)
         elif on_skip:

@@ -917,7 +917,13 @@ def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_d
         raise BackupError(str(e))
     os.makedirs(dst, exist_ok=True)
     dirs_meta = []
-    for cur, dnames, fnames in os.walk(src):
+
+    def walk_error(_exc):
+        # os.walk jinak necitelnou slozku potichu vynecha vcetne celeho obsahu.
+        nonlocal skipped
+        skipped += 1
+
+    for cur, dnames, fnames in os.walk(src, onerror=walk_error):
         rel_dir = os.path.relpath(cur, src)
         rel_dir = "" if rel_dir == "." else rel_dir
         keep = []
@@ -934,14 +940,14 @@ def py_copy(src, dst, patterns=(), link_dest=None, skip_existing=False, backup_d
                 continue
             if is_excluded(rel, True, patterns) or (one_fs and st.st_dev != root_dev):
                 continue
-            keep.append(d)
             dp = os.path.join(dst, rel)
-            if os.path.lexists(dp) and not os.path.isdir(dp):
+            if os.path.lexists(dp) and (os.path.islink(dp) or not os.path.isdir(dp)):
                 if skip_existing and not backup_dir:
                     skipped += 1
                     continue
                 replace_path(dp, dst, backup_dir)
             os.makedirs(dp, exist_ok=True)
+            keep.append(d)
             dirs_meta.append((sp, dp))
         dnames[:] = keep
         for fn in fnames:
@@ -1123,6 +1129,9 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
     if eng == "python":
         part = os.path.join(sess.root, name + ".partial")
         _reuse_partial(sess, part)
+        # py_copy nema --delete: rozpracovany strom postavit znovu, jinak v nem zustanou
+        # smazane/vyloucene soubory. Pevne odkazy se znovu pouziji z posledni hotove zalohy.
+        rmtree(part)
         try:
             warnings += py_copy(src, os.path.join(part, "home"), pats,
                                 os.path.join(sess.root, prev, "home") if prev else None)
@@ -1224,10 +1233,14 @@ def _copy(sess, eng, src, name, prev, pats, meta, info, cfg, on_progress, log):
                        os.path.join(sess.root, prev, "system", "etc") if prev else None, progress=False)
         if os.path.exists(os.path.join(meta, "system", "packages.txt")):
             shutil.copy2(os.path.join(meta, "system", "packages.txt"), os.path.join(part, "system"))
+    else:
+        rmtree(os.path.join(part, "system"))
     if vault:
         os.makedirs(os.path.join(part, "safe", "vault"), exist_ok=True)
         warnings += go(vault, os.path.join(part, "safe", "vault"), None,
                        os.path.join(sess.root, prev, "safe", "vault") if prev else None, progress=False)
+    else:
+        rmtree(os.path.join(part, "safe"))
     _finish_local(part, os.path.join(sess.root, name), info, warnings)
     return warnings
 
@@ -1463,7 +1476,9 @@ def _copy_out(sess, src, dst):
             raise BackupError(err.strip()[-500:])
         return
     if os.path.isdir(src) and not os.path.islink(src):
-        py_copy(src, dst, one_fs=False)
+        skipped = py_copy(src, dst, one_fs=False)
+        if skipped:
+            raise BackupError(_("Some files could not be restored (%d).") % skipped)
         _fix_mode(dst)
     elif os.path.islink(src):
         os.symlink(os.readlink(src), dst)
@@ -1541,9 +1556,10 @@ def restore_all(sess, name, target=None, replace=False, log=print):
         os.path.join(sess.root, name, "system", "packages.txt")
     if not sess.remote and os.path.exists(pk):
         log(_("Apps installed on the old system: %s (install them with: lux install $(cat FILE))") % pk)
-    vault = os.path.join(sess.root, name, "safe", "vault")
-    if not sess.remote and os.path.isfile(os.path.join(vault, "gocryptfs.conf")):
-        log(_("The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)") % vault)
+    if not sess.remote:
+        vault = os.path.join(sess.root, name, "safe", "vault")
+        if os.path.isfile(os.path.join(vault, "gocryptfs.conf")):
+            log(_("The backup contains your encrypted Safe: %s (see the Safe documentation for restoring it)") % vault)
     return skipped
 
 

@@ -1,8 +1,11 @@
 #!/bin/sh
-# LuxOS - horni lista s modulem luxos-panel-menus (kontextove nabidky pluginu bez sedeho nazvu
-# pluginu); externi pluginy (wrapper-2.0) promennou zdedi
-case ":${GTK_MODULES:-}:" in
-    *:luxos-panel-menus:*) ;;
-    *) GTK_MODULES="${GTK_MODULES:+$GTK_MODULES:}luxos-panel-menus"; export GTK_MODULES ;;
-esac
+# LuxOS - horni lista s moduly luxos-panel-menus (kontextove nabidky pluginu bez sedeho nazvu
+# pluginu) a luxos-glass (nabidka aplikaci z matneho skla jako widgety); externi pluginy
+# (wrapper-2.0, napr. Whisker Menu) promennou zdedi
+for m in luxos-panel-menus luxos-glass; do
+    case ":${GTK_MODULES:-}:" in
+        *:$m:*) ;;
+        *) GTK_MODULES="${GTK_MODULES:+$GTK_MODULES:}$m"; export GTK_MODULES ;;
+    esac
+done
 exec /usr/bin/xfce4-panel "$@"

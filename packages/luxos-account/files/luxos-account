@@ -70,6 +70,11 @@ except ImportError:
 
 import cairo  # noqa: E402
 
+try:   # okno z matneho skla jako Hodiny (luxos-desktop); bez modulu klasicke okno s listou Xfce
+    import luxos_glass as glass  # noqa: E402
+except ImportError:
+    glass = None
+
 CSS = b"""
 .hero { border-radius: 18px; padding: 22px; color: white;
         background-image: linear-gradient(120deg, #3d6bff, #7b4dff 60%, #b14dff); }
@@ -95,6 +100,57 @@ levelbar.usage trough { min-height: 8px; border-radius: 4px; }
 levelbar.usage block { min-height: 8px; border-radius: 4px; }
 levelbar.usage block.filled { background-color: #3d7bff; background-image: none; border-color: #3d7bff; }
 entry { border-radius: 10px; padding: 6px 10px; min-height: 30px; }
+"""
+
+# Sklo (luxos_glass): barvy jako Hodiny, svetle sklo s tmavym textem / tmave se svetlym
+GLASS_LIGHT = b"""
+@define-color c_fg #1d1d27; @define-color c_dim rgba(29, 29, 39, 0.58);
+@define-color c_tile rgba(255, 255, 255, 0.38); @define-color c_border rgba(255, 255, 255, 0.50);
+@define-color c_border_top rgba(255, 255, 255, 0.80); @define-color c_field rgba(255, 255, 255, 0.40);
+@define-color c_hover rgba(255, 255, 255, 0.60); @define-color c_on rgba(255, 255, 255, 0.95);
+@define-color c_shadow rgba(20, 16, 40, 0.07); @define-color c_link #1f5fe0;
+"""
+GLASS_DARK = b"""
+@define-color c_fg #f4f4f8; @define-color c_dim rgba(244, 244, 248, 0.62);
+@define-color c_tile rgba(255, 255, 255, 0.08); @define-color c_border rgba(255, 255, 255, 0.14);
+@define-color c_border_top rgba(255, 255, 255, 0.26); @define-color c_field rgba(0, 0, 0, 0.24);
+@define-color c_hover rgba(255, 255, 255, 0.14); @define-color c_on rgba(255, 255, 255, 0.22);
+@define-color c_shadow rgba(0, 0, 0, 0.18); @define-color c_link #7aa7ff;
+"""
+GLASS_CSS = b"""
+window.lg-window { background: transparent; color: @c_fg; }
+.lg-window .titlebar-title { font-size: 13px; font-weight: 700; }
+.lg-window .dim { opacity: 1; color: @c_dim; }
+.lg-window .card { background-color: @c_tile; border: 1px solid @c_border; border-top-color: @c_border_top;
+                   box-shadow: 0 6px 16px @c_shadow; }
+.lg-window .danger-card { border-color: alpha(#ff453a, 0.45); }
+.lg-window .side { background: none; }
+.lg-window .side stacksidebar, .lg-window .side stacksidebar list { background: none; border: none; }
+.lg-window .side stacksidebar row { color: @c_fg; }
+.lg-window .side stacksidebar row:hover { background-color: @c_hover; }
+.lg-window .side stacksidebar row:selected { background-color: @c_on; color: @c_fg;
+                                             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.lg-window .side stacksidebar row:selected label { color: @c_fg; font-weight: 600; }
+.lg-window separator { background-color: @c_border; min-width: 1px; min-height: 1px; }
+.lg-window .side separator { background: none; min-height: 0; }
+.lg-window .link, .lg-window .luxai-link { color: @c_link; }
+.lg-window entry { background-color: @c_field; background-image: none; border: none; color: @c_fg;
+                   box-shadow: inset 0 0 0 1px @c_border; }
+.lg-window entry:focus { box-shadow: inset 0 0 0 2px alpha(#3d7bff, 0.7); }
+.lg-window entry image { color: @c_dim; }
+.lg-window button:not(.lg-light):not(.primary):not(.luxai-primary):not(.link):not(.luxai-link):not(.photo) {
+    border-radius: 999px; padding: 4px 16px; background-image: none; background-color: @c_field; border: none;
+    box-shadow: inset 0 0 0 1px @c_border; color: @c_fg; text-shadow: none; outline: none; }
+.lg-window button:not(.lg-light):not(.primary):not(.luxai-primary):not(.link):not(.luxai-link):not(.photo):hover {
+    background-color: @c_hover; }
+.lg-window button:disabled { opacity: 0.5; }
+/* vybrana zalozka prihlaseni (Heslo / Kod e-mailem / Novy ucet): stejne specificke jako obecne tlacitko */
+.lg-window .luxai-seg button:not(.lg-light):not(.primary):not(.luxai-primary):not(.link):not(.luxai-link):not(.photo):checked {
+    background-color: #3d7bff; color: white; box-shadow: none; }
+.lg-window .luxai-seg button:checked label { color: white; }
+.lg-window levelbar trough { background-color: @c_field; background-image: none; border: none; box-shadow: none; }
+.lg-window combobox button { border-radius: 10px; }
+.lg-window checkbutton, .lg-window radiobutton { color: @c_fg; }
 """
 
 
@@ -188,14 +244,46 @@ class AccountWindow(Gtk.Window):
         self.web = None
         self.set_default_size(520, 600)
         self.set_icon_name("luxos-app")
-        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("LuxAI Account")))
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
-        self.add(self.stack)
+        if glass is not None:
+            # sklo jako Hodiny: semafor vlevo nahore, nazev uprostred, okno bez listy spravce oken
+            glass.setup(self, True)
+            root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            bar = Gtk.Box(margin_start=16, margin_end=16, margin_top=12, margin_bottom=4)
+            lights = glass.lights(self, lambda _b: self.close())
+            lights.set_size_request(58, -1)
+            bar.pack_start(lights, False, False, 0)
+            title = Gtk.Label(label=_("LuxAI Account"))
+            title.get_style_context().add_class("titlebar-title")
+            bar.pack_start(title, True, True, 0)
+            bar.pack_end(Gtk.Box(width_request=58), False, False, 0)
+            root.pack_start(bar, False, False, 0)
+            root.pack_start(self.stack, True, True, 0)
+            self.add(root)
+            self.theme_provider = None
+            self.apply_theme()
+            settings = self.get_settings()
+            settings.connect("notify::gtk-theme-name", lambda *_a: self.apply_theme())
+            settings.connect("notify::gtk-application-prefer-dark-theme", lambda *_a: self.apply_theme())
+        else:
+            self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("LuxAI Account")))
+            self.add(self.stack)
         self.connect("destroy", lambda *_a: self.web and self.web.close())
         # fotka zmenena v Profilove fotce: po navratu do okna ukazat novou
         self.photos = []
         self.connect("focus-in-event", lambda *_a: [p.reload() for p in self.photos] and False)
         self.show_page()
+
+    def apply_theme(self):
+        """Sklo a barvy podle svetleho/tmaveho rezimu (zmena za behu bez restartu)."""
+        dark = glass.theme_is_dark(self)
+        glass.set_dark(dark)
+        provider = self.theme_provider
+        if provider is None:
+            provider = self.theme_provider = Gtk.CssProvider()
+            Gtk.StyleContext.add_provider_for_screen(self.get_screen(), provider,
+                                                     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 2)
+        provider.load_from_data((GLASS_DARK if dark else GLASS_LIGHT) + GLASS_CSS)
 
     def page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=24)

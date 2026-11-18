@@ -335,12 +335,38 @@ class Calculator(Gtk.Window):
     def open_parens(self):
         return self.tokens.count("(") - self.tokens.count(")")
 
+    def operand_start(self):
+        """Zacatek uzavrene zavorky na konci vyrazu, kterou funkce nahradi jednim cislem."""
+        if self.entry or self.last() != ")":
+            return None
+        depth = 0
+        for i in range(len(self.tokens) - 1, -1, -1):
+            if self.tokens[i] == ")":
+                depth += 1
+            elif self.tokens[i] == "(":
+                depth -= 1
+                if depth == 0:
+                    return i
+        return None
+
     def current(self):
         if self.entry:
             return Decimal(self.entry)
+        start = self.operand_start()
+        if start is not None:
+            return evaluate(self.tokens[start:])
         if self.result is not None:
             return self.result
         return Decimal(0)
+
+    def set_current(self, value):
+        start = self.operand_start()
+        if start is not None:
+            del self.tokens[start:]
+        if not self.tokens:
+            self.result = None
+        self.entry = format(value.normalize(), "f") if abs(value.adjusted()) < 40 else str(value)
+        self.fresh = True
 
     def digit(self, d):
         if self.result is not None and not self.tokens:
@@ -424,17 +450,13 @@ class Calculator(Gtk.Window):
 
     def func(self, name):
         """Funkce jedne promenne na aktualni hodnotu (jako v macOS)."""
-        x = self.current()
         try:
-            r = self.compute(name, x)
+            r = self.compute(name, self.current())
         except (ValueError, OverflowError, ArithmeticError):
             self.entry, self.fresh = "", False
             self.show(self.expression_text(), _("Error"))
             return
-        if self.result is not None and not self.entry and not self.tokens:
-            self.result = None
-        self.entry = format(r.normalize(), "f") if abs(r.adjusted()) < 40 else str(r)
-        self.fresh = True
+        self.set_current(r)
         self.refresh()
 
     def compute(self, name, x):
@@ -500,17 +522,28 @@ class Calculator(Gtk.Window):
             self.entry = self.entry[1:] if self.entry.startswith("-") else "-" + self.entry
         elif self.result is not None:
             self.result = -self.result
+        elif self.operand_start() is not None:
+            try:
+                self.set_current(-self.current())
+            except ArithmeticError:
+                self.show(self.expression_text(), _("Error"))
+                return
         self.refresh()
 
     def percent(self):
-        value = self.current()
-        if (len(self.tokens) >= 2 and self.tokens[-1] in ("+", "-")
-                and isinstance(self.tokens[-2], Decimal)):
-            value = self.tokens[-2] * value / 100   # 200 + 10 % -> 200 + 20
-        else:
-            value = value / 100
-        self.entry = format(value.normalize(), "f")
-        self.fresh = True
+        try:
+            value = self.current()
+            start = self.operand_start()
+            prefix = self.tokens[:start] if start is not None else self.tokens
+            if (len(prefix) >= 2 and prefix[-1] in ("+", "-")
+                    and isinstance(prefix[-2], Decimal)):
+                value = prefix[-2] * value / 100   # 200 + 10 % -> 200 + 20
+            else:
+                value = value / 100
+            self.set_current(value)
+        except ArithmeticError:
+            self.show(self.expression_text(), _("Error"))
+            return
         self.refresh()
 
     def backspace(self):

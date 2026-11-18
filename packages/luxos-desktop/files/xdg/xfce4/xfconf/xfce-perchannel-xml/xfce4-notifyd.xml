@@ -2,7 +2,8 @@
 <channel name="xfce4-notifyd" version="1.0">
   <property name="initial-opacity" type="double" value="1.0"/>
   <property name="expire-timeout" type="int" value="6"/>
-  <property name="do-fadeout" type="bool" value="true"/>
+  <!-- Po vyprseni oznameni jen odjede do boku (bez soubezneho zpruhlednovani) -->
+  <property name="do-fadeout" type="bool" value="false"/>
   <property name="do-slideout" type="bool" value="true"/>
   <property name="theme" type="string" value="WhiteSur-Light"/>
   <!-- Centrum oznameni (zvonek v liste): ukladat vsechna oznameni vsech aplikaci, nejen zmeskana

@@ -247,11 +247,28 @@ class Arrangement(Gtk.DrawingArea):
         cr.select_font_face("Inter", 0, 1)
         cr.set_font_size(12)
         ext = cr.text_extents(label)
-        if ext.x_advance > rw - 8:
+        available = max(0, rw - 12)
+        if ext.x_advance > available:
             cr.set_font_size(10)
             ext = cr.text_extents(label)
+        if ext.x_advance > available:
+            # Dlouhy model nebo seznam zrcadlenych monitoru nesmi prekryt sousedni nahled.
+            ellipsis = "…"
+            lo, hi = 0, len(label)
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if cr.text_extents(label[:mid] + ellipsis).x_advance <= available:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            label = label[:lo] + ellipsis if cr.text_extents(ellipsis).x_advance <= available else ""
+            ext = cr.text_extents(label)
+        cr.save()
+        cr.rectangle(rx + 4, ry + 4, max(0, rw - 8), max(0, rh - 8))
+        cr.clip()
         cr.move_to(rx + (rw - ext.x_advance) / 2, ry + rh / 2 + 4)
         cr.show_text(label)
+        cr.restore()
 
     def on_draw(self, widget, cr):
         if not self.rects:

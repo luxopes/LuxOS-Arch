@@ -80,6 +80,16 @@ On	Увімкнено
 Wi-Fi	Wi-Fi
 Bluetooth	Bluetooth
 Do Not Disturb	Не турбувати
+Networks	Мережі
+No networks found	Мережі не знайдено
+Wi-Fi is off	Wi-Fi вимкнено
+Wrong password	Неправильний пароль
+Output	Вихід
+Input	Вхід
+Sound Settings…	Налаштування звуку…
+No Notifications	Немає сповіщень
+Mark All as Read	Позначити все як прочитане
+Clear All	Очистити все
 Data Saver	Економія даних
 Battery Saver	Економія заряду
 Display	Дисплей
@@ -5031,6 +5041,10 @@ Once	Один раз
 Pause	Пауза
 Snooze	Відкласти
 Snoozed alarm	Відкладений будильник
+Chimes	Дзвіночки
+Crystal	Кришталь
+Breeze	Бриз
+Pulse	Пульс
 Stopwatch	Секундомір
 Time is up	Час вийшов
 Tomorrow	Завтра

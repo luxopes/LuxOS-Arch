@@ -14,7 +14,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.environ.get("LUXDROP_LIB", os.path.join(HERE, "..", "files", "lib")))
 
-from luxdrop import localsend, lshttp  # noqa: E402
+from luxdrop import localsend, lshttp, pathsafe  # noqa: E402
 
 # Testovaci certifikat a otisk z oficialni implementace LocalSend
 # (packages/core/src/crypto/cert.rs, test_fingerprint_from_cert_der)
@@ -180,6 +180,15 @@ class TestNames(unittest.TestCase):
         names = sorted(f["rel"] for f in files)
         self.assertEqual(len(set(n.casefold() for n in names)), 3)
 
+    def test_duplicate_long_names_remain_valid_paths(self):
+        for name in ("a" * 251 + ".txt", "ž" * 125 + "x.txt", "dir/" + "界" * 85):
+            with self.subTest(name=name):
+                _i, files, _t, _m = localsend.parse_prepare_upload(prepare([
+                    fdto("1", name), fdto("2", name), fdto("3", name)]))
+                self.assertEqual(len({f["rel"].casefold() for f in files}), 3)
+                for f in files:
+                    pathsafe.check_relpath(f["rel"])
+
     def test_file_dto(self):
         d = localsend.file_dto("id1", "a/b.png", 10, "ab" * 32, modified=0.5 * 2)
         self.assertEqual(d["fileType"], "image/png")
@@ -242,6 +251,31 @@ class TestHTTP(unittest.TestCase):
         r = self.req(b"POST / HTTP/1.1\r\nContent-Length: 5\r\n\r\nnot j")
         with self.assertRaises(lshttp.HTTPError):
             r.json()
+
+    def test_line_limits_do_not_depend_on_packet_boundaries(self):
+        requests = [b"GET /" + b"a" * 9000 + b" HTTP/1.1\r\n\r\n",
+                    b"GET / HTTP/1.1\r\nX: " + b"a" * 9000 + b"\r\n\r\n"]
+        for raw in requests:
+            for step in (5, 65536):
+                with self.subTest(header=raw.startswith(b"GET / HTTP"), step=step):
+                    with self.assertRaises(lshttp.HTTPError) as c:
+                        lshttp.read_request(lshttp.Reader(FakeConn(raw, step)), "ip", None)
+                    self.assertEqual(c.exception.status, 431)
+
+    def test_many_short_lines_in_one_packet_are_valid(self):
+        raw = b"GET / HTTP/1.1\r\n" + b"X: " + b"x" * 4000 + b"\r\nY: " + b"y" * 5000 + b"\r\n\r\n"
+        req = lshttp.read_request(lshttp.Reader(FakeConn(raw, 65536)), "ip", None)
+        self.assertEqual(len(req.headers["x"]), 4000)
+        self.assertEqual(len(req.headers["y"]), 5000)
+
+    def test_chunk_sizes_reject_signs_and_numeric_prefixes(self):
+        for size in (b"-1", b"+1", b"0x1", b"GG"):
+            with self.subTest(size=size):
+                req = self.req(b"POST /upload HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n" +
+                               size + b"\r\na\r\n0\r\n\r\n")
+                with self.assertRaises(lshttp.HTTPError) as c:
+                    req.body.read_all(100)
+                self.assertEqual(c.exception.status, 400)
 
     def test_response(self):
         raw = lshttp.response_bytes(200, {"a": "č"})

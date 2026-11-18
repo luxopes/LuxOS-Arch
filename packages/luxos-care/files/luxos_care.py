@@ -757,29 +757,50 @@ class Updater:
         out, done = [], [0]
         try:
             self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                         env=env, stdin=subprocess.DEVNULL)
+                                         env=env, stdin=subprocess.DEVNULL, start_new_session=True)
         except OSError as e:
             return 127, str(e)
         self.proc.luxos_phase = phase
         stop_poll = threading.Event()
         if phase == "download" and sizes:
             threading.Thread(target=self._poll_download, args=(sizes, base, span, stop_poll), daemon=True).start()
-        start = time.time()
-        for line in self.proc.stdout:
-            out.append(line)
-            if phase == "install" and line.startswith(":: Running post-transaction hooks"):
-                set_progress("install", base + span, "hooks")
-            elif phase == "install" and total:
-                if re.match(r"^(installing|upgrading|reinstalling|downgrading|removing) \S+\.\.\.", line):
-                    done[0] += 1
-                    name = line.split()[1].rstrip(".")
-                    set_progress("install", base + span * min(1.0, done[0] / total), name,
-                                 done=done[0], total=total)
-            if time.time() - start > timeout:
-                self.proc.kill()
-        rc = self.proc.wait()
-        stop_poll.set()
+        proc = self.proc
+        expired = threading.Event()
+
+        def expire():
+            # Cteni radku muze cekat navzdy bez vystupu. Potomci take mohou drzet rouru
+            # po skonceni spoustece (napr. systemd-inhibit), proto ukoncit celou vlastni skupinu.
+            expired.set()
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+        timer = threading.Timer(timeout, expire)
+        timer.daemon = True
+        timer.start()
+        try:
+            for line in proc.stdout:
+                out.append(line)
+                if phase == "install" and line.startswith(":: Running post-transaction hooks"):
+                    set_progress("install", base + span, "hooks")
+                elif phase == "install" and total:
+                    if re.match(r"^(installing|upgrading|reinstalling|downgrading|removing) \S+\.\.\.", line):
+                        done[0] += 1
+                        name = line.split()[1].rstrip(".")
+                        set_progress("install", base + span * min(1.0, done[0] / total), name,
+                                     done=done[0], total=total)
+            rc = proc.wait()
+        finally:
+            timer.cancel()
+            stop_poll.set()
+        close = getattr(proc.stdout, "close", None)
+        if close:
+            close()
         self.proc = None
+        if expired.is_set():
+            rc = 124
+            out.append(f"\nluxos-care: command timed out after {timeout:g} seconds\n")
         text = "".join(out)
         self.output.append(text[-20000:])
         return rc, text

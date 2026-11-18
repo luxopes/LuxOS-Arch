@@ -353,7 +353,7 @@ class Event:
             return day if tod is None else dt.datetime.combine(day, tod)
 
         # DTSTART je vzdy prvni vyskyt (RFC 5545), i kdyz pravidlu neodpovida
-        days = _rrule_days(freq, interval, r, start_day)
+        days = _rrule_days(freq, interval, r, start_day, until_day)
         first = [start_day]
         for day in _chain_first(first, days, start_day):
             n += 1
@@ -425,34 +425,43 @@ def _month_days(year, month, r, start_day):
                 days.add(v)
             elif v < 0 and -v <= dim:
                 days.add(dim + v + 1)
-    elif byday:
+    if byday:
+        weekdays = set()
         for nth, wd in byday:
             matches = [d for d in range(1, dim + 1) if dt.date(year, month, d).weekday() == wd]
             if nth is None:
-                days.update(matches)
+                weekdays.update(matches)
             elif 0 < nth <= len(matches):
-                days.add(matches[nth - 1])
+                weekdays.add(matches[nth - 1])
             elif nth < 0 and -nth <= len(matches):
-                days.add(matches[nth])
-    elif start_day.day <= dim:  # 31. v kratsim mesici se podle RFC preskakuje
+                weekdays.add(matches[nth])
+        # BYDAY omezuje uz vybrane BYMONTHDAY; nejde o dve alternativni pravidla.
+        days = days & weekdays if bymd else weekdays
+    elif not bymd and start_day.day <= dim:  # 31. v kratsim mesici se podle RFC preskakuje
         days.add(start_day.day)
     return [dt.date(year, month, d) for d in sorted(days)]
 
 
-def _rrule_days(freq, interval, r, start_day):
+def _rrule_days(freq, interval, r, start_day, until_day=None):
     """Generator kandidatnich dnu (vzestupne), konci nejpozdeji v roce 9999."""
     try:
-        yield from _rrule_days_raw(freq, interval, r, start_day)
+        yield from _rrule_days_raw(freq, interval, r, start_day, until_day)
     except (OverflowError, ValueError):
         return
 
 
-def _rrule_days_raw(freq, interval, r, start_day):
+def _rrule_days_raw(freq, interval, r, start_day, until_day=None):
     bymonth = {m for m in (_int(x, 0) for x in (r.get("BYMONTH") or "").split(",")) if 1 <= m <= 12}
     if freq == "DAILY":
         d = start_day
-        while True:
-            if not bymonth or d.month in bymonth:
+        filtered = bool(r.get("BYMONTHDAY") or r.get("BYDAY"))
+        month, allowed = None, set()
+        # I pravidlo bez jedineho vyhovujiciho dne musi skoncit na konci zobrazeneho obdobi.
+        while until_day is None or d < until_day:
+            if filtered and month != (d.year, d.month):
+                month = (d.year, d.month)
+                allowed = set(_month_days(d.year, d.month, r, start_day))
+            if (not bymonth or d.month in bymonth) and (not filtered or d in allowed):
                 yield d
             d += dt.timedelta(days=interval)
     elif freq == "WEEKLY":

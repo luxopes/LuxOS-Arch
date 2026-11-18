@@ -80,6 +80,16 @@ On	Activado
 Wi-Fi	Wi-Fi
 Bluetooth	Bluetooth
 Do Not Disturb	No molestar
+Networks	Redes
+No networks found	No se encontraron redes
+Wi-Fi is off	Wi-Fi desactivado
+Wrong password	Contraseña incorrecta
+Output	Salida
+Input	Entrada
+Sound Settings…	Ajustes de sonido…
+No Notifications	No hay notificaciones
+Mark All as Read	Marcar todo como leído
+Clear All	Borrar todo
 Data Saver	Ahorro de datos
 Battery Saver	Ahorro de batería
 Display	Pantalla
@@ -5130,6 +5140,10 @@ Once	Una vez
 Pause	Pausar
 Snooze	Posponer
 Snoozed alarm	Alarma pospuesta
+Chimes	Campanillas
+Crystal	Cristal
+Breeze	Brisa
+Pulse	Pulso
 Stopwatch	Cronómetro
 Time is up	Se acabó el tiempo
 Tomorrow	Mañana

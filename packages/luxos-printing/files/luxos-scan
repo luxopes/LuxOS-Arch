@@ -538,15 +538,33 @@ class ScanWindow(Gtk.Window):
             GLib.idle_add(lambda: self.set_progress(f) and False)
 
         def work():
-            files = scan.run(progress)
-            return [dict(path=f, dpi=dpi, **dict(zip(("preview", "thumb"), load_page(f, whiten))))
-                    for f in files]
+            error = None
+            try:
+                files = scan.run(progress)
+            except ls.ScanError as e:
+                if not e.files:
+                    raise
+                files, error = e.files, e
+            pages = [dict(path=f, dpi=dpi, **dict(zip(("preview", "thumb"), load_page(f, whiten))))
+                     for f in files]
+            return pages, error
 
         def done(res):
             GLib.source_remove(pulse[0])
             self.scan = None
             self.progress.set_fraction(0)
-            if isinstance(res, ls.ScanError):
+            if isinstance(res, tuple):
+                pages, error = res
+                self.counter = max([self.counter] + [int(os.path.basename(p["path"])[5:-4]) + 1 for p in pages])
+                self.pages.extend(pages)
+                self.sel = len(self.pages) - 1
+                self.dirty = True
+                self.saved_files = []
+                self.rebuild_strip()
+                self.show_count()
+                if error:
+                    self.show_problem(error.kind, error.details)
+            elif isinstance(res, ls.ScanError):
                 self.msg.set_text("")
                 if res.kind == "cancelled":
                     self.msg.set_text(_("Scanning was cancelled."))
@@ -555,14 +573,6 @@ class ScanWindow(Gtk.Window):
             elif isinstance(res, Exception):
                 self.msg.set_text("")
                 self.show_problem("unknown", str(res))
-            else:
-                self.counter = max([self.counter] + [int(os.path.basename(p["path"])[5:8]) + 1 for p in res])
-                self.pages.extend(res)
-                self.sel = len(self.pages) - 1
-                self.dirty = True
-                self.saved_files = []
-                self.rebuild_strip()
-                self.show_count()
             self.update_ui()
         in_thread(work, done)
 

@@ -80,6 +80,16 @@ On	Be
 Wi-Fi	Wi-Fi
 Bluetooth	Bluetooth
 Do Not Disturb	Ne zavarjanak
+Networks	Hálózatok
+No networks found	Nem található hálózat
+Wi-Fi is off	A Wi-Fi ki van kapcsolva
+Wrong password	Hibás jelszó
+Output	Kimenet
+Input	Bemenet
+Sound Settings…	Hangbeállítások…
+No Notifications	Nincsenek értesítések
+Mark All as Read	Összes olvasottnak jelölése
+Clear All	Összes törlése
 Data Saver	Adattakarékos mód
 Battery Saver	Akkukímélő
 Display	Kijelző
@@ -5030,6 +5040,10 @@ Once	Egyszer
 Pause	Szünet
 Snooze	Szundi
 Snoozed alarm	Elhalasztott ébresztő
+Chimes	Csengettyűk
+Crystal	Kristály
+Breeze	Szellő
+Pulse	Pulzus
 Stopwatch	Stopper
 Time is up	Lejárt az idő
 Tomorrow	Holnap
