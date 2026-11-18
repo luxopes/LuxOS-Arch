@@ -115,6 +115,9 @@ OEM_DONE = "/var/lib/luxos/oem/done"
 PROTECTED_PACKAGES = {
     "base", "bash", "filesystem", "glibc", "systemd", "sudo", "python", "pyalpm", "linux-firmware",
     "lux", "lux-engine", "luxos-care", "luxos-keyring", "luxos-i18n", "luxos-branding", "luxos-desktop", "lsl",
+    # prihlaseni, plocha, start a sit - bez nich se po "remove_unlisted" neda prihlasit ani nic opravit
+    "luxos-shell", "luxos-greeter", "luxos-themes", "luxos-tweaks", "luxos-secureboot", "luxos-guard",
+    "luxos-firewall", "lsh", "mkinitcpio", "efibootmgr", "networkmanager", "lightdm", "xorg-server", "polkit",
 }
 KERNEL_RE = re.compile(r"^linux(-[a-z0-9]+)*$")
 # Sluzby, ktere se nesmi vypnout (system by nenabehl nebo by neslo nic opravit)
@@ -2776,7 +2779,11 @@ def apply_countme(on):
 
 
 def apply_kernel(lay, add, remove):
+    # zalozni polozky (-prev = predchozi jadro, -fallback = zalozni initramfs) zustavaji beze zmeny: kdyz
+    # novy parametr pocitac nenastartuje, odtud se da vratit
     for f in lay["files"]:
+        if re.search(r"-(prev|fallback)(\+[\d-]+)?\.conf$", f):
+            continue
         text = read(f)
         new = set_params_text(text, lay["kind"], add, remove)
         if new != text:
@@ -3348,19 +3355,27 @@ def cmd_init(args):
             warn(str(e))
             return 0
         raise
-    if os.path.exists(path):
+    had = os.path.exists(path)
+    if had:
         shutil.copy2(path, path + ".bak")
-        say(_("The previous file was kept as %s") % (CONFIG + ".bak"))
     atomic_write(CONFIG, text, 0o644)
-    atomic_write(AUTO_STAMP, datetime.date.today().isoformat() + "\n", 0o644)
-    # bez zasad organizace: soubor popisuje tento pocitac, zamky se overi az pri diff/apply
+    # bez zasad organizace: soubor popisuje tento pocitac, zamky se overi az pri diff/apply.
+    # Vygenerovany soubor, ktery sam neprojde kontrolou, se nenecha (vrati se puvodni) a "hotovo" se
+    # nezapise - --auto to zkusi znovu po dalsi aktualizaci (s opravenym generatorem).
     try:
         cfg = load(path, policies=False)
     except UserError as e:
+        if had:
+            os.replace(path + ".bak", path)
+        else:
+            os.unlink(path)
         if not soft:
             raise
         warn(str(e))
         return 0
+    if had:
+        say(_("The previous file was kept as %s") % (CONFIG + ".bak"))
+    atomic_write(AUTO_STAMP, datetime.date.today().isoformat() + "\n", 0o644)
     record(cfg, path)
     ok(_("Written %s from this computer.") % CONFIG)
     if not soft:
@@ -3402,6 +3417,18 @@ def cmd_diff(args):
     return 0
 
 
+def protect_secrets(path, cfg):
+    """Soubor s password_hash (otisky hesel jako v /etc/shadow) nesmi byt citelny pro ostatni uzivatele."""
+    if not any(isinstance(u, dict) and u.get("password_hash") for u in (cfg.get("users") or {}).values()):
+        return
+    try:
+        st = os.stat(path)
+        if st.st_mode & 0o077:
+            os.chmod(path, st.st_mode & 0o700)
+    except OSError:
+        pass
+
+
 def cmd_apply(args, fixing=False):
     need_root()
     st = State()
@@ -3409,6 +3436,7 @@ def cmd_apply(args, fixing=False):
         raise UserError(_("LuxOS is running from a snapshot, changes would be lost after a restart. "
                           "To keep this version, run: lux rollback"))
     cfg = load(args.file)   # zasady organizace plati vzdy (--no-policies jen pro check/diff)
+    protect_secrets(args.file, cfg)
     with apply_lock():
         if fixing:
             say(_("Repair: the system returns to the state described in %s") % args.file)
@@ -3453,7 +3481,7 @@ def cmd_apply(args, fixing=False):
             say(c.text)
             try:
                 c.action()
-            except ApplyError as e:
+            except Exception as e:  # noqa: BLE001 - i neocekavana chyba: rict, co uz se zmenilo, a jak zpet
                 print(f"{E}✗{R} " + _("Failed: %s") % c.text, file=sys.stderr)
                 print(str(e).strip(), file=sys.stderr)
                 msg = _("%d of %d changes were made.") % (done, len(plan.changes))

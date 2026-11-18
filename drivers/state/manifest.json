@@ -225,6 +225,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "b3f41eac5cc11d17a28716bdf873e169dd33a6823d128abcc9cbf7dfa6159bcd"
+  },
   "pkgnames": [
    "brother-dcp-j1050dw"
   ],
@@ -233,7 +236,7 @@
    "dcpj1050dwpdrv-3.5.0-1.i386.rpm": "a2f3ec8ab53186d7476b4487f0c719e4e04b225d238526fd7c7f2f0b139c5d55"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-1"
  },
  "brother-dcp-j1360dw": {
@@ -5230,6 +5233,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "7507f26ab5e2bb4978b87970fdb68de0a1a56c8b384720c01f81d786b96be9ff"
+  },
   "pkgnames": [
    "brother-mfc-j1205w"
   ],
@@ -5238,7 +5244,7 @@
    "mfcj1205wpdrv-3.5.0-1.i386.rpm": "c023e7254667632c4508dab0491774c77d22b20cb1dafa3039f5059e74f2bdea"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-1"
  },
  "brother-mfc-j1300dw": {
@@ -5361,6 +5367,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "0fcbbc617120915b4b6499b75e2a7e589d5e316aa616e8036d691b0858d71feb"
+  },
   "pkgnames": [
    "brother-mfc-j3540dw"
   ],
@@ -5369,7 +5378,7 @@
    "mfcj3540dwpdrv-3.5.0-1.i386.rpm": "59f13bf713a02c38a0e86986c2a1e0e5829c1e3acbaf817e506501e04e033840"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-1"
  },
  "brother-mfc-j3940dw": {
@@ -5379,6 +5388,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "0a580dd6a7f23aacd72919e925cbaa3d08d4d4e8aad7fcfa8ff992e0bfd790c6"
+  },
   "pkgnames": [
    "brother-mfc-j3940dw"
   ],
@@ -5387,7 +5399,7 @@
    "mfcj3940dwpdrv-3.5.0-1.i386.rpm": "330231ca2deca1999206cdf280eafa82aee5bc64c37746d380e4928956933032"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-1"
  },
  "brother-mfc-j432w": {
@@ -5417,6 +5429,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "3bbc89f80652a5cdbf7e95771bbbbc1b6f2703d64cbc99b1a1f7c3b270f7c552"
+  },
   "pkgnames": [
    "brother-mfc-j4335dw"
   ],
@@ -5425,7 +5440,7 @@
    "mfcj4335dwpdrv-3.5.0-1.i386.rpm": "d01c4ffd2868280604209e8ea5757b5aed009bbec3b43600b5f57db1dd276166"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-1"
  },
  "brother-mfc-j4340dw": {
@@ -5515,6 +5530,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "fcbe39d55a7bc8f5bc561d788696518684c87f1feaba8d354071b1a701fa039c"
+  },
   "pkgnames": [
    "brother-mfc-j4440dw"
   ],
@@ -5523,7 +5541,7 @@
    "mfcj4440dwpdrv-3.5.0-1.i386.rpm": "ad1153e83654e37acd05341ef904f6bbd6637a0aff99f78700233f52d1aab2f2"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-1"
  },
  "brother-mfc-j450dw": {
@@ -5898,6 +5916,9 @@
    "cups",
    "lib32-glibc"
   ],
+  "patches": {
+   "luxos-no-toplevel-eval.patch": "2c7a662ee493eb36151d66938af1ef139464a50530a1912f4e81bc4241fb6023"
+  },
   "pkgnames": [
    "brother-mfc-j5340dw"
   ],
@@ -5906,7 +5927,7 @@
    "mfcj5340dwpdrv-3.5.0-2.i386.rpm": "2ab8390f6bada16dd8ed31c516d4ac7001994d7fe78163bdf51e8ffa49fdbce8"
   },
   "vendor": "brother",
-  "verified": "2026-10-24",
+  "verified": "2026-11-18",
   "version": "3.5.0-2"
  },
  "brother-mfc-j5345dw": {

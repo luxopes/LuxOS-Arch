@@ -812,6 +812,14 @@ class Transactions(unittest.TestCase):
         add(103, "python3", "python3", "/usr/bin/other.py")
         add(os.getpid(), "python3", "python3", "/usr/lib/lux/lux_alpm.py")   # vlastni proces se nepocita
         self.assertEqual(lux_alpm.running_package_managers(proc), ["LuxOS Care", "pacman"])
+        # lux_alpm.py bez prav roota (lux check, Obchod) systemovou databazi nezamyka - nepocita se
+        add(104, "python3", "python3", "/usr/lib/lux/lux_alpm.py", "check-updates")
+        with open(os.path.join(proc, "104", "status"), "w") as f:
+            f.write("Name:\tpython3\nUid:\t1000\t1000\t1000\t1000\n")
+        self.assertEqual(lux_alpm.running_package_managers(proc), ["LuxOS Care", "pacman"])
+        with open(os.path.join(proc, "104", "status"), "w") as f:
+            f.write("Name:\tpython3\nUid:\t0\t0\t0\t0\n")
+        self.assertEqual(lux_alpm.running_package_managers(proc), ["LuxOS Care", "lux", "pacman"])
 
     def test_remove_recursive_and_holdpkg(self):
         def prep(h):
@@ -1098,6 +1106,20 @@ class Queries(unittest.TestCase):
             self.assertTrue(all(d.updated for d in h.sync))
             self.assertEqual(os.readlink(os.path.join(db, "local")), "/var/lib/lux/local")
 
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_check_updates_refuses_symlinked_db_without_writing(self):
+        """Predem zalozeny odkaz misto slozky: odmitnout a nic do cile odkazu nezapsat."""
+        tmp = tempfile.mkdtemp(prefix="lux-cu-test-")
+        try:
+            target = os.path.join(tmp, "target")
+            os.makedirs(target)
+            db = os.path.join(tmp, "db")
+            os.symlink(target, db)
+            rc, out, _h = run(["check-updates", "--db", db])
+            self.assertEqual(rc, 1, out)
+            self.assertEqual(os.listdir(target), [])
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

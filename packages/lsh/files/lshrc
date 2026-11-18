@@ -7,8 +7,9 @@
 [[ :$PATH: == *:"$HOME/.local/bin":* ]] || PATH="$HOME/.local/bin:$PATH"
 
 # pip mimo virtualni prostredi: misto chyby "externally-managed-environment"
-# jen varovani; balicky jdou do ~/.local, systemove soubory zustanou netknute
-export PIP_BREAK_SYSTEM_PACKAGES=1
+# jen varovani; balicky jdou do ~/.local, systemove soubory zustanou netknute.
+# Root ne: jeho pip by psal do /usr/lib/python3 pres soubory systemovych balicku.
+(( EUID != 0 )) && export PIP_BREAK_SYSTEM_PACKAGES=1
 _lsh_pip() {
     local pip=$1
     shift

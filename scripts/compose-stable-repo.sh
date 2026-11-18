@@ -32,7 +32,13 @@ die() { echo "compose-stable-repo: $*" >&2; exit 1; }
 for r in "${REPOS[@]}"; do
     [[ -f $SRC/$r/$ARCH/$r.db.tar.gz ]] || die "missing $SRC/$r - build or fetch the staging repo first"
 done
-case $DEST in out/*|/*/out/*) ;; *) die "destination must be under out/ (got $DEST)" ;; esac
+# cil se cely maze (rm -rf): jen podslozka out/ tohoto projektu - ne out/ sam, out/.., ani slozka se zdrojem
+out_root=$(realpath -m -- out)
+dest_real=$(realpath -m -- "$DEST")
+src_real=$(realpath -m -- "$SRC")
+[[ $dest_real == "$out_root"/?* ]] || die "destination must be a folder under out/ (got $DEST)"
+[[ $src_real/ != "$dest_real"/* ]] || die "destination $DEST contains the source $SRC"
+DEST=$dest_real
 
 # --- podpisovy klic (kopie v RAM) a overovaci klicenka ---
 key=${LUXOS_SIGNING_DIR:-}
@@ -55,7 +61,9 @@ chmod 700 "$work/sign"
 GPGKEY=$(GNUPGHOME=$work/sign gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')
 [[ -n $GPGKEY ]] || die "no secret key in $key"
 GNUPGHOME=$work/verify gpg --batch --quiet --import "$PUBKEY"
-verify() { GNUPGHOME=$work/verify gpg --batch --status-fd 1 --verify "$1.sig" "$1" 2>/dev/null | grep -q '^\[GNUPG:\] VALIDSIG'; }
+# (vystup nejdriv cely: "gpg | grep -q" s pipefail obcas selze - grep skonci driv a gpg dostane SIGPIPE)
+verify() { local o; o=$(GNUPGHOME=$work/verify gpg --batch --status-fd 1 --verify "$1.sig" "$1" 2>/dev/null) || return 1
+           grep -q '^\[GNUPG:\] VALIDSIG' <<<"$o"; }
 sign_env() { GNUPGHOME=$work/sign "$@"; }
 get() { curl -fsSL --retry 4 --retry-delay 3 -o "$2" "$1"; }
 

@@ -17,7 +17,12 @@ LUXOS_SB_KEYFILE=LUXOS_ENROLL_THIS_KEY.cer
 _luxos_sb_ready() {  # podepsany systemd-boot + shim v live systemu?
     local lib=${pacstrap_dir}/${LUXOS_SB_LIB_REL} cert=${pacstrap_dir}/${LUXOS_SB_CERT_REL}
     [[ -e $lib/shimx64.efi && -e $lib/mmx64.efi && -e $lib/systemd-bootx64.efi && -e $cert ]] || return 1
-    if ! sbverify --cert "$cert" "$lib/systemd-bootx64.efi" >/dev/null 2>&1; then
+    # jako signed_by_us v scripts/sb-sign.sh: sbverify --cert projde i u nekterych cizich retezcu,
+    # proto navic certifikat LuxOS primo v podpisu
+    local der
+    der=$(openssl x509 -in "$cert" -outform DER | od -An -v -tx1 | tr -d ' \n')
+    if ! sbverify --cert "$cert" "$lib/systemd-bootx64.efi" >/dev/null 2>&1 ||
+            [[ $(od -An -v -tx1 "$lib/systemd-bootx64.efi" | tr -d ' \n' | grep -cF "$der") == 0 ]]; then
         _msg_warning "luxos-secureboot: systemd-boot is NOT signed with the LuxOS key - ISO without Secure Boot support"
         return 1
     fi

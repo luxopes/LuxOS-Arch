@@ -27,7 +27,9 @@ export GNUPGHOME=$gnupg
 key=$(find "$KEYRING" -name '*.gpg' -o -name '*.asc' | head -1)
 [[ -n $key ]] || { echo "No LuxOS public key in $KEYRING" >&2; exit 1; }
 gpg --quiet --import "$key"
-verify() { gpg --quiet --status-fd 1 --verify "$1.sig" "$1" 2>/dev/null | grep -q '^\[GNUPG:\] VALIDSIG'; }
+# (vystup nejdriv cely: "gpg | grep -q" s pipefail obcas selze - grep skonci driv a gpg dostane SIGPIPE)
+verify() { local o; o=$(gpg --quiet --status-fd 1 --verify "$1.sig" "$1" 2>/dev/null) || return 1
+           grep -q '^\[GNUPG:\] VALIDSIG' <<<"$o"; }
 
 read -ra REPOS <<<"${LUXOS_FETCH_REPOS:-luxos luxos-apps}"
 read -ra ONLY <<<"${LUXOS_FETCH_ONLY:-}"

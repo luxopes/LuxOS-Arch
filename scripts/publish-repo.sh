@@ -79,6 +79,29 @@ elif ssh "$HOST" "test -d '$BASE/$FROM/luxos-drivers'"; then
     rsync -a "$HOST:$BASE/$FROM/luxos-drivers/" "$stage/luxos-drivers/"
 fi
 
+# Podpisy vseho, co pujde ven: databaze a KAZDY balik ve vsech repozitarich vydani (i [luxos-drivers]
+# a [luxos] prevzaty ze serveru) - klicem LuxOS z packages/luxos-keyring, ne jen "nejaky .sig existuje"
+verify_stage() {
+    local gh rc=0 r dir f o
+    gh=$(mktemp -d)
+    GNUPGHOME=$gh gpg --batch --quiet --import packages/luxos-keyring/files/luxos.gpg 2>/dev/null ||
+        { rm -rf "$gh"; echo "Cannot import packages/luxos-keyring/files/luxos.gpg" >&2; return 1; }
+    for dir in "$stage"/*/x86_64; do
+        [[ -d $dir ]] || continue
+        r=$(basename "$(dirname "$dir")")
+        for f in "$dir/$r.db.tar.gz" "$dir/$r.files.tar.gz" "$dir"/*.pkg.tar.zst; do
+            [[ -e $f ]] || continue
+            o=$(GNUPGHOME=$gh gpg --batch --status-fd 1 --verify "$f.sig" "$f" 2>/dev/null) &&
+                grep -q '^\[GNUPG:\] VALIDSIG' <<<"$o" || { echo "    not signed with the LuxOS key: $r/${f##*/}" >&2; rc=1; }
+        done
+    done
+    GNUPGHOME=$gh gpgconf --kill gpg-agent 2>/dev/null
+    rm -rf "$gh"
+    return $rc
+}
+echo "==> Checking signatures"
+verify_stage || { echo "Some files are not signed with the LuxOS key - nothing was uploaded." >&2; exit 1; }
+
 # Katalog aplikaci LuxOS pro Obchod (apps.json a app-icons/) z prave zverejnovanych baliku
 # [luxos] a [luxos-apps] - i pri --apps-only, kdy [luxos] prichazi ze serveru; dlouhe popisy z metainfo
 # baliku, snimky aplikaci (app-screens/) z packages/luxos-store/screens (scripts/store-screenshots)

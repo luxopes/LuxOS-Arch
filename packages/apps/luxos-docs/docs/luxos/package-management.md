@@ -58,7 +58,7 @@ behind lux is the `lux-engine` package (libalpm and tools taken from Arch Linux 
 | `lux drivers` / `lux doctor` / `lux pack <dir>` | drivers ([drivers.md](drivers.md)), health check, build a `.lux` |
 | `lux system show\|init\|edit\|check\|diff\|apply` | the whole system (packages, services, users, ...) in one LSL file `/etc/luxos/system.lsl`, see [system-config.md](system-config.md) |
 
-Options: `-y`/`--yes` (no questions — otherwise lux always asks), `-n`/`--nosave` (`lux remove`
+Options: `-y`/`--yes` (no questions — otherwise lux always asks; community updates in the system still ask), `-n`/`--nosave` (`lux remove`
 also deletes changed config files, no `*.luxsave`), `-v`/`--verbose` (package lists,
 script output, raw errors), `--repo` (only official repositories), `--aur`/`--community` (only the
 community source), `--system` (community package into the system instead of the sandbox), `-h`, `-V`.

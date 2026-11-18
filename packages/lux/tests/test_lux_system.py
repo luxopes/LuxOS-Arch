@@ -405,6 +405,8 @@ class ApplyFilesTest(Base):
             self.assertIn("options root=UUID=abc rw quiet mitigations=auto\n", f.read())
         with open(self.root + "/boot/loader/entries/luxos-snapshot-2026-10-20_10-00-00.conf") as f:
             self.assertEqual(f.read(), SDBOOT)   # snimky se nemeni
+        with open(self.root + "/boot/loader/entries/luxos-fallback.conf") as f:
+            self.assertEqual(f.read(), SDBOOT.replace(" quiet splash", ""))   # zalozni polozka taky ne
 
     def test_grub(self):
         shutil.rmtree(self.root + "/boot/loader")
@@ -550,6 +552,44 @@ class EvaluateTest(Base):
         self.assertEqual(rc, 1)
         self.assertIn("running from a snapshot", out)
         self.assertEqual(self.calls(), [])
+
+    def test_password_hash_file_becomes_private(self):
+        path = self.lsl_file('load config\nconfig = {"users": {"petr": {"password_hash": "$y$j9T$abc$def"}}}\n')
+        os.chmod(path, 0o644)
+        rc, out = self.main("apply", "-y", "--no-snapshot", path)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(os.stat(path).st_mode & 0o077, 0)
+
+    def test_apply_unexpected_error_still_reports_progress(self):
+        path = self.lsl_file('load config\nconfig = {"hostname": "saturn", "timezone": "Europe/Vienna"}\n')
+        real = ls.run
+
+        def broken(argv, *a, **k):
+            if "timedatectl" in argv[0]:
+                raise OSError("unexpected")
+            return real(argv, *a, **k)
+        ls.run = broken
+        try:
+            rc, out = self.main("apply", "-y", path)
+        finally:
+            ls.run = real
+        self.assertEqual(rc, 1)
+        self.assertIn("1 of 2 changes were made", out)
+        self.assertIn("lux rollback 2026-10-26_12-00-00", out)
+
+    def test_init_invalid_generated_file_not_kept(self):
+        real = ls.generate
+        ls.generate = lambda st: "this is not LSL {{{\n"
+        try:
+            rc, out = self.main("init", "--auto")
+        finally:
+            ls.generate = real
+        self.assertEqual(rc, 0, out)
+        self.assertFalse(os.path.exists(self.root + ls.CONFIG))
+        self.assertFalse(os.path.exists(self.root + ls.AUTO_STAMP))      # zkusi se znovu
+        rc, out = self.main("init", "--auto")
+        self.assertEqual(rc, 0, out)
+        self.assertTrue(os.path.isfile(self.root + ls.CONFIG))
 
     def test_password_hash_goes_through_stdin(self):
         path = self.lsl_file('load config\nconfig = {"users": {"petr": {"password_hash": "$y$j9T$abc$def"}}}\n')
