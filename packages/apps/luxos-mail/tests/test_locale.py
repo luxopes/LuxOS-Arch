@@ -11,7 +11,9 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mailtest as mt  # noqa: E402
 
-I18N = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "luxos-i18n", "files"))
+I18N = next((d for d in (os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), *up, "luxos-i18n", "files"))
+             for up in (("..", "..", ".."), ("..", ".."))) if os.path.isdir(d)), "/usr/share/luxos/i18n")
+# v repozitari packages/apps/<app>/tests, v CI (container-build.sh) je luxos-i18n odkazany vedle baliku
 NOW = 1795345200            # ne 22. 11. 2026 12:00 (Europe/Prague)
 
 
