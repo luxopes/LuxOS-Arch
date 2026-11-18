@@ -8,7 +8,7 @@
 #   scrolled_window_get_max_content_height, widget_get_font_family, entry_set_width_chars,
 #   dialog_new/dialog_add_button/dialog_get_content_area/dialog_set_default_response/dialog_run (agent Bluetooth),
 #   css_set(provider, css) (novy obsah poskytovatele: prepnuti svetly/tmavy), settings_theme_name(), settings_prefer_dark(),
-#   pointer_position() -> [x, y], screen_active_window() (GdkWindow aktivniho okna podle spravce oken, 0 kdyz neni;
+#   widget_translate_coordinates(src, dest, x, y) -> [x, y] nebo [], pointer_position() -> [x, y], screen_active_window() (GdkWindow aktivniho okna podle spravce oken, 0 kdyz neni;
 #   nova reference -> glib.object_unref), window_set_rgba(okno) (RGBA visual + app paintable, jen s kompozitorem),
 #   Emoji a symboly: selection_set_text/_image, selection_owned, selection_request_text/_image (asynchronne,
 #   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
@@ -207,6 +207,19 @@ end
 
 # ---- GDK: kurzor a aktivni okno ---------------------------------------------------------------------------------
 
+# Bod (x, y) widgetu src v souradnicich widgetu dest (napr. tlacitko v posuvne oblasti vuci oknu);
+# [] kdyz widgety nemaji spolecneho predka nebo nejsou realizovane
+function widget_translate_coordinates(src, dest, x, y):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        ok = __lsl_qbe_s32(__lsl_qbe_call6(__lsl_symbol("gtk_widget_translate_coordinates"), ptr(src), ptr(dest), ptr(x), ptr(y), data(cell), data(cell) + 4))
+        if ok == 0:
+            return []
+        end
+        return [__lsl_qbe_s32(__lsl_qbe_load32(data(cell))), __lsl_qbe_s32(__lsl_qbe_load32(data(cell) + 4))]
+    end
+end
+
 function pointer_position():
     unsafe:
         display = __lsl_qbe_call0(__lsl_symbol("gdk_display_get_default"))
@@ -244,6 +257,7 @@ end
 
 SEAT_KEYBOARD = 8
 NOTIFY_INFERIOR = 2
+FILE_CHOOSER_OPEN = 0
 FILE_CHOOSER_SAVE = 1
 FILE_CHOOSER_SELECT_FOLDER = 2
 RESPONSE_ACCEPT = -3
@@ -570,6 +584,25 @@ end
 function file_chooser_get_filename(chooser):
     unsafe:
         return glib.take_c(__lsl_qbe_call1(__lsl_symbol("gtk_file_chooser_get_filename"), ptr(chooser)))
+    end
+end
+
+# Filtr souboru podle typu MIME (napr. "audio/*"), zobrazi se pod nazvem name
+function file_chooser_add_filter(chooser, name, mimes):
+    unsafe:
+        filter = __lsl_qbe_call0(__lsl_symbol("gtk_file_filter_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_set_name"), filter, cstr(name))
+        for mime in mimes:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_add_mime_type"), filter, cstr(mime))
+        end
+        return __lsl_qbe_call2(__lsl_symbol("gtk_file_chooser_add_filter"), ptr(chooser), filter)
+    end
+end
+
+# Polozka seznamu na danou pozici (combo_box_text_append ze stdlib pridava jen na konec)
+function combo_box_text_insert(combo, position, id, text):
+    unsafe:
+        return __lsl_qbe_call4(__lsl_symbol("gtk_combo_box_text_insert"), ptr(combo), ptr(position), cstr(id), cstr(text))
     end
 end
 

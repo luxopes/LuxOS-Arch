@@ -9,6 +9,15 @@
     padding: 5px;
 }
 
+/* Sklo jako widgety na plose (GTK modul luxos-glass v luxos-desktop, nabidky horni listy - rozlozeni
+   klavesnice, prave tlacitko na polozce): pod nabidkou rozostrena tapeta se zavojem podle motivu,
+   vlastni pozadi pryc. Bez modulu nebo kompozitoru plati pravidlo vyse. */
+.background.csd.luxos-glass > menu,
+.background.popup.luxos-glass > menu {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.30), inset 0 1px rgba(255, 255, 255, 0.22);
+}
+
 menu > menuitem {
     border-radius: 6px;
     padding: 4px 10px;
@@ -178,6 +187,18 @@ window#whiskermenu-window > frame > border {
     border: 1px solid alpha(@theme_fg_color, 0.12);
     background-color: alpha(mix(@theme_base_color, @theme_bg_color, 0.25), 0.88);
     box-shadow: 0 4px 10px alpha(black, 0.18);
+}
+
+/* Sklo jako widgety na plose (GTK modul luxos-glass v luxos-desktop kresli pod rameckem rozostrenou
+   tapetu se zavojem podle motivu): pozadi ramecku pryc, okraj karty jako u widgetu. Bez tapety nebo
+   kompozitoru modul tridu nenastavi a plati poloprusvitne pozadi vyse. Okraj 8px a zaobleni 16px
+   ramecku zna i modul (MENU_MARGIN, MENU_RADIUS). */
+window#whiskermenu-window.luxos-glass > frame > border {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.30);
+    border-top-color: rgba(255, 255, 255, 0.55);
+    border-bottom-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 10px alpha(black, 0.18), inset 0 1px rgba(255, 255, 255, 0.18);
 }
 
 /* zahlavi: kulata fotka (nebo iniciala), jmeno, vpravo Odhlasit */

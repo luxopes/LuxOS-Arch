@@ -35,3 +35,30 @@
 #XfceNotifyWindow button#luxos-close:hover { background: none; background-image: none; box-shadow: none; }
 #XfceNotifyWindow button#luxos-close label { color: #ff3b30; font-size: 14px; font-weight: bold; }
 #XfceNotifyWindow button#luxos-close:hover label { color: #d70015; }
+
+/* Sklo jako widgety na plose (GTK modul luxos-glass v luxos-desktop): pod oknem rozostrena tapeta,
+   pozadi motivu pryc, okraj karty jako u widgetu. Barva textu podle tapety: luxos-glass-light = svetle
+   sklo s tmavym textem, jinak tmave sklo s bilym textem (stejne v rezimu Light i Dark). Bez tapety nebo
+   kompozitoru modul tridu nenastavi a plati pravidla vyse. */
+#XfceNotifyWindow.luxos-glass {
+    background-color: transparent;
+    background-image: none;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-top-color: rgba(255, 255, 255, 0.62);
+    border-bottom-color: rgba(255, 255, 255, 0.20);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.18);
+}
+#XfceNotifyWindow.luxos-glass label { color: white; }
+#XfceNotifyWindow.luxos-glass label#body { color: rgba(255, 255, 255, 0.90); }
+#XfceNotifyWindow.luxos-glass button { background: rgba(255, 255, 255, 0.10); color: white; }
+#XfceNotifyWindow.luxos-glass button:hover { background: rgba(255, 255, 255, 0.28); }
+#XfceNotifyWindow.luxos-glass progressbar trough { background: rgba(255, 255, 255, 0.20); }
+#XfceNotifyWindow.luxos-glass.luxos-glass-light label { color: rgb(25, 31, 43); }
+#XfceNotifyWindow.luxos-glass.luxos-glass-light label#body { color: rgba(25, 31, 43, 0.90); }
+#XfceNotifyWindow.luxos-glass.luxos-glass-light button { background: rgba(255, 255, 255, 0.28); color: rgb(25, 31, 43); }
+#XfceNotifyWindow.luxos-glass.luxos-glass-light button:hover { background: rgba(255, 255, 255, 0.42); }
+#XfceNotifyWindow.luxos-glass.luxos-glass-light progressbar trough { background: rgba(25, 31, 43, 0.12); }
+/* krizek zustava cerveny bez podkladu */
+#XfceNotifyWindow.luxos-glass button#luxos-close,
+#XfceNotifyWindow.luxos-glass button#luxos-close:hover { background: none; }
+#XfceNotifyWindow.luxos-glass button#luxos-close label { color: #ff3b30; }

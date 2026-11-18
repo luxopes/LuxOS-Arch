@@ -121,17 +121,18 @@ class SearchPanel(unittest.TestCase):
             return []
 
     def old_profile(self):
-        """Profil z LuxOS 0.9.12: vychozi lista bez lupy (plugin-15)."""
+        """Profil z LuxOS 0.9.12: vychozi lista bez lupy (plugin-15) a bez ikony Wi-Fi LuxOS (plugin-16)."""
         data = channel_from_xml(PANEL_XML)
-        for k in [k for k in data if k.startswith("/plugins/plugin-15")]:
+        for k in [k for k in data if k.startswith(("/plugins/plugin-15", "/plugins/plugin-16"))]:
             del data[k]
-        data["/panels/panel-1/plugin-ids"] = [v for v in data["/panels/panel-1/plugin-ids"] if v != "15"]
+        data["/panels/panel-1/plugin-ids"] = [v for v in data["/panels/panel-1/plugin-ids"] if v not in ("15", "16")]
         return data
 
     def test_panel_output(self):
         out = self.run_search("--panel")
-        self.assertEqual(out.stdout, "<icon>luxos-search-symbolic</icon><iconclick>luxos-search</iconclick>"
-                         "<tool>Search</tool>\n")
+        # klik spusti tentyz skript plnou cestou (lista ze sezeni nemusi mit jeho slozku v PATH)
+        self.assertEqual(out.stdout, "<icon>luxos-search-symbolic</icon><iconclick>" + os.path.realpath(SEARCH) +
+                         "</iconclick><tool>Search</tool>\n")
         cs = self.run_search("--panel", LANG="cs_CZ.UTF-8").stdout
         self.assertIn("<tool>Hledat</tool>", cs)
 

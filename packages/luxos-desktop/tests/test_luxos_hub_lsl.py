@@ -248,6 +248,9 @@ class Hub(unittest.TestCase):
                "LUXOS_CARE_DELAY": "1", "LUXOS_DRIVERS_DELAY": "1", "LUXOS_DRM_DIR": os.path.join(self.home, "drm"),
                "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
                "LUXOS_HUB_NO_AUTOHIDE": "1", "LUXOS_GPU": "/nonexistent", "LUXOS_GPU_DELAY": "1",
+               # uprava listy (ikona Wi-Fi, text rozlozeni) vola xfconf-query: testuje ji test_luxos_bar_popups,
+               # tady by v delsich testech zdrzovala hlavni smycku
+               "LUXOS_HUB_BARWIFI_DELAY": "3600",
                "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper"),
                "LUXOS_HUB_NO_WM_REPLACE": "1"}   # skutecny xfwm4 uzivatele se nikdy nevymeni (jen test_wm_replaced_after_update)   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
         if "XAUTHORITY" in os.environ:
@@ -674,12 +677,14 @@ class Hub(unittest.TestCase):
         hub = self.start_hub()
         hub.send_signal(signal.SIGUSR2)
         self.assertTrue(self.wait_for(lambda: "weather-line" in self.ui_log("cal.log")), (self.ui_log("cal.log"), self.hub_err()))
+        # zavirat az zobrazene okno (radek pocasi se zapise uz pri sestaveni, pred "shown")
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log")[-1] == "shown"), self.ui_log("cal.log"))
         if os.environ.get("LUXOS_TEST_SHOTS"):
             time.sleep(0.5)
             subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], "calendar-weather.png")],
                            env=dict(os.environ), timeout=20)
         hub.send_signal(signal.SIGUSR2)
-        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log")[-1] == "hidden"))
+        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log")[-1] == "hidden"), self.ui_log("cal.log"))
         # stary souhrn (4 h) se neukaze
         summary["fetched"] -= 4 * 3600
         with open(os.path.join(wdir, "summary.json"), "w") as f:

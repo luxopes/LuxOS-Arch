@@ -1,4 +1,7 @@
 # LuxOS Control Center - rychle nastaveni z horni listy (jako v macOS); prepis luxos-control-center do LSL.
+# Vzhled: matne sklo z rozostrene tapety jako widgety na plose (luxos_glass.panel), text podle motivu.
+# Wi-Fi a Bluetooth jako v Androidu: klik na modrou ikonu prepne, klik jinam na dlazdici otevre nastaveni
+# (Wi-Fi: okno Wi-Fi z listy, Bluetooth: aplikace Bluetooth).
 # Dlazdice: Wi-Fi (+ odkaz na QR kod site), Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie; posuvniky jasu a hlasitosti;
 # stav baterie; prave hrajici hudba (MPRIS); Obrazovky (Zrcadlit / Rozsirit / Jen externi) jen pri 2+ pripojenych
 # monitorech - misto okna, ktere by vyskakovalo pri pripojeni. Okno se zavre pri ztrate fokusu nebo klavesou Esc.
@@ -14,9 +17,13 @@ load luxos_gtk, gtk as gtk
 load luxos_i18n as i18n
 load luxos_mpris as mpris
 load luxos_text as text
+load luxos_glass as glass
 
 CSS = ("window.cc { background: transparent; }\n"
     + ".cc-box { background-color: @cc_bg; border-radius: 18px; border: 1px solid @cc_border; padding: 12px; color: @cc_fg; }\n"
+    # sklo jako widgety na plose (luxos_glass.panel): pod panelem rozostrena tapeta, okraj karty widgetu
+    + ".cc-box.lg-panel { background-color: transparent; border-color: rgba(255, 255, 255, 0.38);"
+    + " border-top-color: rgba(255, 255, 255, 0.62); border-bottom-color: rgba(255, 255, 255, 0.20); box-shadow: inset 0 1px rgba(255, 255, 255, 0.18); }\n"
     + ".tile { background-color: @cc_tile; border-radius: 14px; padding: 10px 12px; border: none; box-shadow: none; background-image: none; color: @cc_fg; }\n"
     + ".tile:hover { background-color: @cc_tile_hover; }\n"
     + ".tile .bubble { background-color: @cc_bubble; border-radius: 999px; min-width: 30px; min-height: 30px; color: @cc_fg; }\n"
@@ -288,11 +295,31 @@ function tile_new(icon, title, action):
     tile["image"] = image
     tile["title"] = title_label
     tile["sub"] = sub
+    tile["bubble"] = bubble
+    tile["settings"] = None
+    tile["on_bubble"] = True
+    call gtk.connect_data(button, "button-press-event", 1, on_tile_press, tile)
     call gtk.connect_data(button, "clicked", 0, on_tile_clicked, tile)
     return tile
 end
 
+# Kde se klikalo: na bublinu s ikonou (prepnuti), nebo jinam (nastaveni) - souradnice udalosti jsou
+# vuci tlacitku, bublina se prepocita na tlacitko
+function on_tile_press(tile, event, button):
+    a = gtk.widget_get_allocation(tile["bubble"])
+    b = gtk.widget_get_allocation(button)
+    x = gtk.event_x(event) - Float(a[0] - b[0])
+    y = gtk.event_y(event) - Float(a[1] - b[1])
+    tile["on_bubble"] = x >= -4.0 and x <= Float(a[2]) + 4.0 and y >= -4.0 and y <= Float(a[3]) + 4.0
+    return False
+end
+
 function on_tile_clicked(tile, button):
+    if tile["settings"] != None and not tile["on_bubble"]:
+        settings = tile["settings"]
+        call settings()
+        return 0
+    end
     action = tile["action"]
     call action()
     return 0
@@ -453,6 +480,7 @@ function create():
     call gtk.widget_add_class(outer, "cc-box")
     call gtk.widget_set_size_request(outer, 340, -1)
     call gtk.container_add(win, outer)
+    call glass.panel(win, outer, 18)
 
     # Profil: ucet LuxAI (~/.config/luxai/account.json), klik otevre Ucet LuxAI
     prof = gtk.button_new_empty()
@@ -483,6 +511,8 @@ function create():
     call gtk.grid_set_column_homogeneous(grid, True)
     cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi)
     cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt)
+    cc["t_wifi"]["settings"] = open_wifi
+    cc["t_bt"]["settings"] = open_bt
     cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd)
     cc["t_dark"] = tile_new("weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark)
     cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data)
@@ -587,6 +617,23 @@ function create():
     return 0
 end
 
+# Testy: polohy bubliny a dlazdice Wi-Fi a Bluetooth ("pos jmeno x y" - stred na obrazovce)
+# Polohy dlazdic do vlastniho zaznamu (LUXOS_CC_TEST_LOG + ".pos"): hlavni zaznam cte test hubu
+# po radcich (posledni = stav okna) a opozdene polohy by se mu vklinily.
+function log_tile_positions():
+    if cc["test_log"] == "" or not gtk.widget_get_visible(cc["win"]):
+        return False
+    end
+    pos = gtk.window_get_position(cc["win"])
+    for pair in [["wifi", cc["t_wifi"]], ["bt", cc["t_bt"]]]:
+        for part in [["bubble", pair[1]["bubble"]], ["title", pair[1]["title"]]]:
+            a = gtk.widget_get_allocation(part[1])
+            call appendfile(cc["test_log"] + ".pos", "pos " + pair[0] + "-" + part[0] + " " + String(pos[0] + a[0] + a[2] // 2) + " " + String(pos[1] + a[1] + a[3] // 2) + "\n")
+        end
+    end
+    return False
+end
+
 function log_test(message):
     if cc["test_log"] != "":
         call appendfile(cc["test_log"], message + "\n")
@@ -627,6 +674,7 @@ function toggle():
         cc["timer"] = glib.timeout_add_seconds(3, periodic)
     end
     call log_test("shown")
+    call glib.timeout_add(400, log_tile_positions)
     return 0
 end
 
@@ -1085,8 +1133,47 @@ function on_command_done_slow(unused, pid, status):
 end
 
 # Okno Bluetooth: zapnuti, sparovana zarizeni i pripojeni noveho
+# Bublina Bluetooth: zapnout/vypnout adapter (BlueZ Powered); bez Bluetooth nebo pri chybe aplikace
 function toggle_bt():
+    state = bluetooth_state()
+    if state[0] == None:
+        return open_bt()
+    end
+    ok = False
+    try:
+        bus = gio.system_bus()
+        call gio.set_property(bus, "org.bluez", "/org/bluez/hci0", "org.bluez.Adapter1", "Powered", not state[0], "b")
+        ok = True
+    else:
+        # zablokovany rfkill: odblokovat a zkusit znovu
+        if not state[0]:
+            call glib.spawn_sync_quiet(["rfkill", "unblock", "bluetooth"])
+            safe:
+                call gio.set_property(gio.system_bus(), "org.bluez", "/org/bluez/hci0", "org.bluez.Adapter1", "Powered", True, "b")
+                ok = True
+            end
+        end
+    end
+    if not ok:
+        return open_bt()
+    end
+    call log_test("bt-power:" + String(not state[0]))
+    bt = bluetooth_state()
+    call tile_set_state(cc["t_bt"], bt[0], bt[1])
+    return 0
+end
+
+function open_bt():
+    call log_test("open bluetooth")
     call glib.spawn_quiet(["luxos-bluetooth"])
+    call close()
+    return 0
+end
+
+# Zbytek dlazdice Wi-Fi: okno Wi-Fi z listy (seznam siti, pripojeni)
+function open_wifi():
+    call log_test("open wifi")
+    call glib.spawn_quiet(["luxos-bar-popup", "wifi"])
     call close()
     return 0
 end

@@ -18,6 +18,9 @@
 # (jako macOS): tapeta kolem karty plynule ztmavne, svetla karta s tmavym textem se od tapety odlisi.
 # Bezne tapety vcetne Sunrise beze zmeny. Vypnuti spolu se zavojem pod listou: DESKTOP_SCRIM=0
 # v ~/.config/luxos/appearance.conf.
+# Ve svetlem rezimu rozhoduje o svetlem/tmavem skle tapeta, v tmavem rezimu je sklo vzdy tmave
+# (zavoj stejnym vzorcem, luxos_glass.glass_veil); prepnuti rezimu se projevi hned.
+# Material se pripravi jen pri zmene tapety/monitoru; pri presunu se meni pouze vyrez.
 #
 # Nastaveni ~/.config/luxos/widgets.conf (zmeny se nacitaji hned, zapisuje ho i galerie):
 #   ENABLED=1                         zapnute (vychozi vypnute: program hned skonci)
@@ -42,6 +45,7 @@ load luxos_sys as sys
 load luxos_mpris as mpris
 load luxos_text as text
 load luxos_x11 as x11
+load luxos_glass as glass
 
 WIDTH = 340
 PAD = 24
@@ -510,6 +514,9 @@ function on_card_draw(cr, widget):
         sx = clamp(m[3] + Float(pos[0]) * m[2], 0.5, Float(m[0]) - 0.5 - w * m[2])
         sy = clamp(m[4] + Float(pos[1]) * m[2], 0.5, Float(m[1]) - 0.5 - h * m[2])
         style = glass_style(theme["surface"], sx, sy, w * m[2], h * m[2])
+        if dark_mode():
+            style = [False, glass.glass_veil(glass.glass_extremes(theme["surface"], sx, sy, w * m[2], h * m[2]), False)]
+        end
         call cairo.save(cr)
         call cairo.translate(cr, x, y)
         call cairo.scale(cr, 1.0 / m[2], 1.0 / m[2])
@@ -547,6 +554,16 @@ end
 function primary_geometry():
     geo = gtk.primary_monitor_info()
     return [geo[0], geo[1], geo[2], geo[3]]
+end
+
+# Tmavy rezim systemu (luxos-appearance prepina motiv GTK WhiteSur-Light/Dark)
+function dark_mode():
+    return gtk.settings_theme_name().lower().find("dark") >= 0 or gtk.settings_prefer_dark()
+end
+
+function on_theme_changed(pspec, settings):
+    call theme_refresh()
+    return 0
 end
 
 function theme_apply():
@@ -1850,6 +1867,7 @@ function start_common():
         bus["session"] = gio.session_bus()
     end
     call theme_apply()
+    call gtk.connect(gtk.settings_get_default(), "notify::gtk-theme-name", on_theme_changed)
     if bus["session"] != 0:
         call mpris.init(bus["session"])
         call mpris.connect(on_music_changed)

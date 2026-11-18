@@ -80,6 +80,16 @@ On	Ativado
 Wi-Fi	Wi-Fi
 Bluetooth	Bluetooth
 Do Not Disturb	Não Perturbe
+Networks	Redes
+No networks found	Nenhuma rede encontrada
+Wi-Fi is off	Wi-Fi desligado
+Wrong password	Palavra-passe incorreta
+Output	Saída
+Input	Entrada
+Sound Settings…	Definições de som…
+No Notifications	Sem notificações
+Mark All as Read	Marcar tudo como lido
+Clear All	Limpar tudo
 Data Saver	Economia de Dados
 Battery Saver	Economia de Bateria
 Display	Tela
@@ -5041,6 +5051,10 @@ Once	Uma vez
 Pause	Pausar
 Snooze	Soneca
 Snoozed alarm	Alarme adiado
+Chimes	Sinos
+Crystal	Cristal
+Breeze	Brisa
+Pulse	Pulso
 Stopwatch	Cronômetro
 No snapshots yet. One is taken before every update.	Ainda não há instantâneos. Um é criado antes de cada atualização.
 running now	em execução

@@ -80,6 +80,16 @@ On	På
 Wi-Fi	Wi-Fi
 Bluetooth	Bluetooth
 Do Not Disturb	Stör ej
+Networks	Nätverk
+No networks found	Inga nätverk hittades
+Wi-Fi is off	Wi-Fi är avstängt
+Wrong password	Fel lösenord
+Output	Utgång
+Input	Ingång
+Sound Settings…	Ljudinställningar…
+No Notifications	Inga notiser
+Mark All as Read	Markera alla som lästa
+Clear All	Rensa alla
 Data Saver	Datasparläge
 Battery Saver	Batterisparläge
 Display	Skärm
@@ -5141,6 +5151,10 @@ Once	En gång
 Pause	Pausa
 Snooze	Snooza
 Snoozed alarm	Snoozat alarm
+Chimes	Klockspel
+Crystal	Kristall
+Breeze	Bris
+Pulse	Puls
 Stopwatch	Tidtagarur
 Large time and date with the weather of your place. Click the time for Clock.	Stor tid och datum med vädret där du är. Klicka på tiden för att öppna Klocka.
 Music and videos appear here	Musik och videor visas här

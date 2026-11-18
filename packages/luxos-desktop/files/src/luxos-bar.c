@@ -59,7 +59,14 @@
 #include <string.h>
 #include <time.h>
 
+/* Material skla jako widgety na plose, oznameni a nabidky (files/src/luxos-glass.c, jen material) */
+#define LUXOS_GLASS_MATERIAL_ONLY 1
+#include "luxos-glass.c"
+
 #define DEFAULT_OPACITY 62
+/* Tmavy rezim: lista je vzdy tmave kourove sklo (i pri BAR_OPACITY 0 = jen tapeta ve svetlem rezimu),
+ * stejne jako widgety, oznameni a nabidky v tmavem rezimu */
+#define DARK_MIN_OPACITY 45
 enum { COVER_WALLPAPER, COVER_TRANSLUCENT, COVER_SOLID };
 #define CLOCK_FORMAT "%a %-d. %b  %H:%M"
 #define TOOLTIP_FORMAT "%A %-d. %B %Y"
@@ -194,6 +201,8 @@ tint_for (Bar *bar, gboolean dark_ink, GdkRGBA *c) {
     gboolean smoked = faint && !dark_ink;
     *c = dark || smoked ? (GdkRGBA) { 0.09, 0.09, 0.12, 1 } : (GdkRGBA) { 0.96, 0.96, 0.97, 1 };
     c->alpha = bar->opacity / 100.0 * (faint ? 0.45 : 1.0);
+    if (dark)
+        c->alpha = MAX (c->alpha, DARK_MIN_OPACITY / 100.0);
 }
 
 static void
@@ -460,17 +469,12 @@ want_dark_ink (gdouble contrast, gboolean current) {
     return current ? contrast < INK_WHITE_ABOVE : contrast < INK_DARK_BELOW;
 }
 
-/* Rozhodnout pismo pro vyrez tapety pod listou (pred tonem) */
+/* Pismo podle skla (svetle sklo = tmave pismo) jako u widgetu; jinak stejne jako decide_ink */
 static void
-decide_ink (Bar *bar, GdkPixbuf *strip, const gchar *key) {
+set_ink (Bar *bar, gboolean want, const gchar *key) {
     if (!ink_needed (bar) || g_strcmp0 (key, bar->ink_key) == 0)
         return;
-    GdkRGBA smoke;
-    tint_for (bar, FALSE, &smoke);
-    gboolean want = want_dark_ink (white_contrast (strip, &smoke), bar->dark_ink);
     if (want != bar->dark_ink) {
-        /* nejvys jednou za 1 s (prepinani ploch s ruznymi tapetami, prezentace tapet); jinak pri
-         * dalsi udalosti */
         gint64 now = g_get_monotonic_time ();
         if (bar->ink_spawned && now - bar->ink_spawned < G_USEC_PER_SEC)
             return;
@@ -484,12 +488,22 @@ decide_ink (Bar *bar, GdkPixbuf *strip, const gchar *key) {
         bar->ext_id = g_timeout_add (800, ext_restart_timeout, bar);
         bar->ink_spawned = now;
         bar->dark_ink = want;
-        /* pluginy v procesu panelu hned */
         apply_ink_class (bar);
         refresh_tray_icons ();
     }
     g_free (bar->ink_key);
     bar->ink_key = g_strdup (key);
+}
+
+/* Rozhodnout pismo pro vyrez tapety pod listou (pred tonem) */
+static void
+decide_ink (Bar *bar, GdkPixbuf *strip, const gchar *key) {
+    if (!ink_needed (bar) || g_strcmp0 (key, bar->ink_key) == 0)
+        return;
+    GdkRGBA smoke;
+    tint_for (bar, FALSE, &smoke);
+    /* nejvys jednou za 1 s (prepinani ploch s ruznymi tapetami, prezentace tapet) - v set_ink */
+    set_ink (bar, want_dark_ink (white_contrast (strip, &smoke), bar->dark_ink), key);
 }
 
 /* Alfa tonu, se kterou je text listy citelny: nejmene nastavena (BAR_OPACITY), na prilis svetle
@@ -904,6 +918,8 @@ scrim_strip (Bar *bar, GdkPixbuf *strip, const gchar *skey) {
     return s;
 }
 
+static GdkPixbuf *glass_strip (Bar *bar, gboolean *light_out);
+
 /* Bez tapety pod listou (BAR_COVER=translucent/solid) se pismo rozhoduje taky - prosvita tapeta;
  * zavoj pod pruhlednou listou kresli jen okno zavoje */
 static void
@@ -912,7 +928,15 @@ update_ink (Bar *bar) {
     /* udalosti oken chodi casto: tapeta se nacita jen pri zmene vyrezu nebo nastaveni */
     GdkPixbuf *strip = wallpaper_strip (bar, &skey, NULL, bar->scrim_key, FALSE);
     if (strip) {
-        scrim_set (bar, scrim_strip (bar, strip, skey));
+        gboolean light = FALSE;
+        GdkPixbuf *glassy = glass_strip (bar, &light);
+        if (glassy) {
+            set_ink (bar, light, skey);
+            g_object_unref (glassy);
+            scrim_set (bar, 0.0);
+        } else {
+            scrim_set (bar, scrim_strip (bar, strip, skey));
+        }
         g_object_unref (strip);
         g_free (bar->scrim_key);
         bar->scrim_key = g_strdup (skey);
@@ -930,6 +954,80 @@ known_scrim (Bar *bar) {
     if (s > 0.0 && ink_needed (bar) && bar->dark_ink)
         s = 0.0;
     return s;
+}
+
+/* Obrazek pozadi listy do ~/.cache/luxos (novy nazev pro kazdou zmenu); prevezme dest a key */
+static gchar *
+save_strip (Bar *bar, GdkPixbuf *dest, gchar *key) {
+    gchar *dir = g_build_filename (g_get_user_cache_dir (), "luxos", NULL);
+    g_mkdir_with_parents (dir, 0700);
+    /* novy nazev pro kazdou zmenu - panel obrazek se stejnou cestou znovu nenacte */
+    gchar *name = g_strdup_printf ("bar-wallpaper-%08x.png", g_str_hash (key));
+    gchar *file = g_build_filename (dir, name, NULL);
+    g_free (name);
+    g_free (dir);
+    gboolean ok = gdk_pixbuf_save (dest, file, "png", NULL, NULL);
+    g_object_unref (dest);
+    if (!ok) {
+        g_free (file);
+        g_free (key);
+        return NULL;
+    }
+    if (bar->bg_file && strcmp (bar->bg_file, file) != 0)
+        g_unlink (bar->bg_file);
+    g_free (bar->bg_file);
+    bar->bg_file = g_strdup (file);
+    g_free (bar->bg_key);
+    bar->bg_key = key;
+    return file;
+}
+
+/* Lista ze stejneho skla jako widgety, oznameni a nabidky: rozostrena tapeta se zavojem (material
+ * luxos-glass.c) misto ostre tapety s tonem. Barva skla: tmavy rezim = tmave sklo (bile pismo);
+ * svetly rezim s bilym pismem = svetle/tmave sklo podle tapety jako widgety a pismo podle skla (set_ink);
+ * svetly rezim s tmavym pismem = svetle sklo. NULL bez tapety. */
+static GdkPixbuf *
+glass_strip (Bar *bar, gboolean *light_out) {
+    static gchar *loaded;
+    GdkWindow *gw = bar->toplevel ? gtk_widget_get_window (bar->toplevel) : NULL;
+    if (!gw)
+        return NULL;
+    GdkMonitor *mon = gdk_display_get_monitor_at_window (gdk_window_get_display (gw), gw);
+    if (!mon)
+        return NULL;
+    gint style = 5;
+    gchar *path = wallpaper_for (bar, mon, -1, &style);
+    if (!path)
+        return NULL;
+    GdkRectangle geo, r;
+    gdk_monitor_get_geometry (mon, &geo);
+    gdk_window_get_frame_extents (gw, &r);
+    gint scale = gdk_window_get_scale_factor (gw);
+    GStatBuf st;
+    gchar *key = g_strdup_printf ("%s|%" G_GINT64_FORMAT "|%d,%d,%dx%d", path,
+                                  g_stat (path, &st) == 0 ? (gint64) st.st_mtime : 0, geo.x, geo.y, geo.width, geo.height);
+    if (g_strcmp0 (key, loaded) != 0) {
+        glass_load_path (path, geo);
+        g_free (loaded);
+        loaded = key;
+    } else {
+        g_free (key);
+    }
+    g_free (path);
+    if (!glass.surface || r.width < 2 || r.height < 2)
+        return NULL;
+    gboolean dark = xfconf_channel_get_bool (xfconf_channel_get ("xfce4-panel"), "/panels/dark-mode", FALSE);
+    int ink = dark ? 0 : (bar->white ? -1 : 1);
+    cairo_surface_t *surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, r.width * scale, r.height * scale);
+    cairo_t *cr = cairo_create (surface);
+    cairo_scale (cr, scale, scale);
+    gboolean light = glass_paint (cr, 0, 0, r.width, r.height, 0, r.x, r.y, ink);
+    if (light_out)
+        *light_out = light;
+    cairo_destroy (cr);
+    GdkPixbuf *pb = gdk_pixbuf_get_from_surface (surface, 0, 0, r.width * scale, r.height * scale);
+    cairo_surface_destroy (surface);
+    return pb;
 }
 
 /* Vykresli vyrez tapety pod listou do PNG; NULL kdyz neni tapeta (pak pruhledna lista) */
@@ -960,6 +1058,22 @@ render_wallpaper (Bar *bar) {
         g_free (skey);
         return NULL;
     }
+    gboolean light = FALSE;
+    GdkPixbuf *glassy = glass_strip (bar, &light);
+    if (glassy && gdk_pixbuf_get_width (glassy) == gdk_pixbuf_get_width (dest)
+        && gdk_pixbuf_get_height (glassy) == gdk_pixbuf_get_height (dest)) {
+        /* sklo jako ostatni: pismo podle skla, ton se uz nepridava */
+        g_object_unref (dest);
+        dest = glassy;
+        set_ink (bar, light, skey);
+        bar_tint (bar, &tint);
+        gchar *key = g_strdup_printf ("%s|%.3f,%.3f,%.3f,%.3f", skey, tint.red, tint.green, tint.blue, tint.alpha);
+        g_free (skey);
+        scrim_set (bar, 0.0);
+        return save_strip (bar, dest, key);
+    }
+    if (glassy)
+        g_object_unref (glassy);
     /* zavoj a bile/tmave pismo podle tapety (muze zmenit ton) */
     gdouble s = scrim_strip (bar, dest, skey);
     bar_tint (bar, &tint);
@@ -977,28 +1091,8 @@ render_wallpaper (Bar *bar) {
             for (gint i = 0; i < 3; i++)
                 p[i] = (guchar) CLAMP (p[i] * (1.0 - a) + tc[i] + 0.5, 0, 255);
         }
-    gchar *dir = g_build_filename (g_get_user_cache_dir (), "luxos", NULL);
-    g_mkdir_with_parents (dir, 0700);
-    /* novy nazev pro kazdou zmenu - panel obrazek se stejnou cestou znovu nenacte */
-    gchar *name = g_strdup_printf ("bar-wallpaper-%08x.png", g_str_hash (key));
-    gchar *file = g_build_filename (dir, name, NULL);
-    g_free (name);
-    g_free (dir);
-    gboolean ok = gdk_pixbuf_save (dest, file, "png", NULL, NULL);
-    g_object_unref (dest);
-    if (!ok) {
-        g_free (file);
-        g_free (key);
-        return NULL;
-    }
-    if (bar->bg_file && strcmp (bar->bg_file, file) != 0)
-        g_unlink (bar->bg_file);
-    g_free (bar->bg_file);
-    bar->bg_file = g_strdup (file);
-    g_free (bar->bg_key);
-    bar->bg_key = key;
     scrim_set (bar, s);
-    return file;
+    return save_strip (bar, dest, key);
 }
 
 /* Pozadi listy: tapeta (vychozi), jinak pruhledna/neprusvitna barva (BAR_COVER) */

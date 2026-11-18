@@ -24,6 +24,8 @@
 #   Grafika           rezim Vykon: hry a narocne aplikace na samostatne grafice (luxos_gpu_hub + luxos-gpu)
 #   Snimek obrazovky  lista a okna luxos-screenshot (luxos_shot) pripravena predem; klient luxos-screenshot
 #                     preda prepinace pres abstraktni socket UNIX, lista je videt hned po zkratce
+#   Lista             vyskakovaci okna Wi-Fi, Zvuk a Oznameni (luxos_bar_popups); klient luxos-bar-popup
+#                     preda druh okna pres abstraktni socket UNIX jako snimek obrazovky
 #   Emoji a symboly   okno vyberu emoji (luxos_emoji); klient luxos-emoji (Super+., Ctrl+Super+Mezernik)
 #                     preda pozadavek stejne jako snimek obrazovky. Okno a data (~7 MB PSS) vzniknou az pri
 #                     prvnim pouziti a pak zustanou (prvni otevreni ~0,5 s, dalsi hned)
@@ -54,6 +56,7 @@ load luxos_shot as shot
 load luxos_emoji as emoji
 load luxos_audio_hub as audio
 load luxos_gpu_hub as gpu
+load luxos_bar_popups as popups
 
 SIGINT = 2
 SIGUSR1 = 10
@@ -221,6 +224,14 @@ function netcheck_plugin():
     return ""
 end
 
+function bar_wifi_once():
+    again = popups.migrate_panel(config_dir())
+    if popups.migrate_keyboard(config_dir()):
+        again = True
+    end
+    return again
+end
+
 function connectivity():
     value = None
     try:
@@ -232,6 +243,10 @@ function connectivity():
 end
 
 function panel_refresh():
+    # ikona Wi-Fi v liste (sila signalu, portal) se meni se stavem pripojeni jako "!"
+    safe:
+        call popups.refresh_panel_wifi()
+    end
     if hub["plugin"] == "":
         hub["plugin"] = netcheck_plugin()
     end
@@ -877,6 +892,12 @@ function main_hub():
     else:
         call log("screenshot: " + String(last_error()))
     end
+    # Wi-Fi, Zvuk a Oznameni v liste: pozadavky klienta luxos-bar-popup
+    try:
+        call popups.start_server(False)
+    else:
+        call log("bar popups: " + String(last_error()))
+    end
     # Emoji a symboly: pozadavky klienta luxos-emoji (okno se postavi s ostatnimi, nebo pri prvnim pozadavku)
     try:
         call emoji.start_server(False)
@@ -895,6 +916,8 @@ function main_hub():
     # Skryta okna Ovladaciho centra a Kalendare: vytvorit az po usazeni relace (nebrzdi prihlaseni),
     # nebo hned pri prvnim kliknuti, prijde-li driv.
     call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_HUB_PREBUILD_DELAY", ""), 6), prebuild)
+    # starsi profily: ikona Wi-Fi LuxOS v liste misto ikony nm-applet (jednou, az panel bezi)
+    call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_HUB_BARWIFI_DELAY", ""), 12), bar_wifi_once)
 
     # Trezor (balik luxos-safe): zamceni pri zamceni obrazovky a pred uspanim
     if glib.find_program_in_path("luxos-safe") != "":

@@ -26,10 +26,11 @@ noextract=("cldr-annotations-full-$_cldr.tgz" "cldr-annotations-derived-full-$_c
 sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
             'ce415a4898da7a4ca755437de2593863c05045fc6b1649d8da5ee05fa3bdc33b'
             'e83ab0348ec09f4b5bb27f658b9c424c9c8fbf512484b728903515b9f01c3c28')
-# lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
+# lsl >= 0.10.9: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl
+# (0.10.9: okna ze skla luxos_glass - tazeni spravcem oken, stav okna, rychle rozmazani);
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni;
 # xfce4-panel + xfconf: hlavicky pro plugin luxos-bar (libxfce4panel-2.0, libxfconf-0)
-makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3)
+makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.9' libwnck3)
 # hlidac tlacitek okna Firefoxu: selektory luxos/titlebar.css proti omni.ja nainstalovaneho Firefoxu
 checkdepends=(python firefox unzip nodejs)
 install=luxos-desktop.install
@@ -124,18 +125,28 @@ build() {
     # Nabidka plochy (xfdesktop) s polozkou "Upravit widgety..."
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-desktop-menu.so "$startdir/files/src/luxos-desktop-menu.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
+    # Oznameni a nabidka aplikaci v liste z matneho skla jako widgety (GTK modul, files/src/luxos-glass.c)
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-glass.so "$startdir/files/src/luxos-glass.c" \
+        $(pkg-config --cflags --libs gtk+-3.0 libxfconf-0) -lm
     # Pojistka proti fork bombe kdekoli v relaci (systemova sluzba, viz files/src/luxos-forkguard.c);
     # C: smycka bez alokaci se zamcenou pameti i pri vycerpane RAM (sd-bus z libsystemd jen pro upozorneni)
     gcc $CFLAGS $LDFLAGS -o luxos-forkguard "$startdir/files/src/luxos-forkguard.c" -lsystemd
     # Plugin horni listy (v procesu panelu): hodiny uprostred listy a neprusvitna lista pod okny
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-bar.so "$startdir/files/src/luxos-bar.c" \
         $(pkg-config --cflags --libs libxfce4panel-2.0 libwnck-3.0 libxfconf-0 gtk+-3.0) -lm
+    # Historie oznameni synchronizovana s aplikacemi jako v Androidu (GTK modul v xfce4-notifyd,
+    # files/src/luxos-notifyd.c): zavrene aplikaci zmizi, klik vyvola vychozi akci
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-notifyd.so "$startdir/files/src/luxos-notifyd.c" \
+        $(pkg-config --cflags --libs gtk+-3.0)
+    # Rozlozeni klavesnice v liste jako text velkymi pismeny (US, CZ), misto pluginu xkb z Xfce
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-xkb.so "$startdir/files/src/luxos-xkb.c" \
+        $(pkg-config --cflags --libs libxfce4panel-2.0 gtk+-3.0 x11)
     # Plynule kolecko a setrvacnost touchpadu v aplikacich GTK 3 (xsettings Gtk/Modules, files/src/luxos-scroll.c)
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-scroll.so "$startdir/files/src/luxos-scroll.c" \
         $(pkg-config --cflags --libs gtk+-3.0 xi x11) -lm
     strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
     strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-desktop-menu.so libluxos-bar.so \
-        libluxos-scroll.so
+        libluxos-scroll.so libluxos-glass.so libluxos-xkb.so libluxos-notifyd.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
     # hodiny kazde 3 s, baterie kazdych 20 s, nazev aplikace pri kazdem prepnuti okna, prepinace
@@ -167,6 +178,10 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-clock-app.lsl" luxos-clock-app
     # Nastaveni > Posouvani (plynule kolecko, setrvacnost touchpadu; ~/.config/luxos/scrolling.conf)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-scrolling.lsl" luxos-scrolling
+    # Horni lista: okna Wi-Fi, Zvuk a Oznameni (klient + samostatny server; v relaci je obsluhuje luxos-hub)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-bar-popup.lsl" luxos-bar-popup
+    # Karta skla jako PNG pro okna mimo GTK (Hledani v rofi)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-glass-image.lsl" luxos-glass-image
     rm -rf cldr-ann cldr-der emoji-data
     mkdir -p cldr-ann cldr-der
     tar -xzf "cldr-annotations-full-$_cldr.tgz" -C cldr-ann
@@ -195,11 +210,14 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/xfce4/helpers" "$f"/helpers/*.desktop
     install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling
+        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling \
+        luxos-bar-popup luxos-glass-image
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
     install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"
     install -Dm644 -t "$pkgdir/usr/share/luxos/emoji" emoji-data/*.tsv
+    # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
+    install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm644 cldr-ann/package/LICENSE "$pkgdir/usr/share/licenses/$pkgname/Unicode-CLDR-LICENSE"
     # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
     # volaji "luxos-control-center --panel", relace "luxos-hub"
@@ -245,6 +263,7 @@ package() {
         ln -s "/usr/lib/xfce4/panel/plugins/lib$m.so" "$pp/lib/xfce4/panel/plugins/lib$m.so"
     done
     install -Dm755 libluxos-bar.so "$pp/lib/xfce4/panel/plugins/libluxos-bar.so"
+    install -Dm755 libluxos-xkb.so "$pp/lib/xfce4/panel/plugins/libluxos-xkb.so"
     install -Dm644 "$f/rofi/config.rasi" "$pkgdir/etc/rofi.rasi"   # system-wide config rofi 2.x
 
     # Kratke nazvy aplikaci (hook spravce baliku prepise .desktop do /var/lib/luxos/apps)
@@ -303,6 +322,8 @@ package() {
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
     install -Dm755 libluxos-desktop-menu.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-desktop-menu.so"
+    install -Dm755 libluxos-glass.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-glass.so"
+    install -Dm755 libluxos-notifyd.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-notifyd.so"
     install -Dm755 libluxos-scroll.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-scroll.so"
     install -Dm644 "$f/lightdm/lightdm-gtk-greeter.conf" \
         "$pkgdir/usr/share/lightdm/lightdm-gtk-greeter.conf.d/50-luxos.conf"
@@ -320,6 +341,10 @@ package() {
     install -Dm644 "$f/networkmanager/30-luxos-connectivity.conf" \
         "$pkgdir/usr/lib/NetworkManager/conf.d/30-luxos-connectivity.conf"
     install -Dm644 "$f/xorg/30-luxos-touchpad.conf" "$pkgdir/etc/X11/xorg.conf.d/30-luxos-touchpad.conf"
+    # Oznameni z matneho skla a historie synchronizovana s aplikacemi: xfce4-notifyd s GTK moduly
+    # luxos-glass a luxos-notifyd
+    install -Dm644 "$f/systemd-user/xfce4-notifyd-luxos-glass.conf" \
+        "$pkgdir/usr/lib/systemd/user/xfce4-notifyd.service.d/20-luxos-glass.conf"
     # Dock (bamfdaemon): start jen s dostupnym X serverem (zadne "Failed to start BAMF" pri odhlaseni)
     install -Dm644 "$f/systemd-user/bamfdaemon-luxos.conf" \
         "$pkgdir/usr/lib/systemd/user/bamfdaemon.service.d/50-luxos.conf"

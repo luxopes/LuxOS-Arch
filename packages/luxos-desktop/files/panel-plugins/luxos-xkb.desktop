@@ -1,0 +1,12 @@
+[Xfce Panel]
+Type=X-XFCE-PanelPlugin
+Encoding=UTF-8
+Name=Keyboard Layout
+Name[cs]=Rozložení klávesnice
+Comment=Current keyboard layout as text (US, CZ); click to switch
+Comment[cs]=Aktuální rozložení klávesnice jako text (US, CZ); kliknutím přepnete
+Icon=input-keyboard-symbolic
+X-XFCE-Module=luxos-xkb
+X-XFCE-Internal=TRUE
+X-XFCE-Unique=TRUE
+X-XFCE-API=2.0

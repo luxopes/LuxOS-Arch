@@ -36,6 +36,8 @@ os.environ.update({"LUXAI_ORIGIN": SRV.origin, "LUXOS_I18N_DIR": I18N, "LANG": "
 sys.argv = sys.argv[:1]
 sys.path.insert(0, I18N)
 sys.path.insert(0, FILES)
+# okno ze skla (luxos_glass z luxos-desktop) jako v systemu
+sys.path.insert(0, os.path.join(HERE, "..", "..", "luxos-desktop", "files", "python"))
 import luxai_account as acc  # noqa: E402
 import luxai_account_gtk as accgtk  # noqa: E402
 import luxos_i18n  # noqa: E402
@@ -204,7 +206,12 @@ def manage(lang):
     pump(0.4)
     names = [win.pages.child_get_property(c, "name") for c in win.pages.get_children()]
     check("sprava: stranky", names == ["overview", "profile", "security", "preferences", "privacy"], names)
-    check("sprava: titulek okna s krizkem", win.get_titlebar().get_show_close_button())
+    if app.glass is not None:
+        # okno ze skla: bez listy spravce oken, zavira cervene tlacitko semaforu vlevo nahore
+        closes = [w for w in walk(win) if isinstance(w, Gtk.Button) and w.get_style_context().has_class("lg-close")]
+        check("sprava: okno ze skla se semaforem (zavrit)", not win.get_decorated() and len(closes) == 1)
+    else:
+        check("sprava: titulek okna s krizkem", win.get_titlebar().get_show_close_button())
     labels = [w.get_text() for w in walk(win.usage_body) if isinstance(w, Gtk.Label)]
     check("prehled: spotreba Flash 63 %", "63 %" in labels, labels)
     check("prehled: datum vynulovani", any(t == _("The limits reset on %s (in %d days).")

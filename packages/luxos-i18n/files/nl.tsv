@@ -80,6 +80,16 @@ On	Aan
 Wi-Fi	Wifi
 Bluetooth	Bluetooth
 Do Not Disturb	Niet storen
+Networks	Netwerken
+No networks found	Geen netwerken gevonden
+Wi-Fi is off	Wifi staat uit
+Wrong password	Onjuist wachtwoord
+Output	Uitvoer
+Input	Invoer
+Sound Settings…	Geluidsinstellingen…
+No Notifications	Geen meldingen
+Mark All as Read	Alles als gelezen markeren
+Clear All	Alles wissen
 Data Saver	Databesparing
 Battery Saver	Batterijbesparing
 Display	Beeldscherm
@@ -5141,6 +5151,10 @@ Once	Eenmalig
 Pause	Pauzeren
 Snooze	Snooze
 Snoozed alarm	Uitgestelde wekker
+Chimes	Klokkenspel
+Crystal	Kristal
+Breeze	Bries
+Pulse	Puls
 Stopwatch	Stopwatch
 Time is up	De tijd is om
 Tomorrow	Morgen

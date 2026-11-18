@@ -80,6 +80,16 @@ On	Ein
 Wi-Fi	WLAN
 Bluetooth	Bluetooth
 Do Not Disturb	Nicht stören
+Networks	Netzwerke
+No networks found	Keine Netzwerke gefunden
+Wi-Fi is off	WLAN ist aus
+Wrong password	Falsches Passwort
+Output	Ausgabe
+Input	Eingabe
+Sound Settings…	Toneinstellungen…
+No Notifications	Keine Mitteilungen
+Mark All as Read	Alle als gelesen markieren
+Clear All	Alle löschen
 Data Saver	Datensparmodus
 Battery Saver	Stromsparmodus
 Display	Display
@@ -5024,6 +5034,10 @@ Put all widgets back under each other in the corner	Alle Widgets wieder unterein
 Show widgets	Widgets anzeigen
 Snooze	Schlummern
 Snoozed alarm	Geschlummerter Wecker
+Chimes	Glockenspiel
+Crystal	Kristall
+Breeze	Brise
+Pulse	Puls
 Stopwatch	Stoppuhr
 System health with CPU, memory and storage usage.	Systemzustand mit Prozessor-, Speicher- und Datenträgerauslastung.
 This month with today highlighted.	Dieser Monat mit hervorgehobenem Heute.
