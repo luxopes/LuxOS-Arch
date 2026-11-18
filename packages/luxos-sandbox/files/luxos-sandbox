@@ -194,39 +194,222 @@ def require_sandbox():
 
 
 # ---- X11 (Xephyr) ---------------------------------------------------------------
-def xauth_record(cookie):
-    """Zaznam .Xauthority: FamilyWild, prazdne cislo displeje = plati pro libovolny displej."""
+# Aplikace v sandboxu vidi jen vlastni Xephyr. Xephyr sam je ale klient displeje plochy a zpracovava
+# protokol X od neduveryhodne aplikace - kdyby ho aplikace zneuzila (chyba v Xephyr), nesmi dostat
+# plnou moc nad plochou (X11 dovoluje duveryhodnemu klientovi odposlech klaves, snimky cizich oken
+# a vkladani udalosti). Proto:
+#  - Xephyr bezi v samostatnem bwrap: jen /usr pro cteni, bez domova, bez site, bez sezeni;
+#    dovnitr jde jen soket displeje plochy a docasny soubor autorizace;
+#  - autorizace je pro kazde spusteni nova, s urovni "untrusted" z rozsireni X serveru SECURITY
+#    (XSecurityGenerateAuthorization). Nikdy ~/.Xauthority ani jeho polozka FamilyWild
+#    (luxos-xauth-wildcard). Neduveryhodny klient nevidi okna ostatnich klientu (snimky, udalosti),
+#    stav klavesnice ani rozsireni RECORD/XTEST/XInput (viz SECURITY.md);
+#  - autorizaci drzi spojeni luxos-sandbox s displejem: po skonceni sandboxu se zrusi
+#    (XSecurityRevokeAuthorization) a X server odpoji vse, co ji jeste pouziva. Spadne-li
+#    luxos-sandbox, X server ji zrusi sam se zavrenim spojeni.
+# Duveryhodny displej (rychlejsi kresleni pres MIT-SHM) jen na vyslovne prani pro jednotlivy prikaz:
+# luxos-sandbox trusted-display PRIKAZ on (okno Sandbox: Duveryhodny displej) - i pak jen docasny
+# cookie pro tento beh, nikdy cookie uzivatele.
+CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "luxos", "sandbox")
+TRUSTED_DISPLAY_FILE = os.path.join(CONFIG_DIR, "trusted-display")
+CMD_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
+MESA_EGL_VENDOR = "/usr/share/glvnd/egl_vendor.d/50_mesa.json"
+XSECURITY_TIMEOUT, XSECURITY_TRUST_LEVEL = 1 << 0, 1 << 1
+XSECURITY_TRUSTED, XSECURITY_UNTRUSTED = 0, 1
+
+
+def xauth_record(cookie, number=b""):
+    """Zaznam .Xauthority: FamilyWild; prazdne cislo displeje = plati pro libovolny displej."""
     def field(b):
         return struct.pack(">H", len(b)) + b
-    return struct.pack(">H", 0xFFFF) + field(b"") + field(b"") + field(b"MIT-MAGIC-COOKIE-1") + field(cookie)
+    return struct.pack(">H", 0xFFFF) + field(b"") + field(number) + field(b"MIT-MAGIC-COOKIE-1") + field(cookie)
+
+
+def trusted_display_commands():
+    """Prikazy, pro ktere uzivatel vyslovne povolil duveryhodny displej."""
+    try:
+        with open(TRUSTED_DISPLAY_FILE, encoding="utf-8") as f:
+            return sorted({ln.strip() for ln in f if CMD_NAME_RE.match(ln.strip())})
+    except OSError:
+        return []
+
+
+def local_display_number(display):
+    """Cislo mistniho displeje z DISPLAY (:0, :0.0, unix:0); jinak None (TCP/ssh displej)."""
+    m = re.fullmatch(r"(?:unix)?:(\d+)(?:\.\d+)?", display or "")
+    return int(m.group(1)) if m else None
+
+
+class HostDisplayAuth:
+    """Docasna autorizace (rozsireni SECURITY) k displeji plochy pro jeden beh Xephyru."""
+
+    def __init__(self, trusted=False):
+        self.trusted = trusted
+        self.dpy = None
+        self.auth_id = None
+        self.x11 = self.xext = None
+
+    def generate(self):
+        """-> cookie (bytes). Spojeni zustava otevrene az do close() - drzi autorizaci nazivu."""
+        import ctypes
+
+        class Xauth(ctypes.Structure):
+            _fields_ = [("family", ctypes.c_ushort), ("address_length", ctypes.c_ushort),
+                        ("address", ctypes.c_char_p), ("number_length", ctypes.c_ushort),
+                        ("number", ctypes.c_char_p), ("name_length", ctypes.c_ushort), ("name", ctypes.c_char_p),
+                        ("data_length", ctypes.c_ushort), ("data", ctypes.POINTER(ctypes.c_ubyte))]
+
+        class Attributes(ctypes.Structure):   # XSecurityAuthorizationAttributes (poradi podle security.h)
+            _fields_ = [("timeout", ctypes.c_uint), ("trust_level", ctypes.c_uint), ("group", ctypes.c_ulong),
+                        ("event_mask", ctypes.c_long)]
+
+        try:
+            x11 = ctypes.CDLL("libX11.so.6")
+            xext = ctypes.CDLL("libXext.so.6")
+        except OSError:
+            die(_("Sandbox windows need the libraries libX11 and libXext."))
+        self.x11, self.xext = x11, xext
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        x11.XFree.argtypes = [ctypes.c_void_p]
+        xext.XSecurityQueryExtension.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int),
+                                                 ctypes.POINTER(ctypes.c_int)]
+        xext.XSecurityGenerateAuthorization.restype = ctypes.POINTER(Xauth)
+        xext.XSecurityGenerateAuthorization.argtypes = [ctypes.c_void_p, ctypes.POINTER(Xauth), ctypes.c_ulong,
+                                                        ctypes.POINTER(Attributes), ctypes.POINTER(ctypes.c_ulong)]
+        xext.XSecurityRevokeAuthorization.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+        xext.XSecurityFreeXauth.argtypes = [ctypes.POINTER(Xauth)]
+        # Chyba protokolu nesmi ukoncit cely proces (vychozi obsluha Xlib vola exit)
+        handler_t = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
+        self._errors = []
+        self._handler = handler_t(lambda _d, _e: self._errors.append(1) or 0)
+        x11.XSetErrorHandler.argtypes = [handler_t]
+        x11.XSetErrorHandler(self._handler)
+        self.dpy = x11.XOpenDisplay(None)
+        if not self.dpy:
+            die(_("Could not connect to your desktop display."))
+        major, minor = ctypes.c_int(), ctypes.c_int()
+        if not xext.XSecurityQueryExtension(self.dpy, ctypes.byref(major), ctypes.byref(minor)):
+            self.close()
+            die(_("The X server of your desktop has no SECURITY extension; sandbox windows need it."))
+        name = b"MIT-MAGIC-COOKIE-1"
+        req = Xauth(0, 0, None, 0, None, len(name), name, 0, None)
+        attrs = Attributes(timeout=0, trust_level=XSECURITY_TRUSTED if self.trusted else XSECURITY_UNTRUSTED)
+        auth_id = ctypes.c_ulong()
+        res = xext.XSecurityGenerateAuthorization(self.dpy, ctypes.byref(req),
+                                                  XSECURITY_TIMEOUT | XSECURITY_TRUST_LEVEL,
+                                                  ctypes.byref(attrs), ctypes.byref(auth_id))
+        x11.XSync(self.dpy, 0)
+        if not res or self._errors or not res.contents.data_length:
+            if res:
+                xext.XSecurityFreeXauth(res)
+            self.close()
+            die(_("Could not create a display permission for the sandbox window."))
+        cookie = bytes(res.contents.data[:res.contents.data_length])
+        xext.XSecurityFreeXauth(res)
+        self.auth_id = auth_id.value
+        return cookie
+
+    def close(self):
+        """Zrusi autorizaci (X server odpoji klienty, kteri ji pouzivaji) a zavre spojeni."""
+        if not self.dpy:
+            return
+        try:
+            if self.auth_id is not None:
+                self.xext.XSecurityRevokeAuthorization(self.dpy, self.auth_id)
+                self.x11.XSync(self.dpy, 0)
+        finally:
+            self.x11.XCloseDisplay(self.dpy)
+            self.dpy = None
+            self.auth_id = None
+
+
+def xephyr_bwrap(host_num, xdir, host_auth_fd, server_auth_fd, seccomp_fd, trusted):
+    """Omezeni pro samotny Xephyr (beh mimo sandbox aplikace, ale bez pristupu k uzivateli)."""
+    a = ["bwrap", "--unshare-user", "--unshare-pid", "--unshare-uts", "--unshare-cgroup-try", "--unshare-net",
+         "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--clearenv"]
+    if not trusted:
+        a += ["--unshare-ipc"]        # duveryhodny displej: sdilena pamet MIT-SHM s X serverem plochy
+    a += ["--ro-bind", "/usr", "/usr"]
+    for link, target in (("bin", "usr/bin"), ("sbin", "usr/bin"), ("lib", "usr/lib"), ("lib64", "usr/lib")):
+        a += ["--symlink", target, "/" + link]
+    a += ["--ro-bind-try", "/etc/X11", "/etc/X11", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+          "--bind", xdir, "/tmp/.X11-unix",
+          "--bind", f"/tmp/.X11-unix/X{host_num}", f"/tmp/.X11-unix/X{host_num}",
+          "--dir", "/run/luxos",
+          "--ro-bind-data", str(host_auth_fd), "/run/luxos/host-Xauthority",
+          "--ro-bind-data", str(server_auth_fd), "/run/luxos/Xauthority"]
+    env = [("PATH", "/usr/bin"), ("HOME", "/tmp"), ("LANG", "C.UTF-8"), ("DISPLAY", f":{host_num}"),
+           ("XAUTHORITY", "/run/luxos/host-Xauthority")]
+    # GLX v Xephyru kresli softwarove (Mesa); EGL ovladace NVIDIA bez /dev a /sys hostitele Xephyr shodi
+    if os.path.exists(MESA_EGL_VENDOR):
+        env.append(("__EGL_VENDOR_LIBRARY_FILENAMES", MESA_EGL_VENDOR))
+    for k, v in env:
+        a += ["--setenv", k, v]
+    a += ["--seccomp", str(seccomp_fd), "--"]
+    return a
+
+
+def memfd_with(content):
+    fd = os.memfd_create("luxos-sandbox", 0)
+    os.write(fd, content)
+    os.lseek(fd, 0, os.SEEK_SET)
+    return fd
 
 
 class Xephyr:
     """Vnoreny X server v samostatnem okne; do sandboxu jde jen jeho socket."""
 
-    def __init__(self, title):
+    def __init__(self, title, trusted=False):
         self.title = title
+        self.trusted = trusted
         self.proc = None
         self.display = None
-        self.authfile = None
+        self.xdir = None
+        self.host = None
+        self.cookie = None
 
     def start(self):
         if not shutil.which("Xephyr"):
             die(_("Xephyr is not installed (package xorg-server-xephyr)."))
+        host_num = local_display_number(os.environ.get("DISPLAY"))
+        try:
+            local = host_num is not None and stat.S_ISSOCK(os.lstat(f"/tmp/.X11-unix/X{host_num}").st_mode)
+        except OSError:
+            local = False
+        if not local:
+            die(_("Sandbox windows need a local X display (DISPLAY=:0)."))
         rundir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
         d = os.path.join(rundir, "luxos-sandbox")
         os.makedirs(d, mode=0o700, exist_ok=True)
+        self.xdir = os.path.join(d, f"x11-{os.getpid()}-{secrets.token_hex(4)}")
+        os.mkdir(self.xdir, 0o700)
+        self.host = HostDisplayAuth(self.trusted)
+        host_cookie = self.host.generate()
         self.cookie = secrets.token_bytes(16)
-        self.authfile = os.path.join(d, f"xauth-{os.getpid()}")
-        fd = os.open(self.authfile, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(fd, "wb") as f:
-            f.write(xauth_record(self.cookie))
+        # autorizace jen v pameti (memfd -> bwrap --ro-bind-data), nikdy v souboru na disku
+        fds = [memfd_with(xauth_record(host_cookie, str(host_num).encode())), memfd_with(xauth_record(self.cookie)),
+               memfd_with(filter_bytes("run"))]
+        del host_cookie
         r, w = os.pipe()
-        cmd = ["Xephyr", "-displayfd", str(w), "-title", self.title, "-screen", "1280x800", "-resizeable",
-               "-nolisten", "tcp", "-nolisten", "local", "-auth", self.authfile, "-br", "-noreset"]
-        self.proc = subprocess.Popen(cmd, pass_fds=(w,), stdin=subprocess.DEVNULL,
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        os.close(w)
+        try:
+            cmd = xephyr_bwrap(host_num, self.xdir, *fds, self.trusted)
+            cmd += ["Xephyr", "-displayfd", str(w), "-title", self.title, "-screen", "1280x800",
+                                     "-resizeable", "-nolisten", "tcp", "-nolisten", "local",
+                                     "-auth", "/run/luxos/Xauthority", "-br", "-noreset"]
+            debug = os.environ.get("LUXOS_SANDBOX_DEBUG") == "1"
+            if debug:
+                info(" ".join(cmd))
+            self.proc = subprocess.Popen(cmd, pass_fds=(w, *fds), stdin=subprocess.DEVNULL,
+                                         stdout=subprocess.DEVNULL, stderr=None if debug else subprocess.DEVNULL)
+        except OSError:
+            self.stop()
+            die(_("Could not start the sandbox window (Xephyr)."))
+        finally:
+            for fd in (w, *fds):
+                os.close(fd)
         data = b""
         deadline = time.time() + 15
         while not data.endswith(b"\n") and time.time() < deadline:
@@ -239,7 +422,7 @@ class Xephyr:
             self.stop()
             die(_("Could not start the sandbox window (Xephyr)."))
         self.display = int(data.strip())
-        sock = f"/tmp/.X11-unix/X{self.display}"
+        sock = os.path.join(self.xdir, f"X{self.display}")
         for _i in range(50):
             if os.path.exists(sock):
                 break
@@ -253,11 +436,21 @@ class Xephyr:
                 self.proc.wait(5)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
-        if self.authfile:
+        if self.host:
+            self.host.close()
+            self.host = None
+        if self.xdir:
+            # jen nase soubory: soket Xephyru a bod pripojeni soketu plochy (prazdny soubor)
             try:
-                os.unlink(self.authfile)
+                for name in os.listdir(self.xdir):
+                    try:
+                        os.unlink(os.path.join(self.xdir, name))
+                    except OSError:
+                        pass
+                os.rmdir(self.xdir)
             except OSError:
                 pass
+            self.xdir = None
 
 
 # ---- sit ------------------------------------------------------------------------
@@ -1109,7 +1302,8 @@ def cmd_status(args):
     os.close(fd)
     if "--json" in args:
         print(json.dumps({"exists": True, "path": root_path(), "size": size, "shared": SHARED_HOST,
-                          "link": f"/dev/sandbox/{username()}", "apps": list_apps()}))
+                          "link": f"/dev/sandbox/{username()}", "apps": list_apps(),
+                          "trusted_display": trusted_display_commands()}))
         return 0
     print(_("Sandbox: %s") % root_path())
     if os.path.islink(f"/dev/sandbox/{username()}"):
@@ -1118,6 +1312,33 @@ def cmd_status(args):
     print(_("Shared folder: %s (only with --shared)") % SHARED_HOST)
     apps = list_apps()
     print(_("Installed apps: %s") % (", ".join(apps) if apps else _("none")))
+    return 0
+
+
+def cmd_trusted_display(args):
+    """luxos-sandbox trusted-display [--json] | PRIKAZ on|off - vyslovne povoleni pro jeden prikaz."""
+    if not args or args == ["--json"]:
+        cmds = trusted_display_commands()
+        if args:
+            print(json.dumps({"trusted_display": cmds}))
+        else:
+            print(_("Trusted display: %s") % (", ".join(cmds) if cmds else _("none")))
+        return 0
+    if len(args) != 2 or args[1] not in ("on", "off") or not CMD_NAME_RE.match(args[0]):
+        die(_("Usage: luxos-sandbox trusted-display [<command> on|off]"))
+    cmds = set(trusted_display_commands())
+    (cmds.add if args[1] == "on" else cmds.discard)(args[0])
+    os.makedirs(CONFIG_DIR, mode=0o700, exist_ok=True)
+    tmp = TRUSTED_DISPLAY_FILE + f".tmp-{os.getpid()}"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("".join(c + "\n" for c in sorted(cmds)))
+    os.replace(tmp, TRUSTED_DISPLAY_FILE)
+    if args[1] == "on":
+        print(_("%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox "
+                "window, it can see and type into your other windows.") % args[0])
+    else:
+        print(_("%s uses the protected display again.") % args[0])
     return 0
 
 
@@ -1187,12 +1408,16 @@ def cmd_run(args):
         argv[0] = import_file(os.path.expanduser(argv[0]))
     spec = base_spec(argv, net=opts["net"], shared=opts["shared"])
     xe = None
-    if opts["gui"]:
-        xe = Xephyr("Sandbox - " + os.path.basename(argv[0]))
-        spec["x11"] = xe.start()
-        spec["xauth"] = xauth_record(xe.cookie).hex()
-        spec["tty"] = False
     try:
+        if opts["gui"]:
+            trusted = os.path.basename(argv[0]) in trusted_display_commands()
+            if trusted:
+                info(_("Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its "
+                       "sandbox window, it can see and type into your other windows.") % os.path.basename(argv[0]))
+            xe = Xephyr("Sandbox - " + os.path.basename(argv[0]), trusted=trusted)
+            spec["x11"] = xe.start()
+            spec["xauth"] = xauth_record(xe.cookie).hex()
+            spec["tty"] = False
         return launch(spec)
     finally:
         if xe:
@@ -1337,6 +1562,8 @@ USAGE = (
     ("remove-app <package...>", "remove apps from the sandbox"),
     ("sync-launchers [--quiet|--json]",
      "update commands and Launchpad entries for sandbox apps (automatic after changes and at login)"),
+    ("trusted-display [<command> on|off]",
+     "allow a trusted display for one app (faster, but less protected; default: protected)"),
     ("reset [--yes]", "wipe the sandbox and create it again"),
     ("destroy [--yes]", "delete the sandbox"),
     ("--net", "network: internet only, no local network, no services of this computer"),
@@ -1371,7 +1598,7 @@ def main():
     table = {"create": cmd_create, "status": cmd_status, "shell": cmd_shell, "run": cmd_run,
              "install": cmd_install, "build-install": cmd_build_install, "remove-app": cmd_remove_app, "reset": cmd_reset,
              "destroy": cmd_destroy, "__query": cmd_query, "sync-launchers": cmd_sync_launchers,
-             "__has-app": cmd_has_app, "__command-hint": cmd_command_hint}
+             "__has-app": cmd_has_app, "__command-hint": cmd_command_hint, "trusted-display": cmd_trusted_display}
     if cmd == "__enter":
         enter()
         return 1

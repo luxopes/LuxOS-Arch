@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Esegui luxos-sandbox come utente n
 Sandbox directory is not owned by you: %s	La cartella della sandbox non è di tua proprietà: %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr non è installato (pacchetto xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Impossibile avviare la finestra della sandbox (Xephyr).
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Attenzione: %s usa un display attendibile (impostato in Sandbox). Se l’app esce dalla sua finestra della sandbox, può vedere le altre finestre e scriverci.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Uso: luxos-sandbox trusted-display [<comando> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s userà un display attendibile: disegno più veloce, ma se l’app esce dalla sua finestra della sandbox, può vedere le altre finestre e scriverci.
+%s uses the protected display again.	%s usa di nuovo il display protetto.
+Trusted display: %s	Display attendibile: %s
+Sandbox windows need the libraries libX11 and libXext.	Le finestre della sandbox richiedono le librerie libX11 e libXext.
+Could not connect to your desktop display.	Impossibile connettersi al display della scrivania.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	Il server X della scrivania non ha l’estensione SECURITY; le finestre della sandbox ne hanno bisogno.
+Could not create a display permission for the sandbox window.	Impossibile creare un permesso di display per la finestra della sandbox.
+Sandbox windows need a local X display (DISPLAY=:0).	Le finestre della sandbox richiedono un display X locale (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	consenti un display attendibile per un’app (più veloce, ma meno protetto; predefinito: protetto)
+Trusted display	Display attendibile
+Off (recommended): the sandbox window has a protected link to your desktop.	Disattivato (consigliato): la finestra della sandbox ha un collegamento protetto con la scrivania.
+Use a trusted display for %s?	Usare un display attendibile per %s?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Solo per app troppo lente nella finestra della sandbox. Un display attendibile disegna più velocemente, ma se l’app esce dalla sua finestra della sandbox, può vedere le altre finestre e scriverci. Lascialo disattivato se non ti serve.
 Network for the sandbox needs pasta (package passt).	La rete della sandbox richiede pasta (pacchetto passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Attenzione: sessione utente di systemd non disponibile, esecuzione senza limiti di memoria/CPU.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	La sandbox è danneggiata (la home non è una cartella). Esegui: luxos-sandbox reset

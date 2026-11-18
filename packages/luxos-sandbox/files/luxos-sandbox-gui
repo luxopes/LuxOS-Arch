@@ -221,6 +221,8 @@ class SandboxWindow(Gtk.Window):
         ok = bool(st.get("exists"))
         raw = st.get("apps") if isinstance(st.get("apps"), dict) else {}
         apps = {a: c for a, c in raw.items() if isinstance(a, str) and PKG_RE.match(a) and isinstance(c, str)}
+        tl = st.get("trusted_display") if isinstance(st.get("trusted_display"), list) else []
+        trusted = {c for c in tl if isinstance(c, str)}
         if ok:
             self.path_label.set_text("%s   %.0f MiB" % (st.get("path", ""), st.get("size", 0) / 1048576))
         else:
@@ -236,6 +238,11 @@ class SandboxWindow(Gtk.Window):
             name.get_style_context().add_class("app-name")
             box = Gtk.Box(spacing=6)
             if cmd:
+                # Duveryhodny displej jen na vyslovne prani (s varovanim); vychozi je chranene spojeni
+                td = Gtk.CheckButton(label=_("Trusted display"), active=os.path.basename(cmd) in trusted)
+                td.set_tooltip_text(_("Off (recommended): the sandbox window has a protected link to your desktop."))
+                td.connect("toggled", self.toggle_trusted, os.path.basename(cmd))
+                box.pack_start(td, False, False, 0)
                 b = button(_("Run"), lambda c=cmd: self.start(c))
                 b.set_tooltip_text(cmd)
                 box.pack_start(b, False, False, 0)
@@ -303,6 +310,24 @@ class SandboxWindow(Gtk.Window):
     def remove(self, app):
         if self.confirm(_("Remove %s from the sandbox?") % app):
             self.task(_("Removing %s…") % app, [CLI, "remove-app", app], _("Removed."))
+
+    def toggle_trusted(self, check, cmd):
+        on = check.get_active()
+        if on and not self.confirm(_("Use a trusted display for %s?") % cmd,
+                                   _("Only for apps that are too slow in the sandbox window. A trusted display "
+                                     "draws faster, but if the app breaks out of its sandbox window, it can see "
+                                     "and type into your other windows. Leave it off unless you need it.")):
+            check.handler_block_by_func(self.toggle_trusted)
+            check.set_active(False)
+            check.handler_unblock_by_func(self.toggle_trusted)
+            return
+        r = subprocess.run([CLI, "trusted-display", cmd, "on" if on else "off"], capture_output=True, text=True,
+                           timeout=30)
+        self.append(r.stdout + r.stderr)
+        if r.returncode:
+            check.handler_block_by_func(self.toggle_trusted)
+            check.set_active(not on)
+            check.handler_unblock_by_func(self.toggle_trusted)
 
     def flags(self, gui=True):
         f = []

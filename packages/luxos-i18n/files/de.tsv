@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Führen Sie luxos-sandbox als norm
 Sandbox directory is not owned by you: %s	Das Sandbox-Verzeichnis gehört nicht Ihnen: %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr ist nicht installiert (Paket xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Das Sandbox-Fenster (Xephyr) konnte nicht gestartet werden.
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Warnung: %s verwendet eine vertrauenswürdige Anzeige (in Sandbox eingestellt). Bricht die App aus ihrem Sandbox-Fenster aus, kann sie Ihre anderen Fenster sehen und in sie tippen.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Verwendung: luxos-sandbox trusted-display [<Befehl> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s verwendet eine vertrauenswürdige Anzeige: schnelleres Zeichnen, aber bricht die App aus ihrem Sandbox-Fenster aus, kann sie Ihre anderen Fenster sehen und in sie tippen.
+%s uses the protected display again.	%s verwendet wieder die geschützte Anzeige.
+Trusted display: %s	Vertrauenswürdige Anzeige: %s
+Sandbox windows need the libraries libX11 and libXext.	Sandbox-Fenster benötigen die Bibliotheken libX11 und libXext.
+Could not connect to your desktop display.	Verbindung zur Anzeige Ihres Schreibtischs nicht möglich.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	Der X-Server Ihres Schreibtischs hat keine SECURITY-Erweiterung; Sandbox-Fenster benötigen sie.
+Could not create a display permission for the sandbox window.	Für das Sandbox-Fenster konnte keine Anzeigeberechtigung erstellt werden.
+Sandbox windows need a local X display (DISPLAY=:0).	Sandbox-Fenster benötigen eine lokale X-Anzeige (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	vertrauenswürdige Anzeige für eine App erlauben (schneller, aber weniger geschützt; Standard: geschützt)
+Trusted display	Vertrauenswürdige Anzeige
+Off (recommended): the sandbox window has a protected link to your desktop.	Aus (empfohlen): Das Sandbox-Fenster ist geschützt mit Ihrem Schreibtisch verbunden.
+Use a trusted display for %s?	Vertrauenswürdige Anzeige für %s verwenden?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Nur für Apps, die im Sandbox-Fenster zu langsam sind. Eine vertrauenswürdige Anzeige zeichnet schneller, aber bricht die App aus ihrem Sandbox-Fenster aus, kann sie Ihre anderen Fenster sehen und in sie tippen. Lassen Sie sie aus, wenn Sie sie nicht brauchen.
 Network for the sandbox needs pasta (package passt).	Netzwerk für die Sandbox benötigt pasta (Paket passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Warnung: systemd-Benutzersitzung nicht verfügbar, Ausführung ohne Speicher-/CPU-Limits.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Die Sandbox ist beschädigt (home ist kein Verzeichnis). Ausführen: luxos-sandbox reset

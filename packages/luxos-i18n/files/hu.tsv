@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	A luxos-sandbox parancsot normál 
 Sandbox directory is not owned by you: %s	A sandbox könyvtára nem a te tulajdonod: %s
 Xephyr is not installed (package xorg-server-xephyr).	A Xephyr nincs telepítve (xorg-server-xephyr csomag).
 Could not start the sandbox window (Xephyr).	Nem sikerült megnyitni a sandbox ablakát (Xephyr).
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Figyelem: a(z) %s megbízható kijelzőt használ (a Sandboxban beállítva). Ha az alkalmazás kitör a sandbox ablakából, látja a többi ablakát, és gépelhet beléjük.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Használat: luxos-sandbox trusted-display [<parancs> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	A(z) %s megbízható kijelzőt fog használni: gyorsabb rajzolás, de ha az alkalmazás kitör a sandbox ablakából, látja a többi ablakát, és gépelhet beléjük.
+%s uses the protected display again.	A(z) %s ismét a védett kijelzőt használja.
+Trusted display: %s	Megbízható kijelző: %s
+Sandbox windows need the libraries libX11 and libXext.	A sandbox ablakaihoz a libX11 és libXext könyvtár szükséges.
+Could not connect to your desktop display.	Nem sikerült csatlakozni az asztal kijelzőjéhez.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	Az asztal X szerverének nincs SECURITY bővítménye; a sandbox ablakainak szüksége van rá.
+Could not create a display permission for the sandbox window.	Nem sikerült kijelzőengedélyt létrehozni a sandbox ablakához.
+Sandbox windows need a local X display (DISPLAY=:0).	A sandbox ablakaihoz helyi X kijelző kell (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	megbízható kijelző engedélyezése egy alkalmazásnak (gyorsabb, de kevésbé védett; alapértelmezés: védett)
+Trusted display	Megbízható kijelző
+Off (recommended): the sandbox window has a protected link to your desktop.	Ki (ajánlott): a sandbox ablaka védett kapcsolatban áll az asztallal.
+Use a trusted display for %s?	Megbízható kijelzőt használ ehhez: %s?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Csak olyan alkalmazásokhoz, amelyek túl lassúak a sandbox ablakában. A megbízható kijelző gyorsabban rajzol, de ha az alkalmazás kitör a sandbox ablakából, látja a többi ablakát, és gépelhet beléjük. Hagyja kikapcsolva, ha nincs rá szüksége.
 Network for the sandbox needs pasta (package passt).	A sandbox hálózatához szükség van a pasta programra (passt csomag).
 Warning: systemd user session not available, running without memory/CPU limits.	Figyelem: a systemd felhasználói munkamenet nem érhető el, futtatás memória- és CPU-korlát nélkül.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	A sandbox sérült (a home nem könyvtár). Futtasd: luxos-sandbox reset

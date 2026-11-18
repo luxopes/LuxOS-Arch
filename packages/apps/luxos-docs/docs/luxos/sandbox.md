@@ -52,6 +52,7 @@ luxos-sandbox shell [--net] [--shared]   # interactive bash inside ([sandbox] pr
 luxos-sandbox reset [--yes]              # wipe everything inside and create it again
 luxos-sandbox destroy [--yes]            # delete the sandbox (~/Sandbox stays)
 luxos-sandbox sync-launchers [--json]    # update commands/Launchpad entries of sandbox apps
+luxos-sandbox trusted-display [CMD on|off]  # per-app trusted display (default: untrusted, see below)
 ```
 
 Options for `run` (before the command): `--net`, `--gui`, `--shared` (and `--launcher`, used by the
@@ -152,7 +153,8 @@ process inside the sandbox and made executable; the original location is never m
 The GUI shows status (Ready / Not created), **Create Sandbox**, **Installed apps** (Run / Remove),
 **Install app** (package name), **Run app** (command or *Choose File…*), switches **Network**
 (default off), **Window** (default on = `--gui`), **Shared folder** (default off), **Open Terminal**
-(opens `luxos-terminal`), **Open** shared folder, **Reset…**, and a *Details* log.
+(opens `luxos-terminal`), **Open** shared folder, **Reset…**, and a *Details* log. Each installed app
+with a command has a **Trusted display** check box (default off, asks with a warning before turning on).
 
 ## What is isolated
 
@@ -177,6 +179,26 @@ The GUI shows status (Ready / Not created), **Create Sandbox**, **Installed apps
 - **Session:** no D-Bus (session or system), **no sound** (PulseAudio/PipeWire), no Wayland, no host
   X11, no SSH agent, no keyring.
 - **Clipboard:** not shared (Xephyr has its own).
+- **Xephyr's link to your desktop (X11 SECURITY extension):** on X11 any *trusted* client can read the
+  keys typed into other windows, take screenshots and inject input. Xephyr parses X protocol from the
+  untrusted app, so it runs in **its own bwrap** (read-only `/usr` and `/etc/X11`, no home, no network,
+  no D-Bus, `--cap-drop ALL`, the app's seccomp filter, `--clearenv`) and connects to your desktop with
+  an **untrusted authorization** from the X server's SECURITY extension, new for every run
+  (`XSecurityGenerateAuthorization`, `untrusted`, `timeout 0`), passed in memory (`memfd`) – never
+  `~/.Xauthority` and never its FamilyWild entry. When the sandbox exits, `luxos-sandbox` revokes it
+  (`XSecurityRevokeAuthorization`; the X server disconnects anything still using it; if
+  `luxos-sandbox` dies, the server revokes it when the connection closes). An untrusted client sees only
+  `BIG-REQUESTS` and `XC-MISC` (no `RECORD`, `XTEST`, `XInputExtension`, `MIT-SHM`, `XKEYBOARD`),
+  `XQueryKeymap` returns nothing, event selection on other windows is ignored, `XGetImage` of other
+  windows and of the screen fails and `XSendEvent` into other windows is refused. Without the SECURITY
+  extension on your display the sandbox window does not start (fail closed); LuxOS's Xorg has it on.
+  GLX inside Xephyr is software rendering (Mesa).
+- **Trusted display (per-app opt-in):** the untrusted Xephyr draws without `MIT-SHM`, which is slower
+  for video and games. For one command you can turn on **Trusted display** next to the app in the
+  Sandbox window (with a warning) or run `luxos-sandbox trusted-display COMMAND on|off`
+  (`~/.config/luxos/sandbox/trusted-display`; list with `luxos-sandbox trusted-display`). It is still a
+  temporary authorization for that run only (level `trusted`), Xephyr stays confined and only shares the
+  IPC namespace for `MIT-SHM`. The default is always untrusted.
 - **Resources:** `systemd-run --user --scope` with `MemoryMax=50%`, `MemorySwapMax=1G`,
   `TasksMax=512`, `CPUQuota` = 75 % of all cores (without a user systemd only a warning).
 
@@ -187,9 +209,18 @@ Environment inside: `HOME=/home/sandbox`, `USER=sandbox`, `LUXOS_SANDBOX=1`, `LA
 - **Kernel bugs:** the sandbox shares the kernel; a kernel exploit can escape. For really dangerous
   software use a virtual machine.
 - Unprivileged user namespaces must be enabled in the kernel (bwrap without setuid).
-- **Xephyr** runs as your user on the desktop; a Xephyr bug could give code execution outside. Apps in the
-  same Xephyr window can see each other (keylogging between them is possible). No window manager inside,
-  so windows have no decorations.
+- **Xephyr:** a Xephyr bug could give code execution outside the app's sandbox – but only inside Xephyr's
+  own confinement (no home, network or session) and with an untrusted link to your desktop. The SECURITY
+  extension does **not** stop `XGrabKeyboard`: a hijacked Xephyr could actively take over the keyboard
+  (what you type then goes to it). This is visible – the window you type into stops receiving text and
+  loses focus; passive keylogging of other windows is not possible. With **Trusted display** a hijacked
+  Xephyr could watch, capture and control your desktop. Apps in the same Xephyr window can see each other
+  (keylogging between them is possible). No window manager inside, so windows have no decorations.
+- **Flatpak apps (Flathub) are not the Sandbox:** a Flatpak app with the `x11`/`fallback-x11` permission
+  gets your desktop's X socket and your **trusted** cookie in an X11 session (Flatpak copies it from
+  `XAUTHORITY`), so it can read keys, take screenshots and inject input. LuxOS does not wrap Flatpak
+  or change its default permissions (apps start with plain `flatpak run`). Use the Sandbox for untrusted
+  programs with a window.
 - **Terminal:** `shell`/`run` in a terminal share the terminal (for Ctrl+C/job control); `TIOCSTI` is
   blocked, but escape sequences can still reach the terminal emulator.
 - **Shared folder:** anything written to `~/Sandbox` is untrusted (malicious documents, symlinks).

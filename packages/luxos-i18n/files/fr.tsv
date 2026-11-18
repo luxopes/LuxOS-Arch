@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Exécutez luxos-sandbox en tant qu
 Sandbox directory is not owned by you: %s	Le dossier du bac à sable ne vous appartient pas : %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr n’est pas installé (paquet xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Impossible d’ouvrir la fenêtre du bac à sable (Xephyr).
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Attention : %s utilise un affichage de confiance (réglé dans Bac à sable). Si l’application s’échappe de sa fenêtre du bac à sable, elle peut voir vos autres fenêtres et y taper.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Utilisation : luxos-sandbox trusted-display [<commande> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s utilisera un affichage de confiance : dessin plus rapide, mais si l’application s’échappe de sa fenêtre du bac à sable, elle peut voir vos autres fenêtres et y taper.
+%s uses the protected display again.	%s utilise de nouveau l’affichage protégé.
+Trusted display: %s	Affichage de confiance : %s
+Sandbox windows need the libraries libX11 and libXext.	Les fenêtres du bac à sable ont besoin des bibliothèques libX11 et libXext.
+Could not connect to your desktop display.	Impossible de se connecter à l’affichage de votre bureau.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	Le serveur X de votre bureau n’a pas l’extension SECURITY ; les fenêtres du bac à sable en ont besoin.
+Could not create a display permission for the sandbox window.	Impossible de créer une autorisation d’affichage pour la fenêtre du bac à sable.
+Sandbox windows need a local X display (DISPLAY=:0).	Les fenêtres du bac à sable ont besoin d’un affichage X local (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	autoriser un affichage de confiance pour une application (plus rapide, mais moins protégé ; par défaut : protégé)
+Trusted display	Affichage de confiance
+Off (recommended): the sandbox window has a protected link to your desktop.	Désactivé (recommandé) : la fenêtre du bac à sable a une liaison protégée avec votre bureau.
+Use a trusted display for %s?	Utiliser un affichage de confiance pour %s ?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Uniquement pour les applications trop lentes dans la fenêtre du bac à sable. Un affichage de confiance dessine plus vite, mais si l’application s’échappe de sa fenêtre du bac à sable, elle peut voir vos autres fenêtres et y taper. Laissez-le désactivé si vous n’en avez pas besoin.
 Network for the sandbox needs pasta (package passt).	Le réseau du bac à sable nécessite pasta (paquet passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Attention : session utilisateur systemd indisponible, exécution sans limites de mémoire et de processeur.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Le bac à sable est endommagé (home n’est pas un dossier). Exécutez : luxos-sandbox reset

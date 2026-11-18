@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Spouštějte luxos-sandbox jako b�
 Sandbox directory is not owned by you: %s	Adresář sandboxu vám nepatří: %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr není nainstalovaný (balík xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Nepodařilo se otevřít okno sandboxu (Xephyr).
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Upozornění: %s používá důvěryhodný displej (nastaveno v Sandboxu). Pokud aplikace unikne ze svého okna sandboxu, uvidí vaše ostatní okna a může do nich psát.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Použití: luxos-sandbox trusted-display [<příkaz> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s bude používat důvěryhodný displej: rychlejší kreslení, ale pokud aplikace unikne ze svého okna sandboxu, uvidí vaše ostatní okna a může do nich psát.
+%s uses the protected display again.	%s znovu používá chráněný displej.
+Trusted display: %s	Důvěryhodný displej: %s
+Sandbox windows need the libraries libX11 and libXext.	Okna sandboxu potřebují knihovny libX11 a libXext.
+Could not connect to your desktop display.	Nepodařilo se připojit k displeji vaší plochy.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	X server vaší plochy nemá rozšíření SECURITY; okna sandboxu ho potřebují.
+Could not create a display permission for the sandbox window.	Nepodařilo se vytvořit oprávnění k displeji pro okno sandboxu.
+Sandbox windows need a local X display (DISPLAY=:0).	Okna sandboxu potřebují místní X displej (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	povolit důvěryhodný displej pro jednu aplikaci (rychlejší, ale méně chráněné; výchozí: chráněný)
+Trusted display	Důvěryhodný displej
+Off (recommended): the sandbox window has a protected link to your desktop.	Vypnuto (doporučeno): okno sandboxu má s vaší plochou chráněné spojení.
+Use a trusted display for %s?	Použít pro %s důvěryhodný displej?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Jen pro aplikace, které jsou v okně sandboxu příliš pomalé. Důvěryhodný displej kreslí rychleji, ale pokud aplikace unikne ze svého okna sandboxu, uvidí vaše ostatní okna a může do nich psát. Pokud to nepotřebujete, nechte ho vypnutý.
 Network for the sandbox needs pasta (package passt).	Síť pro sandbox potřebuje pastu (balík passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Upozornění: uživatelská relace systemd není dostupná, spouštím bez omezení paměti a procesoru.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Sandbox je poškozený (domovská složka není adresář). Spusťte: luxos-sandbox reset

@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Запускайте luxos-sandbox
 Sandbox directory is not owned by you: %s	Каталог пісочниці вам не належить: %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr не інстальовано (пакет xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Не вдалося відкрити вікно пісочниці (Xephyr).
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Увага: %s використовує довірений дисплей (налаштовано в Пісочниці). Якщо застосунок вирветься зі свого вікна пісочниці, він бачитиме інші ваші вікна й зможе в них друкувати.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Використання: luxos-sandbox trusted-display [<команда> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s використовуватиме довірений дисплей: швидше малювання, але якщо застосунок вирветься зі свого вікна пісочниці, він бачитиме інші ваші вікна й зможе в них друкувати.
+%s uses the protected display again.	%s знову використовує захищений дисплей.
+Trusted display: %s	Довірений дисплей: %s
+Sandbox windows need the libraries libX11 and libXext.	Вікнам пісочниці потрібні бібліотеки libX11 і libXext.
+Could not connect to your desktop display.	Не вдалося під’єднатися до дисплея вашої стільниці.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	X-сервер вашої стільниці не має розширення SECURITY; вікнам пісочниці воно потрібне.
+Could not create a display permission for the sandbox window.	Не вдалося створити дозвіл на дисплей для вікна пісочниці.
+Sandbox windows need a local X display (DISPLAY=:0).	Вікнам пісочниці потрібен локальний X-дисплей (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	дозволити довірений дисплей для одного застосунку (швидше, але менш захищено; типово: захищений)
+Trusted display	Довірений дисплей
+Off (recommended): the sandbox window has a protected link to your desktop.	Вимкнено (рекомендовано): вікно пісочниці має захищене з’єднання з вашою стільницею.
+Use a trusted display for %s?	Використовувати довірений дисплей для %s?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Лише для застосунків, які надто повільні у вікні пісочниці. Довірений дисплей малює швидше, але якщо застосунок вирветься зі свого вікна пісочниці, він бачитиме інші ваші вікна й зможе в них друкувати. Залиште вимкненим, якщо він вам не потрібен.
 Network for the sandbox needs pasta (package passt).	Для мережі в пісочниці потрібна pasta (пакет passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Увага: сеанс користувача systemd недоступний, запуск без обмежень пам’яті й процесора.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Пісочницю пошкоджено (домашня папка не є каталогом). Запустіть: luxos-sandbox reset

@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Kör luxos-sandbox som vanlig anv�
 Sandbox directory is not owned by you: %s	Sandlådekatalogen ägs inte av dig: %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr är inte installerat (paketet xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Det gick inte att starta sandlådans fönster (Xephyr).
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Varning: %s använder en betrodd skärm (inställt i Sandlåda). Om appen tar sig ut ur sitt sandlådefönster kan den se dina andra fönster och skriva i dem.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Användning: luxos-sandbox trusted-display [<kommando> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s kommer att använda en betrodd skärm: snabbare ritning, men om appen tar sig ut ur sitt sandlådefönster kan den se dina andra fönster och skriva i dem.
+%s uses the protected display again.	%s använder den skyddade skärmen igen.
+Trusted display: %s	Betrodd skärm: %s
+Sandbox windows need the libraries libX11 and libXext.	Sandlådans fönster behöver biblioteken libX11 och libXext.
+Could not connect to your desktop display.	Det gick inte att ansluta till skrivbordets skärm.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	Skrivbordets X-server saknar tillägget SECURITY; sandlådans fönster behöver det.
+Could not create a display permission for the sandbox window.	Det gick inte att skapa en skärmbehörighet för sandlådans fönster.
+Sandbox windows need a local X display (DISPLAY=:0).	Sandlådans fönster behöver en lokal X-skärm (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	tillåt en betrodd skärm för en app (snabbare, men mindre skyddad; standard: skyddad)
+Trusted display	Betrodd skärm
+Off (recommended): the sandbox window has a protected link to your desktop.	Av (rekommenderas): sandlådans fönster har en skyddad anslutning till skrivbordet.
+Use a trusted display for %s?	Använda en betrodd skärm för %s?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Bara för appar som är för långsamma i sandlådans fönster. En betrodd skärm ritar snabbare, men om appen tar sig ut ur sitt sandlådefönster kan den se dina andra fönster och skriva i dem. Låt den vara av om du inte behöver den.
 Network for the sandbox needs pasta (package passt).	Nätverk för sandlådan kräver pasta (paketet passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Varning: systemd-användarsession är inte tillgänglig, körs utan minnes-/CPU-gränser.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	Sandlådan är skadad (hemkatalogen är inte en katalog). Kör: luxos-sandbox reset

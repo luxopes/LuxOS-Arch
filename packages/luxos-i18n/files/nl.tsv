@@ -591,6 +591,21 @@ Run luxos-sandbox as a normal user, not root.	Voer luxos-sandbox uit als gewone 
 Sandbox directory is not owned by you: %s	De sandboxmap is niet van jou: %s
 Xephyr is not installed (package xorg-server-xephyr).	Xephyr is niet geïnstalleerd (pakket xorg-server-xephyr).
 Could not start the sandbox window (Xephyr).	Kan het sandboxvenster (Xephyr) niet starten.
+Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its sandbox window, it can see and type into your other windows.	Waarschuwing: %s gebruikt een vertrouwd scherm (ingesteld in Sandbox). Als de app uit zijn sandboxvenster breekt, kan hij je andere vensters zien en erin typen.
+Usage: luxos-sandbox trusted-display [<command> on|off]	Gebruik: luxos-sandbox trusted-display [<opdracht> on|off]
+%s will use a trusted display: faster drawing, but if the app breaks out of its sandbox window, it can see and type into your other windows.	%s gebruikt een vertrouwd scherm: sneller tekenen, maar als de app uit zijn sandboxvenster breekt, kan hij je andere vensters zien en erin typen.
+%s uses the protected display again.	%s gebruikt weer het beschermde scherm.
+Trusted display: %s	Vertrouwd scherm: %s
+Sandbox windows need the libraries libX11 and libXext.	Sandboxvensters hebben de bibliotheken libX11 en libXext nodig.
+Could not connect to your desktop display.	Kan geen verbinding maken met het scherm van je bureaublad.
+The X server of your desktop has no SECURITY extension; sandbox windows need it.	De X-server van je bureaublad heeft geen SECURITY-extensie; sandboxvensters hebben die nodig.
+Could not create a display permission for the sandbox window.	Kan geen schermtoestemming maken voor het sandboxvenster.
+Sandbox windows need a local X display (DISPLAY=:0).	Sandboxvensters hebben een lokaal X-scherm nodig (DISPLAY=:0).
+allow a trusted display for one app (faster, but less protected; default: protected)	een vertrouwd scherm toestaan voor één app (sneller, maar minder beschermd; standaard: beschermd)
+Trusted display	Vertrouwd scherm
+Off (recommended): the sandbox window has a protected link to your desktop.	Uit (aanbevolen): het sandboxvenster heeft een beschermde verbinding met je bureaublad.
+Use a trusted display for %s?	Een vertrouwd scherm gebruiken voor %s?
+Only for apps that are too slow in the sandbox window. A trusted display draws faster, but if the app breaks out of its sandbox window, it can see and type into your other windows. Leave it off unless you need it.	Alleen voor apps die te traag zijn in het sandboxvenster. Een vertrouwd scherm tekent sneller, maar als de app uit zijn sandboxvenster breekt, kan hij je andere vensters zien en erin typen. Laat het uit als je het niet nodig hebt.
 Network for the sandbox needs pasta (package passt).	Netwerk voor de sandbox vereist pasta (pakket passt).
 Warning: systemd user session not available, running without memory/CPU limits.	Waarschuwing: systemd-gebruikerssessie niet beschikbaar, er wordt gewerkt zonder geheugen-/CPU-limieten.
 The sandbox is damaged (home is not a directory). Run: luxos-sandbox reset	De sandbox is beschadigd (home is geen map). Voer uit: luxos-sandbox reset

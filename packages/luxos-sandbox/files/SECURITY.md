@@ -51,6 +51,31 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
 - **GUI (`--gui`):** aplikace dostane jen socket vlastního X serveru **Xephyr** v okně
   „Sandbox – aplikace“ (`-nolisten tcp -nolisten local`, vlastní MIT cookie). Na displej plochy (`:0`)
   se nedostane, schránka se nesdílí.
+- **Spojení Xephyru s plochou (X11 SECURITY):** X11 dovoluje každému *důvěryhodnému* klientovi číst
+  klávesy jiných oken, snímat obrazovku a vkládat události. Xephyr zpracovává protokol X od nedůvěryhodné
+  aplikace, proto:
+  - běží ve **vlastním bwrap** (jen `/usr` pro čtení a `/etc/X11`, bez domova, bez sítě, bez D-Bus,
+    `--cap-drop ALL`, seccomp jako aplikace, `--clearenv`); dovnitř jde jen socket displeje plochy
+    a dva soubory autorizace v paměti (`memfd`, nikdy na disku);
+  - k displeji plochy se připojuje s **nedůvěryhodnou autorizací** z rozšíření X serveru SECURITY
+    (`XSecurityGenerateAuthorization`, `untrusted`, `timeout 0`), novou pro každé spuštění. Nikdy
+    nedostane `~/.Xauthority` ani jeho položku FamilyWild (`luxos-xauth-wildcard`);
+  - autorizaci drží spojení `luxos-sandbox` s displejem: při skončení sandboxu ji zruší
+    (`XSecurityRevokeAuthorization`, X server odpojí všechny, kdo ji ještě používají); spadne-li
+    `luxos-sandbox`, X server ji zruší sám se zavřením spojení;
+  - nedůvěryhodný klient vidí jen rozšíření `BIG-REQUESTS` a `XC-MISC` (žádné `RECORD`, `XTEST`,
+    `XInputExtension`, `MIT-SHM`, `XKEYBOARD`), `XQueryKeymap` vrací prázdný stav, výběr událostí na
+    cizích oknech se tiše ignoruje, `XGetImage` cizího okna i celé obrazovky selže a `XSendEvent` do
+    cizího okna se odmítne (`BadWindow`). Ověřuje `tests/test_x11_untrusted.py`;
+  - GLX v Xephyru kreslí softwarově (Mesa, `__EGL_VENDOR_LIBRARY_FILENAMES`) – EGL NVIDIA bez `/dev`
+    a `/sys` hostitele Xephyr shazoval.
+  Bez rozšíření SECURITY na displeji plochy se okno sandboxu nespustí (fail closed). Xorg i Xvfb
+  z `xorg-server` ho mají zapnuté, LuxOS ho v konfiguraci Xorg nevypíná.
+- **Důvěryhodný displej (výjimka na přání):** nedůvěryhodný Xephyr kreslí bez `MIT-SHM` (pomaleji
+  u videa a her). Pro jednotlivý příkaz lze v okně Sandbox zapnout **Důvěryhodný displej** (s varováním)
+  nebo `luxos-sandbox trusted-display PŘÍKAZ on` (`~/.config/luxos/sandbox/trusted-display`). I pak jde
+  o dočasnou autorizaci jen pro tento běh (úroveň `trusted`) a Xephyr zůstává v bwrap, jen sdílí IPC
+  namespace kvůli `MIT-SHM`. Výchozí je vždy nedůvěryhodné spojení.
 - **Výměna souborů:** jen složka `~/Sandbox`, a to pouze s `--shared` (jako `/home/sandbox/Shared`).
 - **Zdroje:** limity paměti, procesů a CPU (systemd scope); bez uživatelského systemd jen varování.
 - **Spouštěče na hostiteli** (`luxos-sandbox sync-launchers`; obaly příkazů v
@@ -73,9 +98,18 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   Pro opravdu nebezpečný software použijte virtuální počítač.
 - **Neprivilegované user namespaces** musí být v jádře povolené (bwrap bez setuid). To samo o sobě
   zvětšuje útočnou plochu jádra pro celý systém (vnořené namespaces uvnitř sandboxu ale seccomp blokuje).
-- **X11 přes Xephyr:** Xephyr je X server běžící jako uživatel na ploše; chyba v Xephyr může útočníkovi
-  dát kód s právy uživatele mimo sandbox. Aplikace v témže okně Xephyr se navzájem vidí (keylogging
-  mezi nimi je možný). Bez správce oken se okna aplikací zobrazují bez dekorací.
+- **X11 přes Xephyr:** chyba v Xephyr může útočníkovi dát kód mimo sandbox aplikace – ale jen uvnitř
+  omezení Xephyru (bez domova, sítě a sezení) a s nedůvěryhodným spojením k ploše. Rozšíření SECURITY
+  **nebrání `XGrabKeyboard`**: ovládnutý Xephyr si může klávesnici aktivně převzít (to, co pak píšete,
+  dostane on). Je to viditelné – okno, do kterého píšete, přestane dostávat znaky a ztratí fokus;
+  pasivní odposlech kláves jiných oken nejde. S **důvěryhodným displejem** (výjimka) by ovládnutý
+  Xephyr mohl plochu odposlouchávat, snímat a ovládat. Aplikace v témže okně Xephyr se navzájem vidí
+  (keylogging mezi nimi je možný). Bez správce oken se okna aplikací zobrazují bez dekorací.
+- **Flatpak (Flathub) není LuxOS Sandbox:** aplikace Flatpak s oprávněním `x11`/`fallback-x11` dostanou
+  v relaci X11 socket displeje plochy a **důvěryhodný** cookie uživatele (Flatpak ho kopíruje
+  z `XAUTHORITY`) – mohou číst klávesy, snímat obrazovku a vkládat události. LuxOS Flatpak nijak
+  neobaluje ani nemění jeho výchozí oprávnění (spouští se přímo `flatpak run`). Pro nedůvěryhodné
+  programy s oknem používejte Sandbox.
 - **Terminál:** `shell` a `run` v terminálu sdílí terminál (bez `--new-session`, aby fungovala
   Ctrl+C a job control); vkládání znaků (`TIOCSTI`) blokuje seccomp, ale aplikace může do terminálu
   posílat escape sekvence (chyby emulátoru terminálu).
@@ -108,6 +142,9 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
 
 Automatický test izolace (bez root): `packages/luxos-sandbox/tests/isolation-test.sh`
 (domov, síť, `/proc`, ptrace, zápis mimo kořen včetně podvržených symlinků, sdílená složka, seccomp,
-capabilities, `--net` bez LAN/hostitele, `--gui` jen Xephyr, limity) a test spouštěčů
+capabilities, `--net` bez LAN/hostitele, `--gui` jen Xephyr, limity), test nedůvěryhodného spojení
+Xephyru s plochou `packages/luxos-sandbox/tests/test_x11_untrusted.py` (jen Xvfb: sonda `x11-probe.c` na
+místě Xephyru zkouší odposlech, snímky a vkládání do důvěryhodného okna; na staré cestě s cookie uživatele
+test selže) a test spouštěčů
 `packages/luxos-sandbox/tests/test_launchers.py` (podvržené `.desktop` soubory, ikony a symlinky,
 zastaralé spouštěče, pořadí v `PATH`).
