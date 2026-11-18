@@ -1279,10 +1279,12 @@ diff -ruN a/src/gs-window.c b/src/gs-window.c
 diff -ruN a/src/meson.build b/src/meson.build
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -145,6 +145,10 @@
+@@ -145,6 +145,12 @@
    'gs-debug.h',
    'gs-lock-plug.c',
    'gs-lock-plug.h',
++  'luxos-lock-battery.c',
++  'luxos-lock-battery.h',
 +  'luxos-lock-kbd.c',
 +  'luxos-lock-kbd.h',
 +  'luxos-lock-ui.c',

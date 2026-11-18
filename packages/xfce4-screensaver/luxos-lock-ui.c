@@ -16,7 +16,9 @@
  * LUXOS_LOCK_DEMO_USERS=N (pocet uzivatelu; tlacitka napajeni pak jen zapisou do logu),
  * LUXOS_I18N_DIR a LUXOS_GREETER_CONF (preklady a nastaveni z jineho mista), LUXOS_LOCK_DEBUG=1
  * (stav Caps Locku, rozlozeni, hlasky a pole na stderr), s LUXOS_LOCK_DEMO_USERS signal SIGUSR1
- * (jako by system prave spal). Testy: tests/test-lock-kbd.c, tests/gui-caps-lock.py.
+ * (jako by system prave spal), LUXOS_LOCK_DEMO_POWER_SUPPLY (s LUXOS_LOCK_DEMO_USERS: adresar misto
+ * /sys/class/power_supply). Testy: tests/test-lock-kbd.c, tests/test-lock-battery.c (ikona baterie,
+ * luxos-lock-battery.c), tests/gui-caps-lock.py, tests/gui-battery.py.
  *
  * Caps Lock a rozlozeni jsou v radku pod polem pro heslo (stav primo ze serveru X, zmeny podle
  * udalosti XKB), nezavisle na hlaskach - po spatnem hesle s Caps Lockem to rekne i chyba.
@@ -45,6 +47,7 @@
 #include <libxklavier/xklavier.h>
 #endif
 
+#include "luxos-lock-battery.h"
 #include "luxos-lock-kbd.h"
 #include "luxos-lock-ui.h"
 
@@ -511,49 +514,6 @@ icon_wired (cairo_t *cr, double x, double y, double s) {
     cairo_stroke (cr);
 }
 
-static void
-icon_battery (cairo_t *cr, double x, double y, double h, int level, gboolean charging) {
-    double w = h * 2.05, lw = MAX (1.0, h * 0.09), inner, frac;
-    cairo_set_line_width (cr, lw);
-    cairo_set_source_rgba (cr, 1, 1, 1, 0.55);
-    rounded (cr, x + lw / 2, y + lw / 2, w - h * 0.22 - lw, h - lw, h * 0.26);
-    cairo_stroke (cr);
-    rounded (cr, x + w - h * 0.2, y + h * 0.33, h * 0.14, h * 0.34, h * 0.06);
-    cairo_fill (cr);
-    inner = w - h * 0.22 - lw * 2 - h * 0.16;
-    frac = CLAMP (level / 100.0, 0.0, 1.0);
-    if (level <= 15 && !charging)
-        cairo_set_source_rgba (cr, 1.0, 0.36, 0.33, 1);
-    else
-        cairo_set_source_rgba (cr, 1, 1, 1, 0.95);
-    double fx = x + lw + h * 0.08, fy = y + lw + h * 0.08;
-    double fw = MAX (h * 0.12, inner * frac), fh = h - 2 * lw - h * 0.16;
-    rounded (cr, fx, fy, fw, fh, h * 0.14);
-    cairo_fill (cr);
-    if (charging) {
-        /* Blesk je dvoubarevny: bily nad prazdnou casti baterie, tmavy nad vyplni.
-         * Driv byl cely cerny, takze pri nizsim nabiti (stred nevyplneny) na tmavem
-         * pozadi zamku nebyl videt. */
-        double cx = x + (w - h * 0.22) / 2, cy = y + h / 2;
-        cairo_save (cr);
-        cairo_move_to (cr, cx + h * 0.08, cy - h * 0.42);
-        cairo_line_to (cr, cx - h * 0.2, cy + h * 0.06);
-        cairo_line_to (cr, cx - h * 0.01, cy + h * 0.06);
-        cairo_line_to (cr, cx - h * 0.08, cy + h * 0.42);
-        cairo_line_to (cr, cx + h * 0.2, cy - h * 0.06);
-        cairo_line_to (cr, cx + h * 0.01, cy - h * 0.06);
-        cairo_close_path (cr);
-        cairo_clip_preserve (cr);
-        cairo_set_source_rgba (cr, 1, 1, 1, 0.95);
-        cairo_fill (cr);
-        cairo_rectangle (cr, fx, fy, fw, fh);
-        cairo_clip (cr);
-        cairo_set_source_rgba (cr, 0, 0, 0, 0.75);
-        cairo_paint (cr);
-        cairo_restore (cr);
-    }
-}
-
 /* ---- tapeta: stejne poradi jako setric (luxos-screensaver desktop_wallpaper) ---------- */
 static char *
 desktop_wallpaper (const char *model) {
@@ -911,9 +871,9 @@ draw_avatar (GtkWidget *area, cairo_t *cr, LuxLock *ll) {
 
 static gboolean
 draw_battery (GtkWidget *area, cairo_t *cr, LuxLock *ll) {
-    double h = ll->sz.status * 0.78;
+    double h = ll->sz.status * LUX_BATTERY_H;
     if (ll->has_bat)
-        icon_battery (cr, 1, (gtk_widget_get_allocated_height (area) - h) / 2, h, ll->bat_level, ll->bat_charging);
+        lux_battery_draw (cr, 1, (gtk_widget_get_allocated_height (area) - h) / 2, h, ll->bat_level, ll->bat_charging);
     return FALSE;
 }
 
@@ -1021,17 +981,27 @@ cmp_str_ptr (gconstpointer a, gconstpointer b) {
     return g_strcmp0 (*(const char *const *) a, *(const char *const *) b);
 }
 
+/* Adresar napajecich zdroju; testy: LUXOS_LOCK_DEMO_POWER_SUPPLY (napodobeny /sys/class/power_supply,
+ * jen spolu s LUXOS_LOCK_DEMO_USERS) */
+static const char *
+power_supply_dir (void) {
+    const char *demo = g_getenv ("LUXOS_LOCK_DEMO_POWER_SUPPLY");
+    if (demo && *demo && g_getenv ("LUXOS_LOCK_DEMO_USERS"))
+        return demo;
+    return "/sys/class/power_supply";
+}
+
 /* Je napajeci zdroj (Mains/USB) pripojeny? */
 static gboolean
 mains_online (void) {
-    GDir *d = g_dir_open ("/sys/class/power_supply", 0, NULL);
+    GDir *d = g_dir_open (power_supply_dir (), 0, NULL);
     const char *n;
     gboolean on = FALSE;
     if (!d)
         return FALSE;
     while (!on && (n = g_dir_read_name (d))) {
-        char *p1 = g_build_filename ("/sys/class/power_supply", n, "type", NULL);
-        char *p2 = g_build_filename ("/sys/class/power_supply", n, "online", NULL);
+        char *p1 = g_build_filename (power_supply_dir (), n, "type", NULL);
+        char *p2 = g_build_filename (power_supply_dir (), n, "online", NULL);
         char *type = read_file (p1), *online = read_file (p2);
         if ((g_strcmp0 (type, "Mains") == 0 || g_strcmp0 (type, "USB") == 0) && g_strcmp0 (online, "1") == 0)
             on = TRUE;
@@ -1057,7 +1027,7 @@ battery_plugged (const char *status) {
 
 static void
 battery_state (LuxLock *ll) {
-    GDir *d = g_dir_open ("/sys/class/power_supply", 0, NULL);
+    GDir *d = g_dir_open (power_supply_dir (), 0, NULL);
     GPtrArray *names = g_ptr_array_new_with_free_func (g_free);
     const char *n;
     ll->has_bat = FALSE;
@@ -1069,15 +1039,16 @@ battery_state (LuxLock *ll) {
     g_ptr_array_sort (names, cmp_str_ptr);
     for (guint i = 0; i < names->len && !ll->has_bat; i++) {
         const char *name = g_ptr_array_index (names, i);
-        char *base = g_build_filename ("/sys/class/power_supply", name, NULL);
+        char *base = g_build_filename (power_supply_dir (), name, NULL);
         char *p1 = g_build_filename (base, "type", NULL), *p2 = g_build_filename (base, "scope", NULL);
         char *type = read_file (p1), *scope = read_file (p2);
         if (g_strcmp0 (type, "Battery") == 0 && g_strcmp0 (scope, "Device") != 0) {
             char *p3 = g_build_filename (base, "capacity", NULL), *p4 = g_build_filename (base, "status", NULL);
             char *cap = read_file (p3), *st = read_file (p4);
-            if (cap) {
+            /* jen citelna kapacita (driv i prazdny / necislicovy obsah jako 0 %), v rozsahu 0-100 */
+            if (cap && g_ascii_isdigit (cap[0])) {
                 ll->has_bat = TRUE;
-                ll->bat_level = atoi (cap);
+                ll->bat_level = CLAMP (atoi (cap), 0, 100);
                 ll->bat_charging = battery_plugged (st);
             }
             g_free (cap);
@@ -1581,7 +1552,7 @@ relayout (LuxLock *ll) {
         gtk_box_set_spacing (GTK_BOX (gtk_bin_get_child (GTK_BIN (rb->button))), px (ll, 5, 3));
     }
     gtk_widget_set_size_request (ll->net_icon, ll->sz.status + 4, ll->sz.status + 4);
-    gtk_widget_set_size_request (ll->bat_icon, (int) round (ll->sz.status * 2.05) + 2, ll->sz.status + 4);
+    gtk_widget_set_size_request (ll->bat_icon, (int) ceil (ll->sz.status * LUX_BATTERY_H * 2.05) + 4, ll->sz.status + 4);
 
     css = g_strdup_printf (
         "* { font-family: \"%s\", \"Inter\", \"Cantarell\", sans-serif; }\n"

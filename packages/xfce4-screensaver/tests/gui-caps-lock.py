@@ -125,7 +125,7 @@ class XKB:
 class Env:
     """Docasne prostredi: Xvfb, D-Bus, HOME a XDG_* - nic ze skutecne relace."""
 
-    def __init__(self, base, layouts):
+    def __init__(self, base, layouts, screen="1280x800x24", extra_env=None):
         self.dir = tempfile.mkdtemp(prefix="caps-lock-test-", dir=base)
         self.procs = []
         env = {k: v for k, v in os.environ.items()
@@ -151,11 +151,12 @@ class Env:
                     sys.exit(f"refusing: {k}={v} is outside the test directory")
                 if os.path.realpath(v).startswith(os.path.join(REAL_HOME, ".")):
                     sys.exit(f"refusing: {k}={v} points into the real home configuration")
+        env.update(extra_env or {})
         os.makedirs(env["XDG_CONFIG_HOME"])
         self.env = env
         # Xvfb s volnym cislem displeje
         r, w = os.pipe()
-        xvfb = subprocess.Popen(["Xvfb", "-displayfd", str(w), "-screen", "0", "1280x800x24", "-nolisten", "tcp",
+        xvfb = subprocess.Popen(["Xvfb", "-displayfd", str(w), "-screen", "0", screen, "-nolisten", "tcp",
                                  "+extension", "XKEYBOARD"], pass_fds=(w,), env=env,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         os.close(w)
@@ -238,7 +239,7 @@ Gtk.main()
 class Dialog:
     """xfce4-screensaver-dialog vlozeny do okna s GtkSocket (jako v xfce4-screensaver)."""
 
-    def __init__(self, env, path, fake_pam, extra_env=None):
+    def __init__(self, env, path, fake_pam, extra_env=None, size=(1280, 800)):
         e = dict(env.env, LD_PRELOAD=fake_pam, LUXOS_LOCK_DEBUG="1", LUXOS_LOCK_DEMO_USERS="1",
                  LUXOS_LOCK_DEMO_NAME="Test User", LUXOS_GREETER_CONF="/nonexistent",
                  LUXOS_I18N_DIR=os.path.join(REPO, "packages", "luxos-i18n", "files"))
@@ -246,7 +247,7 @@ class Dialog:
         self.env = env
         self.lines = []
         self.out = []
-        self.p = subprocess.Popen([path, "--width", "1280", "--height", "800"], env=e, stdout=subprocess.PIPE,
+        self.p = subprocess.Popen([path, "--width", str(size[0]), "--height", str(size[1])], env=e, stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE, text=True, bufsize=1)
         os.set_blocking(self.p.stdout.fileno(), False)
         os.set_blocking(self.p.stderr.fileno(), False)
@@ -259,7 +260,7 @@ class Dialog:
                     self.wid = l.split("=", 1)[1].strip()
         self.host = None
         if self.wid:
-            self.host = subprocess.Popen([sys.executable, "-c", HOST, self.wid, "1280", "800"], env=env.env,
+            self.host = subprocess.Popen([sys.executable, "-c", HOST, self.wid, str(size[0]), str(size[1])], env=env.env,
                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.wait_state(lambda s: s.get("focus") == "1", 5)
 

@@ -9,8 +9,8 @@
 #   luxos-lock-ui.c/.h                 vzhled (kresleni podle luxos-greeter, preklady luxos-i18n)
 #   luxos-lock-kbd.c/.h                Caps Lock, rozlozeni a probuzeni z uspani bez GTK (testy:
 #                                      tests/test-lock-kbd.c, v Xvfb tests/gui-caps-lock.py)
-#   luxos-lock-kbd.c/.h                Caps Lock, rozlozeni a probuzeni z uspani bez GTK (testy:
-#                                      tests/test-lock-kbd.c, v Xvfb tests/gui-caps-lock.py)
+#   luxos-lock-battery.c/.h            ikona baterie s bleskem viditelnym pri kazdem nabiti a na kazde
+#                                      tapete (testy: tests/test-lock-battery.c, v Xvfb tests/gui-battery.py)
 #   xfce4-screensaver-dialog.ui/.css   nahrazuji puvodni rozvrzeni a styl dialogu
 #   luxos-lock-dialog.patch            napojeni na gs-lock-plug.c a xfce4-screensaver-dialog.c,
 #                                      gs-window.c: setric zustane videt, dokud dialog nema okno, a
@@ -24,7 +24,7 @@
 
 pkgname=xfce4-screensaver
 pkgver=4.20.2
-pkgrel=1.5
+pkgrel=1.6
 pkgdesc='Xfce Screensaver (LuxOS: lock screen in the style of the LuxOS login screen)'
 arch=('x86_64')
 url='https://docs.xfce.org/apps/screensaver/start'
@@ -42,14 +42,18 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-screensaver.git#tag=$pkgname-$pk
         'luxos-lock-ui.h'
         'luxos-lock-kbd.c'
         'luxos-lock-kbd.h'
+        'luxos-lock-battery.c'
+        'luxos-lock-battery.h'
         'xfce4-screensaver-dialog.ui'
         'xfce4-screensaver-dialog.css')
 sha256sums=('bc84a11d51fbc4222ca43831671de2935e759229d21ee7136443e7250c78498f'
-            'a1373df93ddc39d1438fb16267eac9468a5322867d263b64735e7883f5d0aa73'
-            '3d974f924812a405f55f4ce621cef9374d90de89547e098562643dd855b32394'
+            'a41c59d7caa51ae55b19b8f227d9405a0c4a68743ed1780ef170e1efa352f6ea'
+            'f9c9ffb7c50bc04bdb956d6fb57a1d5faef85728ab94ae176bfb0c5adc5d3bf1'
             '21bd4eb6eda38bb6b08a10ccadbdbcc7c7a60fb29b70f0f7dd8851e943d4d3ff'
             'f6ab39a80fc2f793a702f14bd9da4850e186667a0390de62612d4bbb5ed298db'
             '48d2f2e78418e95cb7ff60ad0c2e5bde39d624285f0345979b2333c5f1ab359a'
+            '2121af202da176e30169459e0e8b53e7619fe3bb904dc0cd56f8756cafa50215'
+            '962b94ae7327ae718684a88397059158e598245080d4103fd2b1441f2a706bc0'
             'e3ef76f51f3ac81cb4bdbe76f85dfeb07f372fa0bb0aa33306f4559d10dcad29'
             '9b194137f753b78192a694c9192642789b7488c612368d730b9eca808f74f082')
 
@@ -57,7 +61,7 @@ prepare() {
   cd $pkgname
   # LuxOS: zamykaci dialog jako luxos-greeter
   patch -Np1 -i "$srcdir/luxos-lock-dialog.patch"
-  cp "$srcdir"/luxos-lock-{ui,kbd}.{c,h} "$srcdir"/xfce4-screensaver-dialog.{ui,css} src/
+  cp "$srcdir"/luxos-lock-{ui,kbd,battery}.{c,h} "$srcdir"/xfce4-screensaver-dialog.{ui,css} src/
 }
 
 build() {

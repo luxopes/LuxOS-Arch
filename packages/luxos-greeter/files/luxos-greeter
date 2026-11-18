@@ -658,8 +658,7 @@ def fprint_enabled(demo=False):
     return "pam_fprintd" in read("/etc/pam.d/lightdm") and os.path.exists("/usr/lib/security/pam_fprintd.so")
 
 
-def battery_state():
-    base = "/sys/class/power_supply"
+def battery_state(base="/sys/class/power_supply"):
     try:
         names = sorted(os.listdir(base))
     except OSError:
@@ -667,10 +666,12 @@ def battery_state():
     for n in names:
         d = os.path.join(base, n)
         if read(d + "/type") == "Battery" and read(d + "/scope", "System") != "Device":
+            # baterie bez (citelne) kapacity se preskoci - driv se ukazalo "-1 %" nebo hledani skoncilo
             try:
-                return int(read(d + "/capacity", "-1")), battery_plugged(read(d + "/status"), base, names)
+                cap = int(read(d + "/capacity", ""))
             except ValueError:
-                return None
+                continue
+            return max(0, min(100, cap)), battery_plugged(read(d + "/status"), base, names)
     return None
 
 
@@ -940,45 +941,93 @@ def icon_wired(cr, x, y, s):
     cr.stroke()
 
 
-def icon_battery(cr, x, y, h, level, charging):
+# Ikona baterie - stejna kresba jako na zamku (packages/xfce4-screensaver/luxos-lock-battery.c),
+# pri zmene upravit obe. Blesk je videt pri kazdem nabiti a na kazde tapete: nad vyplni tmavy s bilym
+# lemem, nad prazdnou casti bily s tmavym lemem; vnitrek ma tmavy podklad a obrys tmavy stin. Driv
+# byl blesk nad prazdnou casti bily bez podkladu a na svetle tapete splynul s pozadim.
+BATTERY_H = 0.9          # vyska ikony vuci sz["status"] (driv 0.78 - pri 1280x800 blesk 3x6 px)
+BOLT_PTS = ((0.14, -1.0), (-0.58, 0.14), (-0.07, 0.14), (-0.14, 1.0), (0.58, -0.14), (0.07, -0.14))
+
+
+def battery_geom(x, y, h, level):
     w = h * 2.05
-    lw = max(1.0, h * 0.09)
-    cr.set_line_width(lw)
-    cr.set_source_rgba(1, 1, 1, 0.55)
-    rounded(cr, x + lw / 2, y + lw / 2, w - h * 0.22 - lw, h - lw, h * 0.26)
+    g = {"lw": max(1.0, h * 0.09)}
+    lw = g["lw"]
+    g.update(bx=x + lw / 2, by=y + lw / 2, bw=w - h * 0.22 - lw, bh=h - lw, br=h * 0.26,
+             ix=x + lw, iy=y + lw, ih=h - 2 * lw)
+    g["iw"] = g["bw"] - lw
+    inner = g["iw"] - h * 0.16
+    frac = max(0.0, min(1.0, level / 100.0))
+    g.update(fx=g["ix"] + h * 0.08, fy=g["iy"] + h * 0.08, fw=max(h * 0.12, inner * frac),
+             fh=g["ih"] - h * 0.16, ring=max(1.0, h * 0.08), cx=g["bx"] + g["bw"] / 2, cy=y + h / 2)
+    g["k"] = g["ih"] / 2 - g["ring"] * 0.75
+    return g
+
+
+def battery_bolt_path(cr, g):
+    cr.new_path()
+    for px, py in BOLT_PTS:
+        cr.line_to(g["cx"] + px * g["k"], g["cy"] + py * g["k"])
+    cr.close_path()
+
+
+def icon_battery(cr, x, y, h, level, charging):
+    g = battery_geom(x, y, h, level)
+    halo = max(0.75, h * 0.06)
+    w = h * 2.05
+    cr.save()
+    cr.set_line_join(cairo.LINE_JOIN_ROUND)
+    # tmavy stin obrysu a podklad vnitrku: baterie je videt i na svetle tapete
+    cr.set_source_rgba(0, 0, 0, 0.38)
+    cr.set_line_width(g["lw"] + 2 * halo)
+    rounded(cr, g["bx"], g["by"], g["bw"], g["bh"], g["br"])
+    cr.stroke()
+    rounded(cr, x + w - h * 0.2 - halo, y + h * 0.33 - halo, h * 0.14 + 2 * halo, h * 0.34 + 2 * halo,
+            h * 0.06 + halo)
+    cr.fill()
+    cr.set_source_rgba(0, 0, 0, 0.38)
+    rounded(cr, g["ix"], g["iy"], g["iw"], g["ih"], max(0.0, g["br"] - g["lw"] / 2))
+    cr.fill()
+    # obrys a vystupek
+    cr.set_source_rgba(1, 1, 1, 0.9)
+    cr.set_line_width(g["lw"])
+    rounded(cr, g["bx"], g["by"], g["bw"], g["bh"], g["br"])
     cr.stroke()
     rounded(cr, x + w - h * 0.2, y + h * 0.33, h * 0.14, h * 0.34, h * 0.06)
     cr.fill()
-    inner = w - h * 0.22 - lw * 2 - h * 0.16
-    frac = max(0.0, min(1.0, level / 100.0))
+    # vypln
     if level <= 15 and not charging:
         cr.set_source_rgba(1.0, 0.36, 0.33, 1)
     else:
         cr.set_source_rgba(1, 1, 1, 0.95)
-    fx, fy = x + lw + h * 0.08, y + lw + h * 0.08
-    fw, fh = max(h * 0.12, inner * frac), h - 2 * lw - h * 0.16
-    rounded(cr, fx, fy, fw, fh, h * 0.14)
+    rounded(cr, g["fx"], g["fy"], g["fw"], g["fh"], h * 0.14)
     cr.fill()
     if charging:
-        # Blesk je dvoubarevny: bily nad prazdnou casti baterie, tmavy nad vyplni.
-        # Driv byl cely cerny, takze pri nizsim nabiti (stred nevyplneny) nebyl videt.
-        cx, cy = x + (w - h * 0.22) / 2, y + h / 2
-        cr.save()
-        cr.move_to(cx + h * 0.08, cy - h * 0.42)
-        cr.line_to(cx - h * 0.2, cy + h * 0.06)
-        cr.line_to(cx - h * 0.01, cy + h * 0.06)
-        cr.line_to(cx - h * 0.08, cy + h * 0.42)
-        cr.line_to(cx + h * 0.2, cy - h * 0.06)
-        cr.line_to(cx + h * 0.01, cy - h * 0.06)
-        cr.close_path()
-        cr.clip_preserve()
-        cr.set_source_rgba(1, 1, 1, 0.95)
-        cr.fill()
-        cr.rectangle(fx, fy, fw, fh)
-        cr.clip()
-        cr.set_source_rgba(0, 0, 0, 0.75)
-        cr.paint()
-        cr.restore()
+        ex = g["fx"] + g["fw"]
+        cr.set_line_width(2 * g["ring"])
+        # nad vyplni: tmavy blesk s bilym lemem
+        if ex > g["ix"]:
+            cr.save()
+            cr.rectangle(g["ix"], g["iy"], ex - g["ix"], g["ih"])
+            cr.clip()
+            battery_bolt_path(cr, g)
+            cr.set_source_rgba(1, 1, 1, 0.95)
+            cr.stroke_preserve()
+            cr.set_source_rgba(0.10, 0.10, 0.12, 0.92)
+            cr.fill()
+            cr.restore()
+        # nad prazdnou casti: bily blesk s tmavym lemem
+        if ex < g["ix"] + g["iw"]:
+            cr.save()
+            cr.rectangle(ex, g["iy"], g["ix"] + g["iw"] - ex, g["ih"])
+            cr.clip()
+            battery_bolt_path(cr, g)
+            cr.set_source_rgba(0, 0, 0, 0.60)
+            cr.stroke_preserve()
+            cr.set_source_rgba(1, 1, 1, 0.97)
+            cr.fill()
+            cr.restore()
+    cr.restore()
 
 
 # ---- hlavni okno -------------------------------------------------------------------------
@@ -1311,7 +1360,7 @@ class Greeter(Gtk.Window):
             b.area.set_size_request(self.sz["round"] + px(8, 6), self.sz["round"] + px(8, 6))
             b.get_child().set_spacing(px(5, 3))
         self.net_icon.set_size_request(self.sz["status"] + 4, self.sz["status"] + 4)
-        self.bat_icon.set_size_request(round(self.sz["status"] * 2.05) + 2, self.sz["status"] + 4)
+        self.bat_icon.set_size_request(math.ceil(self.sz["status"] * BATTERY_H * 2.05) + 4, self.sz["status"] + 4)
 
         f = self.cfg["font"]
         css = f"""
@@ -1626,7 +1675,7 @@ class Greeter(Gtk.Window):
         if self._battery is None:
             return False
         a = area.get_allocation()
-        h = self.sz["status"] * 0.78
+        h = self.sz["status"] * BATTERY_H
         icon_battery(cr, 1, (a.height - h) / 2, h, *self._battery)
         return False
 
@@ -1653,7 +1702,9 @@ class Greeter(Gtk.Window):
     def update_status(self):
         if self.kbd_btn.get_child() is None:
             return False            # okno zrusene (testy): casovac skoncit
-        self._battery = battery_state() if self.cfg["battery"] else None
+        # testy: v rezimu --demo napodobeny /sys/class/power_supply (LUXOS_GREETER_DEMO_POWER_SUPPLY)
+        ps = (self.demo and os.environ.get("LUXOS_GREETER_DEMO_POWER_SUPPLY")) or "/sys/class/power_supply"
+        self._battery = battery_state(ps) if self.cfg["battery"] else None
         self._network = network_state() if self.cfg["network"] else None
         self.bat_icon.set_visible(self._battery is not None)
         self.bat_label.set_visible(self._battery is not None)
