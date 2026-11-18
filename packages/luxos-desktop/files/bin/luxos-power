@@ -6,7 +6,9 @@ spotreba ve wattech, zdravi baterie a historie urovne a spotreby. Nastaveni
 vykonu (power-profiles-daemon), Sporic baterie a casy vypnuti obrazovky
 a uspani (xfce4-power-manager).
 
-LUXOS_POWER_DEMO=1 zobrazi ukazkova data (pro zarizeni bez baterie / testovani).
+LUXOS_POWER_DEMO=1 zobrazi ukazkova data (pro zarizeni bez baterie / testovani), LUXOS_POWER_DEMO=full
+nabijecku a plne nabitou baterii, ktera neudava pocet cyklu. Ukazkovy rezim nesaha na systemovou sbernici
+(UPower, power-profiles-daemon) ani na luxos-gpu.
 """
 import math
 import os
@@ -17,6 +19,7 @@ import time
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_charts import COLORS, fg_color, rgb, rounded_rect  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 try:
     from luxos_i18n import decimal_separator as _decimal_separator
 except ImportError:  # starsi luxos-i18n
@@ -37,7 +40,8 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 
 UP = "org.freedesktop.UPower"
-DEMO = os.environ.get("LUXOS_POWER_DEMO") == "1"
+DEMO = os.environ.get("LUXOS_POWER_DEMO") in ("1", "full")
+DEMO_FULL = os.environ.get("LUXOS_POWER_DEMO") == "full"
 STATE_UNKNOWN = 0
 STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE = 1, 2, 3, 4, 5
 PM = "xfce4-power-manager"
@@ -56,7 +60,7 @@ CSS = b"""
 .card-title { font-weight: 700; font-size: 13px; }
 .card-value { font-size: 20px; font-weight: 700; }
 .card-sub { font-size: 11px; opacity: 0.6; }
-.card-na { font-size: 13px; opacity: 0.55; }
+.card-na { font-size: 15px; font-weight: 600; opacity: 0.8; }
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
 .row { padding: 10px 14px; }
 .row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
@@ -79,6 +83,8 @@ PPD = (("org.freedesktop.UPower.PowerProfiles", "/org/freedesktop/UPower/PowerPr
 
 def ppd_state(bus):
     """(aktivni profil, [dostupne profily]) z power-profiles-daemon, nebo ("", [])."""
+    if bus is None:
+        return "", []
     for name, path in PPD:
         try:
             r = bus.call_sync(name, path, "org.freedesktop.DBus.Properties", "GetAll",
@@ -91,6 +97,8 @@ def ppd_state(bus):
 
 
 def ppd_set(bus, profile):
+    if bus is None:
+        return False
     for name, path in PPD:
         try:
             bus.call_sync(name, path, "org.freedesktop.DBus.Properties", "Set",
@@ -104,6 +112,8 @@ def ppd_set(bus, profile):
 
 def gpu_info():
     """{"kind": "nvidia"|"dri", "name": ...} samostatne grafiky z `luxos-gpu status`, None kdyz neni."""
+    if DEMO:
+        return None
     vals = dict(line.partition("=")[::2] for line in run("luxos-gpu", "status").splitlines())
     if vals.get("gpu", "none") in ("", "none") or not vals.get("name"):
         return None
@@ -162,10 +172,17 @@ def fmt_duration(seconds):
 # ---- UPower -----------------------------------------------------------------
 class Battery:
     def __init__(self):
-        self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+        self.bus = None
+        if not DEMO:
+            try:
+                self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
+            except GLib.Error:
+                pass      # bez systemove sbernice: okno bez baterie a profilu, ale otevre se
         self.path = self.find_battery()
 
     def find_battery(self):
+        if self.bus is None:
+            return None
         try:
             r = self.bus.call_sync(UP, "/org/freedesktop/UPower", UP, "EnumerateDevices", None,
                                    GLib.VariantType("(ao)"), 0, 3000, None)
@@ -178,6 +195,8 @@ class Battery:
         return None
 
     def props(self, path):
+        if self.bus is None:
+            return {}
         try:
             r = self.bus.call_sync(UP, path, "org.freedesktop.DBus.Properties", "GetAll",
                                    GLib.Variant("(s)", (UP + ".Device",)), GLib.VariantType("(a{sv})"), 0, 3000, None)
@@ -268,6 +287,10 @@ def clip_history(pts, start):
 
 
 def demo_info():
+    if DEMO_FULL:
+        return {"Percentage": 100.0, "State": STATE_FULL, "TimeToEmpty": 0, "TimeToFull": 0, "EnergyRate": 0.0,
+                "Energy": 52.4, "EnergyFull": 52.4, "EnergyFullDesign": 57.0, "ChargeCycles": 0,
+                "Model": "Demo battery", "Vendor": "LuxOS"}
     return {"Percentage": 64.0, "State": STATE_DISCHARGING, "TimeToEmpty": 4 * 3600 + 25 * 60, "TimeToFull": 0,
             "EnergyRate": 7.8, "Energy": 33.6, "EnergyFull": 52.4, "EnergyFullDesign": 57.0, "ChargeCycles": 212,
             "Model": "Demo battery", "Vendor": "LuxOS"}
@@ -452,7 +475,7 @@ def card(title, value_label, sub_label):
 class PowerWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Battery & Power"))
-        self.set_default_size(820, 720)
+        fit(self, 820, 720, min_width=560, min_height=420)
         self.set_icon_name("battery-good")
         self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Battery & Power")))
         self.bat = Battery()
@@ -480,7 +503,8 @@ class PowerWindow(Gtk.Window):
         self.battery_box.pack_start(hero, False, False, 0)
 
         # karty
-        grid = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
+        # Box (ne Grid): skryta karta Cykly (baterie je neudava) nenecha prazdny sloupec
+        cards = Gtk.Box(spacing=12, homogeneous=True)
         self.v_rate, self.s_rate = Gtk.Label(), Gtk.Label()
         self.v_health, self.s_health = Gtk.Label(), Gtk.Label()
         self.v_cycles, self.s_cycles = Gtk.Label(wrap=True), Gtk.Label()
@@ -489,8 +513,11 @@ class PowerWindow(Gtk.Window):
                                        (_("Battery health"), self.v_health, self.s_health),
                                        (_("Charge cycles"), self.v_cycles, self.s_cycles),
                                        (_("Energy"), self.v_energy, self.s_energy))):
-            grid.attach(card(t, v, s), i, 0, 1, 1)
-        self.battery_box.pack_start(grid, False, False, 0)
+            c = card(t, v, s)
+            cards.pack_start(c, True, True, 0)
+            if v is self.v_cycles:
+                self.cycles_card = c
+        self.battery_box.pack_start(cards, False, False, 0)
 
         # grafy
         for title, kind in ((_("Battery level - last 24 hours"), "charge"), (_("Power usage - last 24 hours"), "rate")):
@@ -743,29 +770,36 @@ class PowerWindow(Gtk.Window):
             text = _("Plugged in, not charging")
         self.state.set_text(text)
         rate = info.get("EnergyRate", 0)
-        self.v_rate.set_text(dec(f"{rate:.1f} W") if rate else "-")
-        self.s_rate.set_text(_("charging power") if charging else _("current consumption"))
+        rctx = self.v_rate.get_style_context()
+        if rate:
+            self.v_rate.set_text(dec(f"{rate:.1f} W"))
+            self.s_rate.set_text(_("charging power") if charging else _("current consumption"))
+        else:
+            # Na nabijecce a plne nabita (nebo nenabiji) baterie nic neodebira - drive jen "-"
+            if st == STATE_FULL:
+                self.v_rate.set_text(_("Charging complete"))
+            elif st == STATE_DISCHARGING:
+                self.v_rate.set_text(_("Not reported"))
+            else:
+                self.v_rate.set_text(_("Not charging"))
+            self.s_rate.set_text(_("running on the power adapter") if st != STATE_DISCHARGING else "")
+        (rctx.add_class if not rate else rctx.remove_class)("card-na")
+        (rctx.remove_class if not rate else rctx.add_class)("card-value")
         full, design = info.get("EnergyFull", 0), info.get("EnergyFullDesign", 0)
         health = info.get("Capacity") or (full / design * 100 if design else 0)
         self.v_health.set_text(f"{health:.0f} %" if health else "-")
         self.s_health.set_text(_("of original capacity"))
         cycles = info.get("ChargeCycles", 0) if DEMO else charge_cycles(info)
-        ctx = self.v_cycles.get_style_context()
-        card_box = self.v_cycles.get_parent()
         if cycles > 0:
             self.v_cycles.set_text(str(cycles))
-            ctx.remove_class("card-na")
-            ctx.add_class("card-value")
             self.s_cycles.set_text(_("full charge cycles"))
-            card_box.set_tooltip_text(None)
+            self.cycles_card.set_no_show_all(False)
+            self.cycles_card.show_all()
         else:
-            # Mnoho notebooku (firmware baterie) pocet cyklu neudava - neni to chyba LuxOS
-            self.v_cycles.set_text(_("Not reported by this battery"))
-            ctx.remove_class("card-value")
-            ctx.add_class("card-na")
-            self.s_cycles.set_text("")
-            card_box.set_tooltip_text(_("The battery firmware does not report its charge cycles. "
-                                        "Battery health shows how worn the battery is."))
+            # Mnoho notebooku (firmware baterie) pocet cyklu neudava - karta "neudava" byla nesrozumitelna,
+            # opotrebeni ukazuje Zdravi baterie
+            self.cycles_card.set_no_show_all(True)
+            self.cycles_card.hide()
         self.v_energy.set_text(dec(f"{info.get('Energy', 0):.1f} Wh"))
         self.s_energy.set_text(_("of %.1f Wh").replace("%.1f", dec(f"{full:.1f}")) if full else "")
         return True

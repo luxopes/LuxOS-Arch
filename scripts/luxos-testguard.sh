@@ -3,6 +3,9 @@
 # DISPLAY, ktery neni Xvfb/Xephyr/Xvnc tohoto uzivatele, se nahradi vlastnim Xvfb (ukonci se pri
 # skonceni skriptu), bez Xvfb se odebere; sbernice, XAUTHORITY, HOME a XDG_* skutecne relace se nahradi
 # docasnymi. Skutecnou obrazovku nelze vynutit.
+# Systemova sbernice: DBUS_SYSTEM_BUS_ADDRESS vzdy miri na neexistujici soket; vlastni falesnou systemovou
+# sbernici preda test jen schvalenou promennou LUXOS_TEST_SYSTEM_BUS (nebo ji nastavi az pro podproces).
+# Kamery: LUXOS_VIDEO_DEV_DIR miri na prazdnou docasnou slozku (aplikace hledaji video* tam, ne v /dev).
 _luxos_tg_private() {  # _luxos_tg_private :N
     local num=${1#:} pid argv
     num=${num%%.*}
@@ -86,3 +89,29 @@ if [[ ${DBUS_SESSION_BUS_ADDRESS-} == unix:path=/run/user/$(id -u)/bus* ]]; then
         [[ -n ${luxos_tg_bus-} ]] && export DBUS_SESSION_BUS_ADDRESS=$luxos_tg_bus
     fi
 fi
+# systemova sbernice: mrtvy soket, jen schvalena falesna sbernice testu (ne skutecny soket) projde
+_luxos_tg_real_sysbus() {  # adresa miri na skutecnou systemovou sbernici (prazdna = vychozi = skutecna)?
+    local a=${1-} part p
+    [[ -n $a ]] || return 0
+    IFS=';' read -ra _luxos_tg_parts <<<"$a"
+    for part in "${_luxos_tg_parts[@]}"; do
+        case $part in
+            unix:*path=*)
+                p=${part#*path=}; p=${p%%,*}
+                [[ $p == /run/dbus/system_bus_socket || $p == /var/run/dbus/system_bus_socket ||
+                   $(realpath -m -- "$p") == /run/dbus/system_bus_socket ]] && return 0 ;;
+            unix:*) ;;
+            *) return 0 ;;
+        esac
+    done
+    return 1
+}
+if [[ -n ${LUXOS_TEST_SYSTEM_BUS-} ]] && ! _luxos_tg_real_sysbus "$LUXOS_TEST_SYSTEM_BUS"; then
+    export DBUS_SYSTEM_BUS_ADDRESS=$LUXOS_TEST_SYSTEM_BUS
+else
+    unset LUXOS_TEST_SYSTEM_BUS
+    export DBUS_SYSTEM_BUS_ADDRESS=unix:path=$luxos_tg_tmp/no-system-bus
+fi
+# kamery: prazdna slozka misto /dev
+mkdir -p "$luxos_tg_tmp/no-cameras"
+export LUXOS_VIDEO_DEV_DIR=$luxos_tg_tmp/no-cameras

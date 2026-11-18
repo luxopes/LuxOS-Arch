@@ -44,6 +44,7 @@ atexit.register(DBUS.terminate)
 FP_BUS = DBUS.stdout.readline().strip()
 os.environ["LUXOS_FPRINT_BUS"] = FP_BUS
 sys.path.insert(0, I18N)
+sys.path.insert(0, os.path.join(FILES, "python"))   # luxos_winsize
 app = SourceFileLoader("luxos_fingerprint", os.path.join(FILES, "bin", "luxos-fingerprint")).load_module()
 from gi.repository import Gdk, Gtk  # noqa: E402
 

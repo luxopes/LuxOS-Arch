@@ -37,13 +37,17 @@ CSS = b"""
 .primary { border-radius: 999px; padding: 6px 22px; font-weight: 700; background-image: none;
            background-color: #3d7bff; color: white; border: none; box-shadow: none; }
 .pill { border-radius: 999px; padding: 4px 16px; }
+.header-btn { padding: 4px; min-width: 28px; min-height: 28px; border-radius: 8px; background-image: none;
+              border: none; box-shadow: none; background-color: transparent; }
+.header-btn:hover { background-color: alpha(currentColor, 0.08); }
+.header-btn:active, .header-btn:checked { background-color: alpha(currentColor, 0.14); }
 """
 
 
 def has_camera():
     if os.environ.get("LUXOS_CAMERA_TEST", "").strip().lower() not in ("", "none"):
         return True
-    return bool(glob.glob("/dev/video*"))
+    return bool(glob.glob(os.path.join(os.environ.get("LUXOS_VIDEO_DEV_DIR") or "/dev", "video*")))
 
 
 def scan():
@@ -77,11 +81,15 @@ class QRWindow(Gtk.Window):
         self.copy_btn.add(copy_icon)
         self.copy_btn.connect("clicked", self.copy_image)
         self.copy_btn.set_no_show_all(True)
-        header.pack_end(self.copy_btn)
+        # Obnovit vpravo (drive vlevo hned vedle tlacitek okna), oba jako ploche ikony horni listy
         refresh = Gtk.Button(tooltip_text=_("Refresh"))
         refresh.add(Gtk.Image(icon_name="view-refresh-symbolic"))
         refresh.connect("clicked", lambda _b: self.load())
-        header.pack_start(refresh)
+        for b in (refresh, self.copy_btn):
+            b.get_style_context().add_class("header-btn")
+            b.set_valign(Gtk.Align.CENTER)
+        header.pack_end(refresh)
+        header.pack_end(self.copy_btn)
 
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=24)
         self.add(root)

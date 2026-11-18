@@ -17,11 +17,13 @@ Between the left and the right part of the top bar is the `luxos-bar` plugin (a 
   `~/.config/luxos/appearance.conf`: `BAR_COVER=translucent` (real translucency) and
   `BAR_COVER=solid` (translucent, fully opaque when a window reaches under the bar; desktop widgets
   and other keep-below windows never count).
-- **Clock in the middle** (`luxos-appearance bar-clock center`): the plugin draws the time in the
+- **Clock in the middle** (Desktop & Dock › Menu Bar › Clock in the middle, or
+  `luxos-appearance bar-clock center`): the plugin draws the time in the
   centre of the whole bar (not of the plugin, so it does not move when the app name changes) and hides
   the clock on the right; the Calendar then opens centred under it. `bar-clock right` restores it.
   The change is applied without restarting the panel.
-- **Rounded corners** (`luxos-appearance bar-style rounded`): the bar stays flush with the top
+- **Rounded corners** (Desktop & Dock › Menu Bar › Rounded corners, or
+  `luxos-appearance bar-style rounded`): the bar stays flush with the top
   edge of the screen and its two bottom corners are rounded (10 px, managed block in
   `~/.config/gtk-3.0/gtk.css`, transparent separators at both ends). Under a window the corners are
   square again (class `luxos-covered` set by the plugin), so no wallpaper shows in them.

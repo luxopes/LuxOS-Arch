@@ -16,6 +16,7 @@ import threading
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit_content  # noqa: E402
 import luxos_keyboard as kb  # noqa: E402
 
 import gi  # noqa: E402
@@ -160,7 +161,6 @@ class AddDialog(Gtk.Dialog):
 class KeyboardSettings(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Keyboard Layouts"))
-        self.set_default_size(560, 600)
         self.set_icon_name("preferences-desktop-keyboard")
         self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Keyboard Layouts")))
         self.catalog = kb.load_catalog()
@@ -174,6 +174,8 @@ class KeyboardSettings(Gtk.Window):
 
         sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.add(sw)
+        # okno podle obsahu (drive 600 px s prazdnou plochou dole), nejvys na obrazovku
+        fit_content(self, sw, 560, min_height=260)
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=22, margin_top=6)
         sw.add(page)
 

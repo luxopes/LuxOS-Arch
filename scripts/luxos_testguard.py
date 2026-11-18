@@ -11,6 +11,13 @@ Importuje ho kazdy test, ktery spousti okna, xdotool, setxkbmap, spravce oken ne
   - HOME, XDG_RUNTIME_DIR a XDG_CONFIG/DATA/CACHE/STATE_HOME ukazujici do skutecneho domova nebo
     /run/user/UID se nahradi docasnou slozkou (xfconf, dconf, gtk.css, klavesnice skutecneho
     uzivatele se nikdy nezmeni).
+  - Systemova sbernice: DBUS_SYSTEM_BUS_ADDRESS vzdy miri na neexistujici soket (BlueZ, UPower,
+    NetworkManager, fprintd, logind pocitace jsou pro testy nedostupne). Vlastni falesnou systemovou
+    sbernici preda test jen schvalenou promennou LUXOS_TEST_SYSTEM_BUS (adresa jeho dbus-daemon), nebo
+    ji nastavi az v prostredi podprocesu (check_env odmitne jen skutecny soket).
+  - Kamery: LUXOS_VIDEO_DEV_DIR (kde aplikace hledaji video*, jinak /dev) miri na prazdnou docasnou
+    slozku, takze Kamera, Profilova fotka ani QR kod Wi-Fi zadnou skutecnou kameru nenajdou. Proces
+    testu navic nesmi otevrit /dev/video* (audit hook -> PermissionError).
 
 Skutecnou obrazovku nelze vynutit zadnou promennou. Proc: test spusteny omylem s DISPLAY=:0
 prepnul majiteli rozlozeni klavesnice (setxkbmap) a klikal do jeho oken.
@@ -21,6 +28,7 @@ prepnul majiteli rozlozeni klavesnice (setxkbmap) a klikal do jeho oken.
 import atexit
 import os
 import pwd
+import re
 import shutil
 import subprocess
 import tempfile
@@ -31,6 +39,10 @@ _REAL_HOME = pwd.getpwuid(_UID).pw_dir
 _REAL_RUNTIME = "/run/user/%d" % _UID
 _REAL_BUS = "unix:path=%s/bus" % _REAL_RUNTIME
 _PRIVATE_X = ("Xvfb", "Xephyr", "Xvnc")
+# skutecna systemova sbernice (vychozi adresa libdbus/GDBus bez DBUS_SYSTEM_BUS_ADDRESS)
+_REAL_SYSTEM_SOCKETS = ("/run/dbus/system_bus_socket", "/var/run/dbus/system_bus_socket")
+_SYSTEM_BUS_VAR = "LUXOS_TEST_SYSTEM_BUS"     # schvalena falesna systemova sbernice testu
+_VIDEO_VAR = "LUXOS_VIDEO_DEV_DIR"
 _procs = []
 _tmp = None
 
@@ -79,9 +91,57 @@ def _real_path(path):
         or path == _REAL_RUNTIME or path.startswith(_REAL_RUNTIME + os.sep)
 
 
+def is_real_system_bus(address):
+    """Miri adresa D-Bus na skutecnou systemovou sbernici? (prazdna = vychozi = skutecna)"""
+    if not address:
+        return True
+    for part in address.split(";"):
+        if part.startswith("unix:") and ("abstract=" not in part):
+            for kv in part[5:].split(","):
+                if kv.startswith("path="):
+                    path = kv[5:]
+                    real = os.path.realpath(path)
+                    if path in _REAL_SYSTEM_SOCKETS or real in [os.path.realpath(p) for p in _REAL_SYSTEM_SOCKETS]:
+                        return True
+        elif part.startswith(("tcp:", "nonce-tcp:", "systemd:", "launchd:", "autolaunch:")):
+            return True     # mimo soukromy soket testu neumime overit - radeji odmitnout
+    return False
+
+
+def is_real_video_dir(path):
+    """Slozka s video* je skutecna /dev (nebo v ni lezi) -> testy by otevrely skutecnou kameru."""
+    if not path:
+        return True
+    real = os.path.realpath(path)
+    return real == "/dev" or real.startswith("/dev/")
+
+
+def _is_camera_path(path):
+    """/dev/video*, /dev/v4l/... (i pres symbolicky odkaz)"""
+    if not isinstance(path, (str, bytes)):
+        return False      # cislo deskriptoru
+    path = os.fsdecode(path)
+    for p in (path, os.path.realpath(path)):
+        if re.match(r"/dev/(video\d*$|v4l/)", p):
+            return True
+    return False
+
+
+def _block_camera(event, args):
+    """Audit hook: proces testu nikdy neotevre skutecnou kameru."""
+    if event == "open" and args and _is_camera_path(args[0]):
+        raise PermissionError("luxos_testguard: tests must not open camera devices (%s); "
+                              "use LUXOS_CAMERA_TEST / %s" % (args[0], _VIDEO_VAR))
+
+
 def check_env(env):
-    """Vyjimka, kdyz prostredi podprocesu miri do skutecne relace (obrazovka, sbernice, domov)."""
+    """Vyjimka, kdyz prostredi podprocesu miri do skutecne relace (obrazovka, sbernice, domov,
+    systemova sbernice, kamera)."""
     problems = []
+    if "DBUS_SYSTEM_BUS_ADDRESS" in env and is_real_system_bus(env["DBUS_SYSTEM_BUS_ADDRESS"]):
+        problems.append("DBUS_SYSTEM_BUS_ADDRESS=%s is the real system bus" % env["DBUS_SYSTEM_BUS_ADDRESS"])
+    if _VIDEO_VAR in env and is_real_video_dir(env[_VIDEO_VAR]):
+        problems.append("%s=%s would open real cameras" % (_VIDEO_VAR, env[_VIDEO_VAR]))
     display = env.get("DISPLAY")
     if display and not is_private_display(display):
         problems.append("DISPLAY=%s is not a test X server" % display)
@@ -195,8 +255,24 @@ def protect():
         bus = _start_bus()
         if bus:
             env["DBUS_SESSION_BUS_ADDRESS"] = bus
+    # systemova sbernice: vzdy mrtvy soket, jen schvalena falesna sbernice testu projde
+    fake = env.get(_SYSTEM_BUS_VAR, "")
+    if fake and not is_real_system_bus(fake):
+        env["DBUS_SYSTEM_BUS_ADDRESS"] = fake
+    else:
+        env.pop(_SYSTEM_BUS_VAR, None)
+        env["DBUS_SYSTEM_BUS_ADDRESS"] = "unix:path=" + os.path.join(_private_dir(), "no-system-bus")
+    # kamery: prazdna slozka misto /dev (aplikace hledaji $LUXOS_VIDEO_DEV_DIR/video*)
+    video = os.path.join(_private_dir(), "no-cameras")
+    os.makedirs(video, exist_ok=True)
+    env[_VIDEO_VAR] = video
     check_env(env)
 
 
 atexit.register(_cleanup)
 protect()
+try:
+    import sys as _sys
+    _sys.addaudithook(_block_camera)
+except AttributeError:      # Python < 3.8
+    pass

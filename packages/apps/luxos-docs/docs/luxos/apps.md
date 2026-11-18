@@ -94,8 +94,10 @@ notification appears and the LuxOS Store opens with a search for mail apps.
 Run `luxos-about`, or use the LuxOS logo menu (first favourite). It shows the LuxOS version and
 build ("Rolling release · based on Arch Linux"), computer model, processor, memory (installed size
 as on the box, e.g. 16 GB – the kernel reports a little less because graphics and firmware reserve
-part of it), graphics, storage, battery, kernel and the `lsh` version. Buttons: What's New, LuxOS Tour, Send Feedback…,
-Software Update (`luxos-update`, or `lux update` in a terminal if LuxOS Care is missing), Close.
+part of it), graphics, storage, battery and the Linux kernel, with the values aligned in one column. Buttons:
+What's New, LuxOS Tour, Send Feedback…, Software Update (`luxos-update`, or `lux update` in a terminal if LuxOS
+Care is missing), Close. It is a native LSL program (`files/lsl/luxos-about.lsl`) and opens under any locale,
+also `LANG=C`; `luxos-about --print` prints the same values as text.
 
 ## Welcome to LuxOS
 

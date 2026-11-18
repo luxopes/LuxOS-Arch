@@ -21,6 +21,7 @@ import time
 sys.path.insert(0, "/usr/lib/luxos/python")
 import luxai_account as acc  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 
 ENDPOINT = "/api/feedback"
 APP = "luxos-feedback"
@@ -233,8 +234,15 @@ CSS = b"""
 .shot { border-radius: 8px; border: 1px solid alpha(currentColor, 0.15); }
 .sysinfo, .sysinfo text { font-family: monospace; font-size: 10px; background-color: alpha(currentColor, 0.04); }
 .primary { border-radius: 999px; padding: 6px 22px; font-weight: 700; background-image: none;
-           background-color: #3d7bff; color: white; border: none; box-shadow: none; }
-.primary:disabled { opacity: 0.5; }
+           background-color: #2563eb; color: white; border: none; box-shadow: none; text-shadow: none; }
+.primary:hover { background-color: #1d4fd8; }
+/* neaktivni: sede tlacitko s citelnym textem (drive bledemodre s bilym textem, spatny kontrast) */
+.primary:disabled { background-color: alpha(@theme_fg_color, 0.10); color: alpha(@theme_fg_color, 0.6); }
+.primary:disabled label { color: alpha(@theme_fg_color, 0.6); }
+.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
+.row { padding: 10px 14px; }
+.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }
+.hint { font-size: 11px; opacity: 0.65; }
 .error { color: #ff453a; }
 .ok-icon { color: #30d158; }
 .done-title { font-size: 22px; font-weight: 800; }
@@ -261,7 +269,8 @@ def human(err):
 class FeedbackWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Feedback"))
-        self.set_default_size(580, 720)
+        # vejde se na 1366x768 (drive 720 + HeaderBar = 765 px, tlacitko Odeslat pod okrajem obrazovky)
+        fit(self, 580, 720, min_width=480, min_height=460)
         self.set_icon_name("luxos-feedback")
         self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Feedback")))
         self.kind = "bug"
@@ -333,11 +342,16 @@ class FeedbackWindow(Gtk.Window):
         self.contact.connect("changed", self.validate)
         box.pack_start(self.contact, False, False, 0)
 
+        # Prilohy: radky s prepinaci jako v ostatnich oknech Nastaveni (drive male systemove zaskrtavaci policka)
+        opts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin_top=4)
+        opts.get_style_context().add_class("group")
+        box.pack_start(opts, False, False, 0)
+
         # Snimek obrazovky
-        self.shot_check = Gtk.CheckButton(label=_("Attach a screenshot"))
-        self.shot_check.connect("toggled", self.shot_toggled)
-        box.pack_start(self.shot_check, False, False, 0)
-        self.shot_row = Gtk.Box(spacing=12, margin_start=26)
+        self.shot_check = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.shot_check.connect("notify::active", lambda sw, _p: self.shot_toggled(sw))
+        opts.pack_start(self.option_row(_("Attach a screenshot"), None, self.shot_check, first=True), False, False, 0)
+        self.shot_row = Gtk.Box(spacing=12, margin_start=14, margin_end=14, margin_bottom=10)
         self.shot_img = Gtk.Image()
         self.shot_img.get_style_context().add_class("shot")
         retake = Gtk.Button(label=_("Take Again"), valign=Gtk.Align.CENTER)
@@ -345,14 +359,14 @@ class FeedbackWindow(Gtk.Window):
         self.shot_row.pack_start(self.shot_img, False, False, 0)
         self.shot_row.pack_start(retake, False, False, 0)
         self.shot_row.set_no_show_all(True)
-        box.pack_start(self.shot_row, False, False, 0)
+        opts.pack_start(self.shot_row, False, False, 0)
 
         # Systemove udaje
-        self.sys_check = Gtk.CheckButton(label=_("Attach system information"), active=True)
-        box.pack_start(self.sys_check, False, False, 0)
-        box.pack_start(label(_("LuxOS and hardware versions and recent error messages. No personal files, "
-                               "passwords or e-mail addresses."), "dim", margin_start=26), False, False, 0)
-        exp = Gtk.Expander(label=_("Show what will be sent"), margin_start=26)
+        self.sys_check = Gtk.Switch(active=True, valign=Gtk.Align.CENTER)
+        opts.pack_start(self.option_row(_("Attach system information"),
+                                        _("LuxOS and hardware versions and recent error messages. No personal files, "
+                                          "passwords or e-mail addresses."), self.sys_check), False, False, 0)
+        exp = Gtk.Expander(label=_("Show what will be sent"), margin_start=14, margin_end=14, margin_bottom=10)
         self.sys_view = Gtk.TextView(editable=False, cursor_visible=False, wrap_mode=Gtk.WrapMode.CHAR,
                                      left_margin=8, top_margin=6, bottom_margin=6)
         self.sys_view.get_style_context().add_class("sysinfo")
@@ -360,7 +374,7 @@ class FeedbackWindow(Gtk.Window):
         sscroll = Gtk.ScrolledWindow(min_content_height=200, margin_top=6)
         sscroll.add(self.sys_view)
         exp.add(sscroll)
-        box.pack_start(exp, False, False, 0)
+        opts.pack_start(exp, False, False, 0)
 
         # Spodni lista
         bar = Gtk.Box(spacing=10, margin=14, margin_top=8)
@@ -378,6 +392,20 @@ class FeedbackWindow(Gtk.Window):
         self.form.pack_start(Gtk.Separator(), False, False, 0)
         self.form.pack_start(bar, False, False, 0)
         self.kind_changed(self.kind_buttons["bug"], "bug")
+
+    @staticmethod
+    def option_row(title, hint, widget, first=False):
+        row = Gtk.Box(spacing=12)
+        row.get_style_context().add_class("row")
+        if not first:
+            row.get_style_context().add_class("row-sep")
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER)
+        texts.pack_start(label(title), False, False, 0)
+        if hint:
+            texts.pack_start(label(hint, "hint"), False, False, 0)
+        row.pack_start(texts, True, True, 0)
+        row.pack_end(widget, False, False, 0)
+        return row
 
     def kind_changed(self, button, key):
         if not button.get_active():

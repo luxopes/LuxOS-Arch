@@ -16,6 +16,7 @@ import sys
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit_content  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -307,7 +308,6 @@ class DeviceRow(Gtk.ListBoxRow):
 class BluetoothWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Bluetooth"))
-        self.set_default_size(560, 620)
         self.set_icon_name("bluetooth")
         header = Gtk.HeaderBar(show_close_button=True, title=_("Bluetooth"))
         self.set_titlebar(header)
@@ -316,6 +316,8 @@ class BluetoothWindow(Gtk.Window):
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.add(page)
         self.add(scroll)
+        # okno podle obsahu (drive pevnych 620 px - bez adapteru skoro cele prazdne), seznam zarizeni se posouva
+        fit_content(self, scroll, 560, min_height=260)
 
         top = Gtk.Box(spacing=12)
         lab = Gtk.Label(label=_("Bluetooth"), xalign=0)

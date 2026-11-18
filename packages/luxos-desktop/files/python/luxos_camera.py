@@ -6,6 +6,7 @@
 
 Testovani bez kamery: LUXOS_CAMERA_TEST=1 (jedna testovaci kamera videotestsrc), 2 (dve),
 none (zadna kamera), busy (kamera obsazena), denied (chybi opravneni).
+LUXOS_VIDEO_DEV_DIR: kde hledat uzly video* (vychozi /dev); pojistka testu ji nastavi na prazdnou slozku.
 """
 import fcntl
 import glob
@@ -29,8 +30,13 @@ def has(element):
     return Gst.ElementFactory.find(element) is not None
 
 
+def video_dir():
+    return os.environ.get("LUXOS_VIDEO_DEV_DIR") or "/dev"
+
+
 def video_nodes():
-    return sorted(glob.glob("/dev/video*"), key=lambda p: int(re.sub(r"\D", "", p) or 0))
+    return sorted(glob.glob(os.path.join(video_dir(), "video*")),
+                  key=lambda p: int(re.sub(r"\D", "", os.path.basename(p)) or 0))
 
 
 def scan_devices():

@@ -13,6 +13,7 @@ import sys
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -88,7 +89,8 @@ def run(*cmd):
 
 
 def read_prefs():
-    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1"}
+    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1", "BAR_STYLE": "classic",
+             "BAR_CLOCK": "right"}
     try:
         with open(PREFS) as f:
             for line in f:
@@ -184,7 +186,8 @@ def slider(lo, hi, value, on_change, width=220, step=1):
 class Settings(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Desktop & Dock"))
-        self.set_default_size(720, 720)
+        # vejde se na 1366x768 / 1280x800; rozumne minimum (obsah se posouva)
+        fit(self, 720, 720, min_height=420)
         self.set_icon_name("preferences-desktop-wallpaper")
         header = Gtk.HeaderBar(show_close_button=True, title=_("Desktop & Dock"))
         self.set_titlebar(header)
@@ -529,6 +532,15 @@ class Settings(Gtk.Window):
         group = Group(page, _("Menu Bar"))
         group.row(_("Menu bar opacity"), slider(0, 100, int(self.prefs["BAR_OPACITY"] or 62),
                                                 lambda v: subprocess.Popen(["luxos-appearance", "bar-opacity", str(v)])))
+        # Hodiny uprostred a zaoblene rohy (drive jen prikazem luxos-appearance bar-clock / bar-style)
+        center = Gtk.Switch(active=self.prefs["BAR_CLOCK"] == "center")
+        center.connect("notify::active", lambda s, _p: subprocess.Popen(
+            ["luxos-appearance", "bar-clock", "center" if s.get_active() else "right"], start_new_session=True))
+        group.row(_("Clock in the middle"), center)
+        rounded = Gtk.Switch(active=self.prefs["BAR_STYLE"] == "rounded")
+        rounded.connect("notify::active", lambda s, _p: subprocess.Popen(
+            ["luxos-appearance", "bar-style", "rounded" if s.get_active() else "classic"], start_new_session=True))
+        group.row(_("Rounded corners"), rounded)
         # Upozorneni na letni/zimni cas (luxos-hub, luxos_timechange.lsl); jen kde se cas meni
         timechange = Gtk.Switch(active=read_kv(NOTIFY_PREFS).get("TIME_CHANGE") != "0")
         timechange.connect("notify::active", self.toggle_timechange)

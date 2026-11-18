@@ -7,6 +7,9 @@ Technicky vypis vsech procesu je az na prepnuti "Vsechny procesy".
 Seznam jde seradit klikem na zahlavi sloupce (nazev, procesor, pamet; druhy klik obrati poradi),
 volba se pamatuje v ~/.config/luxos/monitor.conf.
 Data cte primo z /proc (bez dalsich zavislosti), obnova kazdou sekundu.
+
+LUXOS_MONITOR_DEMO=1: vymyslena data (procesor, pamet, disk, sit, aplikace) bez cteni /proc a bez
+ukoncovani procesu - testy rozvrzeni okna (tests/test_luxos_window_fit.py).
 """
 import json
 import os
@@ -19,6 +22,7 @@ from collections import deque
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_charts import COLORS, area_chart, fg_color, human_bytes, ring  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 try:
     from luxos_i18n import decimal_separator as _decimal_separator
 except ImportError:  # starsi luxos-i18n
@@ -44,6 +48,13 @@ CLK = os.sysconf("SC_CLK_TCK")
 PAGE = os.sysconf("SC_PAGE_SIZE")
 NCPU = os.cpu_count() or 1
 ME = os.getuid()
+DEMO = os.environ.get("LUXOS_MONITOR_DEMO") == "1"
+_demo_t = [0]
+
+
+def _demo_tick():
+    _demo_t[0] += 1
+    return _demo_t[0]
 
 CSS = b"""
 .card { border-radius: 16px; padding: 14px; background-color: alpha(currentColor, 0.05); }
@@ -63,6 +74,9 @@ button.sort.active label { opacity: 1; font-weight: 700; }
 
 # ---- sber dat ---------------------------------------------------------------
 def read_cpu():
+    if DEMO:
+        t = _demo_tick()
+        return t * 100, t * 100 - t * (35 + t % 20)
     with open("/proc/stat") as f:
         parts = f.readline().split()[1:]
     vals = list(map(int, parts))
@@ -71,6 +85,8 @@ def read_cpu():
 
 
 def read_mem():
+    if DEMO:
+        return 6 << 30, 16 << 30
     info = {}
     with open("/proc/meminfo") as f:
         for line in f:
@@ -82,6 +98,9 @@ def read_mem():
 
 
 def read_net():
+    if DEMO:
+        t = _demo_t[0]
+        return t * 900_000, t * 120_000
     rx = tx = 0
     with open("/proc/net/dev") as f:
         for line in list(f)[2:]:
@@ -96,6 +115,8 @@ def read_net():
 
 def read_disk_io():
     """Prectene + zapsane bajty fyzickych disku (maji /sys/block/X/device)."""
+    if DEMO:
+        return _demo_t[0] * 2_000_000
     total = 0
     try:
         with open("/proc/diskstats") as f:
@@ -136,6 +157,10 @@ class Processes:
         self.prev_time = time.monotonic()
 
     def sample(self):
+        if DEMO:
+            names = ("firefox", "thunar", "luxos-terminal", "celluloid", "xfce4-panel", "luxos-hub")
+            return [{"pid": 1000 + i, "comm": n, "exe": n, "cpu": 2.5 * (i + 1), "mem": (i + 1) * 180 << 20,
+                     "uid": ME, "ppid": 1} for i, n in enumerate(names)]
         now = time.monotonic()
         dt = max(now - self.prev_time, 0.1)
         cur, result = {}, []
@@ -306,7 +331,9 @@ class AppRow(Gtk.ListBoxRow):
 class Monitor(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("System Monitor"))
-        self.set_default_size(1000, 760)
+        # Na obrazovku 1366x768 / 1280x800 (drive 1000x760 + horni lista = vyssi nez obrazovka);
+        # minimum: karty a nekolik radku aplikaci, zbytek se posouva
+        fit(self, 1000, 760, min_width=640, min_height=420)
         self.set_icon_name("utilities-system-monitor")
         header = Gtk.HeaderBar(show_close_button=True, title=_("System Monitor"))
         self.all_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
@@ -400,9 +427,12 @@ class Monitor(Gtk.Window):
         self.c_mem.update(frac, f"{frac * 100:.0f} %", human_bytes(used), [frac * 100],
                           _("%s of %s used") % (human_bytes(used), human_bytes(mem_total)))
 
-        st = os.statvfs("/")
-        d_total = st.f_blocks * st.f_frsize
-        d_used = d_total - st.f_bavail * st.f_frsize
+        if DEMO:
+            d_total, d_used = 512 << 30, 200 << 30
+        else:
+            st = os.statvfs("/")
+            d_total = st.f_blocks * st.f_frsize
+            d_used = d_total - st.f_bavail * st.f_frsize
         io = read_disk_io()
         io_rate = max(io - self.disk_prev, 0)
         self.disk_prev = io
@@ -454,6 +484,10 @@ class Monitor(Gtk.Window):
                 except KeyError:
                     user = str(p["uid"])
                 groups[p["pid"]] = {"name": f'{p["comm"]}  ({p["pid"]}, {user})', "icon": "application-x-executable",
+                                    "cpu": p["cpu"], "mem": p["mem"], "pids": [p["pid"]], "windows": []}
+        elif DEMO:
+            for p in procs[:4]:
+                groups[p["exe"]] = {"name": p["exe"].capitalize(), "icon": "application-x-executable",
                                     "cpu": p["cpu"], "mem": p["mem"], "pids": [p["pid"]], "windows": []}
         else:
             # Aplikace = programy s oknem (bez panelu, docku a plochy) vcetne podprocesu
@@ -514,7 +548,7 @@ class Monitor(Gtk.Window):
     def quit_app(self, key):
         """Zavrit okna aplikace (jako krizkem); proces bez okna dostane SIGTERM."""
         g = (self.groups or {}).get(key)
-        if not g:
+        if not g or DEMO:
             return
         if g["windows"]:
             for win in g["windows"]:

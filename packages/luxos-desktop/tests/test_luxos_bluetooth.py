@@ -30,6 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BIN = os.path.normpath(os.path.join(HERE, "..", "files", "bin"))
 I18N = os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
 sys.path.insert(0, I18N)
+sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "files", "python")))   # luxos_winsize
 
 import gi  # noqa: E402
 
@@ -203,7 +204,8 @@ class FakeBluez(BusFixture):
                 "l = importlib.machinery.SourceFileLoader('b', sys.argv[1])\n"
                 "s = importlib.util.spec_from_loader('b', l); m = importlib.util.module_from_spec(s); l.exec_module(m)\n"
                 "print(m.Bluez(lambda: None).adapter()[1].get('Alias'))\n")
-        env = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=self.addr, PYTHONPATH=I18N)
+        env = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=self.addr,
+                   PYTHONPATH=os.pathsep.join((I18N, os.path.normpath(os.path.join(BIN, "..", "python")))))
         out = subprocess.run([sys.executable, "-c", code, os.path.join(BIN, "luxos-bluetooth")], env=env,
                              capture_output=True, text=True, timeout=30)
         self.assertEqual(out.stdout.strip(), "luxos-pc", out.stderr)

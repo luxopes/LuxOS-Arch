@@ -195,7 +195,8 @@ class CropView(Gtk.DrawingArea):
 class PictureWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Profile Picture"))
-        self.set_default_size(460, 560)
+        # vyska podle nejvyssi stranky (kamera, orez) - drive 560 px s prazdnou plochou nad i pod fotkou
+        self.set_default_size(460, -1)
         self.set_icon_name("avatar-default")
         self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title=_("Profile Picture")))
         self.current = None           # GdkPixbuf aktualni fotky

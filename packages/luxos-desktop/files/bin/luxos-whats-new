@@ -19,6 +19,7 @@ import sys
 
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 
 NOTES_DIR = os.environ.get("LUXOS_WHATS_NEW_DIR", "/usr/share/luxos/whats-new")
 VERSION_FILE = os.environ.get("LUXOS_VERSION_FILE", "/usr/lib/luxos/version")
@@ -179,7 +180,7 @@ def show(versions, notes):
     except ImportError:
         win.set_icon_name("luxos-app")
     win.set_position(Gtk.WindowPosition.CENTER)
-    win.set_default_size(580, 720)
+    fit(win, 580, 720, min_width=420, min_height=400)
     header = Gtk.HeaderBar(show_close_button=True)
     win.set_titlebar(header)
     win.connect("destroy", Gtk.main_quit)

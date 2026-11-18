@@ -34,6 +34,7 @@ BIN = os.path.join(ROOT, "luxos-desktop", "files", "bin", "luxos-whats-new")
 NOTES = os.path.join(ROOT, "luxos-branding", "files", "whats-new")
 ADWAITA = "/usr/share/icons/Adwaita"
 sys.path.insert(0, os.path.join(ROOT, "luxos-i18n", "files"))
+sys.path.insert(0, os.path.join(ROOT, "luxos-desktop", "files", "python"))   # luxos_winsize
 
 loader = importlib.machinery.SourceFileLoader("luxos_whats_new", BIN)
 spec = importlib.util.spec_from_loader("luxos_whats_new", loader)
@@ -253,6 +254,24 @@ class DockTest(unittest.TestCase):
         argb = luxos_wm_icon._argb(pbs[0])
         self.assertEqual(argb[:2], [16, 16])
         self.assertEqual(len(argb), 2 + 16 * 16)
+
+
+class PlainWordsTest(unittest.TestCase):
+    """Novinky od 1.0.1 bez prikazu do terminalu uprostred textu (sudo luxos-secureboot enroll,
+    luxos-appearance bar-clock center) - misto nich kam kliknout, ve vsech jazycich."""
+
+    def test_no_commands(self):
+        import re
+        for path in sorted(glob.glob(os.path.join(NOTES, "*.json"))):
+            version = tuple(int(x) for x in os.path.basename(path)[:-5].split("."))
+            if version < (1, 0, 1):
+                continue
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            for item in data.get("items", []):
+                for lang, text in list(item.get("text", {}).items()) + list(item.get("title", {}).items()):
+                    with self.subTest(file=os.path.basename(path), lang=lang):
+                        self.assertNotRegex(text, r"\bsudo\b|\bluxos-[a-z-]+ [a-z]|\blux (system|update|install)\b")
 
 
 if __name__ == "__main__":

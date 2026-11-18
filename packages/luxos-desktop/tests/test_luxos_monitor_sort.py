@@ -18,11 +18,15 @@ else:
 import importlib.machinery
 import importlib.util
 import os
+import sys
 import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROG = os.path.join(HERE, "..", "files", "bin", "luxos-monitor")
+# moduly ze zdroju (luxos_charts, luxos_winsize, luxos_i18n), ne jen nainstalovane
+sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files")))
+sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "files", "python")))
 
 
 def load():

@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
 import luxos_shortcuts as ls  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -33,6 +34,10 @@ CSS = b"""
 .keycap.off { font-weight: 400; opacity: 0.55; }
 .keycap.fixed { opacity: 0.8; }
 .icon-btn { padding: 2px; min-height: 0; min-width: 0; }
+.header-btn { padding: 4px; min-width: 28px; min-height: 28px; border-radius: 8px; background-image: none;
+              border: none; box-shadow: none; background-color: transparent; }
+.header-btn:hover { background-color: alpha(currentColor, 0.08); }
+.header-btn:active, .header-btn:checked { background-color: alpha(currentColor, 0.14); }
 .capture-keys { font-size: 22px; font-weight: 700; margin: 14px 0 6px; }
 .capture-box { border-radius: 12px; border: 2px dashed alpha(@theme_selected_bg_color, 0.7);
                background-color: alpha(@theme_selected_bg_color, 0.07); padding: 6px 18px; }
@@ -404,13 +409,12 @@ class CustomDialog(Gtk.Dialog):
 class ShortcutsWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Keyboard Shortcuts"))
-        self.set_default_size(620, 720)
+        fit(self, 620, 720, min_width=480, min_height=420)
         self.set_icon_name("preferences-desktop-keyboard-shortcuts")
         header = Gtk.HeaderBar(show_close_button=True, title=_("Keyboard Shortcuts"))
         add = Gtk.Button.new_from_icon_name("list-add-symbolic", Gtk.IconSize.BUTTON)
         add.set_tooltip_text(_("Add Shortcut…"))
         add.connect("clicked", lambda _b: self.add_custom())
-        header.pack_start(add)
         menu = Gtk.MenuButton(image=Gtk.Image.new_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON))
         pop = Gtk.Menu()
         for label, cb in ((_("Send Feedback…"), self.feedback),):
@@ -419,7 +423,12 @@ class ShortcutsWindow(Gtk.Window):
             pop.append(item)
         pop.show_all()
         menu.set_popup(pop)
+        # + a ... vpravo jako ploche ikony horni listy (drive + vlevo hned vedle tlacitek okna, nestylovane)
+        for b in (add, menu):
+            b.get_style_context().add_class("header-btn")
+            b.set_valign(Gtk.Align.CENTER)
         header.pack_end(menu)
+        header.pack_end(add)
         self.set_titlebar(header)
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.add(self.scroll)

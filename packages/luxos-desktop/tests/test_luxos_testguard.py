@@ -50,11 +50,15 @@ class Guard(unittest.TestCase):
         self.assertNotEqual(data["DISPLAY"], real_display)
         if data["DISPLAY"]:
             self.assertTrue(data["DISPLAY"].startswith(":"))
-        self.assertFalse(data["HOME"].startswith(REAL_HOME + os.sep) or data["HOME"] == REAL_HOME, data)
+        # docasna slozka pojistky smi lezet v domove (TMPDIR=~/LuxOS-Arch/out), skutecny domov ne
+        tmp = os.path.realpath(tempfile.gettempdir()) + os.sep
+        self.assertTrue(data["HOME"] != REAL_HOME and (not data["HOME"].startswith(REAL_HOME + os.sep)
+                                                     or os.path.realpath(data["HOME"]).startswith(tmp)), data)
         self.assertFalse((data["XDG_RUNTIME_DIR"] or "").startswith("/run/user/"), data)
         # vlastni sbernice misto skutecne (/run/user/UID/bus)
         self.assertFalse((data["DBUS_SESSION_BUS_ADDRESS"] or "").startswith("unix:path=/run/user/"), data)
-        self.assertFalse((data["XDG_CONFIG_HOME"] or "").startswith(REAL_HOME), data)
+        cfg = data["XDG_CONFIG_HOME"] or ""
+        self.assertFalse(cfg.startswith(REAL_HOME) and not os.path.realpath(cfg).startswith(tmp), data)
 
     def test_python_replaces_real_session(self):
         env = real_session_env()

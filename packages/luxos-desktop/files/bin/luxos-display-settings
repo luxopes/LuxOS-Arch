@@ -22,6 +22,7 @@ sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
 import luxos_arrange as la  # noqa: E402
 import luxos_displays as ld  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit_content  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -41,6 +42,7 @@ CSS = b"""
 .hint { font-size: 11px; opacity: 0.6; }
 .big-a { font-size: 18px; font-weight: 600; }
 .small-a { font-size: 11px; font-weight: 600; }
+.text-size-value { font-size: 12px; font-weight: 600; opacity: 0.8; }
 """
 
 
@@ -362,12 +364,13 @@ class ConfirmDialog(Gtk.Dialog):
 class Displays(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Displays"))
-        self.set_default_size(640, 700)
         self.set_icon_name("luxos-displays")
         header = Gtk.HeaderBar(show_close_button=True, title=_("Displays"))
         self.set_titlebar(header)
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.add(self.scroll)
+        # Okno podle obsahu (drive pevnych 700 px s velkou prazdnou plochou dole), nejvys na obrazovku
+        fit_content(self, self.scroll, 640, min_height=300)
         self.page = None
         self.building = False
         self.busy = False
@@ -724,27 +727,39 @@ class Displays(Gtk.Window):
         scale.set_round_digits(0)
         scale.set_draw_value(False)
         scale.set_hexpand(True)
-        for i, label in enumerate(labels):
-            scale.add_mark(i, Gtk.PositionType.BOTTOM, label)
+        # Znacky bez popisku: GTK krajni popisky ("Mensi", "Nejvetsi") posouva dovnitr, takze nesedely
+        # pod znackami. Vybranou velikost ukazuje popisek pod posuvnikem.
+        for i in range(len(labels)):
+            scale.add_mark(i, Gtk.PositionType.BOTTOM, None)
         scale.set_value(ld.text_size_index(ld.read_dpi()))
+        self.text_labels = labels
+        self.text_value = Gtk.Label(xalign=0.5, margin_bottom=2)
+        self.text_value.get_style_context().add_class("text-size-value")
         scale.connect("value-changed", self.on_text_size)
         self.text_scale = scale
-        box = Gtk.Box(spacing=10, margin_start=14, margin_end=14, margin_top=10, margin_bottom=4)
-        small = Gtk.Label(label="A", valign=Gtk.Align.START, margin_top=2)
+        box = Gtk.Box(spacing=10, margin_start=14, margin_end=14, margin_top=10, margin_bottom=0)
+        small = Gtk.Label(label="A", valign=Gtk.Align.CENTER)
         small.get_style_context().add_class("small-a")
-        big = Gtk.Label(label="A", valign=Gtk.Align.START)
+        big = Gtk.Label(label="A", valign=Gtk.Align.CENTER)
         big.get_style_context().add_class("big-a")
         box.pack_start(small, False, False, 0)
         box.pack_start(scale, True, True, 0)
         box.pack_start(big, False, False, 0)
         group.pack_start(box, False, False, 0)
+        group.pack_start(self.text_value, False, False, 0)
+        self.show_text_value()
         hint = Gtk.Label(label=_("Changes the size of text in the menu bar, window titles and apps. "
                                  "Some apps need to be reopened."),
                          xalign=0, wrap=True, margin_start=14, margin_end=14, margin_bottom=10)
         hint.get_style_context().add_class("hint")
         group.pack_start(hint, False, False, 0)
 
+    def show_text_value(self):
+        i = max(0, min(len(self.text_labels) - 1, int(round(self.text_scale.get_value()))))
+        self.text_value.set_text(self.text_labels[i])
+
     def on_text_size(self, scale):
+        self.show_text_value()
         if self.building:
             return
         # Zmena DPI prekresli vsechny aplikace - az po kratke pauze

@@ -24,6 +24,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
 import luxos_netadmin as na  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+from luxos_winsize import fit  # noqa: E402
 try:
     from luxos_i18n import decimal_separator as _decimal_separator
 except ImportError:  # starsi luxos-i18n
@@ -123,7 +124,7 @@ class Group(Gtk.Box):
 class Tool(Gtk.Box):
     """Tlacitko nastroje s vysledkem vedle (vysledek se pocita ve vlakne)."""
 
-    def __init__(self, label, work, show):
+    def __init__(self, label, work, show, offline=None):
         super().__init__(spacing=10)
         self.work, self.show = work, show
         self.result = Gtk.Label(xalign=1, wrap=True, max_width_chars=34)
@@ -133,6 +134,12 @@ class Tool(Gtk.Box):
         self.pack_start(self.result, False, False, 0)
         self.pack_start(self.spinner, False, False, 0)
         self.pack_start(self.button, False, False, 0)
+        if offline:
+            # Bez site by nastroj jen selhal: tlacitko neaktivni a vedle vysvetleni
+            self.button.set_sensitive(False)
+            self.button.set_tooltip_text(offline)
+            self.result.set_text(offline)
+            self.result.get_style_context().add_class("hint")
 
     def on_click(self, _b):
         self.button.set_sensitive(False)
@@ -448,7 +455,7 @@ class RouterPage(Gtk.Box):
 class Router(Gtk.Window):
     def __init__(self):
         super().__init__(title=app_name())
-        self.set_default_size(980, 720)
+        fit(self, 980, 720, min_width=600, min_height=420)
         self.set_icon_name("luxos-router")
         self.info = {}
         self.tls_dialog = None
@@ -516,28 +523,30 @@ class Router(Gtk.Window):
             g.value_row(_("IPv6 gateway"), info["gateway6"])
         g.value_row(_("DNS servers"), ", ".join(info.get("dns") or []))
         g.value_row(_("MAC address"), info.get("hwaddr"))
+        # Bez pripojeni (zadna vychozi brana) nastroje nemaji smysl - tlacitka neaktivni s vysvetlenim
+        offline = None if (gw or info.get("gateway6")) else _("Not connected to a network")
         g.row(_("Public IP address"), Tool(_("Show"), na.public_ip,
-                                           lambda ip: (ip, True) if ip else (_("Not available"), False)),
+                                           lambda ip: (ip, True) if ip else (_("Not available"), False), offline),
               _("Asks an internet service (ipify.org) for the address your network is seen from."))
 
         g = Group(page, _("Quick Tests"))
         if gw:
             g.row(_("Ping router"), Tool(_("Test"), lambda: na.ping(gw), ping_text))
-        g.row(_("Ping internet"), Tool(_("Test"), lambda: na.ping(na.INTERNET_HOST), ping_text),
+        g.row(_("Ping internet"), Tool(_("Test"), lambda: na.ping(na.INTERNET_HOST), ping_text, offline),
               _("Sends 4 packets to %s.") % na.INTERNET_HOST)
 
         def dns_show(res):
             if not res or not res[0]:
                 return _("Name lookup failed"), False
             return _("Works (%s ms)") % ("%d" % res[1]), True
-        g.row(_("Name lookup (DNS)"), Tool(_("Test"), na.dns_test, dns_show),
+        g.row(_("Name lookup (DNS)"), Tool(_("Test"), na.dns_test, dns_show, offline),
               _("Looks up %s using your DNS servers.") % na.DNS_TEST_NAME)
 
         def speed_show(mbit):
             if mbit is None:
                 return _("Measurement failed"), False
             return _("%s Mbit/s") % dec("%.1f" % mbit), True
-        g.row(_("Download speed"), Tool(_("Measure"), na.speed_test, speed_show),
+        g.row(_("Download speed"), Tool(_("Measure"), na.speed_test, speed_show, offline),
               _("Estimate: downloads 10 MB from speed.cloudflare.com."))
         page.show_all()
 
