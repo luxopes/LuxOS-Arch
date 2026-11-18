@@ -152,6 +152,10 @@ def host_allowed(host, vendor, conf=None, path=None, redirect=False):
         doms = d.get("domains", []) + (d.get("redirects", []) if redirect else [])
     else:
         doms = conf["vendors"].get(vendor, {}).get("domains", [])
+    # cesta s /../ (i %2e%2e) by po normalizaci na serveru vedla mimo povoleny projekt (github.com/libusb/../cizi)
+    segs = urllib.parse.unquote(path or "").split("/")
+    if any(x in (".", "..") for x in segs) or "\\" in (path or ""):
+        return False
     for d in doms:
         dh, _, dp = d.partition("/")
         if (host == dh or host.endswith("." + dh)) and (not dp or (path or "").startswith("/" + dp)):
@@ -340,7 +344,91 @@ def mask_strings(code):
     return "".join(out)
 
 
-def scan_code(lines, where):
+# Zakazane prikazy podle skutecneho jmena prikazu (i /usr/bin/sudo, \sudo, "sudo", 'cu'rl, env sudo ...):
+# regularni vyrazy FORBIDDEN vidi jen text radku, tady se slova rozeberou jako v shellu.
+FORBIDDEN_CMDS = {
+    **{c: "network tool" for c in ("curl", "wget", "aria2c", "ftp", "tftp", "nc", "ncat", "netcat", "socat", "ssh",
+                                   "scp", "sftp", "rsync", "telnet")},
+    **{c: "privilege escalation" for c in ("sudo", "su", "doas", "pkexec", "runuser", "nsenter", "setpriv", "unshare",
+                                           "capsh", "chroot")},
+    "eval": "eval", "systemctl": "systemctl during build", "crontab": "cron",
+    **{c: "disk tool" for c in ("dd", "mkfs", "wipefs", "fdisk", "parted")},
+}
+CMD_WRAPPERS = {"env", "command", "exec", "nohup", "nice", "ionice", "timeout", "builtin", "setsid", "stdbuf",
+                "fakeroot", "time", "xargs", "chronic", "flock", "taskset", "watch", "strace", "ltrace"}
+CMD_KEYWORDS = {"if", "then", "else", "elif", "do", "while", "until", "!", "{", "}", "function", "coproc", "fi",
+                "done", "esac"}
+CMD_SEPARATORS = {";", ";;", "&", "&&", "|", "||", "|&", "(", ")", "$(", "`", "\n"}
+
+
+def _cmd_tokens(code):
+    """Slova radku jako v shellu (uvozovky, \\) + oddelovace prikazu; None = radek nejde rozebrat."""
+    # $( a ` uvnitr retezcu v "..." spousti prikazy - vytahnout je jako samostatne useky
+    extra = re.findall(r"\$\(([^()]*)\)|`([^`]*)`", code)
+    lex = shlex.shlex(code.replace("$(", " ( ").replace("`", " ; "), posix=True, punctuation_chars=";&|()")
+    lex.commenters = ""
+    lex.whitespace_split = True
+    try:
+        toks = list(lex)
+    except ValueError:
+        return None
+    for a, b in extra:
+        sub = _cmd_tokens(a or b)
+        if sub is None:
+            return None
+        toks += [";"] + sub
+    return toks
+
+
+def _command_problems(code, where, table=None):
+    """Zakazany prikaz v pozici prikazu (i pres absolutni cestu, \\, uvozovky a obalove prikazy env/xargs/...)."""
+    table = FORBIDDEN_CMDS if table is None else table
+    toks = _cmd_tokens(code)
+    if toks is None:
+        # neuzavrene uvozovky: aspon hruba kontrola slov bez uvozovek a \ (radsi odmitnout nez prehlednout)
+        toks = re.split(r"[\s;&|()`]+", re.sub(r"[\\\"']", "", code))
+        return [f"{where}: {table[os.path.basename(t)]}: {code[:100]}" for t in toks
+                if os.path.basename(t) in table][:1]
+    out, start, wrapper, array = [], True, False, 0
+    for i, t in enumerate(toks):
+        if array == -1:                                     # "(" za a= otevira pole
+            array = 1
+            continue
+        if array:                                           # a=(slova) - hodnoty pole, ne prikazy
+            array += (t == "(") - (t == ")")
+            continue
+        if i + 1 < len(toks) and toks[i + 1] == "(" and re.match(r"^[A-Za-z_]\w*\+?=$", t):
+            array = -1
+            continue
+        if t in CMD_SEPARATORS or all(c in ";&|()" for c in t):
+            start, wrapper = True, False
+            continue
+        if t in ("-exec", "-execdir", "-ok", "-okdir"):      # find ... -exec PRIKAZ
+            start = True
+            continue
+        if not start:
+            continue
+        if t in CMD_KEYWORDS:
+            continue
+        if re.match(r"^[A-Za-z_]\w*(\[[^]]*\])?\+?=", t):    # VAR=hodnota prikaz
+            continue
+        if wrapper and (t.startswith("-") or re.fullmatch(r"[0-9.]+[smhd]?", t)):
+            continue                                        # volby obalu (nice -n 10, timeout 5s, env -i)
+        name = os.path.basename(t)
+        if name in table:
+            out.append(f"{where}: {table[name]}: {code[:100]}")
+            break
+        if name in CMD_WRAPPERS:
+            wrapper = True
+            continue
+        if name == "git" and i + 1 < len(toks) and toks[i + 1] in ("clone", "fetch", "pull", "ls-remote", "submodule"):
+            out.append(f"{where}: network (git): {code[:100]}")
+            break
+        start, wrapper = False, False
+    return out
+
+
+def scan_code(lines, where, table=None):
     problems = []
     for n, line in logical_lines(lines, problems, where):
         s = line.strip()
@@ -348,9 +436,13 @@ def scan_code(lines, where):
             continue
         code = s.split(" #", 1)[0]
         masked = mask_strings(code)
+        hit = False
         for pat, why in FORBIDDEN:
             if re.search(pat, masked):
                 problems.append(f"{where} line {n}: {why}: {s[:100]}")
+                hit = True
+        if not hit:
+            problems += _command_problems(code, f"{where} line {n}", table)
         problems += _abs_writes(code, f"{where} line {n}", masked)
     return problems
 
@@ -467,12 +559,23 @@ def _install_writes(code, n, variables):
     return out
 
 
+INSTALL_FORBIDDEN_CMDS = {k: v for k, v in FORBIDDEN_CMDS.items() if v not in ("systemctl during build", "disk tool")}
+
+
 def check_install_script(text):
     problems = []
-    _top, funcs, p = split_pkgbuild(text)
+    top, funcs, p = split_pkgbuild(text)
     problems += p
     variables = _install_vars(text)
     local_funcs = set(funcs)
+    # libalpm .install nacita (source) jako root: kod mimo funkce by bezel pri kazde instalaci -
+    # mimo funkce jen prirazeni bez $(...) a `...` (stejne pravidlo jako v PKGBUILD)
+    # Vyjimka: stary vzor .install "op=$1; shift; $op "$@"" (libalpm $1 nepredava - nic nespusti)
+    if any(re.fullmatch(r"\s*op=\$\{?1\}?\s*", ln) for _n, ln in top):
+        top = [(n, ln) for n, ln in top if not re.fullmatch(r"\s*(shift|\$op\s+(\"\$@\"|\$\*|\$@))\s*", ln)]
+    problems += [".install " + x for x in check_top_level(top, local_funcs)]
+    # setuid/setgid / zapis pro vsechny az pri instalaci (chmod 4755, install -m04755, find -exec chmod ...)
+    problems += install_perm_problems(text, ".install")
     for name, lines in funcs.items():
         for n, line in logical_lines(lines, problems, ".install"):
             s = line.strip()
@@ -484,6 +587,7 @@ def check_install_script(text):
                     continue
                 if re.search(pat, code):
                     problems.append(f".install line {n}: {why}: {s[:100]}")
+            problems += _command_problems(s.split(" #", 1)[0], f".install line {n}", INSTALL_FORBIDDEN_CMDS)
             problems += _install_writes(s.split(" #", 1)[0], n, variables)
             if "systemctl" in code and not SYSTEMCTL_OK.search(code):
                 problems.append(f".install line {n}: systemctl only for CUPS/scanner services: {s[:100]}")
@@ -773,6 +877,14 @@ def verify_repo(repo, base, vendor, previous=None, download_sources=True, review
             P += [f"{f}: {x}" for x in scan_code([(i + 1, ln) for i, ln in enumerate(data.splitlines())], f)]
     # zdroje
     for s in source_entries(meta):
+        # nazev souboru (NAZEV::url) slouzi jako cesta v out/drivers/src a v kontejneru - jen obycejne jmeno;
+        # mistni soubor z repozitare AUR (./zaplata.patch) jen uvnitr repozitare
+        fn = s["file"]
+        if not fn or "\0" in fn or "\n" in fn or (
+                ("/" in fn or fn.startswith(".")) if s["url"] else
+                (fn.startswith("/") or ".." in fn.split("/") or fn in (".", "./"))):
+            P.append(f"source file name not allowed: {s['file'][:80]!r}")
+            continue
         if s["url"]:
             u = urllib.parse.urlparse(s["url"].split("#", 1)[0])
             if u.scheme not in ("https", "http", "ftp"):
@@ -1197,41 +1309,71 @@ _CHMOD_SYM = re.compile(r"(?:^|,)[ugoa]*[+=][rwxXt]*s|(?:^|,)[ugo]*[oa][ugo]*[+=
 
 
 def _bad_mode_arg(arg):
-    """Mod pro chmod/install -m/mkdir -m: setuid, setgid nebo zapis pro vsechny?"""
-    if MODE_RE.match(arg):
+    """Mod pro chmod/install -m/mkdir -m: setuid, setgid, zapis pro vsechny, nebo nejde overit ($promenna)?"""
+    if re.fullmatch(r"[0-7]+", arg):                    # i 04755, 0004755
         m = int(arg, 8)
-        return bool(m & 0o6000 and len(arg) == 4 or m & 0o002)
+        return bool(m & 0o6000 or m & 0o002)
+    if not re.fullmatch(r"[ugoa]*[-+=][rwxXst]*(,[ugoa]*[-+=][rwxXst]*)*", arg):
+        return True                                     # $mod, --reference=... - pravo nejde zjistit
     return bool(_CHMOD_SYM.search(arg))
 
 
-def install_perm_problems(text):
-    """.INSTALL: chmod / install -m / mkdir -m, ktere pri instalaci nastavi setuid/setgid nebo zapis pro vsechny."""
+_MODE_CMDS = ("chmod", "install", "mkdir")
+_CMD_END = {";", "&&", "||", "|", "&", "\\;", "+", "{}"}
+
+
+def _mode_args(words):
+    """Mody z chmod / install -m / mkdir -m kdekoli v radku (i find -exec chmod, xargs chmod, env chmod)."""
+    out = []
+    for i, w in enumerate(words):
+        cmd = os.path.basename(w)
+        if cmd not in _MODE_CMDS:
+            continue
+        rest = []
+        for x in words[i + 1:]:
+            if x in _CMD_END or x == ";":
+                break
+            rest.append(x)
+        if cmd == "chmod":
+            args = [x for x in rest if not x.startswith("-") or re.match(r"^-[rwxXst]+$", x)]
+            if any(x.startswith("--reference") for x in rest):
+                out.append("--reference")
+            elif not args:
+                out.append("$?")                        # mod ze stdin (xargs chmod) - nejde overit
+            else:
+                out.append(args[0].lstrip("-") if args[0].startswith("-") else args[0])
+        else:
+            for j, x in enumerate(rest):
+                if x in ("-m", "--mode") and j + 1 < len(rest):
+                    out.append(rest[j + 1])
+                elif x.startswith("--mode="):
+                    out.append(x[7:])
+                elif re.match(r"^-[a-zA-Z]*m.+", x) and not x.startswith("--"):
+                    out.append(x[x.index("m") + 1:])
+                elif re.fullmatch(r"-[a-zA-Z]*m", x) and j + 1 < len(rest):
+                    out.append(rest[j + 1])
+    return out
+
+
+def install_perm_problems(text, where=".INSTALL"):
+    """.INSTALL: chmod / install -m / mkdir -m, ktere pri instalaci nastavi setuid/setgid nebo zapis pro vsechny
+    (i pres find -exec, xargs, env; mod z promenne nebo stdin = nejde overit = problem)."""
     problems = []
     for n, raw in enumerate(text.splitlines(), 1):
         code = raw.split("#", 1)[0] if not raw.lstrip().startswith("#") else ""
-        for part in re.split(r"[;&|]+|\$\(|`", code):
+        if not any(c in code for c in _MODE_CMDS):
+            continue
+        words = []
+        for part in re.split(r"\$\(|`", code):
             try:
-                words = shlex.split(part, posix=True)
+                lex = shlex.shlex(part, posix=True, punctuation_chars=";&|")
+                lex.whitespace_split = True
+                lex.commenters = ""
+                words += list(lex) + [";"]
             except ValueError:
-                words = part.split()
-            if not words:
-                continue
-            cmd = os.path.basename(words[0])
-            modes = []
-            if cmd == "chmod":
-                modes = [w for w in words[1:] if not w.startswith("-") or re.match(r"^-[rwxXst]+$", w)][:1]
-            elif cmd in ("install", "mkdir"):
-                for i, w in enumerate(words[1:], 1):
-                    if w in ("-m", "--mode") and i + 1 < len(words):
-                        modes.append(words[i + 1])
-                    elif w.startswith("--mode="):
-                        modes.append(w[7:])
-                    elif re.match(r"^-[a-zA-Z]*m.+", w) and not w.startswith("--"):
-                        modes.append(w[w.index("m") + 1:])
-            for m in modes:
-                if _bad_mode_arg(m.lstrip("-") if cmd == "chmod" and m.startswith("-") else m):
-                    problems.append(f".INSTALL line {n}: sets setuid/setgid or world-writable: {raw.strip()[:100]}")
-                    break
+                words += part.split() + [";"]
+        if any(_bad_mode_arg(m) for m in _mode_args(words)):
+            problems.append(f"{where} line {n}: sets setuid/setgid or world-writable: {raw.strip()[:100]}")
     return problems
 
 

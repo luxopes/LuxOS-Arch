@@ -287,8 +287,11 @@ aur_fetch() {  # aur_fetch base -> adresar v AUR_DIR
     [[ $base =~ ^[A-Za-z0-9@_+][A-Za-z0-9@._+-]*$ ]] || die "$(T "Cannot clone %s from AUR" "$base")"
     git_dir="$LUX_CACHE/aur/$base"
     AUR_DIR="$LUX_CACHE/aur-build/$base"
+    AUR_GIT=$git_dir AUR_PREV_HEAD=
     mkdir -p "$LUX_CACHE/aur" "$LUX_CACHE/aur-build"
     if [[ -d $git_dir/.git ]]; then
+        # commit z minuleho stazeni: u aktualizace se ukaze rozdil skriptu proti nemu
+        AUR_PREV_HEAD=$(git -C "$git_dir" rev-parse -q --verify HEAD 2>/dev/null) || AUR_PREV_HEAD=
         git -C "$git_dir" fetch -q origin && git -C "$git_dir" reset -q --hard FETCH_HEAD ||
             die "$(T "Cannot update %s from AUR" "$base")"
     else
@@ -363,8 +366,13 @@ system_needs_tty() {
 }
 
 # Po kontrole: smi se pokracovat? (nebezpecny skript nikdy do systemu, s -y vubec)
+# Aktualizace balicku z komunity v systemu (lux update) se potvrzuje vzdy, i s -y: novy skript
+# z AUR pobezi jako root a kontrola LuxAI neni zaruka (prevzaty ucet v AUR, navod pro model v textu).
+COMMUNITY_UPDATE=0
 review_allows() {  # review_allows base
     system_needs_tty || return 1
+    local YES=$YES
+    ((COMMUNITY_UPDATE)) && [[ $COMMUNITY_TARGET == system ]] && YES=0
     case $REVIEW_VERDICT in
         safe) ask "$(T "Build and install %s?" "${B}$1${R}")" Y ;;
         dangerous)
@@ -387,7 +395,12 @@ aur_build() {  # aur_build pkg [asdeps]
     local dir=$AUR_DIR
     if ((REVIEW_PKGBUILD)); then
         aur_review "$dir" "$base"
-        if ((!YES)) && [[ -t 0 ]] && ask "$(T "Show the build script (PKGBUILD) of %s?" "${B}$base${R}")" n; then
+        local upd=0
+        ((COMMUNITY_UPDATE)) && [[ $COMMUNITY_TARGET == system && -n $AUR_PREV_HEAD ]] && upd=1
+        if ((upd)) && [[ -t 0 ]] && YES=0 ask "$(T "Show the build script (PKGBUILD) of %s?" "${B}$base${R}")" n; then
+            # aktualizace: nejdriv rozdil proti minule stazene verzi, pak cely skript
+            { git -C "$AUR_GIT" --no-pager diff --stat -p "$AUR_PREV_HEAD" HEAD --; echo; cat "$dir/PKGBUILD"; } | less -R
+        elif ((!YES && !upd)) && [[ -t 0 ]] && ask "$(T "Show the build script (PKGBUILD) of %s?" "${B}$base${R}")" n; then
             if command -v bat &>/dev/null; then bat --paging=always -l bash "$dir/PKGBUILD"; else less "$dir/PKGBUILD"; fi
         fi
         review_allows "$base" || die "$(T "Cancelled")"
@@ -697,7 +710,7 @@ cmd_update() {
                 warn "$(T "Community packages are updated only when you run it yourself: lux update")"
             elif ((${#outdated[@]})); then
                 # balicky z komunity uz v systemu jsou (uzivatel je tam svolil); novy skript se znovu kontroluje
-                (COMMUNITY_TARGET=system; aur_install "${outdated[@]}") || warn "$(T "Community packages were not updated")"
+                (COMMUNITY_TARGET=system; COMMUNITY_UPDATE=1; aur_install "${outdated[@]}") || warn "$(T "Community packages were not updated")"
             else ok "$(T "AUR packages are up to date")"; fi
         fi
     fi
@@ -1160,11 +1173,11 @@ cmd_doctor() {
     local issues=0 notes=0 n   # issues = problem (navratovy kod 1), notes = jen upozorneni
     say "$(T "LuxOS system check")"
     n=$(systemctl --failed --no-legend 2>/dev/null | wc -l)
-    if ((n)); then warn "$(T "%s failed service(s):" "$n")"; systemctl --failed --no-legend; ((issues++)); else ok "$(T "Services running")"; fi
+    if ((n)); then warn "$(T "%s failed service(s):" "$n")"; systemctl --failed --no-legend; ((++issues)); else ok "$(T "Services running")"; fi
     n=$(find /etc \( -name '*.luxnew' -o -name '*.pacnew' \) 2>/dev/null | wc -l)
-    ((n)) && { warn "$(T "%s .luxnew config file(s) to merge - run: lux configs" "$n")"; ((issues++)); } || ok "$(T "No pending config files")"
+    ((n)) && { warn "$(T "%s .luxnew config file(s) to merge - run: lux configs" "$n")"; ((++issues)); } || ok "$(T "No pending config files")"
     local use; use=$(df --output=pcent / | tail -1 | tr -dc 0-9)
-    ((use > 90)) && { warn "$(T "Root filesystem is %s%% full" "${use}")"; ((issues++)); } || ok "$(T "Disk usage %s%%" "${use}")"
+    ((use > 90)) && { warn "$(T "Root filesystem is %s%% full" "${use}")"; ((++issues)); } || ok "$(T "Disk usage %s%%" "${use}")"
     n=$("$LUX_ENGINE" -Qdtq 2>/dev/null | wc -l)
     ((n)) && { warn "$(T "%s unneeded package(s) - run: lux clean" "$n")"; ((++notes)); } || ok "$(T "No orphaned packages")"
     if alpm_ok; then
@@ -1172,7 +1185,7 @@ cmd_doctor() {
         ((n)) && { warn "$(T "%s update(s) available - run: lux update" "$n")"; ((++notes)); } || ok "$(T "System up to date")"
     fi
     if "$LUX_CONFIG" check &>/dev/null; then ok "$(T "Package manager configuration OK")"
-    else warn "$(T "The package manager configuration has an error - run: lux config check")"; ((issues++)); fi
+    else warn "$(T "The package manager configuration has an error - run: lux config check")"; ((++issues)); fi
     if [[ -e /var/lib/pacman || -e /etc/pacman.conf ]]; then
         say "$(T "Old package manager files are cleaned up after the next restart")"
     fi
@@ -1184,7 +1197,7 @@ cmd_doctor() {
         warn "$(T "The package manager core %s is older than the one in Arch Linux (%s); a LuxOS update will follow" "$own" "$upstream")"
         ((++notes))
     fi
-    [[ -d /usr/lib/modules/$(uname -r) ]] || { warn "$(T "Running kernel was replaced - restart")"; ((issues++)); }
+    [[ -d /usr/lib/modules/$(uname -r) ]] || { warn "$(T "Running kernel was replaced - restart")"; ((++issues)); }
     n=$(journalctl -b -p err --no-pager -q 2>/dev/null | wc -l)
     ((n)) && { warn "$(T "%s error message(s) in this boot's log (journalctl -b -p err)" "$n")"; ((++notes)); }
     ((issues)) && return 1
@@ -1425,7 +1438,7 @@ fi
 # Konfigurace (krome napovedy, kontroly konfigurace a vnitrnich prikazu - ty spousti lux, ktery uz
 # konfiguraci overil)
 case $cmd in
-    config|__*|-[SRQUFDT]*) ;;
+    config|__configs|__mirrors|__fix|__lux-file|__lux-remove|__preview|-[SRQUFDT]*) ;;   # __lux-install, __index: kanal z lux.conf
     *) lux_load_config ;;
 esac
 

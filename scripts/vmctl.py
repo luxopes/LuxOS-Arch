@@ -72,7 +72,7 @@ def gexec(command, timeout=600):
     raise TimeoutError(command)
 
 
-KEYMAP = {" ": "spc", "\n": "ret", "-": "minus", "=": "equal", ".": "dot", ",": "comma", "/": "slash",
+KEYMAP = {" ": "spc", "\n": "ret", "\t": "tab", "`": "grave_accent", "-": "minus", "=": "equal", ".": "dot", ",": "comma", "/": "slash",
           ";": "semicolon", "'": "apostrophe", "[": "bracket_left", "]": "bracket_right", "\\": "backslash"}
 SHIFTED = {"_": "minus", "+": "equal", ":": "semicolon", '"': "apostrophe", "?": "slash", "!": "1", "@": "2",
            "#": "3", "$": "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0", "<": "comma", ">": "dot",
@@ -112,6 +112,12 @@ def main():
                 time.sleep(3)
         print("timeout"); return 1
     elif c == "keys":
+        # nejdriv cely text: neznamy znak (diakritika, ridici znaky) by QMP odmitl az uprostred psani
+        bad = sorted({ch for ch in a[1] if ch not in SHIFTED and ch not in KEYMAP
+                      and not (ch.isascii() and ch.isalnum())})
+        if bad:
+            print("vmctl keys: cannot type " + " ".join(repr(ch) for ch in bad), file=sys.stderr)
+            return 2
         for ch in a[1]:
             if ch in SHIFTED: send(["shift", SHIFTED[ch]])
             elif ch.isupper(): send(["shift", ch.lower()])

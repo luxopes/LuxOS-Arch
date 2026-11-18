@@ -255,12 +255,13 @@ make_lux_repo() {
         bash "$ROOT/packages/lux/lux" pack "${d%/}" "$dir" >/dev/null || exit 1
         # ikona pro Obchod: SVG, jinak nejvetsi PNG ze share/icons
         name=$(jq -r .name "$d/lux.json")
-        icon=$(find "$d/share/icons" -name '*.svg' 2>/dev/null | head -1)
-        [[ -z $icon ]] && icon=$(find "$d/share/icons" -name '*.png' 2>/dev/null | sort -V | tail -1)
+        # (bez "| head": s pipefail by chybejici share/icons nebo SIGPIPE ukoncily cele sestaveni)
+        icon=$(find "$d/share/icons" -name '*.svg' -print -quit 2>/dev/null || true)
+        [[ -z $icon ]] && icon=$( { find "$d/share/icons" -name '*.png' 2>/dev/null || true; } | sort -V | tail -1)
         [[ -n $icon ]] && cp "$icon" "$dir/$name.icon.${icon##*.}"
     done
     python3 - "$dir" <<'PY'
-import hashlib, json, os, subprocess, sys
+import hashlib, json, os, subprocess, sys, time
 d = sys.argv[1]
 pkgs = []
 for f in sorted(os.listdir(d)):
@@ -276,7 +277,9 @@ for f in sorted(os.listdir(d)):
         if os.path.exists(os.path.join(d, f"{meta['name']}.icon.{ext}")):
             entry["icon"] = f"{meta['name']}.icon.{ext}"
     pkgs.append(entry)
-json.dump({"format": 1, "packages": pkgs}, open(os.path.join(d, "index.json"), "w"), indent=1, ensure_ascii=False)
+# generated: lux odmitne starsi podepsany index, nez uz ma (podvrzena stara kopie)
+json.dump({"format": 1, "generated": int(time.time()), "packages": pkgs}, open(os.path.join(d, "index.json"), "w"),
+          indent=1, ensure_ascii=False)
 PY
     if [[ -n $GPGKEY ]]; then
         for f in "$dir"/*.lux "$dir/index.json"; do
@@ -369,6 +372,14 @@ drv_pkgfiles() {  # drv_pkgfiles ADRESAR NAZEV -> soubory presne tohoto baliku (
     return 0
 }
 
+# Kod z AUR (cteni PKGBUILD, makepkg) bezi jako builder bez site a bez moznosti ziskat prava roota:
+# no_new_privs vypne setuid (sudo builderu z Containerfile tu nefunguje) - kontejner ma --privileged,
+# /luxos pro zapis a klic repozitare (/signing, kopie v GNUPGHOME). Prostredi prazdne (bez GNUPGHOME).
+drv_sandbox() {
+    unshare -n setpriv --no-new-privs --reuid=builder --regid=builder --init-groups -- \
+        env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/bin HOME=/home/builder USER=builder LOGNAME=builder "$@"
+}
+
 build_drivers() {
     local DREPO=$OUT/drivers-repo manifest=$ROOT/drivers/state/manifest.json
     [[ -f $manifest ]] || { echo "No drivers/state/manifest.json (drivers/luxdrv.py verify)" >&2; exit 1; }
@@ -438,7 +449,7 @@ EOF
             pacman -S --needed --noconfirm "$d" &>/dev/null && continue
             drv_install "$d" || return 1
         done < <(tar --zstd -xOf "$f" .PKGINFO | awk -F' = ' '$1 == "depend" { sub(/[<>=].*/, "", $2); print $2 }')
-        pacman -U --needed --noconfirm --ask 4 "$f" &>/dev/null
+        pacman -U --needed --noscriptlet --noconfirm --ask 4 "$f" &>/dev/null
     }
     # ovladace, ktere uz nejsou overene (odebrane z manifestu), z repozitare pryc
     for f in "$DREPO"/built/*; do
@@ -486,16 +497,17 @@ EOF
             chown -R builder: "$dir"
             # zavislosti: z Archu (i virtualni - provides), nebo jiny overeny ovladac (musi byt sestaveny driv)
             local missing=0 nm why=
-            # (PKGBUILD cte uzivatel builder bez site, ne root)
+            # (PKGBUILD cte uzivatel builder bez site a bez sudo, ne root)
             # shellcheck disable=SC2016  # promenne rozvine az bash uzivatele builder
-            (cd "$dir" && unshare -n sudo -u builder bash -c 'set +u; depends=(); makedepends=(); CARCH=x86_64
+            (cd "$dir" && drv_sandbox bash -c 'set +u; depends=(); makedepends=(); CARCH=x86_64
                 depends_x86_64=(); makedepends_x86_64=()
                 source ./PKGBUILD >/dev/null 2>&1
                 for d in "${depends[@]}" "${makedepends[@]}" "${depends_x86_64[@]}" "${makedepends_x86_64[@]}"; do
                     echo "${d%%[<>=]*}"; done') >"$dir/.deps"
             # ovladace vedle sebe casto nejdou (stejne soubory bez conflicts=) - drive nainstalovane
             # ovladace (cizi baliky, ne z Archu) pryc, kazdy balik dostane jen sve zavislosti
-            pacman -Qqm | xargs -r pacman -Rdd --noconfirm &>/dev/null || true
+            # (--noscriptlet: skripty .install ovladacu z AUR v kontejneru s klicem nespoustet)
+            pacman -Qqm | xargs -r pacman -Rdd --noscriptlet --noconfirm &>/dev/null || true
             while read -r nm; do
                 [[ -n $nm ]] || continue
                 pacman -T "$nm" &>/dev/null && continue
@@ -518,7 +530,7 @@ EOF
             done < <(jq -r --arg b "$base" '.[$b].sources | to_entries[] | "\(.key)\t\(.value)"' "$manifest")
             ((srcok)) || { failed+=("$base (verified source $sf missing - run drivers/luxdrv.py verify)"); continue; }
             chown -R builder: "$BUILD/drvsrc" "$BUILD/drvout"
-            if (cd "$dir" && unshare -n sudo -u builder env -u GNUPGHOME HOME=/home/builder SRCDEST="$BUILD/drvsrc" \
+            if (cd "$dir" && drv_sandbox SRCDEST="$BUILD/drvsrc" \
                     PKGDEST="$BUILD/drvout" MAKEPKG_LIBRARY="$mklib" LUXDRV_PERMS_ALLOW_TSV="$BUILD/perms-allow.tsv" \
                     makepkg --force --nodeps --noconfirm --cleanbuild >"$dir/.log" 2>&1) &&
                     rm -f "$BUILD"/drvout/*-debug-*.pkg.tar.zst &&

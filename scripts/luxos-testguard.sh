@@ -70,7 +70,19 @@ luxos_tg_buspid=
 if [[ ${DBUS_SESSION_BUS_ADDRESS-} == unix:path=/run/user/$(id -u)/bus* ]]; then
     unset DBUS_SESSION_BUS_ADDRESS
     if command -v dbus-daemon >/dev/null; then
-        { read -r luxos_tg_bus; read -r luxos_tg_buspid; } < <(dbus-daemon --session --fork --print-address=1 --print-pid=1 2>/dev/null)
+        # bez --fork a s pdeathsig (jako Xvfb): skonci se skriptem i kdyz si test nastavi vlastni
+        # "trap EXIT" (drive dbus-daemon --fork po takovem testu zustaval bezet)
+        luxos_tg_pd=()
+        setpriv --pdeathsig TERM true 2>/dev/null && luxos_tg_pd=(setpriv --pdeathsig TERM)
+        "${luxos_tg_pd[@]}" dbus-daemon --session --nofork --print-address=3 3>"$luxos_tg_tmp/bus" \
+            >/dev/null 2>&1 </dev/null &
+        luxos_tg_buspid=$!
+        luxos_tg_bus=
+        for _ in $(seq 100); do
+            IFS= read -r luxos_tg_bus <"$luxos_tg_tmp/bus" 2>/dev/null
+            [[ -n $luxos_tg_bus ]] && break
+            sleep 0.05
+        done
         [[ -n ${luxos_tg_bus-} ]] && export DBUS_SESSION_BUS_ADDRESS=$luxos_tg_bus
     fi
 fi

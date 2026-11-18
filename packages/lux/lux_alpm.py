@@ -35,6 +35,7 @@ import os
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -272,6 +273,18 @@ def _ancestors(pid):
     return out
 
 
+def _proc_uid(proc, pid):
+    """Efektivni UID procesu z /proc/PID/status (None = nejde zjistit)."""
+    try:
+        with open(f"{proc}/{pid}/status") as f:
+            for line in f:
+                if line.startswith("Uid:"):
+                    return int(line.split()[2])
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
 def running_package_managers(proc="/proc"):
     """Nazvy jinych bezicich spravcu baliku (bez tohoto procesu a jeho predku)."""
     mine = _ancestors(os.getpid())
@@ -296,6 +309,10 @@ def running_package_managers(proc="/proc"):
         for a in argv[:3]:
             label = PKG_SCRIPTS.get(os.path.basename(a))
             if label:
+                # pomocnik bez prav roota (lux check, Obchod hleda aktualizace) zamek systemove databaze
+                # drzet nemuze - kvuli nemu se na zamek neceka ani se zbytek zamku nenechava
+                if _proc_uid(proc, pid) not in (None, 0):
+                    break
                 names.add(label)
                 break
     return sorted(names)
@@ -2381,10 +2398,15 @@ def cmd_check_updates(lux, args):
     conf = lux.conf if lux.conf is not None else load_engine_conf()
     real = conf.get("DBPath", DEFAULT_DBPATH)
     tmp = check_updates_db(args.db)
-    os.makedirs(os.path.join(tmp, "sync"), mode=0o700, exist_ok=True)
+    # nejdriv overit slozku (v /tmp ji mohl predem zalozit nekdo jiny, i jako odkaz), az pak do ni zapisovat
+    try:
+        os.mkdir(tmp, 0o700)
+    except FileExistsError:
+        pass
     st = os.lstat(tmp)
-    if st.st_uid != os.getuid() or os.path.islink(tmp):
+    if st.st_uid != os.getuid() or not stat.S_ISDIR(st.st_mode):
         raise LuxError("permission", f"{tmp} does not belong to this user")
+    os.makedirs(os.path.join(tmp, "sync"), mode=0o700, exist_ok=True)
     # Obchod, Pece a terminal kontroluji do stejne slozky: dalsi beh pocka na prvni (drive spadl
     # na zamku jadra s hlaskou o internetu). Kdo drzi flock, je jediny uzivatel slozky, takze
     # db.lck je zbytek preruseneho behu a muze se smazat.

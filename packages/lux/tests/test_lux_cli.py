@@ -571,5 +571,59 @@ class CLI(unittest.TestCase):
             fake.kill()
             fake.wait()
 
+    def test_doctor_first_issue_not_also_ok(self):
+        """lux doctor: prvni problem (issues 0 -> 1) nesmi vypsat zaroven "OK" ((issues++) vracel 1)."""
+        for name, body in (("find", '[[ " $* " == *" /etc "* ]] && { echo /etc/x.luxnew; exit 0; }\n'
+                                    'exec /usr/bin/find "$@"\n'),
+                           ("systemctl", "exit 0\n")):
+            p = os.path.join(self.bin, name)
+            with open(p, "w") as f:
+                f.write("#!/bin/bash\n" + body)
+            os.chmod(p, 0o755)
+        rc, out = self.lux("doctor")
+        self.assertIn("config file(s) to merge", out)
+        self.assertNotIn("No pending config files", out)
+        self.assertEqual(rc, 1)
+
+
+class CommunityUpdate(unittest.TestCase):
+    """lux update: nova verze balicku z komunity v systemu se potvrzuje vzdy, i s -y."""
+    def run_review(self, update, yes, answer, verdict="safe"):
+        src = open(LUX).read()
+        funcs = ""
+        for name in ("ask", "system_needs_tty", "review_allows"):
+            start = src.index("\n%s() {" % name) + 1
+            funcs += src[start:src.index("\n}\n", start) + 3]
+        snippet = ('T() { local f=$1; shift; printf "$f" "$@"; }; warn() { echo "W: $*"; }; B= R=\n' + funcs +
+                   "YES=%d COMMUNITY_TARGET=system COMMUNITY_UPDATE=%d REVIEW_VERDICT=%s\n"
+                   "review_allows pkg && echo RESULT=yes || echo RESULT=no\n" % (yes, update, verdict))
+        with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as f:
+            f.write(snippet)
+        try:
+            # skutecny terminal (system_needs_tty), odpoved na otazku na jeho vstupu
+            r = subprocess.run(["script", "-qec", "bash " + f.name, "/dev/null"], input=answer + "\n",
+                               capture_output=True, text=True, timeout=30)
+        finally:
+            os.unlink(f.name)
+        return r.stdout
+
+    def test_update_with_yes_still_asks(self):
+        out = self.run_review(update=1, yes=1, answer="n")
+        self.assertIn("Build and install pkg?", out)
+        self.assertIn("RESULT=no", out)
+        self.assertIn("RESULT=yes", self.run_review(update=1, yes=1, answer="y"))
+
+    def test_unreviewed_update_asks_instead_of_refusing(self):
+        self.assertIn("RESULT=yes", self.run_review(update=1, yes=1, answer="y", verdict="unreviewed"))
+
+    def test_plain_install_with_yes_unchanged(self):
+        out = self.run_review(update=0, yes=1, answer="n")
+        self.assertNotIn("Build and install pkg?", out)
+        self.assertIn("RESULT=yes", out)
+
+    def test_dangerous_never_into_system(self):
+        self.assertIn("RESULT=no", self.run_review(update=1, yes=0, answer="y", verdict="dangerous"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -233,10 +233,18 @@ def outside_pkgdir(text):
 
 def precheck(d):
     """Seznam (zavaznost, popis). Jen cteni souboru - vsech v repozitari (krome .git)."""
-    pkgbuild = read(os.path.join(d, "PKGBUILD"))
+    pkgbuild = read(os.path.join(d, "PKGBUILD"), MAX_FILE + 1)
     if not pkgbuild:
         return [("high", _("no PKGBUILD found"))]
     texts, findings = repo_texts(d)
+    # co se neda cele zkontrolovat, nesmi projit jako "jen podezrele": skript, ktery bezi pri sestaveni
+    # nebo jako root pri instalaci, musi projit pravidly cely (jinak by se nebezpecny kod schoval za limit)
+    shown = {n for n, _t in texts}
+    if "PKGBUILD" not in shown or len(pkgbuild) > MAX_FILE:
+        findings.append(("high", _("the build script is too large or cannot be checked")))
+    for inst in install_names(pkgbuild) + [f for f, _s in repo_files(d)[0] if f.endswith(".install")]:
+        if "/" not in inst and os.path.lexists(os.path.join(d, inst)) and inst not in shown:
+            findings.append(("high", _("the install script cannot be checked: %s") % inst[:80]))
     if len(pkgbuild) > MAX_SCRIPT:
         findings.append(("medium", _("the build script is unusually long")))
     for name, text in texts:

@@ -98,6 +98,14 @@ class InstallScript(unittest.TestCase):
                      "test -d /x && chmod 777 /x"):
             self.assertTrue(self.bad(f"post_install() {{\n  {line}\n}}\n"), line)
 
+    def test_disguised_modes(self):
+        """5mistny oktal, find -exec / xargs / env, mod z promenne nebo stdin (nejde overit)."""
+        for line in ("chmod 04755 /usr/bin/x", "chmod 0004755 /x", "install -m04755 a /b", "install -Dm 04755 a /b",
+                     "find /opt/x -name y -exec chmod 4755 {} \\;", "find /opt -exec chmod u=rwxs {} +",
+                     "echo /x | xargs chmod 4755", "echo /x | xargs chmod", "env chmod 4755 /x", 'chmod "$m" /x',
+                     "chmod --reference=/usr/bin/sudo /x", "x=$(chmod 4755 /x)"):
+            self.assertTrue(self.bad(f"post_install() {{\n  {line}\n}}\n"), line)
+
     def test_allowed_modes(self):
         for line in ("chmod 0755 /usr/bin/x", "chmod 755 /x", "chmod 0750 /etc/cngplp2/account", "chmod -R go-w /x",
                      "chmod u+x /x", "install -Dm755 a /usr/bin/a", "install -m 0644 a b", "mkdir -p /x",

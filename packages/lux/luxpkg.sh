@@ -15,6 +15,7 @@ LUX_SHARE=/usr/local/share
 LUX_INDEX_URL=${LUX_INDEX_URL:-https://luxos.lux-ai.cz/repo/lux}
 LUX_KEYRING=${LUX_KEYRING:-/usr/share/pacman/keyrings/luxos.gpg}
 LUX_FORMAT=1
+LP_INSTALLING=""   # balicky, ktere se prave instaluji (zavislosti v cyklu)
 
 lp_valid_name() { [[ $1 =~ ^[a-z0-9][a-z0-9._+-]*$ ]]; }
 
@@ -35,17 +36,26 @@ lp_meta() { tar --zstd -xOf "$1" lux.json 2>/dev/null; }  # lp_meta SOUBOR.lux -
 lp_installed() { [[ -f $LUX_DB/$1.json ]]; }
 lp_installed_version() { jq -r '"\(.version)-\(.release // 1)"' "$LUX_DB/$1.json" 2>/dev/null; }
 
-# Index repozitare (overeny), ulozeny v mezipameti
+# Index repozitare (overeny), ulozeny v mezipameti. Mezipamet patri jedne adrese (kanal stable/staging
+# ma vlastni index); starsi podepsany index nez ten v mezipameti se odmita ("generated" - podvrzeni
+# stare kopie by jinak vratilo starsi verze balicku).
 lp_index() {
-    local dir file
+    local dir file old new
     if ((EUID == 0)); then dir=/var/cache/lux; else dir=$LUX_CACHE; fi
     mkdir -p "$dir"
     file=$dir/index.json
+    if [[ -s $file && $(cat "$file.src" 2>/dev/null) != "$LUX_INDEX_URL" ]]; then
+        rm -f "$file" "$file.src"
+    fi
     if [[ ! -s $file || -n $(find "$file" -mmin +30 2>/dev/null) || ${LUX_REFRESH:-0} == 1 ]]; then
         if curl -fsSL --connect-timeout 5 --max-time 15 -o "$file.new" "$LUX_INDEX_URL/index.json" &&
            curl -fsSL --connect-timeout 5 --max-time 15 -o "$file.new.sig" "$LUX_INDEX_URL/index.json.sig" &&
-           lp_verify "$file.new" "$file.new.sig"; then
+           lp_verify "$file.new" "$file.new.sig" &&
+           new=$(jq -r '.generated // 0 | floor' "$file.new" 2>/dev/null) &&
+           old=$( { [[ -s $file ]] && jq -r '.generated // 0 | floor' "$file"; } 2>/dev/null || echo 0) &&
+           [[ $new =~ ^[0-9]+$ && ${old:-0} =~ ^[0-9]+$ ]] && ((new >= ${old:-0})); then
             mv "$file.new" "$file"
+            printf '%s\n' "$LUX_INDEX_URL" >"$file.src"
         else
             rm -f "$file.new" "$file.new.sig"
             [[ -s $file ]] || { echo '{"format":1,"packages":[]}'; return; }
@@ -108,8 +118,13 @@ lp_install_file() {  # lp_install_file SOUBOR.lux [overeno=1]
         # souhlas uz padl (lux install / Obchod) - bez dalsi otazky, pres libalpm nebo lux-engine
         (YES=1; repo_install "${sys[@]}") || die "$(T "Dependencies could not be installed")"
     fi
+    # zavislosti lux: jen platna jmena; balik, ktery se prave instaluje (cyklus A -> B -> A), znovu ne
+    LP_INSTALLING+=" $name "
     while read -r dep; do
-        [[ -n $dep ]] && ! lp_installed "$dep" && lp_install_name "$dep"
+        [[ -n $dep ]] || continue
+        lp_valid_name "$dep" || die "$(T "Invalid package name: %s" "$dep")"
+        [[ $LP_INSTALLING == *" $dep "* ]] && continue
+        lp_installed "$dep" || lp_install_name "$dep"
     done < <(jq -r '.depends.lux // [] | .[]' <<<"$meta")
 
     say "$(T "Installing %s %s" "${B}$name${R}" "$version")"
@@ -117,10 +132,26 @@ lp_install_file() {  # lp_install_file SOUBOR.lux [overeno=1]
     mkdir -p "$LUX_ROOT"
     tmp=$(mktemp -d "$LUX_ROOT/.new-XXXXXX")
     tar --zstd -xf "$file" -C "$tmp" --no-same-owner || { rm -rf "$tmp"; die "$(T "Could not unpack %s" "$file")"; }
+    # prikazy z bin{} jen uvnitr app/ (ne ../, ne absolutni cesta) - chmod a odkaz jdou jako root
+    local brel
+    while IFS= read -r brel; do
+        [[ -n $brel && -f $tmp/app/$brel && $(realpath -e -- "$tmp/app/$brel" 2>/dev/null) == "$tmp"/app/* ]] ||
+            { rm -rf "$tmp"; die "$(T "Missing files listed in bin: %s" "$brel")"; }
+    done < <(jq -r '.bin // {} | to_entries[] | .value' "$tmp/lux.json")
     dest=$LUX_ROOT/$name
     lp_unlink "$name"
-    rm -rf "$dest"
-    mv "$tmp" "$dest"
+    # vymena: stara verze stranou, nova na jeji misto; kdyz to nejde, stara se vrati
+    local old=
+    if [[ -e $dest ]]; then
+        old=$(mktemp -u "$LUX_ROOT/.old-XXXXXX")
+        mv "$dest" "$old" || { rm -rf "$tmp"; die "$(T "Could not unpack %s" "$file")"; }
+    fi
+    if ! mv "$tmp" "$dest"; then
+        rm -rf "$tmp"
+        [[ -n $old ]] && mv "$old" "$dest"
+        die "$(T "Could not unpack %s" "$file")"
+    fi
+    [[ -n $old ]] && rm -rf "$old"
     chmod 755 "$dest"
 
     # integrace: prikazy, .desktop, ikony; seznam souboru do databaze
@@ -130,6 +161,12 @@ lp_install_file() {  # lp_install_file SOUBOR.lux [overeno=1]
         [[ -n $cmd ]] || continue
         lp_valid_name "$cmd" || continue
         mkdir -p /usr/local/bin
+        # cizi prikaz v /usr/local/bin (vlastni skript spravce, jiny balicek) se neprepisuje
+        if [[ -e /usr/local/bin/$cmd || -L /usr/local/bin/$cmd ]] &&
+                [[ $(readlink "/usr/local/bin/$cmd" 2>/dev/null) != "$dest/app/"* ]]; then
+            warn "$(T "Skipped: %s" "/usr/local/bin/$cmd")"
+            continue
+        fi
         ln -sfn "$dest/app/$rel" "/usr/local/bin/$cmd"
         chmod 755 "$dest/app/$rel"
         files+=("/usr/local/bin/$cmd")

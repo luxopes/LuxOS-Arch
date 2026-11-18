@@ -132,7 +132,8 @@ verify_one() {  # verify_one SOUBOR|BALIK CERT
             done
         done < <(tar --zstd -tf "$f")
         rm -rf "$tmp"
-        ((n)) || echo "-       ${f##*/}: no EFI files to sign"
+        # jadro / systemd-boot bez souboru EFI (jina cesta v balicku) nesmi projit jako "podepsane"
+        ((n)) || { echo "MISSING ${f##*/}: no EFI files found (${SB_PATTERNS[*]})"; rc=1; }
     elif signed_by_us "$f" "$cert"; then echo "OK      $f"
     else echo "UNSIGNED $f"; rc=1; fi
     return "$rc"

