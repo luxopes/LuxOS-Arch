@@ -1305,6 +1305,14 @@ function end_op(st, err):
     return 0
 end
 
+function req_int(req, key):
+    v = req.get(key, 0)
+    if type(v) != "Int":
+        return 0
+    end
+    return v
+end
+
 function account_op(req):
     st = account_state(req.get("account", ""))
     op = req["op"]
@@ -1327,9 +1335,9 @@ function account_op(req):
             result["path"] = body[0]
             result["uidvalidity"] = body[1]
         elif op == "flags":
-            call set_flags(st, raw, req["uids"], req.get("add", True), req["flags"])
+            call set_flags(st, raw, req["uids"], req.get("add", True), req["flags"], req_int(req, "uidvalidity"))
         elif op == "trash":
-            result["deleted"] = trash(st, raw, req["uids"])
+            result["deleted"] = trash(st, raw, req["uids"], req_int(req, "uidvalidity"))
         elif op == "mailboxes":
             call refresh_mailboxes(st)
             call refresh_counts(st)
@@ -1345,9 +1353,10 @@ function account_op(req):
     return result
 end
 
-# Telo zpravy do mezipameti; vraci [cesta, UIDVALIDITY]. UID plati jen se svou UIDVALIDITY: pri zmene (jina
-# schranka se stejnym jmenem) se telo neulozi pod stare UID, mezipamet schranky se hned obnovi
-function fetch_body(st, raw, uid, expected=0):
+# Vybere schranku a overi, ze UID z okna / mezipameti patri k teto UIDVALIDITY (schranka mezitim smazana
+# a zalozena znovu = stejna UID jsou jine zpravy). Pri zmene se mezipamet hned obnovi a operace se odmitne:
+# precteni, priznak ani smazani nesmi zasahnout jinou zpravu. Vraci UIDVALIDITY.
+function select_checked(st, raw, expected):
     conn = st["conn"]
     id = st["cfg"]["id"]
     if conn["selected"] != raw:
@@ -1364,6 +1373,15 @@ function fetch_body(st, raw, uid, expected=0):
         end
         call imap.fail("gone", "The mailbox changed on the server; the message list is being refreshed.")
     end
+    return validity
+end
+
+# Telo zpravy do mezipameti; vraci [cesta, UIDVALIDITY]. UID plati jen se svou UIDVALIDITY: pri zmene (jina
+# schranka se stejnym jmenem) se telo neulozi pod stare UID, mezipamet schranky se hned obnovi
+function fetch_body(st, raw, uid, expected=0):
+    conn = st["conn"]
+    id = st["cfg"]["id"]
+    validity = select_checked(st, raw, expected)
     res = imap.uid_fetch(conn, String(uid), "UID RFC822.SIZE")
     for f in imap.fetches(res["untagged"]):
         if imap.tint(f.get("RFC822.SIZE", None), 0) > MAX_BODY:
@@ -1423,11 +1441,9 @@ function rewrite_rows(st, raw, uids, add, letter, remove):
     return 0
 end
 
-function set_flags(st, raw, uids, add, flags):
+function set_flags(st, raw, uids, add, flags, expected=0):
     conn = st["conn"]
-    if conn["selected"] != raw:
-        call imap.select(conn, raw)
-    end
+    call select_checked(st, raw, expected)
     call imap.store_flags(conn, imap.compress_set(uids), add, flags)
     for f in flags:
         letter = store.flags_letters([f])
@@ -1439,11 +1455,9 @@ function set_flags(st, raw, uids, add, flags):
 end
 
 # Do Kose; v Kosi (nebo bez Kose na serveru, ktery ho nejde vytvorit) smazat natrvalo. Vraci "moved"/"deleted"
-function trash(st, raw, uids):
+function trash(st, raw, uids, expected=0):
     conn = st["conn"]
-    if conn["selected"] != raw:
-        call imap.select(conn, raw)
-    end
+    call select_checked(st, raw, expected)
     set_text = imap.compress_set(uids)
     target = role_box(st, "trash")
     if target == "" and raw != "Trash":
@@ -2010,6 +2024,16 @@ end
 
 function remove_account(req):
     id = req.get("account", "")
+    # jen existujici ucet: prazdne nebo cizi id by smazalo celou slozku dat Posty (Odchozi, koncepty) nebo mimo ni
+    known = False
+    for a in store.load_accounts():
+        if type(id) == "String" and id != "" and a["id"] == id:
+            known = True
+        end
+    end
+    if not known or not valid_job_id(id):
+        return {"ok": False, "kind": "noaccount", "error": "The account does not exist."}
+    end
     revoked = False
     # ucet OAuth: nejdriv odvolat pristup Posty u poskytovatele (kdyz to umi), pak smazat vse mistni.
     # Odvolani je jen navic - bez site nebo pri chybe se ucet z pocitace smaze stejne.

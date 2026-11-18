@@ -19,10 +19,12 @@ import uuid
 from . import localsend, lshttp, proto, transfer
 
 MAX_CONNECTIONS = 16
+MAX_PER_IP = 8              # jedno zarizeni nesmi obsadit vsechna spojeni (ostatni by se nedostala k prijmu)
 DECISION_TIMEOUT = transfer.DECISION_TIMEOUT
 SESSION_IDLE = 120          # relace bez aktivity se po 2 minutach ukonci
 PIN_MAX_ATTEMPTS = 3
 PIN_BLOCK_SECONDS = 300
+PIN_GLOBAL_MAX = 20         # spatne PINy ze vsech adres dohromady (zkouseni z mnoha adres, napr. IPv6)
 IO_TIMEOUT = 60
 
 
@@ -69,6 +71,9 @@ class LocalSendServer:
         self.pending = None       # (ip, Event) - ceka se na rozhodnuti uzivatele
         self.slot = threading.Lock()
         self.pin_fail = {}        # ip -> (pocet, cas)
+        self.pin_global = []      # casy spatnych PINu ze vsech adres (poslednich PIN_BLOCK_SECONDS)
+        self._per_ip = {}         # ip -> pocet otevrenych spojeni
+        self._per_ip_lock = threading.Lock()
         self._stop = threading.Event()
         self._conn_sem = threading.BoundedSemaphore(MAX_CONNECTIONS)
         self._prompt_sem = threading.BoundedSemaphore(transfer.MAX_PROMPTS)
@@ -113,9 +118,15 @@ class LocalSendServer:
                     return
                 time.sleep(0.2)
                 continue
-            if not self._conn_sem.acquire(blocking=False):
-                conn.close()
-                continue
+            ip = addr[0][7:] if addr[0].startswith("::ffff:") else addr[0]
+            with self._per_ip_lock:
+                if self._per_ip.get(ip, 0) >= MAX_PER_IP:
+                    conn.close()
+                    continue
+                if not self._conn_sem.acquire(blocking=False):
+                    conn.close()
+                    continue
+                self._per_ip[ip] = self._per_ip.get(ip, 0) + 1
             threading.Thread(target=self._serve, args=(conn, addr), daemon=True).start()
 
     def _reaper(self):
@@ -166,6 +177,12 @@ class LocalSendServer:
                 c.close()
             else:
                 raw.close()
+            with self._per_ip_lock:
+                n = self._per_ip.get(ip, 1) - 1
+                if n > 0:
+                    self._per_ip[ip] = n
+                else:
+                    self._per_ip.pop(ip, None)
             self._conn_sem.release()
 
     # --- Smerovani ------------------------------------------------------------
@@ -226,7 +243,8 @@ class LocalSendServer:
         n, since = self.pin_fail.get(req.ip, (0, now))
         if now - since > PIN_BLOCK_SECONDS:
             n = 0
-        if n >= PIN_MAX_ATTEMPTS:
+        self.pin_global = [x for x in self.pin_global if now - x <= PIN_BLOCK_SECONDS]
+        if n >= PIN_MAX_ATTEMPTS or len(self.pin_global) >= PIN_GLOBAL_MAX:
             raise lshttp.HTTPError(429, "Too many requests")
         given = req.query.get("pin")
         if given is None:
@@ -235,6 +253,7 @@ class LocalSendServer:
             if len(self.pin_fail) > 1000:
                 self.pin_fail.clear()
             self.pin_fail[req.ip] = (n + 1, now if n == 0 else since)
+            self.pin_global.append(now)
             raise lshttp.HTTPError(401, "Invalid PIN")
         self.pin_fail.pop(req.ip, None)
 

@@ -4,6 +4,7 @@ Pred odeslanim jakychkoli dat se zkontroluje otisk certifikatu prijemce (z objev
 u duveryhodneho zarizeni navic pripnuty klic. Soubory se posilaji postupne s
 Content-Length a SHA-256 v nabidce (prijemce ho muze overit).
 """
+import http.client
 import os
 import threading
 import time
@@ -60,7 +61,9 @@ def send(identity, settings, trust, history, device, callbacks, paths=None, text
     except lshttp.PinError as e:
         t.state, t.code = "failed", proto.E_KEY_MISMATCH
         t.error = "the device presented a different certificate than expected (%s)" % e
-    except (OSError, ConnectionError, lshttp.HTTPError) as e:
+    except (OSError, ConnectionError, lshttp.HTTPError, http.client.HTTPException) as e:
+        # HTTPException: poskozena odpoved prijemce (BadStatusLine, IncompleteRead ...) - jinak by vlakno
+        # spadlo a prenos zustal v okne navzdy "probihajici"
         if t.cancelled:
             t.state, t.code, t.error = "cancelled", proto.E_CANCELLED, \
                 "cancelled by the receiver" if t.remote_cancelled else "cancelled"

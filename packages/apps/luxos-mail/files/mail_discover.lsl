@@ -134,6 +134,18 @@ function dns_query(name, kind):
     return out
 end
 
+function host_name_ok(host):
+    if len(host) > 253 or host.startswith(".") or host.startswith("-") or host.find("..") >= 0:
+        return False
+    end
+    for ch in host.lower():
+        if "abcdefghijklmnopqrstuvwxyz0123456789-.".find(ch) < 0:
+            return False
+        end
+    end
+    return True
+end
+
 function srv_best(name):
     best = []
     for r in dns_query(name, "SRV"):
@@ -143,6 +155,9 @@ function srv_best(name):
         end
         if target == "" or target == "." or r[2] == 0:
             continue                   # "." = sluzba neni k dispozici (RFC 2782)
+        end
+        if not host_name_ok(target):
+            continue                   # podvrzeny / poskozeny zaznam: jen jmeno serveru (pismena, cislice, "-", ".")
         end
         if len(best) == 0 or r[0] < best[0]:
             best = [r[0], r[1], r[2], target]

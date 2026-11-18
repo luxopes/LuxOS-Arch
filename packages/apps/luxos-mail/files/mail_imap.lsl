@@ -132,6 +132,10 @@ function ensure(conn, need, timeout, nonblock):
     return True
 end
 
+# Nejdelsi radek odpovedi a nejvetsi odpoved vcetne literalu (zprava az 64 MiB = MAX_BODY sluzby + rezerva)
+MAX_LINE = 8388608
+MAX_RESPONSE = 100663296
+
 # Literal "{123}" / "{123+}" na konci radku [line_start, cr): delka nebo -1
 function literal_size(buf, line_start, cr):
     if cr - 1 <= line_start or buf[cr - 1] != 125:
@@ -165,6 +169,10 @@ function read_response(conn, timeout, nonblock):
         start = conn["pos"]
         nl = mb.find_byte(buf, 10, start + rel, len(buf))
         if nl < 0:
+            # radek bez konce / nekonecna odpoved: chybny nebo zakerny server nesmi vycerpat pamet
+            if len(buf) - start - rel > MAX_LINE:
+                call fail("protocol", "The server sent a reply line that is too long.")
+            end
             if not ensure(conn, len(buf) - start + 1, timeout, nonblock):
                 return {}
             end
@@ -177,6 +185,9 @@ function read_response(conn, timeout, nonblock):
         lit = literal_size(buf, start + rel, cr)
         if lit >= 0:
             need = nl + 1 + lit - start
+            if lit > MAX_RESPONSE or need > MAX_RESPONSE:
+                call fail("protocol", "The server sent a reply that is too large.")
+            end
             if not ensure(conn, need, timeout, nonblock):
                 return {}
             end
@@ -1378,7 +1389,28 @@ function expunge(conn, uidset):
     if has_cap(conn, "UIDPLUS"):
         return command(conn, "UID EXPUNGE " + uidset)
     end
-    return command(conn, "EXPUNGE")
+    # Bez UIDPLUS smaze EXPUNGE vsechny zpravy s \Deleted ve schrance, i ty oznacene jinym programem: ty docasne
+    # odznacit a po EXPUNGE znovu oznacit (RFC 4315, kap. 1)
+    mine = {}
+    for u in expand_set(uidset):
+        mine[u] = True
+    end
+    others = []
+    for u in uid_search(conn, "DELETED"):
+        if u not in mine:
+            others.append(u)
+        end
+    end
+    other_set = ""
+    if len(others) > 0:
+        other_set = compress_set(others)
+        call store_flags(conn, other_set, False, ["\\Deleted"])
+    end
+    r = command(conn, "EXPUNGE")
+    if other_set != "":
+        call store_flags(conn, other_set, True, ["\\Deleted"])
+    end
+    return r
 end
 
 function create(conn, raw):

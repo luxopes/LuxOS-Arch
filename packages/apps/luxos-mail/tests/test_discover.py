@@ -112,6 +112,13 @@ class DiscoverTest(unittest.TestCase):
         self.assertEqual(res["imap"]["security"], "starttls")
         self.assertEqual(res["imap"]["port"], 143)
 
+    def test_srv_invalid_target_ignored(self):
+        # cil SRV s nepovolenymi znaky (podvrzeny / poskozeny zaznam) se preskoci, platny s horsi prioritou plati
+        dns = {"SRV:_imaps._tcp.lux.test": [[0, 1, 993, "evil host/../x."], [5, 1, 993, "-bad.lux.test"], [10, 1, 993, "imap.lux.test."]]}
+        res = self.discover("info@lux.test", dns=dns)
+        self.assertEqual(res["source"], "srv")
+        self.assertEqual(res["imap"]["host"], "imap.lux.test")
+
     def test_guess_by_dns_without_probe(self):
         res = self.discover("info@guess.test", dns={"A:mail.guess.test": True})
         self.assertEqual(res["source"], "guess")

@@ -606,10 +606,21 @@ function parse_params(value):
     end
     for base in pieces.keys():
         items = pieces[base]
+        # razeni podle indexu v linearnim case (dvojity cyklus byl kvadraticky - tisice casti zablokovaly sluzbu)
+        n_items = len(items)
+        buckets = {}
+        for it in items:
+            if it[0] < n_items:
+                if it[0] not in buckets:
+                    buckets[it[0]] = []
+                end
+                buckets[it[0]].append(it)
+            end
+        end
         ordered = []
-        for k in range(len(items)):
-            for it in items:
-                if it[0] == k:
+        for k in range(n_items):
+            if k in buckets:
+                for it in buckets[k]:
                     ordered.append(it)
                 end
             end
@@ -657,6 +668,19 @@ function child_path(path, index):
     return path + "." + String(index)
 end
 
+# Za hranici smi byt jen "--" (konec) a mezery do konce radku (RFC 2046 5.1.1); jinak je to delsi hranice
+# vnorene casti ("--XX" neni oddelovac radku "--XXY")
+function delimiter_line_ok(b, pos, stop):
+    i = pos
+    if i + 1 < stop and b[i] == 45 and b[i + 1] == 45:
+        i += 2
+    end
+    while i < stop and (b[i] == 32 or b[i] == 9):
+        i += 1
+    end
+    return i >= stop or b[i] == 13 or b[i] == 10
+end
+
 # Oddelovac "--hranice" na zacatku radku od pozice `pos`; [zacatek, konec radku (za LF), uzaviraci?] nebo []
 function find_delimiter(b, delim, pos, stop, body_start):
     p = pos
@@ -665,7 +689,7 @@ function find_delimiter(b, delim, pos, stop, body_start):
         if hit < 0 or hit >= stop:
             return []
         end
-        if hit == body_start or b[hit - 1] == 10:
+        if (hit == body_start or b[hit - 1] == 10) and delimiter_line_ok(b, hit + len(delim), stop):
             closing = hit + len(delim) + 1 < stop and b[hit + len(delim)] == 45 and b[hit + len(delim) + 1] == 45
             nl = mb.find_byte(b, 10, hit, stop)
             after = stop
@@ -1097,7 +1121,13 @@ function html_to_text(html):
             end
             if not closing and name in SKIP_TAGS:
                 endtag = mb.find(low, "</" + name, i)
-                if endtag < 0:
+                if endtag < 0 and name == "head":
+                    # neuzavrena <head>: konci u <body> (jako v prohlizeci), jinak by zmizel cely text zpravy
+                    body = mb.find(low, "<body", i)
+                    if body >= 0:
+                        i = body
+                    end
+                elif endtag < 0:
                     i = n
                 else:
                     close = mb.find_byte(b, 62, endtag, n)

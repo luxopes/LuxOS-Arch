@@ -574,6 +574,23 @@ class CountmeTest(unittest.TestCase):
         self.servers.remove(s)
         self.assertTrue(os.path.exists(path + ".corrupt-2026-W45-2"))
 
+    def test_one_invalid_key_keeps_history(self):
+        # jeden neplatny klic (napr. nova architektura ze zkusebni verze) nesmi zahodit celou historii
+        path = os.path.join(self.state, "counts.json")
+        content = json.dumps({"schema": 1, "counts": {"2026-W44": {"1.0.0|x86_64|stable|1": 7, "1.0.0|aarch64|stable|1": 2},
+                                                      "2026-W45": {"1.0.0|x86_64|stable|2": 3}, "junk": {}}})
+        with open(path, "w") as f:
+            f.write(content)
+        s = self.server()
+        self.assertEqual(self.total(s), 3)
+        out = s.stop()
+        self.servers.remove(s)
+        self.assertIn("valid entries kept", out)
+        with open(path + ".corrupt-2026-W45") as f:
+            self.assertEqual(f.read(), content)        # puvodni soubor odlozen beze zmeny
+        self.assertEqual(self.state_file()["counts"], {"2026-W44": {"1.0.0|x86_64|stable|1": 7},
+                                                       "2026-W45": {"1.0.0|x86_64|stable|2": 3}})
+
     def test_stats_cache(self):
         s = self.server()
         self.assertEqual(s.stats()["totals"][-1], 0)

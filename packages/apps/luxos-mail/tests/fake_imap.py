@@ -4,7 +4,7 @@
 Podmnozina IMAP4rev1, kterou luxos-mail pouziva: TLS (implicitni i STARTTLS), LOGIN,
 AUTHENTICATE PLAIN (SASL-IR), OAUTHBEARER/XOAUTH2 (--oauth, tokeny z rizeni), ENABLE, LIST (SPECIAL-USE priznaky), SELECT (CONDSTORE/QRESYNC),
 STATUS, FETCH/UID FETCH (ENVELOPE, BODYSTRUCTURE, BODY.PEEK[...]<o.n>, CHANGEDSINCE, VANISHED),
-UID SEARCH (vcetne HEADER), UID STORE, UID MOVE/COPY, UID EXPUNGE, EXPUNGE, CREATE, APPEND (LITERAL+, APPENDUID,
+UID SEARCH (vcetne HEADER a DELETED), UID STORE, UID MOVE/COPY, UID EXPUNGE, EXPUNGE, CREATE, APPEND (LITERAL+, APPENDUID,
 TRYCREATE), IDLE, LOGOUT.
 
 S --smtp navic testovaci server SMTP (odesilani, nikdy skutecne dorucovani): implicitni TLS (465) a STARTTLS (587),
@@ -31,6 +31,7 @@ Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     smtp temp on|off                    MAIL FROM -> 451 (docasna chyba)
     smtp down on|off                    spojeni se hned zavre (server nedostupny / bez site)
     smtp noauth on|off                  EHLO bez AUTH
+    smtp dropdata on|off                zprava se prijme, ale spojeni se po "." zavre bez odpovedi
     log                                 prijate prikazy (heslo zakryte)
 
 Napodobeni velkych poskytovatelu (--personality):
@@ -113,7 +114,7 @@ class State:
         }
         self.sessions = []
         self.log = []
-        self.smtp = {"messages": [], "reject": set(), "size": 0, "temp": False, "down": False, "noauth": False}
+        self.smtp = {"messages": [], "reject": set(), "size": 0, "temp": False, "down": False, "noauth": False, "dropdata": False}
 
 
 def quote(value):
@@ -308,6 +309,8 @@ class Session(threading.Thread):
         if self.state.personality == "microsoft":
             return "IMAP4 IMAP4rev1 AUTH=XOAUTH2 LOGINDISABLED SASL-IR UIDPLUS MOVE ID UNSELECT CHILDREN IDLE NAMESPACE LITERAL+"
         c = ["IMAP4rev1", "IDLE", "UIDPLUS", "MOVE", "CONDSTORE", "ENABLE", "LITERAL+", "SPECIAL-USE"]
+        if getattr(self.state, "no_uidplus", False):
+            c = [x for x in c if x not in ("UIDPLUS", "MOVE")]
         if self.state.sasl_ir:
             c.append("SASL-IR")
         if self.state.qresync:
@@ -705,7 +708,9 @@ class Session(threading.Thread):
             return
         with LOCK:
             msgs = box.messages
-            if rest.upper().startswith("UID "):
+            if rest.strip().upper() == "DELETED":
+                res = [m.uid if uid else i + 1 for i, m in enumerate(msgs) if "\\Deleted" in m.flags]
+            elif rest.upper().startswith("UID "):
                 maxuid = msgs[-1].uid if msgs else 0
                 wanted = parse_set(rest.split(" ", 1)[1], max(maxuid, 1))
                 res = [m.uid for m in msgs if m.uid in wanted]
@@ -1053,6 +1058,11 @@ class SmtpSession(threading.Thread):
                     l = l[1:]
                 lines.append(l)
             data = b"\r\n".join(lines) + b"\r\n"
+            if sm["dropdata"]:
+                with LOCK:
+                    sm["messages"].append({"from": self.mail_from, "rcpts": list(self.rcpts), "params": self.params, "user": self.user,
+                                           "mech": self.mech, "implicit_tls": self.implicit, "data": base64.b64encode(data).decode()})
+                return False
             if sm["size"] and len(data) > sm["size"]:
                 self.send("552 5.3.4 Message size exceeds fixed limit\r\n")
                 self.reset()
@@ -1151,7 +1161,7 @@ def control(state, conn):
                         sm["reject"].add(parts[2].lower())
                     elif parts[1] == "size":
                         sm["size"] = int(parts[2])
-                    elif parts[1] in ("temp", "down", "noauth"):
+                    elif parts[1] in ("temp", "down", "noauth", "dropdata"):
                         sm[parts[1]] = parts[2] == "on"
                 elif parts[0] == "log":
                     out["log"] = list(state.log)
@@ -1186,6 +1196,7 @@ def main():
     ap.add_argument("--ready", default="", help="soubor s porty po startu")
     ap.add_argument("--oauth", default="", help="mechanismy tokenu, napr. OAUTHBEARER,XOAUTH2")
     ap.add_argument("--no-sasl-ir", action="store_true")
+    ap.add_argument("--no-uidplus", action="store_true", help="bez UIDPLUS a MOVE (COPY + EXPUNGE)")
     ap.add_argument("--dovecot-flags", action="store_true", help="nevyzadane FETCH s priznaky po BODYSTRUCTURE")
     ap.add_argument("--personality", default="", help="gmail | microsoft")
     ap.add_argument("--account-password", default=None, help="gmail: normalni heslo uctu (IMAP ho odmitne s [ALERT])")
@@ -1196,6 +1207,7 @@ def main():
     ctx.load_cert_chain(a.cert, a.key)
     state = State({a.user: a.password}, a.qresync, [m for m in a.oauth.upper().split(",") if m], not a.no_sasl_ir)
     state.dovecot_flags = a.dovecot_flags
+    state.no_uidplus = a.no_uidplus
     state.personality = a.personality
     state.account_password = a.account_password
     state.alert_untagged = a.alert_untagged

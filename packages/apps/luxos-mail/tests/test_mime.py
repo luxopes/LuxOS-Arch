@@ -136,6 +136,59 @@ class MimeTest(unittest.TestCase):
                 self.assertEqual(r.stdout.decode().rstrip("\n"), s, cs)
 
 
+class HostileMimeTest(unittest.TestCase):
+    """Zakerne nebo neobvykle zpravy nesmi zamrznout okno ani sluzbu a nesmi ztratit obsah (luxos-mail --test-*)."""
+
+    def write(self, d, body, ctype="text/html; charset=utf-8", extra=""):
+        path = os.path.join(d, "m.eml")
+        with open(path, "wb") as f:
+            f.write(("From: a@example.test\r\nTo: b@example.test\r\nSubject: x\r\nMIME-Version: 1.0\r\n" + extra
+                     + "Content-Type: " + ctype + "\r\n\r\n" + body).encode())
+        return path
+
+    def run_json(self, args, timeout=10):
+        r = mt.run_bin(args, env=ENV, timeout=timeout)
+        self.assertEqual(r.returncode, 0, r.stderr.decode())
+        return json.loads(r.stdout)
+
+    def test_html_gt_inside_bad_attribute_does_not_hang(self):
+        # <p a=="b>c">: ">" uvnitr znacky drive zacyklil cisteni HTML (okno zamrzlo i po restartu)
+        with tempfile.TemporaryDirectory() as d:
+            for html in ('<p a=="b>c">ahoj</p>', '<img src=x alt=="a>b">ahoj', '<a href=="x>y" b=>ahoj</a>', '<p =">">ahoj</p>'):
+                v = self.run_json(["--test-view", self.write(d, html)])
+                self.assertIn("ahoj", v["html"], html)
+
+    def test_many_rfc2231_pieces_are_linear(self):
+        # tisice casti filename*N: razeni bylo kvadraticke (8000 casti = ~50 s v sluzbe)
+        with tempfile.TemporaryDirectory() as d:
+            n = 20000
+            params = "".join(";\r\n filename*%d=%s" % (i, "a" if i else "start") for i in reversed(range(n)))
+            body = ("--XX\r\nContent-Type: text/plain\r\n\r\nhi\r\n--XX\r\nContent-Type: application/octet-stream\r\n"
+                    "Content-Disposition: attachment" + params + "\r\n\r\nAAAA\r\n--XX--\r\n")
+            m = self.run_json(["--test-render", self.write(d, body, "multipart/mixed; boundary=XX")], timeout=15)
+            self.assertEqual(len(m["attachments"]), 1)
+            self.assertEqual(m["attachments"][0]["name"], "start" + "a" * (n - 1))
+
+    def test_boundary_prefix_of_nested_boundary(self):
+        # vnejsi hranice "XX" je predponou vnitrni "XXY": radek "--XXY" neni oddelovac vnejsi casti
+        body = ("--XX\r\nContent-Type: multipart/alternative; boundary=XXY\r\n\r\n"
+                "--XXY\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nprosty text\r\n"
+                "--XXY\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>html text</p>\r\n--XXY--\r\n"
+                "--XX\r\nContent-Type: text/plain; name=p.txt\r\nContent-Disposition: attachment; filename=p.txt\r\n\r\npriloha\r\n"
+                "--XX--  \r\n")
+        with tempfile.TemporaryDirectory() as d:
+            m = self.run_json(["--test-render", self.write(d, body, "multipart/mixed; boundary=XX")])
+            self.assertEqual(m["text"], "prosty text")
+            self.assertEqual([a["name"] for a in m["attachments"]], ["p.txt"])
+
+    def test_unclosed_head_keeps_body_text(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = self.run_json(["--test-render", self.write(d, "<html><head><title>T</title><body><p>viditelny text</p></body></html>")])
+            self.assertEqual(m["text"], "viditelny text")
+            m = self.run_json(["--test-render", self.write(d, "<html><head><title>T</title></head><body>normalni</body></html>")])
+            self.assertEqual(m["text"], "normalni")
+
+
 class ImapQuoteTest(unittest.TestCase):
     """Jmeno schranky (muze prijit od serveru) se do prikazu dava v uvozovkach; CR/LF/NUL nesmi projit."""
 

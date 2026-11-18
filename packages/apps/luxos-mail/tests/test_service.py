@@ -221,6 +221,27 @@ class ServiceTest(unittest.TestCase):
         self.assertIn(r["kind"], ("connect", "closed", "timeout"))
         self.assertTrue(os.path.exists(os.path.join(glob.glob(os.path.join(cache_dir(self.s, acc), "m-*", "bodies"))[0], "6.eml")))
 
+    def test_flags_and_trash_refuse_stale_uidvalidity(self):
+        """Priznak ani smazani z okna se zastaralou UIDVALIDITY (schranka zalozena znovu) nesmi zasahnout jinou zpravu."""
+        acc = self.add()["account"]
+        r = self.c.call("trash", account=acc, mailbox="INBOX", uids=[6])
+        self.assertEqual(r.get("deleted"), "moved", r)
+        self.assertTrue(self.c.call("sync", account=acc, mailbox="Trash")["ok"])
+        trash = [d for d in glob.glob(os.path.join(cache_dir(self.s, acc), "m-*")) if json.load(open(os.path.join(d, "state.json"))).get("raw") == "Trash"][0]
+        validity = json.load(open(os.path.join(trash, "state.json")))["uidvalidity"]
+        r = self.c.call("trash", account=acc, mailbox="Trash", uids=[1], uidvalidity=validity + 1)
+        self.assertEqual((r["ok"], r.get("kind")), (False, "gone"), r)
+        self.assertEqual(len(self.server.control("dump")["boxes"]["Trash"]), 1)
+        r = self.c.call("flags", account=acc, mailbox="Trash", uids=[1], add=True, flags=["\\Flagged"], uidvalidity=validity + 1)
+        self.assertEqual((r["ok"], r.get("kind")), (False, "gone"), r)
+        self.assertNotIn("\\Flagged", self.server.control("dump")["boxes"]["Trash"][0]["flags"])
+        # spravna UIDVALIDITY: projde
+        r = self.c.call("flags", account=acc, mailbox="Trash", uids=[1], add=True, flags=["\\Flagged"], uidvalidity=validity)
+        self.assertTrue(r["ok"], r)
+        r = self.c.call("trash", account=acc, mailbox="Trash", uids=[1], uidvalidity=validity)
+        self.assertEqual(r.get("deleted"), "deleted", r)
+        self.assertEqual(self.server.control("dump")["boxes"]["Trash"], [])
+
     def test_body_keyed_by_uidvalidity(self):
         """UID plati jen se svou UIDVALIDITY: telo ze schranky zalozene znovu se nesmi ulozit ani ukazat pod starym UID."""
         acc = self.add()["account"]
@@ -354,6 +375,39 @@ class ServiceTest(unittest.TestCase):
             out = mon.communicate(timeout=5)[0].decode()
         self.assertIn("application://luxos-mail.desktop", out)
         self.assertIn("count", out)
+
+
+class NoUidplusServiceTest(unittest.TestCase):
+    """Server bez UIDPLUS a MOVE: presun = COPY + \\Deleted + EXPUNGE. Holy EXPUNGE drive smazal i zpravy, ktere
+    jako smazane oznacil jiny program (a ten je jeste mohl chtit obnovit)."""
+
+    def setUp(self):
+        self.s = mt.Session()
+        self.server = mt.FakeServer(self.s.root, self.s.certs, seed=mt.FIXTURES, uidplus=False)
+        self.c = self.s.start_service()
+
+    def tearDown(self):
+        try:
+            self.c.call("quit")
+        except OSError:
+            pass
+        self.server.stop()
+        self.s.close()
+
+    def test_expunge_keeps_messages_deleted_elsewhere(self):
+        acc = self.c.call("add_account", **mt.account_request(self.server))["account"]
+        # jiny program oznacil zpravu 5 jako smazanou (bez EXPUNGE)
+        self.server.control("flags INBOX 5 \\Deleted")
+        r = self.c.call("trash", account=acc, mailbox="INBOX", uids=[4])
+        self.assertEqual(r.get("deleted"), "moved", r)
+        inbox = {m["uid"]: m["flags"] for m in self.server.control("dump")["boxes"]["INBOX"]}
+        self.assertNotIn(4, inbox)
+        self.assertIn(5, inbox)
+        self.assertIn("\\Deleted", inbox[5])
+        self.assertEqual(len(self.server.control("dump")["boxes"]["Trash"]), 1)
+        log = " ".join(self.server.control("log")["log"])
+        self.assertNotIn("UID EXPUNGE", log)
+        self.assertNotIn("UID MOVE", log)
 
 
 class QresyncServiceTest(ServiceTest):
