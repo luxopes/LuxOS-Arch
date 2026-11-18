@@ -212,6 +212,23 @@ class NormalizeTest(Base):
         self.assertIn('"22/icmp" is not a valid port', text)
         self.assertIn("remove_unlisted: must be True or False", text)
 
+    def test_trailing_newline_is_refused(self):
+        # "$" v regexu propusti koncovy "\n" - hodnoty se pak dostanou do souboru pod rootem
+        _cfg, errors = ls.normalize({
+            "keyboard": ["us\n"], "packages": ["htop\n"], "groups": ["wheel\n"], "hostname": "pc\n",
+            "timezone": "Europe/Prague\n", "locale": "cs_CZ.UTF-8\n", "users": {"anna\n": None},
+            "services": {"enable": ["sshd.service\n"]}, "firewall": {"allow": ["22/tcp\n"]},
+            "kernel": {"params": ["quiet\n"]}, "flatpaks": ["org.gnome.Calculator\n"],
+        })
+        text = "\n".join(errors)
+        for where in ("keyboard.layouts[0]", "packages[0]", "groups[0]", "hostname", "timezone", "locale",
+                      "users", "services", "firewall.allow[0]", "kernel.params[0]", "flatpaks[0]"):
+            self.assertIn(where, text)
+        cfg, errors = ls.normalize({"keyboard": ["us"], "packages": ["htop"], "hostname": "pc",
+                                    "firewall": {"allow": ["22/tcp"]}, "kernel": {"params": ["quiet"]}})
+        self.assertEqual(errors, [])
+        self.assertEqual(ls.firewall_pairs(["22/tcp\n", "53"]), {("53", "tcp"), ("53", "udp")})
+
     def test_guard_and_services_overlap(self):
         _cfg, errors = ls.normalize({"guard": {"enable": True}, "services": {"disable": ["luxos-guard"]}})
         self.assertTrue(any('set in "guard"' in e for e in errors), errors)

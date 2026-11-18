@@ -4024,6 +4024,7 @@ Some characters cannot be saved in %s.	Néhány karakter nem menthető ebben a k
 Syntax	Szintaxis
 Syntax:	Szintaxis:
 The file appears to be a binary file.	A fájl binárisnak tűnik.
+The file is too large (%s). Text Editor opens files up to %s.	A fájl túl nagy (%s). A Szövegszerkesztő legfeljebb %s méretű fájlokat nyit meg.
 The file cannot be read as %s.	A fájl nem olvasható így: %s.
 The file was changed by another program.	A fájlt egy másik program módosította.
 The file was deleted or moved by another program. Save it to keep it.	A fájlt egy másik program törölte vagy áthelyezte. Mentse, ha meg szeretné tartani.

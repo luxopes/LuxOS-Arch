@@ -310,12 +310,12 @@ def check_llms_indexnow(out, exists):
     elif "# LuxOS FAQ" not in open(full, encoding="utf-8").read():
         errors.append("llms-full.txt: FAQ section missing")
     key_src = os.path.join(ROOT, "site", "indexnow-key.txt")
-    key = open(key_src).read().strip() if os.path.isfile(key_src) else ""
+    key = open(key_src, encoding="utf-8").read().strip() if os.path.isfile(key_src) else ""
     if not re.fullmatch(r"[A-Za-z0-9-]{8,128}", key):
         errors.append("site/indexnow-key.txt missing or invalid")
     else:
         kf = os.path.join(out, key + ".txt")
-        if not os.path.isfile(kf) or open(kf).read().strip() != key:
+        if not os.path.isfile(kf) or open(kf, encoding="utf-8").read().strip() != key:
             errors.append(f"IndexNow key file /{key}.txt missing or wrong content")
     return errors
 
@@ -478,7 +478,7 @@ def main():
             if "noindex" not in p.robots and p.refresh is None and url_of(path) not in listed:
                 errors.append(f"{url_of(path)}: not in sitemap.xml")
     rb = os.path.join(out, "robots.txt")
-    if not os.path.isfile(rb) or "Sitemap: " + BASE + "/sitemap.xml" not in open(rb).read():
+    if not os.path.isfile(rb) or "Sitemap: " + BASE + "/sitemap.xml" not in open(rb, encoding="utf-8").read():
         errors.append("robots.txt missing or without Sitemap line")
 
     # countme: stranky o pouzivani a jejich skript; dokument countme muze chybet, dokud neni v luxos-docs

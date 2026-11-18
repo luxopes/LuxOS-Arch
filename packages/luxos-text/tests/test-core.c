@@ -4,6 +4,8 @@
  */
 #include "../files/text-core.h"
 #include <string.h>
+#include <glib/gstdio.h>
+#include <unistd.h>
 
 /* ceska veta "Prilis zlutoucky kun upel dabelske ody." v UTF-8 */
 static const char *CZ = "P\xc5\x99\xc3\xadli\xc5\xa1 \xc5\xbelu\xc5\xa5ou\xc4\x8dk\xc3\xbd k\xc5\xaf\xc5\x88 "
@@ -286,6 +288,36 @@ static void test_recent(void)
     g_strfreev(l);
 }
 
+static void test_file_size_limit(void)
+{
+    char *dir = g_dir_make_tmp("luxos-text-size-XXXXXX", NULL);
+    g_assert_nonnull(dir);
+    char *big = g_build_filename(dir, "big.log", NULL), *edge = g_build_filename(dir, "edge.txt", NULL);
+    /* ridke soubory: velikost bez zapisu dat */
+    g_assert_true(truncate(big, 0) != 0);   /* jeste neexistuje */
+    g_assert_true(g_file_set_contents(big, "", 0, NULL));
+    g_assert_cmpint(truncate(big, TX_MAX_FILE_SIZE + 1), ==, 0);
+    g_assert_true(g_file_set_contents(edge, "", 0, NULL));
+    g_assert_cmpint(truncate(edge, TX_MAX_FILE_SIZE), ==, 0);
+    goffset size = -1;
+    g_assert_true(tx_file_too_large(big, &size));
+    g_assert_cmpint(size, ==, TX_MAX_FILE_SIZE + 1);
+    g_assert_false(tx_file_too_large(edge, &size));   /* presne na limitu se jeste otevre */
+    g_assert_cmpint(size, ==, TX_MAX_FILE_SIZE);
+    char *missing = g_build_filename(dir, "missing.txt", NULL);
+    g_assert_false(tx_file_too_large(missing, &size));   /* novy soubor = prazdny dokument */
+    g_assert_cmpint(size, ==, 0);
+    g_assert_false(tx_file_too_large(dir, NULL));        /* adresar neni bezny soubor */
+    g_assert_false(tx_file_too_large("/dev/null", NULL));
+    g_unlink(big);
+    g_unlink(edge);
+    g_rmdir(dir);
+    g_free(missing);
+    g_free(big);
+    g_free(edge);
+    g_free(dir);
+}
+
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -303,5 +335,6 @@ int main(int argc, char **argv)
     g_test_add_func("/outline", test_outline);
     g_test_add_func("/tabs", test_tabs);
     g_test_add_func("/recent", test_recent);
+    g_test_add_func("/file-size-limit", test_file_size_limit);
     return g_test_run();
 }

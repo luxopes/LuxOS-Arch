@@ -292,7 +292,7 @@ def _copy_sources(path, dest):
     "lsl config" chce jako vstup bezpecne jmeno modulu (napr. system.lsl, ne system.lsl.example)."""
     src_dir = os.path.dirname(path)
     name = os.path.basename(path)
-    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*\.lsl$", name):
+    if not re.fullmatch(r"^[A-Za-z_][A-Za-z0-9_]*\.lsl$", name):
         name = "system.lsl"
     n = 0
     for dirpath, dirs, files in os.walk(src_dir):
@@ -646,7 +646,7 @@ def fragment_files():
         p = os.path.join(d, n)
         if not n.endswith(".lsl"):
             continue
-        if not FRAGMENT_RE.match(n):
+        if not FRAGMENT_RE.fullmatch(n):
             warn(_("Ignored policy file %s (the name must be NN-name.lsl)") % p)
             continue
         st = os.lstat(p)
@@ -739,7 +739,7 @@ class Checker:
             return []
         out = []
         for i, v in enumerate(value):
-            if not isinstance(v, str) or not regex.match(v):
+            if not isinstance(v, str) or not regex.fullmatch(v):
                 self.err(f"{where}[{i}]", _("\"%s\" is not a valid %s") % (v, _(what)))
             elif v not in out:
                 out.append(v)
@@ -759,13 +759,13 @@ def normalize(raw):
         if key not in TOP_KEYS:
             ck.unknown("config", key, TOP_KEYS)
     if "hostname" in raw and ck.typed("hostname", raw["hostname"], (str,), "a text"):
-        if HOST_RE.match(raw["hostname"]):
+        if HOST_RE.fullmatch(raw["hostname"]):
             cfg["hostname"] = raw["hostname"]
         else:
             ck.err("hostname", _("\"%s\" is not a valid %s") % (raw["hostname"], _("computer name")))
     if "timezone" in raw and ck.typed("timezone", raw["timezone"], (str,), "a text"):
         tz = raw["timezone"]
-        if TZ_RE.match(tz) and ".." not in tz and (os.path.isfile(P("/usr/share/zoneinfo/" + tz))
+        if TZ_RE.fullmatch(tz) and ".." not in tz and (os.path.isfile(P("/usr/share/zoneinfo/" + tz))
                                                    or not os.path.isdir(P("/usr/share/zoneinfo"))):
             cfg["timezone"] = tz
         else:
@@ -773,7 +773,7 @@ def normalize(raw):
     if "locale" in raw and ck.typed("locale", raw["locale"], (str,), "a text"):
         loc = raw["locale"]
         supported = read("/usr/share/i18n/SUPPORTED")
-        if LOCALE_RE.match(loc) and (not supported or re.search(r"^" + re.escape(loc) + r" ", supported, re.M)):
+        if LOCALE_RE.fullmatch(loc) and (not supported or re.search(r"^" + re.escape(loc) + r" ", supported, re.M)):
             cfg["locale"] = loc
         else:
             ck.err("locale", _("unknown language setting \"%s\" (e.g. \"cs_CZ.UTF-8\")") % loc)
@@ -809,12 +809,12 @@ def normalize(raw):
             en = [unit_name(u) for u in ck.str_list("services.enable", sv.get("enable", []), re.compile(r"^[A-Za-z0-9:_.@\\-]+$"), "service name")]
             dis = [unit_name(u) for u in ck.str_list("services.disable", sv.get("disable", []), re.compile(r"^[A-Za-z0-9:_.@\\-]+$"), "service name")]
             for u in en + dis:
-                if not UNIT_RE.match(u):
+                if not UNIT_RE.fullmatch(u):
                     ck.err("services", _("\"%s\" is not a valid %s") % (u, _("service name")))
             for u in sorted(set(en) & set(dis)):
                 ck.err("services", _("%s is both in enable and disable") % u)
             for u in dis:
-                if PROTECTED_UNITS.match(u):
+                if PROTECTED_UNITS.fullmatch(u):
                     ck.err("services.disable", _("%s is needed by LuxOS and cannot be turned off here") % u)
             cfg["services"] = {"enable": en, "disable": dis}
     if "groups" in raw:
@@ -825,7 +825,7 @@ def normalize(raw):
             cfg["users"] = {}
             for name, u in us.items():
                 where = f"users.{name}"
-                if not USER_RE.match(name) or name == "root":
+                if not USER_RE.fullmatch(name) or name == "root":
                     ck.err(where, _("\"%s\" is not a valid %s") % (name, _("user name")))
                     continue
                 if u is None:
@@ -860,7 +860,7 @@ def normalize(raw):
                     else:
                         ck.err(where + ".uid", _("must be between 1000 and 59999"))
                 if u.get("password_hash") is not None and ck.typed(where + ".password_hash", u["password_hash"], (str,), "a text"):
-                    if HASH_RE.match(u["password_hash"]):
+                    if HASH_RE.fullmatch(u["password_hash"]):
                         nu["password_hash"] = u["password_hash"]
                     else:
                         ck.err(where + ".password_hash",
@@ -929,7 +929,7 @@ def normalize(raw):
                 elif k in ("allow", "allow_lan"):
                     nf[k] = ck.str_list("firewall." + k, v, PORT_RE, "port (e.g. \"22/tcp\")")
                     for p in nf[k]:
-                        m = PORT_RE.match(p)
+                        m = PORT_RE.fullmatch(p)
                         if not 1 <= int(m.group(1)) <= 65535 or (m.group(3) and not int(m.group(1)) < int(m.group(3)) <= 65535):
                             ck.err("firewall." + k, _("\"%s\" is not a valid %s") % (p, _("port (e.g. \"22/tcp\")")))
                 else:
@@ -945,7 +945,7 @@ def normalize(raw):
             if "params" in kn:
                 params = ck.str_list("kernel.params", kn.get("params", []), PARAM_RE, "kernel parameter")
                 for p in params:
-                    if BOOT_PARAM_RE.match(p):
+                    if BOOT_PARAM_RE.fullmatch(p):
                         ck.err("kernel.params", _("%s is set by the installer (disk, encryption) and cannot be changed here") % p)
                 nk["params"] = params
             if "scheduler" in kn:
@@ -1044,7 +1044,7 @@ def normalize_network(net, ck):
     out["connections"] = {}
     for name, c in cons.items():
         where = f"network.connections.{name}"
-        if not CON_NAME_RE.match(name):
+        if not CON_NAME_RE.fullmatch(name):
             ck.err(where, _("\"%s\" is not a valid %s") % (name, _("connection name")))
             continue
         if c is None:
@@ -1059,7 +1059,7 @@ def normalize_network(net, ck):
                                 "(NetworkManager asks for them when connecting)"))
             elif k == "type":
                 if ck.typed(w, v, (str,), "a text"):
-                    if re.match(r"^[a-z0-9-]{1,32}$", v):
+                    if re.fullmatch(r"^[a-z0-9-]{1,32}$", v):
                         nc["type"] = v
                     else:
                         ck.err(w, _("\"%s\" is not a valid %s") % (v, _("connection type")))
@@ -1068,7 +1068,7 @@ def normalize_network(net, ck):
                     nc[k] = v
             elif k == "interface":
                 if ck.typed(w, v, (str,), "a text"):
-                    if IFACE_RE.match(v):
+                    if IFACE_RE.fullmatch(v):
                         nc[k] = v
                     else:
                         ck.err(w, _("\"%s\" is not a valid %s") % (v, _("network interface")))
@@ -1116,7 +1116,7 @@ def normalize_network(net, ck):
                 nc[k] = ip
             elif k == "proxy":
                 if ck.typed(w, v, (str,), "a text"):
-                    if v == "" or re.match(r"^https?://\S+$", v):
+                    if v == "" or re.fullmatch(r"^https?://\S+$", v):
                         nc[k] = v
                     else:
                         ck.err(w, _("must be the address of a proxy configuration (PAC) file, e.g. "
@@ -1140,7 +1140,7 @@ def normalize_more(raw, ck, cfg):
                 ck.unknown("formats", k, LC_KEYS)
             elif v is None or v == "":
                 nf[k] = None          # stejne jako jazyk (radek LC_* se odebere)
-            elif not isinstance(v, str) or not LOCALE_RE.match(v) or (
+            elif not isinstance(v, str) or not LOCALE_RE.fullmatch(v) or (
                     supported and not re.search(r"^" + re.escape(v) + r" ", supported, re.M)):
                 ck.err("formats." + k, _("unknown language setting \"%s\" (e.g. \"cs_CZ.UTF-8\")") % v)
             else:
@@ -1152,7 +1152,7 @@ def normalize_more(raw, ck, cfg):
             if k not in ("keymap", "font"):
                 ck.unknown("console", k, ("keymap", "font"))
             elif ck.typed("console." + k, v, (str,), "a text"):
-                if CONSOLE_RE.match(v):
+                if CONSOLE_RE.fullmatch(v):
                     nc[k] = v
                 else:
                     ck.err("console." + k, _("\"%s\" is not a valid %s") % (v, _("console setting")))
@@ -1171,7 +1171,7 @@ def normalize_more(raw, ck, cfg):
                 ck.unknown("printers", k, ("default", "queues"))
         if "default" in pr:
             d = pr["default"]
-            if d is None or (isinstance(d, str) and PRINTER_RE.match(d)):
+            if d is None or (isinstance(d, str) and PRINTER_RE.fullmatch(d)):
                 npr["default"] = d
             else:
                 ck.err("printers.default", _("\"%s\" is not a valid %s") % (d, _("printer name")))
@@ -1179,7 +1179,7 @@ def normalize_more(raw, ck, cfg):
             npr["queues"] = {}
             for name, q in pr["queues"].items():
                 where = f"printers.queues.{name}"
-                if not PRINTER_RE.match(name):
+                if not PRINTER_RE.fullmatch(name):
                     ck.err(where, _("\"%s\" is not a valid %s") % (name, _("printer name")))
                     continue
                 if q is None:
@@ -1189,7 +1189,7 @@ def normalize_more(raw, ck, cfg):
                 nq = {}
                 for k, v in q.items():
                     if k == "uri":
-                        if isinstance(v, str) and URI_RE.match(v):
+                        if isinstance(v, str) and URI_RE.fullmatch(v):
                             nq[k] = v
                         else:
                             ck.err(where + ".uri", _("\"%s\" is not a valid %s") % (v, _("printer address (URI)")))
@@ -1238,7 +1238,7 @@ def normalize_more(raw, ck, cfg):
                     else:
                         ck.err("boot.timeout", _("must be between %d and %d") % (0, 300))
             elif k == "default":
-                if isinstance(v, str) and ENTRY_RE.match(v) and not re.search(r"snapshot|recovery", v):
+                if isinstance(v, str) and ENTRY_RE.fullmatch(v) and not re.search(r"snapshot|recovery", v):
                     nb[k] = v
                 else:
                     ck.err("boot.default", _("must be \"luxos\" or the name of a boot menu entry (not a snapshot)"))
@@ -1285,7 +1285,7 @@ def normalize_more(raw, ck, cfg):
             elif k == "dock":
                 nn[k] = [desktop_id(x) for x in ck.str_list(w, v, DESKTOP_ID_RE, "app ID")]
             elif k in ("browser", "text_editor", "mail"):
-                if isinstance(v, str) and DESKTOP_ID_RE.match(v):
+                if isinstance(v, str) and DESKTOP_ID_RE.fullmatch(v):
                     nn[k] = desktop_id(v)
                 else:
                     ck.err(w, _("\"%s\" is not a valid %s") % (v, _("app ID")))
@@ -1507,7 +1507,7 @@ class State:
         out = {"installed": installed, "enable": data.get("enable", True) is not False, "allow": [], "allow_lan": []}
         pairs = {"any": [], "lan": []}
         for item in data.get("allow", []) if isinstance(data.get("allow"), list) else []:
-            if isinstance(item, dict) and item.get("proto") in ("tcp", "udp") and re.match(r"^\d{1,5}(-\d{1,5})?$", str(item.get("port", ""))):
+            if isinstance(item, dict) and item.get("proto") in ("tcp", "udp") and re.fullmatch(r"^\d{1,5}(-\d{1,5})?$", str(item.get("port", ""))):
                 pairs["any" if item.get("from") == "any" else "lan"].append((str(item["port"]), item["proto"]))
         for source, key in (("any", "allow"), ("lan", "allow_lan")):
             for port, proto in pairs[source]:
@@ -2411,7 +2411,7 @@ def compute(cfg, st, applied=None, force=False):
             unlisted = sorted(p for p in explicit if p not in wanted and p not in extra and p not in dropped
                               and p not in skip)
         remove = list(dropped) + (unlisted if cfg.get("remove_unlisted") else [])
-        kernels = {p for p in explicit if KERNEL_RE.match(p)}
+        kernels = {p for p in explicit if KERNEL_RE.fullmatch(p)}
         keep = [p for p in remove if p in PROTECTED_PACKAGES or p in kernels]
         remove = [p for p in remove if p not in keep]
         if keep:
@@ -2480,7 +2480,7 @@ def compute(cfg, st, applied=None, force=False):
         want_on += cfg["services"]["enable"]
         want_off += cfg["services"]["disable"]
         for u in applied.get("services_enable", []):
-            if u not in want_on and u not in want_off and st.enabled(u) and not PROTECTED_UNITS.match(u):
+            if u not in want_on and u not in want_off and st.enabled(u) and not PROTECTED_UNITS.fullmatch(u):
                 want_off.append(u)
     units = st.units() if (want_on or want_off or "guard" in cfg or "firewall" in cfg) else {}
     new_pkgs = any(c.section == "packages" and c.op == "+" for c in plan.changes)
@@ -2619,7 +2619,7 @@ def firewall_pairs(specs):
     """{(port, proto)} z "22/tcp", "8000:8010/udp", "53" (= TCP i UDP); port jako "8000-8010"."""
     out = set()
     for spec in specs:
-        m = PORT_RE.match(spec)
+        m = PORT_RE.fullmatch(spec)
         if not m:
             continue
         port = m.group(1) + ("-" + m.group(3) if m.group(3) else "")

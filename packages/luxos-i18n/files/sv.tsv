@@ -4024,6 +4024,7 @@ Some characters cannot be saved in %s.	Vissa tecken kan inte sparas i %s.
 Syntax	Syntax
 Syntax:	Syntax:
 The file appears to be a binary file.	Filen verkar vara en binärfil.
+The file is too large (%s). Text Editor opens files up to %s.	Filen är för stor (%s). Textredigerare öppnar filer på upp till %s.
 The file cannot be read as %s.	Filen kan inte läsas som %s.
 The file was changed by another program.	Filen har ändrats av ett annat program.
 The file was deleted or moved by another program. Save it to keep it.	Filen har tagits bort eller flyttats av ett annat program. Spara den för att behålla den.

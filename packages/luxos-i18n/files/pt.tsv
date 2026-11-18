@@ -4024,6 +4024,7 @@ Some characters cannot be saved in %s.	Alguns caracteres não podem ser salvos e
 Syntax	Sintaxe
 Syntax:	Sintaxe:
 The file appears to be a binary file.	O arquivo parece ser binário.
+The file is too large (%s). Text Editor opens files up to %s.	O arquivo é grande demais (%s). O Editor de Texto abre arquivos de até %s.
 The file cannot be read as %s.	O arquivo não pode ser lido como %s.
 The file was changed by another program.	O arquivo foi alterado por outro programa.
 The file was deleted or moved by another program. Save it to keep it.	O arquivo foi excluído ou movido por outro programa. Salve-o para mantê-lo.

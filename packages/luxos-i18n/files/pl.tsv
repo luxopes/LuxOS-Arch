@@ -4025,6 +4025,7 @@ Some characters cannot be saved in %s.	Niektórych znaków nie można zapisać w
 Syntax	Składnia
 Syntax:	Składnia:
 The file appears to be a binary file.	Plik wygląda na plik binarny.
+The file is too large (%s). Text Editor opens files up to %s.	Plik jest za duży (%s). Edytor tekstu otwiera pliki o rozmiarze do %s.
 The file cannot be read as %s.	Nie można odczytać pliku jako %s.
 The file was changed by another program.	Plik został zmieniony przez inny program.
 The file was deleted or moved by another program. Save it to keep it.	Plik został usunięty lub przeniesiony przez inny program. Zapisz go, aby go zachować.

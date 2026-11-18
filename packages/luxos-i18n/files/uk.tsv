@@ -4025,6 +4025,7 @@ Some characters cannot be saved in %s.	Деякі символи неможли�
 Syntax	Синтаксис
 Syntax:	Синтаксис:
 The file appears to be a binary file.	Схоже, це двійковий файл.
+The file is too large (%s). Text Editor opens files up to %s.	Файл завеликий (%s). Текстовий редактор відкриває файли розміром до %s.
 The file cannot be read as %s.	Файл неможливо прочитати як %s.
 The file was changed by another program.	Файл змінено іншою програмою.
 The file was deleted or moved by another program. Save it to keep it.	Файл видалено або переміщено іншою програмою. Збережіть його, щоб не втратити.

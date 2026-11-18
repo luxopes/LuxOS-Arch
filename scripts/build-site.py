@@ -210,7 +210,7 @@ PAGE_COUNT = {"en": 0, "cs": 0}
 
 def read_kv(path):
     out = {}
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
@@ -268,7 +268,7 @@ def favicon_ico(png_path):
 def write(rel, text):
     path = os.path.join(OUT, rel)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write(text)
 
 
@@ -310,9 +310,9 @@ def e(s):
 
 def load_docs():
     """Seznam dokumentu: index.json z luxos-docs + stranky navic z site/content/docs.json."""
-    with open(os.path.join(DOCS, "index.json")) as f:
+    with open(os.path.join(DOCS, "index.json"), encoding="utf-8") as f:
         index = json.load(f)
-    with open(os.path.join(CONTENT, "docs.json")) as f:
+    with open(os.path.join(CONTENT, "docs.json"), encoding="utf-8") as f:
         docs_json = json.load(f)
     extras = docs_json["files"]
     # ceske nazvy a popisy stranek z luxos-docs, ktere maji ceskou verzi (site/content/cs/<cesta>)
@@ -404,11 +404,11 @@ def git_date(files, fallback):
         return fallback
     try:
         dirty = subprocess.run(["git", "-C", ROOT, "status", "--porcelain", "--", *files],
-                               capture_output=True, text=True, check=True).stdout.strip()
+                               capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
         if dirty:
             return fallback
         out = subprocess.run(["git", "-C", ROOT, "log", "-1", "--format=%cs", "--", *files],
-                             capture_output=True, text=True, check=True).stdout.strip()
+                             capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return fallback
     return out or fallback
@@ -584,7 +584,7 @@ def render_docs(cols, flat, stamp, md_to_html):
         for i, d in enumerate(flat):
             if lang not in d["src"]:
                 continue
-            with open(d["src"][lang]) as f:
+            with open(d["src"][lang], encoding="utf-8") as f:
                 text = f.read()
             body = md_to_html(text, d["path"], lang)
             title = d["title"][lang]
@@ -659,7 +659,7 @@ def faq_ld(text):
 
 # ---- stranky pro konkretni hledani (site/landing) ----
 
-with open(os.path.join(LANDING, "pages.json")) as _f:
+with open(os.path.join(LANDING, "pages.json"), encoding="utf-8") as _f:
     LANDING_META = json.load(_f)
 
 
@@ -773,7 +773,7 @@ def render_landing(stamp, iso, ver):
                 trail.append((LANDING_META["compare_hub"][lang]["crumb"], landing_url(lang, "compare")))
             trail.append((m["crumb"], path))
             src = os.path.join(LANDING, f"{key}.{lang}.html")
-            with open(src) as f:
+            with open(src, encoding="utf-8") as f:
                 text = f.read()
             values = {"CRUMBS": breadcrumbs_html(trail), "CTA": cta_html(lang, iso),
                       "ISO_VERSION": iso["version"], "ISO_FILE": iso["file"], "ISO_SIZE": fmt_size(iso["size"], lang),
@@ -906,7 +906,7 @@ def llms_full_txt(ver, iso):
         d = DOCS_BY_PATH.get(p)
         if not d or "en" not in d["src"]:
             continue
-        with open(d["src"]["en"]) as f:
+        with open(d["src"]["en"], encoding="utf-8") as f:
             text = f.read().strip()
         parts.append(f"\n---\n\nSource: {abs_url(doc_url('en', p))}\n\n{text}\n")
     return "".join(parts)
@@ -938,7 +938,7 @@ def main():
     stamp = time.strftime("%Y%m%d%H%M")
     today = datetime.date.today().isoformat()
     ver = read_kv(os.path.join(ROOT, "packages", "luxos-branding", "files", "version"))
-    with open(os.path.join(SITE, "iso.json")) as f:
+    with open(os.path.join(SITE, "iso.json"), encoding="utf-8") as f:
         iso = json.load(f)
     release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "beta",
                "iso": iso, "repo": "https://luxos.lux-ai.cz/repo/", "fingerprint": FINGERPRINT}
@@ -999,7 +999,7 @@ def main():
             "LANDING_CARDS": landing_cards(lang, [k for k in LANDING_META["pages"] if k != "download"]),
             "COMPARE": landing_url(lang, "compare"),
         }
-        with open(os.path.join(SITE, f"home.{lang}.html")) as f:
+        with open(os.path.join(SITE, f"home.{lang}.html"), encoding="utf-8") as f:
             text = f.read()
         for k, v in values.items():
             text = text.replace("{{" + k + "}}", v)
@@ -1030,7 +1030,7 @@ def main():
     render_docs(cols, flat, stamp, md_to_html)
 
     # ---- zmeny ----
-    with open(os.path.join(ROOT, "CHANGELOG.md")) as f:
+    with open(os.path.join(ROOT, "CHANGELOG.md"), encoding="utf-8") as f:
         cs_changes = md_to_html(f.read(), "", "cs")
     # anglicky preklad musi mit vsechna vydani, sekce a polozky z CHANGELOG.md (jinak by stranka tise chudla)
     bad = changelog_sections.verify()
@@ -1075,7 +1075,7 @@ def main():
             doc_href, doc_title = doc_url(cl, "luxos/countme.md"), countme["title"][cl]
         else:
             doc_href, doc_title = docs_index_url(lang), t["docs"]
-        with open(os.path.join(SITE, f"usage.{lang}.html")) as f:
+        with open(os.path.join(SITE, f"usage.{lang}.html"), encoding="utf-8") as f:
             text = f.read()
         for k, v in {"CRUMBS": crumbs, "COUNTME_DOC": doc_href, "COUNTME_DOC_TITLE": e(doc_title)}.items():
             text = text.replace("{{" + k + "}}", v)
@@ -1099,7 +1099,7 @@ def main():
             crumbs = ('<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>'
                       f'<li><a href="{trail[0][1]}">{e(trail[0][0])}</a></li>'
                       f'<li aria-current="page">{e(trail[1][0])}</li></ol></nav>')
-            with open(os.path.join(SITE, "pages", f"{name}.{lang}.html")) as f:
+            with open(os.path.join(SITE, "pages", f"{name}.{lang}.html"), encoding="utf-8") as f:
                 text = f.read()
             for k, v in {"CRUMBS": crumbs, "UPDATED": fmt_date(LEGAL_UPDATED, lang)}.items():
                 text = text.replace("{{" + k + "}}", v)
@@ -1131,7 +1131,7 @@ def main():
     write("robots.txt", f"User-agent: *\nAllow: /\nAllow: /download/$\nDisallow: /download/\n\nSitemap: {BASE}/sitemap.xml\n")
     write("llms.txt", llms_txt(ver, iso, cols))
     write("llms-full.txt", llms_full_txt(ver, iso))
-    with open(INDEXNOW_KEY_FILE) as f:
+    with open(INDEXNOW_KEY_FILE, encoding="utf-8") as f:
         key = f.read().strip()
     if not re.fullmatch(r"[A-Za-z0-9-]{8,128}", key):
         sys.exit(f"build-site: invalid IndexNow key in {INDEXNOW_KEY_FILE}")

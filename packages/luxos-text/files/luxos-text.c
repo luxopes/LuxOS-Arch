@@ -333,8 +333,12 @@ static char *buffer_text(Doc *d)
     return gtk_text_buffer_get_text(GTK_TEXT_BUFFER(d->buf), &s, &e, TRUE);
 }
 
+static char *last_message;   /* posledni chybova zprava (jen pro testy: test-dump) */
+
 static void message(GtkWindow *parent, const char *primary, const char *secondary)
 {
+    g_free(last_message);
+    last_message = g_strconcat(primary, secondary ? "\n" : NULL, secondary, NULL);
     GtkWidget *m = gtk_message_dialog_new(parent, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR,
                                           GTK_BUTTONS_CLOSE, "%s", primary);
     if (secondary) gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(m), "%s", secondary);
@@ -1012,6 +1016,16 @@ static gboolean load_doc(Doc *d, const char *path, const TxEncoding *force, GErr
     char *data = NULL;
     gsize len = 0;
     GError *e = NULL;
+    /* velikost pred nactenim: obri soubor (log, dump) by zabral pamet a editor zamrzl */
+    goffset size = 0;
+    if (tx_file_too_large(path, &size)) {
+        char *has = g_format_size(size), *max = g_format_size(TX_MAX_FILE_SIZE);
+        g_set_error(err, G_IO_ERROR, G_IO_ERROR_FAILED, T("The file is too large (%s). Text Editor opens files up to %s."),
+                    has, max);
+        g_free(has);
+        g_free(max);
+        return FALSE;
+    }
     if (!g_file_get_contents(path, &data, &len, &e)) {
         if (!g_error_matches(e, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
             g_propagate_error(err, e);
@@ -2925,6 +2939,7 @@ static void act_test_dump(GSimpleAction *a, GVariant *v, gpointer p)
         json_kv(s, "text", text);
         g_free(text);
     }
+    json_kv(s, "last_message", last_message);
     g_string_append_printf(s, "\"font_size\":%d,\"wrap\":%s,\"invisibles\":%s}", cfg.font_size,
                            cfg.wrap ? "true" : "false", cfg.invisibles ? "true" : "false");
     g_file_set_contents(g_variant_get_string(v, NULL), s->str, s->len, NULL);

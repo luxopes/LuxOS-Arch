@@ -4024,6 +4024,7 @@ Some characters cannot be saved in %s.	Niektoré znaky nemožno uložiť v kódo
 Syntax	Syntax
 Syntax:	Syntax:
 The file appears to be a binary file.	Súbor je zrejme binárny.
+The file is too large (%s). Text Editor opens files up to %s.	Súbor je príliš veľký (%s). Textový editor otvára súbory s veľkosťou do %s.
 The file cannot be read as %s.	Súbor nemožno prečítať ako %s.
 The file was changed by another program.	Súbor zmenil iný program.
 The file was deleted or moved by another program. Save it to keep it.	Súbor vymazal alebo presunul iný program. Ak ho chcete zachovať, uložte ho.

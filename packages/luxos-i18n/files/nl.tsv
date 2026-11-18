@@ -4024,6 +4024,7 @@ Some characters cannot be saved in %s.	Sommige tekens kunnen niet in %s worden o
 Syntax	Syntaxis
 Syntax:	Syntaxis:
 The file appears to be a binary file.	Het bestand lijkt een binair bestand te zijn.
+The file is too large (%s). Text Editor opens files up to %s.	Het bestand is te groot (%s). Teksteditor opent bestanden tot %s.
 The file cannot be read as %s.	Het bestand kan niet als %s worden gelezen.
 The file was changed by another program.	Het bestand is door een ander programma gewijzigd.
 The file was deleted or moved by another program. Save it to keep it.	Het bestand is door een ander programma verwijderd of verplaatst. Sla het op om het te bewaren.

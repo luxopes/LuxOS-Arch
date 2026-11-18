@@ -597,6 +597,29 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(s["path"], p)
         self.assertEqual(read(p), "abc\n")
 
+    def test_too_large_file_is_refused(self):
+        # ridky soubor tesne nad limitem 50 MB: odmitne se podle velikosti, nic se nenacita
+        big = self.write("big.log", b"")
+        os.truncate(big, 50 * 1000 * 1000 + 1)
+        for lang, msg in (("en_US.UTF-8", "Could not open “big.log”.\nThe file is too large (50.0 MB). "
+                                          "Text Editor opens files up to 50.0 MB."),
+                          ("cs_CZ.UTF-8", "„big.log“ nelze otevřít.\nSoubor je příliš velký (50,0 MB). "
+                                          "Textový editor otevírá soubory do velikosti 50,0 MB.")):
+            ed = self.start(env={"LANG": lang})
+            # otevreni v bezici instanci (jako z Files); dotaz ceka, dokud chybova zprava nezavre
+            opener = subprocess.Popen([BIN, big], env=ed.env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                s = ed.wait(lambda s: s.get("last_message"), timeout=10)
+            finally:
+                opener.kill()
+                opener.wait()
+            got = s["last_message"].replace("\u00a0", " ")   # g_format_size: nedelitelna mezera
+            self.assertEqual(got.replace("50.0", "50,0") if lang.startswith("cs") else got, msg)
+            self.assertNotEqual(s.get("path"), big)
+            self.assertEqual(s.get("text"), "")
+            ed.close()
+            self.ed = None
+
     def test_single_instance_new_window(self):
         a = self.write("a.txt", "A\n")
         b = self.write("b.txt", "B\n")

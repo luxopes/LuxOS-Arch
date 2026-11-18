@@ -3,6 +3,8 @@
  */
 #include "text-core.h"
 #include <string.h>
+#include <glib/gstdio.h>
+#include <sys/stat.h>
 
 /* ---------- kodovani ---------- */
 const TxEncoding tx_encodings[] = {
@@ -555,4 +557,13 @@ char **tx_recent_remove(char **list, const char *path)
     g_ptr_array_add(a, NULL);
     g_strfreev(list);
     return (char **)g_ptr_array_free(a, FALSE);
+}
+
+gboolean tx_file_too_large(const char *path, goffset *size)
+{
+    GStatBuf st;
+    if (size) *size = 0;
+    if (g_stat(path, &st) != 0 || !S_ISREG(st.st_mode)) return FALSE;
+    if (size) *size = st.st_size;
+    return st.st_size > TX_MAX_FILE_SIZE;
 }

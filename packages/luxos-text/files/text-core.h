@@ -67,4 +67,9 @@ gboolean tx_detect_tabs(const char *s, gsize len);
 char **tx_recent_add(char **list, const char *path, int max);
 char **tx_recent_remove(char **list, const char *path);
 
+/* Nejvetsi soubor, ktery editor otevre (cely se nacita do pameti a GtkSourceView by s vetsim zamrzl) */
+#define TX_MAX_FILE_SIZE ((goffset)50 * 1000 * 1000)
+/* Bezny soubor vetsi nez TX_MAX_FILE_SIZE? (velikost do *size; neexistujici soubor = FALSE) */
+gboolean tx_file_too_large(const char *path, goffset *size);
+
 #endif
