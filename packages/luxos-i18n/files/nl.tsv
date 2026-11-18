@@ -306,6 +306,7 @@ Later	Later
 Restart now?	Nu herstarten?
 Config needs DISK, USERNAME and PASSWORD	Configuratie vereist DISK, USERNAME en PASSWORD
 Invalid USERNAME	Ongeldige USERNAME
+Invalid PASSWORD	Ongeldig PASSWORD
 Invalid HOSTNAME_SEL	Ongeldige HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vereist LUKS_PASS
 # Toetsenbordindelingen (installatieprogramma)
@@ -1689,6 +1690,8 @@ The volume group %s was not found.	De volumegroep %s is niet gevonden.
 The logical volume %s was not found.	Het logische volume %s is niet gevonden.
 The name %s is already used by an open volume.	De naam %s wordt al gebruikt door een geopend volume.
 %s cannot be resized (only ext4, btrfs and NTFS).	De grootte van %s kan niet worden gewijzigd (alleen ext4, btrfs en NTFS).
+Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again.	Windows op %s is niet volledig afgesloten (sluimerstand of snel opstarten). Start Windows en sluit het af terwijl u Shift ingedrukt houdt, en probeer het opnieuw.
+Windows must check the disk %s first. Start Windows, restart it once, then try again.	Windows moet eerst de schijf %s controleren. Start Windows, herstart het één keer en probeer het opnieuw.
 The kept EFI system partition %s is not FAT32.	De behouden EFI-systeempartitie %s is geen FAT32.
 The EFI system partition %s is smaller than 300 MB.	De EFI-systeempartitie %s is kleiner dan 300 MB.
 ERASE the whole disk %s	De hele schijf %s WISSEN
@@ -1984,6 +1987,7 @@ DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition vereist ROOT_PART
 %s cannot be used as /home: %s	%s kan niet worden gebruikt als /home: %s
 does not exist	bestaat niet
 not a partition	geen partitie
+not a whole disk	geen hele schijf
 installation medium	installatiemedium
 in use (mounted)	in gebruik (gekoppeld)
 extended partition	uitgebreide partitie

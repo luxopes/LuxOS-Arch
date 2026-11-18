@@ -56,6 +56,12 @@ ly_keys() {  # povolene klice podle druhu
     esac
 }
 
+ly_on_disk() {  # ly_on_disk DEV DISK: DEV je DISK nebo jeho oddil (podle nazvu: sda1 ano, sdaa1 ani nvme0n10 ne)
+    local dev=$1 disk=$2
+    [[ $dev == "$disk" ]] && return 0
+    if [[ $disk == *[0-9] ]]; then [[ $dev =~ ^"$disk"p[0-9]+$ ]]; else [[ $dev =~ ^"$disk"[0-9]+$ ]]; fi
+}
+
 ly_bytes() {  # ly_bytes 40G -> bajty (binarni jednotky); "rest" -> -1; chyba -> navrat 1
     local s=$1 n u
     [[ $s == rest ]] && { echo -1; return 0; }
@@ -235,7 +241,7 @@ layout_validate() {  # BOOTMODE, BOOTLOADER -> LY_ERR / LY_WARN (kody stejne jak
                 [[ -n ${devs[${L[$id.dev]-}]-} ]] && ly_err dup_dev "${L[$id.dev]}"
                 devs[${L[$id.dev]-}]=1
                 [[ -n ${L[$id.resize]-} ]] && { b=$(ly_bytes "${L[$id.resize]}") && ((b > 0)) || ly_err bad_size "$id"; }
-                for t in "${!wiped[@]}"; do [[ ${L[$id.dev]-} == "$t"* ]] && ly_err use_on_wiped "${L[$id.dev]}"; done
+                for t in "${!wiped[@]}"; do ly_on_disk "${L[$id.dev]-}" "$t" && ly_err use_on_wiped "${L[$id.dev]}"; done
                 ;;
             delete)
                 [[ ${L[$id.dev]-} == /dev/* ]] || ly_err bad_dev "$id"
@@ -326,7 +332,7 @@ layout_validate() {  # BOOTMODE, BOOTLOADER -> LY_ERR / LY_WARN (kody stejne jak
         [[ -n $bootfs ]] || bootfs=$root
         if [[ -n $bootfs ]] && ly_encrypted "$bootfs"; then ly_err boot_encrypted; fi
         # GRUB potrebuje oddil BIOS boot; na zachovane tabulce ho muze mit uz disk (overi layout_check_devices)
-        if [[ -z $(ly_bios_part) && -z $(ly_ids use) ]]; then ly_err bios_grub_missing; fi
+        if [[ -z $(ly_bios_part) && -z $(ly_kept_disks) ]]; then ly_err bios_grub_missing; fi
     fi
     # Velikosti
     if [[ -n $root ]]; then
@@ -421,6 +427,9 @@ ly_error_text() {  # citelna zprava ke kodu chyby/varovani (stejne texty jako GU
         lv_missing)      T "The logical volume %s was not found." "$d" ;;
         name_in_use)     T "The name %s is already used by an open volume." "$d" ;;
         resize_fs)       T "%s cannot be resized (only ext4, btrfs and NTFS)." "$d" ;;
+        ntfs_hibernated) T "Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again." "$d" ;;
+        shrink_much)     T "%s cannot be shrunk that much." "$d" ;;
+        ntfs_check)      T "Windows must check the disk %s first. Start Windows, restart it once, then try again." "$d" ;;
         esp_keep_fs)     T "The kept EFI system partition %s is not FAT32." "$d" ;;
         no_space)        T "There is not enough free space on %s." "$d" ;;
         vg_full)         T "The volume group %s does not have enough free space." "$d" ;;
@@ -454,6 +463,40 @@ ly_luks_dev_of() {  # mapper otevreneho LUKS na zarizeni (nebo nic)
     lsblk -nrpo NAME,TYPE "$1" 2>/dev/null | awk '$2 == "crypt" {print $1; exit}'
 }
 
+ly_ntfs_state() {  # ly_ntfs_state DEV -> "" (zmena velikosti je bezpecna) | ntfs_hibernated | ntfs_check
+    # Windows v hibernaci / po Rychlem spusteni (Fast Startup) ma v pameti stav souboroveho systemu;
+    # po zmene velikosti by pri probuzeni NTFS poskodil. ntfsresize hibernaci vubec nekontroluje.
+    local rc=0
+    ntfs-3g.probe --readwrite "$1" >/dev/null 2>&1 || rc=$?
+    case $rc in
+        0) ;;
+        14|15) echo ntfs_hibernated; return 0 ;;   # hiberfil.sys / neuzavreny zurnal ($LogFile)
+        *) echo ntfs_check; return 0 ;;            # poskozeny, zamceny, nelze overit -> radeji nic
+    esac
+    # Naplanovana kontrola disku (priznak dirty) probe nehlasi; ntfsresize bez --force ano
+    ntfsresize --info --no-progress-bar "$1" >/dev/null 2>&1 || echo ntfs_check
+}
+
+ly_kept_disks() {  # disky se zachovanou tabulkou oddilu, ktere rozlozeni pouziva (use, nove oddily na nich)
+    local id d w x out=" "
+    for id in $(ly_ids use); do d=$(ly_parent_disk "${L[$id.dev]}"); [[ $out == *" $d "* ]] || out+="$d "; done
+    for id in $(ly_ids part); do
+        d=${L[$id.disk]-}; w=0
+        for x in $(ly_ids disk); do [[ ${L[$x.dev]} == "$d" && ${L[$x.table]-keep} == new ]] && w=1; done
+        ((w)) || [[ $out == *" $d "* ]] || out+="$d "
+    done
+    echo $out
+}
+
+ly_need_gpt() {  # ly_need_gpt ODDIL: smazani / zmena velikosti oddilu jen na GPT (sgdisk by MBR prevedl na GPT
+    # a Windows/BIOS na tom disku by prestal startovat); mazany disk (table=new) nevadi
+    local disk d
+    disk=$(ly_parent_disk "$1")
+    for d in $(ly_ids disk); do [[ ${L[$d.dev]} == "$disk" && ${L[$d.table]-keep} == new ]] && return 0; done
+    [[ $(blkid -p -o value -s PTTYPE "$disk" 2>/dev/null) == gpt ]] || ly_err not_gpt "$disk"
+    return 0
+}
+
 layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS/VG/LV sedi
     local id dev t fst
     for id in $(ly_ids disk); do
@@ -476,6 +519,7 @@ layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS
         if ly_delete_lv "$id" && ! ly_isblk "$dev"; then continue; fi
         ly_isblk "$dev" || { ly_err not_block "$dev"; continue; }
         ly_busy "$dev" && ly_err busy "$dev"
+        ly_delete_lv "$id" || ly_need_gpt "$dev"
     done
     for id in $(ly_ids use); do
         dev=${L[$id.dev]}
@@ -484,6 +528,16 @@ layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS
         if [[ -n ${L[$id.resize]-} ]]; then
             [[ $fst == @(ext4|btrfs|ntfs) ]] || ly_err resize_fs "$dev"
             ly_busy "$dev" && ly_err busy "$dev"
+            ly_need_gpt "$dev"
+            if [[ $fst == ntfs ]] && [[ $(ly_bytes "${L[$id.resize]}") != "$(blockdev --getsize64 "$dev" 2>/dev/null)" ]]; then
+                t=$(ly_ntfs_state "$dev")
+                [[ -z $t ]] || ly_err "$t" "$dev"
+                # Zmenseni zkusit nanecisto (jen cte) uz pred souhrnem, ne az po smazani jinych disku
+                if [[ -z $t ]] && (($(ly_bytes "${L[$id.resize]}") < $(blockdev --getsize64 "$dev" 2>/dev/null || echo 0))); then
+                    ntfsresize --no-action --size "$(ly_bytes "${L[$id.resize]}")" "$dev" >/dev/null 2>&1 ||
+                        ly_err shrink_much "$dev"
+                fi
+            fi
         fi
         local by=${L[$id.by]-}
         case ${L[$by.kind]-} in
@@ -525,8 +579,7 @@ layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS
     LY_GRUB_DISK=""
     if [[ $BOOTMODE == bios && ${BOOTLOADER:-auto} != none && -z $(ly_bios_part) ]]; then
         local d
-        for id in $(ly_ids use); do
-            d=$(ly_parent_disk "${L[$id.dev]}")
+        for d in $(ly_kept_disks); do
             if sgdisk -p "$d" 2>/dev/null | awk '$1 ~ /^[0-9]+$/ && toupper($6) == "EF02" {f = 1} END {exit !f}'; then
                 LY_GRUB_DISK=$d; break
             fi
@@ -691,6 +744,19 @@ layout_destroy_list() {
             luks) [[ ${L[$by.keep]-0} == 1 ]] || { T "ERASE %s (new encrypted volume)" "${L[$id.dev]}"; echo; } ;;
             vg)   T "ERASE %s (new LVM physical volume)" "${L[$id.dev]}"; echo ;;
             fs|swap) [[ ${L[$by.format]-1} == 1 ]] && { T "FORMAT %s" "${L[$id.dev]}"; echo; } ;;
+        esac
+    done
+    # Existujici (odemceny) LUKS: formatovani obsahu nebo nova VG uvnitr smaze jeho data
+    local on what
+    for id in $(ly_ids luks); do
+        [[ ${L[$id.keep]-0} == 1 ]] || continue
+        on=${L[$id.on]-}
+        if [[ ${L[$on.kind]-} == lv ]]; then what="${L[${L[$on.vg]}.name]}/${L[$on.name]}"; else what=${L[$on.dev]-$on}; fi
+        what+=" (LUKS ${L[$id.name]})"
+        by=${L[$id.by]-}
+        case ${L[$by.kind]-} in
+            vg) [[ ${L[$by.keep]-0} == 1 ]] || { T "ERASE %s (new LVM physical volume)" "$what"; echo; } ;;
+            fs|swap) [[ ${L[$by.format]-1} == 1 ]] && { T "FORMAT %s" "$what"; echo; } ;;
         esac
     done
     for id in $(ly_ids lv); do
@@ -890,6 +956,11 @@ ly_resize() {  # ly_resize ID SMER(shrink|grow): zmenseni = nejdriv FS, zvetseni
     [[ $dir == shrink ]] && ((bytes >= cur)) && return 0
     [[ $dir == grow ]] && ((bytes <= cur)) && return 0
     fst=$(blkid -p -o value -s TYPE "$dev")
+    if [[ $fst == ntfs ]]; then
+        # Znovu tesne pred zmenou (i pred zvetsenim oddilu): Windows nesmi byt v hibernaci
+        local st; st=$(ly_ntfs_state "$dev")
+        [[ -z $st ]] || fail "$(ly_error_text "$st|$dev")"
+    fi
     info "$(T "Resizing %s to %s" "$dev" "${L[$id.resize]}")"
     if [[ $dir == grow ]]; then ly_resize_part "$dev" "$bytes"; fi
     case $fst in
@@ -897,11 +968,12 @@ ly_resize() {  # ly_resize ID SMER(shrink|grow): zmenseni = nejdriv FS, zvetseni
             run e2fsck -f -y "$dev" || [[ $? -le 1 ]] || fail "$(T "The file system on %s has errors." "$dev")"
             if [[ $dir == shrink ]]; then run resize2fs "$dev" "$((bytes / 1024))K"; else run resize2fs "$dev"; fi ;;
         ntfs)
+            # Bez --force: ntfsresize odmitne svazek s naplanovanou kontrolou disku (Windows ji musi dokoncit)
             if [[ $dir == shrink ]]; then
-                run ntfsresize --no-action --force --size "$bytes" "$dev" || fail "$(T "%s cannot be shrunk that much." "$dev")"
-                printf 'y\n' | run ntfsresize --force --size "$bytes" "$dev"
+                run ntfsresize --no-action --size "$bytes" "$dev" || fail "$(T "%s cannot be shrunk that much." "$dev")"
+                printf 'y\n' | run ntfsresize --size "$bytes" "$dev"
             else
-                printf 'y\n' | run ntfsresize --force "$dev"
+                printf 'y\n' | run ntfsresize "$dev"
             fi ;;
         btrfs)
             mnt=$(mktemp -d /run/luxos-resize.XXXXXX)
@@ -1002,6 +1074,9 @@ ly_ensure() {  # ly_ensure ID: zalozi objekt (a vse pod nim), nastavi L[id.dev]
 ly_partitions() {  # tabulky oddilu: zmenseni, mazani, zvetseni, nove oddily (v tomto poradi)
     local id dev disk n before after
     local -A touched=()
+    # Zmenseni jako prvni: nejcasteji selze (malo volneho mista, kontrola FS) - pak jeste zadny jiny
+    # disk neni smazany. Zmensovany oddil nikdy nelezi na mazanem disku (use_on_wiped).
+    for id in $(ly_ids use); do [[ -n ${L[$id.resize]-} ]] && ly_resize "$id" shrink; done
     # Smazani celeho disku
     for id in $(ly_ids disk); do
         [[ ${L[$id.table]-keep} == new ]] || continue
@@ -1014,7 +1089,6 @@ ly_partitions() {  # tabulky oddilu: zmenseni, mazani, zvetseni, nove oddily (v 
         run sgdisk -o "$dev"
         ly_settle "$dev"
     done
-    for id in $(ly_ids use); do [[ -n ${L[$id.resize]-} ]] && ly_resize "$id" shrink; done
     for id in $(ly_ids delete); do
         ly_delete_lv "$id" && continue   # LV az v layout_apply
         dev=${L[$id.dev]}

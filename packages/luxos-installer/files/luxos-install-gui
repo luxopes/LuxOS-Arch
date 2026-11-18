@@ -2096,9 +2096,12 @@ class Installer(Gtk.Window):
             fs_combo.append(t, t + (" (" + _("recommended") + ")" if t == "btrfs" else ""))
         fs_combo.set_active_id(use.get("fstype", "btrfs") if use and use.get("fstype") != "vfat" else "btrfs")
         fs_l = row(_("File system"), fs_combo)
-        fmt = Gtk.CheckButton(label=_("Format (erases the data on it)"),
-                              active=use.get("format", True) if use else True)
         existing_data = (node is not None and node.existing and luks is None) or (luks is not None and luks.existing)
+        # Existujici svazek (oddil, LV, odemceny LUKS): data se nesmi smazat nechtene - formatovat predem
+        # jen pro / (ten musi byt naformatovany), jinak "ponechat data", dokud uzivatel sam nezaskrtne
+        fmt = Gtk.CheckButton(label=_("Format (erases the data on it)"),
+                              active=use.get("format", True) if use else
+                              (not existing_data or mount.get_child().get_text().strip() == "/"))
         if existing_data:
             row("", fmt)
         enc = Gtk.CheckButton(label=_("Encrypt (LUKS2)"), active=luks is not None)

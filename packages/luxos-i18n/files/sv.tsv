@@ -306,6 +306,7 @@ Later	Senare
 Restart now?	Vill du starta om nu?
 Config needs DISK, USERNAME and PASSWORD	Konfigurationen kräver DISK, USERNAME och PASSWORD
 Invalid USERNAME	Ogiltigt USERNAME
+Invalid PASSWORD	Ogiltigt PASSWORD
 Invalid HOSTNAME_SEL	Ogiltigt HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 kräver LUKS_PASS
 # Rozlozeni klavesnice (instalator)
@@ -1689,6 +1690,8 @@ The volume group %s was not found.	Volymgruppen %s hittades inte.
 The logical volume %s was not found.	Den logiska volymen %s hittades inte.
 The name %s is already used by an open volume.	Namnet %s används redan av en öppen volym.
 %s cannot be resized (only ext4, btrfs and NTFS).	Storleken på %s kan inte ändras (bara ext4, btrfs och NTFS).
+Windows on %s is not fully shut down (hibernation or Fast Startup). Start Windows and shut it down while holding Shift, then try again.	Windows på %s är inte helt avstängt (viloläge eller snabbstart). Starta Windows och stäng av det medan du håller ned Skift, och försök sedan igen.
+Windows must check the disk %s first. Start Windows, restart it once, then try again.	Windows måste först kontrollera disken %s. Starta Windows, starta om det en gång och försök sedan igen.
 The kept EFI system partition %s is not FAT32.	Den behållna EFI-systempartitionen %s är inte FAT32.
 The EFI system partition %s is smaller than 300 MB.	EFI-systempartitionen %s är mindre än 300 MB.
 ERASE the whole disk %s	RADERA hela disken %s
@@ -1984,6 +1987,7 @@ DISK_MODE=partition needs ROOT_PART	DISK_MODE=partition kräver ROOT_PART
 %s cannot be used as /home: %s	%s kan inte användas som /home: %s
 does not exist	finns inte
 not a partition	inte en partition
+not a whole disk	inte en hel disk
 installation medium	installationsmedium
 in use (mounted)	används (monterad)
 extended partition	utökad partition

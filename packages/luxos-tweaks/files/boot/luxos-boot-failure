@@ -11,6 +11,9 @@
 set -u
 ROOT=${LUXOS_BOOT_ROOT:-}
 KEEP=${LUXOS_BOOT_KEEP:-5}
+# Zurnal v zaznamu nejvys 1 MiB (konec, kde je chyba): ESP muze byt maly a sdileny s Windows,
+# plny ESP by rozbil aktualizace zavadecu
+MAXLOG=${LUXOS_BOOT_MAXLOG:-1048576}
 ESP_GUID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 
 # ---- texty --------------------------------------------------------------------------------
@@ -108,11 +111,12 @@ save_log() {  # -> jmeno ulozeneho souboru (\EFI\LuxOS\...), navrat 1 kdyz nejde
             echo "# failed units:"
             systemctl --failed --no-legend --plain 2>/dev/null
             echo
-            journalctl -b --no-pager -o short-monotonic 2>/dev/null
+            journalctl -b --no-pager -o short-monotonic 2>/dev/null | tail -c "$MAXLOG"
         } >"$dir/$name"; then
         sync
         rotate "$dir"
     else
+        rm -f -- "$dir/$name"   # nedopsany zaznam (plny ESP) nenechat zabirat misto
         name=""
     fi
     ((own)) && umount "$mnt" 2>/dev/null

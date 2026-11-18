@@ -14,8 +14,9 @@ ok() { if "$@"; then echo "ok    $DESC"; else echo "FAIL  $DESC"; FAIL=$((FAIL +
 # ---- nahradni prikazy ----
 mkdir -p "$T/bin"
 mk() { printf '#!/bin/bash\n%s\n' "$2" >"$T/bin/$1"; chmod +x "$T/bin/$1"; }
-mk journalctl 'echo "JOURNAL LINE 1"; echo "JOURNAL LINE 2"'
-mk systemctl 'echo "systemctl $*" >>"$MOCKLOG"; [[ $1 == --failed ]] && echo "sysroot.mount loaded failed failed /sysroot"; true'
+mk journalctl 'echo "JOURNAL LINE 1"; [[ -n ${MOCK_BIG_JOURNAL-} ]] && head -c 3000000 /dev/zero | tr "\0" x; echo "JOURNAL LINE 2"'
+mk systemctl 'echo "systemctl $*" >>"$MOCKLOG"; [[ $1 == --failed ]] && echo "sysroot.mount loaded failed failed /sysroot"
+[[ $1 == is-active && " $* " == *" initrd-root-device.target "* ]] && { [[ -e ${MOCK_ROOT_DEVICE:-/nonexistent} ]]; exit; }; true'
 mk findmnt '[[ -n ${MOCK_ESP_MNT-} ]] && echo "$MOCK_ESP_MNT"; true'
 mk mount 'echo "mount $*" >>"$MOCKLOG"; true'
 mk umount 'echo "umount $*" >>"$MOCKLOG"; true'
@@ -64,6 +65,10 @@ DESC="zaznam obsahuje zurnal a selhane jednotky"; ok bash -c "grep -q 'JOURNAL L
 DESC="nejvys 5 zaznamu (nejstarsi smazane)"; ok test "$(ls "$ESP/EFI/LuxOS" | wc -l)" -eq 5 -a ! -e "$ESP/EFI/LuxOS/boot-failure-20260101-000000.log"
 DESC="pripojeny ESP se nepripojuje ani neodpojuje"; ok bash -c "! grep -qE '^(mount|umount) ' '$MOCKLOG'"
 DESC="hlaseni: nadpis cesky (ASCII)"; ok grep -q "LuxOS se nepodarilo spustit." <<<"$out"
+MOCK_BIG_JOURNAL=1 MOCK_ESP_MNT=$ESP LUXOS_BOOT_ROOT=$R LUXOS_I18N_DIR=$I18N LUXOS_BOOT_NOW=20261024-120500 bash "$B/luxos-boot-failure" >/dev/null
+fb=$ESP/EFI/LuxOS/boot-failure-20261024-120500.log
+DESC="velky zurnal: zaznam nejvys ~1 MiB, konec zurnalu zachovan"; ok bash -c "(( \$(stat -c %s '$fb') < 1100000 )) && tail -n1 '$fb' | grep -q 'JOURNAL LINE 2'"
+rm -f "$fb"
 DESC="hlaseni: cesta k zaznamu"; ok grep -qF '\EFI\LuxOS\boot-failure-20261024-120000.log' <<<"$out"
 DESC="hlaseni: selhana jednotka"; ok grep -q "sysroot.mount" <<<"$out"
 DESC="hlaseni: co delat"; ok grep -q "Ctrl+Alt+Delete" <<<"$out"
@@ -106,6 +111,20 @@ timeout 4 env LUXOS_BOOT_ROOT=$R LUXOS_BOOT_SYSROOT=$R/sysroot LUXOS_ROOT_WAIT=2
 rc=$?
 DESC="behem psani hesla se cas nepocita (zadny nouzovy rezim)"; ok bash -c "[[ $rc == 124 ]] && ! grep -q emergency '$MOCKLOG'"
 rm -f "$R/run/systemd/ask-password/ask.1234"
+# Disk se objevil, ale kontrola disku (fsck) / pripojeni trva dlouho: zadny falesny nouzovy rezim
+: >"$MOCKLOG"; : >"$T/rootdev"
+MOCK_ROOT_DEVICE=$T/rootdev LUXOS_BOOT_ROOT=$R LUXOS_BOOT_SYSROOT=$R/sysroot LUXOS_ROOT_WAIT=1 LUXOS_BOOT_TICK=1 \
+    LUXOS_BOOT_CONSOLE=$T/console timeout 5 bash -c 'LUXOS_BOOT_SOURCE_ONLY=1 . "$1"; watch_root' _ "$B/luxos-boot-watch"
+rc=$?
+DESC="disk se objevil, dlouhy fsck: zadny nouzovy rezim"; ok bash -c "[[ $rc == 0 ]] && ! grep -q emergency '$MOCKLOG'"
+# Disk se objevi az po case (pred limitem): od te chvile se uz nepocita
+: >"$MOCKLOG"; rm -f "$T/rootdev"
+( sleep 1; : >"$T/rootdev" ) &
+MOCK_ROOT_DEVICE=$T/rootdev LUXOS_BOOT_ROOT=$R LUXOS_BOOT_SYSROOT=$R/sysroot LUXOS_ROOT_WAIT=3 LUXOS_BOOT_TICK=1 \
+    LUXOS_BOOT_CONSOLE=$T/console timeout 8 bash -c 'LUXOS_BOOT_SOURCE_ONLY=1 . "$1"; watch_root' _ "$B/luxos-boot-watch"
+rc=$?; wait
+DESC="disk se objevil pred limitem: zadny nouzovy rezim"; ok bash -c "[[ $rc == 0 ]] && ! grep -q emergency '$MOCKLOG'"
+rm -f "$T/rootdev"
 mk mountpoint 'true'
 LUXOS_BOOT_ROOT=$R LUXOS_BOOT_SYSROOT=$R/sysroot LUXOS_ROOT_WAIT=2 LUXOS_BOOT_TICK=1 \
     bash -c 'LUXOS_BOOT_SOURCE_ONLY=1 . "$1"; watch_root' _ "$B/luxos-boot-watch"
@@ -122,7 +141,7 @@ LUXOS_BOOT_ROOT=$R LUXOS_BOOT_CONSOLE=$T/console LUXOS_BOOT_JOURNAL_READY=1 LUXO
     bash -c 'LUXOS_BOOT_SOURCE_ONLY=1 . "$1"; watch_passwords; LUXOS_BOOT_COUNT=$LUXOS_BOOT_ROOT/run/luxos-boot-wrong; n=0
              while IFS= read -r line; do is_wrong_password "$line" || continue; n=$((n+1)); ((n > $(wc -l <"$LUXOS_BOOT_COUNT"))) && say x x; done < <(journalctl)' _ "$B/luxos-boot-watch"
 DESC="zurnal: kazde spatne heslo jedna zprava, opakovane cteni bez duplicit"; ok test "$(grep -c display-message "$MOCKLOG")" -eq 2
-mk journalctl 'echo "JOURNAL LINE 1"; echo "JOURNAL LINE 2"'
+mk journalctl 'echo "JOURNAL LINE 1"; [[ -n ${MOCK_BIG_JOURNAL-} ]] && head -c 3000000 /dev/zero | tr "\0" x; echo "JOURNAL LINE 2"'
 
 echo "## mkinitcpio drop-in"
 hooks() { bash -c 'HOOKS=('"$1"'); . "$1"; echo "${HOOKS[*]}"' _ "$B/zz-luxos-boot.conf"; }
