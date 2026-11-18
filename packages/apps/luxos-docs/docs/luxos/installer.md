@@ -154,9 +154,9 @@ later in the Keyboard Layouts app (see [keyboard.md](keyboard.md)).
 (not on metered networks, with Data Saver or on low battery), a kept previous kernel and self-repair;
 **Classic (for IT professionals)** — no automatic updates or repairs, only notifications.
 
-Below the two modes: checkbox **Anonymously report that this computer uses LuxOS** (default on;
+Below the two modes: checkbox **Include this computer in the anonymous LuxOS usage count (once a week)** (default on;
 once a week only the version, update channel and install age, no ID — see [countme.md](countme.md)).
-The text installer asks the same question after the maintenance mode; the summary shows "Usage count".
+The text installer asks the same question after the maintenance mode; the summary shows "Anonymous usage count: on - once a week, no personal data".
 
 ## Software templates
 

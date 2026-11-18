@@ -81,6 +81,35 @@ td.col { width: 50%; vertical-align: top; }
     return m
 
 
+def wide_newsletter():
+    """Siroky zpravodaj s pevnou sirkou (tabulka 700 px, sloupce 340 px, styl v <style>): v uzkem panelu se ma
+    zmensit na sirku panelu, ne orezat vpravo."""
+    m = base("Široký zpravodaj: listopadové novinky", "Zpravodaj Example <news@news.example.org>")
+    m.set_content("Listopadové novinky – textová verze.\n")
+    m.add_alternative("""<html><head><style>
+.wrap { width: 700px; margin: 0 auto; }
+.card { min-width: 640px; background: #ffffff; }
+img.hero { max-width: 900px; }
+</style></head><body style="background:#eef2f7">
+<div class="wrap"><table width="700" cellpadding="0" cellspacing="0" class="card">
+<tr><td colspan="2" style="padding:20px"><h1 style="color:#0b3d91">Listopadové novinky</h1></td></tr>
+<tr><td width="340" style="padding:10px">Levý sloupec s delším textem o novinkách v systému.</td>
+<td width="340" style="padding:10px">Pravý sloupec s odkazem <a href="https://news.example.org/a/2">Číst dál</a> PRAVY_OKRAJ</td></tr>
+</table></div></body></html>""", subtype="html")
+    return m
+
+
+def responsive_newsletter():
+    """Zpravodaj s @media (max-width): prizpusobi se sam, okno ho nezmensuje."""
+    m = base("Přizpůsobivý zpravodaj", "Zpravodaj Example <news@news.example.org>")
+    m.set_content("Textová verze.\n")
+    m.add_alternative("""<html><head><style>
+.wrap { width: 600px; }
+@media only screen and (max-width: 620px) { .wrap { width: 100% !important; } }
+</style></head><body><div class="wrap"><p>Obsah se přizpůsobí šířce.</p></div></body></html>""", subtype="html")
+    return m
+
+
 def reply_thread():
     m = base("Re: Re: Porada ve čtvrtek", "Petr Dvořák <petr@example.org>")
     m["In-Reply-To"] = "<p2@example.org>"
@@ -171,7 +200,8 @@ def main(out=OUT, remote=None):
         REMOTE = remote
     os.makedirs(out, exist_ok=True)
     for name, fn in (("security-alert", security_alert), ("newsletter", newsletter), ("reply-thread", reply_thread),
-                     ("links-plain", links_plain), ("malicious", malicious), ("inline-image", inline_image)):
+                     ("links-plain", links_plain), ("malicious", malicious), ("inline-image", inline_image),
+                     ("wide-newsletter", wide_newsletter), ("responsive-newsletter", responsive_newsletter)):
         with open(os.path.join(out, name + ".eml"), "wb") as f:
             f.write(fn().as_bytes(policy=SMTP))
 

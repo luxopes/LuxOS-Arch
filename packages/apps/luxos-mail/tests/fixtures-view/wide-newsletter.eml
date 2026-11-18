@@ -1,0 +1,37 @@
+From: Zpravodaj Example <news@news.example.org>
+To: Tester <tester@example.test>
+Subject: =?utf-8?q?=C5=A0irok=C3=BD_zpravodaj=3A_listopadov=C3=A9?= novinky
+Date: Tue, 10 Nov 2026 09:12:00 +0100
+Message-ID: <9028557350444750068@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============1683633486527251191=="
+
+--===============1683633486527251191==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Listopadové novinky – textová verze.
+
+--===============1683633486527251191==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head><style>
+.wrap { width: 700px; margin: 0 auto; }
+.card { min-width: 640px; background: #ffffff; }
+img.hero { max-width: 900px; }
+</style></head><body style=3D"background:#eef2f7">
+<div class=3D"wrap"><table width=3D"700" cellpadding=3D"0" cellspacing=3D"0" =
+class=3D"card">
+<tr><td colspan=3D"2" style=3D"padding:20px"><h1 style=3D"color:#0b3d91">List=
+opadov=C3=A9 novinky</h1></td></tr>
+<tr><td width=3D"340" style=3D"padding:10px">Lev=C3=BD sloupec s del=C5=A1=C3=
+=ADm textem o novink=C3=A1ch v syst=C3=A9mu.</td>
+<td width=3D"340" style=3D"padding:10px">Prav=C3=BD sloupec s odkazem <a href=
+=3D"https://news.example.org/a/2">=C4=8C=C3=ADst d=C3=A1l</a> PRAVY_OKRAJ</td=
+></tr>
+</table></div></body></html>
+
+--===============1683633486527251191==--

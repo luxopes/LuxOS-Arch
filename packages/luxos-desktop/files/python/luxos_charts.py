@@ -121,6 +121,15 @@ def area_chart(cr, widget, x, y, w, h, series, maximum=None, grid=True, labels=N
         cr.show_text(right)
 
 
+def _dec(text):
+    """Desetinna carka/tecka podle jazyka aplikace (luxos_i18n), bez nej tecka."""
+    try:
+        from luxos_i18n import decimal_separator
+    except ImportError:
+        return text
+    return text.replace(".", decimal_separator())
+
+
 def human_bytes(n, per_second=False):
     units = ["B", "KB", "MB", "GB", "TB"]
     v = float(n)
@@ -128,5 +137,5 @@ def human_bytes(n, per_second=False):
     while v >= 1000 and i < len(units) - 1:
         v /= 1000
         i += 1
-    text = f"{v:.0f} {units[i]}" if v >= 100 or i == 0 else f"{v:.1f} {units[i]}"
+    text = f"{v:.0f} {units[i]}" if v >= 100 or i == 0 else _dec(f"{v:.1f} {units[i]}")
     return text + ("/s" if per_second else "")

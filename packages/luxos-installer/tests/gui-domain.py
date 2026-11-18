@@ -275,7 +275,7 @@ def assistant():
     pump()
     check("udrzba", win.current() == "care")
     calls = []
-    win.login_backend.login = lambda user, pw, done: calls.append(user)
+    win.login_backend.login = lambda user, pw, done, *_locale: calls.append(user)
     win.go_next()
     check("dokonceni: upozorneni o domene a tlacitko Prihlasit",
           wait_for(lambda: not win.finishing and "could not join the domain" in labels(win.scroll)),

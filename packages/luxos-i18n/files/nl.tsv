@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Werk eerst het hele 
 Update the whole system together with it?	Het hele systeem meteen mee bijwerken?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	De schijf %s is veranderd sinds hij werd gekozen (is er een schijf aangesloten of verwijderd?). Er is niets gewist – kies de schijf opnieuw.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Het versleutelde volume %s onder / kon niet worden bepaald voor ontgrendeling bij het opstarten.
+This account is not allowed to use the mailbox.	Dit account mag de mailbox niet gebruiken.
+The password or the account has expired. Renew it with your email provider.	Het wachtwoord of het account is verlopen. Vernieuw het bij je e-mailprovider.
+The server requires an encrypted connection.	De server vereist een versleutelde verbinding.
+Contact your email provider or administrator.	Neem contact op met je e-mailprovider of beheerder.
+The server is temporarily unavailable. Try again later.	De server is tijdelijk niet beschikbaar. Probeer het later opnieuw.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Te veel verbindingen of aanmeldpogingen. Wacht een paar minuten en probeer het opnieuw.
+The mailbox is full.	De mailbox is vol.
+The server reported an internal error. Try again later.	De server meldde een interne fout. Probeer het later opnieuw.
+The mailbox is in use by another program. Try again later.	De mailbox wordt door een ander programma gebruikt. Probeer het later opnieuw.
+The account does not have permission for this.	Het account heeft hiervoor geen toestemming.
+Mail could not save the password.	Mail kon het wachtwoord niet bewaren.
+Mail could not save the sign-in.	Mail kon de aanmelding niet bewaren.
+Mail could not read the password.	Mail kon het wachtwoord niet lezen.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	De systeemsleutelbos die wachtwoorden veilig bewaart is niet beschikbaar of vergrendeld. Ontgrendel hem, of meld je af en weer aan bij het bureaublad, en probeer het daarna opnieuw.
+Mail could not connect to %s. Showing saved messages.	Mail kon geen verbinding maken met %s. Opgeslagen berichten worden getoond.
+Other	Andere
+Add a %s account	Een %s-account toevoegen
+Another email provider	Andere e-mailprovider
+Incoming mail (IMAP)	Inkomende mail (IMAP)
+Outgoing mail (SMTP)	Uitgaande mail (SMTP)
+Server	Server
+Target Disk	Doelschijf
+Updates & Maintenance	Updates en onderhoud
+Anonymous usage count	Anonieme gebruiksstatistiek
+on - once a week, no personal data	aan – eens per week, zonder persoonlijke gegevens
+Include this computer in the anonymous LuxOS usage count (once a week)	Deze computer anoniem meetellen in de gebruiksstatistiek van LuxOS (eens per week)
+Choose where to install LuxOS first.	Kies eerst waar LuxOS moet worden geïnstalleerd.

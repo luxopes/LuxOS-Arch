@@ -247,7 +247,11 @@ class ConfiguredTest(OAuthGuiTest):
             return lines[-1] if lines else ""
         self.assertTrue(mt.wait_for(lambda: "Předávání a IMAP" in banner(), 10), banner() + self.gui_log())
         self.assertIn("account.live.com/activity", banner())
-        self.assertIn("(Server: User is authenticated but not connected.)", banner())
+        # puvodni anglicky text serveru uz ne v ceske vete, jen v tooltipu pruhu (Podrobnosti)
+        self.assertNotIn("User is authenticated", banner())
+        with open(self.trace) as f:
+            details = [l for l in f.read().split("\n") if l.startswith("banner-detail ")]
+        self.assertIn("User is authenticated but not connected.", details[-1] if details else "")
         xdo(env, "windowactivate", "--sync", win)
         time.sleep(1.0)
         self.shot("oauth-15-microsoft-not-connected.png")

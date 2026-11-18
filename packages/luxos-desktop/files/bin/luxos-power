@@ -17,6 +17,18 @@ import time
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_charts import COLORS, fg_color, rgb, rounded_rect  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+try:
+    from luxos_i18n import decimal_separator as _decimal_separator
+except ImportError:  # starsi luxos-i18n
+    def _decimal_separator():
+        return "."
+
+
+def dec(text):
+    """Desetinna carka/tecka podle jazyka aplikace ("1,5 GB" cesky, "1.5 GB" anglicky)."""
+    return text.replace(".", _decimal_separator())
+
+
 
 import gi  # noqa: E402
 
@@ -731,7 +743,7 @@ class PowerWindow(Gtk.Window):
             text = _("Plugged in, not charging")
         self.state.set_text(text)
         rate = info.get("EnergyRate", 0)
-        self.v_rate.set_text(f"{rate:.1f} W" if rate else "-")
+        self.v_rate.set_text(dec(f"{rate:.1f} W") if rate else "-")
         self.s_rate.set_text(_("charging power") if charging else _("current consumption"))
         full, design = info.get("EnergyFull", 0), info.get("EnergyFullDesign", 0)
         health = info.get("Capacity") or (full / design * 100 if design else 0)
@@ -754,8 +766,8 @@ class PowerWindow(Gtk.Window):
             self.s_cycles.set_text("")
             card_box.set_tooltip_text(_("The battery firmware does not report its charge cycles. "
                                         "Battery health shows how worn the battery is."))
-        self.v_energy.set_text(f"{info.get('Energy', 0):.1f} Wh")
-        self.s_energy.set_text(_("of %.1f Wh") % full if full else "")
+        self.v_energy.set_text(dec(f"{info.get('Energy', 0):.1f} Wh"))
+        self.s_energy.set_text(_("of %.1f Wh").replace("%.1f", dec(f"{full:.1f}")) if full else "")
         return True
 
     def refresh_history(self):

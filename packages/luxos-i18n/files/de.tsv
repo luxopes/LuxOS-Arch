@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Aktualisieren Sie zu
 Update the whole system together with it?	Das ganze System gleich mit aktualisieren?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Der Datenträger %s hat sich seit der Auswahl geändert (wurde ein Datenträger angeschlossen oder entfernt?). Es wurde nichts gelöscht – wählen Sie den Datenträger erneut.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Das verschlüsselte Volume %s unter / konnte für das Entsperren beim Start nicht ermittelt werden.
+This account is not allowed to use the mailbox.	Dieses Konto darf das Postfach nicht verwenden.
+The password or the account has expired. Renew it with your email provider.	Das Passwort oder das Konto ist abgelaufen. Erneuern Sie es bei Ihrem E-Mail-Anbieter.
+The server requires an encrypted connection.	Der Server verlangt eine verschlüsselte Verbindung.
+Contact your email provider or administrator.	Wenden Sie sich an Ihren E-Mail-Anbieter oder Administrator.
+The server is temporarily unavailable. Try again later.	Der Server ist vorübergehend nicht erreichbar. Versuchen Sie es später erneut.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Zu viele Verbindungen oder Anmeldeversuche. Warten Sie einige Minuten und versuchen Sie es erneut.
+The mailbox is full.	Das Postfach ist voll.
+The server reported an internal error. Try again later.	Der Server hat einen internen Fehler gemeldet. Versuchen Sie es später erneut.
+The mailbox is in use by another program. Try again later.	Das Postfach wird von einem anderen Programm verwendet. Versuchen Sie es später erneut.
+The account does not have permission for this.	Das Konto hat dafür keine Berechtigung.
+Mail could not save the password.	Mail konnte das Passwort nicht speichern.
+Mail could not save the sign-in.	Mail konnte die Anmeldung nicht speichern.
+Mail could not read the password.	Mail konnte das Passwort nicht lesen.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Der Systemschlüsselbund, der Passwörter sicher aufbewahrt, ist nicht verfügbar oder gesperrt. Entsperren Sie ihn oder melden Sie sich ab und wieder an und versuchen Sie es dann erneut.
+Mail could not connect to %s. Showing saved messages.	Mail konnte keine Verbindung zu %s herstellen. Gespeicherte Nachrichten werden angezeigt.
+Other	Andere
+Add a %s account	%s-Konto hinzufügen
+Another email provider	Anderer E-Mail-Anbieter
+Incoming mail (IMAP)	Posteingang (IMAP)
+Outgoing mail (SMTP)	Postausgang (SMTP)
+Server	Server
+Target Disk	Ziellaufwerk
+Updates & Maintenance	Updates und Wartung
+Anonymous usage count	Anonyme Nutzungsstatistik
+on - once a week, no personal data	an – einmal pro Woche, ohne persönliche Daten
+Include this computer in the anonymous LuxOS usage count (once a week)	Diesen Computer anonym in der LuxOS-Nutzungsstatistik zählen (einmal pro Woche)
+Choose where to install LuxOS first.	Wählen Sie zuerst aus, wohin LuxOS installiert werden soll.

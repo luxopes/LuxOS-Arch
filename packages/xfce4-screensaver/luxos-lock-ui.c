@@ -204,6 +204,141 @@ lux_tr (const char *text) {
     return v ? v : text;
 }
 
+/* ---- datum podle jazyka (stejna data jako luxos_i18n.py/.lsl) -------------------------
+ * Ne strftime: s vygenerovanym jen en_US.UTF-8 by dal anglicke nazvy mezi ceskymi texty a pevny
+ * cesky tvar "%a %-d. %b" se ukazoval i v ostatnich jazycich. Dny od pondeli, mesice v genitivu. */
+typedef struct {
+    const char *lang, *days, *sdays, *months, *t_long, *t_short, *t_long_year;
+} LuxCal;
+static const LuxCal LUX_CAL[] = {
+    { "en",
+      "Monday Tuesday Wednesday Thursday Friday Saturday Sunday",
+      "Mon Tue Wed Thu Fri Sat Sun",
+      "January February March April May June July August September October November December",
+      "{A}, {B} {d}", "{b} {d}", "{A}, {B} {d}, {Y}" },
+    { "cs",
+      "pondělí úterý středa čtvrtek pátek sobota neděle",
+      "po út st čt pá so ne",
+      "ledna února března dubna května června července srpna září října listopadu prosince",
+      "{A} {d}. {B}", "{d}. {m}.", "{A} {d}. {B} {Y}" },
+    { "sk",
+      "pondelok utorok streda štvrtok piatok sobota nedeľa",
+      "po ut st št pi so ne",
+      "januára februára marca apríla mája júna júla augusta septembra októbra novembra decembra",
+      "{A} {d}. {B}", "{d}. {m}.", "{A} {d}. {B} {Y}" },
+    { "pl",
+      "poniedziałek wtorek środa czwartek piątek sobota niedziela",
+      "pon. wt. śr. czw. pt. sob. niedz.",
+      "stycznia lutego marca kwietnia maja czerwca lipca sierpnia września października listopada grudnia",
+      "{A}, {d} {B}", "{dd}.{mm}", "{A}, {d} {B} {Y}" },
+    { "uk",
+      "понеділок вівторок середа четвер пʼятниця субота неділя",
+      "пн вт ср чт пт сб нд",
+      "січня лютого березня квітня травня червня липня серпня вересня жовтня листопада грудня",
+      "{A}, {d} {B}", "{dd}.{mm}", "{A}, {d} {B} {Y} р." },
+    { "hu",
+      "hétfő kedd szerda csütörtök péntek szombat vasárnap",
+      "H K Sze Cs P Szo V",
+      "január február március április május június július augusztus szeptember október november december",
+      "{B} {d}., {A}", "{mm}. {dd}.", "{Y}. {B} {d}., {A}" },
+    { "de",
+      "Montag Dienstag Mittwoch Donnerstag Freitag Samstag Sonntag",
+      "Mo. Di. Mi. Do. Fr. Sa. So.",
+      "Januar Februar März April Mai Juni Juli August September Oktober November Dezember",
+      "{A}, {d}. {B}", "{dd}.{mm}.", "{A}, {d}. {B} {Y}" },
+    { "fr",
+      "lundi mardi mercredi jeudi vendredi samedi dimanche",
+      "lun. mar. mer. jeu. ven. sam. dim.",
+      "janvier février mars avril mai juin juillet août septembre octobre novembre décembre",
+      "{A} {d} {B}", "{dd}/{mm}", "{A} {d} {B} {Y}" },
+    { "es",
+      "lunes martes miércoles jueves viernes sábado domingo",
+      "lun mar mié jue vie sáb dom",
+      "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre",
+      "{A}, {d} de {B}", "{dd}/{mm}", "{A}, {d} de {B} de {Y}" },
+    { "it",
+      "lunedì martedì mercoledì giovedì venerdì sabato domenica",
+      "lun mar mer gio ven sab dom",
+      "gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre",
+      "{A} {d} {B}", "{dd}/{mm}", "{A} {d} {B} {Y}" },
+    { "pt",
+      "segunda-feira terça-feira quarta-feira quinta-feira sexta-feira sábado domingo",
+      "seg. ter. qua. qui. sex. sáb. dom.",
+      "janeiro fevereiro março abril maio junho julho agosto setembro outubro novembro dezembro",
+      "{A}, {d} de {B}", "{dd}/{mm}", "{A}, {d} de {B} de {Y}" },
+    { "nl",
+      "maandag dinsdag woensdag donderdag vrijdag zaterdag zondag",
+      "ma di wo do vr za zo",
+      "januari februari maart april mei juni juli augustus september oktober november december",
+      "{A} {d} {B}", "{d}-{m}", "{A} {d} {B} {Y}" },
+    { "sv",
+      "måndag tisdag onsdag torsdag fredag lördag söndag",
+      "mån tis ons tors fre lör sön",
+      "januari februari mars april maj juni juli augusti september oktober november december",
+      "{A} {d} {B}", "{d}/{m}", "{A} {d} {B} {Y}" },
+};
+
+/* i-te slovo seznamu oddeleneho mezerami */
+static void
+lux_cal_word (GString *out, const char *list, int i) {
+    const char *p = list, *e;
+    for (; i > 0 && p; i--) {
+        p = strchr (p, ' ');
+        if (p)
+            p++;
+    }
+    if (!p)
+        return;
+    e = strchr (p, ' ');
+    g_string_append_len (out, p, e ? e - p : (gssize) strlen (p));
+}
+
+/* kind: 'l' = "středa 18. listopadu", 's' = "18. 11.", 'y' = "středa 18. listopadu 2026",
+ * 'b' = kratky den + kratke datum do listy ("st 18. 11.") */
+static char *
+lux_cal_format (const struct tm *tm, const char *lang, char kind) {
+    const LuxCal *c = &LUX_CAL[0];
+    const char *t;
+    int wd = (tm->tm_wday + 6) % 7;
+    GString *out = g_string_new (NULL);
+    for (gsize i = 0; i < G_N_ELEMENTS (LUX_CAL); i++)
+        if (lang && strcmp (lang, LUX_CAL[i].lang) == 0)
+            c = &LUX_CAL[i];
+    if (kind == 'b') {
+        lux_cal_word (out, c->sdays, wd);
+        g_string_append_c (out, ' ');
+    }
+    t = kind == 'l' ? c->t_long : kind == 'y' ? c->t_long_year : c->t_short;
+    while (*t) {
+        const char *close;
+        if (*t != '{' || (close = strchr (t, '}')) == NULL) {
+            g_string_append_c (out, *t++);
+            continue;
+        }
+        if (g_str_has_prefix (t, "{A}"))
+            lux_cal_word (out, c->days, wd);
+        else if (g_str_has_prefix (t, "{B}"))
+            lux_cal_word (out, c->months, tm->tm_mon);
+        else if (g_str_has_prefix (t, "{b}")) {
+            GString *m = g_string_new (NULL);
+            lux_cal_word (m, c->months, tm->tm_mon);
+            g_string_append_len (out, m->str, MIN (m->len, 3));
+            g_string_free (m, TRUE);
+        } else if (g_str_has_prefix (t, "{dd}"))
+            g_string_append_printf (out, "%02d", tm->tm_mday);
+        else if (g_str_has_prefix (t, "{mm}"))
+            g_string_append_printf (out, "%02d", tm->tm_mon + 1);
+        else if (g_str_has_prefix (t, "{d}"))
+            g_string_append_printf (out, "%d", tm->tm_mday);
+        else if (g_str_has_prefix (t, "{m}"))
+            g_string_append_printf (out, "%d", tm->tm_mon + 1);
+        else if (g_str_has_prefix (t, "{Y}"))
+            g_string_append_printf (out, "%d", tm->tm_year + 1900);
+        t = close + 1;
+    }
+    return g_string_free (out, FALSE);
+}
+
 /* ---- nastaveni (stejny soubor jako luxos-greeter) ------------------------------------- */
 static gboolean
 conf_flag (GKeyFile *kf, const char *key, gboolean def) {
@@ -244,7 +379,8 @@ load_config (LuxLock *ll) {
     }
     ll->font = conf_str (kf, "font", "Inter");
     ll->clock_fmt = conf_str (kf, "clock-format", conf_flag (kf, "clock-24h", !en) ? "%-H:%M" : "%-I:%M");
-    ll->date_fmt = conf_str (kf, "date-format", g_strcmp0 (lang, "cs") == 0 ? "%A %-d. %B" : "%A, %B %-d");
+    /* prazdne = datum podle jazyka (lux_cal_format), vlastni strftime jen z konfigurace */
+    ll->date_fmt = conf_str (kf, "date-format", "");
     ll->show_battery = conf_flag (kf, "show-battery", TRUE);
     ll->show_network = conf_flag (kf, "show-network", TRUE);
     if (kf)
@@ -702,9 +838,14 @@ draw_bg (GtkWidget *w, cairo_t *cr, LuxLock *ll) {
     localtime_r (&now, &tm);
     if (!strftime (clock, sizeof clock, ll->clock_fmt, &tm))
         strftime (clock, sizeof clock, "%H:%M", &tm);
-    if (!strftime (date, sizeof date, ll->date_fmt, &tm))
-        strftime (date, sizeof date, "%x", &tm);
-    {
+    if (!*ll->date_fmt || !strftime (date, sizeof date, ll->date_fmt, &tm)) {
+        static const char *const vars[] = { "LC_ALL", "LC_TIME", "LANG", NULL };
+        char *lang = env_lang (vars);
+        char *d = lux_cal_format (&tm, lang, 'l');
+        g_strlcpy (date, d, sizeof date);
+        g_free (d);
+        g_free (lang);
+    } else {
         /* strftime vraci text v kodovani locale */
         char *d8 = g_locale_to_utf8 (date, -1, NULL, NULL, NULL);
         if (d8) {
@@ -731,10 +872,57 @@ draw_bg (GtkWidget *w, cairo_t *cr, LuxLock *ll) {
     return FALSE;
 }
 
+static double
+lin_rgb (double c) {
+    return c <= 0.03928 ? c / 12.92 : pow ((c + 0.055) / 1.055, 2.4);
+}
+
+/* sila tmaveho zavoje pod textem pole podle jasu tapety pod nim (jako luxos-greeter field_veil):
+ * pozadi pole (rozmazana tapeta + bily zavoj tint) se ztmavi na relativni jas <= 0.13, bily text pak
+ * ma kontrast aspon 4.5:1 i na svetle/oranzove tapete */
+static double
+field_veil (LuxLock *ll, GtkWidget *w, double tint) {
+    int ox = 0, oy = 0, aw = gtk_widget_get_allocated_width (w), ah = gtk_widget_get_allocated_height (w);
+    int sw, sh, stride, n = 0;
+    double sx = 1, sy = 1, total = 0, lum, veil;
+    unsigned char *data;
+    if (!ll->blur_surf || aw <= 0 || ah <= 0)
+        return 0.30;
+    gtk_widget_translate_coordinates (w, ll->bg, 0, 0, &ox, &oy);
+    cairo_surface_flush (ll->blur_surf);
+    cairo_surface_get_device_scale (ll->blur_surf, &sx, &sy);
+    sw = cairo_image_surface_get_width (ll->blur_surf);
+    sh = cairo_image_surface_get_height (ll->blur_surf);
+    stride = cairo_image_surface_get_stride (ll->blur_surf);
+    data = cairo_image_surface_get_data (ll->blur_surf);
+    if (!data)
+        return 0.30;
+    for (int j = 1; j < 6; j++)
+        for (int i = 1; i < 16; i++) {
+            int px = (int) ((ox + aw * i / 16.0) * sx), py = (int) ((oy + ah * j / 6.0) * sy);
+            if (px < 0 || py < 0 || px >= sw || py >= sh)
+                continue;
+            /* RGB24: B G R x */
+            unsigned char *q = data + (gsize) py * stride + (gsize) px * 4;
+            double b = q[0] / 255.0 * (1 - tint) + tint, g = q[1] / 255.0 * (1 - tint) + tint;
+            double r = q[2] / 255.0 * (1 - tint) + tint;
+            total += 0.2126 * lin_rgb (r) + 0.7152 * lin_rgb (g) + 0.0722 * lin_rgb (b);
+            n++;
+        }
+    lum = n ? total / n : 0.5;
+    veil = lum <= 0.13 ? 0.24 : 1 - pow (0.13 / lum, 1 / 2.2);
+    return CLAMP (veil, 0.24, 0.62);
+}
+
 static gboolean
 draw_pw (GtkWidget *w, cairo_t *cr, LuxLock *ll) {
     /* pole pro heslo: matny oval + vlastni zastupny text (GTK 3 ho u aktivniho pole skryva) */
+    int aw = gtk_widget_get_allocated_width (w), ah = gtk_widget_get_allocated_height (w);
     draw_frost_widget (w, cr, ll, 0.5, 0.20);
+    /* tmavy zavoj: bily zastupny text i tecky hesla citelne i na svetle tapete (driv 62 % bila na oranzove) */
+    rounded (cr, 1, 1, aw - 2, ah - 2, (ah - 2) * 0.5);
+    cairo_set_source_rgba (cr, 0, 0, 0, field_veil (ll, w, 0.20));
+    cairo_fill (cr);
     if (ll->placeholder && *ll->placeholder && !*gtk_entry_get_text (GTK_ENTRY (ll->entry))) {
         int ex = 0, ey = 0;
         int ew = gtk_widget_get_allocated_width (ll->entry), eh = gtk_widget_get_allocated_height (ll->entry);
@@ -744,9 +932,13 @@ draw_pw (GtkWidget *w, cairo_t *cr, LuxLock *ll) {
         pango_layout_set_width (lay, MAX (1, ew - ll->sz.pw_pad - 4) * PANGO_SCALE);
         pango_layout_set_ellipsize (lay, PANGO_ELLIPSIZE_END);
         pango_layout_get_pixel_extents (lay, NULL, &lg);
+        gboolean sens = gtk_widget_is_sensitive (ll->entry);
         cairo_new_path (cr);
+        cairo_move_to (cr, ex + ll->sz.pw_pad + 2, ey + (eh - lg.height) / 2.0 + 1);
+        cairo_set_source_rgba (cr, 0, 0, 0, sens ? 0.35 : 0.2);
+        pango_cairo_show_layout (cr, lay);
         cairo_move_to (cr, ex + ll->sz.pw_pad + 2, ey + (eh - lg.height) / 2.0);
-        cairo_set_source_rgba (cr, 1, 1, 1, gtk_widget_is_sensitive (ll->entry) ? 0.62 : 0.35);
+        cairo_set_source_rgba (cr, 1, 1, 1, sens ? 0.92 : 0.5);
         pango_cairo_show_layout (cr, lay);
         g_object_unref (lay);
     }

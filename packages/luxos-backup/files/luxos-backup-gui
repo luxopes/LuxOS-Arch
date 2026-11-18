@@ -15,6 +15,18 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, "/usr/lib/luxos/python")
 import luxos_backup as core  # noqa: E402
 from luxos_backup import _  # noqa: E402
+try:
+    from luxos_i18n import decimal_separator as _decimal_separator
+except ImportError:  # starsi luxos-i18n
+    def _decimal_separator():
+        return "."
+
+
+def dec(text):
+    """Desetinna carka/tecka podle jazyka aplikace ("1,5 GB" cesky, "1.5 GB" anglicky)."""
+    return text.replace(".", _decimal_separator())
+
+
 
 import gi  # noqa: E402
 
@@ -54,7 +66,7 @@ def setup_css():
 def human(n):
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if abs(n) < 1000 or unit == "TB":
-            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}" if unit == "B" else dec(f"{n:.1f} {unit}")
         n /= 1000.0
     return str(n)
 
@@ -70,7 +82,11 @@ def when_text(t):
         return _("Today %s") % hm
     if lt[:3] == time.localtime(time.time() - 86400)[:3]:
         return _("Yesterday %s") % hm
-    return time.strftime("%Y-%m-%d %H:%M", lt)
+    try:  # datum v jazyce aplikace ("18. 11. 2026 14:00"), ne pevny ISO tvar
+        from luxos_i18n import format_date
+        return f"{format_date(lt, 'full')} {hm}"
+    except ImportError:
+        return time.strftime("%Y-%m-%d %H:%M", lt)
 
 
 def day_text(t):

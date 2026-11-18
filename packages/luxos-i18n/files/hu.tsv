@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Előbb frissítse az
 Update the whole system together with it?	Frissüljön vele együtt az egész rendszer?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	A(z) %s lemez megváltozott a kiválasztása óta (csatlakoztattak vagy eltávolítottak egy lemezt?). Semmi sem lett törölve – válassza ki újra a lemezt.
 The encrypted volume %s under / could not be identified for unlocking at startup.	A / alatti %s titkosított kötetet nem sikerült azonosítani az indításkori feloldáshoz.
+This account is not allowed to use the mailbox.	Ez a fiók nem használhatja a postafiókot.
+The password or the account has expired. Renew it with your email provider.	A jelszó vagy a fiók lejárt. Újítsa meg az e-mail-szolgáltatójánál.
+The server requires an encrypted connection.	A kiszolgáló titkosított kapcsolatot igényel.
+Contact your email provider or administrator.	Forduljon az e-mail-szolgáltatójához vagy a rendszergazdához.
+The server is temporarily unavailable. Try again later.	A kiszolgáló átmenetileg nem érhető el. Próbálja újra később.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Túl sok kapcsolat vagy bejelentkezési kísérlet. Várjon néhány percet, és próbálja újra.
+The mailbox is full.	A postafiók megtelt.
+The server reported an internal error. Try again later.	A kiszolgáló belső hibát jelzett. Próbálja újra később.
+The mailbox is in use by another program. Try again later.	A postafiókot egy másik program használja. Próbálja újra később.
+The account does not have permission for this.	A fióknak ehhez nincs jogosultsága.
+Mail could not save the password.	A Levelezés nem tudta menteni a jelszót.
+Mail could not save the sign-in.	A Levelezés nem tudta menteni a bejelentkezést.
+Mail could not read the password.	A Levelezés nem tudta beolvasni a jelszót.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	A jelszavakat biztonságosan tároló rendszerkulcstartó nem érhető el, vagy zárolva van. Oldja fel, vagy jelentkezzen ki és be újra az asztalra, majd próbálja újra.
+Mail could not connect to %s. Showing saved messages.	A Levelezés nem tudott csatlakozni ide: %s. A mentett üzenetek láthatók.
+Other	Egyéb
+Add a %s account	%s-fiók hozzáadása
+Another email provider	Másik e-mail-szolgáltató
+Incoming mail (IMAP)	Bejövő levelek (IMAP)
+Outgoing mail (SMTP)	Kimenő levelek (SMTP)
+Server	Kiszolgáló
+Target Disk	Céllemez
+Updates & Maintenance	Frissítések és karbantartás
+Anonymous usage count	Névtelen használati statisztika
+on - once a week, no personal data	bekapcsolva – hetente egyszer, személyes adatok nélkül
+Include this computer in the anonymous LuxOS usage count (once a week)	A számítógép névtelen beszámítása a LuxOS használati statisztikájába (hetente egyszer)
+Choose where to install LuxOS first.	Először válassza ki, hová települjön a LuxOS.

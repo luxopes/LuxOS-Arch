@@ -19,6 +19,18 @@ from collections import deque
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_charts import COLORS, area_chart, fg_color, human_bytes, ring  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+try:
+    from luxos_i18n import decimal_separator as _decimal_separator
+except ImportError:  # starsi luxos-i18n
+    def _decimal_separator():
+        return "."
+
+
+def dec(text):
+    """Desetinna carka/tecka podle jazyka aplikace ("1,5 GB" cesky, "1.5 GB" anglicky)."""
+    return text.replace(".", _decimal_separator())
+
+
 
 import gi  # noqa: E402
 
@@ -286,7 +298,7 @@ class AppRow(Gtk.ListBoxRow):
         self.add(box)
 
     def update(self, cpu, mem, count):
-        self.cpu.set_text(f"{cpu:.1f} %")
+        self.cpu.set_text(dec(f"{cpu:.1f} %"))
         self.mem.set_text(human_bytes(mem))
         self.detail.set_text(_("%d processes") % count if count > 1 else _("1 process"))
 

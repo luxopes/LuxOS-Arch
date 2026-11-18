@@ -912,7 +912,7 @@ class Layout:
                     out.append(("DELETE partition %s", (n.dev,)))
                     continue
                 if n.resize:
-                    out.append(("Resize %s to %s", (n.dev, size_spec(n.resize))))
+                    out.append(("Resize %s to %s", (n.dev, display_size(n.resize))))
             if n.kind == "lv" and n.existing and n.delete:
                 out.append(("DELETE logical volume %s", (self.label(n),)))
                 continue
@@ -1118,6 +1118,10 @@ def size_spec(b):
     if b % GiB == 0:
         return f"{b // GiB}G"
     return f"{-(-b // MiB)}M"
+
+
+def display_size(b):   # GUI nahradi vlastnim zapisem (desetinne GB jako ve zbytku pruvodce)
+    return size_spec(b)
 
 
 def _(s):   # nahradi GUI prekladem (modul je pouzitelny i bez GUI)

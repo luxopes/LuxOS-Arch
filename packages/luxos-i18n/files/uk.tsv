@@ -5281,3 +5281,30 @@ Update the whole system first (lux update), then try again.	Спочатку о�
 Update the whole system together with it?	Оновити разом із цим усю систему?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Диск %s змінився після вибору (було під'єднано або від'єднано диск?). Нічого не стерто – виберіть диск ще раз.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Не вдалося визначити зашифрований том %s під / для розблокування під час запуску.
+This account is not allowed to use the mailbox.	Цей обліковий запис не має доступу до скриньки.
+The password or the account has expired. Renew it with your email provider.	Термін дії пароля або облікового запису минув. Поновіть його у свого поштового провайдера.
+The server requires an encrypted connection.	Сервер вимагає зашифрованого з’єднання.
+Contact your email provider or administrator.	Зверніться до поштового провайдера або адміністратора.
+The server is temporarily unavailable. Try again later.	Сервер тимчасово недоступний. Спробуйте пізніше.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Забагато з’єднань або спроб входу. Зачекайте кілька хвилин і спробуйте знову.
+The mailbox is full.	Скринька переповнена.
+The server reported an internal error. Try again later.	Сервер повідомив про внутрішню помилку. Спробуйте пізніше.
+The mailbox is in use by another program. Try again later.	Скринькою зараз користується інша програма. Спробуйте пізніше.
+The account does not have permission for this.	Обліковий запис не має на це дозволу.
+Mail could not save the password.	Пошті не вдалося зберегти пароль.
+Mail could not save the sign-in.	Пошті не вдалося зберегти вхід.
+Mail could not read the password.	Пошті не вдалося прочитати пароль.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Системна в’язка ключів, що безпечно зберігає паролі, недоступна або заблокована. Розблокуйте її або вийдіть і знову увійдіть у сеанс, а потім спробуйте ще раз.
+Mail could not connect to %s. Showing saved messages.	Пошті не вдалося під’єднатися до %s. Показано збережені листи.
+Other	Інший
+Add a %s account	Додати обліковий запис %s
+Another email provider	Інший поштовий провайдер
+Incoming mail (IMAP)	Вхідна пошта (IMAP)
+Outgoing mail (SMTP)	Вихідна пошта (SMTP)
+Server	Сервер
+Target Disk	Цільовий диск
+Updates & Maintenance	Оновлення та обслуговування
+Anonymous usage count	Анонімна статистика використання
+on - once a week, no personal data	увімкнено – раз на тиждень, без особистих даних
+Include this computer in the anonymous LuxOS usage count (once a week)	Враховувати цей комп'ютер в анонімній статистиці використання LuxOS (раз на тиждень)
+Choose where to install LuxOS first.	Спочатку виберіть, куди інсталювати LuxOS.

@@ -76,6 +76,15 @@ class ViewTest(unittest.TestCase):
                     self.assertNotIn("expression(", v.lower())
                     self.assertNotIn("javascript:", v.lower())
 
+    def test_fixed_width_content_width_for_fit(self):
+        # siroky zpravodaj: okno zna pevnou sirku obsahu (700 px z width/min-width i z bloku <style>, ne max-width)
+        # a zmensi ho na sirku panelu; prizpusobivy (@media max-width) a prosty text se nezmensuji
+        self.assertEqual(view("wide-newsletter")["width"], 700)
+        self.assertEqual(view("newsletter")["width"], 600)
+        self.assertEqual(view("responsive-newsletter")["width"], 0)
+        self.assertEqual(view("links-plain")["width"], 0)
+        self.assertIn("img{max-width:100%", view("wide-newsletter")["html"])
+
     def test_malicious_html_is_sanitized(self):
         d = view("malicious")
         self.assert_safe(d)

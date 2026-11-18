@@ -36,8 +36,9 @@ load mail_oauth as oauth
 load mail_html as mhtml
 load mail_web as web
 load mail_compose as compose
+load mail_locale as loc
 
-CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n.compose-head { padding: 10px 16px 8px 16px; }\n.compose-atts { padding: 4px 14px; }\n.att-chip { padding: 0 2px 0 10px; border-radius: 12px; background-color: alpha(currentColor, 0.07); }\n.compose-body { font-size: 13.5px; }\n.view-bar { padding: 6px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); background-color: alpha(@theme_selected_bg_color, 0.10); }\n.link-status { padding: 2px 8px; margin: 6px; border-radius: 6px; background-color: alpha(@theme_bg_color, 0.95); border: 1px solid alpha(currentColor, 0.15); font-size: 11.5px; }\n.outbox-failed { color: #d9534f; }\n"
+CSS = ".toolbar { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.10); }\n.toolbar button { min-height: 26px; padding: 2px 8px; }\n.sidebar, .sidebar list { background-color: alpha(currentColor, 0.035); }\n.sidebar row { padding: 4px 10px; border-radius: 6px; margin: 0 6px; }\n.side-header { font-size: 11px; font-weight: 700; opacity: 0.55; margin: 12px 4px 2px 4px; }\n.side-count { font-size: 11px; opacity: 0.6; }\n.side-error { color: #d9534f; }\n.list-head { padding: 10px 14px 6px 14px; }\n.list-title { font-weight: 700; font-size: 15px; }\n.dim { opacity: 0.6; }\n.small { font-size: 11px; }\n.msg-row { padding: 8px 12px 8px 6px; border-bottom: 1px solid alpha(currentColor, 0.07); }\n.sender { font-size: 13px; }\n.sender.unread { font-weight: 700; }\n.subject { font-size: 12.5px; }\n.preview { font-size: 12px; opacity: 0.6; }\n.unread-dot { color: @theme_selected_bg_color; font-size: 11px; min-width: 14px; }\n.flagged { color: #e6a700; }\n.banner { padding: 8px 14px; background-color: alpha(#e6a700, 0.18); }\n.banner.error { background-color: alpha(#d9534f, 0.18); }\n.msg-head { padding: 16px 22px 10px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.msg-subject { font-size: 18px; font-weight: 700; }\n.msg-from { font-weight: 600; }\n.att-bar { padding: 8px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); }\n.att { padding: 2px 10px; border-radius: 12px; }\n.body { font-size: 13.5px; }\n.empty { font-size: 16px; opacity: 0.45; }\n.welcome-title { font-size: 22px; font-weight: 700; }\n.dialog-box { padding: 20px 24px; }\n.error { color: #d9534f; }\n.dlg-message { padding: 2px 0; }\n.dlg-message.error-box { padding: 8px 10px; border-radius: 6px; background-color: alpha(#d9534f, 0.14); border: 1px solid alpha(#d9534f, 0.45); }\n.dlg-message .error { color: inherit; }\n.section-title { font-weight: 700; opacity: 0.8; }\n.details { font-size: 12px; }\n.compose-head { padding: 10px 16px 8px 16px; }\n.compose-atts { padding: 4px 14px; }\n.att-chip { padding: 0 2px 0 10px; border-radius: 12px; background-color: alpha(currentColor, 0.07); }\n.compose-body { font-size: 13.5px; }\n.view-bar { padding: 6px 22px; border-bottom: 1px solid alpha(currentColor, 0.08); background-color: alpha(@theme_selected_bg_color, 0.10); }\n.link-status { padding: 2px 8px; margin: 6px; border-radius: 6px; background-color: alpha(@theme_bg_color, 0.95); border: 1px solid alpha(currentColor, 0.15); font-size: 11.5px; }\n.outbox-failed { color: #d9534f; }\n"
 
 ROLE_ORDER = {"inbox": 0, "drafts": 2, "sent": 3, "archive": 4, "junk": 5, "trash": 6, "": 9, "starred": 10, "important": 10, "all": 11}
 # Gmail: pohledy na tytez zpravy - v levem sloupci az po "Dalsi"
@@ -56,7 +57,7 @@ PRIVACY_URL_CS = "https://luxos.lux-ai.cz/cs/privacy/#google-user-data"
 ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view": 0, "text": 0, "text_scroll": 0,
       "h_from": 0, "h_to": 0, "h_cc": 0, "h_date": 0, "h_subject": 0, "h_note": 0, "att_bar": 0, "att_box": 0,
       "search": 0, "banner": 0, "banner_label": 0, "banner_button": 0, "list_title": 0, "list_sub": 0, "spinner": 0,
-      "read_button": 0, "delete_button": 0,
+      "read_button": 0, "delete_button": 0, "account_buttons": [],
       "accounts": [], "side_rows": [], "current": {"account": "", "raw": "", "role": "", "name": ""},
       "rows": [], "shown": [], "built": 0, "row_index": {}, "widgets": {}, "selected": 0, "building": False, "filter": "",
       "svc_fd": -1, "svc_buf": ByteArray(), "next_id": 1, "pending": {}, "outbox": [], "status": {}, "connecting": False,
@@ -64,7 +65,7 @@ ui = {"window": 0, "outer": 0, "sidebar": 0, "list": 0, "list_scroll": 0, "view"
       "started": 0, "ready_logged": False, "older_row": 0, "welcome_button": 0,
       "welcome_luxai": 0, "luxai_button": 0, "luxai_sub": 0, "luxdlg": {}, "luxai_busy": False, "more": {}, "menu_button": 0,
       "web": 0, "body_stack": 0, "images_bar": 0, "images_label": 0, "images_always": 0, "find_bar": 0, "find_entry": 0,
-      "link_status": 0, "zoom": 1.0, "view_remote": False, "reply_buttons": [], "jobs": {}, "outbox_note": 0,
+      "link_status": 0, "zoom": 1.0, "zoom_applied": 0.0, "content_width": 0, "view_remote": False, "reply_buttons": [], "jobs": {}, "outbox_note": 0,
       "web_subject": "", "body_gen": 0, "body_key": [], "pending_uid": 0}
 
 function log(message):
@@ -354,34 +355,19 @@ function role_name(role, name, delim):
 end
 
 function size_text(n):
-    return glib.format_size(n)
+    return loc.size(n)
 end
 
-function day_number(t):
-    lt = glib.localtime(t)
-    return mime.days_from_civil(lt[0], lt[1], lt[2])
-end
-
+# Datum v jazyce aplikace (mail_locale), ne podle libc locale ("Sunday", "11/16/26" v ceske Poste)
 function short_date(t):
-    if t <= 0:
-        return ""
-    end
-    diff = day_number(glib.now()) - day_number(t)
-    if diff == 0:
-        return glib.format_unix(t, "%H:%M")
-    elif diff == 1:
-        return i18n.T("Yesterday")
-    elif diff > 1 and diff < 7:
-        return glib.format_unix(t, "%A")
-    end
-    return glib.format_unix(t, "%x")
+    return loc.list_date(t)
 end
 
 function long_date(t):
     if t <= 0:
         return ""
     end
-    return glib.format_unix(t, "%x %H:%M")
+    return loc.date_time(t)
 end
 
 function addresses_text(list):
@@ -405,8 +391,10 @@ function build_window():
 
     bar = gtk.box_new(gtk.HORIZONTAL, 4)
     call gtk.widget_add_class(bar, "toolbar")
-    call gtk.box_pack_start(bar, tool_button(["mail-send-receive-symbolic", "view-refresh-symbolic"], i18n.T("Get Mail (F5)"), on_refresh_clicked), False, False, 0)
-    call gtk.box_pack_start(bar, tool_button(["mail-message-new-symbolic", "document-new-symbolic"], i18n.T("New Message (Ctrl+N)"), on_compose_clicked), False, False, 0)
+    gb = tool_button(["mail-send-receive-symbolic", "view-refresh-symbolic"], i18n.T("Get Mail (F5)"), on_refresh_clicked)
+    call gtk.box_pack_start(bar, gb, False, False, 0)
+    nb = tool_button(["mail-message-new-symbolic", "document-new-symbolic"], i18n.T("New Message (Ctrl+N)"), on_compose_clicked)
+    call gtk.box_pack_start(bar, nb, False, False, 0)
     call gtk.box_pack_start(bar, gtk.separator_new(gtk.VERTICAL), False, False, 6)
     rb = tool_button(["mail-unread-symbolic", "mail-read-symbolic"], i18n.T("Mark as Read/Unread (Ctrl+Shift+U)"), on_read_clicked)
     ui["read_button"] = rb
@@ -422,6 +410,8 @@ function build_window():
         call gtk.box_pack_start(bar, b, False, False, 0)
     end
     ui["reply_buttons"] = [r1, r2, r3]
+    # bez uctu nejsou akce k dispozici (reload_accounts je vypne, jinak vypadaji aktivne)
+    ui["account_buttons"] = [gb, nb, rb, db, r1, r2, r3]
     spinner = mg.spinner_new()
     ui["spinner"] = spinner
     call gtk.box_pack_start(bar, spinner, False, False, 8)
@@ -431,6 +421,7 @@ function build_window():
     call gtk.connect(search, "search-changed", on_search)
     ui["search"] = search
     call gtk.box_pack_end(bar, search, False, False, 0)
+    ui["account_buttons"].append(search)
     menu_button = tool_button(["open-menu-symbolic"], i18n.T("Menu (F10)"), on_menu_clicked)
     ui["menu_button"] = menu_button
     call gtk.box_pack_end(bar, menu_button, False, False, 4)
@@ -1497,6 +1488,7 @@ function ensure_web():
     call gtk.connect(v, "button-press-event", on_web_button)
     call glib.signal_connect(v, "decide-policy", on_web_policy, 2)
     call glib.signal_connect(v, "mouse-target-changed", on_web_hover, 2)
+    call glib.signal_connect(v, "size-allocate", on_web_allocate, 1)
     overlay = gtk.overlay_new()
     call gtk.container_add(overlay, v)
     st = label("", "link-status")
@@ -1567,7 +1559,8 @@ function show_body(data, r, text):
     if ui["web_subject"] == "":
         ui["web_subject"] = i18n.T("(no subject)")
     end
-    call web.zoom_set(ui["web"], ui["zoom"])
+    ui["content_width"] = doc.get("width", 0)
+    call apply_zoom()
     call mg.stack_show(ui["body_stack"], "web")
     call gtk.widget_hide(ui["link_status"])
     if doc.get("remote", 0) > 0 and not allowed:
@@ -1732,7 +1725,46 @@ function zoom_by(step):
     else:
         ui["zoom"] = max(0.5, min(3.0, ui["zoom"] + step))
     end
-    call web.zoom_set(ui["web"], ui["zoom"])
+    call apply_zoom()
+    return 0
+end
+
+# Prizpusobeni sirce: zprava s pevnou sirkou (newsletter 600 px) sirsi nez panel se zmensi, aby nebyla
+# oriznuta vpravo s vodorovnym posuvnikem (jako jine postovni programy). 44 px = okraje tela dokumentu.
+function fit_factor():
+    cw = ui.get("content_width", 0)
+    if cw <= 0 or ui["web"] == 0:
+        return 1.0
+    end
+    pane = gtk.widget_get_allocated_width(ui["web"])
+    if pane <= 1:
+        return 1.0
+    end
+    f = Float(pane) / Float(cw + 44)
+    if f >= 1.0:
+        return 1.0
+    end
+    return max(0.45, f)
+end
+
+function apply_zoom():
+    if ui["web"] == 0:
+        return 0
+    end
+    z = ui["zoom"] * fit_factor()
+    if z != ui.get("zoom_applied", 0.0):
+        ui["zoom_applied"] = z
+        call web.zoom_set(ui["web"], z)
+        call trace("zoom " + String(z) + " content=" + String(ui.get("content_width", 0)) + " pane=" + String(gtk.widget_get_allocated_width(ui["web"])))
+    end
+    return 0
+end
+
+# Zmena sirky panelu (posun predelu, zmena okna): znovu prizpusobit
+function on_web_allocate(alloc, view):
+    if ui.get("content_width", 0) > 0:
+        call apply_zoom()
+    end
     return 0
 end
 
@@ -2506,9 +2538,12 @@ function error_text(st):
         return i18n.TF("Cannot reach %s. Showing saved messages.", [host])
     elif kind == "nostarttls" or kind == "insecure":
         return i18n.TF("%s does not offer an encrypted connection. Mail does not send your password unencrypted.", [host])
+    elif kind == "keyring":
+        return keyring_text(i18n.T("Mail could not read the password."))
     end
     if detail != "":
-        return detail
+        # neznama chyba: prelozena veta, puvodni text serveru v tooltipu pruhu
+        return i18n.TF("Mail could not connect to %s. Showing saved messages.", [host]) + server_reason(detail)
     end
     return i18n.T("Offline – showing saved messages.")
 end
@@ -2523,6 +2558,9 @@ function update_banner():
     if state == "error" or (state == "offline" and st.get("kind", "") != ""):
         btext = error_text(st)
         call gtk.label_set_text(ui["banner_label"], btext)
+        # puvodni text serveru jen v tooltipu (ne anglicky text v ceske vete)
+        call gtk.widget_set_tooltip(ui["banner_label"], detail_text(st.get("error", "")))
+        call trace("banner-detail " + detail_text(st.get("error", "")))
         call trace("banner " + btext)
         kind = st.get("kind", "")
         luxai_account = account(st.get("account", "")).get("auth", "") == "luxai"
@@ -2591,6 +2629,10 @@ end
 
 function reload_accounts():
     ui["accounts"] = store.load_accounts()
+    for b in ui["account_buttons"]:
+        call gtk.widget_set_sensitive(b, len(ui["accounts"]) > 0)
+    end
+    call trace("toolbar active=" + String(len(ui["accounts"]) > 0))
     if len(ui["accounts"]) == 0:
         call mg.stack_show(ui["outer"], "welcome")
         call gtk.window_set_title(ui["window"], i18n.T("Mail"))
@@ -2778,7 +2820,7 @@ end
 
 # ---- dialogy ----------------------------------------------------------------------------------------------------
 
-function message_box(title, text):
+function message_box(title, text, detail=""):
     d = gtk.dialog_new()
     call gtk.window_set_title(d, i18n.T("Mail"))
     call gtk.window_set_transient_for(d, ui["window"])
@@ -2796,6 +2838,9 @@ function message_box(title, text):
         call gtk.label_set_selectable(l, True)
         call gtk.box_pack_start(box, l, False, False, 0)
     end
+    dw = details_widgets()
+    call gtk.box_pack_start(box, dw[0], False, False, 0)
+    call set_details(dw[0], dw[1], text, True, detail)
     call gtk.box_pack_start(area, box, True, True, 0)
     call gtk.dialog_add_button(d, i18n.T("Close"), gtk.RESPONSE_OK)
     call gtk.widget_show_all(d)
@@ -2918,6 +2963,13 @@ function on_menu_shortcuts(item):
 end
 
 # ---- pridani uctu -------------------------------------------------------------------------------------------------
+
+# Nadpis oddilu v nastaveni serveru
+function section_label(text):
+    l = label(text, "section-title")
+    call gtk.label_set_xalign(l, 0.0)
+    return l
+end
 
 function field(grid, row, title, widget):
     l = label(title, "")
@@ -3227,7 +3279,7 @@ function on_oauth_started(msg, ctx):
         if not msg.get("ok", False):
             call dlg_busy(False)
             call gtk.widget_set_sensitive(d["signin"]["button"], True)
-            call dlg_message(oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), d["oauth"].get("name", ""), ""), True)
+            call dlg_message(oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), d["oauth"].get("name", ""), ""), True, msg.get("error", ""))
             return 0
         end
         d["flow"] = msg["flow"]
@@ -3239,7 +3291,7 @@ function on_oauth_started(msg, ctx):
     end
     if not msg.get("ok", False):
         a = account(ctx.get("account", ""))
-        call message_box(i18n.T("Signing in failed"), oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), oauth.provider(String(a.get("oauth", {}).get("provider", ""))).get("name", ""), a.get("email", "")))
+        call message_box(i18n.T("Signing in failed"), oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), oauth.provider(String(a.get("oauth", {}).get("provider", ""))).get("name", ""), a.get("email", "")), msg.get("error", ""))
         return 0
     end
     ui["reauth_flow"] = msg["flow"]
@@ -3269,7 +3321,7 @@ function on_oauth_done(msg):
         else:
             call raise_window()
             call gtk.window_present(d["window"])
-            call dlg_message(oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), name, msg.get("email", "")), True)
+            call dlg_message(oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), name, msg.get("email", "")), True, msg.get("error", ""))
         end
         return 0
     end
@@ -3278,7 +3330,7 @@ function on_oauth_done(msg):
         call raise_window()
         if not msg.get("ok", False):
             a = account(ui.get("reauth", ""))
-            call message_box(i18n.T("Signing in failed"), oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), name, a.get("email", "")))
+            call message_box(i18n.T("Signing in failed"), oauth_kind_text(msg.get("kind", ""), msg.get("error", ""), name, a.get("email", "")), msg.get("error", ""))
         end
     end
     return 0
@@ -3312,7 +3364,7 @@ function oauth_kind_text(kind, detail, name, email):
         end
         return i18n.TF("%s accepted the sign-in, but the mail server did not open the mailbox. Try again later.", [name]) + server_reason(detail)
     elif kind == "keyring":
-        return i18n.T("The sign-in could not be saved in the keyring.") + " " + detail
+        return keyring_text(i18n.T("Mail could not save the sign-in."))
     elif kind == "cert" or kind == "timeout" or kind == "closed":
         return kind_text({"kind": kind, "error": detail}, name)
     end
@@ -3340,17 +3392,79 @@ function on_oauth_config(unused, output, status):
     return 0
 end
 
-# [radek, port, zabezpeceni]: "993  Zabezpeceni [SSL/TLS]"
+# [radek, port, zabezpeceni]: "993  Zabezpeceni [SSL/TLS]"; nabidka zabezpeceni ma pevnou minimalni sirku,
+# aby "STARTTLS" nenarazelo na sipku
 function port_security_row(value):
     row = gtk.box_new(gtk.HORIZONTAL, 10)
     port = gtk.entry_new()
     call gtk.entry_set_width_chars(port, 6)
     call gtk.box_pack_start(row, port, False, False, 0)
-    call gtk.box_pack_start(row, label(i18n.T("Security"), ""), False, False, 0)
+    sl = label(i18n.T("Security"), "")
+    call gtk.widget_set_margins(sl, 8, 0, 0, 0)
+    call gtk.box_pack_start(row, sl, False, False, 0)
     combo = security_combo(value)
+    call gtk.widget_set_size_request(combo, 140, -1)
     call gtk.widget_set_hexpand(combo, True)
     call gtk.box_pack_start(row, combo, True, True, 0)
     return [row, port, combo]
+end
+
+# Rychla volba poskytovatele v okne pridani uctu: [id, nazev, domena pro predvyplneni]
+PICKS = [["google", "Gmail", "gmail.com"], ["microsoft", "Outlook", "outlook.com"], ["seznam", "Seznam", "seznam.cz"],
+         ["icloud", "iCloud", "icloud.com"], ["", "", ""]]
+
+function picks_widget():
+    box = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.widget_add_class(box, "linked")
+    call gtk.widget_add_class(box, "provider-picks")
+    buttons = []
+    for p in PICKS:
+        title = p[1]
+        if p[0] == "":
+            title = i18n.T("Other")
+        end
+        b = gtk.button_new(title)
+        call gtk.widget_set_hexpand(b, True)
+        if p[0] != "":
+            call gtk.widget_set_tooltip(b, i18n.TF("Add a %s account", [p[1]]))
+        else:
+            call gtk.widget_set_tooltip(b, i18n.T("Another email provider"))
+        end
+        call gtk.connect_data(b, "clicked", 0, on_pick_clicked, p)
+        call gtk.box_pack_start(box, b, True, True, 0)
+        buttons.append(b)
+    end
+    return [box, buttons]
+end
+
+# Volba poskytovatele: predvyplni domenu adresy (kurzor pred @), ukaze napovedu k heslu / Prihlasit se ...
+function on_pick_clicked(p, button):
+    d = ui["dlg"]
+    if len(d) == 0 or d["busy"]:
+        return 0
+    end
+    email = gtk.entry_get_text(d["email"]).strip()
+    at = email.find("@")
+    local = email
+    if at >= 0:
+        local = email[0:at]
+    end
+    i = 0
+    for b in d["pick_buttons"]:
+        call gtk.widget_set_class(b, "suggested-action", PICKS[i][0] == p[0])
+        i += 1
+    end
+    if p[0] == "":
+        call gtk.entry_set_placeholder_text(d["email"], "name@example.com")
+        call gtk.entry_set_text(d["email"], local)
+    else:
+        call gtk.entry_set_placeholder_text(d["email"], "name@" + p[2])
+        call gtk.entry_set_text(d["email"], local + "@" + p[2])
+    end
+    call on_dlg_email_changed(d["email"])
+    call gtk.widget_grab_focus(d["email"])
+    call mg.entry_set_position(d["email"], len(local))
+    return 0
 end
 
 function on_add_account_clicked(widget):
@@ -3377,19 +3491,22 @@ function open_add_dialog(prefill, note):
     # okno roste (nastaveni serveru, napoveda, chyba): drzet uprostred, aby tlacitka nezmizela pod okrajem
     call gtk.window_set_position(win, gtk.WIN_POS_CENTER_ALWAYS)
     call gtk.window_set_icon_list(win, "luxos-mail")
-    box = gtk.box_new(gtk.VERTICAL, 10)
+    box = gtk.box_new(gtk.VERTICAL, 12)
     call gtk.widget_add_class(box, "dialog-box")
     call gtk.box_pack_start(box, label(i18n.T("Add an Email Account"), "list-title"), False, False, 0)
     hint_text = i18n.T("Mail finds the server settings for most providers automatically.")
     if note != "":
         hint_text = note + "\n" + hint_text
     end
-    hint = label(hint_text, "dim small")
+    hint = label(hint_text, "dim")
     call gtk.label_set_line_wrap(hint, True)
+    call gtk.label_set_xalign(hint, 0.0)
     call gtk.box_pack_start(box, hint, False, False, 0)
+    picks = picks_widget()
+    call gtk.box_pack_start(box, picks[0], False, False, 0)
     grid = gtk.grid_new()
-    call gtk.grid_set_row_spacing(grid, 8)
-    call gtk.grid_set_column_spacing(grid, 10)
+    call gtk.grid_set_row_spacing(grid, 10)
+    call gtk.grid_set_column_spacing(grid, 12)
     name = field(grid, 0, i18n.T("Your name"), gtk.entry_new())
     call gtk.entry_set_placeholder_text(name, i18n.T("Optional"))
     email = field(grid, 1, i18n.T("Email"), gtk.entry_new())
@@ -3409,37 +3526,55 @@ function open_add_dialog(prefill, note):
     signin = oauth_widgets()
     call gtk.box_pack_start(box, signin["box"], False, False, 0)
 
-    # nastaveni serveru (po hledani)
+    # nastaveni serveru (po hledani): dva oddily s nadpisem (Prichozi / Odchozi posta), kratke popisky poli,
+    # aby pole a nabidka zabezpeceni mely misto; port a zabezpeceni na jednom radku (nizsi obrazovky)
     details = gtk.box_new(gtk.VERTICAL, 8)
     call gtk.widget_set_no_show_all(details, True)
-    found = label("", "dim small")
+    found = label("", "dim")
     call gtk.label_set_line_wrap(found, True)
+    call gtk.label_set_xalign(found, 0.0)
     call gtk.box_pack_start(details, found, False, False, 0)
     g2 = gtk.grid_new()
     call gtk.grid_set_row_spacing(g2, 8)
-    call gtk.grid_set_column_spacing(g2, 10)
-    # port a zabezpeceni na jednom radku (okno se vejde i na nizsi obrazovku i s napovedou a chybou)
-    host = field(g2, 0, i18n.T("Incoming server (IMAP)"), gtk.entry_new())
+    call gtk.grid_set_column_spacing(g2, 12)
+    call gtk.grid_attach(g2, section_label(i18n.T("Incoming mail (IMAP)")), 0, 0, 2, 1)
+    host = field(g2, 1, i18n.T("Server"), gtk.entry_new())
     ps = port_security_row("ssl")
-    call field(g2, 1, i18n.T("Port"), ps[0])
+    call field(g2, 2, i18n.T("Port"), ps[0])
     port = ps[1]
     sec = ps[2]
-    user = field(g2, 2, i18n.T("User name"), gtk.entry_new())
-    shost = field(g2, 3, i18n.T("Outgoing server (SMTP)"), gtk.entry_new())
+    user = field(g2, 3, i18n.T("User name"), gtk.entry_new())
+    sh = section_label(i18n.T("Outgoing mail (SMTP)"))
+    call gtk.widget_set_margins(sh, 0, 0, 8, 0)
+    call gtk.grid_attach(g2, sh, 0, 4, 2, 1)
+    shost = field(g2, 5, i18n.T("Server"), gtk.entry_new())
     ps = port_security_row("starttls")
-    call field(g2, 4, i18n.T("Port"), ps[0])
+    call field(g2, 6, i18n.T("Port"), ps[0])
     sport = ps[1]
     ssec = ps[2]
     call gtk.box_pack_start(details, g2, False, False, 0)
     call gtk.box_pack_start(box, details, False, False, 0)
 
+    # stav a chyby: citelny text normalni velikosti, chyba v cervenem ramecku s ikonou, puvodni text serveru
+    # az pod "Podrobnosti"
     status = gtk.box_new(gtk.HORIZONTAL, 8)
     spinner = mg.spinner_new()
+    # skryty, kdyz nic nebezi (jinak odsazuje ramecek chyby)
+    call gtk.widget_set_no_show_all(spinner, True)
     call gtk.box_pack_start(status, spinner, False, False, 0)
-    message = label("", "small")
+    mbox = gtk.box_new(gtk.VERTICAL, 4)
+    call gtk.widget_add_class(mbox, "dlg-message")
+    call gtk.widget_set_no_show_all(mbox, True)
+    message = label("", "")
     call gtk.label_set_line_wrap(message, True)
-    call gtk.label_set_max_width_chars(message, 52)
-    call gtk.box_pack_start(status, message, True, True, 0)
+    call gtk.label_set_max_width_chars(message, 56)
+    call gtk.label_set_xalign(message, 0.0)
+    call gtk.label_set_selectable(message, True)
+    call gtk.widget_show(message)
+    call gtk.box_pack_start(mbox, message, False, False, 0)
+    dw = details_widgets()
+    call gtk.box_pack_start(mbox, dw[0], False, False, 0)
+    call gtk.box_pack_start(status, mbox, True, True, 0)
     call gtk.box_pack_start(box, status, False, False, 0)
 
     buttons = gtk.box_new(gtk.HORIZONTAL, 8)
@@ -3460,7 +3595,8 @@ function open_add_dialog(prefill, note):
                  "host": host, "port": port, "sec": sec, "user": user, "shost": shost, "sport": sport, "ssec": ssec,
                  "spinner": spinner, "message": message, "ok": ok, "manual": manual, "stage": "start", "busy": False, "smtp": {},
                  "eye": pw[2], "hint": hint, "provider": "", "email_text": "", "pw_row": pw[0], "pw_label": pw_label,
-                 "signin": signin, "oauth": {}, "use_password": False, "flow": "", "flow_req": 0}
+                 "signin": signin, "oauth": {}, "use_password": False, "flow": "", "flow_req": 0,
+                 "message_box": mbox, "details_exp": dw[0], "details_label": dw[1], "pick_buttons": picks[1]}
     call gtk.connect(email, "activate", on_dlg_activate)
     call gtk.connect(email, "changed", on_dlg_email_changed)
     call gtk.connect(password, "activate", on_dlg_activate)
@@ -3512,17 +3648,61 @@ function on_dlg_email_changed(entry):
     return 0
 end
 
-function dlg_message(text, error):
+function dlg_message(text, error, detail=""):
     d = ui["dlg"]
     call gtk.label_set_text(d["message"], text)
     call gtk.widget_set_class(d["message"], "error", error)
+    call gtk.widget_set_class(d["message"], "dim", not error)
+    call gtk.widget_set_class(d["message_box"], "error-box", error)
+    if text == "":
+        call gtk.widget_hide(d["message_box"])
+    else:
+        call gtk.widget_show(d["message_box"])
+    end
+    call set_details(d["details_exp"], d["details_label"], text, error, detail)
+    if text != "":
+        call trace("dialog error=" + String(error) + " " + text + " | details=" + detail_text(detail))
+    end
     return 0
+end
+
+# Puvodni text serveru pod rozbalovaci "Podrobnosti" (jen u chyby a kdyz rika neco navic)
+function set_details(exp, l, text, error, detail):
+    dt = detail_text(detail)
+    if error and dt != "" and text.find(dt) < 0:
+        call gtk.label_set_text(l, dt)
+        call mg.expander_set_expanded(exp, False)
+        call gtk.widget_set_no_show_all(exp, False)
+        call gtk.widget_show_all(exp)
+    else:
+        call gtk.label_set_text(l, "")
+        call gtk.widget_hide(exp)
+    end
+    return 0
+end
+
+function details_widgets():
+    exp = mg.expander_new(i18n.T("Details"))
+    call gtk.widget_add_class(exp, "details")
+    call gtk.widget_set_no_show_all(exp, True)
+    l = label("", "dim small")
+    call gtk.label_set_line_wrap(l, True)
+    call gtk.label_set_max_width_chars(l, 56)
+    call gtk.label_set_selectable(l, True)
+    call gtk.label_set_xalign(l, 0.0)
+    call gtk.container_add(exp, l)
+    return [exp, l]
 end
 
 function dlg_busy(on):
     d = ui["dlg"]
     d["busy"] = on
     call mg.spinner_set(d["spinner"], on)
+    if on:
+        call gtk.widget_show(d["spinner"])
+    else:
+        call gtk.widget_hide(d["spinner"])
+    end
     call gtk.widget_set_sensitive(d["ok"], not on)
     return 0
 end
@@ -3722,16 +3902,59 @@ function provider_auth_text(id, kind):
     return ""
 end
 
-# Duvod od serveru do zavorky (sluzba ho uz ocistila od ridicich znaku; tady jen zkraceni)
-function server_reason(detail):
-    d = String(detail).strip()
-    if d == "":
+# Kod odpovedi IMAP (RFC 5530) z textu serveru "[AUTHENTICATIONFAILED] Authentication failed.": "AUTHENTICATIONFAILED"
+function server_code(detail):
+    d = String(detail)
+    open = d.find("[")
+    if open < 0:
         return ""
     end
-    if len(d) > 300:
-        d = d[0:297] + "..."
+    close = d.find("]", open)
+    if close < 0:
+        return ""
     end
-    return " (" + i18n.T("Server:") + " " + d + ")"
+    return d[open + 1:close].strip().split(" ")[0].upper()
+end
+
+# Prelozene vysvetleni znameho kodu odpovedi za hlavni vetu (" ..."), jinak nic; puvodni text serveru (anglicky)
+# zustava jen v "Podrobnostech" (dlg_message, message_box) a v tooltipu pruhu
+function server_reason(detail):
+    code = server_code(detail)
+    t = ""
+    if code == "AUTHORIZATIONFAILED":
+        t = i18n.T("This account is not allowed to use the mailbox.")
+    elif code == "EXPIRED":
+        t = i18n.T("The password or the account has expired. Renew it with your email provider.")
+    elif code == "PRIVACYREQUIRED":
+        t = i18n.T("The server requires an encrypted connection.")
+    elif code == "CONTACTADMIN":
+        t = i18n.T("Contact your email provider or administrator.")
+    elif code == "UNAVAILABLE":
+        t = i18n.T("The server is temporarily unavailable. Try again later.")
+    elif code == "LIMIT":
+        t = i18n.T("Too many connections or sign-in attempts. Wait a few minutes and try again.")
+    elif code == "OVERQUOTA":
+        t = i18n.T("The mailbox is full.")
+    elif code == "SERVERBUG":
+        t = i18n.T("The server reported an internal error. Try again later.")
+    elif code == "INUSE":
+        t = i18n.T("The mailbox is in use by another program. Try again later.")
+    elif code == "NOPERM":
+        t = i18n.T("The account does not have permission for this.")
+    end
+    if t == "":
+        return ""
+    end
+    return " " + t
+end
+
+# Puvodni text serveru pro "Podrobnosti" (zkraceny)
+function detail_text(detail):
+    d = String(detail).strip()
+    if len(d) > 600:
+        d = d[0:597] + "..."
+    end
+    return d
 end
 
 function kind_text(msg, host, prov=""):
@@ -3755,9 +3978,9 @@ function kind_text(msg, host, prov=""):
     elif kind == "nostarttls" or kind == "insecure":
         return i18n.TF("%s does not offer an encrypted connection. Mail does not send your password unencrypted.", [host])
     elif kind == "keyring":
-        return i18n.T("The password could not be saved in the keyring.") + " " + detail
+        return keyring_text(i18n.T("Mail could not save the password."))
     elif kind == "protocol":
-        return i18n.T("This is not an IMAP server.") + " " + detail
+        return i18n.T("This is not an IMAP server.")
     elif kind.startswith("luxai_") or kind == "nooauth" or kind == "unavailable":
         return luxai_error_text(kind, detail, "")
     elif kind == "closed":
@@ -3765,10 +3988,12 @@ function kind_text(msg, host, prov=""):
     elif kind == "no" or kind == "error" or kind == "invalid":
         return i18n.T("Signing in failed.") + server_reason(detail)
     end
-    if detail == "":
-        return i18n.T("Signing in failed.")
-    end
-    return detail
+    return i18n.T("Signing in failed.")
+end
+
+# Klicenka (gnome-keyring) neni dostupna: sluzba ji zkusila spustit; srozumitelne vysvetleni a dalsi krok
+function keyring_text(first):
+    return first + " " + i18n.T("The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.")
 end
 
 function on_account_added(msg):
@@ -3784,7 +4009,7 @@ function on_account_added(msg):
         if prov == "":
             prov = provider.detect(provider.domain_of(gtk.entry_get_text(d["email"])), gtk.entry_get_text(d["host"]).strip(), [])
         end
-        call dlg_message(kind_text(msg, gtk.entry_get_text(d["host"]).strip(), prov), True)
+        call dlg_message(kind_text(msg, gtk.entry_get_text(d["host"]).strip(), prov), True, msg.get("error", ""))
         if (msg.get("kind", "") == "auth" or msg.get("kind", "") == "oauthonly") and prov != "":
             call show_hint(d["hint"], prov, provider.domain_of(gtk.entry_get_text(d["email"])))
         end
@@ -4131,7 +4356,7 @@ function on_password_set(msg):
     call set_busy(False)
     if not msg.get("ok", False):
         a = account(ui["current"]["account"])
-        call message_box(i18n.T("Signing in failed"), kind_text(msg, String(a.get("imap", {}).get("host", "")), provider.of_account(a)))
+        call message_box(i18n.T("Signing in failed"), kind_text(msg, String(a.get("imap", {}).get("host", "")), provider.of_account(a)), msg.get("error", ""))
     end
     return 0
 end

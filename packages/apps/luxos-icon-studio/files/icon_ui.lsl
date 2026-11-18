@@ -1083,7 +1083,15 @@ function new_window(path="", locale=""):
     state["window"] = window
     call gtk.widget_add_class(window, "icon-studio")
     call gtk.window_set_icon_name(window, "luxos-icon-studio")
-    call gtk.window_set_default_size(window, 1230, 820)
+    # vychozi velikost nejvys na pracovni plochu monitoru i se stinem okna (na 1366x768 bylo okno 820 px vysoke a presahovalo)
+    width = 1230
+    height = 820
+    area = gtk.primary_monitor_workarea()
+    if area[2] > 0 and area[3] > 0:
+        width = min(width, area[2] - 48)
+        height = min(height, area[3] - 48)
+    end
+    call gtk.window_set_default_size(window, width, height)
     header = __lsl_qbe_call0(__lsl_symbol("gtk_header_bar_new"))
     call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_show_close_button"), native.ptr(header), 1)
     call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_titlebar"), native.ptr(window), native.ptr(header))

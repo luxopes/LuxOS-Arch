@@ -5281,3 +5281,30 @@ Update the whole system first (lux update), then try again.	Najpierw zaktualizuj
 Update the whole system together with it?	Zaktualizować przy tym cały system?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Dysk %s zmienił się od wybrania (podłączono lub odłączono dysk?). Nic nie zostało usunięte – wybierz dysk ponownie.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Nie udało się określić zaszyfrowanego woluminu %s pod / do odblokowania przy starcie.
+This account is not allowed to use the mailbox.	To konto nie ma dostępu do skrzynki.
+The password or the account has expired. Renew it with your email provider.	Hasło lub konto wygasło. Odnów je u swojego dostawcy poczty.
+The server requires an encrypted connection.	Serwer wymaga szyfrowanego połączenia.
+Contact your email provider or administrator.	Skontaktuj się z dostawcą poczty lub administratorem.
+The server is temporarily unavailable. Try again later.	Serwer jest chwilowo niedostępny. Spróbuj ponownie później.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Zbyt wiele połączeń lub prób logowania. Odczekaj kilka minut i spróbuj ponownie.
+The mailbox is full.	Skrzynka jest pełna.
+The server reported an internal error. Try again later.	Serwer zgłosił błąd wewnętrzny. Spróbuj ponownie później.
+The mailbox is in use by another program. Try again later.	Skrzynka jest używana przez inny program. Spróbuj ponownie później.
+The account does not have permission for this.	Konto nie ma do tego uprawnień.
+Mail could not save the password.	Poczta nie mogła zapisać hasła.
+Mail could not save the sign-in.	Poczta nie mogła zapisać logowania.
+Mail could not read the password.	Poczta nie mogła odczytać hasła.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Systemowy pęk kluczy, który bezpiecznie przechowuje hasła, jest niedostępny lub zablokowany. Odblokuj go albo wyloguj się i zaloguj ponownie do pulpitu, a potem spróbuj jeszcze raz.
+Mail could not connect to %s. Showing saved messages.	Poczta nie mogła połączyć się z %s. Wyświetlane są zapisane wiadomości.
+Other	Inny
+Add a %s account	Dodaj konto %s
+Another email provider	Inny dostawca poczty
+Incoming mail (IMAP)	Poczta przychodząca (IMAP)
+Outgoing mail (SMTP)	Poczta wychodząca (SMTP)
+Server	Serwer
+Target Disk	Dysk docelowy
+Updates & Maintenance	Aktualizacje i konserwacja
+Anonymous usage count	Anonimowa statystyka użycia
+on - once a week, no personal data	włączone – raz w tygodniu, bez danych osobowych
+Include this computer in the anonymous LuxOS usage count (once a week)	Uwzględniaj ten komputer w anonimowej statystyce użycia LuxOS (raz w tygodniu)
+Choose where to install LuxOS first.	Najpierw wybierz, gdzie zainstalować LuxOS.

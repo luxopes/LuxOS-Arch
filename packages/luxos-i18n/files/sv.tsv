@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Uppdatera först hel
 Update the whole system together with it?	Uppdatera hela systemet samtidigt?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Disken %s har ändrats sedan den valdes (anslöts eller togs en disk bort?). Ingenting raderades – välj disken igen.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Den krypterade volymen %s under / kunde inte identifieras för upplåsning vid start.
+This account is not allowed to use the mailbox.	Det här kontot får inte använda brevlådan.
+The password or the account has expired. Renew it with your email provider.	Lösenordet eller kontot har gått ut. Förnya det hos din e-postleverantör.
+The server requires an encrypted connection.	Servern kräver en krypterad anslutning.
+Contact your email provider or administrator.	Kontakta din e-postleverantör eller administratör.
+The server is temporarily unavailable. Try again later.	Servern är tillfälligt otillgänglig. Försök igen senare.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	För många anslutningar eller inloggningsförsök. Vänta några minuter och försök igen.
+The mailbox is full.	Brevlådan är full.
+The server reported an internal error. Try again later.	Servern rapporterade ett internt fel. Försök igen senare.
+The mailbox is in use by another program. Try again later.	Brevlådan används av ett annat program. Försök igen senare.
+The account does not have permission for this.	Kontot har inte behörighet till detta.
+Mail could not save the password.	E-post kunde inte spara lösenordet.
+Mail could not save the sign-in.	E-post kunde inte spara inloggningen.
+Mail could not read the password.	E-post kunde inte läsa lösenordet.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Systemets nyckelring som förvarar lösenord säkert är inte tillgänglig eller är låst. Lås upp den, eller logga ut och in på skrivbordet igen, och försök sedan igen.
+Mail could not connect to %s. Showing saved messages.	E-post kunde inte ansluta till %s. Sparade meddelanden visas.
+Other	Annan
+Add a %s account	Lägg till ett %s-konto
+Another email provider	Annan e-postleverantör
+Incoming mail (IMAP)	Inkommande e-post (IMAP)
+Outgoing mail (SMTP)	Utgående e-post (SMTP)
+Server	Server
+Target Disk	Måldisk
+Updates & Maintenance	Uppdateringar och underhåll
+Anonymous usage count	Anonym användningsstatistik
+on - once a week, no personal data	på – en gång i veckan, inga personuppgifter
+Include this computer in the anonymous LuxOS usage count (once a week)	Räkna med den här datorn anonymt i LuxOS användningsstatistik (en gång i veckan)
+Choose where to install LuxOS first.	Välj först var LuxOS ska installeras.

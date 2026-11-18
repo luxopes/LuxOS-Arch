@@ -207,7 +207,13 @@ class SetupAssistant(gui.Installer):
 
         width = 760   # sirka obsahu (jako okno instalatoru)
         if windowed:
-            self.set_default_size(980, 700)
+            w, h = 980, 700
+            disp = Gdk.Display.get_default()
+            mon = (disp.get_primary_monitor() or disp.get_monitor(0)) if disp else None
+            if mon is not None:   # mensi obrazovky: okno se vejde do pracovni plochy i se zahlavim
+                geo = mon.get_workarea()
+                w, h = min(w, geo.width), min(h, geo.height - 56)
+            self.set_default_size(w, h)
             self.set_position(Gtk.WindowPosition.CENTER)
             self.header = Gtk.HeaderBar(show_close_button=True, title=_("Set Up LuxOS"))
             self.set_titlebar(self.header)

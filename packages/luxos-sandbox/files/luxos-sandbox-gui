@@ -37,8 +37,10 @@ CSS = b"""
 @define-color sb_ok #30a46c;
 .hero-title { font-size: 22px; font-weight: 800; }
 .hero-sub { font-size: 12px; opacity: 0.7; }
-.badge { border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #ffffff; background-color: @sb_ok; }
-.badge.off { background-color: alpha(currentColor, 0.35); }
+/* stitek stavu: plna barva s bilym textem (kontrast > 5:1 ve svetlem i tmavem motivu); driv bila
+   na @sb_ok (3,2:1) a u "off" bila na alpha(currentColor) = bila na svetle bile, necitelne */
+.badge { border-radius: 8px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #ffffff; background-color: #1d7d4f; }
+.badge.off { color: #ffffff; background-color: #5f6672; }
 .group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }
 .group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }
 .row { padding: 10px 14px; }

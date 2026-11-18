@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Atualize primeiro to
 Update the whole system together with it?	Atualizar todo o sistema ao mesmo tempo?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	O disco %s mudou desde que foi selecionado (foi ligado ou removido um disco?). Nada foi apagado – selecione o disco novamente.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Não foi possível identificar o volume encriptado %s sob / para o desbloquear no arranque.
+This account is not allowed to use the mailbox.	Esta conta não tem permissão para usar a caixa de correio.
+The password or the account has expired. Renew it with your email provider.	A palavra-passe ou a conta expirou. Renove-a junto do seu fornecedor de email.
+The server requires an encrypted connection.	O servidor exige uma ligação encriptada.
+Contact your email provider or administrator.	Contacte o seu fornecedor de email ou o administrador.
+The server is temporarily unavailable. Try again later.	O servidor está temporariamente indisponível. Tente novamente mais tarde.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Demasiadas ligações ou tentativas de início de sessão. Aguarde alguns minutos e tente novamente.
+The mailbox is full.	A caixa de correio está cheia.
+The server reported an internal error. Try again later.	O servidor comunicou um erro interno. Tente novamente mais tarde.
+The mailbox is in use by another program. Try again later.	A caixa de correio está a ser usada por outro programa. Tente novamente mais tarde.
+The account does not have permission for this.	A conta não tem permissão para isto.
+Mail could not save the password.	O Correio não conseguiu guardar a palavra-passe.
+Mail could not save the sign-in.	O Correio não conseguiu guardar o início de sessão.
+Mail could not read the password.	O Correio não conseguiu ler a palavra-passe.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	O porta-chaves do sistema que guarda as palavras-passe em segurança não está disponível ou está bloqueado. Desbloqueie-o, ou termine e volte a iniciar a sessão, e tente novamente.
+Mail could not connect to %s. Showing saved messages.	O Correio não conseguiu ligar-se a %s. A mostrar as mensagens guardadas.
+Other	Outro
+Add a %s account	Adicionar uma conta %s
+Another email provider	Outro fornecedor de email
+Incoming mail (IMAP)	Correio recebido (IMAP)
+Outgoing mail (SMTP)	Correio enviado (SMTP)
+Server	Servidor
+Target Disk	Disco de destino
+Updates & Maintenance	Atualizações e manutenção
+Anonymous usage count	Estatísticas de utilização anónimas
+on - once a week, no personal data	ativado – uma vez por semana, sem dados pessoais
+Include this computer in the anonymous LuxOS usage count (once a week)	Contar este computador de forma anónima nas estatísticas de utilização do LuxOS (uma vez por semana)
+Choose where to install LuxOS first.	Escolha primeiro onde instalar o LuxOS.

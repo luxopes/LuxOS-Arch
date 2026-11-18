@@ -472,3 +472,16 @@ function stop_emission(instance, signal):
         return __lsl_qbe_call2(__lsl_symbol("g_signal_stop_emission_by_name"), ptr(instance), cstr(signal))
     end
 end
+
+# Rozbalovaci "Podrobnosti" (puvodni text serveru pod prelozenou chybou)
+function expander_new(text):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("gtk_expander_new"), cstr(text))
+    end
+end
+
+function expander_set_expanded(expander, value):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("gtk_expander_set_expanded"), ptr(expander), flag(value))
+    end
+end

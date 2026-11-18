@@ -272,26 +272,35 @@ def load_templates():
 def decimal(text):
     """Desetinna carka misto tecky ve vsech jazycich pruvodce krome anglictiny (1,4 GB, 4,5 MB/s)."""
     lang = os.environ.get("LANG", "en")
-    return text if lang.startswith("en") or lang in ("C", "POSIX") else text.replace(".", ",")
+    if lang in ("C", "POSIX"):
+        return text
+    try:   # oddelovac podle jazyka pruvodce (luxos_i18n), ne podle libc locale
+        sep = luxos_i18n.decimal_separator(lang)
+    except (NameError, AttributeError):   # starsi luxos_i18n bez decimal_separator
+        sep = "." if lang.startswith("en") else ","
+    return text.replace(".", sep)
+
+
+def ui_time(hour, minute):
+    """Cas v jazyce pruvodce (12hodinovy v anglictine, jinak 24hodinovy), ne podle libc locale."""
+    lang = os.environ.get("LANG", "en")
+    try:
+        import datetime
+        return luxos_i18n.format_time(datetime.datetime(2000, 1, 1, hour, minute), lang=lang)
+    except (NameError, AttributeError):   # starsi luxos_i18n bez format_time
+        return f"{hour}:{minute:02d}"
+
+
+GB = 1000 ** 3   # vsude desetinne jednotky (jako macOS a prehled disku), i v rucnim rozdeleni
 
 
 def size_text(n):
     """Velikost v jednotkach SI (stejne jako numfmt --to=si v TUI)."""
     n = float(n)
     for unit in ("B", "KB", "MB", "GB", "TB"):
-        if n < 1000 or unit == "TB":
+        if n < 999.5 or unit == "TB":   # 999,9 GB se zaokrouhli na "1,0 TB", ne "1000 GB"
             return f"{n:.0f} {unit}" if n >= 10 or unit == "B" else decimal(f"{n:.1f} {unit}")
         n /= 1000
-    return ""
-
-
-def size_bin(n):
-    """Velikost v binarnich jednotkach (editor oddilu: stejne jako sgdisk/lvcreate)."""
-    n = float(n)
-    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
-        if n < 1024 or unit == "TiB":
-            return f"{n:.0f} {unit}" if n >= 100 or unit == "B" else decimal(f"{n:.1f} {unit}")
-        n /= 1024
     return ""
 
 
@@ -599,17 +608,27 @@ def PasswordEntry(**kw):
     return e
 
 
+# souhrn rucniho rozdeleni ("Zmensit /dev/sda3 na ..."): stejne jednotky jako zbytek pruvodce
+lay.display_size = size_text
+
+
 # ---- okno ------------------------------------------------------------------------
 class Installer(Gtk.Window):
     def __init__(self):
         super().__init__(title=_("Install LuxOS"))
         # Vetsi okno na vetsich obrazovkach: Rucni rozdeleni (strom + heslo sifrovani) se vejde bez posouvani
         w, h = 860, 600
-        mon = Gdk.Display.get_default().get_primary_monitor() if Gdk.Display.get_default() else None
+        disp = Gdk.Display.get_default()
+        mon = (disp.get_primary_monitor() or disp.get_monitor(0)) if disp else None
         if mon is not None:
             geo = mon.get_workarea()
             w = max(w, min(1100, int(geo.width * 0.8)))
-            h = max(h, min(820, int(geo.height * 0.85)))
+            # mensi obrazovky (1280x800, 1366x768): cela vyska pracovni plochy, at je souhrn videt cely
+            # (vychozi velikost je bez zahlavi okna: to ma ~50 px)
+            avail_h = geo.height - 56
+            h = min(820, avail_h) if geo.height < 900 else max(h, min(820, int(geo.height * 0.85)))
+            # okno nikdy vetsi nez pracovni plocha (1024x768, 1024x600)
+            w, h = min(w, geo.width), min(h, avail_h)
         self.set_default_size(w, h)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_icon_name("luxos-installer")
@@ -729,7 +748,7 @@ class Installer(Gtk.Window):
             self.disks = disks or []
             if self.s["disk"] is None and self.disks:
                 self.s["disk"] = self.disks[0]["path"]
-            if self.current() == "disk":
+            if self.current() in ("disk", "summary"):
                 self.render()
         run_async(work, done)
 
@@ -757,8 +776,8 @@ class Installer(Gtk.Window):
         return self.steps[self.idx]
 
     STEP_NAMES = {"welcome": "Introduction", "network": "Network", "keyboard": "Keyboard", "timezone": "Time Zone",
-                  "disk": "Destination", "partitions": "Partitions", "account": "Account",
-                  "organization": "Organization", "care": "Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
+                  "disk": "Target Disk", "partitions": "Partitions", "account": "Account",
+                  "organization": "Organization", "care": "Updates & Maintenance", "software": "Software", "luxai": "LuxAI", "summary": "Summary",
                   "install": "Installation", "done": "Finish"}
 
     def render_sidebar(self):
@@ -1307,7 +1326,7 @@ class Installer(Gtk.Window):
             self.s["timezone"] = z
             try:
                 now = GLib.DateTime.new_now(GLib.TimeZone.new(z))
-                say(clock, _("Local time: %s") % now.format("%H:%M"))
+                say(clock, _("Local time: %s") % ui_time(now.get_hour(), now.get_minute()))
             except (TypeError, GLib.Error):
                 say(clock, "")
         page.pack_start(clock, False, False, 0)
@@ -1690,7 +1709,7 @@ class Installer(Gtk.Window):
         top.pack_start(Gtk.Label(label=_("Quick setup on"), xalign=0), False, False, 0)
         combo = Gtk.ComboBoxText()
         for d in disks:
-            combo.append(d.dev, f"{d.dev}  {d.model or _('Disk')}  {size_bin(d.size)}")
+            combo.append(d.dev, f"{d.dev}  {d.model or _('Disk')}  {size_text(d.size)}")
         default_disk = self.s["disk"] if any(d.dev == self.s["disk"] for d in disks) else disks[0].dev
         combo.set_active_id(self.s.get("preset_disk") or default_disk)
         combo.connect("changed", lambda c: self.s.__setitem__("preset_disk", c.get_active_id()))
@@ -1720,7 +1739,7 @@ class Installer(Gtk.Window):
             u = n.use
             luks = L.luks_on(n.id)
             icon = "drive-harddisk-symbolic" if n.kind == "part" else "drive-multidisk-symbolic"
-            it = add(parent, n.id, icon, self.node_name(n), self.node_what(n), size_bin(L.size_of(n)),
+            it = add(parent, n.id, icon, self.node_name(n), self.node_what(n), size_text(L.size_of(n)),
                      self.use_text(u), self.change_text(n))
             if luks is not None:
                 lu = luks.use
@@ -1728,13 +1747,13 @@ class Installer(Gtk.Window):
                 add(it, luks.id, "changes-prevent-symbolic", L.luks_names().get(luks.id, ""),
                     _("Locked - unlock to use") if luks.locked else _("Encrypted (LUKS2)") +
                     ("" if inner in (_("not used"), _("Encrypted volume")) else "  ·  " + inner),
-                    size_bin(L.size_of(luks)), self.use_text(lu), self.change_text(luks))
+                    size_text(L.size_of(luks)), self.use_text(lu), self.change_text(luks))
             return it
 
         for d in disks:
             it = add(None, d.id, "drive-harddisk", f"{d.dev}", f"{d.model or _('Disk')}"
                      + ("  ·  " + _("new partition table") if d.wipe else ""),
-                     size_bin(d.size), "", _("erase") if d.wipe else "", bold=True)
+                     size_text(d.size), "", _("erase") if d.wipe else "", bold=True)
             parts = [p for p in L.parts_of(d.dev)]
             existing = sorted([p for p in parts if p.existing], key=lambda p: p.start)
             for p in existing:
@@ -1745,16 +1764,16 @@ class Installer(Gtk.Window):
             regs = L.allocate(d.dev)[1]
             free = sum(r[1] for r in regs)
             if free >= 16 * lay.MiB:
-                add(it, f"free:{d.dev}", "list-add-symbolic", _("Free space"), "", size_bin(free))
+                add(it, f"free:{d.dev}", "list-add-symbolic", _("Free space"), "", size_text(free))
         for vg in L.of("vg"):
             sizes, free, _short = L.vg_alloc(vg.id)
             it = add(None, vg.id, "drive-multidisk", vg.name, _("LVM volume group") +
-                     ("" if vg.existing else "  ·  " + _("new")), size_bin(L.size_of(vg)), "",
+                     ("" if vg.existing else "  ·  " + _("new")), size_text(L.size_of(vg)), "",
                      "" if vg.existing else _("create"), bold=True)
             for lv in L.lvs_of(vg.id):
                 add_block(it, lv)
             if free >= 16 * lay.MiB:
-                add(it, f"vgfree:{vg.id}", "list-add-symbolic", _("Free space"), "", size_bin(free))
+                add(it, f"vgfree:{vg.id}", "list-add-symbolic", _("Free space"), "", size_text(free))
 
         tv = Gtk.TreeView(model=store, headers_visible=True, enable_tree_lines=True)
         col = Gtk.TreeViewColumn(_("Device"))
@@ -1776,7 +1795,11 @@ class Installer(Gtk.Window):
                 r.set_property("xalign", 1.0)
             tv.append_column(c)
         tv.expand_all()
-        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, min_content_height=200)
+        # Strom ukaze vsechny radky (do vysky okna bez nadpisu, predvoleb a tlacitek), ne jen ~7 radku
+        win_h = self.get_allocated_height() if self.get_realized() else self.get_default_size()[1]
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True,
+                                min_content_height=min(30 * len(rows) + 40, 260),
+                                max_content_height=max(260, win_h - 380))
         sw.get_style_context().add_class("list")
         sw.add(tv)
         page.pack_start(sw, True, True, 0)
@@ -1888,7 +1911,7 @@ class Installer(Gtk.Window):
         if n.delete:
             return _("delete")
         if n.kind == "part" and n.resize:
-            return _("resize to %s") % size_bin(n.resize)
+            return _("resize to %s") % size_text(n.resize)
         if not n.existing:
             return _("create")
         if n.use:
@@ -1942,7 +1965,7 @@ class Installer(Gtk.Window):
             L.preset(disk, kind, ram=ram_bytes())
         except lay.PresetTooSmall as e:
             # plan zustal beze zmeny; srozumitelna hlaska misto neplatneho rozlozeni
-            need = f"{-(-e.need // lay.GiB)} GiB"
+            need = f"{-(-e.need // GB)} GB"
             dlg = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.WARNING,
                                     buttons=Gtk.ButtonsType.OK, text=lay.message("preset_small", (e.disk, need), tr=_))
             dlg.run()
@@ -2043,20 +2066,20 @@ class Installer(Gtk.Window):
                                                             else 0)
         size_spin = rest = name_e = resize_spin = None
         if new or not node.existing:
-            gib = max(avail / lay.GiB, 0.01)
-            cur = (node.size / lay.GiB) if node is not None and not node.rest else min(gib, 20.0)
+            gib = max(avail / GB, 0.01)
+            cur = (node.size / GB) if node is not None and not node.rest else min(gib, 20.0)
             size_spin = Gtk.SpinButton.new_with_range(0.01, max(gib, 0.01), 0.5)
             size_spin.set_digits(2)
             size_spin.set_value(min(cur, gib))
             rest = Gtk.CheckButton(label=_("Use all remaining space"), active=node is not None and node.rest)
             sb = Gtk.Box(spacing=8)
             sb.pack_start(size_spin, False, False, 0)
-            sb.pack_start(Gtk.Label(label="GiB"), False, False, 0)
+            sb.pack_start(Gtk.Label(label="GB"), False, False, 0)
             sb.pack_start(rest, False, False, 0)
             rest.connect("toggled", lambda c: size_spin.set_sensitive(not c.get_active()))
             size_spin.set_sensitive(not rest.get_active())
             row(_("Size"), sb)
-            box.pack_start(self.hint(_("Available: %s") % size_bin(avail)), False, False, 0)
+            box.pack_start(self.hint(_("Available: %s") % size_text(avail)), False, False, 0)
         if kind == "lv":
             name_e = Gtk.Entry(text=node.name if node is not None else "")
             name_e.set_sensitive(new or not node.existing)
@@ -2121,12 +2144,12 @@ class Installer(Gtk.Window):
             # zmena velikosti: od minima (je-li zname) po konec volneho mista za oddilem
             maxs = node.size + self.space_after(node)
             mins = node.minsize or 0
-            resize_spin = Gtk.SpinButton.new_with_range(max(mins, lay.GiB) / lay.GiB, max(maxs, node.size) / lay.GiB, 1)
+            resize_spin = Gtk.SpinButton.new_with_range(max(mins, GB) / GB, max(maxs, node.size) / GB, 1)
             resize_spin.set_digits(1)
-            resize_spin.set_value((node.resize or node.size) / lay.GiB)
+            resize_spin.set_value((node.resize or node.size) / GB)
             rb = Gtk.Box(spacing=8)
             rb.pack_start(resize_spin, False, False, 0)
-            rb.pack_start(Gtk.Label(label="GiB"), False, False, 0)
+            rb.pack_start(Gtk.Label(label="GB"), False, False, 0)
             row(_("Resize to"), rb)
             box.pack_start(self.hint(_("Shrinking keeps the data, but back up important files first.")
                                      + ("" if mins else " " + _("The used space could not be checked."))),
@@ -2159,7 +2182,7 @@ class Installer(Gtk.Window):
             dlg.destroy()
             return
         k = use_combo.get_active_id()
-        size = int(size_spin.get_value() * lay.GiB) // lay.MiB * lay.MiB if size_spin else 0
+        size = int(size_spin.get_value() * GB) // lay.MiB * lay.MiB if size_spin else 0
         is_rest = bool(rest and rest.get_active())
         mp = mount.get_child().get_text().strip().rstrip("/") or "/"
         # jmeno precist pred dlg.destroy() - po zniceni okna uz Gtk.Entry vraci prazdny text
@@ -2199,7 +2222,7 @@ class Installer(Gtk.Window):
         if node.kind == "part" and not node.existing:
             node.ptype = k if k in ("esp", "bios") else ""
         if resize_spin is not None:
-            want = int(resize_spin.get_value() * lay.GiB) // lay.MiB * lay.MiB
+            want = int(resize_spin.get_value() * GB) // lay.MiB * lay.MiB
             node.resize = want if resize_spin.get_sensitive() and abs(want - node.size) >= lay.MiB else None
         want_enc = enc.get_active() and k in ("fs", "swap", "none")
         cur = L.luks_on(node.id)
@@ -2256,7 +2279,7 @@ class Installer(Gtk.Window):
         checks = []
         for n in cands:
             label = f"{L.label(n) if n.kind != 'part' or n.existing else n.disk + ' · ' + _('New partition')}" \
-                    f"  ({size_bin(L.size_of(n))}{', ' + _('encrypted') if L.encrypted(n) else ''})"
+                    f"  ({size_text(L.size_of(n))}{', ' + _('encrypted') if L.encrypted(n) else ''})"
             c = Gtk.CheckButton(label=label, active=n.kind == "luks" or len(cands) == 1)
             box.pack_start(c, False, False, 0)
             checks.append((c, n))
@@ -2619,7 +2642,8 @@ class Installer(Gtk.Window):
             card.get_child().get_style_context().add_class("care-card")
             page.pack_start(card, False, False, 0)
         # Anonymni tydenni pocitani instalaci (countme): jedna veta a volba, vychozi zapnuto
-        cm = Gtk.CheckButton(label=_("Anonymously report that this computer uses LuxOS"), active=self.s["countme"])
+        cm = Gtk.CheckButton(label=_("Include this computer in the anonymous LuxOS usage count (once a week)"),
+                             active=self.s["countme"])
         cm.set_margin_top(8)
         cm.connect("toggled", lambda b: self.s.__setitem__("countme", b.get_active()))
         page.pack_start(cm, False, False, 0)
@@ -2801,6 +2825,16 @@ class Installer(Gtk.Window):
             self.valid = lambda: False
             page.pack_start(self.hint(_("Looking for disks…")), False, False, 0)
             return
+        if not manual and d is None:
+            # disk jeste neni nacteny nebo zvoleny (napr. FAKE skok rovnou na souhrn): misto padu napoveda
+            self.valid = lambda: False
+            self.why = lambda: _("Choose where to install LuxOS first.")
+            page.pack_start(self.hint(_("Looking for disks…")) if self.disks is None
+                            else self.hint(_("Choose where to install LuxOS first."), "error"), False, False, 0)
+            return
+        # Co se smaze, je hned pod nadpisem (dole by bylo na mensi obrazovce mimo okno)
+        warn_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        page.pack_start(warn_box, False, False, 0)
         if manual:
             disk = _("Manual partitioning")
         elif self.s["mode"] == "erase":
@@ -2815,9 +2849,10 @@ class Installer(Gtk.Window):
                                     else _("no")),
                 (_("User"), f"{self.s['fullname']} ({self.s['username']})"), (_("Computer"), self.s["hostname"]),
                 (_("Automatic login"), _("yes") if self.s["autologin"] else _("no")),
-                (_("Maintenance"), _("Classic - you manage the system yourself") if self.s["care"] == "classic"
+                (_("Updates & Maintenance"), _("Classic - you manage the system yourself") if self.s["care"] == "classic"
                  else _("Carefree - automatic updates and repairs")),
-                (_("Usage count"), _("anonymous, weekly") if self.s["countme"] else _("off")),
+                (_("Anonymous usage count"), _("on - once a week, no personal data") if self.s["countme"]
+                 else _("off")),
                 (_("Software"), self.templates_text()),
                 ("LuxAI", _("signed in") if self.s["luxai"] else _("not signed in"))]
         if self.s["org"] and not self.s["oem"]:
@@ -2840,12 +2875,12 @@ class Installer(Gtk.Window):
             grid.attach(val, 1, i, 1, 1)
         page.pack_start(box, False, False, 0)
         if self.s["mode"] == "erase":
-            page.pack_start(self.hint(_("All data on %s will be erased when you click Install.") % d["path"], "error"),
-                            False, False, 0)
+            warn_box.pack_start(self.hint(_("All data on %s will be erased when you click Install.") % d["path"],
+                                          "error"), False, False, 0)
         if manual:
-            self.summary_layout(page)
+            self.summary_layout(page, warn_box)
         if self.s["mode"] == "partition":
-            self.summary_partition(page)
+            self.summary_partition(page, warn_box)
         self.wipe_card(page)
         if self.s["oem"] and manual and self.layout.of("luks"):
             # OEM: heslo disku meni Pruvodce nastavenim jen u jednoho svazku / (Sifrovat LuxOS)
@@ -2910,14 +2945,14 @@ class Installer(Gtk.Window):
         box.pack_start(row, False, False, 0)
         box.pack_start(self.hint(_("This can take long: %s. SSD and NVMe drives with a fast erase command finish "
                                    "much sooner. You can skip the rest while it runs; the installation then "
-                                   "continues.") % wipe_time_text(sec)), False, False, 0)
+                                   "continues.") % wipe_time_text(sec).rstrip(".")), False, False, 0)  # "Min.." v nemcine
         encrypted = self.layout.of("luks") if self.s["mode"] == "manual" and self.layout else self.s["encrypt"]
         if encrypted:
             box.pack_start(self.hint(_("Recommended with encryption: nothing unencrypted from before stays on the "
                                        "disk.")), False, False, 0)
         page.pack_start(box, False, False, 0)
 
-    def summary_partition(self, page):
+    def summary_partition(self, page, warn_box=None):
         """Existujici oddil v souhrnu: pripojeni, co se smaze (s obsahem) a potvrzeni."""
         p = self.part_info(self.s["part"]) or {"dev": self.s["part"]}
         probe = (self.selected_disk() or {}).get("probe") or {}
@@ -2962,11 +2997,11 @@ class Installer(Gtk.Window):
                               active=self.s["layout_ok"])
         chk.connect("toggled", lambda c: (self.s.__setitem__("layout_ok", c.get_active()), self.update_nav()))
         warn.pack_start(chk, False, False, 4)
-        page.pack_start(warn, False, False, 0)
+        (warn_box or page).pack_start(warn, False, False, 0)
         self.valid = lambda: self.s["layout_ok"]
         self.why = lambda: _("Confirm that the listed data will be erased.")
 
-    def summary_layout(self, page):
+    def summary_layout(self, page, warn_box=None):
         """Rucni rozdeleni v souhrnu: pripojeni a vyslovny seznam toho, co se smaze."""
         L = self.layout
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -2987,7 +3022,7 @@ class Installer(Gtk.Window):
                     chain.append(_("LVM") + " " + L.label(a))
             u = n.use
             cells = [self.use_text(u), u.get("fstype", "swap") if u["type"] == "fs" else "swap",
-                     size_bin(L.size_of(n)), " › ".join(chain),
+                     size_text(L.size_of(n)), " › ".join(chain),
                      _("format") if u.get("format", True) else _("keep data")]
             for j, c in enumerate(cells):
                 lab = Gtk.Label(label=c, xalign=0, ellipsize=3 if j == 3 else 0)
@@ -3011,7 +3046,7 @@ class Installer(Gtk.Window):
                                   active=self.s["layout_ok"])
             chk.connect("toggled", lambda c: (self.s.__setitem__("layout_ok", c.get_active()), self.update_nav()))
             warn.pack_start(chk, False, False, 4)
-            page.pack_start(warn, False, False, 0)
+            (warn_box or page).pack_start(warn, False, False, 0)
             self.valid = lambda: self.s["layout_ok"]
             self.why = lambda: _("Confirm that the listed data will be erased.")
 

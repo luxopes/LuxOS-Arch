@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Actualice primero to
 Update the whole system together with it?	¿Actualizar todo el sistema a la vez?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	El disco %s ha cambiado desde que se seleccionó (¿se conectó o retiró un disco?). No se ha borrado nada: vuelva a seleccionar el disco.
 The encrypted volume %s under / could not be identified for unlocking at startup.	No se pudo identificar el volumen cifrado %s bajo / para desbloquearlo al arrancar.
+This account is not allowed to use the mailbox.	Esta cuenta no tiene permiso para usar el buzón.
+The password or the account has expired. Renew it with your email provider.	La contraseña o la cuenta ha caducado. Renuévela con su proveedor de correo.
+The server requires an encrypted connection.	El servidor requiere una conexión cifrada.
+Contact your email provider or administrator.	Póngase en contacto con su proveedor de correo o con el administrador.
+The server is temporarily unavailable. Try again later.	El servidor no está disponible temporalmente. Inténtelo más tarde.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Demasiadas conexiones o intentos de inicio de sesión. Espere unos minutos e inténtelo de nuevo.
+The mailbox is full.	El buzón está lleno.
+The server reported an internal error. Try again later.	El servidor informó de un error interno. Inténtelo más tarde.
+The mailbox is in use by another program. Try again later.	Otro programa está usando el buzón. Inténtelo más tarde.
+The account does not have permission for this.	La cuenta no tiene permiso para esto.
+Mail could not save the password.	Correo no pudo guardar la contraseña.
+Mail could not save the sign-in.	Correo no pudo guardar el inicio de sesión.
+Mail could not read the password.	Correo no pudo leer la contraseña.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	El llavero del sistema que guarda las contraseñas de forma segura no está disponible o está bloqueado. Desbloquéelo, o cierre la sesión y vuelva a iniciarla, y luego inténtelo de nuevo.
+Mail could not connect to %s. Showing saved messages.	Correo no pudo conectarse a %s. Se muestran los mensajes guardados.
+Other	Otro
+Add a %s account	Añadir una cuenta de %s
+Another email provider	Otro proveedor de correo
+Incoming mail (IMAP)	Correo entrante (IMAP)
+Outgoing mail (SMTP)	Correo saliente (SMTP)
+Server	Servidor
+Target Disk	Disco de destino
+Updates & Maintenance	Actualizaciones y mantenimiento
+Anonymous usage count	Estadísticas de uso anónimas
+on - once a week, no personal data	activado: una vez por semana, sin datos personales
+Include this computer in the anonymous LuxOS usage count (once a week)	Contar este equipo de forma anónima en las estadísticas de uso de LuxOS (una vez por semana)
+Choose where to install LuxOS first.	Primero elija dónde instalar LuxOS.

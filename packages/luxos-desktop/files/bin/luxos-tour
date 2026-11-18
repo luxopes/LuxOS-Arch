@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 # moduly ze zdroju (files/python vedle files/bin) maji prednost, instalovane moduly LuxOS jsou zaloha
 _SRC_PY = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "python"))
@@ -403,7 +404,12 @@ class Painter:
         logo(cr, lx, y + h * 0.2, h * 0.6, color=c)
         pos["logo"] = (lx + h * 0.3, y + h)
         # vpravo: hodiny (stejny format jako luxos-clock), upozorneni, Ovladaci centrum, ...
-        clock = GLib.DateTime.new_now_local().format("%a %-d. %b  %H:%M") or "9:41"
+        now = time.localtime()
+        try:  # datum v jazyce plochy jako luxos-bar ("st 18. 11.  10:00", "Wed Nov 18  10:00")
+            from luxos_i18n import format_date, weekday_name
+            clock = f"{weekday_name(now, True)} {format_date(now, 'short')}  {now.tm_hour:02d}:{now.tm_min:02d}"
+        except ImportError:
+            clock = time.strftime("%H:%M", now)
         rx = x + w - h * 0.4
         cw = self.text(clock, rx, y + h / 2, fs, c, bold=True, align="r")
         pos["clock"] = (rx - cw / 2, y + h)

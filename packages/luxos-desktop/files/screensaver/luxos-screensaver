@@ -69,7 +69,31 @@ def greeter_formats():
     h24 = lang != "en" if v in ("", "auto") else v in ("1", "true", "yes", "on")
     return (str(g.get("font", "")).strip() or "Inter",
             str(g.get("clock-format", "")).strip() or ("%-H:%M" if h24 else "%-I:%M"),
-            str(g.get("date-format", "")).strip() or ("%A %-d. %B" if lang == "cs" else "%A, %B %-d"))
+            str(g.get("date-format", "")).strip())   # "" = datum podle jazyka (local_date)
+
+
+def ui_lang():
+    lang = (os.environ.get("LC_ALL") or os.environ.get("LC_TIME") or os.environ.get("LANG") or "en")
+    return lang.split("_")[0].split(".")[0] or "en"
+
+
+def local_date(now, fmt=""):
+    """Datum jako v luxos-greeter: vlastni date-format (strftime), jinak podle jazyka pres
+    luxos_i18n.format_date - nezavisle na vygenerovanych locale (driv pevny cesky tvar v jinych jazycich)."""
+    if fmt:
+        try:
+            return time.strftime(fmt, now)
+        except ValueError:
+            pass
+    try:
+        sys.path.insert(0, "/usr/lib/luxos/python")
+        from luxos_i18n import format_date
+        return format_date(now, "long", ui_lang())
+    except Exception:  # noqa: BLE001 - starsi luxos-i18n: aspon bez cizich slov
+        lang = ui_lang()
+        if lang == "en":
+            return time.strftime("%A, %B %-d", now)
+        return time.strftime("%-d. %-m.", now)
 
 
 def text_layout(cr, text, px, weight, family):
@@ -307,9 +331,10 @@ class Saver:
         u = max(0.55, h / 1080.0)
         now = time.localtime()
         try:
-            clock, date = time.strftime(clock_fmt, now), time.strftime(date_fmt, now)
+            clock = time.strftime(clock_fmt, now)
         except ValueError:
-            clock, date = time.strftime("%H:%M", now), time.strftime("%x", now)
+            clock = time.strftime("%H:%M", now)
+        date = local_date(now, date_fmt)
         y0 = h * 0.105
         dl = text_layout(cr, date, 27 * u, Pango.Weight.SEMIBOLD, font)
         _ink, logi = dl.get_pixel_extents()
@@ -321,7 +346,7 @@ class Saver:
     def clock(self, cr, w, h, alpha=0.95):
         now = time.localtime()
         hh = time.strftime("%H:%M", now)
-        day = time.strftime("%A %-d. %B", now)
+        day = local_date(now)
         size = max(48, h * 0.16)
         cr.select_font_face("Inter", 0, 1)
         cr.set_font_size(size)
@@ -578,11 +603,8 @@ class AnalogClock:
 
     def draw_date(self, cr, w, h):
         cx, cy, r = self.geometry(w, h)
-        font, fmt = (self.formats[0], self.formats[2]) if self.formats else ("Inter", "%A, %B %-d")
-        try:
-            date = time.strftime(fmt, time.localtime())
-        except ValueError:
-            date = time.strftime("%x")
+        font, fmt = (self.formats[0], self.formats[2]) if self.formats else ("Inter", "")
+        date = local_date(time.localtime(), fmt)
         u = max(0.55, h / 1080.0)
         lay = text_layout(cr, date, 30 * u, Pango.Weight.SEMIBOLD, font)
         _ink, logi = lay.get_pixel_extents()

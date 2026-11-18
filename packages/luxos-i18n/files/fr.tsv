@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Mettez d'abord à jo
 Update the whole system together with it?	Mettre à jour tout le système en même temps ?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Le disque %s a changé depuis sa sélection (un disque a-t-il été branché ou retiré ?). Rien n'a été effacé – sélectionnez à nouveau le disque.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Le volume chiffré %s sous / n'a pas pu être identifié pour le déverrouillage au démarrage.
+This account is not allowed to use the mailbox.	Ce compte n’est pas autorisé à utiliser la boîte aux lettres.
+The password or the account has expired. Renew it with your email provider.	Le mot de passe ou le compte a expiré. Renouvelez-le auprès de votre fournisseur de messagerie.
+The server requires an encrypted connection.	Le serveur exige une connexion chiffrée.
+Contact your email provider or administrator.	Contactez votre fournisseur de messagerie ou votre administrateur.
+The server is temporarily unavailable. Try again later.	Le serveur est temporairement indisponible. Réessayez plus tard.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Trop de connexions ou de tentatives de connexion. Patientez quelques minutes et réessayez.
+The mailbox is full.	La boîte aux lettres est pleine.
+The server reported an internal error. Try again later.	Le serveur a signalé une erreur interne. Réessayez plus tard.
+The mailbox is in use by another program. Try again later.	La boîte aux lettres est utilisée par un autre programme. Réessayez plus tard.
+The account does not have permission for this.	Le compte n’a pas l’autorisation pour cela.
+Mail could not save the password.	Mail n’a pas pu enregistrer le mot de passe.
+Mail could not save the sign-in.	Mail n’a pas pu enregistrer la connexion.
+Mail could not read the password.	Mail n’a pas pu lire le mot de passe.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Le trousseau système qui protège les mots de passe n’est pas disponible ou est verrouillé. Déverrouillez-le, ou fermez puis rouvrez votre session, puis réessayez.
+Mail could not connect to %s. Showing saved messages.	Mail n’a pas pu se connecter à %s. Affichage des messages enregistrés.
+Other	Autre
+Add a %s account	Ajouter un compte %s
+Another email provider	Autre fournisseur de messagerie
+Incoming mail (IMAP)	Courrier entrant (IMAP)
+Outgoing mail (SMTP)	Courrier sortant (SMTP)
+Server	Serveur
+Target Disk	Disque cible
+Updates & Maintenance	Mises à jour et maintenance
+Anonymous usage count	Statistiques d'utilisation anonymes
+on - once a week, no personal data	activé – une fois par semaine, sans données personnelles
+Include this computer in the anonymous LuxOS usage count (once a week)	Compter cet ordinateur de façon anonyme dans les statistiques d'utilisation de LuxOS (une fois par semaine)
+Choose where to install LuxOS first.	Choisissez d'abord où installer LuxOS.

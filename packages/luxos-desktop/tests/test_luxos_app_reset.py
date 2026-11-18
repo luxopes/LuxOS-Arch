@@ -250,9 +250,16 @@ class Core(Home):
         self.assertIn("python3", core.running_programs())          # tento proces
 
     def test_human_size(self):
-        self.assertEqual(core.human_size(100), "100 B")
-        self.assertEqual(core.human_size(2048), "2.0 kB")
-        self.assertEqual(core.human_size(5 * 1024 ** 3), "5.0 GB")
+        import luxos_i18n
+        with mock.patch.object(luxos_i18n, "LANG", "en"):
+            self.assertEqual(core.human_size(100), "100 B")
+            self.assertEqual(core.human_size(2048), "2.0 kB")
+            self.assertEqual(core.human_size(5 * 1024 ** 3), "5.0 GB")
+        # desetinna carka podle jazyka aplikace (ne podle vygenerovanych locale)
+        with mock.patch.object(luxos_i18n, "LANG", "cs"):
+            self.assertEqual(core.human_size(2048), "2,0 kB")
+        with mock.patch.object(luxos_i18n, "LANG", "de"):
+            self.assertEqual(core.human_size(5 * 1024 ** 3), "5,0 GB")
 
 
 class Cli(Home):

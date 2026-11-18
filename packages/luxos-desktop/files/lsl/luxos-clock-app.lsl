@@ -619,7 +619,8 @@ function world_tick():
         return 0
     end
     call gtk.label_set_text(world_ui["local"], glib.date_time_format("%H:%M"))
-    call gtk.label_set_text(world_ui["date"], glib.date_time_format("%A %-d. %B"))
+    # datum v jazyce aplikace (driv pevny cesky tvar "%A %-d. %B" i v jinych jazycich)
+    call gtk.label_set_text(world_ui["date"], i18n.format_tm(glib.localtime(glib.now()), "long"))
     for r in world_ui["rows"]:
         z = zone_time(r[0])
         call gtk.label_set_text(r[1], z[0])

@@ -13,6 +13,7 @@ load luxos_i18n as i18n
 load crypto
 load mail_bytes as mb
 load mail_mime as mime
+load mail_locale as loc
 load mail_store as store
 load mail_gtk as mg
 
@@ -616,7 +617,7 @@ end
 # ---- prilohy ------------------------------------------------------------------------------------------------------
 
 function size_text(n):
-    return glib.format_size(n)
+    return loc.size(n)
 end
 
 function add_attachment(c, path, name):

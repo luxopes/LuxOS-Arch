@@ -376,8 +376,72 @@ function tag_end(b, start, n):
 end
 
 function new_ctx(b, cids, remote):
-    return {"b": b, "cids": cids, "remote": remote, "blocked": 0, "tracking": 0, "colors": False, "used": [], "data": {}}
+    return {"b": b, "cids": cids, "remote": remote, "blocked": 0, "tracking": 0, "colors": False, "used": [], "data": {},
+            "width": 0, "responsive": False}
 end
+
+# ---- sirka obsahu (prizpusobeni sirce panelu) ----------------------------------------------------------------
+# Newslettery a upozorneni maji pevnou sirku (tabulka 600-700 px). Okno pak zvetseni WebKitu zmensi obsah na
+# sirku panelu (jako jine postovni programy), bez JavaScriptu. Zprava s @media (max-width) se prizpusobi sama.
+WIDTH_TAGS = ["table", "td", "th", "tr", "tbody", "div", "center", "p", "span", "section", "header", "footer", "article", "main"]
+
+function note_width(ctx, px):
+    if px > ctx["width"] and px <= 2400:
+        ctx["width"] = px
+    end
+    return 0
+end
+
+# Cislo v px na zacatku textu ("600px", "600", " 640.5px"); -1 kdyz nejde o pevnou sirku (%, em, auto)
+function px_value(text):
+    t = text.strip().lower()
+    digits = ""
+    i = 0
+    while i < len(t) and "0123456789".find(t[i]) >= 0:
+        digits = digits + t[i]
+        i += 1
+    end
+    if digits == "":
+        return -1
+    end
+    while i < len(t) and "0123456789.".find(t[i]) >= 0:
+        i += 1
+    end
+    unit = t[i:].strip()
+    if unit == "" or unit.startswith("px") or unit.startswith("!") or unit.startswith(";"):
+        return mime.to_int(digits, -1)
+    end
+    return -1
+end
+
+# width:/min-width: v pixelech v CSS (ne max-width - ta obsah nerozsiruje)
+function css_widths(ctx, css):
+    low = css.lower()
+    if low.find("@media") >= 0 and low.find("max-width") >= 0:
+        ctx["responsive"] = True
+    end
+    pos = 0
+    loop:
+        p = find_from(low, "width", pos)
+        if p < 0:
+            break
+        end
+        pos = p + 5
+        if p >= 4 and low[p - 4:p] == "min-":
+            p = p - 4
+        end
+        if p >= 1 and " ;{\t\n\r\"'".find(low[p - 1]) < 0:
+            continue
+        end
+        rest = low[pos:pos + 24].strip()
+        if not rest.startswith(":"):
+            continue
+        end
+        call note_width(ctx, px_value(rest[1:]))
+    end
+    return 0
+end
+
 
 function sanitize(html, ctx):
     b = net.bytes(html)
@@ -445,6 +509,7 @@ function sanitize(html, ctx):
                 close = k
             end
             css = clean_css(ctx, net.text(b, i, close - i))
+            call css_widths(ctx, css)
             if css != "":
                 out.append("<style>" + css.replace("<", "") + "</style>")
             end
@@ -497,6 +562,14 @@ function sanitize(html, ctx):
             continue
         end
         attrs = parse_attrs(b, ne, gt)
+        if name in WIDTH_TAGS:
+            if "width" in attrs:
+                call note_width(ctx, px_value(attrs["width"]))
+            end
+            if "style" in attrs:
+                call css_widths(ctx, attrs["style"])
+            end
+        end
         r = clean_attrs(ctx, name, attrs)
         if not r[1]:
             alt = attrs.get("alt", "").strip()
@@ -841,6 +914,10 @@ function document(b, opts):
         cls = "html-mail"
     end
     html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"" + csp + "\"><meta name=\"referrer\" content=\"no-referrer\"><style>" + base_css(pal, paper) + "</style></head><body class=\"" + cls + "\">" + body + "</body></html>"
+    width = 0
+    if vctx["html"] and not ctx["responsive"]:
+        width = ctx["width"]
+    end
     return {"html": html, "remote": ctx["blocked"], "tracking": ctx["tracking"], "has_html": vctx["html"], "paper": paper,
-            "inline": ctx["used"]}
+            "inline": ctx["used"], "width": width}
 end

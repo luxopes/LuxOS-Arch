@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Aggiorna prima l'int
 Update the whole system together with it?	Aggiornare insieme l'intero sistema?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Il disco %s è cambiato da quando è stato selezionato (è stato collegato o rimosso un disco?). Non è stato cancellato nulla: seleziona di nuovo il disco.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Impossibile identificare il volume cifrato %s sotto / per lo sblocco all'avvio.
+This account is not allowed to use the mailbox.	Questo account non è autorizzato a usare la casella di posta.
+The password or the account has expired. Renew it with your email provider.	La password o l’account è scaduto. Rinnovalo presso il tuo provider di posta.
+The server requires an encrypted connection.	Il server richiede una connessione cifrata.
+Contact your email provider or administrator.	Contatta il tuo provider di posta o l’amministratore.
+The server is temporarily unavailable. Try again later.	Il server non è temporaneamente disponibile. Riprova più tardi.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Troppe connessioni o tentativi di accesso. Attendi qualche minuto e riprova.
+The mailbox is full.	La casella di posta è piena.
+The server reported an internal error. Try again later.	Il server ha segnalato un errore interno. Riprova più tardi.
+The mailbox is in use by another program. Try again later.	La casella di posta è in uso da un altro programma. Riprova più tardi.
+The account does not have permission for this.	L’account non ha l’autorizzazione per questo.
+Mail could not save the password.	Posta non ha potuto salvare la password.
+Mail could not save the sign-in.	Posta non ha potuto salvare l’accesso.
+Mail could not read the password.	Posta non ha potuto leggere la password.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Il portachiavi di sistema che custodisce le password non è disponibile o è bloccato. Sbloccalo, oppure esci e accedi di nuovo al desktop, poi riprova.
+Mail could not connect to %s. Showing saved messages.	Posta non è riuscita a connettersi a %s. Vengono mostrati i messaggi salvati.
+Other	Altro
+Add a %s account	Aggiungi un account %s
+Another email provider	Altro provider di posta
+Incoming mail (IMAP)	Posta in arrivo (IMAP)
+Outgoing mail (SMTP)	Posta in uscita (SMTP)
+Server	Server
+Target Disk	Disco di destinazione
+Updates & Maintenance	Aggiornamenti e manutenzione
+Anonymous usage count	Statistiche di utilizzo anonime
+on - once a week, no personal data	attivo – una volta a settimana, senza dati personali
+Include this computer in the anonymous LuxOS usage count (once a week)	Conta questo computer in modo anonimo nelle statistiche di utilizzo di LuxOS (una volta a settimana)
+Choose where to install LuxOS first.	Scegli prima dove installare LuxOS.

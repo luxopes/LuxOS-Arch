@@ -118,16 +118,27 @@ class LslTools(unittest.TestCase):
             return [line.split(" ", 1)[1] if " " in line else "" for line in f.read().splitlines()]
 
     # ---- hodiny ---------------------------------------------------------------------------------
-    def test_clock_same_as_bash(self):
-        for lang in ("cs_CZ.UTF-8", "en_US.UTF-8", "C"):
-            for _ in range(3):   # zmena minuty mezi obema behy
-                new = self.run_prog(self.bin, "luxos-clock", lang=lang).stdout
-                old = self.run_prog(self.ref, "luxos-clock", lang=lang).stdout
-                if new == old:
+    def test_clock_date_in_desktop_language(self):
+        # datum podle jazyka plochy, ne pevny cesky tvar "%a %-d. %b" s nazvy z libc (puvodni skript v
+        # lsl-reference ho mel i v anglictine a nemecine); porovnani s luxos_i18n.py (Python, stejna data)
+        sys.path.insert(0, I18N_DIR)
+        import luxos_i18n
+        for lang, code in (("cs_CZ.UTF-8", "cs"), ("de_DE.UTF-8", "de"), ("en_US.UTF-8", "en"),
+                           ("hu_HU.UTF-8", "hu"), ("C", "en")):
+            for _ in range(3):   # zmena minuty behem behu
+                tm = time.localtime()
+                out = self.run_prog(self.bin, "luxos-clock", lang=lang).stdout
+                if time.localtime()[:5] == tm[:5]:
                     break
-            self.assertEqual(new, old, lang)
-            self.assertTrue(new.startswith('<txt><span weight="600">'), new)
-            self.assertIn("</tool><txtclick>luxos-calendar-toggle</txtclick>\n", new)
+            bar = (f"{luxos_i18n.weekday_name(tm, True, code)} {luxos_i18n.format_date(tm, 'short', code)}"
+                   f"  {tm.tm_hour:02d}:{tm.tm_min:02d}")
+            self.assertTrue(out.startswith(f'<txt><span weight="600">{bar}</span></txt><tool>'), (lang, out))
+            tool = out.split("<tool>", 1)[1].split("</tool>", 1)[0]
+            self.assertIn(luxos_i18n.format_date(tm, "long", code), tool, lang)
+            self.assertIn(str(tm.tm_year), tool, lang)
+            self.assertIn("</tool><txtclick>luxos-calendar-toggle</txtclick>\n", out)
+        self.assertIn("středa 18. listopadu", luxos_i18n.format_date(time.strptime("2026-11-18", "%Y-%m-%d"),
+                                                                     "long", "cs"))
 
     # ---- baterie --------------------------------------------------------------------------------
     def battery(self, name="BAT0", **files):

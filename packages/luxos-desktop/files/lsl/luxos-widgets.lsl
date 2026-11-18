@@ -1013,7 +1013,9 @@ function update_today():
         return 0
     end
     c = ui["cards"]["today"]
-    call gtk.label_set_text(c["date"], glib.date_time_format("%a %-d. %b"))
+    # datum v jazyce plochy (driv pevny cesky tvar "%a %-d. %b" i v jinych jazycich)
+    tm = glib.localtime(glib.now())
+    call gtk.label_set_text(c["date"], i18n.weekday_short(tm[6]) + " " + i18n.format_tm(tm, "short"))
     call gtk.label_set_text(c["time"], glib.date_time_format("%H:%M"))
     w = weather["data"]
     if w == None:

@@ -22,6 +22,7 @@ load mail_store as store
 load mail_oauth as oauth
 load mail_diagnose as diagnose
 load mail_ui as ui
+load mail_locale as loc
 
 function arg_or(index, fallback):
     if len(args) > index:
@@ -155,6 +156,16 @@ function main():
         return 0
     elif first == "--test-date":
         print mime.parse_date(arg_or(2, ""))
+        return 0
+    elif first == "--test-locale":
+        # datum v seznamu, v hlavicce a velikost podle jazyka aplikace (LUXOS_MAIL_NOW = "ted")
+        t = mime.to_int(arg_or(2, "0"), 0)
+        print json.encode({"list": loc.list_date(t), "long": ui.long_date(t), "size": loc.size(mime.to_int(arg_or(3, "0"), 0))})
+        return 0
+    elif first == "--test-error-text":
+        # text chyby prihlaseni v okne pridani uctu: {"text", "details"} (kod IMAP prelozeny, puvodni text v Podrobnostech)
+        msg = {"kind": arg_or(2, ""), "error": arg_or(3, "")}
+        print json.encode({"text": ui.kind_text(msg, "imap.example.test", arg_or(4, "")), "details": ui.detail_text(arg_or(3, ""))})
         return 0
     elif first == "--test-charset":
         b = readbytes(arg_or(3, ""))

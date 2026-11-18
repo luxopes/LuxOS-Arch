@@ -390,9 +390,18 @@ def _remove_empty(top):
             pass
 
 
+def _dec(text):
+    """Desetinna carka/tecka podle jazyka aplikace (luxos_i18n), bez nej tecka."""
+    try:
+        from luxos_i18n import decimal_separator
+    except ImportError:
+        return text
+    return text.replace(".", decimal_separator())
+
+
 def human_size(n):
     for unit in ("B", "kB", "MB", "GB"):
         if n < 1024 or unit == "GB":
-            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}" if unit == "B" else _dec(f"{n:.1f} {unit}")
         n /= 1024.0
-    return f"{n:.1f} GB"
+    return _dec(f"{n:.1f} GB")

@@ -2,7 +2,7 @@
 # Native LSL application; no interpreter or background service at runtime.
 pkgname=luxos-icon-studio
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="LuxOS Icon Studio - layered icon designer with live previews and SVG/PNG export"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"

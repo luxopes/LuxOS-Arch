@@ -765,7 +765,7 @@ care_text() {
 }
 
 ask_care() {
-    title "$(T "Maintenance")"
+    title "$(T "Updates & Maintenance")"
     info "$(T "Carefree: updates install automatically in the background (not on metered networks, with Data Saver or on low battery), a previous kernel is kept to fall back on and LuxOS repairs itself.")"
     info "$(T "Classic (for IT professionals): no automatic updates or repairs, standard Arch behaviour; you only get notified about available updates.")"
     local carefree classic sel
@@ -1007,8 +1007,8 @@ summary() {
         "$(T "User")" "$( ((${OEM:-0})) && oem_user_text || echo "$FULLNAME ($USERNAME)")"
         "$(T "Computer")" "$HOSTNAME_SEL"
         "$(T "Boot mode")" "$boot_text"
-        "$(T "Maintenance")" "$(care_text "$CARE_MODE")"
-        "$(T "Usage count")" "$( ((${COUNTME:-1})) && T "anonymous, weekly" || T "off")"
+        "$(T "Updates & Maintenance")" "$(care_text "$CARE_MODE")"
+        "$(T "Anonymous usage count")" "$( ((${COUNTME:-1})) && T "on - once a week, no personal data" || T "off")"
         "$(T "Software")" "$(templates_text)"
         "LuxAI" "$([[ -n $LUXAI_ACCOUNT ]] && T "signed in" || T "not signed in")"
     )

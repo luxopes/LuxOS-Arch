@@ -61,8 +61,6 @@
 
 #define DEFAULT_OPACITY 62
 enum { COVER_WALLPAPER, COVER_TRANSLUCENT, COVER_SOLID };
-#define CLOCK_FORMAT "%a %-d. %b  %H:%M"
-#define TOOLTIP_FORMAT "%A %-d. %B %Y"
 
 /* Zavoj pod listou (bod 4): vyska v logickych px od horniho okraje monitoru, nejvyssi alfa cerne
  * nahore. Sila 0-1 podle kontrastu bileho pisma na tapete v pasu zavoje: nad SCRIM_C_NONE zadny
@@ -1192,16 +1190,176 @@ on_composited_changed (GdkScreen *screen, Bar *bar) {
 }
 static void on_stacking_changed (WnckScreen *s, Bar *bar) { (void) s; queue_eval (bar); }
 
+/* ---- datum podle jazyka (stejna data jako luxos_i18n.py/.lsl) -------------------------
+ * Ne strftime: s vygenerovanym jen en_US.UTF-8 by dal anglicke nazvy mezi ceskymi texty a pevny
+ * cesky tvar "%a %-d. %b" se ukazoval i v ostatnich jazycich. Dny od pondeli, mesice v genitivu. */
+typedef struct {
+    const char *lang, *days, *sdays, *months, *t_long, *t_short, *t_long_year;
+} LuxCal;
+static const LuxCal LUX_CAL[] = {
+    { "en",
+      "Monday Tuesday Wednesday Thursday Friday Saturday Sunday",
+      "Mon Tue Wed Thu Fri Sat Sun",
+      "January February March April May June July August September October November December",
+      "{A}, {B} {d}", "{b} {d}", "{A}, {B} {d}, {Y}" },
+    { "cs",
+      "pondělí úterý středa čtvrtek pátek sobota neděle",
+      "po út st čt pá so ne",
+      "ledna února března dubna května června července srpna září října listopadu prosince",
+      "{A} {d}. {B}", "{d}. {m}.", "{A} {d}. {B} {Y}" },
+    { "sk",
+      "pondelok utorok streda štvrtok piatok sobota nedeľa",
+      "po ut st št pi so ne",
+      "januára februára marca apríla mája júna júla augusta septembra októbra novembra decembra",
+      "{A} {d}. {B}", "{d}. {m}.", "{A} {d}. {B} {Y}" },
+    { "pl",
+      "poniedziałek wtorek środa czwartek piątek sobota niedziela",
+      "pon. wt. śr. czw. pt. sob. niedz.",
+      "stycznia lutego marca kwietnia maja czerwca lipca sierpnia września października listopada grudnia",
+      "{A}, {d} {B}", "{dd}.{mm}", "{A}, {d} {B} {Y}" },
+    { "uk",
+      "понеділок вівторок середа четвер пʼятниця субота неділя",
+      "пн вт ср чт пт сб нд",
+      "січня лютого березня квітня травня червня липня серпня вересня жовтня листопада грудня",
+      "{A}, {d} {B}", "{dd}.{mm}", "{A}, {d} {B} {Y} р." },
+    { "hu",
+      "hétfő kedd szerda csütörtök péntek szombat vasárnap",
+      "H K Sze Cs P Szo V",
+      "január február március április május június július augusztus szeptember október november december",
+      "{B} {d}., {A}", "{mm}. {dd}.", "{Y}. {B} {d}., {A}" },
+    { "de",
+      "Montag Dienstag Mittwoch Donnerstag Freitag Samstag Sonntag",
+      "Mo. Di. Mi. Do. Fr. Sa. So.",
+      "Januar Februar März April Mai Juni Juli August September Oktober November Dezember",
+      "{A}, {d}. {B}", "{dd}.{mm}.", "{A}, {d}. {B} {Y}" },
+    { "fr",
+      "lundi mardi mercredi jeudi vendredi samedi dimanche",
+      "lun. mar. mer. jeu. ven. sam. dim.",
+      "janvier février mars avril mai juin juillet août septembre octobre novembre décembre",
+      "{A} {d} {B}", "{dd}/{mm}", "{A} {d} {B} {Y}" },
+    { "es",
+      "lunes martes miércoles jueves viernes sábado domingo",
+      "lun mar mié jue vie sáb dom",
+      "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre",
+      "{A}, {d} de {B}", "{dd}/{mm}", "{A}, {d} de {B} de {Y}" },
+    { "it",
+      "lunedì martedì mercoledì giovedì venerdì sabato domenica",
+      "lun mar mer gio ven sab dom",
+      "gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre",
+      "{A} {d} {B}", "{dd}/{mm}", "{A} {d} {B} {Y}" },
+    { "pt",
+      "segunda-feira terça-feira quarta-feira quinta-feira sexta-feira sábado domingo",
+      "seg. ter. qua. qui. sex. sáb. dom.",
+      "janeiro fevereiro março abril maio junho julho agosto setembro outubro novembro dezembro",
+      "{A}, {d} de {B}", "{dd}/{mm}", "{A}, {d} de {B} de {Y}" },
+    { "nl",
+      "maandag dinsdag woensdag donderdag vrijdag zaterdag zondag",
+      "ma di wo do vr za zo",
+      "januari februari maart april mei juni juli augustus september oktober november december",
+      "{A} {d} {B}", "{d}-{m}", "{A} {d} {B} {Y}" },
+    { "sv",
+      "måndag tisdag onsdag torsdag fredag lördag söndag",
+      "mån tis ons tors fre lör sön",
+      "januari februari mars april maj juni juli augusti september oktober november december",
+      "{A} {d} {B}", "{d}/{m}", "{A} {d} {B} {Y}" },
+};
+
+/* i-te slovo seznamu oddeleneho mezerami */
+static void
+lux_cal_word (GString *out, const char *list, int i) {
+    const char *p = list, *e;
+    for (; i > 0 && p; i--) {
+        p = strchr (p, ' ');
+        if (p)
+            p++;
+    }
+    if (!p)
+        return;
+    e = strchr (p, ' ');
+    g_string_append_len (out, p, e ? e - p : (gssize) strlen (p));
+}
+
+/* kind: 'l' = "středa 18. listopadu", 's' = "18. 11.", 'y' = "středa 18. listopadu 2026",
+ * 'b' = kratky den + kratke datum do listy ("st 18. 11.") */
+static char *
+lux_cal_format (const struct tm *tm, const char *lang, char kind) {
+    const LuxCal *c = &LUX_CAL[0];
+    const char *t;
+    int wd = (tm->tm_wday + 6) % 7;
+    GString *out = g_string_new (NULL);
+    for (gsize i = 0; i < G_N_ELEMENTS (LUX_CAL); i++)
+        if (lang && strcmp (lang, LUX_CAL[i].lang) == 0)
+            c = &LUX_CAL[i];
+    if (kind == 'b') {
+        lux_cal_word (out, c->sdays, wd);
+        g_string_append_c (out, ' ');
+    }
+    t = kind == 'l' ? c->t_long : kind == 'y' ? c->t_long_year : c->t_short;
+    while (*t) {
+        const char *close;
+        if (*t != '{' || (close = strchr (t, '}')) == NULL) {
+            g_string_append_c (out, *t++);
+            continue;
+        }
+        if (g_str_has_prefix (t, "{A}"))
+            lux_cal_word (out, c->days, wd);
+        else if (g_str_has_prefix (t, "{B}"))
+            lux_cal_word (out, c->months, tm->tm_mon);
+        else if (g_str_has_prefix (t, "{b}")) {
+            GString *m = g_string_new (NULL);
+            lux_cal_word (m, c->months, tm->tm_mon);
+            g_string_append_len (out, m->str, MIN (m->len, 3));
+            g_string_free (m, TRUE);
+        } else if (g_str_has_prefix (t, "{dd}"))
+            g_string_append_printf (out, "%02d", tm->tm_mday);
+        else if (g_str_has_prefix (t, "{mm}"))
+            g_string_append_printf (out, "%02d", tm->tm_mon + 1);
+        else if (g_str_has_prefix (t, "{d}"))
+            g_string_append_printf (out, "%d", tm->tm_mday);
+        else if (g_str_has_prefix (t, "{m}"))
+            g_string_append_printf (out, "%d", tm->tm_mon + 1);
+        else if (g_str_has_prefix (t, "{Y}"))
+            g_string_append_printf (out, "%d", tm->tm_year + 1900);
+        t = close + 1;
+    }
+    return g_string_free (out, FALSE);
+}
+
 /* ---- kresleni hodin -------------------------------------------------------------------- */
+/* jazyk plochy (stejne promenne jako preklady luxos-i18n) */
+static char *
+ui_lang (void) {
+    static const char *const vars[] = { "LC_ALL", "LC_MESSAGES", "LANG", NULL };
+    const char *v = NULL;
+    char *code;
+    for (const char *const *n = vars; *n && !v; n++) {
+        v = g_getenv (*n);
+        if (v && !*v)
+            v = NULL;
+    }
+    code = g_strdup (v ? v : "en");
+    code[strcspn (code, "_.@")] = '\0';
+    return code;
+}
+
+/* text hodin v liste ("st 18. 11.  10:00", "Mi. 18.11.  10:00", "Wed Nov 18  10:00") nebo cele datum do
+ * bubliny ("středa 18. listopadu 2026") v jazyce plochy */
 static gchar *
-format_now (const char *fmt) {
-    char buf[128];
+format_now (gboolean full) {
+    char hm[16];
     time_t t = time (NULL);
     struct tm tm;
+    char *lang = ui_lang ();
+    gchar *date, *text;
     localtime_r (&t, &tm);
-    if (strftime (buf, sizeof buf, fmt, &tm) == 0)
-        return g_strdup ("");
-    return g_strdup (buf);
+    date = lux_cal_format (&tm, lang, full ? 'y' : 'b');
+    g_free (lang);
+    if (full)
+        return date;
+    strftime (hm, sizeof hm, "%H:%M", &tm);
+    text = g_strdup_printf ("%s  %s", date, hm);
+    g_free (date);
+    return text;
 }
 
 static gboolean
@@ -1266,7 +1424,7 @@ schedule_tick (Bar *bar) {
 
 static void
 update_text (Bar *bar) {
-    gchar *t = format_now (CLOCK_FORMAT);
+    gchar *t = format_now (FALSE);
     if (g_strcmp0 (t, bar->text) != 0) {
         g_free (bar->text);
         bar->text = t;
@@ -1326,7 +1484,7 @@ on_tooltip (GtkWidget *w, gint x, gint y, gboolean kb, GtkTooltip *tip, Bar *bar
     (void) kb;
     if (!in_hit (bar, x, y))
         return FALSE;
-    gchar *full = format_now (TOOLTIP_FORMAT);
+    gchar *full = format_now (TRUE);
     gtk_tooltip_set_text (tip, full);
     g_free (full);
     return TRUE;

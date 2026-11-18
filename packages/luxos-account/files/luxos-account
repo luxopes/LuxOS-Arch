@@ -476,7 +476,12 @@ class AccountWindow(Gtk.Window):
                 b.pack_start(row, False, False, 0)
             when = acc.usage_reset(usage)
             days = acc.days_until(when)
-            reset = Gtk.Label(label=_("The limits reset on %s (in %d days).") % (time.strftime("%x", when), days),
+            try:  # datum v jazyce aplikace, ne podle libc locale (%x dal s jen en_US americky tvar)
+                from luxos_i18n import format_date
+                when_text = format_date(when, "full")
+            except ImportError:
+                when_text = time.strftime("%x", when)
+            reset = Gtk.Label(label=_("The limits reset on %s (in %d days).") % (when_text, days),
                               xalign=0, wrap=True)
             reset.get_style_context().add_class("dim")
             b.pack_start(reset, False, False, 0)

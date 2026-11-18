@@ -4685,13 +4685,13 @@ Incoming server (IMAP)	Server prichádzajúcej pošty (IMAP)
 Port	Port
 Outgoing server (SMTP)	Server odchádzajúcej pošty (SMTP)
 Configure Manually	Nastaviť ručne
-Enter the server settings from your email provider.	Zadajte nastavenia servera od svojho poskytovateľa e-mailu.
+Enter the server settings from your email provider.	Zadajte nastavenia servera od vášho poskytovateľa e-mailu.
 Enter a valid email address.	Zadajte platnú e-mailovú adresu.
 Enter your password.	Zadajte heslo.
 Looking up the server settings…	Hľadám nastavenia servera…
 Enter the incoming server.	Zadajte server prichádzajúcej pošty.
 Signing in to %s…	Prihlasujem sa k %s…
-The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Bezpečnostný certifikát servera %s nie je platný (%s). Pošta sa nepripojí, aby ochránila vaše heslo. Overte názov servera u svojho poskytovateľa.
+The security certificate of %s is not valid (%s). Mail does not connect to protect your password. Check the server name with your provider.	Bezpečnostný certifikát servera %s nie je platný (%s). Pošta sa nepripojí, aby ochránila vaše heslo. Overte názov servera u vášho poskytovateľa.
 The server settings were not found automatically. Enter them below.	Nastavenia servera sa nepodarilo nájsť automaticky. Zadajte ich nižšie.
 Settings provided by your email provider.	Nastavenia od vášho poskytovateľa e-mailu.
 Settings found in the Thunderbird provider database.	Nastavenia nájdené v databáze poskytovateľov Thunderbirdu.
@@ -5280,3 +5280,30 @@ Update the whole system first (lux update), then try again.	Najprv aktualizujte 
 Update the whole system together with it?	Aktualizovať spolu s tým celý systém?
 The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Disk %s sa od výberu zmenil (bol pripojený alebo odpojený disk?). Nič nebolo vymazané – vyberte disk znova.
 The encrypted volume %s under / could not be identified for unlocking at startup.	Šifrovaný zväzok %s pod / sa nepodarilo určiť na odomknutie pri štarte.
+This account is not allowed to use the mailbox.	Tento účet nemá povolený prístup k schránke.
+The password or the account has expired. Renew it with your email provider.	Platnosť hesla alebo účtu vypršala. Obnovte ju u vášho poskytovateľa e-mailu.
+The server requires an encrypted connection.	Server vyžaduje šifrované spojenie.
+Contact your email provider or administrator.	Obráťte sa na poskytovateľa e-mailu alebo správcu.
+The server is temporarily unavailable. Try again later.	Server je dočasne nedostupný. Skúste to neskôr.
+Too many connections or sign-in attempts. Wait a few minutes and try again.	Príliš veľa pripojení alebo pokusov o prihlásenie. Počkajte niekoľko minút a skúste to znova.
+The mailbox is full.	Schránka je plná.
+The server reported an internal error. Try again later.	Server ohlásil vnútornú chybu. Skúste to neskôr.
+The mailbox is in use by another program. Try again later.	Schránku práve používa iný program. Skúste to neskôr.
+The account does not have permission for this.	Účet na to nemá oprávnenie.
+Mail could not save the password.	Pošta nemohla uložiť heslo.
+Mail could not save the sign-in.	Pošta nemohla uložiť prihlásenie.
+Mail could not read the password.	Pošta nemohla načítať heslo.
+The system keyring that keeps passwords safe is not available or is locked. Unlock it, or sign out and sign in to the desktop again, then try again.	Systémová kľúčenka, ktorá bezpečne uchováva heslá, nie je dostupná alebo je zamknutá. Odomknite ju alebo sa odhláste a znova prihláste do počítača a potom to skúste znova.
+Mail could not connect to %s. Showing saved messages.	Pošta sa nemohla pripojiť k %s. Zobrazujú sa uložené správy.
+Other	Iný
+Add a %s account	Pridať účet %s
+Another email provider	Iný poskytovateľ e-mailu
+Incoming mail (IMAP)	Prichádzajúca pošta (IMAP)
+Outgoing mail (SMTP)	Odchádzajúca pošta (SMTP)
+Server	Server
+Target Disk	Disk
+Updates & Maintenance	Aktualizácie a údržba
+Anonymous usage count	Anonymná štatistika používania
+on - once a week, no personal data	zapnuté – raz týždenne, bez osobných údajov
+Include this computer in the anonymous LuxOS usage count (once a week)	Započítať tento počítač do anonymnej štatistiky používania LuxOS (raz týždenne)
+Choose where to install LuxOS first.	Najprv vyberte, kam LuxOS nainštalovať.

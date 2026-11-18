@@ -1,0 +1,28 @@
+From: Zpravodaj Example <news@news.example.org>
+To: Tester <tester@example.test>
+Subject: =?utf-8?b?UMWZaXpwxa9zb2JpdsO9?= zpravodaj
+Date: Tue, 10 Nov 2026 09:12:00 +0100
+Message-ID: <1220673823248102321@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============0588253479976071168=="
+
+--===============0588253479976071168==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Textová verze.
+
+--===============0588253479976071168==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head><style>
+.wrap { width: 600px; }
+@media only screen and (max-width: 620px) { .wrap { width: 100% !important; }=
+ }
+</style></head><body><div class=3D"wrap"><p>Obsah se p=C5=99izp=C5=AFsob=C3=
+=AD =C5=A1=C3=AD=C5=99ce.</p></div></body></html>
+
+--===============0588253479976071168==--

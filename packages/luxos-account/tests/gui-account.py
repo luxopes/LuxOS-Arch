@@ -207,8 +207,10 @@ def manage(lang):
     check("sprava: titulek okna s krizkem", win.get_titlebar().get_show_close_button())
     labels = [w.get_text() for w in walk(win.usage_body) if isinstance(w, Gtk.Label)]
     check("prehled: spotreba Flash 63 %", "63 %" in labels, labels)
+    # datum v jazyce aplikace (luxos_i18n.format_date), ne %x z libc locale ("12/01/26")
+    from luxos_i18n import format_date
     check("prehled: datum vynulovani", any(t == _("The limits reset on %s (in %d days).")
-                                           % (time.strftime("%x", acc.usage_reset({})),
+                                           % (format_date(acc.usage_reset({}), "full"),
                                               acc.days_until(acc.usage_reset({}))) for t in labels), labels)
     shot(win, "manage-overview" + sfx)
 

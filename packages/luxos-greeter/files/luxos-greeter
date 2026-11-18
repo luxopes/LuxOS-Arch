@@ -49,6 +49,11 @@ try:
 except ImportError:  # mimo LuxOS (testy)
     def _(text):
         return text
+try:
+    # datum v jazyce greeteru (nezavisle na vygenerovanych locale: s jen en_US by strftime dal anglictinu)
+    from luxos_i18n import format_date as i18n_format_date
+except ImportError:  # starsi luxos-i18n bez formatovani data
+    i18n_format_date = None
 
 import cairo  # noqa: E402
 import gi  # noqa: E402
@@ -98,7 +103,8 @@ def load_config():
         idle = max(5, int(g.get("idle-timeout", 30)))
     except ValueError:
         idle = 30
-    date_fmt = str(g.get("date-format", "")).strip() or ("%A %-d. %B" if LANG == "cs" else "%A, %B %-d")
+    # bez vyslovneho date-format (strftime) se datum sklada podle jazyka greeteru (localized_date)
+    date_fmt = str(g.get("date-format", "")).strip()
     return {
         "background": str(g.get("background", "")).strip() or DEFAULT_BG,
         "user-background": flag("user-background", True),
@@ -110,6 +116,28 @@ def load_config():
         "battery": flag("show-battery", True),
         "network": flag("show-network", True),
     }
+
+
+def localized_date(now, fmt=""):
+    """Datum nad hodinami: vlastni date-format z konfigurace (strftime), jinak podle jazyka greeteru
+    pres luxos_i18n.format_date - nezavisle na tom, ktera locale jsou v systemu vygenerovana."""
+    if fmt:
+        try:
+            return time.strftime(fmt, now)
+        except ValueError:
+            pass
+    if i18n_format_date is not None:
+        try:
+            return i18n_format_date(now, "long", LANG)
+        except Exception as e:  # noqa: BLE001 - datum nesmi shodit prihlasovaci obrazovku
+            log("date:", e)
+    if LANG == "cs":
+        days = "pondělí úterý středa čtvrtek pátek sobota neděle".split()
+        months = "ledna února března dubna května června července srpna září října listopadu prosince".split()
+        return f"{days[now.tm_wday]} {now.tm_mday}. {months[now.tm_mon - 1]}"
+    if LANG == "en":
+        return time.strftime("%A, %B %-d", now)
+    return time.strftime("%-d. %-m.", now)   # neznamy jazyk bez luxos-i18n: aspon bez anglickych slov
 
 
 # ---- LightDM a demo backend --------------------------------------------------------------
@@ -1476,9 +1504,9 @@ class Greeter(Gtk.Window):
         now = time.localtime()
         try:
             clock = time.strftime(self.cfg["clock"], now)
-            date = time.strftime(self.cfg["date"], now)
         except ValueError:
-            clock, date = time.strftime("%H:%M", now), time.strftime("%x", now)
+            clock = time.strftime("%H:%M", now)
+        date = localized_date(now, self.cfg["date"])
         cx = m.x + m.width / 2
         y0 = m.y + m.height * 0.105 - e * m.height * 0.045
         alpha = 1.0 - 0.12 * e
@@ -1537,6 +1565,38 @@ class Greeter(Gtk.Window):
             self.focus_ring(cr, 0, 0, a.width, a.height, a.height * radius_frac)
         return False
 
+    def field_veil(self, widget, tint):
+        """Sila tmaveho zavoje pod textem pole podle jasu tapety pod nim: pozadi pole (rozmazana tapeta
+        + bily zavoj tint) se ztmavi na relativni jas <= 0.13, aby bily text mel kontrast aspon 4.5:1."""
+        small = self.blur_small
+        if small is None or not self.W or not self.H:
+            return 0.30
+        ox, oy = widget.translate_coordinates(self, 0, 0) or (0, 0)
+        a = widget.get_allocation()
+        key = (id(small), ox, oy, a.width, a.height, tint)
+        if getattr(self, "_veil_key", None) == key:
+            return self._veil
+        sw, sh = small.get_width(), small.get_height()
+        x0, x1 = max(0, int(ox * sw / self.W)), min(sw, int((ox + a.width) * sw / self.W) + 1)
+        y0, y1 = max(0, int(oy * sh / self.H)), min(sh, int((oy + a.height) * sh / self.H) + 1)
+        small.flush()
+        data, stride = small.get_data(), small.get_stride()
+
+        def lin(c):
+            return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+        total = n = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                i = y * stride + x * 4      # RGB24: B G R x
+                b, g, r = (data[i + k] / 255 * (1 - tint) + tint for k in range(3))
+                total += 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+                n += 1
+        lum = total / n if n else 0.5
+        # ztmaveni cernou s pruhlednosti v: jas ~ (1 - v)^2.2
+        veil = 0.24 if lum <= 0.13 else 1 - (0.13 / lum) ** (1 / 2.2)
+        self._veil_key, self._veil = key, max(0.24, min(0.62, veil))
+        return self._veil
+
     def set_placeholder(self, text):
         self.placeholder = text
         self.pw.queue_draw()
@@ -1544,6 +1604,12 @@ class Greeter(Gtk.Window):
     def draw_pw(self, w, cr):
         """Pole pro heslo: matny ovál + vlastni zastupny text (GTK 3 ho u aktivniho pole skryva)."""
         self.draw_frost_widget(w, cr, 0.5, 0.20)
+        # tmavy zavoj pod textem: bily zastupny text i tecky hesla zustanou citelne i na svetle/oranzove
+        # tapete (driv bily text 62 % na oranzove skoro zanikal)
+        a = w.get_allocation()
+        rounded(cr, 1, 1, a.width - 2, a.height - 2, (a.height - 2) * 0.5)
+        cr.set_source_rgba(0, 0, 0, self.field_veil(w, 0.20))
+        cr.fill()
         if self.placeholder and not self.entry.get_text():
             ex, ey = self.entry.translate_coordinates(w, 0, 0) or (0, 0)
             ea = self.entry.get_allocation()
@@ -1551,9 +1617,14 @@ class Greeter(Gtk.Window):
             lay.set_width((ea.width - self.sz["pw_pad"] - 4) * Pango.SCALE)
             lay.set_ellipsize(Pango.EllipsizeMode.END)
             _i, lg = lay.get_pixel_extents()
+            px, py = ex + self.sz["pw_pad"] + 2, ey + (ea.height - lg.height) / 2
+            sens = self.entry.get_sensitive()
             cr.new_path()
-            cr.move_to(ex + self.sz["pw_pad"] + 2, ey + (ea.height - lg.height) / 2)
-            cr.set_source_rgba(1, 1, 1, 0.62 if self.entry.get_sensitive() else 0.35)
+            cr.move_to(px, py + 1)
+            cr.set_source_rgba(0, 0, 0, 0.35 if sens else 0.2)
+            PangoCairo.show_layout(cr, lay)
+            cr.move_to(px, py)
+            cr.set_source_rgba(1, 1, 1, 0.92 if sens else 0.5)
             PangoCairo.show_layout(cr, lay)
         return False
 

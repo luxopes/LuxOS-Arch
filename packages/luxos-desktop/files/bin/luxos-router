@@ -24,6 +24,18 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
 import luxos_netadmin as na  # noqa: E402
 from luxos_i18n import _  # noqa: E402
+try:
+    from luxos_i18n import decimal_separator as _decimal_separator
+except ImportError:  # starsi luxos-i18n
+    def _decimal_separator():
+        return "."
+
+
+def dec(text):
+    """Desetinna carka/tecka podle jazyka aplikace ("1,5 GB" cesky, "1.5 GB" anglicky)."""
+    return text.replace(".", _decimal_separator())
+
+
 
 import gi  # noqa: E402
 
@@ -145,7 +157,7 @@ def ping_text(res):
     if not res["received"]:
         return _("No reply"), False
     loss = 100 - round(100 * res["received"] / res["sent"])
-    text = _("%s ms") % ("%.1f" % res["avg"]) if res["avg"] is not None else _("Replies")
+    text = _("%s ms") % dec("%.1f" % res["avg"]) if res["avg"] is not None else _("Replies")
     if loss:
         text += " · " + _("%d %% lost") % loss
     return text, loss < 50
@@ -524,7 +536,7 @@ class Router(Gtk.Window):
         def speed_show(mbit):
             if mbit is None:
                 return _("Measurement failed"), False
-            return _("%s Mbit/s") % ("%.1f" % mbit), True
+            return _("%s Mbit/s") % dec("%.1f" % mbit), True
         g.row(_("Download speed"), Tool(_("Measure"), na.speed_test, speed_show),
               _("Estimate: downloads 10 MB from speed.cloudflare.com."))
         page.show_all()
