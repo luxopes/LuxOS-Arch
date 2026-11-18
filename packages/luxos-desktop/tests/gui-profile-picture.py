@@ -163,6 +163,24 @@ def run(lang):
     win.cam.TEST = "1"
     win.back()
 
+    # Enter s fokusem na Zrusit v orezu: zrusi, neulozi (drive prepsal ~/.face)
+    before = open(face, "rb").read()
+    check("orez znovu", win.open_file(test_photo()) and win.stack.get_visible_child_name() == "crop")
+    win.crop.ox = -10000
+    win.crop.clamp()
+    cancel = next(b for b in win.save_btn.get_parent().get_children()
+                  if isinstance(b, Gtk.Button) and b is not win.save_btn)
+    cancel.grab_focus()
+    pump(0.1)
+    ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
+    ev.keyval, ev.window = Gdk.KEY_Return, win.get_window()
+    ev.send_event = True
+    win.emit("key-press-event", ev)
+    pump(0.2)
+    check("Enter na Zrusit: neulozeno", open(face, "rb").read() == before)
+    if win.stack.get_visible_child_name() == "crop":
+        win.back()
+
     win.remove_picture(None)
     check("odebrano: ~/.face smazan", not os.path.exists(face))
     check("odebrano: AccountsService bez fotky", open(FAKE).read() == "")

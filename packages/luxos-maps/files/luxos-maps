@@ -999,7 +999,8 @@ class MapView(Gtk.DrawingArea):
                 cr.arc(x, y, 3.8, 0, 2 * math.pi)
                 cr.set_source_rgb(1, 1, 1)
                 cr.fill()
-        if self.route_ends:
+        # konec trasy muze byt None (pole Odkud/Kam se prave upravuje) - pak se nekresli
+        if self.route_ends and all(isinstance(e, dict) for e in self.route_ends):
             a, b = self.route_ends
             draw_dot(cr, *self.latlon_to_screen(a["lat"], a["lon"]), (0.2, 0.7, 0.35), 6)
             if not (self.marker and lm.same_place(self.marker, b)):
@@ -3052,6 +3053,8 @@ class MapsWindow(Gtk.Window):
         self.nav_gen += 1
         self.nav = lm.Navigator(route)       # prepocet i u MHD (mimo trasu, opacny smer, zmeskany spoj)
         self.nav_mode = route.mode
+        # cil pro prepocet trasy: uprava pole Kam behem navigace (route_to = None) ho nesmi ztratit
+        self.nav_dest = dict(self.route_to) if self.route_to else None
         self.nav_motion = lm.NavMotion()
         self.nav_state = self.nav_fix = self.nav_pending = None
         self.nav_spoken = set()
@@ -3388,8 +3391,10 @@ class MapsWindow(Gtk.Window):
         nebo nove spojeni MHD (Transitous) z aktualni polohy. Navigator hlida nejvys 1 prepocet za 15 s
         (MHD 60 s); nova trasa nahradi starou v mape, v panelu i v pruhu navigace."""
         st = st or {}
-        gen, mode, b = self.nav_gen, self.nav_mode, self.route_to
+        gen, mode, b = self.nav_gen, self.nav_mode, getattr(self, "nav_dest", None) or self.route_to
         a = {"lat": fix["lat"], "lon": fix["lon"]}
+        if not b:
+            return
         if mode == lm.TRANSIT:
             self.nav_set_status(_("Connection missed. Finding another one…") if st.get("reason") == "missed"
                                 else _("Finding a new connection…"))
@@ -3402,6 +3407,8 @@ class MapsWindow(Gtk.Window):
                     res, err = lm.transit_plan(a, b, when, arrive, cfg=self.cfg), None
                 except lm.MapsError as e:
                     res, err = None, str(e)
+                except Exception as e:      # noqa: BLE001 - vysledek musi prijit vzdy, jinak "Hledam..." navzdy
+                    res, err = None, repr(e)
                 GLib.idle_add(self.nav_transit_rerouted, gen, res, err)
             threading.Thread(target=transit_work, daemon=True).start()
             return
@@ -3412,7 +3419,7 @@ class MapsWindow(Gtk.Window):
         def work():
             try:
                 res = lm.route(a, b, mode, cfg=self.cfg, bearing=head)
-            except lm.MapsError:
+            except Exception:               # noqa: BLE001 - i neocekavana chyba = neuspesny prepocet
                 res = None
             GLib.idle_add(self.nav_rerouted, gen, res)
         threading.Thread(target=work, daemon=True).start()
@@ -3439,7 +3446,8 @@ class MapsWindow(Gtk.Window):
         if not self.nav or gen != self.nav_gen:
             return False
         try:
-            route = lm.transit_nav_route(res["itineraries"][0], dest=self.route_to) if res else None
+            route = lm.transit_nav_route(res["itineraries"][0], dest=getattr(self, "nav_dest", None) or self.route_to) \
+                if res else None
         except (lm.MapsError, KeyError, IndexError):
             route = None
         if route is None:

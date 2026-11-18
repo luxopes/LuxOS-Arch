@@ -42,6 +42,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import datetime
 import time
 import types
 import unittest
@@ -393,6 +394,12 @@ class TestGeo(unittest.TestCase):
         self.assertIsNone(lm.parse_geo_uri("geo:50,14;crs=epsg:3857"))
         self.assertIsNone(lm.parse_geo_uri("geo:95,14"))
         self.assertIsNone(lm.parse_geo_uri("geo:abc"))
+        # NaN/nekonecno: zoom se ignoruje, souradnice odmitnou (drive NaN zastavilo kresleni mapy)
+        self.assertIsNone(lm.parse_geo_uri("geo:50,14?z=NaN")["zoom"])
+        self.assertIsNone(lm.parse_geo_uri("geo:50,14?z=inf")["zoom"])
+        self.assertIsNone(lm.parse_geo_uri("geo:nan,14"))
+        self.assertIsNone(lm.parse_geo_uri("geo:50,inf"))
+        self.assertEqual(lm.clamp(float("nan"), 1, 19), 1)
         self.assertIsNone(lm.parse_geo_uri("https://example.com"))
         p = lm.parse_geo_uri("geo:0,0?q=Karlovo%20n%C3%A1m%C4%9Bst%C3%AD")
         self.assertEqual((p["lat"], p["query"]), (None, "Karlovo náměstí"))
@@ -425,6 +432,37 @@ class TestGeo(unittest.TestCase):
         self.assertEqual(lm.format_duration(3725), "1 h 2 min")
         self.assertEqual(lm.locale_country({"LANG": "en_US.UTF-8"}), "US")
         self.assertEqual(lm.lang_code({"LANG": "cs_CZ.UTF-8"}), "cs")
+        # LANG=C neni jazyk; zaokrouhleni tesne pod 1 km nesmi dat "1000 m"
+        self.assertEqual(lm.lang_code({"LANG": "C"}), "en")
+        self.assertEqual(lm.lang_code({"LANG": "C.UTF-8"}), "en")
+        self.assertEqual(lm.lang_code({"LANG": "POSIX"}), "en")
+        self.assertEqual(lm.format_distance(995, lang="en"), "1 km")
+        self.assertEqual(lm.format_distance(994, lang="en"), "990 m")
+        self.assertEqual(lm.format_distance(99.6, lang="en"), "100 m")
+
+    def test_overpass_regex(self):
+        # regularni vyraz i retezec Overpass QL: zpetne lomitko zdvojene pro QL, uvozovky escapovane
+        self.assertEqual(lm.overpass_regex("a.b"), "a\\\\.b")
+        self.assertEqual(lm.overpass_regex('U "Fleku"'), 'U \\"Fleku\\"')
+        self.assertEqual(lm.overpass_regex("C++ (x)"), "C\\\\+\\\\+ \\\\(x\\\\)")
+        self.assertEqual(lm.overpass_regex("Café"), "Café")
+
+    def test_interrupted_transfer_is_maps_error(self):
+        import http.client
+
+        class Broken:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self, _n):
+                raise http.client.IncompleteRead(b"{")
+        from unittest import mock
+        with mock.patch("urllib.request.urlopen", lambda *a, **k: Broken()):
+            with self.assertRaises(lm.MapsError):
+                lm.http_json("http://127.0.0.1:9/x")
 
 
 class TestConfig(unittest.TestCase):
@@ -637,6 +675,25 @@ class TestTransit(unittest.TestCase):
         self.assertEqual(lm.hhmm(lm.parse_iso("2026-07-10T12:00:00Z"), lm.zone("America/New_York")), "08:00")
         self.assertIsNotNone(lm.zone("Not/AZone"))
 
+    def test_future_time_uses_its_own_dst_offset(self):
+        # cas bez pasma (trasa na pozdeji) dostane posun platny pro ten den, ne posun "ted"
+        old = os.environ.get("TZ")
+        os.environ["TZ"] = "Europe/Prague"
+        time.tzset()
+        try:
+            self.assertEqual(lm.api_time(lm.parse_iso("2026-07-10T12:00:00")), "2026-07-10T10:00:00Z")
+            self.assertEqual(lm.api_time(lm.parse_iso("2026-01-10T12:00:00")), "2026-01-10T11:00:00Z")
+            # HH:MM v den zmeny casu (29. 3. 2026: 02:00 -> 03:00) od pulnoci se zimnim posunem
+            now = datetime.datetime(2026, 3, 29, 0, 30, tzinfo=lm.local_zone())
+            self.assertEqual(lm.api_time(lm.parse_user_time("12:00", now=now)), "2026-03-29T10:00:00Z")
+            self.assertEqual(lm.hhmm(lm.parse_iso("2026-07-10T10:00:00Z"), lm.zone(None)), "12:00")
+        finally:
+            if old is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = old
+            time.tzset()
+
     def test_timetable_realtime(self):
         tt = lm.timetable(50.0759, 14.419612, radius=200, limit=20)
         raw = SERVER.raw[-1]
@@ -751,7 +808,8 @@ class TestNearby(unittest.TestCase):
         # stejne jako mobilni test: razeni podle vzdalenosti, escapovany regularni vyraz
         res = lm.nearby(50.0875, 14.4213, name='Cafe "A.*"', radius=800)
         q = SERVER.requests[-1][1]["data"]
-        self.assertIn('["name"~"Cafe \\"A\\.\\*\\"",i]', q)
+        # Overpass QL zahodi zpetne lomitko pred neznamym znakem ("\\." -> "."): pro regularni vyraz zdvojene
+        self.assertIn('["name"~"Cafe \\"A\\\\.\\\\*\\"",i]', q)
         self.assertIn("around:800,", q)
         self.assertEqual([p["name"] for p in res], ["Near Café", "Far Café"])
         self.assertEqual(res[0]["opening_hours"], "Mo-Fr 08:00-18:00")
@@ -3020,6 +3078,32 @@ class TestWindow(unittest.TestCase):
         self.assertTrue(win.nav_btn.get_visible())
         self.assertTrue(self.pump(lambda: win.map.anim is None))
         return win
+
+    def test_edited_endpoint_during_navigation(self):
+        """Uprava pole Kam/Odkud: mapa se dal kresli (konec trasy None) a prepocet trasy ma porad cil."""
+        win = self.nav_window()
+        win.start_navigation()
+        self.assertIsNotNone(win.nav)
+        win.to_entry.set_text("Thun")                     # uzivatel prepisuje cil -> route_to = None
+        win.from_entry.set_text("Star")
+        self.assertIsNone(win.route_to)
+        errors = []
+        old_hook = sys.excepthook
+        sys.excepthook = lambda *exc: errors.append(exc[1])
+        try:
+            win.map.route_ends = (win.route_from, win.route_to)
+            win.map.queue_draw()
+            self.pump(lambda: False, 0.3)
+        finally:
+            sys.excepthook = old_hook
+        self.assertEqual(errors, [])                       # kresleni bez TypeError
+        called = []
+        orig = win.nav_rerouted
+        win.nav_rerouted = lambda gen, res: (called.append(res), orig(gen, res))[1]
+        win.nav_reroute({"lat": 50.0880, "lon": 14.4150, "accuracy": 5})
+        self.assertTrue(self.pump(lambda: called, 10))
+        self.assertIsNotNone(called[0])                    # trasa k puvodnimu cili (fixture), ne zaseknuti
+        win.end_navigation()
 
     def phone(self, fix):
         return {"valid": True, "latitude": fix["lat"], "longitude": fix["lon"], "accuracy": fix["accuracy"],

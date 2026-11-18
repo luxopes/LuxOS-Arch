@@ -203,5 +203,46 @@ class GreeterSync(unittest.TestCase):
         self.assertTrue(stat.S_IMODE(os.stat(pic).st_mode) == 0o600)
 
 
+class BarOpacity(GreeterSync):
+    """Prazdna pruhlednost listy (prikaz i soubor nastaveni) = vychozi 62 %, ne pruhledna lista."""
+
+    def setUp(self):
+        super().setUp()
+        fake = os.path.join(self.tmp, "fake")
+        for name in ("gsettings", "pgrep", "plank"):
+            p = os.path.join(fake, name)
+            with open(p, "w") as f:
+                f.write("#!/bin/sh\nexit 1\n" if name == "pgrep" else "#!/bin/sh\nexit 0\n")
+            os.chmod(p, 0o755)
+        self.env["XDG_RUNTIME_DIR"] = self.tmp
+
+    def alpha(self):
+        with open(self.log) as f:
+            rows = [l for l in f if "background-rgba" in l]
+        self.assertTrue(rows)
+        return rows[-1].split()[-1]
+
+    def test_empty_command_value_uses_default(self):
+        r = subprocess.run(["bash", APPEARANCE, "bar-opacity", ""], env=self.env,
+                           capture_output=True, text=True, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.alpha(), "0.62")
+        with open(os.path.join(self.state, "appearance.conf")) as f:
+            self.assertIn("BAR_OPACITY=62\n", f.read())
+
+    def test_empty_saved_value_uses_default(self):
+        with open(os.path.join(self.state, "appearance.conf"), "w") as f:
+            f.write("BAR_OPACITY=\n")
+        r = subprocess.run(["bash", APPEARANCE, "dark"], env=self.env, capture_output=True, text=True, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.alpha(), "0.62")
+
+    def test_explicit_zero_kept(self):
+        r = subprocess.run(["bash", APPEARANCE, "bar-opacity", "0"], env=self.env,
+                           capture_output=True, text=True, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.alpha(), "0.00")
+
+
 if __name__ == "__main__":
     unittest.main()

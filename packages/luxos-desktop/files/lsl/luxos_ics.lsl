@@ -148,7 +148,7 @@ function unescape(value):
 end
 
 function escape(value):
-    return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n")
+    return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n")
 end
 
 function zone_known(name):
@@ -1153,10 +1153,20 @@ function update(store, ev):
     return save(store)
 end
 
+# Smaze udalost; upraveny vyskyt opakovane udalosti (RECURRENCE-ID) smaze jen ten vyskyt (EXDATE
+# v hlavni udalosti), ne celou serii
 function delete(store, ev):
     kept = []
+    rid = ev["recurrence_id"]
     for e in store["own"]["events"]:
         if e["uid"] != ev["uid"]:
+            kept.append(e)
+        elif rid != None and e["recurrence_id"] != rid:
+            if e["recurrence_id"] == None:
+                e["exdates"].append(rid)
+                pv = format_dt(rid[0], rid[1], store["tzname"])
+                e["exdate_lines"].append("EXDATE" + pv[0] + ":" + pv[1])
+            end
             kept.append(e)
         end
     end

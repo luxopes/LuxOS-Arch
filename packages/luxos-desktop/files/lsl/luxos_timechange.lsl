@@ -103,13 +103,18 @@ function message(change, before):
     new = offset(change)
     dst = glib.localtime(change)[8] > 0
     was_dst = glib.localtime(change - 1)[8] > 0
+    # Letni/zimni cas jen kdyz priznak DST souhlasi se smerem posunu. Pasma se "zapornym" DST
+    # (Europe/Dublin: v zime GMT s priznakem DST; Africa/Casablanca: ramadan +00 s priznakem DST)
+    # by jinak v breznu hlasila zimni cas - tam obecny nadpis
+    summer = dst and not was_dst and new > old
+    winter = was_dst and not dst and new < old
     times = [hhmm(change + old), hhmm(change + new)]
     title = ""
     if before:
         title = i18n.T("The time changes tonight")
-        if dst and not was_dst:
+        if summer:
             title = i18n.T("Summer time starts tonight")
-        elif was_dst and not dst:
+        elif winter:
             title = i18n.T("Winter time starts tonight")
         end
         body = i18n.TF("Clocks go back from %s to %s. Your computer changes the time automatically.", times)
@@ -119,9 +124,9 @@ function message(change, before):
         return [title, body]
     end
     title = i18n.T("The time has changed")
-    if dst and not was_dst:
+    if summer:
         title = i18n.T("Summer time has started")
-    elif was_dst and not dst:
+    elif winter:
         title = i18n.T("Winter time has started")
     end
     body = i18n.TF("Clocks went back from %s to %s.", times)

@@ -30,7 +30,8 @@ resolve() {  # resolve <instance> <class> -> nazev aplikace
     for n in "$inst" "$cls"; do
         [[ -n ${SHORT[$n]-} ]] && { cache[$key]=$(T "${SHORT[$n]}"); echo "${cache[$key]}"; return; }
     done
-    f=$(grep -lisE "^StartupWMClass=($inst|$cls)$" /usr/share/applications/*.desktop 2>/dev/null | head -1)
+    # cely radek doslova (-xF): WM_CLASS je text okna, ne regularni vyraz ("a.b", "x|.*", "(")
+    f=$(grep -lisxF -e "StartupWMClass=$inst" -e "StartupWMClass=$cls" /usr/share/applications/*.desktop 2>/dev/null | head -1)
     if [[ -z $f ]]; then
         for n in "$inst" "$cls"; do
             for f in /usr/share/applications/{,*.}"$n".desktop; do [[ -e $f ]] && break 2; done

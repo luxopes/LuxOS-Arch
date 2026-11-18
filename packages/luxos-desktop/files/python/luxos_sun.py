@@ -12,6 +12,10 @@ import os
 import sys
 
 ZONE_TAB = "/usr/share/zoneinfo/zone1970.tab"
+# zone.tab ma i pasma, ktera jsou v zone1970.tab jen odkazem (Europe/Bratislava -> Praha, vlastni
+# souradnice); stare nazvy (Asia/Calcutta, Europe/Kiev, US/Eastern) prevede radek "L" z tzdata.zi
+ZONE_TABS = (os.path.join(os.path.dirname(ZONE_TAB), "zone.tab"), ZONE_TAB)
+TZDATA_ZI = os.path.join(os.path.dirname(ZONE_TAB), "tzdata.zi")
 DEFAULT = (50.08, 14.42)    # Praha, kdyz pasmo nejde zjistit
 
 
@@ -21,9 +25,13 @@ def timezone_name():
         return tz
     try:
         link = os.readlink("/etc/localtime")
-        return link.split("zoneinfo/", 1)[1]
+        name = link.split("zoneinfo/", 1)[1]
     except (OSError, IndexError):
         return ""
+    for prefix in ("posix/", "right/"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+    return name
 
 
 def _dms(text, deg_digits):
@@ -36,22 +44,46 @@ def _dms(text, deg_digits):
     return sign * (deg + minutes / 60 + seconds / 3600)
 
 
-def location(tzname=None):
-    tzname = tzname or timezone_name()
+def _from_tabs(tzname, tabs):
+    for tab in tabs:
+        try:
+            with open(tab) as f:
+                for line in f:
+                    if line.startswith("#"):
+                        continue
+                    parts = line.split("\t")
+                    if len(parts) >= 3 and parts[2].strip() == tzname:
+                        coord = parts[1]
+                        split = max(coord.rfind("+"), coord.rfind("-"))
+                        lat, lon = coord[:split], coord[split:]
+                        return _dms(lat, 2), _dms(lon, 3)
+        except (OSError, ValueError, IndexError):
+            continue
+    return None
+
+
+def _link_target(tzname, zi):
+    """Stary nazev pasma -> cil podle radku "L CIL NAZEV" v tzdata.zi."""
     try:
-        with open(ZONE_TAB) as f:
+        with open(zi) as f:
             for line in f:
-                if line.startswith("#"):
-                    continue
-                parts = line.split("\t")
-                if len(parts) >= 3 and parts[2].strip() == tzname:
-                    coord = parts[1]
-                    split = max(coord.rfind("+"), coord.rfind("-"))
-                    lat, lon = coord[:split], coord[split:]
-                    return _dms(lat, 2), _dms(lon, 3)
+                parts = line.split()
+                if len(parts) == 3 and parts[0] == "L" and parts[2] == tzname:
+                    return parts[1]
     except OSError:
         pass
-    return DEFAULT
+    return ""
+
+
+def location(tzname=None):
+    tzname = tzname or timezone_name()
+    if not tzname:
+        return DEFAULT
+    found = _from_tabs(tzname, ZONE_TABS)
+    if found is None:
+        target = _link_target(tzname, TZDATA_ZI)
+        found = _from_tabs(target, ZONE_TABS) if target else None
+    return found or DEFAULT
 
 
 def sun_times(day, lat, lon):

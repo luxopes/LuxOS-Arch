@@ -171,6 +171,24 @@ class Core(Home):
         self.assertTrue(os.path.isfile(self.path(".local/share/vlc/ml.xspf")))
         self.assertEqual(core.list_backups(), [])
 
+    def test_manifest_write_failure_rolls_back(self):
+        """Plny disk pri zapisu manifestu: nastaveni se vrati na misto (jinak by bylo presunute v zaloze,
+        kterou seznam neukaze a nejde obnovit)."""
+        app = core.find(core.scan(), "vlc")
+        real_open = open
+
+        def failing_open(path, *a, **k):
+            if str(path).endswith("manifest.json.tmp"):
+                raise OSError(28, "No space left on device")
+            return real_open(path, *a, **k)
+        with mock.patch("builtins.open", failing_open):
+            with self.assertRaises(OSError):
+                core.reset(app)
+        self.assertTrue(os.path.isfile(self.path(".config/vlc/vlcrc")))
+        self.assertTrue(os.path.isfile(self.path(".local/share/vlc/ml.xspf")))
+        self.assertEqual(core.list_backups(), [])
+        self.assertEqual(os.listdir(core.backup_root()), [])
+
     def test_restore(self):
         dest = core.reset(core.find(core.scan(), "vlc"), now=datetime.datetime(2026, 10, 26, 15, 0, 0))
         # aplikace mezitim vytvorila nove nastaveni
@@ -193,6 +211,36 @@ class Core(Home):
             json.dump({"app": "x", "key": "x", "items": [{"kind": "config", "path": "/etc/passwd", "backup": "a"}]}, f)
         with self.assertRaises(ValueError):
             core.restore(other)
+
+    def test_restore_refuses_tampered_manifest(self):
+        dest = core.reset(core.find(core.scan(), "vlc"), now=datetime.datetime(2026, 10, 26, 15, 0, 0))
+        mf = os.path.join(dest, "manifest.json")
+        with open(mf) as f:
+            good = json.load(f)
+        victim = self.path("Documents/keep.txt")
+        os.makedirs(os.path.dirname(victim))
+        with open(victim, "w") as f:
+            f.write("mine")
+        bad_items = [
+            {"kind": "config", "path": self.path(".config/../Documents/x"), "backup": "config/vlc"},
+            {"kind": "config", "path": self.path(".config/vlc/deep"), "backup": "config/vlc"},
+            {"kind": "config", "path": "/tmp/x", "backup": "config/vlc"},
+            {"kind": "config", "path": self.path(".config/vlc"), "backup": "../../../../Documents/keep.txt"},
+            {"kind": "config", "path": self.path(".config/vlc"), "backup": "/etc/passwd"},
+            {"kind": "config", "path": self.path(".local/share"), "backup": "config/vlc"},
+            {"kind": "config", "path": 5, "backup": "config/vlc"},
+        ]
+        for item in bad_items:
+            with open(mf, "w") as f:
+                json.dump(dict(good, items=[item]), f)
+            with self.assertRaises(ValueError, msg=item):
+                core.restore(dest)
+        with open(victim) as f:
+            self.assertEqual(f.read(), "mine")
+        with open(mf, "w") as f:
+            json.dump(good, f)
+        core.restore(dest)
+        self.assertTrue(os.path.isfile(self.path(".config/vlc/vlcrc")))
 
     def test_running(self):
         app = core.find(core.scan(), "vlc")

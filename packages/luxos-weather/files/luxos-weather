@@ -35,8 +35,7 @@ from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
 
 APP = "luxos-weather"
 ICONS = os.environ.get("LUXOS_WEATHER_ICONS") or "/usr/share/luxos/weather/icons"
-LANG = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or os.environ.get("LANG") or "en")
-LANG = LANG.split("_")[0].split(".")[0] or "en"
+LANG = lw.ui_language()          # LANG=C / POSIX -> en (hledani mest by dostalo "C")
 CHECK_SECONDS = 300          # jak casto se kontroluje stari dat otevreneho okna
 SCENE_SECONDS = 60           # jak casto se prepocita denni doba sceny (usvit, soumrak, noc)
 POWERSAVER = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
@@ -599,8 +598,11 @@ class WeatherWindow(Gtk.Window):
             return
         before = self.units()
         del locs[index]
+        # vysledky, nacitani i vyber patri mistum, ne poradi: mista za odebranym se posunou o jedno
         self.results = {i - (i > index): r for i, r in self.results.items() if i != index}
-        self.cfg["selected"] = min(self.cfg["selected"], max(0, len(locs) - 1))
+        self.loading = {i - (i > index) for i in self.loading if i != index}
+        selected = self.cfg["selected"]
+        self.cfg["selected"] = min(selected - (selected > index), max(0, len(locs) - 1))
         lw.save_config(self.cfg)
         self.rebuild_list()
         if not locs:
@@ -844,10 +846,16 @@ class WeatherWindow(Gtk.Window):
         threading.Thread(target=work, daemon=True).start()
 
     def refreshed(self, index, loc, units, res):
-        self.loading.discard(index)
+        # poradi se mezitim mohlo zmenit (odebrane misto pred timto): aktualni pozice podle mista
         locs = self.cfg["locations"]
-        if index >= len(locs) or not lw.same_place(locs[index], loc) or units != self.units():
-            return False      # misto mezitim odebrane nebo zmenene jednotky
+        index = next((i for i, l in enumerate(locs) if lw.same_place(l, loc)), None)
+        if index is None:
+            return False      # misto mezitim odebrane
+        self.loading.discard(index)
+        if units != self.units():
+            # jednotky se mezitim zmenily: novy dotaz se kvuli probihajicimu nacitani nespustil
+            self.refresh(index)
+            return False
         old = self.results.get(index)
         if res.get("data") is None and old and old.get("data"):
             old = dict(old, stale=True, error=res.get("error"))

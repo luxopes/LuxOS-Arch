@@ -37,7 +37,14 @@ def x11():
     lib.XFlush.argtypes = [ctypes.c_void_p]
     lib.XCloseDisplay.argtypes = [ctypes.c_void_p]
     lib.XSetErrorHandler.argtypes = [ctypes.c_void_p]
+    lib.XSetErrorHandler.restype = ctypes.c_void_p
     return lib
+
+
+# Obsluha chyb X, ktera chyby jen ignoruje. Xlib ji drzi globalne pro cely proces (i pro spojeni GDK),
+# proto musi objekt ctypes zit po celou dobu behu programu - uvolnena funkce by pri pristi chybe X
+# v aplikaci GTK zpusobila pad.
+_IGNORE_X_ERRORS = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)(lambda _d, _e: 0)
 
 
 def read_icons(lib, dpy, win, atom):
@@ -161,8 +168,8 @@ def _write_net_wm_icon(win, pixbufs):
     dpy = lib.XOpenDisplay(None)
     if not dpy:
         return
-    handler = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)(lambda _d, _e: 0)
-    lib.XSetErrorHandler(handler)
+    # Jen po dobu zapisu: puvodni obsluhu (GDK) pak vratit, jinak by aplikace prisla o hlaseni chyb X
+    previous = lib.XSetErrorHandler(_IGNORE_X_ERRORS)
     try:
         atom = lib.XInternAtom(dpy, b"_NET_WM_ICON", 0)
         arr = (ctypes.c_ulong * len(values))(*values)
@@ -170,6 +177,7 @@ def _write_net_wm_icon(win, pixbufs):
         lib.XFlush(dpy)
     finally:
         lib.XCloseDisplay(dpy)
+        lib.XSetErrorHandler(previous)
 
 
 def set_window_icons(win, icon_name):
@@ -202,8 +210,7 @@ def main(argv):
     if not dpy:
         return 1
     # okno mezitim zavrene: chyba X jen ignorovat (vychozi obsluha by proces ukoncila)
-    handler = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)(lambda _d, _e: 0)
-    lib.XSetErrorHandler(handler)
+    lib.XSetErrorHandler(_IGNORE_X_ERRORS)
     try:
         atom = lib.XInternAtom(dpy, b"_NET_WM_ICON", 0)
         current = read_icons(lib, dpy, win, atom)

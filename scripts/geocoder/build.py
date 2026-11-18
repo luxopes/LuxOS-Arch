@@ -373,7 +373,8 @@ class Collector:
             if not any(k in tags for k in ("place", "amenity", "tourism", "leisure", "historic", "shop")):
                 return
             outer = max(geom, key=ring_area)
-            lat, lon = centroid(outer + outer[:1])
+            # kruhy jsou uzavrene (prvni bod = posledni); znovu pridany prvni bod by mel v prumeru dvojnasobnou vahu
+            lat, lon = centroid(outer if len(outer) > 1 and outer[0] == outer[-1] else outer + outer[:1])
         elif typ == "w":
             lat, lon = centroid(geom)
         else:

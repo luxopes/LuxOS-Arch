@@ -101,6 +101,8 @@ elif command == "fold":
 elif command == "escape":
     s = "a,b;c\\d\ne"
     print ics.unescape(ics.escape(s)) == s, ics.escape(s)
+elif command == "escape-cr":
+    print ics.escape("a\rb\r\nc")
 elif command == "line":
     p = ics.parse_line(arg(2))
     if p == None:
@@ -217,6 +219,24 @@ elif command == "override":
         print item[0]["summary"], fmt(item[0], item[1])
     end
     print "next", len(ics.day_instances(st, date.ordinal(2026, 10, 21)))
+elif command == "delete-override":
+    st = ics.store_new(arg(2))
+    call ics.reload_if_changed(st)
+    for e in st["own"]["events"]:
+        if e["recurrence_id"] != None:
+            call ics.delete(st, e)
+            break
+        end
+    end
+    st2 = ics.store_new(arg(2))
+    call ics.reload_if_changed(st2)
+    for d in [19, 20, 21]:
+        names = []
+        for item in ics.day_instances(st2, date.ordinal(2026, 10, d)):
+            names.append(item[0]["summary"])
+        end
+        print String(d), text.join(names, ";")
+    end
 elif command == "sorting":
     st = ics.store_new(arg(2))
     call ics.reload_if_changed(st)

@@ -33,9 +33,11 @@ COMMON = [
     ("Spanish", "es", ""), ("Italian", "it", ""), ("Polish", "pl", ""), ("Hungarian", "hu", ""),
     ("Ukrainian", "ua", ""), ("Portuguese", "pt", ""), ("Portuguese (Brazil)", "br", ""), ("Swedish", "se", ""),
 ]
-LAYOUT_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
-VARIANT_RE = re.compile(r"^[A-Za-z0-9_-]{0,48}$")
-OPTION_RE = re.compile(r"^[A-Za-z0-9_]+:[A-Za-z0-9_]+$")
+# kontrola celym retezcem (fullmatch): "$" by pustil koncovy novy radek do konfigurace X
+LAYOUT_RE = re.compile(r"[a-z][a-z0-9_-]{0,31}")
+VARIANT_RE = re.compile(r"[A-Za-z0-9_-]{0,48}")
+OPTION_RE = re.compile(r"[A-Za-z0-9_]+:[A-Za-z0-9_]+")
+MODEL_RE = re.compile(r"[A-Za-z0-9_-]{0,48}")
 
 
 class KeyboardError(ValueError):
@@ -86,7 +88,7 @@ def read_system(conf=None, vconsole=None):
     return {"layouts": [("us", "")], "model": "", "options": []}
 
 
-def validate(layouts, options=()):
+def validate(layouts, options=(), model=""):
     """Kontrola pred zapisem (hodnoty jdou do prikazove radky a konfigurace X)."""
     if not layouts:
         raise KeyboardError("at least one layout is needed")
@@ -95,11 +97,13 @@ def validate(layouts, options=()):
     if len(set(layouts)) != len(layouts):
         raise KeyboardError("duplicate layout")
     for lay, var in layouts:
-        if not LAYOUT_RE.match(lay) or not VARIANT_RE.match(var):
+        if not LAYOUT_RE.fullmatch(lay) or not VARIANT_RE.fullmatch(var):
             raise KeyboardError(f"invalid layout {lay!r} {var!r}")
     for o in options:
-        if not OPTION_RE.match(o):
+        if not OPTION_RE.fullmatch(o):
             raise KeyboardError(f"invalid option {o!r}")
+    if not isinstance(model, str) or not MODEL_RE.fullmatch(model):
+        raise KeyboardError(f"invalid model {model!r}")
 
 
 def xkb_strings(layouts):
@@ -120,7 +124,7 @@ def with_switch(options, switch):
 
 def conf_text(layouts, options=(), model=""):
     """00-keyboard.conf stejne jako ho pise systemd-localed."""
-    validate(layouts, options)
+    validate(layouts, options, model)
     lay, var = xkb_strings(layouts)
     lines = ["# Written by systemd-localed(8), read by systemd-localed and Xorg. It's",
              '# probably wise not to edit this file manually. Use localectl(1) to',
@@ -141,7 +145,7 @@ def conf_text(layouts, options=(), model=""):
 
 def localectl_cmd(layouts, options=(), model=""):
     """Systemovy zapis pres systemd-localed (opravneni overi polkit, konzoli odvodi localed)."""
-    validate(layouts, options)
+    validate(layouts, options, model)
     lay, var = xkb_strings(layouts)
     return ["localectl", "set-x11-keymap", lay, model, var, ",".join(options)]
 

@@ -124,10 +124,16 @@ class Generate(unittest.TestCase):
     def test_validate(self):
         bad = [([], []), ([("cz", ""), ("us", ""), ("de", ""), ("fr", ""), ("pl", "")], []),
                ([("cz", ""), ("cz", "")], []), ([('cz"', "")], []), ([("cz", "qw erty")], []),
-               ([("CZ", "")], []), ([("cz", "")], ["grp:alt shift"]), ([("cz", "")], ['grp:x"'])]
+               ([("CZ", "")], []), ([("cz", "")], ["grp:alt shift"]), ([("cz", "")], ['grp:x"']),
+               # koncovy novy radek (regularni vyraz s "$" ho pustil) = dalsi radek v konfiguraci X
+               ([("cz\n", "")], []), ([("cz", "qwerty\n")], []), ([("cz", "")], ["grp:caps_toggle\n"])]
         for layouts, opts in bad:
             with self.assertRaises(kb.KeyboardError, msg=f"{layouts} {opts}"):
                 kb.localectl_cmd(layouts, opts)
+        for model in ("pc105\n", 'pc105"\n        Option "X" "y', None):
+            with self.assertRaises(kb.KeyboardError, msg=repr(model)):
+                kb.conf_text([("cz", "")], [], model)
+        self.assertIn('Option "XkbModel" "pc105"', kb.conf_text([("cz", "")], [], "pc105"))
         kb.validate([("cz", ""), ("cz", "qwerty"), ("us", ""), ("ua", "phonetic")], ["grp:alt_shift_toggle"])
 
     def test_switch(self):

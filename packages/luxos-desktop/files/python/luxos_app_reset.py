@@ -294,6 +294,14 @@ def reset(app, now=None):
             _move(path, os.path.join(dest, rel))
             moved.append((path, os.path.join(dest, rel)))
             manifest["items"].append({"kind": kind, "path": path, "backup": rel})
+        # i zapis manifestu patri do celku: bez nej by zaloha nebyla v seznamu k obnoveni
+        # (plny disk) a nastaveni by zustalo presunute bez moznosti ho vratit
+        tmp = os.path.join(dest, "manifest.json.tmp")
+        with open(tmp, "w") as f:
+            json.dump(manifest, f, indent=1, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, os.path.join(dest, "manifest.json"))
     except OSError:
         # nic napul: vratit, co uz se presunulo; zaloha zmizi jen kdyz je zase prazdna
         for orig, b in reversed(moved):
@@ -301,10 +309,12 @@ def reset(app, now=None):
                 _move(b, orig)
             except OSError:
                 pass
+        try:
+            os.unlink(os.path.join(dest, "manifest.json.tmp"))
+        except OSError:
+            pass
         _remove_empty(dest)
         raise
-    with open(os.path.join(dest, "manifest.json"), "w") as f:
-        json.dump(manifest, f, indent=1, ensure_ascii=False)
     return dest
 
 
@@ -328,6 +338,24 @@ def list_backups():
     return out
 
 
+def _item_ok(it):
+    """Polozka manifestu ukazuje jen tam, kam ji reset mohl vzit: primo do slozky s nastavenim
+    (config, data, cache, ~/.var/app, domovska slozka) a zaloha je uvnitr slozky zalohy."""
+    path, rel = it.get("path"), it.get("backup")
+    if not isinstance(path, str) or not isinstance(rel, str) or not isinstance(it.get("kind"), str):
+        return False
+    if not os.path.isabs(path) or os.path.normpath(path) != path or os.path.basename(path) in ("", ".", ".."):
+        return False
+    home = os.path.normpath(home_dir())
+    parents = {home, os.path.join(home, ".var", "app")} | {os.path.normpath(r) for _k, r in roots()}
+    if os.path.dirname(path) not in parents:
+        return False
+    backups = os.path.normpath(backup_root())
+    if path == backups or backups.startswith(path + os.sep):
+        return False
+    return not os.path.isabs(rel) and os.path.normpath(rel) == rel and not rel.startswith("..")
+
+
 def restore(backup_dir, now=None):
     """Vrati zalohu na puvodni misto. Soucasne nastaveni (pokud mezitim vzniklo) se nejdriv
     presune do nove zalohy - opet se nic nemaze. -> cesta k zaloze soucasneho stavu nebo None."""
@@ -336,6 +364,9 @@ def restore(backup_dir, now=None):
     base = os.path.realpath(backup_root())
     if not os.path.realpath(backup_dir).startswith(base + os.sep):
         raise ValueError("not a LuxOS app settings backup")
+    # upraveny nebo poskozeny manifest: nic nepresouvat
+    if not isinstance(m.get("items"), list) or not all(isinstance(it, dict) and _item_ok(it) for it in m["items"]):
+        raise ValueError("invalid LuxOS app settings backup")
     current = [(it["kind"], it["path"]) for it in m["items"] if os.path.lexists(it["path"])]
     saved = None
     if current:

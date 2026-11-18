@@ -35,10 +35,12 @@ while IFS='|' read -r id name name_cs icon; do
         lang=${tsv##*/}
         lang=${lang%.tsv}
         [[ $lang == cs && -n $name_cs ]] && continue
-        tr=$(awk -F'\t' -v k="$name" '$1 == k && $2 != "" { print $2; exit }' "$tsv")
+        # hodnoty pres ENVIRON: awk -v by zpracoval zpetna lomitka (\t, \\) v nazvu i prekladu
+        tr=$(K="$name" awk -F'\t' '$1 == ENVIRON["K"] && $2 != "" { print $2; exit }' "$tsv")
         [[ -n $tr ]] && names+="Name[$lang]=$tr"$'\n'
     done
-    awk -v n="$name" -v cs="$name_cs" -v ic="$icon" -v names="$names" '
+    N="$name" CS="$name_cs" IC="$icon" NAMES="$names" awk '
+        BEGIN { n = ENVIRON["N"]; cs = ENVIRON["CS"]; ic = ENVIRON["IC"]; names = ENVIRON["NAMES"] }
         /^\[/ { sect = $0 }
         sect == "[Desktop Entry]" && /^Name(\[[^]]*\])?=/ { next }
         sect == "[Desktop Entry]" && ic != "" && /^Icon=/ { next }

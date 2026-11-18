@@ -111,6 +111,17 @@ class AppsSyncTest(unittest.TestCase):
         with open(self.out("thunar.desktop"), encoding="utf-8") as f:
             self.assertEqual(f.read().count("Name[de]="), 1)
 
+    def test_backslashes_kept_literally(self):
+        """Zpetna lomitka v nazvu a ikone zustanou doslova (awk -v by z \\t udelal tabulator)."""
+        with open(self.conf, "w") as f:
+            f.write("thunar|A\\tB|C\\\\D|ic\\n\n")
+        self.sync()
+        with open(self.out("thunar.desktop"), encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("Name=A\\tB\n", text)
+        self.assertIn("Name[cs]=C\\\\D\n", text)
+        self.assertIn("Icon=ic\\n\n", text)
+
     def test_every_rename_name_is_translated(self):
         tables = {}
         for lang in LANGS:

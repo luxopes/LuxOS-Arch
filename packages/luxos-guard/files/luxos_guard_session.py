@@ -26,7 +26,7 @@ def notify(title, body, urgency="normal"):
         urgency = "normal"
     try:
         subprocess.Popen(["notify-send", "-a", "Lux Guard", "-i", "luxos-guard", "-u", urgency, "-t", "10000", "-e",
-                          title, body],
+                          "--", title, body],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except OSError:
         pass
@@ -506,7 +506,8 @@ def _notify_wait(title, body, actions=(), urgency="normal", timeout_ms=10000, re
         cmd += ["-A", f"{key}={text}"]
     if actions:
         cmd.append("-w")
-    cmd += [html.escape(title, quote=False), html.escape(body, quote=False)]
+    # "--": nazev souboru nebo text zacinajici "-" neni volba notify-send
+    cmd += ["--", html.escape(title, quote=False), html.escape(body, quote=False)]
     try:
         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                              text=True, start_new_session=True)

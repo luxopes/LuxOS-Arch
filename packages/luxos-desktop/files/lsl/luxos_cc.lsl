@@ -621,6 +621,8 @@ function toggle():
     end
     call gtk.window_present_with_time(cc["win"], stamp)
     # udaje ze sluzeb (nmcli, pactl, xfconf-query) az po zobrazeni okna: spousteni procesu nebrzdi
+    # vystup nmcli/pactl se cte jako text ("enabled", "Mute: yes"): vzdy s LC_ALL=C, jinak by cesky
+    # "povoleno" znamenalo vypnutou Wi-Fi a prepinac by umel jen zapnout
     # prvni vykresleni (Python je mel ve vlakne)
     call glib.idle_add(refresh_slow_once)
     if cc["timer"] == 0:
@@ -821,11 +823,11 @@ end
 
 # Udaje ze sluzeb (sit, Bluetooth, zvuk, oznameni) - asynchronne, bez blokovani okna
 function refresh_slow():
-    call glib.spawn_capture(["nmcli", "radio", "wifi"], on_wifi_radio, 0)
+    call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "radio", "wifi"], on_wifi_radio, 0)
     bt = bluetooth_state()
     call tile_set_state(cc["t_bt"], bt[0], bt[1])
     call glib.spawn_capture(["xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb"], on_dnd, 0)
-    call glib.spawn_capture(["pactl", "get-sink-volume", "@DEFAULT_SINK@"], on_volume, 0)
+    call glib.spawn_capture(["env", "LC_ALL=C", "pactl", "get-sink-volume", "@DEFAULT_SINK@"], on_volume, 0)
     call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
     return 0
 end
@@ -837,7 +839,7 @@ function on_wifi_radio(unused, output, status):
         return 0
     end
     on = output.strip() == "enabled"
-    call glib.spawn_capture(["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi"], on_wifi_list, on)
+    call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi"], on_wifi_list, on)
     return 0
 end
 
@@ -900,10 +902,10 @@ function on_wifi_list(on, output, status):
     if ssid != "":
         call tile_set_state(cc["t_wifi"], True, ssid)
         call set_wifi_qr("share")
-        call glib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, ssid)
+        call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, ssid)
         return 0
     end
-    call glib.spawn_capture(["nmcli", "-t", "-f", "TYPE,STATE", "device"], on_wifi_devices, 0)
+    call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "-t", "-f", "TYPE,STATE", "device"], on_wifi_devices, 0)
     return 0
 end
 
@@ -929,7 +931,7 @@ function on_wifi_devices(unused, output, status):
     if wired.find("ethernet:connected") >= 0:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Ethernet"))
         call set_wifi_qr("")
-        call glib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, "")
+        call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, "")
     else:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Not connected"))
         call set_wifi_qr("scan")
@@ -948,7 +950,7 @@ function on_volume(unused, output, status):
         return 0
     end
     level = parse_percent(output)
-    call glib.spawn_capture(["pactl", "get-sink-mute", "@DEFAULT_SINK@"], on_mute, level)
+    call glib.spawn_capture(["env", "LC_ALL=C", "pactl", "get-sink-mute", "@DEFAULT_SINK@"], on_mute, level)
     return 0
 end
 
@@ -1066,7 +1068,7 @@ end
 # ---- akce ----------------------------------------------------------------------------------------------
 
 function toggle_wifi():
-    call glib.spawn_capture(["nmcli", "radio", "wifi"], on_toggle_wifi_state, 0)
+    call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "radio", "wifi"], on_toggle_wifi_state, 0)
     return 0
 end
 

@@ -306,5 +306,45 @@ class AudioSwitch(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
 
 
+class StatePath(unittest.TestCase):
+    """Bez XDG_RUNTIME_DIR: stav ve vlastni slozce 700 v /tmp, nikdy v souboru primo v /tmp."""
+
+    def setUp(self):
+        sys.path.insert(0, os.path.dirname(HELPER))
+        import luxos_audio_switch
+        self.mod = luxos_audio_switch
+        self.t = tempfile.mkdtemp(prefix="luxos-audio-state-")
+        self.addCleanup(shutil.rmtree, self.t, True)
+        self.saved = dict(os.environ), tempfile.tempdir
+        os.environ.pop("XDG_RUNTIME_DIR", None)
+        tempfile.tempdir = self.t
+
+    def tearDown(self):
+        env, tempfile.tempdir = self.saved
+        os.environ.clear()
+        os.environ.update(env)
+
+    def test_private_folder(self):
+        path = self.mod.state_path()
+        own = os.path.join(self.t, "luxos-%d" % os.getuid())
+        self.assertEqual(path, os.path.join(own, "luxos-audio-switch.json"))
+        self.assertEqual(os.stat(own).st_mode & 0o777, 0o700)
+
+    def test_unsafe_folder_not_used(self):
+        own = os.path.join(self.t, "luxos-%d" % os.getuid())
+        os.mkdir(own)
+        os.chmod(own, 0o777)
+        self.assertIsNone(self.mod.state_path())
+        self.mod.save({"cards": {}})          # nic nezapise, nespadne
+        self.assertEqual(os.listdir(own), [])
+        os.rmdir(own)
+        os.symlink(self.t, own)
+        self.assertIsNone(self.mod.state_path())
+
+    def test_runtime_dir_preferred(self):
+        os.environ["XDG_RUNTIME_DIR"] = self.t
+        self.assertEqual(self.mod.state_path(), os.path.join(self.t, "luxos-audio-switch.json"))
+
+
 if __name__ == "__main__":
     unittest.main()

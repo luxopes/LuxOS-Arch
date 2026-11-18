@@ -270,7 +270,8 @@ NMCLI = os.environ.get("LUXOS_NMCLI") or "nmcli"
 def _nmcli(args, timeout=10, root=False):
     cmd = ([os.environ.get("LUXOS_PKEXEC") or "pkexec"] if root else []) + [NMCLI] + args
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        # hodnoty se ctou jako text: bez prekladu nmcli (LC_ALL=C)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=dict(os.environ, LC_ALL="C"))
     except (OSError, subprocess.TimeoutExpired) as e:
         return 1, "", str(e)
     return r.returncode, r.stdout, r.stderr

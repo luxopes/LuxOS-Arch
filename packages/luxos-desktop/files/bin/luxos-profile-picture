@@ -601,6 +601,11 @@ class PictureWindow(Gtk.Window):
         if ev.keyval == Gdk.KEY_Escape and page in ("crop", "camera"):
             self.back()
             return True
+        # Enter/mezernik na jinem tlacitku (Zrusit) patri tomu tlacitku - jinak by Enter na Zrusit
+        # ulozil vyrez a prepsal ~/.face
+        focus = self.get_focus()
+        if isinstance(focus, Gtk.Button) and focus not in (self.save_btn, self.shutter):
+            return False
         if page == "camera" and ev.keyval in (Gdk.KEY_space, Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             if self.shutter.get_sensitive():
                 self.take_photo(None)

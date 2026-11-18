@@ -40,7 +40,8 @@ def ask(question):
     if not sys.stdin.isatty():
         return False
     try:
-        return input(f"{question} [y/N] ").strip().lower().startswith(("y", "a"))
+        # cele slovo: "abort" nebo "absolutely not" neni souhlas
+        return input(f"{question} [y/N] ").strip().lower() in ("y", "yes", "a", "ano")
     except EOFError:
         return False
 
@@ -63,7 +64,11 @@ def cli_reset(args):
     if "--yes" not in args and not ask(_("Reset the settings of %s?") % app["name"]):
         print(_("Cancelled."))
         return 1
-    dest = core.reset(app)
+    try:
+        dest = core.reset(app)
+    except OSError as e:          # nic nezustane napul: reset vrati presunute slozky zpet
+        print(_("The settings could not be moved") + ": " + str(e), file=sys.stderr)
+        return 1
     print(_("Done. The previous settings are in %s") % dest)
     return 0
 

@@ -1374,7 +1374,10 @@ late_init (gpointer data) {
         bar->rgba_handler = g_signal_connect (bar->toplevel, "notify::background-rgba",
                                               G_CALLBACK (on_rgba_changed), bar);
     if (bar->toplevel) {
-        g_signal_connect_swapped (bar->toplevel, "size-allocate", G_CALLBACK (gtk_widget_queue_draw), bar->area);
+        /* data = bar->area, ne bar: disconnect_by_data(bar) ve bar_free by ho nechal - connect_object ho
+         * odpoji sam se zanikem plochy (po odebrani pluginu by panel volal prekresleni uvolneneho widgetu) */
+        g_signal_connect_object (bar->toplevel, "size-allocate", G_CALLBACK (gtk_widget_queue_draw), bar->area,
+                                 G_CONNECT_SWAPPED);
         g_signal_connect_swapped (bar->toplevel, "size-allocate", G_CALLBACK (queue_background), bar);
         if (g_object_class_find_property (G_OBJECT_GET_CLASS (bar->toplevel), "background-style"))
             g_signal_connect (bar->toplevel, "notify::background-style", G_CALLBACK (on_style_changed), bar);

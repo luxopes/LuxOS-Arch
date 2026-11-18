@@ -1507,7 +1507,7 @@ static void on_dir_changed(GFileMonitor *m, GFile *f, GFile *o, GFileMonitorEven
 
 static void watch_dir(Win *w, const char *dir)
 {
-    if (g_hash_table_contains(w->dir_mons, dir)) return;
+    if (!w->dir_mons || g_hash_table_contains(w->dir_mons, dir)) return;   /* NULL = okno se zavira */
     GFile *f = g_file_new_for_path(dir);
     GFileMonitor *m = g_file_monitor_directory(f, G_FILE_MONITOR_WATCH_MOVES, NULL, NULL);
     g_object_unref(f);
@@ -1522,6 +1522,7 @@ static void drop_dir_monitors(Win *w)
 {
     GHashTableIter hi;
     gpointer k, v;
+    if (!w->dir_mons) return;
     g_hash_table_iter_init(&hi, w->dir_mons);
     while (g_hash_table_iter_next(&hi, &k, &v)) {
         g_object_set_data(G_OBJECT(v), "win", NULL);
@@ -2463,6 +2464,14 @@ static gboolean on_delete(GtkWidget *wdg, GdkEvent *e, Win *w)
     return stop;
 }
 
+static void free_win(gpointer data, GObject *gone)
+{
+    (void)gone;
+    Win *w = data;
+    g_free(w->root);
+    g_free(w);
+}
+
 static void on_destroy(GtkWidget *wdg, Win *w)
 {
     w->closing = TRUE;
@@ -2477,11 +2486,12 @@ static void on_destroy(GtkWidget *wdg, Win *w)
     }
     g_list_free(docs);
     drop_dir_monitors(w);
-    g_hash_table_unref(w->dir_mons);
+    g_clear_pointer(&w->dir_mons, g_hash_table_unref);
     g_clear_object(&w->ss);
     windows = g_list_remove(windows, w);
-    g_free(w->root);
-    g_free(w);
+    /* Win az po zaniku okna: signal "destroy" bezi pred zrusenim potomku (zalozky, postranni panel)
+     * a jejich obsluhy (switch-page...) jeste dostavaji w - s w->closing jen skonci */
+    g_object_weak_ref(G_OBJECT(wdg), free_win, w);
 }
 
 static void on_switch_page(GtkNotebook *nb, GtkWidget *page, guint n, Win *w)

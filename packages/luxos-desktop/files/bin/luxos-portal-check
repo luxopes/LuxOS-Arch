@@ -34,7 +34,9 @@ TIMEOUT = 3
 
 def run(argv):
     try:
-        return subprocess.run(argv, capture_output=True, text=True, timeout=5).stdout
+        # vystup nmcli se cte jako text ("connected"): bez prekladu, jinak cesky "připojeno" nic nenajde
+        return subprocess.run(argv, capture_output=True, text=True, timeout=5,
+                              env=dict(os.environ, LC_ALL="C")).stdout
     except (OSError, subprocess.SubprocessError):
         return ""
 

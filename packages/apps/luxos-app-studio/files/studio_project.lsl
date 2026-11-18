@@ -63,13 +63,19 @@ end
 
 CATEGORIES = ["Utility", "Development", "Graphics", "Office", "Education", "Game", "Network", "AudioVideo", "System"]
 
+# Hodnota klice Desktop Entry: zalomeni radku, tabulator a zpetne lomitko jako escape sekvence -
+# text z projektu (i nekontrolovany popis ze studio.json/lux.json) nikdy neprida dalsi klic
+function desktop_value(text):
+    return text.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+end
+
 # Desktop Entry aplikace; Name/Comment jsou doslovne hodnoty (procenta plati jen pro Exec)
 function desktop_entry(name, title, summary, kind, category, exec):
     terminal = "false"
     if kind == "cli":
         terminal = "true"
     end
-    return "[Desktop Entry]\nType=Application\nName=" + title.replace("\\", "\\\\") + "\nComment=" + summary.replace("\\", "\\\\") + "\nExec=" + exec + "\nIcon=" + name + "\nTerminal=" + terminal + "\nCategories=" + category + ";\n"
+    return "[Desktop Entry]\nType=Application\nName=" + desktop_value(title) + "\nComment=" + desktop_value(summary) + "\nExec=" + exec + "\nIcon=" + name + "\nTerminal=" + terminal + "\nCategories=" + category + ";\n"
 end
 
 function create(destination, title="My application", name="my-application", kind="gtk", summary="An application for LuxOS"):
@@ -567,8 +573,33 @@ function installed(project):
     return native.exists(install_record(project))
 end
 
+# Soubory, ktere predchozi instalace teto aplikace zapsala (poskozeny zaznam = zadne)
+function recorded_files(project):
+    record = install_record(project)
+    if not native.exists(record) or native.symlink(record):
+        return []
+    end
+    files = []
+    try:
+        data = json.decode(readfile(record))
+        if type(data) == "Dictionary" and type(data.get("files", [])) == "List":
+            files = data.get("files", [])
+        end
+    else:
+        files = []
+    end
+    return files
+end
+
+# Cesty, ktere instalace muze vytvorit (zaznamu se veri jen v ramci techto cest)
+function install_paths(project):
+    dirs = user_dirs()
+    name = project["name"]
+    return [dirs["bin"] + "/" + name, dirs["data"] + "/applications/" + name + ".desktop", dirs["data"] + "/icons/hicolor/scalable/apps/" + name + ".svg", dirs["data"] + "/icons/hicolor/256x256/apps/" + name + ".png"]
+end
+
 # Kopie sestavene aplikace do ~/.local/bin, spoustec a ikona do ~/.local/share:
-# aplikace je v Launchpadu. Cizi soubory stejneho jmena se neprepisuji.
+# aplikace je v Launchpadu. Cizi soubory stejneho jmena (i ikony) se neprepisuji.
 function install(project):
     if not build_ready(project):
         Error(ProjectError: "Build the application successfully before installing it.")
@@ -587,11 +618,10 @@ function install(project):
         end
     end
     record = install_record(project)
-    if not native.exists(record):
-        for path in [target, desktop]:
-            if native.exists(path) or native.symlink(path):
-                Error(ProjectError: "Another program is already installed as " + path + ". Nothing was changed.")
-            end
+    owned = recorded_files(project)
+    for path in [target, desktop, icon_target]:
+        if path and (native.symlink(path) or (path not in owned and native.exists(path))):
+            Error(ProjectError: "Another program is already installed as " + path + ". Nothing was changed.")
         end
     end
     files = [target, desktop]
@@ -611,21 +641,27 @@ function install(project):
         call writebytes(icon_target, readbytes(icon))
         files.append(icon_target)
     end
+    # ikona z predchozi instalace v jinem formatu (SVG <-> PNG) nebo odebrana ikona
+    for path in owned:
+        if path in install_paths(project) and path not in files and native.exists(path) and not native.directory(path):
+            call native.unlink(path)
+        end
+    end
     call writefile(record, json.encode({"files": files}) + "\n")
     return files
 end
 
-# Odstrani jen cesty, ktere instalace vytvari (zaznam se pouze kontroluje, neveri se mu)
+# Odstrani jen cesty, ktere instalace vytvari a ktere zapsala (zaznam se kontroluje proti
+# cestam instalace, sam o sobe se mu neveri): cizi ikona stejneho jmena zustane
 function uninstall(project):
     record = install_record(project)
     if not native.exists(record):
         return []
     end
-    dirs = user_dirs()
-    name = project["name"]
+    owned = recorded_files(project)
     removed = []
-    for path in [dirs["bin"] + "/" + name, dirs["data"] + "/applications/" + name + ".desktop", dirs["data"] + "/icons/hicolor/scalable/apps/" + name + ".svg", dirs["data"] + "/icons/hicolor/256x256/apps/" + name + ".png"]:
-        if native.exists(path) and not native.directory(path):
+    for path in install_paths(project):
+        if path in owned and native.exists(path) and not native.directory(path):
             call native.unlink(path)
             removed.append(path)
         end

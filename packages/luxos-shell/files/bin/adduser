@@ -45,8 +45,12 @@ ask_yes() {
     read -r -p "$1 " ans || return 1
     ans=${ans,,}
     [[ -z $ans ]] && ans=$2
-    # yes/ano/áno/ja/sí/sim/oui/tak/igen/так
-    [[ $ans == [yajsoti]* || $ans == á* || $ans == т* ]]
+    # cela slova (prvni pismeno nestaci: "stop" i "abort" by znamenaly ano):
+    # yes/ano/áno/ja/sí/sim/oui/tak/igen/так a jejich prvni pismena
+    case $ans in
+        y|yes|a|ano|á|áno|j|ja|s|si|sí|sim|o|oui|t|tak|i|igen|т|так) return 0 ;;
+    esac
+    return 1
 }
 ask() { local v; read -r -p "$1 " v || return 1; printf '%s' "$v"; }
 

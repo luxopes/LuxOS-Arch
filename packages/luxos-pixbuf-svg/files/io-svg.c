@@ -150,6 +150,8 @@ gdk_pixbuf__svg_image_stop_load (gpointer data, GError **error)
                 *error = NULL;
 
         if (!context->handle) {
+                /* prazdny soubor nebo selhany rsvg_handle_new: kontext uvolnit i tady (jinak unikne) */
+                g_free (context);
                 rsvg_propagate_error (error, "Error displaying image", ERROR_DISPLAYING_IMAGE);
                 return FALSE;
         }

@@ -213,6 +213,8 @@ static void test_language(void)
     check_lang(lm, "run", "#!/usr/bin/env python3\nprint(1)\n", "python3");
     check_lang(lm, "run", "#!/bin/bash\necho hi\n", "sh");
     check_lang(lm, "tool", "#!/usr/bin/lsh\nls\n", "sh");
+    check_lang(lm, "tool2", "#!/usr/bin/env PYTHONUTF8=1 python3\nprint(1)\n", "python3");
+    check_lang(lm, "tool3", "#!/usr/bin/env -S LC_ALL=C bash -e\necho\n", "sh");
     check_lang(lm, "PKGBUILD", "pkgname=x\n", "sh");
     check_lang(lm, "README.md", "# Title\n", "markdown");
     check_lang(lm, "main.c", "int main(void) {}\n", "c");

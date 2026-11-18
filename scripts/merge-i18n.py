@@ -17,7 +17,7 @@ def main(paths):
     add = {}
     for path in paths:
         with open(path, encoding="utf-8") as f:
-            rows = [line.rstrip("\n").split("\t") for line in f if line.strip()]
+            rows = [line.rstrip("\r\n").split("\t") for line in f if line.strip()]
         head = rows[0]
         for r in rows[1:]:
             if r[0].startswith("#"):
@@ -25,15 +25,20 @@ def main(paths):
             if len(r) != len(head):
                 sys.exit(f"{path}: wrong number of columns: {r[0]}")
             for code, text in zip(head[1:], r[1:]):
+                if not text.strip():
+                    continue            # prazdny preklad = zatim neprelozeno (zustane anglicky text)
                 if text.count("%s") != r[0].count("%s") or text.count("%d") != r[0].count("%d"):
                     sys.exit(f"{path}: {code}: placeholders differ: {r[0]}")
                 add.setdefault(code, {}).setdefault(r[0], text)
     for code, items in sorted(add.items()):
         tsv = os.path.join(I18N, code + ".tsv")
         with open(tsv, encoding="utf-8") as f:
-            have = {line.split("\t", 1)[0] for line in f if "\t" in line}
+            existing = f.read()
+        have = {line.split("\t", 1)[0] for line in existing.splitlines() if "\t" in line}
         new = [(k, v) for k, v in items.items() if k not in have]
         with open(tsv, "a", encoding="utf-8") as out:
+            if new and existing and not existing.endswith("\n"):
+                out.write("\n")        # posledni radek bez konce radku by se slil s prvnim novym
             for k, v in new:
                 out.write(f"{k}\t{v}\n")
         print(code, len(new))

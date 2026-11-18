@@ -44,6 +44,7 @@ ap.add_argument("--deny-claim", action="store_true")
 ap.add_argument("--busy", action="store_true")
 ap.add_argument("--enroll-script", default="")
 ap.add_argument("--state", default="")
+ap.add_argument("--claim-delay", type=float, default=0)    # s: Claim ceka (jako okno polkitu)
 args = ap.parse_args()
 
 enrolled = [f for f in args.enrolled.split(",") if f]
@@ -78,6 +79,9 @@ def device_call(conn, sender, path, iface, method, params, inv):
         if args.busy or claimed[0]:
             return inv.return_dbus_error(E + "AlreadyInUse", "Device was already claimed")
         claimed[0] = sender
+        if args.claim_delay:
+            GLib.timeout_add(int(args.claim_delay * 1000), lambda: (inv.return_value(None), False)[1])
+            return None
         return inv.return_value(None)
     if needs_claim and claimed[0] != sender:
         return inv.return_dbus_error(E + "ClaimDevice", "Device was not claimed before use")

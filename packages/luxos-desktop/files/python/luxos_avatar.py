@@ -106,7 +106,12 @@ def _set_icon_file(path):
                       Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, 20000, None)
         return None
     except GLib.Error as e:
-        return Gio.DBusError.strip_remote_error(e) or e.message or str(e)
+        # Gio.DBusError.strip_remote_error vraci jen True/False (drive se ukazalo "True") a v PyGObject
+        # zpravu vyjimky nezmeni: predponu "GDBus.Error:jmeno: " odstranit tady
+        msg = e.message or str(e)
+        if msg.startswith("GDBus.Error:") and ": " in msg:
+            msg = msg.split(": ", 1)[1]
+        return msg
 
 
 def accounts_icon():

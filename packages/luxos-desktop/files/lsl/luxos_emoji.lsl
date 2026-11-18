@@ -117,7 +117,7 @@ end
 
 function notify(message):
     call tlog("notify " + message)
-    call glib.spawn_quiet(["notify-send", "-a", T("Emoji & Symbols"), "-i", "luxos-emoji", T("Emoji & Symbols"), message])
+    call glib.spawn_quiet(["notify-send", "-a", T("Emoji & Symbols"), "-i", "luxos-emoji", "--", T("Emoji & Symbols"), message])
     return 0
 end
 

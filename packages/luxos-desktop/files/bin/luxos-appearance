@@ -20,7 +20,12 @@ DOCK_OPACITY=
 APPEARANCE_AUTO=0
 LOGIN_WALLPAPER=1    # 0 = prihlasovaci obrazovka si necha vlastni tapetu
 DESKTOP_SCRIM=1      # 0 = bez ztmaveni velmi svetle tapety pod listou a widgety (plugin luxos-bar, luxos-widgets)
-[[ -r $prefs ]] && . "$prefs"
+load_prefs() {
+    [[ -r $prefs ]] && . "$prefs"
+    # prazdna nebo neplatna pruhlednost listy = vychozi 62 % (jako plugin luxos-bar a Nastaveni), ne 0
+    [[ $BAR_OPACITY =~ ^[0-9]+$ && $BAR_OPACITY -le 100 ]] || BAR_OPACITY=62
+}
+load_prefs
 
 set_pref() {  # set_pref KLIC HODNOTA
     mkdir -p "$state_dir"
@@ -472,7 +477,7 @@ case ${1:-status} in
         # Automaticky rezim: kontrola kazdych 5 minut (zmena nastaveni se nacte znovu)
         while sleep 300; do
             APPEARANCE_AUTO=0
-            [[ -r $prefs ]] && . "$prefs"
+            load_prefs
             [[ $APPEARANCE_AUTO == 1 ]] || continue
             m=$(sun_mode)
             [[ $m == "$(current)" ]] || { apply "$m"; set_wallpaper "$m" 1; greeter_sync; }
@@ -499,6 +504,8 @@ case ${1:-status} in
     bar-opacity|dock-opacity)
         v=${2-}
         [[ $1 == dock-opacity && $v == default ]] && v=
+        # lista nema "bez vlastni pruhlednosti": prazdna hodnota i default = vychozi 62 %
+        [[ $1 == bar-opacity && ( -z $v || $v == default ) ]] && v=62
         [[ -z $v || $v =~ ^[0-9]+$ && $v -le 100 ]] || usage "$1 0-100"
         if [[ $1 == bar-opacity ]]; then BAR_OPACITY=$v; set_pref BAR_OPACITY "$v"
         else DOCK_OPACITY=$v; set_pref DOCK_OPACITY "$v"; fi

@@ -585,7 +585,7 @@ function notify(title, body, icon):
     if os.which("notify-send") == None:
         return 0
     end
-    return quiet(["notify-send", "-a", "LuxOS", "-i", icon, title, body])
+    return quiet(["notify-send", "-a", "LuxOS", "-i", icon, "--", title, body])
 end
 
 # ---- NVIDIA PowerMizer (nvidia-settings, jen v bezici relaci X) -----------------------------------------

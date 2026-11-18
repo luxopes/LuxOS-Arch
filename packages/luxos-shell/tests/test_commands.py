@@ -414,6 +414,19 @@ class DelUser(Base):
         self.assertIn("Nothing was changed.", out)
         self.assertFalse(any(l.startswith("userdel") for l in self.log()))
 
+    def test_delete_refused_with_words_starting_like_yes(self):
+        for word in ("stop", "abort", "test"):
+            rc, out = self.run_cmd(["deluser", "petr"], tty=True, answers=[word, word])
+            self.assertEqual(rc, 1, out)
+            self.assertIn("Nothing was changed.", out)
+            self.assertFalse(any(l.startswith("userdel") for l in self.log()), word)
+
+    def test_delete_confirmed_in_other_languages(self):
+        rc, out = self.run_cmd(["deluser", "petr"], tty=True, answers=["ano", "Oui"],
+                               env={"MOCK_LOGNAME": "anna"})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("userdel -r -- petr", self.log())
+
     def test_delete_noninteractive(self):
         rc, out = self.run_cmd(["deluser", "petr"])
         self.assertEqual(rc, 0, out)

@@ -384,6 +384,17 @@ class AppStudio(unittest.TestCase):
         # cizi program stejneho jmena zustane
         self.assertIn('already installed', v['foreign'])
         self.assertEqual(v['foreign_kept'], '#!/bin/sh\necho mine\n')
+        # cizi ikona stejneho jmena zustane (instalace se odmitne, odinstalace ji nesmaze)
+        self.assertIn('already installed', v['foreign_icon'])
+        self.assertEqual(v['foreign_icon_kept'], '<svg>foreign</svg>')
+        self.assertEqual(v['plain_files'], [home + '/.local/bin/plain-app',
+                                            data + '/applications/plain-app.desktop',
+                                            data + '/icons/hicolor/scalable/apps/plain-app.svg'])
+        self.assertEqual(sorted(v['plain_removed']), sorted(v['plain_files']))
+        self.assertEqual(v['plain_icons_kept'], [False, True])
+        # popis s novym radkem: escape sekvence, zadny dalsi klic Exec
+        self.assertIn('Comment=Line one\\nExec=/bin/false\\tTab \\\\ end\n', v['plain_desktop'])
+        self.assertEqual(v['plain_desktop'].count('\nExec='), 1)
         # nedavne projekty: posledni nahore, bez duplicit
         self.assertEqual([r['title'] for r in v['recent']], ['Weather Lite', 'Other'])
 

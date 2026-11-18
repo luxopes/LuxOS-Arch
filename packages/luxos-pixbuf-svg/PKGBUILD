@@ -6,7 +6,7 @@
 
 pkgname=luxos-pixbuf-svg
 pkgver=2.63.3
-pkgrel=1
+pkgrel=2
 pkgdesc="SVG loader module for gdk-pixbuf (librsvg, in-process) - LuxOS"
 url="https://gitlab.gnome.org/GNOME/librsvg"
 arch=(x86_64)

@@ -1333,6 +1333,16 @@ class Hub(unittest.TestCase):
         with open(conf) as f:
             self.assertEqual(f.read(), "OTHER=1\nTIME_CHANGE=0\n")
 
+    def test_time_change_negative_dst_zones(self):
+        # Dublin: zimni GMT ma v tzdata priznak DST, letni IST ne - v breznu se nesmi hlasit zimni cas
+        self.time_change_hub("Europe/Dublin", (2026, 3, 28, 19, 0))
+        self.assertTrue(self.wait_for(lambda: self.time_notes(), 8), self.calls())
+        note = self.time_notes()[0]
+        self.assertNotIn(translation("Winter time starts tonight"), note)
+        self.assertIn(translation("The time changes tonight"), note)
+        self.assertIn(translation("Clocks go forward from %s to %s. Your computer changes the time automatically.")
+                      .replace("%s", "01:00", 1).replace("%s", "02:00", 1), note)
+
     def test_time_change_off_and_zones_without_change(self):
         with open(os.path.join(self.cfg, "notifications.conf"), "w") as f:
             f.write("TIME_CHANGE=0\n")

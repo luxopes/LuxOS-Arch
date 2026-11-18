@@ -21,8 +21,10 @@ v relaci (prihlaseni) se jen ulozi vychozi stav - co uz pripojene je, se neprepi
 """
 import json
 import os
+import stat
 import subprocess
 import sys
+import tempfile
 import time
 
 PACTL = os.environ.get("LUXOS_PACTL") or "pactl"
@@ -31,7 +33,23 @@ WAIT_SINK = float(os.environ.get("LUXOS_AUDIO_WAIT", "3"))
 
 
 def state_path():
-    run = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    run = os.environ.get("XDG_RUNTIME_DIR")
+    if not run:
+        # bez XDG_RUNTIME_DIR vlastni slozka 700 v /tmp (soubor primo v /tmp muze predem vytvorit
+        # jiny uzivatel); nebezpecna slozka = stav se neuklada (None)
+        run = os.path.join(tempfile.gettempdir(), "luxos-%d" % os.getuid())
+        try:
+            os.mkdir(run, 0o700)
+        except FileExistsError:
+            pass
+        except OSError:
+            return None
+        try:
+            st = os.lstat(run)
+        except OSError:
+            return None
+        if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:
+            return None
     return os.path.join(run, "luxos-audio-switch.json")
 
 
@@ -211,7 +229,7 @@ def check():
     current = default_sink()
     now = snapshot(cards)
     try:
-        with open(state_path(), encoding="utf-8") as f:
+        with open(state_path() or "", encoding="utf-8") as f:
             state = json.load(f)
     except (OSError, ValueError):
         state = None
@@ -266,6 +284,8 @@ def check():
 
 def save(state):
     path = state_path()
+    if path is None:
+        return
     tmp = path + ".tmp"
     try:
         with open(tmp, "w", encoding="utf-8") as f:

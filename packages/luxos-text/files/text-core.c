@@ -292,7 +292,8 @@ static const char *shebang_language(const char *head, gsize len)
     for (int i = 0; parts[i]; i++) {
         if (!*parts[i]) continue;
         char *base = g_path_get_basename(parts[i]);
-        if (!strcmp(base, "env") || base[0] == '-') { g_free(base); continue; }
+        /* env, jeho volby (-S) a promenne prostredi (env FOO=bar python3) nejsou program */
+        if (!strcmp(base, "env") || base[0] == '-' || strchr(parts[i], '=')) { g_free(base); continue; }
         prog = base;
         break;
     }

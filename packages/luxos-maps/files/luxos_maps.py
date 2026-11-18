@@ -128,7 +128,8 @@ def load_config():
     fav = cfg.get("favorites")
     cfg["favorites"] = [p for p in fav if valid_place(p)] if isinstance(fav, list) else []
     view = cfg.get("view")
-    if not (isinstance(view, dict) and valid_place(dict(view, name="")) and isinstance(view.get("zoom"), (int, float))):
+    if not (isinstance(view, dict) and valid_place(dict(view, name="")) and isinstance(view.get("zoom"), (int, float))
+            and math.isfinite(view["zoom"])):
         cfg["view"] = None
     if cfg.get("appearance") not in ("auto", "light", "dark"):
         cfg["appearance"] = "auto"
@@ -180,6 +181,8 @@ MAX_LAT = 85.0511287798
 
 
 def clamp(v, lo, hi):
+    if v != v:          # NaN (geo:...?z=NaN): porovnani je vzdy nepravda, NaN by proslo dal
+        return lo
     return lo if v < lo else hi if v > hi else v
 
 
@@ -272,7 +275,7 @@ def parse_geo_uri(uri):
         lat, lon = float(coords[0]), float(coords[1])
     except ValueError:
         return None
-    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+    if not (math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
         return None
     for p in parts[1:]:
         k, _s, v = p.partition("=")
@@ -281,7 +284,7 @@ def parse_geo_uri(uri):
     out = {"lat": lat, "lon": lon, "zoom": None, "label": None, "query": None}
     params = dict(urllib.parse.parse_qsl(query, keep_blank_values=True))
     try:
-        if params.get("z"):
+        if params.get("z") and math.isfinite(float(params["z"])):     # z=NaN / inf = bez priblizeni
             out["zoom"] = clamp(float(params["z"]), 1, MAX_ZOOM)
     except ValueError:
         pass
@@ -313,7 +316,9 @@ def locale_country(env=None):
 def lang_code(env=None):
     env = os.environ if env is None else env
     v = env.get("LC_ALL") or env.get("LC_MESSAGES") or env.get("LANG") or "en"
-    return v.split("_")[0].split(".")[0].split("@")[0] or "en"
+    code = v.split("_")[0].split(".")[0].split("@")[0]
+    # LANG=C / POSIX neni jazyk (sluzby by dostaly "C"): anglictina
+    return code if code.isalpha() and code.islower() and 2 <= len(code) <= 3 else "en"
 
 
 def decimal(value, digits=1, lang=None):
@@ -329,8 +334,10 @@ def format_distance(meters, imperial=False, lang=None):
         if miles >= 10 or abs(miles - round(miles)) < 0.05:
             return f"{round(miles)} mi"
         return f"{decimal(miles, 1, lang)} mi"
-    if meters < 1000:
-        return f"{int(round(meters / 10.0) * 10)} m" if meters >= 100 else f"{int(round(meters))} m"
+    # zaokrouhleni pred volbou jednotky: 995 m je "1 km", ne "1000 m"
+    rounded = int(round(meters / 10.0) * 10) if meters >= 100 else int(round(meters))
+    if rounded < 1000:
+        return f"{rounded} m"
     km = meters / 1000
     if km >= 10 or abs(km - round(km)) < 0.05:
         return f"{round(km)} km"
@@ -407,8 +414,9 @@ def http_json(url, params=None, rate=None, timeout=TIMEOUT, lang=None):
         if e.code in (429, 502, 503, 504):          # sluzba je pretizena (Overpass: "at capacity")
             raise BusyError(f"HTTP {e.code}: service busy, try again later") from e
         raise MapsError(f"HTTP {e.code}" + (f": {msg}" if msg else "")) from e
-    except (urllib.error.URLError, OSError, ValueError) as e:
-        raise MapsError(str(getattr(e, "reason", e))) from e
+    except (urllib.error.URLError, OSError, ValueError, http.client.HTTPException) as e:
+        # HTTPException: preruseny prenos (IncompleteRead), vadna odpoved serveru - neni OSError
+        raise MapsError(str(getattr(e, "reason", e)) or type(e).__name__) from e
     try:
         return json.loads(data.decode("utf-8"))
     except ValueError as e:
@@ -776,7 +784,37 @@ def api_get(service, url, params, ttl, timeout=TIMEOUT, max_age=None):
 UTC = datetime.timezone.utc
 
 
+def _local_zone_name():
+    tz = os.environ.get("TZ", "").lstrip(":")
+    if tz:
+        return tz
+    try:
+        name = os.readlink("/etc/localtime").split("zoneinfo/", 1)[1]
+    except (OSError, IndexError):
+        return ""
+    for prefix in ("posix/", "right/"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+    return name
+
+
 def local_zone():
+    """Pasmo pocitace i s letnim casem (zoneinfo). Pevny posun "ted" by dal cas trasy po zmene
+    letniho/zimniho casu o hodinu vedle; bez zoneinfo jen posun ted."""
+    try:
+        import zoneinfo
+        name = _local_zone_name()
+        if name and not name.startswith("/"):
+            try:
+                return zoneinfo.ZoneInfo(name)
+            except (ValueError, KeyError, OSError):
+                if os.environ.get("TZ"):
+                    raise       # TZ v jinem tvaru (CET-1CEST): /etc/localtime by byl jiny cas
+        if not os.environ.get("TZ") or name.startswith("/"):
+            with open(name if name.startswith("/") else "/etc/localtime", "rb") as f:
+                return zoneinfo.ZoneInfo.from_file(f, key="localtime")
+    except (ImportError, ValueError, KeyError, OSError):
+        pass
     return datetime.datetime.now().astimezone().tzinfo
 
 
@@ -815,7 +853,8 @@ def parse_user_time(text, now=None):
         h, mi = int(m.group(1)), int(m.group(2))
         if h > 23 or mi > 59:
             raise MapsError("invalid time, use HH:MM or ISO 8601, e.g. 2026-08-24T10:00:00+02:00")
-        base = now or datetime.datetime.now().astimezone()
+        # pasmo s letnim casem (local_zone): posun plati pro zadany cas, ne pro "ted"
+        base = now or datetime.datetime.now(local_zone())
         return base.replace(hour=h, minute=mi, second=0, microsecond=0)
     dt = parse_iso(str(text))
     if dt is None:
@@ -1139,7 +1178,10 @@ TRANSIT_TAGS = {("highway", "bus_stop"), ("railway", "tram_stop"), ("railway", "
 
 
 def overpass_regex(text):
-    return "".join("\\" + c if c in '\\.*+?^${}()|[]"' else c for c in text)
+    """Text -> regularni vyraz pro retezec Overpass QL v uvozovkach: nejdriv escape regularniho vyrazu,
+    pak escape retezce QL (zpetne lomitko a uvozovky), jinak by QL z "\\." udelal "." (libovolny znak)."""
+    rx = "".join("\\" + c if c in '\\.*+?^${}()|[]' else c for c in text)
+    return rx.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def is_transit_place(place):
@@ -2616,7 +2658,7 @@ def geoclue_location(timeout=8.0):
                                  GLib.Variant("(ss)", (ifc, prop)), None, Gio.DBusCallFlags.NONE, 2000,
                                  None).unpack()[0]
         set_prop("DesktopId", GLib.Variant("s", "luxos-maps"))
-        set_prop("RequestedAccuracyLevel", GLib.Variant("u", 6))      # EXACT; GeoClue da, co ma
+        set_prop("RequestedAccuracyLevel", GLib.Variant("u", 8))      # EXACT (6 = STREET); GeoClue da, co ma
         bus.call_sync(name, client, iface, "Start", None, None, Gio.DBusCallFlags.NONE, 5000, None)
         try:
             end = time.time() + timeout

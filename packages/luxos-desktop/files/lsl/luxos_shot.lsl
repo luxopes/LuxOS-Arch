@@ -122,7 +122,7 @@ end
 function notify(message):
     call tlog("notify " + message)
     call log(message)
-    call glib.spawn_quiet(["notify-send", "-a", T("Screenshot"), "-i", "dialog-warning", T("Screenshot"), message])
+    call glib.spawn_quiet(["notify-send", "-a", T("Screenshot"), "-i", "dialog-warning", "--", T("Screenshot"), message])
     return 0
 end
 
@@ -2141,14 +2141,20 @@ function shoot(job):
         if r != None:
             out = gtk.pixbuf_sub_copy(pb, r[0], r[1], r[2], r[3])
         end
-        if S["opts"]["pointer"]:
-            out = add_cursor(out, rect, S["frozen_cursor"], s)
+        if S["opts"]["pointer"] and r != None:
+            # pocatek orezaneho vyrezu (okno castecne mimo obrazovku): jinak by byl kurzor posunuty
+            out = add_cursor(out, [r[0] / s, r[1] / s], S["frozen_cursor"], s)
         end
     else:
         out = grab(rect)
         if out != 0 and S["opts"]["pointer"]:
+            size = gtk.root_size()
+            origin = [0, 0]
+            if rect != None:
+                origin = base.clamp_rect(rect, size[0], size[1])
+            end
             cursor = x11.cursor_surface()
-            out = add_cursor(out, rect, cursor, S["scale"])
+            out = add_cursor(out, origin, cursor, S["scale"])
             call free_cursor(cursor)
         end
     end
@@ -2336,7 +2342,8 @@ function on_rec_exit(token, pid, status):
     end
     rec["running"] = False
     st = glib.stat(rec["part"])
-    ok = len(st) > 0 and st[0] > 0
+    # ffmpeg ukonceny signalem (SIGKILL po 15 s bez reakce na SIGINT, pad) nedopsal mp4: neni to video
+    ok = len(st) > 0 and st[0] > 0 and (status & 127) == 0
     if ok:
         ok = luxos_sys.rename(rec["part"], rec["final"])
     end

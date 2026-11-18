@@ -209,6 +209,19 @@ class Gui(unittest.TestCase):
         self.assertIn("Release", c)
         self.assertEqual(self.rows(), ["No fingerprints added yet."])
 
+    def test_cancel_while_claim_waits(self):
+        # Zrusit, zatimco Claim ceka na heslo: po dobehnuti Claim se nesmi zacit snimat a ctecka se uvolni
+        self.start("--stages", "40", "--claim-delay", "0.8")
+        self.wait_main()
+        self.win.enroll("right-thumb")
+        pump(0.2)
+        self.win.enroll_cancel.clicked()
+        self.wait_main()
+        pump(1.5)
+        c = self.calls()
+        self.assertNotIn("EnrollStart right-thumb", c)
+        self.assertIn("Release", c)
+
     def test_remove_one_and_all(self):
         self.start("--enrolled", "right-index-finger,left-thumb,right-thumb")
         self.wait_main()

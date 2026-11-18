@@ -291,6 +291,40 @@ class TestParsing(unittest.TestCase):
         self.assertIsNone(d["daily"][0]["uv"])
         self.assertIsNone(d["hourly"][0]["pop"])
 
+    def test_null_values_skip_only_that_hour_or_day(self):
+        raw = fixture("forecast-prague.json")
+        n_hours = len(lw.parse_forecast(fixture("forecast-prague.json"))["hourly"])
+        raw["hourly"]["temperature_2m"] = [None] * len(raw["hourly"]["temperature_2m"])
+        raw["hourly"]["temperature_2m"][-1] = 5
+        raw["daily"]["temperature_2m_max"][-1] = None
+        raw["daily"]["weather_code"][0] = None
+        d = lw.parse_forecast(raw)
+        self.assertLess(len(d["hourly"]), n_hours)
+        self.assertEqual(len(d["daily"]), 6)
+        self.assertEqual(d["daily"][0]["code"], 3)
+
+    def test_interrupted_transfer_is_weather_error(self):
+        import http.client
+
+        class Broken:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self, _n):
+                raise http.client.IncompleteRead(b"{")
+        with unittest.mock.patch("urllib.request.urlopen", lambda *a, **k: Broken()):
+            with self.assertRaises(lw.WeatherError):
+                lw.http_json("http://127.0.0.1:9/x")
+
+    def test_ui_language(self):
+        self.assertEqual(lw.ui_language({"LANG": "cs_CZ.UTF-8"}), "cs")
+        self.assertEqual(lw.ui_language({"LANG": "C.UTF-8"}), "en")
+        self.assertEqual(lw.ui_language({"LC_ALL": "POSIX", "LANG": "cs_CZ.UTF-8"}), "en")
+        self.assertEqual(lw.ui_language({}), "en")
+
     def test_broken_forecast_raises(self):
         for raw in ({}, {"current": {}}, {"current": fixture("forecast-prague.json")["current"]}):
             with self.assertRaises((KeyError, TypeError, ValueError)):
@@ -1129,6 +1163,77 @@ class TestWindow(unittest.TestCase):
                 area.queue_draw()
                 self.shot(win, f"scene-{kind}-{tod}.png")
                 self.assertEqual(win.stack.get_visible_child_name(), "detail")
+
+class TestRemoveLocationKeepsState(unittest.TestCase):
+    """Odebrani mista: vyber, vysledky i probihajici nacitani zustanou u svych mist (ne u poradi)."""
+
+    @classmethod
+    def setUpClass(cls):
+        loader = importlib.machinery.SourceFileLoader("luxos_weather_app", os.path.join(FILES, "luxos-weather"))
+        spec = importlib.util.spec_from_loader("luxos_weather_app", loader)
+        mod = importlib.util.module_from_spec(spec)
+        loader.exec_module(mod)
+        cls.W = mod.WeatherWindow
+
+    def fake(self, names, selected, loading=(), results=None):
+        W = self.W
+        places = [{"name": n, "lat": 10.0 + i, "lon": 20.0 + i} for i, n in enumerate(names)]
+
+        class Fake:
+            pass
+        f = Fake()
+        f.cfg = {"locations": places, "selected": selected, "units": "metric"}
+        f.loading = set(loading)
+        f.results = dict(results or {})
+        f.requested = []
+        f.units = lambda: "metric"
+        f.units_changed = lambda _b: None
+        f.rebuild_list = lambda: None
+        f.update_row = lambda _i: None
+        f.show_detail = lambda _i: None
+        f.refresh = lambda i, force=False: f.requested.append(i)
+        f.remove_location = lambda i: W.remove_location(f, i)
+        f.refreshed = lambda *a: W.refreshed(f, *a)
+        return f, places
+
+    def test_selection_follows_city(self):
+        with unittest.mock.patch.object(lw, "save_config"):
+            f, places = self.fake(["A", "B", "C"], selected=1)
+            f.remove_location(0)
+        self.assertEqual(f.cfg["locations"][f.cfg["selected"]]["name"], "B")
+
+    def test_selection_after_removing_selected_last(self):
+        with unittest.mock.patch.object(lw, "save_config"):
+            f, _ = self.fake(["A", "B", "C"], selected=2)
+            f.remove_location(2)
+        self.assertEqual(f.cfg["selected"], 1)
+
+    def test_loading_city_finishes_after_earlier_city_removed(self):
+        with unittest.mock.patch.object(lw, "save_config"), \
+                unittest.mock.patch.object(lw, "write_summary"):
+            f, places = self.fake(["A", "B", "C"], selected=1, loading={1})
+            b = dict(places[1])
+            f.remove_location(0)
+            self.assertEqual(f.loading, {0})          # B je ted na pozici 0, C (1) se muze nacist
+            f.refreshed(1, b, "metric", {"data": {"x": 1}})
+        self.assertEqual(f.loading, set())
+        self.assertEqual(f.results, {0: {"data": {"x": 1}}})
+
+    def test_removed_city_result_ignored(self):
+        with unittest.mock.patch.object(lw, "save_config"):
+            f, places = self.fake(["A", "B"], selected=0, loading={0})
+            a = dict(places[0])
+            f.remove_location(0)
+            f.refreshed(0, a, "metric", {"data": {"x": 1}})
+        self.assertEqual(f.results, {})
+        self.assertEqual(f.loading, set())
+
+    def test_units_changed_while_loading_requests_again(self):
+        f, places = self.fake(["A"], selected=0, loading={0})
+        f.refreshed(0, dict(places[0]), "imperial", {"data": {"x": 1}})
+        self.assertEqual(f.requested, [0])
+        self.assertEqual(f.results, {})
+
 
 if __name__ == "__main__":
     unittest.main()

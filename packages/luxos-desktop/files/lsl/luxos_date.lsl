@@ -220,8 +220,13 @@ function local_tz_name():
     end
     target = glib.realpath("/etc/localtime")
     cut = target.find("/zoneinfo/")
-    if cut >= 0:
-        return target[cut + 10:]
+    if cut < 0:
+        return ""
     end
-    return ""
+    name = target[cut + 10:]
+    # zoneinfo/posix/Europe/Prague: TZID musi byt "Europe/Prague" (jine kalendare "posix/..." neznaji)
+    if name.startswith("posix/") or name.startswith("right/"):
+        name = name[6:]
+    end
+    return name
 end

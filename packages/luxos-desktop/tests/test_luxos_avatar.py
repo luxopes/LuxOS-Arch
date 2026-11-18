@@ -99,5 +99,21 @@ class Save(unittest.TestCase):
             av.load(bad)
 
 
+class AccountsError(unittest.TestCase):
+    def test_remote_error_text_not_bool(self):
+        from unittest import mock
+        from gi.repository import Gio, GLib
+        err = GLib.Error.new_literal(Gio.dbus_error_quark(), "GDBus.Error:org.freedesktop.Accounts.Error"
+                                     ".PermissionDenied: Not authorized", Gio.DBusError.ACCESS_DENIED)
+        saved = os.environ.pop("LUXOS_ACCOUNTS_FAKE", None)
+        try:
+            with mock.patch.object(av, "_user_proxy", side_effect=err):
+                msg = av._set_icon_file("/tmp/x.png")
+        finally:
+            if saved is not None:
+                os.environ["LUXOS_ACCOUNTS_FAKE"] = saved
+        self.assertEqual(msg, "Not authorized")
+
+
 if __name__ == "__main__":
     unittest.main()

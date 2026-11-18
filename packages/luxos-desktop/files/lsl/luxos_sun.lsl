@@ -1,5 +1,6 @@
 # LuxOS - vychod a zapad slunce bez internetu (poloha podle casoveho pasma); prepis luxos_sun.py.
-# Souradnice bere z /usr/share/zoneinfo/zone1970.tab (stred mesta casoveho pasma), vypocet podle NOAA
+# Souradnice bere z /usr/share/zoneinfo/zone.tab a zone1970.tab (stred mesta casoveho pasma; stare
+# nazvy pasem pres odkazy v tzdata.zi), vypocet podle NOAA
 # (presnost na par minut).
 #   sun.mode()                       "light" | "dark" podle toho, jestli je ted den
 #   sun.sun_times(day, lat, lon)     [vychod, zapad] jako unixovy cas, nebo None (polarni den/noc)
@@ -27,10 +28,14 @@ function timezone_name():
     end
     link = glib.readlink("/etc/localtime")
     cut = link.find("zoneinfo/")
-    if cut >= 0:
-        return link[cut + 9:]
+    if cut < 0:
+        return ""
     end
-    return ""
+    name = link[cut + 9:]
+    if name.startswith("posix/") or name.startswith("right/"):
+        name = name[6:]
+    end
+    return name
 end
 
 # +DDMM[SS] / +DDDMM[SS] -> stupne
@@ -50,9 +55,12 @@ function dms(value, deg_digits):
     return sign * (deg + minutes / 60.0 + seconds / 3600.0)
 end
 
-function location():
-    tzname = timezone_name()
-    table = glib.read_text(env_or(ZONE_TAB))
+# Souradnice pasma z jedne tabulky tzdata, jinak None
+function from_tab(path, tzname):
+    table = glib.read_text(path)
+    if table == None:
+        return None
+    end
     for line in table.split("\n"):
         if line.startswith("#"):
             continue
@@ -67,7 +75,54 @@ function location():
             return [dms(coord[0:split], 2), dms(coord[split:], 3)]
         end
     end
-    return [DEFAULT_LAT, DEFAULT_LON]
+    return None
+end
+
+# zone.tab ma i pasma, ktera jsou v zone1970.tab jen odkazem (Europe/Bratislava, vlastni souradnice),
+# pak zone1970.tab
+function from_tabs(folder, tzname):
+    found = from_tab(folder + "zone.tab", tzname)
+    if found == None:
+        found = from_tab(env_or(ZONE_TAB), tzname)
+    end
+    return found
+end
+
+# Stary nazev pasma (Asia/Calcutta, US/Eastern) -> cil podle radku "L CIL NAZEV" v tzdata.zi
+function link_target(folder, tzname):
+    data = glib.read_text(folder + "tzdata.zi")
+    if data == None:
+        return ""
+    end
+    for line in data.split("\n"):
+        if line.startswith("L "):
+            parts = line.strip().split(" ")
+            if len(parts) == 3 and parts[2] == tzname:
+                return parts[1]
+            end
+        end
+    end
+    return ""
+end
+
+function location():
+    tzname = timezone_name()
+    if tzname == "":
+        return [DEFAULT_LAT, DEFAULT_LON]
+    end
+    tab = env_or(ZONE_TAB)
+    folder = tab[0:text.rfind(tab, "/") + 1]
+    found = from_tabs(folder, tzname)
+    if found == None:
+        target = link_target(folder, tzname)
+        if target != "":
+            found = from_tabs(folder, target)
+        end
+    end
+    if found == None:
+        return [DEFAULT_LAT, DEFAULT_LON]
+    end
+    return found
 end
 
 function env_or(path):

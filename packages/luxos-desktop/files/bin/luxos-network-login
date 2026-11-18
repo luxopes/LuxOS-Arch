@@ -29,8 +29,15 @@ base=${XDG_RUNTIME_DIR:-}
 if [[ -n $base && -d $base && -O $base ]]; then
     pidfile=$base/luxos-network-login.pid
 else
-    base=${TMPDIR:-/tmp}
-    pidfile=$base/luxos-network-login-$UID.pid
+    # bez XDG_RUNTIME_DIR: vlastni slozka 700 (ne predvidatelny soubor primo v /tmp, ktery muze
+    # predem vytvorit jiny uzivatel)
+    base=${TMPDIR:-/tmp}/luxos-$UID
+    mkdir -m 700 "$base" 2>/dev/null
+    if [[ -L $base || ! -d $base || ! -O $base ]] || [[ $(stat -c %a "$base") != 700 ]]; then
+        echo "luxos-network-login: unsafe $base" >&2
+        exit 1
+    fi
+    pidfile=$base/luxos-network-login.pid
 fi
 # Jedine okno: zamek drzi skript i prohlizec (zdedeny popisovac); uz bezici okno jen zvednout
 exec 9>>"$pidfile" || exit 1

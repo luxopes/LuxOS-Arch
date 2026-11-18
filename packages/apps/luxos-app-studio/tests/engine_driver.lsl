@@ -74,6 +74,29 @@ call writefile(native.env("HOME") + "/.local/bin/foreign-tool", "#!/bin/sh\necho
 report["foreign"] = attempt(install_only, other, 0)
 report["foreign_kept"] = readfile(native.env("HOME") + "/.local/bin/foreign-tool")
 
+# cizi ikona stejneho jmena: instalace ji neprepise
+icons = native.env("XDG_DATA_HOME") + "/icons/hicolor/scalable/apps"
+call native.mkdirs(icons)
+call writefile(icons + "/engine-app.svg", "<svg>foreign</svg>")
+report["foreign_icon"] = attempt(install_only, project, 0)
+report["foreign_icon_kept"] = readfile(icons + "/engine-app.svg")
+call native.unlink(icons + "/engine-app.svg")
+
+# odinstalace nesmaze cizi ikonu stejneho jmena v jinem formatu (PNG vedle vlastni SVG); popis s novym radkem
+# z upraveneho studio.json neprida do spoustece dalsi klic
+plain = projects.create(root + "/plain-app", "Plain", "plain-app", "cli", "Plain")
+stored = json.decode(readfile(plain["path"] + "/studio.json"))
+stored["summary"] = "Line one\nExec=/bin/false\tTab \\ end"
+call writefile(plain["path"] + "/studio.json", json.encode(stored) + "\n")
+plain = projects.open_project(plain["path"])
+call projects.build(plain)
+report["plain_files"] = projects.install(plain)
+report["plain_desktop"] = readfile(native.env("XDG_DATA_HOME") + "/applications/plain-app.desktop")
+call native.mkdirs(native.env("XDG_DATA_HOME") + "/icons/hicolor/256x256/apps")
+call writefile(native.env("XDG_DATA_HOME") + "/icons/hicolor/256x256/apps/plain-app.png", "foreign png")
+report["plain_removed"] = projects.uninstall(plain)
+report["plain_icons_kept"] = [native.exists(icons + "/plain-app.svg"), native.exists(native.env("XDG_DATA_HOME") + "/icons/hicolor/256x256/apps/plain-app.png")]
+
 # nedavne projekty
 call projects.remember(project)
 call projects.remember(other)

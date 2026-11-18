@@ -207,6 +207,7 @@ function notify_critical(title, body, actions):
         argv.append("-A")
         argv.append(pair[0] + "=" + pair[1])
     end
+    argv.append("--")              # text zacinajici "-" neni volba notify-send
     argv.append(title)
     argv.append(body)
     call glib.spawn_capture(argv, on_critical_action, 0)

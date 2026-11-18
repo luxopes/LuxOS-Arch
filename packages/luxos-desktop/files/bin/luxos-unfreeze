@@ -49,11 +49,14 @@ find_display() {
 
 x_alive() { timeout 4 xprop -root -len 0 _NET_SUPPORTING_WM_CHECK >/dev/null 2>&1; }
 
-# Spravce oken odpovida? (zmena vlastnosti korenoveho okna, xfwm4 ji musi zpracovat - bez neho stoji okna)
+# Spravce oken bezi? (proces xfwm4 existuje a neni zaseknuty v jadre ani ukonceny - bez neho stoji okna)
 wm_alive() {
     local pid
-    pid=$(pgrep -u "$(id -u)" -x xfwm4 | head -1) || return 1
-    [[ $(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null) != [DTZ] ]]
+    pid=$(pgrep -u "$(id -u)" -x xfwm4 | head -1)
+    [[ -n $pid ]] || return 1
+    local state
+    state=$(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null)
+    [[ -n $state && $state != [DTZ] ]]
 }
 
 proc_line() {  # proc_line PID -> stav, wchan, CPU (s), RSS

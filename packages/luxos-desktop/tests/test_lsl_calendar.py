@@ -111,6 +111,10 @@ class LslCalendar(unittest.TestCase):
     def test_escape(self):
         self.assertEqual(self.lines("escape"), ["True a\\,b\\;c\\\\d\\ne"])
 
+    def test_escape_lone_cr(self):
+        # samotne CR (stary Mac, vlozeny text) nesmi do souboru projit jako zalomeni radku
+        self.assertEqual(self.lines("escape-cr"), ["a\\nb\\nc"])
+
     def test_parse_line_quoted(self):
         self.assertEqual(self.lines("line", 'ATTENDEE;CN="Novak: Jan";ROLE=REQ:mailto:jan@example.com'),
                          ["['ATTENDEE', {'CN': 'Novak: Jan', 'ROLE': 'REQ'}, 'mailto:jan@example.com']"])
@@ -296,6 +300,13 @@ class LslCalendar(unittest.TestCase):
                    "BEGIN:VEVENT\nUID:s\nRECURRENCE-ID:20261020T090000\nDTSTART:20261020T150000\n"
                    "DTEND:20261020T160000\nSUMMARY:Presunuto\nEND:VEVENT\nEND:VCALENDAR\n")
         self.assertEqual(self.lines("override", self.dir), ["Presunuto 20261020T150000", "next 1"])
+
+    def test_delete_one_edited_instance_keeps_series(self):
+        self.write("events.ics", "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:s\nDTSTART:20261019T090000\nDTEND:20261019T100000\n"
+                   "RRULE:FREQ=DAILY;COUNT=3\nSUMMARY:Serie\nEND:VEVENT\n"
+                   "BEGIN:VEVENT\nUID:s\nRECURRENCE-ID:20261020T090000\nDTSTART:20261020T150000\n"
+                   "DTEND:20261020T160000\nSUMMARY:Presunuto\nEND:VEVENT\nEND:VCALENDAR\n")
+        self.assertEqual(self.lines("delete-override", self.dir), ["19 Serie", "20 ", "21 Serie"])
 
     def test_sorting_all_day_first(self):
         self.assertEqual(self.lines("sorting", self.dir), ["Celodenni;A rano;B pozde"])

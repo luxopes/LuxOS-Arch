@@ -10,6 +10,7 @@
 Mezipamet: $XDG_CACHE_HOME/luxos/weather, nastaveni: $XDG_CONFIG_HOME/luxos/weather.json.
 Testy prepisuji adresy sluzeb: LUXOS_WEATHER_API, LUXOS_WEATHER_GEO, LUXOS_WEATHER_IP.
 """
+import http.client
 import json
 import os
 import time
@@ -115,6 +116,14 @@ def same_place(a, b):
     return abs(a["lat"] - b["lat"]) < 0.02 and abs(a["lon"] - b["lon"]) < 0.02
 
 
+def ui_language(env=None):
+    """Jazyk pro hledani mest (cs_CZ.UTF-8 -> cs); LANG=C / POSIX neni jazyk -> en."""
+    env = os.environ if env is None else env
+    v = env.get("LC_ALL") or env.get("LC_MESSAGES") or env.get("LANG") or "en"
+    code = v.split("_")[0].split(".")[0].split("@")[0]
+    return code if code.isalpha() and code.islower() and 2 <= len(code) <= 3 else "en"
+
+
 def json_cli(argv):
     """Rozhrani luxos-weather --json search|locations|forecast pro LuxAI, bez GTK.
 
@@ -147,9 +156,7 @@ def json_cli(argv):
         if args.action == "search":
             if not 2 <= len(args.query.strip()) <= 200 or not 1 <= args.limit <= 10:
                 raise WeatherError("Give a place name (2-200 characters) and a limit from 1 to 10")
-            language = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES") or
-                        os.environ.get("LANG") or "en").split("_")[0].split(".")[0]
-            result = {"ok": True, "places": search(args.query, language, args.limit),
+            result = {"ok": True, "places": search(args.query, ui_language(), args.limit),
                       "source": "Open-Meteo", "source_url": "https://open-meteo.com/"}
         else:
             cfg = load_config()
@@ -453,8 +460,9 @@ def http_json(url, params=None, timeout=TIMEOUT):
     except urllib.error.HTTPError as e:
         e.close()
         raise WeatherError(f"HTTP {e.code}") from e
-    except (urllib.error.URLError, OSError, ValueError) as e:
-        raise WeatherError(str(getattr(e, "reason", e))) from e
+    except (urllib.error.URLError, OSError, ValueError, http.client.HTTPException) as e:
+        # HTTPException: preruseny prenos (IncompleteRead), vadna odpoved serveru - neni OSError
+        raise WeatherError(str(getattr(e, "reason", e)) or type(e).__name__) from e
     try:
         return json.loads(data.decode("utf-8"))
     except ValueError as e:
@@ -607,6 +615,9 @@ def parse_forecast(raw):
     start = next((i for i, t in enumerate(times) if t[:13] >= hour), 0)
     hourly = []
     for i in range(start, min(start + 24, len(times))):
+        # chybejici hodnota (null, na konci predpovedi bezna) = jen ta hodina chybi, ne cela predpoved
+        if h["temperature_2m"][i] is None or h["weather_code"][i] is None:
+            continue
         hourly.append({
             "time": times[i],
             "temp": float(h["temperature_2m"][i]),
@@ -619,7 +630,10 @@ def parse_forecast(raw):
     for i, date in enumerate(d["time"][:7]):
         def col(name, default=None):
             values = d.get(name) or []
-            return values[i] if i < len(values) else default
+            v = values[i] if i < len(values) else None
+            return default if v is None else v
+        if col("temperature_2m_max") is None or col("temperature_2m_min") is None:
+            continue                    # den bez teplot (null) se vynecha
         daily.append({
             "date": date,
             "code": int(col("weather_code", 3)),

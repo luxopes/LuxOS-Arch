@@ -100,6 +100,32 @@ class NetworkLogin(unittest.TestCase):
         except OSError:
             return False
 
+    def test_without_runtime_dir_uses_private_folder(self):
+        tmp = os.path.join(self.t, "tmp")
+        os.mkdir(tmp)
+        p = self.start(XDG_RUNTIME_DIR="", TMPDIR=tmp)
+        own = os.path.join(tmp, "luxos-%d" % os.getuid())
+        self.assertTrue(self.wait_for(lambda: len(self.firefox_calls()) == 1))
+        self.assertEqual(oct(os.stat(own).st_mode & 0o777), "0o700")
+        self.assertTrue(os.path.exists(os.path.join(own, "luxos-network-login.pid")))
+        self.assertFalse(any(n.endswith(".pid") for n in os.listdir(tmp)))
+        p.send_signal(signal.SIGTERM)
+        p.wait(5)
+
+    def test_without_runtime_dir_refuses_foreign_or_open_folder(self):
+        tmp = os.path.join(self.t, "tmp")
+        os.mkdir(tmp)
+        own = os.path.join(tmp, "luxos-%d" % os.getuid())
+        os.mkdir(own, 0o777)
+        os.chmod(own, 0o777)
+        p = self.start(XDG_RUNTIME_DIR="", TMPDIR=tmp)
+        self.assertEqual(p.wait(10), 1)
+        os.rmdir(own)
+        os.symlink(self.t, own)
+        p = self.start(XDG_RUNTIME_DIR="", TMPDIR=tmp)
+        self.assertEqual(p.wait(10), 1)
+        self.assertEqual(self.firefox_calls(), [])
+
     def test_reopen_after_closing_and_single_window(self):
         with open(os.path.join(self.run_dir, "luxos-portal"), "w") as f:
             f.write("http://login.portal.test/guest 10.5.0.2\n")

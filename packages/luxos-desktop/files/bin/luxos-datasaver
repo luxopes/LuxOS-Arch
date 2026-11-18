@@ -12,9 +12,10 @@ apply() {  # apply yes|no - merene pripojeni na vsech aktivnich zarizenich
     while IFS=: read -r dev type st; do
         [[ $st == connected && $type != loopback ]] || continue
         # Jen kdyz se stav lisi (modify znovu aplikuje nastaveni pripojeni)
-        [[ $(nmcli -g GENERAL.METERED device show "$dev" 2>/dev/null) == "$1"* ]] && continue
+        [[ $(LC_ALL=C nmcli -g GENERAL.METERED device show "$dev" 2>/dev/null) == "$1"* ]] && continue
         nmcli device modify "$dev" connection.metered "$1" >/dev/null 2>&1
-    done < <(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null)
+    # LC_ALL=C: stav "connected" a "yes"/"no" jako text (cesky by byl "připojeno" a nic by se nestalo)
+    done < <(LC_ALL=C nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null)
 }
 
 case ${1:-status} in

@@ -120,6 +120,7 @@ class Fprint:
         self.props = {}
         self.claimed = False
         self.sub = 0
+        self.enroll_gen = 0       # zvysi enroll_stop: Claim, ktery dobehne po Zrusit, nesmi zacit snimat
 
     def call(self, path, iface, method, args, ok, fail, timeout=CALL_TIMEOUT, reply=None):
         def done(bus, res):
@@ -215,12 +216,20 @@ class Fprint:
             self.unsubscribe()
             self.release(lambda: fail(e))
 
+        self.enroll_gen += 1
+        gen = self.enroll_gen
+
         def claimed():
+            if gen != self.enroll_gen:
+                # Zrusit behem Claim (okno polkitu): ctecku hned uvolnit, nesnimat
+                self.release()
+                return
             self.call(self.dev, IFACE_DEVICE, "EnrollStart", GLib.Variant("(s)", (finger,)),
                       lambda _v: ok(), failed, AUTH_TIMEOUT)
-        self.claim(claimed, lambda e: (self.unsubscribe(), fail(e)))
+        self.claim(claimed, lambda e: (self.unsubscribe(), fail(e)) if gen == self.enroll_gen else None)
 
     def enroll_stop(self, ok=None):
+        self.enroll_gen += 1
         self.unsubscribe()
         if not self.claimed:
             if ok:
