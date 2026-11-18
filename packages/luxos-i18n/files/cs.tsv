@@ -5273,3 +5273,9 @@ Not allowed - it was not confirmed in the Lux Guard window.	Nepovoleno – v okn
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Povolení potřebuje okno Lux Guard ve vašem grafickém sezení (nebo jako správce: sudo luxos-guard allow SOUBOR).
 The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	Spojení se přerušilo hned po předání zprávy serveru. Zpráva možná odešla; než ji pošlete znovu, podívejte se do Odeslaných.
 This event was changed or deleted elsewhere.	Tato událost byla mezitím změněna nebo smazána jinde.
+Updating the system to match the refreshed package lists	Aktualizace systému podle obnovených seznamů balíčků
+The system is older than the downloaded package lists (%s). Installing without updating the rest of the system could leave programs that do not start.	Systém je starší než stažené seznamy balíčků (%s). Instalace bez aktualizace zbytku systému by mohla zanechat programy, které se nespustí.
+Update the whole system first (lux update), then try again.	Nejdřív aktualizujte celý systém (lux update), pak to zkuste znovu.
+Update the whole system together with it?	Aktualizovat spolu s tím celý systém?
+The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Disk %s se od výběru změnil (byl připojen nebo odpojen disk?). Nic nebylo smazáno – vyberte disk znovu.
+The encrypted volume %s under / could not be identified for unlocking at startup.	Šifrovaný svazek %s pod / se nepodařilo určit pro odemčení při startu.

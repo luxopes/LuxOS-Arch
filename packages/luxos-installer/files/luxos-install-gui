@@ -3198,6 +3198,10 @@ class Installer(Gtk.Window):
             values.update(self.layout.config_values())
         if s["mode"] == "partition":
             values.update({"ROOT_PART": s.get("part") or "", "HOME_PART": s.get("home_part") or ""})
+        # disk z vyberu: backend pred smazanim overi, ze je to porad on (velikost a model)
+        disk = self.selected_disk() if s["mode"] in ("erase", "freespace") else None
+        if disk:
+            values.update({"DISK_SIZE": str(disk.get("size") or ""), "DISK_MODEL": disk.get("model") or ""})
         return "".join(f"{k}={q(v)}\n" for k, v in values.items())
 
     # Kdo umi zabranit setrici/zamceni a uspani (Xfce: org.xfce.ScreenSaver, xfce4-power-manager)

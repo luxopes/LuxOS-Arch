@@ -550,7 +550,10 @@ class CLI(unittest.TestCase):
         rc, out = self.lux("-y", "__fix", prefix=("unshare", "-r"))
         self.assertEqual(rc, 0, out)
         self.assertIn("--populate", self.calls("lux-engine-key"))
-        self.assertIn("install --refresh --needed -- archlinux-keyring", self.backend())
+        # obnovene seznamy baliku jen s aktualizaci celeho systemu (update = klice napred + sysupgrade),
+        # nikdy jen klice (-Sy bez -u: pozdejsi lux install by byl castecnou aktualizaci)
+        self.assertIn("update", self.backend())
+        self.assertNotIn("install --refresh --needed -- archlinux-keyring", self.backend())
         self.assertIn("Package manager repaired", out)
 
     def test_fix_needs_root_and_keeps_live_lock(self):

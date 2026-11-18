@@ -403,6 +403,7 @@ interactive() {
         ENCRYPT=0
     else
         DISK=${sel%% *}
+        disk_capture   # identita vybraneho disku (overi se tesne pred smazanim)
         info "$(T "All data on %s will be erased." "$DISK")"
         ENCRYPT=0
         if gum confirm --default=false --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Encrypt the disk? (you will enter a password at every start)")"; then
@@ -1344,6 +1345,24 @@ require_disk() {  # konec s chybou, kdyz DISK pro erase/freespace nelze pouzit
     [[ -z $err ]] || fail "$(T "%s cannot be used for LuxOS: %s" "$DISK" "$(part_reason "$err")")"
 }
 
+disk_capture() {  # pri vyberu disku: identita (DISK_IDENT) a stala cesta (DISK_BYID); z GUI navic velikost a model z vyberu
+    DISK_IDENT=$(ly_disk_ident "$DISK")
+    DISK_BYID=$(ly_disk_byid "$DISK")
+    [[ -n $DISK_IDENT ]] || fail "$(T "%s cannot be used for LuxOS: %s" "$DISK" "$(part_reason not_found)")"
+    # GUI vybralo disk o nekolik obrazovek drive: velikost a model musi stale sedet
+    local size model
+    size=$(lsblk -dbno SIZE -- "$DISK" 2>/dev/null | tr -d ' ')
+    model=$(lsblk -dno MODEL -- "$DISK" 2>/dev/null | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+    if [[ -n ${DISK_SIZE-} && $size != "$DISK_SIZE" ]] || [[ -n ${DISK_MODEL-} && $model != "$DISK_MODEL" ]]; then
+        fail "$(T "The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again." "$DISK")"
+    fi
+}
+
+disk_verify() {  # tesne pred zapisem na disk: stale stejny disk jako pri vyberu, jinak konec bez zmeny
+    ly_disk_same "$DISK" "${DISK_IDENT-}" "${DISK_BYID-}" ||
+        fail "$(T "The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again." "$DISK")"
+}
+
 part_reason() {  # kratky duvod, proc oddil nelze pouzit
     case $1 in
         not_found) T "does not exist" ;;
@@ -1611,12 +1630,15 @@ prepare_disk() {
     umount -R "$TARGET" 2>/dev/null || true
     [[ -e /dev/mapper/cryptroot ]] && cryptsetup close cryptroot 2>/dev/null || true
 
-    run wipefs -af "$DISK"
-    run sgdisk --zap-all "$DISK"
+    # Stejny disk jako pri vyberu (velikost, model, seriove cislo, WWN); zapis pres stalou cestu by-id
+    disk_verify
+    local w=${DISK_BYID:-$DISK}
+    run wipefs -af "$w"
+    run sgdisk --zap-all "$w"
     if [[ $BOOTMODE == uefi ]]; then
-        run sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8304 -c2:LuxOS "$DISK"
+        run sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8304 -c2:LuxOS "$w"
     else
-        run sgdisk -n1:0:+1M -t1:ef02 -c1:BIOS -n2:0:+1G -t2:8300 -c2:boot -n3:0:0 -t3:8304 -c3:LuxOS "$DISK"
+        run sgdisk -n1:0:+1M -t1:ef02 -c1:BIOS -n2:0:+1G -t2:8300 -c2:boot -n3:0:0 -t3:8304 -c3:LuxOS "$w"
     fi
     run partprobe "$DISK" || true
     run udevadm settle
@@ -1658,7 +1680,8 @@ prepare_freespace() {
     num=$(free_partnum "$DISK") || fail "$(T "The partition table on %s is full." "$DISK")"
     before=$(sgdisk -p "$DISK" | awk '$1 ~ /^[0-9]+$/ && NF >= 6')
     info "$(T "New partition %s: %s GB of free space" "$num" "$((FS_BYTES / 1000000000))")"
-    run sgdisk -n"$num:$FS_START:$FS_END" -t"$num:8304" -c"$num:LuxOS" "$DISK"
+    disk_verify   # volne misto zmerene na disku, ktery byl vybran
+    run sgdisk -n"$num:$FS_START:$FS_END" -t"$num:8304" -c"$num:LuxOS" "${DISK_BYID:-$DISK}"
     # Kontrola: ostatni oddily musi zustat beze zmeny
     after=$(sgdisk -p "$DISK" | awk -v n="$num" '$1 ~ /^[0-9]+$/ && NF >= 6 && $1 != n')
     [[ $before == "$after" ]] || fail "$(T "Unexpected change of existing partitions on %s - stopping." "$DISK")"
@@ -2021,6 +2044,29 @@ install_online_drivers() {
     info "$(T "The NVIDIA driver could not be installed. The open-source driver is used for now; install it later in Drivers.")"
 }
 
+manual_root_storage() {  # manual_root_storage ROOTDEV -> MANUAL_LUKS ("UUID=jmeno ..."), MANUAL_LVM (0/1)
+    # DISK_MODE=manual: / pripojene rucne, klidne na otevrenem LUKS nebo LVM - initramfs je musi umet otevrit
+    MANUAL_LUKS="" MANUAL_LVM=0
+    local name type fst uuid child mapper
+    while read -r name type fst; do
+        [[ $type == lvm ]] && MANUAL_LVM=1
+        [[ $fst == crypto_LUKS ]] || continue
+        uuid=$(blkid -s UUID -o value "$name" 2>/dev/null || true)
+        child=$(lsblk -nrpo NAME,TYPE "$name" 2>/dev/null | awk '$2 == "crypt" {print $1; exit}')
+        mapper=${child##*/}
+        [[ $uuid =~ ^[0-9a-fA-F-]+$ && $mapper =~ ^[A-Za-z0-9._+-]+$ ]] ||
+            fail "$(T "The encrypted volume %s under / could not be identified for unlocking at startup." "$name")"
+        [[ " $MANUAL_LUKS " == *" $uuid=$mapper "* ]] || MANUAL_LUKS+="${MANUAL_LUKS:+ }$uuid=$mapper"
+    done < <(lsblk -nsrpo NAME,TYPE,FSTYPE "$1" 2>/dev/null)
+    return 0
+}
+
+manual_cmdline_luks() {  # rd.luks.name=… pro svazky z manual_root_storage (sd-encrypt v initramfs)
+    local e out=""
+    for e in $MANUAL_LUKS; do out+="rd.luks.name=$e "; done
+    printf '%s' "$out"
+}
+
 configure_system() {
     step "$(T "Configuring the system")"
     # zram swap live systemu nepatri do fstab (instalovany system ma vlastni zram-generator)
@@ -2061,7 +2107,11 @@ configure_system() {
     root_uuid=$(blkid -s UUID -o value "$ROOTDEV")
     local rootspec="root=UUID=$root_uuid rootflags=subvol=@"
     ((ENCRYPT)) && rootspec="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot rootflags=subvol=@"
-    [[ $DISK_MODE == manual ]] && rootspec="root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
+    if [[ $DISK_MODE == manual ]]; then
+        rootspec="$(manual_cmdline_luks)root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
+        [[ -n ${MANUAL_LUKS-} ]] && enc_hook=1
+        ((${MANUAL_LVM:-0})) && lvm_hook=1
+    fi
     uses_layout && rootspec=$(layout_cmdline)
     # EFI oddil: /boot (jadro primo na ESP) nebo /efi (sdileny, jadro se kopiruje do EFI/LuxOS/<id>)
     local esp_mount=/boot esp_keep=0 chroot_disk=$DISK
@@ -2579,10 +2629,11 @@ main() {
     [[ $DISK == manual ]] && DISK_MODE=manual
     : "${DISK_MODE:=erase}"
     case $DISK_MODE in
-        erase|freespace) require_disk ;;
+        # identita disku pri vyberu (TUI uz pri volbe ze seznamu); prepare_* ji overi pred zapisem
+        erase|freespace) require_disk; [[ -n ${DISK_IDENT-} ]] || disk_capture ;;
         manual) DISK=manual ;;
         layout) ENCRYPT=0; load_layout; oem_check_mode ;;   # sifrovani popisuje LAYOUT (luks)
-        partition) part_setup ;;            # sestavi LAYOUT (ENCRYPT -> luks)
+        partition) part_setup; disk_capture ;;   # sestavi LAYOUT (ENCRYPT -> luks); identita disku oddilu
         *) fail "$(T "Invalid DISK_MODE (use erase, freespace, partition, layout or manual)")" ;;
     esac
     [[ $BOOTLOADER == auto || $BOOTLOADER == none ]] || fail "$(T "Invalid BOOTLOADER (use auto or none)")"
@@ -2610,11 +2661,14 @@ main() {
             # Mezi souhrnem a instalaci se mohl oddil zacit pouzivat - znovu overit
             part_check "$ROOT_PART"
             [[ -z $PC_ROOT_ERR ]] || fail "$(T "%s cannot be used for LuxOS: %s" "$ROOT_PART" "$(part_reason "$PC_ROOT_ERR")")"
+            disk_verify   # oddil lezi stale na vybranem disku
             part_set_type
             layout_apply ;;
         manual)
             ROOTDEV=$(findmnt -no SOURCE "$TARGET" | sed 's/\[.*\]//')
             BOOTPART=$(findmnt -no SOURCE "$TARGET/boot" 2>/dev/null || true)
+            # rucne otevreny LUKS / LVM pod / -> rd.luks.name a hooky initramfs (jinak system nenastartuje)
+            manual_root_storage "$ROOTDEV"
             [[ $BOOTMODE == bios ]] && DISK=$(lsblk -no PKNAME "$ROOTDEV" | head -1 | sed 's|^|/dev/|')
             ;;
     esac

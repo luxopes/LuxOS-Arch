@@ -23,7 +23,7 @@ hasnot() { ! grep -qF -- "$2" "$1" 2>/dev/null; }
 extract() { sed -n "/^$1() {/,/^}/p" "$FILES/luxos-install"; }
 sed -n '/^# --- Volne misto vedle jinych systemu/,/^# Sifrovani (volitelne)/p' "$FILES/luxos-install" >"$OUT/lib.sh"
 for f in human_bytes iso_disk report_layout kv_table lang_text summary xkb_text configure_system install_engine_config shared_esp_entry uefi_luxos_first secureboot_stage \
-         wipe_text wipe_area_bytes wipe_disk_hint; do extract "$f" >>"$OUT/lib.sh"; done
+         wipe_text wipe_area_bytes wipe_disk_hint manual_root_storage manual_cmdline_luks; do extract "$f" >>"$OUT/lib.sh"; done
 grep -q '^part_setup() {' "$OUT/lib.sh" && grep -q '^summary() {' "$OUT/lib.sh" || { echo "extrakce selhala"; exit 1; }
 
 # Prostredi jednoho behu (v podshellu): layout.sh, nahrady disku, funkce instalatoru
@@ -441,6 +441,84 @@ expect "J: nabidka / s obsahem" grep -q '^/dev/vda3 .*Operating system: Windows$
 expect "J: /home: moznost bez /home + ext4/btrfs mimo /" test "$(cut -c1-9 "$OUT/J.items2" | tr '\n' ' ')" == "No - keep /dev/vda4 /dev/vda6 /dev/vdb7 "
 expect "J: nepouzitelne oddily s duvodem" grep -q 'INFO   /dev/vda1 .*(EFI system partition)' "$OUT/J.info"
 expect "J: maly oddil s duvodem" grep -q 'INFO   /dev/vda6 .*(smaller than 20 GB)' "$OUT/J.info"
+
+echo "## M: DISK_MODE=manual s rucne otevrenym LUKS/LVM pod / (rd.luks.name, sd-encrypt, lvm2)"
+manual_case() {  # manual_case JMENO "lsblk -s radky (NAME TYPE FSTYPE)" -> $OUT/JMENO/{vars,setup.env,fail}
+    local name=$1 stack=$2 dir=$OUT/$1
+    mkdir -p "$dir"
+    (
+        setup_env "vda:200G"
+        trap 'echo "ERR radek $LINENO (prikaz: $BASH_COMMAND)" >>"$dir/err"' ERR
+        fail() { printf '%s\n' "$*" >"$dir/fail"; exit 3; }
+        info() { :; }
+        # vlastnosti rucne pripraveneho disku (emulace; skutecne lsblk/blkid se nevolaji)
+        lsblk() {
+            case "$*" in
+                *-nsrpo*) printf '%s\n' "$stack" ;;
+                *"-nrpo NAME,TYPE /dev/vda2"*) printf '/dev/vda2 part\n/dev/mapper/cryptroot crypt\n/dev/mapper/vg-root lvm\n' ;;
+                *"-nrpo NAME,TYPE /dev/vdb1"*) printf '/dev/vdb1 part\n/dev/mapper/crypthome crypt\n' ;;
+                *"-nrpo NAME,TYPE /dev/vdc1"*) printf '/dev/vdc1 part\n' ;;
+            esac
+        }
+        blkid() {
+            case ${!#} in
+                /dev/vda2) echo 0b1c2d3e-1111-2222-3333-444455556666 ;;
+                /dev/vdb1) echo 9f8e7d6c-aaaa-bbbb-cccc-ddddeeeeffff ;;
+                /dev/vdc1) echo 12345678-0000-0000-0000-000000000000 ;;
+                *) echo f5f5f5f5-0000-4000-8000-000000000001 ;;
+            esac
+        }
+        ROOTDEV=/dev/mapper/vg-root
+        manual_root_storage "$ROOTDEV"
+        printf 'MANUAL_LUKS=%s MANUAL_LVM=%s CMD=%s\n' "$MANUAL_LUKS" "$MANUAL_LVM" "$(manual_cmdline_luks)" >"$dir/vars"
+        # configure_system s nahradami (jako run_case): co dostane setup-chroot (CMDLINE, hooky)
+        DISK_MODE=manual DISK=manual ENCRYPT=0 BOOTMODE=bios BOOTLOADER=auto LOCALE=cs_CZ.UTF-8 XKB_LAYOUT=cz XKB_VARIANT=""
+        TIMEZONE=Europe/Prague FULLNAME=Jana USERNAME=jana HOSTNAME_SEL=pc CARE_MODE=carefree LUXAI_ACCOUNT="" PASSWORD=x MIRRORLIST=/etc/lux/mirrorlist
+        genfstab() { printf 'UUID=x\t/\tbtrfs\tsubvol=/@\t0 0\n'; }; luxos-hwdetect() { :; }; domain_join() { :; }; x11_to_console() { echo cz; }
+        findmnt() { echo "rw,noatime,subvol=/@"; }
+        install() { local dst=${!#}; if [[ " $* " == *" /dev/stdin "* ]]; then mkdir -p "${dst%/*}"; cat >"$dst"; fi; return 0; }
+        arch-chroot() { if [[ $2 == /root/luxos-setup.sh ]]; then cp "$TARGET/root/luxos-setup.env" "$dir/setup.env"; else cat >/dev/null; fi; }
+        configure_system >"$dir/configure.out" 2>&1
+        rm -rf "$MOCK"
+    ) </dev/null
+    echo $? >"$dir/rc"
+}
+# / na LVM uvnitr LUKS (vda2 -> cryptroot -> vg-root)
+manual_case M1 "/dev/mapper/vg-root lvm btrfs
+/dev/mapper/cryptroot crypt LVM2_member
+/dev/vda2 part crypto_LUKS
+/dev/vda disk "
+expect "M1: probehlo" rc_is M1 0
+expect "M1: LUKS a LVM pod / rozpoznany" grep -qx 'MANUAL_LUKS=0b1c2d3e-1111-2222-3333-444455556666=cryptroot MANUAL_LVM=1 CMD=rd.luks.name=0b1c2d3e-1111-2222-3333-444455556666=cryptroot ' "$OUT/M1/vars"
+expect "M1: CMDLINE s rd.luks.name pred root=" grep -q '^CMDLINE=rd.luks.name=0b1c2d3e-1111-2222-3333-444455556666=cryptroot\\ root=UUID=' "$OUT/M1/setup.env"
+expect "M1: rootflags z pripojeni" grep -q 'rootflags=subvol=/@' "$OUT/M1/setup.env"
+expect "M1: initramfs se sd-encrypt a lvm2" bash -c "grep -qx 'ENCRYPT_HOOK=1' '$OUT/M1/setup.env' && grep -qx 'LVM_HOOK=1' '$OUT/M1/setup.env'"
+# hooky ze setup.env -> HOOKS v setup-chroot.sh
+expect "M1: setup-chroot z ENCRYPT_HOOK/LVM_HOOK sestavi sd-encrypt lvm2" bash -c "ENCRYPT=0 ENCRYPT_HOOK=1 LVM_HOOK=1
+    eval \"\$(grep -E 'storage_hooks(=|\+=)\"' '$FILES/setup-chroot.sh')\"; [[ \$storage_hooks == 'sd-encrypt lvm2' ]]"
+# / primo na LUKS, bez LVM
+manual_case M2 "/dev/mapper/cryptroot crypt btrfs
+/dev/vda2 part crypto_LUKS
+/dev/vda disk "
+expect "M2: jen LUKS" grep -q '^MANUAL_LUKS=0b1c2d3e-1111-2222-3333-444455556666=cryptroot MANUAL_LVM=0 ' "$OUT/M2/vars"
+expect "M2: sd-encrypt bez lvm2" bash -c "grep -qx 'ENCRYPT_HOOK=1' '$OUT/M2/setup.env' && grep -qx 'LVM_HOOK=0' '$OUT/M2/setup.env'"
+# LVM pres dva sifrovane PV (vda2 + vdb1): oba svazky odemknout
+manual_case M3 "/dev/mapper/vg-root lvm btrfs
+/dev/mapper/cryptroot crypt LVM2_member
+/dev/vda2 part crypto_LUKS
+/dev/vda disk
+/dev/mapper/crypthome crypt LVM2_member
+/dev/vdb1 part crypto_LUKS
+/dev/vdb disk "
+expect "M3: oba PV" grep -q '^MANUAL_LUKS=0b1c2d3e-1111-2222-3333-444455556666=cryptroot 9f8e7d6c-aaaa-bbbb-cccc-ddddeeeeffff=crypthome MANUAL_LVM=1 ' "$OUT/M3/vars"
+# bez sifrovani a LVM: beze zmeny (root=UUID, zadne hooky navic)
+manual_case M4 "/dev/vda2 part btrfs
+/dev/vda disk "
+expect "M4: obycejny oddil" bash -c "grep -q '^MANUAL_LUKS= MANUAL_LVM=0 CMD=\$' '$OUT/M4/vars' && grep -q '^CMDLINE=root=UUID=' '$OUT/M4/setup.env' && grep -qx 'ENCRYPT_HOOK=0' '$OUT/M4/setup.env'"
+# LUKS bez otevreneho mapperu (nelze urcit jmeno) -> konec pred instalaci, ne nebootovatelny system
+manual_case M5 "/dev/mapper/x crypt btrfs
+/dev/vdc1 part crypto_LUKS"
+expect "M5: neidentifikovatelny LUKS -> konec" bash -c "[[ \$(cat '$OUT/M5/rc') == 3 ]] && grep -q 'could not be identified' '$OUT/M5/fail'"
 
 echo "## I: luxos-install: neplatny rezim a napoveda (bez roota)"
 I18N=$(cd "$HERE/../../luxos-i18n/files" && pwd)

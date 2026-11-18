@@ -11,6 +11,7 @@ import errno
 import os
 import shutil
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -208,12 +209,42 @@ class Stale(EspEnv):
             self.w(f, "x")
         os.makedirs(self.root + f"/boot/luxos-snapshots/{ts.KVER}-0123456789ab.new")
         os.makedirs(self.root + "/boot/luxos-snapshots/something.new")
+        old = time.time() - 2 * 3600                    # zbytky z drivejska (*.tmp mazany az po hodine)
+        for f in own + foreign:
+            os.utime(self.root + f, (old, old))
         gone = snap.clean_stale(care.detect_layout())
         self.assertEqual(sorted(os.path.relpath(p, self.root) for p in gone),
                          sorted([f.lstrip("/") for f in own] + [f"boot/luxos-snapshots/{ts.KVER}-0123456789ab.new"]))
         for f in foreign:
             self.assertTrue(os.path.exists(self.root + f), f)
         self.assertTrue(os.path.isdir(self.root + "/boot/luxos-snapshots/something.new"))
+
+
+    def test_tmp_being_written_by_mkinitcpio_kept(self):
+        """Rucni lux update: mkinitcpio prave pise initramfs-<jadro>.img.tmp (a pak ho prejmenuje) -
+        uklid ESP (kontrola po startu, hook luxos-slim) ho nesmi smazat pod rukama."""
+        lay = care.detect_layout()
+        fresh = self.w("/boot/initramfs-linux-luxos.img.tmp", "partial")
+        self.assertEqual(snap.clean_stale(lay), [])                  # mladsi nez hodina
+        self.assertTrue(os.path.exists(fresh))
+        old = time.time() - 2 * 3600
+        os.utime(fresh, (old, old))
+        with open(fresh, "ab"):                                       # stary, ale otevreny procesem
+            self.assertEqual(snap.clean_stale(lay), [])
+            self.assertTrue(os.path.exists(fresh))
+        # otevrene .new (LuxOS Care prave kopiruje zalozni jadro) taky ne; zavreny stary .tmp
+        # (zbytek prerusene aktualizace) pryc
+        new = self.w("/boot/vmlinuz-linux-luxos-prev.new", "x")
+        with open(new, "rb"):
+            self.assertEqual(snap.clean_stale(lay), [fresh])
+        self.assertTrue(os.path.exists(new))
+        self.assertFalse(os.path.exists(fresh))
+        self.assertEqual(snap.clean_stale(lay), [new])
+        # cas lze zadat (hranice STALE_AGE)
+        self.w("/boot/initramfs-linux-luxos-fallback.img.tmp", "x")
+        t = os.path.getmtime(self.root + "/boot/initramfs-linux-luxos-fallback.img.tmp")
+        self.assertEqual(snap.clean_stale(lay, now=t + snap.STALE_AGE - 5), [])
+        self.assertEqual(len(snap.clean_stale(lay, now=t + snap.STALE_AGE + 5)), 1)
 
 
 def enospc_after(nbytes):
@@ -354,6 +385,8 @@ class Checks(EspEnv):
     def test_esp_check_rebuilds_truncated_image(self):
         self.w("/boot/initramfs-linux-luxos.img", b"x" * 4096)
         self.w("/boot/initramfs-linux-luxos.img.tmp", b"partial")
+        old = time.time() - 2 * 3600                    # zbytek prerusene aktualizace (ne prave psany)
+        os.utime(self.root + "/boot/initramfs-linux-luxos.img.tmp", (old, old))
         state = {"built": False}
 
         def lsinit(cmd):

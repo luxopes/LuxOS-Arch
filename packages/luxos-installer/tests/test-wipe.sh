@@ -371,7 +371,7 @@ expect "C5: GUI model: novy oddil, formatovane LV, nove LV v zachovane VG; ne /h
 echo "## D: automaticke rezimy (prepare_disk, prepare_freespace z luxos-install)"
 # Funkce z instalatoru; [[ -b ]] nelze nahradit funkci -> v kopii pres ly_isblk (emulace)
 for f in part_path encrypt_root wipe_new_parts mount_root prepare_disk prepare_freespace free_partnum \
-         disk_check require_disk part_reason; do
+         disk_check require_disk part_reason disk_capture disk_verify; do
     sed -n "/^$f() {/,/^}/p" "$FILES/luxos-install"
 done | sed -e 's/\[\[ -b \$BOOTPART && -b \$rootpart \]\]/{ ly_isblk "$BOOTPART" \&\& ly_isblk "$rootpart"; }/' \
            -e 's/\[\[ -b \$rootpart \]\]/ly_isblk "$rootpart"/' \
@@ -394,7 +394,7 @@ auto_case() {  # auto_case JMENO DISKY KOD
         }
         '"$3"
 }
-auto_case D1 "vda:32G" 'DISK=/dev/vda; prepare_disk'
+auto_case D1 "vda:32G" 'DISK=/dev/vda; disk_capture; prepare_disk'
 c=$OUT/D1/cmds
 expect "D1: probehlo (erase, UEFI, sifrovani)" rc_is D1 0
 expect "D1: smazany jen novy ESP a oddil LuxOS" test "$(cut -d' ' -f2 "$OUT/D1/wipe" | sort -u | tr '\n' ' ')" == "/dev/vda1 /dev/vda2 "
@@ -405,19 +405,47 @@ expect "D1: krok mazani" grep -q "@@STEP Erasing the space for LuxOS" "$c"
 expect "D1: wipefs novych oddilu" bash -c "grep -qx 'wipefs -af /dev/vda1' '$c' && grep -qx 'wipefs -af /dev/vda2' '$c'"
 expect "D1: wipefs pred LUKS" before "$c" "wipefs -af /dev/vda2" "cryptsetup luksFormat"
 expect "D1: mount -t btrfs" bash -c "grep -q '^mount -t btrfs ' '$c' && ! grep -qE '^mount (-o [^ ]+ )?/dev/mapper' '$c'"
-auto_case D1n "vda:32G" 'DISK=/dev/vda; WIPE=none; prepare_disk'
+auto_case D1n "vda:32G" 'DISK=/dev/vda; WIPE=none; disk_capture; prepare_disk'
 expect "D1n: WIPE=none -> zadne mazani" bash -c "rc=\$(cat '$OUT/D1n/rc'); [[ \$rc == 0 ]] && test ! -s '$OUT/D1n/wipe' && ! grep -q Erasing '$OUT/D1n/cmds'"
 auto_case D2 "vda:64G" '
     addp vda 1 512 ef00; echo vfat >"$MOCK/fs/vda1"; addp vda 2 20480 0700; echo ntfs >"$MOCK/fs/vda2"
     DISK=/dev/vda ESP_PART=/dev/vda1 BOOTLOADER=auto ENCRYPT=0
     check_freespace() { FS_ERR="" FS_START=$((22 * 1024 * 2048)) FS_END=$((60 * 1024 * 2048)) FS_BYTES=$((38 * GiB)); }
-    prepare_freespace'
+    disk_capture; prepare_freespace'
 c=$OUT/D2/cmds
 expect "D2: probehlo (vedle Windows)" rc_is D2 0
 expect "D2: smazan jen novy oddil vda3" test "$(cut -d' ' -f2 "$OUT/D2/wipe" | sort -u)" == /dev/vda3
 expect "D2: novy oddil cely" covers "$OUT/D2/wipe" /dev/vda3 $(((60 * 1024 * 2048 - 22 * 1024 * 2048 + 1) * 512))
 expect "D2: pred mkfs" before "$c" "wipe-chunk" "mkfs.btrfs"
 expect "D2: wipefs jen novy oddil (Windows a ESP ne)" test "$(grep '^wipefs' "$c" | sort -u)" == "wipefs -af /dev/vda3"
+
+# Identita disku: /dev/vda mezi vyberem a smazanim jiny disk (USB odpojen/pripojen) -> nic nemazat
+nowrite() { grep -q '^FAIL .*changed since it was selected' "$OUT/$1/cmds" && ! grep -qE '^(wipefs|sgdisk (--zap-all|-o|-n))' "$OUT/$1/cmds"; }
+auto_case D3 "vda:32G" 'DISK=/dev/vda; disk_capture; echo OTHER >"$MOCK/ident/vda.serial"; prepare_disk'
+expect "D3: jine seriove cislo -> konec pred wipefs/sgdisk" bash -c "[[ \$(cat '$OUT/D3/rc') != 0 ]]" 
+expect "D3: nic nezapsano" nowrite D3
+auto_case D4 "vda:32G" 'DISK=/dev/vda; disk_capture; echo $((64 * 1024 * 2048)) >"$MOCK/disks/vda.size"; prepare_disk'
+expect "D4: jina velikost -> nic nezapsano" nowrite D4
+auto_case D5 "vda:32G" 'DISK=/dev/vda; prepare_disk'
+expect "D5: bez identity z vyberu -> nic nezapsano" nowrite D5
+auto_case D6 "vda:32G" 'ln -s /dev/vda "$MOCK/by-id/nvme-Mock_SN1"; ln -s /dev/vda "$MOCK/by-id/wwn-0x1234"
+    DISK=/dev/vda; disk_capture; prepare_disk'
+expect "D6: probehlo" rc_is D6 0
+expect "D6: wipefs a zap pres stalou cestu (wwn-)" bash -c "grep -q '^wipefs -af .*/by-id/wwn-0x1234\$' '$OUT/D6/cmds' && grep -q '^sgdisk --zap-all .*/by-id/wwn-0x1234\$' '$OUT/D6/cmds'"
+expect "D6: oddily dal podle /dev/vda" grep -qx 'wipefs -af /dev/vda2' "$OUT/D6/cmds"
+auto_case D7 "vda:32G vdb:32G" 'ln -s /dev/vda "$MOCK/by-id/usb-X"; DISK=/dev/vda; disk_capture
+    rm "$MOCK/by-id/usb-X"; ln -s /dev/vdb "$MOCK/by-id/usb-X"; prepare_disk'
+expect "D7: stala cesta ukazuje na jiny disk -> nic nezapsano" nowrite D7
+auto_case D8 "vda:64G" '
+    addp vda 1 512 ef00; echo vfat >"$MOCK/fs/vda1"; addp vda 2 20480 0700; echo ntfs >"$MOCK/fs/vda2"
+    DISK=/dev/vda ESP_PART=/dev/vda1 BOOTLOADER=auto ENCRYPT=0
+    check_freespace() { FS_ERR="" FS_START=$((22 * 1024 * 2048)) FS_END=$((60 * 1024 * 2048)) FS_BYTES=$((38 * GiB)); }
+    disk_capture; echo "Other Model" >"$MOCK/ident/vda.model"; prepare_freespace'
+expect "D8: vedle Windows na jinem disku -> zadny novy oddil" nowrite D8
+auto_case D9 "vda:32G" 'DISK=/dev/vda DISK_SIZE=$((32 * GiB)) DISK_MODEL="Mock Disk"; disk_capture; echo CAPTURED'
+expect "D9: velikost a model z GUI sedi" bash -c "rc=\$(cat '$OUT/D9/rc'); [[ \$rc == 0 ]] && grep -qx CAPTURED '$OUT/D9/out'"
+auto_case D10 "vda:32G" 'DISK=/dev/vda DISK_SIZE=$((500 * GiB)) DISK_MODEL="Mock Disk"; disk_capture; echo CAPTURED'
+expect "D10: GUI vybralo jiny disk (velikost) -> konec" bash -c "[[ \$(cat '$OUT/D10/rc') != 0 ]] && ! grep -qx CAPTURED '$OUT/D10/out' && grep -q 'changed since it was selected' '$OUT/D10/cmds'"
 
 # ---------------------------------------------------------------------------------
 echo "## F: TUI - dotaz a souhrn (ask_wipe, wipe_text z luxos-install)"

@@ -5274,3 +5274,9 @@ Not allowed - it was not confirmed in the Lux Guard window.	Nem engedélyezve �
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Az engedélyezéshez a Lux Guard ablaka szükséges az asztali munkamenetben (vagy rendszergazdaként: sudo luxos-guard allow FÁJL).
 The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	A kapcsolat megszakadt közvetlenül azután, hogy az üzenet a szerverhez került. Lehet, hogy elküldődött; mielőtt újra elküldené, nézze meg az Elküldött mappát.
 This event was changed or deleted elsewhere.	Ezt az eseményt máshol módosították vagy törölték.
+Updating the system to match the refreshed package lists	A rendszer frissítése a frissített csomaglistákhoz
+The system is older than the downloaded package lists (%s). Installing without updating the rest of the system could leave programs that do not start.	A rendszer régebbi a letöltött csomaglistáknál (%s). A rendszer többi részének frissítése nélküli telepítés el nem induló programokat hagyhat maga után.
+Update the whole system first (lux update), then try again.	Előbb frissítse az egész rendszert (lux update), majd próbálja újra.
+Update the whole system together with it?	Frissüljön vele együtt az egész rendszer?
+The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	A(z) %s lemez megváltozott a kiválasztása óta (csatlakoztattak vagy eltávolítottak egy lemezt?). Semmi sem lett törölve – válassza ki újra a lemezt.
+The encrypted volume %s under / could not be identified for unlocking at startup.	A / alatti %s titkosított kötetet nem sikerült azonosítani az indításkori feloldáshoz.

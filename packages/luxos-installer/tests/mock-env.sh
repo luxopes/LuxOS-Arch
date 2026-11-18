@@ -10,6 +10,9 @@ mock_init() {  # mock_init "vda:64G" "sda:500G" ...
     mkdir -p "$MOCK"/{disks,fs,luks,open,lv,vg,keys}
     # Kontrola "jmeno uz pouziva otevreny svazek" bez /dev/mapper skutecneho pocitace (sifrovany cryptroot vyvojare)
     export LY_MAPPER_DIR=$MOCK/open
+    # stale cesty disku (/dev/disk/by-id) jen z emulace, nikdy skutecne disky pocitace
+    mkdir -p "$MOCK"/{ident,by-id}
+    export LY_BYID_DIR=$MOCK/by-id
     : >"$MOCK/cmds"
     local d name size
     for d in "$@"; do
@@ -36,6 +39,7 @@ mock_partpath() { if [[ $1 == *[0-9] ]]; then echo "/dev/$1p$2"; else echo "/dev
 sgdisk() {
     mock_log "sgdisk $*"
     local disk=${!#} name tbl sz a n s e code pname
+    [[ -L $disk ]] && disk=$(readlink -f -- "$disk")   # stala cesta /dev/disk/by-id/… (emulace v $MOCK/by-id)
     name=${disk#/dev/}
     tbl=$MOCK/disks/$name.tbl
     [[ -e $tbl ]] || return 2
@@ -103,6 +107,14 @@ lsblk() {
     local opts=$* dev=${!#} name
     name=${dev#/dev/}
     case $opts in
+        # identita disku (kontrola pred smazanim): velikost z emulace, model/seriove cislo z $MOCK/ident/<disk>
+        *SIZE,MODEL,SERIAL,WWN*)
+            [[ -e $MOCK/disks/$name.tbl ]] || return 0
+            printf 'SIZE="%s" MODEL="%s" SERIAL="%s" WWN=""\n' "$(($(<"$MOCK/disks/$name.size") * 512))" \
+                "$(cat "$MOCK/ident/$name.model" 2>/dev/null || echo "Mock Disk")" \
+                "$(cat "$MOCK/ident/$name.serial" 2>/dev/null || echo "SN-$name")" ;;
+        *"-dbno SIZE"*) [[ -e $MOCK/disks/$name.tbl ]] && echo "$(($(<"$MOCK/disks/$name.size") * 512))"; return 0 ;;
+        *"-dno MODEL"*) [[ -e $MOCK/disks/$name.tbl ]] && { cat "$MOCK/ident/$name.model" 2>/dev/null || echo "Mock Disk"; }; return 0 ;;
         *"-dno TYPE"*)
             if [[ -e $MOCK/disks/$name.tbl ]]; then echo disk; else ly_isblk "$dev" && echo part; fi ;;
         *PARTTYPE*) mock_ptype "$dev" ;;

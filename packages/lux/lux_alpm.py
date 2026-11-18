@@ -1638,6 +1638,11 @@ class Lux:
                 check_gpu = False
                 add += r.extra
                 continue
+            except _NeedSysupgrade as r:
+                # castecna aktualizace (Arch: nikdy -Sy bez -u): instalovat jen spolu s celym systemem
+                self.confirm_sysupgrade(r.names)
+                sysupgrade = True
+                continue
             except _Retry as r:
                 confirmed = True
                 if attempt == attempts:
@@ -1660,10 +1665,11 @@ class Lux:
         self.trans = t
         try:
             try:
-                if sysupgrade:
-                    t.sysupgrade(False)
+                # cile pred sysupgrade jako pacman -Syu balik (libalpm cile uz v seznamu preskoci)
                 for p in add:
                     t.add_pkg(p)
+                if sysupgrade:
+                    t.sysupgrade(False)
                 for p in remove:
                     t.remove_pkg(p)
                 t.prepare()
@@ -1689,6 +1695,10 @@ class Lux:
                 extra = self.better_gpu_providers(add, to_add)
                 if extra:
                     raise _Reprovide(extra)
+            if action == "install" and not sysupgrade and not confirmed:
+                risky = self.partial_upgrade_risk(to_add)
+                if risky:
+                    raise _NeedSysupgrade(risky)
             plan = self.plan(to_add, to_remove)
             if not confirmed:
                 self.show_plan(action, plan, to_add, to_remove)
@@ -1745,6 +1755,60 @@ class Lux:
                 t.release()
             except Exception:  # noqa: BLE001 - uvolneni nesmi prekryt puvodni chybu
                 pass
+
+    def partial_upgrade_risk(self, to_add):
+        """Nazvy zastaralych nainstalovanych baliku, na kterych instalace zavisi (seznamy baliku jsou
+        novejsi nez system, napr. po lux fix nebo odmitnute aktualizaci). Novy balik je sestaven proti
+        novejsim knihovnam (zavislost bez verze splni stara knihovna -> program nespusti) a povysena
+        knihovna muze rozbit zastarale baliky, ktere ji pouzivaji. IgnorePkg/IgnoreGroup se nepocitaji."""
+        api, local = self.api, self.localdb
+        try:
+            dbs = self.syncdbs("Upgrade")
+            ignored = set(getattr(self.h, "ignorepkgs", None) or [])
+            igroups = set(getattr(self.h, "ignoregrps", None) or [])
+        except Exception:  # noqa: BLE001 - kontrola nesmi sama zablokovat instalaci
+            return []
+        adding = {p.name for p in to_add}
+        outdated = {}
+        for p in local.pkgcache:
+            if p.name in adding or p.name in ignored or igroups & set(getattr(p, "groups", None) or []):
+                continue
+            if api.sync_newversion(p, dbs) is not None:
+                outdated[p.name] = p
+        if not outdated:
+            return []
+        risky = set()
+        old_pkgs = list(outdated.values())
+        for p in to_add:
+            # zavislost noveho baliku splnena zastaralym balikem systemu
+            for d in getattr(p, "depends", None) or []:
+                if api.find_satisfier(to_add, d) is not None:
+                    continue
+                s = api.find_satisfier(local.pkgcache, d)
+                if s is not None and s.name in outdated:
+                    risky.add(s.name)
+            # povyseni nainstalovaneho baliku, ktery pouzivaji zastarale baliky
+            old = local.get_pkg(p.name)
+            if old is not None and api.vercmp(old.version, p.version) != 0:
+                for q in old_pkgs:
+                    if any(api.find_satisfier([p], d) is not None for d in getattr(q, "depends", None) or []):
+                        risky.add(q.name)
+        return sorted(risky)
+
+    def confirm_sysupgrade(self, names):
+        """Instalace by byla castecnou aktualizaci: s potvrzenim (nebo -y) spolu s celym systemem,
+        jinak (Obchod --machine, bez terminalu) odmitnout - druh "outdated"."""
+        ui = self.ui
+        shown = ", ".join(names[:5]) + (", …" if len(names) > 5 else "")
+        why = _("The system is older than the downloaded package lists (%s). Installing without updating "
+                "the rest of the system could leave programs that do not start.") % shown
+        refuse = LuxError("outdated", why + " " + _("Update the whole system first (lux update), then try again."),
+                          [f"partial upgrade: outdated {n}" for n in names])
+        if ui.machine or (not ui.yes and not _isatty(ui.inp)):
+            raise refuse
+        ui.warn(why)
+        if not ui.ask(_("Update the whole system together with it?")):
+            raise refuse
 
     def hook_plan(self, to_add, to_remove):
         """Odhad hooku transakce (HookPlan); None, kdyz ho nejde sestavit."""
@@ -1912,6 +1976,13 @@ def package_from_file(path):
     base = re.sub(r"\.pkg\.tar(\.[a-z0-9]+)?(\.sig)?$", "", base)
     parts = base.rsplit("-", 3)
     return parts[0] if len(parts) == 4 else base
+
+
+class _NeedSysupgrade(Exception):
+    """Instalace by byla castecnou aktualizaci -> zopakovat se sysupgrade (po potvrzeni)."""
+    def __init__(self, names):
+        super().__init__("sysupgrade")
+        self.names = names
 
 
 class _RetryCorrupt(Exception):

@@ -639,6 +639,46 @@ class SdBoot(Env):
         self.assertIn("luxos.conf", self.entries())
         self.assertNotIn("luxos+0-3.conf", self.entries())
 
+    def _old_prev_on_esp(self, ver="6.16.5-luxos1-1"):
+        """Zalozni jadro puvodniho systemu na ESP (soubory + polozka luxos-prev.conf)."""
+        self.w("/boot/vmlinuz-linux-luxos-prev", b"old-prev-kernel")
+        self.w("/boot/initramfs-linux-luxos-prev.img", b"old-prev-initramfs")
+        self.w("/boot/loader/entries/luxos-prev.conf", "title   LuxOS (previous kernel)\nversion " + ver +
+               "\nlinux   /vmlinuz-linux-luxos-prev\ninitrd  /initramfs-linux-luxos-prev.img\noptions " + OPTS + "\n")
+
+    def test_rollback_prev_kernel_of_restored_system(self):
+        """Zalozni jadro po navratu patri obnovenemu systemu (jeho moduly), ne puvodnimu."""
+        pv = "6.16.9-luxos1-1"
+        self.sysfile("/var/lib/luxos-care/kernel/prev", pv + "\n")
+        self.sysfile(f"/usr/lib/modules/{pv}/vmlinuz", "snap-prev-kernel")
+        self.sysfile(f"/var/lib/luxos-care/kernel/initramfs-{pv}.img", "snap-prev-initramfs")
+        a = snap.create(self.top, now=self.at(1))
+        # po snimku: aktualizace jadra, puvodni system ma jine zalozni jadro (jeho moduly snimek nema)
+        self.kernel(KVER2, b"kernel-2")
+        self._old_prev_on_esp()
+        snap.rollback(self.top, a["name"], now=self.at(30))
+        with open(self.root + "/boot/vmlinuz-linux-luxos-prev", "rb") as f:
+            self.assertEqual(f.read(), b"snap-prev-kernel")
+        with open(self.root + "/boot/initramfs-linux-luxos-prev.img", "rb") as f:
+            self.assertEqual(f.read(), b"snap-prev-initramfs")
+        entry = self.r("/boot/loader/entries/luxos-prev.conf")
+        self.assertIn(f"version {pv}", entry)
+        self.assertNotIn("6.16.5", entry)
+        self.assertIn("linux   /vmlinuz-linux-luxos-prev", entry)
+
+    def test_rollback_drops_prev_kernel_without_modules(self):
+        """Obnoveny system zalozni jadro nema (nebo bez modulu): polozka a soubory pryc."""
+        self.sysfile("/var/lib/luxos-care/kernel/prev", "6.16.5-luxos1-1\n")   # moduly ve snimku chybi
+        a = snap.create(self.top, now=self.at(1))
+        self.kernel(KVER2, b"kernel-2")
+        self._old_prev_on_esp()
+        snap.rollback(self.top, a["name"], now=self.at(30))
+        self.assertNotIn("luxos-prev.conf", self.entries())
+        self.assertFalse(os.path.exists(self.root + "/boot/vmlinuz-linux-luxos-prev"))
+        self.assertFalse(os.path.exists(self.root + "/boot/initramfs-linux-luxos-prev.img"))
+        # neplatny zaznam verze (cesta) se nepouzije
+        self.assertEqual(snap.prev_boot_for_root(care.detect_layout(), "/nonexistent"), "")
+
     def test_rollback_kernel_missing_refused(self):
         a = snap.create(self.top, now=self.at(1))
         shutil.rmtree(self.root + "/boot/luxos-snapshots")
@@ -785,6 +825,21 @@ class Grub(Env):
         self.assertIn("menuentry 'LuxOS (before update of 2026-10-26 14:03:40)'", cfg)
         # grub.cfg uz luxos-snapshots.cfg nacita: zadny grub-mkconfig
         self.assertFalse(any(c[0] == "grub-mkconfig" for c in self.cmds))
+
+    def test_grub_rollback_prev_kernel(self):
+        """GRUB: /boot/luxos-prev po navratu = zalozni jadro obnoveneho systemu."""
+        pv = "6.16.9-luxos1-1"
+        self.sysfile("/var/lib/luxos-care/kernel/prev", pv + "\n")
+        self.sysfile(f"/usr/lib/modules/{pv}/vmlinuz", "snap-prev-kernel")
+        self.sysfile(f"/var/lib/luxos-care/kernel/initramfs-{pv}.img", "snap-prev-initramfs")
+        a = snap.create(self.top, now=self.at(1))
+        self.w("/boot/luxos-prev/vmlinuz", b"old-prev")
+        self.w("/boot/luxos-prev/initramfs.img", b"old-prev-initramfs")
+        snap.rollback(self.top, a["name"], now=self.at(30))
+        with open(self.root + "/boot/luxos-prev/vmlinuz", "rb") as f:
+            self.assertEqual(f.read(), b"snap-prev-kernel")
+        with open(self.root + "/boot/luxos-prev/initramfs.img", "rb") as f:
+            self.assertEqual(f.read(), b"snap-prev-initramfs")
 
     def test_grub_mkconfig_once(self):
         self.w("/boot/grub/grub.cfg", "menuentry LuxOS {}\n")

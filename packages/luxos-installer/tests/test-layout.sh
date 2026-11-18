@@ -67,6 +67,7 @@ scenario() {  # scenario JMENO BOOTMODE "vda:64G ..." LAYOUT [PRIPRAVA (bash kod
         layout_parse "$layout"
         layout_validate
         ((${#LY_ERR[@]})) || layout_check_devices
+        eval "${AFTER_CHECK-}"   # zmena mezi kontrolou (souhrnem) a provedenim
         printf '%s\n' "${LY_ERR[@]}" >"$dir/errors"
         printf '%s\n' "${LY_WARN[@]}" >"$dir/warnings"
         ((${#LY_ERR[@]} == 0)) || { cp "$MOCK/cmds" "$dir/cmds"; exit 3; }
@@ -101,6 +102,22 @@ warn_is() { grep -q "^$2|" "$OUT/$1/warnings"; }
 echo "# vystupy: $OUT"
 
 # ---------------------------------------------------------------------------------
+echo "## ID: smazani celeho disku jen na disku z kontroly (identita, stala cesta by-id)"
+LID='disk dev=/dev/vda table=new
+part id=esp disk=/dev/vda size=1G type=esp
+part id=r disk=/dev/vda size=rest
+fs on=esp mount=/boot type=vfat
+fs on=r mount=/ type=btrfs'
+scenario ID-ok uefi "vda:64G" "$LID" 'ln -s /dev/vda "$MOCK/by-id/wwn-0x5000c500a1b2c3d4"; ln -s /dev/vda "$MOCK/by-id/ata-Mock_SN1"'
+expect "ID-ok: probehlo" rc_is ID-ok 0
+expect "ID-ok: wipefs/zap pres stalou cestu wwn-" bash -c "grep -q 'wipefs -af .*/by-id/wwn-0x5000c500a1b2c3d4\$' '$OUT/ID-ok/cmds' && grep -q 'sgdisk --zap-all .*/by-id/wwn-0x5000c500a1b2c3d4\$' '$OUT/ID-ok/cmds'"
+AFTER_CHECK='trap "cp \"\$MOCK/cmds\" \"\$dir/cmds\"" EXIT; echo OTHER-SERIAL >"$MOCK/ident/vda.serial"' scenario ID-swap uefi "vda:64G" "$LID"
+expect "ID-swap: jiny disk pod /dev/vda -> konec" rc_is ID-swap 1
+expect "ID-swap: zprava" grep -q "The disk /dev/vda changed since it was selected" "$OUT/ID-swap/apply.out"
+expect "ID-swap: nic nesmazano" bash -c "grep -q '^FAIL ' '$OUT/ID-swap/cmds' && ! grep -qE '^(wipefs|sgdisk (--zap-all|-o|-n|-d))' '$OUT/ID-swap/cmds'"
+AFTER_CHECK='trap "cp \"\$MOCK/cmds\" \"\$dir/cmds\"" EXIT; rm "$MOCK/by-id/x"; ln -s /dev/vdb "$MOCK/by-id/x"' scenario ID-link uefi "vda:64G vdb:64G" "$LID" 'ln -s /dev/vda "$MOCK/by-id/x"'
+expect "ID-link: stala cesta ukazuje jinam -> konec bez zmeny" bash -c "[[ \$(cat '$OUT/ID-link/rc') == 1 ]] && grep -q '^FAIL .*changed since' '$OUT/ID-link/cmds' && ! grep -qE '^(wipefs|sgdisk --zap-all)' '$OUT/ID-link/cmds'"
+
 echo "## A: predvolba Sifrovane LVM (/, /home, swap), UEFI, 64 GiB"
 LA=$(py_layout lvm /dev/vda 64 uefi 8 2>"$OUT/A.pyerr")
 expect "A: GUI model bez chyb" test ! -s "$OUT/A.pyerr"

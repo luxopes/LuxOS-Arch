@@ -1555,17 +1555,26 @@ def build_prev_initramfs(ver, out):
     return True
 
 
-def install_prev_boot(lay, ver, rebuild=False):
-    """Zalozni jadro na misto, odkud ho zavadec nacte, + polozka. -> (ok, duvod)."""
+def install_prev_boot(lay, ver, rebuild=False, src=None, clean=True):
+    """Zalozni jadro na misto, odkud ho zavadec nacte, + polozka. -> (ok, duvod).
+    src=(vmlinuz, initramfs): soubory z jineho korene (navrat ke snimku); clean=False bez uklidu ESP
+    (volajici uz drzi zamek snimku)."""
     if lay["kind"] == "none":
         return False, "no_bootloader"
-    vml_src = P(f"{MODULES}/{ver}/vmlinuz")
-    if not os.path.isfile(vml_src):
-        return False, "no_vmlinuz"
-    img = P(f"{KSTATE}/initramfs-{ver}.img")
-    if rebuild or not os.path.isfile(img):
-        if not build_prev_initramfs(ver, img):
+    if src:
+        vml_src, img = src
+        if not os.path.isfile(vml_src):
+            return False, "no_vmlinuz"
+        if not os.path.isfile(img):
             return False, "initramfs"
+    else:
+        vml_src = P(f"{MODULES}/{ver}/vmlinuz")
+        if not os.path.isfile(vml_src):
+            return False, "no_vmlinuz"
+        img = P(f"{KSTATE}/initramfs-{ver}.img")
+        if rebuild or not os.path.isfile(img):
+            if not build_prev_initramfs(ver, img):
+                return False, "initramfs"
     kdir = P(lay["kdir"])
     if lay["kind"] == "sdboot" and not os.path.isdir(P(lay["esp"] + "/loader")):
         return False, "esp_missing"
@@ -1575,7 +1584,7 @@ def install_prev_boot(lay, ver, rebuild=False):
     # Novy soubor se pise vedle stareho (.new + prejmenovani): potreba je cela velikost, stare soubory
     # se nepocitaji (driv ano - na plnem ESP pak zustal neuplny initramfs-...-prev.img.new)
     need = sum(os.path.getsize(s) for s, _d in todo) + 4 * 1024 * 1024
-    if todo and free_bytes(kdir) < need:
+    if todo and clean and free_bytes(kdir) < need:
         try:
             import luxos_snapshots
             luxos_snapshots.esp_clean(need=need, reserve=0, lay=lay)

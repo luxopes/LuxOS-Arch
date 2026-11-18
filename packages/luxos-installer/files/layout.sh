@@ -40,6 +40,29 @@ LY_FORBIDDEN_MOUNTS=" /usr /etc /bin /sbin /lib /lib64 /proc /sys /dev /run /boo
 
 ly_err()  { LY_ERR+=("$1|${2-}"); }
 ly_isblk() { [[ -b $1 ]]; }   # testy nahrazuji (zarizeni bez roota neexistuji)
+
+# Identita disku pro kontrolu tesne pred smazanim: /dev/sdX muze mezi vyberem a zapisem patrit jinemu
+# disku (odpojeny/pripojeny USB disk) - velikost, model, seriove cislo a WWN musi sedet
+ly_disk_ident() { lsblk -dbnP -o SIZE,MODEL,SERIAL,WWN -- "$1" 2>/dev/null; }
+ly_disk_byid() {  # ly_disk_byid DISK -> stala cesta /dev/disk/by-id/… (prednostne wwn-), jinak prazdne
+    local real l best="" dir=${LY_BYID_DIR:-/dev/disk/by-id}
+    real=$(readlink -f -- "$1" 2>/dev/null) || return 0
+    for l in "$dir"/*; do
+        [[ -L $l && ${l##*/} != *-part[0-9]* ]] || continue
+        [[ $(readlink -f -- "$l" 2>/dev/null) == "$real" ]] || continue
+        if [[ ${l##*/} == wwn-* ]]; then best=$l; break; fi
+        [[ -n $best ]] || best=$l
+    done
+    printf '%s' "$best"
+}
+ly_disk_same() {  # ly_disk_same DISK IDENTITA [BYID]: stale stejny disk jako pri vyberu?
+    local dev=$1 want=$2 byid=${3-}
+    [[ -n $want ]] || return 1
+    if [[ -n $byid ]]; then
+        [[ -L $byid && $(readlink -f -- "$byid" 2>/dev/null) == "$(readlink -f -- "$dev" 2>/dev/null)" ]] || return 1
+    fi
+    [[ $(ly_disk_ident "$dev") == "$want" ]]
+}
 ly_warn() { LY_WARN+=("$1|${2-}"); }
 
 ly_keys() {  # povolene klice podle druhu
@@ -504,6 +527,9 @@ layout_check_devices() {  # zarizeni existuji, nejsou pouzivana, existujici LUKS
         ly_isblk "$dev" || { ly_err not_block "$dev"; continue; }
         if [[ ${L[$id.table]-keep} == new ]]; then
             ly_busy "$dev" && ly_err busy "$dev"
+            # identita pri vyberu: ly_partitions ji overi tesne pred smazanim
+            L[$id.ident]=$(ly_disk_ident "$dev")
+            L[$id.byid]=$(ly_disk_byid "$dev")
         fi
     done
     for id in $(ly_ids part); do
@@ -1081,12 +1107,16 @@ ly_partitions() {  # tabulky oddilu: zmenseni, mazani, zvetseni, nove oddily (v 
     for id in $(ly_ids disk); do
         [[ ${L[$id.table]-keep} == new ]] || continue
         dev=${L[$id.dev]}
+        # Stejny disk jako pri kontrole (velikost, model, seriove cislo, WWN), jinak nic nemazat
+        ly_disk_same "$dev" "${L[$id.ident]-}" "${L[$id.byid]-}" ||
+            fail "$(T "The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again." "$dev")"
         ly_release "$dev"
-        local p
+        local p w=${L[$id.byid]:-$dev}
         for p in $(lsblk -nrpo NAME,TYPE "$dev" | awk '$2 == "part" {print $1}'); do ly_release "$p"; done
-        run wipefs -af "$dev"
-        run sgdisk --zap-all "$dev"
-        run sgdisk -o "$dev"
+        # zapis pres stalou cestu (by-id): jmeno /dev/sdX se mezitim nemuze premapovat na jiny disk
+        run wipefs -af "$w"
+        run sgdisk --zap-all "$w"
+        run sgdisk -o "$w"
         ly_settle "$dev"
     done
     for id in $(ly_ids delete); do

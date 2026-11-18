@@ -986,11 +986,18 @@ lux_fix() {
     if [[ $(timedatectl show -p NTPSynchronized --value 2>/dev/null) == no ]]; then
         warn "$(T "The system clock is not synchronized, signature checks can fail. Turn it on: timedatectl set-ntp true")"
     fi
-    local -a keys=() k
-    for k in archlinux-keyring luxos-keyring; do "$LUX_ENGINE" -Q "$k" &>/dev/null && keys+=("$k"); done
-    if ((${#keys[@]})); then
-        if alpm_ok; then alpm_root install --refresh --needed -- "${keys[@]}" || exit
-        else pac_run -Sy --needed $(pac_yes) "${keys[@]}" || exit 1; fi
+    # Obnovene seznamy baliku vzdy s aktualizaci celeho systemu (Arch: nikdy -Sy bez -u) - jinak by
+    # pozdejsi lux install bral baliky sestavene proti novejsim knihovnam, nez ma system
+    say "$(T "Updating the system to match the refreshed package lists")"
+    if alpm_ok; then
+        # update = obnoveni seznamu, nejdrive novejsi klice, pak cely system (s obvyklou otazkou)
+        alpm_root update || exit
+    else
+        local -a keys=() k
+        for k in archlinux-keyring luxos-keyring; do "$LUX_ENGINE" -Q "$k" &>/dev/null && keys+=("$k"); done
+        pac_run -Sy || exit 1
+        if ((${#keys[@]})); then pac_run -S --needed --noconfirm "${keys[@]}" || exit 1; fi
+        pac_run -Su $(pac_yes) || exit 1
     fi
     ok "$(T "Package manager repaired")"
 }

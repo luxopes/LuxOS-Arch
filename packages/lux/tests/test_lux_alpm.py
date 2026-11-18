@@ -606,6 +606,82 @@ class Transactions(unittest.TestCase):
         self.assertEqual(h.local.get_pkg("htop").version, "3.3.0-1")
         self.assertIn("@@SUMMARY download", out)
 
+    @staticmethod
+    def stale_api():
+        """System za seznamy baliku (lux fix / odmitnuta aktualizace obnovila databaze bez -u):
+        nainstalovana libbar 1 (soname 1), v repozitari libbar 2; foo je sestaveny proti libbar 2."""
+        api = make_api()
+        reg = api.Handle.register_syncdb
+
+        def register(self, name, sig):
+            db = reg(self, name, sig)
+            if name == "extra":
+                db.add(fake.Package("libbar", "2.0-1", "lib"))
+                db.add(fake.Package("foo", "1.0-1", "uses libbar", depends=["libbar"]))
+                db.add(fake.Package("oldapp", "1.1-1", "uses libbar", depends=["libbar"]))
+                self.local.add(fake.Package("libbar", "1.0-1", reason=1))
+                self.local.add(fake.Package("oldapp", "1.0-1", depends=["libbar"]))
+            return db
+        api.Handle.register_syncdb = register
+        return api
+
+    def test_partial_upgrade_refused_without_terminal(self):
+        """lux install po obnoveni seznamu bez -u: foo by se nainstaloval ke stare libbar (nespustil by se)."""
+        rc, out, h = run(["install", "foo"], api=self.stale_api())
+        self.assertEqual(rc, 1, out)
+        self.assertIn("older than the downloaded package lists (libbar)", out)
+        self.assertIn("lux update", out)
+        self.assertIsNone(h.local.get_pkg("foo"))
+        self.assertEqual(h.local.get_pkg("libbar").version, "1.0-1")
+        self.assertTrue(all(t.released and not t.committed for t in h.transactions))
+
+    def test_partial_upgrade_machine_refused_even_with_yes(self):
+        """Obchod (--machine -y): zadna nechtena aktualizace celeho systemu, chyba druhu "outdated"."""
+        rc, out, h = run(["--machine", "-y", "install", "foo"], api=self.stale_api())
+        self.assertEqual(rc, 1, out)
+        self.assertIn("@@ERROR outdated", out)
+        self.assertIsNone(h.local.get_pkg("foo"))
+
+    def test_partial_upgrade_becomes_full_upgrade(self):
+        """S potvrzenim: foo spolu s celym systemem (jako pacman -Syu foo)."""
+        rc, out, h = run(["install", "foo"], tty=True, answer="y\ny\n", api=self.stale_api())
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Update the whole system together with it? [Y/n]", strip(out))
+        self.assertEqual(h.local.get_pkg("foo").version, "1.0-1")
+        self.assertEqual(h.local.get_pkg("libbar").version, "2.0-1")
+        self.assertEqual(h.local.get_pkg("oldapp").version, "1.1-1")
+        self.assertEqual(h.local.get_pkg("htop").version, "3.3.0-2")
+        # -y: rovnou cely system
+        rc, out, h = run(["-y", "install", "foo"], api=self.stale_api())
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(h.local.get_pkg("libbar").version, "2.0-1")
+
+    def test_partial_upgrade_declined(self):
+        rc, out, h = run(["install", "foo"], tty=True, answer="n\n", api=self.stale_api())
+        self.assertEqual(rc, 1, out)
+        self.assertIsNone(h.local.get_pkg("foo"))
+        self.assertEqual(h.local.get_pkg("libbar").version, "1.0-1")
+
+    def test_partial_upgrade_library_bump_breaks_users(self):
+        """Povyseni samotne libbar by rozbilo zastaraly oldapp (pouziva libbar 1)."""
+        rc, out, h = run(["install", "libbar"], api=self.stale_api())
+        self.assertEqual(rc, 1, out)
+        self.assertIn("(oldapp)", out)
+        self.assertEqual(h.local.get_pkg("libbar").version, "1.0-1")
+
+    def test_partial_upgrade_unrelated_install_allowed(self):
+        """Zastarale baliky, na kterych instalace nezavisi (htop, libbar pro firefox), nevadi."""
+        rc, out, h = run(["-y", "install", "firefox"], api=self.stale_api())
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(h.local.get_pkg("libbar").version, "1.0-1")
+        self.assertEqual(h.local.get_pkg("htop").version, "3.3.0-1")
+        # IgnorePkg: zastaralou libbar si uzivatel drzi sam -> ne castecna aktualizace
+        def prep(hh):
+            hh.ignorepkgs = ["libbar"]
+        rc, out, h = run(["-y", "install", "foo"], api=self.stale_api(), prepare=prep)
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(h.local.get_pkg("libbar").version, "1.0-1")
+
     def test_network_retry_without_second_question(self):
         def prep(h):
             h.commit_errors.append(fake.error("failed to retrieve some files", 54, None))

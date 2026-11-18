@@ -5274,3 +5274,9 @@ Not allowed - it was not confirmed in the Lux Guard window.	No permitido: no se 
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Para permitirlo se necesita la ventana de Lux Guard en su sesión de escritorio (o como administrador: sudo luxos-guard allow ARCHIVO).
 The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	La conexión se perdió justo después de entregar el mensaje al servidor. Puede que se haya enviado; revisa Enviados antes de volver a enviarlo.
 This event was changed or deleted elsewhere.	Este evento se ha modificado o eliminado en otro lugar.
+Updating the system to match the refreshed package lists	Actualizando el sistema según las listas de paquetes renovadas
+The system is older than the downloaded package lists (%s). Installing without updating the rest of the system could leave programs that do not start.	El sistema es más antiguo que las listas de paquetes descargadas (%s). Instalar sin actualizar el resto del sistema podría dejar programas que no arrancan.
+Update the whole system first (lux update), then try again.	Actualice primero todo el sistema (lux update) y vuelva a intentarlo.
+Update the whole system together with it?	¿Actualizar todo el sistema a la vez?
+The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	El disco %s ha cambiado desde que se seleccionó (¿se conectó o retiró un disco?). No se ha borrado nada: vuelva a seleccionar el disco.
+The encrypted volume %s under / could not be identified for unlocking at startup.	No se pudo identificar el volumen cifrado %s bajo / para desbloquearlo al arrancar.

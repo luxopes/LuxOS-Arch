@@ -592,7 +592,8 @@ def gc_kernels(lay, top, snaps, force=False):
 #     sadu jadra (mkinitcpio pise novy initramfs vedle stareho, zalozni jadro), jinak se mazou sady
 #     nejstarsich snimku - nikdy sada nejnovejsiho snimku ani snimku, ze ktereho system bezi; hlavni
 #     a zalozni jadro sadami nejsou,
-#   - zbytky prerusenych zapisu (*.new, *.luxos-new, *.img.tmp od mkinitcpio) se mazou.
+#   - zbytky prerusenych zapisu (*.new, *.luxos-new, *.img.tmp od mkinitcpio) se mazou - jen neotevrene
+#     zadnym procesem, *.img.tmp navic az po hodine (mkinitcpio ho pri rucni aktualizaci muze prave psat).
 ESP_RESERVE = 100 << 20
 ESP_LOW = 50 << 20                  # kontrola po startu: mene = upozorneni (po automatickem uklidu)
 VARIANTS_PER_KERNEL = 2
@@ -631,9 +632,49 @@ def stale_files(lay):
     return out
 
 
-def clean_stale(lay):
+STALE_AGE = 3600                    # zbytek zapisu mladsi nez hodina muze jeste vznikat
+PROC = "/proc"
+
+
+def open_paths():
+    """Soubory otevrene nekterym procesem (/proc/*/fd) -> {realna cesta}."""
+    out = set()
+    try:
+        pids = [d for d in os.listdir(PROC) if d.isdigit()]
+    except OSError:
+        return out
+    for pid in pids:
+        fdd = os.path.join(PROC, pid, "fd")
+        try:
+            fds = os.listdir(fdd)
+        except OSError:
+            continue
+        for fd in fds:
+            try:
+                out.add(os.readlink(os.path.join(fdd, fd)))
+            except OSError:
+                continue
+    return out
+
+
+def clean_stale(lay, now=None):
+    """Smaze zbytky prerusenych zapisu. Soubor otevreny nekterym procesem se nemaze nikdy (prave se
+    zapisuje) a *.tmp od mkinitcpio jen starsi nez STALE_AGE: mkinitcpio pri rucni aktualizaci
+    (lux update, bez zamku LuxOS Care) prave pise initramfs-<jadro>.img.tmp a pak ho prejmenuje."""
     gone = []
+    now = time.time() if now is None else now
+    busy = None
     for p in stale_files(lay):
+        try:
+            if not os.path.isdir(p):
+                if p.endswith(".tmp") and now - os.lstat(p).st_mtime < STALE_AGE:
+                    continue
+                if busy is None:
+                    busy = open_paths()
+                if os.path.realpath(p) in busy:
+                    continue
+        except OSError:
+            continue
         try:
             if os.path.isdir(p):
                 shutil.rmtree(p)
@@ -1304,11 +1345,42 @@ def rollback(top, name, now=None, lay=None, kind="before-rollback", build=None):
     except OSError as e:
         care.log(f"could not write the rollback note: {e}")
     reset_counter(lay)
+    # Zalozni jadro (polozka "previous kernel") patrilo puvodnimu systemu: obnoveny system jeho moduly
+    # mit nemusi -> zalozni jadro obnoveneho systemu, nebo zadne
+    prev_boot_for_root(lay, sys_path)
     snaps = list_snapshots(top)
     gc_kernels(lay, top, snaps)
     sync_boot(top, lay, snaps)
     care.history("rollback", ok=True, to=name, replaced=replaced, target_kind=kind)
     return {"target": name, "replaced": replaced, "label": label(meta), "kind": meta.get("kind")}
+
+
+def prev_boot_for_root(lay, root):
+    """Zalozni jadro na zavadeci podle systemu v `root` (po navratu ke snimku): jeho zalozni verze,
+    jen kdyz v nem ma jadro i moduly a initramfs; jinak polozku odebrat (stare zalozni jadro by
+    nabehlo bez svych modulu - bez grafiky, site, klavesnice). -> verze nebo ""."""
+    if lay["kind"] == "none":
+        return ""
+
+    def R(path):
+        return os.path.join(root, path.lstrip("/"))
+    try:
+        with open(R(care.KSTATE + "/prev")) as f:
+            prev = f.read().strip()
+    except OSError:
+        prev = ""
+    if prev and re.fullmatch(r"[A-Za-z0-9._+-]+", prev) and prev not in (".", ".."):
+        vml = R(f"{care.MODULES}/{prev}/vmlinuz")
+        img = R(f"{care.KSTATE}/initramfs-{prev}.img")
+        if os.path.isfile(vml) and os.path.isfile(img):
+            ok, why = care.install_prev_boot(lay, prev, src=(vml, img), clean=False)
+            if ok:
+                return prev
+            care.log(f"previous kernel {prev} of the restored system not installed: {why}")
+        else:
+            care.log(f"previous kernel {prev} has no modules or initramfs in the restored system - entry removed")
+    care.remove_prev_boot(lay)
+    return ""
 
 
 def after_rollback():

@@ -5275,3 +5275,9 @@ Not allowed - it was not confirmed in the Lux Guard window.	Не дозволе�
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	Для дозволу потрібне вікно Lux Guard у вашому графічному сеансі (або як адміністратор: sudo luxos-guard allow ФАЙЛ).
 The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	З’єднання обірвалося одразу після передавання листа серверу. Можливо, його надіслано; перш ніж надсилати знову, перевірте Надіслані.
 This event was changed or deleted elsewhere.	Цю подію змінено або видалено в іншому місці.
+Updating the system to match the refreshed package lists	Оновлення системи відповідно до оновлених списків пакетів
+The system is older than the downloaded package lists (%s). Installing without updating the rest of the system could leave programs that do not start.	Система старіша за завантажені списки пакетів (%s). Встановлення без оновлення решти системи може залишити програми, які не запускаються.
+Update the whole system first (lux update), then try again.	Спочатку оновіть усю систему (lux update), потім спробуйте ще раз.
+Update the whole system together with it?	Оновити разом із цим усю систему?
+The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Диск %s змінився після вибору (було під'єднано або від'єднано диск?). Нічого не стерто – виберіть диск ще раз.
+The encrypted volume %s under / could not be identified for unlocking at startup.	Не вдалося визначити зашифрований том %s під / для розблокування під час запуску.

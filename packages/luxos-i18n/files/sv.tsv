@@ -5274,3 +5274,9 @@ Not allowed - it was not confirmed in the Lux Guard window.	Inte tillåtet – d
 Allowing needs the Lux Guard window in your desktop session (or as administrator: sudo luxos-guard allow FILE).	För att tillåta behövs Lux Guard-fönstret i din skrivbordssession (eller som administratör: sudo luxos-guard allow FIL).
 The connection was lost just after the message was handed to the server. It may have been sent; check Sent before sending it again.	Anslutningen bröts precis efter att meddelandet lämnats till servern. Det kan ha skickats; kontrollera Skickat innan du skickar det igen.
 This event was changed or deleted elsewhere.	Den här händelsen har ändrats eller tagits bort någon annanstans.
+Updating the system to match the refreshed package lists	Uppdaterar systemet enligt de förnyade paketlistorna
+The system is older than the downloaded package lists (%s). Installing without updating the rest of the system could leave programs that do not start.	Systemet är äldre än de hämtade paketlistorna (%s). Att installera utan att uppdatera resten av systemet kan lämna program som inte startar.
+Update the whole system first (lux update), then try again.	Uppdatera först hela systemet (lux update) och försök sedan igen.
+Update the whole system together with it?	Uppdatera hela systemet samtidigt?
+The disk %s changed since it was selected (a disk was connected or removed?). Nothing was erased - select the disk again.	Disken %s har ändrats sedan den valdes (anslöts eller togs en disk bort?). Ingenting raderades – välj disken igen.
+The encrypted volume %s under / could not be identified for unlocking at startup.	Den krypterade volymen %s under / kunde inte identifieras för upplåsning vid start.
