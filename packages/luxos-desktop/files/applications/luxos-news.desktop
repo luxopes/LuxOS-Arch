@@ -8,5 +8,3 @@ Exec=luxos-news
 Icon=luxos-news
 Categories=System;
 StartupWMClass=luxos-news
-# Obchod LuxOS: soucast systemu, v sekci Aplikace LuxOS se nezobrazuje
-X-LuxOS-Store=hide

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>luxos-news</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>LuxOS News</name>
+  <summary>News from the LuxOS team</summary>
+  <launchable type="desktop-id">luxos-news.desktop</launchable>
+  <description>
+    <p>Announcements from the LuxOS team right in your system: new releases, planned maintenance and important changes. New announcements arrive as notifications and stay in the notification list, and the app shows them all in one place.</p>
+    <p xml:lang="cs">Oznámení týmu LuxOS přímo v systému: nová vydání, plánovaná údržba a důležité změny. Nové novinky přijdou jako oznámení a zůstanou v seznamu oznámení, aplikace je ukáže všechny na jednom místě.</p>
+    <p xml:lang="sk">Oznámenia tímu LuxOS priamo v systéme: nové vydania, plánovaná údržba a dôležité zmeny. Nové novinky prídu ako oznámenia a zostanú v zozname oznámení, aplikácia ich ukáže všetky na jednom mieste.</p>
+    <p xml:lang="pl">Ogłoszenia zespołu LuxOS bezpośrednio w systemie: nowe wydania, planowane prace serwisowe i ważne zmiany. Nowe wiadomości przychodzą jako powiadomienia i zostają na liście powiadomień, a aplikacja pokazuje je wszystkie w jednym miejscu.</p>
+    <p xml:lang="uk">Оголошення команди LuxOS прямо в системі: нові випуски, планове обслуговування та важливі зміни. Нові новини приходять як сповіщення й залишаються в списку сповіщень, а застосунок показує їх усі в одному місці.</p>
+    <p xml:lang="hu">A LuxOS csapat közleményei közvetlenül a rendszerben: új kiadások, tervezett karbantartás és fontos változások. Az új hírek értesítésként érkeznek és megmaradnak az értesítések listájában, az alkalmazás pedig mindet egy helyen mutatja.</p>
+    <p xml:lang="de">Mitteilungen des LuxOS-Teams direkt im System: neue Versionen, geplante Wartungen und wichtige Änderungen. Neue Mitteilungen kommen als Benachrichtigung und bleiben in der Benachrichtigungsliste, die App zeigt alle an einem Ort.</p>
+    <p xml:lang="fr">Les annonces de l’équipe LuxOS directement dans le système : nouvelles versions, maintenances prévues et changements importants. Les nouvelles annonces arrivent sous forme de notifications et restent dans la liste des notifications, et l’application les regroupe toutes au même endroit.</p>
+    <p xml:lang="es">Los anuncios del equipo de LuxOS directamente en el sistema: nuevas versiones, mantenimiento previsto y cambios importantes. Los nuevos anuncios llegan como notificaciones y se quedan en la lista de notificaciones, y la aplicación los muestra todos en un solo lugar.</p>
+    <p xml:lang="it">Gli annunci del team LuxOS direttamente nel sistema: nuove versioni, manutenzioni programmate e modifiche importanti. I nuovi annunci arrivano come notifiche e restano nell’elenco delle notifiche, e l’app li mostra tutti in un unico posto.</p>
+    <p xml:lang="pt">Os anúncios da equipe do LuxOS diretamente no sistema: novas versões, manutenção programada e mudanças importantes. Os novos anúncios chegam como notificações e ficam na lista de notificações, e o aplicativo mostra todos em um só lugar.</p>
+    <p xml:lang="nl">Mededelingen van het LuxOS-team direct in je systeem: nieuwe versies, gepland onderhoud en belangrijke wijzigingen. Nieuwe mededelingen komen binnen als melding en blijven in de meldingenlijst, en de app toont ze allemaal op één plek.</p>
+    <p xml:lang="sv">Meddelanden från LuxOS-teamet direkt i systemet: nya versioner, planerat underhåll och viktiga ändringar. Nya meddelanden kommer som aviseringar och stannar kvar i aviseringslistan, och appen visar alla på ett ställe.</p>
+    <ul>
+      <li>Important announcements are highlighted and their notification doesn't disappear on its own</li>
+      <li xml:lang="cs">Důležitá oznámení jsou zvýrazněná a jejich oznámení samo nezmizí</li>
+      <li xml:lang="sk">Dôležité oznámenia sú zvýraznené a ich upozornenie samo nezmizne</li>
+      <li xml:lang="pl">Ważne ogłoszenia są wyróżnione, a ich powiadomienie nie znika samo</li>
+      <li xml:lang="uk">Важливі оголошення виділені, а їхнє сповіщення не зникає саме</li>
+      <li xml:lang="hu">A fontos közlemények ki vannak emelve, és az értesítésük magától nem tűnik el</li>
+      <li xml:lang="de">Wichtige Mitteilungen sind hervorgehoben und ihre Benachrichtigung verschwindet nicht von selbst</li>
+      <li xml:lang="fr">Les annonces importantes sont mises en évidence et leur notification ne disparaît pas d’elle-même</li>
+      <li xml:lang="es">Los anuncios importantes se destacan y su notificación no desaparece sola</li>
+      <li xml:lang="it">Gli annunci importanti sono evidenziati e la loro notifica non scompare da sola</li>
+      <li xml:lang="pt">Os anúncios importantes ficam destacados e a notificação deles não some sozinha</li>
+      <li xml:lang="nl">Belangrijke mededelingen worden uitgelicht en hun melding verdwijnt niet vanzelf</li>
+      <li xml:lang="sv">Viktiga meddelanden är markerade och deras avisering försvinner inte av sig själv</li>
+      <li>Shown in your language, with a link to more information</li>
+      <li xml:lang="cs">Ve vašem jazyce, s odkazem na další informace</li>
+      <li xml:lang="sk">Vo vašom jazyku, s odkazom na ďalšie informácie</li>
+      <li xml:lang="pl">W Twoim języku, z linkiem do dodatkowych informacji</li>
+      <li xml:lang="uk">Вашою мовою, з посиланням на докладнішу інформацію</li>
+      <li xml:lang="hu">A saját nyelveden, további információra mutató hivatkozással</li>
+      <li xml:lang="de">In deiner Sprache, mit Link zu weiteren Informationen</li>
+      <li xml:lang="fr">Dans votre langue, avec un lien vers plus d’informations</li>
+      <li xml:lang="es">En tu idioma, con un enlace a más información</li>
+      <li xml:lang="it">Nella tua lingua, con un link a ulteriori informazioni</li>
+      <li xml:lang="pt">No seu idioma, com um link para mais informações</li>
+      <li xml:lang="nl">In je eigen taal, met een link naar meer informatie</li>
+      <li xml:lang="sv">På ditt språk, med en länk till mer information</li>
+      <li>Notifications can be turned off in the app</li>
+      <li xml:lang="cs">Upozorňování jde v aplikaci vypnout</li>
+      <li xml:lang="sk">Upozorňovanie sa dá v aplikácii vypnúť</li>
+      <li xml:lang="pl">Powiadomienia można wyłączyć w aplikacji</li>
+      <li xml:lang="uk">Сповіщення можна вимкнути в застосунку</li>
+      <li xml:lang="hu">Az értesítések az alkalmazásban kikapcsolhatók</li>
+      <li xml:lang="de">Benachrichtigungen lassen sich in der App ausschalten</li>
+      <li xml:lang="fr">Les notifications peuvent être désactivées dans l’application</li>
+      <li xml:lang="es">Las notificaciones se pueden desactivar en la aplicación</li>
+      <li xml:lang="it">Le notifiche si possono disattivare nell’app</li>
+      <li xml:lang="pt">As notificações podem ser desativadas no aplicativo</li>
+      <li xml:lang="nl">Meldingen kun je in de app uitzetten</li>
+      <li xml:lang="sv">Aviseringar kan stängas av i appen</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>
