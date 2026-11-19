@@ -6,7 +6,7 @@ third-party software listed below. Each of these components stays under its own 
 LuxOS proprietary license does not restrict any right those licenses give you. The full license
 texts are installed with each package in `/usr/share/licenses/<package>/`.
 
-Status: 2026-11-17. Keep this file in sync with the private repository (`NOTICE.md` there) on
+Status: 2026-11-19. Keep this file in sync with the private repository (`NOTICE.md` there) on
 every release of a proprietary package.
 
 ## Contained in the package (statically compiled in or shipped as files)
@@ -15,6 +15,9 @@ every release of a proprietary package.
 |---|---|---|---|
 | `luxai`, `lux-code`, `luxos-domain` | LSL standard library and runtime (Lux Simple Lang, <https://lsl.lux-ai.cz>) | MIT | compiled into the program by the LSL compiler; license text in `/usr/share/licenses/<package>/LSL-LICENSE.txt` |
 | `lsl-ide` | pyte – VT100/VT220 terminal emulator (© 2011-2012 Selectel, © 2012-2017 pyte authors and contributors) | LGPL-3.0-only | unmodified Python source in `/usr/lib/lsl-ide/lslide/vendor/pyte/` – it can be replaced by a modified version; license text next to it |
+| `lux-code-next` | Oh My Pi (omp, <https://github.com/can1357/oh-my-pi>; © 2025 Mario Zechner, © 2025-2026 Can Bölük, © 2026 Stencil Labs, Inc.) with its bundled npm dependencies | MIT (dependencies: their own permissive licenses, listed in the upstream third-party notices) | patched source compiled into the program with `bun build --compile`; license texts in `/usr/share/licenses/lux-code-next/` (`OMP-LICENSE.txt`, `THIRD-PARTY-NOTICES-*.txt`, `LUX-CODE-NEXT-NOTICE.txt`) |
+| `lux-code-next` | pi-natives native addon (`@oh-my-pi/pi-natives-linux-x64`, prebuilt by the Oh My Pi project) | MIT | separate file `/usr/lib/lux-code-next/pi_natives.linux-x64-baseline.node`, loaded at run time |
+| `lux-code-next` | Bun runtime (<https://bun.sh>), embedded by `bun build --compile`; contains JavaScriptCore/WebKit | MIT; JavaScriptCore/WebKit LGPL-2.0-or-later / BSD | runtime part of the executable; the same Bun release is available as the Arch Linux package `bun` |
 | `luxos-domain` | PAM configuration template `templates/system-auth` (structure follows Arch Linux `pambase`) | GPL-3.0-or-later (as published in LuxOS before the license change) | separate configuration file shipped with the package (aggregation), not part of the program |
 
 ## Used at run time (shared libraries and separate programs from LuxOS/Arch Linux packages)
