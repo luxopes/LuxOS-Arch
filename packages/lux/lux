@@ -257,6 +257,29 @@ aur_info() {
 
 aur_exists() { [[ $(aur_info "$1" | jq 'length') -gt 0 ]]; }
 
+# Radky "balik verze" na stdin -> AUR_OUTDATED (balicky s novejsi verzi v AUR), vypise je.
+# AUR_CHECKED=1, kdyz bylo co kontrolovat. Balicky LuxOS (lux, lux-*, luxos-*) se v AUR nehledaji:
+# vyrazeny ze stabilniho kanalu je "cizi", ale cizi balik stejneho jmena v AUR neni jeho nova verze.
+AUR_OUTDATED=(); AUR_CHECKED=0
+aur_outdated() {
+    AUR_OUTDATED=(); AUR_CHECKED=0
+    local -a pkgs=()
+    local line n v nv info
+    while read -r n v; do
+        [[ -n $v && $n != lux && $n != lux-* && $n != luxos-* ]] && pkgs+=("$n $v")
+    done
+    ((${#pkgs[@]})) || return 0
+    AUR_CHECKED=1
+    say "$(T "Checking AUR packages")"
+    info=$(aur_info "${pkgs[@]%% *}") || { warn "$(T "AUR is not reachable")"; info='[]'; }
+    for line in "${pkgs[@]}"; do
+        n=${line% *}; v=${line#* }
+        nv=$(jq -r --arg n "$n" '.[] | select(.Name==$n) | .Version' <<<"$info")
+        [[ -n $nv ]] && (( $(vercmp "$nv" "$v") > 0 )) && AUR_OUTDATED+=("$n") && printf '  %s %s%s%s → %s%s%s\n' "$n" "$D" "$v" "$R" "$G" "$nv" "$R"
+    done
+    return 0
+}
+
 # Rekurzivne vyresi AUR zavislosti; vysledek v poli AUR_ORDER (zavislosti prvni), zavislosti
 # z repozitaru v AUR_REPODEPS[balik]. Pro sandbox se nehledi na to, co je nainstalovane v systemu.
 declare -a AUR_ORDER=()
@@ -290,8 +313,10 @@ aur_fetch() {  # aur_fetch base -> adresar v AUR_DIR
     AUR_GIT=$git_dir AUR_PREV_HEAD=
     mkdir -p "$LUX_CACHE/aur" "$LUX_CACHE/aur-build"
     if [[ -d $git_dir/.git ]]; then
-        # commit z minuleho stazeni: u aktualizace se ukaze rozdil skriptu proti nemu
-        AUR_PREV_HEAD=$(git -C "$git_dir" rev-parse -q --verify HEAD 2>/dev/null) || AUR_PREV_HEAD=
+        # u aktualizace se ukaze rozdil skriptu proti verzi, ktera se naposledy sestavila (refs/lux/built);
+        # ne proti poslednimu stazeni - odmitnuta aktualizace by jinak zmizela z dalsiho rozdilu
+        AUR_PREV_HEAD=$(git -C "$git_dir" rev-parse -q --verify refs/lux/built 2>/dev/null ||
+                        git -C "$git_dir" rev-parse -q --verify HEAD 2>/dev/null) || AUR_PREV_HEAD=
         git -C "$git_dir" fetch -q origin && git -C "$git_dir" reset -q --hard FETCH_HEAD ||
             die "$(T "Cannot update %s from AUR" "$base")"
     else
@@ -417,12 +442,14 @@ aur_build() {  # aur_build pkg [asdeps]
         [[ -n ${AUR_REPODEPS[$pkg]// /} ]] && sflags+=(--deps "${AUR_REPODEPS[$pkg]# }")
         tar -C "$dir" -cf - . | "$LUX_SANDBOX" build-install "${sflags[@]}" "$base" ||
             die "$(T "Build of %s in the sandbox failed" "$base")"
+        git -C "$AUR_GIT" update-ref refs/lux/built HEAD 2>/dev/null || true
         return 0
     fi
     say "$(T "Building %s %s(community)%s" "${B}$base${R}" "${D}" "${R}")"
     local flags=(-si --needed --noconfirm)
     ((asdeps)) && flags+=(--asdeps)
     (cd "$dir" && PACMAN=$LUX_ENGINE makepkg "${flags[@]}") || die "$(T "Build of %s failed (see %s)" "$base" "$dir")"
+    git -C "$AUR_GIT" update-ref refs/lux/built HEAD 2>/dev/null || true
 }
 
 aur_install() {
@@ -694,24 +721,24 @@ cmd_update() {
     fi
 
     if ((AUR)) && [[ $ONLY != repo ]] && command -v jq &>/dev/null && ((EUID != 0)); then
-        local -a foreign=() outdated=()
-        mapfile -t foreign < <("$LUX_ENGINE" -Qm 2>/dev/null)
-        if ((${#foreign[@]})); then
-            say "$(T "Checking AUR packages")"
-            local names info line n v nv
-            names=$(printf '%s\n' "${foreign[@]}" | awk '{print $1}')
-            info=$(aur_info $names) || { warn "$(T "AUR is not reachable")"; info='[]'; }
-            for line in "${foreign[@]}"; do
-                n=${line% *}; v=${line#* }
-                nv=$(jq -r --arg n "$n" '.[] | select(.Name==$n) | .Version' <<<"$info")
-                [[ -n $nv ]] && (( $(vercmp "$nv" "$v") > 0 )) && outdated+=("$n") && printf '  %s %s%s%s → %s%s%s\n' "$n" "$D" "$v" "$R" "$G" "$nv" "$R"
-            done
-            if ((${#outdated[@]})) && [[ ${LUXAI_AGENT-} == 1 ]]; then
+        local -a outdated=()
+        aur_outdated < <("$LUX_ENGINE" -Qm 2>/dev/null)
+        outdated=("${AUR_OUTDATED[@]}")
+        if ((${#outdated[@]})) && [[ ${LUXAI_AGENT-} == 1 ]]; then
+            warn "$(T "Community packages are updated only when you run it yourself: lux update")"
+        elif ((${#outdated[@]})); then
+            # balicky z komunity uz v systemu jsou (uzivatel je tam svolil); novy skript se znovu kontroluje
+            (COMMUNITY_TARGET=system; COMMUNITY_UPDATE=1; aur_install "${outdated[@]}") || warn "$(T "Community packages were not updated")"
+        elif ((AUR_CHECKED)); then ok "$(T "AUR packages are up to date")"; fi
+        # balicky z komunity v sandboxu (vychozi misto pro lux install) - jinak by zustaly navzdy stare
+        if [[ -x $LUX_SANDBOX ]]; then
+            aur_outdated < <("$LUX_SANDBOX" __versions 2>/dev/null)
+            if ((${#AUR_OUTDATED[@]})) && [[ ${LUXAI_AGENT-} == 1 ]]; then
                 warn "$(T "Community packages are updated only when you run it yourself: lux update")"
-            elif ((${#outdated[@]})); then
-                # balicky z komunity uz v systemu jsou (uzivatel je tam svolil); novy skript se znovu kontroluje
-                (COMMUNITY_TARGET=system; COMMUNITY_UPDATE=1; aur_install "${outdated[@]}") || warn "$(T "Community packages were not updated")"
-            else ok "$(T "AUR packages are up to date")"; fi
+            elif ((${#AUR_OUTDATED[@]})); then
+                (COMMUNITY_TARGET=sandbox; COMMUNITY_UPDATE=1; aur_install "${AUR_OUTDATED[@]}") ||
+                    warn "$(T "Community packages were not updated")"
+            fi
         fi
     fi
 
@@ -723,7 +750,8 @@ cmd_update() {
             local l
             for l in "${lupd[@]}"; do
                 printf '  %s %s%s%s → %s%s%s\n' "${l%% *}" "$D" "$(cut -d' ' -f2 <<<"$l")" "$R" "$G" "${l##* }" "$R"
-                as_root "$LUX_SELF" __lux-install "${l%% *}" || exit 1
+                # root ma vlastni kopii seznamu (az 30 min starou) - nainstalovat verzi, ktera se prave vypsala
+                as_root /usr/bin/env LUX_REFRESH=1 "$LUX_SELF" __lux-install "${l%% *}" || exit 1
             done
         fi
     fi

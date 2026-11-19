@@ -86,7 +86,10 @@ class Conditions(unittest.TestCase):
         self.assertEqual(care.conditions_ok(dict(good, metered="unknown")), (True, ""))
         for c in ("none", "limited", "portal"):
             self.assertEqual(care.conditions_ok(dict(good, connectivity=c)), (False, "offline"))
+        for c in ("none", "portal"):
             self.assertEqual(care.conditions_ok(dict(good, connectivity=c), manual=True), (False, "offline"))
+        # neprosla jen kontrola NetworkManageru: rucni "Aktualizovat" to zkusi
+        self.assertEqual(care.conditions_ok(dict(good, connectivity="limited"), manual=True), (True, ""))
         low = dict(good, ac=False, batteries=[(25, "Discharging")])
         self.assertEqual(care.conditions_ok(low), (False, "battery"))
         # rucni aktualizace: uzivatel rozhodl (merene pripojeni i baterie)
@@ -171,6 +174,17 @@ class Pacman(unittest.TestCase):
                 pass
             time.sleep(0.02)
         self.assertTrue(care.engine_running())
+
+    def test_running_lux_without_lock_does_not_postpone_update(self):
+        # `lux search | less` nebo necinny packagekitd: zadny db.lck -> aktualizace pokracuje
+        root = tempfile.mkdtemp(prefix="care-busy-")
+        self.addCleanup(shutil.rmtree, root, True)
+        with mock.patch.object(care, "ROOT", root), mock.patch.object(care, "engine_running", lambda: True), \
+                mock.patch.object(care, "set_progress"), mock.patch.object(care, "check_updates", return_value=[]):
+            self.assertEqual(care.Updater().run_update()["result"], "nothing")
+            os.makedirs(os.path.dirname(root + care.DB_LOCK))
+            open(root + care.DB_LOCK, "w").close()
+            self.assertEqual(care.Updater().run_update()["result"], "busy")
 
     def test_errors(self):
         self.assertEqual(care.classify_engine_error("error: failed to init transaction (unable to lock database)"),

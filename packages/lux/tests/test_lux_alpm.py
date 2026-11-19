@@ -13,6 +13,7 @@ import tempfile
 import sys
 import types
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -951,6 +952,17 @@ class Transactions(unittest.TestCase):
         os.unlink(f)
         os.rmdir(d)
 
+    def test_ctrl_c_during_install_is_not_success(self):
+        # libalpm se po Ctrl+C vrati z commit() bez chyby; zbytek baliku se nenainstaloval
+        def prep(h):
+            h.sigint_after = 1
+        rc, out, h = run(["-y", "install", "htop", "firefox"], prepare=prep)
+        self.assertEqual(rc, 130, out)
+        self.assertNotIn("Installed", out)
+        self.assertIn("lux update", out)
+        self.assertEqual(sum(1 for n in ("htop", "firefox") if h.local.get_pkg(n)), 1)
+        self.assertTrue(h.transactions[-1].released)
+
     def test_interrupt_in_prompt(self):
         class Boom(TTY):
             def readline(self):
@@ -1270,9 +1282,26 @@ class Queries(unittest.TestCase):
                       "htop-3.3.0-2-x86_64.pkg.tar.zst", "htop-3.2.0-1-x86_64.pkg.tar.zst", "gone-1-1-any.pkg.tar.zst"):
                 with open(os.path.join(tmp, f), "w") as fh:
                     fh.write("x" * 10)
-            rc, out, _h = run(["clean", "--keep", "1"], conf=CONF.replace("/var/cache/lux/pkg/", tmp + "/"))
+            db = os.path.join(tmp, "db")
+            os.mkdir(db)
+            conf = CONF.replace("/var/cache/lux/pkg/", tmp + "/").replace("/var/lib/lux/", db + "/")
+            # jina transakce bezi (zamek + spravce baliku): nic nemazat
+            open(os.path.join(db, "db.lck"), "w").close()
+            with mock.patch.object(lux_alpm, "running_package_managers", return_value=["lux-engine"]), \
+                    mock.patch.object(lux_alpm, "LOCK_WAIT", 0):
+                rc, out, _h = run(["clean", "--keep", "1"], conf=conf)
+            self.assertNotEqual(rc, 0, out)
+            self.assertEqual(len(os.listdir(tmp)), 6)
+            os.unlink(os.path.join(db, "db.lck"))
+            held = []
+            real_plan = lux_alpm.cache_plan
+            with mock.patch.object(lux_alpm, "cache_plan",
+                                   lambda *a: held.append(os.path.exists(os.path.join(db, "db.lck"))) or real_plan(*a)):
+                rc, out, _h = run(["clean", "--keep", "1"], conf=conf)
             self.assertEqual(rc, 0, out)
-            self.assertEqual(sorted(os.listdir(tmp)), ["htop-3.3.0-2-x86_64.pkg.tar.zst"])
+            self.assertEqual(held, [True])                                  # mazani pod zamkem databaze
+            self.assertFalse(os.path.exists(os.path.join(db, "db.lck")))
+            self.assertEqual(sorted(f for f in os.listdir(tmp) if f != "db"), ["htop-3.3.0-2-x86_64.pkg.tar.zst"])
             self.assertIn("Removed 3 old package files", out)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)

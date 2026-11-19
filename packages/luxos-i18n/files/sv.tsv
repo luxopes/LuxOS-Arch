@@ -5331,3 +5331,6 @@ running on the power adapter	drivs av nätadaptern
 Not connected to a network	Inte ansluten till ett nätverk
 Clock in the middle	Klockan i mitten
 Rounded corners	Rundade hörn
+Connect the backup disk %s to back up this computer.	Anslut säkerhetskopieringsdisken %s för att säkerhetskopiera den här datorn.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Ingen ögonblicksbild kunde skapas före uppdateringen, så det går inte att återgå till läget innan. Kontrollera det lediga utrymmet på disken.
+Stopped part-way: only some packages were installed. Finish with: lux update	Stoppades halvvägs: bara en del av paketen installerades. Slutför med: lux update

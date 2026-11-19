@@ -128,7 +128,6 @@ lp_install_file() {  # lp_install_file SOUBOR.lux [overeno=1]
     done < <(jq -r '.depends.lux // [] | .[]' <<<"$meta")
 
     say "$(T "Installing %s %s" "${B}$name${R}" "$version")"
-    lp_installed "$name" && lp_run_script "$name" pre_remove
     mkdir -p "$LUX_ROOT"
     tmp=$(mktemp -d "$LUX_ROOT/.new-XXXXXX")
     tar --zstd -xf "$file" -C "$tmp" --no-same-owner || { rm -rf "$tmp"; die "$(T "Could not unpack %s" "$file")"; }
@@ -138,6 +137,8 @@ lp_install_file() {  # lp_install_file SOUBOR.lux [overeno=1]
         [[ -n $brel && -f $tmp/app/$brel && $(realpath -e -- "$tmp/app/$brel" 2>/dev/null) == "$tmp"/app/* ]] ||
             { rm -rf "$tmp"; die "$(T "Missing files listed in bin: %s" "$brel")"; }
     done < <(jq -r '.bin // {} | to_entries[] | .value' "$tmp/lux.json")
+    # pre_remove stare verze az po kontrole nove: vadny balik nesmi nechat starou verzi napul vypnutou
+    lp_installed "$name" && lp_run_script "$name" pre_remove
     dest=$LUX_ROOT/$name
     lp_unlink "$name"
     # vymena: stara verze stranou, nova na jeji misto; kdyz to nejde, stara se vrati

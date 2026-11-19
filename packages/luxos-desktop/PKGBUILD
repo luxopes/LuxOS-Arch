@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=86
+pkgrel=87
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -193,7 +193,8 @@ package() {
 
     # posta pro exo-open (MailReader v helpers.rc)
     install -Dm644 -t "$pkgdir/usr/share/xfce4/helpers" "$f"/helpers/*.desktop
-    install -Dm755 -t "$pkgdir/usr/bin" "$f"/bin/* luxos-menubar luxos-session-cover \
+    # jen soubory: __pycache__ z testu v pracovnim stromu by install zastavil
+    install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
@@ -223,7 +224,7 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/applications/screensavers" "$f"/screensaver/*.desktop
     # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
     install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
-    install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" "$f"/override-bin/*
+    install -Dm755 -t "$pkgdir/usr/lib/luxos/override-bin" $(find "$f/override-bin" -maxdepth 1 -type f | sort)
     install -Dm644 -t "$pkgdir/usr/share/applications" "$f"/applications/*.desktop
     # Monitory i v Launchpadu (ten skryva panely Nastaveni); OnlyShowIn ji skryje v menu a Hledani
     sed -e 's/^Categories=.*/Categories=X-LuxOS-Launchpad;/' -e '/^\[Desktop Entry\]/a OnlyShowIn=X-LuxOS-Launchpad;' \

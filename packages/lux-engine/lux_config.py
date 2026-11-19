@@ -1838,7 +1838,20 @@ def set_channel(channel, conf=LUX_CONF, root=""):
         raise ConfigError("the update channel is set in an included file (conf.d); change it there", conf)
     if new == text:
         return False
+    old = parse(conf, root, text=text)
     atomic_write(real, new, os.stat(real).st_mode & 0o7777)
+    # libalpm se serveru pta "zmenilo se od <cas souboru databaze>?" a starsi databazi noveho kanalu
+    # (staging -> stable) by zahodil jako beze zmeny. Cas 0: pri dalsim obnoveni se stahne vzdy
+    # (databaze zatim zustava, lux search a instalace funguji dal). Jen u konfigurace systemu.
+    if root or conf == LUX_CONF:
+        sync = _prefixed(root, os.path.join(cfg.get("database") or "/var/lib/lux/", "sync"))
+        for r in cfg.repos:
+            prev = old.repo(r.name)
+            if prev is None or prev.servers != r.servers:
+                try:
+                    os.utime(os.path.join(sync, r.name + ".db"), (0, 0))
+                except OSError:
+                    pass
     return True
 
 

@@ -181,19 +181,19 @@ def restore(src, dest, overwrite=False, dry_run=False, skip_top=(), backup=None)
     """Zkopiruje src (soubor nebo slozku ve snimku) do dest. Bez overwrite jen chybejici soubory
     (obnova smazanych), s overwrite i zmenene (napr. zasifrovane ransomwarem). Novejsi soubory, ktere
     ve snimku nejsou, nemaze nikdy. Symlinky kopiruje jako symlinky. skip_top: jmena v nejvyssi urovni,
-    ktera se preskoci (cela slozka domova bez .cache). backup: slozka, kam se pred prepsanim presune
-    soucasna verze (se stejnou relativni cestou) - zmeny od snimku se tak neztrati; kdyz presun selze,
+    ktera se preskoci (cela slozka domova bez .cache). backup: cesta, kam se pred prepsanim presune
+    soucasna verze dest (soubory ve slozce se stejnou relativni cestou) - zmeny od snimku se tak neztrati; kdyz presun selze,
     soubor se neprepise. Vraci (obnoveno, preskoceno)."""
     restored = skipped = 0
     dest_root = dest
 
     def keep_current(d):
         """Presune soucasnou verzi d do zalohy; False = nepodarilo se (soubor pak zustane)."""
-        rel = os.path.relpath(d, dest_root) if d != dest_root else os.path.basename(d)
-        b = os.path.join(backup, rel)
+        b = os.path.normpath(os.path.join(backup, os.path.relpath(d, dest_root)))
         try:
             os.makedirs(os.path.dirname(b), exist_ok=True)
-            os.rename(d, b)
+            # move: i pres hranici souborovych systemu (slozka v domove pripojena zvlast)
+            shutil.move(d, b)
             return True
         except OSError:
             return False

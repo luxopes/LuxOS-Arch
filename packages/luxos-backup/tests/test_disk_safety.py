@@ -8,6 +8,7 @@ priprava disku odmitne disk s bezicim systemem i pod LUKS a LVM.
 """
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -240,7 +241,7 @@ class SftpOptions(unittest.TestCase):
 
     def test_destination_after_double_dash(self):
         ssh = core.ssh_base({"host": "nas", "user": "anna", "port": 22})
-        self.assertEqual(ssh[-2:], ["--", "anna@nas"])
+        self.assertEqual(ssh[-1], "anna@nas")
         calls = []
         sess = mock.Mock(remote=(ssh, "/b"), disk={"id": "x", "kind": "sftp"})
         with mock.patch.object(core, "run", lambda cmd, **_k: calls.append(cmd) or (0, "", "")):
@@ -256,6 +257,19 @@ class SftpOptions(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("hostname nas.example", r.stdout)
         self.assertIn("port 2222", r.stdout)
+        self.assertIn("user anna", r.stdout)
+
+    @unittest.skipUnless(shutil.which("ssh"), "ssh not installed")
+    def test_rsync_shell_accepts_user_option(self):
+        # rsync spusti -e prikaz s "-l user host prikaz"; za "--" by ssh vzal "-l" jako hostitele
+        ssh = core.ssh_base({"host": "nas.example", "user": "anna", "port": 2222})
+        cmd = core.rsync_cmd("/home/anna", "/b/X.partial/home", remote=ssh)
+        shell = shlex.split(cmd[cmd.index("-e") + 1])
+        self.assertNotIn("--", shell)
+        r = subprocess.run([shell[0], "-G", "-F", "/dev/null", *shell[1:], "-l", "anna", "nas.example",
+                            "rsync", "--server"], capture_output=True, text=True, timeout=20)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("hostname nas.example", r.stdout)
         self.assertIn("user anna", r.stdout)
 
 

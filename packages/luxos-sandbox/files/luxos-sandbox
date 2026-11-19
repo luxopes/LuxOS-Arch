@@ -810,6 +810,7 @@ WRAPPER_MARK = "# luxos-sandbox launcher"
 SELF = "/usr/bin/luxos-sandbox"
 LOCAL_DB = "var/lib/pacman/local"
 DBENTRY_RE = re.compile(r"^[a-z0-9@_+][a-z0-9@._+-]*-[A-Za-z0-9._:+~]+-[A-Za-z0-9._+]+$")
+VERSION_RE = re.compile(r"^[A-Za-z0-9._:+~]+-[A-Za-z0-9._+]+$")
 CMD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$")
 DESKTOP_RE = re.compile(r"^usr/share/applications/([A-Za-z0-9][A-Za-z0-9._+-]{0,100})\.desktop$")
 ICON_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,100}$")
@@ -887,8 +888,9 @@ def db_sections(data):
     return out
 
 
-def sandbox_packages(root_fd, apps_only=True):
-    """{balik: [soubory]} explicitne nainstalovanych balicku mimo zakladni system.
+def sandbox_packages(root_fd, apps_only=True, versions=False):
+    """{balik: [soubory]} explicitne nainstalovanych balicku mimo zakladni system;
+    versions=True: {balik: verze} vsech balicku mimo zakladni system (i zavislosti).
 
     Cte se primo databaze balicku v koreni (bez spousteni sandboxu, rychle i pri prihlaseni)."""
     try:
@@ -917,6 +919,9 @@ def sandbox_packages(root_fd, apps_only=True):
                 if not PKG_RE.match(name) or not entry.startswith(name + "-") or name in BASE_PACKAGES:
                     continue
                 if apps_only and name in BUILD_PACKAGES:
+                    continue
+                if versions:
+                    pkgs[name] = (sec.get("VERSION") or [""])[0].strip()
                     continue
                 if (sec.get("REASON") or ["0"])[0].strip() != "0":
                     continue   # zavislost, ne aplikace
@@ -1238,6 +1243,20 @@ def cmd_has_app(args):
         return 0 if args[0] in sandbox_packages(fd, apps_only=False) else 1
     finally:
         os.close(fd)
+
+
+def cmd_versions(args):
+    # Pro lux update: "balik verze" v sandboxu (balicky z komunity se tu aktualizuji z AUR)
+    fd = open_root()
+    if fd is None:
+        return 1
+    try:
+        for name, ver in sorted(sandbox_packages(fd, versions=True).items()):
+            if VERSION_RE.match(ver):
+                print(name, ver)
+    finally:
+        os.close(fd)
+    return 0
 
 
 def cmd_command_hint(args):
@@ -1598,7 +1617,7 @@ def main():
     table = {"create": cmd_create, "status": cmd_status, "shell": cmd_shell, "run": cmd_run,
              "install": cmd_install, "build-install": cmd_build_install, "remove-app": cmd_remove_app, "reset": cmd_reset,
              "destroy": cmd_destroy, "__query": cmd_query, "sync-launchers": cmd_sync_launchers,
-             "__has-app": cmd_has_app, "__command-hint": cmd_command_hint, "trusted-display": cmd_trusted_display}
+             "__has-app": cmd_has_app, "__versions": cmd_versions, "__command-hint": cmd_command_hint, "trusted-display": cmd_trusted_display}
     if cmd == "__enter":
         enter()
         return 1

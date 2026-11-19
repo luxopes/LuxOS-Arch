@@ -1744,6 +1744,14 @@ class Lux:
                             pass
                     raise _RetryCorrupt(err, sorted({package_from_file(f) for f in self.cb.corrupted}))
                 raise err
+            if self.interrupted:
+                # libalpm po t.interrupt() skonci po rozdelanem baliku bez chyby - zbytek se nenainstaloval
+                if files:
+                    self.config_post([p.name for p in to_add])
+                ui.phase_done(False)
+                raise LuxError("interrupted", _("Cancelled"),
+                               [_("Stopped part-way: only some packages were installed. Finish with: lux update")],
+                               rc=130)
             ui.phase_done(True)
             if files:
                 self.config_results = self.config_post([p.name for p in to_add])
@@ -2623,6 +2631,25 @@ def cache_plan(files, installed, vercmp, keep, keep_uninstalled):
 
 def cmd_clean(lux, args):
     lux.need_root()
+    # zamek databaze jako libalpm: jinak by mazani zasahlo balicky, ktere prave stahuje nebo instaluje
+    # jina transakce (LuxOS Care, Obchod)
+    lux.wait_for_lock()
+    lock = lux.lock_path()
+    try:
+        fd = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        raise LuxError("locked", plain_message("locked"), [lock]) from None
+    os.close(fd)
+    try:
+        return _clean(lux, args)
+    finally:
+        try:
+            os.unlink(lock)
+        except OSError:
+            pass
+
+
+def _clean(lux, args):
     try:
         dirs = list(lux.h.cachedirs or [])
     except AttributeError:

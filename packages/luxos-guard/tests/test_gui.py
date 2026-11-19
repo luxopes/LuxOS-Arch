@@ -159,7 +159,7 @@ def test_restore_runs_once_at_a_time(monkeypatch, tmp_path):
     import time
     started, release, calls = threading.Event(), threading.Event(), []
 
-    def fake_restore(src, dst, overwrite, skip_top):
+    def fake_restore(src, dst, overwrite, skip_top, backup=None):
         calls.append(overwrite)
         started.set()
         release.wait(5)

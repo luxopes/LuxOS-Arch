@@ -381,6 +381,22 @@ class Files(unittest.TestCase):
         self.assertIn("stays in use", text)
         self.assertIn("sudo lux config-diff /etc/x.conf", text)
 
+    def test_login_and_sudo_files_never_merged_automatically(self):
+        # cista pridana radka by se jinak sloucila sama - u sudo/PAM/fstab rozhoduje clovek
+        for rel in ("etc/sudoers", "etc/sudoers.d/10-x", "etc/pam.d/system-auth", "etc/ssh/sshd_config", "etc/fstab"):
+            p = os.path.join(self.root, rel)
+            write(p, "a\nb\n")
+            write(p + ".luxnew", "a\nb\nc\n")
+        write(os.path.join(self.root, "etc/pamphlet.conf"), "a\nb\n")
+        write(os.path.join(self.root, "etc/pamphlet.conf.luxnew"), "a\nb\nc\n")
+        res = {r["path"]: r for r in cm.merge_pending(self.root, self.db)}
+        self.assertEqual(res.pop("/etc/pamphlet.conf")["status"], "merged")
+        self.assertEqual(len(res), 5)
+        for path, r in res.items():
+            self.assertEqual((r["status"], r["reason"]), ("conflict", "critical"), path)
+            self.assertEqual(read(os.path.join(self.root, path[1:])), "a\nb\n")
+            self.assertTrue(os.path.exists(os.path.join(self.root, path[1:] + ".luxnew")))
+
     def test_old_pacnew_name_and_unchanged_result(self):
         p = os.path.join(self.root, "etc/y.conf")
         write(p, "[a]\nx = 5\n")

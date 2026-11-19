@@ -1,0 +1,13 @@
+--- a/brother-dcp-j1800dw.install
++++ b/brother-dcp-j1800dw.install
+@@ -1,8 +1,8 @@
+ PREFIX=/usr/share
+ 
+ printer_model=""dcp1800dw""
+-printer_name=$(echo $printer_model | tr '[a-z]' '[A-Z]')
+-device_name=$(echo $printer_name | eval sed -e 's/MFC/MFC-/' -e 's/DCP/DCP-/' -e 's/HL/HL-/' -e 's/FAX/FAX-/')
++printer_name="DCP1800DW"
++device_name="DCP-1800DW"
+ 
+ ppd_file_name=$PREFIX/cups/model/Brother/brother_${printer_model}_printer_en.ppd
+ 

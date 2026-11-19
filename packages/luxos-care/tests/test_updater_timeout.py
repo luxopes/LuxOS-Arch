@@ -68,5 +68,35 @@ class UpdateTimeout(unittest.TestCase):
                     proc.send_signal.assert_not_called()
 
 
+    def test_ctrl_c_in_terminal_lets_installation_finish(self):
+        # sudo luxos-care update + Ctrl-C: proces nesmi skoncit (lux by prisel o rouru uprostred instalace)
+        seen = []
+
+        def run_update(up):
+            up.proc = mock.Mock(luxos_phase="install")
+            up.proc.poll.return_value = None
+            os.kill(os.getpid(), signal.SIGINT)
+            seen.append(up.stopping)
+            up.proc.send_signal.assert_not_called()
+            return {"result": "stopped"}
+        old = signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM)
+        lock = mock.MagicMock()
+        try:
+            with mock.patch.object(care, "load_state", return_value={}), \
+                    mock.patch.object(care, "mode", return_value="carefree"), \
+                    mock.patch.object(care, "current_env", return_value={}), \
+                    mock.patch.object(care, "conditions_ok", return_value=(True, "")), \
+                    mock.patch.object(care, "CareLock", return_value=lock), \
+                    mock.patch.object(care, "update_state"), mock.patch.object(care, "save_state"), \
+                    mock.patch.object(care, "clear_progress"), \
+                    mock.patch.object(care, "find_new_configs", return_value=[]), \
+                    mock.patch.object(care.Updater, "run_update", run_update):
+                self.assertEqual(care.do_update(manual=True), 0)
+        finally:
+            signal.signal(signal.SIGINT, old[0])
+            signal.signal(signal.SIGTERM, old[1])
+        self.assertEqual(seen, [True])
+
+
 if __name__ == "__main__":
     unittest.main()

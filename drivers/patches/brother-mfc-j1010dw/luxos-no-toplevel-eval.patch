@@ -1,0 +1,13 @@
+--- a/brother-mfc-j1010dw.install
++++ b/brother-mfc-j1010dw.install
+@@ -1,8 +1,8 @@
+ PREFIX=/usr/share
+ 
+ printer_model=""mfcj1010dw""
+-printer_name=`echo $printer_model | tr '[a-z]' '[A-Z]'`
+-device_name=`echo $printer_name | eval sed -e 's/MFC/MFC-/' -e 's/DCP/DCP-/' -e 's/HL/HL-/' -e 's/FAX/FAX-/'`
++printer_name="MFCJ1010DW"
++device_name="MFC-J1010DW"
+ 
+ ppd_file_name=$PREFIX/cups/model/Brother/brother_${printer_model}_printer_en.ppd
+ 

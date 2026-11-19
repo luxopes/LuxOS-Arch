@@ -243,12 +243,15 @@ def cmd_restore(args):
     src = os.path.join(snap.user_snapshot_dir(sp, home), os.path.relpath(target, home))
     if not os.path.lexists(src):
         die(_("%s is not in the snapshot from %s.") % (target, t.strftime("%Y-%m-%d %H:%M")))
-    backup = snap.before_restore_dir(home) if overwrite and not dry else None
+    backup = None
+    if overwrite and not dry:
+        # v zaloze stejna cesta jako v domove - dva stejnojmenne soubory z ruznych slozek se neprepisou
+        backup = os.path.normpath(os.path.join(snap.before_restore_dir(home), os.path.relpath(target, home)))
     done, skipped = snap.restore(src, target, overwrite=overwrite, dry_run=dry, backup=backup)
     msg = _("Would restore %d files (%d unchanged or newer kept).") if dry else \
         _("Restored %d files from %s (%d unchanged or newer kept).")
     print(msg % (done, skipped) if dry else msg % (done, t.strftime("%Y-%m-%d %H:%M"), skipped))
-    if backup and os.path.isdir(backup):
+    if backup and os.path.lexists(backup):
         print(_("Replaced versions of the files were moved to %s.") % backup)
     return 0
 
@@ -262,11 +265,17 @@ def cmd_snapshot(args):
     try:
         p = snap.take()
     except OSError as e:
-        die(f"snapshot failed: {e}")
+        p, err = None, e
+    else:
+        err = None
     if p:
         print(f"snapshot {p}")
+    # uklidit i po chybe: na plnem disku (ENOSPC) drzi stare snimky smazane soubory a prave
+    # tehdy je potreba je pustit
     for g in snap.prune():
         print(f"deleted {g}")
+    if err:
+        die(f"snapshot failed: {err}")
     return 0
 
 

@@ -1199,7 +1199,11 @@ def pre_transaction(targets, now=None):
             # vedle stareho, zalozni jadro) - jinak napred stare sady jadra snimku
             ksize = kernel_set_size(lay)
             esp_budget(lay, top, list_snapshots(top), need=ksize + (0 if kset_exists(lay, top) else ksize + KSET_MARGIN))
-            meta = create(top, "update", targets, now=now, lay=lay)
+            try:
+                meta = create(top, "update", targets, now=now, lay=lay)
+            except Exception:
+                prune(top)            # plny disk: aspon uvolnit misto starymi snimky
+                raise
             gone = prune(top)
             snaps = list_snapshots(top)
             esp_budget(lay, top, snaps, need=ksize)
@@ -1209,6 +1213,13 @@ def pre_transaction(targets, now=None):
         care.log(f"snapshot {meta['name']} of {meta['source']}" + (f" (removed {' '.join(gone)})" if gone else ""))
     except Exception as e:  # noqa: BLE001 - snimek nesmi zastavit aktualizaci
         care.log(f"snapshot before the transaction failed: {e}")
+        # uzivatel spoleha na "pred kazdou aktualizaci je snimek" - rict mu, ze tentokrat neni
+        try:
+            care.add_event("problem", id="snapshot-failed",
+                           title="No snapshot could be taken before the update, so there is no way back to "
+                                 "the state before it. Check the free space on the disk.", args=[])
+        except OSError:
+            pass
     return 0
 
 

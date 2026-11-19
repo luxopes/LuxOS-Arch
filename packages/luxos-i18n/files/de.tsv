@@ -5331,3 +5331,6 @@ running on the power adapter	läuft am Netzteil
 Not connected to a network	Nicht mit einem Netzwerk verbunden
 Clock in the middle	Uhr in der Mitte
 Rounded corners	Abgerundete Ecken
+Connect the backup disk %s to back up this computer.	Verbinden Sie die Sicherungsfestplatte %s, um diesen Computer zu sichern.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Vor dem Update konnte kein Schnappschuss erstellt werden, daher gibt es keinen Weg zurück zum Zustand davor. Prüfen Sie den freien Speicherplatz auf der Festplatte.
+Stopped part-way: only some packages were installed. Finish with: lux update	Mittendrin gestoppt: Nur ein Teil der Pakete wurde installiert. Abschließen mit: lux update

@@ -5331,3 +5331,6 @@ running on the power adapter	beží z nabíjačky
 Not connected to a network	Nie ste pripojení k sieti
 Clock in the middle	Hodiny v strede
 Rounded corners	Zaoblené rohy
+Connect the backup disk %s to back up this computer.	Pripojte zálohovací disk %s, aby ste mohli zálohovať tento počítač.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Pred aktualizáciou sa nepodarilo vytvoriť snímku, takže sa nedá vrátiť do stavu pred ňou. Skontrolujte voľné miesto na disku.
+Stopped part-way: only some packages were installed. Finish with: lux update	Zastavené v polovici: nainštalovala sa len časť balíkov. Dokončite to príkazom: lux update

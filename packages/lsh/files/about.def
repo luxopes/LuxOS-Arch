@@ -769,25 +769,30 @@ about_builtin (WORD_LIST *list)
 
 /* ---- Integrace LSL --------------------------------------------------- */
 
-/* Soubor relace: nactene moduly a prirazeni z teto instance shellu */
-char *
-lsh_lsl_session_file (void)
-{
-  static char path[512];
-  const char *dir = getenv ("XDG_RUNTIME_DIR");
-
-  if (dir == 0 || *dir == '\0')
-    dir = "/tmp";
-  snprintf (path, sizeof (path), "%s/lsh-lsl-%ld.lsl", dir, (long)dollar_dollar_pid);
-  return path;
-}
-
-/* Pri ukonceni hlavniho shellu (ne subshellu) smazat soubor relace */
+/* Pri ukonceni hlavniho shellu (ne subshellu) smazat soubor relace. Cestu si drzi funkce
+   lsl-session v promenne _lsh_lsl_file (soukroma slozka, nikdy predvidatelne jmeno v /tmp). */
 void
 lsh_lsl_cleanup (void)
 {
-  if (interactive_shell && getpid () == dollar_dollar_pid)
-    unlink (lsh_lsl_session_file ());
+  char *f, *slash;
+  char dir[4096];
+
+  if (!interactive_shell || getpid () != dollar_dollar_pid)
+    return;
+  f = get_string_value ("_lsh_lsl_file");
+  if (f == 0 || *f != '/' || strlen (f) >= sizeof (dir))
+    return;
+  unlink (f);
+  /* slozka z mktemp -d (bez XDG_RUNTIME_DIR) */
+  strcpy (dir, f);
+  slash = strrchr (dir, '/');
+  if (slash && strcmp (slash, "/session.lsl") == 0)
+    {
+      *slash = '\0';
+      slash = strrchr (dir, '/');
+      if (slash && strncmp (slash, "/lsh-lsl.", 9) == 0)
+        rmdir (dir);
+    }
 }
 
 /* Je NAME prikaz shellu (alias, funkce, builtin nebo program v PATH)? */

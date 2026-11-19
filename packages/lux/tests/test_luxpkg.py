@@ -126,6 +126,23 @@ class LuxPkg(unittest.TestCase):
             self.assertEqual(f.read(), "2")
         self.assertEqual([x for x in os.listdir(os.path.join(self.t, "root")) if x.startswith(".")], [])
 
+    def test_broken_update_does_not_run_old_pre_remove(self):
+        # vadna nova verze (chybi prikaz z bin) se odmitne a stara zustane cela - bez pre_remove
+        self.pkg("aa", files={"v": "1"})
+        self.sh('lp_install_file "$T/pkgs/aa.lux" 1')
+        script = os.path.join(self.t, "root", "aa", "scripts", "pre_remove")
+        os.makedirs(os.path.dirname(script))
+        with open(script, "w") as f:
+            f.write('touch "$LUX_PREFIX/../pre_remove-ran"\n')
+        self.pkg("aa", {"bin": {"aa": "missing"}}, files={"v": "2"})
+        rc, out = self.sh('lp_install_file "$T/pkgs/aa.lux" 1')
+        self.assertEqual(rc, 1, out)
+        self.assertFalse(os.path.exists(os.path.join(self.t, "root", "pre_remove-ran")))
+        self.pkg("aa", files={"v": "3"})
+        rc, out = self.sh('lp_install_file "$T/pkgs/aa.lux" 1')
+        self.assertEqual(rc, 0, out)
+        self.assertTrue(os.path.exists(os.path.join(self.t, "root", "pre_remove-ran")))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -123,9 +123,11 @@ def settings():
         raw = None
     if isinstance(raw, dict):
         data.update(raw)
+    # null, [] nebo false nesmi tise vypnout automaticke zamceni (0 = "nikdy" jen jako cislo)
+    idle = data.get("idle_minutes")
     try:
-        idle = int(data.get("idle_minutes") or 0)
-    except (TypeError, ValueError):
+        idle = 15 if idle is None or isinstance(idle, bool) else int(idle)
+    except (TypeError, ValueError, OverflowError):
         idle = 15
     data["idle_minutes"] = idle if 0 <= idle <= 24 * 60 else 15
     if not isinstance(data.get("lock_on_screen_lock"), bool):

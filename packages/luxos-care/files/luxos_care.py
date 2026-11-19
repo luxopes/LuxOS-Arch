@@ -521,7 +521,9 @@ def nm_connectivity():
 def conditions_ok(env, manual=False):
     """Rozhodnuti, zda ted aktualizovat. env: metered, connectivity, ac, batteries. -> (ok, duvod)."""
     conn = env.get("connectivity", "unknown")
-    if conn in ("none", "portal", "limited"):
+    # "limited" = neprosla jen kontrola NetworkManageru (jeden server, v nekterych sitich blokovany);
+    # rucni aktualizaci to nebrani - kdyz sit opravdu nejde, ohlasi to stahovani
+    if conn in ("none", "portal") or (conn == "limited" and not manual):
         return False, "offline"
     if manual:
         return True, ""                       # rucni "Aktualizovat" - uzivatel rozhodl sam
@@ -840,9 +842,10 @@ class Updater:
     def run_update(self):
         """-> dict(result=ok|nothing|failed|stopped, error, packages, kernel)"""
         set_progress("check", 0.02, "")
-        if engine_running():
-            return {"result": "busy"}              # uzivatel prave pracuje s balicky - pozdeji
         if os.path.exists(P(DB_LOCK)):
+            # bez zamku nic nezapisuje: `lux search | less` nebo necinny packagekitd aktualizaci neodkladaji
+            if engine_running():
+                return {"result": "busy"}          # uzivatel prave pracuje s balicky - pozdeji
             if not remove_stale_lock():
                 return {"result": "failed", "error": "locked"}
             history("repair", action="remove_db_lock", source="rule", ok=True, title="Removed a stale package manager lock")
@@ -997,6 +1000,9 @@ def do_update(manual=False):
         return 0
     up = Updater(manual=manual)
     signal.signal(signal.SIGTERM, up.stop)
+    # Ctrl-C v terminalu (sudo luxos-care update): lux bezi ve vlastni session a signal nedostane;
+    # konec tohoto procesu by mu zavrel rouru uprostred instalace. Proto stejne jako SIGTERM.
+    signal.signal(signal.SIGINT, up.stop)
     try:
         update_state(updating=True, update_started=now())
         res = up.run_update()
