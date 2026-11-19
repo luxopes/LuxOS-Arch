@@ -127,8 +127,8 @@ A Qt 6 development environment that uses the installed `lsl` for everything:
   `lsl origin`, `lsl check` (Ctrl+Shift+P).
 - **Manual:** offline `lsl man --plain` rendered as HTML.
 - **LuxAI agent** (Ctrl+Shift+A): coding agent signed in with the LuxAI account (password or
-  e-mail code); usage counts toward the account's monthly limit (Flash 50k / Lite 1M tokens
-  according to the IDE README). Tools: read/write/edit project files, search, compiler check,
+  e-mail code); usage counts toward the account's monthly limit (shown in the LuxAI account
+  settings; currently Flash 1 000 000 / Lite 10 000 000 tokens). Tools: read/write/edit project files, search, compiler check,
   run with timeout, manual search; writes and runs are confirmed unless disabled. Ctrl+Shift+E
   sends the selection to the agent.
 - **LuxAI Cloud** (Ctrl+Shift+C): code stored with the LuxAI account (128 MB per account, files
