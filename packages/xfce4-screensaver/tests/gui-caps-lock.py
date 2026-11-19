@@ -239,11 +239,13 @@ Gtk.main()
 class Dialog:
     """xfce4-screensaver-dialog vlozeny do okna s GtkSocket (jako v xfce4-screensaver)."""
 
-    def __init__(self, env, path, fake_pam, extra_env=None, size=(1280, 800)):
+    def __init__(self, env, path, fake_pam, extra_env=None, size=(1280, 800), drop_env=()):
         e = dict(env.env, LD_PRELOAD=fake_pam, LUXOS_LOCK_DEBUG="1", LUXOS_LOCK_DEMO_USERS="1",
                  LUXOS_LOCK_DEMO_NAME="Test User", LUXOS_GREETER_CONF="/nonexistent",
                  LUXOS_I18N_DIR=os.path.join(REPO, "packages", "luxos-i18n", "files"))
         e.update(extra_env or {})
+        for k in drop_env:           # napr. bez LUXOS_LOCK_DEMO_USERS (tests/gui-power-buttons.py)
+            e.pop(k, None)
         self.env = env
         self.lines = []
         self.out = []

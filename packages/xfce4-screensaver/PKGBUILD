@@ -6,7 +6,9 @@
 # Prepnout uzivatele / Uspat / Restartovat / Vypnout) s plynulym prechodem ze setrice
 # "Tapeta plochy a hodiny" (luxos-desktop) a zpet. Bezpecnost zustava v xfce4-screensaver:
 # grab vstupu, overeni PAM v procesu dialogu, necinnost a zamykani se nemeni.
-#   luxos-lock-ui.c/.h                 vzhled (kresleni podle luxos-greeter, preklady luxos-i18n)
+#   luxos-lock-ui.c/.h                 vzhled (kresleni podle luxos-greeter, preklady luxos-i18n); tlacitka
+#                                      Uspat/Restartovat/Vypnout podle logind zjistovana znovu i po
+#                                      probuzeni (testy: tests/gui-power-buttons.py v Xvfb)
 #   luxos-lock-kbd.c/.h                Caps Lock, rozlozeni a probuzeni z uspani bez GTK (testy:
 #                                      tests/test-lock-kbd.c, v Xvfb tests/gui-caps-lock.py)
 #   luxos-lock-battery.c/.h            ikona baterie s bleskem viditelnym pri kazdem nabiti a na kazde
@@ -24,7 +26,7 @@
 
 pkgname=xfce4-screensaver
 pkgver=4.20.2
-pkgrel=1.7
+pkgrel=1.8
 pkgdesc='Xfce Screensaver (LuxOS: lock screen in the style of the LuxOS login screen)'
 arch=('x86_64')
 url='https://docs.xfce.org/apps/screensaver/start'
@@ -48,7 +50,7 @@ source=("git+https://gitlab.xfce.org/apps/xfce4-screensaver.git#tag=$pkgname-$pk
         'xfce4-screensaver-dialog.css')
 sha256sums=('bc84a11d51fbc4222ca43831671de2935e759229d21ee7136443e7250c78498f'
             'a41c59d7caa51ae55b19b8f227d9405a0c4a68743ed1780ef170e1efa352f6ea'
-            '8283a771a3e8886e4f658c7fb134760aaebcee0385580fef9825037e9324d497'
+            'eccec2fe7775d2c6814fd7a4a7a9b9ae7cf1d3f60417412d7b0d433f9d7c0bcb'
             '21bd4eb6eda38bb6b08a10ccadbdbcc7c7a60fb29b70f0f7dd8851e943d4d3ff'
             'f6ab39a80fc2f793a702f14bd9da4850e186667a0390de62612d4bbb5ed298db'
             '48d2f2e78418e95cb7ff60ad0c2e5bde39d624285f0345979b2333c5f1ab359a'

@@ -16,7 +16,9 @@
  * LUXOS_LOCK_DEMO_USERS=N (pocet uzivatelu; tlacitka napajeni pak jen zapisou do logu),
  * LUXOS_I18N_DIR a LUXOS_GREETER_CONF (preklady a nastaveni z jineho mista), LUXOS_LOCK_DEBUG=1
  * (stav Caps Locku, rozlozeni, hlasky a pole na stderr), s LUXOS_LOCK_DEMO_USERS signal SIGUSR1
- * (jako by system prave spal), LUXOS_LOCK_DEMO_POWER_SUPPLY a LUXOS_LOCK_DEMO_NET (s LUXOS_LOCK_DEMO_USERS:
+ * (jako by system prave spal), LUXOS_LOCK_DEMO_LOGIND (s LUXOS_LOCK_DEMO_USERS: odpovedi logind na
+ * CanSuspend/CanReboot/CanPowerOff po kolech dotazu, napr. "na,yes", "challenge", "timeout"),
+ * LUXOS_LOCK_DEMO_POWER_SUPPLY a LUXOS_LOCK_DEMO_NET (s LUXOS_LOCK_DEMO_USERS:
  * adresar misto /sys/class/power_supply a /sys/class/net). Testy: tests/test-lock-kbd.c, tests/test-lock-battery.c (ikona baterie,
  * luxos-lock-battery.c), tests/gui-caps-lock.py, tests/gui-battery.py.
  *
@@ -66,6 +68,9 @@ typedef struct {
     IconFunc icon;
     const char *key;
     const char *method;     /* logind (Suspend, Reboot, PowerOff), jinak NULL */
+    const char *can;        /* dotaz logind (CanSuspend, ...), jinak NULL */
+    gboolean can_yes;       /* posledni odpoved logind byla "yes" (tlacitko je videt) */
+    gboolean busy;          /* dotaz na logind prave bezi */
 } Round;
 
 struct _LuxLock {
@@ -150,6 +155,16 @@ struct _LuxLock {
     guint kbd_idle_id;
     guint demo_sleep_id;
     gint64 seen_real, seen_mono;  /* posledni udalost (pozna probuzeni z uspani) */
+
+    /* tlacitka napajeni: stav z logind se zjistuje znovu (asynchronne), ne jen pri vytvoreni */
+    GDBusConnection *sysbus;
+    GCancellable *power_cancel;
+    gboolean power_pending;   /* dotaz cekal na pripojeni k systemove sbernici */
+    guint sleep_sub;          /* PrepareForSleep z logind */
+    guint power_retry_id;
+    int power_tries;
+    char **demo_logind;       /* testy: LUXOS_LOCK_DEMO_LOGIND (odpovedi logind po kolech) */
+    int demo_logind_step;
 };
 
 /* ---- preklady (luxos-i18n) ------------------------------------------------------------ */
@@ -1611,25 +1626,166 @@ entry_focus (GObject *o, GParamSpec *ps, LuxLock *ll) {
 }
 
 /* ---- napajeni (logind, bez dotazu na heslo) ------------------------------------------- */
-static gboolean
-logind_can (const char *method) {
-    GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL);
-    GVariant *r;
-    gboolean ok = FALSE;
-    if (!bus)
-        return FALSE;
-    r = g_dbus_connection_call_sync (bus, "org.freedesktop.login1", "/org/freedesktop/login1",
-                                     "org.freedesktop.login1.Manager", method, NULL, G_VARIANT_TYPE ("(s)"),
-                                     G_DBUS_CALL_FLAGS_NONE, 2000, NULL, NULL);
-    if (r) {
+/* Uspat / Restartovat / Vypnout jen pri odpovedi "yes" od logind (CanSuspend, CanReboot,
+   CanPowerOff). Dialog vznika typicky hned po probuzeni z uspani, kdy logind a polkit (ktereho se
+   logind pta) jeste nestihaji: dotaz vyprsi, nebo prijde "challenge" / "inhibited" (blokujici
+   inhibitor). Driv se to zjistovalo jen jednou pri vytvoreni dialogu (synchronne, 2 s na dotaz)
+   a tlacitka pak chybela az do dalsiho zamceni. Ted se stav zjistuje asynchronne pri zobrazeni
+   dialogu, pri prijezdu prihlaseni, po probuzeni (PrepareForSleep z logind) a pak kazdou sekundu
+   (nejvys 5x), dokud nejsou vsechna tlacitka potvrzena. "challenge" (napr. prihlaseny dalsi
+   uzivatel - chtelo by heslo spravce), "no" i "na" tlacitko skryji; chyba nebo vyprseni dotazu
+   stav nemeni (zkusi se znovu). */
+#define POWER_TRIES 5
+
+static void
+debug_power (LuxLock *ll, const char *why) {
+    static int on = -1;
+    if (on < 0)
+        on = g_strcmp0 (g_getenv ("LUXOS_LOCK_DEBUG"), "1") == 0;
+    if (!on)
+        return;
+    g_printerr ("luxos-lock: power %s suspend=%d restart=%d shutdown=%d\n", why,
+                gtk_widget_get_visible (lux_lock_get_button (ll, "suspend")),
+                gtk_widget_get_visible (lux_lock_get_button (ll, "restart")),
+                gtk_widget_get_visible (lux_lock_get_button (ll, "shutdown")));
+}
+
+static void
+power_answer (Round *rb, const char *answer) {
+    if (!answer)
+        return;
+    rb->can_yes = g_strcmp0 (answer, "yes") == 0;
+    gtk_widget_set_visible (rb->button, rb->can_yes);
+}
+
+static void
+power_can_done (GObject *src, GAsyncResult *res, gpointer data) {
+    Round *rb = data;
+    GError *err = NULL;
+    GVariant *r = g_dbus_connection_call_finish (G_DBUS_CONNECTION (src), res, &err);
+    if (!r) {
+        /* zruseno pri zavreni dialogu: rb uz neexistuje */
+        if (!g_error_matches (err, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+            rb->busy = FALSE;
+            g_message ("logind %s: %s", rb->can, err->message);
+            debug_power (rb->ll, "error");
+        }
+        g_error_free (err);
+        return;
+    }
+    rb->busy = FALSE;
+    if (g_variant_is_of_type (r, G_VARIANT_TYPE ("(s)"))) {
         const char *s;
         g_variant_get (r, "(&s)", &s);
-        /* "challenge" (napr. prihlaseny dalsi uzivatel) by chtelo heslo spravce - tlacitko neukazat */
-        ok = g_strcmp0 (s, "yes") == 0;
-        g_variant_unref (r);
+        power_answer (rb, s);
     }
-    g_object_unref (bus);
-    return ok;
+    g_variant_unref (r);
+    debug_power (rb->ll, rb->can);
+}
+
+/* testy: LUXOS_LOCK_DEMO_LOGIND="na,yes" - jedna odpoved pro vsechna tlacitka v kazdem kole
+   dotazu, posledni se opakuje; "timeout" = dotaz vyprsel */
+static void
+power_demo (LuxLock *ll) {
+    guint n = g_strv_length (ll->demo_logind);
+    const char *a;
+    if (n == 0)
+        return;
+    a = ll->demo_logind[MIN ((guint) ll->demo_logind_step, n - 1)];
+    ll->demo_logind_step++;
+    for (GList *l = ll->rounds; l; l = l->next) {
+        Round *rb = l->data;
+        if (rb->can)
+            power_answer (rb, g_strcmp0 (a, "timeout") == 0 ? NULL : a);
+    }
+    debug_power (ll, a);
+}
+
+static void
+power_query (LuxLock *ll) {
+    if (ll->demo_logind) {
+        power_demo (ll);
+        return;
+    }
+    if (g_getenv ("LUXOS_LOCK_DEMO_USERS"))
+        return;   /* demo bez LUXOS_LOCK_DEMO_LOGIND: tlacitka vzdy */
+    if (!ll->sysbus) {
+        ll->power_pending = TRUE;   /* dotaz po pripojeni (sysbus_ready) */
+        return;
+    }
+    for (GList *l = ll->rounds; l; l = l->next) {
+        Round *rb = l->data;
+        if (!rb->can || rb->busy)
+            continue;
+        rb->busy = TRUE;
+        g_dbus_connection_call (ll->sysbus, "org.freedesktop.login1", "/org/freedesktop/login1",
+                                "org.freedesktop.login1.Manager", rb->can, NULL, G_VARIANT_TYPE ("(s)"),
+                                G_DBUS_CALL_FLAGS_NONE, 5000, ll->power_cancel, power_can_done, rb);
+    }
+}
+
+static gboolean
+power_all_yes (LuxLock *ll) {
+    for (GList *l = ll->rounds; l; l = l->next) {
+        Round *rb = l->data;
+        if (rb->can && !rb->can_yes)
+            return FALSE;
+    }
+    return TRUE;
+}
+
+static gboolean
+power_retry (gpointer data) {
+    LuxLock *ll = data;
+    if (power_all_yes (ll) || --ll->power_tries < 0) {
+        ll->power_retry_id = 0;
+        return G_SOURCE_REMOVE;
+    }
+    power_query (ll);
+    return G_SOURCE_CONTINUE;
+}
+
+/* zjistit znovu hned a pak kazdou sekundu, dokud neni vse "yes" (nejvys POWER_TRIES krat) */
+static void
+power_refresh (LuxLock *ll) {
+    power_query (ll);
+    ll->power_tries = POWER_TRIES;
+    if (!ll->power_retry_id)
+        ll->power_retry_id = g_timeout_add_seconds (1, power_retry, ll);
+}
+
+static void
+prepare_for_sleep (GDBusConnection *bus, const char *sender, const char *path, const char *iface,
+                   const char *signal_name, GVariant *params, gpointer data) {
+    gboolean start = TRUE;
+    if (g_variant_is_of_type (params, G_VARIANT_TYPE ("(b)")))
+        g_variant_get (params, "(b)", &start);
+    if (!start)   /* po probuzeni */
+        power_refresh (data);
+}
+
+static void
+sysbus_ready (GObject *src, GAsyncResult *res, gpointer data) {
+    GError *err = NULL;
+    GDBusConnection *bus = g_bus_get_finish (res, &err);
+    LuxLock *ll;
+    if (!bus) {
+        /* zruseno pri zavreni dialogu: ll uz neexistuje */
+        if (!g_error_matches (err, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+            g_message ("logind: %s", err->message);
+        g_error_free (err);
+        return;
+    }
+    ll = data;
+    ll->sysbus = bus;
+    ll->sleep_sub = g_dbus_connection_signal_subscribe (bus, "org.freedesktop.login1",
+                                                        "org.freedesktop.login1.Manager", "PrepareForSleep",
+                                                        "/org/freedesktop/login1", NULL, G_DBUS_SIGNAL_FLAGS_NONE,
+                                                        prepare_for_sleep, ll, NULL);
+    if (ll->power_pending) {
+        ll->power_pending = FALSE;
+        power_query (ll);
+    }
 }
 
 static void
@@ -1675,13 +1831,15 @@ flat_button (GtkWidget *b, const char *cls) {
 }
 
 static Round *
-round_button (LuxLock *ll, const char *key, const char *label, IconFunc icon, const char *method) {
+round_button (LuxLock *ll, const char *key, const char *label, IconFunc icon, const char *method,
+              const char *can) {
     Round *rb = g_new0 (Round, 1);
     GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     rb->ll = ll;
     rb->key = key;
     rb->icon = icon;
     rb->method = method;
+    rb->can = can;
     rb->button = gtk_button_new ();
     flat_button (rb->button, "round");
     rb->area = gtk_drawing_area_new ();
@@ -1695,6 +1853,12 @@ round_button (LuxLock *ll, const char *key, const char *label, IconFunc icon, co
     gtk_box_pack_start (GTK_BOX (ll->power), rb->button, FALSE, FALSE, 0);
     if (method)
         g_signal_connect (rb->button, "clicked", G_CALLBACK (power_clicked), rb);
+    if (can) {
+        /* viditelnost podle logind (power_refresh), ne podle gtk_widget_show_all dialogu */
+        rb->can_yes = g_getenv ("LUXOS_LOCK_DEMO_USERS") && !ll->demo_logind;
+        gtk_widget_set_no_show_all (rb->button, TRUE);
+        gtk_widget_set_visible (rb->button, rb->can_yes);
+    }
     ll->rounds = g_list_append (ll->rounds, rb);
     return rb;
 }
@@ -1813,6 +1977,7 @@ animate_to (LuxLock *ll, double target) {
 
 void
 lux_lock_enter (LuxLock *ll) {
+    power_refresh (ll);
     if (ll->target < 1.0)
         animate_to (ll, 1.0);
 }
@@ -1894,6 +2059,7 @@ check_resume (LuxLock *ll) {
     if (gtk_widget_is_sensitive (ll->entry) && !gtk_widget_has_focus (ll->entry))
         gtk_widget_grab_focus (ll->entry);
     kbd_update (ll);
+    power_refresh (ll);
     debug_state (ll, "resume");
 }
 
@@ -1932,6 +2098,11 @@ plug_realized (GtkWidget *w, LuxLock *ll) {
 }
 
 static void
+plug_mapped (GtkWidget *w, LuxLock *ll) {
+    power_refresh (ll);
+}
+
+static void
 user_clicked (GtkButton *b, LuxLock *ll) {
     gtk_widget_grab_focus (ll->entry);
 }
@@ -1954,6 +2125,7 @@ fprint_enabled (void) {
 LuxLock *
 lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
     LuxLock *ll = g_new0 (LuxLock, 1);
+    const char *demo;
 
     ll->plug = plug_widget;
     ll->overlay = OBJ ("lock-overlay");
@@ -2027,14 +2199,20 @@ lux_lock_new (GtkBuilder *builder, GtkWidget *plug_widget) {
     gtk_widget_set_tooltip_text (ll->user_btn, g_get_user_name ());
 
     /* spodni rada: Prepnout uzivatele a Odhlasit (podle nastaveni setrice), pak napajeni */
-    round_button (ll, "switch", lux_tr ("Switch User"), icon_users, NULL);
-    round_button (ll, "logout", lux_tr ("Sign Out"), icon_logout, NULL);
-    if (g_getenv ("LUXOS_LOCK_DEMO_USERS") || logind_can ("CanSuspend"))
-        round_button (ll, "suspend", lux_tr ("Sleep"), icon_sleep, "Suspend");
-    if (g_getenv ("LUXOS_LOCK_DEMO_USERS") || logind_can ("CanReboot"))
-        round_button (ll, "restart", lux_tr ("Restart"), icon_restart, "Reboot");
-    if (g_getenv ("LUXOS_LOCK_DEMO_USERS") || logind_can ("CanPowerOff"))
-        round_button (ll, "shutdown", lux_tr ("Shut Down"), icon_power, "PowerOff");
+    round_button (ll, "switch", lux_tr ("Switch User"), icon_users, NULL, NULL);
+    round_button (ll, "logout", lux_tr ("Sign Out"), icon_logout, NULL, NULL);
+    /* napajeni: tlacitka vzdy, viditelnost podle logind - zjistuje se znovu (power_refresh) */
+    demo = g_getenv ("LUXOS_LOCK_DEMO_LOGIND");
+    if (demo && *demo && g_getenv ("LUXOS_LOCK_DEMO_USERS"))
+        ll->demo_logind = g_strsplit (demo, ",", -1);
+    ll->power_cancel = g_cancellable_new ();
+    round_button (ll, "suspend", lux_tr ("Sleep"), icon_sleep, "Suspend", "CanSuspend");
+    round_button (ll, "restart", lux_tr ("Restart"), icon_restart, "Reboot", "CanReboot");
+    round_button (ll, "shutdown", lux_tr ("Shut Down"), icon_power, "PowerOff", "CanPowerOff");
+    if (!g_getenv ("LUXOS_LOCK_DEMO_USERS"))
+        g_bus_get (G_BUS_TYPE_SYSTEM, ll->power_cancel, sysbus_ready, ll);
+    power_refresh (ll);
+    g_signal_connect (plug_widget, "map", G_CALLBACK (plug_mapped), ll);
 
     kbd_load (ll);
     /* rozlozeni pod polem jen pri vic rozlozenich (vpravo nahore je vzdy) */
@@ -2102,6 +2280,15 @@ lux_lock_free (LuxLock *ll) {
         g_source_remove (ll->kbd_idle_id);
     if (ll->demo_sleep_id)
         g_source_remove (ll->demo_sleep_id);
+    if (ll->power_retry_id)
+        g_source_remove (ll->power_retry_id);
+    /* rozbehnute dotazy na logind skonci jako zrusene a na ll / tlacitka uz nesahnou */
+    g_cancellable_cancel (ll->power_cancel);
+    g_clear_object (&ll->power_cancel);
+    if (ll->sleep_sub)
+        g_dbus_connection_signal_unsubscribe (ll->sysbus, ll->sleep_sub);
+    g_clear_object (&ll->sysbus);
+    g_strfreev (ll->demo_logind);
 #ifdef ENABLE_X11
     if (ll->xkb_event_base >= 0)
         gdk_window_remove_filter (NULL, xkb_filter, ll);
