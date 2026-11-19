@@ -130,12 +130,17 @@ printer is back - no button to press.
 Run `luxos-printers` (or `luxos-printers --add` to open Add Printer, `--scanner` to select the
 first scanner). It is in Launchpad and Settings.
 
-- **Printers** list with state: Ready, Printing…, N documents waiting, Paused, "Offline – make
-  sure the printer is turned on", "Not connected – connect the USB cable or turn the printer on"
-  (USB; checked every 2 s in sysfs) and, when documents wait or the queue was paused because the
-  printer was away, "… Documents will print automatically." (the job then shows "Waiting for the
-  printer" instead of "Printing…"). Ink and toner levels, and the print queue with per-job Cancel
-  and Cancel All.
+- **Printers** list with state: Ready, Printing…, N documents waiting, Paused, "Not connected"
+  for a network printer that is not reachable now (turned off or on another network; with
+  "· N documents waiting" when documents wait), "Not connected – connect the USB cable or turn the
+  printer on" (USB; checked every 2 s in sysfs) and, when documents wait or the queue was paused
+  because the USB printer was away, "… Documents will print automatically." (the job then shows
+  "Waiting for the printer" instead of "Printing…"). A network printer counts as reachable only
+  when it is announced on the network (mDNS) and answers a short connection to its address
+  (`ipp://`, `ipps://`, `socket://` queues: the address and port from the URI); this is checked off
+  the main thread every 12 s while the window is open and right after a network change - CUPS
+  alone reports a driverless queue as ready until a job fails. Ink and toner levels, and the print
+  queue with per-job Cancel and Cancel All.
 - Per-printer actions: **Default printer**, **Print Test Page**, **Resume** (only when the printer
   is paused for another reason than being unplugged or turned off - that resumes by itself),
   **Remove Printer…**.

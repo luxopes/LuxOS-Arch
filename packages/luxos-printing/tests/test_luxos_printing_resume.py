@@ -730,7 +730,7 @@ print(json.dumps(out, ensure_ascii=False))
             (auto, "warn", False, "unplugged_auto"),                # ne "Printing…"
             ("Paused", "err", True, "paused"),                      # pozastaveno uzivatelem: Obnovit
             ("Ready", "ok", False, None),
-            ("Offline – turn the printer on. Documents will print automatically.", "warn", False, "offline_auto"),
+            ("Not connected · 1 document waiting", "warn", False, "offline_auto"),       # sitova mimo sit
             ("Not connected – connect the USB cable or turn the printer on", "warn", False, "unplugged"),   # ipp-usb
         ])
 
@@ -882,7 +882,7 @@ class Rules(unittest.TestCase):
                  "Printer “%s” is connected again", "Waiting documents are printing now.",
                  "Not connected – connect the USB cable or turn the printer on",
                  "Not connected – connect the USB cable or turn the printer on. Documents will print automatically.",
-                 "Offline – turn the printer on. Documents will print automatically.", "Waiting for the printer"]
+                 "Not connected", "1 document waiting", "%d documents waiting", "Waiting for the printer"]
         tsvs = sorted(f for f in os.listdir(I18N) if f.endswith(".tsv"))
         self.assertEqual(len(tsvs), 12)
         for tsv in tsvs:

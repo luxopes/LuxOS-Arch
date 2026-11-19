@@ -600,6 +600,49 @@ def is_local_uri(uri):
     return (uri or "").lower().startswith(("hp:/usb/", "hpfax:/usb/"))
 
 
+# Vychozi porty sitovych front CUPS (ipp/ipps 631, socket/JetDirect 9100, lpd 515)
+NET_PORTS = {"ipp": 631, "ipps": 631, "http": 631, "https": 443, "socket": 9100, "lpd": 515}
+
+
+def probe_target(uri):
+    """(adresa, port) sitove fronty pro kratkou zkousku dostupnosti, jinak None.
+
+    Jen ipp/ipps/http/https/socket/lpd s adresou v URI (ipp://192.168.1.20/ipp/print,
+    socket://tiskarna.local:9100). dnssd:// (adresu zna jen mDNS), USB a ostatni -> None."""
+    s = uri_scheme(uri)
+    if s not in NET_PORTS or is_local_uri(uri):
+        return None
+    try:
+        u = urllib.parse.urlsplit(uri)
+        host, port = u.hostname, u.port
+    except ValueError:
+        return None
+    if not host or any(c in host for c in " /\\\0") or host.startswith("-"):
+        return None
+    if port is not None and not 0 < port < 65536:
+        return None
+    return host, port or NET_PORTS[s]
+
+
+def mdns_probe_addrs(group):
+    """Adresy z vyreseneho ohlaseni mDNS (group_printers) pro zkousku spojeni: [(stype, adresa, port, rp)].
+
+    Link-local IPv6 (fe80:) by potrebovala rozhrani - vynecha se."""
+    return [a for a in group.get("addrs", ()) if not a[1].lower().startswith("fe80:")]
+
+
+def mdns_find(groups, uri):
+    """Ohlaseni tiskarny pro frontu dnssd:// podle UUID nebo nazvu sluzby (groups = group_printers().values())."""
+    uuid, svc = uri_uuid(uri), uri_service_name(uri)
+    for g in groups:
+        if uuid and g.get("uuid") == uuid:
+            return g
+    for g in groups:
+        if svc and g.get("name") == svc:
+            return g
+    return None
+
+
 def error_policy(uri, usb=False):
     """printer-error-policy pro frontu, kterou zaklada LuxOS.
 

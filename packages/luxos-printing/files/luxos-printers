@@ -13,10 +13,12 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 # vlastni slozka skriptu ma prednost (spusteni ze zdroju), instalovane moduly LuxOS jsou zaloha
 sys.path[:0] = [os.path.dirname(os.path.realpath(__file__)), "/usr/lib/luxos/python"]
@@ -165,49 +167,114 @@ class Cups:
 
     @staticmethod
     def live(printers):
-        """Primo z tiskaren v siti/USB (ipp-usb): je zapnuta? naplne a stav. Jen pro fronty dnssd://."""
+        """Primo z tiskaren v siti/USB (ipp-usb): je ted dostupna? naplne a stav.
+
+        CUPS u sitove fronty bez ovladace hlasi "idle" (Pripravena), dokud uloha neselze - i kdyz
+        tiskarna zustala v jine siti. Dostupnost proto urcuje to, co je videt ted:
+          dnssd://   ohlaseni mDNS (avahi) a kratke spojeni na nektery z jeho adres (avahi muze mit
+                     ohlaseni jeste v mezipameti, i kdyz tiskarna uz v siti neni)
+          ipp://, ipps://, socket://...   kratke spojeni na adresu a port z URI
+        Bezi ve vlakne (nikdy v hlavnim vlakne aplikace)."""
         res = {}
-        wanted = {n: lp.uri_service_name(p.get("device-uri")) for n, p in printers.items()}
-        wanted = {n: s for n, s in wanted.items() if s}
-        if not wanted:
-            return res
-        text = ""
-        procs = [subprocess.Popen(["avahi-browse", "-t", "-r", "-p", "-k", t], stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL, text=True) for t in lp.PRINTER_TYPES]
-        for p in procs:
-            try:
-                text += p.communicate(timeout=12)[0]
-            except subprocess.TimeoutExpired:
-                p.kill()
-        fd, test = tempfile.mkstemp(suffix=".test")
-        with os.fdopen(fd, "w") as f:
-            f.write(lp.IPPTOOL_TEST)
-        found = {}
-        for g in lp.group_printers(lp.parse_avahi(text)).values():
-            found[g["name"]] = g
-        for name, svc in wanted.items():
-            g = found.get(svc)
-            if not g:
+        uris = {n: p.get("device-uri") or "" for n, p in printers.items()}
+        dnssd = {n: u for n, u in uris.items() if lp.uri_service_name(u)}
+        direct = {n: t for n, t in ((n, lp.probe_target(u)) for n, u in uris.items()) if t}
+        groups = list(lp.group_printers(lp.parse_avahi(browse_printers())).values()) if dnssd else []
+        jobs = {}
+        for name, uri in dnssd.items():
+            g = lp.mdns_find(groups, uri)
+            if g is None:
                 res[name] = {"online": False}
                 continue
-            info = {"online": True}
-            for stype, addr, port, rp in g["addrs"]:
-                if addr.lower().startswith("fe80:"):
-                    continue            # link-local IPv6 by potreboval rozhrani
-                host = f"[{addr}]" if ":" in addr else addr
-                scheme = "ipps" if stype == "_ipps._tcp" else "ipp"
-                try:
-                    r = subprocess.run(["ipptool", "-T", "5", "-tv", f"{scheme}://{host}:{port}/{rp}", test],
-                                       capture_output=True, text=True, timeout=15)
-                except (OSError, subprocess.TimeoutExpired):
+            addrs = lp.mdns_probe_addrs(g)
+            jobs[name] = [(a[1], a[2]) for a in addrs]
+            res[name] = {"online": True, "_addrs": addrs, "_usb": g.get("usb")}
+        for name, target in direct.items():
+            jobs[name] = [target]
+        reach = probe_all(jobs)
+        test = None
+        try:
+            for name, info in res.items():
+                addrs = info.pop("_addrs", None)
+                usb = info.pop("_usb", False)
+                if addrs is None:
                     continue
-                a = lp.parse_ipptool(r.stdout)
-                if a:
-                    info.update(a)
-                    break
-            res[name] = info
-        os.unlink(test)
+                ok = [a for a in addrs if reach.get((a[1], a[2]))]
+                if addrs and not ok and not usb:
+                    info["online"] = False      # ohlaseni jen z mezipameti avahi - tiskarna neodpovida
+                    continue
+                if test is None:
+                    fd, test = tempfile.mkstemp(suffix=".test")
+                    with os.fdopen(fd, "w") as f:
+                        f.write(lp.IPPTOOL_TEST)
+                for stype, addr, port, rp in ok or addrs:
+                    host = f"[{addr}]" if ":" in addr else addr
+                    scheme = "ipps" if stype == "_ipps._tcp" else "ipp"
+                    try:
+                        r = subprocess.run(["ipptool", "-T", "5", "-tv", f"{scheme}://{host}:{port}/{rp}", test],
+                                           capture_output=True, text=True, timeout=15)
+                    except (OSError, subprocess.TimeoutExpired):
+                        continue
+                    a = lp.parse_ipptool(r.stdout)
+                    if a:
+                        info.update(a)
+                        break
+        finally:
+            if test:
+                os.unlink(test)
+        for name, target in direct.items():
+            res[name] = {"online": bool(reach.get(target))}
         return res
+
+
+def browse_printers():
+    """Vyresena ohlaseni tiskaren z avahi (avahi-browse -t: co je ted v siti videt)."""
+    text = ""
+    try:
+        procs = [subprocess.Popen(["avahi-browse", "-t", "-r", "-p", "-k", t], stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL, text=True) for t in lp.PRINTER_TYPES]
+    except OSError:
+        return text
+    for p in procs:
+        try:
+            text += p.communicate(timeout=12)[0]
+        except subprocess.TimeoutExpired:
+            p.kill()
+            p.communicate()
+    return text
+
+
+LIVE_INTERVAL = int(os.environ.get("LUXOS_PRINTERS_LIVE_INTERVAL", "12") or 12)  # s; test zkracuje
+PROBE_TIMEOUT = 3       # s na jedno spojeni (vcetne prekladu jmena .local)
+
+
+def tcp_reachable(host, port, timeout=PROBE_TIMEOUT):
+    """Lze ted navazat TCP spojeni na tiskarnu? Jen spojeni a hned zavreni (tiskarnu nic nezada)."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (OSError, ValueError):
+        return False
+
+
+def probe_all(jobs, timeout=PROBE_TIMEOUT):
+    """{fronta: [(adresa, port)]} -> {(adresa, port): dostupna} - vsechny zkousky soubezne.
+
+    Preklad jmena (getaddrinfo) casovy limit spojeni nehlida, proto se na vlakna ceka nejvys
+    timeout + 2 s; co nestihne, je nedostupne."""
+    targets = sorted({t for ts in jobs.values() for t in ts}, key=repr)
+    out = {t: False for t in targets}
+    threads = []
+    for t in targets:
+        def work(t=t):
+            out[t] = tcp_reachable(t[0], t[1], timeout)
+        th = threading.Thread(target=work, daemon=True)
+        th.start()
+        threads.append(th)
+    deadline = time.monotonic() + timeout + 2
+    for th in threads:
+        th.join(max(0.0, deadline - time.monotonic()))
+    return dict(out)
 
 
 def markers_of(attrs):
@@ -245,8 +312,10 @@ def printer_info(p, live, jobs, usb_online=None):
     gone = {"unplugged": _("Not connected – connect the USB cable or turn the printer on"),
             "unplugged_auto": _("Not connected – connect the USB cable or turn the printer on. "
                                 "Documents will print automatically."),
-            "offline": _("Offline – make sure the printer is turned on"),
-            "offline_auto": _("Offline – turn the printer on. Documents will print automatically.")}
+            # sitova tiskarna ted neni videt (vypnuta nebo v jine siti) - stejne jako odpojena USB
+            "offline": _("Not connected"),
+            "offline_auto": _("Not connected") + (" · " + (_("1 document waiting") if len(jobs) == 1 else
+                                                           _("%d documents waiting") % len(jobs)) if jobs else "")}
     if key in gone:
         return gone[key], "warn", resume, key
     text, state = printer_status_text(p, text, serious, jobs)
@@ -1206,12 +1275,20 @@ class Window(Gtk.Window):
         self.select_key = None
         self.want_scanner = select_scanner
         self.refreshing = False
+        self.live_busy = self.live_again = False
         self.cups_error = None
         self.refresh()
         self.refresh_live()
         self.refresh_scanners()
         GLib.timeout_add_seconds(2, self.tick)
-        GLib.timeout_add_seconds(30, self.refresh_live)
+        # dostupnost sitovych tiskaren: pravidelne, dokud je okno otevrene, a hned po zmene site
+        GLib.timeout_add_seconds(LIVE_INTERVAL, self.refresh_live)
+        self.net_timer = None
+        try:
+            self.netmon = Gio.NetworkMonitor.get_default()
+            self.netmon.connect("network-changed", self.on_network_changed)
+        except Exception:  # noqa: BLE001 - bez sledovani site staci pravidelne obnoveni
+            self.netmon = None
         if open_add:
             GLib.idle_add(lambda: self.add_printer() and False)
 
@@ -1241,15 +1318,35 @@ class Window(Gtk.Window):
         if not self.data or cups is None:
             GLib.timeout_add_seconds(2, lambda: self.refresh_live() and False)
             return True
+        if self.live_busy:
+            self.live_again = True      # zmena site behem zjistovani - hned po nem znovu
+            return True
+        self.live_busy, self.live_again = True, False
         printers = dict(self.data["printers"])
 
         def done(res):
-            if not isinstance(res, Exception):
-                self.live = res
-                self.ppage.sig = None
-                self.update()
+            self.live_busy = False
+            if isinstance(res, Exception):
+                # nevime - stary vysledek "dostupna" by mohl lhat; jen odpojene zustanou odpojene
+                res = {n: v for n, v in self.live.items() if v.get("online") is False}
+            self.live = res
+            self.ppage.sig = None
+            self.update()
+            if self.live_again:
+                self.refresh_live()
         in_thread(lambda: Cups.live(printers), done)
         return True
+
+    def on_network_changed(self, _mon, _available):
+        # NetworkManager pri prepnuti site posle vic zmen za sebou - zjistit az po 2 s klidu
+        if self.net_timer:
+            GLib.source_remove(self.net_timer)
+
+        def fire():
+            self.net_timer = None
+            self.refresh_live()
+            return False
+        self.net_timer = GLib.timeout_add_seconds(2, fire)
 
     def refresh_scanners(self):
         def done(res):
