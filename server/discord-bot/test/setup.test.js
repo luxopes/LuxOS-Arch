@@ -5,11 +5,11 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { FakeDiscord } = require("./fakes");
 const { Rest } = require("../src/rest");
-const { Setup, BOT_PERMISSIONS, RULES, inviteUrl } = require("../src/setup");
+const { Setup, BOT_PERMISSIONS, RULES, SELF_ROLES, ONBOARDING_PROMPT, inviteUrl } = require("../src/setup");
 
-async function run(discord, mode) {
+async function run(discord, mode, extra = {}) {
   const lines = [];
-  const setup = new Setup({ rest: new Rest({ api: discord.api, token: discord.token }), guildId: "", mode, log: (l) => lines.push(l) });
+  const setup = new Setup({ rest: new Rest({ api: discord.api, token: discord.token }), guildId: "", mode, log: (l) => lines.push(l), ...extra });
   const result = await setup.run();
   return { result, lines, setup };
 }
@@ -24,6 +24,7 @@ test("without Community: creates the basics, explains the clicks and stops", asy
   assert.deepEqual(discord.roles.filter((r) => !r.managed && r.name !== "@everyone").map((r) => r.name).sort(), ["Member", "Team", "Tester"]);
   assert.ok(byName(discord, "welcome-and-rules"));
   assert.ok(byName(discord, "team"));
+  assert.ok(byName(discord, "bot-testing"));
   assert.equal(byName(discord, "support"), undefined, "no #support yet (the forum needs Community)");
   const help = lines.join("\n");
   assert.match(help, /Server Settings → Enable Community/);
@@ -78,8 +79,33 @@ test("--enable-community: full setup, then a second run changes nothing", async 
 
   assert.equal(discord.commands.length, 1);
   assert.equal(discord.commands[0].name, "human");
-  assert.equal(discord.screening.enabled, true);
-  assert.deepEqual(discord.screening.form_fields[0].values, RULES);
+  // #bot-testing: jen Team + bot, bot smi vlakna
+  const testing = byName(discord, "bot-testing");
+  assert.equal(discord.channels.find((c) => c.id === testing.parent_id).name, "STAFF");
+  assert.ok((BigInt(testing.permission_overwrites.find((o) => o.id === discord.guild.id).deny) & (1n << 10n)) !== 0n, "hidden from @everyone");
+  assert.ok(testing.permission_overwrites.some((o) => o.id === roles.Team && (BigInt(o.allow) & (1n << 10n))));
+  assert.ok((BigInt(testing.permission_overwrites.find((o) => o.id === discord.bot.id).allow) & (1n << 35n)) !== 0n, "bot creates threads");
+  // #bug-reports: bot reaguje a pta se ve vlaknech
+  const bugAllow = BigInt(byName(discord, "bug-reports").permission_overwrites.find((o) => o.id === discord.bot.id).allow);
+  assert.ok((bugAllow & (1n << 6n)) !== 0n && (bugAllow & (1n << 35n)) !== 0n, "bot may react and open threads in #bug-reports");
+  assert.match(discord.posted(byName(discord, "bug-reports").id)[0].content, /Reports here are forwarded to the LuxOS team; the bot may ask for details/);
+  assert.match(discord.posted(byName(discord, "testers").id)[0].content, /open to anyone who wants to test/);
+  assert.match(discord.posted(byName(discord, "testers").id)[0].content, /lux config channel stable/);
+
+  // Onboarding: povinna otazka s jednou volbou Tester / Member, vychozi verejne kanaly
+  assert.equal(discord.onboarding.enabled, true);
+  assert.equal(discord.onboarding.mode, 0);
+  const prompt = discord.onboarding.prompts[0];
+  assert.equal(prompt.title, ONBOARDING_PROMPT);
+  assert.equal(prompt.single_select, true);
+  assert.equal(prompt.required, true);
+  assert.deepEqual(prompt.options.map((o) => o.title), SELF_ROLES.map((r) => r.title));
+  assert.deepEqual(prompt.options.map((o) => o.role_ids[0]), [roles.Tester, roles.Member]);
+  assert.ok(discord.onboarding.default_channel_ids.length >= 7);
+  assert.ok(!discord.onboarding.default_channel_ids.includes(byName(discord, "testers").id), "private channels are not defaults");
+  assert.equal(discord.posted(byName(discord, "welcome-and-rules").id).length, 1, "no role buttons when Onboarding works");
+  assert.ok(first.setup.notes.some((n) => /Server Settings → Access → "Server rules"/.test(n) && n.includes(RULES[0])), "rules click path");
+  assert.ok(!discord.requests.some((r) => r.path.includes("member-verification")), "old screening API not used");
   assert.match(first.result.invite, /^https:\/\/discord\.gg\/luxos0$/);
   assert.equal(discord.invites[0].max_age, 0);
 
@@ -112,7 +138,11 @@ test("--no-community: text #support and read-only text #announcements; idempoten
   assert.equal(byName(discord, "support").type, 0);
   assert.equal(byName(discord, "announcements").type, 0);
   assert.equal(discord.guild.features.includes("COMMUNITY"), false);
-  assert.equal(discord.screening.enabled, false, "screening needs Community");
+  // bez Community neni Onboarding: zprava s tlacitky Tester / Member
+  const roleMessage = discord.posted(byName(discord, "welcome-and-rules").id).find((m) => /Choose your role/.test(m.content));
+  assert.deepEqual(roleMessage.components[0].components.map((b) => b.custom_id), ["role:Tester", "role:Member"]);
+  assert.match(inviteUrl("1", true), /permissions=275146411008$/, "Manage Roles added for the buttons");
+  assert.equal(first.setup.usesRoleButtons, true);
   const before = discord.mutations().length;
   const second = await run(discord, "no-community");
   assert.equal(second.result.changes, 0);
@@ -132,9 +162,67 @@ test("drift is repaired: a changed topic and a deleted channel come back", async
   byName(discord, "ideas").topic = "something else";
   discord.channels = discord.channels.filter((c) => c.name !== "off-topic");
   const { result } = await run(discord, "auto");
-  assert.equal(result.changes, 2);
+  assert.equal(result.changes, 3, "topic, new #off-topic and its id in the Onboarding defaults");
+  assert.ok(discord.onboarding.default_channel_ids.includes(byName(discord, "off-topic").id));
   assert.match(byName(discord, "ideas").topic, /Ideas and wishes/);
   assert.ok(byName(discord, "off-topic"));
+});
+
+test("Onboarding refused by Discord: role buttons instead; idempotent", async (t) => {
+  const discord = await new FakeDiscord({ community: true }).start();
+  t.after(() => discord.stop());
+  discord.onboardingFails = true;
+  const first = await run(discord, "auto");
+  assert.ok(first.setup.notes.some((n) => /Onboarding could not be set/.test(n)));
+  const welcome = discord.posted(byName(discord, "welcome-and-rules").id);
+  assert.equal(welcome.length, 2);
+  assert.ok(welcome.some((m) => m.components && m.components.length));
+  const again = await run(discord, "auto");
+  assert.equal(again.result.changes, 0);
+});
+
+test("existing Onboarding prompts of the owner are kept; changed options are restored", async (t) => {
+  const discord = await new FakeDiscord({ community: true }).start();
+  t.after(() => discord.stop());
+  await run(discord, "auto");
+  discord.onboarding.prompts.push({ id: "123", type: 0, title: "Your language?", single_select: false, required: false, in_onboarding: true,
+    options: [{ id: "124", title: "Czech", description: "", role_ids: [], channel_ids: [] }] });
+  discord.onboarding.prompts[0].options[0].title = "changed";
+  const { result } = await run(discord, "auto");
+  assert.equal(result.changes, 1);
+  assert.deepEqual(discord.onboarding.prompts.map((p) => p.title), [ONBOARDING_PROMPT, "Your language?"]);
+  assert.equal(discord.onboarding.prompts[0].options[0].title, SELF_ROLES[0].title);
+});
+
+test("default Discord channels: listed without the flag, deleted with --cleanup-defaults (only empty ones)", async (t) => {
+  const discord = await new FakeDiscord({ community: true }).start();
+  t.after(() => discord.stop());
+  const textCat = discord.addChannel({ name: "Textové kanály", type: 4 });
+  const voiceCat = discord.addChannel({ name: "Hlasové kanály", type: 4 });
+  const obecne = discord.addChannel({ name: "obecné", type: 0, parent_id: textCat.id });
+  discord.addChannel({ name: "Obecné", type: 2, parent_id: voiceCat.id });
+  const first = await run(discord, "auto");
+  assert.ok(first.setup.notes.some((n) => /Empty default Discord channels outside the LuxOS categories: .*#obecné.*voice Obecné/.test(n) && /--cleanup-defaults/.test(n)));
+  assert.ok(byName(discord, "obecné"), "nothing deleted without the flag");
+
+  const second = await run(discord, "auto", { cleanupDefaults: true });
+  assert.equal(discord.channels.some((c) => c.name.toLowerCase() === "obecné"), false);
+  assert.equal(discord.channels.some((c) => c.id === textCat.id || c.id === voiceCat.id), false, "empty default categories removed");
+  assert.ok(second.result.changes >= 4);
+  assert.ok(discord.channels.some((c) => c.name === "General" && c.type === 2), "our voice General stays");
+  assert.ok(discord.channels.some((c) => c.id === obecne.id) === false);
+  const third = await run(discord, "auto", { cleanupDefaults: true });
+  assert.equal(third.result.changes, 0);
+});
+
+test("a default channel with messages is never deleted", async (t) => {
+  const discord = await new FakeDiscord({ community: true }).start();
+  t.after(() => discord.stop());
+  const obecne = discord.addChannel({ name: "obecné", type: 0 });
+  discord.addMessage(obecne.id, { id: "5", username: "someone" }, "ahoj");
+  const { setup } = await run(discord, "auto", { cleanupDefaults: true });
+  assert.ok(byName(discord, "obecné"));
+  assert.ok(setup.notes.some((n) => /#obecné \(a default Discord channel\) has messages/.test(n)));
 });
 
 test("minimal bot permissions after setup", () => {

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 "use strict";
 // Jednorazove nastaveni Discord serveru LuxOS botem: role, kategorie, kanaly, stitky fora,
-// prikaz /human, uvitaci zpravy, pravidla (Rules Screening) a trvala pozvanka.
+// prikaz /human, uvitaci zpravy, vyber role (Onboarding, jinak tlacitka) a trvala pozvanka.
+// Pravidla serveru (Server Settings → Access → Server rules) API nema - setup vypise, co vlozit.
 // Idempotentni: co uz odpovida, nemeni; druhe spusteni neudela zadnou zmenu.
 //
-//   node src/setup.js [--guild ID] [--enable-community | --no-community]
+//   node src/setup.js [--guild ID] [--enable-community | --no-community] [--cleanup-defaults]
 //
 // Token cte ze stejneho souboru jako bot (DISCORD_TOKEN_FILE, vychozi /etc/luxos-discord/token).
 // Bot musi byt na serveru s opravnenim Administrator (jen pro setup, pak se opravneni snizi - README).
@@ -41,7 +42,7 @@ const RULES = [
   "No piracy, cracks, malware or links to them.",
   "Use English in the main channels so everyone can follow. In #support you can ask in your own language.",
   "Never post passwords, API keys, tokens or recovery codes.",
-  "Support answers come from the LuxOS AI assistant based on the LuxOS documentation. Messages in #support are sent to the AI model. For a human, ask the bot (or use /human) or mail info@lux-ai.cz."
+  "Support answers come from the LuxOS AI assistant based on the LuxOS documentation. Messages in #support and #bug-reports are sent to the AI model. For a human, ask the bot (or use /human) or mail info@lux-ai.cz."
 ];
 
 const WELCOME = (ch) => `**Welcome to the LuxOS community!**
@@ -54,11 +55,12 @@ ${RULES.map((rule, i) => `${i + 1}. ${rule}`).join("\n")}
 - Questions and problems: open a post in ${ch.support} - the LuxOS AI assistant answers right away from the documentation (<${SITE}/docs/>), and the LuxOS team steps in when needed.
 - Bugs: ${ch.bugs} or GitHub issues <${ISSUES}>
 - Ideas: ${ch.ideas} · chat: ${ch.general} · screenshots: ${ch.desktop}
+- Want to test new builds? Pick the Tester role (Channels & Roles at the top of the channel list) to see ${ch.testers}.
 - Contact the team by e-mail: ${CONTACT}
 - Privacy: the AI assistant receives the text of your question (and earlier messages in the same thread) through LuxAI to write an answer. Details: <${SITE}/privacy/>`;
 
 const TESTERS = (ch) => `**Testers: the staging channel**
-Staging gets fixes and new features before a release. They may still break things, so use a computer with backups.
+Staging is open to anyone who wants to test: it gets fixes and new features before a release. They may still break things, so use a computer with backups.
 Switch to staging:
 \`\`\`
 lux config channel staging
@@ -68,10 +70,10 @@ Back to stable (newer test packages stay until the release catches up):
 \`\`\`
 lux config channel stable
 \`\`\`
-Check the channel with \`lux config check\`. Report problems here or in ${ch.bugs} with your LuxOS version (About This Computer). Docs: <${SITE}/docs/luxos/care-updates.html>`;
+Check the channel with \`lux config check\`. Report bugs in ${ch.bugs} with your LuxOS version (About This Computer); talk about the test builds here. Docs: <${SITE}/docs/luxos/care-updates.html>`;
 
 const BUGS = (ch) => `**Reporting bugs**
-The official bug tracker is GitHub issues: <${ISSUES}>
+Reports here are forwarded to the LuxOS team; the bot may ask for details first (it uses the LuxOS AI to check that a report is complete). You can also use GitHub issues: <${ISSUES}>
 Please include: LuxOS version (About This Computer), what you did, what you expected and what happened, and screenshots or the exact error message. Don't post passwords or keys.
 Not sure if it's a bug? Ask in ${ch.support} first.`;
 
@@ -85,9 +87,43 @@ const SUPPORT_TAGS = [
   { name: "Needs human", moderated: true }
 ];
 
+// Vyber role: Onboarding (Community) nebo zalozni zprava s tlacitky v #welcome-and-rules.
+// Bot smi prepinat jen tyto role (custom_id "role:<jmeno>"), nikdy Team.
+const SELF_ROLES = [
+  { role: "Tester", title: "I want to test new LuxOS builds (staging)", description: "Get the #testers channel and try fixes before a release" },
+  { role: "Member", title: "I use LuxOS / I'm curious", description: "Chat, ask for help and follow the news" }
+];
+const ONBOARDING_PROMPT = "What brings you here?";
+const ROLE_MESSAGE = `**Choose your role**
+${SELF_ROLES.map((r) => `- **${r.role}**: ${r.title}`).join("\n")}
+Click a button to add or remove the role. Testers see the private testers channel.`;
+
 const COMMANDS = [
   { name: "human", type: 1, description: "Ask the LuxOS team (a human) to look at this support thread" }
 ];
+
+// Vychozi kanaly a kategorie, ktere Discord vytvori se serverem (anglicky a cesky)
+const DEFAULT_CHANNELS = new Set(["general", "obecné", "obecne"]);
+const DEFAULT_CATEGORIES = new Set(["text channels", "voice channels", "textové kanály", "hlasové kanály"]);
+
+function componentsKey(rows) {
+  return JSON.stringify((rows || []).map((row) => (row.components || []).map((c) => [c.type, c.style, c.label, c.custom_id])));
+}
+
+function onboardingKey(o) {
+  return JSON.stringify([
+    Boolean(o.enabled), o.mode || 0, [...(o.default_channel_ids || [])].sort(),
+    (o.prompts || []).map((p) => [p.title, p.type || 0, Boolean(p.single_select), Boolean(p.required), p.in_onboarding !== false,
+      (p.options || []).map((x) => [x.title, x.description || "", [...(x.role_ids || [])].sort(), [...(x.channel_ids || [])].sort()])])
+  ]);
+}
+
+// Nove id pro otazku/moznost Onboardingu (Discord chce snowflake; jako discord.py z casu)
+let idCounter = 0n;
+function newId() {
+  idCounter += 1n;
+  return String(((BigInt(Date.now()) - 1420070400000n) << 22n) + idCounter);
+}
 
 function sameOverwrites(a, b) {
   const norm = (list) => (list || []).map((o) => `${o.id}:${o.type}:${o.allow || "0"}:${o.deny || "0"}`).sort().join("|");
@@ -95,8 +131,9 @@ function sameOverwrites(a, b) {
 }
 
 class Setup {
-  constructor({ rest, guildId, mode = "auto", log = console.log }) {
-    Object.assign(this, { rest, guildId, mode, log });
+  constructor({ rest, guildId, mode = "auto", cleanupDefaults = false, log = console.log }) {
+    Object.assign(this, { rest, guildId, mode, cleanupDefaults, log });
+    this.ours = new Set(); // id kategorii a kanalu, ktere spravuje setup
     this.changes = 0;
     this.notes = [];
   }
@@ -125,6 +162,9 @@ class Setup {
     const staff = await this.ensureCategory("STAFF", this.teamOnly());
     const team = await this.ensureChannel({ name: "team", type: 0, parent: staff,
       topic: "LuxOS team only: moderation and Discord's community updates.", overwrites: this.teamOnly() });
+    await this.ensureChannel({ name: "bot-testing", type: 0, parent: staff,
+      topic: "Team only: the bot answers every message here (in a thread), like in #support. Hand-off e-mails are marked [test].",
+      overwrites: this.botTesting() });
 
     if (!this.community()) {
       if (this.mode === "enable-community") {
@@ -141,27 +181,35 @@ class Setup {
     const community = await this.ensureCategory("COMMUNITY");
     const general = await this.ensureChannel({ name: "general", type: 0, parent: community, topic: "Chat about LuxOS. Mention the bot to ask it something; real support questions go to #support." });
     const desktop = await this.ensureChannel({ name: "show-your-desktop", type: 0, parent: community, topic: "Screenshots of your LuxOS desktop. Hide personal info before posting." });
-    await this.ensureChannel({ name: "off-topic", type: 0, parent: community, topic: "Anything else (keep it friendly and safe for work)." });
+    const offTopic = await this.ensureChannel({ name: "off-topic", type: 0, parent: community, topic: "Anything else (keep it friendly and safe for work)." });
     const supportCategory = await this.ensureCategory("SUPPORT");
     const support = await this.ensureChannel({ name: "support", type: this.community() ? 15 : 0, parent: supportCategory,
       topic: SUPPORT_TOPIC, overwrites: this.botSupport(), tags: this.community() ? SUPPORT_TAGS : null });
     const dev = await this.ensureCategory("DEVELOPMENT");
     const ideas = await this.ensureChannel({ name: "ideas", type: 0, parent: dev, topic: "Ideas and wishes for LuxOS. One idea per message; discuss in threads." });
-    const bugs = await this.ensureChannel({ name: "bug-reports", type: 0, parent: dev, topic: `Bugs in LuxOS. The official tracker is GitHub: ${ISSUES}` });
+    const bugs = await this.ensureChannel({ name: "bug-reports", type: 0, parent: dev, overwrites: this.botBugs(),
+      topic: `Bugs in LuxOS: one report per message, forwarded to the LuxOS team (the bot may ask for details). Also on GitHub: ${ISSUES}` });
     const testers = await this.ensureChannel({ name: "testers", type: 0, parent: dev,
-      topic: "Testers of the staging channel: lux config channel staging", overwrites: this.testersOnly() });
+      topic: "Testing the staging channel (open to anyone who wants to test): lux config channel staging, back with lux config channel stable. Bugs go to #bug-reports.",
+      overwrites: this.testersOnly() });
     const voice = await this.ensureCategory("VOICE");
     await this.ensureChannel({ name: "General", type: 2, parent: voice });
 
     // zpravy az nakonec, at odkazuji na existujici kanaly (<#id>)
-    const ch = Object.fromEntries(Object.entries({ support, bugs, ideas, general, desktop }).map(([k, c]) => [k, `<#${c.id}>`]));
+    const ch = Object.fromEntries(Object.entries({ support, bugs, ideas, general, desktop, testers }).map(([k, c]) => [k, `<#${c.id}>`]));
     await this.ensureMessage(welcome, WELCOME(ch));
     await this.ensureMessage(bugs, BUGS(ch));
     await this.ensureMessage(testers, TESTERS(ch));
 
     await this.ensureCommands();
-    if (this.community()) await this.ensureScreening();
+    // vychozi kanaly Onboardingu: verejne kanaly (Discord chce >= 7, z toho >= 5 s psanim pro @everyone)
+    let onboarding = false;
+    if (this.community()) onboarding = await this.ensureOnboarding([welcome, announcements, general, desktop, offTopic, support, ideas, bugs]);
+    this.usesRoleButtons = !onboarding;
+    if (!onboarding) await this.ensureMessage(welcome, ROLE_MESSAGE, this.roleButtons());
+    this.notes.push(`Server rules: Discord has no API for them. Click Server Settings → Access → "Server rules", turn it on and use "Add rule" for each:\n${RULES.map((r, i) => `     ${i + 1}. ${r}`).join("\n")}`);
     const invite = await this.ensureInvite(welcome);
+    await this.removeDefaults();
 
     if (support.type === 0 && this.community()) {
       this.notes.push("#support is a text channel from a run without Community. To get the forum: delete #support in Discord and run setup again.");
@@ -220,6 +268,21 @@ class Setup {
     ];
   }
 
+  // #bug-reports: bot reaguje ✅ a pta se ve vlaknech na hlaseni
+  botBugs() {
+    return [{ id: this.me.id, type: 1, deny: "0",
+      allow: perms("VIEW_CHANNEL", "SEND_MESSAGES", "ADD_REACTIONS", "SEND_MESSAGES_IN_THREADS", "CREATE_PUBLIC_THREADS", "READ_MESSAGE_HISTORY") }];
+  }
+
+  botTesting() {
+    return [
+      { id: this.everyone(), type: 0, allow: "0", deny: perms("VIEW_CHANNEL") },
+      { id: this.roles.Team, type: 0, allow: perms("VIEW_CHANNEL", "SEND_MESSAGES", "SEND_MESSAGES_IN_THREADS", "READ_MESSAGE_HISTORY"), deny: "0" },
+      { id: this.me.id, type: 1, deny: "0",
+        allow: perms("VIEW_CHANNEL", "SEND_MESSAGES", "SEND_MESSAGES_IN_THREADS", "CREATE_PUBLIC_THREADS", "MANAGE_THREADS", "READ_MESSAGE_HISTORY") }
+    ];
+  }
+
   testersOnly() {
     return [
       { id: this.everyone(), type: 0, allow: "0", deny: perms("VIEW_CHANNEL") },
@@ -242,12 +305,49 @@ class Setup {
       category = await this.rest.post(`/guilds/${this.guildId}/channels`, { name, type: 4, permission_overwrites: overwrites }, { reason: "LuxOS setup" });
       this.channels.push(category);
       this.change(`category ${name}`);
+      this.ours.add(category.id);
+      return category;
     } else if (!sameOverwrites(category.permission_overwrites, overwrites)) {
       category = await this.rest.patch(`/channels/${category.id}`, { permission_overwrites: overwrites }, { reason: "LuxOS setup" });
       this.replace(category);
       this.change(`category ${name} permissions`);
     }
+    this.ours.add(category.id);
     return category;
+  }
+
+  // Prazdne vychozi kanaly Discordu ("obecné", "Obecné", "general" mimo nase kategorie) a jejich
+  // prazdne kategorie: smaze jen s --cleanup-defaults, jinak jen vypise
+  async removeDefaults() {
+    const candidates = [];
+    for (const c of this.channels) {
+      if (this.ours.has(c.id) || this.ours.has(c.parent_id) || (c.type !== 0 && c.type !== 2) || !DEFAULT_CHANNELS.has(c.name.toLowerCase())) continue;
+      if (c.type === 0) {
+        const messages = await this.rest.get(`/channels/${c.id}/messages?limit=1`);
+        if (messages.length) {
+          this.notes.push(`#${c.name} (a default Discord channel) has messages, so it is not deleted. Delete it in Discord if you don't need it.`);
+          continue;
+        }
+      }
+      candidates.push(c);
+    }
+    const leaving = new Set(candidates.map((c) => c.id));
+    for (const c of this.channels) {
+      if (c.type !== 4 || this.ours.has(c.id) || !DEFAULT_CATEGORIES.has(c.name.toLowerCase())) continue;
+      if (this.channels.every((x) => x.parent_id !== c.id || leaving.has(x.id))) candidates.push(c);
+    }
+    if (!candidates.length) return;
+    const label = (c) => (c.type === 4 ? `category ${c.name}` : c.type === 2 ? `voice ${c.name}` : `#${c.name}`);
+    if (!this.cleanupDefaults) {
+      this.notes.push(`Empty default Discord channels outside the LuxOS categories: ${candidates.map(label).join(", ")}. Run setup with --cleanup-defaults to delete them.`);
+      return;
+    }
+    // nejdriv kanaly, pak kategorie
+    for (const c of candidates.sort((a, b) => (a.type === 4) - (b.type === 4))) {
+      await this.rest.delete(`/channels/${c.id}`, { reason: "LuxOS setup: remove empty default channel" });
+      this.channels = this.channels.filter((x) => x.id !== c.id);
+      this.change(`deleted default ${label(c)}`);
+    }
   }
 
   replace(channel) {
@@ -265,6 +365,7 @@ class Setup {
       channel = await this.rest.post(`/guilds/${this.guildId}/channels`, body, { reason: "LuxOS setup" });
       this.channels.push(channel);
       this.change(`channel ${type === 2 ? "voice " : "#"}${name}`);
+      this.ours.add(channel.id);
       return channel;
     }
     const patch = {};
@@ -290,20 +391,21 @@ class Setup {
       this.replace(channel);
       this.change(`channel #${name}: ${Object.keys(patch).join(", ")}`);
     }
+    this.ours.add(channel.id);
     return channel;
   }
 
   // Zprava bota v kanalu: hleda se podle prvniho radku, rozdilny text se upravi
-  async ensureMessage(channel, content) {
+  async ensureMessage(channel, content, components = []) {
     const firstLine = content.split("\n")[0];
     const messages = await this.rest.get(`/channels/${channel.id}/messages?limit=50`);
     const mine = messages.find((m) => m.author && m.author.id === this.me.id && (m.content || "").split("\n")[0] === firstLine);
-    const body = { content, allowed_mentions: { parse: [] }, flags: 1 << 2 };
+    const body = { content, components, allowed_mentions: { parse: [] }, flags: 1 << 2 };
     if (!mine) {
       await this.rest.post(`/channels/${channel.id}/messages`, body);
       this.change(`message "${firstLine.replace(/\*/g, "")}" in #${channel.name}`);
-    } else if (mine.content !== content) {
-      await this.rest.patch(`/channels/${channel.id}/messages/${mine.id}`, { content, allowed_mentions: { parse: [] } });
+    } else if (mine.content !== content || componentsKey(mine.components) !== componentsKey(components)) {
+      await this.rest.patch(`/channels/${channel.id}/messages/${mine.id}`, { content, components, allowed_mentions: { parse: [] } });
       this.change(`message "${firstLine.replace(/\*/g, "")}" in #${channel.name} updated`);
     }
   }
@@ -351,21 +453,46 @@ class Setup {
     this.appId = app.id;
   }
 
-  // Rules Screening (Membership Screening): API neni oficialne zdokumentovane - kdyz selze,
-  // vypise se, co kliknout
-  async ensureScreening() {
-    const description = "Welcome to the LuxOS community. Please read and accept the rules.";
-    const want = { field_type: "TERMS", label: "Read and agree to the server rules", values: RULES, required: true };
+  roleButtons() {
+    return [{ type: 1, components: SELF_ROLES.map((r, i) => ({ type: 2, style: i === 0 ? 1 : 2, label: r.role, custom_id: `role:${r.role}` })) }];
+  }
+
+  // Onboarding: jedna povinna otazka s vyberem jedne role. Kdyz ho Discord odmitne, vrati false
+  // a setup pouzije zpravu s tlacitky.
+  async ensureOnboarding(defaults) {
+    const path = `/guilds/${this.guildId}/onboarding`;
+    const fallback = (error) => {
+      this.notes.push(`Onboarding could not be set (${error.message}); a message with role buttons in #welcome-and-rules is used instead. The bot then needs the Manage Roles permission (README, step 5).`);
+      return false;
+    };
+    let current;
     try {
-      const current = await this.rest.get(`/guilds/${this.guildId}/member-verification?with_guild=false`);
-      const field = (current.form_fields || []).find((f) => f.field_type === "TERMS");
-      const same = current.enabled !== false && field && JSON.stringify(field.values) === JSON.stringify(RULES) && current.description === description;
-      if (same) return;
-      await this.rest.patch(`/guilds/${this.guildId}/member-verification`, { enabled: true, description, form_fields: [want] });
-      this.change("Rules Screening (members accept the rules before chatting)");
+      current = await this.rest.get(path);
     } catch (error) {
-      this.notes.push(`Rules Screening could not be set by the bot (${error.message}). Click: Server Settings → Safety Setup → DM and spam protection / "Rules Screening" (or Server Settings → Onboarding → Rules), turn it on and paste these rules:\n${RULES.map((r, i) => `     ${i + 1}. ${r}`).join("\n")}`);
+      return fallback(error);
     }
+    const oldPrompt = (current.prompts || []).find((p) => p.title === ONBOARDING_PROMPT);
+    const want = {
+      enabled: true,
+      mode: 0, // ONBOARDING_DEFAULT: pocitaji se jen vychozi kanaly
+      default_channel_ids: defaults.map((c) => c.id),
+      prompts: [{
+        id: oldPrompt ? oldPrompt.id : newId(),
+        type: 0, title: ONBOARDING_PROMPT, single_select: true, required: true, in_onboarding: true,
+        options: SELF_ROLES.map((r) => {
+          const old = oldPrompt && (oldPrompt.options || []).find((o) => o.title === r.title);
+          return { id: old ? old.id : newId(), title: r.title, description: r.description, role_ids: [this.roles[r.role]], channel_ids: [] };
+        })
+      }, ...(current.prompts || []).filter((p) => p.title !== ONBOARDING_PROMPT)]
+    };
+    if (onboardingKey(current) === onboardingKey(want)) return true;
+    try {
+      await this.rest.put(path, want, { reason: "LuxOS setup: choose Tester or Member" });
+    } catch (error) {
+      return fallback(error);
+    }
+    this.change(`Onboarding: "${ONBOARDING_PROMPT}" → Tester / Member`);
+    return true;
   }
 
   async ensureInvite(welcome) {
@@ -382,7 +509,7 @@ class Setup {
   printCommunityHelp() {
     this.log(`
 Community is OFF on this server. The forum #support, the #announcements channel and
-Rules Screening need it. Created so far: roles, #welcome-and-rules and the private #team.
+Onboarding (members pick Tester or Member) need it. Created so far: roles, #welcome-and-rules and the private #team and #bot-testing.
 
 Choose one:
   a) Let the bot switch it on (verified e-mail required to chat, media filter for everyone,
@@ -393,7 +520,7 @@ Choose one:
      Basics: Rules channel = #welcome-and-rules, Community updates channel = #team.
      Final step: accept, then run this setup again.
   c) Keep Community off (#support as a text channel where the bot answers in threads,
-     read-only text #announcements, no Rules Screening):
+     read-only text #announcements, role buttons instead of Onboarding):
         node src/setup.js --no-community
 
 "Discoverable" (Server Discovery) additionally needs Discord's eligibility (server age,
@@ -401,23 +528,27 @@ member count, activity) - until then use the invite link on the website.`);
   }
 }
 
-function inviteUrl(appId) {
-  return `https://discord.com/oauth2/authorize?client_id=${appId}&scope=bot+applications.commands&permissions=${BOT_PERMISSIONS}`;
+// manageRoles: zalozni tlacitka pro vyber role (bez Onboardingu) potrebuji Manage Roles
+function inviteUrl(appId, manageRoles = false) {
+  const permissions = manageRoles ? (BigInt(BOT_PERMISSIONS) | (1n << 28n)).toString() : BOT_PERMISSIONS;
+  return `https://discord.com/oauth2/authorize?client_id=${appId}&scope=bot+applications.commands&permissions=${permissions}`;
 }
 
 async function main() {
   const argv = process.argv.slice(2);
   let guildId = "";
   let mode = "auto";
+  let cleanupDefaults = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--guild") guildId = argv[++i] || "";
     else if (argv[i] === "--enable-community") mode = "enable-community";
     else if (argv[i] === "--no-community") mode = "no-community";
-    else { console.error(`usage: node src/setup.js [--guild ID] [--enable-community | --no-community]`); process.exit(2); }
+    else if (argv[i] === "--cleanup-defaults") cleanupDefaults = true;
+    else { console.error(`usage: node src/setup.js [--guild ID] [--enable-community | --no-community] [--cleanup-defaults]`); process.exit(2); }
   }
   const config = load();
   const token = readSecret(config.tokenFile, "Discord bot token");
-  const setup = new Setup({ rest: new Rest({ api: config.discordApi, token }), guildId: guildId || config.guildId, mode });
+  const setup = new Setup({ rest: new Rest({ api: config.discordApi, token }), guildId: guildId || config.guildId, mode, cleanupDefaults });
   let result;
   try {
     result = await setup.run();
@@ -433,7 +564,7 @@ Permanent invite for the website: ${result.invite}
 
 Next steps for the owner:
   1. Reduce the bot's permissions: open this link and authorize it for the LuxOS server
-     ${inviteUrl(setup.appId)}
+     ${inviteUrl(setup.appId, setup.usesRoleButtons)}
      then check Server Settings → Roles → (bot's role): "Administrator" must be OFF.
   2. Give yourself the Team role: Server Settings → Members → you → + → Team.
   3. Put the invite link on the website.`);
@@ -442,4 +573,4 @@ Next steps for the owner:
 
 if (require.main === module) main();
 
-module.exports = { Setup, BOT_PERMISSIONS, RULES, inviteUrl };
+module.exports = { Setup, BOT_PERMISSIONS, RULES, SELF_ROLES, ONBOARDING_PROMPT, inviteUrl };

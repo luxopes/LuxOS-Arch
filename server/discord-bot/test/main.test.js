@@ -48,7 +48,8 @@ test("main.js: answers with the real index, saves state on SIGTERM, stays small"
   assert.match(child.output, /knowledge: \d+ passages/);
 
   const user = { id: snowflake(), username: "u" };
-  luxapi.reply = () => 'Use `lux config channel staging`.\nMETA {"confident": true, "handoff": false, "lang": "en"}';
+  luxapi.reply = () => 'Use `lux config channel staging`, see https://luxos.lux-ai.cz/docs/luxos/care-updates.html\nMETA {"confident": true, "handoff": false, "lang": "en"}';
+  luxapi.keywords = () => "switch staging update channel";
   const thread = discord.forumPost(support.id, user, "Staging", "How do I switch to the staging update channel?");
   await waitFor(() => discord.posted(thread.id).length === 1, 5000, "answer");
   assert.match(luxapi.requests[0].messages[0].content, /care-updates\.html/, "real docs in the prompt");

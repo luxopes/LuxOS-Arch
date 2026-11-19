@@ -8,7 +8,7 @@ const { FakeDiscord, FakeLuxApi, FakeSmtp, waitFor, snowflake } = require("./fak
 const { load, readSecret } = require("../src/config");
 const { Rest } = require("../src/rest");
 const { Gateway } = require("../src/gateway");
-const { Knowledge } = require("../src/knowledge");
+const { Knowledge, tokenize } = require("../src/knowledge");
 const { State } = require("../src/state");
 const { Assistant } = require("../src/assistant");
 const { Mailer } = require("../src/mailer");
@@ -42,6 +42,12 @@ async function startBot({ community = true, limits = {}, mail = {}, supportType 
   const offTopic = discord.addChannel({ name: "off-topic", type: 0 });
   const announcements = discord.addChannel({ name: "announcements", type: community ? 5 : 0 });
   const luxapi = await new FakeLuxApi(KEY).start();
+  // jako dobry extraktor klicovych slov: z dotazu jen slova, ktera v dokumentaci jsou (jinak NONE)
+  const known = new Set(PASSAGES.flatMap((p) => tokenize(`${p.title} ${p.text}`)));
+  luxapi.keywords = (text) => text.split(/[^\p{L}\p{N}]+/u).filter((w) => tokenize(w).some((x) => known.has(x))).join(" ") || "NONE";
+  luxapi.reply = () => `Printers are added in Printers and Scanners: https://luxos.lux-ai.cz/docs/luxos/printing-scanning.html\n${meta({})}`;
+  const testing = discord.addChannel({ name: "bot-testing", type: 0, parent_id: category.id });
+  const bugs = discord.addChannel({ name: "bug-reports", type: 0 });
   const smtp = await new FakeSmtp().start();
 
   fs.writeFileSync(path.join(dir, "token"), `${discord.token}\n`, { mode: 0o600 });
@@ -51,6 +57,8 @@ async function startBot({ community = true, limits = {}, mail = {}, supportType 
   config.guildId = "";
   config.luxai.url = luxapi.url;
   Object.assign(config.mail, { host: "127.0.0.1", port: smtp.port, perHour: 6, perDay: 30, ...mail });
+  // maly testovaci index ma male skore BM25; prah pro skutecny index testuje units.test.js
+  config.match = { minScore: 0.5, minCoverage: 0.6 };
   Object.assign(config.limits, { userPer10Min: 50, userPerDay: 100, dailyCap: 1000, ...limits });
   const token = readSecret(path.join(dir, "token"), "token");
   const key = readSecret(path.join(dir, "luxai-key"), "key");
@@ -67,10 +75,10 @@ async function startBot({ community = true, limits = {}, mail = {}, supportType 
   const gateway = new Gateway({ rest, token, intents: INTENTS });
   gateway.on("dispatch", (t, d) => bot.onDispatch(t, d));
   gateway.connect();
-  await waitFor(() => bot.guildId && bot.channels.size >= 4, 3000, "GUILD_CREATE");
+  await waitFor(() => bot.guildId && bot.channels.size >= 6 && bot.roles.size, 3000, "GUILD_CREATE");
 
   return {
-    dir, discord, luxapi, smtp, state, rest, bot, gateway, lines, support, general, offTopic, announcements, tagNeeds,
+    dir, discord, luxapi, smtp, state, rest, bot, gateway, lines, support, general, offTopic, announcements, testing, bugs, tagNeeds,
     // pocka, az bot zpracuje vse, co prislo (kratka pauza na doruceni pres gateway)
     async settle(ms = 150) {
       await new Promise((r) => setTimeout(r, ms));

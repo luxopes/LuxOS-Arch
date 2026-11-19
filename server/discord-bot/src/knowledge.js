@@ -71,17 +71,22 @@ class Knowledge {
   search(query, limit = 5) {
     const terms = [...new Set(tokenize(query))];
     const scores = new Map();
+    const matched = new Map(); // usek -> soucet idf nalezenych slov dotazu
     const n = this.passages.length;
+    let totalIdf = 0;
     for (const term of terms) {
       const postings = this.postings.get(term);
-      if (!postings) continue;
-      const df = postings.length / 2;
+      const df = postings ? postings.length / 2 : 0;
+      // slovo, ktere v dokumentaci vubec neni, ma nejvyssi vahu: dotaz o necem jinem ma nizke pokryti
       const idf = Math.log(1 + (n - df + 0.5) / (df + 0.5));
+      totalIdf += idf;
+      if (!postings) continue;
       for (let i = 0; i < postings.length; i += 2) {
         const index = postings[i];
         const tf = postings[i + 1];
         const norm = tf * (this.k1 + 1) / (tf + this.k1 * (1 - this.b + this.b * this.lengths[index] / this.avgLength));
         scores.set(index, (scores.get(index) || 0) + idf * norm);
+        matched.set(index, (matched.get(index) || 0) + idf);
       }
     }
     // nejvys dva useky z jedne stranky, at se do promptu vejde vic zdroju
@@ -92,7 +97,8 @@ class Knowledge {
       const count = perUrl.get(passage.url) || 0;
       if (count >= 2) continue;
       perUrl.set(passage.url, count + 1);
-      results.push({ ...passage, score });
+      // coverage = jaka cast (vazene podle idf) slov dotazu v useku je, 0..1
+      results.push({ ...passage, score, coverage: totalIdf ? matched.get(index) / totalIdf : 0 });
       if (results.length >= limit) break;
     }
     return results;

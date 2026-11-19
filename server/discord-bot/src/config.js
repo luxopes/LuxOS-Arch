@@ -43,13 +43,16 @@ function load() {
     channels: {
       support: str("SUPPORT_CHANNEL", "support"),
       general: str("GENERAL_CHANNEL", "general"),
-      announcements: str("ANNOUNCEMENTS_CHANNEL", "announcements")
+      announcements: str("ANNOUNCEMENTS_CHANNEL", "announcements"),
+      botTesting: str("BOT_TESTING_CHANNEL", "bot-testing"),
+      bugs: str("BUG_REPORTS_CHANNEL", "bug-reports")
     },
     luxai: {
       url: str("LUXAI_URL", "http://127.0.0.1:3002/v1/chat/completions"),
       model: str("LUXAI_MODEL", "flash"),
       effort: str("LUXAI_EFFORT", "low"),
-      maxTokens: int("LUXAI_MAX_TOKENS", 1200, 100, 8000),
+      // Flash premysli i pri nizkem usili a premysleni se pocita do max_tokens
+      maxTokens: int("LUXAI_MAX_TOKENS", 4000, 500, 16000),
       timeoutMs: int("LUXAI_TIMEOUT_MS", 90_000, 100, 600_000)
     },
     mail: {
@@ -59,10 +62,16 @@ function load() {
       from: str("MAIL_FROM", "LuxOS Discord <accounts@lux-ai.cz>"),
       to: str("MAIL_TO", "info@lux-ai.cz"),
       perHour: int("MAILS_PER_HOUR", 6, 0, 1000),
-      perDay: int("MAILS_PER_DAY", 30, 0, 10000)
+      perDay: int("MAILS_PER_DAY", 30, 0, 10000),
+      bugsPerDay: int("BUG_MAILS_PER_DAY", 20, 0, 10000)
     },
     stateDir: str("STATE_DIRECTORY", path.join(__dirname, "..", "state")).split(":")[0],
     knowledgeFile: str("KNOWLEDGE_FILE", path.join(__dirname, "..", "knowledge.json")),
+    // prah shody s dokumentaci (ladeno na skutecnem indexu, viz README): pod nim se model nepta
+    match: {
+      minScore: Number(str("MIN_MATCH_SCORE", "4")),
+      minCoverage: Number(str("MIN_MATCH_COVERAGE", "0.6"))
+    },
     announce: {
       url: str("ANNOUNCEMENTS_URL", "https://luxos.lux-ai.cz/announcements.json"),
       releaseUrl: str("RELEASE_URL", "https://luxos.lux-ai.cz/release.json"),

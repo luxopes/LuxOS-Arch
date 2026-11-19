@@ -1,9 +1,17 @@
 "use strict";
-// Logika bota: kde odpovida (kazdy novy prispevek v #support, v #general jen po zmince, v DM jen
+// Logika bota: kde odpovida (kazdy novy prispevek v #support a kazda zprava v tymovem #bot-testing,
+// v #general jen po zmince, v DM jen
 // clenum serveru), limity, sestaveni dotazu pro LuxAI, odeslani odpovedi a predani cloveku.
 // Obsah zprav se neloguje; v logu jsou jen druhy udalosti a id.
 
 const { texts, detectLanguage } = require("./texts");
+const { tokenize } = require("./knowledge");
+const { SECRET_RE } = require("./secrets");
+const { BugReports } = require("./bugs");
+
+// Zdroje, ktere smi rozhodnout o odpovedi: dokumentace, FAQ a seznam zmen (ne reklamni stranky)
+const DOCS_URL_RE = /^https:\/\/luxos\.lux-ai\.cz\/(docs|changes)\//;
+const baseUrl = (url) => url.split("#")[0];
 
 const THREAD_TYPES = new Set([10, 11, 12]);
 const FORUM = 15;
@@ -12,11 +20,11 @@ const HISTORY_CHARS = 8000;
 const SUPPRESS_EMBEDS = 1 << 2;
 const EPHEMERAL = 1 << 6;
 const NEEDS_HUMAN_TAG = "Needs human";
+// Role, ktere si clen muze sam prepnout tlacitkem (zalozni varianta k Onboardingu) - nikdy Team
+const SELF_ROLES = new Set(["Tester", "Member"]);
 
 // Zjevna zadost o cloveka (bez volani modelu); ostatni pozna model priznakem "handoff"
 const HUMAN_RE = /\b((talk|speak|chat) (to|with) (a |an )?(human|person|real person|team member|moderator|admin)|need (a )?(human|real person)|real person|human please)\b|^\s*human\s*[.!?]*\s*$|(chci|potřebuji|potrebuji) (mluvit s |)(člověk|clovek)|s (živým )?(člověkem|clovekem)/i;
-// Tajne udaje, ktere nesmi odejit modelu: klice LuxAI, tokeny Discordu, GitHubu, AWS, privatni klice
-const SECRET_RE = /\blux-[A-Za-z0-9_-]{32,}|\b[MNO][A-Za-z\d_-]{23,27}\.[A-Za-z\d_-]{6}\.[A-Za-z\d_-]{27,}|\bgh[pousr]_[A-Za-z0-9]{36}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(password|passwd|heslo)\s*[:=]\s*\S{4,}/i;
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
@@ -44,12 +52,14 @@ class Bot {
     this.user = null;
     this.guildId = config.guildId || "";
     this.channels = new Map();
+    this.roles = new Map(); // jmeno role -> id
     this.members = new Map(); // id uzivatele -> {member, at} (cache pro DM)
     this.userAnswers = new Map(); // id uzivatele -> casy odpovedi
     this.notified = new Map(); // klic -> do kdy uz upozorneni neopakovat
     this.active = 0;
     this.waiting = [];
     this.pending = new Set(); // bezici odpovedi (pro testy a cisty konec)
+    this.bugReports = mailer && assistant ? new BugReports({ bot: this, rest, assistant, mailer, state, log }) : null;
   }
 
   // ---- udalosti z gateway ----
@@ -65,6 +75,16 @@ class Bot {
         if (!this.guildId) this.guildId = d.id;
         if (d.id !== this.guildId) { this.log(`ignoring guild ${d.id} (not DISCORD_GUILD_ID)`); break; }
         for (const channel of [...(d.channels || []), ...(d.threads || [])]) this.cacheChannel({ ...channel, guild_id: d.id });
+        for (const role of d.roles || []) this.roles.set(role.name, role.id);
+        break;
+      case "GUILD_ROLE_CREATE": case "GUILD_ROLE_UPDATE":
+        if (d.guild_id === this.guildId) {
+          for (const [name, id] of this.roles) if (id === d.role.id) this.roles.delete(name);
+          this.roles.set(d.role.name, d.role.id);
+        }
+        break;
+      case "GUILD_ROLE_DELETE":
+        for (const [name, id] of this.roles) if (id === d.role_id) this.roles.delete(name);
         break;
       case "CHANNEL_CREATE": case "CHANNEL_UPDATE": case "THREAD_CREATE": case "THREAD_UPDATE":
         if (d.guild_id === this.guildId) this.cacheChannel(d);
@@ -140,32 +160,44 @@ class Bot {
     if (msg.guild_id !== this.guildId) return;
     const channel = await this.channel(msg.channel_id);
     if (!channel) return;
-    const support = this.findChannel(this.config.channels.support);
     const general = this.findChannel(this.config.channels.general);
+    const testing = this.findChannel(this.config.channels.botTesting);
 
-    // #support jako textovy kanal (server bez Community): z otazky udelat vlakno a odpovedet v nem
-    if (support && channel.id === support.id && support.type !== FORUM) {
+    // #bug-reports: hlaseni se posoudi a preposlou tymu, zadne odpovedi z dokumentace
+    const bugs = this.findChannel(this.config.channels.bugs);
+    if (bugs && (channel.id === bugs.id || (THREAD_TYPES.has(channel.type) && channel.parent_id === bugs.id))) {
+      if (this.bugReports) await this.bugReports.onMessage(msg, channel, channel.id === bugs.id);
+      return;
+    }
+
+    // #support (nebo #bot-testing) jako textovy kanal: z otazky udelat vlakno a odpovedet v nem
+    const parent = this.answerParent(channel.id);
+    if (parent && parent.type !== FORUM) {
+      const test = Boolean(testing && parent.id === testing.id);
       const name = this.cleanContent(msg.content).replace(/\s+/g, " ").slice(0, 90) || "Question";
       const thread = await this.rest.post(`/channels/${channel.id}/messages/${msg.id}/threads`, { name, auto_archive_duration: 1440 });
       this.cacheChannel({ ...thread, owner_id: msg.author.id });
       this.state.setThread(thread.id, { op: msg.author.id, replies: 0 });
-      await this.respond({ msg, channelId: thread.id, threadId: thread.id, title: name, fresh: true });
+      await this.respond({ msg, channelId: thread.id, threadId: thread.id, title: name, fresh: true, test });
       return;
     }
 
-    if (support && THREAD_TYPES.has(channel.type) && channel.parent_id === support.id) {
+    const threadParent = THREAD_TYPES.has(channel.type) ? this.answerParent(channel.parent_id) : null;
+    if (threadParent) {
+      const test = Boolean(testing && threadParent.id === testing.id);
       let info = this.state.thread(channel.id);
       const mention = this.mentioned(msg);
       if (!info) {
         // prvni zprava ve vlakne, ktere bot jeste nezna: prispevek ve foru ma id zpravy = id vlakna
-        if (msg.id !== channel.id && channel.owner_id !== msg.author.id && !mention) return;
+        if (!test && msg.id !== channel.id && channel.owner_id !== msg.author.id && !mention) return;
         info = this.state.setThread(channel.id, { op: channel.owner_id || msg.author.id, replies: 0 });
-        await this.respond({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, fresh: msg.id === channel.id });
+        await this.respond({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, fresh: msg.id === channel.id, test });
         return;
       }
-      if (msg.author.id !== info.op && !mention) return;
+      // v #bot-testing odpovida kazdemu clenu tymu, v #support jen tazateli (ostatnim po zmince)
+      if (!test && msg.author.id !== info.op && !mention) return;
       if (info.escalated && !mention) return; // vlakno uz resi clovek
-      await this.respond({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, fresh: false });
+      await this.respond({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, fresh: false, test });
       return;
     }
 
@@ -261,7 +293,8 @@ class Bot {
       await this.handoff(ctx, lang, "user asked for a human", "");
       return;
     }
-    const limit = this.userLimit(msg.author.id);
+    // #bot-testing (jen tym) nema limit na uzivatele, denni strop plati
+    const limit = ctx.test ? { ok: true } : this.userLimit(msg.author.id);
     if (!limit.ok) {
       if (this.notifyOnce(`limit:${msg.author.id}`, 10 * 60 * 1000)) {
         await this.send(ctx.channelId, limit.kind === "day" ? t.dailyUser : t.slow(limit.minutes), ctx.replyTo);
@@ -283,19 +316,36 @@ class Bot {
       this.log("daily answer cap reached");
       return;
     }
-    this.userAnswers.get(msg.author.id).push(Date.now());
+    if (!ctx.test) this.userAnswers.get(msg.author.id).push(Date.now());
 
     const started = await this.withSlot(async () => {
       this.rest.post(`/channels/${ctx.channelId}/typing`).catch(() => {});
       let question = this.cleanContent(msg.content);
       let truncated = false;
       if (question.length > limits.questionChars) { question = question.slice(0, limits.questionChars); truncated = true; }
-      const history = await this.history(ctx, question);
-      let query = `${ctx.title || ""} ${question}`;
-      if (lang !== "en") {
-        try { query += " " + await this.assistant.searchTerms(`${ctx.title || ""}\n${question}`); } catch { /* hledat i tak */ }
+
+      // 1) tema dotazu anglickymi slovy; bez tematu (dik, pozdrav) ve vlakne mlcet
+      let terms;
+      try {
+        terms = await this.assistant.searchTerms(`${ctx.title || ""}\n${question}`);
+      } catch (error) {
+        this.log(`luxai error: ${error.message}`);
+        await this.send(ctx.channelId, t.error(mail), ctx.replyTo);
+        return;
       }
-      const passages = this.knowledge ? this.knowledge.search(query, 5) : [];
+      const noTopic = /^none\b/i.test(terms) || !tokenize(terms).length;
+      if (noTopic && !ctx.fresh) { this.log(`no topic, not answered channel=${ctx.channelId}`); return; }
+      const passages = this.knowledge ? this.knowledge.search(`${noTopic ? "" : terms} ${ctx.title || ""} ${question}`, 5) : [];
+
+      // 2) slaba shoda s dokumentaci: model se na odpoved vubec nepta, otazka jde tymu
+      const match = noTopic ? null : this.matchQuality(terms);
+      if (!match) {
+        this.log(`no docs match channel=${ctx.channelId}`);
+        await this.notFound(ctx, lang, "no good match in the LuxOS documentation", "", passages);
+        return;
+      }
+
+      const history = await this.history(ctx, question);
       let reply;
       try {
         reply = await this.assistant.answer(history, passages);
@@ -307,22 +357,51 @@ class Bot {
       const { meta } = reply;
       if (meta.lang) lang = meta.lang;
       const tt = texts(lang);
+
+      // 3) kontrola odpovedi: musi byt jista a citovat aspon jeden z dodanych zdroju, jinak se zahodi
+      const cited = passages.some((p) => DOCS_URL_RE.test(p.url) && reply.text.includes(baseUrl(p.url)));
+      if (!reply.text || !meta.confident || !cited) {
+        const reason = !meta.confident ? "the assistant was not confident" : "the answer cited no documentation link";
+        this.log(`answer discarded (${reason}) channel=${ctx.channelId}`);
+        await this.notFound(ctx, lang, reason, meta.summary, passages);
+        return;
+      }
       let text = reply.text;
       if (truncated) text = `${tt.tooLong(limits.questionChars)}\n\n${text}`;
-      if (!/luxos\.lux-ai\.cz/.test(text) && passages.length) {
-        const links = [...new Set(passages.map((p) => p.url))].slice(0, 3).map((u) => `<${u}>`);
-        text += `\n\n-# ${tt.docs}: ${links.join(" · ")}`;
-      }
-      const needsHuman = meta.handoff || !meta.confident;
-      if (needsHuman && !ctx.threadId) text += `\n\n${tt.elsewhere(this.supportMention(), mail)}`;
+      if (meta.handoff && !ctx.threadId) text += `\n\n${tt.elsewhere(this.supportMention(), mail)}`;
       await this.send(ctx.channelId, text, ctx.replyTo);
       if (ctx.threadId) this.state.setThread(ctx.threadId, { replies: ((this.state.thread(ctx.threadId) || {}).replies || 0) + 1 });
-      this.log(`answered channel=${ctx.channelId} passages=${passages.length} confident=${meta.confident} handoff=${meta.handoff}`);
-      if (needsHuman && ctx.threadId) {
-        await this.handoff(ctx, lang, meta.handoff ? "the assistant suggests the LuxOS team" : "the assistant was not confident", meta.summary, !meta.handoff);
+      this.log(`answered channel=${ctx.channelId} passages=${passages.length} handoff=${meta.handoff}`);
+      if (meta.handoff && ctx.threadId) {
+        await this.handoff(ctx, lang, "the assistant suggests the LuxOS team", meta.summary, false, passages);
       }
     });
     if (!started) await this.send(ctx.channelId, t.busy, ctx.replyTo);
+  }
+
+  // Shoda klicovych slov s dokumentaci (ne s reklamnimi strankami): dost silna a pokryva vetsinu
+  // slov dotazu. Slova, ktera v dokumentaci nejsou, pokryti snizuji (recept na gulas -> 0,1).
+  matchQuality(terms) {
+    if (!this.knowledge) return null;
+    const { minScore, minCoverage } = this.config.match;
+    return this.knowledge.search(terms, 10).find((p) => DOCS_URL_RE.test(p.url) && p.score >= minScore && p.coverage >= minCoverage) || null;
+  }
+
+  // Nejista odpoved / nic v dokumentaci: poctive rict, ze otazka sla tymu, a poslat e-mail.
+  // V DM tym odpovedet nemuze: odkaz na #support a e-mail.
+  async notFound(ctx, lang, reason, summary, passages) {
+    const t = texts(lang);
+    if (ctx.dm) {
+      await this.send(ctx.channelId, t.notFoundDm(this.supportMention(), this.config.contactMail));
+      return;
+    }
+    const key = ctx.threadId || `msg:${ctx.msg.id}`;
+    if ((this.state.thread(key) || {}).escalated) {
+      await this.send(ctx.channelId, t.handoffAlready(this.config.contactMail), ctx.replyTo);
+      return;
+    }
+    await this.send(ctx.channelId, t.notFound, ctx.replyTo);
+    await this.escalate(ctx, reason, summary, passages);
   }
 
   // Historie konverzace pro model: ve vlakne / DM poslednich par zprav tazatele a bota
@@ -355,13 +434,23 @@ class Bot {
     return out;
   }
 
+  // Kanal, kde bot odpovida na kazdou otazku: #support, nebo tymovy #bot-testing
+  answerParent(id) {
+    if (!id) return null;
+    for (const name of [this.config.channels.support, this.config.channels.botTesting]) {
+      const channel = this.findChannel(name);
+      if (channel && channel.id === id) return channel;
+    }
+    return null;
+  }
+
   supportMention() {
     const support = this.findChannel(this.config.channels.support);
     return support ? `<#${support.id}>` : "#support";
   }
 
   // Zprava pro uzivatele + oznaceni vlakna + e-mail; mimo vlakno #support jen odkaz kam se obratit
-  async handoff(ctx, lang, reason, summary, notConfident = false) {
+  async handoff(ctx, lang, reason, summary, notConfident = false, passages = []) {
     const t = texts(lang);
     const mail = this.config.contactMail;
     if (!ctx.threadId) {
@@ -374,32 +463,39 @@ class Bot {
       return;
     }
     await this.send(ctx.channelId, notConfident ? `${t.notConfident} ${t.handoff(mail)}` : t.handoff(mail));
-    await this.escalate(ctx, reason, summary);
+    await this.escalate(ctx, reason, summary, passages);
   }
 
-  async escalate(ctx, reason, summary) {
-    const info = this.state.thread(ctx.threadId) || {};
+  // Jeden e-mail na vlakno (mimo vlakno, napr. #general, na zpravu) + stitek "Needs human"
+  async escalate(ctx, reason, summary, passages = []) {
+    const key = ctx.threadId || `msg:${ctx.msg.id}`;
+    const info = this.state.thread(key) || {};
     if (info.escalated) return;
-    this.state.setThread(ctx.threadId, { escalated: true });
-    const thread = await this.channel(ctx.threadId);
-    try {
-      await this.tagNeedsHuman(thread);
-    } catch (error) {
-      this.log(`tagging failed thread=${ctx.threadId}: ${error.message}`);
+    this.state.setThread(key, { escalated: true });
+    const thread = ctx.threadId ? await this.channel(ctx.threadId) : null;
+    if (thread) {
+      try {
+        await this.tagNeedsHuman(thread);
+      } catch (error) {
+        this.log(`tagging failed thread=${ctx.threadId}: ${error.message}`);
+      }
     }
     if (!this.mailer) return;
     try {
       const sent = await this.mailer.escalate({
-        title: (thread && thread.name) || ctx.title || "Discord question",
-        link: `https://discord.com/channels/${this.guildId}/${ctx.threadId}`,
+        title: (thread && thread.name) || ctx.title || this.cleanContent(ctx.msg.content).replace(/\s+/g, " ").slice(0, 80) || "Discord question",
+        link: ctx.threadId ? `https://discord.com/channels/${this.guildId}/${ctx.threadId}`
+          : `https://discord.com/channels/${this.guildId}/${ctx.channelId}/${ctx.msg.id}`,
+        passages: passages.map((p) => ({ title: p.title, url: p.url })),
         author: ctx.msg.author.global_name ? `${ctx.msg.author.global_name} (@${ctx.msg.author.username})` : `@${ctx.msg.author.username}`,
         reason,
         summary,
+        test: Boolean(ctx.test),
         question: this.cleanContent(ctx.msg.content).slice(0, 600)
       });
-      this.log(sent ? `escalation mail sent thread=${ctx.threadId}` : `escalation mail skipped (rate limit) thread=${ctx.threadId}`);
+      this.log(sent ? `escalation mail sent ${key}` : `escalation mail skipped (rate limit) ${key}`);
     } catch (error) {
-      this.log(`escalation mail failed thread=${ctx.threadId}: ${error.message}`);
+      this.log(`escalation mail failed ${key}: ${error.message}`);
     }
   }
 
@@ -434,6 +530,10 @@ class Bot {
   // ---- prikaz /human ----
 
   async onInteraction(interaction) {
+    if (interaction.type === 3 && interaction.data && /^role:/.test(interaction.data.custom_id || "")) {
+      await this.onRoleButton(interaction);
+      return;
+    }
     if (interaction.type !== 2 || !interaction.data || interaction.data.name !== "human") return;
     const user = (interaction.member && interaction.member.user) || interaction.user;
     const locale = String(interaction.locale || "en");
@@ -441,11 +541,12 @@ class Bot {
     const t = texts(lang);
     const mail = this.config.contactMail;
     const channel = interaction.guild_id === this.guildId ? await this.channel(interaction.channel_id) : null;
-    const support = this.findChannel(this.config.channels.support);
+    const parent = channel && THREAD_TYPES.has(channel.type) ? this.answerParent(channel.parent_id) : null;
+    const testing = this.findChannel(this.config.channels.botTesting);
     const reply = (content, ephemeral) => this.rest.post(`/interactions/${interaction.id}/${interaction.token}/callback`, {
       type: 4, data: { content, flags: (ephemeral ? EPHEMERAL : 0) | SUPPRESS_EMBEDS, allowed_mentions: { parse: [] } }
     });
-    if (!channel || !support || !THREAD_TYPES.has(channel.type) || channel.parent_id !== support.id) {
+    if (!parent) {
       await reply(t.elsewhere(this.supportMention(), mail), true);
       return;
     }
@@ -453,7 +554,36 @@ class Bot {
     if (info.escalated) { await reply(t.handoffAlready(mail), false); return; }
     await reply(t.handoff(mail), false);
     const msg = { author: user, content: `/human in "${channel.name}"` };
-    await this.escalate({ msg, channelId: channel.id, threadId: channel.id, title: channel.name }, "user used /human", "");
+    const test = Boolean(testing && parent.id === testing.id);
+    await this.escalate({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, test }, "user used /human", "");
+  }
+
+  // Tlacitko "role:Tester" / "role:Member" ve zprave v #welcome-and-rules: prepne roli, odpoved vidi jen klikajici
+  async onRoleButton(interaction) {
+    const name = interaction.data.custom_id.slice(5);
+    const member = interaction.member;
+    const lang = String(interaction.locale || "en").startsWith("cs") ? "cs" : "en";
+    const t = texts(lang);
+    const reply = (content) => this.rest.post(`/interactions/${interaction.id}/${interaction.token}/callback`, {
+      type: 4, data: { content, flags: EPHEMERAL, allowed_mentions: { parse: [] } }
+    });
+    const roleId = this.roles.get(name);
+    if (!SELF_ROLES.has(name) || !roleId || !member || interaction.guild_id !== this.guildId) {
+      await reply(t.roleError);
+      return;
+    }
+    const has = (member.roles || []).includes(roleId);
+    const path = `/guilds/${this.guildId}/members/${member.user.id}/roles/${roleId}`;
+    try {
+      if (has) await this.rest.delete(path, { reason: "self-assigned role button" });
+      else await this.rest.put(path, undefined, { reason: "self-assigned role button" });
+    } catch (error) {
+      this.log(`role button failed: ${error.message}`);
+      await reply(t.roleError);
+      return;
+    }
+    this.log(`role ${name} ${has ? "removed" : "added"}`);
+    await reply(has ? t.roleRemoved(name) : t.roleAdded(name));
   }
 }
 

@@ -9,6 +9,8 @@ const TEXTS = {
     handoff: (mail) => `I've asked the LuxOS team to take a look - a human will reply in this thread. You can also e-mail ${mail}.`,
     handoffAlready: (mail) => `The LuxOS team already knows about this thread and will reply here. For anything urgent, e-mail ${mail}.`,
     notConfident: "I'm not sure about this one, so I've asked the LuxOS team to check.",
+    notFound: "I couldn't find this in the LuxOS documentation, so I've passed your question to the LuxOS team (they'll reply here).",
+    notFoundDm: (support, mail) => `I couldn't find this in the LuxOS documentation. Please open a post in ${support} (the LuxOS team will see it) or e-mail ${mail}.`,
     elsewhere: (support, mail) => `For help from a human, please open a post in ${support} or e-mail ${mail}.`,
     slow: (minutes) => `You're asking faster than I can keep up. Please try again in about ${minutes} min.`,
     dailyUser: "You've reached today's limit of questions for me. Please try again tomorrow, or wait for someone from the community.",
@@ -18,13 +20,17 @@ const TEXTS = {
     error: (mail) => `Sorry, I couldn't get an answer from LuxAI right now. Please try again later, or e-mail ${mail}.`,
     tooLong: (max) => `(Your message was long, so I only read the first ${max} characters.)`,
     membersOnly: "I only answer members of the LuxOS Discord server. Join the server and ask in #support.",
-    docs: "Docs",
-    secret: "It looks like your message may contain a password, key or token. Please delete that message and change the secret - never post secrets here."
+    secret: "It looks like your message may contain a password, key or token. Please delete that message and change the secret - never post secrets here.",
+    roleAdded: (role) => `You now have the ${role} role. Click the button again to remove it.`,
+    roleRemoved: (role) => `The ${role} role was removed.`,
+    roleError: "Sorry, I couldn't change your role. Please ask the LuxOS team."
   },
   cs: {
     handoff: (mail) => `Požádal jsem tým LuxOS, aby se na to podíval – v tomto vlákně odpoví člověk. Můžete také napsat na ${mail}.`,
     handoffAlready: (mail) => `Tým LuxOS o tomto vlákně už ví a odpoví tady. V naléhavém případě pište na ${mail}.`,
     notConfident: "Tady si nejsem jistý, proto jsem požádal tým LuxOS o kontrolu.",
+    notFound: "V dokumentaci LuxOS jsem to nenašel, proto jsem vaši otázku předal týmu LuxOS (odpoví tady).",
+    notFoundDm: (support, mail) => `V dokumentaci LuxOS jsem to nenašel. Založte prosím příspěvek v ${support} (uvidí ho tým LuxOS) nebo napište na ${mail}.`,
     elsewhere: (support, mail) => `Pro pomoc od člověka založte příspěvek v ${support} nebo napište na ${mail}.`,
     slow: (minutes) => `Ptáte se rychleji, než stíhám. Zkuste to prosím znovu asi za ${minutes} min.`,
     dailyUser: "Pro dnešek jste vyčerpali limit otázek pro mě. Zkuste to prosím zítra, nebo počkejte na někoho z komunity.",
@@ -34,8 +40,10 @@ const TEXTS = {
     error: (mail) => `Promiňte, z LuxAI se teď nepodařilo získat odpověď. Zkuste to prosím později, nebo pište na ${mail}.`,
     tooLong: (max) => `(Zpráva byla dlouhá, přečetl jsem jen prvních ${max} znaků.)`,
     membersOnly: "Odpovídám jen členům Discord serveru LuxOS. Připojte se na server a zeptejte se v #support.",
-    docs: "Dokumentace",
-    secret: "Vypadá to, že zpráva obsahuje heslo, klíč nebo token. Zprávu prosím smažte a tajný údaj změňte – nikdy ho sem nepište."
+    secret: "Vypadá to, že zpráva obsahuje heslo, klíč nebo token. Zprávu prosím smažte a tajný údaj změňte – nikdy ho sem nepište.",
+    roleAdded: (role) => `Teď máte roli ${role}. Dalším kliknutím ji odeberete.`,
+    roleRemoved: (role) => `Role ${role} byla odebrána.`,
+    roleError: "Promiňte, roli se nepodařilo změnit. Obraťte se prosím na tým LuxOS."
   }
 };
 

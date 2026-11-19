@@ -47,6 +47,7 @@ class State {
       if (now - (thread.at || 0) > THREAD_TTL_MS) delete this.data.threads[id];
     }
     this.data.mails = this.data.mails.filter((t) => now - t < 24 * 3600 * 1000);
+    if (this.data.bugMails) this.data.bugMails = this.data.bugMails.filter((t) => now - t < 24 * 3600 * 1000);
     this.data.announcements.seen = this.data.announcements.seen.slice(-500);
   }
 

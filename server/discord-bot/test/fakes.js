@@ -4,6 +4,7 @@
 const http = require("http");
 const net = require("net");
 const { WebSocketServer } = require("ws");
+const { KEYWORDS_PROMPT, BUG_PROMPT } = require("../src/assistant");
 
 let nextId = 100000000000000000n;
 const snowflake = () => String(nextId++);
@@ -45,10 +46,13 @@ class FakeDiscord {
     this.messages = new Map(); // channel id -> [message] (od nejstarsi)
     this.invites = [];
     this.commands = [];
-    this.screening = { enabled: false, description: null, form_fields: [] };
+    this.onboarding = { guild_id: null, prompts: [], default_channel_ids: [], enabled: false, mode: 0 };
+    this.onboardingFails = false; // Discord odmitne Onboarding -> setup pouzije tlacitka
+    this.memberRoles = new Map(); // id uzivatele -> Set(id role)
     this.members = new Set();
     this.requests = [];
     this.interactionReplies = [];
+    this.reactions = [];
     this.failOnce = new Map(); // "METHOD /path" -> {status, body}
     this.sockets = new Set();
     this.identifies = 0;
@@ -87,7 +91,7 @@ class FakeDiscord {
         this.lastIdentify = d;
         if (d.token !== this.token) { ws.close(4004); return; }
         this.sendTo(ws, "READY", { v: 10, user: this.bot, session_id: "s1", resume_gateway_url: `ws://127.0.0.1:${this.port}`, guilds: [{ id: this.guild.id, unavailable: true }] });
-        this.sendTo(ws, "GUILD_CREATE", { ...this.guild, channels: this.channels.filter((c) => c.type < 10 || c.type > 12), threads: this.channels.filter((c) => c.type >= 10 && c.type <= 12) });
+        this.sendTo(ws, "GUILD_CREATE", { ...this.guild, roles: this.roles, channels: this.channels.filter((c) => c.type < 10 || c.type > 12), threads: this.channels.filter((c) => c.type >= 10 && c.type <= 12) });
       }
       if (op === 6) {
         this.resumes += 1;
@@ -114,6 +118,25 @@ class FakeDiscord {
   }
 
   channel(name) { return this.channels.find((c) => c.name === name); }
+
+  // Pravidla Discordu pro Onboarding: >= 7 vychozich kanalu, z nich >= 5, kam @everyone smi psat;
+  // otazky a moznosti s id, role existuji
+  checkOnboarding(body) {
+    if (!body.enabled) return null;
+    const channels = (body.default_channel_ids || []).map((id) => this.channels.find((c) => c.id === id));
+    if (channels.length < 7 || channels.some((c) => !c)) return "need at least 7 default channels";
+    const send = 1n << 11n;
+    const canSend = channels.filter((c) => c.type !== 2 && c.type !== 4 && !(c.permission_overwrites || []).some((o) => o.id === this.guild.id && (BigInt(o.deny) & send))).length;
+    if (canSend < 5) return "need 5 default channels where everyone can send messages";
+    for (const prompt of body.prompts || []) {
+      if (!/^\d+$/.test(prompt.id || "") || !prompt.title || !(prompt.options || []).length) return "invalid prompt";
+      for (const option of prompt.options) {
+        if (!/^\d+$/.test(option.id || "") || !option.title) return "invalid option";
+        if ((option.role_ids || []).some((id) => !this.roles.some((r) => r.id === id))) return "unknown role";
+      }
+    }
+    return null;
+  }
 
   addMessage(channelId, author, content, extra = {}) {
     const message = { id: extra.id || snowflake(), channel_id: channelId, author, content, type: 0, mentions: [], mention_everyone: false, ...extra };
@@ -208,8 +231,25 @@ class FakeDiscord {
       return this.members.has(m[1]) ? { user: { id: m[1] } } : null;
     }
     if (path === `/guilds/${g}/invites` && method === "GET") return this.invites;
-    if (path === `/guilds/${g}/member-verification` && method === "GET") return this.screening;
-    if (path === `/guilds/${g}/member-verification` && method === "PATCH") { Object.assign(this.screening, body); return this.screening; }
+    if (path === `/guilds/${g}/member-verification`) return { status: 404, body: { code: 0 } }; // stare API uz neni
+    if (path === `/guilds/${g}/onboarding`) {
+      if (this.onboardingFails) return { status: 403, body: { code: 50013, message: "Missing Permissions" } };
+      if (method === "GET") return this.onboarding;
+      if (method === "PUT") {
+        const error = this.checkOnboarding(body);
+        if (error) return { status: 400, body: { code: 350000, message: error } };
+        this.onboarding = { guild_id: g, ...JSON.parse(JSON.stringify(body)) };
+        return this.onboarding;
+      }
+    }
+    if ((m = /^\/guilds\/\d+\/members\/(\d+)\/roles\/(\d+)$/.exec(path))) {
+      if (!this.roles.some((r) => r.id === m[2])) return null;
+      const roles = this.memberRoles.get(m[1]) || new Set();
+      if (method === "PUT") roles.add(m[2]);
+      if (method === "DELETE") roles.delete(m[2]);
+      this.memberRoles.set(m[1], roles);
+      return undefined;
+    }
     if ((m = /^\/applications\/(\d+)\/guilds\/(\d+)\/commands$/.exec(path))) {
       if (method === "GET") return this.commands;
       if (method === "PUT") { this.commands = body.map((c) => ({ id: snowflake(), application_id: this.appId, ...c })); return this.commands; }
@@ -222,6 +262,7 @@ class FakeDiscord {
       const channel = this.channels.find((c) => c.id === m[1]);
       if (!channel) return null;
       if (method === "GET") return channel;
+      if (method === "DELETE") { this.channels = this.channels.filter((c) => c.id !== channel.id); return channel; }
       if (method === "PATCH") {
         if (body.type === 5 && !this.guild.features.includes("COMMUNITY")) return { status: 400, body: { code: 50024 } };
         if (body.available_tags) body.available_tags = body.available_tags.map((t) => ({ id: t.id || snowflake(), ...t }));
@@ -236,17 +277,22 @@ class FakeDiscord {
       }
       if (method === "POST") {
         if (body.content.length > 2000) return { status: 400, body: { code: 50035 } };
-        return this.addMessage(m[1], this.bot, body.content, { flags: body.flags, message_reference: body.message_reference, allowed_mentions: body.allowed_mentions });
+        return this.addMessage(m[1], this.bot, body.content, { flags: body.flags, message_reference: body.message_reference, allowed_mentions: body.allowed_mentions, components: body.components || [] });
       }
     }
     if ((m = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(path)) && method === "PATCH") {
       const message = (this.messages.get(m[1]) || []).find((x) => x.id === m[2]);
-      Object.assign(message, { content: body.content });
+      Object.assign(message, { content: body.content, components: body.components || message.components });
       return message;
     }
     if ((m = /^\/channels\/(\d+)\/messages\/(\d+)\/crosspost$/.exec(path)) && method === "POST") return {};
+    if ((m = /^\/channels\/(\d+)\/messages\/(\d+)\/reactions\/([^/]+)\/@me$/.exec(path)) && method === "PUT") {
+      this.reactions.push({ channel: m[1], message: m[2], emoji: decodeURIComponent(m[3]) });
+      return undefined;
+    }
     if ((m = /^\/channels\/(\d+)\/messages\/(\d+)\/threads$/.exec(path)) && method === "POST") {
-      const thread = this.addChannel({ name: body.name, type: 11, parent_id: m[1], owner_id: this.bot.id });
+      // vlakno ze zpravy ma stejne id jako zprava (jako v Discordu)
+      const thread = this.addChannel({ id: m[2], name: body.name, type: 11, parent_id: m[1], owner_id: this.bot.id });
       return thread;
     }
     if ((m = /^\/channels\/(\d+)\/typing$/.exec(path)) && method === "POST") return undefined;
@@ -263,7 +309,11 @@ class FakeDiscord {
 class FakeLuxApi {
   constructor(key) {
     this.key = key;
-    this.requests = [];
+    this.requests = []; // jen dotazy na odpoved
+    this.keywordRequests = []; // dotazy na klicova slova (KEYWORDS_PROMPT)
+    this.keywords = (text) => text;
+    this.bugRequests = []; // posouzeni hlaseni chyb (BUG_PROMPT)
+    this.bugVerdict = () => JSON.stringify({ clear: true, summary: "Bug", version: "", lang: "en", question: "" });
     this.reply = () => "An answer.\nMETA {\"confident\": true, \"handoff\": false, \"lang\": \"en\", \"summary\": \"x\"}";
   }
 
@@ -276,10 +326,21 @@ class FakeLuxApi {
         res.end(JSON.stringify({ error: { code: "auth" } }));
         return;
       }
-      this.requests.push(body);
-      const content = this.reply(body);
+      let content;
+      if (body.messages[0].content === BUG_PROMPT) {
+        this.bugRequests.push(body);
+        content = this.bugVerdict(body.messages[1].content, body);
+      } else if (body.messages[0].content === KEYWORDS_PROMPT) {
+        this.keywordRequests.push(body);
+        content = this.keywords(body.messages[1].content, body);
+      } else {
+        this.requests.push(body);
+        content = this.reply(body);
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ id: "x", object: "chat.completion", choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: "stop" }] }));
+      // reply muze vratit text, nebo {content, finish} (napr. finish "length" = useknuto)
+      const out = typeof content === "string" ? { content, finish: "stop" } : content;
+      res.end(JSON.stringify({ id: "x", object: "chat.completion", choices: [{ index: 0, message: { role: "assistant", content: out.content }, finish_reason: out.finish }] }));
     });
     this.port = await listen(this.server);
     return this;

@@ -13,7 +13,9 @@ const { splitMessage, HUMAN_RE, SECRET_RE } = require("../src/bot");
 const { parseReply } = require("../src/assistant");
 const { detectLanguage } = require("../src/texts");
 const { Knowledge, tokenize } = require("../src/knowledge");
-const { readSecret } = require("../src/config");
+const { readSecret, load } = require("../src/config");
+const { redact } = require("../src/secrets");
+const { Bot } = require("../src/bot");
 
 test("REST: waits out a 429 and retries; route keys keep the major parameter", async (t) => {
   const discord = await new FakeDiscord().start();
@@ -56,11 +58,17 @@ test("parseReply reads and strips the META flag", () => {
   const r = parseReply('Answer text.\nMETA {"confident": false, "handoff": true, "lang": "cs", "summary": "s"}');
   assert.equal(r.text, "Answer text.");
   assert.deepEqual(r.meta, { confident: false, handoff: true, lang: "cs", summary: "s" });
+  // bez platneho META = nejiste; kazdy radek META se odstrani, i useknuty
   const plain = parseReply("Just an answer");
-  assert.equal(plain.meta.confident, true);
+  assert.equal(plain.meta.confident, false);
   assert.equal(plain.meta.handoff, false);
   const broken = parseReply("Text\nMETA {broken");
-  assert.equal(broken.meta.confident, true);
+  assert.equal(broken.meta.confident, false);
+  assert.equal(broken.text, "Text");
+  const truncated = parseReply('Odpověď.\nMETA {"confident": true, "handoff": false, "lang": "cs", "summ');
+  assert.equal(truncated.text, "Odpověď.");
+  assert.equal(truncated.meta.confident, false);
+  assert.equal(parseReply('A\nMETA {"confident": "yes"}').meta.confident, false, "only literal true counts");
   assert.equal(parseReply('A\nMETA {"lang": "english"}').meta.lang, "");
 });
 
@@ -80,6 +88,9 @@ test("language detection, human requests and secrets", () => {
   assert.ok(SECRET_RE.test("password: hunter22"));
   assert.ok(SECRET_RE.test("-----BEGIN OPENSSH PRIVATE KEY-----"));
   assert.ok(!SECRET_RE.test("I forgot my password, how do I reset it?"));
+  const redacted = redact(`login fails, password: hunter2 and token=abcd1234efgh, key lux-${"k".repeat(40)}\n-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----\nrest`);
+  assert.doesNotMatch(redacted, /hunter2|abcd1234|kkkkkk|AAAA/);
+  assert.match(redacted, /^login fails, \[redacted\] and \[redacted\] key \[redacted\]\n\[redacted\]\nrest$/);
 });
 
 test("knowledge: BM25 ranks the relevant passage first, diacritics and plurals normalised", () => {
@@ -103,6 +114,17 @@ test("knowledge index from the repository", () => {
   assert.match(k.search("switch to the staging update channel")[0].url, /care-updates\.html$/);
   assert.ok(k.passages.some((p) => p.url === "https://luxos.lux-ai.cz/changes/"), "changelog included");
   assert.ok(k.passages.some((p) => /\/docs\/luxos\/faq\.html$/.test(p.url)), "site FAQ included");
+
+  // prah shody (vychozi MIN_MATCH_SCORE / MIN_MATCH_COVERAGE) na skutecnem indexu: klicova slova
+  // od modelu; tema z dokumentace projde, cizi tema ne
+  const bot = new Bot({ config: load(), rest: null, assistant: null, knowledge: k, mailer: null, state: null, log: () => {} });
+  for (const terms of ["install apps store", "printer not printing", "wifi password QR code", "switch staging update channel",
+    "secure boot MOK key", "LuxAI credits limit", "Steam games", "bluetooth headphones", "nvidia driver", "dual boot windows", "change wallpaper"]) {
+    assert.ok(bot.matchQuality(terms), `docs cover: ${terms}`);
+  }
+  for (const terms of ["goulash recipe dumplings", "capital of France", "football match result", "bitcoin price", "pizza Prague", "poem about cats", "Roman empire history essay"]) {
+    assert.equal(bot.matchQuality(terms), null, `not in the docs: ${terms}`);
+  }
   fs.rmSync(path.dirname(out), { recursive: true, force: true });
 });
 
