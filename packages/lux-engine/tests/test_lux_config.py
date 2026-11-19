@@ -877,6 +877,21 @@ class Channel(Base):
             lc.set_channel("stable", "/etc/lux/lux.conf", root=self.root)
         self.assertEqual(read(conf), text)
 
+    def test_set_channel_forces_fresh_databases(self):
+        # staging -> stable: databaze stable je starsi nez stazena staging; libalpm by ji podle casu souboru
+        # povazoval za nezmenenou. Repozitare LuxOS se stahnou znovu, Arch Linux ne.
+        luxos = [r.name for r in self.parse().repos if any(u.startswith(lc.LUXOS_REPO_PREFIX) or "/staging/" in u
+                                                            for u, _o in r.servers)]
+        others = [r.name for r in self.parse().repos if r.name not in luxos]
+        self.assertTrue(luxos and others)
+        for n in luxos + others:
+            self.write(f"var/lib/lux/sync/{n}.db", "db")
+        self.assertTrue(lc.set_channel("staging", "/etc/lux/lux.conf", root=self.root))
+        for n in luxos:
+            self.assertEqual(os.stat(self.path(f"var/lib/lux/sync/{n}.db")).st_mtime, 0, n)
+        for n in others:
+            self.assertGreater(os.stat(self.path(f"var/lib/lux/sync/{n}.db")).st_mtime, 0, n)
+
     def test_cli_check_and_env_show_channel(self):
         conf = self.path("etc/lux/lux.conf")
         with open(conf, "w") as f:

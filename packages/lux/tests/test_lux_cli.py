@@ -628,5 +628,84 @@ class CommunityUpdate(unittest.TestCase):
         self.assertIn("RESULT=no", self.run_review(update=1, yes=0, answer="y", verdict="dangerous"))
 
 
+class UpdateCommunity(unittest.TestCase):
+    """lux update: balicky z komunity v systemu i v sandboxu; balicky LuxOS se v AUR nehledaji."""
+    def run_update(self, foreign, sandbox, aur, extra=""):
+        src = open(LUX).read()
+        funcs = ""
+        for name in ("aur_outdated", "cmd_update"):
+            start = src.index("\n%s() {" % name) + 1
+            funcs += src[start:src.index("\n}\n", start) + 3]
+        d = tempfile.mkdtemp(prefix="lux-upd-test-")
+        self.addCleanup(shutil.rmtree, d, True)
+        for name, out in (("engine", foreign), ("sandbox", sandbox)):
+            with open(os.path.join(d, name + ".txt"), "w") as f:
+                f.write(out)
+            with open(os.path.join(d, name), "w") as f:
+                f.write("#!/bin/sh\nexec cat %s.txt\n" % os.path.join(d, name))
+            os.chmod(os.path.join(d, name), 0o755)
+        aur_json = "[" + ",".join('{"Name":"%s","Version":"%s"}' % kv for kv in aur.items()) + "]"
+        snippet = ('T() { local f=$1; shift; printf "$f" "$@"; }; say() { echo "S: $*"; }; warn() { echo "W: $*"; }\n'
+                   'ok() { echo "OK: $*"; }; alpm_ok() { return 0; }; alpm_root() { return 0; }; lp_updates() { :; }\n'
+                   "aur_info() { echo AURQ \"$@\" >&2; echo '%s'; }\n"
+                   'aur_install() { echo "INSTALL $COMMUNITY_TARGET $*"; }\n'
+                   "B= R= D= G= AUR=1 ONLY= FLATPAK=0 LUX_ENGINE=%s/engine LUX_SANDBOX=%s/sandbox\n%s"
+                   "%s\ncmd_update\n" % (aur_json, d, d, funcs, extra))
+        r = subprocess.run(["bash", "-c", snippet], capture_output=True, text=True, timeout=60)
+        return r.stdout, r.stderr
+
+    def test_sandbox_packages_get_updates(self):
+        out, err = self.run_update("", "pi-agent-bin 1.0-1\nnodejs 22.0-1\n", {"pi-agent-bin": "1.1-1"})
+        self.assertIn("INSTALL sandbox pi-agent-bin", out)
+        self.assertNotIn("nodejs", out.split("INSTALL")[-1])
+
+    def test_luxos_packages_not_looked_up_in_aur(self):
+        out, err = self.run_update("luxos-mail 1.0.0-15\nlux-foo 1-1\nyay 12-1\n", "",
+                                   {"luxos-mail": "99-1", "yay": "13-1"})
+        self.assertIn("INSTALL system yay", out)
+        self.assertNotIn("luxos-mail", out + err)
+
+    def test_lux_apps_installed_from_fresh_index(self):
+        # root ma vlastni kopii seznamu .lux; musi nainstalovat verzi, kterou lux update prave vypsal
+        out, err = self.run_update("", "", {}, extra='lp_updates() { echo "notes 1.0 1.1"; }\n'
+                                   'as_root() { echo "ROOT $*"; }; LUX_SELF=lux')
+        self.assertIn("ROOT /usr/bin/env LUX_REFRESH=1 lux __lux-install notes", out)
+
+
+class AurDiffBase(unittest.TestCase):
+    """Rozdil skriptu u aktualizace: proti naposledy sestavene verzi, ne proti poslednimu stazeni."""
+    def test_declined_update_stays_in_next_diff(self):
+        src = open(LUX).read()
+        start = src.index("\naur_fetch() {") + 1
+        func = src[start:src.index("\n}\n", start) + 3]
+        d = tempfile.mkdtemp(prefix="lux-aurdiff-")
+        self.addCleanup(shutil.rmtree, d, True)
+        up = os.path.join(d, "srv", "tool.git")
+        g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "init.defaultBranch=master"]
+
+        def commit(text):
+            with open(os.path.join(up, "PKGBUILD"), "w") as f:
+                f.write(text)
+            subprocess.run(g + ["-C", up, "add", "PKGBUILD"], check=True, capture_output=True)
+            subprocess.run(g + ["-C", up, "commit", "-qm", text], check=True, capture_output=True)
+            return subprocess.run(["git", "-C", up, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        os.makedirs(up)
+        subprocess.run(g + ["init", "-q", up], check=True)
+        v1 = commit("pkgver=1\n")
+        snippet = ('T() { printf "$1"; }; die() { echo "DIE $*"; exit 1; }\n' + func +
+                   'LUX_CACHE=%s/cache LUX_AUR_GIT=%s/srv\naur_fetch tool; echo "PREV=$AUR_PREV_HEAD"\n' % (d, d))
+
+        def fetch(build=False):
+            body = snippet + ('git -C "$AUR_GIT" update-ref refs/lux/built HEAD\n' if build else "")
+            r = subprocess.run(["bash", "-c", body], capture_output=True, text=True, timeout=60)
+            self.assertNotIn("DIE", r.stdout, r.stderr)
+            return r.stdout.split("PREV=")[1].strip()
+        fetch(build=True)                       # instalace v1
+        commit("pkgver=2\n")
+        self.assertEqual(fetch(), v1)           # aktualizace na v2 odmitnuta (nesestaveno)
+        commit("pkgver=3\n")
+        self.assertEqual(fetch(), v1)           # dalsi rozdil zase od v1, v2 se neschova
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -468,6 +468,16 @@ class SdBoot(Env):
         self.assertEqual(sorted(f for f in os.listdir(os.path.join(self.top, "@snapshots")) if f.endswith(".json")),
                          sorted(s["name"] + ".json" for s in snaps))
 
+    def test_pre_transaction_failure_is_reported_and_prunes(self):
+        for m in range(8):
+            snap.create(self.top, now=self.at(m))
+        with mock.patch.object(snap, "create", side_effect=OSError(28, "No space left on device")):
+            self.assertEqual(snap.pre_transaction(["htop"], now=self.at(59)), 0)      # aktualizace pokracuje
+        self.assertEqual(len(snap.list_snapshots(self.top)), 5)                     # stare uklizene
+        ev = care.read_json(care.EVENTS, {})["events"][-1]
+        self.assertEqual((ev["kind"], ev["id"]), ("problem", "snapshot-failed"))
+        self.assertIn("No snapshot", ev["title"])
+
     def test_pre_transaction_keeps_snapshot_before_kernel_change(self):
         for m in range(3):
             snap.create(self.top, now=self.at(m))

@@ -146,8 +146,11 @@ class Unlock(Base):
     def test_bad_settings_do_not_block_unlock(self):
         """Rucne upraveny safe.json (text misto cisla, seznam, nesmysl): odemceni funguje s vychozimi hodnotami."""
         for raw, idle in (('{"idle_minutes": "abc"}', 15), ('{"idle_minutes": "30"}', 30), ('[1, 2]', 15),
-                          ('{"idle_minutes": -5}', 15), ('{"idle_minutes": null}', 0), ('{"idle_minutes": [1]}', 15),
-                          ('not json', 15), ('{"idle_minutes": 0, "lock_on_screen_lock": "x"}', 0)):
+                          ('{"idle_minutes": -5}', 15), ('{"idle_minutes": [1]}', 15),
+                          ('not json', 15), ('{"idle_minutes": 0, "lock_on_screen_lock": "x"}', 0),
+                          # nesmi spadnout (OverflowError) ani tise vypnout zamceni (0)
+                          ('{"idle_minutes": 1e999}', 15), ('{"idle_minutes": null}', 15),
+                          ('{"idle_minutes": []}', 15), ('{"idle_minutes": false}', 15), ('{"idle_minutes": ""}', 15)):
             with open(safe.CONF, "w") as f:
                 f.write(raw)
             conf = safe.settings()

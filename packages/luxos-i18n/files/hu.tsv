@@ -5330,3 +5330,6 @@ running on the power adapter	hálózati adapterről működik
 Not connected to a network	Nincs hálózati kapcsolat
 Clock in the middle	Óra középen
 Rounded corners	Lekerekített sarkok
+Connect the backup disk %s to back up this computer.	Csatlakoztasd a(z) %s mentési lemezt a számítógép mentéséhez.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	A frissítés előtt nem sikerült pillanatképet készíteni, így nem lehet visszatérni az előtte lévő állapotra. Ellenőrizd a szabad helyet a lemezen.
+Stopped part-way: only some packages were installed. Finish with: lux update	Félúton leállt: csak a csomagok egy része települt. Fejezd be ezzel: lux update

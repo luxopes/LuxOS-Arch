@@ -3,7 +3,7 @@
 
 pkgname=lsh
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 _bashver=5.3
 _patchlevel=020
 pkgdesc="lsh - the Lux shell (GNU bash fork with LuxOS and LSL integration)"
@@ -67,6 +67,8 @@ check() {
     ./bash -c 'about hw' | grep -q 'Hardware'
     ! ./bash -c 'about nonsense' 2>/dev/null
     [[ $(./bash -c 'echo $LSH_VERSION') == "$pkgver" ]]
+    # soubor relace LSL nikdy s predvidatelnym jmenem v /tmp
+    python3 -B -m unittest discover -s "$startdir/tests" -q
 }
 
 package() {

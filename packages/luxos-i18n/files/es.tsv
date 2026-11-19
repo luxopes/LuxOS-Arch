@@ -5330,3 +5330,6 @@ running on the power adapter	funciona con el adaptador de corriente
 Not connected to a network	Sin conexión a una red
 Clock in the middle	Reloj en el centro
 Rounded corners	Esquinas redondeadas
+Connect the backup disk %s to back up this computer.	Conecta el disco de copias %s para hacer una copia de este ordenador.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	No se pudo crear una instantánea antes de la actualización, así que no hay forma de volver al estado anterior. Comprueba el espacio libre en el disco.
+Stopped part-way: only some packages were installed. Finish with: lux update	Detenido a medias: solo se instalaron algunos paquetes. Termina con: lux update

@@ -54,6 +54,10 @@ SKIP_DIRS = ("ssl", "ca-certificates")
 QUIET_ENV = "LUX_CONFIG_MERGE_QUIET"
 RESULT_ENV = "LUX_CONFIG_MERGE_RESULT"
 MAX_EXTRACT = 40                            # kopie z cache baliku za jedno spusteni (bez hooku)
+# Prihlaseni, sudo a pripojeni disku se samy neslucuji: textove bezchybne slouceni muze byt vecne
+# spatne (poradi pravidel PAM/sudoers) a zamknout prihlaseni. Zustane soubor uzivatele + hlaseni.
+CRITICAL = re.compile(r"^etc/(sudoers(\.d/.*)?|pam\.d/.*|security/.*|ssh/sshd_config(\.d/.*)?|fstab|crypttab"
+                      r"|passwd|group|shadow|gshadow)$")
 
 # Klice, ktere zapisuje lux-config / Aktualizace softwaru (set-channel, set-countme): patri
 # uzivateli vzdy, i kdyz se jeho hodnota rovna stare vychozi.
@@ -618,6 +622,9 @@ def merge_one(root, new, cur, backups=None):
     """Jedna cekajici nova verze. Vraci slovnik vysledku (status merged | conflict)."""
     rel = _rel(root, cur)
     res = {"path": _show(rel), "new": _show(_rel(root, new))}
+    if CRITICAL.match(rel):
+        res.update(status="conflict", reason="critical")
+        return res
     if os.path.islink(new) or os.path.islink(cur) or not os.path.isfile(cur) or not os.path.isfile(new):
         res.update(status="conflict", reason="missing")
         return res

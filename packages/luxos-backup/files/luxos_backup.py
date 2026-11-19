@@ -59,11 +59,13 @@ except ImportError:          # pragma: no cover - bez balicku luxos-i18n
 
 TOP = "LuxOS-Backups"
 SNAP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}$")
+DELETING_RE = re.compile(r"\d{4}-\d{2}-\d{2}-\d{6}(\.partial)?\.deleting")
 SNAP_FMT = "%Y-%m-%d-%H%M%S"
 ASKPASS = "/usr/lib/luxos/backup/luxos-backup-askpass"
 NOTIFY_ICON = "luxos-backup"
 MIN_FREE = 1 << 30            # po zaloze nechat volne aspon 1 GiB ...
 MIN_FREE_PCT = 2              # ... a 2 % disku
+MIN_FREED = 64 << 20          # mene uvolnene mista po smazani zalohy = misto zabira neco jineho
 RETRY_FULL = 8                # kolik nejstarsich zaloh smazat pri plnem disku (na jeden beh)
 STALE_DAYS = 7                # upozorneni "zadna zaloha 7 dni"
 
@@ -841,13 +843,13 @@ def posix_join(*parts):
 
 
 def ssh_base(disk):
-    """ssh argumenty; posledni je cil (rsync -e dostane vse pred nim), pred cilem "--" -
-    nic za nim uz ssh nebere jako volbu (ani prikaz v ssh_run)."""
+    """ssh argumenty; posledni je cil (rsync -e dostane vse pred nim). "--" pridava jen ssh_run:
+    rsync za -e pripoji vlastni "-l user host", ktere by za "--" ssh nebral jako volbu."""
     user, host = disk.get("user") or "", str(disk.get("host") or "")
     if not SSH_HOST_RE.match(host) or (user and not SSH_USER_RE.match(user)):
         raise BackupError(_("Use a network address like sftp://user@server/folder"))
     args = ["ssh", "-p", str(int(disk.get("port") or 22)), "-o", "StrictHostKeyChecking=accept-new",
-            "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3", "-o", "ConnectTimeout=20", "--"]
+            "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3", "-o", "ConnectTimeout=20"]
     return args + [f"{user}@{host}" if user else host]
 
 
@@ -860,7 +862,9 @@ def ssh_env(disk):
 
 def ssh_run(sess, script, timeout=120):
     """Prikaz na serveru (sh -c); argumenty se citují shlex.quote."""
-    rc, out, err = run(sess.remote[0] + [script], env=ssh_env(sess.disk), timeout=timeout)
+    # za "--" uz ssh nic nebere jako volbu (ani prikaz)
+    rc, out, err = run(sess.remote[0][:-1] + ["--", sess.remote[0][-1], script], env=ssh_env(sess.disk),
+                       timeout=timeout)
     if rc == 255:
         raise NotConnected(err.strip() or _("Could not connect to the server."))
     return rc, out, err
@@ -897,14 +901,44 @@ def delete_snapshot(sess, name):
     if not isinstance(name, str) or not (SNAP_RE.fullmatch(name) or
                                          (name.endswith(".partial") and SNAP_RE.fullmatch(name[:-8]))):
         raise BackupError(f"refusing to delete {name}")
+    # nejdriv prejmenovat: preruseni mazani (vypadek proudu, vytazeny disk) nesmi nechat napul
+    # smazanou zalohu, ktera se dal tvari jako cela. Zbytek .deleting uklidi purge_deleting.
+    gone = name + ".deleting"
     if sess.remote:
-        ssh_run(sess, "rm -rf -- " + shlex.quote(posix_join(sess.remote[1], name)), timeout=3600)
+        d, g = (shlex.quote(posix_join(sess.remote[1], n)) for n in (name, gone))
+        ssh_run(sess, f"rm -rf -- {g}; if [ -e {d} ]; then mv -- {d} {g} && rm -rf -- {g}; fi", timeout=3600)
         return
-    path = os.path.join(sess.root, name)
+    remove_snapshot_dir(sess, os.path.join(sess.root, gone))
+    try:
+        os.rename(os.path.join(sess.root, name), os.path.join(sess.root, gone))
+    except FileNotFoundError:
+        return
+    remove_snapshot_dir(sess, os.path.join(sess.root, gone))
+
+
+def remove_snapshot_dir(sess, path):
     if engine_for(sess) == "btrfs" and is_subvolume(path):
         btrfs_delete(path)
     else:
         rmtree(path)
+
+
+def purge_deleting(sess):
+    """Dokoncit mazani zaloh, ktere predchozi beh nestihl (<jmeno>.deleting)."""
+    if sess.remote:
+        rc, out, _e = ssh_run(sess, "ls -1 -- " + shlex.quote(sess.remote[1]) + " 2>/dev/null")
+        names = out.split("\n")
+    else:
+        try:
+            names = os.listdir(sess.root)
+        except OSError:
+            return
+    for n in names:
+        if DELETING_RE.fullmatch(n):
+            if sess.remote:
+                ssh_run(sess, "rm -rf -- " + shlex.quote(posix_join(sess.remote[1], n)), timeout=3600)
+            else:
+                remove_snapshot_dir(sess, os.path.join(sess.root, n))
 
 
 def rmtree(path):
@@ -1172,6 +1206,7 @@ def lock():
 def make_space(sess, need_free=None, log=print):
     """Smaze nejstarsi zalohy (nikdy posledni), dokud neni volno. Vrati smazane."""
     deleted = []
+    last_free = None
     for _i in range(RETRY_FULL):
         free, total = free_space(sess)
         if free is None:
@@ -1180,6 +1215,11 @@ def make_space(sess, need_free=None, log=print):
         names = list_snapshots(sess)
         if free >= want or len(names) <= 1:
             break
+        # smazana zaloha skoro nic neuvolnila: disk plni jine soubory (slozka na sdilenem disku),
+        # dalsi mazani by jen pripravilo o zalohy. Kdyz se nova zaloha opravdu nevejde, maze DiskFull.
+        if last_free is not None and free - last_free < MIN_FREED:
+            break
+        last_free = free
         log(_("Disk is full - deleting the oldest backup %s") % snap_label(names[0]))
         delete_snapshot(sess, names[0])
         deleted.append(names[0])
@@ -1200,6 +1240,7 @@ def backup(disk, cfg, log=print, on_progress=None):
             # rozpracovanou zalohu z preruseneho behu dokoncit pod novym jmenem, ostatni smazat - jinak
             # by osirele .partial plnily server a make_space by kvuli nim mazal skutecne zalohy
             _reuse_partial_remote(sess, name)
+        purge_deleting(sess)
         deleted = make_space(sess, log=log)
         names = list_snapshots(sess)
         prev = names[-1] if names else None
@@ -1461,22 +1502,33 @@ def run_backup(disk_ident=None, manual=False, log=print, on_progress=None):
                           last_error="", last_warnings=warn, last_by_disk=last, notified={})
             log(_("Backup finished: %s") % snap_label(name) +
                 (" " + _("(%d files could not be read)") % warn if warn else ""))
-        if not done and not manual:
-            stale_warning()
+        if not manual:
+            stale_warning(cfg)
         return rc_all
     finally:
         os.close(fd)
 
 
-def stale_warning():
+def stale_warning(cfg):
+    """Upozorni na disk, na ktery se dlouho nezalohovalo - kazdy disk zvlast: NAS zalohovany
+    kazdou hodinu nesmi zakryt zapomenuty USB disk."""
     st = load_status()
-    last = st.get("last_success") or 0
-    if last and time.time() - last > STALE_DAYS * 86400:
-        days = int((time.time() - last) // 86400)
-        sent = st.get("stale_notified", 0)
-        if time.time() - sent > 86400:
-            update_status(stale_notified=time.time())
-            notify(_("No backup for %d days") % days, _("Connect your backup disk to back up this computer."))
+    by_disk = st.get("last_by_disk") or {}
+    stale = []
+    for disk in cfg["disks"]:
+        last = by_disk.get(disk["id"]) or st.get("last_success") or 0
+        if last and time.time() - last > STALE_DAYS * 86400:
+            stale.append((last, disk))
+    if not stale:
+        return
+    last, disk = min(stale, key=lambda x: x[0])
+    days = int((time.time() - last) // 86400)
+    sent = st.get("stale_notified", 0)
+    if time.time() - sent > 86400:
+        update_status(stale_notified=time.time())
+        body = _("Connect your backup disk to back up this computer.") if len(cfg["disks"]) == 1 else \
+            _("Connect the backup disk %s to back up this computer.") % disk_label(disk)
+        notify(_("No backup for %d days") % days, body)
 
 
 def due(cfg, now=None):

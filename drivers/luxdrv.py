@@ -948,7 +948,7 @@ def verify_repo(repo, base, vendor, previous=None, download_sources=True, review
     return finish(res)
 
 
-RULES = 4          # verze pravidel: odmitnute podle starsich pravidel se overi znovu
+RULES = 5          # verze pravidel: overene i odmitnute podle starsich pravidel se overi znovu (5: kontroly .install z 047e63d)
 
 
 def finish(res):

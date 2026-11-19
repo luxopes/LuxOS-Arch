@@ -364,5 +364,14 @@ class Launchers(unittest.TestCase):
         self.assertEqual(self.sandbox("__has-app", "../x")[0], 2)
 
 
+    def test_versions_for_lux_update(self):
+        # lux update aktualizuje balicky z komunity i v sandboxu: potrebuje jmena a verze (i zavislosti)
+        self.package("pi-coding-agent-bin", ["usr/bin/pi"], ver="2.1.0-1")
+        self.package("aur-dep", ["usr/lib/x"], explicit=False, ver="1:0.5-2")
+        rc, out = self.sandbox("__versions")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(out, "aur-dep 1:0.5-2\npi-coding-agent-bin 2.1.0-1\n")
+
+
 if __name__ == "__main__":
     unittest.main()

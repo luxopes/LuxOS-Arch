@@ -6,6 +6,7 @@ libalpm (podpisy, hooky, konflikty souboru) - to je nutne overit na LuxOS.
 """
 import os
 import re
+import signal
 
 
 class error(Exception):
@@ -205,6 +206,7 @@ class Transaction:
         self.to_remove = []
         self.committed = False
         self.released = False
+        self.stopped = False
 
     def add_pkg(self, p):
         self.add.append(p)
@@ -321,6 +323,11 @@ class Transaction:
                 reason = old.reason if old else (PKG_REASON_DEPEND if p in self.deps or self.flags.get("alldeps")
                                                  else PKG_REASON_EXPLICIT)
                 h.local.add(p.copy_for_local(h.local, reason))
+            # Ctrl+C po i-tem baliku; libalpm po interrupt() dokonci rozdelany balik a vrati se bez chyby
+            if getattr(h, "sigint_after", None) == i:
+                os.kill(os.getpid(), signal.SIGINT)
+            if self.stopped:
+                return
         if h.post_hooks is not None:
             self.run_hooks(h, h.post_hooks)
         elif h.eventcb:
@@ -342,7 +349,7 @@ class Transaction:
         h.eventcb(35, "unknown event")
 
     def interrupt(self):
-        pass
+        self.stopped = True
 
     def release(self):
         self.released = True

@@ -427,6 +427,39 @@ class Restore(Env):
             core.delete_snapshot(s, "2026-01-01-000000.partial")
             self.assertFalse(os.path.exists(os.path.join(self.root, "2026-01-01-000000.partial")))
 
+    def test_interrupted_delete_never_looks_like_a_backup(self):
+        # mazani prerusene uprostred (vypadek proudu): zbytek se nesmi tvarit jako cela zaloha
+        old = "2026-01-01-000000"
+        write(os.path.join(self.root, old, "home", "a.txt"), "a")
+        write(os.path.join(self.root, old, "home", "b.txt"), "b")
+
+        def cut(path):
+            os.unlink(os.path.join(path, "home", "a.txt"))
+            raise KeyboardInterrupt
+        with self.sess() as s:
+            with mock.patch.object(core, "rmtree", side_effect=lambda p: cut(p) if os.path.isdir(p) else None), \
+                    self.assertRaises(KeyboardInterrupt):
+                core.delete_snapshot(s, old)
+            self.assertNotIn(old, core.list_snapshots(s))
+            self.assertEqual(core.list_snapshots(s), [self.name])
+        self.assertTrue(os.path.isdir(os.path.join(self.root, old + ".deleting")))
+        self.backup(time.time() + 3600)           # dalsi beh zbytek uklidi
+        self.assertFalse(os.path.exists(os.path.join(self.root, old + ".deleting")))
+
+    def test_sftp_delete_renames_first(self):
+        remote = os.path.join(self.tmp, "nas")
+        base = os.path.join(remote, core.TOP, "pc")
+        write(os.path.join(base, "2026-01-01-000000", "home", "f.txt"), "x")
+        write(os.path.join(base, "2026-02-01-000000", "home", "f.txt"), "x")
+        write(os.path.join(base, "2025-12-01-000000.deleting", "home", "f.txt"), "rest")
+        session, patch = self.sftp_session(remote)
+        with session as s, patch as ssh:
+            core.delete_snapshot(s, "2026-01-01-000000")
+            self.assertIn("mv --", ssh.call_args_list[-1].args[1])
+            core.purge_deleting(s)
+            core.delete_snapshot(s, "2026-03-01-000000")          # neexistuje: bez chyby
+        self.assertEqual(os.listdir(base), ["2026-02-01-000000"])
+
     def test_fixed_path_disk_unmounted_is_not_connected(self):
         # (9) /mnt/zalohy po odpojeni: slozka zustane na systemovem disku - nesmi se do ni zalohovat
         target = os.path.join(self.tmp, "zalohy")
@@ -506,11 +539,24 @@ class DiskFull(Env):
             self.backup(now - k * 86400 * 40)          # tydenni zalohy, protrideni je nesmaze
         names = sorted(n for n in os.listdir(self.root) if core.SNAP_RE.match(n))
         self.assertEqual(len(names), 3)
+        gib = 1 << 30
         with core.open_source(source=self.disk) as s:
-            with mock.patch.object(core, "free_space", side_effect=[(0, 100)] * 10):
+            # kazde smazani uvolni 1 GiB, cil (2 % z 1 TiB) se ale nesplni
+            with mock.patch.object(core, "free_space", side_effect=[(k * gib, 1024 * gib) for k in range(10)]):
                 deleted = core.make_space(s, log=lambda *_a: None)
         self.assertEqual(deleted, names[:2])
         self.assertEqual(sorted(n for n in os.listdir(self.root) if core.SNAP_RE.match(n)), names[2:])
+
+    def test_make_space_stops_when_other_files_fill_the_disk(self):
+        # slozka zaloh na disku plnem fotek: smazani zalohy misto neuvolni - nemazat dalsi
+        now = time.time()
+        for k in (5, 4, 3, 2):
+            self.backup(now - k * 86400 * 40)
+        names = sorted(n for n in os.listdir(self.root) if core.SNAP_RE.match(n))
+        with core.open_source(source=self.disk) as s:
+            with mock.patch.object(core, "free_space", return_value=(100 << 20, 1 << 40)):
+                deleted = core.make_space(s, log=lambda *_a: None)
+        self.assertEqual(deleted, names[:1])
 
     def test_full_disk_retry(self):
         now = time.time()
@@ -529,6 +575,25 @@ class DiskFull(Env):
         names = sorted(n for n in os.listdir(self.root) if core.SNAP_RE.match(n))
         self.assertEqual(len(names), 2)               # nejstarsi smazana, nova pridana
         self.assertEqual(names[-1], _name(now))
+
+
+class Stale(Env):
+    def test_forgotten_disk_warned_even_when_another_backs_up(self):
+        nas = os.path.join(self.tmp, "nas")
+        os.makedirs(nas)
+        other = core.add_local_disk(self.cfg, nas, "NAS")
+        now = time.time()
+        core.update_status(last_success=now, last_by_disk={self.d["id"]: now - 30 * 86400, other["id"]: now})
+        with mock.patch.object(core, "notify") as n:
+            core.stale_warning(core.load_config())
+            core.stale_warning(core.load_config())          # nejvys jednou za den
+        self.assertEqual(n.call_count, 1)
+        self.assertIn("30", n.call_args.args[0])
+        self.assertIn("Test", n.call_args.args[1])
+        core.update_status(stale_notified=0, last_by_disk={self.d["id"]: now, other["id"]: now})
+        with mock.patch.object(core, "notify") as n:
+            core.stale_warning(core.load_config())
+        n.assert_not_called()
 
 
 class Conditions(unittest.TestCase):

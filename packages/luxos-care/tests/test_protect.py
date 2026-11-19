@@ -314,6 +314,18 @@ class Verify(FakeDb):
         self.w("/usr/lib/os-release", b"NAME=LuxOS")
         self.assertEqual(protect.verify()["problems"], [])
 
+    def test_guard_agent_setgid_from_install_script(self):
+        """luxos-guard.install nastavi pomocniku 2755 (balik ma 755) - neni to nalez, jinde ano."""
+        agent = "usr/lib/luxos-guard/luxos-guard-agent"
+        self.add_package("luxos-guard", "1.0-1", [self.file_entry(agent, b"agent", mode=0o755),
+                                                  self.file_entry("usr/lib/luxos-guard/other", b"o", mode=0o755)])
+        os.chmod(self.root + "/" + agent, 0o2755)
+        self.assertEqual(protect.verify(full=True)["problems"], [])
+        os.chmod(self.root + "/" + agent, 0o4755)
+        os.chmod(self.root + "/usr/lib/luxos-guard/other", 0o2755)
+        got = {p["path"]: p["kind"] for p in protect.verify(full=True)["problems"]}
+        self.assertEqual(got, {"/" + agent: "permissions", "/usr/lib/luxos-guard/other": "permissions"})
+
     def test_selected_packages(self):
         self.w("/usr/bin/cat", b"x")
         res = protect.verify(names=["sudo"])

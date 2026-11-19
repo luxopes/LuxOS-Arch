@@ -196,7 +196,9 @@ def repo_texts(d):
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError:
-            text = None
+            # skript s bajtem mimo UTF-8 (jmeno spravce v Latin-1): pravidla jsou ASCII a nahrazeny
+            # znak zadny prikaz neschova - zkontrolovat cely misto "nelze zkontrolovat"
+            text = data.decode("utf-8", "replace") if r == "PKGBUILD" or r.endswith(".install") else None
         if text is None or "\0" in text:
             findings.append(("medium", _("binary file that cannot be checked: %s") % r[:80]))
             continue

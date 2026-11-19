@@ -3,7 +3,7 @@
 
 pkgname=luxos-branding
 pkgver=1.1.0
-pkgrel=30
+pkgrel=31
 pkgdesc="LuxOS branding: logo, wallpapers, Plymouth boot splash and os-release"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -72,7 +72,7 @@ package() {
     local VERSION CODENAME
     . "$f/version"
     sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT@/${VERSION%.0}/g" -e "s/@CODENAME@/$CODENAME/g" \
-        -e "s/@CODENAME_LC@/${CODENAME,,}/g" -e "s/@BUILD@/$(date -u +%Y%m%d)/g" "$f/apply-branding" \
+        -e "s/@CODENAME_LC@/${CODENAME,,}/g" -e "s/@BUILD@/$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m%d)/g" "$f/apply-branding" \
         | install -Dm755 /dev/stdin "$pkgdir/usr/lib/luxos/apply-branding"
     install -Dm644 "$f/version" "$pkgdir/usr/lib/luxos/version"
     # Co je noveho (luxos-whats-new po aktualizaci)

@@ -29,7 +29,19 @@ pip3() { _lsh_pip pip3 "$@"; }
 # Radky LSL zadane primo v shellu (print ..., load ..., x = ...) prepise lsh na
 # "lsl-session run '...'"; nactene moduly a prirazeni si pamatuje pro dalsi radky
 lsl-session() {
-    local f="${XDG_RUNTIME_DIR:-/tmp}/lsh-lsl-$$.lsl" status
+    local f=${_lsh_lsl_file-} status
+    if [[ -z $f && ${1:-show} == run ]]; then
+        # Soubor se spousti (cat | lsl): jen ve slozce, ktera patri nam. Bez vlastniho XDG_RUNTIME_DIR
+        # (sudo -s, su) soukroma slozka z mktemp - predvidatelne jmeno v /tmp by mohl podstrcit jiny uzivatel.
+        if [[ -n ${XDG_RUNTIME_DIR-} && -d $XDG_RUNTIME_DIR && ! -L $XDG_RUNTIME_DIR && -O $XDG_RUNTIME_DIR ]]; then
+            f=$XDG_RUNTIME_DIR/lsh-lsl-$$.lsl
+            rm -f -- "$f"
+        else
+            f=$(mktemp -d "${TMPDIR:-/tmp}/lsh-lsl.XXXXXXXX") || return 1
+            f=$f/session.lsl
+        fi
+        _lsh_lsl_file=$f
+    fi
     case ${1:-show} in
         run)
             { [[ -s $f ]] && cat "$f"; printf '%s\n' "$2"; } | command lsl
@@ -38,8 +50,8 @@ lsl-session() {
                 printf '%s\n' "$2" >> "$f"
             fi
             return "$status" ;;
-        show)  if [[ -s $f ]]; then cat "$f"; else echo "lsl-session: empty"; fi ;;
-        clear) rm -f "$f" ;;
+        show)  if [[ -n $f && -s $f ]]; then cat "$f"; else echo "lsl-session: empty"; fi ;;
+        clear) [[ -n $f ]] && : >"$f" ;;
         *)     echo "usage: lsl-session [show|clear|run CODE]" >&2; return 2 ;;
     esac
 }

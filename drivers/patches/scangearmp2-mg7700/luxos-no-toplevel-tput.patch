@@ -1,0 +1,30 @@
+# LuxOS: barvy terminalu nahore v .install (tput pri kazdem nacteni skriptu jako root) - bez barev
+--- a/scangearmp2-mg7700.install
++++ b/scangearmp2-mg7700.install
+@@ -11,16 +11,16 @@
+   printf "${BLUE}==>    ${BOLD} $1${ALL_OFF}\n"
+ }
+ 
+-ALL_OFF="$(tput sgr0)"
+-BOLD="${ALL_OFF}$(tput bold)"
+-BLACK="${BOLD}$(tput setaf 0)"
+-RED="${BOLD}$(tput setaf 1)"
+-GREEN="${BOLD}$(tput setaf 2)"
+-YELLOW="${BOLD}$(tput setaf 3)"
+-BLUE="${BOLD}$(tput setaf 4)"
+-MAGENTA="${BOLD}$(tput setaf 5)"
+-CYAN="${BOLD}$(tput setaf 6)"
+-WHITE="${BOLD}$(tput setaf 7)"
++ALL_OFF=""
++BOLD=""
++BLACK=""
++RED=""
++GREEN=""
++YELLOW=""
++BLUE=""
++MAGENTA=""
++CYAN=""
++WHITE=""
+ 
+ 
+ post_install() {

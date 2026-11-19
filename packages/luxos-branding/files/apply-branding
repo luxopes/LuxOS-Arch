@@ -3,7 +3,7 @@
 # /usr/lib/os-release patri baliku filesystem, proto ho prepisujeme hookem.
 set -e
 
-# Verze se doplni pri sestaveni baliku (files/version, BUILD_ID = datum sestaveni)
+# Verze se doplni pri sestaveni baliku (files/version, BUILD_ID = datum sestaveni podle SOURCE_DATE_EPOCH)
 cat > /usr/lib/os-release <<'OSR'
 NAME="LuxOS"
 PRETTY_NAME="LuxOS @SHORT@ @CODENAME@"

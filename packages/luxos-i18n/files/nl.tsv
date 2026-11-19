@@ -5330,3 +5330,6 @@ running on the power adapter	werkt op de netadapter
 Not connected to a network	Niet verbonden met een netwerk
 Clock in the middle	Klok in het midden
 Rounded corners	Afgeronde hoeken
+Connect the backup disk %s to back up this computer.	Sluit de back-upschijf %s aan om een back-up van deze computer te maken.
+No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Vóór de update kon geen momentopname worden gemaakt, dus je kunt niet terug naar de toestand van daarvoor. Controleer de vrije ruimte op de schijf.
+Stopped part-way: only some packages were installed. Finish with: lux update	Halverwege gestopt: slechts een deel van de pakketten is geïnstalleerd. Rond af met: lux update

@@ -57,6 +57,9 @@ NO = ("no", "0", "false", "off")
 # os-release baliku filesystem (10-luxos-branding.hook), relace "LuxOS" nahrazuje "Xfce Session"
 # (luxos-xsession.hook smaze xfce.desktop z xfce4-session)
 BUILTIN_IGNORE = ("/usr/lib/os-release", "/usr/share/xsessions/xfce.desktop")
+# Prava, ktera zamerne nastavuje .install skript (balik je zabali bez nich): pomocnik Lux Guardu
+# dostane setgid skupiny luxos-guard az po vytvoreni skupiny (luxos-guard.install)
+BUILTIN_MODES = {"/usr/lib/luxos-guard/luxos-guard-agent": 0o2755}
 
 
 class ProtectError(Exception):
@@ -433,6 +436,7 @@ def check_entry(rel, attrs, full=True):
         want_mode = int(attrs.get("mode", "644"), 8)
     except ValueError:
         want_mode = 0o644
+    want_mode |= BUILTIN_MODES.get("/" + rel, 0)
     if (st.st_mode & 0o7777) & ~want_mode & SUSPICIOUS_BITS:
         return "permissions"
     same_time = False
