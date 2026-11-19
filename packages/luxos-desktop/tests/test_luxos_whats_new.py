@@ -216,6 +216,10 @@ class NotesContentTest(unittest.TestCase):
         self.assertEqual(wn.pending(notes, "1.0.1", "1.0.2"), ["1.0.2"])
         self.assertEqual(wn.pending(notes, "1.0.0", "1.0.2"), ["1.0.2", "1.0.1"])
         self.assertEqual(wn.pending(notes, "1.0.2", "1.0.2"), [])
+        # 1.0.2 -> 1.0.3: jen 1.0.3; z 1.0.1 obe novejsi (nejnovejsi prvni)
+        self.assertEqual(wn.pending(notes, "1.0.2", "1.0.3"), ["1.0.3"])
+        self.assertEqual(wn.pending(notes, "1.0.1", "1.0.3"), ["1.0.3", "1.0.2"])
+        self.assertEqual(wn.pending(notes, "1.0.3", "1.0.3"), [])
         # verze 1.0.10 > 1.0.9 (ne retezcove razeni)
         self.assertGreater(wn.vkey("1.0.10"), wn.vkey("1.0.9"))
 

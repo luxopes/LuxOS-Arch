@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://luxos.lux-ai.cz/changes/"><img alt="Version 1.0.2 Sirius" src="https://img.shields.io/badge/version-1.0.2%20%22Sirius%22-3b82f6"></a>
+  <a href="https://luxos.lux-ai.cz/changes/"><img alt="Version 1.0.3 Sirius" src="https://img.shields.io/badge/version-1.0.3%20%22Sirius%22-3b82f6"></a>
   <img alt="Status: beta" src="https://img.shields.io/badge/status-beta-f59e0b">
   <img alt="Based on Arch Linux" src="https://img.shields.io/badge/based%20on-Arch%20Linux-1793d1">
   <img alt="x86_64, UEFI and BIOS" src="https://img.shields.io/badge/platform-x86__64%20%C2%B7%20UEFI%20%26%20BIOS-64748b">
