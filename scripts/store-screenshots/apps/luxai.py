@@ -34,7 +34,9 @@ TITLE = "Weekend trips in Czechia"
 
 USER = {"id": "u-demo", "email": "alex@example.com", "displayName": "Alex Morgan", "username": "alex.morgan",
         "settings": {"theme": "light", "aiResponseStyle": "balanced"},
-        "usage": {"fastTokens": 412500, "fastLimit": 1000000, "liteTokens": 2350000, "liteLimit": 10000000}}
+        "usage": {"credits": 7350, "creditsLimit": 20000, "unlimited": False, "week": 1820,
+                  "month": time.strftime("%Y-%m"),
+                  "fastTokens": 412500, "fastLimit": 1000000, "liteTokens": 2350000, "liteLimit": 10000000}}
 
 
 def chunks(text, size=24):

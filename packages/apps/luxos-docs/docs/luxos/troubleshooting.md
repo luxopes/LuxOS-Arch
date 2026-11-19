@@ -291,8 +291,8 @@ fail) and no notification came, switch to a console with `Ctrl+Alt+F3`, log in a
 - **Sandbox** damaged ("The sandbox is damaged …"): `luxos-sandbox reset --yes`. See
   [sandbox.md](sandbox.md).
 - **LuxAI** says the session expired / 401: `luxos-account login`; check with
-  `luxos-account status`. "The monthly Flash limit is used up" – switch to Lite or wait for the next
-  month. See [luxai-account.md](luxai-account.md).
+  `luxos-account status`. "You've used this month's LuxAI credits" – wait until they renew
+  (date in LuxAI Account). See [luxai-account.md](luxai-account.md).
 - **LuxDrop** finds nothing: `systemctl status avahi-daemon`; on guest Wi-Fi use Connect by
   address; "port 47923 is in use" – another LuxDrop instance runs. See [luxdrop.md](luxdrop.md).
 

@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Potvrďte přihlášení v prohlížeči�
 After you confirm your e-mail, come back and sign in.	Po potvrzení e-mailu se vraťte a přihlaste se.
 AI usage this month	Spotřeba AI tento měsíc
 Unlimited	Bez omezení
-%s: %s of %s tokens	%s: %s z %s tokenů
 Loading…	Načítám…
 Used by	Používají
 Manage on lux-ai.cz	Spravovat na lux-ai.cz
@@ -3286,7 +3285,7 @@ New password again	Nové heslo znovu
 Sessions and Devices	Relace a zařízení
 Changing the password…	Měním heslo…
 AI Answer Style	Styl odpovědí AI
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Platí pro nové odpovědi v chatu LuxAI. Nemění zvolený model ani tokenový limit.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Platí pro nové odpovědi v chatu LuxAI. Nemění zvolený model ani měsíční kredity.
 Appearance on the Web	Vzhled na webu
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Uloží se do účtu LuxAI a použije se na lux-ai.cz na všech vašich zařízeních. Vzhled LuxOS nastavíte v Nastavení › Vzhled.
 Export Your Data	Export dat
@@ -3330,6 +3329,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	Limity se obnoví %s (zbývá dní: %d).
 Downloading chat %d of %d…	Stahuji chat %d z %d…
 %s of %s tokens	%s z %s tokenů
+LuxAI credits	Kredity LuxAI
+shared by all models	společné pro všechny modely
+%s of %s credits this month	%s z %s kreditů tento měsíc
+Credits renew on %s (in %d days).	Kredity se obnoví %s (zbývá dní: %d).
+You've used this month's LuxAI credits.	Kredity LuxAI na tento měsíc jsou vyčerpané.
+You've used this month's LuxAI credits. They renew on %s.	Kredity LuxAI na tento měsíc jsou vyčerpané. Obnoví se %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Použijte 3–32 malých písmen, číslic nebo znaků . _ -; první znak musí být písmeno nebo číslice.
 This username is already used by another account.	Toto uživatelské jméno už používá jiný účet.
 The current password is not correct.	Současné heslo není správné.

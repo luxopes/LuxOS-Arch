@@ -109,7 +109,10 @@ ERROR_TEXTS = {
     "password_mismatch": "The new passwords do not match.",
     "signed_out": "Your session has expired. Please sign in again.",
     "web_only": "This change is not available from LuxOS yet. Make it on the web.",
+    # vycerpane mesicni kredity (HTTP 429 {"error": "monthly_limit", "unit": "credits"}), viz limit_text()
+    "monthly_limit": "You've used this month's LuxAI credits.",
 }
+MONTHLY_LIMIT_DATED = "You've used this month's LuxAI credits. They renew on %s."
 
 
 def error_text(err, tr=lambda t: t):
@@ -117,6 +120,8 @@ def error_text(err, tr=lambda t: t):
     code = getattr(err, "code", "") or "error"
     if code == "origin":
         return tr(ERROR_TEXTS["origin"]) % REGISTER_URL
+    if code == "monthly_limit":
+        return limit_text(err, tr=tr)
     if code in ERROR_TEXTS:
         return tr(ERROR_TEXTS[code])
     if getattr(err, "status", 0) >= 500:
@@ -136,6 +141,8 @@ def account_error_text(err, tr=lambda t: t):
     code = getattr(err, "code", "") or "error"
     if web_only(err):
         return tr(ERROR_TEXTS["web_only"])
+    if code == "monthly_limit":
+        return limit_text(err, tr=tr)
     if code == "weak_password":
         return tr("The new password must have at least 12 characters.")
     if code in ERROR_TEXTS:
@@ -507,16 +514,138 @@ def change_password(current, new, account=None):
     return _authed("POST", "/api/account/password", {"currentPassword": current or "", "newPassword": new}, account)
 
 
+_DATE_RE = re.compile(r"(\d{4})-(\d{2})(?:-(\d{2}))?")
+
+
+def _date(v):
+    """"2026-12-01..." -> struct_time (pulnoc), jinak None."""
+    m = _DATE_RE.match(v) if isinstance(v, str) else None
+    if not m or not m.group(3):
+        return None
+    try:
+        return time.strptime(m.group(0), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _next_month(v):
+    """"2026-11" (nebo "2026-11-05...") -> 1. den nasledujiciho mesice, jinak None."""
+    m = _DATE_RE.match(v) if isinstance(v, str) else None
+    if not m or not 1 <= int(m.group(2)) <= 12:
+        return None
+    y, mo = int(m.group(1)), int(m.group(2))
+    y, mo = (y + 1, 1) if mo == 12 else (y, mo + 1)
+    return time.strptime(f"{y:04d}-{mo:02d}-01", "%Y-%m-%d")
+
+
+_END_KEYS = ("resetAt", "resetsAt", "renewsAt", "periodEnd")
+_START_KEYS = ("month", "key", "period", "id", "start", "startsAt", "periodStart", "from")
+
+
+def month_reset(usage):
+    """Datum obnoveni mesicnich kreditu, da-li se zjistit z /api/me (usage.resetAt apod. nebo
+    usage.month: "2026-11" / {"resetAt": ...} / {"month": "2026-11"} / {"start": "2026-11-01"}).
+    Vraci time.struct_time (pulnoc) nebo None - pak se datum nehada."""
+    usage = usage if isinstance(usage, dict) else {}
+    for key in _END_KEYS:
+        when = _date(usage.get(key))
+        if when:
+            return when
+    month = usage.get("month")
+    if isinstance(month, str):
+        return _next_month(month)
+    if isinstance(month, dict):
+        for key in _END_KEYS:
+            when = _date(month.get(key))
+            if when:
+                return when
+        for key in _START_KEYS:
+            when = _next_month(month.get(key))
+            if when:
+                return when
+    return None
+
+
 def usage_reset(usage=None, now=None):
-    """Kdy se vynuluje mesicni spotreba: z /api/me (resetAt / periodEnd, je-li tam), jinak 1. den
-    dalsiho kalendarniho mesice (mistni cas). Vraci time.struct_time (pulnoc)."""
-    for key in ("resetAt", "periodEnd", "resetsAt"):
-        v = (usage or {}).get(key)
-        if isinstance(v, str) and re.match(r"\d{4}-\d{2}-\d{2}", v):
-            return time.strptime(v[:10], "%Y-%m-%d")
+    """Kdy se vynuluje mesicni spotreba: z /api/me (resetAt / periodEnd / usage.month, je-li tam),
+    jinak 1. den dalsiho kalendarniho mesice (mistni cas). Vraci time.struct_time (pulnoc)."""
+    when = month_reset(usage)
+    if when:
+        return when
     t = time.localtime(now)
     y, m = (t.tm_year + 1, 1) if t.tm_mon == 12 else (t.tm_year, t.tm_mon + 1)
     return time.strptime(f"{y:04d}-{m:02d}-01", "%Y-%m-%d")
+
+
+def _num(v):
+    """Cislo z JSON (int/float, i "123" od starsiho serveru) nebo None."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return v if v == v and abs(v) != float("inf") else None
+    if isinstance(v, str):
+        try:
+            return float(v) if v.strip() else None
+        except ValueError:
+            return None
+    return None
+
+
+def parse_usage(usage):
+    """Spotreba z GET /api/me (user.usage) -> jednotny tvar pro zobrazeni:
+
+      {"mode": "unlimited"}                                   ucet bez omezeni
+      {"mode": "credits", "used", "limit", "percent", "exhausted", "reset"}
+                                                              od 2026-11-19: kredity spolecne pro vsechny
+                                                              modely (1 kredit = 0,0001 USD skutecne ceny)
+      {"mode": "tokens", "models": [(nazev, used, limit), ...]}
+                                                              starsi server: tokeny po modelech Flash/Lite
+      {"mode": "none"}                                        spotreba zatim neni znama
+
+    Starsi pole fastTokens/fastLimit/liteTokens/liteLimit nove servery posilaji jen pro stare aplikace -
+    kdyz je creditsLimit, plati kredity. reset = month_reset() (None = datum neni zname)."""
+    if not isinstance(usage, dict) or not usage:
+        return {"mode": "none"}
+    if usage.get("unlimited") is True:
+        return {"mode": "unlimited"}
+    limit = _num(usage.get("creditsLimit"))
+    if limit is not None:
+        used = max(0.0, _num(usage.get("credits")) or 0)
+        limit = max(0.0, limit)
+        pct = min(100, int(used * 100 / limit + 0.5)) if limit else 100
+        return {"mode": "credits", "used": used, "limit": limit, "percent": pct,
+                "exhausted": used >= limit, "reset": month_reset(usage)}
+    models = []
+    for name, used_key, limit_key in (("Flash", "fastTokens", "fastLimit"), ("Lite", "liteTokens", "liteLimit")):
+        if used_key in usage or limit_key in usage:
+            models.append((name, max(0, int(_num(usage.get(used_key)) or 0)),
+                           max(0, int(_num(usage.get(limit_key)) or 0))))
+    if models:
+        return {"mode": "tokens", "models": models}
+    return {"mode": "none"}
+
+
+def limit_text(err=None, usage=None, tr=lambda t: t, date_format=None):
+    """Hlaska k vycerpanym mesicnim kreditum (HTTP 429 {"error": "monthly_limit", "limit", "unit"}):
+    "You've used this month's LuxAI credits. They renew on <datum>." - datum z odpovedi chyby nebo
+    z usage.month (/api/me; bez usage se vezme ulozeny ucet), jinak hlaska bez data."""
+    when = month_reset(getattr(err, "data", None) or {})
+    if when is None:
+        if usage is None:
+            try:
+                usage = ((load() or {}).get("user") or {}).get("usage")
+            except Exception:   # noqa: BLE001 - poskozeny account.json nesmi shodit hlasku o limitu
+                usage = None
+        when = month_reset(usage)
+    if when is None:
+        return tr(ERROR_TEXTS["monthly_limit"])
+    if date_format is None:
+        try:
+            from luxos_i18n import format_date
+            date_format = lambda t: format_date(t, "full")   # noqa: E731
+        except ImportError:
+            date_format = lambda t: time.strftime("%Y-%m-%d", t)   # noqa: E731
+    return tr(MONTHLY_LIMIT_DATED) % date_format(when)
 
 
 def days_until(when, now=None):
@@ -532,7 +661,7 @@ def _get_retry(path, account):
         try:
             return _authed("GET", path, None, account)
         except AccountError as e:
-            if e.status != 429 or attempt == 2:
+            if e.status != 429 or e.code == "monthly_limit" or attempt == 2:
                 raise
             time.sleep(min(e.retry_after or 2, 10))
 

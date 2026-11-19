@@ -245,7 +245,8 @@ class Manage(Base):
     def test_me_has_username_settings_usage(self):
         u = acc.me()["user"]
         self.assertEqual((u["username"], u["settings"]["theme"]), ("jan", "dark"))
-        self.assertIn("fastLimit", u["usage"])
+        self.assertEqual((u["usage"]["credits"], u["usage"]["creditsLimit"]), (0, 20000))
+        self.assertIn("fastLimit", u["usage"], "stara pole pro starsi aplikace zustavaji")
 
     def test_set_username(self):
         u = acc.set_username("  Jan.Novak ")
@@ -359,6 +360,134 @@ class Manage(Base):
         acc.logout()
         self.assertNotIn(token, SRV.sessions)
         self.assertIsNone(acc.load())
+
+
+class Credits(Base):
+    """Od 2026-11-19 kredity (20 000 mesicne pro vsechny modely) misto tokenu po modelech;
+    starsi server (jen fastTokens/...) -> puvodni zobrazeni, limit -> 429 monthly_limit."""
+    import time as t
+
+    def ymd(self, when):
+        return None if when is None else self.t.strftime("%Y-%m-%d", when)
+
+    def test_new_shape_credits(self):
+        u = MockLuxAI.credits_usage(12345, month="2026-11")
+        r = acc.parse_usage(u)
+        self.assertEqual(r["mode"], "credits", "creditsLimit ma prednost pred starymi tokenovymi poli")
+        self.assertEqual((r["used"], r["limit"], r["percent"], r["exhausted"]), (12345, 20000, 62, False))
+        self.assertEqual(self.ymd(r["reset"]), "2026-12-01")
+        # prosinec -> leden dalsiho roku; float kredity (1 kredit = 0,0001 USD) se zaokrouhli jen pro zobrazeni
+        r = acc.parse_usage({"credits": 19999.6, "creditsLimit": 20000, "month": "2026-12"})
+        self.assertEqual((r["percent"], r["exhausted"], self.ymd(r["reset"])), (100, False, "2027-01-01"))
+
+    def test_server_numbers_not_hardcoded(self):
+        r = acc.parse_usage({"credits": 50, "creditsLimit": 250000, "unlimited": False})
+        self.assertEqual((r["used"], r["limit"], r["percent"]), (50, 250000, 0))
+        self.assertIsNone(r["reset"], "bez usage.month se datum nehada")
+        r = acc.parse_usage({"credits": 25000, "creditsLimit": 20000})
+        self.assertEqual((r["percent"], r["exhausted"]), (100, True))
+        r = acc.parse_usage({"credits": None, "creditsLimit": "20000"})   # odolnost proti typum
+        self.assertEqual((r["mode"], r["used"], r["limit"]), ("credits", 0, 20000))
+
+    def test_unlimited(self):
+        self.assertEqual(acc.parse_usage({"credits": 99999, "creditsLimit": 20000, "unlimited": True}),
+                         {"mode": "unlimited"})
+        self.assertEqual(acc.parse_usage({"unlimited": True, "fastTokens": 1}), {"mode": "unlimited"})
+        self.assertEqual(acc.parse_usage({"unlimited": "no", "credits": 1, "creditsLimit": 2})["mode"], "credits")
+
+    def test_old_server_tokens_fallback(self):
+        r = acc.parse_usage({"fastTokens": 412500, "fastLimit": 1000000, "liteTokens": 2350000,
+                             "liteLimit": 10000000})
+        self.assertEqual(r, {"mode": "tokens", "models": [("Flash", 412500, 1000000), ("Lite", 2350000, 10000000)]})
+        self.assertEqual(acc.parse_usage({"liteTokens": 5, "liteLimit": 10}),
+                         {"mode": "tokens", "models": [("Lite", 5, 10)]})
+
+    def test_empty_or_broken(self):
+        for u in (None, {}, [], "x", {"week": 3}):
+            self.assertEqual(acc.parse_usage(u), {"mode": "none"}, u)
+
+    def test_month_reset_shapes(self):
+        f = lambda u: self.ymd(acc.month_reset(u))   # noqa: E731
+        self.assertEqual(f({"month": "2026-11"}), "2026-12-01")
+        self.assertEqual(f({"month": "2026-11-01T00:00:00Z"}), "2026-12-01")
+        self.assertEqual(f({"month": {"key": "2026-11", "credits": 10}}), "2026-12-01")
+        self.assertEqual(f({"month": {"start": "2026-11-01", "credits": 10}}), "2026-12-01")
+        self.assertEqual(f({"month": {"resetAt": "2026-12-03T00:00:00Z"}}), "2026-12-03")
+        self.assertEqual(f({"resetAt": "2026-12-05"}), "2026-12-05")
+        for u in ({"month": 1234}, {"month": "listopad"}, {"month": "2026-13"}, {"month": {"credits": 5}},
+                  {"month": None}, {}, None, {"week": "2026-W47"}):
+            self.assertIsNone(acc.month_reset(u), u)
+        # zobrazeni v okne (usage_reset) ma i nadale nahradni 1. den dalsiho mesice
+        now = self.t.mktime((2026, 11, 19, 12, 0, 0, 0, 0, -1))
+        self.assertEqual(self.ymd(acc.usage_reset({"month": 7}, now)), "2026-12-01")
+
+    def test_limit_text(self):
+        fmt = lambda w: self.t.strftime("%d.%m.%Y", w)   # noqa: E731
+        err = acc.AccountError("monthly_limit", 429, 0, {"error": "monthly_limit", "limit": 20000, "unit": "credits"})
+        self.assertEqual(acc.limit_text(err, {"month": "2026-11"}, date_format=fmt),
+                         "You've used this month's LuxAI credits. They renew on 01.12.2026.")
+        self.assertEqual(acc.limit_text(err, {"credits": 1, "creditsLimit": 1}, date_format=fmt),
+                         "You've used this month's LuxAI credits.")
+        tr = {"You've used this month's LuxAI credits. They renew on %s.": "Vyčerpáno, obnova %s."}
+        self.assertEqual(acc.limit_text(err, {"month": "2026-12"}, tr=lambda k: tr.get(k, k), date_format=fmt),
+                         "Vyčerpáno, obnova 01.01.2027.")
+        # datum primo v odpovedi chyby ma prednost
+        err2 = acc.AccountError("monthly_limit", 429, 0, {"error": "monthly_limit", "month": "2027-01"})
+        self.assertEqual(acc.limit_text(err2, {"month": "2026-11"}, date_format=fmt),
+                         "You've used this month's LuxAI credits. They renew on 01.02.2027.")
+        # error_text / account_error_text pouziji stejnou hlasku (bez ulozeneho uctu = bez data)
+        self.assertEqual(acc.error_text(err), "You've used this month's LuxAI credits.")
+        self.assertEqual(acc.account_error_text(err), "You've used this month's LuxAI credits.")
+
+    def test_monthly_limit_from_server(self):
+        SRV.accounts["jan@example.cz"] = {"password": GOOD_PW, "displayName": "Jan",
+                                          "usage": MockLuxAI.credits_usage(20000, month="2026-11")}
+        acc.login_password("jan@example.cz", GOOD_PW)
+        SRV.log.clear()
+        e = self.err(acc._authed, "POST", "/api/chat", {"message": "ahoj"})
+        self.assertEqual((e.code, e.status, e.data.get("unit"), e.data.get("limit")),
+                         ("monthly_limit", 429, "credits", 20000))
+        self.assertEqual(len([x for x in SRV.log if x[1] == "/api/chat"]), 1, "429 limit se neopakuje")
+        # datum z usage.month ulozeneho uctu (z prihlaseni / GET /api/me)
+        self.assertEqual(acc.error_text(e, lambda k: k),
+                         "You've used this month's LuxAI credits. They renew on %s."
+                         % __import__("luxos_i18n").format_date(acc.month_reset({"month": "2026-11"}), "full")
+                         if _has_i18n() else
+                         "You've used this month's LuxAI credits. They renew on 2026-12-01.")
+        # GET s cekanim pri 429 (_get_retry) monthly_limit neopakuje
+        SRV.log.clear()
+        orig = acc._authed
+        calls = []
+
+        def fake(method, path, body=None, account=None):
+            calls.append(path)
+            raise acc.AccountError("monthly_limit", 429, 0, {})
+        acc._authed = fake
+        try:
+            self.assertEqual(self.err(acc._get_retry, "/api/me", None).code, "monthly_limit")
+        finally:
+            acc._authed = orig
+        self.assertEqual(calls, ["/api/me"])
+        # pod limitem projde
+        SRV.accounts["jan@example.cz"]["usage"] = MockLuxAI.credits_usage(10)
+        self.assertEqual(acc._authed("POST", "/api/chat", {"message": "ahoj"})["ok"], True)
+
+    def test_me_stores_new_usage(self):
+        SRV.accounts["jan@example.cz"] = {"password": GOOD_PW, "displayName": "Jan",
+                                          "usage": MockLuxAI.credits_usage(321, month="2026-11", legacy=False)}
+        acc.login_password("jan@example.cz", GOOD_PW)
+        u = acc.me()["user"]["usage"]
+        self.assertEqual(acc.load()["user"]["usage"], u)
+        self.assertEqual(acc.parse_usage(u)["mode"], "credits")
+        self.assertNotIn("fastLimit", u)
+
+
+def _has_i18n():
+    try:
+        import luxos_i18n  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 
 class Hardening(Base):

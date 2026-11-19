@@ -47,8 +47,14 @@ Dostupná API (stejná jako pro LSL IDE, viz `~/lsl-ide/server/patch_lux_account
 
 Náhrada stránky `https://lux-ai.cz/settings`, stejná API. Po přihlášení postranní seznam stránek:
 
-- **Přehled** – jméno, `@username`, e-mail, spotřeba Flash a Lite (pruh, procenta, „x z y tokenů“)
-  a datum obnovení limitů (1. den dalšího měsíce, případně `usage.resetAt` z `/api/me`).
+- **Přehled** – jméno, `@username`, e-mail a měsíční kredity LuxAI (od 19. 11. 2026 jeden pruh
+  pro všechny modely: procenta, „x z 20 000 kreditů tento měsíc“ s čísly ze serveru –
+  `usage.credits` / `usage.creditsLimit` z `/api/me`, `usage.unlimited` = „Bez omezení“) a datum
+  obnovení, dá-li se zjistit z `usage.month` (nebo `usage.resetAt`). Po vyčerpání „Kredity LuxAI na
+  tento měsíc jsou vyčerpané. Obnoví se <datum>.“ (stejný text jako u chyby HTTP 429
+  `{"error": "monthly_limit", "limit", "unit": "credits"}`, viz `luxai_account.limit_text()`).
+  Starší server bez `creditsLimit` (jen `fastTokens`/`fastLimit`/`liteTokens`/`liteLimit`) →
+  původní dva pruhy Flash a Lite v tokenech.
 - **Profil** – změna uživatelského jména (`PATCH /api/account/settings {username}`, 3–32 znaků
   `[a-z0-9][a-z0-9._-]`; chyby `invalid_username`, `username_taken`, `rate`). E-mail jen zobrazení –
   API pro změnu není, tlačítko **Napsat podpoře** (`info@lux-ai.cz`). Profilová fotka je jen

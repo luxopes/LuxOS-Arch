@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Potwierdź logowanie w przeglądarce…
 After you confirm your e-mail, come back and sign in.	Po potwierdzeniu e-maila wróć tutaj i zaloguj się.
 AI usage this month	Użycie AI w tym miesiącu
 Unlimited	Bez ograniczeń
-%s: %s of %s tokens	%s: %s z %s tokenów
 Loading…	Wczytywanie…
 Used by	Używane przez
 Manage on lux-ai.cz	Zarządzaj na lux-ai.cz
@@ -3194,7 +3193,7 @@ New password again	Powtórz nowe hasło
 Sessions and Devices	Sesje i urządzenia
 Changing the password…	Zmiana hasła…
 AI Answer Style	Styl odpowiedzi AI
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Dotyczy nowych odpowiedzi w czacie LuxAI. Nie zmienia wybranego modelu ani limitu tokenów.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Dotyczy nowych odpowiedzi w czacie LuxAI. Nie zmienia wybranego modelu ani miesięcznych kredytów.
 Appearance on the Web	Wygląd w sieci
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Zapisywane na koncie LuxAI i używane na lux-ai.cz na wszystkich urządzeniach. Wygląd LuxOS ustawisz w Ustawieniach › Wygląd.
 Export Your Data	Eksport danych
@@ -3238,6 +3237,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	Limity odnowią się %s (pozostało dni: %d).
 Downloading chat %d of %d…	Pobieranie czatu %d z %d…
 %s of %s tokens	%s z %s tokenów
+LuxAI credits	Kredyty LuxAI
+shared by all models	wspólne dla wszystkich modeli
+%s of %s credits this month	%s z %s kredytów w tym miesiącu
+Credits renew on %s (in %d days).	Kredyty odnowią się %s (pozostało dni: %d).
+You've used this month's LuxAI credits.	Kredyty LuxAI na ten miesiąc zostały wykorzystane.
+You've used this month's LuxAI credits. They renew on %s.	Kredyty LuxAI na ten miesiąc zostały wykorzystane. Odnowią się %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Użyj 3–32 małych liter, cyfr lub znaków . _ -; pierwszy znak musi być literą lub cyfrą.
 This username is already used by another account.	Ta nazwa użytkownika jest już używana przez inne konto.
 The current password is not correct.	Obecne hasło jest nieprawidłowe.

@@ -860,7 +860,7 @@ def llms_txt(ver, iso, cols):
         "- Kernel: `linux-luxos`, vanilla stable kernel.org Linux with Arch's configuration, built by GitHub Actions",
         "- Maintenance: LuxOS Care (background updates, snapshot before every update, `lux rollback`, read-only /usr)",
         "- Security: firewall on by default, Lux Guard (checks downloaded programs, sandbox), Safe (encrypted folder)",
-        "- LuxAI: optional AI assistant; needs a LuxAI account with monthly limits; answers come from third-party model providers",
+        "- LuxAI: optional AI assistant; needs a LuxAI account with 20 000 credits per month shared by all models; answers come from third-party model providers",
         f"- Developer: {AUTHOR}, Czech Republic; contact {CONTACT}; source {GITHUB}",
         "- Not to be confused with LuxOS, the unrelated Bitcoin miner firmware by Luxor.",
         "",

@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Bestätigen Sie die Anmeldung im Browser �
 After you confirm your e-mail, come back and sign in.	Kehren Sie nach der Bestätigung Ihrer E-Mail-Adresse zurück und melden Sie sich an.
 AI usage this month	KI-Nutzung in diesem Monat
 Unlimited	Unbegrenzt
-%s: %s of %s tokens	%s: %s von %s Tokens
 Loading…	Laden …
 Used by	Verwendet von
 Manage on lux-ai.cz	Auf lux-ai.cz verwalten
@@ -3193,7 +3192,7 @@ New password again	Neues Passwort wiederholen
 Sessions and Devices	Sitzungen und Geräte
 Changing the password…	Passwort wird geändert…
 AI Answer Style	Antwortstil der KI
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Gilt für neue Antworten im LuxAI-Chat. Ändert weder das gewählte Modell noch das Token-Limit.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Gilt für neue Antworten im LuxAI-Chat. Ändert weder das gewählte Modell noch die monatlichen Credits.
 Appearance on the Web	Aussehen im Web
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Wird im LuxAI-Konto gespeichert und auf lux-ai.cz auf allen Geräten verwendet. Das Aussehen von LuxOS legen Sie unter Einstellungen › Darstellung fest.
 Export Your Data	Daten exportieren
@@ -3237,6 +3236,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	Die Limits werden am %s zurückgesetzt (noch %d Tage).
 Downloading chat %d of %d…	Chat %d von %d wird geladen…
 %s of %s tokens	%s von %s Token
+LuxAI credits	LuxAI-Credits
+shared by all models	gemeinsam für alle Modelle
+%s of %s credits this month	%s von %s Credits in diesem Monat
+Credits renew on %s (in %d days).	Die Credits erneuern sich am %s (noch %d Tage).
+You've used this month's LuxAI credits.	Sie haben die LuxAI-Credits dieses Monats aufgebraucht.
+You've used this month's LuxAI credits. They renew on %s.	Sie haben die LuxAI-Credits dieses Monats aufgebraucht. Sie erneuern sich am %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Verwenden Sie 3–32 Kleinbuchstaben, Ziffern oder . _ -; das erste Zeichen muss ein Buchstabe oder eine Ziffer sein.
 This username is already used by another account.	Dieser Benutzername wird bereits von einem anderen Konto verwendet.
 The current password is not correct.	Das aktuelle Passwort ist falsch.

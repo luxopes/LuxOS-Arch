@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Erősítsd meg a bejelentkezést a böngé
 After you confirm your e-mail, come back and sign in.	Miután megerősítetted az e-mail-címedet, gyere vissza, és jelentkezz be.
 AI usage this month	AI-használat ebben a hónapban
 Unlimited	Korlátlan
-%s: %s of %s tokens	%s: %s / %s token
 Loading…	Betöltés…
 Used by	Használja:
 Manage on lux-ai.cz	Kezelés a lux-ai.cz oldalon
@@ -3193,7 +3192,7 @@ New password again	Új jelszó újra
 Sessions and Devices	Munkamenetek és eszközök
 Changing the password…	Jelszó módosítása…
 AI Answer Style	AI-válaszok stílusa
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Az új LuxAI-csevegőválaszokra vonatkozik. Nem változtatja a kiválasztott modellt és a tokenkeretet.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Az új LuxAI-csevegőválaszokra vonatkozik. Nem változtatja a kiválasztott modellt és a havi krediteket.
 Appearance on the Web	Megjelenés a weben
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	A LuxAI-fiókba kerül, és a lux-ai.cz oldalon minden eszközén érvényes. A LuxOS kinézetét a Beállítások › Megjelenés részen állíthatja.
 Export Your Data	Adatok exportálása
@@ -3237,6 +3236,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	A keretek ekkor állnak vissza: %s (hátralévő napok: %d).
 Downloading chat %d of %d…	%d. csevegés letöltése ennyiből: %d…
 %s of %s tokens	%s / %s token
+LuxAI credits	LuxAI-kreditek
+shared by all models	minden modell közösen használja
+%s of %s credits this month	%s / %s kredit ebben a hónapban
+Credits renew on %s (in %d days).	A kreditek ekkor újulnak meg: %s (hátralévő napok: %d).
+You've used this month's LuxAI credits.	Elfogytak az e havi LuxAI-kreditjei.
+You've used this month's LuxAI credits. They renew on %s.	Elfogytak az e havi LuxAI-kreditjei. Ekkor újulnak meg: %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Használjon 3–32 kisbetűt, számjegyet vagy . _ - jelet; az első karakter betű vagy számjegy legyen.
 This username is already used by another account.	Ezt a felhasználónevet már egy másik fiók használja.
 The current password is not correct.	A jelenlegi jelszó nem helyes.

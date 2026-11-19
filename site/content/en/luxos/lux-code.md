@@ -29,7 +29,7 @@ working directory (not from parent folders or your home folder).
 
 On LuxOS, Lux Code uses the shared **LuxAI account** (see [LuxAI account](luxai-account.html)).
 When `~/.config/luxai/account.json` exists, requests go to the LuxAI service, usage counts toward the
-account's monthly limit, and the models are `flash` and `lite`. If you are not signed in, run
+account's monthly credits, and the models are `flash` and `lite`. If you are not signed in, run
 `luxos-account login`. Without the account file Lux Code can use an API key (`LUX_AI_API`). The
 method can be forced with `LUX_CODE_AUTH=account|apikey|auto`. Lux Code only reads the account file
 and never prints the token.

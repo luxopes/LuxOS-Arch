@@ -14,7 +14,7 @@ Ano, ISO si můžete zdarma stáhnout z webu LuxOS a placená edice neexistuje. 
 `luxos-*`, `lux`, `luxdrop`, skripty a instalátor) je otevřená pod licencí GPL-3.0-or-later; balíčky
 třetích stran mají vlastní licence. Několik aplikací – LuxAI, Lux Code, LSL IDE a Firemní síť (Active
 Directory) – je proprietárních: v LuxOS je používáte zdarma, jejich zdrojový kód ale není veřejný.
-Volitelný asistent LuxAI používá účet LuxAI s měsíčním limitem spotřeby.
+Volitelný asistent LuxAI používá účet LuxAI s 20 000 kredity měsíčně, společnými pro všechny modely.
 
 ## Kdo LuxOS dělá?
 
@@ -117,7 +117,8 @@ LuxOS plně funguje i bez něj. Odpovědi počítají jazykové modely poskytova
 ## Potřebuji pro LuxAI účet?
 
 Ano. LuxAI, Lux Code a LSL IDE sdílejí jeden účet LuxAI, který můžete založit v instalátoru nebo v
-aplikaci **Účet LuxAI**. Účet má měsíční limity spotřeby. Viz [Účet LuxAI](luxai-account.html) (anglicky).
+aplikaci **Účet LuxAI**. Účet má 20 000 kreditů měsíčně, společných pro všechny modely; LuxAI,
+Lux Code i LSL IDE berou ze stejných kreditů. Viz [Účet LuxAI](luxai-account.html) (anglicky).
 
 ## Co je Lux Code?
 

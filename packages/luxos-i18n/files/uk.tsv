@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Підтвердьте вхід у бра�
 After you confirm your e-mail, come back and sign in.	Підтвердивши e-mail, поверніться сюди й увійдіть.
 AI usage this month	Використання ШІ цього місяця
 Unlimited	Без обмежень
-%s: %s of %s tokens	%s: %s з %s токенів
 Loading…	Завантаження…
 Used by	Використовують
 Manage on lux-ai.cz	Керувати на lux-ai.cz
@@ -3194,7 +3193,7 @@ New password again	Новий пароль ще раз
 Sessions and Devices	Сеанси та пристрої
 Changing the password…	Зміна пароля…
 AI Answer Style	Стиль відповідей ШІ
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Діє для нових відповідей у чаті LuxAI. Не змінює вибрану модель чи ліміт токенів.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Діє для нових відповідей у чаті LuxAI. Не змінює вибрану модель чи місячні кредити.
 Appearance on the Web	Вигляд на вебсайті
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Зберігається в обліковому записі LuxAI й діє на lux-ai.cz на всіх ваших пристроях. Вигляд LuxOS налаштовується в Налаштування › Вигляд.
 Export Your Data	Експорт даних
@@ -3238,6 +3237,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	Ліміти оновляться %s (залишилося днів: %d).
 Downloading chat %d of %d…	Завантаження чату %d з %d…
 %s of %s tokens	%s з %s токенів
+LuxAI credits	Кредити LuxAI
+shared by all models	спільні для всіх моделей
+%s of %s credits this month	%s з %s кредитів цього місяця
+Credits renew on %s (in %d days).	Кредити поновляться %s (залишилося днів: %d).
+You've used this month's LuxAI credits.	Кредити LuxAI на цей місяць вичерпано.
+You've used this month's LuxAI credits. They renew on %s.	Кредити LuxAI на цей місяць вичерпано. Вони поновляться %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Використайте 3–32 малі літери, цифри або . _ -; перший символ має бути літерою або цифрою.
 This username is already used by another account.	Це ім'я користувача вже використовує інший обліковий запис.
 The current password is not correct.	Поточний пароль неправильний.

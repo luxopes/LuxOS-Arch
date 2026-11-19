@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Potvrďte prihlásenie v prehliadači…
 After you confirm your e-mail, come back and sign in.	Po potvrdení e-mailu sa vráťte a prihláste sa.
 AI usage this month	Spotreba AI tento mesiac
 Unlimited	Bez obmedzenia
-%s: %s of %s tokens	%s: %s z %s tokenov
 Loading…	Načítava sa…
 Used by	Používajú
 Manage on lux-ai.cz	Spravovať na lux-ai.cz
@@ -3193,7 +3192,7 @@ New password again	Nové heslo znova
 Sessions and Devices	Relácie a zariadenia
 Changing the password…	Mením heslo…
 AI Answer Style	Štýl odpovedí AI
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Platí pre nové odpovede v chate LuxAI. Nemení zvolený model ani limit tokenov.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Platí pre nové odpovede v chate LuxAI. Nemení zvolený model ani mesačné kredity.
 Appearance on the Web	Vzhľad na webe
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Uloží sa do účtu LuxAI a použije sa na lux-ai.cz na všetkých vašich zariadeniach. Vzhľad LuxOS nastavíte v Nastaveniach › Vzhľad.
 Export Your Data	Export údajov
@@ -3237,6 +3236,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	Limity sa obnovia %s (zostáva dní: %d).
 Downloading chat %d of %d…	Sťahujem chat %d z %d…
 %s of %s tokens	%s z %s tokenov
+LuxAI credits	Kredity LuxAI
+shared by all models	spoločné pre všetky modely
+%s of %s credits this month	%s z %s kreditov tento mesiac
+Credits renew on %s (in %d days).	Kredity sa obnovia %s (zostáva dní: %d).
+You've used this month's LuxAI credits.	Kredity LuxAI na tento mesiac sú vyčerpané.
+You've used this month's LuxAI credits. They renew on %s.	Kredity LuxAI na tento mesiac sú vyčerpané. Obnovia sa %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Použite 3–32 malých písmen, číslic alebo znakov . _ -; prvý znak musí byť písmeno alebo číslica.
 This username is already used by another account.	Toto používateľské meno už používa iný účet.
 The current password is not correct.	Súčasné heslo nie je správne.

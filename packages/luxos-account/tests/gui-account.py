@@ -75,6 +75,7 @@ def wait(cond, timeout=5.0):
 
 
 def set_lang(code):
+    luxos_i18n.LANG = code   # i datum a oddelovac tisicu v jazyce aplikace
     luxos_i18n._TR.clear()
     if code != "en":
         with open(os.path.join(I18N, code + ".tsv"), encoding="utf-8") as f:
@@ -191,8 +192,7 @@ def manage(lang):
     SRV.chats.clear()
     SRV.native_settings = SRV.native_history = True
     SRV.accounts["jan@example.cz"] = {"password": PW, "displayName": "Jan Novák", "username": "jan",
-                                      "usage": {"fastTokens": 31250, "fastLimit": 50000,
-                                                "liteTokens": 120000, "liteLimit": 1000000}}
+                                      "usage": MockLuxAI.credits_usage(12345)}
     SRV.accounts["eva@example.cz"] = {"password": PW, "displayName": "Eva", "username": "eva"}
     SRV.chats["jan@example.cz"] = [{"id": "c1", "title": "Ahoj", "updatedAt": "2026-10-01", "messages": []}]
     acc.forget()
@@ -205,13 +205,7 @@ def manage(lang):
     names = [win.pages.child_get_property(c, "name") for c in win.pages.get_children()]
     check("sprava: stranky", names == ["overview", "profile", "security", "preferences", "privacy"], names)
     check("sprava: titulek okna s krizkem", win.get_titlebar().get_show_close_button())
-    labels = [w.get_text() for w in walk(win.usage_body) if isinstance(w, Gtk.Label)]
-    check("prehled: spotreba Flash 63 %", "63 %" in labels, labels)
-    # datum v jazyce aplikace (luxos_i18n.format_date), ne %x z libc locale ("12/01/26")
-    from luxos_i18n import format_date
-    check("prehled: datum vynulovani", any(t == _("The limits reset on %s (in %d days).")
-                                           % (format_date(acc.usage_reset({}), "full"),
-                                              acc.days_until(acc.usage_reset({}))) for t in labels), labels)
+    usage_checks(win, lang)
     shot(win, "manage-overview" + sfx)
 
     # uzivatelske jmeno
@@ -301,6 +295,72 @@ def manage(lang):
     check("vyprsela session -> prihlaseni", wait(lambda: hasattr(win, "panel") and win.panel.get_parent() is not None))
     win.destroy()
     OPENED.clear()
+
+
+def usage_labels(win):
+    return [w.get_text() for w in walk(win.usage_body) if isinstance(w, Gtk.Label)]
+
+
+def reload_usage(win, usage):
+    """Server vrati jinou spotrebu -> GET /api/me (napodoba) -> prekresleni prehledu."""
+    SRV.accounts["jan@example.cz"]["usage"] = usage
+    win.profile_loaded(acc.me(), None)
+    pump(0.1)
+    return usage_labels(win)
+
+
+def usage_checks(win, lang):
+    """Prehled: jeden pruh kreditu (od 2026-11-19), bez omezeni, vycerpano, starsi server s tokeny."""
+    from luxos_i18n import format_date
+    sfx = "-" + lang
+    num = {"en": ("12,345", "20,000", "250,000", "31,250", "50,000"),
+           "cs": ("12\u202f345", "20\u202f000", "250\u202f000", "31\u202f250", "50\u202f000")}[lang]
+    labels = usage_labels(win)
+    check("prehled: pruh kreditu 62 %", "62 %" in labels, labels)
+    check("prehled: X z 20 000 kreditu (cisla podle jazyka)",
+          _("%s of %s credits this month") % num[:2] in labels, labels)
+    check("prehled: nadpis Kredity LuxAI a spolecne pro modely",
+          _("LuxAI credits") in labels and _("shared by all models") in labels, labels)
+    check("prehled: zadne tokeny ani Flash/Lite", not any("Flash" in t or "Lite" in t or "token" in t.lower()
+                                                          for t in labels), labels)
+    bars = [w for w in walk(win.usage_body) if isinstance(w, Gtk.LevelBar)]
+    check("prehled: jeden pruh s hodnotami ze serveru",
+          len(bars) == 1 and (bars[0].get_value(), bars[0].get_max_value()) == (12345, 20000),
+          [(b.get_value(), b.get_max_value()) for b in bars])
+    when = acc.month_reset({"month": time.strftime("%Y-%m")})
+    check("prehled: datum obnoveni z usage.month", _("Credits renew on %s (in %d days).")
+          % (format_date(when, "full"), acc.days_until(when)) in labels, labels)
+    shot(win, "manage-overview" + sfx)
+
+    # limit ze serveru (ne pevne 20 000), bez usage.month -> bez data obnoveni
+    labels = reload_usage(win, {"credits": 0, "creditsLimit": 250000, "unlimited": False})
+    check("prehled: limit ze serveru", _("%s of %s credits this month") % ("0", num[2]) in labels, labels)
+    check("prehled: bez usage.month se datum nehada", not any(t.startswith(_("Credits renew on %s (in %d days).")
+                                                                         .split("%s")[0]) for t in labels), labels)
+
+    # vycerpano: hlaska o limitu s datem z usage.month
+    labels = reload_usage(win, MockLuxAI.credits_usage(20000, month="2026-11"))
+    msg = _("You've used this month's LuxAI credits. They renew on %s.") \
+        % format_date(acc.month_reset({"month": "2026-11"}), "full")
+    check("prehled: vycerpano 100 % + hlaska s datem", "100 %" in labels and msg in labels, labels)
+    shot(win, "manage-overview-limit" + sfx)
+    labels = reload_usage(win, {"credits": 21000, "creditsLimit": 20000, "unlimited": False})
+    check("prehled: vycerpano bez data", _("You've used this month's LuxAI credits.") in labels, labels)
+
+    # bez omezeni
+    labels = reload_usage(win, dict(MockLuxAI.credits_usage(500), unlimited=True))
+    bars = [w for w in walk(win.usage_body) if isinstance(w, Gtk.LevelBar)]
+    check("prehled: Bez omezeni bez pruhu", labels == [_("Unlimited")] and not bars, labels)
+
+    # starsi server: jen tokeny po modelech -> puvodni zobrazeni Flash a Lite
+    labels = reload_usage(win, {"fastTokens": 31250, "fastLimit": 50000, "liteTokens": 120000, "liteLimit": 1000000})
+    check("starsi server: Flash 63 % a Lite", "63 %" in labels and "Flash" in labels and "Lite" in labels, labels)
+    check("starsi server: x z y tokenu", _("%s of %s tokens") % num[3:5] in labels, labels)
+    check("starsi server: datum vynulovani", any(t == _("The limits reset on %s (in %d days).")
+                                                 % (format_date(acc.usage_reset({}), "full"),
+                                                    acc.days_until(acc.usage_reset({}))) for t in labels), labels)
+    shot(win, "manage-overview-tokens" + sfx)
+    reload_usage(win, MockLuxAI.credits_usage(12345))
 
 
 def walk(w):

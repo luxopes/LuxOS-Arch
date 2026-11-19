@@ -28,7 +28,7 @@ v uložené relaci). Pokyny k projektu agent čte jen ze souboru `AGENTS.md` př
 ## Přihlášení
 
 V LuxOS používá Lux Code sdílený **účet LuxAI** (viz [Účet LuxAI](luxai-account.html)). Když existuje
-`~/.config/luxai/account.json`, požadavky jdou službě LuxAI, spotřeba se započítá do měsíčního limitu
+`~/.config/luxai/account.json`, požadavky jdou službě LuxAI, spotřeba se započítá do měsíčních kreditů
 účtu a modely jsou `flash` a `lite`. Když nejste přihlášeni, spusťte `luxos-account login`. Bez souboru
 účtu může Lux Code použít klíč API (`LUX_AI_API`). Způsob lze vynutit `LUX_CODE_AUTH=account|apikey|auto`.
 Soubor účtu jen čte a token nikdy nevypisuje.

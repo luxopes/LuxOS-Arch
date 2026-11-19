@@ -35,19 +35,19 @@
       <li xml:lang="pt">Início de sessão com palavra-passe, código enviado por e-mail ou no navegador, ou criação de uma conta nova</li>
       <li xml:lang="nl">Aanmelden met een wachtwoord, een code per e-mail of in de webbrowser, of een nieuw account aanmaken</li>
       <li xml:lang="sv">Logga in med lösenord, en kod via e-post eller i webbläsaren, eller skapa ett nytt konto</li>
-      <li>This month's AI usage of the Flash and Lite models and when the limits reset</li>
-      <li xml:lang="cs">Spotřeba AI modelů Flash a Lite za tento měsíc a datum obnovení limitů</li>
-      <li xml:lang="sk">Spotreba AI modelov Flash a Lite za tento mesiac a dátum obnovenia limitov</li>
-      <li xml:lang="pl">Zużycie AI modeli Flash i Lite w tym miesiącu oraz termin odnowienia limitów</li>
-      <li xml:lang="uk">Використання AI моделями Flash і Lite цього місяця та дата скидання лімітів</li>
-      <li xml:lang="hu">A Flash és a Lite modell havi AI-használata és a keretek megújulásának dátuma</li>
-      <li xml:lang="de">KI-Nutzung der Modelle Flash und Lite in diesem Monat und wann die Limits zurückgesetzt werden</li>
-      <li xml:lang="fr">Consommation d’IA des modèles Flash et Lite ce mois-ci et date de remise à zéro des limites</li>
-      <li xml:lang="es">Uso de IA de los modelos Flash y Lite este mes y cuándo se restablecen los límites</li>
-      <li xml:lang="it">Utilizzo dell’IA dei modelli Flash e Lite di questo mese e quando si azzerano i limiti</li>
-      <li xml:lang="pt">Utilização de IA dos modelos Flash e Lite este mês e quando os limites são repostos</li>
-      <li xml:lang="nl">AI-gebruik van de modellen Flash en Lite deze maand en wanneer de limieten opnieuw beginnen</li>
-      <li xml:lang="sv">AI-användning för modellerna Flash och Lite den här månaden och när gränserna nollställs</li>
+      <li>This month's LuxAI credits, shared by all models, and when they renew</li>
+      <li xml:lang="cs">Kredity LuxAI za tento měsíc, společné pro všechny modely, a kdy se obnoví</li>
+      <li xml:lang="sk">Kredity LuxAI za tento mesiac, spoločné pre všetky modely, a kedy sa obnovia</li>
+      <li xml:lang="pl">Kredyty LuxAI w tym miesiącu, wspólne dla wszystkich modeli, i termin ich odnowienia</li>
+      <li xml:lang="uk">Кредити LuxAI цього місяця, спільні для всіх моделей, і коли вони поновляться</li>
+      <li xml:lang="hu">A LuxAI havi kreditjei, amelyeken minden modell osztozik, és hogy mikor újulnak meg</li>
+      <li xml:lang="de">LuxAI-Credits dieses Monats, gemeinsam für alle Modelle, und wann sie sich erneuern</li>
+      <li xml:lang="fr">Crédits LuxAI du mois, partagés par tous les modèles, et date de leur renouvellement</li>
+      <li xml:lang="es">Créditos de LuxAI de este mes, compartidos por todos los modelos, y cuándo se renuevan</li>
+      <li xml:lang="it">Crediti LuxAI di questo mese, condivisi da tutti i modelli, e quando si rinnovano</li>
+      <li xml:lang="pt">Créditos LuxAI deste mês, partilhados por todos os modelos, e quando são renovados</li>
+      <li xml:lang="nl">LuxAI-credits van deze maand, gedeeld door alle modellen, en wanneer ze vernieuwd worden</li>
+      <li xml:lang="sv">Månadens LuxAI-krediter, gemensamma för alla modeller, och när de förnyas</li>
       <li>Change your username and password</li>
       <li xml:lang="cs">Změna uživatelského jména a hesla</li>
       <li xml:lang="sk">Zmena používateľského mena a hesla</li>

@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Bevestig het inloggen in de browser…
 After you confirm your e-mail, come back and sign in.	Kom terug en log in nadat je je e-mailadres hebt bevestigd.
 AI usage this month	AI-gebruik deze maand
 Unlimited	Onbeperkt
-%s: %s of %s tokens	%s: %s van %s tokens
 Loading…	Laden…
 Used by	Gebruikt door
 Manage on lux-ai.cz	Beheer op lux-ai.cz
@@ -3193,7 +3192,7 @@ New password again	Nieuw wachtwoord herhalen
 Sessions and Devices	Sessies en apparaten
 Changing the password…	Wachtwoord wijzigen…
 AI Answer Style	Antwoordstijl van AI
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Geldt voor nieuwe antwoorden in de LuxAI-chat. Verandert het gekozen model en de tokenlimiet niet.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Geldt voor nieuwe antwoorden in de LuxAI-chat. Verandert het gekozen model en de maandelijkse credits niet.
 Appearance on the Web	Weergave op het web
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Opgeslagen in je LuxAI-account en gebruikt op lux-ai.cz op al je apparaten. Het uiterlijk van LuxOS stel je in bij Instellingen › Uiterlijk.
 Export Your Data	Je gegevens exporteren
@@ -3237,6 +3236,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	De limieten worden op %s teruggezet (nog %d dagen).
 Downloading chat %d of %d…	Chat %d van %d downloaden…
 %s of %s tokens	%s van %s tokens
+LuxAI credits	LuxAI-credits
+shared by all models	gedeeld door alle modellen
+%s of %s credits this month	%s van %s credits deze maand
+Credits renew on %s (in %d days).	De credits worden op %s vernieuwd (nog %d dagen).
+You've used this month's LuxAI credits.	Je hebt de LuxAI-credits van deze maand opgebruikt.
+You've used this month's LuxAI credits. They renew on %s.	Je hebt de LuxAI-credits van deze maand opgebruikt. Ze worden op %s vernieuwd.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Gebruik 3–32 kleine letters, cijfers of . _ -; het eerste teken moet een letter of cijfer zijn.
 This username is already used by another account.	Deze gebruikersnaam wordt al door een ander account gebruikt.
 The current password is not correct.	Het huidige wachtwoord is onjuist.

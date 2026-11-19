@@ -56,7 +56,7 @@ Launchpad, Search and a Control Center. It is a rolling release: installed syste
 - **LuxOS apps** – Store, Software Update, Control Center, Weather, Maps, Calculator, Terminal, Text
   Editor, LuxDrop (LocalSend-compatible file sharing), Backups, Printers & Scanners and more.
 - **LuxAI** (optional) – an assistant with Chat and Agent modes that asks before risky actions;
-  needs a LuxAI account with monthly limits. Answers are processed by third-party model providers
+  needs a LuxAI account (20 000 credits per month, shared by all models). Answers are processed by third-party model providers
   ([privacy policy](https://luxos.lux-ai.cz/privacy/)).
 - **LSL** – several system tools are written in [LSL](https://lsl.lux-ai.cz), a small compiled
   language by the same author; the `lsh` shell (a GNU bash fork) runs LSL statements directly.

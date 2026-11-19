@@ -3,6 +3,7 @@ proti mistni napodobe serveru LuxAI z testu (luxos-account/tests/mock_luxai.py),
 import json
 import os
 import sys
+import time
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -21,7 +22,9 @@ def mock_server(s):
     srv.accounts["alex@example.com"] = {
         "password": PW, "displayName": "Alex Morgan", "username": "alex.morgan",
         "settings": {"theme": "light", "aiResponseStyle": "balanced"},
-        "usage": {"fastTokens": 412500, "fastLimit": 1000000, "liteTokens": 2350000, "liteLimit": 10000000}}
+        "usage": {"credits": 7350, "creditsLimit": 20000, "unlimited": False, "week": 1820,
+                  "month": time.strftime("%Y-%m"),
+                  "fastTokens": 412500, "fastLimit": 1000000, "liteTokens": 2350000, "liteLimit": 10000000}}
     s._servers.append(srv.httpd)       # harness server ukonci (shutdown + server_close)
     return srv
 

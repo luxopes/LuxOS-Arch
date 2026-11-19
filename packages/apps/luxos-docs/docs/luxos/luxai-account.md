@@ -57,7 +57,7 @@ share the output of `luxos-account token`** – it is a secret session credentia
   offer *Sign in again* and do not delete the file themselves.
 - The origin can be overridden for testing with `LUXAI_ORIGIN`.
 
-## Models and monthly limits
+## Models and monthly credits
 
 The account offers two AI models:
 
@@ -66,15 +66,22 @@ The account offers two AI models:
 | **Flash** | `flash` | "smarter", default model; can see images |
 | **Lite** | `lite` | "faster, larger limit"; no image input by default; also used to generate conversation titles |
 
-Usage is counted per calendar month per model. The real limits are delivered by the server in
-`GET /api/me` (`usage.fastTokens` / `usage.fastLimit` for Flash, `usage.liteTokens` /
-`usage.liteLimit` for Lite, or `usage.unlimited`); the LuxAI Account window shows them as bars under
-**AI usage this month**. Standard limits (since October 2026): **Flash 1 000 000 and Lite 10 000 000
-tokens per month**; some accounts are unlimited. Treat the values from `/api/me` as authoritative
-because the server may change them.
+Since 19 November 2026 usage is counted in **credits**: every account has **20 000 credits per
+month**, shared by all models (Flash, Lite and any other) and by all apps that use the account
+(LuxAI, Lux Code, LSL IDE). A request costs credits according to what it really costs to run, so a
+smarter model or a long answer uses more of them. Some accounts are unlimited.
 
-When a limit is used up, LuxAI reports "The monthly Flash limit is used up. Switch to Lite or wait for
-the next month." or "The monthly Lite limit is used up."
+The real numbers are delivered by the server in `GET /api/me`: `usage.credits` (used this month),
+`usage.creditsLimit`, `usage.unlimited`, plus `usage.week` and `usage.month`. The LuxAI Account
+window shows one bar under **AI usage this month** – "X of 20 000 credits this month" with the
+numbers from the server, formatted for the app language – or "Unlimited". Treat the values from
+`/api/me` as authoritative because the server may change them. The fields `fastTokens`,
+`fastLimit`, `liteTokens` and `liteLimit` are still sent for older app versions only; if a server
+returns only those, LuxAI Account falls back to the old Flash and Lite bars in tokens.
+
+When the credits are used up, requests get HTTP 429 `{"error": "monthly_limit", "limit": …,
+"unit": "credits"}` and the apps say "You've used this month's LuxAI credits. They renew on
+<date>." (without the date when it cannot be derived from `usage.month`).
 
 ## Managing the account
 
@@ -83,7 +90,7 @@ When signed in, **LuxAI Account** shows a sidebar with these pages (same API as 
 
 | Page | What it does | Endpoint |
 |---|---|---|
-| **Overview** | name, `@username`, e-mail; Flash and Lite usage bars with percent, "x of y tokens" and the reset date (1st day of the next calendar month, or `usage.resetAt` if the server sends it) | `GET /api/me` |
+| **Overview** | name, `@username`, e-mail; one credits bar with percent, "X of 20 000 credits this month" and the renewal date when the server sends it (`usage.month` or `usage.resetAt`); "Unlimited" for unlimited accounts; the used-up message when the credits run out | `GET /api/me` |
 | **Profile** | change the **username** (3–32 lowercase letters, digits, `. _ -`, first a letter or digit; errors `invalid_username`, `username_taken`, `rate`) | `PATCH /api/account/settings {"username"}` |
 | | e-mail – shown only; changing it has no API (button **Contact Support** → `info@lux-ai.cz`) | – |
 | | profile picture – local to this computer (`luxos-profile-picture`); the web has no avatars | – |

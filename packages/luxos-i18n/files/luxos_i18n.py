@@ -154,3 +154,16 @@ def format_number(value, digits=1, lang=None):
     """Desetinne cislo s carkou/teckou podle jazyka aplikace ("1,5" v cestine, "1.5" v anglictine)."""
     text = f"{value:.{digits}f}"
     return text.replace(".", decimal_separator(lang)) if digits > 0 else text
+
+
+# oddelovac tisicu podle jazyka: uzka nezlomitelna mezera (cs, sk, pl, uk, hu, fr, sv), tecka (de, nl,
+# es, it, pt), carka (en)
+_THOUSANDS = {"en": ",", "de": ".", "nl": ".", "es": ".", "it": ".", "pt": "."}
+
+
+def format_integer(value, lang=None):
+    """Cele cislo s oddelovacem tisicu podle jazyka aplikace ("20 000" v cestine, "20,000" v anglictine,
+    "20.000" v nemcine)."""
+    n = int(round(value))
+    sep = _THOUSANDS.get((lang or LANG).split("_")[0], " ")
+    return f"{n:,}".replace(",", sep)

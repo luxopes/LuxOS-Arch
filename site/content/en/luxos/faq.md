@@ -15,7 +15,7 @@ LuxOS code (the `luxos-*` packages, `lux`, `luxdrop`, scripts and the installer)
 GPL-3.0-or-later; bundled third-party packages keep their own licences. A few apps – LuxAI, Lux Code,
 LSL IDE and the Organization network (Active Directory) – are proprietary: they are free to use on
 LuxOS, but their source code is not public. The optional LuxAI assistant uses a LuxAI account, which
-has a monthly usage limit.
+has 20 000 credits per month, shared by all models.
 
 ## Who makes LuxOS?
 
@@ -121,8 +121,8 @@ listed in the [privacy policy](https://luxos.lux-ai.cz/privacy/). See [LuxAI](lu
 ## Do I need an account for LuxAI?
 
 Yes. LuxAI, Lux Code and LSL IDE share one LuxAI account, which you can create in the installer or in
-the **LuxAI Account** app. The account has monthly usage limits. See
-[LuxAI account](luxai-account.html).
+the **LuxAI Account** app. The account has 20 000 credits per month, shared by all models; LuxAI,
+Lux Code and LSL IDE draw from the same credits. See [LuxAI account](luxai-account.html).
 
 ## What is Lux Code?
 

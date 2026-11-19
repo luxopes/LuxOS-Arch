@@ -17,6 +17,8 @@ Sprava uctu (jako stranka /settings webu):
                                  prihlaseni kodem; odhlasi ostatni relace
   GET  /api/chat/history[/ID]    historie weboveho chatu (pro export)
   POST /api/ide/logout           zneplatni session
+  POST /api/chat                 napodoba AI pozadavku: 429 {"error": "monthly_limit", "limit", "unit": "credits"}
+                                 po vycerpani mesicnich kreditu (usage.credits >= usage.creditsLimit)
 native_settings = False / native_history = False -> 403 {"error": "origin"} pro X-Lux-Client.
 Specialni domeny vyvolaji chyby: blocked.test, review.test, down.test, busy.test.
 allow_native = False napodobi dnesni stav: registrace z aplikaci -> 403 {"error": "origin"}
@@ -134,9 +136,19 @@ class MockLuxAI:
         a = self.accounts[email]
         a.setdefault("username", re.sub(r"[^a-z0-9._-]", "", email.split("@")[0]) or "user")
         a.setdefault("settings", {"theme": "dark", "aiResponseStyle": "balanced"})
-        a.setdefault("usage", {"fastTokens": 0, "fastLimit": 50000, "liteTokens": 0, "liteLimit": 1000000})
+        a.setdefault("usage", self.credits_usage(0))
         return {"id": "u-" + email.split("@")[0], "email": email, "displayName": a["displayName"],
                 "username": a["username"], "settings": dict(a["settings"]), "usage": dict(a["usage"])}
+
+    @staticmethod
+    def credits_usage(credits, limit=20000, month=None, legacy=True):
+        """usage z /api/me od 2026-11-19: kredity spolecne pro vsechny modely (+ stara tokenova pole pro
+        starsi aplikace, legacy=False je vynecha). month = "YYYY-MM" (vychozi aktualni mesic) nebo dict."""
+        u = {"credits": credits, "creditsLimit": limit, "unlimited": False, "week": 0,
+             "month": time.strftime("%Y-%m") if month is None else month}
+        if legacy:
+            u.update({"fastTokens": 0, "fastLimit": 1000000, "liteTokens": 0, "liteLimit": 10000000})
+        return u
 
     def session(self, email, fresh=False):
         token = secrets.token_urlsafe(16)
@@ -233,6 +245,14 @@ class MockLuxAI:
         if path == "/api/ide/logout":
             self.sessions.pop(token, None)
             return 200, {"ok": True}, None
+        if path == "/api/chat":   # AI pozadavek: po vycerpani kreditu 429 monthly_limit
+            email = self.authed(token)
+            if not email:
+                return 401, {"error": "unauthorized"}, None
+            u = self.user(email)["usage"]
+            if not u.get("unlimited") and "creditsLimit" in u and u.get("credits", 0) >= u["creditsLimit"]:
+                return 429, {"error": "monthly_limit", "limit": u["creditsLimit"], "unit": "credits"}, None
+            return 200, {"ok": True, "answer": "ok"}, None
         if path == "/__mock/allow_native":   # jen pro testy v jinem procesu (TUI)
             self.allow_native = bool(body.get("value"))
             return 200, {"ok": True}, None

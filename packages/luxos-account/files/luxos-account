@@ -26,8 +26,20 @@ def human(err):
 
 
 def group(n):
-    """1234567 -> "1 234 567" (mezera po tisicich jako v LuxAI)."""
-    return f"{n:,}".replace(",", "\u202f")
+    """1234567 -> "1 234 567" / "1,234,567" / "1.234.567" podle jazyka aplikace."""
+    try:
+        from luxos_i18n import format_integer
+    except ImportError:   # starsi luxos-i18n bez format_integer: mezera po tisicich jako v LuxAI
+        return f"{int(round(n)):,}".replace(",", "\u202f")
+    return format_integer(n)
+
+
+def date_text(when):
+    try:  # datum v jazyce aplikace, ne podle libc locale (%x dal s jen en_US americky tvar)
+        from luxos_i18n import format_date
+        return format_date(when, "full")
+    except ImportError:
+        return time.strftime("%x", when)
 
 
 # ---- prikazova radka (bez GTK) ---------------------------------------------------
@@ -448,46 +460,60 @@ class AccountWindow(Gtk.Window):
         for c in self.usage_body.get_children():
             self.usage_body.remove(c)
         b = self.usage_body
-        if usage.get("unlimited"):
+        info = acc.parse_usage(usage)
+        if info["mode"] == "unlimited":
             b.pack_start(Gtk.Label(label=_("Unlimited"), xalign=0), False, False, 0)
-        elif usage:
-            for label, desc, used, limit in (
-                    ("Flash", _("smarter, can see images"), usage.get("fastTokens", 0), usage.get("fastLimit", 0)),
-                    ("Lite", _("faster, larger limit"), usage.get("liteTokens", 0), usage.get("liteLimit", 0))):
-                used, limit = int(used or 0), int(limit or 0)
-                row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-                head = Gtk.Box(spacing=8)
-                t = Gtk.Label(label=label, xalign=0)
-                t.get_style_context().add_class("card-title")
-                head.pack_start(t, False, False, 0)
-                d = Gtk.Label(label=desc, xalign=0)
-                d.get_style_context().add_class("dim")
-                head.pack_start(d, False, False, 0)
+        elif info["mode"] == "credits":
+            # od 2026-11-19 jeden mesicni limit kreditu pro vsechny modely (cisla vzdy ze serveru)
+            used, limit = info["used"], info["limit"]
+            b.pack_start(self.usage_row(_("LuxAI credits"), _("shared by all models"), used, limit, info["percent"],
+                                        _("%s of %s credits this month") % (group(used), group(limit))),
+                         False, False, 0)
+            when = info["reset"]
+            if info["exhausted"]:
+                msg = Gtk.Label(label=acc.limit_text(usage=usage, tr=_, date_format=date_text), xalign=0, wrap=True)
+                msg.get_style_context().add_class("error")
+                b.pack_start(msg, False, False, 0)
+            elif when:
+                text = _("Credits renew on %s (in %d days).") % (date_text(when), acc.days_until(when))
+                reset = Gtk.Label(label=text, xalign=0, wrap=True)
+                reset.get_style_context().add_class("dim")
+                b.pack_start(reset, False, False, 0)
+        elif info["mode"] == "tokens":
+            # starsi server (jen tokeny po modelech Flash a Lite) - puvodni zobrazeni
+            descs = {"Flash": _("smarter, can see images"), "Lite": _("faster, larger limit")}
+            for label, used, limit in info["models"]:
                 pct = min(100, int(used * 100 / limit + 0.5)) if limit else 0   # jako Math.round na webu
-                p = Gtk.Label(label=f"{pct} %")
-                p.get_style_context().add_class("pct" if pct < 90 else "error")
-                head.pack_end(p, False, False, 0)
-                row.pack_start(head, False, False, 0)
-                bar = Gtk.LevelBar(min_value=0, max_value=max(limit, 1), value=min(used, max(limit, 1)))
-                bar.get_style_context().add_class("usage")
-                row.pack_start(bar, False, False, 0)
-                row.pack_start(Gtk.Label(label=_("%s of %s tokens") % (group(used), group(limit)), xalign=0),
-                               False, False, 0)
-                b.pack_start(row, False, False, 0)
+                b.pack_start(self.usage_row(label, descs.get(label, ""), used, limit, pct,
+                                            _("%s of %s tokens") % (group(used), group(limit))), False, False, 0)
             when = acc.usage_reset(usage)
-            days = acc.days_until(when)
-            try:  # datum v jazyce aplikace, ne podle libc locale (%x dal s jen en_US americky tvar)
-                from luxos_i18n import format_date
-                when_text = format_date(when, "full")
-            except ImportError:
-                when_text = time.strftime("%x", when)
-            reset = Gtk.Label(label=_("The limits reset on %s (in %d days).") % (when_text, days),
+            reset = Gtk.Label(label=_("The limits reset on %s (in %d days).") % (date_text(when), acc.days_until(when)),
                               xalign=0, wrap=True)
             reset.get_style_context().add_class("dim")
             b.pack_start(reset, False, False, 0)
         else:
             b.pack_start(Gtk.Label(label=_("Loading…"), xalign=0), False, False, 0)
         b.show_all()
+
+    def usage_row(self, label, desc, used, limit, pct, amount):
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        head = Gtk.Box(spacing=8)
+        t = Gtk.Label(label=label, xalign=0)
+        t.get_style_context().add_class("card-title")
+        head.pack_start(t, False, False, 0)
+        d = Gtk.Label(label=desc, xalign=0)
+        d.get_style_context().add_class("dim")
+        head.pack_start(d, False, False, 0)
+        p = Gtk.Label(label=f"{pct} %")
+        p.get_style_context().add_class("pct" if pct < 90 else "error")
+        head.pack_end(p, False, False, 0)
+        row.pack_start(head, False, False, 0)
+        top = max(float(limit), 1.0)
+        bar = Gtk.LevelBar(min_value=0, max_value=top, value=min(float(used), top))
+        bar.get_style_context().add_class("usage")
+        row.pack_start(bar, False, False, 0)
+        row.pack_start(Gtk.Label(label=amount, xalign=0), False, False, 0)
+        return row
 
     # -- Profil: uzivatelske jmeno (PATCH /api/account/settings), e-mail, fotka --
     def page_profile(self, box):
@@ -647,7 +673,7 @@ class AccountWindow(Gtk.Window):
 
     def page_preferences(self, box):
         c = self.card(box, _("AI Answer Style"), _("Applies to new answers in LuxAI chat. It does not change the "
-                                                   "selected model or the token limit."))
+                                                   "selected model or the monthly credits."))
         self.style = Gtk.ComboBoxText(halign=Gtk.Align.START)
         for key in acc.RESPONSE_STYLES:
             self.style.append(key, _(self.STYLES[key][0]))

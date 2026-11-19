@@ -498,7 +498,6 @@ Confirm the sign-in in the browser…	Bekräfta inloggningen i webbläsaren…
 After you confirm your e-mail, come back and sign in.	När du har bekräftat din e-postadress kan du komma tillbaka och logga in.
 AI usage this month	AI-användning den här månaden
 Unlimited	Obegränsat
-%s: %s of %s tokens	%s: %s av %s tokens
 Loading…	Läser in…
 Used by	Används av
 Manage on lux-ai.cz	Hantera på lux-ai.cz
@@ -3193,7 +3192,7 @@ New password again	Nytt lösenord igen
 Sessions and Devices	Sessioner och enheter
 Changing the password…	Byter lösenord…
 AI Answer Style	AI-svarsstil
-Applies to new answers in LuxAI chat. It does not change the selected model or the token limit.	Gäller nya svar i LuxAI-chatten. Ändrar inte vald modell eller tokengränsen.
+Applies to new answers in LuxAI chat. It does not change the selected model or the monthly credits.	Gäller nya svar i LuxAI-chatten. Ändrar inte vald modell eller de månatliga krediterna.
 Appearance on the Web	Utseende på webben
 Saved to your LuxAI account and used on lux-ai.cz on all your devices. The look of LuxOS is set in Settings › Appearance.	Sparas i ditt LuxAI-konto och används på lux-ai.cz på alla dina enheter. LuxOS utseende ställs in i Inställningar › Utseende.
 Export Your Data	Exportera dina data
@@ -3237,6 +3236,12 @@ All chats, settings and the usage history of %s will be deleted. Export your dat
 The limits reset on %s (in %d days).	Gränserna nollställs %s (dagar kvar: %d).
 Downloading chat %d of %d…	Hämtar chatt %d av %d…
 %s of %s tokens	%s av %s token
+LuxAI credits	LuxAI-krediter
+shared by all models	gemensamma för alla modeller
+%s of %s credits this month	%s av %s krediter den här månaden
+Credits renew on %s (in %d days).	Krediterna förnyas %s (dagar kvar: %d).
+You've used this month's LuxAI credits.	Du har använt månadens LuxAI-krediter.
+You've used this month's LuxAI credits. They renew on %s.	Du har använt månadens LuxAI-krediter. De förnyas %s.
 Use 3-32 lowercase letters, digits or . _ -; the first character must be a letter or a digit.	Använd 3–32 gemener, siffror eller . _ -; första tecknet måste vara en bokstav eller siffra.
 This username is already used by another account.	Användarnamnet används redan av ett annat konto.
 The current password is not correct.	Nuvarande lösenord är fel.
