@@ -10,7 +10,7 @@ are free to use on LuxOS.
 | LuxOS Mail, LuxOS Docs, App Studio, Icon Studio | GPL-3.0-or-later | this repository (`packages/apps/`) |
 | LuxOS SDK, themes partly | MIT (see each `PKGBUILD`) | this repository |
 | Patched upstream packages (`xfwm4`, `plank`, `rofi`, `xfce4-*`, `vte3`, `gdk-pixbuf2`, `libfprint`, `lux-engine`, `adcli`, `realmd`, the `linux-luxos` kernel …) | their upstream licenses (GPL, LGPL, MIT …) | this repository and luxopes/luxos-kernel |
-| **Proprietary:** LuxAI (`luxai`), Lux Code (`lux-code`), LSL IDE (`lsl-ide`), LuxOS Organization network / Active Directory (`luxos-domain`) | [LicenseRef-LuxOS-Proprietary](LicenseRef-LuxOS-Proprietary.md); third-party parts in [NOTICE-proprietary.md](NOTICE-proprietary.md) | not public; binary packages in the LuxOS repository |
+| **Proprietary:** LuxAI (`luxai`), Lux Code (`lux-code`, `lux-code-next`), LSL IDE (`lsl-ide`), LuxOS Organization network / Active Directory (`luxos-domain`) | [LicenseRef-LuxOS-Proprietary](LicenseRef-LuxOS-Proprietary.md); third-party parts in [NOTICE-proprietary.md](NOTICE-proprietary.md) | not public; binary packages in the LuxOS repository |
 | LSL (Lux Simple Lang) | MIT | <https://lsl.lux-ai.cz> |
 
 Versions of the proprietary components that were published in this repository before the license

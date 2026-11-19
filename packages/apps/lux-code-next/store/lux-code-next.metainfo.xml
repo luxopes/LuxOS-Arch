@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LuxOS Store: popis aplikace (luxos_app_catalog.py -> apps.json) -->
+<component type="desktop-application">
+  <id>lux-code-next</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-custom</project_license>
+  <name>Lux Code (next)</name>
+  <summary>Try the new Lux Code: an AI coding agent in the terminal</summary>
+  <launchable type="desktop-id">lux-code-next.desktop</launchable>
+  <description>
+    <p>Lux Code (next) is the new version of the LuxAI coding agent for the terminal, built on the open-source Oh My Pi. It runs next to the current Lux Code, so you can try it without giving anything up.</p>
+    <p xml:lang="cs">Lux Code (next) je nová verze AI agenta LuxAI pro programování v terminálu, postavená na otevřeném projektu Oh My Pi. Běží vedle současného Lux Code, takže ji můžete vyzkoušet a o nic nepřijdete.</p>
+    <p xml:lang="sk">Lux Code (next) je nová verzia AI agenta LuxAI na programovanie v termináli, postavená na otvorenom projekte Oh My Pi. Beží vedľa súčasného Lux Code, takže ju môžete vyskúšať a o nič neprídete.</p>
+    <p xml:lang="pl">Lux Code (next) to nowa wersja agenta AI LuxAI do programowania w terminalu, zbudowana na otwartym projekcie Oh My Pi. Działa obok obecnego Lux Code, więc możesz ją wypróbować bez żadnych strat.</p>
+    <p xml:lang="uk">Lux Code (next) – нова версія AI-агента LuxAI для програмування в терміналі, створена на основі відкритого проєкту Oh My Pi. Вона працює поряд із поточним Lux Code, тож її можна спробувати нічого не втрачаючи.</p>
+    <p xml:lang="hu">A Lux Code (next) a LuxAI terminálban működő AI programozóügynökének új verziója, amely a nyílt forrású Oh My Pi-ra épül. A jelenlegi Lux Code mellett fut, így semmiről sem kell lemondania a kipróbáláshoz.</p>
+    <p xml:lang="de">Lux Code (next) ist die neue Version des LuxAI-Programmieragenten für das Terminal, aufgebaut auf dem quelloffenen Oh My Pi. Es läuft neben dem bisherigen Lux Code, sodass Sie es ohne Verzicht ausprobieren können.</p>
+    <p xml:lang="fr">Lux Code (next) est la nouvelle version de l’agent de programmation LuxAI pour le terminal, construite sur le projet libre Oh My Pi. Il fonctionne à côté du Lux Code actuel : vous pouvez l’essayer sans rien perdre.</p>
+    <p xml:lang="es">Lux Code (next) es la nueva versión del agente de programación de LuxAI para el terminal, basada en el proyecto libre Oh My Pi. Funciona junto al Lux Code actual, así que puede probarla sin renunciar a nada.</p>
+    <p xml:lang="it">Lux Code (next) è la nuova versione dell’agente di programmazione LuxAI per il terminale, basata sul progetto open source Oh My Pi. Funziona accanto all’attuale Lux Code, quindi puoi provarla senza rinunciare a nulla.</p>
+    <p xml:lang="pt">Lux Code (next) é a nova versão do agente de programação LuxAI para o terminal, construída sobre o projeto aberto Oh My Pi. Funciona ao lado do Lux Code atual, por isso pode experimentá-la sem perder nada.</p>
+    <p xml:lang="nl">Lux Code (next) is de nieuwe versie van de LuxAI-programmeeragent voor de terminal, gebouwd op het opensourceproject Oh My Pi. Hij draait naast de huidige Lux Code, dus je kunt hem proberen zonder iets op te geven.</p>
+    <p xml:lang="sv">Lux Code (next) är den nya versionen av LuxAI:s programmeringsagent för terminalen, byggd på det öppna projektet Oh My Pi. Den körs bredvid nuvarande Lux Code, så du kan prova den utan att ge upp något.</p>
+    <ul>
+      <li>Reads your project, edits code, runs commands and tests in the LuxOS shell</li>
+      <li xml:lang="cs">Čte projekt, upravuje kód, spouští příkazy a testy v shellu LuxOS</li>
+      <li xml:lang="sk">Číta projekt, upravuje kód, spúšťa príkazy a testy v shelli LuxOS</li>
+      <li xml:lang="pl">Czyta projekt, zmienia kod, uruchamia polecenia i testy w powłoce LuxOS</li>
+      <li xml:lang="uk">Читає проєкт, змінює код, запускає команди й тести в оболонці LuxOS</li>
+      <li xml:lang="hu">Elolvassa a projektet, módosítja a kódot, parancsokat és teszteket futtat a LuxOS héjában</li>
+      <li xml:lang="de">Liest Ihr Projekt, ändert Code, führt Befehle und Tests in der LuxOS-Shell aus</li>
+      <li xml:lang="fr">Lit votre projet, modifie le code, lance des commandes et des tests dans le shell LuxOS</li>
+      <li xml:lang="es">Lee su proyecto, edita el código y ejecuta comandos y pruebas en el shell de LuxOS</li>
+      <li xml:lang="it">Legge il progetto, modifica il codice, esegue comandi e test nella shell di LuxOS</li>
+      <li xml:lang="pt">Lê o seu projeto, edita o código e executa comandos e testes na shell do LuxOS</li>
+      <li xml:lang="nl">Leest je project, past code aan, voert opdrachten en tests uit in de LuxOS-shell</li>
+      <li xml:lang="sv">Läser projektet, ändrar koden, kör kommandon och tester i LuxOS-skalet</li>
+      <li>Helpers that work in the background while you keep talking</li>
+      <li xml:lang="cs">Pomocníci, kteří pracují na pozadí, zatímco vy pokračujete v rozhovoru</li>
+      <li xml:lang="sk">Pomocníci, ktorí pracujú na pozadí, kým vy pokračujete v rozhovore</li>
+      <li xml:lang="pl">Pomocnicy pracujący w tle, gdy Ty kontynuujesz rozmowę</li>
+      <li xml:lang="uk">Помічники, що працюють у фоні, поки ви продовжуєте розмову</li>
+      <li xml:lang="hu">Háttérben dolgozó segítők, miközben Ön tovább beszélget</li>
+      <li xml:lang="de">Helfer, die im Hintergrund arbeiten, während Sie weiterschreiben</li>
+      <li xml:lang="fr">Des assistants qui travaillent en arrière-plan pendant que vous continuez</li>
+      <li xml:lang="es">Ayudantes que trabajan en segundo plano mientras usted sigue conversando</li>
+      <li xml:lang="it">Aiutanti che lavorano in background mentre continui a scrivere</li>
+      <li xml:lang="pt">Ajudantes que trabalham em segundo plano enquanto continua a conversa</li>
+      <li xml:lang="nl">Helpers die op de achtergrond werken terwijl jij verder praat</li>
+      <li xml:lang="sv">Hjälpare som arbetar i bakgrunden medan du fortsätter skriva</li>
+      <li>Select and copy text with the mouse, saved sessions you can resume</li>
+      <li xml:lang="cs">Výběr a kopírování textu myší, uložená sezení, ve kterých můžete pokračovat</li>
+      <li xml:lang="sk">Výber a kopírovanie textu myšou, uložené relácie, v ktorých môžete pokračovať</li>
+      <li xml:lang="pl">Zaznaczanie i kopiowanie tekstu myszą, zapisane sesje do wznowienia</li>
+      <li xml:lang="uk">Виділення й копіювання тексту мишею, збережені сесії, які можна продовжити</li>
+      <li xml:lang="hu">Szöveg kijelölése és másolása egérrel, folytatható mentett munkamenetek</li>
+      <li xml:lang="de">Text mit der Maus markieren und kopieren, gespeicherte Sitzungen zum Fortsetzen</li>
+      <li xml:lang="fr">Sélection et copie du texte à la souris, sessions enregistrées à reprendre</li>
+      <li xml:lang="es">Selección y copia de texto con el ratón, sesiones guardadas que puede retomar</li>
+      <li xml:lang="it">Selezione e copia del testo con il mouse, sessioni salvate da riprendere</li>
+      <li xml:lang="pt">Seleção e cópia de texto com o rato, sessões guardadas para retomar</li>
+      <li xml:lang="nl">Tekst selecteren en kopiëren met de muis, opgeslagen sessies om te hervatten</li>
+      <li xml:lang="sv">Markera och kopiera text med musen, sparade sessioner som du kan återuppta</li>
+      <li>Uses your LuxAI account; /usage shows the credits left this month</li>
+      <li xml:lang="cs">Používá váš účet LuxAI; /usage ukáže kredity, které vám tento měsíc zbývají</li>
+      <li xml:lang="sk">Používa váš účet LuxAI; /usage ukáže kredity, ktoré vám tento mesiac zostávajú</li>
+      <li xml:lang="pl">Korzysta z konta LuxAI; /usage pokazuje kredyty pozostałe w tym miesiącu</li>
+      <li xml:lang="uk">Використовує ваш обліковий запис LuxAI; /usage показує кредити, що залишилися цього місяця</li>
+      <li xml:lang="hu">A LuxAI-fiókját használja; a /usage megmutatja az e havi maradék krediteket</li>
+      <li xml:lang="de">Nutzt Ihr LuxAI-Konto; /usage zeigt die in diesem Monat verbleibenden Credits</li>
+      <li xml:lang="fr">Utilise votre compte LuxAI ; /usage affiche les crédits restants ce mois-ci</li>
+      <li xml:lang="es">Usa su cuenta de LuxAI; /usage muestra los créditos que le quedan este mes</li>
+      <li xml:lang="it">Usa il tuo account LuxAI; /usage mostra i crediti rimasti questo mese</li>
+      <li xml:lang="pt">Usa a sua conta LuxAI; /usage mostra os créditos que restam este mês</li>
+      <li xml:lang="nl">Gebruikt je LuxAI-account; /usage toont de credits die deze maand over zijn</li>
+      <li xml:lang="sv">Använder ditt LuxAI-konto; /usage visar krediterna som finns kvar den här månaden</li>
+    </ul>
+  </description>
+  <url type="homepage">https://luxos.lux-ai.cz/</url>
+  <developer id="cz.lux-ai.luxos">
+    <name>LuxOS</name>
+  </developer>
+</component>
