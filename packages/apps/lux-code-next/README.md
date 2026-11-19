@@ -7,10 +7,11 @@ code (the Lux Code layer and the patches to Oh My Pi) is not published in this r
 - It is shipped as a **signed binary package** `lux-code-next` in the LuxOS repository `[luxos-apps]`
   (<https://luxos.lux-ai.cz/repo>, first in the staging channel). It installs next to the older `lux-code`
   without any shared file (command `lux-code-next`, `/usr/lib/lux-code-next`, `~/.config/lux-code-next`,
-  desktop id and icon `lux-code-next`).
+  desktop id and icon `lux-code-next`). The package contains bundled JavaScript that is run by the system
+  `bun` (Arch Linux package, a dependency); the Bun runtime is not built into it.
 - Use on LuxOS is **free of charge** under the LuxOS proprietary license
   ([LICENSES/LicenseRef-LuxOS-Proprietary.md](../../../LICENSES/LicenseRef-LuxOS-Proprietary.md)); Oh My Pi,
-  its dependencies, the native addon and the Bun runtime keep their own licenses, listed in
+  its dependencies and the native addon keep their own licenses, listed in
   [LICENSES/NOTICE-proprietary.md](../../../LICENSES/NOTICE-proprietary.md) and installed in
   `/usr/share/licenses/lux-code-next/`.
 - The LuxOS build (`./build.sh`, GitHub Actions) takes this package from the LuxOS repository (marker file
