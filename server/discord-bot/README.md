@@ -173,7 +173,9 @@ delete them; it deletes only empty default Discord channels and only with `--cle
 
 - **#support**: answers every new post (forum) or every new message (text channel, it opens a
   thread). It then answers follow-ups of the person who asked; others only when they mention it.
-  After a hand-off it stops answering automatically in that thread.
+  The *Needs human* tag only means the team was notified: later answerable questions still get
+  normal answers (no second e-mail). Once another person (a helper or the team) has replied in a
+  `#support` thread, the bot stays quiet there unless it is mentioned.
 - **#bot-testing** (Team only): every message gets a thread and an answer, like `#support`, from any
   team member and without the per-user limit. Hand-off e-mails from there have `[test]` in the
   subject.
@@ -187,9 +189,19 @@ delete them; it deletes only empty default Discord channels and only with `--cle
   shared e-mail limits plus 20 bug e-mails per day; passwords, keys and tokens are replaced by
   `[redacted]` before the check and the e-mail. If LuxAI is unavailable, the report is forwarded.
 - **DMs**: only to members of the LuxOS server (others get one short note per day).
-- **No made-up answers.** For every question LuxAI first extracts short English topic keywords
-  (also translating other languages; the docs are in English; "NONE" for thanks or greetings,
-  which get no reply in a thread). If the docs, FAQ or changelog don't match those keywords well
+- **Greetings, thanks, small talk, off-topic: never escalated.** Short messages like "Hey Lux",
+  "ahoj", "thanks!", "díky" or "are you there?" are recognised without the model. Everything
+  else is classified by LuxAI first (GREETING / THANKS / SMALLTALK / OFFTOPIC / QUESTION, looking
+  at the latest message). Greetings and small talk get a short intro ("Hi! I'm the LuxOS
+  assistant. Ask me anything about LuxOS..."), thanks a short "You're welcome", topics clearly
+  unrelated to LuxOS (prices, recipes, sports) a polite "I can only help with LuxOS and LuxAI" -
+  in English or Czech, with no e-mail, tag or rename. The next real question in the same thread
+  is handled normally.
+- **Mention only** ("@LuxOS Support", also with "?", "pls", "help"): the bot answers the author's
+  last unanswered message(s) in that channel or thread from the last 10 minutes; with nothing to
+  answer it asks "What would you like to know?".
+- **No made-up answers.** For real questions LuxAI also returns short English topic keywords
+  (translating other languages; the docs are in English). If the docs, FAQ or changelog don't match those keywords well
   (BM25 score below `MIN_MATCH_SCORE` or less than `MIN_MATCH_COVERAGE` of the keyword weight
   found in one passage; tuned on the real index so that e.g. "printer not printing" passes and
   "goulash recipe" does not), the model is not asked at all. The bot replies "I couldn't find
@@ -289,7 +301,8 @@ cd server/discord-bot && npm ci && npm test
 
 Everything runs on 127.0.0.1 with fakes: the fake Discord (REST + Gateway) checks answers in
 `#support` and `#bot-testing` (`[test]` mails), mention-only `#general`, DMs only for members,
-language handling, the strict rules (weak match → no model call + mail, answer without a doc link
+language handling, greetings/thanks/small talk/off-topic never escalating ("Hey Lux", "ahoj",
+"thanks!", "díky", "bitcoin price?"), mention-only messages, answers after a hand-off, the strict rules (weak match → no model call + mail, answer without a doc link
 or unconfident or with a truncated META → discarded + mail, cut-off reply retried, confident cited
 answer → posted, no mail; the match threshold on the real index), `#bug-reports` (clear report →
 one mail with ✅ and no question, unclear → one question then mail after the answer, secrets

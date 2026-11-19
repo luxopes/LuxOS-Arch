@@ -139,7 +139,7 @@ class FakeDiscord {
   }
 
   addMessage(channelId, author, content, extra = {}) {
-    const message = { id: extra.id || snowflake(), channel_id: channelId, author, content, type: 0, mentions: [], mention_everyone: false, ...extra };
+    const message = { id: extra.id || snowflake(), channel_id: channelId, author, content, type: 0, mentions: [], mention_everyone: false, timestamp: new Date().toISOString(), ...extra };
     if (!this.messages.has(channelId)) this.messages.set(channelId, []);
     this.messages.get(channelId).push(message);
     return message;

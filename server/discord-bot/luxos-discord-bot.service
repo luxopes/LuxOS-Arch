@@ -11,7 +11,7 @@ Type=simple
 # deploy.sh nahradi /usr/bin/node cestou k Node 20+ na serveru (command -v node)
 ExecStart=/usr/bin/node /opt/luxos-discord-bot/src/main.js
 WorkingDirectory=/opt/luxos-discord-bot
-Environment=NODE_ENV=production "NODE_OPTIONS=--max-old-space-size=64 --max-semi-space-size=2"
+Environment=NODE_ENV=production "NODE_OPTIONS=--max-old-space-size=40 --max-semi-space-size=1"
 # volitelne nastaveni (limity, DISCORD_GUILD_ID ...), bez tajnych udaju - viz README
 EnvironmentFile=-/etc/luxos-discord/bot.env
 # tajne udaje: systemd je precte jako root a preda jen teto sluzbe ($CREDENTIALS_DIRECTORY)
@@ -61,7 +61,7 @@ SystemCallFilter=@system-service
 SystemCallFilter=~@privileged
 SystemCallErrorNumber=EPERM
 
-# --- zdroje: RSS ~80 MB (Node ~42 MB + index dokumentace), halda omezena na 64 MB ---
+# --- zdroje: RSS ~80 MB (Node ~42 MB + index dokumentace), halda omezena na 40 MB ---
 MemoryHigh=110M
 MemoryMax=128M
 MemorySwapMax=0

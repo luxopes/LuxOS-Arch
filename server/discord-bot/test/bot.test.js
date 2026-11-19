@@ -38,13 +38,14 @@ test("answers every new post in the #support forum: docs in the prompt, cited an
   await waitFor(() => h.discord.posted(thread.id).length === 2, 3000, "follow-up");
   assert.deepEqual(h.luxapi.requests[1].messages.map((m) => m.role), ["system", "user", "assistant", "user"]);
 
-  // dik ve vlakne: bez tematu, bot mlci
-  h.luxapi.keywords = () => "NONE";
+  // dik ve vlakne: jen "rado se stalo", nic dalsiho
   h.discord.userMessage(thread.id, alice, "thanks!");
+  await waitFor(() => h.discord.posted(thread.id).length === 3);
+  assert.match(h.discord.posted(thread.id)[2].content, /You.re welcome/);
   // cizi uzivatel ve vlakne bez zminky: bot mlci
   h.discord.userMessage(thread.id, user("bob"), "same problem here");
   await h.settle();
-  assert.equal(h.discord.posted(thread.id).length, 2);
+  assert.equal(h.discord.posted(thread.id).length, 3);
   assert.equal(h.luxapi.requests.length, 2);
   assert.equal(h.smtp.mails.length, 0, "confident cited answers send no mail");
 });
@@ -162,9 +163,11 @@ test("hand-off: tag 'Needs human', exactly one e-mail per thread, /human afterwa
   assert.match(mail.data, new RegExp(`https://discord\\.com/channels/${h.discord.guild.id}/${thread.id}`));
   assert.match(mail.data, /Author:  alice \(@alice\)/);
 
+  // dalsi otazka ve vlakne se stitkem: bot odpovida dal; kdyz zase nevi, jen "tym uz vi", druhy mail ne
   h.discord.userMessage(thread.id, alice, "any news about the printer?");
-  await h.settle();
-  assert.equal(h.luxapi.requests.length, 1, "thread is with a human now");
+  await waitFor(() => h.discord.posted(thread.id).length === 2);
+  assert.match(h.discord.posted(thread.id)[1].content, /already knows about this thread/);
+  assert.equal(h.luxapi.requests.length, 2);
 
   h.discord.dispatch("INTERACTION_CREATE", {
     id: "1", token: "tok", type: 2, data: { name: "human" }, guild_id: h.discord.guild.id, channel_id: thread.id,

@@ -21,7 +21,28 @@ META {"confident": true, "handoff": false, "lang": "en", "summary": "one short s
 - "handoff": true when the user asks for a human, a team member or a real person, or when the problem clearly needs the LuxOS team (bug in LuxOS, account or billing problem, security issue).
 - "lang": ISO 639-1 code of the user's language.`;
 
-const KEYWORDS_PROMPT = "Extract the topic of the user's message as 2-8 short English search keywords for the LuxOS documentation (translate if needed; leave out filler words, names, greetings and story details). Reply with the keywords only, one line. If the message has no question or problem (greeting, thanks, small talk), reply NONE.";
+const KEYWORDS_PROMPT = `Classify the user's latest message on the LuxOS support Discord (the line after "Message:"; the thread title is only context) and extract search keywords.
+Reply with exactly one line: CATEGORY | keywords
+CATEGORY is one of:
+- GREETING: hello, hi, "hey Lux", introducing yourself, with no question
+- THANKS: thanks, it works now, problem solved, with no new question
+- SMALLTALK: "are you there?", "how are you?", "test", jokes, chit-chat about the bot itself
+- OFFTOPIC: clearly unrelated to computers, software, Linux, LuxOS or LuxAI (prices, recipes, sports, homework, politics)
+- QUESTION: anything else - a question, problem, bug or request about LuxOS, LuxAI, Lux Code, LSL, Linux, apps, hardware or accounts (when unsure, QUESTION)
+keywords: only for QUESTION, 2-8 short English search keywords for the LuxOS documentation (translate if needed; leave out filler words, names, greetings and story details); empty otherwise.
+Examples: "GREETING |", "QUESTION | printer not printing network", "OFFTOPIC |"`;
+
+const CATEGORIES = new Set(["GREETING", "THANKS", "SMALLTALK", "OFFTOPIC", "QUESTION"]);
+
+// "QUESTION | printer wifi" -> {category, keywords}; bez kategorie = otazka (starsi format), NONE = smalltalk
+function parseClassification(content) {
+  const line = String(content || "").replace(/\s+/g, " ").trim();
+  const match = /^\W*([A-Za-z]+)\W*?(?:\||:|$)\s*(.*)$/.exec(line);
+  const word = match ? match[1].toUpperCase() : "";
+  if (CATEGORIES.has(word)) return { category: word, keywords: word === "QUESTION" ? match[2].slice(0, 300) : "" };
+  if (word === "NONE") return { category: "SMALLTALK", keywords: "" };
+  return { category: "QUESTION", keywords: line.slice(0, 300) };
+}
 
 const BUG_PROMPT = `You check bug reports posted on the LuxOS Discord before they are forwarded to the LuxOS developers.
 A report is "clear" when a developer can act on it: it says what happened (and ideally what was expected) and in which app or part of LuxOS. Steps to reproduce and the LuxOS version are nice to have; their absence alone does not make a report unclear.
@@ -86,15 +107,15 @@ class Assistant {
     return { content, finish };
   }
 
-  // Anglicka klicova slova tematu dotazu (i pro jine jazyky); "NONE" = bez tematu (pozdrav, dik).
-  // Podle nich bot hleda v dokumentaci a rozhoduje, zda ji vubec pokryva.
-  async searchTerms(question) {
+  // Druh zpravy (pozdrav, dik, smalltalk, mimo tema, otazka) a u otazky anglicka klicova slova
+  // tematu (i pro jine jazyky). Podle nich bot hleda v dokumentaci a rozhoduje, zda ji pokryva.
+  async classify(title, message) {
     const { content, finish } = await this.complete([
       { role: "system", content: KEYWORDS_PROMPT },
-      { role: "user", content: question.slice(0, 1500) }
+      { role: "user", content: `${title ? `Thread title: ${title.slice(0, 200)}\n` : ""}Message: ${message.slice(0, 1500)}` }
     ], 1500);
     if (finish === "length" || !content.trim()) throw new Error("LuxAI keywords incomplete");
-    return content.replace(/\s+/g, " ").trim().slice(0, 300);
+    return parseClassification(content);
   }
 
   // Posouzeni hlaseni chyby: {clear, summary, version, lang, question}
@@ -133,4 +154,4 @@ class Assistant {
   }
 }
 
-module.exports = { Assistant, parseReply, SYSTEM_PROMPT, KEYWORDS_PROMPT, BUG_PROMPT };
+module.exports = { Assistant, parseReply, parseClassification, SYSTEM_PROMPT, KEYWORDS_PROMPT, BUG_PROMPT };

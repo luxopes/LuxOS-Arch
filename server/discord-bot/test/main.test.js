@@ -41,7 +41,7 @@ test("main.js: answers with the real index, saves state on SIGTERM, stays small"
   const child = startMain({
     CREDENTIALS_DIRECTORY: creds, STATE_DIRECTORY: path.join(dir, "state"), KNOWLEDGE_FILE: knowledge,
     DISCORD_API: discord.api, LUXAI_URL: luxapi.url, SMTP_PORT: String(smtp.port), ANNOUNCE_INTERVAL_MIN: "0",
-    NODE_OPTIONS: "--max-old-space-size=64 --max-semi-space-size=2" // jako v luxos-discord-bot.service
+    NODE_OPTIONS: "--max-old-space-size=40 --max-semi-space-size=1" // jako v luxos-discord-bot.service
   });
   t.after(() => child.kill("SIGKILL"));
   await waitFor(() => /ready as LuxOS Support/.test(child.output) && discord.sockets.size, 5000, "ready");

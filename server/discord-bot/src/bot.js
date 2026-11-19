@@ -4,7 +4,7 @@
 // clenum serveru), limity, sestaveni dotazu pro LuxAI, odeslani odpovedi a predani cloveku.
 // Obsah zprav se neloguje; v logu jsou jen druhy udalosti a id.
 
-const { texts, detectLanguage } = require("./texts");
+const { texts, detectLanguage, shortCategory } = require("./texts");
 const { tokenize } = require("./knowledge");
 const { SECRET_RE } = require("./secrets");
 const { BugReports } = require("./bugs");
@@ -194,9 +194,17 @@ class Bot {
         await this.respond({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, fresh: msg.id === channel.id, test });
         return;
       }
-      // v #bot-testing odpovida kazdemu clenu tymu, v #support jen tazateli (ostatnim po zmince)
-      if (!test && msg.author.id !== info.op && !mention) return;
-      if (info.escalated && !mention) return; // vlakno uz resi clovek
+      // v #bot-testing odpovida kazdemu clenu tymu, v #support jen tazateli (ostatnim po zmince).
+      // Kdyz ve vlakne #support odpovedel jiny clovek (pomocnik, tym), bot uz mlci - krome zminky.
+      // Stitek "Needs human" bot neumlci: dalsi zodpovezitelna otazka dostane normalni odpoved.
+      if (!test && msg.author.id !== info.op) {
+        if (!mention) {
+          if (!info.humanReplied) this.state.setThread(channel.id, { humanReplied: true });
+          return;
+        }
+      } else if (!test && info.humanReplied && !mention) {
+        return;
+      }
       await this.respond({ msg, channelId: channel.id, threadId: channel.id, title: channel.name, fresh: false, test });
       return;
     }
@@ -277,6 +285,16 @@ class Bot {
 
   // ctx: {msg, channelId, threadId?, replyTo?, dm?, title?, fresh}
   async respond(ctx) {
+    // jen zminka ("@LuxOS Support", "@LuxOS Support ?"): odpovedet na posledni nezodpovezenou
+    // zpravu stejneho autora z poslednich 10 minut v tomto kanalu/vlakne
+    if (this.mentionOnly(ctx.msg)) {
+      const previous = await this.unanswered(ctx);
+      if (!previous) {
+        await this.send(ctx.channelId, texts(detectLanguage(ctx.msg.content)).whatToKnow, ctx.replyTo);
+        return;
+      }
+      ctx = { ...ctx, msg: previous, replyTo: ctx.replyTo ? previous.id : undefined, fresh: Boolean(ctx.threadId && previous.id === ctx.threadId && ctx.fresh) };
+    }
     const { msg } = ctx;
     const limits = this.config.limits;
     let lang = detectLanguage(msg.content);
@@ -287,6 +305,12 @@ class Bot {
     if (SECRET_RE.test(msg.content)) {
       await this.send(ctx.channelId, t.secret, ctx.replyTo);
       this.log(`secret warning channel=${ctx.channelId}`);
+      return;
+    }
+    // pozdrav, dik, "jsi tu?": hned kratka odpoved bez modelu - nikdy predani tymu, e-mail ani stitek
+    const short = shortCategory(msg.content);
+    if (short) {
+      await this.casual(ctx, short, lang);
       return;
     }
     if (HUMAN_RE.test(msg.content) && msg.content.length < 300) {
@@ -324,18 +348,23 @@ class Bot {
       let truncated = false;
       if (question.length > limits.questionChars) { question = question.slice(0, limits.questionChars); truncated = true; }
 
-      // 1) tema dotazu anglickymi slovy; bez tematu (dik, pozdrav) ve vlakne mlcet
-      let terms;
+      // 1) druh zpravy a tema anglickymi slovy. Pozdrav, dik, smalltalk a temata mimo LuxOS dostanou
+      // kratkou odpoved a nikdy nejdou tymu; dal pokracuje jen skutecna otazka.
+      let kind;
       try {
-        terms = await this.assistant.searchTerms(`${ctx.title || ""}\n${question}`);
+        kind = await this.assistant.classify(ctx.title || "", question);
       } catch (error) {
         this.log(`luxai error: ${error.message}`);
         await this.send(ctx.channelId, t.error(mail), ctx.replyTo);
         return;
       }
-      const noTopic = /^none\b/i.test(terms) || !tokenize(terms).length;
-      if (noTopic && !ctx.fresh) { this.log(`no topic, not answered channel=${ctx.channelId}`); return; }
-      const passages = this.knowledge ? this.knowledge.search(`${noTopic ? "" : terms} ${ctx.title || ""} ${question}`, 5) : [];
+      if (kind.category !== "QUESTION") {
+        await this.casual(ctx, kind.category, lang);
+        return;
+      }
+      const terms = kind.keywords;
+      const noTopic = !tokenize(terms).length;
+      const passages = this.knowledge ? this.knowledge.search(`${terms} ${ctx.title || ""} ${question}`, 5) : [];
 
       // 2) slaba shoda s dokumentaci: model se na odpoved vubec nepta, otazka jde tymu
       const match = noTopic ? null : this.matchQuality(terms);
@@ -377,6 +406,44 @@ class Bot {
       }
     });
     if (!started) await this.send(ctx.channelId, t.busy, ctx.replyTo);
+  }
+
+  mentionOnly(msg) {
+    if (!this.mentioned(msg) || !/<@!?\d+>/.test(msg.content || "")) return false;
+    const rest = this.cleanContent(msg.content).toLowerCase().replace(/[?!.,:;…\s]+/g, " ").trim();
+    return rest === "" || /^((pls|please|help|prosim|prosím|pomoc|hey|hi|ahoj|lux)\s*)+$/.test(rest);
+  }
+
+  // Posledni zpravy autora (nejvys 3, nejvys 10 minut stare), na ktere bot jeste neodpovedel
+  async unanswered(ctx) {
+    let messages;
+    try {
+      messages = await this.rest.get(`/channels/${ctx.channelId}/messages?limit=20`);
+    } catch {
+      return null;
+    }
+    const found = [];
+    const current = BigInt(ctx.msg.id);
+    for (const m of messages) { // od nejnovejsi
+      if (BigInt(m.id) >= current) continue;
+      if (this.user && m.author.id === this.user.id) break; // po teto zprave uz bot odpovedel
+      if (m.timestamp && Date.now() - Date.parse(m.timestamp) > 10 * 60 * 1000) break;
+      if (m.author.id !== ctx.msg.author.id || !(m.content || "").trim() || this.mentionOnly(m)) continue;
+      found.unshift(m);
+      if (found.length >= 3) break;
+    }
+    if (!found.length) return null;
+    const last = found[found.length - 1];
+    return { ...last, content: found.map((m) => m.content).join("\n\n") };
+  }
+
+  // Pozdrav / smalltalk -> predstaveni, dik -> "rado se stalo", mimo tema -> "jen LuxOS".
+  // Zadny e-mail, stitek ani prejmenovani; vlakno zustava otevrene pro dalsi skutecnou otazku.
+  async casual(ctx, category, lang) {
+    const t = texts(lang);
+    const text = category === "THANKS" ? t.thanks : category === "OFFTOPIC" ? t.offTopic : t.greeting;
+    await this.send(ctx.channelId, text, ctx.replyTo);
+    this.log(`${category.toLowerCase()} reply channel=${ctx.channelId}`);
   }
 
   // Shoda klicovych slov s dokumentaci (ne s reklamnimi strankami): dost silna a pokryva vetsinu

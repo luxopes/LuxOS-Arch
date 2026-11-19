@@ -9,6 +9,10 @@ const TEXTS = {
     handoff: (mail) => `I've asked the LuxOS team to take a look - a human will reply in this thread. You can also e-mail ${mail}.`,
     handoffAlready: (mail) => `The LuxOS team already knows about this thread and will reply here. For anything urgent, e-mail ${mail}.`,
     notConfident: "I'm not sure about this one, so I've asked the LuxOS team to check.",
+    whatToKnow: "What would you like to know? Ask me anything about LuxOS.",
+    greeting: "Hi! I'm the LuxOS assistant. Ask me anything about LuxOS - installing, updates, apps, LuxAI...",
+    thanks: "You're welcome! If anything else comes up, just ask.",
+    offTopic: "Sorry, I can only help with LuxOS and LuxAI. Ask me anything about LuxOS!",
     notFound: "I couldn't find this in the LuxOS documentation, so I've passed your question to the LuxOS team (they'll reply here).",
     notFoundDm: (support, mail) => `I couldn't find this in the LuxOS documentation. Please open a post in ${support} (the LuxOS team will see it) or e-mail ${mail}.`,
     elsewhere: (support, mail) => `For help from a human, please open a post in ${support} or e-mail ${mail}.`,
@@ -29,6 +33,10 @@ const TEXTS = {
     handoff: (mail) => `Požádal jsem tým LuxOS, aby se na to podíval – v tomto vlákně odpoví člověk. Můžete také napsat na ${mail}.`,
     handoffAlready: (mail) => `Tým LuxOS o tomto vlákně už ví a odpoví tady. V naléhavém případě pište na ${mail}.`,
     notConfident: "Tady si nejsem jistý, proto jsem požádal tým LuxOS o kontrolu.",
+    whatToKnow: "Co byste chtěli vědět? Zeptejte se mě na cokoli o LuxOS.",
+    greeting: "Ahoj! Jsem asistent LuxOS. Zeptejte se mě na cokoli o LuxOS – instalace, aktualizace, aplikace, LuxAI…",
+    thanks: "Rádo se stalo! Kdyby se ještě něco objevilo, stačí se zeptat.",
+    offTopic: "Promiňte, pomáhám jen s LuxOS a LuxAI. Zeptejte se mě na cokoli o LuxOS!",
     notFound: "V dokumentaci LuxOS jsem to nenašel, proto jsem vaši otázku předal týmu LuxOS (odpoví tady).",
     notFoundDm: (support, mail) => `V dokumentaci LuxOS jsem to nenašel. Založte prosím příspěvek v ${support} (uvidí ho tým LuxOS) nebo napište na ${mail}.`,
     elsewhere: (support, mail) => `Pro pomoc od člověka založte příspěvek v ${support} nebo napište na ${mail}.`,
@@ -68,8 +76,24 @@ function detectLanguage(text) {
   return other > english ? "other" : "en";
 }
 
+// Kratke zpravy bez otazky poznane bez modelu: pozdrav, dik, "jsi tu?" (cesky i anglicky, bez diakritiky)
+const SHORT_RE = {
+  GREETING: /^(hey|hi|hii+|hello|hallo|helo|yo|hej|ahoj|ahojky|cau|cauky|cus|zdravim|nazdar|dobry den|dobry vecer|dobre rano|good (morning|afternoon|evening))( (there|all|everyone|guys|lux|luxai|luxos|bot|vsichni|lidi|vsem))*$/,
+  THANKS: /^((ok|okay|great|super|perfect|cool|nice|awesome|diky|perfektni|paradni)( )?)?(thanks|thank you|thank you (very much|so much)|thanks (a lot|so much)|thx|ty|tysm|diky|dik|dekuji|dekuju|dekuji (moc|pekne)|diky moc|dekuju moc)( (lux|luxai|bot))?( (it works|works now|uz to funguje|funguje to))?$/,
+  SMALLTALK: /^((are )?you there|anyone (here|there)|is anyone (here|there)|how are you|jsi tu|jste tu|je tu nekdo|jak se mas|test|testing|ping)( (lux|luxai|bot))?$/
+};
+
+function shortCategory(text) {
+  const plain = normalize(String(text).replace(/<@!?\d+>|<@&\d+>/g, " "))
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}]/gu, " ")
+    .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!plain || plain.split(" ").length > 8) return "";
+  for (const [category, re] of Object.entries(SHORT_RE)) if (re.test(plain)) return category;
+  return "";
+}
+
 function texts(lang) {
   return TEXTS[lang] || TEXTS.en;
 }
 
-module.exports = { texts, detectLanguage };
+module.exports = { texts, detectLanguage, shortCategory };
