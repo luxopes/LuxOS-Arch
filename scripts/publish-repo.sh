@@ -78,6 +78,18 @@ if [[ -f out/drivers-repo/luxos-drivers/x86_64/luxos-drivers.db.tar.gz ]]; then
 elif ssh "$HOST" "test -d '$BASE/$FROM/luxos-drivers'"; then
     rsync -a "$HOST:$BASE/$FROM/luxos-drivers/" "$stage/luxos-drivers/"
 fi
+# Ovladace ven jen bez setuid a zapisu pro vsechny (mimo drivers/perms-allow.json) a bez souboru,
+# ktere databaze nezna (stare verze by zustaly ke stazeni)
+d=$stage/luxos-drivers/x86_64
+if [[ -f $d/luxos-drivers.db.tar.gz ]]; then
+    keep=$(tar -xOzf "$d/luxos-drivers.db.tar.gz" --wildcards '*/desc' | awk '/^%FILENAME%/{getline; print}')
+    for f in "$d"/*.pkg.tar.zst; do
+        [[ -e $f ]] || continue
+        grep -qxF "${f##*/}" <<<"$keep" || rm -f "$f" "$f.sig"
+    done
+    python3 drivers/luxdrv.py perms --report "$d" >&2 ||
+        { echo "Driver packages with unsafe permissions - nothing was uploaded." >&2; exit 1; }
+fi
 
 # Podpisy vseho, co pujde ven: databaze a KAZDY balik ve vsech repozitarich vydani (i [luxos-drivers]
 # a [luxos] prevzaty ze serveru) - klicem LuxOS z packages/luxos-keyring, ne jen "nejaky .sig existuje"
