@@ -4,6 +4,17 @@
 
 [[ $- != *i* ]] && return
 
+# Co uzivatel napise driv, nez se objevi vyzva (behem uvitani), zustane ve vstupu, ale terminal to
+# nevypise do rohu - pak by to bylo videt dvakrat. Ozvena se vrati pred prvni vyzvou; i kdyz nacitani
+# preskoci Ctrl+C, vrati ji jednorazovy PROMPT_COMMAND.
+if [[ -t 0 && $TERM != linux && $TERM != dumb ]] && stty -echo 2>/dev/null; then
+    _luxos_echo_on() {
+        stty echo 2>/dev/null
+        _luxos_echo_on() { :; }   # dalsi vyzvy uz nic (PROMPT_COMMAND muze starship prestavet)
+    }
+    PROMPT_COMMAND="_luxos_echo_on;${PROMPT_COMMAND-}"
+fi
+
 LUXOS_BLESH=1
 LUXOS_FASTFETCH=1
 LUXOS_SHELL_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/luxos/shell.conf"
@@ -136,4 +147,5 @@ fi
 # Prikazy aplikaci ze sandboxu LuxOS na konci PATH (i v relaci z doby pred aktualizaci)
 [[ -r /etc/profile.d/zz-luxos-sandbox.sh ]] && . /etc/profile.d/zz-luxos-sandbox.sh
 
+declare -F _luxos_echo_on >/dev/null && _luxos_echo_on
 [[ ${BLE_VERSION-} ]] && ble-attach
