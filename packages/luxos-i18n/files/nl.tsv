@@ -307,6 +307,7 @@ Restart now?	Nu herstarten?
 Config needs DISK, USERNAME and PASSWORD	Configuratie vereist DISK, USERNAME en PASSWORD
 Invalid USERNAME	Ongeldige USERNAME
 Invalid PASSWORD	Ongeldig PASSWORD
+Invalid LUKS_PASS	Ongeldig LUKS_PASS
 Invalid HOSTNAME_SEL	Ongeldige HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vereist LUKS_PASS
 # Toetsenbordindelingen (installatieprogramma)

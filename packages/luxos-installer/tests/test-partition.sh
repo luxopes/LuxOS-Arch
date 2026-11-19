@@ -23,7 +23,7 @@ hasnot() { ! grep -qF -- "$2" "$1" 2>/dev/null; }
 extract() { sed -n "/^$1() {/,/^}/p" "$FILES/luxos-install"; }
 sed -n '/^# --- Volne misto vedle jinych systemu/,/^# Sifrovani (volitelne)/p' "$FILES/luxos-install" >"$OUT/lib.sh"
 for f in human_bytes iso_disk report_layout kv_table lang_text summary xkb_text configure_system install_engine_config shared_esp_entry uefi_luxos_first secureboot_stage \
-         wipe_text wipe_area_bytes wipe_disk_hint manual_root_storage manual_cmdline_luks; do extract "$f" >>"$OUT/lib.sh"; done
+         wipe_text wipe_area_bytes wipe_disk_hint manual_root_storage manual_cmdline_luks manual_rootspec; do extract "$f" >>"$OUT/lib.sh"; done
 grep -q '^part_setup() {' "$OUT/lib.sh" && grep -q '^summary() {' "$OUT/lib.sh" || { echo "extrakce selhala"; exit 1; }
 
 # Prostredi jednoho behu (v podshellu): layout.sh, nahrady disku, funkce instalatoru

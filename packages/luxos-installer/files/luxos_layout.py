@@ -434,6 +434,13 @@ class Layout:
     def by_mount(self, mp):
         return next((n for n in self.users() if n.use["type"] == "fs" and n.use["mount"] == mp), None)
 
+    @staticmethod
+    def fs_type(n):
+        """FS pouziti; ponechany svazek se pripoji s tim, co na nem uz je (ne s volbou ze seznamu)."""
+        if not n.use.get("format", True) and n.fstype:
+            return n.fstype
+        return n.use.get("fstype", "btrfs")
+
     def esp(self):
         return next((n for n in self.users() if n.use["type"] == "fs" and n.use.get("fstype") == "vfat"
                      and n.use["mount"] in ("/boot", "/efi")), None)
@@ -734,7 +741,7 @@ class Layout:
         for n in users:
             if n.use["type"] != "fs":
                 continue
-            mp, t = n.use["mount"], n.use.get("fstype", "btrfs")
+            mp, t = n.use["mount"], self.fs_type(n)
             if not re.fullmatch(r"/|(/[A-Za-z0-9._+-]+)+", mp) or re.search(r"/\.\.?(/|$)", mp):
                 err("bad_mount", mp)
             elif mp in FORBIDDEN:
@@ -790,8 +797,14 @@ class Layout:
             boot = mounts.get("/boot") or root
             if boot is not None and self.encrypted(boot):
                 err("boot_encrypted")
+            # Existujici EF02 jen na disku, ktery rozlozeni pouziva (jako ly_kept_disks v layout.sh):
+            # GRUB se instaluje na ten disk, BIOS boot na jinem disku nepomuze
+            need = self.needed()
+            used = {p.disk for p in self.nodes.values() if p.kind == "part" and not p.delete
+                    and (not p.existing or p.id in need or p.resize)}
             has_bios = any(p.kind == "part" and not p.delete and
-                           (p.ptype == "bios" or p.parttype == BIOS_GUID) for p in self.nodes.values())
+                           (p.ptype == "bios" or p.parttype == BIOS_GUID and p.disk in used)
+                           for p in self.nodes.values())
             if not has_bios:
                 err("bios_grub_missing")
         if root is not None:
@@ -1023,7 +1036,7 @@ class Layout:
         for n in sorted(self.users(), key=lambda n: (n.use["type"] != "fs", n.use.get("mount", ""))):
             u = n.use
             if u["type"] == "fs":
-                line = f"fs on={n.id} mount={u['mount']} type={u.get('fstype', 'btrfs')}"
+                line = f"fs on={n.id} mount={u['mount']} type={self.fs_type(n)}"
                 if not u.get("format", True):
                     line += " format=0"
                     if u.get("subvol"):

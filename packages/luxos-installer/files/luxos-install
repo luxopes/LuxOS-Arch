@@ -118,9 +118,15 @@ if ((PROGRESS)); then
     fail()  { progress "ERROR $*"; printf '✗ %s\n' "$*" | tee -a "$LOG" >&2; exit 1; }
 fi
 
+ASKING=1   # do souhrnu se jen ptame (disky beze zmeny)
 on_error() {
     local rc=$? line=$1
     echo >&2
+    # Esc / Ctrl+C v otazce (gum vraci 130) neni selhani instalace
+    if ((rc == 130 && ASKING)); then
+        info "$(T "Cancelled. Nothing was changed.")" >&2
+        exit 130
+    fi
     progress "ERROR $(T "Installation failed (line %s, exit code %s)." "$line" "$rc")"
     if ((PROGRESS)); then
         T "Installation failed (line %s, exit code %s)." "$line" "$rc" >&2; echo >&2
@@ -134,6 +140,17 @@ on_error() {
 }
 trap 'on_error $LINENO' ERR
 
+# gpg-agent spusteny pacstrapem (-K) pro keyring v cili drzi $TARGET pripojeny: ukoncit i po selhani,
+# jinak dalsi pokus nepripravi disk (umount -R) a disk zustane obsazeny
+stop_gpg_agents() {
+    local d
+    for d in "$TARGET/etc/pacman.d/gnupg" "$TARGET/etc/lux/keyring"; do
+        [[ -d $d ]] && { gpgconf --homedir "$d" --kill all >/dev/null 2>&1 || true; }
+    done
+    return 0
+}
+trap stop_gpg_agents EXIT
+
 # --- Kontroly prostredi -----------------------------------------------------
 preflight() {
     command -v gum >/dev/null || { echo "gum is missing" >&2; exit 1; }
@@ -142,7 +159,13 @@ preflight() {
     [[ -d /run/archiso ]] || info "$(T "Warning: not running from the LuxOS live system.")"
 }
 
-have_internet() { curl -fsI --max-time 6 https://geo.mirror.pkgbuild.com/ >/dev/null 2>&1; }
+have_internet() {  # staci jeden server: vypadek jednoho (nebo jeho blokace v siti) neni "bez internetu"
+    local u
+    for u in https://luxos.lux-ai.cz/ https://geo.mirror.pkgbuild.com/; do
+        curl -fsI --max-time 6 "$u" >/dev/null 2>&1 && return 0
+    done
+    return 1
+}
 
 ensure_internet() {
     until have_internet; do
@@ -312,13 +335,22 @@ ask_keyboard() {
     info "$(T "Keyboard: %s" "$(xkb_text)")"
 }
 
-valid_user() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ && $1 != root ]]; }
+# Systemova jmena (stejny seznam jako RESERVED_USERS v GUI)
+RESERVED_USERS=" root bin daemon mail ftp http nobody dbus uuidd polkitd avahi lightdm git rtkit colord alpm tss usbmux geoclue lux sddm gdm "
+reserved_user() {  # ze seznamu nebo systemovy ucet live systemu (useradd by ho v cili preskocil)
+    local uid
+    [[ $RESERVED_USERS == *" $1 "* ]] && return 0
+    uid=$(getent passwd "$1" | cut -d: -f3) || return 1
+    [[ -n $uid ]] && ((uid < 1000 || uid == 65534))
+}
+valid_user() { [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && ! reserved_user "$1"; }
 valid_host() { [[ $1 =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; }
 
-iso_disk() {
+iso_disk() {  # disk s instalacnim mediem; zdroj muze byt oddil, cely disk (dd) i dm nad nim (Ventoy)
     local src
     src=$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null || true)
-    [[ -n $src ]] && lsblk -no PKNAME "$src" 2>/dev/null | head -1
+    [[ -n $src ]] || return 0
+    lsblk -nsro NAME,TYPE "$src" 2>/dev/null | awk '$2 == "disk" {print $1; exit}'
 }
 
 list_disks() {
@@ -332,6 +364,17 @@ list_disks() {
         printf '%s|%s  %s  %s\n' "$name" "$name" "$(numfmt --to=si --suffix=B "$size" | sed -E 's/([0-9])([kKMGTP]?B)$/\1 \2/')" \
             "${model:-$(T "Disk")}"
     done
+}
+
+detect_timezone() {  # odhad podle IP (ip-api.com umi zdarma jen http): odpoved jen ze seznamu pasem
+    local tz
+    tz=$(curl -fs --max-time 5 'http://ip-api.com/line/?fields=timezone' 2>/dev/null || true)
+    [[ -n $tz && $tz != *[!A-Za-z0-9_/+-]* ]] && timedatectl list-timezones 2>/dev/null | grep -xF -- "$tz" >/dev/null && printf '%s' "$tz"
+    return 0
+}
+
+suggest_username() {  # "Žofie Nová" -> zofie; C.UTF-8 je vzdy (jazyk pruvodce v live systemu vygenerovany byt nemusi)
+    LC_ALL=C.UTF-8 iconv -f utf-8 -t ascii//TRANSLIT <<<"${1%% *}" 2>/dev/null | tr -cd 'A-Za-z0-9' | tr 'A-Z' 'a-z' || true
 }
 
 interactive() {
@@ -365,8 +408,8 @@ interactive() {
     # Casove pasmo
     title "$(T "Time zone")"
     local detected
-    detected=$(curl -fs --max-time 5 'http://ip-api.com/line/?fields=timezone' 2>/dev/null || true)
-    if [[ -n $detected && -e /usr/share/zoneinfo/$detected ]] && \
+    detected=$(detect_timezone)
+    if [[ -n $detected ]] && \
        gum confirm --affirmative "$(T "Yes")" --negative "$(T "No")" "$(T "Use detected time zone %s?" "$detected")"; then
         TIMEZONE=$detected
     else
@@ -422,11 +465,12 @@ interactive() {
     title "$(T "Your account")"
     FULLNAME=$(gum input --header "$(T "Full name")" --placeholder "$(T "Jane Doe")") || exit 1
     local suggested
-    suggested=$(iconv -f utf-8 -t ascii//TRANSLIT <<<"${FULLNAME%% *}" 2>/dev/null | tr -cd 'A-Za-z0-9' | tr 'A-Z' 'a-z')
+    suggested=$(suggest_username "$FULLNAME")
     while :; do
         USERNAME=$(gum input --header "$(T "User name (lowercase)")" --value "${suggested:-user}") || exit 1
         valid_user "$USERNAME" && break
-        info "$(T "Use lowercase letters, numbers, - and _ (max 32 characters).")"
+        if reserved_user "$USERNAME"; then info "$(T "This name is reserved by the system.")"
+        else info "$(T "Use lowercase letters, numbers, - and _ (max 32 characters).")"; fi
     done
     PASSWORD=$(ask_password "$(T "Password")")
     while :; do
@@ -1885,9 +1929,7 @@ pac_filter() {
 # (stare cesty z pacstrapu i nove z jadra v cili; po migraci jsou stare odkazy - "/." projde odkaz)
 pac_cleanup() {
     local d
-    for d in "$TARGET/etc/pacman.d/gnupg" "$TARGET/etc/lux/keyring"; do
-        [[ -d $d ]] && { gpgconf --homedir "$d" --kill all >/dev/null 2>&1 || true; }
-    done
+    stop_gpg_agents
     rm -f "$TARGET/var/lib/pacman/db.lck" "$TARGET/var/lib/lux/db.lck"
     for d in "$TARGET/var/cache/pacman/pkg" "$TARGET/var/cache/lux/pkg" "$TARGET/var/lib/pacman/sync" "$TARGET/var/lib/lux/sync"; do
         [[ -d $d ]] || continue
@@ -2067,6 +2109,14 @@ manual_cmdline_luks() {  # rd.luks.name=… pro svazky z manual_root_storage (sd
     printf '%s' "$out"
 }
 
+manual_rootspec() {  # manual_rootspec UUID: koren pripojeny rucne; rootflags jen kdyz je to subvolume btrfs
+    local opts
+    opts=,$(findmnt -no OPTIONS "$TARGET"),
+    printf '%sroot=UUID=%s' "$(manual_cmdline_luks)" "$1"
+    [[ $opts =~ ,(subvol=[^,]*), ]] && printf ' rootflags=%s' "${BASH_REMATCH[1]}"
+    return 0
+}
+
 configure_system() {
     step "$(T "Configuring the system")"
     # zram swap live systemu nepatri do fstab (instalovany system ma vlastni zram-generator)
@@ -2108,7 +2158,7 @@ configure_system() {
     local rootspec="root=UUID=$root_uuid rootflags=subvol=@"
     ((ENCRYPT)) && rootspec="rd.luks.name=$LUKS_UUID=cryptroot rd.luks.options=discard root=/dev/mapper/cryptroot rootflags=subvol=@"
     if [[ $DISK_MODE == manual ]]; then
-        rootspec="$(manual_cmdline_luks)root=UUID=$root_uuid$(findmnt -no OPTIONS "$TARGET" | grep -o 'subvol=[^,]*' | sed 's/^/ rootflags=/' | head -1)"
+        rootspec=$(manual_rootspec "$root_uuid")
         [[ -n ${MANUAL_LUKS-} ]] && enc_hook=1
         ((${MANUAL_LVM:-0})) && lvm_hook=1
     fi
@@ -2468,10 +2518,7 @@ finish() {
     # po prvnim restartu)
     # gpg-agent spusteny pacstrapem (-K) by drzel $TARGET pripojeny; ukoncit pred uklidem - agent je
     # svazany s cestou, se kterou byl spusten (stara cesta je do uklidu odkaz na /etc/lux/keyring)
-    local d
-    for d in "$TARGET/etc/pacman.d/gnupg" "$TARGET/etc/lux/keyring"; do
-        [[ -d $d ]] && { gpgconf --homedir "$d" --kill all >/dev/null 2>&1 || true; }
-    done
+    stop_gpg_agents
     # procesy zivého systemu (Obchod...) s cilovou instalaci nesouvisi
     arch-chroot "$TARGET" "$LUX_MIGRATE" finish --now --ignore-processes >>"$LOG" 2>&1 || true
     [[ -n $ENGINE_SHIM ]] && rm -rf "$ENGINE_SHIM"
@@ -2623,6 +2670,9 @@ main() {
     # Ucet overit pred jakoukoli zmenou disku: chpasswd cte radky "jmeno:heslo" (zalomeni v hesle by
     # nastavilo heslo jinemu uctu), useradd -c odmitne ":" a zalomeni ve jmene (instalace by spadla az po smazani disku)
     no_newline "${PASSWORD-}" || fail "$(T "Invalid PASSWORD")"
+    # Heslo disku se pri startu pise do vyzvy: se zalomenim by disk nesel odemknout
+    local v
+    for v in "${!LUKS_PASS@}"; do no_newline "${!v}" || fail "$(T "Invalid LUKS_PASS")"; done
     FULLNAME=${FULLNAME-}; FULLNAME=${FULLNAME//[:$'\n'$'\r']/ }
     # Rezim disku: erase (cely disk), freespace (vedle jinych systemu), partition (existujici oddil),
     # layout (rucni rozdeleni), manual (pripojeno v $TARGET)
@@ -2653,6 +2703,7 @@ main() {
     else STEP_TOTAL=$((6 + ENCRYPT)); wipe_enabled && STEP_TOTAL=$((STEP_TOTAL + 1)); fi
     ((${#TEMPLATE_IDS[@]})) && STEP_TOTAL=$((STEP_TOTAL + 1))
     summary
+    ASKING=0
     case $DISK_MODE in
         erase) prepare_disk ;;
         freespace) prepare_freespace ;;

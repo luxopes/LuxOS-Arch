@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=85
+pkgrel=86
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -110,8 +110,6 @@ optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)')
 build() {
     # Prepinani nabidek horni listy jednim klikem
     gcc $CFLAGS $LDFLAGS -o luxos-menubar "$startdir/files/src/luxos-menubar.c" -lX11 -lXi -lXtst -lXrandr
-    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-rgba-menus.so "$startdir/files/src/luxos-rgba-menus.c" \
-        $(pkg-config --cflags --libs gtk+-3.0)
     # Zamykaci obrazovka: bez prazdne informacni listy (cerny pruh dole) po probuzeni
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-lock-fix.so "$startdir/files/src/luxos-lock-fix.c" \
         $(pkg-config --cflags --libs gtk+-3.0)
@@ -134,7 +132,7 @@ build() {
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-scroll.so "$startdir/files/src/luxos-scroll.c" \
         $(pkg-config --cflags --libs gtk+-3.0 xi x11) -lm
     strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
-    strip --strip-unneeded libluxos-rgba-menus.so libluxos-lock-fix.so libluxos-panel-menus.so libluxos-desktop-menu.so libluxos-bar.so \
+    strip --strip-unneeded libluxos-lock-fix.so libluxos-panel-menus.so libluxos-desktop-menu.so libluxos-bar.so \
         libluxos-scroll.so
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
@@ -299,9 +297,6 @@ package() {
     install -Dm755 "$f/xinit/60-luxos-login-cover.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh"
     # Firefox s XInput2: touchpad jako gesto posunu se setrvacnosti (MOZ_USE_XINPUT2=1 v relaci)
     install -Dm755 "$f/xinit/50-luxos-firefox-xinput2.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/50-luxos-firefox-xinput2.sh"
-    install -Dm755 -t "$pkgdir/usr/lib/luxos/lightdm" "$f/lightdm/luxos-greeter-setup" "$f/lightdm/luxos-session-setup" \
-        "$f/lightdm/luxos-greeter-wrapper"
-    install -Dm755 libluxos-rgba-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-rgba-menus.so"
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
     install -Dm755 libluxos-desktop-menu.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-desktop-menu.so"

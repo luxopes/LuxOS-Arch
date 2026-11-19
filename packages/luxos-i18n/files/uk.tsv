@@ -307,6 +307,7 @@ Restart now?	Перезавантажити зараз?
 Config needs DISK, USERNAME and PASSWORD	Конфігурація має містити DISK, USERNAME і PASSWORD
 Invalid USERNAME	Недійсне значення USERNAME
 Invalid PASSWORD	Недійсний PASSWORD
+Invalid LUKS_PASS	Недійсний LUKS_PASS
 Invalid HOSTNAME_SEL	Недійсне значення HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 потребує LUKS_PASS
 # Rozlozeni klavesnice (instalator)

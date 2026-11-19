@@ -1239,6 +1239,12 @@ layout_apply() {  # vse zalozit a pripojit do $TARGET (az po potvrzeni souhrnu)
         if [[ ${L[$id.format]-1} == 1 ]]; then
             info "$(T "Formatting %s as %s (%s)" "$dev" "${L[$id.type]-btrfs}" "${L[$id.mount]}")"
             ly_mkfs "$id" "$dev"
+        else
+            # Ponechany svazek pripojit s FS, ktery na nem skutecne je (type= z konfigurace muze byt jiny)
+            local fst
+            fst=$(blkid -p -o value -s TYPE "$dev" 2>/dev/null || true)
+            [[ $fst == @(btrfs|ext4|xfs|f2fs|vfat) ]] || fail "$(ly_error_text "bad_fstype|${L[$id.mount]}")"
+            L[$id.type]=$fst
         fi
     done
     for id in $(ly_ids swap); do

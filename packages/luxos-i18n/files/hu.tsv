@@ -307,6 +307,7 @@ Restart now?	Újraindítod most?
 Config needs DISK, USERNAME and PASSWORD	A konfigurációnak tartalmaznia kell a DISK, USERNAME és PASSWORD értéket
 Invalid USERNAME	Érvénytelen USERNAME
 Invalid PASSWORD	Érvénytelen PASSWORD
+Invalid LUKS_PASS	Érvénytelen LUKS_PASS
 Invalid HOSTNAME_SEL	Érvénytelen HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	Az ENCRYPT=1 beállításhoz LUKS_PASS szükséges
 # Rozlozeni klavesnice (instalator)

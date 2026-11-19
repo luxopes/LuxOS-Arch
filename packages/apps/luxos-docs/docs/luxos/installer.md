@@ -16,9 +16,10 @@ The installer is the package `luxos-installer`: a bash backend `luxos-install` (
 Graphical wizard: Introduction (language) → Network (only when offline) → Keyboard → Time Zone →
 Destination (disk) → Account → Maintenance → Software → LuxAI account → Summary → installation.
 
-Text UI (`sudo luxos-install`): language, internet check, keyboard, time zone (auto-detected and
-confirmed), disk, full name / user name / password / computer name, automatic login, maintenance
-mode, software templates, LuxAI account, summary.
+Text UI (`sudo luxos-install`): language, internet check, keyboard, time zone (auto-detected from the
+IP address via ip-api.com - plain HTTP, so only a known time zone is accepted - and confirmed), disk,
+full name / user name / password / computer name, automatic login, maintenance mode, software
+templates, LuxAI account, summary.
 
 Languages offered: English (US/UK), Čeština, Slovenčina, Deutsch, Polski, Français, Español,
 Italiano, Português (Brasil), Nederlands, Magyar, Svenska, Українська, or any other locale.

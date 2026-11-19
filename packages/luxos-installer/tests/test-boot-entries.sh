@@ -15,7 +15,8 @@ expect() { local d=$1; shift; if "$@"; then ok "$d"; else bad "$d"; fi; }
 
 sed -n '/^other_systems_entries() {/,/^}/p' "$FILES/setup-chroot.sh" >"$OUT/entries.sh"
 sed -n '/^uefi_luxos_first() {/,/^}/p' "$FILES/luxos-install" >"$OUT/order.sh"
-[[ -s $OUT/entries.sh && -s $OUT/order.sh ]] || { echo "extrakce selhala"; exit 1; }
+sed -n '/^loader_conf() {/,/^}/p' "$FILES/setup-chroot.sh" >"$OUT/loader.sh"
+[[ -s $OUT/entries.sh && -s $OUT/order.sh && -s $OUT/loader.sh ]] || { echo "extrakce selhala"; exit 1; }
 
 echo "## Jine systemy na sdilenem ESP"
 E=$OUT/esp
@@ -43,6 +44,28 @@ expect "druhe spusteni: nic se neprepise ani nezdvoji" bash -c "[[ $n == 4 ]] &&
 E2=$OUT/esp2; mkdir -p "$E2/EFI/BOOT" "$E2/EFI/Microsoft/Boot"
 n=$(bash -c ". '$OUT/entries.sh'; other_systems_entries '$E2'")
 expect "jen Windows: zadna polozka (systemd-boot ho najde sam)" bash -c "[[ $n == 0 ]] && [[ -z \$(ls '$E2/loader/entries') ]]"
+
+echo "## loader.conf: novy, cizi a po drivejsi instalaci LuxOS"
+lc() { bash -c ". '$OUT/loader.sh'; loader_conf '$1' '$2' 3"; }
+mkdir -p "$OUT/lc1/loader" "$OUT/lc2/loader" "$OUT/lc3/loader"
+lc "$OUT/lc1" luxos-new.conf
+expect "bez loader.conf: novy s polozkou LuxOS" bash -c "grep -qx 'default luxos-new.conf' '$OUT/lc1/loader/loader.conf' && grep -qx 'timeout 3' '$OUT/lc1/loader/loader.conf'"
+printf 'default luxos-old.conf\ntimeout 5\n' >"$OUT/lc2/loader/loader.conf"
+lc "$OUT/lc2" luxos-new.conf
+expect "preinstalace: default na novou instalaci, zbytek beze zmeny" bash -c "[[ \$(cat '$OUT/lc2/loader/loader.conf') == \$'default luxos-new.conf\ntimeout 5' ]]"
+printf 'default arch.conf\ntimeout 0\n' >"$OUT/lc3/loader/loader.conf"
+lc "$OUT/lc3" luxos-new.conf
+expect "cizi systemd-boot: loader.conf beze zmeny" bash -c "[[ \$(cat '$OUT/lc3/loader/loader.conf') == \$'default arch.conf\ntimeout 0' ]]"
+
+echo "## DISK_MODE=manual: root= z rucne pripojeneho korene"
+sed -n '/^manual_cmdline_luks() {/,/^}/p; /^manual_rootspec() {/,/^}/p' "$FILES/luxos-install" >"$OUT/manual.sh"
+mr() {  # mr "VOLBY findmnt" [MANUAL_LUKS] -> rootspec (stejne volby shellu jako instalator)
+    bash -c "set -Eeuo pipefail; . '$OUT/manual.sh'; findmnt() { echo '$1'; }; TARGET=/mnt MANUAL_LUKS='${2-}'
+             r=\$(manual_rootspec abcd-1234); echo \"\$r\""
+}
+expect "ext4 bez subvolume: instalace pokracuje, bez rootflags" test "$(mr rw,relatime)" = "root=UUID=abcd-1234"
+expect "btrfs se subvolume" test "$(mr rw,noatime,compress=zstd:1,subvolid=256,subvol=/@)" = "root=UUID=abcd-1234 rootflags=subvol=/@"
+expect "s LUKS" test "$(mr rw,relatime 'uuid1=cr')" = "rd.luks.name=uuid1=cr root=UUID=abcd-1234"
 
 echo "## LuxOS na prvni misto BootOrder"
 order_case() {  # order_case NAZEV PARTUUID < vystup efibootmgr -v ; zapise prikazy do $OUT/NAZEV

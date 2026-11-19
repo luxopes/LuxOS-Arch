@@ -29,6 +29,7 @@ systemu. Nezdar pripojeni hlasi backend radkem "@@NOTICE text" (instalace pokrac
 """
 import json
 import os
+import pwd
 import re
 import shlex
 import shutil
@@ -340,15 +341,20 @@ def cmd_out(*cmd, timeout=20):
         return ""
 
 
+INTERNET_CHECK_URLS = ("https://luxos.lux-ai.cz/", "https://geo.mirror.pkgbuild.com/")
+
+
 def have_internet():
     if FAKE:
         return os.environ.get("LUXOS_INSTALL_FAKE_OFFLINE") != "1"
-    try:
-        req = urllib.request.Request("https://geo.mirror.pkgbuild.com/", method="HEAD")
-        urllib.request.urlopen(req, timeout=6).close()
-        return True
-    except Exception:  # noqa: BLE001
-        return False
+    # staci jeden server: vypadek jednoho (nebo jeho blokace v siti) neni "bez internetu"
+    for url in INTERNET_CHECK_URLS:
+        try:
+            urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=6).close()
+            return True
+        except Exception:  # noqa: BLE001
+            pass
+    return False
 
 
 def sudo_ok():
@@ -369,8 +375,19 @@ def suggest_username(fullname):
     return name[:32]
 
 
+def reserved_user(u):
+    """Jmeno ze seznamu nebo systemovy ucet live systemu (useradd by ho v cili preskocil)."""
+    if u in RESERVED_USERS:
+        return True
+    try:
+        uid = pwd.getpwnam(u).pw_uid
+    except KeyError:
+        return False
+    return uid < 1000 or uid == 65534
+
+
 def valid_user(u):
-    return bool(re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", u)) and u not in RESERVED_USERS
+    return bool(re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", u)) and not reserved_user(u)
 
 
 def valid_host(h):
@@ -418,8 +435,15 @@ def fake_part(dev, size, fstype, label, root_err, home_err, content="", name="")
 
 
 def iso_disk():
+    """Disk s instalacnim mediem; zdroj muze byt oddil, cely disk (dd) i dm nad nim (Ventoy)."""
     src = cmd_out("findmnt", "-no", "SOURCE", "/run/archiso/bootmnt").strip()
-    return cmd_out("lsblk", "-no", "PKNAME", src).strip().split("\n")[0] if src else ""
+    if not src:
+        return ""
+    for line in cmd_out("lsblk", "-nsro", "NAME,TYPE", src).splitlines():
+        f = line.split()
+        if len(f) == 2 and f[1] == "disk":
+            return f[0]
+    return ""
 
 
 def sys_start(name):
@@ -756,10 +780,11 @@ class Installer(Gtk.Window):
     def detect_timezone():
         if FAKE:
             return "Europe/Prague"
+        # ip-api.com umi zdarma jen http: odpoved (mohl ji kdokoli po ceste zmenit) jen ze seznamu pasem
         try:
             with urllib.request.urlopen("http://ip-api.com/line/?fields=timezone", timeout=5) as r:
-                tz = r.read().decode().strip()
-            if tz and os.path.exists("/usr/share/zoneinfo/" + tz):
+                tz = r.read(100).decode().strip()
+            if tz and tz in cmd_out("timedatectl", "list-timezones").split():
                 return tz
         except Exception:  # noqa: BLE001
             pass
@@ -2117,9 +2142,12 @@ class Installer(Gtk.Window):
         fs_combo = Gtk.ComboBoxText()
         for t in ("btrfs", "ext4", "xfs", "f2fs"):
             fs_combo.append(t, t + (" (" + _("recommended") + ")" if t == "btrfs" else ""))
-        fs_combo.set_active_id(use.get("fstype", "btrfs") if use and use.get("fstype") != "vfat" else "btrfs")
-        fs_l = row(_("File system"), fs_combo)
         existing_data = (node is not None and node.existing and luks is None) or (luks is not None and luks.existing)
+        # FS, ktery na existujicim svazku uz je (ponechana data se pripoji s nim)
+        old_fs = (luks if luks is not None and luks.existing else node).fstype if existing_data else ""
+        fs_combo.set_active_id(use.get("fstype", "btrfs") if use and use.get("fstype") != "vfat" else
+                               old_fs if old_fs in ("btrfs", "ext4", "xfs", "f2fs") else "btrfs")
+        fs_l = row(_("File system"), fs_combo)
         # Existujici svazek (oddil, LV, odemceny LUKS): data se nesmi smazat nechtene - formatovat predem
         # jen pro / (ten musi byt naformatovany), jinak "ponechat data", dokud uzivatel sam nezaskrtne
         fmt = Gtk.CheckButton(label=_("Format (erases the data on it)"),
@@ -2164,6 +2192,11 @@ class Installer(Gtk.Window):
             mount.set_sensitive(k in ("fs",))
             for w in (fs_combo, fs_l):
                 w.set_visible(k == "fs")
+            # bez formatovani se FS nemeni
+            keep = existing_data and not fmt.get_active()
+            if keep and old_fs in ("btrfs", "ext4", "xfs", "f2fs"):
+                fs_combo.set_active_id(old_fs)
+            fs_combo.set_sensitive(not keep)
             fmt.set_visible(existing_data and k in ("fs", "swap", "esp"))
             enc.set_visible(k in ("fs", "swap", "none"))
             per = enc.get_active() and not L.same_pass and enc.get_sensitive()
@@ -2452,7 +2485,7 @@ class Installer(Gtk.Window):
 
         def refresh():
             u, h = self.s["username"], self.s["hostname"]
-            if u and u in RESERVED_USERS:
+            if u and reserved_user(u):
                 say(user_msg, _("This name is reserved by the system."))
             elif u and not valid_user(u):
                 say(user_msg, _("Use lowercase letters, numbers, - and _ (max 32 characters)."))

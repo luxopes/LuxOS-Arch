@@ -285,6 +285,7 @@ PREP_C3='cat >"$MOCK/disks/vdb.tbl" <<T
 T
 printf stare >"$MOCK/luks/vdb2"; echo vfat >"$MOCK/fs/vdb1"
 echo /dev/mapper/x >"$MOCK/vg/oldvg"; : >"$MOCK/lv/oldvg-home"; : >"$MOCK/lv/oldvg-root"; : >"$MOCK/lv/oldvg-tmp"
+echo ext4 >"$MOCK/fs/mapper_oldvg-home"
 echo $((2 * GiB)) >"$MOCK/size/mapper_oldvg-tmp"; echo $((3 * GiB)) >"$MOCK/size/mapper_oldvg-data"
 echo $((4 * GiB)) >"$MOCK/vgfree/oldvg"
 LUKS_PASS_CO=stare'

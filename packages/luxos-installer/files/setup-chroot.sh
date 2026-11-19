@@ -36,6 +36,16 @@ other_systems_entries() {  # other_systems_entries ESP -> pocet systemu v nabidc
     echo "$count"
 }
 
+loader_conf() {  # loader_conf ESP POLOZKA TIMEOUT: cizi loader.conf se neprepisuje, jen default po drivejsim LuxOS
+    local f=$1/loader/loader.conf
+    if [[ ! -e $f ]]; then
+        printf 'default %s\ntimeout %s\nconsole-mode max\neditor no\n' "$2" "$3" >"$f"
+    elif grep -qE '^default[[:space:]]+luxos' "$f"; then
+        # Preinstalace: stara polozka LuxOS muze vest na smazany oddil - vychozi je nova instalace
+        sed -i -E "s/^default[[:space:]]+luxos.*/default $2/" "$f"
+    fi
+}
+
 # Secure Boot: shim (Microsoft) + systemd-boot podepsany klicem LuxOS do EFI/LuxOS a zalozni EFI/BOOT
 # (luxos-secureboot). Polozku UEFI "LuxOS" -> shim zapise luxos-install z live systemu (v chrootu ne).
 # Bez baliku nebo s nepodepsanym systemd-boot zustava start primo pres systemd-boot jako driv.
@@ -97,7 +107,12 @@ if [[ -n $USERNAME ]]; then
     for g in video audio input lp storage scanner network rfkill sys; do
         getent group "$g" >/dev/null && groups+=",$g"
     done
-    id "$USERNAME" &>/dev/null || useradd -m -G "$groups" -s /usr/bin/lsh -c "$FULLNAME" "$USERNAME"
+    # Systemovy ucet z baliku cile (luxos-install zna jen ucty live systemu): heslo by dostal on
+    uid=$(id -u "$USERNAME" 2>/dev/null || true)
+    if [[ -n $uid ]] && ((uid < 1000 || uid == 65534)); then
+        echo "User name $USERNAME belongs to a system account" >&2; exit 1
+    fi
+    [[ -n $uid ]] || useradd -m -G "$groups" -s /usr/bin/lsh -c "$FULLNAME" "$USERNAME"
 fi
 passwd -l root >/dev/null
 install -Dm440 /dev/stdin /etc/sudoers.d/10-luxos <<S
@@ -208,15 +223,8 @@ H
     if ! compgen -G "$esp/[Ee][Ff][Ii]/[Bb][Oo][Oo][Tt]/[Bb][Oo][Oo][Tt][Xx]64.[Ee][Ff][Ii]" >/dev/null; then
         install -Dm644 "$sdboot" "$esp/EFI/BOOT/BOOTX64.EFI"
     fi
-    if [[ ! -e $esp/loader/loader.conf ]]; then
-        # Jine systemy na disku: menu s odpoctem 3 s (Windows systemd-boot najde sam)
-        cat > "$esp/loader/loader.conf" <<L
-default luxos-$ESP_ID.conf
-timeout 3
-console-mode max
-editor no
-L
-    fi
+    # Jine systemy na disku: menu s odpoctem 3 s (Windows systemd-boot najde sam)
+    loader_conf "$esp" "luxos-$ESP_ID.conf" 3
     cat > "$esp/loader/entries/luxos-$ESP_ID.conf" <<E
 title   LuxOS
 linux   /$dir/vmlinuz-$kernel
@@ -236,12 +244,7 @@ elif [[ $BOOTMODE == uefi ]]; then
             install -Dm644 "$sdboot" /boot/EFI/BOOT/BOOTX64.EFI
         fi
         mkdir -p /boot/loader/entries
-        [[ -e /boot/loader/loader.conf ]] || cat > /boot/loader/loader.conf <<L
-default luxos.conf
-timeout 3
-console-mode max
-editor no
-L
+        loader_conf /boot luxos.conf 3
     else
         bootctl install --esp-path=/boot
         mkdir -p /boot/loader/entries

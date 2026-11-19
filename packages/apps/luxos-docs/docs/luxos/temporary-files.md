@@ -2,7 +2,8 @@
 
 Because swap is only zram, a RAM-backed `/tmp` (tmpfs) would always take real memory – forgotten
 files there cannot be swapped out to disk and neither earlyoom nor the fork guard can free them.
-On installed LuxOS systems `/tmp` is therefore on the disk (encrypted together with the system):
+On installed LuxOS systems `/tmp` is therefore on the disk (encrypted only when the system is - disk
+encryption is an option in the installer, off by default):
 
 - Btrfs root in a subvolume (every LuxOS installation): own subvolume **`@tmp`** at the top level
   of the file system, mounted from `/etc/fstab` on `/tmp` with the root's options plus

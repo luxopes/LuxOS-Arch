@@ -350,6 +350,7 @@ cat >"$MOCK/disks/vdb.tbl" <<T
 T
 printf stare >"$MOCK/luks/vdb2"; echo vfat >"$MOCK/fs/vdb1"
 echo /dev/mapper/x >"$MOCK/vg/oldvg"; : >"$MOCK/lv/oldvg-home"; : >"$MOCK/lv/oldvg-root"
+echo ext4 >"$MOCK/fs/mapper_oldvg-home"
 '
 LF='
 disk dev=/dev/vda table=new
@@ -381,6 +382,70 @@ expect "F: LV se maze pred novym LUKS" before "$c" "lvremove -y /dev/oldvg/root"
 expect "F: mazani LV nedeaktivuje skupinu" hasnot "$c" "vgchange -an oldvg"
 LUKS_PASS_CO=spatne LUKS_PASS=nove scenario F2 uefi "vda:40G vdb:32G" "$LF" "$PREP_F"
 expect "F2: spatne heslo stareho LUKS odhaleno pred zmenami" bash -c "rc=\$(cat '$OUT/F2/rc'); [[ \$rc == 3 ]] && grep -q '^luks_open|/dev/vdb2' '$OUT/F2/errors'"
+
+echo "## F6: ponechany ext4 svazek s type=btrfs (GUI nabizelo btrfs) se pripoji jako ext4"
+# GUI model: ponechany svazek nese do konfigurace svuj skutecny FS
+py_keep() {  # py_keep FSTYPE -> konfigurace + chyby
+    python3 -I - "$FILES" "$1" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import luxos_layout as m
+part = {"name": "vdb1", "path": "/dev/vdb1", "size": 32 * m.GiB, "start": 2048, "partn": 1, "fstype": sys.argv[2]}
+scan = {"bootmode": "uefi", "vgs": [], "disks": [
+    {"path": "/dev/vda", "name": "vda", "size": 40 * m.GiB, "parts": [], "model": "", "pttype": ""},
+    {"path": "/dev/vdb", "name": "vdb", "size": 32 * m.GiB, "parts": [part], "model": "", "pttype": "gpt"}]}
+L = m.Layout(scan)
+L.preset("/dev/vda", "lvm"); L.passphrase = "p"
+L.set_use("x_vdb1", {"type": "fs", "mount": "/data", "fstype": "btrfs", "format": False})
+print(*sorted({c for lvl, c, d in L.validate() if lvl == "error"}))
+print(L.to_text())
+PY
+}
+keep_ok()  { local o; o=$(py_keep ext4) && grep -q '^fs on=x_vdb1 mount=/data type=ext4 format=0' <<<"$o" && ! grep -q bad_fstype <<<"$o"; }
+keep_bad() { py_keep ntfs | head -1 | grep -qw bad_fstype; }
+expect "F6: GUI model: ponechany ext4 -> type=ext4" keep_ok
+expect "F7: GUI model: ponechany NTFS -> bad_fstype" keep_bad
+# BIOS: existujici EF02 se pocita jen na disku, ktery rozlozeni pouziva (stejne jako layout_check_devices)
+py_bios() {  # py_bios DISK_S_EF02 -> chyby GUI modelu
+    python3 -I - "$FILES" "$1" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import luxos_layout as m
+G = m.GiB
+disks = []
+for d in ("/dev/vda", "/dev/vdb"):
+    ef02 = {"name": d[5:] + "1", "path": d + "1", "size": m.MiB, "start": 2048, "partn": 1, "fstype": "",
+            "parttype": m.BIOS_GUID}
+    disks.append({"path": d, "name": d[5:], "size": 40 * G, "model": "", "pttype": "gpt",
+                  "parts": [ef02] if d == sys.argv[2] else []})
+L = m.Layout({"bootmode": "bios", "vgs": [], "disks": disks})
+p = L.add_part("/dev/vda", 30 * G)
+p.use = {"type": "fs", "mount": "/", "fstype": "btrfs", "format": True}
+print(*sorted({c for lvl, c, d in L.validate() if lvl == "error"}))
+PY
+}
+bios_same() { ! py_bios /dev/vda | grep -q bios_grub_missing; }
+bios_other() { py_bios /dev/vdb | grep -q bios_grub_missing; }
+expect "BIOS: EF02 na disku s / -> v poradku" bios_same
+expect "BIOS: EF02 jen na nepouzitem disku -> bios_grub_missing (jako backend)" bios_other
+PREP_F6='
+cat >"$MOCK/disks/vdb.tbl" <<T
+1 2048 67108830 8300 Data
+T
+echo ext4 >"$MOCK/fs/vdb1"
+'
+LF6='disk dev=/dev/vda table=new
+part id=esp disk=/dev/vda size=1G type=esp
+part id=r disk=/dev/vda size=rest
+use  id=d dev=/dev/vdb1
+fs   on=esp mount=/boot type=vfat
+fs   on=r mount=/ type=btrfs
+fs   on=d mount=/data type=btrfs format=0'
+scenario F6 uefi "vda:40G vdb:32G" "$LF6" "$PREP_F6"
+expect "F6: probehlo" rc_is F6 0
+expect "F6: /data bez btrfs voleb (compress) a bez formatovani" bash -c "grep -q '^mount -o noatime /dev/vdb1 .*/data\$' '$OUT/F6/cmds' && ! grep -q 'mkfs.*vdb1' '$OUT/F6/cmds'"
+AFTER_CHECK='trap "cp \"\$MOCK/cmds\" \"\$dir/cmds\"" EXIT' scenario F7 uefi "vda:40G vdb:32G" "$LF6" "${PREP_F6/ext4/ntfs}"
+expect "F7: ponechany NTFS jako /data -> konec pred pripojenim" bash -c "[[ \$(cat '$OUT/F7/rc') == 1 ]] && grep -q 'Unsupported file system for /data' '$OUT/F7/apply.out' && ! grep -q 'vdb1 .*/data' '$OUT/F7/cmds'"
 
 # ---------------------------------------------------------------------------------
 echo "## F3: dual boot do existujiciho sifrovaneho LVM (Debian): novy LV pro / ve stare VG"

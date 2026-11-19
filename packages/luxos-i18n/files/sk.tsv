@@ -307,6 +307,7 @@ Restart now?	Reštartovať teraz?
 Config needs DISK, USERNAME and PASSWORD	Konfigurácia musí obsahovať DISK, USERNAME a PASSWORD
 Invalid USERNAME	Neplatné USERNAME
 Invalid PASSWORD	Neplatné PASSWORD
+Invalid LUKS_PASS	Neplatné LUKS_PASS
 Invalid HOSTNAME_SEL	Neplatné HOSTNAME_SEL
 ENCRYPT=1 needs LUKS_PASS	ENCRYPT=1 vyžaduje LUKS_PASS
 # Rozlozeni klavesnice (instalator)
