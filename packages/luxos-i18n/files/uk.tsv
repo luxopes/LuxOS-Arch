@@ -5351,3 +5351,12 @@ News from the LuxOS team	Новини від команди LuxOS
 New releases, planned maintenance and important changes.	Нові випуски, планове обслуговування та важливі зміни.
 Notify me about news	Сповіщати про новини
 Check Now	Перевірити зараз
+Back to an older version: %s → %s	Повернено до старішої версії: %s → %s
+Problem: %s	Проблема: %s
+What LuxOS did: %s	Що зробила LuxOS: %s
+Reinstalled packages: %s	Перевстановлені пакети: %s
+Could not repair: %s	Не вдалося виправити: %s
+Affected packages: %s	Пакети, яких це стосується: %s
+Details aren't available for this older update.	Для цього старішого оновлення подробиці недоступні.
+No more details were recorded.	Інших подробиць не записано.
+LuxOS release notes	Примітки до випуску LuxOS

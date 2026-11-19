@@ -5349,3 +5349,12 @@ News from the LuxOS team	Novinky od týmu LuxOS
 New releases, planned maintenance and important changes.	Nová vydání, plánovaná údržba a důležité změny.
 Notify me about news	Upozorňovat na novinky
 Check Now	Zkontrolovat
+Back to an older version: %s → %s	Zpět na starší verzi: %s → %s
+Problem: %s	Problém: %s
+What LuxOS did: %s	Co LuxOS udělal: %s
+Reinstalled packages: %s	Znovu nainstalované balíčky: %s
+Could not repair: %s	Nepodařilo se opravit: %s
+Affected packages: %s	Dotčené balíčky: %s
+Details aren't available for this older update.	U této starší aktualizace nejsou podrobnosti k dispozici.
+No more details were recorded.	Další podrobnosti nebyly zaznamenány.
+LuxOS release notes	Poznámky k vydání LuxOS

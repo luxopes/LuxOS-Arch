@@ -186,6 +186,22 @@ end
 
 # Asynchronne: zaseknuty server upozorneni nesmi blokovat luxos-hub
 function notify(title, body, actions):
+    return notify_open(title, body, actions, [APP])
+end
+
+# Prikaz, ktery otevre "Podrobnosti": po aktualizaci a oprave okno s rozbalenym nejnovejsim zaznamem historie
+function open_argv(ev):
+    k = ev.get("kind")
+    if k == "updated":
+        return [APP, "--latest", "update"]
+    end
+    if k == "repaired":
+        return [APP, "--latest", "repair"]
+    end
+    return [APP]
+end
+
+function notify_open(title, body, actions, argv):
     if state["bus"] == 0:
         return 0
     end
@@ -195,7 +211,7 @@ function notify(title, body, actions):
         acts.append(pair[1])
     end
     call gio.call_async(state["bus"], "org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify",
-                        ["LuxOS", 0, "system-software-update", title, body, acts, {"desktop-entry": ["s", APP]}, -1], "(susssasa{sv}i)", 5000, on_notified, 0)
+                        ["LuxOS", 0, "system-software-update", title, body, acts, {"desktop-entry": ["s", APP]}, -1], "(susssasa{sv}i)", 5000, on_notified, argv)
     return 0
 end
 
@@ -221,12 +237,12 @@ function on_critical_action(unused, output, status):
     return 0
 end
 
-function on_notified(unused, values, error):
+function on_notified(argv, values, error):
     if values == None:
         call log("notify: " + error)
         return 0
     end
-    state["actions"][values[0]] = True
+    state["actions"][values[0]] = argv
     return 0
 end
 
@@ -236,14 +252,17 @@ function on_action(sender, path, interface, signal, values):
     if nid not in state["actions"]:
         return 0
     end
-    call state["actions"].pop(nid, None)
+    argv = state["actions"].pop(nid, None)
     if action == "restart":
         call glib.spawn(["xfce4-session-logout", "--reboot", "--fast"])
     elif action == "keep":
         # lux rollback v terminalu: zepta se, overi heslo a vypise vysledek
         call glib.spawn(["luxos-terminal", "--hold", "-x", "lux", "rollback"])
     elif action == "open" or action == "default":
-        call glib.spawn([APP])
+        if type(argv) != "List":
+            argv = [APP]
+        end
+        call glib.spawn(argv)
     end
     return 0
 end
@@ -337,7 +356,7 @@ function process_events():
         if n != None and ev.get("kind") == "integrity":
             call notify_critical(n[0], n[1], n[2])
         elif n != None:
-            call notify(n[0], n[1], n[2])
+            call notify_open(n[0], n[1], n[2], open_argv(ev))
         end
     end
     call glib.mkdir_p(cache_dir())

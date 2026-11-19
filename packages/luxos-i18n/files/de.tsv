@@ -5350,3 +5350,12 @@ News from the LuxOS team	Mitteilungen des LuxOS-Teams
 New releases, planned maintenance and important changes.	Neue Versionen, geplante Wartungsarbeiten und wichtige Änderungen.
 Notify me about news	Über Mitteilungen benachrichtigen
 Check Now	Jetzt prüfen
+Back to an older version: %s → %s	Zurück zu einer älteren Version: %s → %s
+Problem: %s	Problem: %s
+What LuxOS did: %s	Was LuxOS getan hat: %s
+Reinstalled packages: %s	Neu installierte Pakete: %s
+Could not repair: %s	Nicht reparierbar: %s
+Affected packages: %s	Betroffene Pakete: %s
+Details aren't available for this older update.	Für dieses ältere Update sind keine Details verfügbar.
+No more details were recorded.	Weitere Details wurden nicht aufgezeichnet.
+LuxOS release notes	LuxOS-Versionshinweise

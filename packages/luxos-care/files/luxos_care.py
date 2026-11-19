@@ -323,12 +323,17 @@ def history(kind, **data):
         if os.path.getsize(path) > 512 * 1024:
             with open(path) as f:
                 lines = f.readlines()[-1000:]
+            # seznamy baliku (changes) jsou dlouhe: drzet i velikost, ne jen pocet zaznamu
+            size = sum(len(x.encode()) for x in lines)
+            while len(lines) > 10 and size > 512 * 1024:
+                size -= len(lines.pop(0).encode())
             atomic_write(path, "".join(lines))
     except OSError:
         pass
     # LuxOS Recovery (LUXOS_CARE_QUIET=1): zaznam jen do historie, ne technicky radek na obrazovku
     if not os.environ.get("LUXOS_CARE_QUIET"):
-        log(f"{kind}: {json.dumps(data, ensure_ascii=False)}")
+        short = {k: (len(v) if k == "changes" else v) for k, v in data.items()}
+        log(f"{kind}: {json.dumps(short, ensure_ascii=False)}")
     return item
 
 
@@ -344,6 +349,137 @@ def read_history(limit=200):
     except OSError:
         pass
     return out[-limit:]
+
+
+# ---- co se zmenilo: balicky k zaznamu historie (okno Aktualizace softwaru je ukaze po kliknuti) -----
+# "[2026-11-16T17:55:01+0100] [ALPM] upgraded xfwm4 (4.20.0-2.2 -> 4.20.0-2.4)"
+ALPM_CHANGE_RE = re.compile(r"^\[([^\]]+)\] \[ALPM\] (installed|upgraded|downgraded|reinstalled|removed) (\S+) \((.*)\)$")
+
+
+def engine_log_size():
+    try:
+        return os.path.getsize(P(ENGINE_LOG))
+    except OSError:
+        return 0
+
+
+def log_time(stamp):
+    """Cas radku zaznamu jadra ("2026-11-16T17:55:01+0100") -> epocha, 0 = neznamy."""
+    import datetime
+    try:
+        return int(datetime.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%S%z").timestamp())
+    except ValueError:
+        return 0
+
+
+def parse_engine_changes(lines, start=0, end=0):
+    """[{name, action, old, new}] serazene podle nazvu z radku zaznamu jadra, volitelne jen v casovem okne
+    start..end. Vic zmen jednoho baliku (klice a pak cela aktualizace) = jedna: prvni stara a posledni
+    nova verze; nainstalovany a hned odstraneny balicek zmizi."""
+    out = {}
+    for line in lines:
+        m = ALPM_CHANGE_RE.match(line.rstrip("\n"))
+        if not m:
+            continue
+        stamp, action, name, vers = m.groups()
+        if start or end:
+            t = log_time(stamp)
+            if not t or (start and t < start) or (end and t > end):
+                continue
+        if action in ("upgraded", "downgraded"):
+            old, _sep, new = vers.partition(" -> ")
+        elif action == "removed":
+            old, new = vers, ""
+        elif action == "reinstalled":
+            old = new = vers
+        else:
+            old, new = "", vers
+        prev = out.get(name)
+        if prev:
+            old = prev["old"]
+            if not old and not new:
+                del out[name]
+                continue
+            if not old:
+                action = "installed"
+            elif not new:
+                action = "removed"
+            elif old == new:
+                action = "reinstalled"
+            elif action not in ("upgraded", "downgraded"):
+                action = prev["action"] if prev["action"] in ("upgraded", "downgraded") else "upgraded"
+        out[name] = {"name": name, "action": action, "old": old, "new": new}
+    return [out[k] for k in sorted(out)]
+
+
+def read_log_end(path, limit=8 * 1024 * 1024, offset=None):
+    """Radky zaznamu (jen cteni): od offset (zmenseny soubor = novy zaznam od zacatku), jinak konec."""
+    try:
+        with open(P(path), "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            start = max(0, size - limit)
+            if offset is not None and offset <= size:
+                start = max(start, offset)
+            f.seek(start)
+            data = f.read()
+    except OSError:
+        return []
+    lines = data.decode("utf-8", "replace").splitlines()
+    if start and (offset is None or start != offset) and lines:
+        lines = lines[1:]                     # prvni radek je useknuty
+    return lines
+
+
+def engine_changes_since(offset):
+    """Zmeny baliku zapsane do zaznamu jadra od offset (engine_log_size() pred transakci)."""
+    return parse_engine_changes(read_log_end(ENGINE_LOG, offset=offset))
+
+
+def history_changes(h, since=0):
+    """Zmeny baliku k zaznamu historie: ulozene pri transakci (od LuxOS 1.0.3), u starsich aktualizaci
+    dohledane v zaznamu jadra (jen cteni) v okne pred casem zaznamu (nejvys 3 h, ne pred predchozi
+    aktualizaci `since`) a omezene na ulozene nazvy. Bez verzi aspon nazvy; None = nic nevime."""
+    if isinstance(h.get("changes"), list):
+        return h["changes"]
+    if h.get("kind") != "update" or not h.get("ok", True):
+        return None
+    t = int(h.get("time") or 0)
+    names = {n for n in (h.get("packages") or []) if isinstance(n, str)}
+    if t:
+        start = max(t - 3 * 3600, int(since or 0) + 1)
+        # starsi zaznam spravce baliku presunul lux-engine-migrate do lux.log, staci jeden soubor
+        ch = parse_engine_changes(read_log_end(ENGINE_LOG), start, t + 120)
+        if names:
+            ch = [c for c in ch if c["name"] in names]
+        if ch:
+            return ch
+    if names:
+        return [{"name": n, "action": "upgraded", "old": "", "new": ""} for n in sorted(names)]
+    return None
+
+
+def package_desktop_files(name, version=""):
+    """Soubory .desktop baliku podle mistni databaze (/var/lib/lux/local/<nazev>-<verze>/files)."""
+    import glob
+    base = P("/var/lib/lux/local")
+    dirs = [os.path.join(base, f"{name}-{version}")] if version else []
+    if not dirs or not os.path.isdir(dirs[0]):
+        # verze bez "-" v pkgver: zbytek za nazvem je presne "verze-vydani"
+        dirs = [d for d in glob.glob(os.path.join(glob.escape(base), glob.escape(name) + "-*"))
+                if os.path.basename(d)[len(name) + 1:].count("-") == 1]
+    out = []
+    for d in dirs[:1]:
+        try:
+            with open(os.path.join(d, "files"), errors="replace") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("usr/share/applications/") and line.endswith(".desktop") \
+                            and line.count("/") == 3:
+                        out.append(P("/" + line))
+        except OSError:
+            pass
+    return out
 
 
 def set_progress(phase, fraction, text="", **extra):
@@ -1003,6 +1139,7 @@ def do_update(manual=False):
     # Ctrl-C v terminalu (sudo luxos-care update): lux bezi ve vlastni session a signal nedostane;
     # konec tohoto procesu by mu zavrel rouru uprostred instalace. Proto stejne jako SIGTERM.
     signal.signal(signal.SIGINT, up.stop)
+    log_start = engine_log_size()
     try:
         update_state(updating=True, update_started=now())
         res = up.run_update()
@@ -1011,6 +1148,12 @@ def do_update(manual=False):
     finally:
         clear_progress()
         lock.__exit__()
+    # co presne se nainstalovalo (stara -> nova verze), at je v historii videt
+    try:
+        changes = engine_changes_since(log_start)
+    except Exception as e:  # noqa: BLE001 - podrobnosti nesmi rozbit zapis vysledku
+        log(f"update details: {e}")
+        changes = []
     st = load_state()
     st["updating"] = False
     st["last_attempt"] = now()
@@ -1024,7 +1167,7 @@ def do_update(manual=False):
             st["last_update_packages"] = res.get("packages", [])
             st["needs_reboot"] = bool(res.get("kernel")) or needs_reboot()
             history("update", ok=True, packages=res.get("packages", []), count=len(res.get("packages", [])),
-                    kernel=bool(res.get("kernel")), manual=manual)
+                    kernel=bool(res.get("kernel")), manual=manual, changes=changes)
             add_event("updated", count=len(res.get("packages", [])), reboot=st["needs_reboot"])
         save_state(st)
         if r == "ok":
@@ -1045,7 +1188,8 @@ def do_update(manual=False):
     st["last_error"] = res.get("error", "unknown")
     st["last_error_output"] = redact("\n".join(up.output)[-3000:])
     save_state(st)
-    history("update", ok=False, error=st["last_error"], failures=st["failures"], manual=manual)
+    extra = {"changes": changes} if changes else {}
+    history("update", ok=False, error=st["last_error"], failures=st["failures"], manual=manual, **extra)
     if manual or st["failures"] >= NOTIFY_FAIL_AFTER:
         add_event("update_failed", error=st["last_error"])
     safe_check(after_update=True)
@@ -2719,9 +2863,11 @@ def do_check(after_update=False, boot=False):
                 done_once.append(tag)
             for rule in p["rules"]:
                 action, target = (rule if isinstance(rule, (list, tuple)) else (rule, None))
+                log_start = engine_log_size()
                 ok, out = execute_action(action, target)
                 history("repair", problem=p["id"], title=p["title"], args=p.get("args", []), action=action, target=target or "",
-                        source="rule", ok=ok, output=redact(out[-600:]) if out else "")
+                        source="rule", ok=ok, output=redact(out[-600:]) if out else "",
+                        changes=engine_changes_since(log_start))
                 if ok and not _still_present(p):
                     fixed = True
                     add_event("repaired", title=p["title"], args=p.get("args", []))
@@ -2797,9 +2943,11 @@ def apply_ai_choice(request_id, n):
             return False, "daily limit"
         req["status"] = "running"
         save_state(st)
+        log_start = engine_log_size()
         ok, out = execute_action(opt["action"], opt["target"] or None)
         history("repair", problem=p["id"], title=p["title"], args=p.get("args", []), action=opt["action"], target=opt["target"],
-                source="ai", model="LuxAI Flash", ok=ok, output=redact(out[-600:]) if out else "")
+                source="ai", model="LuxAI Flash", ok=ok, output=redact(out[-600:]) if out else "",
+                changes=engine_changes_since(log_start))
         st = load_state()
         for q in st.get("problems", []):
             if q.get("ai", {}).get("request_id") == request_id:

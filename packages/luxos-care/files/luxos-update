@@ -6,6 +6,8 @@ cas posledni aktualizace, cekajici aktualizace, nalezene problemy, historie opra
 Vse privilegovane dela root (systemd jednotky luxos-care-*), aplikace jen cte stav.
 
 LUXOS_CARE_ROOT=<adresar> cte stav z jineho korene (ukazky, testy).
+--latest update|repair   otevre okno s rozbalenym nejnovejsim zaznamem historie (klik na upozorneni
+                         "LuxOS byl aktualizovan" / "LuxOS opravil problem" v luxos-hub).
 """
 import json
 import os
@@ -16,11 +18,12 @@ import time
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
 import luxos_protect as protect  # noqa: E402
+import luxos_care as care  # noqa: E402
 
 import gi  # noqa: E402
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Gio, GLib, Gtk, Pango  # noqa: E402
 
 ROOT = os.environ.get("LUXOS_CARE_ROOT", "")
 STATE_DIR = ROOT + "/var/lib/luxos-care"
@@ -44,6 +47,8 @@ CSS = b"""
 .ok { color: #2fb36b; }
 .bad { color: #e5484d; }
 .warn { color: #e09b1a; }
+.details { margin-top: 6px; }
+.pkg-ver { font-size: 11px; opacity: 0.6; }
 progressbar trough { min-height: 8px; border-radius: 4px; }
 progressbar progress { min-height: 8px; border-radius: 4px; }
 """
@@ -90,6 +95,7 @@ def read_mode():
 
 
 def history(limit=40):
+    """Zaznamy historie od nejnovejsiho."""
     out = []
     try:
         with open(os.path.join(STATE_DIR, "history.jsonl")) as f:
@@ -201,8 +207,44 @@ def history_text(h):
     return k or "?", "", ok
 
 
+# radky historie, ktere jdou rozbalit (co presne se stalo)
+EXPANDABLE = ("update", "repair", "verify", "verify_repair")
+LATEST_KINDS = {"update": ("update",), "repair": ("repair", "verify_repair")}
+
+
+def history_key(h):
+    """Stale oznaceni zaznamu (rozbaleni prezije obnoveni okna)."""
+    return f"{h.get('time', 0)}|{h.get('kind', '')}|{h.get('action', '')}|{h.get('problem', '')}"
+
+
+def app_name(name, version=""):
+    """Nazev aplikace pro balicek (Name z jejiho .desktop v jazyce uzivatele), jinak "". """
+    for path in care.package_desktop_files(name, version):
+        try:
+            info = Gio.DesktopAppInfo.new_from_filename(path)
+        except (TypeError, GLib.Error):
+            info = None
+        if info is not None and not info.get_nodisplay() and info.get_name():
+            return info.get_name()
+    return ""
+
+
+def change_text(c):
+    """Popis zmeny jednoho baliku: "1.0-1 → 1.1-1", "Nainstalovano 2.0-1"..."""
+    a, old, new = c.get("action"), c.get("old", ""), c.get("new", "")
+    if a == "installed":
+        return _("Installed %s") % new
+    if a == "removed":
+        return _("Removed %s") % old
+    if a == "reinstalled":
+        return _("Reinstalled %s") % new
+    if a == "downgraded":
+        return _("Back to an older version: %s → %s") % (old, new)
+    return f"{old} → {new}" if old and new else ""
+
+
 class App:
-    def __init__(self):
+    def __init__(self, latest=""):
         self.win = Gtk.Window(title=_("Software Update"))
         self.win.set_default_size(660, 720)
         self.win.set_icon_name("system-software-update")
@@ -216,8 +258,12 @@ class App:
             self.sysbus = None
         self.poll_id = None
         self.mode_busy = False
+        self.expanded = set()
+        self.changes_cache = {}
+        self.scroll_to = None
+        self.expand_latest(latest)
 
-        scroll = Gtk.ScrolledWindow()
+        scroll = self.scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.win.add(scroll)
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -343,6 +389,8 @@ class App:
             self.mon = None
         self.win.show_all()
         self.refresh()
+        if self.scroll_to:
+            GLib.timeout_add(150, self.scroll_to_latest)
 
     # -- stavebni prvky --
     def group_title(self, text):
@@ -497,10 +545,13 @@ class App:
         hist = history(15)
         if not hist:
             self.row(self.history_group, _("Nothing yet"), _("Updates and repairs will be listed here."))
-        for h in hist:
+        for i, h in enumerate(hist):
             title, detail, ok = history_text(h)
             sub = when(h.get("time")) + (f" · {detail}" if detail else "")
-            self.row(self.history_group, title, sub, status="ok" if ok else "bad")
+            if h.get("kind") in EXPANDABLE:
+                self.history_row(h, hist[i + 1:], title, sub, ok)
+            else:
+                self.row(self.history_group, title, sub, status="ok" if ok else "bad")
         if hist:
             more = Gtk.Button(label=_("Show Full Log…"))
             more.connect("clicked", lambda _b: self.full_log())
@@ -510,6 +561,167 @@ class App:
         self.restart_btn.set_visible(reboot and not prog)
         self.prog_box.set_visible(bool(prog))
         return True
+
+    # -- historie: rozbalitelne radky --
+    def expand_latest(self, kind):
+        """--latest: rozbalit nejnovejsi zaznam daneho druhu (a posunout okno k nemu)."""
+        kinds = LATEST_KINDS.get(kind)
+        if not kinds:
+            return
+        for h in history(15):
+            if h.get("kind") in kinds:
+                self.expanded.add(history_key(h))
+                self.scroll_to = history_key(h)
+                return
+
+    def latest_expander(self):
+        for r in self.history_group.get_children():
+            for c in r.get_children():
+                if getattr(c, "luxos_key", None) == self.scroll_to:
+                    return c
+        return None
+
+    def scroll_to_latest(self):
+        exp = self.latest_expander()
+        if exp is not None:
+            pos = exp.translate_coordinates(self.scroll.get_child(), 0, 0)
+            if pos:
+                adj = self.scroll.get_vadjustment()
+                adj.set_value(min(max(0, pos[1] - 60), adj.get_upper() - adj.get_page_size()))
+        return False
+
+    def history_row(self, h, older, title, sub, ok):
+        """Radek historie s rozbalenim: seznam baliku (stara → nova verze) nebo co oprava udelala."""
+        r = Gtk.Box(spacing=10)
+        r.get_style_context().add_class("row")
+        if self.history_group.get_children():
+            r.get_style_context().add_class("row-sep")
+        dot = Gtk.Label(label="●")
+        dot.get_style_context().add_class("ok" if ok else "bad")
+        dot.set_valign(Gtk.Align.START)
+        r.pack_start(dot, False, False, 0)
+        head = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        t = Gtk.Label(label=title, xalign=0)
+        t.set_line_wrap(True)
+        head.pack_start(t, False, False, 0)
+        s = Gtk.Label(label=sub, xalign=0)
+        s.get_style_context().add_class("hint")
+        s.set_line_wrap(True)
+        head.pack_start(s, False, False, 0)
+        exp = Gtk.Expander()
+        exp.set_label_widget(head)
+        exp.set_hexpand(True)
+        key = history_key(h)
+        since = next((int(o.get("time") or 0) for o in older if o.get("kind") == "update"), 0)
+        exp.luxos_key = key
+
+        def toggled(e, _p):
+            if e.get_expanded():
+                self.expanded.add(key)
+                if e.get_child() is None:
+                    e.add(self.history_details(h, since))
+                    e.get_child().show_all()
+            else:
+                self.expanded.discard(key)
+        if key in self.expanded:
+            exp.add(self.history_details(h, since))
+            exp.set_expanded(True)
+        exp.connect("notify::expanded", toggled)
+        r.pack_start(exp, True, True, 0)
+        self.history_group.pack_start(r, False, False, 0)
+        return exp
+
+    def history_details(self, h, since=0):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.get_style_context().add_class("details")
+
+        def line(text, cls="hint"):
+            lab = Gtk.Label(label=text, xalign=0)
+            lab.set_line_wrap(True)
+            lab.set_selectable(True)
+            if cls:
+                lab.get_style_context().add_class(cls)
+            box.pack_start(lab, False, False, 0)
+            return lab
+        k = h.get("kind")
+        if k == "repair":
+            if h.get("title"):
+                line(_("Problem: %s") % problem_title(h))
+            act = _(ACTION_LABELS.get(h.get("action"), h.get("action", "")))
+            if h.get("target"):
+                act += f" ({h['target']})"
+            line(_("What LuxOS did: %s") % act)
+            if not h.get("ok", True):
+                line(_("The repair did not help"))
+            if (h.get("output") or "").strip():
+                line(h["output"].strip()[-600:], "pkg-ver")
+        elif k == "verify_repair":
+            if h.get("repaired"):
+                line(_("Reinstalled packages: %s") % " ".join(sorted(h["repaired"])))
+            if h.get("failed"):
+                line(_("Could not repair: %s") % " ".join(sorted(h["failed"])))
+        elif k == "verify":
+            if h.get("packages"):
+                line(_("Affected packages: %s") % " ".join(sorted(h["packages"])))
+        key = history_key(h)
+        if key not in self.changes_cache:
+            self.changes_cache[key] = care.history_changes(h, since)
+        changes = self.changes_cache[key]
+        if changes:
+            self.package_list(box, changes)
+        elif k == "update" and h.get("ok", True):
+            line(_("Details aren't available for this older update."))
+        if len(box.get_children()) == 0:
+            line(_("No more details were recorded."))
+        return box
+
+    def package_list(self, box, changes):
+        """Balicky serazene podle nazvu: nazev aplikace (nebo balicku) a stara → nova verze. Dlouhy
+        seznam se posouva."""
+        rows = []
+        for c in changes:
+            name = c.get("name", "")
+            friendly = app_name(name, c.get("new") or c.get("old") or "")
+            rows.append(((friendly or name).lower(), name, friendly, change_text(c)))
+        lst = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        for _sort, name, friendly, what in sorted(rows):
+            item = Gtk.Box(spacing=8)
+            lab = Gtk.Label(label=friendly or name, xalign=0)
+            lab.set_selectable(True)
+            lab.set_ellipsize(Pango.EllipsizeMode.END)
+            lab.set_max_width_chars(34)
+            item.pack_start(lab, False, False, 0)
+            sub = (f"{name} · {what}" if what else name) if friendly else what
+            if sub:
+                v = Gtk.Label(label=sub, xalign=0)
+                v.get_style_context().add_class("pkg-ver")
+                v.set_selectable(True)
+                v.set_ellipsize(Pango.EllipsizeMode.END)
+                item.pack_start(v, True, True, 0)
+            lst.pack_start(item, False, False, 0)
+        if len(rows) > 12:
+            sw = Gtk.ScrolledWindow()
+            sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            sw.set_min_content_height(240)
+            sw.set_max_content_height(240)
+            sw.add(lst)
+            box.pack_start(sw, False, False, 0)
+        else:
+            box.pack_start(lst, False, False, 0)
+        brand = next((c for c in changes if c.get("name") == "luxos-branding" and c.get("new")), None)
+        if brand and GLib.find_program_in_path("luxos-whats-new"):
+            # Co je noveho: novinky aktualni verze LuxOS
+            notes = Gtk.Button(label=_("LuxOS release notes"))
+            notes.set_halign(Gtk.Align.START)
+            notes.connect("clicked", lambda _b: self.whats_new())
+            box.pack_start(notes, False, False, 0)
+        return lst
+
+    def whats_new(self):
+        try:
+            subprocess.Popen(["luxos-whats-new"], stdin=subprocess.DEVNULL, start_new_session=True)
+        except OSError as e:
+            self.error(str(e))
 
     def verify_running(self):
         p = read_json(VERIFY_PROGRESS, {})
@@ -751,7 +963,9 @@ APP_ID = "luxos-update"
 def main():
     GLib.set_prgname(APP_ID)
     GLib.set_application_name(_("Software Update"))
-    App()
+    args = sys.argv[1:]
+    latest = args[args.index("--latest") + 1] if "--latest" in args[:-1] else ""
+    App(latest=latest)
     Gtk.main()
 
 

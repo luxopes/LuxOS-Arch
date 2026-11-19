@@ -1295,11 +1295,15 @@ class Hub(unittest.TestCase):
             self.assertEqual(f.read().strip(), "2")
         with open(os.path.join(self.cache, "care-ai-asked")) as f:
             self.assertEqual(f.read().split(), ["0123456789ab"])
-        # akce upozorneni: "open" u Care otevre luxos-update, "ignore" u Ovladacu zapise odmitnute baliky
+        # akce upozorneni: "open" u Care otevre luxos-update (po aktualizaci s rozbalenym nejnovejsim
+        # zaznamem historie, u problemu jen okno), "ignore" u Ovladacu zapise odmitnute baliky
         ids = {c[1][3]: 41 + i for i, c in enumerate(notes.calls) if c[0] == "Notify"}
         notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
                    GLib.Variant("(us)", (ids[translation("LuxOS was updated")], "open")))
-        self.assertTrue(self.wait_for(lambda: "luxos-update " in self.calls(), 5))
+        self.assertTrue(self.wait_for(lambda: "luxos-update --latest update" in self.calls(), 5), self.calls())
+        notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
+                   GLib.Variant("(us)", (ids[translation("LuxOS found a problem")], "default")))
+        self.assertTrue(self.wait_for(lambda: "luxos-update " in self.calls(), 5), self.calls())
         notes.emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications", "ActionInvoked",
                    GLib.Variant("(us)", (ids[translation("Additional drivers are available")], "ignore")))
         ignored = os.path.join(self.cfg, "drivers-ignored")

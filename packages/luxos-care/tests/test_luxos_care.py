@@ -1346,3 +1346,155 @@ class HideAutoEntries(Root):
         self.w("/boot/loader/loader.conf", "default arch.conf\ntimeout 5\n")
         self.assertFalse(care.hide_auto_entries(care.detect_layout()))
         self.assertEqual(self.r("/boot/loader/loader.conf"), "default arch.conf\ntimeout 5\n")
+
+
+class UpdateDetails(Root):
+    """Historie: co presne se aktualizovalo (stara -> nova verze) - ulozene pri transakci, u starsich
+    zaznamu dohledane v zaznamu jadra (jen cteni)."""
+
+    LOG = ("[2026-11-19T09:00:00+0100] [ALPM] upgraded old-update (1-1 -> 2-1)\n"
+           "[2026-11-19T10:00:00+0100] [PACMAN] Running 'lux-engine -Sy --needed archlinux-keyring'\n"
+           "[2026-11-19T10:00:01+0100] [ALPM] transaction started\n"
+           "[2026-11-19T10:00:02+0100] [ALPM] upgraded archlinux-keyring (20261001-1 -> 20261101-1)\n"
+           "[2026-11-19T10:00:03+0100] [ALPM] transaction completed\n"
+           "[2026-11-19T10:01:00+0100] [ALPM] upgraded firefox (149.0-1 -> 150.0-1)\n"
+           "[2026-11-19T10:01:01+0100] [ALPM] installed libnew (0.4-1)\n"
+           "[2026-11-19T10:01:02+0100] [ALPM] removed oldlib (2.1-3)\n"
+           "[2026-11-19T10:01:03+0100] [ALPM] reinstalled bash (5.3-1)\n"
+           "[2026-11-19T10:01:04+0100] [ALPM] downgraded mesa (26.1-2 -> 26.0-1)\n"
+           "[2026-11-19T10:01:05+0100] [ALPM] upgraded archlinux-keyring (20261101-1 -> 20261102-1)\n"
+           "[2026-11-19T10:01:06+0100] [ALPM] installed tmpdep (1-1)\n"
+           "[2026-11-19T10:01:07+0100] [ALPM] removed tmpdep (1-1)\n"
+           "[2026-11-19T10:01:08+0100] [ALPM] running 'zz-luxos-protect.hook'...\n"
+           "garbage line\n")
+
+    @staticmethod
+    def t(stamp):
+        return care.log_time(stamp)
+
+    def test_parse_sample_log(self):
+        ch = care.parse_engine_changes(self.LOG.splitlines())
+        by = {c["name"]: c for c in ch}
+        self.assertEqual([c["name"] for c in ch], sorted(by))                     # serazene
+        self.assertNotIn("tmpdep", by)                                             # nainstalovano a odstraneno
+        self.assertEqual(by["firefox"], {"name": "firefox", "action": "upgraded", "old": "149.0-1", "new": "150.0-1"})
+        self.assertEqual(by["libnew"], {"name": "libnew", "action": "installed", "old": "", "new": "0.4-1"})
+        self.assertEqual(by["oldlib"], {"name": "oldlib", "action": "removed", "old": "2.1-3", "new": ""})
+        self.assertEqual(by["bash"]["action"], "reinstalled")
+        self.assertEqual((by["mesa"]["action"], by["mesa"]["old"], by["mesa"]["new"]), ("downgraded", "26.1-2", "26.0-1"))
+        # klice dvakrat (nejdriv samostatne, pak v cele aktualizaci): prvni stara, posledni nova verze
+        self.assertEqual((by["archlinux-keyring"]["old"], by["archlinux-keyring"]["new"]), ("20261001-1", "20261102-1"))
+
+    def test_parse_time_window(self):
+        start, end = self.t("2026-11-19T10:00:00+0100"), self.t("2026-11-19T10:01:00+0100")
+        names = [c["name"] for c in care.parse_engine_changes(self.LOG.splitlines(), start, end)]
+        self.assertEqual(names, ["archlinux-keyring", "firefox"])
+        self.assertEqual(care.parse_engine_changes(self.LOG.splitlines(), end + 3600, end + 7200), [])
+        self.assertEqual(care.log_time("bad"), 0)
+
+    def test_changes_since_offset(self):
+        self.w(care.ENGINE_LOG, "[2026-11-18T08:00:00+0100] [ALPM] upgraded before (1-1 -> 1-2)\n")
+        off = care.engine_log_size()
+        with open(self.root + care.ENGINE_LOG, "a") as f:
+            f.write(self.LOG)
+        names = [c["name"] for c in care.engine_changes_since(off)]
+        self.assertNotIn("before", names)
+        self.assertIn("firefox", names)
+        # zaznam se mezitim zkratil (rotace): cte se novy soubor od zacatku
+        self.w(care.ENGINE_LOG, "[2026-11-19T11:00:00+0100] [ALPM] upgraded after (1 -> 2)\n")
+        self.assertEqual([c["name"] for c in care.engine_changes_since(off + 10 ** 6)], ["after"])
+        os.unlink(self.root + care.ENGINE_LOG)
+        self.assertEqual(care.engine_changes_since(0), [])
+        self.assertEqual(care.engine_log_size(), 0)
+
+    def _do_update(self, run_update, rc=0):
+        with mock.patch.object(care, "load_state", return_value={}), \
+                mock.patch.object(care, "mode", return_value="carefree"), \
+                mock.patch.object(care, "current_env", return_value={}), \
+                mock.patch.object(care, "conditions_ok", return_value=(True, "")), \
+                mock.patch.object(care, "CareLock", return_value=mock.MagicMock()), \
+                mock.patch.object(care, "update_state"), mock.patch.object(care, "save_state"), \
+                mock.patch.object(care, "clear_progress"), mock.patch.object(care, "log"), \
+                mock.patch.object(care, "find_new_configs", return_value=[]), \
+                mock.patch.object(care, "needs_reboot", return_value=False), \
+                mock.patch.object(care, "safe_check"), mock.patch.object(care, "kernel_migrate"), \
+                mock.patch.object(care, "add_event") as ev, \
+                mock.patch.object(care.Updater, "run_update", run_update), \
+                mock.patch("signal.signal"):
+            self.assertEqual(care.do_update(manual=True), rc)
+        return ev
+
+    def test_update_records_package_list(self):
+        self.w(care.ENGINE_LOG, "[2026-11-18T08:00:00+0100] [ALPM] upgraded before (1-1 -> 1-2)\n")
+
+        def run_update(up):
+            with open(self.root + care.ENGINE_LOG, "a") as f:     # "transakce" zapise do zaznamu jadra
+                f.write(self.LOG)
+            return {"result": "ok", "packages": ["archlinux-keyring", "firefox", "mesa"], "kernel": False}
+        ev = self._do_update(run_update)
+        h = care.read_history()[-1]
+        self.assertEqual((h["kind"], h["ok"], h["count"]), ("update", True, 3))
+        names = [c["name"] for c in h["changes"]]
+        self.assertIn("firefox", names)
+        self.assertNotIn("before", names)                     # jen tato transakce
+        self.assertEqual(care.history_changes(h), h["changes"])
+        ev.assert_called_once()
+
+    def test_failed_update_keeps_partial_changes(self):
+        os.makedirs(self.root + "/var/log")                     # zaznam jadra jeste neexistuje
+
+        def run_update(up):
+            with open(self.root + care.ENGINE_LOG, "a") as f:
+                f.write("[2026-11-19T10:00:02+0100] [ALPM] upgraded luxos-keyring (1-1 -> 2-1)\n")
+            return {"result": "failed", "error": "network", "packages": ["luxos-keyring", "x"]}
+        self._do_update(run_update, rc=1)
+        h = care.read_history()[-1]
+        self.assertFalse(h["ok"])
+        self.assertEqual([c["name"] for c in h["changes"]], ["luxos-keyring"])
+
+    def test_old_entry_found_in_log_window(self):
+        self.w(care.ENGINE_LOG, self.LOG)
+        t = self.t("2026-11-19T10:01:30+0100")
+        old = {"time": t, "kind": "update", "ok": True, "count": 2, "packages": ["firefox", "mesa", "old-update"]}
+        ch = care.history_changes(old)
+        self.assertEqual([c["name"] for c in ch], ["firefox", "mesa", "old-update"])
+        self.assertEqual(ch[0]["new"], "150.0-1")
+        # predchozi aktualizace v 9:30 -> jeji balicky (old-update v 9:00) uz nepatri sem
+        ch = care.history_changes(old, since=self.t("2026-11-19T09:30:00+0100"))
+        self.assertEqual([c["name"] for c in ch], ["firefox", "mesa"])
+
+    def test_old_entry_without_data(self):
+        old = {"time": self.t("2026-11-19T10:02:00+0100"), "kind": "update", "ok": True, "count": 34}
+        self.assertIsNone(care.history_changes(old))                               # zadny zaznam, zadne nazvy
+        self.w(care.ENGINE_LOG, self.LOG)
+        self.assertIsNone(care.history_changes({"time": self.t("2026-11-20T10:00:00+0100"), "kind": "update"}))
+        # jen nazvy z historie, zaznam jadra uz nic nema -> nazvy bez verzi
+        names = care.history_changes({"time": self.t("2026-11-25T10:00:00+0100"), "kind": "update",
+                                      "packages": ["zeta", "alpha"]})
+        self.assertEqual([(c["name"], c["old"], c["new"]) for c in names], [("alpha", "", ""), ("zeta", "", "")])
+        self.assertIsNone(care.history_changes({"time": 1, "kind": "update", "ok": False, "error": "network"}))
+        self.assertIsNone(care.history_changes({"time": 1, "kind": "repair", "action": "clean_cache"}))
+        self.assertEqual(care.history_changes({"kind": "repair", "changes": []}), [])
+
+    def test_history_stays_small_and_log_line_short(self):
+        big = [{"name": f"pkg{i:04d}", "action": "upgraded", "old": "1.0-1", "new": "1.0-2"} for i in range(400)]
+        with mock.patch.object(care, "log") as lg, mock.patch.dict(os.environ, {"LUXOS_CARE_QUIET": ""}):
+            for _i in range(60):
+                care.history("update", ok=True, count=400, changes=big)
+        self.assertNotIn("pkg0001", lg.call_args[0][0])                            # do logu jen pocet
+        self.assertIn('"changes": 400', lg.call_args[0][0])
+        self.assertLessEqual(os.path.getsize(self.root + care.HISTORY), 512 * 1024)
+        self.assertGreaterEqual(len(care.read_history()), 10)
+        self.assertEqual(len(care.read_history()[-1]["changes"]), 400)
+
+    def test_package_desktop_files(self):
+        self.w("/var/lib/lux/local/firefox-150.0-1/files",
+               "%FILES%\nusr/\nusr/share/applications/\nusr/share/applications/firefox.desktop\n"
+               "usr/share/applications/sub/x.desktop\nusr/bin/firefox\n")
+        self.w("/var/lib/lux/local/firefox-developer-edition-150.0-1/files",
+               "%FILES%\nusr/share/applications/firefox-developer-edition.desktop\n")
+        want = [self.root + "/usr/share/applications/firefox.desktop"]
+        self.assertEqual(care.package_desktop_files("firefox", "150.0-1"), want)
+        self.assertEqual(care.package_desktop_files("firefox"), want)               # bez verze
+        self.assertEqual(care.package_desktop_files("firefox", "149.0-1"), want)    # starsi verze uz neni
+        self.assertEqual(care.package_desktop_files("missing"), [])
