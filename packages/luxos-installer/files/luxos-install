@@ -353,17 +353,30 @@ iso_disk() {  # disk s instalacnim mediem; zdroj muze byt oddil, cely disk (dd) 
     lsblk -nsro NAME,TYPE "$src" 2>/dev/null | awk '$2 == "disk" {print $1; exit}'
 }
 
+lsblk_field() {  # lsblk_field RADEK_lsblk_-P KLIC -> hodnota (bez eval; lsblk -P escapuje zvlastni znaky)
+    [[ $1 =~ (^|[[:space:]])$2=\"([^\"]*)\" ]] && printf '%s' "${BASH_REMATCH[2]}"
+}
+
 list_disks() {
-    local iso; iso=$(iso_disk)
-    lsblk -dnpbo NAME,SIZE,TYPE,RO,MODEL | while read -r name size type ro model; do
-        [[ $type == disk && $ro == 0 ]] || continue
+    # Poradi = vychozi volba (U-14): vnitrni pred USB/vymenitelnymi, SSD/NVMe pred rotacnimi, pak nejvetsi.
+    # Jinak byl prvni flash disk (sda pred nvme0n1) a automaticka instalace mirila na nej.
+    local iso line name size type ro rm rota tran model ext
+    iso=$(iso_disk)
+    lsblk -dnpbP -o NAME,SIZE,TYPE,RO,RM,ROTA,TRAN,MODEL | while IFS= read -r line; do
+        name=$(lsblk_field "$line" NAME) size=$(lsblk_field "$line" SIZE) type=$(lsblk_field "$line" TYPE)
+        ro=$(lsblk_field "$line" RO) rm=$(lsblk_field "$line" RM) rota=$(lsblk_field "$line" ROTA)
+        tran=$(lsblk_field "$line" TRAN) model=$(lsblk_field "$line" MODEL)
+        model=$(printf '%b' "$model" | sed 's/[[:space:]]*$//')   # \xNN z lsblk -P zpet na znaky
+        [[ $type == disk && $ro == 0 && $size =~ ^[0-9]+$ ]] || continue
         [[ $name == /dev/zram* || $name == /dev/loop* ]] && continue
         [[ -n $iso && $name == "/dev/$iso" ]] && continue
         ((size >= 20 * 1000 * 1000 * 1000)) || continue
-        # "43 GB" s mezerou jako v GUI; disk bez modelu (virtio) jako "Disk" v jazyce pruvodce
-        printf '%s|%s  %s  %s\n' "$name" "$name" "$(numfmt --to=si --suffix=B "$size" | sed -E 's/([0-9])([kKMGTP]?B)$/\1 \2/')" \
-            "${model:-$(T "Disk")}"
-    done
+        ext=0; [[ $tran == usb || $rm == 1 ]] && ext=1
+        [[ $rota == 1 && $ext == 0 ]] || rota=0   # u USB (flash se hlasi jako SSD) rozhoduje jen velikost
+        # klic razeni | nazev | text v nabidce ("43 GB" s mezerou jako v GUI; bez modelu "Disk" v jazyce pruvodce)
+        printf '%d%d%016d|%s|%s  %s  %s\n' "$ext" "$rota" "$((9999999999999999 - size))" "$name" "$name" \
+            "$(numfmt --to=si --suffix=B "$size" | sed -E 's/([0-9])([kKMGTP]?B)$/\1 \2/')" "${model:-$(T "Disk")}"
+    done | sort -t'|' -k1,1 -k2,2 | cut -d'|' -f2-
 }
 
 detect_timezone() {  # odhad podle IP (ip-api.com umi zdarma jen http): odpoved jen ze seznamu pasem

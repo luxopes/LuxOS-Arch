@@ -124,9 +124,22 @@ def _lv_info(lv, vg, dm):
             "fstype": d.get("fstype", ""), "mounts": d.get("mounts", []), "children": d.get("children", [])}
 
 
+def disk_is_external(d):
+    """USB nebo vymenitelny disk (flash disk, ctecka karet). Interni eMMC/NVMe/SATA ne."""
+    return d.get("tran") == "usb" or bool(d.get("removable"))
+
+
+def disk_order_key(d):
+    """Poradi disku pro vyber cile (U-14): prvni vnitrni, z nich SSD/NVMe pred rotacnimi, pak nejvetsi.
+    USB a vymenitelne az na konec - automaticka instalace jinak casto vybrala flash disk (sda pred nvme0n1).
+    U USB rozhoduje jen velikost (flash disk se hlasi jako SSD, ale je pomaly)."""
+    external = disk_is_external(d)
+    return (external, bool(d.get("rota")) and not external, -int(d.get("size") or 0), d.get("path") or d.get("name") or "")
+
+
 def scan_system(minsizes=True):
     """Disky (vcetne oddilu, LUKS a LVM pod nimi) a skupiny LVM. Bez roota chybi VG a minsize."""
-    raw = _run(["lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE,"
+    raw = _run(["lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,RM,ROTA,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE,"
                 "PTTYPE,UUID,MOUNTPOINTS,LOG-SEC"])
     try:
         devices = json.loads(raw or "{}").get("blockdevices", [])
@@ -166,7 +179,9 @@ def scan_system(minsizes=True):
         disks.append({"path": d.get("path") or "/dev/" + d["name"], "name": d["name"], "size": int(d["size"]),
                       "model": (d.get("model") or "").strip(), "tran": d.get("tran") or "",
                       "pttype": d.get("pttype") or "", "parts": parts,
-                      "mounts": mounts(d)})
+                      "mounts": mounts(d), "removable": d.get("rm") in (True, "1", 1),
+                      "rota": d.get("rota") in (True, "1", 1)})
+    disks.sort(key=disk_order_key)
     # LV z lsblk (obsah, pripojeni, LUKS nad LV) podle jmena v device-mapperu "vg-lv"
     dm = {}
 

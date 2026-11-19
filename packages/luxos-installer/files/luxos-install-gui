@@ -458,7 +458,7 @@ def list_disks():
     """Disky vhodne pro instalaci (stejna pravidla jako list_disks v TUI) vcetne oddilu."""
     if FAKE:
         return fake_disks()
-    raw = cmd_out("lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,ROTA,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE")
+    raw = cmd_out("lsblk", "-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,RO,RM,ROTA,MODEL,TRAN,FSTYPE,LABEL,PARTLABEL,PARTTYPE")
     try:
         devices = json.loads(raw or "{}").get("blockdevices", [])
     except ValueError:
@@ -481,7 +481,10 @@ def list_disks():
         parts.sort(key=lambda p: p["start"])
         disks.append({"path": d.get("path") or "/dev/" + d["name"], "name": d["name"], "size": int(d["size"]),
                       "model": (d.get("model") or "").strip(), "tran": d.get("tran") or "", "parts": parts,
-                      "rota": d.get("rota") not in (False, "0", 0), "probe": None})
+                      "rota": d.get("rota") not in (False, "0", 0), "removable": d.get("rm") in (True, "1", 1),
+                      "probe": None})
+    # vychozi cil je prvni disk: vnitrni SSD/NVMe pred HDD, USB a vymenitelne az na konec (U-14)
+    disks.sort(key=lay.disk_order_key)
     return disks
 
 

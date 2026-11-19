@@ -120,6 +120,39 @@ expect "Esc pri otazkach: Zruseno, kod 130" bash -c "[[ $rc == 130 ]] && grep -q
 out=$(esc 0)
 expect "130 behem instalace: dal selhani" grep -q 'Installation failed' <<<"$out"
 
+# --- poradi disku (U-14): vychozi volba je prvni; USB flash (sda) driv vyhraval pred vnitrnim NVMe
+GB=$((1000 * 1000 * 1000))
+DISKS_P=$(cat <<EOF
+NAME="/dev/sda" SIZE="$((64 * GB))" TYPE="disk" RO="0" RM="1" ROTA="0" TRAN="usb" MODEL="SanDisk Ultra"
+NAME="/dev/sdb" SIZE="$((2000 * GB))" TYPE="disk" RO="0" RM="0" ROTA="1" TRAN="sata" MODEL="WDC WD20EZRZ"
+NAME="/dev/sdc" SIZE="$((256 * GB))" TYPE="disk" RO="0" RM="0" ROTA="0" TRAN="sata" MODEL="Crucial\x20MX500 "
+NAME="/dev/sdd" SIZE="$((32 * GB))" TYPE="disk" RO="0" RM="0" ROTA="0" TRAN="usb" MODEL="Ventoy USB"
+NAME="/dev/sde" SIZE="$((8 * GB))" TYPE="disk" RO="0" RM="0" ROTA="0" TRAN="sata" MODEL="Tiny"
+NAME="/dev/sdf" SIZE="$((500 * GB))" TYPE="disk" RO="0" RM="0" ROTA="1" TRAN="usb" MODEL="External HDD"
+NAME="/dev/nvme0n1" SIZE="$((512 * GB))" TYPE="disk" RO="0" RM="0" ROTA="0" TRAN="nvme" MODEL="Samsung SSD 980 PRO"
+NAME="/dev/mmcblk0" SIZE="$((64 * GB))" TYPE="disk" RO="0" RM="0" ROTA="0" TRAN="" MODEL=""
+NAME="/dev/sr0" SIZE="$((1 * GB))" TYPE="rom" RO="1" RM="1" ROTA="1" TRAN="sata" MODEL="DVD"
+NAME="/dev/zram0" SIZE="$((40 * GB))" TYPE="disk" RO="0" RM="0" ROTA="0" TRAN="" MODEL=""
+EOF
+)
+disks() {  # disks "vystup lsblk -P" "disk s instalacnim mediem" -> nazvy v nabidce v poradi
+    LS=$1 ISO=$2 bash -c "set -Eeuo pipefail
+        lsblk() { printf '%s\n' \"\$LS\"; }
+        iso_disk() { printf '%s' \"\$ISO\"; }
+        T() { printf '%s' \"\$1\"; }
+        $(fn lsblk_field)
+        $(fn list_disks)
+        list_disks"
+}
+order=$(disks "$DISKS_P" sdd | cut -d'|' -f1 | tr '\n' ' ')
+expect "vychozi je vnitrni NVMe, ne USB flash (sda)" test "$(disks "$DISKS_P" sdd | head -1 | cut -d'|' -f1)" = /dev/nvme0n1
+expect "poradi: SSD/NVMe podle velikosti, eMMC, HDD, pak USB" test "$order" = "/dev/nvme0n1 /dev/sdc /dev/mmcblk0 /dev/sdb /dev/sdf /dev/sda "
+expect "instalacni medium, maly disk, DVD a zram se nenabidnou" bash -c "! grep -qE '/dev/(sdd|sde|sr0|zram0)' <<<'$order'"
+expect "text: velikost s mezerou a model (\\x20 dekodovane)" grep -qx '/dev/sdc|/dev/sdc  256 GB  Crucial MX500' <<<"$(disks "$DISKS_P" sdd)"
+expect "disk bez modelu: Disk" grep -qx '/dev/mmcblk0|/dev/mmcblk0  64 GB  Disk' <<<"$(disks "$DISKS_P" sdd)"
+expect "jen USB disky: nabidne se USB (instalace na externi disk)" test "$(disks "$(grep -E 'sda|sdf' <<<"$DISKS_P")" '' | head -1 | cut -d'|' -f1)" = /dev/sdf
+expect "model s | a uvozovkou nerozbije nabidku" test "$(disks 'NAME="/dev/vda" SIZE="'$((40 * GB))'" TYPE="disk" RO="0" RM="0" ROTA="1" TRAN="" MODEL="A|B\x22C"' '' | cut -d'|' -f1)" = /dev/vda
+
 echo
 echo "Vysledek: $pass ok, $fail FAIL"
 ((fail == 0))
