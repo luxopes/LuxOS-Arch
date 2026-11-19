@@ -1,0 +1,74 @@
+[Unit]
+Description=LuxOS Discord bot (support answers from the LuxOS docs via LuxAI)
+Documentation=https://github.com/luxopes/LuxOS-Arch/tree/main/server/discord-bot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+[Service]
+Type=simple
+# deploy.sh nahradi /usr/bin/node cestou k Node 20+ na serveru (command -v node)
+ExecStart=/usr/bin/node /opt/luxos-discord-bot/src/main.js
+WorkingDirectory=/opt/luxos-discord-bot
+Environment=NODE_ENV=production "NODE_OPTIONS=--max-old-space-size=64 --max-semi-space-size=2"
+# volitelne nastaveni (limity, DISCORD_GUILD_ID ...), bez tajnych udaju - viz README
+EnvironmentFile=-/etc/luxos-discord/bot.env
+# tajne udaje: systemd je precte jako root a preda jen teto sluzbe ($CREDENTIALS_DIRECTORY)
+LoadCredential=discord-token:/etc/luxos-discord/token
+LoadCredential=luxai-key:/etc/luxos-discord/luxai-key
+Restart=on-failure
+RestartSec=10s
+# 78 = chybny token / chybejici soubor / zakazany intent: nespoustet znovu dokola
+RestartPreventExitStatus=78
+TimeoutStopSec=10s
+SyslogIdentifier=luxos-discord-bot
+
+# --- stav: state.json (pocitadla, id vlaken, zverejnena oznameni; zadny obsah zprav) ---
+StateDirectory=luxos-discord-bot
+StateDirectoryMode=0700
+UMask=0077
+
+# --- izolace ---
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/luxos-discord-bot
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateUsers=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Discord (HTTPS/WSS ven), lux-api 127.0.0.1:3002, SMTP 127.0.0.1:25
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# MemoryDenyWriteExecute ne: V8 JIT potrebuje zapisovatelnou spustitelnou pamet
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+
+# --- zdroje: RSS ~80 MB (Node ~42 MB + index dokumentace), halda omezena na 64 MB ---
+MemoryHigh=110M
+MemoryMax=128M
+MemorySwapMax=0
+CPUQuota=50%
+TasksMax=32
+LimitNOFILE=1024
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

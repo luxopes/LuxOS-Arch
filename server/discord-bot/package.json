@@ -1,0 +1,21 @@
+{
+  "name": "luxos-discord-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LuxOS Discord support bot (answers from the LuxOS docs via LuxAI) and one-time server setup",
+  "license": "MIT",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "setup": "node src/setup.js",
+    "build-index": "node scripts/build-index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "nodemailer": "10.3.1",
+    "ws": "8.22.1"
+  }
+}
