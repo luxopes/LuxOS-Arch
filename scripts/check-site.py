@@ -5,7 +5,7 @@ zpet), nahled odkazu (og:*, twitter:*, obrazek existuje), jedno h1, alt a width/
 anglicky seznam zmen proti CHANGELOG.md (vsechna vydani a polozky, scripts/changelog_sections.py)
 a prepinac jazyka (pevne poradi EN | CS, zvyrazneni aktualniho jazyka), strukturovana data JSON-LD (FAQPage jen s otazkami viditelnymi na strance, SoftwareApplication s verzi ISO
 i na strankach Stahnout),
-llms.txt a llms-full.txt a klic IndexNow. Nic nestahuje (zadne pozadavky na server), jen cte soubory.
+llms.txt a llms-full.txt, klic IndexNow a kanal Novinek announcements.json. Nic nestahuje (zadne pozadavky na server), jen cte soubory.
 
   scripts/check-site.py [adresar]      vychozi out/site; navratovy kod 1 pri chybe
 """
@@ -484,6 +484,15 @@ def main():
     rb = os.path.join(out, "robots.txt")
     if not os.path.isfile(rb) or "Sitemap: " + BASE + "/sitemap.xml" not in open(rb, encoding="utf-8").read():
         errors.append("robots.txt missing or without Sitemap line")
+
+    # kanal Novinek LuxOS (luxos-news): bez nej dostane LuxOS 404 (zadne novinky), neplatny zahodi
+    try:
+        with open(os.path.join(out, "announcements.json"), encoding="utf-8") as f:
+            feed = json.load(f)
+        if not isinstance(feed, dict) or feed.get("version") != 1 or not isinstance(feed.get("announcements"), list):
+            errors.append('announcements.json: must be {"version": 1, "announcements": [...]}')
+    except (OSError, ValueError) as e:
+        errors.append(f"announcements.json missing or invalid: {e}")
 
     # countme: stranky o pouzivani a jejich skript; dokument countme muze chybet, dokud neni v luxos-docs
     warnings = []

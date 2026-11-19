@@ -5340,3 +5340,13 @@ It could not be sent right now. Mail sends it automatically as soon as it can.	D
 Printer “%s” found on the network	Skrivaren ”%s” hittades i nätverket
 Click Add to set it up. Add only printers you know.	Klicka på Lägg till för att ställa in den. Lägg bara till skrivare du känner till.
 The calendar file cannot be read. Nothing was saved, so no events were lost.	Kalenderfilen kan inte läsas. Inget sparades, så inga händelser har gått förlorade.
+LuxOS News	LuxOS-nyheter
+No news yet	Inga nyheter än
+Unread	Olästa
+Earlier	Tidigare
+More information	Mer information
+Could not check for news. Check your internet connection.	Det gick inte att söka efter nyheter. Kontrollera internetanslutningen.
+News from the LuxOS team	Nyheter från LuxOS-teamet
+New releases, planned maintenance and important changes.	Nya versioner, planerat underhåll och viktiga ändringar.
+Notify me about news	Meddela mig om nyheter
+Check Now	Kontrollera nu

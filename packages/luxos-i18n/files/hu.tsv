@@ -5340,3 +5340,13 @@ It could not be sent right now. Mail sends it automatically as soon as it can.	M
 Printer “%s” found on the network	„%s” nyomtató a hálózaton
 Click Add to set it up. Add only printers you know.	A beállításhoz kattintson a Hozzáadás gombra. Csak ismert nyomtatót adjon hozzá.
 The calendar file cannot be read. Nothing was saved, so no events were lost.	A naptárfájl nem olvasható. Semmi sem lett mentve, így egyetlen esemény sem veszett el.
+LuxOS News	LuxOS-hírek
+No news yet	Még nincsenek hírek
+Unread	Olvasatlan
+Earlier	Korábban
+More information	További információ
+Could not check for news. Check your internet connection.	Nem sikerült ellenőrizni a híreket. Ellenőrizze az internetkapcsolatot.
+News from the LuxOS team	Hírek a LuxOS csapatától
+New releases, planned maintenance and important changes.	Új kiadások, tervezett karbantartás és fontos változások.
+Notify me about news	Értesítés a hírekről
+Check Now	Ellenőrzés most

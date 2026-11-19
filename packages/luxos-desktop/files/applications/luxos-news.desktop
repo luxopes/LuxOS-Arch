@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS News
+Name[cs]=Novinky LuxOS
+Comment=News from the LuxOS team
+Comment[cs]=Novinky od týmu LuxOS
+Exec=luxos-news
+Icon=luxos-news
+Categories=System;
+StartupWMClass=luxos-news
+# Obchod LuxOS: soucast systemu, v sekci Aplikace LuxOS se nezobrazuje
+X-LuxOS-Store=hide

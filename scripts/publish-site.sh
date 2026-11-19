@@ -1,5 +1,6 @@
 #!/bin/bash
-# LuxOS - zverejneni webu https://luxos.lux-ai.cz (stranka en + cs, dokumentace, zmeny, sitemap, release.json)
+# LuxOS - zverejneni webu https://luxos.lux-ai.cz (stranka en + cs, dokumentace, zmeny, sitemap, release.json,
+# kanal Novinek LuxOS announcements.json)
 #
 #   scripts/publish-site.sh       sestavi out/site (scripts/build-site.py), zkontroluje ho
 #                                 (scripts/check-site.py) a nahraje ho na server
@@ -33,7 +34,7 @@ else
     ssh "$SERVER" "rsync -rlt --delete --chmod=D755,F644 ${EXCL[*]@Q} $STAGE/ $DEST/"
 fi
 ssh "$SERVER" "chown -R root:root $DEST"
-for u in / /cs/ /docs/ /sitemap.xml /robots.txt /release.json; do
+for u in / /cs/ /docs/ /sitemap.xml /robots.txt /release.json /announcements.json; do
     printf '    https://luxos.lux-ai.cz%s -> HTTP %s\n' "$u" "$(curl -s -o /dev/null -w '%{http_code}' "https://luxos.lux-ai.cz$u")"
 done
 echo "==> Done: https://luxos.lux-ai.cz/"

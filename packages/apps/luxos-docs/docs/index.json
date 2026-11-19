@@ -733,13 +733,15 @@
         {
           "path": "luxos/apps.md",
           "title": "LuxOS Apps",
-          "summary": "Commands and features of LuxOS apps: About, Welcome, Tour, What's New, Calculator, Calendar, Camera (Wi-Fi QR scan mode), Weather, Wi-Fi QR Code, System Monitor, Screenshot, Feedback, network warning.",
+          "summary": "Commands and features of LuxOS apps: About, Welcome, Tour, What's New, LuxOS News (announcements), Calculator, Calendar, Camera (Wi-Fi QR scan mode), Weather, Wi-Fi QR Code, System Monitor, Screenshot, Feedback, network warning.",
           "keywords": [
             "apps",
             "luxos-about",
             "luxos-welcome",
             "luxos-tour",
             "luxos-whats-new",
+            "luxos-news",
+            "announcements",
             "calculator",
             "luxos-calculator",
             "calendar",

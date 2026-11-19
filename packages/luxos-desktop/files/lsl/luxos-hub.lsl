@@ -27,11 +27,13 @@
 #   Emoji a symboly   okno vyberu emoji (luxos_emoji); klient luxos-emoji (Super+., Ctrl+Super+Mezernik)
 #                     preda pozadavek stejne jako snimek obrazovky. Okno a data (~7 MB PSS) vzniknou az pri
 #                     prvnim pouziti a pak zustanou (prvni otevreni ~0,5 s, dalsi hned)
+#   Novinky LuxOS     oznameni od vyvojaru: `luxos-news --check` 3 min po prihlaseni, pak kazdych 6 h
 #
 # Stejny program bezi i jako `luxos-control-center [--panel|--background]` a `luxos-calendar [--background]`
 # (podle nazvu, pod kterym byl spusten): bezici instance (hub nebo samostatna) jen dostane signal.
 # Vsechno je rizene udalostmi (D-Bus, signaly); casovace jsou jen kontrola automatickeho vzhledu jednou
-# za 5 minut a zmeny casu dvakrat denne, bez spousteni dalsich procesu.
+# za 5 minut a zmeny casu dvakrat denne, bez spousteni dalsich procesu (vyjimkou je kontrola Novinek
+# kazdych 6 h v samostatnem procesu).
 load env, fd
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
@@ -219,6 +221,24 @@ function netcheck_plugin():
         return new
     end
     return ""
+end
+
+# Novinky LuxOS (luxos-news, oznameni od vyvojaru): kontrola 3 min po prihlaseni, pak kazdych 6 h.
+# Samostatny proces - stazeni kanalu neblokuje hub. LUXOS_HUB_NEWS_DELAY = prvni kontrola (s, testy).
+NEWS_EVERY = 21600
+
+function news_check():
+    path = glib.find_program_in_path("luxos-news")
+    if path != None and path != "":
+        call glib.spawn_quiet(["luxos-news", "--check"])
+    end
+    return True
+end
+
+function news_first():
+    call news_check()
+    call glib.timeout_add_seconds(NEWS_EVERY, news_check)
+    return False
 end
 
 function connectivity():
@@ -895,6 +915,7 @@ function main_hub():
     # Skryta okna Ovladaciho centra a Kalendare: vytvorit az po usazeni relace (nebrzdi prihlaseni),
     # nebo hned pri prvnim kliknuti, prijde-li driv.
     call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_HUB_PREBUILD_DELAY", ""), 6), prebuild)
+    call glib.timeout_add_seconds(text.to_int(env.get("LUXOS_HUB_NEWS_DELAY", ""), 180), news_first)
 
     # Trezor (balik luxos-safe): zamceni pri zamceni obrazovky a pred uspanim
     if glib.find_program_in_path("luxos-safe") != "":

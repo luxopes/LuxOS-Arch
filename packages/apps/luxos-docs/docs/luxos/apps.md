@@ -12,6 +12,7 @@ translations) and the light/dark mode.
 | Welcome to LuxOS | `luxos-welcome` | first steps: dark mode, Store, update, LuxAI sign-in, Tour, Shortcuts |
 | LuxOS Tour | `luxos-tour` | short illustrated tour of where everything is |
 | What's New | `luxos-whats-new` | news of the installed LuxOS version |
+| LuxOS News | `luxos-news` | announcements from the LuxOS team (releases, maintenance) |
 | Calculator | `luxos-calculator` | basic and scientific calculator |
 | Calendar | `luxos-calendar` | calendar under the clock, events with reminders (.ics) |
 | Camera | `luxos-camera` | photos and videos from the webcam; `--scan-wifi` joins a Wi-Fi from a QR code |
@@ -142,6 +143,21 @@ compositor).
 After an update to a new LuxOS version, `luxos-whats-new --auto` runs at login and shows the news
 of every version since the last one seen (`~/.config/luxos/whats-new-seen`). New users see the
 Tour instead (`--mark-seen`). The installed version is in `/usr/lib/luxos/version`.
+
+## LuxOS News
+
+`luxos-news` shows announcements from the LuxOS team (new release, planned server maintenance,
+important change). New ones also come as notifications; a click opens the app. The session hub runs
+`luxos-news --check` 3 minutes after login and then every 6 hours; it only downloads
+`https://luxos.lux-ai.cz/announcements.json` and sends nothing.
+
+- Unread announcements are on top with a dot; opening the window marks them read. Important ones
+  have an orange label and their notification stays until closed.
+- **Notify me about news** turns the notifications off; **Check Now** downloads the feed again.
+- First check: announcements older than 14 days are not notified; at most 3 notifications per check.
+- Plain text only; links (`https://` only) open just by clicking **More information**. Invalid
+  entries and feeds over 256 kB are ignored.
+- State: `~/.cache/luxos/news.json` (feed), `~/.local/state/luxos/news.json` (read, switch).
 
 ## Calculator
 

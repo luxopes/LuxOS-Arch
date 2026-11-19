@@ -5340,3 +5340,13 @@ It could not be sent right now. Mail sends it automatically as soon as it can.	N
 Printer “%s” found on the network	Encontrada a impressora «%s» na rede
 Click Add to set it up. Add only printers you know.	Clique em Adicionar para a configurar. Adicione apenas impressoras que conhece.
 The calendar file cannot be read. Nothing was saved, so no events were lost.	Não é possível ler o ficheiro do calendário. Nada foi guardado, por isso nenhum evento se perdeu.
+LuxOS News	Notícias do LuxOS
+No news yet	Ainda não há notícias
+Unread	Não lidas
+Earlier	Anteriores
+More information	Mais informações
+Could not check for news. Check your internet connection.	Não foi possível verificar as notícias. Verifique a ligação à Internet.
+News from the LuxOS team	Notícias da equipe do LuxOS
+New releases, planned maintenance and important changes.	Novas versões, manutenção programada e alterações importantes.
+Notify me about news	Avisar-me das notícias
+Check Now	Verificar agora

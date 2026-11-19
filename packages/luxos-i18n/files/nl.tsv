@@ -5340,3 +5340,13 @@ It could not be sent right now. Mail sends it automatically as soon as it can.	H
 Printer “%s” found on the network	Printer ‘%s’ gevonden in het netwerk
 Click Add to set it up. Add only printers you know.	Klik op Toevoegen om hem in te stellen. Voeg alleen printers toe die u kent.
 The calendar file cannot be read. Nothing was saved, so no events were lost.	Het agendabestand kan niet worden gelezen. Er is niets opgeslagen, dus er zijn geen afspraken verloren gegaan.
+LuxOS News	LuxOS-nieuws
+No news yet	Nog geen nieuws
+Unread	Ongelezen
+Earlier	Eerder
+More information	Meer informatie
+Could not check for news. Check your internet connection.	Kan niet op nieuws controleren. Controleer je internetverbinding.
+News from the LuxOS team	Nieuws van het LuxOS-team
+New releases, planned maintenance and important changes.	Nieuwe versies, gepland onderhoud en belangrijke wijzigingen.
+Notify me about news	Waarschuw me bij nieuws
+Check Now	Nu controleren

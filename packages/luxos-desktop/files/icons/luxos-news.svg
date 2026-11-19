@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Novinky LuxOS: megafon na modrem prechodu (vlastni kresba, styl ikon LuxOS) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#5b9bff"/>
+      <stop offset="1" stop-color="#6a4dff"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#bg)"/>
+  <path d="M150 220h50l130-70v212l-130-70h-50a20 20 0 0 1-20-20v-32a20 20 0 0 1 20-20z" fill="#fff"/>
+  <path d="M180 292l22 78h40l-18-70z" fill="#fff" opacity="0.9"/>
+  <path d="M365 216a52 52 0 0 1 0 80" stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/>
+</svg>

@@ -16,7 +16,8 @@ ze site/pages (mail, privacy, terms), stranky pro konkretni hledani a stranka St
 Vystup: index.html, cs/index.html, release.json (aktualni vydani, nacita ho i stranka), docs/,
 cs/docs/, changes/, cs/zmeny/, usage/, cs/pouzivani/, mail/, privacy/, terms/ (+ cs/), download/ a cs/stahnout/
 (stranka Stahnout; ISO a podpisy lezi na serveru vedle ni v /download/), compare/ a cs/srovnani/, sitemap.xml,
-robots.txt, llms.txt, llms-full.txt, klic IndexNow (<klic>.txt). Titulky nejvyse 60 a rucne psane popisy
+robots.txt, llms.txt, llms-full.txt, klic IndexNow (<klic>.txt), announcements.json (kanal aplikace Novinky
+LuxOS ze site/announcements.json, docs/developers/announcements.md). Titulky nejvyse 60 a rucne psane popisy
 nejvyse 155 znaku (jinak sestaveni skonci chybou). Kontrola: scripts/check-site.py.
 """
 import datetime
@@ -1124,6 +1125,7 @@ def main():
 
     for name in ("styles.css", "script.js", "usage.js"):
         shutil.copy(os.path.join(SITE, name), os.path.join(OUT, name))
+    copy_announcements()
     shutil.copytree(os.path.join(SITE, "assets"), os.path.join(OUT, "assets"))
     with open(os.path.join(OUT, "favicon.ico"), "wb") as f:
         f.write(favicon_ico(os.path.join(SITE, "assets", "favicon-32.png")))
@@ -1140,6 +1142,27 @@ def main():
     print(f"site: LuxOS {ver['VERSION']} (ISO {iso['version']}), pages en {PAGE_COUNT['en']}, cs {PAGE_COUNT['cs']}, "
           f"{len(flat)} documents ({sum(1 for d in flat if 'cs' in d['src'])} also in Czech), "
           f"{len(SITEMAP)} urls in sitemap -> {OUT}")
+
+
+# Kanal Novinek LuxOS (luxos-news --check v kazdem LuxOS): tady jen zakladni tvar a velikost, polozky do
+# podrobna kontroluje `luxos-news validate` (stejna pravidla jako aplikace, neplatne polozky preskoci)
+ANNOUNCEMENTS_MAX = 262144
+
+
+def copy_announcements():
+    src = os.path.join(SITE, "announcements.json")
+    with open(src, "rb") as f:
+        raw = f.read()
+    if len(raw) > ANNOUNCEMENTS_MAX:
+        sys.exit(f"build-site: {src} is larger than {ANNOUNCEMENTS_MAX} bytes (LuxOS would ignore it)")
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except ValueError as e:
+        sys.exit(f"build-site: {src} is not valid JSON: {e}")
+    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("announcements"), list):
+        sys.exit(f'build-site: {src} must be {{"version": 1, "announcements": [...]}}')
+    with open(os.path.join(OUT, "announcements.json"), "wb") as f:
+        f.write(raw)
 
 
 if __name__ == "__main__":

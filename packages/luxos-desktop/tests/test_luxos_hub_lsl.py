@@ -176,7 +176,7 @@ class Hub(unittest.TestCase):
         os.makedirs(cls.fake, exist_ok=True)
         for name in ("notify-send", "luxos-datasaver", "luxos-appearance", "luxos-safe", "luxos-powersaver", "brightnessctl",
                      "luxos-displays", "xfce4-panel", "luxos-update", "luxos-drivers", "xfce4-session-logout", "nmcli", "pactl",
-                     "pkexec", "luxos-firewall-settings"):
+                     "pkexec", "luxos-firewall-settings", "luxos-news"):
             with open(os.path.join(cls.fake, name), "w") as f:
                 f.write('#!/bin/sh\nprintf "%s\\n" "$(basename "$0") $*" >>"$FAKE_LOG"\n')
             os.chmod(os.path.join(cls.fake, name), 0o755)
@@ -249,6 +249,7 @@ class Hub(unittest.TestCase):
                "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
                "LUXOS_HUB_NO_AUTOHIDE": "1", "LUXOS_GPU": "/nonexistent", "LUXOS_GPU_DELAY": "1",
                "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper"),
+               "LUXOS_HUB_NEWS_DELAY": "600",   # kontrola Novinek jen v test_news_check_after_login
                "LUXOS_HUB_NO_WM_REPLACE": "1"}   # skutecny xfwm4 uzivatele se nikdy nevymeni (jen test_wm_replaced_after_update)   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
         if "XAUTHORITY" in os.environ:
             env["XAUTHORITY"] = os.environ["XAUTHORITY"]
@@ -1094,6 +1095,19 @@ class Hub(unittest.TestCase):
                     self.assertIn(expect, out.get("e", ""))
         r = call_agent("Release", None)
         self.assertEqual(r.unpack(), ())
+
+    # ---- Novinky LuxOS -------------------------------------------------------------------------------------------
+    def test_news_check_after_login(self):
+        """Po prihlaseni (LUXOS_HUB_NEWS_DELAY) jedno `luxos-news --check` v samostatnem procesu, hub bezi dal."""
+        self.start_hub(LUXOS_HUB_NEWS_DELAY="1")
+
+        def checks():
+            return [c for c in self.calls() if c.startswith("luxos-news")]
+        self.assertTrue(self.wait_for(lambda: len(checks()) == 1, 5), self.calls())
+        self.assertEqual(checks(), ["luxos-news --check"])
+        time.sleep(1.0)
+        self.assertEqual(len(checks()), 1, "dalsi kontrola az za 6 h")
+        self.assertEqual(self.hub.poll(), None)
 
     # ---- tapeta prihlasovaci obrazovky ---------------------------------------------------------------------------
     def test_wallpaper_change_syncs_login_screen(self):
