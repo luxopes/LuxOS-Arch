@@ -6,7 +6,7 @@ LuxOS is a fast, lightweight Linux distribution based on Arch Linux with a macOS
 underneath). It has its own package manager `lux`, its own kernel build `linux-luxos`, automatic
 drivers, updates that can be rolled back, the AI assistant LuxAI, the terminal coding agent Lux Code
 and its own programming language, LSL. It is a rolling release; the current version is 1.0.3
-"Sirius", still in beta.
+"Sirius", the first stable release.
 
 ## Is LuxOS free? What licence does it use?
 
@@ -25,7 +25,8 @@ small, young project: the public repository started in October 2026.
 
 ## Is LuxOS stable? Is it safe to use?
 
-LuxOS is **beta**: expect bugs and back up your data before installing. Every update takes a system
+Yes – since 1.0.3 LuxOS is a stable release. It is still a young project, so back up your data before
+installing (as with any new system). Every update takes a system
 snapshot first, so a bad update can be undone, and the previous kernel stays in the boot menu. Packages
 from the LuxOS repositories are signed, the firewall is on by default and Lux Guard checks programs
 from the internet. For computers where stability matters most, an established distribution is still

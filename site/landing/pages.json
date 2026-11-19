@@ -2,11 +2,11 @@
   "comment": "Stranky pro konkretni hledani (scripts/build-site.py): sablona site/landing/<klic>.<jazyk>.html, tady adresa, titulek (<= 60 znaku), popis (<= 155), drobecek a kratky text karty (odkazy z uvodni stranky a 'Dalsi stranky'). {ISO_VERSION} a {ISO_SIZE} se doplni z site/iso.json. group = compare: stranka patri pod rozcestnik srovnani (compare_hub). Poradi = poradi karet.",
   "compare_hub": {
     "en": {"path": "/compare/", "title": "LuxOS compared with Zorin OS, elementary OS, Windows 11",
-           "desc": "Fair, sourced comparisons of LuxOS with Zorin OS, elementary OS and Windows 11: desktop, requirements, updates, price and maturity. LuxOS is beta.",
+           "desc": "Fair, sourced comparisons of LuxOS with Zorin OS, elementary OS and Windows 11: desktop, requirements, updates, price and maturity. LuxOS is young.",
            "crumb": "Compare", "h1": "LuxOS compared",
            "lead": "Side-by-side comparisons with facts from the official websites of the other systems. Where another system is the better choice, we say so."},
     "cs": {"path": "/cs/srovnani/", "title": "LuxOS ve srovnání se Zorin OS, elementary OS a Windows 11",
-           "desc": "Férová srovnání LuxOS se Zorin OS, elementary OS a Windows 11 se zdroji: prostředí, požadavky, aktualizace, cena a zralost. LuxOS je zatím beta.",
+           "desc": "Férová srovnání LuxOS se Zorin OS, elementary OS a Windows 11 se zdroji: prostředí, požadavky, aktualizace, cena a zralost. LuxOS je zatím mladý.",
            "crumb": "Srovnání", "h1": "LuxOS ve srovnání",
            "lead": "Srovnání bok po boku s fakty z oficiálních webů ostatních systémů. Kde je jiný systém lepší volbou, řekneme to."}
   },
