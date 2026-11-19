@@ -280,6 +280,9 @@ class Verdict(unittest.TestCase):
         sent = sent_all[-1]
         self.assertEqual(sent[1], lc.CHAT_PATH)
         self.assertNotIn("tools", sent[2])
+        # Flash (Claude Haiku 5.5) premysli vzdy a premysleni se pocita do max_tokens - na odpoved musi zbyt misto
+        self.assertGreaterEqual(sent[2]["max_tokens"], 2000)
+        self.assertEqual(sent[2]["reasoning_effort"], "low")
         self.assertIn("pkgname=hello-tool", sent[2]["messages"][1]["content"])
         # "dangerous" od Lite uz dalsi model nevola (nejvyssi zavaznost)
         del sent_all[:]

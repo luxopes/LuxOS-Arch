@@ -383,8 +383,10 @@ def _luxai_files(d):
 
 def _ask_model(acc_mod, acc, model, name, pkgbuild, installs, skipped):
     """Jeden dotaz na jeden model. -> (verdikt|None, duvody, poznamka)."""
-    body = {"model": model, "messages": build_messages(name, pkgbuild, installs, skipped), "max_tokens": 400,
-            "temperature": 0, "stream": False}
+    # Flash (Claude Haiku 5.5) premysli vzdy a premysleni se pocita do max_tokens: s 400 tokeny na odpoved
+    # nezbylo a kontrola koncila "no clear answer". Rezerva pro premysleni + nizka uroven premysleni.
+    body = {"model": model, "messages": build_messages(name, pkgbuild, installs, skipped), "max_tokens": 4000,
+            "reasoning_effort": "low", "temperature": 0, "stream": False}
     try:
         r = acc_mod.request("POST", CHAT_PATH, body, token=acc["sessionToken"],
                             origin=acc.get("origin", getattr(acc_mod, "ORIGIN", "https://lux-ai.cz")), timeout=60)
