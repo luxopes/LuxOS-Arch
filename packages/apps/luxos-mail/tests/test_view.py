@@ -6,6 +6,7 @@ import html.parser
 import json
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -153,6 +154,33 @@ class ViewTest(unittest.TestCase):
         self.assertEqual(d["inline"], ["foto1@example"])
         self.assertEqual(len(d["dom"].images), 2)
         self.assertTrue(all(s.startswith("data:image/png;base64,") for s in d["dom"].images))
+
+    def test_named_text_part_is_shown_or_listed(self):
+        # text se jmenem souboru: inline / bez dispozice se zobrazi, attachment je v prilohach; nikdy se neztrati
+        parts = [
+            ('text/plain; name="poznamka.txt"', "Content-Disposition: inline; filename=\"poznamka.txt\"\r\n", "VLOZENY-TEXT"),
+            ('text/plain; name="log.txt"', "", "BEZ-DISPOZICE"),
+            ('text/plain; name="data.txt"', "Content-Disposition: attachment; filename=\"data.txt\"\r\n", "PRILOHA-TEXT"),
+        ]
+        body = ["From: a@example.test\r\nTo: b@example.test\r\nSubject: t\r\nMIME-Version: 1.0\r\n"
+                "Content-Type: multipart/mixed; boundary=\"XX\"\r\n\r\n--XX\r\nContent-Type: text/plain\r\n\r\nUvod\r\n"]
+        for ct, disp, text in parts:
+            body.append("--XX\r\nContent-Type: %s\r\n%s\r\n%s\r\n" % (ct, disp, text))
+        body.append("--XX--\r\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "named.eml")
+            with open(path, "w") as f:
+                f.write("".join(body))
+            r = mt.run_bin(["--test-view", path])
+            self.assertEqual(r.returncode, 0, r.stderr)
+            shown = json.loads(r.stdout)["html"]
+            r = mt.run_bin(["--test-render", path])
+            self.assertEqual(r.returncode, 0, r.stderr)
+            rendered = json.loads(r.stdout)
+        self.assertIn("VLOZENY-TEXT", shown)
+        self.assertIn("BEZ-DISPOZICE", shown)
+        self.assertNotIn("PRILOHA-TEXT", shown)
+        self.assertEqual([a["name"] for a in rendered["attachments"]], ["data.txt"])
 
     def test_existing_fixtures_render(self):
         for name in sorted(os.listdir(mt.FIXTURES)):

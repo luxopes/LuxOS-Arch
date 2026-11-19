@@ -835,8 +835,10 @@ function view_collect(b, part, vctx, ctx):
         end
         return 0
     end
-    attachment = part["disposition"] == "attachment"
-    if (t == "text/plain" or t == "text/html") and not attachment and part["filename"] == "":
+    # text se jmenem souboru (inline nebo bez Content-Disposition) se zobrazi; prilohou je jen jina dispozice,
+    # stejne jako v mime.collect, aby se nic neztratilo
+    attachment = part["disposition"] != "" and part["disposition"] != "inline"
+    if (t == "text/plain" or t == "text/html") and not attachment:
         data = mime.decode_body(b, part)
         text = mime.decode_text(data, 0, len(data), part["params"].get("charset", ""))
         if t == "text/html":

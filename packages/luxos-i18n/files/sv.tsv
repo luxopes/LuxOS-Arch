@@ -5334,3 +5334,6 @@ Rounded corners	Rundade hörn
 Connect the backup disk %s to back up this computer.	Anslut säkerhetskopieringsdisken %s för att säkerhetskopiera den här datorn.
 No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Ingen ögonblicksbild kunde skapas före uppdateringen, så det går inte att återgå till läget innan. Kontrollera det lediga utrymmet på disken.
 Stopped part-way: only some packages were installed. Finish with: lux update	Stoppades halvvägs: bara en del av paketen installerades. Slutför med: lux update
+The account this message was written from no longer exists. Check the sender in From.	Kontot som meddelandet skrevs från finns inte längre. Kontrollera avsändaren i fältet Från.
+The message is in Outbox.	Meddelandet ligger i utkorgen.
+It could not be sent right now. Mail sends it automatically as soon as it can.	Det gick inte att skicka just nu. E-post skickar det automatiskt så snart det går.

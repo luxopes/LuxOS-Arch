@@ -377,6 +377,26 @@ class ServiceTest(unittest.TestCase):
         self.assertIn("count", out)
 
 
+    def test_unread_count_includes_uncached_older_messages(self):
+        # prvni synchronizace stahne jen poslednich 500 zprav; neprectene starsi musi byt v poctu (Dock, seznam)
+        seed = os.path.join(self.s.root, "big-seed")
+        os.mkdir(seed)
+        for i in range(505):
+            name = "%04d-%s.eml" % (i, "new" if i < 3 else "seen")
+            with open(os.path.join(seed, name), "w") as f:
+                f.write("From: a@example.test\r\nTo: b@example.test\r\nSubject: Zprava %d\r\n"
+                        "Message-ID: <m%d@example.test>\r\n\r\nText %d\r\n" % (i, i, i))
+        self.server.stop()
+        self.server = mt.FakeServer(self.s.root, self.s.certs, seed=seed)
+        r = self.add()
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(len(inbox_rows(self.s, r["account"])), 500)
+        with open(os.path.join(cache_dir(self.s, r["account"]), "mailboxes.tsv")) as f:
+            inbox = [line.split("\t") for line in f.read().split("\n") if line.startswith("INBOX\t")][0]
+        self.assertEqual(inbox[5], "3")
+        self.assertEqual(inbox[6], "505")
+
+
 class NoUidplusServiceTest(unittest.TestCase):
     """Server bez UIDPLUS a MOVE: presun = COPY + \\Deleted + EXPUNGE. Holy EXPUNGE drive smazal i zpravy, ktere
     jako smazane oznacil jiny program (a ten je jeste mohl chtit obnovit)."""

@@ -401,6 +401,12 @@ class ComposeGuiTest(unittest.TestCase):
         self.server.control("smtp down on")
         n = len(self.trace())
         self.key("ctrl+Return")
+        # okno nezmizi bez slova: hlaska, ze zprava ceka v Odchozi
+        self.wait_trace("compose queued", n, 20)
+        time.sleep(1.0)
+        self.shot("13b-queued-light.png")
+        self.assertNotIn("compose closed", " ".join(self.trace()[n:]))
+        self.key("Return")
         self.wait_trace("compose sent=False", n, 20)
         self.assertEqual(self.sent(), [])
         time.sleep(1.0)
@@ -465,6 +471,55 @@ class ComposeGuiTest(unittest.TestCase):
         self.wait_trace("compose closed", n)
         time.sleep(1.5)
         self.assertEqual(len(self.sent()), 1)
+
+    def test_missing_attachment_keeps_window_and_temp_cleanup(self):
+        """Ulozit koncept s mezitim smazanou prilohou: okno zustane s hlaskou (drive se zavrelo a text zustal jen
+        v souboru, ktery se uz neotevrel). Pri spusteni se mazou stare otevrene prilohy a nepouzite files-*."""
+        data = os.path.join(self.s.env["XDG_DATA_HOME"], "luxos-mail")
+        drafts = os.path.join(data, "drafts")
+        opened = os.path.join(self.s.env["XDG_CACHE_HOME"], "luxos-mail", "open")
+        for d in (os.path.join(drafts, "files-aaaaaaaaaaaa"), os.path.join(drafts, "files-bbbbbbbbbbbb"), opened):
+            os.makedirs(d, mode=0o700, exist_ok=True)
+        for path in (os.path.join(drafts, "files-aaaaaaaaaaaa", "stara.pdf"), os.path.join(drafts, "files-bbbbbbbbbbbb", "pouzita.pdf"),
+                     os.path.join(opened, "stara.pdf"), os.path.join(opened, "nova.pdf")):
+            with open(path, "w") as f:
+                f.write("x")
+        old = time.time() - 3 * 86400
+        os.utime(os.path.join(opened, "stara.pdf"), (old, old))
+        with open(os.path.join(drafts, "ulozeny.json"), "w") as f:
+            json.dump({"open": False, "attachments": [{"name": "pouzita.pdf", "path": os.path.join(drafts, "files-bbbbbbbbbbbb", "pouzita.pdf")}]}, f)
+        self.start_gui()
+        self.assertFalse(os.path.exists(os.path.join(drafts, "files-aaaaaaaaaaaa")))
+        self.assertTrue(os.path.exists(os.path.join(drafts, "files-bbbbbbbbbbbb", "pouzita.pdf")))
+        self.assertFalse(os.path.exists(os.path.join(opened, "stara.pdf")))
+        self.assertTrue(os.path.exists(os.path.join(opened, "nova.pdf")))
+        att = os.path.join(self.s.root, "zmizi.txt")
+        with open(att, "w") as f:
+            f.write("data\n")
+        self.compose_new("rcpt@example.org", "S prilohou", "Dulezity text")
+        n = len(self.trace())
+        self.key("ctrl+shift+a")
+        time.sleep(1.5)
+        self.key("ctrl+l")
+        self.type(att)
+        self.key("Return")
+        self.wait_trace("compose attachments 1", n)
+        os.remove(att)
+        time.sleep(0.5)
+        n = len(self.trace())
+        self.key("Escape")
+        time.sleep(1.0)
+        self.key("Return")                         # Ulozit
+        self.wait_trace("compose status The attachment zmizi.txt no longer exists.", n)
+        time.sleep(0.5)
+        self.assertNotIn("compose closed", " ".join(self.trace()[n:]))
+        # text zustava v okne i v mistni kopii (otevrene okno se po padu obnovi)
+        local = [x for x in os.listdir(drafts) if x.endswith(".json") and x != "ulozeny.json"]
+        self.assertEqual(len(local), 1, os.listdir(drafts))
+        with open(os.path.join(drafts, local[0])) as f:
+            st = json.load(f)
+        self.assertTrue(st["open"])
+        self.assertEqual(st["text"], "Dulezity text")
 
     def _client(self):
         try:
@@ -541,6 +596,9 @@ class GmailComposeGuiTest(ComposeGuiTest):
         pass
 
     def test_drag_and_drop_attachment(self):
+        pass
+
+    def test_missing_attachment_keeps_window_and_temp_cleanup(self):
         pass
 
     def test_gmail_send_without_sent_append(self):

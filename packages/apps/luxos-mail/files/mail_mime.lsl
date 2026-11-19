@@ -371,10 +371,11 @@ function decode_words(s):
             break
         end
         q1 = mb.find_byte(b, 63, a + 2, n)
-        if q1 < 0 or q1 + 2 >= n or b[q1 + 2] != 63:
-            break
+        enc = 0
+        # zatoulane "=?" (napr. v predmetu) neni kodovane slovo; nasledujici slova se dekoduji dal
+        if q1 >= 0 and q1 + 2 < n and b[q1 + 2] == 63 and mb.find_byte(b, 32, a + 2, q1) < 0:
+            enc = b[q1 + 1] | 32
         end
-        enc = b[q1 + 1] | 32
         if enc != 98 and enc != 113:
             # neni kodovane slovo: pokracovat za "=?"
             call flush_words(out, pending, pending_cs)
@@ -906,7 +907,8 @@ function collect(b, part, ctx, related):
         end
         return 0
     end
-    attachment = part["disposition"] == "attachment"
+    # neznama dispozice se bere jako priloha (RFC 2183)
+    attachment = part["disposition"] != "" and part["disposition"] != "inline"
     if (t == "text/plain" or t == "text/html") and not attachment:
         text = part_text(b, part)
         if t == "text/html":
@@ -1865,6 +1867,16 @@ function percent_attr(value):
     return out
 end
 
+# Adresa pro odeslani a pridani uctu; domena bez tecky (user@server, admin@localhost) je platna
+function valid_address(e):
+    at = e.find("@")
+    if at <= 0 or e.find(" ") >= 0 or e.count("@") != 1:
+        return False
+    end
+    domain = e[at + 1:]
+    return domain != "" and not domain.endswith(".") and not domain.startswith(".") and domain.find("..") < 0
+end
+
 # Parametr jmena souboru: kratke ASCII jako filename="x"; jinak RFC 2231 (UTF-8, procenta, pokracovani *0*, *1* ...)
 function file_param(name, value):
     v = header_clean(value).replace("\"", "'").replace("\\", "_")
@@ -1985,7 +1997,8 @@ end
 
 # ---- odpovedi a preposlani -------------------------------------------------------------------------------------
 
-REPLY_PREFIXES = ["re:", "aw:", "odp:", "sv:", "vs:", "antw:", "réf:", "ref:", "rif:", "res:", "odg:", "відп:", "ynt:"]
+# "Ref:"/"Réf:"/"Rif:" ne: v predmetu casto znamena "tyka se" (Ref: faktura 123), ne odpoved
+REPLY_PREFIXES = ["re:", "aw:", "odp:", "sv:", "vs:", "antw:", "res:", "odg:", "відп:", "ynt:"]
 FORWARD_PREFIXES = ["fwd:", "fw:", "wg:", "tr:", "pd:", "rv:", "doorst:", "i:", "vb:", "přep:"]
 
 function has_prefix(subject, prefixes):

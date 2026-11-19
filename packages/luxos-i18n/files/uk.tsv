@@ -5335,3 +5335,6 @@ Rounded corners	Заокруглені кути
 Connect the backup disk %s to back up this computer.	Під’єднайте диск резервних копій %s, щоб створити резервну копію цього комп’ютера.
 No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Перед оновленням не вдалося створити знімок, тож повернутися до стану до нього неможливо. Перевірте вільне місце на диску.
 Stopped part-way: only some packages were installed. Finish with: lux update	Зупинено на півдорозі: встановлено лише частину пакетів. Завершіть командою: lux update
+The account this message was written from no longer exists. Check the sender in From.	Обліковий запис, з якого написано цей лист, більше не існує. Перевірте відправника в полі «Від».
+The message is in Outbox.	Лист у папці «Вихідні».
+It could not be sent right now. Mail sends it automatically as soon as it can.	Зараз його не вдалося надіслати. Пошта надішле його автоматично, щойно це стане можливим.

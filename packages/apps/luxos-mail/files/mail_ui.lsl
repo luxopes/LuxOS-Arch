@@ -1346,13 +1346,17 @@ function on_attachment_menu(a, button):
     return 0
 end
 
-# Otevrit prilohu: do soukrome docasne slozky (~/.cache/luxos-mail/open, 0700/0600), pak vychozi aplikace
-function on_attachment_open(a, item):
+function cache_dir():
     base = env.get("XDG_CACHE_HOME", "")
     if base == None or base == "":
         base = glib.home_dir() + "/.cache"
     end
-    d = store.ensure_dir(store.ensure_dir(base + "/luxos-mail") + "/open")
+    return base + "/luxos-mail"
+end
+
+# Otevrit prilohu: do soukrome docasne slozky (~/.cache/luxos-mail/open, 0700/0600), pak vychozi aplikace
+function on_attachment_open(a, item):
+    d = store.ensure_dir(store.ensure_dir(cache_dir()) + "/open")
     path = d + "/" + safe_name(a["name"])
     ok = True
     try:
@@ -1366,6 +1370,35 @@ function on_attachment_open(a, item):
         return 0
     end
     call open_file(path)
+    return 0
+end
+
+# Docasne kopie priloh pri spusteni: otevrene prilohy starsi nez den a slozky files-* (Preposlat, Koncept),
+# na ktere uz neodkazuje zadny rozepsany koncept ani zprava v Odchozi
+function clean_temp_files():
+    d = cache_dir() + "/open"
+    cutoff = glib.now() - 86400
+    for name in glib.list_dir(d):
+        st = glib.stat(d + "/" + name)
+        if len(st) == 2 and st[1] // 1000000000 < cutoff:
+            call store.remove_tree(d + "/" + name)
+        end
+    end
+    drafts = store.base_data() + "/drafts"
+    used = []
+    for dir in [drafts, outbox_dir()]:
+        for name in glib.list_dir(dir):
+            if name.endswith(".json"):
+                used.append(glib.read_text(dir + "/" + name))
+            end
+        end
+    end
+    used_text = "".join(used)
+    for name in glib.list_dir(drafts):
+        if name.startswith("files-") and used_text.find(name) < 0:
+            call store.remove_tree(drafts + "/" + name)
+        end
+    end
     return 0
 end
 
@@ -1915,7 +1948,8 @@ function reply_to_selected(kind):
     if len(m) == 0:
         return 0
     end
-    if kind == "forward" and len(r) == 0:
+    # bez tela by odpoved sla jen odesilateli, bez Cc, citace a vlakna (In-Reply-To)
+    if len(r) == 0:
         call message_box(i18n.T("The message is still downloading."), i18n.T("Try again when the message is shown."))
         return 0
     end
@@ -1939,7 +1973,9 @@ function reply_to_selected(kind):
         cc_list = r["cc"]
     end
     sig = compose.signature_block(account(cur["account"]))
-    opts = {"account": cur["account"], "reply": {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"]}}
+    # UIDVALIDITY: \Answered po odeslani nesmi oznacit jinou zpravu se stejnym UID (schranka mezitim zalozena znovu)
+    opts = {"account": cur["account"], "reply": {"account": cur["account"], "mailbox": cur["raw"], "uid": m["uid"],
+                                                 "uidvalidity": store.load_state(cur["account"], cur["raw"]).get("uidvalidity", 0)}}
     if kind == "forward":
         lines = ["---------- " + i18n.T("Forwarded message") + " ----------", i18n.T("From:") + " " + mime.address_full(sender),
                  i18n.T("Date:") + " " + long_date(date), i18n.T("Subject:") + " " + subject]
@@ -2170,7 +2206,7 @@ function outbox_edit():
     opts.pop("id", None)
     # koncept na serveru jen kdyz ho zakazka uvadi; okno jako obnovene (neulozene zmeny: hned se ulozi
     # v pocitaci a pri zavreni se zepta) - zakazka se z Odchozi smaze, zprava se nesmi ztratit
-    opts["draft_saved"] = String(job.get("draft_id", "")) != ""
+    opts["draft_saved"] = st.get("draft_saved", False) == True
     opts["restored"] = True
     call compose.open(opts)
     call request("outbox_delete", {"job": job["id"]}, {})
@@ -3773,7 +3809,7 @@ function on_dlg_ok(button):
     end
     email = gtk.entry_get_text(d["email"]).strip()
     password = gtk.entry_get_text(d["password"])
-    if email.find("@") <= 0 or email.find(".") < 0:
+    if not mime.valid_address(email):
         call dlg_message(i18n.T("Enter a valid email address."), True)
         return 0
     end
@@ -4500,6 +4536,9 @@ function main(argv):
     call ensure_service()
     call glib.idle_add(on_first_idle)
     call compose.init(compose_host())
+    safe:
+        call clean_temp_files()
+    end
     # rozepsane zpravy po padu / vypnuti se otevrou znovu
     call compose.restore_all()
     if req["op"] == "mailto":

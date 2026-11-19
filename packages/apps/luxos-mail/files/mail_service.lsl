@@ -37,7 +37,9 @@ load crypto
 ITEMS = "UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODYSTRUCTURE"
 INITIAL = 500
 OLDER = 500
-IDLE_REFRESH = 1500
+# IDLE se obnovuje po 9 min: domaci routery a mobilni site (NAT) zapominaji necinna spojeni uz po 10-15 min
+# a nova posta by pak prisla az s dalsim obnovenim
+IDLE_REFRESH = 540
 POLL_SECONDS = 300
 BACKOFF_MAX = 900
 MAX_BODY = 67108864
@@ -758,7 +760,12 @@ function sync_mailbox(st, raw, older=False):
         state["notified"] = max_uid
     end
     call store.save_state(id, raw, state)
-    call update_box_counts(st, raw, count_unseen(merged), info["exists"])
+    unseen = count_unseen(merged)
+    # v mezipameti jsou jen posledni zpravy (INITIAL, Nacist starsi): neprectene starsi spocita server
+    if info["exists"] > len(merged) and min_uid > 1:
+        unseen += len(imap.uid_search(conn, "UID 1:" + String(min_uid - 1) + " UNSEEN UNDELETED"))
+    end
+    call update_box_counts(st, raw, unseen, info["exists"])
     if changed:
         call broadcast({"event": "changed", "account": id, "mailbox": raw})
     end
@@ -1033,11 +1040,19 @@ end
 # schranky "All Mail" muze trvat)
 function refresh_counts(st):
     conn = st["conn"]
+    # vsechny STATUS najednou a pak odpovedi (jedna cesta k serveru misto jedne na slozku; sluzba mezitim stoji)
+    sent = []
     for b in st["boxes"]:
         if b["raw"] == "INBOX" or not b.get("selectable", True) or b["role"] in ["junk", "trash", "all", "important", "starred"]:
             continue
         end
-        r = imap.command(conn, "STATUS " + imap.quote(b["raw"]) + " (MESSAGES UNSEEN)", False)
+        tag = imap.next_tag(conn)
+        call imap.write(conn, tag + " STATUS " + imap.quote(b["raw"]) + " (MESSAGES UNSEEN)\r\n")
+        sent.append([b, tag])
+    end
+    for pair in sent:
+        b = pair[0]
+        r = imap.finish(conn, pair[1], False, 30000)
         for resp in r["untagged"]:
             t = imap.resp_tokens(resp)
             if len(t) >= 3 and imap.tstr(t[0]).upper() == "STATUS":
@@ -1186,7 +1201,7 @@ function on_idle_news(st):
     return False
 end
 
-# IDLE obnovit pred 29 minutami (RFC 2177); zaroven overi, ze spojeni zije
+# IDLE obnovit (RFC 2177 do 29 min, kvuli NAT casteji); zaroven overi, ze spojeni zije
 function on_idle_refresh(st):
     st["idle_timer"] = 0
     if leave_idle(st):
@@ -2375,7 +2390,11 @@ function post_send(st, job, data):
             flag = "$Forwarded"
         end
         safe:
-            call set_flags(st, String(reply.get("mailbox", "INBOX")), [reply["uid"]], True, [flag])
+            expected = reply.get("uidvalidity", 0)
+            if type(expected) != "Int":
+                expected = 0
+            end
+            call set_flags(st, String(reply.get("mailbox", "INBOX")), [reply["uid"]], True, [flag], expected)
         end
         done.append("reply")
         job["done"] = done
@@ -2601,6 +2620,13 @@ function process_outbox(force):
     for job in list_jobs():
         state = String(job.get("state", ""))
         if state == "failed" or (state == "new" and now() - job["created"] < 600):
+            continue
+        end
+        # predchozi sluzba skoncila uprostred odesilani (pad, vypnuti): server zpravu mozna prijal,
+        # sama ji znovu neposle (dvojite odeslani); uzivatel dostane upozorneni a rozhodne se
+        if state == "sending":
+            call log("outbox " + job["id"] + ": the service stopped while sending it")
+            call finish_job_error(job, False, "smtp_unknown", "Mail stopped while sending this message.")
             continue
         end
         # odeslana zprava, jen kopie do Odeslanych / priznak se nepovedly (ucet bez spojeni IMAP): po 48 h vzdat

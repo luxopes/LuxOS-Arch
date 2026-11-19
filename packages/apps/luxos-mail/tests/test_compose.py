@@ -145,6 +145,11 @@ class ComposeTest(unittest.TestCase):
         self.assertEqual(r["in_reply_to"], "<p3@example.org>")
         self.assertEqual(r["quote"], "> Ahoj,\n>> starší\n>\n> Petr")
         self.assertTrue(r["rfc_date"].endswith("+0100") or r["rfc_date"][-5] in "+-")
+        # "Ref:" v predmetu neni odpoved (tyka se), "AW:"/"SV:" ano
+        for subject, want in (("Ref: faktura 123", "Re: Ref: faktura 123"), ("AW: Termin", "AW: Termin"), ("SV: Möte", "SV: Möte")):
+            with open(src, "wb") as f:
+                f.write(("From: a@example.org\r\nSubject: %s\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nx\n" % subject).encode())
+            self.assertEqual(json.loads(mt.run_bin(["--test-reply", src]).stdout)["reply_subject"], want, subject)
 
 
 if __name__ == "__main__":

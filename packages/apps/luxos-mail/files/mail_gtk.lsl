@@ -417,6 +417,13 @@ function string_store_add(store, text):
     end
 end
 
+function string_store_clear(store):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("gtk_list_store_clear"), ptr(store))
+        return 0
+    end
+end
+
 function tree_model_text(model, iter):
     unsafe:
         value = __lsl_byte_zeros(32)

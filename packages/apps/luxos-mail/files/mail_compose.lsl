@@ -21,7 +21,7 @@ LOCAL_SAVE_MS = 1500
 SERVER_SAVE_S = 30
 LARGE = 26214400
 
-cs = {"host": {}, "windows": {}, "known": [], "known_at": 0, "store": 0}
+cs = {"host": {}, "windows": {}, "known": [], "known_at": 0, "store": 0, "store_at": 0}
 
 function init(host):
     cs["host"] = host
@@ -106,15 +106,6 @@ function pairs_text(pairs):
     return ", ".join(out)
 end
 
-function valid_email(e):
-    at = e.find("@")
-    if at <= 0 or e.find(" ") >= 0 or e.count("@") != 1:
-        return False
-    end
-    domain = e[at + 1:]
-    return domain.find(".") > 0 and not domain.endswith(".") and not domain.startswith(".")
-end
-
 function field_pairs(entry):
     out = []
     for p in mime.parse_addresses(gtk.entry_get_text(entry)):
@@ -192,12 +183,21 @@ function load_known():
     return out
 end
 
-function completion_store():
-    s = mg.string_store_new()
-    for t in load_known():
-        call mg.string_store_add(s, t)
+# Spolecny seznam adres vsech oken psani; s kazdym novym oknem se obnovi (novi prijemci, nova posta)
+function refresh_store():
+    known = load_known()
+    if cs["store"] == 0:
+        cs["store"] = mg.string_store_new()
+    elif cs["store_at"] == cs["known_at"]:
+        return 0
+    else:
+        call mg.string_store_clear(cs["store"])
     end
-    return s
+    for t in known:
+        call mg.string_store_add(cs["store"], t)
+    end
+    cs["store_at"] = cs["known_at"]
+    return 0
 end
 
 # Zacatek posledni adresy v poli (za posledni carkou/strednikem)
@@ -246,9 +246,6 @@ function on_match_selected(entry, model, iter, completion):
 end
 
 function attach_completion(entry):
-    if cs["store"] == 0:
-        cs["store"] = completion_store()
-    end
     rec = glib.track(on_match, 3, entry)
     c = mg.completion_new(entry, cs["store"], rec[0])
     call gtk.connect_data(c, "match-selected", 2, on_match_selected, entry)
@@ -305,7 +302,10 @@ function open(opts):
         return 0
     end
     account = String(opts.get("account", ""))
+    lost_account = False
     if len(account_of(account)) == 0:
+        # zprava z odebraneho uctu (obnova, Odchozi): Od se nesmi zmenit potichu
+        lost_account = account != ""
         account = accs[0]["id"]
     end
     win = gtk.window_new(i18n.T("New Message"))
@@ -388,13 +388,19 @@ function open(opts):
          "attach": attach, "reply": opts.get("reply", {}), "in_reply_to": String(opts.get("in_reply_to", "")),
          "references": String(opts.get("references", "")), "draft_mid": String(opts.get("draft_mid", "")),
          "draft_saved": opts.get("draft_saved", False), "local_timer": 0, "server_timer": 0, "busy": False, "closed": False,
-         "loading": True, "dirty": False}
+         "loading": True, "dirty": False, "saving": False, "draft_account": ""}
     if c["draft_mid"] == "":
         c["draft_mid"] = mime.new_message_id(account_of(account).get("email", ""))
     elif "draft_saved" not in opts:
         # koncept otevreny ze slozky Koncepty; zprava z Odchozi preda draft_saved sama (jeji Message-ID
         # nemusi byt na serveru - pak by zavreni bez zmen zpravu ztratilo)
         c["draft_saved"] = True
+    end
+    if lost_account:
+        # koncept odebraneho uctu uz neni k dispozici: zavreni se musi zeptat
+        c["draft_saved"] = False
+    elif c["draft_saved"]:
+        c["draft_account"] = account
     end
     if type(c["reply"]) != "Dictionary":
         c["reply"] = {}
@@ -408,6 +414,7 @@ function open(opts):
     for a in opts.get("attachments", []):
         call add_attachment(c, String(a.get("path", "")), String(a.get("name", "")))
     end
+    call refresh_store()
     for e in [to, cc, bcc]:
         call attach_completion(e)
         call gtk.connect_data(e, "changed", 0, on_changed, c)
@@ -429,7 +436,9 @@ function open(opts):
     call gtk.widget_show_all(win)
     call update_attachments(c)
     note = String(opts.get("note", ""))
-    if note != "":
+    if lost_account:
+        call set_status(c, i18n.T("The account this message was written from no longer exists. Check the sender in From."), True)
+    elif note != "":
         call set_status(c, note, False)
     end
     if gtk.entry_get_text(to).strip() == "":
@@ -590,11 +599,18 @@ function message_of(st, draft):
     return m
 end
 
-# Koncept do slozky Koncepty na serveru (pres sluzbu); bez site zustane mistni kopie
+# Koncept do slozky Koncepty na serveru (pres sluzbu); bez site zustane mistni kopie.
+# False: koncept nejde slozit (priloha mezitim smazana) - okno to ukaze a nesmi se zavrit
 function save_server(c):
     st = save_local(c, not c["closed"])
     if not has_content_state(st):
-        return 0
+        return True
+    end
+    for a in st["attachments"]:
+        if not exists(a["path"]) or mb.file_size(a["path"]) < 0:
+            call set_status(c, i18n.TF("The attachment %s no longer exists.", [a["name"]]), True)
+            return False
+        end
     end
     ok = True
     data = ByteArray()
@@ -604,13 +620,27 @@ function save_server(c):
         ok = False
     end
     if not ok:
-        return 0
+        call set_status(c, i18n.T("Draft saved on this computer"), False)
+        return False
     end
+    call drop_other_draft(c, st["account"])
     path = local_path(c["id"], ".eml")
     call writebytes(path, data)
     call mb.chmod(path, 384)
     c["dirty"] = False
+    c["saving"] = True
+    c["draft_account"] = st["account"]
     call request("save_draft", {"account": st["account"], "path": path, "message_id": st["draft_mid"]}, {"compose": c["id"], "draft": True})
+    return True
+end
+
+# Od zmenene po ulozeni konceptu: starsi koncept v Konceptech puvodniho uctu smazat, jinak tam osiri
+function drop_other_draft(c, account):
+    old = c.get("draft_account", "")
+    if c["draft_saved"] and old != "" and old != account:
+        call request("delete_draft", {"account": old, "message_id": c["draft_mid"]}, {"compose": c["id"], "deleted": True})
+        c["draft_saved"] = False
+    end
     return 0
 end
 
@@ -790,7 +820,7 @@ function do_send(c):
     rcpts = []
     bad = []
     for p in st["to"] + st["cc"] + st["bcc"]:
-        if valid_email(p[1]):
+        if mime.valid_address(p[1]):
             if p[1] not in rcpts:
                 rcpts.append(p[1])
             end
@@ -841,10 +871,10 @@ function do_send(c):
     for p in st["to"] + st["cc"]:
         to_text.append(mime.address_display(p))
     end
-    draft_id = ""
-    if c["draft_saved"]:
-        draft_id = c["draft_mid"]
-    end
+    call drop_other_draft(c, st["account"])
+    # koncept smazat po odeslani vzdy (podle Message-ID): ulozeni mohlo dobehnout bez potvrzeni oknu (pad,
+    # odeslani hned po obnove) a koncept by v Konceptech osirel
+    draft_id = c["draft_mid"]
     desc = {"account": st["account"], "rcpts": rcpts, "recipients": st["to"] + st["cc"] + st["bcc"], "subject": st["subject"],
             "to_text": ", ".join(to_text), "state": "new", "created": glib.now(), "reply": c["reply"], "draft_id": draft_id,
             "compose": st, "size": len(data)}
@@ -942,22 +972,26 @@ function close_window(c):
     return 0
 end
 
+# Zakazku, kterou sluzba jeste neprevzala, smaze; True = sluzba ji uz prevzala a zustava v Odchozi
 function drop_unclaimed_job(job):
     path = outbox_dir() + "/" + job + ".json"
     st = None
     safe:
         st = json.decode(readfile(path))
     end
-    if type(st) != "Dictionary" or st.get("state", "") != "new":
+    if type(st) != "Dictionary":
+        return False
+    end
+    if st.get("state", "") != "new":
         # sluzba uz zacala odesilat: zustava v Odchozi (Odeslat nyni / smazat)
-        return 0
+        return True
     end
     for ext in [".json", ".eml"]:
         safe:
             call remove_path(outbox_dir() + "/" + job + ext)
         end
     end
-    return 0
+    return False
 end
 
 # Odpoved sluzby na pozadavek okna psani (mail_ui.on_reply preda ctx s "compose")
@@ -967,6 +1001,7 @@ function on_reply(msg, ctx):
         return 0
     end
     if ctx.get("draft", False):
+        c["saving"] = False
         if msg.get("ok", False):
             c["draft_saved"] = True
             if c["closed"]:
@@ -986,17 +1021,26 @@ function on_reply(msg, ctx):
     if ctx.get("op", "") != "send":
         return 0
     end
-    if msg.get("ok", False) and (msg.get("sent", False) or msg.get("queued", False)):
+    sent = msg.get("ok", False) and msg.get("sent", False)
+    queued = msg.get("ok", False) and msg.get("queued", False)
+    # Sluzba skoncila drive, nez zakazku prevzala (stav "new"): zprava zustava v okne, zakazku z Odchozi odebrat,
+    # jinak by ji sluzba po 10 min odeslala sama a po novem Odeslat by odesla dvakrat. Prevzatou zakazku uz
+    # ma Odchozi: okno se zavre jako bez site (druhe Odeslat = dvakrat)
+    if msg.get("kind", "") == "service" and c.get("job", "") != "" and drop_unclaimed_job(c["job"]):
+        queued = True
+    end
+    if sent or queued:
+        if not sent:
+            # uzivatel musi vedet, ze zprava zatim neodesla (jinak okno jen zmizi)
+            call trace("compose queued")
+            call ask(c, i18n.T("The message is in Outbox."), i18n.T("It could not be sent right now. Mail sends it automatically as soon as it can."),
+                     [[i18n.T("OK"), gtk.RESPONSE_OK]], gtk.RESPONSE_OK)
+        end
         call remove_local(c)
         call close_window(c)
         call cs["windows"].pop(c["id"])
-        call host_call("sent", [msg.get("sent", False), String(msg.get("kind", ""))])
+        call host_call("sent", [sent, String(msg.get("kind", ""))])
         return 0
-    end
-    # Sluzba skoncila drive, nez zakazku prevzala (stav "new"): zprava zustava v okne, zakazku z Odchozi odebrat,
-    # jinak by ji sluzba po 10 min odeslala sama a po novem Odeslat by odesla dvakrat
-    if msg.get("kind", "") == "service" and c.get("job", "") != "":
-        call drop_unclaimed_job(c["job"])
     end
     call set_busy(c, False)
     call set_status(c, error_text(String(msg.get("kind", "")), String(msg.get("error", "")), account_id(c)), True)
@@ -1009,8 +1053,13 @@ end
 # ---- zavreni ------------------------------------------------------------------------------------------------------
 
 function discard(c):
-    if c["draft_saved"]:
-        call request("delete_draft", {"account": account_id(c), "message_id": c["draft_mid"]}, {"compose": c["id"], "deleted": True})
+    # i behem rozbehnuteho ukladani: sluzba vyrizuje pozadavky postupne, smaze ho hned po ulozeni
+    if c["draft_saved"] or c.get("saving", False):
+        account = c.get("draft_account", "")
+        if account == "":
+            account = account_id(c)
+        end
+        call request("delete_draft", {"account": account, "message_id": c["draft_mid"]}, {"compose": c["id"], "deleted": True})
     end
     call remove_local(c)
     call close_window(c)
@@ -1031,6 +1080,14 @@ function request_close(c):
         call discard(c)
         return False
     end
+    if not c["dirty"] and c.get("saving", False):
+        # ulozeni na server jeste neni potvrzene: mistni kopie zustane, dokud ho sluzba nepotvrdi
+        # (pri chybe ho restore_all zkusi znovu)
+        c["closed"] = True
+        call store.write_private(local_path(c["id"], ".json"), json.encode(state_of_closed(c, st)) + "\n")
+        call close_window(c)
+        return False
+    end
     if not c["dirty"] and c["draft_saved"]:
         call remove_local(c)
         call close_window(c)
@@ -1041,7 +1098,12 @@ function request_close(c):
             [[i18n.T("Delete Draft"), 2], [i18n.T("Cancel"), gtk.RESPONSE_CANCEL], [i18n.T("Save"), gtk.RESPONSE_OK]], gtk.RESPONSE_OK)
     if r == gtk.RESPONSE_OK:
         c["closed"] = True
-        call save_server(c)
+        if not save_server(c):
+            # okno zustane otevrene s hlaskou (jinak by text zustal jen v souboru, ktery se uz neotevre)
+            c["closed"] = False
+            call save_local(c, True)
+            return True
+        end
         # mistni kopie zustane (neodeslana na server), dokud sluzba koncept neulozi
         call store.write_private(local_path(c["id"], ".json"), json.encode(state_of_closed(c, st)) + "\n")
         call close_window(c)
@@ -1125,14 +1187,15 @@ function restore_all():
         if type(st) != "Dictionary" or id in cs["windows"]:
             continue
         end
-        if st.get("open", False):
+        unsynced = st.get("unsynced", False)
+        if st.get("open", False) or (unsynced and not exists(local_path(id, ".eml"))):
             opts = st
             opts["id"] = id
             opts["restored"] = True
             opts["note"] = i18n.T("Recovered – Mail closed before this message was sent or saved.")
             call open(opts)
             restored += 1
-        elif st.get("unsynced", False) and exists(local_path(id, ".eml")):
+        elif unsynced:
             c = {"id": id, "closed": True, "win": 0, "local_timer": 0, "server_timer": 0, "draft_saved": False}
             cs["windows"][id] = c
             call request("save_draft", {"account": String(st.get("account", "")), "path": local_path(id, ".eml"),

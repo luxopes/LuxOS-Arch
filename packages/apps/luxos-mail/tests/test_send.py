@@ -145,6 +145,15 @@ class SendTest(SendBase):
         self.assertNotIn(mt.PASSWORD, self.s.service_log())
         self.assertFalse(any(mt.PASSWORD in l for l in self.server.control("log")["log"]))
 
+    def test_reply_flag_checks_uidvalidity(self):
+        # schranka mezitim zalozena znovu (jina UIDVALIDITY): \Answered nesmi dostat jina zprava se stejnym UID
+        acc = self.add("starttls")
+        orig = self.box("INBOX")[0]["uid"]
+        job = self.queue(acc, reply={"account": acc, "mailbox": "INBOX", "uid": orig, "uidvalidity": 4242})
+        r = self.c.call("send", job=job)
+        self.assertTrue(r.get("ok") and r.get("sent"), (r, self.s.service_log()))
+        self.assertNotIn("\\Answered", [x for x in self.box("INBOX") if x["uid"] == orig][0]["flags"])
+
     def test_send_implicit_tls_with_attachment(self):
         acc = self.add("ssl")
         att = os.path.join(self.s.root, "data.bin")
@@ -269,6 +278,42 @@ class SendTest(SendBase):
         self.server.control("smtp dropdata off")
         self.c.call("reconnect")
         time.sleep(1.5)
+        self.assertEqual(len(self.sent()), 1)
+
+    def test_connection_reset_during_data_service_survives(self):
+        """Server spojeni behem DATA utne (RST): dalsi zapis driv zabil sluzbu signalem SIGPIPE (LSL-RT-02);
+        ted chyba spojeni, zprava zustane v Odchozi a odejde pozdeji."""
+        acc = self.add()
+        self.server.control("smtp rstdata on")
+        job = self.queue(acc, subject="Utnute spojeni", text="radek textu zpravy\n" * 200000)
+        r = self.c.call("send", job=job)
+        self.assertIsNone(self.s.service.poll(), self.s.service_log())
+        self.assertTrue(r.get("queued"), r)
+        self.assertEqual(self.sent(), [])
+        self.server.control("smtp rstdata off")
+        r = self.c.call("outbox_retry", job=job)
+        self.assertTrue(r.get("sent"), r)
+        self.assertEqual(len(self.sent()), 1)
+
+    def test_job_interrupted_while_sending_is_not_resent(self):
+        """Sluzba skoncila uprostred odesilani (stav "sending"): zprava mohla odejit, sama se znovu neposle."""
+        acc = self.add()
+        job = self.queue(acc, subject="Prerusene odesilani")
+        path = os.path.join(self.outbox(), job + ".json")
+        with open(path) as f:
+            desc = json.load(f)
+        desc.update(state="sending", attempts=1)
+        with open(path, "w") as f:
+            json.dump(desc, f)
+        self.c.call("reconnect")
+        time.sleep(1.5)
+        self.assertEqual(self.sent(), [])
+        with open(path) as f:
+            desc = json.load(f)
+        self.assertEqual((desc["state"], desc["kind"]), ("failed", "smtp_unknown"))
+        # Odeslat nyni: uzivatel rozhodl, odejde
+        r = self.c.call("outbox_retry", job=job)
+        self.assertTrue(r.get("sent"), r)
         self.assertEqual(len(self.sent()), 1)
 
     def test_drafts_saved_replaced_and_deleted_after_send(self):

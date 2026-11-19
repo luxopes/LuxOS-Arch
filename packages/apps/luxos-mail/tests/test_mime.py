@@ -105,10 +105,19 @@ class MimeTest(unittest.TestCase):
             "bez kodovani =? ne": "bez kodovani =? ne",
             "=?unknown-x?Q?abc?=": "abc",
             "=?utf-8*cs?Q?=C4=8Desky?=": "česky",
+            # zatoulane "=?" pred kodovanym slovem nezastavi dekodovani
+            "Sleva =? 50 % =?UTF-8?Q?=C5=BEluty?=": "Sleva =? 50 % žluty",
+            "a=?b =?utf-8?B?0JrQuNGX0LI=?=": "a=?b Київ",
         }
         for raw, want in cases.items():
             r = mt.run_bin(["--test-words", raw])
             self.assertEqual(json.loads(r.stdout)["text"], want, raw)
+
+    def test_valid_address(self):
+        for raw, want in {"user@server": True, "admin@localhost": True, "jan@example.cz": True, "jan@": False,
+                          "@example.cz": False, "a b@x.cz": False, "a@b@c": False, "a@.cz": False, "a@x.": False, "a@x..cz": False}.items():
+            r = mt.run_bin(["--test-words", raw])
+            self.assertEqual(json.loads(r.stdout).get("valid"), want, raw)
 
     def test_addresses(self):
         r = mt.run_bin(["--test-words", '"Novák, Jan" <jan@x.cz>, b@y.cz (Bob), Skupina: c@z.cz, d@z.cz;, =?utf-8?Q?=C5=BDofie?= <z@x.cz>'])

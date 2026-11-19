@@ -5334,3 +5334,6 @@ Rounded corners	Esquinas redondeadas
 Connect the backup disk %s to back up this computer.	Conecta el disco de copias %s para hacer una copia de este ordenador.
 No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	No se pudo crear una instantánea antes de la actualización, así que no hay forma de volver al estado anterior. Comprueba el espacio libre en el disco.
 Stopped part-way: only some packages were installed. Finish with: lux update	Detenido a medias: solo se instalaron algunos paquetes. Termina con: lux update
+The account this message was written from no longer exists. Check the sender in From.	La cuenta desde la que se escribió este mensaje ya no existe. Comprueba el remitente en «De».
+The message is in Outbox.	El mensaje está en la bandeja de salida.
+It could not be sent right now. Mail sends it automatically as soon as it can.	No se ha podido enviar ahora. Correo lo enviará automáticamente en cuanto pueda.

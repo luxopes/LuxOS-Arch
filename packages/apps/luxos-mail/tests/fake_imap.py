@@ -32,6 +32,7 @@ Rizeni testu: radkovy protokol na --control portu (127.0.0.1):
     smtp down on|off                    spojeni se hned zavre (server nedostupny / bez site)
     smtp noauth on|off                  EHLO bez AUTH
     smtp dropdata on|off                zprava se prijme, ale spojeni se po "." zavre bez odpovedi
+    smtp rstdata on|off                 po prvnim radku DATA se spojeni utne (RST; dalsi zapis klienta selze s EPIPE)
     log                                 prijate prikazy (heslo zakryte)
 
 Napodobeni velkych poskytovatelu (--personality):
@@ -52,6 +53,7 @@ import re
 import select
 import socket
 import ssl
+import struct
 import sys
 import threading
 import time
@@ -114,7 +116,7 @@ class State:
         }
         self.sessions = []
         self.log = []
-        self.smtp = {"messages": [], "reject": set(), "size": 0, "temp": False, "down": False, "noauth": False, "dropdata": False}
+        self.smtp = {"messages": [], "reject": set(), "size": 0, "temp": False, "down": False, "noauth": False, "dropdata": False, "rstdata": False}
 
 
 def quote(value):
@@ -712,8 +714,11 @@ class Session(threading.Thread):
                 res = [m.uid if uid else i + 1 for i, m in enumerate(msgs) if "\\Deleted" in m.flags]
             elif rest.upper().startswith("UID "):
                 maxuid = msgs[-1].uid if msgs else 0
-                wanted = parse_set(rest.split(" ", 1)[1], max(maxuid, 1))
-                res = [m.uid for m in msgs if m.uid in wanted]
+                words = rest.split()
+                wanted = parse_set(words[1], max(maxuid, 1))
+                res = [m.uid for m in msgs if m.uid in wanted
+                       and not ("UNSEEN" in (w.upper() for w in words[2:]) and "\\Seen" in m.flags)
+                       and not ("UNDELETED" in (w.upper() for w in words[2:]) and "\\Deleted" in m.flags)]
             else:
                 res = [m.uid for m in msgs] if uid else list(range(1, len(msgs) + 1))
         self.send("* SEARCH %s\r\n%s OK search\r\n" % (" ".join(str(x) for x in res), tag))
@@ -1049,6 +1054,10 @@ class SmtpSession(threading.Thread):
                 self.send("503 5.5.1 need RCPT\r\n")
                 return True
             self.send("354 End data with <CR><LF>.<CR><LF>\r\n")
+            if sm["rstdata"]:
+                self.readline_bytes()
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+                return False
             lines = []
             while True:
                 l = self.readline_bytes()
@@ -1161,7 +1170,7 @@ def control(state, conn):
                         sm["reject"].add(parts[2].lower())
                     elif parts[1] == "size":
                         sm["size"] = int(parts[2])
-                    elif parts[1] in ("temp", "down", "noauth", "dropdata"):
+                    elif parts[1] in ("temp", "down", "noauth", "dropdata", "rstdata"):
                         sm[parts[1]] = parts[2] == "on"
                 elif parts[0] == "log":
                     out["log"] = list(state.log)

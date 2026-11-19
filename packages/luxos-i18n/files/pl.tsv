@@ -5335,3 +5335,6 @@ Rounded corners	Zaokrąglone rogi
 Connect the backup disk %s to back up this computer.	Podłącz dysk kopii zapasowych %s, aby utworzyć kopię zapasową tego komputera.
 No snapshot could be taken before the update, so there is no way back to the state before it. Check the free space on the disk.	Przed uaktualnieniem nie udało się utworzyć migawki, więc nie można wrócić do stanu sprzed niego. Sprawdź wolne miejsce na dysku.
 Stopped part-way: only some packages were installed. Finish with: lux update	Zatrzymano w połowie: zainstalowano tylko część pakietów. Dokończ poleceniem: lux update
+The account this message was written from no longer exists. Check the sender in From.	Konto, z którego napisano tę wiadomość, już nie istnieje. Sprawdź nadawcę w polu Od.
+The message is in Outbox.	Wiadomość czeka w skrzynce nadawczej.
+It could not be sent right now. Mail sends it automatically as soon as it can.	Nie udało się jej teraz wysłać. Poczta wyśle ją automatycznie, gdy tylko będzie to możliwe.
