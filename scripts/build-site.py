@@ -123,9 +123,9 @@ T = {
         "title_suffix": "LuxOS", "docs_suffix": "LuxOS documentation",
         "docs_suffixes": (" – LuxOS documentation", " – LuxOS docs", " | LuxOS"),
         # titulek a popis seznamu zmen: hlavni novinky posledniho vydani (pri novem vydani prepsat)
-        "changes_title": "LuxOS {version} – What's new: Secure Boot, AI, ad-free Firefox",
-        "changes_desc": ("Changelog of every LuxOS release. {version} “{codename}”: starts with Secure Boot on, new top bar "
-                         "and widgets, LuxAI charts and quizzes, Firefox without ads."),
+        "changes_title": "LuxOS {version} – What's new: safer backups, more privacy",
+        "changes_desc": ("Changelog of every LuxOS release. {version} “{codename}”: hundreds of fixes from a full audit, "
+                         "safer backups, safe install next to Windows and more privacy."),
         "home_title": "LuxOS – free, fast Linux with a macOS-like desktop",
         "home_desc": "LuxOS is a free, lightweight Linux based on Arch with a macOS-like desktop, automatic drivers, undoable updates and the LuxAI assistant. Download the ISO.",
         "site_desc": ("LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop, "
@@ -167,9 +167,9 @@ T = {
         "crumb_home": "LuxOS", "crumb_docs": "Dokumentace", "prev": "Předchozí", "next": "Další",
         "title_suffix": "LuxOS", "docs_suffix": "Dokumentace LuxOS",
         "docs_suffixes": (" – Dokumentace LuxOS", " | LuxOS"),
-        "changes_title": "LuxOS {version} – novinky: Secure Boot, AI a Firefox bez reklam",
-        "changes_desc": ("Seznam změn všech verzí LuxOS. {version} „{codename}“: start se zapnutým Secure Boot, nová horní "
-                         "lišta a widgety, grafy a kvízy v LuxAI, Firefox bez reklam."),
+        "changes_title": "LuxOS {version} – novinky: bezpečnější zálohy a soukromí",
+        "changes_desc": ("Seznam změn všech verzí LuxOS. {version} „{codename}“: stovky oprav z úplné kontroly, bezpečnější "
+                         "zálohy, bezpečná instalace vedle Windows a víc soukromí."),
         "home_title": "LuxOS – rychlý Linux zdarma s prostředím jako macOS",
         "home_desc": "LuxOS je lehký systém zdarma na Arch Linuxu: prostředí jako macOS, ovladače se najdou samy, aktualizace jdou vrátit, pomůže asistent LuxAI. Stáhněte ISO.",
         "site_desc": ("LuxOS je rychlý a lehký systém na Arch Linuxu s prostředím ve stylu macOS, správcem balíků lux, "
