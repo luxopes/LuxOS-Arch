@@ -5338,3 +5338,6 @@ Stopped part-way: only some packages were installed. Finish with: lux update	З�
 The account this message was written from no longer exists. Check the sender in From.	Обліковий запис, з якого написано цей лист, більше не існує. Перевірте відправника в полі «Від».
 The message is in Outbox.	Лист у папці «Вихідні».
 It could not be sent right now. Mail sends it automatically as soon as it can.	Зараз його не вдалося надіслати. Пошта надішле його автоматично, щойно це стане можливим.
+Printer “%s” found on the network	У мережі знайдено принтер «%s»
+Click Add to set it up. Add only printers you know.	Натисніть «Додати», щоб налаштувати його. Додавайте лише знайомі принтери.
+The calendar file cannot be read. Nothing was saved, so no events were lost.	Не вдається прочитати файл календаря. Нічого не збережено, тож жодна подія не втрачена.

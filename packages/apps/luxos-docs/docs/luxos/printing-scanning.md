@@ -1,7 +1,8 @@
 # Printing and Scanning
 
-LuxOS sets up printers and scanners without asking. Printers on the network and on USB are added
-automatically, without drivers where possible (IPP Everywhere / AirPrint / Mopria, and ipp-usb for
+LuxOS sets up USB printers and scanners without asking. A new printer on the network is offered in
+a notification ("Printer “X” found on the network" with **Add**) and gets a queue only after you
+click Add. Drivers are not needed where possible (IPP Everywhere / AirPrint / Mopria, and ipp-usb for
 USB). Classic USB printers get the best installed driver. Scanners work through SANE with eSCL
 (`sane-airscan`). All of this is in the package `luxos-printing`, which also provides the apps
 **Printers & Scanners** (`luxos-printers`) and **Scanner** (`luxos-scan`).
@@ -31,12 +32,15 @@ on purpose.
 `luxos-printing-helper sync` finds devices and handles each kind like this:
 
 - **Network or IPP-USB printers with driverless support** get a queue with `lpadmin -m everywhere`.
-  Queues are not shared. mDNS announcements are not authenticated, so everything from them is
+  IPP-USB printers (plugged in) are added right away. A network printer is only offered in a
+  notification with **Add** (`luxos-printing-helper add KEY`), once per printer: anyone on the same
+  network (also in a café or hotel) can announce a printer, so no queue and no default printer is
+  created without your click. Queues are not shared. mDNS announcements are not authenticated, so everything from them is
   checked first: only `_ipp`/`_ipps` services in the `local` domain, DNS-SD names up to 63 bytes
   without control characters, the `UUID` only in UUID format (anything else is dropped, never put
   into the `dnssd://` URI), the queue URI must have exactly the `dnssd://NAME._ipp._tcp.local/?uuid=…`
-  shape. At most 5 network queues are added automatically per hour and 20 in total; more can be
-  added with + in Printers & Scanners. The watcher runs `sync` at most every 10 seconds, also when
+  shape. At most 5 network printers are offered per hour; others can be added with + in
+  Printers & Scanners. The watcher runs `sync` at most every 10 seconds, also when
   the network floods it with announcements. Drivers are never installed because of a network
   announcement - only for USB printers. Network queues use `printer-error-policy=retry-job`, USB queues (classic
   and IPP-USB) `retry-current-job` (see [Printer unplugged or turned off](#printer-unplugged-or-turned-off)).

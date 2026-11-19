@@ -430,7 +430,7 @@ class Receiver:
                 self._parts_busy -= names
 
     def _run_offer(self, ch, tls, t, fp_c, trusted, nonce_c, nonce_s, files, dirs, total, dest):
-        part_fd = self._open_part_dir(dest)
+        part_fd = acquire_part_dir(dest)
         try:
             offsets = self._resume_offsets(part_fd, fp_c, files)
             need = total - sum(offsets.values())
@@ -457,11 +457,7 @@ class Receiver:
             self._receive_files(ch, t, part_fd, fp_c, files, offsets)
             names = self._finalize(dest, part_fd, fp_c, files, dirs, trusted)
         finally:
-            os.close(part_fd)
-        try:
-            os.rmdir(os.path.join(dest, PART_DIR))  # jen kdyz je prazdna (nic k navazani)
-        except OSError:
-            pass
+            release_part_dir(dest, part_fd)
         t.saved = [os.path.join(dest, n) for n in names]
         t.state = "done"
         ch.send({"type": "result", "ok": True, "saved": names})
@@ -701,6 +697,32 @@ def _reserve_dir(dfd, name):
             continue
 
 
+# Slozku .luxdrop-partial sdili soubezne prenosy (LuxDrop i LocalSend, vic souboru naraz) - smazat
+# ji muze jen posledni z nich, jinak by soubezny prenos prisel o slozku pred vytvorenim sveho .part
+_part_lock = threading.Lock()
+_part_users = {}
+
+
+def acquire_part_dir(dest):
+    with _part_lock:
+        fd = Receiver._open_part_dir(dest)
+        _part_users[dest] = _part_users.get(dest, 0) + 1
+        return fd
+
+
+def release_part_dir(dest, fd):
+    os.close(fd)
+    with _part_lock:
+        _part_users[dest] -= 1
+        if _part_users[dest]:
+            return
+        del _part_users[dest]
+        try:
+            os.rmdir(os.path.join(dest, PART_DIR))  # jen kdyz je prazdna (nic k navazani)
+        except OSError:
+            pass
+
+
 def _rename_noreplace(src_fd, src, dst_fd, dst):
     """Atomicke prejmenovani bez prepsani i na disku bez pevnych odkazu (Linux)."""
     import ctypes
@@ -735,7 +757,10 @@ def _place_file(src_fd, src, dst_fd, name, unique=True):
                     raise proto.ProtocolError(proto.E_INVALID_OFFER, "file already exists: %s" % name)
                 continue
         # Chyba uklidu po uspesnem linku neni chyba ulozeni: neopakovat ho pod dalsim nazvem.
-        os.unlink(src, dir_fd=src_fd)
+        try:
+            os.unlink(src, dir_fd=src_fd)
+        except OSError:
+            pass
         return cand
     raise proto.ProtocolError(proto.E_INTERNAL, "cannot place file")
 

@@ -673,7 +673,7 @@ function export_file(state, kind):
     if path:
         try:
             if kind == "svg":
-                call icon_model.atomic_text(path, icon_render.svg(state["project"], 1024, "transparent"))
+                call icon_model.atomic_text(path, icon_render.svg(state["project"], 1024, "transparent"), 420)
             else:
                 call icon_render.render_png(state["project"], path, 1024)
             end

@@ -160,8 +160,13 @@ function write_conf(values, drop):
     for key in values.keys():
         out = out + key + "=" + values[key] + "\n"
     end
-    call writefile(path + ".new", out)
-    call sys.rename(path + ".new", path)
+    # plny disk / ~/.config jen pro cteni: pozice se neulozi, widgety bezi dal
+    try:
+        call writefile(path + ".new", out)
+        call sys.rename(path + ".new", path)
+    else:
+        call eprint("luxos-widgets: " + String(last_error()))
+    end
     return 0
 end
 

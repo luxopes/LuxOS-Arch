@@ -17,7 +17,7 @@ LSL = os.path.join(HERE, "..", "files", "lsl")
 TMP = tempfile.mkdtemp(prefix="luxos-lsl-cal-")
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 sys.path.insert(0, HERE)
-from test_luxos_calendar_ics import CANCELLED, GOOGLE, MOVED, NY_WEEKLY, RDATES  # noqa: E402 - stejna data
+from test_luxos_calendar_ics import CANCELLED, GOOGLE, MOVED, NY_WEEKLY, RDATES, UTC_WEEKLY, ics  # noqa: E402 - stejna data
 
 
 def build():
@@ -273,7 +273,7 @@ class LslCalendar(unittest.TestCase):
         self.assertIn("EXDATE:20261020T090000,20261022T090000", self.run_prog("text", path, ""))
 
     def test_unsupported_freq_shows_first(self):
-        self.assertEqual(self.rule("20261020T090000", "FREQ=HOURLY;COUNT=5", "-", "20261001", "20261101"), ["20261020T090000"])
+        self.assertEqual(self.rule("20261020T090000", "FREQ=SECONDLY;COUNT=5", "-", "20261001", "20261101"), ["20261020T090000"])
 
     def test_pathological_rules_terminate(self):
         self.assertEqual(self.rule("20260101", "FREQ=MONTHLY;BYMONTHDAY=40", "-", "20260101", "20270101"), ["20260101"])
@@ -449,6 +449,93 @@ class LslCalendar(unittest.TestCase):
 
     def test_update_of_event_deleted_elsewhere_is_conflict(self):
         self.assertEqual(self.lines("concurrent", self.dir, "conflict"), ["conflict True", "memory True", "B"])
+
+    # ---- CAL-1, CAL-1b, CAL-2, CAL-3 (zaverecny audit) -------------------------------------------------
+    def test_utc_recurrence_keeps_instant_across_dst(self):
+        path = self.write("u.ics", UTC_WEEKLY)
+        self.assertEqual(self.lines("days", path, "20260105", "20260112", "0"), ["20260105T100000"])
+        self.assertEqual(self.lines("days", path, "20260706", "20260720", "0"), ["20260706T110000"])
+        text = self.run_prog("text", path, "Europe/Prague")
+        self.assertIn("DTSTART:20260105T090000Z", text)
+        self.assertIn("DTEND:20260105T100000Z", text)
+        self.assertNotIn("TZID", text)
+        self.assertIn("DTSTART:20260105T100000Z", self.run_prog("shift", path, "3600"))
+        # v mistnim pasmu UTC se nic neposouva
+        self.assertEqual(self.run_prog("days", path, "20260706", "20260720", "0", tz="UTC").split(), ["20260706T090000"])
+
+    def test_utc_series_in_store_with_override(self):
+        self.write("events.ics", UTC_WEEKLY.replace("END:VCALENDAR\n", "")
+                   + "BEGIN:VEVENT\nUID:utc@example.com\nRECURRENCE-ID:20260706T090000Z\nDTSTART:20260706T130000Z\n"
+                   "DTEND:20260706T140000Z\nSUMMARY:Presunuto\nEND:VEVENT\nEND:VCALENDAR\n")
+        self.assertEqual(self.lines("instances", self.dir, "20260706", "20260707"), ["Presunuto|20260706T150000"])
+        self.assertEqual(self.lines("instances", self.dir, "20260720", "20260721"), ["UTC|20260720T110000"])
+
+    def test_windows_tzid(self):
+        self.assertEqual(self.lines("dt", "20261020T090000", "Eastern Standard Time"), ["20261020T150000"])
+        self.assertEqual(self.lines("dt", "20260115T090000", "W. Europe Standard Time"), ["20260115T090000"])
+        path = self.write("w.ics", NY_WEEKLY.replace("America/New_York", "Eastern Standard Time"))
+        self.assertEqual(self.lines("days", path, "20260301", "20260406", "0"),
+                         ["20260302T150000", "20260316T140000", "20260323T140000", "20260330T150000"])
+        self.assertIn("DTSTART;TZID=America/New_York:20260302T090000", self.run_prog("text", path, "Europe/Prague"))
+
+    def test_windows_zones_same_as_python(self):
+        self.assertEqual(self.lines("winzones"), [f"{k}={v}" for k, v in sorted(ics.WINDOWS_ZONES.items())])
+
+    def test_byyearday(self):
+        self.assertEqual(self.rule("20270101", "FREQ=YEARLY;BYYEARDAY=1,100,-1", "-", "20270101", "20290101"),
+                         ["20270101", "20270410", "20271231", "20280101", "20280409", "20281231"])
+
+    def test_byweekno(self):
+        self.assertEqual(self.rule("20260105T090000", "FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO;COUNT=3", "-", "20260101", "20290101"),
+                         ["20260105T090000", "20260511T090000", "20270517T090000"])
+        self.assertEqual(self.rule("20260102", "FREQ=YEARLY;BYWEEKNO=-1;BYDAY=FR;COUNT=3", "-", "20260101", "20290101"),
+                         ["20260102", "20270101", "20271231"])
+        self.assertEqual(self.rule("20260101", "FREQ=YEARLY;BYWEEKNO=1;COUNT=8", "-", "20260101", "20280101"),
+                         ["20260101", "20260102", "20260103", "20260104", "20270104", "20270105", "20270106", "20270107"])
+        # prvni tyden 2027 zacina uz 28. 12. 2026 (WKST=MO): je videt i v prosincovem pohledu
+        self.assertEqual(self.rule("20260101", "FREQ=YEARLY;BYWEEKNO=1;BYDAY=TU", "-", "20261201", "20270101"), [])
+        self.assertEqual(self.rule("20250101", "FREQ=YEARLY;BYWEEKNO=1;BYDAY=TU", "-", "20251201", "20260101"),
+                         ["20251230"])
+
+    def test_hourly(self):
+        self.assertEqual(self.rule("20261020T090000", "FREQ=HOURLY;INTERVAL=2;COUNT=5", "-", "20261001", "20261101"),
+                         ["20261020T090000", "20261020T110000", "20261020T130000", "20261020T150000", "20261020T170000"])
+        self.assertEqual(self.rule("20261020T090000", "FREQ=HOURLY;BYHOUR=0,9,13;COUNT=6", "-", "20261001", "20261101"),
+                         ["20261020T090000", "20261020T130000", "20261021T000000", "20261021T090000",
+                          "20261021T130000", "20261022T000000"])
+        self.assertEqual(self.rule("20261020T090000", "FREQ=MINUTELY;INTERVAL=30;COUNT=4", "-", "20261001", "20261101"),
+                         ["20261020T090000", "20261020T093000", "20261020T100000", "20261020T103000"])
+        self.assertEqual(self.rule("20200101T080000", "FREQ=HOURLY;INTERVAL=6", "-", "20261020", "20261021"),
+                         ["20261020T020000", "20261020T080000", "20261020T140000", "20261020T200000"])
+        path = self.write("h.ics", UTC_WEEKLY.replace("FREQ=WEEKLY;COUNT=40", "FREQ=HOURLY;INTERVAL=24"))
+        self.assertEqual(self.lines("days", path, "20260701", "20260702", "0"), ["20260701T110000"])
+
+    def test_unreadable_own_calendar_is_never_overwritten(self):
+        if os.geteuid() == 0:
+            self.skipTest("root cte i soubor 000")
+        path = self.write("events.ics", UTC_WEEKLY)
+        os.chmod(path, 0)
+        try:
+            out = self.lines("add", self.dir)
+        finally:
+            os.chmod(path, 0o600)
+        self.assertEqual(len(out), 1)
+        self.assertTrue(out[0].startswith("error ") and "calendar_unreadable" in out[0], out)
+        with open(path, encoding="utf-8") as f:
+            self.assertEqual(f.read(), UTC_WEEKLY)
+
+    def test_backup_of_previous_content(self):
+        path = self.write("events.ics", UTC_WEEKLY)
+        self.assertEqual(self.lines("add", self.dir), ["ok"])
+        with open(path + ".bak", encoding="utf-8") as f:
+            self.assertEqual(f.read(), UTC_WEEKLY)
+        self.assertEqual(self.lines("instances", self.dir, "20261020", "20261021"), ["Nova|20261020T100000"])
+
+    def test_reminder_lookahead_covers_longest_trigger(self):
+        self.assertEqual(self.lines("remdays", self.dir), ["1"])
+        self.write("events.ics", UTC_WEEKLY.replace("SUMMARY:UTC", "SUMMARY:UTC\nBEGIN:VALARM\nACTION:DISPLAY\n"
+                                                    "TRIGGER:-P1W\nEND:VALARM"))
+        self.assertEqual(self.lines("remdays", self.dir), ["8"])
 
     def test_colors(self):
         self.assertEqual(self.lines("color", "purple", "-"), ["purple"])

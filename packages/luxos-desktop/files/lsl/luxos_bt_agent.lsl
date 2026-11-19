@@ -25,7 +25,7 @@ REJECTED = "org.bluez.Error.Rejected"
 # dotaz agenta by byl druhy dotaz na totez. BlueZ ji prijme jen od sparovaneho zarizeni.
 COMPANION_UUID = "ad9b7c10-6ce5-4f35-9952-728f760fcb70"
 
-state = {"bus": 0, "registered": False}
+state = {"bus": 0, "registered": False, "code_dlg": 0, "code_body": 0}
 
 function watch(bus):
     state["bus"] = bus
@@ -83,10 +83,9 @@ function device(path):
     return [String(name), props.get("Trusted") == True]
 end
 
-# Dialog jako Gtk.MessageDialog aplikace luxos-bluetooth: [ok, text pole]
-function dialog(primary, secondary, with_entry, with_buttons, ok_label):
+# Dialog jako Gtk.MessageDialog aplikace luxos-bluetooth: [dialog, popisek, pole nebo 0]
+function build_dialog(primary, secondary, with_entry, with_buttons, ok_label):
     dlg = gtk.dialog_new()
-    call gtk.window_set_modal(dlg, True)
     call gtk.window_set_title(dlg, "")
     call gtk.window_set_type_hint(dlg, gtk.TYPE_HINT_DIALOG)
     call gtk.window_set_position(dlg, gtk.WIN_POS_CENTER)
@@ -120,6 +119,15 @@ function dialog(primary, secondary, with_entry, with_buttons, ok_label):
     call gtk.widget_add_class(ok_button, "suggested-action")
     call gtk.dialog_set_default_response(dlg, gtk.RESPONSE_OK)
     call gtk.widget_show_all(area)
+    return [dlg, body, field]
+end
+
+# Modalni dotaz: [ok, text pole]
+function dialog(primary, secondary, with_entry, with_buttons, ok_label):
+    parts = build_dialog(primary, secondary, with_entry, with_buttons, ok_label)
+    dlg = parts[0]
+    field = parts[2]
+    call gtk.window_set_modal(dlg, True)
     response = gtk.dialog_run(dlg)
     value = ""
     if field != 0:
@@ -164,7 +172,7 @@ function on_method(sender, path, interface, method, values, invocation):
         if method == "DisplayPasskey":
             code = text.pad(values[1], 6)
         end
-        call dialog(i18n.T("Type this code on the device"), "<big><b>" + glib.markup_escape(code) + "</b></big>\n\n" + glib.markup_escape(i18n.T("Then press Enter on it.")), False, False, "")
+        call show_code("<big><b>" + glib.markup_escape(code) + "</b></big>\n\n" + glib.markup_escape(i18n.T("Then press Enter on it.")))
         call gio.return_value(invocation, [], "")
     elif method == "RequestPinCode":
         answer = dialog(i18n.T("Enter the PIN code"), glib.markup_escape(i18n.T("Usually 0000 or 1234, see the device manual.")), True, True, "")
@@ -182,7 +190,37 @@ function on_method(sender, path, interface, method, values, invocation):
         end
     else:
         # Release, Cancel
+        call close_code()
         call gio.return_value(invocation, [], "")
+    end
+    return 0
+end
+
+# BlueZ vola DisplayPasskey znovu s kazdou klavesou stisknutou na zarizeni a ceka na odpoved:
+# jedno nemodalni okno, ktere se jen prepise; zavre ho Cancel nebo OK
+function show_code(markup):
+    if state["code_dlg"] == 0:
+        parts = build_dialog(i18n.T("Type this code on the device"), markup, False, False, "")
+        state["code_dlg"] = parts[0]
+        state["code_body"] = parts[1]
+        call gtk.connect_data(parts[0], "response", 1, on_code_response, 0)
+    end
+    call gtk.label_set_markup(state["code_body"], markup)
+    call gtk.widget_show(state["code_dlg"])
+    return 0
+end
+
+function on_code_response(bound, response, dlg):
+    call close_code()
+    return 0
+end
+
+function close_code():
+    if state["code_dlg"] != 0:
+        dlg = state["code_dlg"]
+        state["code_dlg"] = 0
+        state["code_body"] = 0
+        call gtk.widget_destroy(dlg)
     end
     return 0
 end

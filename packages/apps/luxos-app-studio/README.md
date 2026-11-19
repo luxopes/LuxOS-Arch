@@ -32,7 +32,9 @@ The project window works like a small Xcode:
   Show Project Folder.
 
 Builds compile `src/main.lsl` to a temporary native ELF and atomically replace the last
-executable after success; a SHA256 stamp covers the local LSL source tree. Closing App
+executable after success; a SHA256 stamp of the LSL source tree and the executable is kept
+outside the project (`~/.local/state/luxos/app-studio/builds`), so an executable that came
+with a copied or downloaded project is never run, installed or exported unbuilt. Closing App
 Studio stops and reaps its active compiler or app. Logs display at most the last 64 KiB.
 
 The GUI follows Czech `LANG`/`LANGUAGE` settings, with English as fallback.

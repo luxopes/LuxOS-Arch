@@ -73,15 +73,16 @@ button.sort.active label { opacity: 1; font-weight: 700; }
 
 
 # ---- sber dat ---------------------------------------------------------------
-def read_cpu():
+def read_cpu(path="/proc/stat"):
     if DEMO:
         t = _demo_tick()
         return t * 100, t * 100 - t * (35 + t % 20)
-    with open("/proc/stat") as f:
+    with open(path) as f:
         parts = f.readline().split()[1:]
     vals = list(map(int, parts))
     idle = vals[3] + (vals[4] if len(vals) > 4 else 0)
-    return sum(vals), idle
+    # guest a guest_nice (sloupce 9 a 10) uz jsou zapocteny v user a nice
+    return sum(vals[:8]), idle
 
 
 def read_mem():

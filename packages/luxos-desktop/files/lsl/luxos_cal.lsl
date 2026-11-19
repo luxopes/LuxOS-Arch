@@ -1249,7 +1249,7 @@ function form_save():
             # udalost mezitim zmenil nebo smazal jiny proces; Kalendar uz ukazuje stav ze souboru
             return form_fail(i18n.T("This event was changed or deleted elsewhere."), 0)
         end
-        return form_fail(i18n.TF("Could not save: %s", [message]), 0)
+        return form_fail(save_error(message), 0)
     end
     cal["day"] = day
     ymd = date.from_ordinal(day)
@@ -1280,10 +1280,18 @@ function form_delete():
         message = String(last_error())
     end
     if not ok:
-        return form_fail(i18n.TF("Could not save: %s", [message]), 0)
+        return form_fail(save_error(message), 0)
     end
     call close_form(True)
     return 0
+end
+
+# Text chyby zapisu pro uzivatele
+function save_error(message):
+    if message.find("calendar_unreadable") >= 0:
+        return i18n.T("The calendar file cannot be read. Nothing was saved, so no events were lost.")
+    end
+    return i18n.TF("Could not save: %s", [message])
 end
 
 function form_cancel(unused):
@@ -1565,11 +1573,12 @@ end
 # Casovac na pozadi: notify-send pred udalosti podle VALARM. Budi se jen kdyz je treba
 # (nejblizsi pripominka, nejdele po 15 minutach) a po probuzeni z uspani (logind).
 
-# [[cas pripominky, klic, ev, zacatek, konec, minuty]] pro dnesek a zitrek, serazene podle casu
+# [[cas pripominky, klic, ev, zacatek, konec, minuty]] pro nejblizsi dny, serazene podle casu; hleda se
+# tak daleko dopredu, jak dlouho pred udalosti muze nejdrivejsi pripominka prijit (TRIGGER:-P1W apod.)
 function reminders_pending(now):
     today = date.date_of(now)
     buckets = {}
-    for item in ics.instances(store, today - 1, today + 3):
+    for item in ics.instances(store, today - 1, today + 2 + ics.reminder_days(store)):
         ev = item[0]
         mins = ics.reminder_minutes(ev)
         if mins == None:

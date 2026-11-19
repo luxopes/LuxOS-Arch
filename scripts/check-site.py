@@ -329,7 +329,8 @@ def main():
                 path = os.path.join(dp, fn)
                 p = Page()
                 with open(path, encoding="utf-8") as f:
-                    p.feed(f.read())
+                    p.raw = f.read()
+                p.feed(p.raw)
                 pages[path] = p
     errors = []
 
@@ -361,6 +362,9 @@ def main():
         indexable = "noindex" not in p.robots and p.refresh is None
         for err in p.errors:
             errors.append(f"{url}: {err}")
+        # SHA256SUMS ma radky i pro jine soubory nez ISO: bez --ignore-missing hlasi chybu i u spravneho stazeni
+        if not url.startswith("/changes/") and re.search(r"sha256sum -c (?!--ignore-missing)", p.raw):
+            errors.append(f"{url}: 'sha256sum -c' without --ignore-missing")
         if p.refresh is not None:
             continue
         if not p.lang:

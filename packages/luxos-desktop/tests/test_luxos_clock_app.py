@@ -156,6 +156,21 @@ class ClockApp(unittest.TestCase):
         self.assertFalse(self.windows("--name", "^Clock$"), "okno zvoneni zmizi")
         self.assertEqual(p.wait(timeout=10), 0)
 
+    def test_two_alarms_same_minute_ring_together(self):
+        nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
+        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Leky", "days": [], "on": True},
+                    {"h": nxt.hour, "m": nxt.minute, "label": "Vstavat", "days": [], "on": True}])
+        self.start("--background")
+        self.assertTrue(self.wait_for(lambda: "notify-send" in self.read(self.log), timeout=75), "budik zazvonil")
+        time.sleep(1.5)
+        log = self.read(self.log)
+        self.assertEqual(log.count("notify-send"), 1, log)
+        self.assertIn("Leky", log)
+        self.assertIn("Vstavat", log)
+        self.assertEqual(self.sound_loops(), 1)
+        self.assertEqual(len(self.windows("--name", "^Clock$")), 1)
+        self.assertEqual([a["on"] for a in self.stored()["alarms"]], [False, False])
+
     def test_alarm_rings_once_and_turns_off(self):
         nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
         self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Test", "days": [], "on": True}])

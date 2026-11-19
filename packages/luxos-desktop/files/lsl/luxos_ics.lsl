@@ -1,14 +1,14 @@
 # LuxOS Kalendar - minimalni, odolne cteni a zapis iCalendar (RFC 5545) a vyskyty udalosti.
 # Prepis luxos_calendar_ics.py do LSL se stejnym chovanim: VEVENT (SUMMARY, DTSTART/DTEND/DURATION,
-# RRULE DAILY/WEEKLY/MONTHLY/YEARLY s INTERVAL/COUNT/UNTIL/BYDAY/BYMONTHDAY/BYMONTH/BYSETPOS, RDATE, EXDATE,
-# RECURRENCE-ID, STATUS (zrusene se nezobrazuji), COLOR, VALARM); nezname vlastnosti a komponenty se
-# zachovavaji beze zmeny. Opakovani udalosti s cizim TZID se rozvine v case toho pasma a teprve vyskyty
-# se prevedou na mistni cas.
+# RRULE HOURLY/MINUTELY/DAILY/WEEKLY/MONTHLY/YEARLY s INTERVAL/COUNT/UNTIL/BYDAY/BYMONTHDAY/BYMONTH/
+# BYYEARDAY/BYWEEKNO/BYHOUR/BYSETPOS, RDATE, EXDATE, RECURRENCE-ID, STATUS (zrusene se nezobrazuji), COLOR,
+# VALARM); nezname vlastnosti a komponenty se zachovavaji beze zmeny. Opakovani udalosti s cizim TZID
+# (i Windows nazvy pasem) nebo v UTC se rozvine v case toho pasma a teprve vyskyty se prevedou na mistni cas.
 #
 # Udalost je Dictionary: uid, summary, all_day (Bool), start, end (Int: den jako ordinal, nebo naivni
 # mistni cas v sekundach; end muze byt None), color, description, location, rrule (Dictionary/None),
 # rrule_raw, exdates ([[kind, hodnota]], kind "D"/"T"), exdate_lines, rdates ([[kind, hodnota]]),
-# rdate_lines, recurrence_id ([kind, hodnota]/None), tzid (cizi TZID z DTSTART / None), status (/None,
+# rdate_lines, recurrence_id ([kind, hodnota]/None), tzid (cizi TZID z DTSTART, "UTC" / None), status (/None,
 # radek zustava v extra), extra (radky), alarms (seznam bloku radku), source (nazev souboru / None),
 # readonly, duration_prop.
 # Kalendar: {header, events, other, errors}. Uloziste: viz store_new.
@@ -27,6 +27,85 @@ KNOWN = ["UID", "SUMMARY", "DTSTART", "DTEND", "DURATION", "RRULE", "EXDATE", "R
 CSS_NAMES = {"tomato": "red", "crimson": "red", "darkorange": "orange", "gold": "yellow", "limegreen": "green",
              "seagreen": "green", "dodgerblue": "blue", "royalblue": "blue", "navy": "blue", "violet": "purple",
              "magenta": "purple", "orchid": "purple"}
+# Windows nazvy pasem (Outlook, Teams, Exchange) -> IANA podle CLDR windowsZones (uzemi 001);
+# stejna tabulka je v luxos_calendar_ics.py
+WINDOWS_ZONES = {"Dateline Standard Time": "Etc/GMT+12", "UTC-11": "Etc/GMT+11",
+                 "Aleutian Standard Time": "America/Adak", "Hawaiian Standard Time": "Pacific/Honolulu",
+                 "Marquesas Standard Time": "Pacific/Marquesas", "Alaskan Standard Time": "America/Anchorage",
+                 "UTC-09": "Etc/GMT+9", "Pacific Standard Time (Mexico)": "America/Tijuana", "UTC-08": "Etc/GMT+8",
+                 "Pacific Standard Time": "America/Los_Angeles", "US Mountain Standard Time": "America/Phoenix",
+                 "Mountain Standard Time (Mexico)": "America/Mazatlan", "Mountain Standard Time": "America/Denver",
+                 "Yukon Standard Time": "America/Whitehorse", "Central America Standard Time": "America/Guatemala",
+                 "Central Standard Time": "America/Chicago", "Easter Island Standard Time": "Pacific/Easter",
+                 "Central Standard Time (Mexico)": "America/Mexico_City",
+                 "Canada Central Standard Time": "America/Regina", "SA Pacific Standard Time": "America/Bogota",
+                 "Eastern Standard Time (Mexico)": "America/Cancun", "Eastern Standard Time": "America/New_York",
+                 "Haiti Standard Time": "America/Port-au-Prince", "Cuba Standard Time": "America/Havana",
+                 "US Eastern Standard Time": "America/Indiana/Indianapolis",
+                 "Turks And Caicos Standard Time": "America/Grand_Turk",
+                 "Paraguay Standard Time": "America/Asuncion", "Atlantic Standard Time": "America/Halifax",
+                 "Venezuela Standard Time": "America/Caracas", "Central Brazilian Standard Time": "America/Cuiaba",
+                 "SA Western Standard Time": "America/La_Paz", "Pacific SA Standard Time": "America/Santiago",
+                 "Newfoundland Standard Time": "America/St_Johns", "Tocantins Standard Time": "America/Araguaina",
+                 "E. South America Standard Time": "America/Sao_Paulo",
+                 "SA Eastern Standard Time": "America/Cayenne",
+                 "Argentina Standard Time": "America/Argentina/Buenos_Aires",
+                 "Greenland Standard Time": "America/Nuuk", "Montevideo Standard Time": "America/Montevideo",
+                 "Magallanes Standard Time": "America/Punta_Arenas",
+                 "Saint Pierre Standard Time": "America/Miquelon", "Bahia Standard Time": "America/Bahia",
+                 "UTC-02": "Etc/GMT+2", "Mid-Atlantic Standard Time": "Etc/GMT+2",
+                 "Azores Standard Time": "Atlantic/Azores", "Cape Verde Standard Time": "Atlantic/Cape_Verde",
+                 "UTC": "Etc/UTC", "GMT Standard Time": "Europe/London",
+                 "Greenwich Standard Time": "Atlantic/Reykjavik", "Sao Tome Standard Time": "Africa/Sao_Tome",
+                 "Morocco Standard Time": "Africa/Casablanca", "W. Europe Standard Time": "Europe/Berlin",
+                 "Central Europe Standard Time": "Europe/Budapest", "Romance Standard Time": "Europe/Paris",
+                 "Central European Standard Time": "Europe/Warsaw",
+                 "W. Central Africa Standard Time": "Africa/Lagos", "Jordan Standard Time": "Asia/Amman",
+                 "GTB Standard Time": "Europe/Bucharest", "Middle East Standard Time": "Asia/Beirut",
+                 "Egypt Standard Time": "Africa/Cairo", "E. Europe Standard Time": "Europe/Chisinau",
+                 "Syria Standard Time": "Asia/Damascus", "West Bank Standard Time": "Asia/Hebron",
+                 "South Africa Standard Time": "Africa/Johannesburg", "FLE Standard Time": "Europe/Kyiv",
+                 "Israel Standard Time": "Asia/Jerusalem", "South Sudan Standard Time": "Africa/Juba",
+                 "Kaliningrad Standard Time": "Europe/Kaliningrad", "Sudan Standard Time": "Africa/Khartoum",
+                 "Libya Standard Time": "Africa/Tripoli", "Namibia Standard Time": "Africa/Windhoek",
+                 "Arabic Standard Time": "Asia/Baghdad", "Turkey Standard Time": "Europe/Istanbul",
+                 "Arab Standard Time": "Asia/Riyadh", "Belarus Standard Time": "Europe/Minsk",
+                 "Russian Standard Time": "Europe/Moscow", "E. Africa Standard Time": "Africa/Nairobi",
+                 "Volgograd Standard Time": "Europe/Volgograd", "Iran Standard Time": "Asia/Tehran",
+                 "Arabian Standard Time": "Asia/Dubai", "Astrakhan Standard Time": "Europe/Astrakhan",
+                 "Azerbaijan Standard Time": "Asia/Baku", "Russia Time Zone 3": "Europe/Samara",
+                 "Mauritius Standard Time": "Indian/Mauritius", "Saratov Standard Time": "Europe/Saratov",
+                 "Georgian Standard Time": "Asia/Tbilisi", "Caucasus Standard Time": "Asia/Yerevan",
+                 "Afghanistan Standard Time": "Asia/Kabul", "West Asia Standard Time": "Asia/Tashkent",
+                 "Qyzylorda Standard Time": "Asia/Qyzylorda", "Ekaterinburg Standard Time": "Asia/Yekaterinburg",
+                 "Pakistan Standard Time": "Asia/Karachi", "India Standard Time": "Asia/Kolkata",
+                 "Sri Lanka Standard Time": "Asia/Colombo", "Nepal Standard Time": "Asia/Kathmandu",
+                 "Central Asia Standard Time": "Asia/Bishkek", "Bangladesh Standard Time": "Asia/Dhaka",
+                 "Omsk Standard Time": "Asia/Omsk", "Myanmar Standard Time": "Asia/Yangon",
+                 "SE Asia Standard Time": "Asia/Bangkok", "Altai Standard Time": "Asia/Barnaul",
+                 "W. Mongolia Standard Time": "Asia/Hovd", "North Asia Standard Time": "Asia/Krasnoyarsk",
+                 "N. Central Asia Standard Time": "Asia/Novosibirsk", "Tomsk Standard Time": "Asia/Tomsk",
+                 "China Standard Time": "Asia/Shanghai", "North Asia East Standard Time": "Asia/Irkutsk",
+                 "Singapore Standard Time": "Asia/Singapore", "W. Australia Standard Time": "Australia/Perth",
+                 "Taipei Standard Time": "Asia/Taipei", "Ulaanbaatar Standard Time": "Asia/Ulaanbaatar",
+                 "Aus Central W. Standard Time": "Australia/Eucla", "Transbaikal Standard Time": "Asia/Chita",
+                 "Tokyo Standard Time": "Asia/Tokyo", "North Korea Standard Time": "Asia/Pyongyang",
+                 "Korea Standard Time": "Asia/Seoul", "Yakutsk Standard Time": "Asia/Yakutsk",
+                 "Cen. Australia Standard Time": "Australia/Adelaide",
+                 "AUS Central Standard Time": "Australia/Darwin",
+                 "E. Australia Standard Time": "Australia/Brisbane",
+                 "AUS Eastern Standard Time": "Australia/Sydney",
+                 "West Pacific Standard Time": "Pacific/Port_Moresby",
+                 "Tasmania Standard Time": "Australia/Hobart", "Vladivostok Standard Time": "Asia/Vladivostok",
+                 "Lord Howe Standard Time": "Australia/Lord_Howe",
+                 "Bougainville Standard Time": "Pacific/Bougainville", "Russia Time Zone 10": "Asia/Srednekolymsk",
+                 "Magadan Standard Time": "Asia/Magadan", "Norfolk Standard Time": "Pacific/Norfolk",
+                 "Sakhalin Standard Time": "Asia/Sakhalin", "Central Pacific Standard Time": "Pacific/Guadalcanal",
+                 "Russia Time Zone 11": "Asia/Kamchatka", "New Zealand Standard Time": "Pacific/Auckland",
+                 "UTC+12": "Etc/GMT-12", "Fiji Standard Time": "Pacific/Fiji",
+                 "Kamchatka Standard Time": "Asia/Kamchatka", "Chatham Islands Standard Time": "Pacific/Chatham",
+                 "UTC+13": "Etc/GMT-13", "Tonga Standard Time": "Pacific/Tongatapu",
+                 "Samoa Standard Time": "Pacific/Apia", "Line Islands Standard Time": "Pacific/Kiritimati"}
 
 TOP_BEGIN = ["BEGIN:VEVENT", "BEGIN:VTODO", "BEGIN:VJOURNAL", "BEGIN:VFREEBUSY", "BEGIN:VTIMEZONE"]
 
@@ -161,6 +240,11 @@ function zone_known(name):
     return name != "" and name.find("..") < 0 and exists("/usr/share/zoneinfo/" + name)
 end
 
+# TZID -> IANA nazev (Windows nazvy prevede, ostatni beze zmeny)
+function iana_zone(name):
+    return WINDOWS_ZONES.get(name, name)
+end
+
 # DATE nebo DATE-TIME -> ["D", ordinal] / ["T", naivni mistni cas]; neplatna hodnota -> ValueError
 function parse_dt(value, params):
     v = value.strip()
@@ -205,7 +289,7 @@ function parse_dt(value, params):
     if utc:
         return ["T", date.local_from_utc(moment)]
     end
-    zone = params.get("TZID", "")
+    zone = iana_zone(params.get("TZID", ""))
     if zone_known(zone):
         return ["T", date.local_from_zone(moment, zone)]
     end
@@ -275,6 +359,9 @@ end
 function format_dt(kind, value, tzname):
     if kind == "D":
         return [";VALUE=DATE", date.format_date(value)]
+    end
+    if tzname == "UTC" or tzname == "Etc/UTC":
+        return ["", date.format_moment(value) + "Z"]
     end
     if zone_known(tzname):
         return [";TZID=" + tzname, date.format_moment(value)]
@@ -733,7 +820,10 @@ function rule_starts(ev, until_day, from_day):
         return [ev["start"]]
     end
     freq = r.get("FREQ")
-    if freq != "DAILY" and freq != "WEEKLY" and freq != "MONTHLY" and freq != "YEARLY":
+    if freq != "DAILY" and freq != "WEEKLY" and freq != "MONTHLY" and freq != "YEARLY" and freq != "HOURLY" and freq != "MINUTELY":
+        return [ev["start"]]
+    end
+    if ev["all_day"] and (freq == "HOURLY" or freq == "MINUTELY"):
         return [ev["start"]]
     end
     interval = max(1, rule_int(r, "INTERVAL", 1))
@@ -775,7 +865,7 @@ function rule_starts(ev, until_day, from_day):
     end
     state = {"out": [], "n": 0, "produced": 0, "done": False, "count": count, "until": until_value,
              "limit": until_day, "all_day": all_day, "tod": tod, "start_day": start_day, "zone": zone,
-             "start": ev["start"], "skip_before": None, "until_wall": None}
+             "start": ev["start"], "start_wall": start, "skip_before": None, "until_wall": None}
     if zone != None:
         # vyskyty, ktere konci davno pred zobrazenym obdobim, se nepreskladaji do mistniho casu
         # (prevod pres TZ je drahy); den v pasmu udalosti se od mistniho lisi nejvys o den
@@ -787,7 +877,9 @@ function rule_starts(ev, until_day, from_day):
     # DTSTART je vzdy prvni vyskyt (RFC 5545), i kdyz pravidlu neodpovida
     call emit_day(state, start_day)
     bymonth = bymonth_set(r)
-    if freq == "DAILY":
+    if freq == "HOURLY" or freq == "MINUTELY":
+        call clock_rule(state, r, freq, interval, bymonth, from_day, gen_until)
+    elif freq == "DAILY":
         filtered = (r.get("BYMONTHDAY") != None and r.get("BYMONTHDAY") != "") or (r.get("BYDAY") != None and r.get("BYDAY") != "")
         month_key = -1
         allowed = []
@@ -865,7 +957,9 @@ function rule_starts(ev, until_day, from_day):
         while not state["done"]:
             # BYSETPOS vybira z mnoziny celeho roku
             year_days = []
-            if len(bymonth) == 0 and r.get("BYDAY") != None and r.get("BYMONTHDAY") == None:
+            if (r.get("BYYEARDAY") != None and r.get("BYYEARDAY") != "") or (r.get("BYWEEKNO") != None and r.get("BYWEEKNO") != ""):
+                year_days = year_numbered_days(y, r)
+            elif len(bymonth) == 0 and r.get("BYDAY") != None and r.get("BYMONTHDAY") == None:
                 # BYDAY bez BYMONTH plati pro cely rok (20MO = 20. pondeli roku, MO = kazde pondeli)
                 year_days = year_weekdays(y, byday(r.get("BYDAY")))
             elif explicit:
@@ -884,12 +978,158 @@ function rule_starts(ev, until_day, from_day):
                 call candidate(state, d)
             end
             y += interval
-            if y > 9999 or date.ordinal(y, 1, 1) >= gen_until:
+            # prvni tyden roku (BYWEEKNO) muze zacit uz koncem predchoziho roku
+            if y > 9999 or date.ordinal(y, 1, 1) >= gen_until + 7:
                 break
             end
         end
     end
     return state["out"]
+end
+
+# Ciselny seznam z pravidla ('1,-1,20') -> cela cisla v rozsahu 1..limit nebo -limit..-1
+function rule_numbers(spec, limit):
+    out = []
+    if spec == None:
+        return out
+    end
+    for x in spec.split(","):
+        v = text.to_int(x.strip(), 0)
+        if v != 0 and v >= 0 - limit and v <= limit and v not in out:
+            out.append(v)
+        end
+    end
+    return out
+end
+
+# YEARLY s BYYEARDAY/BYWEEKNO: dny roku (ordinaly, serazene), zuzene BYMONTH, BYMONTHDAY a BYDAY.
+# Tyden 1 je prvni tyden s aspon 4 dny roku (zacina WKST, vychozi pondeli); krajni tydny mohou
+# zasahovat do sousedniho roku (53. tyden 2026 konci 3. 1. 2027).
+function year_numbered_days(year, r):
+    first = date.ordinal(year, 1, 1)
+    count = 365
+    if date.is_leap(year):
+        count = 366
+    end
+    days = []
+    has_yd = r.get("BYYEARDAY") != None and r.get("BYYEARDAY") != ""
+    if has_yd:
+        for v in rule_numbers(r.get("BYYEARDAY"), 366):
+            if v > 0 and v <= count:
+                days.append(first + v - 1)
+            elif v < 0 and 0 - v <= count:
+                days.append(first + count + v)
+            end
+        end
+    end
+    if r.get("BYWEEKNO") != None and r.get("BYWEEKNO") != "":
+        wkst = 0
+        if r.get("WKST") in WEEKDAYS:
+            wkst = WEEKDAYS.index(r["WKST"])
+        end
+        jan4 = date.ordinal(year, 1, 4)
+        week1 = jan4 - (date.weekday(jan4) - wkst) % 7
+        next4 = date.ordinal(year + 1, 1, 4)
+        weeks = (next4 - (date.weekday(next4) - wkst) % 7 - week1) // 7
+        in_weeks = []
+        for v in rule_numbers(r.get("BYWEEKNO"), 53):
+            w = v
+            if v < 0:
+                w = weeks + v + 1
+            end
+            if w >= 1 and w <= weeks:
+                k = 0
+                while k < 7:
+                    d = week1 + (w - 1) * 7 + k
+                    if d not in in_weeks:
+                        in_weeks.append(d)
+                    end
+                    k += 1
+                end
+            end
+        end
+        if has_yd:
+            both = []
+            for d in days:
+                if d in in_weeks:
+                    both.append(d)
+                end
+            end
+            days = both
+        else:
+            days = in_weeks
+        end
+    end
+    bymonth = bymonth_set(r)
+    mdays = rule_numbers(r.get("BYMONTHDAY"), 31)
+    wds = []
+    for item in byday(r.get("BYDAY")):
+        wds.append(item[1])
+    end
+    out = []
+    for d in sorted(days):
+        ymd = date.from_ordinal(d)
+        dim = date.days_in_month(ymd[0], ymd[1])
+        if len(bymonth) > 0 and ymd[1] not in bymonth:
+            continue
+        end
+        if len(mdays) > 0 and ymd[2] not in mdays and ymd[2] - dim - 1 not in mdays:
+            continue
+        end
+        if len(wds) > 0 and date.weekday(d) not in wds:
+            continue
+        end
+        if d not in out:
+            out.append(d)
+        end
+    end
+    return out
+end
+
+# HOURLY/MINUTELY: vyskyty po interval hodinach/minutach od DTSTART (cas v pasmu udalosti), filtry
+# BYMONTH, BYMONTHDAY, BYDAY a BYHOUR. Bez COUNT se zacne az kousek pred zobrazenym obdobim
+# (z let stare hodinove pravidlo by jinak vycerpalo MAX_INSTANCES).
+function clock_rule(state, r, freq, interval, bymonth, from_day, gen_until):
+    step = 3600 * interval
+    if freq == "MINUTELY":
+        step = 60 * interval
+    end
+    first = state["start_wall"]
+    t = first
+    if state["count"] == None:
+        low = (from_day - 2) * date.DAY
+        if t < low:
+            t = t + ((low - t) // step) * step
+        end
+    end
+    filtered = (r.get("BYMONTHDAY") != None and r.get("BYMONTHDAY") != "") or (r.get("BYDAY") != None and r.get("BYDAY") != "")
+    hours = []
+    if r.get("BYHOUR") != None:
+        for x in r["BYHOUR"].split(","):
+            h = text.to_int(x.strip(), -1)
+            if h >= 0 and h <= 23:
+                hours.append(h)
+            end
+        end
+    end
+    month_key = -1
+    allowed = []
+    finish = gen_until * date.DAY
+    while not state["done"] and t < finish:
+        if t > first:
+            d = date.date_of(t)
+            ymd = date.from_ordinal(d)
+            if filtered and month_key != ymd[0] * 12 + ymd[1]:
+                month_key = ymd[0] * 12 + ymd[1]
+                allowed = month_days(ymd[0], ymd[1], r, d)
+            end
+            if (len(bymonth) == 0 or ymd[1] in bymonth) and (not filtered or d in allowed) and (len(hours) == 0 or date.hour_of(t) in hours):
+                call emit_wall(state, t)
+            end
+        end
+        t += step
+    end
+    return 0
 end
 
 # Kandidatni den z pravidla (jen po dni DTSTART)
@@ -901,6 +1141,14 @@ function candidate(state, day):
 end
 
 function emit_day(state, day):
+    if state["all_day"]:
+        return emit_wall(state, day)
+    end
+    return emit_wall(state, day * date.DAY + state["tod"])
+end
+
+# Vyskyt v case pasma udalosti (wall: den u celodenni, jinak naivni cas)
+function emit_wall(state, wall):
     if state["done"]:
         return 0
     end
@@ -909,11 +1157,15 @@ function emit_day(state, day):
         state["done"] = True
         return 0
     end
-    s = day
-    local_day = day
-    if state["skip_before"] != None and day < state["skip_before"] and day != state["start_day"]:
+    s = wall
+    local_day = wall
+    day = wall
+    if not state["all_day"]:
+        day = date.date_of(wall)
+    end
+    if state["skip_before"] != None and day < state["skip_before"] and wall != state["start_wall"]:
         # jen pro COUNT a UNTIL (v case pasma udalosti); do vysledku se nedostane
-        if state["until_wall"] != None and day * date.DAY + state["tod"] > state["until_wall"]:
+        if state["until_wall"] != None and wall > state["until_wall"]:
             state["done"] = True
             return 0
         end
@@ -924,12 +1176,11 @@ function emit_day(state, day):
         return 0
     end
     if not state["all_day"]:
-        s = day * date.DAY + state["tod"]
         if state["zone"] != None:
-            if day == state["start_day"]:
+            if wall == state["start_wall"]:
                 s = state["start"]
             else:
-                s = date.local_from_zone(s, state["zone"])
+                s = date.local_from_zone(wall, state["zone"])
             end
         end
         local_day = date.date_of(s)
@@ -1062,8 +1313,12 @@ function event_from_lines(lines):
             ev["all_day"] = kv[0] == "D"
             ev["start"] = kv[1]
             ev["start_kind"] = kv[0]
-            zone = params.get("TZID", "")
-            if kv[0] == "T" and not value.strip().endswith("Z") and zone_known(zone):
+            zone = iana_zone(params.get("TZID", ""))
+            if kv[0] == "T" and value.strip().endswith("Z"):
+                # UTC: opakovani se rozviji v UTC (po zmene letniho casu se posune mistni cas, ne okamzik)
+                # a zapis zustane v UTC
+                ev["tzid"] = "UTC"
+            elif kv[0] == "T" and zone_known(zone):
                 ev["tzid"] = zone
             end
         elif name == "DTEND":
@@ -1305,14 +1560,21 @@ function reload_if_changed(store):
     return True
 end
 
-# Aktualni obsah events.ics, None kdyz soubor neni
+# Aktualni obsah events.ics, None kdyz soubor neni. Existujici, ale necitelny soubor je chyba:
+# zapis by jinak prepsal vsechny udalosti jen tou jednou nove ulozenou.
 function disk_raw(store):
     if not exists(store["own_path"]):
         return None
     end
     raw = None
-    safe:
+    ok = True
+    try:
         raw = readfile(store["own_path"])
+    else:
+        ok = False
+    end
+    if not ok:
+        Error(FileError: calendar_unreadable)
     end
     return raw
 end
@@ -1401,6 +1663,10 @@ function commit(store, op, ev):
             call glib.unlink(tmp)
             store["own_dirty"] = True
             continue
+        end
+        if raw != None:
+            # predchozi obsah jako zaloha (events.ics.bak se mezi kalendare nenacita)
+            call writefile(path + ".bak", raw)
         end
         call glib.rename(tmp, path)
         written = True
@@ -1545,6 +1811,18 @@ function instances(store, start, finish):
     end
     store["cache"][key] = out
     return out
+end
+
+# Kolik dni dopredu hledat vyskyty kvuli pripominkam: nejdelsi TRIGGER v kalendari (-P1W apod.), nejvys rok
+function reminder_days(store):
+    most = 0
+    for ev in all_events(store):
+        mins = reminder_minutes(ev)
+        if mins != None and mins > most:
+            most = mins
+        end
+    end
+    return min(most // (24 * 60) + 1, 366)
 end
 
 function day_instances(store, day):

@@ -397,28 +397,70 @@ if __name__ == "__main__":
 
 
 class TestPinGlobalLimit(unittest.TestCase):
-    """PIN: kromě 3 pokusu z jedne adresy i strop pro vsechny adresy dohromady (zkouseni z mnoha adres IPv6)."""
+    """PIN: kromě 3 pokusu z jedne site i strop pro vsechny site dohromady (zkouseni z mnoha adres)."""
 
-    def test_many_addresses_hit_global_limit(self):
+    def server(self):
         class S:
             pin = "4711"
         srv = lsserver.LocalSendServer.__new__(lsserver.LocalSendServer)
         srv.settings = S()
         srv.pin_fail, srv.pin_global = {}, []
+        return srv
 
-        class Req:
-            def __init__(self, ip, pin):
-                self.ip, self.query = ip, {"pin": pin}
+    def test_many_networks_hit_global_limit(self):
+        srv = self.server()
         codes = []
         for i in range(lsserver.PIN_GLOBAL_MAX + 3):
             try:
-                srv._check_pin(Req("fd00::%x" % i, "0000"), False)
+                srv._check_pin(Req("fd00:0:0:%x::1" % i, "0000"), False)
             except lshttp.HTTPError as e:
                 codes.append(e.status)
         self.assertEqual(codes[:lsserver.PIN_GLOBAL_MAX], [401] * lsserver.PIN_GLOBAL_MAX)
         self.assertEqual(codes[lsserver.PIN_GLOBAL_MAX:], [429] * 3)
         # duveryhodne zarizeni PIN nepotrebuje ani behem blokovani
         srv._check_pin(Req("fd00::ffff", None), True)
+
+    def test_one_device_with_many_addresses_does_not_lock_out_others(self):
+        # jedno zarizeni si v IPv6 /64 vytvori libovolne adres: blokuje se jen ono, ne PIN pro vsechny
+        srv = self.server()
+        codes = []
+        for i in range(lsserver.PIN_GLOBAL_MAX * 2):
+            try:
+                srv._check_pin(Req("2001:db8:1:2::%x" % (i + 1), "0000"), False)
+            except lshttp.HTTPError as e:
+                codes.append(e.status)
+        self.assertEqual(codes[:lsserver.PIN_MAX_ATTEMPTS], [401] * lsserver.PIN_MAX_ATTEMPTS)
+        self.assertEqual(set(codes[lsserver.PIN_MAX_ATTEMPTS:]), {429})
+        srv._check_pin(Req("192.168.1.5", "4711"), False)          # jiny telefon se spravnym PINem projde
+        srv._check_pin(Req("2001:db8:9:9::5", "4711"), False)
+        self.assertEqual(lsserver.pin_source("::ffff:192.168.1.5"), "192.168.1.5")
+        self.assertEqual(lsserver.pin_source("fe80::1%wlan0"), "fe80::/64")
+
+
+class Req:
+    def __init__(self, ip, pin):
+        self.ip, self.query = ip, {"pin": pin}
+
+
+class TestSendConnectionLost(unittest.TestCase):
+    def test_lost_during_transfer_is_not_connection_failed(self):
+        import unittest.mock as um
+
+        class CB:
+            def update(self, t):
+                pass
+
+        class Hist:
+            def add(self, e):
+                pass
+
+        def broken(*args):
+            args[7].state = "transferring"            # spojeni spadlo uprostred prenosu (Wi-Fi)
+            raise ConnectionResetError(104, "Connection reset by peer")
+        with um.patch.object(lssend, "_send", side_effect=broken):
+            t = lssend.send(None, None, None, Hist(), {"name": "Phone", "fingerprint": "AB" * 32}, CB(), paths=[])
+        self.assertEqual(t.state, "failed")
+        self.assertTrue(t.error.startswith("connection lost"), t.error)
 
 
 class TestSendHttpException(unittest.TestCase):

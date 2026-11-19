@@ -73,16 +73,39 @@ RE_SECRET = re.compile(r"(?i)\b(token|password|passwd|secret|cookie|session|auth
 RE_LONG = re.compile(r"[A-Za-z0-9_\-+=]{32,}")   # bez "/" - cesty nechat citelne
 RE_IP = re.compile(r"(?<![\w.-])\d{1,3}(\.\d{1,3}){3}(?!\w|\.\d)")
 RE_MAC = re.compile(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b")
+# IPv6: plnych 8 skupin nebo zkraceny zapis s "::" (casy jako 08:25:26 tim neprojdou)
+RE_IP6 = re.compile(r"(?<![\w:.])(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}"
+                    r"|(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})*)?::(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})*)?)"
+                    r"(?:%[\w.-]+)?(?![\w:])")
+RE_SSID = re.compile(r"(?i)\b(e?ssid)(\s*[=:]?\s*)(['\"])(.+?)\3")
+
+
+def wifi_names():
+    """Nazvy ulozenych siti Wi-Fi (nazev pripojeni byva SSID) - v logach NetworkManageru."""
+    if "names" not in _wifi_cache:
+        out = run("nmcli", "-t", "-f", "NAME,TYPE", "connection", "show")
+        _wifi_cache["names"] = [line.rsplit(":", 1)[0].replace("\\:", ":") for line in out.splitlines()
+                                if line.endswith(":802-11-wireless")]
+    return _wifi_cache["names"]
+
+
+_wifi_cache = {}
 
 
 def redact(text):
-    """Odstrani cestu domu, jmeno uzivatele/pocitace, e-maily, IP/MAC a vse, co vypada jako tajny klic."""
+    """Odstrani cestu domu, jmeno uzivatele/pocitace, e-maily, IP/MAC, nazvy siti Wi-Fi a vse, co vypada
+    jako tajny klic."""
     text = text.replace(HOME, "~")
     text = RE_EMAIL.sub("<email>", text)
     text = RE_SECRET.sub(lambda m: m.group(1) + m.group(2) + "<redacted>", text)
     text = RE_LONG.sub("<redacted>", text)
     text = RE_MAC.sub("<mac>", text)
     text = RE_IP.sub("<ip>", text)
+    text = RE_IP6.sub("<ip>", text)
+    text = RE_SSID.sub(lambda m: m.group(1) + m.group(2) + m.group(3) + "<ssid>" + m.group(3), text)
+    for ssid in wifi_names():
+        if len(ssid) >= 3:
+            text = text.replace(ssid, "<ssid>")
     for word, repl in ((USER, "<user>"), (HOST, "<host>")):
         if len(word) >= 3:
             text = re.sub(r"(?<![\w-])" + re.escape(word) + r"(?![\w-])", repl, text)
@@ -196,7 +219,8 @@ def flush_outbox():
         try:
             send(payload)
         except acc.AccountError as e:
-            if e.code == "network" or e.status >= 500 or e.status == 429:
+            # 401/403: prihlaseni vyprselo - hlaseni pockat na nove prihlaseni, nezahazovat
+            if e.code == "network" or e.status >= 500 or e.status in (401, 403, 429):
                 break
             os.replace(path, path + ".rejected")   # server ho odmitl - neposilat porad dokola
             continue

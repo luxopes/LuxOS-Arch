@@ -44,6 +44,9 @@ DEMO = os.environ.get("LUXOS_POWER_DEMO") in ("1", "full")
 DEMO_FULL = os.environ.get("LUXOS_POWER_DEMO") == "full"
 STATE_UNKNOWN = 0
 STATE_CHARGING, STATE_DISCHARGING, STATE_EMPTY, STATE_FULL, STATE_PENDING_CHARGE = 1, 2, 3, 4, 5
+STATE_PENDING_DISCHARGE = 6
+ON_BATTERY = (STATE_DISCHARGING, STATE_EMPTY, STATE_PENDING_DISCHARGE)
+DISPLAY_DEVICE = "/org/freedesktop/UPower/devices/DisplayDevice"
 PM = "xfce4-power-manager"
 SAVER_STATE = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver")
 SAVER_60HZ = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "luxos/powersaver-60hz")
@@ -160,6 +163,19 @@ def charge_cycles(info, path=None):
     return 0
 
 
+def status_text(info):
+    st = info.get("State", 0)
+    if st == STATE_CHARGING:
+        left = fmt_duration(info.get("TimeToFull", 0))
+        return _("Charging") + (" · " + _("full in %s") % left if left else "")
+    if st in ON_BATTERY:
+        left = fmt_duration(info.get("TimeToEmpty", 0))
+        return _("On battery") + (" · " + _("about %s left") % left if left else "")
+    if st == STATE_FULL:
+        return _("Fully charged")
+    return _("Plugged in, not charging")
+
+
 def fmt_duration(seconds):
     if not seconds or seconds <= 0:
         return ""
@@ -178,21 +194,23 @@ class Battery:
                 self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
             except GLib.Error:
                 pass      # bez systemove sbernice: okno bez baterie a profilu, ale otevre se
-        self.path = self.find_battery()
+        self.paths = self.find_batteries()
+        self.path = self.paths[0] if self.paths else None     # historie (graf) jen z prvni baterie
 
-    def find_battery(self):
+    def find_batteries(self):
         if self.bus is None:
-            return None
+            return []
         try:
             r = self.bus.call_sync(UP, "/org/freedesktop/UPower", UP, "EnumerateDevices", None,
                                    GLib.VariantType("(ao)"), 0, 3000, None)
         except GLib.Error:
-            return None
+            return []
+        found = []
         for path in r.unpack()[0]:
             props = self.props(path)
             if props.get("Type") == 2 and props.get("PowerSupply"):   # 2 = baterie
-                return path
-        return None
+                found.append(path)
+        return found
 
     def props(self, path):
         if self.bus is None:
@@ -207,7 +225,21 @@ class Battery:
     def info(self):
         if DEMO:
             return demo_info()
-        return self.props(self.path) if self.path else None
+        if not self.paths:
+            return None
+        info = self.props(self.path)
+        if len(self.paths) > 1:
+            # vic baterii (notebooky s vnitrni a vymennou): stav, procenta a casy za vsechny
+            # z DisplayDevice UPower, zdravi ze souctu kapacit
+            disp = self.props(DISPLAY_DEVICE)
+            for key in ("Percentage", "State", "TimeToEmpty", "TimeToFull", "EnergyRate"):
+                if key in disp:
+                    info[key] = disp[key]
+            each = [self.props(p) for p in self.paths]
+            info["EnergyFull"] = sum(b.get("EnergyFull", 0) for b in each)
+            info["EnergyFullDesign"] = sum(b.get("EnergyFullDesign", 0) for b in each)
+            info.pop("Capacity", None)
+        return info
 
     def history(self, kind, span=86400, points=None):
         """[(cas_s, hodnota, stav)] od nejstarsiho; kind = charge | rate. upower vraci surove zaznamy jen
@@ -758,17 +790,7 @@ class PowerWindow(Gtk.Window):
         charging = st in (STATE_CHARGING, STATE_PENDING_CHARGE)
         self.icon.set_state(pct, charging)
         self.pct.set_text(f"{pct:.0f} %")
-        if st == STATE_CHARGING:
-            left = fmt_duration(info.get("TimeToFull", 0))
-            text = _("Charging") + (" · " + _("full in %s") % left if left else "")
-        elif st == STATE_DISCHARGING:
-            left = fmt_duration(info.get("TimeToEmpty", 0))
-            text = _("On battery") + (" · " + _("about %s left") % left if left else "")
-        elif st == STATE_FULL:
-            text = _("Fully charged")
-        else:
-            text = _("Plugged in, not charging")
-        self.state.set_text(text)
+        self.state.set_text(status_text(info))
         rate = info.get("EnergyRate", 0)
         rctx = self.v_rate.get_style_context()
         if rate:
@@ -778,11 +800,11 @@ class PowerWindow(Gtk.Window):
             # Na nabijecce a plne nabita (nebo nenabiji) baterie nic neodebira - drive jen "-"
             if st == STATE_FULL:
                 self.v_rate.set_text(_("Charging complete"))
-            elif st == STATE_DISCHARGING:
+            elif st in ON_BATTERY:
                 self.v_rate.set_text(_("Not reported"))
             else:
                 self.v_rate.set_text(_("Not charging"))
-            self.s_rate.set_text(_("running on the power adapter") if st != STATE_DISCHARGING else "")
+            self.s_rate.set_text(_("running on the power adapter") if st not in ON_BATTERY else "")
         (rctx.add_class if not rate else rctx.remove_class)("card-na")
         (rctx.remove_class if not rate else rctx.add_class)("card-value")
         full, design = info.get("EnergyFull", 0), info.get("EnergyFullDesign", 0)

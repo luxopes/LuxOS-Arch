@@ -8,6 +8,7 @@ az po kontrole velikosti (a SHA-256, pokud ho odesilatel poslal).
 """
 import hashlib
 import hmac
+import ipaddress
 import os
 import secrets
 import select
@@ -18,13 +19,27 @@ import uuid
 
 from . import localsend, lshttp, proto, transfer
 
+def pin_source(ip):
+    """Odkud jsou pokusy o PIN: IPv6 po sitich /64 - jedno zarizeni si adres v nich vytvori, kolik chce,
+    a bez toho by samo vycerpalo spolecny strop a zablokovalo PIN vsem ostatnim."""
+    try:
+        addr = ipaddress.ip_address(ip.split("%", 1)[0])
+    except ValueError:
+        return ip
+    if addr.version == 6:
+        if addr.ipv4_mapped:
+            return str(addr.ipv4_mapped)
+        return str(ipaddress.ip_network(str(addr) + "/64", strict=False))
+    return str(addr)
+
+
 MAX_CONNECTIONS = 16
 MAX_PER_IP = 8              # jedno zarizeni nesmi obsadit vsechna spojeni (ostatni by se nedostala k prijmu)
 DECISION_TIMEOUT = transfer.DECISION_TIMEOUT
 SESSION_IDLE = 120          # relace bez aktivity se po 2 minutach ukonci
 PIN_MAX_ATTEMPTS = 3
 PIN_BLOCK_SECONDS = 300
-PIN_GLOBAL_MAX = 20         # spatne PINy ze vsech adres dohromady (zkouseni z mnoha adres, napr. IPv6)
+PIN_GLOBAL_MAX = 20         # spatne PINy ze vsech siti dohromady (zkouseni z mnoha adres)
 IO_TIMEOUT = 60
 
 
@@ -240,7 +255,8 @@ class LocalSendServer:
         if not pin or trusted:
             return
         now = time.monotonic()
-        n, since = self.pin_fail.get(req.ip, (0, now))
+        src = pin_source(req.ip)
+        n, since = self.pin_fail.get(src, (0, now))
         if now - since > PIN_BLOCK_SECONDS:
             n = 0
         self.pin_global = [x for x in self.pin_global if now - x <= PIN_BLOCK_SECONDS]
@@ -252,10 +268,10 @@ class LocalSendServer:
         if not hmac.compare_digest(given.encode("utf-8"), pin.encode("utf-8")):
             if len(self.pin_fail) > 1000:
                 self.pin_fail.clear()
-            self.pin_fail[req.ip] = (n + 1, now if n == 0 else since)
+            self.pin_fail[src] = (n + 1, now if n == 0 else since)
             self.pin_global.append(now)
             raise lshttp.HTTPError(401, "Invalid PIN")
-        self.pin_fail.pop(req.ip, None)
+        self.pin_fail.pop(src, None)
 
     def prepare_upload(self, req, conn):
         hidden = self._visible()
@@ -450,7 +466,7 @@ class LocalSendServer:
         return 200, None
 
     def _receive_file(self, s, f, req, ui):
-        part_fd = transfer.Receiver._open_part_dir(s.dest)
+        part_fd = transfer.acquire_part_dir(s.dest)
         name = "ls-" + secrets.token_hex(16) + ".part"
         placed = False
         try:
@@ -501,11 +517,7 @@ class LocalSendServer:
                     os.unlink(name, dir_fd=part_fd)
                 except OSError:
                     pass
-            os.close(part_fd)
-            try:
-                os.rmdir(os.path.join(s.dest, transfer.PART_DIR))
-            except OSError:
-                pass
+            transfer.release_part_dir(s.dest, part_fd)
 
     def _place(self, s, part_fd, name, parts):
         """Presune overeny soubor do cile bez prepsani; vrati cestu top-level polozky."""

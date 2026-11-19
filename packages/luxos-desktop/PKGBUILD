@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=87
+pkgrel=88
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -258,6 +258,7 @@ package() {
     # Pojistka proti fork bombe: zapnuta staticky, po aktualizaci ji spusti luxos-desktop.install
     install -Dm755 luxos-forkguard "$pkgdir/usr/lib/luxos/luxos-forkguard"
     install -Dm644 "$f/forkguard/luxos-forkguard.service" "$pkgdir/usr/lib/systemd/system/luxos-forkguard.service"
+    install -Dm644 "$f/forkguard/cz.luxos.ForkGuard.conf" "$pkgdir/usr/share/dbus-1/system.d/cz.luxos.ForkGuard.conf"
     install -dm755 "$pkgdir/usr/lib/systemd/system/multi-user.target.wants"
     ln -s ../luxos-forkguard.service "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/luxos-forkguard.service"
     # Aplikace z Flathubu hned v Launchpadu a nabidce (lux, Obchod i flatpak install): sledovani exportu

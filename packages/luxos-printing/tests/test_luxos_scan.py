@@ -422,6 +422,35 @@ class ScanFlow(FakePath):
         self.window.show_problem.assert_not_called()
 
 
+class OldSessions(unittest.TestCase):
+    """Druhe okno Skeneru maze stare relace jen po spadlych oknech, ne relaci okna otevreneho pres noc."""
+
+    def test_live_session_kept(self):
+        path = os.path.join(HERE, "..", "files", "luxos-scan")
+        loader = importlib.machinery.SourceFileLoader("scan_cache_app", path)
+        app = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+        loader.exec_module(app)
+        cache = tempfile.mkdtemp(prefix="luxos-scan-cache-")
+        self.addCleanup(shutil.rmtree, cache, True)
+        app.CACHE = cache
+        live, dead, old = (os.path.join(cache, n) for n in ("session-live", "session-dead", "session-old"))
+        for d in (live, dead, old):
+            os.mkdir(d)
+        # zivy zamek drzi jiny proces (otevrene okno)
+        holder = subprocess.Popen([sys.executable, "-c", "import fcntl,os,sys,time\n"
+                                   "fd=os.open(sys.argv[1],os.O_RDWR|os.O_CREAT);fcntl.flock(fd,fcntl.LOCK_EX)\n"
+                                   "print(1,flush=True);time.sleep(60)", os.path.join(live, ".lock")],
+                                  stdout=subprocess.PIPE, text=True)
+        self.addCleanup(holder.wait)
+        self.addCleanup(holder.kill)
+        holder.stdout.readline()
+        os.close(os.open(os.path.join(dead, ".lock"), os.O_CREAT | os.O_RDWR))   # zamek po spadlem okne
+        for d in (live, dead, old):
+            os.utime(d, (time.time() - 3 * 86400,) * 2)
+        app.clean_old_cache()
+        self.assertEqual(os.listdir(cache), ["session-live"])
+
+
 class Pnm(FakePath):
     def write(self, name, data):
         p = os.path.join(self.tmp, name)

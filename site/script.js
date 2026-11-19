@@ -101,7 +101,7 @@ lightbox?.addEventListener('touchend', e => {
 });
 
 // ---- aktualni vydani ----
-const formatSize = bytes => `${(bytes / 2 ** 30).toLocaleString(locale, { maximumFractionDigits: 1 })} GB`;
+const formatSize = bytes => `${(bytes / 1e9).toLocaleString(locale, { maximumFractionDigits: 1 })} GB`;
 const formatDate = iso => new Date(`${iso}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 fetch('/release.json', { cache: 'no-cache' })
   .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -124,7 +124,7 @@ fetch('/release.json', { cache: 'no-cache' })
       const links = { iso: `/download/${iso.file}`, sig: `/download/${iso.file}.sig`, sums: '/download/SHA256SUMS' };
       document.querySelectorAll('[data-release-href]').forEach(el => { el.href = links[el.dataset.releaseHref]; });
       const cmd = document.querySelector('#verify .terminal .copy');
-      if (cmd) cmd.dataset.copy = `sha256sum -c SHA256SUMS\ngpg --import luxos.gpg\ngpg --verify ${iso.file}.sig ${iso.file}`;
+      if (cmd) cmd.dataset.copy = `sha256sum -c --ignore-missing SHA256SUMS\ngpg --import luxos.gpg\ngpg --verify ${iso.file}.sig ${iso.file}`;
     }
     const note = document.querySelector('[data-release-show="update_note"]');
     if (note) note.hidden = !(rel.version && iso.version && rel.version !== iso.version);

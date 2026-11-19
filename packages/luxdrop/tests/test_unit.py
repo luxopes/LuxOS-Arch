@@ -503,6 +503,19 @@ class TestHashAndFinalize(unittest.TestCase):
             self.assertEqual(os.stat(os.path.join(dest, "run.sh")).st_mode & 0o777, mode)
             self.assertEqual(os.stat(os.path.join(dest, "dir", "tool")).st_mode & 0o777, mode)
 
+    def test_partial_dir_kept_while_another_transfer_uses_it(self):
+        # dva soubezne prenosy do stejne slozky: konec prvniho nesmi smazat .luxdrop-partial druhemu
+        dest = os.path.join(self.dir, "shared")
+        os.mkdir(dest)
+        first = transfer.acquire_part_dir(dest)
+        second = transfer.acquire_part_dir(dest)
+        transfer.release_part_dir(dest, first)
+        fd = os.open("x.part", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=second)
+        os.close(fd)
+        os.unlink("x.part", dir_fd=second)
+        transfer.release_part_dir(dest, second)
+        self.assertFalse(os.path.exists(os.path.join(dest, ".luxdrop-partial")))     # posledni uklidi
+
     def test_partial_dir_symlink_refused(self):
         dest = os.path.join(self.dir, "d2")
         os.mkdir(dest)

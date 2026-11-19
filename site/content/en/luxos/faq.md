@@ -145,7 +145,7 @@ blocks unexpected incoming connections. Packages are signed. See [Lux Guard](gua
 
 ## How do I verify the downloaded ISO?
 
-Run `sha256sum -c SHA256SUMS`, import the LuxOS key with `gpg --import luxos.gpg` and check the
+Run `sha256sum -c --ignore-missing SHA256SUMS`, import the LuxOS key with `gpg --import luxos.gpg` and check the
 signature with `gpg --verify luxos-VERSION-x86_64.iso.sig luxos-VERSION-x86_64.iso`. The key
 fingerprint is on the home page.
 

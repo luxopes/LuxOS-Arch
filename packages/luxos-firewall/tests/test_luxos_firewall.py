@@ -80,6 +80,17 @@ def set_of(out, name):
     return out.split("set " + name)[1].split("}")[0]
 
 
+class Polkit(unittest.TestCase):
+    def test_opening_a_port_needs_the_admin_password(self):
+        # zadne pravidlo polkit, ktere by vyjimku ve firewallu povolilo bez hesla (drive "allow --from lan")
+        with open(os.path.join(HERE, "..", "PKGBUILD")) as f:
+            self.assertNotIn("rules.d", f.read())
+        with open(os.path.join(HERE, "..", "files", "org.luxos.firewall.policy")) as f:
+            policy = f.read()
+        self.assertIn("<allow_active>auth_admin_keep</allow_active>", policy)
+        self.assertNotIn(">yes<", policy)
+
+
 class FirewallTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="luxos-fw-root-")

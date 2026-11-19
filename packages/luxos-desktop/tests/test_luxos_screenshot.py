@@ -926,6 +926,31 @@ class TestGui(unittest.TestCase):
         self.assertEqual(p.wait(20), 0)
         self.assertEqual(len([f for f in os.listdir(self.out + "2") if f.endswith(".mp4")]), 1)
 
+    def test_recording_kept_when_app_killed(self):
+        # pad / zabiti hubu (server Snimku obrazovky) behem nahravani: ffmpeg mp4 dopise a vznikne
+        # normalni soubor, ne skryty .part
+        if not shutil.which("ffmpeg") or not shutil.which("setpriv"):
+            self.skipTest("ffmpeg or setpriv missing")
+        fmts = subprocess.run(["ffmpeg", "-hide_banner", "-devices"], capture_output=True, text=True).stdout
+        if "x11grab" not in fmts:
+            self.skipTest("ffmpeg without x11grab")
+        self.resident()
+        self.start("--record-portion", "--region", "0,0,321,241", "--output", self.out, "--no-thumbnail")
+        time.sleep(2.5)
+        self.assertIsNone(self.server.poll())
+        self.server.kill()
+        self.server.wait(10)
+        done = lambda: [f for f in os.listdir(self.out) if f.endswith(".mp4")]  # noqa: E731
+        end = time.monotonic() + 20
+        while not done() and time.monotonic() < end:
+            time.sleep(0.2)
+        self.assertEqual(len(done()), 1, os.listdir(self.out))
+        self.assertEqual(os.listdir(self.out), done())          # zadny skryty .part
+        probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                "stream=width,height", "-of", "csv=p=0", os.path.join(self.out, done()[0])],
+                               capture_output=True, text=True).stdout.strip()
+        self.assertEqual(probe, "320,240")
+
 
 BG = (40, 160, 90)
 BG_WINDOW = ("import gi\ngi.require_version('Gtk', '3.0')\nfrom gi.repository import Gtk, Gdk\n"

@@ -385,14 +385,23 @@ function check_alarms():
         last_minute["key"] = key
         weekday = d[6] - 1
         changed = False
+        due = False
+        labels = []
         for a in data["alarms"]:
             if a["on"] and a["h"] == d[3] and a["m"] == d[4] and (len(a["days"]) == 0 or weekday in a["days"]):
                 if len(a["days"]) == 0:
                     a["on"] = False
                     changed = True
                 end
-                call ring(a["label"], two(a["h"]) + ":" + two(a["m"]))
+                due = True
+                if a["label"] != "" and not (a["label"] in labels):
+                    labels.append(a["label"])
+                end
             end
+        end
+        # vic budiku ve stejne minute: jedno zvoneni se vsemi popisky (dalsi ring by prvni nahradil)
+        if due:
+            call ring("\n".join(labels), two(d[3]) + ":" + two(d[4]))
         end
         if changed:
             call save_data()

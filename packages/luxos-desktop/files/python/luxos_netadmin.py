@@ -31,8 +31,9 @@ def _cmd(env, default):
 
 
 def run(argv, timeout=10):
+    # vystup ip/nmcli se parsuje podle anglickych slov ("yes"), nmcli ho jinak lokalizuje
     try:
-        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env={**os.environ, "LC_ALL": "C"})
         return r.stdout if r.returncode == 0 else ""
     except (OSError, subprocess.TimeoutExpired):
         return ""

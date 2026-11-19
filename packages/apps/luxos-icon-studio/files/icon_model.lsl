@@ -42,11 +42,13 @@ function file_size(path):
     return __lsl_qbe_load64(data(buffer) + 48)
 end
 
-function atomic_bytes(path, bytes):
+# Projekt 0600 (rozpracovane dilo), exporty 0644: ikona jde do balicku a po instalaci
+# ji musi cist kazdy uzivatel (umask se uplatni i tak)
+function atomic_bytes(path, bytes, mode=384):
     call check_path(path)
     errors = __lsl_byte_zeros(8)
     # CONSISTENT | DURABLE: GLib writes a sibling temporary file, fsyncs and renames.
-    ok = __lsl_qbe_call6(__lsl_symbol("g_file_set_contents_full"), cstr(path), data(bytes), len(bytes), 3, 384, data(errors))
+    ok = __lsl_qbe_call6(__lsl_symbol("g_file_set_contents_full"), cstr(path), data(bytes), len(bytes), 3, ptr(mode), data(errors))
     problem = __lsl_qbe_load64(data(errors))
     if problem != 0:
         call __lsl_qbe_call1(__lsl_symbol("g_error_free"), problem)
@@ -57,12 +59,12 @@ function atomic_bytes(path, bytes):
     return True
 end
 
-function atomic_text(path, text):
+function atomic_text(path, text, mode=384):
     bytes = __lsl_byte_zeros(__lsl_text_byte_length(text))
     if len(bytes):
         call __lsl_qbe_call3(__lsl_symbol("memcpy"), data(bytes), cstr(text), len(bytes))
     end
-    return atomic_bytes(path, bytes)
+    return atomic_bytes(path, bytes, mode)
 end
 
 function regex(pattern, text):

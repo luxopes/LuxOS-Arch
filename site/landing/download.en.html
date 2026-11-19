@@ -28,9 +28,9 @@
 
       <h2 id="verify">Verify the download</h2>
       <p>Check that the file is complete and really comes from LuxOS. Put the ISO, <code>SHA256SUMS</code> and the <code>.sig</code> file in one folder and run in a terminal:</p>
-      <div class="terminal"><pre><code><span class="terminal-prompt">$</span> sha256sum -c SHA256SUMS
+      <div class="terminal"><pre><code><span class="terminal-prompt">$</span> sha256sum -c --ignore-missing SHA256SUMS
 <span class="terminal-prompt">$</span> gpg --import luxos.gpg
-<span class="terminal-prompt">$</span> gpg --verify <span data-release="iso_file">{{ISO_FILE}}</span>.sig <span data-release="iso_file">{{ISO_FILE}}</span></code></pre><button class="copy" data-copy="sha256sum -c SHA256SUMS&#10;gpg --import luxos.gpg&#10;gpg --verify {{ISO_FILE}}.sig {{ISO_FILE}}" aria-label="Copy commands">⧉</button></div>
+<span class="terminal-prompt">$</span> gpg --verify <span data-release="iso_file">{{ISO_FILE}}</span>.sig <span data-release="iso_file">{{ISO_FILE}}</span></code></pre><button class="copy" data-copy="sha256sum -c --ignore-missing SHA256SUMS&#10;gpg --import luxos.gpg&#10;gpg --verify {{ISO_FILE}}.sig {{ISO_FILE}}" aria-label="Copy commands">⧉</button></div>
       <div class="fingerprint"><span>SHA-256:</span><code data-release="iso_sha256">{{ISO_SHA256}}</code><button class="copy" data-copy="{{ISO_SHA256}}" data-release-copy="iso_sha256" aria-label="Copy checksum">⧉</button></div>
       <div class="fingerprint"><span>LuxOS key fingerprint:</span><code>{{FINGERPRINT}}</code><button class="copy" data-copy="{{FINGERPRINT}}" aria-label="Copy fingerprint">⧉</button></div>
       <p><code>sha256sum</code> must print <strong>OK</strong> and <code>gpg</code> <strong>Good signature</strong> from the key with the fingerprint above. On Windows, compare the checksum with <code>Get-FileHash .\{{ISO_FILE}}</code> in PowerShell; on a Mac with <code>shasum -a 256 {{ISO_FILE}}</code>. For the signature on Windows use Gpg4win.</p>

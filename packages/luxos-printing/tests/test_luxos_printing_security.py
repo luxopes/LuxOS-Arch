@@ -174,21 +174,41 @@ class HelperBase(unittest.TestCase):
 
 
 class AutoAdd(HelperBase):
+    def notified(self):
+        try:
+            with open(os.environ["LUXOS_PRINTING_NOTIFY_LOG"]) as f:
+                return [line.rstrip("\n").split("\t") for line in f]
+        except FileNotFoundError:
+            return []
+
+    def test_network_printer_only_offered(self):
+        # ohlaseni mDNS muze poslat kdokoli v siti: zadna fronta ani vychozi tiskarna bez kliknuti na Pridat
+        self.announce(1)
+        st = self.h.load_state()
+        self.assertEqual(self.h.cmd_sync(st), [])
+        self.assertEqual(self.added(), [])
+        self.assertFalse([c for c in self.cmds if c[:2] == ["lpadmin", "-d"]])
+        key = "uuid:00000000-0000-4000-8000-000000000000"
+        self.assertEqual(self.notified(), [["found", "Net Printer 0", key]])
+        self.h.cmd_sync(st)                                  # nabidne se jen jednou
+        self.assertEqual(len(self.notified()), 1)
+        # Pridat v oznameni = helper add KLIC
+        self.assertEqual(self.h.cmd_sync(st, only_key=key), ["Net_Printer_0"])
+        (c,) = self.added()
+        self.assertIn("everywhere", c)
+        self.assertTrue(lp.valid_dnssd_uri(c[c.index("-v") + 1]))
+
     def test_flood_is_rate_limited(self):
         self.announce(30)
         st = self.h.load_state()
         self.h.cmd_sync(st)
-        self.assertEqual(len(self.added()), self.h.AUTO_PER_HOUR)
+        self.assertEqual(len(self.notified()), self.h.AUTO_PER_HOUR)
         self.h.cmd_sync(st)                                  # stejna hodina: nic dalsiho
-        self.assertEqual(len(self.added()), self.h.AUTO_PER_HOUR)
-        # po hodine dalsi davka, celkem ale nejvys AUTO_MAX
-        for _ in range(10):
-            st["auto_net"] = [t - 3601 for t in st["auto_net"]]
-            self.h.cmd_sync(st)
-        self.assertEqual(len(self.added()), self.h.AUTO_MAX)
-        for c in self.added():
-            self.assertIn("everywhere", c)
-            self.assertTrue(lp.valid_dnssd_uri(c[c.index("-v") + 1]))
+        self.assertEqual(len(self.notified()), self.h.AUTO_PER_HOUR)
+        st["auto_net"] = [t - 3601 for t in st["auto_net"]]
+        self.h.cmd_sync(st)
+        self.assertEqual(len(self.notified()), 2 * self.h.AUTO_PER_HOUR)
+        self.assertEqual(self.added(), [])
 
     def test_user_can_still_add_beyond_limit(self):
         self.announce(self.h.AUTO_PER_HOUR + 1)
@@ -221,7 +241,8 @@ class AutoAdd(HelperBase):
         self.services += lp.parse_avahi(avahi_line("Nice\\013Printer", DRIVERLESS))   # \013 = CR: zahozeno
         self.services += lp.parse_avahi(avahi_line("Fine (A1B2C3)", '"ty=T\\010" "pdl=application/pdf"'))
         st = self.h.load_state()
-        self.h.cmd_sync(st)
+        for d in self.h.discover(st)[0]:
+            self.h.cmd_sync(st, only_key=d["key"])
         (c,) = self.added()
         self.assertEqual(c[c.index("-D") + 1], "Fine")
         for arg in c:

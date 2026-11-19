@@ -96,7 +96,30 @@ class AppStudio(unittest.TestCase):
         self.assertFalse((self.folder/'SHOULD_NOT_EXIST').exists())
         self.assertFalse((path/'SHOULD_NOT_EXIST').exists())
         self.assertFalse((path/'build/native-app.pending').exists())
-        self.assertTrue((path/'build/success.json').is_file())
+        self.assertEqual(len(self.stamps()), 1)
+        self.assertFalse((path/'build/success.json').exists())
+
+    def stamps(self):
+        builds = Path(self.env['XDG_STATE_HOME'])/'luxos/app-studio/builds'
+        return sorted(builds.iterdir()) if builds.is_dir() else []
+
+    def test_build_marker_from_the_project_folder_is_not_trusted(self):
+        path = self.create()
+        self.cli('--build', path)
+        # cizi projekt i s build/ (archiv, git): pripraveny spustitelny soubor se nesmi
+        # exportovat bez prekladu, ani s podvrzenym build/success.json
+        copy = self.folder/'received'
+        shutil.copytree(path, copy)
+        stamp = json.loads(self.stamps()[0].read_text())
+        (copy/'build/success.json').write_text(json.dumps({'source': stamp['source']}))
+        self.cli('--package', copy, self.folder/'copy-export', ok=False)
+        self.assertFalse((self.folder/'copy-export').exists())
+        # vymeneny spustitelny soubor po sestaveni taky ne
+        binary = path/'build/native-app'
+        binary.write_bytes(binary.read_bytes() + b'tampered')
+        self.cli('--package', path, self.folder/'tampered', ok=False)
+        self.cli('--build', path)
+        self.cli('--package', path, self.folder/'rebuilt')
 
     def test_existing_project_is_never_overwritten(self):
         path = self.folder/'existing'
@@ -129,7 +152,7 @@ class AppStudio(unittest.TestCase):
         source.write_text('bad syntax !!!\n')
         failed = self.cli('--build', path, ok=False)
         self.assertFalse(json.loads(failed.stdout)['ok'])
-        self.assertFalse((path/'build/success.json').exists())
+        self.assertEqual(self.stamps(), [])
         self.cli('--package', path, self.folder/'failed', ok=False)
         source.write_text('print "recovered"\n')
         self.cli('--build', path)
@@ -395,8 +418,30 @@ class AppStudio(unittest.TestCase):
         # popis s novym radkem: escape sekvence, zadny dalsi klic Exec
         self.assertIn('Comment=Line one\\nExec=/bin/false\\tTab \\\\ end\n', v['plain_desktop'])
         self.assertEqual(v['plain_desktop'].count('\nExec='), 1)
+        # rucni klice spoustece zustanou, menene klice jen jednou
+        manual = v['manual_desktop']
+        for line in ('Name=Weather Max\n', 'Comment=Better forecast\n', 'Categories=Utility;\n',
+                     'Keywords=weather;forecast;\n', 'Name[cs]=Pocasi\n', '[Desktop Action New]\nName=New Window\n',
+                     'Exec=engine-app --new\n'):
+            self.assertIn(line, manual)
+        self.assertEqual(manual.count('\nName='), 2)
+        self.assertEqual(manual.count('Categories='), 1)
+        # poskozeny lux.json: chyba uz pri otevreni
+        self.assertIn('lux.json', v['broken_open'])
+        self.assertIn('lux.json', v['broken_open_truncated'])
+        # ~/.local/bin jako odkaz na slozku
+        self.assertEqual(v['symlinked_bin'][0], home + '/.local/bin/foreign-tool')
+        self.assertTrue(v['symlinked_bin_file'])
+        # systemovy prikaz se neprekryje
+        self.assertIn('already exists', v['shadow'])
+        self.assertFalse(v['shadow_written'])
+        # prerusena instalace jde odinstalovat
+        self.assertTrue(v['interrupted'])
+        self.assertTrue(v['interrupted_installed'])
+        self.assertIn(home + '/.local/bin/plain-app', v['interrupted_removed'])
+        self.assertFalse(v['interrupted_left'])
         # nedavne projekty: posledni nahore, bez duplicit
-        self.assertEqual([r['title'] for r in v['recent']], ['Weather Lite', 'Other'])
+        self.assertEqual([r['title'] for r in v['recent']], ['Weather Max', 'Other'])
 
 
 if __name__ == '__main__':

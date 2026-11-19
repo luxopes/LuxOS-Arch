@@ -106,8 +106,8 @@ class FilePlacement(unittest.TestCase):
 
         with mock.patch.object(transfer.os, "link", side_effect=bounded_link), \
                 mock.patch.object(transfer.os, "unlink", side_effect=PermissionError(errno.EACCES, "cleanup denied")):
-            with self.assertRaises(PermissionError):
-                transfer._place_file(self.sfd, "incoming", self.dfd, "report.txt")
+            # soubor je ulozeny: chyba uklidu docasneho souboru nesmi prenos oznacit jako nepovedeny
+            self.assertEqual(transfer._place_file(self.sfd, "incoming", self.dfd, "report.txt"), "report.txt")
         self.assertEqual(calls, ["report.txt"])
         self.assertEqual(os.listdir(self.dest), ["report.txt"])
         self.assertEqual(self.read(self.dest, "report.txt"), "complete file")

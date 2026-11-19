@@ -5337,3 +5337,6 @@ Stopped part-way: only some packages were installed. Finish with: lux update	Sto
 The account this message was written from no longer exists. Check the sender in From.	Kontot som meddelandet skrevs från finns inte längre. Kontrollera avsändaren i fältet Från.
 The message is in Outbox.	Meddelandet ligger i utkorgen.
 It could not be sent right now. Mail sends it automatically as soon as it can.	Det gick inte att skicka just nu. E-post skickar det automatiskt så snart det går.
+Printer “%s” found on the network	Skrivaren ”%s” hittades i nätverket
+Click Add to set it up. Add only printers you know.	Klicka på Lägg till för att ställa in den. Lägg bara till skrivare du känner till.
+The calendar file cannot be read. Nothing was saved, so no events were lost.	Kalenderfilen kan inte läsas. Inget sparades, så inga händelser har gått förlorade.

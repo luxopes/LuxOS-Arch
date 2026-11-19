@@ -97,6 +97,43 @@ call writefile(native.env("XDG_DATA_HOME") + "/icons/hicolor/256x256/apps/plain-
 report["plain_removed"] = projects.uninstall(plain)
 report["plain_icons_kept"] = [native.exists(icons + "/plain-app.svg"), native.exists(native.env("XDG_DATA_HOME") + "/icons/hicolor/256x256/apps/plain-app.png")]
 
+# rucne doplnene klice spoustece zustanou po ulozeni udaju (Name/Comment/Categories se zmeni)
+desktop_path = project["path"] + "/package/share/applications/engine-app.desktop"
+call writefile(desktop_path, readfile(desktop_path) + "Keywords=weather;forecast;\nName[cs]=Pocasi\n\n[Desktop Action New]\nName=New Window\nExec=engine-app --new\n")
+call projects.save_details(project, "Weather Max", "Better forecast", "1.3.0", "Utility")
+report["manual_desktop"] = readfile(desktop_path)
+
+# poskozeny lux.json: projekt se neotevre napul (okno by zustalo bez editoru)
+broken = projects.create(root + "/broken-app", "Broken", "broken-app", "cli", "Broken")
+call writefile(broken["path"] + "/package/lux.json", "[1, 2]\n")
+report["broken_open"] = attempt(projects.open_project, broken["path"], 0)
+call writefile(broken["path"] + "/package/lux.json", "{\"name\": ")
+report["broken_open_truncated"] = attempt(projects.open_project, broken["path"], 0)
+
+# ~/.local/bin jako odkaz na slozku (dotfiles) instalaci nebrani
+call native.mkdirs(root + "/dotfiles-bin")
+call native.unlink(native.env("HOME") + "/.local/bin/foreign-tool")
+call __lsl_qbe_call1(__lsl_symbol("rmdir"), native.cstr(native.env("HOME") + "/.local/bin"))
+call __lsl_qbe_call2(__lsl_symbol("symlink"), native.cstr(root + "/dotfiles-bin"), native.cstr(native.env("HOME") + "/.local/bin"))
+report["symlinked_bin"] = projects.install(other)
+report["symlinked_bin_file"] = native.exists(root + "/dotfiles-bin/foreign-tool")
+call projects.uninstall(other)
+
+# prikaz stejneho jmena v PATH se neprekryje
+shadow = projects.create(root + "/shadow-app", "Shadow", "true", "cli", "Shadow")
+call projects.build(shadow)
+report["shadow"] = attempt(install_only, shadow, 0)
+report["shadow_written"] = native.exists(root + "/dotfiles-bin/true")
+
+# prerusena instalace (slozku ikon nejde vytvorit): zaznam uz existuje a odinstalace uklidi
+call __lsl_qbe_call1(__lsl_symbol("rmdir"), native.cstr(icons))
+call __lsl_qbe_call1(__lsl_symbol("rmdir"), native.cstr(native.env("XDG_DATA_HOME") + "/icons/hicolor/scalable"))
+call writefile(native.env("XDG_DATA_HOME") + "/icons/hicolor/scalable", "not a directory")
+report["interrupted"] = attempt(install_only, plain, 0)
+report["interrupted_installed"] = projects.installed(plain)
+report["interrupted_removed"] = projects.uninstall(plain)
+report["interrupted_left"] = native.exists(native.env("HOME") + "/.local/bin/plain-app")
+
 # nedavne projekty
 call projects.remember(project)
 call projects.remember(other)

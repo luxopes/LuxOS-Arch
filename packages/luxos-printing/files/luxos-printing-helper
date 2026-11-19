@@ -426,17 +426,24 @@ def cmd_sync(st, only_key=None):
             if only_key is None:
                 continue
             st["ignored"].remove(d["key"])
-        if only_key is None and not dev.get("classic") and dev.get("driverless") and not auto_limit(st, now):
-            if not limited:
-                log("too many new network printers - not adding more automatically (Printers & Scanners: +)")
-            limited = True
+        if only_key is None and not dev["usb"] and not dev.get("classic"):
+            # Sitova tiskarna z ohlaseni mDNS (kdokoli v siti, i v kavarne): frontu nezakladat sam,
+            # jen jednou nabidnout "Pridat" v oznameni; zaplava ohlaseni = nejvys AUTO_PER_HOUR oznameni
+            if not dev.get("driverless") or "found:" + d["key"] in st["notified"]:
+                continue
+            if not auto_limit(st, now):
+                if not limited:
+                    log("too many new network printers - not offering more (Printers & Scanners: +)")
+                limited = True
+                continue
+            st["notified"]["found:" + d["key"]] = now
+            st["auto_net"].append(now)
+            notify("found", d["name"], d["key"])
             continue
         name, why = create_queue(dev, queues)
         if name:
             st["queues"][name] = {"key": d["key"], "uri": dev["uri"], "added": now, "seen": now,
                                   "usb": dev["usb"], "uuid": dev.get("uuid"), "classic": bool(dev.get("classic"))}
-            if only_key is None and not dev.get("classic"):
-                st["auto_net"].append(now)
             added.append((name, d["name"], dev.get("uuid")))
             if dev.get("needs_plugin"):
                 notify("plugin", d["name"])

@@ -74,6 +74,25 @@ int main (int argc, char **argv) {
             for (int x = 0; x < 1920 * 3; x++)
                 diff = MAX (diff, abs (gdk_pixbuf_get_pixels (a)[y * rs + x] - gdk_pixbuf_get_pixels (b)[y * gdk_pixbuf_get_rowstride (b) + x]));
         printf ("%%d\n", diff);
+    } else if (strcmp (cmd, "load") == 0) {         /* load SOUBOR STYL: velka tapeta na 1920x1080 */
+        int style = atoi (argv[3]);
+        GdkPixbuf *big = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE, 8, 5760, 2400);
+        int rs = gdk_pixbuf_get_rowstride (big);
+        for (int y = 0; y < 2400; y++)
+            for (int x = 0; x < 5760; x++) {
+                guchar *p = gdk_pixbuf_get_pixels (big) + y * rs + x * 3;
+                p[0] = x * 255 / 5759; p[1] = y * 255 / 2399; p[2] = 128;
+            }
+        gdk_pixbuf_save (big, argv[2], "png", NULL, NULL);
+        int ow, oh;
+        GdkPixbuf *src = load_wallpaper (argv[2], style, 1920, 1080, &ow, &oh);
+        GdkPixbuf *a = wallpaper_region (src, ow, oh, style, 1920, 1080, 0, 0, 1920, 28, 1920, 28);
+        GdkPixbuf *b = wallpaper_region (big, 5760, 2400, style, 1920, 1080, 0, 0, 1920, 28, 1920, 28);
+        int diff = 0, ra = gdk_pixbuf_get_rowstride (a), rb = gdk_pixbuf_get_rowstride (b);
+        for (int y = 0; y < 28; y++)
+            for (int x = 0; x < 1920 * 3; x++)
+                diff = MAX (diff, abs (gdk_pixbuf_get_pixels (a)[y * ra + x] - gdk_pixbuf_get_pixels (b)[y * rb + x]));
+        printf ("%%d %%d %%d %%d %%d\n", gdk_pixbuf_get_width (src), gdk_pixbuf_get_height (src), ow, oh, diff);
     }
     (void) argc;
     return 0;
@@ -154,6 +173,17 @@ class BarScrim(unittest.TestCase):
         if not os.path.exists(path):
             self.skipTest("LuxOS wallpapers not installed")
         self.assertLessEqual(int(self.run_bin("region", path)[0]), 1)
+
+    def test_big_wallpaper_loaded_at_screen_size(self):
+        """Velka tapeta se pro vyrez pod listou nacte jen v rozliseni monitoru, vyrez je stejny."""
+        path = os.path.join(self.t, "big.png")
+        for style, size in ((5, (2592, 1080)), (4, (1920, 800)), (3, (1920, 1080))):
+            w, h, ow, oh, diff = map(int, self.run_bin("load", path, style))
+            self.assertEqual((ow, oh), (5760, 2400))
+            self.assertLessEqual(abs(w - size[0]) + abs(h - size[1]), 2, (style, w, h))
+            self.assertLessEqual(diff, 3, style)
+        w, h, *_ = map(int, self.run_bin("load", path, 1))     # na stred: puvodni velikost
+        self.assertEqual((w, h), (5760, 2400))
 
     @unittest.skipUnless(os.path.exists(os.path.join(WALLS, "luxos-sunrise.jpg")), "LuxOS wallpapers not installed")
     def test_luxos_wallpapers(self):

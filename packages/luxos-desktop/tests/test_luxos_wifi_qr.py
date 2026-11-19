@@ -51,7 +51,14 @@ if args[-2:] == ["show", "--active"]:
     if state != "wired":
         print("802-11-wireless:uuid-1:wlan0:Kavárna\\:1")
     sys.exit(0)
-if "connection" in args and "uuid" in args:
+if "add" in args:
+    sys.exit(0)
+if "up" in args:
+    with open(os.environ["FAKE_NM_LOG"] + ".pw", "w") as f:
+        f.write("passwd-file " + oct(os.stat(args[-1]).st_mode & 0o777) + " " + open(args[-1]).read())
+if "delete" in args:
+    sys.exit(0)
+if "show" in args and "uuid" in args:
     secrets = "--show-secrets" in args and (state != "nosecrets" or os.environ.get("FAKE_ROOT"))
     print("802-11-wireless.ssid:Kavárna:1")
     print("802-11-wireless.hidden:no")
@@ -59,7 +66,7 @@ if "connection" in args and "uuid" in args:
     print("802-11-wireless-security.psk:" + ("tajne;heslo,\\1" if secrets else ""))
     print("802-11-wireless-security.wep-key0:")
     sys.exit(0)
-if "connect" in args:
+if "connect" in args or "up" in args:
     if state == "connectfail":
         print("Error: Connection activation failed: Secrets were required, but not provided.", file=sys.stderr)
         sys.exit(4)
@@ -166,12 +173,13 @@ class TestPayload(unittest.TestCase):
         self.assertIsNone(qr.security_type("wpa-eap"))
 
     def test_connect_args(self):
-        self.assertEqual(qr.connect_args({"ssid": "A", "password": "p", "security": "WPA"}),
-                         ["device", "wifi", "connect", "A", "password", "p"])
         self.assertEqual(qr.connect_args({"ssid": "A", "password": "", "security": "nopass", "hidden": True}),
                          ["device", "wifi", "connect", "A", "hidden", "yes"])
-        self.assertEqual(qr.connect_args({"ssid": "A", "password": "k", "security": "WEP"})[-2:],
-                         ["wep-key-type", "key"])
+        self.assertEqual(qr.add_args({"ssid": "A", "password": "p", "security": "WPA"}, "u"),
+                         ["connection", "add", "type", "wifi", "con-name", "A", "ssid", "A", "connection.uuid", "u",
+                          "wifi-sec.key-mgmt", "wpa-psk"])
+        self.assertEqual(qr.add_args({"ssid": "A", "password": "k", "security": "WEP", "hidden": True}, "u")[-6:],
+                         ["wifi-sec.key-mgmt", "none", "wifi-sec.wep-key-type", "1", "802-11-wireless.hidden", "yes"])
 
 
 class TestNetworkManager(unittest.TestCase):
@@ -215,11 +223,22 @@ class TestNetworkManager(unittest.TestCase):
         set_state("connected")
         ok, _msg = qr.connect({"ssid": "Kavárna", "password": "p;w", "security": "WPA"})
         self.assertTrue(ok)
-        self.assertEqual(nm_calls()[-1], ["--wait", "60", "device", "wifi", "connect", "Kavárna", "password", "p;w"])
+        # heslo nikdy v argumentech nmcli (viditelne v ps), jen v souboru 0600
+        with open(NM_LOG + ".pw") as f:
+            log = f.read()
+        self.assertIn("passwd-file 0o600 802-11-wireless-security.psk:p;w\n", log)
+        calls = nm_calls()
+        self.assertFalse([c for c in calls if "p;w" in c])
+        self.assertEqual(calls[-1][:5], ["--wait", "60", "connection", "up", "uuid"])
+        self.assertEqual(calls[-1][5], calls[-2][calls[-2].index("connection.uuid") + 1])
+        self.assertFalse(os.path.exists(calls[-1][-1]))
         set_state("connectfail")
         ok, msg = qr.connect({"ssid": "X", "password": "bad", "security": "WPA"})
         self.assertFalse(ok)
         self.assertIn("Secrets were required", msg)
+        self.assertEqual(nm_calls()[-1][:2], ["connection", "delete"])     # nepovedeny profil se uklidi
+        ok, _msg = qr.connect({"ssid": "Open", "password": "", "security": "nopass"})
+        self.assertEqual(nm_calls()[-1], ["--wait", "60", "device", "wifi", "connect", "Open"])
 
 
 @unittest.skipUnless(HAVE_ZXING, "needs libZXing (zxing-cpp) or LUXOS_ZXING_LIB")
@@ -384,8 +403,11 @@ class TestWindows(unittest.TestCase):
         self.assertEqual(win.get_title(), self.camera._("Join Wi-Fi with QR Code"))
         self.assertTrue(self.pump(lambda: win.state == "connected", 20), win.state)
         self.assertIn("Kavárna", answers[0])
-        connect = [c for c in nm_calls() if "connect" in c]
-        self.assertEqual(connect, [["--wait", "60", "device", "wifi", "connect", "Kavárna", "password", "tajne;heslo"]])
+        up = [c for c in nm_calls() if "up" in c]
+        self.assertEqual(len(up), 1)
+        self.assertFalse([c for c in nm_calls() if "tajne;heslo" in c])
+        with open(NM_LOG + ".pw") as f:
+            self.assertEqual(f.read(), "passwd-file 0o600 802-11-wireless-security.psk:tajne;heslo\n")
         self.shot(win, "wifi-qr-scan-connected.png")
 
 

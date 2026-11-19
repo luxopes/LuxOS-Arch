@@ -80,7 +80,13 @@ class Files(unittest.TestCase):
                   'pref("datareporting.healthreport.uploadEnabled", false);',
                   'pref("toolkit.telemetry.enabled", false);', 'pref("app.shield.optoutstudies.enabled", false);',
                   'pref("browser.newtabpage.activity-stream.showSponsored", false);',
-                  'pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);'):
+                  'pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);',
+                  # uvitaci stranka slibuje "zadna technicka data Mozille": ani zeme, test portalu, doporuceni
+                  'pref("browser.region.update.enabled", false);',
+                  'pref("network.captive-portal-service.enabled", false);',
+                  'pref("network.connectivity-service.enabled", false);',
+                  'pref("browser.discovery.enabled", false);',
+                  'pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);'):
             self.assertIn(p, js)
         # domovska stranka se nevnucuje (uvitaci stranka jen pri prvnim spusteni profilu)
         self.assertNotIn("browser.startup.homepage\"", js)

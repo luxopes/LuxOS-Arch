@@ -819,6 +819,39 @@ def load_power():
     return load_program("luxos_power_test", os.path.join(BIN, "luxos-power"))
 
 
+class TwoBatteries(unittest.TestCase):
+    """Notebook se dvema bateriemi: stav a procenta za obe (DisplayDevice), ne jen za prvni."""
+
+    def test_combined_info_and_states(self):
+        m = load_power()
+        devs = {
+            "/bat0": {"Type": 2, "PowerSupply": True, "Percentage": 10.0, "State": 3, "EnergyFull": 20.0,
+                      "EnergyFullDesign": 25.0, "Capacity": 80.0},
+            "/bat1": {"Type": 2, "PowerSupply": True, "Percentage": 90.0, "State": 2, "EnergyFull": 40.0,
+                      "EnergyFullDesign": 50.0},
+            "/ac": {"Type": 1, "PowerSupply": True},
+            m.DISPLAY_DEVICE: {"Type": 2, "Percentage": 63.3, "State": 2, "TimeToEmpty": 7200},
+        }
+
+        class FakeBus:
+            def call_sync(self, *a):
+                return m.GLib.Variant("(ao)", (["/bat0", "/ac", "/bat1"],))
+        bat = m.Battery.__new__(m.Battery)
+        bat.bus = FakeBus()
+        bat.props = lambda path: dict(devs[path])
+        bat.paths = bat.find_batteries()
+        bat.path = bat.paths[0]
+        self.assertEqual(bat.paths, ["/bat0", "/bat1"])
+        info = bat.info()
+        self.assertEqual((info["Percentage"], info["State"], info["TimeToEmpty"]), (63.3, 2, 7200))
+        self.assertEqual((info["EnergyFull"], info["EnergyFullDesign"]), (60.0, 75.0))
+        self.assertNotIn("Capacity", info)
+        # prazdna a "brzy se bude vybijet" baterie bezi na baterii, ne "Pripojeno, nenabiji se"
+        for st in (2, 3, 6):
+            self.assertTrue(m.status_text({"State": st}).startswith(m._("On battery")), st)
+        self.assertEqual(m.status_text({"State": 5}), m._("Plugged in, not charging"))
+
+
 class CleanHistory(unittest.TestCase):
     """Graf baterie: zaznam "unknown" (0 % pri startu) neni vybiti, mezi zaznamy plati posledni hodnota."""
 

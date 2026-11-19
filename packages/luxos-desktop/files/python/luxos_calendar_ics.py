@@ -2,10 +2,12 @@
 
 Bez zavislosti mimo standardni knihovnu (python-icalendar je zbytecne tezky pro proces na pozadi).
 Podporuje VEVENT: SUMMARY, DTSTART/DTEND/DURATION (datum, UTC, TZID, plovouci cas),
-RRULE (FREQ=DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, COUNT, UNTIL, BYDAY, BYMONTHDAY, BYMONTH, BYSETPOS),
+RRULE (FREQ=HOURLY/MINUTELY/DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, COUNT, UNTIL, BYDAY, BYMONTHDAY, BYMONTH,
+BYYEARDAY, BYWEEKNO, BYHOUR, BYSETPOS),
 RDATE, EXDATE, RECURRENCE-ID, STATUS (zrusene se nezobrazuji), COLOR (RFC 7986) a VALARM. Opakovani
-udalosti s cizim TZID se rozvine v case toho pasma a teprve vyskyty se prevedou na mistni cas. Nezname vlastnosti a komponenty se
-zachovavaji beze zmeny (import/export bez ztraty dat).
+udalosti s cizim TZID (i Windows nazvy pasem) nebo v UTC se rozvine v case toho pasma a teprve vyskyty
+se prevedou na mistni cas. Nezname vlastnosti a komponenty se zachovavaji beze zmeny (import/export bez
+ztraty dat).
 """
 import datetime as dt
 import fcntl
@@ -27,6 +29,79 @@ DEFAULT_COLOR = "blue"
 WEEKDAYS = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
 MAX_INSTANCES = 50000  # pojistka proti nekonecnym/obrim opakovanim
 PRODID = "-//LuxOS//Calendar 1.0//EN"
+# Windows nazvy pasem (Outlook, Teams, Exchange) -> IANA podle CLDR windowsZones (uzemi 001);
+# stejna tabulka je v lsl/luxos_ics.lsl
+WINDOWS_ZONES = {
+    "Dateline Standard Time": "Etc/GMT+12", "UTC-11": "Etc/GMT+11", "Aleutian Standard Time": "America/Adak",
+    "Hawaiian Standard Time": "Pacific/Honolulu", "Marquesas Standard Time": "Pacific/Marquesas",
+    "Alaskan Standard Time": "America/Anchorage", "UTC-09": "Etc/GMT+9",
+    "Pacific Standard Time (Mexico)": "America/Tijuana", "UTC-08": "Etc/GMT+8",
+    "Pacific Standard Time": "America/Los_Angeles", "US Mountain Standard Time": "America/Phoenix",
+    "Mountain Standard Time (Mexico)": "America/Mazatlan", "Mountain Standard Time": "America/Denver",
+    "Yukon Standard Time": "America/Whitehorse", "Central America Standard Time": "America/Guatemala",
+    "Central Standard Time": "America/Chicago", "Easter Island Standard Time": "Pacific/Easter",
+    "Central Standard Time (Mexico)": "America/Mexico_City", "Canada Central Standard Time": "America/Regina",
+    "SA Pacific Standard Time": "America/Bogota", "Eastern Standard Time (Mexico)": "America/Cancun",
+    "Eastern Standard Time": "America/New_York", "Haiti Standard Time": "America/Port-au-Prince",
+    "Cuba Standard Time": "America/Havana", "US Eastern Standard Time": "America/Indiana/Indianapolis",
+    "Turks And Caicos Standard Time": "America/Grand_Turk", "Paraguay Standard Time": "America/Asuncion",
+    "Atlantic Standard Time": "America/Halifax", "Venezuela Standard Time": "America/Caracas",
+    "Central Brazilian Standard Time": "America/Cuiaba", "SA Western Standard Time": "America/La_Paz",
+    "Pacific SA Standard Time": "America/Santiago", "Newfoundland Standard Time": "America/St_Johns",
+    "Tocantins Standard Time": "America/Araguaina", "E. South America Standard Time": "America/Sao_Paulo",
+    "SA Eastern Standard Time": "America/Cayenne", "Argentina Standard Time": "America/Argentina/Buenos_Aires",
+    "Greenland Standard Time": "America/Nuuk", "Montevideo Standard Time": "America/Montevideo",
+    "Magallanes Standard Time": "America/Punta_Arenas", "Saint Pierre Standard Time": "America/Miquelon",
+    "Bahia Standard Time": "America/Bahia", "UTC-02": "Etc/GMT+2", "Mid-Atlantic Standard Time": "Etc/GMT+2",
+    "Azores Standard Time": "Atlantic/Azores", "Cape Verde Standard Time": "Atlantic/Cape_Verde", "UTC": "Etc/UTC",
+    "GMT Standard Time": "Europe/London", "Greenwich Standard Time": "Atlantic/Reykjavik",
+    "Sao Tome Standard Time": "Africa/Sao_Tome", "Morocco Standard Time": "Africa/Casablanca",
+    "W. Europe Standard Time": "Europe/Berlin", "Central Europe Standard Time": "Europe/Budapest",
+    "Romance Standard Time": "Europe/Paris", "Central European Standard Time": "Europe/Warsaw",
+    "W. Central Africa Standard Time": "Africa/Lagos", "Jordan Standard Time": "Asia/Amman",
+    "GTB Standard Time": "Europe/Bucharest", "Middle East Standard Time": "Asia/Beirut",
+    "Egypt Standard Time": "Africa/Cairo", "E. Europe Standard Time": "Europe/Chisinau",
+    "Syria Standard Time": "Asia/Damascus", "West Bank Standard Time": "Asia/Hebron",
+    "South Africa Standard Time": "Africa/Johannesburg", "FLE Standard Time": "Europe/Kyiv",
+    "Israel Standard Time": "Asia/Jerusalem", "South Sudan Standard Time": "Africa/Juba",
+    "Kaliningrad Standard Time": "Europe/Kaliningrad", "Sudan Standard Time": "Africa/Khartoum",
+    "Libya Standard Time": "Africa/Tripoli", "Namibia Standard Time": "Africa/Windhoek",
+    "Arabic Standard Time": "Asia/Baghdad", "Turkey Standard Time": "Europe/Istanbul",
+    "Arab Standard Time": "Asia/Riyadh", "Belarus Standard Time": "Europe/Minsk",
+    "Russian Standard Time": "Europe/Moscow", "E. Africa Standard Time": "Africa/Nairobi",
+    "Volgograd Standard Time": "Europe/Volgograd", "Iran Standard Time": "Asia/Tehran",
+    "Arabian Standard Time": "Asia/Dubai", "Astrakhan Standard Time": "Europe/Astrakhan",
+    "Azerbaijan Standard Time": "Asia/Baku", "Russia Time Zone 3": "Europe/Samara",
+    "Mauritius Standard Time": "Indian/Mauritius", "Saratov Standard Time": "Europe/Saratov",
+    "Georgian Standard Time": "Asia/Tbilisi", "Caucasus Standard Time": "Asia/Yerevan",
+    "Afghanistan Standard Time": "Asia/Kabul", "West Asia Standard Time": "Asia/Tashkent",
+    "Qyzylorda Standard Time": "Asia/Qyzylorda", "Ekaterinburg Standard Time": "Asia/Yekaterinburg",
+    "Pakistan Standard Time": "Asia/Karachi", "India Standard Time": "Asia/Kolkata",
+    "Sri Lanka Standard Time": "Asia/Colombo", "Nepal Standard Time": "Asia/Kathmandu",
+    "Central Asia Standard Time": "Asia/Bishkek", "Bangladesh Standard Time": "Asia/Dhaka",
+    "Omsk Standard Time": "Asia/Omsk", "Myanmar Standard Time": "Asia/Yangon",
+    "SE Asia Standard Time": "Asia/Bangkok", "Altai Standard Time": "Asia/Barnaul",
+    "W. Mongolia Standard Time": "Asia/Hovd", "North Asia Standard Time": "Asia/Krasnoyarsk",
+    "N. Central Asia Standard Time": "Asia/Novosibirsk", "Tomsk Standard Time": "Asia/Tomsk",
+    "China Standard Time": "Asia/Shanghai", "North Asia East Standard Time": "Asia/Irkutsk",
+    "Singapore Standard Time": "Asia/Singapore", "W. Australia Standard Time": "Australia/Perth",
+    "Taipei Standard Time": "Asia/Taipei", "Ulaanbaatar Standard Time": "Asia/Ulaanbaatar",
+    "Aus Central W. Standard Time": "Australia/Eucla", "Transbaikal Standard Time": "Asia/Chita",
+    "Tokyo Standard Time": "Asia/Tokyo", "North Korea Standard Time": "Asia/Pyongyang",
+    "Korea Standard Time": "Asia/Seoul", "Yakutsk Standard Time": "Asia/Yakutsk",
+    "Cen. Australia Standard Time": "Australia/Adelaide", "AUS Central Standard Time": "Australia/Darwin",
+    "E. Australia Standard Time": "Australia/Brisbane", "AUS Eastern Standard Time": "Australia/Sydney",
+    "West Pacific Standard Time": "Pacific/Port_Moresby", "Tasmania Standard Time": "Australia/Hobart",
+    "Vladivostok Standard Time": "Asia/Vladivostok", "Lord Howe Standard Time": "Australia/Lord_Howe",
+    "Bougainville Standard Time": "Pacific/Bougainville", "Russia Time Zone 10": "Asia/Srednekolymsk",
+    "Magadan Standard Time": "Asia/Magadan", "Norfolk Standard Time": "Pacific/Norfolk",
+    "Sakhalin Standard Time": "Asia/Sakhalin", "Central Pacific Standard Time": "Pacific/Guadalcanal",
+    "Russia Time Zone 11": "Asia/Kamchatka", "New Zealand Standard Time": "Pacific/Auckland",
+    "UTC+12": "Etc/GMT-12", "Fiji Standard Time": "Pacific/Fiji", "Kamchatka Standard Time": "Asia/Kamchatka",
+    "Chatham Islands Standard Time": "Pacific/Chatham", "UTC+13": "Etc/GMT-13",
+    "Tonga Standard Time": "Pacific/Tongatapu", "Samoa Standard Time": "Pacific/Apia",
+    "Line Islands Standard Time": "Pacific/Kiritimati",
+}
 
 
 # ---- datumova matematika ---------------------------------------------------------
@@ -165,8 +240,8 @@ def _zone(name):
     if not name or ZoneInfo is None:
         return None
     try:
-        return ZoneInfo(name)
-    except Exception:  # neznamy TZID (napr. Windows nazvy) -> plovouci cas
+        return ZoneInfo(WINDOWS_ZONES.get(name, name))
+    except Exception:  # neznamy TZID -> plovouci cas
         return None
 
 
@@ -214,6 +289,8 @@ def format_dt(value, tzname=None):
     """date/datetime -> (parametry, hodnota) pro zapis."""
     if not isinstance(value, dt.datetime):
         return ";VALUE=DATE", value.strftime("%Y%m%d")
+    if tzname in ("UTC", "Etc/UTC"):
+        return "", value.strftime("%Y%m%dT%H%M%SZ")
     if tzname and _zone(tzname) is not None:
         return f";TZID={tzname}", value.strftime("%Y%m%dT%H%M%S")
     return "", value.strftime("%Y%m%dT%H%M%S")
@@ -365,7 +442,7 @@ class Event:
         rs = range_start if self.all_day else dt.datetime.combine(range_start, dt.time())
         re_ = range_end if self.all_day else dt.datetime.combine(range_end, dt.time())
         out = []
-        for s in self._starts(range_end):
+        for s in self._starts(range_end, range_start):
             e = s + dur
             if s >= re_:
                 break
@@ -373,11 +450,11 @@ class Event:
                 out.append((s, e))
         return out
 
-    def _starts(self, until_day):
+    def _starts(self, until_day, from_day=None):
         """Zacatky vyskytu (vzestupne, mistni cas) do dne until_day (bez nej): DTSTART, RRULE a RDATE
         bez EXDATE (EXDATE plati i bez RRULE)."""
         excluded = set(self.exdates)
-        out = set(self._rule_starts(until_day))
+        out = set(self._rule_starts(until_day, from_day))
         for r in self.rdates:
             if self.all_day:
                 out.add(r.date() if isinstance(r, dt.datetime) else r)
@@ -392,14 +469,15 @@ class Event:
             keep.append(s)
         return keep
 
-    def _rule_starts(self, until_day):
+    def _rule_starts(self, until_day, from_day=None):
         """Generator zacatku z DTSTART a RRULE (vzestupne) do dne until_day (bez nej)."""
         if not self.rrule:
             yield self.start
             return
         r = self.rrule
         freq = r.get("FREQ")
-        if freq not in ("DAILY", "WEEKLY", "MONTHLY", "YEARLY"):
+        if freq not in ("DAILY", "WEEKLY", "MONTHLY", "YEARLY", "HOURLY", "MINUTELY") or (
+                self.all_day and freq in ("HOURLY", "MINUTELY")):
             yield self.start  # nepodporovana frekvence: aspon prvni vyskyt
             return
         interval = max(1, _int(r.get("INTERVAL"), 1))
@@ -430,13 +508,20 @@ class Event:
 
         # dny v pasmu udalosti se od mistnich lisi nejvys o den
         gen_until = until_day if zone is None else until_day + dt.timedelta(days=2)
-        # DTSTART je vzdy prvni vyskyt (RFC 5545), i kdyz pravidlu neodpovida
-        days = _rrule_days(freq, interval, r, start_day, gen_until)
-        for day in _chain_first([start_day], days, start_day):
+        if freq in ("HOURLY", "MINUTELY"):
+            walls = _chain_first([start], _clock_times(freq, interval, r, start, count, from_day, gen_until), start)
+        else:
+            # DTSTART je vzdy prvni vyskyt (RFC 5545), i kdyz pravidlu neodpovida
+            days = _rrule_days(freq, interval, r, start_day, gen_until)
+            walls = _chain_first([start_day], days, start_day)
+        for day in walls:
             n += 1
             if n > MAX_INSTANCES:
                 return
-            s = self.start if day == start_day else mk(day)
+            if isinstance(day, dt.datetime):
+                s = self.start if day == start else (day if zone is None else _from_zone(day, zone))
+            else:
+                s = self.start if day == start_day else mk(day)
             if until is not None and s > until:
                 return
             produced += 1
@@ -453,6 +538,82 @@ def _chain_first(first, days, start_day):
     for d in days:
         if d > start_day:
             yield d
+
+
+def _clock_times(freq, interval, r, start, count, from_day, until_day):
+    """HOURLY/MINUTELY: casy po interval hodinach/minutach od DTSTART (v pasmu udalosti), filtry BYMONTH,
+    BYMONTHDAY, BYDAY a BYHOUR. Bez COUNT se zacne az kousek pred zobrazenym obdobim (z let stare hodinove
+    pravidlo by jinak vycerpalo MAX_INSTANCES)."""
+    step = dt.timedelta(hours=interval) if freq == "HOURLY" else dt.timedelta(minutes=interval)
+    t = start
+    if count is None and from_day is not None:
+        low = dt.datetime.combine(from_day - dt.timedelta(days=2), dt.time())
+        if t < low:
+            t += step * ((low - t) // step)
+    bymonth = {m for m in (_int(x, 0) for x in (r.get("BYMONTH") or "").split(",")) if 1 <= m <= 12}
+    hours = {h for h in (_int(x, -1) for x in (r.get("BYHOUR") or "").split(",")) if 0 <= h <= 23}
+    filtered = bool(r.get("BYMONTHDAY") or r.get("BYDAY"))
+    month, allowed = None, set()
+    end = dt.datetime.combine(until_day, dt.time())
+    while t < end:
+        d = t.date()
+        if filtered and month != (d.year, d.month):
+            month = (d.year, d.month)
+            allowed = set(_month_days(d.year, d.month, r, d))
+        if (not bymonth or d.month in bymonth) and (not filtered or d in allowed) and (not hours or t.hour in hours):
+            yield t
+        t += step
+
+
+def _numbers(spec, limit):
+    """'1,-1,20' -> cisla v rozsahu 1..limit nebo -limit..-1."""
+    out = []
+    for x in (spec or "").split(","):
+        v = _int(x.strip(), 0)
+        if v and -limit <= v <= limit and v not in out:
+            out.append(v)
+    return out
+
+
+def _year_numbered_days(year, r):
+    """YEARLY s BYYEARDAY/BYWEEKNO: dny roku (serazene), zuzene BYMONTH, BYMONTHDAY a BYDAY. Tyden 1 je prvni
+    tyden s aspon 4 dny roku (zacina WKST, vychozi pondeli); krajni tydny mohou zasahovat do sousedniho roku."""
+    first = dt.date(year, 1, 1)
+    count = 366 if is_leap(year) else 365
+    days = []
+    if r.get("BYYEARDAY"):
+        for v in _numbers(r["BYYEARDAY"], 366):
+            if 0 < v <= count:
+                days.append(first + dt.timedelta(days=v - 1))
+            elif v < 0 and -v <= count:
+                days.append(first + dt.timedelta(days=count + v))
+    if r.get("BYWEEKNO"):
+        wkst = WEEKDAYS.index(r["WKST"]) if r.get("WKST") in WEEKDAYS else 0
+        jan4 = dt.date(year, 1, 4)
+        week1 = jan4 - dt.timedelta(days=(jan4.weekday() - wkst) % 7)
+        weeks = 52
+        if year < 9999:
+            next4 = dt.date(year + 1, 1, 4)
+            weeks = (next4 - dt.timedelta(days=(next4.weekday() - wkst) % 7) - week1).days // 7
+        in_weeks = set()
+        for v in _numbers(r["BYWEEKNO"], 53):
+            w = weeks + v + 1 if v < 0 else v
+            if 1 <= w <= weeks:
+                in_weeks.update(week1 + dt.timedelta(days=(w - 1) * 7 + k) for k in range(7))
+        days = [d for d in days if d in in_weeks] if r.get("BYYEARDAY") else sorted(in_weeks)
+    bymonth = {m for m in (_int(x, 0) for x in (r.get("BYMONTH") or "").split(",")) if 1 <= m <= 12}
+    mdays = _numbers(r.get("BYMONTHDAY"), 31)
+    wds = {wd for _n, wd in _byday(r.get("BYDAY"))}
+    out = []
+    for d in sorted(set(days)):
+        if bymonth and d.month not in bymonth:
+            continue
+        if mdays and d.day not in mdays and d.day - days_in_month(d.year, d.month) - 1 not in mdays:
+            continue
+        if wds and d.weekday() not in wds:
+            continue
+        out.append(d)
+    return out
 
 
 def _int(v, default):
@@ -584,7 +745,9 @@ def _rrule_days_raw(freq, interval, r, start_day, until_day=None):
         y = start_day.year
         while True:
             year_days = []      # BYSETPOS vybira z mnoziny celeho roku
-            if not bymonth and r.get("BYDAY") and not r.get("BYMONTHDAY"):
+            if r.get("BYYEARDAY") or r.get("BYWEEKNO"):
+                year_days = _year_numbered_days(y, r)
+            elif not bymonth and r.get("BYDAY") and not r.get("BYMONTHDAY"):
                 # BYDAY bez BYMONTH plati pro cely rok (20MO = 20. pondeli roku, MO = kazde pondeli)
                 year_days = _year_weekdays(y, _byday(r.get("BYDAY")))
             elif bymonth or r.get("BYDAY") or r.get("BYMONTHDAY"):
@@ -666,9 +829,12 @@ def _event_from_lines(lines):
             ev.color = value.strip().lower()
         elif name == "DTSTART":
             ev.start = parse_dt(value, params)
-            if (isinstance(ev.start, dt.datetime) and not value.strip().endswith("Z")
-                    and _zone(params.get("TZID")) is not None):
-                ev.tzid = params["TZID"]
+            if isinstance(ev.start, dt.datetime) and value.strip().endswith("Z"):
+                # UTC: opakovani se rozviji v UTC (po zmene letniho casu se posune mistni cas, ne okamzik)
+                # a zapis zustane v UTC
+                ev.tzid = "UTC"
+            elif isinstance(ev.start, dt.datetime) and _zone(params.get("TZID")) is not None:
+                ev.tzid = WINDOWS_ZONES.get(params["TZID"], params["TZID"])
         elif name == "DTEND":
             ev.end = parse_dt(value, params)
         elif name == "DURATION":
@@ -859,6 +1025,7 @@ class Store:
         return True
 
     def _disk_raw(self):
+        # necitelny existujici soubor (PermissionError) zapis zastavi - jinak by prepsal vsechny udalosti
         try:
             with open(self.own_path, "rb") as f:
                 return f.read()
@@ -892,6 +1059,10 @@ class Store:
                         os.unlink(tmp)              # jiny proces mezitim zapsal - znovu nad novym obsahem
                         self._own_raw = object()    # pamet uz neodpovida souboru
                         continue
+                    if raw is not None:
+                        # predchozi obsah jako zaloha (events.ics.bak se mezi kalendare nenacita)
+                        with open(self.own_path + ".bak", "wb") as f:
+                            f.write(raw)
                     os.replace(tmp, self.own_path)
                     break
                 else:

@@ -81,7 +81,10 @@ one of them in Firefox Settings or `about:config`:
   also turn it off (it stays off). The welcome page shows "Ads and trackers blocked" when it is on.
 - **Privacy**: no telemetry or technical data to Mozilla (`datareporting.healthreport.uploadEnabled`,
   `toolkit.telemetry.*`), no studies (`app.shield.optoutstudies.enabled`, `app.normandy.enabled`), no
-  sponsored shortcuts or stories on the new tab page.
+  sponsored shortcuts or stories on the new tab page, no country lookup by IP (`browser.region.*`), no
+  connectivity and Wi-Fi sign-in checks against detectportal.firefox.com (LuxOS detects sign-in pages
+  itself with `luxos-portal-check`) and no add-on recommendations (`browser.discovery.enabled`). Firefox
+  still downloads updates of its block lists, certificate revocations and Safe Browsing lists.
 - **Speed and scrolling**: hardware video decoding (VA-API), unloading unused tabs when memory is low,
   smooth scrolling with touchpad inertia ([scrolling.md](scrolling.md)).
 E-mail links (`mailto:` in Files, `xdg-email`) go through `luxos-mail-reader` (exo helper `MailReader` in

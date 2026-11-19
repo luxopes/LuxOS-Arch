@@ -1,8 +1,8 @@
 # LuxOS firewall - upozorneni v luxos-hub (jako v macOS): "<Aplikace> chce prijimat spojeni ze site".
 # Root (luxos-firewall-watch.service) zapisuje do /run/luxos-firewall/requests.json zahozena spojeni na porty,
 # kde posloucha mistni program. Hub kazdy port oznami jednou za relaci (jen zadosti z posledni hodiny):
-#   Povolit           pkexec luxos-firewall allow PORT/PROTO --from lan --app NAZEV (polkit: spravce v aktivni
-#                     relaci bez hesla, jen mistni sit - 50-luxos-firewall.rules)
+#   Povolit           pkexec luxos-firewall allow PORT/PROTO --from lan --app NAZEV (polkit: heslo spravce,
+#                     auth_admin_keep; jen mistni sit)
 #   Nechat blokovane  port do ~/.config/luxos/firewall-ignored (uz se neozve)
 #   klik / Nastaveni  okno Nastaveni > Firewall (luxos-firewall-settings)
 # Spojeni z Tailscale: misto Povolit tlacitko do Nastaveni (zarizeni Tailscale jako mistni sit).

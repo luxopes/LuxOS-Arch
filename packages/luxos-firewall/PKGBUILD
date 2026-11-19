@@ -7,7 +7,7 @@
 
 pkgname=luxos-firewall
 pkgver=1.0.0
-pkgrel=3
+pkgrel=4
 pkgdesc="LuxOS firewall - on by default, own nftables table, LAN-only app ports, notifications for blocked programs"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
@@ -36,5 +36,4 @@ package() {
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
     install -Dm644 "$f/hooks/luxos-firewall.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-firewall.hook"
     install -Dm644 "$f/org.luxos.firewall.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.firewall.policy"
-    install -Dm644 "$f/50-luxos-firewall.rules" "$pkgdir/usr/share/polkit-1/rules.d/50-luxos-firewall.rules"
 }

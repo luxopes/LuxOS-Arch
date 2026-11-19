@@ -2,6 +2,7 @@
 # LuxOS - upozorneni "Tiskarna ... je pripravena" (bezi v relaci uzivatele, spousti luxos-printing-helper)
 # Pouziti: luxos-printing-notify printer|scanner|both|driver|manual|plugin NAZEV
 #         luxos-printing-notify aurdriver NAZEV BALIK   (ovladac z AUR, tlacitko Nainstalovat ovladac)
+#         luxos-printing-notify found NAZEV KLIC   (nova sitova tiskarna, tlacitko Pridat)
 #         luxos-printing-notify waiting|waiting-long NAZEV usb|network   (uloha ceka na nepripojenou tiskarnu)
 #         luxos-printing-notify resumed NAZEV    (tiskarna je zase pripojena, cekajici ulohy se tisknou)
 # waiting a resumed jsou jen kratka oznameni o stavu (hint transient - nezustanou ve zvonku);
@@ -22,6 +23,10 @@ case $1 in
              [[ $pkg =~ ^[a-z0-9][a-z0-9._+-]*$ ]] || exit 2
              title=$(T "Printer “%s” needs a driver from the manufacturer" "$name")
              body=$(T "Click Install Driver. LuxOS downloads and builds it (this takes a few minutes and asks for your password), then sets up the printer.") ;;
+    found)   key=${3-}
+             [[ $key =~ ^(uuid|dnssd): && $key != *[[:cntrl:]]* ]] || exit 2
+             title=$(T "Printer “%s” found on the network" "$name")
+             body=$(T "Click Add to set it up. Add only printers you know.") ;;
     plugin)  title=$(T "Printer “%s” needs an add-on from HP" "$name")
              body=$(T "Open Terminal and run: hp-plugin") ;;
     waiting|waiting-long)
@@ -55,6 +60,13 @@ if [[ $1 == aurdriver ]]; then
     exec luxos-terminal --title="$(T "Install Driver")" -x bash -c \
         'lux install "$1" && pkexec /usr/lib/luxos/printing/luxos-printing-helper sync; echo; echo "$2"; read -r' \
         _ "$pkg" "$done_msg"
+fi
+if [[ $1 == found ]]; then
+    # Frontu zalozi pomocnik az po kliknuti (oznameni "pripravena" posle sam)
+    action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" \
+        -A "add=$(T "Add")" "$title" "$body" 2>/dev/null)
+    [[ $action == add ]] || exit 0
+    exec pkexec /usr/lib/luxos/printing/luxos-printing-helper add "$key"
 fi
 action=$(notify-send -a "$appname" -i "$icon" -h "string:desktop-entry:$app" "${hints[@]}" \
     -A "open=$(T "Open")" "$title" "$body" 2>/dev/null)

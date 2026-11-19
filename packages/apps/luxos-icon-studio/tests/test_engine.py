@@ -256,6 +256,13 @@ class IconEngine(unittest.TestCase):
             data = (folder/f'icon-{size}.png').read_bytes()
             self.assertEqual(struct.unpack('>II', data[16:24]), (size,size))
         ET.parse(folder/'icon.svg')
+        # exporty jdou do balicku: po instalaci je musi cist kazdy (ne 0600 jako projekt)
+        mask = os.umask(0); os.umask(mask)
+        for path in folder.iterdir():
+            self.assertEqual(path.stat().st_mode & 0o777, 0o644 & ~mask, path)
+        single = self.folder/'single.png'
+        self.assertTrue(self.actions(dict(command='png', path=str(single)))[0]['ok'])
+        self.assertEqual(single.stat().st_mode & 0o777, 0o644 & ~mask)
         invalid = self.actions(dict(command='export', path=str(folder), basename='../escape'),
                                dict(command='svg', size=0), dict(command='svg', size=2049))
         self.assertTrue(all(not value['ok'] for value in invalid), invalid)

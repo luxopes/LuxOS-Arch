@@ -128,6 +128,7 @@ fi
 if [[ ! -e $cfg/text-editor-dock ]] && command -v luxos-text >/dev/null; then
     dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
     items=$(gsettings get "$dock" dock-items 2>/dev/null)
+    [[ $items == "@as []" ]] && items="[]"      # prazdny Dock vypisuje gsettings s typem
     if [[ $items == \[*\] && $items != *"'luxos-text.dockitem'"* ]]; then
         launchers="${XDG_CONFIG_HOME:-$HOME/.config}/plank/dock1/launchers"
         mkdir -p "$launchers"
@@ -156,7 +157,7 @@ if [[ ! -e $cfg/text-editor-dock ]] && command -v luxos-text >/dev/null; then
         gsettings set "$dock" dock-items "$new" 2>/dev/null
     fi
     # bez gsettings (schema Plank chybi) se nic nezmeni a zkusi se to pri dalsim prihlaseni
-    [[ $items == \[*\] || $items == "@as []" ]] && : >"$cfg/text-editor-dock"
+    [[ $items == \[*\] ]] && : >"$cfg/text-editor-dock"
     unset dock items launchers new anchor
 fi
 

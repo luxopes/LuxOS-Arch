@@ -415,7 +415,12 @@ class Calculator(Gtk.Window):
             self.entry, self.fresh = "", False
         if len(self.entry.replace("-", "").replace(".", "")) >= MAX_DIGITS:
             return
-        self.entry = d if self.entry in ("", "0") else self.entry + d
+        if self.entry in ("", "0"):
+            self.entry = d
+        elif self.entry == "-0":     # 0, +/-, 5 -> -5, ne -05
+            self.entry = "-" + d
+        else:
+            self.entry += d
         self.refresh()
 
     def point(self):

@@ -109,6 +109,14 @@ class OperandLogic(unittest.TestCase):
         self.c.equals()
         self.assertEqual(self.c.result, Decimal(-5))
 
+    def test_negate_zero_then_digit(self):
+        self.keys("0")
+        self.c.negate()
+        self.keys("5")
+        self.assertEqual(self.c.entry, "-5")
+        self.keys("+1=")
+        self.assertEqual(self.c.result, Decimal(-4))
+
     def test_invalid_function_shows_error(self):
         self.keys("(1-5)")
         self.c.func("sqrt")

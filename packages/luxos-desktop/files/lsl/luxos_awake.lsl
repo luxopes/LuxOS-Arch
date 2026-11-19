@@ -235,8 +235,18 @@ function engage():
     for p in plan.keys():
         saved[p] = plan[p][0]
     end
-    call glib.mkdir_p(config_dir())
-    call write_override(saved)
+    # Bez ulozenych puvodnich hodnot (plny disk, ~/.config jen pro cteni) nic neprepisovat - po
+    # prehravani by nebylo co vratit
+    written = False
+    try:
+        call glib.mkdir_p(config_dir())
+        written = write_override(saved)
+    else:
+        call eprint("luxos_awake: " + String(last_error()))
+    end
+    if not written:
+        return 0
+    end
     for p in plan.keys():
         call xfconf_set(p, plan[p][1])
     end

@@ -311,9 +311,10 @@ function tile_is_on(tile):
     return gtk.widget_has_class(tile["button"], "on")
 end
 
-# Posuvnik s ikonou: {box, scale, icon, lock, on_change, on_icon}
+# Posuvnik s ikonou: {box, scale, icon, lock, on_change, on_icon, busy, want}
+# on_change(hodnota) vraci prikaz (argv) k nastaveni hodnoty, nebo None
 function slider_new(title, icon, on_change, on_icon):
-    row = {"lock": False, "on_change": on_change, "on_icon": on_icon}
+    row = {"lock": False, "on_change": on_change, "on_icon": on_icon, "busy": False, "want": -1}
     box = gtk.box_new(gtk.VERTICAL, 6)
     call gtk.widget_add_class(box, "section")
     call gtk.box_pack_start(box, label(title, "title", 0), False, False, 0)
@@ -345,12 +346,35 @@ function on_slider_icon(row, button):
     return 0
 end
 
+# Tazeni posuvnikem posle desitky zmen: bezi vzdy nejvys jeden prikaz (pactl, brightnessctl) a po jeho
+# skonceni se nastavi posledni hodnota - jinak by se spoustely desitky procesu a dobehly v nahodnem
+# poradi (zvuk by mohl zustat na nektere z mezilehlych hodnot)
 function on_slider_changed(row, scale):
     if row["lock"]:
         return 0
     end
+    row["want"] = gtk.range_get_value(scale)
+    if not row["busy"]:
+        call slider_apply(row)
+    end
+    return 0
+end
+
+function slider_apply(row):
     handler = row["on_change"]
-    call handler(gtk.range_get_value(scale))
+    argv = handler(row["want"])
+    row["want"] = -1
+    if argv != None:
+        row["busy"] = glib.spawn_watched_data(argv, on_slider_done, row) != 0
+    end
+    return 0
+end
+
+function on_slider_done(row, pid, status):
+    row["busy"] = False
+    if row["want"] >= 0:
+        call slider_apply(row)
+    end
     return 0
 end
 
@@ -629,7 +653,19 @@ function toggle():
         cc["timer"] = glib.timeout_add_seconds(3, periodic)
     end
     call log_test("shown")
+    # test: tazeni posuvnikem Zvuk (LUXOS_CC_TEST_SLIDE = pocet zmen po 5 ms)
+    slide = env.get("LUXOS_CC_TEST_SLIDE", "")
+    if cc["test_log"] != "" and slide != None and slide != "":
+        cc["slide"] = [0, Int(slide)]
+        call glib.timeout_add(5, test_slide)
+    end
     return 0
+end
+
+function test_slide():
+    cc["slide"][0] = cc["slide"][0] + 1
+    call gtk.range_set_value(cc["s_vol"]["scale"], cc["slide"][0])
+    return cc["slide"][0] < cc["slide"][1]
 end
 
 function refresh_slow_once():
@@ -1139,14 +1175,13 @@ function on_flag_done(unused, pid, status):
 end
 
 function set_volume(value):
-    call glib.spawn_quiet(["pactl", "set-sink-volume", "@DEFAULT_SINK@", String(value) + "%"])
     # posunuti ztlumeneho zvuku ho zapne (jako v macOS) - jinak by posuvnik "nefungoval"
     if cc["muted"]:
         cc["muted"] = False
         call glib.spawn_quiet(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"])
         call gtk.image_set_from_icon_name(cc["s_vol"]["icon"], "audio-volume-high-symbolic", gtk.ICON_MENU)
     end
-    return 0
+    return ["pactl", "set-sink-volume", "@DEFAULT_SINK@", String(value) + "%"]
 end
 
 function toggle_mute():
@@ -1404,12 +1439,10 @@ end
 function set_brightness(value):
     v = max(value, 10)
     if backlight() != "":
-        call glib.spawn_quiet(["brightnessctl", "-q", "set", String(v) + "%"])
-        return 0
+        return ["brightnessctl", "-q", "set", String(v) + "%"]
     end
     # Monitor bez podsviceni (stolni pocitac, VM): softwarovy jas vsech vystupu
     call glib.mkdir_p(config_dir())
     call writefile(soft_brightness_path(), String(v))
-    call glib.spawn_quiet(["luxos-displays", "brightness", String(v)])
-    return 0
+    return ["luxos-displays", "brightness", String(v)]
 end

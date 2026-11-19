@@ -524,9 +524,25 @@ class Window(BusFixture):
             out = self.agent_call(win, "RequestConfirmation", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 7), "(ou)")
             self.assertIn("Rejected", out["e"])
             # kod na pocitaci, telefon ho zada
-            out = self.agent_call(win, "DisplayPasskey", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 123456, 0), "(ouq)")
-            self.assertEqual(out, {"r": ()})
-            self.assertIn("123456", shown[-1][1])
+            # BlueZ vola DisplayPasskey s kazdou zadanou cislici: jedno okno, odpoved hned, zavre ho Cancel
+            n = len(shown)
+            for entered in range(3):
+                out = self.agent_call(win, "DisplayPasskey", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 123456, entered),
+                                      "(ouq)")
+                self.assertEqual(out, {"r": ()})
+            self.assertEqual(len(shown), n)
+            dlg = win.agent.code_dlg
+            self.assertTrue(dlg.get_visible())
+            labels = [w.get_text() for w in dlg.get_message_area().get_children() if isinstance(w, Gtk.Label)]
+            self.assertIn("123456", labels[1])
+            self.assertEqual(self.agent_call(win, "Cancel", None, None), {"r": ()})
+            self.assertIsNone(win.agent.code_dlg)
+            # PIN od zarizeni jde do Pango markupu: musi se escapovat
+            self.agent_call(win, "DisplayPinCode", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", "<b>12&"), "(os)")
+            labels = [w.get_text() for w in win.agent.code_dlg.get_message_area().get_children()
+                      if isinstance(w, Gtk.Label)]
+            self.assertIn("<b>12&", labels[1])
+            self.agent_call(win, "Cancel", None, None)
             # parovani bez kodu: dotaz se jmenem zarizeni, odmitnuti
             out = self.agent_call(win, "RequestAuthorization", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",), "(o)")
             self.assertIn("Rejected", out["e"])

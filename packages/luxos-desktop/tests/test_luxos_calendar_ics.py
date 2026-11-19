@@ -86,6 +86,19 @@ END:VEVENT
 END:VCALENDAR
 """
 
+# CAL-1: tydenni schuzka v UTC (9:00Z = 10:00 v zime, 11:00 v lete v Praze); 13. 7. vynechan
+UTC_WEEKLY = """BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:utc@example.com
+DTSTART:20260105T090000Z
+DTEND:20260105T100000Z
+RRULE:FREQ=WEEKLY;COUNT=40
+EXDATE:20260713T090000Z
+SUMMARY:UTC
+END:VEVENT
+END:VCALENDAR
+"""
+
 # RDATE (C-14): seznam, TZID, PERIOD, DATE; EXDATE plati i pro RDATE
 RDATES = """BEGIN:VCALENDAR
 BEGIN:VEVENT
@@ -406,7 +419,7 @@ class TestRecurrence(unittest.TestCase):
         self.assertIn("EXDATE:20261020T090000,20261022T090000", ics.parse(text).to_text())
 
     def test_unsupported_freq_shows_first(self):
-        e = self.ev(T(2026, 10, 20, 9), "FREQ=HOURLY;COUNT=5")
+        e = self.ev(T(2026, 10, 20, 9), "FREQ=SECONDLY;COUNT=5")
         self.assertEqual(days(e, D(2026, 10, 1), D(2026, 11, 1)), [T(2026, 10, 20, 9)])
 
     def test_pathological_rules_terminate(self):
@@ -760,6 +773,101 @@ def _stamp(cal):
         if line.startswith("DTSTAMP:") and line != "DTSTAMP:20261001T000000Z":
             return line
     return "\x00"
+
+
+class TestAudit3(unittest.TestCase):
+    """CAL-1 (UTC a Windows pasma), CAL-1b (BYYEARDAY, BYWEEKNO, HOURLY), CAL-2 (necitelny events.ics)."""
+
+    def ev(self, start, rrule, end=None):
+        e = ics.Event("R", start, end)
+        e.set_rrule(rrule)
+        return e
+
+    def test_utc_recurrence_keeps_instant_across_dst(self):
+        cal = ics.parse(UTC_WEEKLY)
+        ev = cal.events[0]
+        self.assertEqual(days(ev, D(2026, 1, 5), D(2026, 1, 12)), [T(2026, 1, 5, 10)])
+        self.assertEqual(days(ev, D(2026, 7, 6), D(2026, 7, 20)), [T(2026, 7, 6, 11)])
+        text = cal.to_text("Europe/Prague")
+        self.assertIn("DTSTART:20260105T090000Z", text)
+        self.assertIn("DTEND:20260105T100000Z", text)
+        self.assertNotIn("TZID", text)
+        ev.start, ev.end = T(2026, 1, 5, 11), T(2026, 1, 5, 12)
+        self.assertIn("DTSTART:20260105T100000Z", cal.to_text("Europe/Prague"))
+
+    def test_windows_tzid(self):
+        self.assertEqual(ics.parse_dt("20261020T090000", {"TZID": "Eastern Standard Time"}), T(2026, 10, 20, 15))
+        cal = ics.parse(NY_WEEKLY.replace("America/New_York", "Eastern Standard Time"))
+        self.assertEqual(days(cal.events[0], D(2026, 3, 1), D(2026, 4, 6)),
+                         [T(2026, 3, 2, 15), T(2026, 3, 16, 14), T(2026, 3, 23, 14), T(2026, 3, 30, 15)])
+        self.assertIn("DTSTART;TZID=America/New_York:20260302T090000", cal.to_text("Europe/Prague"))
+        self.assertEqual(ics.parse_dt("20260115T090000", {"TZID": "W. Europe Standard Time"}), T(2026, 1, 15, 9))
+
+    def test_windows_zones_exist(self):
+        for name, zone in ics.WINDOWS_ZONES.items():
+            self.assertIsNotNone(ics._zone(zone), name)
+
+    def test_byyearday(self):
+        e = self.ev(D(2027, 1, 1), "FREQ=YEARLY;BYYEARDAY=1,100,-1")
+        self.assertEqual(days(e, D(2027, 1, 1), D(2029, 1, 1)),
+                         [D(2027, 1, 1), D(2027, 4, 10), D(2027, 12, 31), D(2028, 1, 1), D(2028, 4, 9), D(2028, 12, 31)])
+
+    def test_byweekno(self):
+        e = self.ev(T(2026, 1, 5, 9), "FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO;COUNT=3")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2029, 1, 1)), [T(2026, 1, 5, 9), T(2026, 5, 11, 9), T(2027, 5, 17, 9)])
+        # 53. tyden 2026 konci v lednu 2027
+        e = self.ev(D(2026, 1, 2), "FREQ=YEARLY;BYWEEKNO=-1;BYDAY=FR;COUNT=3")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2029, 1, 1)), [D(2026, 1, 2), D(2027, 1, 1), D(2027, 12, 31)])
+        e = self.ev(D(2026, 1, 1), "FREQ=YEARLY;BYWEEKNO=1;COUNT=8")
+        self.assertEqual(days(e, D(2026, 1, 1), D(2028, 1, 1)),
+                         [D(2026, 1, d) for d in (1, 2, 3, 4)] + [D(2027, 1, d) for d in (4, 5, 6, 7)])
+
+    def test_hourly(self):
+        e = self.ev(T(2026, 10, 20, 9), "FREQ=HOURLY;INTERVAL=2;COUNT=5")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2026, 11, 1)), [T(2026, 10, 20, h) for h in (9, 11, 13, 15, 17)])
+        e = self.ev(T(2026, 10, 20, 9), "FREQ=HOURLY;BYHOUR=0,9,13;COUNT=6")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2026, 11, 1)),
+                         [T(2026, 10, 20, 9), T(2026, 10, 20, 13), T(2026, 10, 21, 0), T(2026, 10, 21, 9),
+                          T(2026, 10, 21, 13), T(2026, 10, 22, 0)])
+        e = self.ev(T(2026, 10, 20, 9), "FREQ=MINUTELY;INTERVAL=30;COUNT=4")
+        self.assertEqual(days(e, D(2026, 10, 1), D(2026, 11, 1)),
+                         [T(2026, 10, 20, 9), T(2026, 10, 20, 9, 30), T(2026, 10, 20, 10), T(2026, 10, 20, 10, 30)])
+        # pravidlo z roku 2020 bez COUNT: vyskyty v roce 2026 se musi ukazat (ne az po MAX_INSTANCES)
+        e = self.ev(T(2020, 1, 1, 8), "FREQ=HOURLY;INTERVAL=6")
+        self.assertEqual(days(e, D(2026, 10, 20), D(2026, 10, 21)), [T(2026, 10, 20, h) for h in (2, 8, 14, 20)])
+        # v UTC: po zmene casu se posune mistni hodina
+        e = ics.parse(UTC_WEEKLY.replace("FREQ=WEEKLY;COUNT=40", "FREQ=HOURLY;INTERVAL=24")).events[0]
+        self.assertEqual(days(e, D(2026, 7, 1), D(2026, 7, 2)), [T(2026, 7, 1, 11)])
+
+    def test_unreadable_own_calendar_is_never_overwritten(self):
+        if os.geteuid() == 0:
+            self.skipTest("root cte i soubor 000")
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "events.ics")
+            with open(path, "w") as f:
+                f.write(UTC_WEEKLY)
+            os.chmod(path, 0)
+            try:
+                st = ics.Store(d)
+                st.reload_if_changed()
+                with self.assertRaises(OSError):
+                    st.add(ics.Event("Nova", T(2026, 10, 20, 10), T(2026, 10, 20, 11)))
+            finally:
+                os.chmod(path, 0o600)
+            with open(path) as f:
+                self.assertEqual(f.read(), UTC_WEEKLY)
+
+    def test_backup_of_previous_content(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "events.ics")
+            with open(path, "w") as f:
+                f.write(UTC_WEEKLY)
+            st = ics.Store(d)
+            st.reload_if_changed()
+            st.add(ics.Event("Nova", T(2026, 10, 20, 10), T(2026, 10, 20, 11)))
+            with open(path + ".bak") as f:
+                self.assertEqual(f.read(), UTC_WEEKLY)
+            self.assertEqual(sorted(st.foreign), [])
 
 
 if __name__ == "__main__":

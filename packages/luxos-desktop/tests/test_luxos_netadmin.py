@@ -269,6 +269,21 @@ class Tools(unittest.TestCase):
                 os.environ.clear()
                 os.environ.update(old)
 
+    def test_nmcli_localized_system(self):
+        # cesky nmcli by misto "yes:SSID" psal "ano:SSID"
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "nmcli")
+            with open(fake, "w") as f:
+                f.write('#!/bin/sh\nif [ "$LC_ALL" = C ]; then echo "yes:Domov"; else echo "ano:Domov"; fi\n')
+            os.chmod(fake, 0o755)
+            old = os.environ.copy()
+            os.environ.update({"LANG": "cs_CZ.UTF-8", "LC_ALL": "cs_CZ.UTF-8"})
+            try:
+                self.assertEqual(na.parse_wifi_ssid(na.run([fake])), "Domov")
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+
     def test_dns(self):
         ok, ms, addrs = na.dns_test("x", resolver=lambda h, p: [(2, 1, 6, "", ("1.2.3.4", p))])
         self.assertTrue(ok)

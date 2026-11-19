@@ -140,7 +140,7 @@ Balíky jsou podepsané. Viz [Lux Guard](guard.html) (anglicky).
 
 ## Jak ověřím stažené ISO?
 
-Spusťte `sha256sum -c SHA256SUMS`, naimportujte klíč LuxOS příkazem `gpg --import luxos.gpg` a ověřte
+Spusťte `sha256sum -c --ignore-missing SHA256SUMS`, naimportujte klíč LuxOS příkazem `gpg --import luxos.gpg` a ověřte
 podpis `gpg --verify luxos-VERZE-x86_64.iso.sig luxos-VERZE-x86_64.iso`. Otisk klíče je na úvodní stránce.
 
 ## Funguje s grafikou NVIDIA?

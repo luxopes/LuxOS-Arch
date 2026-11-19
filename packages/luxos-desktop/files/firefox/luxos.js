@@ -35,6 +35,18 @@ pref("browser.newtabpage.activity-stream.showSponsored", false);
 pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
 pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
 pref("browser.newtabpage.activity-stream.telemetry", false);
+// Ani jine dotazy na servery Mozilly, o kterych uvitaci stranka mlci: urceni zeme podle IP, test pripojeni
+// a prihlasovaci stranky Wi-Fi (detectportal.firefox.com - LuxOS ma vlastni luxos-portal-check a okno
+// prihlaseni k siti), doporucene doplnky a clanky Pocket na nove karte
+pref("browser.region.update.enabled", false);
+pref("browser.region.network.url", "");
+pref("network.captive-portal-service.enabled", false);
+pref("network.connectivity-service.enabled", false);
+pref("browser.discovery.enabled", false);
+pref("extensions.getAddons.showPane", false);
+pref("extensions.htmlaboutaddons.recommendations.enabled", false);
+pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+pref("browser.newtabpage.activity-stream.feeds.system.topstories", false);
 // Blokovani reklam: uBlock Origin z balicku firefox-ublock-origin (/usr/lib/firefox/browser/extensions)
 // se v novych i stavajicich profilech zapne bez dotazu - doplnky v adresari aplikace (rozsah 4) se
 // nevypinaji. Stejnou hodnotu ma vendor.js Firefoxu z Archu; tady pro jistotu, kdyby ji zmenil.

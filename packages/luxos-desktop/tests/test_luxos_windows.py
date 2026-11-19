@@ -142,6 +142,35 @@ class SessionMigration(unittest.TestCase):
         with open(state) as f:
             return json.load(f), sorted(os.listdir(cfg))
 
+    def test_text_editor_added_to_empty_dock(self):
+        # gsettings vypisuje prazdny seznam jako "@as []" - editor se ma pridat i tam
+        with open(os.path.join(FILES, "bin", "luxos-session"), encoding="utf-8") as f:
+            src = f.read()
+        block = src[src.index("# Textovy editor v Docku"):src.index("# Tapety \"vlny\"")]
+        for before, after in (("@as []", "['luxos-text.dockitem']"),
+                              ("['luxos-terminal.dockitem', 'trash.dockitem']",
+                               "['luxos-terminal.dockitem', 'luxos-text.dockitem', 'trash.dockitem']")):
+            home = tempfile.mkdtemp(dir=TMP)
+            fake = os.path.join(home, "bin")
+            os.makedirs(fake)
+            state = os.path.join(home, "dock")
+            with open(state, "w") as f:
+                f.write(before)
+            with open(os.path.join(fake, "gsettings"), "w") as f:
+                f.write('#!/bin/sh\ncase $1 in get) cat "$STATE";; set) printf %s "$4" >"$STATE";; esac\n')
+            with open(os.path.join(fake, "luxos-text"), "w") as f:
+                f.write("#!/bin/sh\n")
+            for name in ("gsettings", "luxos-text"):
+                os.chmod(os.path.join(fake, name), 0o755)
+            cfg = os.path.join(home, "cfg")
+            os.makedirs(cfg)
+            r = subprocess.run(["bash", "-c", "cfg=%s\n%s" % (cfg, block)], capture_output=True, text=True,
+                               env={"PATH": fake + ":/usr/bin:/bin", "HOME": home, "STATE": state})
+            self.assertEqual(r.returncode, 0, r.stderr)
+            with open(state) as f:
+                self.assertEqual(f.read(), after)
+            self.assertEqual(os.listdir(cfg), ["text-editor-dock"])
+
     def test_slide_duration_migrated_once(self):
         with open(os.path.join(FILES, "bin", "luxos-session"), encoding="utf-8") as f:
             src = f.read()

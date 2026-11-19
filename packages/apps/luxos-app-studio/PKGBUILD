@@ -1,7 +1,7 @@
 # Maintainer: LuxOS Team
 pkgname=luxos-app-studio
 pkgver=1.0.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Native LuxOS app workshop - LSL editor, one-click run, app details, local install and .lux export"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"

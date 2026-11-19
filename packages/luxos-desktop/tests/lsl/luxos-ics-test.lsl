@@ -330,6 +330,26 @@ elif command == "concurrent":
         names.append(item[0]["summary"])
     end
     print text.join(names, ";")
+elif command == "add":
+    # pridani jedne udalosti do slozky: add DIR -> ok / error <text>
+    st = ics.store_new(arg(2))
+    call ics.reload_if_changed(st)
+    d = date.ordinal(2026, 10, 20)
+    ev = ics.event_new("Nova", False, date.make(d, 10, 0, 0), date.make(d, 11, 0, 0), None)
+    try:
+        call ics.add(st, ev)
+        print "ok"
+    else:
+        print "error " + String(last_error())
+    end
+elif command == "remdays":
+    st = ics.store_new(arg(2))
+    call ics.reload_if_changed(st)
+    print ics.reminder_days(st)
+elif command == "winzones":
+    for name in sorted(ics.WINDOWS_ZONES.keys()):
+        print name + "=" + ics.WINDOWS_ZONES[name]
+    end
 elif command == "duration":
     cal = ics.read_file(arg(2))
     ev = cal["events"][0]

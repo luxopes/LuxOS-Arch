@@ -531,26 +531,32 @@ readable_alpha (GdkPixbuf *pb, const GdkRGBA *tint, gdouble scrim) {
 /* Obdelnik monitoru (rx, ry, rw, rh v px zarizeni, monitor W x H) z obrazku tapety src se stylem
  * xfdesktop do noveho obrazku out_w x out_h. src muze byt zmenseny: orig_w x orig_h = rozmery
  * puvodniho souboru (styl "na stred" pocita s puvodni velikosti). Mimo tapetu cerna. */
+/* Zvetseni obrazku iw x ih na monitoru W x H podle stylu xfdesktop */
+static void
+wallpaper_scale (gint style, gdouble iw, gdouble ih, gint W, gint H, gdouble *sx, gdouble *sy) {
+    switch (style) {
+    case 3: /* roztazeny */
+        *sx = W / iw;
+        *sy = H / ih;
+        break;
+    case 4: /* prizpusobeny (cely obrazek) */
+        *sx = *sy = MIN (W / iw, H / ih);
+        break;
+    case 1: /* na stred */
+        *sx = *sy = 1.0;
+        break;
+    default: /* 5 zvetseny (vyplnit), dlazdice a dalsi jako vyplnit */
+        *sx = *sy = MAX (W / iw, H / ih);
+        break;
+    }
+}
+
 static GdkPixbuf *
 wallpaper_region (GdkPixbuf *src, gint orig_w, gint orig_h, gint style, gint W, gint H,
                   gint rx, gint ry, gint rw, gint rh, gint out_w, gint out_h) {
     gdouble iw = orig_w, ih = orig_h;
     gdouble sx, sy;
-    switch (style) {
-    case 3: /* roztazeny */
-        sx = W / iw;
-        sy = H / ih;
-        break;
-    case 4: /* prizpusobeny (cely obrazek) */
-        sx = sy = MIN (W / iw, H / ih);
-        break;
-    case 1: /* na stred */
-        sx = sy = 1.0;
-        break;
-    default: /* 5 zvetseny (vyplnit), dlazdice a dalsi jako vyplnit */
-        sx = sy = MAX (W / iw, H / ih);
-        break;
-    }
+    wallpaper_scale (style, iw, ih, W, H, &sx, &sy);
     /* monitor -> vystup */
     gdouble fx = (gdouble) out_w / rw, fy = (gdouble) out_h / rh;
     gdouble ox = ((W - iw * sx) / 2.0 - rx) * fx, oy = ((H - ih * sy) / 2.0 - ry) * fy;
@@ -593,6 +599,20 @@ wall_key (const gchar *path, gint style, gint W, gint H) {
     return g_strdup_printf ("%s|%" G_GINT64_FORMAT "|%d|%dx%d", path, mtime, style, W, H);
 }
 
+/* Tapeta nactena jen v rozliseni, v jakem je na monitoru W x H (plna 8K fotka by v procesu panelu
+ * zdrzovala a zabrala desitky MiB); *ow x *oh = rozmery souboru. */
+static GdkPixbuf *
+load_wallpaper (const gchar *path, gint style, gint W, gint H, gint *ow, gint *oh) {
+    if (!gdk_pixbuf_get_file_info (path, ow, oh) || *ow <= 0 || *oh <= 0)
+        return NULL;
+    gdouble sx, sy;
+    wallpaper_scale (style, *ow, *oh, W, H, &sx, &sy);
+    gint w = MIN (*ow, (gint) ceil (*ow * sx)), h = MIN (*oh, (gint) ceil (*oh * sy));
+    if (w == *ow && h == *oh)
+        return gdk_pixbuf_new_from_file (path, NULL);
+    return gdk_pixbuf_new_from_file_at_scale (path, MAX (1, w), MAX (1, h), FALSE, NULL);
+}
+
 /* Vyrez tapety, ktery na obrazovce lezi presne pod listou (bez tonu). *skey = zdroj, styl a rozmery
  * (g_free). Obrazek se nenacita (vraci NULL) s key_only nebo kdyz je klic stejny jako skip_key.
  * *skey NULL: neni tapeta nebo okno listy. *wkey (muze byt NULL) = klic tapety (wall_key). */
@@ -619,12 +639,12 @@ wallpaper_strip (Bar *bar, gchar **skey, gchar **wkey, const gchar *skip_key, gb
         g_free (path);
         return NULL;
     }
-    GdkPixbuf *src = b.width > 0 && b.height > 0 ? gdk_pixbuf_new_from_file (path, NULL) : NULL;
+    gint ow = 0, oh = 0;
+    GdkPixbuf *src = b.width > 0 && b.height > 0 ? load_wallpaper (path, style, W, H, &ow, &oh) : NULL;
     g_free (path);
     if (!src)
         return NULL;
-    GdkPixbuf *dest = wallpaper_region (src, gdk_pixbuf_get_width (src), gdk_pixbuf_get_height (src), style,
-                                        W, H, b.x, b.y, b.width, b.height, b.width, b.height);
+    GdkPixbuf *dest = wallpaper_region (src, ow, oh, style, W, H, b.x, b.y, b.width, b.height, b.width, b.height);
     g_object_unref (src);
     return dest;
 }

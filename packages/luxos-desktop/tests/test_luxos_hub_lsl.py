@@ -485,6 +485,28 @@ class Hub(unittest.TestCase):
         err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
 
+    def test_control_center_slider_coalesced(self):
+        """Tazeni posuvnikem Zvuk: vzdy nejvys jeden pactl naraz, mezilehle hodnoty se preskoci a posledni
+        nastavena hodnota je konecna poloha posuvniku."""
+        fake = os.path.join(self.home, "fake-pa")
+        os.makedirs(fake)
+        with open(os.path.join(fake, "pactl"), "w") as f:
+            f.write('#!/bin/sh\ncase "$1" in set-sink-volume)\n  echo "start $3" >>"$FAKE_LOG"; sleep 0.15;'
+                    ' echo "end $3" >>"$FAKE_LOG";;\nesac\n')
+        os.chmod(os.path.join(fake, "pactl"), 0o755)
+        hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", LUXOS_CC_TEST_SLIDE="40")
+        hub.send_signal(signal.SIGUSR1)
+        self.assertTrue(self.wait_for(lambda: "end 40.0%" in self.calls(), 10), (self.calls(), self.hub_err()))
+        time.sleep(0.5)
+        events = [c for c in self.calls() if c.startswith(("start ", "end "))]
+        running = 0
+        for e in events:
+            running += 1 if e.startswith("start") else -1
+            self.assertLessEqual(running, 1, events)
+        self.assertEqual(events[-1], "end 40.0%")
+        self.assertLess(len(events) // 2, 20, events)
+        self.assertIsNone(hub.poll())
+
     def test_control_center_long_tile_titles(self):
         """Dlazdice s dlouhym prekladem (Datensparmodus, Economiseur de batterie, Oszczedzanie danych, ...):
         mensi pismo a dva radky misto zkraceni; Ovladaci centrum se ukaze bez chyby v kazdem jazyce.
@@ -973,6 +995,22 @@ class Hub(unittest.TestCase):
         self.assertEqual(vals(), {"lid-action-on-battery": 1, "lid-action-on-ac": 3, "inactivity-on-battery": 30, "inactivity-on-ac": 14})
         player.quit()
 
+    def test_keep_awake_config_not_writable(self):
+        # plny disk / ~/.config jen pro cteni: zaznam puvodnich hodnot nejde ulozit -> hub nespadne
+        # a nastaveni uspavani nemeni (bez zaznamu by je po prehravani nevratil)
+        start = {"lid-action-on-battery": 1, "lid-action-on-ac": 3, "inactivity-on-battery": 30, "inactivity-on-ac": 14}
+        xf = FakeXfconf(self.svc, self.address, dict(start))
+        self.services.append(type("S", (), {"close": lambda s: self.svc.run(xf.conn.close_sync, None)})())
+        player = FakePlayer(self.svc, self.address, status="Playing")
+        os.chmod(self.cfg, 0o500)
+        self.addCleanup(os.chmod, self.cfg, 0o700)
+        self.start_hub()
+        time.sleep(3)
+        self.assertIsNone(self.hub.poll(), self.hub_err())
+        vals = {k: (v.unpack() if hasattr(v, "unpack") else v) for k, v in xf.values.items()}
+        self.assertEqual(vals, start)
+        player.quit()
+
     # ---- agent BlueZ ---------------------------------------------------------------------------------------------
     def test_bluetooth_agent_registers_and_answers(self):
         bluez = self.service("org.bluez", [("/org/bluez", BLUEZ_XML), ("/org/bluez/hci0/dev_AA", DEVICE_XML)],
@@ -1009,6 +1047,23 @@ class Hub(unittest.TestCase):
         bluez.properties["Trusted"] = GLib.Variant("b", False)
         r = call_agent("AuthorizeService", GLib.Variant("(os)", ("/org/bluez/hci0/dev_AA", "AD9B7C10-6CE5-4F35-9952-728F760FCB70")))
         self.assertEqual(r.unpack(), ())
+        # kod pro klavesnici: BlueZ vola DisplayPasskey s kazdou zadanou cislici a ceka na odpoved -
+        # odpoved hned, jedno okno (ne vrstvene modalni dialogy), zavre ho Cancel
+        for entered in range(3):
+            r = call_agent("DisplayPasskey", GLib.Variant("(ouq)", ("/org/bluez/hci0/dev_AA", 123456, entered)))
+            self.assertEqual(r.unpack(), ())
+        if shutil.which("xdotool"):
+            xenv = {"DISPLAY": DISPLAY, **({"XAUTHORITY": os.environ["XAUTHORITY"]} if "XAUTHORITY" in os.environ else {})}
+
+            def windows():
+                r = subprocess.run(["xdotool", "search", "--onlyvisible", "--pid", str(self.hub.pid)],
+                                   capture_output=True, text=True, env=xenv)
+                return r.stdout.split()
+            self.assertTrue(self.wait_for(lambda: len(windows()) == 1, 8), windows())
+            self.assertEqual(call_agent("Cancel", None).unpack(), ())
+            self.assertTrue(self.wait_for(lambda: windows() == [], 8), windows())
+        else:
+            self.assertEqual(call_agent("Cancel", None).unpack(), ())
         # telefon zacal parovat sam (pocitac viditelny): dialog s kodem, Enter = Sparovat
         if shutil.which("xdotool"):
             import threading

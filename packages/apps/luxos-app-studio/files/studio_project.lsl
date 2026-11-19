@@ -149,22 +149,32 @@ function source_fingerprint(project):
     return native.digest("\n".join(sorted(entries)))
 end
 
+# Zaznam o uspesnem sestaveni je mimo projekt: build/ prichazi i s cizim projektem
+# (archiv, git) a pripravenemu spustitelnemu souboru se nesmi verit bez prekladu
+function build_stamp(project):
+    state = native.env("XDG_STATE_HOME")
+    if not state.startswith("/"):
+        state = native.env("HOME") + "/.local/state"
+    end
+    return state + "/luxos/app-studio/builds/" + native.digest(project["path"]) + ".json"
+end
+
 function build_ready(project):
     if project == None:
         return False
     end
     root = project["path"]
     path = root + "/build/" + project["name"]
-    stamp = root + "/build/success.json"
+    stamp = build_stamp(project)
     if native.symlink(root + "/build"):
         return False
     end
-    if not native.exists(path) or native.symlink(path) or not native.exists(stamp) or native.symlink(stamp):
+    if not native.exists(path) or native.symlink(path) or not native.exists(stamp):
         return False
     end
     try:
         value = json.decode(readfile(stamp))
-        return value.get("source") == source_fingerprint(project)
+        return value.get("source") == source_fingerprint(project) and value.get("binary") == native.digest_bytes(readbytes(path))
     else:
         return False
     end
@@ -193,7 +203,10 @@ function finish_build(project, status):
     if not native.rename(temporary, root + "/build/" + project["name"]):
         Error(ProjectError: "Cannot save the successfully built executable.")
     end
-    call writefile(root + "/build/success.json", json.encode({"source": project["_building_source"]}) + "\n")
+    stamp = build_stamp(project)
+    parts = stamp.split("/")
+    call native.mkdirs("/".join(parts[:len(parts) - 1]))
+    call writefile(stamp, json.encode({"path": root, "source": project["_building_source"], "binary": native.digest_bytes(bytes)}) + "\n")
     return True
 end
 
@@ -215,7 +228,16 @@ function open_project(path):
     if not native.exists(root + "/src/main.lsl"):
         Error(ProjectError: "The project is missing src/main.lsl.")
     end
+    if native.symlink(root + "/src/main.lsl"):
+        Error(ProjectError: "Source files must stay inside the project without symbolic links.")
+    end
     project["path"] = root
+    # okno nacita udaje az po prepnuti projektu; chyba tam by nechala projekt napul otevreny
+    try:
+        call details(project)
+    else:
+        Error(ProjectError: "The project's package/lux.json is missing or invalid.")
+    end
     return project
 end
 
@@ -230,7 +252,7 @@ function prepare_build(project):
     if native.symlink(output):
         Error(ProjectError: "The build output must not be a symbolic link.")
     end
-    call native.unlink(root + "/build/success.json")
+    call native.unlink(build_stamp(project))
     if native.exists(output):
         call native.unlink(output)
     end
@@ -322,6 +344,9 @@ end
 
 function details(project):
     metadata = json.decode(readfile(package_file(project, "package/lux.json")))
+    if type(metadata) != "Dictionary":
+        Error(ProjectError: "Invalid package/lux.json.")
+    end
     category = "Utility"
     categories = metadata.get("categories", [])
     if type(categories) == "List" and len(categories) > 0 and categories[0] in CATEGORIES:
@@ -340,6 +365,46 @@ function valid_version(version):
         end
     end
     return True
+end
+
+# Prepise jen dane klice skupiny [Desktop Entry]; rucne pridane klice (Keywords, MimeType,
+# Name[cs], dalsi skupiny) zustanou
+function update_desktop(text, values):
+    lines = text.split("\n")
+    while lines and lines[len(lines) - 1] == "":
+        call lines.pop()
+    end
+    result = []
+    group = ""
+    done = []
+    for line in lines:
+        if line.startswith("["):
+            if group == "[Desktop Entry]":
+                for key in values.keys():
+                    if key not in done:
+                        result.append(key + "=" + values[key])
+                        done.append(key)
+                    end
+                end
+            end
+            group = line.strip()
+        elif group == "[Desktop Entry]" and "=" in line:
+            key = line.split("=")[0].strip()
+            if key in values:
+                line = key + "=" + values[key]
+                done.append(key)
+            end
+        end
+        result.append(line)
+    end
+    if group == "[Desktop Entry]":
+        for key in values.keys():
+            if key not in done:
+                result.append(key + "=" + values[key])
+            end
+        end
+    end
+    return "\n".join(result) + "\n"
 end
 
 function save_details(project, title, summary, version, category):
@@ -366,7 +431,17 @@ function save_details(project, title, summary, version, category):
     stored["summary"] = summary
     call writefile(package_file(project, "studio.json"), json.encode(stored) + "\n")
     call native.confined_directory(root, "package/share/applications")
-    call writefile(package_file(project, "package/share/applications/" + project["name"] + ".desktop"), desktop_entry(project["name"], title, summary, project["type"], category, project["name"]))
+    desktop = package_file(project, "package/share/applications/" + project["name"] + ".desktop")
+    text = ""
+    if native.exists(desktop):
+        text = readfile(desktop)
+    end
+    if "[Desktop Entry]" in text:
+        text = update_desktop(text, {"Name": desktop_value(title), "Comment": desktop_value(summary), "Categories": category + ";"})
+    else:
+        text = desktop_entry(project["name"], title, summary, project["type"], category, project["name"])
+    end
+    call writefile(desktop, text)
     project["title"] = title
     project["summary"] = summary
     return project
@@ -624,10 +699,21 @@ function install(project):
             Error(ProjectError: "Another program is already installed as " + path + ". Nothing was changed.")
         end
     end
+    # ~/.local/bin byva v PATH pred /usr/bin: prikaz stejneho jmena by v terminalu prekryl systemovy
+    found = native.program(name)
+    if found and found != target:
+        Error(ProjectError: "The command " + name + " already exists (" + found + "). Installing the app would hide it, so nothing was changed.")
+    end
     files = [target, desktop]
     for directory in [dirs["bin"], dirs["data"] + "/applications", dirs["data"] + "/luxos/app-studio/installed"]:
         call native.mkdirs(directory)
     end
+    # zaznam pred prvnim zapisem: po preruseni instalace jde aplikaci odinstalovat i nainstalovat znovu
+    planned = owned + files
+    if icon_target:
+        planned.append(icon_target)
+    end
+    call writefile(record, json.encode({"files": planned}) + "\n")
     call writebytes(target + ".part", readbytes(project["path"] + "/build/" + name))
     call native.chmod(target + ".part", 493)
     if not native.rename(target + ".part", target):

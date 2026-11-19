@@ -197,7 +197,7 @@ function render_png(project, path, size=512):
         Error(ExportError: "The PNG could not be encoded.")
     end
     call glib.object_unref(image)
-    return icon_model.atomic_bytes(path, bytes)
+    return icon_model.atomic_bytes(path, bytes, 420)
 end
 
 function base64_encode(bytes):
@@ -361,9 +361,9 @@ function export_set(project, folder, basename="icon"):
         Error(ExportError: "The icon set could not be rendered.")
     end
     call glib.object_unref(image)
-    call icon_model.atomic_text(result[0], svg(clean, 1024))
+    call icon_model.atomic_text(result[0], svg(clean, 1024), 420)
     for index in rang(len(encoded)):
-        call icon_model.atomic_bytes(result[index + 1], encoded[index])
+        call icon_model.atomic_bytes(result[index + 1], encoded[index], 420)
     end
     return result
 end

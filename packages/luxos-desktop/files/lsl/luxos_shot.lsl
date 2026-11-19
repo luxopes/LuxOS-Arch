@@ -2283,12 +2283,23 @@ function rec_start():
     cmd = base.ffmpeg_cmd(display, [r[0] * s, r[1] * s, r[2] * s, r[3] * s], rec["part"], enc, 30, True)
     S["seq"] = S["seq"] + 1
     rec["err"] = base.runtime_dir() + "/.luxos-screenshot-ffmpeg-" + String(glib.getpid()) + "-" + String(S["seq"]) + ".log"
-    # ffmpeg skonci (a dopise soubor), i kdyby proces se Snimkem obrazovky nekdo zabil (PR_SET_PDEATHSIG)
-    script = "exec \"$@\" 2>\"$0\""
+    # Hotovy soubor prejmenuje obal, ne tento proces: kdyz Snimek obrazovky (hub) behem nahravani spadne
+    # nebo ho nekdo zabije, obal dostane SIGINT (PR_SET_PDEATHSIG), preda ho ffmpeg, ten dopise mp4 a obal
+    # ho prejmenuje - jinak by zustal jen skryty .part. ffmpeg po SIGINT konci kodem 255; zabity signalem
+    # (rc 129-192) nedopsal mp4. Druhy signal by ffmpeg ukoncil bez dopsani, proto se preda jen jeden.
+    # SIGKILL obalu (rec_kill) ukonci i ffmpeg.
+    argv = ["sh", "-c"]
+    wrap = ""
     if glib.find_program_in_path("setpriv") != "":
-        script = "exec setpriv --pdeathsig INT \"$@\" 2>\"$0\""
+        argv = ["setpriv", "--pdeathsig", "INT", "sh", "-c"]
+        wrap = "setpriv --pdeathsig KILL "
     end
-    argv = ["sh", "-c", script, rec["err"]]
+    script = "e=$1 part=$2 final=$3; shift 3; trap 'trap \"\" INT TERM; kill -INT $p 2>/dev/null' INT TERM; "
+    script = script + wrap + "\"$@\" 2>\"$e\" & p=$!; "
+    script = script + "while :; do wait $p; rc=$?; kill -0 $p 2>/dev/null || break; done; "
+    script = script + "if [ -s \"$part\" ] && { [ $rc -lt 128 ] || [ $rc = 255 ]; }; then mv -- \"$part\" \"$final\" && rm -f -- \"$e\" && exit 0; fi; exit 1"
+    argv.append(script)
+    argv.extend(["luxos-recording", rec["err"], rec["part"], rec["final"]])
     argv.extend(cmd)
     pid = glib.spawn_watched_data(argv, on_rec_exit, S["token"])
     if pid == 0:
@@ -2341,12 +2352,9 @@ function on_rec_exit(token, pid, status):
         return 0
     end
     rec["running"] = False
-    st = glib.stat(rec["part"])
-    # ffmpeg ukonceny signalem (SIGKILL po 15 s bez reakce na SIGINT, pad) nedopsal mp4: neni to video
-    ok = len(st) > 0 and st[0] > 0 and (status & 127) == 0
-    if ok:
-        ok = luxos_sys.rename(rec["part"], rec["final"])
-    end
+    # obal prejmenoval .part, jen kdyz ffmpeg mp4 dopsal (ne SIGKILL po 15 s bez reakce na SIGINT, pad)
+    st = glib.stat(rec["final"])
+    ok = status == 0 and len(st) > 0 and st[0] > 0
     if not ok:
         lines = text.lines(glib.read_text(rec["err"]).strip())
         msg = ""

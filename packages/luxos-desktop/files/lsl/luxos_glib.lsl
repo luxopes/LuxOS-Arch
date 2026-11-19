@@ -197,6 +197,9 @@ function capture_read(state, handle, condition):
     unsafe:
         buffer = __lsl_byte_zeros(4096)
         n = __lsl_qbe_call3(__lsl_symbol("read"), ptr(handle), data(buffer), 4096)
+        if n < 0 and interrupted():
+            return True
+        end
         if n > 0:
             state[3] = state[3] + __lsl_text_from_bytes(buffer, 0, n)
             return True
@@ -209,6 +212,13 @@ function capture_read(state, handle, condition):
         call capture_finish(state)
     end
     return False
+end
+
+# Read prerusene signalem (EINTR) neni konec vystupu
+function interrupted():
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_load32(__lsl_qbe_call0(__lsl_symbol("__errno_location")))) == 4
+    end
 end
 
 function capture_exit(state, pid, status):
@@ -263,6 +273,9 @@ function stream_read(state, handle, condition):
     unsafe:
         buffer = __lsl_byte_zeros(4096)
         n = __lsl_qbe_call3(__lsl_symbol("read"), ptr(handle), data(buffer), 4096)
+        if n < 0 and interrupted():
+            return True
+        end
         if n > 0:
             handler = state[0]
             call handler(state[1], __lsl_text_from_bytes(buffer, 0, n))

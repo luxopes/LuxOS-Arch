@@ -69,9 +69,9 @@ def send(identity, settings, trust, history, device, callbacks, paths=None, text
                 "cancelled by the receiver" if t.remote_cancelled else "cancelled"
         else:
             detail = e.strerror if isinstance(e, OSError) and e.strerror else str(e)
+            lost = t.state in ("transferring", "waiting")
             t.state, t.code = "failed", proto.E_PROTOCOL
-            t.error = ("connection lost: %s" if t.state in ("transferring", "waiting") else
-                       "connection failed: %s") % detail
+            t.error = ("connection lost: %s" if lost else "connection failed: %s") % detail
     if t.state == "done" and device.get("spki"):
         # prvni uspesny prenos pripne klic k jmenu zarizeni (zmena klice se pak v seznamu hlasite ukaze)
         try:

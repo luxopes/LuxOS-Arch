@@ -5337,3 +5337,6 @@ Stopped part-way: only some packages were installed. Finish with: lux update	Hal
 The account this message was written from no longer exists. Check the sender in From.	Het account waarmee dit bericht is geschreven, bestaat niet meer. Controleer de afzender bij Van.
 The message is in Outbox.	Het bericht staat in Postvak UIT.
 It could not be sent right now. Mail sends it automatically as soon as it can.	Het kon nu niet worden verzonden. Mail verstuurt het automatisch zodra dat kan.
+Printer “%s” found on the network	Printer ‘%s’ gevonden in het netwerk
+Click Add to set it up. Add only printers you know.	Klik op Toevoegen om hem in te stellen. Voeg alleen printers toe die u kent.
+The calendar file cannot be read. Nothing was saved, so no events were lost.	Het agendabestand kan niet worden gelezen. Er is niets opgeslagen, dus er zijn geen afspraken verloren gegaan.

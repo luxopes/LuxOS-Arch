@@ -5336,3 +5336,6 @@ Stopped part-way: only some packages were installed. Finish with: lux update	Zas
 The account this message was written from no longer exists. Check the sender in From.	Účet, ze kterého byla zpráva psaná, už neexistuje. Zkontrolujte odesílatele v poli Od.
 The message is in Outbox.	Zpráva čeká v Odchozí poště.
 It could not be sent right now. Mail sends it automatically as soon as it can.	Teď ji nešlo odeslat. Pošta ji odešle sama, jakmile to půjde.
+Printer “%s” found on the network	V síti je tiskárna „%s“
+Click Add to set it up. Add only printers you know.	Klikněte na Přidat a tiskárna se nastaví. Přidávejte jen tiskárny, které znáte.
+The calendar file cannot be read. Nothing was saved, so no events were lost.	Soubor kalendáře nelze přečíst. Nic se neuložilo, takže žádné události nezmizely.

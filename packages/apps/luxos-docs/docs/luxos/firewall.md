@@ -95,8 +95,8 @@ via the notification.
 and checks with `ss` whether a program on this computer listens on that port. Only connections
 from this network and from Tailscale lead to a notification; port scans from the internet do not.
 The notification appears once per port and session; **Allow** adds an exception for this network
-without a password (an administrator in the active session; polkit rule
-`/usr/share/polkit-1/rules.d/50-luxos-firewall.rules`), **Keep Blocked** stores the port in
+after the administrator password (polkit `auth_admin_keep`, remembered for a few minutes: opening a
+port is a change to the protection of the whole computer), **Keep Blocked** stores the port in
 `~/.config/luxos/firewall-ignored` and LuxOS does not ask again. Blocked connections to ports where
 nothing listens (scans) are only counted.
 

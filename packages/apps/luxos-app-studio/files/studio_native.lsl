@@ -43,9 +43,11 @@ function mkdir(path):
     return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("mkdir"), cstr(path), 493)) == 0
 end
 
+# Uzivatelske slozky (~/.local/bin, cil exportu) muzou byt odkazem na slozku;
+# slozky uvnitr projektu hlida confined_directory
 function mkdirs(path):
-    if symlink(path):
-        Error(ProjectError: "A project directory must not be a symbolic link: " + path)
+    if symlink(path) and not directory(path):
+        Error(ProjectError: "Cannot create directory: " + path)
     end
     if __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("g_mkdir_with_parents"), cstr(path), 493)) != 0:
         Error(ProjectError: "Cannot create directory: " + path)
@@ -84,6 +86,10 @@ end
 
 function digest(text):
     return glib.take_c(__lsl_qbe_call3(__lsl_symbol("g_compute_checksum_for_string"), 2, cstr(text), __lsl_text_byte_length(text)))
+end
+
+function digest_bytes(value):
+    return glib.take_c(__lsl_qbe_call3(__lsl_symbol("g_compute_checksum_for_data"), 2, data(value), len(value)))
 end
 
 function confined_directory(root, relative):

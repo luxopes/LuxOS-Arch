@@ -19,7 +19,7 @@ function run(argv):
                 size = Int(argv[3])
             end
             if argv[2].lower().endswith(".svg"):
-                call icon_model.atomic_text(argv[2], icon_render.svg(project, size))
+                call icon_model.atomic_text(argv[2], icon_render.svg(project, size), 420)
             elif argv[2].lower().endswith(".png"):
                 call icon_render.render_png(project, argv[2], size)
             else:

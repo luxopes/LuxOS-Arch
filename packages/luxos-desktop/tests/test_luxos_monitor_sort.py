@@ -90,5 +90,15 @@ class Sort(unittest.TestCase):
                     os.environ["XDG_CONFIG_HOME"] = old
 
 
+@unittest.skipIf(MON is None, "luxos-monitor needs python-gobject with Gtk 3 and Wnck 3")
+class Cpu(unittest.TestCase):
+    def test_guest_time_not_counted_twice(self):
+        # bezici VM: guest (900) je uz v user (1000); celkem 1000+100 idle, ne 2000
+        with tempfile.NamedTemporaryFile("w", suffix=".stat") as f:
+            f.write("cpu  1000 0 0 100 0 0 0 0 900 0\ncpu0 1000 0 0 100 0 0 0 0 900 0\n")
+            f.flush()
+            self.assertEqual(MON.read_cpu(f.name), (1100, 100))
+
+
 if __name__ == "__main__":
     unittest.main()

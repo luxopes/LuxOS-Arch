@@ -172,6 +172,7 @@ class Agent:
 
     def __init__(self, bus, window):
         self.window = window
+        self.code_dlg = None
         node = Gio.DBusNodeInfo.new_for_xml(AGENT_XML)
         self.reg = bus.register_object(AGENT_PATH, node.interfaces[0], self.on_call, None, None)
         mgr = ("org.bluez", "/org/bluez", "org.bluez.AgentManager1")
@@ -211,9 +212,17 @@ class Agent:
             else:
                 inv.return_dbus_error(*reject)
         elif method in ("DisplayPasskey", "DisplayPinCode"):
-            code = f"{args[1]:06d}" if method == "DisplayPasskey" else args[1]
-            self.dialog(_("Type this code on the device"), f"<big><b>{code}</b></big>\n\n" + _("Then press Enter on it."),
-                        buttons=False)
+            # BlueZ vola DisplayPasskey znovu s kazdou stisknutou klavesou na zarizeni a ceka na odpoved:
+            # jedno nemodalni okno, ktere se jen prepise a zavre pri Cancel
+            code = f"{args[1]:06d}" if method == "DisplayPasskey" else str(args[1])
+            secondary = f"<big><b>{GLib.markup_escape_text(code)}</b></big>\n\n" + \
+                GLib.markup_escape_text(_("Then press Enter on it."))
+            if self.code_dlg is None:
+                self.code_dlg = Gtk.MessageDialog(transient_for=self.window, message_type=Gtk.MessageType.INFO,
+                                                  buttons=Gtk.ButtonsType.OK, text=_("Type this code on the device"))
+                self.code_dlg.connect("response", lambda *_a: self.close_code())
+            self.code_dlg.format_secondary_markup(secondary)
+            self.code_dlg.show()
             inv.return_value(None)
         elif method == "RequestPinCode":
             ok, v = self.dialog(_("Enter the PIN code"), _("Usually 0000 or 1234, see the device manual."), entry=True)
@@ -244,7 +253,13 @@ class Agent:
             else:
                 inv.return_dbus_error(*reject)
         else:  # Release, Cancel
+            self.close_code()
             inv.return_value(None)
+
+    def close_code(self):
+        if self.code_dlg is not None:
+            self.code_dlg.destroy()
+            self.code_dlg = None
 
     def device(self, path):
         bz = getattr(self.window, "bz", None)

@@ -5337,3 +5337,6 @@ Stopped part-way: only some packages were installed. Finish with: lux update	Mit
 The account this message was written from no longer exists. Check the sender in From.	Das Konto, mit dem diese Nachricht verfasst wurde, existiert nicht mehr. Prüfen Sie den Absender unter „Von“.
 The message is in Outbox.	Die Nachricht liegt im Ausgang.
 It could not be sent right now. Mail sends it automatically as soon as it can.	Sie konnte gerade nicht gesendet werden. Mail sendet sie automatisch, sobald es möglich ist.
+Printer “%s” found on the network	Drucker „%s“ im Netzwerk gefunden
+Click Add to set it up. Add only printers you know.	Klicken Sie auf „Hinzufügen“, um ihn einzurichten. Fügen Sie nur Drucker hinzu, die Sie kennen.
+The calendar file cannot be read. Nothing was saved, so no events were lost.	Die Kalenderdatei kann nicht gelesen werden. Es wurde nichts gespeichert, daher sind keine Termine verloren gegangen.

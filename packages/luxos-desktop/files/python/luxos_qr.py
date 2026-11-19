@@ -9,6 +9,8 @@ LUXOS_ZXING_LIB prepise cestu ke knihovne (testy bez instalace).
 import ctypes
 import os
 import subprocess
+import tempfile
+import uuid as uuidlib
 
 SPECIAL = '\\;,:"'
 
@@ -347,18 +349,41 @@ def wifi_details(uuid, secrets=True, root=False):
 
 
 def connect_args(info):
-    """Argumenty nmcli pro pripojeni k siti z QR kodu."""
+    """Argumenty nmcli pro pripojeni k otevrene siti z QR kodu."""
     args = ["device", "wifi", "connect", info["ssid"]]
-    if info.get("security") != "nopass" and info.get("password"):
-        args += ["password", info["password"]]
-        if info.get("security") == "WEP":
-            args += ["wep-key-type", "key"]
     if info.get("hidden"):
         args += ["hidden", "yes"]
     return args
 
 
+def add_args(info, uuid):
+    """Argumenty nmcli pro novy profil site s heslem; heslo samo prijde az pri "up" ze souboru."""
+    mgmt = {"SAE": "sae", "WEP": "none"}.get(info.get("security"), "wpa-psk")
+    args = ["connection", "add", "type", "wifi", "con-name", info["ssid"], "ssid", info["ssid"],
+            "connection.uuid", uuid, "wifi-sec.key-mgmt", mgmt]
+    if mgmt == "none":
+        args += ["wifi-sec.wep-key-type", "1"]
+    if info.get("hidden"):
+        args += ["802-11-wireless.hidden", "yes"]
+    return args
+
+
 def connect(info, timeout=60):
     """Pripoji se k siti (nmcli). Vraci (ok, zprava)."""
-    rc, out, err = _nmcli(["--wait", str(timeout)] + connect_args(info), timeout=timeout + 10)
+    wait = ["--wait", str(timeout)]
+    if info.get("security") == "nopass" or not info.get("password"):
+        rc, out, err = _nmcli(wait + connect_args(info), timeout=timeout + 10)
+        return rc == 0, (err.strip() or out.strip())
+    # Heslo nesmi do argv (ps ho ukaze ostatnim uzivatelum): profil bez hesla + passwd-file 0600
+    uid = str(uuidlib.uuid4())
+    rc, out, err = _nmcli(add_args(info, uid))
+    if rc != 0:
+        return False, (err.strip() or out.strip())
+    key = "wep-key0" if info.get("security") == "WEP" else "psk"
+    with tempfile.NamedTemporaryFile("w", dir=os.environ.get("XDG_RUNTIME_DIR"), prefix="luxos-qr-") as f:
+        f.write("802-11-wireless-security.%s:%s\n" % (key, info["password"]))
+        f.flush()
+        rc, out, err = _nmcli(wait + ["connection", "up", "uuid", uid, "passwd-file", f.name], timeout=timeout + 10)
+    if rc != 0:
+        _nmcli(["connection", "delete", "uuid", uid])
     return rc == 0, (err.strip() or out.strip())
