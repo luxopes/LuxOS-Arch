@@ -500,11 +500,12 @@
         {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
-          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, login transition, luxos-hub, multiple monitors and touchpad.",
+          "summary": "Top bar, Control Center, Dock, hot corners, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, login transition, luxos-hub, multiple monitors and touchpad.",
           "keywords": [
             "desktop",
             "top bar",
             "menu bar",
+            "hot corners",
             "control center",
             "dock",
             "plank",
@@ -634,6 +635,19 @@
             "default shortcuts",
             "screenshot shortcut",
             "lock screen shortcut"
+          ]
+        },
+        {
+          "path": "luxos/hot-corners.md",
+          "title": "Hot corners",
+          "summary": "Hot corners: moving the pointer into a screen corner opens Launchpad (top left) or shows the desktop (bottom right); set each corner in Desktop & Dock › Hot Corners or ~/.config/luxos/hotcorners.",
+          "keywords": [
+            "hot corners",
+            "hot corner",
+            "screen corner",
+            "corner",
+            "active corners",
+            "aktivni rohy"
           ]
         },
         {

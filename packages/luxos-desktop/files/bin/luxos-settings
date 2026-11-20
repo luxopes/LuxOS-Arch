@@ -207,6 +207,7 @@ class Settings(Gtk.Window):
         self.build_widgets(page)
         if self.dock:
             self.build_dock(page)
+        self.build_hot_corners(page)
         self.build_bar(page)
 
         more = Gtk.Box(spacing=8, margin_top=18)
@@ -518,6 +519,26 @@ class Settings(Gtk.Window):
         opacity = int(self.prefs["DOCK_OPACITY"] or 75)
         group.row(_("Dock opacity"), slider(0, 100, opacity,
                                             lambda v: subprocess.Popen(["luxos-appearance", "dock-opacity", str(v)])))
+
+    # ---- Horke rohy (luxos-hub, luxos_hotcorners.lsl) ---------------------------
+    def build_hot_corners(self, page):
+        group = Group(page, _("Hot Corners"))
+        path = os.path.join(os.path.dirname(PREFS), "hotcorners")
+        conf = read_kv(path)
+        defaults = {"tl": "launchpad", "tr": "none", "bl": "none", "br": "desktop"}
+        actions = (("none", "—"), ("launchpad", _("Launchpad")), ("desktop", _("Show Desktop")),
+                   ("control-center", _("Control Center")), ("lock", _("Lock Screen")),
+                   ("screensaver", _("Start Screen Saver")))
+        for key, label in (("tl", _("Top left corner")), ("tr", _("Top right corner")),
+                           ("bl", _("Bottom left corner")), ("br", _("Bottom right corner"))):
+            combo = Gtk.ComboBoxText()
+            for action, name in actions:
+                combo.append(action, name)
+            value = conf.get(key, defaults[key])
+            combo.set_active_id(value if value in dict(actions) else defaults[key])
+            combo.connect("changed", lambda c, k=key: write_kv(path, k, c.get_active_id()))
+            hint = _("Move the pointer into a corner of the screen and keep it there for a moment.") if key == "br" else None
+            group.row(label, combo, hint)
 
     def toggle_autohide(self, switch, _p):
         """Skryvani Docku (oba rezimy Dock skryvaji, luxos-menubar ho vysune i kousek nad okrajem)."""
