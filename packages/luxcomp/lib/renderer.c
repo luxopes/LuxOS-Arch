@@ -7,60 +7,53 @@
  * zjistujeme sami, gles2 zkousime jen kdyz ma sanci, jinak pixman se softwarovym kurzorem
  * (hardwarovy kurzor ve VM casto ukazuje vedle). WLR_RENDERER ma prednost, ale pri selhani
  * taky spadne na pixman.
+ * Kdyz gles2 presto skonci na softwarovem Mesa (kms_swrast/llvmpipe, napr. GPU bez ovladace),
+ * je pomalejsi a o ~90 MB vetsi nez pixman (WP-1, virtio-gpu bez virgl), takze ho zahodime.
  */
 #define _GNU_SOURCE
 #include "internal.h"
-#include <dirent.h>
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <virtgpu_drm.h>
 #include <vmwgfx_drm.h>
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
+#include <wlr/render/egl.h>
 #include <wlr/render/gles2.h>
 #include <wlr/render/pixman.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/util/log.h>
 #include <xf86drm.h>
 
-static bool
-any_render_node(void)
+/* Stejny render node, jaky si bez DRM backendu (headless, vnoreny) otevre wlroots: prvni v poradi drmGetDevices2 */
+static int
+open_render_node(void)
 {
-	DIR *dir = opendir("/dev/dri");
-	if (!dir) {
-		return false;
-	}
-	bool found = false;
-	struct dirent *de;
-	while ((de = readdir(dir))) {
-		if (!strncmp(de->d_name, "renderD", 7)) {
-			found = true;
-			break;
+	drmDevice *devices[64];
+	int n = drmGetDevices2(0, devices, 64);
+	int fd = -1;
+	for (int i = 0; i < n; i++) {
+		if (fd < 0 && devices[i]->available_nodes & (1 << DRM_NODE_RENDER)) {
+			fd = open(devices[i]->nodes[DRM_NODE_RENDER], O_RDWR | O_CLOEXEC);
 		}
 	}
-	closedir(dir);
-	return found;
+	if (n > 0) {
+		drmFreeDevices(devices, n);
+	}
+	return fd;
 }
 
-/* Proc 3D nejde pouzit, NULL = gles2 ma smysl zkusit */
+/* Ovladac bez 3D, i kdyz ma render node; NULL = gles2 ma smysl zkusit */
 static const char *
-no_3d_reason(int drm_fd)
+driver_no_3d(int fd)
 {
-	if (drm_fd < 0) {
-		/* headless/vnoreny: render node si wlroots otevre sam */
-		return any_render_node() ? NULL : "no DRM render node";
-	}
-
-	char *render_node = drmGetRenderDeviceNameFromFd(drm_fd);
-	if (!render_node) {
-		/* bochs-drm (QEMU std VGA), simpledrm, cirrus... */
-		return "no DRM render node";
-	}
-	free(render_node);
-
-	drmVersion *version = drmGetVersion(drm_fd);
+	drmVersion *version = drmGetVersion(fd);
 	if (!version) {
 		return NULL;
 	}
@@ -71,18 +64,61 @@ no_3d_reason(int drm_fd)
 			.param = VIRTGPU_PARAM_3D_FEATURES,
 			.value = (uintptr_t)&has_3d,
 		};
-		if (drmIoctl(drm_fd, DRM_IOCTL_VIRTGPU_GETPARAM, &param) || !has_3d) {
+		if (drmIoctl(fd, DRM_IOCTL_VIRTGPU_GETPARAM, &param) || !has_3d) {
 			reason = "virtio-gpu without virgl";
 		}
 	} else if (!strcmp(version->name, "vmwgfx")) {
 		struct drm_vmw_getparam_arg arg = { .param = DRM_VMW_PARAM_3D };
-		if (drmCommandWriteRead(drm_fd, DRM_VMW_GET_PARAM, &arg, sizeof(arg))
+		if (drmCommandWriteRead(fd, DRM_VMW_GET_PARAM, &arg, sizeof(arg))
 				|| !arg.value) {
 			reason = "vmwgfx without 3D";
 		}
 	}
 	drmFreeVersion(version);
 	return reason;
+}
+
+/* Proc 3D nejde pouzit, NULL = gles2 ma smysl zkusit */
+static const char *
+no_3d_reason(int drm_fd)
+{
+	if (drm_fd < 0) {
+		/* headless/vnoreny, treba v kontejneru ve VM bez 3D: zkontrolovat render node, ktery dostane wlroots */
+		int fd = open_render_node();
+		if (fd < 0) {
+			return "no DRM render node";
+		}
+		const char *reason = driver_no_3d(fd);
+		close(fd);
+		return reason;
+	}
+
+	char *render_node = drmGetRenderDeviceNameFromFd(drm_fd);
+	if (!render_node) {
+		/* bochs-drm (QEMU std VGA), simpledrm, cirrus... */
+		return "no DRM render node";
+	}
+	free(render_node);
+	return driver_no_3d(drm_fd);
+}
+
+/* Mesa bez ovladace pro dane GPU spadne na softwarovy rasterizer (llvmpipe, softpipe, kms_swrast) */
+static bool
+gles2_is_software(struct wlr_renderer *renderer)
+{
+	struct wlr_egl *egl = wlr_gles2_renderer_get_egl(renderer);
+	EGLDisplay display = wlr_egl_get_display(egl);
+	if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(egl))) {
+		return false;
+	}
+	const char *name = (const char *)glGetString(GL_RENDERER);
+	bool software = name && (strstr(name, "llvmpipe") || strstr(name, "softpipe")
+		|| strstr(name, "swrast"));
+	if (software) {
+		wlr_log(WLR_ERROR, "luxcomp: gles2 runs on %s", name);
+	}
+	eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+	return software;
 }
 
 static const char *
@@ -136,10 +172,15 @@ renderer_create(struct wlr_backend *backend, struct wlr_allocator **allocator,
 			setenv("WLR_RENDERER", "gles2", 1);
 			renderer = wlr_renderer_autocreate(backend);
 			unsetenv("WLR_RENDERER");
-			if (renderer && create_allocator(backend, renderer, allocator)) {
+			if (renderer && gles2_is_software(renderer)) {
+				wlr_renderer_destroy(renderer);
+				renderer = NULL;
+				reason = "no 3D driver (gles2 would be software)";
+			} else if (renderer && create_allocator(backend, renderer, allocator)) {
 				goto done;
+			} else {
+				reason = "no usable 3D driver (gles2 failed)";
 			}
-			reason = "no usable 3D driver (gles2 failed)";
 		}
 	}
 

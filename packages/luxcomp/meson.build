@@ -29,6 +29,8 @@ deps = [
   dependency('wayland-server'),
   dependency('xkbcommon'),
   dependency('libdrm'),
+  dependency('egl'),
+  dependency('glesv2'),
   dependency('pixman-1'),
   dependency('cairo'),
   dependency('pangocairo'),
