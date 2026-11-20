@@ -21,7 +21,7 @@ import unittest
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 WLT = os.path.join(ROOT, "scripts", "wl-test", "wlt")
 BUILD = os.environ.get("LUXWM_BUILD", os.path.join(ROOT, "out", "luxwm-test", "build"))
-SYSROOT = os.path.join(ROOT, "out", "wl-test", "sysroot")
+SYSROOT = os.path.join(os.environ.get("WLT_OUT") or os.path.join(ROOT, "out", "wl-test"), "sysroot")
 RESULTS = os.path.join(ROOT, "out", "luxwm-test", "results")
 CONF = os.path.join(ROOT, "packages", "luxwm", "luxwm.conf")
 DESKTOP = os.path.join(ROOT, "packages", "luxos-desktop")

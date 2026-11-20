@@ -18,7 +18,7 @@ import tempfile
 import time
 import unittest
 
-from test_luxwm import BUILD, ROOT, SYSROOT, Session, children, pss_kb, wlt
+from test_luxwm import BUILD, ROOT, SYSROOT, WLT_OUT, Session, children, pss_kb, wlt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LSLC = shutil.which("lslc")
@@ -90,7 +90,7 @@ class Protocols(unittest.TestCase):
         shutil.copy(cls.probe, cls.trusted)
         cls.allow = os.path.join(cls.tmp, "privileged.conf")
         tools = [os.path.realpath(os.path.join(SYSROOT, "usr/bin", t)) for t in ("wlr-randr", "grim")]
-        tools.append(os.path.join(ROOT, "out", "wl-test", "bin", "wlt-input"))
+        tools.append(os.path.realpath(os.path.join(WLT_OUT, "bin", "wlt-input")))
         with open(cls.allow, "w") as f:
             f.write("# testy luxwm\n" + "\n".join(tools + [cls.trusted, cls.wltest]) + "\nrelative/ignored\n")
 
