@@ -4,7 +4,8 @@
 #
 #   vlevo     logo LuxOS (nabidka systemu) a nazev aktivni aplikace (wlr-foreign-toplevel, stav activated)
 #   uprostred hodiny jako luxos-clock (datum podle jazyka plochy), klik = kalendar
-#   vpravo    oznamovaci oblast (StatusNotifierItem), rozlozeni klavesnice, zvuk, Wi-Fi/sit, baterie,
+#   vpravo    oznamovaci oblast (StatusNotifierItem), rozlozeni klavesnice (z luxwm, klik = nabidka rozlozeni),
+#             zvuk, Wi-Fi/sit, baterie,
 #             zvonek s historii oznameni (luxos-notify) a Ovladaci centrum (luxos-cc-toggle)
 #
 # Pismo listy: v tmavem rezimu bile, ve svetlem podle tapety pod listou (kontrast WCAG s hysterezi,
@@ -47,7 +48,8 @@ MENU = [["About LuxOS", ["luxos-about"]], ["Settings", ["luxos-settings"]], ["La
 
 bars = []
 ui = {"provider": 0, "app": "", "app_names": {}, "wm_classes": None, "clock": "", "clock_tip": "", "conf": {},
-      "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "menu": 0, "thumbs": {}}
+      "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "menu": 0, "layout_menu": 0, "layout_items": [],
+      "layout_names": [], "thumbs": {}}
 
 function trace(message):
     if ui["trace"]:
@@ -802,6 +804,53 @@ function on_menu_item(argv, item):
     return 0
 end
 
+# Nabidka rozlozeni pod odznakem: aktivni zaskrtnute, klik prepne (luxwm), dole nastaveni. Stavi se znovu
+# jen pri jinem seznamu rozlozeni (zaznamy signalu se neuvolnuji).
+function show_layouts(widget):
+    kb = status.state["keyboard"]
+    if ui["layout_menu"] == 0 or ui["layout_names"] != kb["names"]:
+        if ui["layout_menu"] != 0:
+            call gtk.widget_destroy(ui["layout_menu"])
+        end
+        menu = luxos_gtk.menu_new()
+        items = []
+        for i in range(len(kb["names"])):
+            item = luxos_gtk.check_menu_item_new(kb["names"][i])
+            call lglib.connect_data(item, "activate", 0, on_layout_item, i)
+            call luxos_gtk.menu_append(menu, item)
+            items.append(item)
+        end
+        if len(items) > 0:
+            call luxos_gtk.menu_append(menu, luxos_gtk.separator_menu_item_new())
+        end
+        settings = luxos_gtk.menu_item_new(i18n.T("Keyboard Settings…"))
+        call lglib.connect_data(settings, "activate", 0, on_menu_item, ["luxos-keyboard"])
+        call luxos_gtk.menu_append(menu, settings)
+        call gtk.widget_show_all(menu)
+        ui["layout_menu"] = menu
+        ui["layout_items"] = items
+        ui["layout_names"] = [name for name in kb["names"]]
+    end
+    # set_active posle "activate"; on_layout_item prepina jen na neaktivni rozlozeni, takze nic nespusti
+    for i in range(len(ui["layout_items"])):
+        call luxos_gtk.check_menu_item_set_active(ui["layout_items"][i], i == kb["current"])
+    end
+    call trace("layout menu " + String(len(ui["layout_items"])))
+    unsafe:
+        call __lsl_qbe_call5(__lsl_symbol("gtk_menu_popup_at_widget"), ptr(ui["layout_menu"]), ptr(widget), 7, 1, 0)
+    end
+    return 0
+end
+
+function on_layout_item(index, item):
+    # zaskrtnuti nastavi i program (set_active), prepina jen klik na neaktivni rozlozeni
+    if index != status.state["keyboard"]["current"] and luxos_gtk.check_menu_item_get_active(item):
+        call trace("layout switch " + String(index))
+        call status.switch_layout(index)
+    end
+    return 0
+end
+
 function on_item_press(kind, event, widget):
     # jen prvni stisk: rychly druhy klik posle navic GDK_2BUTTON_PRESS (prepnuti by se vratilo)
     if gtk.event_button(event) != 1 or plain_press(event) == False:
@@ -822,7 +871,7 @@ function on_item_press(kind, event, widget):
         call glib.spawn_quiet(["luxos-cc-toggle"])
     elif kind == "keyboard":
         call popup.close_all()
-        call status.next_layout()
+        call show_layouts(widget)
     elif kind == "network" and status.state["network"]["portal"]:
         call popup.close_all()
         call glib.spawn_quiet(["luxos-network-login"])

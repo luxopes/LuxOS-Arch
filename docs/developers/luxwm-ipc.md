@@ -49,6 +49,7 @@ chybný JSON: `"error": "bad request"` (spojení zůstává).
 | `switch_workspace` | `number` (od 1) nebo `delta` (`-1`, `1`) | ne | přepne plochu jako zkratka |
 | `reload` | – | ne | znovu načte `luxwm.conf`, rozložení klávesnice, allowlist a vzhled (jako `SIGHUP`) |
 | `set_theme` | `theme`: `"light"` / `"dark"` | ne | překreslí záhlaví oken a pošle událost `theme` |
+| `suspend_shortcuts` | `on`: `true` / `false` | ne | vypne globální zkratky, dokud klient neřekne `false` nebo se neodpojí (zadávání nové zkratky v nastavení) |
 | `list_windows` | – | ano | `{"ok": true, "windows": [okno, ...]}` v pořadí od naposledy zaměřeného |
 | `focus_window` | `id` | ano | zaměří okno (i na jiné ploše, obnoví minimalizované) |
 

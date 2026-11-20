@@ -104,7 +104,8 @@ function read_config(path, general, keys):
         name = line[:eq].strip()
         value = line[eq + 1:].strip()
         if section == "keys":
-            keys[name] = value
+            # stejna zkratka zapsana jinym poradim modifikatoru musi uzivatel prepsat
+            keys[canonical(name)] = value
         else:
             general[name] = value
         end
@@ -171,6 +172,26 @@ function setting_int(name, low, high):
         value = low
     end
     return max(low, min(high, value))
+end
+
+# "<Super><Ctrl>Left" -> "<Primary><Super>Left" (poradi jako gtk_accelerator_name, pismeno male)
+function canonical(text):
+    parsed = parse_accel(text)
+    if len(parsed) != 2:
+        return text.strip()
+    end
+    parts = text.split(">")
+    key = parts[len(parts) - 1].strip()
+    if len(key) == 1:
+        key = key.lower()
+    end
+    out = ""
+    for pair in [[lc.MOD_CTRL, "<Primary>"], [lc.MOD_SHIFT, "<Shift>"], [lc.MOD_ALT, "<Alt>"], [lc.MOD_SUPER, "<Super>"]]:
+        if parsed[0] & pair[0]:
+            out += pair[1]
+        end
+    end
+    return out + key
 end
 
 # "<Primary><Super>Left" -> [mods, klavesa]; [] kdyz je zapis spatne
@@ -1143,9 +1164,7 @@ function handle(event, id, a, b, c):
     elif event == lc.EV_IPC_LINE:
         call ipc_line(id)
     elif event == lc.EV_IPC_CLOSE:
-        if id in ipc:
-            call ipc.pop(id)
-        end
+        call drop_client(id)
         return
     elif event == lc.EV_SLIDE_DONE:
         if focused() == 0:
@@ -1221,8 +1240,37 @@ function topic_event(topic):
 end
 
 function send(client, message):
-    if lc.ipc_send(client, json.encode(message)) == 0 and client in ipc:
-        call ipc.pop(client)
+    if lc.ipc_send(client, json.encode(message)) == 0:
+        call drop_client(client)
+    end
+end
+
+function drop_client(client):
+    if client in ipc:
+        suspended = ipc.pop(client).get("suspend", False)
+        if suspended:
+            call update_suspend()
+        end
+    end
+end
+
+# Nastaveni zkratek chyta klavesy: do konce (nebo odpojeni klienta) zadne globalni zkratky
+function update_suspend():
+    want = False
+    for client in ipc.keys():
+        if ipc[client].get("suspend", False):
+            want = True
+        end
+    end
+    if want and len(binds) > 0:
+        for id in binds.keys():
+            call lc.unbind_key(id)
+        end
+        binds.clear()
+        call note("shortcuts suspended")
+    elif not want and len(binds) == 0:
+        call bind_keys()
+        call note("shortcuts resumed")
     end
 end
 
@@ -1234,7 +1282,7 @@ function broadcast(topic, message):
                 line = json.encode(message)
             end
             if lc.ipc_send(client, line) == 0:
-                call ipc.pop(client)
+                call drop_client(client)
             end
         end
     end
@@ -1352,6 +1400,11 @@ function ipc_command(client, request):
         return {"ok": True}
     elif cmd == "reload":
         call on_reload()
+        call update_suspend()
+        return {"ok": True}
+    elif cmd == "suspend_shortcuts":
+        ipc[client]["suspend"] = request.get("on", False) == True
+        call update_suspend()
         return {"ok": True}
     elif cmd == "set_theme":
         theme = request.get("theme", "")
