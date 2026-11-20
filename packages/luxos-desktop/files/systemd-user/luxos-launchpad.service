@@ -1,0 +1,23 @@
+# LuxOS - Launchpad a Hledani relace na Waylandu (luxos-launchpad, LSL). Bezi stale se skrytym oknem, aby se po
+# Super+A / Super+Space ukazal hned (skryte okno nema plochu u kompozitoru ani casovac). Relace ho spousti predem;
+# kdyz nebezi, spusti ho D-Bus pri prvnim pouziti (cz.luxos.Launchpad). Bez Waylandu konci s kodem 2 (X11: rofi).
+[Unit]
+Description=LuxOS Launchpad
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=dbus
+BusName=cz.luxos.Launchpad
+ExecStart=/usr/lib/luxos/luxos-launchpad
+Restart=on-failure
+RestartSec=200ms
+RestartPreventExitStatus=2
+MemoryHigh=128M
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target

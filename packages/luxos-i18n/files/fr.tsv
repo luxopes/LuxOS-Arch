@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Écran de démarrage défini sur %s.
 Active app: %s	App active : %s
 Search apps or ask LuxAI	Rechercher des apps ou demander à LuxAI
 Search or ask LuxAI	Rechercher ou demander à LuxAI
+Ask LuxAI	Demander à LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	La mémoire est presque saturée
 “%s” used too much memory and was closed so the computer would not freeze.	« %s » utilisait trop de mémoire et a été fermé pour éviter que l’ordinateur ne se fige.

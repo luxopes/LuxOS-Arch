@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Schermata di avvio impostata su %s.
 Active app: %s	App attiva: %s
 Search apps or ask LuxAI	Cerca app o chiedi a LuxAI
 Search or ask LuxAI	Cerca o chiedi a LuxAI
+Ask LuxAI	Chiedi a LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Memoria in esaurimento
 “%s” used too much memory and was closed so the computer would not freeze.	“%s” ha usato troppa memoria ed è stata chiusa per evitare che il computer si bloccasse.

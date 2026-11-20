@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Opstartscherm ingesteld op %s.
 Active app: %s	Actieve app: %s
 Search apps or ask LuxAI	Zoek apps of vraag het LuxAI
 Search or ask LuxAI	Zoek of vraag het LuxAI
+Ask LuxAI	Vraag het LuxAI
 # LuxOS 2026-10-21: geheugenbeveiliging
 Memory is running low	Het geheugen raakt op
 “%s” used too much memory and was closed so the computer would not freeze.	“%s” gebruikte te veel geheugen en is gesloten zodat de computer niet zou vastlopen.

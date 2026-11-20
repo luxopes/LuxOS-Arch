@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Tela de inicialização definida como %s.
 Active app: %s	App ativo: %s
 Search apps or ask LuxAI	Busque apps ou pergunte ao LuxAI
 Search or ask LuxAI	Busque ou pergunte ao LuxAI
+Ask LuxAI	Perguntar ao LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	A memória está acabando
 “%s” used too much memory and was closed so the computer would not freeze.	“%s” usou memória demais e foi fechado para que o computador não travasse.
