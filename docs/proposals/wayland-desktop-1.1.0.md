@@ -1,6 +1,6 @@
 # LuxOS 1.1.0 – vlastni desktop na Waylandu (plan)
 
-Rozhodnuti majitele 2026-11-21: R1 (kompozitor luxwm = odnoz labwc v C na wlroots 0.20, shell v LSL - Python v desktopu zakazan); licence kompozitoru je jedno (GPL-2 ok); poradi podle navrhu; pracuji jen Claude (koordinator) a jeho subagenti. Pilire: bezpecnost, RAM, rychlost; musi bezet vsude (vcetne VM bez 3D - pixman). X11 sezeni zustava jako zaloha (NVIDIA 470xx, problemovy HW). Nikdy netestovat na skutecne obrazovce majitele.
+Rozhodnuti majitele 2026-11-21: cil je R2 (tenke jadro libluxcomp v C na wlroots 0.20 s plochym C API + veskera logika spravce oken `luxwm` v LSL; shell v LSL - Python v desktopu zakazan; R3 ciste LSL se neresi). Shell se mezitim vyviji proti beznemu labwc (layer-shell klientum je kompozitor jedno); licence kompozitoru je jedno (GPL-2 ok); poradi podle navrhu; pracuji jen Claude (koordinator) a jeho subagenti. Pilire: bezpecnost, RAM, rychlost; musi bezet vsude (vcetne VM bez 3D - pixman). X11 sezeni zustava jako zaloha (NVIDIA 470xx, problemovy HW). Nikdy netestovat na skutecne obrazovce majitele.
 
 Integracni vetev: `wayland-1.1` (do main az pri vydani 1.1.0). Kazdy balik prace ve vlastni vetvi z `wayland-1.1`.
 
