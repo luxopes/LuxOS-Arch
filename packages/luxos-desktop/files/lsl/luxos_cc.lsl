@@ -2,6 +2,7 @@
 # Dlazdice: Wi-Fi (+ odkaz na QR kod site), Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie; posuvniky jasu a hlasitosti;
 # stav baterie; prave hrajici hudba (MPRIS); Obrazovky (Zrcadlit / Rozsirit / Jen externi) jen pri 2+ pripojenych
 # monitorech - misto okna, ktere by vyskakovalo pri pripojeni. Okno se zavre pri ztrate fokusu nebo klavesou Esc.
+# Na Waylandu je okno plocha layer-shell pod tlacitkem listy (luxos_hub_popup), bez jedineho volani X11.
 #
 #   call cc.create()      skryte okno se styly podle motivu (pouziva luxos-hub i samostatny program)
 #   call cc.toggle()      ukaze/skryje okno (klik v liste)
@@ -15,6 +16,9 @@ load luxos_i18n as i18n
 load luxos_layer as layer
 load luxos_mpris as mpris
 load luxos_text as text
+load luxos_layer as layer
+load luxos_wl as wl
+load luxos_hub_popup as popup
 
 CSS = ("window.cc { background: transparent; }\n"
     + ".cc-box { background-color: @cc_bg; border-radius: 18px; border: 1px solid @cc_border; padding: 12px; color: @cc_fg; }\n"
@@ -224,7 +228,7 @@ function backlight():
     return base + "/" + names[0]
 end
 
-# Jas v procentech: podsviceni, jinak softwarovy jas monitoru (xrandr); None kdyz nejde zjistit
+# Jas v procentech: podsviceni, jinak softwarovy jas monitoru (X11, xrandr); None kdyz nejde zjistit
 function brightness():
     bl = backlight()
     if bl != "":
@@ -466,30 +470,19 @@ function create():
         cc["test_log"] = ""
     end
 
+    cc["lost"] = -100000
+
     win = gtk.window_new(i18n.T("Control Center"))
     cc["win"] = win
     call gtk.widget_add_class(win, "cc")
-    call gtk.window_set_decorated(win, False)
     call gtk.window_set_resizable(win, False)
-    call gtk.window_set_skip_taskbar_hint(win, True)
-    call gtk.window_set_skip_pager_hint(win, True)
-    call gtk.window_set_keep_above(win, True)
-    call gtk.window_set_type_hint(win, gtk.TYPE_HINT_DIALOG)
-    call gtk.window_stick(win)
     call gtk.window_set_rgba(win)
-    # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
-    call gtk.window_set_wmclass(win, "luxos-control-center", "Luxos-control-center")
-    # Wayland: okno nelze presunout (window_move), bez vrstvy by bylo bezne okno uprostred s ikonou v Docku;
-    # vrstva vpravo pod listou jako vyskakovaci okna listy, klavesnice po zobrazeni (Esc, ztrata fokusu zavre)
-    cc["layer"] = layer.is_wayland() and layer.is_supported()
-    if cc["layer"]:
-        call layer.init_for_window(win)
-        call layer.set_namespace(win, "luxos-control-center")
-        call layer.set_layer(win, layer.LAYER_OVERLAY)
-        call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_RIGHT])
-        call layer.set_margin(win, layer.EDGE_TOP, 6)
-        call layer.set_margin(win, layer.EDGE_RIGHT, 8)
-        call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
+    if wayland():
+        call popup.setup(win, "luxos-control-center")
+        # vystupy pro dlazdici Obrazovky; spojeni GTK, zadna vlastni obsluha udalosti (ta patri Emoji v hubu)
+        call wl.attach(layer.wl_display())
+    else:
+        call window_hints_x11(win)
     end
 
     outer = gtk.box_new(gtk.VERTICAL, 10)
@@ -616,19 +609,41 @@ function create():
     footer = gtk.box_new(gtk.HORIZONTAL, 4)
     call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings")
     call footer_button(footer, i18n.T("Battery…"), "luxos-power")
-    call footer_button(footer, i18n.T("All Settings…"), "xfce4-settings-manager")
+    call footer_button(footer, i18n.T("All Settings…"), settings_command())
     call gtk.box_pack_start(outer, footer, False, False, 0)
 
     call gtk.connect(win, "focus-in-event", on_focus_in)
     call gtk.connect(win, "focus-out-event", on_focus_out)
     call gtk.connect(win, "key-press-event", on_key)
-    call gtk.connect(win, "realize", on_realize)
-    call gtk.connect(win, "configure-event", on_configure)
+    if not wayland():
+        call gtk.connect(win, "realize", on_realize_x11)
+        call gtk.connect(win, "configure-event", on_configure_x11)
+    end
     # Na pozadi: zavreni okno jen skryje, dalsi klik v liste ho hned ukaze (SIGUSR1)
     call gtk.connect(win, "delete-event", on_delete)
     call refresh_fast()
     call refresh_slow()
     return 0
+end
+
+function window_hints_x11(win):
+    call gtk.window_set_decorated(win, False)
+    call gtk.window_set_skip_taskbar_hint(win, True)
+    call gtk.window_set_skip_pager_hint(win, True)
+    call gtk.window_set_keep_above(win, True)
+    call gtk.window_set_type_hint(win, gtk.TYPE_HINT_DIALOG)
+    call gtk.window_stick(win)
+    # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
+    call gtk.window_set_wmclass(win, "luxos-control-center", "Luxos-control-center")
+    return 0
+end
+
+# Vsechna nastaveni: na Waylandu nebezi xfce4-settings-manager
+function settings_command():
+    if wayland():
+        return "luxos-settings"
+    end
+    return "xfce4-settings-manager"
 end
 
 function log_test(message):
@@ -653,17 +668,25 @@ function toggle():
         call close()
         return 0
     end
+    # klik na tlacitko v liste, ktery oknu prave vzal fokus (a tim ho zavrel), ho nesmi hned znovu otevrit
+    if wayland() and popup.same_click(cc["lost"]):
+        return 0
+    end
     call refresh_fast()
     if cc["media_dirty"]:
         call apply_media()
     end
-    call gtk.widget_show_all(cc["win"])
-    call place()
-    stamp = gtk.get_current_event_time()
-    if stamp == 0:
-        stamp = gtk.CURRENT_TIME
+    if wayland():
+        call show_wayland()
+    else:
+        call gtk.widget_show_all(cc["win"])
+        call place_x11()
+        stamp = gtk.get_current_event_time()
+        if stamp == 0:
+            stamp = gtk.CURRENT_TIME
+        end
+        call gtk.window_present_with_time(cc["win"], stamp)
     end
-    call gtk.window_present_with_time(cc["win"], stamp)
     # udaje ze sluzeb (nmcli, pactl, oznameni) az po zobrazeni okna: spousteni procesu nebrzdi
     # vystup nmcli/pactl se cte jako text ("enabled", "Mute: yes"): vzdy s LC_ALL=C, jinak by cesky
     # "povoleno" znamenalo vypnutou Wi-Fi a prepinac by umel jen zapnout
@@ -673,10 +696,14 @@ function toggle():
         cc["timer"] = glib.timeout_add_seconds(3, periodic)
     end
     call log_test("shown")
-    # test: tazeni posuvnikem Zvuk (LUXOS_CC_TEST_SLIDE = pocet zmen po 5 ms)
+    # test: tazeni posuvnikem (LUXOS_CC_TEST_SLIDE = pocet zmen po 5 ms; LUXOS_CC_TEST_SLIDER = s_bright, jinak Zvuk)
     slide = env.get("LUXOS_CC_TEST_SLIDE", "")
     if cc["test_log"] != "" and slide != None and slide != "":
-        cc["slide"] = [0, Int(slide)]
+        target = env.get("LUXOS_CC_TEST_SLIDER", "")
+        if target != "s_bright":
+            target = "s_vol"
+        end
+        cc["slide"] = [0, Int(slide), target]
         call glib.timeout_add(5, test_slide)
     end
     return 0
@@ -684,8 +711,18 @@ end
 
 function test_slide():
     cc["slide"][0] = cc["slide"][0] + 1
-    call gtk.range_set_value(cc["s_vol"]["scale"], cc["slide"][0])
+    call gtk.range_set_value(cc[cc["slide"][2]]["scale"], cc["slide"][0])
     return cc["slide"][0] < cc["slide"][1]
+end
+
+# Plocha layer-shell: monitor a poloha pred zobrazenim, fokus da kompozitor (klavesnice on demand).
+# Zadne gtk_window_present: GDK by na Waylandu cekal na aktivacni token v blokujicim roundtripu.
+function show_wayland():
+    call gtk.widget_show_all(gtk.bin_get_child(cc["win"]))
+    width = gtk.widget_get_preferred_width(cc["win"])[1]
+    call log_test("placed " + popup.place(cc["win"], width, "right"))
+    call popup.show(cc["win"])
+    return 0
 end
 
 function refresh_slow_once():
@@ -694,17 +731,13 @@ function refresh_slow_once():
 end
 
 function close():
-    cc["focused"] = False
     call gtk.widget_hide(cc["win"])
     call log_test("hidden")
     return 0
 end
 
 # umisteni vpravo pod horni listou na monitoru s kurzorem
-function place():
-    if cc.get("layer", False):
-        return 0
-    end
+function place_x11():
     pointer = gtk.pointer_position()
     geo = gtk.monitor_at_point_workarea(pointer[0], pointer[1])
     size = gtk.window_get_size(cc["win"])
@@ -721,26 +754,28 @@ function place():
     return 0
 end
 
-function on_realize(window):
-    call place()
+function on_realize_x11(window):
+    call place_x11()
     return 0
 end
 
-function on_configure(event, window):
-    call glib.idle_add(on_size)
+function on_configure_x11(event, window):
+    call glib.idle_add(on_size_x11)
     return False
 end
 
 # obsah (baterie, prehravani, delsi texty) zmenil velikost okna: znovu umistit
-function on_size():
+function on_size_x11():
     if gtk.widget_get_visible(cc["win"]) and gtk.window_get_size(cc["win"]) != cc["placed"]:
-        call place()
+        call place_x11()
     end
     return False
 end
 
 function on_focus_in(event, window):
-    cc["focused"] = True
+    if wayland():
+        call popup.focus_in(cc["win"])
+    end
     return False
 end
 
@@ -749,20 +784,21 @@ function on_focus_out(event, window):
     if env.get("LUXOS_HUB_NO_AUTOHIDE", "") == "1":
         return False
     end
-    # vrstva na Waylandu nema stav "aktivni okno": zavrit, kdyz klavesnici mela a ztratila (klik jinam)
-    if cc.get("layer", False):
-        if cc.get("focused", False):
+    # Wayland: fokus bere jen klik jinam (okno, plocha), kompozitor ho hlasi spolehlive
+    if wayland():
+        if popup.focus_out(cc["win"]) and is_visible():
+            cc["lost"] = glib.monotonic_time() // 1000
             call close()
         end
         return False
     end
-    call glib.timeout_add(120, close_if_unfocused)
+    call glib.timeout_add(120, close_if_unfocused_x11)
     return False
 end
 
 # is_active() zustava po kliknuti na plochu (xfdesktop drzi grab) chybne True,
 # proto rozhoduje i skutecne aktivni okno podle spravce oken (_NET_ACTIVE_WINDOW)
-function close_if_unfocused():
+function close_if_unfocused_x11():
     active = gtk.screen_active_window()
     own = gtk.widget_get_window(cc["win"])
     if not gtk.window_is_active(cc["win"]) or (active != 0 and active != own):
@@ -854,6 +890,12 @@ function refresh_fast():
     if b != None:
         call slider_set_value(cc["s_bright"], b)
     end
+    # Wayland bez podsviceni (stolni pocitac, VM): softwarovy jas pres gamma by drzel jen bezici klient
+    if wayland():
+        bright = backlight() != ""
+        call gtk.widget_set_no_show_all(cc["s_bright"]["box"], not bright)
+        call gtk.widget_set_visible(cc["s_bright"]["box"], bright)
+    end
     bat = battery()
     call gtk.widget_set_no_show_all(cc["bat_wrap"], bat == None)
     call gtk.widget_set_visible(cc["bat_wrap"], bat != None)
@@ -904,7 +946,11 @@ function refresh_slow():
         call glib.spawn_capture(["xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb"], on_dnd, 0)
     end
     call glib.spawn_capture(["env", "LC_ALL=C", "pactl", "get-sink-volume", "@DEFAULT_SINK@"], on_volume, 0)
-    call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
+    if wayland():
+        call displays_apply(displays_wayland())
+    else:
+        call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
+    end
     return 0
 end
 
@@ -1252,7 +1298,8 @@ end
 
 # ---- obrazovky: Zrcadlit / Rozsirit / Jen externi -----------------------------------------------------
 # Jen kdyz jsou pripojene aspon dva monitory. Prepina luxos-displays (rezim se ulozi pro tuto sadu monitoru
-# a pouzije se i po opetovnem pripojeni a prihlaseni); stav se cte z "xrandr --current" (bez sondovani).
+# a pouzije se i po opetovnem pripojeni a prihlaseni); stav se cte z "xrandr --current" (bez sondovani),
+# na Waylandu z vystupu kompozitoru (luxos_wl).
 
 function is_internal_name(name):
     return name.startswith("eDP") or name.startswith("LVDS") or name.startswith("DSI")
@@ -1279,13 +1326,9 @@ function parse_geometry(word):
     return out
 end
 
-# Vystup "xrandr --current" -> {"count": pripojenych, "internal": vestaveny pripojen,
-#   "mode": "mirror" | "extend" | "external" | "internal" | "" (neznamy), "size": [w, h] hlavniho/prvniho aktivniho}
+# Vystup "xrandr --current" -> stav (displays_state)
 function displays_parse(output):
-    count = 0
-    internal = False
-    active = []
-    first = None
+    screens = []
     for line in output.split("\n"):
         if line == "" or line.startswith(" ") or line.startswith("\t"):
             continue
@@ -1294,24 +1337,63 @@ function displays_parse(output):
         if len(words) < 2 or words[1] != "connected":
             continue
         end
-        name = words[0]
-        count += 1
-        if is_internal_name(name):
-            internal = True
-        end
         index = 2
         primary = False
         if len(words) > index and words[index] == "primary":
             primary = True
             index += 1
         end
+        geo = None
         if len(words) > index:
             geo = parse_geometry(words[index])
-            if geo != None:
-                active.append([name, geo])
-                if primary or first == None:
-                    first = geo
-                end
+        end
+        screens.append([words[0], geo, primary])
+    end
+    return displays_state(screens)
+end
+
+# Monitory na Waylandu: hlavy wlr-output-management (i vypnute monitory), jinak zapnute vystupy wl_output
+# (luxwm hlavy ukaze jen programum z privileged.conf, hub mezi ne nepatri)
+function displays_wayland():
+    screens = []
+    if not wl.available():
+        return displays_state(screens)
+    end
+    for head in wl.heads():
+        info = wl.head_info(head)
+        geo = None
+        if info[2]:
+            geo = [info[5], info[6], info[3], info[4]]
+        end
+        screens.append([info[0], geo, False])
+    end
+    if len(screens) == 0:
+        for output in wl.outputs():
+            g = wl.output_geometry(output)
+            screens.append([wl.output_name(output), [g[2], g[3], g[0], g[1]], False])
+        end
+    end
+    return displays_state(screens)
+end
+
+# [[nazev, [w, h, x, y] nebo None (vypnuty), hlavni], ...] -> {"count": pripojenych, "internal": vestaveny pripojen,
+#   "mode": "mirror" | "extend" | "external" | "internal" | "" (neznamy), "size": [w, h] hlavniho/prvniho aktivniho}
+function displays_state(screens):
+    count = 0
+    internal = False
+    active = []
+    first = None
+    for screen in screens:
+        name = screen[0]
+        count += 1
+        if is_internal_name(name):
+            internal = True
+        end
+        geo = screen[1]
+        if geo != None:
+            active.append([name, geo])
+            if screen[2] or first == None:
+                first = geo
             end
         end
     end
@@ -1483,22 +1565,34 @@ function on_display_mode_done(unused, pid, status):
         return 0
     end
     call log_test("display-done")
+    if wayland():
+        call displays_apply(displays_wayland())
+        return 0
+    end
     call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
     # plocha se zmenila (napr. vypnuty vestaveny displej): okno znovu na monitor s kurzorem
     if gtk.widget_get_visible(cc["win"]):
-        call place()
+        call place_x11()
     end
     return 0
 end
 
+# Na Waylandu nova aplikace Monitory: luxos-displays bez argumentu ji otevre
 function open_displays():
-    call glib.spawn_quiet(["luxos-display-settings"])
+    if wayland():
+        call glib.spawn_quiet(["luxos-displays"])
+    else:
+        call glib.spawn_quiet(["luxos-display-settings"])
+    end
     call close()
     return 0
 end
 
 function set_brightness(value):
     v = max(value, 10)
+    if wayland():
+        return set_brightness_logind(v)
+    end
     if backlight() != "":
         return ["brightnessctl", "-q", "set", String(v) + "%"]
     end
@@ -1506,4 +1600,36 @@ function set_brightness(value):
     call glib.mkdir_p(config_dir())
     call writefile(soft_brightness_path(), String(v))
     return ["luxos-displays", "brightness", String(v)]
+end
+
+# Wayland: podsviceni pres logind (Session.SetBrightness) - bez brightnessctl, bez prav k /sys a bez procesu.
+# Posuvnik ceka na odpoved stejne jako na dobehnuti prikazu (nejvys jedna zmena na ceste).
+function set_brightness_logind(percent):
+    bl = backlight()
+    maximum = None
+    if bl != "":
+        maximum = read_int(bl + "/max_brightness")
+    end
+    if maximum == None or maximum <= 0:
+        return None
+    end
+    row = cc["s_bright"]
+    name = bl[text.rfind(bl, "/") + 1:]
+    value = (maximum * Int(percent) + 50) // 100
+    call log_test("brightness " + name + " " + String(value))
+    try:
+        call gio.call_async(gio.system_bus(), "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "SetBrightness", ["backlight", name, value], "(ssu)", 3000, on_brightness_set, row)
+        row["busy"] = True
+    else:
+        call eprint("luxos-control-center: brightness: " + String(last_error()))
+    end
+    return None
+end
+
+function on_brightness_set(row, values, error):
+    if values == None:
+        call eprint("luxos-control-center: brightness: " + String(error))
+    end
+    call on_slider_done(row, 0, 0)
+    return 0
 end
