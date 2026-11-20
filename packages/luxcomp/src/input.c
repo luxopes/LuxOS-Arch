@@ -199,11 +199,6 @@ add_device(struct wlr_input_device *device, bool own_keymap)
 	} else if (device->type == WLR_INPUT_DEVICE_POINTER) {
 		wlr_cursor_attach_input_device(comp.cursor, device);
 	}
-	uint32_t caps = WL_SEAT_CAPABILITY_POINTER;
-	if (!wl_list_empty(&comp.keyboards)) {
-		caps |= WL_SEAT_CAPABILITY_KEYBOARD;
-	}
-	wlr_seat_set_capabilities(comp.seat, caps);
 }
 
 static void
@@ -420,7 +415,10 @@ request_primary(struct wl_listener *listener, void *data)
 void
 input_init(void)
 {
+	/* ukazatel a klavesnici nabizet trvale: kdyz zmizi posledni klavesnice (odpojeni USB, konec
+	 * virtualni), klienti by dostali leave a jejich wl_keyboard by uz zamereni nedostal */
 	comp.seat = wlr_seat_create(comp.display, "seat0");
+	wlr_seat_set_capabilities(comp.seat, WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_KEYBOARD);
 	comp.cursor = wlr_cursor_create();
 	wlr_cursor_attach_output_layout(comp.cursor, comp.layout);
 	const char *size = getenv("XCURSOR_SIZE");
