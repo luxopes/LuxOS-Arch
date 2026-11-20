@@ -1,0 +1,28 @@
+# Maintainer: LuxOS Team
+# luxwm - spravce oken desktopu LuxOS na Waylandu (1.1.0, architektura R2): politika v LSL nad
+# jadrem kompozitoru libluxcomp (packages/luxcomp). Umisteni, zamereni, Alt+Tab, plochy, cela obrazovka,
+# vzhled zahlavi z luxos_tokens (packages/luxos-desktop/files/lsl) a zkratky z /usr/share/luxwm/luxwm.conf.
+# Popis: README.md; testy: tests/test_luxwm.py (scripts/wl-test, headless a vnoreny Xvfb).
+
+pkgname=luxwm
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='LuxOS Wayland window manager (policy in LSL on libluxcomp)'
+arch=('x86_64')
+url='https://github.com/luxopes/LuxOS-Arch'
+license=('GPL-3.0-or-later')
+depends=('luxcomp>=0.1.0-2' 'glib2')
+makedepends=('lsl>=0.10.6' 'luxcomp>=0.1.0-2')
+source=()
+
+build() {
+  # moduly LSL se hledaji vedle zdroje: luxwm, vazba a spolecne tokeny vzhledu do jednoho adresare
+  mkdir -p lsl
+  cp "$startdir"/luxwm.lsl "$startdir"/luxos_luxcomp.lsl "$startdir"/../luxos-desktop/files/lsl/luxos_tokens.lsl lsl/
+  lslc --target linux-x86_64-gnu lsl/luxwm.lsl luxwm
+}
+
+package() {
+  install -Dm755 luxwm "$pkgdir/usr/bin/luxwm"
+  install -Dm644 "$startdir/luxwm.conf" "$pkgdir/usr/share/luxwm/luxwm.conf"
+}

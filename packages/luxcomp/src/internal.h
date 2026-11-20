@@ -95,9 +95,11 @@ struct comp {
 	struct wlr_xdg_shell *xdg_shell;
 	struct wlr_layer_shell_v1 *layer_shell;
 	struct wlr_xdg_decoration_manager_v1 *deco_mgr;
+	struct wlr_output_manager_v1 *output_mgr;
 	bool software;
 	struct wl_listener new_output, new_toplevel, new_popup, new_layer_surface,
-		new_decoration, new_input;
+		new_decoration, new_input, output_mgr_apply, output_mgr_test,
+		new_virtual_keyboard, new_virtual_pointer;
 
 	struct wlr_seat *seat;
 	struct wlr_cursor *cursor;

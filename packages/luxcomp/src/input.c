@@ -14,6 +14,8 @@
 #include <wlr/types/wlr_primary_selection.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_virtual_keyboard_v1.h>
+#include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <xkbcommon/xkbcommon.h>
@@ -169,13 +171,15 @@ keyboard_destroy(struct wl_listener *listener, void *data)
 }
 
 static void
-new_keyboard(struct wlr_input_device *device)
+new_keyboard(struct wlr_input_device *device, bool own_keymap)
 {
 	struct keyboard *kb = calloc(1, sizeof(*kb));
 	kb->wlr = wlr_keyboard_from_input_device(device);
-	struct xkb_keymap *map = make_keymap();
-	wlr_keyboard_set_keymap(kb->wlr, map);
-	xkb_keymap_unref(map);
+	if (!own_keymap) {
+		struct xkb_keymap *map = make_keymap();
+		wlr_keyboard_set_keymap(kb->wlr, map);
+		xkb_keymap_unref(map);
+	}
 	wlr_keyboard_set_repeat_info(kb->wlr, comp.repeat_rate, comp.repeat_delay);
 	kb->key.notify = keyboard_key;
 	wl_signal_add(&kb->wlr->events.key, &kb->key);
@@ -188,19 +192,34 @@ new_keyboard(struct wlr_input_device *device)
 }
 
 static void
-new_input(struct wl_listener *listener, void *data)
+add_device(struct wlr_input_device *device, bool own_keymap)
 {
-	struct wlr_input_device *device = data;
 	if (device->type == WLR_INPUT_DEVICE_KEYBOARD) {
-		new_keyboard(device);
+		new_keyboard(device, own_keymap);
 	} else if (device->type == WLR_INPUT_DEVICE_POINTER) {
 		wlr_cursor_attach_input_device(comp.cursor, device);
 	}
-	uint32_t caps = WL_SEAT_CAPABILITY_POINTER;
-	if (!wl_list_empty(&comp.keyboards)) {
-		caps |= WL_SEAT_CAPABILITY_KEYBOARD;
-	}
-	wlr_seat_set_capabilities(comp.seat, caps);
+}
+
+static void
+new_input(struct wl_listener *listener, void *data)
+{
+	add_device(data, false);
+}
+
+/* Virtualni klavesnice si posila vlastni keymapu, tu nechame */
+static void
+new_virtual_keyboard(struct wl_listener *listener, void *data)
+{
+	struct wlr_virtual_keyboard_v1 *vk = data;
+	add_device(&vk->keyboard.base, true);
+}
+
+static void
+new_virtual_pointer(struct wl_listener *listener, void *data)
+{
+	struct wlr_virtual_pointer_v1_new_pointer_event *event = data;
+	add_device(&event->new_pointer->pointer.base, false);
 }
 
 /* ---- kurzor ---- */
@@ -396,7 +415,10 @@ request_primary(struct wl_listener *listener, void *data)
 void
 input_init(void)
 {
+	/* ukazatel a klavesnici nabizet trvale: kdyz zmizi posledni klavesnice (odpojeni USB, konec
+	 * virtualni), klienti by dostali leave a jejich wl_keyboard by uz zamereni nedostal */
 	comp.seat = wlr_seat_create(comp.display, "seat0");
+	wlr_seat_set_capabilities(comp.seat, WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_KEYBOARD);
 	comp.cursor = wlr_cursor_create();
 	wlr_cursor_attach_output_layout(comp.cursor, comp.layout);
 	const char *size = getenv("XCURSOR_SIZE");
@@ -405,6 +427,20 @@ input_init(void)
 
 	comp.new_input.notify = new_input;
 	wl_signal_add(&comp.backend->events.new_input, &comp.new_input);
+	/* Vstup od klientu (testy pres scripts/wl-test). Kazdy klient by jim mohl psat do jinych
+	 * oken, proto jen na vyslovne pozadani, dokud nebude allowlist security-context. */
+	wl_list_init(&comp.new_virtual_keyboard.link);
+	wl_list_init(&comp.new_virtual_pointer.link);
+	if (getenv("LUXCOMP_VIRTUAL_INPUT")) {
+		struct wlr_virtual_keyboard_manager_v1 *vk =
+			wlr_virtual_keyboard_manager_v1_create(comp.display);
+		comp.new_virtual_keyboard.notify = new_virtual_keyboard;
+		wl_signal_add(&vk->events.new_virtual_keyboard, &comp.new_virtual_keyboard);
+		struct wlr_virtual_pointer_manager_v1 *vp =
+			wlr_virtual_pointer_manager_v1_create(comp.display);
+		comp.new_virtual_pointer.notify = new_virtual_pointer;
+		wl_signal_add(&vp->events.new_virtual_pointer, &comp.new_virtual_pointer);
+	}
 	comp.cursor_motion.notify = cursor_motion;
 	wl_signal_add(&comp.cursor->events.motion, &comp.cursor_motion);
 	comp.cursor_motion_abs.notify = cursor_motion_abs;
@@ -435,6 +471,8 @@ input_finish(void)
 	wl_list_remove(&comp.request_cursor.link);
 	wl_list_remove(&comp.request_selection.link);
 	wl_list_remove(&comp.request_primary.link);
+	wl_list_remove(&comp.new_virtual_keyboard.link);
+	wl_list_remove(&comp.new_virtual_pointer.link);
 	wlr_xcursor_manager_destroy(comp.cursor_mgr);
 	wlr_cursor_destroy(comp.cursor);
 }

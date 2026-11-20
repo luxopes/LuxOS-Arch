@@ -23,6 +23,7 @@ struct ctx {
 	struct zwlr_virtual_pointer_v1 *ptr;
 	struct zwp_virtual_keyboard_v1 *kbd;
 	struct xkb_keymap *keymap;
+	struct xkb_state *state;
 	uint32_t w, h;
 };
 
@@ -89,6 +90,13 @@ static void send_key(struct ctx *c, xkb_keycode_t code, int down)
 	/* evdev kod = xkb kod - 8 */
 	zwp_virtual_keyboard_v1_key(c->kbd, ms(), code - 8,
 		down ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED);
+	/* wlroots u virtualni klavesnice stav modifikatoru z klaves nepocita, posila ho klient */
+	if (xkb_state_update_key(c->state, code, down ? XKB_KEY_DOWN : XKB_KEY_UP) & XKB_STATE_MODS_EFFECTIVE)
+		zwp_virtual_keyboard_v1_modifiers(c->kbd,
+			xkb_state_serialize_mods(c->state, XKB_STATE_MODS_DEPRESSED),
+			xkb_state_serialize_mods(c->state, XKB_STATE_MODS_LATCHED),
+			xkb_state_serialize_mods(c->state, XKB_STATE_MODS_LOCKED),
+			xkb_state_serialize_layout(c->state, XKB_STATE_LAYOUT_EFFECTIVE));
 }
 
 static int k_key(void *data, const char *name, int down)
@@ -154,6 +162,7 @@ static int setup_keyboard(struct ctx *c)
 	c->keymap = xc ? xkb_keymap_new_from_names(xc, &names, XKB_KEYMAP_COMPILE_NO_FLAGS) : NULL;
 	if (!c->keymap)
 		return -1;
+	c->state = xkb_state_new(c->keymap);
 	char *str = xkb_keymap_get_as_string(c->keymap, XKB_KEYMAP_FORMAT_TEXT_V1);
 	size_t len = strlen(str) + 1;
 	int fd = memfd_create("wlt-keymap", MFD_CLOEXEC);

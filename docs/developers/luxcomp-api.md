@@ -161,6 +161,12 @@ Jádro samo vybere renderer, který funguje všude:
 - `WLR_RENDERER` má přednost, ale při selhání také spadne na pixman.
 - Volba je vždy v logu: `luxcomp: renderer pixman + software cursor (no DRM render node)`.
 
+## Výstupy pro klienty
+
+Jádro nabízí `wlr-output-management-v1`: `wlr-randr` vypíše výstupy a nastaví režim (i vlastní
+velikost u headless a vnořeného backendu), polohu a měřítko. Harness `scripts/wl-test` přes něj
+zjišťuje, že kompozitor běží, a nastavuje `--size`. Po změně velikosti přijde `OUTPUT_USABLE`.
+
 ## Proměnné prostředí
 
 | Proměnná | Význam |
@@ -168,6 +174,7 @@ Jádro samo vybere renderer, který funguje všude:
 | `LUXCOMP_DEBUG` | ladicí log wlroots |
 | `LUXCOMP_STATS` | po každém přejezdu ploch počet snímků a nejpomalejší vykreslení |
 | `LUXCOMP_OUTPUT_MODE=1920x1080` | velikost výstupu bez režimů (headless, vnořené okno) |
+| `LUXCOMP_VIRTUAL_INPUT=1` | zapne virtual-keyboard-v1 a wlr-virtual-pointer-v1 (vstup z testů `scripts/wl-test`); bez ní je jádro nenabízí, protože by kterýkoli klient mohl psát do cizích oken |
 | `WLR_*` | jako ve wlroots (`WLR_BACKENDS`, `WLR_RENDERER`…) |
 
 ## Testy

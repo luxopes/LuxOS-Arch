@@ -14,6 +14,7 @@ The harness is shell plus small C tools. Python is used only in tests.
 | `vm-matrix.sh` | boots the image in QEMU with different graphics cards, captures frames via QMP, runs the flicker detector |
 | `src/wlt-input.c` | input through `zwlr_virtual_pointer_v1` and `zwp_virtual_keyboard_v1` |
 | `src/wlt-client.c` | test window (xdg-shell, server-side decorations, striped content, no fonts); `--events` prints input it receives |
+| `src/wlt-bar.c` | test bar through layer-shell (top or bottom edge, exclusive zone, solid colour) |
 | `src/wlt-qmp.c` | QMP client: `screendump` capture at a fixed fps, input via `input-send-event` |
 | `src/wlt-frames.c` | PPM statistics and the flicker detector |
 | `labwc/` | deterministic labwc config for tests (centered windows, no shadows, fixed root menu) |
@@ -60,12 +61,15 @@ scripts/wl-test/wlt stop "$s"
   - `--config DIR`: labwc config directory
   - `-- COMMAND...`: another compositor, e.g. `-- luxwm -d`. The compositor must support `wlr-output-management` (for `--size` and the readiness check) and virtual pointer/keyboard (for `input`).
   - `WLT_COMPOSITOR_ENV="VAR=x ..."` adds variables to the compositor's environment.
+- `wlt-bar [--height N] [--bottom] [--color RRGGBB]` is a layer-shell bar with an exclusive zone, for placement tests below a bar or above a dock.
+- `wlt-client --events` prints `focus US` (CLOCK_MONOTONIC in µs) when it gets keyboard focus, for latency measurements.
 - `run S CMD...` runs a client in the session environment. With `--bg`, output goes to `S/clients.log`, so you can read what `wlt-client --events` received.
 - `input` commands, one per argument or one per stdin line (`src/scen.c`):
   - `move X Y`
   - `down|up|click [left|right|middle]`
   - `drag X1 Y1 X2 Y2 [MS] [BTN]`
   - `key NAME[+NAME...]` (xkb names: `Return`, `Escape`, `ctrl+alt+t`, `super`)
+  - `keydown NAME`, `keyup NAME`: hold a key across commands, e.g. `keydown alt` `key Tab` `key Tab` `keyup alt`
   - `type TEXT` (US layout)
   - `sleep SEC`
 

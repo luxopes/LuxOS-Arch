@@ -1,6 +1,6 @@
 /* Prikazy scenare:
  *   move X Y | down [left|right|middle] | up [..] | click [..]
- *   drag X1 Y1 X2 Y2 [MS] [BTN] | key NAME[+NAME..] | type TEXT | sleep SEC
+ *   drag X1 Y1 X2 Y2 [MS] [BTN] | key NAME[+NAME..] | keydown NAME | keyup NAME | type TEXT | sleep SEC
  * Souradnice jsou pixely celeho rozvrzeni vystupu. */
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -108,6 +108,10 @@ int scen_line(const struct scen_ops *ops, void *ctx, char *line)
 		ops->button(ctx, b, 0);
 	} else if (!strcmp(cmd, "key") && n == 1) {
 		return combo(ops, ctx, a[0]);
+	} else if ((!strcmp(cmd, "keydown") || !strcmp(cmd, "keyup")) && n == 1) {
+		/* drzeny modifikator pres vic prikazu (Alt+Tab+Tab) */
+		if (ops->key(ctx, a[0], cmd[3] == 'd') < 0)
+			return -1;
 	} else if (!strcmp(cmd, "sleep") && n == 1) {
 		ops->flush(ctx);
 		scen_sleep(atof(a[0]));
