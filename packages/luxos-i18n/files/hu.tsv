@@ -5373,3 +5373,7 @@ Mailboxes at lux-ai.cz sign in with your LuxAI account, not with a password. Thi
 Keep in Dock	Megtartás a Dockban
 Remove from Dock	Eltávolítás a Dockból
 Change Wallpaper…	Háttérkép módosítása…
+The desktop could not start. %s is selected.	Az asztal nem tudott elindulni. A(z) %s van kiválasztva.
+Authentication required	Hitelesítés szükséges
+Authenticate	Hitelesítés
+Authentication is not available.	A hitelesítés nem érhető el.
