@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgdk_pixbuf-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # SVG is composed from validated primitives. Imported artwork is flattened to bounded PNG.
 load icon_model

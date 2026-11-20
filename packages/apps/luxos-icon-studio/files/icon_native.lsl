@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgdk_pixbuf-2.0.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0 libcairo.so.2
 # Small native GTK bridge. Signal records follow the owning GObject lifetime.
 load gtk

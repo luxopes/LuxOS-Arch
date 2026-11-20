@@ -21,7 +21,7 @@
 
 pkgname=luxos-mail
 pkgver=1.0.0
-pkgrel=17
+pkgrel=18
 pkgdesc="LuxOS Mail - lightweight mail app (read, write, send) with instant new-mail notifications (IMAP IDLE), written in LSL"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
@@ -36,7 +36,7 @@ optdepends=('luxos-i18n: translated texts'
             'luxos-account: sign in with the LuxAI account (LuxAI mailboxes without a password)'
             'plank: unread count on the Dock icon'
             'xfce4-notifyd>=0.9.7-3.5: new mail notifications (persistent, in the bell history)')
-makedepends=('lsl>=0.10.8' librsvg)
+makedepends=('lsl>=0.11.0' librsvg)
 checkdepends=(python python-pytest python-gobject openssl dbus gnome-keyring libsecret)
 
 _lsl_modules=(luxos_gtk luxos_glib luxos_gio luxos_i18n luxos_sys luxos_text)
@@ -54,8 +54,8 @@ build() {
     for m in "${_lsl_modules[@]}"; do
         cp "$shared/$m.lsl" lsl/
     done
-    (cd lsl && lslc --target linux-x86_64-gnu luxos-mail.lsl ../luxos-mail \
-            && lslc --target linux-x86_64-gnu luxos-mail-service.lsl ../luxos-mail-service)
+    (cd lsl && lslc --target linux-x86_64-gnu --system-bindings . luxos-mail.lsl ../luxos-mail \
+            && lslc --target linux-x86_64-gnu --system-bindings . luxos-mail-service.lsl ../luxos-mail-service)
     # ostre ikony okna 16-256 px (Alt+Tab, Dock) z vlastni SVG
     mkdir -p icons
     for s in 16 24 32 48 64 128 256; do
