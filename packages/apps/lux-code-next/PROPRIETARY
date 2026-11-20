@@ -1,5 +1,0 @@
-# Proprietarni soucast LuxOS: zdroje jsou v soukromem repozitari, binarni balik v repozitari LuxOS.
-# scripts/container-build.sh misto sestaveni pouzije podepsany balik z https://luxos.lux-ai.cz/repo
-# (nebo zdroje z LUXOS_PRIVATE_DIR, viz build.sh).
-repo=luxos-apps
-pkgnames=lux-code-next
