@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS
+Comment=LuxOS desktop (Wayland)
+Exec=luxos-wayland-session
+TryExec=luxos-wayland-session
+Icon=luxos-logo
+DesktopNames=LuxOS
