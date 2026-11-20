@@ -1,0 +1,508 @@
+{
+ "bar": {
+  "faint": 0.45,
+  "height": 32,
+  "opacity": 62,
+  "tint_dark": [
+   0.09,
+   0.09,
+   0.12
+  ],
+  "tint_light": [
+   0.96,
+   0.96,
+   0.97
+  ]
+ },
+ "colors": {
+  "accent": [
+   61,
+   123,
+   255,
+   1.0
+  ],
+  "accent_text": [
+   255,
+   255,
+   255,
+   1.0
+  ],
+  "card_edge": [
+   255,
+   255,
+   255,
+   0.38
+  ],
+  "card_edge_bottom": [
+   255,
+   255,
+   255,
+   0.2
+  ],
+  "card_edge_top": [
+   255,
+   255,
+   255,
+   0.62
+  ],
+  "card_inset": [
+   255,
+   255,
+   255,
+   0.18
+  ],
+  "close_glyph": [
+   255,
+   59,
+   48,
+   1.0
+  ],
+  "close_glyph_hover": [
+   215,
+   0,
+   21,
+   1.0
+  ],
+  "desktop_hover": [
+   0,
+   0,
+   0,
+   0.3
+  ],
+  "error": [
+   255,
+   69,
+   58,
+   1.0
+  ],
+  "error_soft": [
+   255,
+   180,
+   173,
+   1.0
+  ],
+  "light_border": [
+   0,
+   0,
+   0,
+   0.12
+  ],
+  "light_close": [
+   255,
+   95,
+   87,
+   1.0
+  ],
+  "light_glyph": [
+   60,
+   20,
+   10,
+   0.7
+  ],
+  "light_max": [
+   40,
+   200,
+   64,
+   1.0
+  ],
+  "light_min": [
+   254,
+   188,
+   46,
+   1.0
+  ],
+  "on_glass": [
+   255,
+   255,
+   255,
+   1.0
+  ],
+  "on_glass_light": [
+   25,
+   31,
+   43,
+   1.0
+  ],
+  "selection": [
+   47,
+   111,
+   237,
+   1.0
+  ],
+  "white": [
+   255,
+   255,
+   255,
+   1.0
+  ]
+ },
+ "curves": {
+  "ease": [
+   0.25,
+   0.1,
+   0.25,
+   1.0
+  ],
+  "ease_out": [
+   0.0,
+   0.0,
+   0.58,
+   1.0
+  ]
+ },
+ "dark": {
+  "border": [
+   255,
+   255,
+   255,
+   0.14
+  ],
+  "bubble": [
+   255,
+   255,
+   255,
+   0.14
+  ],
+  "button": [
+   255,
+   255,
+   255,
+   0.1
+  ],
+  "button_hover": [
+   255,
+   255,
+   255,
+   0.16
+  ],
+  "dim": [
+   244,
+   244,
+   250,
+   0.6
+  ],
+  "fg": [
+   244,
+   244,
+   250,
+   1.0
+  ],
+  "fg_soft": [
+   244,
+   244,
+   250,
+   0.72
+  ],
+  "field": [
+   0,
+   0,
+   0,
+   0.24
+  ],
+  "fill": [
+   255,
+   255,
+   255,
+   0.85
+  ],
+  "light_inactive": [
+   255,
+   255,
+   255,
+   0.22
+  ],
+  "link": [
+   122,
+   167,
+   255,
+   1.0
+  ],
+  "notification": [
+   32,
+   33,
+   52,
+   0.8
+  ],
+  "popup": [
+   32,
+   33,
+   52,
+   0.86
+  ],
+  "tile": [
+   255,
+   255,
+   255,
+   0.08
+  ],
+  "tile_hover": [
+   255,
+   255,
+   255,
+   0.13
+  ],
+  "trough": [
+   255,
+   255,
+   255,
+   0.14
+  ],
+  "window": [
+   33,
+   36,
+   43,
+   1.0
+  ]
+ },
+ "font": {
+  "body": 13,
+  "caption": 11,
+  "fallback": "\"Inter\", \"Cantarell\", sans-serif",
+  "family": "Inter",
+  "head": 17,
+  "light_glyph": 9,
+  "lock_clock": 180,
+  "lock_date": 27,
+  "small": 12,
+  "title": 14,
+  "widget_temp": 26,
+  "widget_time": 42
+ },
+ "glass": {
+  "base": [
+   0.92,
+   0.94,
+   0.98,
+   0.86
+  ],
+  "fallback": [
+   0.15,
+   0.17,
+   0.21
+  ],
+  "floor": 0.22,
+  "keep": 0.72,
+  "light_mean": 0.56,
+  "luma": 0.28,
+  "sheen": 0.08,
+  "sheen_reach": 0.35,
+  "size": 96,
+  "veil_dark": 0.37,
+  "veil_light": 0.64,
+  "weights": [
+   1.0,
+   4.0,
+   6.0,
+   4.0,
+   1.0
+  ]
+ },
+ "ink": {
+  "dark_below": 2.0,
+  "readable_dark": 0.62,
+  "readable_light": 0.58,
+  "readable_light_scrim": 0.45,
+  "scrim_c_full": 1.3,
+  "scrim_c_none": 2.0,
+  "scrim_height": 128,
+  "scrim_max": 0.38,
+  "white_above": 2.3
+ },
+ "light": {
+  "border": [
+   0,
+   0,
+   0,
+   0.1
+  ],
+  "bubble": [
+   0,
+   0,
+   0,
+   0.08
+  ],
+  "button": [
+   0,
+   0,
+   0,
+   0.06
+  ],
+  "button_hover": [
+   0,
+   0,
+   0,
+   0.11
+  ],
+  "dim": [
+   29,
+   29,
+   43,
+   0.58
+  ],
+  "fg": [
+   29,
+   29,
+   43,
+   1.0
+  ],
+  "fg_soft": [
+   29,
+   29,
+   43,
+   0.72
+  ],
+  "field": [
+   255,
+   255,
+   255,
+   0.55
+  ],
+  "fill": [
+   255,
+   255,
+   255,
+   1.0
+  ],
+  "light_inactive": [
+   0,
+   0,
+   0,
+   0.18
+  ],
+  "link": [
+   31,
+   95,
+   224,
+   1.0
+  ],
+  "notification": [
+   246,
+   247,
+   252,
+   0.8
+  ],
+  "popup": [
+   246,
+   247,
+   252,
+   0.88
+  ],
+  "tile": [
+   0,
+   0,
+   0,
+   0.05
+  ],
+  "tile_hover": [
+   0,
+   0,
+   0,
+   0.09
+  ],
+  "trough": [
+   0,
+   0,
+   0,
+   0.1
+  ],
+  "window": [
+   242,
+   242,
+   247,
+   1.0
+  ]
+ },
+ "motion": {
+  "dock_zoom_leave": 450,
+  "fade": 150,
+  "frame": 16,
+  "lock_enter": 380,
+  "lock_leave": 420,
+  "login_fade": 280,
+  "shake": 480,
+  "workspace": 420
+ },
+ "radius": {
+  "art": 12,
+  "button": 8,
+  "card": 22,
+  "dialog": 22,
+  "field": 8,
+  "menu": 12,
+  "menu_item": 6,
+  "notification": 14,
+  "pill": 999,
+  "popup": 18,
+  "progress": 4,
+  "row": 10,
+  "switcher_item": 20,
+  "tile": 14,
+  "window": 16
+ },
+ "shadow": {
+  "card": "0 8px 16px -8px rgba(8, 12, 24, 0.16)",
+  "dialog": "0 18px 50px rgba(0, 0, 0, 0.35)",
+  "focus": "0 0 0 3px alpha(#3d7bff, 0.25)",
+  "inset": "inset 0 1px rgba(255, 255, 255, 0.18)",
+  "knob": "0 1px 3px rgba(0, 0, 0, 0.25)",
+  "knob_strong": "0 1px 3px rgba(0, 0, 0, 0.35)",
+  "text_desktop": "0 1px 3px alpha(black, 0.75)"
+ },
+ "space": {
+  "l": 12,
+  "m": 8,
+  "s": 6,
+  "xl": 16,
+  "xs": 4,
+  "xxl": 24,
+  "xxs": 2
+ },
+ "weight": {
+  "bold": 700,
+  "heavy": 800,
+  "medium": 500,
+  "regular": 400,
+  "semibold": 600,
+  "ultralight": 200
+ },
+ "window_glass": {
+  "blur": 3,
+  "edge_dark": 0.3,
+  "edge_light": 0.75,
+  "outline": 0.18,
+  "saturate": 1.18,
+  "sheen": 0.14,
+  "sheen_reach": 0.45,
+  "size": 240,
+  "tint_dark": [
+   0.13,
+   0.14,
+   0.17,
+   0.94
+  ],
+  "tint_light": [
+   0.95,
+   0.95,
+   0.97,
+   0.94
+  ],
+  "veil_dark": [
+   0.06,
+   0.07,
+   0.1,
+   0.52
+  ],
+  "veil_light": [
+   1.0,
+   1.0,
+   1.0,
+   0.42
+  ]
+ },
+ "window_shadow": {
+  "active_alpha": 0.35,
+  "active_size": 40,
+  "inactive_alpha": 0.18,
+  "inactive_size": 24
+ }
+}
