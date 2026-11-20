@@ -30,6 +30,9 @@
 #   luxos-widgets settings  galerie widgetu (samostatny proces, meni jen widgets.conf)
 #
 # Okna jsou pod ostatnimi okny (keep below), na vsech plochach, bez ikony v liste a bez zamereni.
+# Na Waylandu (relace 1.1.0) je kazda karta plocha layer-shell na vrstve BOTTOM hlavniho monitoru (pozice =
+# okraje vuci pouzitelne casti vystupu, pod listou), tapeta z appearance.conf (WALLPAPER, luxos_material)
+# a zmeny monitoru chodi signaly GDK - bez X11 a bez pravidelne kontroly rozmisteni.
 # Data: /proc/stat a /proc/meminfo kazde 2 s (jen kdyz je karta system zobrazena), disk kazdou minutu;
 # pocasi ze souhrnu aplikace Pocasi ($XDG_CACHE_HOME/luxos/weather/summary.json, nejvys 3 hodiny staty)
 # nebo z "luxos-weather --json forecast" kazdych 30 minut, kdyz Pocasi ma ulozene misto.
@@ -42,6 +45,9 @@ load luxos_sys as sys
 load luxos_mpris as mpris
 load luxos_text as text
 load luxos_x11 as x11
+load luxos_layer as layer
+load luxos_wl as wl
+load luxos_material as material
 
 WIDTH = 340
 PAD = 24
@@ -95,7 +101,8 @@ RING_COLORS = [[[0.65, 0.76, 1.0], [0.78, 0.85, 1.0]], [[0.52, 0.83, 0.77], [0.7
 
 conf = {"enabled": True, "widgets": [], "side": "right", "pos": {}}
 # wins: nazev -> okno karty; placed: nazev -> [x, y] na obrazovce; settings = galerie (nahledy)
-ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}}
+# at: nazev -> [x, y], kam okno karty na Waylandu prave posunulo (poloha okna se tam neda zjistit)
+ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}, "wayland": False, "at": {}}
 theme = {"provider": 0, "wallpaper": "", "surface": 0, "raw": 0, "map": [], "geometry": [], "pool": True, "cache": {}}
 drag = {"name": "", "start": [], "origin": [], "moved": False}
 cpu = {"busy": 0, "total": 0, "pct": 0, "recent": []}
@@ -186,6 +193,10 @@ end
 
 # Aktivni plocha (_NET_CURRENT_DESKTOP korenoveho okna), 0 kdyz neni spravce oken
 function current_workspace():
+    if ui["wayland"]:
+        # ext-workspace-v1 zatim nema kompozitor ani luxos_wl: jedna tapeta pro vsechny plochy
+        return 0
+    end
     value = []
     safe:
         value = x11.cardinals(x11.root_xid(), "_NET_CURRENT_DESKTOP")
@@ -201,6 +212,11 @@ end
 # monitoru v abecede - se starymi zaznamy jinych monitoru (jiny vystup, drive pripojeny monitor) mely
 # karty sklo i barvu textu podle jine tapety, nez byla videt.
 function wallpaper_path():
+    if ui["wayland"]:
+        call material.reload()
+        geo = primary_geometry()
+        return material.wallpaper_path(wl.output_name_at(geo[0], geo[1]))
+    end
     if bus["session"] == 0:
         return ""
     end
@@ -441,7 +457,7 @@ function on_window_draw(cr, window):
     if a[2] < 2 or a[3] < 2:
         return False
     end
-    pos = gtk.window_get_position(window)
+    pos = window_position(window)
     strength = pool_strength(Float(pos[0] + a[0]), Float(pos[1] + a[1]), Float(a[2]), Float(a[3]))
     c["pool"] = strength
     if strength <= 0.004:
@@ -508,7 +524,7 @@ function on_card_draw(cr, widget):
         pos = [geo[0] + geo[2] // 2, geo[1] + geo[3] // 3]
         win = ui["wins"].get(c["name"], 0)
         if win != 0:
-            pos = gtk.window_get_position(win)
+            pos = window_position(win)
             pos = [pos[0] + e[0], pos[1] + e[1]]
         end
         # Polovicni pixel navic drzi bilinearni filtr uvnitr obrazku i na hrane monitoru.
@@ -585,7 +601,8 @@ function read_scrim_pref():
 end
 
 function on_appearance_event(path, event, other):
-    if read_scrim_pref() != theme["pool"]:
+    # na Waylandu je tu i tapeta (theme_apply nacte jen zmenenou)
+    if ui["wayland"] or read_scrim_pref() != theme["pool"]:
         call theme_apply()
     end
     return 0
@@ -676,7 +693,7 @@ function on_card_press(event, widget):
         return False
     end
     drag["name"] = c["name"]
-    drag["start"] = [gtk.event_x_root(event), gtk.event_y_root(event)]
+    drag["start"] = pointer(event, c["name"])
     drag["origin"] = ui["placed"].get(c["name"], [0, 0])
     drag["moved"] = False
     return True
@@ -686,15 +703,16 @@ function on_card_motion(event, widget):
     if drag["name"] == "" or len(drag["start"]) != 2:
         return False
     end
-    dx = gtk.event_x_root(event) - drag["start"][0]
-    dy = gtk.event_y_root(event) - drag["start"][1]
+    xy = pointer(event, drag["name"])
+    dx = xy[0] - drag["start"][0]
+    dy = xy[1] - drag["start"][1]
     if not drag["moved"] and abs(dx) + abs(dy) < 6.0:
         return True
     end
     drag["moved"] = True
     win = ui["wins"].get(drag["name"], 0)
     if win != 0:
-        call gtk.window_move(win, drag["origin"][0] + Int(dx), drag["origin"][1] + Int(dy))
+        call window_move(win, drag["origin"][0] + Int(dx), drag["origin"][1] + Int(dy))
         call gtk.widget_queue_draw(widget)
     end
     return True
@@ -715,13 +733,66 @@ function on_card_release(event, widget):
     end
     # misto upusteni: na mrizku, do pracovni plochy; pozice vuci pracovni plose
     geo = gtk.primary_monitor_workarea()
-    x = drag["origin"][0] + Int(gtk.event_x_root(event) - drag["start"][0])
-    y = drag["origin"][1] + Int(gtk.event_y_root(event) - drag["start"][1])
+    xy = pointer(event, name)
+    x = drag["origin"][0] + Int(xy[0] - drag["start"][0])
+    y = drag["origin"][1] + Int(xy[1] - drag["start"][1])
     x = geo[0] + snap(x - geo[0])
     y = geo[1] + snap(y - geo[1])
     xy = clamp_to_area(name, x, y)
     call write_conf_value("POS_" + name, String(xy[0] - geo[0]) + "," + String(xy[1] - geo[1]))
     return True
+end
+
+# Ukazatel na obrazovce. Wayland nezna polohu okna: souradnice vuci karte + kam jsme kartu posunuli
+# (pri tazeni se okno pod ukazatelem hybe, samotne souradnice vuci oknu by se menily s nim).
+function pointer(event, name):
+    x = gtk.event_x_root(event)
+    y = gtk.event_y_root(event)
+    if ui["wayland"]:
+        at = ui["at"].get(name, [0, 0])
+        x = x + Float(at[0])
+        y = y + Float(at[1])
+    end
+    return [x, y]
+end
+
+function window_name(win):
+    for name in ui["wins"].keys():
+        if ui["wins"][name] == win:
+            return name
+        end
+    end
+    return ""
+end
+
+function window_position(win):
+    if ui["wayland"]:
+        return ui["at"].get(window_name(win), [0, 0])
+    end
+    return gtk.window_get_position(win)
+end
+
+# Na Waylandu okraje plochy vuci pouzitelne casti hlavniho monitoru (kompozitor ji posune pod listu)
+function window_move(win, x, y):
+    if not ui["wayland"]:
+        return gtk.window_move(win, x, y)
+    end
+    geo = primary_geometry()
+    ui["at"][window_name(win)] = [x, y]
+    call layer.set_margin(win, layer.EDGE_LEFT, x - geo[0])
+    call layer.set_margin(win, layer.EDGE_TOP, max(0, y - geo[1]))
+    return 0
+end
+
+function primary_monitor():
+    unsafe:
+        display = __lsl_qbe_call0(__lsl_symbol("gdk_display_get_default"))
+        monitor = __lsl_qbe_call1(__lsl_symbol("gdk_display_get_primary_monitor"), display)
+        if monitor == 0:
+            monitor = __lsl_qbe_call2(__lsl_symbol("gdk_display_get_monitor"), display, 0)
+        end
+        return monitor
+    end
 end
 
 function snap(v):
@@ -1646,7 +1717,7 @@ function update_music():
         # sam (kaskada LuxOS mimo okna): pozice az pred zobrazenim, kontrola po namapovani v place_all
         xy = ui["placed"].get("music")
         if xy != None:
-            call gtk.window_move(win, xy[0], xy[1])
+            call window_move(win, xy[0], xy[1])
         end
         call gtk.widget_show(win)
         call glib.timeout_add(300, place_once)
@@ -1673,6 +1744,14 @@ function create_window(name):
     call gtk.window_stick(win)
     call gtk.window_set_rgba(win)
     call gtk.window_set_wmclass(win, "luxos-widgets", "Luxos-widgets")
+    if ui["wayland"] and not ui["settings"]:
+        call layer.init_for_window(win)
+        call layer.set_namespace(win, "luxos-widgets")
+        call layer.set_layer(win, layer.LAYER_BOTTOM)
+        call layer.set_monitor(win, primary_monitor())
+        call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_LEFT])
+        call layer.set_keyboard_mode(win, layer.KEYBOARD_NONE)
+    end
     box = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_add_class(box, "lw-col")
     call gtk.widget_set_size_request(box, WIDTH, -1)
@@ -1757,12 +1836,12 @@ function place_all():
             continue
         end
         moved = ui["placed"].get(name) != xy
-        if not moved and gtk.widget_get_visible(win) and gtk.window_get_position(win) != xy:
+        if not moved and gtk.widget_get_visible(win) and window_position(win) != xy:
             moved = True
         end
         if moved:
             ui["placed"][name] = xy
-            call gtk.window_move(win, xy[0], xy[1])
+            call window_move(win, xy[0], xy[1])
             changed = True
         end
     end
@@ -1780,6 +1859,21 @@ function place_tick():
     end
     call place_all()
     return True
+end
+
+# Wayland: jiny monitor nebo jeho velikost - karty na hlavni monitor, tapeta a rozmisteni znovu
+function on_monitors_changed(monitor, display):
+    call glib.timeout_add(0, monitors_once)
+    return 0
+end
+
+function monitors_once():
+    for win in ui["wins"].values():
+        call layer.set_monitor(win, primary_monitor())
+    end
+    call theme_apply()
+    call place_all()
+    return False
 end
 
 function rebuild():
@@ -1872,7 +1966,14 @@ function start_common():
     safe:
         call gio.file_monitor(appearance_path(), on_appearance_event)
     end
-    if not ui["settings"]:
+    if ui["wayland"]:
+        display = layer.default_display()
+        call glib.signal_connect(display, "monitor-added", on_monitors_changed, 1)
+        call glib.signal_connect(display, "monitor-removed", on_monitors_changed, 1)
+        for monitor in layer.monitors():
+            call glib.signal_connect(monitor, "notify::geometry", on_monitors_changed, 1)
+        end
+    elif not ui["settings"]:
         safe:
             call x11.root_filter(on_root_property, 0)
             call x11.root_watch_properties()
@@ -1891,15 +1992,29 @@ function start():
     if not conf["enabled"]:
         return 0
     end
+    ui["wayland"] = layer.is_wayland() and layer.is_supported()
+    display_name = glib.getenv("DISPLAY")
+    if ui["wayland"]:
+        display_name = glib.getenv("WAYLAND_DISPLAY")
+        # jen nazvy vystupu pro WALLPAPER_<VYSTUP>
+        if wl.available():
+            call wl.bind_only(["wl_output", "zxdg_output_manager_v1"])
+            if wl.attach(layer.wl_display()):
+                call wl.roundtrip()
+            end
+        end
+    end
     # jedna instance na uzivatele a displej (abstraktni socket zmizi s procesem)
-    if sys.unix_listen(SOCKET + String(sys.getuid()) + "-" + glib.getenv("DISPLAY")) < 0:
+    if sys.unix_listen(SOCKET + String(sys.getuid()) + "-" + display_name) < 0:
         return 0
     end
     call start_common()
     call rebuild()
     call place_all()
     call minute_tick()
-    call glib.timeout_add_seconds(5, place_tick)
+    if not ui["wayland"]:
+        call glib.timeout_add_seconds(5, place_tick)
+    end
     call weather_refresh()
     call glib.timeout_add_seconds(1800, weather_refresh)
     call gtk.main()
