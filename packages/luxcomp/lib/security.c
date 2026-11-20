@@ -95,7 +95,8 @@ security_init(void)
 {
 	comp.security = wlr_security_context_manager_v1_create(comp.display);
 	security_mark(comp.security->global, GLOBAL_SANDBOX_DENIED);
-	comp.virtual_input_open = getenv("LUXCOMP_VIRTUAL_INPUT") != NULL;
+	const char *vi = getenv("LUXCOMP_VIRTUAL_INPUT");
+	comp.virtual_input_open = vi && *vi && strcmp(vi, "0");
 	wl_display_set_global_filter(comp.display, global_filter, NULL);
 }
 

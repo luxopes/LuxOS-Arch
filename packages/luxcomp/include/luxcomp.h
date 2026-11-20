@@ -210,7 +210,7 @@ void luxcomp_privileged_allow(const char *exe_path);
 /* XWayland, started lazily by the first X11 client. 0 = ok. X11 windows are ordinary views. */
 int64_t luxcomp_xwayland_start(void);
 const char *luxcomp_xwayland_display(void);	/* ":N" or NULL */
-int64_t luxcomp_xwayland_pid(void);		/* 0 while not running */
+int64_t luxcomp_xwayland_running(void);		/* 1 while the X server runs */
 
 int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locker died) */
 

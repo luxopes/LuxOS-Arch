@@ -9,7 +9,7 @@ The harness is shell plus small C tools. Python is used only in tests.
 | File | Purpose |
 |---|---|
 | `wlt` | main command: sessions, clients, input, screenshots, capture, memory |
-| `fetch-sysroot.sh` | downloads the pinned labwc/wlroots 0.20/grim/wlr-randr closure (`packages.lock`, sha256-checked) to `out/wl-test/sysroot` |
+| `fetch-sysroot.sh` | downloads the pinned labwc/wlroots 0.20/grim/wlr-randr/Xwayland/xeyes closure (`packages.lock`, sha256-checked) to `out/wl-test/sysroot` |
 | `vm-image.sh` | builds a minimal Arch image with labwc for the VM matrix (podman, like `build.sh`) |
 | `vm-matrix.sh` | boots the image in QEMU with different graphics cards, captures frames via QMP, runs the flicker detector |
 | `src/wlt-input.c` | input through `zwlr_virtual_pointer_v1` and `zwp_virtual_keyboard_v1` |
@@ -61,6 +61,7 @@ scripts/wl-test/wlt stop "$s"
   - `--config DIR`: labwc config directory
   - `-- COMMAND...`: another compositor, e.g. `-- luxwm -d`. The compositor must support `wlr-output-management` (for `--size` and the readiness check) and virtual pointer/keyboard (for `input`).
   - `WLT_COMPOSITOR_ENV="VAR=x ..."` adds variables to the compositor's environment.
+  - For luxwm, `start` writes `S/privileged.conf` with wlr-randr, grim and wlt-input, and passes it as `LUXWM_PRIVILEGED`. Only allowlisted programs get the privileged protocols (output management, capture, virtual input). It also sets `WLR_XWAYLAND` to the sysroot's Xwayland. XWayland creates its X socket in `/tmp/.X11-unix` on a free display number, never `:0`.
 - `wlt-bar [--height N] [--bottom] [--color RRGGBB]` is a layer-shell bar with an exclusive zone, for placement tests below a bar or above a dock.
 - `wlt-client --events` prints `focus US` (CLOCK_MONOTONIC in µs) when it gets keyboard focus, for latency measurements.
 - `run S CMD...` runs a client in the session environment. With `--bg`, output goes to `S/clients.log`, so you can read what `wlt-client --events` received.

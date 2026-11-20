@@ -396,9 +396,9 @@ function xwayland_display():
     end
 end
 
-function xwayland_pid():
+function xwayland_running():
     unsafe:
-        return __lsl_qbe_call0(__lsl_symbol("luxcomp_xwayland_pid"))
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_xwayland_running"))
     end
 end
 

@@ -4,6 +4,8 @@ project('luxcomp', 'c',
   default_options: ['c_std=c11', 'warning_level=2', 'buildtype=release'])
 
 add_project_arguments('-DWLR_USE_UNSTABLE', '-Wno-unused-parameter', language: 'c')
+add_project_arguments('-DLUXCOMP_LIBEXEC="' + (get_option('prefix') / get_option('libexecdir') / 'luxcomp') + '"',
+  language: 'c')
 
 wayland_scanner = find_program('wayland-scanner')
 wl_protocols = dependency('wayland-protocols').get_variable('pkgdatadir')
@@ -56,3 +58,5 @@ executable('luxcomp-demo', 'tests/demo.c',
   link_with: lib,
   install: true,
   install_dir: get_option('libexecdir') / 'luxcomp')
+
+install_data('xwayland-sw', install_dir: get_option('libexecdir') / 'luxcomp', install_mode: 'rwxr-xr-x')

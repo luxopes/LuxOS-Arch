@@ -6,8 +6,13 @@
  */
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <unistd.h>
 #include <wlr/config.h>
 #include "internal.h"
+
+#ifndef LUXCOMP_LIBEXEC
+#define LUXCOMP_LIBEXEC "/usr/lib/luxcomp"
+#endif
 
 #if WLR_HAS_XWAYLAND
 #include <wlr/types/wlr_compositor.h>
@@ -47,6 +52,7 @@ x_associate(struct wl_listener *listener, void *data)
 	struct view *v = wl_container_of(listener, v, x_associate);
 	struct wlr_surface *s = v->xsurface->surface;
 	v->surface_tree = wlr_scene_subsurface_tree_create(v->tree, s);
+	tree_track(&v->surface_tree);
 	v->map.notify = x_map;
 	wl_signal_add(&s->events.map, &v->map);
 	v->unmap.notify = x_unmap;
@@ -65,8 +71,10 @@ x_dissociate(struct wl_listener *listener, void *data)
 	wl_list_remove(&v->map.link);
 	wl_list_remove(&v->unmap.link);
 	wl_list_remove(&v->commit.link);
-	wlr_scene_node_destroy(&v->surface_tree->node);
-	v->surface_tree = NULL;
+	v->map.notify = NULL;
+	if (v->surface_tree) {
+		wlr_scene_node_destroy(&v->surface_tree->node);
+	}
 }
 
 /* Velikost si X klient urci sam, polohu az politika pri VIEW_MAP */
@@ -165,7 +173,7 @@ static void
 x_destroy(struct wl_listener *listener, void *data)
 {
 	struct view *v = wl_container_of(listener, v, destroy);
-	if (v->surface_tree) {
+	if (v->map.notify) {
 		x_dissociate(&v->x_dissociate, NULL);
 	}
 	struct wl_listener *ls[] = { &v->destroy, &v->x_associate, &v->x_dissociate,
@@ -237,6 +245,7 @@ um_map(struct wl_listener *listener, void *data)
 {
 	struct unmanaged *u = wl_container_of(listener, u, map);
 	u->tree = wlr_scene_subsurface_tree_create(comp.unmanaged, u->xs->surface);
+	tree_track(&u->tree);
 	um_place(u);
 	if (wlr_xwayland_surface_override_redirect_wants_focus(u->xs)) {
 		seat_focus_surface(u->xs->surface);
@@ -250,7 +259,6 @@ um_unmap(struct wl_listener *listener, void *data)
 	struct unmanaged *u = wl_container_of(listener, u, unmap);
 	if (u->tree) {
 		wlr_scene_node_destroy(&u->tree->node);
-		u->tree = NULL;
 	}
 	if (comp.seat->keyboard_state.focused_surface == u->xs->surface) {
 		luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
@@ -272,11 +280,12 @@ static void
 um_dissociate(struct wl_listener *listener, void *data)
 {
 	struct unmanaged *u = wl_container_of(listener, u, dissociate);
-	if (u->tree) {
+	if (u->xs->surface->mapped) {
 		um_unmap(&u->unmap, NULL);
 	}
 	wl_list_remove(&u->map.link);
 	wl_list_remove(&u->unmap.link);
+	u->map.notify = NULL;
 }
 
 static void
@@ -299,7 +308,7 @@ static void
 um_destroy(struct wl_listener *listener, void *data)
 {
 	struct unmanaged *u = wl_container_of(listener, u, destroy);
-	if (u->xs->surface) {
+	if (u->map.notify) {
 		um_dissociate(&u->dissociate, NULL);
 	}
 	wl_list_remove(&u->associate.link);
@@ -353,6 +362,14 @@ luxcomp_xwayland_start(void)
 	if (comp.xwayland) {
 		return 0;
 	}
+	const char *wrapper = getenv("LUXCOMP_XWAYLAND_WRAPPER");
+	wrapper = wrapper ? wrapper : LUXCOMP_LIBEXEC "/xwayland-sw";
+	if (comp.software && access(wrapper, X_OK) == 0) {
+		/* bez 3D jen -glamor off: glamor by nacetl EGL a Mesu (~45 MB) a stejne spadl na shm */
+		const char *real = getenv("WLR_XWAYLAND");
+		setenv("LUXCOMP_XWAYLAND", real ? real : "/usr/bin/Xwayland", 1);
+		setenv("WLR_XWAYLAND", wrapper, 1);
+	}
 	comp.xwayland = wlr_xwayland_create(comp.display, comp.compositor, true);
 	if (!comp.xwayland) {
 		return -1;
@@ -371,10 +388,12 @@ luxcomp_xwayland_display(void)
 	return comp.xwayland ? comp.xwayland->display_name : NULL;
 }
 
+/* PID zjistit nejde: wlroots spousti Xwayland dvojitym forkem a vsechny jeho sokety jsou
+ * socketpair vytvorene nami (SO_PEERCRED ukaze nas) */
 int64_t
-luxcomp_xwayland_pid(void)
+luxcomp_xwayland_running(void)
 {
-	return comp.xwayland && comp.xwayland->server ? comp.xwayland->server->pid : 0;
+	return comp.xwayland && comp.xwayland->server && comp.xwayland->server->client;
 }
 
 void
@@ -392,7 +411,7 @@ xwayland_finish(void)
 
 int64_t luxcomp_xwayland_start(void) { return -1; }
 const char *luxcomp_xwayland_display(void) { return NULL; }
-int64_t luxcomp_xwayland_pid(void) { return 0; }
+int64_t luxcomp_xwayland_running(void) { return 0; }
 void xwayland_finish(void) { }
 
 #endif

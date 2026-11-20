@@ -84,6 +84,31 @@ view_from_surface(struct wlr_surface *surface)
 	return NULL;
 }
 
+/* Strom povrchu (wlr_scene_subsurface_tree) zanikne sam s povrchem a poradi vuci nasim
+ * udalostem (dissociate, destroy role) neni dane; ukazatel na nej se pak vynuluje */
+struct tree_ref {
+	struct wlr_scene_tree **ptr;
+	struct wl_listener destroy;
+};
+
+static void
+tree_ref_destroy(struct wl_listener *listener, void *data)
+{
+	struct tree_ref *r = wl_container_of(listener, r, destroy);
+	*r->ptr = NULL;
+	wl_list_remove(&r->destroy.link);
+	free(r);
+}
+
+void
+tree_track(struct wlr_scene_tree **ptr)
+{
+	struct tree_ref *r = calloc(1, sizeof(*r));
+	r->ptr = ptr;
+	r->destroy.notify = tree_ref_destroy;
+	wl_signal_add(&(*ptr)->node.events.destroy, &r->destroy);
+}
+
 bool
 view_shown(struct view *v)
 {

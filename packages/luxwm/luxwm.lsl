@@ -1072,7 +1072,7 @@ end
 
 function dump():
     call log("workspace " + String(cur + 1) + "/" + String(len(ws)) + " locked=" + String(lc.locked())
-        + " xwayland_pid=" + String(lc.xwayland_pid()))
+        + " xwayland=" + String(lc.xwayland_running()))
     for out in outputs:
         u = usable(out)
         call log("output " + String(out) + " " + lc.output_name(out) + " " + String(lc.output_get(out, lc.OUT_W)) + "x"

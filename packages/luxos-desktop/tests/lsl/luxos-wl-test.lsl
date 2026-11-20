@@ -1,5 +1,6 @@
 # Scenare protokolu luxos_wl pro test_luxos_wl.py (kompozitor labwc headless):
 #   luxos-wl-test toplevels APP1 APP2   seznam, aktivace, minimalizace, zavreni
+#   luxos-wl-test restore APP           Dock: minimalizace a obnoveni okna aktivaci
 #   luxos-wl-test lock                  zamceni, zamykaci plocha, snimek pod zamkem, odemceni
 #   luxos-wl-test lock-abandon          zamceni a konec bez odemceni (obrazovka musi zustat zamcena)
 #   luxos-wl-test capture SOUBOR.png    snimek vystupu (+ snimek okna, kdyz ho kompozitor umi)
@@ -120,6 +121,27 @@ function toplevels_check():
             state["step"] = 3
             print "close " + String(wl.close(state["target"]))
         end
+    end
+    return 0
+end
+
+# Dock: okno APP minimalizovat, pak obnovit aktivaci (kompozitor ho zobrazi a zameri)
+function restore_check():
+    t = app_toplevel(param, False)
+    if t == 0:
+        return 0
+    end
+    st = wl.toplevel_state(t)
+    if state["step"] == 0:
+        state["step"] = 1
+        print "minimize " + String(wl.minimize(t, True))
+    elif state["step"] == 1 and (st & wl.STATE_MINIMIZED):
+        print "minimized"
+        state["step"] = 2
+        print "activate " + String(wl.activate(t))
+    elif state["step"] == 2 and (st & wl.STATE_ACTIVATED) and not (st & wl.STATE_MINIMIZED):
+        print "restored"
+        call finish(0)
     end
     return 0
 end
@@ -363,6 +385,8 @@ end
 function event(kind, handle, a, b):
     if scenario == "toplevels":
         return on_toplevel(kind, handle)
+    elif scenario == "restore":
+        return restore_check()
     elif scenario == "lock" or scenario == "lock-abandon":
         return on_lock(kind, handle, a, b)
     elif scenario == "capture":
@@ -382,6 +406,9 @@ end
 function start():
     if scenario == "toplevels":
         call toplevels_check()
+    elif scenario == "restore":
+        call wl.roundtrip()
+        call restore_check()
     elif scenario == "lock" or scenario == "lock-abandon":
         print "outputs " + String(len(wl.outputs()))
         # klavesnice seatu driv nez zamek (headless seat zadnou nema)

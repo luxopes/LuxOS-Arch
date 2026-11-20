@@ -50,7 +50,9 @@ lock_surface_destroy(struct wl_listener *listener, void *data)
 	struct lock_surface *ls = wl_container_of(listener, ls, destroy);
 	wl_list_remove(&ls->map.link);
 	wl_list_remove(&ls->destroy.link);
-	wlr_scene_node_destroy(&ls->tree->node);
+	if (ls->tree) {
+		wlr_scene_node_destroy(&ls->tree->node);
+	}
 	if (comp.seat->keyboard_state.focused_surface == ls->surface->surface) {
 		wlr_seat_keyboard_notify_clear_focus(comp.seat);
 		/* klavesnice na jinou zamykaci plochu, je-li */
@@ -74,6 +76,7 @@ new_lock_surface(struct wl_listener *listener, void *data)
 	struct lock_surface *ls = calloc(1, sizeof(*ls));
 	ls->surface = s;
 	ls->tree = wlr_scene_subsurface_tree_create(comp.lock_tree, s->surface);
+	tree_track(&ls->tree);
 	struct wlr_box box;
 	wlr_output_layout_get_box(comp.layout, s->output, &box);
 	wlr_scene_node_set_position(&ls->tree->node, box.x, box.y);

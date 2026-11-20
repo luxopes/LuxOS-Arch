@@ -1,0 +1,4 @@
+#!/bin/sh
+# XWayland bez 3D (luxcomp ho pouzije pri pixman rendereru): glamor by nacetl EGL a Mesu
+# (~45 MB PSS navic) a stejne spadl na sdilenou pamet. XWAYLAND_NO_GLAMOR EGL nacteni nezabrani.
+exec "${LUXCOMP_XWAYLAND:-/usr/bin/Xwayland}" "$@" -glamor off

@@ -200,6 +200,7 @@ int view_width(struct view *v);
 int view_height(struct view *v);
 struct view *view_from_surface(struct wlr_surface *surface);
 bool view_shown(struct view *v);
+void tree_track(struct wlr_scene_tree **tree);
 
 /* foreign.c */
 void foreign_init(void);
