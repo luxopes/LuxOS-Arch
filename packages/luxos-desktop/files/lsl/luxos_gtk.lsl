@@ -900,3 +900,67 @@ function surface_mark_dirty(surface):
         return __lsl_qbe_call1(__lsl_symbol("cairo_surface_mark_dirty"), ptr(surface))
     end
 end
+
+# ==== Animace shellu na Waylandu (Dock): snimkove hodiny, prekresleni casti okna, meritko ======================
+#   widget_add_tick_callback(widget, record) -> id; record = glib.record_new(f, 2), f(widget, hodiny) pri kazdem
+#   snimku kompozitoru, dokud vraci True (jeden zaznam na proces, pridava se znovu pri kazde animaci);
+#   widget_remove_tick_callback(widget, id), widget_queue_draw_area(widget, x, y, w, h),
+#   widget_scale_factor(widget), cairo_source_filter(cr, CAIRO_FILTER_*) pro obrazek prave nastaveny jako zdroj,
+#   menu_popup_above_rect(menu, widget, x, y, w, h) nabidka nad obdelnikem widgetu (ikona Docku),
+#   event_coords(e) -> [x, y] v okne pro kazdou udalost se souradnicemi (event_x cte jen tlacitka a pohyb, ne vstup/odchod)
+
+CAIRO_FILTER_FAST = 0
+CAIRO_FILTER_GOOD = 1
+CAIRO_FILTER_BILINEAR = 4
+
+function widget_add_tick_callback(widget, record):
+    unsafe:
+        return __lsl_qbe_icall4(__lsl_symbol("gtk_widget_add_tick_callback"), ptr(widget), glib.callback_third(), ptr(record), 0)
+    end
+end
+
+function widget_remove_tick_callback(widget, id):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("gtk_widget_remove_tick_callback"), ptr(widget), ptr(id))
+    end
+end
+
+function widget_queue_draw_area(widget, x, y, width, height):
+    unsafe:
+        return __lsl_qbe_call5(__lsl_symbol("gtk_widget_queue_draw_area"), ptr(widget), ptr(x), ptr(y), ptr(width), ptr(height))
+    end
+end
+
+function widget_scale_factor(widget):
+    unsafe:
+        return __lsl_qbe_icall1(__lsl_symbol("gtk_widget_get_scale_factor"), ptr(widget))
+    end
+end
+
+function cairo_source_filter(cr, filter):
+    unsafe:
+        source = __lsl_qbe_call1(__lsl_symbol("cairo_get_source"), ptr(cr))
+        return __lsl_qbe_call2(__lsl_symbol("cairo_pattern_set_filter"), source, ptr(filter))
+    end
+end
+
+function event_coords(event):
+    unsafe:
+        cells = __lsl_byte_zeros(16)
+        call __lsl_qbe_call3(__lsl_symbol("gdk_event_get_coords"), ptr(event), data(cells), data(cells) + 8)
+        return [__lsl_float_from_bits(__lsl_qbe_load64(data(cells))), __lsl_float_from_bits(__lsl_qbe_load64(data(cells) + 8))]
+    end
+end
+
+# GDK_GRAVITY_NORTH = 2 (horni hrana obdelniku), GDK_GRAVITY_SOUTH = 8 (spodni hrana nabidky)
+function menu_popup_above_rect(menu, widget, x, y, width, height):
+    unsafe:
+        rect = __lsl_byte_zeros(16)
+        call __lsl_qbe_store32(data(rect), ptr(x))
+        call __lsl_qbe_store32(data(rect) + 4, ptr(y))
+        call __lsl_qbe_store32(data(rect) + 8, ptr(width))
+        call __lsl_qbe_store32(data(rect) + 12, ptr(height))
+        window = __lsl_qbe_call1(__lsl_symbol("gtk_widget_get_window"), ptr(widget))
+        return __lsl_qbe_call6(__lsl_symbol("gtk_menu_popup_at_rect"), ptr(menu), window, data(rect), 2, 8, 0)
+    end
+end
