@@ -2103,7 +2103,7 @@
         {
           "path": "lsl/lux-code.md",
           "title": "Lux Code and LSL IDE",
-          "summary": "Lux Code terminal AI coding agent (commands, sign-in, tools, permissions, configuration) and the LSL IDE graphical editor with its LuxAI agent.",
+          "summary": "Lux Code terminal AI coding agent built on Oh My Pi (commands, sign-in, tools, configuration) and the LSL IDE graphical editor with its LuxAI agent.",
           "keywords": [
             "Lux Code",
             "lux-code",
@@ -2111,7 +2111,8 @@
             "AI agent",
             "permissions",
             "slash commands",
-            "reference_search",
+            "Oh My Pi",
+            "subagents",
             "LSL IDE",
             "lsl-ide",
             "IDE",

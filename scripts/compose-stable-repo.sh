@@ -8,7 +8,7 @@
 # Z kopie ZDROJE (reflink, zdroj se nemeni):
 #   - LUXOS_STABLE_EXCLUDE (vychozi "luxos-mail luxos-app-studio luxos-icon-studio luxos-sdk"): baliky se z databaze odeberou a jejich soubory
 #     (vsechny verze, ikona pro Obchod) smazou - ve stabilnim kanalu nebudou;
-#   - LUXOS_STABLE_KEEP (vychozi "lux-code lux-code-next"): zustane verze, ktera je ted ve stabilnim
+#   - LUXOS_STABLE_KEEP (vychozi prazdny; do 1.0.2 "lux-code lux-code-next"): zustane verze, ktera je ted ve stabilnim
 #     kanalu (LUXOS_STABLE_URL, vychozi https://luxos.lux-ai.cz/repo); stahne se i s podpisem,
 #     overi klicem LuxOS (packages/luxos-keyring) a nahradi novejsi verzi ze staging. Balik, ktery ve
 #     stabilnim kanalu neni, se odebere stejne jako u EXCLUDE.
@@ -23,7 +23,8 @@ DEST=${2:-out/repo-stable}
 ARCH=x86_64
 STABLE_URL=${LUXOS_STABLE_URL:-https://luxos.lux-ai.cz/repo}
 read -r -a EXCLUDE <<<"${LUXOS_STABLE_EXCLUDE-luxos-mail luxos-app-studio luxos-icon-studio luxos-sdk}"
-read -r -a KEEP <<<"${LUXOS_STABLE_KEEP-lux-code lux-code-next}"
+# Lux Code: od 1.0.3 vychazi lux-code 0.6 (drive lux-code-next) i ve stabilnim kanalu - nic se nedrzi
+read -r -a KEEP <<<"${LUXOS_STABLE_KEEP-}"
 PUBKEY=${LUXOS_KEYRING_FILE:-packages/luxos-keyring/files/luxos.gpg}
 REPOS=(luxos luxos-apps)
 

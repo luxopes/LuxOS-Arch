@@ -9,6 +9,14 @@ stejně jako 1.0.2: bez balíků, které do stabilního kanálu zatím nepatří
 luxos-sdk"`, `LUXOS_STABLE_KEEP="lux-code lux-code-next"`), nic se nepřepisuje. **Teď nic nejde do
 stabilního kanálu** – kroky 6–12 se dělají až po rozhodnutí majitele, že staging je v pořádku.
 
+**Změna 2026-11-20 (rozhodnutí majitele):** do stabilního kanálu jde i **LuxAI 2.1.0-2** (obsahuje
+zastavení zacyklené odpovědi z 2.0.2-13) a **Lux Code 0.6** – balík `lux-code` 0.6.5-3 postavený ze zdrojů
+dřívějšího `lux-code-next` (nahrazuje ho: `replaces`/`conflicts`/`provides`). `LUXOS_STABLE_KEEP` je teď
+prázdný a `lux-code-next` se z `out/repo` odebírá (`repo-remove`). Původní Lux Code 0.1 (LSL) je
+archivovaný v soukromém repozitáři (`archive/lux-code-classic`, tagy `lux-code-0.1.2-6` = poslední ve
+stable, `lux-code-classic-final` = 0.1.2-9) a podepsaný balík 0.1.2-6 ze stable v `out/archive/`.
+Vynechávají se dál jen `luxos-mail`, `luxos-app-studio`, `luxos-icon-studio` a `luxos-sdk`.
+
 Připravené v repozitáři:
 
 - Větev **`release-1.0.3`** (do `main` hned):

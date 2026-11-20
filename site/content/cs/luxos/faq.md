@@ -122,7 +122,7 @@ Lux Code i LSL IDE berou ze stejných kreditů. Viz [Účet LuxAI](luxai-account
 
 ## Co je Lux Code?
 
-Lux Code je AI agent pro programování v terminálu, napsaný v LSL. Upravuje soubory, spouští příkazy
+Lux Code je AI agent pro programování v terminálu, postavený na otevřeném projektu Oh My Pi. Upravuje soubory, spouští příkazy
 a testy a používá váš účet LuxAI. Viz [Lux Code](lux-code.html).
 
 ## Co je LSL?

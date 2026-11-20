@@ -126,7 +126,7 @@ Lux Code and LSL IDE draw from the same credits. See [LuxAI account](luxai-accou
 
 ## What is Lux Code?
 
-Lux Code is an AI coding agent for the terminal, written in LSL. It edits files, runs commands and
+Lux Code is an AI coding agent for the terminal, built on the open-source Oh My Pi. It edits files, runs commands and
 tests, and uses your LuxAI account. See [Lux Code](lux-code.html).
 
 ## What is LSL?
