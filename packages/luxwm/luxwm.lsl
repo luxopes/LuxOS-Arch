@@ -5,6 +5,8 @@
 # a klavesove zkratky z luxwm.conf. Popis: packages/luxwm/README.md
 #
 #   luxwm [-d] [PRIKAZ...]    -d = stopa rozhodnuti na stderr; prikazy se spusti po startu
+#   luxwm --greeter PRIKAZ    prihlasovaci obrazovka (greetd): jeden klient pres celou obrazovku, zadne
+#                             zkratky, XWayland ani privilegovane protokoly; konci s kodem klienta
 # Signaly: SIGTERM/SIGINT konec, SIGHUP znovu nacte luxwm.conf a vzhled, SIGUSR1 jen vzhled
 # (prepnuti svetly/tmavy), SIGUSR2 vypise stav na stderr (testy).
 # IPC pro shell (lista, Dock, nastaveni): $XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock, radkovy JSON,
@@ -34,6 +36,7 @@ MODS = {"primary": lc.MOD_CTRL, "control": lc.MOD_CTRL, "ctrl": lc.MOD_CTRL, "sh
         "alt": lc.MOD_ALT, "mod1": lc.MOD_ALT, "super": lc.MOD_SUPER, "mod4": lc.MOD_SUPER}
 
 trace = False
+greeter = False
 settings = {}
 binds = {}           # id zkratky -> akce
 outputs = []
@@ -119,6 +122,11 @@ function load_config():
     general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
                "xwayland": "yes"}
     keys = {}
+    if greeter:
+        # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
+        settings = {"workspaces": "1", "slide_ms": "0", "wrap_workspaces": "no", "xwayland": "no", "keys": {}}
+        return
+    end
     system = glib.getenv("LUXWM_SYSTEM_CONFIG")
     if system == None or system == "":
         system = SYSTEM_CONFIG
@@ -144,6 +152,10 @@ function load_privileged():
         path = PRIVILEGED
     end
     call lc.privileged_allow("")
+    # prihlasovaci obrazovka privilegovane protokoly nedava; LUXWM_PRIVILEGED nastavuji jen testy (harness)
+    if greeter and path == PRIVILEGED:
+        return
+    end
     count = 0
     if exists(path):
         for raw in readfile(path).split(chr(10)):
@@ -988,6 +1000,13 @@ end
 # ---- udalosti jadra ----------------------------------------------------------------------------
 
 function view_mapped(v):
+    if greeter:
+        call lc.view_set_workspace(v, current_ws())
+        call set_fullscreen(v, True)
+        # GTK okno pri fullscreen znovu namapuje: zamereni vzdy, i kdyz uz cela obrazovka je
+        call focus(v)
+        return
+    end
     parent = vget(v, lc.VIEW_PARENT)
     space = current_ws()
     if parent != 0:
@@ -1595,10 +1614,54 @@ function on_dump():
     return True
 end
 
+# Rozlozeni klavesnice systemu (localectl set-x11-keymap, instalator), kdyz ho neurcuje prostredi
+function system_keymap():
+    env_layout = glib.getenv("XKB_DEFAULT_LAYOUT")
+    if env_layout != None and env_layout != "":
+        return
+    end
+    kb = {}
+    xorg = "/etc/X11/xorg.conf.d/00-keyboard.conf"
+    if exists(xorg):
+        for raw in readfile(xorg).split(chr(10)):
+            parts = raw.strip().split(chr(34))
+            if len(parts) >= 4 and parts[0].strip() == "Option":
+                kb[parts[1]] = parts[3]
+            end
+        end
+    end
+    if kb.get("XkbLayout", "") == "" and exists("/etc/vconsole.conf"):
+        names = {"XKBLAYOUT": "XkbLayout", "XKBVARIANT": "XkbVariant", "XKBOPTIONS": "XkbOptions"}
+        for raw in readfile("/etc/vconsole.conf").split(chr(10)):
+            eq = raw.find("=")
+            if eq > 0 and raw[:eq].strip() in names:
+                kb[names[raw[:eq].strip()]] = raw[eq + 1:].strip().strip(chr(34))
+            end
+        end
+    end
+    if kb.get("XkbLayout", "") != "":
+        call lc.set_keymap(kb["XkbLayout"], kb.get("XkbVariant", ""), kb.get("XkbOptions", ""))
+        call note("keymap " + kb["XkbLayout"] + " " + kb.get("XkbVariant", "") + " " + kb.get("XkbOptions", ""))
+    end
+end
+
+# Prihlasovaci obrazovka skoncila (greetd ji ukoncuje po start_session): kompozitor konci s jejim kodem
+greeter_status = 0
+
+function on_greeter_exit(pid, status):
+    global greeter_status
+    greeter_status = status
+    call log("greeter exited with status " + String(status))
+    call stop()
+    return 0
+end
+
 commands = []
 for i in range(1, len(args)):
     if args[i] == "-d":
         trace = True
+    elif args[i] == "--greeter":
+        greeter = True
     else:
         commands.append(args[i])
     end
@@ -1613,6 +1676,7 @@ if lc.init(on_event) != 0:
     exit(1)
 end
 call load_privileged()
+call system_keymap()
 xdisplay = ""
 if settings["xwayland"] == "yes" and lc.xwayland_start() == 0:
     xdisplay = lc.xwayland_display()
@@ -1649,11 +1713,22 @@ call glib.unix_signal_add(2, on_term)
 call glib.unix_signal_add(1, on_reload)
 call glib.unix_signal_add(10, on_theme)
 call glib.unix_signal_add(12, on_dump)
-for startup in commands:
-    call lc.spawn(startup)
+if greeter:
+    if len(commands) != 1 or glib.spawn_watched(["/bin/sh", "-c", commands[0]], on_greeter_exit) <= 0:
+        call log("--greeter needs one command that can start")
+        call lc.destroy()
+        exit(1)
+    end
+else:
+    for startup in commands:
+        call lc.spawn(startup)
+    end
 end
 # prvni pruchod: klienti cekajici na socket a nastartovany backend
 call lc.dispatch(0)
 call glib.main()
 call lc.destroy()
 call log("stopped")
+if greeter and greeter_status != 0:
+    exit(1)
+end
