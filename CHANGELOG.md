@@ -36,6 +36,7 @@ Zatím jen v testovacím kanálu staging (`channel = "staging"` v `/etc/lux/lux.
 Opravné vydání 1.0.4 „Sirius“.
 
 ### Opraveno
+- **Dock: záznam pro hledání zaseknutého zvětšení ikon** (`luxos-desktop` 1.1.0-96): výstup Docku se ukládá do `~/.local/state/luxos/dock.log`, aby šlo zjistit, co se děje, když zvětšená ikona zůstane viset (zatím se to nepodařilo navodit). Testy Docku zkoušejí i rychlé odjetí myší z Docku.
 - **Přihlášení bez černého bliknutí obrazovky** (`luxos-desktop` 1.1.0-95, `luxos-docs` 1.0.0-92): při načítání plochy po přihlášení obrazovka na okamžik zčernala. Příčina byla ve Spořiči baterie: po každém přihlášení (a po připojení monitoru) `luxos-displays auto` přepnulo vestavěný displej s vyšší frekvencí (např. 144 Hz) na 60 Hz, i když volba „Snížit obrazovku na 60 Hz“ (Baterie a napájení) zapnutá nebyla – a změna frekvence obrazovku vždy na okamžik zatmí. Teď se frekvence mění jen s touto volbou a původní frekvence se uloží, takže ji vypnutí Spořiče vrátí. Druhá mezera: když se správce oken spustil později než 3 s po přihlášení (pomalý start relace, studený disk), přechod skončil dřív a kompozitor do vykreslení tapety kreslil černou – přechod teď na správce oken čeká až 6 s (vždy končí nejpozději po 10 s, vstup jde skrz). Pozdě zapnutý kompozitor: přechod se rozplyne až po 0,4 s jeho běhu (v prvních snímcích kompozitor ještě kreslí černé pozadí). Test snímání obrazovky přechodu má novou variantu s pozdním správcem oken.
 
 ## 1.0.3 „Sirius“ – 2026-11-20

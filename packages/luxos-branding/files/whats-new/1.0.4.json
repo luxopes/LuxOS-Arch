@@ -1,0 +1,39 @@
+{
+  "version": "1.0.4",
+  "codename": "Sirius",
+  "items": [
+    {
+      "icon": "starred-symbolic",
+      "title": {
+        "en": "Smoother sign-in",
+        "cs": "Plynulejší přihlášení",
+        "sk": "Plynulejšie prihlásenie",
+        "pl": "Płynniejsze logowanie",
+        "uk": "Плавніший вхід",
+        "hu": "Gördülékenyebb bejelentkezés",
+        "de": "Flüssigere Anmeldung",
+        "fr": "Connexion plus fluide",
+        "es": "Inicio de sesión más fluido",
+        "it": "Accesso più fluido",
+        "pt": "Início de sessão mais suave",
+        "nl": "Soepeler aanmelden",
+        "sv": "Smidigare inloggning"
+      },
+      "text": {
+        "en": "The screen no longer flashes black while LuxOS starts after you sign in. Battery Saver now changes the screen's refresh rate only if you turned that option on, and puts it back when you switch Battery Saver off.",
+        "cs": "Obrazovka už po přihlášení při načítání LuxOS neproblikne načerno. Spořič baterie teď mění obnovovací frekvenci obrazovky, jen když jste tu volbu zapnuli, a po vypnutí Spořiče ji vrátí.",
+        "sk": "Obrazovka už po prihlásení pri načítaní LuxOS nezablikne načierno. Šetrič batérie teraz mení obnovovaciu frekvenciu obrazovky, len ak ste túto voľbu zapli, a po vypnutí Šetriča ju vráti.",
+        "pl": "Ekran nie miga już na czarno, gdy LuxOS uruchamia się po zalogowaniu. Oszczędzanie baterii zmienia częstotliwość odświeżania ekranu tylko wtedy, gdy włączysz tę opcję, i przywraca ją po wyłączeniu oszczędzania.",
+        "uk": "Після входу екран більше не блимає чорним, поки LuxOS запускається. Економія батареї тепер змінює частоту оновлення екрана лише тоді, коли ви ввімкнули цю опцію, і повертає її після вимкнення економії.",
+        "hu": "Bejelentkezés után a képernyő már nem villan feketén, amíg a LuxOS elindul. Az akkumulátorkímélő mostantól csak akkor változtatja a képernyő frissítési gyakoriságát, ha bekapcsolta ezt a lehetőséget, és kikapcsoláskor visszaállítja.",
+        "de": "Der Bildschirm blitzt nach der Anmeldung nicht mehr schwarz auf, während LuxOS startet. Der Energiesparmodus ändert die Bildwiederholrate nur noch, wenn Sie diese Option eingeschaltet haben, und stellt sie beim Ausschalten wieder her.",
+        "fr": "L'écran ne clignote plus en noir pendant le démarrage de LuxOS après la connexion. L'économiseur de batterie ne change la fréquence de rafraîchissement que si vous avez activé cette option, et la rétablit quand vous le désactivez.",
+        "es": "La pantalla ya no parpadea en negro mientras LuxOS se inicia tras iniciar sesión. El ahorro de batería solo cambia la frecuencia de actualización si activaste esa opción, y la restablece al desactivarlo.",
+        "it": "Lo schermo non lampeggia più in nero mentre LuxOS si avvia dopo l'accesso. Il risparmio batteria cambia la frequenza di aggiornamento solo se hai attivato l'opzione e la ripristina quando lo disattivi.",
+        "pt": "O ecrã já não pisca a preto enquanto o LuxOS arranca depois de iniciar sessão. A poupança de bateria só altera a taxa de atualização se ativou essa opção e repõe-na quando a desliga.",
+        "nl": "Het scherm knippert niet meer zwart terwijl LuxOS na het aanmelden start. Batterijbesparing verandert de verversingsfrequentie alleen als u die optie hebt ingeschakeld, en zet die terug als u batterijbesparing uitschakelt.",
+        "sv": "Skärmen blinkar inte längre svart medan LuxOS startar efter inloggningen. Batterisparläget ändrar bara skärmens uppdateringsfrekvens om du har slagit på det alternativet, och återställer den när du stänger av batterisparläget."
+      }
+    }
+  ]
+}

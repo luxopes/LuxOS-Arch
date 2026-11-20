@@ -4,11 +4,18 @@
 # napr. pri prepnuti svetleho/tmaveho rezimu - Dock by pak zmizel. Normalni ukonceni
 # (rc 0) a zamerne ukonceni (SIGTERM/SIGINT) ho nechaji vypnuty; konec relace X take.
 pgrep -u "$USER" -x plank >/dev/null && exit 0
+# Vystup Docku do logu (varovani "Animation stalled" a pady pomahaji hledat zaseknute zvetseni);
+# jedna predchozi kopie, aby log nerostl
+log=${XDG_STATE_HOME:-$HOME/.local/state}/luxos/dock.log
+mkdir -p "${log%/*}"
+[[ -f $log && $(stat -c %s "$log") -gt 262144 ]] && mv -f "$log" "$log.old"
 crashes=0
 while :; do
     start=$SECONDS
-    plank "$@"
+    printf '== %(%F %T)T plank start\n' -1 >>"$log"
+    plank "$@" >>"$log" 2>&1
     rc=$?
+    printf '== %(%F %T)T plank exit %d\n' -1 "$rc" >>"$log"
     ((rc == 0 || rc == 130 || rc == 143)) && break
     xprop -root _NET_SUPPORTED >/dev/null 2>&1 || break
     # opakovany pad hned po startu (poskozene nastaveni): po 5 pokusech prestat
