@@ -5378,3 +5378,6 @@ Keyboard Settings…	Tangentbordsinställningar…
 Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Tryck på det nya kortkommandot. Esc avbryter, Backsteg stänger av kortkommandot.
 This shortcut is used by another action. Press it again to use it here.	Kortkommandot används av en annan åtgärd. Tryck på det igen för att använda det här.
 Use System Layouts	Använd systemets layouter
+Choose a window to capture	Välj ett fönster att fånga
+No windows	Inga fönster
+Screen recording is not available on Wayland yet.	Skärminspelning är ännu inte tillgänglig i Wayland.

@@ -5378,3 +5378,6 @@ Keyboard Settings…	Definições do teclado…
 Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Prima o novo atalho. Esc cancela, Retrocesso desativa o atalho.
 This shortcut is used by another action. Press it again to use it here.	Este atalho é usado por outra ação. Prima-o novamente para o usar aqui.
 Use System Layouts	Usar esquemas do sistema
+Choose a window to capture	Escolha uma janela para capturar
+No windows	Nenhuma janela
+Screen recording is not available on Wayland yet.	A gravação de ecrã ainda não está disponível no Wayland.

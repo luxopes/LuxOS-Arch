@@ -5379,3 +5379,6 @@ Keyboard Settings…	Налаштування клавіатури…
 Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Натисніть нове сполучення клавіш. Esc скасовує, Backspace вимикає сполучення.
 This shortcut is used by another action. Press it again to use it here.	Це сполучення використовує інша дія. Натисніть його ще раз, щоб використати тут.
 Use System Layouts	Використовувати розкладки системи
+Choose a window to capture	Виберіть вікно для знімка
+No windows	Немає вікон
+Screen recording is not available on Wayland yet.	Запис екрана у Wayland поки що недоступний.

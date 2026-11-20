@@ -5378,3 +5378,6 @@ Keyboard Settings…	Toetsenbordinstellingen…
 Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Druk op de nieuwe sneltoets. Esc annuleert, Backspace schakelt de sneltoets uit.
 This shortcut is used by another action. Press it again to use it here.	Deze sneltoets wordt door een andere actie gebruikt. Druk nogmaals om hem hier te gebruiken.
 Use System Layouts	Systeemindelingen gebruiken
+Choose a window to capture	Kies een venster om vast te leggen
+No windows	Geen vensters
+Screen recording is not available on Wayland yet.	Schermopname is nog niet beschikbaar onder Wayland.

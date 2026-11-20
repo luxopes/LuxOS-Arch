@@ -5378,3 +5378,6 @@ Keyboard Settings…	Tastatureinstellungen…
 Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Drücken Sie das neue Tastenkürzel. Esc bricht ab, Rücktaste schaltet das Kürzel aus.
 This shortcut is used by another action. Press it again to use it here.	Dieses Kürzel wird von einer anderen Aktion verwendet. Drücken Sie es erneut, um es hier zu verwenden.
 Use System Layouts	Systemlayouts verwenden
+Choose a window to capture	Fenster zum Aufnehmen auswählen
+No windows	Keine Fenster
+Screen recording is not available on Wayland yet.	Die Bildschirmaufnahme ist unter Wayland noch nicht verfügbar.

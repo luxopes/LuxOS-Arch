@@ -5378,3 +5378,6 @@ Keyboard Settings…	Impostazioni tastiera…
 Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Premi la nuova scorciatoia. Esc annulla, Backspace disattiva la scorciatoia.
 This shortcut is used by another action. Press it again to use it here.	Questa scorciatoia è usata da un’altra azione. Premila di nuovo per usarla qui.
 Use System Layouts	Usa i layout di sistema
+Choose a window to capture	Scegli una finestra da catturare
+No windows	Nessuna finestra
+Screen recording is not available on Wayland yet.	La registrazione dello schermo non è ancora disponibile su Wayland.
