@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
@@ -28,7 +29,7 @@ struct keyboard {
 	struct wl_list link;
 	struct wlr_keyboard *wlr;
 	uint32_t swallowed[8];		/* klavesy zkratek: jejich uvolneni klient nedostane */
-	struct wl_listener key, modifiers, destroy;
+	struct wl_listener key, modifiers, keymap, destroy;
 };
 
 static uint32_t
@@ -124,6 +125,25 @@ swallow(struct keyboard *kb, uint32_t keycode, bool add)
 	return false;
 }
 
+/* Ctrl+Alt+F1..F12 prepne konzoli (xkb to preklada na XF86Switch_VT_N); plati i pod zamkem,
+ * zamek zustava a druha konzole ma vlastni prihlaseni */
+static bool
+switch_vt(struct xkb_state *state, uint32_t keycode)
+{
+	if (!comp.session) {
+		return false;
+	}
+	const xkb_keysym_t *syms;
+	int n = xkb_state_key_get_syms(state, keycode, &syms);
+	for (int i = 0; i < n; i++) {
+		if (syms[i] >= XKB_KEY_XF86Switch_VT_1 && syms[i] <= XKB_KEY_XF86Switch_VT_12) {
+			wlr_session_change_vt(comp.session, syms[i] - XKB_KEY_XF86Switch_VT_1 + 1);
+			return true;
+		}
+	}
+	return false;
+}
+
 static void
 keyboard_key(struct wl_listener *listener, void *data)
 {
@@ -136,6 +156,9 @@ keyboard_key(struct wl_listener *listener, void *data)
 		if (swallow(kb, keycode, false)) {
 			return;
 		}
+	} else if (switch_vt(kb->wlr->xkb_state, keycode)) {
+		swallow(kb, keycode, true);
+		return;
 	} else if (!comp.locked) {
 		uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK;
 		struct keybind *b;
@@ -165,12 +188,39 @@ keyboard_modifiers(struct wl_listener *listener, void *data)
 	}
 }
 
+/* Zamereny klient dostane enter znovu s keymapou nove klavesnice: GTK bez keymapy pri enter klavesy
+ * zahazuje (virtualni klavesnice a klavesnice pripojena az po prvnim okne, napr. greeter pred udevem) */
+static void
+refocus(void)
+{
+	/* bez klavesnice wlroots enter nezapamatuje: vzit to, co ma klavesnici mit */
+	struct wlr_surface *surface = comp.seat->keyboard_state.focused_surface;
+	if (!surface) {
+		surface = comp.layer_focus ? comp.layer_focus
+			: comp.focused ? view_surface(comp.focused) : NULL;
+	}
+	if (surface) {
+		wlr_seat_keyboard_notify_clear_focus(comp.seat);
+		seat_focus_surface(surface);
+	}
+}
+
+static void
+keyboard_keymap(struct wl_listener *listener, void *data)
+{
+	struct keyboard *kb = wl_container_of(listener, kb, keymap);
+	if (wlr_seat_get_keyboard(comp.seat) == kb->wlr) {
+		refocus();
+	}
+}
+
 static void
 keyboard_destroy(struct wl_listener *listener, void *data)
 {
 	struct keyboard *kb = wl_container_of(listener, kb, destroy);
 	wl_list_remove(&kb->key.link);
 	wl_list_remove(&kb->modifiers.link);
+	wl_list_remove(&kb->keymap.link);
 	wl_list_remove(&kb->destroy.link);
 	wl_list_remove(&kb->link);
 	free(kb);
@@ -191,10 +241,15 @@ new_keyboard(struct wlr_input_device *device, bool own_keymap)
 	wl_signal_add(&kb->wlr->events.key, &kb->key);
 	kb->modifiers.notify = keyboard_modifiers;
 	wl_signal_add(&kb->wlr->events.modifiers, &kb->modifiers);
+	kb->keymap.notify = keyboard_keymap;
+	wl_signal_add(&kb->wlr->events.keymap, &kb->keymap);
 	kb->destroy.notify = keyboard_destroy;
 	wl_signal_add(&device->events.destroy, &kb->destroy);
 	wl_list_insert(&comp.keyboards, &kb->link);
 	wlr_seat_set_keyboard(comp.seat, kb->wlr);
+	if (kb->wlr->keymap) {
+		refocus();
+	}
 }
 
 static void
