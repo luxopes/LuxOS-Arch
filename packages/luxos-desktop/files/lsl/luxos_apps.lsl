@@ -6,14 +6,18 @@
 #
 #   find(id)                  aplikace podle id ("firefox.desktop") nebo absolutni cesty, 0 kdyz neni
 #   match(app_id)             aplikace okna: id, StartupWMClass, posledni cast reverse-DNS, spustitelny soubor; 0
-#   reload()                  zmena v adresarich aplikaci: zahodit rejstrik pro match
+#   reload()                  zmena v adresarich aplikaci: zahodit rejstrik pro match a nactene soubory
+#   all()                     vsechny .desktop aplikace (i NoDisplay; Launchpad si vybira sam)
 #   monitor()                 GAppInfoMonitor (signal "changed" po zmene .desktop souboru)
 #   id(a), name(a), path(a), wm_class(a), executable(a)
+#   generic_name(a), keywords(a) -> [..], categories(a) ("Network;WebBrowser;"), string(a, klic) (bez prekladu)
+#   nodisplay(a), shown_here(a) (OnlyShowIn/NotShowIn podle XDG_CURRENT_DESKTOP)
 #   launch(a)                 spusteni (GdkAppLaunchContext = xdg-activation na Waylandu); True kdyz bezi
 #   icon(a, size, scale)      ikona aplikace jako cairo surface (volajici ji znici), 0 kdyz neni
 #   icon_named(name, size, scale), base_name(cesta)
 #
-# Objekty aplikaci se drzi po celou dobu behu (rejstrik a find sdileji jeden objekt na soubor).
+# Objekty aplikaci se drzi po celou dobu behu (rejstrik a find sdileji jeden objekt na soubor). Po reload() dostane
+# zmeneny soubor novy objekt; stare zustanou platne pro toho, kdo je drzi (zmena .desktop je vzacna).
 load glib
 load luxos_text as text
 
@@ -91,6 +95,57 @@ end
 function executable(info):
     unsafe:
         return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_app_info_get_executable"), ptr(info)))
+    end
+end
+
+function generic_name(info):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_desktop_app_info_get_generic_name"), ptr(info)))
+    end
+end
+
+function categories(info):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_desktop_app_info_get_categories"), ptr(info)))
+    end
+end
+
+function keywords(info):
+    out = []
+    unsafe:
+        list = __lsl_qbe_call1(__lsl_symbol("g_desktop_app_info_get_keywords"), ptr(info))
+        if list != 0:
+            at = list
+            while __lsl_qbe_load64(at) != 0:
+                out.append(glib.from_c(__lsl_qbe_load64(at)))
+                at += 8
+            end
+        end
+    end
+    return out
+end
+
+function string(info, key):
+    unsafe:
+        value = __lsl_qbe_call2(__lsl_symbol("g_desktop_app_info_get_string"), ptr(info), cstr(key))
+        if value == 0:
+            return ""
+        end
+        result = glib.from_c(value)
+        call __lsl_qbe_call1(__lsl_symbol("g_free"), value)
+    end
+    return result
+end
+
+function nodisplay(info):
+    unsafe:
+        return __lsl_qbe_icall1(__lsl_symbol("g_desktop_app_info_get_nodisplay"), ptr(info)) != 0
+    end
+end
+
+function shown_here(info):
+    unsafe:
+        return __lsl_qbe_icall2(__lsl_symbol("g_desktop_app_info_get_show_in"), ptr(info), 0) != 0
     end
 end
 
@@ -209,9 +264,14 @@ function match(app_id):
 end
 
 function reload():
-    global index
+    global index, by_path
     index = None
+    by_path = {}
     return 0
+end
+
+function all():
+    return all_infos()
 end
 
 function monitor():
