@@ -217,7 +217,8 @@ luxos-appearance light | dark | toggle   # set the mode (turns Auto off)
 luxos-appearance auto                    # follow sunrise/sunset
 luxos-appearance status                  # light | dark (current look)
 luxos-appearance mode                    # light | dark | auto (the setting)
-luxos-appearance wallpaper FILE          # wallpaper on all monitors and workspaces
+luxos-appearance wallpaper FILE [OUTPUT] # wallpaper on all monitors and workspaces, or on one output (Wayland)
+luxos-appearance wallpaper-mode fill|fit|center|tile [OUTPUT]   # how the wallpaper is shown (Wayland)
 luxos-appearance bar-opacity 0-100       # top bar opacity (default 62)
 luxos-appearance bar-style|bar-text|desktop-scrim ...  # bar-widgets.md
 luxos-appearance dock-opacity 0-100|default
@@ -243,7 +244,15 @@ picked yourself stays.
 
 Choose one in **Desktop & Dock › Wallpaper**. That panel also shows pictures from
 `~/Pictures/Wallpapers`, and "Choose…" accepts any picture. From the command line:
-`luxos-appearance wallpaper /path/picture.jpg` (stored in the xfconf channel `xfce4-desktop`).
+`luxos-appearance wallpaper /path/picture.jpg` (stored in the xfconf channel `xfce4-desktop`
+and as `WALLPAPER=` in `~/.config/luxos/appearance.conf`).
+
+In the Wayland session the wallpaper is drawn by `luxos-backdrop` (user unit `luxos-backdrop.service`)
+from `appearance.conf`: `WALLPAPER`, `WALLPAPER_<OUTPUT>` for one monitor (`WALLPAPER_HDMI_A_1`),
+`WALLPAPER_MODE[_<OUTPUT>]` = `fill` (default, crops like xfdesktop "Zoomed"), `fit`, `center` or `tile`,
+and `WALLPAPER_COLOR=#rrggbb` around a smaller picture. Changes show at once, also in the glass of the top
+bar and the Dock. Right-clicking the desktop offers New Folder (in `~/Desktop`, opened in the file manager;
+desktop icons are not drawn yet on Wayland), Change Wallpaper…, Edit Widgets… and Displays….
 
 ## Boot splash
 
