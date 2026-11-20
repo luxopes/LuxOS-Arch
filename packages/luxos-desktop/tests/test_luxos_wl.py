@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""luxos_wl.lsl + libluxos-wl a luxos_layer.lsl proti skutecnemu kompozitoru: labwc headless (pixman).
+"""luxos_wl.lsl + libluxos-wl a luxos_layer.lsl proti skutecnemu kompozitoru: labwc a luxwm headless (pixman).
 
     python3 -m unittest packages/luxos-desktop/tests/test_luxos_wl.py -v
 
@@ -10,6 +10,8 @@ skutecne obrazovce: DISPLAY, WAYLAND_DISPLAY a sbernice relace se klientum nepre
 
 labwc: LUXOS_WL_SYSROOT (adresar s usr/bin/labwc a usr/lib, napr. sysroot z scripts/wl-test/fetch-sysroot.sh
 baliku WP-1, vychozi out/wl-test/sysroot), jinak labwc z PATH; bez nej se test preskoci.
+luxwm: LUXWM_BUILD (vychozi out/luxwm-test/build z packages/luxwm/tests/build-host.sh, luxwm a libluxcomp.so.0);
+privilegovane protokoly dostanou jen testovaci klienti a grim (allowlist LUXWM_PRIVILEGED).
 LUXOS_LSLC: prekladac lslc (jinak lslc z PATH).
 """
 import os
@@ -28,6 +30,8 @@ LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 SYSROOT = Path(os.environ.get("LUXOS_WL_SYSROOT") or REPO / "out" / "wl-test" / "sysroot")
 LABWC = SYSROOT / "usr/bin/labwc" if (SYSROOT / "usr/bin/labwc").exists() else shutil.which("labwc")
 GRIM = SYSROOT / "usr/bin/grim" if (SYSROOT / "usr/bin/grim").exists() else shutil.which("grim")
+LUXWM_BUILD = Path(os.environ.get("LUXWM_BUILD") or REPO / "out" / "luxwm-test" / "build")
+LUXWM = LUXWM_BUILD / "luxwm" if (LUXWM_BUILD / "luxwm").exists() else None
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
 
 RC_XML = """<?xml version="1.0"?>
@@ -45,8 +49,10 @@ def lines(text, prefix):
     return [line[len(prefix):] for line in text.splitlines() if line.startswith(prefix)]
 
 
-@unittest.skipUnless(LSLC and LABWC and TOOLS, "chybi lslc, labwc (LUXOS_WL_SYSROOT) nebo make/gcc/wayland-scanner")
-class WaylandShell(unittest.TestCase):
+class WaylandShell:
+    """Testy spolecne pro oba kompozitory; potomek urci compositor_cmd()."""
+    name = "?"
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = Path(tempfile.mkdtemp(prefix="luxos-wl-"))
@@ -83,16 +89,15 @@ class WaylandShell(unittest.TestCase):
             "DBUS_SYSTEM_BUS_ADDRESS": "unix:path=/nonexistent",
         }
         comp_env = dict(self.env, XDG_CONFIG_HOME=str(self.session / "config"), WLR_BACKENDS="headless",
-                        WLR_RENDERER="pixman", WLR_LIBINPUT_NO_DEVICES="1", WLR_HEADLESS_OUTPUTS="1")
-        if str(LABWC).startswith(str(SYSROOT)):
-            comp_env["LD_LIBRARY_PATH"] = str(SYSROOT / "usr/lib")
-        cmd = ["env", "-i"] + [f"{k}={v}" for k, v in comp_env.items()] + \
-            ["timeout", "300", str(LABWC), "-C", str(self.session / "config/labwc")]
+                        WLR_RENDERER="pixman", WLR_LIBINPUT_NO_DEVICES="1", WLR_HEADLESS_OUTPUTS="1",
+                        WLR_DRM_DEVICES="/nonexistent")
+        command = self.compositor_cmd(comp_env)
+        cmd = ["env", "-i"] + [f"{k}={v}" for k, v in comp_env.items()] + ["timeout", "300"] + command
         if shutil.which("systemd-run") and os.environ.get("XDG_RUNTIME_DIR"):
             # scope s limitem procesu; systemd-run --scope prikaz spusti primo (PID = env -> timeout)
             cmd = ["systemd-run", "--user", "--scope", "-q", "-p", "TasksMax=300", "--"] + cmd
         outer = {k: v for k, v in os.environ.items() if k not in ("DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY")}
-        self.log = open(self.session / "labwc.log", "w")
+        self.log = open(self.session / "compositor.log", "w")
         self.procs = []
         self.compositor = subprocess.Popen(cmd, env=outer, stdout=self.log, stderr=subprocess.STDOUT)
         socket = run / "wayland-0"
@@ -101,7 +106,7 @@ class WaylandShell(unittest.TestCase):
                 break
             time.sleep(0.05)
         else:
-            self.fail("labwc nevytvoril soket: " + (self.session / "labwc.log").read_text())
+            self.fail(f"{self.name} nevytvoril soket: " + (self.session / "compositor.log").read_text())
         self.env.update(WAYLAND_DISPLAY="wayland-0", GDK_BACKEND="wayland", LUXOS_WL_LIB=str(self.lib),
                         NO_AT_BRIDGE="1")
 
@@ -120,7 +125,8 @@ class WaylandShell(unittest.TestCase):
                 p.stdout.close()
 
     def assertAlive(self):
-        self.assertIsNone(self.compositor.poll(), "labwc skoncil: " + (self.session / "labwc.log").read_text()[-2000:])
+        self.assertIsNone(self.compositor.poll(), f"{self.name} skoncil: " +
+                          (self.session / "compositor.log").read_text()[-2000:])
 
     # ---- klienti ----
 
@@ -348,6 +354,32 @@ class WaylandShell(unittest.TestCase):
         self.assertEqual((r.returncode, r.stdout.strip()), (2, "no-library"))
         r = self.run_client("luxos-wl-test", "capture", "x.png", env=dict(self.env, WAYLAND_DISPLAY="wayland-9"))
         self.assertEqual((r.returncode, r.stdout.strip()), (2, "no-connection"))
+
+
+@unittest.skipUnless(LSLC and LABWC and TOOLS, "chybi lslc, labwc (LUXOS_WL_SYSROOT) nebo make/gcc/wayland-scanner")
+class Labwc(WaylandShell, unittest.TestCase):
+    name = "labwc"
+
+    def compositor_cmd(self, env):
+        if str(LABWC).startswith(str(SYSROOT)):
+            env["LD_LIBRARY_PATH"] = str(SYSROOT / "usr/lib")
+        return [str(LABWC), "-C", str(self.session / "config/labwc")]
+
+
+@unittest.skipUnless(LSLC and LUXWM and GRIM and TOOLS, "chybi lslc, luxwm (LUXWM_BUILD), grim nebo make/gcc")
+class Luxwm(WaylandShell, unittest.TestCase):
+    name = "luxwm"
+
+    def compositor_cmd(self, env):
+        # allowlist: testovaci klienti a grim; XWayland vypnuty (zadne sokety v /tmp/.X11-unix)
+        allow = self.session / "privileged.conf"
+        allow.write_text("".join(str(Path(p).resolve()) + "\n" for p in
+                                 [self.tmp / "luxos-wl-test", self.tmp / "luxos-layer-test", GRIM]))
+        (self.session / "config/luxwm").mkdir(parents=True)
+        (self.session / "config/luxwm/luxwm.conf").write_text("xwayland = no\n")
+        env.update(LD_LIBRARY_PATH=f"{LUXWM_BUILD}:{SYSROOT}/usr/lib", LUXWM_PRIVILEGED=str(allow),
+                   LUXWM_SYSTEM_CONFIG=str(REPO / "packages/luxwm/luxwm.conf"))
+        return [str(LUXWM), "-d"]
 
 
 if __name__ == "__main__":
