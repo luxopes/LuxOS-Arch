@@ -2,11 +2,11 @@
 # Zkusebni VM s nahledem desktopu LuxOS 1.1.0 na Waylandu: LuxOS z publikovanych repozitaru [luxos] a [luxos-apps]
 # (aplikace, vzhled, pisma, ikony a nastaveni jako po instalaci) plus mistni baliky Waylandu z vetve wayland-1.1.
 #
-#   scripts/wl-preview/build-image.sh BALIK.pkg.tar.zst..     napr. out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop}-*
+#   scripts/wl-preview/build-image.sh BALIK.pkg.tar.zst..     napr. out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop,luxos-greetd}-*
 #
 # Stavi se v kontejneru luxos-builder (pacstrap, mkfs.ext4 -d, nic jako root na hostiteli). Vystup do
 # $LUXOS_PREVIEW_DIR (vychozi out/vm-wayland-preview): base.qcow2, vmlinuz, initramfs.img, packages.txt a
-# start.sh s README.txt. Prihlaseni luxos / luxos, automaticky na tty1 do relace luxos-wayland-preview.
+# start.sh s README.txt. Po startu prihlasovaci obrazovka greetd (luxos-greetd), uzivatel luxos / luxos.
 set -euo pipefail
 here=$(dirname "$(readlink -f "$0")")
 repo=$(readlink -f "$here/../..")
@@ -23,7 +23,7 @@ cp "$@" "$work/pkgs/"
 cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
 
 "$engine" run --rm --privileged -e "REPO_URL=$repo_url" \
-    -v "$work:/w:z" -v "$dir/pkgcache:/var/cache/pacman/pkg:z" -v "$here/guest:/guest:ro,z" \
+    -v "$work:/w:z" -v "$dir/pkgcache:/var/cache/pacman/pkg:z" \
     "$image" bash -euo pipefail -c '
     r=/w/rootfs
     mkdir -p $r
@@ -43,13 +43,9 @@ cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
     # zaklad instalace LuxOS (luxos-installer/files/packages) bez firmwaru, plymouth, posty a soukromych aplikaci;
     # aplikace na zkouseni (gtk3-demo, xeyes pres XWayland), guest agent pro testy
     pacstrap -C /w/pacman.conf -c $r base lux-engine $kernel sudo nano networkmanager pipewire-jack noto-fonts \
-        luxos-desktop luxos-greeter $local_pkgs gtk3-demos xorg-xeyes xorg-xwayland libnotify firefox \
+        luxos-desktop greetd $local_pkgs gtk3-demos xorg-xeyes xorg-xwayland libnotify firefox \
         qemu-guest-agent >/w/pacstrap.log 2>&1 || { tail -30 /w/pacstrap.log; exit 1; }
 
-    install -m755 /guest/luxos-wayland-preview $r/usr/bin/luxos-wayland-preview
-    install -m644 /guest/luxos-wayland-preview.service $r/etc/systemd/system/
-    install -m644 -t $r/usr/lib/systemd/user /guest/luxos-wayland-preview.target /guest/luxos-dock.service \
-        /guest/luxos-widgets.service
 
     echo "/dev/vda / ext4 rw,noatime 0 1" >$r/etc/fstab
     echo luxos-preview >$r/etc/hostname
@@ -70,13 +66,14 @@ cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
     printf "%%wheel ALL=(ALL:ALL) ALL\nDefaults pwfeedback\n" | install -Dm440 /dev/stdin $r/etc/sudoers.d/10-luxos
     [[ -x $r/usr/lib/luxos/apply-branding ]] && arch-chroot $r /usr/lib/luxos/apply-branding >/dev/null 2>&1 || true
 
-    # sluzby jako instalator, ale bez lightdm (X11 relace zustava, spusti se rucne) a bez casovacu site
+    # sluzby jako instalator, ale prihlaseni pres greetd (luxos-greetd) misto lightdm a bez casovacu site
     while read -r s; do
         case $s in ""|"#"*|lightdm.service|reflector.timer) continue ;; esac
         systemctl --root=$r enable "$s" >/dev/null 2>&1 || true
     done <$r/usr/lib/luxos/services
-    systemctl --root=$r enable luxos-wayland-preview.service qemu-guest-agent.service >/dev/null 2>&1 || true
-    systemctl --root=$r set-default multi-user.target >/dev/null
+    systemctl --root=$r enable -f greetd.service >/dev/null
+    systemctl --root=$r enable qemu-guest-agent.service >/dev/null 2>&1 || true
+    systemctl --root=$r set-default graphical.target >/dev/null
     systemctl --root=$r mask systemd-networkd-wait-online.service NetworkManager-wait-online.service >/dev/null 2>&1 || true
 
     kver=$(ls $r/usr/lib/modules | head -1)
