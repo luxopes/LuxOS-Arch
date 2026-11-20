@@ -28,6 +28,7 @@ load luxos_tokens as tokens
 load luxos_material as material
 load luxos_bar_status as status
 load luxos_bar_popup as popup
+load luxos_hub_popup as hub_popup
 load luxos_sni as sni
 
 HEIGHT = tokens.BAR["height"]
@@ -882,12 +883,9 @@ function on_item_press(kind, event, widget):
     if kind == "menu":
         call popup.close_all()
         call show_menu(widget)
-    elif kind == "control-center":
+    elif kind == "control-center" or kind == "battery":
         call popup.close_all()
-        call glib.spawn_quiet(["luxos-cc-toggle"])
-    elif kind == "battery":
-        call popup.close_all()
-        call glib.spawn_quiet(["luxos-cc-toggle"])
+        call open_control_center(bar, widget, gtk.event_time(event))
     elif kind == "keyboard":
         call popup.close_all()
         call show_layouts(widget)
@@ -904,6 +902,16 @@ function on_item_press(kind, event, widget):
                           widget, gtk.event_time(event))
     end
     return True
+end
+
+# Ovladaci centrum bezi v luxos-hub a signal nic nenese: monitor listy a stred tlacitka mu preda soubor
+function open_control_center(bar, widget, pressed):
+    a = gtk.widget_get_allocation(widget)
+    geo = layer.monitor_geometry(bar["monitor"])
+    call hub_popup.write_anchor(geo[0], geo[1], a[0] + a[2] // 2, pressed)
+    call trace("control-center " + String(geo[0]) + " " + String(a[0] + a[2] // 2))
+    call glib.spawn_quiet(["luxos-cc-toggle"])
+    return 0
 end
 
 function on_sound_scroll(unused, event, widget):
