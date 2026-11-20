@@ -629,7 +629,27 @@ layer_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&l->unmap.link);
 	wl_list_remove(&l->commit.link);
 	wl_list_remove(&l->destroy.link);
+	wl_list_remove(&l->new_popup.link);
 	free(l);
+}
+
+/* Menu listy a plochy (GtkMenu pres gtk-layer-shell): xdg_popup vznika bez rodice, vrstvu dostane az
+ * get_popup. Bez scene stromu a configure by klient cekal (Timed out waiting for initial .configure).
+ * Popup jde do vrstvy overlay na misto vrstvy, at ho nezakryji okna (nabidka plochy je ve vrstve bottom). */
+static void
+layer_new_popup(struct wl_listener *listener, void *data)
+{
+	struct layer *l = wl_container_of(listener, l, new_popup);
+	struct wlr_scene_tree *holder = wlr_scene_tree_create(comp.layer_overlay);
+	int lx = 0, ly = 0;
+	wlr_scene_node_coords(&l->scene->tree->node, &lx, &ly);
+	wlr_scene_node_set_position(&holder->node, lx, ly);
+	popup_attach(data, holder, holder);
+	/* klavesy menu (Esc, sipky) chodi klientovi s fokusem; plocha a lista ho jinak nemaji. Ted, pred
+	 * xdg_popup.grab: behem grabu by wlroots zmenu fokusu ignoroval. Vrati ho popup_destroy. */
+	if (!comp.locked) {
+		seat_focus_surface(l->surface->surface);
+	}
 }
 
 static void
@@ -662,6 +682,8 @@ new_layer_surface(struct wl_listener *listener, void *data)
 	wl_signal_add(&s->surface->events.commit, &l->commit);
 	l->destroy.notify = layer_destroy;
 	wl_signal_add(&s->events.destroy, &l->destroy);
+	l->new_popup.notify = layer_new_popup;
+	wl_signal_add(&s->events.new_popup, &l->new_popup);
 }
 
 void

@@ -366,6 +366,7 @@ new_toplevel(struct wl_listener *listener, void *data)
 
 struct popup {
 	struct wlr_xdg_popup *popup;
+	struct wlr_scene_tree *holder;	/* vlastni strom popupu vrstvy (nad okny), jinak NULL */
 	struct wl_listener commit, destroy;
 };
 
@@ -399,6 +400,15 @@ popup_destroy(struct wl_listener *listener, void *data)
 	struct popup *p = wl_container_of(listener, p, destroy);
 	wl_list_remove(&p->commit.link);
 	wl_list_remove(&p->destroy.link);
+	if (p->holder) {
+		wlr_scene_node_destroy(&p->holder->node);
+		/* klavesnice zpet z vrstvy s menu (layer_new_popup) */
+		if (comp.layer_focus) {
+			seat_focus_surface(comp.layer_focus);
+		} else {
+			luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
+		}
+	}
 	free(p);
 }
 
@@ -416,13 +426,22 @@ new_popup(struct wl_listener *listener, void *data)
 			wlr_layer_surface_v1_try_from_wlr_surface(popup->parent);
 		parent_tree = ls ? ls->data : NULL;
 	}
-	if (!parent_tree) {
-		return;
+	if (parent_tree) {
+		popup_attach(popup, parent_tree, NULL);
 	}
+	/* bez rodice: popup vrstvy (gtk-layer-shell) dostane rodice az pres get_popup -> layer_new_popup */
+}
+
+/* holder: strom, ktery patri popupu a zanikne s nim (popupy vrstev) */
+void
+popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree,
+		struct wlr_scene_tree *holder)
+{
 	popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
 
 	struct popup *p = calloc(1, sizeof(*p));
 	p->popup = popup;
+	p->holder = holder;
 	p->commit.notify = popup_commit;
 	wl_signal_add(&popup->base->surface->events.commit, &p->commit);
 	p->destroy.notify = popup_destroy;

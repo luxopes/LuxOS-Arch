@@ -12,6 +12,7 @@ struct wlr_scene_tree;
 struct wlr_scene_rect;
 struct wlr_scene_node;
 struct wlr_surface;
+struct wlr_xdg_popup;
 struct wlr_xwayland_surface;
 struct wlr_session_lock_v1;
 struct wlr_ext_image_capture_source_v1;
@@ -26,7 +27,7 @@ struct layer {
 	struct wlr_layer_surface_v1 *surface;
 	struct wlr_scene_layer_surface_v1 *scene;
 	struct output *output;
-	struct wl_listener map, unmap, commit, destroy;
+	struct wl_listener map, unmap, commit, destroy, new_popup;
 };
 
 struct output {
@@ -174,6 +175,8 @@ void layers_init(void);
 
 /* view.c */
 void views_init(void);
+void popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree,
+		struct wlr_scene_tree *holder);
 struct view *view_by_id(int64_t id);
 void view_update_enabled(struct view *view);
 
