@@ -21,6 +21,7 @@
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_output_management_v1.h>
 #include <wlr/types/wlr_presentation_time.h>
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_scene.h>
@@ -77,6 +78,66 @@ output_frame(struct wl_listener *listener, void *data)
 	wlr_scene_output_send_frame_done(o->scene_output, &t1);
 }
 
+/* Aktualni rozlozeni pro wlr-output-management (wlr-randr, nastaveni monitoru, harness testu) */
+static void
+output_config_update(void)
+{
+	struct wlr_output_configuration_v1 *config = wlr_output_configuration_v1_create();
+	struct output *o;
+	wl_list_for_each(o, &comp.outputs, link) {
+		struct wlr_output_configuration_head_v1 *head =
+			wlr_output_configuration_head_v1_create(config, o->wlr_output);
+		struct wlr_box box;
+		wlr_output_layout_get_box(comp.layout, o->wlr_output, &box);
+		head->state.x = box.x;
+		head->state.y = box.y;
+	}
+	wlr_output_manager_v1_set_configuration(comp.output_mgr, config);
+}
+
+static void
+output_config_apply(struct wlr_output_configuration_v1 *config, bool test)
+{
+	bool ok = true;
+	struct wlr_output_configuration_head_v1 *head;
+	wl_list_for_each(head, &config->heads, link) {
+		struct wlr_output *wo = head->state.output;
+		struct wlr_output_state state;
+		wlr_output_state_init(&state);
+		wlr_output_head_v1_state_apply(&head->state, &state);
+		ok = test ? wlr_output_test_state(wo, &state) : wlr_output_commit_state(wo, &state);
+		wlr_output_state_finish(&state);
+		if (!ok) {
+			break;
+		}
+		if (!test && head->state.enabled && wo->data) {
+			wlr_output_layout_add(comp.layout, wo, head->state.x, head->state.y);
+			layers_arrange(wo->data);
+		}
+	}
+	if (ok) {
+		wlr_output_configuration_v1_send_succeeded(config);
+	} else {
+		wlr_output_configuration_v1_send_failed(config);
+	}
+	wlr_output_configuration_v1_destroy(config);
+	if (!test) {
+		output_config_update();
+	}
+}
+
+static void
+output_mgr_apply(struct wl_listener *listener, void *data)
+{
+	output_config_apply(data, false);
+}
+
+static void
+output_mgr_test(struct wl_listener *listener, void *data)
+{
+	output_config_apply(data, true);
+}
+
 static void
 output_request_state(struct wl_listener *listener, void *data)
 {
@@ -84,6 +145,7 @@ output_request_state(struct wl_listener *listener, void *data)
 	const struct wlr_output_event_request_state *event = data;
 	wlr_output_commit_state(o->wlr_output, event->state);
 	layers_arrange(o);
+	output_config_update();
 }
 
 static void
@@ -96,6 +158,7 @@ output_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&o->destroy.link);
 	wl_list_remove(&o->link);
 	free(o);
+	output_config_update();
 }
 
 static void
@@ -143,6 +206,7 @@ new_output(struct wl_listener *listener, void *data)
 	o->scene_output = wlr_scene_output_create(comp.scene, wo);
 	wlr_scene_output_layout_add_output(comp.scene_layout, lo, o->scene_output);
 	layers_arrange(o);
+	output_config_update();
 	emit(LUXCOMP_EV_OUTPUT_ADD, o->id, wo->width, wo->height, 0);
 }
 
@@ -190,6 +254,11 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 
 	comp.layout = wlr_output_layout_create(comp.display);
 	wlr_xdg_output_manager_v1_create(comp.display, comp.layout);
+	comp.output_mgr = wlr_output_manager_v1_create(comp.display);
+	comp.output_mgr_apply.notify = output_mgr_apply;
+	wl_signal_add(&comp.output_mgr->events.apply, &comp.output_mgr_apply);
+	comp.output_mgr_test.notify = output_mgr_test;
+	wl_signal_add(&comp.output_mgr->events.test, &comp.output_mgr_test);
 	comp.new_output.notify = new_output;
 	wl_signal_add(&comp.backend->events.new_output, &comp.new_output);
 
@@ -273,6 +342,8 @@ luxcomp_destroy(void)
 	wl_list_remove(&comp.new_layer_surface.link);
 	wl_list_remove(&comp.new_output.link);
 	wl_list_remove(&comp.new_input.link);
+	wl_list_remove(&comp.output_mgr_apply.link);
+	wl_list_remove(&comp.output_mgr_test.link);
 	wlr_backend_destroy(comp.backend);
 	wlr_scene_node_destroy(&comp.scene->tree.node);
 	input_finish();
