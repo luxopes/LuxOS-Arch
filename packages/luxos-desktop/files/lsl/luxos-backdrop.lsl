@@ -35,7 +35,7 @@ M_MMAP_THRESHOLD = -3
 backdrops = []
 # klic obrazku -> [cairo povrch, pocet vystupu, ktere ho kresli]
 images = {}
-ui = {"trace": env.get("LUXOS_BACKDROP_TRACE", "") == "1", "menu": 0, "reload": 0, "names": 0}
+ui = {"trace": env.get("LUXOS_BACKDROP_TRACE", "") == "1", "menu": 0, "menu_owner": None, "reload": 0, "names": 0}
 
 function trace(message):
     if ui["trace"]:
@@ -249,6 +249,10 @@ function remove_backdrop(monitor):
         if b["monitor"] == monitor:
             call backdrops.remove(b)
             b["monitor"] = 0
+            if ui["menu_owner"] == b:
+                ui["menu_owner"] = None
+                call luxos_gtk.menu_popdown(ui["menu"])
+            end
             call gtk.widget_destroy(b["win"])
             for id in b["handlers"]:
                 call lglib.release(id)
@@ -343,8 +347,18 @@ function on_press(b, event, widget):
     if gtk.event_button(event) != 3:
         return False
     end
-    call show_menu()
+    call show_menu(b)
     return True
+end
+
+# Klavesy jdou do nabidky (xdg_popup) pres plochu, ktera ji otevrela: klavesnice jen po dobu nabidky.
+# Trvale "na vyzadani" by po kliknuti na plochu labwc 0.20 uz nevratil fokus oknu.
+function on_menu_closed(unused, menu):
+    if ui["menu_owner"] != None:
+        call layer.set_keyboard_mode(ui["menu_owner"]["win"], layer.KEYBOARD_NONE)
+        ui["menu_owner"] = None
+    end
+    return 0
 end
 
 function menu_entries():
@@ -356,7 +370,7 @@ function menu_entries():
     return entries
 end
 
-function show_menu():
+function show_menu(b):
     if ui["menu"] == 0:
         menu = luxos_gtk.menu_new()
         for entry in menu_entries():
@@ -369,8 +383,11 @@ function show_menu():
             call luxos_gtk.menu_append(menu, item)
         end
         call gtk.widget_show_all(menu)
+        call lglib.connect_data(menu, "deactivate", 0, on_menu_closed, 0)
         ui["menu"] = menu
     end
+    ui["menu_owner"] = b
+    call layer.set_keyboard_mode(b["win"], layer.KEYBOARD_EXCLUSIVE)
     call luxos_gtk.menu_popup_at_pointer(ui["menu"])
     call trace("menu")
     return 0
@@ -403,7 +420,10 @@ function new_folder():
     end
     call lglib.mkdir_p(path)
     call trace("folder " + path)
-    call lglib.launch_uri("file://" + desktop)
+    unsafe:
+        uri = glib.take_c(__lsl_qbe_call3(__lsl_symbol("g_filename_to_uri"), __lsl_address(desktop) + 16, 0, 0))
+    end
+    call lglib.launch_uri(uri)
     return 0
 end
 
