@@ -92,7 +92,7 @@ read_layout() {
     in_session "$1" wlr-randr | awk '
         /^[^ ]/ { on = 0 } /Enabled: yes/ { on = 1 }
         /\(current\)/ { split($1, m, "x"); w = m[1]; h = m[2] }
-        /Position:/ { split($2, p, ","); if (on || 1) { if (p[1] + w > W) W = p[1] + w; if (p[2] + h > H) H = p[2] + h } }
+        /Position:/ { split($2, p, ","); if (on) { if (p[1] + w > W) W = p[1] + w; if (p[2] + h > H) H = p[2] + h } }
         END { if (W && H) printf "%dx%d\n", W, H }'
 }
 
@@ -167,10 +167,13 @@ cmd_start() {
         die "compositor did not start (log: $s/compositor.log)"
     fi
     if [[ -n $size ]]; then
-        local o
-        for o in $(in_session "$s" wlr-randr | awk '/^[^ ]/{print $1}'); do
-            in_session "$s" wlr-randr --output "$o" --custom-mode "$size" >/dev/null
+        # vystupy vedle sebe zleva doprava, jednou konfiguraci (postupne nastaveni se prekryva)
+        local o x=0 args=()
+        for o in $(in_session "$s" wlr-randr | awk '/^[^ ]/{print $1}' | sort -V); do
+            args+=(--output "$o" --custom-mode "$size" --pos "$x,0")
+            x=$((x + ${size%x*}))
         done
+        in_session "$s" wlr-randr "${args[@]}" >/dev/null
         sleep 0.2
     fi
     read_layout "$s" >"$s/layout"

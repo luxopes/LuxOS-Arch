@@ -251,5 +251,27 @@ class Nested(Headless):
     mode = "nested"
 
 
+@unittest.skipUnless(have_labwc(), "labwc not available (run fetch-sysroot.sh)")
+class MultiOutput(unittest.TestCase):
+    def test_two_outputs_side_by_side(self):
+        for mode in ("headless", "nested"):
+            if mode == "nested" and not shutil.which("Xvfb"):
+                continue
+            s = Path(wlt("start", "--mode", mode, "--outputs", 2, "--size", "800x600", "--timeout", 120).stdout.strip())
+            try:
+                self.assertEqual((s / "layout").read_text().strip(), "1600x600")
+                wlt("run", s, "--bg", "wlt-client")
+                time.sleep(0.5)
+                # okno se otevre na prvnim vystupu, oba vystupy jsou v jednom snimku
+                with tempfile.TemporaryDirectory(dir=OUT) as t:
+                    wlt("shot", s, Path(t) / "s.ppm")
+                    out = subprocess.run([str(FRAMES), "stat", str(Path(t) / "s.ppm")], capture_output=True,
+                                         text=True).stdout
+                    self.assertIn(" 1600x600 ", out)
+            finally:
+                wlt("stop", s, check=False)
+                shutil.rmtree(s, ignore_errors=True)
+
+
 if __name__ == "__main__":
     unittest.main()

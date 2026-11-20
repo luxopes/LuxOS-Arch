@@ -1,0 +1,41 @@
+#!/bin/bash
+# Relace v testovaci VM: labwc na DRM s rendererem podle wlt.renderer=auto|pixman|gles2 z prikazove radky
+# jadra. Zpravy pro hostitele jdou do virtio portu wlt (vm-matrix.sh je cte ze souboru).
+port=/dev/virtio-ports/wlt
+say() { echo "WLT $*" >"$port"; }
+
+if [[ ${1-} == ready ]]; then
+    pid=$(pidof labwc)
+    log=/root/labwc.log
+    grep -E 'render node|[Rr]enderer|[Ss]oftware rendering|EGL|GL_RENDERER|GL renderer|Opened DRM|Initializing DRM' $log \
+        | grep -v 'pixman buffer' | head -15 | while read -r l; do say "log ${l#*] }"; done
+    if grep -q 'Creating pixman renderer' $log; then r=pixman
+    elif grep -q 'gles2/renderer.c' $log && ! grep -q 'Failed to create a GLES2' $log; then r=gles2
+    elif grep -q 'vulkan/renderer.c' $log && ! grep -q 'Failed to create a Vulkan' $log; then r=vulkan
+    else r=unknown; fi
+    say "renderer=$r"
+    say READY
+    # PSS v klidu: hostitel po READY 10 s jen snima obrazovku
+    sleep 5
+    say "pss_idle_kb=$(awk '/^Pss:/{print $2}' /proc/$pid/smaps_rollup)"
+    sleep 25
+    say "pss_after_kb=$(awk '/^Pss:/{print $2}' /proc/$pid/smaps_rollup)"
+    exit 0
+fi
+
+renderer=auto
+for a in $(</proc/cmdline); do
+    case $a in wlt.renderer=*) renderer=${a#*=} ;; wlt.swcursor=1) export WLR_NO_HARDWARE_CURSORS=1 ;; esac
+done
+for c in /sys/class/drm/card[0-9]; do
+    say "drm $(basename $c) driver=$(basename "$(readlink $c/device/driver)")"
+done
+say "dri_nodes=$(ls /dev/dri | tr '\n' ' ')"
+[[ $renderer != auto ]] && export WLR_RENDERER=$renderer
+say "renderer_env=${WLR_RENDERER:-unset}"
+export XDG_RUNTIME_DIR=/run/user/0
+labwc -d >/root/labwc.log 2>&1
+rc=$?
+say "labwc_exit=$rc"
+grep -E 'Creating .* renderer|Failed to create renderer|renderer|Using|allocator' /root/labwc.log | grep -v DEBUG | head -20 \
+    | while read -r l; do say "log $l"; done
