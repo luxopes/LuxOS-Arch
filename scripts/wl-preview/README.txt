@@ -23,7 +23,9 @@ Prihlaseni
 ----------
 Po startu prihlasovaci obrazovka LuxOS (greetd, luxos-greeter v LSL pod luxwm, bez X serveru).
 Uzivatel luxos, heslo luxos. Vlevo dole volba relace: LuxOS (Wayland, vychozi) nebo LuxOS (X11)
-(puvodni Xfce). Odhlaseni (nabidka LuxOS > Odhlasit) vrati prihlasovaci obrazovku.
+(puvodni Xfce); volba se pamatuje pro kazdeho uzivatele. Na starych kartach NVIDIA (470 a starsi)
+a po relaci na Waylandu, ktera skoncila do 10 s od startu, je vybrana LuxOS (X11) sama.
+Odhlaseni (nabidka LuxOS > Odhlasit) vrati prihlasovaci obrazovku.
 Relace na Waylandu: luxos-wayland-session spusti luxwm a v nem luxos-session.target (lista, Dock,
 oznameni, zamek, Launchpad, tapeta, widgety, agent polkitu jako uzivatelske sluzby). Pad listy ci
 Docku systemd hned opravi, pad kompozitoru ukonci relaci a vrati prihlasovaci obrazovku.
