@@ -610,7 +610,6 @@ function event(kind, handle, a, b):
 end
 
 function main():
-    call sys.protect()
     call load_config()
     ui["placeholder"] = i18n.T("Enter Password")
     ui["caps_text"] = i18n.T("Caps Lock is on")
@@ -625,6 +624,9 @@ function main():
         call luxos_sys.eprint("luxos-lock: compositor has no ext-session-lock-v1")
         call quit(2)
     end
+    # az po pripojeni: luxwm overuje privilegovany program podle /proc/PID/exe, ktery neni citelny pro proces
+    # s PR_SET_DUMPABLE 0 (zamek by ext-session-lock nevidel); heslo se pise az po zamceni
+    call sys.protect()
     call wl.lock_secret(True)
     if not wl.lock():
         call quit(3)
