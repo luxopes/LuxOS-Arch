@@ -7,7 +7,7 @@
 
 pkgname=luxwm
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc='LuxOS Wayland window manager (policy in LSL on libluxcomp)'
 arch=('x86_64')
 url='https://github.com/luxopes/LuxOS-Arch'
