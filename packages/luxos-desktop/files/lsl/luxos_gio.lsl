@@ -1,16 +1,17 @@
-# lsl: internal-abi
 # lsl: link libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - doplnky k modulu gio LSL 0.10.6 (D-Bus) pro luxos-hub; programy nacitaji `load luxos_gio, gio as gio`.
 #   call_async(bus, name, path, iface, method, values, signature, ms, f, data)   f(data, hodnoty odpovedi nebo None, chyba)
 #   subscribe_data(bus, sender, iface, member, path, arg0, flags, f, data)        f(data, sender, path, iface, signal, hodnoty);
 #                                                                                 arg0 a priznaky (SIGNAL_MATCH_ARG0_NAMESPACE pro MPRIS)
 #   watch_name_data(bus, name, appeared, vanished, data)                          appeared(data, name, owner), vanished(data, name)
+#   watch_name_flags_data(bus, name, flags, ..)                                   totez s G_BUS_NAME_WATCHER_FLAGS (WATCH_AUTO_START)
 #   name_has_owner(bus, name, ms)                                                 NameHasOwner
 #   inhibit_fd(bus, what, who, why, mode)                                         logind Inhibit -> fd (-1 pri chybe)
 load glib, gio
 load luxos_glib
 
 SIGNAL_NONE = 0
+WATCH_AUTO_START = 1
 SIGNAL_MATCH_ARG0_NAMESPACE = 2
 
 function ptr(value):
@@ -91,10 +92,14 @@ end
 
 # Sledovani jmena s vazanou hodnotou: appeared(data, name, owner), vanished(data, name)
 function watch_name_data(bus, name, appeared, vanished, bound):
+    return watch_name_flags_data(bus, name, 0, appeared, vanished, bound)
+end
+
+function watch_name_flags_data(bus, name, flags, appeared, vanished, bound):
     call subscribe_data(bus, "org.freedesktop.DBus", "org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus", name, SIGNAL_NONE, vanished_trampoline, [vanished, bound])
     tracked = luxos_glib.track(appeared_trampoline, 3, [appeared, bound])
     unsafe:
-        return __lsl_qbe_call7(__lsl_symbol("g_bus_watch_name_on_connection"), ptr(bus), cstr(name), 0, __lsl_symbol("lsl_arch_callback_u4"), 0, ptr(tracked[0]), 0)
+        return __lsl_qbe_call7(__lsl_symbol("g_bus_watch_name_on_connection"), ptr(bus), cstr(name), ptr(flags), __lsl_symbol("lsl_arch_callback_u4"), 0, ptr(tracked[0]), 0)
     end
 end
 

@@ -297,7 +297,7 @@ PAGES = [
         "names": ["lslc"],
         "desc": "low-level LSL trust-core compiler",
         "synopsis": ["**lslc** [**--safe** | **--unsafe** | **--sandbox**] [**--target** *NAME*] "
-                     "*SOURCE* *OUTPUT* [*LSL-QBE*]"],
+                     "[**--system-bindings** *DIR*]... *SOURCE* *OUTPUT* [*LSL-QBE*]"],
         "sources": [
             ("lsl/cli-and-tooling.md", "body",
              {"only": ["lslc", "Other tools in the LuxOS package"], "intro": False,

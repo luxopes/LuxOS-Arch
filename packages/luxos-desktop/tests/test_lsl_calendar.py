@@ -30,7 +30,7 @@ def build():
         shutil.copy(f, src)
     shutil.copy(os.path.join(HERE, "lsl", "luxos-ics-test.lsl"), src)
     out = os.path.join(TMP, "ics-test")
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-ics-test.lsl"), out],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "luxos-ics-test.lsl"), out],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout + r.stderr)

@@ -43,7 +43,7 @@ def agent_bin():
         for name in ("luxos-guard-agent.lsl", "luxos_guard_sys.lsl"):
             shutil.copy(os.path.join(FILES, name), out)
         path = os.path.join(out, "luxos-guard-agent")
-        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", os.path.join(out, "luxos-guard-agent.lsl"), path],
+        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", out, os.path.join(out, "luxos-guard-agent.lsl"), path],
                        check=True, cwd=out, capture_output=True)
     _BIN = path
     return path

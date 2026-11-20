@@ -28,7 +28,7 @@ LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 
 
 def compile_lsl(source, out):
-    res = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", source, out], capture_output=True, text=True)
+    res = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", LSL, source, out], capture_output=True, text=True)
     return res.returncode == 0, res.stderr + res.stdout
 
 

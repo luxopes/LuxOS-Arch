@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgdk-3.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # Posta LuxOS - zobrazeni zpravy ve WebKitGTK (webkit2gtk-4.1, v LuxOS uz je kvuli sprave routeru a yad).
 # Zamceny rezim: bez JavaScriptu, zasuvnych modulu, WebGL, medii, mistniho uloziste a cookies (docasny kontext

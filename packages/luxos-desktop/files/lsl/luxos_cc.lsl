@@ -13,6 +13,7 @@ load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
 load luxos_i18n as i18n
+load luxos_layer as layer
 load luxos_mpris as mpris
 load luxos_text as text
 load luxos_layer as layer

@@ -178,14 +178,18 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
      sync=(); local_pkgs=()
      # depends z repozitaru Archu taky: baliky prevzate z Archu (libfprint, gdk-pixbuf2) proti nim linkuji.
      # pacman -Sp (ne -Si) najde i poskytovane nazvy jako libvulkan.so (wlroots0.20)
+     # (balik sestaveny drive v tomto behu se ze zverejneneho repozitare nestahuje - starsi verze by ho nahradila)
      for d in "${depends[@]}"; do
+         f=("$BUILD"/pkgs/*/"${d%%[<>=]*}"-[0-9]*.pkg.tar.zst)
+         [[ -e ${f[0]} ]] && continue
          pacman -Sp "${d%%[<>=]*}" &>/dev/null && sync+=("$d")
      done
      for d in "${makedepends[@]}" "${checkdepends[@]}"; do
          n=${d%%[<>=]*}
-         if pacman -Sp "$n" &>/dev/null; then sync+=("$d"); continue; fi
+         # balik sestaveny drive v tomto behu ma prednost (napr. novejsi lsl, nez je ve zverejnenem repozitari)
          f=("$BUILD"/pkgs/*/"$n"-[0-9]*.pkg.tar.zst)
-         if [[ -e ${f[0]} ]]; then local_pkgs+=("${f[0]}"); else echo "WARNING: build dependency $d of $p not found" >&2; fi
+         if [[ -e ${f[0]} ]]; then local_pkgs+=("${f[0]}"); continue; fi
+         if pacman -Sp "$n" &>/dev/null; then sync+=("$d"); else echo "WARNING: build dependency $d of $p not found" >&2; fi
      done
      # Jedna nedostupna verze (napr. novejsi balik LuxOS jeste ve staging) nesmi shodit instalaci
      # ostatnich zavislosti: pri chybe po jedne, verzi pripadne bez omezeni verze

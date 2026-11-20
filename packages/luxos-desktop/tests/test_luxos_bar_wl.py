@@ -34,7 +34,7 @@ LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 GOLDENS = HERE / "wl-bar-goldens"
 UPDATE = os.environ.get("LUXOS_BAR_UPDATE_GOLDENS") == "1"
 NOW = "2026-11-20 09:41"
-BAR = 32
+BAR = 28
 SYSROOT = Path(os.environ.get("WLT_SYSROOT") or Path(os.environ.get("WLT_OUT") or REPO / "out/wl-test") / "sysroot")
 HAVE_LABWC = (SYSROOT / "usr/bin/labwc").exists() or shutil.which("labwc")
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
@@ -177,7 +177,8 @@ class WaylandBar(unittest.TestCase):
             shutil.copy(f, src)
         shutil.copy(HERE / "lsl/luxos-wl-window.lsl", src)
         for name in ("luxos-bar", "luxos-wl-window"):
-            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(src / f"{name}.lsl"), str(cls.tmp / name)],
+            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(src), str(src / f"{name}.lsl"),
+                                str(cls.tmp / name)],
                                capture_output=True, text=True)
             if r.returncode != 0:
                 raise RuntimeError(f"{name}: " + r.stdout + r.stderr)
@@ -309,12 +310,12 @@ class WaylandBar(unittest.TestCase):
         _, m = bar.wait(r"^look HEADLESS-1 ink=(\w+) scrim=(\d+)")
         self.assertEqual(m.group(1), ink)
         self.assertEqual(m.group(2), "0")
-        bar.wait(r"^drawn HEADLESS-1 1280x32")
+        bar.wait(r"^drawn HEADLESS-1 1280x28")
         time.sleep(0.5)
         image = self.shot()
         self.assertEqual(image[:2], (1280, 800))
         self.compare_golden(name, crop(image, 0, 0, 1280, BAR))
-        # pod listou nic (zadna plocha zavoje, okno listy presne 32 px)
+        # pod listou nic (zadna plocha zavoje, okno listy presne 28 px)
         self.assertEqual(pixel(image, 640, BAR + 2), "000000")
 
     def test_golden_light(self):
@@ -423,7 +424,7 @@ class WaylandBar(unittest.TestCase):
         self.start()
         bar = self.bar()
         bar.wait(r"^drawn ")
-        clock = "move 640 16"
+        clock = "move 1216 14"   # hodiny vpravo jako na X11
         # prvni otevreni stavi okno (studene), pak teple
         mark = bar.mark()
         self.input(clock, "click")
@@ -432,8 +433,8 @@ class WaylandBar(unittest.TestCase):
         time.sleep(0.3)
         image = self.shot()
         # okno ze skla pod hodinami, pod vyhradnou zonou listy
-        self.assertNotEqual(pixel(image, 640, BAR + 30), "000000")
-        self.assertEqual(pixel(image, 640, BAR + 2), "000000")
+        self.assertNotEqual(pixel(image, 1150, BAR + 30), "000000")
+        self.assertEqual(pixel(image, 1150, BAR + 2), "000000")
         mark = bar.mark()
         self.input("key Escape")
         bar.wait(r"^popup calendar hidden", start=mark)
@@ -459,7 +460,7 @@ class WaylandBar(unittest.TestCase):
         self.input("move 640 600", "click")
         bar.wait(r"^popup calendar hidden", start=mark)
         time.sleep(0.3)
-        self.assertEqual(pixel(self.shot(), 640, BAR + 30), "000000")
+        self.assertEqual(pixel(self.shot(), 1150, BAR + 30), "000000")
 
     # ---- stav systemu (soukrome sbernice) ----
 
@@ -511,12 +512,12 @@ class WaylandBar(unittest.TestCase):
         bar.wait(r"^status network luxos-network-no-internet-symbolic$", start=mark)
         time.sleep(0.5)
         image = self.shot()
-        # prava cast listy: oznamovaci oblast, CZ, Wi-Fi, baterie, zvonek, Ovladaci centrum (zvuk bez serveru skryty)
+        # prava cast listy: oznamovaci oblast, CZ, Wi-Fi, baterie, Hledani, Ovladaci centrum, zvonek, hodiny
         right = crop(image, 900, 0, 380, BAR)
         self.compare_golden("bar-status", right)
         # zvonek: historie oznameni; bubliny luxos-notify skryte, dokud je okno otevrene; zavreni = precteno
         mark = bar.mark()
-        self.input("move 1225 16", "click")
+        self.input("move 1145 14", "click")   # zvonek vlevo od hodin
         bar.wait(r"^popup notifications shown", start=mark)
         services.wait(r"^popups-hidden True$")
         time.sleep(0.4)

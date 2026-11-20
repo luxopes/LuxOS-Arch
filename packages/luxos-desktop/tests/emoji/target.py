@@ -18,6 +18,7 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
+import os
 import sys
 
 import gi
@@ -81,8 +82,10 @@ win.show_all()
 
 
 def ready():
-    with open(out + ".ready", "w") as f:
+    # test cte soubor hned, jak existuje: zapsat vedle a prejmenovat
+    with open(out + ".ready.tmp", "w") as f:
         f.write("ready %d\n" % win.get_window().get_xid())
+    os.replace(out + ".ready.tmp", out + ".ready")
     return False
 
 

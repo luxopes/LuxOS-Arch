@@ -1,11 +1,13 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0 libcairo.so.2
 # LuxOS - aplikace z .desktop souboru pro shell na Waylandu (Dock, Launchpad): hledani podle app_id okna,
 # spusteni s aktivacnim tokenem a ikona jako cairo surface. Nad GDesktopAppInfo (GIO), ktere umi nazvy podle
 # jazyka, pole Exec a adresare XDG; `load luxos_apps as apps`.
 #
 #   find(id)                  aplikace podle id ("firefox.desktop") nebo absolutni cesty, 0 kdyz neni
-#   match(app_id)             aplikace okna: id, StartupWMClass, posledni cast reverse-DNS, spustitelny soubor; 0
+#   find_entry(id_or_path)    jako find, ale cesta se jmenem platneho id dava soubor, ktery pro to id plati
+#                             (/usr/share/applications/thunar.desktop -> prekryti v /var/lib/luxos/apps)
+#   match(app_id)             aplikace okna: id, StartupWMClass, X-Flatpak, posledni cast reverse-DNS,
+#                             spustitelny soubor (viditelne aplikace pred skrytymi); 0
 #   reload()                  zmena v adresarich aplikaci: zahodit rejstrik pro match a nactene soubory
 #   all()                     vsechny .desktop aplikace (i NoDisplay; Launchpad si vybira sam)
 #   monitor()                 GAppInfoMonitor (signal "changed" po zmene .desktop souboru)
@@ -69,15 +71,28 @@ function find(desktop_id):
     return keep(info)
 end
 
+# Polozky Docku a oblibene ukladaji i cesty; okno se ale hleda podle id. Stejna aplikace = stejny objekt,
+# i kdyz cestu prekryva soubor se stejnym id jinde v XDG_DATA_DIRS.
+function find_entry(entry):
+    if entry.startswith("/") and entry.endswith(".desktop"):
+        info = find(base_name(entry))
+        if info != 0:
+            return info
+        end
+    end
+    return find(entry)
+end
+
 function id(info):
     unsafe:
         return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_app_info_get_id"), ptr(info)))
     end
 end
 
+# Name podle jazyka jako Plank a Launchpad na X11; display_name by dal X-GNOME-FullName ("Mozilla Firefox")
 function name(info):
     unsafe:
-        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_app_info_get_display_name"), ptr(info)))
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("g_app_info_get_name"), ptr(info)))
     end
 end
 
@@ -223,27 +238,54 @@ function all_infos():
     return infos
 end
 
-# Poradi klicu = priorita: presne id pred StartupWMClass pred zkracenym jmenem a programem
+# Program z Exec bez obalu: "env A=1 prog", "flatpak run ... id" (to pokryje X-Flatpak)
+function program(info):
+    exe = base_name(executable(info))
+    if exe != "env":
+        return exe
+    end
+    for word in string(info, "Exec").split(" "):
+        if word != "" and word != "env" and word.find("=") < 0:
+            return base_name(word)
+        end
+    end
+    return ""
+end
+
+# Poradi klicu = priorita: presne id pred StartupWMClass a X-Flatpak pred zkracenym jmenem a programem.
+# V kazdem kroku viditelne aplikace pred skrytymi (NoDisplay, OnlyShowIn jinde), at okno nedostane
+# ikonu a nazev pomocneho .desktop (nastaveni, akce) se stejnym programem.
 function build_index():
     global index
     index = {}
-    infos = all_infos()
+    visible = []
+    hidden = []
+    for info in all_infos():
+        if nodisplay(info) or not shown_here(info):
+            hidden.append(info)
+        else:
+            visible.append(info)
+        end
+    end
+    infos = visible + hidden
     for info in infos:
         call add_key(strip_desktop(id(info)).lower(), info)
     end
     for info in infos:
         call add_key(wm_class(info).lower(), info)
+        call add_key(string(info, "X-Flatpak").lower(), info)
     end
     for info in infos:
         call add_key(last_part(strip_desktop(id(info))).lower(), info)
     end
     for info in infos:
-        call add_key(base_name(executable(info)).lower(), info)
+        call add_key(program(info).lower(), info)
     end
     return 0
 end
 
 function match(app_id):
+    app_id = strip_desktop(app_id)
     if app_id == "":
         return 0
     end

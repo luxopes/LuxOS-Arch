@@ -37,6 +37,11 @@ Options: `-h`, `--help`, `--version`; environment `NO_COLOR` disables colors.
   `unsafe:` block (also in imported user modules).
 - `--unsafe` enables the unsafe compiler mode explicitly (needed e.g. for the directive
   `# lsl: unchecked-intarray`). The low-level `lslc` is the explicit trust-core compiler.
+- `--system-bindings DIR` (repeatable, also for `lslc`) trusts the modules in `DIR` like the
+  installed system bindings in `/usr/lib/lsl/system/`: they may call C (`__lsl_qbe_*`,
+  `__lsl_symbol`) and a normal program loads them with `load NAME`. A system binding wins over a
+  same-named file next to the program. LuxOS installs its bindings there (`luxos_gtk`,
+  `luxos_glib`, `luxos_gio`, `luxos_sys`, ...).
 - `--target NAME` cross-compiles: `linux-arm64`, `linux-riscv64`, `linux-arm`, `linux-x86`,
   `windows-x86_64`, `windows-arm64`, `macos-x86_64`, `macos-arm64`, `wasm32-wasi`,
   `wasm32-wasi-threads`, `baremetal-riscv64`.
@@ -141,13 +146,14 @@ configuration evaluator generator), `lsl-cuda-worker` (CUDA worker process).
 ## lslc
 
 ```text
-lslc [--safe | --unsafe | --sandbox] [--target NAME] SOURCE OUTPUT [LSL-QBE]
+lslc [--safe | --unsafe | --sandbox] [--target NAME] [--system-bindings DIR]... SOURCE OUTPUT [LSL-QBE]
 ```
 
 `lslc` compiles one source file into a native executable like `lsl compile`, but it is the
 explicit trust-core developer tool: the safety policy of the `lsl` command is not applied to it.
 `--safe` is checked compilation (the default for normal sources), `--unsafe` the unsafe compiler
-mode (the default for internal sources starting with `# lsl: internal-abi`), `--sandbox` also
-refuses `unsafe:` blocks (code meant for a sandbox). `--target NAME` cross-compiles like
-`lsl compile --target`; the optional `LSL-QBE` selects another backend. Wrong usage prints the
+mode, `--sandbox` also refuses `unsafe:` blocks (code meant for a sandbox). The header
+`# lsl: internal-abi` is only for the LSL sources themselves; elsewhere it gives warning `W3001`
+(an error in a later release) - put modules that call C into a system bindings directory
+instead. `--target NAME` cross-compiles like `lsl compile --target`; the optional `LSL-QBE` selects another backend. Wrong usage prints the
 usage line and exits with status 2. For normal programs use `lsl compile`.

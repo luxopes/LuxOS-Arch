@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libglib-2.0.so.0 libc.so.6
 # LuxOS Icon Studio: versioned, self-contained project format. No shell or interpreter.
 load json

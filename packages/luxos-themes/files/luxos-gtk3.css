@@ -434,3 +434,24 @@ scale.horizontal marks.top {
 headerbar:backdrop {
     color: alpha(@theme_fg_color, 0.72);
 }
+
+/* Okna s vlastnim zahlavim (CSD: terminal, Thunar, vetsina GTK 3 na Waylandu): rohy 16 px jako okna
+   s rameckem kompozitoru (luxos_tokens RADIUS window); WhiteSur ma 12 px. Stin zustava z WhiteSur:
+   wlroots (wlr_scene_xdg_surface) orizne povrch na geometrii okna, takze stin klienta na Waylandu
+   neni videt - vetsi stin by jen zvetsil buffer kazdeho okna. Stin CSD oken patri kompozitoru. */
+window.csd > decoration {
+    border-radius: 16px;
+}
+
+window.csd > .titlebar,
+window.csd > headerbar {
+    border-radius: 16px 16px 0 0;
+}
+
+window.csd.maximized > decoration, window.csd.fullscreen > decoration, window.csd.tiled > decoration,
+window.csd.tiled-top > decoration, window.csd.tiled-bottom > decoration,
+window.csd.tiled-left > decoration, window.csd.tiled-right > decoration,
+window.csd.maximized > .titlebar, window.csd.fullscreen > .titlebar, window.csd.tiled > .titlebar,
+window.csd.maximized > headerbar, window.csd.tiled > headerbar {
+    border-radius: 0;
+}

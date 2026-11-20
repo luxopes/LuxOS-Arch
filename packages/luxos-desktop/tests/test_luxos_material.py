@@ -88,7 +88,7 @@ class Material(unittest.TestCase):
             shutil.copy(f, cls.tmp)
         shutil.copy(HERE / "lsl/luxos-material-test.lsl", cls.tmp)
         cls.lsl = cls.tmp / "material-test"
-        r = run([LSLC, "--target", "linux-x86_64-gnu", str(cls.tmp / "luxos-material-test.lsl"), str(cls.lsl)])
+        r = run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(cls.tmp), str(cls.tmp / "luxos-material-test.lsl"), str(cls.lsl)])
         if r.returncode:
             raise AssertionError(r.stdout + r.stderr)
         cls.walls = cls.tmp / "walls"

@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # Posta LuxOS - doplnky GTK 3, ktere modul gtk ani luxos_gtk nemaji: GtkPaned, GtkTextView,
 # vyber v GtkListBox, posuvnik, GtkSpinner, GtkStack. Nazvy = funkce GTK bez gtk_.

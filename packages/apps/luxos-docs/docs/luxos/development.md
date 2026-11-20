@@ -72,22 +72,22 @@ application's `share/icons/hicolor/` tree and referenced by its `.desktop` file.
 
 ## Native UI helpers
 
-The SDK installs a small source module and a working example:
+The SDK installs a small UI module (an LSL system binding) and a working example:
 
 ```text
-/usr/share/luxos-sdk/lsl/luxui.lsl
+/usr/lib/lsl/system/luxui.lsl
 /usr/share/luxos-sdk/lsl/example.lsl
 /usr/share/doc/luxos-sdk/DESIGN.md
 ```
 
-Copy the two LSL files into a new development folder and compile `example.lsl`:
+Copy `example.lsl` into a new development folder and compile it:
 
 ```sh
-lsl compile --unsafe --target linux-x86_64-gnu example.lsl my-example
+lsl compile --target linux-x86_64-gnu example.lsl my-example
 ./my-example
 ```
 
-`load luxui` makes the local helper module available. It provides a styled window, headings,
+`load luxui` finds the installed module without copying it. It provides a styled window, headings,
 subtitles, cards, rows, columns and buttons. Application behavior remains your own LSL code.
 The library is optional: App Studio's templates use GTK directly and do not require the
 SDK on the end user's computer. Declare `gtk3` as a system dependency for GTK applications.

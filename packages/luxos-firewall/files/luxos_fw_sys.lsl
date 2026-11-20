@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # LuxOS firewall - tenke vazby na libc (cil linux-x86_64-gnu): uid, prava souboru, prejmenovani,
 # cteni /dev/kmsg (zaznamy jadra se zahozenymi spojenimi) s cekanim poll().
 #

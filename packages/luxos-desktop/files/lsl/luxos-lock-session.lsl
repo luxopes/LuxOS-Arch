@@ -235,14 +235,14 @@ function logind_start():
         return 0
     end
     call gio.subscribe_values(state["system"], LOGIN1, "org.freedesktop.login1.Manager", "PrepareForSleep", "/org/freedesktop/login1", on_sleep)
+    # uzivatelska sluzba (luxos-lock.service) neni v zadne relaci a XDG_SESSION_ID nema: "auto" = relace
+    # volajiciho, jinak graficka relace uzivatele (GetSessionByPID tu konci chybou a Lock nikdy neprisel)
     id = env.get("XDG_SESSION_ID", "")
-    if id != "":
-        call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "GetSession",
-                             [id], "(s)", 5000, on_session, 0)
-    else:
-        call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager",
-                             "GetSessionByPID", [glib.getpid()], "(u)", 5000, on_session, 0)
+    if id == "":
+        id = "auto"
     end
+    call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "GetSession",
+                         [id], "(s)", 5000, on_session, 0)
     call take_inhibitor()
     return 0
 end
