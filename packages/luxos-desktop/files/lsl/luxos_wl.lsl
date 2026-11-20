@@ -23,9 +23,9 @@
 # Snimek:    capture_output(o, kurzor), capture_toplevel(lt, kurzor) -> READY(c, w, h)/FAILED(c, duvod),
 #            capture_surface(c, w, h) -> kopie jako cairo surface, capture_write_png(c, w, h, cesta),
 #            capture_format(c), capture_free(c)
-# Schranka:  clipboard_set(text, primarni), clipboard_types(primarni) -> [mime..], CLIPBOARD_CHANGED(0,
-#            primarni, text), clipboard_request(mime, primarni) -> CLIPBOARD_DATA(r, delka, chyba),
-#            clipboard_text(r), clipboard_free(r)
+# Schranka:  clipboard_set(text, primarni), clipboard_set_file(mime, cesta) (obrazek snimku),
+#            clipboard_types(primarni) -> [mime..], CLIPBOARD_CHANGED(0, primarni, text),
+#            clipboard_request(mime, primarni) -> CLIPBOARD_DATA(r, delka, chyba), clipboard_text(r), clipboard_free(r)
 # Emoji:     type_text(text) napise text do okna s fokusem (virtualni klavesnice)
 # Monitory:  heads(), head_info(h) -> [jmeno, popis, zapnuto, x, y, w, h, mHz, meritko/1000, otoceni],
 #            head_modes(h) -> [[w, h, mHz, preferovany, aktualni]..], output_config_begin(),
@@ -77,7 +77,7 @@ NAMES = ["lwl_set_handler", "lwl_bind_only", "lwl_connect", "lwl_attach", "lwl_d
     "lwl_toplevel_set_minimized", "lwl_toplevel_set_maximized", "lwl_toplevel_close", "lwl_lock",
     "lwl_lock_surface", "lwl_unlock", "lwl_surface_width", "lwl_surface_height", "lwl_surface_begin",
     "lwl_surface_commit", "lwl_capture_output", "lwl_capture_toplevel", "lwl_capture_data", "lwl_capture_stride",
-    "lwl_capture_format", "lwl_capture_free", "lwl_clipboard_set", "lwl_clipboard_mime_types",
+    "lwl_capture_format", "lwl_capture_free", "lwl_clipboard_set", "lwl_clipboard_set_file", "lwl_clipboard_mime_types",
     "lwl_clipboard_request", "lwl_clipboard_data", "lwl_clipboard_free", "lwl_type", "lwl_head_count",
     "lwl_head_at", "lwl_head_name", "lwl_head_description", "lwl_head_enabled", "lwl_head_x", "lwl_head_y",
     "lwl_head_width", "lwl_head_height", "lwl_head_refresh", "lwl_head_scale", "lwl_head_transform",
@@ -502,6 +502,12 @@ end
 function clipboard_set(text, primary):
     unsafe:
         return __lsl_qbe_icall2(sym("lwl_clipboard_set"), cstr(text), flag(primary)) == 1
+    end
+end
+
+function clipboard_set_file(mime, path):
+    unsafe:
+        return __lsl_qbe_icall2(sym("lwl_clipboard_set_file"), cstr(mime), cstr(path)) == 1
     end
 end
 

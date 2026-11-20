@@ -112,6 +112,7 @@ int lwl_capture_format(int capture);
 void lwl_capture_free(int capture);
 
 int lwl_clipboard_set(const char *text, int primary);
+int lwl_clipboard_set_file(const char *mime, const char *path);
 const char *lwl_clipboard_mime_types(int primary);
 int lwl_clipboard_request(const char *mime, int primary);
 const char *lwl_clipboard_data(int request);
