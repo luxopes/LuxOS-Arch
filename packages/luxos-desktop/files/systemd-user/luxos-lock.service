@@ -1,0 +1,22 @@
+# LuxOS - zamykani obrazovky v relaci na Waylandu: necinnost, loginctl lock-session a zamek pred uspanim
+# (luxos-lock-session; samotny zamek luxos-lock spousti az pri zamceni). Spousti ho graficka relace (WP-13:
+# luxos-session.target). Po padu hlidace systemd hned spusti novy; zamcenou obrazovku drzi kompozitor
+# (ext-session-lock), takze pad nic neodemkne. Bez ext-session-lock kod 2 a bez dalsich pokusu.
+[Unit]
+Description=LuxOS screen lock watcher
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=exec
+ExecStart=/usr/lib/luxos/luxos-lock-session
+Restart=always
+RestartSec=200ms
+RestartPreventExitStatus=2
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target
