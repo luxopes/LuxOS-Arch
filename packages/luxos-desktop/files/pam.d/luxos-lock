@@ -1,0 +1,7 @@
+#%PAM-1.0
+# LuxOS - zamek obrazovky na Waylandu (luxos-lock): heslo overuje pomocny program luxos-auth.
+# Jen auth jako xfce4-screensaver; pam_faillock (system-auth) s nastavenim LuxOS zamyka jen pri tempu utoku
+# hrubou silou (20 chyb / 30 s -> 1 min, luxos-faillock-setup). Otisk prstu ma vlastni sluzbu luxos-lock-fingerprint,
+# aby bezel soubezne s heslem a necekalo se na nej.
+auth       include      system-auth
+-auth      optional     pam_gnome_keyring.so
