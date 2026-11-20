@@ -2,7 +2,8 @@
 # LuxOS - vzhled: svetly/tmavy rezim, tapeta, pruhlednost horni listy a docku
 # Pouziti: luxos-appearance [dark|light|auto|toggle|status|mode|watch|reapply|greeter-sync|wm-theme]
 #          auto = podle vychodu/zapadu slunce (poloha z casoveho pasma), watch = hlidani v relaci
-#          luxos-appearance wallpaper SOUBOR | bar-opacity 0-100 | dock-opacity 0-100|default
+#          luxos-appearance wallpaper SOUBOR [VYSTUP] | wallpaper-mode fill|fit|center|tile [VYSTUP]
+#          luxos-appearance bar-opacity 0-100 | dock-opacity 0-100|default
 #          luxos-appearance bar-style classic|rounded | bar-clock right|center | bar-text auto|white
 #          luxos-appearance desktop-scrim on|off (ztmaveni velmi svetle tapety pod listou a widgety)
 set -u
@@ -20,6 +21,8 @@ DOCK_OPACITY=
 APPEARANCE_AUTO=0
 LOGIN_WALLPAPER=1    # 0 = prihlasovaci obrazovka si necha vlastni tapetu
 DESKTOP_SCRIM=1      # 0 = bez ztmaveni velmi svetle tapety pod listou a widgety (plugin luxos-bar, luxos-widgets)
+WALLPAPER=           # tapeta na Waylandu (luxos-backdrop, sklo listy a Docku); WALLPAPER_<VYSTUP> pro jeden monitor,
+                     # WALLPAPER_MODE[_<VYSTUP>]=fill|fit|center|tile, WALLPAPER_COLOR=#rrggbb
 load_prefs() {
     [[ -r $prefs ]] && . "$prefs"
     # prazdna nebo neplatna pruhlednost listy = vychozi 62 % (jako plugin luxos-bar a Nastaveni), ne 0
@@ -27,11 +30,36 @@ load_prefs() {
 }
 load_prefs
 
+# Soubor se nahradi najednou (rename): luxos-backdrop, lista i Dock ho sleduji a nesmi videt
+# mezistav bez klice (to by na okamzik nakreslily vychozi tapetu)
 set_pref() {  # set_pref KLIC HODNOTA
+    edit_prefs "^$1=" "$1=$2"
+}
+
+edit_prefs() {  # edit_prefs REGEX_ODEBRAT ("" = vse) [RADEK...]
+    local drop=$1 tmp="$prefs.new.$$"
+    shift
     mkdir -p "$state_dir"
-    touch "$prefs"
-    sed -i "/^$1=/d" "$prefs"
-    echo "$1=$2" >>"$prefs"
+    { [[ -r $prefs ]] && grep -Ev -- "$drop" "$prefs"; [[ $# -gt 0 ]] && printf '%s\n' "$@"; } >"$tmp"
+    mv -f -- "$tmp" "$prefs"
+}
+
+# Nazev vystupu jako cast klice (luxos_material.output_key): HDMI-A-1 -> HDMI_A_1
+output_key() {
+    local k=${1^^}
+    printf '%s' "${k//[^A-Z0-9]/_}"
+}
+
+# appearance.conf bez WALLPAPER a tapet jednotlivych monitoru (WALLPAPER_<VYSTUP>); WALLPAPER_MODE*
+# a WALLPAPER_COLOR zustanou
+prefs_without_wallpapers() {
+    local line key
+    [[ -r $prefs ]] || return 0
+    while IFS= read -r line; do
+        key=${line%%=*}
+        [[ $key == WALLPAPER || ( $key == WALLPAPER_* && $key != WALLPAPER_MODE* && $key != WALLPAPER_COLOR ) ]] && continue
+        printf '%s\n' "$line"
+    done <"$prefs"
 }
 
 # Tema docku: WhiteSur, nebo jeho kopie s vlastni pruhlednosti pozadi
@@ -72,7 +100,17 @@ workspaces() {
 # force=0: jen tam, kde zadna tapeta neni; force=1 i misto vychozi tapety druheho
 # rezimu (jinou vybranou tapetu, i z galerie LuxOS, nemeni).
 set_wallpaper() {
-    local mode=$1 force=${2:-0} img="$wall_dir/luxos-$1.jpg" mon ws prop cur line
+    local mode=$1 force=${2:-0} img="$wall_dir/luxos-$1.jpg" mon ws prop cur line key
+    # Wayland: vychozi tapeta druheho rezimu v appearance.conf (prazdna = luxos-backdrop bere vychozi sam)
+    if [[ $force == 1 && -r $prefs ]] && grep -Eq "^WALLPAPER[A-Z0-9_]*=['\"]?$wall_dir/luxos-(dark|light)\.jpg" "$prefs"; then
+        local lines=()
+        while IFS= read -r line; do
+            key=${line%%=*}
+            [[ $key == WALLPAPER* && $line =~ =[\'\"]?$wall_dir/luxos-(dark|light)\.jpg ]] && line="$key='$img'"
+            lines+=("$line")
+        done <"$prefs"
+        edit_prefs '' "${lines[@]}"
+    fi
     command -v xfconf-query >/dev/null || return 0
     # Ulozene tapety jednim dotazem (drive jedno volani xfconf-query na monitor a plochu,
     # pri kazdem prihlaseni); hodnota nasleduje za nazvem vlastnosti po mezerach
@@ -95,9 +133,11 @@ set_wallpaper() {
     done
 }
 
-# Tapeta plochy na hlavnim monitoru (plocha 0, stejne jako zamykaci dialog xfce4-screensaver)
+# Tapeta plochy na hlavnim monitoru (plocha 0, stejne jako zamykaci dialog xfce4-screensaver);
+# na Waylandu WALLPAPER z appearance.conf
 desktop_wallpaper() {
     local mon line prop val first=
+    [[ -n $WALLPAPER && -r $WALLPAPER ]] && { printf '%s\n' "$WALLPAPER"; return; }
     local -A have=()
     while IFS= read -r line; do
         [[ $line == /backdrop/screen0/monitor*/last-image* ]] || continue
@@ -428,7 +468,7 @@ apply() {
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
     . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
     if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
-    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE|greeter-sync|wm-theme|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off]"
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE [OUTPUT]|greeter-sync|wm-theme|wallpaper-mode fill|fit|center|tile [OUTPUT]|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off]"
 }
 
 case ${1:-status} in
@@ -493,14 +533,31 @@ case ${1:-status} in
     greeter-sync) greeter_sync ;;
     status)     current ;;
     wallpaper)
-        [[ -r ${2-} ]] || usage "wallpaper FILE"
+        [[ -r ${2-} ]] || usage "wallpaper FILE [OUTPUT]"
+        img=$2
+        [[ $img == /* ]] || img=$PWD/$img
+        if [[ -n ${3-} ]]; then
+            # jen jeden monitor (Wayland); xfdesktop to nastavuje sam ve svem dialogu
+            set_pref "WALLPAPER_$(output_key "$3")" "'$img'"
+            exit 0
+        fi
+        # vsechny monitory: i misto drivejsich tapet jednotlivych monitoru
+        mapfile -t lines < <(prefs_without_wallpapers)
+        edit_prefs '' "${lines[@]}" "WALLPAPER='$img'"
+        WALLPAPER=$img
+        command -v xfconf-query >/dev/null || { greeter_sync; exit 0; }
         for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
             for ws in $(workspaces); do
-                xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$2"
+                xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$img"
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/image-style" -n -t int -s 5
             done
         done
         greeter_sync ;;
+    # Zobrazeni tapety na Waylandu (luxos-backdrop): vyplnit, cela tapeta, na stred, dlazdice
+    wallpaper-mode)
+        [[ ${2-} == @(fill|fit|center|tile) ]] || usage "wallpaper-mode fill|fit|center|tile [OUTPUT]"
+        if [[ -n ${3-} ]]; then set_pref "WALLPAPER_MODE_$(output_key "$3")" "$2"
+        else edit_prefs '^WALLPAPER_MODE(_[A-Z0-9_]+)?=' "WALLPAPER_MODE=$2"; fi ;;
     bar-opacity|dock-opacity)
         v=${2-}
         [[ $1 == dock-opacity && $v == default ]] && v=
