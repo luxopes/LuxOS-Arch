@@ -4,7 +4,6 @@
 [Unit]
 Description=LuxOS Wayland session
 BindsTo=graphical-session.target
-Before=graphical-session.target
 Wants=graphical-session-pre.target
 After=graphical-session-pre.target
 Wants=luxos-notify.service luxos-bar.service luxos-dock.service luxos-backdrop.service luxos-widgets.service

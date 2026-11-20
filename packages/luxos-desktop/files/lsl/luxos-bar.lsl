@@ -43,7 +43,9 @@ SHORT = {"thunar": "Files", "luxos-terminal": "Terminal", "xfce4-terminal": "Ter
 
 # Nabidka loga: [text, prikaz]; "" = oddelovac
 MENU = [["About LuxOS", ["luxos-about"]], ["Settings", ["luxos-settings"]], ["Launchpad", ["luxos-launchpad"]], "",
-    ["Lock Screen", ["loginctl", "lock-session"]], ["Log Out", ["loginctl", "terminate-session", "auto"]],
+    # lista bezi jako uzivatelska sluzba mimo relaci logindu: relaci urcuje XDG_SESSION_ID z luxos-wayland-session
+    ["Lock Screen", ["sh", "-c", "exec loginctl lock-session \"${XDG_SESSION_ID:-auto}\""]],
+    ["Log Out", ["sh", "-c", "exec loginctl terminate-session \"${XDG_SESSION_ID:-auto}\""]],
     ["Restart", ["systemctl", "reboot"]], ["Shut Down", ["systemctl", "poweroff"]]]
 
 bars = []
