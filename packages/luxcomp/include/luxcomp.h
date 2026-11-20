@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 3
+#define LUXCOMP_API_VERSION 4
 
 #pragma GCC visibility push(default)
 

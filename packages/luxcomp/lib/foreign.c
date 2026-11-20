@@ -167,10 +167,10 @@ toplevel_capture(struct wl_listener *listener, void *data)
 {
 	struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request *req = data;
 	struct view *v = req->toplevel_handle->data;
-	/* zdroj zije se stromem obsahu okna (bez zahlavi), jeden na okno */
+	/* zdroj zije s telem okna (obsah se zakulacenymi rohy, bez zahlavi a stinu), jeden na okno */
 	if (v && !v->capture && v->surface_tree) {
 		v->capture = wlr_ext_image_capture_source_v1_create_with_scene_node(
-			&v->surface_tree->node, comp.loop, comp.allocator, comp.renderer);
+			&v->body->node, comp.loop, comp.allocator, comp.renderer);
 		if (v->capture) {
 			v->capture_destroy.notify = capture_destroy;
 			wl_signal_add(&v->capture->events.destroy, &v->capture_destroy);

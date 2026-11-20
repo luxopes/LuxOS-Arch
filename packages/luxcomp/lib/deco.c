@@ -367,7 +367,7 @@ corners_update(struct deco *d)
 	}
 
 	if (!d->strip) {
-		d->strip = wlr_scene_subsurface_tree_create(v->tree, s);
+		d->strip = wlr_scene_subsurface_tree_create(v->body, s);
 		d->strip_surface = s;
 		tree_track(&d->strip);
 		wlr_scene_node_place_below(&d->strip->node, &v->surface_tree->node);
@@ -397,7 +397,7 @@ deco_create(struct view *view)
 	d->view = view;
 	d->node = wlr_scene_buffer_create(view->tree, NULL);
 	for (int i = 0; i < 2; i++) {
-		d->corner[i] = wlr_scene_buffer_create(view->tree, NULL);
+		d->corner[i] = wlr_scene_buffer_create(view->body, NULL);
 		d->corner[i]->point_accepts_input = no_input;
 		wlr_scene_node_lower_to_bottom(&d->corner[i]->node);
 		wlr_scene_node_set_enabled(&d->corner[i]->node, false);

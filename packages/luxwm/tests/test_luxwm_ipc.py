@@ -396,18 +396,20 @@ class LuxwmIpc(unittest.TestCase):
         time.sleep(0.3)
         lines = [l for l in open(log, errors="replace").read().splitlines() if l.startswith("status keyboard")]
         self.assertEqual(lines[-1], "status keyboard US")
-        # klik na odznak: nabidka rozlozeni, sipkami na druhe, Enter prepne
+        # klik na odznak: nabidka rozlozeni (xdg_popup s grabem) dostane klavesnici, i kdyz lista zadnou nema
         wait_bar("badge keyboard ")
         x, w = [int(v) for l in open(log).read().splitlines() if l.startswith("badge keyboard ")
                 for v in l.split()[2:4]][-2:]
-        s.input(f"move {x + w // 2} 16", "click")
+        s.client("Focused", app="focused")
+        # Esc nabidku zavre a klavesnice se vrati oknu (jedna virtualni klavesnice pro cely scenar)
+        s.input(f"move {x + w // 2} 16", "click", "sleep 0.6", "key Escape", "sleep 0.4", "type q", wait=0.6)
         wait_bar("layout menu 2")
-        time.sleep(0.5)
+        self.assertIn("key q down", s.clients_log(), "po zavreni nabidky pise okno")
+        before = s.clients_log().count("key Down down")
+        s.input(f"move {x + w // 2} 16", "click", "sleep 0.6", "key Down", "key Down", "key Return", wait=0.6)
         s.shot("bar-layout-menu.ppm")
-        # nabidka (xdg_popup) je pod odznakem zarovnana k jeho praveho okraji; druha polozka = Czech. Klavesnici
-        # nabidka nedostane: libluxcomp zatim nema xdg_popup grab
-        s.input(f"move {x + w // 2 - 130} 78", "click", wait=0.6)
         wait_bar("layout switch 1")
+        self.assertEqual(s.clients_log().count("key Down down"), before, "sipky dostala nabidka, ne okno")
         self.assertEqual(s.state()["keyboard"]["current"], 1)
         wait_bar("status keyboard CZ")
         self.assertIsNone(s.procs[-1].poll(), "lista bezi")

@@ -582,10 +582,20 @@ layer_update_focus(void)
 			}
 		}
 	}
-	if (comp.layer_focus) {
+	/* vrstva na pozadani (klikem) si klavesnici necha, dokud je videt a na pozadani zustava; mapovani
+	 * jine vrstvy (oznameni, lista) ji nebere */
+	if (comp.layer_focus && !layer_on_demand(comp.layer_focus)) {
 		comp.layer_focus = NULL;
 		luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
 	}
+}
+
+bool
+layer_on_demand(struct wlr_surface *surface)
+{
+	struct wlr_layer_surface_v1 *ls = surface ? wlr_layer_surface_v1_try_from_wlr_surface(surface) : NULL;
+	return ls && ls->surface->mapped
+		&& ls->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND;
 }
 
 static void

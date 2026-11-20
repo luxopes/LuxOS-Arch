@@ -66,6 +66,23 @@ seat_focus_surface(struct wlr_surface *surface)
 	}
 }
 
+/* Primo, mimo grab seatu: grab xdg_popup zmenu zamereni jinak zahodi */
+void
+seat_enter_direct(struct wlr_surface *surface)
+{
+	if (comp.locked && surface && !wlr_session_lock_surface_v1_try_from_wlr_surface(surface)) {
+		return;
+	}
+	struct wlr_keyboard *kb = wlr_seat_get_keyboard(comp.seat);
+	if (!surface) {
+		wlr_seat_keyboard_clear_focus(comp.seat);
+	} else if (kb) {
+		wlr_seat_keyboard_enter(comp.seat, surface, kb->keycodes, kb->num_keycodes, &kb->modifiers);
+	} else {
+		wlr_seat_keyboard_enter(comp.seat, surface, NULL, 0, NULL);
+	}
+}
+
 /* ---- klavesnice ---- */
 
 static struct xkb_keymap *
@@ -450,13 +467,11 @@ cursor_button(struct wl_listener *listener, void *data)
 			== ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
 		comp.layer_focus = l->surface->surface;
 		seat_focus_surface(comp.layer_focus);
-	} else if (pressed && v && comp.layer_focus) {
-		/* klik do okna vraci klavesnici z vrstvy na demand oknu */
-		struct wlr_layer_surface_v1 *ls =
-			wlr_layer_surface_v1_try_from_wlr_surface(comp.layer_focus);
-		if (!ls || ls->current.keyboard_interactive
-				!= ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE) {
-			comp.layer_focus = NULL;
+	} else if (pressed && v && comp.layer_focus && layer_on_demand(comp.layer_focus)) {
+		/* klik do okna vraci klavesnici z vrstvy na pozadani; jine okno zameri politika */
+		comp.layer_focus = NULL;
+		if (v == comp.focused) {
+			seat_focus_surface(view_surface(v));
 		}
 	}
 	if (surface) {

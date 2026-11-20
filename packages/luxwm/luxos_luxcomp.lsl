@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 3
+API_VERSION = 4
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2

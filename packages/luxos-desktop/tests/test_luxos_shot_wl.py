@@ -270,9 +270,14 @@ class ShotWayland(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertIn("window test.male|Male", self.tlog())
         got = self.one_png(out)
-        # obsah okna bez titulku a stinu: presne jeho buffer
+        # obsah okna bez titulku a stinu: presne jeho buffer, dole zakulacene rohy jako na obrazovce
+        # (radius okna 16 px, vyhlazene okraje maji mezitony)
         self.assertEqual(got[:2], (240, 160))
-        self.assertEqual(colors(got), {"20a040", "105020"})
+        r = 16
+        self.assertEqual(colors(crop(got, 0, 0, 240, 160 - r)), {"20a040", "105020"})
+        self.assertEqual(colors(crop(got, r, 160 - r, 240 - 2 * r, r)) - {"20a040", "105020"}, set())
+        corner = colors(crop(got, 0, 160 - r, r, r))
+        self.assertGreater(len(corner), 2, "zakulaceny roh")
 
     def test_space_switches_and_escape_cancels(self):
         self.client("Okno", "400x300")

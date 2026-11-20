@@ -59,6 +59,7 @@ struct view {
 	struct wlr_xdg_toplevel *toplevel;	/* exactly one of toplevel and xsurface is set */
 	struct wlr_xwayland_surface *xsurface;
 	struct wlr_scene_tree *tree;	/* at the content top-left */
+	struct wlr_scene_tree *body;	/* content + rounded bottom corners (deco.c), what a window capture shows */
 	struct wlr_scene_tree *surface_tree;	/* NULL for an X11 window without a wl_surface */
 	struct workspace *workspace;
 	int layer;
@@ -179,6 +180,7 @@ struct output *output_by_id(int64_t id);
 struct output *output_at(double x, double y);
 void layers_arrange(struct output *output);
 void layers_init(void);
+bool layer_on_demand(struct wlr_surface *surface);	/* mapped, keyboard_interactivity on_demand */
 
 /* view.c */
 void views_init(void);
@@ -189,6 +191,7 @@ void view_update_enabled(struct view *view);
 void input_init(void);
 void input_finish(void);
 void seat_focus_surface(struct wlr_surface *surface);
+void seat_enter_direct(struct wlr_surface *surface);
 void cursor_rebase(void);
 
 /* deco.c */
