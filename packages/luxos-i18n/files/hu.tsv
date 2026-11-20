@@ -5373,3 +5373,6 @@ Mailboxes at lux-ai.cz sign in with your LuxAI account, not with a password. Thi
 Keep in Dock	Megtartás a Dockban
 Remove from Dock	Eltávolítás a Dockból
 Change Wallpaper…	Háttérkép módosítása…
+Choose a window to capture	Válassza ki a rögzítendő ablakot
+No windows	Nincsenek ablakok
+Screen recording is not available on Wayland yet.	A képernyőfelvétel Waylanden még nem érhető el.
