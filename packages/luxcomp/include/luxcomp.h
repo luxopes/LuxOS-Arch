@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 2
+#define LUXCOMP_API_VERSION 3
 
 #pragma GCC visibility push(default)
 
@@ -145,6 +145,11 @@ enum luxcomp_theme_prop {
 	LUXCOMP_THEME_MAXIMIZE,
 	LUXCOMP_THEME_BUTTON_INACTIVE,
 	LUXCOMP_THEME_SEPARATOR,
+	LUXCOMP_THEME_GLYPH,		/* x - + on a hovered traffic light */
+	LUXCOMP_THEME_SHADOW_ACTIVE,	/* shadow colour incl. alpha, 0 = no shadow */
+	LUXCOMP_THEME_SHADOW_INACTIVE,
+	LUXCOMP_THEME_SHADOW_ACTIVE_SIZE,	/* px the shadow reaches beyond the window */
+	LUXCOMP_THEME_SHADOW_INACTIVE_SIZE,
 };
 
 /* Lifecycle and event loop */
@@ -217,6 +222,10 @@ int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locke
 /* Server-side decorations */
 void luxcomp_theme_set(int64_t prop, int64_t value);
 void luxcomp_theme_set_font(const char *pango_font);
+
+/* Pointer image of the compositor (desktop, title bars); also exported as XCURSOR_THEME/SIZE
+ * for clients started later. NULL theme = libxcursor default. Size in logical px. */
+void luxcomp_set_cursor(const char *theme, int64_t size);
 
 #pragma GCC visibility pop
 

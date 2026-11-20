@@ -75,11 +75,18 @@ output_frame(struct wl_listener *listener, void *data)
 	clock_gettime(CLOCK_MONOTONIC, &t0);
 	bool done = wlr_scene_output_commit(o->scene_output, NULL);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
+	int64_t render_ns = (t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
 	if (done) {
 		lock_frame_done(o);
+		if (comp.grab != GRAB_NONE) {
+			comp.grab_frames++;
+			comp.grab_render_sum_ns += render_ns;
+			if (render_ns > comp.grab_render_max_ns) {
+				comp.grab_render_max_ns = render_ns;
+			}
+		}
 	}
-	workspaces_frame_done((t1.tv_sec - t0.tv_sec) * 1000000000LL
-		+ (t1.tv_nsec - t0.tv_nsec));
+	workspaces_frame_done(render_ns);
 	wlr_scene_output_send_frame_done(o->scene_output, &t1);
 }
 

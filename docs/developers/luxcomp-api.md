@@ -4,7 +4,7 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 1), balík `packages/luxcomp`.
+`LUXCOMP_API_VERSION` = 3), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -158,11 +158,29 @@ jiné okno), rozhoduje politika. Viz `luxos-fullscreen-layer.patch` u xfwm4.
 **Dekorace.** `luxcomp_theme_set(LUXCOMP_THEME_*, hodnota)` nastavuje:
 - výšku zahlaví, poloměr rohů, velikost a mezery tlačítek;
 - barvy `0xAARRGGBB`: pozadí a text aktivního i neaktivního okna, semafor, tlačítka neaktivního
-  okna a oddělovač.
+  okna, oddělovač a znak na semaforu pod ukazatelem (`GLYPH`: ×, −, +);
+- stín: barvu s alfou (`SHADOW_ACTIVE`, `SHADOW_INACTIVE`, alfa 0 = bez stínu) a dosah v px
+  (`SHADOW_ACTIVE_SIZE`, `SHADOW_INACTIVE_SIZE`).
 
 `luxcomp_theme_set_font("Inter Semi-Bold 10")` nastaví písmo. Výchozí hodnoty jsou světlý vzhled
 LuxOS. Tmavý režim a tokeny návrhu (WP-4) nastaví luxwm těmito voláními, v jádře nejsou žádné
 soubory s tématem.
+
+Jak to jádro kreslí (okna se zahlavím kompozitoru, okna s vlastním zahlavím CSD nechává být):
+- Zahlaví i stín se kreslí v měřítku největšího výstupu (při 2x ostré písmo a kolečka).
+- Stín je 8 dílů jedné předem rozmazané textury (rohy 1:1, hrany roztažené z jednoho sloupce).
+  Textura je společná všem oknům se stejnou velikostí, poloměrem, barvou a měřítkem, při přesunu
+  okna se nic nepočítá. Maximalizované a celoobrazovkové okno stín ani zaoblení nemá.
+- Dolní rohy obsahu se zaoblí poloměrem `CORNER_RADIUS`: obsah se ořízne nad dolním pruhem, pruh
+  mezi rohy kreslí druhý strom téhož povrchu a rohy jsou malé kopie pixelů klienta s vyhlazenou
+  maskou. Pixely rohů se čtou jen když je klient v rozích změnil. Povrch s viewportem nebo rotací
+  a textura, kterou nejde číst, mají rohy ostré.
+- `LUXCOMP_STATS=1` vypíše po každém tažení okna počet snímků a nejdelší a průměrný čas kreslení.
+
+`luxcomp_set_cursor(téma, velikost)` nastaví ukazatel kompozitoru (plocha, zahlaví) a exportuje
+`XCURSOR_THEME`/`XCURSOR_SIZE` pro později spuštěné klienty. Velikost je v logických px, obrázek
+pro měřítko každého výstupu si wlroots načte sám. luxwm bere téma a velikost z `gtk-3.0/settings.ini`
+(jako GTK na X11: WhiteSur-cursors 24), proměnné prostředí relace mají přednost.
 
 Ostatní: `luxcomp_set_background(argb)` (jednolitá barva pod tapetou) a
 `luxcomp_software_rendering()` (1 = pixman; politika může vypnout drahé efekty).

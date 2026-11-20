@@ -11,6 +11,8 @@
 struct wlr_scene_tree;
 struct wlr_scene_rect;
 struct wlr_scene_node;
+struct wlr_buffer;
+struct _cairo_surface;
 struct wlr_surface;
 struct wlr_xwayland_surface;
 struct wlr_session_lock_v1;
@@ -153,6 +155,8 @@ struct comp {
 	double grab_x, grab_y;
 	struct wlr_box grab_box;
 	uint32_t grab_edges;
+	int grab_frames;		/* LUXCOMP_STATS: render times while dragging */
+	int64_t grab_render_max_ns, grab_render_sum_ns;
 
 	char *kb_layout, *kb_variant, *kb_options;
 	int repeat_rate, repeat_delay;
@@ -191,6 +195,16 @@ void deco_update(struct deco *deco);		/* size, title, activation */
 int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
 int deco_height(void);
+void deco_hover(struct deco *deco, int part);	/* NULL = pointer is not over a title bar */
+struct wlr_buffer *cairo_buffer_create(int width, int height, struct _cairo_surface **surface);
+
+/* shadow.c: window shadow drawn from shared pre-blurred 9-slice textures */
+struct shadow;
+struct shadow *shadow_create(struct wlr_scene_tree *parent);
+void shadow_destroy(struct shadow *shadow);
+/* frame = window incl. title bar, relative to parent; size 0 hides the shadow */
+void shadow_update(struct shadow *shadow, struct wlr_box frame, int size, int radius,
+	uint32_t argb, int scale);
 
 /* view.c, shared with xwayland.c */
 struct view *view_create(void);
