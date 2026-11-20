@@ -188,11 +188,11 @@ deco_destroy(struct deco *d)
 void
 deco_update(struct deco *d)
 {
-	struct wlr_xdg_toplevel *t = d->view->toplevel;
-	wlr_scene_node_set_enabled(&d->node->node, !t->pending.fullscreen);
-	int width = t->base->geometry.width;
+	int64_t id = d->view->id;
+	wlr_scene_node_set_enabled(&d->node->node, !luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN));
+	int width = view_width(d->view);
 	bool active = comp.focused == d->view;
-	const char *title = t->title ? t->title : "";
+	const char *title = luxcomp_view_title(id) ? luxcomp_view_title(id) : "";
 	if (width == d->width && active == d->active && d->title && !strcmp(title, d->title)) {
 		return;
 	}

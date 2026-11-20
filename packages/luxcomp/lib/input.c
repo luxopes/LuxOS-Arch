@@ -14,6 +14,7 @@
 #include <wlr/types/wlr_primary_selection.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
@@ -41,6 +42,10 @@ now_ms(void)
 void
 seat_focus_surface(struct wlr_surface *surface)
 {
+	/* pod zamkem dostane klavesnici jen zamykaci plocha */
+	if (comp.locked && surface && !wlr_session_lock_surface_v1_try_from_wlr_surface(surface)) {
+		return;
+	}
 	if (!surface) {
 		wlr_seat_keyboard_notify_clear_focus(comp.seat);
 		return;
@@ -125,12 +130,13 @@ keyboard_key(struct wl_listener *listener, void *data)
 	struct keyboard *kb = wl_container_of(listener, kb, key);
 	struct wlr_keyboard_key_event *event = data;
 	uint32_t keycode = event->keycode + 8;
+	idle_activity();
 
 	if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
 		if (swallow(kb, keycode, false)) {
 			return;
 		}
-	} else {
+	} else if (!comp.locked) {
 		uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK;
 		struct keybind *b;
 		wl_list_for_each(b, &comp.keybinds, link) {
@@ -232,7 +238,8 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 	*view_out = NULL;
 	*layer_out = NULL;
 	*surface = NULL;
-	struct wlr_scene_node *node = wlr_scene_node_at(&comp.scene->tree.node, x, y, sx, sy);
+	struct wlr_scene_node *root = comp.locked ? &comp.lock_tree->node : &comp.scene->tree.node;
+	struct wlr_scene_node *node = wlr_scene_node_at(root, x, y, sx, sy);
 	if (!node) {
 		return LUXCOMP_PART_NONE;
 	}
@@ -273,8 +280,10 @@ process_grab(void)
 	}
 	struct wlr_box b = comp.grab_box;
 	int left = b.x, right = b.x + b.width, top = b.y, bottom = b.y + b.height;
-	int min_w = v->toplevel->current.min_width > 0 ? v->toplevel->current.min_width : 1;
-	int min_h = v->toplevel->current.min_height > 0 ? v->toplevel->current.min_height : 1;
+	int min_w = luxcomp_view_get(v->id, LUXCOMP_VIEW_MIN_W);
+	int min_h = luxcomp_view_get(v->id, LUXCOMP_VIEW_MIN_H);
+	min_w = min_w > 0 ? min_w : 1;
+	min_h = min_h > 0 ? min_h : 1;
 	double dx = cx - comp.grab_x, dy = cy - comp.grab_y;
 	if (comp.grab_edges & LUXCOMP_EDGE_TOP) {
 		top = b.y + dy;
@@ -291,7 +300,7 @@ process_grab(void)
 		if (right - left < min_w) right = left + min_w;
 	}
 	luxcomp_view_move(v->id, left, top);
-	wlr_xdg_toplevel_set_size(v->toplevel, right - left, bottom - top);
+	luxcomp_view_resize(v->id, right - left, bottom - top);
 }
 
 static void
@@ -326,6 +335,7 @@ cursor_motion(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_motion_event *e = data;
 	wlr_cursor_move(comp.cursor, &e->pointer->base, e->delta_x, e->delta_y);
+	idle_activity();
 	process_motion(e->time_msec);
 }
 
@@ -334,6 +344,7 @@ cursor_motion_abs(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_motion_absolute_event *e = data;
 	wlr_cursor_warp_absolute(comp.cursor, &e->pointer->base, e->x, e->y);
+	idle_activity();
 	process_motion(e->time_msec);
 }
 
@@ -342,6 +353,7 @@ cursor_button(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_button_event *e = data;
 	bool pressed = e->state == WL_POINTER_BUTTON_STATE_PRESSED;
+	idle_activity();
 	struct view *v;
 	struct layer *l;
 	struct wlr_surface *surface;
@@ -379,6 +391,7 @@ static void
 cursor_axis(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_axis_event *e = data;
+	idle_activity();
 	wlr_seat_pointer_notify_axis(comp.seat, e->time_msec, e->orientation, e->delta,
 		e->delta_discrete, e->source, e->relative_direction);
 }
@@ -427,20 +440,19 @@ input_init(void)
 
 	comp.new_input.notify = new_input;
 	wl_signal_add(&comp.backend->events.new_input, &comp.new_input);
-	/* Vstup od klientu (testy pres scripts/wl-test). Kazdy klient by jim mohl psat do jinych
-	 * oken, proto jen na vyslovne pozadani, dokud nebude allowlist security-context. */
-	wl_list_init(&comp.new_virtual_keyboard.link);
-	wl_list_init(&comp.new_virtual_pointer.link);
-	if (getenv("LUXCOMP_VIRTUAL_INPUT")) {
-		struct wlr_virtual_keyboard_manager_v1 *vk =
-			wlr_virtual_keyboard_manager_v1_create(comp.display);
-		comp.new_virtual_keyboard.notify = new_virtual_keyboard;
-		wl_signal_add(&vk->events.new_virtual_keyboard, &comp.new_virtual_keyboard);
-		struct wlr_virtual_pointer_manager_v1 *vp =
-			wlr_virtual_pointer_manager_v1_create(comp.display);
-		comp.new_virtual_pointer.notify = new_virtual_pointer;
-		wl_signal_add(&vp->events.new_virtual_pointer, &comp.new_virtual_pointer);
-	}
+	/* Vstup od klientu (psani shellu, testy pres scripts/wl-test). Klient jim muze psat do
+	 * jinych oken, proto jen pro allowlist (security.c), s LUXCOMP_VIRTUAL_INPUT pro kazdeho
+	 * klienta mimo sandbox. */
+	struct wlr_virtual_keyboard_manager_v1 *vk =
+		wlr_virtual_keyboard_manager_v1_create(comp.display);
+	comp.new_virtual_keyboard.notify = new_virtual_keyboard;
+	wl_signal_add(&vk->events.new_virtual_keyboard, &comp.new_virtual_keyboard);
+	struct wlr_virtual_pointer_manager_v1 *vp =
+		wlr_virtual_pointer_manager_v1_create(comp.display);
+	comp.new_virtual_pointer.notify = new_virtual_pointer;
+	wl_signal_add(&vp->events.new_virtual_pointer, &comp.new_virtual_pointer);
+	security_mark(vk->global, GLOBAL_VIRTUAL_INPUT);
+	security_mark(vp->global, GLOBAL_VIRTUAL_INPUT);
 	comp.cursor_motion.notify = cursor_motion;
 	wl_signal_add(&comp.cursor->events.motion, &comp.cursor_motion);
 	comp.cursor_motion_abs.notify = cursor_motion_abs;
@@ -499,8 +511,7 @@ begin_grab(struct view *v, enum grab_mode mode, uint32_t edges)
 	comp.grab_edges = edges;
 	comp.grab_x = comp.cursor->x - (mode == GRAB_MOVE ? v->x : 0);
 	comp.grab_y = comp.cursor->y - (mode == GRAB_MOVE ? v->y : 0);
-	comp.grab_box = (struct wlr_box){ v->x, v->y,
-		v->toplevel->base->geometry.width, v->toplevel->base->geometry.height };
+	comp.grab_box = (struct wlr_box){ v->x, v->y, view_width(v), view_height(v) };
 	wlr_seat_pointer_clear_focus(comp.seat);
 }
 

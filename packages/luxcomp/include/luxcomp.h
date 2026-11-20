@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 1
+#define LUXCOMP_API_VERSION 2
 
 #pragma GCC visibility push(default)
 
@@ -42,6 +42,7 @@ enum luxcomp_event {
 	LUXCOMP_EV_KEYBIND,		/* id=binding from luxcomp_bind_key() */
 	LUXCOMP_EV_SLIDE_DONE,		/* id=workspace now shown */
 	LUXCOMP_EV_MODS_RELEASED,	/* all modifiers released after a key binding (ends Alt+Tab) */
+	LUXCOMP_EV_LOCK,		/* a=1 locked, 0 unlocked; b=1 the locker died (stays locked) */
 };
 
 enum luxcomp_request {
@@ -49,9 +50,18 @@ enum luxcomp_request {
 	LUXCOMP_REQ_RESIZE,		/* b=edges (LUXCOMP_EDGE_*) */
 	LUXCOMP_REQ_MAXIMIZE,		/* b=1 on, 0 off */
 	LUXCOMP_REQ_FULLSCREEN,		/* b=1 on, 0 off */
-	LUXCOMP_REQ_MINIMIZE,
-	LUXCOMP_REQ_ACTIVATE,		/* xdg-activation or a click into an unfocused view */
+	LUXCOMP_REQ_MINIMIZE,		/* b=1 minimise, 0 restore (Dock) */
+	LUXCOMP_REQ_ACTIVATE,		/* b=LUXCOMP_ORIGIN_* c=view that made the xdg-activation token */
 	LUXCOMP_REQ_DECORATION,		/* b=1 client wants server-side decoration, 0 client-side */
+	LUXCOMP_REQ_CLOSE,		/* foreign-toplevel (Dock) asks to close */
+};
+
+/* Who asks: c of VIEW_REQUEST for MAXIMIZE/FULLSCREEN/MINIMIZE/CLOSE, b of ACTIVATE */
+enum luxcomp_origin {
+	LUXCOMP_ORIGIN_CLIENT = 0,	/* the window itself; ACTIVATE: no valid token */
+	LUXCOMP_ORIGIN_VIEW,		/* ACTIVATE: token made by a surface of view c */
+	LUXCOMP_ORIGIN_SHELL,		/* ACTIVATE: token from a layer-shell surface or luxcomp_spawn() */
+	LUXCOMP_ORIGIN_TASKBAR,		/* wlr-foreign-toplevel-management (Dock, privileged clients) */
 };
 
 enum luxcomp_part {
@@ -104,6 +114,7 @@ enum luxcomp_view_prop {
 	LUXCOMP_VIEW_LAYER,
 	LUXCOMP_VIEW_MIN_W, LUXCOMP_VIEW_MIN_H, LUXCOMP_VIEW_MAX_W, LUXCOMP_VIEW_MAX_H,
 	LUXCOMP_VIEW_PID,
+	LUXCOMP_VIEW_X11,		/* 1 = X11 window through XWayland */
 };
 
 /* View stacking layers, bottom to top: background, bottom, NORMAL, ABOVE, top (bar), FULLSCREEN, overlay */
@@ -145,7 +156,7 @@ int64_t luxcomp_dispatch(int64_t timeout_ms);		/* <0 = quit requested or error *
 void luxcomp_run(void);					/* dispatch until luxcomp_quit() */
 void luxcomp_quit(void);
 void luxcomp_destroy(void);
-int64_t luxcomp_spawn(const char *command);		/* sh -c in the session, returns pid */
+int64_t luxcomp_spawn(const char *command);		/* sh -c in the session with an activation token, returns pid */
 int64_t luxcomp_software_rendering(void);		/* 1 = pixman (no 3D), animations should be cheap */
 void luxcomp_set_background(int64_t argb);		/* solid colour below the wallpaper layer */
 
@@ -190,6 +201,18 @@ void luxcomp_set_repeat(int64_t rate, int64_t delay_ms);
 int64_t luxcomp_bind_key(int64_t mods, const char *key);
 void luxcomp_unbind_key(int64_t binding);
 int64_t luxcomp_modifiers(void);			/* LUXCOMP_MOD_* currently held */
+
+/* Privileged globals (screen capture, data-control, foreign-toplevel management, virtual input,
+ * output management, session lock) are offered only to clients whose executable (/proc/PID/exe)
+ * is on this list, never to clients of a wp-security-context socket. NULL clears the list. */
+void luxcomp_privileged_allow(const char *exe_path);
+
+/* XWayland, started lazily by the first X11 client. 0 = ok. X11 windows are ordinary views. */
+int64_t luxcomp_xwayland_start(void);
+const char *luxcomp_xwayland_display(void);	/* ":N" or NULL */
+int64_t luxcomp_xwayland_pid(void);		/* 0 while not running */
+
+int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locker died) */
 
 /* Server-side decorations */
 void luxcomp_theme_set(int64_t prop, int64_t value);

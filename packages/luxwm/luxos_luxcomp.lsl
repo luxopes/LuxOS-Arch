@@ -9,7 +9,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 1
+API_VERSION = 2
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -25,6 +25,7 @@ EV_BUTTON = 11
 EV_KEYBIND = 12
 EV_SLIDE_DONE = 13
 EV_MODS_RELEASED = 14
+EV_LOCK = 15
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -33,6 +34,12 @@ REQ_FULLSCREEN = 4
 REQ_MINIMIZE = 5
 REQ_ACTIVATE = 6
 REQ_DECORATION = 7
+REQ_CLOSE = 8
+
+ORIGIN_CLIENT = 0
+ORIGIN_VIEW = 1
+ORIGIN_SHELL = 2
+ORIGIN_TASKBAR = 3
 
 PART_NONE = 0
 PART_CLIENT = 1
@@ -82,6 +89,7 @@ VIEW_MIN_H = 16
 VIEW_MAX_W = 17
 VIEW_MAX_H = 18
 VIEW_PID = 19
+VIEW_X11 = 20
 
 LAYER_NORMAL = 0
 LAYER_ABOVE = 1
@@ -360,6 +368,43 @@ end
 function modifiers():
     unsafe:
         return __lsl_qbe_call0(__lsl_symbol("luxcomp_modifiers"))
+    end
+end
+
+# ---- allowlist, XWayland, zamek -------------------------------------------------------------
+
+# "" vyprazdni allowlist privilegovanych protokolu
+function privileged_allow(exe_path):
+    unsafe:
+        if exe_path == "":
+            call __lsl_qbe_call1(__lsl_symbol("luxcomp_privileged_allow"), 0)
+        else:
+            call __lsl_qbe_call1(__lsl_symbol("luxcomp_privileged_allow"), cstr(exe_path))
+        end
+    end
+end
+
+function xwayland_start():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_xwayland_start"))
+    end
+end
+
+function xwayland_display():
+    unsafe:
+        return glib.from_c(__lsl_qbe_call0(__lsl_symbol("luxcomp_xwayland_display")))
+    end
+end
+
+function xwayland_pid():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_xwayland_pid"))
+    end
+end
+
+function locked():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_locked"))
     end
 end
 

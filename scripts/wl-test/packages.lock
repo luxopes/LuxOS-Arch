@@ -72,3 +72,20 @@ gnu-free-fonts gnu-free-fonts-20120503-9-any.pkg.tar.zst d35b949c4e036647b72e2b3
 labwc labwc-0.20.3-2-x86_64.pkg.tar.zst 46ece611875259d94f940c18cccac4209e7f453d6b879df1daa494cff813e117
 grim grim-1.5.0-2-x86_64.pkg.tar.zst 2cbddb88d4a3316c61e8984203bbdca81cbf089c323e5db09c4e1648c483c8a6
 wlr-randr wlr-randr-0.5.0-1-x86_64.pkg.tar.zst cbefba7fd65a384eb44b12df6fbd36d871782827f21a4c793bff171a298887c9
+# XWayland (luxwm, WP-2c) a xeyes jako X11 klient testu; podpisy overeny gpgv proti archlinux-keyring 2026-11-20
+libfontenc libfontenc-1.1.10-1-x86_64.pkg.tar.zst d9f91015306eec5167f1573173a5df1ce6621bb59e36d9f97d5a753b797a0463
+libtirpc libtirpc-1.3.8-1-x86_64.pkg.tar.zst 4861eac60e6daffdf02366a09fc559ffe456e987410362793cd7faf91be22b30
+libxfont2 libxfont2-2.0.10-1-x86_64.pkg.tar.zst 77456011512b0567978c55e96bbab998f65af145b70f4580d61043f46b3efa78
+libxcvt libxcvt-0.1.3-1-x86_64.pkg.tar.zst 0e402123056ca36d3462ea830d8b18275f8c3d30167b5cda9b8e690f58e53003
+libepoxy libepoxy-1.5.10-3-x86_64.pkg.tar.zst 6e3f4e026b94d45b044f8c15ef0cc04772eafa892dd8b0bf037b1f865f0aaa33
+libei libei-1.6.0-2-x86_64.pkg.tar.zst 36e0482d629b846baaefc0363212b5afb291e6f9417b43ab4230c1a1d5f8b50b
+libdecor libdecor-0.2.5-1-x86_64.pkg.tar.zst 79fb92af5bf5358da4dc418fc784554284c09cdf4e8aa2cdc95197752d1df115
+libice libice-1.1.2-1-x86_64.pkg.tar.zst bb613be39e5bc1707a39f895c178674bbda52f022da51612e7a10a386608e107
+libsm libsm-1.2.6-1-x86_64.pkg.tar.zst ce334b07a9701ba6ef4d610257500f7b035dc1cdc0a658e056d293547cde0976
+libxt libxt-1.3.1-1-x86_64.pkg.tar.zst 5d4ee1f73c946cdd9b908b127157d6d826d198be982c91e199daf6bdd7f6b9ec
+libxmu libxmu-1.3.1-1-x86_64.pkg.tar.zst 31870eb5ad1911880cd7b2f3a59292b644d84b873ed62a1a7c36b9ac26bc08a5
+libxi libxi-1.8.4-1-x86_64.pkg.tar.zst 264bcc5732f144774922654c2975504583451504044168798fe2f11cb2b0a5bc
+libxkbfile libxkbfile-1.2.0-1-x86_64.pkg.tar.zst 78f14e9854c70527975cf2204a6dcbb55473ccda8f4da953b8f15618f167a0f3
+xorg-xkbcomp xorg-xkbcomp-1.5.0-1-x86_64.pkg.tar.zst 662f4ad50763b9d4192bb4f2bbd81ba3c50630a0ec2a83a13deb8770f785734d
+xorg-xwayland xorg-xwayland-24.1.15-1-x86_64.pkg.tar.zst 0a8be13f25f64f22ed110f4890e907cfceb34009aeab5b0fd316b6a92ab15a7f
+xorg-xeyes xorg-xeyes-1.3.1-1-x86_64.pkg.tar.zst 1f5c2e7863fe69391d30e0a7fd2879c4a1508dd41d89914c486e2d8da5ef36e3

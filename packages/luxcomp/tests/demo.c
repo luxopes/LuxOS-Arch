@@ -270,6 +270,24 @@ command(char *line)
 	}
 }
 
+/* allowlist privilegovanych protokolu jako luxwm (wlt ho predava v LUXWM_PRIVILEGED) */
+static void
+load_privileged(void)
+{
+	const char *path = getenv("LUXWM_PRIVILEGED");
+	FILE *f = fopen(path ? path : "/usr/share/luxwm/privileged.conf", "r");
+	char line[4096];
+	while (f && fgets(line, sizeof(line), f)) {
+		line[strcspn(line, "\n")] = '\0';
+		if (line[0] == '/') {
+			luxcomp_privileged_allow(line);
+		}
+	}
+	if (f) {
+		fclose(f);
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -277,6 +295,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "luxcomp_init failed\n");
 		return 1;
 	}
+	load_privileged();
 	luxcomp_set_background(0xff35507a);
 	ws[0] = luxcomp_workspace_new();
 	ws[1] = luxcomp_workspace_new();

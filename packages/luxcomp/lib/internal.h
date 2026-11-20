@@ -12,6 +12,9 @@ struct wlr_scene_tree;
 struct wlr_scene_rect;
 struct wlr_scene_node;
 struct wlr_surface;
+struct wlr_xwayland_surface;
+struct wlr_session_lock_v1;
+struct wlr_ext_image_capture_source_v1;
 
 enum grab_mode { GRAB_NONE, GRAB_MOVE, GRAB_RESIZE };
 
@@ -32,6 +35,7 @@ struct output {
 	struct wlr_output *wlr_output;
 	struct wlr_scene_output *scene_output;
 	struct wlr_box usable;
+	bool lock_shown;		/* rendered a frame with the lock cover */
 	struct wl_listener frame, request_state, destroy;
 };
 
@@ -46,9 +50,10 @@ struct view {
 	int kind;
 	struct wl_list link;		/* comp.views, stacking order, top first */
 	int64_t id;
-	struct wlr_xdg_toplevel *toplevel;
+	struct wlr_xdg_toplevel *toplevel;	/* exactly one of toplevel and xsurface is set */
+	struct wlr_xwayland_surface *xsurface;
 	struct wlr_scene_tree *tree;	/* at the content top-left */
-	struct wlr_scene_tree *surface_tree;
+	struct wlr_scene_tree *surface_tree;	/* NULL for an X11 window without a wl_surface */
 	struct workspace *workspace;
 	int layer;
 	int x, y;
@@ -59,6 +64,15 @@ struct view {
 	struct wl_listener request_move, request_resize, request_maximize,
 		request_fullscreen, request_minimize, set_title, set_app_id;
 	struct wl_listener deco_request_mode, deco_destroy;
+	/* xwayland.c */
+	struct wl_listener x_associate, x_dissociate, x_configure, x_activate, x_decorations;
+	/* foreign.c: handles for the Dock, they exist while the view is mapped */
+	struct wlr_foreign_toplevel_handle_v1 *ftl;
+	struct wlr_ext_foreign_toplevel_handle_v1 *ext;
+	struct wlr_output *ftl_output;
+	struct wlr_ext_image_capture_source_v1 *capture;
+	struct wl_listener ftl_activate, ftl_minimize, ftl_maximize, ftl_fullscreen,
+		ftl_close, capture_destroy;
 };
 
 struct keybind {
@@ -84,8 +98,8 @@ struct comp {
 	struct wlr_scene *scene;
 	struct wlr_scene_output_layout *scene_layout;
 	/* stacking, bottom to top */
-	struct wlr_scene_tree *layer_bg, *layer_bottom, *views, *above, *layer_top,
-		*fullscreen, *layer_overlay;
+	struct wlr_scene_tree *layer_bg, *layer_bottom, *views, *above, *unmanaged,
+		*layer_top, *fullscreen, *layer_overlay, *lock_tree;
 	struct wlr_scene_rect *background;
 	const char *socket;
 
@@ -97,6 +111,27 @@ struct comp {
 	struct wlr_xdg_decoration_manager_v1 *deco_mgr;
 	struct wlr_output_manager_v1 *output_mgr;
 	bool software;
+	bool virtual_input_open;	/* LUXCOMP_VIRTUAL_INPUT: virtual input for every unsandboxed client */
+	char **privileged;		/* executables allowed to bind privileged globals */
+	size_t n_privileged;
+	struct wlr_security_context_manager_v1 *security;
+	struct wlr_xdg_activation_v1 *activation;
+	struct wlr_idle_notifier_v1 *idle;
+	struct wlr_idle_inhibit_manager_v1 *inhibit;
+	struct wlr_foreign_toplevel_manager_v1 *ftl_mgr;
+	struct wlr_ext_foreign_toplevel_list_v1 *ext_list;
+	struct wlr_xwayland *xwayland;
+	struct wlr_compositor *compositor;
+	struct wl_listener activate, new_token, new_inhibitor, toplevel_capture,
+		new_lock, lock_surface, lock_unlock, lock_destroy, xwayland_surface,
+		xwayland_ready;
+
+	/* lock.c: locked stays true when the locker dies, until a new locker unlocks */
+	bool locked;
+	struct wlr_session_lock_v1 *lock;
+	bool lock_sent;
+	struct wlr_scene_rect *lock_cover;
+	uint32_t lock_color;
 	struct wl_listener new_output, new_toplevel, new_popup, new_layer_surface,
 		new_decoration, new_input, output_mgr_apply, output_mgr_test,
 		new_virtual_keyboard, new_virtual_pointer;
@@ -154,6 +189,42 @@ void deco_update(struct deco *deco);		/* size, title, activation */
 int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
 int deco_height(void);
+
+/* view.c, shared with xwayland.c */
+struct view *view_create(void);
+void view_map_common(struct view *v);
+void view_unmap_common(struct view *v);
+void view_destroy_common(struct view *v);
+struct wlr_surface *view_surface(struct view *v);
+int view_width(struct view *v);
+int view_height(struct view *v);
+struct view *view_from_surface(struct wlr_surface *surface);
+bool view_shown(struct view *v);
+
+/* foreign.c */
+void foreign_init(void);
+void foreign_map(struct view *v);
+void foreign_unmap(struct view *v);
+void foreign_update(struct view *v);
+
+/* lock.c */
+void lock_init(void);
+void lock_frame_done(struct output *o);
+
+/* idle.c: idle-notify, idle-inhibit and xdg-activation */
+void idle_init(void);
+void idle_activity(void);
+void idle_update(void);
+const char *idle_shell_token(void);
+
+/* security.c */
+void security_init(void);
+void security_mark(struct wl_global *global, int level);
+bool client_privileged(struct wl_client *client);
+enum { GLOBAL_SANDBOX_DENIED = 1, GLOBAL_PRIVILEGED = 2, GLOBAL_VIRTUAL_INPUT = 3 };
+
+/* xwayland.c */
+void xwayland_finish(void);
 
 /* workspace.c */
 struct workspace *workspace_by_id(int64_t id);

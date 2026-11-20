@@ -1,5 +1,6 @@
 /* Okna (xdg toplevel), popupy a API pro okna */
 #include <stdlib.h>
+#include <wlr/config.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
@@ -7,6 +8,18 @@
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/edges.h>
+#if WLR_HAS_XWAYLAND
+#include <wlr/xwayland/xwayland.h>
+#else
+#define wlr_xwayland_surface_configure(...)
+#define wlr_xwayland_surface_activate(...)
+#define wlr_xwayland_surface_restack(...)
+#define wlr_xwayland_surface_set_fullscreen(...)
+#define wlr_xwayland_surface_set_maximized(...)
+#define wlr_xwayland_surface_set_minimized(...)
+#define wlr_xwayland_surface_close(...)
+#define XCB_STACK_MODE_ABOVE 0
+#endif
 #include "internal.h"
 
 struct view *
@@ -33,6 +46,50 @@ view_from_toplevel(struct wlr_xdg_toplevel *t)
 	return NULL;
 }
 
+struct wlr_surface *
+view_surface(struct view *v)
+{
+	return v->toplevel ? v->toplevel->base->surface : v->xsurface->surface;
+}
+
+int
+view_width(struct view *v)
+{
+	return v->toplevel ? v->toplevel->base->geometry.width : v->xsurface->width;
+}
+
+int
+view_height(struct view *v)
+{
+	return v->toplevel ? v->toplevel->base->geometry.height : v->xsurface->height;
+}
+
+struct view *
+view_from_surface(struct wlr_surface *surface)
+{
+	if (!surface) {
+		return NULL;
+	}
+	surface = wlr_surface_get_root_surface(surface);
+	struct wlr_xdg_toplevel *t = wlr_xdg_toplevel_try_from_wlr_surface(surface);
+	if (t) {
+		return view_from_toplevel(t);
+	}
+	struct view *v;
+	wl_list_for_each(v, &comp.views_list, link) {
+		if (v->xsurface && v->xsurface->surface == surface) {
+			return v;
+		}
+	}
+	return NULL;
+}
+
+bool
+view_shown(struct view *v)
+{
+	return v->mapped && v->visible && v->workspace->shown;
+}
+
 static struct wlr_scene_tree *
 parent_tree(struct view *v)
 {
@@ -50,6 +107,7 @@ view_update_enabled(struct view *v)
 	bool on = v->mapped && v->visible
 		&& (v->layer == LUXCOMP_LAYER_NORMAL || v->workspace->shown);
 	wlr_scene_node_set_enabled(&v->tree->node, on);
+	idle_update();
 }
 
 static void
@@ -82,25 +140,31 @@ view_commit(struct wl_listener *listener, void *data)
 	}
 }
 
-static void
-view_map(struct wl_listener *listener, void *data)
+void
+view_map_common(struct view *v)
 {
-	struct view *v = wl_container_of(listener, v, map);
 	v->mapped = true;
 	v->visible = true;
 	wl_list_remove(&v->link);
 	wl_list_insert(&comp.views_list, &v->link);
 	wlr_scene_node_raise_to_top(&v->tree->node);
 	view_update_enabled(v);
-	struct wlr_box *g = &v->toplevel->base->geometry;
-	emit(LUXCOMP_EV_VIEW_MAP, v->id, g->width, g->height, 0);
+	foreign_map(v);
+	emit(LUXCOMP_EV_VIEW_MAP, v->id, view_width(v), view_height(v), 0);
 }
 
 static void
-view_unmap(struct wl_listener *listener, void *data)
+view_map(struct wl_listener *listener, void *data)
 {
-	struct view *v = wl_container_of(listener, v, unmap);
+	struct view *v = wl_container_of(listener, v, map);
+	view_map_common(v);
+}
+
+void
+view_unmap_common(struct view *v)
+{
 	v->mapped = false;
+	foreign_unmap(v);
 	view_update_enabled(v);
 	if (comp.grab_view == v) {
 		comp.grab = GRAB_NONE;
@@ -113,10 +177,45 @@ view_unmap(struct wl_listener *listener, void *data)
 }
 
 static void
+view_unmap(struct wl_listener *listener, void *data)
+{
+	struct view *v = wl_container_of(listener, v, unmap);
+	view_unmap_common(v);
+}
+
+struct view *
+view_create(void)
+{
+	struct view *v = calloc(1, sizeof(*v));
+	v->kind = KIND_VIEW;
+	v->id = ++comp.next_id;
+	v->workspace = comp.default_ws;
+	v->tree = wlr_scene_tree_create(v->workspace->tree);
+	v->tree->node.data = v;
+	wlr_scene_node_set_enabled(&v->tree->node, false);
+	wl_list_insert(&comp.views_list, &v->link);
+	return v;
+}
+
+void
+view_destroy_common(struct view *v)
+{
+	emit(LUXCOMP_EV_VIEW_DESTROY, v->id, 0, 0, 0);
+	if (v->mapped) {
+		foreign_unmap(v);
+	}
+	wl_list_remove(&v->link);
+	if (v->deco) {
+		deco_destroy(v->deco);
+	}
+	wlr_scene_node_destroy(&v->tree->node);
+	free(v);
+}
+
+static void
 view_destroy(struct wl_listener *listener, void *data)
 {
 	struct view *v = wl_container_of(listener, v, destroy);
-	emit(LUXCOMP_EV_VIEW_DESTROY, v->id, 0, 0, 0);
 	wl_list_remove(&v->map.link);
 	wl_list_remove(&v->unmap.link);
 	wl_list_remove(&v->commit.link);
@@ -128,16 +227,11 @@ view_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&v->request_minimize.link);
 	wl_list_remove(&v->set_title.link);
 	wl_list_remove(&v->set_app_id.link);
-	wl_list_remove(&v->link);
-	if (v->deco) {
-		deco_destroy(v->deco);
-	}
 	if (v->xdg_deco) {
 		wl_list_remove(&v->deco_request_mode.link);
 		wl_list_remove(&v->deco_destroy.link);
 	}
-	wlr_scene_node_destroy(&v->tree->node);
-	free(v);
+	view_destroy_common(v);
 }
 
 /* Na pozadavky klienta se musi vzdy odpovedet configure, i kdyz je politika ignoruje */
@@ -194,6 +288,7 @@ set_title(struct wl_listener *listener, void *data)
 	if (v->deco) {
 		deco_update(v->deco);
 	}
+	foreign_update(v);
 	emit(LUXCOMP_EV_VIEW_TITLE, v->id, 0, 0, 0);
 }
 
@@ -201,6 +296,7 @@ static void
 set_app_id(struct wl_listener *listener, void *data)
 {
 	struct view *v = wl_container_of(listener, v, set_app_id);
+	foreign_update(v);
 	emit(LUXCOMP_EV_VIEW_APP_ID, v->id, 0, 0, 0);
 }
 
@@ -208,17 +304,10 @@ static void
 new_toplevel(struct wl_listener *listener, void *data)
 {
 	struct wlr_xdg_toplevel *toplevel = data;
-	struct view *v = calloc(1, sizeof(*v));
-	v->kind = KIND_VIEW;
-	v->id = ++comp.next_id;
+	struct view *v = view_create();
 	v->toplevel = toplevel;
-	v->workspace = comp.default_ws;
-	v->tree = wlr_scene_tree_create(v->workspace->tree);
-	v->tree->node.data = v;
-	wlr_scene_node_set_enabled(&v->tree->node, false);
 	v->surface_tree = wlr_scene_xdg_surface_create(v->tree, toplevel->base);
 	toplevel->base->data = v->surface_tree;	/* rodic pro popupy */
-	wl_list_insert(&comp.views_list, &v->link);
 
 	struct wlr_surface *s = toplevel->base->surface;
 	v->map.notify = view_map;
@@ -369,6 +458,27 @@ views_init(void)
 
 /* ---- API ---- */
 
+static int64_t
+xview_get(struct view *v, int64_t prop)
+{
+#if WLR_HAS_XWAYLAND
+	struct wlr_xwayland_surface *xs = v->xsurface;
+	xcb_size_hints_t *h = xs->size_hints;
+	switch (prop) {
+	case LUXCOMP_VIEW_FULLSCREEN: return xs->fullscreen;
+	case LUXCOMP_VIEW_MAXIMIZED: return xs->maximized_horz && xs->maximized_vert;
+	case LUXCOMP_VIEW_PARENT: return xs->parent && xs->parent->data
+		? ((struct view *)xs->parent->data)->id : 0;
+	case LUXCOMP_VIEW_MIN_W: return h ? h->min_width : 0;
+	case LUXCOMP_VIEW_MIN_H: return h ? h->min_height : 0;
+	case LUXCOMP_VIEW_MAX_W: return h && h->max_width > 0 ? h->max_width : 0;
+	case LUXCOMP_VIEW_MAX_H: return h && h->max_height > 0 ? h->max_height : 0;
+	case LUXCOMP_VIEW_PID: return xs->pid;
+	}
+#endif
+	return 0;
+}
+
 int64_t
 luxcomp_view_get(int64_t id, int64_t prop)
 {
@@ -376,29 +486,36 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	if (!v) {
 		return 0;
 	}
-	struct wlr_xdg_toplevel *t = v->toplevel;
-	struct wlr_box *g = &t->base->geometry;
+	int w = view_width(v), h = view_height(v);
 	switch (prop) {
 	case LUXCOMP_VIEW_X: return v->x;
 	case LUXCOMP_VIEW_Y: return v->y;
-	case LUXCOMP_VIEW_W: return g->width;
-	case LUXCOMP_VIEW_H: return g->height;
-	case LUXCOMP_VIEW_DECO_TOP: return v->deco && !t->current.fullscreen ? deco_height() : 0;
+	case LUXCOMP_VIEW_W: return w;
+	case LUXCOMP_VIEW_H: return h;
+	case LUXCOMP_VIEW_DECO_TOP:
+		return v->deco && !luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN) ? deco_height() : 0;
 	case LUXCOMP_VIEW_OUTPUT: {
-		struct output *o = output_at(v->x + g->width / 2, v->y + g->height / 2);
+		struct output *o = output_at(v->x + w / 2, v->y + h / 2);
 		return o ? o->id : 0;
 	}
 	case LUXCOMP_VIEW_WORKSPACE: return v->workspace->id;
+	case LUXCOMP_VIEW_MAPPED: return v->mapped;
+	case LUXCOMP_VIEW_VISIBLE: return v->visible;
+	case LUXCOMP_VIEW_FOCUSED: return comp.focused == v;
+	case LUXCOMP_VIEW_LAYER: return v->layer;
+	case LUXCOMP_VIEW_X11: return v->xsurface != NULL;
+	}
+	if (v->xsurface) {
+		return xview_get(v, prop);
+	}
+	struct wlr_xdg_toplevel *t = v->toplevel;
+	switch (prop) {
 	case LUXCOMP_VIEW_PARENT: {
 		struct view *p = view_from_toplevel(t->parent);
 		return p ? p->id : 0;
 	}
-	case LUXCOMP_VIEW_MAPPED: return v->mapped;
-	case LUXCOMP_VIEW_VISIBLE: return v->visible;
-	case LUXCOMP_VIEW_FOCUSED: return comp.focused == v;
 	case LUXCOMP_VIEW_FULLSCREEN: return t->pending.fullscreen;
 	case LUXCOMP_VIEW_MAXIMIZED: return t->pending.maximized;
-	case LUXCOMP_VIEW_LAYER: return v->layer;
 	case LUXCOMP_VIEW_MIN_W: return t->current.min_width;
 	case LUXCOMP_VIEW_MIN_H: return t->current.min_height;
 	case LUXCOMP_VIEW_MAX_W: return t->current.max_width;
@@ -412,10 +529,16 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	return 0;
 }
 
+/* X11: app_id = WM_CLASS (trida), jako u labwc a xfwm4 */
 const char *
 luxcomp_view_app_id(int64_t id)
 {
 	struct view *v = view_by_id(id);
+#if WLR_HAS_XWAYLAND
+	if (v && v->xsurface) {
+		return v->xsurface->class;
+	}
+#endif
 	return v ? v->toplevel->app_id : NULL;
 }
 
@@ -423,6 +546,11 @@ const char *
 luxcomp_view_title(int64_t id)
 {
 	struct view *v = view_by_id(id);
+#if WLR_HAS_XWAYLAND
+	if (v && v->xsurface) {
+		return v->xsurface->title;
+	}
+#endif
 	return v ? v->toplevel->title : NULL;
 }
 
@@ -450,20 +578,42 @@ void
 luxcomp_view_move(int64_t id, int64_t x, int64_t y)
 {
 	struct view *v = view_by_id(id);
-	if (v) {
-		v->x = x;
-		v->y = y;
-		wlr_scene_node_set_position(&v->tree->node, x, y);
+	if (!v) {
+		return;
 	}
+	v->x = x;
+	v->y = y;
+	wlr_scene_node_set_position(&v->tree->node, x, y);
+	if (v->xsurface) {
+		/* X klient musi znat svou polohu (menu, souradnice ukazatele) */
+		wlr_xwayland_surface_configure(v->xsurface, x, y, view_width(v), view_height(v));
+	}
+	foreign_update(v);
 }
 
 void
 luxcomp_view_resize(int64_t id, int64_t w, int64_t h)
 {
 	struct view *v = view_by_id(id);
-	if (v && v->toplevel->base->initialized) {
+	if (v && v->xsurface) {
+		wlr_xwayland_surface_configure(v->xsurface, v->x, v->y, w, h);
+	} else if (v && v->toplevel->base->initialized) {
 		wlr_xdg_toplevel_set_size(v->toplevel, w, h);
 	}
+}
+
+static void
+set_activated(struct view *v, bool on)
+{
+	if (v->xsurface) {
+		wlr_xwayland_surface_activate(v->xsurface, on);
+	} else {
+		wlr_xdg_toplevel_set_activated(v->toplevel, on);
+	}
+	if (v->deco) {
+		deco_update(v->deco);
+	}
+	foreign_update(v);
 }
 
 void
@@ -474,22 +624,16 @@ luxcomp_view_focus(int64_t id)
 		return;
 	}
 	struct view *prev = comp.focused;
-	if (prev && prev != v) {
-		wlr_xdg_toplevel_set_activated(prev->toplevel, false);
-		if (prev->deco) {
-			deco_update(prev->deco);
-		}
-	}
 	comp.focused = v;
+	if (prev && prev != v) {
+		set_activated(prev, false);
+	}
 	if (v) {
-		wlr_xdg_toplevel_set_activated(v->toplevel, true);
-		if (v->deco) {
-			deco_update(v->deco);
-		}
+		set_activated(v, true);
 	}
 	/* exkluzivni vrstva (zamek, spoustec) si klavesnici drzi */
 	if (!comp.layer_focus) {
-		seat_focus_surface(v ? v->toplevel->base->surface : NULL);
+		seat_focus_surface(v ? view_surface(v) : NULL);
 	}
 }
 
@@ -501,6 +645,9 @@ luxcomp_view_raise(int64_t id)
 		wlr_scene_node_raise_to_top(&v->tree->node);
 		wl_list_remove(&v->link);
 		wl_list_insert(&comp.views_list, &v->link);
+		if (v->xsurface) {
+			wlr_xwayland_surface_restack(v->xsurface, NULL, XCB_STACK_MODE_ABOVE);
+		}
 	}
 }
 
@@ -508,24 +655,27 @@ void
 luxcomp_view_set_state(int64_t id, int64_t state, int64_t on)
 {
 	struct view *v = view_by_id(id);
-	if (!v || !v->toplevel->base->initialized) {
+	if (!v || (v->toplevel && !v->toplevel->base->initialized)) {
 		return;
 	}
-	switch (state) {
-	case LUXCOMP_STATE_FULLSCREEN:
+	if (v->xsurface) {
+		if (state == LUXCOMP_STATE_FULLSCREEN) {
+			wlr_xwayland_surface_set_fullscreen(v->xsurface, on);
+		} else if (state == LUXCOMP_STATE_MAXIMIZED) {
+			wlr_xwayland_surface_set_maximized(v->xsurface, on, on);
+		}
+	} else if (state == LUXCOMP_STATE_FULLSCREEN) {
 		wlr_xdg_toplevel_set_fullscreen(v->toplevel, on);
-		break;
-	case LUXCOMP_STATE_MAXIMIZED:
+	} else if (state == LUXCOMP_STATE_MAXIMIZED) {
 		wlr_xdg_toplevel_set_maximized(v->toplevel, on);
-		break;
-	case LUXCOMP_STATE_TILED:
+	} else if (state == LUXCOMP_STATE_TILED) {
 		wlr_xdg_toplevel_set_tiled(v->toplevel, on ? WLR_EDGE_TOP | WLR_EDGE_BOTTOM
 			| WLR_EDGE_LEFT | WLR_EDGE_RIGHT : WLR_EDGE_NONE);
-		break;
 	}
 	if (v->deco) {
 		deco_update(v->deco);
 	}
+	foreign_update(v);
 }
 
 void
@@ -565,27 +715,36 @@ luxcomp_view_set_decorated(int64_t id, int64_t on)
 		deco_destroy(v->deco);
 		v->deco = NULL;
 	}
-	apply_decoration_mode(v);
+	if (v->toplevel) {
+		apply_decoration_mode(v);
+	}
 }
 
 void
 luxcomp_view_set_visible(int64_t id, int64_t on)
 {
 	struct view *v = view_by_id(id);
-	if (v) {
-		v->visible = on;
-		view_update_enabled(v);
-		if (!on && comp.focused == v) {
-			luxcomp_view_focus(0);
-		}
+	if (!v) {
+		return;
 	}
+	v->visible = on;
+	view_update_enabled(v);
+	if (!on && comp.focused == v) {
+		luxcomp_view_focus(0);
+	}
+	if (v->xsurface && v->mapped) {
+		wlr_xwayland_surface_set_minimized(v->xsurface, !on);
+	}
+	foreign_update(v);
 }
 
 void
 luxcomp_view_close(int64_t id)
 {
 	struct view *v = view_by_id(id);
-	if (v) {
+	if (v && v->xsurface) {
+		wlr_xwayland_surface_close(v->xsurface);
+	} else if (v) {
 		wlr_xdg_toplevel_send_close(v->toplevel);
 	}
 }

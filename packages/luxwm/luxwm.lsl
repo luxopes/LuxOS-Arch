@@ -14,6 +14,7 @@ load luxos_tokens as tokens
 CASCADE = 28
 DOUBLE_CLICK_US = 400000
 SYSTEM_CONFIG = "/usr/share/luxwm/luxwm.conf"
+PRIVILEGED = "/usr/share/luxwm/privileged.conf"
 
 # Kdyz chybi konfigurace, aspon zakladni ovladani klavesnici
 FALLBACK_KEYS = {
@@ -99,7 +100,8 @@ end
 
 function load_config():
     global settings
-    general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no"}
+    general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
+               "xwayland": "yes"}
     keys = {}
     system = glib.getenv("LUXWM_SYSTEM_CONFIG")
     if system == None or system == "":
@@ -115,6 +117,35 @@ function load_config():
     end
     settings = general
     settings["keys"] = keys
+end
+
+# Programy, ktere smi na privilegovane protokoly (snimky obrazovky, schranka, sprava oken pro
+# Dock, virtualni vstup, monitory, zamek): absolutni cesty po radcich. Jen systemovy soubor,
+# uzivatelsky by mohl rozsirit cokoli bezici pod uzivatelem.
+function load_privileged():
+    path = glib.getenv("LUXWM_PRIVILEGED")
+    if path == None or path == "":
+        path = PRIVILEGED
+    end
+    call lc.privileged_allow("")
+    count = 0
+    if exists(path):
+        for raw in readfile(path).split(chr(10)):
+            line = raw.strip()
+            if line == "" or line.startswith("#"):
+                continue
+            end
+            if not line.startswith("/"):
+                call log("ignored relative path in " + path + ": " + line)
+                continue
+            end
+            call lc.privileged_allow(line)
+            count += 1
+        end
+    else:
+        call log("no " + path + ": privileged protocols disabled")
+    end
+    call note("privileged programs " + String(count))
 end
 
 function setting_int(name, low, high):
@@ -916,7 +947,37 @@ function button(v, pressed, part):
     end
 end
 
-function request(v, what, arg):
+# xdg-activation a Dock: okno jine aplikace se zameri jen s tokenem od zamerene aplikace nebo
+# od shellu (Dock, spoustec, luxwm), pak i s prepnutim plochy (xfwm4 activate_action=switch)
+function activate(v, origin, source):
+    current = focused()
+    allowed = origin == lc.ORIGIN_SHELL or origin == lc.ORIGIN_TASKBAR
+    if origin == lc.ORIGIN_VIEW and current != 0 and source != 0:
+        app = lc.view_app_id(current)
+        allowed = source == current or (app != "" and lc.view_app_id(source) == app)
+    elif origin == lc.ORIGIN_CLIENT:
+        # bez tokenu jen okna aplikace, ktera ma zamereni (zadne kradeze)
+        allowed = current != 0 and lc.view_app_id(current) == lc.view_app_id(v) and on_current(v)
+    end
+    if not allowed:
+        call note("activate refused " + String(v) + " origin " + String(origin))
+        return
+    end
+    if cycle["on"]:
+        call cycle_end(True)
+    end
+    space = vget(v, lc.VIEW_WORKSPACE)
+    if space in ws and ws.index(space) != cur:
+        call switch_to(ws.index(space))
+    end
+    if v in hidden_desktop:
+        call hidden_desktop.remove(v)
+    end
+    call focus(v)
+    call note("activate " + String(v) + " origin " + String(origin))
+end
+
+function request(v, what, arg, origin):
     if what == lc.REQ_MOVE:
         if not (v in maxed) and v not in full:
             call lc.view_begin_move(v)
@@ -930,17 +991,18 @@ function request(v, what, arg):
     elif what == lc.REQ_FULLSCREEN:
         call set_fullscreen(v, arg == 1)
     elif what == lc.REQ_MINIMIZE:
-        call minimize(v)
-    elif what == lc.REQ_ACTIVATE:
-        # bez overeneho tokenu xdg-activation jen okna aplikace, ktera ma zamereni (zadne krádeze)
-        current = focused()
-        if current != 0 and lc.view_app_id(current) == lc.view_app_id(v) and on_current(v):
-            call focus(v)
+        if arg == 0:
+            # obnoveni z Docku (nebo X11 klient sam sebe)
+            call activate(v, origin, 0)
         else:
-            call note("activate refused " + String(v))
+            call minimize(v)
         end
+    elif what == lc.REQ_ACTIVATE:
+        call activate(v, arg, origin)
     elif what == lc.REQ_DECORATION:
         call lc.view_set_decorated(v, arg)
+    elif what == lc.REQ_CLOSE:
+        call lc.view_close(v)
     end
 end
 
@@ -965,7 +1027,13 @@ function handle(event, id, a, b, c):
     elif event == lc.EV_MODS_RELEASED:
         call cycle_end(False)
     elif event == lc.EV_VIEW_REQUEST:
-        call request(id, a, b)
+        call request(id, a, b, c)
+    elif event == lc.EV_LOCK:
+        # pod zamkem jadro zkratky neposila; rozdelany Alt+Tab zrusit
+        if a == 1:
+            call cycle_end(True)
+        end
+        call note("lock " + String(a) + (" (locker gone)" if b == 1 else ""))
     elif event == lc.EV_OUTPUT_USABLE:
         call usable_changed(id)
     elif event == lc.EV_OUTPUT_ADD:
@@ -983,7 +1051,7 @@ end
 
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
-               "slide-done", "mods-released"]
+               "slide-done", "mods-released", "lock"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -1003,7 +1071,8 @@ end
 # ---- stav pro testy (SIGUSR2) ------------------------------------------------------------------
 
 function dump():
-    call log("workspace " + String(cur + 1) + "/" + String(len(ws)))
+    call log("workspace " + String(cur + 1) + "/" + String(len(ws)) + " locked=" + String(lc.locked())
+        + " xwayland_pid=" + String(lc.xwayland_pid()))
     for out in outputs:
         u = usable(out)
         call log("output " + String(out) + " " + lc.output_name(out) + " " + String(lc.output_get(out, lc.OUT_W)) + "x"
@@ -1017,7 +1086,7 @@ function dump():
             + " h=" + String(vget(o, lc.VIEW_H)) + " top=" + String(vget(o, lc.VIEW_DECO_TOP))
             + " focused=" + String(vget(o, lc.VIEW_FOCUSED)) + " visible=" + String(vget(o, lc.VIEW_VISIBLE))
             + " fullscreen=" + String(vget(o, lc.VIEW_FULLSCREEN)) + " maximized=" + String(1 if o in maxed else 0)
-            + " layer=" + String(vget(o, lc.VIEW_LAYER)))
+            + " layer=" + String(vget(o, lc.VIEW_LAYER)) + " x11=" + String(vget(o, lc.VIEW_X11)))
         o = lc.view_next(o)
     end
     call log("mru " + " ".join([String(v) for v in mru]))
@@ -1047,6 +1116,7 @@ end
 
 function on_reload():
     call load_config()
+    call load_privileged()
     call bind_keys()
     call apply_theme()
     call log("configuration reloaded")
@@ -1080,6 +1150,11 @@ if lc.init(on_event) != 0:
     call log("cannot initialise the compositor core")
     exit(1)
 end
+call load_privileged()
+xdisplay = ""
+if settings["xwayland"] == "yes" and lc.xwayland_start() == 0:
+    xdisplay = lc.xwayland_display()
+end
 ws_count = setting_int("workspaces", 1, 16)
 for i in range(ws_count):
     ws.append(lc.workspace_new())
@@ -1093,7 +1168,8 @@ if lc.start() != 0:
     exit(1)
 end
 call log("running on " + lc.socket() + (" (software rendering)" if lc.software_rendering() == 1 else "")
-    + ", " + String(ws_count) + " workspaces, " + String(len(binds)) + " shortcuts")
+    + ", " + String(ws_count) + " workspaces, " + String(len(binds)) + " shortcuts"
+    + (", xwayland " + xdisplay if xdisplay != "" else ""))
 call glib.fd_add(lc.fd(), glib.IO_IN, on_luxcomp)
 call glib.unix_signal_add(15, on_term)
 call glib.unix_signal_add(2, on_term)

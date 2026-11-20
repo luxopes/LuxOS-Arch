@@ -14,7 +14,9 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
+#include <wlr/types/wlr_data_control_v1.h>
 #include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_ext_data_control_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_image_copy_capture_v1.h>
 #include <wlr/types/wlr_fractional_scale_v1.h>
@@ -71,8 +73,11 @@ output_frame(struct wl_listener *listener, void *data)
 	struct output *o = wl_container_of(listener, o, frame);
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
-	wlr_scene_output_commit(o->scene_output, NULL);
+	bool done = wlr_scene_output_commit(o->scene_output, NULL);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
+	if (done) {
+		lock_frame_done(o);
+	}
 	workspaces_frame_done((t1.tv_sec - t0.tv_sec) * 1000000000LL
 		+ (t1.tv_nsec - t0.tv_nsec));
 	wlr_scene_output_send_frame_done(o->scene_output, &t1);
@@ -239,7 +244,8 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	}
 	wlr_renderer_init_wl_display(comp.renderer, comp.display);
 
-	wlr_compositor_create(comp.display, 6, comp.renderer);
+	security_init();
+	comp.compositor = wlr_compositor_create(comp.display, 6, comp.renderer);
 	wlr_subcompositor_create(comp.display);
 	wlr_data_device_manager_create(comp.display);
 	wlr_primary_selection_v1_device_manager_create(comp.display);
@@ -247,14 +253,20 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	wlr_single_pixel_buffer_manager_v1_create(comp.display);
 	wlr_fractional_scale_manager_v1_create(comp.display, 1);
 	wlr_presentation_create(comp.display, comp.backend, 2);
-	/* zachyceni obrazovky (grim); omezeni na shell LuxOS prijde se security-context */
-	wlr_screencopy_manager_v1_create(comp.display);
-	wlr_ext_image_copy_capture_manager_v1_create(comp.display, 1);
-	wlr_ext_output_image_capture_source_manager_v1_create(comp.display, 1);
+	/* zachyceni obrazovky a schranka pro shell (grim, Dock, historie schranky): jen allowlist */
+	security_mark(wlr_screencopy_manager_v1_create(comp.display)->global, GLOBAL_PRIVILEGED);
+	security_mark(wlr_ext_image_copy_capture_manager_v1_create(comp.display, 1)->global,
+		GLOBAL_PRIVILEGED);
+	security_mark(wlr_ext_output_image_capture_source_manager_v1_create(comp.display, 1)->global,
+		GLOBAL_PRIVILEGED);
+	security_mark(wlr_ext_data_control_manager_v1_create(comp.display, 1)->global,
+		GLOBAL_PRIVILEGED);
+	security_mark(wlr_data_control_manager_v1_create(comp.display)->global, GLOBAL_PRIVILEGED);
 
 	comp.layout = wlr_output_layout_create(comp.display);
 	wlr_xdg_output_manager_v1_create(comp.display, comp.layout);
 	comp.output_mgr = wlr_output_manager_v1_create(comp.display);
+	security_mark(comp.output_mgr->global, GLOBAL_PRIVILEGED);
 	comp.output_mgr_apply.notify = output_mgr_apply;
 	wl_signal_add(&comp.output_mgr->events.apply, &comp.output_mgr_apply);
 	comp.output_mgr_test.notify = output_mgr_test;
@@ -269,6 +281,7 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	comp.layer_bottom = wlr_scene_tree_create(root);
 	comp.views = wlr_scene_tree_create(root);
 	comp.above = wlr_scene_tree_create(root);
+	comp.unmanaged = wlr_scene_tree_create(root);
 	comp.layer_top = wlr_scene_tree_create(root);
 	comp.fullscreen = wlr_scene_tree_create(root);
 	comp.layer_overlay = wlr_scene_tree_create(root);
@@ -277,6 +290,9 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	views_init();
 	layers_init();
 	input_init();
+	foreign_init();
+	idle_init();
+	lock_init();
 	wlr_cursor_shape_manager_v1_create(comp.display, 1);
 
 	comp.socket = wl_display_add_socket_auto(comp.display);
@@ -335,7 +351,12 @@ luxcomp_quit(void)
 void
 luxcomp_destroy(void)
 {
+	xwayland_finish();
 	wl_display_destroy_clients(comp.display);
+	wl_list_remove(&comp.toplevel_capture.link);
+	wl_list_remove(&comp.activate.link);
+	wl_list_remove(&comp.new_inhibitor.link);
+	wl_list_remove(&comp.new_lock.link);
 	wl_list_remove(&comp.new_toplevel.link);
 	wl_list_remove(&comp.new_popup.link);
 	wl_list_remove(&comp.new_decoration.link);
@@ -355,6 +376,7 @@ luxcomp_destroy(void)
 void
 luxcomp_set_background(int64_t argb)
 {
+	comp.lock_color = argb & 0xffffff;
 	float color[4] = { (argb >> 16 & 0xff) / 255.0f, (argb >> 8 & 0xff) / 255.0f,
 		(argb & 0xff) / 255.0f, (argb >> 24 & 0xff) / 255.0f };
 	/* jednolita barva pod tapetou; vetsi nez jakekoli rozlozeni vystupu */
@@ -380,6 +402,8 @@ luxcomp_spawn(const char *command)
 	if (!command || pipe2(fds, O_CLOEXEC) < 0) {
 		return -1;
 	}
+	/* okno spusteneho programu se smi zamerit (xdg-activation, puvod SHELL) */
+	const char *token = idle_shell_token();
 	pid_t child = fork();
 	if (child == 0) {
 		setsid();
@@ -388,6 +412,10 @@ luxcomp_spawn(const char *command)
 		sigprocmask(SIG_SETMASK, &set, NULL);
 		pid_t grandchild = fork();
 		if (grandchild == 0) {
+			if (token) {
+				setenv("XDG_ACTIVATION_TOKEN", token, 1);
+				setenv("DESKTOP_STARTUP_ID", token, 1);
+			}
 			execl("/bin/sh", "/bin/sh", "-c", command, (char *)NULL);
 			_exit(127);
 		}
@@ -600,6 +628,7 @@ void
 layers_init(void)
 {
 	comp.layer_shell = wlr_layer_shell_v1_create(comp.display, 4);
+	security_mark(comp.layer_shell->global, GLOBAL_SANDBOX_DENIED);
 	comp.new_layer_surface.notify = new_layer_surface;
 	wl_signal_add(&comp.layer_shell->events.new_surface, &comp.new_layer_surface);
 }
