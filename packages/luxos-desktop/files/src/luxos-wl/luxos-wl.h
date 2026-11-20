@@ -33,7 +33,9 @@ enum lwl_event {
 	LWL_LOCKED,                 /* ext-session-lock: kompozitor ukazuje jen nase zamykaci plochy */
 	LWL_LOCK_FINISHED,          /* zamek odmitnut nebo ukoncen kompozitorem */
 	LWL_SURFACE_CONFIGURE,      /* handle = zamykaci plocha, a = sirka, b = vyska; nakreslit a commit */
-	LWL_KEY,                    /* a = keysym, b = znak Unicode (0 = zadny); stisk na nasi plose */
+	LWL_KEY,                    /* a = keysym, b = znak Unicode (0 = zadny); stisk na nasi plose.
+	                               S lwl_lock_secret(1): znak jde jen do hesla v knihovne, a = 0 (znak)
+	                               nebo keysym ostatnich klaves, b = delka hesla ve znacich */
 	LWL_CAPTURE_READY,          /* handle = snimek, a = sirka, b = vyska */
 	LWL_CAPTURE_FAILED,         /* a = duvod (failure_reason ext_image_copy_capture_frame_v1) nebo -1 */
 	LWL_CLIPBOARD_CHANGED,      /* a = 1 primarni vyber, 0 schranka; b = 1 nabizi text */
@@ -46,6 +48,7 @@ enum lwl_event {
 	LWL_IDLE,                   /* handle = hlidani necinnosti */
 	LWL_RESUMED,
 	LWL_DISCONNECTED,           /* kompozitor skoncil */
+	LWL_KEYBOARD,               /* zamek: handle = plocha s fokusem, a = Caps Lock, b = skupina (rozlozeni) */
 };
 
 /* bity stavu okna */
@@ -85,6 +88,14 @@ int lwl_toplevel_close(int toplevel);
 int lwl_lock(void);
 int lwl_lock_surface(int output);
 int lwl_unlock(void);
+int lwl_lock_secret(int on);
+int lwl_lock_secret_length(void);
+void lwl_lock_secret_clear(void);
+int lwl_lock_secret_write(int fd);
+int lwl_lock_caps(void);
+int lwl_lock_layout(void);
+int lwl_lock_layout_count(void);
+const char *lwl_lock_layout_code(int group);
 int lwl_surface_width(int surface);
 int lwl_surface_height(int surface);
 void *lwl_surface_begin(int surface);
@@ -125,6 +136,7 @@ int lwl_output_config_head(int head, int enabled, int width, int height, int ref
 int lwl_output_config_apply(int test_only);
 
 int lwl_idle_watch(int timeout_ms);
+int lwl_idle_watch_full(int timeout_ms, int input_only);
 void lwl_idle_release(int watch);
 
 #endif

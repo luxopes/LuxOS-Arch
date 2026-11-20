@@ -16,6 +16,8 @@
 # Zamek:     lock() -> LOCKED/LOCK_FINISHED, lock_surface(o) -> SURFACE_CONFIGURE(s, w, h),
 #            surface_begin(s) -> cairo surface (ARGB32) nebo 0, surface_commit(s, surface), KEY(s, keysym,
 #            znak), unlock()
+#            lock_secret(True): znaky hesla zustavaji v knihovne (KEY(s, 0 nebo keysym, delka)),
+#            lock_secret_write(fd) je posle do roury a smaze; KEYBOARD(s, caps, skupina), lock_layout_code(g)
 # Snimek:    capture_output(o, kurzor), capture_toplevel(lt, kurzor) -> READY(c, w, h)/FAILED(c, duvod),
 #            capture_surface(c, w, h) -> kopie jako cairo surface, capture_write_png(c, w, h, cesta),
 #            capture_format(c), capture_free(c)
@@ -27,7 +29,8 @@
 #            head_modes(h) -> [[w, h, mHz, preferovany, aktualni]..], output_config_begin(),
 #            output_config_head(h, zapnuto, w, h, mHz, x, y, otoceni, meritko/1000), output_config_apply(test)
 #            -> OUTPUT_CONFIG_RESULT(0, 1 ok / 0 chyba / 2 zruseno)
-# Necinnost: idle_watch(ms) -> IDLE(w)/RESUMED(w), idle_release(w)
+# Necinnost: idle_watch(ms) -> IDLE(w)/RESUMED(w), idle_release(w); idle_watch_inhibited(ms) bere v potaz
+#            i inhibitory (prehravani videa)
 #
 # Pamet: jeden zaznam zpetneho volani na cely proces (udalosti se rozesilaji podle druhu a handlu),
 # objekty a texty drzi knihovna a uvolnuje je sama; nic neroste s poctem udalosti.
@@ -57,6 +60,7 @@ OUTPUT_CONFIG_RESULT = 21
 IDLE = 22
 RESUMED = 23
 DISCONNECTED = 24
+KEYBOARD = 25
 
 STATE_ACTIVATED = 1
 STATE_MAXIMIZED = 2
@@ -76,7 +80,9 @@ NAMES = ["lwl_set_handler", "lwl_connect", "lwl_attach", "lwl_disconnect", "lwl_
     "lwl_head_at", "lwl_head_name", "lwl_head_description", "lwl_head_enabled", "lwl_head_x", "lwl_head_y",
     "lwl_head_width", "lwl_head_height", "lwl_head_refresh", "lwl_head_scale", "lwl_head_transform",
     "lwl_head_mode_count", "lwl_head_mode", "lwl_output_config_begin", "lwl_output_config_head",
-    "lwl_output_config_apply", "lwl_idle_watch", "lwl_idle_release"]
+    "lwl_output_config_apply", "lwl_idle_watch", "lwl_idle_release", "lwl_idle_watch_full", "lwl_lock_secret",
+    "lwl_lock_secret_length", "lwl_lock_secret_clear", "lwl_lock_secret_write", "lwl_lock_caps", "lwl_lock_layout",
+    "lwl_lock_layout_count", "lwl_lock_layout_code"]
 
 # cairo_format_t podle formatu wl_shm (0 ARGB8888, 1 XRGB8888)
 CAIRO_ARGB32 = 0
@@ -344,6 +350,41 @@ function unlock():
     return call0("lwl_unlock") == 1
 end
 
+function lock_secret(on):
+    return call1("lwl_lock_secret", flag(on)) == 1
+end
+
+function lock_secret_length():
+    return call0("lwl_lock_secret_length")
+end
+
+function lock_secret_clear():
+    unsafe:
+        call __lsl_qbe_call0(sym("lwl_lock_secret_clear"))
+    end
+    return 0
+end
+
+function lock_secret_write(fd):
+    return call1("lwl_lock_secret_write", fd) == 1
+end
+
+function lock_caps():
+    return call0("lwl_lock_caps") == 1
+end
+
+function lock_layout():
+    return call0("lwl_lock_layout")
+end
+
+function lock_layout_count():
+    return call0("lwl_lock_layout_count")
+end
+
+function lock_layout_code(group):
+    return text1("lwl_lock_layout_code", group)
+end
+
 function surface_size(surface):
     return [call1("lwl_surface_width", surface), call1("lwl_surface_height", surface)]
 end
@@ -531,6 +572,10 @@ end
 
 function idle_watch(ms):
     return call1("lwl_idle_watch", ms)
+end
+
+function idle_watch_inhibited(ms):
+    return call2("lwl_idle_watch_full", ms, 0)
 end
 
 function idle_release(watch):

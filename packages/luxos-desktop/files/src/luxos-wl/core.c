@@ -89,6 +89,7 @@ static void sweep_outputs(void)
 	wl_list_for_each_safe(o, tmp, &lwl.outputs, link) {
 		if (!o->dead)
 			continue;
+		lwl_lock_output_gone(o->id);
 		wl_list_remove(&o->link);
 		if (o->wl)
 			wl_output_release(o->wl);
