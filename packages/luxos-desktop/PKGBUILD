@@ -197,6 +197,9 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-backdrop.lsl" luxos-backdrop
     # Klavesnice a zkratky na Waylandu (luxwm.conf, IPC luxwm); luxos-keyboard/-shortcuts sem predaji rizeni
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
+    # Monitory na Waylandu: pomocnik s pravem na wlr-output-management (allowlist luxwm) a okno/rychla volba
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-displays.lsl" luxos-displays-wayland
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-displays-settings.lsl" luxos-displays-settings
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -253,6 +256,8 @@ package() {
     install -Dm644 "$f/dbus-services/cz.luxos.Launchpad.service" "$pkgdir/usr/share/dbus-1/services/cz.luxos.Launchpad.service"
     install -Dm755 luxos-backdrop "$pkgdir/usr/bin/luxos-backdrop"
     install -Dm755 luxos-keyboard-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
+    install -Dm755 luxos-displays-wayland "$pkgdir/usr/lib/luxos/luxos-displays"
+    install -Dm755 luxos-displays-settings "$pkgdir/usr/lib/luxos/luxos-displays-settings"
     install -Dm644 "$f/systemd-user/luxos-backdrop.service" "$pkgdir/usr/lib/systemd/user/luxos-backdrop.service"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md

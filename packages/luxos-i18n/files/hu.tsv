@@ -5381,3 +5381,7 @@ Use System Layouts	Rendszerkiosztások használata
 Choose a window to capture	Válassza ki a rögzítendő ablakot
 No windows	Nincsenek ablakok
 Screen recording is not available on Wayland yet.	A képernyőfelvétel Waylanden még nem érhető el.
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Méretezés
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Nagyobbá teszi a szöveget, az ablakokat és a menüsort ezen a kijelzőn. A 125-175 % az éles laptopkijelzőkhöz illik.
+No displays found. Display settings need a Wayland session with LuxOS.	Nem található kijelző. A kijelzőbeállításokhoz Wayland-munkamenet kell LuxOS-szel.

@@ -5381,3 +5381,7 @@ Use System Layouts	Använd systemets layouter
 Choose a window to capture	Välj ett fönster att fånga
 No windows	Inga fönster
 Screen recording is not available on Wayland yet.	Skärminspelning är ännu inte tillgänglig i Wayland.
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Skala
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Gör text, fönster och menyraden större på den här skärmen. 125-175 % passar skarpa bärbara skärmar.
+No displays found. Display settings need a Wayland session with LuxOS.	Inga skärmar hittades. Skärminställningarna kräver en Wayland-session med LuxOS.

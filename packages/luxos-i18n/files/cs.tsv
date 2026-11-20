@@ -5380,3 +5380,7 @@ Use System Layouts	Použít rozložení systému
 Choose a window to capture	Vyberte okno k zachycení
 No windows	Žádná okna
 Screen recording is not available on Wayland yet.	Nahrávání obrazovky zatím na Waylandu není k dispozici.
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Měřítko
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Zvětší text, okna a horní lištu na tomto monitoru. 125-175 % se hodí pro jemné displeje notebooků.
+No displays found. Display settings need a Wayland session with LuxOS.	Žádný monitor nebyl nalezen. Nastavení monitorů potřebuje relaci Wayland s LuxOS.

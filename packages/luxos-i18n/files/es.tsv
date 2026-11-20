@@ -5381,3 +5381,7 @@ Use System Layouts	Usar distribuciones del sistema
 Choose a window to capture	Elige una ventana para capturar
 No windows	No hay ventanas
 Screen recording is not available on Wayland yet.	La grabación de pantalla aún no está disponible en Wayland.
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Escala
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Agranda el texto, las ventanas y la barra de menús en esta pantalla. 125-175 % va bien en pantallas nítidas de portátil.
+No displays found. Display settings need a Wayland session with LuxOS.	No se encontraron pantallas. La configuración de pantallas necesita una sesión Wayland con LuxOS.
