@@ -29,8 +29,9 @@ CATEGORY is one of:
 - SMALLTALK: "are you there?", "how are you?", "test", jokes, chit-chat about the bot itself
 - OFFTOPIC: clearly unrelated to computers, software, Linux, LuxOS or LuxAI (prices, recipes, sports, homework, politics)
 - QUESTION: anything else - a question, problem, bug or request about LuxOS, LuxAI, Lux Code, LSL, Linux, apps, hardware or accounts (when unsure, QUESTION)
-keywords: only for QUESTION, 2-8 short English search keywords for the LuxOS documentation (translate if needed; leave out filler words, names, greetings and story details); empty otherwise.
-Examples: "GREETING |", "QUESTION | printer not printing network", "OFFTOPIC |"`;
+keywords: only for QUESTION, 3-8 short English search keywords for the LuxOS documentation (translate if needed; leave out filler words, names, greetings and story details); empty otherwise.
+Use the technical words a Linux documentation page would use rather than the user's everyday words, e.g. "snapshot rollback" for protection against a broken update, "backup restore" for losing files, "driver" for hardware that does not work, "firewall sandbox" for protection against viruses. Keep only the 1-2 most important words of the user's own wording.
+Examples: "GREETING |", "QUESTION | printer not printing network", "QUESTION | update snapshot rollback broken system", "OFFTOPIC |"`;
 
 const CATEGORIES = new Set(["GREETING", "THANKS", "SMALLTALK", "OFFTOPIC", "QUESTION"]);
 

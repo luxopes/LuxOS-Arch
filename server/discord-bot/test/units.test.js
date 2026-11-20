@@ -119,7 +119,9 @@ test("knowledge index from the repository", () => {
   // od modelu; tema z dokumentace projde, cizi tema ne
   const bot = new Bot({ config: load(), rest: null, assistant: null, knowledge: k, mailer: null, state: null, log: () => {} });
   for (const terms of ["install apps store", "printer not printing", "wifi password QR code", "switch staging update channel",
-    "secure boot MOK key", "LuxAI credits limit", "Steam games", "bluetooth headphones", "nvidia driver", "dual boot windows", "change wallpaper"]) {
+    "secure boot MOK key", "LuxAI credits limit", "Steam games", "bluetooth headphones", "nvidia driver", "dual boot windows", "change wallpaper",
+    // keywords in the style of KEYWORDS_PROMPT for "how is LuxOS protected against damage during an update?" (live miss 2026-11-20)
+    "update snapshot rollback broken system", "update protection snapshot rollback"]) {
     assert.ok(bot.matchQuality(terms), `docs cover: ${terms}`);
   }
   for (const terms of ["goulash recipe dumplings", "capital of France", "football match result", "bitcoin price", "pizza Prague", "poem about cats", "Roman empire history essay"]) {
