@@ -1,7 +1,7 @@
 #!/bin/bash
 # LuxOS - testy Docku (Plank) v izolovanych relacich Xvfb (nikdy ne DISPLAY=:0, vlastni HOME,
 # XDG_*, D-Bus, xfwm4 s kompozici).
-#   run-all.sh PLANK [PRACOVNI_ADRESAR] [CYKLY]
+#   run-all.sh PLANK [PRACOVNI_ADRESAR mimo domov, vychozi novy v /tmp] [CYKLY]
 #   PLANK = cesta k Planku (sestaveny balik rozbaleny do out/ - viz run-plank.sh nize, nebo /usr/bin/plank)
 # Sestaveni a spusteni bez instalace:
 #   scripts/perf/build-pkg.sh out/plank-build packages/plank
@@ -17,7 +17,9 @@ if [[ -n $_tg ]]; then . "$_tg/scripts/luxos-testguard.sh"; else unset DISPLAY; 
 unset _tg
 here=$(dirname "$(readlink -f "$0")")
 plank=$(readlink -f "${1:?cesta k Planku}")
-w=$(readlink -m "${2:-$here/../../../out/plank-tests}")
+# Pracovni adresar mimo domov: test guard (scripts/luxos_testguard.py) jinak nahradi HOME/XDG_* relace
+# vlastnimi a Plank by necetl nastaveni zapsane testem (dock_zoom.py pak skonci na kontrole XDG_CONFIG_HOME).
+w=$(readlink -m "${2:-$(mktemp -d -t luxos-plank-tests-XXXXXX)}")
 cycles=${3:-300}
 mkdir -p "$w"
 fails=0
