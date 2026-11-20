@@ -40,6 +40,10 @@ GOLDENS = HERE / "wl-backdrop-goldens"
 UPDATE = os.environ.get("LUXOS_BACKDROP_UPDATE_GOLDENS") == "1"
 SYSROOT = Path(os.environ.get("WLT_SYSROOT") or Path(os.environ.get("WLT_OUT") or REPO / "out/wl-test") / "sysroot")
 HAVE_LABWC = (SYSROOT / "usr/bin/labwc").exists() or shutil.which("labwc")
+# Plocha bezi proti luxwm (cilovy kompozitor: klavesnice vrstvy na vyzadani, grab nabidek), kdyz je postaveny
+# (packages/luxwm/tests/build-host.sh); jinak proti labwc
+LUXWM_BUILD = Path(os.environ.get("LUXWM_BUILD") or REPO / "out/luxwm-test/build")
+USE_LUXWM = (LUXWM_BUILD / "luxwm").exists() and os.environ.get("LUXOS_BACKDROP_LABWC") != "1"
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
 COLOR = "204060"
 FAKE_COMMANDS = ("luxos-settings", "luxos-display-settings", "luxos-widgets", "xdg-open", "gio")
@@ -193,8 +197,19 @@ class WaylandBackdrop(unittest.TestCase):
     def start(self, outputs=1, size="640x400", conf=""):
         name = f"d{os.getpid()}-{sorted(n for n in dir(self) if n.startswith('test_')).index(self._testMethodName)}"
         size_args = ["--size", size] if size else []
-        self.session = Path(self.wlt("start", "--mode", "headless", "--outputs", str(outputs), *size_args,
-                                     "--timeout", "900", "--name", name).strip())
+        comp_args, comp_env = [], {}
+        if USE_LUXWM:
+            conf_path = Path(tempfile.mkdtemp(prefix="luxwm-conf-", dir=self.tmp)) / "luxwm.conf"
+            conf_path.write_text("xwayland = no\n" + (REPO / "packages/luxwm/luxwm.conf").read_text())
+            comp_args = ["--", str(LUXWM_BUILD / "luxwm")]
+            comp_env = {"WLT_COMPOSITOR_ENV": f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_SYSTEM_CONFIG={conf_path} "
+                                              f"LD_LIBRARY_PATH={LUXWM_BUILD}:{SYSROOT}/usr/lib"}
+        r = subprocess.run([str(WLT), "start", "--mode", "headless", "--outputs", str(outputs), *size_args,
+                            "--timeout", "900", "--name", name, *comp_args], capture_output=True, text=True, timeout=120,
+                           env={**os.environ, **comp_env})
+        if r.returncode != 0:
+            self.fail("wlt start: " + r.stdout + r.stderr)
+        self.session = Path(r.stdout.strip().splitlines()[-1])
         env = {}
         for line in self.wlt("env", str(self.session)).splitlines():
             key, _, value = line.removeprefix("export ").partition("=")

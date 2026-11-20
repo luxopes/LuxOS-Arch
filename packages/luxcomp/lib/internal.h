@@ -148,7 +148,8 @@ struct comp {
 	struct wlr_xcursor_manager *cursor_mgr;
 	struct wl_listener cursor_motion, cursor_motion_abs, cursor_button,
 		cursor_axis, cursor_frame, request_cursor, request_selection,
-		request_primary;
+		request_primary, request_start_drag, start_drag;
+	struct wlr_scene_tree *drag_icons;	/* drag-and-drop icons, above everything, follow the cursor */
 	struct view *focused;
 	struct wlr_surface *layer_focus;	/* keyboard-interactive layer surface */
 	bool binding_mods_held;		/* report modifier release after a binding */

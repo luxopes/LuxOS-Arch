@@ -263,7 +263,7 @@ function add_backdrop(monitor):
     geo = layer.monitor_geometry(monitor)
     win = gtk.window_new("luxos-backdrop")
     b = {"win": win, "monitor": monitor, "output": output_for(monitor), "w": geo[2], "h": geo[3],
-         "scale": max(1, monitor_scale(monitor)), "key": "", "surface": 0, "drawn": "", "handlers": [], "kbd": 0, "inside": False}
+         "scale": max(1, monitor_scale(monitor)), "key": "", "surface": 0, "drawn": "", "handlers": [], "kbd": 0}
     call layer.init_for_window(win)
     call layer.set_namespace(win, "luxos-backdrop")
     call layer.set_layer(win, layer.LAYER_BACKGROUND)
@@ -279,8 +279,6 @@ function add_backdrop(monitor):
     b["handlers"].append(lglib.connect_data(win, "motion-notify-event", 1, on_motion, b))
     b["handlers"].append(lglib.connect_data(win, "button-release-event", 1, on_release, b))
     b["handlers"].append(lglib.connect_data(win, "key-press-event", 1, on_key, b))
-    b["handlers"].append(lglib.connect_data(win, "enter-notify-event", 1, on_crossing, b))
-    b["handlers"].append(lglib.connect_data(win, "leave-notify-event", 1, on_crossing, b))
     b["handlers"].append(lglib.connect_data(win, "drag-data-received", 4, on_drop, b))
     call drop_target(win)
     # zaznam se neuvolnuje: GdkMonitor muze zit i po odpojeni a signal poslat pozdeji
@@ -448,8 +446,8 @@ function on_press(b, event, widget):
     return True
 end
 
-# Klavesy jdou do nabidky (xdg_popup) pres plochu, ktera ji otevrela: klavesnice jen po dobu nabidky.
-# Trvale "na vyzadani" by po kliknuti na plochu labwc 0.20 uz nevratil fokus oknu.
+# Klavesy jdou do nabidky (xdg_popup) pres plochu, ktera ji otevrela: plocha bez ikon ma klavesnici jen po
+# dobu nabidky (kompozitor bez grabu xdg_popup ji jinak nabidce neda).
 function on_menu_closed(unused, menu):
     if ui["menu_owner"] != None:
         b = ui["menu_owner"]
@@ -459,8 +457,7 @@ function on_menu_closed(unused, menu):
     return 0
 end
 
-# Plocha s ikonami pod ukazatelem uz klavesnici ma (na vyzadani, kliknutim): tak zustane, prepnuti by fokus
-# po zavreni nabidky ztratilo (labwc). Bez ikon vyhradne jen po dobu nabidky.
+# Plocha s ikonami uz klavesnici ma (na vyzadani, kliknutim): tak zustane. Bez ikon vyhradne jen po dobu nabidky.
 function menu_keyboard(b):
     ui["menu_owner"] = b
     if b["kbd"] != layer.KEYBOARD_ON_DEMAND:
@@ -908,38 +905,23 @@ function select(items):
     return 0
 end
 
-# Klavesnice (na vyzadani) jen kdyz je ukazatel nad plochou s ikonami: kliknuti na ikonu (nebo prave tlacitko
-# pro Novou slozku na prazdne plose) pak plose fokus da a sipky i pole prejmenovani funguji. labwc 0.20 fokus vrstvy "na vyzadani" po kliknuti do okna oknu nevrati, proto se pri
-# odchodu ukazatele (do okna, do listy) vraci na zadnou - okna pak klavesnici dostanou kliknutim jako vzdy.
+# Plocha s ikonami ma klavesnici na vyzadani: kliknuti na ikonu (nebo prave tlacitko pro Novou slozku) ji plose
+# da, kliknuti do okna nebo nove okno ji luxcomp vrati oknu. Bez ikon klavesnici nepotrebuje.
 function update_keyboard(b):
     if ui["menu_owner"] == b or icons["editor"] != 0:
         return 0
     end
     mode = layer.KEYBOARD_NONE
-    if icons["owner"] == b and b["inside"] and icons["conf"]["enabled"]:
+    if icons["owner"] == b and icons["conf"]["enabled"]:
         mode = layer.KEYBOARD_ON_DEMAND
     end
     if b["kbd"] != mode:
         b["kbd"] = mode
         call layer.set_keyboard_mode(b["win"], mode)
-        # hned, ne az s dalsim snimkem: kliknuti hned po vstupu ukazatele uz musi fokus dat
         call layer.try_force_commit(b["win"])
         call trace("keyboard " + String(mode))
     end
     return 0
-end
-
-function on_crossing(b, event, widget):
-    # GDK_ENTER_NOTIFY 10; GdkEventCrossing.mode (72) != NORMAL = prechod kvuli grabu nabidky nebo pole
-    unsafe:
-        enter = __lsl_qbe_load32(ptr(event)) == 10
-        mode = __lsl_qbe_load32(ptr(event) + 72)
-    end
-    if mode == 0 and enter != b["inside"]:
-        b["inside"] = enter
-        call update_keyboard(b)
-    end
-    return False
 end
 
 function selected_items():
