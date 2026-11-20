@@ -24,7 +24,7 @@ cflags="-O2 -g -std=c11 -Wall -Wno-unused-parameter -DWLR_USE_UNSTABLE -I$comp/i
   $(PKG_CONFIG_SYSROOT_DIR= PKG_CONFIG_PATH= pkg-config --cflags glib-2.0)"
 libs="$(pkg-config --libs wlroots-0.20 wayland-server xkbcommon cairo pangocairo) -lm"
 gcc $cflags -fPIC -fvisibility=hidden -shared -Wl,-soname,libluxcomp.so.0 -o "$b/libluxcomp.so.0" \
-  "$comp"/src/*.c $libs
+  "$comp"/lib/*.c $libs
 ln -sf libluxcomp.so.0 "$b/libluxcomp.so"
 gcc $cflags -o "$b/luxcomp-demo" "$comp/tests/demo.c" -L"$b" -lluxcomp -Wl,-rpath-link,"$sysroot/usr/lib"
 # luxwm: LSL vedle luxos_tokens.lsl (moduly se hledaji vedle zdroje)
