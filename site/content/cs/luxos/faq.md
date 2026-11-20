@@ -168,5 +168,6 @@ a `lux doctor` zkontroluje systém.
 
 ## Kam hlásit chyby a posílat dotazy?
 
-Pošlete hlášení z aplikace **Zpětná vazba** (nebo požádejte LuxAI), založte issue na
+Zeptejte se v kanálu **#support** na [Discordu LuxOS](https://discord.gg/FFpaF7Ayp) (bot odpovídá z dokumentace
+a těžší dotazy předá týmu). Pošlete hlášení z aplikace **Zpětná vazba** (nebo požádejte LuxAI), založte issue na
 [GitHubu](https://github.com/luxopes/LuxOS-Arch/issues), nebo napište na info@lux-ai.cz.

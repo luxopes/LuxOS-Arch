@@ -55,6 +55,8 @@ OG_ALT = {"en": "LuxOS – fast, lightweight Linux with a macOS-like desktop, fr
 LANDING = os.path.join(SITE, "landing")
 # strukturovana data (schema.org): entity s @id definuje uvodni stranka (@graph), ostatni stranky na ne odkazuji
 GITHUB = "https://github.com/luxopes/LuxOS-Arch"
+# Komunita LuxOS na Discordu (trvala pozvanka do #welcome-and-rules)
+DISCORD = "https://discord.gg/FFpaF7Ayp"
 ORG_ID, AUTHOR_ID, SITE_ID, APP_ID = (BASE + "/#org", BASE + "/#author", BASE + "/#website", BASE + "/#luxos")
 CONTACT = "info@lux-ai.cz"
 AUTHOR = "Antonín Tomeček"
@@ -449,7 +451,8 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
              ("download", t["download"], landing_url(lang, "download")),
              ("luxai", t["luxai"], doc_url(lang if lang in DOCS_BY_PATH["luxos/luxai.md"]["src"] else "en", "luxos/luxai.md")),
              ("docs", t["docs"], docs_index_url(lang)),
-             ("changes", t["changes"], changes_url(lang))]
+             ("changes", t["changes"], changes_url(lang)),
+             ("discord", "Discord", DISCORD)]
     def is_active(k):
         return k == active or (home and k == "home" and not active)
     desk = "".join('<a%s href="%s">%s</a>' % (' class="active"' if is_active(k) else "", h, e(label))
@@ -471,6 +474,7 @@ def shell(lang, path, title, desc, body, alt, active="", stamp="", og_type="webs
                   f'<a href="{doc_url(lang if lang in DOCS_BY_PATH["luxos/luxai.md"]["src"] else "en", "luxos/luxai.md")}">LuxAI</a>'
                   f'<a href="{doc_url(lang if lang in DOCS_BY_PATH["luxos/faq.md"]["src"] else "en", "luxos/faq.md")}">{e(t["faq"])}</a>'
                   f'<a href="{changes_url(lang)}">{e(t["changes"])}</a><a href="{usage_url(lang)}">{e(t["usage"])}</a>'
+                  f'<a href="{DISCORD}" rel="noopener">Discord</a>'
                   f'<a href="/repo/">{e(t["repos"])}</a>'
                   f'<a href="{page_url(lang, "mail")}">{e(t["mail"])}</a>'
                   f'<a href="{page_url(lang, "privacy")}">{e(t["privacy"])}</a>'
@@ -753,7 +757,7 @@ def app_ld(lang, iso, ver, url, description):
             "license": "https://spdx.org/licenses/GPL-3.0-or-later.html", "isAccessibleForFree": True,
             "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD",
                        "url": abs_url(landing_url(lang, "download"))},
-            "author": {"@id": AUTHOR_ID}, "publisher": {"@id": ORG_ID}, "sameAs": [GITHUB]}
+            "author": {"@id": AUTHOR_ID}, "publisher": {"@id": ORG_ID}, "sameAs": [GITHUB, DISCORD]}
 
 
 def faq_page_ld(pairs):
@@ -865,7 +869,7 @@ def llms_txt(ver, iso, cols):
         "- Maintenance: LuxOS Care (background updates, snapshot before every update, `lux rollback`, read-only /usr)",
         "- Security: firewall on by default, Lux Guard (checks downloaded programs, sandbox), Safe (encrypted folder)",
         "- LuxAI: optional AI assistant; needs a LuxAI account with 20 000 credits per month shared by all models; answers come from third-party model providers",
-        f"- Developer: {AUTHOR}, Czech Republic; contact {CONTACT}; source {GITHUB}",
+        f"- Developer: {AUTHOR}, Czech Republic; contact {CONTACT}; source {GITHUB}; community {DISCORD}",
         "- Not to be confused with LuxOS, the unrelated Bitcoin miner firmware by Luxor.",
         "",
         "## Why people choose LuxOS",
@@ -913,6 +917,7 @@ def llms_txt(ver, iso, cols):
               f"- [Usage statistics]({abs_url(usage_url('en'))}): anonymous weekly counts of active installations",
               f"- [Privacy policy]({abs_url(page_url('en', 'privacy'))}): data handling of LuxOS, LuxAI and LuxOS Mail",
               f"- [Source code]({GITHUB}): GitHub repository (issues for bug reports)",
+              f"- [Discord]({DISCORD}): LuxOS community server (#support with a documentation bot and the team)",
               "- [LSL language](https://lsl.lux-ai.cz): website of Lux Simple Lang", ""]
     return "\n".join(lines)
 
@@ -1035,7 +1040,7 @@ def main():
         # na to nema typ, proto SoftwareApplication s applicationCategory OperatingSystem
         org_ld = {"@type": "Organization", "@id": ORG_ID, "name": "LuxOS", "url": BASE + "/",
                   "logo": {"@type": "ImageObject", "url": BASE + "/assets/icon-192.png", "width": 192, "height": 192},
-                  "email": CONTACT, "founder": {"@id": AUTHOR_ID}, "sameAs": [GITHUB]}
+                  "email": CONTACT, "founder": {"@id": AUTHOR_ID}, "sameAs": [GITHUB, DISCORD]}
         author_ld = {"@type": "Person", "@id": AUTHOR_ID, "name": AUTHOR,
                      "address": {"@type": "PostalAddress", "addressCountry": "CZ"}}
         site_ld = {"@type": "WebSite", "@id": SITE_ID, "name": "LuxOS", "url": BASE + "/",

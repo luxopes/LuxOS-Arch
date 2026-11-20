@@ -174,5 +174,7 @@ keys, or `lux doctor` to check the system.
 
 ## Where do I report bugs or ask questions?
 
-Send a report from the **Feedback** app (or ask LuxAI to send one), open an issue on
-[GitHub](https://github.com/luxopes/LuxOS-Arch/issues), or write to info@lux-ai.cz.
+Ask in **#support** on the [LuxOS Discord](https://discord.gg/FFpaF7Ayp) (a bot answers from the
+documentation and hands harder questions to the team), send a report from the **Feedback** app (or ask
+LuxAI to send one), open an issue on [GitHub](https://github.com/luxopes/LuxOS-Arch/issues), or write
+to info@lux-ai.cz.
