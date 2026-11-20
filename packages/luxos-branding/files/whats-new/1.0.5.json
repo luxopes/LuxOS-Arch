@@ -1,0 +1,39 @@
+{
+ "version": "1.0.5",
+ "codename": "Sirius",
+ "items": [
+  {
+   "icon": "tablet-symbolic",
+   "title": {
+    "en": "Touch screens and tablets",
+    "cs": "Dotykové obrazovky a tablety",
+    "sk": "Dotykové obrazovky a tablety",
+    "pl": "Ekrany dotykowe i tablety",
+    "uk": "Сенсорні екрани та планшети",
+    "hu": "Érintőképernyők és táblagépek",
+    "de": "Touchscreens und Tablets",
+    "fr": "Écrans tactiles et tablettes",
+    "es": "Pantallas táctiles y tabletas",
+    "it": "Schermi touch e tablet",
+    "pt": "Telas sensíveis ao toque e tablets",
+    "nl": "Aanraakschermen en tablets",
+    "sv": "Pekskärmar och surfplattor"
+   },
+   "text": {
+    "en": "LuxOS now works fully on touch screens, even without a keyboard. An on-screen keyboard appears by itself when you tap a text field (also when signing in and unlocking), gestures with three fingers open Launchpad, show the desktop or switch workspaces, a two-finger tap is a right click, and the screen turns with the device. Keyboard and Rotation Lock are in Control Center.",
+    "cs": "LuxOS teď plně funguje na dotykových obrazovkách, i bez klávesnice. Klávesnice na obrazovce se sama ukáže, když klepnete do textového pole (i při přihlášení a odemknutí), gesta třemi prsty otevřou Launchpad, ukážou plochu nebo přepnou plochy, klepnutí dvěma prsty je pravé tlačítko a obrazovka se otáčí se zařízením. Klávesnice a Zámek otáčení jsou v Ovládacím centru.",
+    "sk": "LuxOS teraz plne funguje na dotykových obrazovkách, aj bez klávesnice. Klávesnica na obrazovke sa sama ukáže, keď ťuknete do textového poľa (aj pri prihlásení a odomknutí), gestá tromi prstami otvoria Launchpad, ukážu plochu alebo prepnú plochy, ťuknutie dvoma prstami je pravé tlačidlo a obrazovka sa otáča so zariadením. Klávesnica a Zámok otáčania sú v Ovládacom centre.",
+    "pl": "LuxOS działa teraz w pełni na ekranach dotykowych, nawet bez klawiatury. Klawiatura ekranowa pojawia się sama po stuknięciu pola tekstowego (także przy logowaniu i odblokowaniu), gesty trzema palcami otwierają Launchpad, pokazują pulpit lub przełączają obszary robocze, stuknięcie dwoma palcami to prawy przycisk, a ekran obraca się razem z urządzeniem. Klawiatura i Blokada obrotu są w Centrum sterowania.",
+    "uk": "LuxOS тепер повністю працює на сенсорних екранах, навіть без клавіатури. Екранна клавіатура з’являється сама, коли ви торкаєтеся текстового поля (також під час входу й розблокування), жести трьома пальцями відкривають Launchpad, показують стільницю або перемикають робочі простори, дотик двома пальцями — це правий клік, а екран повертається разом із пристроєм. Клавіатура та Блокування повороту — у Центрі керування.",
+    "hu": "A LuxOS mostantól teljesen működik érintőképernyőn, billentyűzet nélkül is. A képernyő-billentyűzet magától megjelenik, ha egy szövegmezőre koppint (bejelentkezéskor és feloldáskor is), a háromujjas mozdulatok megnyitják a Launchpadet, megmutatják az asztalt vagy munkaterületet váltanak, a kétujjas koppintás jobb kattintás, és a képernyő az eszközzel együtt fordul. A Billentyűzet és a Forgatászár a Vezérlőközpontban van.",
+    "de": "LuxOS funktioniert jetzt vollständig auf Touchscreens, auch ohne Tastatur. Eine Bildschirmtastatur erscheint von selbst, wenn Sie in ein Textfeld tippen (auch beim Anmelden und Entsperren), Gesten mit drei Fingern öffnen das Launchpad, zeigen den Schreibtisch oder wechseln die Arbeitsfläche, Tippen mit zwei Fingern ist ein Rechtsklick, und der Bildschirm dreht sich mit dem Gerät. Tastatur und Rotationssperre finden Sie im Kontrollzentrum.",
+    "fr": "LuxOS fonctionne désormais entièrement sur les écrans tactiles, même sans clavier. Un clavier virtuel apparaît tout seul quand vous touchez un champ de texte (aussi à la connexion et au déverrouillage), les gestes à trois doigts ouvrent le Launchpad, affichent le bureau ou changent d’espace de travail, une touche à deux doigts fait un clic droit et l’écran pivote avec l’appareil. Clavier et Verrouillage de la rotation sont dans le Centre de contrôle.",
+    "es": "LuxOS ahora funciona por completo en pantallas táctiles, incluso sin teclado. Un teclado en pantalla aparece solo al tocar un campo de texto (también al iniciar sesión y al desbloquear), los gestos con tres dedos abren el Launchpad, muestran el escritorio o cambian de espacio de trabajo, tocar con dos dedos es un clic derecho y la pantalla gira con el dispositivo. Teclado y Bloqueo de rotación están en el Centro de control.",
+    "it": "LuxOS ora funziona pienamente sugli schermi touch, anche senza tastiera. Una tastiera a schermo compare da sola quando tocchi un campo di testo (anche all’accesso e allo sblocco), i gesti con tre dita aprono il Launchpad, mostrano la scrivania o cambiano area di lavoro, il tocco con due dita è un clic destro e lo schermo ruota con il dispositivo. Tastiera e Blocco rotazione sono nel Centro di controllo.",
+    "pt": "O LuxOS agora funciona totalmente em telas sensíveis ao toque, mesmo sem teclado. Um teclado na tela aparece sozinho quando você toca num campo de texto (também ao iniciar sessão e desbloquear), gestos com três dedos abrem o Launchpad, mostram a área de trabalho ou trocam de espaço de trabalho, o toque com dois dedos é um clique direito e a tela gira com o dispositivo. Teclado e Bloqueio de rotação estão na Central de controle.",
+    "nl": "LuxOS werkt nu volledig op aanraakschermen, ook zonder toetsenbord. Een schermtoetsenbord verschijnt vanzelf als je op een tekstveld tikt (ook bij aanmelden en ontgrendelen), gebaren met drie vingers openen Launchpad, tonen het bureaublad of wisselen van werkblad, tikken met twee vingers is een rechtermuisklik en het scherm draait mee met het apparaat. Toetsenbord en Rotatievergrendeling staan in het Bedieningscentrum.",
+    "sv": "LuxOS fungerar nu fullt ut på pekskärmar, även utan tangentbord. Ett skärmtangentbord visas av sig självt när du trycker på ett textfält (även vid inloggning och upplåsning), gester med tre fingrar öppnar Launchpad, visar skrivbordet eller byter arbetsyta, ett tryck med två fingrar är ett högerklick och skärmen vrids med enheten. Tangentbord och Rotationslås finns i Kontrollcenter."
+   }
+  }
+ ]
+}

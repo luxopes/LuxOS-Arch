@@ -128,6 +128,12 @@ function flag_state(name):
     return exists(config_dir() + "/" + name)
 end
 
+# Dotykova obrazovka a senzor otoceni: luxos-touch session zapise ~/.config/luxos/touch-state
+# ("touchscreen=1 keyboard=0 accel=1"); bez souboru (pocitac bez dotyku) zadne dlazdice navic
+function touch_flag(name):
+    return glib.read_text(config_dir() + "/touch-state").find(name + "=1") >= 0
+end
+
 function dark_state():
     return glib.read_text(config_dir() + "/appearance").strip() == "dark"
 end
@@ -512,8 +518,17 @@ function create():
     cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data)
     cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power)
     tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"], cc["t_data"], cc["t_power"]]
+    # dotykova zarizeni: klavesnice na obrazovce, zamek otaceni (jen se senzorem)
+    if touch_flag("touchscreen"):
+        cc["t_osk"] = tile_new("input-keyboard-symbolic", i18n.T("Keyboard"), toggle_osk)
+        tiles.append(cc["t_osk"])
+        if touch_flag("accel"):
+            cc["t_rot"] = tile_new("rotation-locked-symbolic", i18n.T("Rotation Lock"), toggle_rotation_lock)
+            tiles.append(cc["t_rot"])
+        end
+    end
     index = 0
-    while index < 6:
+    while index < len(tiles):
         tile = tiles[index]
         call gtk.grid_attach(grid, tile["button"], index % 2, index // 2, 1, 1)
         index += 1
@@ -810,6 +825,10 @@ function refresh_fast():
     end
     dark = dark_state()
     call tile_set_state(cc["t_dark"], dark, on_off(dark))
+    if cc.get("t_rot", None) != None:
+        locked = flag_state("rotation-lock")
+        call tile_set_state(cc["t_rot"], locked, on_off(locked))
+    end
     data = flag_state("datasaver")
     call tile_set_state(cc["t_data"], data, on_off(data))
     power = flag_state("powersaver")
@@ -1143,6 +1162,20 @@ end
 function toggle_dark():
     call glib.spawn_quiet(["luxos-appearance", "toggle"])
     call close()
+    return 0
+end
+
+# Klavesnice na obrazovce: okno se zavre, aby klavesnice psala do aplikace pod nim
+function toggle_osk():
+    call glib.spawn_quiet(["luxos-touch", "osk", "toggle"])
+    call close()
+    return 0
+end
+
+function toggle_rotation_lock():
+    locked = not flag_state("rotation-lock")
+    call tile_set_state(cc["t_rot"], locked, on_off(locked))
+    call glib.spawn_quiet(["luxos-touch", "rotation-lock", "toggle"])
     return 0
 end
 

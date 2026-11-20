@@ -1,0 +1,281 @@
+#!/bin/bash
+# LuxOS - dotykove obrazovky (tablety, dotykove notebooky 2v1, dotykove monitory), i bez fyzicke klavesnice.
+#
+#   luxos-touch detect            touchscreen=0|1 keyboard=0|1 accel=0|1 (udev, bez prav roota)
+#   luxos-touch session           pri prihlaseni (luxos-session): na dotykovem zarizeni klavesnice na obrazovce
+#                                 (Onboard, sama se ukaze pri psani), gesta (Touchegg), dotyk na vestavenem
+#                                 displeji, otaceni podle senzoru, klavesnice na zamykaci obrazovce; jinak nic
+#   luxos-touch osk [show|hide|toggle]   klavesnice na obrazovce (Ovladaci centrum, gesto)
+#   luxos-touch osk-embed         pro zamykaci obrazovku: Onboard vlozeny do okna (--xid, xfce4-screensaver)
+#   luxos-touch osk-window X Y W H   pro prihlasovaci obrazovku: Onboard jako samostatne okno dole
+#   luxos-touch rotation-lock [on|off|toggle|status]   zamek otaceni (~/.config/luxos/rotation-lock)
+#   luxos-touch rotate normal|left|right|inverted      otocit vestaveny displej a dotyk
+#   luxos-touch map               dotyk na vestaveny displej (i po pripojeni monitoru)
+#   luxos-touch rotate-watch      sleduje senzor otoceni (spousti session)
+#
+# Testy: LUXOS_TOUCH_UDEV (adresar dat udev, vychozi /run/udev/data), LUXOS_TOUCH_SYS (/sys/class/input),
+# LUXOS_TOUCH_FORCE=1 (dotykova obrazovka i bez hardwaru), LUXOS_TOUCH_DRY=1 (jen vypsat prikazy).
+set -u
+UDEV=${LUXOS_TOUCH_UDEV:-/run/udev/data}
+SYS=${LUXOS_TOUCH_SYS:-/sys/class/input}
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
+LOCK_FILE="$CFG/rotation-lock"
+SHARE=${LUXOS_TOUCH_SHARE:-/usr/share/luxos/touch}
+
+run() {   # prikaz, nebo jen vypis (LUXOS_TOUCH_DRY=1)
+    if [[ ${LUXOS_TOUCH_DRY:-0} == 1 ]]; then printf 'RUN %s\n' "$*"; else "$@"; fi
+}
+
+spawn() {   # program na pozadi mimo relaci shellu (nebo jen vypis)
+    if [[ ${LUXOS_TOUCH_DRY:-0} == 1 ]]; then printf 'SPAWN %s\n' "$*"; else setsid "$@" >/dev/null 2>&1 & fi
+}
+
+# Vlastnosti udev zarizeni eventN (E:KLIC=HODNOTA) - c13:<minor> (major 13 = input)
+udev_props() {
+    local ev=$1 dev
+    dev=$(cat "$SYS/$ev/dev" 2>/dev/null) || return 1
+    [[ -r $UDEV/c${dev} ]] && sed -n 's/^E://p' "$UDEV/c${dev}"
+}
+
+# Klavesa s kodem $2 v bitove mape capabilities/key zarizeni $1 (slova po 64 bitech, nejvyssi prvni)
+has_key() {
+    local caps word idx
+    read -r -a caps <"$SYS/$1/device/capabilities/key" 2>/dev/null || return 1
+    idx=$(( ${#caps[@]} - 1 - $2 / 64 ))
+    ((idx >= 0)) || return 1
+    word=${caps[idx]}
+    (( (16#$word >> ($2 % 64)) & 1 ))
+}
+
+# Skutecna klavesnice: udev ID_INPUT_KEYBOARD a pismena Q, A, Z a mezernik (vypinac, multimedialni tlacitka
+# a "Video Bus" jsou pro udev take klavesnice). Virtualni zarizeni (uinput) se nepocitaji.
+is_keyboard() {
+    local ev=$1 props
+    props=$(udev_props "$ev") || return 1
+    grep -qx 'ID_INPUT_KEYBOARD=1' <<<"$props" || return 1
+    [[ $(readlink -f "$SYS/$ev/device" 2>/dev/null) == */virtual/* ]] && return 1
+    has_key "$ev" 16 && has_key "$ev" 30 && has_key "$ev" 44 && has_key "$ev" 57
+}
+
+is_touchscreen() {
+    udev_props "$1" 2>/dev/null | grep -qx 'ID_INPUT_TOUCHSCREEN=1'
+}
+
+touch_events() {   # eventN dotykovych obrazovek
+    local d
+    for d in "$SYS"/event*; do
+        [[ -e $d ]] || continue
+        is_touchscreen "${d##*/}" && echo "${d##*/}"
+    done
+}
+
+detect() {
+    local ts=0 kb=0 accel=0 d ev
+    for d in "$SYS"/event*; do
+        [[ -e $d ]] || continue
+        ev=${d##*/}
+        is_touchscreen "$ev" && ts=1
+        is_keyboard "$ev" && kb=1
+    done
+    [[ ${LUXOS_TOUCH_FORCE:-0} == 1 ]] && ts=1
+    # akcelerometr: iio-sensor-proxy (D-Bus), jinak primo zarizeni IIO
+    if [[ -n ${LUXOS_TOUCH_ACCEL:-} ]]; then
+        accel=$LUXOS_TOUCH_ACCEL
+    elif gdbus call --system --dest net.hadess.SensorProxy --object-path /net/hadess/SensorProxy \
+            --method org.freedesktop.DBus.Properties.Get net.hadess.SensorProxy HasAccelerometer 2>/dev/null | grep -q true; then
+        accel=1
+    elif grep -qsi accel /sys/bus/iio/devices/*/name; then
+        accel=1
+    fi
+    echo "touchscreen=$ts keyboard=$kb accel=$accel"
+}
+
+has_touch() { [[ $(detect) == *touchscreen=1* ]]; }
+
+# ---- displej a dotyk ------------------------------------------------------------------------------
+
+internal_output() {   # vestaveny displej (eDP, LVDS, DSI), pripojeny
+    xrandr --query 2>/dev/null | awk '$2 == "connected" && $1 ~ /^(eDP|LVDS|DSI)/ {print $1; exit}'
+}
+
+# ID dotykovych zarizeni v X (xinput) podle uzlu /dev/input/eventN
+touch_xinput_ids() {
+    local evs id node
+    evs=$(touch_events | tr '\n' ' ')
+    [[ -n $evs || ${LUXOS_TOUCH_FORCE:-0} == 1 ]] || return 0
+    for id in $(xinput list --id-only 2>/dev/null); do
+        node=$(xinput list-props "$id" 2>/dev/null | sed -n 's/.*Device Node ([0-9]*):[[:space:]]*"\(.*\)"/\1/p')
+        [[ -n $node ]] || continue
+        [[ " $evs " == *" ${node##*/} "* ]] && echo "$id"
+    done
+}
+
+# Dotyk na vestaveny displej (xinput spocita i otoceni); bez vestaveneho displeje (dotykovy monitor) nic
+map_touch() {
+    local out id
+    out=$(internal_output)
+    [[ -n $out ]] || return 0
+    for id in $(touch_xinput_ids); do
+        run xinput map-to-output "$id" "$out" 2>/dev/null
+    done
+}
+
+rotate() {
+    local out=${2:-$(internal_output)}
+    [[ -n $out ]] || return 0
+    case $1 in
+        normal|left|right|inverted) ;;
+        *) echo "luxos-touch: unknown rotation $1" >&2; return 2 ;;
+    esac
+    run xrandr --output "$out" --rotate "$1" || return 1
+    map_touch
+}
+
+# monitor-sensor (iio-sensor-proxy): "Accelerometer orientation changed: left-up"
+orientation_to_rotation() {
+    case $1 in
+        normal) echo normal ;;
+        bottom-up) echo inverted ;;
+        left-up) echo left ;;
+        right-up) echo right ;;
+        *) return 1 ;;
+    esac
+}
+
+rotate_watch() {
+    command -v monitor-sensor >/dev/null || return 0
+    local line o r last=""
+    monitor-sensor --accel 2>/dev/null | while IFS= read -r line; do
+        case $line in
+            *"orientation changed:"*) o=${line##*: } ;;
+            *"Has accelerometer"*"orientation:"*) o=${line##*orientation: }; o=${o%)*} ;;
+            *) continue ;;
+        esac
+        r=$(orientation_to_rotation "$o") || continue
+        [[ -e $LOCK_FILE || $r == "$last" ]] && continue
+        last=$r
+        rotate "$r"
+    done
+}
+
+rotation_lock() {
+    mkdir -p "$CFG"
+    case ${1:-toggle} in
+        on) : >"$LOCK_FILE" ;;
+        off) rm -f "$LOCK_FILE" ;;
+        toggle) if [[ -e $LOCK_FILE ]]; then rm -f "$LOCK_FILE"; else : >"$LOCK_FILE"; fi ;;
+        status) ;;
+        *) echo "usage: luxos-touch rotation-lock [on|off|toggle|status]" >&2; return 2 ;;
+    esac
+    if [[ -e $LOCK_FILE ]]; then echo locked; else echo unlocked; fi
+}
+
+# ---- klavesnice na obrazovce (Onboard) -------------------------------------------------------------
+
+onboard_call() {   # metoda D-Bus beziciho Onboardu
+    gdbus call --session --dest org.onboard.Onboard --object-path /org/onboard/Onboard/Keyboard \
+        --method "org.onboard.Onboard.Keyboard.$1" >/dev/null 2>&1
+}
+
+onboard_running() {
+    gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.NameHasOwner org.onboard.Onboard 2>/dev/null | grep -q true
+}
+
+osk() {
+    local what=${1:-toggle} i
+    case $what in show|hide|toggle) ;; *) echo "usage: luxos-touch osk [show|hide|toggle]" >&2; return 2 ;; esac
+    command -v onboard >/dev/null || { echo "luxos-touch: onboard is not installed" >&2; return 1; }
+    if ! onboard_running; then
+        [[ $what == hide ]] && return 0
+        # Onboard nebezi: spustit (zacina skryty, start-minimized) a pockat na jeho D-Bus
+        (setsid onboard >/dev/null 2>&1 &)
+        for i in $(seq 1 50); do onboard_running && break; sleep 0.2; done
+        what=show
+    fi
+    case $what in
+        show) onboard_call Show ;;
+        hide) onboard_call Hide ;;
+        toggle) onboard_call ToggleVisible ;;
+    esac
+}
+
+# Zamykaci obrazovka (xfce4-screensaver /lock/embedded-keyboard/command) a prihlasovaci obrazovka: Onboard
+# vypise XID sveho okna a okno ho vlozi. Bez dotykove obrazovky nic (zamek pak klavesnici nevlozi).
+osk_embed() {
+    has_touch || exit 1
+    command -v onboard >/dev/null || exit 1
+    exec onboard --xid --layout "${LUXOS_TOUCH_LAYOUT:-Compact}" --theme "${LUXOS_TOUCH_THEME:-Nightshade}"
+}
+
+# Prihlasovaci obrazovka (luxos-greeter, bez spravce oken): Onboard jako samostatne okno na dane pozici,
+# nastaveni jen v pameti (zadne cteni ani zapis nastaveni uzivatele lightdm, zacina zobrazeny)
+osk_window() {
+    (($# == 4)) || { echo "usage: luxos-touch osk-window X Y WIDTH HEIGHT" >&2; exit 2; }
+    command -v onboard >/dev/null || exit 1
+    GSETTINGS_BACKEND=memory exec onboard --layout "${LUXOS_TOUCH_LAYOUT:-Compact}" \
+        --theme "${LUXOS_TOUCH_THEME:-Nightshade}" -x "$1" -y "$2" -s "$3x$4"
+}
+
+# Zamykaci obrazovka: tlacitko klavesnice (a klavesnice zobrazena hned, kdyz neni fyzicka klavesnice)
+lock_screen_keyboard() {
+    command -v xfconf-query >/dev/null || return 0
+    local kb=$1 ch=xfce4-screensaver
+    run xfconf-query -c $ch -p /lock/embedded-keyboard/enabled -n -t bool -s true
+    run xfconf-query -c $ch -p /lock/embedded-keyboard/command -n -t string -s "luxos-touch osk-embed"
+    run xfconf-query -c $ch -p /lock/embedded-keyboard/displayed -n -t bool -s "$([[ $kb == 1 ]] && echo false || echo true)"
+}
+
+# Gesta: vychozi nastaveni Touchegg LuxOS, dokud si ho uzivatel nezmeni (verze v prvnim radku)
+touchegg_config() {
+    local dst="${XDG_CONFIG_HOME:-$HOME/.config}/touchegg/touchegg.conf" src="$SHARE/touchegg.conf"
+    [[ -r $src ]] || return 0
+    if [[ ! -e $dst ]] || { head -1 "$dst" | grep -q 'luxos-touchegg' && ! cmp -s "$src" "$dst"; }; then
+        mkdir -p "${dst%/*}"
+        cp "$src" "$dst"
+    fi
+}
+
+session() {
+    local state kb accel
+    state=$(detect)
+    [[ $state == *touchscreen=1* ]] || exit 0
+    kb=$([[ $state == *keyboard=1* ]] && echo 1 || echo 0)
+    accel=$([[ $state == *accel=1* ]] && echo 1 || echo 0)
+    mkdir -p "$CFG"
+    echo "$state" >"$CFG/touch-state"
+
+    map_touch
+    lock_screen_keyboard "$kb"
+
+    # Onboard se pri psani ukazuje pres AT-SPI (zpristupneni) - zapnout jen na dotykovych zarizenich
+    run gsettings set org.gnome.desktop.interface toolkit-accessibility true 2>/dev/null
+    if command -v onboard >/dev/null; then
+        spawn onboard
+    fi
+
+    # gesta: klient Touchegg (demon spousti udev pravidlo pro dotykove obrazovky)
+    touchegg_config
+    if command -v touchegg >/dev/null; then
+        spawn touchegg
+    fi
+
+    # otaceni podle senzoru (bez zamku otaceni)
+    if [[ $accel == 1 ]]; then
+        spawn "$0" rotate-watch
+    fi
+    return 0
+}
+
+case ${1:-} in
+    detect) detect ;;
+    session) session ;;
+    osk) shift; osk "$@" ;;
+    osk-embed) osk_embed ;;
+    osk-window) shift; osk_window "$@" ;;
+    rotation-lock) shift; rotation_lock "$@" ;;
+    rotate) shift; rotate "$@" ;;
+    map) map_touch ;;
+    rotate-watch) rotate_watch ;;
+    *) sed -n '2,14s/^# \{0,1\}//p' "$0"; exit 2 ;;
+esac

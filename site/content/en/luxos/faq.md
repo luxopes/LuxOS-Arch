@@ -5,7 +5,7 @@
 LuxOS is a fast, lightweight Linux distribution based on Arch Linux with a macOS-like desktop (Xfce
 underneath). It has its own package manager `lux`, its own kernel build `linux-luxos`, automatic
 drivers, updates that can be rolled back, the AI assistant LuxAI, the terminal coding agent Lux Code
-and its own programming language, LSL. It is a rolling release; the current version is 1.0.4
+and its own programming language, LSL. It is a rolling release; the current version is 1.0.5
 "Sirius" (the first stable release was 1.0.3).
 
 ## Is LuxOS free? What licence does it use?

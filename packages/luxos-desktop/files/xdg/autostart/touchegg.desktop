@@ -1,0 +1,6 @@
+[Desktop Entry]
+# LuxOS: klienta Touchegg spousti luxos-touch jen na dotykovych zarizenich (luxos-session)
+Type=Application
+Name=Touchégg
+Exec=touchegg
+Hidden=true

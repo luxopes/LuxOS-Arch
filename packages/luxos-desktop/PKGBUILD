@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=96
+pkgrel=97
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -40,6 +40,8 @@ depends=(
     gdk-pixbuf2 luxos-pixbuf-svg webp-pixbuf-loader
     # Graficky server a vstup
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
+    # Dotykove obrazovky (luxos-touch): klavesnice na obrazovce, gesta, otaceni podle senzoru
+    onboard touchegg iio-sensor-proxy
     # Xfce (jen potrebne casti); xfwm4 z [luxos]: umisteni oken a Alt+` (packages/xfwm4)
     xfce4-session 'xfwm4>=4.20.0-2.1' xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
     # plugin horni listy luxos-bar (hodiny uprostred, neprusvitna lista pod okny)
@@ -298,6 +300,10 @@ package() {
 
     install -Dm644 "$f/dconf/user-profile" "$pkgdir/etc/dconf/profile/user"
     install -Dm644 "$f/dconf/10-luxos" "$pkgdir/etc/dconf/db/local.d/10-luxos"
+    # dotykove obrazovky: Onboard (dconf), gesta Touchegg (vychozi konfigurace), demon Touchegg pres udev
+    install -Dm644 "$f/dconf/20-luxos-touch" "$pkgdir/etc/dconf/db/local.d/20-luxos-touch"
+    install -Dm644 "$f/touch/touchegg.conf" "$pkgdir/usr/share/luxos/touch/touchegg.conf"
+    install -Dm644 "$f/udev/70-luxos-touch.rules" "$pkgdir/usr/lib/udev/rules.d/70-luxos-touch.rules"
 
     install -Dm644 "$f/lightdm/50-luxos.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/50-luxos.conf"
     # Prechod po prihlaseni: posledni snimek prihlaseni zakryje skladani plochy (luxos-session-cover --login)

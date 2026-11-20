@@ -1,0 +1,33 @@
+# LuxOS - klavesnice na obrazovce Onboard (dotykova zarizeni, luxos-touch): sama se ukaze pri psani do
+# textoveho pole, kdyz neni pripojena fyzicka klavesnice; plovouci tlacitko ji ukaze kdykoli; ukotvena dole,
+# okna se zmensi nad ni. Spousti ji jen luxos-touch na zarizenich s dotykovou obrazovkou.
+
+[org/onboard]
+layout='Compact'
+theme='Nightshade'
+system-theme-tracking-enabled=false
+start-minimized=true
+show-status-icon=false
+show-tooltips=false
+
+[org/onboard/auto-show]
+enabled=true
+keyboard-device-detection-enabled=true
+tablet-mode-detection-enabled=true
+
+[org/onboard/window]
+docking-enabled=true
+docking-shrink-workarea=true
+force-to-top=true
+
+[org/onboard/window/landscape]
+dock-expand=true
+
+[org/onboard/window/portrait]
+dock-expand=true
+
+[org/onboard/icon-palette]
+in-use=true
+
+[org/onboard/keyboard]
+touch-feedback-enabled=true

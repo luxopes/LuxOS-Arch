@@ -1,0 +1,6 @@
+[Desktop Entry]
+# LuxOS: Onboard spousti luxos-touch jen na dotykovych zarizenich (luxos-session)
+Type=Application
+Name=Onboard
+Exec=onboard
+Hidden=true

@@ -8,7 +8,7 @@
         {
           "path": "luxos/overview.md",
           "title": "LuxOS overview",
-          "summary": "What LuxOS is, version 1.0.4 \"Sirius\" and codenames, release history, what differs from other distributions and where each component is documented.",
+          "summary": "What LuxOS is, version 1.0.5 \"Sirius\" and codenames, release history, what differs from other distributions and where each component is documented.",
           "keywords": [
             "LuxOS",
             "overview",
@@ -634,6 +634,33 @@
             "default shortcuts",
             "screenshot shortcut",
             "lock screen shortcut"
+          ]
+        },
+        {
+          "path": "luxos/touch.md",
+          "title": "Touch screens and tablets",
+          "summary": "Touch screens, tablets and 2-in-1 laptops without a keyboard: on-screen keyboard (also at sign-in and on the lock screen), gestures, screen rotation and rotation lock, luxos-touch commands and troubleshooting.",
+          "keywords": [
+            "touch",
+            "touchscreen",
+            "touch screen",
+            "tablet",
+            "2-in-1",
+            "convertible",
+            "on-screen keyboard",
+            "onboard",
+            "virtual keyboard",
+            "osk",
+            "gestures",
+            "touchegg",
+            "three fingers",
+            "right click",
+            "rotation",
+            "auto-rotate",
+            "rotation lock",
+            "iio-sensor-proxy",
+            "luxos-touch",
+            "xinput map-to-output"
           ]
         },
         {

@@ -79,7 +79,15 @@ _luxos_xauth_now() {
             XDG_RUNTIME_DIR="/run/user/$uid" timeout 15 /usr/lib/luxos/luxos-xauth-wildcard >/dev/null 2>&1 || true
     done
 }
-post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_forkguard; }
-post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_dock_zoom; _luxos_forkguard; _luxos_xauth_now; }
+# Dotykova obrazovka: demon gest Touchegg hned, bez restartu (pri startu ho spusti udev pravidlo
+# 70-luxos-touch.rules); bez dotykove obrazovky nic
+_luxos_touch() {
+    [ -d /run/systemd/system ] || return 0
+    grep -qsx 'E:ID_INPUT_TOUCHSCREEN=1' /run/udev/data/c13:* || return 0
+    udevadm control --reload >/dev/null 2>&1 || true
+    systemctl start touchegg.service >/dev/null 2>&1 || true
+}
+post_install() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_forkguard; _luxos_touch; }
+post_upgrade() { _luxos_dconf; _luxos_session; _luxos_keyboard; _luxos_lock_now; _luxos_dock_zoom; _luxos_forkguard; _luxos_xauth_now; _luxos_touch; }
 # Otisk prstu: pred odinstalaci vratit PAM sluzby do puvodni podoby (hook uz pak nepobezi)
 pre_remove() { /usr/lib/luxos/luxos-fingerprint-pam remove || true; }

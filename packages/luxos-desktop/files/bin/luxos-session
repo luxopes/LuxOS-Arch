@@ -45,6 +45,10 @@ if [[ -e ${LUXOS_SCROLL_MODULE:-/usr/lib/gtk-3.0/modules/libluxos-scroll.so} ]] 
     unset mods
 fi
 
+# Dotykova obrazovka (tablet, notebook 2v1, dotykovy monitor): klavesnice na obrazovce, gesta, otaceni,
+# dotyk na vestavenem displeji. Bez dotykove obrazovky luxos-touch hned skonci.
+[[ -x /usr/bin/luxos-touch ]] && /usr/bin/luxos-touch session >/dev/null 2>&1 &
+
 # Lupa (Hledani) v horni liste i u profilu z drivejsich verzi: jednou, pred Ovladaci centrum. Restart
 # listy hned po prihlaseni zakryje prechod na plochu (luxos-session-cover --login).
 [[ -e $cfg/search-icon-added ]] || /usr/bin/luxos-search --add-to-panel &
