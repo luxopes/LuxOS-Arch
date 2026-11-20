@@ -4,6 +4,7 @@
 #   ./start.sh --virtio   virtio-vga bez virgl (taky bez 3D)
 #   ./start.sh --reset    smazat zmeny (disk.qcow2) a zacit znovu od cisteho obrazu
 #   ./start.sh --headless bez okna (testy: QMP qmp.sock, guest agent qga.sock, snimky pres screendump)
+#   LUXOS_VM_MEM=4G ./start.sh   jina pamet VM (strop scope LUXOS_VM_SCOPE_MEM, vychozi 7G)
 # Zmeny se ukladaji do disk.qcow2 nad base.qcow2; base.qcow2 se nikdy nemeni.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
@@ -20,9 +21,9 @@ done
 [[ -f disk.qcow2 ]] || qemu-img create -q -f qcow2 -F qcow2 -b base.qcow2 disk.qcow2
 # pamet VM pod stropem (QEMU + 6 GB hosta), at pripadny unik nesezere hostitele
 scope=()
-command -v systemd-run >/dev/null && scope=(systemd-run --user --scope -q -p MemoryMax=7G -p MemorySwapMax=0 --)
+command -v systemd-run >/dev/null && scope=(systemd-run --user --scope -q -p MemoryMax=${LUXOS_VM_SCOPE_MEM:-7G} -p MemorySwapMax=0 --)
 exec "${scope[@]}" qemu-system-x86_64 -name "LuxOS Wayland preview" \
-    -enable-kvm -machine q35 -cpu host -smp 4 -m 6G \
+    -enable-kvm -machine q35 -cpu host -smp 4 -m ${LUXOS_VM_MEM:-6G} \
     -kernel vmlinuz -initrd initramfs.img -append "root=/dev/vda rw quiet loglevel=3" \
     -drive file=disk.qcow2,if=virtio,format=qcow2,discard=unmap \
     "${vga[@]}" "${display[@]}" \

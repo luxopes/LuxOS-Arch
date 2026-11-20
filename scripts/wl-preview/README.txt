@@ -52,7 +52,7 @@ Zkratky (luxwm.conf, Super = klavesa Windows/Cmd)
   Super+D                    ukazat plochu
   Super+. , Ctrl+Super+Space emoji
   Ctrl+Shift+Esc             Monitor aktivity
-  Zamknout: nabidka LuxOS v liste > Zamknout (loginctl lock-session)
+  Zamknout: nabidka LuxOS v liste > Zamknout obrazovku (loginctl lock-session)
 
 Na zkouseni
 -----------
@@ -75,5 +75,6 @@ Zname chybi / omezeni nahledu
 
 Znovu postavit obraz (ve vetvi wl/preview-vm)
 ---------------------------------------------
-  LUXOS_SIGNING_DIR=none ./build.sh one wlroots0.20 luxcomp luxwm luxos-desktop
-  scripts/wl-preview/build-image.sh out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop}-[0-9]*.pkg.tar.zst
+  LUXOS_SIGNING_DIR=none ./build.sh one wlroots0.20 luxcomp luxwm luxos-desktop luxos-i18n luxos-themes
+  scripts/wl-preview/build-image.sh out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop,luxos-i18n,luxos-themes}-[0-9]*.pkg.tar.zst
+  (luxos-i18n a luxos-themes z vetve: preklady shellu na Waylandu a rohy oken s vlastnim zahlavim)
