@@ -21,6 +21,18 @@ SYSROOT = os.path.join(ROOT, "out", "wl-test", "sysroot")
 RESULTS = os.path.join(ROOT, "out", "luxwm-test", "results")
 CONF = os.path.join(ROOT, "packages", "luxwm", "luxwm.conf")
 
+
+def test_conf(name, head=""):
+    """luxwm.conf pro test bez displays_command: luxos-displays hostitele (X11 cesta se starsim balikem)
+    by pres xrandr spustil XWayland a menil monitory relace"""
+    os.makedirs(RESULTS, exist_ok=True)
+    path = os.path.join(RESULTS, name)
+    with open(CONF) as f:
+        lines = [line for line in f.read().splitlines() if not line.startswith("displays_command")]
+    with open(path, "w") as f:
+        f.write(head + "\n".join(lines) + "\n")
+    return path
+
 BAR = 30
 TITLE = 32          # tokens.LIGHT_SIZE + 2 * SPACE["s"]
 W, H = 1280, 800
@@ -45,7 +57,7 @@ def pss_kb(pid):
 
 class Session:
     def __init__(self, program="luxwm", mode="headless", env="", size=f"{W}x{H}"):
-        envs = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_TRACE=1 LUXWM_SYSTEM_CONFIG={CONF} "
+        envs = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_TRACE=1 LUXWM_SYSTEM_CONFIG={test_conf('luxwm-test.conf')} "
                 f"LD_LIBRARY_PATH={BUILD}:{SYSROOT}/usr/lib {env}")
         out = subprocess.run([WLT, "start", "--mode", mode, "--size", size, "--", os.path.join(BUILD, program)],
                              check=True, capture_output=True, text=True, timeout=120,

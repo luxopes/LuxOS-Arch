@@ -51,7 +51,10 @@ class Session:
         os.makedirs(RESULTS, exist_ok=True)
         self.conf = os.path.join(RESULTS, f"luxwm-{name}.conf")
         with open(self.conf, "w") as f:
-            f.write("xwayland = no\n" + open(CONF).read())
+            with open(CONF) as conf:
+                lines = [line for line in conf.read().splitlines() if not line.startswith("displays_command")]
+            # bez displays_command: luxos-displays hostitele by menil monitory testovaci relace
+            f.write("xwayland = no\n" + "\n".join(lines) + "\n")
         envs = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_TRACE=1 LUXWM_SYSTEM_CONFIG={self.conf} "
                 f"LD_LIBRARY_PATH={BUILD}:{SYSROOT}/usr/lib")
         out = subprocess.run([WLT, "start", "--mode", "headless", "--size", f"{W}x{H}", "--name", name, "--",

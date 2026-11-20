@@ -5395,3 +5395,7 @@ Output	Вихід
 Input	Вхід
 Muted	Вимкнено звук
 Wrong password	Неправильний пароль
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Масштаб
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Збільшує текст, вікна та рядок меню на цьому дисплеї. 125-175 % підходить для чітких екранів ноутбуків.
+No displays found. Display settings need a Wayland session with LuxOS.	Дисплеїв не знайдено. Налаштування дисплеїв потребують сеансу Wayland з LuxOS.

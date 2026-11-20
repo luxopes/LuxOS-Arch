@@ -5394,3 +5394,7 @@ Output	Uscita
 Input	Ingresso
 Muted	Muto
 Wrong password	Password errata
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Scala
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Ingrandisce testo, finestre e barra dei menu su questo schermo. 125-175 % è adatto agli schermi nitidi dei portatili.
+No displays found. Display settings need a Wayland session with LuxOS.	Nessuno schermo trovato. Le impostazioni degli schermi richiedono una sessione Wayland con LuxOS.

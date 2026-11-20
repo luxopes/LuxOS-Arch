@@ -5394,3 +5394,7 @@ Output	Sortie
 Input	Entrée
 Muted	Muet
 Wrong password	Mot de passe incorrect
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Échelle
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Agrandit le texte, les fenêtres et la barre des menus sur cet écran. 125-175 % convient aux écrans nets des portables.
+No displays found. Display settings need a Wayland session with LuxOS.	Aucun écran trouvé. Les réglages des écrans nécessitent une session Wayland avec LuxOS.
