@@ -366,7 +366,8 @@ function update_geometry():
     geo["size"] = size
     geo["zoom"] = zoom
     geo["zoom_size"] = (size * zoom + 99) // 100
-    geo["gap"] = size // 6
+    # rozestup jako Plank s motivem LuxOS na X11 (48 px ikony po 62 px)
+    geo["gap"] = size * 7 // 24
     geo["pad"] = size // 4
     geo["top"] = size // 6
     geo["bottom"] = size // 5
