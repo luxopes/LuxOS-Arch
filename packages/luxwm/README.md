@@ -50,6 +50,11 @@ looks for modules next to the importing file.
   If the locker dies, the screen stays covered until a new locker unlocks it.
 - **X11 apps** run through XWayland. It starts with the first X11 client and stops 10 s after the
   last. X11 windows get the same placement, focus and title bars. `xwayland = no` turns it off.
+- **Sandboxed apps** (clients of a wp-security-context socket, `luxos-sandbox run --gui`) always get
+  the server-side title bar with a dim "Sandbox · app" label at the right end. The app comes from the
+  security context (set by the launcher), so the app can neither change nor drop it (a request for
+  client-side decorations is ignored). Their activation requests pass only while the same sandbox has
+  the focus: "same app" for activation means the same app_id and the same sandbox instance.
 - **Title bars** take their colours from `luxos_tokens`: window, fg/dim, traffic lights, inactive
   light, border, radius 16, Inter Semi-Bold 10. Light or dark follows `~/.config/luxos/appearance`.
 

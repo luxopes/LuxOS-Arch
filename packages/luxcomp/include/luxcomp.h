@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 4
+#define LUXCOMP_API_VERSION 5
 
 #pragma GCC visibility push(default)
 
@@ -57,7 +57,8 @@ enum luxcomp_request {
 	LUXCOMP_REQ_FULLSCREEN,		/* b=1 on, 0 off */
 	LUXCOMP_REQ_MINIMIZE,		/* b=1 minimise, 0 restore (Dock) */
 	LUXCOMP_REQ_ACTIVATE,		/* b=LUXCOMP_ORIGIN_* c=view that made the xdg-activation token */
-	LUXCOMP_REQ_DECORATION,		/* b=1 client wants server-side decoration, 0 client-side */
+	LUXCOMP_REQ_DECORATION,		/* b=1 client wants server-side decoration, 0 client-side
+					 * (also when it destroys its xdg-decoration object) */
 	LUXCOMP_REQ_CLOSE,		/* foreign-toplevel (Dock) asks to close */
 };
 
@@ -120,6 +121,7 @@ enum luxcomp_view_prop {
 	LUXCOMP_VIEW_MIN_W, LUXCOMP_VIEW_MIN_H, LUXCOMP_VIEW_MAX_W, LUXCOMP_VIEW_MAX_H,
 	LUXCOMP_VIEW_PID,
 	LUXCOMP_VIEW_X11,		/* 1 = X11 window through XWayland */
+	LUXCOMP_VIEW_SANDBOXED,		/* 1 = client of a wp-security-context socket (app sandbox) */
 };
 
 /* View stacking layers, bottom to top: background, bottom, NORMAL, ABOVE, top (bar), FULLSCREEN, overlay */
@@ -190,6 +192,12 @@ void luxcomp_view_set_state(int64_t view, int64_t state, int64_t on);
 void luxcomp_view_set_layer(int64_t view, int64_t layer);
 void luxcomp_view_set_workspace(int64_t view, int64_t workspace);
 void luxcomp_view_set_decorated(int64_t view, int64_t on);
+/* Small label at the right end of the server-side title bar (sandboxed apps); NULL or "" = none */
+void luxcomp_view_set_badge(int64_t view, const char *text);
+/* wp-security-context-v1 metadata of a sandboxed view ("" when not sandboxed or not set) */
+const char *luxcomp_view_sandbox_engine(int64_t view);
+const char *luxcomp_view_sandbox_app_id(int64_t view);
+const char *luxcomp_view_sandbox_instance(int64_t view);
 void luxcomp_view_set_visible(int64_t view, int64_t on);	/* minimize = 0 */
 void luxcomp_view_close(int64_t view);
 void luxcomp_view_begin_move(int64_t view);		/* until the button is released */

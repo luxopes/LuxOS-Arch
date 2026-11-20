@@ -48,7 +48,23 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   a všechny adresy hostitele – sandbox vidí jen internet. Když některý krok selže, sandbox se nespustí. DNS jde přes přesměrování `pasta` (169.254.1.53) na resolver hostitele.
 - **Sezení:** žádný D-Bus (session ani system), PulseAudio/PipeWire, Wayland, X11 hostitele, SSH
   agent, klíčenka. Proměnné prostředí se mažou (`--clearenv`).
-- **GUI (`--gui`):** aplikace dostane jen socket vlastního X serveru **Xephyr** v okně
+- **GUI na Waylandu (`--gui`, plocha luxwm):** aplikace nedostane soket plochy, ale vlastní naslouchající
+  soket od kompozitoru (**wp-security-context-v1**, `sandbox_engine` `cz.luxos.sandbox`, `app_id` = název
+  příkazu, `instance_id` = běh), připojený jako jediný `WAYLAND_DISPLAY` (`/run/luxos/runtime/wayland-0`).
+  Vytvoří ho malý pomocník v C (`/usr/lib/luxos/sandbox/luxos-sandbox-wayland`); kompozitor ho zavře,
+  jakmile `luxos-sandbox` skončí (čtecí konec roury `close_fd`, i při pádu). Klient tohoto soketu
+  nevidí ani nebindne snímání obrazovky, data-control, seznam a správu cizích oken, virtuální vstup,
+  správu výstupů, zámek, layer-shell, idle-notify a security-context (luxcomp `security.c`).
+  Schránku dostane jen se zaměřením (`wl_data_device`). luxwm mu vždy kreslí záhlaví se značkou
+  „Sandbox · příkaz“ (podle `app_id` od spouštěče, aplikace ji nezmění ani nevypne) a aktivace
+  (xdg-activation) z okna sandboxu projde jen tehdy, když zaměření má tentýž sandbox – ani app_id
+  zaměřeného okna aplikaci nepomůže. Soket luxwm IPC, sokety X11 a D-Bus hostitele v namespace nejsou.
+  **X11 aplikace na Waylandu:** vlastní **Xwayland** (celá obrazovka X v jednom okně jako Xephyr) jako
+  klient téhož soketu sandboxu; spustí se až s prvním spojením X11 a skončí s posledním (aplikace pro
+  Wayland na něm nestojí paměť). Běží ve vlastním bwrap (jen `/usr`, bez domova, sítě, IPC a sezení,
+  softwarově `-glamor off`); do sandboxu jde jen jeho X soket. Volba *důvěryhodný displej* na Waylandu
+  nic nemění (sdílená paměť `wl_shm` je rychlá i tak).
+- **GUI v relaci X11 (`--gui`):** aplikace dostane jen socket vlastního X serveru **Xephyr** v okně
   „Sandbox – aplikace“ (`-nolisten tcp -nolisten local`, vlastní MIT cookie). Na displej plochy (`:0`)
   se nedostane, schránka se nesdílí.
 - **Spojení Xephyru s plochou (X11 SECURITY):** X11 dovoluje každému *důvěryhodnému* klientovi číst
@@ -92,6 +108,10 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   vlastní značky (`luxos-sandbox launcher`, `X-LuxOS-Sandbox-Launcher`).
 
 ## Co izolované NENÍ (poctivě)
+
+- **Portály na Waylandu zatím nejsou.** Sandbox nemá D-Bus, takže ani výběr souboru nebo snímek přes
+  xdg-desktop-portal; soubory jen přes `~/Sandbox` (`--shared`). Aplikace v sandboxu si může nakreslit
+  cokoli uvnitř svého okna (i falešný dialog) – proto je značka v záhlaví kompozitoru, ne v obsahu.
 
 - **Chyby jádra.** Sandbox sdílí jádro s hostitelem. Zneužití chyby jádra (syscall, souborový systém,
   síťový stack, ovladač GPU) může vést k úplnému průniku. Seccomp plochu zmenšuje, ale neodstraňuje.
@@ -145,6 +165,8 @@ Automatický test izolace (bez root): `packages/luxos-sandbox/tests/isolation-te
 capabilities, `--net` bez LAN/hostitele, `--gui` jen Xephyr, limity), test nedůvěryhodného spojení
 Xephyru s plochou `packages/luxos-sandbox/tests/test_x11_untrusted.py` (jen Xvfb: sonda `x11-probe.c` na
 místě Xephyru zkouší odposlech, snímky a vkládání do důvěryhodného okna; na staré cestě s cookie uživatele
-test selže) a test spouštěčů
+test selže), test oken na Waylandu `packages/luxos-sandbox/tests/test_wayland.py` (headless luxwm: globaly,
+bind podle čísla, sokety v namespace, schránka bez zaměření, krádež zaměření, značka, vstup, X11 přes Xwayland
+sandboxu) a test spouštěčů
 `packages/luxos-sandbox/tests/test_launchers.py` (podvržené `.desktop` soubory, ikony a symlinky,
 zastaralé spouštěče, pořadí v `PATH`).

@@ -7,6 +7,9 @@ a smazani dela privilegovany pomocnik pres pkexec, vse ostatni bezi bez root pra
 v bubblewrapu (bwrap): vlastni user/pid/ipc/uts/cgroup/net namespace, zadne
 schopnosti (capabilities), seccomp filtr, zadny pristup k domovu, D-Bus, X11 hostitele.
 
+Okna (--gui): na Waylandu (luxwm) dostane aplikace vlastni soket wp-security-context (zadne
+privilegovane protokoly, znacka v zahlavi) a pro X11 vlastni Xwayland; v relaci X11 Xephyr.
+
 Vrstvy spusteni (vnejsi -> vnitrni):
   systemd-run --user --scope (limity pameti/CPU/procesu)
     -> pasta (jen s --net: NAT sit v novem net namespace, nikdy sit hostitele)
@@ -23,11 +26,14 @@ import json
 import os
 import re
 import secrets
+import select
 import shutil
+import socket
 import stat
 import struct
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, "/usr/lib/luxos/python")
@@ -453,6 +459,213 @@ class Xephyr:
             self.xdir = None
 
 
+# ---- Wayland (wp-security-context) ---------------------------------------------------
+# Na Waylandu aplikace nedostane soket plochy, ale vlastni naslouchajici soket od kompozitoru
+# (wp-security-context-v1, sandbox_engine "cz.luxos.sandbox", app_id = prikaz, instance_id = beh).
+# Klienti tohoto soketu nevidi snimani obrazovky, data-control, seznam cizich oken, virtualni vstup,
+# spravu vystupu, zamek ani layer-shell (luxcomp security.c); schranku dostanou jen se zamerenim
+# (wl_data_device) a luxwm jim kresli zahlavi se znackou a nedovoli jim krast zamereni.
+# Soket vytvori maly pomocnik v C (luxos-sandbox-wayland); kompozitor ho zavre, jakmile luxos-sandbox
+# zavre cteci konec roury (konec behu, i pri padu).
+# X11 aplikace: vlastni Xwayland (cele X obrazovka v jednom okne jako Xephyr) jako klient stejneho
+# soketu, spusteny az pri prvnim spojeni X11 (Wayland aplikace na nem nestoji pamet). Xwayland bezi
+# v samostatnem bwrap bez domova, site a sezeni; dovnitr sandboxu jde jen jeho X soket.
+WL_HELPER = "/usr/lib/luxos/sandbox/luxos-sandbox-wayland"
+XWAYLAND = "/usr/bin/Xwayland"
+XWAYLAND_ROOT = ""   # jen testy: Xwayland z jineho stromu (sysroot harnessu wl-test)
+if TESTING:
+    WL_HELPER = os.environ.get("LUXOS_SANDBOX_WL_HELPER", WL_HELPER)
+    XWAYLAND_ROOT = os.environ.get("LUXOS_SANDBOX_XWAYLAND_ROOT", "")
+    if XWAYLAND_ROOT:
+        XWAYLAND = os.path.join(XWAYLAND_ROOT, "usr/bin/Xwayland")
+SANDBOX_RUNTIME = "/run/luxos/runtime"
+
+
+def runtime_dir():
+    """$XDG_RUNTIME_DIR/luxos-sandbox (0700) pro sokety a body pripojeni jednoho behu."""
+    rundir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    d = os.path.join(rundir, "luxos-sandbox")
+    os.makedirs(d, mode=0o700, exist_ok=True)
+    return d
+
+
+def remove_run_dir(path):
+    """Smaze docasny adresar behu (jen sokety a prazdne body pripojeni, zadne podadresare)."""
+    try:
+        for name in os.listdir(path):
+            try:
+                os.unlink(os.path.join(path, name))
+            except OSError:
+                pass
+        os.rmdir(path)
+    except OSError:
+        pass
+
+
+def wayland_socket():
+    """Cesta k soketu Waylandu plochy (WAYLAND_DISPLAY), nebo None v relaci X11."""
+    name = os.environ.get("WAYLAND_DISPLAY", "")
+    if not name:
+        return None
+    path = name if name.startswith("/") else os.path.join(os.environ.get("XDG_RUNTIME_DIR", ""), name)
+    try:
+        return path if stat.S_ISSOCK(os.stat(path).st_mode) else None
+    except OSError:
+        return None
+
+
+class WaylandListener:
+    """Soket wp-security-context pro jeden beh aplikace."""
+
+    def __init__(self, app_id):
+        self.app_id = app_id
+        self.instance = f"{os.getpid()}-{secrets.token_hex(4)}"
+        self.dir = None
+        self.keep = None
+        self.path = None
+
+    def start(self):
+        if not os.path.exists(WL_HELPER):
+            die(_("Helper not found: %s") % WL_HELPER)
+        self.dir = os.path.join(runtime_dir(), f"wl-{self.instance}")
+        os.mkdir(self.dir, 0o700)
+        self.path = os.path.join(self.dir, "wayland-0")
+        self.keep, w = os.pipe()
+        try:
+            r = subprocess.run([WL_HELPER, self.path, self.app_id, self.instance, str(w)], pass_fds=(w,),
+                               stdin=subprocess.DEVNULL, timeout=15)
+        except (OSError, subprocess.TimeoutExpired):
+            r = None
+        finally:
+            os.close(w)
+        if r is None or r.returncode != 0:
+            self.stop()
+            if r is not None and r.returncode == 3:
+                die(_("The desktop does not support sandboxed windows (wp-security-context)."))
+            die(_("Could not create the sandbox window connection."))
+        return self.path
+
+    def stop(self):
+        if self.keep is not None:
+            os.close(self.keep)   # kompozitor prestane prijimat spojeni
+            self.keep = None
+        if self.dir:
+            remove_run_dir(self.dir)
+            self.dir = None
+
+
+def xwayland_bwrap(wl_socket, auth_fd, seccomp_fd):
+    """Omezeni pro Xwayland sandboxu: jen /usr pro cteni a soket Waylandu sandboxu."""
+    a = ["bwrap", "--unshare-user", "--unshare-pid", "--unshare-uts", "--unshare-cgroup-try", "--unshare-net",
+         "--unshare-ipc", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--clearenv",
+         "--ro-bind", "/usr", "/usr"]
+    for link, target in (("bin", "usr/bin"), ("sbin", "usr/bin"), ("lib", "usr/lib"), ("lib64", "usr/lib")):
+        a += ["--symlink", target, "/" + link]
+    a += ["--ro-bind-try", "/etc/X11", "/etc/X11", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+          "--dir", "/run/luxos", "--dir", SANDBOX_RUNTIME, "--chmod", "0700", SANDBOX_RUNTIME,
+          "--bind", wl_socket, SANDBOX_RUNTIME + "/wayland-0",
+          "--ro-bind-data", str(auth_fd), "/run/luxos/Xauthority"]
+    env = [("PATH", "/usr/bin"), ("HOME", "/tmp"), ("LANG", "C.UTF-8"), ("XDG_RUNTIME_DIR", SANDBOX_RUNTIME),
+           ("WAYLAND_DISPLAY", "wayland-0")]
+    # bez /dev/dri a /sys: kresli softwarove (-glamor off), EGL jen Mesa (ovladac NVIDIA by Xwayland shodil)
+    if os.path.exists(MESA_EGL_VENDOR):
+        env.append(("__EGL_VENDOR_LIBRARY_FILENAMES", MESA_EGL_VENDOR))
+    if XWAYLAND_ROOT:
+        a += ["--ro-bind", XWAYLAND_ROOT, XWAYLAND_ROOT]
+        env.append(("LD_LIBRARY_PATH", os.path.join(XWAYLAND_ROOT, "usr/lib")))
+    for k, v in env:
+        a += ["--setenv", k, v]
+    a += ["--seccomp", str(seccomp_fd), "--"]
+    return a
+
+
+class SandboxXwayland:
+    """X server sandboxu na Waylandu; startuje az s prvnim klientem X11, po poslednim skonci (-terminate)."""
+
+    def __init__(self, wl_socket):
+        self.wl_socket = wl_socket
+        self.cookie = secrets.token_bytes(16)
+        self.dir = None
+        self.sock = None
+        self.proc = None
+        self.thread = None
+        self.stop_r = self.stop_w = None
+        self.lock = threading.Lock()
+        self.stopping = False
+
+    def start(self):
+        if not os.path.exists(XWAYLAND):
+            return None   # bez Xwayland jen aplikace pro Wayland
+        self.dir = os.path.join(runtime_dir(), f"x11-{os.getpid()}-{secrets.token_hex(4)}")
+        os.mkdir(self.dir, 0o700)
+        dfd = os.open(self.dir, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+        try:
+            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+            # pres /proc/self/fd: cesta k adresari muze byt delsi nez sun_path
+            self.sock.bind(f"/proc/self/fd/{dfd}/X0")
+            self.sock.listen(16)
+        finally:
+            os.close(dfd)
+        self.stop_r, self.stop_w = os.pipe()
+        self.thread = threading.Thread(target=self._serve, daemon=True)
+        self.thread.start()
+        return os.path.join(self.dir, "X0")
+
+    def _serve(self):
+        while True:
+            ready = select.select([self.sock, self.stop_r], [], [])[0]
+            if self.stop_r in ready:
+                return
+            fds = [memfd_with(xauth_record(self.cookie)), memfd_with(filter_bytes("run"))]
+            lfd = self.sock.fileno()
+            cmd = xwayland_bwrap(self.wl_socket, *fds)
+            cmd += [XWAYLAND, ":0", "-listenfd", str(lfd), "-geometry", "1280x800", "-nolisten", "tcp",
+                    "-auth", "/run/luxos/Xauthority", "-terminate", "-glamor", "off"]
+            debug = os.environ.get("LUXOS_SANDBOX_DEBUG") == "1"
+            if debug:
+                info(" ".join(cmd))
+            with self.lock:
+                if self.stopping:
+                    return
+                try:
+                    os.set_inheritable(lfd, True)
+                    self.proc = subprocess.Popen(cmd, pass_fds=(lfd, *fds), stdin=subprocess.DEVNULL,
+                                                 stdout=subprocess.DEVNULL,
+                                                 stderr=None if debug else subprocess.DEVNULL)
+                except OSError:
+                    info(_("Could not start the X server for the sandbox window (Xwayland)."))
+                    return
+                finally:
+                    for fd in fds:
+                        os.close(fd)
+            if self.proc.wait() != 0 and not self.stopping:
+                time.sleep(1)   # opakovane selhani nesmi tocit smycku
+
+    def stop(self):
+        with self.lock:
+            self.stopping = True
+            if self.stop_w is not None:
+                os.write(self.stop_w, b"x")
+            if self.proc and self.proc.poll() is None:
+                self.proc.terminate()
+                try:
+                    self.proc.wait(5)
+                except subprocess.TimeoutExpired:
+                    self.proc.kill()
+        if self.thread:
+            self.thread.join(5)
+        for fd in (self.stop_r, self.stop_w):
+            if fd is not None:
+                os.close(fd)
+        self.stop_r = self.stop_w = None
+        if self.sock:
+            self.sock.close()
+            self.sock = None
+        if self.dir:
+            remove_run_dir(self.dir)
+            self.dir = None
+
+
 # ---- sit ------------------------------------------------------------------------
 # pasta preklada pakety z namespace na sokety hostitele: kam se paket z namespace dostane k paste,
 # tam se pripoji hostitel (i do LAN). Smerovaci tabulka namespace je proto jedina zabrana:
@@ -689,11 +902,18 @@ def bwrap_args(spec, fds):
            "TERM": spec.get("term") or "xterm-256color", "LUXOS_SANDBOX": "1",
            "PS1": r"\[\e[1;35m\][sandbox]\[\e[0m\] \w \$ "}
     a += ["--dir", "/run/luxos/runtime", "--chmod", "0700", "/run/luxos/runtime"]
+    if spec.get("wayland"):
+        # jediny soket Waylandu v sandboxu: vlastni soket wp-security-context, nikdy soket plochy
+        a += ["--bind", spec["wayland"], "/run/luxos/runtime/wayland-0"]
+        env.update({"WAYLAND_DISPLAY": "wayland-0", "XDG_SESSION_TYPE": "wayland", "GDK_BACKEND": "wayland,x11",
+                    "QT_QPA_PLATFORM": "wayland;xcb", "MOZ_ENABLE_WAYLAND": "1",
+                    "ELECTRON_OZONE_PLATFORM_HINT": "auto", "NO_AT_BRIDGE": "1"})
     if spec.get("x11"):
         a += ["--bind", spec["x11"], "/tmp/.X11-unix/X0",
               "--ro-bind-data", data_fd(bytes.fromhex(spec["xauth"])), "/run/luxos/Xauthority"]
-        env.update({"DISPLAY": ":0", "XAUTHORITY": "/run/luxos/Xauthority", "GDK_BACKEND": "x11",
-                    "QT_QPA_PLATFORM": "xcb", "NO_AT_BRIDGE": "1"})
+        env.update({"DISPLAY": ":0", "XAUTHORITY": "/run/luxos/Xauthority", "NO_AT_BRIDGE": "1"})
+        if not spec.get("wayland"):
+            env.update({"GDK_BACKEND": "x11", "QT_QPA_PLATFORM": "xcb"})
     for k, v in env.items():
         a += ["--setenv", k, v]
     a += ["--seccomp", data_fd(filter_bytes(spec["mode"]))]
@@ -1426,9 +1646,19 @@ def cmd_run(args):
         print(_("Copying %s into the sandbox...") % argv[0], file=sys.stderr)
         argv[0] = import_file(os.path.expanduser(argv[0]))
     spec = base_spec(argv, net=opts["net"], shared=opts["shared"])
-    xe = None
+    xe = wl = None
     try:
-        if opts["gui"]:
+        if opts["gui"] and wayland_socket():
+            app_id = re.sub(r"[^A-Za-z0-9._+-]", "_", os.path.basename(argv[0]))[:64] or "app"
+            wl = WaylandListener(app_id)
+            spec["wayland"] = wl.start()
+            xe = SandboxXwayland(spec["wayland"])
+            xsock = xe.start()
+            if xsock:
+                spec["x11"] = xsock
+                spec["xauth"] = xauth_record(xe.cookie).hex()
+            spec["tty"] = False
+        elif opts["gui"]:
             trusted = os.path.basename(argv[0]) in trusted_display_commands()
             if trusted:
                 info(_("Warning: %s uses a trusted display (set in Sandbox). If the app breaks out of its "
@@ -1441,6 +1671,8 @@ def cmd_run(args):
     finally:
         if xe:
             xe.stop()
+        if wl:
+            wl.stop()
 
 
 def valid_pkgs(pkgs):
@@ -1586,7 +1818,8 @@ USAGE = (
     ("reset [--yes]", "wipe the sandbox and create it again"),
     ("destroy [--yes]", "delete the sandbox"),
     ("--net", "network: internet only, no local network, no services of this computer"),
-    ("--gui", "own window (nested X server), never your desktop"),
+    ("--gui", "own window: on Wayland a restricted connection (no screen capture, no other windows), "
+              "on X11 a nested X server; never your desktop"),
     ("--shared", "make ~/Sandbox visible as /home/sandbox/Shared"),
 )
 

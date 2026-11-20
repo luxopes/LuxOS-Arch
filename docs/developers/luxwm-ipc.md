@@ -22,7 +22,7 @@ Klient v LSL je `luxos_luxwm.lsl` (`packages/luxwm`, instalovaný jako modul pro
   allowlistem jako privilegované protokoly Waylandu (`/usr/share/luxwm/privileged.conf`, přenačte se
   na `SIGHUP` i příkazem `reload`). Výsledek platí po celé spojení. Interprety (sh, python) na
   allowlistu nikdy nejsou, skript proto privilegovaný být nemůže.
-- Aplikace v sandboxu (WP-14) soket do sandboxu nedostanou: bwrap nesmí připojit
+- Aplikace v sandboxu (`luxos-sandbox run --gui`) soket nedostanou: bwrap nepřipojí
   `$XDG_RUNTIME_DIR/luxwm-*.sock`.
 - Limity: nejvýš 32 klientů, řádek nejvýš 64 KiB (delší = odpojení), nejvýš 1 MiB neodeslaných dat
   na klienta (pomalý odběratel se odpojí, luxwm nikdy nečeká).
@@ -76,7 +76,8 @@ a nepřihlásí se nic.
 | `output` | `{"event": "output", "outputs": [{"name": "HDMI-A-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 100, "refresh_mhz": 60000, "usable": [0, 30, 1920, 1050]}]}` | monitor přidán nebo odebrán, změna použitelné plochy (lišta, Dock) |
 | `theme` | `{"event": "theme", "theme": "dark"}` | `set_theme`, `reload`, `SIGUSR1` |
 
-Okno v `list_windows`: `{"id", "app_id", "title", "workspace" (od 1), "focused", "minimized", "fullscreen", "maximized"}`.
+Okno v `list_windows`: `{"id", "app_id", "title", "workspace" (od 1), "focused", "minimized", "fullscreen", "maximized", "sandbox"}`.
+`sandbox` je app_id z wp-security-context (aplikace v sandboxu, nastavuje spouštěč), jinak `""`.
 
 ## Rozložení klávesnice
 

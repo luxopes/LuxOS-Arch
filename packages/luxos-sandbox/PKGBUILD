@@ -4,20 +4,32 @@
 
 pkgname=luxos-sandbox
 pkgver=1.0.0
-pkgrel=13
+pkgrel=14
 pkgdesc="LuxOS Sandbox - isolated per-user system for untrusted applications"
-arch=(any)
+arch=(x86_64)
 url="https://lsl.lux-ai.cz/luxos/"
 license=(GPL-3.0-or-later)
 depends=(bubblewrap passt xorg-server-xephyr libx11 libxext arch-install-scripts polkit python python-gobject gtk3
-         iproute2 luxos-i18n)
-optdepends=('luxos-terminal: Open Terminal button in the Sandbox window')
+         iproute2 luxos-i18n wayland)
+makedepends=(wayland-protocols)
+optdepends=('luxos-terminal: Open Terminal button in the Sandbox window'
+            'xorg-xwayland: X11 apps in the sandbox on the Wayland desktop')
+
+build() {
+    # pomocnik pro soket wp-security-context (okna aplikaci sandboxu na Waylandu)
+    local xml=/usr/share/wayland-protocols/staging/security-context/security-context-v1.xml
+    wayland-scanner client-header "$xml" security-context-v1-client-protocol.h
+    wayland-scanner private-code "$xml" security-context-v1-protocol.c
+    gcc $CFLAGS $CPPFLAGS -I. $LDFLAGS -o luxos-sandbox-wayland "$startdir/files/luxos-sandbox-wayland.c" \
+        security-context-v1-protocol.c -lwayland-client
+}
 
 package() {
     local f="$startdir/files"
     install -Dm755 "$f/luxos-sandbox" "$pkgdir/usr/bin/luxos-sandbox"
     install -Dm755 "$f/luxos-sandbox-gui" "$pkgdir/usr/bin/luxos-sandbox-gui"
     install -Dm755 "$f/luxos-sandbox-helper" "$pkgdir/usr/lib/luxos/sandbox/luxos-sandbox-helper"
+    install -Dm755 luxos-sandbox-wayland "$pkgdir/usr/lib/luxos/sandbox/luxos-sandbox-wayland"
     install -Dm644 "$f/luxos_sandbox_seccomp.py" "$pkgdir/usr/lib/luxos/python/luxos_sandbox_seccomp.py"
     install -Dm644 "$f/lux.conf" "$pkgdir/usr/share/luxos/sandbox/lux.conf"
     install -Dm644 "$f/org.luxos.sandbox.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.sandbox.policy"
