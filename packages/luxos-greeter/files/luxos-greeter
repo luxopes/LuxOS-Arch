@@ -287,7 +287,7 @@ class LightDMBackend:
         # jedina relace Xfce se v nabidce jmenuje LuxOS
         out = [(s.get_key(), s.get_name()) for s in self.L.get_sessions()
                if (s.get_session_type() or "x") == "x"]
-        return [(k, "LuxOS" if k == "xfce" else n) for k, n in out] or out
+        return [(k, "LuxOS" if k in ("xfce", "luxos") else n) for k, n in out] or out
 
     def default_session(self):
         return self.g.get_default_session_hint()
