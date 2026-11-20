@@ -21,9 +21,9 @@ Připravené v repozitáři:
     obrazovky, Kalendář + Kalkulačka + datum a čísla podle jazyka, LuxAI se nezacyklí. Nic o Poště, Lux
     Code, App Studiu, Icon Studiu ani SDK (hlídá `test_current_notes_skip_staging_only_apps`). Po
     aktualizaci z 1.0.2 se ukáže jen 1.0.3, z 1.0.1 obě (nejnovější první); noví uživatelé ho nevidí.
-  - `CHANGELOG.md` – sekce `1.0.3 „Sirius“ – 2026-11-19` (bez „(beta)“; 6 Nové, 81 Opraveno), položky
+  - `CHANGELOG.md` – sekce `1.0.3 „Sirius“ – 2026-11-20` (vydáno 2026-11-20) (bez „(beta)“; 6 Nové, 81 Opraveno), položky
     Pošty, App Studia, Icon Studia a Lux Code (5 + 14) zůstaly v nové sekci „Připravuje se“; anglicky
-    `site/content/en/changes/1.0.3-2026-11-19.md` a `unreleased.md` (stejné sekce a počty položek,
+    `site/content/en/changes/1.0.3-2026-11-20.md` a `unreleased.md` (stejné sekce a počty položek,
     hlídá `scripts/check-site.py`). Sloučené zdvojené položky (3× `luxos-desktop` 82/83, LSL 0.10.9 v
     položce LSL 0.10.14); smíšené položky rozdělené (Lux Code z „LSL IDE, LuxAI a Lux Code“, Icon Studio
     z „Web, Icon Studio a Sandbox“). Nová položka **LuxAI: odpověď, která se začne opakovat dokola, se

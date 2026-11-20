@@ -59,14 +59,34 @@ def cs_releases():
         return split_sections(f.read())[1]
 
 
-def en_text():
-    """Anglicka stranka zmen (markdown): _intro.md a preklady vydani v poradi CHANGELOG.md."""
+def en_text(unreleased=False):
+    """Anglicka stranka zmen (markdown): _intro.md a preklady vydani v poradi CHANGELOG.md.
+    unreleased=False: bez „Coming soon“ (ta ma vlastni stranku, viz en_unreleased)."""
     with open(os.path.join(EN_DIR, EN_INTRO), encoding="utf-8") as f:
         parts = [f.read().rstrip("\n")]
     for heading, _text in cs_releases():
+        if heading.startswith(UNRELEASED_CS) and not unreleased:
+            continue
         with open(os.path.join(EN_DIR, slug(heading) + ".md"), encoding="utf-8") as f:
             parts.append(f.read().rstrip("\n"))
     return "\n\n".join(parts) + "\n"
+
+
+def cs_split():
+    """-> (cesky CHANGELOG.md bez „Připravuje se“, sekce „Připravuje se“ nebo "") - vydani a staging zvlast."""
+    with open(CHANGELOG, encoding="utf-8") as f:
+        intro, sections = split_sections(f.read())
+    rest = "".join(t for h, t in sections if not h.startswith(UNRELEASED_CS))
+    soon = "".join(t for h, t in sections if h.startswith(UNRELEASED_CS))
+    return intro + rest, soon
+
+
+def en_unreleased():
+    """Anglicka sekce „Coming soon“ (unreleased.md) nebo "" kdyz v CHANGELOG.md neni."""
+    if not any(h.startswith(UNRELEASED_CS) for h, _t in cs_releases()):
+        return ""
+    with open(os.path.join(EN_DIR, "unreleased.md"), encoding="utf-8") as f:
+        return f.read()
 
 
 def verify():

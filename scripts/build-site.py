@@ -286,6 +286,11 @@ def changes_url(lang):
     return "/changes/" if lang == "en" else "/cs/zmeny/"
 
 
+def soon_url(lang):
+    """Co je zatim jen v testovacim kanalu staging (sekce „Připravuje se“ z CHANGELOG.md)."""
+    return "/changes/coming-soon/" if lang == "en" else "/cs/zmeny/pripravuje-se/"
+
+
 def usage_url(lang):
     return "/usage/" if lang == "en" else "/cs/pouzivani/"
 
@@ -1047,13 +1052,43 @@ def main():
     render_docs(cols, flat, stamp, md_to_html)
 
     # ---- zmeny ----
-    with open(os.path.join(ROOT, "CHANGELOG.md"), encoding="utf-8") as f:
-        cs_changes = md_to_html(f.read(), "", "cs")
+    # vydane verze; „Připravuje se“ (jen ve staging) ma vlastni stranku soon_url
+    cs_rel, cs_soon = changelog_sections.cs_split()
+    cs_changes = md_to_html(cs_rel, "", "cs")
     # anglicky preklad musi mit vsechna vydani, sekce a polozky z CHANGELOG.md (jinak by stranka tise chudla)
     bad = changelog_sections.verify()
     if bad:
         sys.exit("build-site: the English changelog does not match CHANGELOG.md:\n  " + "\n  ".join(bad))
     en_changes = md_to_html(changelog_sections.en_text(), "", "en")
+    soon_md = {"cs": cs_soon, "en": changelog_sections.en_unreleased()}
+    # na vlastni strance: "## Připravuje se" -> nadpis stranky (h1), "### Nové" -> h2
+    for k, v in soon_md.items():
+        if v:
+            v = re.sub(r"(?m)^### ", "## ", re.sub(r"\A## ", "# ", v.lstrip()))
+            soon_md[k] = v
+    if all(soon_md.values()):
+        soon_link = {"en": f'<p class="more-link"><a href="{soon_url("en")}">Coming soon: what is being tested in the staging channel ›</a></p>',
+                     "cs": f'<p class="more-link"><a href="{soon_url("cs")}">Připravuje se: co se zkouší v testovacím kanálu staging ›</a></p>'}
+        # pod uvod, pred prvni vydani
+        en_changes, cs_changes = (body.replace("<h2", soon_link[l] + "<h2", 1) for l, body in (("en", en_changes), ("cs", cs_changes)))
+        salt = {l: soon_url(l) for l in LANGS}
+        soon_meta = {"en": ("Coming soon – LuxOS staging channel",
+                            "Changes being tested in the LuxOS staging channel that are not in a stable release yet."),
+                     "cs": ("Připravuje se – testovací kanál LuxOS",
+                            "Změny, které se zkoušejí v testovacím kanálu LuxOS staging a zatím nejsou ve vydané verzi.")}
+        for lang in LANGS:
+            t = T[lang]
+            trail = [(t["crumb_home"], home_url(lang)), (t["changes"], changes_url(lang)), (soon_meta[lang][0].split(" – ")[0], soon_url(lang))]
+            ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList",
+                   "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": abs_url(h)}
+                                       for i, (n, h) in enumerate(trail)]}]
+            back = {"en": f'<p class="more-link"><a href="{changes_url("en")}">‹ All released versions</a></p>',
+                    "cs": f'<p class="more-link"><a href="{changes_url("cs")}">‹ Všechny vydané verze</a></p>'}[lang]
+            write(soon_url(lang).lstrip("/") + "index.html",
+                  shell(lang, soon_url(lang), soon_meta[lang][0], soon_meta[lang][1],
+                        f'    <article class="doc panel">{md_to_html(soon_md[lang], "", lang)}{back}</article>', salt, "changes",
+                        stamp, "article", ld,
+                        src=[os.path.join(ROOT, "CHANGELOG.md") if lang == "cs" else os.path.join(CONTENT, "en", "changes", "unreleased.md")]))
     calt = {l: changes_url(l) for l in LANGS}
     for lang, body in (("en", en_changes), ("cs", cs_changes)):
         t = T[lang]

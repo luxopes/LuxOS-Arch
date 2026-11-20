@@ -465,6 +465,12 @@ def main():
                           f"/cs/zmeny/ has {cs_p.article_h2} and {cs_p.article_li}")
     else:
         errors.append("changes pages /changes/ or /cs/zmeny/ missing")
+    # „Připravuje se“ (jen staging) na vlastni strance: obe jazykove verze se stejnym poctem polozek
+    en_s, cs_s = exists("/changes/coming-soon/"), exists("/cs/zmeny/pripravuje-se/")
+    if bool(en_s) != bool(cs_s):
+        errors.append("coming-soon page exists only in one language (/changes/coming-soon/, /cs/zmeny/pripravuje-se/)")
+    elif en_s and pages[en_s].article_li != pages[cs_s].article_li:
+        errors.append(f"/changes/coming-soon/: {pages[en_s].article_li} items, /cs/zmeny/pripravuje-se/ has {pages[cs_s].article_li}")
 
     # sitemap a robots
     sm = os.path.join(out, "sitemap.xml")
