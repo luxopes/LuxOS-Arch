@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # LuxOS - klient IPC greetd (https://man.sr.ht/~kennylevinsen/greetd/): zpravy JSON s delkou (u32, poradi bajtu
 # hostitele) na socketu UNIX z promenne GREETD_SOCK. Pozadavky create_session, post_auth_message_response,
 # start_session a cancel_session; odpovedi success, error, auth_message. PAM bezi v greetd, ne v greeteru.

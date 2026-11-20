@@ -1,6 +1,5 @@
-# lsl: internal-abi
 # lsl: link libgdk-3.so.0
-# LuxOS - volani C pro prihlasovaci obrazovku (luxos-greeter), at hlavni program internal-abi nepotrebuje.
+# LuxOS - volani C pro prihlasovaci obrazovku (luxos-greeter), systemovy binding LSL (lslc --system-bindings).
 #
 #   caps_lock()          Caps Lock je zapnuty (GdkKeymap, funguje na Waylandu i X11)
 #   key_group(udalost)   skupina xkb (rozlozeni) stisknute klavesy z GdkEventKey

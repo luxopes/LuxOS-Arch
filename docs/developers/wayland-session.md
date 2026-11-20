@@ -97,9 +97,16 @@ Python greeter keep working as in 1.0.x (X11 only).
 - **Polkit agent:** `luxos-polkit` (LSL), see the header of `files/lsl/luxos-polkit.lsl`. It speaks the
   AuthenticationAgent D-Bus interface and the helper line protocol of polkit 128 directly. There is no
   libpolkit-agent, because PolkitAgentListener would need GObject subclassing.
+- **Environment like the X11 login:** `/etc/profile` is sourced (`/etc/xdg/luxos`, `/var/lib/luxos/apps`,
+  Flatpak, the LuxOS PATH), and `PATH`, `XDG_CONFIG_DIRS` and `XDG_DATA_DIRS` are imported into systemd --user.
+  `luxos-wayland-settings` copies xsettings to gsettings before the shell starts and gives the cursor variables.
+- **XDG autostart** follows the desktop entry spec for `LuxOS`: user entries override system ones, in the order of
+  `XDG_CONFIG_DIRS`. An entry is skipped when it has `Hidden`, an `OnlyShowIn` without LuxOS, a `NotShowIn` with
+  LuxOS, or a missing `TryExec`. Each entry runs as a transient unit `app-luxos-autostart-*` bound to the session.
+  `/etc/xdg/luxos/autostart` keeps nm-applet, blueman, the print applet and Plank in Xfce only.
 - **Duties carried over from `bin/luxos-session` (X11):**
   - The shadow guard for old copies in `~/.local`.
-  - First-login defaults: user dirs, appearance, `/etc/luxos/new-users.conf`.
+  - User dirs at every login; first-login defaults: appearance, `/etc/luxos/new-users.conf`.
   - Chromium WebGPU flags.
   - The wallpaper for `luxos-backdrop`.
   - The managed `gtk.css` block.

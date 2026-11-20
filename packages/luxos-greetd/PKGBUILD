@@ -14,20 +14,14 @@ license=(GPL-3.0-or-later)
 options=(!debug !strip)
 depends=(greetd 'luxwm>=0.1.0-6' 'luxos-desktop>=1.1.0-98' gtk3 cairo pango luxos-i18n accountsservice)
 optdepends=('xorg-xinit: login screen on NVIDIA 470 and older (Xorg instead of Wayland)')
-makedepends=('lsl>=0.10.6')
+makedepends=('lsl>=0.11.0')
 backup=(etc/greetd/luxos.toml)
 install=luxos-greetd.install
 
 build() {
-    # moduly LSL se hledaji vedle zdroje: greeter a sdilene moduly luxos-desktop do jednoho adresare
-    mkdir -p lsl
-    cp "$startdir"/files/lsl/*.lsl lsl/
-    local m
-    for m in luxos_glib luxos_gio luxos_gtk luxos_sys luxos_text luxos_i18n luxos_material luxos_lock_draw \
-        luxos_lock_sys luxos_tokens; do
-        cp "$startdir/../luxos-desktop/files/lsl/$m.lsl" lsl/
-    done
-    lslc --target linux-x86_64-gnu lsl/luxos-greeter.lsl luxos-greeter
+    # vazby na C (greetd IPC, GDK) a spolecne moduly luxos-desktop jako systemove bindingy LSL
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" \
+        --system-bindings "$startdir/../luxos-desktop/files/lsl" "$startdir/files/lsl/luxos-greeter.lsl" luxos-greeter
 }
 
 package() {
