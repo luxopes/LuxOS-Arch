@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 4
+API_VERSION = 5
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -218,6 +218,19 @@ function output_name(output):
     unsafe:
         return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_output_name"), ptr(output)))
     end
+end
+
+function test_output_add(width, height):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("luxcomp_test_output_add"), ptr(width), ptr(height))
+    end
+end
+
+function test_output_remove(output):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_test_output_remove"), ptr(output))
+    end
+    return 0
 end
 
 function output_at(x, y):

@@ -9,6 +9,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <wlr/backend.h>
+#include <wlr/backend/headless.h>
+#include <wlr/backend/multi.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -138,31 +140,45 @@ output_config_update(void)
 	}
 }
 
-static void
-output_config_apply(struct wlr_output_configuration_v1 *config, bool test)
+static bool
+output_config_commit(struct wlr_output_configuration_v1 *config, bool test)
 {
-	bool ok = true;
 	struct wlr_output_configuration_head_v1 *head;
 	wl_list_for_each(head, &config->heads, link) {
 		struct wlr_output *wo = head->state.output;
 		struct wlr_output_state state;
 		wlr_output_state_init(&state);
 		wlr_output_head_v1_state_apply(&head->state, &state);
-		ok = test ? wlr_output_test_state(wo, &state) : wlr_output_commit_state(wo, &state);
+		bool ok = test ? wlr_output_test_state(wo, &state) : wlr_output_commit_state(wo, &state);
 		wlr_output_state_finish(&state);
 		if (!ok) {
-			break;
+			return false;
 		}
-		if (!test && head->state.enabled && wo->data) {
-			struct output *o = wo->data;
+	}
+	return true;
+}
+
+static void
+output_config_apply(struct wlr_output_configuration_v1 *config, bool test)
+{
+	/* nejdriv test vsech hlav: neprijatelny rezim jednoho monitoru nesmi nechat ostatni
+	 * napul prepnute (nastaveni monitoru posila celou konfiguraci najednou) */
+	bool ok = output_config_commit(config, true) && (test || output_config_commit(config, false));
+	struct wlr_output_configuration_head_v1 *head;
+	wl_list_for_each(head, &config->heads, link) {
+		struct wlr_output *wo = head->state.output;
+		if (!ok || test || !wo->data) {
+			continue;
+		}
+		struct output *o = wo->data;
+		if (head->state.enabled) {
 			bool placed = wlr_output_layout_get(comp.layout, wo) != NULL;
 			struct wlr_output_layout_output *lo =
 				wlr_output_layout_add(comp.layout, wo, head->state.x, head->state.y);
 			if (!placed && lo) {
 				wlr_scene_output_layout_add_output(comp.scene_layout, lo, o->scene_output);
 			}
-			layers_arrange(o);
-		} else if (!test && wo->data) {
+		} else {
 			/* vypnuty vystup nesmi drzet misto v rozlozeni (kurzor, umisteni oken) */
 			wlr_output_layout_remove(comp.layout, wo);
 		}
@@ -173,7 +189,8 @@ output_config_apply(struct wlr_output_configuration_v1 *config, bool test)
 		wlr_output_configuration_v1_send_failed(config);
 	}
 	wlr_output_configuration_v1_destroy(config);
-	if (!test) {
+	if (ok && !test) {
+		layers_arrange_all();
 		output_config_update();
 	}
 }
@@ -205,11 +222,13 @@ output_destroy(struct wl_listener *listener, void *data)
 {
 	struct output *o = wl_container_of(listener, o, destroy);
 	emit(LUXCOMP_EV_OUTPUT_REMOVE, o->id, 0, 0, 0);
+	layers_close(o);
 	wl_list_remove(&o->frame.link);
 	wl_list_remove(&o->request_state.link);
 	wl_list_remove(&o->destroy.link);
 	wl_list_remove(&o->link);
 	free(o);
+	layers_arrange_all();
 	output_config_update();
 }
 
@@ -332,6 +351,8 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	comp.layer_top = wlr_scene_tree_create(root);
 	comp.fullscreen = wlr_scene_tree_create(root);
 	comp.layer_overlay = wlr_scene_tree_create(root);
+	comp.layer_hidden = wlr_scene_tree_create(root);
+	wlr_scene_node_set_enabled(&comp.layer_hidden->node, false);
 	comp.default_ws = workspace_create();
 
 	views_init();
@@ -521,6 +542,41 @@ luxcomp_output_at(int64_t x, int64_t y)
 	return o ? o->id : 0;
 }
 
+static void
+find_headless(struct wlr_backend *backend, void *data)
+{
+	if (wlr_backend_is_headless(backend)) {
+		*(struct wlr_backend **)data = backend;
+	}
+}
+
+/* Pripojeni a odpojeni monitoru v testech (jen headless backend, skutecne monitory se tim nedaji
+ * odpojit): nastaveni monitoru a lista se tak daji vyzkouset bez hardwaru. */
+int64_t
+luxcomp_test_output_add(int64_t width, int64_t height)
+{
+	struct wlr_backend *headless = NULL;
+	if (wlr_backend_is_multi(comp.backend)) {
+		wlr_multi_for_each_backend(comp.backend, find_headless, &headless);
+	} else if (wlr_backend_is_headless(comp.backend)) {
+		headless = comp.backend;
+	}
+	if (!headless || width <= 0 || height <= 0 || width > 16384 || height > 16384) {
+		return 0;
+	}
+	struct wlr_output *wo = wlr_headless_add_output(headless, width, height);
+	return wo && wo->data ? ((struct output *)wo->data)->id : 0;
+}
+
+void
+luxcomp_test_output_remove(int64_t id)
+{
+	struct output *o = output_by_id(id);
+	if (o && wlr_output_is_headless(o->wlr_output)) {
+		wlr_output_destroy(o->wlr_output);
+	}
+}
+
 /* ---- layer-shell (lista, Dock, tapeta, spoustec) ---- */
 
 static struct wlr_scene_tree *
@@ -538,13 +594,46 @@ static void
 arrange_tree(struct output *o, struct wlr_scene_tree *tree,
 		const struct wlr_box *full, struct wlr_box *usable)
 {
-	struct wlr_scene_node *node;
-	wl_list_for_each(node, &tree->children, link) {
+	struct wlr_scene_node *node, *tmp;
+	wl_list_for_each_safe(node, tmp, &tree->children, link) {
 		struct layer *l = node->data;
-		if (l && l->output == o && l->surface->initialized) {
-			wlr_scene_layer_surface_v1_configure(l->scene, full, usable);
+		if (!l || l->output != o || !l->surface->initialized) {
+			continue;
+		}
+		/* zrcadlo kresli lista a Dock vychoziho monitoru; vlastni vrstvy schovane, at se
+		 * pruhledna lista nekresli dvakrat pres sebe */
+		struct wlr_scene_tree *parent = o->mirror ? comp.layer_hidden : layer_tree(l->surface->current.layer);
+		if (node->parent != parent) {
+			wlr_scene_node_reparent(node, parent);
+		}
+		wlr_scene_layer_surface_v1_configure(l->scene, full, usable);
+	}
+}
+
+/* Zrcadleny vystup = jiny zapnuty vystup ma stejny pocatek a je mensi (pri shode drivejsi v seznamu).
+ * Nastaveni monitoru zrcadli umistenim vsech vystupu na stejne misto (wlr-output-management
+ * zrcadleni nezna); mensi vystup je vzor, vetsi ukazuje jeho obsah. */
+static struct output *
+mirror_source(struct output *o, const struct wlr_box *box)
+{
+	bool before = true;
+	struct output *p;
+	wl_list_for_each(p, &comp.outputs, link) {
+		if (p == o) {
+			before = false;
+			continue;
+		}
+		struct wlr_box b;
+		wlr_output_layout_get_box(comp.layout, p->wlr_output, &b);
+		if (wlr_box_empty(&b) || b.x != box->x || b.y != box->y) {
+			continue;
+		}
+		int64_t area = (int64_t)b.width * b.height, own = (int64_t)box->width * box->height;
+		if (area < own || (area == own && before)) {
+			return p;
 		}
 	}
+	return NULL;
 }
 
 void
@@ -553,14 +642,46 @@ layers_arrange(struct output *o)
 	struct wlr_box full;
 	wlr_output_layout_get_box(comp.layout, o->wlr_output, &full);
 	struct wlr_box usable = full;
+	o->mirror = !wlr_box_empty(&full) && mirror_source(o, &full);
+	struct wlr_scene_tree *trees[] = { comp.layer_overlay, comp.layer_top, comp.layer_bottom,
+		comp.layer_bg, comp.layer_hidden };
 	/* exkluzivni zony v poradi od nejvyssi vrstvy, jako ostatni kompozitory */
-	arrange_tree(o, comp.layer_overlay, &full, &usable);
-	arrange_tree(o, comp.layer_top, &full, &usable);
-	arrange_tree(o, comp.layer_bottom, &full, &usable);
-	arrange_tree(o, comp.layer_bg, &full, &usable);
+	for (size_t i = 0; i < sizeof(trees) / sizeof(*trees); i++) {
+		arrange_tree(o, trees[i], &full, &usable);
+	}
+	if (o->mirror || wlr_box_empty(&full)) {
+		usable = full;
+	}
 	if (!wlr_box_equal(&usable, &o->usable)) {
 		o->usable = usable;
 		emit(LUXCOMP_EV_OUTPUT_USABLE, o->id, 0, 0, 0);
+	}
+}
+
+/* Odpojeny monitor: jeho vrstvy zavrit (klient dostane closed), jinak by drzely ukazatel na vystup */
+void
+layers_close(struct output *o)
+{
+	struct wlr_scene_tree *trees[] = { comp.layer_overlay, comp.layer_top, comp.layer_bottom,
+		comp.layer_bg, comp.layer_hidden };
+	for (size_t i = 0; i < sizeof(trees) / sizeof(*trees); i++) {
+		struct wlr_scene_node *node, *tmp;
+		wl_list_for_each_safe(node, tmp, &trees[i]->children, link) {
+			struct layer *l = node->data;
+			if (l && l->output == o) {
+				l->output = NULL;
+				wlr_layer_surface_v1_destroy(l->surface);
+			}
+		}
+	}
+}
+
+void
+layers_arrange_all(void)
+{
+	struct output *o;
+	wl_list_for_each(o, &comp.outputs, link) {
+		layers_arrange(o);
 	}
 }
 
@@ -602,7 +723,9 @@ static void
 layer_map(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, map);
-	layers_arrange(l->output);
+	if (l->output) {
+		layers_arrange(l->output);
+	}
 	layer_update_focus();
 	cursor_rebase();
 }
@@ -615,7 +738,9 @@ layer_unmap(struct wl_listener *listener, void *data)
 		comp.layer_focus = NULL;
 		luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
 	}
-	layers_arrange(l->output);
+	if (l->output) {
+		layers_arrange(l->output);
+	}
 	layer_update_focus();
 	cursor_rebase();
 }
@@ -625,10 +750,10 @@ layer_commit(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, commit);
 	struct wlr_layer_surface_v1 *s = l->surface;
-	if (!s->initialized) {
+	if (!s->initialized || !l->output) {
 		return;
 	}
-	if (s->current.committed & WLR_LAYER_SURFACE_V1_STATE_LAYER) {
+	if ((s->current.committed & WLR_LAYER_SURFACE_V1_STATE_LAYER) && !l->output->mirror) {
 		wlr_scene_node_reparent(&l->scene->tree->node, layer_tree(s->current.layer));
 	}
 	if (s->initial_commit || s->current.committed) {
