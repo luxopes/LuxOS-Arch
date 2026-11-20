@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Startskärmen har ställts in på %s.
 Active app: %s	Aktiv app: %s
 Search apps or ask LuxAI	Sök appar eller fråga LuxAI
 Search or ask LuxAI	Sök eller fråga LuxAI
+Ask LuxAI	Fråga LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Minnet håller på att ta slut
 “%s” used too much memory and was closed so the computer would not freeze.	”%s” använde för mycket minne och stängdes så att datorn inte skulle frysa.

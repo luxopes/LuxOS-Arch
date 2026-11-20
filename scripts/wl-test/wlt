@@ -272,7 +272,8 @@ case $cmd in
     start) cmd_start "$@" ;;
     stop) cmd_stop "$@" ;;
     run) cmd_run "$@" ;;
-    input) s=$(session_dir "${1-}"); shift; build; in_session "$s" wlt-input "$@" ;;
+    input) s=$(session_dir "${1-}"); shift; build
+        in_session "$s" env ${WLT_STAMP:+WLT_STAMP=$WLT_STAMP} ${WLT_XKB_LAYOUT:+WLT_XKB_LAYOUT=$WLT_XKB_LAYOUT} wlt-input "$@" ;;
     shot) cmd_shot "$@" ;;
     capture) cmd_capture "$@" ;;
     check) build; "$bin/wlt-frames" check "$@" ;;

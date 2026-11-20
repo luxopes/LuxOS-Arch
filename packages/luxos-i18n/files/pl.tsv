@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Ustawiono ekran uruchamiania: %s.
 Active app: %s	Aktywna aplikacja: %s
 Search apps or ask LuxAI	Szukaj aplikacji lub zapytaj LuxAI
 Search or ask LuxAI	Szukaj lub zapytaj LuxAI
+Ask LuxAI	Zapytaj LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Kończy się pamięć
 “%s” used too much memory and was closed so the computer would not freeze.	Aplikacja „%s” zużyła zbyt dużo pamięci i została zamknięta, aby komputer się nie zawiesił.

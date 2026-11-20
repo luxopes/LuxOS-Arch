@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Екран завантаження встановлен�
 Active app: %s	Активна програма: %s
 Search apps or ask LuxAI	Шукати програми або запитати LuxAI
 Search or ask LuxAI	Шукати або запитати LuxAI
+Ask LuxAI	Запитати LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Закінчується пам’ять
 “%s” used too much memory and was closed so the computer would not freeze.	Програма «%s» використала забагато пам’яті, і її закрито, щоб комп’ютер не завис.

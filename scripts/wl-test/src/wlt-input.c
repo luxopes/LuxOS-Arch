@@ -119,7 +119,13 @@ static int k_key(void *data, const char *name, int down)
 		fprintf(stderr, "unknown key: %s\n", name);
 		return -1;
 	}
+	double t = scen_now();
 	send_key(c, code, down);
+	/* cas stisku pro mereni odezvy (klavesa -> prvni snimek klienta), CLOCK_MONOTONIC v us */
+	if (down && getenv("WLT_STAMP")) {
+		printf("stamp %s %lld\n", name, (long long)(t * 1e6));
+		fflush(stdout);
+	}
 	return 0;
 }
 

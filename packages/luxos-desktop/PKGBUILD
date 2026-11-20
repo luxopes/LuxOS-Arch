@@ -190,6 +190,8 @@ build() {
     # Zamek obrazovky na Waylandu (ext-session-lock) a hlidac necinnosti/logind; X11 relace dal xfce4-screensaver
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-lock.lsl" luxos-lock
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-lock-session.lsl" luxos-lock-session
+    # Launchpad a Hledani relace na Waylandu (misto rofi); luxos-launchpad a luxos-search ho volaji pres D-Bus
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-launchpad.lsl" luxos-launchpad-wayland
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -241,6 +243,9 @@ package() {
     install -Dm755 luxos-auth "$pkgdir/usr/lib/luxos/luxos-auth"
     install -Dm644 "$f/systemd-user/luxos-lock.service" "$pkgdir/usr/lib/systemd/user/luxos-lock.service"
     install -Dm644 -t "$pkgdir/usr/lib/pam.d" "$f/pam.d/luxos-lock" "$f/pam.d/luxos-lock-fingerprint"
+    install -Dm755 luxos-launchpad-wayland "$pkgdir/usr/lib/luxos/luxos-launchpad"
+    install -Dm644 "$f/systemd-user/luxos-launchpad.service" "$pkgdir/usr/lib/systemd/user/luxos-launchpad.service"
+    install -Dm644 "$f/dbus-services/cz.luxos.Launchpad.service" "$pkgdir/usr/share/dbus-1/services/cz.luxos.Launchpad.service"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"

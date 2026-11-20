@@ -3,6 +3,17 @@
 # Razeni dlazdic: tlacitka dole v Launchpadu (nebo Alt+1..4), pamatuje se pro uzivatele.
 # Poradi pripravuje luxos_launchpad.py jako "historii" rofi (rofi3.druncache v -cache-dir);
 # spusteni aplikaci se pocita jen mistne v ~/.local/share/luxos/launchpad-usage.json.
+
+# Relace na Waylandu: vlastni Launchpad v LSL (bezi stale, D-Bus cz.luxos.Launchpad), rofi je jen pro X11.
+# Nebezi-li a D-Bus ho nespusti (aktivace chybi), spusti se rovnou s oknem.
+lp=${LUXOS_LAUNCHPAD_WAYLAND:-/usr/lib/luxos/luxos-launchpad}
+if [[ -n $WAYLAND_DISPLAY && -x $lp ]]; then
+    gdbus call --session --dest cz.luxos.Launchpad --object-path /cz/luxos/Launchpad \
+        --method cz.luxos.Launchpad.Toggle "${LUXOS_LAUNCHPAD_MODE:-launchpad}" >/dev/null 2>&1 ||
+        exec "$lp" --show "${LUXOS_LAUNCHPAD_MODE:-launchpad}"
+    exit 0
+fi
+
 PY=${LUXOS_LAUNCHPAD_PY:-/usr/lib/luxos/python/luxos_launchpad.py}
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/luxos/launchpad-sort
 cache=${XDG_CACHE_HOME:-$HOME/.cache}/luxos

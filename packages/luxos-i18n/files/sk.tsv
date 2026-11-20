@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Úvodná obrazovka nastavená: %s.
 Active app: %s	Aktívna aplikácia: %s
 Search apps or ask LuxAI	Hľadať aplikácie alebo sa opýtať LuxAI
 Search or ask LuxAI	Hľadať alebo sa opýtať LuxAI
+Ask LuxAI	Opýtať sa LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Dochádza pamäť
 “%s” used too much memory and was closed so the computer would not freeze.	Aplikácia „%s“ zabrala príliš veľa pamäte a bola ukončená, aby počítač nezamrzol.

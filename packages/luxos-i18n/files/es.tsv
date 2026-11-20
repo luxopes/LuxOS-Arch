@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Pantalla de arranque establecida en %s.
 Active app: %s	App activa: %s
 Search apps or ask LuxAI	Busca apps o pregunta a LuxAI
 Search or ask LuxAI	Busca o pregunta a LuxAI
+Ask LuxAI	Preguntar a LuxAI
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Queda poca memoria
 “%s” used too much memory and was closed so the computer would not freeze.	“%s” usaba demasiada memoria y se ha cerrado para que el ordenador no se bloqueara.

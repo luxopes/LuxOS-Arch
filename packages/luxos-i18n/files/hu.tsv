@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Az indítóképernyő beállítva: %s.
 Active app: %s	Aktív app: %s
 Search apps or ask LuxAI	Appok keresése vagy kérdezd a LuxAI-t
 Search or ask LuxAI	Keresés vagy kérdezd a LuxAI-t
+Ask LuxAI	Kérdezd a LuxAI-t
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Kevés a szabad memória
 “%s” used too much memory and was closed so the computer would not freeze.	A(z) „%s” túl sok memóriát használt, ezért bezárult, hogy a számítógép ne fagyjon le.

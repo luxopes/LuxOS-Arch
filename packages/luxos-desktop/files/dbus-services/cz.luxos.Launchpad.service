@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=cz.luxos.Launchpad
+Exec=/usr/lib/luxos/luxos-launchpad
+SystemdService=luxos-launchpad.service

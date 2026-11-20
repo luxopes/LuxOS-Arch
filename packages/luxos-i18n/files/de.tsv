@@ -1203,6 +1203,7 @@ Boot screen set to %s.	Startbildschirm festgelegt: %s.
 Active app: %s	Aktive App: %s
 Search apps or ask LuxAI	Apps suchen oder LuxAI fragen
 Search or ask LuxAI	Suchen oder LuxAI fragen
+Ask LuxAI	LuxAI fragen
 # LuxOS 2026-10-21: pojistka pameti
 Memory is running low	Arbeitsspeicher wird knapp
 “%s” used too much memory and was closed so the computer would not freeze.	„%s“ hat zu viel Arbeitsspeicher belegt und wurde beendet, damit der Computer nicht einfriert.
