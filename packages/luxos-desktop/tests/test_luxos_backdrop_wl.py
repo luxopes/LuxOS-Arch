@@ -10,7 +10,11 @@ Kazdy test ma vlastni relaci `scripts/wl-test/wlt start` (soukrome XDG_RUNTIME_D
 Plocha bezi s LUXOS_BACKDROP_TRACE=1 (udalosti na stdout). Prikazy nabidky plochy jsou nahradni skripty v PATH,
 ktere jen zapisi, ze byly spusteny.
 
-Snimky: tests/wl-backdrop-goldens/*.png (bez pisma, tolerance jen na zaokrouhleni). Novy vzor:
+Ikony plochy: soubory v soukromem ~/Desktop, kanal xfce4-desktop v soukromem XDG_CONFIG_HOME (vymenitelne disky
+vypnute, hostitel by je mohl mit), soubory otevira nahradni aplikace z mimeapps.list, ktera jen zapise "open SOUBOR".
+Pretazeni ze spravce souboru napodobuje tests/backdrop/drag_source.py (GTK 3).
+
+Snimky: tests/wl-backdrop-goldens/*.png (tapety bez pisma, ikony s pismem a motivem ikon systemu). Novy vzor:
 LUXOS_BACKDROP_UPDATE_GOLDENS=1. Necinnost: LUXOS_BACKDROP_IDLE_SECONDS (vychozi 60).
 """
 import os
@@ -39,6 +43,20 @@ HAVE_LABWC = (SYSROOT / "usr/bin/labwc").exists() or shutil.which("labwc")
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
 COLOR = "204060"
 FAKE_COMMANDS = ("luxos-settings", "luxos-display-settings", "luxos-widgets", "xdg-open", "gio")
+DESKTOP_CHANNEL = """<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-desktop" version="1.0">
+  <property name="desktop-icons" type="empty">
+    <property name="style" type="int" value="2"/>
+    <property name="icon-size" type="uint" value="56"/>
+    <property name="font-size" type="double" value="10"/>
+    <property name="file-icons" type="empty">
+      <property name="show-removable" type="bool" value="false"/>
+    </property>
+  </property>
+</channel>
+"""
+# mrizka luxos_desk pro ikonu 56 a pismo 10: bunka 100x108 od (8, 40) (lista 32 + 8)
+CELL_W, CELL_H, GRID_X, GRID_Y = 100, 108, 8, 40
 
 
 def pattern(width, height):
@@ -195,10 +213,18 @@ class WaylandBackdrop(unittest.TestCase):
         (fake / "fake-files").chmod(0o755)
         (apps / "fake-files.desktop").write_text(f"[Desktop Entry]\nType=Application\nName=Files\nExec={fake}/fake-files %U\n"
                                                  "MimeType=inode/directory;\n")
+        (fake / "fake-open").write_text(f"#!/bin/sh\necho \"open $*\" >>'{self.ran}'\n")
+        (fake / "fake-open").chmod(0o755)
+        (apps / "fake-open.desktop").write_text(f"[Desktop Entry]\nType=Application\nName=Open\nExec={fake}/fake-open %f\n"
+                                                "MimeType=text/plain;application/pdf;\n")
         (self.session / "config").mkdir(exist_ok=True)
-        (self.session / "config/mimeapps.list").write_text("[Default Applications]\ninode/directory=fake-files.desktop\n")
+        (self.session / "config/mimeapps.list").write_text("[Default Applications]\ninode/directory=fake-files.desktop\n"
+                                                          "text/plain=fake-open.desktop\napplication/pdf=fake-open.desktop\n")
+        channel = self.session / "config/xfce4/xfconf/xfce-perchannel-xml"
+        channel.mkdir(parents=True, exist_ok=True)
+        (channel / "xfce4-desktop.xml").write_text(DESKTOP_CHANNEL)
         env.update(PATH=f"{fake}:/usr/bin:/bin", GDK_BACKEND="wayland", NO_AT_BRIDGE="1", GTK_A11Y="none",
-                   LUXOS_WL_LIB=str(self.lib), LUXOS_BACKDROP_TRACE="1")
+                   LUXOS_WL_LIB=str(self.lib), LUXOS_BACKDROP_TRACE="1", GIO_USE_VOLUME_MONITOR="unix")
         self.env = env
         self.conf = self.session / "config/luxos"
         self.conf.mkdir(parents=True, exist_ok=True)
@@ -470,21 +496,41 @@ class WaylandBackdrop(unittest.TestCase):
         self.assertEqual(self.ran.read_text().splitlines(), ["luxos-settings ", "luxos-widgets settings"])
 
     def test_menu_new_folder(self):
-        d, mark = self.menu_action(1)
-        _, m = d.wait(r"^folder (.*)$", start=mark)
+        self.start()
+        red = self.image("red.png", 64, 40, solid(64, 40, (200, 30, 30)))
+        self.set_conf(f"WALLPAPER={red}\n")
+        d = self.backdrop()
+        d.wait(r"^drawn HEADLESS-1")
         desktop = self.session / "home/Desktop"
+        send = self.live()
+
+        def new_folder():
+            mark = d.mark()
+            send("move 200 150", "sleep 0.1", "click right")
+            d.wait(r"^menu$", start=mark)
+            send("sleep 0.4", "move 100 50", "sleep 0.2", "key Down", "key Return")
+            return mark
+
+        mark = new_folder()
+        _, m = d.wait(r"^folder (.*)$", start=mark)
         self.assertEqual(Path(m.group(1)), desktop / "New Folder")
         self.assertTrue((desktop / "New Folder").is_dir())
-        for _ in range(50):
-            if self.ran.exists():
-                break
-            time.sleep(0.1)
-        self.assertEqual(self.ran.read_text().splitlines(), [f"files {desktop}"])
-        # druha slozka nepreplacne prvni
-        mark = d.mark()
-        self.open_menu(d, 300, 200)
-        self.keys("Down", "Return")
+        # s ikonami se slozka hned prejmenovava (pole pres popisek), spravce souboru se nespousti
+        d.wait(r"^rename New Folder$", start=mark)
+        send("sleep 0.2", "type Fotky", "key Return")
+        d.wait(r"^renamed New Folder -> Fotky$", start=mark)
+        self.assertTrue((desktop / "Fotky").is_dir())
+        self.assertFalse(self.ran.exists())
+        # druha slozka nepreplacne prvni (Escape prejmenovani zrusi)
+        (desktop / "Fotky").rename(desktop / "New Folder")
+        time.sleep(0.3)
+        mark = new_folder()
         d.wait(r"^folder .*New Folder 2$", start=mark)
+        d.wait(r"^rename New Folder 2$", start=mark)
+        send("sleep 0.2", "key Escape")
+        time.sleep(0.4)
+        self.assertTrue((desktop / "New Folder 2").is_dir())
+        self.assertFalse(any(l.startswith("renamed") for _, l in d.lines[mark:]))
 
     def test_windows_keep_keyboard_focus(self):
         """Plocha ma klavesnici jen po dobu nabidky: okno nad ni pise dal. Navrat fokusu kliknutim po kliku na plochu
@@ -502,6 +548,315 @@ class WaylandBackdrop(unittest.TestCase):
         mark = c.mark()
         self.keys("a")
         c.wait(r"^key a down", start=mark)
+
+    # ---- ikony plochy ----
+
+    def desktop_files(self, *names):
+        desktop = self.session / "home/Desktop"
+        desktop.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            if name.endswith("/"):
+                (desktop / name).mkdir(exist_ok=True)
+            else:
+                (desktop / name).write_text(name + "\n")
+        return desktop
+
+    def icons(self, d, start=0):
+        """Posledni radek "icons N klic@sloupec,radek | ..." -> {klic: (sloupec, radek)}."""
+        line = [l for _, l in d.lines[start:] if l.startswith("icons ") and l != "icons drawn"][-1]
+        out = {}
+        rest = line.split(" ", 2)[2] if line.count(" ") >= 2 else ""
+        for part in filter(None, rest.split(" | ")):
+            key, _, pos = part.rpartition("@")
+            col, row = pos.split(",")
+            out[key] = (int(col), int(row))
+        return out
+
+    def center(self, pos):
+        """Stred ikony (ne popisku) v bunce."""
+        return GRID_X + pos[0] * CELL_W + CELL_W // 2, GRID_Y + pos[1] * CELL_H + 6 + 28
+
+    def icon_backdrop(self, *names, size="1024x640"):
+        self.start(size=size)
+        wall = self.image("wall.png", 64, 40, solid(64, 40, (40, 70, 130)))
+        self.set_conf(f"WALLPAPER={wall}\n")
+        self.desktop_files(*names)
+        d = self.backdrop()
+        d.wait(r"^icons drawn")
+        return d
+
+    def ran_lines(self, count, timeout=5):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.ran.exists() and len(self.ran.read_text().splitlines()) >= count:
+                break
+            time.sleep(0.05)
+        return self.ran.read_text().splitlines() if self.ran.exists() else []
+
+    def test_icons_for_desktop_files_and_new_file_fast(self):
+        d = self.icon_backdrop("notes.txt", "Projects/", ".hidden-file", "backup.txt~")
+        pos = self.icons(d)
+        # slozky prvni, skryte soubory a zalohy ne, sloupec od leveho horniho rohu
+        self.assertEqual(pos, {"Projects": (0, 0), "notes.txt": (0, 1)})
+        time.sleep(0.2)
+        image = self.shot()
+        x, y = self.center(pos["notes.txt"])
+        self.assertNotEqual(pixel(image, x, y), "284682", "ikona neni videt")
+        # popisek pod ikonou: bile pismo
+        label = [pixel(image, xx, yy) for xx in range(x - 40, x + 40) for yy in range(y + 34, y + 48)]
+        self.assertTrue(any(int(p[:2], 16) > 200 and int(p[2:4], 16) > 200 for p in label), "popisek neni videt")
+        times = []
+        for name in ("zprava.txt", "Archiv/"):
+            mark = d.mark()
+            t0 = time.monotonic()
+            self.desktop_files(name)
+            t1, _ = d.wait(r"^icons drawn$", start=mark)
+            times.append((t1 - t0) * 1000)
+            self.assertIn(name.rstrip("/"), self.icons(d, mark))
+        print(f"\n  novy soubor na Plose -> ikona nakreslena: {', '.join(f'{t:.0f}' for t in times)} ms")
+        self.assertLess(max(times), 500)
+        # smazany soubor zmizi
+        mark = d.mark()
+        (self.session / "home/Desktop/zprava.txt").unlink()
+        d.wait(r"^icons 3 ", start=mark)
+
+    def test_long_label_ellipsized(self):
+        d = self.icon_backdrop("Velmi dlouhy nazev souboru, ktery se nevejde ani na dva radky popisku.txt")
+        pos = list(self.icons(d).values())[0]
+        time.sleep(0.2)
+        image = self.shot()
+        x, y = self.center(pos)
+        # popisek zustava v bunce: pod ni (dalsi bunka) uz zadne bile pismo
+        below = [pixel(image, xx, GRID_Y + CELL_H + 4) for xx in range(x - 48, x + 48)]
+        self.assertTrue(all(p == "284682" for p in below), "popisek pretekl do dalsi bunky")
+
+    def test_double_click_opens_in_default_app(self):
+        d = self.icon_backdrop("notes.txt", "Projects/")
+        desktop = self.session / "home/Desktop"
+        app = desktop / "editor.desktop"
+        app.write_text(f"[Desktop Entry]\nType=Application\nName=Muj editor\nExec={self.session}/fakebin/fake-open --app\n"
+                       "Icon=accessories-text-editor\n")
+        app.chmod(0o755)
+        plain = desktop / "cizi.desktop"
+        plain.write_text("[Desktop Entry]\nType=Application\nName=Cizi\nExec=/bin/false\n")
+        mark = d.mark()
+        d.wait(r"^icons 4 ", start=mark)
+        pos = self.icons(d)
+        # spustitelny spoustec ma jmeno aplikace, nespustitelny zustava souborem
+        self.assertIn("editor.desktop", pos)
+        x, y = self.center(pos["notes.txt"])
+        mark = d.mark()
+        self.input(f"move {x} {y}", "click", "click")
+        d.wait(r"^open notes.txt$", start=mark)
+        self.assertEqual(self.ran_lines(1), [f"open {desktop / 'notes.txt'}"])
+        x, y = self.center(pos["editor.desktop"])
+        self.input("sleep 0.6", f"move {x} {y}", "click", "click")
+        d.wait(r"^open editor.desktop$", start=mark)
+        self.assertEqual(self.ran_lines(2)[1], "open --app")
+        x, y = self.center(pos["Projects"])
+        self.input("sleep 0.6", f"move {x} {y}", "click", "click")
+        self.assertEqual(self.ran_lines(3)[2], f"files {desktop / 'Projects'}")
+
+    def live(self):
+        """Jedna virtualni klavesnice po cely test (jako skutecna): kazde `wlt input` by pridalo a odebralo vlastni
+        a labwc po odebrani vrstve plochy fokus nevrati. Prikazy po radcich na stdin."""
+        p = subprocess.Popen([str(WLT), "input", str(self.session)], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, text=True)
+        self.procs.append(p)
+
+        def send(*cmds):
+            p.stdin.write("".join(c + "\n" for c in cmds))
+            p.stdin.flush()
+        send("key shift")
+        return send
+
+    def item_menu(self, d, send, pos, downs):
+        x, y = self.center(pos)
+        mark = d.mark()
+        send(f"move {x} {y}", "sleep 0.1", "click right")
+        d.wait(r"^item menu ", start=mark)
+        time.sleep(0.4)
+        send(f"move {x + 300} {y + 200}", "sleep 0.2", *(["key Down"] * downs), "key Return")
+
+    def test_rename_from_menu_and_keyboard(self):
+        d = self.icon_backdrop("notes.txt", "a.txt")
+        desktop = self.session / "home/Desktop"
+        pos = self.icons(d)
+        send = self.live()
+        mark = d.mark()
+        # Otevrit, Prejmenovat, Do Kose
+        self.item_menu(d, send, pos["notes.txt"], 2)
+        d.wait(r"^rename notes.txt$", start=mark)
+        time.sleep(0.2)
+        # vybrane je jmeno bez pripony
+        send("type todo", "key Return")
+        d.wait(r"^renamed notes.txt -> todo.txt$", start=mark)
+        self.assertTrue((desktop / "todo.txt").exists())
+        d.wait(r"^icons 2 ", start=mark)
+        # poloha zustava ikone
+        self.assertEqual(self.icons(d)["todo.txt"], pos["notes.txt"])
+        # F2 na vybrane ikone; jmeno, ktere uz existuje, nic neprepise
+        x, y = self.center(pos["a.txt"])
+        mark = d.mark()
+        send(f"move {x} {y}", "sleep 0.1", "click", "sleep 0.3", "key F2", "sleep 0.3", "type todo", "key Return")
+        d.wait(r"^rename exists todo.txt$", start=mark)
+        self.assertEqual((desktop / "a.txt").read_text(), "a.txt\n")
+        self.assertEqual((desktop / "todo.txt").read_text(), "notes.txt\n")
+
+    def test_trash_from_menu_and_delete_key(self):
+        d = self.icon_backdrop("notes.txt", "b.txt", "c.txt")
+        desktop = self.session / "home/Desktop"
+        trash = self.session / "home/.local/share/Trash/files"
+        pos = self.icons(d)
+        send = self.live()
+        mark = d.mark()
+        self.item_menu(d, send, pos["notes.txt"], 3)
+        d.wait(r"^trash notes.txt trash$", start=mark)
+        d.wait(r"^icons 2 ", start=mark)
+        self.assertFalse((desktop / "notes.txt").exists())
+        self.assertTrue((trash / "notes.txt").exists())
+        x, y = self.center(pos["b.txt"])
+        mark = d.mark()
+        send(f"move {x} {y}", "sleep 0.1", "click", "sleep 0.3", "key Delete")
+        d.wait(r"^trash b.txt trash$", start=mark)
+        d.wait(r"^icons 1 ", start=mark)
+        self.assertEqual(sorted(p.name for p in trash.iterdir()), ["b.txt", "notes.txt"])
+
+    def test_rubber_band_selects(self):
+        d = self.icon_backdrop("a.txt", "b.txt", "c.txt", "d.txt")
+        pos = self.icons(d)
+        self.assertEqual(pos["c.txt"], (0, 2))
+        send = self.live()
+        mark = d.mark()
+        # z prazdneho mista vpravo dolu pres a, b az do horni casti c (tlacitko drzi jedna klavesnice/ukazatel:
+        # konec `wlt input` by tlacitko pustil)
+        bx, by = self.center(pos["c.txt"])
+        send("move 300 50", "sleep 0.2", "down", "sleep 0.05", "move 250 100", "sleep 0.05", "move 200 200", "sleep 0.05",
+             f"move {bx} {by - 10}")
+        d.wait(r"^selected a.txt,b.txt,c.txt$", start=mark)
+        time.sleep(0.3)
+        image = self.shot()
+        send("up")
+        # obdelnik vyberu je videt (modry nadech) a po pusteni zmizi
+        self.assertNotEqual(pixel(image, 250, 150), "284682")
+        time.sleep(0.2)
+        self.assertEqual(pixel(self.shot(), 250, 150), "284682")
+        self.assertFalse(any(l.startswith("selected") and "d.txt" in l for _, l in d.lines[mark:]))
+        # klik do prazdna vyber zrusi
+        mark = d.mark()
+        self.input("move 600 400", "click")
+        d.wait(r"^selected $", start=mark)
+
+    def test_drag_rearranges_and_positions_persist(self):
+        d = self.icon_backdrop("a.txt", "b.txt")
+        pos = self.icons(d)
+        x, y = self.center(pos["a.txt"])
+        tx, ty = self.center((3, 2))
+        mark = d.mark()
+        self.input(f"drag {x} {y} {tx} {ty} 500")
+        d.wait(r"^moved a.txt 3,2$", start=mark)
+        time.sleep(0.3)
+        self.assertNotEqual(pixel(self.shot(), tx, ty), "284682")
+        # na obsazenou bunku: nejblizsi volna
+        bx, by = self.center(pos["b.txt"])
+        mark = d.mark()
+        self.input(f"drag {bx} {by} {tx} {ty} 400")
+        _, m = d.wait(r"^moved b.txt (\d+),(\d+)$", start=mark)
+        b_pos = (int(m.group(1)), int(m.group(2)))
+        self.assertNotEqual(b_pos, (3, 2))
+        self.assertLessEqual(abs(b_pos[0] - 3) + abs(b_pos[1] - 2), 1)
+        saved = (self.session / "config/luxos/desktop-icons").read_text().splitlines()
+        self.assertIn("3 2 a.txt", saved)
+        # novy start plochy: stejne polohy
+        d.proc.terminate()
+        d.proc.wait(5)
+        d2 = self.backdrop()
+        d2.wait(r"^icons drawn")
+        self.assertEqual(self.icons(d2), {"a.txt": (3, 2), "b.txt": b_pos})
+
+    def test_keyboard_navigation_and_window_focus(self):
+        d = self.icon_backdrop("a.txt", "b.txt", "c.txt")
+        client = Path(os.environ.get("WLT_OUT") or REPO / "out/wl-test") / "bin/wlt-client"
+        p = subprocess.Popen([str(client), "--events", "--title", "T", "--size", "200x120"], env=self.env, stdout=subprocess.PIPE)
+        self.procs.append(p)
+        c = Proc(p)
+        c.wait(r"^configure")
+        time.sleep(0.3)
+        pos = self.icons(d)
+        x, y = self.center(pos["a.txt"])
+        mark = d.mark()
+        cmark = c.mark()
+        # jedna virtualni klavesnice po celou dobu (nova by vzala fokus): okno, plocha, okno
+        self.input("key shift", "move 512 320", "click", "sleep 0.2", "key a", "sleep 0.2",
+                   f"move {x} {y}", "sleep 0.1", "click", "sleep 0.3", "key Down", "sleep 0.1", "key Down", "sleep 0.1",
+                   "key Up", "sleep 0.1", "key Return", "sleep 0.3",
+                   "move 512 320", "sleep 0.1", "click", "sleep 0.3", "key c", "sleep 0.2")
+        d.wait(r"^open b.txt$", start=mark)
+        out = [l for _, l in d.lines[mark:] if l.startswith("selected")]
+        self.assertEqual(out, ["selected a.txt", "selected b.txt", "selected c.txt", "selected b.txt"])
+        c.wait(r"^key a down", start=cmark)
+        c.wait(r"^key c down", start=cmark)
+        # sipky a Enter nesly do okna
+        self.assertFalse(any("key Down" in l or "key Return" in l for _, l in c.lines[cmark:]))
+        self.assertEqual(self.ran_lines(1), [f"open {self.session / 'home/Desktop/b.txt'}"])
+
+    def test_drop_files_from_file_manager(self):
+        d = self.icon_backdrop("a.txt")
+        src = self.session / "outside.txt"
+        src.write_text("x\n")
+        env = dict(self.env)
+        p = subprocess.Popen(["python3", str(HERE / "backdrop/drag_source.py"), str(src)], env=env, stdout=subprocess.PIPE)
+        self.procs.append(p)
+        s = Proc(p)
+        s.wait(r"^ready$")
+        time.sleep(0.5)
+        mark = d.mark()
+        # okno zdroje je uprostred (labwc testu), pustit vpravo dole na plose
+        self.input("drag 512 320 700 450 600")
+        d.wait(r"^drop copy 1$", start=mark)
+        lines = self.ran_lines(1)
+        desktop_uri = (self.session / "home/Desktop").as_uri()
+        self.assertEqual(lines[-1], f"gio copy -- {src.as_uri()} {desktop_uri}")
+        # skutecna kopie (nahradni gio jen zapisuje): soubor se objevi v bunce, kam byl pusten
+        mark = d.mark()
+        shutil.copy(src, self.session / "home/Desktop/outside.txt")
+        d.wait(r"^icons 2 ", start=mark)
+        col, row = self.icons(d)["outside.txt"]
+        self.assertEqual((col, row), ((700 - GRID_X) // CELL_W, (450 - GRID_Y) // CELL_H))
+
+    def icon_golden(self, mode):
+        self.start(size="640x400")
+        (self.conf / "appearance").write_text(mode + "\n")
+        wall = self.image("wall.png", 320, 200, pattern(320, 200))
+        self.set_conf(f"WALLPAPER={wall}\n")
+        self.desktop_files("Projects/", "notes.txt", "Velmi dlouhy nazev souboru na dva radky.txt")
+        d = self.backdrop()
+        d.wait(r"^icons drawn")
+        x, y = self.center(self.icons(d)["notes.txt"])
+        mark = d.mark()
+        self.input(f"move {x} {y}", "click", "move 600 380")
+        d.wait(r"^icons drawn", start=mark)
+        time.sleep(0.3)
+        self.compare_golden(f"icons-{mode}", self.shot())
+
+    def test_icons_golden_light(self):
+        self.icon_golden("light")
+
+    def test_icons_golden_dark(self):
+        self.icon_golden("dark")
+
+    def test_icons_off_with_style_0(self):
+        self.start()
+        channel = self.session / "config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
+        channel.write_text(DESKTOP_CHANNEL.replace('name="style" type="int" value="2"', 'name="style" type="int" value="0"'))
+        self.desktop_files("notes.txt")
+        d = self.backdrop()
+        d.wait(r"^drawn HEADLESS-1")
+        self.assertEqual(self.icons(d), {})
+        # zmena kanalu plati hned
+        mark = d.mark()
+        channel.write_text(DESKTOP_CHANNEL)
+        d.wait(r"^icons 1 ", start=mark)
 
     # ---- widgety ----
 
@@ -543,10 +898,15 @@ class WaylandBackdrop(unittest.TestCase):
         self.start(outputs=2, size=None)
         wall = self.image("wall.png", 320, 200, pattern(320, 200))
         self.set_conf(f"WALLPAPER={wall}\n")
+        # i s ikonami plochy (monitor ~/Desktop, GVolumeMonitor) zadne probuzeni
+        self.desktop_files("notes.txt", "Projects/")
         d = self.backdrop()
         d.wait(r"^drawn HEADLESS-2")
+        d.wait(r"^icons drawn")
         w = self.widgets("today,calendar")
-        time.sleep(3)
+        # jednorazove probuzeni pracovniho vlakna GLib asi 5 s po prvnim nacteni ikon (zdroj nedohledan,
+        # neopakuje se): merit az po nem
+        time.sleep(10)
         pids = {"backdrop": d.proc.pid, "widgets": w.pid}
         results = {}
         threads = [threading.Thread(target=lambda k=k, p=p: results.__setitem__(k, self.idle(p, seconds)))
