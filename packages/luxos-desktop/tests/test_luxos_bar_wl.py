@@ -177,7 +177,8 @@ class WaylandBar(unittest.TestCase):
             shutil.copy(f, src)
         shutil.copy(HERE / "lsl/luxos-wl-window.lsl", src)
         for name in ("luxos-bar", "luxos-wl-window"):
-            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(src / f"{name}.lsl"), str(cls.tmp / name)],
+            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(src), str(src / f"{name}.lsl"),
+                                str(cls.tmp / name)],
                                capture_output=True, text=True)
             if r.returncode != 0:
                 raise RuntimeError(f"{name}: " + r.stdout + r.stderr)

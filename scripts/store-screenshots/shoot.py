@@ -168,8 +168,8 @@ class Session:
             for f in os.listdir(d):
                 if f.endswith(".lsl"):
                     shutil.copy(os.path.join(d, f), build)
-        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", os.path.basename(main_path), out], cwd=build,
-                       check=True, timeout=900)
+        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", ".", os.path.basename(main_path), out],
+                       cwd=build, check=True, timeout=900)
         return out
 
     def python_env(self, *extra):

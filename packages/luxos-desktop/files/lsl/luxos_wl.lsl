@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libcairo.so.2
 # LuxOS - protokoly Waylandu pro shell (bar, Dock, zamek, snimek, schranka, emoji, monitory, necinnost)
 # nad libluxos-wl (files/src/luxos-wl, C vygenerovane wayland-scannerem). Knihovna se nacita az za behu

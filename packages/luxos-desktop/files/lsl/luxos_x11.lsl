@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libX11.so.6 libXfixes.so.3 libXtst.so.6 libgdk-3.so.0 libcairo.so.2 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - primo Xlib pres spojeni GDK (cil linux-x86_64-gnu) pro Snimek obrazovky: okna aplikaci od nejvyssiho,
 # globalni klavesy bez zabrani klavesnice (XGrabKey jako libkeybinder), sledovani korenoveho okna (filtr GDK)

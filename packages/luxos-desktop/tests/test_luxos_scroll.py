@@ -211,7 +211,7 @@ class TestSettingsCli(unittest.TestCase):
     def setUpClass(cls):
         cls.dir = workdir("test-scroll-cli-")
         cls.bin = os.path.join(cls.dir, "luxos-scrolling")
-        r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", SETTINGS_LSL, cls.bin],
+        r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SETTINGS_LSL), SETTINGS_LSL, cls.bin],
                            capture_output=True, text=True, cwd=os.path.dirname(SETTINGS_LSL))
         if r.returncode != 0:
             raise unittest.SkipTest("lslc failed: " + r.stderr[-500:])
@@ -736,7 +736,7 @@ class ScrollGui(unittest.TestCase):
         """Prepinac v okne zapise volbu a otevrena aplikace ji hned pouzije."""
         binary = os.path.join(self.work, "luxos-scrolling")
         if not os.path.exists(binary):
-            subprocess.run(["lslc", "--target", "linux-x86_64-gnu", SETTINGS_LSL, binary], check=True,
+            subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SETTINGS_LSL), SETTINGS_LSL, binary], check=True,
                            capture_output=True, cwd=os.path.dirname(SETTINGS_LSL))
         self.start(pointer=(0.5, 0.5))
         win = subprocess.Popen([binary], env=self.env(module=False, LUXOS_I18N_DIR="/nonexistent"),

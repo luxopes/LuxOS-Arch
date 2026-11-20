@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # LuxOS - klient IPC luxwm pro shell (lista, nastaveni, luxwm-msg). Protokol: docs/developers/luxwm-ipc.md
 # (radkovy JSON na $XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock). Udalosti chodi v hlavni smycce GLib.
 #

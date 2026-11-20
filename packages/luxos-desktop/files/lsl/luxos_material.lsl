@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # LuxOS - material z matneho skla pro plochy layer-shell na Waylandu (lista, Dock, vyskakovaci okna, oznameni):
 # vyrez rozostrene tapety pod plochou, mlecny podklad, zavoj podle jasu vyrezu a odlesk. Bez XShape a bez snimani
 # obrazovky; programy nacitaji `load luxos_material as material`.

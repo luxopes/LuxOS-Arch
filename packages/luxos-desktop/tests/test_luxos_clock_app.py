@@ -39,7 +39,7 @@ BIN = tempfile.mkdtemp(prefix="luxos-clock-bin-")
 def build():
     if not LSLC:
         return False
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", SRC, os.path.join(BIN, "luxos-clock-app")],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SRC), SRC, os.path.join(BIN, "luxos-clock-app")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         raise AssertionError(r.stderr + r.stdout)

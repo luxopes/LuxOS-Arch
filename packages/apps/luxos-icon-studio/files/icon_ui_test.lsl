@@ -1,4 +1,3 @@
-# lsl: internal-abi
 load gtk
 load glib
 load json

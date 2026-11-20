@@ -186,7 +186,7 @@ def build():
     out = os.path.join(TMP, "bin")
     os.makedirs(out, exist_ok=True)
     for name in ("luxos-emoji-test", "luxos-emoji-data", "luxos-emoji", "luxos-emoji-ui"):
-        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, name + ".lsl"), os.path.join(out, name)],
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, name + ".lsl"), os.path.join(out, name)],
                            capture_output=True, text=True)
         if r.returncode != 0:
             print(r.stdout + r.stderr)

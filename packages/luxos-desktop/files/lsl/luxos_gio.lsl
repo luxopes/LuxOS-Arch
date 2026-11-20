@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - doplnky k modulu gio LSL 0.10.6 (D-Bus) pro luxos-hub; programy nacitaji `load luxos_gio, gio as gio`.
 #   call_async(bus, name, path, iface, method, values, signature, ms, f, data)   f(data, hodnoty odpovedi nebo None, chyba)

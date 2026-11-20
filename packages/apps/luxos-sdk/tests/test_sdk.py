@@ -20,8 +20,7 @@ import unittest
 PACKAGE = Path(__file__).resolve().parents[1]
 ROOT = next((p for p in PACKAGE.parents if (p / "packages/apps").is_dir()), PACKAGE)
 
-DRIVER = r'''# lsl: internal-abi
-load gtk
+DRIVER = r'''load gtk
 load glib
 load luxui
 load json
@@ -75,10 +74,10 @@ class NativeSdk(unittest.TestCase):
                        XDG_STATE_HOME=str(path/'state'), LANG='C.UTF-8', GTK_THEME='Adwaita',
                        GTK_USE_PORTAL='0', GIO_USE_VFS='local', NO_AT_BRIDGE='1',
                        GSETTINGS_BACKEND='memory', GDK_BACKEND='x11', GTK_MODULES='', GTK3_MODULES='')
-            shutil.copy2(PACKAGE/'files/luxui.lsl', path/'luxui.lsl')
             (path/'test.lsl').write_text(DRIVER)
             binary = path/'sdk-test'
-            result = subprocess.run(['lsl', 'compile', '--unsafe', '--target', 'linux-x86_64-gnu', str(path/'test.lsl'), str(binary)],
+            result = subprocess.run(['lsl', 'compile', '--unsafe', '--target', 'linux-x86_64-gnu',
+                                     '--system-bindings', str(PACKAGE/'files'), str(path/'test.lsl'), str(binary)],
                                     env=env, capture_output=True, text=True, timeout=120)
             self.assertEqual(result.returncode, 0, result.stderr)
             result = subprocess.run(['dbus-run-session', '--', 'xvfb-run', '-a', '-s', '-screen 0 1200x900x24', str(binary)],

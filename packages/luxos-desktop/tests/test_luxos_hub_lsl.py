@@ -62,7 +62,7 @@ def build():
         shutil.copy(f, src)
     out = os.path.join(TMP, "bin")
     os.makedirs(out, exist_ok=True)
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-hub.lsl"), os.path.join(out, "luxos-hub")],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "luxos-hub.lsl"), os.path.join(out, "luxos-hub")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout + r.stderr)
@@ -70,13 +70,13 @@ def build():
     for name in ("luxos-control-center", "luxos-calendar"):
         os.symlink("luxos-hub", os.path.join(out, name))
     # maly klient Snimku obrazovky (pozadavky na hub pres socket)
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-screenshot.lsl"), os.path.join(out, "luxos-screenshot")],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "luxos-screenshot.lsl"), os.path.join(out, "luxos-screenshot")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout + r.stderr)
         return None
     # maly klient Emoji a symbolu (pozadavky na hub pres socket)
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-emoji.lsl"), os.path.join(out, "luxos-emoji")],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "luxos-emoji.lsl"), os.path.join(out, "luxos-emoji")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout + r.stderr)

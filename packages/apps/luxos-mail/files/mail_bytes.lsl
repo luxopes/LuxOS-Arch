@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libglib-2.0.so.0
 # Posta LuxOS - nizkourovnove operace nad ByteArray, ktere LSL 0.10.8 nema (nebo jsou pomale):
 #   find(b, jehla, od)            memmem; jehla je ByteArray nebo String (ASCII)
@@ -9,7 +8,6 @@
 #   res_query(jmeno, typ)         odpoved DNS (libc res_query) jako ByteArray; prazdny pri chybe
 #   recv(fd, max)                 cteni z neblokujiciho popisovace: ByteArray (prazdny = konec), False = zatim nic
 #   send(fd, data)                zapis vseho (MSG_NOSIGNAL); False pri chybe
-# Pozor: v internal-abi modulu nevracet None (volajici dostane surovou 0) - chyba = False / "".
 
 function data(bytes):
     unsafe:

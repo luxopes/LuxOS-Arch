@@ -96,7 +96,7 @@ class LockBase(unittest.TestCase):
         for f in (PKG / "files/lsl").glob("*.lsl"):
             shutil.copy(f, src)
         for name in ("luxos-lock", "luxos-lock-session"):
-            r = run(LSLC, "--target", "linux-x86_64-gnu", str(src / f"{name}.lsl"), str(build / name))
+            r = run(LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(src), str(src / f"{name}.lsl"), str(build / name))
             assert r.returncode == 0, r.stdout + r.stderr
         # obal: napodobeny PAM jen pro luxos-auth (zamek pomocnikovi preda jen par promennych)
         cls.fake_env = cls.tmp / "fake.env"

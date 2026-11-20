@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgdk_pixbuf-2.0.so.0 libcairo.so.2 libatk-1.0.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - doplnky k modulu gtk LSL 0.10.6 pro Ovladaci centrum, Kalendar a Snimek obrazovky; programy nacitaji
 # `load luxos_gtk, gtk as gtk` (co tu neni, bere se ze standardniho modulu). Nazvy = funkce GTK bez gtk_.

@@ -67,7 +67,8 @@ class Protocols(unittest.TestCase):
             shutil.copy(os.path.join(desktop, "files/lsl", name), src)
         shutil.copy(os.path.join(desktop, "tests/lsl/luxos-wl-test.lsl"), src)
         cls.wltest = os.path.join(cls.tmp, "luxos-wl-test")
-        subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-wl-test.lsl"), cls.wltest],
+        subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src,
+                        os.path.join(src, "luxos-wl-test.lsl"), cls.wltest],
                        check=True, capture_output=True)
         # wl-probe ve dvou kopiich: jedna v allowlistu, druha ne (allowlist rozlisuje cestu programu)
         protocols = os.path.join(SYSROOT, "usr/share/wayland-protocols")

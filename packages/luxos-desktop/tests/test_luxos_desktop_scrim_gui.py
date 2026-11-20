@@ -189,7 +189,7 @@ class DesktopScrim(unittest.TestCase):
                         os.path.join(lib, "libluxos-bar.so"), SRC, *flags, "-lm"], check=True)
         cls.widgets = bool(shutil.which("lslc"))
         if cls.widgets:
-            subprocess.run(["lslc", "--target", "linux-x86_64-gnu", WIDGETS, os.path.join(t, "luxos-widgets")],
+            subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(WIDGETS), WIDGETS, os.path.join(t, "luxos-widgets")],
                            check=True, capture_output=True)
             with open(os.path.join(cfg, "luxos", "widgets.conf"), "w") as f:
                 f.write("ENABLED=1\nWIDGETS=today,system,calendar\n")

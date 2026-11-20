@@ -117,7 +117,8 @@ class EmojiWayland(unittest.TestCase):
         for name in ("luxos-wl-window", "luxos-shot-wl-probe"):
             shutil.copy(HERE / "lsl" / f"{name}.lsl", src)
         for name in ("luxos-emoji-ui", "luxos-emoji-data", "luxos-wl-window", "luxos-shot-wl-probe"):
-            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(src / f"{name}.lsl"), str(cls.tmp / name)],
+            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(src), str(src / f"{name}.lsl"),
+                                str(cls.tmp / name)],
                                capture_output=True, text=True)
             if r.returncode != 0:
                 raise RuntimeError(f"{name}: " + r.stdout + r.stderr)

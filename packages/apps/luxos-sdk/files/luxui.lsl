@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # SPDX-License-Identifier: MIT
 # LuxOS SDK 1.0 - small optional GTK 3 helpers, copied into your own project.
 # No service, interpreter, implicit worker or network dependency.

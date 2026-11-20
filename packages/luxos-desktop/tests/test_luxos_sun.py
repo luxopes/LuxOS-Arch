@@ -81,7 +81,7 @@ class LslLocation(unittest.TestCase):
         with open(os.path.join(src, "sun-test.lsl"), "w") as f:
             f.write('load luxos_sun as sun\nloc = sun.location()\nprint String(Int(loc[0] * 100)) + " " + String(Int(loc[1] * 100))\n')
         cls.bin = os.path.join(cls.tmp.name, "sun-test")
-        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "sun-test.lsl"), cls.bin],
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "sun-test.lsl"), cls.bin],
                            capture_output=True, text=True, timeout=300)
         assert r.returncode == 0, r.stderr + r.stdout
         d = os.path.join(cls.tmp.name, "zi")
