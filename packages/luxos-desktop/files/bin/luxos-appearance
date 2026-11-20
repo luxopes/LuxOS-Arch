@@ -30,6 +30,12 @@ load_prefs() {
 }
 load_prefs
 
+# Relace na Waylandu (luxwm): xfconf, xfwm4, xfce4-panel ani Plank tam nebezi. Zahlavi oken prekresli
+# luxwm (luxwm-msg set-theme), lista, Dock a ostatni klienti shellu sleduji soubor $state_file sami.
+wayland() {
+    [[ -n ${WAYLAND_DISPLAY-} ]]
+}
+
 # Soubor se nahradi najednou (rename): luxos-backdrop, lista i Dock ho sleduji a nesmi videt
 # mezistav bez klice (to by na okamzik nakreslily vychozi tapetu)
 set_pref() {  # set_pref KLIC HODNOTA
@@ -111,7 +117,7 @@ set_wallpaper() {
         done <"$prefs"
         edit_prefs '' "${lines[@]}"
     fi
-    command -v xfconf-query >/dev/null || return 0
+    if wayland || ! command -v xfconf-query >/dev/null; then return 0; fi
     # Ulozene tapety jednim dotazem (drive jedno volani xfconf-query na monitor a plochu,
     # pri kazdem prihlaseni); hodnota nasleduje za nazvem vlastnosti po mezerach
     local -A have=()
@@ -138,6 +144,7 @@ set_wallpaper() {
 desktop_wallpaper() {
     local mon line prop val first=
     [[ -n $WALLPAPER && -r $WALLPAPER ]] && { printf '%s\n' "$WALLPAPER"; return; }
+    wayland && return 0
     local -A have=()
     while IFS= read -r line; do
         [[ $line == /backdrop/screen0/monitor*/last-image* ]] || continue
@@ -330,7 +337,7 @@ have_bar_plugin() {
 # pruhledny oddelovac na zacatku. Vlastni lista uzivatele bez rozpinaciho oddelovace zustane.
 # Navratovy kod 0 = zmena pluginu (panel je nacte az po restartu).
 bar_layout() {
-    command -v xfconf-query >/dev/null && have_bar_plugin || return 1
+    ! wayland && command -v xfconf-query >/dev/null && have_bar_plugin || return 1
     local -a q=(xfconf-query -c xfce4-panel) order args=()
     local ids=/panels/panel-1/plugin-ids p v i max=0 bar= changed=1
     mapfile -t order < <("${q[@]}" -p "$ids" 2>/dev/null | grep -E '^[0-9]+$')
@@ -397,6 +404,7 @@ panel_owner() {
         --method org.freedesktop.DBus.GetNameOwner org.xfce.Panel 2>/dev/null
 }
 restart_panel() {
+    wayland && return 0
     pgrep -u "$USER" -x xfce4-panel >/dev/null || return 0
     local lock="${XDG_RUNTIME_DIR:-/tmp}/luxos-panel-restart.lock" old _
     {
@@ -435,7 +443,7 @@ apply() {
         rgba=(0.09 0.09 0.12 "$alpha")
     fi
 
-    if command -v xfconf-query >/dev/null; then
+    if ! wayland && command -v xfconf-query >/dev/null; then
         xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s "$gtk"
         xfconf-query -c xsettings -p /Net/IconThemeName -n -t string -s "$icons"
         xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$(wm_theme "$gtk")"
@@ -448,6 +456,8 @@ apply() {
         gsettings set org.gnome.desktop.interface color-scheme "$prefer" 2>/dev/null
         gsettings set org.gnome.desktop.interface gtk-theme "$gtk" 2>/dev/null
         gsettings set org.gnome.desktop.interface icon-theme "$icons" 2>/dev/null
+    fi
+    if ! wayland && command -v gsettings >/dev/null; then
         local dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/ theme
         theme=$(dock_theme "${gtk#WhiteSur-}")
         # Plank nenacte zmenene tema se stejnym nazvem - prepnout pres puvodni
@@ -457,10 +467,15 @@ apply() {
     fi
     local old
     old=$(cat "$state_file" 2>/dev/null)
-    panel_css "$mode" || true
+    wayland || panel_css "$mode" || true
     gtk4_css
     mkdir -p "$state_dir"
     echo "$mode" > "$state_file"
+    if wayland; then
+        # luxwm nemusi bezet (jina relace na Waylandu) - pak jen soubor
+        command -v luxwm-msg >/dev/null && luxwm-msg set-theme "$mode" >/dev/null 2>&1
+        return 0
+    fi
     # Panel nacita gtk.css jen pri startu
     if [[ $old != "$mode" ]]; then restart_panel; fi
 }
@@ -524,7 +539,8 @@ case ${1:-status} in
         done ;;
     reapply)    set_wallpaper "$(current)" 0 ;;
     # Po zmene meritka oken: jen tema ramecku (vlastni tema xfwm4 mimo WhiteSur zustava)
-    wm-theme)   cur=$(xfconf-query -c xfwm4 -p /general/theme 2>/dev/null)
+    wm-theme)   wayland && exit 0
+                cur=$(xfconf-query -c xfwm4 -p /general/theme 2>/dev/null)
                 if [[ -z $cur || $cur == WhiteSur-@(Light|Dark)?(-xhdpi) ]]; then
                     m=$([[ $(current) == dark ]] && echo Dark || echo Light)
                     want=$(wm_theme "WhiteSur-$m")
@@ -545,7 +561,7 @@ case ${1:-status} in
         mapfile -t lines < <(prefs_without_wallpapers)
         edit_prefs '' "${lines[@]}" "WALLPAPER='$img'"
         WALLPAPER=$img
-        command -v xfconf-query >/dev/null || { greeter_sync; exit 0; }
+        if wayland || ! command -v xfconf-query >/dev/null; then greeter_sync; exit 0; fi
         for mon in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1 {print $NF}'); do
             for ws in $(workspaces); do
                 xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor$mon/workspace$ws/last-image" -n -t string -s "$img"
