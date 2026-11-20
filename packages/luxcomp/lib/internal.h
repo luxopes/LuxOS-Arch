@@ -118,6 +118,8 @@ struct comp {
 	struct wlr_xdg_shell *xdg_shell;
 	struct wlr_layer_shell_v1 *layer_shell;
 	struct wlr_xdg_decoration_manager_v1 *deco_mgr;
+	struct wlr_server_decoration_manager *kde_deco_mgr;
+	struct wl_listener new_kde_decoration;
 	struct wlr_output_manager_v1 *output_mgr;
 	bool software;
 	bool virtual_input_open;	/* LUXCOMP_VIRTUAL_INPUT: virtual input for every unsandboxed client */
@@ -203,7 +205,8 @@ void cursor_rebase(void);
 struct deco;
 struct deco *deco_create(struct view *view);
 void deco_destroy(struct deco *deco);
-void deco_update(struct deco *deco);		/* size, title, activation */
+void deco_update(struct deco *deco);
+void deco_set_ssd(struct deco *deco, bool on);	/* server-side title bar or only shadow + corners (CSD) */		/* size, title, activation */
 int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
 int deco_height(void);
@@ -223,6 +226,7 @@ struct view *view_create(void);
 struct wlr_xdg_popup;
 void popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree);
 void view_map_common(struct view *v);
+void kde_decoration_check(struct view *v);
 void view_unmap_common(struct view *v);
 void view_destroy_common(struct view *v);
 struct wlr_surface *view_surface(struct view *v);

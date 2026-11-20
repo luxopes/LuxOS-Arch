@@ -430,6 +430,7 @@ luxcomp_destroy(void)
 	wl_list_remove(&comp.new_toplevel.link);
 	wl_list_remove(&comp.new_popup.link);
 	wl_list_remove(&comp.new_decoration.link);
+	wl_list_remove(&comp.new_kde_decoration.link);
 	wl_list_remove(&comp.new_layer_surface.link);
 	wl_list_remove(&comp.new_output.link);
 	wl_list_remove(&comp.new_input.link);

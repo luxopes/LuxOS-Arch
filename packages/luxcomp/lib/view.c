@@ -5,6 +5,7 @@
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_server_decoration.h>
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/edges.h>
@@ -168,6 +169,11 @@ view_commit(struct wl_listener *listener, void *data)
 void
 view_map_common(struct view *v)
 {
+	kde_decoration_check(v);
+	/* i okno s vlastnim zahlavim dostane stin a zaoblene rohy */
+	if (!v->deco) {
+		v->deco = deco_create(v);
+	}
 	v->mapped = true;
 	v->visible = true;
 	wl_list_remove(&v->link);
@@ -504,6 +510,68 @@ deco_destroy_handler(struct wl_listener *listener, void *data)
 	luxcomp_view_set_decorated(v->id, 0);
 }
 
+/* org_kde_kwin_server_decoration: GTK 3 okna bez headerbaru (Thunar) chteji zahlavi od kompozitoru
+ * pres tento protokol, xdg-decoration neznaji. xdg-decoration ma prednost. */
+static void
+kde_mode_request(struct wlr_server_decoration *d)
+{
+	struct view *v = d->surface ? view_from_surface(d->surface) : NULL;
+	if (v && v->toplevel && !v->xdg_deco && view_surface(v) == d->surface) {
+		emit(LUXCOMP_EV_VIEW_REQUEST, v->id, LUXCOMP_REQ_DECORATION,
+			d->mode == WLR_SERVER_DECORATION_MANAGER_MODE_SERVER, 0);
+	}
+}
+
+struct kde_deco {
+	struct wlr_server_decoration *d;
+	struct wl_listener mode, destroy;
+};
+
+static void
+kde_mode(struct wl_listener *listener, void *data)
+{
+	struct kde_deco *k = wl_container_of(listener, k, mode);
+	kde_mode_request(k->d);
+}
+
+static void
+kde_destroy(struct wl_listener *listener, void *data)
+{
+	struct kde_deco *k = wl_container_of(listener, k, destroy);
+	wl_list_remove(&k->mode.link);
+	wl_list_remove(&k->destroy.link);
+	free(k);
+}
+
+static void
+new_kde_decoration(struct wl_listener *listener, void *data)
+{
+	struct kde_deco *k = calloc(1, sizeof(*k));
+	k->d = data;
+	k->mode.notify = kde_mode;
+	wl_signal_add(&k->d->events.mode, &k->mode);
+	k->destroy.notify = kde_destroy;
+	wl_signal_add(&k->d->events.destroy, &k->destroy);
+	kde_mode_request(k->d);
+}
+
+/* Dekorace KDE vznikla pred rolí okna: pozadavek az pri mapovani, pred umistenim */
+void
+kde_decoration_check(struct view *v)
+{
+	struct wlr_surface *s = v->toplevel ? view_surface(v) : NULL;
+	struct wlr_server_decoration *d;
+	if (!s || v->xdg_deco) {
+		return;
+	}
+	wl_list_for_each(d, &comp.kde_deco_mgr->decorations, link) {
+		if (d->surface == s) {
+			kde_mode_request(d);
+			return;
+		}
+	}
+}
+
 static void
 new_decoration(struct wl_listener *listener, void *data)
 {
@@ -529,6 +597,11 @@ views_init(void)
 	wl_signal_add(&comp.xdg_shell->events.new_toplevel, &comp.new_toplevel);
 	comp.new_popup.notify = new_popup;
 	wl_signal_add(&comp.xdg_shell->events.new_popup, &comp.new_popup);
+	comp.kde_deco_mgr = wlr_server_decoration_manager_create(comp.display);
+	wlr_server_decoration_manager_set_default_mode(comp.kde_deco_mgr,
+		WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
+	comp.new_kde_decoration.notify = new_kde_decoration;
+	wl_signal_add(&comp.kde_deco_mgr->events.new_decoration, &comp.new_kde_decoration);
 	comp.deco_mgr = wlr_xdg_decoration_manager_v1_create(comp.display);
 	comp.new_decoration.notify = new_decoration;
 	wl_signal_add(&comp.deco_mgr->events.new_toplevel_decoration, &comp.new_decoration);
@@ -571,7 +644,7 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	case LUXCOMP_VIEW_W: return w;
 	case LUXCOMP_VIEW_H: return h;
 	case LUXCOMP_VIEW_DECO_TOP:
-		return v->deco && !luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN) ? deco_height() : 0;
+		return v->decorated && v->deco && !luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN) ? deco_height() : 0;
 	case LUXCOMP_VIEW_OUTPUT: {
 		struct output *o = output_at(v->x + w / 2, v->y + h / 2);
 		return o ? o->id : 0;
@@ -791,11 +864,10 @@ luxcomp_view_set_decorated(int64_t id, int64_t on)
 		return;
 	}
 	v->decorated = on;
-	if (on && !v->deco) {
+	if (!v->deco) {
 		v->deco = deco_create(v);
-	} else if (!on && v->deco) {
-		deco_destroy(v->deco);
-		v->deco = NULL;
+	} else {
+		deco_set_ssd(v->deco, on);
 	}
 	if (v->toplevel) {
 		apply_decoration_mode(v);

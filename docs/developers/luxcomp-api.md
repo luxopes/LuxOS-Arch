@@ -179,7 +179,13 @@ jiné okno), rozhoduje politika. Viz `luxos-fullscreen-layer.patch` u xfwm4.
 LuxOS. Tmavý režim a tokeny návrhu (WP-4) nastaví luxwm těmito voláními, v jádře nejsou žádné
 soubory s tématem.
 
-Jak to jádro kreslí (okna se zahlavím kompozitoru, okna s vlastním zahlavím CSD nechává být):
+Jak to jádro kreslí:
+- Okno se zahlavím kompozitoru (xdg-decoration nebo `org_kde_kwin_server_decoration` v režimu server,
+  ten používá GTK 3 u oken bez headerbaru, např. Thunar) má zahlaví, stín a zaoblené dolní rohy.
+  Výchozí režim protokolu KDE je server; xdg-decoration má přednost.
+- Okno s vlastním zahlavím (CSD, GTK headerbar) má jen stín kolem geometrie okna
+  (`xdg_surface.set_window_geometry`, bez okrajů, kam si klient kreslí vlastní stín) a zaoblené dolní
+  rohy. `VIEW_DECO_TOP` je 0.
 - Zahlaví i stín se kreslí v měřítku největšího výstupu (při 2x ostré písmo a kolečka).
 - Stín je 8 dílů jedné předem rozmazané textury (rohy 1:1, hrany roztažené z jednoho sloupce).
   Textura je společná všem oknům se stejnou velikostí, poloměrem, barvou a měřítkem, při přesunu

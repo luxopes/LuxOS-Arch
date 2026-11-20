@@ -55,6 +55,7 @@ struct deco {
 	bool rounded;
 	int width, height, scale, hover;
 	bool active, square;
+	bool ssd;		/* false = the client draws its title bar: only shadow and corners */
 	char *title;
 };
 
@@ -403,9 +404,20 @@ deco_create(struct view *view)
 		wlr_scene_node_set_enabled(&d->corner[i]->node, false);
 	}
 	d->shadow = shadow_create(view->tree);
+	d->ssd = view->decorated;
 	d->width = -1;
 	deco_update(d);
 	return d;
+}
+
+void
+deco_set_ssd(struct deco *d, bool on)
+{
+	if (d->ssd != on) {
+		d->ssd = on;
+		d->width = -1;
+		deco_update(d);
+	}
 }
 
 void
@@ -449,7 +461,7 @@ deco_update(struct deco *d)
 	struct view *v = d->view;
 	int64_t id = v->id;
 	bool fullscreen = luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN);
-	wlr_scene_node_set_enabled(&d->node->node, !fullscreen);
+	wlr_scene_node_set_enabled(&d->node->node, d->ssd && !fullscreen);
 	int width = view_width(v), height = view_height(v), scale = output_scale();
 	bool active = comp.focused == v;
 	bool square = fullscreen || luxcomp_view_get(id, LUXCOMP_VIEW_MAXIMIZED);
@@ -467,8 +479,13 @@ deco_update(struct deco *d)
 	d->scale = scale;
 	free(d->title);
 	d->title = strdup(title);
-	redraw(d);
-	int t = theme.title_height;
+	/* okno s vlastnim zahlavim (GTK headerbar): stin kolem geometrie okna (bez okraju pro stin
+	 * klienta), zahlavi nekreslit */
+	int t = 0;
+	if (d->ssd) {
+		redraw(d);
+		t = theme.title_height;
+	}
 	shadow_update(d->shadow, (struct wlr_box){ 0, -t, width, height + t },
 		square ? 0 : theme.shadow_size[active], theme.radius, theme.shadow[active], scale);
 }
