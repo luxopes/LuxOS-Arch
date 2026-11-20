@@ -146,10 +146,16 @@ cmd_start() {
     fi
 
     # luxwm: privilegovane protokoly jen pro nastroje harnessu (wlr-randr, grim, wlt-input)
+    # a absolutni cesty z WLT_PRIVILEGED (testovane programy shellu)
     local t
-    for t in wlr-randr grim "$bin/wlt-input"; do
-        t=$(PATH=$base_path command -v "$t") && readlink -f "$t"
-    done >"$s/privileged.conf"
+    {
+        for t in wlr-randr grim "$bin/wlt-input"; do
+            t=$(PATH=$base_path command -v "$t") && readlink -f "$t"
+        done
+        for t in ${WLT_PRIVILEGED-}; do
+            readlink -f "$t"
+        done
+    } >"$s/privileged.conf"
     wenv+=("LUXWM_PRIVILEGED=$s/privileged.conf")
     # XWayland ze sysrootu (wlroots ho jinak hleda v /usr/bin)
     [[ -n $sysroot && -x $sysroot/usr/bin/Xwayland ]] && wenv+=("WLR_XWAYLAND=$sysroot/usr/bin/Xwayland")
