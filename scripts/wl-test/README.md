@@ -74,6 +74,11 @@ scripts/wl-test/wlt stop "$s"
   - `sleep SEC`
 
   Coordinates are pixels of the whole output layout (`S/layout`).
+- `WLT_STAMP=1 wlt input ...` prints `stamp KEY US` (CLOCK_MONOTONIC in µs) when a key goes down, for latency
+  measurements from a key press to a client's first frame.
+- Every `wlt input` call creates its own virtual keyboard and removes it at the end. labwc then takes the keyboard
+  focus away (the seat has no keyboard left) and a GTK client loses the first key of the next call. For keyboard
+  scenarios keep one `wlt input` running and feed it commands on stdin, as a real keyboard stays plugged in.
 - `env S` prints `export` lines for the session, e.g. for running an LSL client by hand.
 - Logs: `S/compositor.log`, `S/clients.log`, `S/xvfb.log`. For a debug log, use `wlt start -- labwc -d`.
 
