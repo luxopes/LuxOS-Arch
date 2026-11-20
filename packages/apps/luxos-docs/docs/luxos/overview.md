@@ -8,7 +8,7 @@ started from.
 
 ## Version and codenames
 
-- Current version: **1.0.4 "Sirius"** (2026-11-21; the first stable release was 1.0.3 on 2026-11-20; earlier versions were betas: 1.0.2 "Sirius" came out on 2026-11-17, 1.0.1 "Sirius" on 2026-11-08, 1.0.0 "Sirius" on 2026-11-04, before it 0.9.x "Polaris"). The exact installed version is always in `/usr/lib/os-release`.
+- Current version: **1.0.4 "Sirius"** (2026-11-20; the first stable release was 1.0.3 on 2026-11-20; earlier versions were betas: 1.0.2 "Sirius" came out on 2026-11-17, 1.0.1 "Sirius" on 2026-11-08, 1.0.0 "Sirius" on 2026-11-04, before it 0.9.x "Polaris"). The exact installed version is always in `/usr/lib/os-release`.
 - Single source of the version: `/usr/lib/os-release` (written by `luxos-branding`):
   `ID=luxos`, `ID_LIKE=arch`, `VERSION_ID=1.0.4`, `PRETTY_NAME="LuxOS … Sirius"`, `BUILD_ID` =
   build day. `/etc/os-release` links to it. The same version appears in About This Computer,
