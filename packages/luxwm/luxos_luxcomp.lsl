@@ -9,7 +9,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 2
+API_VERSION = 3
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -112,6 +112,11 @@ THEME_MINIMIZE = 10
 THEME_MAXIMIZE = 11
 THEME_BUTTON_INACTIVE = 12
 THEME_SEPARATOR = 13
+THEME_GLYPH = 14
+THEME_SHADOW_ACTIVE = 15
+THEME_SHADOW_INACTIVE = 16
+THEME_SHADOW_ACTIVE_SIZE = 17
+THEME_SHADOW_INACTIVE_SIZE = 18
 
 function ptr(value):
     unsafe:
@@ -419,5 +424,11 @@ end
 function theme_set_font(font):
     unsafe:
         call __lsl_qbe_call1(__lsl_symbol("luxcomp_theme_set_font"), cstr(font))
+    end
+end
+
+function set_cursor(theme, size):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_set_cursor"), cstr(theme), ptr(size))
     end
 end
