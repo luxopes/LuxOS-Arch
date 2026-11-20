@@ -180,10 +180,11 @@ class LoginCover(unittest.TestCase):
         self.assertEqual(self.X.pixel(), self.X.black)
 
     def test_gives_up_without_window_manager(self):
-        # relace se nespustila (zadny spravce oken): po ~3 s konec, ne az po LOGIN_MAX_MS
+        # relace se nespustila (zadny spravce oken): po ~6 s konec, ne az po LOGIN_MAX_MS
         p, t0 = self.start()
-        p.wait(8)
-        self.assertLess(time.monotonic() - t0, 4.0)
+        p.wait(9)
+        self.assertGreater(time.monotonic() - t0, 5.5)
+        self.assertLess(time.monotonic() - t0, 7.5)
         pump(0.1)
         self.assertEqual(self.X.pixel(), self.X.black)
 

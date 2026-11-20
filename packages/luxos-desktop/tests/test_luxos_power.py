@@ -377,6 +377,37 @@ class PowersaverScript(unittest.TestCase):
         self.ps("off")
         self.assertEqual(self.rate(), ["2560x1600", "165.00"])
 
+    def displays_auto(self):
+        """luxos-displays auto jako po prihlaseni (luxos-session): skutecny skript s falesnym xrandr."""
+        fake = os.path.join(HERE, "fake-displays")
+        write(os.path.join(self.bin, "luxos-powersaver"), f'#!/bin/sh\nexec bash "{BIN}/luxos-powersaver" "$@"\n')
+        os.chmod(os.path.join(self.bin, "luxos-powersaver"), 0o755)
+        write(f"{self.cfg}/luxos/displays-mode", "extend\n")
+        env = dict(self.env, PATH=self.bin + os.pathsep + fake + os.pathsep + os.environ["PATH"],
+                   FAKE_XFCONF=os.path.join(self.d, "xfconf.json"), LUXOS_PYDIR=PYDIR)
+        r = subprocess.run(["bash", os.path.join(BIN, "luxos-displays"), "auto"], env=env,
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_login_keeps_rate_without_60hz_opt_in(self):
+        """Prihlaseni se zapnutym sporicem bez volby 60 Hz: frekvence displeje se nemeni - zmena by
+        uprostred nacitani relace obrazovku na okamzik zcernala (hlaseni 1.0.3, panel 144 Hz)."""
+        write(f"{self.cfg}/luxos/powersaver", "")
+        self.displays_auto()
+        self.assertEqual(self.rate(), ["2560x1600", "165.00"])
+        self.ps("reapply")
+        self.assertEqual(self.rate(), ["2560x1600", "165.00"])
+
+    def test_login_with_60hz_opt_in_saves_rate_for_off(self):
+        """S volbou 60 Hz omezi luxos-displays auto frekvenci jako sporic a vypnuti ji vrati."""
+        write(f"{self.cfg}/luxos/powersaver-60hz", "")
+        write(f"{self.cfg}/luxos/powersaver", "")
+        self.displays_auto()
+        self.assertEqual(self.rate(), ["2560x1600", "60.00"])
+        self.assertIn("rate-eDP-1=2560x1600 165.00", read(f"{self.cfg}/luxos/powersaver.saved"))
+        self.ps("off")
+        self.assertEqual(self.rate(), ["2560x1600", "165.00"])
+
     def test_reapply_off_stops_leftover(self):
         write(f"{self.d}/run/luxos/powersaver", "")
         self.ps("reapply")

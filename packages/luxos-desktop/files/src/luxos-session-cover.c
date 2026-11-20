@@ -192,10 +192,13 @@ static int logout_main(void)
 #define LOGIN_SCAN_MS 90         /* jak casto kontrolovat, zda je plocha vykreslena */
 #define LOGIN_NOCM_SETTLE_MS 400 /* bez kompozitoru okna nejdou precist: plocha a lista namapovane + chvile */
 #define LOGIN_WAIT_CM_MS 1500    /* bez kompozitoru jeste chvili pockat, zda nezacne (rozplynuti) */
+#define LOGIN_CM_SETTLE_MS 400  /* kompozitor bezi aspon tak dlouho, nez se zakryti rozplyne (pozde zapnuty kompozitor) */
 #define LOGIN_PAINT_MAX_MS 4000  /* plocha namapovana, ale "nevykreslena" (napr. cerna barva pozadi) */
 #define LOGIN_SOLID_MS 1200      /* jednobarevna plocha (barva misto tapety) stabilni tak dlouho = hotovo */
 #define LOGIN_DOCK_MAX_MS 1500   /* skryty Dock (automaticke skryvani) nemusi nic vykreslit */
-#define LOGIN_NO_WM_MS 3000      /* bez spravce oken (_NET_SUPPORTING_WM_CHECK) tak dlouho: relace se nespousti */
+#define LOGIN_NO_WM_MS 6000      /* bez spravce oken (_NET_SUPPORTING_WM_CHECK) tak dlouho: relace se nespousti.
+                                    Drive 3 s: pri pomalem startu relace (studeny disk) zakryti skoncilo pred
+                                    xfwm4 a jeho kompozitor pak do vykresleni plochy kreslil cerny koren */
 #define LOGIN_MAX_MS 10000       /* vzdy skoncit (relace bez listy, jine prostredi) */
 
 static long now_ms(void)
@@ -1008,7 +1011,7 @@ static int login_main(void)
     if (cow != None)
         XSelectInput(dpy, cow, SubstructureNotifyMask);
     int motion = motion_allowed();
-    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0;
+    long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0, cm_at = 0;
     Bar bar;
     bar_start(&bar, snap, ra.visual, ra.depth, (int)w, (int)h, win, start);
     Atom a_wm = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
@@ -1057,6 +1060,10 @@ static int login_main(void)
         }
         if (!ready_at && (check || t - last_scan >= LOGIN_SCAN_MS)) {
             int have_cm = XGetSelectionOwner(dpy, a_cm) != None;
+            if (!have_cm)
+                cm_at = 0;
+            else if (!cm_at)
+                cm_at = t;
             scan(&sc, have_cm);
             last_scan = t;
             check = 0;
@@ -1085,7 +1092,8 @@ static int login_main(void)
                     sc.desk_filled, stable, sc.dock_painted, sc.dock);
                 if (desk_ok)
                     bar_stage(&bar, 3, t - start);
-                if (desk_ok && dock_ok)
+                /* kompozitor teprve zacal: prvni snimky jeste nema (cerny koren), rozplynuti by ukazalo cernou */
+                if (desk_ok && dock_ok && t - cm_at >= LOGIN_CM_SETTLE_MS)
                     ready_at = t;
             } else if (listed_at && t - listed_at >= LOGIN_NOCM_SETTLE_MS
                        && (!motion || t - listed_at >= LOGIN_NOCM_SETTLE_MS + LOGIN_WAIT_CM_MS)) {

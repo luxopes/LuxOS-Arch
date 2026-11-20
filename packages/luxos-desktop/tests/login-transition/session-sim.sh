@@ -5,6 +5,7 @@
 #   session-sim.sh OUTDIR COVER_BIN [varianta]
 #   varianta: normal | slow (plocha a lista o 3 s pozdeji) | cm-late (kompozitor se zapne az 1,5 s po
 #             startu plochy) | nocomp (bez kompozitoru) | powersaver (Sporic baterie: bez animace)
+#             | wm-late (spravce oken az 3,5 s po startu zakryti - pomaly start relace)
 #             | nocover (bez prechodu - pro srovnani)
 # Promenne: SECS (delka snimani, 12), EVERY (ulozit kazdy N-ty snimek jako PPM, 0), WALL (tapeta).
 set -u
@@ -71,6 +72,7 @@ dbus-run-session -- bash -c '
         LUXOS_COVER_DEBUG=1 "$COVER" --login >"$O/cover.log" 2>&1 & pids+=($!)
     fi
     sleep 0.25     # start xfce4-session
+    [[ $VARIANT == wm-late ]] && sleep 3.5
     ev xfwm4
     xfsettingsd --no-daemon >/dev/null 2>&1 & pids+=($!)
     xfwm4 >/dev/null 2>&1 & pids+=($!)

@@ -62,9 +62,10 @@ loader where the password field was, until the desktop is really ready:
   same frame, composited by xfwm4 over the finished desktop).
 
 It never delays anything: input goes through it; without a compositor it waits 0.4 s after the desktop
-and the top bar are mapped (and up to 1.5 s more for a compositor); a solid-colour desktop counts as
-ready after 1.2 s, a desktop that never draws after 4 s; without a window manager
-(`_NET_SUPPORTING_WM_CHECK`) after 3 s it gives up, and it always ends within 10 s. It is purely
+and the top bar are mapped (and up to 1.5 s more for a compositor); it dissolves only after the
+compositor has run for 0.4 s (its first frames are black); a solid-colour desktop counts as ready
+after 1.2 s, a desktop that never draws after 4 s; without a window manager
+(`_NET_SUPPORTING_WM_CHECK`) after 6 s it gives up, and it always ends within 10 s. It is purely
 passive: it runs with `nice 5` and the spinner costs about 1 % of a core; the X server stays idle (a
 version that let every spinner frame generate a NoExpose event redrew it in a tight loop, kept the X
 server at 100 % and delayed the start of xfce4-session by up to 15 s). With Battery

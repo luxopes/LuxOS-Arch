@@ -11,7 +11,7 @@
 # (sestaveny z files/src) a xfwm4 s kompozitorem, xfdesktop, xfce4-panel a plank - vse na soukromem Xvfb,
 # DBus a HOME (nikdy na skutecne obrazovce). Obrazovka se snima nepretrzite (MIT-SHM, stovky snimku/s);
 # test selze, kdyz je od prvniho snimku greeteru jakykoli snimek cerny (>= 98 % cernych bodu) nebo
-# z vetsi casti cerny (>= 25 %). Varianty: normal slow cm-late nocomp powersaver (vychozi vsechny).
+# z vetsi casti cerny (>= 25 %). Varianty: normal slow cm-late nocomp powersaver wm-late (vychozi vsechny).
 # Vysledky (frames.log, events.log, cover.log, cerne snimky jako PPM) v $OUT (mktemp).
 set -u
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos-testguard.sh)
@@ -23,7 +23,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 RUNS=${1:-1}
 shift || true
 VARIANTS=("$@")
-[[ ${#VARIANTS[@]} -gt 0 ]] || VARIANTS=(normal slow cm-late nocomp powersaver)
+[[ ${#VARIANTS[@]} -gt 0 ]] || VARIANTS=(normal slow cm-late nocomp powersaver wm-late)
 for t in Xvfb xfwm4 xfdesktop xfce4-panel plank xfsettingsd dbus-run-session gcc xdotool; do
     command -v "$t" >/dev/null || { echo "SKIP: $t missing"; exit 0; }
 done

@@ -194,8 +194,10 @@ case ${1:-auto} in
     auto)
         # LUXOS_DISPLAYS_MODE: zkusebni pouziti rozlozeni z aplikace Monitory (rezim jeste neulozen)
         apply_mode "$(saved_mode)"
-        # Sporic baterie: vestaveny displej po zmene zapojeni opet nejvys 60 Hz
-        [[ -e $cfg/powersaver ]] && python3 -I /usr/lib/luxos/python/luxos_displays.py rate-cap >/dev/null 2>&1
+        # Sporic baterie s volbou 60 Hz: vestaveny displej po zmene zapojeni opet nejvys 60 Hz (puvodni frekvence
+        # se ulozi pro vypnuti). Drive bez ohledu na volbu - i pri kazdem prihlaseni (luxos-session vola auto):
+        # zmena frekvence (napr. 144 -> 60 Hz) uprostred nacitani relace obrazovku na okamzik zcernala.
+        [[ -e $cfg/powersaver ]] && luxos-powersaver rate-cap >/dev/null 2>&1
         true ;;
     extend|mirror|external|internal)
         mkdir -p "$cfg"

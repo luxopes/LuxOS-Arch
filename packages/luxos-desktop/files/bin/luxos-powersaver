@@ -91,8 +91,18 @@ restore_zoom() {
     rm -f "$cfg/dock-zoom"
 }
 
+# Displeje s 90-165 Hz: 60 Hz setri asi 0,5-1,5 W (vyrobce panelu i macOS to delaji stejne). Jen s volbou
+# 60 Hz - zmena frekvence obrazovku na okamzik zcerna. Puvodni frekvence se ulozi pro vypnuti sporice.
+cap_rate() {
+    local name mode rate
+    [[ -e $cap60 && -n ${DISPLAY:-} && -r $displays ]] || return 0
+    while read -r name mode rate; do
+        [[ -n $rate ]] && put "rate-$name" "$mode $rate"
+    done < <(python3 -I "$displays" rate-cap 2>/dev/null)
+}
+
 apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodnoty, ztlumit)
-    local p name mode rate
+    local p
     if [[ ${1:-} == first ]]; then
         p=$(get_profile); [[ -n $p && $p != power-saver ]] && put profile "$p"
     fi
@@ -100,12 +110,7 @@ apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodno
     system_part start
     restore_zoom
     restore_animations
-    # Displeje s 90-165 Hz: 60 Hz setri asi 0,5-1,5 W (vyrobce panelu i macOS to delaji stejne)
-    if [[ -e $cap60 && -n ${DISPLAY:-} && -r $displays ]]; then
-        while read -r name mode rate; do
-            [[ -n $rate ]] && put "rate-$name" "$mode $rate"
-        done < <(python3 -I "$displays" rate-cap 2>/dev/null)
-    fi
+    cap_rate
     # Jas: podsviceni je nejvetsi spotrebic notebooku; o petinu nize, ne pod 40 %
     if [[ ${1:-} == first ]]; then
         p=$(bright_pct)
@@ -155,8 +160,11 @@ case ${1:-status} in
                 system_part stop        # zbylo po jinem uzivateli / padu relace
             fi
         fi ;;
+    rate-cap)
+        # Po zmene zapojeni monitoru (luxos-displays auto): se zapnutym sporicem a volbou 60 Hz znovu nejvys 60 Hz
+        [[ -e $state ]] && cap_rate ;;
     restore-zoom)   # po aktualizaci balicku v bezici relaci (luxos-desktop.install)
         restore_zoom ;;
-    -h|--help) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply]"; exit 0 ;;
-    *) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply]" >&2; exit 2 ;;
+    -h|--help) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply|rate-cap]"; exit 0 ;;
+    *) echo "$(T "Usage:") luxos-powersaver [on|off|toggle|status|reapply|rate-cap]" >&2; exit 2 ;;
 esac
