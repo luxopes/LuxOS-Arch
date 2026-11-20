@@ -391,6 +391,107 @@ class Locker(LockBase):
         self.assertEqual(p.wait(10), 0)
         self.assertEqual(self.passwords(), [secret])
 
+    def test_dead_keys_compose_and_altgr(self):
+        """cz: ť ů ď jen pres mrtve klavesy (Shift+= je hacek, Shift+; krouzek), ě primo, @ pres AltGr+v."""
+        self.start()
+        secret = "ťůďě@"
+        self.fake({"FAKE_PAM_PASSWORD": secret})
+        p = self.locker()
+        self.keys("key shift+dead_caron", "key t", "key shift+dead_abovering", "key u",
+                  # zrusena sekvence (hacek + Backspace) nic neprida ani neubere
+                  "key shift+dead_caron", "key BackSpace",
+                  "key shift+dead_caron", "key d", "key ecaron", "key ISO_Level3_Shift+v", layout="cz")
+        self.drain(p, 0.5)
+        lengths = [int(line.split()[2]) for line in self.lines(p) if line.startswith("key ")]
+        self.assertEqual(lengths[-1], 5, lengths)
+        self.keys("key Return", layout="cz")
+        self.assertEqual(p.wait(10), 0)
+        self.assertEqual(self.passwords(), [secret])
+        out = p.seen.decode()
+        for ch in secret:
+            self.assertNotIn(ch, out)
+        # znaky ani mrtve klavesy nejdou do LSL: keysym 0 za znak, jinak jen ridici klavesy (Shift, AltGr)
+        syms = {int(line.split()[1]) for line in self.lines(p) if line.startswith("key ")}
+        self.assertFalse([s for s in syms if 0 < s < 0xfe00 or 0xfe50 <= s <= 0xfe93], syms)
+
+    def test_hold_key_repeats(self):
+        """Drzena klavesa se opakuje podle repeat_info (labwc testu: prodleva 600 ms, 25/s), Return ne."""
+        self.start()
+        p = self.locker()
+        hold = 1.0
+        self.keys("keydown x", f"sleep {hold}", "keyup x")
+        self.drain(p, 0.3)
+        typed = [int(line.split()[2]) for line in self.lines(p) if line.startswith("key 0 ")]
+        expected = 1 + int((hold - 0.6) * 25)
+        print(f"\n  x held {hold:.1f} s -> {len(typed)} characters (expected ~{expected})")
+        self.assertTrue(expected - 3 <= len(typed) <= expected + 2, typed)
+        self.assertEqual(typed, list(range(1, len(typed) + 1)))
+        # po uvolneni uz nic
+        count = len(self.lines(p))
+        self.drain(p, 0.5)
+        self.assertEqual(len(self.lines(p)), count)
+        # drzeny Backspace smaze vse, pak spravne heslo odemkne
+        self.keys("keydown BackSpace", "sleep 1.6", "keyup BackSpace")
+        self.drain(p, 0.3)
+        backs = [int(line.split()[2]) for line in self.lines(p) if line.startswith("key 65288 ")]
+        print(f"  BackSpace held 1.6 s -> {len(backs)} presses, length {backs[-1]}")
+        self.assertGreater(len(backs), len(typed))
+        self.assertEqual(backs[-1], 0)
+        self.keys(f"type {PASSWORD}", "key Return")
+        self.assertEqual(p.wait(10), 0)
+        self.assertEqual(self.passwords(), [PASSWORD])
+
+    def scaled_lock(self, scale):
+        subprocess.run([str(WLT), "run", str(self.session), "wlr-randr", "--output", "HEADLESS-1", "--scale", scale],
+                       check=True, capture_output=True, timeout=20)
+        time.sleep(0.3)
+        return self.locker()
+
+    def test_scale_2_buffer(self):
+        """Monitor s meritkem 2: zamek kresli bufer 2x (ostre pismo) pro logickou plochu 1024x640; 1.5 zlomkove."""
+        shots = Path(os.environ.get("LUXOS_LOCK_SHOTS") or OUT / "lock-shots")
+        shots.mkdir(parents=True, exist_ok=True)
+        self.start(size="2048x1280")
+        p = self.scaled_lock("2")
+        self.assertIn("configure 1024x640", self.lines(p))
+        self.assertIn("scale 2.0", self.lines(p))
+        subprocess.run([str(WLT), "shot", str(self.session), str(shots / "lock-scale2.png")], check=True,
+                       capture_output=True)
+        shot = self.shot()
+        self.assertEqual((shot.width, shot.height), (2048, 1280))
+        # Hodiny: bufer 1x zvetseny kompozitorem je rozmazany (zadna ostra hrana, overeno proti puvodnimu
+        # zamku: 0), v buferu 2x ma hrana pisma plny kontrast i mezi pixely jednoho logickeho pixelu (lichy x).
+        sharp = odd = 0
+        for y in range(100, 420):
+            for x in range(640, 1400):
+                a, b = shot.pixel(x, y), shot.pixel(x + 1, y)
+                if abs(a[0] - b[0]) > 60:
+                    sharp += 1
+                    odd += x % 2
+        print(f"\n  scale 2: {sharp} sharp edges in the clock, {odd} at odd x")
+        self.assertGreater(sharp, 300)
+        self.assertGreater(odd, sharp // 4)
+        self.keys(f"type {PASSWORD}", "key Return")
+        self.assertEqual(p.wait(10), 0)
+        # zlomkove meritko (wp_fractional_scale_v1 + wp_viewporter)
+        p = self.scaled_lock("1.5")
+        self.assertIn("configure 1365x853", self.lines(p))
+        self.assertIn("scale 1.5", self.lines(p))
+        self.keys(f"type {PASSWORD}", "key Return")
+        self.assertEqual(p.wait(10), 0)
+
+    def test_idle_keeps_one_buffer(self):
+        """Po psani (vic snimku za sebou) zustane v klidu jen jeden bufer wl_shm na plochu."""
+        self.start(size="1920x1080")
+        p = self.locker()
+        self.keys("type abcdefgh", "key BackSpace", "key BackSpace")
+        time.sleep(2.0)
+        shmem = int(next(line.split()[1] for line in Path(f"/proc/{p.pid}/status").read_text().splitlines()
+                         if line.startswith("RssShmem:")))
+        buffer_kb = 1920 * 1080 * 4 // 1024
+        print(f"\n  idle RssShmem {shmem} kB, one 1080p buffer {buffer_kb} kB")
+        self.assertLess(shmem, buffer_kb * 3 // 2)
+
     def test_kill_9_keeps_screen_covered_and_new_locker_takes_over(self):
         self.start()
         self.window()
