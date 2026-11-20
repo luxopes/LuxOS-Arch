@@ -42,7 +42,7 @@ SHORT = {"thunar": "Files", "luxos-terminal": "Terminal", "xfce4-terminal": "Ter
 
 # Nabidka loga: [text, prikaz]; "" = oddelovac
 MENU = [["About LuxOS", ["luxos-about"]], ["Settings", ["luxos-settings"]], ["Launchpad", ["luxos-launchpad"]], "",
-    ["Lock Screen", ["loginctl", "lock-session"]], ["Log Out", ["loginctl", "terminate-session", "self"]],
+    ["Lock Screen", ["loginctl", "lock-session"]], ["Log Out", ["loginctl", "terminate-session", "auto"]],
     ["Restart", ["systemctl", "reboot"]], ["Shut Down", ["systemctl", "poweroff"]]]
 
 bars = []

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=LuxOS
-Comment=LuxOS desktop
+Name=LuxOS (X11)
+Comment=LuxOS desktop (X11, for older graphics cards)
 Exec=startxfce4
 TryExec=startxfce4
 Icon=luxos-logo
