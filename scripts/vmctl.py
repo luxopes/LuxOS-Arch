@@ -9,6 +9,8 @@
   vmctl.py move X Y [W H]          presune kurzor
 vmctl.py rclick X Y [W H]        klik pravym tlacitkem
 vmctl.py scrollup|scrolldown X Y [W H]  jeden zub kolecka mysi
+  vmctl.py tap X Y [W H]           klepnuti prstem (dotykova obrazovka: LUXOS_VM_TOUCH=1 v test-vm.sh)
+  vmctl.py swipe X1 Y1 X2 Y2 [PRSTU] [W H]   tah jednim nebo vice prsty (gesta)
   vmctl.py put SOUBOR CIL          nahraje soubor do hosta
   vmctl.py ping                    ceka na guest agenta
   vmctl.py wakeup                  probudi uspaneho hosta (QMP system_wakeup)
@@ -137,6 +139,39 @@ def main():
         for down in ((True, False) if button else ()):
             qmp("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": button}}]})
             time.sleep(0.08)
+    elif c in ("tap", "swipe"):
+        # vicedotykove udalosti QMP (virtio-multitouch): begin + polohy (data) + end pro kazdy prst
+        n = 4 if c == "tap" else 5
+        nums = [int(v) for v in a[1:]]
+        w, h = (nums[-2], nums[-1]) if len(nums) in (n - 1 + 2, n + 2) else (1280, 800)
+        if c == "tap":
+            x1, y1 = nums[0], nums[1]; x2, y2, fingers, steps = x1, y1, 1, 1
+        else:
+            x1, y1, x2, y2 = nums[:4]
+            fingers = nums[4] if len(nums) in (5, 7) else 1
+            steps = 12
+
+        def touch(kind, x, y):
+            ev = []
+            for f in range(fingers):
+                fx = min(w - 1, x + f * 60)
+                ax, ay = fx * 32767 // (w - 1), y * 32767 // (h - 1)
+                if kind == "begin":
+                    ev.append({"type": "mtt", "data": {"type": "begin", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
+                if kind in ("begin", "update"):
+                    ev.append({"type": "mtt", "data": {"type": "data", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
+                    ev.append({"type": "mtt", "data": {"type": "data", "slot": f, "tracking-id": 100 + f, "axis": "y", "value": ay}})
+                if kind == "end":
+                    ev.append({"type": "mtt", "data": {"type": "end", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
+            qmp("input-send-event", {"events": ev})
+
+        touch("begin", x1, y1)
+        time.sleep(0.05)
+        for i in range(1, steps + 1):
+            touch("update", x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+            time.sleep(0.03)
+        time.sleep(0.08 if c == "tap" else 0.05)
+        touch("end", x2, y2)
     elif c == "key":
         send(a[1].split("-"))
     elif c == "wakeup":

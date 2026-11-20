@@ -18,7 +18,7 @@
 set -u
 UDEV=${LUXOS_TOUCH_UDEV:-/run/udev/data}
 SYS=${LUXOS_TOUCH_SYS:-/sys/class/input}
-CFG="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
+CFG="${XDG_CONFIG_HOME:-${HOME:-/tmp}/.config}/luxos"
 LOCK_FILE="$CFG/rotation-lock"
 SHARE=${LUXOS_TOUCH_SHARE:-/usr/share/luxos/touch}
 
@@ -228,7 +228,7 @@ lock_screen_keyboard() {
 
 # Gesta: vychozi nastaveni Touchegg LuxOS, dokud si ho uzivatel nezmeni (verze v prvnim radku)
 touchegg_config() {
-    local dst="${XDG_CONFIG_HOME:-$HOME/.config}/touchegg/touchegg.conf" src="$SHARE/touchegg.conf"
+    local dst="${XDG_CONFIG_HOME:-${HOME:-/tmp}/.config}/touchegg/touchegg.conf" src="$SHARE/touchegg.conf"
     [[ -r $src ]] || return 0
     if [[ ! -e $dst ]] || { head -1 "$dst" | grep -q 'luxos-touchegg' && ! cmp -s "$src" "$dst"; }; then
         mkdir -p "${dst%/*}"
