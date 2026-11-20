@@ -11,9 +11,12 @@ Situace (kazda: prijezd mysi + kontrola, ze zvetseni jde za mysi):
   behem zmenseni, po vypnuti/zapnuti kompozice, po prepnuti plochy (i s posunem ploch), behem
   a po okne pres celou obrazovku, skryty Dock (okno pres Dock) zespodu i z boku, po menu
   ikony (Escape i klik mimo), po uchopu mysi jinou aplikaci, po zmene velikosti zvetseni,
-  prijezd do mezery nad ikonami. Kontrola testu: se zoom-enabled=false se zvetseni najit nesmi.
+  prijezd do mezery nad ikonami. Odchod ("leave"): po rychlem prejeti pres ikony a odchodu
+  nahoru, do boku, sikmo, pomalu horni hranou i pres menu ikony nesmi do 0,45 s zustat zadna
+  ikona zvetsena a po navratu jinam musi zvetseni byt u mysi.
+  Kontrola testu: se zoom-enabled=false se zvetseni najit nesmi.
 
-Pouziti: dock_zoom.py PRACOVNI_ADRESAR PLANK [--only NAZEV[,NAZEV]] [--shots ADRESAR]
+Pouziti: dock_zoom.py PRACOVNI_ADRESAR(mimo domov) PLANK [--only NAZEV[,NAZEV]] [--shots ADRESAR]
 Navratovy kod: 0 = vsude zvetseni, 1 = nekde chybelo.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
@@ -355,6 +358,66 @@ def main():
         time.sleep(0.8)
         glide([away, (cx, H - 8)])
         check("zoom-percent-after")
+
+    # --- odchod mysi: po rychlem prejeti pres ikony a odchodu nesmi zadna ikona zustat zvetsena,
+    # po navratu musi zvetseni jit za mysi (zahlasena "zaseknuta" lupa, LuxOS 1.0.4) ---
+    def peak_x():
+        """Stred x vycnivajici (zvetsene) casti Docku, None = nic nevycniva."""
+        y0, y1 = H - base - 12, H - base - 3
+        x0, x1 = int(W * 0.15), int(W * 0.85)
+        buf = fb.rows(y0, y1, x0, x1)
+        bg = px(fb.rows(H - 2, H - 1, 2, 3), 0)
+        xs = [x0 + (i // 4) % (x1 - x0) for i in range(0, len(buf), 8) if differs(px(buf, i), bg)]
+        return sum(xs) / len(xs) if len(xs) > 10 else None
+
+    def leave_check(name):
+        """Mys odjela nad Dock (mimo merene radky): do 0,45 s bez zvetseni, pak navrat jinam."""
+        t0 = time.monotonic()
+        h = pr.wait_height(lambda v: v <= base + 2, 0.45)
+        gone = h <= base + 2
+        back = cx + (90 if name.endswith("l") else -90)
+        glide([tuple(pos), (back, H - 4)], step=20, delay=0.004)
+        time.sleep(SETTLE)
+        p = peak_x()
+        follows = p is not None and abs(p - back) < 50
+        res = {"name": name, "ok": gone and follows, "height_after_leave": h, "base": base,
+               "leave_s": round(time.monotonic() - t0, 2), "peak_x": p, "mouse_x": back}
+        results.append(res)
+        print(("OK   " if res["ok"] else "FAIL ") + json.dumps(res), flush=True)
+        mouse(*away)
+        pr.wait_height(lambda v: v <= base + 2, 1.5)
+        time.sleep(0.3)
+
+    pos = [0, 0]
+
+    def sweep(points, step=40, delay=0.002):
+        glide(points, step=step, delay=delay)
+        pos[0], pos[1] = points[-1]
+
+    if want("leave"):
+        left, right = cx - 200, cx + 200
+        for n, path in [("leave-up", [(left, H - 8), (right, H - 30), (right - 60, H - 250)]),
+                        ("leave-up-l", [(right, H - 8), (left, H - 40), (left, 120)]),
+                        ("leave-side", [(left, H - 8), (right, H - 8), (W - 4, H - 8), (W - 4, H - 250)]),
+                        ("leave-diag-l", [(right, H - 20), (left, H - 10), (left - 300, H - 400)])]:
+            glide([away, path[0]])
+            time.sleep(0.4)
+            sweep(path)
+            leave_check(n)
+        # pomalu horni hranou zvetsene ikony
+        glide([away, (cx, H - 8)])
+        time.sleep(0.4)
+        sweep([(cx, H - 8), (cx, H - 260)], step=2, delay=0.012)
+        leave_check("leave-top-slow")
+        # pres menu ikony: nahoru do menu, Escape, pryc
+        glide([away, (cx - 60, H - 8)])
+        time.sleep(0.4)
+        sh("xdotool", "click", "3")
+        time.sleep(0.6)
+        sweep([(cx - 60, H - 8), (cx - 60, H - 140)], step=10, delay=0.01)
+        sh("xdotool", "key", "Escape")
+        sweep([(cx - 60, H - 140), (cx - 60, H - 300)])
+        leave_check("leave-menu")
 
     # --- kontrola testu: s vypnutym zvetsovanim (tak ho vypinal Sporic baterie do LuxOS 1.0.x)
     # musi mereni zvetseni NEnajit, jinak by test nic nedokazoval ---
