@@ -14,6 +14,7 @@ struct lwl_output {
 	int id;
 	uint32_t global;
 	struct wl_output *wl;
+	struct zxdg_output_v1 *xdg;     /* poloha v rozvrzeni (wl_output ji od wlroots posila 0, 0) */
 	char *name, *description;
 	int x, y, width, height, scale;
 	bool announced, dead;
@@ -42,6 +43,7 @@ struct lwl_state {
 	struct zwlr_output_manager_v1 *output_manager;
 	struct ext_idle_notifier_v1 *idle_notifier;
 	uint32_t idle_notifier_version;
+	struct zxdg_output_manager_v1 *xdg_outputs;
 };
 
 extern struct lwl_state lwl;

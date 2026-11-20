@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <glib.h>
 #include "internal.h"
+#include "xdg-output-unstable-v1-client-protocol.h"
 
 struct lwl_state lwl;
 
@@ -21,6 +22,7 @@ static size_t events_len, events_cap;
 static bool flushing;
 static guint flush_idle;
 static GSource *source;
+static char *bind_only;
 
 int lwl_new_id(void)
 {
@@ -90,6 +92,8 @@ static void sweep_outputs(void)
 		if (!o->dead)
 			continue;
 		wl_list_remove(&o->link);
+		if (o->xdg)
+			zxdg_output_v1_destroy(o->xdg);
 		if (o->wl)
 			wl_output_release(o->wl);
 		free(o->name);
@@ -150,8 +154,10 @@ static void output_geometry(void *data, struct wl_output *wl, int32_t x, int32_t
 {
 	struct lwl_output *o = data;
 	(void)wl; (void)pw; (void)ph; (void)subpixel; (void)make; (void)model; (void)transform;
-	o->x = x;
-	o->y = y;
+	if (!o->xdg) {
+		o->x = x;
+		o->y = y;
+	}
 }
 
 static void output_mode(void *data, struct wl_output *wl, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
@@ -204,6 +210,54 @@ static const struct wl_output_listener output_listener = {
 	.description = output_description,
 };
 
+/* xdg-output v3: zmeny plati az s wl_output.done (vlastni done je zastarale) */
+static void xdg_position(void *data, struct zxdg_output_v1 *xdg, int32_t x, int32_t y)
+{
+	struct lwl_output *o = data;
+	(void)xdg;
+	o->x = x;
+	o->y = y;
+}
+
+static void xdg_size(void *data, struct zxdg_output_v1 *xdg, int32_t width, int32_t height)
+{
+	(void)data; (void)xdg; (void)width; (void)height;
+}
+
+static void xdg_done(void *data, struct zxdg_output_v1 *xdg)
+{
+	(void)data; (void)xdg;
+}
+
+static void xdg_name(void *data, struct zxdg_output_v1 *xdg, const char *name)
+{
+	struct lwl_output *o = data;
+	(void)xdg;
+	if (!*o->name)
+		lwl_set_string(&o->name, name);
+}
+
+static void xdg_description(void *data, struct zxdg_output_v1 *xdg, const char *description)
+{
+	(void)data; (void)xdg; (void)description;
+}
+
+static const struct zxdg_output_v1_listener xdg_listener = {
+	.logical_position = xdg_position,
+	.logical_size = xdg_size,
+	.done = xdg_done,
+	.name = xdg_name,
+	.description = xdg_description,
+};
+
+static void watch_xdg_output(struct lwl_output *o)
+{
+	if (o->xdg || !lwl.xdg_outputs)
+		return;
+	o->xdg = zxdg_output_manager_v1_get_xdg_output(lwl.xdg_outputs, o->wl);
+	zxdg_output_v1_add_listener(o->xdg, &xdg_listener, o);
+}
+
 static void add_output(struct wl_registry *registry, uint32_t name, uint32_t version)
 {
 	struct lwl_output *o = calloc(1, sizeof *o);
@@ -218,6 +272,7 @@ static void add_output(struct wl_registry *registry, uint32_t name, uint32_t ver
 	o->wl = wl_registry_bind(registry, name, &wl_output_interface, version < 4 ? version : 4);
 	wl_output_add_listener(o->wl, &output_listener, o);
 	wl_list_insert(lwl.outputs.prev, &o->link);
+	watch_xdg_output(o);
 }
 
 LWL_EXPORT int lwl_output_count(void)
@@ -273,9 +328,22 @@ static const struct wl_seat_listener seat_listener = {
 
 /* ---- registry ---- */
 
+static bool wanted(const char *interface)
+{
+	if (!bind_only)
+		return true;
+	size_t n = strlen(interface);
+	for (const char *p = bind_only; (p = strstr(p, interface)); p += n)
+		if ((p == bind_only || p[-1] == ',') && (p[n] == ',' || p[n] == 0))
+			return true;
+	return false;
+}
+
 static void global_add(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
 	(void)data;
+	if (!wanted(interface))
+		return;
 	if (strcmp(interface, wl_compositor_interface.name) == 0) {
 		lwl.compositor = wl_registry_bind(registry, name, &wl_compositor_interface, version < 4 ? version : 4);
 	} else if (strcmp(interface, wl_shm_interface.name) == 0) {
@@ -288,6 +356,11 @@ static void global_add(void *data, struct wl_registry *registry, uint32_t name, 
 		}
 	} else if (strcmp(interface, wl_output_interface.name) == 0) {
 		add_output(registry, name, version);
+	} else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
+		lwl.xdg_outputs = wl_registry_bind(registry, name, &zxdg_output_manager_v1_interface, version < 3 ? version : 3);
+		struct lwl_output *o;
+		wl_list_for_each(o, &lwl.outputs, link)
+			watch_xdg_output(o);
 	} else if (!lwl_toplevel_bind(registry, name, interface, version) &&
 		!lwl_lock_bind(registry, name, interface, version) &&
 		!lwl_capture_bind(registry, name, interface, version) &&
@@ -394,6 +467,12 @@ static int setup(void)
 	return 1;
 }
 
+LWL_EXPORT void lwl_bind_only(const char *interfaces)
+{
+	free(bind_only);
+	bind_only = interfaces ? strdup(interfaces) : NULL;
+}
+
 LWL_EXPORT int lwl_connect(const char *name)
 {
 	if (lwl.display)
@@ -465,6 +544,8 @@ LWL_EXPORT void lwl_disconnect(void)
 	wl_list_for_each(o, &lwl.outputs, link)
 		o->dead = true;
 	sweep_outputs();
+	if (lwl.xdg_outputs)
+		zxdg_output_manager_v1_destroy(lwl.xdg_outputs);
 	if (lwl.seat)
 		wl_seat_destroy(lwl.seat);
 	if (lwl.shm)
@@ -499,6 +580,7 @@ LWL_EXPORT int lwl_has(const char *interface)
 		{"zwp_virtual_keyboard_manager_v1", lwl.vk_manager},
 		{"zwlr_output_manager_v1", lwl.output_manager},
 		{"ext_idle_notifier_v1", lwl.idle_notifier},
+		{"zxdg_output_manager_v1", lwl.xdg_outputs},
 	};
 	for (size_t i = 0; i < sizeof known / sizeof *known; i++)
 		if (strcmp(known[i].name, interface) == 0)

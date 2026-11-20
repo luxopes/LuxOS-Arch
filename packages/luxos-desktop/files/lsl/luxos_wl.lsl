@@ -9,7 +9,9 @@
 #   attach(display)        spojeni GTK (luxos_layer.wl_display()): shell ma jen jeden soket
 #   on_event(f)            f(kind, handle, a, b) pro vsechny udalosti (konstanty nize); nastavit pred connect
 #   roundtrip(), disconnect(), has(rozhrani) -> verze nebo 0, available() -> knihovna nactena
-# Vystupy:   outputs(), output_name(o), output_geometry(o) -> [x, y, w, h], output_scale(o)
+#   bind_only([rozhrani..])  pred connect/attach: navazat jen tyto globaly (plocha jen vystupy)
+# Vystupy:   outputs(), output_name(o), output_geometry(o) -> [x, y, w, h] (poloha z xdg-output),
+#            output_scale(o), output_name_at(x, y) -> nazev vystupu s levym hornim rohem x, y ("" = neni)
 # Okna:      toplevels() (wlr: ovladani), list_toplevels() (ext: identifikator pro snimek okna),
 #            toplevel_app_id/title/identifier/state(t), activate(t), minimize(t, zap), maximize(t, zap),
 #            close(t); STATE_* bity stavu
@@ -64,7 +66,7 @@ STATE_MINIMIZED = 4
 STATE_FULLSCREEN = 8
 
 DEFAULT_LIB = "/usr/lib/luxos/libluxos-wl.so.0"
-NAMES = ["lwl_set_handler", "lwl_connect", "lwl_attach", "lwl_disconnect", "lwl_roundtrip", "lwl_has",
+NAMES = ["lwl_set_handler", "lwl_bind_only", "lwl_connect", "lwl_attach", "lwl_disconnect", "lwl_roundtrip", "lwl_has",
     "lwl_output_count", "lwl_output_at", "lwl_output_name", "lwl_output_x", "lwl_output_y", "lwl_output_width",
     "lwl_output_height", "lwl_output_scale", "lwl_toplevel_count", "lwl_toplevel_at", "lwl_toplevel_app_id",
     "lwl_toplevel_title", "lwl_toplevel_identifier", "lwl_toplevel_state", "lwl_toplevel_activate",
@@ -209,6 +211,17 @@ function on_event(f):
     return True
 end
 
+function bind_only(interfaces):
+    if not load_library():
+        return False
+    end
+    names = ",".join(interfaces)
+    unsafe:
+        call __lsl_qbe_call1(sym("lwl_bind_only"), cstr(names))
+    end
+    return True
+end
+
 function connect(name):
     if not load_library():
         return False
@@ -275,6 +288,18 @@ end
 
 function output_scale(output):
     return call1("lwl_output_scale", output)
+end
+
+function output_name_at(x, y):
+    if lib == 0:
+        return ""
+    end
+    for output in outputs():
+        if call1("lwl_output_x", output) == x and call1("lwl_output_y", output) == y:
+            return output_name(output)
+        end
+    end
+    return ""
 end
 
 # ---- okna ----
