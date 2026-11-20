@@ -151,6 +151,42 @@ draw_glyph(cairo_t *cr, int part, double cx, double cy)
 	cairo_stroke(cr);
 }
 
+/* Znacka aplikace v sandboxu: tlumeny text na jemnem podkladu se zaoblenymi rohy u praveho okraje. Vraci sirku
+ * vyhrazenou od okraje (nazev zustava uprostred okna). Zkracuje se, aby nezasahla do semaforu. */
+static int
+draw_badge(cairo_t *cr, struct deco *d, const char *text, int w, int h)
+{
+	PangoLayout *layout = pango_cairo_create_layout(cr);
+	PangoFontDescription *font = pango_font_description_from_string(
+		theme.font ? theme.font : "Inter Semi-Bold 10");
+	pango_font_description_set_size(font, pango_font_description_get_size(font) * 4 / 5);
+	pango_layout_set_font_description(layout, font);
+	pango_font_description_free(font);
+	pango_layout_set_text(layout, text, -1);
+	pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
+	pango_layout_set_single_paragraph_mode(layout, true);
+	int pad = 6, max_w = w / 2 - button_x(3) - 2 * pad;
+	if (max_w < 16) {
+		g_object_unref(layout);
+		return 0;
+	}
+	pango_layout_set_width(layout, max_w * PANGO_SCALE);
+	int tw, th;
+	pango_layout_get_pixel_size(layout, &tw, &th);
+	double bh = th + 4, bw = tw + 2 * pad, x = w - theme.spacing - bw, y = (h - bh) / 2, r = bh / 2;
+	cairo_new_sub_path(cr);
+	cairo_arc(cr, x + r, y + r, r, M_PI / 2, 1.5 * M_PI);
+	cairo_arc(cr, x + bw - r, y + r, r, 1.5 * M_PI, M_PI / 2);
+	cairo_close_path(cr);
+	set_color(cr, theme.separator);
+	cairo_fill(cr);
+	set_color(cr, theme.text[0]);
+	cairo_move_to(cr, x + pad, (h - th) / 2.0);
+	pango_cairo_show_layout(cr, layout);
+	g_object_unref(layout);
+	return w - (int)x + theme.spacing;
+}
+
 /* Kresli se v pixelech vystupu (meritko), scena buffer zmensi na logickou velikost */
 static struct wlr_buffer *
 render(struct deco *d)
@@ -187,8 +223,12 @@ render(struct deco *d)
 		}
 	}
 
+	int reserved = button_x(3);
+	const char *badge = d->view->badge;
+	if (badge && w > 2 * reserved) {
+		reserved = MAX(reserved, draw_badge(cr, d, badge, w, h));
+	}
 	if (d->title && *d->title) {
-		int reserved = button_x(3);
 		int max_w = w - 2 * reserved;
 		if (max_w > 20) {
 			PangoLayout *layout = pango_cairo_create_layout(cr);
@@ -534,6 +574,13 @@ int
 deco_height(void)
 {
 	return theme.title_height;
+}
+
+void
+deco_redraw(struct deco *d)
+{
+	d->width = -1;
+	deco_update(d);
 }
 
 static void

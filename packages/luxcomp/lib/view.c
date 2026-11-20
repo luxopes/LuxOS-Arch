@@ -1,11 +1,14 @@
 /* Okna (xdg toplevel), popupy a API pro okna */
+#define _GNU_SOURCE
 #include <stdlib.h>
+#include <string.h>
 #include <wlr/config.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_server_decoration.h>
+#include <wlr/types/wlr_security_context_v1.h>
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/edges.h>
@@ -22,6 +25,8 @@
 #define XCB_STACK_MODE_ABOVE 0
 #endif
 #include "internal.h"
+
+static const struct wlr_security_context_v1_state *view_sandbox(struct view *v);
 
 struct view *
 view_by_id(int64_t id)
@@ -241,6 +246,7 @@ view_destroy_common(struct view *v)
 		deco_destroy(v->deco);
 	}
 	wlr_scene_node_destroy(&v->tree->node);
+	free(v->badge);
 	free(v);
 }
 
@@ -507,7 +513,8 @@ deco_destroy_handler(struct wl_listener *listener, void *data)
 	wl_list_remove(&v->deco_request_mode.link);
 	wl_list_remove(&v->deco_destroy.link);
 	v->xdg_deco = NULL;
-	luxcomp_view_set_decorated(v->id, 0);
+	/* rozhoduje politika: aplikace v sandboxu si zahlavi se znackou odebrat nesmi */
+	emit(LUXCOMP_EV_VIEW_REQUEST, v->id, LUXCOMP_REQ_DECORATION, 0, LUXCOMP_ORIGIN_CLIENT);
 }
 
 /* org_kde_kwin_server_decoration: GTK 3 okna bez headerbaru (Thunar) chteji zahlavi od kompozitoru
@@ -655,6 +662,7 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	case LUXCOMP_VIEW_FOCUSED: return comp.focused == v;
 	case LUXCOMP_VIEW_LAYER: return v->layer;
 	case LUXCOMP_VIEW_X11: return v->xsurface != NULL;
+	case LUXCOMP_VIEW_SANDBOXED: return view_sandbox(v) != NULL;
 	}
 	if (v->xsurface) {
 		return xview_get(v, prop);
@@ -678,6 +686,58 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	}
 	}
 	return 0;
+}
+
+/* Metadata soketu wp-security-context, pres ktery se klient pripojil. X11 okna jdou pres XWayland
+ * kompozitoru (mimo sandbox); aplikace v sandboxu ma vlastni Xwayland jako klienta Waylandu. */
+static const struct wlr_security_context_v1_state *
+view_sandbox(struct view *v)
+{
+	if (!v || !v->toplevel) {
+		return NULL;
+	}
+	return wlr_security_context_manager_v1_lookup_client(comp.security, v->toplevel->base->client->client);
+}
+
+const char *
+luxcomp_view_sandbox_engine(int64_t id)
+{
+	const struct wlr_security_context_v1_state *s = view_sandbox(view_by_id(id));
+	return s && s->sandbox_engine ? s->sandbox_engine : "";
+}
+
+const char *
+luxcomp_view_sandbox_app_id(int64_t id)
+{
+	const struct wlr_security_context_v1_state *s = view_sandbox(view_by_id(id));
+	return s && s->app_id ? s->app_id : "";
+}
+
+const char *
+luxcomp_view_sandbox_instance(int64_t id)
+{
+	const struct wlr_security_context_v1_state *s = view_sandbox(view_by_id(id));
+	return s && s->instance_id ? s->instance_id : "";
+}
+
+void
+luxcomp_view_set_badge(int64_t id, const char *text)
+{
+	struct view *v = view_by_id(id);
+	if (!v) {
+		return;
+	}
+	if (!text || !*text) {
+		text = NULL;
+	}
+	if ((!text && !v->badge) || (text && v->badge && !strcmp(text, v->badge))) {
+		return;
+	}
+	free(v->badge);
+	v->badge = text ? strdup(text) : NULL;
+	if (v->deco) {
+		deco_redraw(v->deco);
+	}
 }
 
 /* X11: app_id = WM_CLASS (trida), jako u labwc a xfwm4 */

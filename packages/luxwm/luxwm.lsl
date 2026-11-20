@@ -668,6 +668,31 @@ end
 
 # ---- zamereni --------------------------------------------------------------------------------
 
+# Aplikace v sandboxu (wp-security-context): identitu dava spoustec (luxos-sandbox), ne aplikace.
+# app_id okna si aplikace nastavi sama, proto "stejna aplikace" znamena i stejny sandbox.
+function sandbox_id(v):
+    if vget(v, lc.VIEW_SANDBOXED) != 1:
+        return ""
+    end
+    return "sandbox:" + lc.view_sandbox_app_id(v) + ":" + lc.view_sandbox_instance(v)
+end
+
+function same_app(a, b):
+    app = lc.view_app_id(a)
+    return app != "" and lc.view_app_id(b) == app and sandbox_id(a) == sandbox_id(b)
+end
+
+# Okno ze sandboxu ma vzdy zahlavi kompozitoru se znackou (nejde vypnout ani podvrhnout z aplikace)
+function sandbox_window(v):
+    if vget(v, lc.VIEW_SANDBOXED) != 1:
+        return
+    end
+    app = lc.view_sandbox_app_id(v)
+    call lc.view_set_decorated(v, 1)
+    call lc.view_set_badge(v, "Sandbox" + (" · " + app if app != "" else ""))
+    call note("sandbox " + String(v) + " " + app)
+end
+
 function on_current(v):
     return vget(v, lc.VIEW_MAPPED) == 1 and vget(v, lc.VIEW_WORKSPACE) == current_ws()
 end
@@ -1174,16 +1199,17 @@ function button(v, pressed, part):
 end
 
 # xdg-activation a Dock: okno jine aplikace se zameri jen s tokenem od zamerene aplikace nebo
-# od shellu (Dock, spoustec, luxwm), pak i s prepnutim plochy (xfwm4 activate_action=switch)
+# od shellu (Dock, spoustec, luxwm), pak i s prepnutim plochy (xfwm4 activate_action=switch).
+# Okno ze sandboxu tedy aktivuje jen sandbox, ktery prave ma zamereni.
 function activate(v, origin, source):
     current = focused()
     allowed = origin == lc.ORIGIN_SHELL or origin == lc.ORIGIN_TASKBAR
     if origin == lc.ORIGIN_VIEW and current != 0 and source != 0:
-        app = lc.view_app_id(current)
-        allowed = source == current or (app != "" and lc.view_app_id(source) == app)
+        allowed = source == current or same_app(source, current)
     elif origin == lc.ORIGIN_CLIENT:
         # bez tokenu jen okna aplikace, ktera ma zamereni (zadne kradeze)
-        allowed = current != 0 and lc.view_app_id(current) == lc.view_app_id(v) and on_current(v)
+        allowed = (current != 0 and on_current(v) and sandbox_id(current) == sandbox_id(v)
+                   and lc.view_app_id(current) == lc.view_app_id(v))
     end
     if not allowed:
         call note("activate refused " + String(v) + " origin " + String(origin))
@@ -1226,14 +1252,16 @@ function request(v, what, arg, origin):
     elif what == lc.REQ_ACTIVATE:
         call activate(v, arg, origin)
     elif what == lc.REQ_DECORATION:
-        call lc.view_set_decorated(v, arg)
+        call lc.view_set_decorated(v, 1 if vget(v, lc.VIEW_SANDBOXED) == 1 else arg)
     elif what == lc.REQ_CLOSE:
         call lc.view_close(v)
     end
 end
 
 function handle(event, id, a, b, c):
-    if event == lc.EV_VIEW_MAP:
+    if event == lc.EV_VIEW_NEW:
+        call sandbox_window(id)
+    elif event == lc.EV_VIEW_MAP:
         call view_mapped(id)
     elif event == lc.EV_VIEW_UNMAP:
         call view_gone(id)
@@ -1433,7 +1461,8 @@ function window_info(v):
     space = vget(v, lc.VIEW_WORKSPACE)
     return {"id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v),
             "workspace": ws.index(space) + 1 if space in ws else 0, "focused": vget(v, lc.VIEW_FOCUSED) == 1,
-            "minimized": vget(v, lc.VIEW_VISIBLE) == 0, "fullscreen": v in full, "maximized": v in maxed}
+            "minimized": vget(v, lc.VIEW_VISIBLE) == 0, "fullscreen": v in full, "maximized": v in maxed,
+            "sandbox": lc.view_sandbox_app_id(v) if vget(v, lc.VIEW_SANDBOXED) == 1 else ""}
 end
 
 function list_windows():
@@ -1645,7 +1674,8 @@ function dump():
             + " h=" + String(vget(o, lc.VIEW_H)) + " top=" + String(vget(o, lc.VIEW_DECO_TOP))
             + " focused=" + String(vget(o, lc.VIEW_FOCUSED)) + " visible=" + String(vget(o, lc.VIEW_VISIBLE))
             + " fullscreen=" + String(vget(o, lc.VIEW_FULLSCREEN)) + " maximized=" + String(1 if o in maxed else 0)
-            + " layer=" + String(vget(o, lc.VIEW_LAYER)) + " x11=" + String(vget(o, lc.VIEW_X11)))
+            + " layer=" + String(vget(o, lc.VIEW_LAYER)) + " x11=" + String(vget(o, lc.VIEW_X11))
+            + " sandbox=" + (lc.view_sandbox_app_id(o) if vget(o, lc.VIEW_SANDBOXED) == 1 else "-"))
         o = lc.view_next(o)
     end
     call log("mru " + " ".join([String(v) for v in mru]))

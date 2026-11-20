@@ -4,8 +4,9 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 5: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
-5 testovací výstupy a zrcadlení), balík `packages/luxcomp`.
+`LUXCOMP_API_VERSION` = 6: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
+a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -73,7 +74,8 @@ luxcomp_destroy();
 
 Požadavky (`VIEW_REQUEST`): `MOVE` (tah za zahlaví CSD), `RESIZE` (b = okraje
 `LUXCOMP_EDGE_*`), `MAXIMIZE` a `FULLSCREEN` (b = 1/0), `MINIMIZE` (b = 1 minimalizovat,
-0 obnovit), `ACTIVATE`, `DECORATION` (b = 1 okno chce zahlaví od kompozitoru) a `CLOSE`.
+0 obnovit), `ACTIVATE`, `DECORATION` (b = 1 okno chce zahlaví od kompozitoru, 0 vlastní, také když
+zruší objekt xdg-decoration) a `CLOSE`.
 Jádro na požadavek vždy odpoví configure. Politika rozhodne, co udělá.
 
 Kdo žádá (`LUXCOMP_ORIGIN_*`): u `MAXIMIZE`, `FULLSCREEN`, `MINIMIZE` a `CLOSE` je to c, u
@@ -87,7 +89,8 @@ Kdo žádá (`LUXCOMP_ORIGIN_*`): u `MAXIMIZE`, `FULLSCREEN`, `MINIMIZE` a `CLOS
 - `TASKBAR`: wlr-foreign-toplevel-management, tedy Dock nebo jiný klient z allowlistu.
 
 luxwm povolí aktivaci jiné aplikace jen s původem `VIEW` od zaměřené aplikace, `SHELL` nebo
-`TASKBAR`. Pak přepne na plochu okna a zaměří ho (xfwm4 `activate_action=switch`).
+`TASKBAR`. Okna sandboxu (`SANDBOXED`) jsou „stejná aplikace“ jen v rámci téže instance sandboxu,
+takže okno sandboxu se aktivuje jen se zaměřením tohoto sandboxu. Pak přepne na plochu okna a zaměří ho (xfwm4 `activate_action=switch`).
 
 Části okna (`BUTTON`, c): `NONE` (prázdná plocha), `CLIENT`, `TITLE`, `CLOSE`, `MINIMIZE`,
 `MAXIMIZE` (semafor v zahlaví od kompozitoru), `LAYER` (lišta, Dock a jiný povrch layer-shell).
@@ -108,6 +111,13 @@ backendu) a `luxcomp_test_output_remove(id)` ho odpojí; skutečné výstupy (DR
 - `MAPPED`, `VISIBLE`, `FOCUSED`, `FULLSCREEN`, `MAXIMIZED`, `LAYER`.
 - `MIN_*` a `MAX_*` (velikostní meze klienta) a `PID`.
 - `X11`: 1 = okno X11 přes XWayland. Jeho app_id je `WM_CLASS` (třída), název `_NET_WM_NAME`.
+- `SANDBOXED`: 1 = klient soketu wp-security-context (sandbox aplikací). Metadata kontextu vrací
+  `luxcomp_view_sandbox_engine()`, `luxcomp_view_sandbox_app_id()` a `luxcomp_view_sandbox_instance()`
+  (`""` mimo sandbox). Nastavuje je správce sandboxu, ne aplikace, takže jsou důvěryhodná; app_id okna
+  (`luxcomp_view_app_id()`) si aplikace volí sama.
+
+`luxcomp_view_set_badge(id, text)` nakreslí krátký tlumený štítek u pravého okraje záhlaví od
+kompozitoru (luxwm: „Sandbox · příkaz“ u oken sandboxu), `""` ho odebere.
 
 Okna v pořadí od nejvyššího projde `luxcomp_view_next(0)`, `luxcomp_view_next(id)` … až po 0.
 

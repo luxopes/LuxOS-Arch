@@ -4,12 +4,13 @@
 #
 #   init(handler)          handler(event, id, a, b, c) pro vsechny udalosti; chyba v obsluze se jen
 #                          vypise ("LSL callback error"), kompozitor bezi dal (glib.dispatch)
-#   view_title(v), view_app_id(v), output_name(o), socket(), layout_name(i), ipc_line(k)
+#   view_title(v), view_app_id(v), view_sandbox_app_id(v), view_sandbox_instance(v), output_name(o),
+#   socket(), layout_name(i), ipc_line(k)
 #                          kopie retezce ("" kdyz neni)
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 5
+API_VERSION = 6
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -94,6 +95,7 @@ VIEW_MAX_W = 17
 VIEW_MAX_H = 18
 VIEW_PID = 19
 VIEW_X11 = 20
+VIEW_SANDBOXED = 21
 
 LAYER_NORMAL = 0
 LAYER_ABOVE = 1
@@ -270,6 +272,18 @@ function view_title(view):
     end
 end
 
+function view_sandbox_app_id(view):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_view_sandbox_app_id"), ptr(view)))
+    end
+end
+
+function view_sandbox_instance(view):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_view_sandbox_instance"), ptr(view)))
+    end
+end
+
 function view_next(view):
     unsafe:
         return __lsl_qbe_call1(__lsl_symbol("luxcomp_view_next"), ptr(view))
@@ -321,6 +335,12 @@ end
 function view_set_decorated(view, on):
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("luxcomp_view_set_decorated"), ptr(view), ptr(on))
+    end
+end
+
+function view_set_badge(view, text):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_view_set_badge"), ptr(view), cstr(text))
     end
 end
 
