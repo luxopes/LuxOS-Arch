@@ -178,6 +178,8 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-news.lsl" luxos-news
     # Hodnoty vzhledu desktopu na Waylandu (luxos_tokens.lsl): CSS klientu shellu a tema dekoraci luxwm (labwc)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-tokens.lsl" luxos-tokens
+    # Server oznameni relace na Waylandu (nahrada xfce4-notifyd; spousti ho relace, viz luxos-notify.service)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-notify.lsl" luxos-notify
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -218,6 +220,8 @@ package() {
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
+    install -Dm755 luxos-notify "$pkgdir/usr/lib/luxos/luxos-notify"
+    install -Dm644 "$f/systemd-user/luxos-notify.service" "$pkgdir/usr/lib/systemd/user/luxos-notify.service"
     install -Dm755 luxos-wl/libluxos-wl.so.0 "$pkgdir/usr/lib/luxos/libluxos-wl.so.0"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
