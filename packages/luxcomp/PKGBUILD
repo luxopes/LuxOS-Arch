@@ -1,0 +1,28 @@
+# Maintainer: LuxOS Team
+# libluxcomp - jadro kompozitoru LuxOS 1.1.0 na wlroots 0.20 (architektura R2, docs/proposals/
+# wayland-desktop-1.1.0.md). Knihovna vlastni objekty wlroots a kresli; o oknech rozhoduje
+# program nad ni (luxwm v LSL) pres ploche API v include/luxcomp.h (docs/developers/luxcomp-api.md).
+# Renderer: gles2 jen kdyz 3D opravdu funguje, jinak pixman + softwarovy kurzor (VM bez 3D).
+# luxcomp-demo (/usr/lib/luxcomp) je nejmensi politika v C na zkouseni jadra, ne soucast sezeni.
+# Testy: tests/run.sh (kontejner, headless a vnoreny Xvfb, snimky grim, PSS).
+
+pkgname=luxcomp
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='LuxOS compositor core library on wlroots 0.20 (flat C API for the LSL window manager)'
+arch=('x86_64')
+url='https://github.com/luxopes/LuxOS-Arch'
+license=('GPL-3.0-or-later')
+depends=('wlroots0.20>=0.20.2' 'libwlroots-0.20.so' 'wayland' 'libxkbcommon' 'libdrm' 'pixman'
+         'cairo' 'pango')
+makedepends=('meson' 'ninja' 'wayland-protocols')
+source=()
+
+build() {
+  arch-meson "$startdir" build
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}
