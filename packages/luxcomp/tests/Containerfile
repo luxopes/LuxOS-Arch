@@ -1,0 +1,7 @@
+# Testovaci prostredi libluxcomp (Arch): stavba + klienti + Xvfb; wlroots0.20 z Archu je stejna
+# verze jako packages/wlroots0.20 (pri rozdilu pridat balik z out/ pres pacman -U)
+FROM docker.io/archlinux/archlinux:latest
+RUN pacman -Syu --noconfirm --needed base-devel meson ninja wlroots0.20 wayland-protocols cairo pango \
+      foot weston grim xorg-server-xvfb xorg-xwd xdotool imagemagick ttf-dejavu inter-font \
+      gtk3 gtk-layer-shell python-gobject \
+    && pacman -Scc --noconfirm
