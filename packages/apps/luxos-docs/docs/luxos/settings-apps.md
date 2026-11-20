@@ -34,7 +34,7 @@ Run `luxos-settings`, or use Control Center › Desktop & Dock…. It replaces t
 settings. Sections:
 
 - **Appearance**: Light / Dark / Auto. Auto is light from sunrise to sunset, based on the time
-  zone (`luxos-appearance`, see [desktop.md](desktop.md#light-dark-and-auto-appearance)).
+  zone (`luxos-appearance`, see [appearance.md](appearance.md#light-dark-and-auto-appearance)).
 - **Boot Screen**: Blue, Purple, Orange, Green or White. It runs `luxos-splash set` through pkexec
   and rebuilds the initramfs, and it takes effect at the next boot.
 - **Wallpaper**: thumbnails from `/usr/share/backgrounds/luxos` and `~/Pictures/Wallpapers`, plus

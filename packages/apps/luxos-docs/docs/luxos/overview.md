@@ -63,7 +63,7 @@ What's New after an update shows these items (data in `/usr/share/luxos/whats-ne
 | `luxos-store` | LuxOS Store | [store.md](store.md) |
 | `luxos-care` | automatic updates and repairs, Software Update app | [care-updates.md](care-updates.md) |
 | `luxos-drivers` | `luxos-hwdetect`, Drivers app | [drivers.md](drivers.md) |
-| `luxos-desktop`, `luxos-themes`, `luxos-greeter`, `luxos-branding` | desktop, apps, login screen, splash | [desktop.md](desktop.md), [apps.md](apps.md), [settings-apps.md](settings-apps.md), [keyboard.md](keyboard.md) |
+| `luxos-desktop`, `luxos-themes`, `luxos-greeter`, `luxos-branding` | desktop, apps, login screen, splash | [desktop.md](desktop.md), [appearance.md](appearance.md), [apps.md](apps.md), [settings-apps.md](settings-apps.md), [keyboard.md](keyboard.md) |
 | `luxos-printing` | driverless printing and scanning | [printing-scanning.md](printing-scanning.md) |
 | `luxdrop` | LuxDrop file sharing (LocalSend compatible) | [luxdrop.md](luxdrop.md) |
 | `luxos-safe`, `luxos-sandbox` | encrypted folder, isolated app system | [safe.md](safe.md), [sandbox.md](sandbox.md) |
