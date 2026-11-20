@@ -197,6 +197,8 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-backdrop.lsl" luxos-backdrop
     # Klavesnice a zkratky na Waylandu (luxwm.conf, IPC luxwm); luxos-keyboard/-shortcuts sem predaji rizeni
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
+    # Agent polkitu relace na Waylandu (okno s heslem pro pkexec a Nastaveni); X11 relace dal polkit-gnome
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-polkit.lsl" luxos-polkit
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -254,6 +256,8 @@ package() {
     install -Dm755 luxos-backdrop "$pkgdir/usr/bin/luxos-backdrop"
     install -Dm755 luxos-keyboard-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
     install -Dm644 "$f/systemd-user/luxos-backdrop.service" "$pkgdir/usr/lib/systemd/user/luxos-backdrop.service"
+    install -Dm755 luxos-polkit "$pkgdir/usr/lib/luxos/luxos-polkit"
+    install -Dm644 "$f/systemd-user/luxos-polkit.service" "$pkgdir/usr/lib/systemd/user/luxos-polkit.service"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
