@@ -49,7 +49,7 @@ UNDER_XVFB = bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("X
 def build():
     if not LSLC:
         return False
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", SRC, os.path.join(BIN, "luxos-news")],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", LSL_DIR, SRC, os.path.join(BIN, "luxos-news")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         raise AssertionError(r.stderr + r.stdout)

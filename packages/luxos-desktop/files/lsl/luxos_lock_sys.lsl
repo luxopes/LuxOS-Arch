@@ -1,6 +1,5 @@
-# lsl: internal-abi
 # lsl: link libglib-2.0.so.0 libcairo.so.2
-# LuxOS - volani C pro zamek obrazovky (luxos-lock, luxos-lock-session), at programy samy internal-abi nepotrebuji.
+# LuxOS - volani C pro zamek obrazovky (luxos-lock, luxos-lock-session), at programy samy C nevolaji.
 #
 #   protect()                          proces nejde vypsat ani ladit jinym procesem uzivatele (PR_SET_DUMPABLE 0),
 #                                      bez core dumpu: v pameti muze byt rozepsane heslo
@@ -9,8 +8,6 @@
 #                                      f(data, "", status) (status jako waitpid); envp [] = prostredi tohoto procesu
 #   real_name(), user_name()
 #   source_pad(cr)                     zdroj cairo za okrajem opakuje krajni pixely (zvetsena tapeta bez tmaveho lemu)
-#
-# Pozor (internal-abi): Int 0 je tu k nerozeznani od None, proto konec vystupu hlasi "" a ne None.
 load glib
 load luxos_glib as lglib
 

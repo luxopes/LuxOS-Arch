@@ -12,6 +12,7 @@ load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
 load luxos_i18n as i18n
+load luxos_layer as layer
 load luxos_mpris as mpris
 load luxos_text as text
 
@@ -478,6 +479,18 @@ function create():
     call gtk.window_set_rgba(win)
     # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
     call gtk.window_set_wmclass(win, "luxos-control-center", "Luxos-control-center")
+    # Wayland: okno nelze presunout (window_move), bez vrstvy by bylo bezne okno uprostred s ikonou v Docku;
+    # vrstva vpravo pod listou jako vyskakovaci okna listy, klavesnice po zobrazeni (Esc, ztrata fokusu zavre)
+    cc["layer"] = layer.is_wayland() and layer.is_supported()
+    if cc["layer"]:
+        call layer.init_for_window(win)
+        call layer.set_namespace(win, "luxos-control-center")
+        call layer.set_layer(win, layer.LAYER_OVERLAY)
+        call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_RIGHT])
+        call layer.set_margin(win, layer.EDGE_TOP, 6)
+        call layer.set_margin(win, layer.EDGE_RIGHT, 8)
+        call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
+    end
 
     outer = gtk.box_new(gtk.VERTICAL, 10)
     call gtk.widget_add_class(outer, "cc-box")
@@ -606,6 +619,7 @@ function create():
     call footer_button(footer, i18n.T("All Settings…"), "xfce4-settings-manager")
     call gtk.box_pack_start(outer, footer, False, False, 0)
 
+    call gtk.connect(win, "focus-in-event", on_focus_in)
     call gtk.connect(win, "focus-out-event", on_focus_out)
     call gtk.connect(win, "key-press-event", on_key)
     call gtk.connect(win, "realize", on_realize)
@@ -680,6 +694,7 @@ function refresh_slow_once():
 end
 
 function close():
+    cc["focused"] = False
     call gtk.widget_hide(cc["win"])
     call log_test("hidden")
     return 0
@@ -687,6 +702,9 @@ end
 
 # umisteni vpravo pod horni listou na monitoru s kurzorem
 function place():
+    if cc.get("layer", False):
+        return 0
+    end
     pointer = gtk.pointer_position()
     geo = gtk.monitor_at_point_workarea(pointer[0], pointer[1])
     size = gtk.window_get_size(cc["win"])
@@ -721,9 +739,21 @@ function on_size():
     return False
 end
 
+function on_focus_in(event, window):
+    cc["focused"] = True
+    return False
+end
+
 function on_focus_out(event, window):
     # testy pod Xvfb bez spravce oken: okno by se po zobrazeni hned zavrelo
     if env.get("LUXOS_HUB_NO_AUTOHIDE", "") == "1":
+        return False
+    end
+    # vrstva na Waylandu nema stav "aktivni okno": zavrit, kdyz klavesnici mela a ztratila (klik jinam)
+    if cc.get("layer", False):
+        if cc.get("focused", False):
+            call close()
+        end
         return False
     end
     call glib.timeout_add(120, close_if_unfocused)

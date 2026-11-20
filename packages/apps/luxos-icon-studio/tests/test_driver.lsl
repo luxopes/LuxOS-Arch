@@ -1,4 +1,3 @@
-# lsl: internal-abi
 load icon_model
 load icon_render
 load icon_cli

@@ -520,14 +520,13 @@ function logind_start():
     if state["system"] == 0:
         return 0
     end
+    # spousti ho uzivatelska sluzba mimo relaci: "auto" = graficka relace uzivatele (jako luxos-lock-session)
     id = env.get("XDG_SESSION_ID", "")
-    if id != "":
-        call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "GetSession",
-                             [id], "(s)", 2000, on_session, 0)
-    else:
-        call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager",
-                             "GetSessionByPID", [glib.getpid()], "(u)", 2000, on_session, 0)
+    if id == "":
+        id = "auto"
     end
+    call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "GetSession",
+                         [id], "(s)", 2000, on_session, 0)
     return 0
 end
 
@@ -610,7 +609,6 @@ function event(kind, handle, a, b):
 end
 
 function main():
-    call sys.protect()
     call load_config()
     ui["placeholder"] = i18n.T("Enter Password")
     ui["caps_text"] = i18n.T("Caps Lock is on")
@@ -625,6 +623,9 @@ function main():
         call luxos_sys.eprint("luxos-lock: compositor has no ext-session-lock-v1")
         call quit(2)
     end
+    # az po pripojeni: nedumpovatelny proces nema citelne /proc/PID/exe a kompozitor by zamku nedal
+    # privilegovany ext-session-lock (allowlist podle programu); heslo se zatim nezadavalo
+    call sys.protect()
     call wl.lock_secret(True)
     if not wl.lock():
         call quit(3)

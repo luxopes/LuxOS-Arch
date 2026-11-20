@@ -165,7 +165,8 @@ class Raw:
 
 
 def lslc(src_dir, name, out):
-    r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", os.path.join(src_dir, name + ".lsl"), out],
+    r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", src_dir,
+                        os.path.join(src_dir, name + ".lsl"), out],
                        capture_output=True, text=True)
     if r.returncode != 0:
         raise RuntimeError(name + ": " + r.stdout + r.stderr)

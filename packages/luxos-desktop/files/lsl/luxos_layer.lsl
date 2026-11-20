@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgtk-layer-shell.so.0 libgtk-3.so.0 libgdk-3.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - okna shellu na Waylandu (gtk-layer-shell 0.10, GTK 3): lista, Dock, plocha, oznameni a Launchpad
 # jako vrstvy kompozitoru misto beznych oken. Modul je samostatny (nic z luxos_*), aby se dal presunout do

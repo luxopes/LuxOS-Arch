@@ -764,7 +764,8 @@ def build_mail(out):
     for m in ("luxos_gtk", "luxos_glib", "luxos_gio", "luxos_i18n", "luxos_sys", "luxos_text"):
         shutil.copy(os.path.join(PKG, "luxos-desktop", "files", "lsl", m + ".lsl"), src)
     for main, name in (("luxos-mail.lsl", "luxos-mail"), ("luxos-mail-service.lsl", "luxos-mail-service")):
-        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", main, os.path.join(b, name)], cwd=src, check=True, timeout=1200)
+        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", src, main, os.path.join(b, name)], cwd=src,
+                       check=True, timeout=1200)
     return os.path.join(b, "luxos-mail")
 
 

@@ -45,7 +45,7 @@ def setUpModule():
         raise unittest.SkipTest("lslc (lsl) is not installed")
     TMP = tempfile.mkdtemp(prefix="luxos-about-", dir=luxos_testguard._private_dir())
     BINARY = os.path.join(TMP, "luxos-about")
-    r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", SRC, BINARY], capture_output=True, text=True,
+    r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SRC), SRC, BINARY], capture_output=True, text=True,
                        timeout=600)
     if r.returncode:
         raise AssertionError("lslc failed: " + r.stderr[-3000:])

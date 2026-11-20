@@ -7,7 +7,7 @@
 
 pkgname=luxos-firewall
 pkgver=1.0.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS firewall - on by default, own nftables table, LAN-only app ports, notifications for blocked programs"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
@@ -17,12 +17,12 @@ options=(!debug !strip)
 # nftables: nft; iproute2: ss (ktery program posloucha); polkit: pkexec pro "Povolit" v upozorneni
 depends=(glibc nftables iproute2 systemd polkit)
 optdepends=('luxos-i18n: translated messages')
-makedepends=('lsl>=0.10.6')
+makedepends=('lsl>=0.11.0')
 checkdepends=(python python-pytest)
 install=luxos-firewall.install
 
 build() {
-    lslc --target linux-x86_64-gnu "$startdir/files/luxos-firewall.lsl" luxos-firewall
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files" "$startdir/files/luxos-firewall.lsl" luxos-firewall
 }
 
 check() {
@@ -33,6 +33,7 @@ check() {
 package() {
     local f="$startdir/files"
     install -Dm755 luxos-firewall "$pkgdir/usr/bin/luxos-firewall"
+    install -Dm644 "$f/luxos_fw_sys.lsl" "$pkgdir/usr/lib/lsl/system/luxos_fw_sys.lsl"
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
     install -Dm644 "$f/hooks/luxos-firewall.hook" "$pkgdir/usr/share/libalpm/hooks/luxos-firewall.hook"
     install -Dm644 "$f/org.luxos.firewall.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.firewall.policy"

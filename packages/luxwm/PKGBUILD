@@ -8,23 +8,21 @@
 
 pkgname=luxwm
 pkgver=0.1.0
-pkgrel=5
+pkgrel=6
 pkgdesc='LuxOS Wayland window manager (policy in LSL on libluxcomp)'
 arch=('x86_64')
 url='https://github.com/luxopes/LuxOS-Arch'
 license=('GPL-3.0-or-later')
 depends=('luxcomp>=0.1.0-4' 'glib2')
 optdepends=('xorg-xwayland: X11 applications (started on demand)')
-makedepends=('lsl>=0.10.6' 'luxcomp>=0.1.0-4')
+makedepends=('lsl>=0.11.0' 'luxcomp>=0.1.0-4')
 source=()
 
 build() {
-  # moduly LSL se hledaji vedle zdroje: luxwm, vazba a spolecne tokeny vzhledu do jednoho adresare
-  mkdir -p lsl
-  cp "$startdir"/luxwm.lsl "$startdir"/luxwm-msg.lsl "$startdir"/luxos_luxcomp.lsl \
-    "$startdir"/../luxos-desktop/files/lsl/{luxos_tokens,luxos_luxwm}.lsl lsl/
-  lslc --target linux-x86_64-gnu lsl/luxwm.lsl luxwm
-  lslc --target linux-x86_64-gnu lsl/luxwm-msg.lsl luxwm-msg
+  # vazba na libluxcomp a spolecne moduly luxos-desktop (tokeny vzhledu, IPC) jako systemove bindingy LSL
+  local sb=(--system-bindings "$startdir" --system-bindings "$startdir/../luxos-desktop/files/lsl")
+  lslc --target linux-x86_64-gnu "${sb[@]}" "$startdir/luxwm.lsl" luxwm
+  lslc --target linux-x86_64-gnu "${sb[@]}" "$startdir/luxwm-msg.lsl" luxwm-msg
 }
 
 package() {
@@ -32,4 +30,5 @@ package() {
   install -Dm755 luxwm-msg "$pkgdir/usr/bin/luxwm-msg"
   install -Dm644 "$startdir/luxwm.conf" "$pkgdir/usr/share/luxwm/luxwm.conf"
   install -Dm644 "$startdir/privileged.conf" "$pkgdir/usr/share/luxwm/privileged.conf"
+  install -Dm644 "$startdir/luxos_luxcomp.lsl" "$pkgdir/usr/lib/lsl/system/luxos_luxcomp.lsl"
 }

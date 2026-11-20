@@ -68,7 +68,7 @@ def build():
     for f in glob.glob(os.path.join(LSL, "*.lsl")):
         shutil.copy(f, src)
     out = os.path.join(TMP, "luxos-gpu")
-    r = subprocess.run(["nice", "-n", "10", LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "luxos-gpu.lsl"), out],
+    r = subprocess.run(["nice", "-n", "10", LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "luxos-gpu.lsl"), out],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout + r.stderr)

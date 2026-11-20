@@ -111,11 +111,11 @@ function dconf_read(key):
     return result["stdout"].strip()
 end
 
-# Id .desktop souboru, kdyz ho GIO najde na stejne ceste (prenositelne mezi systemy), jinak cesta
+# Id .desktop souboru, kdyz ho GIO pod timto id najde (prenositelne mezi systemy a prekrytimi
+# /var/lib/luxos/apps), jinak cesta
 function item_entry(file):
     desktop_id = apps.base_name(file)
-    info = apps.find(desktop_id)
-    if info != 0 and apps.path(info) == file:
+    if apps.find(desktop_id) != 0:
         return desktop_id
     end
     return file
@@ -250,7 +250,7 @@ function sync_items():
         key = "trash"
         info = 0
         if entry != "trash":
-            info = apps.find(entry)
+            info = apps.find_entry(entry)
             if info == 0:
                 continue
             end
@@ -366,7 +366,8 @@ function update_geometry():
     geo["size"] = size
     geo["zoom"] = zoom
     geo["zoom_size"] = (size * zoom + 99) // 100
-    geo["gap"] = size // 6
+    # rozestup jako Plank s motivem LuxOS na X11 (48 px ikony po 62 px)
+    geo["gap"] = size * 7 // 24
     geo["pad"] = size // 4
     geo["top"] = size // 6
     geo["bottom"] = size // 5
@@ -904,7 +905,7 @@ function finish_drag():
     end
     # .desktop, ktere ted chybi, zustavaji v nastaveni na konci (po reinstalaci se vrati)
     for entry in conf["items"]:
-        if entry != "trash" and apps.find(entry) == 0:
+        if entry != "trash" and apps.find_entry(entry) == 0:
             pinned.append(entry)
         end
     end
@@ -1008,7 +1009,7 @@ function unpin(item):
     for entry in conf["items"]:
         info = 0
         if entry != "trash":
-            info = apps.find(entry)
+            info = apps.find_entry(entry)
         end
         key = "trash"
         if info != 0:

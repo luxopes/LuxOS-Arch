@@ -25,7 +25,7 @@ def binary():
     if not path:
         out = tempfile.mkdtemp(prefix="luxos-fw-bin-")
         path = os.path.join(out, "luxos-firewall")
-        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", SRC, path], check=True, cwd=out)
+        subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SRC), SRC, path], check=True, cwd=out)
     _BIN = path
     return path
 

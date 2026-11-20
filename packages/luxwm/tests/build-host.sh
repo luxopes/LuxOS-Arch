@@ -8,7 +8,7 @@ root=$(cd "$here/../../.." && pwd)
 comp=$root/packages/luxcomp
 sysroot=${WLT_SYSROOT:-$root/out/wl-test/sysroot}
 b=${LUXWM_BUILD:-$root/out/luxwm-test/build}
-mkdir -p "$b/proto" "$b/src"
+mkdir -p "$b/proto"
 export PKG_CONFIG_PATH=$sysroot/usr/lib/pkgconfig:$sysroot/usr/share/pkgconfig PKG_CONFIG_SYSROOT_DIR=$sysroot
 proto=$sysroot/usr/share/wayland-protocols
 for xml in $proto/stable/xdg-shell/xdg-shell.xml $proto/staging/cursor-shape/cursor-shape-v1.xml \
@@ -26,11 +26,13 @@ gcc $cflags -fPIC -fvisibility=hidden -shared -Wl,-soname,libluxcomp.so.0 -o "$b
   "$comp"/lib/*.c $libs
 ln -sf libluxcomp.so.0 "$b/libluxcomp.so"
 gcc $cflags -o "$b/luxcomp-demo" "$comp/tests/demo.c" -L"$b" -lluxcomp -Wl,-rpath-link,"$sysroot/usr/lib"
-# luxwm: LSL vedle luxos_tokens.lsl (moduly se hledaji vedle zdroje)
-cp "$root"/packages/luxwm/*.lsl "$root"/packages/luxos-desktop/files/lsl/{luxos_tokens,luxos_luxwm}.lsl "$b/src/"
-if [[ -f $b/src/luxwm.lsl ]]; then
+# luxwm: vazba a tokeny vzhledu (luxos-desktop) jako systemove bindingy LSL
+lsl=$root/packages/luxwm
+if [[ -f $lsl/luxwm.lsl ]]; then
   # luxir hleda knihovny jen v systemovych adresarich: libluxcomp podstrcit v soukromem mount namespace
-  unshare -rm sh -c "mount --bind \"$b\" /usr/local/lib && lslc --target linux-x86_64-gnu \"$b/src/luxwm.lsl\" \"$b/luxwm\""
-  lslc --target linux-x86_64-gnu "$b/src/luxwm-msg.lsl" "$b/luxwm-msg"
+  unshare -rm sh -c "mount --bind \"$b\" /usr/local/lib && lslc --target linux-x86_64-gnu --system-bindings \"$lsl\" \
+    --system-bindings \"$root/packages/luxos-desktop/files/lsl\" \"$lsl/luxwm.lsl\" \"$b/luxwm\""
+  lslc --target linux-x86_64-gnu --system-bindings "$lsl" --system-bindings "$root/packages/luxos-desktop/files/lsl" \
+    "$lsl/luxwm-msg.lsl" "$b/luxwm-msg"
 fi
 echo "$b"

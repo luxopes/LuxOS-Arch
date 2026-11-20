@@ -42,8 +42,8 @@ SHORT = {"thunar": "Files", "luxos-terminal": "Terminal", "xfce4-terminal": "Ter
     "luxos-screenshot": "Screenshot"}
 
 # Nabidka loga: [text, prikaz]; "" = oddelovac
-MENU = [["About LuxOS", ["luxos-about"]], ["Settings", ["luxos-settings"]], ["Launchpad", ["luxos-launchpad"]], "",
-    ["Lock Screen", ["loginctl", "lock-session"]], ["Log Out", ["loginctl", "terminate-session", "self"]],
+MENU = [["About This Computer", ["luxos-about"]], ["Settings", ["luxos-settings"]], ["Launchpad", ["luxos-launchpad"]], "",
+    ["Lock Screen", ["loginctl", "lock-session"]], ["Sign Out", ["loginctl", "terminate-session", "self"]],
     ["Restart", ["systemctl", "reboot"]], ["Shut Down", ["systemctl", "poweroff"]]]
 
 bars = []
@@ -102,8 +102,8 @@ function bar_css():
         + "window.luxos-bar { background: transparent; }\n"
         + ".luxos-bar label { font-size: " + String(tokens.FONT["body"]) + "px; }\n"
         + ".luxos-bar .lb-app { font-weight: " + String(tokens.WEIGHT["bold"]) + "; }\n"
-        + ".luxos-bar .lb-clock { font-weight: " + String(tokens.WEIGHT["semibold"]) + "; }\n"
-        + ".luxos-bar button.lb {" + plain + " padding: 0 7px; margin: 4px 1px; min-height: 0; min-width: 0; border-radius: "
+        + ".luxos-bar .lb-clock { font-weight: " + String(tokens.WEIGHT["bold"]) + "; }\n"
+        + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["menu_item"]) + "px; }\n"
         + ".luxos-bar .lb-badge { font-size: 10px; font-weight: " + String(tokens.WEIGHT["bold"]) + "; border: 1.5px solid; border-radius: 4px;"
         + " padding: 0 3px; }\n"
@@ -139,6 +139,7 @@ function on_conf_changed(path, event, other):
     call apply_css()
     call popup.set_dark(ui["dark"])
     for bar in bars:
+        call place_clock(bar)
         call refresh_look(bar)
     end
     return 0
@@ -401,7 +402,7 @@ end
 function build_bar(bar):
     win = bar["win"]
     box = gtk.box_new(0, 0)
-    call gtk.widget_set_margins(box, 6, 6, 0, 0)
+    call gtk.widget_set_margins(box, 0, 4, 0, 0)
     left = gtk.box_new(0, 0)
     right = gtk.box_new(0, 0)
     call icon_item(bar, "menu", "luxos-logo-symbolic", "", left)
@@ -409,7 +410,7 @@ function build_bar(bar):
     call gtk.widget_add_class(app, "lb-app")
     call gtk.label_set_ellipsize(app, 3)
     call gtk.label_set_max_width_chars(app, 40)
-    call gtk.widget_set_margins(app, 4, 6, 0, 0)
+    call gtk.widget_set_margins(app, 0, 6, 0, 0)
     call gtk.box_pack_start(left, app, False, False, 0)
     bar["app"] = app
     clock = gtk.label_new(ui["clock"])
@@ -428,8 +429,9 @@ function build_bar(bar):
         call gtk.connect(kb, "size-allocate", on_badge_allocate)
     end
     call gtk.box_pack_start(right, kb, False, False, 0)
-    call icon_item(bar, "sound", "audio-volume-high-symbolic", i18n.T("Sound"), right)
+    # poradi jako lista na X11: klavesnice, sit, zvuk, baterie, Hledani, Ovladaci centrum, oznameni, hodiny
     call icon_item(bar, "network", "network-wireless-signal-excellent-symbolic", i18n.T("Wi-Fi"), right)
+    call icon_item(bar, "sound", "audio-volume-high-symbolic", i18n.T("Sound"), right)
     battery = gtk.box_new(0, 3)
     bat_icon = icon("battery-level-100-symbolic")
     bat_label = gtk.label_new("")
@@ -438,17 +440,44 @@ function build_bar(bar):
     bb = bar_button(bar, battery, "", on_item_press, "battery")
     bar["items"]["battery"] = [bb, bat_icon, bat_label]
     call gtk.box_pack_start(right, bb, False, False, 0)
-    call icon_item(bar, "notifications", "notification-symbolic", i18n.T("Notifications"), right)
+    call icon_item(bar, "search", "luxos-search-symbolic", i18n.T("Search"), right)
     call icon_item(bar, "control-center", "luxos-control-center-symbolic", i18n.T("Control Center"), right)
+    call icon_item(bar, "notifications", "notification-symbolic", i18n.T("Notifications"), right)
     call connect(bar, bar["items"]["sound"][0], "scroll-event", 1, on_sound_scroll, 0)
     call gtk.widget_add_events(bar["items"]["sound"][0], 2097152 + 8388608)
     call gtk.box_pack_start(box, left, False, False, 0)
     call gtk.box_pack_end(box, right, False, False, 0)
-    unsafe:
-        # hodiny na stred cele listy, ne mezi levou a pravou cast (luxos-bar.c bod 1)
-        call __lsl_qbe_call2(__lsl_symbol("gtk_box_set_center_widget"), ptr(box), ptr(b))
-    end
+    bar["box"] = box
+    bar["right"] = right
+    bar["clock_center"] = None
+    call place_clock(bar)
     call gtk.container_add(win, box)
+    return 0
+end
+
+# Hodiny vpravo jako na X11; BAR_CLOCK=center v appearance.conf je da na stred cele listy, ne mezi levou
+# a pravou cast (luxos-bar.c bod 1). Zmena nastaveni hodiny presune bez restartu listy.
+function place_clock(bar):
+    center = ui["conf"].get("BAR_CLOCK", "") == "center"
+    if bar["clock_center"] == center:
+        return 0
+    end
+    b = bar["items"]["calendar"][0]
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("g_object_ref"), ptr(b))
+        if bar["clock_center"] == True:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_box_set_center_widget"), ptr(bar["box"]), 0)
+        elif bar["clock_center"] == False:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_container_remove"), ptr(bar["right"]), ptr(b))
+        end
+        if center:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_box_set_center_widget"), ptr(bar["box"]), ptr(b))
+        else:
+            call gtk.box_pack_start(bar["right"], b, False, False, 0)
+        end
+        call __lsl_qbe_call1(__lsl_symbol("g_object_unref"), ptr(b))
+    end
+    bar["clock_center"] = center
     return 0
 end
 
@@ -891,6 +920,9 @@ function on_item_press(kind, event, widget):
     elif kind == "keyboard":
         call popup.close_all()
         call show_layouts(widget)
+    elif kind == "search":
+        call popup.close_all()
+        call glib.spawn_quiet(["luxos-search"])
     elif kind == "network" and status.state["network"]["portal"]:
         call popup.close_all()
         call glib.spawn_quiet(["luxos-network-login"])

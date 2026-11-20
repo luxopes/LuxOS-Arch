@@ -14,6 +14,7 @@ load glib, gio
 load luxos_glib as lglib
 load luxos_gio, gio as lgio
 load luxos_i18n as i18n
+load luxos_text as text
 load luxos_luxwm as wm
 
 NM = "org.freedesktop.NetworkManager"
@@ -412,7 +413,7 @@ function parse_volume(output):
         return -1
     end
     start = cut
-    while start > 0 and output[start - 1] >= "0" and output[start - 1] <= "9":
+    while start > 0 and text.is_digit(output[start - 1]):
         start -= 1
     end
     if start == cut:
@@ -619,8 +620,9 @@ function start(handler):
     st["session"] = bus("session")
     if st["system"] != 0:
         call lgio.watch_name_data(st["system"], NM, nm_appeared, nm_vanished, 0)
-        call lgio.watch_name_data(st["system"], UPOWER, upower_appeared, upower_vanished, 0)
-        call lgio.watch_name_data(st["system"], LOCALE, locale_appeared, locale_vanished, 0)
+        # UPower a locale1 se spousti az na pozadani (D-Bus aktivace): bez auto-startu by se nikdy neobjevily
+        call lgio.watch_name_flags_data(st["system"], UPOWER, lgio.WATCH_AUTO_START, upower_appeared, upower_vanished, 0)
+        call lgio.watch_name_flags_data(st["system"], LOCALE, lgio.WATCH_AUTO_START, locale_appeared, locale_vanished, 0)
         call gio.subscribe_values(st["system"], "org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
                                   "/org/freedesktop/login1", on_sleep)
     end

@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libm.so.6
 # LuxOS - jediny zdroj hodnot vzhledu pro desktop na Waylandu (1.1.0): barvy, zaobleni, mezery, pismo,
 # stiny, animace, sklo a kontrast pisma. Programy nacitaji `load luxos_tokens as tokens`.
@@ -212,7 +211,7 @@ BAR = {
     "tint_dark": [0.09, 0.09, 0.12],
     "opacity": 62,
     "faint": 0.45,
-    "height": 32
+    "height": 28
 }
 
 # ---- barvy: zapis ---------------------------------------------------------------------------

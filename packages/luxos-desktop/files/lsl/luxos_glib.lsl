@@ -1,10 +1,9 @@
-# lsl: internal-abi
 # lsl: link libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - doplnky k modulu glib LSL 0.10.6 (cil linux-x86_64-gnu) pro luxos-hub: jen to, co standardni
 # knihovna nema. Programy nacitaji `load luxos_glib, glib as glib`; az tyto funkce budou v glib, modul zmizi.
 #
 # Zpetna volani s vazanou hodnotou (LSL nema uzavery): obsluha dostane `data` jako prvni argument.
-#   connect_data(obj, signal, nargs, f, data)   f(data, argumenty signalu..., obj); vraci id zaznamu
+#   connect_data(obj, signal, nargs, f, data)   f(data, argumenty signalu..., obj); zaznam se uvolni sam se signalem
 #   timeout_add_data(ms, f, data), timeout_add_seconds_data(s, f, data), idle_add_data(f, data)
 #       f(data) se opakuje, dokud vraci True; zaznam obsluhy se po skonceni uvolni
 #   spawn_watched_data(argv, f, data)           po skonceni f(data, pid, status)
@@ -18,9 +17,6 @@
 # Soubory: stat(path) -> [velikost, mtime_ns], rename, unlink, mkdir_p, is_dir, realpath, readlink,
 #   write_atomic(path, text), read_text(path) ("" pri chybe), list_dir(path) ([] kdyz neni), close_fd(fd).
 # GObject: object_ref_sink(obj) - vlastni reference na widget, ktery se odebira z kontejneru a pouziva znovu.
-#
-# Pozor (LSL 0.10.6, internal-abi): uvnitr modulu je dynamicka hodnota Int 0 nerozlisitelna od None
-# (type(), == None); ukazatele se testuji == 0 a cisla se neporovnavaji s None.
 load glib
 
 live = {}            # id -> zaznam obsluhy (drzi ho GC, dokud zije zdroj/signal)
@@ -104,12 +100,13 @@ end
 
 # ---- signaly GObject s vazanou hodnotou ---------------------------------------------------------------
 
+# Zaznam drzi glib.handlers a uvolni ho GLib (callback_destroy) s odpojenim signalu nebo zanikem objektu
 function connect_data(instance, signal, nargs, handler, bound):
-    tracked = track(handler, nargs + 1, bound)
+    record = glib.record_bound(handler, nargs + 1, bound)
     unsafe:
-        call __lsl_qbe_call6(__lsl_symbol("g_signal_connect_data"), ptr(instance), cstr(signal), glib.callback_first(), ptr(tracked[0]), 0, 2)
+        call __lsl_qbe_call6(__lsl_symbol("g_signal_connect_data"), ptr(instance), cstr(signal), glib.callback_first(), ptr(record), glib.callback_destroy(), 2)
     end
-    return tracked[1]
+    return record
 end
 
 # ---- procesy ---------------------------------------------------------------------------------------------

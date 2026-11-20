@@ -12,8 +12,8 @@ Lux Code are optional editors and assistants; using AI is not required.
 
 ## Small UI library
 
-Copy `/usr/share/luxos-sdk/lsl/luxui.lsl` into your project and use `load luxui`.
-This source module provides a styled native window, headings, cards, rows, columns
+Use `load luxui` in your program. The module is installed as an LSL system binding
+(`/usr/lib/lsl/system/luxui.lsl`), so it needs no copy in your project. It provides a styled native window, headings, cards, rows, columns
 and buttons. It is deliberately optional: App Studio's generated applications use
 GTK directly and do not depend on an SDK installation on the end user's computer.
 
@@ -21,16 +21,15 @@ Try the complete example in an ordinary development session:
 
 ```sh
 mkdir my-luxos-example
-cp /usr/share/luxos-sdk/lsl/*.lsl my-luxos-example/
+cp /usr/share/luxos-sdk/lsl/example.lsl my-luxos-example/
 cd my-luxos-example
-lsl compile --unsafe --target linux-x86_64-gnu example.lsl my-example
+lsl compile --target linux-x86_64-gnu example.lsl my-example
 ./my-example
 ```
 
 The resulting executable uses the system GTK 3 libraries; declare `gtk3` in your
-application's package dependencies. Native GTK bindings use LSL's internal ABI,
-which is why the compile command includes `--unsafe`. Regular application behavior
-is still written in LSL.
+application's package dependencies. Only the trusted system binding calls GTK
+directly, so your program compiles in LSL's default checked mode.
 
 ## Application delivery
 
