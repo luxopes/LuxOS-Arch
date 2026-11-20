@@ -54,6 +54,12 @@ class MailReader(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(calls, "gio launch DATA/applications/org.mozilla.Thunderbird.desktop\n")
 
+    def test_thunderbird_first_without_default(self):
+        # Thunderbird je vychozi posta LuxOS: pred LuxOS Mail (jen staging) i Evolution
+        rc, calls = self.run_reader(["luxos-mail", "org.gnome.Evolution", "org.mozilla.Thunderbird"], "", "a@b.cz")
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, "gio launch DATA/applications/org.mozilla.Thunderbird.desktop mailto:a@b.cz\n")
+
     def test_default_pointing_to_removed_app_falls_back(self):
         rc, calls = self.run_reader(["luxos-mail"], "thunderbird.desktop", "mailto:x@y.cz")
         self.assertEqual(calls, "gio launch DATA/applications/luxos-mail.desktop mailto:x@y.cz\n")

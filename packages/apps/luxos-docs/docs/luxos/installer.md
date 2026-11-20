@@ -179,8 +179,11 @@ Always installed (`/usr/share/luxos/installer/packages`): `base`, `lux-engine`, 
 `linux-firmware`, `sof-firmware`, `alsa-firmware`, CPU microcode, `btrfs-progs`, `dosfstools`,
 `e2fsprogs`, `exfatprogs`, `ntfs-3g`, `cryptsetup`, `plymouth`, `sudo`, `nano`, man pages,
 `networkmanager`, `pipewire-jack`, `noto-fonts`, `luxos-greeter`, `luxos-printing`,
-`luxos-desktop`, `luxdrop`, `luxai`, `luxos-safe`, `luxos-sandbox`, `luxos-care`, plus drivers from
+`luxos-desktop`, `thunderbird` (the e-mail app, see [email.md](email.md)), `luxdrop`, `luxai`,
+`luxos-safe`, `luxos-sandbox`, `luxos-care`, plus drivers from
 `luxos-hwdetect` (see [drivers.md](drivers.md)) and `efibootmgr` (UEFI) or `grub` (BIOS).
+After the base system the installer adds the Thunderbird language pack for the system language
+(`thunderbird-i18n-<lang>`, e.g. `cs`, `pt-br`, `sv-se`; skipped for English or when no pack exists).
 Downloads are retried up to 3 times (fewer parallel downloads on retry); mirrors are ranked first.
 The fastest mirrors for your country (reflector) are written to `/etc/lux/mirrorlist` of the new
 system; the installer also writes `/etc/lux/lux.conf` (the LuxOS default: online `[luxos]`,

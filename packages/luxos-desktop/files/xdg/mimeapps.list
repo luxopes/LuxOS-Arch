@@ -82,3 +82,7 @@ application/x-xz-compressed-tar=xarchiver.desktop;
 application/x-zstd-compressed-tar=xarchiver.desktop;
 application/x-xz=xarchiver.desktop;
 application/zstd=xarchiver.desktop;
+# Posta: Thunderbird (balik thunderbird i Flathub, stejne desktop-id). Bez nej rozhodne mimeinfo.cache
+# (jina nainstalovana postovni aplikace); odkazy mailto: v Souborech jdou pres luxos-mail-reader (Obchod).
+x-scheme-handler/mailto=org.mozilla.Thunderbird.desktop;
+message/rfc822=org.mozilla.Thunderbird.desktop;

@@ -1,9 +1,12 @@
-# LuxOS Mail
+# LuxOS Mail (preview, staging only)
 
-**Mail** (Pošta, package `luxos-mail`, command `luxos-mail`) is the lightweight mail app of LuxOS,
+> **Preview – staging channel only.** LuxOS Mail is not part of stable LuxOS. The e-mail app of LuxOS
+> is Thunderbird, see [email.md](email.md).
+
+**Mail** (Pošta, package `luxos-mail`, command `luxos-mail`) is a lightweight preview mail app,
 written in LSL. It reads mail from any IMAP server and shows a notification the moment new mail
-arrives – also when the window is closed. Thunderbird stays available in the *Everyday* app set for
-people who need its features; Mail starts in a fraction of a second and uses a fraction of the memory.
+arrives – also when the window is closed. Mail starts in a fraction of a second and uses a fraction
+of the memory of a full mail client.
 
 Mail **reads**, **writes**, **replies**, **forwards** and **sends** mail (SMTP) – with attachments,
 drafts saved on the server and an Outbox that sends by itself when you are back online – and

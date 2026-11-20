@@ -27,6 +27,9 @@ noto-fonts
 luxos-greeter
 luxos-printing
 luxos-desktop
+# vychozi postovni aplikace (LuxOS Mail zustava soukroma); jazykovy balicek podle jazyka systemu
+# doinstaluje install_templates (thunderbird-i18n-%lang%)
+thunderbird
 luxdrop
 luxai
 luxos-safe

@@ -1200,9 +1200,41 @@
           ]
         },
         {
+          "path": "luxos/email.md",
+          "title": "E-mail – Thunderbird",
+          "summary": "Thunderbird is the e-mail app of LuxOS (installed on new systems with its language pack): installing it on older systems, adding Gmail/Google Workspace and Outlook/Microsoft 365 accounts with OAuth2, other providers, mailto default app, dark mode, troubleshooting.",
+          "keywords": [
+            "e-mail",
+            "email",
+            "mail",
+            "Pošta",
+            "Thunderbird",
+            "org.mozilla.Thunderbird",
+            "thunderbird-i18n",
+            "language pack",
+            "Gmail",
+            "Google Workspace",
+            "OAuth2",
+            "Outlook",
+            "Hotmail",
+            "Microsoft 365",
+            "Seznam",
+            "iCloud",
+            "app password",
+            "IMAP",
+            "SMTP",
+            "mailto",
+            "default mail app",
+            "mimeapps.list",
+            "luxos-mail-reader",
+            "eml",
+            "account setup"
+          ]
+        },
+        {
           "path": "luxos/mail.md",
-          "title": "LuxOS Mail",
-          "summary": "LuxOS Mail (luxos-mail, LSL): sign in with the LuxAI account (LuxAI mailboxes without a password, OAUTHBEARER/XOAUTH2), IMAP accounts with server discovery, Gmail app passwords, Outlook/iCloud/Seznam advice, TLS, keyring, shortcuts, IDLE notifications, offline cache, troubleshooting.",
+          "title": "LuxOS Mail (preview, staging only)",
+          "summary": "Preview, staging channel only (stable LuxOS: Thunderbird, email.md). LuxOS Mail (luxos-mail, LSL): LuxAI mailboxes without a password (OAUTHBEARER/XOAUTH2), IMAP with server discovery, Gmail/Outlook/Seznam advice, keyring, IDLE notifications, offline cache, troubleshooting.",
           "keywords": [
             "Mail",
             "Pošta",
@@ -1238,7 +1270,7 @@
         },
         {
           "path": "luxos/mail-writing.md",
-          "title": "LuxOS Mail – writing, reading and technical notes",
+          "title": "LuxOS Mail (preview) – writing, reading and technical notes",
           "summary": "LuxOS Mail: writing and sending (SMTP, XOAUTH2/OAUTHBEARER, drafts, Outbox, reply/forward, shortcuts), reading messages (safe HTML view, clickable links, remote images, attachments, find, print) and technical notes.",
           "keywords": [
             "Mail",

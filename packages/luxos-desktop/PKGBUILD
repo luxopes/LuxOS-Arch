@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=91
+pkgrel=92
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -105,7 +105,8 @@ depends=(
     lshw pciutils usbutils
 )
 # fprintd instaluje luxos-drivers jen pri nalezene ctecce (luxos-hwdetect)
-optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)')
+optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)'
+            'thunderbird: default e-mail app (mailto: links open in it; installed with new systems)')
 
 build() {
     # Prepinani nabidek horni listy jednim klikem

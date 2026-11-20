@@ -89,9 +89,9 @@ one of them in Firefox Settings or `about:config`:
 - **Speed and scrolling**: hardware video decoding (VA-API), unloading unused tabs when memory is low,
   smooth scrolling with touchpad inertia ([scrolling.md](scrolling.md)).
 E-mail links (`mailto:` in Files, `xdg-email`) go through `luxos-mail-reader` (exo helper `MailReader` in
-`/etc/xdg/luxos/xfce4/helpers.rc`): the app set for `mailto` links, otherwise an installed mail app (LuxOS
-Mail, Thunderbird also from Flathub, Evolution, Geary). No mail app is installed by default; then a
-notification appears and the LuxOS Store opens with a search for mail apps.
+`/etc/xdg/luxos/xfce4/helpers.rc`): the app set for `mailto` links (default Thunderbird, see
+[email.md](email.md)), otherwise an installed mail app (Thunderbird also from Flathub, LuxOS Mail,
+Evolution, Geary). Without one, a notification appears and the Store searches for mail apps.
 
 ## About This Computer
 

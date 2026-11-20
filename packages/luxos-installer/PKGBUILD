@@ -2,7 +2,7 @@
 
 pkgname=luxos-installer
 pkgver=1.1.0
-pkgrel=47
+pkgrel=48
 pkgdesc="LuxOS installer"
 arch=(any)
 makedepends=(python)

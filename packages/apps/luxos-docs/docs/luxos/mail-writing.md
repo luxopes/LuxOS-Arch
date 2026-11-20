@@ -1,6 +1,7 @@
-# LuxOS Mail – writing, reading and technical notes
+# LuxOS Mail (preview) – writing, reading and technical notes
 
-Part of [LuxOS Mail](mail.md).
+Part of [LuxOS Mail](mail.md) – a preview app, staging channel only. The e-mail app of stable LuxOS is
+Thunderbird, see [email.md](email.md).
 
 ## Write and send mail
 

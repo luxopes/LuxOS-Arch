@@ -2,7 +2,7 @@
 # LuxOS - postovni aplikace pro exo-open (MailReader v helpers.rc): odkazy mailto: ze Souboru, xdg-email.
 #   luxos-mail-reader [mailto:adresa?subject=...]
 # 1) aplikace nastavena pro odkazy mailto (vlastni volba, LuxOS Mail, Thunderbird z Obchodu ...)
-# 2) nainstalovana znama postovni aplikace (LuxOS Mail, Thunderbird i z Flathubu)
+# 2) nainstalovana znama postovni aplikace (Thunderbird - vychozi v LuxOS, i z Flathubu; LuxOS Mail ...)
 # 3) zadna: oznameni a Obchod LuxOS s hledanim postovnich aplikaci (driv chybejici Thunderbird
 #    ukazal jen dialog exo "Vyberte postovni aplikaci" bez jedine moznosti)
 url=${1-}
@@ -25,7 +25,7 @@ app=$(xdg-mime query default x-scheme-handler/mailto 2>/dev/null)
 if [[ -n $app && $app != luxos-mail-reader* ]] && [[ -f $(desktop_path "${app%.desktop}") ]]; then
     launch "$app" && exit 0
 fi
-for id in luxos-mail org.mozilla.Thunderbird thunderbird org.gnome.Evolution org.gnome.Geary; do
+for id in org.mozilla.Thunderbird thunderbird luxos-mail org.gnome.Evolution org.gnome.Geary; do
     [[ -f $(desktop_path "$id") ]] && launch "$id" && exit 0
 done
 

@@ -2368,8 +2368,45 @@ chroot_engine() {  # jadro lux v cili (lux-engine), anglicky vystup kvuli pac_fi
     LC_ALL=C.UTF-8 arch-chroot "$TARGET" /usr/lib/lux/alpm/bin/lux-engine "$@"
 }
 
+# Jazykove balicky aplikaci ze zakladni sady ("balik-%lang% aplikace"): jen kdyz je aplikace v cili
+# a balik pro jazyk systemu existuje (cs_CZ -> thunderbird-i18n-cs, pt_BR -> -pt-br); anglictina je
+# v aplikaci vestavena. Potrebuje $avail a $installed jako tpl_resolve.
+BASE_LANG_PACKS=("thunderbird-i18n-%lang% thunderbird")
+base_lang_resolve() {
+    local entry name app c p
+    for entry in "${BASE_LANG_PACKS[@]}"; do
+        read -r name app <<<"$entry"
+        grep -qxF -- "$app" <<<"$installed" || continue
+        for c in $(lang_candidates -); do
+            [[ $c == en-us || $c == en ]] && break
+            p=${name//%lang%/$c}
+            if grep -qxF -- "$p" <<<"$avail"; then printf '%s\n' "$p"; break; fi
+        done
+    done
+}
+
+# Bez sablon jen jazykove balicky zakladni sady (bez noveho kroku; chyba se jen zapise do logu)
+install_base_lang() {
+    local attempt avail installed p
+    local -a pkgs
+    for attempt in 1 2 3; do
+        chroot_engine -Syy --noconfirm >>"$LOG" 2>&1 && break
+        ((attempt < 3)) || return 0
+        pac_cleanup
+        sleep $((attempt * 5))
+    done
+    avail=$(chroot_engine -Slq 2>>"$LOG" | sort -u) || return 0
+    installed=$(chroot_engine -Qq 2>>"$LOG") || return 0
+    mapfile -t pkgs < <(base_lang_resolve)
+    for p in "${pkgs[@]}"; do
+        pac_cleanup
+        chroot_engine -Su --needed --noconfirm "$p" >>"$LOG" 2>&1 || info "$(T "Package %s is not available - skipped." "$p")"
+    done
+    return 0
+}
+
 install_templates() {
-    ((${#TEMPLATE_IDS[@]})) || return 0
+    ((${#TEMPLATE_IDS[@]})) || { install_base_lang; return 0; }
     step "$(T "Installing additional software")"
     info "$(templates_text)"
     local id attempt ok=0 avail installed g
@@ -2405,6 +2442,7 @@ install_templates() {
         mapfile -t -O "${#pkgs[@]}" pkgs < <(tpl_resolve "$id")
         for g in $(tpl_field "$id" groups); do groups+=("$g"); done
     done
+    mapfile -t -O "${#pkgs[@]}" pkgs < <(base_lang_resolve)
     mapfile -t pkgs < <(printf '%s\n' "${pkgs[@]}" | awk 'NF && !seen[$0]++')
     mapfile -t failed <"$TPL_MISSING"
     rm -f "$TPL_MISSING"
