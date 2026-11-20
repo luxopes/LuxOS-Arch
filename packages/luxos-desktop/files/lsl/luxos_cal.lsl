@@ -117,6 +117,12 @@ function config_dir():
     return base + "/luxos"
 end
 
+# Relace na Waylandu (luxwm): hodiny kresli luxos-bar, xfce4-panel ani xfconf tam nebezi
+function wayland():
+    value = env.get("WAYLAND_DISPLAY", "")
+    return value != None and value != ""
+end
+
 function log_test(message):
     if test_log != "":
         call appendfile(test_log, message + "\n")
@@ -1669,7 +1675,7 @@ end
 # ---- horni lista: nahrada pluginu hodin --------------------------------------------------------------------------
 CLOCK_FORMAT = "%a %-d. %b  %H:%M"
 
-function xfconf(args):
+function xfconf_x11(args):
     argv = ["xfconf-query", "-c", "xfce4-panel"]
     argv.extend(args)
     out = ""
@@ -1687,12 +1693,12 @@ end
 
 # Starsi instalace maji v liste plugin 'clock', ktery neumi spustit prikaz po kliknuti.
 # Jednou ho nahradi pluginem genmon s luxos-clock (stejny vzhled, klik = kalendar); jen pokud uzivatel format hodin nezmenil.
-function migrate_panel():
+function migrate_panel_x11():
     mark = config_dir() + "/calendar-clock-migrated"
     if exists(mark):
         return False
     end
-    props = xfconf(["-l", "-p", "/plugins"])
+    props = xfconf_x11(["-l", "-p", "/plugins"])
     if props == None:
         return False
     end
@@ -1701,20 +1707,20 @@ function migrate_panel():
         if prop.count("/") != 2 or not prop.startswith("/plugins/plugin-"):
             continue
         end
-        if xfconf(["-p", prop]) != "clock":
+        if xfconf_x11(["-p", prop]) != "clock":
             continue
         end
-        fmt = xfconf(["-p", prop + "/digital-time-format"])
+        fmt = xfconf_x11(["-p", prop + "/digital-time-format"])
         if fmt != None and fmt != CLOCK_FORMAT:
             continue
         end
-        call xfconf(["-p", prop, "-r", "-R"])
-        call xfconf(["-p", prop, "-n", "-t", "string", "-s", "genmon"])
-        call xfconf(["-p", prop + "/command", "-n", "-t", "string", "-s", "luxos-clock"])
-        call xfconf(["-p", prop + "/update-period", "-n", "-t", "int", "-s", "3000"])
-        call xfconf(["-p", prop + "/use-label", "-n", "-t", "bool", "-s", "false"])
-        call xfconf(["-p", prop + "/enable-single-row", "-n", "-t", "bool", "-s", "true"])
-        call xfconf(["-p", prop + "/font", "-n", "-t", "string", "-s", "Inter Semi-Bold 10"])
+        call xfconf_x11(["-p", prop, "-r", "-R"])
+        call xfconf_x11(["-p", prop, "-n", "-t", "string", "-s", "genmon"])
+        call xfconf_x11(["-p", prop + "/command", "-n", "-t", "string", "-s", "luxos-clock"])
+        call xfconf_x11(["-p", prop + "/update-period", "-n", "-t", "int", "-s", "3000"])
+        call xfconf_x11(["-p", prop + "/use-label", "-n", "-t", "bool", "-s", "false"])
+        call xfconf_x11(["-p", prop + "/enable-single-row", "-n", "-t", "bool", "-s", "true"])
+        call xfconf_x11(["-p", prop + "/font", "-n", "-t", "string", "-s", "Inter Semi-Bold 10"])
         done = True
     end
     call glib.mkdir_p(config_dir())
@@ -1812,8 +1818,8 @@ function create(background):
         call gio.file_monitor(store["dir"], on_dir_event)
     end
     call reminders_schedule()
-    if background:
-        call glib.timeout_add_seconds(5, migrate_panel)
+    if background and not wayland():
+        call glib.timeout_add_seconds(5, migrate_panel_x11)
     end
     return 0
 end
