@@ -4,6 +4,8 @@
 # je LuxOS (X11) - stejne pravidlo ma luxos-greeter (legacy_gpu).
 [[ -r /etc/locale.conf ]] && . /etc/locale.conf && export LANG LC_TIME LC_MESSAGES
 export XCURSOR_THEME=WhiteSur-cursors XCURSOR_SIZE=24 GDK_BACKEND=wayland,x11
+# bez gvfsd a portalu: greeter soubory neotevira (o ~10 MB mene v uzivateli greeter)
+export GIO_USE_VFS=local GTK_USE_PORTAL=0
 
 legacy_gpu() {
     local v
