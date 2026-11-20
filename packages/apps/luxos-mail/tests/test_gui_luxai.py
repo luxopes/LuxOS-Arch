@@ -134,6 +134,44 @@ class LuxAIGuiTest(test_gui.GuiTest):
         xdo(env, "key", "Return")                          # Pridat
         self.assertTrue(mt.wait_for(lambda: len(self.accounts()) == 1, 15), self.s.service_log() + self.gui_log())
 
+    def test_luxai_address_in_add_account_signs_in_with_luxai(self):
+        """Adresa schranky LuxAI v Pridat ucet: zadny pokus s heslem pres IMAP, ale prihlaseni uctem LuxAI
+        (luxos-account login) a nabidka schranek LuxAI; schranka se prida bez hesla."""
+        env = self.s.env
+        env["LUXOS_MAIL_LUXAI_DOMAINS"] = "lux-ai.test"
+        called = os.path.join(self.s.root, "login-called")
+        tool = os.path.join(self.s.root, "fake-luxos-account")
+        with open(tool, "w") as f:
+            f.write("#!%s\nimport sys\nsys.path.insert(0, %r)\nimport fake_luxai as fl\n"
+                    "assert sys.argv[1:] == ['login']\nopen(%r, 'w').write('x')\nfl.write_account({'XDG_CONFIG_HOME': %r}, %r)\n"
+                    % (sys.executable, os.path.dirname(os.path.abspath(__file__)), called, env["XDG_CONFIG_HOME"], self.lux.origin))
+        os.chmod(tool, 0o755)
+        env["LUXOS_MAIL_ACCOUNT_TOOL"] = tool
+        self.start_gui()                                   # bez uctu LuxAI: uvitani s Pridat ucet...
+        win = self.window()
+        xdo(env, "windowactivate", "--sync", win)
+        xdo(env, "key", "--clearmodifiers", "Return")      # Pridat ucet...
+        time.sleep(1.0)
+        xdo(env, "type", "--delay", "20", " info@lux-ai.test")   # i s mezerou na zacatku
+        xdo(env, "key", "Tab")
+        xdo(env, "type", "--delay", "20", "not-the-password")
+        xdo(env, "key", "Return")                          # Prihlasit -> ucet LuxAI misto IMAP
+        self.assertTrue(mt.wait_for(lambda: os.path.exists(called), 10), "luxos-account login not started: " + self.gui_log())
+        self.assertTrue(mt.wait_for(lambda: any(r["path"] == "/api/mail/mailboxes" for r in self.lux.requests), 10),
+                        "mailboxes not requested: " + self.gui_log())
+        time.sleep(1.5)
+        self.shot("luxai-08-from-add-account.png")
+        xdo(env, "key", "Return")                          # Pridat u info@lux-ai.test
+        self.assertTrue(mt.wait_for(lambda: len(self.accounts()) == 1, 15), self.s.service_log() + self.gui_log())
+        a = self.accounts()[0]
+        self.assertEqual((a["email"], a["auth"]), ("info@lux-ai.test", "luxai"))
+        self.assertEqual(self.s.secret_lookup(a["id"]), "")
+        # heslo z formulare se nikam nepouzilo ani neulozilo
+        for root, dirs, files in os.walk(self.s.home):
+            for name in files:
+                with open(os.path.join(root, name), "rb") as f:
+                    self.assertNotIn(b"not-the-password", f.read(), name)
+
     def test_use_another_account_prefills(self):
         env = self.s.env
         fl.write_account(env, self.lux.origin, name="Tester", email=mt.USER)

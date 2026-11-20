@@ -3813,6 +3813,11 @@ function on_dlg_ok(button):
         call dlg_message(i18n.T("Enter a valid email address."), True)
         return 0
     end
+    # Schranka LuxAI (@lux-ai.cz) heslo pres IMAP nebere: misto pokusu s heslem prihlaseni uctem LuxAI
+    if is_luxai_address(email):
+        call luxai_from_dialog()
+        return 0
+    end
     if len(d["oauth"]) > 0:
         call oauth_begin()
         return 0
@@ -4122,6 +4127,42 @@ end
 
 function on_luxai_clicked(widget):
     return luxai_start()
+end
+
+# Adresy schranek na serveru LuxAI (LUXOS_MAIL_LUXAI_DOMAINS jen pro testy, mezerou oddelene)
+function luxai_domains():
+    value = env.get("LUXOS_MAIL_LUXAI_DOMAINS", "")
+    if value != None and value != "":
+        out = []
+        for part in value.split(" "):
+            if part != "":
+                out.append(part)
+            end
+        end
+        return out
+    end
+    return ["lux-ai.cz"]
+end
+
+function is_luxai_address(email):
+    return provider.domain_of(email) in luxai_domains()
+end
+
+# Pridat ucet s adresou LuxAI: zavrit formular a nabidnout schranky LuxAI (pres ucet LuxAI, bez hesla)
+function luxai_from_dialog():
+    if len(ui["dlg"]) > 0:
+        call on_dlg_cancel(0)
+    end
+    if len(luxai.account_user()) > 0:
+        call luxai_start()
+        return 0
+    end
+    if account_tool() == "":
+        call message_box(i18n.T("Sign In to LuxAI"), i18n.T("Mailboxes at lux-ai.cz sign in with your LuxAI account, not with a password. This needs the LuxAI Account app (luxos-account), which is not installed."))
+        return 0
+    end
+    call luxai_login("mailboxes", "")
+    return 0
 end
 
 function luxai_start():
