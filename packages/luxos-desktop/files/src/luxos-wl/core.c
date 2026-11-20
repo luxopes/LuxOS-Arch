@@ -178,6 +178,8 @@ static void output_done(void *data, struct wl_output *wl)
 	if (!o->announced) {
 		o->announced = true;
 		lwl_emit(LWL_OUTPUT_NEW, o->id, 0, 0);
+	} else {
+		lwl_lock_output_changed(o->id);
 	}
 }
 

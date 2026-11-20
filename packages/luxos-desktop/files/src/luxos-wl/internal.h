@@ -68,6 +68,7 @@ bool lwl_idle_bind(struct wl_registry *registry, uint32_t name, const char *inte
 void lwl_clipboard_seat(void);
 void lwl_lock_keyboard_update(void);
 void lwl_lock_output_gone(int output);
+void lwl_lock_output_changed(int output);
 void lwl_sweep(void);
 void lwl_toplevel_sweep(void);
 void lwl_heads_sweep(void);

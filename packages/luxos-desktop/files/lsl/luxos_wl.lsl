@@ -16,8 +16,8 @@
 #            toplevel_app_id/title/identifier/state(t), activate(t), minimize(t, zap), maximize(t, zap),
 #            close(t); STATE_* bity stavu
 # Zamek:     lock() -> LOCKED/LOCK_FINISHED, lock_surface(o) -> SURFACE_CONFIGURE(s, w, h),
-#            surface_begin(s) -> cairo surface (ARGB32) nebo 0, surface_commit(s, surface), KEY(s, keysym,
-#            znak), unlock()
+#            surface_begin(s) -> cairo surface (ARGB32, v pixelech) nebo 0, surface_scale(s) -> meritko
+#            (Float, i zlomkove; kreslit s cairo.scale), surface_commit(s, surface), KEY(s, keysym, znak), unlock()
 #            lock_secret(True): znaky hesla zustavaji v knihovne (KEY(s, 0 nebo keysym, delka)),
 #            lock_secret_write(fd) je posle do roury a smaze; KEYBOARD(s, caps, skupina), lock_layout_code(g)
 # Snimek:    capture_output(o, kurzor), capture_toplevel(lt, kurzor) -> READY(c, w, h)/FAILED(c, duvod),
@@ -84,7 +84,8 @@ NAMES = ["lwl_set_handler", "lwl_bind_only", "lwl_connect", "lwl_attach", "lwl_d
     "lwl_head_mode_count", "lwl_head_mode", "lwl_output_config_begin", "lwl_output_config_head",
     "lwl_output_config_apply", "lwl_idle_watch", "lwl_idle_release", "lwl_idle_watch_full", "lwl_lock_secret",
     "lwl_lock_secret_length", "lwl_lock_secret_clear", "lwl_lock_secret_write", "lwl_lock_caps", "lwl_lock_layout",
-    "lwl_lock_layout_count", "lwl_lock_layout_code"]
+    "lwl_lock_layout_count", "lwl_lock_layout_code", "lwl_surface_scale", "lwl_surface_buffer_width",
+    "lwl_surface_buffer_height"]
 
 # cairo_format_t podle formatu wl_shm (0 ARGB8888, 1 XRGB8888)
 CAIRO_ARGB32 = 0
@@ -414,10 +415,15 @@ function surface_size(surface):
     return [call1("lwl_surface_width", surface), call1("lwl_surface_height", surface)]
 end
 
-# cairo surface nad volnym buferem plochy; po kresleni surface_commit (ten surface znici)
+function surface_scale(surface):
+    return Float(call1("lwl_surface_scale", surface)) / 120.0
+end
+
+# cairo surface nad volnym buferem plochy (pixely = logicka velikost * surface_scale); po kresleni
+# surface_commit (ten surface znici)
 function surface_begin(surface):
-    width = call1("lwl_surface_width", surface)
-    height = call1("lwl_surface_height", surface)
+    width = call1("lwl_surface_buffer_width", surface)
+    height = call1("lwl_surface_buffer_height", surface)
     unsafe:
         data = __lsl_qbe_call1(sym("lwl_surface_begin"), ptr(surface))
         if data == 0:

@@ -214,6 +214,10 @@ function draw_all():
             continue
         end
         cr = cairo.create(image)
+        scale = wl.surface_scale(id)
+        if scale != 1.0:
+            call cairo.scale(cr, scale, scale)
+        end
         call draw.frame(cr, s[1], s[2], ui, glass_for(s[0]))
         call cairo.destroy(cr)
         call wl.surface_commit(id, image)
@@ -569,6 +573,9 @@ function event(kind, handle, a, b):
             s[1] = a
             s[2] = b
             call log("configure " + String(a) + "x" + String(b))
+            if wl.surface_scale(handle) != 1.0:
+                call log("scale " + String(wl.surface_scale(handle)))
+            end
             call draw_all()
         end
     elif kind == wl.KEY:
