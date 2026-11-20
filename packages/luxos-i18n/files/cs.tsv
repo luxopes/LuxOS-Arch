@@ -5393,3 +5393,7 @@ Output	Výstup
 Input	Vstup
 Muted	Ztlumeno
 Wrong password	Nesprávné heslo
+The desktop could not start. %s is selected.	Plochu se nepodařilo spustit. Je vybráno %s.
+Authentication required	Vyžadováno ověření
+Authenticate	Ověřit
+Authentication is not available.	Ověření není k dispozici.

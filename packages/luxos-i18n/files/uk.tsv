@@ -5395,3 +5395,7 @@ Output	Вихід
 Input	Вхід
 Muted	Вимкнено звук
 Wrong password	Неправильний пароль
+The desktop could not start. %s is selected.	Не вдалося запустити робочий стіл. Вибрано %s.
+Authentication required	Потрібна автентифікація
+Authenticate	Автентифікувати
+Authentication is not available.	Автентифікація недоступна.

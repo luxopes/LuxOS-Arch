@@ -5394,3 +5394,7 @@ Output	Ausgang
 Input	Eingang
 Muted	Stumm
 Wrong password	Falsches Passwort
+The desktop could not start. %s is selected.	Der Desktop konnte nicht starten. %s ist ausgewählt.
+Authentication required	Authentifizierung erforderlich
+Authenticate	Authentifizieren
+Authentication is not available.	Authentifizierung ist nicht verfügbar.
