@@ -16,16 +16,16 @@
 #            toplevel_app_id/title/identifier/state(t), activate(t), minimize(t, zap), maximize(t, zap),
 #            close(t); STATE_* bity stavu
 # Zamek:     lock() -> LOCKED/LOCK_FINISHED, lock_surface(o) -> SURFACE_CONFIGURE(s, w, h),
-#            surface_begin(s) -> cairo surface (ARGB32) nebo 0, surface_commit(s, surface), KEY(s, keysym,
-#            znak), unlock()
+#            surface_begin(s) -> cairo surface (ARGB32, v pixelech) nebo 0, surface_scale(s) -> meritko
+#            (Float, i zlomkove; kreslit s cairo.scale), surface_commit(s, surface), KEY(s, keysym, znak), unlock()
 #            lock_secret(True): znaky hesla zustavaji v knihovne (KEY(s, 0 nebo keysym, delka)),
 #            lock_secret_write(fd) je posle do roury a smaze; KEYBOARD(s, caps, skupina), lock_layout_code(g)
 # Snimek:    capture_output(o, kurzor), capture_toplevel(lt, kurzor) -> READY(c, w, h)/FAILED(c, duvod),
 #            capture_surface(c, w, h) -> kopie jako cairo surface, capture_write_png(c, w, h, cesta),
 #            capture_format(c), capture_free(c)
-# Schranka:  clipboard_set(text, primarni), clipboard_types(primarni) -> [mime..], CLIPBOARD_CHANGED(0,
-#            primarni, text), clipboard_request(mime, primarni) -> CLIPBOARD_DATA(r, delka, chyba),
-#            clipboard_text(r), clipboard_free(r)
+# Schranka:  clipboard_set(text, primarni), clipboard_set_file(mime, cesta) (obrazek snimku),
+#            clipboard_types(primarni) -> [mime..], CLIPBOARD_CHANGED(0, primarni, text),
+#            clipboard_request(mime, primarni) -> CLIPBOARD_DATA(r, delka, chyba), clipboard_text(r), clipboard_free(r)
 # Emoji:     type_text(text) napise text do okna s fokusem (virtualni klavesnice)
 # Monitory:  heads(), head_info(h) -> [jmeno, popis, zapnuto, x, y, w, h, mHz, meritko/1000, otoceni],
 #            head_modes(h) -> [[w, h, mHz, preferovany, aktualni]..], output_config_begin(),
@@ -77,14 +77,15 @@ NAMES = ["lwl_set_handler", "lwl_bind_only", "lwl_connect", "lwl_attach", "lwl_d
     "lwl_toplevel_set_minimized", "lwl_toplevel_set_maximized", "lwl_toplevel_close", "lwl_lock",
     "lwl_lock_surface", "lwl_unlock", "lwl_surface_width", "lwl_surface_height", "lwl_surface_begin",
     "lwl_surface_commit", "lwl_capture_output", "lwl_capture_toplevel", "lwl_capture_data", "lwl_capture_stride",
-    "lwl_capture_format", "lwl_capture_free", "lwl_clipboard_set", "lwl_clipboard_mime_types",
+    "lwl_capture_format", "lwl_capture_free", "lwl_clipboard_set", "lwl_clipboard_set_file", "lwl_clipboard_mime_types",
     "lwl_clipboard_request", "lwl_clipboard_data", "lwl_clipboard_free", "lwl_type", "lwl_head_count",
     "lwl_head_at", "lwl_head_name", "lwl_head_description", "lwl_head_enabled", "lwl_head_x", "lwl_head_y",
     "lwl_head_width", "lwl_head_height", "lwl_head_refresh", "lwl_head_scale", "lwl_head_transform",
     "lwl_head_mode_count", "lwl_head_mode", "lwl_output_config_begin", "lwl_output_config_head",
     "lwl_output_config_apply", "lwl_idle_watch", "lwl_idle_release", "lwl_idle_watch_full", "lwl_lock_secret",
     "lwl_lock_secret_length", "lwl_lock_secret_clear", "lwl_lock_secret_write", "lwl_lock_caps", "lwl_lock_layout",
-    "lwl_lock_layout_count", "lwl_lock_layout_code"]
+    "lwl_lock_layout_count", "lwl_lock_layout_code", "lwl_surface_scale", "lwl_surface_buffer_width",
+    "lwl_surface_buffer_height"]
 
 # cairo_format_t podle formatu wl_shm (0 ARGB8888, 1 XRGB8888)
 CAIRO_ARGB32 = 0
@@ -414,10 +415,15 @@ function surface_size(surface):
     return [call1("lwl_surface_width", surface), call1("lwl_surface_height", surface)]
 end
 
-# cairo surface nad volnym buferem plochy; po kresleni surface_commit (ten surface znici)
+function surface_scale(surface):
+    return Float(call1("lwl_surface_scale", surface)) / 120.0
+end
+
+# cairo surface nad volnym buferem plochy (pixely = logicka velikost * surface_scale); po kresleni
+# surface_commit (ten surface znici)
 function surface_begin(surface):
-    width = call1("lwl_surface_width", surface)
-    height = call1("lwl_surface_height", surface)
+    width = call1("lwl_surface_buffer_width", surface)
+    height = call1("lwl_surface_buffer_height", surface)
     unsafe:
         data = __lsl_qbe_call1(sym("lwl_surface_begin"), ptr(surface))
         if data == 0:
@@ -502,6 +508,12 @@ end
 function clipboard_set(text, primary):
     unsafe:
         return __lsl_qbe_icall2(sym("lwl_clipboard_set"), cstr(text), flag(primary)) == 1
+    end
+end
+
+function clipboard_set_file(mime, path):
+    unsafe:
+        return __lsl_qbe_icall2(sym("lwl_clipboard_set_file"), cstr(mime), cstr(path)) == 1
     end
 end
 

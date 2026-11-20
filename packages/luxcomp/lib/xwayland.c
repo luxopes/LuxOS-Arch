@@ -51,7 +51,7 @@ x_associate(struct wl_listener *listener, void *data)
 {
 	struct view *v = wl_container_of(listener, v, x_associate);
 	struct wlr_surface *s = v->xsurface->surface;
-	v->surface_tree = wlr_scene_subsurface_tree_create(v->tree, s);
+	v->surface_tree = wlr_scene_subsurface_tree_create(v->body, s);
 	tree_track(&v->surface_tree);
 	v->map.notify = x_map;
 	wl_signal_add(&s->events.map, &v->map);

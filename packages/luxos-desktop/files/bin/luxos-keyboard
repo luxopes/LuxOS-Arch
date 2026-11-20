@@ -14,6 +14,11 @@ import subprocess
 import sys
 import threading
 
+# Na Waylandu (luxwm) je nastaveni v LSL: luxos-keyboard-settings
+WAYLAND_SETTINGS = "/usr/lib/luxos/luxos-keyboard-settings"
+if os.environ.get("WAYLAND_DISPLAY") and os.access(WAYLAND_SETTINGS, os.X_OK):
+    os.execv(WAYLAND_SETTINGS, [WAYLAND_SETTINGS] + sys.argv[1:])
+
 sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
 from luxos_winsize import fit_content  # noqa: E402

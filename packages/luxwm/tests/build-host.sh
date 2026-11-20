@@ -27,9 +27,10 @@ gcc $cflags -fPIC -fvisibility=hidden -shared -Wl,-soname,libluxcomp.so.0 -o "$b
 ln -sf libluxcomp.so.0 "$b/libluxcomp.so"
 gcc $cflags -o "$b/luxcomp-demo" "$comp/tests/demo.c" -L"$b" -lluxcomp -Wl,-rpath-link,"$sysroot/usr/lib"
 # luxwm: LSL vedle luxos_tokens.lsl (moduly se hledaji vedle zdroje)
-cp "$root"/packages/luxwm/*.lsl "$root"/packages/luxos-desktop/files/lsl/luxos_tokens.lsl "$b/src/"
+cp "$root"/packages/luxwm/*.lsl "$root"/packages/luxos-desktop/files/lsl/{luxos_tokens,luxos_luxwm}.lsl "$b/src/"
 if [[ -f $b/src/luxwm.lsl ]]; then
   # luxir hleda knihovny jen v systemovych adresarich: libluxcomp podstrcit v soukromem mount namespace
   unshare -rm sh -c "mount --bind \"$b\" /usr/local/lib && lslc --target linux-x86_64-gnu \"$b/src/luxwm.lsl\" \"$b/luxwm\""
+  lslc --target linux-x86_64-gnu "$b/src/luxwm-msg.lsl" "$b/luxwm-msg"
 fi
 echo "$b"

@@ -32,7 +32,8 @@ enum lwl_event {
 	LWL_LIST_TOPLEVEL_CLOSED,
 	LWL_LOCKED,                 /* ext-session-lock: kompozitor ukazuje jen nase zamykaci plochy */
 	LWL_LOCK_FINISHED,          /* zamek odmitnut nebo ukoncen kompozitorem */
-	LWL_SURFACE_CONFIGURE,      /* handle = zamykaci plocha, a = sirka, b = vyska; nakreslit a commit */
+	LWL_SURFACE_CONFIGURE,      /* handle = zamykaci plocha, a = sirka, b = vyska (logicke); nakreslit a commit;
+	                               znovu i po zmene meritka */
 	LWL_KEY,                    /* a = keysym, b = znak Unicode (0 = zadny); stisk na nasi plose.
 	                               S lwl_lock_secret(1): znak jde jen do hesla v knihovne, a = 0 (znak)
 	                               nebo keysym ostatnich klaves, b = delka hesla ve znacich */
@@ -101,6 +102,9 @@ int lwl_lock_layout_count(void);
 const char *lwl_lock_layout_code(int group);
 int lwl_surface_width(int surface);
 int lwl_surface_height(int surface);
+int lwl_surface_scale(int surface);           /* 1/120: 240 = 2x, 180 = 1.5x */
+int lwl_surface_buffer_width(int surface);
+int lwl_surface_buffer_height(int surface);
 void *lwl_surface_begin(int surface);
 int lwl_surface_commit(int surface);
 
@@ -112,6 +116,7 @@ int lwl_capture_format(int capture);
 void lwl_capture_free(int capture);
 
 int lwl_clipboard_set(const char *text, int primary);
+int lwl_clipboard_set_file(const char *mime, const char *path);
 const char *lwl_clipboard_mime_types(int primary);
 int lwl_clipboard_request(const char *mime, int primary);
 const char *lwl_clipboard_data(int request);

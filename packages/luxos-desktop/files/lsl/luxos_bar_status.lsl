@@ -6,7 +6,8 @@
 #                              "resume" (zvonek: neprectena oznameni v historii luxos-notify, org.xfce.Notifyd.Log)
 #   status.state[druh]         {"icon", "tip", ...} pro listu; "" = polozku skryt
 #   status.change_volume(d)    hlasitost +-d % (kolecko nad ikonou zvuku)
-#   status.next_layout()       dalsi rozlozeni klavesnice - zatim nic (prepinani patri luxwm, IPC zatim neni)
+#   status.next_layout(), status.switch_layout(i)   prepnuti rozlozeni klavesnice pres IPC luxwm
+#                              (pod luxwm ukazuje aktivni rozlozeni z kompozitoru, jinak prvni z localed)
 #   status.summary(druh)       kratky popis stavu (ladeni, testy)
 load env
 load glib, gio
@@ -14,6 +15,7 @@ load luxos_glib as lglib
 load luxos_gio, gio as lgio
 load luxos_i18n as i18n
 load luxos_text as text
+load luxos_luxwm as wm
 
 NM = "org.freedesktop.NetworkManager"
 NM_PATH = "/org/freedesktop/NetworkManager"
@@ -29,11 +31,11 @@ state = {
     "network": {"icon": "", "tip": "", "portal": False, "props": {}, "ap": {}, "id": ""},
     "sound": {"icon": "", "tip": "", "volume": -1, "muted": False},
     "battery": {"icon": "", "tip": "", "text": "", "props": {}},
-    "keyboard": {"short": "", "tip": "", "layouts": []},
+    "keyboard": {"short": "", "tip": "", "layouts": [], "names": [], "current": 0},
     "notifications": {"icon": "notification-symbolic", "unread": False}
 }
 st = {"changed": None, "system": 0, "session": 0, "ap_path": "", "ap_sub": 0, "pactl_started": 0,
-      "sound_armed": False, "sound_busy": False, "sound_again": False}
+      "sound_armed": False, "sound_busy": False, "sound_again": False, "wm_keyboard": False}
 
 function emit(kind):
     handler = st["changed"]
@@ -472,24 +474,34 @@ function change_volume(delta):
     return 0
 end
 
-# ---- klavesnice (docasne: rozlozeni z localed, prepinani az pres IPC luxwm) ---------------------------
+# ---- klavesnice: aktivni rozlozeni z luxwm (IPC), bez luxwm prvni rozlozeni z localed ----------------
 
-function locale_changed(props):
-    layouts = []
-    for part in props.get("X11Layout", "").split(","):
-        if part.strip() != "":
-            layouts.append(part.strip())
-        end
-    end
+function show_keyboard(codes, names, current):
     kb = state["keyboard"]
-    kb["layouts"] = layouts
+    kb["layouts"] = codes
+    kb["names"] = names
+    kb["current"] = current
     kb["short"] = ""
     kb["tip"] = ""
-    if len(layouts) > 0:
-        kb["short"] = layouts[0].upper()
-        kb["tip"] = i18n.T("Keyboard") + ": " + ", ".join(layouts)
+    if current >= 0 and current < len(codes):
+        kb["short"] = codes[current].upper()
+        kb["tip"] = i18n.T("Keyboard") + ": " + names[current]
     end
     call emit("keyboard")
+    return 0
+end
+
+function locale_changed(props):
+    if st["wm_keyboard"]:
+        return 0
+    end
+    codes = []
+    for part in props.get("X11Layout", "").split(","):
+        if part.strip() != "":
+            codes.append(part.strip())
+        end
+    end
+    call show_keyboard(codes, codes, 0)
     return 0
 end
 
@@ -506,8 +518,37 @@ function locale_vanished(unused, name):
     return 0
 end
 
+function on_wm(event):
+    if event["event"] != "keyboard":
+        return 0
+    end
+    st["wm_keyboard"] = True
+    codes = []
+    names = []
+    for item in event["layouts"]:
+        codes.append(item["code"])
+        names.append(item["name"])
+    end
+    call show_keyboard(codes, names, event["current"])
+    return 0
+end
+
+# luxwm skoncil: do jeho navratu aspon rozlozeni z localed
+function on_wm_state(up):
+    if not up and st["wm_keyboard"]:
+        st["wm_keyboard"] = False
+        call locale_changed(st.get("locale_props", {}))
+    end
+    return 0
+end
+
 function next_layout():
-    # TODO(WP-2b): prepnout rozlozeni pres IPC luxwm; badge pak bude ukazovat aktivni rozlozeni z kompozitoru
+    call wm.request({"cmd": "next_layout"}, None)
+    return 0
+end
+
+function switch_layout(index):
+    call wm.request({"cmd": "switch_layout", "index": index}, None)
     return 0
 end
 
@@ -591,5 +632,8 @@ function start(handler):
                                  lgio.SIGNAL_NONE, on_log_changed, 0)
     end
     call pactl_watch(0)
+    call wm.on_state(on_wm_state)
+    call wm.subscribe(["keyboard"])
+    call wm.connect(on_wm)
     return 0
 end

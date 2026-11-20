@@ -3,6 +3,8 @@
 # inhibitor logind by nepomohl). Behem prehravani proto docasne nastavime jeho akci vika na "vypnout
 # obrazovku" (0) a uspani pri necinnosti na "nikdy" (14); puvodni hodnoty jsou v souboru sleep-override
 # (obnovi se i po padu, pri dalsim startu). xfce4-power-manager cte nastaveni az v okamziku udalosti.
+# Na Waylandu xfce4-power-manager nebezi a vik i necinnost resi logind sam: staci jeho inhibitor
+# handle-lid-switch:idle. Po uvolneni logind zavreny vik zkontroluje znovu a uspi podle HandleLidSwitch.
 #   call awake.init(session_bus, system_bus)   po mpris.init
 #   call awake.shutdown()                       pri konci hubu
 load env
@@ -18,7 +20,12 @@ SLEEP_ACTIONS = [1, 2, 5]      # uspat, hibernovat, hybridni uspani (0 = vypnout
 LID_SCREEN_OFF = 0
 IDLE_NEVER = 14
 
-state = {"session": 0, "system": 0, "timer": 0, "engaged": False, "ready": False}
+state = {"session": 0, "system": 0, "timer": 0, "engaged": False, "ready": False, "inhibitor": -1}
+
+function wayland():
+    value = env.get("WAYLAND_DISPLAY", "")
+    return value != None and value != ""
+end
 
 function config_dir():
     base = env.get("XDG_CONFIG_HOME", "")
@@ -133,7 +140,7 @@ end
 
 # ---- xfconf a UPower ------------------------------------------------------------------------------
 
-function xfconf_get(prop):
+function xfconf_get_x11(prop):
     value = None
     try:
         reply = gio.call_values(state["session"], "org.xfce.Xfconf", "/org/xfce/Xfconf", "org.xfce.Xfconf", "GetProperty", [XFPM, "/" + XFPM + "/" + prop], "(ss)", 3000)
@@ -144,7 +151,7 @@ function xfconf_get(prop):
     return value
 end
 
-function xfconf_set(prop, value):
+function xfconf_set_x11(prop, value):
     ok = True
     try:
         call gio.call_values(state["session"], "org.xfce.Xfconf", "/org/xfce/Xfconf", "org.xfce.Xfconf", "SetProperty", [XFPM, "/" + XFPM + "/" + prop, ["u", value]], "(ssv)", 3000)
@@ -154,10 +161,10 @@ function xfconf_set(prop, value):
     return ok
 end
 
-function current(props):
+function current_x11(props):
     values = {}
     for p in props:
-        v = xfconf_get(p)
+        v = xfconf_get_x11(p)
         if v != None and type(v) == "Int":
             values[p] = v
         end
@@ -205,14 +212,14 @@ function changed():
         # Jednou za prehravani (zmena metadat u dalsi skladby uz xfconf necte)
         if not state["engaged"]:
             state["engaged"] = True
-            if not exists(override_path()):
+            if not held():
                 call engage()
             end
         end
         return 0
     end
     state["engaged"] = False
-    if exists(override_path()) and state["timer"] == 0:
+    if held() and state["timer"] == 0:
         # Volbu uzivatel vypnul -> hned, jinak az po chvili ticha
         delay = grace()
         if exists(while_playing_path()):
@@ -223,11 +230,27 @@ function changed():
     return 0
 end
 
+# Je neco docasne zmenene (inhibitor, nastaveni xfce4-power-manager), co se po prehravani vraci?
+function held():
+    if wayland():
+        return state["inhibitor"] >= 0
+    end
+    return exists(override_path())
+end
+
 function engage():
+    if wayland():
+        state["inhibitor"] = gio.inhibit_fd(state["system"], "handle-lid-switch:idle", "LuxOS", "Media is playing", "block")
+        return 0
+    end
+    return engage_x11()
+end
+
+function engage_x11():
     props = []
     props.extend(LID_PROPS)
     props.extend(IDLE_PROPS)
-    plan = plan_override(current(props))
+    plan = plan_override(current_x11(props))
     if len(plan) == 0:
         return 0
     end
@@ -248,7 +271,7 @@ function engage():
         return 0
     end
     for p in plan.keys():
-        call xfconf_set(p, plan[p][1])
+        call xfconf_set_x11(p, plan[p][1])
     end
     return 0
 end
@@ -262,6 +285,17 @@ function on_quiet():
 end
 
 function restore(sleep):
+    if state["inhibitor"] >= 0:
+        call glib.close_fd(state["inhibitor"])
+        state["inhibitor"] = -1
+    end
+    if wayland():
+        return 0
+    end
+    return restore_x11(sleep)
+end
+
+function restore_x11(sleep):
     saved = read_override()
     if len(saved) == 0:
         if exists(override_path()):
@@ -273,9 +307,9 @@ function restore(sleep):
     for p in saved.keys():
         keys.append(p)
     end
-    plan = plan_restore(saved, current(keys))
+    plan = plan_restore(saved, current_x11(keys))
     for p in plan.keys():
-        call xfconf_set(p, plan[p])
+        call xfconf_set_x11(p, plan[p])
     end
     call glib.unlink(override_path())
     if not sleep:
@@ -311,7 +345,7 @@ function do_sleep(action):
 end
 
 function shutdown():
-    if state["ready"] and exists(override_path()):
+    if state["ready"] and held():
         call restore(False)
     end
     return 0

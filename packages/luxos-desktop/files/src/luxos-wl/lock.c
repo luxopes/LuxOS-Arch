@@ -4,7 +4,9 @@
  *
  * Heslo (lwl_lock_secret): znaky jdou rovnou do jedineho bufferu zamceneho v RAM, do LSL nikdy -
  * tam by z retezcu zustaly kopie, ktere nejde smazat. Ven jde jen jednou do roury pomocneho
- * programu PAM (lwl_lock_secret_write) a buffer se hned prepise nulami. */
+ * programu PAM (lwl_lock_secret_write) a buffer se hned prepise nulami. Mrtve klavesy a Compose
+ * (ť = dead_caron + t) sklada xkbcommon-compose rovnou do tehoz bufferu; opakovani drzene klavesy
+ * (wl_keyboard.repeat_info) bezi tu v C, aby ani opakovane znaky neprosly LSL. */
 #define _GNU_SOURCE
 #include <errno.h>
 #include <stdint.h>
@@ -13,11 +15,16 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <glib.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-compose.h>
 #include "internal.h"
 #include "ext-session-lock-v1-client-protocol.h"
+#include "fractional-scale-v1-client-protocol.h"
+#include "viewporter-client-protocol.h"
 
 struct buffer {
+	struct surface *owner;
 	struct wl_buffer *wl;
 	void *data;
 	size_t size;
@@ -32,19 +39,31 @@ struct surface {
 	struct wl_surface *wl;
 	struct ext_session_lock_surface_v1 *lock;
 	int width, height;
+	int scale;                      /* v 1/120 jako wp_fractional_scale_v1; drzi se meritka vystupu */
+	int drawn_scale;
+	struct wp_fractional_scale_v1 *fractional;
+	struct wp_viewport *viewport;
 	struct buffer buffers[2];
-	struct buffer *drawing;
+	struct buffer *drawing, *current;
 };
 
 static struct ext_session_lock_v1 *lock;
 static bool locked;
 static struct wl_list surfaces = {&surfaces, &surfaces};
+static struct wp_fractional_scale_manager_v1 *fractional_manager;
+static struct wp_viewporter *viewporter;
+static guint spare_timer;
 
 static struct wl_keyboard *keyboard;
 static struct xkb_context *xkb;
 static struct xkb_keymap *keymap;
 static struct xkb_state *xkb_state;
 static struct surface *focus;
+static struct xkb_compose_table *compose_table;
+static struct xkb_compose_state *compose;
+static int32_t repeat_rate = 25, repeat_delay = 600;
+static xkb_keycode_t repeat_code;
+static guint repeat_timer;
 
 #define SECRET_MAX 1024
 #define LAYOUTS_MAX 4
@@ -59,15 +78,6 @@ static void secret_clear(void);
 
 /* ---- bufery ---- */
 
-static void buffer_release(void *data, struct wl_buffer *wl)
-{
-	struct buffer *b = data;
-	(void)wl;
-	b->busy = false;
-}
-
-static const struct wl_buffer_listener buffer_listener = {.release = buffer_release};
-
 static void buffer_free(struct buffer *b)
 {
 	if (b->wl)
@@ -77,7 +87,32 @@ static void buffer_free(struct buffer *b)
 	memset(b, 0, sizeof *b);
 }
 
-static bool buffer_alloc(struct buffer *b, int width, int height)
+/* Druhy bufer je potreba jen behem animace (zatreseni, tecky pri psani); v klidu na plose
+ * zustava jen ten posledni, at zamek u 4K monitoru nedrzi zbytecne 33 MB. */
+static gboolean free_spares(gpointer data)
+{
+	struct surface *s;
+	(void)data;
+	spare_timer = 0;
+	wl_list_for_each(s, &surfaces, link)
+		for (int i = 0; i < 2; i++)
+			if (&s->buffers[i] != s->current && s->buffers[i].wl && !s->buffers[i].busy)
+				buffer_free(&s->buffers[i]);
+	return G_SOURCE_REMOVE;
+}
+
+static void buffer_release(void *data, struct wl_buffer *wl)
+{
+	struct buffer *b = data;
+	(void)wl;
+	b->busy = false;
+	if (b != b->owner->current && !spare_timer)
+		spare_timer = g_timeout_add_seconds(1, free_spares, NULL);
+}
+
+static const struct wl_buffer_listener buffer_listener = {.release = buffer_release};
+
+static bool buffer_alloc(struct surface *owner, struct buffer *b, int width, int height)
 {
 	int stride = width * 4;
 	size_t size = (size_t)stride * height;
@@ -94,6 +129,7 @@ static bool buffer_alloc(struct buffer *b, int width, int height)
 	wl_shm_pool_destroy(pool);
 	close(fd);
 	wl_buffer_add_listener(b->wl, &buffer_listener, b);
+	b->owner = owner;
 	b->data = data;
 	b->size = size;
 	b->width = width;
@@ -123,11 +159,49 @@ static void surface_configure(void *data, struct ext_session_lock_surface_v1 *ls
 
 static const struct ext_session_lock_surface_v1_listener surface_listener = {.configure = surface_configure};
 
+/* Meritko plochy v 1/120: preferovane z wp_fractional_scale_v1, jinak cele meritko vystupu. */
+static int surface_scale(struct surface *s)
+{
+	if (s->fractional)
+		return s->scale;
+	struct lwl_output *o = lwl_find_output(s->output);
+	return o && o->scale > 1 ? o->scale * 120 : 120;
+}
+
+/* jine meritko nez naposledy nakreslene: LSL dostane configure znovu a prekresli */
+static void scale_changed(struct surface *s)
+{
+	if (s->width > 0 && s->drawn_scale && surface_scale(s) != s->drawn_scale)
+		lwl_emit(LWL_SURFACE_CONFIGURE, s->id, s->width, s->height);
+}
+
+static void preferred_scale(void *data, struct wp_fractional_scale_v1 *f, uint32_t scale)
+{
+	struct surface *s = data;
+	(void)f;
+	s->scale = scale >= 60 && scale <= 120 * 8 ? (int)scale : 120;
+	scale_changed(s);
+}
+
+static const struct wp_fractional_scale_v1_listener fractional_listener = {.preferred_scale = preferred_scale};
+
+void lwl_lock_output_changed(int output)
+{
+	struct surface *s;
+	wl_list_for_each(s, &surfaces, link)
+		if (s->output == output && !s->fractional)
+			scale_changed(s);
+}
+
 static void surface_destroy(struct surface *s)
 {
 	if (focus == s)
 		focus = NULL;
 	wl_list_remove(&s->link);
+	if (s->fractional)
+		wp_fractional_scale_v1_destroy(s->fractional);
+	if (s->viewport)
+		wp_viewport_destroy(s->viewport);
 	if (s->lock)
 		ext_session_lock_surface_v1_destroy(s->lock);
 	if (s->wl)
@@ -146,15 +220,24 @@ void lwl_lock_output_gone(int output)
 			surface_destroy(s);
 }
 
+static void repeat_stop(void);
+
 static void destroy_all(void)
 {
 	struct surface *s, *tmp;
+	repeat_stop();
+	if (compose)
+		xkb_compose_state_reset(compose);
 	secret_clear();
 	wl_list_for_each_safe(s, tmp, &surfaces, link)
 		surface_destroy(s);
 	if (keyboard) {
 		wl_keyboard_release(keyboard);
 		keyboard = NULL;
+	}
+	if (spare_timer) {
+		g_source_remove(spare_timer);
+		spare_timer = 0;
 	}
 }
 
@@ -184,18 +267,28 @@ static void secret_drop_last(void)
 	}
 }
 
-/* Znak klavesy rovnou na konec hesla; ridici znaky (Tab, Enter) a plny buffer nic nepridaji. */
-static bool secret_append(xkb_keycode_t code)
+/* Znak, ktery xkbcommon prave zapsal na konec hesla (n bajtu, vraci jako snprintf), se prijme;
+ * ridici znaky (Tab, Enter) a plny buffer nic nepridaji. */
+static bool secret_take(int n)
 {
 	char *end = secret + secret_len;
 	size_t room = sizeof secret - secret_len;
-	int n = xkb_state_key_get_utf8(xkb_state, code, end, room);
 	if (n <= 0 || (size_t)n >= room || (unsigned char)end[0] < 0x20 || end[0] == 0x7f) {
 		explicit_bzero(end, room);
 		return false;
 	}
 	secret_len += (size_t)n;
 	return true;
+}
+
+static bool secret_append(xkb_keycode_t code)
+{
+	return secret_take(xkb_state_key_get_utf8(xkb_state, code, secret + secret_len, sizeof secret - secret_len));
+}
+
+static bool secret_append_composed(void)
+{
+	return secret_take(xkb_compose_state_get_utf8(compose, secret + secret_len, sizeof secret - secret_len));
 }
 
 LWL_EXPORT int lwl_lock_secret(int on)
@@ -343,6 +436,30 @@ LWL_EXPORT const char *lwl_lock_layout_code(int group)
 	return group >= 0 && group < layout_count ? layout_codes[group] : "";
 }
 
+/* Tabulka Compose podle locale (vcetne ~/.XCompose); heslo je vzdy UTF-8, takze bez UTF-8 locale
+ * plati C.UTF-8 (en_US.UTF-8/Compose). Bez tabulky mrtve klavesy jen nic nenapisou. */
+static void compose_setup(void)
+{
+	if (compose) {
+		xkb_compose_state_reset(compose);
+		return;
+	}
+	const char *names[] = {"LC_ALL", "LC_CTYPE", "LANG"};
+	const char *locale = NULL;
+	for (int i = 0; i < 3 && !locale; i++) {
+		const char *v = getenv(names[i]);
+		if (v && *v)
+			locale = v;
+	}
+	if (!locale || !(strstr(locale, "UTF-8") || strstr(locale, "utf8")))
+		locale = "C.UTF-8";
+	compose_table = xkb_compose_table_new_from_locale(xkb, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+	if (!compose_table)
+		compose_table = xkb_compose_table_new_from_locale(xkb, "C.UTF-8", XKB_COMPOSE_COMPILE_NO_FLAGS);
+	if (compose_table)
+		compose = xkb_compose_state_new(compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
+}
+
 static void kb_keymap(void *data, struct wl_keyboard *kb, uint32_t format, int32_t fd, uint32_t size)
 {
 	(void)data; (void)kb;
@@ -365,6 +482,8 @@ static void kb_keymap(void *data, struct wl_keyboard *kb, uint32_t format, int32
 	xkb_keymap_unref(keymap);
 	keymap = map;
 	xkb_state = xkb_state_new(map);
+	repeat_stop();
+	compose_setup();
 	parse_layouts();
 	keyboard_state(true);
 }
@@ -384,33 +503,89 @@ static void kb_leave(void *data, struct wl_keyboard *kb, uint32_t serial, struct
 {
 	(void)data; (void)kb; (void)serial; (void)wl;
 	focus = NULL;
+	repeat_stop();
+}
+
+/* Stisk v rezimu hesla; vraci, zda se klavesa pri drzeni opakuje (znak nebo Backspace). */
+static bool secret_key(xkb_keycode_t code, xkb_keysym_t sym)
+{
+	bool ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0;
+	bool repeats = false;
+	if (sym == XKB_KEY_Return || sym == XKB_KEY_KP_Enter || sym == XKB_KEY_Escape) {
+		if (compose)
+			xkb_compose_state_reset(compose);
+		if (sym == XKB_KEY_Escape)
+			secret_clear();
+	} else if (compose && !ctrl && xkb_compose_state_feed(compose, sym) == XKB_COMPOSE_FEED_ACCEPTED &&
+		xkb_compose_state_get_status(compose) != XKB_COMPOSE_NOTHING) {
+		/* rozepsana sekvence nebo zrusena (dead_caron + Backspace): nic nepridat */
+		if (xkb_compose_state_get_status(compose) == XKB_COMPOSE_COMPOSED)
+			secret_append_composed();
+		if (xkb_compose_state_get_status(compose) != XKB_COMPOSE_COMPOSING)
+			xkb_compose_state_reset(compose);
+		sym = 0;
+	} else if (sym == XKB_KEY_BackSpace) {
+		if (ctrl)
+			secret_clear();
+		else
+			secret_drop_last();
+		repeats = !ctrl;
+	} else if (ctrl && (sym == XKB_KEY_u || sym == XKB_KEY_U)) {
+		secret_clear();
+		sym = XKB_KEY_Escape;
+	} else if (!ctrl && secret_append(code)) {
+		sym = 0;
+		repeats = true;
+	}
+	lwl_emit(LWL_KEY, focus->id, (int)sym, secret_chars());
+	return repeats && xkb_keymap_key_repeats(keymap, code);
+}
+
+static void repeat_stop(void)
+{
+	if (repeat_timer)
+		g_source_remove(repeat_timer);
+	repeat_timer = 0;
+	repeat_code = 0;
+}
+
+static gboolean repeat_tick(gpointer data)
+{
+	bool first = data != NULL;
+	if (!focus || !xkb_state || !secret_on || !secret_key(repeat_code, xkb_state_key_get_one_sym(xkb_state, repeat_code))) {
+		repeat_timer = 0;
+		repeat_code = 0;
+		return G_SOURCE_REMOVE;
+	}
+	if (!first)
+		return G_SOURCE_CONTINUE;
+	/* po prodleve uz v rytmu repeat_info */
+	repeat_timer = g_timeout_add(1000 / repeat_rate, repeat_tick, NULL);
+	return G_SOURCE_REMOVE;
 }
 
 static void kb_key(void *data, struct wl_keyboard *kb, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
 {
 	(void)data; (void)kb; (void)serial; (void)time;
-	/* klavesy pro okna GTK na sdilenem spojeni sem nepatri */
-	if (!focus || !xkb_state || state != WL_KEYBOARD_KEY_STATE_PRESSED)
-		return;
 	xkb_keycode_t code = key + 8;
+	if (state != WL_KEYBOARD_KEY_STATE_PRESSED) {
+		if (code == repeat_code)
+			repeat_stop();
+		return;
+	}
+	/* klavesy pro okna GTK na sdilenem spojeni sem nepatri */
+	if (!focus || !xkb_state)
+		return;
+	repeat_stop();
 	xkb_keysym_t sym = xkb_state_key_get_one_sym(xkb_state, code);
 	if (!secret_on) {
 		lwl_emit(LWL_KEY, focus->id, (int)sym, (int)xkb_state_key_get_utf32(xkb_state, code));
 		return;
 	}
-	bool ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0;
-	if (sym == XKB_KEY_BackSpace) {
-		if (ctrl)
-			secret_clear();
-		else
-			secret_drop_last();
-	} else if (sym == XKB_KEY_Escape || (ctrl && (sym == XKB_KEY_u || sym == XKB_KEY_U))) {
-		secret_clear();
-		sym = XKB_KEY_Escape;
-	} else if (!ctrl && secret_append(code)) {
-		sym = 0;
+	if (secret_key(code, sym) && repeat_rate > 0) {
+		repeat_code = code;
+		repeat_timer = g_timeout_add((guint)repeat_delay, repeat_tick, GINT_TO_POINTER(1));
 	}
-	lwl_emit(LWL_KEY, focus->id, (int)sym, secret_chars());
 }
 
 static void kb_modifiers(void *data, struct wl_keyboard *kb, uint32_t serial, uint32_t depressed, uint32_t latched,
@@ -425,7 +600,12 @@ static void kb_modifiers(void *data, struct wl_keyboard *kb, uint32_t serial, ui
 
 static void kb_repeat(void *data, struct wl_keyboard *kb, int32_t rate, int32_t delay)
 {
-	(void)data; (void)kb; (void)rate; (void)delay;
+	(void)data; (void)kb;
+	/* rate 0 = kompozitor opakovani nechce */
+	repeat_rate = rate > 0 && rate <= 1000 ? rate : 0;
+	repeat_delay = delay > 0 ? delay : 600;
+	if (!repeat_rate)
+		repeat_stop();
 }
 
 static const struct wl_keyboard_listener keyboard_listener = {
@@ -478,9 +658,14 @@ static const struct ext_session_lock_v1_listener lock_listener = {
 bool lwl_lock_bind(struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
 	(void)version;
-	if (strcmp(interface, ext_session_lock_manager_v1_interface.name) != 0)
+	if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0)
+		fractional_manager = wl_registry_bind(registry, name, &wp_fractional_scale_manager_v1_interface, 1);
+	else if (strcmp(interface, wp_viewporter_interface.name) == 0)
+		viewporter = wl_registry_bind(registry, name, &wp_viewporter_interface, 1);
+	else if (strcmp(interface, ext_session_lock_manager_v1_interface.name) == 0)
+		lwl.lock_manager = wl_registry_bind(registry, name, &ext_session_lock_manager_v1_interface, 1);
+	else
 		return false;
-	lwl.lock_manager = wl_registry_bind(registry, name, &ext_session_lock_manager_v1_interface, 1);
 	return true;
 }
 
@@ -494,6 +679,16 @@ void lwl_lock_reset(void)
 	locked = false;
 	if (lwl.lock_manager)
 		ext_session_lock_manager_v1_destroy(lwl.lock_manager);
+	if (fractional_manager)
+		wp_fractional_scale_manager_v1_destroy(fractional_manager);
+	if (viewporter)
+		wp_viewporter_destroy(viewporter);
+	fractional_manager = NULL;
+	viewporter = NULL;
+	xkb_compose_state_unref(compose);
+	xkb_compose_table_unref(compose_table);
+	compose = NULL;
+	compose_table = NULL;
 	xkb_state_unref(xkb_state);
 	xkb_keymap_unref(keymap);
 	xkb_context_unref(xkb);
@@ -526,6 +721,13 @@ LWL_EXPORT int lwl_lock_surface(int output)
 	s->id = lwl_new_id();
 	s->output = output;
 	s->wl = wl_compositor_create_surface(lwl.compositor);
+	s->scale = 120;
+	/* zlomkove meritko jen s viewporterem (bufer se na logickou velikost zmensi pres wp_viewport) */
+	if (fractional_manager && viewporter) {
+		s->fractional = wp_fractional_scale_manager_v1_get_fractional_scale(fractional_manager, s->wl);
+		wp_fractional_scale_v1_add_listener(s->fractional, &fractional_listener, s);
+		s->viewport = wp_viewporter_get_viewport(viewporter, s->wl);
+	}
 	s->lock = ext_session_lock_v1_get_lock_surface(lock, s->wl, o->wl);
 	ext_session_lock_surface_v1_add_listener(s->lock, &surface_listener, s);
 	wl_list_insert(surfaces.prev, &s->link);
@@ -562,22 +764,52 @@ LWL_EXPORT int lwl_surface_height(int id)
 	return s ? s->height : 0;
 }
 
-/* Volny bufer velikosti posledniho configure (ARGB32, stride = sirka * 4); NULL pred configure. */
+/* Meritko plochy v 1/120 (240 = 2x) a velikost buferu v pixelech: LSL kresli do buferu
+ * s cairo_scale(meritko) v logickych jednotkach configure. */
+LWL_EXPORT int lwl_surface_scale(int id)
+{
+	struct surface *s = find(id);
+	return s ? surface_scale(s) : 120;
+}
+
+static int scaled(int size, int scale)
+{
+	return (size * scale + 60) / 120;
+}
+
+LWL_EXPORT int lwl_surface_buffer_width(int id)
+{
+	struct surface *s = find(id);
+	return s ? scaled(s->width, surface_scale(s)) : 0;
+}
+
+LWL_EXPORT int lwl_surface_buffer_height(int id)
+{
+	struct surface *s = find(id);
+	return s ? scaled(s->height, surface_scale(s)) : 0;
+}
+
+/* Volny bufer velikosti posledniho configure v pixelech (ARGB32, stride = sirka * 4); NULL pred configure. */
 LWL_EXPORT void *lwl_surface_begin(int id)
 {
 	struct surface *s = find(id);
 	if (!s || s->width <= 0 || s->height <= 0)
 		return NULL;
-	for (int i = 0; i < 2; i++) {
-		struct buffer *b = &s->buffers[i];
-		if (b->busy)
-			continue;
-		if (b->wl && (b->width != s->width || b->height != s->height))
-			buffer_free(b);
-		if (!b->wl && !buffer_alloc(b, s->width, s->height))
-			return NULL;
-		s->drawing = b;
-		return b->data;
+	int width = scaled(s->width, surface_scale(s));
+	int height = scaled(s->height, surface_scale(s));
+	/* posledni nakresleny bufer pouzit znovu, kdyz ho kompozitor uz vratil */
+	for (int pass = 0; pass < 2; pass++) {
+		for (int i = 0; i < 2; i++) {
+			struct buffer *b = &s->buffers[i];
+			if (b->busy || (pass == 0 && b != s->current))
+				continue;
+			if (b->wl && (b->width != width || b->height != height))
+				buffer_free(b);
+			if (!b->wl && !buffer_alloc(s, b, width, height))
+				return NULL;
+			s->drawing = b;
+			return b->data;
+		}
 	}
 	return NULL;
 }
@@ -588,8 +820,16 @@ LWL_EXPORT int lwl_surface_commit(int id)
 	if (!s || !s->drawing)
 		return 0;
 	struct buffer *b = s->drawing;
+	int scale = surface_scale(s);
 	s->drawing = NULL;
+	s->current = b;
+	s->drawn_scale = scale;
 	b->busy = true;
+	if (s->viewport) {
+		wp_viewport_set_destination(s->viewport, s->width, s->height);
+	} else if (wl_proxy_get_version((struct wl_proxy *)lwl.compositor) >= 3) {
+		wl_surface_set_buffer_scale(s->wl, scale / 120);
+	}
 	wl_surface_attach(s->wl, b->wl, 0, 0);
 	wl_surface_damage_buffer(s->wl, 0, 0, b->width, b->height);
 	wl_surface_commit(s->wl);

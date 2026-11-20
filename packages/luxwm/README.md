@@ -10,7 +10,8 @@ wlroots and draws. luxwm is the policy on top of it, written in LSL. It only rea
 | `luxwm.lsl` | the policy |
 | `luxos_luxcomp.lsl` | binding to `libluxcomp.so.0` (internal ABI, one static event callback through `glib.record_new`) |
 | `luxwm.conf` | defaults, installed as `/usr/share/luxwm/luxwm.conf` |
-| `privileged.conf` | programs allowed to use privileged protocols, installed as `/usr/share/luxwm/privileged.conf` |
+| `privileged.conf` | programs allowed to use privileged protocols and privileged IPC commands, installed as `/usr/share/luxwm/privileged.conf` |
+| `luxwm-msg.lsl` | `luxwm-msg`, IPC commands from scripts (`luxos-appearance`, tests) |
 | `tests/` | `build-host.sh` (build against the wl-test sysroot), `test_luxwm.py`, `test_luxwm_protocols.py`, `wl-probe.c` |
 
 The build copies `packages/luxos-desktop/files/lsl/luxos_tokens.lsl` next to the sources, because LSL
@@ -79,12 +80,28 @@ Actions: `close_window_key`, `hide_window_key`, `maximize_window_key`, `fullscre
 
 Signals:
 - `SIGHUP` reloads the configuration and the look.
-- `SIGUSR1` reloads only the look. luxos-appearance should send it after switching light/dark (not wired yet, WP-12).
+- `SIGUSR1` reloads only the look (light/dark from `~/.config/luxos/appearance`).
 - `SIGUSR2` writes the window state to stderr (tests).
 - `SIGTERM` and `SIGINT` stop cleanly.
 
 `luxwm -d` (or `LUXWM_TRACE=1`) traces decisions. Further arguments are commands started after the
 backend is up.
+
+## IPC and keyboard layouts
+
+luxwm listens on `$XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock` (exported as `LUXWM_SOCK`): line-based
+JSON, same-uid peers only (`SO_PEERCRED` in libluxcomp), window information and control only for
+programs on `privileged.conf`. Events: window, workspace, keyboard, output, theme. Commands: switch and
+next layout, switch workspace, reload, set theme, suspend shortcuts, list and focus windows. The
+protocol is in `docs/developers/luxwm-ipc.md`; the shell client is
+`packages/luxos-desktop/files/lsl/luxos_luxwm.lsl`.
+
+The keymap comes from `org.freedesktop.locale1` (`X11Layout`, `X11Variant`, `X11Options`), and
+`xkb_layout`, `xkb_variant`, `xkb_options` in `luxwm.conf` override it. These are written by
+`luxos-keyboard-settings`. Layouts are switched by the XKB `grp:` option (LuxOS default: both Shift
+keys) or over IPC (the bar badge). The layout is the same for all windows, as in the X11 session.
+Shortcuts in `[keys]` are compared in canonical form (`<Primary><Shift><Alt><Super>key`). The Xfce
+shortcuts of a user are imported once (`luxos-keyboard-settings --import-shortcuts`).
 
 ## Robustness
 
@@ -102,6 +119,8 @@ cd packages/luxwm/tests
 env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
   systemd-run --user --scope -p TasksMax=300 -- timeout 900 python3 -m unittest -v test_luxwm test_luxwm_protocols
 ```
+
+`test_luxwm_ipc.py` covers IPC, layouts, the bar badge, shortcut import and settings, and the theme.
 
 `test_luxwm_protocols.py` covers the following:
 - Dock restore of a minimised window from another workspace.
@@ -126,8 +145,6 @@ env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS
 
 ## Later stages (hooks)
 
-- **IPC for the shell** (bar, Dock, Launchpad: workspace list, app name, switching): a socket
-  in luxwm is the natural place. `dump()` already shows the state it would publish.
 - Greeter mode (`luxwm --greeter`, WP-9).
-- Keyboard layout from locale1 (`luxcomp_set_keymap`), multi-monitor slide per output, snapping and
-  resize from the keyboard.
+- Multi-monitor slide per output, snapping and resize from the keyboard, xdg_popup keyboard grab
+  (GTK menus of layer-shell clients cannot be driven from the keyboard yet), `X11Model`.

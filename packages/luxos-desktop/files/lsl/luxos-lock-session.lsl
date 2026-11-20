@@ -18,10 +18,10 @@ load luxos_sys
 load luxos_text as text
 load luxos_wl as wl
 load luxos_lock_sys as sys
+load luxos_xfconf as xfconf
 
 LOCKER = "/usr/bin/luxos-lock"
 LOGIN1 = "org.freedesktop.login1"
-CHANNEL = "/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml"
 SLEEP_WAIT_MS = 4000
 
 trace = env.get("LUXOS_LOCK_TRACE", "") == "1"
@@ -39,45 +39,11 @@ end
 # ---- nastaveni (xfconf xfce4-screensaver bez xfconfd: na Waylandu nemusi bezet) ----
 
 function channel_path():
-    return glib.user_config_dir() + "/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml"
-end
-
-function attr(line, name):
-    cut = line.find(name + "=\"")
-    if cut < 0:
-        return ""
-    end
-    rest = line[cut + len(name) + 2:]
-    return rest[0:rest.find("\"")]
-end
-
-# Vlastnosti kanalu jako {"/saver/idle-activation/delay": "10", ...}; vnorene <property> skladaji cestu
-function read_channel(path, into):
-    stack = []
-    for raw in text.lines(lglib.read_text(path)):
-        line = raw.strip()
-        if line.startswith("<property "):
-            name = attr(line, "name")
-            if line.endswith("/>"):
-                into[text.join(stack + [name], "/")] = attr(line, "value")
-            else:
-                stack.append(name)
-            end
-        elif line.startswith("</property>") and len(stack) > 0:
-            call stack.pop()
-        end
-    end
-    return into
+    return xfconf.user_path("xfce4-screensaver")
 end
 
 function settings():
-    conf = read_channel(CHANNEL, {})
-    call read_channel(channel_path(), conf)
-    out = {}
-    for key in conf:
-        out["/" + key] = conf[key]
-    end
-    return out
+    return xfconf.channel("xfce4-screensaver")
 end
 
 function minutes(value, default):

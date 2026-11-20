@@ -4,7 +4,7 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 3), balík `packages/luxcomp`.
+`LUXCOMP_API_VERSION` = 4: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -142,9 +142,19 @@ jiné okno), rozhoduje politika. Viz `luxos-fullscreen-layer.patch` u xfwm4.
   trhaná animace). Stejně tak při `ms <= 0`, třeba pro „omezit pohyb“.
 - Na konci přijde `SLIDE_DONE`.
 
+**IPC pro shell** (`lib/ipc.c`, protokol v `docs/developers/luxwm-ipc.md`):
+- `luxcomp_ipc_listen(cesta)` otevře soket (0600). Spojení od jiného uid jádro zavře (`SO_PEERCRED`).
+- Události `IPC_CONNECT` (`id` klient, `a` pid, `b` 1 = program z allowlistu), `IPC_LINE`
+  (`luxcomp_ipc_line(id)`), `IPC_CLOSE`.
+- `luxcomp_ipc_send(id, řádek)` přidá konec řádku; 0 = klient zmizel (pak `IPC_CLOSE` nepřijde).
+  `luxcomp_ipc_close(id)`.
+
 **Vstup.**
 - `luxcomp_set_keymap(layout, variant, options)`: hodnoty jako v localed (`X11Layout` atd.).
   Špatné rozložení spadne na výchozí, nikdy nezůstane systém bez klávesnice.
+- `luxcomp_set_layout(i)`, `luxcomp_layout()`, `luxcomp_layout_count()`, `luxcomp_layout_name(i)`:
+  aktivní rozložení je jedno pro všechny klávesnice. Přepnutí volbou XKB `grp:` na fyzické klávesnici
+  pošle `LAYOUT` (`a` = index); po `set_layout`/`set_keymap` událost nepřijde.
 - `luxcomp_set_repeat(rate, delay)`.
 - `luxcomp_bind_key(mods, key)`:
   - `mods` je `LUXCOMP_MOD_*` (Shift 1, Ctrl 4, Alt 8, Super 64).
@@ -326,6 +336,6 @@ bude luxwm v LSL. Testy jsou dočasně tady, dokud nebude hotový harness WP-1 (
 - Přejezd ploch na více monitorech posouvá strom plochy o šířku monitoru pod kurzorem.
   Samostatný posun pro každý monitor zatím chybí.
 - Navázání rychlosti při přerušeném přejezdu. Navazuje se poloha, rychlost zatím ne.
-- IPC pro shell, `org.freedesktop.a11y.KeyboardMonitor`, blur a režim greeteru.
+- `org.freedesktop.a11y.KeyboardMonitor`, blur a režim greeteru.
 - Hlídání sériových čísel u `REQ_MOVE`/`REQ_RESIZE`. Teď stačí, že politika tah spustí jen pro
   okno pod kurzorem.

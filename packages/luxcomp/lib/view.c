@@ -217,6 +217,7 @@ view_create(void)
 	v->workspace = comp.default_ws;
 	v->tree = wlr_scene_tree_create(v->workspace->tree);
 	v->tree->node.data = v;
+	v->body = wlr_scene_tree_create(v->tree);
 	wlr_scene_node_set_enabled(&v->tree->node, false);
 	wl_list_insert(&comp.views_list, &v->link);
 	return v;
@@ -331,7 +332,7 @@ new_toplevel(struct wl_listener *listener, void *data)
 	struct wlr_xdg_toplevel *toplevel = data;
 	struct view *v = view_create();
 	v->toplevel = toplevel;
-	v->surface_tree = wlr_scene_xdg_surface_create(v->tree, toplevel->base);
+	v->surface_tree = wlr_scene_xdg_surface_create(v->body, toplevel->base);
 	toplevel->base->data = v->surface_tree;	/* rodic pro popupy */
 
 	struct wlr_surface *s = toplevel->base->surface;
@@ -366,8 +367,7 @@ new_toplevel(struct wl_listener *listener, void *data)
 
 struct popup {
 	struct wlr_xdg_popup *popup;
-	struct wlr_scene_tree *holder;	/* vlastni strom popupu vrstvy (nad okny), jinak NULL */
-	struct wl_listener commit, destroy;
+	struct wl_listener commit, map, unmap, destroy;
 };
 
 static void
@@ -394,24 +394,77 @@ popup_commit(struct wl_listener *listener, void *data)
 	wlr_xdg_surface_schedule_configure(p->popup->base);
 }
 
+/* Nabidka s grabem (xdg_popup.grab, GTK menu) dostane klavesnici, i kdyz jeji rodic klavesnici nema
+ * (lista je layer-shell bez klavesnice). Po zavreni se zamereni vrati rodicovske nabidce, exkluzivni
+ * vrstve nebo zamerenemu oknu. */
+static void
+popup_map(struct wl_listener *listener, void *data)
+{
+	struct popup *p = wl_container_of(listener, p, map);
+	if (p->popup->seat == comp.seat) {
+		seat_enter_direct(p->popup->base->surface);
+	}
+}
+
+static void
+popup_release_focus(struct popup *p)
+{
+	struct wlr_surface *surface = p->popup->base->surface;
+	if (comp.seat->keyboard_state.focused_surface != surface) {
+		return;
+	}
+	struct wlr_xdg_popup *parent = p->popup->parent
+		? wlr_xdg_popup_try_from_wlr_surface(p->popup->parent) : NULL;
+	if (parent && parent->seat == comp.seat && parent->base->surface->mapped) {
+		seat_enter_direct(parent->base->surface);
+	} else if (comp.layer_focus) {
+		seat_enter_direct(comp.layer_focus);
+	} else {
+		seat_enter_direct(comp.focused && comp.focused->mapped ? view_surface(comp.focused) : NULL);
+	}
+}
+
+static void
+popup_unmap(struct wl_listener *listener, void *data)
+{
+	struct popup *p = wl_container_of(listener, p, unmap);
+	popup_release_focus(p);
+}
+
 static void
 popup_destroy(struct wl_listener *listener, void *data)
 {
 	struct popup *p = wl_container_of(listener, p, destroy);
+	popup_release_focus(p);
 	wl_list_remove(&p->commit.link);
+	wl_list_remove(&p->map.link);
+	wl_list_remove(&p->unmap.link);
 	wl_list_remove(&p->destroy.link);
-	if (p->holder) {
-		wlr_scene_node_destroy(&p->holder->node);
-		/* klavesnice zpet z vrstvy s menu (layer_new_popup) */
-		if (comp.layer_focus) {
-			seat_focus_surface(comp.layer_focus);
-		} else {
-			luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
-		}
-	}
 	free(p);
 }
 
+void
+popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree)
+{
+	if (!parent_tree || popup->base->data) {
+		return;
+	}
+	popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
+
+	struct popup *p = calloc(1, sizeof(*p));
+	p->popup = popup;
+	p->commit.notify = popup_commit;
+	wl_signal_add(&popup->base->surface->events.commit, &p->commit);
+	p->map.notify = popup_map;
+	wl_signal_add(&popup->base->surface->events.map, &p->map);
+	p->unmap.notify = popup_unmap;
+	wl_signal_add(&popup->base->surface->events.unmap, &p->unmap);
+	p->destroy.notify = popup_destroy;
+	wl_signal_add(&popup->events.destroy, &p->destroy);
+}
+
+/* Popup layer-shell (nabidka listy) prijde bez rodice; rodice mu da az zwlr_layer_surface_v1.get_popup
+ * (layer_new_popup v core.c) */
 static void
 new_popup(struct wl_listener *listener, void *data)
 {
@@ -426,26 +479,7 @@ new_popup(struct wl_listener *listener, void *data)
 			wlr_layer_surface_v1_try_from_wlr_surface(popup->parent);
 		parent_tree = ls ? ls->data : NULL;
 	}
-	if (parent_tree) {
-		popup_attach(popup, parent_tree, NULL);
-	}
-	/* bez rodice: popup vrstvy (gtk-layer-shell) dostane rodice az pres get_popup -> layer_new_popup */
-}
-
-/* holder: strom, ktery patri popupu a zanikne s nim (popupy vrstev) */
-void
-popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree,
-		struct wlr_scene_tree *holder)
-{
-	popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
-
-	struct popup *p = calloc(1, sizeof(*p));
-	p->popup = popup;
-	p->holder = holder;
-	p->commit.notify = popup_commit;
-	wl_signal_add(&popup->base->surface->events.commit, &p->commit);
-	p->destroy.notify = popup_destroy;
-	wl_signal_add(&popup->events.destroy, &p->destroy);
+	popup_attach(popup, parent_tree);
 }
 
 /* ---- xdg-decoration: kdo kresli zahlavi ---- */
@@ -675,7 +709,11 @@ luxcomp_view_focus(int64_t id)
 	if (v) {
 		set_activated(v, true);
 	}
-	/* exkluzivni vrstva (zamek, spoustec) si klavesnici drzi */
+	/* exkluzivni vrstva (zamek, spoustec) si klavesnici drzi; vrstva na pozadani ji okno vrati, jakmile
+	 * politika nejake zameri (nove okno, Alt+Tab, Dock) */
+	if (v && comp.layer_focus && layer_on_demand(comp.layer_focus)) {
+		comp.layer_focus = NULL;
+	}
 	if (!comp.layer_focus) {
 		seat_focus_surface(v ? view_surface(v) : NULL);
 	}

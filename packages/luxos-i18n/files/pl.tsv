@@ -5374,6 +5374,14 @@ Mailboxes at lux-ai.cz sign in with your LuxAI account, not with a password. Thi
 Keep in Dock	Zachowaj w Docku
 Remove from Dock	Usuń z Docku
 Change Wallpaper…	Zmień tapetę…
+Change…	Zmień…
+Keyboard Settings…	Ustawienia klawiatury…
+Press the new shortcut. Esc cancels, Backspace turns the shortcut off.	Naciśnij nowy skrót. Esc anuluje, Backspace wyłącza skrót.
+This shortcut is used by another action. Press it again to use it here.	Ten skrót jest używany przez inną akcję. Naciśnij go ponownie, aby użyć go tutaj.
+Use System Layouts	Użyj układów systemu
+Choose a window to capture	Wybierz okno do przechwycenia
+No windows	Brak okien
+Screen recording is not available on Wayland yet.	Nagrywanie ekranu nie jest jeszcze dostępne w Wayland.
 Clear All	Wyczyść wszystko
 Mark All as Read	Oznacz wszystkie jako przeczytane
 No Notifications	Brak powiadomień

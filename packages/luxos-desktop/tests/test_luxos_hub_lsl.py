@@ -112,6 +112,10 @@ LOGIN_XML = """<node><interface name="org.freedesktop.login1.Manager">
     <arg type="s" direction="in"/><arg type="h" direction="out"/></method>
   <signal name="PrepareForSleep"><arg type="b"/></signal>
 </interface></node>"""
+HISTORY_XML = """<node><interface name="cz.luxos.NotificationHistory">
+  <method name="GetDoNotDisturb"><arg type="b" direction="out"/></method>
+  <method name="SetDoNotDisturb"><arg type="b" direction="in"/></method>
+</interface></node>"""
 BLUEZ_XML = """<node><interface name="org.bluez.AgentManager1">
   <method name="RegisterAgent"><arg type="o" direction="in"/><arg type="s" direction="in"/></method>
   <method name="RequestDefaultAgent"><arg type="o" direction="in"/></method>
@@ -152,6 +156,8 @@ class FakeService:
             idx = fds.append(r)
             os.close(r)
             inv.return_value_with_unix_fd_list(GLib.Variant("(h)", (idx,)), fds)
+        elif method == "GetDoNotDisturb":
+            inv.return_value(GLib.Variant("(b)", (True,)))
         elif method == "GetAll":
             inv.return_value(GLib.Variant("(a{sv})", ({k: v for k, v in self.properties.items()},)))
         else:
@@ -1108,6 +1114,53 @@ class Hub(unittest.TestCase):
         time.sleep(1.0)
         self.assertEqual(len(checks()), 1, "dalsi kontrola az za 6 h")
         self.assertEqual(self.hub.poll(), None)
+
+    # ---- relace na Waylandu: bez xfconf, xfwm4 a xfce4-panel ------------------------------------------------------
+    def test_wayland_session_without_xfce(self):
+        """WAYLAND_DISPLAY (soket neexistuje, GTK pak bere Xvfb): Nerusit z luxos-notify, inhibitor logind misto
+        nastaveni xfce4-power-manager, zadne xfconf-query / xfce4-panel / xfwm4 ani reakce na signaly Xfconf."""
+        start = {"lid-action-on-battery": 1, "lid-action-on-ac": 1, "inactivity-on-battery": 30, "inactivity-on-ac": 30}
+        xf = FakeXfconf(self.svc, self.address, dict(start))
+        self.services.append(type("S", (), {"close": lambda s: self.svc.run(xf.conn.close_sync, None)})())
+        login = self.service("org.freedesktop.login1", [("/org/freedesktop/login1", LOGIN_XML)])
+        notify = self.service("org.freedesktop.Notifications", [("/cz/luxos/NotificationHistory", HISTORY_XML)])
+        self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
+                     {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
+        panel = self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
+        player = FakePlayer(self.svc, self.address, status="Playing")
+        # "spravce oken" po aktualizaci (jako test_wm_replaced_after_update): na Waylandu se nevymenuje
+        wm_bin = os.path.join(self.home, "luxtestwm")
+        shutil.copy("/usr/bin/sleep", wm_bin)
+        wm = subprocess.Popen([wm_bin, "120"])
+        self.addCleanup(wm.wait)
+        self.addCleanup(wm.kill)
+        fake_x = os.path.join(self.home, "bin")
+        os.makedirs(fake_x)
+        with open(os.path.join(fake_x, "xfwm4"), "w") as f:
+            f.write('#!/bin/sh\nprintf "%s\\n" "xfwm4 $*" >>"$FAKE_LOG"\n')
+        os.chmod(os.path.join(fake_x, "xfwm4"), 0o755)
+        self.start_hub(WAYLAND_DISPLAY="luxos-test-none", PATH=fake_x + ":" + self.fake + ":/usr/bin:/bin",
+                       LUXOS_HUB_UPDATE_CHECK="1", LUXOS_HUB_WM_NAME="luxtestwm", LUXOS_HUB_NO_WM_REPLACE="",
+                       LUXOS_HUB_WALLSYNC_DELAY="100")
+        os.unlink(wm_bin)
+        self.assertTrue(self.wait_for(lambda: ("Inhibit", ("handle-lid-switch:idle", "LuxOS", "Media is playing", "block"))
+                                      in login.calls, 8), login.calls)
+        self.hub.send_signal(signal.SIGUSR1)
+        self.assertTrue(self.wait_for(lambda: ("GetDoNotDisturb", ()) in notify.calls, 5), notify.calls)
+        self.assertTrue(self.wait_for(lambda: any(translation("No internet connection") in c for c in self.calls()), 8))
+        self.svc.run(xf.conn.emit_signal, None, "/org/xfce/Xfconf", "org.xfce.Xfconf", "PropertyChanged",
+                     GLib.Variant("(ssv)", ("xfce4-desktop", "/backdrop/screen0/monitorVirtual-1/workspace0/last-image",
+                                            GLib.Variant("s", "/x.jpg"))))
+        player.set_status("Paused")
+        time.sleep(4)            # ticho (LUXOS_PLAYBACK_GRACE), dve kontroly aktualizace, odklad tapety
+        self.assertFalse(os.path.exists(os.path.join(self.cfg, "sleep-override")))
+        self.assertEqual({k: (v.unpack() if hasattr(v, "unpack") else v) for k, v in xf.values.items()}, start)
+        self.assertEqual(panel.calls, [])
+        bad = [c for c in self.calls() if c.split()[0] in ("xfconf-query", "xfce4-panel", "xfwm4")
+               or c.startswith("luxos-appearance")]
+        self.assertEqual(bad, [])
+        self.assertIsNone(self.hub.poll(), self.hub_err())
+        player.quit()
 
     # ---- tapeta prihlasovaci obrazovky ---------------------------------------------------------------------------
     def test_wallpaper_change_syncs_login_screen(self):

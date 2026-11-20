@@ -65,6 +65,12 @@ function config_dir():
     return base + "/luxos"
 end
 
+# Relace na Waylandu: Nerusit drzi luxos-notify (cz.luxos.NotificationHistory), xfconf tam nebezi
+function wayland():
+    value = env.get("WAYLAND_DISPLAY", "")
+    return value != None and value != ""
+end
+
 function soft_brightness_path():
     return config_dir() + "/brightness"
 end
@@ -658,7 +664,7 @@ function toggle():
         stamp = gtk.CURRENT_TIME
     end
     call gtk.window_present_with_time(cc["win"], stamp)
-    # udaje ze sluzeb (nmcli, pactl, xfconf-query) az po zobrazeni okna: spousteni procesu nebrzdi
+    # udaje ze sluzeb (nmcli, pactl, oznameni) az po zobrazeni okna: spousteni procesu nebrzdi
     # vystup nmcli/pactl se cte jako text ("enabled", "Mute: yes"): vzdy s LC_ALL=C, jinak by cesky
     # "povoleno" znamenalo vypnutou Wi-Fi a prepinac by umel jen zapnout
     # prvni vykresleni (Python je mel ve vlakne)
@@ -892,7 +898,11 @@ function refresh_slow():
     call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "radio", "wifi"], on_wifi_radio, 0)
     bt = bluetooth_state()
     call tile_set_state(cc["t_bt"], bt[0], bt[1])
-    call glib.spawn_capture(["xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb"], on_dnd, 0)
+    if wayland():
+        call notify_call("GetDoNotDisturb", [], "", on_dnd_reply)
+    else:
+        call glib.spawn_capture(["xfconf-query", "-c", "xfce4-notifyd", "-p", "/do-not-disturb"], on_dnd, 0)
+    end
     call glib.spawn_capture(["env", "LC_ALL=C", "pactl", "get-sink-volume", "@DEFAULT_SINK@"], on_volume, 0)
     call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
     return 0
@@ -1008,6 +1018,23 @@ end
 function on_dnd(unused, output, status):
     on = status == 0 and output.strip() == "true"
     call tile_set_state(cc["t_dnd"], on, on_off(on))
+    return 0
+end
+
+function notify_call(method, values, signature, handler):
+    safe:
+        call gio.call_async(gio.session_bus(), "org.freedesktop.Notifications", "/cz/luxos/NotificationHistory", "cz.luxos.NotificationHistory", method, values, signature, 3000, handler, 0)
+    end
+    return 0
+end
+
+function on_dnd_reply(unused, values, error):
+    on = values != None and len(values) > 0 and values[0] == True
+    call tile_set_state(cc["t_dnd"], on, on_off(on))
+    return 0
+end
+
+function on_dnd_set(unused, values, error):
     return 0
 end
 
@@ -1162,6 +1189,10 @@ end
 function toggle_dnd():
     on = not tile_is_on(cc["t_dnd"])
     call tile_set_state(cc["t_dnd"], on, on_off(on))
+    if wayland():
+        call notify_call("SetDoNotDisturb", [on], "(b)", on_dnd_set)
+        return 0
+    end
     value = "false"
     if on:
         value = "true"
