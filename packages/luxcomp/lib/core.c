@@ -281,7 +281,7 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 
 	comp.display = wl_display_create();
 	comp.loop = wl_display_get_event_loop(comp.display);
-	comp.backend = wlr_backend_autocreate(comp.loop, NULL);
+	comp.backend = wlr_backend_autocreate(comp.loop, &comp.session);
 	if (!comp.backend) {
 		wlr_log(WLR_ERROR, "luxcomp: no backend");
 		return -1;

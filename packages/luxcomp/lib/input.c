@@ -5,6 +5,7 @@
 #include <string.h>
 #include <time.h>
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_input_device.h>
@@ -148,6 +149,25 @@ swallow(struct keyboard *kb, uint32_t keycode, bool add)
 	return false;
 }
 
+/* Ctrl+Alt+F1..F12 prepne konzoli (xkb to preklada na XF86Switch_VT_N); plati i pod zamkem,
+ * zamek zustava a druha konzole ma vlastni prihlaseni */
+static bool
+switch_vt(struct xkb_state *state, uint32_t keycode)
+{
+	if (!comp.session) {
+		return false;
+	}
+	const xkb_keysym_t *syms;
+	int n = xkb_state_key_get_syms(state, keycode, &syms);
+	for (int i = 0; i < n; i++) {
+		if (syms[i] >= XKB_KEY_XF86Switch_VT_1 && syms[i] <= XKB_KEY_XF86Switch_VT_12) {
+			wlr_session_change_vt(comp.session, syms[i] - XKB_KEY_XF86Switch_VT_1 + 1);
+			return true;
+		}
+	}
+	return false;
+}
+
 static void
 keyboard_key(struct wl_listener *listener, void *data)
 {
@@ -160,6 +180,9 @@ keyboard_key(struct wl_listener *listener, void *data)
 		if (swallow(kb, keycode, false)) {
 			return;
 		}
+	} else if (switch_vt(kb->wlr->xkb_state, keycode)) {
+		swallow(kb, keycode, true);
+		return;
 	} else if (!comp.locked) {
 		uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK;
 		struct keybind *b;
