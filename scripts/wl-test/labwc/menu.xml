@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<openbox_menu>
+<menu id="root-menu">
+  <item label="Item one"><action name="None" /></item>
+  <item label="Item two"><action name="None" /></item>
+  <item label="Item three"><action name="None" /></item>
+  <item label="Item four"><action name="None" /></item>
+  <item label="Reconfigure"><action name="Reconfigure" /></item>
+</menu>
+</openbox_menu>

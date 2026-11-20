@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- Konfigurace labwc pro testy: okna vzdy na stredu, zadne animace ani prodlevy -->
+<labwc_config>
+  <core>
+    <gap>0</gap>
+  </core>
+  <placement>
+    <policy>center</policy>
+  </placement>
+  <theme>
+    <dropShadows>no</dropShadows>
+  </theme>
+  <keyboard>
+    <repeatRate>25</repeatRate>
+    <repeatDelay>600</repeatDelay>
+  </keyboard>
+</labwc_config>
