@@ -1,0 +1,24 @@
+# LuxOS - horni lista relace na Waylandu (luxos-bar, LSL). Spousti ji graficka relace (WP-13: luxos-session.target
+# misto graphical-session.target, az bude). Po padu ji systemd hned spusti znovu: lista je pak zpet do 1 s
+# i s vyhradnou zonou (okna se odsunou pod ni). Bez Waylandu nebo layer-shell lista skonci s kodem 2 a znovu
+# se nespousti; strop startu chrani pred smyckou jinych padu (duvod je pak v journalu).
+[Unit]
+Description=LuxOS top bar
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/luxos-bar
+Restart=always
+RestartSec=200ms
+RestartPreventExitStatus=2
+# pojistka proti uniku pameti (necinna lista ma ~25 MB PSS)
+MemoryHigh=96M
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target

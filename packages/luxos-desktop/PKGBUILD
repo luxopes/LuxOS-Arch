@@ -182,6 +182,8 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-tokens.lsl" luxos-tokens
     # Server oznameni relace na Waylandu (nahrada xfce4-notifyd; spousti ho relace, viz luxos-notify.service)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-notify.lsl" luxos-notify
+    # Horni lista relace na Waylandu (layer-shell, jedna na monitor); X11 relace dal pouziva xfce4-panel
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-bar.lsl" luxos-bar
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -226,6 +228,8 @@ package() {
     install -Dm644 "$f/systemd-user/luxos-notify.service" "$pkgdir/usr/lib/systemd/user/luxos-notify.service"
     install -Dm755 luxos-dock-wayland "$pkgdir/usr/lib/luxos/luxos-dock"
     install -Dm755 luxos-wl/libluxos-wl.so.0 "$pkgdir/usr/lib/luxos/libluxos-wl.so.0"
+    install -Dm755 luxos-bar "$pkgdir/usr/bin/luxos-bar"
+    install -Dm644 "$f/systemd-user/luxos-bar.service" "$pkgdir/usr/lib/systemd/user/luxos-bar.service"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
