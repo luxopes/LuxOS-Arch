@@ -31,6 +31,7 @@
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_viewporter.h>
+#include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/util/log.h>
 #include "internal.h"
@@ -536,12 +537,13 @@ layer_tree(enum zwlr_layer_shell_v1_layer layer)
 
 static void
 arrange_tree(struct output *o, struct wlr_scene_tree *tree,
-		const struct wlr_box *full, struct wlr_box *usable)
+		const struct wlr_box *full, struct wlr_box *usable, bool exclusive)
 {
 	struct wlr_scene_node *node;
 	wl_list_for_each(node, &tree->children, link) {
 		struct layer *l = node->data;
-		if (l && l->output == o && l->surface->initialized) {
+		if (l && l->output == o && l->surface->initialized
+				&& (l->surface->current.exclusive_zone > 0) == exclusive) {
 			wlr_scene_layer_surface_v1_configure(l->scene, full, usable);
 		}
 	}
@@ -553,11 +555,15 @@ layers_arrange(struct output *o)
 	struct wlr_box full;
 	wlr_output_layout_get_box(comp.layout, o->wlr_output, &full);
 	struct wlr_box usable = full;
-	/* exkluzivni zony v poradi od nejvyssi vrstvy, jako ostatni kompozitory */
-	arrange_tree(o, comp.layer_overlay, &full, &usable);
-	arrange_tree(o, comp.layer_top, &full, &usable);
-	arrange_tree(o, comp.layer_bottom, &full, &usable);
-	arrange_tree(o, comp.layer_bg, &full, &usable);
+	/* nejdriv exkluzivni zony (od nejvyssi vrstvy, jako ostatni kompozitory), pak ostatni plochy uvnitr
+	 * zbyle plochy: vyskakovaci okna listy a Ovladaci centrum ve vrstve overlay jsou pod listou (vrstva
+	 * top), ne pres ni */
+	struct wlr_scene_tree *trees[] = { comp.layer_overlay, comp.layer_top, comp.layer_bottom, comp.layer_bg };
+	for (int pass = 1; pass >= 0; pass--) {
+		for (size_t i = 0; i < 4; i++) {
+			arrange_tree(o, trees[i], &full, &usable, pass);
+		}
+	}
 	if (!wlr_box_equal(&usable, &o->usable)) {
 		o->usable = usable;
 		emit(LUXCOMP_EV_OUTPUT_USABLE, o->id, 0, 0, 0);
@@ -603,6 +609,14 @@ layer_map(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, map);
 	layers_arrange(l->output);
+	/* vyskakovaci okna listy a Ovladaci centrum (on demand nad okny) dostanou klavesnici hned po zobrazeni:
+	 * Esc a ztrata fokusu je zaviraji jako na X11; Dock, lista a plocha jsou bez klavesnice nebo pod okny */
+	struct wlr_layer_surface_v1 *s = l->surface;
+	if (s->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND
+			&& s->current.layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP && !comp.locked) {
+		comp.layer_focus = s->surface;
+		seat_focus_surface(comp.layer_focus);
+	}
 	layer_update_focus();
 	cursor_rebase();
 }
@@ -651,11 +665,35 @@ layer_destroy(struct wl_listener *listener, void *data)
 	free(l);
 }
 
+/* Menu vrstvy (nabidka plochy ve vrstve bottom) ve vlastnim strome ve vrstve overlay na miste vrstvy,
+ * at ho nezakryji okna; strom zanikne s popupem */
+struct popup_holder {
+	struct wlr_scene_tree *tree;
+	struct wl_listener destroy;
+};
+
+static void
+popup_holder_destroy(struct wl_listener *listener, void *data)
+{
+	struct popup_holder *h = wl_container_of(listener, h, destroy);
+	wl_list_remove(&h->destroy.link);
+	wlr_scene_node_destroy(&h->tree->node);
+	free(h);
+}
+
 static void
 layer_new_popup(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, new_popup);
-	popup_attach(data, l->scene->tree);
+	struct wlr_xdg_popup *popup = data;
+	struct popup_holder *h = calloc(1, sizeof(*h));
+	h->tree = wlr_scene_tree_create(comp.layer_overlay);
+	int lx = 0, ly = 0;
+	wlr_scene_node_coords(&l->scene->tree->node, &lx, &ly);
+	wlr_scene_node_set_position(&h->tree->node, lx, ly);
+	h->destroy.notify = popup_holder_destroy;
+	wl_signal_add(&popup->events.destroy, &h->destroy);
+	popup_attach(popup, h->tree);
 }
 
 static void
