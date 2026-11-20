@@ -1,0 +1,37 @@
+# Maintainer: LuxOS Team
+# wlroots 0.20 pro kompozitor luxwm (LuxOS 1.1.0). Stejna stavba jako wlroots0.20 v Archu, ale
+# z podepsaneho vydaneho tarballu a s pevnou verzi: wlroots nema stabilni API ani mezi malymi
+# verzemi a Arch muze balik wlroots0.20 zvednout nebo po prechodu na 0.21 vyradit. Repozitar
+# [luxos] je v /etc/lux/lux.conf pred [extra], takze tento balik ma prednost a luxwm (a pripadne
+# labwc z Archu, ktere chce jen libwlroots-0.20.so) ma vzdy overenou verzi.
+# Nova verze: pkgver + sha256sums, overit podpis (keys/pgp), pak testy luxwm (packages/luxwm/tests).
+# Puvodni PKGBUILD Archu (udrzovatel Robin Candau) je v PKGBUILD.arch.
+
+pkgname=wlroots0.20
+_pkgname=wlroots
+pkgver=0.20.2
+pkgrel=1.1
+pkgdesc='Modular Wayland compositor library (LuxOS: pinned for luxwm)'
+url='https://gitlab.freedesktop.org/wlroots/wlroots'
+license=('MIT')
+arch=('x86_64')
+depends=('glibc' 'libdisplay-info.so' 'libdrm' 'libglvnd' 'libinput' 'liblcms2.so' 'libliftoff.so' 'libpixman-1.so'
+         'libseat.so' 'libudev.so' 'libvulkan.so' 'libwayland-client.so' 'libwayland-server.so' 'libxcb' 'libxkbcommon.so'
+         'wayland-protocols' 'opengl-driver' 'xcb-util-errors' 'xcb-util-renderutil' 'xcb-util-wm')
+makedepends=('glslang' 'meson' 'ninja' 'systemd' 'vulkan-headers' 'xorg-xwayland')
+optdepends=('xorg-xwayland: Xwayland support')
+provides=("libwlroots-${pkgver%.*}.so")
+source=("$url/-/releases/$pkgver/downloads/$_pkgname-$pkgver.tar.gz"{,.sig})
+sha256sums=('80c567d2ed4efb2cfa6b077f22c7a710d9c78ba4e185a75e8694001114af0733'
+            'SKIP')
+validpgpkeys=('34FF9526CFEF0E97A340E2E40FDE7BE0E88F5E48')  # Simon Ser
+
+build() {
+  arch-meson "$_pkgname-$pkgver" build
+  ninja -C build
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C build install
+  install -Dm644 "$_pkgname-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
