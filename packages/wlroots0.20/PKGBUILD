@@ -1,17 +1,17 @@
 # Maintainer: LuxOS Team
-# wlroots 0.20 pro kompozitor luxwm (LuxOS 1.1.0). Stejna stavba jako wlroots0.20 v Archu, ale
+# wlroots 0.20 pro jadro kompozitoru libluxcomp (LuxOS 1.1.0). Stejna stavba jako wlroots0.20 v Archu, ale
 # z podepsaneho vydaneho tarballu a s pevnou verzi: wlroots nema stabilni API ani mezi malymi
 # verzemi a Arch muze balik wlroots0.20 zvednout nebo po prechodu na 0.21 vyradit. Repozitar
-# [luxos] je v /etc/lux/lux.conf pred [extra], takze tento balik ma prednost a luxwm (a pripadne
+# [luxos] je v /etc/lux/lux.conf pred [extra], takze tento balik ma prednost a libluxcomp (a pripadne
 # labwc z Archu, ktere chce jen libwlroots-0.20.so) ma vzdy overenou verzi.
-# Nova verze: pkgver + sha256sums, overit podpis (keys/pgp), pak testy luxwm (packages/luxwm/tests).
+# Nova verze: pkgver + sha256sums, overit podpis (keys/pgp), pak testy jadra (packages/luxcomp/tests/run.sh).
 # Puvodni PKGBUILD Archu (udrzovatel Robin Candau) je v PKGBUILD.arch.
 
 pkgname=wlroots0.20
 _pkgname=wlroots
 pkgver=0.20.2
 pkgrel=1.1
-pkgdesc='Modular Wayland compositor library (LuxOS: pinned for luxwm)'
+pkgdesc='Modular Wayland compositor library (LuxOS: pinned for libluxcomp)'
 url='https://gitlab.freedesktop.org/wlroots/wlroots'
 license=('MIT')
 arch=('x86_64')
