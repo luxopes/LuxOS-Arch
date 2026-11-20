@@ -42,6 +42,7 @@ fribidi fribidi-1.0.18-1-x86_64.pkg.tar.zst eb74b1470a27f71525eb32b022d41c7c1c8f
 libdatrie libdatrie-0.2.14-1-x86_64.pkg.tar.zst f5ad651ed99afa29d44c662da4f2c6e93764e8a1d47487f41837be1c94ddd38e
 libthai libthai-0.1.30-1-x86_64.pkg.tar.zst 890798f30ac72d0ca3b59dc5fe8eebe8f923bf09bdb1bc2ec75bc200d7aa70a2
 libxft libxft-2.3.9-1-x86_64.pkg.tar.zst a7841ed8e67dc3f94eca4672c8961329dfdd6b67836f8ac720a246d3aab02ecb
+glib2 glib2-2.90.1-1-x86_64.pkg.tar.zst b7d930dae1b926dd8dfa9375183182ebc7a26689428fd109feaeace3aecf99a0
 pango pango-1:1.58.2-1-x86_64.pkg.tar.zst 9b74c73056ce6b2aca83bf1647f79f0a6bf53f204c5273b03530e034472db13c
 librsvg librsvg-2:2.63.4-1-x86_64.pkg.tar.zst 062352b0a55e34e610f2d1770993970fec3ea0ae5e77f805f064daec2f34da4c
 libsfdo libsfdo-0.1.4-1-x86_64.pkg.tar.zst a35b1bf01a858c06ca24efd57fbf9326a4714597d8661cad4e02a50355ccc550
