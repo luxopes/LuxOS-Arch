@@ -4,7 +4,7 @@
 # Signal hubu nic nenese, proto soubor; plati jen cerstvy. Bez nej (klavesova zkratka, prikaz) vybere
 # vystup kompozitor - ten s kurzorem.
 #
-#   popup.setup(okno, nazev)              pred prvnim zobrazenim: vrstva TOP
+#   popup.setup(okno, nazev)              pred prvnim zobrazenim: vrstva OVERLAY, klavesnice on demand
 #   popup.place(okno, sirka, zarovnani)   monitor a okraj pred zobrazenim; zarovnani bez zapisu listy
 #                                         "right" | "center"; vraci popis pro testy ("anchor 1280 1104")
 #   popup.show(okno)                      zobrazit (po place); popup.focus_in(okno) z focus-in-event,
@@ -83,56 +83,32 @@ end
 function setup(win, name):
     call layer.init_for_window(win)
     call layer.set_namespace(win, name)
-    # TOP, ne OVERLAY: luxwm (jako sway) rozklada OVERLAY pred listou ve vrstve TOP, okno by ji prekrylo
-    call layer.set_layer(win, layer.LAYER_TOP)
+    call layer.set_layer(win, layer.LAYER_OVERLAY)
+    call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
     call layer.set_margin(win, layer.EDGE_TOP, GAP)
     return 0
 end
 
-# Klavesnice: on demand, aby klik jinam (okno, plocha) oknu vzal fokus a tim ho zavrel. Po zobrazeni ji ale
-# kompozitor nemusi dat (luxwm on demand plose fokus na mapovani neda, labwc ne, kdyz ma fokus okno), pak by
-# nesel Esc: na chvili exclusive (fokus hned) a po jeho prijeti zpet on demand. luxwm fokus vrstve necha,
-# labwc ho pri te zmene vrati oknu - takova ztrata fokusu neni klik jinam.
-state = {}
+# Klavesnice on demand: luxwm ji vrstve nad okny da hned po zobrazeni (Esc), klik jinam (okno, plocha) ji
+# vezme a tim okno zavre. Ztrata fokusu se pocita, jen kdyz ho okno melo.
+focused = {}
 
 function show(win):
-    state[win] = {"focused": False, "released": 0}
-    call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
+    focused[win] = False
     call gtk.widget_show(win)
-    call glib.timeout_add_data(150, grab_if_unfocused, win)
     return 0
-end
-
-function grab_if_unfocused(win):
-    if gtk.widget_get_visible(win) and not state[win]["focused"]:
-        call layer.set_keyboard_mode(win, layer.KEYBOARD_EXCLUSIVE)
-    end
-    return False
 end
 
 function focus_in(win):
-    state[win]["focused"] = True
-    if layer.get_keyboard_mode(win) == layer.KEYBOARD_EXCLUSIVE:
-        # zmena primo v obsluze fokusu by se v labwc potkala s prvnim snimkem (plocha zustala neviditelna)
-        call glib.timeout_add_data(100, release_keyboard, win)
-    end
+    focused[win] = True
     return 0
 end
 
-function release_keyboard(win):
-    call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
-    state[win]["released"] = glib.monotonic_time() // 1000
-    return False
-end
-
-# Vzal oknu fokus klik jinam (zavrit)? Ne, kdyz fokus nemelo nebo ho kompozitor vratil pri zmene klavesnice.
+# Vzal oknu fokus klik jinam (zavrit)?
 function focus_out(win):
-    s = state.get(win)
-    if s == None or not s["focused"]:
-        return False
-    end
-    s["focused"] = False
-    return glib.monotonic_time() // 1000 - s["released"] > 150
+    had = focused.get(win, False)
+    focused[win] = False
+    return had
 end
 
 function place(win, width, align):

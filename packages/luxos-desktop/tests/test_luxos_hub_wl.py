@@ -34,7 +34,7 @@ HAVE_LABWC = (SYSROOT / "usr/bin/labwc").exists() or shutil.which("labwc")
 HAVE_LUXWM = (LUXWM_BUILD / "luxwm").exists()
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
 OUT_W, OUT_H = 1280, 720
-BAR = 32
+BAR = 28
 # klik -> okno viditelne; zaseknuty hub (drive futex ve wl_display_read_events) by se neukazal nikdy
 SHOW_LIMIT = 2.0
 
@@ -102,7 +102,8 @@ class HubWayland:
         cls.bin = cls.tmp / "bin"
         cls.bin.mkdir()
         for name in ("luxos-hub", "luxos-bar", "luxos-cc-toggle", "luxos-calendar-toggle"):
-            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(src / f"{name}.lsl"), str(cls.bin / name)],
+            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(src), str(src / f"{name}.lsl"),
+                                str(cls.bin / name)],
                                capture_output=True, text=True)
             if r.returncode != 0:
                 raise RuntimeError(f"{name}: " + r.stdout + r.stderr)
@@ -239,8 +240,8 @@ class HubWayland:
             time.sleep(0.1)
 
     def close_by_key(self, hub, signum, log):
-        """Esc zavre okno otevrene bez kliku v liste. labwc pri prepnuti klavesnice exclusive -> on demand
-        vrati fokus oknu aplikace (popup.show), tam okno zavre jen dalsi signal; luxwm fokus vrstve necha."""
+        """Esc zavre okno otevrene bez kliku v liste. luxwm da on demand vrstve nad okny klavesnici hned po
+        zobrazeni; labwc ji necha oknu aplikace s fokusem, tam okno zavre jen dalsi signal."""
         mark = log.mark()
         if self.compositor == "labwc":
             hub.send_signal(signum)
@@ -255,12 +256,12 @@ class HubWayland:
         bar = self.bar()
         hub = self.hub()
         self.client()
-        # Ovladaci centrum je v liste uplne vpravo, tady na druhem vystupu
-        button = 2 * OUT_W - 18
+        # Ovladaci centrum vlevo od zvonku a hodin (poradi jako na X11), tady na druhem vystupu
+        button = 2 * OUT_W - 162
         before = self.shot()
         mark, bmark = self.cc.mark(), bar.mark()
         clicked = time.monotonic()
-        self.input(f"move {button} 16", "sleep 0.1", "click")
+        self.input(f"move {button} 14", "sleep 0.1", "click")
         _, m = bar.wait(r"^control-center (\d+) (\d+)", start=bmark)
         self.assertEqual(int(m.group(1)), OUT_W)
         center = OUT_W + int(m.group(2))
@@ -287,14 +288,14 @@ class HubWayland:
         self.assertTrue(self.wait_pixels(lambda image: pixel(image, left + 40, BAR + 40) == empty))
         # znovu otevrit, dalsi klik na tlacitko zavre
         mark = self.cc.mark()
-        self.input(f"move {button} 16", "sleep 0.1", "click")
+        self.input(f"move {button} 14", "sleep 0.1", "click")
         self.cc.wait("shown", mark, timeout=SHOW_LIMIT)
         mark = self.cc.mark()
-        self.input(f"move {button} 16", "sleep 0.1", "click")
+        self.input(f"move {button} 14", "sleep 0.1", "click")
         self.cc.wait("hidden", mark)
         # klik mimo (do okna aplikace na prvnim vystupu) zavre
         mark = self.cc.mark()
-        self.input(f"move {button} 16", "sleep 0.1", "click")
+        self.input(f"move {button} 14", "sleep 0.1", "click")
         self.cc.wait("shown", mark, timeout=SHOW_LIMIT)
         time.sleep(0.6)
         mark = self.cc.mark()
@@ -316,7 +317,6 @@ class HubWayland:
         self.assertEqual(self.cc.wait("placed ", mark, timeout=SHOW_LIMIT), "placed default right")
         self.cc.wait("shown", mark, timeout=SHOW_LIMIT)
         cc_ms = (time.monotonic() - sent) * 1000
-        # klavesnici muze dostat az po chvili (popup.show: nejdriv on demand, pak na chvili exclusive)
         time.sleep(0.4)
         self.close_by_key(hub, signal.SIGUSR1, self.cc)
         # SIGUSR2: Kalendar stejne (hodiny vpravo)
