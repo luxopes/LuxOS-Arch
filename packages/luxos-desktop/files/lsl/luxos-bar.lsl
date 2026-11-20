@@ -424,6 +424,9 @@ function build_bar(bar):
     call gtk.widget_add_class(badge, "lb-badge")
     kb = bar_button(bar, badge, "", on_item_press, "keyboard")
     bar["items"]["keyboard"] = [kb, badge, 0]
+    if ui["trace"]:
+        call gtk.connect(kb, "size-allocate", on_badge_allocate)
+    end
     call gtk.box_pack_start(right, kb, False, False, 0)
     call icon_item(bar, "sound", "audio-volume-high-symbolic", i18n.T("Sound"), right)
     call icon_item(bar, "network", "network-wireless-signal-excellent-symbolic", i18n.T("Wi-Fi"), right)
@@ -839,6 +842,22 @@ function show_layouts(widget):
     unsafe:
         call __lsl_qbe_call5(__lsl_symbol("gtk_menu_popup_at_widget"), ptr(ui["layout_menu"]), ptr(widget), 7, 1, 0)
     end
+    return 0
+end
+
+# Poloha odznaku pro testy (klik na nabidku rozlozeni)
+function on_badge_allocate(allocation, widget):
+    a = gtk.widget_get_allocation(widget)
+    if a[2] <= 1:
+        return 0
+    end
+    unsafe:
+        xy = __lsl_byte_zeros(8)
+        base = lglib.data(xy)
+        call __lsl_qbe_call6(__lsl_symbol("gtk_widget_translate_coordinates"), ptr(widget), ptr(gtk.widget_get_toplevel(widget)), 0, 0, base, base + 4)
+        x = __lsl_qbe_s32(__lsl_qbe_load32(base))
+    end
+    call trace("badge keyboard " + String(x) + " " + String(a[2]))
     return 0
 end
 

@@ -28,7 +28,7 @@ struct layer {
 	struct wlr_layer_surface_v1 *surface;
 	struct wlr_scene_layer_surface_v1 *scene;
 	struct output *output;
-	struct wl_listener map, unmap, commit, destroy;
+	struct wl_listener map, unmap, commit, destroy, new_popup;
 };
 
 struct output {
@@ -198,6 +198,8 @@ int deco_height(void);
 
 /* view.c, shared with xwayland.c */
 struct view *view_create(void);
+struct wlr_xdg_popup;
+void popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree);
 void view_map_common(struct view *v);
 void view_unmap_common(struct view *v);
 void view_destroy_common(struct view *v);

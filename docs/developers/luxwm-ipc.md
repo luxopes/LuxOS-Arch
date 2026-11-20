@@ -37,7 +37,8 @@ Klient v LSL je `luxos_luxwm.lsl` (`packages/luxwm`, instalovaný jako modul pro
 ```
 
 `id` je volitelné celé číslo; odpověď ho vrací beze změny. Každý požadavek dostane právě jednu
-odpověď, pořadí odpovědí odpovídá pořadí požadavků. Neznámý příkaz: `"error": "unknown command"`,
+odpověď, pořadí odpovědí odpovídá pořadí požadavků. Události, které příkaz vyvolá (např. `workspace`
+po `switch_workspace`), přijdou až po jeho odpovědi. Neznámý příkaz: `"error": "unknown command"`,
 chybný JSON: `"error": "bad request"` (spojení zůstává).
 
 | Příkaz | Argumenty | Privilegovaný | Popis |
@@ -51,7 +52,7 @@ chybný JSON: `"error": "bad request"` (spojení zůstává).
 | `set_theme` | `theme`: `"light"` / `"dark"` | ne | překreslí záhlaví oken a pošle událost `theme` |
 | `suspend_shortcuts` | `on`: `true` / `false` | ne | vypne globální zkratky, dokud klient neřekne `false` nebo se neodpojí (zadávání nové zkratky v nastavení) |
 | `list_windows` | – | ano | `{"ok": true, "windows": [okno, ...]}` v pořadí od naposledy zaměřeného |
-| `focus_window` | `id` | ano | zaměří okno (i na jiné ploše, obnoví minimalizované) |
+| `focus_window` | `window` (id okna) | ano | zaměří okno (i na jiné ploše, obnoví minimalizované) |
 
 Proč jsou příkazy neprivilegované: totéž dokáže každý proces uživatele i bez soketu (upraví
 `~/.config/luxwm/luxwm.conf` a pošle `SIGHUP`) a přepnutí plochy nebo rozložení nic neprozradí.

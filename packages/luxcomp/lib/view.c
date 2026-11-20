@@ -402,6 +402,24 @@ popup_destroy(struct wl_listener *listener, void *data)
 	free(p);
 }
 
+void
+popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree)
+{
+	if (!parent_tree || popup->base->data) {
+		return;
+	}
+	popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
+
+	struct popup *p = calloc(1, sizeof(*p));
+	p->popup = popup;
+	p->commit.notify = popup_commit;
+	wl_signal_add(&popup->base->surface->events.commit, &p->commit);
+	p->destroy.notify = popup_destroy;
+	wl_signal_add(&popup->events.destroy, &p->destroy);
+}
+
+/* Popup layer-shell (nabidka listy) prijde bez rodice; rodice mu da az zwlr_layer_surface_v1.get_popup
+ * (layer_new_popup v core.c) */
 static void
 new_popup(struct wl_listener *listener, void *data)
 {
@@ -416,17 +434,7 @@ new_popup(struct wl_listener *listener, void *data)
 			wlr_layer_surface_v1_try_from_wlr_surface(popup->parent);
 		parent_tree = ls ? ls->data : NULL;
 	}
-	if (!parent_tree) {
-		return;
-	}
-	popup->base->data = wlr_scene_xdg_surface_create(parent_tree, popup->base);
-
-	struct popup *p = calloc(1, sizeof(*p));
-	p->popup = popup;
-	p->commit.notify = popup_commit;
-	wl_signal_add(&popup->base->surface->events.commit, &p->commit);
-	p->destroy.notify = popup_destroy;
-	wl_signal_add(&popup->events.destroy, &p->destroy);
+	popup_attach(popup, parent_tree);
 }
 
 /* ---- xdg-decoration: kdo kresli zahlavi ---- */

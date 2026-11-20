@@ -46,7 +46,7 @@ function build(words):
     elif cmd == "set-theme" and (arg == "light" or arg == "dark"):
         return {"cmd": "set_theme", "theme": arg}
     elif cmd == "focus-window" and number(arg) != None:
-        return {"cmd": "focus_window", "id": number(arg)}
+        return {"cmd": "focus_window", "window": number(arg)}
     end
     return None
 end

@@ -58,6 +58,7 @@ IPC_TOPICS = ["window", "workspace", "keyboard", "output", "theme"]
 PRIVILEGED_TOPICS = ["window"]
 PRIVILEGED_COMMANDS = ["list_windows", "focus_window"]
 
+deferred = {"on": False, "items": []}
 ipc = {}             # klient IPC -> {"privileged": bool, "topics": [...]}
 keyboard = {"layouts": [], "locale": {}}
 look = {"dark": False}
@@ -1275,6 +1276,11 @@ function update_suspend():
 end
 
 function broadcast(topic, message):
+    # udalosti vyvolane prikazem az po jeho odpovedi (klient ceka nejdriv odpoved)
+    if deferred["on"]:
+        deferred["items"].append([topic, message])
+        return
+    end
     line = ""
     for client in [k for k in ipc.keys()]:
         if topic in ipc[client]["topics"]:
@@ -1416,7 +1422,7 @@ function ipc_command(client, request):
     elif cmd == "list_windows":
         return {"ok": True, "windows": list_windows()}
     elif cmd == "focus_window":
-        v = request.get("id", 0)
+        v = request.get("window", 0)
         if type(v) != "Int" or v <= 0 or vget(v, lc.VIEW_MAPPED) != 1:
             return {"ok": False, "error": "no such window"}
         end
@@ -1440,11 +1446,23 @@ function ipc_line(client):
         call send(client, {"ok": False, "error": "bad request"})
         return
     end
-    reply = ipc_command(client, request)
+    deferred["on"] = True
+    reply = {"ok": False, "error": "failed"}
+    try:
+        reply = ipc_command(client, request)
+    else:
+        call log("ipc error: " + String(last_error()))
+    end
+    deferred["on"] = False
     if "id" in request:
         reply["id"] = request["id"]
     end
     call send(client, reply)
+    items = deferred["items"]
+    deferred["items"] = []
+    for item in items:
+        call broadcast(item[0], item[1])
+    end
     # po potvrzeni odberu hned aktualni stav, at klient nemusi zvlast cist get_state
     if reply["ok"] and request.get("cmd", "") == "subscribe" and client in ipc:
         for topic in request["events"]:

@@ -209,7 +209,11 @@ function save(general, keys):
         text = set_entries(text, "", general)
     end
     if len(keys) > 0:
-        text = set_entries(text, "keys", keys)
+        canonical = {}
+        for accel in keys.keys():
+            canonical[normalize(accel)] = keys[accel]
+        end
+        text = set_entries(text, "keys", canonical)
     end
     call lglib.mkdir_p(config_home() + "/luxwm")
     return lglib.write_atomic(path, text)
