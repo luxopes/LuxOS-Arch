@@ -21,13 +21,17 @@ Mys se z okna QEMU uvolni pres Ctrl+Alt+G.
 
 Prihlaseni
 ----------
-Uzivatel luxos, heslo luxos. Po startu se prihlasi sam na tty1 a spusti relaci
-luxos-wayland-preview (luxwm + tapeta, lista, Dock, oznameni, zamek, Launchpad). Heslo je potreba
-pro zamek obrazovky a sudo.
+Po startu prihlasovaci obrazovka LuxOS (greetd, luxos-greeter v LSL pod luxwm, bez X serveru).
+Uzivatel luxos, heslo luxos. Vlevo dole volba relace: LuxOS (Wayland, vychozi) nebo LuxOS (X11)
+(puvodni Xfce). Odhlaseni (nabidka LuxOS > Odhlasit) vrati prihlasovaci obrazovku.
+Relace na Waylandu: luxos-wayland-session spusti luxwm a v nem luxos-session.target (lista, Dock,
+oznameni, zamek, Launchpad, tapeta, widgety, agent polkitu jako uzivatelske sluzby). Pad listy ci
+Docku systemd hned opravi, pad kompozitoru ukonci relaci a vrati prihlasovaci obrazovku.
 
 Konzole: Ctrl+Alt+F2 (v QEMU pres nabidku View nebo Ctrl+Alt+Shift+F2), prihlaseni luxos/luxos.
 Zpet do grafiky Ctrl+Alt+F1.
-Log spravce oken: ~/.local/state/luxos/luxwm.log, sluzby shellu: journalctl --user -b
+Log spravce oken: ~/.local/state/luxos/luxwm.log, sluzby shellu: journalctl --user -b,
+prihlasovaci obrazovka: sudo journalctl -b -u greetd
 
 Klavesnice: cestina a anglictina, prepinani Alt+Shift (ve VM klavesu Super/Cmd zachyti QEMU
 jen kdyz je mys v okne zachycena).
@@ -64,16 +68,15 @@ Na zkouseni
 
 Zname chybi / omezeni nahledu
 -----------------------------
-  - Prihlasovaci obrazovka (greeter, WP-9) a luxos-session.target (WP-13) nejsou: relaci spousti
-    automaticke prihlaseni na tty1. Odhlaseni = konec luxwm, relace se pak spusti znovu.
+  - Prihlasovaci obrazovka je jen na prvnim monitoru (ostatni maji barvu pozadi); rozlozeni
+    klavesnice se na ni prepina zkratkou (Alt+Shift), klik na cip rozlozeni nic nedela.
   - Snimek obrazovky, emoji, nastaveni monitoru a klavesnice jsou jeste z X11 (WP-12); aplikace
     z Pythonu (Nastaveni ...) bezi pres XWayland nebo GTK na Waylandu podle toho, co umi.
   - Rozlozeni klavesnice se bere z /etc/vconsole.conf pri startu relace, ne zive z locale1.
   - Bez zvuku (VM nema zvukovou kartu).
-  - Puvodni relace X11 (Xfce) zustava nainstalovana jako zaloha, ale nespousti se:
-    v konzoli "sudo systemctl stop luxos-wayland-preview; sudo systemctl start lightdm".
+  - Navrat k LightDM (X11 prihlaseni): sudo lux remove luxos-greetd a restart.
 
-Znovu postavit obraz (ve vetvi wl/preview-vm)
+Znovu postavit obraz (vetev wayland-1.1)
 ---------------------------------------------
-  LUXOS_SIGNING_DIR=none ./build.sh one wlroots0.20 luxcomp luxwm luxos-desktop
-  scripts/wl-preview/build-image.sh out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop}-[0-9]*.pkg.tar.zst
+  LUXOS_SIGNING_DIR=none ./build.sh one wlroots0.20 luxcomp luxwm luxos-desktop luxos-greetd
+  scripts/wl-preview/build-image.sh out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop,luxos-greetd}-[0-9]*.pkg.tar.zst
