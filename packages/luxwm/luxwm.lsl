@@ -253,18 +253,62 @@ function apply_theme():
     call lc.theme_set(lc.THEME_BG_ACTIVE, argb(window))
     call lc.theme_set(lc.THEME_BG_INACTIVE, argb(window))
     call lc.theme_set(lc.THEME_TEXT_ACTIVE, argb(tokens.color("fg", dark)))
-    call lc.theme_set(lc.THEME_TEXT_INACTIVE, argb(tokens.color("dim", dark)))
+    # neaktivni titulek fg_soft: "dim" ma na svetlem pozadi kontrast jen 4:1, fg_soft 6:1
+    call lc.theme_set(lc.THEME_TEXT_INACTIVE, argb(tokens.color("fg_soft", dark)))
     call lc.theme_set(lc.THEME_CLOSE, argb(tokens.COLORS["light_close"]))
     call lc.theme_set(lc.THEME_MINIMIZE, argb(tokens.COLORS["light_min"]))
     call lc.theme_set(lc.THEME_MAXIMIZE, argb(tokens.COLORS["light_max"]))
     call lc.theme_set(lc.THEME_BUTTON_INACTIVE, argb(tokens.color("light_inactive", dark)))
     call lc.theme_set(lc.THEME_SEPARATOR, argb(tokens.color("border", dark)))
+    call lc.theme_set(lc.THEME_GLYPH, argb(tokens.COLORS["light_glyph"]))
+    shadow = tokens.WINDOW_SHADOW
+    call lc.theme_set(lc.THEME_SHADOW_ACTIVE, argb([0, 0, 0, shadow["active_alpha"]]))
+    call lc.theme_set(lc.THEME_SHADOW_INACTIVE, argb([0, 0, 0, shadow["inactive_alpha"]]))
+    call lc.theme_set(lc.THEME_SHADOW_ACTIVE_SIZE, shadow["active_size"])
+    call lc.theme_set(lc.THEME_SHADOW_INACTIVE_SIZE, shadow["inactive_size"])
     # titulek jako v xfwm4 (Inter Semi-Bold 10): velikost tela v px na body
     call lc.theme_set_font(tokens.FONT["family"] + " Semi-Bold " + String(tokens.FONT["body"] * 3 // 4 + 1))
     # pod tapetou (vrstva background) stejna nahradni barva jako u skla bez tapety
     fb = tokens.GLASS["fallback"]
     call lc.set_background(argb([Int(fb[0] * 255.0), Int(fb[1] * 255.0), Int(fb[2] * 255.0), 1.0]))
     call note("theme " + ("dark" if dark else "light"))
+end
+
+# Kurzor jako v GTK na X11 (gtk-3.0/settings.ini z luxos-desktop: WhiteSur-cursors 24, uzivatel
+# prepise v ~/.config); XCURSOR_THEME a XCURSOR_SIZE prostredi relace maji prednost
+session_cursor = [glib.getenv("XCURSOR_THEME"), glib.getenv("XCURSOR_SIZE")]
+
+function apply_cursor():
+    found = {"gtk-cursor-theme-name": "", "gtk-cursor-theme-size": "24"}
+    for path in ["/etc/xdg/gtk-3.0/settings.ini", "/etc/xdg/luxos/gtk-3.0/settings.ini",
+                 glib.user_config_dir() + "/gtk-3.0/settings.ini"]:
+        text = ""
+        safe:
+            text = readfile(path)
+        end
+        for raw in text.split(chr(10)):
+            eq = raw.find("=")
+            if eq > 0 and raw[:eq].strip() in found:
+                found[raw[:eq].strip()] = raw[eq + 1:].strip()
+            end
+        end
+    end
+    theme = found["gtk-cursor-theme-name"]
+    size_text = found["gtk-cursor-theme-size"]
+    if session_cursor[0] != None and session_cursor[0] != "":
+        theme = session_cursor[0]
+    end
+    if session_cursor[1] != None and session_cursor[1] != "":
+        size_text = session_cursor[1]
+    end
+    size = 24
+    try:
+        size = max(8, min(256, Int(size_text)))
+    else:
+        call log("bad cursor size " + size_text)
+    end
+    call lc.set_cursor(theme, size)
+    call note("cursor " + theme + " " + String(size))
 end
 
 # ---- geometrie -------------------------------------------------------------------------------
@@ -1119,6 +1163,7 @@ function on_reload():
     call load_privileged()
     call bind_keys()
     call apply_theme()
+    call apply_cursor()
     call log("configuration reloaded")
     return True
 end
@@ -1162,6 +1207,7 @@ end
 call lc.workspace_show(ws[0], 1)
 call bind_keys()
 call apply_theme()
+call apply_cursor()
 if lc.start() != 0:
     call log("cannot start the backend")
     call lc.destroy()

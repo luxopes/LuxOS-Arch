@@ -1,5 +1,6 @@
 /* Vstup: seat, klavesnice a zkratky, kurzor, presun a zmena velikosti oken */
 #define _GNU_SOURCE
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -19,6 +20,7 @@
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 #include "internal.h"
 
@@ -314,7 +316,8 @@ process_motion(uint32_t time)
 	struct layer *l;
 	struct wlr_surface *surface;
 	double sx, sy;
-	hit_test(comp.cursor->x, comp.cursor->y, &v, &l, &surface, &sx, &sy);
+	int part = hit_test(comp.cursor->x, comp.cursor->y, &v, &l, &surface, &sx, &sy);
+	deco_hover(v ? v->deco : NULL, part);
 	if (surface) {
 		wlr_seat_pointer_notify_enter(comp.seat, surface, sx, sy);
 		wlr_seat_pointer_notify_motion(comp.seat, time, sx, sy);
@@ -361,6 +364,11 @@ cursor_button(struct wl_listener *listener, void *data)
 	int part = hit_test(comp.cursor->x, comp.cursor->y, &v, &l, &surface, &sx, &sy);
 
 	if (!pressed && comp.grab != GRAB_NONE) {
+		if (getenv("LUXCOMP_STATS") && comp.grab_frames > 0) {
+			wlr_log(WLR_ERROR, "luxcomp: drag %d frames, slowest render %.2f ms, mean %.2f ms",
+				comp.grab_frames, comp.grab_render_max_ns / 1e6,
+				comp.grab_render_sum_ns / 1e6 / comp.grab_frames);
+		}
 		comp.grab = GRAB_NONE;
 		comp.grab_view = NULL;
 		wlr_seat_pointer_notify_button(comp.seat, e->time_msec, e->button, e->state);
@@ -441,6 +449,7 @@ input_init(void)
 	const char *size = getenv("XCURSOR_SIZE");
 	comp.cursor_mgr = wlr_xcursor_manager_create(getenv("XCURSOR_THEME"),
 		size && atoi(size) > 0 ? atoi(size) : 24);
+	/* HiDPI: wlr_cursor si z manazeru nacte obrazky pro meritko kazdeho vystupu */
 
 	comp.new_input.notify = new_input;
 	wl_signal_add(&comp.backend->events.new_input, &comp.new_input);
@@ -516,6 +525,9 @@ begin_grab(struct view *v, enum grab_mode mode, uint32_t edges)
 	comp.grab_x = comp.cursor->x - (mode == GRAB_MOVE ? v->x : 0);
 	comp.grab_y = comp.cursor->y - (mode == GRAB_MOVE ? v->y : 0);
 	comp.grab_box = (struct wlr_box){ v->x, v->y, view_width(v), view_height(v) };
+	comp.grab_frames = 0;
+	comp.grab_render_max_ns = comp.grab_render_sum_ns = 0;
+	deco_hover(NULL, 0);
 	wlr_seat_pointer_clear_focus(comp.seat);
 }
 
@@ -609,4 +621,25 @@ luxcomp_modifiers(void)
 {
 	struct wlr_keyboard *kb = wlr_seat_get_keyboard(comp.seat);
 	return kb ? wlr_keyboard_get_modifiers(kb) & MOD_MASK : 0;
+}
+
+void
+luxcomp_set_cursor(const char *theme, int64_t size)
+{
+	size = size > 0 ? size : 24;
+	struct wlr_xcursor_manager *mgr =
+		wlr_xcursor_manager_create(theme && *theme ? theme : NULL, size);
+	/* wlr_cursor muze drzet obrazek stareho manazeru, proto nejdriv prepnout */
+	wlr_cursor_set_xcursor(comp.cursor, mgr, "default");
+	wlr_xcursor_manager_destroy(comp.cursor_mgr);
+	comp.cursor_mgr = mgr;
+	cursor_rebase();
+	if (theme && *theme) {
+		setenv("XCURSOR_THEME", theme, 1);
+	} else {
+		unsetenv("XCURSOR_THEME");
+	}
+	char text[16];
+	snprintf(text, sizeof(text), "%d", (int)size);
+	setenv("XCURSOR_SIZE", text, 1);
 }
