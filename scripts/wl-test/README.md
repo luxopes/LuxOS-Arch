@@ -98,6 +98,9 @@ A state that stays on screen longer than `--max-run` captures is real, not a gli
 
 Limitations:
 - Tearing, where a frame is half old content and half new, looks like a legitimate in-between state and is not flagged.
+- Fast motion of a striped window across the stripes (≥ ~50 px per frame, e.g. a workspace slide) is flagged as `transient`:
+  two-colour stripes shifted by ~100 px agree by chance in about half of the blocks, and the frame between differs there.
+  Test windows for horizontal slides therefore use `wlt-client --hstripes`.
 - A real one-frame state change, such as a 1-frame menu highlight covering ≥ 2 % of the screen, would be flagged. Scenarios move the pointer in small steps.
 - grim copies finished frames (ext-image-copy-capture), so headless capture shows regressions but never half-drawn buffers. Half-drawn buffers are only visible in VM capture, where `screendump` reads the scanout buffer.
 
@@ -121,6 +124,21 @@ Configuration names are `CARD-RENDERER[-swcursor]`:
 
 - Renderer: `auto` lets wlroots choose; `pixman` and `gles2` set `WLR_RENDERER`.
 - `-swcursor` adds `WLR_NO_HARDWARE_CURSORS=1`.
+
+Compositor: `WLT_VM_COMP=labwc` (default) or `WLT_VM_COMP=luxcomp`. For luxcomp, build the image with the local packages:
+
+```sh
+./build.sh one wlroots0.20 && ./build.sh one luxcomp            # LUXOS_SIGNING_DIR=none for unsigned
+scripts/wl-test/vm-image.sh out/single/wlroots0.20-*.pkg.tar.zst out/single/luxcomp-*.pkg.tar.zst
+WLT_VM_COMP=luxcomp scripts/wl-test/vm-matrix.sh std-auto virtio-auto
+```
+
+The guest then runs `/usr/lib/luxcomp/luxcomp-demo` with `LUXCOMP_STATS=1` on an empty desktop. The host sends it commands
+through a second virtio port `wltctl` (a FIFO `ctl` in the run directory, passed on to the demo's stdin). The scenario opens
+two test windows (`spawn wlt-client ...`), drags the second one, slides to the empty workspace and back with
+Ctrl+Right/Left (420 ms) and closes the second window with its close button. The report adds the renderer line of
+libluxcomp, the number of distinct captured frames within 0.6 s of each slide key press, and the frame count and slowest
+render time that libluxcomp itself logs for each slide.
 
 Each run does the following:
 1. Boots with direct kernel boot and a `-snapshot` root disk. root is logged in automatically on tty1 and labwc runs on DRM with one 400x300 test window.
@@ -159,6 +177,25 @@ What this shows:
 - **QEMU's `vmware-svga` is not usable as a stand-in for VMware or VirtualBox.** vmwgfx refuses it: `Hardware has no pitchlock`, `probe with driver vmwgfx failed with error -38`, "unsupported hypervisor". No DRM device exists, so no Wayland compositor can run there. Under Xorg, the X server would use its own non-DRM vmware/fbdev path instead.
 
 VirtualBox VMSVGA cannot be scripted here: there is no VirtualBox on the dev host, and QEMU does not emulate VMSVGA. It uses the same vmwgfx guest driver as `vmware`, but with VirtualBox's own SVGA3 device. wlroots issue #3621 (`drm_dumb: Failed to get PRIME handle`) is VirtualBox-specific. Check by hand in VirtualBox 7 with VMSVGA and 3D off, using `scripts/wl-test/vm-guest/wlt-guest` in an installed system.
+
+### Results with libluxcomp (2026-11-20)
+
+`WLT_VM_COMP=luxcomp`, packages from `./build.sh one` (wlroots0.20 0.20.2-1.1, luxcomp 0.1.0-1), same guest and host as above.
+PSS is luxcomp-demo on the empty desktop / after the scenario (one window left). Slides: distinct captured frames within
+0.6 s of the key press (out / back; the windows leave the screen halfway through the first slide) and frames rendered
+by libluxcomp per 420 ms slide.
+
+| config | renderer picked (headless in the same VM) | idle / scenario flags | PSS idle / after | slides |
+|---|---|---|---|---|
+| std-auto | pixman, no DRM render node (pixman) | 0 / 0 | 11.3 / 18.1 MB | 6/11 captured, 31-33 rendered, slowest 0.47 ms |
+| std-pixman | pixman | 0 / 0 | 11.4 / 18.1 MB | 6/11, 28-33 |
+| virtio-auto | **pixman, virtio-gpu without virgl** (pixman) | 0 / 0 (2 runs), 0 / 1 (1 run, see below) | 11.3 / 18.0 MB | 6/12, 31-34 |
+| virtio-pixman | pixman | 0 / 0 | 11.3 / 18.1 MB | 6/12, 33 |
+
+Compared with labwc on virtio-auto (116.7 MB idle with GLES2 on kms_swrast), libluxcomp stays on pixman at ~11 MB.
+The one virtio-auto flag was a capture stall: `screendump` took 65-70 ms, the guest drew only 18 slide frames, and the
+windows jumped further than their own width between two captures, so the frame in between looks like a `transient`.
+The frames themselves were complete.
 
 ## Tests
 

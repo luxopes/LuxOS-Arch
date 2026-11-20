@@ -4,6 +4,7 @@
 # program nad ni (luxwm v LSL) pres ploche API v include/luxcomp.h (docs/developers/luxcomp-api.md).
 # Renderer: gles2 jen kdyz 3D opravdu funguje, jinak pixman + softwarovy kurzor (VM bez 3D).
 # luxcomp-demo (/usr/lib/luxcomp) je nejmensi politika v C na zkouseni jadra, ne soucast sezeni.
+# Zdroje jsou v lib/, ne v src/: makepkg pred build() maze $startdir/src.
 # Testy: tests/run.sh (kontejner, headless a vnoreny Xvfb, snimky grim, PSS).
 
 pkgname=luxcomp
@@ -13,7 +14,7 @@ pkgdesc='LuxOS compositor core library on wlroots 0.20 (flat C API for the LSL w
 arch=('x86_64')
 url='https://github.com/luxopes/LuxOS-Arch'
 license=('GPL-3.0-or-later')
-depends=('wlroots0.20>=0.20.2' 'libwlroots-0.20.so' 'wayland' 'libxkbcommon' 'libdrm' 'pixman'
+depends=('wlroots0.20>=0.20.2' 'libwlroots-0.20.so' 'wayland' 'libxkbcommon' 'libdrm' 'libglvnd' 'pixman'
          'cairo' 'pango')
 makedepends=('meson' 'ninja' 'wayland-protocols')
 source=()

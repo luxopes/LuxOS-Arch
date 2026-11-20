@@ -176,13 +176,14 @@ build_one() {  # build_one ADRESAR_BALIKU CIL_PKGDEST
     # Archu: nainstaluje se balik sestaveny drive v tomto behu (aplikace se stavi pred [luxos]).
     (set +u; depends=(); makedepends=(); checkdepends=(); source "$BUILD/$p/PKGBUILD"
      sync=(); local_pkgs=()
-     # depends z repozitaru Archu taky: baliky prevzate z Archu (libfprint, gdk-pixbuf2) proti nim linkuji
+     # depends z repozitaru Archu taky: baliky prevzate z Archu (libfprint, gdk-pixbuf2) proti nim linkuji.
+     # pacman -Sp (ne -Si) najde i poskytovane nazvy jako libvulkan.so (wlroots0.20)
      for d in "${depends[@]}"; do
-         pacman -Si "${d%%[<>=]*}" &>/dev/null && sync+=("$d")
+         pacman -Sp "${d%%[<>=]*}" &>/dev/null && sync+=("$d")
      done
      for d in "${makedepends[@]}" "${checkdepends[@]}"; do
          n=${d%%[<>=]*}
-         if pacman -Si "$n" &>/dev/null; then sync+=("$d"); continue; fi
+         if pacman -Sp "$n" &>/dev/null; then sync+=("$d"); continue; fi
          f=("$BUILD"/pkgs/*/"$n"-[0-9]*.pkg.tar.zst)
          if [[ -e ${f[0]} ]]; then local_pkgs+=("${f[0]}"); else echo "WARNING: build dependency $d of $p not found" >&2; fi
      done
