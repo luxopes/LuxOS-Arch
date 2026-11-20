@@ -1,0 +1,14 @@
+<theme>
+  <name>LuxOS</name>
+  <titlebar><layout>close,iconify,max:</layout><showTitle>yes</showTitle></titlebar>
+  <cornerRadius>16</cornerRadius>
+  <keepBorder>yes</keepBorder>
+  <maximizedDecoration>titlebar</maximizedDecoration>
+  <dropShadows>yes</dropShadows>
+  <dropShadowsOnTiled>no</dropShadowsOnTiled>
+  <font place="ActiveWindow"><name>Inter</name><size>10</size><slant>normal</slant><weight>bold</weight></font>
+  <font place="InactiveWindow"><name>Inter</name><size>10</size><slant>normal</slant><weight>bold</weight></font>
+  <font place="MenuHeader"><name>Inter</name><size>10</size><slant>normal</slant><weight>normal</weight></font>
+  <font place="MenuItem"><name>Inter</name><size>10</size><slant>normal</slant><weight>normal</weight></font>
+  <font place="OnScreenDisplay"><name>Inter</name><size>10</size><slant>normal</slant><weight>normal</weight></font>
+</theme>
