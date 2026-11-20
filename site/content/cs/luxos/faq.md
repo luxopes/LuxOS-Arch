@@ -6,7 +6,7 @@ LuxOS je rychlý a lehký linuxový systém postavený na Arch Linuxu s prostře
 Xfce). Má vlastní správce balíků `lux`, vlastní sestavení jádra `linux-luxos`, automatické ovladače,
 aktualizace, které jde vrátit, AI asistenta LuxAI, terminálového programovacího agenta Lux Code
 a vlastní programovací jazyk LSL. Je to průběžně aktualizovaný systém (rolling release); aktuální verze
-je 1.0.3 „Sirius“, stále ve fázi beta.
+je 1.0.3 „Sirius“, první stabilní verze.
 
 ## Je LuxOS zdarma? Jakou má licenci?
 
@@ -24,7 +24,8 @@ projekt: veřejný repozitář vznikl v říjnu 2026.
 
 ## Je LuxOS stabilní? Je bezpečné ho používat?
 
-LuxOS je **beta**: počítejte s chybami a před instalací si zálohujte data. Před každou aktualizací se
+Ano – od verze 1.0.3 je LuxOS stabilní vydání. Pořád je to mladý projekt, takže si před instalací
+zálohujte data (jako u každého nového systému). Před každou aktualizací se
 udělá snímek systému, takže nepovedenou aktualizaci jde vrátit, a předchozí jádro zůstává v nabídce
 spouštění. Balíky z repozitářů LuxOS jsou podepsané, firewall je zapnutý od začátku a Lux Guard
 kontroluje programy z internetu. Pro počítače, kde je nejdůležitější stabilita, je zatím bezpečnější

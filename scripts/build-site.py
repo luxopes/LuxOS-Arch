@@ -133,7 +133,7 @@ T = {
                       "the lux package manager, automatic drivers and the LuxAI assistant."),
         "landing_title": "LuxOS for you", "more_pages": "More about LuxOS", "compare_more": "More comparisons",
         "cta_title": "Try LuxOS {ISO_VERSION} for free", "cta_text": ("64-bit PC · ISO {ISO_SIZE} · try it from a USB stick "
-                     "without installing. LuxOS is beta: back up your data before installing."),
+                     "without installing. Back up your data before installing."),
         "cta_button": "Download LuxOS", "cta_secondary": "Installation guide",
         "sources": "Sources", "checked": "checked",
         "docs_index_title": "LuxOS documentation – LuxOS, LuxAI, Lux Code and LSL",
@@ -177,7 +177,7 @@ T = {
                       "automatickými ovladači a asistentem LuxAI."),
         "landing_title": "LuxOS pro vás", "more_pages": "Další o LuxOS", "compare_more": "Další srovnání",
         "cta_title": "Vyzkoušejte LuxOS {ISO_VERSION} zdarma", "cta_text": ("64bitové PC · ISO {ISO_SIZE} · vyzkoušíte ho z USB "
-                     "disku bez instalace. LuxOS je beta: před instalací si zálohujte data."),
+                     "disku bez instalace. Před instalací si zálohujte data."),
         "cta_button": "Stáhnout LuxOS", "cta_secondary": "Návod k instalaci",
         "sources": "Zdroje", "checked": "ověřeno",
         "docs_index_title": "Dokumentace LuxOS – příručka k LuxOS, LuxAI, Lux Code a LSL",
@@ -719,7 +719,7 @@ def cta_html(lang, iso):
     t = T[lang]
     inst = doc_url(lang if lang in DOCS_BY_PATH["luxos/installer.md"]["src"] else "en", "luxos/installer.md")
     return (f'<aside class="landing-cta" aria-label="{e(t["cta_button"])}">{logo_svg("cta", "logo cta-logo")}'
-            f'<div class="cta-copy"><h2>{e(iso_fill(t["cta_title"], iso, lang))} <span class="beta">beta</span></h2>'
+            f'<div class="cta-copy"><h2>{e(iso_fill(t["cta_title"], iso, lang))}</h2>'
             f'<p>{e(iso_fill(t["cta_text"], iso, lang))}</p></div>'
             f'<div class="cta-actions"><a class="button button-primary" href="{landing_url(lang, "download")}">'
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">'
@@ -852,12 +852,11 @@ def llms_txt(ver, iso, cols):
         "",
         "> LuxOS is a fast, lightweight desktop Linux distribution based on Arch Linux with a macOS-like desktop "
         "(Xfce underneath), its own package manager `lux`, its own kernel build `linux-luxos`, automatic drivers, "
-        "updates with Btrfs snapshots and rollback, and the optional LuxAI assistant. It is free (GPL-3.0-or-later) "
-        "and still in beta.",
+        "updates with Btrfs snapshots and rollback, and the optional LuxAI assistant. It is free (GPL-3.0-or-later).",
         "",
         "Key facts:",
         "",
-        f"- Current version: {ver['VERSION']} \"{ver['CODENAME']}\" (beta), ISO {iso['version']} released {iso['date']}",
+        f"- Current version: {ver['VERSION']} \"{ver['CODENAME']}\" (stable), ISO {iso['version']} released {iso['date']}",
         "- Base: Arch Linux; rolling release (`lux update`); x86_64 PCs with UEFI or BIOS, at least 20 GB disk",
         "- Desktop: Xfce components (xfwm4, panel) arranged like macOS: top bar, Plank Dock, Launchpad, Search, Control Center",
         "- Package manager: `lux` (libalpm); Arch and signed LuxOS repositories, Flathub, AUR (checked, built in a sandbox), "
@@ -887,7 +886,7 @@ def llms_txt(ver, iso, cols):
         "## Start here",
         "",
         f"- [Home and download]({BASE}/): what LuxOS is, screenshots, ISO download and verification",
-        f"- [FAQ]({abs_url(doc_url('en', 'luxos/faq.md'))}): common questions (price, beta status, Windows apps, Steam, hardware)",
+        f"- [FAQ]({abs_url(doc_url('en', 'luxos/faq.md'))}): common questions (price, stability, Windows apps, Steam, hardware)",
         f"- [LuxOS compared]({abs_url(doc_url('en', 'luxos/compare.md'))}): differences from Ubuntu, Mint, Zorin, elementary OS and Arch",
         f"- [Download]({abs_url(landing_url('en', 'download'))}): free ISO, SHA-256 and GPG verification, "
         "system requirements, writing a USB stick, Secure Boot",
@@ -920,7 +919,7 @@ def llms_txt(ver, iso, cols):
 
 def llms_full_txt(ver, iso):
     """/llms-full.txt: vybrane anglicke stranky (Markdown) v jednom souboru, kazda s adresou zdroje."""
-    parts = [f"# LuxOS – full reference for language models\n\nLuxOS {ver['VERSION']} \"{ver['CODENAME']}\" (beta), "
+    parts = [f"# LuxOS – full reference for language models\n\nLuxOS {ver['VERSION']} \"{ver['CODENAME']}\" (stable), "
              f"ISO {iso['version']} from {iso['date']}. Website {BASE}/ · source {GITHUB} · contact {CONTACT}.\n"
              "Each section below is one page of the LuxOS documentation; relative links point to other pages of "
              f"{BASE}/docs/.\n"]
@@ -962,7 +961,7 @@ def main():
     ver = read_kv(os.path.join(ROOT, "packages", "luxos-branding", "files", "version"))
     with open(os.path.join(SITE, "iso.json"), encoding="utf-8") as f:
         iso = json.load(f)
-    release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "beta",
+    release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "stable",
                "iso": iso, "repo": "https://luxos.lux-ai.cz/repo/", "fingerprint": FINGERPRINT}
     write("release.json", json.dumps(release, ensure_ascii=False, indent=2) + "\n")
 

@@ -1,7 +1,7 @@
 # LuxOS ve srovnání s jinými distribucemi
 
 LuxOS se často srovnává s Ubuntu, Linux Mintem, Zorin OS, elementary OS a rodinou Archu. Tato stránka
-shrnuje rozdíly poctivě – včetně toho, kde jsou ostatní lepší volbou. LuxOS je **beta** a mladý, malý
+shrnuje rozdíly poctivě – včetně toho, kde jsou ostatní lepší volbou. LuxOS je mladý, malý
 projekt; ostatní distribuce mají za sebou roky vydání a velké komunity.
 
 ## Přehled
@@ -17,7 +17,7 @@ projekt; ostatní distribuce mají za sebou roky vydání a velké komunity.
 | Ovladače | automatické rozpoznání při instalaci i později (NVIDIA podle generace, Wi‑Fi, zvuk, kamery) | Další ovladače | Správce ovladačů | Další ovladače | ovladače v AppCenteru | ručně (EndeavourOS/Manjaro pomáhají s NVIDIA) |
 | Výchozí zabezpečení | zapnutý firewall, Lux Guard pro stažené programy, `/usr` jen pro čtení, podepsané repozitáře | AppArmor, firewall ve výchozím stavu vypnutý | firewall k dispozici (vypnutý) | firewall k dispozici | AppArmor | podle vás |
 | AI asistent | volitelný LuxAI (účet, modely v cloudu) | – | – | – | – | – |
-| Zralost a podpora | beta, jeden vývojář, GitHub issues | velmi zralé, komerční podpora (Canonical) | velmi zralé, velká komunita | zralé, placená edice Pro | zralé | zralé, obrovská wiki a komunita |
+| Zralost a podpora | mladý (stabilní od 1.0.3), jeden vývojář, GitHub issues | velmi zralé, komerční podpora (Canonical) | velmi zralé, velká komunita | zralé, placená edice Pro | zralé | zralé, obrovská wiki a komunita |
 
 Podrobnosti o ostatních distribucích se mezi vydáními mění; aktuální stav ověřte na jejich webech.
 
@@ -55,7 +55,7 @@ a kanály Archu LuxOS ani jiné odvozené distribuce nepodporují.
 
 - Chcete na Linuxu prostředí jako na Macu bez dnů strávených nastavováním.
 - Máte rádi nový software (rolling release), ale chcete aktualizace, které jde vrátit.
-- Nevadí vám beta a jste ochotni hlásit chyby.
+- Nevadí vám mladý systém a jste ochotni hlásit chyby.
 
 Zavedenou distribuci zvolte, když počítač nesmí překvapit (pracovní nebo rodinný počítač), když
 potřebujete dlouhodobou podporu nebo certifikaci výrobce, nebo když spoléháte na pomoc velké komunity.

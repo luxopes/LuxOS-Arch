@@ -2,7 +2,7 @@
 
 LuxOS is often compared with Ubuntu, Linux Mint, Zorin OS, elementary OS and the Arch family. This
 page sums up the differences honestly – including where the others are the better choice. LuxOS is
-**beta** and a young, small project; the other distributions have years of releases and large
+a young, small project (first stable release in November 2026); the other distributions have years of releases and large
 communities.
 
 ## At a glance
@@ -18,7 +18,7 @@ communities.
 | Drivers | automatic detection at install and later (NVIDIA by generation, Wi-Fi, audio, cameras) | Additional Drivers | Driver Manager | Additional Drivers | AppCenter drivers | manual (EndeavourOS/Manjaro help with NVIDIA) |
 | Security defaults | firewall on, Lux Guard for downloaded programs, read-only `/usr`, signed repos | AppArmor, firewall off by default | firewall available (off by default) | firewall available | AppArmor | up to you |
 | AI assistant | optional LuxAI (account, cloud models) | – | – | – | – | – |
-| Maturity and support | beta, one developer, GitHub issues | very mature, commercial support (Canonical) | very mature, big community | mature, paid Pro edition | mature | mature, huge wiki and community |
+| Maturity and support | young (stable since 1.0.3), one developer, GitHub issues | very mature, commercial support (Canonical) | very mature, big community | mature, paid Pro edition | mature | mature, huge wiki and community |
 
 The details of other distributions change between releases; check their sites for the current state.
 
@@ -56,7 +56,7 @@ and installs them into a sandbox by default, and maintains the system automatica
 
 - You want a Mac-like desktop on Linux without spending days on configuration.
 - You like new software (rolling release) but want updates that can be undone.
-- You are comfortable with a beta and willing to report bugs.
+- You are comfortable with a young system and willing to report bugs.
 
 Pick an established distribution instead if the computer must not have surprises (work machines,
 family computers), if you need long-term support or vendor certification, or if you rely on a large
