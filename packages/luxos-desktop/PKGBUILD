@@ -29,7 +29,8 @@ sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
 # lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni;
 # xfce4-panel + xfconf: hlavicky pro plugin luxos-bar (libxfce4panel-2.0, libxfconf-0)
-makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3)
+# wayland + libxkbcommon: libluxos-wl (wayland-scanner, XML protokolu jsou pripnute v files/src/luxos-wl/protocol)
+makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3 wayland libxkbcommon)
 # hlidac tlacitek okna Firefoxu: selektory luxos/titlebar.css proti omni.ja nainstalovaneho Firefoxu
 checkdepends=(python firefox unzip nodejs)
 install=luxos-desktop.install
@@ -44,6 +45,8 @@ depends=(
     xfce4-session 'xfwm4>=4.20.0-2.1' xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
     # plugin horni listy luxos-bar (hodiny uprostred, neprusvitna lista pod okny)
     libwnck3
+    # shell na Waylandu (1.1): vrstvy kompozitoru (luxos_layer.lsl) a protokoly shellu (libluxos-wl)
+    gtk-layer-shell wayland libxkbcommon
     xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.3' ffmpeg xfce4-taskmanager
     # Terminal LuxOS misto xfce4-terminal (packages/luxos-terminal, VTE s obrazky SIXEL)
     luxos-terminal
@@ -132,9 +135,12 @@ build() {
     # Plynule kolecko a setrvacnost touchpadu v aplikacich GTK 3 (xsettings Gtk/Modules, files/src/luxos-scroll.c)
     gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-scroll.so "$startdir/files/src/luxos-scroll.c" \
         $(pkg-config --cflags --libs gtk+-3.0 xi x11) -lm
+    # Protokoly Waylandu pro shell v LSL (luxos_wl.lsl nacita knihovnu za behu): okna, zamek, snimek,
+    # schranka, virtualni klavesnice, monitory, necinnost (files/src/luxos-wl)
+    make -s -C "$startdir/files/src/luxos-wl" OUT="$PWD/luxos-wl"
     strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
     strip --strip-unneeded libluxos-lock-fix.so libluxos-panel-menus.so libluxos-desktop-menu.so libluxos-bar.so \
-        libluxos-scroll.so
+        libluxos-scroll.so luxos-wl/libluxos-wl.so.0
 
     # Casto spoustene programy horni listy v LSL (files/lsl, viz docs/perf/lsl-rewrite-plan.md):
     # hodiny kazde 3 s, baterie kazdych 20 s, nazev aplikace pri kazdem prepnuti okna, prepinace
@@ -212,6 +218,7 @@ package() {
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
+    install -Dm755 luxos-wl/libluxos-wl.so.0 "$pkgdir/usr/lib/luxos/libluxos-wl.so.0"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
