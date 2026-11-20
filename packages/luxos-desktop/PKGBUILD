@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=92
+pkgrel=93
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -201,6 +201,8 @@ package() {
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
+    # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
+    install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
     install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"
     install -Dm644 -t "$pkgdir/usr/share/luxos/emoji" emoji-data/*.tsv

@@ -244,6 +244,7 @@ end
 
 SEAT_KEYBOARD = 8
 NOTIFY_INFERIOR = 2
+FILE_CHOOSER_OPEN = 0
 FILE_CHOOSER_SAVE = 1
 FILE_CHOOSER_SELECT_FOLDER = 2
 RESPONSE_ACCEPT = -3
@@ -570,6 +571,25 @@ end
 function file_chooser_get_filename(chooser):
     unsafe:
         return glib.take_c(__lsl_qbe_call1(__lsl_symbol("gtk_file_chooser_get_filename"), ptr(chooser)))
+    end
+end
+
+# Filtr souboru podle typu MIME (napr. "audio/*"), zobrazi se pod nazvem name
+function file_chooser_add_filter(chooser, name, mimes):
+    unsafe:
+        filter = __lsl_qbe_call0(__lsl_symbol("gtk_file_filter_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_set_name"), filter, cstr(name))
+        for mime in mimes:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_add_mime_type"), filter, cstr(mime))
+        end
+        return __lsl_qbe_call2(__lsl_symbol("gtk_file_chooser_add_filter"), ptr(chooser), filter)
+    end
+end
+
+# Polozka seznamu na danou pozici (combo_box_text_append ze stdlib pridava jen na konec)
+function combo_box_text_insert(combo, position, id, text):
+    unsafe:
+        return __lsl_qbe_call4(__lsl_symbol("gtk_combo_box_text_insert"), ptr(combo), ptr(position), cstr(id), cstr(text))
     end
 end
 

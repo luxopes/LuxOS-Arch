@@ -1,6 +1,6 @@
 # LuxOS - aplikace Hodiny (jako Hodiny v Androidu): Budik, Svetovy cas, Stopky a Minutka.
-#   Budik      seznam budiku (cas, popisek, dny v tydnu nebo jednou), vypinac u kazdeho, + novy, x smaze;
-#              zazvoni okno nad ostatnimi se zvukem: Odlozit (10 min) / Vypnout
+#   Budik      seznam budiku (cas, popisek, dny v tydnu nebo jednou, znelka s nahledem), vypinac u kazdeho,
+#              + novy, x smaze; zazvoni okno nad ostatnimi se zvukem: Odlozit (10 min) / Vypnout
 #   Svetovy cas mistni cas a zvolena mesta s rozdilem casu (hledani mezi mesty casovych pasem)
 #   Stopky     start/stop, mezicasy
 #   Minutka    hodiny/minuty/sekundy nebo rychla volba 1-30 min, start/pauza/vynulovat; konec = zvoneni
@@ -14,8 +14,20 @@ load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
 load luxos_i18n as i18n
 load luxos_sys as sys
+load luxos_text as text
 
 SOUND = "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
+APP_ICON = "luxos-clock"              # files/icons/luxos-clock.svg; bez nej (castecna instalace) ikona GNOME
+FALLBACK_ICON = "org.gnome.clocks"
+SOUND_DIR = "/usr/share/sounds/luxos/clock/"
+if env.get("LUXOS_CLOCK_SOUND_DIR", "") != "":       # jen pro testy (znelky ze zdrojovych souboru)
+    SOUND_DIR = env.get("LUXOS_CLOCK_SOUND_DIR", "") + "/"
+end
+# Znelky budiku: [id ulozene v clock.json, nazev, soubor]; vlastni znelky LuxOS jsou ve
+# files/sounds/clock (generovane AI, puvod v SOURCES.md). Neznama nebo chybejici znelka = Klasicka.
+SOUNDS = [["classic", "Classic", SOUND], ["sunrise", "Sunrise", SOUND_DIR + "sunrise.oga"],
+          ["chimes", "Chimes", SOUND_DIR + "chimes.oga"], ["crystal", "Crystal", SOUND_DIR + "crystal.oga"],
+          ["breeze", "Breeze", SOUND_DIR + "breeze.oga"], ["pulse", "Pulse", SOUND_DIR + "pulse.oga"]]
 SNOOZE_MIN = 10
 RING_MAX_SEC = 600      # bez reakce zvoneni po 10 minutach utichne (oznameni zustane), jako v Androidu
 SOCKET = "luxos-clock-app-"
@@ -49,6 +61,12 @@ CSS = ("window.lca { background-color: @c_bg; }\n"
     + "button.lca-chip:checked label { color: white; }\n"
     + "button.lca-city { border-radius: 10px; padding: 6px 10px; background: none; border: none; box-shadow: none; }\n"
     + "button.lca-city:hover { background-color: @c_tile; }\n"
+    # vyber znelky a nahled ve formulari budiku
+    + ".lca combobox button { border-radius: 10px; padding: 2px 10px; min-height: 26px; background-image: none; background-color: @c_tile;"
+    + " border: none; box-shadow: none; color: @c_fg; outline: none; }\n"
+    + ".lca combobox arrow { min-width: 16px; min-height: 16px; color: @c_dim; }\n"
+    + "button.lca-icon.lca-play { background-color: @c_tile; color: @c_fg; }\n"
+    + "button.lca-icon.lca-play:hover { background-color: @c_on; }\n"
     + "window.lca-ring { background-color: @c_bg; border-radius: 22px; }\n")
 
 DARK = ("@define-color c_bg #1c1c22; @define-color c_fg #f4f4f8; @define-color c_dim rgba(244, 244, 248, 0.58);\n"
@@ -62,8 +80,9 @@ alarm_ui = {"list": 0, "form": 0}
 world_ui = {"list": 0, "results": 0, "entry": 0, "local": 0, "rows": []}
 stopwatch = {"running": False, "start": 0.0, "elapsed": 0.0, "laps": [], "label": 0, "laps_box": 0, "go": 0, "lap": 0, "timer": 0}
 timer = {"running": False, "end": 0.0, "left": 0.0, "total": 0.0, "label": 0, "go": 0, "spins": [], "timer": 0}
-ringing = {"win": 0, "sound": 0, "what": "", "timer": 0}
-snoozed = []      # [unix cas] odlozenych budiku
+ringing = {"win": 0, "sound": 0, "what": "", "timer": 0, "tone": "classic"}
+preview = {"pid": 0}
+snoozed = []      # [unix cas, znelka] odlozenych budiku
 last_minute = {"key": ""}
 zones = []        # [[mesto, identifikator]]
 
@@ -101,7 +120,7 @@ function load_data():
                     end
                 end
                 data["alarms"].append({"h": a["h"] % 24, "m": a["m"] % 60, "label": String(a.get("label", "")),
-                                       "days": days, "on": a.get("on") != False})
+                                       "days": days, "on": a.get("on") != False, "sound": sound_id(a.get("sound"))})
             end
         end
     end
@@ -141,6 +160,189 @@ function label(text, classes):
         call gtk.widget_add_class(l, c)
     end
     return l
+end
+
+function app_icon():
+    if gtk.icon_theme_has_icon(APP_ICON):
+        return APP_ICON
+    end
+    return FALLBACK_ICON
+end
+
+# ---- znelky -------------------------------------------------------------------------------------
+
+# Vlastni znelky: kopie zvolenych souboru v ~/.local/share/luxos/clock/sounds, id "file:<jmeno>"
+function own_dir():
+    return glib.user_data_dir() + "/luxos/clock/sounds"
+end
+
+# [[id, nazev (nepreklada se), soubor]] - vestavene a vlastni
+function all_sounds():
+    out = []
+    for snd in SOUNDS:
+        out.append([snd[0], i18n.T(snd[1]), snd[2]])
+    end
+    for name in glib.list_dir(own_dir()):
+        if not name.startswith("."):
+            title = name
+            if text.rfind(name, ".") > 0:
+                title = name[:text.rfind(name, ".")]
+            end
+            out.append(["file:" + name, title, own_dir() + "/" + name])
+        end
+    end
+    return out
+end
+
+function sound_id(value):
+    for snd in all_sounds():
+        if snd[0] == value:
+            return value
+        end
+    end
+    return "classic"
+end
+
+# Soubor znelky; kdyz chybi (castecna instalace, smazana vlastni znelka), zazvoni Klasicka
+function sound_path(ident):
+    for snd in all_sounds():
+        if snd[0] == ident and exists(snd[2]):
+            return snd[2]
+        end
+    end
+    return SOUND
+end
+
+function sound_name(ident):
+    for snd in all_sounds():
+        if snd[0] == ident:
+            return snd[1]
+        end
+    end
+    return i18n.T("Classic")
+end
+
+# Tlacitko nahledu: behem prehravani ikona Zastavit, jinak Prehrat (napoveda zustava "Nahled" -
+# zmena textu by bublinu hned ukazala znovu a zakryla tlacitko Ulozit)
+function preview_icon(playing):
+    if preview.get("button", 0) == 0:
+        return 0
+    end
+    name = "media-playback-start-symbolic"
+    if playing:
+        name = "media-playback-stop-symbolic"
+    end
+    call gtk.button_set_image(preview["button"], gtk.image_new_from_icon_name(name, 2))
+    return 0
+end
+
+function stop_preview():
+    if preview["pid"] != 0:
+        call glib.kill(preview["pid"], 15)
+        preview["pid"] = 0
+    end
+    call preview_icon(False)
+    return 0
+end
+
+# Formular zmizi: na jeho tlacitko uz nesahat
+function forget_preview():
+    call stop_preview()
+    preview["button"] = 0
+    return 0
+end
+
+function on_preview_done(pid, status):
+    if preview["pid"] == pid:
+        preview["pid"] = 0
+        call preview_icon(False)
+    end
+    return 0
+end
+
+# Nahled vybrane znelky ve formulari: jednou; dalsi klik ji zastavi nebo pusti jinou
+function on_sound_preview(combo, button):
+    playing = preview["pid"] != 0
+    call stop_preview()
+    if playing and preview.get("index", -1) == gtk.combo_box_get_active(combo):
+        return 0
+    end
+    index = max(0, gtk.combo_box_get_active(combo))
+    ids = preview.get("ids", [])
+    if index >= len(ids) or ids[index] == "choose":
+        return 0
+    end
+    preview["index"] = index
+    preview["button"] = button
+    preview["pid"] = glib.spawn_watched(["paplay", sound_path(ids[index])], on_preview_done)
+    call preview_icon(preview["pid"] != 0)
+    return 0
+end
+
+# Posledni polozka "Vybrat soubor…": vyber zvuku, kopie mezi vlastni znelky a jeji vyber
+function on_sound_changed(combo):
+    call stop_preview()
+    ids = preview.get("ids", [])
+    index = gtk.combo_box_get_active(combo)
+    if index < 0 or index >= len(ids):
+        return 0
+    end
+    if ids[index] != "choose":
+        preview["last"] = index
+        return 0
+    end
+    dlg = gtk.file_chooser_new(i18n.T("Choose File…"), gtk.FILE_CHOOSER_OPEN)
+    call gtk.dialog_add_button(dlg, i18n.T("Cancel"), gtk.RESPONSE_CANCEL)
+    call gtk.dialog_add_button(dlg, i18n.T("Open"), gtk.RESPONSE_ACCEPT)
+    call gtk.dialog_set_default_response(dlg, gtk.RESPONSE_ACCEPT)
+    call gtk.file_chooser_add_filter(dlg, i18n.T("Sound"), ["audio/*"])
+    music = glib.user_special_dir(3)        # G_USER_DIRECTORY_MUSIC
+    if music != "" and glib.is_dir(music):
+        call gtk.file_chooser_set_folder(dlg, music)
+    end
+    call gtk.window_set_transient_for(dlg, ui["win"])
+    call gtk.window_set_modal(dlg, True)
+    call gtk.connect_data(dlg, "response", 1, on_sound_file, combo)
+    call gtk.widget_show(dlg)
+    return 0
+end
+
+function on_sound_file(combo, response, dlg):
+    path = ""
+    if gtk.s32(response) == gtk.RESPONSE_ACCEPT:
+        path = gtk.file_chooser_get_filename(dlg)
+    end
+    call gtk.widget_destroy(dlg)
+    if path == "" or path == None or not exists(path):
+        call gtk.combo_box_set_active(combo, preview.get("last", 0))
+        return 0
+    end
+    # kopie (puvodni soubor muze zmizet, napr. ze Stazenych); stejne jmeno = nove cislo
+    call glib.mkdir_p(own_dir())
+    name = path[text.rfind(path, "/") + 1:]
+    stem = name
+    ext = ""
+    if text.rfind(name, ".") > 0:
+        stem = name[:text.rfind(name, ".")]
+        ext = name[text.rfind(name, "."):]
+    end
+    target = own_dir() + "/" + name
+    n = 2
+    while exists(target):
+        name = stem + " " + String(n) + ext
+        target = own_dir() + "/" + name
+        n += 1
+    end
+    if glib.spawn_sync_quiet(["cp", "--", path, target]) != 0:
+        call gtk.combo_box_set_active(combo, preview.get("last", 0))
+        return 0
+    end
+    ids = preview["ids"]
+    position = len(ids) - 1
+    ids.insert(position, "file:" + name)
+    call gtk.combo_box_text_insert(combo, position, "file:" + name, stem)
+    call gtk.combo_box_set_active(combo, position)
+    return 0
 end
 
 function two(n):
@@ -268,6 +470,9 @@ function alarms_refresh():
         if a["label"] != "":
             sub = a["label"] + " · " + sub
         end
+        if a.get("sound", "classic") != "classic":
+            sub = sub + " · " + sound_name(a["sound"])
+        end
         call gtk.box_pack_start(col, label(sub, ["dim", "lca-small"]), False, False, 0)
         call gtk.box_pack_start(row, col, True, True, 0)
         sw = gtk.switch_new()
@@ -314,6 +519,7 @@ end
 function on_alarm_add(button):
     form = alarm_ui["form"]
     if len(gtk.container_get_children(form)) > 0:
+        call forget_preview()
         call clear(form)
         return 0
     end
@@ -342,6 +548,30 @@ function on_alarm_add(button):
         chips.append(chip)
     end
     call gtk.box_pack_start(box, days, False, False, 0)
+    tones = gtk.box_new(gtk.HORIZONTAL, 8)
+    call gtk.box_pack_start(tones, label(i18n.T("Sound"), ["lca-small"]), False, False, 0)
+    combo = gtk.combo_box_text_new()
+    ids = []
+    for snd in all_sounds():
+        call gtk.combo_box_text_append(combo, snd[0], snd[1])
+        ids.append(snd[0])
+    end
+    call gtk.combo_box_text_append(combo, "choose", i18n.T("Choose File…"))
+    ids.append("choose")
+    preview["ids"] = ids
+    preview["last"] = 0
+    call gtk.combo_box_set_active(combo, 0)
+    call gtk.connect(combo, "changed", on_sound_changed)
+    call gtk.box_pack_start(tones, combo, True, True, 0)
+    play = gtk.button_new_from_icon_name("media-playback-start-symbolic", 2)
+    call gtk.widget_add_class(play, "lca-icon")
+    call gtk.widget_add_class(play, "lca-play")
+    call gtk.widget_set_can_focus(play, False)
+    call gtk.widget_set_valign(play, gtk.ALIGN_CENTER)
+    call gtk.widget_set_tooltip(play, i18n.T("Preview"))
+    call gtk.connect_data(play, "clicked", 0, on_sound_preview, combo)
+    call gtk.box_pack_start(tones, play, False, False, 0)
+    call gtk.box_pack_start(box, tones, False, False, 0)
     buttons = gtk.box_new(gtk.HORIZONTAL, 8)
     save = gtk.button_new(i18n.T("Save"))
     cancel = gtk.button_new(i18n.T("Cancel"))
@@ -349,12 +579,21 @@ function on_alarm_add(button):
     call gtk.box_pack_end(buttons, save, False, False, 0)
     call gtk.box_pack_end(buttons, cancel, False, False, 0)
     call gtk.box_pack_start(box, buttons, False, False, 0)
-    state = {"h": hs, "m": ms, "label": entry, "chips": chips}
+    state = {"h": hs, "m": ms, "label": entry, "chips": chips, "sound": combo}
     call gtk.connect_data(save, "clicked", 0, on_alarm_save, state)
     call gtk.connect(cancel, "clicked", on_alarm_cancel)
     call gtk.box_pack_start(form, box, False, False, 0)
     call gtk.widget_show_all(form)
     return 0
+end
+
+function chosen_sound(combo):
+    ids = preview.get("ids", [])
+    index = gtk.combo_box_get_active(combo)
+    if index < 0 or index >= len(ids) or ids[index] == "choose":
+        return "classic"
+    end
+    return ids[index]
 end
 
 function on_alarm_save(state, button):
@@ -365,7 +604,9 @@ function on_alarm_save(state, button):
         end
     end
     data["alarms"].append({"h": Int(gtk.spin_button_get_value(state["h"])), "m": Int(gtk.spin_button_get_value(state["m"])),
-                           "label": gtk.entry_get_text(state["label"]).strip(), "days": days, "on": True})
+                           "label": gtk.entry_get_text(state["label"]).strip(), "days": days, "on": True,
+                           "sound": chosen_sound(state["sound"])})
+    call forget_preview()
     call save_data()
     call clear(alarm_ui["form"])
     call alarms_refresh()
@@ -373,6 +614,7 @@ function on_alarm_save(state, button):
 end
 
 function on_alarm_cancel(button):
+    call forget_preview()
     call clear(alarm_ui["form"])
     return 0
 end
@@ -386,12 +628,16 @@ function check_alarms():
         weekday = d[6] - 1
         changed = False
         due = False
+        tone = "classic"
         labels = []
         for a in data["alarms"]:
             if a["on"] and a["h"] == d[3] and a["m"] == d[4] and (len(a["days"]) == 0 or weekday in a["days"]):
                 if len(a["days"]) == 0:
                     a["on"] = False
                     changed = True
+                end
+                if not due:
+                    tone = a.get("sound", "classic")      # vic budiku najednou: znelka prvniho z nich
                 end
                 due = True
                 if a["label"] != "" and not (a["label"] in labels):
@@ -401,7 +647,7 @@ function check_alarms():
         end
         # vic budiku ve stejne minute: jedno zvoneni se vsemi popisky (dalsi ring by prvni nahradil)
         if due:
-            call ring("\n".join(labels), two(d[3]) + ":" + two(d[4]))
+            call ring("\n".join(labels), two(d[3]) + ":" + two(d[4]), tone)
         end
         if changed:
             call save_data()
@@ -411,8 +657,8 @@ function check_alarms():
     now = glib.now()
     keep = []
     for t in snoozed:
-        if t <= now:
-            call ring(i18n.T("Snoozed alarm"), glib.date_time_format("%H:%M"))
+        if t[0] <= now:
+            call ring(i18n.T("Snoozed alarm"), glib.date_time_format("%H:%M"), t[1])
         else:
             keep.append(t)
         end
@@ -426,18 +672,20 @@ end
 
 # ---- Zvoneni ------------------------------------------------------------------------------------
 
-function ring(title, big):
+function ring(title, big, tone):
     call stop_ringing()
+    call stop_preview()
     ringing["what"] = title
+    ringing["tone"] = sound_id(tone)
     # zvuk dokola, dokud se zvoneni nevypne
     # Smycka skonci i po padu aplikace: PR_SET_PDEATHSIG (setpriv) a kontrola, ze aplikace jeste bezi
-    sound_loop = "while :; do paplay " + glib.shell_quote(SOUND) + " 2>/dev/null || sleep 2; kill -0 " + String(glib.getpid()) + " 2>/dev/null || exit 0; done"
+    sound_loop = "while :; do paplay " + glib.shell_quote(sound_path(ringing["tone"])) + " 2>/dev/null || sleep 2; kill -0 " + String(glib.getpid()) + " 2>/dev/null || exit 0; done"
     argv = ["sh", "-c", sound_loop]
     if glib.find_program_in_path("setpriv") != "":
         argv = ["setpriv", "--pdeathsig", "TERM", "sh", "-c", sound_loop]
     end
     ringing["sound"] = glib.spawn(argv)
-    call glib.spawn_quiet(["notify-send", "-a", i18n.T("Clock"), "-i", "org.gnome.clocks", "-u", "critical", "--", big, title])
+    call glib.spawn_quiet(["notify-send", "-a", i18n.T("Clock"), "-i", app_icon(), "-u", "critical", "--", big, title])
     win = gtk.window_new(i18n.T("Clock"))
     ringing["win"] = win
     call gtk.widget_add_class(win, "lca")
@@ -503,7 +751,7 @@ function stop_ringing():
 end
 
 function on_snooze(button):
-    snoozed.append(glib.now() + SNOOZE_MIN * 60)
+    snoozed.append([glib.now() + SNOOZE_MIN * 60, ringing["tone"]])
     call stop_ringing()
     return 0
 end
@@ -924,7 +1172,7 @@ function timer_tick():
         timer["timer"] = 0
         call gtk.button_set_label(timer["go"], i18n.T("Start"))
         call timer_from_spins()
-        call ring(i18n.T("Timer"), i18n.T("Time is up"))
+        call ring(i18n.T("Timer"), i18n.T("Time is up"), "classic")
         return False
     end
     return True
@@ -965,7 +1213,7 @@ function build_window():
     ui["win"] = win
     call gtk.widget_add_class(win, "lca")
     call gtk.window_set_default_size(win, 470, 600)   # minutka i formular budiku se vejdou (i ukrajinsky)
-    call gtk.window_set_icon_list(win, "org.gnome.clocks")   # ostra ikona 16-256 px (Dock, Alt+Tab)
+    call gtk.window_set_icon_list(win, app_icon())   # ostra ikona 16-256 px (Dock, Alt+Tab)
     call gtk.window_set_wmclass(win, "luxos-clock-app", "Luxos-clock-app")
     call gtk.connect(win, "delete-event", on_close)
     call gtk.connect(win, "key-press-event", on_key)
@@ -1013,6 +1261,7 @@ end
 
 # Zavreni: s aktivnim budikem / bezici minutkou na pozadi, jinak konec
 function on_close(event, window):
+    call stop_preview()
     call gtk.widget_hide(window)
     ui["visible"] = False
     call maybe_quit()
@@ -1028,6 +1277,7 @@ function on_key(event, window):
         return on_close(event, window)
     end
     if key == KEY_ESCAPE and ui["tab"] == "alarms" and len(gtk.container_get_children(alarm_ui["form"])) > 0:
+        call forget_preview()
         call clear(alarm_ui["form"])
         return True
     end
@@ -1088,6 +1338,7 @@ function main(background):
         call show_window()
     end
     call gtk.main()
+    call stop_preview()
     call stop_ringing()
     return 0
 end

@@ -5,6 +5,6 @@ Name[cs]=Klávesové zkratky
 Comment=View and change keyboard shortcuts
 Comment[cs]=Zobrazení a změna klávesových zkratek
 Exec=luxos-shortcuts
-Icon=preferences-desktop-keyboard-shortcuts
+Icon=shortcuts
 Categories=Settings;
 StartupWMClass=luxos-shortcuts

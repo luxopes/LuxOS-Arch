@@ -28,6 +28,9 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "files", "lsl", "luxos-clock-app.lsl")
+SOUNDS = os.path.join(HERE, "..", "files", "sounds", "clock")
+ICON = os.path.join(HERE, "..", "files", "icons", "luxos-clock.svg")
+CLASSIC = "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 UNDER_XVFB = bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("XAUTHORITY", "")
 BIN = tempfile.mkdtemp(prefix="luxos-clock-bin-")
@@ -55,8 +58,10 @@ class ClockApp(unittest.TestCase):
         self.data = os.path.join(self.t, "data")
         self.fake = os.path.join(self.t, "fake")
         self.run_dir = os.path.join(self.t, "run")
-        for d in (os.path.join(self.data, "luxos", "clock"), self.fake, self.run_dir):
+        icons = os.path.join(self.t, "share", "icons", "hicolor", "scalable", "apps")
+        for d in (os.path.join(self.data, "luxos", "clock"), self.fake, self.run_dir, icons):
             os.makedirs(d)
+        shutil.copy(ICON, icons)       # ikona Hodin ze zdrojovych souboru (v systemu jeste neni)
         os.chmod(self.run_dir, 0o700)
         self.log = os.path.join(self.t, "calls")
         for name in ("paplay", "notify-send"):
@@ -66,6 +71,8 @@ class ClockApp(unittest.TestCase):
             os.chmod(p, 0o755)
         self.env = dict(os.environ, XDG_DATA_HOME=self.data, XDG_RUNTIME_DIR=self.run_dir, FAKE_LOG=self.log,
                         PATH=self.fake + ":" + os.environ["PATH"], LANG="C", GIO_USE_VFS="local",
+                        LUXOS_CLOCK_SOUND_DIR=SOUNDS,
+                        XDG_DATA_DIRS=os.path.join(self.t, "share") + ":" + os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share"),
                         GVFS_DISABLE_FUSE="1", NO_AT_BRIDGE="1")
         self.procs = []
 
@@ -136,6 +143,17 @@ class ClockApp(unittest.TestCase):
         icon = subprocess.run(["xprop", "-id", win, "_NET_WM_ICON"], capture_output=True, text=True).stdout
         for size in ("16 x 16", "32 x 32", "64 x 64", "128 x 128"):
             self.assertIn(f"Icon ({size})", icon, "ostra ikona v Docku a Alt+Tab")
+        # je to ikona Hodin LuxOS: nahore uprostred 32px ikony oranzovy prechod
+        raw = subprocess.run(["xprop", "-id", win, "-f", "_NET_WM_ICON", "32c", " $0+", "_NET_WM_ICON"],
+                             capture_output=True, text=True).stdout
+        nums = [int(v) for v in raw.split(" ", 1)[1].replace(",", " ").split()]
+        i = 0
+        while i < len(nums) and (nums[i], nums[i + 1]) != (32, 32):
+            i += 2 + nums[i] * nums[i + 1]
+        self.assertLess(i, len(nums), "ikona 32 px")
+        argb = nums[i + 2 + 4 * 32 + 16]
+        r, g, b = argb >> 16 & 255, argb >> 8 & 255, argb & 255
+        self.assertTrue(r > 200 and b < 160 and r > g, ("oranzove pozadi ikony luxos-clock", r, g, b))
         # Esc zavre formular noveho budiku, okno zustane
         subprocess.run(["xdotool", "windowactivate", "--sync", win], capture_output=True)
         subprocess.run(["xdotool", "key", "--window", win, "Escape"])
@@ -145,20 +163,84 @@ class ClockApp(unittest.TestCase):
         subprocess.run(["xdotool", "key", "--window", win, "ctrl+w"])
         self.assertEqual(p.wait(timeout=10), 0)
 
+    def geometry(self, win):
+        out = subprocess.run(["xdotool", "getwindowgeometry", "--shell", win], capture_output=True, text=True).stdout
+        g = dict(line.split("=", 1) for line in out.split() if "=" in line)
+        return [int(g[k]) for k in ("X", "Y", "WIDTH", "HEIGHT")]
+
+    def click(self, x, y):
+        subprocess.run(["xdotool", "mousemove", str(x), str(y), "click", "1"])
+        time.sleep(0.5)
+
+    def test_sound_choice_preview_and_save(self):
+        # formular noveho budiku: nahled znelky, vyber jine v seznamu, ulozeni do clock.json
+        self.write([])
+        self.start()
+        self.assertTrue(self.wait_for(lambda: self.windows("--class", "luxos-clock-app")), "okno")
+        x, y, w, h = self.geometry(self.windows("--class", "luxos-clock-app")[0])
+        self.click(x + w - 38, y + 90)                       # + novy budik
+        self.click(x + 420, y + 231)                          # nahled vychozi znelky
+        self.assertTrue(self.wait_for(lambda: "paplay " + CLASSIC in self.read(self.log)), "nahled Klasicke")
+        self.click(x + 235, y + 231)                          # seznam znelek: Classic -> Sunrise -> Chimes
+        for key in ("Down", "Down", "Return"):
+            subprocess.run(["xdotool", "key", key])
+            time.sleep(0.3)
+        self.click(x + 420, y + 231)
+        chimes = "paplay " + os.path.join(SOUNDS, "chimes.oga")
+        self.assertTrue(self.wait_for(lambda: chimes in self.read(self.log)), "nahled vybrane znelky")
+        self.click(x + 403, y + 272)                          # Ulozit
+        self.assertTrue(self.wait_for(lambda: len(self.stored()["alarms"]) == 1), "budik ulozen")
+        self.assertEqual(self.stored()["alarms"][0]["sound"], "chimes")
+
+    def test_own_sound_from_file(self):
+        # "Choose File…" na konci seznamu znelek: kopie souboru mezi vlastni znelky, ulozi se "file:<jmeno>"
+        src = os.path.join(self.t, "Moje znelka.oga")
+        shutil.copy(os.path.join(SOUNDS, "pulse.oga"), src)
+        self.write([])
+        self.start()
+        self.assertTrue(self.wait_for(lambda: self.windows("--class", "luxos-clock-app")), "okno")
+        x, y, w, h = self.geometry(self.windows("--class", "luxos-clock-app")[0])
+        self.click(x + w - 38, y + 90)                       # + novy budik
+        self.click(x + 235, y + 231)                          # seznam znelek
+        for _ in range(6):                                    # 5 vestavenych -> Choose File…
+            subprocess.run(["xdotool", "key", "Down"])
+            time.sleep(0.15)
+        subprocess.run(["xdotool", "key", "Return"])
+        self.assertTrue(self.wait_for(lambda: len(self.windows("--class", "luxos-clock-app")) >= 2), "dialog vyberu souboru")
+        time.sleep(0.8)
+        subprocess.run(["xdotool", "key", "ctrl+l"])
+        time.sleep(0.4)
+        subprocess.run(["xdotool", "type", "--delay", "20", src])
+        time.sleep(0.4)
+        subprocess.run(["xdotool", "key", "Return"])
+        own = os.path.join(self.data, "luxos", "clock", "sounds", "Moje znelka.oga")
+        self.assertTrue(self.wait_for(lambda: os.path.exists(own)), "kopie mezi vlastni znelky")
+        time.sleep(0.5)
+        self.click(x + 420, y + 231)                          # nahled vlastni znelky
+        self.assertTrue(self.wait_for(lambda: "paplay " + own in self.read(self.log)), self.read(self.log))
+        self.click(x + 403, y + 272)                          # Ulozit
+        self.assertTrue(self.wait_for(lambda: len(self.stored()["alarms"]) == 1), "budik ulozen")
+        self.assertEqual(self.stored()["alarms"][0]["sound"], "file:Moje znelka.oga")
+
     def test_unattended_alarm_goes_quiet(self):
-        # bez reakce zvoneni po case utichne (v aplikaci 10 minut, tady 3 s) a proces bez budiku skonci
+        # bez reakce zvoneni po case utichne (v aplikaci 10 minut, tady 3 s) a proces bez budiku skonci;
+        # neznama znelka (napr. ze starsi verze) zazvoni jako Klasicka
         nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
-        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Away", "days": [], "on": True}])
+        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Away", "days": [], "on": True, "sound": "missing"}])
         self.env["LUXOS_CLOCK_RING_SECONDS"] = "3"
         p = self.start("--background")
         self.assertTrue(self.wait_for(lambda: self.sound_loops() == 1, timeout=75), "zvoni")
+        self.assertIn("paplay " + CLASSIC, self.read(self.log))
+        # jednorazovy budik se po zazvoneni vypne a ulozi (az po otevreni okna zvoneni)
+        self.assertTrue(self.wait_for(lambda: not self.stored()["alarms"][0]["on"]), "budik vypnut a ulozen")
+        self.assertEqual(self.stored()["alarms"][0]["sound"], "classic", "neznama znelka se ulozi jako Klasicka")
         self.assertTrue(self.wait_for(lambda: self.sound_loops() == 0, timeout=10), "utichne samo")
         self.assertFalse(self.windows("--name", "^Clock$"), "okno zvoneni zmizi")
         self.assertEqual(p.wait(timeout=10), 0)
 
     def test_two_alarms_same_minute_ring_together(self):
         nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
-        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Leky", "days": [], "on": True},
+        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Leky", "days": [], "on": True, "sound": "chimes"},
                     {"h": nxt.hour, "m": nxt.minute, "label": "Vstavat", "days": [], "on": True}])
         self.start("--background")
         self.assertTrue(self.wait_for(lambda: "notify-send" in self.read(self.log), timeout=75), "budik zazvonil")
@@ -168,16 +250,19 @@ class ClockApp(unittest.TestCase):
         self.assertIn("Leky", log)
         self.assertIn("Vstavat", log)
         self.assertEqual(self.sound_loops(), 1)
+        self.assertIn("paplay " + os.path.join(SOUNDS, "chimes.oga"), log, "znelka prvniho z budiku")
         self.assertEqual(len(self.windows("--name", "^Clock$")), 1)
         self.assertEqual([a["on"] for a in self.stored()["alarms"]], [False, False])
 
     def test_alarm_rings_once_and_turns_off(self):
         nxt = datetime.datetime.now() + datetime.timedelta(minutes=1)
-        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Test", "days": [], "on": True}])
+        self.write([{"h": nxt.hour, "m": nxt.minute, "label": "Test", "days": [], "on": True, "sound": "crystal"}])
         self.start("--background")
         self.assertTrue(self.wait_for(lambda: "notify-send" in self.read(self.log), timeout=75), "budik zazvonil")
         self.assertIn("Test", self.read(self.log))
         self.assertTrue(self.wait_for(lambda: self.sound_loops() == 1), "zvuk hraje")
+        crystal = "paplay " + os.path.join(SOUNDS, "crystal.oga")
+        self.assertTrue(self.wait_for(lambda: crystal in self.read(self.log)), "zvoni zvolena znelka")
         self.assertFalse(self.stored()["alarms"][0]["on"], "jednorazovy budik se vypne")
         win = self.windows("--name", "^Clock$")
         self.assertTrue(win, "okno zvoneni")

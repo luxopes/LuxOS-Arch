@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Novinky LuxOS: megafon na modrem prechodu (vlastni kresba, styl ikon LuxOS) -->
+  <!-- Novinky LuxOS: megafon na modrem prechodu (styl ikon LuxOS). Rukojet vychazi z tela megafonu (prekryv), bez mezery. -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
       <stop offset="0" stop-color="#5b9bff"/>
@@ -7,7 +7,12 @@
     </linearGradient>
   </defs>
   <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#bg)"/>
-  <path d="M150 220h50l130-70v212l-130-70h-50a20 20 0 0 1-20-20v-32a20 20 0 0 1 20-20z" fill="#fff"/>
-  <path d="M180 292l22 78h40l-18-70z" fill="#fff" opacity="0.9"/>
-  <path d="M365 216a52 52 0 0 1 0 80" stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/>
+  <g fill="#fff">
+    <!-- rukojet: zaobleny pas sikmo dolu, horni konec schovany v tele megafonu -->
+    <path d="M168 262h44l20 96a14 14 0 0 1-13.7 17h-24.6a14 14 0 0 1-13.6-10.8z" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
+    <!-- telo a trychtyr -->
+    <path d="M148 212h56l118-64a12 12 0 0 1 18 10.5v195a12 12 0 0 1-18 10.5l-118-64h-56a22 22 0 0 1-22-22v-44a22 22 0 0 1 22-22z" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+  <!-- zvuk -->
+  <path d="M378 214a56 56 0 0 1 0 84" stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/>
 </svg>
