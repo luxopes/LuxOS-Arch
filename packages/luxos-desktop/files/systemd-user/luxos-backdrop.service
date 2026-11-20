@@ -1,0 +1,23 @@
+# LuxOS - tapeta a nabidka plochy relace na Waylandu (luxos-backdrop, LSL). Spousti ji graficka relace (WP-13:
+# luxos-session.target misto graphical-session.target, az bude). Po padu ji systemd hned spusti znovu; bez Waylandu
+# nebo layer-shell skonci s kodem 2 a znovu se nespousti.
+[Unit]
+Description=LuxOS desktop wallpaper
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/luxos-backdrop
+Restart=always
+RestartSec=200ms
+RestartPreventExitStatus=2
+# pojistka proti uniku pameti (obrazek tapety je pro kazdou velikost vystupu jednou, 4K = 32 MB)
+MemoryHigh=160M
+Slice=session.slice
+
+[Install]
+WantedBy=graphical-session.target
