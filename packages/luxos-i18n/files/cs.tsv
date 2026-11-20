@@ -5380,3 +5380,7 @@ Use System Layouts	Použít rozložení systému
 Choose a window to capture	Vyberte okno k zachycení
 No windows	Žádná okna
 Screen recording is not available on Wayland yet.	Nahrávání obrazovky zatím na Waylandu není k dispozici.
+The desktop could not start. %s is selected.	Plochu se nepodařilo spustit. Je vybráno %s.
+Authentication required	Vyžadováno ověření
+Authenticate	Ověřit
+Authentication is not available.	Ověření není k dispozici.

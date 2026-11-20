@@ -5381,3 +5381,7 @@ Use System Layouts	Använd systemets layouter
 Choose a window to capture	Välj ett fönster att fånga
 No windows	Inga fönster
 Screen recording is not available on Wayland yet.	Skärminspelning är ännu inte tillgänglig i Wayland.
+The desktop could not start. %s is selected.	Skrivbordet kunde inte starta. %s är valt.
+Authentication required	Autentisering krävs
+Authenticate	Autentisera
+Authentication is not available.	Autentisering är inte tillgänglig.

@@ -5382,3 +5382,7 @@ Use System Layouts	Użyj układów systemu
 Choose a window to capture	Wybierz okno do przechwycenia
 No windows	Brak okien
 Screen recording is not available on Wayland yet.	Nagrywanie ekranu nie jest jeszcze dostępne w Wayland.
+The desktop could not start. %s is selected.	Nie udało się uruchomić pulpitu. Wybrano %s.
+Authentication required	Wymagane uwierzytelnienie
+Authenticate	Uwierzytelnij
+Authentication is not available.	Uwierzytelnianie jest niedostępne.

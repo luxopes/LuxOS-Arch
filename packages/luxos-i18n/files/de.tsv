@@ -5381,3 +5381,7 @@ Use System Layouts	Systemlayouts verwenden
 Choose a window to capture	Fenster zum Aufnehmen auswählen
 No windows	Keine Fenster
 Screen recording is not available on Wayland yet.	Die Bildschirmaufnahme ist unter Wayland noch nicht verfügbar.
+The desktop could not start. %s is selected.	Der Desktop konnte nicht starten. %s ist ausgewählt.
+Authentication required	Authentifizierung erforderlich
+Authenticate	Authentifizieren
+Authentication is not available.	Authentifizierung ist nicht verfügbar.

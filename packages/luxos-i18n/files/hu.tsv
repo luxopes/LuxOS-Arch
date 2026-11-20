@@ -5381,3 +5381,7 @@ Use System Layouts	Rendszerkiosztások használata
 Choose a window to capture	Válassza ki a rögzítendő ablakot
 No windows	Nincsenek ablakok
 Screen recording is not available on Wayland yet.	A képernyőfelvétel Waylanden még nem érhető el.
+The desktop could not start. %s is selected.	Az asztal nem tudott elindulni. A(z) %s van kiválasztva.
+Authentication required	Hitelesítés szükséges
+Authenticate	Hitelesítés
+Authentication is not available.	A hitelesítés nem érhető el.
