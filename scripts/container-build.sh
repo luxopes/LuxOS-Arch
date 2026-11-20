@@ -1,6 +1,6 @@
 #!/bin/bash
 # LuxOS - sestaveni baliku a ISO (bezi uvnitr Arch kontejneru, viz build.sh)
-# Pouziti: container-build.sh [all|packages|apps|drivers|iso|iso-test|one BALIK]
+# Pouziti: container-build.sh [all|packages|apps|drivers|iso|iso-test|one BALIK...]
 set -euo pipefail
 
 ROOT=/luxos
@@ -719,18 +719,22 @@ use_published_repos() {
     msg "Dependencies also from the published LuxOS repositories"
 }
 
-build_single() {
-    local p=${1:?package name} src
-    src=$(pkg_src "$p")
-    [[ -f $src/PKGBUILD ]] || src=$(pkg_src "apps/$p")
-    if [[ ! -f $src/PKGBUILD ]]; then
-        if [[ -f $ROOT/packages/$p/PROPRIETARY || -f $ROOT/packages/apps/$p/PROPRIETARY ]]; then
-            echo "$p is a proprietary component: build it with LUXOS_PRIVATE_DIR=<luxos-private checkout> ./build.sh one $p" >&2
-        else
-            echo "No package $p" >&2
+build_single() {  # build_single BALIK... (poradi = zavislosti: pozdejsi vidi drive sestavene jako makedepends)
+    (($#)) || { echo "package name required" >&2; exit 2; }
+    local p src srcs=()
+    for p; do
+        src=$(pkg_src "$p")
+        [[ -f $src/PKGBUILD ]] || src=$(pkg_src "apps/$p")
+        if [[ ! -f $src/PKGBUILD ]]; then
+            if [[ -f $ROOT/packages/$p/PROPRIETARY || -f $ROOT/packages/apps/$p/PROPRIETARY ]]; then
+                echo "$p is a proprietary component: build it with LUXOS_PRIVATE_DIR=<luxos-private checkout> ./build.sh one $p" >&2
+            else
+                echo "No package $p" >&2
+            fi
+            exit 2
         fi
-        exit 2
-    fi
+        srcs+=("$src")
+    done
     msg "Updating build container"
     pacman -Syu --noconfirm --needed >/dev/null
     # az po aktualizaci kontejneru: lux-engine z [luxos] nahrazuje pacman (ten kontejner potrebuje)
@@ -738,7 +742,9 @@ build_single() {
     rm -rf "$BUILD"
     mkdir -p "$SOURCES" "$BUILD/pkgs/single" "$OUT/single"
     chown -R builder: "$SOURCES" "$BUILD"
-    build_one "$src" "$BUILD/pkgs/single"
+    for src in "${srcs[@]}"; do
+        build_one "$src" "$BUILD/pkgs/single"
+    done
     chown -R root: "$SOURCES"
     install -m644 "$BUILD"/pkgs/single/*.pkg.tar.zst "$OUT/single/"
     ls -lh "$OUT"/single/
@@ -760,6 +766,6 @@ case $target in
               export LUXOS_TEST=1 LUXOS_TEST_SHA
               build_packages; build_iso ;;
     drivers)  shift; build_drivers "$@" ;;
-    one)      build_single "${2:-}" ;;
-    *) echo "Usage: $0 [all|packages|apps|drivers [PKGBASE...]|iso|iso-test|one PACKAGE]" >&2; exit 2 ;;
+    one)      shift; build_single "$@" ;;
+    *) echo "Usage: $0 [all|packages|apps|drivers [PKGBASE...]|iso|iso-test|one PACKAGE...]" >&2; exit 2 ;;
 esac

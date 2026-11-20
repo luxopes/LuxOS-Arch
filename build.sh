@@ -5,7 +5,8 @@
 #   ./build.sh packages   jen baliky (out/repo)
 #   ./build.sh apps       jen aplikace [luxos-apps] (packages/apps/*), [luxos] beze zmeny
 #   ./build.sh iso        jen ISO z jiz sestavenych baliku
-#   ./build.sh one BALIK  jeden balik do out/single (na zkousku, repozitar beze zmeny)
+#   ./build.sh one BALIK..  baliky do out/single (na zkousku, repozitar beze zmeny); v poradi
+#                         zavislosti, pozdejsi se stavi proti drive sestavenym (wlroots0.20 luxcomp luxwm)
 #   ./build.sh iso-test   baliky + TEST ISO podepsane jednorazovym klicem (nikdy klicem LuxOS):
 #                         out/luxos-VERZE-TEST-COMMIT-x86_64.iso, verejny testovaci klic out/luxos-test-key.asc
 #   LUXOS_CHANNEL=staging ./build.sh iso   ISO s kanalem aktualizaci staging (live i nainstalovany system,
