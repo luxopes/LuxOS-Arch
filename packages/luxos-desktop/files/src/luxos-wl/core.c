@@ -404,9 +404,15 @@ static gboolean source_prepare(GSource *base, gint *timeout)
 {
 	struct wl_source *s = (struct wl_source *)base;
 	*timeout = -1;
-	if (s->failed || wl_display_prepare_read(lwl.display) != 0)
+	if (s->failed)
 		return TRUE;
-	s->reading = true;
+	/* pri pripravenem zdroji s vyssi prioritou (signal) GLib check vynecha: cteni z minule zustava
+	 * pripravene a druhy wl_display_prepare_read by wl_display_read_events zablokoval navzdy */
+	if (!s->reading) {
+		if (wl_display_prepare_read(lwl.display) != 0)
+			return TRUE;
+		s->reading = true;
+	}
 	if (wl_display_flush(lwl.display) < 0 && errno != EAGAIN)
 		s->failed = true;
 	return s->failed;
