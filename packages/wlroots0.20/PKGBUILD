@@ -5,12 +5,16 @@
 # [luxos] je v /etc/lux/lux.conf pred [extra], takze tento balik ma prednost a libluxcomp (a pripadne
 # labwc z Archu, ktere chce jen libwlroots-0.20.so) ma vzdy overenou verzi.
 # Nova verze: pkgver + sha256sums, overit podpis (keys/pgp), pak testy jadra (packages/luxcomp/tests/run.sh).
+# output-management-custom-mode.patch: virtualni rezim (headless, vnoreny vystup) se po znovuzapnuti
+# vystupu posle kazdemu klientovi, ktery ho nema; jinak assert v head_send_state shodil kompozitor,
+# kdyz klient drzel zwlr_output_manager_v1 uz pred vypnutim (lista) a jiny se pripojil behem nej
+# (wlr-randr --on). Test: packages/luxwm/tests/test_luxwm_protocols.py (luxcomp ma i obchvat).
 # Puvodni PKGBUILD Archu (udrzovatel Robin Candau) je v PKGBUILD.arch.
 
 pkgname=wlroots0.20
 _pkgname=wlroots
 pkgver=0.20.2
-pkgrel=1.1
+pkgrel=1.2
 pkgdesc='Modular Wayland compositor library (LuxOS: pinned for libluxcomp)'
 url='https://gitlab.freedesktop.org/wlroots/wlroots'
 license=('MIT')
@@ -21,10 +25,16 @@ depends=('glibc' 'libdisplay-info.so' 'libdrm' 'libglvnd' 'libinput' 'liblcms2.s
 makedepends=('glslang' 'meson' 'ninja' 'systemd' 'vulkan-headers' 'xorg-xwayland')
 optdepends=('xorg-xwayland: Xwayland support')
 provides=("libwlroots-${pkgver%.*}.so")
-source=("$url/-/releases/$pkgver/downloads/$_pkgname-$pkgver.tar.gz"{,.sig})
+source=("$url/-/releases/$pkgver/downloads/$_pkgname-$pkgver.tar.gz"{,.sig}
+        output-management-custom-mode.patch)
 sha256sums=('80c567d2ed4efb2cfa6b077f22c7a710d9c78ba4e185a75e8694001114af0733'
-            'SKIP')
+            'SKIP'
+            '7fd2560c797ddfaf8f6e1535a00b282cb10af857686754bb1e262afe86525fed')
 validpgpkeys=('34FF9526CFEF0E97A340E2E40FDE7BE0E88F5E48')  # Simon Ser
+
+prepare() {
+  patch -d "$_pkgname-$pkgver" -Np1 -i "$srcdir/output-management-custom-mode.patch"
+}
 
 build() {
   arch-meson "$_pkgname-$pkgver" build

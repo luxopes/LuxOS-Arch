@@ -83,21 +83,52 @@ output_frame(struct wl_listener *listener, void *data)
 	wlr_scene_output_send_frame_done(o->scene_output, &t1);
 }
 
-/* Aktualni rozlozeni pro wlr-output-management (wlr-randr, nastaveni monitoru, harness testu) */
+/* Aktualni rozlozeni pro wlr-output-management (wlr-randr, nastaveni monitoru, harness testu).
+ * @skip vynecha znovu zapnute vystupy (viz output_config_update). */
 static void
-output_config_update(void)
+output_config_publish(bool skip)
 {
 	struct wlr_output_configuration_v1 *config = wlr_output_configuration_v1_create();
 	struct output *o;
 	wl_list_for_each(o, &comp.outputs, link) {
+		if (skip && o->wlr_output->enabled && !o->head_enabled) {
+			continue;
+		}
 		struct wlr_output_configuration_head_v1 *head =
 			wlr_output_configuration_head_v1_create(config, o->wlr_output);
 		struct wlr_box box;
 		wlr_output_layout_get_box(comp.layout, o->wlr_output, &box);
-		head->state.x = box.x;
-		head->state.y = box.y;
+		if (!wlr_box_empty(&box)) {
+			o->last_x = box.x;
+			o->last_y = box.y;
+		}
+		/* vypnuty vystup nabizi posledni polohu, wlr-randr --on ho vrati na stejne misto */
+		head->state.x = o->last_x;
+		head->state.y = o->last_y;
 	}
 	wlr_output_manager_v1_set_configuration(comp.output_mgr, config);
+}
+
+/* wlroots 0.20.2 posle virtualni rezim (vystup bez rezimu: headless, vnoreny) znovu zapnute hlave
+ * jen kdyz ho nema zadny klient; klient, ktery se pripojil, kdyz byl vystup vypnuty, pak shodi
+ * kompozitor (assert v head_send_state). Znovu zapnuty vystup proto nejdriv z konfigurace
+ * vypustime a pak pridame jako novou hlavu. Oprava: packages/wlroots0.20/output-management-custom-mode.patch */
+static void
+output_config_update(void)
+{
+	bool reenabled = false;
+	struct output *o;
+	wl_list_for_each(o, &comp.outputs, link) {
+		reenabled |= o->wlr_output->enabled && !o->head_enabled && o->head_published;
+	}
+	if (reenabled) {
+		output_config_publish(true);
+	}
+	output_config_publish(false);
+	wl_list_for_each(o, &comp.outputs, link) {
+		o->head_enabled = o->wlr_output->enabled;
+		o->head_published = true;
+	}
 }
 
 static void
@@ -116,8 +147,17 @@ output_config_apply(struct wlr_output_configuration_v1 *config, bool test)
 			break;
 		}
 		if (!test && head->state.enabled && wo->data) {
-			wlr_output_layout_add(comp.layout, wo, head->state.x, head->state.y);
-			layers_arrange(wo->data);
+			struct output *o = wo->data;
+			bool placed = wlr_output_layout_get(comp.layout, wo) != NULL;
+			struct wlr_output_layout_output *lo =
+				wlr_output_layout_add(comp.layout, wo, head->state.x, head->state.y);
+			if (!placed && lo) {
+				wlr_scene_output_layout_add_output(comp.scene_layout, lo, o->scene_output);
+			}
+			layers_arrange(o);
+		} else if (!test && wo->data) {
+			/* vypnuty vystup nesmi drzet misto v rozlozeni (kurzor, umisteni oken) */
+			wlr_output_layout_remove(comp.layout, wo);
 		}
 	}
 	if (ok) {

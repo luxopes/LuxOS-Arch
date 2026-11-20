@@ -36,6 +36,8 @@ struct output {
 	struct wlr_scene_output *scene_output;
 	struct wlr_box usable;
 	bool lock_shown;		/* rendered a frame with the lock cover */
+	bool head_enabled, head_published;
+	int last_x, last_y;	/* last state sent through wlr-output-management */
 	struct wl_listener frame, request_state, destroy;
 };
 

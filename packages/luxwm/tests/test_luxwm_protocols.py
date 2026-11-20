@@ -159,6 +159,32 @@ class Protocols(unittest.TestCase):
         self.assertEqual(st["views"]["Prvni"]["focused"], 1)
         self.assertIn("origin 3", s.log())
 
+    # ---- wlr-output-management ----
+
+    def test_output_reenabled_while_client_holds_output_manager(self):
+        # wlroots 0.20.2 padal (assert v head_send_state), kdyz se vystup bez rezimu znovu zapnul a
+        # jeden klient drzel zwlr_output_manager_v1 uz pred vypnutim (lista pres libluxos-wl)
+        s = self.session()
+        holder = self.spawn_in(s, self.wltest, "clip-set", "drzi")
+        for line in holder.stdout:
+            if line.startswith("set "):
+                self.assertEqual(line.strip(), "set True")
+                break
+        self.assertEqual(self.run_in(s, "wlr-randr", "--output", "HEADLESS-1", "--off"), "")
+        time.sleep(0.3)
+        self.assertEqual(self.run_in(s, "wlr-randr", "--output", "HEADLESS-1", "--on"), "")
+        time.sleep(0.3)
+        out = self.run_in(s, "wlr-randr")
+        self.assertIn("Enabled: yes", out)
+        self.assertIn("Position: 0,0", out)
+        self.assertEqual(s.state()["usable"][2:], (1280, 800))
+        self.assertIsNone(holder.poll())
+        out = self.run_in(s, self.wltest, "heads")
+        self.assertIn("result 1", out)
+        holder.terminate()
+        holder.wait(5)
+        holder.stdout.close()
+
     # ---- xdg-activation ----
 
     def wait_view(self, s, title, timeout=5):

@@ -1,0 +1,35 @@
+--- a/types/wlr_output_management_v1.c
++++ b/types/wlr_output_management_v1.c
+@@ -99,10 +99,12 @@
+ 	}
+ }
+ 
+-static bool head_has_custom_mode_resources(const struct wlr_output_head_v1 *head) {
++static bool head_has_custom_mode_resource(const struct wlr_output_head_v1 *head,
++		struct wl_client *client) {
+ 	struct wl_resource *resource;
+ 	wl_resource_for_each(resource, &head->mode_resources) {
+-		if (wl_resource_get_user_data(resource) == NULL) {
++		if (wl_resource_get_user_data(resource) == NULL &&
++				wl_resource_get_client(resource) == client) {
+ 			return true;
+ 		}
+ 	}
+@@ -932,10 +934,15 @@
+ 		}
+ 	}
+ 
+-	if (next->mode == NULL && next->enabled && !head_has_custom_mode_resources(head)) {
++	if (next->mode == NULL && next->enabled) {
++		// Check per client: a client that bound the head while it was
++		// disabled has no virtual mode yet, even if other clients do
+ 		struct wl_resource *resource;
+ 		wl_resource_for_each(resource, &head->resources) {
+-			head_send_mode(head, resource, NULL);
++			if (!head_has_custom_mode_resource(head,
++					wl_resource_get_client(resource))) {
++				head_send_mode(head, resource, NULL);
++			}
+ 		}
+ 	} else if (next->mode != NULL) {
+ 		head_destroy_custom_mode_resources(head);
