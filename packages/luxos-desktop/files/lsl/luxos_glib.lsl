@@ -3,7 +3,7 @@
 # knihovna nema. Programy nacitaji `load luxos_glib, glib as glib`; az tyto funkce budou v glib, modul zmizi.
 #
 # Zpetna volani s vazanou hodnotou (LSL nema uzavery): obsluha dostane `data` jako prvni argument.
-#   connect_data(obj, signal, nargs, f, data)   f(data, argumenty signalu..., obj); vraci id zaznamu
+#   connect_data(obj, signal, nargs, f, data)   f(data, argumenty signalu..., obj); zaznam se uvolni sam se signalem
 #   timeout_add_data(ms, f, data), timeout_add_seconds_data(s, f, data), idle_add_data(f, data)
 #       f(data) se opakuje, dokud vraci True; zaznam obsluhy se po skonceni uvolni
 #   spawn_watched_data(argv, f, data)           po skonceni f(data, pid, status)
@@ -100,12 +100,13 @@ end
 
 # ---- signaly GObject s vazanou hodnotou ---------------------------------------------------------------
 
+# Zaznam drzi glib.handlers a uvolni ho GLib (callback_destroy) s odpojenim signalu nebo zanikem objektu
 function connect_data(instance, signal, nargs, handler, bound):
-    tracked = track(handler, nargs + 1, bound)
+    record = glib.record_bound(handler, nargs + 1, bound)
     unsafe:
-        call __lsl_qbe_call6(__lsl_symbol("g_signal_connect_data"), ptr(instance), cstr(signal), glib.callback_first(), ptr(tracked[0]), 0, 2)
+        call __lsl_qbe_call6(__lsl_symbol("g_signal_connect_data"), ptr(instance), cstr(signal), glib.callback_first(), ptr(record), glib.callback_destroy(), 2)
     end
-    return tracked[1]
+    return record
 end
 
 # ---- procesy ---------------------------------------------------------------------------------------------
