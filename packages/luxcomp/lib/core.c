@@ -528,12 +528,13 @@ layer_tree(enum zwlr_layer_shell_v1_layer layer)
 
 static void
 arrange_tree(struct output *o, struct wlr_scene_tree *tree,
-		const struct wlr_box *full, struct wlr_box *usable)
+		const struct wlr_box *full, struct wlr_box *usable, bool exclusive)
 {
 	struct wlr_scene_node *node;
 	wl_list_for_each(node, &tree->children, link) {
 		struct layer *l = node->data;
-		if (l && l->output == o && l->surface->initialized) {
+		if (l && l->output == o && l->surface->initialized
+				&& (l->surface->current.exclusive_zone > 0) == exclusive) {
 			wlr_scene_layer_surface_v1_configure(l->scene, full, usable);
 		}
 	}
@@ -545,11 +546,14 @@ layers_arrange(struct output *o)
 	struct wlr_box full;
 	wlr_output_layout_get_box(comp.layout, o->wlr_output, &full);
 	struct wlr_box usable = full;
-	/* exkluzivni zony v poradi od nejvyssi vrstvy, jako ostatni kompozitory */
-	arrange_tree(o, comp.layer_overlay, &full, &usable);
-	arrange_tree(o, comp.layer_top, &full, &usable);
-	arrange_tree(o, comp.layer_bottom, &full, &usable);
-	arrange_tree(o, comp.layer_bg, &full, &usable);
+	/* nejdriv exkluzivni zony (od nejvyssi vrstvy, jako ostatni kompozitory), pak ostatni plochy uvnitr
+	 * zbyle plochy: vyskakovaci okna listy ve vrstve overlay jsou pod listou (vrstva top), ne pres ni */
+	struct wlr_scene_tree *trees[] = { comp.layer_overlay, comp.layer_top, comp.layer_bottom, comp.layer_bg };
+	for (int pass = 1; pass >= 0; pass--) {
+		for (size_t i = 0; i < 4; i++) {
+			arrange_tree(o, trees[i], &full, &usable, pass);
+		}
+	}
 	if (!wlr_box_equal(&usable, &o->usable)) {
 		o->usable = usable;
 		emit(LUXCOMP_EV_OUTPUT_USABLE, o->id, 0, 0, 0);
@@ -574,6 +578,13 @@ layer_update_focus(void)
 			}
 		}
 	}
+	/* vrstva on demand (vyskakovaci okno) si klavesnici necha, dokud se neklikne jinam (cursor_button) */
+	struct wlr_layer_surface_v1 *ls = comp.layer_focus
+		? wlr_layer_surface_v1_try_from_wlr_surface(comp.layer_focus) : NULL;
+	if (ls && ls->surface->mapped && ls->current.keyboard_interactive
+			== ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
+		return;
+	}
 	if (comp.layer_focus) {
 		comp.layer_focus = NULL;
 		luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
@@ -585,6 +596,14 @@ layer_map(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, map);
 	layers_arrange(l->output);
+	/* vyskakovaci okna listy a Ovladaci centrum (on demand nad okny) dostanou klavesnici hned po zobrazeni:
+	 * Esc a ztrata fokusu je zaviraji; Dock a lista jsou bez klavesnice (none) */
+	struct wlr_layer_surface_v1 *s = l->surface;
+	if (s->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND
+			&& s->current.layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP && !comp.locked) {
+		comp.layer_focus = s->surface;
+		seat_focus_surface(comp.layer_focus);
+	}
 	layer_update_focus();
 	cursor_rebase();
 }

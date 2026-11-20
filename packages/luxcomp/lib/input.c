@@ -372,13 +372,17 @@ cursor_button(struct wl_listener *listener, void *data)
 			== ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
 		comp.layer_focus = l->surface->surface;
 		seat_focus_surface(comp.layer_focus);
-	} else if (pressed && v && comp.layer_focus) {
-		/* klik do okna vraci klavesnici z vrstvy na demand oknu */
+	} else if (pressed && comp.layer_focus && !(l && l->surface->surface == comp.layer_focus)) {
+		/* klik jinam (okno, plocha, lista, Dock) vraci klavesnici z vrstvy on demand oknu: vyskakovaci
+		 * okno pak dostane ztratu fokusu a zavre se jako na X11 */
 		struct wlr_layer_surface_v1 *ls =
 			wlr_layer_surface_v1_try_from_wlr_surface(comp.layer_focus);
 		if (!ls || ls->current.keyboard_interactive
 				!= ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE) {
 			comp.layer_focus = NULL;
+			if (!v) {
+				luxcomp_view_focus(comp.focused ? comp.focused->id : 0);
+			}
 		}
 	}
 	if (surface) {
