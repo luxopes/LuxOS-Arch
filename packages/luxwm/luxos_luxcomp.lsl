@@ -5,11 +5,12 @@
 #
 #   init(handler)          handler(event, id, a, b, c) pro vsechny udalosti; chyba v obsluze se jen
 #                          vypise ("LSL callback error"), kompozitor bezi dal (glib.dispatch)
-#   view_title(v), view_app_id(v), output_name(o), socket()   kopie retezce ("" kdyz neni)
+#   view_title(v), view_app_id(v), output_name(o), socket(), layout_name(i), ipc_line(k)
+#                          kopie retezce ("" kdyz neni)
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 2
+API_VERSION = 3
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -26,6 +27,10 @@ EV_KEYBIND = 12
 EV_SLIDE_DONE = 13
 EV_MODS_RELEASED = 14
 EV_LOCK = 15
+EV_LAYOUT = 16
+EV_IPC_CONNECT = 17
+EV_IPC_LINE = 18
+EV_IPC_CLOSE = 19
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -122,6 +127,13 @@ end
 function cstr(text):
     unsafe:
         return __lsl_address(text) + 16
+    end
+end
+
+# Promenna prostredi pro programy, ktere luxwm spusti (LUXWM_SOCK)
+function setenv(name, value):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("setenv"), cstr(name), cstr(value), 1)
     end
 end
 
@@ -368,6 +380,56 @@ end
 function modifiers():
     unsafe:
         return __lsl_qbe_call0(__lsl_symbol("luxcomp_modifiers"))
+    end
+end
+
+function set_layout(index):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_set_layout"), ptr(index))
+    end
+end
+
+function layout():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_layout"))
+    end
+end
+
+function layout_count():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_layout_count"))
+    end
+end
+
+function layout_name(index):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_layout_name"), ptr(index)))
+    end
+end
+
+# ---- IPC pro shell --------------------------------------------------------------------------
+
+function ipc_listen(path):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("luxcomp_ipc_listen"), cstr(path))
+    end
+end
+
+function ipc_line(client):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_ipc_line"), ptr(client)))
+    end
+end
+
+function ipc_send(client, line):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("luxcomp_ipc_send"), ptr(client), cstr(line))
+    end
+end
+
+function ipc_close(client):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_ipc_close"), ptr(client))
     end
 end
 

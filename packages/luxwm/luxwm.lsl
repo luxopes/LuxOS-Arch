@@ -7,7 +7,10 @@
 #   luxwm [-d] [PRIKAZ...]    -d = stopa rozhodnuti na stderr; prikazy se spusti po startu
 # Signaly: SIGTERM/SIGINT konec, SIGHUP znovu nacte luxwm.conf a vzhled, SIGUSR1 jen vzhled
 # (prepnuti svetly/tmavy), SIGUSR2 vypise stav na stderr (testy).
-load glib
+# IPC pro shell (lista, Dock, nastaveni): $XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock, radkovy JSON,
+# popis docs/developers/luxwm-ipc.md. Rozlozeni klavesnice z org.freedesktop.locale1, prepsane
+# polozkami xkb_* v luxwm.conf.
+load glib, gio, json
 load luxos_luxcomp as lc
 load luxos_tokens as tokens
 
@@ -48,6 +51,17 @@ last_title_click = [0, 0]
 
 # Alt+Tab: seznam, poloha, puvodni okno, docasne ukazana minimalizovana okna, zkratka Esc
 cycle = {"on": False, "list": [], "pos": 0, "from": 0, "shown": [], "cancel": 0}
+
+LOCALE = "org.freedesktop.locale1"
+IPC_TOPICS = ["window", "workspace", "keyboard", "output", "theme"]
+# informace o cizich oknech a jejich ovladani jen pro allowlist (jako wlr-foreign-toplevel)
+PRIVILEGED_TOPICS = ["window"]
+PRIVILEGED_COMMANDS = ["list_windows", "focus_window"]
+
+ipc = {}             # klient IPC -> {"privileged": bool, "topics": [...]}
+keyboard = {"layouts": [], "locale": {}}
+look = {"dark": False}
+last_window = [-1, "", ""]
 
 function log(text):
     call glib.report("luxwm: " + text + chr(10))
@@ -243,8 +257,8 @@ function dark_mode():
     return text == "dark"
 end
 
-function apply_theme():
-    dark = dark_mode()
+function apply_theme(dark):
+    look["dark"] = dark
     window = tokens.color("window", dark)
     call lc.theme_set(lc.THEME_TITLE_HEIGHT, tokens.LIGHT_SIZE + 2 * tokens.SPACE["s"])
     call lc.theme_set(lc.THEME_CORNER_RADIUS, tokens.RADIUS["window"])
@@ -265,6 +279,79 @@ function apply_theme():
     fb = tokens.GLASS["fallback"]
     call lc.set_background(argb([Int(fb[0] * 255.0), Int(fb[1] * 255.0), Int(fb[2] * 255.0), 1.0]))
     call note("theme " + ("dark" if dark else "light"))
+    call broadcast("theme", theme_event())
+end
+
+# ---- rozlozeni klavesnice --------------------------------------------------------------------
+# Zdroj pravdy je localed (stejne rozlozeni jako X11 relace, prihlaseni a konzole); uzivatel si ho
+# muze prepsat v luxwm.conf (xkb_layout s xkb_variant spolu, xkb_options a xkb_model zvlast).
+
+function read_locale():
+    props = {}
+    try:
+        bus = gio.system_bus()
+        values = gio.call_values(bus, LOCALE, "/org/freedesktop/locale1", "org.freedesktop.DBus.Properties", "GetAll",
+                                 [LOCALE], "(s)", 1500)[0]
+        for name in ["X11Layout", "X11Variant", "X11Options", "X11Model"]:
+            props[name] = String(values.get(name, ""))
+        end
+        if len(keyboard["locale"]) == 0:
+            call gio.subscribe_values(bus, LOCALE, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                                      "/org/freedesktop/locale1", on_locale_changed)
+        end
+    else:
+        call note("locale1 not available: " + String(last_error()))
+    end
+    keyboard["locale"] = props
+end
+
+function keyboard_names():
+    loc = keyboard["locale"]
+    layout = loc.get("X11Layout", "")
+    variant = loc.get("X11Variant", "")
+    options = loc.get("X11Options", "")
+    if settings.get("xkb_layout", "") != "":
+        layout = settings["xkb_layout"]
+        variant = settings.get("xkb_variant", "")
+    end
+    if "xkb_options" in settings:
+        options = settings["xkb_options"]
+    end
+    if layout.strip() == "":
+        layout = "us"
+        variant = ""
+    end
+    return [layout.replace(" ", ""), variant.replace(" ", ""), options.replace(" ", "")]
+end
+
+function apply_keyboard():
+    names = keyboard_names()
+    call lc.set_keymap(names[0], names[1], names[2])
+    codes = names[0].split(",")
+    variants = names[1].split(",")
+    layouts = []
+    for i in range(lc.layout_count()):
+        code = codes[i] if i < len(codes) else ""
+        layouts.append({"code": code, "variant": variants[i] if i < len(variants) else "", "name": lc.layout_name(i)})
+    end
+    keyboard["layouts"] = layouts
+    call note("keyboard " + names[0] + " variant " + names[1] + " options " + names[2] + " layouts " + String(len(layouts)))
+    call broadcast("keyboard", keyboard_event())
+end
+
+function on_locale_changed(sender, path, interface, signal, values):
+    call read_locale()
+    call apply_keyboard()
+    return 0
+end
+
+function switch_layout(index):
+    if index < 0 or index >= lc.layout_count():
+        return False
+    end
+    call lc.set_layout(index)
+    call broadcast("keyboard", keyboard_event())
+    return True
 end
 
 # ---- geometrie -------------------------------------------------------------------------------
@@ -698,6 +785,7 @@ function switch_to(index):
     call focus(top_on_current(0))
     call lc.workspace_slide(ws[old], ws[index], 1 if index > old else -1, setting_int("slide_ms", 0, 2000))
     call note("workspace " + String(index + 1))
+    call broadcast("workspace", workspace_event())
 end
 
 function step_index(delta):
@@ -1036,22 +1124,40 @@ function handle(event, id, a, b, c):
         call note("lock " + String(a) + (" (locker gone)" if b == 1 else ""))
     elif event == lc.EV_OUTPUT_USABLE:
         call usable_changed(id)
+        call broadcast("output", output_event())
     elif event == lc.EV_OUTPUT_ADD:
         outputs.append(id)
+        call broadcast("output", output_event())
     elif event == lc.EV_OUTPUT_REMOVE:
         if id in outputs:
             call outputs.remove(id)
         end
+        call broadcast("output", output_event())
+    elif event == lc.EV_LAYOUT:
+        call note("layout " + String(a))
+        call broadcast("keyboard", keyboard_event())
+    elif event == lc.EV_IPC_CONNECT:
+        ipc[id] = {"privileged": b == 1, "topics": []}
+        call note("ipc connect " + String(id) + " pid " + String(a) + (" privileged" if b == 1 else ""))
+        return
+    elif event == lc.EV_IPC_LINE:
+        call ipc_line(id)
+    elif event == lc.EV_IPC_CLOSE:
+        if id in ipc:
+            call ipc.pop(id)
+        end
+        return
     elif event == lc.EV_SLIDE_DONE:
         if focused() == 0:
             call focus(top_on_current(0))
         end
     end
+    call window_changed()
 end
 
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
-               "slide-done", "mods-released", "lock"]
+               "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -1068,11 +1174,241 @@ function on_event(event, id, a, b, c):
     end
 end
 
+# ---- IPC pro shell (docs/developers/luxwm-ipc.md) ----------------------------------------------
+
+function workspace_event():
+    return {"event": "workspace", "current": cur + 1, "count": len(ws)}
+end
+
+function keyboard_event():
+    return {"event": "keyboard", "current": lc.layout(), "layouts": keyboard["layouts"]}
+end
+
+function output_event():
+    items = []
+    for out in outputs:
+        items.append({"name": lc.output_name(out), "x": lc.output_get(out, lc.OUT_X), "y": lc.output_get(out, lc.OUT_Y),
+                      "width": lc.output_get(out, lc.OUT_W), "height": lc.output_get(out, lc.OUT_H),
+                      "scale": lc.output_get(out, lc.OUT_SCALE_PCT), "refresh_mhz": lc.output_get(out, lc.OUT_REFRESH_MHZ),
+                      "usable": usable(out)})
+    end
+    return {"event": "output", "outputs": items}
+end
+
+function theme_event():
+    return {"event": "theme", "theme": "dark" if look["dark"] else "light"}
+end
+
+function window_event():
+    v = focused()
+    if v == 0:
+        return {"event": "window", "id": 0, "app_id": "", "title": ""}
+    end
+    return {"event": "window", "id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v)}
+end
+
+function topic_event(topic):
+    if topic == "window":
+        return window_event()
+    elif topic == "workspace":
+        return workspace_event()
+    elif topic == "keyboard":
+        return keyboard_event()
+    elif topic == "output":
+        return output_event()
+    end
+    return theme_event()
+end
+
+function send(client, message):
+    if lc.ipc_send(client, json.encode(message)) == 0 and client in ipc:
+        call ipc.pop(client)
+    end
+end
+
+function broadcast(topic, message):
+    line = ""
+    for client in [k for k in ipc.keys()]:
+        if topic in ipc[client]["topics"]:
+            if line == "":
+                line = json.encode(message)
+            end
+            if lc.ipc_send(client, line) == 0:
+                call ipc.pop(client)
+            end
+        end
+    end
+end
+
+# Zamerene okno, jeho nazev nebo app_id se zmenily: jedna udalost, i kdyz k tomu vedlo vic udalosti jadra
+function window_changed():
+    global last_window
+    if len(ipc) == 0:
+        return
+    end
+    v = focused()
+    now = [v, lc.view_app_id(v) if v != 0 else "", lc.view_title(v) if v != 0 else ""]
+    if now != last_window:
+        last_window = now
+        call broadcast("window", window_event())
+    end
+end
+
+function window_info(v):
+    space = vget(v, lc.VIEW_WORKSPACE)
+    return {"id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v),
+            "workspace": ws.index(space) + 1 if space in ws else 0, "focused": vget(v, lc.VIEW_FOCUSED) == 1,
+            "minimized": vget(v, lc.VIEW_VISIBLE) == 0, "fullscreen": v in full, "maximized": v in maxed}
+end
+
+function list_windows():
+    items = []
+    seen = []
+    for v in mru:
+        if vget(v, lc.VIEW_MAPPED) == 1:
+            items.append(window_info(v))
+            seen.append(v)
+        end
+    end
+    o = lc.view_next(0)
+    while o != 0:
+        if o not in seen and vget(o, lc.VIEW_MAPPED) == 1:
+            items.append(window_info(o))
+        end
+        o = lc.view_next(o)
+    end
+    return items
+end
+
+function ipc_command(client, request):
+    privileged = ipc[client]["privileged"]
+    cmd = request.get("cmd", "")
+    if type(cmd) != "String":
+        return {"ok": False, "error": "bad request"}
+    end
+    if cmd in PRIVILEGED_COMMANDS and not privileged:
+        return {"ok": False, "error": "permission denied"}
+    end
+    if cmd == "subscribe":
+        topics = request.get("events", [])
+        if type(topics) != "List":
+            return {"ok": False, "error": "bad request"}
+        end
+        for topic in topics:
+            if topic not in IPC_TOPICS:
+                return {"ok": False, "error": "unknown event " + String(topic)}
+            end
+            if topic in PRIVILEGED_TOPICS and not privileged:
+                return {"ok": False, "error": "permission denied"}
+            end
+        end
+        for topic in topics:
+            if topic not in ipc[client]["topics"]:
+                ipc[client]["topics"].append(topic)
+            end
+        end
+        return {"ok": True}
+    elif cmd == "get_state":
+        state = {}
+        for topic in IPC_TOPICS:
+            if privileged or topic not in PRIVILEGED_TOPICS:
+                state[topic] = topic_event(topic)
+            end
+        end
+        return {"ok": True, "state": state}
+    elif cmd == "next_layout":
+        count = lc.layout_count()
+        if count > 1:
+            call switch_layout((lc.layout() + 1) % count)
+        end
+        return {"ok": True}
+    elif cmd == "switch_layout":
+        index = request.get("index", None)
+        code = request.get("layout", None)
+        if code != None:
+            index = None
+            for i in range(len(keyboard["layouts"])):
+                item = keyboard["layouts"][i]
+                if item["code"] == code or item["code"] + "(" + item["variant"] + ")" == code:
+                    index = i
+                    break
+                end
+            end
+        end
+        if type(index) != "Int" or not switch_layout(index):
+            return {"ok": False, "error": "unknown layout"}
+        end
+        return {"ok": True}
+    elif cmd == "switch_workspace":
+        number = request.get("number", None)
+        delta = request.get("delta", None)
+        if type(number) == "Int" and number >= 1 and number <= len(ws):
+            call switch_to(number - 1)
+        elif type(delta) == "Int":
+            call switch_to(step_index(delta))
+        else:
+            return {"ok": False, "error": "bad workspace"}
+        end
+        return {"ok": True}
+    elif cmd == "reload":
+        call on_reload()
+        return {"ok": True}
+    elif cmd == "set_theme":
+        theme = request.get("theme", "")
+        if theme != "light" and theme != "dark":
+            return {"ok": False, "error": "bad theme"}
+        end
+        call apply_theme(theme == "dark")
+        return {"ok": True}
+    elif cmd == "list_windows":
+        return {"ok": True, "windows": list_windows()}
+    elif cmd == "focus_window":
+        v = request.get("id", 0)
+        if type(v) != "Int" or v <= 0 or vget(v, lc.VIEW_MAPPED) != 1:
+            return {"ok": False, "error": "no such window"}
+        end
+        call activate(v, lc.ORIGIN_TASKBAR, 0)
+        return {"ok": True}
+    end
+    return {"ok": False, "error": "unknown command"}
+end
+
+function ipc_line(client):
+    if client not in ipc:
+        return
+    end
+    request = None
+    try:
+        request = json.decode(lc.ipc_line(client))
+    else:
+        request = None
+    end
+    if type(request) != "Dictionary":
+        call send(client, {"ok": False, "error": "bad request"})
+        return
+    end
+    reply = ipc_command(client, request)
+    if "id" in request:
+        reply["id"] = request["id"]
+    end
+    call send(client, reply)
+    # po potvrzeni odberu hned aktualni stav, at klient nemusi zvlast cist get_state
+    if reply["ok"] and request.get("cmd", "") == "subscribe" and client in ipc:
+        for topic in request["events"]:
+            call send(client, topic_event(topic))
+            if client not in ipc:
+                return
+            end
+        end
+    end
+end
+
 # ---- stav pro testy (SIGUSR2) ------------------------------------------------------------------
 
 function dump():
     call log("workspace " + String(cur + 1) + "/" + String(len(ws)) + " locked=" + String(lc.locked())
-        + " xwayland=" + String(lc.xwayland_running()))
+        + " xwayland=" + String(lc.xwayland_running()) + " layout=" + String(lc.layout()) + "/" + String(lc.layout_count())
+        + " ipc=" + String(len(ipc)) + " theme=" + ("dark" if look["dark"] else "light"))
     for out in outputs:
         u = usable(out)
         call log("output " + String(out) + " " + lc.output_name(out) + " " + String(lc.output_get(out, lc.OUT_W)) + "x"
@@ -1118,14 +1454,24 @@ function on_reload():
     call load_config()
     call load_privileged()
     call bind_keys()
-    call apply_theme()
+    call read_locale()
+    call apply_keyboard()
+    call apply_theme(dark_mode())
     call log("configuration reloaded")
     return True
 end
 
 function on_theme():
-    call apply_theme()
+    call apply_theme(dark_mode())
     return True
+end
+
+function ipc_path():
+    runtime = glib.getenv("XDG_RUNTIME_DIR")
+    if runtime == None or runtime == "":
+        return ""
+    end
+    return runtime + "/luxwm-" + lc.socket() + ".sock"
 end
 
 function on_dump():
@@ -1161,7 +1507,16 @@ for i in range(ws_count):
 end
 call lc.workspace_show(ws[0], 1)
 call bind_keys()
-call apply_theme()
+call read_locale()
+call apply_keyboard()
+call apply_theme(dark_mode())
+sock = ipc_path()
+if sock != "" and lc.ipc_listen(sock) == 0:
+    call lc.setenv("LUXWM_SOCK", sock)
+else:
+    call log("no IPC socket" + (" at " + sock if sock != "" else " (no XDG_RUNTIME_DIR)"))
+    sock = ""
+end
 if lc.start() != 0:
     call log("cannot start the backend")
     call lc.destroy()
@@ -1169,6 +1524,7 @@ if lc.start() != 0:
 end
 call log("running on " + lc.socket() + (" (software rendering)" if lc.software_rendering() == 1 else "")
     + ", " + String(ws_count) + " workspaces, " + String(len(binds)) + " shortcuts"
+    + (", ipc " + sock if sock != "" else "")
     + (", xwayland " + xdisplay if xdisplay != "" else ""))
 call glib.fd_add(lc.fd(), glib.IO_IN, on_luxcomp)
 call glib.unix_signal_add(15, on_term)
