@@ -31,7 +31,7 @@ COPY="# LuxOS fingerprint: copy of /usr/lib/pam.d"
 # Greeter LuxOS sem zapise uzivatele, ktery zacal psat heslo: pam_listfile pak otisk preskoci
 # a PAM se hned zepta na heslo (bez cekani na timeout ctecky). Viz luxos-greeter, tmpfiles.d.
 SKIP=/run/luxos-fingerprint/password-only
-SERVICES=(lightdm sudo polkit-1 xfce4-screensaver)
+SERVICES=(lightdm greetd sudo polkit-1 xfce4-screensaver)
 
 login_service() {  # login_service SOUBOR - sluzba prihlaseni (auth include system-login apod.)
     grep -Eq '^[[:space:]]*-?auth[[:space:]]+(include|substack)[[:space:]]+system-(local-|remote-)?login([[:space:]]|$)' "$1"
@@ -46,10 +46,13 @@ block() {  # block SLUZBA ZDROJ - radky vkladane do sluzby
     fi
     # docasne zamceny ucet (pam_faillock) neprojde ani otiskem; requisite = hned konec, bez cekani na ctecku
     printf '%s\n' "auth       requisite   pam_faillock.so preauth"
-    if [[ $1 == lightdm ]]; then
+    if [[ $1 == lightdm || $1 == greetd ]]; then
         # uzivatel v souboru -> preskocit pam_fprintd (default=1); jinak i bez souboru pokracovat
         printf '%s\n' "auth       [success=ignore default=1]  pam_listfile.so item=user sense=deny file=$SKIP onerr=succeed"
-        printf '%s\n' "-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=30"
+        # greetd ceka na PAM postupne (heslo az po otisku): kratky timeout jako u sudo
+        local t=30
+        [[ $1 == greetd ]] && t=10
+        printf '%s\n' "-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=$t"
     else
         # sudo, polkit a zamek obrazovky neumi heslo a otisk soubezne: kratky timeout
         printf '%s\n' "-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=10"

@@ -1,0 +1,18 @@
+# LuxOS - Dock relace na Waylandu (luxos-dock, LSL). Spousti ho luxos-session.target; po padu ho systemd hned
+# spusti znovu. X11 relace dal pouziva plank.
+[Unit]
+Description=LuxOS Dock
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=exec
+ExecStart=/usr/lib/luxos/luxos-dock
+Restart=always
+RestartSec=200ms
+RestartPreventExitStatus=2
+MemoryHigh=96M
+Slice=session.slice

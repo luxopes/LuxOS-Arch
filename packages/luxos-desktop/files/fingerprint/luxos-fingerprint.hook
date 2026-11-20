@@ -5,6 +5,7 @@ Operation = Upgrade
 Operation = Remove
 Target = fprintd
 Target = lightdm
+Target = greetd
 Target = sudo
 Target = polkit
 Target = xfce4-screensaver

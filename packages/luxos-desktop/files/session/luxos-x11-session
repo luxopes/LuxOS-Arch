@@ -1,0 +1,8 @@
+#!/bin/bash
+# LuxOS - relace X11 z prihlasovaci obrazovky greetd ("LuxOS (X11)", stare karty NVIDIA): Xorg bez roota na VT
+# relace logindu a v nem relace (startxfce4). Nahrazuje Xsession LightDM: skripty /etc/X11/xinit/xinitrc.d
+# (pristup k obrazovce, Firefox XInput2) nacte luxos-xsession pred relaci.
+#
+#   luxos-x11-session PRIKAZ...      (greetd: cmd z xsessions/*.desktop)
+export XDG_SESSION_TYPE=x11 DESKTOP_SESSION=${XDG_SESSION_DESKTOP:-luxos}
+exec startx /usr/lib/luxos/luxos-xsession "$@" -- "vt${XDG_VTNR:-1}" -keeptty -nolisten tcp
