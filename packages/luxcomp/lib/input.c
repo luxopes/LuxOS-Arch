@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <wlr/backend.h>
+#include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
@@ -28,8 +29,12 @@ struct keyboard {
 	struct wl_list link;
 	struct wlr_keyboard *wlr;
 	uint32_t swallowed[8];		/* klavesy zkratek: jejich uvolneni klient nedostane */
-	struct wl_listener key, modifiers, destroy;
+	bool own_keymap;		/* virtualni klavesnice s keymapou klienta */
+	bool resend_mods;		/* nova keymapa: klient si stav vynuloval, poslat ho s dalsi klavesou */
+	struct wl_listener key, modifiers, keymap, destroy;
 };
+
+static bool syncing_group;
 
 static uint32_t
 now_ms(void)
@@ -148,21 +153,80 @@ keyboard_key(struct wl_listener *listener, void *data)
 			}
 		}
 	}
-	wlr_seat_set_keyboard(comp.seat, kb->wlr);
+	/* jina klavesnice: klient dostane jeji keymapu i stav (skupina rozlozeni), jinak by klavesy
+	 * vykladal se stavem predchozi klavesnice */
+	if (wlr_seat_get_keyboard(comp.seat) != kb->wlr || kb->resend_mods) {
+		wlr_seat_set_keyboard(comp.seat, kb->wlr);
+		wlr_seat_keyboard_notify_modifiers(comp.seat, &kb->wlr->modifiers);
+		kb->resend_mods = false;
+	}
 	wlr_seat_keyboard_notify_key(comp.seat, event->time_msec, event->keycode,
 		event->state);
+}
+
+/* Rozlozeni je jedno pro vsechny klavesnice. Virtualni klavesnice s vlastni keymapou ho dostane,
+ * jen kdyz tolik rozlozeni ma (emoji maji jedno). */
+static void
+apply_group(struct keyboard *kb)
+{
+	struct wlr_keyboard *w = kb->wlr;
+	if (!w->keymap || xkb_keymap_num_layouts(w->keymap) <= comp.kb_group
+			|| xkb_state_serialize_layout(w->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE) == comp.kb_group) {
+		return;
+	}
+	wlr_keyboard_notify_modifiers(w, w->modifiers.depressed, w->modifiers.latched,
+		w->modifiers.locked, comp.kb_group);
+}
+
+/* Srovnat skupinu na vsech klavesnicich; seat pak dostane modifikatory jen sve klavesnice */
+static void
+sync_group(void)
+{
+	syncing_group = true;
+	struct keyboard *kb;
+	wl_list_for_each(kb, &comp.keyboards, link) {
+		apply_group(kb);
+	}
+	syncing_group = false;
+	struct wlr_keyboard *seat_kb = wlr_seat_get_keyboard(comp.seat);
+	if (seat_kb) {
+		wlr_seat_keyboard_notify_modifiers(comp.seat, &seat_kb->modifiers);
+	}
 }
 
 static void
 keyboard_modifiers(struct wl_listener *listener, void *data)
 {
 	struct keyboard *kb = wl_container_of(listener, kb, modifiers);
+	if (syncing_group) {
+		return;
+	}
 	wlr_seat_set_keyboard(comp.seat, kb->wlr);
 	wlr_seat_keyboard_notify_modifiers(comp.seat, &kb->wlr->modifiers);
 	if (comp.binding_mods_held && !(wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK)) {
 		comp.binding_mods_held = false;
 		emit(LUXCOMP_EV_MODS_RELEASED, 0, 0, 0, 0);
 	}
+	/* prepnuti volbou XKB grp:... na fyzicke klavesnici */
+	if (!kb->own_keymap) {
+		uint32_t group = xkb_state_serialize_layout(kb->wlr->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+		if (group != comp.kb_group) {
+			comp.kb_group = group;
+			sync_group();
+			emit(LUXCOMP_EV_LAYOUT, 0, group, 0, 0);
+		}
+	}
+}
+
+static void
+keyboard_keymap(struct wl_listener *listener, void *data)
+{
+	struct keyboard *kb = wl_container_of(listener, kb, keymap);
+	syncing_group = true;
+	apply_group(kb);
+	syncing_group = false;
+	/* seat posle klientum keymapu az po teto obsluze, ti si pak stav vynuluji */
+	kb->resend_mods = true;
 }
 
 static void
@@ -171,6 +235,7 @@ keyboard_destroy(struct wl_listener *listener, void *data)
 	struct keyboard *kb = wl_container_of(listener, kb, destroy);
 	wl_list_remove(&kb->key.link);
 	wl_list_remove(&kb->modifiers.link);
+	wl_list_remove(&kb->keymap.link);
 	wl_list_remove(&kb->destroy.link);
 	wl_list_remove(&kb->link);
 	free(kb);
@@ -181,16 +246,21 @@ new_keyboard(struct wlr_input_device *device, bool own_keymap)
 {
 	struct keyboard *kb = calloc(1, sizeof(*kb));
 	kb->wlr = wlr_keyboard_from_input_device(device);
+	kb->own_keymap = own_keymap;
 	if (!own_keymap) {
-		struct xkb_keymap *map = make_keymap();
-		wlr_keyboard_set_keymap(kb->wlr, map);
-		xkb_keymap_unref(map);
+		if (!comp.kb_keymap) {
+			comp.kb_keymap = make_keymap();
+		}
+		wlr_keyboard_set_keymap(kb->wlr, comp.kb_keymap);
+		apply_group(kb);
 	}
 	wlr_keyboard_set_repeat_info(kb->wlr, comp.repeat_rate, comp.repeat_delay);
 	kb->key.notify = keyboard_key;
 	wl_signal_add(&kb->wlr->events.key, &kb->key);
 	kb->modifiers.notify = keyboard_modifiers;
 	wl_signal_add(&kb->wlr->events.modifiers, &kb->modifiers);
+	kb->keymap.notify = keyboard_keymap;
+	wl_signal_add(&kb->wlr->events.keymap, &kb->keymap);
 	kb->destroy.notify = keyboard_destroy;
 	wl_signal_add(&device->events.destroy, &kb->destroy);
 	wl_list_insert(&comp.keyboards, &kb->link);
@@ -542,12 +612,55 @@ luxcomp_set_keymap(const char *layout, const char *variant, const char *options)
 	comp.kb_layout = layout && *layout ? strdup(layout) : NULL;
 	comp.kb_variant = variant && *variant ? strdup(variant) : NULL;
 	comp.kb_options = options && *options ? strdup(options) : NULL;
-	struct xkb_keymap *map = make_keymap();
+	if (comp.kb_keymap) {
+		xkb_keymap_unref(comp.kb_keymap);
+	}
+	comp.kb_keymap = make_keymap();
+	if (comp.kb_group >= xkb_keymap_num_layouts(comp.kb_keymap)) {
+		comp.kb_group = 0;
+	}
 	struct keyboard *kb;
 	wl_list_for_each(kb, &comp.keyboards, link) {
-		wlr_keyboard_set_keymap(kb->wlr, map);
+		if (!kb->own_keymap) {
+			wlr_keyboard_set_keymap(kb->wlr, comp.kb_keymap);
+		}
 	}
-	xkb_keymap_unref(map);
+	sync_group();
+}
+
+void
+luxcomp_set_layout(int64_t index)
+{
+	if (index < 0 || index >= luxcomp_layout_count()) {
+		return;
+	}
+	comp.kb_group = index;
+	sync_group();
+}
+
+int64_t
+luxcomp_layout(void)
+{
+	return comp.kb_group;
+}
+
+int64_t
+luxcomp_layout_count(void)
+{
+	if (!comp.kb_keymap) {
+		comp.kb_keymap = make_keymap();
+	}
+	return comp.kb_keymap ? xkb_keymap_num_layouts(comp.kb_keymap) : 0;
+}
+
+const char *
+luxcomp_layout_name(int64_t index)
+{
+	if (index < 0 || index >= luxcomp_layout_count()) {
+		return "";
+	}
+	const char *name = xkb_keymap_layout_get_name(comp.kb_keymap, index);
+	return name ? name : "";
 }
 
 void

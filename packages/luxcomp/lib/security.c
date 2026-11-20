@@ -42,13 +42,8 @@ level_of(const struct wl_global *global)
 }
 
 bool
-client_privileged(struct wl_client *client)
+pid_privileged(pid_t pid)
 {
-	if (wlr_security_context_manager_v1_lookup_client(comp.security, client)) {
-		return false;
-	}
-	pid_t pid = 0;
-	wl_client_get_credentials(client, &pid, NULL, NULL);
 	if (pid <= 0) {
 		return false;
 	}
@@ -70,6 +65,17 @@ client_privileged(struct wl_client *client)
 		}
 	}
 	return false;
+}
+
+bool
+client_privileged(struct wl_client *client)
+{
+	if (wlr_security_context_manager_v1_lookup_client(comp.security, client)) {
+		return false;
+	}
+	pid_t pid = 0;
+	wl_client_get_credentials(client, &pid, NULL, NULL);
+	return pid_privileged(pid);
 }
 
 static bool

@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 #include "luxcomp.h"
@@ -15,6 +16,7 @@ struct wlr_surface;
 struct wlr_xwayland_surface;
 struct wlr_session_lock_v1;
 struct wlr_ext_image_capture_source_v1;
+struct xkb_keymap;
 
 enum grab_mode { GRAB_NONE, GRAB_MOVE, GRAB_RESIZE };
 
@@ -155,6 +157,8 @@ struct comp {
 	uint32_t grab_edges;
 
 	char *kb_layout, *kb_variant, *kb_options;
+	struct xkb_keymap *kb_keymap;	/* the keymap of physical keyboards */
+	uint32_t kb_group;		/* active layout, the same on every keyboard */
 	int repeat_rate, repeat_delay;
 };
 
@@ -224,10 +228,14 @@ const char *idle_shell_token(void);
 void security_init(void);
 void security_mark(struct wl_global *global, int level);
 bool client_privileged(struct wl_client *client);
+bool pid_privileged(pid_t pid);
 enum { GLOBAL_SANDBOX_DENIED = 1, GLOBAL_PRIVILEGED = 2, GLOBAL_VIRTUAL_INPUT = 3 };
 
 /* xwayland.c */
 void xwayland_finish(void);
+
+/* ipc.c */
+void ipc_finish(void);
 
 /* workspace.c */
 struct workspace *workspace_by_id(int64_t id);

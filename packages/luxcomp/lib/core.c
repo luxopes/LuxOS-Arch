@@ -392,6 +392,7 @@ void
 luxcomp_destroy(void)
 {
 	xwayland_finish();
+	ipc_finish();
 	wl_display_destroy_clients(comp.display);
 	wl_list_remove(&comp.toplevel_capture.link);
 	wl_list_remove(&comp.activate.link);
