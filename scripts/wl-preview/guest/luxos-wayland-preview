@@ -11,12 +11,19 @@ if [[ ${1-} == --shell ]]; then
     # WAYLAND_DISPLAY (a DISPLAY, kdyz bezi XWayland) nastavil luxwm; uzivatelske sluzby ho potrebuji
     vars=(WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP GDK_BACKEND
           QT_QPA_PLATFORM MOZ_ENABLE_WAYLAND SDL_VIDEODRIVER ELECTRON_OZONE_PLATFORM_HINT XKB_DEFAULT_LAYOUT
-          XKB_DEFAULT_VARIANT XKB_DEFAULT_OPTIONS)
+          XKB_DEFAULT_VARIANT XKB_DEFAULT_OPTIONS XDG_CONFIG_DIRS XDG_DATA_DIRS PATH XCURSOR_THEME XCURSOR_SIZE)
     dbus-update-activation-environment --systemd "${vars[@]}" 2>/dev/null \
         || systemctl --user import-environment "${vars[@]}"
+    /usr/lib/luxos/luxos-wayland-settings &
     exec systemctl --user start luxos-wayland-preview.target
 fi
 
+# Prostredi jako prihlaseni do X11 (LightDM nacita /etc/profile): /etc/profile.d/luxos.sh pridava
+# /etc/xdg/luxos (vychozi nastaveni GTK, xfconf) a prekryti .desktop v /var/lib/luxos/apps (kratke nazvy
+# a ikony aplikaci), Flatpak a PATH programu LuxOS. Bez nich Dock nespojil Thunar s ikonou Soubory.
+set +u
+. /etc/profile
+set -u
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=LuxOS XDG_SESSION_DESKTOP=luxos
 export GDK_BACKEND=wayland,x11 QT_QPA_PLATFORM='wayland;xcb' MOZ_ENABLE_WAYLAND=1 SDL_VIDEODRIVER=wayland,x11
 export ELECTRON_OZONE_PLATFORM_HINT=auto
@@ -32,6 +39,14 @@ if [[ -r /etc/vconsole.conf ]]; then
         esac
     done </etc/vconsole.conf
 fi
+
+# xfconfd (aktivuje ho D-Bus prvnim dotazem) musi videt /etc/xdg/luxos uz pri prvnim cteni nize
+dbus-update-activation-environment --systemd XDG_CONFIG_DIRS XDG_DATA_DIRS PATH 2>/dev/null
+# kurzor pro luxwm a aplikace mimo GTK (XCURSOR_*), stejny jako na X11 (xsettings Gtk/CursorTheme*)
+while IFS= read -r line; do export "$line"; done < <(/usr/lib/luxos/luxos-wayland-settings --env)
+# standardni slozky (Dokumenty, Stazene...) jako autostart xdg-user-dirs na X11; jinak je domov v Souborech
+# prazdny (jen skryte soubory)
+xdg-user-dirs-update 2>/dev/null
 
 # prvni prihlaseni: tapeta pro luxos-backdrop a sklo listy (na X11 ji drzi xfdesktop, appearance.conf je prazdny)
 cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos

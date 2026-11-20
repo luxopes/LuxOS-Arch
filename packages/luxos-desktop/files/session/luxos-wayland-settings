@@ -1,0 +1,57 @@
+#!/bin/bash
+# LuxOS - vzhled aplikaci v relaci na Waylandu misto xfsettingsd: GTK na Waylandu necte XSETTINGS, ale
+# org.gnome.desktop.interface (gsettings), takze se pri prihlaseni prenese nastaveni z kanalu xsettings
+# (vychozi LuxOS v /etc/xdg/luxos/xfce4/xfconf a zmeny uzivatele z Nastaveni): tema, ikony, kurzor, pisma,
+# vyhlazovani a hinting, rozlozeni tlacitek a meritko textu. Zapisuje se jen to, co se lisi (bez zbytecnych
+# zapisu do dconf pri kazdem prihlaseni).
+#
+#   luxos-wayland-settings          prenest do gsettings
+#   luxos-wayland-settings --env    jen vypsat XCURSOR_THEME=.. a XCURSOR_SIZE=.. pro prostredi relace
+#
+# Svetly/tmavy rezim (color-scheme) a tema pri prepnuti nastavuje primo luxos-appearance.
+xs() { xfconf-query -c xsettings -p "$1" 2>/dev/null; }
+
+cursor=$(xs /Gtk/CursorThemeName)
+size=$(xs /Gtk/CursorThemeSize)
+if [[ ${1-} == --env ]]; then
+    echo "XCURSOR_THEME=${cursor:-WhiteSur-cursors}"
+    echo "XCURSOR_SIZE=${size:-24}"
+    exit 0
+fi
+command -v gsettings >/dev/null || exit 0
+
+set_key() {  # set_key SCHEMA KLIC HODNOTA (hodnota ve tvaru GVariant, retezce v '')
+    [[ -n $3 && $3 != "''" ]] || return 0
+    [[ $(gsettings get "$1" "$2" 2>/dev/null) == "$3" ]] || gsettings set "$1" "$2" "$3" 2>/dev/null
+}
+q() { [[ -n $1 ]] && printf "'%s'" "${1//\'/}"; }
+
+gi=org.gnome.desktop.interface
+set_key $gi gtk-theme "$(q "$(xs /Net/ThemeName)")"
+set_key $gi icon-theme "$(q "$(xs /Net/IconThemeName)")"
+set_key $gi cursor-theme "$(q "$cursor")"
+[[ $size =~ ^[0-9]+$ ]] && set_key $gi cursor-size "$size"
+set_key $gi font-name "$(q "$(xs /Gtk/FontName)")"
+set_key $gi monospace-font-name "$(q "$(xs /Gtk/MonospaceFontName)")"
+
+# Xft: Antialias 0/1, RGBA none/rgb/bgr/vrgb/vbgr, Hinting 0/1, HintStyle hintnone..hintfull
+rgba=$(xs /Xft/RGBA)
+case $(xs /Xft/Antialias) in
+    0) set_key $gi font-antialiasing "'none'" ;;
+    1) if [[ -n $rgba && $rgba != none ]]; then set_key $gi font-antialiasing "'rgba'"
+       else set_key $gi font-antialiasing "'grayscale'"; fi ;;
+esac
+[[ $rgba =~ ^v?(rgb|bgr)$ ]] && set_key $gi font-rgba-order "'$rgba'"
+hint=$(xs /Xft/HintStyle)
+[[ $(xs /Xft/Hinting) == 0 ]] && hint=hintnone
+[[ $hint =~ ^hint(none|slight|medium|full)$ ]] && set_key $gi font-hinting "'${hint#hint}'"
+
+# Velikost textu z Nastaveni > Displeje (Xft/DPI, bez hodnoty = vychozi 96 DPI) -> meritko textu
+dpi=$(xs /Xft/DPI)
+[[ $dpi =~ ^[0-9]+$ ]] && ((dpi > 0)) || dpi=96
+# tvar jako gsettings get (1.0, 1.25, 1.5), at se stejna hodnota nezapisuje znovu
+set_key $gi text-scaling-factor "$(awk -v d="$dpi" 'BEGIN { s = sprintf("%.2f", d / 96); sub(/0$/, "", s); print s }')"
+
+layout=$(xs /Gtk/DecorationLayout)
+set_key org.gnome.desktop.wm.preferences button-layout "$(q "$layout")"
+exit 0

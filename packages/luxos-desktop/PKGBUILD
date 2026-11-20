@@ -269,6 +269,8 @@ package() {
     # Pristup k obrazovce nezavisly na nazvu pocitace (FamilyWild v ~/.Xauthority) a presun starych kopii
     # programu LuxOS z ~/.local (pri prihlaseni: xinitrc.d a luxos-session)
     install -Dm755 -t "$pkgdir/usr/lib/luxos" "$f/session/luxos-xauth-wildcard" "$f/session/luxos-shadow-guard"
+    # Relace na Waylandu: vzhled aplikaci (xsettings -> gsettings) misto xfsettingsd
+    install -Dm755 -t "$pkgdir/usr/lib/luxos" "$f/session/luxos-wayland-settings"
     install -Dm755 "$f/xinit/10-luxos-xauth.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/10-luxos-xauth.sh"
     # Sledovani aktivniho okna (bash, xprop -spy) pro "luxos-appname watch"
     install -Dm755 "$f/luxos-appname-watch" "$pkgdir/usr/lib/luxos/luxos-appname-watch"
