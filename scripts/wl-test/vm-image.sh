@@ -1,5 +1,6 @@
 #!/bin/bash
 # Minimalni obraz Arch Linuxu s labwc pro VM matici (vm-matrix.sh).
+#   vm-image.sh [BALIK.pkg.tar.zst..]   navic mistni baliky, napr. wlroots0.20 a luxcomp z build.sh one
 # Stavi se v kontejneru (pacstrap jako u build.sh), vysledek: $WLT_OUT/vm/{root.img,vmlinuz,initramfs.img}
 # Root bez hesla s automatickym prihlasenim na tty1 - jen pro jednorazove testovaci VM s -snapshot.
 set -euo pipefail
@@ -13,6 +14,8 @@ engine=$(command -v podman || command -v docker) || { echo "podman or docker is 
 make -s -C "$here" OUT="$out"
 "$engine" image exists "$image" 2>/dev/null || "$engine" build -t "$image" -f "$repo/scripts/Containerfile" "$repo/scripts"
 mkdir -p "$vm"
+rm -rf "$vm/pkgs" && mkdir -p "$vm/pkgs"
+(($#)) && cp "$@" "$vm/pkgs/"
 
 "$engine" run --rm --privileged -v "$vm:/vm:z" -v "$out/bin:/wltbin:ro,z" -v "$here/vm-guest:/guest:ro,z" \
     -v "$here/labwc:/labwc:ro,z" "$image" bash -euo pipefail -c '
@@ -20,6 +23,11 @@ mkdir -p "$vm"
     mkdir -p $r
     pacman -Sy --noconfirm >/dev/null
     pacstrap -c $r base linux labwc wlroots0.20 wlr-randr grim mesa >/dev/null
+    # mistni baliky nahradi ty z Archu, zavislosti se doinstaluji (font pro titulky oken luxcomp)
+    if compgen -G "/vm/pkgs/*.pkg.tar.zst" >/dev/null; then
+        pacstrap -c -U $r /vm/pkgs/*.pkg.tar.zst >/dev/null
+        pacstrap -c $r ttf-dejavu >/dev/null
+    fi
     install -Dm755 /wltbin/wlt-client $r/usr/local/bin/wlt-client
     install -Dm755 /guest/wlt-guest $r/usr/local/bin/wlt-guest
     install -Dm644 /guest/autologin.conf $r/etc/systemd/system/getty@tty1.service.d/autologin.conf

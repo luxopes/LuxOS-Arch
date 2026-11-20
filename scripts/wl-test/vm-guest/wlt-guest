@@ -1,32 +1,58 @@
 #!/bin/bash
-# Relace v testovaci VM: labwc na DRM s rendererem podle wlt.renderer=auto|pixman|gles2 z prikazove radky
-# jadra. Zpravy pro hostitele jdou do virtio portu wlt (vm-matrix.sh je cte ze souboru).
+# Relace v testovaci VM: kompozitor na DRM podle prikazove radky jadra
+#   wlt.comp=labwc|luxcomp     labwc s autostartem, nebo luxcomp-demo (libluxcomp)
+#   wlt.renderer=auto|pixman|gles2, wlt.swcursor=1
+# Zpravy pro hostitele jdou do virtio portu wlt (vm-matrix.sh je cte ze souboru). Prikazy od hostitele
+# chodi portem wltctl a u luxcomp jdou na stdin luxcomp-demo ("spawn PRIKAZ", "list"...).
 port=/dev/virtio-ports/wlt
+log=/root/comp.log
 say() { echo "WLT $*" >"$port"; }
 
+comp=labwc
+renderer=auto
+for a in $(</proc/cmdline); do
+    case $a in
+        wlt.comp=*) comp=${a#*=} ;;
+        wlt.renderer=*) renderer=${a#*=} ;;
+        wlt.swcursor=1) export WLR_NO_HARDWARE_CURSORS=1 ;;
+    esac
+done
+case $comp in
+    labwc) prog=labwc ;;
+    luxcomp) prog=luxcomp-demo ;;
+    *) say "comp_exit=unknown compositor $comp"; exit 1 ;;
+esac
+
 if [[ ${1-} == ready ]]; then
-    pid=$(pidof labwc)
-    log=/root/labwc.log
-    grep -E 'render node|[Rr]enderer|[Ss]oftware rendering|EGL|GL_RENDERER|GL renderer|Opened DRM|Initializing DRM' $log \
+    pid=$(pidof $prog)
+    grep -E 'render node|[Rr]enderer|[Ss]oftware rendering|EGL|GL_RENDERER|GL renderer|Opened DRM|Initializing DRM|luxcomp:' $log \
         | grep -v 'pixman buffer' | head -15 | while read -r l; do say "log ${l#*] }"; done
-    if grep -q 'Creating pixman renderer' $log; then r=pixman
+    if [[ $comp == luxcomp ]]; then
+        # libluxcomp pise svou volbu vzdy: "luxcomp: renderer pixman + software cursor (duvod)"
+        r=$(sed -n 's/.*luxcomp: renderer \([a-z0-9]*\).*/\1/p' $log | head -1)
+        r=${r:-unknown}
+    elif grep -q 'Creating pixman renderer' $log; then r=pixman
     elif grep -q 'gles2/renderer.c' $log && ! grep -q 'Failed to create a GLES2' $log; then r=gles2
     elif grep -q 'vulkan/renderer.c' $log && ! grep -q 'Failed to create a Vulkan' $log; then r=vulkan
     else r=unknown; fi
     say "renderer=$r"
+    if [[ $comp == luxcomp ]]; then
+        # i bez DRM backendu (headless, vnoreny) musi libluxcomp poznat render node bez 3D
+        h=$(mktemp -d) && chmod 700 $h
+        hr=$(XDG_RUNTIME_DIR=$h WAYLAND_DISPLAY= WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 \
+            timeout 3 /usr/lib/luxcomp/luxcomp-demo </dev/null 2>&1 | sed -n 's/.*luxcomp: renderer //p' | head -1)
+        say "headless_renderer=${hr:-none}"
+    fi
     say READY
     # PSS v klidu: hostitel po READY 10 s jen snima obrazovku
     sleep 5
     say "pss_idle_kb=$(awk '/^Pss:/{print $2}' /proc/$pid/smaps_rollup)"
     sleep 25
+    grep -a 'luxcomp: slide' $log | while read -r l; do say "slide ${l#*luxcomp: slide }"; done
     say "pss_after_kb=$(awk '/^Pss:/{print $2}' /proc/$pid/smaps_rollup)"
     exit 0
 fi
 
-renderer=auto
-for a in $(</proc/cmdline); do
-    case $a in wlt.renderer=*) renderer=${a#*=} ;; wlt.swcursor=1) export WLR_NO_HARDWARE_CURSORS=1 ;; esac
-done
 for c in /sys/class/drm/card[0-9]; do
     say "drm $(basename $c) driver=$(basename "$(readlink $c/device/driver)")"
 done
@@ -34,8 +60,17 @@ say "dri_nodes=$(ls /dev/dri | tr '\n' ' ')"
 [[ $renderer != auto ]] && export WLR_RENDERER=$renderer
 say "renderer_env=${WLR_RENDERER:-unset}"
 export XDG_RUNTIME_DIR=/run/user/0
-labwc -d >/root/labwc.log 2>&1
+if [[ $comp == labwc ]]; then
+    labwc -d >$log 2>&1
+else
+    # stdin luxcomp-demo = fifo; zapisovac drzi fifo otevrene a predava prikazy z portu wltctl
+    fifo=$XDG_RUNTIME_DIR/wlt-cmd
+    mkfifo -m600 $fifo
+    (exec 3>$fifo; while read -r line; do echo "$line" >&3; done </dev/virtio-ports/wltctl) &
+    # po startu (renderer je uz v logu) jen ohlasi pripravenost, okna otevira scenar hostitele
+    LUXCOMP_STATS=1 /usr/lib/luxcomp/luxcomp-demo 'wlt-guest ready' <$fifo >$log 2>&1
+fi
 rc=$?
-say "labwc_exit=$rc"
-grep -E 'Creating .* renderer|Failed to create renderer|renderer|Using|allocator' /root/labwc.log | grep -v DEBUG | head -20 \
+say "comp_exit=$rc"
+grep -E 'Creating .* renderer|Failed to create renderer|renderer|Using|allocator|luxcomp:' $log | grep -v DEBUG | head -20 \
     | while read -r l; do say "log $l"; done
