@@ -19,6 +19,7 @@ as_user() {
     ctl exec "sudo -u luxos XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
         WAYLAND_DISPLAY=wayland-0 DISPLAY=:0 sh -c '$1'"
 }
+has() { ctl exec "$1" 2>/dev/null | grep -q "$2"; }   # has PRIKAZ_V_HOSTU VZOR
 shot() { ctl shot "$out/$1.png" >/dev/null && echo "shot $out/$1.png"; }
 ok=0 bad=0
 check() {  # check POPIS PRIKAZ..
@@ -43,17 +44,18 @@ for _ in $(seq 600); do
 done
 check "desktop session up" test -n "$desk"
 [[ -n $desk ]] || { shot failed; exit 1; }
-printf 'boot_to_desktop_s=%.1f\n' "$(echo "$desk - $t0" | bc)" | tee "$out/result.txt"
+awk -v a="$t0" -v b="$desk" 'BEGIN {printf "boot_to_desktop_s=%.1f\n", b - a}' | tee "$out/result.txt"
 sleep 8   # prvni snimky listy a Docku, Launchpad na pozadi
 shot 1-desktop
 
-check "luxwm on pixman" sh -c "ctl exec 'grep -h \"running on\" /home/luxos/.local/state/luxos/luxwm.log' | tee -a '$out/result.txt' | grep -q software"
+ctl exec 'grep -h "running on" /home/luxos/.local/state/luxos/luxwm.log' | tee -a "$out/result.txt"
+check "luxwm on pixman" has 'cat /home/luxos/.local/state/luxos/luxwm.log' 'software rendering'
 ctl exec 'systemctl --machine=luxos@ --user --no-pager list-units "luxos-*"' >"$out/units.txt" 2>&1
 
 # Terminal zkratkou Super+T
 ctl key meta_l-t; sleep 4
 shot 2-terminal
-check "terminal opened by Super+T" sh -c "ctl exec 'pgrep -u luxos -x luxos-terminal' | grep -q '[0-9]'"
+check "terminal opened by Super+T" has 'pgrep -u luxos -x luxos-terminal' '[0-9]'
 
 # prejezd na plochu 2 a zpet (Ctrl+Super+sipky): snimky behem prejezdu, plocha 2 je prazdna
 "$bin/wlt-qmp" "$vm/qmp2.sock" capture "$out/slide" 30 2 >"$out/slide.capture" &
@@ -73,17 +75,26 @@ rm -rf "$out/slide"
 as_user 'notify-send -a Smoke "LuxOS na Waylandu" "Bublina z luxos-notify"' >/dev/null
 sleep 1.5
 shot 5-notification
-check "notification server is luxos-notify" sh -c "ctl exec 'pgrep -u luxos -f /usr/lib/luxos/luxos-notify' | grep -q '[0-9]'"
+check "notification server is luxos-notify" has 'pgrep -u luxos -f /usr/lib/luxos/luxos-notify' '[0-9]'
 
 # aplikace z Docku: ikona Souboru (Thunar), treti zleva ve vychozim Docku pri 1280x800
 ctl click "${DOCK_X:-555}" "${DOCK_Y:-762}" "${SCR_W:-1280}" "${SCR_H:-800}"; sleep 5
 shot 6-dock-app
-check "app started from Dock" sh -c "ctl exec 'pgrep -u luxos -x \"${DOCK_APP:-thunar}\"' | grep -q '[0-9]'"
+check "app started from Dock" has "pgrep -u luxos -x ${DOCK_APP:-thunar}" '[0-9]'
 
 # XWayland
 as_user 'setsid xeyes >/dev/null 2>&1 &' >/dev/null; sleep 4
 shot 7-xeyes
-check "xeyes via XWayland" sh -c "ctl exec 'pgrep -u luxos -x Xwayland' | grep -q '[0-9]'"
+check "xeyes via XWayland" has 'pgrep -u luxos -x Xwayland' '[0-9]'
+
+# zamek: loginctl lock-session (jako polozka Zamknout v liste), odemknout heslem luxos
+check "lock watcher running" has 'systemctl --machine=luxos@ --user is-active luxos-lock.service' '^active'
+ctl exec 'loginctl lock-session 1' >/dev/null; sleep 3
+shot 8-locked
+check "screen locked" has 'loginctl show-session 1 -p LockedHint' 'yes'
+ctl keys luxos >/dev/null; ctl key ret >/dev/null; sleep 3
+shot 9-unlocked
+check "unlocked with the password" has 'loginctl show-session 1 -p LockedHint' 'no'
 
 # PSS vsech procesu uzivatele luxos (relace vcetne aplikaci otevrenych testem) a jen shellu
 ctl exec 'for p in $(pgrep -u luxos); do n=$(cat /proc/$p/comm); k=$(awk "/^Pss:/{print \$2}" /proc/$p/smaps_rollup 2>/dev/null); echo "${k:-0} $n"; done | sort -rn' \
