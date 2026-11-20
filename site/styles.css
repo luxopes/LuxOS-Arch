@@ -275,3 +275,4 @@ body.light .doc kbd,body.light .landing kbd{background:#f2f4fb}
 .sb-shot img{max-width:min(100%,640px)}
 .doc a.button-primary,body.light .doc a.button-primary{color:#fff;text-decoration:none}
 body.light .doc a.button-outline{color:#273253;text-decoration:none}
+.benefits{margin-top:6px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.benefit{padding:18px 20px}.benefit h3{font-size:15px;letter-spacing:-.2px;margin:0 0 6px}.benefit p{margin:0;font-size:13px;line-height:1.65;color:var(--muted)}.benefit code{font-size:12px;background:rgba(127,136,190,.16);padding:1px 5px;border-radius:5px}body.light .benefit p{color:#42506d}@media(max-width:1100px){.benefit-grid{grid-template-columns:1fr 1fr}}@media(max-width:760px){.benefit-grid{grid-template-columns:1fr}}
