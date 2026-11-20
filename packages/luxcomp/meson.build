@@ -36,8 +36,8 @@ deps = [
 ]
 
 lib = shared_library('luxcomp',
-  'src/core.c', 'src/view.c', 'src/input.c', 'src/deco.c', 'src/workspace.c',
-  'src/renderer.c', protos,
+  'lib/core.c', 'lib/view.c', 'lib/input.c', 'lib/deco.c', 'lib/workspace.c',
+  'lib/renderer.c', protos,
   include_directories: include_directories('include'),
   dependencies: deps,
   gnu_symbol_visibility: 'hidden',

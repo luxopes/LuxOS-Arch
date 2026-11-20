@@ -4,6 +4,7 @@
 # program nad ni (luxwm v LSL) pres ploche API v include/luxcomp.h (docs/developers/luxcomp-api.md).
 # Renderer: gles2 jen kdyz 3D opravdu funguje, jinak pixman + softwarovy kurzor (VM bez 3D).
 # luxcomp-demo (/usr/lib/luxcomp) je nejmensi politika v C na zkouseni jadra, ne soucast sezeni.
+# Zdroje jsou v lib/, ne v src/: makepkg pred build() maze $startdir/src.
 # Testy: tests/run.sh (kontejner, headless a vnoreny Xvfb, snimky grim, PSS).
 
 pkgname=luxcomp
