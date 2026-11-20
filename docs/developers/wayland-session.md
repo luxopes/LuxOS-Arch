@@ -104,6 +104,8 @@ Python greeter keep working as in 1.0.x (X11 only).
   - The wallpaper for `luxos-backdrop`.
   - The managed `gtk.css` block.
   - Tour, Welcome and What's new, as the transient unit `luxos-first-run`.
+  - One-time import of the Xfce keyboard shortcuts into `~/.config/luxwm/luxwm.conf`
+    (`luxos-keyboard-settings --import-shortcuts`, once luxwm is up).
 - **Not carried over:** the xfconf migrations, which have no meaning without Xfce, and these, which are left to
   WP-12: `luxos-hub`, saved display layout, software brightness, power saver re-apply, clock alarms and data saver.
 
