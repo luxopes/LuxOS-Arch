@@ -1,0 +1,19 @@
+# LuxOS - prepnuti prihlasovaci obrazovky: s balikem greetd (Wayland), bez nej zpet LightDM
+post_install() {
+    # display-manager.service je alias: enable -f ho prepise z lightdm na greetd (projevi se po restartu)
+    systemctl disable lightdm.service >/dev/null 2>&1
+    systemctl enable -f greetd.service >/dev/null 2>&1
+    echo "LuxOS: the login screen is now greetd (LuxOS on Wayland) after the next restart."
+}
+
+post_upgrade() {
+    systemctl is-enabled -q greetd.service 2>/dev/null || post_install
+}
+
+post_remove() {
+    systemctl disable greetd.service >/dev/null 2>&1
+    if [ -e /usr/lib/systemd/system/lightdm.service ]; then
+        systemctl enable -f lightdm.service >/dev/null 2>&1
+        echo "LuxOS: the login screen is LightDM again after the next restart."
+    fi
+}

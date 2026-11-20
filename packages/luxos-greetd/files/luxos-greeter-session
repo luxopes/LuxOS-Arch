@@ -1,0 +1,20 @@
+#!/bin/bash
+# LuxOS - prihlasovaci obrazovka pod greetd (uzivatel greeter): luxwm --greeter s luxos-greeter. Na NVIDIA 470
+# a starsi (bez GBM) nebo NVIDIA bez modeset Wayland nebezi: greeter pak bezi v Xorg (xinit) a vychozi relace
+# je LuxOS (X11) - stejne pravidlo ma luxos-greeter (legacy_gpu).
+[[ -r /etc/locale.conf ]] && . /etc/locale.conf && export LANG LC_TIME LC_MESSAGES
+export XCURSOR_THEME=WhiteSur-cursors XCURSOR_SIZE=24 GDK_BACKEND=wayland,x11
+
+legacy_gpu() {
+    local v
+    v=$(cat /sys/module/nvidia/version 2>/dev/null) || return 1
+    [[ -n $v ]] || return 1
+    ((${v%%.*} < 495)) && return 0
+    [[ $(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null) != Y ]]
+}
+
+if legacy_gpu; then
+    export GDK_BACKEND=x11
+    exec xinit /usr/lib/luxos/luxos-greeter -- /usr/bin/Xorg :0 "vt${XDG_VTNR:-1}" -keeptty -nolisten tcp -background none
+fi
+exec /usr/bin/luxwm --greeter /usr/lib/luxos/luxos-greeter
