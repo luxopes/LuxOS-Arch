@@ -1,0 +1,50 @@
+#!/bin/bash
+# LuxOS - nahled relace na Waylandu (1.1.0) ve zkusebni VM: luxwm a shell (lista, Dock, oznameni, zamek).
+# Spousti ho luxos-wayland-preview.service na tty1 (automaticke prihlaseni). Az bude WP-13 (luxos-session.target
+# a greeter), tento skript zmizi. X11 relace zustava nainstalovana: sudo systemctl start lightdm.
+#
+#   luxos-wayland-preview           spusti luxwm a v nem shell
+#   luxos-wayland-preview --shell   (spousti luxwm) predani prostredi systemd a start shellu
+set -u
+
+if [[ ${1-} == --shell ]]; then
+    # WAYLAND_DISPLAY (a DISPLAY, kdyz bezi XWayland) nastavil luxwm; uzivatelske sluzby ho potrebuji
+    vars=(WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP GDK_BACKEND
+          QT_QPA_PLATFORM MOZ_ENABLE_WAYLAND SDL_VIDEODRIVER ELECTRON_OZONE_PLATFORM_HINT XKB_DEFAULT_LAYOUT
+          XKB_DEFAULT_VARIANT XKB_DEFAULT_OPTIONS)
+    dbus-update-activation-environment --systemd "${vars[@]}" 2>/dev/null \
+        || systemctl --user import-environment "${vars[@]}"
+    exec systemctl --user start luxos-wayland-preview.target
+fi
+
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=LuxOS XDG_SESSION_DESKTOP=luxos
+export GDK_BACKEND=wayland,x11 QT_QPA_PLATFORM='wayland;xcb' MOZ_ENABLE_WAYLAND=1 SDL_VIDEODRIVER=wayland,x11
+export ELECTRON_OZONE_PLATFORM_HINT=auto
+
+# rozlozeni klavesnice systemu (localectl / instalator); luxwm ho zatim z locale1 necte (WP-2)
+if [[ -r /etc/vconsole.conf ]]; then
+    while IFS='=' read -r k v; do
+        v=${v//\"/}
+        case $k in
+            XKBLAYOUT) export XKB_DEFAULT_LAYOUT=$v ;;
+            XKBVARIANT) export XKB_DEFAULT_VARIANT=$v ;;
+            XKBOPTIONS) export XKB_DEFAULT_OPTIONS=$v ;;
+        esac
+    done </etc/vconsole.conf
+fi
+
+# prvni prihlaseni: tapeta pro luxos-backdrop a sklo listy (na X11 ji drzi xfdesktop, appearance.conf je prazdny)
+cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
+if ! grep -q '^WALLPAPER=' "$cfg/appearance.conf" 2>/dev/null; then
+    mode=light
+    [[ $(cat "$cfg/appearance" 2>/dev/null) == dark ]] && mode=dark
+    luxos-appearance wallpaper "/usr/share/backgrounds/luxos/luxos-$mode.jpg" >/dev/null 2>&1
+fi
+
+log=${XDG_STATE_HOME:-$HOME/.local/state}/luxos/luxwm.log
+mkdir -p "${log%/*}"
+[[ -f $log ]] && mv -f "$log" "$log.old"
+luxwm "$0 --shell" >"$log" 2>&1
+rc=$?
+systemctl --user stop graphical-session.target
+exit $rc

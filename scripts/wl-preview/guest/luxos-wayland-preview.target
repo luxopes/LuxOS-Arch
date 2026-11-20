@@ -1,0 +1,8 @@
+# LuxOS - shell nahledu relace na Waylandu (do WP-13 a luxos-session.target)
+[Unit]
+Description=LuxOS Wayland preview shell
+BindsTo=graphical-session.target
+Wants=luxos-notify.service luxos-bar.service luxos-dock.service luxos-backdrop.service luxos-widgets.service
+Wants=luxos-lock.service
+# Launchpad bezi predem se skrytym oknem (Super+A, Super+Space se ukazou hned)
+Wants=luxos-launchpad.service

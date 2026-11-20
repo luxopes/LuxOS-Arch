@@ -1,0 +1,79 @@
+LuxOS 1.1.0 - nahled desktopu na Waylandu (zkusebni VM)
+=======================================================
+
+Co to je
+--------
+LuxOS z repozitare LuxOS (aplikace, vzhled, pisma, ikony) a k tomu novy desktop na Waylandu
+z vetve wayland-1.1: spravce oken luxwm (libluxcomp), horni lista luxos-bar, Dock luxos-dock,
+oznameni luxos-notify, zamek obrazovky luxos-lock, Launchpad/Hledani luxos-launchpad a plocha
+luxos-backdrop (tapeta, nabidka plochy pravym tlacitkem) s widgety luxos-widgets.
+Vse bezi jen uvnitr VM v okne QEMU, nic z noveho desktopu nebezi ve vasi relaci.
+
+Spusteni
+--------
+  ./start.sh             normalni spusteni (-vga std, bez 3D akcelerace)
+  ./start.sh --virtio    graficka karta virtio-vga (taky bez 3D, bez virgl)
+  ./start.sh --reset     zahodit vsechny zmeny ve VM a zacit od cisteho obrazu
+                         (lze i spolu: ./start.sh --reset --virtio)
+
+VM ma 6 GB RAM a 4 jadra. Zmeny se ukladaji do disk.qcow2, cisty obraz base.qcow2 se nemeni.
+Mys se z okna QEMU uvolni pres Ctrl+Alt+G.
+
+Prihlaseni
+----------
+Uzivatel luxos, heslo luxos. Po startu se prihlasi sam na tty1 a spusti relaci
+luxos-wayland-preview (luxwm + tapeta, lista, Dock, oznameni, zamek, Launchpad). Heslo je potreba
+pro zamek obrazovky a sudo.
+
+Konzole: Ctrl+Alt+F2 (v QEMU pres nabidku View nebo Ctrl+Alt+Shift+F2), prihlaseni luxos/luxos.
+Zpet do grafiky Ctrl+Alt+F1.
+Log spravce oken: ~/.local/state/luxos/luxwm.log, sluzby shellu: journalctl --user -b
+
+Klavesnice: cestina a anglictina, prepinani Alt+Shift (ve VM klavesu Super/Cmd zachyti QEMU
+jen kdyz je mys v okne zachycena).
+
+Zkratky (luxwm.conf, Super = klavesa Windows/Cmd)
+-------------------------------------------------
+  Super+T, Ctrl+Alt+T        Terminal
+  Super+Space                Hledani
+  Super+A                    Launchpad
+  Super+E                    Soubory (Thunar)
+  Alt+Tab, Alt+Shift+Tab     prepinani oken (pustit Alt = potvrdit, Esc = zrusit)
+  Super+Tab                  totez
+  Alt+` (klavesa pod Esc)    okna aktualni aplikace
+  Ctrl+Super+Sipka vlevo/vpravo   predchozi/dalsi plocha (4 plochy, prejezd jako v macOS)
+  Ctrl+Super+1..4            plocha 1-4
+  Ctrl+Super+Shift+Sipka / 1..4   presunout okno na jinou plochu
+  Super+Q, Alt+F4            zavrit okno
+  Super+M, Super+H, Super+Dolu    minimalizovat
+  Super+Nahoru               maximalizovat
+  Super+Vlevo / Super+Vpravo pulka obrazovky vlevo/vpravo
+  Ctrl+Super+F, F11          cela obrazovka
+  Super+D                    ukazat plochu
+  Super+. , Ctrl+Super+Space emoji
+  Ctrl+Shift+Esc             Monitor aktivity
+  Zamknout: nabidka LuxOS v liste > Zamknout (loginctl lock-session)
+
+Na zkouseni
+-----------
+  Terminal, Soubory (Thunar), Firefox, Textovy editor a dalsi aplikace LuxOS z Docku nebo Launchpadu
+  gtk3-demo                  ukazka prvku GTK
+  xeyes                      aplikace X11 (bezi pres XWayland, spusti se sam pri prvni X11 aplikaci)
+  notify-send "Ahoj" "Text"  bublina oznameni vpravo nahore
+  loginctl lock-session      zamek obrazovky (odemknout heslem luxos)
+
+Zname chybi / omezeni nahledu
+-----------------------------
+  - Prihlasovaci obrazovka (greeter, WP-9) a luxos-session.target (WP-13) nejsou: relaci spousti
+    automaticke prihlaseni na tty1. Odhlaseni = konec luxwm, relace se pak spusti znovu.
+  - Snimek obrazovky, emoji, nastaveni monitoru a klavesnice jsou jeste z X11 (WP-12); aplikace
+    z Pythonu (Nastaveni ...) bezi pres XWayland nebo GTK na Waylandu podle toho, co umi.
+  - Rozlozeni klavesnice se bere z /etc/vconsole.conf pri startu relace, ne zive z locale1.
+  - Bez zvuku (VM nema zvukovou kartu).
+  - Puvodni relace X11 (Xfce) zustava nainstalovana jako zaloha, ale nespousti se:
+    v konzoli "sudo systemctl stop luxos-wayland-preview; sudo systemctl start lightdm".
+
+Znovu postavit obraz (ve vetvi wl/preview-vm)
+---------------------------------------------
+  LUXOS_SIGNING_DIR=none ./build.sh one wlroots0.20 luxcomp luxwm luxos-desktop
+  scripts/wl-preview/build-image.sh out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop}-[0-9]*.pkg.tar.zst
