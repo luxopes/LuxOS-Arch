@@ -567,3 +567,32 @@ gboolean tx_file_too_large(const char *path, goffset *size)
     if (size) *size = st.st_size;
     return st.st_size > TX_MAX_FILE_SIZE;
 }
+
+/* Nazev pro hledani: bez diakritiky (rozklad NFKD, pryc kombinovane znaky) a malymi pismeny */
+static char *tx_fold_name(const char *s)
+{
+    char *n = g_utf8_normalize(s, -1, G_NORMALIZE_ALL);
+    if (!n) return g_utf8_casefold(s, -1);   /* neplatne UTF-8: aspon velikost pismen */
+    GString *o = g_string_sized_new(strlen(n));
+    for (const char *p = n; *p; p = g_utf8_next_char(p)) {
+        gunichar c = g_utf8_get_char(p);
+        GUnicodeType t = g_unichar_type(c);
+        if (t == G_UNICODE_NON_SPACING_MARK || t == G_UNICODE_SPACING_MARK || t == G_UNICODE_ENCLOSING_MARK) continue;
+        g_string_append_unichar(o, c);
+    }
+    g_free(n);
+    char *f = g_utf8_casefold(o->str, -1);
+    g_string_free(o, TRUE);
+    return f;
+}
+
+gboolean tx_name_matches(const char *name, const char *needle)
+{
+    if (!needle || !*needle) return TRUE;
+    if (!name || !*name) return FALSE;
+    char *a = tx_fold_name(name), *b = tx_fold_name(needle);
+    gboolean hit = strstr(a, b) != NULL;
+    g_free(a);
+    g_free(b);
+    return hit;
+}

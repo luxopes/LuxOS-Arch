@@ -318,6 +318,23 @@ static void test_file_size_limit(void)
     g_free(dir);
 }
 
+static void test_name_matches(void)
+{
+    g_assert_true(tx_name_matches("LuxOS-Arch", "Arch"));      /* uprostred nazvu, ne jen od zacatku */
+    g_assert_true(tx_name_matches("LuxOS-Arch", "arch"));      /* bez velikosti pismen */
+    g_assert_true(tx_name_matches("LuxOS-Arch", "luxos"));
+    g_assert_true(tx_name_matches("LuxOS-Arch", "OS-A"));
+    g_assert_true(tx_name_matches("Řádky.txt", "radky"));      /* bez diakritiky */
+    g_assert_true(tx_name_matches("radky.txt", "Řád"));
+    g_assert_true(tx_name_matches("Übersicht.md", "uber"));
+    g_assert_true(tx_name_matches("anything", ""));
+    g_assert_false(tx_name_matches("LuxOS-Arch", "Arch2"));
+    g_assert_false(tx_name_matches("SP-WEB", "s-w"));
+    g_assert_false(tx_name_matches(NULL, "a"));
+    g_assert_false(tx_name_matches("", "a"));
+    g_assert_false(tx_name_matches("\xff\xfe", "a"));          /* neplatne UTF-8 nespadne */
+}
+
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -336,5 +353,6 @@ int main(int argc, char **argv)
     g_test_add_func("/tabs", test_tabs);
     g_test_add_func("/recent", test_recent);
     g_test_add_func("/file-size-limit", test_file_size_limit);
+    g_test_add_func("/name-matches", test_name_matches);
     return g_test_run();
 }

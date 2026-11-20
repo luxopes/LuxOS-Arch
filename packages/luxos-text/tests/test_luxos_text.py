@@ -512,6 +512,32 @@ class GuiTest(unittest.TestCase):
         ed.key("F9")
         ed.wait(lambda s: not s["sidebar"])
 
+    def test_sidebar_search_anywhere_in_name(self):
+        """Psani ve stromu otevre pole Hledat nahore v panelu; shoda kdekoli v nazvu (Arch -> LuxOS-Arch),
+        sipka dolu = dalsi shoda, Esc pole zavre a vrati fokus stromu."""
+        d = os.path.join(self.tmp, "home2")
+        for name in ("Alpha", "LuxOS-Arch", "Notes", "SP-WEB", "archive-2024"):
+            os.makedirs(os.path.join(d, name))
+        self.write("home2/Řádky.txt", "x\n")
+        ed = self.start(d)
+        ed.wait(lambda s: s["sidebar"] and "LuxOS-Arch" in s["sidebar_rows"])
+        ed.call("test-focus-tree")
+        ed.type("Arch")
+        s = ed.wait(lambda s: s["tree_find"] and s["tree_find_text"] == "Arch")
+        s = ed.wait(lambda s: s["sidebar_selected"] == os.path.join(d, "archive-2024"))
+        ed.key("Down")
+        s = ed.wait(lambda s: s["sidebar_selected"] == os.path.join(d, "LuxOS-Arch"))
+        ed.key("Escape")
+        s = ed.wait(lambda s: not s["tree_find"])
+        self.assertEqual(s["tree_find_text"], "")
+        self.assertEqual(s["sidebar_selected"], os.path.join(d, "LuxOS-Arch"))
+        # bez diakritiky a velikosti pismen
+        ed.call("test-focus-tree")
+        ed.type("radk")
+        ed.wait(lambda s: s["sidebar_selected"] == os.path.join(d, "Řádky.txt"))
+        ed.key("Return")
+        ed.wait(lambda s: s.get("path") == os.path.join(d, "Řádky.txt") and not s["tree_find"])
+
     def test_sidebar_new_file(self):
         """Tlacitko + v postrannim panelu: novy soubor ve vybrane slozce se vytvori a otevre."""
         d = os.path.join(self.tmp, "proj")

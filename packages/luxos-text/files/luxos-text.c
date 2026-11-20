@@ -197,7 +197,7 @@ struct Win {
     GtkHeaderBar *header;
     GtkWidget *title, *subtitle;
     GtkWidget *sidebar_btn, *lang_btn, *lang_label, *info_btn;
-    GtkWidget *paned, *sidebar, *tree, *root_label;
+    GtkWidget *paned, *sidebar, *tree, *root_label, *tree_find;
     GtkTreeStore *store;
     char *root;
     GHashTable *dir_mons;      /* cesta -> GFileMonitor */
@@ -449,6 +449,10 @@ static const char *APP_CSS =
     ".lt-sidebar treeview.view:selected:backdrop { background-color: rgba(0, 0, 0, 0.10); color: #1d1d1f; }"
     ".lt-dark .lt-sidebar treeview.view:selected:backdrop { background-color: rgba(255, 255, 255, 0.12); color: #e6e6ea; }"
     ".lt-sidebar .lt-root { font-weight: bold; font-size: 0.85em; color: alpha(currentColor, 0.6); padding: 8px 10px 4px 12px; }"
+    ".lt-sidebar .lt-tree-find { margin: 2px 8px 6px 8px; min-height: 26px; border-radius: 8px; border: none; box-shadow: none;"
+    "  background-image: none; background-color: alpha(currentColor, 0.07); padding: 0 6px; }"
+    ".lt-sidebar .lt-tree-find:focus { box-shadow: inset 0 0 0 2px alpha(#3d7bff, 0.55); background-color: alpha(currentColor, 0.04); }"
+    ".lt-sidebar .lt-tree-find image { color: alpha(currentColor, 0.5); }"
     ".lt-sidebar .lt-sidebar-bar { border-top: 1px solid alpha(currentColor, 0.08); padding: 2px 4px; }"
     ".lt-sidebar .lt-sidebar-bar button { border: none; box-shadow: none; background: none; padding: 2px 6px; }"
     ".lt-find { border-bottom: 1px solid alpha(currentColor, 0.10); padding: 4px 8px; }"
@@ -1711,6 +1715,84 @@ static void sidebar_new(Win *w, gboolean folder)
     g_free(dir);
 }
 
+/* ---------- hledani ve strome ----------
+ * Misto vyskakovaciho okenka GTK (hledalo jen od zacatku nazvu a prekryvalo spodni listu) pole nahore v panelu:
+ * objevi se pri psani ve stromu; nazev kdekoli, bez velikosti pismen a diakritiky (tx_name_matches);
+ * sipky = dalsi/predchozi shoda (obsluha GTK), Enter = otevrit, Esc nebo odchod = zavrit. */
+static gboolean tree_search_equal(GtkTreeModel *m, gint col, const gchar *key, GtkTreeIter *it, gpointer data)
+{
+    (void)col; (void)data;
+    char *name = NULL;
+    gtk_tree_model_get(m, it, COL_NAME, &name, -1);
+    gboolean hit = name && tx_name_matches(name, key);   /* zastupne radky nenactenych slozek nemaji nazev */
+    g_free(name);
+    return !hit;   /* GTK: FALSE = shoda */
+}
+
+static void tree_find_close(Win *w, gboolean focus_tree)
+{
+    if (!gtk_widget_get_visible(w->tree_find)) return;
+    gtk_widget_hide(w->tree_find);
+    /* GTK pri zmene textu nejdriv zrusi vyber: nalezeny radek si zapamatovat a po vymazani vratit */
+    GtkTreePath *tp = NULL;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(w->tree), &tp, NULL);
+    gtk_entry_set_text(GTK_ENTRY(w->tree_find), "");
+    if (tp) {
+        gtk_tree_view_set_cursor(GTK_TREE_VIEW(w->tree), tp, NULL, FALSE);
+        gtk_tree_path_free(tp);
+    }
+    if (focus_tree) gtk_widget_grab_focus(w->tree);
+}
+
+static gboolean on_tree_key(GtkWidget *tree, GdkEventKey *ev, Win *w)
+{
+    (void)tree;
+    if (ev->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK | GDK_META_MASK)) return FALSE;
+    gunichar c = gdk_keyval_to_unicode(ev->keyval);
+    if (!c || !g_unichar_isprint(c) || g_unichar_isspace(c)) return FALSE;   /* mezernik dal rozbaluje radek */
+    char buf[8];
+    buf[g_unichar_to_utf8(c, buf)] = 0;
+    /* pole se ukaze hned (bez animace: skryte pole by rychle napsane znaky zahodilo);
+     * dalsi znaky mohou prijit do stromu jeste pred presunem fokusu: pripojit, ne prepsat */
+    if (!gtk_widget_get_visible(w->tree_find)) {
+        gtk_entry_set_text(GTK_ENTRY(w->tree_find), "");
+        gtk_widget_show(w->tree_find);
+    }
+    gtk_widget_grab_focus(w->tree_find);
+    gtk_editable_set_position(GTK_EDITABLE(w->tree_find), -1);
+    int pos = gtk_entry_get_text_length(GTK_ENTRY(w->tree_find));
+    gtk_editable_insert_text(GTK_EDITABLE(w->tree_find), buf, -1, &pos);
+    gtk_editable_set_position(GTK_EDITABLE(w->tree_find), -1);
+    return TRUE;
+}
+
+static void on_tree_find_stop(GtkSearchEntry *e, Win *w)
+{
+    (void)e;
+    tree_find_close(w, TRUE);
+}
+
+/* Enter: nalezeny radek aktivovat jako dvojklik (soubor otevrit, slozku rozbalit) a pole zavrit;
+ * GTK to u vlastniho pole (gtk_tree_view_set_search_entry) samo nedela */
+static void on_tree_find_activate(GtkEntry *e, Win *w)
+{
+    (void)e;
+    GtkTreePath *tp = NULL;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(w->tree), &tp, NULL);
+    gboolean found = *gtk_entry_get_text(GTK_ENTRY(w->tree_find)) && tp
+        && gtk_tree_selection_path_is_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(w->tree)), tp);
+    tree_find_close(w, TRUE);
+    if (found) gtk_tree_view_row_activated(GTK_TREE_VIEW(w->tree), tp, gtk_tree_view_get_column(GTK_TREE_VIEW(w->tree), 0));
+    if (tp) gtk_tree_path_free(tp);
+}
+
+static gboolean on_tree_find_focus_out(GtkWidget *e, GdkEvent *ev, Win *w)
+{
+    (void)e; (void)ev;
+    tree_find_close(w, FALSE);
+    return FALSE;
+}
+
 static GtkWidget *build_sidebar(Win *w)
 {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -1727,6 +1809,17 @@ static GtkWidget *build_sidebar(Win *w)
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(w->tree), FALSE);
     gtk_tree_view_set_enable_search(GTK_TREE_VIEW(w->tree), TRUE);
     gtk_tree_view_set_search_column(GTK_TREE_VIEW(w->tree), COL_NAME);
+    gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(w->tree), tree_search_equal, NULL, NULL);
+    w->tree_find = gtk_search_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(w->tree_find), T("Search"));
+    gtk_style_context_add_class(gtk_widget_get_style_context(w->tree_find), "lt-tree-find");
+    gtk_tree_view_set_search_entry(GTK_TREE_VIEW(w->tree), GTK_ENTRY(w->tree_find));
+    g_signal_connect(w->tree_find, "stop-search", G_CALLBACK(on_tree_find_stop), w);
+    g_signal_connect(w->tree_find, "activate", G_CALLBACK(on_tree_find_activate), w);
+    g_signal_connect(w->tree_find, "focus-out-event", G_CALLBACK(on_tree_find_focus_out), w);
+    g_signal_connect(w->tree, "key-press-event", G_CALLBACK(on_tree_key), w);
+    gtk_widget_set_no_show_all(w->tree_find, TRUE);   /* skryte, dokud se ve strome nepise */
+    gtk_box_pack_start(GTK_BOX(box), w->tree_find, FALSE, FALSE, 0);
     gtk_tree_view_set_activate_on_single_click(GTK_TREE_VIEW(w->tree), FALSE);
     GtkTreeViewColumn *col = gtk_tree_view_column_new();
     GtkCellRenderer *pr = gtk_cell_renderer_pixbuf_new();
@@ -2930,6 +3023,8 @@ static void act_test_dump(GSimpleAction *a, GVariant *v, gpointer p)
         if (gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(w->tree)), &m, &it))
             gtk_tree_model_get(m, &it, COL_PATH, &selp, -1);
         json_kv(s, "sidebar_selected", selp);
+        json_kb(s, "tree_find", gtk_widget_get_visible(w->tree_find));
+        json_kv(s, "tree_find_text", gtk_entry_get_text(GTK_ENTRY(w->tree_find)));
         g_free(selp);
         json_kb(s, "dark", gtk_style_context_has_class(gtk_widget_get_style_context(GTK_WIDGET(w->win)), "lt-dark"));
         GtkSourceStyleScheme *sch = gtk_source_buffer_get_style_scheme(d->buf);
@@ -2971,6 +3066,13 @@ static void act_test_goto(GSimpleAction *a, GVariant *v, gpointer p)
     if (w && w->cur) jump_to_line(w->cur, g_variant_get_int32(v), 0);
 }
 
+/* fokus do postranniho stromu (testy hledani; v testu nelze spolehlive kliknout do radku) */
+static void act_test_focus_tree(GSimpleAction *a, GVariant *v, gpointer p)
+{
+    Win *w = active_win();
+    if (w) gtk_widget_grab_focus(w->tree);
+}
+
 static const GActionEntry app_actions[] = {
     {"new-window", act_new_window}, {"open-recent", act_open_recent, "s"}, {"clear-recent", act_clear_recent},
     {"quit", act_quit}, {"zoom-in", act_zoom}, {"zoom-out", act_zoom}, {"zoom-reset", act_zoom},
@@ -2988,7 +3090,7 @@ static void act_test_action(GSimpleAction *a, GVariant *v, gpointer p)
 
 static const GActionEntry test_actions[] = {
     {"test-dump", act_test_dump, "s"}, {"test-shot", act_test_shot, "s"}, {"test-type", act_test_type, "s"},
-    {"test-goto", act_test_goto, "i"}, {"test-action", act_test_action, "s"},
+    {"test-goto", act_test_goto, "i"}, {"test-action", act_test_action, "s"}, {"test-focus-tree", act_test_focus_tree},
 };
 
 static void add_toggle(const char *name, gboolean state)

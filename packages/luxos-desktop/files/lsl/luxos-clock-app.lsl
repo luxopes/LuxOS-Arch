@@ -8,7 +8,10 @@
 # okna), jinak skonci. Po prihlaseni ho spusti "luxos-clock-app --background" (bez zapnuteho budiku
 # hned skonci). Jedna instance na uzivatele a displej: dalsi spusteni jen ukaze okno (abstraktni socket).
 # Data: ~/.local/share/luxos/clock/clock.json {"alarms": [...], "cities": ["Europe/London", ...]}.
+# Vzhled: okno z matneho skla nad rozostrenou tapetou se semaforem (luxos_glass); svetle nebo tmave
+# sklo podle motivu GTK.
 load env, json
+load luxos_glass as glass
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
@@ -37,42 +40,71 @@ KEY_ESCAPE = 65307
 KEY_Q = 113
 KEY_W = 119
 
-CSS = ("window.lca { background-color: @c_bg; }\n"
+# Sklo: karty a pole jsou prusvitne vrstvy nad sklem okna (luxos_glass), akcent oranzovy prechod.
+# Tlacitka bez vnejsiho stinu: GTK by ho orizlo do obdelniku a kolem kulateho tlacitka by byl videt okraj.
+CSS = ("window.lca { background: transparent; }\n"
     + ".lca label { color: @c_fg; }\n"
     + ".lca .dim { color: @c_dim; }\n"
-    + ".lca-seg { background-color: @c_tile; border-radius: 10px; padding: 3px; }\n"
+    + ".lca-seg { background-color: @c_field; border-radius: 10px; padding: 3px; box-shadow: inset 0 0 0 1px @c_border; }\n"
     + ".lca-seg button { border-radius: 8px; padding: 4px 12px; background: none; border: none; box-shadow: none; color: @c_fg; font-weight: 600; font-size: 12px; outline: none; }\n"
-    + ".lca-seg button.active { background-color: @c_on; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }\n"
-    + ".lca-big { font-size: 56px; font-weight: 300; font-feature-settings: \"tnum\"; }\n"
+    + ".lca-seg button:hover { background-color: @c_hover; }\n"
+    + ".lca-seg button.active { background-color: @c_on; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16); }\n"
+    + ".lca-big { font-size: 56px; font-weight: 300; font-feature-settings: \"tnum\"; letter-spacing: -1px; }\n"
     + ".lca-mid { font-size: 30px; font-weight: 400; font-feature-settings: \"tnum\"; }\n"
-    + ".lca-row { background-color: @c_tile; border-radius: 14px; padding: 12px 16px; }\n"
+    + ".lca-row { background-color: @c_tile; border-radius: 16px; padding: 12px 16px;"
+    + " border: 1px solid @c_border; border-top-color: @c_border_top; box-shadow: 0 6px 16px rgba(20, 16, 40, 0.07); }\n"
     + ".lca-row.off label { color: @c_dim; }\n"
     + ".lca-title { font-size: 13px; font-weight: 600; }\n"
     + ".lca-small { font-size: 12px; }\n"
-    + "button.lca-round { border-radius: 999px; min-width: 64px; min-height: 64px; padding: 0 12px; font-weight: 600; border: none; box-shadow: none; background-image: none; background-color: @c_tile; color: @c_fg; }\n"
-    + "button.lca-round.go { background-color: @c_accent; color: white; }\n"
-    + "button.lca-round.go label { color: white; }\n"
+    + "button.lca-round { border-radius: 999px; min-width: 64px; min-height: 64px; padding: 0 12px; font-weight: 600;"
+    + " border: 1px solid @c_border; border-top-color: @c_border_top; box-shadow: none; background-image: none; background-color: @c_tile; color: @c_fg; outline: none; }\n"
+    + "button.lca-round:hover { background-color: @c_hover; }\n"
+    + "button.lca-round.go, button.lca-add, button.suggested-action, button.lca-chip:checked { border: none; background-color: @c_accent;"
+    + " background-image: linear-gradient(to bottom, @c_accent_hi, @c_accent); box-shadow: inset 0 1px rgba(255, 255, 255, 0.35); color: white; }\n"
+    + "button.lca-round.go:hover, button.lca-add:hover, button.suggested-action:hover { background-image: linear-gradient(to bottom, shade(@c_accent_hi, 1.06), shade(@c_accent, 1.06)); }\n"
+    + "button.lca-round.go label, button.suggested-action label, button.lca-chip:checked label { color: white; }\n"
     + "button.lca-round:disabled { opacity: 0.4; }\n"
-    + "button.lca-icon { border-radius: 999px; min-width: 30px; min-height: 30px; padding: 0; background: none; border: none; box-shadow: none; }\n"
-    + "button.lca-icon:hover { background-color: @c_tile; }\n"
-    + "button.lca-add { border-radius: 999px; min-width: 40px; min-height: 40px; background-color: @c_accent; background-image: none; border: none; color: white; }\n"
-    + "button.lca-chip { border-radius: 999px; padding: 2px 10px; min-height: 26px; background-image: none; background-color: @c_tile; border: none; box-shadow: none; color: @c_fg; font-size: 12px; }\n"
-    + "button.lca-chip:checked { background-color: @c_accent; color: white; }\n"
-    + "button.lca-chip:checked label { color: white; }\n"
+    + "button.lca-icon { border-radius: 999px; min-width: 30px; min-height: 30px; padding: 0; background: none; border: none; box-shadow: none; color: @c_dim; outline: none; }\n"
+    + "button.lca-icon:hover { background-color: @c_hover; }\n"
+    + "button.lca-add { border-radius: 999px; min-width: 40px; min-height: 40px; outline: none; }\n"
+    + "button.lca-chip { border-radius: 999px; padding: 2px 10px; min-height: 26px; background-image: none; background-color: @c_field; border: none; box-shadow: inset 0 0 0 1px @c_border; color: @c_fg; font-size: 12px; outline: none; }\n"
+    + "button.lca-chip:hover { background-color: @c_hover; }\n"
     + "button.lca-city { border-radius: 10px; padding: 6px 10px; background: none; border: none; box-shadow: none; }\n"
-    + "button.lca-city:hover { background-color: @c_tile; }\n"
-    # vyber znelky a nahled ve formulari budiku
-    + ".lca combobox button { border-radius: 10px; padding: 2px 10px; min-height: 26px; background-image: none; background-color: @c_tile;"
-    + " border: none; box-shadow: none; color: @c_fg; outline: none; }\n"
-    + ".lca combobox arrow { min-width: 16px; min-height: 16px; color: @c_dim; }\n"
-    + "button.lca-icon.lca-play { background-color: @c_tile; color: @c_fg; }\n"
-    + "button.lca-icon.lca-play:hover { background-color: @c_on; }\n"
-    + "window.lca-ring { background-color: @c_bg; border-radius: 22px; }\n")
+    + "button.lca-city:hover { background-color: @c_hover; }\n"
+    # Zrusit ve formulari budiku (primo v radku tlacitek; tlacitka -/+ cisel a dny maji vlastni styl)
+    + ".lca-row > box > button:not(.suggested-action):not(.lca-chip):not(.lca-icon) { border-radius: 999px; padding: 4px 16px; background-image: none;"
+    + " background-color: @c_field; border: none; box-shadow: inset 0 0 0 1px @c_border; color: @c_fg; outline: none; }\n"
+    + "button.suggested-action { border-radius: 999px; padding: 4px 16px; outline: none; }\n"
+    # pole: hledani mesta, popisek budiku a cisla minutky
+    + ".lca entry, .lca spinbutton { background-color: @c_field; background-image: none; border: none; border-radius: 10px;"
+    + " box-shadow: inset 0 0 0 1px @c_border; color: @c_fg; min-height: 30px; }\n"
+    + ".lca entry:focus, .lca spinbutton:focus { box-shadow: inset 0 0 0 2px alpha(@c_accent, 0.7); }\n"
+    + ".lca entry image { color: @c_dim; }\n"
+    + ".lca spinbutton entry { background: none; box-shadow: none; }\n"
+    + ".lca spinbutton button { background: none; border: none; box-shadow: none; color: @c_dim; }\n"
+    + ".lca spinbutton button:hover { background-color: @c_hover; color: @c_fg; }\n"
+    # vyber znelky
+    + ".lca combobox button { border-radius: 10px; padding: 2px 10px; min-height: 26px; background-image: none; background-color: @c_field;"
+    + " border: none; box-shadow: inset 0 0 0 1px @c_border; color: @c_fg; outline: none; }\n"
+    + ".lca combobox button:hover { background-color: @c_hover; }\n"
+    + ".lca combobox arrow { background: none; background-image: none; border: none; box-shadow: none; min-width: 16px; min-height: 16px;"
+    + " -gtk-icon-source: -gtk-icontheme(\"pan-down-symbolic\"); color: @c_dim; }\n"
+    + "button.lca-icon.lca-play { background-color: @c_field; box-shadow: inset 0 0 0 1px @c_border; color: @c_fg; }\n"
+    + "button.lca-icon.lca-play:hover { background-color: @c_hover; }\n"
+    # vypinac budiku v barve akcentu
+    + ".lca switch { border-radius: 999px; border: none; background-image: none; background-color: @c_field; box-shadow: inset 0 0 0 1px @c_border; min-height: 24px; }\n"
+    + ".lca switch:checked { background-color: @c_accent; box-shadow: none; }\n"
+    + ".lca switch slider { border-radius: 999px; min-width: 22px; min-height: 22px; margin: 1px; border: none; background-image: none; background-color: white; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }\n"
+    + "window.lca-ring { background: transparent; }\n")
 
-DARK = ("@define-color c_bg #1c1c22; @define-color c_fg #f4f4f8; @define-color c_dim rgba(244, 244, 248, 0.58);\n"
-    + "@define-color c_tile rgba(255, 255, 255, 0.07); @define-color c_on rgba(255, 255, 255, 0.2); @define-color c_accent #ff7a2f;\n")
-LIGHT = ("@define-color c_bg #f6f6f9; @define-color c_fg #1d1d27; @define-color c_dim rgba(29, 29, 39, 0.55);\n"
-    + "@define-color c_tile rgba(0, 0, 0, 0.05); @define-color c_on #ffffff; @define-color c_accent #f26a1b;\n")
+DARK = ("@define-color c_fg #f4f4f8; @define-color c_dim rgba(244, 244, 248, 0.62);\n"
+    + "@define-color c_tile rgba(255, 255, 255, 0.08); @define-color c_border rgba(255, 255, 255, 0.14); @define-color c_border_top rgba(255, 255, 255, 0.26);\n"
+    + "@define-color c_field rgba(0, 0, 0, 0.24); @define-color c_hover rgba(255, 255, 255, 0.14); @define-color c_on rgba(255, 255, 255, 0.22);\n"
+    + "@define-color c_accent #f86f24; @define-color c_accent_hi #ff9450;\n")
+LIGHT = ("@define-color c_fg #1d1d27; @define-color c_dim rgba(29, 29, 39, 0.58);\n"
+    + "@define-color c_tile rgba(255, 255, 255, 0.38); @define-color c_border rgba(255, 255, 255, 0.50); @define-color c_border_top rgba(255, 255, 255, 0.80);\n"
+    + "@define-color c_field rgba(255, 255, 255, 0.40); @define-color c_hover rgba(255, 255, 255, 0.60); @define-color c_on rgba(255, 255, 255, 0.95);\n"
+    + "@define-color c_accent #f26a1b; @define-color c_accent_hi #ff8f47;\n")
 
 data = {"alarms": [], "cities": []}
 ui = {"win": 0, "views": {}, "seg": {}, "tab": "alarms", "visible": False}
@@ -365,9 +397,10 @@ function theme_apply():
         return 0
     end
     theme["dark"] = dark
-    css = LIGHT + CSS
+    call glass.set_dark(dark)
+    css = LIGHT + glass.CSS + CSS
     if dark:
-        css = DARK + CSS
+        css = DARK + glass.CSS + CSS
     end
     if theme["provider"] == 0:
         theme["provider"] = gtk.css_load(css)
@@ -689,8 +722,9 @@ function ring(title, big, tone):
     win = gtk.window_new(i18n.T("Clock"))
     ringing["win"] = win
     call gtk.widget_add_class(win, "lca")
+    call gtk.widget_add_class(win, "lca-ring")
     call gtk.window_set_keep_above(win, True)
-    call gtk.window_set_decorated(win, False)
+    call glass.setup(win, False)
     call gtk.window_set_position(win, gtk.WIN_POS_CENTER)
     call gtk.window_stick(win)
     box = gtk.box_new(gtk.VERTICAL, 12)
@@ -744,6 +778,7 @@ function stop_ringing():
         ringing["sound"] = 0
     end
     if ringing["win"] != 0:
+        call glass.forget(ringing["win"])
         call gtk.widget_destroy(ringing["win"])
         ringing["win"] = 0
     end
@@ -1215,10 +1250,16 @@ function build_window():
     call gtk.window_set_default_size(win, 470, 600)   # minutka i formular budiku se vejdou (i ukrajinsky)
     call gtk.window_set_icon_list(win, app_icon())   # ostra ikona 16-256 px (Dock, Alt+Tab)
     call gtk.window_set_wmclass(win, "luxos-clock-app", "Luxos-clock-app")
+    call glass.setup(win, True)
     call gtk.connect(win, "delete-event", on_close)
     call gtk.connect(win, "key-press-event", on_key)
     root = gtk.box_new(gtk.VERTICAL, 14)
-    call gtk.widget_set_margins(root, 20, 20, 16, 20)
+    call gtk.widget_set_margins(root, 18, 18, 14, 20)
+    # horni radek: semafor vlevo, stejne siroka mezera vpravo, aby prepinac zustal uprostred
+    bar = gtk.box_new(gtk.HORIZONTAL, 0)
+    lights = glass.lights(win, on_light_close)
+    call gtk.widget_set_size_request(lights, 58, -1)
+    call gtk.box_pack_start(bar, lights, False, False, 0)
     seg = gtk.box_new(gtk.HORIZONTAL, 0)
     call gtk.widget_add_class(seg, "lca-seg")
     call gtk.widget_set_halign(seg, gtk.ALIGN_CENTER)
@@ -1229,7 +1270,11 @@ function build_window():
         call gtk.box_pack_start(seg, b, False, False, 0)
         ui["seg"][t[0]] = b
     end
-    call gtk.box_pack_start(root, seg, False, False, 0)
+    call gtk.box_pack_start(bar, seg, True, True, 0)
+    spacer = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.widget_set_size_request(spacer, 58, -1)
+    call gtk.box_pack_start(bar, spacer, False, False, 0)
+    call gtk.box_pack_start(root, bar, False, False, 0)
     scroll = gtk.scrolled_window_new()
     call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
     holder = gtk.box_new(gtk.VERTICAL, 0)
@@ -1256,6 +1301,12 @@ function show_window():
     call gtk.widget_show(ui["win"])
     call gtk.window_present(ui["win"])
     call world_tick()
+    return 0
+end
+
+# Cervene tlacitko semaforu = zavreni okna
+function on_light_close(button):
+    call on_close(0, ui["win"])
     return 0
 end
 

@@ -72,4 +72,8 @@ char **tx_recent_remove(char **list, const char *path);
 /* Bezny soubor vetsi nez TX_MAX_FILE_SIZE? (velikost do *size; neexistujici soubor = FALSE) */
 gboolean tx_file_too_large(const char *path, goffset *size);
 
+/* Hledani v nazvech souboru (postranni panel): needle kdekoli v name, bez ohledu na velikost pismen
+ * a diakritiku ("arch" najde "LuxOS-Arch", "rad" najde "Řádky.txt"); prazdne needle odpovida vsemu. */
+gboolean tx_name_matches(const char *name, const char *needle);
+
 #endif
