@@ -1614,37 +1614,6 @@ function on_dump():
     return True
 end
 
-# Rozlozeni klavesnice systemu (localectl set-x11-keymap, instalator), kdyz ho neurcuje prostredi
-function system_keymap():
-    env_layout = glib.getenv("XKB_DEFAULT_LAYOUT")
-    if env_layout != None and env_layout != "":
-        return
-    end
-    kb = {}
-    xorg = "/etc/X11/xorg.conf.d/00-keyboard.conf"
-    if exists(xorg):
-        for raw in readfile(xorg).split(chr(10)):
-            parts = raw.strip().split(chr(34))
-            if len(parts) >= 4 and parts[0].strip() == "Option":
-                kb[parts[1]] = parts[3]
-            end
-        end
-    end
-    if kb.get("XkbLayout", "") == "" and exists("/etc/vconsole.conf"):
-        names = {"XKBLAYOUT": "XkbLayout", "XKBVARIANT": "XkbVariant", "XKBOPTIONS": "XkbOptions"}
-        for raw in readfile("/etc/vconsole.conf").split(chr(10)):
-            eq = raw.find("=")
-            if eq > 0 and raw[:eq].strip() in names:
-                kb[names[raw[:eq].strip()]] = raw[eq + 1:].strip().strip(chr(34))
-            end
-        end
-    end
-    if kb.get("XkbLayout", "") != "":
-        call lc.set_keymap(kb["XkbLayout"], kb.get("XkbVariant", ""), kb.get("XkbOptions", ""))
-        call note("keymap " + kb["XkbLayout"] + " " + kb.get("XkbVariant", "") + " " + kb.get("XkbOptions", ""))
-    end
-end
-
 # Prihlasovaci obrazovka skoncila (greetd ji ukoncuje po start_session): kompozitor konci s jejim kodem
 greeter_status = 0
 
@@ -1676,7 +1645,6 @@ if lc.init(on_event) != 0:
     exit(1)
 end
 call load_privileged()
-call system_keymap()
 xdisplay = ""
 if settings["xwayland"] == "yes" and lc.xwayland_start() == 0:
     xdisplay = lc.xwayland_display()

@@ -20,6 +20,8 @@ if [[ ${1-} == --started ]]; then
     dbus-update-activation-environment --systemd "${VARS[@]}" 2>/dev/null \
         || systemctl --user import-environment "${VARS[@]}"
     systemctl --user --no-block start luxos-session.target
+    # zkratky z X11 relace (xfconf) jednou do ~/.config/luxwm/luxwm.conf; luxwm uz bezi a nacte je pres IPC
+    timeout 10 /usr/lib/luxos/luxos-keyboard-settings --import-shortcuts >/dev/null 2>&1
     # Prvni prihlaseni: Prohlidka, pak Uvitani; po aktualizaci Co je noveho (jako v X11, luxos-session). Bezi jako
     # docasna jednotka relace, at po zavreni nic nezustane a pad luxwm je ukonci s relaci.
     first=""

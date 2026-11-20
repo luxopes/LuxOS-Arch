@@ -61,9 +61,7 @@ looks for modules next to the importing file.
 - luxwm exits when COMMAND exits, with status 1 if it failed.
 - `LUXWM_PRIVILEGED` is still honoured, only so that the wl-test harness can use its tools.
 
-In every mode, Ctrl+Alt+F1..F12 switch the console (libluxcomp, libseat session). The keyboard layout comes from
-localed (`/etc/X11/xorg.conf.d/00-keyboard.conf`, otherwise `XKBLAYOUT` in `/etc/vconsole.conf`) unless
-`XKB_DEFAULT_LAYOUT` is set.
+In every mode, Ctrl+Alt+F1..F12 switch the console (libluxcomp, libseat session).
 
 ## Configuration
 
