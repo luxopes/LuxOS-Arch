@@ -7,6 +7,8 @@
 #
 #   material.wallpaper_path(vystup)      tapeta z ~/.config/luxos/appearance.conf: WALLPAPER_<VYSTUP>, pak WALLPAPER,
 #                                        jinak vychozi tapeta LuxOS podle rezimu (~/.config/luxos/appearance); "" = neni
+#   material.wallpaper_mode(vystup)      WALLPAPER_MODE_<VYSTUP>, pak WALLPAPER_MODE: fill (vychozi), fit, center, tile
+#   material.wallpaper_color()           WALLPAPER_COLOR=#rrggbb (plocha bez tapety a okraje u fit/center) -> [r, g, b]
 #   material.layer_position(anchor, okraje, w, h, plocha)
 #                                        [x, y, w, h] plochy layer-shell na vystupu: anchor ANCHOR_* (jako zwlr_layer_surface_v1),
 #                                        okraje [nahore, vpravo, dole, vlevo], w/h 0 = roztazeni mezi protilehle kotvy,
@@ -17,7 +19,8 @@
 #                                        scale = HiDPI (povrch ma device scale). Povrch patri mezipameti - nenicit, jen kreslit.
 #   material.paint(cr, x, y, w, h, polomer, screen_x, screen_y, ink, sklo, mapa)
 #                                        totez primo do cr (pod uz nakreslene pixely, DEST_OVER); vraci svetle
-#   material.glass(cesta), material.map_for(sklo, out_w, out_h)   rozostrena tapeta a jeji mapa na vystup
+#   material.glass(cesta), material.map_for(sklo, out_w, out_h)   rozostrena tapeta a jeji mapa na vystup (fill)
+#   material.map_mode(sklo, out_w, out_h, rezim)                    mapa pro rezim zobrazeni tapety (jako luxos-backdrop)
 #   material.reload()                    zmena tapety nebo appearance.conf: zahodit mezipamet
 #   material.forget_output(vystup)       vystup odpojen
 #
@@ -38,7 +41,9 @@ STRIP_CACHE = 16
 GLASS_CACHE = 4
 OPERATOR_DEST_OVER = 7
 
-# glasses: klic tapety -> [povrch RGB24, pixely IntArray, sirka, vyska]; strips: klic -> [povrch, svetle, vystup]
+MODES = ["fill", "fit", "center", "tile"]
+
+# glasses: klic tapety -> [povrch RGB24, pixely IntArray, sirka, vyska, sirka tapety, vyska tapety]; strips: klic -> [povrch, svetle, vystup]
 state = {"glasses": {}, "glass_order": [], "strips": {}, "strip_order": [], "conf": None}
 
 function ptr(value):
@@ -129,6 +134,41 @@ function wallpaper_path(output):
     return ""
 end
 
+function wallpaper_mode(output):
+    p = prefs()
+    for key in ["WALLPAPER_MODE_" + output_key(output), "WALLPAPER_MODE"]:
+        value = unquote(p.get(key, "")).lower()
+        if value == "centre":
+            value = "center"
+        end
+        if value in MODES:
+            return value
+        end
+    end
+    return "fill"
+end
+
+function hex_digit(ch):
+    return "0123456789abcdef".find(ch.lower())
+end
+
+function wallpaper_color():
+    value = unquote(prefs().get("WALLPAPER_COLOR", ""))
+    if len(value) == 7 and value[0] == "#":
+        rgb = []
+        for i in [1, 3, 5]:
+            hi = hex_digit(value[i])
+            lo = hex_digit(value[i + 1])
+            if hi < 0 or lo < 0:
+                return tokens.GLASS["fallback"]
+            end
+            rgb.append(Float(hi * 16 + lo) / 255.0)
+        end
+        return rgb
+    end
+    return tokens.GLASS["fallback"]
+end
+
 # ---- rozostrena zmensenina ----------------------------------------------------------------------
 
 # Dva pruchody filtru 1-4-6-4-1 (vodorovne, svisle), po druhem desaturace; pixely 0x..RRGGBB.
@@ -209,6 +249,7 @@ function load_glass(path):
     end
     pw = gtk.pixbuf_get_width(pb)
     ph = gtk.pixbuf_get_height(pb)
+    dims = image_size(path)
     fb = tokens.GLASS["fallback"]
     surface = cairo.image_surface_create(cairo.FORMAT_RGB24, pw, ph)
     cr = cairo.create(surface)
@@ -220,7 +261,20 @@ function load_glass(path):
     call glib.object_unref(pb)
     pixels = blur(cairo.surface_to_intarray(surface), pw, ph)
     call cairo.surface_destroy(surface)
-    return [cairo.intarray_to_rgb_surface(pixels, pw, ph), pixels, pw, ph]
+    return [cairo.intarray_to_rgb_surface(pixels, pw, ph), pixels, pw, ph, max(1, dims[0]), max(1, dims[1])]
+end
+
+# Rozmery obrazku bez dekodovani pixelu
+function image_size(path):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        base = __lsl_qbe_load64(__lsl_address(cell) + 24)
+        format = __lsl_qbe_call3(__lsl_symbol("gdk_pixbuf_get_file_info"), __lsl_address(path) + 16, base, base + 4)
+        if format == 0:
+            return [0, 0]
+        end
+        return [__lsl_qbe_s32(__lsl_qbe_load32(base)), __lsl_qbe_s32(__lsl_qbe_load32(base + 4))]
+    end
 end
 
 function glass(path):
@@ -254,6 +308,26 @@ function map_for(gl, out_w, out_h):
     mw = Float(max(1, out_w))
     mh = Float(max(1, out_h))
     sc = min(pw / mw, ph / mh)
+    return [pw, ph, sc, (pw - mw * sc) / 2.0, (ph - mh * sc) / 2.0]
+end
+
+# Totez pro rezim zobrazeni tapety: fit = cela tapeta s okraji, center a tile = puvodni velikost
+# (tile bez opakovani, sklo je rozostrene)
+function map_mode(gl, out_w, out_h, mode):
+    if mode == "fill":
+        return map_for(gl, out_w, out_h)
+    end
+    pw = Float(gl[2])
+    ph = Float(gl[3])
+    mw = Float(max(1, out_w))
+    mh = Float(max(1, out_h))
+    sc = pw / Float(gl[4])
+    if mode == "fit":
+        sc = max(pw / mw, ph / mh)
+    end
+    if mode == "tile":
+        return [pw, ph, sc, 0.0, 0.0]
+    end
     return [pw, ph, sc, (pw - mw * sc) / 2.0, (ph - mh * sc) / 2.0]
 end
 
@@ -400,7 +474,8 @@ function strip(output, out_w, out_h, x, y, w, h, radius, ink, scale):
     if gl == None or w <= 0 or h <= 0:
         return None
     end
-    key = (output + "|" + path + "|" + String(lglib.stat(path)) + "|" + String([out_w, out_h, x, y, w, h, radius, ink, scale]))
+    mode = wallpaper_mode(output)
+    key = (output + "|" + path + "|" + String(lglib.stat(path)) + "|" + mode + "|" + String([out_w, out_h, x, y, w, h, radius, ink, scale]))
     hit = state["strips"].get(key)
     if hit != None:
         return hit
@@ -409,7 +484,7 @@ function strip(output, out_w, out_h, x, y, w, h, radius, ink, scale):
     surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, w * s, h * s)
     call set_device_scale(surface, s)
     cr = cairo.create(surface)
-    light = paint(cr, 0, 0, w, h, radius, x, y, ink, gl, map_for(gl, out_w, out_h))
+    light = paint(cr, 0, 0, w, h, radius, x, y, ink, gl, map_mode(gl, out_w, out_h, mode))
     call cairo.destroy(cr)
     call cairo.surface_flush(surface)
     while len(state["strip_order"]) >= STRIP_CACHE:
