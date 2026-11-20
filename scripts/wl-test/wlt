@@ -1,0 +1,276 @@
+#!/bin/bash
+# wlt - spousteni a kontrola Wayland kompozitoru a klientu bez skutecne obrazovky (viz README.md)
+#   wlt start [--mode headless|nested] [--outputs N] [--size WxH] [--name N] [--timeout S]
+#             [--config DIR] [-- PRIKAZ KOMPOZITORU..]          vypise adresar relace
+#   wlt run S [--bg] PRIKAZ..       klient v relaci (WAYLAND_DISPLAY, soukrome XDG_RUNTIME_DIR)
+#   wlt input S PRIKAZ..            mys a klavesnice (move/click/drag/key/type/sleep, viz src/scen.c)
+#   wlt shot S SOUBOR [VYSTUP]      snimek grim (.ppm nebo .png podle pripony)
+#   wlt capture S ADRESAR FPS SEC   rada snimku grim pro wlt check
+#   wlt check [volby] ADRESAR       detektor blikani (wlt-frames check)
+#   wlt stat SOUBOR..               pocet barev a podil necerne plochy
+#   wlt mem S                       PSS kompozitoru (a Xvfb) v kB
+#   wlt outputs S                   vystupy (wlr-randr)
+#   wlt stop S                      ukonci relaci (logy zustanou v adresari relace)
+set -euo pipefail
+here=$(dirname "$(readlink -f "$0")")
+out=${WLT_OUT:-$(readlink -f "$here/../..")/out/wl-test}
+bin=$out/bin
+
+die() { echo "wlt: $*" >&2; exit 1; }
+
+# Pripnuty sysroot (fetch-sysroot.sh) ma prednost pred systemem; WLT_SYSROOT=none = jen system
+sysroot=${WLT_SYSROOT:-$out/sysroot}
+[[ $sysroot != none && -x $sysroot/usr/bin/labwc ]] || sysroot=
+base_path=/usr/local/bin:/usr/bin:/bin
+lib_path=
+if [[ -n $sysroot ]]; then
+    base_path=$sysroot/usr/bin:$base_path
+    lib_path=$sysroot/usr/lib
+fi
+
+build() {
+    local stamp=$bin/.built src
+    src=$(find "$here/src" "$here/protocol" "$here/Makefile" -newer "$stamp" 2>/dev/null | head -1 || true)
+    [[ -f $stamp && -z $src ]] && return
+    make -s -C "$here" OUT="$out" >&2
+    touch "$stamp"
+}
+
+# Ciste prostredi relace: nic ze skutecne relace (DISPLAY, WAYLAND_DISPLAY, sbernice, HOME)
+session_env() {
+    local s=$1
+    printf '%s\0' \
+        "PATH=$bin:$base_path" "HOME=$s/home" "XDG_RUNTIME_DIR=$s/run" "XDG_CONFIG_HOME=$s/config" \
+        "XDG_DATA_HOME=$s/home/.local/share" "XDG_CACHE_HOME=$s/home/.cache" "XDG_STATE_HOME=$s/home/.local/state" \
+        "LANG=C.UTF-8" "XKB_DEFAULT_LAYOUT=us" "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent" \
+        "DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent" "WLT_SESSION=$s"
+    [[ -n $lib_path ]] && printf '%s\0' "LD_LIBRARY_PATH=$lib_path"
+    if [[ -f $s/layout ]]; then printf 'WLT_LAYOUT=%s\0' "$(<"$s/layout")"; fi
+    if [[ -S $s/run/wayland-0 ]]; then printf '%s\0' "WAYLAND_DISPLAY=wayland-0"; fi
+    return 0
+}
+
+in_session() {  # in_session S PRIKAZ.. (beh s timeoutem relace)
+    local s=$1; shift
+    local -a envv
+    mapfile -d '' envv < <(session_env "$s")
+    env -i "${envv[@]}" timeout -k 5 "${WLT_CMD_TIMEOUT:-120}" "$@"
+}
+
+session_dir() {
+    local s=${1-}
+    [[ -n $s ]] || die "missing session"
+    [[ -d $s ]] || s=$out/sessions/$s
+    [[ -f $s/compositor.pid ]] || die "no session: $1"
+    readlink -f "$s"
+}
+
+pid_alive() { [[ -n ${1-} ]] && kill -0 "$1" 2>/dev/null; }
+
+# PID kompozitoru = dite procesu timeout, ktery wlt spustil
+compositor_pid() {
+    local t
+    t=$(<"$1/compositor.pid")
+    pid_alive "$t" || return 1
+    local c
+    c=$(cat /proc/"$t"/task/*/children 2>/dev/null | awk '{print $1; exit}')
+    echo "${c:-$t}"
+}
+
+pss_kb() { awk '/^Pss:/{print $2}' /proc/"$1"/smaps_rollup 2>/dev/null; }
+
+free_display() {
+    local n
+    for n in $(seq 200 299); do
+        [[ -e /tmp/.X11-unix/X$n || -e /tmp/.X$n-lock ]] || { echo "$n"; return; }
+    done
+    return 1
+}
+
+# Rozvrzeni vystupu z wlr-randr: "SIRKAxVYSKA" ohranicujiciho obdelniku
+read_layout() {
+    in_session "$1" wlr-randr | awk '
+        /^[^ ]/ { on = 0 } /Enabled: yes/ { on = 1 }
+        /\(current\)/ { split($1, m, "x"); w = m[1]; h = m[2] }
+        /Position:/ { split($2, p, ","); if (on) { if (p[1] + w > W) W = p[1] + w; if (p[2] + h > H) H = p[2] + h } }
+        END { if (W && H) printf "%dx%d\n", W, H }'
+}
+
+cmd_start() {
+    local mode=headless outputs=1 size= name= timeout=${WLT_TIMEOUT:-900} config=$here/labwc
+    while (($#)); do
+        case $1 in
+            --mode) mode=$2; shift 2 ;;
+            --outputs) outputs=$2; shift 2 ;;
+            --size) size=$2; shift 2 ;;
+            --name) name=$2; shift 2 ;;
+            --timeout) timeout=$2; shift 2 ;;
+            --config) config=$2; shift 2 ;;
+            --) shift; break ;;
+            *) die "unknown option $1" ;;
+        esac
+    done
+    [[ $mode == headless || $mode == nested ]] || die "mode must be headless or nested"
+    [[ -z $size || $size =~ ^[0-9]+x[0-9]+$ ]] || die "bad --size $size"
+    local -a comp=("$@")
+    ((${#comp[@]})) || comp=(labwc)
+    build
+    name=${name:-$mode-$$-$(date +%s)}
+    local s=$out/sessions/$name
+    if [[ -f $s/compositor.pid ]] && pid_alive "$(<"$s/compositor.pid")"; then die "session $name is running"; fi
+    rm -rf "$s"
+    mkdir -p "$s/run" "$s/home" "$s/config"
+    chmod 700 "$s/run"
+    [[ -d $config ]] && cp -r "$config" "$s/config/labwc"
+    echo "$mode" >"$s/mode"
+
+    # Jen virtualni backendy - kompozitor nikdy nesmi sahnout na DRM/libinput hostitele
+    local -a wenv=(WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 WLR_DRM_DEVICES=/nonexistent)
+    if [[ $mode == headless ]]; then
+        wenv+=(WLR_BACKENDS=headless "WLR_HEADLESS_OUTPUTS=$outputs")
+    else
+        command -v Xvfb >/dev/null || die "Xvfb is not installed"
+        local d w h
+        d=$(free_display) || die "no free X display"
+        w=${size%x*} h=${size#*x}
+        [[ -n $size ]] || { w=1024; h=768; }
+        ((w < 1024)) && w=1024
+        ((h < 768)) && h=768
+        timeout -k 5 "$timeout" Xvfb ":$d" -screen 0 "$((w * outputs))x${h}x24" -nolisten tcp \
+            >"$s/xvfb.log" 2>&1 &
+        echo $! >"$s/xvfb.pid"
+        for _ in $(seq 100); do [[ -S /tmp/.X11-unix/X$d ]] && break; sleep 0.05; done
+        [[ -S /tmp/.X11-unix/X$d ]] || die "Xvfb did not start (see $s/xvfb.log)"
+        echo ":$d" >"$s/display"
+        wenv+=(WLR_BACKENDS=x11 "WLR_X11_OUTPUTS=$outputs" "DISPLAY=:$d")
+    fi
+
+    local -a envv scope=()
+    mapfile -d '' envv < <(session_env "$s")
+    if [[ ${WLT_SCOPE:-1} == 1 ]] && command -v systemd-run >/dev/null \
+            && systemd-run --user --scope --quiet -p TasksMax=300 -- true 2>/dev/null; then
+        scope=(systemd-run --user --scope --quiet -p TasksMax=300 --)
+    fi
+    "${scope[@]}" env -i "${envv[@]}" "${wenv[@]}" ${WLT_COMPOSITOR_ENV-} \
+        timeout -k 5 "$timeout" "${comp[@]}" >"$s/compositor.log" 2>&1 &
+    echo $! >"$s/compositor.pid"
+
+    local ok=
+    for _ in $(seq 200); do
+        if [[ -S $s/run/wayland-0 ]] && in_session "$s" wlr-randr >/dev/null 2>&1; then ok=1; break; fi
+        pid_alive "$(<"$s/compositor.pid")" || break
+        sleep 0.05
+    done
+    if [[ -z $ok ]]; then
+        cmd_stop "$s" >/dev/null 2>&1 || true
+        tail -20 "$s/compositor.log" >&2
+        die "compositor did not start (log: $s/compositor.log)"
+    fi
+    if [[ -n $size ]]; then
+        # vystupy vedle sebe zleva doprava, jednou konfiguraci (postupne nastaveni se prekryva)
+        local o x=0 args=()
+        for o in $(in_session "$s" wlr-randr | awk '/^[^ ]/{print $1}' | sort -V); do
+            args+=(--output "$o" --custom-mode "$size" --pos "$x,0")
+            x=$((x + ${size%x*}))
+        done
+        in_session "$s" wlr-randr "${args[@]}" >/dev/null
+        sleep 0.2
+    fi
+    read_layout "$s" >"$s/layout"
+    echo "$s"
+}
+
+cmd_stop() {
+    local s
+    s=$(session_dir "${1-}")
+    local p
+    if [[ -f $s/pids ]]; then
+        while read -r p; do pid_alive "$p" && kill "$p" 2>/dev/null; done <"$s/pids"
+    fi
+    for f in compositor.pid xvfb.pid; do
+        [[ -f $s/$f ]] || continue
+        p=$(<"$s/$f")
+        pid_alive "$p" || continue
+        kill "$p" 2>/dev/null || true
+        for _ in $(seq 60); do pid_alive "$p" || break; sleep 0.05; done
+        pid_alive "$p" && kill -9 "$p" 2>/dev/null
+    done
+    rm -f "$s/run/wayland-0" "$s/run/wayland-0.lock"
+    echo "$s"
+}
+
+cmd_run() {
+    local s bg=
+    s=$(session_dir "${1-}"); shift
+    [[ ${1-} == --bg ]] && { bg=1; shift; }
+    (($#)) || die "missing command"
+    if [[ -n $bg ]]; then
+        WLT_CMD_TIMEOUT=${WLT_CMD_TIMEOUT:-900} in_session "$s" "$@" >>"$s/clients.log" 2>&1 &
+        echo $! >>"$s/pids"
+        echo $!
+    else
+        in_session "$s" "$@"
+    fi
+}
+
+cmd_shot() {
+    local s file=${2-} output=${3-}
+    s=$(session_dir "${1-}")
+    [[ -n $file ]] || die "missing file"
+    local t=ppm
+    [[ $file == *.png ]] && t=png
+    in_session "$s" grim -t "$t" ${output:+-o "$output"} "$(readlink -f "$file")"
+}
+
+cmd_capture() {
+    local s dir=${2-} fps=${3-30} sec=${4-10}
+    s=$(session_dir "${1-}")
+    [[ -n $dir ]] || die "missing directory"
+    mkdir -p "$dir"
+    dir=$(readlink -f "$dir")
+    # grim kopiruje hotovy snimek (ext-image-copy-capture), takze nevidi poloprekreslene buffery
+    local n=$((fps * sec)) i=0 t0 now target
+    t0=$(date +%s%N)
+    while ((i < n)); do
+        target=$((t0 + i * 1000000000 / fps))
+        now=$(date +%s%N)
+        ((now < target)) && sleep "0.$(printf '%09d' $((target - now)))"
+        in_session "$s" grim -t ppm "$dir/f$(printf %04d "$i").ppm"
+        i=$((i + 1))
+    done
+    now=$(date +%s%N)
+    echo "frames=$n seconds=$(((now - t0) / 1000000))ms"
+}
+
+cmd_mem() {
+    local s c x=
+    s=$(session_dir "${1-}")
+    c=$(compositor_pid "$s") || die "compositor is not running"
+    [[ -f $s/xvfb.pid ]] && x=$(<"$s/xvfb.pid")
+    printf 'compositor_pss_kb=%s' "$(pss_kb "$c")"
+    if pid_alive "$x"; then
+        # timeout -> Xvfb
+        local xc
+        xc=$(cat /proc/"$x"/task/*/children 2>/dev/null | awk '{print $1; exit}')
+        printf ' xvfb_pss_kb=%s' "$(pss_kb "${xc:-$x}")"
+    fi
+    echo
+}
+
+cmd=${1-}
+(($#)) && shift
+case $cmd in
+    start) cmd_start "$@" ;;
+    stop) cmd_stop "$@" ;;
+    run) cmd_run "$@" ;;
+    input) s=$(session_dir "${1-}"); shift; build; in_session "$s" wlt-input "$@" ;;
+    shot) cmd_shot "$@" ;;
+    capture) cmd_capture "$@" ;;
+    check) build; "$bin/wlt-frames" check "$@" ;;
+    stat) build; "$bin/wlt-frames" stat "$@" ;;
+    mem) cmd_mem "$@" ;;
+    outputs) s=$(session_dir "${1-}"); in_session "$s" wlr-randr ;;
+    env) s=$(session_dir "${1-}"); session_env "$s" | tr '\0' '\n' | sed 's/^/export /' ;;
+    build) build ;;
+    *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
+esac
