@@ -1,7 +1,14 @@
 /* Zamceni obrazovky (ext-session-lock-v1): zamykaci plochy s vlastnimi bufery wl_shm (kresli
  * se do nich cairem z LSL) a klavesnice pres xkbcommon pro zadani hesla. Kdyz zamykac spadne,
- * kompozitor nechava obrazovku zamcenou - proto tu neni nic, co by zamek rusilo samo. */
+ * kompozitor nechava obrazovku zamcenou - proto tu neni nic, co by zamek rusilo samo.
+ *
+ * Heslo (lwl_lock_secret): znaky jdou rovnou do jedineho bufferu zamceneho v RAM, do LSL nikdy -
+ * tam by z retezcu zustaly kopie, ktere nejde smazat. Ven jde jen jednou do roury pomocneho
+ * programu PAM (lwl_lock_secret_write) a buffer se hned prepise nulami. */
 #define _GNU_SOURCE
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -21,6 +28,7 @@ struct buffer {
 struct surface {
 	struct wl_list link;
 	int id;
+	int output;
 	struct wl_surface *wl;
 	struct ext_session_lock_surface_v1 *lock;
 	int width, height;
@@ -37,6 +45,17 @@ static struct xkb_context *xkb;
 static struct xkb_keymap *keymap;
 static struct xkb_state *xkb_state;
 static struct surface *focus;
+
+#define SECRET_MAX 1024
+#define LAYOUTS_MAX 4
+static char secret[SECRET_MAX];
+static size_t secret_len;
+static bool secret_on, secret_locked;
+static int caps_shown = -1, group_shown = -1;
+static char layout_codes[LAYOUTS_MAX][16];
+static int layout_count;
+
+static void secret_clear(void);
 
 /* ---- bufery ---- */
 
@@ -118,9 +137,19 @@ static void surface_destroy(struct surface *s)
 	free(s);
 }
 
+/* odpojeny vystup: jeho zamykaci plocha uz nema kde byt */
+void lwl_lock_output_gone(int output)
+{
+	struct surface *s, *tmp;
+	wl_list_for_each_safe(s, tmp, &surfaces, link)
+		if (s->output == output)
+			surface_destroy(s);
+}
+
 static void destroy_all(void)
 {
 	struct surface *s, *tmp;
+	secret_clear();
 	wl_list_for_each_safe(s, tmp, &surfaces, link)
 		surface_destroy(s);
 	if (keyboard) {
@@ -129,7 +158,190 @@ static void destroy_all(void)
 	}
 }
 
+/* ---- heslo ---- */
+
+static void secret_clear(void)
+{
+	explicit_bzero(secret, sizeof secret);
+	secret_len = 0;
+}
+
+static int secret_chars(void)
+{
+	int n = 0;
+	for (size_t i = 0; i < secret_len; i++)
+		n += ((unsigned char)secret[i] & 0xc0) != 0x80;
+	return n;
+}
+
+static void secret_drop_last(void)
+{
+	while (secret_len > 0) {
+		unsigned char c = (unsigned char)secret[--secret_len];
+		secret[secret_len] = 0;
+		if ((c & 0xc0) != 0x80)
+			break;
+	}
+}
+
+/* Znak klavesy rovnou na konec hesla; ridici znaky (Tab, Enter) a plny buffer nic nepridaji. */
+static bool secret_append(xkb_keycode_t code)
+{
+	char *end = secret + secret_len;
+	size_t room = sizeof secret - secret_len;
+	int n = xkb_state_key_get_utf8(xkb_state, code, end, room);
+	if (n <= 0 || (size_t)n >= room || (unsigned char)end[0] < 0x20 || end[0] == 0x7f) {
+		explicit_bzero(end, room);
+		return false;
+	}
+	secret_len += (size_t)n;
+	return true;
+}
+
+LWL_EXPORT int lwl_lock_secret(int on)
+{
+	/* mimo swap; kdyz mlock nejde (RLIMIT_MEMLOCK), heslo funguje dal */
+	if (on && !secret_locked)
+		secret_locked = mlock(secret, sizeof secret) == 0;
+	secret_on = on != 0;
+	secret_clear();
+	return secret_locked;
+}
+
+LWL_EXPORT int lwl_lock_secret_length(void)
+{
+	return secret_chars();
+}
+
+LWL_EXPORT void lwl_lock_secret_clear(void)
+{
+	secret_clear();
+}
+
+/* Ramec pro luxos-auth: delka (uint32, poradi bajtu stroje) a bajty hesla; pak buffer smazat. */
+LWL_EXPORT int lwl_lock_secret_write(int fd)
+{
+	uint32_t len = (uint32_t)secret_len;
+	char head[4];
+	memcpy(head, &len, 4);
+	const char *parts[2] = {head, secret};
+	size_t sizes[2] = {4, secret_len};
+	bool ok = true;
+	for (int i = 0; i < 2 && ok; i++) {
+		size_t done = 0;
+		while (done < sizes[i]) {
+			ssize_t n = write(fd, parts[i] + done, sizes[i] - done);
+			if (n < 0 && errno == EINTR)
+				continue;
+			if (n <= 0) {
+				ok = false;
+				break;
+			}
+			done += (size_t)n;
+		}
+	}
+	secret_clear();
+	return ok;
+}
+
 /* ---- klavesnice ---- */
+
+/* Kody rozlozeni z nazvu symbolu keymapy. libxkbcommon ho zapisuje jako "pc_cz_us_2_inet(evdev)"
+ * (starsi zapis "pc+cz+us:2+inet(evdev)"): druhy dil je skupina 1, dil s cislem za sebou je skupina N.
+ * Skutecny keymap od kompozitoru je jediny spolehlivy zdroj; nazvy rozlozeni ("Czech") jsou na stitek dlouhe. */
+static void parse_layouts(void)
+{
+	char *tokens[32];
+	int n = 0;
+	layout_count = 0;
+	memset(layout_codes, 0, sizeof layout_codes);
+	char *text = xkb_keymap_get_as_string(keymap, XKB_KEYMAP_FORMAT_TEXT_V1);
+	char *start = text ? strstr(text, "xkb_symbols \"") : NULL;
+	char *end = start ? strchr(start + 13, '"') : NULL;
+	if (end) {
+		*end = 0;
+		/* oddelovace mimo zavorky (varianta muze mit podtrzitko: colemak_dh) */
+		int depth = 0;
+		char *tok = start + 13;
+		for (char *c = tok; ; c++) {
+			if (*c == '(')
+				depth++;
+			else if (*c == ')')
+				depth--;
+			else if (*c == 0 || (depth == 0 && (*c == '_' || *c == '+' || *c == ':'))) {
+				bool last = *c == 0;
+				*c = 0;
+				if (n < 32)
+					tokens[n++] = tok;
+				if (last)
+					break;
+				tok = c + 1;
+			}
+		}
+		for (int i = 1; i < n; i++) {
+			int group = 0;
+			if (i + 1 < n && tokens[i + 1][0] >= '1' && tokens[i + 1][0] <= '9')
+				group = atoi(tokens[i + 1]);
+			else if (i == 1)
+				group = 1;
+			/* volby s cislem skupiny (level3(...):2) prichazeji az za rozlozenimi */
+			if (group < 1 || group > LAYOUTS_MAX || layout_codes[group - 1][0])
+				continue;
+			char *paren = strchr(tokens[i], '(');
+			if (paren)
+				*paren = 0;
+			for (int k = 0; tokens[i][k] && k < 15; k++)
+				layout_codes[group - 1][k] = (char)(tokens[i][k] >= 'a' && tokens[i][k] <= 'z' ? tokens[i][k] - 32 : tokens[i][k]);
+			if (group > layout_count)
+				layout_count = group;
+		}
+	}
+	free(text);
+	int count = (int)xkb_keymap_num_layouts(keymap);
+	if (count < layout_count || layout_count == 0)
+		layout_count = count < LAYOUTS_MAX ? count : LAYOUTS_MAX;
+	/* nerozpoznane: prvni slovo nazvu rozlozeni */
+	for (int i = 0; i < layout_count; i++) {
+		if (layout_codes[i][0])
+			continue;
+		const char *name = xkb_keymap_layout_get_name(keymap, (xkb_layout_index_t)i);
+		snprintf(layout_codes[i], sizeof layout_codes[i], "%.*s", name ? (int)strcspn(name, " (") : 0, name ? name : "");
+	}
+}
+
+/* Caps Lock a rozlozeni: udalost jen pri zmene (a po vstupu na plochu) */
+static void keyboard_state(bool force)
+{
+	if (!xkb_state)
+		return;
+	int caps = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CAPS, XKB_STATE_MODS_LOCKED) > 0;
+	int group = (int)xkb_state_serialize_layout(xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+	if (!force && caps == caps_shown && group == group_shown)
+		return;
+	caps_shown = caps;
+	group_shown = group;
+	lwl_emit(LWL_KEYBOARD, focus ? focus->id : 0, caps, group);
+}
+
+LWL_EXPORT int lwl_lock_caps(void)
+{
+	return caps_shown > 0;
+}
+
+LWL_EXPORT int lwl_lock_layout(void)
+{
+	return group_shown > 0 ? group_shown : 0;
+}
+
+LWL_EXPORT int lwl_lock_layout_count(void)
+{
+	return layout_count;
+}
+
+LWL_EXPORT const char *lwl_lock_layout_code(int group)
+{
+	return group >= 0 && group < layout_count ? layout_codes[group] : "";
+}
 
 static void kb_keymap(void *data, struct wl_keyboard *kb, uint32_t format, int32_t fd, uint32_t size)
 {
@@ -153,6 +365,8 @@ static void kb_keymap(void *data, struct wl_keyboard *kb, uint32_t format, int32
 	xkb_keymap_unref(keymap);
 	keymap = map;
 	xkb_state = xkb_state_new(map);
+	parse_layouts();
+	keyboard_state(true);
 }
 
 static void kb_enter(void *data, struct wl_keyboard *kb, uint32_t serial, struct wl_surface *wl, struct wl_array *keys)
@@ -163,6 +377,7 @@ static void kb_enter(void *data, struct wl_keyboard *kb, uint32_t serial, struct
 	wl_list_for_each(s, &surfaces, link)
 		if (s->wl == wl)
 			focus = s;
+	keyboard_state(true);
 }
 
 static void kb_leave(void *data, struct wl_keyboard *kb, uint32_t serial, struct wl_surface *wl)
@@ -177,17 +392,35 @@ static void kb_key(void *data, struct wl_keyboard *kb, uint32_t serial, uint32_t
 	/* klavesy pro okna GTK na sdilenem spojeni sem nepatri */
 	if (!focus || !xkb_state || state != WL_KEYBOARD_KEY_STATE_PRESSED)
 		return;
-	xkb_keysym_t sym = xkb_state_key_get_one_sym(xkb_state, key + 8);
-	uint32_t cp = xkb_state_key_get_utf32(xkb_state, key + 8);
-	lwl_emit(LWL_KEY, focus->id, (int)sym, (int)cp);
+	xkb_keycode_t code = key + 8;
+	xkb_keysym_t sym = xkb_state_key_get_one_sym(xkb_state, code);
+	if (!secret_on) {
+		lwl_emit(LWL_KEY, focus->id, (int)sym, (int)xkb_state_key_get_utf32(xkb_state, code));
+		return;
+	}
+	bool ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0;
+	if (sym == XKB_KEY_BackSpace) {
+		if (ctrl)
+			secret_clear();
+		else
+			secret_drop_last();
+	} else if (sym == XKB_KEY_Escape || (ctrl && (sym == XKB_KEY_u || sym == XKB_KEY_U))) {
+		secret_clear();
+		sym = XKB_KEY_Escape;
+	} else if (!ctrl && secret_append(code)) {
+		sym = 0;
+	}
+	lwl_emit(LWL_KEY, focus->id, (int)sym, secret_chars());
 }
 
 static void kb_modifiers(void *data, struct wl_keyboard *kb, uint32_t serial, uint32_t depressed, uint32_t latched,
 	uint32_t locked_mods, uint32_t group)
 {
 	(void)data; (void)kb; (void)serial;
-	if (xkb_state)
+	if (xkb_state) {
 		xkb_state_update_mask(xkb_state, depressed, latched, locked_mods, 0, 0, group);
+		keyboard_state(false);
+	}
 }
 
 static void kb_repeat(void *data, struct wl_keyboard *kb, int32_t rate, int32_t delay)
@@ -267,6 +500,9 @@ void lwl_lock_reset(void)
 	xkb_state = NULL;
 	keymap = NULL;
 	xkb = NULL;
+	secret_clear();
+	secret_on = false;
+	caps_shown = group_shown = -1;
 }
 
 LWL_EXPORT int lwl_lock(void)
@@ -288,6 +524,7 @@ LWL_EXPORT int lwl_lock_surface(int output)
 	if (!s)
 		return 0;
 	s->id = lwl_new_id();
+	s->output = output;
 	s->wl = wl_compositor_create_surface(lwl.compositor);
 	s->lock = ext_session_lock_v1_get_lock_surface(lock, s->wl, o->wl);
 	ext_session_lock_surface_v1_add_listener(s->lock, &surface_listener, s);

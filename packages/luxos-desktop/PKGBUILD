@@ -30,7 +30,8 @@ sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni;
 # xfce4-panel + xfconf: hlavicky pro plugin luxos-bar (libxfce4panel-2.0, libxfconf-0)
 # wayland + libxkbcommon: libluxos-wl (wayland-scanner, XML protokolu jsou pripnute v files/src/luxos-wl/protocol)
-makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3 wayland libxkbcommon)
+# pam: hlavicky pro luxos-auth (overeni zamku obrazovky na Waylandu)
+makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3 wayland libxkbcommon pam)
 # hlidac tlacitek okna Firefoxu: selektory luxos/titlebar.css proti omni.ja nainstalovaneho Firefoxu
 checkdepends=(python firefox unzip nodejs)
 install=luxos-desktop.install
@@ -138,7 +139,9 @@ build() {
     # Protokoly Waylandu pro shell v LSL (luxos_wl.lsl nacita knihovnu za behu): okna, zamek, snimek,
     # schranka, virtualni klavesnice, monitory, necinnost (files/src/luxos-wl)
     make -s -C "$startdir/files/src/luxos-wl" OUT="$PWD/luxos-wl"
-    strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard
+    # Overeni hesla a otisku pro zamek na Waylandu mimo proces zamku (PAM jen tady)
+    gcc $CFLAGS $LDFLAGS -o luxos-auth "$startdir/files/src/luxos-auth.c" -lpam
+    strip --strip-all luxos-menubar luxos-session-cover luxos-forkguard luxos-auth
     strip --strip-unneeded libluxos-lock-fix.so libluxos-panel-menus.so libluxos-desktop-menu.so libluxos-bar.so \
         libluxos-scroll.so luxos-wl/libluxos-wl.so.0
 
@@ -184,6 +187,9 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-notify.lsl" luxos-notify
     # Horni lista relace na Waylandu (layer-shell, jedna na monitor); X11 relace dal pouziva xfce4-panel
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-bar.lsl" luxos-bar
+    # Zamek obrazovky na Waylandu (ext-session-lock) a hlidac necinnosti/logind; X11 relace dal xfce4-screensaver
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-lock.lsl" luxos-lock
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-lock-session.lsl" luxos-lock-session
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -230,6 +236,11 @@ package() {
     install -Dm755 luxos-wl/libluxos-wl.so.0 "$pkgdir/usr/lib/luxos/libluxos-wl.so.0"
     install -Dm755 luxos-bar "$pkgdir/usr/bin/luxos-bar"
     install -Dm644 "$f/systemd-user/luxos-bar.service" "$pkgdir/usr/lib/systemd/user/luxos-bar.service"
+    install -Dm755 luxos-lock "$pkgdir/usr/bin/luxos-lock"
+    install -Dm755 luxos-lock-session "$pkgdir/usr/lib/luxos/luxos-lock-session"
+    install -Dm755 luxos-auth "$pkgdir/usr/lib/luxos/luxos-auth"
+    install -Dm644 "$f/systemd-user/luxos-lock.service" "$pkgdir/usr/lib/systemd/user/luxos-lock.service"
+    install -Dm644 -t "$pkgdir/usr/lib/pam.d" "$f/pam.d/luxos-lock" "$f/pam.d/luxos-lock-fingerprint"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"

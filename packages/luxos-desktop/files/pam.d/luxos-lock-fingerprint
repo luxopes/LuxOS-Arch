@@ -1,0 +1,8 @@
+#%PAM-1.0
+# LuxOS - otisk prstu pro zamek obrazovky (luxos-auth fingerprint), soubezne s heslem. Docasne zamceny ucet
+# (pam_faillock) neprojde ani otiskem; neuspesny nebo zruseny otisk se do pam_faillock nepocita (zadne authfail).
+# Bez pam_fprintd (radek "-auth" se preskoci) vzdy pam_deny: tahle sluzba nikdy neodemyka bez otisku.
+auth       requisite    pam_faillock.so preauth
+-auth      [success=1 default=ignore]  pam_fprintd.so max-tries=3 timeout=30
+auth       requisite    pam_deny.so
+auth       required     pam_faillock.so authsucc

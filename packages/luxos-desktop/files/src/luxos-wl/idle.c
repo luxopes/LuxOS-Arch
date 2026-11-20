@@ -31,8 +31,9 @@ static const struct ext_idle_notification_v1_listener listener = {
 	.resumed = resumed,
 };
 
-/* Hlida jen vstup (v2: inhibitory jako prehravani videa se neberou v potaz, ty resi volajici). */
-LWL_EXPORT int lwl_idle_watch(int timeout_ms)
+/* input_only: jen vstup (v2: inhibitory jako prehravani videa se neberou v potaz, ty resi volajici);
+ * jinak i inhibitory - tak to chce zamek obrazovky (pri filmu se nezamyka). */
+LWL_EXPORT int lwl_idle_watch_full(int timeout_ms, int input_only)
 {
 	if (!lwl.idle_notifier || !lwl.seat || timeout_ms <= 0)
 		return 0;
@@ -40,7 +41,7 @@ LWL_EXPORT int lwl_idle_watch(int timeout_ms)
 	if (!w)
 		return 0;
 	w->id = lwl_new_id();
-	if (lwl.idle_notifier_version >= EXT_IDLE_NOTIFIER_V1_GET_INPUT_IDLE_NOTIFICATION_SINCE_VERSION)
+	if (input_only && lwl.idle_notifier_version >= EXT_IDLE_NOTIFIER_V1_GET_INPUT_IDLE_NOTIFICATION_SINCE_VERSION)
 		w->wl = ext_idle_notifier_v1_get_input_idle_notification(lwl.idle_notifier, (uint32_t)timeout_ms, lwl.seat);
 	else
 		w->wl = ext_idle_notifier_v1_get_idle_notification(lwl.idle_notifier, (uint32_t)timeout_ms, lwl.seat);
@@ -48,6 +49,11 @@ LWL_EXPORT int lwl_idle_watch(int timeout_ms)
 	wl_list_insert(watches.prev, &w->link);
 	wl_display_flush(lwl.display);
 	return w->id;
+}
+
+LWL_EXPORT int lwl_idle_watch(int timeout_ms)
+{
+	return lwl_idle_watch_full(timeout_ms, 1);
 }
 
 static void watch_free(struct watch *w)
