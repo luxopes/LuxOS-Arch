@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <unistd.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
@@ -145,7 +146,10 @@ static void k_keymap(void *d, struct wl_keyboard *k, uint32_t fmt, int fd, uint3
 }
 static void k_enter(void *d, struct wl_keyboard *k, uint32_t s, struct wl_surface *sf, struct wl_array *keys)
 {
-	say("focus");
+	/* cas CLOCK_MONOTONIC v us: testy z nej pocitaji prodlevu zkratka -> zamereni */
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	say("focus %lld", (long long)ts.tv_sec * 1000000 + ts.tv_nsec / 1000);
 }
 static void k_leave(void *d, struct wl_keyboard *k, uint32_t s, struct wl_surface *sf) { say("unfocus"); }
 static void k_key(void *d, struct wl_keyboard *k, uint32_t s, uint32_t t, uint32_t key, uint32_t st)

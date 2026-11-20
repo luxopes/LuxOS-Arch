@@ -10,7 +10,7 @@ CFLAGS ?= -O2 -g -Wall -Wextra -Wno-unused-parameter
 WL_LIBS := $(shell pkg-config --libs wayland-client xkbcommon)
 WL_CFLAGS := $(shell pkg-config --cflags wayland-client xkbcommon) -I$(GEN)
 
-all: $(BIN)/wlt-input $(BIN)/wlt-client $(BIN)/wlt-qmp $(BIN)/wlt-frames
+all: $(BIN)/wlt-input $(BIN)/wlt-client $(BIN)/wlt-bar $(BIN)/wlt-qmp $(BIN)/wlt-frames
 
 $(GEN)/%-client-protocol.h: protocol/%.xml
 	@mkdir -p $(GEN)
@@ -42,6 +42,12 @@ CLIENT_PROTO := xdg-shell xdg-decoration-unstable-v1
 $(BIN)/wlt-client: src/wlt-client.c $(CLIENT_PROTO:%=$(GEN)/%-client-protocol.h) $(CLIENT_PROTO:%=$(GEN)/%-protocol.c)
 	@mkdir -p $(BIN)
 	$(CC) $(CFLAGS) $(WL_CFLAGS) -o $@ src/wlt-client.c $(CLIENT_PROTO:%=$(GEN)/%-protocol.c) $(WL_LIBS)
+
+BAR_PROTO := wlr-layer-shell-unstable-v1 xdg-shell
+
+$(BIN)/wlt-bar: src/wlt-bar.c $(BAR_PROTO:%=$(GEN)/%-client-protocol.h) $(BAR_PROTO:%=$(GEN)/%-protocol.c)
+	@mkdir -p $(BIN)
+	$(CC) $(CFLAGS) $(WL_CFLAGS) -o $@ src/wlt-bar.c $(BAR_PROTO:%=$(GEN)/%-protocol.c) $(WL_LIBS)
 
 $(BIN)/wlt-qmp: src/wlt-qmp.c src/scen.c src/scen.h
 	@mkdir -p $(BIN)
