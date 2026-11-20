@@ -61,7 +61,7 @@ scripts/wl-test/wlt stop "$s"
   - `--config DIR`: labwc config directory
   - `-- COMMAND...`: another compositor, e.g. `-- luxwm -d`. The compositor must support `wlr-output-management` (for `--size` and the readiness check) and virtual pointer/keyboard (for `input`).
   - `WLT_COMPOSITOR_ENV="VAR=x ..."` adds variables to the compositor's environment.
-  - For luxwm, `start` writes `S/privileged.conf` with wlr-randr, grim and wlt-input, and passes it as `LUXWM_PRIVILEGED`. Only allowlisted programs get the privileged protocols (output management, capture, virtual input). It also sets `WLR_XWAYLAND` to the sysroot's Xwayland. XWayland creates its X socket in `/tmp/.X11-unix` on a free display number, never `:0`.
+  - For luxwm, `start` writes `S/privileged.conf` with wlr-randr, grim and wlt-input, and passes it as `LUXWM_PRIVILEGED`. `WLT_PRIVILEGED="/abs/prog ..."` adds programs under test (their real executables). Only allowlisted programs get the privileged protocols (output management, capture, virtual input). It also sets `WLR_XWAYLAND` to the sysroot's Xwayland. XWayland creates its X socket in `/tmp/.X11-unix` on a free display number, never `:0`.
 - `wlt-bar [--height N] [--bottom] [--color RRGGBB]` is a layer-shell bar with an exclusive zone, for placement tests below a bar or above a dock.
 - `wlt-client --events` prints `focus US` (CLOCK_MONOTONIC in µs) when it gets keyboard focus, for latency measurements.
 - `run S CMD...` runs a client in the session environment. With `--bg`, output goes to `S/clients.log`, so you can read what `wlt-client --events` received.

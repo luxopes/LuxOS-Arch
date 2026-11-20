@@ -399,6 +399,7 @@ void
 luxcomp_destroy(void)
 {
 	xwayland_finish();
+	ipc_finish();
 	wl_display_destroy_clients(comp.display);
 	wl_list_remove(&comp.toplevel_capture.link);
 	wl_list_remove(&comp.activate.link);
@@ -635,8 +636,16 @@ layer_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&l->map.link);
 	wl_list_remove(&l->unmap.link);
 	wl_list_remove(&l->commit.link);
+	wl_list_remove(&l->new_popup.link);
 	wl_list_remove(&l->destroy.link);
 	free(l);
+}
+
+static void
+layer_new_popup(struct wl_listener *listener, void *data)
+{
+	struct layer *l = wl_container_of(listener, l, new_popup);
+	popup_attach(data, l->scene->tree);
 }
 
 static void
@@ -667,6 +676,8 @@ new_layer_surface(struct wl_listener *listener, void *data)
 	wl_signal_add(&s->surface->events.unmap, &l->unmap);
 	l->commit.notify = layer_commit;
 	wl_signal_add(&s->surface->events.commit, &l->commit);
+	l->new_popup.notify = layer_new_popup;
+	wl_signal_add(&s->events.new_popup, &l->new_popup);
 	l->destroy.notify = layer_destroy;
 	wl_signal_add(&s->events.destroy, &l->destroy);
 }

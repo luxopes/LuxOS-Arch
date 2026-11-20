@@ -17,12 +17,18 @@
 # xterm/rxvt Shift+Insert s PRIMARY) pres XTEST; po 1 s vratim puvodni obsah schranky, pokud ji mezitim
 # nikdo neprevzal. Kdyz vlozit nejde (zadne okno, okno zmizelo, nedostalo fokus), emoji zustane ve schrance
 # a upozorneni to rekne.
+#
+# Na Waylandu (relace luxwm) bez X11 i bez schranky: okno si pri otevreni zapamatuje aktivni okno ze seznamu
+# wlr-foreign-toplevel, po vyberu se skryje, puvodni okno dostane fokus (activate) a emoji se napise
+# virtualni klavesnici (luxos_wl.type_text). Proto je /usr/lib/luxos/luxos-emoji-ui v privileged.conf luxwm.
 load env
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load cairo
 load pango
 load luxos_x11 as x11
+load luxos_layer as layer
+load luxos_wl as wl
 load luxos_sys
 load luxos_i18n as i18n
 load luxos_emoji_base as base
@@ -93,7 +99,8 @@ end
 S = {"built": False, "data": None, "provider": 0, "composited": False, "visible": False, "had_focus": False,
      "standalone": False, "listening": False, "resident": False, "exit_code": 0, "target": 0, "target_class": ["", ""],
      "cfg": None, "boost": None, "query": "", "sel": 0, "hover": -1, "scroll": 0, "nav": False, "inserting": False,
-     "token": 0, "pending": None, "job": None, "tab": -1, "quit_check": False, "dark": False}
+     "token": 0, "pending": None, "job": None, "tab": -1, "quit_check": False, "dark": False, "wayland": False,
+     "wl_ok": False, "wl_clip": False}
 W = {}
 V = {"rows": [], "items": [], "pos": [], "sections": [], "height": 0, "search": False}
 
@@ -171,6 +178,9 @@ function ensure_built():
     S["built"] = True
     call tlog("built")
     call ensure_data()
+    if layer.is_wayland():
+        call wl_setup()
+    end
     S["composited"] = gtk.rgba_available()
     S["dark"] = is_dark()
     S["provider"] = gtk.css_load(css_text())
@@ -839,15 +849,27 @@ function open(search):
     call tlog("open")
     call ensure_built()
     S["token"] = S["token"] + 1
-    own = gtk.widget_xid(W["win"])
-    target = x11.active_window()
-    if target == own and own != 0:
-        target = S["target"]
-    end
-    S["target"] = target
-    S["target_class"] = ["", ""]
-    if target != 0:
-        S["target_class"] = x11.wm_class(target)
+    if S["wayland"]:
+        target = wl_focused()
+        if target == 0 and S["visible"]:
+            target = S["target"]
+        end
+        S["target"] = target
+        S["target_class"] = ["", ""]
+        if target != 0:
+            S["target_class"] = [wl.toplevel_app_id(target), wl.toplevel_title(target)]
+        end
+    else:
+        own = gtk.widget_xid(W["win"])
+        target = x11.active_window()
+        if target == own and own != 0:
+            target = S["target"]
+        end
+        S["target"] = target
+        S["target_class"] = ["", ""]
+        if target != 0:
+            S["target_class"] = x11.wm_class(target)
+        end
     end
     call tlog("target " + String(target) + " " + S["target_class"][0] + "/" + S["target_class"][1])
     S["cfg"] = base.load_config(base.config_path())
@@ -863,11 +885,18 @@ function open(search):
     call gtk.entry_set_text(W["entry"], value)
     call rebuild()
     call tlog("rebuilt")
-    call place()
-    call gtk.widget_show_all(W["win"])
-    S["visible"] = True
-    stamp = gtk.x11_server_time(W["win"])
-    call gtk.window_present_with_time(W["win"], stamp)
+    if S["wayland"]:
+        # polohu a fokus noveho okna urcuje kompozitor
+        call gtk.widget_show_all(W["win"])
+        S["visible"] = True
+        call gtk.window_present(W["win"])
+    else:
+        call place()
+        call gtk.widget_show_all(W["win"])
+        S["visible"] = True
+        stamp = gtk.x11_server_time(W["win"])
+        call gtk.window_present_with_time(W["win"], stamp)
+    end
     call gtk.entry_grab_focus_without_selecting(W["entry"])
     call tlog("shown")
     return 0
@@ -904,6 +933,10 @@ function choose(k, keep):
     call base.save_config(S["cfg"], base.config_path())
     S["boost"] = None
     call tlog("chose " + e)
+    if S["wayland"]:
+        call wl_insert(e, keep)
+        return 0
+    end
     target = S["target"]
     method = base.paste_method(S["target_class"])
     S["token"] = S["token"] + 1
@@ -1093,6 +1126,141 @@ function restore(job):
     return False
 end
 
+# ---- vlozeni na Waylandu ------------------------------------------------------------------------------------------
+
+function wl_setup():
+    S["wayland"] = True
+    call wl.on_event(on_wl_event)
+    S["wl_ok"] = wl.attach(layer.wl_display())
+    if not S["wl_ok"]:
+        call log("libluxos-wl is missing: emoji only go to the clipboard")
+        return 0
+    end
+    # klavesnice drive nez prvni vlozeni: seat ji klientum ohlasi predem
+    if not wl.type_text(""):
+        call log("the compositor does not allow virtual keyboards for this program (privileged.conf)")
+    end
+    return 0
+end
+
+function on_wl_event(kind, handle, a, b):
+    if kind == wl.CLIPBOARD_CANCELLED and a == 0:
+        S["wl_clip"] = False
+        if S["standalone"]:
+            call schedule_quit_check()
+        end
+    end
+    return 0
+end
+
+# Aktivni okno aplikace (ne vyber emoji samotny); 0 kdyz neni
+function wl_focused():
+    if not S["wl_ok"]:
+        return 0
+    end
+    for t in wl.toplevels():
+        if wl.toplevel_state(t) & wl.STATE_ACTIVATED != 0 and wl.toplevel_app_id(t) != "luxos-emoji":
+            return t
+        end
+    end
+    return 0
+end
+
+function wl_alive(t):
+    return S["wl_ok"] and t != 0 and t in wl.toplevels()
+end
+
+function wl_insert(e, keep):
+    job = {"e": e, "target": S["target"], "keep": keep, "token": S["token"], "tries": 0}
+    S["job"] = job
+    S["inserting"] = True
+    if not keep:
+        call close()
+    end
+    if not wl_alive(job["target"]) or not wl.activate(job["target"]):
+        call wl_copy_only(job)
+        return 0
+    end
+    call glib.timeout_add_data(15, wl_wait, job)
+    return 0
+end
+
+# Psat az s fokusem v puvodnim okne, jinak by emoji dostal vyber nebo nikdo
+function wl_wait(job):
+    if S["job"] != job:
+        return False
+    end
+    if wl.toplevel_state(job["target"]) & wl.STATE_ACTIVATED != 0:
+        call glib.timeout_add_data(40, wl_type, job)
+        return False
+    end
+    job["tries"] = job["tries"] + 1
+    if job["tries"] > FOCUS_TRIES or not wl_alive(job["target"]):
+        call tlog("paste failed")
+        call wl_copy_only(job)
+        return False
+    end
+    return True
+end
+
+function wl_type(job):
+    if S["job"] != job:
+        return False
+    end
+    if not wl.type_text(job["e"]):
+        call tlog("paste failed")
+        call wl_copy_only(job)
+        return False
+    end
+    call tlog("typed")
+    call wl_done(job)
+    return False
+end
+
+function wl_copy_only(job):
+    if S["wl_ok"] and wl.clipboard_set(job["e"], False):
+        S["wl_clip"] = True
+    else:
+        call gtk.selection_set_text(gtk.SELECTION_CLIPBOARD, job["e"])
+    end
+    call tlog("copied")
+    call notify(T("The emoji was copied to the clipboard. Paste it with Ctrl+V."))
+    call wl_done(job)
+    return 0
+end
+
+function wl_done(job):
+    if job["keep"]:
+        call glib.timeout_add_data(150, wl_reopen, job)
+    else:
+        S["inserting"] = False
+    end
+    if S["standalone"]:
+        call schedule_quit_check()
+    end
+    return 0
+end
+
+# Shift+Enter: fokus zpet vyberu (kompozitor ho bez tokenu aktivace nevrati, foreign-toplevel ano)
+function wl_reopen(job):
+    S["inserting"] = False
+    if not S["visible"]:
+        return False
+    end
+    S["had_focus"] = False
+    if not S["wl_ok"]:
+        return False
+    end
+    for t in wl.toplevels():
+        if wl.toplevel_app_id(t) == "luxos-emoji":
+            call wl.activate(t)
+        end
+    end
+    call gtk.entry_grab_focus_without_selecting(W["entry"])
+    call tlog("reopened")
+    return False
+end
+
 # ---- samostatny proces ---------------------------------------------------------------------------------------------
 
 function schedule_quit_check():
@@ -1113,7 +1281,11 @@ function quit_check(bound):
     if S["visible"] or S["inserting"] or S["pending"] != None:
         return True
     end
-    if gtk.selection_owned(gtk.SELECTION_CLIPBOARD) or gtk.selection_owned(gtk.SELECTION_PRIMARY):
+    if S["wl_clip"] or gtk.selection_owned(gtk.SELECTION_CLIPBOARD):
+        return True
+    end
+    # na Waylandu primarni vyber drzi i oznaceny text pole hledani; emoji do nej jde jen na X11
+    if not S["wayland"] and gtk.selection_owned(gtk.SELECTION_PRIMARY):
         return True
     end
     S["quit_check"] = False

@@ -181,6 +181,32 @@ function dialog_run(dialog):
     end
 end
 
+function dialog_response(dialog, response):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_dialog_response"), ptr(dialog), ptr(response))
+    end
+end
+
+# ---- karty -------------------------------------------------------------------------------------------------
+
+function notebook_new():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("gtk_notebook_new"))
+    end
+end
+
+function notebook_append_page(notebook, child, tab_label):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("gtk_notebook_append_page"), ptr(notebook), ptr(child), ptr(tab_label)))
+    end
+end
+
+function notebook_set_current_page(notebook, index):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_notebook_set_current_page"), ptr(notebook), ptr(index))
+    end
+end
+
 # ---- styl a nastaveni --------------------------------------------------------------------------------------
 
 function css_set(provider, css):

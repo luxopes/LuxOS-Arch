@@ -93,6 +93,12 @@ function config_dir():
     return base + "/luxos"
 end
 
+# Relace na Waylandu (luxwm): xfconf, xfwm4 ani xfce4-panel nebezi. Funkce *_x11 jen pro relaci X11.
+function wayland():
+    value = env.get("WAYLAND_DISPLAY", "")
+    return value != None and value != ""
+end
+
 function log(message):
     return eprint("luxos-hub: " + message)
 end
@@ -139,21 +145,21 @@ end
 
 # ---- Internet nedostupny: "!" v liste (luxos-netcheck) a jedno upozorneni ---------------------------------
 
-function panel_xfconf(args):
+function panel_xfconf_x11(args):
     argv = ["xfconf-query", "-c", "xfce4-panel"]
     argv.extend(args)
     return cmd_output(argv)
 end
 
 # Id pluginu genmon s luxos-netcheck; starsim profilum ho jednou prida vedle ikon (systray)
-function netcheck_plugin():
-    props = panel_xfconf(["-l", "-p", "/plugins"])
+function netcheck_plugin_x11():
+    props = panel_xfconf_x11(["-l", "-p", "/plugins"])
     if props == None:
         props = ""
     end
     for prop in props.split("\n"):
         if prop.endswith("/command"):
-            command = panel_xfconf(["-p", prop])
+            command = panel_xfconf_x11(["-p", prop])
             if command != None and command.startswith("luxos-netcheck"):
                 return prop.split("/")[2].split("-")[1]
             end
@@ -168,7 +174,7 @@ function netcheck_plugin():
     for p in props.split("\n"):
         if p.count("/") == 2 and p.startswith("/plugins/plugin-"):
             ids.append(text.to_int(p.split("-")[1], 0))
-            if tray == "" and panel_xfconf(["-p", p]) == "systray":
+            if tray == "" and panel_xfconf_x11(["-p", p]) == "systray":
                 tray = p.split("-")[1]
             end
         end
@@ -177,7 +183,7 @@ function netcheck_plugin():
         return ""
     end
     new = String(max(ids) + 1)
-    panels = panel_xfconf(["-l", "-p", "/panels"])
+    panels = panel_xfconf_x11(["-l", "-p", "/panels"])
     if panels == None:
         panels = ""
     end
@@ -185,7 +191,7 @@ function netcheck_plugin():
         if not panel.endswith("/plugin-ids"):
             continue
         end
-        raw = panel_xfconf(["-p", panel])
+        raw = panel_xfconf_x11(["-p", panel])
         if raw == None:
             raw = ""
         end
@@ -202,11 +208,11 @@ function netcheck_plugin():
         end
         order.insert(order.index(tray) + 1, new)
         base = "/plugins/plugin-" + new
-        call panel_xfconf(["-p", base, "-n", "-t", "string", "-s", "genmon"])
-        call panel_xfconf(["-p", base + "/command", "-n", "-t", "string", "-s", "luxos-netcheck"])
-        call panel_xfconf(["-p", base + "/update-period", "-n", "-t", "int", "-s", "86400000"])
-        call panel_xfconf(["-p", base + "/use-label", "-n", "-t", "bool", "-s", "false"])
-        call panel_xfconf(["-p", base + "/enable-single-row", "-n", "-t", "bool", "-s", "true"])
+        call panel_xfconf_x11(["-p", base, "-n", "-t", "string", "-s", "genmon"])
+        call panel_xfconf_x11(["-p", base + "/command", "-n", "-t", "string", "-s", "luxos-netcheck"])
+        call panel_xfconf_x11(["-p", base + "/update-period", "-n", "-t", "int", "-s", "86400000"])
+        call panel_xfconf_x11(["-p", base + "/use-label", "-n", "-t", "bool", "-s", "false"])
+        call panel_xfconf_x11(["-p", base + "/enable-single-row", "-n", "-t", "bool", "-s", "true"])
         args = ["-p", panel, "--force-array"]
         for v in order:
             args.append("-t")
@@ -214,7 +220,7 @@ function netcheck_plugin():
             args.append("-s")
             args.append(v)
         end
-        call panel_xfconf(args)
+        call panel_xfconf_x11(args)
         call glib.mkdir_p(config_dir())
         call writefile(mark, "")
         call glib.spawn(["xfce4-panel", "-r"])
@@ -251,9 +257,13 @@ function connectivity():
     return value
 end
 
+# Na Waylandu stav internetu ukazuje luxos-bar sam (genmon v xfce4-panel tam neni)
 function panel_refresh():
+    if wayland():
+        return 0
+    end
     if hub["plugin"] == "":
-        hub["plugin"] = netcheck_plugin()
+        hub["plugin"] = netcheck_plugin_x11()
     end
     if hub["plugin"] != "":
         safe:
@@ -747,7 +757,7 @@ function on_xfconf_changed(sender, path, interface, signal, values):
     return 0
 end
 
-function watch_wallpaper():
+function watch_wallpaper_x11():
     wallsync["debounce"] = debounce_new(text.to_int(env.get("LUXOS_HUB_WALLSYNC_DELAY", ""), 2000), greeter_sync)
     call gio.subscribe_values(hub["session"], "org.xfce.Xfconf", "org.xfce.Xfconf", "PropertyChanged", "/org/xfce/Xfconf", on_xfconf_changed)
     return 0
@@ -959,8 +969,8 @@ function main_hub():
         end
     end
 
-    # Odhlaseni/vypnuti: cerne zakryti misto oken s cernymi pruhy po konci kompozitoru
-    if hub["session"] != 0:
+    # Odhlaseni/vypnuti: cerne zakryti misto oken s cernymi pruhy po konci kompozitoru (X11; xfce4-session)
+    if hub["session"] != 0 and not wayland():
         try:
             call gio.subscribe_values(hub["session"], "org.xfce.SessionManager", "org.xfce.Session.Manager", "StateChanged", "/org/xfce/SessionManager", on_session_state)
             call gio.subscribe_values(hub["session"], "org.xfce.SessionManager", "org.xfce.Session.Manager", "ShutdownCancelled", "/org/xfce/SessionManager", on_session_cancelled)
@@ -969,7 +979,7 @@ function main_hub():
         end
         # Tapeta plochy i na prihlasovaci obrazovce
         try:
-            call watch_wallpaper()
+            call watch_wallpaper_x11()
         else:
             call log("wallpaper: " + String(last_error()))
         end
@@ -1035,13 +1045,15 @@ function update_check():
     else:
         hub["update_seen"] = 0
     end
-    call wm_update_check()
+    if not wayland():
+        call wm_update_check_x11()
+    end
     return True
 end
 
 # Spravce oken xfwm4 tohoto uzivatele (cislo procesu; 0 = nebezi). Cizi procesy readlink neprecte.
 # LUXOS_HUB_WM_NAME jen pro testy (jiny nazev procesu nez skutecny xfwm4).
-function wm_pid():
+function wm_pid_x11():
     comm = env.get("LUXOS_HUB_WM_NAME", "xfwm4") + "\n"
     pid = hub["wm_pid"]
     if pid > 0 and glib.read_text("/proc/" + String(pid) + "/comm") == comm and glib.readlink("/proc/" + String(pid) + "/exe") != "":
@@ -1060,11 +1072,11 @@ end
 # Aktualizace nahradila /usr/bin/xfwm4 (balik xfwm4 z [luxos]: umisteni oken, Alt+`): bezici spravce
 # oken se vymeni za novou verzi (xfwm4 --replace, okna i jejich pozice zustanou, jako luxos-unfreeze),
 # az pri druhe kontrole po sobe, at se nemeni uprostred instalace. Opravy plati bez odhlaseni.
-function wm_update_check():
+function wm_update_check_x11():
     if env.get("LUXOS_HUB_NO_WM_REPLACE", "") != "":
         return False
     end
-    pid = wm_pid()
+    pid = wm_pid_x11()
     # stejny proces se nevymenuje dvakrat (kdyby nova verze nenastartovala, stary spravce zustane)
     if pid == 0 or pid == hub["wm_replaced"] or not glib.readlink("/proc/" + String(pid) + "/exe").endswith(" (deleted)"):
         hub["wm_seen"] = 0

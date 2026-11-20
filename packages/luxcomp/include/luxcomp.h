@@ -43,6 +43,11 @@ enum luxcomp_event {
 	LUXCOMP_EV_SLIDE_DONE,		/* id=workspace now shown */
 	LUXCOMP_EV_MODS_RELEASED,	/* all modifiers released after a key binding (ends Alt+Tab) */
 	LUXCOMP_EV_LOCK,		/* a=1 locked, 0 unlocked; b=1 the locker died (stays locked) */
+	LUXCOMP_EV_LAYOUT,		/* a=keyboard layout index; switched by an XKB grp: option, not sent
+					 * for luxcomp_set_layout()/luxcomp_set_keymap() */
+	LUXCOMP_EV_IPC_CONNECT,		/* id=IPC client a=pid b=1 privileged (allowlisted executable) */
+	LUXCOMP_EV_IPC_LINE,		/* id=IPC client; luxcomp_ipc_line() is the received line */
+	LUXCOMP_EV_IPC_CLOSE,		/* id=IPC client; the id is dead after this */
 };
 
 enum luxcomp_request {
@@ -206,6 +211,11 @@ void luxcomp_set_repeat(int64_t rate, int64_t delay_ms);
 int64_t luxcomp_bind_key(int64_t mods, const char *key);
 void luxcomp_unbind_key(int64_t binding);
 int64_t luxcomp_modifiers(void);			/* LUXCOMP_MOD_* currently held */
+/* Keyboard layouts of the keymap from luxcomp_set_keymap() ("us,cz" = 2 layouts) */
+void luxcomp_set_layout(int64_t index);
+int64_t luxcomp_layout(void);
+int64_t luxcomp_layout_count(void);
+const char *luxcomp_layout_name(int64_t index);		/* xkb name, "English (US)"; "" = none */
 
 /* Privileged globals (screen capture, data-control, foreign-toplevel management, virtual input,
  * output management, session lock) are offered only to clients whose executable (/proc/PID/exe)
@@ -216,6 +226,15 @@ void luxcomp_privileged_allow(const char *exe_path);
 int64_t luxcomp_xwayland_start(void);
 const char *luxcomp_xwayland_display(void);	/* ":N" or NULL */
 int64_t luxcomp_xwayland_running(void);		/* 1 while the X server runs */
+
+/* IPC socket for the shell (docs/developers/luxwm-ipc.md): lines in, lines out. Connections from
+ * another uid are refused (SO_PEERCRED); b of IPC_CONNECT says whether the executable is on the
+ * privileged list. luxcomp_ipc_send() appends the newline and returns 0 when the client is gone
+ * (no IPC_CLOSE follows then). */
+int64_t luxcomp_ipc_listen(const char *path);		/* 0 = ok */
+const char *luxcomp_ipc_line(int64_t client);
+int64_t luxcomp_ipc_send(int64_t client, const char *line);
+void luxcomp_ipc_close(int64_t client);
 
 int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locker died) */
 

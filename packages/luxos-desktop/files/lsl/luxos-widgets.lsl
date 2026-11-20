@@ -1966,6 +1966,10 @@ function start_common():
     safe:
         call gio.file_monitor(appearance_path(), on_appearance_event)
     end
+    # svetly/tmavy rezim (vychozi tapeta rezimu); luxos-appearance auto a watch appearance.conf nemeni
+    safe:
+        call gio.file_monitor(glib.user_config_dir() + "/luxos/appearance", on_appearance_event)
+    end
     if ui["wayland"]:
         display = layer.default_display()
         call glib.signal_connect(display, "monitor-added", on_monitors_changed, 1)

@@ -1,4 +1,5 @@
-/* Schranka bez okna (ext-data-control-v1): nastaveni textu, sledovani vyberu a cteni nabidky.
+/* Schranka bez okna (ext-data-control-v1): nastaveni textu nebo souboru (obrazek snimku), sledovani
+ * vyberu a cteni nabidky.
  * Zapis i cteni roury jdou pres GLib bez blokovani - cteme-li vlastni vyber, pise i cte tentyz
  * proces a blokujici zapis by uvazl na plne roure. */
 #define _GNU_SOURCE
@@ -21,11 +22,12 @@ struct offer {
 	GString *types;     /* "a\nb\n" */
 };
 
-/* nas zdroj: text patri zdroji, ne vyberu (pozdni send stareho zdroje dostane jeho text) */
+/* nas zdroj: data patri zdroji, ne vyberu (pozdni send stareho zdroje dostane jeho data) */
 struct source {
 	struct ext_data_control_source_v1 *wl;
 	int primary;
-	char *text;
+	char *data;
+	size_t len;
 };
 
 struct selection {
@@ -34,7 +36,7 @@ struct selection {
 };
 
 struct writer {
-	char *text;
+	char *data;
 	size_t len, done;
 	int fd;
 };
@@ -140,7 +142,7 @@ static gboolean write_more(gint fd, GIOCondition cond, gpointer data)
 	struct writer *w = data;
 	(void)cond;
 	while (w->done < w->len) {
-		ssize_t n = write(fd, w->text + w->done, w->len - w->done);
+		ssize_t n = write(fd, w->data + w->done, w->len - w->done);
 		if (n < 0 && errno == EAGAIN)
 			return G_SOURCE_CONTINUE;
 		if (n <= 0)
@@ -148,7 +150,7 @@ static gboolean write_more(gint fd, GIOCondition cond, gpointer data)
 		w->done += (size_t)n;
 	}
 	close(fd);
-	free(w->text);
+	g_free(w->data);
 	free(w);
 	return G_SOURCE_REMOVE;
 }
@@ -158,12 +160,12 @@ static void source_send(void *data, struct ext_data_control_source_v1 *wl, const
 	struct source *src = data;
 	(void)wl; (void)mime;
 	struct writer *w = calloc(1, sizeof *w);
-	if (!w || !(w->text = strdup(src->text))) {
-		free(w);
+	if (!w) {
 		close(fd);
 		return;
 	}
-	w->len = strlen(w->text);
+	w->data = g_memdup2(src->data, src->len);
+	w->len = src->len;
 	w->fd = fd;
 	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
 	if (write_more(fd, G_IO_OUT, w) == G_SOURCE_CONTINUE)
@@ -173,7 +175,7 @@ static void source_send(void *data, struct ext_data_control_source_v1 *wl, const
 static void source_free(struct source *src)
 {
 	ext_data_control_source_v1_destroy(src->wl);
-	free(src->text);
+	g_free(src->data);
 	free(src);
 }
 
@@ -194,20 +196,24 @@ static const struct ext_data_control_source_v1_listener source_listener = {
 	.cancelled = source_cancelled,
 };
 
-LWL_EXPORT int lwl_clipboard_set(const char *text, int primary)
+/* data (g_malloc) prebira zdroj; mime NULL = text ve vsech textovych typech */
+static int offer(char *data, size_t len, const char *mime, int primary)
 {
-	if (!device || !text)
-		return 0;
-	struct source *src = calloc(1, sizeof *src);
-	if (!src || !(src->text = strdup(text))) {
-		free(src);
+	struct source *src = device ? calloc(1, sizeof *src) : NULL;
+	if (!src) {
+		g_free(data);
 		return 0;
 	}
 	src->primary = primary != 0;
+	src->data = data;
+	src->len = len;
 	src->wl = ext_data_control_manager_v1_create_data_source(lwl.data_control);
 	ext_data_control_source_v1_add_listener(src->wl, &source_listener, src);
-	for (size_t i = 0; i < G_N_ELEMENTS(text_types); i++)
-		ext_data_control_source_v1_offer(src->wl, text_types[i]);
+	if (mime)
+		ext_data_control_source_v1_offer(src->wl, mime);
+	else
+		for (size_t i = 0; i < G_N_ELEMENTS(text_types); i++)
+			ext_data_control_source_v1_offer(src->wl, text_types[i]);
 	/* stary zdroj uvolni az jeho udalost cancelled */
 	selections[src->primary].source = src;
 	if (src->primary)
@@ -216,6 +222,21 @@ LWL_EXPORT int lwl_clipboard_set(const char *text, int primary)
 		ext_data_control_device_v1_set_selection(device, src->wl);
 	wl_display_flush(lwl.display);
 	return 1;
+}
+
+LWL_EXPORT int lwl_clipboard_set(const char *text, int primary)
+{
+	return text ? offer(g_strdup(text), strlen(text), NULL, primary) : 0;
+}
+
+/* Obsah souboru (napr. image/png snimku) do schranky; soubor muze hned zmizet, data drzi knihovna. */
+LWL_EXPORT int lwl_clipboard_set_file(const char *mime, const char *path)
+{
+	gchar *data = NULL;
+	gsize len = 0;
+	if (!device || !mime || !*mime || !path || !g_file_get_contents(path, &data, &len, NULL))
+		return 0;
+	return offer(data, len, mime, 0);
 }
 
 LWL_EXPORT const char *lwl_clipboard_mime_types(int primary)

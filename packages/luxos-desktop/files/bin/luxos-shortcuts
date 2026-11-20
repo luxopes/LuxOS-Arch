@@ -10,6 +10,11 @@ import shutil
 import subprocess
 import sys
 
+# Na Waylandu (luxwm) je nastaveni v LSL: luxos-keyboard-settings
+WAYLAND_SETTINGS = "/usr/lib/luxos/luxos-keyboard-settings"
+if os.environ.get("WAYLAND_DISPLAY") and os.access(WAYLAND_SETTINGS, os.X_OK):
+    os.execv(WAYLAND_SETTINGS, [WAYLAND_SETTINGS, "--shortcuts"] + sys.argv[1:])
+
 sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
 import luxos_shortcuts as ls  # noqa: E402
 from luxos_i18n import _  # noqa: E402

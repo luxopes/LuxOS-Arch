@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 #include "luxcomp.h"
@@ -17,6 +18,7 @@ struct wlr_surface;
 struct wlr_xwayland_surface;
 struct wlr_session_lock_v1;
 struct wlr_ext_image_capture_source_v1;
+struct xkb_keymap;
 
 enum grab_mode { GRAB_NONE, GRAB_MOVE, GRAB_RESIZE };
 
@@ -28,7 +30,7 @@ struct layer {
 	struct wlr_layer_surface_v1 *surface;
 	struct wlr_scene_layer_surface_v1 *scene;
 	struct output *output;
-	struct wl_listener map, unmap, commit, destroy;
+	struct wl_listener map, unmap, commit, destroy, new_popup;
 };
 
 struct output {
@@ -159,6 +161,8 @@ struct comp {
 	int64_t grab_render_max_ns, grab_render_sum_ns;
 
 	char *kb_layout, *kb_variant, *kb_options;
+	struct xkb_keymap *kb_keymap;	/* the keymap of physical keyboards */
+	uint32_t kb_group;		/* active layout, the same on every keyboard */
 	int repeat_rate, repeat_delay;
 };
 
@@ -208,6 +212,8 @@ void shadow_update(struct shadow *shadow, struct wlr_box frame, int size, int ra
 
 /* view.c, shared with xwayland.c */
 struct view *view_create(void);
+struct wlr_xdg_popup;
+void popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree);
 void view_map_common(struct view *v);
 void view_unmap_common(struct view *v);
 void view_destroy_common(struct view *v);
@@ -238,10 +244,14 @@ const char *idle_shell_token(void);
 void security_init(void);
 void security_mark(struct wl_global *global, int level);
 bool client_privileged(struct wl_client *client);
+bool pid_privileged(pid_t pid);
 enum { GLOBAL_SANDBOX_DENIED = 1, GLOBAL_PRIVILEGED = 2, GLOBAL_VIRTUAL_INPUT = 3 };
 
 /* xwayland.c */
 void xwayland_finish(void);
+
+/* ipc.c */
+void ipc_finish(void);
 
 /* workspace.c */
 struct workspace *workspace_by_id(int64_t id);

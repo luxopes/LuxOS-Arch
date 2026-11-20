@@ -1,12 +1,15 @@
 # LuxOS Snimek obrazovky bez luxos-hub: stejna okna (modul luxos_shot) v samostatnem procesu, ktery
 # spousti luxos-screenshot, kdyz hub nebezi. Po dobu behu posloucha na stejnem socketu jako hub, takze
-# dalsi spusteni (stejna zkratka, --stop) dostane tento proces; skonci, jakmile nic nedela.
+# dalsi spusteni (stejna zkratka, --stop) dostane tento proces; skonci, jakmile nic nedela. Na Waylandu
+# (hub tam nebezi) dela vse luxos_shot_wl.
 load env
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load luxos_sys
 load luxos_shot_base as base
 load luxos_shot as shot
+load luxos_layer as layer
+load luxos_shot_wl as shot_wl
 
 SIGINT = 2
 SIGTERM = 15
@@ -35,6 +38,15 @@ if a["help"]:
     call exit(0)
 end
 canon = base.canonical_args(a)
+# Relace na Waylandu: snimek pres kompozitor (luxos_shot_wl), nic z X11
+display = env.get("WAYLAND_DISPLAY", "")
+if display != None and display != "":
+    call glib.set_prgname("luxos-screenshot")
+    call gtk.init()
+    if layer.is_wayland():
+        call exit(shot_wl.main(canon))
+    end
+end
 # LUXOS_SCREENSHOT_RESIDENT=1: jen pripravena okna a socket jako v luxos-hub (testy a mereni bez hubu)
 if env.get("LUXOS_SCREENSHOT_RESIDENT", "") == "1":
     if not shot.start_server(True):
