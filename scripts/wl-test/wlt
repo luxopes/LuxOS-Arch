@@ -158,7 +158,7 @@ cmd_start() {
     mapfile -d '' envv < <(session_env "$s")
     if [[ ${WLT_SCOPE:-1} == 1 ]] && command -v systemd-run >/dev/null \
             && systemd-run --user --scope --quiet -p TasksMax=300 -- true 2>/dev/null; then
-        scope=(systemd-run --user --scope --quiet -p TasksMax=300 --)
+        scope=(systemd-run --user --scope --quiet -p TasksMax=300 -p "MemoryMax=${WLT_MEMORY_MAX:-1G}" -p MemorySwapMax=0 --)
     fi
     "${scope[@]}" env -i "${envv[@]}" "${wenv[@]}" ${WLT_COMPOSITOR_ENV-} \
         timeout -k 5 "$timeout" "${comp[@]}" >"$s/compositor.log" 2>&1 &

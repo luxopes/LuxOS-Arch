@@ -27,7 +27,7 @@ Everything generated goes to `out/wl-test/` (`WLT_OUT`): `bin/`, `sysroot/`, `se
 - A compositor only ever gets `WLR_BACKENDS=headless` or `x11`, plus `WLR_RENDERER=pixman`, `WLR_DRM_DEVICES=/nonexistent` and `WLR_LIBINPUT_NO_DEVICES=1`. It never touches the host's DRM or input devices.
 - Sessions start from `env -i`. Nothing from the real session is passed on: no `DISPLAY`, `WAYLAND_DISPLAY`, session bus or `HOME`. `XDG_RUNTIME_DIR`, `HOME` and `XDG_CONFIG_HOME` are private under `out/wl-test/sessions/NAME/`.
 - Nested mode starts its own Xvfb on display :200–:299 (the test guard uses :90–:199).
-- The compositor runs under `systemd-run --user --scope -p TasksMax=300` (set `WLT_SCOPE=0` to skip this) and `timeout`. Clients run under `timeout`. `wlt stop` kills only PIDs the session started.
+- The compositor runs under `systemd-run --user --scope -p TasksMax=300 -p MemoryMax=1G -p MemorySwapMax=0` (`WLT_MEMORY_MAX` changes the limit) (set `WLT_SCOPE=0` to skip this) and `timeout`. Clients run under `timeout`. `wlt stop` kills only PIDs the session started.
 - Still run whole tests under `systemd-run --user --scope -p TasksMax=300 -- timeout ...`, with the `env -u DISPLAY ...` prefix from the plan.
 
 ## Setup

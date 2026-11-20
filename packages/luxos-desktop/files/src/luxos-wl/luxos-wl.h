@@ -58,6 +58,9 @@ enum lwl_event {
 #define LWL_STATE_FULLSCREEN 8
 
 void lwl_set_handler(lwl_handler cb, void *user);
+/* Navazat jen vyjmenovane globaly (nazvy rozhrani oddelene carkou), NULL = vsechny; plati pro dalsi
+ * connect/attach. Plocha tak nedrzi napr. zwlr_output_manager_v1 (wlroots 0.20.2 pak pada pri zapnuti vystupu). */
+void lwl_bind_only(const char *interfaces);
 int lwl_connect(const char *name);
 int lwl_attach(struct wl_display *display);
 void lwl_disconnect(void);
