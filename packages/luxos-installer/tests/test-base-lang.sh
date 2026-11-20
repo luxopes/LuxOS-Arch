@@ -1,5 +1,5 @@
 #!/bin/bash
-# LuxOS installer - Thunderbird v zakladni sade a jeho jazykovy balicek podle jazyka systemu
+# LuxOS installer - Thunderbird v zakladni sade, jazykove balicky Firefoxu a Thunderbirdu podle jazyka systemu
 # (base_lang_resolve, install_base_lang, install_templates) BEZ roota, disku a site: jadro baliku
 # (chroot_engine) je napodoba, ktera vypisuje dostupne/nainstalovane baliky a zapisuje instalace.
 #
@@ -29,7 +29,24 @@ sleep() { :; }
 LOG=$OUT/log
 
 # Seznam baliku jako v repozitari Arch (extra.db 2026-11, vyber)
-AVAIL="thunderbird
+AVAIL="firefox
+firefox-i18n-cs
+firefox-i18n-de
+firefox-i18n-en-gb
+firefox-i18n-en-us
+firefox-i18n-es-es
+firefox-i18n-es-mx
+firefox-i18n-fr
+firefox-i18n-hu
+firefox-i18n-it
+firefox-i18n-nl
+firefox-i18n-pl
+firefox-i18n-pt-br
+firefox-i18n-pt-pt
+firefox-i18n-sk
+firefox-i18n-sv-se
+firefox-i18n-uk
+thunderbird
 thunderbird-i18n-cs
 thunderbird-i18n-de
 thunderbird-i18n-en-gb
@@ -46,6 +63,7 @@ thunderbird-i18n-sk
 thunderbird-i18n-sv-se
 thunderbird-i18n-uk"
 INSTALLED="base
+firefox
 luxos-desktop
 thunderbird"
 SYNC_FAIL=0
@@ -76,12 +94,12 @@ resolve() {  # resolve LOCALE -> vystup base_lang_resolve
     base_lang_resolve | paste -sd' '
 }
 declare -A WANT=(
-    [cs_CZ.UTF-8]=thunderbird-i18n-cs [sk_SK.UTF-8]=thunderbird-i18n-sk [pl_PL.UTF-8]=thunderbird-i18n-pl
-    [uk_UA.UTF-8]=thunderbird-i18n-uk [hu_HU.UTF-8]=thunderbird-i18n-hu [de_DE.UTF-8]=thunderbird-i18n-de
-    [de_AT.UTF-8]=thunderbird-i18n-de [fr_FR.UTF-8]=thunderbird-i18n-fr [es_ES.UTF-8]=thunderbird-i18n-es-es
-    [it_IT.UTF-8]=thunderbird-i18n-it [pt_BR.UTF-8]=thunderbird-i18n-pt-br [pt_PT.UTF-8]=thunderbird-i18n-pt-pt
-    [nl_NL.UTF-8]=thunderbird-i18n-nl [sv_SE.UTF-8]=thunderbird-i18n-sv-se [en_GB.UTF-8]=thunderbird-i18n-en-gb
-    [en_US.UTF-8]="" [C.UTF-8]="" [es_MX.UTF-8]="" [sr_RS@latin.UTF-8]=""
+    [cs_CZ.UTF-8]="firefox-i18n-cs thunderbird-i18n-cs" [sk_SK.UTF-8]="firefox-i18n-sk thunderbird-i18n-sk" [pl_PL.UTF-8]="firefox-i18n-pl thunderbird-i18n-pl"
+    [uk_UA.UTF-8]="firefox-i18n-uk thunderbird-i18n-uk" [hu_HU.UTF-8]="firefox-i18n-hu thunderbird-i18n-hu" [de_DE.UTF-8]="firefox-i18n-de thunderbird-i18n-de"
+    [de_AT.UTF-8]="firefox-i18n-de thunderbird-i18n-de" [fr_FR.UTF-8]="firefox-i18n-fr thunderbird-i18n-fr" [es_ES.UTF-8]="firefox-i18n-es-es thunderbird-i18n-es-es"
+    [it_IT.UTF-8]="firefox-i18n-it thunderbird-i18n-it" [pt_BR.UTF-8]="firefox-i18n-pt-br thunderbird-i18n-pt-br" [pt_PT.UTF-8]="firefox-i18n-pt-pt thunderbird-i18n-pt-pt"
+    [nl_NL.UTF-8]="firefox-i18n-nl thunderbird-i18n-nl" [sv_SE.UTF-8]="firefox-i18n-sv-se thunderbird-i18n-sv-se" [en_GB.UTF-8]="firefox-i18n-en-gb thunderbird-i18n-en-gb"
+    [en_US.UTF-8]="" [C.UTF-8]="" [es_MX.UTF-8]=firefox-i18n-es-mx [sr_RS@latin.UTF-8]=""
 )
 for loc in "${!WANT[@]}"; do
     got=$(resolve "$loc")
@@ -92,16 +110,19 @@ for loc in "${!WANT[@]}"; do
     fi
 done
 got=$(resolve cs_CZ.UTF-8 "base
+firefox
 luxos-desktop")
-if [[ -z $got ]]; then ok "no language pack when Thunderbird is not installed"; else bad "pack without app" "$got"; fi
+if [[ $got == firefox-i18n-cs ]]; then ok "no Thunderbird pack when Thunderbird is not installed"; else bad "pack without app" "$got"; fi
+got=$(resolve cs_CZ.UTF-8 "base")
+if [[ -z $got ]]; then ok "no packs when neither app is installed"; else bad "packs without apps" "$got"; fi
 
 # --- bez sablon: jazykovy balicek se doinstaluje bez noveho kroku ---
 TEMPLATE_IDS=()
 LOCALE=cs_CZ.UTF-8
 rm -f "$OUT/engine" "$OUT/steps" "$OUT/info"
 install_templates
-if [[ $(cat "$OUT/engine" 2>/dev/null) == "-Su --needed --noconfirm thunderbird-i18n-cs" ]]; then
-    ok "no templates: thunderbird-i18n-cs installed"
+if [[ $(cat "$OUT/engine" 2>/dev/null) == $'-Su --needed --noconfirm firefox-i18n-cs\n-Su --needed --noconfirm thunderbird-i18n-cs' ]]; then
+    ok "no templates: firefox-i18n-cs and thunderbird-i18n-cs installed"
 else
     bad "no templates: engine calls" "$(cat "$OUT/engine" 2>/dev/null)"
 fi
@@ -132,7 +153,7 @@ TEMPLATE_IDS=(t) TEMPLATES=t USERNAME=u TARGET=$OUT/target LUX_CONFIG_TOOL=false
 LOCALE=de_DE.UTF-8
 rm -f "$OUT/engine"
 install_templates
-if [[ $(head -1 "$OUT/engine") == "-Su --needed --noconfirm thunderbird thunderbird-i18n-de" ]]; then
+if [[ $(head -1 "$OUT/engine") == "-Su --needed --noconfirm thunderbird thunderbird-i18n-de firefox-i18n-de" ]]; then
     ok "template + base pack deduplicated in one transaction"
 else
     bad "template transaction" "$(cat "$OUT/engine")"

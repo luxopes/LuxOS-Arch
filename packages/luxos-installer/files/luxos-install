@@ -2371,7 +2371,8 @@ chroot_engine() {  # jadro lux v cili (lux-engine), anglicky vystup kvuli pac_fi
 # Jazykove balicky aplikaci ze zakladni sady ("balik-%lang% aplikace"): jen kdyz je aplikace v cili
 # a balik pro jazyk systemu existuje (cs_CZ -> thunderbird-i18n-cs, pt_BR -> -pt-br); anglictina je
 # v aplikaci vestavena. Potrebuje $avail a $installed jako tpl_resolve.
-BASE_LANG_PACKS=("thunderbird-i18n-%lang% thunderbird")
+# Firefox (z luxos-desktop) bez jazykoveho balicku zustane anglicky; s nim se sam prepne podle jazyka systemu.
+BASE_LANG_PACKS=("firefox-i18n-%lang% firefox" "thunderbird-i18n-%lang% thunderbird")
 base_lang_resolve() {
     local entry name app c p
     for entry in "${BASE_LANG_PACKS[@]}"; do
