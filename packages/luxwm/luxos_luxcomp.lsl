@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libluxcomp.so.0
 # LuxOS - vazba na libluxcomp (jadro kompozitoru v C, packages/luxcomp) pro luxwm. Nazvy = funkce
 # luxcomp_ bez predpony, konstanty = enumy z luxcomp.h bez LUXCOMP_. Popis API: docs/developers/luxcomp-api.md

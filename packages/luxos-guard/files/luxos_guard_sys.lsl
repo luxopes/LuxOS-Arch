@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libglib-2.0.so.0
 # Lux Guard - tenke vazby na libc (cil linux-x86_64-gnu) pro luxos-guard-agent: socket UNIX podle cesty,
 # cteni celych radku (MSG_PEEK, zadny rozdeleny znak UTF-8), spousteni pomocnika (posix_spawn s jednou

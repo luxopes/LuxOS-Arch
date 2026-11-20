@@ -26,12 +26,13 @@ noextract=("cldr-annotations-full-$_cldr.tgz" "cldr-annotations-derived-full-$_c
 sha256sums=('1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda'
             'ce415a4898da7a4ca755437de2593863c05045fc6b1649d8da5ee05fa3bdc33b'
             'e83ab0348ec09f4b5bb27f658b9c424c9c8fbf512484b728903515b9f01c3c28')
-# lsl >= 0.10.6: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl;
+# lsl >= 0.11.0: prekladac lslc s moduly glib/gio/gtk/cairo/pango (cil linux-x86_64-gnu) pro programy v files/lsl,
+# vazby luxos_* volajici C jsou systemove bindingy (--system-bindings, nainstalovane v /usr/lib/lsl/system);
 # balik z [luxos-apps] (packages/apps/lsl), container-build.sh ho do kontejneru nainstaluje z tohoto sestaveni;
 # xfce4-panel + xfconf: hlavicky pro plugin luxos-bar (libxfce4panel-2.0, libxfconf-0)
 # wayland + libxkbcommon: libluxos-wl (wayland-scanner, XML protokolu jsou pripnute v files/src/luxos-wl/protocol)
 # pam: hlavicky pro luxos-auth (overeni zamku obrazovky na Waylandu)
-makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.10.6' libwnck3 wayland libxkbcommon pam)
+makedepends=(python xfce4-settings xfce4-session xfce4-panel xfconf libxi xorgproto libxtst libxrandr libxfixes libxcomposite libxrender gtk3 cairo pango pkgconf 'lsl>=0.11.0' libwnck3 wayland libxkbcommon pam)
 # hlidac tlacitek okna Firefoxu: selektory luxos/titlebar.css proti omni.ja nainstalovaneho Firefoxu
 checkdepends=(python firefox unzip nodejs)
 install=luxos-desktop.install
@@ -150,53 +151,53 @@ build() {
     # po kliknuti. Cil linux-x86_64-gnu: dynamicky linkovane nad glibc a GLib/GIO (D-Bus) stroje.
     local p
     for p in luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname; do
-        lslc --target linux-x86_64-gnu "$startdir/files/lsl/$p.lsl" "$p"
+        lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/$p.lsl" "$p"
     done
     # Proces relace luxos-hub s okny Ovladaciho centra a Kalendare (drive tri programy v Pythonu + GTK):
     # jeden program, pod jmeny luxos-control-center a luxos-calendar jen posila signal bezicimu hubu
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-hub.lsl" luxos-hub
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-hub.lsl" luxos-hub
     # Snimek obrazovky: lista bezi v luxos-hub (okna pripravena predem); luxos-screenshot je maly klient
     # jen s libc, bez hubu spusti samostatny proces luxos-screenshot-ui se stejnym modulem luxos_shot;
     # na Waylandu (hub tam nebezi) snima luxos-screenshot-ui pres kompozitor (luxos_shot_wl)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-screenshot.lsl" luxos-screenshot
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-screenshot-ui.lsl" luxos-screenshot-ui
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-screenshot.lsl" luxos-screenshot
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-screenshot-ui.lsl" luxos-screenshot-ui
     # Grafika podle rezimu napajeni: hry na samostatne grafice v rezimu Vykon (luxos-gpu run v .desktop),
     # prepisy Flatpaku a PowerMizer NVIDIA (luxos-gpu apply z luxos-hub)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-gpu.lsl" luxos-gpu
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-gpu.lsl" luxos-gpu
     # Emoji a symboly: okno bezi v luxos-hub, luxos-emoji je maly klient, luxos-emoji-ui samostatny
     # proces bez hubu; luxos-emoji-data jen pri sestaveni vytvori data z emoji-test.txt a CLDR
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji.lsl" luxos-emoji
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-ui.lsl" luxos-emoji-ui
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-emoji-data.lsl" luxos-emoji-data
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-emoji.lsl" luxos-emoji
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-emoji-ui.lsl" luxos-emoji-ui
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-emoji-data.lsl" luxos-emoji-data
     # Nastaveni > Firewall (luxos-firewall: zapnuti, vyjimky, Tailscale, nedavno zablokovane programy)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-firewall-settings.lsl" luxos-firewall-settings
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-firewall-settings.lsl" luxos-firewall-settings
     # Widgety na plose (cas a pocasi, mesic, vytizeni, hudba); vypnute = po spusteni hned skonci
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-widgets.lsl" luxos-widgets
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-widgets.lsl" luxos-widgets
     # Hodiny (budik, svetovy cas, stopky, minutka); budiky hlida na pozadi (--background)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-clock-app.lsl" luxos-clock-app
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-clock-app.lsl" luxos-clock-app
     # Nastaveni > Posouvani (plynule kolecko, setrvacnost touchpadu; ~/.config/luxos/scrolling.conf)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-scrolling.lsl" luxos-scrolling
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-scrolling.lsl" luxos-scrolling
     # O tomto pocitaci (drive yad: jiny vzhled, bez UTF-8 locale se neotevrelo)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-about.lsl" luxos-about
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-about.lsl" luxos-about
     # Novinky LuxOS: oznameni od vyvojaru (okno, kontrola z luxos-hub, nastroje validate/new)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-news.lsl" luxos-news
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-news.lsl" luxos-news
     # Dock pro relaci na Waylandu (misto Planku); /usr/bin/luxos-dock ho spusti, kdyz bezi Wayland
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-dock.lsl" luxos-dock-wayland
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-dock.lsl" luxos-dock-wayland
     # Hodnoty vzhledu desktopu na Waylandu (luxos_tokens.lsl): CSS klientu shellu a tema dekoraci luxwm (labwc)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-tokens.lsl" luxos-tokens
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-tokens.lsl" luxos-tokens
     # Server oznameni relace na Waylandu (nahrada xfce4-notifyd; spousti ho relace, viz luxos-notify.service)
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-notify.lsl" luxos-notify
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-notify.lsl" luxos-notify
     # Horni lista relace na Waylandu (layer-shell, jedna na monitor); X11 relace dal pouziva xfce4-panel
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-bar.lsl" luxos-bar
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-bar.lsl" luxos-bar
     # Zamek obrazovky na Waylandu (ext-session-lock) a hlidac necinnosti/logind; X11 relace dal xfce4-screensaver
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-lock.lsl" luxos-lock
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-lock-session.lsl" luxos-lock-session
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-lock.lsl" luxos-lock
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-lock-session.lsl" luxos-lock-session
     # Launchpad a Hledani relace na Waylandu (misto rofi); luxos-launchpad a luxos-search ho volaji pres D-Bus
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-launchpad.lsl" luxos-launchpad-wayland
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-launchpad.lsl" luxos-launchpad-wayland
     # Tapeta a nabidka plochy relace na Waylandu (vrstva BACKGROUND na kazdem monitoru); X11 relace dal xfdesktop
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-backdrop.lsl" luxos-backdrop
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-backdrop.lsl" luxos-backdrop
     # Klavesnice a zkratky na Waylandu (luxwm.conf, IPC luxwm); luxos-keyboard/-shortcuts sem predaji rizeni
-    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -254,6 +255,8 @@ package() {
     install -Dm755 luxos-backdrop "$pkgdir/usr/bin/luxos-backdrop"
     install -Dm755 luxos-keyboard-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
     install -Dm644 "$f/systemd-user/luxos-backdrop.service" "$pkgdir/usr/lib/systemd/user/luxos-backdrop.service"
+    # Vazby LSL na C (a moduly, ktere nacitaji) pro dalsi programy: load luxos_gtk bez kopirovani zdroju
+    install -Dm644 -t "$pkgdir/usr/lib/lsl/system" "$f"/lsl/luxos_{apps,gio,glib,gtk,layer,lock_sys,material,notify_sys,sni,sys,text,tokens,wl,x11}.lsl
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"

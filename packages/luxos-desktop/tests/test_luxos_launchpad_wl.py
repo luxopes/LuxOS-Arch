@@ -159,7 +159,8 @@ class WaylandLaunchpad(unittest.TestCase):
         for f in list((PKG / "files/lsl").glob("*.lsl")) + list((HERE / "lsl").glob("*.lsl")):
             shutil.copy(f, src)
         for name in ("luxos-launchpad", "luxos-calc-test", "luxos-launchpad-model-test"):
-            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(src / f"{name}.lsl"), str(cls.tmp / name)],
+            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(src), str(src / f"{name}.lsl"),
+                                str(cls.tmp / name)],
                                capture_output=True, text=True, timeout=300)
             if r.returncode != 0:
                 raise RuntimeError(f"{name}: " + r.stdout + r.stderr)

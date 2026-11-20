@@ -57,7 +57,7 @@ class Tokens(unittest.TestCase):
         cls.gen = cls.tmp / "luxos-tokens"
         cls.helper = cls.tmp / "tokens-test"
         for src, out in (("luxos-tokens.lsl", cls.gen), ("luxos-tokens-test.lsl", cls.helper)):
-            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", str(cls.tmp / src), str(out)],
+            r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(cls.tmp), str(cls.tmp / src), str(out)],
                                capture_output=True, text=True, timeout=300)
             if r.returncode:
                 raise AssertionError(r.stdout + r.stderr)

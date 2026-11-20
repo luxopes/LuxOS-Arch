@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # LuxOS - oznamovaci oblast horni listy na Waylandu: StatusNotifierItem (Freedesktop/KDE) misto systray XEmbed.
 # Lista je zaroven StatusNotifierWatcher (org.kde.StatusNotifierWatcher, kdyz ho uz nedrzi nekdo jiny) i host:
 # aplikace (nm-applet --indicator, blueman, Electron, Telegram...) se registruji u ni a jejich ikony jsou v liste.

@@ -52,7 +52,7 @@ class CareHubSnapshot(unittest.TestCase):
         with open(os.path.join(src, "t.lsl"), "w") as f:
             f.write(PROGRAM)
         cls.bin = os.path.join(cls.tmp, "t")
-        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(src, "t.lsl"), cls.bin],
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", src, os.path.join(src, "t.lsl"), cls.bin],
                            capture_output=True, text=True, timeout=600)
         if r.returncode != 0:
             raise unittest.SkipTest("lslc failed: " + r.stderr[-500:])

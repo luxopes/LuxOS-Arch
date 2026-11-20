@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # LuxOS - tenke vazby na libc pro programy v LSL (cil linux-x86_64-gnu; libc.so.6 je vzdy linkovana).
 # Modul gtk/glib LSL 0.10.4 tyto funkce nema; az je bude mit standardni knihovna, tento modul zmizi.
 #

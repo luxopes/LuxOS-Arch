@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - doplnky k modulu glib LSL 0.10.6 (cil linux-x86_64-gnu) pro luxos-hub: jen to, co standardni
 # knihovna nema. Programy nacitaji `load luxos_glib, glib as glib`; az tyto funkce budou v glib, modul zmizi.
@@ -18,9 +17,6 @@
 # Soubory: stat(path) -> [velikost, mtime_ns], rename, unlink, mkdir_p, is_dir, realpath, readlink,
 #   write_atomic(path, text), read_text(path) ("" pri chybe), list_dir(path) ([] kdyz neni), close_fd(fd).
 # GObject: object_ref_sink(obj) - vlastni reference na widget, ktery se odebira z kontejneru a pouziva znovu.
-#
-# Pozor (LSL 0.10.6, internal-abi): uvnitr modulu je dynamicka hodnota Int 0 nerozlisitelna od None
-# (type(), == None); ukazatele se testuji == 0 a cisla se neporovnavaji s None.
 load glib
 
 live = {}            # id -> zaznam obsluhy (drzi ho GC, dokud zije zdroj/signal)

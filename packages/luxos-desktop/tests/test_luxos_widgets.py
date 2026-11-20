@@ -37,7 +37,7 @@ BIN = tempfile.mkdtemp(prefix="luxos-widgets-bin-")
 def build():
     if not LSLC:
         return False
-    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", SRC, os.path.join(BIN, "luxos-widgets")],
+    r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SRC), SRC, os.path.join(BIN, "luxos-widgets")],
                        capture_output=True, text=True)
     if r.returncode != 0:
         raise AssertionError(r.stderr + r.stdout)

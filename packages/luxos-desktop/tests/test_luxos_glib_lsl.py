@@ -26,7 +26,7 @@ class GlibCapture(unittest.TestCase):
             shutil.copy(f, cls.tmp)
         shutil.copy(os.path.join(HERE, "lsl", "luxos-glib-test.lsl"), cls.tmp)
         cls.prog = os.path.join(cls.tmp, "glib-test")
-        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(cls.tmp, "luxos-glib-test.lsl"), cls.prog],
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", cls.tmp, os.path.join(cls.tmp, "luxos-glib-test.lsl"), cls.prog],
                            capture_output=True, text=True)
         if r.returncode != 0:
             raise unittest.SkipTest(r.stdout + r.stderr)

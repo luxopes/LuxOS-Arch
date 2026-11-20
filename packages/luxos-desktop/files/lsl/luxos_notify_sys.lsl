@@ -1,8 +1,5 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgdk_pixbuf-2.0.so.0 libpango-1.0.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
-# LuxOS - volani C pro luxos-notify (GVariant, GdkPixbuf, GTK, GLib), at program sam internal-abi nepotrebuje.
-# Pozor: v modulu internal-abi je Int 0 k nerozeznani od None (gio.value_to_variant ho odmitne, json zapise null),
-# proto tu zadna cisla do D-Bus ani do historie nevznikaji; program a historie jsou obycejne LSL.
+# LuxOS - volani C pro luxos-notify (GVariant, GdkPixbuf, GTK, GLib), at program sam C nevola.
 #
 #   real_time()                         us od epochy (g_get_real_time)
 #   write_private(path, text)           atomicky zapis s pravy 0600

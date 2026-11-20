@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0 libcairo.so.2
 # LuxOS - ikony plochy na Waylandu (luxos-backdrop): polozky, mrizka, ulozene polohy a kresba. Jako xfdesktop
 # styl 2 (ikony souboru) podle kanalu xfce4-desktop: soubory z ~/Desktop, Domov/Souborovy system/Kos jen kdyz

@@ -1,4 +1,3 @@
-# lsl: internal-abi
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0 libcairo.so.2
 # LuxOS - aplikace z .desktop souboru pro shell na Waylandu (Dock, Launchpad): hledani podle app_id okna,
 # spusteni s aktivacnim tokenem a ikona jako cairo surface. Nad GDesktopAppInfo (GIO), ktere umi nazvy podle
