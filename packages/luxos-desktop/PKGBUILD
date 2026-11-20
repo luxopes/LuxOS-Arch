@@ -170,6 +170,17 @@ build() {
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-about.lsl" luxos-about
     # Novinky LuxOS: oznameni od vyvojaru (okno, kontrola z luxos-hub, nastroje validate/new)
     lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-news.lsl" luxos-news
+    # Hodnoty vzhledu desktopu na Waylandu (luxos_tokens.lsl): CSS klientu shellu a tema dekoraci luxwm (labwc)
+    lslc --target linux-x86_64-gnu "$startdir/files/lsl/luxos-tokens.lsl" luxos-tokens
+    rm -rf tokens
+    mkdir -p tokens
+    local m
+    for m in light dark; do
+        ./luxos-tokens css $m >tokens/shell-$m.css
+        ./luxos-tokens rc $m >tokens/rc-theme-$m.xml
+    done
+    ./luxos-tokens labwc tokens/LuxOS light
+    ./luxos-tokens labwc tokens/LuxOS-Dark dark
     rm -rf cldr-ann cldr-der emoji-data
     mkdir -p cldr-ann cldr-der
     tar -xzf "cldr-annotations-full-$_cldr.tgz" -C cldr-ann
@@ -206,6 +217,9 @@ package() {
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"
     install -Dm755 luxos-emoji-ui "$pkgdir/usr/lib/luxos/luxos-emoji-ui"
     install -Dm644 -t "$pkgdir/usr/share/luxos/emoji" emoji-data/*.tsv
+    install -Dm644 -t "$pkgdir/usr/share/luxos/tokens" tokens/*.css tokens/*.xml
+    install -Dm644 -t "$pkgdir/usr/share/themes/LuxOS/labwc" tokens/LuxOS/*
+    install -Dm644 -t "$pkgdir/usr/share/themes/LuxOS-Dark/labwc" tokens/LuxOS-Dark/*
     install -Dm644 cldr-ann/package/LICENSE "$pkgdir/usr/share/licenses/$pkgname/Unicode-CLDR-LICENSE"
     # Ovladaci centrum a Kalendar jsou tentyz program (chova se podle jmena); profily panelu uzivatelu
     # volaji "luxos-control-center --panel", relace "luxos-hub"
