@@ -70,6 +70,26 @@ output_at(double x, double y)
 	return wo ? wo->data : NULL;
 }
 
+/* Frame callbacky podle primarniho vystupu bufferu povrchu. wlr_scene_output_send_frame_done()
+ * je posila jen na "frame pacing" vystup povrchu a ten wlroots vynuluje, kdyz kterakoli kopie
+ * povrchu ve scene neni nikde videt. Pruh mezi zaoblenymi rohy (deco.c) je takova kopie: okno na
+ * celou obrazovku, maximalizovane nebo s dolnim okrajem zakrytym by pak na snimek cekalo navzdy
+ * (zamrzly greeter, okna bez prekresleni). */
+struct frame_done {
+	struct wlr_scene_output *scene_output;
+	struct timespec *when;
+};
+
+static void
+send_frame_done(struct wlr_scene_buffer *buffer, int sx, int sy, void *data)
+{
+	struct frame_done *fd = data;
+	struct wlr_scene_surface *ss = wlr_scene_surface_try_from_buffer(buffer);
+	if (ss && buffer->primary_output == fd->scene_output) {
+		wlr_surface_send_frame_done(ss->surface, fd->when);
+	}
+}
+
 static void
 output_frame(struct wl_listener *listener, void *data)
 {
@@ -90,7 +110,8 @@ output_frame(struct wl_listener *listener, void *data)
 		}
 	}
 	workspaces_frame_done(render_ns);
-	wlr_scene_output_send_frame_done(o->scene_output, &t1);
+	wlr_scene_output_for_each_buffer(o->scene_output, send_frame_done,
+		&(struct frame_done){ o->scene_output, &t1 });
 }
 
 /* Aktualni rozlozeni pro wlr-output-management (wlr-randr, nastaveni monitoru, harness testu).

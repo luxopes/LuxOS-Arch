@@ -1,6 +1,7 @@
 """Testovaci okno GTK 3: s headerbarem (vlastni zahlavi, CSD) nebo bez (jako Thunar, chce zahlavi od kompozitoru).
 
-  gtk-window.py --headerbar|--plain [--title T] [--size WxH]
+  gtk-window.py --headerbar|--plain [--title T] [--size WxH] [--toggle]
+--toggle: klik do okna prepne barvu obsahu zelena <-> modra (kontrola, ze se okno po vstupu prekresli).
 Stin a zaobleni klienta jsou vypnute (CSS), aby test videl jen to, co kresli kompozitor; obsah je jednobarevny.
 """
 import sys
@@ -26,5 +27,28 @@ if "--headerbar" in args:
 win.set_default_size(w, h)
 win.connect("destroy", Gtk.main_quit)
 win.connect("map-event", lambda *a: print("mapped", flush=True))
+clicks = 0
+
+
+def paint(area, cr):
+    r, g, b = (0x20, 0x40, 0xa0) if clicks % 2 else (0x20, 0xa0, 0x40)
+    cr.set_source_rgb(r / 255, g / 255, b / 255)
+    cr.paint()
+
+
+def toggle(widget, event):
+    global clicks
+    clicks += 1
+    area.queue_draw()
+    print("click", flush=True)
+    return True
+
+
+if "--toggle" in args:
+    area = Gtk.DrawingArea()
+    area.connect("draw", paint)
+    win.add(area)
+    win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+    win.connect("button-press-event", toggle)
 win.show_all()
 Gtk.main()

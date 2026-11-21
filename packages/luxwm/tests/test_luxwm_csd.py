@@ -16,6 +16,7 @@ from test_luxwm import BUILD, Session, wlt  # noqa: E402
 
 CLIENT = os.path.join(os.path.dirname(__file__), "clients", "gtk-window.py")
 GREEN = (0x20, 0xa0, 0x40)
+BLUE = (0x20, 0x40, 0xa0)
 
 
 def have_gtk():
@@ -45,8 +46,8 @@ class CsdWindows(unittest.TestCase):
             p.wait(5)
         self.s.stop()
 
-    def window(self, kind, title, size="400x300"):
-        p = subprocess.Popen([sys.executable, "-u", CLIENT, kind, "--title", title, "--size", size], env=self.env,
+    def window(self, kind, title, size="400x300", *extra):
+        p = subprocess.Popen([sys.executable, "-u", CLIENT, kind, "--title", title, "--size", size, *extra], env=self.env,
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         self.procs.append(p)
         self.assertEqual(p.stdout.readline().strip(), "mapped")
@@ -99,6 +100,34 @@ class CsdWindows(unittest.TestCase):
         v = self.s.state()["views"]["B"]
         self.assertEqual(v["maximized"], 1)
         self.assertEqual(self.s.pixel(v["x"], v["y"] + v["h"] - 1), GREEN, "maximalizovane: ostry roh")
+
+    def test_redraws_when_maximized_and_fullscreen(self):
+        # Regrese: pruh mezi zaoblenymi rohy je druha kopie povrchu ve scene; kdyz zmizel (maximalizace, cela
+        # obrazovka), wlroots prestal posilat frame callbacky a GTK okno se uz neprekreslilo (zamrzly greeter).
+        self.window("--headerbar", "Toggle", "400x300", "--toggle")
+        p = self.procs[-1]
+
+        def click_changes(what):
+            v = self.s.state()["views"]["Toggle"]
+            cx, cy = v["x"] + v["w"] // 2, v["y"] + v["h"] // 2
+            before = self.s.pixel(cx, cy)
+            self.assertIn(before, (GREEN, BLUE))
+            self.s.input(f"move {cx} {cy}", "click", wait=0.3)
+            self.assertEqual(p.stdout.readline().strip(), "click")
+            end = time.monotonic() + 3
+            while self.s.pixel(cx, cy) == before and time.monotonic() < end:
+                time.sleep(0.1)
+            self.assertNotEqual(self.s.pixel(cx, cy), before, f"{what}: window not redrawn after a click")
+
+        click_changes("normal")
+        self.s.input("keydown super", "key Up", "keyup super", wait=0.8)
+        self.assertEqual(self.s.state()["views"]["Toggle"]["maximized"], 1)
+        click_changes("maximized")
+        click_changes("maximized again")
+        self.s.input("key F11", wait=0.8)
+        self.assertEqual(self.s.state()["views"]["Toggle"]["fullscreen"], 1)
+        click_changes("fullscreen")
+        click_changes("fullscreen again")
 
 
 if __name__ == "__main__":

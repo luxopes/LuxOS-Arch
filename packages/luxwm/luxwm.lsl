@@ -136,7 +136,9 @@ function load_config():
     keys = {}
     if greeter:
         # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
-        settings = {"workspaces": "1", "slide_ms": "0", "wrap_workspaces": "no", "xwayland": "no", "keys": {}}
+        general.update({"workspaces": "1", "slide_ms": "0", "xwayland": "no"})
+        settings = general
+        settings["keys"] = {}
         return
     end
     system = glib.getenv("LUXWM_SYSTEM_CONFIG")
