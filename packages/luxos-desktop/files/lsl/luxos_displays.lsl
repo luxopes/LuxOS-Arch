@@ -114,6 +114,23 @@ function config_size(c):
     return logical(c["width"], c["height"], c["transform"], c["scale"])
 end
 
+# Zrcadleni = vsechny obdelniky [x, y, w, h] maji spolecny stred (pri jinem pomeru stran je mensi vzor
+# uprostred vetsiho, ne v rohu); spolecny pocatek je starsi zapis zrcadleni
+function mirrored(rects):
+    if len(rects) < 2:
+        return False
+    end
+    a = rects[0]
+    for r in rects:
+        same_origin = r[0] == a[0] and r[1] == a[1]
+        same_centre = abs(2 * r[0] + r[2] - 2 * a[0] - a[2]) <= 2 and abs(2 * r[1] + r[3] - 2 * a[1] - a[3]) <= 2
+        if not same_origin and not same_centre:
+            return False
+        end
+    end
+    return True
+end
+
 function preferred(o):
     for m in o["modes"]:
         if m[3] == 1:
@@ -327,12 +344,10 @@ end
 function detect_mode(outs):
     on = [o for o in outs if o["enabled"] and o["width"] > 0]
     if len(on) > 1:
-        for o in on:
-            if o["x"] != on[0]["x"] or o["y"] != on[0]["y"]:
-                return "extend"
-            end
+        if mirrored([[o["x"], o["y"]] + logical(o["width"], o["height"], o["transform"], o["scale"]) for o in on]):
+            return "mirror"
         end
-        return "mirror"
+        return "extend"
     end
     if len(on) == 1 and len(outs) > 1:
         if on[0]["internal"]:
@@ -695,9 +710,9 @@ function extend_config(store, outs, active, rec, names, primary):
     return resettle(config, primary)
 end
 
-# Zrcadleni: vsechny na 0,0; vzor je hlavni monitor, ostatni ve stejnem rezimu, jinak ve svem doporucenem
-# s meritkem, aby logicka plocha pokryla vzor (obraz se zmensi cely, nic se neorizne; pri jinem pomeru
-# stran zbyde pruh vpravo nebo dole)
+# Zrcadleni: vzor je hlavni monitor na 0,0, ostatni ve stejnem rezimu, jinak ve svem doporucenem s meritkem,
+# aby logicka plocha pokryla vzor (obraz se zmensi cely, nic se neorizne), a se stredem ve stredu vzoru:
+# pri jinem pomeru stran cerne pruhy na obou stranach, ne jeden pruh vpravo nebo dole
 function mirror_config(store, outs, primary):
     config = {}
     ref = settings_for(store, find(outs, primary))
@@ -719,6 +734,9 @@ function mirror_config(store, outs, primary):
             c["transform"] = 0
             s = max(64, min(mode[0] * 256 // ref_size[0], mode[1] * 256 // ref_size[1]))
             c["scale"] = s * 1000 // 256
+            size = config_size(c)
+            c["x"] = ref["x"] + (ref_size[0] - size[0]) // 2
+            c["y"] = ref["y"] + (ref_size[1] - size[1]) // 2
         end
         config[o["name"]] = c
     end
@@ -762,7 +780,7 @@ function plan(store, outs, mode, hint):
 end
 
 # Spravna konfigurace: kazdy monitor zna, aspon jeden zapnuty, zapnute bez mezer a prekryvu (zrcadleni:
-# vsechny na stejnem miste)
+# spolecny stred)
 function check_config(outs, config, mirror):
     rects = {}
     for o in outs:
@@ -788,10 +806,8 @@ function check_config(outs, config, mirror):
         return "no display enabled"
     end
     if mirror:
-        for r in rects.values():
-            if r[0] != 0 or r[1] != 0:
-                return "mirrored displays must be at 0,0"
-            end
+        if len(rects) > 1 and not mirrored(rects.values()):
+            return "mirrored displays must share the centre"
         end
         return ""
     end

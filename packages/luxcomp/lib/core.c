@@ -450,9 +450,13 @@ luxcomp_set_background(int64_t argb)
 	comp.lock_color = argb & 0xffffff;
 	float color[4] = { (argb >> 16 & 0xff) / 255.0f, (argb >> 8 & 0xff) / 255.0f,
 		(argb & 0xff) / 255.0f, (argb >> 24 & 0xff) / 255.0f };
-	/* jednolita barva pod tapetou; vetsi nez jakekoli rozlozeni vystupu */
+	/* jednolita barva pod tapetou; vetsi nez jakekoli rozlozeni vystupu, i do zapornych souradnic
+	 * (zrcadlo s jinym pomerem stran je kolem vzoru a pruhy po stranach maji stejnou barvu).
+	 * Souradnice do +-32767: pixman pocita v pevne radove carce 16.16, vetsi obdelnik se nenakresli
+	 * a rozbije poskozene oblasti (odebrana okna by zustala na obrazovce) */
 	if (!comp.background) {
 		comp.background = wlr_scene_rect_create(comp.layer_bg, 32768, 32768, color);
+		wlr_scene_node_set_position(&comp.background->node, -16384, -16384);
 		wlr_scene_node_lower_to_bottom(&comp.background->node);
 	} else {
 		wlr_scene_rect_set_color(comp.background, color);
@@ -613,9 +617,18 @@ arrange_tree(struct output *o, struct wlr_scene_tree *tree,
 	}
 }
 
-/* Zrcadleny vystup = jiny zapnuty vystup ma stejny pocatek a je mensi (pri shode drivejsi v seznamu).
- * Nastaveni monitoru zrcadli umistenim vsech vystupu na stejne misto (wlr-output-management
- * zrcadleni nezna); mensi vystup je vzor, vetsi ukazuje jeho obsah. */
+/* Zrcadleny vystup = jiny zapnuty vystup ma stejny stred (nebo starsim zapisem stejny pocatek) a je mensi
+ * (pri shode drivejsi v seznamu). Nastaveni monitoru zrcadli umistenim vystupu pres sebe
+ * (wlr-output-management zrcadleni nezna); mensi vystup je vzor, vetsi ukazuje jeho obsah a pri jinem
+ * pomeru stran ho ma uprostred s cernymi pruhy po stranach. */
+static bool
+same_place(const struct wlr_box *a, const struct wlr_box *b)
+{
+	return (a->x == b->x && a->y == b->y)
+		|| (abs(2 * a->x + a->width - 2 * b->x - b->width) <= 2
+			&& abs(2 * a->y + a->height - 2 * b->y - b->height) <= 2);
+}
+
 static struct output *
 mirror_source(struct output *o, const struct wlr_box *box)
 {
@@ -628,7 +641,7 @@ mirror_source(struct output *o, const struct wlr_box *box)
 		}
 		struct wlr_box b;
 		wlr_output_layout_get_box(comp.layout, p->wlr_output, &b);
-		if (wlr_box_empty(&b) || b.x != box->x || b.y != box->y) {
+		if (wlr_box_empty(&b) || !same_place(&b, box)) {
 			continue;
 		}
 		int64_t area = (int64_t)b.width * b.height, own = (int64_t)box->width * box->height;

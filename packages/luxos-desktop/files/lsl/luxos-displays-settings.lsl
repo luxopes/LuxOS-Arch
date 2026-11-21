@@ -104,16 +104,7 @@ function rects():
 end
 
 function mirrored():
-    r = rects()
-    if len(r) < 2:
-        return False
-    end
-    for v in r.values():
-        if v[0] != 0 or v[1] != 0:
-            return False
-        end
-    end
-    return True
+    return dw.mirrored(rects().values())
 end
 
 # ---- stavebni prvky (jako ostatni okna Nastaveni LuxOS) ------------------------------------------------

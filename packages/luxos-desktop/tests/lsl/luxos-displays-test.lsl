@@ -63,9 +63,16 @@ call expect("external only", [p["config"]["eDP-1"]["enabled"], p["config"]["HDMI
 p = dw.plan(store, outs, "mirror", "")
 tv = p["config"]["HDMI-A-1"]
 size = dw.config_size(tv)
-call expect("mirror at origin", [tv["x"], tv["y"], p["config"]["eDP-1"]["x"]], [0, 0, 0])
-# 16:9 televize pod 16:10 vzorem: vyska sedi na par px, vpravo zbyde pruh
+# 16:9 televize pod 16:10 vzorem: vyska sedi na par px, vzor uprostred sirky (pruhy vlevo i vpravo)
 call expect("mirror scale covers main", size[0] >= 1920 and size[1] >= 1200 and size[1] < 1210, True)
+call expect("main at origin", [p["config"]["eDP-1"]["x"], p["config"]["eDP-1"]["y"]], [0, 0])
+call expect("mirror centred on main", [abs(2 * tv["x"] + size[0] - 1920) <= 2, abs(2 * tv["y"] + size[1] - 1200) <= 2, tv["x"] < -50], [True, True, True])
+call expect("centred mirror detected", dw.mirrored([[0, 0, 1920, 1200], [tv["x"], tv["y"], size[0], size[1]]]), True)
+call expect("mirror config valid", dw.check_config(outs, p["config"], True), "")
+call expect("origin mirror still detected", dw.mirrored([[0, 0, 1920, 1200], [0, 0, 2138, 1202]]), True)
+call expect("side by side not mirrored", dw.mirrored([[0, 0, 1920, 1200], [1920, 0, 1920, 1200]]), False)
+off = {"enabled": True, "width": 3840, "height": 2160, "refresh": 60000, "x": 100, "y": 0, "transform": 0, "scale": tv["scale"]}
+call expect("off-centre mirror refused", dw.check_config(outs, {"eDP-1": p["config"]["eDP-1"], "HDMI-A-1": off}, True), "mirrored displays must share the centre")
 outs3 = [LAPTOP, PROJ]
 p = dw.plan(store, outs3, "mirror", "")
 call expect("projector mirror shrinks", dw.config_size(p["config"]["DP-2"])[0] >= 1920, True)
