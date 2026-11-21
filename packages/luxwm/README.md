@@ -78,7 +78,13 @@ value turns a default shortcut off. Unknown actions are skipped, so the tabwin k
 `Escape`…) are never grabbed globally.
 
 Settings: `workspaces` (1–16), `slide_ms` (0 = no animation), `wrap_workspaces` (yes/no),
-`xwayland` (yes/no).
+`xwayland` (yes/no), `displays_command` (run with `sh -c` once, 300 ms after outputs are plugged in or
+out and at startup; default `luxos-displays auto`, which applies the saved display settings for the
+connected set of monitors; empty = nothing).
+
+Displays: windows whose centre is on no enabled output (unplugged or turned off) move to the main
+display. The main display is chosen in the display settings (`set_primary` over IPC); without a choice
+it is the enabled output furthest left and up.
 
 `/usr/share/luxwm/privileged.conf` lists absolute paths of programs allowed to use the screen
 capture, clipboard (data-control), foreign-toplevel management, virtual input, output management
@@ -134,6 +140,10 @@ cd packages/luxwm/tests
 env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
   systemd-run --user --scope -p TasksMax=300 -- timeout 900 python3 -m unittest -v test_luxwm test_luxwm_protocols
 ```
+
+`packages/luxos-desktop/tests/test_luxos_displays_wl.py` covers display settings: modes, fractional
+scale, rotation, arrangement, mirroring with hidden layers, the quick switcher, hotplug through
+`test_output`, the revert timer and the allowlist.
 
 `test_luxwm_ipc.py` covers IPC, layouts, the bar badge, shortcut import and settings, and the theme.
 

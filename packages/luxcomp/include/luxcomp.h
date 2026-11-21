@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 5
+#define LUXCOMP_API_VERSION 6
 
 #pragma GCC visibility push(default)
 
@@ -176,6 +176,10 @@ void luxcomp_set_background(int64_t argb);		/* solid colour below the wallpaper 
 int64_t luxcomp_output_get(int64_t output, int64_t prop);
 const char *luxcomp_output_name(int64_t output);
 int64_t luxcomp_output_at(int64_t x, int64_t y);
+/* Tests only: plug in a headless output of this size (returns its id, 0 without the headless
+ * backend) and unplug it again. Real (DRM) outputs are never touched. */
+int64_t luxcomp_test_output_add(int64_t width, int64_t height);
+void luxcomp_test_output_remove(int64_t output);
 int64_t luxcomp_cursor_x(void);
 int64_t luxcomp_cursor_y(void);
 

@@ -351,7 +351,11 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 	*layer_out = NULL;
 	*surface = NULL;
 	struct wlr_scene_node *root = comp.locked ? &comp.lock_tree->node : &comp.scene->tree.node;
+	/* ikona tazeni je pod kurzorem: cil hledat pod ni */
+	bool dragging = comp.drag_icons->node.enabled;
+	wlr_scene_node_set_enabled(&comp.drag_icons->node, false);
 	struct wlr_scene_node *node = wlr_scene_node_at(root, x, y, sx, sy);
+	wlr_scene_node_set_enabled(&comp.drag_icons->node, dragging);
 	if (!node) {
 		return LUXCOMP_PART_NONE;
 	}
@@ -418,6 +422,7 @@ process_grab(void)
 static void
 process_motion(uint32_t time)
 {
+	wlr_scene_node_set_position(&comp.drag_icons->node, comp.cursor->x, comp.cursor->y);
 	if (comp.grab != GRAB_NONE) {
 		process_grab();
 		return;
@@ -497,7 +502,8 @@ cursor_button(struct wl_listener *listener, void *data)
 			seat_focus_surface(view_surface(v));
 		}
 	}
-	if (surface) {
+	/* pusteni tlacitka mimo povrch musi tazeni ukoncit */
+	if (surface || comp.seat->drag) {
 		wlr_seat_pointer_notify_button(comp.seat, e->time_msec, e->button, e->state);
 	}
 	emit(LUXCOMP_EV_BUTTON, v ? v->id : 0, e->button, pressed, part);
@@ -532,6 +538,27 @@ request_selection(struct wl_listener *listener, void *data)
 {
 	struct wlr_seat_request_set_selection_event *e = data;
 	wlr_seat_set_selection(comp.seat, e->source, e->serial);
+}
+
+/* Drag and drop mezi klienty (soubory z plochy do spravce souboru): jen s platnym serialem stisku */
+static void
+request_start_drag(struct wl_listener *listener, void *data)
+{
+	struct wlr_seat_request_start_drag_event *e = data;
+	if (wlr_seat_validate_pointer_grab_serial(comp.seat, e->origin, e->serial)) {
+		wlr_seat_start_pointer_drag(comp.seat, e->drag, e->serial);
+	} else {
+		wlr_data_source_destroy(e->drag->source);
+	}
+}
+
+static void
+start_drag(struct wl_listener *listener, void *data)
+{
+	struct wlr_drag *drag = data;
+	if (drag->icon) {
+		wlr_scene_drag_icon_create(comp.drag_icons, drag->icon);
+	}
 }
 
 static void
@@ -582,6 +609,11 @@ input_init(void)
 	wl_signal_add(&comp.cursor->events.frame, &comp.cursor_frame);
 	comp.request_cursor.notify = request_cursor;
 	wl_signal_add(&comp.seat->events.request_set_cursor, &comp.request_cursor);
+	comp.drag_icons = wlr_scene_tree_create(&comp.scene->tree);
+	comp.request_start_drag.notify = request_start_drag;
+	wl_signal_add(&comp.seat->events.request_start_drag, &comp.request_start_drag);
+	comp.start_drag.notify = start_drag;
+	wl_signal_add(&comp.seat->events.start_drag, &comp.start_drag);
 	comp.request_selection.notify = request_selection;
 	wl_signal_add(&comp.seat->events.request_set_selection, &comp.request_selection);
 	comp.request_primary.notify = request_primary;
@@ -600,6 +632,8 @@ input_finish(void)
 	wl_list_remove(&comp.request_cursor.link);
 	wl_list_remove(&comp.request_selection.link);
 	wl_list_remove(&comp.request_primary.link);
+	wl_list_remove(&comp.request_start_drag.link);
+	wl_list_remove(&comp.start_drag.link);
 	wl_list_remove(&comp.new_virtual_keyboard.link);
 	wl_list_remove(&comp.new_virtual_pointer.link);
 	wlr_xcursor_manager_destroy(comp.cursor_mgr);

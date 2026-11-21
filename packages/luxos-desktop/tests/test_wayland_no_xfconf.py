@@ -9,6 +9,10 @@ a kazde pouziti funkce *_x11 musi byt jen v relaci X11: uvnitr funkce *_x11, ve 
 `if not wayland():` (i `... and not wayland()`), ve vetvi `else` od `if wayland():`, nebo za
 `if wayland(): ... return` na zacatku funkce.
 
+Ovladaci centrum, Kalendar a hub (staticky): stejne pravidlo pro volani X11 (gdk_x11, _NET_*, xrandr, xprop,
+XShape a pomucky luxos_gtk jen pro X11: aktivni okno, poloha kurzoru, presun okna, gtk_window_present - ten na
+Waylandu blokujici aktivaci hub zasekl).
+
 luxos-appearance (za behu): vsechny podprikazy s WAYLAND_DISPLAY a falesnymi programy v PATH, ktere
 zapisuji, co se volalo; nic se nemeni na skutecnem systemu.
 """
@@ -25,6 +29,11 @@ MODULES = ["luxos-hub.lsl", "luxos_cc.lsl", "luxos_cal.lsl", "luxos_awake.lsl", 
 APPEARANCE = os.path.join(FILES, "bin", "luxos-appearance")
 TOKENS = ["xfconf-query", "org.xfce.Xfconf", "xfwm4", "xfce4-panel", "org.xfce.Panel"]
 X11_REF = re.compile(r"\b(\w+_x11)\b")
+X11_MODULES = ["luxos-hub.lsl", "luxos_cc.lsl", "luxos_cal.lsl", "luxos_hub_popup.lsl"]
+X11_TOKENS = ["gdk_x11", "_NET_", "xrandr", "xprop", "XShape", "widget_shape_rounded", "x11_server_time", "widget_xid",
+              "root_window", "screen_active_window", "pointer_position", "monitor_at_point_workarea", "window_move",
+              "window_present", "get_current_event_time", "window_stick", "window_set_keep_above", "window_set_type_hint",
+              "window_set_wmclass", "luxos-display-settings", "xfce4-settings-manager"]
 
 
 def indent(line):
@@ -71,7 +80,7 @@ def guarded(lines, start, i):
     return False
 
 
-def violations(source):
+def violations(source, tokens=TOKENS):
     """[(cislo radku, radek)] s X11 volanim mimo vetev pro X11."""
     lines = source.split("\n")
     out = []
@@ -85,7 +94,7 @@ def violations(source):
             func, start = m.group(1), i
             continue
         refs = X11_REF.findall(code)
-        if not refs and not any(t in code for t in TOKENS):
+        if not refs and not any(t in code for t in tokens):
             continue
         if func.endswith("_x11") and indent(line) > 0:
             continue
@@ -104,6 +113,23 @@ class LslStatic(unittest.TestCase):
                 # aspon jedna podminka podle relace (jinak by test nic nekontroloval)
                 self.assertGreater(len(re.findall(r"\bif .*wayland\(\)", source)), 0)
                 self.assertEqual(violations(source), [])
+
+    def test_no_x11_calls_on_wayland_path(self):
+        for name in X11_MODULES:
+            with open(os.path.join(FILES, "lsl", name), encoding="utf-8") as f:
+                source = f.read()
+            with self.subTest(module=name):
+                self.assertEqual(violations(source, TOKENS + X11_TOKENS), [])
+        # okna na Waylandu jako plochy layer-shell a zadna jina cesta k zobrazeni
+        for name in ("luxos_cc.lsl", "luxos_cal.lsl"):
+            with open(os.path.join(FILES, "lsl", name), encoding="utf-8") as f:
+                source = f.read()
+            with self.subTest(module=name):
+                self.assertIn("call popup.setup(win, ", source)
+                self.assertIn("call popup.show(", source)
+        self.assertEqual([n for n, _ in violations("function a():\n    call gtk.window_present(w)\nend\n"
+                                                   "function b_x11():\n    call gtk.window_move(w, 0, 0)\nend\n",
+                                                   TOKENS + X11_TOKENS)], [2])
 
     def test_checker_catches_unguarded(self):
         bad = ("function a():\n    call glib.spawn([\"xfce4-panel\", \"-r\"])\n    return 0\nend\n"
@@ -187,7 +213,7 @@ class AppearanceWayland(unittest.TestCase):
             with self.subTest(args=args):
                 self.assertEqual(r.returncode, 0, r.stderr)
         bad = [c for c in self.calls()
-               if c.split()[0] in ("xfconf-query", "xfwm4", "xfce4-panel", "xrandr", "pgrep", "gdbus")
+               if c.split()[0] in ("xfconf-query", "xfwm4", "xfce4-panel", "xrandr", "pgrep", "gdbus", "python3")
                or "plank" in c]
         self.assertEqual(bad, [])
 
@@ -202,6 +228,25 @@ class AppearanceWayland(unittest.TestCase):
         # GTK tema a barevne schema plati i na Waylandu
         self.assertIn("gsettings set org.gnome.desktop.interface color-scheme prefer-light", calls)
         self.assertIn("gsettings set org.gnome.desktop.interface gtk-theme WhiteSur-Light", calls)
+
+    def test_auto_mode_without_python(self):
+        # vychod/zapad slunce z LSL (luxos-sun); bez nej zustane aktualni rezim, Python se nespusti
+        sun = os.path.join(self.tmp, "luxos-sun")
+        with open(sun, "w") as f:
+            f.write(FAKE + "echo dark\n")
+        os.chmod(sun, stat.S_IRWXU)
+        r = self.run_cmd(["auto"], LUXOS_SUN=sun)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.mode(), "dark")
+        self.assertIn("luxos-sun", [c.strip() for c in self.calls()])
+        os.unlink(sun)
+        r = self.run_cmd(["auto"], LUXOS_SUN=sun)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.mode(), "dark")
+        self.assertFalse(any(c.startswith("python3") for c in self.calls()))
+        # X11 beze zmeny: luxos_sun.py
+        r = self.run_cmd(["auto"], wayland=False, LUXOS_SUN=sun)
+        self.assertTrue(any(c.startswith("python3") and "luxos_sun.py mode" in c for c in self.calls()))
 
     def test_luxwm_unreachable_or_missing(self):
         r = self.run_cmd(["dark"], FAKE_LUXWM_EXIT="2")

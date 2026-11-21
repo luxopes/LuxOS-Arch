@@ -5,6 +5,7 @@
 # Pod dneskem pocasi z aplikace Pocasi (jen cerstvy souhrn, Kalendar sam nic nestahuje).
 # Data: ~/.local/share/luxos/calendar/events.ics, dalsi *.ics ve slozce jen pro cteni (luxos_ics).
 # Na pozadi drzi okno skryte a hlida pripominky (notify-send 10 minut predem).
+# Na Waylandu je okno plocha layer-shell pod hodinami listy (luxos_hub_popup), bez jedineho volani X11.
 #
 #   call cal.create(background)   skryte okno + pripominky + sledovani slozky (pouziva luxos-hub i samostatny program)
 #   call cal.toggle()             ukaze/skryje okno (klik na hodiny)
@@ -17,6 +18,7 @@ load luxos_i18n as i18n
 load luxos_date as date
 load luxos_ics as ics
 load luxos_text as text
+load luxos_hub_popup as popup
 
 WIDTH = 324
 REMINDER_MIN = 10
@@ -1483,21 +1485,42 @@ function toggle():
         call hide()
         return 0
     end
+    # klik na hodiny, ktery oknu prave vzal fokus (a tim ho zavrel), ho nesmi hned znovu otevrit
+    if wayland() and popup.same_click(cal["lost"]):
+        return 0
+    end
     call ics.reload_if_changed(store)
     cal["day"] = date.today()
     ymd = date.from_ordinal(cal["day"])
     cal["month"] = [ymd[0], ymd[1]]
     call segmented_set(cal["seg"], cal["mode"], False)
     call show_view(cal["mode"])
-    call place()
-    call gtk.widget_show(cal["win"])
-    call place()
-    stamp = gtk.get_current_event_time()
-    if stamp == 0:
-        stamp = gtk.CURRENT_TIME
+    if wayland():
+        call show_wayland()
+    else:
+        call place_x11()
+        call gtk.widget_show(cal["win"])
+        call place_x11()
+        stamp = gtk.get_current_event_time()
+        if stamp == 0:
+            stamp = gtk.CURRENT_TIME
+        end
+        call gtk.window_present_with_time(cal["win"], stamp)
     end
-    call gtk.window_present_with_time(cal["win"], stamp)
     call log_test("shown")
+    return 0
+end
+
+# Plocha layer-shell pod hodinami (monitor a poloha pred zobrazenim), fokus da kompozitor. Zadne
+# gtk_window_present: GDK by na Waylandu cekal na aktivacni token v blokujicim roundtripu.
+function show_wayland():
+    align = "right"
+    if clock_centered():
+        align = "center"
+    end
+    width = gtk.widget_get_preferred_width(cal["win"])[1]
+    call log_test("placed " + popup.place(cal["win"], width, align))
+    call popup.show(cal["win"])
     return 0
 end
 
@@ -1518,7 +1541,7 @@ function clock_centered():
 end
 
 # Pod hodinami na monitoru s kurzorem: vpravo, s hodinami uprostred listy na stredu (sirka okna je pevna)
-function place():
+function place_x11():
     pointer = gtk.pointer_position()
     geo = gtk.monitor_at_point_workarea(pointer[0], pointer[1])
     w = max(WIDTH, gtk.window_get_size(cal["win"])[0], gtk.widget_get_preferred_width(cal["root"])[1])
@@ -1530,18 +1553,33 @@ function place():
     return 0
 end
 
+function on_focus_in(event, window):
+    if wayland():
+        call popup.focus_in(cal["win"])
+    end
+    return False
+end
+
 function on_focus_out(event, window):
     # testy pod Xvfb bez spravce oken: okno by se po zobrazeni hned zavrelo
     if env.get("LUXOS_HUB_NO_AUTOHIDE", "") == "1":
         return False
     end
-    call glib.timeout_add(150, close_if_unfocused)
+    # Wayland: fokus bere jen klik jinam (okno, plocha), kompozitor ho hlasi spolehlive
+    if wayland():
+        if popup.focus_out(cal["win"]) and is_visible():
+            cal["lost"] = glib.monotonic_time() // 1000
+            call hide()
+        end
+        return False
+    end
+    call glib.timeout_add(150, close_if_unfocused_x11)
     return False
 end
 
 # is_active() zustava po kliknuti na plochu (xfdesktop drzi grab) chybne True,
 # proto rozhoduje i skutecne aktivni okno podle spravce oken (_NET_ACTIVE_WINDOW)
-function close_if_unfocused():
+function close_if_unfocused_x11():
     active = gtk.screen_active_window()
     own = gtk.widget_get_window(cal["win"])
     if not gtk.window_is_active(cal["win"]) or (active != 0 and active != own):
@@ -1751,6 +1789,18 @@ end
 
 # ---- start -------------------------------------------------------------------------------------------------------
 
+function window_hints_x11(win):
+    call gtk.window_set_decorated(win, False)
+    call gtk.window_set_skip_taskbar_hint(win, True)
+    call gtk.window_set_skip_pager_hint(win, True)
+    call gtk.window_set_keep_above(win, True)
+    call gtk.window_set_type_hint(win, gtk.TYPE_HINT_DIALOG)
+    call gtk.window_stick(win)
+    # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
+    call gtk.window_set_wmclass(win, "luxos-calendar", "Luxos-calendar")
+    return 0
+end
+
 # Skryte okno kalendare s pripominkami a hlidanim souboru (pouziva i luxos-hub)
 function create(background):
     global store, created, test_log
@@ -1771,19 +1821,18 @@ function create(background):
     cal["showing"] = ""
     cal["last_color"] = ics.DEFAULT_COLOR
 
+    cal["lost"] = -100000
+
     win = gtk.window_new(i18n.T("Calendar"))
     cal["win"] = win
     call gtk.widget_add_class(win, "lc")
-    call gtk.window_set_decorated(win, False)
     call gtk.window_set_resizable(win, False)
-    call gtk.window_set_skip_taskbar_hint(win, True)
-    call gtk.window_set_skip_pager_hint(win, True)
-    call gtk.window_set_keep_above(win, True)
-    call gtk.window_set_type_hint(win, gtk.TYPE_HINT_DIALOG)
-    call gtk.window_stick(win)
     call gtk.window_set_rgba(win)
-    # vlastni WM_CLASS i ve sdilenem procesu luxos-hub
-    call gtk.window_set_wmclass(win, "luxos-calendar", "Luxos-calendar")
+    if wayland():
+        call popup.setup(win, "luxos-calendar")
+    else:
+        call window_hints_x11(win)
+    end
 
     root = gtk.box_new(gtk.VERTICAL, 12)
     call gtk.widget_add_class(root, "lc-box")
@@ -1804,6 +1853,7 @@ function create(background):
     call segmented_set(cal["seg"], "day", False)
     call show_view("day")
 
+    call gtk.connect(win, "focus-in-event", on_focus_in)
     call gtk.connect(win, "focus-out-event", on_focus_out)
     call gtk.connect(win, "key-press-event", on_key)
     call gtk.connect(win, "delete-event", on_delete)

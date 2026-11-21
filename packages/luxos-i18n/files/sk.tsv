@@ -5394,6 +5394,10 @@ Output	Výstup
 Input	Vstup
 Muted	Stlmené
 Wrong password	Nesprávne heslo
+# Monitory na Waylandu (luxos-displays-settings)
+Scale	Mierka
+Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Zväčší text, okná a hornú lištu na tomto monitore. 125-175 % sa hodí pre jemné displeje notebookov.
+No displays found. Display settings need a Wayland session with LuxOS.	Nenašiel sa žiadny monitor. Nastavenie monitorov potrebuje reláciu Wayland s LuxOS.
 The desktop could not start. %s is selected.	Plochu sa nepodarilo spustiť. Je vybraté %s.
 Authentication required	Vyžaduje sa overenie
 Authenticate	Overiť

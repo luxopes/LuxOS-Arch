@@ -42,6 +42,7 @@ struct output {
 	struct wlr_box usable;
 	bool lock_shown;		/* rendered a frame with the lock cover */
 	bool head_enabled, head_published;
+	bool mirror;			/* shows another output (same origin), own layers hidden */
 	int last_x, last_y;	/* last state sent through wlr-output-management */
 	struct wl_listener frame, request_state, destroy;
 };
@@ -109,6 +110,7 @@ struct comp {
 	/* stacking, bottom to top */
 	struct wlr_scene_tree *layer_bg, *layer_bottom, *views, *above, *unmanaged,
 		*layer_top, *fullscreen, *layer_overlay, *lock_tree;
+	struct wlr_scene_tree *layer_hidden;	/* layer surfaces of mirrored outputs */
 	struct wlr_scene_rect *background;
 	const char *socket;
 
@@ -118,6 +120,8 @@ struct comp {
 	struct wlr_xdg_shell *xdg_shell;
 	struct wlr_layer_shell_v1 *layer_shell;
 	struct wlr_xdg_decoration_manager_v1 *deco_mgr;
+	struct wlr_server_decoration_manager *kde_deco_mgr;
+	struct wl_listener new_kde_decoration;
 	struct wlr_output_manager_v1 *output_mgr;
 	bool software;
 	bool virtual_input_open;	/* LUXCOMP_VIRTUAL_INPUT: virtual input for every unsandboxed client */
@@ -151,7 +155,8 @@ struct comp {
 	struct wlr_xcursor_manager *cursor_mgr;
 	struct wl_listener cursor_motion, cursor_motion_abs, cursor_button,
 		cursor_axis, cursor_frame, request_cursor, request_selection,
-		request_primary;
+		request_primary, request_start_drag, start_drag;
+	struct wlr_scene_tree *drag_icons;	/* drag-and-drop icons, above everything, follow the cursor */
 	struct view *focused;
 	struct wlr_surface *layer_focus;	/* keyboard-interactive layer surface */
 	bool binding_mods_held;		/* report modifier release after a binding */
@@ -182,6 +187,8 @@ struct wlr_renderer *renderer_create(struct wlr_backend *backend,
 struct output *output_by_id(int64_t id);
 struct output *output_at(double x, double y);
 void layers_arrange(struct output *output);
+void layers_arrange_all(void);
+void layers_close(struct output *output);
 void layers_init(void);
 bool layer_on_demand(struct wlr_surface *surface);	/* mapped, keyboard_interactivity on_demand */
 
@@ -203,6 +210,7 @@ struct deco *deco_create(struct view *view);
 void deco_destroy(struct deco *deco);
 void deco_update(struct deco *deco);		/* size, title, activation */
 void deco_redraw(struct deco *deco);		/* unconditionally (badge) */
+void deco_set_ssd(struct deco *deco, bool on);	/* server-side title bar or only shadow + corners (CSD) */
 int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
 int deco_height(void);
@@ -222,6 +230,7 @@ struct view *view_create(void);
 struct wlr_xdg_popup;
 void popup_attach(struct wlr_xdg_popup *popup, struct wlr_scene_tree *parent_tree);
 void view_map_common(struct view *v);
+void kde_decoration_check(struct view *v);
 void view_unmap_common(struct view *v);
 void view_destroy_common(struct view *v);
 struct wlr_surface *view_surface(struct view *v);

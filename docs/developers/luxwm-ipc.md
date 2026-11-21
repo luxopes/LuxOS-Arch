@@ -53,6 +53,8 @@ chybný JSON: `"error": "bad request"` (spojení zůstává).
 | `suspend_shortcuts` | `on`: `true` / `false` | ne | vypne globální zkratky, dokud klient neřekne `false` nebo se neodpojí (zadávání nové zkratky v nastavení) |
 | `list_windows` | – | ano | `{"ok": true, "windows": [okno, ...]}` v pořadí od naposledy zaměřeného |
 | `focus_window` | `window` (id okna) | ano | zaměří okno (i na jiné ploše, obnoví minimalizované) |
+| `set_primary` | `output`: název výstupu | ano | hlavní monitor (viz níže); odpověď `"primary"` = skutečně použitý |
+| `test_output` | `add`: `"WxH"` nebo `remove`: název | ano | jen testy: připojí/odpojí headless výstup (na skutečném backendu `"no headless backend"`) |
 
 Proč jsou příkazy neprivilegované: totéž dokáže každý proces uživatele i bez soketu (upraví
 `~/.config/luxwm/luxwm.conf` a pošle `SIGHUP`) a přepnutí plochy nebo rozložení nic neprozradí.
@@ -73,11 +75,22 @@ a nepřihlásí se nic.
 | `window` | `{"event": "window", "id": 7, "app_id": "org.gnome.Calculator", "title": "Kalkulačka"}` | zaměřené okno se změní (i jeho název nebo app_id); bez okna `id` 0 a prázdné řetězce |
 | `workspace` | `{"event": "workspace", "current": 2, "count": 4}` | přepnutí plochy (hned, ne až po animaci) |
 | `keyboard` | `{"event": "keyboard", "current": 1, "layouts": [{"code": "us", "variant": "", "name": "English (US)"}, {"code": "cz", "variant": "", "name": "Czech"}]}` | přepnutí rozložení (zkratka `grp:…`, příkaz, klik v liště), nový seznam po `reload` |
-| `output` | `{"event": "output", "outputs": [{"name": "HDMI-A-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 100, "refresh_mhz": 60000, "usable": [0, 30, 1920, 1050]}]}` | monitor přidán nebo odebrán, změna použitelné plochy (lišta, Dock) |
+| `output` | `{"event": "output", "primary": "HDMI-A-1", "outputs": [{"name": "HDMI-A-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 100, "refresh_mhz": 60000, "usable": [0, 30, 1920, 1050], "primary": true}]}` | monitor přidán nebo odebrán, změna použitelné plochy (lišta, Dock), změna hlavního monitoru; vypnutý monitor má `width` 0 a `usable` `[0, 0, 0, 0]` |
 | `theme` | `{"event": "theme", "theme": "dark"}` | `set_theme`, `reload`, `SIGUSR1` |
 
 Okno v `list_windows`: `{"id", "app_id", "title", "workspace" (od 1), "focused", "minimized", "fullscreen", "maximized", "sandbox"}`.
 `sandbox` je app_id z wp-security-context (aplikace v sandboxu, nastavuje spouštěč), jinak `""`.
+
+## Hlavní monitor
+
+Na Waylandu neexistuje „primary output“ protokolu. V LuxOS je hlavní monitor ten, na kterém je Dock,
+oznámení a OSD, kam luxwm přesune okna z odpojeného nebo vypnutého monitoru a kde začíná nové okno,
+když kurzor není na žádném monitoru. Horní lišta je na každém monitoru. Volí se v Monitorech
+(`luxos-displays-settings`, bílý pruh v uspořádání) a ukládá se pro sadu monitorů
+v `~/.config/luxos/displays-wayland.json` (`sets.<sada>.primary`). Po každé změně ho pomocník
+`luxos-displays` pošle příkazem `set_primary`; luxwm ho drží jen v paměti, po startu ho obnoví
+`displays_command`. Shell ho čte z události `output` (`primary`). Bez volby (nebo když je vypnutý)
+platí zapnutý monitor nejvíc vlevo nahoře.
 
 ## Rozložení klávesnice
 

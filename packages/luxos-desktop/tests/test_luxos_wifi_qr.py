@@ -6,8 +6,8 @@
 
 nmcli a pkexec jsou falesne (LUXOS_NMCLI, LUXOS_PKEXEC) - na skutecnou sit ani hesla se nesahne.
 Kodovani a cteni QR kodu potrebuje libZXing (zxing-cpp; jinak LUXOS_ZXING_LIB=/cesta/libZXing.so.4).
-Okna (luxos-wifi-qr, luxos-camera --scan-wifi s testovaci kamerou) jen pod xvfb-run; snimky do
-LUXOS_TEST_SHOTS (je-li nastaveno).
+Okno luxos-wifi-qr (files/lsl/luxos-wifi-qr.lsl, prekladac lslc) ve vlastnim Xvfb, rizene pres
+luxos_testctl; luxos-camera --scan-wifi s testovaci kamerou jen pod xvfb-run; snimky do LUXOS_TEST_SHOTS.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -58,6 +58,9 @@ if "up" in args:
         f.write("passwd-file " + oct(os.stat(args[-1]).st_mode & 0o777) + " " + open(args[-1]).read())
 if "delete" in args:
     sys.exit(0)
+if "show" in args and "uuid" in args and state == "broken":
+    print("Error: connection uuid-1 cannot be read.", file=sys.stderr)
+    sys.exit(10)
 if "show" in args and "uuid" in args:
     secrets = "--show-secrets" in args and (state != "nosecrets" or os.environ.get("FAKE_ROOT"))
     print("802-11-wireless.ssid:Kavárna:1")
@@ -89,6 +92,8 @@ os.environ.update({
 })
 
 import luxos_qr as qr  # noqa: E402
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
 
 HAVE_ZXING = qr.available()
 UNDER_XVFB = bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("XAUTHORITY", "")
@@ -271,6 +276,135 @@ def load_program(name, path):
     return mod
 
 
+@unittest.skipUnless(HAVE_ZXING, "needs libZXing (zxing-cpp) or LUXOS_ZXING_LIB")
+class TestShareWindow(unittest.TestCase):
+    """Okno luxos-wifi-qr v LSL: QR kod pripojene site, stavy, heslo spravce, kopirovani obrazku."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.binary = lsl_app.build("luxos-wifi-qr", TMP)
+        cls.x = lsl_app.Xvfb("1280x900")
+        cls.videos = os.path.join(TMP, "no-cameras")
+        os.makedirs(cls.videos, exist_ok=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.x.stop()
+
+    def start(self, state, *args, **extra):
+        set_state(state)
+        env = dict(os.environ, DISPLAY=self.x.display, LUXOS_CAMERA_TEST="1", LUXOS_VIDEO_DEV_DIR=self.videos,
+                   LANG="C.UTF-8", LC_ALL="C.UTF-8")
+        env.update(extra)
+        luxos_testguard.check_env(env)
+        self.app = lsl_app.App([self.binary, *args], env)
+        self.addCleanup(self.app.stop)
+        self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
+
+    def st(self):
+        import json
+        return json.loads(self.app.ask("state", "state"))
+
+    def named(self, name):
+        return lsl_app.find(self.app.dump(), name=name)["text"]
+
+    def button(self, text):
+        return lsl_app.find(self.app.dump(), text=text, kind="GtkButton")
+
+    def wait(self, cond, timeout=10):
+        return self.app.wait(cond, timeout)
+
+    def test_share_window_shows_scannable_code(self):
+        self.start("connected")
+        self.assertEqual([(w["title"], w["close_button"]) for w in self.app.dump()], [("Wi-Fi QR Code", True)])
+        self.assertTrue(self.wait(lambda: self.st()["page"] == "qr"))
+        self.assertEqual(self.named("ssid"), "Kavárna:1")
+        self.assertFalse(self.st()["password_shown"])
+        # QR kod v okne se da skutecne precist a obsahuje sit s heslem
+        time.sleep(0.4)
+        shot = os.path.join(TMP, "share.png")
+        lsl_app.shot(self.x.display, shot)
+        out = os.environ.get("LUXOS_TEST_SHOTS")
+        if out:
+            os.makedirs(out, exist_ok=True)
+            shutil.copy(shot, os.path.join(out, "wifi-qr-share.png"))
+        from gi.repository import GdkPixbuf
+        rgba = GdkPixbuf.Pixbuf.new_from_file(shot).add_alpha(False, 0, 0, 0)
+        texts = qr.decode(rgba.get_pixels(), rgba.get_width(), rgba.get_height(), qr.FORMAT_RGBA,
+                          stride=rgba.get_rowstride())
+        self.assertEqual([qr.parse_wifi(t) for t in texts],
+                         [{"ssid": "Kavárna:1", "password": "tajne;heslo,\\1", "security": "WPA", "hidden": False}])
+        # Tlacitko Kopirovat je videt (i s ikonou: drive no_show_all schoval ikonu)
+        copy = self.button("Copy QR code image")
+        self.assertTrue(copy and copy["vis"])
+        self.app.ask("click Copy QR code image")
+        self.assertTrue(self.st()["clipboard"])
+        # zobrazeni hesla ikonou v poli
+        self.app.ask("toggle")
+        self.assertTrue(self.st()["password_shown"])
+        # heslo se nikam nevypisuje
+        self.app.stop()
+        self.assertNotIn("tajne", self.app.stderr())
+        self.assertNotIn("tajne", "\n".join(self.app.lines))
+
+    def test_share_window_states(self):
+        self.start("nosecrets")
+        self.assertTrue(self.wait(lambda: (self.button("Show Password…") or {}).get("vis")))
+        self.assertIn("administrator password", self.named("state-hint"))
+        self.assertFalse(self.button("Copy QR code image")["vis"])
+        self.app.ask("click Show Password…")                    # pkexec nmcli (falesne)
+        self.assertTrue(self.wait(lambda: self.st()["page"] == "qr"))
+        self.assertTrue([c for c in nm_calls() if c[0].startswith("root ")])
+        set_state("wired")
+        self.app.ask("reload")
+        self.assertTrue(self.wait(lambda: self.named("state-title") == "Not connected to Wi-Fi"))
+        self.assertTrue(self.button("Join a Network with a QR Code…")["vis"])
+        set_state("eap")
+        self.app.ask("reload")
+        self.assertTrue(self.wait(lambda: "802.1X" in self.named("state-hint")))
+        self.assertEqual(self.named("state-title"), "Kavárna:1")
+
+    def test_admin_cancelled(self):
+        # zrusene okno pkexec: zpet na vyzvu k heslu spravce (bez hesla v QR kodu)
+        self.start("nosecrets", FAKE_PKEXEC_CANCEL="1")
+        self.assertTrue(self.wait(lambda: (self.button("Show Password…") or {}).get("vis")))
+        self.app.ask("click Show Password…")
+        time.sleep(0.5)
+        self.assertTrue(self.wait(lambda: (self.button("Show Password…") or {}).get("vis")))
+        self.assertEqual(self.st()["page"], "state")
+
+    def test_open_network_and_errors(self):
+        # nmcli selze: hlaska s vystupem nmcli
+        self.start("broken")
+        self.assertTrue(self.wait(lambda: self.named("state-title") == "The network settings could not be read"))
+        self.assertEqual(self.named("state-hint"), "Error: connection uuid-1 cannot be read.")
+
+    def test_no_camera_hides_scan(self):
+        self.start("connected", LUXOS_CAMERA_TEST="")
+        self.assertTrue(self.wait(lambda: self.st()["page"] == "qr"))
+        self.assertFalse(self.button("Join a Network with a QR Code…")["vis"])
+
+    def test_scan_runs_camera(self):
+        # --scan preda rizeni Kamere (luxos-camera --scan-wifi)
+        bindir = os.path.join(TMP, "fake-bin")
+        os.makedirs(bindir, exist_ok=True)
+        log = os.path.join(TMP, "camera-args")
+        with open(os.path.join(bindir, "luxos-camera"), "w") as f:
+            f.write('#!/bin/sh\necho "$@" > "%s"\n' % log)
+        os.chmod(os.path.join(bindir, "luxos-camera"), 0o755)
+        import subprocess
+        r = subprocess.run([self.binary, "--scan"], env=dict(os.environ, PATH=bindir + os.pathsep + os.environ["PATH"]),
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(log) as f:
+            self.assertEqual(f.read().strip(), "--scan-wifi")
+
+    def test_czech(self):
+        self.start("connected", LANG="cs_CZ.UTF-8", LC_ALL="cs_CZ.UTF-8")
+        self.assertTrue(self.wait(lambda: self.st()["page"] == "qr"))
+        self.assertEqual([w["title"] for w in self.app.dump()], ["QR kód Wi\u2011Fi"])
+
+
 @unittest.skipUnless(UNDER_XVFB, "GUI only under xvfb-run (never on a real display)")
 @unittest.skipUnless(HAVE_ZXING, "needs libZXing (zxing-cpp) or LUXOS_ZXING_LIB")
 class TestWindows(unittest.TestCase):
@@ -286,9 +420,8 @@ class TestWindows(unittest.TestCase):
         if Gdk.Screen.get_default() is None:      # Gio.TestDBus jineho testu zrusi DISPLAY
             raise unittest.SkipTest("no X display (run this file on its own under xvfb-run)")
         Gst.init(None)
-        cls.share = load_program("luxos_wifi_qr_app", os.path.join(BIN, "luxos-wifi-qr"))
         cls.camera = load_program("luxos_camera_app", os.path.join(BIN, "luxos-camera"))
-        for css in (cls.share.CSS, cls.camera.CSS):
+        for css in (cls.camera.CSS,):
             provider = Gtk.CssProvider()
             provider.load_from_data(css)
             Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
@@ -314,48 +447,6 @@ class TestWindows(unittest.TestCase):
         if out:
             os.makedirs(out, exist_ok=True)
             self.grab(window).savev(os.path.join(out, name), "png", [], [])
-
-    def test_share_window_shows_scannable_code(self):
-        set_state("connected")
-        win = self.share.QRWindow()
-        win.show_all()
-        self.addCleanup(win.destroy)
-        self.assertTrue(win.get_titlebar().get_visible() and win.get_titlebar().get_show_close_button())
-        self.assertTrue(self.pump(lambda: win.stack.get_visible_child_name() == "qr"))
-        self.assertEqual(win.ssid_label.get_text(), "Kavárna:1")
-        self.assertFalse(win.pw_entry.get_visibility())
-        # QR kod v okne se da skutecne precist a obsahuje sit s heslem
-        pix = self.grab(win)
-        self.shot(win, "wifi-qr-share.png")
-        rgba = pix.add_alpha(False, 0, 0, 0)
-        texts = qr.decode(rgba.get_pixels(), rgba.get_width(), rgba.get_height(), qr.FORMAT_RGBA,
-                          stride=rgba.get_rowstride())
-        self.assertEqual([qr.parse_wifi(t) for t in texts],
-                         [{"ssid": "Kavárna:1", "password": "tajne;heslo,\\1", "security": "WPA", "hidden": False}])
-        # Tlacitko Kopirovat je videt i s ikonou (drive no_show_all schoval ikonu -> prazdne/neviditelne)
-        btn = win.copy_btn
-        self.assertTrue(btn.get_visible() and btn.get_mapped())
-        self.assertTrue(btn.get_child().get_visible() and btn.get_child().get_mapped())
-        self.assertGreaterEqual(btn.get_child().get_allocated_width(), 16)
-        btn.clicked()
-        self.assertTrue(self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD).wait_is_image_available())
-
-    def test_share_window_states(self):
-        set_state("nosecrets")
-        win = self.share.QRWindow()
-        win.show_all()
-        self.addCleanup(win.destroy)
-        self.assertTrue(self.pump(lambda: win.unlock_btn.get_visible()))
-        self.shot(win, "wifi-qr-admin.png")
-        win.unlock_btn.clicked()                    # pkexec nmcli (falesne)
-        self.assertTrue(self.pump(lambda: win.stack.get_visible_child_name() == "qr"))
-        set_state("wired")
-        win.load()
-        self.assertTrue(self.pump(lambda: win.state_title.get_text() == self.share._("Not connected to Wi-Fi")))
-        self.assertTrue(win.scan_btn.get_visible())
-        set_state("eap")
-        win.load()
-        self.assertTrue(self.pump(lambda: "802.1X" in win.state_hint.get_text()))
 
     def test_camera_scan_and_join(self):
         set_state("connected")

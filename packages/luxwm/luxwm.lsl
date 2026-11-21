@@ -59,13 +59,16 @@ LOCALE = "org.freedesktop.locale1"
 IPC_TOPICS = ["window", "workspace", "keyboard", "output", "theme"]
 # informace o cizich oknech a jejich ovladani jen pro allowlist (jako wlr-foreign-toplevel)
 PRIVILEGED_TOPICS = ["window"]
-PRIVILEGED_COMMANDS = ["list_windows", "focus_window"]
+PRIVILEGED_COMMANDS = ["list_windows", "focus_window", "set_primary", "test_output"]
 
 deferred = {"on": False, "items": []}
 ipc = {}             # klient IPC -> {"privileged": bool, "topics": [...]}
 keyboard = {"layouts": [], "locale": {}}
 look = {"dark": False}
 last_window = [-1, "", ""]
+# hlavni monitor (Dock, oznameni, okna z odpojenych monitoru) podle nastaveni monitoru; displays_run =
+# odlozene spusteni displays_command po pripojeni/odpojeni monitoru
+displays = {"primary": "", "timer": 0}
 
 function log(text):
     call glib.report("luxwm: " + text + chr(10))
@@ -120,7 +123,7 @@ end
 function load_config():
     global settings
     general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
-               "xwayland": "yes"}
+               "xwayland": "yes", "displays_command": ""}
     keys = {}
     if greeter:
         # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
@@ -461,10 +464,79 @@ end
 
 function output_of(v):
     out = vget(v, lc.VIEW_OUTPUT)
-    if out == 0 and len(outputs) > 0:
-        out = outputs[0]
+    if out == 0:
+        out = primary_output()
     end
     return out
+end
+
+# Hlavni monitor: zvoleny v nastaveni monitoru (set_primary), kdyz je zapnuty; jinak zapnuty monitor
+# nejvic vlevo nahore. 0 = zadny zapnuty.
+function primary_output():
+    best = 0
+    for out in outputs:
+        if lc.output_get(out, lc.OUT_W) <= 0:
+            continue
+        end
+        if lc.output_name(out) == displays["primary"]:
+            return out
+        end
+        x = lc.output_get(out, lc.OUT_X)
+        y = lc.output_get(out, lc.OUT_Y)
+        if best == 0 or x < lc.output_get(best, lc.OUT_X) or (x == lc.output_get(best, lc.OUT_X) and y < lc.output_get(best, lc.OUT_Y)):
+            best = out
+        end
+    end
+    return best
+end
+
+# Okna, jejichz stred nelezi na zadnem zapnutem monitoru (odpojeny nebo vypnuty monitor), na hlavni monitor
+function rescue_windows():
+    target = primary_output()
+    if target == 0:
+        return
+    end
+    u = usable(target)
+    o = lc.view_next(0)
+    while o != 0:
+        f = frame(o)
+        if lc.output_at(f[0] + f[2] // 2, f[1] + f[3] // 2) == 0:
+            w = min(f[2], u[2])
+            h = min(f[3], u[3])
+            if w != f[2] or h != f[3]:
+                call lc.view_resize(o, w, h - vget(o, lc.VIEW_DECO_TOP))
+            end
+            call lc.view_move(o, u[0] + (u[2] - w) // 2, u[1] + (u[3] - h) // 2 + vget(o, lc.VIEW_DECO_TOP))
+            if o in full:
+                call fit_fullscreen(o)
+            elif o in maxed:
+                call fit_maximized(o)
+            elif o in tiled:
+                call fit_tiled(o)
+            end
+            call note("rescued " + String(o) + " to " + lc.output_name(target))
+        end
+        o = lc.view_next(o)
+    end
+end
+
+# Po pripojeni/odpojeni monitoru (a pri startu) jednou nastaveni monitoru pro tuto sadu (luxos-displays auto);
+# vic udalosti tesne po sobe (start, dokovaci stanice) spusti prikaz jen jednou
+function displays_changed():
+    if settings["displays_command"] == "":
+        return
+    end
+    if displays["timer"] != 0:
+        call glib.source_remove(displays["timer"])
+    end
+    displays["timer"] = glib.timeout_add(300, run_displays_command)
+end
+
+function run_displays_command():
+    displays["timer"] = 0
+    call note("displays: " + settings["displays_command"])
+    call lc.spawn(settings["displays_command"])
+    return False
 end
 
 function current_ws():
@@ -1237,14 +1309,18 @@ function handle(event, id, a, b, c):
         call note("lock " + String(a) + (" (locker gone)" if b == 1 else ""))
     elif event == lc.EV_OUTPUT_USABLE:
         call usable_changed(id)
+        call rescue_windows()
         call broadcast("output", output_event())
     elif event == lc.EV_OUTPUT_ADD:
         outputs.append(id)
+        call displays_changed()
         call broadcast("output", output_event())
     elif event == lc.EV_OUTPUT_REMOVE:
         if id in outputs:
             call outputs.remove(id)
         end
+        call rescue_windows()
+        call displays_changed()
         call broadcast("output", output_event())
     elif event == lc.EV_LAYOUT:
         call note("layout " + String(a))
@@ -1297,13 +1373,14 @@ end
 
 function output_event():
     items = []
+    main = primary_output()
     for out in outputs:
         items.append({"name": lc.output_name(out), "x": lc.output_get(out, lc.OUT_X), "y": lc.output_get(out, lc.OUT_Y),
                       "width": lc.output_get(out, lc.OUT_W), "height": lc.output_get(out, lc.OUT_H),
                       "scale": lc.output_get(out, lc.OUT_SCALE_PCT), "refresh_mhz": lc.output_get(out, lc.OUT_REFRESH_MHZ),
-                      "usable": usable(out)})
+                      "usable": usable(out), "primary": out == main})
     end
-    return {"event": "output", "outputs": items}
+    return {"event": "output", "outputs": items, "primary": lc.output_name(main) if main != 0 else ""}
 end
 
 function theme_event():
@@ -1520,6 +1597,37 @@ function ipc_command(client, request):
         end
         call activate(v, lc.ORIGIN_TASKBAR, 0)
         return {"ok": True}
+    elif cmd == "set_primary":
+        name = request.get("output", "")
+        if type(name) != "String":
+            return {"ok": False, "error": "bad request"}
+        end
+        displays["primary"] = name
+        call rescue_windows()
+        call broadcast("output", output_event())
+        return {"ok": True, "primary": output_event()["primary"]}
+    elif cmd == "test_output":
+        # testy: pripojeni/odpojeni monitoru, funguje jen na headless backendu
+        size = request.get("add", "")
+        name = request.get("remove", "")
+        if type(size) == "String" and size != "":
+            parts = size.split("x")
+            out = 0
+            safe:
+                out = lc.test_output_add(Int(parts[0]), Int(parts[1]))
+            end
+            if out == 0:
+                return {"ok": False, "error": "no headless backend"}
+            end
+            return {"ok": True, "output": lc.output_name(out)}
+        end
+        for out in outputs:
+            if lc.output_name(out) == name:
+                call lc.test_output_remove(out)
+                return {"ok": True}
+            end
+        end
+        return {"ok": False, "error": "no such output"}
     end
     return {"ok": False, "error": "unknown command"}
 end

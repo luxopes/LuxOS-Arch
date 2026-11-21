@@ -12,6 +12,8 @@
 #   luxos-displays menu            rychla volba rezimu (Super+P)
 #   luxos-displays rescue          okna mimo viditelne obrazovky presune na hlavni monitor
 #   luxos-displays brightness N    softwarovy jas 10-100 % (monitory bez podsviceni)
+# Relace na Waylandu: vse dela pomocnik v LSL (wlr-output-management, rozlozeni pro sadu monitoru, Super+P)
+[[ -n $WAYLAND_DISPLAY && -x /usr/lib/luxos/luxos-displays ]] && exec /usr/lib/luxos/luxos-displays "$@"
 . /usr/lib/luxos/i18n.sh
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
 mode_file="$cfg/displays-mode"

@@ -4,7 +4,8 @@
 # Drzi v pameti skryte okno Ovladaciho centra a Kalendare, aby se po kliknuti v liste ukazaly okamzite,
 # a k tomu hlida udalosti, ktere driv obstaravaly samostatne smycky:
 #   SIGUSR1           prepne Ovladaci centrum (luxos-cc-toggle)
-#   SIGUSR2           prepne Kalendar (luxos-calendar-toggle)
+#   SIGUSR2           prepne Kalendar (luxos-calendar-toggle); na Waylandu obe okna jako plochy layer-shell
+#                     pod tlacitkem listy (luxos_hub_popup)
 #   Trezor            zamkne pri zamceni obrazovky a pred uspanim (luxos-safe lock --force)
 #   Sporic dat        nove pripojena sit se hned oznaci jako merena
 #   Pamet             upozorneni, kdyz pojistka earlyoom ukonci program (nedostatek pameti)
@@ -806,24 +807,46 @@ function window_cal():
     return ok
 end
 
+# Na Waylandu az z necinne smycky. Zdroj signalu ma vyssi prioritu nez udalosti GDK: GLib v takovem kole
+# preskoci kontrolu zdroje GDK, ktery ma rozectene spojeni (wl_display_prepare_read), a kazde blokujici cekani
+# na kompozitor v obsluze (gtk_window_present ceka na aktivacni token, roundtrip) pak navzdy visi ve
+# wl_display_read_events. Tak se drive zasekl hub po kliknuti na Ovladaci centrum.
 function on_sigusr1():
+    if wayland():
+        call glib.idle_add(cc_toggle)
+    else:
+        call cc_toggle()
+    end
+    return True
+end
+
+function on_sigusr2():
+    if wayland():
+        call glib.idle_add(cal_toggle)
+    else:
+        call cal_toggle()
+    end
+    return True
+end
+
+function cc_toggle():
     try:
         call cc.toggle()
     else:
         call log("cc: " + String(last_error()))
         call glib.spawn(["luxos-control-center"])
     end
-    return True
+    return False
 end
 
-function on_sigusr2():
+function cal_toggle():
     try:
         call cal.toggle()
     else:
         call log("cal: " + String(last_error()))
         call glib.spawn(["luxos-calendar"])
     end
-    return True
+    return False
 end
 
 # SIGTERM/SIGINT (kill, konec relace): nenulovy kod - smycka v luxos-session hub spusti znovu, dokud

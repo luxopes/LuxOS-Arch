@@ -32,7 +32,7 @@ def shots(s):
         f.write("#!/bin/sh\nexit 126\n")
     os.chmod(pkexec, 0o755)
     env = {"LUXOS_NMCLI": nmcli, "LUXOS_PKEXEC": pkexec, "LUXOS_CAMERA_TEST": "1"}
-    p = s.launch_python("luxos-desktop/files/bin/luxos-wifi-qr", env=env)
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-wifi-qr.lsl")], env=env)
     win = s.window(pid=p.pid, size=None)
     s.sleep(1)
     # heslo odkryte (ikona oka v poli Heslo)

@@ -4,7 +4,9 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 5: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice, 5 sandbox oken a štítek záhlaví), balík `packages/luxcomp`.
+`LUXCOMP_API_VERSION` = 6: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
+a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -99,6 +101,8 @@ Klik se klientovi předá vždy, když je pod kurzorem jeho povrch. Klik do zahl
 **Výstupy.** `luxcomp_output_get(id, LUXCOMP_OUT_*)` vrací X, Y, W, H, `USABLE_*` (bez
 exkluzivních zón), `REFRESH_MHZ` a `SCALE_PCT`. Další funkce: `luxcomp_output_name(id)`,
 `luxcomp_output_at(x, y)`, `luxcomp_cursor_x()` a `luxcomp_cursor_y()`.
+Jen pro testy: `luxcomp_test_output_add(w, h)` připojí headless výstup (vrací id, 0 bez headless
+backendu) a `luxcomp_test_output_remove(id)` ho odpojí; skutečné výstupy (DRM) to nezmění.
 
 **Okna.** `luxcomp_view_get(id, LUXCOMP_VIEW_*)` vrací:
 - X, Y, W, H: obsah okna (geometrie klienta) v souřadnicích rozložení.
@@ -185,7 +189,13 @@ jiné okno), rozhoduje politika. Viz `luxos-fullscreen-layer.patch` u xfwm4.
 LuxOS. Tmavý režim a tokeny návrhu (WP-4) nastaví luxwm těmito voláními, v jádře nejsou žádné
 soubory s tématem.
 
-Jak to jádro kreslí (okna se zahlavím kompozitoru, okna s vlastním zahlavím CSD nechává být):
+Jak to jádro kreslí:
+- Okno se zahlavím kompozitoru (xdg-decoration nebo `org_kde_kwin_server_decoration` v režimu server,
+  ten používá GTK 3 u oken bez headerbaru, např. Thunar) má zahlaví, stín a zaoblené dolní rohy.
+  Výchozí režim protokolu KDE je server; xdg-decoration má přednost.
+- Okno s vlastním zahlavím (CSD, GTK headerbar) má jen stín kolem geometrie okna
+  (`xdg_surface.set_window_geometry`, bez okrajů, kam si klient kreslí vlastní stín) a zaoblené dolní
+  rohy. `VIEW_DECO_TOP` je 0.
 - Zahlaví i stín se kreslí v měřítku největšího výstupu (při 2x ostré písmo a kolečka).
 - Stín je 8 dílů jedné předem rozmazané textury (rohy 1:1, hrany roztažené z jednoho sloupce).
   Textura je společná všem oknům se stejnou velikostí, poloměrem, barvou a měřítkem, při přesunu
@@ -306,6 +316,18 @@ Jádro samo vybere renderer, který funguje všude:
 Jádro nabízí `wlr-output-management-v1`: `wlr-randr` vypíše výstupy a nastaví režim (i vlastní
 velikost u headless a vnořeného backendu), polohu a měřítko. Harness `scripts/wl-test` přes něj
 zjišťuje, že kompozitor běží, a nastavuje `--size`. Po změně velikosti přijde `OUTPUT_USABLE`.
+
+- Jádro opravdu použije režim (i vlastní u headless a vnořeného), polohu, měřítko včetně zlomkového
+  (wl_fixed, logická velikost = `wlr_output_effective_resolution`, tedy oříznutá), otočení
+  a zapnutí/vypnutí.
+- Konfigurace je celá nebo nic: nejdřív se otestují všechny hlavy, teprve pak se použijí. Odmítnutý
+  režim jednoho monitoru nenechá ostatní napůl přepnuté.
+- Vypnutý výstup zmizí z rozložení a jeho použitelná plocha je prázdná (`OUTPUT_USABLE`), luxwm
+  z něj přesune okna. Odpojený výstup zavře své vrstvy layer-shell (klient dostane `closed`).
+- **Zrcadlení** protokol nezná: nastavení monitorů dá zrcadlené výstupy na stejný počátek. Výstup,
+  který má počátek společný s menším (při shodě dřívějším) zapnutým výstupem, je zrcadlo: ukazuje
+  obsah vzoru a jeho vlastní vrstvy (lišta, Dock, tapeta) jsou schované ve vypnutém stromu scény,
+  aby se průhledná lišta nekreslila dvakrát přes sebe. Použitelná plocha zrcadla je celý výstup.
 
 ## Proměnné prostředí
 

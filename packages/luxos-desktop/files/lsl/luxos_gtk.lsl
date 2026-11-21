@@ -12,6 +12,11 @@
 #   Emoji a symboly: selection_set_text/_image, selection_owned, selection_request_text/_image (asynchronne,
 #   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
 #   primary_monitor_info() -> [x, y, w, h, nazev vystupu] (widgety plochy: tapeta hlavniho monitoru)
+#   aplikace prepsane z Pythonu: window_set_header(okno, nadpis), spinner_new/spinner_set, list_box_add (radek bez
+#   zvyrazneni), list_box_set_placeholder, stack_new/stack_add_named/stack_*_visible_child_name, dialog_new_header,
+#   file_chooser_native_new/native_dialog_run/file_chooser_add_image_filter, overlay_set_pass_through,
+#   box_set_center_widget, window_get_focus, widget_get_sensitive, widget_is_button, editable_set_editable,
+#   entry_get_visibility, entry_set_icon_tooltip
 load glib, gtk, cairo
 load luxos_glib
 
@@ -183,6 +188,180 @@ end
 function dialog_response(dialog, response):
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("gtk_dialog_response"), ptr(dialog), ptr(response))
+    end
+end
+
+# ---- okna nastaveni (aplikace prepsane z Pythonu: HeaderBar, seznamy, kolecko) -------------------------------
+
+# HeaderBar s nadpisem a zaviracim tlacitkem jako titulek okna
+function window_set_header(window, title):
+    unsafe:
+        bar = __lsl_qbe_call0(__lsl_symbol("gtk_header_bar_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_title"), bar, cstr(title))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_show_close_button"), bar, 1)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_titlebar"), ptr(window), bar)
+        return bar
+    end
+end
+
+function header_bar_pack_start(bar, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_pack_start"), ptr(bar), ptr(child))
+    end
+end
+
+function header_bar_pack_end(bar, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_pack_end"), ptr(bar), ptr(child))
+    end
+end
+
+function spinner_new():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("gtk_spinner_new"))
+    end
+end
+
+function spinner_set(spinner, active):
+    unsafe:
+        if active:
+            call __lsl_qbe_call1(__lsl_symbol("gtk_spinner_start"), ptr(spinner))
+        else:
+            call __lsl_qbe_call1(__lsl_symbol("gtk_spinner_stop"), ptr(spinner))
+        end
+    end
+end
+
+function list_box_set_placeholder(box, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_set_placeholder"), ptr(box), ptr(child))
+    end
+end
+
+# Radek seznamu bez zvyrazneni po kliknuti (Gtk.ListBoxRow(activatable=False))
+function list_box_add(box, child):
+    unsafe:
+        row = __lsl_qbe_call0(__lsl_symbol("gtk_list_box_row_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_row_set_activatable"), row, 0)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_container_add"), row, ptr(child))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_container_add"), ptr(box), row)
+        return row
+    end
+end
+
+# Stack se strankami podle jmena a prolinanim; vhomogeneous False = vyska podle viditelne stranky
+function stack_new(vhomogeneous):
+    unsafe:
+        stack = __lsl_qbe_call0(__lsl_symbol("gtk_stack_new"))
+        # GTK_STACK_TRANSITION_TYPE_CROSSFADE
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_transition_type"), stack, 1)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_vhomogeneous"), stack, flag(vhomogeneous))
+        return stack
+    end
+end
+
+function stack_set_transition_duration(stack, ms):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_transition_duration"), ptr(stack), ptr(ms))
+    end
+end
+
+function stack_add_named(stack, child, name):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("gtk_stack_add_named"), ptr(stack), ptr(child), cstr(name))
+    end
+end
+
+function stack_set_visible_child_name(stack, name):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_visible_child_name"), ptr(stack), cstr(name))
+    end
+end
+
+function stack_get_visible_child_name(stack):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("gtk_stack_get_visible_child_name"), ptr(stack)))
+    end
+end
+
+# Dialog s tlacitky v HeaderBar (Gtk.Dialog(use_header_bar=True))
+function dialog_new_header():
+    unsafe:
+        return __lsl_qbe_call4(__lsl_symbol("g_object_new"), __lsl_qbe_call0(__lsl_symbol("gtk_dialog_get_type")), cstr("use-header-bar"), 1, 0)
+    end
+end
+
+# Vyber souboru pres portal (Gtk.FileChooserNative); run -> RESPONSE_ACCEPT (-3), po pouziti object_unref
+function file_chooser_native_new(title, parent, action, accept, cancel):
+    unsafe:
+        return __lsl_qbe_call5(__lsl_symbol("gtk_file_chooser_native_new"), cstr(title), ptr(parent), ptr(action), cstr(accept), cstr(cancel))
+    end
+end
+
+function native_dialog_run(dialog):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_native_dialog_run"), ptr(dialog)))
+    end
+end
+
+# Filtr se vsemi formaty obrazku, ktere umi GdkPixbuf
+function file_chooser_add_image_filter(chooser, name):
+    unsafe:
+        filter = __lsl_qbe_call0(__lsl_symbol("gtk_file_filter_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_set_name"), filter, cstr(name))
+        call __lsl_qbe_call1(__lsl_symbol("gtk_file_filter_add_pixbuf_formats"), filter)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_chooser_add_filter"), ptr(chooser), filter)
+    end
+end
+
+function overlay_set_pass_through(overlay, child):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("gtk_overlay_set_overlay_pass_through"), ptr(overlay), ptr(child), 1)
+    end
+end
+
+function box_set_center_widget(box, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_box_set_center_widget"), ptr(box), ptr(child))
+    end
+end
+
+function window_get_focus(window):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("gtk_window_get_focus"), ptr(window))
+    end
+end
+
+function editable_set_editable(editable, on):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_editable_set_editable"), ptr(editable), flag(on))
+    end
+end
+
+function entry_get_visibility(entry):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_entry_get_visibility"), ptr(entry))) != 0
+    end
+end
+
+function entry_set_icon_tooltip(entry, position, text):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("gtk_entry_set_icon_tooltip_text"), ptr(entry), ptr(position), cstr(text))
+    end
+end
+
+function widget_get_sensitive(widget):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_widget_get_sensitive"), ptr(widget))) != 0
+    end
+end
+
+function widget_is_button(widget):
+    unsafe:
+        if ptr(widget) == 0:
+            return False
+        end
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("g_type_check_instance_is_a"), ptr(widget), __lsl_qbe_call0(__lsl_symbol("gtk_button_get_type")))) != 0
     end
 end
 
