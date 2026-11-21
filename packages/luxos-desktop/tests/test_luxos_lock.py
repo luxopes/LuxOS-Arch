@@ -243,6 +243,10 @@ class LockBase(unittest.TestCase):
             fields[key] = value.split()
         return int(fields["RssAnon"][0]) + int(fields["RssShmem"][0]), int(fields["VmRSS"][0])
 
+    def field(self, p):
+        """Pole pro heslo [x, y, w, h] z radku "field" (zamek ho vypise pri configure)."""
+        return [int(v) for v in self.wait_line(p, "field ").split()[1:5]]
+
     def assertCovered(self, shot, window):
         # stred plochy (okno wlt-client) nesmi byt videt
         self.assertFalse(near(shot.pixel(shot.width // 2, shot.height // 2), window, 2), "plocha je videt")
@@ -333,19 +337,28 @@ class Locker(LockBase):
         self.window()
         desk = self.shot().pixel(512, 320)
         p = self.locker()
+        fx, fy, fw, fh = self.field(p)
         self.keys("type spatne", "key Return")
         self.wait_line(p, "shake")
         time.sleep(0.12)
         mid = self.shot("mid.ppm")
         time.sleep(0.8)
         rest = self.shot("rest.ppm")
+        time.sleep(0.6)
+        calm = self.shot("calm.ppm")
         self.assertIsNone(p.poll())
         self.assertCovered(rest, desk)
         # behem zatreseni je pole jinde nez v klidu
-        band = (380, 452, 650, 476)
+        band = (fx - 20, fy + 4, fx + fw + 20, fy + fh - 4)
         self.assertNotEqual(mid.region(*band), rest.region(*band))
-        # chybova hlaska (svetle cervena error_soft) pod polem
-        reds = [px for px in rest.region(300, 485, 724, 510) if px[0] > 200 and 150 < px[1] < 200 and 150 < px[2] < 200]
+        # cerveny okraj pole 1,2 s po chybe, pak zase bily
+        def red_rim(shot):
+            return sum(1 for px in shot.region(fx + 20, fy - 2, fx + fw - 20, fy) if px[0] > px[1] + 60 and px[0] > px[2] + 60)
+        self.assertGreater(red_rim(rest), 50)
+        self.assertLess(red_rim(calm), 10)
+        # chybova hlaska (svetle cervena error_soft na tmave pilulce) pod polem
+        reds = [px for px in calm.region(fx - 60, fy + fh + 6, fx + fw + 60, fy + fh + 30)
+                if px[0] > 200 and 150 < px[1] < 200 and 150 < px[2] < 200]
         self.assertGreater(len(reds), 20)
         self.assertEqual(self.passwords(), ["spatne"])
         # prazdny Enter nic neposila (zadny pokus navic pro pam_faillock)
@@ -366,15 +379,17 @@ class Locker(LockBase):
     def test_caps_lock_indicator(self):
         self.start()
         p = self.locker()
+        fx, fy, fw, fh = self.field(p)
         self.keys("type a")
         self.wait_line(p, "keyboard caps=False")
+        time.sleep(0.5)
         off = self.shot("off.ppm")
         holder = self.keys("key Caps_Lock", "sleep 3", wait=False)
         self.wait_line(p, "keyboard caps=True")
         time.sleep(0.3)
         on = self.shot("on.ppm")
         holder.wait(10)
-        row = (300, 510, 724, 532)
+        row = (fx - 40, fy + fh + 6, fx + fw + 40, fy + fh + 30)
         changed = sum(a != b for a, b in zip(off.region(*row), on.region(*row)))
         self.assertGreater(changed, 50, "radek Caps Lock se nezmenil")
 
@@ -493,6 +508,60 @@ class Locker(LockBase):
         print(f"\n  idle RssShmem {shmem} kB, one 1080p buffer {buffer_kb} kB")
         self.assertLess(shmem, buffer_kb * 3 // 2)
 
+    def test_idle_prompt_and_back(self):
+        """Klid bez pole; klavesa i klik ukazou vyzvu (rozmazana tapeta, pole), po LUXOS_LOCK_PROMPT_MS zpet klid."""
+        self.start()
+        p = self.locker(LUXOS_LOCK_PROMPT_MS="1500")
+        fx, fy, fw, fh = self.field(p)
+        time.sleep(0.3)
+        idle = self.shot("idle.ppm")
+        field = (fx + 10, fy + 2, fx + fw - 10, fy + fh - 2)
+
+        def changed(a, b, box):
+            return sum(x != y for x, y in zip(a.region(*box), b.region(*box)))
+        self.keys("type x")
+        self.wait_line(p, "prompt")
+        time.sleep(0.6)
+        typed = self.shot("typed.ppm")
+        self.assertGreater(changed(idle, typed, field), 500, "pole se neukazalo")
+        # prvni znak je uz v poli: tecka vlevo
+        self.assertIn("key 0 1", self.lines(p))
+        # rozmazana tapeta i mimo pole (prolnuti pozadi)
+        self.assertGreater(changed(idle, typed, (40, 300, 300, 400)), 2000)
+        self.keys("key BackSpace")
+        self.wait_line(p, "idle", timeout=5)
+        time.sleep(0.7)
+        back = self.shot("back.ppm")
+        self.assertLess(changed(idle, back, field), 50)
+        # klik mysi (ne jen klavesa) ukaze vyzvu znovu
+        self.keys("move 100 100", "click")
+        self.wait_line(p, "pointer ")
+        self.drain(p, 0.6)
+        self.assertEqual(sum(line == "prompt" for line in self.lines(p)), 2)
+        self.keys(f"type {PASSWORD}", "key Return")
+        self.assertEqual(p.wait(10), 0)
+
+    def test_status_cluster_network(self):
+        """Stav vpravo nahore: Wi-Fi z napodobeneho /sys/class/net (bez Wi-Fi nic)."""
+        self.start()
+        net = self.tmp / "net"
+        shutil.rmtree(net, True)
+        p = self.locker(LUXOS_LOCK_NET=str(net))
+        time.sleep(0.3)
+        none = self.shot("none.ppm")
+        p.terminate()
+        p.wait(5)
+        (net / "wlan0/wireless").mkdir(parents=True)
+        (net / "wlan0/operstate").write_text("up\n")
+        (net / "wlan0/type").write_text("1\n")
+        p = self.locker(LUXOS_LOCK_NET=str(net))
+        time.sleep(0.3)
+        wifi = self.shot("wifi.ppm")
+        box = (wifi.width - 140, 8, wifi.width - 10, 40)
+        self.assertGreater(sum(a != b for a, b in zip(none.region(*box), wifi.region(*box))), 40)
+        self.keys(f"type {PASSWORD}", "key Return")
+        self.assertEqual(p.wait(10), 0)
+
     def test_kill_9_keeps_screen_covered_and_new_locker_takes_over(self):
         self.start()
         self.window()
@@ -540,10 +609,15 @@ class Locker(LockBase):
         touch.unlink(missing_ok=True)
         self.fake({"FAKE_FP": "match", "FAKE_FP_TOUCH": str(touch)})
         p = self.locker(LUXOS_LOCK_FPRINT_MODULE=str(self.build / "fake-pam.so"))
+        fx, fy, fw, fh = self.field(p)
         self.wait_line(p, "fingerprint: info")
-        time.sleep(0.2)
+        # klid: jen hodiny, hlaska az s vyzvou (Shift nic nenapise)
+        self.keys("key Shift_L")
+        self.wait_line(p, "prompt")
+        time.sleep(0.6)
         hint = self.shot()
-        self.assertGreater(sum(px[0] > 200 and px[1] > 200 and px[2] > 200 for px in hint.region(250, 485, 774, 510)), 30)
+        self.assertGreater(sum(px[0] > 200 and px[1] > 200 and px[2] > 200
+                               for px in hint.region(fx - 120, fy + fh + 6, fx + fw + 120, fy + fh + 30)), 30)
         touch.touch()
         self.assertEqual(p.wait(10), 0)
         self.assertEqual(self.passwords(), [])

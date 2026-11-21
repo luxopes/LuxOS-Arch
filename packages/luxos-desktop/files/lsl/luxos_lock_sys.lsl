@@ -8,8 +8,11 @@
 #                                      f(data, "", status) (status jako waitpid); envp [] = prostredi tohoto procesu
 #   real_name(), user_name()
 #   source_pad(cr)                     zdroj cairo za okrajem opakuje krajni pixely (zvetsena tapeta bez tmaveho lemu)
+#   battery(dir)                       prvni baterie z /sys/class/power_supply -> [procenta, nabiji] nebo None
+#   network(dir, wireless)             sit z /sys/class/net a /proc/net/wireless -> ["wifi", 0-3], ["wired", 0], ["none", 0]
 load glib
 load luxos_glib as lglib
+load luxos_text as ltext
 
 PR_SET_DUMPABLE = 4
 RLIMIT_CORE = 4
@@ -130,4 +133,63 @@ function source_pad(cr):
         call __lsl_qbe_call2(__lsl_symbol("cairo_pattern_set_extend"), __lsl_qbe_call1(__lsl_symbol("cairo_get_source"), ptr(cr)), 3)
     end
     return 0
+end
+
+# Prvni baterie zarizeni (ne mys ani klavesnice: scope Device); blesk i kdyz nabijecka drzi plnou baterii
+function battery(base):
+    mains = False
+    found = None
+    for name in lglib.list_dir(base):
+        dir = base + "/" + name
+        kind = lglib.read_text(dir + "/type").strip()
+        if (kind == "Mains" or kind == "USB") and lglib.read_text(dir + "/online").strip() == "1":
+            mains = True
+        end
+        cap = lglib.read_text(dir + "/capacity").strip()
+        if found == None and kind == "Battery" and lglib.read_text(dir + "/scope").strip() != "Device" and ltext.is_digits(cap) and cap != "":
+            found = [min(100, Int(cap)), lglib.read_text(dir + "/status").strip()]
+        end
+    end
+    if found == None:
+        return None
+    end
+    return [found[0], found[1] == "Charging" or (found[1] != "Discharging" and mains)]
+end
+
+# Pripojena rozhrani: Wi-Fi ma prednost (sila z /proc/net/wireless, kvalita z 70), pak kabel; mosty, kontejnery
+# a VPN (virtualni zarizeni) se nepocitaji
+function network(base, wireless):
+    wired = False
+    for name in lglib.list_dir(base):
+        dir = base + "/" + name
+        if name == "lo" or lglib.read_text(dir + "/operstate").strip() != "up":
+            continue
+        end
+        if lglib.realpath(dir).find("/virtual/") >= 0:
+            continue
+        end
+        if lglib.is_dir(dir + "/wireless"):
+            level = 3
+            for raw in lglib.read_text(wireless).split("\n"):
+                words = [w for w in raw.strip().split(" ") if w != ""]
+                if len(words) > 2 and words[0] == name + ":":
+                    q = ltext.to_int(words[2].strip("."), 70)
+                    level = 3
+                    if q < 25:
+                        level = 1
+                    elif q < 50:
+                        level = 2
+                    end
+                end
+            end
+            return ["wifi", level]
+        end
+        if lglib.read_text(dir + "/type").strip() == "1":
+            wired = True
+        end
+    end
+    if wired:
+        return ["wired", 0]
+    end
+    return ["none", 0]
 end

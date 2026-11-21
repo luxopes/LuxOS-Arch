@@ -50,6 +50,7 @@ enum lwl_event {
 	LWL_RESUMED,
 	LWL_DISCONNECTED,           /* kompozitor skoncil */
 	LWL_KEYBOARD,               /* zamek: handle = plocha s fokusem, a = Caps Lock, b = skupina (rozlozeni) */
+	LWL_POINTER,                /* zamek: klik nebo dotek na plose handle, a = x, b = y (logicke) */
 };
 
 /* bity stavu okna */
