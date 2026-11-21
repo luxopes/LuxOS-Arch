@@ -196,10 +196,12 @@ Click the clock in the top bar (`luxos-calendar-toggle`), or run `luxos-calendar
 
 ## Camera
 
-Run `luxos-camera`. It is a Photo Booth-style webcam app built on GStreamer (v4l2).
+Run `luxos-camera`. It is a Photo Booth-style webcam app built on GStreamer (v4l2), a native program
+(LSL, modules `luxos_camera.lsl` and `luxos_qr.lsl`).
 
 - Photo or Video, a mirrored preview (toggle "Mirror preview"), Choose camera when there are
-  several, and "Take the picture after 3 seconds".
+  several, and "Take the picture after 3 seconds". Space or Enter is the shutter, Esc cancels the countdown. The
+  choices are remembered in `~/.config/luxos/camera.json`.
 - Photos (JPEG) are saved to `$(xdg-user-dir PICTURES)/Camera`, and videos (WebM VP8 + Opus, or MP4
   if x264enc is available) to `$(xdg-user-dir VIDEOS)/Camera`. "Open last capture" opens the latest
   file.

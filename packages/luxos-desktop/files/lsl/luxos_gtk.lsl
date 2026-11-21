@@ -16,7 +16,9 @@
 #   zvyrazneni), list_box_set_placeholder, stack_new/stack_add_named/stack_*_visible_child_name, dialog_new_header,
 #   file_chooser_native_new/native_dialog_run/file_chooser_add_image_filter, overlay_set_pass_through,
 #   box_set_center_widget, window_get_focus, widget_get_sensitive, widget_is_button, editable_set_editable,
-#   entry_get_visibility, entry_set_icon_tooltip
+#   entry_get_visibility, entry_set_icon_tooltip, message_dialog_new(rodic, typ, tlacitka, text), radio_button_new(skupina,
+#   popisek) (tlacitko bez kolecka jako prepinac Foto/Video Kamery), toggle_button_new_empty,
+#   combo_box_text_remove_all, combo_box_set_active_id
 load glib, gtk, cairo
 load luxos_glib
 
@@ -1166,5 +1168,48 @@ function menu_popup_above_rect(menu, widget, x, y, width, height):
         call __lsl_qbe_store32(data(rect) + 12, ptr(height))
         window = __lsl_qbe_call1(__lsl_symbol("gtk_widget_get_window"), ptr(widget))
         return __lsl_qbe_call6(__lsl_symbol("gtk_menu_popup_at_rect"), ptr(menu), window, data(rect), 2, 8, 0)
+    end
+end
+
+# ---- Kamera ---------------------------------------------------------------------------------------------------
+
+MESSAGE_WARNING = 1
+MESSAGE_QUESTION = 2
+BUTTONS_NONE = 0
+BUTTONS_OK = 1
+
+# Gtk.MessageDialog bez formatovaciho retezce (text muze obsahovat %)
+function message_dialog_new(parent, kind, buttons, text):
+    unsafe:
+        # GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT
+        dialog = __lsl_qbe_call5(__lsl_symbol("gtk_message_dialog_new"), ptr(parent), 3, ptr(kind), ptr(buttons), 0)
+        call __lsl_qbe_call4(__lsl_symbol("g_object_set"), dialog, cstr("text"), cstr(text), 0)
+        return dialog
+    end
+end
+
+function radio_button_new(group, text):
+    unsafe:
+        button = __lsl_qbe_call2(__lsl_symbol("gtk_radio_button_new_with_label_from_widget"), ptr(group), cstr(text))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_toggle_button_set_mode"), button, 0)
+        return button
+    end
+end
+
+function toggle_button_new_empty():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("gtk_toggle_button_new"))
+    end
+end
+
+function combo_box_text_remove_all(combo):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("gtk_combo_box_text_remove_all"), ptr(combo))
+    end
+end
+
+function combo_box_set_active_id(combo, id):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("gtk_combo_box_set_active_id"), ptr(combo), cstr(id)) != 0
     end
 end

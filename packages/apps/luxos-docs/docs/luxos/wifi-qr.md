@@ -30,7 +30,9 @@ encoded as UTF-8 (ECI 26).
   Mirrored and inverted codes work. A QR code that is not a Wi-Fi network shows "This QR code is not
   a Wi-Fi network." for a moment.
 - After a code is found, LuxOS asks "Join the Wi-Fi network “name”?". **Join** runs
-  `nmcli device wifi connect <name> password <password>` (plus `hidden yes` for hidden networks);
+  `nmcli device wifi connect <name>` for open networks (plus `hidden yes` for hidden ones); a network
+  with a password gets a new NetworkManager profile and `nmcli connection up` reads the password from
+  a private file (mode 0600, deleted right after), so it never appears in the process list;
   the result is "Connected to “name”" or the error from NetworkManager with **Try Again**.
 - Camera errors (no camera, camera used by another app, no permission) are the same as in the
   Camera app, see [apps.md](apps.md#camera).
@@ -38,7 +40,6 @@ encoded as UTF-8 (ECI 26).
 ## Under the hood
 
 - QR codes are drawn and read by the `zxing-cpp` library (`libZXing`, C API), a small dependency of
-  `luxos-desktop`. The sharing window is native (LSL, module `luxos_qr.lsl`); scanning in the Camera app
-  uses `/usr/lib/luxos/python/luxos_qr.py`.
+  `luxos-desktop`. The sharing window and the Camera app are native (LSL, module `luxos_qr.lsl`).
 - If the library is missing the window shows "QR codes are not available" and how to install it
   (`lux install zxing-cpp`).

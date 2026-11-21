@@ -331,6 +331,25 @@ class SettingsAppsWayland(unittest.TestCase):
         self.assertEqual(got[-1]["message"], "Wayland report from the test.")
         self.shot("luxos-feedback-done")
 
+    def test_camera(self):
+        # videotestsrc, uzly video* jen v prazdne slozce; fotka do docasneho domova
+        videos = self.session / "no-cameras"
+        videos.mkdir()
+        home = self.session / "home"
+        self.open("luxos-camera", HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"), LUXOS_CAMERA_TEST="2",
+                  LUXOS_VIDEO_DEV_DIR=str(videos))
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.assertTrue(self.app.wait(lambda: state()["state"] == "preview"))
+        self.assertTrue(state()["combo"])
+        self.check_window("luxos-camera", "Camera")
+        self.app.ask("click Take Photo")
+        self.assertTrue(self.app.wait(lambda: state()["thumb"]))
+        self.assertEqual(len(list((home / "Pictures/Camera").glob("Photo *.jpg"))), 1)
+        time.sleep(0.5)                 # blesk
+        self.shot("luxos-camera-photo")
+        self.app.send("close")
+        self.assertEqual(self.app.proc.wait(10), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

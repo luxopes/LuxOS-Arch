@@ -214,8 +214,8 @@ build() {
         luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset; do
         lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/$p.lsl" "$p"
     done
-    # Aplikace drive v Pythonu (WP-15): Kalkulacka, Monitor systemu, Zpetna vazba, kontrola portalu site, Sprava site
-    for p in luxos-calculator luxos-monitor luxos-feedback luxos-portal-check luxos-router; do
+    # Aplikace drive v Pythonu (WP-15): Kalkulacka, Monitor systemu, Zpetna vazba, kontrola portalu site, Sprava site, Kamera
+    for p in luxos-calculator luxos-monitor luxos-feedback luxos-portal-check luxos-router luxos-camera; do
         lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/$p.lsl" "$p"
     done
     rm -rf tokens
@@ -259,7 +259,7 @@ package() {
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news \
         luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
         luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset \
-        luxos-calculator luxos-monitor luxos-feedback luxos-portal-check luxos-router
+        luxos-calculator luxos-monitor luxos-feedback luxos-portal-check luxos-router luxos-camera
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-sun "$pkgdir/usr/lib/luxos/luxos-sun"
     install -Dm755 luxos-notify "$pkgdir/usr/lib/luxos/luxos-notify"

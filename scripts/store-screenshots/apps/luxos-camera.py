@@ -3,12 +3,9 @@
 Bez webkamery: LUXOS_CAMERA_TEST=1 (testovaci kamera aplikace) s LUXOS_CAMERA_TEST_IMAGE - obrazek
 nakresleny zde v cairo (pokoj s oknem, kvetinou a hrnkem), zadna skutecna kamera ani fotka.
 Fotka se ulozi do docasneho HOME (~/Pictures/Camera). Video se nenahrava (mikrofon).
-luxos-camera pridava na zacatek sys.path /usr/lib/luxos/python - spoustec v s.tmp proto nejdriv
-nacte luxos_i18n, luxos_camera a luxos_qr z pracovni kopie.
 """
 import math
 import os
-import sys
 
 
 def scene(path, w=1280, h=720):
@@ -120,18 +117,8 @@ def scene(path, w=1280, h=720):
 def shots(s):
     img = os.path.join(s.tmp, "camera-scene.png")
     scene(img)
-    files = s.src("luxos-desktop/files")
-    run = os.path.join(s.tmp, "luxos-camera-run")
-    with open(run, "w", encoding="utf-8") as f:
-        f.write("#!%s\nimport runpy, sys\nsys.path[:0] = %r\n"
-                "import luxos_i18n, luxos_camera, luxos_qr  # pracovni kopie\n"
-                "sys.argv[0] = %r\nrunpy.run_path(sys.argv[0], run_name='__main__')\n"
-                % (sys.executable, [s.src("luxos-i18n/files"), os.path.join(files, "python")],
-                   os.path.join(files, "bin", "luxos-camera")))
-    os.chmod(run, 0o755)
-    s.python_env()
     env = {"LUXOS_CAMERA_TEST": "1", "LUXOS_CAMERA_TEST_IMAGE": img}
-    p = s.launch([run], env=env)
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-camera.lsl")], env=env)
     win = s.window(pid=p.pid, size=(960, 680))
     s.sleep(3.0)
     # 1: po vyfoceni (mezernik = spoust) - nahled posledni fotky vlevo dole
