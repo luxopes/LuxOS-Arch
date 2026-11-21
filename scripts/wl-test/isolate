@@ -1,0 +1,43 @@
+#!/bin/bash
+# isolate PRIKAZ.. - prikaz oddeleny od relace uzivatele: vlastni user, net, pid a mount namespace
+#
+# Abstraktni sokety UNIX (jedina instance luxos-hub, luxos-widgets, ... jsou per UID, ne per HOME), procesy
+# a /tmp hostitele nejsou videt: test nenajde, nenahradi ani neukonci skutecnou aplikaci uzivatele a
+# pkill/pgrep v testovanem programu vidi jen procesy testu. Uvnitr: loopback nahore, /tmp = ISOLATE_TMP/tmp
+# (na disku, ne tmpfs), vlastni Xvfb :1 s cookie ve slozce xvfb-run.x (ISOLATE_X=0 bez nej), UID a GID
+# zustanou (vnoreny user namespace mapuje zpet). Konec prikazu ukonci vse, co v namespace bezi.
+#
+#   ISOLATE_TMP=out/x scripts/wl-test/isolate python3 -m unittest ...
+set -euo pipefail
+case ${1-} in
+    --root)     # 2. krok: root v novem user namespace - sit a /tmp
+        shift
+        uid=$1 gid=$2 tmp=$3
+        shift 3
+        ip link set lo up
+        mkdir -p "$tmp/tmp"
+        chmod 1777 "$tmp/tmp"
+        mount --bind "$tmp/tmp" /tmp
+        exec unshare --user --map-user="$uid" --map-group="$gid" -- "$0" --user "$@"
+        ;;
+    --user)     # 3. krok: zpet pod UID uzivatele, vlastni X server
+        shift
+        if [[ ${ISOLATE_X:-1} == 1 ]]; then
+            auth=/tmp/xvfb-run.x/Xauthority
+            mkdir -p "${auth%/*}"
+            : >"$auth"
+            xauth -q -f "$auth" add :1 . "$(mcookie)"
+            Xvfb :1 -auth "$auth" -screen 0 1280x800x24 -nolisten tcp >/dev/null 2>&1 &
+            for _ in $(seq 100); do [[ -S /tmp/.X11-unix/X1 ]] && break; sleep 0.05; done
+            export DISPLAY=:1 XAUTHORITY=$auth
+        fi
+        rc=0
+        "$@" || rc=$?
+        exit "$rc"
+        ;;
+esac
+(($#)) || { echo "usage: isolate COMMAND.." >&2; exit 2; }
+tmp=${ISOLATE_TMP:-$(mktemp -d)}
+mkdir -p "$tmp"
+exec unshare --map-root-user --net --pid --fork --mount --mount-proc --kill-child -- \
+    "$0" --root "$(id -u)" "$(id -g)" "$(readlink -f "$tmp")" "$@"

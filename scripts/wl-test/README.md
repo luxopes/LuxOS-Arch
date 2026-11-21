@@ -262,8 +262,15 @@ scripts/wl-test/run-all -k test_power --keep packages/...                  # one
   their PKGBUILD; `LUXOS_*_BIN`).
 - Every module runs from `env -i` under `systemd-run --user --scope` (`TasksMax=300`, `MemoryMax=1500M`,
   `RUN_ALL_MEMORY`, or `# run-all: MemoryMax=3G` in the module's first lines; whatever a module leaves running is
-  stopped with its scope) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), with its own `HOME` and `TMPDIR`, its own Xvfb on
-  :300–:399 with a cookie, a private session bus (`dbus-run-session`, no service directories) and a dead system bus.
+  stopped with its scope) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), inside `scripts/wl-test/isolate`: its own
+  user, network, PID and mount namespace, so abstract unix sockets (the per-UID single-instance sockets of
+  luxos-hub, luxos-widgets, ...), processes and `/tmp` of the real session are invisible - a test can neither
+  reach nor replace nor kill the owner's running apps. Inside: loopback up, a private `/tmp` on disk, its own
+  Xvfb `:1` with a cookie, the same UID; when the module ends everything in the namespace dies. Plus its own
+  `HOME` and `TMPDIR`, a private session bus (`dbus-run-session`, no service directories) and a dead system bus.
+  Before the modules, run-all checks the isolation and stops if any host abstract socket is visible inside or
+  PID 1 inside is not `isolate`. In the user namespace root of the host shows up as `nobody`: tests that check
+  path ownership (luxos-sandbox) work in the private `/tmp`.
 - LSL comes from `LSL_HOME` (an unpacked release, never installed on the host), otherwise `lslc` from `PATH`;
   older than 0.11.1 is refused.
 - Work directory `LUXOS_TEST_DIR`, by default `out/rt` of the repository (`out/rt-HASH` of the main checkout for

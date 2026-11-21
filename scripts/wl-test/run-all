@@ -4,7 +4,8 @@
 #   scripts/wl-test/run-all [-j N] [-k VZOR].. [--no-build] [--keep] [MODUL.py..]
 #
 # Kazdy modul: python3 -m unittest (moduly pro pytest pod pytest z pytest.lock) pod systemd-run --user --scope
-# (MemoryMax, TasksMax) a timeout, env -i, soukromy HOME/TMPDIR/WLT_OUT v pracovni slozce, vlastni Xvfb a soukroma
+# (MemoryMax, TasksMax) a timeout, env -i, ve vlastnim user/net/pid/mount namespace (isolate: abstraktni sokety,
+# procesy a /tmp hostitele nejsou videt), soukromy HOME/TMPDIR/WLT_OUT v pracovni slozce, vlastni Xvfb a soukroma
 # sbernice relace (dbus-run-session), systemova sbernice mrtva. Nic ze skutecne relace (DISPLAY, sbernice, HOME).
 # Pred behem sestavi harness (sysroot, wlt), luxwm (build-host.sh), greeter (build.sh) a programy, ktere testy
 # jinak berou ze systemu (luxos-mail, -terminal, -text, -icon-studio, -app-studio podle build() v PKGBUILD).
@@ -113,39 +114,13 @@ if ((${#mods[@]} == 0)); then
         'scripts/tests/test_*.py' 'scripts/*/tests/test_*.py' | sort -u)
 fi
 
-# Vlastni Xvfb modulu na :300-399 (wlt ma :200-299, luxos_testguard :90-199) s cookie; displej je nas,
-# az kdyz zamek /tmp/.XN-lock nese PID naseho Xvfb (soubezne moduly a jine relace o cislo soutezi).
-# Slozka s cookie se jmenuje xvfb-run.*: podle toho testy poznaji virtualni displej (jako u xvfb-run).
-start_x() {  # start_x SLOZKA -> "CISLO PID"
-    local auth=$1/xvfb-run.x/Xauthority n p
-    mkdir -p "${auth%/*}"
-    for n in $(shuf -i 300-399); do
-        [[ -e /tmp/.X11-unix/X$n || -e /tmp/.X$n-lock ]] && continue
-        xauth -q -f "$auth" add ":$n" . "$(mcookie)" 2>/dev/null
-        "${scope[@]}" -p MemoryMax=512M -- Xvfb ":$n" -auth "$auth" -screen 0 1280x800x24 -nolisten tcp \
-            >/dev/null 2>&1 &
-        p=$!
-        for _ in $(seq 100); do
-            if [[ -S /tmp/.X11-unix/X$n && $(tr -d ' \n' </tmp/.X$n-lock 2>/dev/null) == "$p" ]]; then
-                echo "$n $p"
-                return 0
-            fi
-            kill -0 "$p" 2>/dev/null || break
-            sleep 0.05
-        done
-        kill "$p" 2>/dev/null
-        wait "$p" 2>/dev/null
-    done
-    return 1
-}
-
 run_one() {  # run_one INDEX MODUL
     local i=$1 t=$2 home=$root/h/$1 tmp=$root/t/$1
     local name log
     name=$(sed 's|^packages/||; s|/tests/|:|; s|\.py$||; s|/|_|g' <<<"$t")
     log=$root/logs/$name.log
     mkdir -p "$home" "$tmp"
-    local t0=$SECONDS rc x runner pytest=0
+    local t0=$SECONDS rc runner pytest=0
     # moduly psane pro pytest (import pytest, conftest.py vedle) bezi pod pytest z out/wl-test/pylib, ostatni
     # pod unittest; --basetemp kratce v TMPDIR modulu (tmp_path pytestu je jinak na sokety prilis hluboko)
     if grep -qE '^(import|from) pytest' "$t" || [[ -f $(dirname "$t")/conftest.py ]]; then
@@ -157,7 +132,6 @@ run_one() {  # run_one INDEX MODUL
     else
         runner=(python3 -m unittest discover -v -s "$(dirname "$t")" -p "$(basename "$t")" "${kargs[@]}")
     fi
-    x=$(start_x "$tmp") || { echo "$t: no free X display" >"$log"; x="0 0"; }
     local unit=run-all-$$-$i mem=${RUN_ALL_MEMORY:-1500M}
     # modul s vyssi potrebou (skutecny Firefox) si ji uvede v hlavicce: "# run-all: MemoryMax=3G"
     mem=$(sed -n '1,40s/^# run-all: MemoryMax=\([0-9]*[MG]\)$/\1/p' "$t" | head -1 | grep . || echo "$mem")
@@ -169,14 +143,12 @@ run_one() {  # run_one INDEX MODUL
         LUXOS_TEXT_BIN="$root/pkg/luxos-text/luxos-text" LUXOS_ICON_STUDIO_BIN="$root/pkg/luxos-icon-studio/luxos-icon-studio" \
         LUXOS_APP_STUDIO_BIN="$root/pkg/luxos-app-studio/luxos-app-studio" \
         LUXOS_XORG_DUMMY_DIR="$repo/out/wl-test/sysroot/usr/lib/xorg/modules" \
-        DISPLAY=":${x% *}" XAUTHORITY="$tmp/xvfb-run.x/Xauthority" \
-        timeout -k 10 "${RUN_ALL_TIMEOUT:-1800}" \
+        ISOLATE_TMP="$tmp" timeout -k 10 "${RUN_ALL_TIMEOUT:-1800}" "$here/isolate" \
         dbus-run-session --config-file packages/luxos-desktop/tests/dbus-private.conf -- \
         "${runner[@]}" >"$log" 2>&1
     rc=$?
     # co modul nechal bezet (falesne servery testu, ktery spadl v setUp), skonci se scope
     systemctl --user stop "$unit.scope" 2>/dev/null
-    ((${x#* })) && kill "${x#* }" 2>/dev/null
     local ran ok sk fails
     if ((pytest)); then
         # "== 12 passed, 1 skipped in 3.20s ==", selhane "soubor::test FAILED [ 87%]"
@@ -197,6 +169,17 @@ run_one() {  # run_one INDEX MODUL
     cat "$root/m/$i.result"
     ((keep)) || rm -rf "$home" "$tmp"
 }
+
+# Kontrola oddeleni (isolate): z namespace modulu nesmi byt videt abstraktni sokety ani procesy hostitele
+abstract() { awk '$8 ~ /^@/ {print $8}' /proc/net/unix | sort -u; }
+inside=$(ISOLATE_X=0 ISOLATE_TMP="$root/selfcheck" "${safe_env[@]}" "$here/isolate" \
+    bash -c "$(declare -f abstract); abstract; echo PID1 \$(tr '\\0\\n' '  ' </proc/1/cmdline | cut -c1-80)") || die "isolate does not start"
+seen=$(comm -12 <(abstract) <(grep '^@' <<<"$inside"))
+[[ -z $seen ]] || die "isolation broken, host abstract sockets visible to tests: $(head -3 <<<"$seen" | tr '\n' ' ')"
+# PID 1 v namespace musi byt isolate, ne init hostitele (jinak test vidi a muze signalizovat jeho procesy)
+init=$(sed -n 's/^PID1 //p' <<<"$inside")
+[[ $init == *wl-test/isolate* ]] || die "isolation broken, tests see host processes (PID 1: $init)"
+echo "isolation ok: $(abstract | wc -l) host abstract sockets, none visible; own PID namespace"
 
 echo "run-all: ${#mods[@]} modules, lsl $ver, jobs $jobs, dir $root"
 t0=$SECONDS

@@ -93,7 +93,10 @@ def sandbox_xwayland(pid):
 class WaylandSandbox(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.t = tempfile.mkdtemp(prefix="sbx-wl-", dir=os.path.join(REPO, "out"))
+        # luxos-sandbox overuje vlastnika kazde slozky cesty (root nebo uzivatel); v user namespace spoustece testu
+        # (scripts/wl-test/isolate) je root hostitele nezmapovany (nobody), vlastni je tam jen soukrome /tmp
+        work = "/tmp" if os.stat("/tmp").st_uid == os.getuid() else os.path.join(REPO, "out")
+        cls.t = tempfile.mkdtemp(prefix="sbx-wl-", dir=work)
         os.chmod(cls.t, 0o700)
         t = cls.t
         code = []
