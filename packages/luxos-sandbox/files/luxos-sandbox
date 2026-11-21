@@ -470,6 +470,8 @@ class Xephyr:
 # X11 aplikace: vlastni Xwayland (cele X obrazovka v jednom okne jako Xephyr) jako klient stejneho
 # soketu, spusteny az pri prvnim spojeni X11 (Wayland aplikace na nem nestoji pamet). Xwayland bezi
 # v samostatnem bwrap bez domova, site a sezeni; dovnitr sandboxu jde jen jeho X soket.
+# Okno X obrazovky ma velikost hlavniho okna aplikace a jeji nazev (XWatch + luxwm sandbox_window):
+# Xwayland bez spravce oken X nejde na Waylandu poustet bez korene (okna X by spravoval luxwm mimo sandbox).
 WL_HELPER = "/usr/lib/luxos/sandbox/luxos-sandbox-wayland"
 XWAYLAND = "/usr/bin/Xwayland"
 XWAYLAND_ROOT = ""   # jen testy: Xwayland z jineho stromu (sysroot harnessu wl-test)
@@ -579,11 +581,241 @@ def xwayland_bwrap(wl_socket, auth_fd, seccomp_fd):
     return a
 
 
+def luxwm_socket():
+    """Soket IPC luxwm (docs/developers/luxwm-ipc.md), nebo None mimo luxwm."""
+    path = os.environ.get("LUXWM_SOCK", "")
+    if not path:
+        display = os.environ.get("WAYLAND_DISPLAY", "") or "wayland-0"
+        rundir = os.environ.get("XDG_RUNTIME_DIR", "")
+        if not rundir or display.startswith("/"):
+            return None
+        path = os.path.join(rundir, f"luxwm-{display}.sock")
+    try:
+        return path if stat.S_ISSOCK(os.stat(path).st_mode) else None
+    except OSError:
+        return None
+
+
+class XWatch:
+    """Klient X serveru sandboxu (protokol X11 primo pres soket, bez Xlib: chyba spojeni nesmi ukoncit
+    luxos-sandbox). Prvni okno aplikace: jeho velikost a nazev jdou luxwm (sandbox_window), ten podle nich
+    nastavi okno X obrazovky; Xwayland pak zmeni velikost korene. Kdyz uzivatel zmeni velikost okna,
+    hlavni okno aplikace se roztahne na cely koren (jako maximalizovane okno). Vse od X serveru je
+    neduveryhodne (Xwayland pod kontrolou sandboxu): delky jsou omezene, nazev jen tisknutelny."""
+
+    SUBSTRUCTURE_NOTIFY, STRUCTURE_NOTIFY, PROPERTY_CHANGE = 0x80000, 0x20000, 0x400000
+    MAP_NOTIFY, UNMAP_NOTIFY, DESTROY_NOTIFY, CONFIGURE_NOTIFY, PROPERTY_NOTIFY = 19, 18, 17, 22, 28
+    WM_NAME = 39
+    MAX_REPLY = 1 << 16
+
+    def __init__(self, xdir, cookie, instance):
+        self.xdir = xdir
+        self.cookie = cookie
+        self.instance = instance
+        self.sock = None
+        self.seq = 0
+        self.events = []
+        self.root = self.root_size = None
+        self.main = None
+        self.sent = None
+        self.names = ()
+        self.closed = False
+
+    def start(self):
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def stop(self):
+        self.closed = True
+        if self.sock:
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
+    def _run(self):
+        try:
+            if self._connect():
+                self._loop()
+        except (OSError, ValueError, struct.error, EOFError):
+            pass
+        finally:
+            if self.sock:
+                self.sock.close()
+
+    def _recv(self, n):
+        data = b""
+        while len(data) < n:
+            chunk = self.sock.recv(n - len(data))
+            if not chunk:
+                raise EOFError
+            data += chunk
+        return data
+
+    def _connect(self):
+        dfd = os.open(self.xdir, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+        try:
+            for _ in range(50):   # Xwayland prave startuje
+                if self.closed:
+                    return False
+                self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
+                try:
+                    self.sock.connect(f"/proc/self/fd/{dfd}/X0")
+                    break
+                except OSError:
+                    self.sock.close()
+                    self.sock = None
+                    time.sleep(0.1)
+        finally:
+            os.close(dfd)
+        if not self.sock:
+            return False
+        name = b"MIT-MAGIC-COOKIE-1"
+        pad = lambda b: b + b"\0" * (-len(b) % 4)   # noqa: E731
+        self.sock.sendall(b"l\0" + struct.pack("<HHHH2x", 11, 0, len(name), len(self.cookie)) + pad(name)
+                          + pad(self.cookie))
+        head = self._recv(8)
+        size = struct.unpack_from("<H", head, 6)[0] * 4
+        if head[0] != 1 or size > self.MAX_REPLY:
+            return False
+        body = self._recv(size)
+        vendor_len, = struct.unpack_from("<H", body, 16)
+        formats = body[21]
+        screen = 32 + vendor_len + (-vendor_len % 4) + 8 * formats
+        self.root, = struct.unpack_from("<I", body, screen)
+        self.root_size = struct.unpack_from("<HH", body, screen + 20)
+        return True
+
+    def _request(self, opcode, data1, payload):
+        self.seq = (self.seq + 1) & 0xFFFF
+        self.sock.sendall(struct.pack("<BBH", opcode, data1, (len(payload) + 4) // 4) + payload)
+        return self.seq
+
+    def _reply(self, seq):
+        """Odpoved na pozadavek seq (udalosti mezitim do fronty); None = chyba X."""
+        while True:
+            msg = self._recv(32)
+            kind = msg[0] & 0x7F
+            if kind == 1:
+                extra = struct.unpack_from("<I", msg, 4)[0] * 4
+                if extra > self.MAX_REPLY:
+                    raise ValueError("reply too long")
+                msg += self._recv(extra)
+                if struct.unpack_from("<H", msg, 2)[0] == seq:
+                    return msg
+            elif kind == 0:
+                if struct.unpack_from("<H", msg, 2)[0] == seq:
+                    return None
+            else:
+                self.events.append(msg)
+
+    def _atom(self, name):
+        reply = self._reply(self._request(16, 1, struct.pack("<H2x", len(name)) + name + b"\0" * (-len(name) % 4)))
+        return struct.unpack_from("<I", reply, 8)[0] if reply else 0
+
+    def _title(self, window):
+        for prop, kind in ((self.names[0], self.names[1]), (self.WM_NAME, 31)):   # STRING
+            reply = self._reply(self._request(20, 0, struct.pack("<IIIII", window, prop, kind, 0, 64)))
+            if reply and reply[1] == 8:
+                n = struct.unpack_from("<I", reply, 16)[0]
+                text = reply[32:32 + min(n, 256)].decode("utf-8" if kind != 31 else "latin-1", "replace")
+                text = "".join(ch for ch in text if ch.isprintable())[:120].strip()
+                if text:
+                    return text
+        return ""
+
+    def _geometry(self, window):
+        reply = self._reply(self._request(14, 0, struct.pack("<I", window)))
+        return struct.unpack_from("<hhHH", reply, 12) if reply else None
+
+    def _configure(self, window, x, y, w, h):
+        self._request(12, 0, struct.pack("<IH2xiiII", window, 0xF, x, y, w, h))
+
+    def _report(self, w, h, title):
+        """Velikost a nazev okna X obrazovky pro luxwm (jedno kratke spojeni na zpravu)."""
+        msg = (self.instance, w, h, title)
+        path = luxwm_socket()
+        if msg == self.sent or not path:
+            return
+        self.sent = msg
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC) as c:
+                c.settimeout(2)
+                c.connect(path)
+                c.sendall(json.dumps({"cmd": "sandbox_window", "instance": self.instance, "width": w, "height": h,
+                                      "title": title}).encode() + b"\n")
+                c.recv(4096)
+        except OSError:
+            pass
+
+    def _adopt(self, window):
+        """Prvni namapovane okno (ne menu, ne tooltip) je hlavni: do rohu korene, velikost a nazev luxwm."""
+        g = self._geometry(window)
+        if not g or g[2] < 8 or g[3] < 8:
+            return
+        self.main = window
+        self._select(window, self.PROPERTY_CHANGE)
+        if g[0] != 0 or g[1] != 0:
+            self._configure(window, 0, 0, g[2], g[3])
+        self._report(g[2], g[3], self._title(window))
+
+    def _select(self, window, mask):
+        self._request(2, 0, struct.pack("<III", window, 0x800, mask))   # ChangeWindowAttributes, CWEventMask
+
+    def _mapped_children(self):
+        reply = self._reply(self._request(15, 0, struct.pack("<I", self.root)))   # QueryTree
+        if not reply:
+            return []
+        n = min(struct.unpack_from("<H", reply, 16)[0], (len(reply) - 32) // 4)
+        out = []
+        for window in struct.unpack_from(f"<{n}I", reply, 32):
+            attrs = self._reply(self._request(3, 0, struct.pack("<I", window)))   # GetWindowAttributes
+            if attrs and attrs[26] == 2 and not attrs[27]:   # Viewable, bez override-redirect
+                out.append(window)
+        return out
+
+    def _loop(self):
+        self._select(self.root, self.SUBSTRUCTURE_NOTIFY | self.STRUCTURE_NOTIFY)
+        self.names = (self._atom(b"_NET_WM_NAME"), self._atom(b"UTF8_STRING"))
+        # aplikace mohla okno namapovat drive, nez se XWatch pripojil
+        for window in self._mapped_children()[-1:]:
+            self._adopt(window)
+        while not self.closed:
+            msg = self.events.pop(0) if self.events else self._recv(32)
+            kind = msg[0] & 0x7F
+            if kind == 1:   # odpoved, na kterou se uz neceka
+                self._recv(struct.unpack_from("<I", msg, 4)[0] * 4)
+                continue
+            if kind == self.MAP_NOTIFY:
+                event, window, override = struct.unpack_from("<IIB", msg, 4)
+                if event == self.root and not override and self.main is None:
+                    self._adopt(window)
+            elif kind in (self.UNMAP_NOTIFY, self.DESTROY_NOTIFY):
+                if struct.unpack_from("<I", msg, 8)[0] == self.main:
+                    self.main = None
+            elif kind == self.CONFIGURE_NOTIFY:
+                event, window = struct.unpack_from("<II", msg, 4)
+                w, h = struct.unpack_from("<HH", msg, 20)
+                if window == self.root:
+                    # uzivatel zmenil velikost okna (luxwm -> Xwayland): hlavni okno pres cely koren
+                    self.root_size = (w, h)
+                    if self.main is not None:
+                        self._configure(self.main, 0, 0, w, h)
+                elif window == self.main and (w, h) != self.root_size:
+                    # aplikace sama zmenila velikost hlavniho okna
+                    self._report(w, h, self._title(window))
+            elif kind == self.PROPERTY_NOTIFY:
+                window, atom = struct.unpack_from("<II", msg, 4)
+                if window == self.main and atom in (self.WM_NAME, self.names[0]) and self.sent:
+                    self._report(self.sent[1], self.sent[2], self._title(window))
+
+
 class SandboxXwayland:
     """X server sandboxu na Waylandu; startuje az s prvnim klientem X11, po poslednim skonci (-terminate)."""
 
-    def __init__(self, wl_socket):
+    def __init__(self, wl_socket, instance=""):
         self.wl_socket = wl_socket
+        self.instance = instance
+        self.watch = None
         self.cookie = secrets.token_bytes(16)
         self.dir = None
         self.sock = None
@@ -638,12 +870,17 @@ class SandboxXwayland:
                 finally:
                     for fd in fds:
                         os.close(fd)
+                if self.instance and luxwm_socket():
+                    self.watch = XWatch(self.dir, self.cookie, self.instance)
+                    self.watch.start()
             if self.proc.wait() != 0 and not self.stopping:
                 time.sleep(1)   # opakovane selhani nesmi tocit smycku
 
     def stop(self):
         with self.lock:
             self.stopping = True
+            if self.watch:
+                self.watch.stop()
             if self.stop_w is not None:
                 os.write(self.stop_w, b"x")
             if self.proc and self.proc.poll() is None:
@@ -1372,8 +1609,9 @@ def desktop_text(pkg, d, icon):
     lines = ["[Desktop Entry]", "Type=Application", "Name=" + _("%s (Sandbox)") % d["name"]]
     if d["comment"]:
         lines.append("Comment=" + d["comment"])
+    # StartupWMClass = app_id okna (luxos-sandbox ho dava podle prikazu): Dock a lista najdou ikonu a nazev
     lines += [f"Exec={SELF} run --gui --net --launcher -- /usr/bin/{d['command']}", "Icon=" + icon,
-              "Terminal=false", "StartupNotify=false"]
+              "Terminal=false", "StartupNotify=false", "StartupWMClass=" + d["command"]]
     if d["categories"]:
         lines.append("Categories=" + ";".join(d["categories"]) + ";")
     lines.append(f"{DESKTOP_MARK}={pkg}")
@@ -1652,7 +1890,7 @@ def cmd_run(args):
             app_id = re.sub(r"[^A-Za-z0-9._+-]", "_", os.path.basename(argv[0]))[:64] or "app"
             wl = WaylandListener(app_id)
             spec["wayland"] = wl.start()
-            xe = SandboxXwayland(spec["wayland"])
+            xe = SandboxXwayland(spec["wayland"], wl.instance)
             xsock = xe.start()
             if xsock:
                 spec["x11"] = xsock

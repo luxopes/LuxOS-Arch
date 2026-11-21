@@ -223,6 +223,17 @@ class WaylandSandbox(unittest.TestCase):
             time.sleep(0.2)
         self.fail(f"no window {title}: {s.state()['views']}")
 
+    def xroot(self, s, pred, timeout=10):
+        """Okno X obrazovky sandboxu, az splni pred."""
+        end = time.time() + timeout
+        while True:
+            xw = [v for v in s.state()["views"].values() if v["sandbox"] == "x11-sandbox-app"]
+            if xw and pred(xw[0]):
+                return xw[0]
+            if time.time() > end:
+                self.fail(f"sandbox X window: {xw}")
+            time.sleep(0.2)
+
     # ---- testy ----
 
     def test_privileged_globals_hidden_and_unbindable(self):
@@ -371,10 +382,27 @@ class WaylandSandbox(unittest.TestCase):
         with open(f"/proc/{pid}/smaps_rollup") as f:
             pss = int(re.search(r"^Pss:\s+(\d+)", f.read(), re.M).group(1))
         print(f"\nsandbox Xwayland pss_kb={pss}", file=sys.stderr)
+        # okno X obrazovky ma velikost a nazev hlavniho okna aplikace (XWatch -> luxwm sandbox_window), lista
+        # a Dock vidi aplikaci ze sandboxu, ne "Xwayland"; hlavni okno je v rohu korene
+        v = self.xroot(s, lambda v: (v["w"], v["h"]) == (360, 220))
+        self.assertEqual((v["app"], v["title"]), ("x11-sandbox-app", "X11_Sandbox_App"))
+        self.assertGreaterEqual(v["y"] - v["top"], 0)
         s.input(f"move {v['x'] + 60} {v['y'] + 60}", "click", "type a")
         got = self.read_available(p, 2)
         self.assertIn("button", got)
         self.assertIn("key 38", got)     # X keycode of 'a' (evdev 30 + 8)
+        # aplikace sama zmeni velikost okna: okno X obrazovky ji nasleduje
+        s.input("type r")
+        v = self.xroot(s, lambda v: (v["w"], v["h"]) == (420, 260))
+        # uzivatel okno maximalizuje: hlavni okno aplikace se roztahne na celou X obrazovku
+        s.input("key super+Up")
+        v = self.xroot(s, lambda v: v["maximized"] == 1 and v["w"] == 1600)
+        self.wait_line(p, f"size {v['w']} {v['h']}")
+        s.shot("sandbox-x11-maximized.png")
+        s.input("key super+Up")
+        v = self.xroot(s, lambda v: (v["w"], v["h"]) == (420, 260))
+        self.wait_line(p, "size 420 260")
+        s.shot("sandbox-x11-window.png")
         self.stop_proc(p)
         time.sleep(0.5)
         self.assertFalse(os.path.exists(f"/proc/{pid}"), "Xwayland outlived the sandbox")
