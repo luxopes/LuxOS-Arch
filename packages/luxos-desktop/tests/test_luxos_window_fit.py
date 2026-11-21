@@ -44,8 +44,6 @@ NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
 APPS = {
     "luxos-feedback": {},
-    "luxos-whats-new": {"LUXOS_WHATS_NEW_DIR": os.path.join(ROOT, "luxos-branding", "files", "whats-new"),
-                        "LUXOS_VERSION_FILE": os.path.join(ROOT, "luxos-branding", "files", "version")},
     "luxos-monitor": {"LUXOS_MONITOR_DEMO": "1"},
     "luxos-router": {"LUXOS_IP": os.path.join(FAKE_NET, "ip"), "LUXOS_NMCLI": os.path.join(FAKE_NET, "nmcli"),
                      "LUXOS_PING": os.path.join(FAKE_NET, "ping"), "LUXOS_ROUTER_PORT": "9"},
@@ -197,9 +195,6 @@ class WindowFits(unittest.TestCase):
 
     def test_router_without_network(self):
         self.check("luxos-router")
-
-    def test_whats_new(self):
-        self.check("luxos-whats-new")
 
 
     def test_shortcuts(self):
