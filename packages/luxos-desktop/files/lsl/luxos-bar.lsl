@@ -119,10 +119,9 @@ function bar_css():
         + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["xs"]) + "px; }\n"
         # rozlozeni klavesnice jako text verze 1.1.1 (luxos-xkb.c): tucny kod barvou pisma listy, bez ramecku;
-        # po prepnuti kratce akcent pod kodem (potvrzeni kliku)
+        # po prepnuti kratce na akcentu (potvrzeni kliku, pravidlo na konci)
         + ".luxos-bar .lb-badge { font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.4px; padding: 0 2px; }\n"
         + ".luxos-bar button.lb.kb { transition: background-color 200ms ease-out; }\n"
-
         + ".luxos-bar.ink-white label, .luxos-bar.ink-white image { color: " + white + "; }\n"
         + ".luxos-bar.ink-white label { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white image { -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
