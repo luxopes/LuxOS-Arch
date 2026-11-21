@@ -208,14 +208,51 @@ function load_icon(item, size, scale):
         end
         return apps.icon_named(name, size, scale)
     end
+    icon = 0
     if item["info"] != 0:
-        return apps.icon(item["info"], size, scale)
+        icon = apps.own_icon(item["info"], size, scale)
+    elif item["app_id"] != "":
+        icon = apps.icon_named(item["app_id"].lower(), size, scale)
     end
-    icon = apps.icon_named(item["app_id"].lower(), size, scale)
     if icon == 0:
-        icon = apps.icon_named(apps.FALLBACK_ICON, size, scale)
+        icon = letter_icon(item_name(item), size, scale)
     end
     return icon
+end
+
+# Aplikace bez ikony: neutralni zaobleny ctverec s prvnim pismenem nazvu (sablona ikon 56/64, polomer 13/64),
+# ne obecne ozubene kolo, ktere vypadalo jako Nastaveni
+function letter_icon(name, size, scale):
+    surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, size * scale, size * scale)
+    call material.set_device_scale(surface, scale)
+    cr = cairo.create(surface)
+    s = Float(size)
+    plate = s * 56.0 / 64.0
+    x = (s - plate) / 2.0
+    y = x - s / 64.0
+    radius = s * 13.0 / 64.0
+    shade = cairo.pattern_create_linear(0.0, y, 0.0, y + plate)
+    call cairo.pattern_add_color_stop_rgba(shade, 0.0, 0.96, 0.96, 0.97, 1.0)
+    call cairo.pattern_add_color_stop_rgba(shade, 1.0, 0.84, 0.85, 0.87, 1.0)
+    call cairo.set_source(cr, shade)
+    call cairo.rounded_rectangle(cr, x, y, plate, plate, radius)
+    call cairo.fill(cr)
+    call cairo.pattern_destroy(shade)
+    # spodni stin 2 px a jemny okraj jako u ostatnich ikon (svetlo zleva shora)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.12)
+    call cairo.set_line_width(cr, 1.0)
+    call cairo.rounded_rectangle(cr, x + 0.5, y + 0.5, plate - 1.0, plate - 1.0, radius - 0.5)
+    call cairo.stroke(cr)
+    letter = name.strip()[:1].upper()
+    if letter != "":
+        font = tokens.FONT["family"] + " Semi-Bold " + String(max(6, Int(plate * 0.42)))
+        dim = pango.text_size(cr, letter, font)
+        call cairo.set_source_rgba(cr, 0.27, 0.29, 0.33, 1.0)
+        call pango.draw_text(cr, (s - Float(dim[0])) / 2.0, y + (plate - Float(dim[1])) / 2.0, letter, font)
+    end
+    call cairo.destroy(cr)
+    call cairo.surface_flush(surface)
+    return surface
 end
 
 function load_icons(item):

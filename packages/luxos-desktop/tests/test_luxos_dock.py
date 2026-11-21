@@ -511,6 +511,29 @@ class Dock(DockBase):
         text = (self.cfg / "luxos/dock.conf").read_text()
         self.assertIn('ITEMS="test-alpha.desktop test-beta.desktop trash"', text)
 
+    def test_letter_icon_fallback(self):
+        """Aplikace bez ikony (bez .desktop, nebo s Icon=, ktera v tematu neni): neutralni ctverec s prvnim
+        pismenem nazvu, ne obecna ikona programu (ozubene kolo)."""
+        (self.apps / "test-noicon.desktop").write_text(
+            "[Desktop Entry]\nType=Application\nName=Quux\nExec=true\nIcon=luxos-no-such-icon\nStartupWMClass=cz.test.noicon\n")
+        self.conf(items=["test-alpha.desktop", "trash"])
+        self.start_dock()
+        n = len(self.dock.lines)
+        self.run_window("noicon")
+        self.run_window("nodesk")
+        _, m = self.wait_line(self.dock, r"^\d+ items (\S+ trash \S+ \S+)$", start=n)
+        self.assertEqual([Path(k).name for k in m.group(1).split()][0], "test-alpha.desktop")
+        time.sleep(0.8)
+        centers = self.slots()
+        w, h, buf = self.shot("letter-icons", y0=H - 170)
+        for slot in (2, 3):
+            box = [px(buf, w, centers[slot] + dx, h - 34 + dy) for dx in range(-18, 19) for dy in range(-18, 19)]
+            plate = [c for c in box if max(c) - min(c) <= 8 and 190 <= c[0] <= 250]
+            ink = [c for c in box if max(c) < 110 and max(c) - min(c) <= 16]
+            print(f"\n  slot {slot}: plate {len(plate)}/{len(box)} px, letter {len(ink)} px")
+            self.assertGreater(len(plate), len(box) // 3, f"slot {slot}: no neutral plate")
+            self.assertGreater(len(ink), 15, f"slot {slot}: no letter")
+
     def test_reorder_persists(self):
         self.conf()
         self.start_dock()
