@@ -263,7 +263,7 @@ function add_backdrop(monitor):
     geo = layer.monitor_geometry(monitor)
     win = gtk.window_new("luxos-backdrop")
     b = {"win": win, "monitor": monitor, "output": output_for(monitor), "w": geo[2], "h": geo[3],
-         "scale": max(1, monitor_scale(monitor)), "key": "", "surface": 0, "drawn": "", "handlers": [], "kbd": 0}
+         "scale": max(1, monitor_scale(monitor)), "key": "", "surface": 0, "drawn": "", "kbd": 0}
     call layer.init_for_window(win)
     # plocha sama material nema, jeji nabidka (xdg_popup) ano
     call layer.set_namespace(win, "luxos-backdrop@popups")
@@ -278,12 +278,12 @@ function add_backdrop(monitor):
     call layer.set_keyboard_mode(win, layer.KEYBOARD_NONE)
     call gtk.widget_set_app_paintable(win, True)
     call gtk.widget_add_events(win, EVENTS)
-    b["handlers"].append(lglib.connect_data(win, "draw", 1, on_draw, b))
-    b["handlers"].append(lglib.connect_data(win, "button-press-event", 1, on_press, b))
-    b["handlers"].append(lglib.connect_data(win, "motion-notify-event", 1, on_motion, b))
-    b["handlers"].append(lglib.connect_data(win, "button-release-event", 1, on_release, b))
-    b["handlers"].append(lglib.connect_data(win, "key-press-event", 1, on_key, b))
-    b["handlers"].append(lglib.connect_data(win, "drag-data-received", 4, on_drop, b))
+    call lglib.connect_data(win, "draw", 1, on_draw, b)
+    call lglib.connect_data(win, "button-press-event", 1, on_press, b)
+    call lglib.connect_data(win, "motion-notify-event", 1, on_motion, b)
+    call lglib.connect_data(win, "button-release-event", 1, on_release, b)
+    call lglib.connect_data(win, "key-press-event", 1, on_key, b)
+    call lglib.connect_data(win, "drag-data-received", 4, on_drop, b)
     call drop_target(win)
     # zaznam se neuvolnuje: GdkMonitor muze zit i po odpojeni a signal poslat pozdeji
     call lglib.connect_data(monitor, "notify::geometry", 1, on_monitor_changed, b)
@@ -305,9 +305,6 @@ function remove_backdrop(monitor):
                 call luxos_gtk.menu_popdown(ui["menu"])
             end
             call gtk.widget_destroy(b["win"])
-            for id in b["handlers"]:
-                call lglib.release(id)
-            end
             call release(b["key"])
             b["key"] = ""
             call trace("backdrop removed " + b["output"])

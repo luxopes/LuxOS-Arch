@@ -404,9 +404,9 @@ function output_for(monitor):
     return model
 end
 
-# Obsluha signalu patrici liste: zaznamy se uvolni s listou (odpojeni monitoru)
+# Obsluha signalu patrici liste: zaznam uvolni GLib se zanikem okna (odpojeni monitoru)
 function connect(bar, instance, signal, nargs, handler, bound):
-    bar["handlers"].append(lglib.connect_data(instance, signal, nargs, handler, bound))
+    call lglib.connect_data(instance, signal, nargs, handler, bound)
     return 0
 end
 
@@ -534,7 +534,7 @@ function add_bar(monitor):
     win = gtk.window_new("luxos-bar")
     bar = {"win": win, "monitor": monitor, "output": output_for(monitor), "out_w": geo[2], "out_h": geo[3],
            "scale": max(1, monitor_scale(monitor)), "dark_ink": False, "scrim": 0.0, "scrim_win": 0, "items": {},
-           "drawn": False, "traced": False, "handlers": []}
+           "drawn": False, "traced": False}
     call layer.init_for_window(win)
     call layer.set_namespace(win, tokens.namespace("luxos-bar", "bar"))
     call layer.set_layer(win, layer.LAYER_TOP)
@@ -575,9 +575,6 @@ function remove_bar(monitor):
             end
             call gtk.widget_destroy(bar["win"])
             call material.forget_output(bar["output"])
-            for id in bar["handlers"]:
-                call lglib.release(id)
-            end
             call trace("bar removed " + bar["output"])
         end
     end

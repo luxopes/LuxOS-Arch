@@ -362,7 +362,7 @@ end
 
 # ---- karty udalosti -----------------------------------------------------------------------------------------
 
-function event_card(ev, s, e, day, ids):
+function event_card(ev, s, e, day):
     b = gtk.button_new_empty()
     call gtk.widget_set_can_focus(b, False)
     call gtk.widget_add_class(b, "lc-card")
@@ -395,7 +395,7 @@ function event_card(ev, s, e, day, ids):
         call gtk.box_pack_end(row, img, False, False, 0)
     end
     call gtk.container_add(b, row)
-    ids.append(gtk.connect_data(b, "clicked", 0, on_card_click, ev))
+    call gtk.connect_data(b, "clicked", 0, on_card_click, ev)
     return b
 end
 
@@ -404,9 +404,9 @@ function on_card_click(ev, button):
     return 0
 end
 
-# Seznam karet udalosti jednoho dne (posouvatelny od urcite vysky): {sw, box, ids}
+# Seznam karet udalosti jednoho dne (posouvatelny od urcite vysky): {sw, box}
 function event_list_new(max_height):
-    lst = {"ids": []}
+    lst = {}
     sw = gtk.scrolled_window_new()
     call gtk.scrolled_window_set_policy(sw, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
     call gtk.scrolled_window_set_propagate_natural_height(sw, True)
@@ -422,16 +422,12 @@ function event_list_show_day(lst, day, empty_text):
     for child in gtk.container_get_children(lst["box"]):
         call gtk.widget_destroy(child)
     end
-    for id in lst["ids"]:
-        call glib.release(id)
-    end
-    lst["ids"] = []
     items = ics.day_instances(store, day)
     if len(items) == 0:
         call gtk.box_pack_start(lst["box"], label(empty_text, ["lc-empty", "dim"], 0), False, False, 0)
     end
     for item in items:
-        call gtk.box_pack_start(lst["box"], event_card(item[0], item[1], item[2], day, lst["ids"]), False, False, 0)
+        call gtk.box_pack_start(lst["box"], event_card(item[0], item[1], item[2], day), False, False, 0)
     end
     call gtk.widget_show_all(lst["box"])
     # okno se zmensuje na minimalni velikost -> minimum = obsah (nejvyse max_height, pak posuvnik)
