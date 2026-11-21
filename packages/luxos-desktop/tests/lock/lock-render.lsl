@@ -26,6 +26,27 @@ function base_ui(mode):
     return ui
 end
 
+# LOCK_RENDER_CLOCK, _DATE, _NAME, _NET (wifi/wired) a _SESSIONS=1: jine vstupy (srovnani se snimkem z VM)
+function overrides(ui):
+    if env.get("LOCK_RENDER_CLOCK", "") != "":
+        ui["clock"] = env.get("LOCK_RENDER_CLOCK", "")
+        ui["date"] = env.get("LOCK_RENDER_DATE", "")
+    end
+    if env.get("LOCK_RENDER_NAME", "") != "":
+        ui["name"] = env.get("LOCK_RENDER_NAME", "")
+        if len(ui["users"]) > 0:
+            ui["users"][0]["real"] = ui["name"]
+        end
+    end
+    if env.get("LOCK_RENDER_NET", "") != "":
+        ui["net"] = [env.get("LOCK_RENDER_NET", ""), 3]
+    end
+    if env.get("LOCK_RENDER_SESSIONS", "") == "1":
+        ui["sessions"] = [ui["sessions"][0]] if len(ui["sessions"]) > 0 else []
+    end
+    return ui
+end
+
 function state_ui(name):
     if name.startswith("greeter"):
         ui = base_ui("greeter")
@@ -80,7 +101,7 @@ function main():
     surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, Int(Float(w) * scale + 0.5), Int(Float(h) * scale + 0.5))
     for i in range(6, arg_count()):
         name = arg(i)
-        ui = state_ui(name)
+        ui = overrides(state_ui(name))
         ui["scale"] = scale
         if name == "shake":
             # stejna faze jako snimek X11: 30 ms z 480 ms zatreseni
