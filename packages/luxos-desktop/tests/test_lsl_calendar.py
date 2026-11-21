@@ -1,5 +1,6 @@
-"""Testy modulu luxos_ics/luxos_date v LSL (files/lsl) - stejne pripady jako test_luxos_calendar_ics.py
-pro puvodni luxos_calendar_ics.py: cteni/zapis iCalendar, opakovani, datumova matematika, uloziste.
+"""Testy modulu luxos_ics/luxos_date v LSL (files/lsl) - stejne pripady a data jako test_luxos_calendar_ics.py
+pro luxos_calendar_ics.py (puvodni Kalendar, dnes jen zapis poznamek v luxos-companion): cteni/zapis
+iCalendar, opakovani, datumova matematika, uloziste.
 
 Spusteni: python3 -m unittest packages/luxos-desktop/tests/test_lsl_calendar.py -v
 LUXOS_LSLC: cesta k prekladaci lslc (jinak lslc z PATH); potrebuje LSL >= 0.10.5, jinak se testy preskoci.
@@ -16,7 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LSL = os.path.join(HERE, "..", "files", "lsl")
 TMP = tempfile.mkdtemp(prefix="luxos-lsl-cal-")
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
-sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, "..", "..", "luxos-companion", "tests"))
 from test_luxos_calendar_ics import CANCELLED, GOOGLE, MOVED, NY_WEEKLY, RDATES, UTC_WEEKLY, ics  # noqa: E402 - stejna data
 
 

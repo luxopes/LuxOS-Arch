@@ -13,7 +13,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.normpath(os.path.join(HERE, "..", "files"))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, FILES)
-sys.path.insert(1, os.path.join(ROOT, "luxos-desktop", "files", "python"))
 sys.path.insert(2, os.path.join(ROOT, "luxos-i18n", "files"))
 
 TMP = tempfile.mkdtemp(prefix="luxos-companion-test-")
