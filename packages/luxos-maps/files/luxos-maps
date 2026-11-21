@@ -1193,6 +1193,9 @@ class GeoClueWatch:
 # ---- okno -----------------------------------------------------------------------------
 def label(text="", cls=None, xalign=0.0, **kw):
     lbl = Gtk.Label(label=text, xalign=xalign, **kw)
+    if kw.get("wrap"):
+        # dlouhe slovo (nazev zastavky) se v uzkem panelu zalomi i uvnitr, jinak by rozsirilo cely panel
+        lbl.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
     for c in (cls or "").split():
         lbl.get_style_context().add_class(c)
     return lbl
