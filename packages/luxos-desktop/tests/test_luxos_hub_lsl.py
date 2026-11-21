@@ -899,7 +899,8 @@ class Hub(unittest.TestCase):
         nm = self.service("org.freedesktop.NetworkManager", [("/org/freedesktop/NetworkManager", NM_XML)],
                           {"State": GLib.Variant("u", 70), "Connectivity": GLib.Variant("u", 3)})
         self.service("org.xfce.Panel", [("/org/xfce/Panel", PANEL_XML)])
-        manual = subprocess.Popen(["/bin/bash", "-c", "exec -a luxos-network-login sleep 60"])
+        # okno teto relace (stejne prostredi jako hub); okno jine relace hub nezavira
+        manual = subprocess.Popen(["/bin/bash", "-c", "exec -a luxos-network-login sleep 60"], env=self.env())
         self.addCleanup(manual.kill)
         pidfile = os.path.join(self.runtime, "luxos-network-login.pid")
         with open(pidfile, "w") as f:
@@ -914,14 +915,18 @@ class Hub(unittest.TestCase):
         nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
                 GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", 4)}, [])))
         self.assertTrue(self.wait_for(lambda: manual.poll() is not None, 5))
-        with open(pidfile, "w") as f:
-            f.write("%d\n" % other.pid)
-        for conn in (3, 4):
-            nm.properties["Connectivity"] = GLib.Variant("u", conn)
-            nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
-                    GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", conn)}, [])))
-            time.sleep(1.5)
-        self.assertIsNone(other.poll())
+        # ani okno jine relace (jiny displej, stejny XDG_RUNTIME_DIR a pid soubor)
+        foreign = subprocess.Popen(["/bin/bash", "-c", "exec -a luxos-network-login sleep 60"], env=self.env(DISPLAY=":77"))
+        self.addCleanup(foreign.kill)
+        for proc in (other, foreign):
+            with open(pidfile, "w") as f:
+                f.write("%d\n" % proc.pid)
+            for conn in (3, 4):
+                nm.properties["Connectivity"] = GLib.Variant("u", conn)
+                nm.emit("/org/freedesktop/NetworkManager", "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                        GLib.Variant("(sa{sv}as)", ("org.freedesktop.NetworkManager", {"Connectivity": GLib.Variant("u", conn)}, [])))
+                time.sleep(1.5)
+            self.assertIsNone(proc.poll())
 
     def test_limited_without_portal_still_warns(self):
         """Omezene pripojeni bez portalu (kontrola vraci none): po limitu upozorneni Bez internetu."""
