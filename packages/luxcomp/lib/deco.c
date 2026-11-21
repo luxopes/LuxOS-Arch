@@ -73,6 +73,7 @@ static void
 cbuf_destroy(struct wlr_buffer *b)
 {
 	struct cairo_buffer *cb = wl_container_of(b, cb, base);
+	wlr_buffer_finish(b);
 	cairo_surface_destroy(cb->surface);
 	free(cb);
 }

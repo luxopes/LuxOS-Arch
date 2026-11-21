@@ -113,6 +113,9 @@ static void
 mem_destroy(struct wlr_buffer *b)
 {
 	struct mem_buffer *m = wl_container_of(b, m, base);
+	/* bez wlr_buffer_finish by renderer pixman drzel obraz bufferu v mezipameti a pristi buffer na stejne
+	 * adrese by kreslil do uvolnene pameti */
+	wlr_buffer_finish(b);
 	free(m->data);
 	free(m);
 }
