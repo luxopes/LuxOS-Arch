@@ -49,23 +49,23 @@ end
 
 # ---- zapis (soubor ve formatu xfconfd) ----
 
-function unescape(value):
+function xml_unescape(value):
     return value.replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 end
 
-function escape(value):
+function xml_escape(value):
     return String(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 end
 
 # strom vlastnosti: {"name", "type", "value", "children", "raw"}; obsah poli (<value .../>) zustava jako text
-function parse_tree(content):
+function xml_tree(content):
     root = {"name": "", "type": "empty", "value": "", "children": [], "raw": []}
     stack = [root]
     for raw in text.lines(content):
         line = raw.strip()
         top = stack[len(stack) - 1]
         if line.startswith("<property "):
-            node = {"name": unescape(attr(line, "name")), "type": attr(line, "type"), "value": unescape(attr(line, "value")), "children": [], "raw": []}
+            node = {"name": xml_unescape(attr(line, "name")), "type": attr(line, "type"), "value": xml_unescape(attr(line, "value")), "children": [], "raw": []}
             top["children"].append(node)
             if not line.endswith("/>"):
                 stack.append(node)
@@ -79,7 +79,7 @@ function parse_tree(content):
     return root
 end
 
-function child(node, name):
+function xml_child(node, name):
     for c in node["children"]:
         if c["name"] == name:
             return c
@@ -90,14 +90,14 @@ function child(node, name):
     return c
 end
 
-function serialize(node, depth, out):
+function xml_serialize(node, depth, out):
     pad = ""
     for i in range(depth):
         pad = pad + "  "
     end
-    head = pad + "<property name=\"" + escape(node["name"]) + "\" type=\"" + node["type"] + "\""
+    head = pad + "<property name=\"" + xml_escape(node["name"]) + "\" type=\"" + node["type"] + "\""
     if node["type"] != "empty" and node["type"] != "array":
-        head = head + " value=\"" + escape(node["value"]) + "\""
+        head = head + " value=\"" + xml_escape(node["value"]) + "\""
     end
     if len(node["children"]) == 0 and len(node["raw"]) == 0:
         out.append(head + "/>")
@@ -108,7 +108,7 @@ function serialize(node, depth, out):
         out.append(pad + "  " + line)
     end
     for c in node["children"]:
-        call serialize(c, depth + 1, out)
+        call xml_serialize(c, depth + 1, out)
     end
     out.append(pad + "</property>")
     return out
@@ -116,20 +116,20 @@ end
 
 function write(name, changes):
     path = user_path(name)
-    root = parse_tree(lglib.read_text(path))
+    root = xml_tree(lglib.read_text(path))
     for key in changes.keys():
         node = root
         for part in key.split("/"):
             if part != "":
-                node = child(node, part)
+                node = xml_child(node, part)
             end
         end
         node["type"] = changes[key][0]
         node["value"] = changes[key][1]
     end
-    out = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "", "<channel name=\"" + escape(name) + "\" version=\"1.0\">"]
+    out = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "", "<channel name=\"" + xml_escape(name) + "\" version=\"1.0\">"]
     for c in root["children"]:
-        call serialize(c, 1, out)
+        call xml_serialize(c, 1, out)
     end
     out.append("</channel>")
     call lglib.mkdir_p(path[0:text.rfind(path, "/")])
