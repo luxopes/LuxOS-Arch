@@ -5403,3 +5403,132 @@ Authentication required	Vyžadováno ověření
 Authenticate	Ověřit
 Authentication is not available.	Ověření není k dispozici.
 Lock the screen after inactivity of	Zamknout obrazovku po nečinnosti
+This page could not be opened.	Tuto stránku se nepodařilo otevřít.
+Screen Lock	Zamykání obrazovky
+Xfce Settings Manager	Správce nastavení Xfce
+Accessibility	Zpřístupnění
+Windows & Workspaces	Okna a plochy
+Mouse & Touchpad	Myš a touchpad
+Default Apps	Výchozí aplikace
+Login Items	Položky po přihlášení
+Removable Drives	Vyměnitelné disky
+A light tap clicks, a two-finger tap is a right click.	Lehké klepnutí klikne, klepnutí dvěma prsty je pravé kliknutí.
+Click in the bottom right corner	Kliknutím do pravého dolního rohu
+Click with two fingers	Kliknutím dvěma prsty
+Content follows your fingers.	Obsah se pohybuje s prsty.
+Content moves the same way as the wheel, like on a touchpad.	Obsah se posouvá stejným směrem jako kolečko, jako na touchpadu.
+Fast	Rychle
+Faster movements move the pointer farther.	Při rychlejším pohybu urazí ukazatel delší vzdálenost.
+Ignore the touchpad while typing	Ignorovat touchpad při psaní
+Left button	Levé tlačítko
+Middle click with both buttons	Prostřední kliknutí oběma tlačítky
+Natural scrolling	Přirozené posouvání
+Natural wheel direction	Přirozený směr kolečka
+Pointer acceleration	Zrychlení ukazatele
+Pointer speed	Rychlost ukazatele
+Pressing the left and right buttons together acts as the middle button.	Současné stisknutí levého a pravého tlačítka funguje jako prostřední tlačítko.
+Prevents accidental clicks with your palm.	Zabrání náhodným kliknutím dlaní.
+Primary mouse button	Hlavní tlačítko myši
+Right button	Pravé tlačítko
+Right click	Pravé kliknutí
+Right edge	Pravým okrajem
+Scroll with	Posouvat
+Slow	Pomalu
+Tap and drag	Klepnutí a tažení
+Tap, then touch again and move to drag a window or select text.	Klepněte, znovu se dotkněte a posunutím přetáhněte okno nebo označte text.
+Tap to click	Klepnutím kliknout
+Touchpad	Touchpad
+Tracking speed	Rychlost pohybu
+Two fingers	Dvěma prsty
+LuxOS (follows Light and Dark)	LuxOS (podle světlého a tmavého vzhledu)
+%s px	%s px
+Icons and Pointer	Ikony a ukazatel
+Icons	Ikony
+Pointer	Ukazatel
+Pointer size	Velikost ukazatele
+Fonts	Písma
+Subpixel (LCD screens)	Subpixelové (LCD obrazovky)
+Grayscale	Ve stupních šedi
+Font smoothing	Vyhlazování písma
+Subpixel smoothing is sharpest on most laptop and desktop screens.	Subpixelové vyhlazování je na většině obrazovek notebooků a monitorů nejostřejší.
+Slight	Mírné
+Medium	Střední
+Full	Plné
+Hinting	Hinting
+Text size	Velikost textu
+Reduce motion	Omezit pohyb
+Turns off sliding between workspaces and animations in apps.	Vypne posouvání mezi plochami a animace v aplikacích.
+Mouse Keys	Myš z klávesnice
+Move the pointer with the numeric keypad.	Ukazatel se ovládá numerickou klávesnicí.
+On-screen keyboard	Klávesnice na obrazovce
+Zoom (maximize)	Zvětšit (maximalizovat)
+Minimize	Minimalizovat
+Roll up	Svinout do záhlaví
+Fill free space	Vyplnit volné místo
+Do nothing	Nic nedělat
+Off while Reduce motion is on in Accessibility.	Vypnuto, dokud je ve Zpřístupnění zapnuté Omezit pohyb.
+Workspaces	Plochy
+Number of workspaces	Počet ploch
+Go from the last workspace to the first	Z poslední plochy přejít na první
+Switching past the last workspace with the keyboard continues at the first one.	Přepínání klávesnicí za poslední plochu pokračuje na první.
+Animate switching workspaces	Animovat přepínání ploch
+Double-click a title bar to	Dvojklik na záhlaví okna
+Snap windows to screen edges	Přichytávat okna k okrajům obrazovky
+Snap windows to other windows	Přichytávat okna k jiným oknům
+Tile windows dragged to a screen edge	Okno přetažené k okraji obrazovky zabere polovinu
+Focus follows the pointer	Aktivní okno sleduje ukazatel
+A window is focused when the pointer moves over it, without a click.	Okno se aktivuje, když na něj najedete ukazatelem, bez kliknutí.
+Interface font	Písmo rozhraní
+Monospace font	Neproporcionální písmo
+Sticky Keys	Lepivé klávesy
+Slow Keys	Pomalé klávesy
+Bounce Keys	Ignorovat opakované stisky
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	Modifikátory jako Shift a Ctrl zůstanou stisknuté do další klávesy, takže zkratky jde psát po jedné klávese.
+A key has to be held for a moment before it is accepted.	Klávesu je potřeba chvíli podržet, než se přijme.
+Quickly repeated presses of the same key are ignored.	Rychle opakované stisky stejné klávesy se ignorují.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	Bubliny zůstanou skryté, kromě naléhavých. Oznámení se dál ukládají do seznamu v horní liště.
+%d seconds	%d sekund
+Show banners for	Zobrazovat bubliny po dobu
+Apps can ask for a different time; urgent notifications stay until you close them.	Aplikace si mohou určit jinou dobu; naléhavá oznámení zůstanou, dokud je nezavřete.
+Play sounds	Přehrávat zvuky
+History	Historie
+Keep notifications in the menu bar	Uchovávat oznámení v horní liště
+Missed notifications and reminders wait in the list until you read them.	Zmeškaná oznámení a připomínky počkají v seznamu, dokud si je nepřečtete.
+Number of notifications to keep	Počet uchovaných oznámení
+Applications	Aplikace
+Apps appear here after they send a notification.	Aplikace se tu objeví, jakmile pošlou oznámení.
+Reminders	Připomínky
+Open with	Otevírat v
+File manager	Správce souborů
+Text editor	Textový editor
+Image viewer	Prohlížeč obrázků
+PDF and documents	PDF a dokumenty
+No app installed	Žádná aplikace není nainstalovaná
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	Použije se pro „Otevřít terminál zde“ v Souborech a pro aplikace, které běží v terminálu.
+Apps you install later appear here automatically if they can open these files.	Aplikace, které nainstalujete později, se tu objeví samy, pokud tyto soubory umí otevřít.
+Open at Login	Otevřít po přihlášení
+No apps open at login.	Po přihlášení se neotevírá žádná aplikace.
+Choose an app…	Vyberte aplikaci…
+Add an App	Přidat aplikaci
+These apps open each time you log in.	Tyto aplikace se otevřou při každém přihlášení.
+When a Drive Is Connected	Po připojení disku
+Mount USB drives and memory cards	Připojit USB disky a paměťové karty
+Files on the drive are ready right away, without clicking it in Files.	Soubory na disku jsou hned k dispozici, bez klepnutí v Souborech.
+Mount inserted CDs and DVDs	Připojit vložená CD a DVD
+Open a window with the drive's files	Otevřít okno se soubory disku
+Cameras and Phones	Fotoaparáty a telefony
+Import photos when a camera is connected	Importovat fotky po připojení fotoaparátu
+Play audio CDs when inserted	Přehrát zvuková CD po vložení
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	Vnitřní disky se nikdy nepřipojují automaticky. Programy z disku se nikdy nespustí samy.
+3 seconds	3 sekundy
+5 seconds	5 sekund
+6 seconds	6 sekund
+10 seconds	10 sekund
+15 seconds	15 sekund
+30 seconds	30 sekund
+App	Aplikace
+Key Repeat	Opakování kláves
+Key repeat rate	Rychlost opakování
+Delay until repeat	Prodleva před opakováním
+Long	Dlouhá
+Short	Krátká

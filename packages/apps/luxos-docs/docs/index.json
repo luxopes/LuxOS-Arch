@@ -551,7 +551,7 @@
         {
           "path": "luxos/scrolling.md",
           "title": "Scrolling, Mouse and Touchpad",
-          "summary": "Touchpad inertia (kinetic scrolling) and smooth mouse-wheel scrolling in GTK 3 apps, Terminal, Firefox and Mail; Settings › Scrolling (luxos-scrolling), scrolling.conf, the luxos-scroll GTK module, MOZ_USE_XINPUT2, touchpad driver settings and troubleshooting.",
+          "summary": "Touchpad inertia (kinetic scrolling) and smooth mouse-wheel scrolling in GTK 3 apps, Terminal, Firefox and Mail; Settings › Mouse & Touchpad (luxos-scrolling: pointer speed, natural scrolling, tap to click), scrolling.conf, luxwm.conf mouse_/touchpad_ entries, the luxos-scroll GTK module, MOZ_USE_XINPUT2, touchpad driver settings and troubleshooting.",
           "keywords": [
             "scrolling",
             "smooth scrolling",

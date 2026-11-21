@@ -5405,3 +5405,132 @@ Authentication required	Потрібна автентифікація
 Authenticate	Автентифікувати
 Authentication is not available.	Автентифікація недоступна.
 Lock the screen after inactivity of	Блокувати екран після бездіяльності
+This page could not be opened.	Не вдалося відкрити цю сторінку.
+Screen Lock	Блокування екрана
+Xfce Settings Manager	Менеджер налаштувань Xfce
+Accessibility	Спеціальні можливості
+Windows & Workspaces	Вікна та робочі простори
+Mouse & Touchpad	Миша й сенсорна панель
+Default Apps	Типові застосунки
+Login Items	Об’єкти входу
+Removable Drives	Знімні диски
+A light tap clicks, a two-finger tap is a right click.	Легкий дотик — це клацання, дотик двома пальцями — клацання правою кнопкою.
+Click in the bottom right corner	Клацання в правому нижньому куті
+Click with two fingers	Клацання двома пальцями
+Content follows your fingers.	Вміст рухається за пальцями.
+Content moves the same way as the wheel, like on a touchpad.	Вміст рухається в тому ж напрямку, що й коліщатко, як на тачпаді.
+Fast	Швидко
+Faster movements move the pointer farther.	Швидші рухи переміщують вказівник далі.
+Ignore the touchpad while typing	Ігнорувати тачпад під час набору тексту
+Left button	Ліва кнопка
+Middle click with both buttons	Середнє клацання обома кнопками
+Natural scrolling	Природне прокручування
+Natural wheel direction	Природний напрямок коліщатка
+Pointer acceleration	Прискорення вказівника
+Pointer speed	Швидкість вказівника
+Pressing the left and right buttons together acts as the middle button.	Одночасне натискання лівої і правої кнопок діє як середня кнопка.
+Prevents accidental clicks with your palm.	Запобігає випадковим клацанням долонею.
+Primary mouse button	Основна кнопка миші
+Right button	Права кнопка
+Right click	Клацання правою кнопкою
+Right edge	Правим краєм
+Scroll with	Прокручувати
+Slow	Повільно
+Tap and drag	Дотик і перетягування
+Tap, then touch again and move to drag a window or select text.	Торкніться, торкніться ще раз і ведіть, щоб перетягнути вікно або виділити текст.
+Tap to click	Дотик для клацання
+Touchpad	Тачпад
+Tracking speed	Швидкість руху
+Two fingers	Двома пальцями
+LuxOS (follows Light and Dark)	LuxOS (за світлим і темним режимом)
+%s px	%s пікс.
+Icons and Pointer	Значки та вказівник
+Icons	Значки
+Pointer	Вказівник
+Pointer size	Розмір вказівника
+Fonts	Шрифти
+Subpixel (LCD screens)	Субпіксельне (РК-екрани)
+Grayscale	Відтінки сірого
+Font smoothing	Згладжування шрифтів
+Subpixel smoothing is sharpest on most laptop and desktop screens.	Субпіксельне згладжування найчіткіше на більшості екранів ноутбуків і моніторів.
+Slight	Легке
+Medium	Середнє
+Full	Повне
+Hinting	Хінтинг
+Text size	Розмір тексту
+Reduce motion	Зменшити рух
+Turns off sliding between workspaces and animations in apps.	Вимикає ковзання між робочими просторами та анімації в застосунках.
+Mouse Keys	Клавіші миші
+Move the pointer with the numeric keypad.	Переміщуйте вказівник цифровою клавіатурою.
+On-screen keyboard	Екранна клавіатура
+Zoom (maximize)	Збільшити (розгорнути)
+Minimize	Згорнути
+Roll up	Згорнути в заголовок
+Fill free space	Заповнити вільне місце
+Do nothing	Нічого не робити
+Off while Reduce motion is on in Accessibility.	Вимкнено, поки в Спеціальних можливостях увімкнено «Зменшити рух».
+Workspaces	Робочі простори
+Number of workspaces	Кількість робочих просторів
+Go from the last workspace to the first	Переходити з останнього робочого простору на перший
+Switching past the last workspace with the keyboard continues at the first one.	Перемикання клавіатурою за останній робочий простір продовжується з першого.
+Animate switching workspaces	Анімувати перемикання робочих просторів
+Double-click a title bar to	Подвійне клацання заголовка
+Snap windows to screen edges	Прилипання вікон до країв екрана
+Snap windows to other windows	Прилипання вікон до інших вікон
+Tile windows dragged to a screen edge	Вікно, перетягнуте до краю екрана, займає половину
+Focus follows the pointer	Фокус слідує за вказівником
+A window is focused when the pointer moves over it, without a click.	Вікно отримує фокус, коли на нього наводять вказівник, без клацання.
+Interface font	Шрифт інтерфейсу
+Monospace font	Моноширинний шрифт
+Sticky Keys	Залипання клавіш
+Slow Keys	Повільні клавіші
+Bounce Keys	Пропуск повторних натискань
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	Клавіші-модифікатори, як-от Shift і Ctrl, лишаються натиснутими до наступної клавіші, тож комбінації можна вводити по одній клавіші.
+A key has to be held for a moment before it is accepted.	Клавішу потрібно трохи потримати, перш ніж її буде прийнято.
+Quickly repeated presses of the same key are ignored.	Швидкі повторні натискання тієї самої клавіші ігноруються.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	Банери залишаються прихованими, крім термінових. Сповіщення й далі потрапляють до списку на верхній панелі.
+%d seconds	%d секунд
+Show banners for	Показувати банери протягом
+Apps can ask for a different time; urgent notifications stay until you close them.	Програми можуть задати інший час; термінові сповіщення залишаються, доки ви їх не закриєте.
+Play sounds	Відтворювати звуки
+History	Історія
+Keep notifications in the menu bar	Зберігати сповіщення на верхній панелі
+Missed notifications and reminders wait in the list until you read them.	Пропущені сповіщення й нагадування чекають у списку, доки ви їх не прочитаєте.
+Number of notifications to keep	Кількість збережених сповіщень
+Applications	Програми
+Apps appear here after they send a notification.	Програми з’являться тут, коли надішлють сповіщення.
+Reminders	Нагадування
+Open with	Відкривати за допомогою
+File manager	Файловий менеджер
+Text editor	Текстовий редактор
+Image viewer	Переглядач зображень
+PDF and documents	PDF і документи
+No app installed	Немає встановленої програми
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	Використовується для «Відкрити термінал тут» у Файлах і для програм, що працюють у терміналі.
+Apps you install later appear here automatically if they can open these files.	Програми, які ви встановите пізніше, з’являться тут самі, якщо вміють відкривати ці файли.
+Open at Login	Відкривати після входу
+No apps open at login.	Після входу не відкривається жодна програма.
+Choose an app…	Виберіть програму…
+Add an App	Додати програму
+These apps open each time you log in.	Ці програми відкриваються під час кожного входу.
+When a Drive Is Connected	Після підключення диска
+Mount USB drives and memory cards	Монтувати USB-диски та картки пам’яті
+Files on the drive are ready right away, without clicking it in Files.	Файли на диску доступні одразу, без натискання у Файлах.
+Mount inserted CDs and DVDs	Монтувати вставлені CD і DVD
+Open a window with the drive's files	Відкривати вікно з файлами диска
+Cameras and Phones	Камери й телефони
+Import photos when a camera is connected	Імпортувати фото після підключення камери
+Play audio CDs when inserted	Відтворювати аудіо-CD після вставлення
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	Внутрішні диски ніколи не монтуються автоматично. Програми з диска ніколи не запускаються самі.
+3 seconds	3 секунди
+5 seconds	5 секунд
+6 seconds	6 секунд
+10 seconds	10 секунд
+15 seconds	15 секунд
+30 seconds	30 секунд
+App	Програма
+Key Repeat	Повторення клавіш
+Key repeat rate	Швидкість повторення
+Delay until repeat	Затримка перед повторенням
+Long	Довга
+Short	Коротка

@@ -5404,3 +5404,132 @@ Authentication required	Authentifizierung erforderlich
 Authenticate	Authentifizieren
 Authentication is not available.	Authentifizierung ist nicht verfügbar.
 Lock the screen after inactivity of	Bildschirm sperren nach Inaktivität von
+This page could not be opened.	Diese Seite konnte nicht geöffnet werden.
+Screen Lock	Bildschirmsperre
+Xfce Settings Manager	Xfce-Einstellungsverwaltung
+Accessibility	Bedienungshilfen
+Windows & Workspaces	Fenster & Arbeitsflächen
+Mouse & Touchpad	Maus & Touchpad
+Default Apps	Standard-Apps
+Login Items	Anmeldeobjekte
+Removable Drives	Wechseldatenträger
+A light tap clicks, a two-finger tap is a right click.	Leichtes Tippen klickt, Tippen mit zwei Fingern ist ein Rechtsklick.
+Click in the bottom right corner	Klick in die rechte untere Ecke
+Click with two fingers	Klick mit zwei Fingern
+Content follows your fingers.	Der Inhalt folgt den Fingern.
+Content moves the same way as the wheel, like on a touchpad.	Der Inhalt bewegt sich in dieselbe Richtung wie das Rad, wie auf einem Touchpad.
+Fast	Schnell
+Faster movements move the pointer farther.	Schnellere Bewegungen bewegen den Zeiger weiter.
+Ignore the touchpad while typing	Touchpad beim Tippen ignorieren
+Left button	Linke Taste
+Middle click with both buttons	Mittelklick mit beiden Tasten
+Natural scrolling	Natürliches Scrollen
+Natural wheel direction	Natürliche Radrichtung
+Pointer acceleration	Zeigerbeschleunigung
+Pointer speed	Zeigergeschwindigkeit
+Pressing the left and right buttons together acts as the middle button.	Gleichzeitiges Drücken der linken und rechten Taste wirkt als mittlere Taste.
+Prevents accidental clicks with your palm.	Verhindert versehentliche Klicks mit dem Handballen.
+Primary mouse button	Primäre Maustaste
+Right button	Rechte Taste
+Right click	Rechtsklick
+Right edge	Rechter Rand
+Scroll with	Scrollen mit
+Slow	Langsam
+Tap and drag	Tippen und Ziehen
+Tap, then touch again and move to drag a window or select text.	Tippen, erneut berühren und bewegen, um ein Fenster zu ziehen oder Text auszuwählen.
+Tap to click	Tippen zum Klicken
+Touchpad	Touchpad
+Tracking speed	Bewegungsgeschwindigkeit
+Two fingers	Zwei Finger
+LuxOS (follows Light and Dark)	LuxOS (folgt Hell und Dunkel)
+%s px	%s px
+Icons and Pointer	Symbole und Zeiger
+Icons	Symbole
+Pointer	Zeiger
+Pointer size	Zeigergröße
+Fonts	Schriften
+Subpixel (LCD screens)	Subpixel (LCD-Bildschirme)
+Grayscale	Graustufen
+Font smoothing	Schriftglättung
+Subpixel smoothing is sharpest on most laptop and desktop screens.	Subpixel-Glättung ist auf den meisten Laptop- und Desktop-Bildschirmen am schärfsten.
+Slight	Leicht
+Medium	Mittel
+Full	Voll
+Hinting	Hinting
+Text size	Textgröße
+Reduce motion	Bewegung reduzieren
+Turns off sliding between workspaces and animations in apps.	Schaltet das Gleiten zwischen Arbeitsflächen und Animationen in Apps aus.
+Mouse Keys	Maustasten
+Move the pointer with the numeric keypad.	Den Zeiger mit dem Ziffernblock bewegen.
+On-screen keyboard	Bildschirmtastatur
+Zoom (maximize)	Zoomen (maximieren)
+Minimize	Minimieren
+Roll up	Aufrollen
+Fill free space	Freien Platz füllen
+Do nothing	Nichts tun
+Off while Reduce motion is on in Accessibility.	Aus, solange „Bewegung reduzieren“ in Bedienungshilfen aktiv ist.
+Workspaces	Arbeitsflächen
+Number of workspaces	Anzahl der Arbeitsflächen
+Go from the last workspace to the first	Von der letzten Arbeitsfläche zur ersten wechseln
+Switching past the last workspace with the keyboard continues at the first one.	Wechseln über die letzte Arbeitsfläche hinaus mit der Tastatur geht bei der ersten weiter.
+Animate switching workspaces	Wechsel der Arbeitsflächen animieren
+Double-click a title bar to	Doppelklick auf eine Titelleiste
+Snap windows to screen edges	Fenster an Bildschirmrändern einrasten
+Snap windows to other windows	Fenster an anderen Fenstern einrasten
+Tile windows dragged to a screen edge	An den Bildschirmrand gezogene Fenster kacheln
+Focus follows the pointer	Fokus folgt dem Zeiger
+A window is focused when the pointer moves over it, without a click.	Ein Fenster erhält den Fokus, sobald der Zeiger darüber fährt, ohne Klick.
+Interface font	Schrift der Oberfläche
+Monospace font	Festbreitenschrift
+Sticky Keys	Einrastfunktion
+Slow Keys	Anschlagverzögerung
+Bounce Keys	Tastenprellen unterdrücken
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	Sondertasten wie Umschalt und Strg bleiben bis zur nächsten Taste gedrückt, sodass Kurzbefehle Taste für Taste eingegeben werden können.
+A key has to be held for a moment before it is accepted.	Eine Taste muss kurz gehalten werden, bevor sie angenommen wird.
+Quickly repeated presses of the same key are ignored.	Schnell wiederholte Anschläge derselben Taste werden ignoriert.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	Banner bleiben ausgeblendet, außer dringende. Mitteilungen landen weiterhin in der Liste in der Menüleiste.
+%d seconds	%d Sekunden
+Show banners for	Banner anzeigen für
+Apps can ask for a different time; urgent notifications stay until you close them.	Apps können eine andere Dauer wählen; dringende Mitteilungen bleiben, bis du sie schließt.
+Play sounds	Töne abspielen
+History	Verlauf
+Keep notifications in the menu bar	Mitteilungen in der Menüleiste behalten
+Missed notifications and reminders wait in the list until you read them.	Verpasste Mitteilungen und Erinnerungen warten in der Liste, bis du sie liest.
+Number of notifications to keep	Anzahl gespeicherter Mitteilungen
+Applications	Apps
+Apps appear here after they send a notification.	Apps erscheinen hier, sobald sie eine Mitteilung senden.
+Reminders	Erinnerungen
+Open with	Öffnen mit
+File manager	Dateimanager
+Text editor	Texteditor
+Image viewer	Bildbetrachter
+PDF and documents	PDF und Dokumente
+No app installed	Keine App installiert
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	Wird für „Terminal hier öffnen“ in Dateien und für Apps verwendet, die im Terminal laufen.
+Apps you install later appear here automatically if they can open these files.	Später installierte Apps erscheinen hier automatisch, wenn sie diese Dateien öffnen können.
+Open at Login	Bei der Anmeldung öffnen
+No apps open at login.	Bei der Anmeldung wird keine App geöffnet.
+Choose an app…	App auswählen …
+Add an App	App hinzufügen
+These apps open each time you log in.	Diese Apps werden bei jeder Anmeldung geöffnet.
+When a Drive Is Connected	Beim Anschließen eines Laufwerks
+Mount USB drives and memory cards	USB-Laufwerke und Speicherkarten einbinden
+Files on the drive are ready right away, without clicking it in Files.	Die Dateien auf dem Laufwerk sind sofort verfügbar, ohne Klick in Dateien.
+Mount inserted CDs and DVDs	Eingelegte CDs und DVDs einbinden
+Open a window with the drive's files	Fenster mit den Dateien des Laufwerks öffnen
+Cameras and Phones	Kameras und Telefone
+Import photos when a camera is connected	Fotos importieren, wenn eine Kamera angeschlossen wird
+Play audio CDs when inserted	Audio-CDs beim Einlegen abspielen
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	Interne Festplatten werden nie automatisch eingebunden. Programme auf einem Laufwerk starten nie von selbst.
+3 seconds	3 Sekunden
+5 seconds	5 Sekunden
+6 seconds	6 Sekunden
+10 seconds	10 Sekunden
+15 seconds	15 Sekunden
+30 seconds	30 Sekunden
+App	App
+Key Repeat	Tastenwiederholung
+Key repeat rate	Wiederholrate
+Delay until repeat	Verzögerung bis zur Wiederholung
+Long	Lang
+Short	Kurz
