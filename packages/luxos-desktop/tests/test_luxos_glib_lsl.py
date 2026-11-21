@@ -1,6 +1,7 @@
 """luxos_glib.lsl: zachyceny vystup procesu (spawn_capture, spawn_stream) s vicebajtovymi znaky UTF-8
-rozdelenymi na hranici kusu cteni (4096 B) dorazi beze zmeny; zaznam obsluhy signalu (connect_data) se uvolni
-se zanikem objektu; signal UNIXu (unix_signal_add) ma prioritu DEFAULT, ne HIGH.
+rozdelenymi na hranici kusu cteni (4096 B) dorazi beze zmeny; zaznam kazde obsluhy (zdroje glib/gtk/luxos_glib,
+signaly GObject, procesy) se uvolni prave jednou, kdyz zdroj skonci nebo ho nekdo odebere; signal UNIXu
+(unix_signal_add) ma prioritu DEFAULT, ne HIGH.
 
 Spusteni: python3 -m unittest packages/luxos-desktop/tests/test_luxos_glib_lsl.py -v
 LUXOS_LSLC: prekladac lslc (jinak lslc z PATH).
@@ -26,9 +27,9 @@ class GlibCapture(unittest.TestCase):
         for f in glob.glob(os.path.join(LSL, "*.lsl")):
             shutil.copy(f, cls.tmp)
         cls.prog = os.path.join(cls.tmp, "glib-test")
-        cls.signal_prog = os.path.join(cls.tmp, "signal-test")
+        cls.callback_prog = os.path.join(cls.tmp, "callback-test")
         cls.priority_prog = os.path.join(cls.tmp, "signal-priority-test")
-        for name, prog in (("luxos-glib-test", cls.prog), ("luxos-signal-test", cls.signal_prog),
+        for name, prog in (("luxos-glib-test", cls.prog), ("luxos-callback-test", cls.callback_prog),
                            ("luxos-signal-priority-test", cls.priority_prog)):
             shutil.copy(os.path.join(HERE, "lsl", name + ".lsl"), cls.tmp)
             r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", cls.tmp,
@@ -64,10 +65,21 @@ class GlibCapture(unittest.TestCase):
         r = subprocess.CompletedProcess(p.args, p.returncode, out, err)
         self.assertEqual(r.stdout.decode("utf-8").split("\n")[:2], [text, text])
 
-    def test_signal_records_freed_with_object(self):
-        r = subprocess.run([self.signal_prog], capture_output=True, text=True, timeout=30)
+    def test_callback_records_freed_once(self):
+        # LSL 0.11.2 predava callback_destroy i ve standardnim glib/gtk: zadny zaznam nesmi zustat ani se
+        # uvolnit dvakrat (uvolneny zaznam by po gc() zavolal cizi obsluhu nebo shodil proces)
+        r = subprocess.run([self.callback_prog], capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(r.stdout.split("\n")[:3], ["fired 1001", "alive 0 0", "sources 1000 0 0"])
+        self.assertEqual(r.stderr, "")
+        lines = r.stdout.splitlines()
+        self.assertEqual(lines[0], "start 0")
+        self.assertEqual(lines[-2:], ["never 0", "done"])
+        rows = [line.split() for line in lines[1:-2]]
+        self.assertEqual(len(rows), 19)
+        for i, (name, fired, left) in enumerate(rows):
+            # posledni radek: jedna obsluha po celem uklidu
+            expected = "1" if i == len(rows) - 1 else "200" if "spawn" in name else "1000"
+            self.assertEqual((name, fired, left), (name, expected, "0"))
 
     def test_unix_signal_default_priority(self):
         # HIGH by v kole se signalem preskocil kontrolu zdroje Waylandu s rozectenym spojenim (zamrznuti hubu)
