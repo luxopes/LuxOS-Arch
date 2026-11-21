@@ -967,7 +967,7 @@ function main_hub():
         end
     end
     # Ovladace (balik luxos-drivers): jednou za start upozorni na chybejici ovladace hardwaru
-    if exists(drivers.helper_path()):
+    if drivers.available():
         try:
             call drivers.subscribe(hub["session"])
         else:

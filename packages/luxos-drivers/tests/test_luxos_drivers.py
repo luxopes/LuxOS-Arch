@@ -368,71 +368,6 @@ class Helper(unittest.TestCase):
         self.assertNotIn("@@REBOOT", out)
 
 
-class Session(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="luxos-drivers-session-")
-        self.s = load("luxos_drivers_session_t", os.path.join(PKG, "luxos_drivers_session.py"))
-        self.s.CHECKED = os.path.join(self.tmp, "cache", "drivers-checked")
-        self.s.IGNORED = os.path.join(self.tmp, "config", "drivers-ignored")
-        self.old_root = drv.ROOT
-        drv.ROOT = self.tmp
-
-    def tearDown(self):
-        drv.ROOT = self.old_root
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def states(self, installed=()):
-        return drv.evaluate({"devices": [NV_OPEN, CPU]}, set(installed), lambda m: False)
-
-    def test_once_per_boot(self):
-        self.assertTrue(self.s.should_check("boot-a"))
-        self.s._write(self.s.CHECKED, "boot-a")
-        self.assertFalse(self.s.should_check("boot-a"))
-        self.assertTrue(self.s.should_check("boot-b"))
-
-    def test_live_never(self):
-        os.makedirs(self.tmp + "/run/archiso")
-        self.assertFalse(self.s.should_check("boot-a"))
-
-    def test_notify_rules(self):
-        st = self.states()
-        self.assertTrue(self.s.should_notify(st, ""))
-        self.assertFalse(self.s.should_notify(st, drv.notify_key(st)))
-        # jiny hardware (novy balik) -> znovu upozornit
-        self.assertTrue(self.s.should_notify(st, "intel-ucode thermald"))
-        everything = ["nvidia-open-dkms", "nvidia-utils", "linux-zen-headers", "intel-ucode", "thermald"]
-        self.assertFalse(self.s.should_notify(self.states(everything), ""))
-
-    def test_check_flow(self):
-        notified = []
-        with mock.patch.object(self.s.drv, "boot_id", return_value="boot-x"), \
-                mock.patch.object(self.s.drv, "detect", return_value={"devices": [NV_OPEN]}), \
-                mock.patch.object(self.s.drv, "installed_packages", return_value=set()), \
-                mock.patch.object(self.s.GLib, "idle_add", side_effect=lambda f: notified.append(f)):
-            self.s.check()
-            self.s.check()                       # podruhe ve stejnem startu nic
-        self.assertEqual(len(notified), 1)
-        with open(self.s.CHECKED) as f:
-            self.assertEqual(f.read().strip(), "boot-x")
-
-    def test_check_survives_errors(self):
-        with mock.patch.object(self.s.drv, "boot_id", return_value="boot-y"), \
-                mock.patch.object(self.s.drv, "detect", side_effect=RuntimeError("boom")), \
-                mock.patch.object(self.s.GLib, "idle_add") as idle:
-            self.s.check()
-        idle.assert_not_called()
-
-    def test_ignore_action(self):
-        self.s._state.update(ids={7}, key="a b")
-        self.s.on_action(None, None, None, None, None, mock.Mock(unpack=lambda: (7, "ignore")))
-        with open(self.s.IGNORED) as f:
-            self.assertEqual(f.read().strip(), "a b")
-        # cizi upozorneni se ignoruje
-        with mock.patch.object(self.s.subprocess, "Popen") as popen:
-            self.s.on_action(None, None, None, None, None, mock.Mock(unpack=lambda: (8, "open")))
-            popen.assert_not_called()
-
-
 class Translations(unittest.TestCase):
     """Kazdy text aplikace a poznamky luxos-hwdetect musi mit preklad ve vsech jazycich."""
 
@@ -440,11 +375,14 @@ class Translations(unittest.TestCase):
         import re
         i18n = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
         texts = set()
-        for f in ("luxos-drivers", "luxos_drivers_session.py"):
-            with open(os.path.join(PKG, f), encoding="utf-8") as fh:
-                src = fh.read()
-            texts |= set(re.findall(r'_\("((?:[^"\\]|\\.)*)"\)', src))
-            texts |= {m for m in re.findall(r'"([A-Z][^"]{3,})"', src) if m in self.gui_tables(src)}
+        with open(os.path.join(PKG, "luxos-drivers"), encoding="utf-8") as fh:
+            src = fh.read()
+        texts |= set(re.findall(r'_\("((?:[^"\\]|\\.)*)"\)', src))
+        texts |= {m for m in re.findall(r'"([A-Z][^"]{3,})"', src) if m in self.gui_tables(src)}
+        # upozorneni po prihlaseni (luxos-hub, luxos-desktop)
+        with open(os.path.join(HERE, "..", "..", "luxos-desktop", "files", "lsl", "luxos_drivers_hub.lsl"),
+                  encoding="utf-8") as fh:
+            texts |= set(re.findall(r'i18n\.T\("((?:[^"\\]|\\.)*)"\)', fh.read()))
         with open(os.path.join(PKG, "luxos-hwdetect"), encoding="utf-8") as fh:
             hw = fh.read()
         texts |= set(re.findall(r'\bnote "([^"$]+)"', hw))

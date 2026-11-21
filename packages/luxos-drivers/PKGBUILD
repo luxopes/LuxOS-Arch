@@ -2,7 +2,7 @@
 
 pkgname=luxos-drivers
 pkgver=1.0.0
-pkgrel=12
+pkgrel=13
 pkgdesc="LuxOS hardware detection and the Drivers app: picks GPU, Wi-Fi, camera, VM and other drivers automatically"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
@@ -22,10 +22,10 @@ package() {
     install -Dm644 "$startdir/luxos-nvidia-pm.conf" "$pkgdir/usr/lib/modprobe.d/luxos-nvidia-pm.conf"
     install -Dm644 "$startdir/80-luxos-nvidia-pm.rules" "$pkgdir/usr/lib/udev/rules.d/80-luxos-nvidia-pm.rules"
 
-    # Aplikace Ovladace, pomocnik pro root (pkexec) a kontrola po prihlaseni (luxos-hub)
+    # Aplikace Ovladace a pomocnik pro root (pkexec); kontrola po prihlaseni je v luxos-hub (luxos_drivers_hub.lsl)
     install -Dm755 "$startdir/luxos-drivers" "$pkgdir/usr/bin/luxos-drivers"
     install -Dm755 "$startdir/luxos-drivers-helper" "$pkgdir/usr/lib/luxos/drivers/luxos-drivers-helper"
-    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$startdir/luxos_drivers.py" "$startdir/luxos_drivers_session.py"
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$startdir/luxos_drivers.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 "$startdir/org.luxos.drivers.policy" "$pkgdir/usr/share/polkit-1/actions/org.luxos.drivers.policy"
     install -Dm644 "$startdir/luxos-drivers.desktop" "$pkgdir/usr/share/applications/luxos-drivers.desktop"
