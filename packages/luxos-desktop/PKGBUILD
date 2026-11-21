@@ -224,6 +224,9 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-wm-icon.lsl" luxos-wm-icon
     # Razeni Launchpadu v relaci X11 (rofi) a pocty spusteni (spousti luxos-launchpad)
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-launchpad-order.lsl" luxos-launchpad-order
+    # Setric obrazovky pro xfce4-screensaver (drive Python): styly tapeta plochy, tapety, rucickove hodiny, hodiny,
+    # polarni zare, fotky, logo; kresli do okna setrice (XSCREENSAVER_WINDOW)
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-screensaver.lsl" luxos-screensaver
     rm -rf tokens
     mkdir -p tokens
     local m
@@ -333,7 +336,7 @@ package() {
     # (checked-hash: platnost podle obsahu, ne casu souboru - makepkg casy prepisuje)
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     # Setric obrazovky: xfce4-screensaver spousti jen programy ze sve slozky
-    install -Dm755 "$f/screensaver/luxos-screensaver" "$pkgdir/usr/lib/xfce4-screensaver/luxos"
+    install -Dm755 luxos-screensaver "$pkgdir/usr/lib/xfce4-screensaver/luxos"
     install -Dm644 -t "$pkgdir/usr/share/applications/screensavers" "$f"/screensaver/*.desktop
     # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)
     install -Dm644 -t "$pkgdir/usr/share/metainfo" "$f"/metainfo/*.metainfo.xml
