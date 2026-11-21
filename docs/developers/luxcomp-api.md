@@ -244,8 +244,31 @@ nepočítá nic, ani když plocha sama překresluje obsah (hodiny).
 Pod pixman se hlídá čas snímku: když tři snímky s přepočtem po sobě trvají přes 8 ms, kompozitor
 přejde na tier 0 (do dalšího `luxcomp_blur_set`). Naměřeno headless 1920×1080 pixman, plocha
 400×500 nad oknem 1600×900, které se každých 8 ms posune o 12 px: snímek průměrně 3,6 ms, nejvýš
-5,4 ms; přepočet výřezu 1,5 ms (nejvýš 2,1 ms). Tier 2 je přeložený, ale bez GPU v testech
-nespuštěný.
+5,4 ms; přepočet výřezu 1,5 ms (nejvýš 2,1 ms).
+
+Tier 2 je ověřený headless na skutečných GPU (`WLT_RENDER_NODE`, viz `scripts/wl-test/README.md`): AMD Ryzen 5500U
+(radeonsi) a NVIDIA GTX 1650 (proprietární ovladač 620). Obraz odpovídá pixmanu (`blur.sh`: průměrný rozdíl
+0,8–0,9 z 255 pod plochou). Zátěž 6 oken + ztmavení Launchpadu přes celou obrazovku + 3 vyskakovací plochy, okno pod
+nimi se hýbe každých 8 ms (všechny čtyři výřezy se přepočítávají v každém snímku), čas snímku na CPU:
+
+| | 1920×1080 | 3840×2160 | CPU kompozitoru (bez materiálu) |
+|---|---|---|---|
+| AMD (gles2) | 3,8 ms, přepočet 2,6 ms | 3,6 ms, přepočet 2,3 ms | 21 % (5 %) |
+| NVIDIA (gles2) | 5,6 ms, přepočet 4,1 ms | 4,8 ms, přepočet 3,5 ms | 25 % (10–13 %) |
+| pixman (bez přechodu na tier 0) | 27,7 ms, přepočet 18,9 ms | – | 63 % |
+
+Pixman tu po třech snímcích přejde na tier 0, jak má. V klidu nula probuzení a 0 % CPU na všech třech;
+2000 otevření a zavření plochy s materiálem bez růstu PSS, deskriptorů ani paměti GPU (fdinfo amdgpu).
+
+Proč to tak je:
+- Textury bufferů, které nejsou klientské (záhlaví, stíny oken), si blur drží u bufferu (`wlr_addon`):
+  gles2 by je jinak při každém přepočtu nahrával do GPU znovu (64 textur pod ztmavením ~9 ms).
+- Záhlaví, rohy a stíny drží svůj zobrazený buffer zamčený. Scéna pod gles2 buffer po nahrání pustí a nechá
+  si jen texturu; výřez materiálu by pak záhlaví a stíny oken pod plochou neviděl.
+- Rozmazaný materiál není pro scénu neprůhledný (jen tier 0): jinak scéna zahodila poškození pod ním
+  (pohyb okna celého pod ztmavením, video pod vyskakovací plochou zůstaly v materiálu staré) a zakrytým
+  klientům neposílala frame done. Pod pixman to stojí ~0,9 ms na snímek s pohybem pod plochou 400×500.
+- Kontext EGL rendereru zůstává aktuální: jeho uvolnění po každém průchodu stálo na NVIDIA 0,3–1,8 ms.
 
 - `luxcomp_material_set(název, poloměr, fallback, stín, dosah, posun)`: poloměr je výchozí pro
   jmenný prostor bez `:poloměr`, `fallback` neprůhledná barva tieru 0, stín `0xAARRGGBB` (alfa 0 = bez
@@ -359,7 +382,23 @@ Jádro samo vybere renderer, který funguje všude:
   virgl, vmwgfx bez 3D nebo jen s llvmpipe (gles2 selže) se použije **pixman** a softwarový
   kurzor.
 - `WLR_RENDERER` má přednost, ale při selhání také spadne na pixman.
-- Volba je vždy v logu: `luxcomp: renderer pixman + software cursor (no DRM render node)`.
+- `WLR_RENDER_DRM_DEVICE` (render node) má ve wlroots přednost i před GPU displeje; detekce 3D kontroluje
+  právě ten node.
+- Volba je vždy v logu, u gles2 s řetězcem `GL_RENDERER`:
+  `luxcomp: renderer pixman + software cursor (no DRM render node)`,
+  `luxcomp: renderer gles2 on AMD Radeon Graphics (radeonsi, renoir, ACO, DRM 3.64, …)`.
+
+**Více GPU (hybridní notebook).** S backendem DRM (skutečné přihlášení) wlroots otevře všechny GPU s výstupy;
+renderer vzniká na primárním (GPU s `boot_vga`, u notebooku Ryzen + GTX 1650 iGPU AMD, které řídí vestavěný panel). Výstupy na
+druhém GPU (HDMI zapojené do NVIDIA) dostávají snímky kopií: druhý GPU má vlastní pomocný renderer gles2 a
+buffer z primárního importuje přes dmabuf (obvykle s modifikátorem LINEAR). Material na takovém výstupu
+alokuje mezibuffery podle formátu jeho swapchainu, tedy taky LINEAR - funguje, jen je pomalejší.
+`WLR_RENDER_DRM_DEVICE=/dev/dri/renderD129` by renderovalo na NVIDIA a kopírovalo na panel AMD.
+glvnd do kompozitoru načte EGL všech výrobců (NVIDIA ~37 MB PSS, i když renderuje AMD).
+
+Na skutečném přihlášení ještě ověřit (headless to neumí): renderer v logu (má být AMD), material a stíny
+na vestavěném panelu i na monitoru na NVIDIA, čas snímku `LUXCOMP_STATS=1` na obou, přetažení okna mezi
+nimi, uspání/probuzení dGPU (runtime PM) a odpojení monitoru za běhu.
 
 ## Výstupy pro klienty
 
