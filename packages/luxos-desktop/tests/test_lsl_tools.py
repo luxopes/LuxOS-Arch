@@ -257,14 +257,15 @@ class LslTools(unittest.TestCase):
                          "<txt>Soubory</txt><tool>" + translation("Active app: %s").replace("%s", "Soubory") + "</tool>\n")
 
     # ---- prepinace ------------------------------------------------------------------------------
-    def fake_process(self, name):
-        """Proces, jehoz cmdline obsahuje name (jako python3 /usr/bin/luxos-hub); signaly zapisuje do souboru."""
+    def fake_process(self, name, **session):
+        """Proces, jehoz cmdline obsahuje name (jako python3 /usr/bin/luxos-hub); signaly zapisuje do souboru.
+        Bezi v relaci testu (stejne XDG_RUNTIME_DIR a displej), session ji muze zmenit."""
         path = os.path.join(self.home, name)
         got = os.path.join(self.home, name + ".signals")
         with open(path, "w") as f:
             f.write(f'#!/bin/bash\ntrap "echo USR1 >>{got}" USR1\ntrap "echo USR2 >>{got}" USR2\n'
                     'while :; do sleep 0.05; done\n')
-        proc = subprocess.Popen(["bash", path])
+        proc = subprocess.Popen(["bash", path], env=self.env(**session))
         self.addCleanup(proc.kill)
         time.sleep(0.2)
         return proc, got
@@ -304,6 +305,31 @@ class LslTools(unittest.TestCase):
                 self.assertEqual(self.run_prog(where, "luxos-cc-toggle").returncode, 0)
         self.assertEqual(self.calls(), [""] * 8)
         self.assertEqual(self.signals(got), [])
+
+    def test_toggles_never_signal_another_session(self):
+        # pid soubor v XDG_RUNTIME_DIR, ktery sdileji vsechny relace uzivatele, ukazuje na hub jine relace
+        # (jiny displej Waylandu nebo X): signal nedostane, prepinac spusti program teto relace
+        for other in ({"WAYLAND_DISPLAY": "wayland-7"}, {"DISPLAY": ":7"}):
+            hub, got = self.fake_process("luxos-hub", **other)
+            self.pidfile("luxos-control-center.pid", str(hub.pid))
+            self.pidfile("luxos-calendar.pid", str(hub.pid))
+            self.assertEqual(self.run_prog(self.bin, "luxos-cc-toggle", WAYLAND_DISPLAY="wayland-0").returncode, 0)
+            self.assertEqual(self.run_prog(self.bin, "luxos-calendar-toggle", WAYLAND_DISPLAY="wayland-0").returncode, 0)
+            self.assertEqual(self.signals(got), [])
+            hub.kill()
+            hub.wait()
+        self.assertEqual(self.calls(), [""] * 4)
+        # stejna relace, jen jinak zapsany displej (absolutni cesta, obrazovka X): signal dostane
+        hub, got = self.fake_process("luxos-hub", WAYLAND_DISPLAY="wayland-0")
+        self.pidfile("luxos-control-center.pid", str(hub.pid))
+        self.assertEqual(self.run_prog(self.bin, "luxos-cc-toggle",
+                                       WAYLAND_DISPLAY=os.path.join(self.runtime, "wayland-0")).returncode, 0)
+        self.assertEqual(self.signals(got), ["USR1"])
+        os.remove(got)
+        hub, got = self.fake_process("luxos-hub", DISPLAY=":3")
+        self.pidfile("luxos-calendar.pid", str(hub.pid))
+        self.assertEqual(self.run_prog(self.bin, "luxos-calendar-toggle", DISPLAY=":3.0").returncode, 0)
+        self.assertEqual(self.signals(got), ["USR2"])
 
     def test_calendar_toggle(self):
         hub, hub_got = self.fake_process("luxos-hub")

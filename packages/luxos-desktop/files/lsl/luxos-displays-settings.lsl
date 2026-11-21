@@ -1084,7 +1084,7 @@ function menu_running():
     safe:
         pid = Int(glib.read_text(path).strip())
     end
-    if pid > 0 and glib.readlink("/proc/" + String(pid) + "/exe") == glib.readlink("/proc/self/exe"):
+    if pid > 0 and glib.readlink("/proc/" + String(pid) + "/exe") == glib.readlink("/proc/self/exe") and lsys.same_session(pid):
         call glib.kill(pid, 10)
         return True
     end

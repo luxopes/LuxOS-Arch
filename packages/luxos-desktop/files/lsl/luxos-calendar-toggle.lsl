@@ -25,7 +25,8 @@ if pid != "":
     elif cmdline.find("luxos-calendar") >= 0:
         signal = SIGUSR1
     end
-    if signal != 0:
+    # jen instanci teto relace (XDG_RUNTIME_DIR sdili vsechny relace uzivatele)
+    if signal != 0 and luxos_sys.same_session(Int(pid)):
         if luxos_sys.kill(Int(pid), signal) == 0:
             call exit(0)
         end

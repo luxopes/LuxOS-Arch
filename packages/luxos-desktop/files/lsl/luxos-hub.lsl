@@ -881,10 +881,11 @@ function remove_pidfiles():
     return 0
 end
 
-# PID bezici instance podle pid souboru, jejiz prikazova radka obsahuje nektere ze jmen; 0 kdyz nebezi
+# PID bezici instance teto relace podle pid souboru, jejiz prikazova radka obsahuje nektere ze jmen; 0 kdyz
+# nebezi (pid soubor muze patrit jine relaci stejneho uzivatele, ta signal nedostane)
 function running_pid(pidfile, names):
     raw = glib.read_text(runtime_dir() + "/" + pidfile).strip()
-    if not text.is_digits(raw):
+    if not text.is_digits(raw) or not luxos_sys.same_session(Int(raw)):
         return 0
     end
     cmdline = glib.read_text("/proc/" + raw + "/cmdline")
