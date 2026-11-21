@@ -18,7 +18,8 @@
 #            surface_begin(s) -> cairo surface (ARGB32, v pixelech) nebo 0, surface_scale(s) -> meritko
 #            (Float, i zlomkove; kreslit s cairo.scale), surface_commit(s, surface), KEY(s, keysym, znak), unlock()
 #            lock_secret(True): znaky hesla zustavaji v knihovne (KEY(s, 0 nebo keysym, delka)),
-#            lock_secret_write(fd) je posle do roury a smaze; KEYBOARD(s, caps, skupina), lock_layout_code(g)
+#            lock_secret_write(fd) je posle do roury a smaze; KEYBOARD(s, caps, skupina), lock_layout_code(g),
+#            POINTER(s, x, y) klik nebo dotek na zamykaci plose
 # Snimek:    capture_output(o, kurzor), capture_toplevel(lt, kurzor) -> READY(c, w, h)/FAILED(c, duvod),
 #            capture_surface(c, w, h) -> kopie jako cairo surface, capture_write_png(c, w, h, cesta),
 #            capture_format(c), capture_free(c)
@@ -62,6 +63,7 @@ IDLE = 22
 RESUMED = 23
 DISCONNECTED = 24
 KEYBOARD = 25
+POINTER = 26
 
 STATE_ACTIVATED = 1
 STATE_MAXIMIZED = 2
