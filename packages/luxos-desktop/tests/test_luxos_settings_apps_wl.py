@@ -211,6 +211,25 @@ class SettingsAppsWayland(unittest.TestCase):
         self.assertTrue(self.app.wait(lambda: status() == "0 apps with settings"))
         self.assertFalse((home / ".config/someapp").exists())
 
+    def test_calculator(self):
+        self.open("luxos-calculator", XDG_CONFIG_HOME=str(self.session / "config"))
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.check_window("luxos-calculator", "Calculator")
+        # klavesy jako udalosti Waylandu do okna, vedecky rezim zvetsi okno
+        self.app.ask("type 1250*1.21")
+        self.app.ask("press Return")
+        self.assertEqual(state()["value"], "1,512.5")
+        self.app.ask("press ctrl+2")
+        self.assertTrue(state()["scientific"])
+        self.app.ask("type 2^10+(3.5*4)=")
+        self.assertEqual(state()["value"], "1,038")
+        self.shot("luxos-calculator-scientific")
+        self.app.ask("press ctrl+c")
+        self.app.ask("press Escape Escape ctrl+v")
+        self.assertTrue(self.app.wait(lambda: state()["entry"] == "1038"))
+        self.app.send("press ctrl+q")
+        self.assertEqual(self.app.proc.wait(10), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

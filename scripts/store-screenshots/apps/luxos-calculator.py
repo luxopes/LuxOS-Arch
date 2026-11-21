@@ -2,7 +2,7 @@
 
 
 def shots(s):
-    p = s.launch_python("luxos-desktop/files/bin/luxos-calculator")
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-calculator.lsl")])
     win = s.window(pid=p.pid, size=None)
     s.type("1250*1.21=", win)
     s.capture("1", win)

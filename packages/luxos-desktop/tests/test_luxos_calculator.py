@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""LuxOS - testy Kalkulacky (luxos-calculator): vypocty, formatovani, vlozeni ze schranky.
+"""LuxOS - testy Kalkulacky (luxos-calculator v LSL): vypocty, formatovani, klavesnice, vlozeni ze schranky.
 
-    python3 -m unittest packages/luxos-desktop/tests/test_luxos_calculator.py -v
-GUI cast (okno, klavesy, schranka):
-    env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_calculator.py -v
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_calculator.py -v
+
+Aritmetika (files/lsl/luxos_calc.lsl, spolecna s Launchpadem) v tests/lsl/luxos-calc-test.lsl bez displeje;
+okno files/lsl/luxos-calculator.lsl ve vlastnim Xvfb rizene pres luxos_testctl (klavesy jako skutecne udalosti
+GDK). Cesky desetinny oddelovac jen s lokalizaci cs_CZ (localedef do docasneho LOCPATH). Snimky do
+LUXOS_TEST_SHOTS.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -15,252 +18,212 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
-import importlib.machinery
-import importlib.util
+import json
 import os
+import shutil
+import subprocess
+import sys
 import tempfile
-import types
+import time
 import unittest
-from decimal import Decimal, DivisionByZero
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(HERE, "..", "files", "bin", "luxos-calculator")
+PKG = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+
+TMP = tempfile.mkdtemp(prefix="luxos-calculator-test-")
+NNBSP = " "
 
 
-def load():
-    loader = importlib.machinery.SourceFileLoader("luxos_calculator", SCRIPT)
-    spec = importlib.util.spec_from_loader("luxos_calculator", loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
-    return mod
+def tearDownModule():
+    shutil.rmtree(TMP, ignore_errors=True)
 
 
-calc = load()
+def czech_locale():
+    """LOCPATH s cs_CZ.UTF-8 (hostitel ho nemusi mit vygenerovany); None kdyz to nejde."""
+    path = os.path.join(TMP, "locale")
+    if not os.path.isdir(os.path.join(path, "cs_CZ.UTF-8")):
+        if not shutil.which("localedef"):
+            return None
+        os.makedirs(path, exist_ok=True)
+        subprocess.run(["localedef", "-i", "cs_CZ", "-f", "UTF-8", os.path.join(path, "cs_CZ.UTF-8")],
+                       capture_output=True, timeout=60)
+    return path if os.path.isdir(os.path.join(path, "cs_CZ.UTF-8")) else None
 
 
-class Logic(unittest.TestCase):
-    def test_evaluate_precedence_and_parens(self):
-        D = Decimal
-        self.assertEqual(calc.evaluate([D(2), "+", D(3), "*", D(4)]), 14)
-        self.assertEqual(calc.evaluate(["(", D(2), "+", D(3), ")", "*", D(4)]), 20)
-        self.assertEqual(calc.evaluate([D(2), "^", D(3), "^", D(2)]), 512)   # zprava doleva
-        self.assertEqual(calc.evaluate([D("0.1"), "+", D("0.2")]), D("0.3"))
-        with self.assertRaises(DivisionByZero):
-            calc.evaluate([D(1), "/", D(0)])
-
-    def test_fmt_extremes(self):
-        self.assertEqual(calc.fmt(Decimal(0)), "0")
-        self.assertIn("e", calc.fmt(Decimal(10) ** 20))
-        self.assertIn("e", calc.fmt(Decimal("1e-12")))
+class Source(unittest.TestCase):
+    def test_native_program_replaces_python(self):
+        self.assertFalse(os.path.exists(os.path.join(PKG, "files", "bin", "luxos-calculator")))
+        with open(os.path.join(PKG, "PKGBUILD")) as f:
+            self.assertIn("luxos-calculator", f.read())
 
 
-class OperandLogic(unittest.TestCase):
-    """Klavesove sekvence nad skutecnymi metodami kalkulacky, bez widgetu a bez X serveru."""
+class Arithmetic(unittest.TestCase):
+    """luxos_calc.lsl: desitkova aritmetika Kalkulacky, funkce, zobrazeni a vypocty Launchpadu."""
 
-    def setUp(self):
-        self.shown = None
-        self.c = types.SimpleNamespace(tokens=[], entry="", fresh=False, result=None, degrees=True,
-                                       op_buttons={})
-        for name, method in calc.Calculator.__dict__.items():
-            if callable(method) and not name.startswith("__"):
-                setattr(self.c, name, types.MethodType(method, self.c))
-        self.c.refresh = lambda: None
-        self.c.show = lambda expr, value: setattr(self, "shown", value)
-        self.c.update_ops = lambda: None
-
-    def keys(self, seq):
-        for key in seq:
-            if key.isdigit():
-                self.c.digit(key)
-            elif key in "()":
-                self.c.paren(key)
-            elif key == "=":
-                self.c.equals()
-            else:
-                self.c.operator(key)
-
-    def test_function_on_parenthesized_expression(self):
-        self.keys("(2+3)")
-        self.c.func("sq")
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(25))
-
-    def test_function_replaces_only_trailing_operand(self):
-        self.keys("10+(2+3)")
-        self.c.func("sq")
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(35))
-
-    def test_nested_parentheses(self):
-        self.keys("2*((1+2)*3)")
-        self.c.func("sqrt")
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(6))
-
-    def test_percent_on_parenthesized_expression(self):
-        self.keys("(100+100)")
-        self.c.percent()
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(2))
-
-    def test_negate_parenthesized_expression(self):
-        self.keys("(2+3)")
-        self.c.negate()
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(-5))
-
-    def test_negate_zero_then_digit(self):
-        self.keys("0")
-        self.c.negate()
-        self.keys("5")
-        self.assertEqual(self.c.entry, "-5")
-        self.keys("+1=")
-        self.assertEqual(self.c.result, Decimal(-4))
-
-    def test_invalid_function_shows_error(self):
-        self.keys("(1-5)")
-        self.c.func("sqrt")
-        self.assertEqual(self.shown, calc._("Error"))
-
-    def test_relative_percent_on_parenthesized_operand(self):
-        self.keys("200+(5+5)")
-        self.c.percent()
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(220))
-
-    def test_functions_on_numbers_and_results(self):
-        self.keys("9")
-        self.c.func("sqrt")
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(3))
-        self.c.func("sq")
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(9))
-
-    def test_percent_same_for_number_and_parenthesized_left_operand(self):
-        # C-19: 300 + 10 % = 330 a (300) + 10 % musi dat totez (ne 300,1)
-        for seq in ("300+10", "(300)+10", "(100+200)+10"):
-            with self.subTest(seq=seq):
-                self.setUp()
-                self.keys(seq)
-                self.c.percent()
-                self.c.equals()
-                self.assertEqual(self.c.result, Decimal(330))
-        self.setUp()
-        self.keys("2*100+10")          # procento z celeho leveho vyrazu (200)
-        self.c.percent()
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(220))
-        self.setUp()
-        self.keys("5*(200-10")         # uvnitr zavorky jen jeji levy operand
-        self.c.percent()
-        self.keys(")=")
-        self.assertEqual(self.c.result, Decimal(900))
-        self.setUp()
-        self.keys("50*10")              # krat: prosta setina
-        self.c.percent()
-        self.c.equals()
-        self.assertEqual(self.c.result, Decimal(5))
-
-    def trig(self, name, value, degrees=True):
-        self.c.degrees = degrees
-        return self.c.compute(name, Decimal(value))
-
-    def test_small_trig_results_are_not_rounded_to_zero(self):
-        # C-20: maly nenulovy vysledek se ukaze vedecky, ne jako 0
-        r = self.trig("sin", "1e-14", degrees=False)
-        self.assertNotEqual(r, 0)
-        self.assertAlmostEqual(float(r), 1e-14, delta=1e-28)
-        self.assertIn("e-14", calc.fmt(r))
-        r = self.trig("sin", "180.0000000001")
-        self.assertNotEqual(r, 0)
-        self.assertAlmostEqual(float(r), -1.745329252e-12, delta=1e-20)
-        r = self.trig("cos", "90.000000001")
-        self.assertNotEqual(r, 0)
-        self.assertNotEqual(self.trig("asin", "1e-14", degrees=False), 0)
-        self.assertNotEqual(self.trig("atan", "1e-13", degrees=False), 0)
-
-    def test_exact_angles_stay_exact(self):
-        D = Decimal
-        for name, value, expected in (("sin", "180", 0), ("sin", "360", 0), ("sin", "-90", -1), ("cos", "90", 0),
-                                      ("cos", "270", 0), ("cos", "180", -1), ("tan", "180", 0), ("tan", "45", 1),
-                                      ("sin", "30", D("0.5")), ("cos", "60", D("0.5")), ("asin", "0.5", 30),
-                                      ("acos", "0.5", 60), ("atan", "1", 45), ("acos", "-1", 180)):
-            with self.subTest(name=name, value=value):
-                self.assertEqual(self.trig(name, value), expected)
-        self.assertEqual(self.trig("sin", calc.PI, degrees=False), 0)
-        self.assertEqual(self.trig("cos", calc.PI / 2, degrees=False), 0)
-        self.assertEqual(self.trig("sin", calc.PI * 2, degrees=False), 0)
-        for value in ("90", "270", "-90"):
-            with self.assertRaises(ValueError):
-                self.trig("tan", value)
-        with self.assertRaises(ValueError):
-            self.trig("tan", calc.PI / 2, degrees=False)
-
-    def test_extreme_numbers_are_bounded(self):
-        # C-05: obri exponent se odmitne bez obri alokace; vysledky mimo rozsah = Error
-        self.assertFalse(calc.in_range(Decimal("1e999999999")))
-        self.assertFalse(calc.in_range(Decimal("1e-999999999")))
-        self.assertTrue(calc.in_range(Decimal("1e999")))
-        self.assertTrue(calc.in_range(Decimal(0)))
-        self.assertLess(len(calc.entry_text_for(Decimal("1e999"))), 20)
-        self.c.entry = "9" + "e999990"
-        self.c.func("sq")
-        self.assertEqual(self.shown, calc._("Error"))
-
-    def test_unary_operations_report_invalid_parenthesized_expression(self):
-        for operation in ("percent", "negate"):
-            with self.subTest(operation=operation):
-                self.setUp()
-                self.keys("(1/0)")
-                getattr(self.c, operation)()
-                self.assertEqual(self.shown, calc._("Error"))
+    def test_unit(self):
+        lslc = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
+        if not lslc:
+            self.skipTest("lslc (lsl) is not installed")
+        out = os.path.join(TMP, "luxos-calc-test")
+        r = subprocess.run([lslc, "--target", "linux-x86_64-gnu", "--system-bindings", lsl_app.LSL_DIR,
+                            os.path.join(HERE, "lsl", "luxos-calc-test.lsl"), out], capture_output=True, text=True,
+                           timeout=900)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        r = subprocess.run([out], capture_output=True, text=True, timeout=120)
+        failed = [line for line in r.stdout.splitlines() if not line.startswith("ok ")]
+        self.assertEqual(failed, [])
+        self.assertEqual(r.returncode, 0)
+        self.assertGreater(len(r.stdout.splitlines()), 150)
 
 
-# Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1) - nikdy skutecna obrazovka
-@unittest.skipUnless(os.environ.get("DISPLAY") and ("xvfb-run" in os.environ.get("XAUTHORITY", "")
-                                                    or os.environ.get("LUXOS_TEST_X") == "1"),
-                     "potrebuje virtualni X (xvfb-run)")
 class Window(unittest.TestCase):
+    """Okno v Xvfb: jedna aplikace pro vsechny testy, mezi testy "reset" (jako nove okno)."""
+
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        calc.CONFIG = os.path.join(cls.tmp.name, "calculator")   # nemenit skutecne nastaveni
-        from gi.repository import Gdk, Gtk
-        cls.Gdk, cls.Gtk = Gdk, Gtk
+        cls.binary = lsl_app.build("luxos-calculator", TMP)
+        cls.x = lsl_app.Xvfb("1280x900")
+        cls.config = os.path.join(TMP, "config")
+        cls.app = cls.start()
+
+    @classmethod
+    def start(cls, **extra):
+        env = dict(os.environ, DISPLAY=cls.x.display, HOME=TMP, XDG_CONFIG_HOME=cls.config, LANG="C.UTF-8",
+                   LC_ALL="C.UTF-8", GTK_THEME="Adwaita")
+        env.pop("WAYLAND_DISPLAY", None)
+        env.update(extra)
+        luxos_testguard.check_env(env)
+        app = lsl_app.App([cls.binary], env)
+        if not app.wait(lambda: app.dump()):
+            raise AssertionError(app.stderr())
+        return app
 
     @classmethod
     def tearDownClass(cls):
-        cls.tmp.cleanup()
+        cls.app.stop()
+        cls.x.stop()
 
     def setUp(self):
-        self.c = calc.Calculator()
+        self.app.ask("reset")
 
-    def tearDown(self):
-        self.c.destroy()
+    def st(self):
+        return json.loads(self.app.ask("state", "state"))
 
     def keys(self, seq):
-        for k in seq:
-            if k.isdigit():
-                self.c.digit(k)
-            elif k == ".":
-                self.c.point()
-            elif k in "+-*/^":
-                self.c.operator(k)
-            elif k in "()":
-                self.c.paren(k)
-            elif k == "=":
-                self.c.equals()
+        self.app.ask("keys " + seq)
 
-    def paste(self, text):
-        self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
-        ev = self.Gdk.Event.new(self.Gdk.EventType.KEY_PRESS)
-        ev.keyval = self.Gdk.KEY_v
-        ev.state = self.Gdk.ModifierType.CONTROL_MASK
-        self.assertTrue(self.c.on_key(self.c, ev))
+    def act(self, action):
+        self.app.ask("act " + action)
 
     def shown(self):
-        return self.c.value.get_text()
+        return self.st()["value"]
+
+    def result(self):
+        return self.st()["result"]
+
+    # ---- logika nad klavesovymi sekvencemi (drive OperandLogic) ----
+
+    def test_function_on_parenthesized_expression(self):
+        self.keys("(2+3)")
+        self.act("func sq")
+        self.keys("=")
+        self.assertEqual(self.result(), "25")
+
+    def test_function_replaces_only_trailing_operand(self):
+        self.keys("10+(2+3)")
+        self.act("func sq")
+        self.keys("=")
+        self.assertEqual(self.result(), "35")
+
+    def test_nested_parentheses(self):
+        self.keys("2*((1+2)*3)")
+        self.act("func sqrt")
+        self.keys("=")
+        self.assertEqual(self.result(), "6")
+
+    def test_percent_on_parenthesized_expression(self):
+        self.keys("(100+100)")
+        self.act("percent")
+        self.keys("=")
+        self.assertEqual(self.result(), "2")
+
+    def test_negate_parenthesized_expression(self):
+        self.keys("(2+3)")
+        self.act("negate")
+        self.keys("=")
+        self.assertEqual(self.result(), "-5")
+
+    def test_negate_zero_then_digit(self):
+        self.keys("0")
+        self.act("negate")
+        self.keys("5")
+        self.assertEqual(self.st()["entry"], "-5")
+        self.keys("+1=")
+        self.assertEqual(self.result(), "-4")
+
+    def test_invalid_function_shows_error(self):
+        self.keys("(1-5)")
+        self.act("func sqrt")
+        self.assertEqual(self.shown(), "Error")
+
+    def test_relative_percent_on_parenthesized_operand(self):
+        self.keys("200+(5+5)")
+        self.act("percent")
+        self.keys("=")
+        self.assertEqual(self.result(), "220")
+
+    def test_functions_on_numbers_and_results(self):
+        self.keys("9")
+        self.act("func sqrt")
+        self.keys("=")
+        self.assertEqual(self.result(), "3")
+        self.act("func sq")
+        self.keys("=")
+        self.assertEqual(self.result(), "9")
+
+    def test_percent_same_for_number_and_parenthesized_left_operand(self):
+        # C-19: 300 + 10 % = 330 a (300) + 10 % musi dat totez (ne 300,1)
+        for seq, want in (("300+10", "330"), ("(300)+10", "330"), ("(100+200)+10", "330"), ("2*100+10", "220"),
+                          ("50*10", "5")):
+            with self.subTest(seq=seq):
+                self.app.ask("reset")
+                self.keys(seq)
+                self.act("percent")
+                self.keys("=")
+                self.assertEqual(self.result(), want)
+        self.app.ask("reset")
+        self.keys("5*(200-10")         # uvnitr zavorky jen jeji levy operand
+        self.act("percent")
+        self.keys(")=")
+        self.assertEqual(self.result(), "900")
+
+    def test_extreme_numbers_are_bounded(self):
+        # C-05: vysledek mimo rozsah = Error, bez obri alokace
+        self.app.ask("set-entry 9e999990")
+        self.act("func sq")
+        self.assertEqual(self.shown(), "Error")
+
+    def test_unary_operations_report_invalid_parenthesized_expression(self):
+        for action in ("percent", "negate"):
+            with self.subTest(action=action):
+                self.app.ask("reset")
+                self.keys("(1/0)")
+                self.act(action)
+                self.assertEqual(self.shown(), "Error")
+
+    def test_decimal_results(self):
+        self.keys("0.1+0.2=")
+        self.assertEqual(self.shown(), "0.3")
+        self.keys("1234567890123.45-1234567890123=")
+        self.assertEqual(self.shown(), "0.45")
+        self.keys("1/3*3=")
+        self.assertEqual(self.shown(), "1")
+        self.keys("2^64=")
+        self.assertEqual(self.shown(), "1.84467441e19")
+
+    # ---- okno (drive Window) ----
 
     def test_basic_sequences(self):
         self.keys("2(3+4)=")
@@ -269,52 +232,184 @@ class Window(unittest.TestCase):
         self.assertEqual(self.shown(), "10")
 
     def test_lone_number_equals_then_new_number(self):
-        # "5 =" a pak "7" ma zacit nove cislo (ne 57), "1. =" ukaze 1 (ne "1,")
+        # "5 =" a pak "7" ma zacit nove cislo (ne 57), "1. =" ukaze 1 (ne "1.")
         self.keys("5=7")
         self.assertEqual(self.shown(), "7")
-        self.c.clear()
-        self.c.clear()
+        self.act("clear")
+        self.act("clear")
         self.keys("1.=")
         self.assertEqual(self.shown(), "1")
         self.keys("+2=")
         self.assertEqual(self.shown(), "3")
 
+    def paste(self, text):
+        self.app.ask("copy-text " + text)
+        before = self.st()
+        self.app.ask("press ctrl+v")
+        # schranka se cte asynchronne
+        self.app.wait(lambda: self.st() != before, 1.5)
+
     def test_paste_rejects_nan_and_infinity(self):
         for text in ("NaN", "Infinity", "-inf", "sNaN"):
-            self.c.clear()
-            self.c.clear()
+            self.app.ask("reset")
             self.paste(text)
             self.assertEqual(self.shown(), "0", text)
 
     def test_paste_exponent_and_long_numbers(self):
         self.paste("1e5")
-        self.assertEqual(self.shown(), calc.group("100000"))
+        self.assertEqual(self.shown(), "100,000")
         self.keys("1")
-        self.assertEqual(self.shown(), calc.group("1000001"))
-        self.c.clear()
+        self.assertEqual(self.shown(), "1,000,001")
+        self.app.ask("reset")
         self.paste("1" * 40)            # delsi nez displej: zaokrouhleny vedecky zapis
         self.assertIn("e39", self.shown())
         self.assertLess(len(self.shown()), 20)
         self.keys("+1=")                # pocita se s plnou hodnotou
         self.assertIn("e39", self.shown())
+        self.app.ask("reset")
+        self.paste(" 1,234.50 ")        # oddelovac tisicu a mezery pryc, cislice jak byly
+        self.assertEqual(self.st()["entry"], "1234.50")
+        self.assertEqual(self.shown(), "1,234.50")
 
     def test_paste_huge_exponent(self):
         # C-05: 1e999999999 ze schranky nesmi alokovat miliardu znaku; ukaze se chyba
-        import resource
-        before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        before = self.app.pss_kb()
         self.paste("1e999999999")
-        self.assertEqual(self.shown(), calc._("Error"))
+        self.assertEqual(self.shown(), "Error")
+        self.app.ask("reset")
         self.paste("-1E-999999999")
-        self.assertEqual(self.shown(), calc._("Error"))
-        self.assertLess(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - before, 50 * 1024)  # < 50 MB
+        self.assertEqual(self.shown(), "Error")
+        self.assertLess(self.app.pss_kb() - before, 50 * 1024)
+        self.app.ask("reset")
         self.paste("1" * 5000)          # obri text se ignoruje
-        self.c.clear()
-        self.c.clear()
+        self.assertEqual(self.shown(), "0")
         self.paste("2e500")             # velke, ale v rozsahu: vedecky zapis a pocita se dal
         self.assertIn("e500", self.shown())
         self.keys("*2=")
         self.assertIn("e500", self.shown())
         self.assertTrue(self.shown().startswith("4"))
+
+    def test_keyboard_events(self):
+        # skutecne udalosti klaves do okna (key-press-event)
+        self.app.ask("type 12+3*2")
+        self.assertEqual(self.st()["pending"], [])
+        self.app.ask("press Return")
+        self.assertEqual(self.shown(), "18")
+        self.app.ask("type 7.5")
+        self.assertEqual(self.st()["clear"], "C")
+        self.app.ask("press BackSpace")
+        self.assertEqual(self.shown(), "7.")
+        self.app.ask("press Escape")          # nove cislo po "=" zapomnelo vysledek
+        self.assertEqual((self.shown(), self.st()["clear"]), ("0", "AC"))
+        self.app.ask("type 5!")
+        self.assertEqual(self.shown(), "120")
+        self.app.ask("type -")
+        self.assertEqual(self.st()["pending"], ["-"])
+        self.app.ask("type 20%=")
+        self.assertEqual(self.shown(), "96")
+        self.app.ask("type 2^10=")
+        self.assertEqual(self.shown(), "1,024")
+        # Ctrl+C zkopiruje displej, Ctrl+V ho vlozi zpet
+        self.app.ask("press ctrl+c")
+        self.app.ask("press Escape Escape")
+        self.app.ask("press ctrl+v")
+        self.assertTrue(self.app.wait(lambda: self.st()["entry"] == "1024", 1.5))
+
+    def test_scientific_mode_is_remembered(self):
+        cfg = os.path.join(self.config, "luxos", "calculator")
+        basic = self.st()["size"]
+        self.app.ask("press ctrl+2")
+        st = self.st()
+        self.assertTrue(st["scientific"])
+        with open(cfg) as f:
+            self.assertEqual(f.read(), "scientific")
+        self.assertTrue(self.app.wait(lambda: self.st()["size"][0] > basic[0] + 200), self.st())
+        self.app.ask("click Deg")
+        self.app.ask("click sin")      # sin(0) v radianech
+        self.assertEqual(self.st()["degrees"], False)
+        self.app.ask("reset")
+        self.app.ask("type 2")
+        self.app.ask("click π")
+        self.app.ask("press Return")
+        self.assertEqual(self.shown(), "6.28318530717959")
+        self.app.ask("click Rad")
+        self.app.ask("type 30")
+        self.app.ask("click sin")
+        self.assertEqual(self.shown(), "0.5")
+        self.app.ask("type +")
+        self.app.ask("click xʸ")
+        self.assertEqual(self.st()["pending"], ["^"])
+        self.app.ask("press ctrl+1")
+        self.assertFalse(self.st()["scientific"])
+        with open(cfg) as f:
+            self.assertEqual(f.read(), "basic")
+        self.assertTrue(self.app.wait(lambda: self.st()["size"] == basic), (self.st()["size"], basic))
+
+    def test_window_title_and_close_button(self):
+        d = self.app.dump()
+        self.assertEqual([(w["title"], w["close_button"]) for w in d], [("Calculator", True)])
+        self.assertIsNotNone(lsl_app.find(d, text="f(x)"))
+        self.assertIsNotNone(lsl_app.find(d, text="÷"))
+
+
+class Startup(unittest.TestCase):
+    """Samostatne spusteni: ulozeny rezim, cestina (oddelovace), Ctrl+Q, pamet."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.binary = lsl_app.build("luxos-calculator", TMP)
+        cls.x = lsl_app.Xvfb("1280x900")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.x.stop()
+
+    def start(self, config, **extra):
+        env = dict(os.environ, DISPLAY=self.x.display, HOME=TMP, XDG_CONFIG_HOME=config, LANG="C.UTF-8",
+                   LC_ALL="C.UTF-8", GTK_THEME="Adwaita")
+        env.pop("WAYLAND_DISPLAY", None)
+        env.update(extra)
+        luxos_testguard.check_env(env)
+        app = lsl_app.App([self.binary], env)
+        self.addCleanup(app.stop)
+        self.assertTrue(app.wait(lambda: app.dump()), app.stderr())
+        return app
+
+    def test_saved_scientific_mode_and_ctrl_q(self):
+        config = os.path.join(TMP, "config-sci")
+        os.makedirs(os.path.join(config, "luxos"), exist_ok=True)
+        with open(os.path.join(config, "luxos", "calculator"), "w") as f:
+            f.write("scientific\n")
+        app = self.start(config)
+        self.assertTrue(json.loads(app.ask("state", "state"))["scientific"])
+        app.send("press ctrl+q")
+        self.assertEqual(app.proc.wait(10), 0)
+
+    def test_czech_separators(self):
+        locpath = czech_locale()
+        if not locpath:
+            self.skipTest("cs_CZ locale cannot be generated")
+        app = self.start(os.path.join(TMP, "config-cs"), LANG="cs_CZ.UTF-8", LC_ALL="cs_CZ.UTF-8", LOCPATH=locpath)
+        self.assertEqual(app.dump()[0]["title"], "Kalkulačka")
+        self.assertIsNotNone(lsl_app.find(app.dump(), text=",", kind="GtkButton"))
+        app.ask("type 1250*1,21")
+        app.ask("press Return")
+        self.assertEqual(json.loads(app.ask("state", "state"))["value"], "1" + NNBSP + "512,5")
+        app.ask("copy-text 2" + NNBSP + "000,5")
+        app.ask("press Escape Escape ctrl+v")
+        self.assertTrue(app.wait(lambda: json.loads(app.ask("state", "state"))["entry"] == "2000.5", 1.5))
+        out = os.environ.get("LUXOS_TEST_SHOTS")
+        if out:
+            os.makedirs(out, exist_ok=True)
+            time.sleep(0.3)
+            lsl_app.shot(self.x.display, os.path.join(out, "calculator-cs.png"))
+
+    def test_memory(self):
+        app = self.start(os.path.join(TMP, "config-pss"))
+        time.sleep(1.0)
+        pss = app.pss_kb()
+        print("luxos-calculator PSS %d kB" % pss, file=sys.stderr)
+        self.assertLess(pss, 60 * 1024)
 
 
 if __name__ == "__main__":

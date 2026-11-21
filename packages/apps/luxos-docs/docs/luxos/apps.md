@@ -169,6 +169,10 @@ Run `luxos-calculator`, or press the Calculator key. It uses decimal arithmetic,
 - Keyboard: digits, `+ - * / ^ ( )`, Enter, Backspace, Esc, `%`, Ctrl+C and Ctrl+V, Ctrl+W or Ctrl+Q
   closes it. Ctrl+V pastes a number (also `1e5`); a number longer than the display is rounded and
   text that is not a number is ignored.
+- Numbers keep 34 significant digits and the display shows up to 15. Square roots, powers with a
+  whole exponent and factorials up to about 40! are exact; sin, cos, tan, ln, log, e^x, other powers
+  and the factorial of a fraction are computed in floating point and rounded to 15 digits. The
+  calculation row in the Launchpad search uses the same arithmetic (shown with 12 digits).
 
 ## Calendar
 
