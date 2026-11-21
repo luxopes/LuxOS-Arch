@@ -438,6 +438,9 @@ def test_agent_peer_check_real_processes(tmp_path):
     """core.agent_peer_ok proti skutecnym procesum: spravny program + skupina projde, jiny program, jina
     skupina nebo skonceny proces ne (pidfd)."""
     import subprocess
+    if os.stat("/usr/bin/sleep").st_uid != 0:
+        # user namespace (scripts/wl-test/isolate): root hostitele je nezmapovany, programy patri "nobody"
+        pytest.skip("host root is unmapped in this user namespace, the root-owned program check cannot pass")
     gid = os.getegid()
     sleeper = subprocess.Popen(["/usr/bin/sleep", "30"])
     other = subprocess.Popen(["/usr/bin/tail", "-f", "/dev/null"])

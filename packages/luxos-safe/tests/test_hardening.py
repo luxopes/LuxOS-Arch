@@ -276,7 +276,14 @@ def _have_gocryptfs():
     return all(shutil.which(c) for c in ("gocryptfs", "gocryptfs-xray", "fusermount3")) and os.path.exists("/dev/fuse")
 
 
+def _setuid_fuse():
+    # v user namespace (scripts/wl-test/isolate) je root hostitele nezmapovany: setuid fusermount3 nic nepripoji
+    # (skutecne pripojeni v jmennem prostoru overuje test_userns.py)
+    return os.stat(shutil.which("fusermount3") or "/usr/bin/fusermount3").st_uid == 0
+
+
 @unittest.skipUnless(_have_gocryptfs(), "gocryptfs, gocryptfs-xray or FUSE not available")
+@unittest.skipUnless(_have_gocryptfs() and _setuid_fuse(), "setuid fusermount3 cannot mount in a user namespace")
 class Real(unittest.TestCase):
     """Skutecny gocryptfs v docasne slozce (bez /safe, bez rootu)."""
     PW = "Modry-slon-pije-caj"

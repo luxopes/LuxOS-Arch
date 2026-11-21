@@ -53,6 +53,9 @@ def can_run():
         return "bwrap, sshfs or sftp-server missing"
     if not os.path.exists("/dev/fuse"):
         return "no /dev/fuse"
+    if os.stat("/usr/bin/fusermount3").st_uid != 0:
+        # user namespace (scripts/wl-test/isolate): root hostitele je nezmapovany, setuid fusermount3 nic nepripoji
+        return "fusermount3 cannot mount in a user namespace (run this module outside run-all for sshfs)"
     r = subprocess.run(["bwrap", "--unshare-all", "--ro-bind", "/usr", "/usr", "--symlink", "usr/lib", "/lib",
                         "--symlink", "usr/lib", "/lib64", "/usr/bin/true"], capture_output=True)
     if r.returncode != 0:

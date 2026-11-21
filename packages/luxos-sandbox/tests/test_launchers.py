@@ -39,7 +39,10 @@ def png(w, h):
 
 class Launchers(unittest.TestCase):
     def setUp(self):
-        self.t = tempfile.mkdtemp(prefix="luxos-sandbox-launchers-")
+        # luxos-sandbox overuje vlastnika kazde slozky cesty; v user namespace spoustece testu (scripts/wl-test/isolate)
+        # je root hostitele nezmapovany, vlastni je tam jen soukrome /tmp
+        work = "/tmp" if os.stat("/tmp").st_uid == os.getuid() else None
+        self.t = tempfile.mkdtemp(prefix="luxos-sandbox-launchers-", dir=work)
         self.base = os.path.join(self.t, "base")
         self.root = os.path.join(self.base, USER)
         self.home = os.path.join(self.t, "home")
