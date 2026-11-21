@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=102
+pkgrel=103
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -59,7 +59,9 @@ depends=(
     xfce4-cpugraph-plugin  # graf vytizeni CPU (jde pridat do listy, ve vychozi liste neni)
     # xorg-xauth: luxos-xauth-wildcard (pristup k obrazovce i po zmene nazvu pocitace)
     xorg-setxkbmap xorg-xprop xorg-xauth libxi libxtst libxrandr
-    brightnessctl luxos-i18n luxos-store luxos-account
+    # moduly v Pythonu presunute z luxos-desktop (1.1.0-102): luxos_wm_icon.py do luxos-i18n, luxos_calendar_ics.py
+    # do luxos-companion, fotka uctu primo v luxos-account - aktualizace je musi stahnout spolu s nim
+    brightnessctl 'luxos-i18n>=1.0.0-102' luxos-store 'luxos-account>=1.0.0-13'
     # Lux Guard: kontrola stazenych programu a snimky /home (i u starsich instalaci pres lux update)
     luxos-guard
     # LuxOS Care: aktualizace, zalozni jadro a prechod na jadro LuxOS (starsi instalace ho nemely)
@@ -108,7 +110,7 @@ depends=(
     # Mapy (packages/luxos-maps)
     luxos-maps
     # Telefon s aplikaci LuxOS Companion (packages/luxos-companion): poloha pro Mapy, LuxAI, poznamky
-    luxos-companion
+    'luxos-companion>=1.0.0-10'
     # Nastroje
     lshw pciutils usbutils
 )
