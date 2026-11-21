@@ -257,6 +257,8 @@ class ScrollGui(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.work = workdir("test-scroll-gui-")
+        # oznacena slozka testu (luxos_testguard): aplikace pak soukromy Xorg v ni uzna a DISPLAY nenahradi Xvfb
+        open(os.path.join(cls.work, ".luxos-test-root"), "w").close()
         cls.module = build_module(cls.work)
         cls.server = xinputtest.Server(os.path.join(cls.work, "x"))
 
@@ -287,7 +289,7 @@ class ScrollGui(unittest.TestCase):
                "XDG_CONFIG_HOME": h + "/.config", "XDG_CACHE_HOME": h + "/.cache", "XDG_DATA_HOME": h + "/.local/share",
                "XDG_STATE_HOME": h + "/.local/state", "XDG_CONFIG_DIRS": h + "/etc-xdg", "XDG_DATA_DIRS": "/usr/share",
                "NO_AT_BRIDGE": "1", "GSETTINGS_BACKEND": "memory", "GDK_BACKEND": "x11", "LANG": "C.UTF-8",
-               "GTK_THEME": "Adwaita", "GTK_MODULES": self.module if module else ""}
+               "GTK_THEME": "Adwaita", "GTK_MODULES": self.module if module else "", "LUXOS_TEST_ROOT": self.work}
         env.update(extra)
         for k, v in env.items():   # pojistka: nic nesmi ukazovat do skutecneho profilu
             if k.startswith("XDG_") and k != "XDG_DATA_DIRS":
