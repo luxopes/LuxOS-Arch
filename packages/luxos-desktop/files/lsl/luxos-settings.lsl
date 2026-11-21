@@ -92,7 +92,10 @@ function start_page():
     if id in S["by_id"] and len(S["by_id"][id]["exec"]) == 0:
         return id
     end
-    return DEFAULT_PAGE
+    if DEFAULT_PAGE in S["by_id"]:
+        return DEFAULT_PAGE
+    end
+    return [p["id"] for p in S["pages"] if len(p["exec"]) == 0][0]
 end
 
 # Stranka se postavi pri prvnim otevreni: titulek a okraje okolo widgetu modulu, posuvnik
@@ -278,7 +281,9 @@ end
 function search_words(p):
     words = [i18n.T(p["title"]), p["title"]]
     for k in p["keywords"]:
+        # klicova slova jsou v prekladech vetsinou s velkym pismenem (nadpisy skupin a radku)
         words.append(i18n.T(k))
+        words.append(i18n.T(k[0:1].upper() + k[1:]))
         words.append(k)
     end
     return model.fold(" | ".join(words))
@@ -469,18 +474,23 @@ end
 # ---- jedna instance ---------------------------------------------------------------------------------------------
 
 function on_bus_call(sender, path, interface, method, values, invocation):
-    if method == "Show":
-        id = values[0]
-        if find_page(id) != None:
-            id = find_page(id)["id"]
-        else:
-            id = S["current"]
-        end
-        call open_page(id, values[1])
-        call gtk.window_present_with_time(S["window"], gtk.get_current_event_time())
-    end
     call gio.return_value(invocation, [], "")
+    if method == "Show":
+        call glib.idle_add_data(show_request, values)
+    end
     return 0
+end
+
+# Az po odpovedi: druhe spusteni neceka na postaveni stranky
+function show_request(values):
+    p = find_page(values[0])
+    id = S["current"]
+    if p != None and p["id"] in S["by_id"]:
+        id = p["id"]
+    end
+    call open_page(id, values[1])
+    call gtk.window_present(S["window"])
+    return False
 end
 
 # True = jsme jedina instance (nebo sbernice neni); False = stranku ukazala bezici instance
@@ -595,6 +605,9 @@ function main():
     if id == "":
         id = start_page()
     end
+    if not (id in S["by_id"]):
+        id = S["pages"][0]["id"]
+    end
     S["dark"] = ui.dark_mode()
     call build_window()
     call apply_css()
@@ -605,7 +618,7 @@ function main():
     call gtk.widget_show_all(S["window"])
     call open_page(id, rest)
     if len(S["by_id"][id]["exec"]) > 0:
-        call open_page(DEFAULT_PAGE, [])
+        call open_page(start_page(), [])
     end
     if wayland():
         call wm.on_state(on_wm_state)
