@@ -3,7 +3,7 @@
 #
 # Zaznam: {"id", "time" (us), "tz", "app_id" (desktop-entry), "app", "icon", "summary", "body",
 #          "actions" [[klic, popis]..], "timeout", "read", "nid" (cislo oznameni), "sender", "gone"}
-# Nejnovejsi prvni, nejvys MAX zaznamu (jako log-max-size xfce4-notifyd).
+# Nejnovejsi prvni, nejvys MAX zaznamu, set_max(n) jinak (HISTORY_SIZE, jako log-max-size xfce4-notifyd).
 #
 #   load(dir)                     nacte dir/notifications.json a cislo pristiho oznameni
 #   save()                        zapise soubor (atomicky)
@@ -19,7 +19,7 @@ load luxos_notify_sys as sys
 
 MAX = 100
 
-state = {"dir": "", "path": "", "entries": [], "next_nid": 1, "seq": 0}
+state = {"dir": "", "path": "", "entries": [], "next_nid": 1, "seq": 0, "max": MAX}
 
 function load(dir):
     path = dir + "/notifications.json"
@@ -46,12 +46,17 @@ function load(dir):
             entries.append(e)
         end
     end
-    state["entries"] = entries[0:MAX]
+    state["entries"] = entries[0:state["max"]]
     next_nid = data.get("next_nid", 1)
     if type(next_nid) == "Int" and next_nid > 0 and next_nid < 4294967295:
         state["next_nid"] = next_nid
     end
     return len(entries)
+end
+
+function set_max(n):
+    state["max"] = n
+    return 0
 end
 
 function save():
@@ -83,7 +88,7 @@ function add(e):
     e["id"] = new_id()
     state["entries"].insert(0, e)
     dropped = [e["id"]]
-    while len(state["entries"]) > MAX:
+    while len(state["entries"]) > state["max"]:
         dropped.append(state["entries"].pop()["id"])
     end
     return dropped

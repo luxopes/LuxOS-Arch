@@ -528,7 +528,7 @@ class WaylandBackdrop(unittest.TestCase):
 
     def test_menu_change_wallpaper_and_edit_widgets(self):
         d, mark = self.menu_action(2)
-        d.wait(r"^run luxos-settings$", start=mark)
+        d.wait(r"^run luxos-settings desktop$", start=mark)
         mark = d.mark()
         self.open_menu(d, 300, 200)
         self.keys("Down", "Down", "Down", "Return")
