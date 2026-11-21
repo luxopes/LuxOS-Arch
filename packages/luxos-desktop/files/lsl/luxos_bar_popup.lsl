@@ -1,5 +1,5 @@
-# LuxOS - vyskakovaci okna horni listy na Waylandu: kalendar (klik na hodiny), Wi-Fi, Zvuk a Oznameni. Wi-Fi, Zvuk
-# a Oznameni jsou prevzate z luxos_bar_popups.lsl (vetev gpt-features-1.1.1): nmcli a heslo NetworkManageru pres
+# LuxOS - vyskakovaci okna horni listy na Waylandu: Wi-Fi, Zvuk a Oznameni (hodiny otevrou Kalendar hubu). Okna
+# jsou prevzate z luxos_bar_popups.lsl (vetev gpt-features-1.1.1): nmcli a heslo NetworkManageru pres
 # D-Bus, pactl; historie oznameni od luxos-notify (org.xfce.Notifyd.Log, cz.luxos.NotificationHistory: Activate,
 # Get/SetDoNotDisturb). Dokud je nektere okno otevrene, luxos-notify neukazuje bubliny (SetPopupsHidden).
 #
@@ -12,9 +12,9 @@
 #
 #   popup.init(tmavy, trace)            trace(text) = ladici vypis listy
 #   popup.toggle(druh, monitor, vystup, out_w, out_h, meritko, stred_x, tlacitko, cas_udalosti)
-#                                       druh "calendar" | "wifi" | "sound" | "notifications"; stred_x = stred ikony v liste
-#   popup.close(druh), popup.close_all(), popup.set_dark(tmavy), popup.day_changed(rok, mesic, den)
-load cairo, env, json, net
+#                                       druh "wifi" | "sound" | "notifications"; stred_x = stred ikony v liste
+#   popup.close(druh), popup.close_all(), popup.set_dark(tmavy)
+load cairo, json, net
 load glib, gtk, gio
 load luxos_glib as lglib
 load luxos_gio, gio as lgio
@@ -25,7 +25,7 @@ load luxos_layer as layer
 load luxos_tokens as tokens
 load luxos_material as material
 
-KINDS = ["calendar", "wifi", "sound", "notifications"]
+KINDS = ["wifi", "sound", "notifications"]
 WIDTH = 320
 GAP = 6
 EDGE = 8
@@ -50,18 +50,6 @@ end
 
 function log(message):
     return eprint("luxos-bar: " + message)
-end
-
-# Kalendar GTK v okne ze skla (barvy z tokens.gtk3_css)
-function css():
-    return (".lx-popup calendar { background-color: transparent; border: none; color: @lx_fg; padding: 2px; }\n"
-        + ".lx-popup calendar.header { background: none; border: none; box-shadow: none; }\n"
-        + ".lx-popup calendar.button { color: @lx_dim; background: none; border: none; box-shadow: none; }\n"
-        + ".lx-popup calendar.highlight { color: @lx_dim; font-size: " + String(tokens.FONT["caption"]) + "px; font-weight: "
-        + String(tokens.WEIGHT["semibold"]) + "; }\n"
-        + ".lx-popup calendar:indeterminate { color: @lx_dim; opacity: 0.5; }\n"
-        + ".lx-popup calendar:selected { background-color: @lx_accent; color: @lx_accent_text; border-radius: "
-        + String(tokens.RADIUS["pill"]) + "px; }\n")
 end
 
 function init(dark, trace_fn):
@@ -165,9 +153,7 @@ function window_for(kind):
     call lglib.connect_data(win, "realize", 0, on_realize, kind)
     P["wins"][kind] = win
     P["boxes"][kind] = box
-    if kind == "calendar":
-        call calendar_build(box)
-    elif kind == "wifi":
+    if kind == "wifi":
         call wifi_build(box)
     elif kind == "sound":
         call sound_build(box)
@@ -230,9 +216,7 @@ function toggle(kind, monitor, output, out_w, out_h, scale, center_x, button, ev
     P["place"][kind] = [output, out_w, out_h, scale, x]
     call layer.set_monitor(win, monitor)
     call layer.set_margin(win, layer.EDGE_LEFT, x)
-    if kind == "calendar":
-        call calendar_today()
-    elif kind == "wifi":
+    if kind == "wifi":
         P["wifi"]["loaded"] = False
         call wifi_refresh(True)
     elif kind == "sound":
@@ -332,51 +316,6 @@ function on_draw(kind, cr, window):
     end
     call cairo.restore(cr)
     return False
-end
-
-# ---- kalendar -------------------------------------------------------------------------------------
-
-function calendar_build(box):
-    W = P["w"]
-    W["cal_title"] = label("", ["lx-head"], 0.0)
-    call gtk.widget_set_margins(W["cal_title"], 4, 4, 2, 0)
-    call gtk.box_pack_start(box, W["cal_title"], False, False, 0)
-    cal = gtk.calendar_new()
-    call gtk.widget_add_class(cal, "lx-calendar")
-    call gtk.widget_set_can_focus(cal, False)
-    call gtk.box_pack_start(box, cal, False, False, 0)
-    W["calendar"] = cal
-    foot = gtk.box_new(gtk.HORIZONTAL, 0)
-    # cely Kalendar s udalostmi (luxos-hub)
-    call footer(foot, i18n.T("Open Calendar…"), ["luxos-calendar-toggle"])
-    call gtk.box_pack_start(box, foot, False, False, 0)
-    return 0
-end
-
-function today():
-    fixed = env.get("LUXOS_BAR_NOW", "")
-    if fixed != "":
-        d = fixed.split(" ")[0].split("-")
-        return [Int(d[0]), Int(d[1]), Int(d[2])]
-    end
-    return glib.local_date()
-end
-
-function calendar_today():
-    d = today()
-    call day_changed(d[0], d[1], d[2])
-    return 0
-end
-
-function day_changed(year, month, day):
-    W = P["w"]
-    if W.get("calendar", 0) == 0:
-        return 0
-    end
-    weekday = glib.weekday(year, month, day) - 1
-    call gtk.label_set_text(W["cal_title"], i18n.format_date(year, month, day, weekday, "year"))
-    call gtk.calendar_select_day(W["calendar"], year, month, day)
-    return 0
 end
 
 # ---- Wi-Fi ----------------------------------------------------------------------------------------

@@ -420,45 +420,46 @@ class WaylandBar(unittest.TestCase):
 
     # ---- vyskakovaci okna ----
 
-    def test_calendar_popup_open_time_and_close(self):
+    def test_popup_open_time_and_close(self):
         self.start()
         bar = self.bar()
         bar.wait(r"^drawn ")
-        clock = "move 1216 14"   # hodiny vpravo jako na X11
+        # Oznameni vlevo od hodin (hodiny otevrou Kalendar hubu, test_luxos_hub_wl)
+        bell = "move 1150 14"
         # prvni otevreni stavi okno (studene), pak teple
         mark = bar.mark()
-        self.input(clock, "click")
-        _, m = bar.wait(r"^popup calendar shown event_ms=(-?\d+) handler_ms=(\d+)", start=mark)
+        self.input(bell, "click")
+        _, m = bar.wait(r"^popup notifications shown event_ms=(-?\d+) handler_ms=(\d+)", start=mark)
         cold = int(m.group(1))
         time.sleep(0.3)
         image = self.shot()
-        # okno ze skla pod hodinami, pod vyhradnou zonou listy
+        # okno ze skla pod zvonkem, pod vyhradnou zonou listy
         self.assertNotEqual(pixel(image, 1150, BAR + 30), "000000")
         self.assertEqual(pixel(image, 1150, BAR + 2), "000000")
         mark = bar.mark()
         self.input("key Escape")
-        bar.wait(r"^popup calendar hidden", start=mark)
+        bar.wait(r"^popup notifications hidden", start=mark)
         warm = []
         for _ in range(8):
             mark = bar.mark()
-            self.input(clock, "click")
-            _, m = bar.wait(r"^popup calendar shown event_ms=(-?\d+) handler_ms=(\d+)", start=mark)
+            self.input(bell, "click")
+            _, m = bar.wait(r"^popup notifications shown event_ms=(-?\d+) handler_ms=(\d+)", start=mark)
             warm.append(int(m.group(1)))
             mark = bar.mark()
-            self.input(clock, "click")
-            bar.wait(r"^popup calendar hidden", start=mark)
+            self.input(bell, "click")
+            bar.wait(r"^popup notifications hidden", start=mark)
         warm.sort()
-        print(f"\n  kalendar: studene {cold} ms, teple median {warm[len(warm) // 2]} ms, max {warm[-1]} ms (klik -> snimek)")
+        print(f"\n  oznameni: studene {cold} ms, teple median {warm[len(warm) // 2]} ms, max {warm[-1]} ms (klik -> snimek)")
         self.assertTrue(all(v >= 0 for v in warm), "cas udalosti neni CLOCK_MONOTONIC")
         self.assertLessEqual(warm[len(warm) // 2], 120)
         self.assertLessEqual(warm[-1], 120)
         # klik mimo okno ho zavre (ztrata fokusu)
         mark = bar.mark()
-        self.input(clock, "click")
-        bar.wait(r"^popup calendar shown", start=mark)
+        self.input(bell, "click")
+        bar.wait(r"^popup notifications shown", start=mark)
         mark = bar.mark()
         self.input("move 640 600", "click")
-        bar.wait(r"^popup calendar hidden", start=mark)
+        bar.wait(r"^popup notifications hidden", start=mark)
         time.sleep(0.3)
         self.assertEqual(pixel(self.shot(), 1150, BAR + 30), "000000")
 

@@ -262,7 +262,7 @@ class HubWayland:
         mark, bmark = self.cc.mark(), bar.mark()
         clicked = time.monotonic()
         self.input(f"move {button} 14", "sleep 0.1", "click")
-        _, m = bar.wait(r"^control-center (\d+) (\d+)", start=bmark)
+        _, m = bar.wait(r"^luxos-cc-toggle (\d+) (\d+)", start=bmark)
         self.assertEqual(int(m.group(1)), OUT_W)
         center = OUT_W + int(m.group(2))
         placed = self.cc.wait("placed ", mark, timeout=SHOW_LIMIT)
@@ -303,6 +303,26 @@ class HubWayland:
         self.cc.wait("hidden", mark)
         time.sleep(0.6)
         self.assertNotIn("shown", self.cc.lines()[mark:], "klik mimo okno znovu otevrel")
+        self.assertIsNone(hub.poll())
+
+    def test_clock_opens_calendar_under_it(self):
+        # hodiny vpravo v liste otevrou Kalendar hubu (luxos_cal) jako na X11, ne maly kalendar listy
+        self.start()
+        bar = self.bar()
+        hub = self.hub()
+        clock = f"move {2 * OUT_W - 64} 14"
+        mark, bmark = self.cal.mark(), bar.mark()
+        self.input(clock, "sleep 0.1", "click")
+        _, m = bar.wait(r"^luxos-calendar-toggle (\d+) (\d+)", start=bmark)
+        self.assertEqual(int(m.group(1)), OUT_W)
+        words = self.cal.wait("placed ", mark, timeout=SHOW_LIMIT).split()
+        self.assertEqual(words[:3], ["placed", "anchor", str(OUT_W)])
+        self.cal.wait("shown", mark, timeout=SHOW_LIMIT)
+        self.assertFalse(any(l.startswith("popup calendar") for l in bar.lines[bmark:]))
+        time.sleep(0.6)
+        mark = self.cal.mark()
+        self.input(clock, "sleep 0.1", "click")
+        self.cal.wait("hidden", mark)
         self.assertIsNone(hub.poll())
 
     def test_signals_show_without_bar_and_calendar(self):

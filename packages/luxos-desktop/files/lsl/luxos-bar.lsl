@@ -101,7 +101,7 @@ function bar_css():
     white = tokens.css_color(tokens.COLORS["on_glass"])
     dark = tokens.css_color(tokens.COLORS["on_glass_light"])
     plain = " background: none; background-image: none; border: none; box-shadow: none; outline: none;"
-    return (tokens.gtk3_css(ui["dark"]) + popup.css()
+    return (tokens.gtk3_css(ui["dark"])
         + "window.luxos-bar { background: transparent; }\n"
         + ".luxos-bar label { font-size: " + String(tokens.FONT["body"]) + "px; }\n"
         + ".luxos-bar .lb-app { font-weight: " + String(tokens.WEIGHT["bold"]) + "; }\n"
@@ -730,7 +730,6 @@ function update_clock():
         call gtk.label_set_text(bar["clock"], now)
         call gtk.widget_set_tooltip(bar["items"]["calendar"][0], tip)
     end
-    call popup.day_changed(p[0], p[1], p[2])
     return 0
 end
 
@@ -916,7 +915,10 @@ function on_item_press(kind, event, widget):
         call show_menu(widget)
     elif kind == "control-center" or kind == "battery":
         call popup.close_all()
-        call open_control_center(bar, widget, gtk.event_time(event))
+        call open_hub(bar, widget, gtk.event_time(event), "luxos-cc-toggle")
+    elif kind == "calendar":
+        call popup.close_all()
+        call open_hub(bar, widget, gtk.event_time(event), "luxos-calendar-toggle")
     elif kind == "keyboard":
         call popup.close_all()
         call show_layouts(widget)
@@ -938,13 +940,13 @@ function on_item_press(kind, event, widget):
     return True
 end
 
-# Ovladaci centrum bezi v luxos-hub a signal nic nenese: monitor listy a stred tlacitka mu preda soubor
-function open_control_center(bar, widget, pressed):
+# Ovladaci centrum a Kalendar bezi v luxos-hub a signal nic nenese: monitor listy a stred tlacitka mu preda soubor
+function open_hub(bar, widget, pressed, toggle):
     a = gtk.widget_get_allocation(widget)
     geo = layer.monitor_geometry(bar["monitor"])
     call hub_popup.write_anchor(geo[0], geo[1], a[0] + a[2] // 2, pressed)
-    call trace("control-center " + String(geo[0]) + " " + String(a[0] + a[2] // 2))
-    call glib.spawn_quiet(["luxos-cc-toggle"])
+    call trace(toggle + " " + String(geo[0]) + " " + String(a[0] + a[2] // 2))
+    call glib.spawn_quiet([toggle])
     return 0
 end
 
