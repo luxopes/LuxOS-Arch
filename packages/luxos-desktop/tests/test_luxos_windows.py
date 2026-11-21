@@ -3,9 +3,8 @@ aplikace), volba "Seskupit okna podle aplikaci v Alt+Tab" a posun ploch do stran
 (xfwm4 z [luxos], packages/xfwm4).
 
 Spusteni:  python3 -m unittest packages/luxos-desktop/tests/test_luxos_windows.py -v
-Se spravcem oken (jen pod Xvfb, nikdy na skutecne obrazovce):
-  env -u DISPLAY xvfb-run -a -s "-screen 0 1920x1080x24" python3 -m unittest \
-      packages/luxos-desktop/tests/test_luxos_windows.py -v
+Se spravcem oken (jen pod Xvfb, nikdy na skutecne obrazovce; kazda trida si pusti vlastni Xvfb 1920x1080):
+  env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_windows.py -v
 LUXOS_XFWM4 = xfwm4 s opravou LuxOS (napr. rozbaleny artefakt .../usr/bin/xfwm4); bez nej se pouzije
 /usr/bin/xfwm4, jen kdyz uz opravu obsahuje. LUXOS_SHOT_DIR = slozka pro snimky obrazovky.
 Test spousti vlastni sbernici D-Bus s docasnym HOME (xfconfd bez nastaveni uzivatele).
@@ -35,7 +34,7 @@ XFCONF_DIR = os.path.join(FILES, "xdg", "xfce4", "xfconf", "xfce-perchannel-xml"
 TMP = tempfile.mkdtemp(prefix="luxos-windows-test-")
 SHOT_DIR = os.environ.get("LUXOS_SHOT_DIR")
 STEP = 28
-SLIDE_SCREEN = (1920, 1080)     # xvfb-run -s "-screen 0 1920x1080x24"
+SLIDE_SCREEN = (1920, 1080)     # vlastni Xvfb kazde tridy testu (WindowManagerBase.start_x)
 SLIDE_Y = 420                   # radek obrazovky pres okna testu posunu ploch
 
 
@@ -344,8 +343,8 @@ x.XFlush(d)
 '''
 
 
-def xprop_root(prop):
-    return subprocess.run(["xprop", "-root", prop], capture_output=True, text=True).stdout
+def xprop_root(env, prop):
+    return subprocess.run(["xprop", "-root", prop], env=env, capture_output=True, text=True).stdout
 
 
 NEEDS_WM = "needs patched xfwm4 (LUXOS_XFWM4) and Xvfb (xvfb-run) with xdotool"
@@ -369,6 +368,10 @@ class WindowManagerBase(unittest.TestCase):
                        XDG_DATA_HOME=os.path.join(cls.home, ".local", "share"),
                        XDG_CONFIG_DIRS=xdg + ":/etc/xdg", GTK_A11Y="none", NO_AT_BRIDGE="1", LANG="C")
         cls.env.pop("SESSION_MANAGER", None)
+        # vlastni Xvfb 1920x1080 pro kazdou tridu: testy nezavisi na obrazovce volajiciho (xvfb-run -a
+        # bez -s ma 640x480) ani na oknech a spravci oken, ktere na ni nechaly jine moduly
+        cls.env.pop("XAUTHORITY", None)
+        cls.env["DISPLAY"] = cls.start_x()
         # vlastni sbernice: xfconfd (aktivace D-Bus) dedi prostredi demona, tedy docasny HOME
         cls.bus = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
                                    env=cls.env, stdout=subprocess.PIPE, text=True)
@@ -378,13 +381,34 @@ class WindowManagerBase(unittest.TestCase):
         cls.wm = subprocess.Popen([XFWM4, "--compositor=" + cls.COMPOSITOR, "--sm-client-disable"], env=cls.env,
                                   stdout=subprocess.DEVNULL, stderr=cls.wm_log)
         for _ in range(100):
-            if "window id" in xprop_root("_NET_SUPPORTING_WM_CHECK"):
+            if "window id" in xprop_root(cls.env, "_NET_SUPPORTING_WM_CHECK"):
                 break
             time.sleep(0.1)
         else:
             raise RuntimeError("xfwm4 did not start")
         time.sleep(1.0)
         cls.apps = []
+
+    @classmethod
+    def start_x(cls):
+        r, w = os.pipe()
+        xvfb = subprocess.Popen(["Xvfb", "-displayfd", str(w), "-screen", "0", "%dx%dx24" % SLIDE_SCREEN,
+                                 "-nolisten", "tcp"], pass_fds=(w,),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.close(w)
+
+        def stop():
+            xvfb.terminate()
+            try:
+                xvfb.wait(5)
+            except subprocess.TimeoutExpired:
+                xvfb.kill()
+        cls.addClassCleanup(stop)       # i kdyz setUpClass selze pozdeji
+        with os.fdopen(r) as f:
+            num = f.readline().strip()
+        if not num:
+            raise RuntimeError("Xvfb did not start")
+        return ":" + num
 
     @classmethod
     def tearDownClass(cls):
@@ -446,7 +470,7 @@ class WindowManagerBase(unittest.TestCase):
                 int(g["HEIGHT"]) + top + bottom)
 
     def active(self):
-        out = xprop_root("_NET_ACTIVE_WINDOW")
+        out = xprop_root(self.env, "_NET_ACTIVE_WINDOW")
         return int(out.split("#")[1].split(",")[0].strip(), 16)
 
     def key(self, *keys):
@@ -464,7 +488,7 @@ class WindowManagerBase(unittest.TestCase):
         subprocess.run([sys.executable, "-c", SHOT, os.path.join(SHOT_DIR, name + ".png")], env=self.env)
 
     def screen(self):
-        out = xprop_root("_NET_WORKAREA")
+        out = xprop_root(self.env, "_NET_WORKAREA")
         x, y, w, h = [int(v) for v in out.split("=")[1].split(",")[:4]]
         return x, y, w, h
 
@@ -711,7 +735,7 @@ class WindowManager(WindowManagerBase):
         return int(out.split("=")[1])
 
     def current_desktop(self):
-        return int(xprop_root("_NET_CURRENT_DESKTOP").split("=")[1])
+        return int(xprop_root(self.env, "_NET_CURRENT_DESKTOP").split("=")[1])
 
     def test_window_from_other_workspace_stays(self):
         a = self.open("ws-stay-a", "luxwsa", 500, 300)
@@ -810,7 +834,7 @@ class WindowManager(WindowManagerBase):
         self.xfconf("xfwm4", "/general/workspace_slide", "false", "bool")
         steps = self.distinct_spans(self.record_switch(1, "slide-off"))
         self.assertLessEqual(len(steps), 2, steps)
-        self.assertEqual(xprop_root("_NET_CURRENT_DESKTOP").split("=")[1].strip(), "1")
+        self.assertEqual(xprop_root(self.env, "_NET_CURRENT_DESKTOP").split("=")[1].strip(), "1")
 
 
 # ---- celoobrazovkove okno nad horni listou a Dockem -------------------------------------------------------
@@ -826,10 +850,6 @@ class FullscreenTests:
     ale pod listou, a klik do nej uz nepomohl."""
 
     def setUp(self):
-        out = subprocess.run(["xdotool", "getdisplaygeometry"], env=self.env, capture_output=True,
-                             text=True).stdout.split()
-        if [int(v) for v in out] != list(SLIDE_SCREEN):
-            self.skipTest("needs xvfb-run -s \"-screen 0 1920x1080x24\"")
         # lista nahore jako xfce4-panel (bere zamereni, rezervuje 28 px), Dock dole jako Plank (nebere)
         self.bar = self.open("fs-bar", "luxfsbar", SLIDE_SCREEN[0], 28, "--dock", "--focusable",
                              "--color", "0000ff", "--move", "0", "0")
@@ -849,7 +869,7 @@ class FullscreenTests:
         self.assertEqual(self.active(), wid)
 
     def stacking(self):
-        out = xprop_root("_NET_CLIENT_LIST_STACKING")
+        out = xprop_root(self.env, "_NET_CLIENT_LIST_STACKING")
         return [int(v.strip(), 16) for v in out.split("#")[1].split(",")]
 
     def pixels(self, *pts):
