@@ -1772,7 +1772,7 @@ end
 # ---- start -------------------------------------------------------------------------------------------------------
 
 function window_hints_x11(win):
-    call gtk.window_set_decorated(win, False)
+    call gtk.window_set_undecorated(win)
     call gtk.window_set_skip_taskbar_hint(win, True)
     call gtk.window_set_skip_pager_hint(win, True)
     call gtk.window_set_keep_above(win, True)

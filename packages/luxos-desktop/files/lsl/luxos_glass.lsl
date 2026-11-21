@@ -16,6 +16,7 @@
 # Tapeta se nacte jednou pro vsechna okna procesu a pri zmene v xfconf se prekresli. Potrebuje LSL >= 0.10.9.
 load cairo, glib, gio, gtk
 load luxos_glib as lglib
+load luxos_gtk as lgtk
 
 RADIUS = 16.0
 EDGE = 8
@@ -566,7 +567,7 @@ function setup(win, can_resize):
     state["resize"][win] = can_resize
     call gtk.window_set_resizable(win, can_resize)
     call gtk.widget_add_class(win, "lg-window")
-    call gtk.window_set_decorated(win, False)
+    call lgtk.window_set_undecorated(win)
     call gtk.window_set_rgba(win)
     call gtk.widget_add_events(win, gtk.BUTTON_PRESS_MASK + gtk.BUTTON_RELEASE_MASK + gtk.POINTER_MOTION_MASK)
     call gtk.connect(win, "draw", on_draw)

@@ -9,6 +9,7 @@
 #   css_set(provider, css) (novy obsah poskytovatele: prepnuti svetly/tmavy), settings_theme_name(), settings_prefer_dark(),
 #   pointer_position() -> [x, y], screen_active_window() (GdkWindow aktivniho okna podle spravce oken, 0 kdyz neni;
 #   nova reference -> glib.object_unref), window_set_rgba(okno) (RGBA visual + app paintable, jen s kompozitorem),
+#   window_set_undecorated(okno) (bez zahlavi i od kompozitoru na Waylandu: vlastni semafor v obsahu),
 #   Emoji a symboly: selection_set_text/_image, selection_owned, selection_request_text/_image (asynchronne,
 #   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
 #   primary_monitor_info() -> [x, y, w, h, nazev vystupu] (widgety plochy: tapeta hlavniho monitoru)
@@ -401,6 +402,24 @@ end
 
 function settings_prefer_dark():
     return gtk.object_get_bool(gtk.settings_get_default(), "gtk-application-prefer-dark-theme")
+end
+
+# GTK 3 na Waylandu zada pres org_kde_kwin_server_decoration o zahlavi kompozitoru i pro okno bez dekoraci;
+# okno s vlastnim zahlavim v obsahu by melo dve nad sebou. Ohlaseni CSD pred namapovanim to opravi.
+function on_realize_csd(widget):
+    unsafe:
+        window = __lsl_qbe_call1(__lsl_symbol("gtk_widget_get_window"), ptr(widget))
+        if window != 0 and __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("g_type_check_instance_is_a"), window, __lsl_qbe_call0(__lsl_symbol("gdk_wayland_window_get_type")))) != 0:
+            call __lsl_qbe_call1(__lsl_symbol("gdk_wayland_window_announce_csd"), window)
+        end
+    end
+    return 0
+end
+
+function window_set_undecorated(window):
+    call gtk.window_set_decorated(window, False)
+    call gtk.connect(window, "realize", on_realize_csd)
+    return 0
 end
 
 # Pruhledne pozadi okna (jen kdyz bezi kompozitor)
