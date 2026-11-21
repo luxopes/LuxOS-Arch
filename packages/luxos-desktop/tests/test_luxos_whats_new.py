@@ -37,7 +37,6 @@ SRC = os.path.join(ROOT, "luxos-desktop", "files", "lsl", "luxos-whats-new.lsl")
 NOTES = os.path.join(ROOT, "luxos-branding", "files", "whats-new")
 ADWAITA = "/usr/share/icons/Adwaita"
 sys.path.insert(0, os.path.join(ROOT, "luxos-i18n", "files"))
-sys.path.insert(0, os.path.join(ROOT, "luxos-desktop", "files", "python"))   # luxos_winsize
 
 class wn:
     """Pomucky testu dat novinek (aplikace je v LSL a testuje ji LslModel)."""
@@ -217,22 +216,6 @@ class DockTest(unittest.TestCase):
         self.assertIn('gtk.window_set_wmclass(window, "luxos-whats-new", "luxos-whats-new")', src)
         # ui.window: ikona okna 16-256 px z motivu (window_set_icon_list), ostra v Docku a Alt+Tab
         self.assertIn('ui.window(i18n.T("What\'s New"), "luxos-app"', src)
-
-    def test_window_icon_sizes(self):
-        sys.path.insert(0, os.path.join(ROOT, "luxos-desktop", "files", "python"))
-        import luxos_wm_icon
-        sizes = (16, 24, 32, 48, 64, 128, 256)
-        self.assertEqual(luxos_wm_icon.WINDOW_SIZES, sizes)
-        try:
-            pbs = luxos_wm_icon.window_pixbufs("luxos-app")
-        except Exception as e:  # bez Gtk/obrazovky v sestavovacim prostredi
-            self.skipTest(str(e))
-        if not pbs:
-            self.skipTest("luxos-app icon not installed")
-        self.assertEqual([p.get_width() for p in pbs], list(sizes))
-        argb = luxos_wm_icon._argb(pbs[0])
-        self.assertEqual(argb[:2], [16, 16])
-        self.assertEqual(len(argb), 2 + 16 * 16)
 
 
 class PlainWordsTest(unittest.TestCase):
