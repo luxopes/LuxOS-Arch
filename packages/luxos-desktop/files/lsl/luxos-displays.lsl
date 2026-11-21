@@ -13,7 +13,8 @@
 #                                 ("reverted"); i kdyz okno nastaveni mezitim spadne
 #   luxos-displays menu           rychla volba rezimu (luxos-displays-settings --menu)
 # Konec: 0 ok, 1 kompozitor zmenu odmitl, 2 spatne argumenty nebo bez Waylandu/prava, 3 vraceno.
-load glib, json, env
+load luxos_glib, glib as glib
+load json, env
 load luxos_wl as wl
 load luxos_luxwm as wm
 load luxos_displays as dw

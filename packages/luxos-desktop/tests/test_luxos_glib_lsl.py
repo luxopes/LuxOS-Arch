@@ -1,6 +1,6 @@
 """luxos_glib.lsl: zachyceny vystup procesu (spawn_capture, spawn_stream) s vicebajtovymi znaky UTF-8
 rozdelenymi na hranici kusu cteni (4096 B) dorazi beze zmeny; zaznam obsluhy signalu (connect_data) se uvolni
-se zanikem objektu.
+se zanikem objektu; signal UNIXu (unix_signal_add) ma prioritu DEFAULT, ne HIGH.
 
 Spusteni: python3 -m unittest packages/luxos-desktop/tests/test_luxos_glib_lsl.py -v
 LUXOS_LSLC: prekladac lslc (jinak lslc z PATH).
@@ -27,7 +27,9 @@ class GlibCapture(unittest.TestCase):
             shutil.copy(f, cls.tmp)
         cls.prog = os.path.join(cls.tmp, "glib-test")
         cls.signal_prog = os.path.join(cls.tmp, "signal-test")
-        for name, prog in (("luxos-glib-test", cls.prog), ("luxos-signal-test", cls.signal_prog)):
+        cls.priority_prog = os.path.join(cls.tmp, "signal-priority-test")
+        for name, prog in (("luxos-glib-test", cls.prog), ("luxos-signal-test", cls.signal_prog),
+                           ("luxos-signal-priority-test", cls.priority_prog)):
             shutil.copy(os.path.join(HERE, "lsl", name + ".lsl"), cls.tmp)
             r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", cls.tmp,
                                 os.path.join(cls.tmp, name + ".lsl"), prog], capture_output=True, text=True)
@@ -66,6 +68,12 @@ class GlibCapture(unittest.TestCase):
         r = subprocess.run([self.signal_prog], capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.split("\n")[:2], ["fired 1001", "alive 0 0"])
+
+    def test_unix_signal_default_priority(self):
+        # HIGH by v kole se signalem preskocil kontrolu zdroje Waylandu s rozectenym spojenim (zamrznuti hubu)
+        r = subprocess.run([self.priority_prog], capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.split("\n")[:2], ["priority 0", "handled"])
 
 
 if __name__ == "__main__":

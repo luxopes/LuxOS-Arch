@@ -6,6 +6,7 @@
 #   connect_data(obj, signal, nargs, f, data)   f(data, argumenty signalu..., obj); zaznam se uvolni sam se signalem
 #   timeout_add_data(ms, f, data), timeout_add_seconds_data(s, f, data), idle_add_data(f, data)
 #       f(data) se opakuje, dokud vraci True; zaznam obsluhy se po skonceni uvolni
+#   unix_signal_add(signum, f)                  jako glib.unix_signal_add, ale s prioritou DEFAULT (ne HIGH)
 #   spawn_watched_data(argv, f, data)           po skonceni f(data, pid, status)
 #   spawn_capture(argv, f, data)                po skonceni f(data, stdout_text, status); stderr zahozen
 #   spawn_stream(argv, f, data)                 f(data, kus_vystupu) prubezne, po konci f(data, "")
@@ -96,6 +97,13 @@ end
 
 function idle_add_data(handler, bound):
     return add_source(3, 0, handler, bound)
+end
+
+# glib.unix_signal_add ma prioritu HIGH: v kole se signalem GLib preskoci kontrolu zdroje GDK/luxos_wl, ktery
+# ma rozectene spojeni (wl_display_prepare_read), a kazde blokujici cekani na kompozitor v obsluze (roundtrip,
+# gtk_window_present s aktivacnim tokenem) pak navzdy visi ve wl_display_read_events. Tak zamrzl luxos-hub.
+function unix_signal_add(signum, handler):
+    return glib.unix_signal_add_full(glib.PRIORITY_DEFAULT, signum, handler)
 end
 
 # ---- signaly GObject s vazanou hodnotou ---------------------------------------------------------------
