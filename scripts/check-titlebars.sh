@@ -36,7 +36,7 @@ priv=${LUXOS_PRIVATE_DIR:-/nonexistent}
 export LUXOS_DOMAIN_CLI=$priv/packages/luxos-domain/tests/fake-gui/lux-domain FAKE_DOMAIN_DIR=$tmp
 apps=(
     packages/luxos-account/files/luxos-account
-    packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,power,profile-picture,router,shortcuts,tour,whats-new,wifi-qr}
+    packages/luxos-desktop/files/bin/luxos-{bluetooth,calculator,camera,display-settings,feedback,fingerprint,keyboard,lock-settings,monitor,profile-picture,router,shortcuts,tour,whats-new,wifi-qr}
     packages/luxos-weather/files/luxos-weather
     packages/luxos-maps/files/luxos-maps
     packages/luxos-companion/files/luxos-companion

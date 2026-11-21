@@ -3,7 +3,8 @@
 # s HeaderBar velikosti podle pracovni plochy (jako luxos_winsize.py), skupiny radku ve stylu macOS,
 # rozbalovaci seznamy s id, posuvnik s odlozenou zmenou, GSettings a soubory KLIC=hodnota.
 #
-#   ui.window(titulek, ikona, sirka, vyska, min_sirka, min_vyska) -> okno (vyska <= 0 = podle obsahu)
+#   ui.window(titulek, ikona, sirka, vyska, min_sirka, min_vyska) -> okno (vyska <= 0 = podle obsahu,
+#                                     min_sirka <= 0 = nejmensi velikost podle obsahu)
 #   ui.label(text, css), ui.group(page, titulek) -> {box, rows}, ui.row(g, titulek, napoveda, widget)
 #   ui.combo(volby [[id, popisek]], aktivni, f, data)  f(data, id) po zmene; hodnota mimo volby se prida
 #   ui.slider(od, do, hodnota, sirka, f, data)       f(data, cele cislo) 250 ms po posledni zmene
@@ -80,12 +81,13 @@ function window(title, icon, width, height, min_width, min_height):
         height = min(height, cap)
     end
     call gtk.window_set_default_size(w, width, height)
-    mw = min(min_width, width)
-    mh = min_height
-    if height > 0:
-        mh = min(mh, height)
+    if min_width > 0:
+        mh = min_height
+        if height > 0:
+            mh = min(mh, height)
+        end
+        call gtk.widget_set_size_request(w, min(min_width, width), min(mh, cap))
     end
-    call gtk.widget_set_size_request(w, mw, min(mh, cap))
     call gtk.connect(w, "map-event", on_map)
     state["window"] = w
     script = env.get("LUXOS_UI_TEST", "")
@@ -249,6 +251,37 @@ function fire_slider(s):
     entry[2] = 0
     call entry[0](entry[1], Int(gtk.range_get_value(s) + 0.5))
     return False
+end
+
+# Prepinac rezimu jako tlacitko (GtkRadioButton bez kolecka); group = prvni tlacitko skupiny nebo 0
+function radio_button(group):
+    unsafe:
+        b = __lsl_qbe_call1(__lsl_symbol("gtk_radio_button_new_from_widget"), ptr(group))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_toggle_button_set_mode"), b, 0)
+        return b
+    end
+end
+
+# Okno se otevre nahore: GTK by jinak dal fokus prvnimu ovladacimu prvku a posunul k nemu
+function scroll_to_top(window, scroll):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_focus"), ptr(window), 0)
+        adj = __lsl_qbe_call1(__lsl_symbol("gtk_scrolled_window_get_vadjustment"), ptr(scroll))
+        return __lsl_qbe_call2(__lsl_symbol("gtk_adjustment_set_value"), adj, 0.0)
+    end
+end
+
+function new_sub_path(cr):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("cairo_new_sub_path"), ptr(cr))
+    end
+end
+
+function scroll_position(scroll):
+    unsafe:
+        adj = __lsl_qbe_call1(__lsl_symbol("gtk_scrolled_window_get_vadjustment"), ptr(scroll))
+        return __lsl_qbe_fcall1(__lsl_symbol("gtk_adjustment_get_value"), adj)
+    end
 end
 
 function spinner_new():
@@ -491,6 +524,8 @@ function describe(widget):
         line = line + "\t" + combo_active_id(widget)
     elif is_a(widget, "GtkRange"):
         line = line + "\t" + String(Int(gtk.range_get_value(widget) + 0.5))
+    elif is_a(widget, "GtkScrolledWindow"):
+        line = line + "\t" + String(Int(scroll_position(widget)))
     elif is_a(widget, "GtkButton"):
         caption = button_label(widget)
         if caption == "":
@@ -501,7 +536,8 @@ function describe(widget):
             end
         end
         line = line + "\t" + caption
-        if gtk.widget_has_class(widget, "current") or gtk.widget_has_class(widget, "active"):
+        toggled = is_a(widget, "GtkToggleButton") and gtk.toggle_button_get_active(widget)
+        if toggled or gtk.widget_has_class(widget, "current") or gtk.widget_has_class(widget, "active"):
             line = line + " [current]"
         end
     end
