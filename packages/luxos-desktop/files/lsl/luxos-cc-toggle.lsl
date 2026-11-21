@@ -18,7 +18,8 @@ if pid != "":
     safe:
         cmdline = fd.read_text("/proc/" + pid + "/cmdline")
     end
-    if cmdline.find("luxos-hub") >= 0 or cmdline.find("luxos-control-center") >= 0:
+    # jen instanci teto relace (XDG_RUNTIME_DIR sdili vsechny relace uzivatele)
+    if (cmdline.find("luxos-hub") >= 0 or cmdline.find("luxos-control-center") >= 0) and luxos_sys.same_session(Int(pid)):
         if luxos_sys.kill(Int(pid), SIGUSR1) == 0:
             call exit(0)
         end

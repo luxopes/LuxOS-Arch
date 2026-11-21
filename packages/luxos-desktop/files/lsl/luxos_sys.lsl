@@ -8,6 +8,8 @@
 #   list_dir(path)           serazena jmena polozek adresare ([] kdyz adresar neni)
 #   eprint(text)             radek na stderr
 #   disk_usage(path)         [bloku, volnych, dostupnych] souboroveho systemu (statvfs), [] pri chybe
+#   instance_name(program)   abstraktni jmeno jedine instance v teto relaci (UID + XDG_RUNTIME_DIR + displej)
+#   same_session(pid)        patri proces teto relaci (pred signalem podle pid souboru)
 #
 # Pravidla uvnitr modulu (viz lsl man gtk): argumenty jsou zabalene, pred predanim do C je rozbali ptr();
 # text z C se kopiruje pres bytes(); ByteArray drzi pamet po dobu volani C.
@@ -276,6 +278,101 @@ function unix_listen(name):
         end
         return fd
     end
+end
+
+# ---- jedina instance v relaci ---------------------------------------------------------------------------------
+# XDG_RUNTIME_DIR je spolecny vsem relacim uzivatele (logind: /run/user/UID - druha relace, ssh), abstraktni
+# jmena jsou dokonce jen per UID. Jmena jedinych instanci proto odlisi i displej (socket Waylandu, jinak X):
+# druha instance preda pozadavek jen instanci stejne relace, cizi (test, sandbox, jina relace) nikdy nenahradi
+# ani neukonci.
+
+function getenv(name):
+    unsafe:
+        value = __lsl_qbe_call1(__lsl_symbol("getenv"), cstr(name))
+        if value == 0:
+            return ""
+        end
+        return text_at(value, __lsl_qbe_call1(__lsl_symbol("strlen"), value))
+    end
+end
+
+# Kratky otisk textu do jmena (dva soucty): abstraktni jmeno ma nejvys 107 bajtu a cesty testu jsou dlouhe
+function short_hash(text):
+    a = 0
+    b = 0
+    for ch in text:
+        a = (a * 31 + ord(ch)) % 2147483647
+        b = (b * 1000003 + ord(ch)) % 2147483629
+    end
+    return String(a) + "-" + String(b)
+end
+
+# Klic relace z XDG_RUNTIME_DIR, WAYLAND_DISPLAY a DISPLAY
+function session_key_of(runtime, wayland, display):
+    if runtime == "":
+        runtime = "/tmp"
+    end
+    if wayland != "" and not wayland.startswith("/"):
+        wayland = runtime + "/" + wayland
+    end
+    if wayland != "":
+        # XWayland (DISPLAY) se muze menit, relaci urcuje kompozitor
+        display = ""
+    end
+    # ":0.0" je tyz displej jako ":0"
+    parts = display.split(":")
+    if len(parts) == 2 and len(parts[1].split(".")) == 2:
+        display = parts[0] + ":" + parts[1].split(".")[0]
+    end
+    return short_hash(runtime + "\n" + wayland + "\n" + display)
+end
+
+function session_key():
+    return session_key_of(getenv("XDG_RUNTIME_DIR"), getenv("WAYLAND_DISPLAY"), getenv("DISPLAY"))
+end
+
+# Abstraktni jmeno jedine instance programu v teto relaci
+function instance_name(program):
+    return program + "-" + String(getuid()) + "-" + session_key()
+end
+
+# Hodnota promenne z /proc/PID/environ ("" kdyz chybi nebo nejde cist)
+function environ_value(raw, name):
+    unsafe:
+        size = len(name) + 2
+        needle = __lsl_byte_zeros(size)
+        call __lsl_qbe_call3(__lsl_symbol("memcpy"), data(needle) + 1, cstr(name + "="), ptr(size - 1))
+        found = __lsl_qbe_call4(__lsl_symbol("memmem"), data(raw), ptr(len(raw)), data(needle), ptr(size))
+        if found == 0:
+            return ""
+        end
+        start = found + ptr(size)
+        return text_at(start, __lsl_qbe_call1(__lsl_symbol("strlen"), start))
+    end
+end
+
+# Patri proces PID teto relaci? Pid soubory v XDG_RUNTIME_DIR sdili vsechny relace uzivatele: signal smi
+# dostat jen instance stejne relace (prostredi procesu urci jeji klic).
+function same_session(pid):
+    unsafe:
+        fd = __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("open"), cstr("/proc/" + String(pid) + "/environ"), 524288))
+        if fd < 0:
+            return False
+        end
+        # na zacatek nula: kazda promenna pak zacina "\0JMENO=", na konci nuly pro strlen
+        raw = __lsl_byte_zeros(131072)
+        total = 1
+        while total < 131000:
+            n = __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("read"), ptr(fd), data(raw) + ptr(total), ptr(131000 - total)))
+            if n <= 0:
+                break
+            end
+            total += n
+        end
+        call __lsl_qbe_call1(__lsl_symbol("close"), ptr(fd))
+    end
+    key = session_key_of(environ_value(raw, "XDG_RUNTIME_DIR"), environ_value(raw, "WAYLAND_DISPLAY"), environ_value(raw, "DISPLAY"))
+    return key == session_key()
 end
 
 # Prijme spojeni (neblokujici popisovac) nebo -1

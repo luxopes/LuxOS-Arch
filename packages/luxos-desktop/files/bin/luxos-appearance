@@ -406,7 +406,7 @@ panel_owner() {
 }
 restart_panel() {
     wayland && return 0
-    pgrep -u "$USER" -x xfce4-panel >/dev/null || return 0
+    pgrep -u "$USER" -x xfce4-panel --env "DISPLAY=${DISPLAY-}" >/dev/null || return 0
     local lock="${XDG_RUNTIME_DIR:-/tmp}/luxos-panel-restart.lock" old _
     {
         # Bezny pripad (panel bezi, nikdo jiny nerestartuje): volajici pocka jen na prikaz restartu.

@@ -98,7 +98,7 @@ if [[ $1 == --sort ]]; then
     exit 0
 fi
 
-if pkill -x rofi; then exit 0; fi
+if pkill -u "$(id -u)" -x rofi --env "DISPLAY=${DISPLAY-}"; then exit 0; fi   # rofi teto relace
 . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { printf "$@"; }
 sort=most
 [[ -r $conf ]] && read -r sort <"$conf"

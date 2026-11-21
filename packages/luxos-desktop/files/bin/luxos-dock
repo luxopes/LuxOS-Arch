@@ -5,7 +5,8 @@
 # (rc 0) a zamerne ukonceni (SIGTERM/SIGINT) ho nechaji vypnuty; konec relace X take.
 # Relace na Waylandu: vlastni Dock v LSL (layer-shell, foreign-toplevel); Plank je jen pro X11
 [[ -n $WAYLAND_DISPLAY && -x /usr/lib/luxos/luxos-dock ]] && exec /usr/lib/luxos/luxos-dock "$@"
-pgrep -u "$USER" -x plank >/dev/null && exit 0
+# jen Dock teto relace (displeje), ne druhe relace stejneho uzivatele
+pgrep -u "$USER" -x plank --env "DISPLAY=${DISPLAY-}" >/dev/null && exit 0
 # Vystup Docku do logu (varovani "Animation stalled" a pady pomahaji hledat zaseknute zvetseni);
 # jedna predchozi kopie, aby log nerostl
 log=${XDG_STATE_HOME:-$HOME/.local/state}/luxos/dock.log
