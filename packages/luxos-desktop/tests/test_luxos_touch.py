@@ -151,6 +151,12 @@ class TouchTest(unittest.TestCase):
                 out = self.run_touch(m, "osk-size", extra={"LUXOS_TOUCH_SCREEN": screen}).stdout
                 self.assertIn("RUN gsettings set org.onboard.window.landscape dock-height %d" % land, out)
                 self.assertIn("RUN gsettings set org.onboard.window.portrait dock-height %d" % port, out)
+        # plovouci tlacitko klavesnice u praveho okraje (1920x1080: x 1844, y 626), ne vlevo nahore
+        shutil.rmtree(os.path.join(self.home, ".config"), ignore_errors=True)
+        out = self.run_touch(m, "osk-size", extra={"LUXOS_TOUCH_SCREEN": "1920 1080"}).stdout
+        self.assertIn("RUN gsettings set org.onboard.icon-palette.landscape x 1844", out)
+        self.assertIn("RUN gsettings set org.onboard.icon-palette.landscape y 626", out)
+        self.assertIn("RUN gsettings set org.onboard.icon-palette.portrait x 1004", out)
 
     def test_guard_reattaches_floating_touch(self):
         """Dotyk odpojeny od ukazatele (Onboard) se po dvou kontrolach vrati; pripojeny se nemeni."""
@@ -200,7 +206,8 @@ esac
             text = f.read()
         # klavesnice se ukaze i u konvertibilu s pripojenou vestavenou klavesnici; psani na ni ji schova
         for line in ("[org/onboard/auto-show]", "enabled=true", "keyboard-device-detection-enabled=false",
-                     "hide-on-key-press=true", "docking-enabled=true", "start-minimized=true"):
+                     "hide-on-key-press=true", "tablet-mode-detection-enabled=false", "docking-enabled=true",
+                     "start-minimized=true"):
             self.assertIn(line, text)
 
 

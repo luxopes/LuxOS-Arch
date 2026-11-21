@@ -17,7 +17,9 @@ enabled=true
 # klavesnici klavesnici na obrazovce hned schova (hide-on-key-press).
 keyboard-device-detection-enabled=false
 hide-on-key-press=true
-tablet-mode-detection-enabled=true
+# Ani podle spinace "tablet mode": odnimatelne tablety (ASUS ROG Flow Z13) s pripojenou klavesnici hlasi rezim
+# notebooku a Onboard se pak neukazal vubec - ani plovouci tlacitko (hlaseni testera)
+tablet-mode-detection-enabled=false
 
 [org/onboard/window]
 docking-enabled=true

@@ -10,13 +10,13 @@ screen are not changed.
 - **In apps:** the on-screen keyboard (Onboard) appears by itself when you tap a text field and hides
   again when you leave it. It is docked at the bottom edge and windows shrink so that the field you
   type into stays visible.
-- **With a physical keyboard** (a 2-in-1 laptop, a touch monitor with a keyboard) it appears as well –
-  many convertibles keep their built-in keyboard connected when folded – and hides as soon as you type
-  on the physical keyboard. To show it only without a physical keyboard:
+- **With a physical keyboard** (a 2-in-1 laptop, a detachable tablet with its keyboard, a touch monitor
+  with a keyboard) it appears as well – also in laptop mode – and hides as soon as you type on the
+  physical keyboard. To show it only without a physical keyboard:
   `gsettings set org.onboard.auto-show keyboard-device-detection-enabled true`.
 - **Size:** docked at about 40 % of the screen height in landscape and 30 % in portrait, so the keys
   are big enough for fingers. A height you set yourself in the keyboard's settings is kept.
-- **Any time:** the small floating keyboard button, **Keyboard** in Control Center, or a swipe up with
+- **Any time:** the small floating keyboard button (at the right edge of the screen; drag it anywhere), **Keyboard** in Control Center, or a swipe up with
   four fingers shows or hides it.
 - **Sign-in screen:** a **Keyboard** button appears next to Sleep, Restart and Shut Down. On a device
   without a physical keyboard the keyboard is shown right away.
@@ -41,7 +41,9 @@ settings (layout, theme, size) open from its menu key.
 | Drag with 1 finger | Scroll in apps and web pages; move windows by their title bar |
 | Pinch with 2 fingers | Zoom in Firefox and Chromium |
 
-Gestures come from Touchégg. LuxOS copies its gestures to `~/.config/touchegg/touchegg.conf` on the
+Gestures come from Touchégg (the LuxOS build: with the original, multi-finger swipes on touch screens
+were often taken for pinches, so switching workspaces and Launchpad did nothing, and a three-finger
+pinch did not close the window). LuxOS copies its gestures to `~/.config/touchegg/touchegg.conf` on the
 first sign-in; when you edit that file, LuxOS keeps your version.
 
 ## Touch is not a mouse
@@ -50,7 +52,9 @@ first sign-in; when you edit that file, LuxOS keeps your version.
   (`unclutter --hide-on-touch`).
 - **Firefox** gets real touch events on a touch device (`dom.w3c_touch_events.enabled` = 1, set by
   LuxOS only when a touch screen is present): dragging a finger scrolls pages and YouTube, two fingers
-  zoom.
+  zoom. Its window has the normal LuxOS title bar there (`browser.tabs.inTitlebar` = 0): dragging the
+  window by the tab bar with a finger used to leave Firefox thinking the finger was still down – pages
+  stopped scrolling and the close button stopped working.
 - Window buttons are small at 100 %: in **Displays › Scale** choose 125 % or 150 % – text, title bars,
   window buttons, the menu bar and the Dock get bigger. A three-finger pinch also closes a window.
 - If touch ever stops reacting while the on-screen keyboard was in use (the keyboard briefly detaches

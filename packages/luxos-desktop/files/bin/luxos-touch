@@ -215,16 +215,30 @@ osk_size() {
     (( port < 200 )) && port=200
     osk_size_set landscape "$land"
     osk_size_set portrait "$port"
+    # Plovouci tlacitko klavesnice (Onboard ho dava vlevo nahoru, x=100 y=50 - pres tlacitka oken a karty):
+    # u praveho okraje, kousek pod stredem (nad Dockem, mimo tlacitka oken)
+    osk_key_set icon-palette/landscape x $(( long - 64 - 12 )) org.onboard.icon-palette.landscape
+    osk_key_set icon-palette/landscape y $(( short * 58 / 100 )) org.onboard.icon-palette.landscape
+    osk_key_set icon-palette/portrait x $(( short - 64 - 12 )) org.onboard.icon-palette.portrait
+    osk_key_set icon-palette/portrait y $(( long * 62 / 100 )) org.onboard.icon-palette.portrait
 }
 
-# Nastavi vysku, jen kdyz ji uzivatel nezmenil: hodnota v dconf chybi, nebo je to ta, kterou nastavil LuxOS
 osk_size_set() {   # osk_size_set landscape|portrait VYSKA
-    local key=/org/onboard/window/$1/dock-height mark="$CFG/osk-size-$1" cur last=""
+    osk_key_set "window/$1" dock-height "$2" "org.onboard.window.$1"
+}
+
+# Nastavi klic Onboardu, jen kdyz ho uzivatel nezmenil: hodnota v dconf chybi, nebo je to ta, kterou
+# naposledy nastavil LuxOS (vlastni vyska klavesnice / presunute tlacitko zustava)
+osk_key_set() {   # osk_key_set CESTA KLIC HODNOTA SCHEMA (napr. window/landscape dock-height 320 org.onboard.window.landscape)
+    local key=/org/onboard/$1/$2 mark cur last=""
+    mark="$CFG/osk-$(tr '/' '-' <<<"$1")-$2"
     cur=$(dconf read "$key" 2>/dev/null)
     [[ -r $mark ]] && last=$(<"$mark")
+    # drivejsi znacka vysky (osk-size-landscape)
+    [[ -z $last && $2 == dock-height && -r $CFG/osk-size-${1##*/} ]] && last=$(<"$CFG/osk-size-${1##*/}")
     [[ -z $cur || $cur == "$last" ]] || return 0
-    run gsettings set "org.onboard.window.$1" dock-height "$2"
-    mkdir -p "$CFG" && echo "$2" >"$mark"
+    run gsettings set "$4" "$2" "$3"
+    mkdir -p "$CFG" && echo "$3" >"$mark"
 }
 
 # Prepinac "zpristupneni" na sberni AT-SPI (aplikace podle nej hlasi textova pole a Onboard se pri psani sam

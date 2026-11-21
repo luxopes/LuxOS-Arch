@@ -754,7 +754,8 @@ class TouchPrefs(unittest.TestCase):
 
     def prefs(self):
         return self.s.mn.js("return [Services.prefs.getIntPref('dom.w3c_touch_events.enabled', -1), "
-                            "Services.prefs.prefHasUserValue('dom.w3c_touch_events.enabled')]")
+                            "Services.prefs.prefHasUserValue('dom.w3c_touch_events.enabled'), "
+                            "Services.prefs.getDefaultBranch('').getIntPref('browser.tabs.inTitlebar', -1)]")
 
     def test_touch_events_only_with_touchscreen(self):
         s = self.s
@@ -765,13 +766,17 @@ class TouchPrefs(unittest.TestCase):
                 with open(state, "w") as f:
                     f.write(text)
                 s.start_firefox(self.root)
-                value, user = wait_for(self.prefs)
+                value, user, titlebar = wait_for(self.prefs)
                 s.quit_firefox()
                 self.assertFalse(user)                    # vychozi hodnota, uzivatel ji muze zmenit
                 if want:
                     self.assertEqual(value, 1)
+                    # dotyk: zahlavi xfwm4 (tazeni okna prstem pres Firefox rozbijelo dotyk ve Firefoxu); vychozi
+                    # hodnota - harness si do profilu zapisuje vlastni inTitlebar=1
+                    self.assertEqual(titlebar, 0)
                 else:
                     self.assertNotEqual(value, 1)
+                    self.assertNotEqual(titlebar, 0)
 
 
 @unittest.skipUnless(GUI, NEEDS_GUI)

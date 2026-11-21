@@ -158,11 +158,23 @@ def main():
                 ax, ay = fx * 32767 // (w - 1), y * 32767 // (h - 1)
                 if kind == "begin":
                     ev.append({"type": "mtt", "data": {"type": "begin", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
+                if kind == "update":
+                    # QEMU posila polohy (data) do naposledy vybraneho slotu: pro kazdy prst nejdriv vybrat jeho
+                    # slot (update = ABS_MT_SLOT + stejne ABS_MT_TRACKING_ID), jinak by se hybal jen posledni prst
+                    ev.append({"type": "mtt", "data": {"type": "update", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
                 if kind in ("begin", "update"):
                     ev.append({"type": "mtt", "data": {"type": "data", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
                     ev.append({"type": "mtt", "data": {"type": "data", "slot": f, "tracking-id": 100 + f, "axis": "y", "value": ay}})
                 if kind == "end":
-                    ev.append({"type": "mtt", "data": {"type": "end", "slot": f, "tracking-id": 100 + f, "axis": "x", "value": ax}})
+                    # QEMU posle ABS_MT_TRACKING_ID s hodnotou, kterou dostane: zvednuti prstu = -1 (se 100 + f
+                    # by dotyk nikdy neskoncil - X by nevidel konec dotyku a dalsi dotyky by jadro zahodilo)
+                    ev.append({"type": "mtt", "data": {"type": "end", "slot": f, "tracking-id": -1, "axis": "x", "value": ax}})
+            if kind == "begin":
+                # QEMU: begin vsech prstu v jedne davce by polohu dostal jen posledni prst - kazdy prst zvlast
+                per = len(ev) // fingers
+                for i in range(fingers):
+                    qmp("input-send-event", {"events": ev[i * per:(i + 1) * per]})
+                return
             qmp("input-send-event", {"events": ev})
 
         touch("begin", x1, y1)
