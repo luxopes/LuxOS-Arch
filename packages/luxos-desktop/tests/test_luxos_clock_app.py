@@ -155,6 +155,27 @@ class ClockApp(unittest.TestCase):
         self.assertEqual(second.wait(timeout=20), 0, "druhe spusteni jen preda pozadavek")
         self.assertTrue(self.wait_for(lambda: self.windows("--class", "luxos-clock-app")), "bezici instance ukaze okno")
 
+    def test_two_sessions_do_not_interfere(self):
+        # druha relace stejneho uzivatele (jiny XDG_RUNTIME_DIR: test, sandbox, ssh) ma vlastni instanci;
+        # drive jmeno socketu bylo jen UID + DISPLAY a druha instance na pozadi hned skoncila
+        self.write([{"h": 7, "m": 0, "label": "", "days": [], "on": True}])
+        a = self.start("--background")
+        other = os.path.join(self.t, "run-b")
+        os.makedirs(other, 0o700)
+        own = self.env
+        self.env = dict(own, XDG_RUNTIME_DIR=other)
+        b = self.start("--background")
+        self.env = own
+        time.sleep(1.5)
+        self.assertIsNone(a.poll(), "instance relace A bezi")
+        self.assertIsNone(b.poll(), "relace B ma vlastni instanci")
+        # stejna relace: druhe spusteni preda pozadavek instanci A, obe instance bezi dal
+        self.assertEqual(self.start().wait(timeout=20), 0)
+        self.assertTrue(self.wait_for(lambda: self.windows("--class", "luxos-clock-app")), "instance A ukaze okno")
+        self.assertEqual(len(self.windows("--class", "luxos-clock-app")), 1, "okno jen jednou (B nic nedostala)")
+        self.assertIsNone(a.poll())
+        self.assertIsNone(b.poll())
+
     def test_sharp_icon_and_ctrl_w_closes(self):
         self.write([{"h": 7, "m": 0, "label": "", "days": [], "on": False}])
         p = self.start()

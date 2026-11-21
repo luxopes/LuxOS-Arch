@@ -64,7 +64,6 @@ DEFAULT_WIDGETS = "today,system,music"
 ALL_WIDGETS = ["today", "system", "music", "calendar"]
 GRID = 8
 WEATHER_MAX_AGE = 10800
-SOCKET = "luxos-widgets-"
 GLASS_RADIUS = 22.0
 
 CSS = ("window.lw { background: transparent; }\n"
@@ -1997,13 +1996,7 @@ function start():
         return 0
     end
     ui["wayland"] = layer.is_wayland() and layer.is_supported()
-    display_name = glib.getenv("DISPLAY")
     if ui["wayland"]:
-        # nazev soketu Waylandu je relativni k XDG_RUNTIME_DIR: soubezne relace (i testy) maji stejne "wayland-0"
-        display_name = glib.getenv("WAYLAND_DISPLAY")
-        if not display_name.startswith("/"):
-            display_name = glib.user_runtime_dir() + "/" + display_name
-        end
         # jen nazvy vystupu pro WALLPAPER_<VYSTUP>
         if wl.available():
             call wl.bind_only(["wl_output", "zxdg_output_manager_v1"])
@@ -2012,8 +2005,8 @@ function start():
             end
         end
     end
-    # jedna instance na uzivatele a displej (abstraktni socket zmizi s procesem)
-    if sys.unix_listen(SOCKET + String(sys.getuid()) + "-" + display_name) < 0:
+    # jedna instance v relaci (abstraktni socket zmizi s procesem)
+    if sys.unix_listen(sys.instance_name("luxos-widgets")) < 0:
         return 0
     end
     call start_common()
