@@ -1126,6 +1126,26 @@
           ]
         },
         {
+          "path": "luxos/remote-apps.md",
+          "title": "SSH and apps from another computer (ssh -X)",
+          "summary": "Open one app window from another computer with ssh -X/-Y on the Wayland session: waypipe when the remote has it, else X11 through XWayland; trusted X11, cache, opt-out LUXOS_SSH_WAYPIPE=0, enabling sshd, X11Forwarding, measured speed.",
+          "keywords": [
+            "ssh -X",
+            "ssh -Y",
+            "X11 forwarding",
+            "waypipe",
+            "remote app",
+            "remote window",
+            "XWayland",
+            "ForwardX11Trusted",
+            "X11Forwarding",
+            "sshd",
+            "LUXOS_SSH_WAYPIPE",
+            "xauth",
+            "aplikace z jineho pocitace"
+          ]
+        },
+        {
           "path": "luxos/safe.md",
           "title": "Safe – encrypted folder (/safe/<user>)",
           "summary": "luxos-safe: gocryptfs-encrypted /safe/<user> with its own password, threat model, recovery key, scrypt upgrade, signing keys (GnuPG, Android keystore) in the Safe, auto-lock, CLI and limits",

@@ -111,6 +111,9 @@ Unlike bash, an interactive **login** lsh (TTY, ssh) also reads the lshrc files.
 
 Environment: `EDITOR=nano` (unless set), `PAGER=less`, `LESS='-R -F -i'`, man pages through `bat`.
 
+In the Wayland session `aliases.sh` also loads the function `ssh` (`remote-apps.sh`): `ssh -X`/`-Y`
+use waypipe when the other computer has it, see [SSH and apps from another computer](remote-apps.md).
+
 ## line: selected lines of output
 
 `line` prints chosen lines of its input or of files – instead of `sed -n` or `head | tail`:
