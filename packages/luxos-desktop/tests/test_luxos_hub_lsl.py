@@ -719,7 +719,9 @@ class Hub(unittest.TestCase):
             json.dump(summary, f)
         hub = self.start_hub()
         hub.send_signal(signal.SIGUSR2)
-        self.assertTrue(self.wait_for(lambda: "weather-line" in self.ui_log("cal.log")), (self.ui_log("cal.log"), self.hub_err()))
+        # "weather-line" pise uz predpripravene okno; druhy signal az po ukazani (dva tesne po sobe GLib spoji)
+        self.assertTrue(self.wait_for(lambda: last_state(self.ui_log("cal.log")) == "shown"), (self.ui_log("cal.log"), self.hub_err()))
+        self.assertIn("weather-line", self.ui_log("cal.log"))
         if os.environ.get("LUXOS_TEST_SHOTS"):
             time.sleep(0.5)
             subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], "calendar-weather.png")],
