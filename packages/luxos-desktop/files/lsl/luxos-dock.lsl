@@ -698,9 +698,10 @@ end
 
 function draw_panel(cr, x, y, w, h):
     if view["blur"]:
-        # rozmazane pozadi kresli kompozitor pod vstupni oblasti (panel); jen tonovani a odlesk nahore, bez obrysu
+        # rozmazane pozadi kresli kompozitor pod vstupni oblasti (panel); tonovani, odlesk nahore a obrys: nad bilym
+        # oknem je svetle sklo bile a panel by bez obrysu zmizel
         view["light"] = not dark_mode()
-        call material.paint_tint(cr, "dock", dark_mode(), True, x, y, w, h, False)
+        call material.paint_tint(cr, "dock", dark_mode(), True, x, y, w, h, True)
         return 0
     end
     radius = tokens.radius_of("dock")
@@ -1440,6 +1441,7 @@ end
 
 call glib.set_prgname("luxos-dock")
 call gtk.init()
+call material.grayscale_text()
 if not layer.is_wayland() or not layer.is_supported():
     print "luxos-dock: needs a Wayland compositor with layer-shell (the X11 session uses Plank)"
     exit(1)

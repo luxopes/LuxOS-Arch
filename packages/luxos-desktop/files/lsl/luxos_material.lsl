@@ -8,6 +8,7 @@
 #                                        LUXOS_BLUR=1/0 to prepise (testy)
 #   material.paint_tint(cr, plocha, dark, blur, x, y, w, h, okraj)
 #                                        tonovani plochy (zaoblene polomerem plochy), odlesk nahore, okraj = i 1 px obrys
+#                                        (tmavy rezim svetly)
 #   material.shadow_surface(w, h, polomer, uroven, dark)
 #                                        stin panelu uvnitr povrchu (Launchpad): povrch (w + 2 dosah) x (h + 2 dosah), panel
 #                                        na [dosah, dosah - posun]; vnitrek panelu pruhledny. Volajici ho nici.
@@ -154,7 +155,12 @@ function paint_tint(cr, surface, dark, blur, x, y, w, h, edge):
     call cairo.fill(cr)
     if edge:
         call rounded_path(cr, Float(x) + 0.5, Float(y) + 0.5, Float(w) - 1.0, Float(h) - 1.0, max(0.0, r - 0.5))
-        call set_rgba(cr, tokens.material_border(surface, dark))
+        # tmavy obrys by nad tmavym oknem zmizel: v tmavem rezimu svetla linka jako odlesk
+        if dark:
+            call set_rgba(cr, tokens.material_highlight(surface, dark))
+        else:
+            call set_rgba(cr, tokens.material_border(surface, dark))
+        end
         call cairo.set_line_width(cr, 1.0)
         call cairo.stroke(cr)
     end
