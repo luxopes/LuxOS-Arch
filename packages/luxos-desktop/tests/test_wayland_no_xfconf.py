@@ -244,9 +244,14 @@ class AppearanceWayland(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.mode(), "dark")
         self.assertFalse(any(c.startswith("python3") for c in self.calls()))
-        # X11 beze zmeny: luxos_sun.py
+        # X11 stejne: luxos-sun, nikdy Python
+        with open(sun, "w") as f:
+            f.write(FAKE + "echo light\n")
+        os.chmod(sun, stat.S_IRWXU)
         r = self.run_cmd(["auto"], wayland=False, LUXOS_SUN=sun)
-        self.assertTrue(any(c.startswith("python3") and "luxos_sun.py mode" in c for c in self.calls()))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.mode(), "light")
+        self.assertFalse(any(c.startswith("python3") for c in self.calls()))
 
     def test_luxwm_unreachable_or_missing(self):
         r = self.run_cmd(["dark"], FAKE_LUXWM_EXIT="2")
