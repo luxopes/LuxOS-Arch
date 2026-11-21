@@ -1,0 +1,10 @@
+# LuxOS Desktop na Fedore: zavislosti za behu (Requires balicku RPM)
+procps-ng psmisc xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd xfce4-screensaver
+xfce4-power-manager xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin
+xfce4-taskmanager xfce4-terminal thunar thunar-volman thunar-archive-plugin tumbler
+plank libwnck3 python3 python3-gobject python3-cairo gtk3 webkit2gtk4.1 libnotify dconf
+yad xdotool wmctrl xclip xprop xrandr xinput xset setxkbmap xorg-x11-xauth brightnessctl
+pavucontrol network-manager-applet blueman upower gvfs polkit
+touchegg zxing-cpp libX11 libXi libXtst libXrandr libXfixes libXcomposite libXrender
+rsms-inter-fonts jetbrains-mono-fonts google-noto-emoji-fonts google-noto-sans-fonts
+startup-notification libxkbcommon-x11 xcb-util-cursor xcb-util-wm xcb-util-xrm xcb-util-keysyms gtksourceview4 vte291 xdg-terminal-exec

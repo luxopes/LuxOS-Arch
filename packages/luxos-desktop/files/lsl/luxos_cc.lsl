@@ -504,7 +504,12 @@ function create():
     call gtk.box_pack_start(pbox, ptext, True, True, 0)
     call gtk.box_pack_end(pbox, gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU), False, False, 0)
     call gtk.container_add(prof, pbox)
-    call gtk.connect_data(prof, "clicked", 0, on_launch_clicked, "luxos-account")
+    # bez Uctu LuxAI (LuxOS Desktop na jine distribuci) otevre profilovou fotku
+    profile_app = "luxos-account"
+    if glib.find_program_in_path(profile_app) == "":
+        profile_app = "luxos-profile-picture"
+    end
+    call gtk.connect_data(prof, "clicked", 0, on_launch_clicked, profile_app)
     call gtk.box_pack_start(outer, prof, False, False, 0)
 
     grid = gtk.grid_new()
@@ -515,9 +520,17 @@ function create():
     cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt)
     cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd)
     cc["t_dark"] = tile_new("weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark)
-    cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data)
-    cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power)
-    tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"], cc["t_data"], cc["t_power"]]
+    tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"]]
+    # Sporic dat a baterie: jen se systemovou casti LuxOS (luxos-tweaks); LuxOS Desktop na jine
+    # distribuci je nema
+    if glib.find_program_in_path("luxos-datasaver") != "":
+        cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data)
+        tiles.append(cc["t_data"])
+    end
+    if glib.find_program_in_path("luxos-powersaver") != "":
+        cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power)
+        tiles.append(cc["t_power"])
+    end
     # dotykova zarizeni: klavesnice na obrazovce, zamek otaceni (jen se senzorem)
     if touch_flag("touchscreen"):
         cc["t_osk"] = tile_new("input-keyboard-symbolic", i18n.T("Keyboard"), toggle_osk)
@@ -800,10 +813,33 @@ function face_update():
     return 0
 end
 
+# Cele jmeno uzivatele z /etc/passwd (GECOS), jinak prihlasovaci jmeno
+function local_user_name():
+    login = env.get("USER", "")
+    if login == None:
+        login = ""
+    end
+    for line in glib.read_text("/etc/passwd").split("\n"):
+        parts = line.split(":")
+        if len(parts) >= 5 and parts[0] == login:
+            gecos = parts[4].split(",")[0].strip()
+            if gecos != "":
+                return gecos
+            end
+        end
+    end
+    return login
+end
+
 # Okamzite udaje (soubory v ~/.config a /sys) - bez spousteni programu
 function refresh_fast():
     user = account_user()
+    # LuxOS Desktop na jine distribuci: bez Uctu LuxAI jen jmeno uzivatele a profilova fotka
+    standalone = user == None and glib.find_program_in_path("luxos-account") == ""
     name = ""
+    if standalone:
+        name = local_user_name()
+    end
     if user != None:
         name = text_value(user.get("displayName"))
         if name == "":
@@ -819,6 +855,9 @@ function refresh_fast():
     if user != None:
         call gtk.label_set_text(cc["p_title"], name)
         call gtk.label_set_text(cc["p_sub"], i18n.T("LuxAI Account"))
+    elif standalone:
+        call gtk.label_set_text(cc["p_title"], name)
+        call gtk.label_set_text(cc["p_sub"], i18n.T("Profile Picture"))
     else:
         call gtk.label_set_text(cc["p_title"], i18n.T("Sign in to LuxAI"))
         call gtk.label_set_text(cc["p_sub"], i18n.T("AI in LuxAI, Lux Code and LSL IDE"))
@@ -829,10 +868,14 @@ function refresh_fast():
         locked = flag_state("rotation-lock")
         call tile_set_state(cc["t_rot"], locked, on_off(locked))
     end
-    data = flag_state("datasaver")
-    call tile_set_state(cc["t_data"], data, on_off(data))
-    power = flag_state("powersaver")
-    call tile_set_state(cc["t_power"], power, on_off(power))
+    if cc.get("t_data", None) != None:
+        data = flag_state("datasaver")
+        call tile_set_state(cc["t_data"], data, on_off(data))
+    end
+    if cc.get("t_power", None) != None:
+        power = flag_state("powersaver")
+        call tile_set_state(cc["t_power"], power, on_off(power))
+    end
     b = brightness()
     if b != None:
         call slider_set_value(cc["s_bright"], b)

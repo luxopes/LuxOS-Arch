@@ -96,7 +96,13 @@ mkdir -p -m 700 "$run" || exit 1
 self=$0
 launchpad_apps
 
-base=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
+# Bez LuxAI (LuxOS Desktop na jine distribuci) jen hledani aplikaci
+if command -v luxos-luxai-rofi >/dev/null; then
+    combi="luxai:luxos-luxai-rofi,drun" placeholder=$(T "Search apps or ask LuxAI")
+else
+    combi="drun" placeholder=$(T "Search apps")
+fi
+base=(-theme-str "entry { placeholder: \"$placeholder\"; }")
 [[ $(luxos-appearance status) == light ]] && base+=(-theme-str '@import "luxos-light-colors"')
 labels=("$(T "Alphabetical")" "$(T "Recently used")" "$(T "Most used")" "$(T "Category")")
 for i in 0 1 2 3; do
@@ -117,7 +123,7 @@ while :; do
     # -custom-resort (rofi z [luxos]): tlacitko razeni / Alt+1..4 spusti "luxos-launchpad --sort N"
     # a rofi preradi dlazdice na miste (okno se nezavre, hledany text zustane, vybrana prvni).
     # -custom-exit: zaloha pro starsi rofi bez -custom-resort - konec s kodem 10..13 a nove spusteni
-    rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${base[@]}" \
+    rofi -show combi -modi combi -combi-modi "$combi" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${base[@]}" \
         -theme-str "button-sort-$sort { background-color: @lux-accent; text-color: @lux-sel-fg; }" \
         -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf -scroll-method 1 \
         -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry MousePrimary \

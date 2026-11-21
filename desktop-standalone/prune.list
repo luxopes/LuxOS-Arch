@@ -1,0 +1,55 @@
+# LuxOS Desktop pro jine distribuce: casti LuxOS, ktere se NEinstaluji (cesty ve stromu balicku, glob).
+# Vse, co by menilo jine relace uzivatele nebo cely system, a systemove sluzby LuxOS.
+
+# Hooky pacmanu LuxOS (kratke nazvy aplikaci, Flathub, otisk prstu, relace)
+usr/share/libalpm
+# Systemove sluzby LuxOS: pojistka proti fork bombe, aplikace z Flathubu, vykon grafiky
+usr/lib/systemd/system
+usr/lib/luxos/luxos-forkguard
+usr/share/dbus-1/system.d/cz.luxos.ForkGuard.conf
+usr/share/polkit-1/rules.d/50-luxos-gpu.rules
+usr/lib/luxos/luxos-apps-sync
+usr/share/luxos/apps/rename.conf
+# Otisk prstu (PAM)
+usr/lib/luxos/luxos-fingerprint-pam
+usr/lib/tmpfiles.d/luxos-fingerprint.conf
+usr/bin/luxos-fingerprint
+usr/share/applications/luxos-fingerprint*.desktop
+# Prihlasovaci obrazovka a relace LuxOS (vlastni relace: usr/share/xsessions/lux-desktop.desktop)
+usr/share/xsessions/luxos.desktop
+etc/lightdm
+usr/share/lightdm
+# Platilo by pro vsechny relace X (i GNOME/KDE na Xorgu): xauth, prechod po prihlaseni, Firefox XInput2
+etc/X11
+# Firefox, NetworkManager, PipeWire, fontconfig, dconf a skel celeho systemu
+usr/lib/firefox
+usr/lib/NetworkManager
+usr/share/pipewire
+etc/fonts
+usr/share/fontconfig
+etc/dconf
+etc/skel
+# Vychozi nastaveni novych uzivatelu od spravce (lux system)
+usr/lib/luxos/luxos-new-user-defaults
+# Katalog Obchodu LuxOS
+usr/share/metainfo
+# Aplikace a nastroje svazane se systemem LuxOS (aktualizace, firewall, LuxAI, uvod, Novinky, Feedback)
+usr/bin/luxos-firewall-settings
+usr/share/applications/luxos-firewall-settings.desktop
+usr/bin/luxos-luxai-rofi
+usr/bin/luxos-mail-reader
+usr/share/xfce4/helpers/luxos-mail*.desktop
+# Po aktualizaci systemu LuxOS (lux)
+usr/lib/lux
+usr/bin/luxos-feedback
+usr/share/applications/luxos-feedback.desktop
+usr/bin/luxos-welcome
+usr/share/applications/luxos-welcome.desktop
+usr/bin/luxos-tour
+usr/share/applications/luxos-tour.desktop
+usr/bin/luxos-whats-new
+usr/share/applications/luxos-whats-new.desktop
+usr/bin/luxos-news
+usr/share/applications/luxos-news.desktop
+usr/bin/luxos-datasaver
+usr/bin/luxos-powersaver

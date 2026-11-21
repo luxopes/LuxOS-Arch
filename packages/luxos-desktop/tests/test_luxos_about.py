@@ -65,7 +65,7 @@ def write(path, text, mode=0o644):
 
 def fake_root(mem_kb=15681220, battery="87", vendor="AT&T <Inc>", model="Book 14"):
     root = tempfile.mkdtemp(prefix="root-", dir=TMP)
-    write(root + "/etc/os-release", 'NAME="LuxOS"\nVERSION="1.0.2 (Sirius)"\nVERSION_ID=1.0.2\nBUILD_ID=20261117\n')
+    write(root + "/etc/os-release", 'NAME="LuxOS"\nID=luxos\nVERSION="1.0.2 (Sirius)"\nVERSION_ID=1.0.2\nBUILD_ID=20261117\n')
     write(root + "/proc/cpuinfo", "processor\t: 0\nmodel name\t: AMD Ryzen 5   5500U with Radeon Graphics\n\n"
                                   "processor\t: 1\nmodel name\t: AMD Ryzen 5   5500U with Radeon Graphics\n")
     write(root + "/proc/meminfo", "MemTotal:       %d kB\nMemFree:         100000 kB\n" % mem_kb)
@@ -110,6 +110,28 @@ class Info(unittest.TestCase):
         # zargon "Shell lsh 1.0.0" pryc
         self.assertNotIn("Shell", rows)
         self.assertFalse(any("lsh" in v for v in rows.values()), rows)
+
+    def identity(self, root):
+        r = subprocess.run([BINARY, "--identity"], env=env_for(root, LC_ALL="C"), capture_output=True, text=True,
+                           timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout.splitlines()
+
+    def test_identity_luxos(self):
+        self.assertEqual(self.identity(fake_root()),
+                         ["LuxOS", "Rolling release · based on Arch Linux", "luxos-app", "1"])
+
+    def test_identity_lux_desktop_on_fedora(self):
+        # LuxOS Desktop na jine distribuci: jeji nazev a logo, verze desktopu, bez odkazu a aktualizace LuxOS
+        root = fake_root()
+        write(root + "/etc/os-release", 'NAME="Fedora Linux"\nID=fedora\nVERSION="43 (Workstation Edition)"\n'
+                                        'VERSION_ID=43\nLOGO=fedora-logo-icon\n')
+        write(root + "/usr/lib/lux-desktop/version", "VERSION=1.0.5\nCOMMIT=abc\n")
+        self.assertEqual(self.identity(root), ["Fedora Linux", "LuxOS Desktop 1.0.5", "fedora-logo-icon", "0"])
+        # bez LOGO a bez souboru verze
+        root = fake_root()
+        write(root + "/etc/os-release", 'NAME="Arch Linux"\nID=arch\n')
+        self.assertEqual(self.identity(root), ["Arch Linux", "LuxOS Desktop", "luxos-app", "0"])
 
     def test_memory_as_installed(self):
         # 16GB notebook s integrovanou grafikou: MemTotal 14,95 GiB - drive "15.0 GB"

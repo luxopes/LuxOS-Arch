@@ -1,0 +1,6 @@
+# LuxOS Desktop na Archu: zavislosti pro sestaveni
+base-devel git curl libarchive python pkgconf
+gtk3 glib2 cairo pango libx11 libxi libxtst libxrandr libxfixes libxcomposite libxrender xorgproto systemd
+xfce4-panel xfconf libwnck3 xfce4-session xfce4-settings xfce4-screensaver librsvg imagemagick
+meson ninja flex bison gdk-pixbuf2 libxkbcommon libxkbcommon-x11 libxcb xcb-util xcb-util-wm xcb-util-cursor
+xcb-util-keysyms xcb-util-xrm startup-notification gtksourceview4 vte3 pcre2

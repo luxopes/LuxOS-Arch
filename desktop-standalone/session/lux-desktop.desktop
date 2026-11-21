@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LuxOS Desktop
+Comment=The LuxOS desktop on top of Xfce
+Exec=/usr/lib/lux-desktop/lux-desktop-session
+TryExec=/usr/lib/lux-desktop/lux-desktop-session
+Icon=luxos-logo
+DesktopNames=XFCE

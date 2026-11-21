@@ -536,5 +536,51 @@ class TestSortOrder(unittest.TestCase):
             self.assertEqual(self.lp.main(["x"]), 2)
 
 
+
+class WithoutLuxAI(unittest.TestCase):
+    """LuxOS Desktop na jine distribuci: bez luxos-luxai-rofi jen hledani aplikaci (rofi bez rezimu luxai).
+    Falesna rofi jen zapise argumenty; PATH = vsechny programy systemu krome luxos-luxai-rofi."""
+
+    def run_launchpad(self, with_luxai):
+        tmp = tempfile.mkdtemp(prefix="lp-noai-")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        bindir = os.path.join(tmp, "bin")
+        os.makedirs(bindir)
+        for d in ("/usr/bin", "/bin"):
+            for name in os.listdir(d):
+                dst = os.path.join(bindir, name)
+                if name in ("luxos-luxai-rofi", "rofi", "luxos-appearance", "pkill") or os.path.lexists(dst):
+                    continue
+                os.symlink(os.path.join(d, name), dst)
+        args = os.path.join(tmp, "args")
+        fakes = {"rofi": "#!/bin/sh\nprintf '%%s\\n' \"$@\" > %s\nexit 1\n" % args,
+                 "luxos-appearance": "#!/bin/sh\necho dark\n", "pkill": "#!/bin/sh\nexit 1\n"}
+        if with_luxai:
+            fakes["luxos-luxai-rofi"] = "#!/bin/sh\nexit 0\n"
+        for name, body in fakes.items():
+            with open(os.path.join(bindir, name), "w") as f:
+                f.write(body)
+            os.chmod(os.path.join(bindir, name), 0o755)
+        home = os.path.join(tmp, "home")
+        os.makedirs(home)
+        env = {"PATH": bindir, "HOME": home, "XDG_CONFIG_HOME": home + "/.config", "XDG_CACHE_HOME": home + "/.cache",
+               "XDG_RUNTIME_DIR": tmp, "XDG_DATA_DIRS": "/usr/share", "LC_ALL": "C",
+               "LUXOS_I18N_DIR": os.path.join(HERE, "..", "..", "luxos-i18n", "files")}
+        subprocess.run(["bash", LAUNCHPAD], env=env, capture_output=True, text=True, timeout=60)
+        with open(args) as f:
+            return f.read().splitlines()
+
+    def test_without_luxai_only_apps(self):
+        args = self.run_launchpad(with_luxai=False)
+        self.assertEqual(args[args.index("-combi-modi") + 1], "drun")
+        self.assertIn('entry { placeholder: "Search apps"; }', args)
+
+    def test_with_luxai_apps_and_questions(self):
+        args = self.run_launchpad(with_luxai=True)
+        self.assertEqual(args[args.index("-combi-modi") + 1], "luxai:luxos-luxai-rofi,drun")
+        self.assertIn('entry { placeholder: "Search apps or ask LuxAI"; }', args)
+
+
+
 if __name__ == "__main__":
     unittest.main()

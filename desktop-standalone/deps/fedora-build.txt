@@ -1,0 +1,9 @@
+# LuxOS Desktop na Fedore: zavislosti pro sestaveni (install.sh je doinstaluje)
+gcc make git curl bsdtar tar gzip pkgconf-pkg-config python3 rpm-build binutils
+gtk3-devel glib2-devel cairo-devel pango-devel libX11-devel libXi-devel libXtst-devel libXrandr-devel
+libXfixes-devel libXcomposite-devel libXrender-devel xorg-x11-proto-devel systemd-devel
+xfce4-panel-devel xfconf-devel libwnck3-devel xfce4-session xfce4-settings xfce4-panel xfconf
+xfce4-screensaver librsvg2-tools ImageMagick
+meson ninja-build flex bison gdk-pixbuf2-devel libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel
+xcb-util-devel xcb-util-wm-devel xcb-util-cursor-devel xcb-util-keysyms-devel xcb-util-xrm-devel
+startup-notification-devel gtksourceview4-devel vte291-devel pcre2-devel
