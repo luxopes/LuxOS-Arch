@@ -17,6 +17,7 @@ load cairo
 load luxos_i18n as i18n
 load luxos_luxwm as wm
 load luxos_layer as layer
+load luxos_primary as primary
 load luxos_displays as dw
 
 HELPER = "/usr/lib/luxos/luxos-displays"
@@ -871,10 +872,24 @@ function run_menu():
     call gtk.connect(win, "destroy", on_menu_destroy)
     call glib.unix_signal_add(10, menu_next)
     call glib.spawn_capture([helper(), "get"], menu_state, None)
-    call gtk.widget_show_all(win)
     call gtk.widget_grab_focus(menu["buttons"][0])
+    # na hlavnim monitoru luxwm; bez luxwm (nebo kdyz neodpovi) tam, kde ho umisti kompozitor
+    call primary.follow(on_menu_primary)
+    call glib.timeout_add(150, menu_show)
     call gtk.main()
     call glib.unlink(menu["pidfile"])
+end
+
+function on_menu_primary(monitor):
+    call layer.set_monitor(menu["window"], monitor)
+    return menu_show()
+end
+
+function menu_show():
+    if not gtk.widget_get_visible(menu["window"]):
+        call gtk.widget_show_all(menu["window"])
+    end
+    return False
 end
 
 function on_menu_destroy(window):

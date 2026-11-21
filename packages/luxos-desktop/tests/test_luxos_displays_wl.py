@@ -31,6 +31,7 @@ MSG = os.path.join(BUILD, "luxwm-msg")
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 HELPER = os.path.join(OUT, "luxos-displays")
 SETTINGS = os.path.join(OUT, "luxos-displays-settings")
+NOTIFY = os.path.join(OUT, "luxos-notify")
 LIB = os.path.join(OUT, "libluxos-wl.so.0")
 
 READY = os.path.exists(os.path.join(BUILD, "luxwm")) and os.path.exists(SYSROOT) and LSLC
@@ -57,7 +58,7 @@ def build():
     for f in os.listdir(lsl):
         shutil.copy(os.path.join(lsl, f), os.path.join(OUT, "src"))
     shutil.copy(os.path.join(HERE, "lsl", "luxos-displays-test.lsl"), os.path.join(OUT, "src"))
-    for name, exe in (("luxos-displays", HELPER), ("luxos-displays-settings", SETTINGS),
+    for name, exe in (("luxos-displays", HELPER), ("luxos-displays-settings", SETTINGS), ("luxos-notify", NOTIFY),
                       ("luxos-displays-test", os.path.join(OUT, "unit"))):
         r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(OUT, "src", name + ".lsl"), exe],
                            capture_output=True, text=True)
@@ -295,6 +296,38 @@ class DisplaysWayland(unittest.TestCase):
         self.assertEqual(pixel(s.shot("mirror-after-2.ppm", "HEADLESS-2"), 640, 10), (255, 0, 0))
         self.assertEqual(s.saved()["sets"]["HEADLESS-1|Headless output 1+HEADLESS-2|Headless output 2"]["mode"], "extend")
 
+    def test_mirror_other_aspect_is_centred(self):
+        s = self.session("dsp-letterbox")
+        s.input("move 100 300")
+        subprocess.run([WLT, "run", s.dir, "--bg", "wlt-bar", "--color", "ff0000", "--height", "40"], check=True,
+                       capture_output=True)
+        time.sleep(0.5)
+        s.input("move 1400 300")
+        subprocess.run([WLT, "run", s.dir, "--bg", "wlt-bar", "--color", "00ff00", "--height", "40"], check=True,
+                       capture_output=True)
+        time.sleep(0.7)
+        # 5:4 zrcadlo pod 16:9 vzorem: vzor uprostred vysky, nahore i dole pruh 152 px v barve pozadi
+        self.set({"config": config(HEADLESS_1=(1280, 720, 0, 0, 1000, 0), HEADLESS_2=(1280, 1024, 0, -152, 1000, 0)),
+                  "primary": "HEADLESS-1", "mirror": True})
+        outs, primary = s.outputs()
+        self.assertEqual((outs["HEADLESS-2"]["x"], outs["HEADLESS-2"]["y"]), (0, -152))
+        self.assertEqual(primary, "HEADLESS-1")
+        time.sleep(0.5)
+        ref = s.shot("letterbox-1.ppm", "HEADLESS-1")
+        mirror = s.shot("letterbox-2.ppm", "HEADLESS-2")
+        self.assertEqual(mirror[:2], (1280, 1024))
+        # lista vzoru (zelena) na zrcadle pod hornim pruhem, vlastni lista zrcadla (cervena) schovana
+        self.assertEqual(pixel(ref, 640, 10), (0, 255, 0))
+        self.assertEqual(pixel(mirror, 640, 152 + 10), (0, 255, 0))
+        bars = {pixel(mirror, x, y) for x in (5, 640, 1275) for y in (5, 140, 1024 - 140, 1024 - 5)}
+        self.assertEqual(len(bars), 1, bars)
+        self.assertNotIn(pixel(mirror, 640, 152 + 10), bars)
+        # stred zrcadla ukazuje stred vzoru
+        self.assertEqual(pixel(mirror, 640, 512), pixel(ref, 640, 360))
+        self.assertEqual(s.helper("extend").returncode, 0)
+        time.sleep(0.5)
+        self.assertEqual(pixel(s.shot("letterbox-after-2.ppm", "HEADLESS-2"), 640, 10), (255, 0, 0))
+
     # ---- rychla volba rezimu ----
 
     def test_quick_switcher_modes(self):
@@ -317,11 +350,14 @@ class DisplaysWayland(unittest.TestCase):
 
     def test_menu_osd_by_keyboard(self):
         s = self.session("dsp-menu", internal="HEADLESS-1")
+        # hlavni monitor HEADLESS-1 vpravo, kurzor vlevo na HEADLESS-2: karta je na hlavnim
+        s.msg("--raw", json.dumps({"cmd": "set_primary", "output": "HEADLESS-1"}))
+        s.input("move 100 300")
         p = s.spawn(SETTINGS, "--menu")
         time.sleep(3)
         shot = s.shot("menu.ppm")
-        # karta uprostred vystupu pod kurzorem (0,0 = HEADLESS-2 vlevo), okraje zustavaji pozadim
-        self.assertNotEqual(pixel(shot, 640, 360), pixel(shot, 5, 5))
+        self.assertNotEqual(pixel(shot, 1280 + 640, 360), pixel(shot, 1280 + 5, 5))
+        self.assertEqual(pixel(shot, 640, 360), pixel(shot, 5, 5))
         # vychozi rezim extend ma fokus, Right = zrcadlit
         s.input("key Right", "key Return")
         p.wait(10)
@@ -333,6 +369,26 @@ class DisplaysWayland(unittest.TestCase):
         s.input("key Escape")
         self.assertEqual(p.wait(10), 0)
         self.assertEqual(s.helper("mode").stdout.strip(), "mirror")
+
+    @unittest.skipUnless(shutil.which("dbus-daemon") and shutil.which("notify-send"), "needs dbus-daemon and notify-send")
+    def test_notifications_on_primary(self):
+        s = self.session("dsp-notify")
+        bus = os.path.join(s.dir, "bus")
+        s.spawn("dbus-daemon", "--session", f"--address=unix:path={bus}", "--nofork", "--nopidfile")
+        self.assertTrue(s.wait(lambda: os.path.exists(bus), 5))
+        env = dict(s.env, DBUS_SESSION_BUS_ADDRESS=f"unix:path={bus}")
+        s.procs.append(subprocess.Popen([NOTIFY], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        time.sleep(1.5)
+        # kurzor vlevo (HEADLESS-2), hlavni vpravo: bublina vpravo nahore na hlavnim; po zmene hlavniho se presune
+        s.input("move 100 300")
+        before = s.shot("notify-before.ppm")
+        s.msg("--raw", json.dumps({"cmd": "set_primary", "output": "HEADLESS-1"}))
+        time.sleep(0.5)
+        self.assertEqual(s.run("notify-send", "-t", "0", "Test", "primary", env=env).returncode, 0)
+        for main, x, other in (("HEADLESS-1", 2560 - 60, 1280 - 60), ("HEADLESS-2", 1280 - 60, 2560 - 60)):
+            s.msg("--raw", json.dumps({"cmd": "set_primary", "output": main}))
+            self.assertTrue(s.wait(lambda: pixel(s.shot("notify.ppm"), x, 40) != pixel(before, x, 40), 5), main)
+            self.assertTrue(s.wait(lambda: pixel(s.shot("notify.ppm"), other, 40) == pixel(before, other, 40), 5), main)
 
     # ---- ulozeni pro sadu monitoru a pripojeni ----
 

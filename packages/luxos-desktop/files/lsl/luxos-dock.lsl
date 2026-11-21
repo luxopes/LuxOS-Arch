@@ -17,6 +17,7 @@ load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load gio, cairo, pango
 load luxos_layer as layer
+load luxos_primary as primary
 load luxos_wl as wl
 load luxos_material as material
 load luxos_tokens as tokens
@@ -56,7 +57,7 @@ running_order = []      # klice nepripnutych aplikaci v poradi spusteni
 app_keys = {}           # app_id -> klic polozky
 entries = {}            # id .desktop -> LauncherEntry {"count", "count-visible", "progress", ..., "sender"}
 geo = {}
-output = {"name": "", "w": 0, "h": 0}
+output = {"name": "", "w": 0, "h": 0, "monitor": 0}
 view = {"hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
     "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "drawn": [0, 0, 0, 0], "seq": 0,
     "strip": None, "light": True}
@@ -331,7 +332,10 @@ function update_output():
     if len(monitors) == 0:
         return 0
     end
-    g = layer.monitor_geometry(monitors[0])
+    if output["monitor"] not in monitors:
+        output["monitor"] = monitors[0]
+    end
+    g = layer.monitor_geometry(output["monitor"])
     output["w"] = g[2]
     output["h"] = g[3]
     output["name"] = ""
@@ -1179,6 +1183,16 @@ function on_wl(kind, handle, a, b):
     return 0
 end
 
+# Dock je na hlavnim monitoru luxwm (Monitory, bily pruh)
+function on_primary(monitor):
+    output["monitor"] = monitor
+    call layer.set_monitor(window, monitor)
+    call update_output()
+    call update_geometry()
+    call queue_redraw()
+    return 0
+end
+
 # ---- LauncherEntry (cislo a prubeh na ikone) ----
 
 function on_launcher_entry(sender, path, interface, signal, values):
@@ -1315,6 +1329,7 @@ screens = layer.monitors()
 if len(screens) > 0:
     call layer.set_monitor(window, screens[0])
 end
+call primary.follow(on_primary)
 call gtk.widget_add_events(window, gtk.POINTER_MOTION_MASK + gtk.BUTTON_PRESS_MASK + gtk.BUTTON_RELEASE_MASK + gtk.ENTER_NOTIFY_MASK + gtk.LEAVE_NOTIFY_MASK)
 call gtk.connect(window, "draw", on_draw)
 call gtk.connect(window, "enter-notify-event", on_enter)

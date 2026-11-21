@@ -9,6 +9,7 @@
 #   - Nerusit: bez bublin (krome kriticke nalehavosti), oznameni hned zavrene s duvodem 4, historie zustava
 # Vse na udalostech: jeden casovac jen pro nejblizsi vyprseni, zadny periodicky beh.
 load luxos_layer as layer
+load luxos_primary as primary
 load glib, gtk, gio
 load luxos_glib as lglib
 load luxos_tokens as tokens
@@ -962,6 +963,13 @@ function build_window():
         index += 1
     end
     call gtk.widget_show(column)
+    # bubliny na hlavnim monitoru luxwm (jinak vybere kompozitor)
+    call primary.follow(on_primary)
+    return 0
+end
+
+function on_primary(monitor):
+    call layer.set_monitor(S["window"], monitor)
     return 0
 end
 
