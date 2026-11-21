@@ -19,12 +19,14 @@ for a in "$@"; do
 done
 [[ $* == --reset ]] && exit 0   # jen reset, nespoustet
 [[ -f disk.qcow2 ]] || qemu-img create -q -f qcow2 -F qcow2 -b base.qcow2 disk.qcow2
+# jako instalace (luxos-install): splash Plymouthu od initramfs az po prihlasovaci obrazovku, bez textu jadra
+cmdline="root=/dev/vda rw quiet splash loglevel=3 rd.udev.log_level=3 systemd.show_status=auto vt.global_cursor_default=0"
 # pamet VM pod stropem (QEMU + 6 GB hosta), at pripadny unik nesezere hostitele
 scope=()
 command -v systemd-run >/dev/null && scope=(systemd-run --user --scope -q -p MemoryMax=${LUXOS_VM_SCOPE_MEM:-7G} -p MemorySwapMax=0 --)
 exec "${scope[@]}" qemu-system-x86_64 -name "LuxOS Wayland preview" \
     -enable-kvm -machine q35 -cpu host -smp 4 -m ${LUXOS_VM_MEM:-6G} \
-    -kernel vmlinuz -initrd initramfs.img -append "root=/dev/vda rw quiet loglevel=3" \
+    -kernel vmlinuz -initrd initramfs.img -append "$cmdline" \
     -drive file=disk.qcow2,if=virtio,format=qcow2,discard=unmap \
     "${vga[@]}" "${display[@]}" \
     -netdev user,id=n0 -device virtio-net-pci,netdev=n0,romfile= -device qemu-xhci -device usb-tablet \

@@ -47,7 +47,7 @@ state = {"users": [], "sel": 0, "sessions": [], "session": 0, "input": [], "visi
          "power": [], "hits": [], "redraw": 0, "shake_start": 0, "shake_timer": 0, "glass": None, "glass_size": [0, 0],
          "bg_path": "", "layouts": [], "conf": {}, "idle": 0, "last_input": 0, "leaving": False, "notice": "",
          "system": 0, "legacy_gpu": False, "prompt": "",
-         "prompted": False}
+         "prompted": False, "shown": False}
 
 
 function log(line):
@@ -804,6 +804,23 @@ function on_draw(cr, widget):
     w = gtk.widget_get_allocated_width(widget)
     h = gtk.widget_get_allocated_height(widget)
     call frame(cr, w, h)
+    if not state["shown"]:
+        state["shown"] = True
+        call glib.timeout_add(100, mark_shown)
+    end
+    return False
+end
+
+# Prvni snimek je na obrazovce: greetd (luxos-greetd-splash) az ted ukonci splash Plymouthu, do te doby
+# zustava videt jeho posledni obraz (bez cerne mezery a textove konzole mezi splashem a prihlasenim)
+function mark_shown():
+    dir = env.get("XDG_RUNTIME_DIR", "")
+    if dir != "":
+        safe:
+            call lglib.write_atomic(dir + "/luxos-greeter-shown", "")
+        end
+    end
+    call log("shown")
     return False
 end
 

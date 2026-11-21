@@ -40,11 +40,11 @@ cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
     kernel=linux-luxos
     pacman -Sp --config /w/pacman.conf linux-luxos >/dev/null 2>&1 || kernel=linux
     local_pkgs=$(pacman -Sl --config /w/pacman.conf wlpreview | awk "{print \$2}")
-    # zaklad instalace LuxOS (luxos-installer/files/packages) bez firmwaru, plymouth, posty a soukromych aplikaci;
+    # zaklad instalace LuxOS (luxos-installer/files/packages) bez firmwaru, posty a soukromych aplikaci;
     # aplikace na zkouseni (gtk3-demo, xeyes pres XWayland), busybox pro maly koren sandboxu bez pacstrapu
     # (smoke.sh), guest agent pro testy
     pacstrap -C /w/pacman.conf -c $r base lux-engine $kernel sudo nano networkmanager pipewire-jack noto-fonts \
-        luxos-desktop greetd $local_pkgs gtk3-demos xorg-xeyes xorg-xwayland libnotify firefox busybox \
+        luxos-desktop plymouth greetd $local_pkgs gtk3-demos xorg-xeyes xorg-xwayland libnotify firefox busybox \
         qemu-guest-agent >/w/pacstrap.log 2>&1 || { tail -30 /w/pacstrap.log; exit 1; }
 
 
@@ -78,8 +78,13 @@ cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
     systemctl --root=$r mask systemd-networkd-wait-online.service NetworkManager-wait-online.service >/dev/null 2>&1 || true
 
     kver=$(ls $r/usr/lib/modules | head -1)
-    # bez autodetect: kontejner nema hardware VM, initramfs musi mit virtio a ext4
-    arch-chroot $r mkinitcpio -k "$kver" -S autodetect,plymouth -g /boot/initramfs-preview.img >/w/mkinitcpio.log 2>&1
+    # initramfs se splashem jako instalace (setup-chroot.sh), ale bez autodetect (kontejner nema hardware VM,
+    # initramfs musi mit virtio a ext4) a misto kms jen grafika QEMU (-vga std = bochs, virtio-vga): Plymouth
+    # kresli od zacatku startu (VM startuje pres -kernel bez EFI framebufferu)
+    printf "MODULES=(bochs virtio_gpu)\nHOOKS=(base systemd plymouth modconf keyboard sd-vconsole block filesystems fsck)\nCOMPRESSION=zstd\n" \
+        >$r/etc/mkinitcpio.conf.d/luxos.conf
+    arch-chroot $r mkinitcpio -k "$kver" -g /boot/initramfs-preview.img >/w/mkinitcpio.log 2>&1
+    grep -q "Theme=luxos" $r/etc/plymouth/plymouthd.conf || { echo "no LuxOS splash theme" >&2; exit 1; }
     cp $r/boot/vmlinuz-$kernel /w/vmlinuz
     cp $r/boot/initramfs-preview.img /w/initramfs.img
     pacman -Q --root $r --dbpath $r/var/lib/pacman >/w/packages.txt 2>/dev/null \

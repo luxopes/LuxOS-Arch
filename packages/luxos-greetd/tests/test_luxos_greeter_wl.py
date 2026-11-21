@@ -332,6 +332,9 @@ class GreeterTest(unittest.TestCase):
         self.assertIn("session=wayland:luxos.desktop", t)
         self.assertIn("users=3", t)           # luxos, eva, otisk (bez systemovych a nologin)
         print(f"greeter_ready_s={g.ready_s:.2f}")
+        # prvni snimek na obrazovce: znacka pro konec splashe (luxos-greetd-splash)
+        g.wait_for("shown")
+        self.assertTrue(os.path.exists(os.path.join(g.dir, "run", "luxos-greeter-shown")))
         g.shot("login")
         # bez X serveru: luxwm --greeter XWayland nespousti
         procs = [comm(p) for p in descendants(g.top)]

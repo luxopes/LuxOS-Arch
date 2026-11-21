@@ -1,0 +1,12 @@
+#!/bin/sh
+# LuxOS - konec splashe az ve chvili, kdy je prihlasovaci obrazovka na displeji (greetd.service ExecStartPost).
+# luxos-greeter po prvnim snimku zalozi $XDG_RUNTIME_DIR/luxos-greeter-shown; nejdele po 10 s splash skonci tak
+# jako tak (greeter nenabehl). Bez bezici Plymouthu (start bez "splash", dalsi start greetd) nedela nic.
+plymouth --ping 2>/dev/null || exit 0
+uid=$(id -u greeter 2>/dev/null)
+i=0
+while [ "$i" -lt 100 ] && [ ! -e "/run/user/$uid/luxos-greeter-shown" ]; do
+    sleep 0.1
+    i=$((i + 1))
+done
+exec plymouth quit --retain-splash
