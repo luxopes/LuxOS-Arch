@@ -3,7 +3,7 @@
 #
 #   scripts/wl-test/run-all [-j N] [-k VZOR].. [--no-build] [--keep] [MODUL.py..]
 #
-# Kazdy modul: python3 -m unittest pod systemd-run --user --scope (MemoryMax, TasksMax) a timeout,
+# Kazdy modul: python3 -m unittest (moduly s "import pytest" pod pytest z pytest.lock) pod systemd-run --user --scope (MemoryMax, TasksMax) a timeout,
 # env -i, soukromy HOME/TMPDIR/WLT_OUT v pracovni slozce, vlastni Xvfb a soukroma sbernice
 # relace (dbus-run-session), systemova sbernice mrtva. Nic ze skutecne relace (DISPLAY, sbernice, HOME).
 # Pred behem sestavi harness (sysroot, wlt), luxwm (build-host.sh), greeter (build.sh) a programy, ktere testy
@@ -76,6 +76,23 @@ if ((build)); then
     "${scope[@]}" -p MemoryMax=3G -- "${safe_env[@]}" HOME="$root" LUXOS_GREETER_BUILD="$root/greeter" \
         timeout 1200 packages/luxos-greetd/tests/build.sh >"$root/logs/build-greeter.log" 2>&1 \
         || die "greeter build failed ($root/logs/build-greeter.log)"
+    # pytest pro moduly psane pro nej (pytest.lock, sha256), rozbaleny do out/wl-test/pylib
+    pylib=$repo/out/wl-test/pylib
+    if [[ ! -d $pylib || $here/pytest.lock -nt $pylib ]]; then
+        mkdir -p "$repo/out/wl-test/pycache"
+        rm -rf "$pylib.new"
+        while read -r url sum; do
+            [[ -z $url || $url == \#* ]] && continue
+            f=$repo/out/wl-test/pycache/${url##*/}
+            if ! sha256sum --status -c <<<"$sum  $f" 2>/dev/null; then
+                curl -fsSL --retry 3 -o "$f" "$url" || die "download failed: $url"
+            fi
+            sha256sum --status -c <<<"$sum  $f" || { rm -f "$f"; die "sha256 mismatch: ${url##*/}"; }
+            python3 -I -m zipfile -e "$f" "$pylib.new" || die "cannot unpack ${url##*/}"
+        done <"$here/pytest.lock"
+        rm -rf "$pylib"
+        mv "$pylib.new" "$pylib"
+    fi
     # programy, ktere testy jinak hledaji v systemu (LUXOS_*_BIN): build() z PKGBUILD jako makepkg
     for p in apps/luxos-mail luxos-terminal luxos-text; do
         rm -rf "$root/pkg/${p#*/}"
@@ -124,7 +141,18 @@ run_one() {  # run_one INDEX MODUL
     name=$(sed 's|^packages/||; s|/tests/|:|; s|\.py$||; s|/|_|g' <<<"$t")
     log=$root/logs/$name.log
     mkdir -p "$home" "$tmp"
-    local t0=$SECONDS rc x
+    local t0=$SECONDS rc x runner pytest=0
+    # moduly psane pro pytest (import pytest, conftest.py vedle) bezi pod pytest z out/wl-test/pylib, ostatni
+    # pod unittest; --basetemp kratce v TMPDIR modulu (tmp_path pytestu je jinak na sokety prilis hluboko)
+    if grep -qE '^(import|from) pytest' "$t" || [[ -f $(dirname "$t")/conftest.py ]]; then
+        pytest=1
+        local k=() e=
+        for ((n = 1; n < ${#kargs[@]}; n += 2)); do e+=${e:+ or }${kargs[n]}; done
+        [[ -n $e ]] && k=(-k "$e")
+        runner=(env "PYTHONPATH=$repo/out/wl-test/pylib" python3 -m pytest -v -rs -p no:cacheprovider --basetemp="$tmp/p" "${k[@]}" "$t")
+    else
+        runner=(python3 -m unittest discover -v -s "$(dirname "$t")" -p "$(basename "$t")" "${kargs[@]}")
+    fi
     x=$(start_x "$tmp") || { echo "$t: no free X display" >"$log"; x="0 0"; }
     local unit=run-all-$$-$i
     "${scope[@]}" --unit="$unit" -p MemoryMax="${RUN_ALL_MEMORY:-1500M}" -- \
@@ -137,17 +165,26 @@ run_one() {  # run_one INDEX MODUL
         DISPLAY=":${x% *}" XAUTHORITY="$tmp/xvfb-run.x/Xauthority" \
         timeout -k 10 "${RUN_ALL_TIMEOUT:-1800}" \
         dbus-run-session --config-file packages/luxos-desktop/tests/dbus-private.conf -- \
-        python3 -m unittest discover -v -s "$(dirname "$t")" -p "$(basename "$t")" "${kargs[@]}" \
-        >"$log" 2>&1
+        "${runner[@]}" >"$log" 2>&1
     rc=$?
     # co modul nechal bezet (falesne servery testu, ktery spadl v setUp), skonci se scope
     systemctl --user stop "$unit.scope" 2>/dev/null
     ((${x#* })) && kill "${x#* }" 2>/dev/null
     local ran ok sk fails
-    ran=$(grep -oE '^Ran [0-9]+' "$log" | awk '{print $2}')
-    sk=$(grep -oE '^(OK|FAILED) \(.*skipped=[0-9]+' "$log" | grep -oE '[0-9]+$')
-    fails=$(grep -E '^(FAIL|ERROR):' "$log" | awk '{print $2}' | sort -u | tr '\n' ' ')
-    if ((rc == 0)) && grep -q '^OK' "$log"; then ok=ok; elif ((rc == 5)) && grep -q '^NO TESTS RAN' "$log"; then ok=ok; elif ((rc == 124)); then ok=TIMEOUT; else ok=FAIL; fi
+    if ((pytest)); then
+        # "== 12 passed, 1 skipped in 3.20s ==", selhane "soubor::test FAILED [ 87%]"
+        local last
+        last=$(grep -E '^=+ .* in [0-9.]+s' "$log" | tail -1)
+        ran=$(grep -oE '[0-9]+ (passed|failed|error|errors|skipped|xfailed|xpassed)' <<<"$last" | awk '{n += $1} END {print n + 0}')
+        sk=$(grep -oE '[0-9]+ skipped' <<<"$last" | awk '{print $1}')
+        fails=$(grep -oE '::[^ ]+ (FAILED|ERROR)' "$log" | awk '{sub(/.*::/, "", $1); print $1}' | sort -u | tr '\n' ' ')
+        if ((rc == 0 || rc == 5)); then ok=ok; elif ((rc == 124)); then ok=TIMEOUT; else ok=FAIL; fi
+    else
+        ran=$(grep -oE '^Ran [0-9]+' "$log" | awk '{print $2}')
+        sk=$(grep -oE '^(OK|FAILED) \(.*skipped=[0-9]+' "$log" | grep -oE '[0-9]+$')
+        fails=$(grep -E '^(FAIL|ERROR):' "$log" | awk '{print $2}' | sort -u | tr '\n' ' ')
+        if ((rc == 0)) && grep -q '^OK' "$log"; then ok=ok; elif ((rc == 5)) && grep -q '^NO TESTS RAN' "$log"; then ok=ok; elif ((rc == 124)); then ok=TIMEOUT; else ok=FAIL; fi
+    fi
     printf '%-52s %-7s %4ss ran=%-4s skip=%-3s %s\n' "$name" "$ok" "$((SECONDS - t0))" "${ran:-0}" "${sk:-0}" "$fails" \
         >"$root/m/$i.result"
     cat "$root/m/$i.result"
@@ -170,7 +207,8 @@ wait
     echo "== skipped"
     # "test (modul.Trida.test) ... skipped 'duvod'", u testu s docstringem az na dalsim radku
     awk 'match($0, /^[A-Za-z_][A-Za-z0-9_]* \(([^ )]+)\)/) { id = substr($2, 2, length($2) - 2) }
-         / \.\.\. skipped / { sub(/.* \.\.\. skipped /, ""); print id ": " $0 }' "$root"/logs/*.log | sort -u
+         / \.\.\. skipped / { sub(/.* \.\.\. skipped /, ""); print id ": " $0 }
+         /^SKIPPED \[[0-9]+\] / { sub(/^SKIPPED \[[0-9]+\] /, ""); print }' "$root"/logs/*.log | sort -u
     awk '{m++; if ($2 == "ok") ok++; else bad++; for (i = 4; i <= 5; i++) { split($i, a, "="); s[a[1]] += a[2] }; nf += NF - 5 }
          END { printf "== modules %d: ok %d, failed %d; tests %d, skipped %d, failing tests %d\n", m, ok, bad, s["ran"], s["skip"], nf }' \
         "$root"/m/*.result
