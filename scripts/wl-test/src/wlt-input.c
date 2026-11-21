@@ -67,6 +67,15 @@ static void p_button(void *data, int btn, int down)
 	zwlr_virtual_pointer_v1_frame(c->ptr);
 }
 
+static void p_scroll(void *data, int steps)
+{
+	struct ctx *c = data;
+	zwlr_virtual_pointer_v1_axis_source(c->ptr, WL_POINTER_AXIS_SOURCE_WHEEL);
+	zwlr_virtual_pointer_v1_axis_discrete(c->ptr, ms(), WL_POINTER_AXIS_VERTICAL_SCROLL,
+		wl_fixed_from_int(15 * steps), steps);
+	zwlr_virtual_pointer_v1_frame(c->ptr);
+}
+
 /* keysym -> klavesa v keymape a uroven (1 = se Shiftem) */
 static int find_key(struct xkb_keymap *km, xkb_keysym_t sym, xkb_keycode_t *code, int *level)
 {
@@ -159,7 +168,7 @@ static void flush(void *data)
 	wl_display_roundtrip(c->display);
 }
 
-static const struct scen_ops ops = { p_move, p_button, k_key, k_text, flush };
+static const struct scen_ops ops = { p_move, p_button, k_key, k_text, flush, p_scroll };
 
 static int setup_keyboard(struct ctx *c)
 {

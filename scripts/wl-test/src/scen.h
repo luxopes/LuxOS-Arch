@@ -11,6 +11,8 @@ struct scen_ops {
 	int (*key)(void *ctx, const char *name, int down);
 	int (*text)(void *ctx, const char *s);
 	void (*flush)(void *ctx);
+	/* kolecko: kroky, kladne = dolu */
+	void (*scroll)(void *ctx, int steps);
 };
 
 /* Provede jeden radek scenare; vraci 0, nebo -1 s hlaskou na stderr */

@@ -20,6 +20,7 @@
 #include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
+#include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
@@ -558,6 +559,23 @@ request_cursor(struct wl_listener *listener, void *data)
 	}
 }
 
+/* cursor-shape-v1: GTK 3 a 4 nastavuji kurzor jen jmenem. Bez obsluhy zustal posledni obrazek, i skryty
+ * (aplikace kurzor skryla pres wl_pointer, ostatni ho pak uz neukazaly). Tvar, ktery tema nema, je sipka. */
+static void
+request_shape(struct wl_listener *listener, void *data)
+{
+	struct wlr_cursor_shape_manager_v1_request_set_shape_event *e = data;
+	if (e->device_type != WLR_CURSOR_SHAPE_MANAGER_V1_DEVICE_TYPE_POINTER
+			|| comp.seat->pointer_state.focused_client != e->seat_client) {
+		return;
+	}
+	const char *name = wlr_cursor_shape_v1_name(e->shape);
+	if (!wlr_xcursor_manager_get_xcursor(comp.cursor_mgr, name, 1)) {
+		name = "default";
+	}
+	wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, name);
+}
+
 static void
 request_selection(struct wl_listener *listener, void *data)
 {
@@ -634,6 +652,9 @@ input_init(void)
 	wl_signal_add(&comp.cursor->events.frame, &comp.cursor_frame);
 	comp.request_cursor.notify = request_cursor;
 	wl_signal_add(&comp.seat->events.request_set_cursor, &comp.request_cursor);
+	struct wlr_cursor_shape_manager_v1 *shapes = wlr_cursor_shape_manager_v1_create(comp.display, 1);
+	comp.request_shape.notify = request_shape;
+	wl_signal_add(&shapes->events.request_set_shape, &comp.request_shape);
 	comp.drag_icons = wlr_scene_tree_create(&comp.scene->tree);
 	comp.request_start_drag.notify = request_start_drag;
 	wl_signal_add(&comp.seat->events.request_start_drag, &comp.request_start_drag);
@@ -655,6 +676,7 @@ input_finish(void)
 	wl_list_remove(&comp.cursor_axis.link);
 	wl_list_remove(&comp.cursor_frame.link);
 	wl_list_remove(&comp.request_cursor.link);
+	wl_list_remove(&comp.request_shape.link);
 	wl_list_remove(&comp.request_selection.link);
 	wl_list_remove(&comp.request_primary.link);
 	wl_list_remove(&comp.request_start_drag.link);

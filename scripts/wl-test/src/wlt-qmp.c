@@ -86,6 +86,17 @@ static void q_button(void *ctx, int btn, int down)
 	events(ev);
 }
 
+static void q_scroll(void *ctx, int steps)
+{
+	const char *name = steps > 0 ? "wheel-down" : "wheel-up";
+	char ev[128];
+	for (int down = 1; down >= 0; down--) {
+		snprintf(ev, sizeof ev, "{\"type\":\"btn\",\"data\":{\"down\":%s,\"button\":\"%s\"}}",
+			down ? "true" : "false", name);
+		events(ev);
+	}
+}
+
 /* jmena xkb -> qcode QEMU; pismena, cislice a f1.. jsou stejna */
 static const char *qcode(const char *name)
 {
@@ -145,7 +156,7 @@ static int q_text(void *ctx, const char *s)
 
 static void q_flush(void *ctx) {}
 
-static const struct scen_ops ops = { q_move, q_button, q_key, q_text, q_flush };
+static const struct scen_ops ops = { q_move, q_button, q_key, q_text, q_flush, q_scroll };
 
 static int capture(const char *dir, double fps, double sec)
 {

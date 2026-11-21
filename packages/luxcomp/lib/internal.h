@@ -167,7 +167,7 @@ struct comp {
 	struct wlr_cursor *cursor;
 	struct wlr_xcursor_manager *cursor_mgr;
 	struct wl_listener cursor_motion, cursor_motion_abs, cursor_button,
-		cursor_axis, cursor_frame, request_cursor, request_selection,
+		cursor_axis, cursor_frame, request_cursor, request_shape, request_selection,
 		request_primary, request_start_drag, start_drag;
 	struct wlr_scene_tree *drag_icons;	/* drag-and-drop icons, above everything, follow the cursor */
 	struct view *focused;
