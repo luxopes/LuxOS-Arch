@@ -30,7 +30,9 @@
 @define-color lx_light_inactive rgba(0, 0, 0, 0.18);
 @define-color lx_link #1f5fe0;
 @define-color lx_notification rgba(246, 247, 252, 0.8);
+@define-color lx_notification_solid rgba(246, 247, 252, 0.95);
 @define-color lx_popup rgba(246, 247, 252, 0.88);
+@define-color lx_popup_solid rgba(246, 247, 252, 0.96);
 @define-color lx_tile rgba(0, 0, 0, 0.05);
 @define-color lx_tile_hover rgba(0, 0, 0, 0.09);
 @define-color lx_trough rgba(0, 0, 0, 0.1);
@@ -68,9 +70,9 @@ button.lx-button:hover { background-color: @lx_button_hover; }
 .lx-popup progressbar trough { background-color: @lx_trough; border: none; border-radius: 4px; min-height: 6px; }
 .lx-popup progressbar progress { border-radius: 4px; min-height: 6px; }
 .lx-unread { background-color: @lx_accent; border-radius: 999px; min-width: 8px; min-height: 8px; }
-.lx-notification { background-color: @lx_notification; border-radius: 14px; border: 1px solid @lx_border; padding: 4px; color: @lx_fg; }
+.lx-notification { background-color: @lx_notification_solid; border-radius: 14px; border: 1px solid @lx_border; padding: 4px; color: @lx_fg; }
 .lx-notification .lx-summary { font-weight: 700; }
-.lx-notification .lx-body { color: @lx_fg_soft; }
+.lx-notification .lx-body, .lx-notification .lx-dim { color: @lx_fg_soft; }
 button.lx-close { background: none; background-image: none; border: none; box-shadow: none; outline: none; min-width: 18px; min-height: 18px; padding: 0; }
 button.lx-close label { color: @lx_close_glyph; font-size: 14px; font-weight: 700; }
 button.lx-close:hover label { color: @lx_close_glyph_hover; }
@@ -81,7 +83,7 @@ button.lx-light-close { background-color: @lx_light_close; }
 button.lx-light-min { background-color: @lx_light_min; }
 button.lx-light-max { background-color: @lx_light_max; }
 .lx-backdrop button.lx-light { background-color: @lx_light_inactive; }
-menu, .menu { background-color: @lx_popup; border-radius: 12px; padding: 5px; }
+menu, .menu { background-color: @lx_popup_solid; border-radius: 12px; padding: 5px; }
 menu > menuitem { border-radius: 6px; padding: 4px 10px; min-height: 20px; }
 menu > menuitem:hover { background-color: @lx_accent; color: @lx_accent_text; }
 menu > separator { margin: 4px 8px; }
