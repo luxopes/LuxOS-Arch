@@ -2,6 +2,7 @@
 # z /etc/xdg a uzivatelsky v ~/.config, ktery ma prednost. Vlastnosti jako {"/saver/idle-activation/delay": "10"}.
 #
 #   xfconf.channel(nazev) -> {cesta: hodnota}     cela vlastnost jako text (bool "true"/"false")
+#   xfconf.array(nazev, cesta) -> [hodnoty]       polozky pole (<value value=.../>), uzivatel ma prednost
 #   xfconf.user_path(nazev)                       soubor uzivatele (pro gio.file_monitor)
 #   xfconf.write(nazev, {cesta: [typ, hodnota]})   zmeni vlastnosti v souboru uzivatele (ostatni zustanou),
 #                                                 atomicky; jen kdyz xfconfd nebezi (Wayland), jinak xfconf-query
@@ -45,6 +46,36 @@ end
 
 function channel(name):
     return read_into(user_path(name), read_into(SYSTEM + name + ".xml", {}))
+end
+
+function array_in(path, want):
+    stack = []
+    out = None
+    for raw in text.lines(lglib.read_text(path)):
+        line = raw.strip()
+        if line.startswith("<property "):
+            name = attr(line, "name")
+            if not line.endswith("/>"):
+                stack.append(name)
+                if "/" + text.join(stack, "/") == want:
+                    out = []
+                end
+            end
+        elif line.startswith("</property>") and len(stack) > 0:
+            call stack.pop()
+        elif line.startswith("<value ") and "/" + text.join(stack, "/") == want:
+            out.append(attr(line, "value"))
+        end
+    end
+    return out
+end
+
+function array(name, want):
+    out = array_in(user_path(name), want)
+    if out == None:
+        out = array_in(SYSTEM + name + ".xml", want)
+    end
+    return [] if out == None else out
 end
 
 # ---- zapis (soubor ve formatu xfconfd) ----

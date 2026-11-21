@@ -26,7 +26,8 @@ function base_ui(mode):
     return ui
 end
 
-# LOCK_RENDER_CLOCK, _DATE, _NAME, _NET (wifi/wired) a _SESSIONS=1: jine vstupy (srovnani se snimkem z VM)
+# LOCK_RENDER_CLOCK, _DATE, _NAME, _NET (wifi/wired), _BATTERY (procenta,nabiji 0/1), _LAYOUTS,
+# _SAVER (styl setrice v klidu zamku) s _SAVER_T (sekund od startu setrice) a _SESSIONS=1: jine vstupy (srovnani se snimkem z VM)
 function overrides(ui):
     if env.get("LOCK_RENDER_CLOCK", "") != "":
         ui["clock"] = env.get("LOCK_RENDER_CLOCK", "")
@@ -40,6 +41,17 @@ function overrides(ui):
     end
     if env.get("LOCK_RENDER_NET", "") != "":
         ui["net"] = [env.get("LOCK_RENDER_NET", ""), 3]
+    end
+    if env.get("LOCK_RENDER_BATTERY", "") != "":
+        b = env.get("LOCK_RENDER_BATTERY", "").split(",")
+        ui["battery"] = [Int(b[0]), b[1] == "1"]
+    end
+    if env.get("LOCK_RENDER_LAYOUTS", "") != "":
+        ui["layouts"] = Int(env.get("LOCK_RENDER_LAYOUTS", ""))
+    end
+    if env.get("LOCK_RENDER_SAVER", "") != "":
+        ui["saver"] = env.get("LOCK_RENDER_SAVER", "")
+        call draw.saver_start(ui, Float(env.get("LOCK_RENDER_SAVER_T", "0")))
     end
     if env.get("LOCK_RENDER_SESSIONS", "") == "1":
         ui["sessions"] = [ui["sessions"][0]] if len(ui["sessions"]) > 0 else []

@@ -13,10 +13,13 @@
 #   draw.step(ui)                         posun animaci k aktualnimu casu: True = dalsi snimek hned; jinak za ui["wake"] ms
 #                                         (blikani kurzoru, 0 = nic)
 #   draw.field_rect(w, h, ui)             [x, y, w, h] pole pro heslo (testy, kliknuti)
+#   ui["saver"]                           klid zamku jako setric xfce4-screensaver (luxos_saver: "desktop" = tapeta
+#                                         plochy a hodiny jako dialog pri t = 0, "wallpapers", "clock", ...)
 load cairo, gtk, glib, math
 load luxos_glib as lglib
 load luxos_lock_sys as sys
 load luxos_tokens as tokens
+load luxos_saver as saver
 
 PI = cairo.PI
 # PangoWeight
@@ -35,7 +38,7 @@ BLINK_TIMEOUT = 10000
 TEXTS = 160
 
 state = {"backdrops": {}, "order": [], "texts": {}, "text_order": [], "masks": {}, "faces": {}, "groups": {}, "probe": None,
-         "hint_style": "lock"}
+         "hint_style": "lock", "saver": ""}
 
 
 function new_ui(mode):
@@ -45,7 +48,7 @@ function new_ui(mode):
             "power": [], "users": [], "sel": 0, "session": "", "sessions": [], "session_sel": 0, "notice": "",
             "hover": "", "leaving": False, "focus": True, "hits": [], "initial": "",
             "reveal": 0.0, "rev_from": 0.0, "rev_to": 0.0, "rev_start": 0, "shake": 0, "shake_start": 0,
-            "input_at": 0, "caret": True, "wake": 0, "lang": "en"}
+            "input_at": 0, "caret": True, "wake": 0, "lang": "en", "saver": "desktop"}
 end
 
 # ---- cisla jako v C / GTK ------------------------------------------------------------------------
@@ -1235,9 +1238,30 @@ end
 
 # ---- cela plocha -----------------------------------------------------------------------------------
 
+# Zamek v klidu se setricem jineho stylu nez "desktop": X11 tehdy ukazuje okno setrice, dialog az po vstupu
+function saver_idle(ui):
+    return ui["mode"] == "lock" and ui["saver"] != "desktop" and ui["reveal"] <= 0.0 and ui["rev_to"] <= 0.0
+end
+
+# Testy: setric zacal pred `elapsed` sekundami
+function saver_start(ui, elapsed):
+    call saver.saver_init(ui["saver"], "")
+    saver.S["start"] = saver.S["start"] - elapsed
+    state["saver"] = ui["saver"]
+    return 0
+end
+
 function frame(cr, w, h, ui, bd):
     ui["hits"] = []
     state["hint_style"] = ui["mode"]
+    if saver_idle(ui):
+        if state["saver"] != ui["saver"]:
+            call saver.saver_init(ui["saver"], "")
+            state["saver"] = ui["saver"]
+        end
+        call saver.draw(cr, w, h, True)
+        return 0
+    end
     sz = sizes(ui, w, h)
     e = ease(ui["reveal"])
     # tapeta ztmavena o 0.10 + 0.14 e (X11: tapeta a pres ni cerna): cerny podklad a tapeta s alfou jsou jeden
@@ -1362,6 +1386,9 @@ function step(ui):
     end
     # kurzor jako GtkEntry: sviti 800 ms, 400 ms ne, po 10 s bez vstupu uz jen sviti; ui["wake"] = ms do dalsi zmeny
     ui["wake"] = 0
+    if saver_idle(ui) and state["saver"] == ui["saver"]:
+        ui["wake"] = 1000 // saver.fps()
+    end
     if ui["input_at"] != 0 and ui["reveal"] > 0.0:
         ms = (now - ui["input_at"]) // 1000
         if ms >= BLINK_TIMEOUT:
