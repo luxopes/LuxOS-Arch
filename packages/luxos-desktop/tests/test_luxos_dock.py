@@ -792,8 +792,12 @@ class DockLuxwm(DockBase):
         client.wait(5)
         self.assertGreater(self.wait_height(lambda v: v > 40, 2.0), 40)
 
-    def test_autohide_over_window_is_opaque(self):
-        """Vysunuty Dock nad oknem: nepruhledny podklad, citelny nad cernym i bilym oknem"""
+    def test_autohide_over_window_shows_material(self):
+        """Vysunuty Dock nad oknem pod luxwm: material Docku (tonovani pres rozmazane okno jako Dock macOS),
+        ne sklo z tapety; nepruhledny podklad jen bez rozmazani v kompozitoru (labwc, X11)"""
+        tokens = (REPO / "packages/luxos-desktop/files/lsl/luxos_tokens.lsl").read_text()
+        m = re.search(r'"thin": \{\s*"light": \{"tint": \[(\d+), (\d+), (\d+)\], "opacity": ([\d.]+)', tokens)
+        tint, alpha = [int(v) for v in m.groups()[:3]], float(m.group(4))
         self.conf(hide="autohide")
         self.start_dock()
         self.mouse(W // 2, 100)
@@ -804,20 +808,25 @@ class DockLuxwm(DockBase):
                                  "cz.test.cover" + color])
             self.wait_line(self.dock, r"over-window 1", start=n)
             self.glide([(W // 2, 100), (W // 2, H - 1)], step=40)
-            dock_h = self.wait_height(lambda v: v > 40, 1.5)
-            self.assertGreater(dock_h, 40)
+            time.sleep(1.0)
             w, h, buf = self.shot(y0=H - 170, name="autohide-over-" + color)
-            # panel vedle ikon (levy okraj panelu): ani cerny, ani bily obsah okna pod nim neprosvita
-            row = h - dock_h // 2
-            xs = [x for x in range(W // 4, W // 2) if px(buf, w, x, row) != px(buf, w, 2, row)]
-            panels[color] = px(buf, w, xs[0] + 6, h - 4)
+            # height() porovnava s tapetou, okno ji tu zakryva: horni hrana panelu = prvni rada, kde v useku
+            # vlevo od zvetsenych ikon neni barva okna; podklad = nejcastejsi barva kousek pod ni (nad ikonami)
+            window = tuple(bytes.fromhex(color))
+            xs = range(W // 4, W // 2 - 100)
+            top = next(y for y in range(h) if all(differs(px(buf, w, x, y), window, 3) for x in xs))
+            self.assertLess(top, h - 40, "Dock not shown")
+            colors = [px(buf, w, x, top + 8) for x in xs]
+            panels[color] = max(set(colors), key=colors.count)
             client.terminate()
             client.wait(5)
             self.mouse(W // 2, 100)
             self.wait_height(lambda v: v == 0, 1.5)
         print(f"\n  panel over black {panels['000000']}, over white {panels['ffffff']}")
-        for a, b in zip(panels["000000"], panels["ffffff"]):
-            self.assertLessEqual(abs(a - b), 14, panels)
+        for color, under in (("000000", 0), ("ffffff", 255)):
+            want = [round(t * alpha + under * (1 - alpha)) for t in tint]
+            for got, exp in zip(panels[color], want):
+                self.assertLessEqual(abs(got - exp), 10, (color, panels[color], want))
 
 
 EMIT_PY = r'''
