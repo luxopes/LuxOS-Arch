@@ -38,4 +38,4 @@ panel opens next to the mouse pointer.
 ## See also
 
 - [keyboard.md](keyboard.md): all keyboard shortcuts.
-- [desktop.md](desktop.md#session-startup-and-luxos-hub): luxos-hub, which keeps the panel preloaded.
+- [login-lock.md](login-lock.md#session-startup-and-luxos-hub): luxos-hub, which keeps the panel preloaded.

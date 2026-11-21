@@ -254,22 +254,7 @@ and `WALLPAPER_COLOR=#rrggbb` around a smaller picture. Changes show at once, al
 bar and the Dock. Right-clicking the desktop offers New Folder (in `~/Desktop`, named right away),
 Change Wallpaper…, Edit Widgets… and Displays….
 
-Desktop icons on Wayland follow the same xfconf settings as on X11 (channel `xfce4-desktop`,
-`desktop-icons/style` 2 = file icons, 0 = none; `icon-size`, `font-size`, `file-icons/show-home`,
-`show-filesystem`, `show-trash`, `show-removable`). They show the files in `~/Desktop` and mounted
-removable drives on the first monitor, in columns from the top left below the bar:
-
-- click selects, double-click (or Enter) opens in the default app; a `.desktop` launcher starts its
-  app only when it is executable, like in Thunar
-- drag from an empty spot selects with a rectangle, dragging icons moves them (positions are kept in
-  `~/.config/luxos/desktop-icons`)
-- right-click an icon: Open, Rename…, Move to Trash (drives: Open, Eject); keys: arrows, Enter, F2,
-  Delete, Escape, Menu
-- files dropped from the file manager are copied (or moved, if the file manager asks for a move) to
-  `~/Desktop` where they were dropped
-
-The desktop takes the keyboard only while the pointer is over it, so a click into a window always
-gives the window the keyboard back. Thumbnails of pictures are not shown yet.
+Desktop icons on Wayland are described in [Top bar options and desktop widgets](bar-widgets.md#desktop-icons-on-wayland).
 
 ## Boot splash
 
@@ -290,29 +275,7 @@ Login screen, login transition, lock screen and screen savers: see [login-lock.m
 
 ## Session startup and luxos-hub
 
-`luxos-session` runs at every login (autostart). It:
-
-- on first login: creates the standard folders and applies the default look;
-- re-applies saved display settings (`luxos-displays auto`) and software brightness;
-- starts `luxos-appname watch`, `luxos-menubar`, the Safe watcher (`luxos-safe-watch` user
-  service, plus a "Safe" bookmark in Files) and **`luxos-hub`** (restarted if it crashes);
-- re-applies Data Saver (`luxos-datasaver reapply`) and the wallpaper for new monitors;
-- on first login starts the LuxOS Tour and then Welcome. After an update to a new LuxOS version it
-  shows What's New.
-
-`luxos-hub` is one light process that replaces several background programs:
-
-- keeps Control Center (SIGUSR1) and Calendar (SIGUSR2) preloaded, as well as the screenshot toolbar
-  and the Emoji & Symbols panel (`luxos-screenshot` and `luxos-emoji` pass requests over a socket);
-- locks the Safe on screen lock and before sleep;
-- marks new networks as metered while Data Saver is on;
-- notifies when earlyoom ended a program because memory ran low;
-- shows the "!" network warning;
-- runs the Bluetooth pairing agent (instead of blueman-applet, which is disabled);
-- switches the sound output to a newly connected monitor (HDMI/DisplayPort), USB or Bluetooth
-  device and back after unplugging (see [settings-apps.md](settings-apps.md#sound-output-switching));
-- runs the auto light/dark check;
-- once per boot, notifies about missing drivers.
+What `luxos-session` and `luxos-hub` do at login is described in [login-lock.md](login-lock.md#session-startup-and-luxos-hub).
 
 ## Multiple monitors
 
