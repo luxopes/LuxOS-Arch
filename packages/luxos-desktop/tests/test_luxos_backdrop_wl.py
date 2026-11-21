@@ -534,7 +534,7 @@ class WaylandBackdrop(unittest.TestCase):
         self.keys("Down", "Down", "Down", "Return")
         d.wait(r"^run luxos-widgets settings$", start=mark)
         time.sleep(0.3)
-        self.assertEqual(self.ran.read_text().splitlines(), ["luxos-settings ", "luxos-widgets settings"])
+        self.assertEqual(self.ran.read_text().splitlines(), ["luxos-settings desktop", "luxos-widgets settings"])
 
     def test_menu_new_folder(self):
         self.start()

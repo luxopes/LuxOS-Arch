@@ -259,7 +259,7 @@ class Defaults(unittest.TestCase):
         self.assertEqual(values, ["screensavers-luxos-wallpaper"])
         with open(os.path.join(FILES, "screensaver", "luxos-wallpaper.desktop")) as f:
             self.assertIn("Exec=/usr/lib/xfce4-screensaver/luxos --style desktop\n", f.read())
-        with open(os.path.join(FILES, "lsl", "luxos-lock-settings.lsl")) as f:
+        with open(os.path.join(FILES, "lsl", "luxos_page_lock.lsl")) as f:
             src = f.read()
         self.assertIn('["screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock"]', src)
         # kazdy styl z nastaveni existuje v setrici a ma .desktop soubor
