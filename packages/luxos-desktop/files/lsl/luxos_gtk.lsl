@@ -435,7 +435,8 @@ end
 
 # ==== Snimek obrazovky (luxos_shot): okna mimo spravce oken, nabidky, dialogy, obrazky =========================
 #   root_window(), root_size() -> [w, h], root_scale(), rgba_available(), monitor_at_pointer() -> [x, y, w, h]
-#   gdk_window_raise(widget), widget_xid(widget), widget_shape_rounded(okno, w, h, r), widget_input_rect(okno, x, y, w, h)
+#   gdk_window_raise(widget), widget_xid(widget), widget_shape_rounded(okno, w, h, r), widget_input_rect(okno, x, y, w, h),
+#   widget_input_rects(okno, [[x, y, w, h]..]), widget_offset(widget, predek) -> [x, y]
 #   (w < 0 = cela plocha), current_event_state(), event_crossing_detail(e), event_x_root/y_root(e)
 #   seat_grab_keyboard(widget) / seat_ungrab(), accessible_name(widget, text)
 #   menu_new, menu_item_new(text), menu_item_markup(markup), radio_menu_item_new(skupina, text), check_menu_item_new,
@@ -594,6 +595,36 @@ function widget_input_rect(widget, x, y, width, height):
         call __lsl_qbe_call2(__lsl_symbol("gtk_widget_input_shape_combine_region"), ptr(widget), region)
         call __lsl_qbe_call1(__lsl_symbol("cairo_region_destroy"), region)
         return 0
+    end
+end
+
+# Vstupni oblast ze seznamu obdelniku [x, y, w, h] (oznameni: jen bubliny; kompozitor pod ne da material)
+function widget_input_rects(widget, rects):
+    unsafe:
+        region = __lsl_qbe_call0(__lsl_symbol("cairo_region_create"))
+        rect = __lsl_byte_zeros(16)
+        for r in rects:
+            call __lsl_qbe_store32(data(rect), ptr(r[0]))
+            call __lsl_qbe_store32(data(rect) + 4, ptr(r[1]))
+            call __lsl_qbe_store32(data(rect) + 8, ptr(r[2]))
+            call __lsl_qbe_store32(data(rect) + 12, ptr(r[3]))
+            call __lsl_qbe_call2(__lsl_symbol("cairo_region_union_rectangle"), region, data(rect))
+        end
+        call __lsl_qbe_call2(__lsl_symbol("gtk_widget_input_shape_combine_region"), ptr(widget), region)
+        call __lsl_qbe_call1(__lsl_symbol("cairo_region_destroy"), region)
+        return 0
+    end
+end
+
+# Poloha widgetu v souradnicich predka [x, y]; None, kdyz nejsou ve stejnem okne nebo widget neni alokovany
+function widget_offset(widget, ancestor):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        ok = __lsl_qbe_call6(__lsl_symbol("gtk_widget_translate_coordinates"), ptr(widget), ptr(ancestor), 0, 0, data(cell), data(cell) + 4)
+        if (ok & 255) == 0:
+            return None
+        end
+        return [__lsl_qbe_s32(__lsl_qbe_load32(data(cell))), __lsl_qbe_s32(__lsl_qbe_load32(data(cell) + 4))]
     end
 end
 

@@ -265,7 +265,11 @@ function add_backdrop(monitor):
     b = {"win": win, "monitor": monitor, "output": output_for(monitor), "w": geo[2], "h": geo[3],
          "scale": max(1, monitor_scale(monitor)), "key": "", "surface": 0, "drawn": "", "handlers": [], "kbd": 0}
     call layer.init_for_window(win)
-    call layer.set_namespace(win, "luxos-backdrop")
+    # plocha sama material nema, jeji nabidka (xdg_popup) ano
+    call layer.set_namespace(win, "luxos-backdrop@popups")
+    if ui.get("menu_css", 0) == 0:
+        call apply_menu_css()
+    end
     call layer.set_layer(win, layer.LAYER_BACKGROUND)
     call layer.set_monitor(win, monitor)
     call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_BOTTOM, layer.EDGE_LEFT, layer.EDGE_RIGHT])
@@ -396,7 +400,19 @@ function reload_conf(unused):
         icons["dark"] = is_dark()
         call icons_changed()
     end
+    call apply_menu_css()
     return False
+end
+
+# Nabidka plochy: material menu od kompozitoru, barvy a polozky z tokenu
+function apply_menu_css():
+    text = tokens.menu_css(is_dark(), material.compositor_blur())
+    if ui.get("menu_css", 0) == 0:
+        ui["menu_css"] = gtk.css_load(text)
+    else:
+        call luxos_gtk.css_set(ui["menu_css"], text)
+    end
+    return 0
 end
 
 # ---- nabidka plochy ------------------------------------------------------------------------------
@@ -876,7 +892,7 @@ function paint_icons(b, cr):
 end
 
 function tokens_selection():
-    c = tokens.COLORS["selection"]
+    c = tokens.COLORS["accent"]
     return [Float(c[0]) / 255.0, Float(c[1]) / 255.0, Float(c[2]) / 255.0]
 end
 

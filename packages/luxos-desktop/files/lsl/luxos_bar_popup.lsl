@@ -23,7 +23,6 @@ load luxos_text as text
 load luxos_i18n as i18n
 load luxos_layer as layer
 load luxos_tokens as tokens
-load luxos_material as material
 
 KINDS = ["wifi", "sound", "notifications"]
 WIDTH = 320
@@ -134,7 +133,7 @@ function window_for(kind):
     end
     win = gtk.window_new("luxos-bar-" + kind)
     call layer.init_for_window(win)
-    call layer.set_namespace(win, "luxos-bar-popup")
+    call layer.set_namespace(win, tokens.namespace("luxos-bar-popup", "popup"))
     call layer.set_layer(win, layer.LAYER_OVERLAY)
     call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_LEFT])
     call layer.set_margin(win, layer.EDGE_TOP, GAP)
@@ -285,35 +284,13 @@ function on_focus_out(kind, event, window):
     return False
 end
 
-# Sklo pod okno: vyrez tapety na miste okna (pod listou, kotva nahore vlevo)
+# Podklad okna je jen CSS .lx-popup (material popup); rozmazane pozadi pod nim kresli kompozitor, bez nej (labwc)
+# je material skoro nepruhledny. Okno samo je pruhledne (rohy).
 function on_draw(kind, cr, window):
-    place = P["place"].get(kind)
-    if place == None:
-        return False
-    end
-    w = gtk.widget_get_allocated_width(window)
-    h = gtk.widget_get_allocated_height(window)
-    area = [0, tokens.BAR["height"], place[1], place[2] - tokens.BAR["height"]]
-    pos = material.layer_position(material.ANCHOR_TOP | material.ANCHOR_LEFT, [GAP, 0, 0, place[4]], w, h, area)
-    ink = 1
-    if P["dark"]:
-        ink = 0
-    end
-    hit = material.strip(place[0], place[1], place[2], pos[0], pos[1], w, h, tokens.RADIUS["popup"], ink, place[3])
     call cairo.save(cr)
     call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
     call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0)
     call cairo.paint(cr)
-    if hit != None:
-        call cairo.set_operator(cr, cairo.OPERATOR_OVER)
-        call cairo.set_source_surface(cr, hit[0], 0.0, 0.0)
-        call cairo.paint(cr)
-    else:
-        c = tokens.color("popup", P["dark"])
-        call material.rounded_path(cr, 0.0, 0.0, Float(w), Float(h), Float(tokens.RADIUS["popup"]))
-        call cairo.set_source_rgba(cr, Float(c[0]) / 255.0, Float(c[1]) / 255.0, Float(c[2]) / 255.0, c[3])
-        call cairo.fill(cr)
-    end
     call cairo.restore(cr)
     return False
 end

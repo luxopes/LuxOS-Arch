@@ -11,11 +11,15 @@
 #   popup.focus_out(okno) z focus-out-event -> True = klik jinam, zavrit
 #   popup.same_click(ztraceno_ms)         klik v liste, ktery oknu prave vzal fokus (a zavrel ho)?
 #   popup.write_anchor(x, y, stred, cas)  lista tesne pred luxos-cc-toggle
+#   popup.colors(predpona, tmavy)         @define-color predpona_bg/border/highlight/fg/dim/faint/tile/tile_hover/bubble/
+#                                         trough/fill/accent z tokenu (material popup; rozmazani pod nim kresli luxwm)
 load env
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load luxos_layer as layer
 load luxos_text as text
+load luxos_tokens as tokens
+load luxos_material as material
 
 ANCHOR = "luxos-popup-anchor"
 FRESH_MS = 2000
@@ -82,7 +86,7 @@ end
 
 function setup(win, name):
     call layer.init_for_window(win)
-    call layer.set_namespace(win, name)
+    call layer.set_namespace(win, tokens.namespace(name, "popup"))
     call layer.set_layer(win, layer.LAYER_OVERLAY)
     call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
     call layer.set_margin(win, layer.EDGE_TOP, GAP)
@@ -92,6 +96,19 @@ end
 # Klavesnice on demand: luxwm ji vrstve nad okny da hned po zobrazeni (Esc), klik jinam (okno, plocha) ji
 # vezme a tim okno zavre. Ztrata fokusu se pocita, jen kdyz ho okno melo.
 focused = {}
+
+function colors(prefix, dark):
+    values = {"bg": tokens.material("popup", dark, material.compositor_blur()), "border": tokens.material_border("popup", dark),
+              "highlight": tokens.material_highlight("popup", dark), "fg": tokens.color("fg", dark), "dim": tokens.color("fg_secondary", dark),
+              "faint": tokens.with_alpha(tokens.color("fg", dark), 0.28), "tile": tokens.color("tile", dark),
+              "tile_hover": tokens.color("tile_hover", dark), "bubble": tokens.color("bubble", dark),
+              "trough": tokens.color("trough", dark), "fill": tokens.color("fill", dark), "accent": tokens.COLORS["accent"]}
+    out = ""
+    for name in sorted(values.keys()):
+        out = out + "@define-color " + prefix + "_" + name + " " + tokens.css_color(values[name]) + ";\n"
+    end
+    return out
+end
 
 function show(win):
     focused[win] = False

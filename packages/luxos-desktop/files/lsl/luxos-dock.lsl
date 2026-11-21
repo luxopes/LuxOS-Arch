@@ -61,7 +61,7 @@ app_keys = {}           # app_id -> klic polozky
 entries = {}            # id .desktop -> LauncherEntry {"count", "count-visible", "progress", ..., "sender"}
 geo = {}
 output = {"name": "", "w": 0, "h": 0, "monitor": 0}
-view = {"hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
+view = {"blur": material.compositor_blur(), "hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
     "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "drawn": [0, 0, 0, 0], "seq": 0,
     "strip": None, "light": True}
 anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1]}
@@ -652,7 +652,13 @@ function glass_strip():
 end
 
 function draw_panel(cr, x, y, w, h):
-    radius = tokens.RADIUS["popup"]
+    if view["blur"]:
+        # rozmazane pozadi kresli kompozitor pod vstupni oblasti (panel); jen tonovani a odlesk nahore, bez obrysu
+        view["light"] = not dark_mode()
+        call material.paint_tint(cr, "dock", dark_mode(), True, x, y, w, h, False)
+        return 0
+    end
+    radius = tokens.radius_of("dock")
     strip = glass_strip()
     call cairo.save(cr)
     call cairo.rounded_rectangle(cr, x, y, w, h, radius)
@@ -661,7 +667,7 @@ function draw_panel(cr, x, y, w, h):
         call cairo.set_source_surface(cr, strip[0], 0, y)
         call cairo.paint(cr)
     else:
-        call cairo.set_source_color(cr, tokens.rgb01(tokens.color("popup", not view["light"])))
+        call cairo.set_source_color(cr, tokens.rgb01(tokens.material("dock", not view["light"], False)))
         call cairo.paint(cr)
     end
     call cairo.restore(cr)
@@ -737,19 +743,30 @@ function draw_badge(cr, entry, x, y, z):
     return 0
 end
 
+# Popisek nad ikonou: footnote medium na tmave pilulce (polomer s, odsazeni 10 x 5), 8 px nad ikonou
 function draw_label(cr, name, center, icon_top):
-    font = tokens.FONT["family"] + " 10"
+    font = tokens.FONT["family"] + " Medium 9"
     size = pango.text_size(cr, name, font)
-    w = Float(size[0]) + 16.0
-    h = Float(size[1]) + 8.0
+    w = Float(size[0]) + 20.0
+    h = Float(size[1]) + 10.0
     x = max(2.0, min(Float(geo["width"]) - w - 2.0, center - w / 2.0))
-    y = max(1.0, icon_top - h - 6.0)
-    dark = not view["light"]
-    call cairo.set_source_color(cr, tokens.rgb01(tokens.color("popup", dark)))
-    call cairo.rounded_rectangle(cr, x, y, w, h, tokens.RADIUS["button"])
+    y = max(1.0, icon_top - h - 8.0)
+    call cairo.set_source_color(cr, tokens.rgb01(tokens.material("menu", True, False)))
+    call cairo.rounded_rectangle(cr, x, y, w, h, tokens.RADIUS["s"])
     call cairo.fill(cr)
-    call cairo.set_source_color(cr, tokens.rgb01(tokens.color("fg", dark)))
-    call pango.draw_text(cr, x + 8.0, y + 4.0, name, font)
+    call cairo.set_source_color(cr, tokens.rgb01(tokens.color("fg", True)))
+    call pango.draw_text(cr, x + 10.0, y + 5.0, name, font)
+    return 0
+end
+
+# Nabidka Docku (xdg_popup) dostane od kompozitoru material menu; barvy a polozky z tokenu
+function apply_menu_css():
+    text = tokens.menu_css(dark_mode(), view["blur"])
+    if view.get("menu_css", 0) == 0:
+        view["menu_css"] = gtk.css_load(text)
+    else:
+        call gtk.css_set(view["menu_css"], text)
+    end
     return 0
 end
 
@@ -1328,6 +1345,7 @@ function on_config(file, event, other):
         end
     elif file.endswith("/appearance.conf") or file.endswith("/appearance"):
         call material.reload()
+        call apply_menu_css()
         view["strip"] = None
         call queue_redraw()
     end
@@ -1378,8 +1396,9 @@ view["trash_full"] = len(glib.list_dir(trash_dir)) > 0
 
 window = gtk.window_new("luxos-dock")
 call gtk.window_set_rgba(window)
+call apply_menu_css()
 call layer.init_for_window(window)
-call layer.set_namespace(window, "luxos-dock")
+call layer.set_namespace(window, tokens.namespace("luxos-dock", "dock"))
 call layer.set_layer(window, layer.LAYER_TOP)
 call layer.set_anchors(window, [layer.EDGE_BOTTOM])
 call layer.set_keyboard_mode(window, layer.KEYBOARD_NONE)

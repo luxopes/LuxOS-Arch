@@ -382,7 +382,7 @@ function draw_item(cr, item, g, x, y, selected, dark, icon):
     lx = Float(x + 4)
     ly = top + icon_size + 4.0
     if selected:
-        sel = tokens.COLORS["selection"]
+        sel = tokens.COLORS["accent"]
         w = Float(size[0]) + 8.0
         call cairo.set_source_rgba(cr, Float(sel[0]) / 255.0, Float(sel[1]) / 255.0, Float(sel[2]) / 255.0, 0.92)
         call material.rounded_path(cr, cx - w / 2.0, ly - 1.0, w, Float(size[1]) + 2.0, 4.0)

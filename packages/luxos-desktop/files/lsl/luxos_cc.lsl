@@ -21,42 +21,30 @@ load luxos_wl as wl
 load luxos_hub_popup as popup
 
 CSS = ("window.cc { background: transparent; }\n"
-    + ".cc-box { background-color: @cc_bg; border-radius: 18px; border: 1px solid @cc_border; padding: 12px; color: @cc_fg; }\n"
-    + ".tile { background-color: @cc_tile; border-radius: 14px; padding: 10px 12px; border: none; box-shadow: none; background-image: none; color: @cc_fg; }\n"
+    + ".cc-box { background-color: @cc_bg; border-radius: 16px; border: 1px solid @cc_border; box-shadow: inset 0 1px @cc_highlight; padding: 12px; color: @cc_fg; }\n"
+    + ".tile { background-color: @cc_tile; border-radius: 12px; padding: 10px; border: none; box-shadow: none; background-image: none; color: @cc_fg; }\n"
     + ".tile:hover { background-color: @cc_tile_hover; }\n"
     + ".tile .bubble { background-color: @cc_bubble; border-radius: 999px; min-width: 30px; min-height: 30px; color: @cc_fg; }\n"
-    + ".tile.on .bubble { background-color: #3d7bff; color: white; }\n"
+    + ".tile.on .bubble { background-color: @cc_accent; color: white; }\n"
     + ".tile .title { font-weight: 600; font-size: 12px; }\n"
     + ".tile .title.long { font-size: 11px; }\n"
     + ".tile .sub { font-size: 11px; color: @cc_dim; }\n"
     + ".tile:disabled { opacity: 0.45; }\n"
     + ".tile.mode { padding: 8px 4px 6px 4px; }\n"
     + ".tile.mode .title { font-weight: 500; font-size: 11px; }\n"
-    + ".section { background-color: @cc_tile; border-radius: 14px; padding: 10px 12px; }\n"
+    + ".section { background-color: @cc_tile; border-radius: 12px; padding: 10px; }\n"
     + ".section .title { font-weight: 600; font-size: 12px; }\n"
     + ".section .sub { font-size: 11px; color: @cc_dim; }\n"
-    + ".cc-box scale trough { min-height: 22px; border-radius: 11px; background-color: @cc_trough; border: none; }\n"
-    + ".cc-box scale highlight { border-radius: 11px; background-color: @cc_fill; border: none; min-height: 22px; }\n"
-    + ".cc-box scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px; background-color: white; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }\n"
-    + ".footer { background: none; border: none; box-shadow: none; color: @cc_fg; padding: 4px 6px; font-size: 12px; border-radius: 8px; }\n"
-    + ".footer:hover { background-color: @cc_tile; }\n"
+    + ".cc-box scale trough { min-height: 28px; border-radius: 14px; background-color: @cc_trough; border: none; }\n"
+    + ".cc-box scale highlight { border-radius: 14px; background-color: @cc_fill; border: none; min-height: 28px; }\n"
+    + ".cc-box scale slider { min-width: 28px; min-height: 28px; margin: 0; border-radius: 14px; background-color: white; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }\n"
+    + ".footer { background-color: alpha(@cc_fg, 0.06); border: none; box-shadow: none; color: @cc_fg; padding: 0 10px; min-height: 28px; font-size: 12px; font-weight: 500; border-radius: 8px; }\n"
+    + ".footer:hover { background-color: @cc_tile_hover; }\n"
     + "button.plain { padding: 0; border: none; background: none; box-shadow: none; }\n"
     + ".art { border-radius: 9px; min-width: 42px; min-height: 42px; color: white; background-image: linear-gradient(135deg, #ff5f6d, #c445ff); }\n"
     + "button.media { padding: 4px; border: none; background: none; box-shadow: none; color: @cc_fg; border-radius: 999px; min-width: 30px; min-height: 30px; }\n"
     + "button.media:hover { background-color: @cc_tile_hover; }\n"
-    + ".avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white; background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }\n")
-
-DARK = ("@define-color cc_bg rgba(32, 33, 52, 0.86); @define-color cc_border rgba(255, 255, 255, 0.14);\n"
-    + "@define-color cc_fg #f4f4fa; @define-color cc_dim rgba(244, 244, 250, 0.6);\n"
-    + "@define-color cc_tile rgba(255, 255, 255, 0.08); @define-color cc_tile_hover rgba(255, 255, 255, 0.13);\n"
-    + "@define-color cc_bubble rgba(255, 255, 255, 0.14); @define-color cc_trough rgba(255, 255, 255, 0.14);\n"
-    + "@define-color cc_fill rgba(255, 255, 255, 0.85);\n")
-
-LIGHT = ("@define-color cc_bg rgba(246, 247, 252, 0.88); @define-color cc_border rgba(0, 0, 0, 0.10);\n"
-    + "@define-color cc_fg #1d1d2b; @define-color cc_dim rgba(29, 29, 43, 0.58);\n"
-    + "@define-color cc_tile rgba(0, 0, 0, 0.05); @define-color cc_tile_hover rgba(0, 0, 0, 0.09);\n"
-    + "@define-color cc_bubble rgba(0, 0, 0, 0.08); @define-color cc_trough rgba(0, 0, 0, 0.10);\n"
-    + "@define-color cc_fill #ffffff;\n")
+    + ".avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white; background-image: linear-gradient(135deg, @cc_accent, #8b4dff); }\n")
 
 cc = {}            # stav okna (widgety a priznaky)
 created = False
@@ -433,10 +421,7 @@ end
 
 function css_text():
     name = gtk.settings_theme_name().lower()
-    if name.find("dark") >= 0:
-        return DARK + CSS
-    end
-    return LIGHT + CSS
+    return popup.colors("cc", name.find("dark") >= 0) + CSS
 end
 
 # Svetly/tmavy rezim se muze prepnout za behu (automaticky podle slunce)

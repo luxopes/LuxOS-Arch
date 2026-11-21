@@ -32,7 +32,7 @@ REPEAT_KEYS = ["", "FREQ=DAILY", "FREQ=WEEKLY", "FREQ=MONTHLY", "FREQ=YEARLY"]
 REPEAT_NAMES = ["Never", "Daily", "Weekly", "Monthly", "Yearly"]
 
 CSS = ("window.lc { background: transparent; }\n"
-    + ".lc-box { background-color: @lc_bg; border-radius: 18px; border: 1px solid @lc_border; padding: 14px; color: @lc_fg; }\n"
+    + ".lc-box { background-color: @lc_bg; border-radius: 16px; border: 1px solid @lc_border; box-shadow: inset 0 1px @lc_highlight; padding: 12px; color: @lc_fg; }\n"
     + ".lc-box label { color: @lc_fg; }\n"
     + ".lc-box label.dim, .lc-dim { color: @lc_dim; }\n"
     + ".lc-daynum { font-size: 44px; font-weight: 700; }\n"
@@ -89,17 +89,8 @@ CSS = ("window.lc { background: transparent; }\n"
     + "button.lc-danger.confirm { background-color: #ff453a; }\n"
     + "button.lc-danger.confirm label { color: white; }\n")
 
-DARK = ("@define-color lc_bg rgba(32, 33, 52, 0.86); @define-color lc_border rgba(255, 255, 255, 0.14);\n"
-    + "@define-color lc_fg #f4f4fa; @define-color lc_dim rgba(244, 244, 250, 0.60);\n"
-    + "@define-color lc_faint rgba(244, 244, 250, 0.28);\n"
-    + "@define-color lc_tile rgba(255, 255, 255, 0.08); @define-color lc_tile_hover rgba(255, 255, 255, 0.14);\n"
-    + "@define-color lc_seg_on rgba(255, 255, 255, 0.22); @define-color lc_accent #ff453a;\n")
-
-LIGHT = ("@define-color lc_bg rgba(246, 247, 252, 0.88); @define-color lc_border rgba(0, 0, 0, 0.10);\n"
-    + "@define-color lc_fg #1d1d2b; @define-color lc_dim rgba(29, 29, 43, 0.58);\n"
-    + "@define-color lc_faint rgba(29, 29, 43, 0.28);\n"
-    + "@define-color lc_tile rgba(0, 0, 0, 0.05); @define-color lc_tile_hover rgba(0, 0, 0, 0.09);\n"
-    + "@define-color lc_seg_on #ffffff; @define-color lc_accent #ff3b30;\n")
+# Barvy z tokenu (material popup); dnesni den a ulozit = akcent LuxOS
+SEG_ON = {"light": "@define-color lc_seg_on #ffffff;\n", "dark": "@define-color lc_seg_on rgba(255, 255, 255, 0.22);\n"}
 
 store = None
 cal = {}
@@ -1321,12 +1312,7 @@ function theme_apply():
         return 0
     end
     theme["dark"] = dark
-    css = CSS + color_css(dark) + "\n.lc-dot.c-white { background-color: white; }"
-    if dark:
-        css = DARK + css
-    else:
-        css = LIGHT + css
-    end
+    css = popup.colors("lc", dark) + SEG_ON["dark" if dark else "light"] + CSS + color_css(dark) + "\n.lc-dot.c-white { background-color: white; }"
     if theme["provider"] == 0:
         theme["provider"] = gtk.css_load(css)
     else:
