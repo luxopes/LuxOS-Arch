@@ -34,6 +34,11 @@ systemd --user
   - The boot splash hand-off, like LightDM: `plymouth-quit.service` conflicts, `plymouth deactivate` runs before
     greetd so luxwm gets DRM, and `luxos-greetd-splash` runs `plymouth quit --retain-splash` once the greeter's
     first frame is on screen (`$XDG_RUNTIME_DIR/luxos-greeter-shown`; at most 10 s).
+  - greetd sets the VT to `KD_TEXT` at start and before each session. Going from graphics to text mode makes the
+    kernel force the text console's framebuffer onto the screen even past a DRM master (the Xorg exception in
+    `drm_fb_helper_set_par`), so the splash turned into a black console before luxwm started. While Plymouth
+    runs, `libluxos-greetd-vt.so` (`LD_PRELOAD` in `luxos-greetd.service`) drops that one ioctl; the VT stays in
+    Plymouth's graphics mode, logind sets graphics anyway on `TakeControl` and text again when the session ends.
   - No dark gap: while Plymouth runs, `luxos-greeter-session` starts `luxwm --greeter --hold`. libluxcomp
     (`luxcomp_hold()`) takes over the lit CRTC with its mode and commits nothing until the greeter's surface is
     in the scene, so the splash's last frame stays up instead of wlroots' black modeset buffer and the empty
