@@ -5398,3 +5398,7 @@ Wrong password	Mot de passe incorrect
 Scale	Échelle
 Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Agrandit le texte, les fenêtres et la barre des menus sur cet écran. 125-175 % convient aux écrans nets des portables.
 No displays found. Display settings need a Wayland session with LuxOS.	Aucun écran trouvé. Les réglages des écrans nécessitent une session Wayland avec LuxOS.
+The desktop could not start. %s is selected.	Le bureau n’a pas pu démarrer. %s est sélectionné.
+Authentication required	Authentification requise
+Authenticate	S’authentifier
+Authentication is not available.	L’authentification n’est pas disponible.

@@ -5398,3 +5398,7 @@ Wrong password	Onjuist wachtwoord
 Scale	Schaal
 Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Maakt tekst, vensters en de menubalk groter op dit scherm. 125-175 % past bij scherpe laptopschermen.
 No displays found. Display settings need a Wayland session with LuxOS.	Geen schermen gevonden. De scherminstellingen hebben een Wayland-sessie met LuxOS nodig.
+The desktop could not start. %s is selected.	Het bureaublad kon niet starten. %s is geselecteerd.
+Authentication required	Authenticatie vereist
+Authenticate	Authenticeren
+Authentication is not available.	Authenticatie is niet beschikbaar.

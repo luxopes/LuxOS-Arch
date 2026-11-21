@@ -5399,3 +5399,7 @@ Wrong password	Неправильний пароль
 Scale	Масштаб
 Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Збільшує текст, вікна та рядок меню на цьому дисплеї. 125-175 % підходить для чітких екранів ноутбуків.
 No displays found. Display settings need a Wayland session with LuxOS.	Дисплеїв не знайдено. Налаштування дисплеїв потребують сеансу Wayland з LuxOS.
+The desktop could not start. %s is selected.	Не вдалося запустити робочий стіл. Вибрано %s.
+Authentication required	Потрібна автентифікація
+Authenticate	Автентифікувати
+Authentication is not available.	Автентифікація недоступна.

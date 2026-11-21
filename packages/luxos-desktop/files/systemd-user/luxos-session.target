@@ -1,0 +1,11 @@
+# LuxOS - shell relace na Waylandu (1.1.0). Spousti ho luxos-wayland-session, az ma luxwm socket; zastavi ho po
+# skonceni luxwm. BindsTo graphical-session.target: jednotky shellu (PartOf=graphical-session.target) se s relaci
+# zastavi. Pad klienta opravi jeho vlastni Restart=, kompozitor je vedouci proces relace (ne jednotka).
+[Unit]
+Description=LuxOS Wayland session
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+Wants=luxos-notify.service luxos-bar.service luxos-dock.service luxos-backdrop.service luxos-widgets.service
+Wants=luxos-lock.service luxos-launchpad.service luxos-polkit.service
+# portaly (snimek obrazovky, sdileni obrazovky, vyber souboru) se spousti pres D-Bus az pri prvnim pouziti

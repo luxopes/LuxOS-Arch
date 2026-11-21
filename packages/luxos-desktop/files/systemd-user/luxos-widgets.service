@@ -1,5 +1,5 @@
-# LuxOS - widgety na plose (luxos-widgets, na Waylandu plochy na vrstve BOTTOM); pro nahled, X11 je spousti
-# luxos-session. Vypnute widgety (luxos-widgets off) hned skonci s kodem 0, proto bez Restart=always.
+# LuxOS - widgety na plose relace na Waylandu (luxos-widgets, vrstva BOTTOM); X11 je spousti luxos-session.
+# Vypnute widgety (luxos-widgets off) hned skonci s kodem 0, proto jen Restart=on-failure.
 [Unit]
 Description=LuxOS desktop widgets
 PartOf=graphical-session.target

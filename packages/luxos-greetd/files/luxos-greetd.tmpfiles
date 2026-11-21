@@ -1,0 +1,6 @@
+# LuxOS - stav prihlasovaci obrazovky (posledni uzivatel a jeho relace) v domove uzivatele greeter
+d /var/lib/luxos-greeter 0700 greeter greeter -
+# prihlaseni otiskem: greeter sem zapise uzivatele, ktery zacal psat heslo (pam_listfile ve sluzbe greetd,
+# luxos-fingerprint-pam); soubor zaklada luxos-fingerprint.conf pro uzivatele lightdm, greeter dostane pravo ACL
+a+ /run/luxos-fingerprint - - - - u:greeter:rwx
+a+ /run/luxos-fingerprint/password-only - - - - u:greeter:rw

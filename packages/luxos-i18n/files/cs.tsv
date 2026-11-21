@@ -5397,3 +5397,7 @@ Wrong password	Nesprávné heslo
 Scale	Měřítko
 Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Zvětší text, okna a horní lištu na tomto monitoru. 125-175 % se hodí pro jemné displeje notebooků.
 No displays found. Display settings need a Wayland session with LuxOS.	Žádný monitor nebyl nalezen. Nastavení monitorů potřebuje relaci Wayland s LuxOS.
+The desktop could not start. %s is selected.	Plochu se nepodařilo spustit. Je vybráno %s.
+Authentication required	Vyžadováno ověření
+Authenticate	Ověřit
+Authentication is not available.	Ověření není k dispozici.

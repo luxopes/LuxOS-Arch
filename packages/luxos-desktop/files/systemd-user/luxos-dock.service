@@ -1,4 +1,5 @@
-# LuxOS - Dock na Waylandu (luxos-dock v LSL); pro nahled, vlastni jednotku prinese WP-13
+# LuxOS - Dock relace na Waylandu (luxos-dock, LSL). Spousti ho luxos-session.target; po padu ho systemd hned
+# spusti znovu. X11 relace dal pouziva plank.
 [Unit]
 Description=LuxOS Dock
 PartOf=graphical-session.target
@@ -12,4 +13,6 @@ Type=exec
 ExecStart=/usr/lib/luxos/luxos-dock
 Restart=always
 RestartSec=200ms
+RestartPreventExitStatus=2
+MemoryHigh=96M
 Slice=session.slice

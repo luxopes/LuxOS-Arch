@@ -5399,3 +5399,7 @@ Wrong password	Nieprawidłowe hasło
 Scale	Skala
 Makes text, windows and the menu bar larger on this display. 125-175 % suits sharp laptop screens.	Powiększa tekst, okna i pasek menu na tym ekranie. 125-175 % pasuje do ostrych ekranów laptopów.
 No displays found. Display settings need a Wayland session with LuxOS.	Nie znaleziono ekranów. Ustawienia ekranów wymagają sesji Wayland z LuxOS.
+The desktop could not start. %s is selected.	Nie udało się uruchomić pulpitu. Wybrano %s.
+Authentication required	Wymagane uwierzytelnienie
+Authenticate	Uwierzytelnij
+Authentication is not available.	Uwierzytelnianie jest niedostępne.

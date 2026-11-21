@@ -1,0 +1,147 @@
+#!/bin/bash
+# LuxOS - relace na Waylandu (1.1.0). Spousti ji greetd (wayland-sessions/luxos.desktop) v relaci logindu.
+#
+# Vedouci proces relace je luxwm (zde, ne systemova jednotka): ma pristup k DRM a vstupum pres relaci logindu,
+# a kdyz skonci nebo spadne, skonci i relace a greetd ukaze prihlasovaci obrazovku. Shell (lista, Dock, oznameni,
+# zamek, Launchpad, tapeta, agent polkitu) jsou uzivatelske jednotky v luxos-session.target: pad klienta
+# systemd spusti znovu jen jeho, ostatni bezi dal.
+#
+#   luxos-wayland-session            relace (greetd)
+#   luxos-wayland-session --started  (spousti luxwm, az ma socket) predani prostredi a start shellu
+set -u
+cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
+# promenne, ktere potrebuji uzivatelske jednotky a aktivace pres D-Bus (na konci relace se zase smazou,
+# jinak by je dalsi prihlaseni do X11 nebo nova relace zdedily se starym socketem)
+VARS=(WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_ID
+      GDK_BACKEND QT_QPA_PLATFORM MOZ_ENABLE_WAYLAND SDL_VIDEODRIVER ELECTRON_OZONE_PLATFORM_HINT
+      _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE)
+# z /etc/profile (jako prihlaseni do X11): vychozi nastaveni /etc/xdg/luxos, prekryti .desktop v /var/lib/luxos/apps,
+# Flatpak a PATH programu LuxOS; po relaci zustavaji (jsou stejne pro kazde prihlaseni)
+PROFILE_VARS=(PATH XDG_CONFIG_DIRS XDG_DATA_DIRS)
+
+# Automaticke spousteni podle specifikace XDG (/etc/xdg/autostart, ~/.config/autostart, prednost podle
+# XDG_CONFIG_DIRS): Hidden, OnlyShowIn/NotShowIn proti LuxOS a TryExec. Kazda polozka jako docasna jednotka relace.
+autostart() {
+    local dir f id seen=" " key value hidden only not try exec
+    local IFS=:
+    for dir in "${XDG_CONFIG_HOME:-$HOME/.config}" ${XDG_CONFIG_DIRS:-/etc/xdg}; do
+        for f in "$dir"/autostart/*.desktop; do
+            [[ -f $f ]] || continue
+            id=${f##*/}
+            [[ $seen == *" $id "* ]] && continue
+            seen+="$id "
+            hidden="" only="" not="" try="" exec=""
+            while IFS='=' read -r key value; do
+                case $key in
+                    \[*) [[ $key == "[Desktop Entry]" ]] || break ;;
+                    Hidden) hidden=$value ;;
+                    OnlyShowIn) only=$value ;;
+                    NotShowIn) not=$value ;;
+                    TryExec) try=$value ;;
+                    Exec) exec=$value ;;
+                esac
+            done <"$f"
+            [[ -z $exec || $hidden == true ]] && continue
+            [[ -n $only && ";$only;" != *";LuxOS;"* ]] && continue
+            [[ ";$not;" == *";LuxOS;"* ]] && continue
+            [[ -n $try ]] && ! command -v "$try" >/dev/null && continue
+            exec=$(sed -E 's/ ?%[fFuUdDnNickvm]//g' <<<"$exec")
+            systemd-run --user --quiet --collect --no-block -p PartOf=graphical-session.target \
+                --unit="app-luxos-autostart-${id%.desktop}" -- sh -c "exec $exec" 2>/dev/null
+        done
+    done
+}
+
+if [[ ${1-} == --started ]]; then
+    dbus-update-activation-environment --systemd "${VARS[@]}" "${PROFILE_VARS[@]}" 2>/dev/null \
+        || systemctl --user import-environment "${VARS[@]}" "${PROFILE_VARS[@]}"
+    # vzhled GTK na Waylandu (xsettings -> gsettings) pred klienty shellu
+    /usr/lib/luxos/luxos-wayland-settings >/dev/null 2>&1
+    systemctl --user --no-block start luxos-session.target
+    autostart
+    # zkratky z X11 relace (xfconf) jednou do ~/.config/luxwm/luxwm.conf; luxwm uz bezi a nacte je pres IPC
+    timeout 10 /usr/lib/luxos/luxos-keyboard-settings --import-shortcuts >/dev/null 2>&1
+    # Prvni prihlaseni: Prohlidka, pak Uvitani; po aktualizaci Co je noveho (jako v X11, luxos-session). Bezi jako
+    # docasna jednotka relace, at po zavreni nic nezustane a pad luxwm je ukonci s relaci.
+    first=""
+    if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev/null; then
+        /usr/bin/luxos-whats-new --mark-seen 2>/dev/null
+        first="sleep 3; /usr/bin/luxos-tour --first-run; [ -e '$cfg/welcome-done' ] || /usr/bin/luxos-welcome"
+    elif [[ ! -e $cfg/welcome-done ]]; then
+        first="sleep 1; /usr/bin/luxos-welcome"
+    elif [[ ! -d /run/archiso ]]; then
+        first="sleep 3; /usr/bin/luxos-whats-new --auto"
+    fi
+    [[ -n $first ]] && systemd-run --user --quiet --collect --no-block -p PartOf=graphical-session.target \
+        --unit=luxos-first-run -- sh -c "$first" 2>/dev/null
+    exit 0
+fi
+
+# prostredi jako prihlaseni do X11 (LightDM nacita /etc/profile)
+set +u
+. /etc/profile
+set -u
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=LuxOS XDG_SESSION_DESKTOP=luxos
+export GDK_BACKEND=wayland,x11 QT_QPA_PLATFORM='wayland;xcb' MOZ_ENABLE_WAYLAND=1 SDL_VIDEODRIVER=wayland,x11
+export ELECTRON_OZONE_PLATFORM_HINT=auto _JAVA_AWT_WM_NONREPARENTING=1
+mkdir -p "$cfg"
+# xfconfd (aktivuje ho D-Bus prvnim dotazem) musi videt /etc/xdg/luxos uz pri prvnim cteni (kurzor nize)
+dbus-update-activation-environment --systemd "${PROFILE_VARS[@]}" 2>/dev/null
+# kurzor pro luxwm a aplikace mimo GTK, stejny jako na X11 (xsettings Gtk/CursorTheme*)
+while IFS= read -r line; do export "$line"; done < <(/usr/lib/luxos/luxos-wayland-settings --env)
+
+# Zbytky predchozi relace (luxwm zabity SIGKILL, rychle nove prihlaseni do stejne instance systemd --user)
+systemctl --user stop luxos-session.target graphical-session.target 2>/dev/null
+systemctl --user reset-failed 2>/dev/null
+
+# Stare vyvojove kopie programu LuxOS v ~/.local (zakryly by systemove) stranou, jako v X11 (luxos-session)
+[[ -x /usr/lib/luxos/luxos-shadow-guard ]] && /usr/lib/luxos/luxos-shadow-guard >/dev/null 2>&1
+
+# Standardni slozky (Dokumenty, Stazene...) jako xdg-user-dirs na X11, pri kazdem prihlaseni
+xdg-user-dirs-update 2>/dev/null
+
+# Prvni prihlaseni: vychozi vzhled a nastaveni noveho uzivatele od spravce
+if [[ ! -e $cfg/initialized ]]; then
+    /usr/bin/luxos-appearance "$(/usr/bin/luxos-appearance status)" >/dev/null 2>&1
+    [[ -r /etc/luxos/new-users.conf ]] && /usr/lib/luxos/luxos-new-user-defaults
+    : >"$cfg/initialized"
+fi
+
+# Tapeta pro luxos-backdrop a sklo listy: na X11 ji drzi xfdesktop a appearance.conf ji nemusi mit
+if ! grep -q '^WALLPAPER=' "$cfg/appearance.conf" 2>/dev/null; then
+    mode=light
+    [[ $(cat "$cfg/appearance" 2>/dev/null) == dark ]] && mode=dark
+    /usr/bin/luxos-appearance wallpaper "/usr/share/backgrounds/luxos/luxos-$mode.jpg" >/dev/null 2>&1
+fi
+
+# Chromium: WebGPU na Linuxu jen s Vulkanem - jednou a jen bez vlastniho souboru s volbami (jako v X11)
+if [[ ! -e $cfg/chromium-webgpu ]]; then
+    f=${XDG_CONFIG_HOME:-$HOME/.config}/chromium-flags.conf
+    [[ -e $f ]] || printf '%s\n' '# LuxOS: WebGPU (Vulkan) - smazanim radku ho vypnete' \
+        '--enable-features=Vulkan' '--enable-unsafe-webgpu' >"$f"
+    : >"$cfg/chromium-webgpu"
+fi
+
+# Spravovany blok v ~/.config/gtk-3.0/gtk.css po aktualizaci LuxOS (barvy, vzhled)
+/usr/bin/luxos-appearance panel-css >/dev/null 2>&1
+
+log=${XDG_STATE_HOME:-$HOME/.local/state}/luxos/luxwm.log
+mkdir -p "${log%/*}"
+[[ -f $log ]] && mv -f "$log" "$log.old"
+
+cleanup() {
+    systemctl --user stop luxos-session.target graphical-session.target 2>/dev/null
+    systemctl --user unset-environment "${VARS[@]}" 2>/dev/null
+    dbus-update-activation-environment "${VARS[@]/%/=}" 2>/dev/null
+}
+# odhlaseni (loginctl terminate-session) posle SIGTERM cele relaci: luxwm konci sam, tady jen uklid
+trap 'kill -TERM "$wm" 2>/dev/null' TERM HUP INT
+
+/usr/bin/luxwm "$0 --started" >"$log" 2>&1 &
+wm=$!
+wait "$wm"
+rc=$?
+# wait prerusene signalem: pockat na skutecny konec luxwm
+while kill -0 "$wm" 2>/dev/null; do wait "$wm"; rc=$?; done
+cleanup
+exit "$rc"
