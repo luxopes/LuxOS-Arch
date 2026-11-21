@@ -88,7 +88,7 @@ class SettingsAppsWayland(unittest.TestCase):
     def fake(self, argv, **env):
         p = subprocess.Popen(argv, stdout=subprocess.PIPE, text=True, env=dict(os.environ, **env))
         self.procs.append(p)
-        self.assertEqual(p.stdout.readline().strip(), "READY")
+        self.assertEqual(p.stdout.readline().strip().upper(), "READY")
 
     def open(self, name, *args, **env):
         self.app = lsl_app.App([self.binary(name), *args], dict(self.env, **env))
@@ -139,6 +139,22 @@ class SettingsAppsWayland(unittest.TestCase):
         sets = [json.loads(line) for line in log.read_text().splitlines()]
         self.assertEqual([(c["set"], c["value"]) for c in sets if "set" in c][-2:],
                          [("Discoverable", False), ("DiscoverableTimeout", 0)])
+
+    def test_fingerprint(self):
+        calls = self.session / "fprintd.log"
+        self.fake([sys.executable, str(HERE / "fingerprint/fake_fprintd.py"), "--enrolled", "left-thumb", "--stages", "5",
+                   "--state", str(calls)], DBUS_SESSION_BUS_ADDRESS=self.bus.address)
+        self.open("luxos-fingerprint", LUXOS_FPRINT_BUS=self.bus.address)
+        rows = lambda: [w["text"] for w in lsl_app.widgets(self.app.dump()) if w.get("name") == "finger-row" and w["vis"]]  # noqa: E731
+        self.assertTrue(self.app.wait(lambda: rows() == ["Left thumb"]))
+        self.check_window("luxos-fingerprint", "Fingerprint Login")
+        self.app.ask("enroll right-thumb")
+        self.assertTrue(self.app.wait(lambda: lsl_app.find(self.app.dump(), name="enroll-status")["text"] == "Fingerprint added"))
+        self.shot("luxos-fingerprint-done")
+        self.app.ask("click Done")
+        self.assertTrue(self.app.wait(lambda: rows() == ["Right thumb", "Left thumb"]))
+        c = calls.read_text().split("\n")
+        self.assertEqual(c.count("Claim "), c.count("Release"))
 
 
 if __name__ == "__main__":

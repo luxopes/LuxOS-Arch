@@ -13,7 +13,7 @@
 #   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
 #   primary_monitor_info() -> [x, y, w, h, nazev vystupu] (widgety plochy: tapeta hlavniho monitoru)
 #   aplikace prepsane z Pythonu: window_set_header(okno, nadpis), spinner_new/spinner_set, list_box_add (radek bez
-#   zvyrazneni), list_box_set_placeholder
+#   zvyrazneni), list_box_set_placeholder, stack_new/stack_add_named/stack_*_visible_child_name, dialog_new_header
 load glib, gtk, cairo
 load luxos_glib
 
@@ -243,6 +243,48 @@ function list_box_add(box, child):
         call __lsl_qbe_call2(__lsl_symbol("gtk_container_add"), row, ptr(child))
         call __lsl_qbe_call2(__lsl_symbol("gtk_container_add"), ptr(box), row)
         return row
+    end
+end
+
+# Stack se strankami podle jmena a prolinanim; vhomogeneous False = vyska podle viditelne stranky
+function stack_new(vhomogeneous):
+    unsafe:
+        stack = __lsl_qbe_call0(__lsl_symbol("gtk_stack_new"))
+        # GTK_STACK_TRANSITION_TYPE_CROSSFADE
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_transition_type"), stack, 1)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_vhomogeneous"), stack, flag(vhomogeneous))
+        return stack
+    end
+end
+
+function stack_set_transition_duration(stack, ms):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_transition_duration"), ptr(stack), ptr(ms))
+    end
+end
+
+function stack_add_named(stack, child, name):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("gtk_stack_add_named"), ptr(stack), ptr(child), cstr(name))
+    end
+end
+
+function stack_set_visible_child_name(stack, name):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_stack_set_visible_child_name"), ptr(stack), cstr(name))
+    end
+end
+
+function stack_get_visible_child_name(stack):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("gtk_stack_get_visible_child_name"), ptr(stack)))
+    end
+end
+
+# Dialog s tlacitky v HeaderBar (Gtk.Dialog(use_header_bar=True))
+function dialog_new_header():
+    unsafe:
+        return __lsl_qbe_call4(__lsl_symbol("g_object_new"), __lsl_qbe_call0(__lsl_symbol("gtk_dialog_get_type")), cstr("use-header-bar"), 1, 0)
     end
 end
 
