@@ -184,6 +184,7 @@ view_size_changed(struct view *v)
 	v->last_w = w;
 	v->last_h = h;
 	emit(LUXCOMP_EV_VIEW_SIZE, v->id, w, h, 0);
+	cursor_rebase();
 }
 
 void
@@ -204,6 +205,9 @@ view_map_common(struct view *v)
 	v->last_w = view_width(v);
 	v->last_h = view_height(v);
 	emit(LUXCOMP_EV_VIEW_MAP, v->id, v->last_w, v->last_h, 0);
+	/* okno se objevilo pod stojicim kurzorem (greeter, dialog): bez toho by dostalo ukazatel az po
+	 * pohybu mysi a prvni klik by sel jinam */
+	cursor_rebase();
 }
 
 static void
@@ -227,6 +231,7 @@ view_unmap_common(struct view *v)
 		comp.focused = NULL;
 	}
 	emit(LUXCOMP_EV_VIEW_UNMAP, v->id, 0, 0, 0);
+	cursor_rebase();
 }
 
 static void
