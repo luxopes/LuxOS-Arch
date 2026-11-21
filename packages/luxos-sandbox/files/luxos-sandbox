@@ -619,6 +619,7 @@ class XWatch:
         self.main = None
         self.sent = None
         self.names = ()
+        self.ours = set()   # velikosti, ktere hlavnimu oknu nastavil XWatch (jejich ConfigureNotify neni od aplikace)
         self.closed = False
 
     def start(self):
@@ -632,12 +633,18 @@ class XWatch:
             except OSError:
                 pass
 
+    def _debug(self, text):
+        if os.environ.get("LUXOS_SANDBOX_DEBUG") == "1":
+            info("xwatch: " + text)
+
     def _run(self):
         try:
             if self._connect():
                 self._loop()
-        except (OSError, ValueError, struct.error, EOFError):
-            pass
+            else:
+                self._debug("no connection")
+        except (OSError, ValueError, struct.error, EOFError) as e:
+            self._debug(f"end: {e!r}")
         finally:
             if self.sock:
                 self.sock.close()
@@ -669,6 +676,7 @@ class XWatch:
             os.close(dfd)
         if not self.sock:
             return False
+        self._debug("connected")
         name = b"MIT-MAGIC-COOKIE-1"
         pad = lambda b: b + b"\0" * (-len(b) % 4)   # noqa: E731
         self.sock.sendall(b"l\0" + struct.pack("<HHHH2x", 11, 0, len(name), len(self.cookie)) + pad(name)
@@ -737,6 +745,7 @@ class XWatch:
         if msg == self.sent or not path:
             return
         self.sent = msg
+        self._debug(f"report {w}x{h} {title!r}")
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC) as c:
                 c.settimeout(2)
@@ -787,6 +796,7 @@ class XWatch:
                 continue
             if kind == self.MAP_NOTIFY:
                 event, window, override = struct.unpack_from("<IIB", msg, 4)
+                self._debug(f"map {window:#x} override={override}")
                 if event == self.root and not override and self.main is None:
                     self._adopt(window)
             elif kind in (self.UNMAP_NOTIFY, self.DESTROY_NOTIFY):
@@ -799,7 +809,10 @@ class XWatch:
                     # uzivatel zmenil velikost okna (luxwm -> Xwayland): hlavni okno pres cely koren
                     self.root_size = (w, h)
                     if self.main is not None:
+                        self.ours.add((w, h))
                         self._configure(self.main, 0, 0, w, h)
+                elif window == self.main and (w, h) in self.ours:
+                    self.ours.discard((w, h))
                 elif window == self.main and (w, h) != self.root_size:
                     # aplikace sama zmenila velikost hlavniho okna
                     self._report(w, h, self._title(window))
