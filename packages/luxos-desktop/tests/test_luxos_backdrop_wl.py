@@ -130,6 +130,19 @@ def rollup(pid):
     return fields
 
 
+def pool_threads(pid):
+    """Pracovni vlakna GThreadPool (pool-0...); pool-spawner zustava a sam se nebudi."""
+    names = []
+    for task in Path(f"/proc/{pid}/task").iterdir():
+        try:
+            name = (task / "comm").read_text().strip()
+        except FileNotFoundError:
+            continue
+        if name.startswith("pool-") and name != "pool-spawner":
+            names.append(name)
+    return names
+
+
 def switches(pid):
     """Prepnuti kontextu po vlaknech (vlakno, ktere mezitim skonci, by soucet snizilo)."""
     counts = {}
@@ -920,10 +933,13 @@ class WaylandBackdrop(unittest.TestCase):
         d.wait(r"^drawn HEADLESS-2")
         d.wait(r"^icons drawn")
         w = self.widgets("today,calendar")
-        # jednorazove probuzeni pracovniho vlakna GLib asi 5 s po prvnim nacteni ikon (zdroj nedohledan,
-        # neopakuje se): merit az po nem
-        time.sleep(10)
         pids = {"backdrop": d.proc.pid, "widgets": w.pid}
+        # GIO nacita ikony a informace o souborech ve vlaknech GThreadPool ("pool-N"); necinne vlakno ceka
+        # 15 s (max idle time GLib), pak se probudi a skonci. Merit az bez nich, jinak 1-10 probuzeni navic
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline and any(pool_threads(p) for p in pids.values()):
+            time.sleep(0.5)
+        time.sleep(1)
         results = {}
         threads = [threading.Thread(target=lambda k=k, p=p: results.__setitem__(k, self.idle(p, seconds)))
                    for k, p in pids.items()]
