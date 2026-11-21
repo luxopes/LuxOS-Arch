@@ -424,7 +424,7 @@ function systemctl_any(verb, units, wanted):
         return False
     end
     for line in out.split("\n"):
-        if line.strip() == wanted:
+        if line.strip() in wanted:
             return True
         end
     end
@@ -436,7 +436,11 @@ function sshd_on():
         return False
     end
     units = ["sshd.service", "sshd.socket"]
-    return systemctl_any("is-enabled", units, "enabled") or systemctl_any("is-active", units, "active")
+    # "activating": obnovu spousti ExecStartPost v sshd.service.d/luxos-firewall.conf, kdy sshd jeste startuje
+    if systemctl_any("is-enabled", units, ["enabled"]):
+        return True
+    end
+    return systemctl_any("is-active", units, ["active", "activating", "reloading"])
 end
 
 function sshd_ports():
