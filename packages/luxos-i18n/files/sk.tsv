@@ -5394,3 +5394,7 @@ Output	Výstup
 Input	Vstup
 Muted	Stlmené
 Wrong password	Nesprávne heslo
+The desktop could not start. %s is selected.	Plochu sa nepodarilo spustiť. Je vybraté %s.
+Authentication required	Vyžaduje sa overenie
+Authenticate	Overiť
+Authentication is not available.	Overenie nie je k dispozícii.

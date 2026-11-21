@@ -5395,3 +5395,7 @@ Output	Wyjście
 Input	Wejście
 Muted	Wyciszono
 Wrong password	Nieprawidłowe hasło
+The desktop could not start. %s is selected.	Nie udało się uruchomić pulpitu. Wybrano %s.
+Authentication required	Wymagane uwierzytelnienie
+Authenticate	Uwierzytelnij
+Authentication is not available.	Uwierzytelnianie jest niedostępne.

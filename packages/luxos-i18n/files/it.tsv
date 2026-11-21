@@ -5394,3 +5394,7 @@ Output	Uscita
 Input	Ingresso
 Muted	Muto
 Wrong password	Password errata
+The desktop could not start. %s is selected.	Impossibile avviare il desktop. È selezionato %s.
+Authentication required	Autenticazione richiesta
+Authenticate	Autentica
+Authentication is not available.	L’autenticazione non è disponibile.

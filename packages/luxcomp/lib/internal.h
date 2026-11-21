@@ -17,6 +17,7 @@ struct _cairo_surface;
 struct wlr_surface;
 struct wlr_xwayland_surface;
 struct wlr_session_lock_v1;
+struct wlr_session;
 struct wlr_ext_image_capture_source_v1;
 struct xkb_keymap;
 
@@ -130,6 +131,7 @@ struct comp {
 	struct wlr_ext_foreign_toplevel_list_v1 *ext_list;
 	struct wlr_xwayland *xwayland;
 	struct wlr_compositor *compositor;
+	struct wlr_session *session;	/* NULL without DRM (headless, nested) */
 	struct wl_listener activate, new_token, new_inhibitor, toplevel_capture,
 		new_lock, lock_surface, lock_unlock, lock_destroy, xwayland_surface,
 		xwayland_ready;

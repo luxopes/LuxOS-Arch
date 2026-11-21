@@ -5394,3 +5394,7 @@ Output	Uitvoer
 Input	Invoer
 Muted	Gedempt
 Wrong password	Onjuist wachtwoord
+The desktop could not start. %s is selected.	Het bureaublad kon niet starten. %s is geselecteerd.
+Authentication required	Authenticatie vereist
+Authenticate	Authenticeren
+Authentication is not available.	Authenticatie is niet beschikbaar.

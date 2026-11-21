@@ -58,6 +58,16 @@ looks for modules next to the importing file.
 - **Title bars** take their colours from `luxos_tokens`: window, fg/dim, traffic lights, inactive
   light, border, radius 16, Inter Semi-Bold 10. Light or dark follows `~/.config/luxos/appearance`.
 
+## Login screen mode
+
+`luxwm --greeter COMMAND` runs the greetd login screen (`packages/luxos-greetd`, `docs/developers/wayland-session.md`):
+- The client that COMMAND starts is fullscreen and focused.
+- There are no shortcuts, no XWayland, no privileged protocols and no user configuration.
+- luxwm exits when COMMAND exits, with status 1 if it failed.
+- `LUXWM_PRIVILEGED` is still honoured, only so that the wl-test harness can use its tools.
+
+In every mode, Ctrl+Alt+F1..F12 switch the console (libluxcomp, libseat session).
+
 ## Configuration
 
 `~/.config/luxwm/luxwm.conf` overrides `/usr/share/luxwm/luxwm.conf` entry by entry. Lines are
@@ -150,6 +160,5 @@ env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS
 
 ## Later stages (hooks)
 
-- Greeter mode (`luxwm --greeter`, WP-9).
 - Multi-monitor slide per output, snapping and resize from the keyboard, xdg_popup keyboard grab
   (GTK menus of layer-shell clients cannot be driven from the keyboard yet), `X11Model`.

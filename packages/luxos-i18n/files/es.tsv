@@ -5394,3 +5394,7 @@ Output	Salida
 Input	Entrada
 Muted	Silenciado
 Wrong password	Contraseña incorrecta
+The desktop could not start. %s is selected.	No se pudo iniciar el escritorio. Se ha seleccionado %s.
+Authentication required	Se requiere autenticación
+Authenticate	Autenticar
+Authentication is not available.	La autenticación no está disponible.

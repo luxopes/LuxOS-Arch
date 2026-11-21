@@ -5394,3 +5394,7 @@ Output	Sortie
 Input	Entrée
 Muted	Muet
 Wrong password	Mot de passe incorrect
+The desktop could not start. %s is selected.	Le bureau n’a pas pu démarrer. %s est sélectionné.
+Authentication required	Authentification requise
+Authenticate	S’authentifier
+Authentication is not available.	L’authentification n’est pas disponible.
