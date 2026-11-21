@@ -790,6 +790,20 @@
           ]
         },
         {
+          "path": "luxos/screenshot.md",
+          "title": "Screenshot and Screen Recording",
+          "summary": "luxos-screenshot: Super+Shift+3/4/5 and Print shortcuts, the floating capture bar (screen, window, portion, recording), save locations, file names and the Wayland capture path.",
+          "keywords": [
+            "screenshot",
+            "screen recording",
+            "luxos-screenshot",
+            "print screen",
+            "capture",
+            "super+shift+4",
+            "snimek obrazovky"
+          ]
+        },
+        {
           "path": "luxos/development.md",
           "title": "Developing applications for LuxOS",
           "summary": "The native LSL developer kit: App Studio project templates, build/run and .lux export; Icon Studio layered .luxicon projects and SVG/PNG assets; reusable GTK UI helpers and design guidelines.",
