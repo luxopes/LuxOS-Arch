@@ -361,14 +361,31 @@ class TestFfmpegAndShortcuts(unittest.TestCase):
 
 
 # ---- protokol klient -> server (hub) ---------------------------------------------------------------
+def instance_name(program, env):
+    """Jmeno jedine instance v relaci jako luxos_sys.instance_name (UID + XDG_RUNTIME_DIR + displej)."""
+    runtime = env.get("XDG_RUNTIME_DIR") or "/tmp"
+    wayland, display = env.get("WAYLAND_DISPLAY", ""), env.get("DISPLAY", "")
+    if wayland and not wayland.startswith("/"):
+        wayland = runtime + "/" + wayland
+    if wayland:
+        display = ""
+    host, _, screen = display.partition(":")
+    if screen.count(".") == 1 and display.count(":") == 1:
+        display = host + ":" + screen.split(".")[0]
+    a = b = 0
+    for ch in runtime + "\n" + wayland + "\n" + display:
+        a = (a * 31 + ord(ch)) % 2147483647
+        b = (b * 1000003 + ord(ch)) % 2147483629
+    return "%s-%d-%d-%d" % (program, os.getuid(), a, b)
+
+
 class FakeServer(threading.Thread):
     """Server na abstraktnim socketu jako luxos-hub: zaznamena pozadavek a odpovi podle `replies`."""
 
-    def __init__(self, runtime, replies):
+    def __init__(self, env, replies):
         super().__init__(daemon=True)
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # jmeno jako luxos_sys.abstract_address: nejvyse 100 bajtu (dlouhe XDG_RUNTIME_DIR spoustece testu)
-        self.sock.bind("\0" + (runtime + "/luxos-screenshot").encode()[:100].decode())
+        self.sock.bind("\0" + instance_name("luxos-screenshot", env))
         self.sock.listen(4)
         self.replies, self.requests = replies, []
         self.start()
@@ -421,7 +438,7 @@ class TestProtocol(unittest.TestCase):
         self.assertIsNone(drv("request_raw", "luxos-screenshot 1\\n--screen\\n"))     # neuplna zprava
 
     def test_client_to_server(self):
-        srv = FakeServer(self.env["XDG_RUNTIME_DIR"], ["ok\n", "out /x/Shot 1.png\n", "exit 3\n"])
+        srv = FakeServer(self.env, ["ok\n", "out /x/Shot 1.png\n", "exit 3\n"])
         try:
             r = self.client("--portion", "--output", "sub", "--no-thumbnail")
         finally:
@@ -440,7 +457,7 @@ class TestProtocol(unittest.TestCase):
             self.assertEqual(f.read().strip(), "|--screen --clipboard")
 
     def test_fallback_when_server_hangs(self):
-        srv = FakeServer(self.env["XDG_RUNTIME_DIR"], None)
+        srv = FakeServer(self.env, None)
         try:
             t0 = time.monotonic()
             r = self.client("--window")
