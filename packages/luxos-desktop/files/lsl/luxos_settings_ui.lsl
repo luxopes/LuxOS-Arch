@@ -303,7 +303,9 @@ end
 function fire_slider(s):
     entry = state["sliders"][s]
     entry[2] = 0
-    call entry[0](entry[1], Int(gtk.range_get_value(s) + 0.5))
+    v = gtk.range_get_value(s)
+    # zaporne hodnoty (rychlost ukazatele -100..100) zaokrouhlit od nuly stejne jako kladne
+    call entry[0](entry[1], Int(v + 0.5) if v >= 0 else -Int(0.5 - v))
     return False
 end
 
