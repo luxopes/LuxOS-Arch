@@ -43,8 +43,8 @@ W, H = 1280, 800
 # karta: vrstva 4 px od praveho a horniho okraje, karta ma okraj 4 px, sirka 340
 CARD_LEFT, CARD_RIGHT, CARD_TOP = W - 8 - 340, W - 8, 8
 PROBE_X = CARD_LEFT + 200          # pruh karty bez textu (vpravo od kratkeho nadpisu)
-LIGHT_CARD = (197, 198, 202)       # rgba(246, 247, 252, 0.80) na cerne
-DARK_CARD = (26, 26, 42)           # rgba(32, 33, 52, 0.80) na cerne
+LIGHT_CARD = (234, 235, 239)       # notification_solid rgba(246, 247, 252, 0.95) na cerne
+DARK_CARD = (30, 31, 49)           # notification_solid rgba(32, 33, 52, 0.95) na cerne
 
 
 def near(rgb, want, tol=8):
