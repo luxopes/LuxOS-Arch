@@ -209,22 +209,16 @@ class AppsSyncTest(unittest.TestCase):
         desktop-id, takze nabidka/rofi/Launchpad ukazou aplikaci jen jednou (plati prvni slozka)."""
         self.flatpak_install("org.example.Editor", "Editor")
         self.sync()
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("luxos_launchpad",
-                                                      os.path.join(FILES, "python", "luxos_launchpad.py"))
-        lp = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(lp)
-        old = {k: os.environ.get(k) for k in ("XDG_DATA_DIRS", "XDG_DATA_HOME")}
-        try:
-            os.environ["XDG_DATA_HOME"] = os.path.join(self.tmp, "home-share")
-            os.environ["XDG_DATA_DIRS"] = f"{self.base}:{self.exports}"
-            apps = lp.desktop_apps()
-        finally:
-            for k, v in old.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
+        import sys
+        sys.path.insert(0, HERE)
+        import lsl_app
+        order = lsl_app.build("luxos-launchpad-order", self.tmp)
+        out = os.path.join(self.tmp, "order")
+        env = dict(os.environ, XDG_DATA_HOME=os.path.join(self.tmp, "home-share"),
+                   XDG_DATA_DIRS=f"{self.base}:{self.exports}", XDG_CACHE_HOME=os.path.join(self.tmp, "cache"))
+        subprocess.run([order, "order", "category", out], env=env, check=True, timeout=30)
+        with open(out) as f:
+            apps = [line.split(" ", 1)[1].strip() for line in f][:-1]      # bez zarazky
         self.assertEqual(sorted(apps), ["org.example.Editor.desktop", "thunar.desktop"])
 
     def test_idempotent_and_no_temp_files(self):

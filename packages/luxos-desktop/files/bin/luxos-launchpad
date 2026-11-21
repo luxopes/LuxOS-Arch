@@ -1,7 +1,7 @@
 #!/bin/bash
 # LuxOS - Launchpad (Super+A): mrizka aplikaci v panelu uprostred obrazovky
 # Razeni dlazdic: tlacitka dole v Launchpadu (nebo Alt+1..4), pamatuje se pro uzivatele.
-# Poradi pripravuje luxos_launchpad.py jako "historii" rofi (rofi3.druncache v -cache-dir);
+# Poradi pripravuje luxos-launchpad-order (LSL) jako "historii" rofi (rofi3.druncache v -cache-dir);
 # spusteni aplikaci se pocita jen mistne v ~/.local/share/luxos/launchpad-usage.json.
 
 # Relace na Waylandu: vlastni Launchpad v LSL (bezi stale, D-Bus cz.luxos.Launchpad), rofi je jen pro X11.
@@ -14,7 +14,7 @@ if [[ -n $WAYLAND_DISPLAY && -x $lp ]]; then
     exit 0
 fi
 
-PY=${LUXOS_LAUNCHPAD_PY:-/usr/lib/luxos/python/luxos_launchpad.py}
+order=${LUXOS_LAUNCHPAD_ORDER:-/usr/lib/luxos/luxos-launchpad-order}
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/luxos/launchpad-sort
 cache=${XDG_CACHE_HOME:-$HOME/.cache}/luxos
 run=${XDG_RUNTIME_DIR:-/tmp}/luxos-launchpad-$UID
@@ -39,7 +39,7 @@ prepare_order() {
     elif [[ -s $cache/launchpad-order-$sort ]]; then
         cp "$cache/launchpad-order-$sort" "$run/rofi3.druncache"
     else
-        python3 "$PY" order "$sort" "$cache/launchpad-order-$sort" 2>/dev/null &&
+        "$order" order "$sort" "$cache/launchpad-order-$sort" 2>/dev/null &&
             cp "$cache/launchpad-order-$sort" "$run/rofi3.druncache"
     fi
     cp "$run/rofi3.druncache" "$run/before"
@@ -146,8 +146,8 @@ done
 # spustena aplikace -> pocty a pripravene poradi (az po zavreni okna, nic nezdrzi)
 if (( rc == 0 )); then
     (
-        python3 "$PY" record "$run/before" "$run/rofi3.druncache"
-        [[ $sort == category ]] && python3 "$PY" order category "$cache/launchpad-order-category"
+        "$order" record "$run/before" "$run/rofi3.druncache"
+        [[ $sort == category ]] && "$order" order category "$cache/launchpad-order-category"
     ) >/dev/null 2>&1 &
     disown
 fi

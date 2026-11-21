@@ -8,14 +8,14 @@
 #   search(entries, query, usage, now)         polozky odpovidajici dotazu, nejlepsi prvni
 #   order(entries, mode, usage)                poradi mrizky bez dotazu: alpha, recent, most, category
 #   parse_usage(text), usage_text(usage), record(usage, id, now)
-#                                              ~/.local/share/luxos/launchpad-usage.json jako luxos_launchpad.py
+#                                              ~/.local/share/luxos/launchpad-usage.json (i Launchpad na X11, luxos-launchpad-order)
 #   parse_rofi_history(text)                   pocty z rofi3.druncache (prvni spusteni po Launchpadu v rofi)
 load json
 load luxos_text as text
 
 MODES = ["alpha", "recent", "most", "category"]
 DEFAULT_MODE = "most"
-# hlavni kategorie freedesktop v poradi Launchpadu (luxos_launchpad.py CATEGORY_ORDER), ostatni na konci
+# hlavni kategorie freedesktop v poradi Launchpadu (i luxos-launchpad-order pro rofi na X11), ostatni na konci
 CATEGORY_ORDER = ["Network", "Office", "Graphics", "AudioVideo", "Development", "Education", "Game", "Science",
     "Utility", "Settings", "System"]
 SENTINEL = "luxos-launchpad-sentinel"
