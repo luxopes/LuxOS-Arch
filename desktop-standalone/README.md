@@ -51,12 +51,19 @@ sudo pacman -R lux-desktop       # Arch
 - desktop widgets, wallpapers, light/dark/auto appearance, WhiteSur themes and icons
 - hot corners, smooth scrolling, Desktop & Dock and other LuxOS settings
 - LuxOS Text Editor and LuxOS Terminal
-- touch screen support (gestures; the on-screen keyboard needs `onboard`, which Fedora does not
-  package)
+- touch screen support (the on-screen keyboard needs `onboard`, which Fedora does not package;
+  gestures use your distribution's Touchégg – LuxOS ships a fixed build where multi-finger swipes on
+  touch screens are not mistaken for pinches, so they are more reliable on LuxOS itself)
 
 Not included – these are parts of the LuxOS system, not of the desktop: LuxOS Care and updates
 (your distribution updates itself), firewall, Lux Guard, drivers, the LuxOS installer and login
 screen, LuxAI, the LuxOS Store and the first-start tour.
+
+## Shared with your other desktops
+
+The light/dark choice of LuxOS Desktop is also written to the GNOME setting that GTK 4 apps follow
+(`color-scheme`), so after switching LuxOS Desktop to light or dark, GNOME follows the same choice.
+Xfce itself also stores the cursor size and blinking there. Nothing else in GNOME or KDE is changed.
 
 ## If you already use Xfce
 

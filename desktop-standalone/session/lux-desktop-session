@@ -43,6 +43,22 @@ if [[ ! -e $state/standalone-initialized ]]; then
     launchers=$cfg_home/plank/dock1/launchers
     if [[ ! -d $launchers ]]; then
         mkdir -p "$launchers" && cp "$PRIV"/plank-launchers/*.dockitem "$launchers/" 2>/dev/null
+        # aplikace, ktere se v distribuci jmenuji jinak (Fedora: org.mozilla.firefox.desktop); polozky bez
+        # aplikace odebrat (jinak by v Docku byla prazdna ikona)
+        for item in "$launchers"/*.dockitem; do
+            target=$(sed -n 's#^Launcher=file://##p' "$item")
+            [[ -z $target || -e $target ]] && continue
+            alt=""
+            case ${target##*/} in
+                firefox.desktop) alt=org.mozilla.firefox.desktop ;;
+                thunar.desktop) alt=org.xfce.thunar.desktop ;;
+            esac
+            if [[ -n $alt && -e /usr/share/applications/$alt ]]; then
+                sed -i "s#^Launcher=.*#Launcher=file:///usr/share/applications/$alt#" "$item"
+            else
+                rm -f "$item"
+            fi
+        done
         if command -v dconf >/dev/null && [[ -r $PRIV/dconf-defaults ]]; then
             awk '/^\[/{keep = ($0 ~ /^\[net\/launchpad\/plank/)} keep' "$PRIV/dconf-defaults" \
                 | sed -e 's#^\[net/launchpad/plank\]#[/]#' -e 's#^\[net/launchpad/plank/#[#' \

@@ -1,5 +1,5 @@
 # LuxOS Desktop na Archu: zavislosti za behu (depends balicku)
-procps-ng psmisc xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd xfce4-screensaver
+procps-ng psmisc xorg-server xf86-input-libinput xorg-xinit xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings xfconf xfce4-notifyd xfce4-screensaver
 xfce4-power-manager xfce4-whiskermenu-plugin xfce4-genmon-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin
 xfce4-taskmanager xfce4-terminal thunar thunar-volman thunar-archive-plugin tumbler
 plank libwnck3 python python-gobject python-cairo gtk3 webkit2gtk-4.1 libnotify dconf

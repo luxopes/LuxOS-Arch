@@ -235,7 +235,9 @@ grep -vE "'(luxai|luxos-store)\.dockitem', " "$PK/luxos-desktop/files/dconf/10-l
 install -dm755 "$STAGE$PRIV/plank-launchers"
 for d in "$PK"/luxos-desktop/files/skel/.config/plank/dock1/launchers/*.dockitem; do
     case ${d##*/} in luxai.dockitem|luxos-store.dockitem) continue ;; esac
-    install -m644 "$d" "$STAGE$PRIV/plank-launchers/"
+    # LuxOS: kratke nazvy aplikaci v /var/lib/luxos/apps (jen v LuxOS) - jinde .desktop distribuce
+    sed 's#/var/lib/luxos/apps/applications/#/usr/share/applications/#' "$d" \
+        | install -Dm644 /dev/stdin "$STAGE$PRIV/plank-launchers/${d##*/}"
 done
 install -Dm644 "$ROOT/LICENSE" "$STAGE/usr/share/licenses/lux-desktop/LICENSE"
 install -Dm644 "$HERE/README.md" "$STAGE/usr/share/doc/lux-desktop/README.md"
