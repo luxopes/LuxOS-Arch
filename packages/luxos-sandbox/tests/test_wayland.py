@@ -310,7 +310,7 @@ class WaylandSandbox(unittest.TestCase):
         self.assertFalse([ln for ln in before if ln.startswith(("clip", "selection"))],
                          f"unfocused sandboxed client got the clipboard: {before}")
 
-        # znacka: vpravo v zahlavi okna sandboxu jsou pixely znacky, u hostitelskeho okna jen pozadi
+        # znacka: za semaforem v zahlavi okna sandboxu jsou pixely znacky, u hostitelskeho okna jen pozadi
         va, vb = self.view(s, "Fake"), self.view(s, "Host")
         shot = s.shot("sandbox-marker.ppm")
         self.assertGreater(self.title_detail(shot, va), 20, "no badge in the sandboxed title bar")
@@ -345,7 +345,8 @@ class WaylandSandbox(unittest.TestCase):
         self.assertEqual(os.listdir(os.path.join(self.run_dir, "luxos-sandbox")), [])
 
     def title_detail(self, path, view):
-        """Pocet pixelu v prave tretine zahlavi okna, ktere se lisi od barvy pozadi zahlavi."""
+        """Pocet pixelu mezi semaforem a nazvem (znacka sandboxu je hned za semaforem, deco.c draw_badge),
+        ktere se lisi od barvy pozadi zahlavi."""
         with open(path, "rb") as f:
             data = f.read()
         parts = data.split(maxsplit=4)
@@ -359,7 +360,7 @@ class WaylandSandbox(unittest.TestCase):
         bg = px(view["x"] + view["w"] // 2, top + 2)
         count = 0
         for y in range(top + 3, view["y"] - 3):
-            for x in range(view["x"] + view["w"] * 2 // 3, view["x"] + view["w"] - 20):   # bez zaobleneho rohu
+            for x in range(view["x"] + 76, view["x"] + view["w"] // 2 - 30):   # za semaforem, pred kratkym nazvem
                 if max(abs(p - q) for p, q in zip(px(x, y), bg)) > 24:
                     count += 1
         return count
