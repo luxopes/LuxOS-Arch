@@ -1,17 +1,18 @@
-# LuxOS - okna Klavesnice v relaci X11 (drive bin/luxos-keyboard a bin/luxos-shortcuts v Pythonu): spousti je
-# luxos-keyboard-settings, kdyz nebezi Wayland.
+# LuxOS - karty stranky Nastaveni > Klavesnice v relaci X11 (drive okna bin/luxos-keyboard a bin/luxos-shortcuts
+# v Pythonu); stranka luxos_page_keyboard.lsl je pouziva, kdyz nebezi Wayland.
 #
-#   layouts_main()    Rozlozeni klavesnice: seznam rozlozeni (prvni = vychozi, nejvyse 4), prepinani zkratkou
-#                     a "Pouzit pro vsechny uzivatele a prihlasovaci obrazovku" pres localectl (systemd-localed,
-#                     opravneni overi polkit). Zmeny se hned zkusi v bezici relaci (setxkbmap); bez pouziti se
-#                     pri zavreni okna vrati puvodni stav. Uzivateli se zaroven vypne vlastni rozlozeni Xfce
-#                     (keyboard-layout /Default/XkbDisable = true), aby se ridil systemem.
-#   shortcuts_main()  Klavesove zkratky: prehled, zmena (Esc zrusi, Backspace vypne), vlastni zkratky, samotna
-#                     klavesa Super a Alt+Tab po aplikacich; zapis pres xfconf (luxos_shortcuts_model), takze je
-#                     xfsettingsd (prikazy) a xfwm4 (okna) hned pouziji.
+#   layouts_build(box, okno)    Rozlozeni: seznam rozlozeni (prvni = vychozi, nejvyse 4), prepinani zkratkou
+#                               a "Pouzit pro vsechny uzivatele a prihlasovaci obrazovku" pres localectl
+#                               (systemd-localed, opravneni overi polkit). Zmeny se hned zkusi v bezici relaci
+#                               (setxkbmap); bez pouziti se pri odchodu ze stranky (layouts_leave) vrati puvodni
+#                               stav. Uzivateli se zaroven vypne vlastni rozlozeni Xfce (keyboard-layout
+#                               /Default/XkbDisable = true), aby se ridil systemem.
+#   shortcuts_build(box, okno)  Zkratky: prehled, zmena (Esc zrusi, Backspace vypne), vlastni zkratky, samotna
+#                               klavesa Super a Alt+Tab po aplikacich; zapis pres xfconf (luxos_shortcuts_model),
+#                               takze je xfsettingsd (prikazy) a xfwm4 (okna) hned pouziji.
 #
-# Testy (LUXOS_TEST_CONTROL=1, luxos_testctl): state, layout up|down|remove N, add-layout ROZLOZENI:VARIANTA,
-# pick ROZLOZENI:VARIANTA (radek otevreneho dialogu), apply, close, change ID, key MODIFIKATORY KLAVESA
+# Testy (on_layouts_test, on_shortcuts_test): state, layout up|down|remove N, add-layout ROZLOZENI:VARIANTA,
+# pick ROZLOZENI:VARIANTA (radek otevreneho dialogu), apply, change ID, key MODIFIKATORY KLAVESA
 # (stisk v dialogu zkratky), set ID ZKRATKA|off, row ID, super on|off, group on|off, custom-dialog, ...
 load env, json
 load luxos_glib, glib as glib
@@ -25,9 +26,8 @@ load luxos_apps as apps
 load luxos_keyboard_model as kb
 load luxos_shortcuts_model as ls
 
-KEYBOARD_CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 8px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n.badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; color: #ffffff; background-color: #3d7bff; }\n.flat-icon { padding: 2px; min-width: 24px; min-height: 24px; }\n"
-SHORTCUTS_CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 8px 10px 8px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n.keycap { padding: 3px 10px; border-radius: 7px; border: 1px solid alpha(currentColor, 0.18); background-image: none; background-color: alpha(currentColor, 0.07); box-shadow: none; font-weight: 600; min-height: 0; }\n.keycap:hover { background-color: alpha(currentColor, 0.13); }\n.keycap.off { font-weight: 400; opacity: 0.55; }\n.keycap.fixed { opacity: 0.8; }\n.icon-btn { padding: 2px; min-height: 0; min-width: 0; }\n.header-btn { padding: 4px; min-width: 28px; min-height: 28px; border-radius: 8px; background-image: none; border: none; box-shadow: none; background-color: transparent; }\n.header-btn:hover { background-color: alpha(currentColor, 0.08); }\n.header-btn:active, .header-btn:checked { background-color: alpha(currentColor, 0.14); }\n.capture-keys { font-size: 22px; font-weight: 700; margin: 14px 0 6px; }\n.capture-box { border-radius: 12px; border: 2px dashed alpha(@theme_selected_bg_color, 0.7); background-color: alpha(@theme_selected_bg_color, 0.07); padding: 6px 18px; }\n"
-XFCE_KEYBOARD = "/usr/bin/xfce4-keyboard-settings"
+# jen vlastni tridy karet; karty a radky (.group, .row, .hint) kresli luxos_settings_ui
+CSS = ".badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; color: #ffffff; background-color: #3d7bff; }\n.flat-icon { padding: 2px; min-width: 24px; min-height: 24px; }\n.keycap { padding: 3px 10px; border-radius: 7px; border: 1px solid alpha(currentColor, 0.18); background-image: none; background-color: alpha(currentColor, 0.07); box-shadow: none; font-weight: 600; min-height: 0; }\n.keycap:hover { background-color: alpha(currentColor, 0.13); }\n.keycap.off { font-weight: 400; opacity: 0.55; }\n.keycap.fixed { opacity: 0.8; }\n.icon-btn { padding: 2px; min-height: 0; min-width: 0; }\n.capture-keys { font-size: 22px; font-weight: 700; margin: 14px 0 6px; }\n.capture-box { border-radius: 12px; border: 2px dashed alpha(@theme_selected_bg_color, 0.7); background-color: alpha(@theme_selected_bg_color, 0.07); padding: 6px 18px; }\n"
 ICON_BUTTON = 4         # GTK_ICON_SIZE_BUTTON
 ICON_MENU = 1
 RELIEF_NONE = 2
@@ -38,6 +38,15 @@ SECTION_HINTS = {"custom": "Your own shortcuts that open an app or run a command
 
 T = i18n.T
 buttons = {}            # tlacitko -> [akce, data]
+LAYOUT_ACTIONS = ["up", "down", "remove", "add", "apply"]
+css = {"loaded": False}
+
+function load_css():
+    if not css["loaded"]:
+        css["loaded"] = True
+        call gtk.css_load(CSS)
+    end
+end
 
 function ptr(value):
     unsafe:
@@ -109,22 +118,6 @@ function process_capture(program, rest):
     return [capture_status(), (output + capture_stderr()).strip()]
 end
 
-function window_titlebar(window):
-    unsafe:
-        return __lsl_qbe_call1(__lsl_symbol("gtk_window_get_titlebar"), ptr(window))
-    end
-end
-
-function scrolled_page(window, top):
-    scroll = gtk.scrolled_window_new()
-    call gtk.scrolled_window_set_policy(scroll, 2, 1)
-    page = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_margins(page, 22, 22, top, 22)
-    call gtk.container_add(scroll, page)
-    call gtk.container_add(window, scroll)
-    return [scroll, page]
-end
-
 function message(parent, kind, text, secondary, ok_label, destructive):
     dlg = gtk.message_dialog_new(parent, kind, gtk.BUTTONS_NONE if ok_label != "" else gtk.BUTTONS_OK, text)
     if secondary != "":
@@ -185,27 +178,15 @@ function session_state():
     return cfg
 end
 
-function layouts_main():
-    call glib.set_prgname("luxos-keyboard")
-    call gtk.init()
-    call gtk.css_load(KEYBOARD_CSS)
+function layouts_build(page, window):
+    call load_css()
+    K["window"] = window
     K["catalog"] = kb.catalog("")
     K["system"] = kb.read_system("", "")
     K["layouts"] = K["system"]["layouts"].copy()
     K["options"] = K["system"]["options"].copy()
     K["override"] = user_override()
     K["session"] = session_state()
-    ui.state["hint_chars"] = 46
-    window = ui.window(T("Keyboard Layouts"), "preferences-desktop-keyboard", 560, -1, 0, 0)
-    K["window"] = window
-    call gtk.window_set_wmclass(window, "luxos-keyboard", "luxos-keyboard")
-    parts = scrolled_page(window, 6)
-    scroll = parts[0]
-    page = parts[1]
-    # okno podle obsahu (drive 600 px s prazdnou plochou dole), nejvys na obrazovku
-    call gtk.scrolled_window_set_propagate_natural_height(scroll, True)
-    call gtk.scrolled_window_set_max_content_height(scroll, ui.max_content_height())
-    call gtk.widget_set_size_request(window, 360, 260)
 
     K["group"] = ui.group(page, T("Layouts"))
     call gtk.widget_set_name(K["group"]["box"], "layouts")
@@ -249,11 +230,6 @@ function layouts_main():
     call gtk.box_pack_start(bottom, apply, False, False, 0)
     K["spinner"] = gtk.spinner_new()
     call gtk.box_pack_start(bottom, K["spinner"], False, False, 0)
-    if exists(XFCE_KEYBOARD):
-        more = button(T("More Keyboard Settings…"), "more", None)
-        call gtk.widget_set_tooltip(more, T("Key repeat and other keyboard settings"))
-        call gtk.box_pack_end(bottom, more, False, False, 0)
-    end
     call gtk.box_pack_start(page, bottom, False, False, 0)
     status = ui.label("", "")
     call gtk.label_set_max_width_chars(status, 60)
@@ -261,12 +237,19 @@ function layouts_main():
     K["status"] = status
     call gtk.box_pack_start(page, status, False, False, 0)
 
-    call gtk.connect(window, "delete-event", on_layouts_close)
     call fill()
-    call gtk.widget_show_all(window)
     call update()
-    call testctl.start(on_layouts_test)
-    call gtk.main()
+end
+
+# Odchod ze stranky nebo zavreni okna: nepouzite zmeny vratit; navrat na stranku je zase vyzkousi
+function layouts_leave():
+    call revert_session()
+end
+
+function layouts_show():
+    if K["group"] != None and dirty():
+        call preview(K["layouts"], K["options"])
+    end
 end
 
 function fill():
@@ -424,12 +407,6 @@ function revert_session():
     if dirty() and back != None and kb.validate(back["layouts"], back["options"], "") == "":
         call run(kb.setxkbmap_cmd(back["layouts"], back["options"]))
     end
-end
-
-function on_layouts_close(event, window):
-    call revert_session()
-    call gtk.main_quit()
-    return False
 end
 
 # Pridani rozlozeni: hledani v katalogu (nazev, popis, kod); vybrany radek -> Pridat
@@ -597,56 +574,29 @@ function on_layouts_test(command, rest):
         call sys.out("chosen " + json.encode(chosen) + "\n")
     elif command == "switch-id":
         call ui.combo_set_active_id(K["switch"], rest)
-    elif command == "close":
-        call revert_session()
-        call gtk.widget_destroy(K["window"])
-        call gtk.main_quit()
     end
 end
 
 # ======== Klavesove zkratky ========================================================================
 
-S = {"window": 0, "scroll": 0, "page": 0, "model": None, "rows": {}, "super": 0, "group": 0, "capture": None,
-     "custom": None, "chooser": None}
+S = {"window": 0, "scroll": 0, "holder": 0, "page": 0, "model": None, "rows": {}, "super": 0, "group": 0,
+     "capture": None, "custom": None, "chooser": None}
 
-function shortcuts_main():
-    call glib.set_prgname("luxos-shortcuts")
-    call gtk.init()
-    call gtk.css_load(SHORTCUTS_CSS)
-    ui.state["hint_chars"] = 0
-    window = ui.window(T("Keyboard Shortcuts"), "shortcuts", 620, 720, 480, 420)
+function shortcuts_build(page, window):
+    call load_css()
     S["window"] = window
-    call gtk.window_set_wmclass(window, "luxos-shortcuts", "luxos-shortcuts")
-    bar = window_titlebar(window)
-    add = gtk.button_new_from_icon_name("list-add-symbolic", ICON_BUTTON)
-    call gtk.widget_set_tooltip(add, T("Add Shortcut…"))
-    buttons[add] = ["add-custom", None]
-    call gtk.connect(add, "clicked", on_button)
-    menu = gtk.button_new_from_icon_name("open-menu-symbolic", ICON_BUTTON)
-    buttons[menu] = ["menu", None]
-    call gtk.connect(menu, "clicked", on_button)
-    # + a ... vpravo jako ploche ikony horni listy
-    for b in [add, menu]:
-        call gtk.widget_add_class(b, "header-btn")
-        call gtk.widget_set_valign(b, gtk.ALIGN_CENTER)
-    end
-    call gtk.header_bar_pack_end(bar, menu)
-    call gtk.header_bar_pack_end(bar, add)
-    scroll = gtk.scrolled_window_new()
-    call gtk.scrolled_window_set_policy(scroll, 2, 1)
-    call gtk.container_add(window, scroll)
-    S["scroll"] = scroll
+    S["holder"] = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.box_pack_start(page, S["holder"], False, False, 0)
     S["model"] = ls.new_model(None, "")
     call build()
-    call gtk.connect(window, "delete-event", on_shortcuts_close)
-    call gtk.widget_show_all(window)
-    call testctl.start(on_shortcuts_test)
-    call gtk.main()
 end
 
-function on_shortcuts_close(event, window):
-    call gtk.main_quit()
-    return False
+# Posuvnik okna Nastaveni, ve kterem stranka je (pri prvnim sestaveni jeste neni)
+function find_scroll():
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("gtk_widget_get_ancestor"), ptr(S["holder"]),
+                               __lsl_qbe_call0(__lsl_symbol("gtk_scrolled_window_get_type")))
+    end
 end
 
 function scroll_adjustment():
@@ -656,6 +606,9 @@ function scroll_adjustment():
 end
 
 function restore_scroll(value):
+    if S["scroll"] == 0:
+        return False
+    end
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("gtk_adjustment_set_value"), ptr(scroll_adjustment()), Float(value))
     end
@@ -749,21 +702,22 @@ end
 
 function build():
     old = 0.0
-    if S["page"] != 0:
+    S["scroll"] = find_scroll()
+    if S["scroll"] != 0:
         old = ui.scroll_position(S["scroll"])
-        # stranka je ve viewportu, ktery pridal GtkScrolledWindow
-        call gtk.widget_destroy(gtk.bin_get_child(S["scroll"]))
+    end
+    if S["page"] != 0:
+        call gtk.widget_destroy(S["page"])
     end
     for b in buttons.keys():
-        if not (buttons[b][0] in ["add-custom", "menu"]):
+        if not (buttons[b][0] in LAYOUT_ACTIONS):
             call buttons.pop(b)
         end
     end
     m = S["model"]
     page = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_margins(page, 22, 22, 8, 22)
     S["page"] = page
-    call gtk.container_add(S["scroll"], page)
+    call gtk.box_pack_start(S["holder"], page, False, False, 0)
     S["rows"] = {}
     if not m["available"]:
         msg = ui.label(T("Shortcuts could not be read from the Xfce settings service. Changes will not be saved."), "hint")
@@ -1131,20 +1085,6 @@ function after_write(ok):
     end
 end
 
-function feedback_menu():
-    menu = gtk.menu_new()
-    item = gtk.menu_item_new(T("Send Feedback…"))
-    call lglib.connect_data(item, "activate", 0, on_menu_launch, ["luxos-feedback"])
-    call gtk.menu_append(menu, item)
-    call gtk.widget_show_all(menu)
-    call gtk.menu_popup_at_pointer(menu)
-end
-
-function on_menu_launch(argv, item):
-    call launch(argv)
-    return 0
-end
-
 # ---- vlastni zkratka: nazev, prikaz (nebo aplikace) a zkratka ----
 
 function custom_dialog(name, command, accel):
@@ -1386,8 +1326,6 @@ function on_button(b):
         call add_dialog()
     elif action == "apply":
         call on_apply()
-    elif action == "more":
-        call launch([XFCE_KEYBOARD])
     elif action == "change":
         a = action_of(data)
         if a != None:
@@ -1418,8 +1356,6 @@ function on_button(b):
         call choose_app()
     elif action == "launch":
         call launch(data)
-    elif action == "menu":
-        call feedback_menu()
     end
     return 0
 end

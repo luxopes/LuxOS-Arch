@@ -32,7 +32,7 @@ DEFAULT_PAGE = "appearance"
 
 S = {"window": 0, "header": 0, "stack": 0, "list": 0, "search": 0, "sidebar": 0, "pages": [], "by_id": {}, "rows": {},
      "row_of": {}, "separators": [], "built": {}, "page_rows": {}, "current": "", "host": {}, "glass": False,
-     "region": [], "quiet": False, "dark": False, "css": 0, "bus": 0}
+     "region": [], "quiet": False, "dark": False, "css": 0, "bus": 0, "retry": 0}
 
 function wayland():
     return env.get("WAYLAND_DISPLAY", "") != ""
@@ -400,6 +400,12 @@ end
 
 function on_material_reply(reply):
     glass = reply != None and reply.get("ok", False) == True
+    # pozadavek predbehl namapovani okna: luxwm sklo da az s oknem, panel se to dozvi dalsim pozadavkem
+    if not glass and reply != None and reply.get("error", "") == "no such window" and S["retry"] < 10:
+        S["retry"] += 1
+        S["region"] = []
+        call glib.timeout_add(300, send_region)
+    end
     if glass != S["glass"]:
         S["glass"] = glass
         call apply_css()

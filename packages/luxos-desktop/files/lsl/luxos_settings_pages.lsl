@@ -77,7 +77,7 @@ function all():
              {"build": power.build, "leave": power.leave, "show": power.show, "test": power.test}))
     out.append(page("keyboard", "Keyboard", "input-keyboard-symbolic", "#8e8e93", 3,
              ["layout", "shortcuts", "key repeat", "language", "input source"],
-             ["luxos-keyboard-settings"], {"build": keyboard.build, "cli": keyboard.cli, "show": keyboard.show, "test": keyboard.test}))
+             ["luxos-keyboard-settings"], {"build": keyboard.build, "cli": keyboard.cli, "show": keyboard.show, "leave": keyboard.leave, "test": keyboard.test}))
     out.append(page("mouse", "Mouse & Touchpad", "input-mouse-symbolic", "#8e8e93", 3,
              ["pointer speed", "natural scrolling", "tap to click", "trackpad", "scrolling", "inertia", "left-handed"],
              ["luxos-scrolling"], {"build": mouse.build, "cli": mouse.cli, "test": mouse.test}))

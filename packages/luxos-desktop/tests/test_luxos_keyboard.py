@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""LuxOS - testy Rozlozeni klavesnice (luxos-keyboard-settings v LSL, na X11 okno drive bin/luxos-keyboard
-v Pythonu): cteni a zapis systemoveho nastaveni, prikazy localectl a setxkbmap, katalog rozlozeni, prevod
-stareho vychoziho prepinani (luxos-desktop.install) a okno ve vlastnim Xvfb.
+"""LuxOS - testy Rozlozeni klavesnice (stranka Klavesnice okna Nastaveni, luxos-keyboard-settings je odkaz na
+luxos-settings; na X11 drive okno bin/luxos-keyboard v Pythonu): cteni a zapis systemoveho nastaveni, prikazy
+localectl a setxkbmap, katalog rozlozeni, prevod stareho vychoziho prepinani (luxos-desktop.install) a stranka
+ve vlastnim Xvfb.
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_keyboard.py -v
 
@@ -215,7 +216,7 @@ class App(unittest.TestCase):
 
     def state(self):
         try:
-            return json.loads(self.app.ask("state", "state ", timeout=5))
+            return json.loads(self.app.ask("page-state", "state ", timeout=5))
         except AssertionError:
             return None
 
@@ -240,7 +241,7 @@ class App(unittest.TestCase):
         self.assertFalse(s["apply"])                     # nic se nezmenilo
         self.assertFalse(s["note"])
         win = self.app.dump()
-        self.assertEqual(win[0]["title"], "Keyboard Layouts")
+        self.assertEqual(win[0]["title"], "Keyboard")
         self.assertTrue(win[0]["close_button"])
         texts = lsl_app.texts(win)
         for t in ("Layouts", "Czech", "English (US)", "CZ", "US", "Default", "Switching", "Switch layouts with"):
@@ -249,7 +250,7 @@ class App(unittest.TestCase):
         # pridat (dialog s hledanim): jen hledane, uz pouzite chybi
         self.app.send("click Add Layout…")
         self.assertTrue(self.app.wait(lambda: self.state()["dialog"]))
-        self.app.ask("search german")
+        self.app.ask("layout-search german")
         visible = self.state()["visible"]
         self.assertTrue(visible)
         self.assertIn("de:", visible)
@@ -349,21 +350,20 @@ class App(unittest.TestCase):
         self.start(LANG="cs_CZ.UTF-8", LUXOS_I18N_DIR=lsl_app.I18N)
         self.assertEqual(self.state()["switch"], "grp:lwin_toggle")   # jina volba z localectl se neztrati
         win = self.app.dump()
-        self.assertEqual(win[0]["title"], "Rozložení klávesnice")
+        self.assertEqual(win[0]["title"], "Klávesnice")
         self.assertIn("Čeština", lsl_app.texts(win))
 
     def test_window_size_and_pss(self):
         self.start()
         time.sleep(1.5)
-        geo = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Keyboard Layouts$"],
+        geo = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Keyboard$"],
                              env={"DISPLAY": self.x.display, "PATH": os.environ["PATH"]}, capture_output=True,
                              text=True).stdout.split() if shutil.which("xdotool") else []
         if geo:
             out = subprocess.run(["xdotool", "getwindowgeometry", "--shell", geo[0]], capture_output=True, text=True,
                                  env={"DISPLAY": self.x.display, "PATH": os.environ["PATH"]}).stdout
             vals = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
-            # okno podle obsahu (Python: drive 600 px vysoke s prazdnou plochou), na obrazovku 1366x768
-            self.assertLess(int(vals["HEIGHT"]), 600)
+            # okno Nastaveni se vejde na obrazovku 1366x768
             self.assertLessEqual(int(vals["HEIGHT"]), 768 - 16)
             self.assertLessEqual(int(vals["WIDTH"]), 1366)
         pss = self.app.pss_kb()
@@ -380,7 +380,7 @@ LUXWM_BUILD = os.environ.get("LUXWM_BUILD") or os.path.join(REPO, "out", "luxwm-
 @unittest.skipUnless(os.path.exists(os.path.join(LUXWM_BUILD, "luxwm")) and os.path.exists(WLT),
                      "luxwm (packages/luxwm/tests/build-host.sh) or wl-test harness missing")
 class Wayland(unittest.TestCase):
-    """Na Waylandu (luxwm headless) okno s kartami: rozlozeni z 00-keyboard.conf, pridani jen pro uzivatele."""
+    """Na Waylandu (luxwm headless) stranka s kartami: rozlozeni z 00-keyboard.conf, pridani jen pro uzivatele."""
 
     def test_layouts_tab(self):
         tmp = tempfile.mkdtemp(dir=TMP)
@@ -416,14 +416,14 @@ class Wayland(unittest.TestCase):
             texts = lsl_app.texts(app.dump())
             for t in ("Layouts", "Czech", "English (US)", "Default · CZ", "Switching"):
                 self.assertIn(t, texts)
-            self.assertEqual(json.loads(app.ask("state", "state ")), {"layouts": [["cz", ""], ["us", ""]],
+            self.assertEqual(json.loads(app.ask("page-state", "state ")), {"layouts": [["cz", ""], ["us", ""]],
                                                                        "options": ["grp:shifts_toggle"], "own": False})
             app.send("click Add Layout…")
             self.assertTrue(app.wait(lambda: lsl_app.find(app.dump(), text="German   DE") is not None))
             self.assertIsNone(lsl_app.find(app.dump(), text="Czech   CZ"))      # uz pouzite chybi
             app.send("click German   DE")
-            self.assertTrue(app.wait(lambda: json.loads(app.ask("state", "state "))["own"]))
-            self.assertEqual(json.loads(app.ask("state", "state "))["layouts"], [["cz", ""], ["us", ""], ["de", ""]])
+            self.assertTrue(app.wait(lambda: json.loads(app.ask("page-state", "state "))["own"]))
+            self.assertEqual(json.loads(app.ask("page-state", "state "))["layouts"], [["cz", ""], ["us", ""], ["de", ""]])
             with open(os.path.join(cfg, "luxwm", "luxwm.conf")) as f:
                 self.assertIn("xkb_layout = cz,us,de", f.read())
         finally:
