@@ -37,7 +37,8 @@ encoded as UTF-8 (ECI 26).
 
 ## Under the hood
 
-- QR codes are drawn and read by the `zxing-cpp` library (`libZXing`, C API through Python ctypes),
-  a small dependency of `luxos-desktop`; module `/usr/lib/luxos/python/luxos_qr.py`.
+- QR codes are drawn and read by the `zxing-cpp` library (`libZXing`, C API), a small dependency of
+  `luxos-desktop`. The sharing window is native (LSL, module `luxos_qr.lsl`); scanning in the Camera app
+  uses `/usr/lib/luxos/python/luxos_qr.py`.
 - If the library is missing the window shows "QR codes are not available" and how to install it
   (`lux install zxing-cpp`).

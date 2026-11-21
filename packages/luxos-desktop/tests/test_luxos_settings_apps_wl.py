@@ -173,6 +173,26 @@ class SettingsAppsWayland(unittest.TestCase):
         self.assertTrue(self.app.wait(lambda: (self.session / "home/.face").exists()))
         self.assertEqual((self.session / "accounts").read_text(), str(self.session / "home/.face"))
 
+    def test_wifi_qr(self):
+        nm = self.session / "nm"
+        nm.mkdir()
+        (nm / "nmcli").write_text(
+            "#!/bin/sh\ncase \"$*\" in\n"
+            "*--active*) echo '802-11-wireless:uuid-1:wlan0:Home' ;;\n"
+            "*uuid*) printf '802-11-wireless.ssid:Home\\n802-11-wireless.hidden:no\\n"
+            "802-11-wireless-security.key-mgmt:wpa-psk\\n802-11-wireless-security.psk:not-a-real-secret\\n' ;;\n"
+            "*) exit 2 ;;\nesac\n")
+        (nm / "nmcli").chmod(0o755)
+        self.open("luxos-wifi-qr", LUXOS_NMCLI=str(nm / "nmcli"), LUXOS_CAMERA_TEST="1",
+                  LUXOS_VIDEO_DEV_DIR=str(nm))
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.assertTrue(self.app.wait(lambda: state()["page"] == "qr"))
+        self.check_window("luxos-wifi-qr", "Wi-Fi QR Code")
+        self.assertEqual(lsl_app.find(self.app.dump(), name="ssid")["text"], "Home")
+        # kopirovani obrazku do schranky Waylandu
+        self.app.ask("click Copy QR code image")
+        self.assertTrue(state()["clipboard"])
+
 
 if __name__ == "__main__":
     unittest.main()

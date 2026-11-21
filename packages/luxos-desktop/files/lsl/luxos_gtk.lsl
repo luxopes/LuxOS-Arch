@@ -15,7 +15,8 @@
 #   aplikace prepsane z Pythonu: window_set_header(okno, nadpis), spinner_new/spinner_set, list_box_add (radek bez
 #   zvyrazneni), list_box_set_placeholder, stack_new/stack_add_named/stack_*_visible_child_name, dialog_new_header,
 #   file_chooser_native_new/native_dialog_run/file_chooser_add_image_filter, overlay_set_pass_through,
-#   box_set_center_widget, window_get_focus, widget_get_sensitive, widget_is_button
+#   box_set_center_widget, window_get_focus, widget_get_sensitive, widget_is_button, editable_set_editable,
+#   entry_get_visibility, entry_set_icon_tooltip
 load glib, gtk, cairo
 load luxos_glib
 
@@ -328,6 +329,24 @@ end
 function window_get_focus(window):
     unsafe:
         return __lsl_qbe_call1(__lsl_symbol("gtk_window_get_focus"), ptr(window))
+    end
+end
+
+function editable_set_editable(editable, on):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_editable_set_editable"), ptr(editable), flag(on))
+    end
+end
+
+function entry_get_visibility(entry):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_entry_get_visibility"), ptr(entry))) != 0
+    end
+end
+
+function entry_set_icon_tooltip(entry, position, text):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("gtk_entry_set_icon_tooltip_text"), ptr(entry), ptr(position), cstr(text))
     end
 end
 
