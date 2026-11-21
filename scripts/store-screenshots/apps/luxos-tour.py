@@ -17,9 +17,9 @@ def shots(s):
             f.write('#!/bin/sh\n[ "$1" = mode ] && echo light\nexit 0\n' if name == "luxos-appearance"
                     else "#!/bin/sh\nexit 0\n")
         os.chmod(os.path.join(fake, name), 0o755)
-    p = s.launch_python("luxos-desktop/files/bin/luxos-tour",
-                        env={"PATH": fake + ":" + s.env.get("PATH", "/usr/bin:/bin")})
-    win = s.window(pid=p.pid, size=None)
+    exe = s.lslc("luxos-desktop/files/lsl/luxos-tour.lsl")
+    s.launch([exe], env={"PATH": fake + ":" + s.env.get("PATH", "/usr/bin:/bin")})
+    win = s.window(cls="luxos-tour", size=None)
     s.sleep(1.0)
     s.capture("1", win)
     s.key("Return", win, delay=1.0)

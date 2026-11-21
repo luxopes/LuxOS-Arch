@@ -13,6 +13,7 @@
 #   ui.switch_set(sw, zapnuto)                       bez volani f
 #   ui.wayland(), ui.read_kv(cesta), ui.write_kv(cesta, klic, hodnota), ui.touch(cesta), ui.sha1(text)
 #   ui.gsettings(schema, cesta) -> objekt nebo 0, ui.gs_get_string/int/bool, ui.gs_set_string/int/bool
+#   ui.attach_test(okno)  LUXOS_UI_TEST pro okno vytvorene jinak nez ui.window
 #   ui.run(argv) -> stdout bez mezer na koncich ("" pri chybe), ui.launch(argv) v nove relaci
 #
 # Testy: LUXOS_UI_TEST=soubor s prikazy (po radcich, po zobrazeni okna): dump (viditelne prvky do souboru.out),
@@ -91,12 +92,7 @@ function window(title, icon, width, height, min_width, min_height):
         call gtk.widget_set_size_request(w, min(min_width, width), min(mh, cap))
     end
     call gtk.connect(w, "map-event", on_map)
-    state["window"] = w
-    script = env.get("LUXOS_UI_TEST", "")
-    if script != "":
-        state["test"] = [line.strip() for line in glib.read_text(script).split("\n") if line.strip() != ""]
-        call glib.timeout_add(800, test_step)
-    end
+    call attach_test(w)
     return w
 end
 
@@ -474,6 +470,16 @@ end
 
 # ---- testy (LUXOS_UI_TEST) ---------------------------------------------------------------------------------
 
+function attach_test(w):
+    state["window"] = w
+    script = env.get("LUXOS_UI_TEST", "")
+    if script != "":
+        state["test"] = [line.strip() for line in glib.read_text(script).split("\n") if line.strip() != ""]
+        call glib.timeout_add(800, test_step)
+    end
+    return 0
+end
+
 function type_name(widget):
     unsafe:
         klass = __lsl_qbe_load64(ptr(widget))
@@ -581,7 +587,8 @@ function test_step():
             call glib.timeout_add(Int(arg), test_step)
             return False
         elif cmd == "quit":
-            call gtk.main_quit()
+            # zavreni okna ukonci gtk.main i GtkApplication
+            call gtk.widget_destroy(state["window"])
             return False
         elif cmd == "dump":
             lines = [describe(w) for w in walk(state["window"], [])]
