@@ -2109,6 +2109,8 @@ end
 
 function settings():
     ui["settings"] = True
+    # app_id jako luxos-widgets-settings.desktop (nazev v liste, ikona v Docku)
+    call glib.set_prgname("luxos-widgets-settings")
     call gtk.init()
     call read_conf()
     call start_common()
