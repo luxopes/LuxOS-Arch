@@ -6,8 +6,7 @@
 Snimky QMP screendump co 0,1 s, z kazdeho jen par cisel (ulozi se prvni snimek splashe a prvni snimek
 greeteru). Snimek je "greeter" (rozostrena tapeta), "splash" (temer cerne pozadi a svetle logo uprostred),
 "flat" (jednolita svetla plocha) nebo "dark" (cerna, textova konzole). Vypise casy a skonci kodem 1, kdyz mezi
-prvnim snimkem splashe a greeterem byl snimek "flat", temna mezera byla delsi nez DARK_GAP_MAX nebo se splash
-vubec neukazal.
+prvnim snimkem splashe a greeterem byl snimek "flat" nebo "dark" nebo se splash vubec neukazal.
 """
 import json
 import os
@@ -16,9 +15,6 @@ import socket
 import sys
 import time
 
-# Mezi splashem a greeterem zustava kratka temna mezera (luxwm modesetuje az po plymouth deactivate a greeter
-# kresli prvni snimek az pak); delsi znamena, ze splash skoncil driv nez greeter (cerna obrazovka, konzole)
-DARK_GAP_MAX = 3.0
 
 def qmp(path, cmd, args):
     s = socket.socket(socket.AF_UNIX)
@@ -97,7 +93,8 @@ def main():
         return 1
     last = kinds.index("greeter", first)
     splash_s = seen[last][0] - seen[first][0]
-    # temne pozadi mezi koncem splashe a prvnim snimkem greeteru (plymouth deactivate -> luxwm -> greeter)
+    # temny snimek mezi splashem a greeterem: textova konzole (VT v textovem rezimu) nebo prazdna scena luxwm
+    # (bez --hold); luxwm drzi posledni snimek splashe az do prvniho snimku greeteru
     dark_s = sum(seen[i + 1][0] - seen[i][0] for i in range(first, last) if seen[i][1] == "dark")
     print(f"splash_to_greeter_s={splash_s:.1f}")
     print(f"dark_gap_s={dark_s:.1f}")
@@ -105,8 +102,8 @@ def main():
     if "flat" in kinds[first:last]:
         print("flat (bright) frame between the splash and the greeter")
         return 1
-    if dark_s > DARK_GAP_MAX:
-        print(f"dark gap longer than {DARK_GAP_MAX} s")
+    if "dark" in kinds[first:last]:
+        print("dark frame between the splash and the greeter")
         return 1
     return 0
 
