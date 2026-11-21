@@ -11,10 +11,7 @@ _luxos_session() {
 # Jen presne stare vychozi a jen jednou (znacka /var/lib/luxos/keyboard-switch-migrated);
 # vlastni volbu nemeni. Projevi se pri dalsim prihlaseni (novy start X).
 _luxos_keyboard() {
-    python3 -c 'import sys; sys.path.insert(0, "/usr/lib/luxos/python")
-import luxos_keyboard as k
-k.migrate_default_switch() and print("==> Keyboard layouts now switch with both Shift keys (from the next login).")' \
-        2>/dev/null || true
+    "${LUXOS_KEYBOARD_SETTINGS:-/usr/lib/luxos/luxos-keyboard-settings}" --migrate-switch 2>/dev/null || true   # promenna jen pro testy
 }
 # Ma uzivatel v xfconf vlastni /lock/saver-activation/delay (hodnotu, ne jen prazdnou vlastnost)?
 _luxos_own_delay() {

@@ -1,12 +1,13 @@
-"""Testy pro Rozlozeni klavesnice: luxos_keyboard (cteni/zapis systemoveho nastaveni, prikazy
-localectl a setxkbmap, katalog rozlozeni) a aplikace luxos-keyboard (jen pod Xvfb).
+#!/usr/bin/env python3
+"""LuxOS - testy Rozlozeni klavesnice (luxos-keyboard-settings v LSL, na X11 okno drive bin/luxos-keyboard
+v Pythonu): cteni a zapis systemoveho nastaveni, prikazy localectl a setxkbmap, katalog rozlozeni, prevod
+stareho vychoziho prepinani (luxos-desktop.install) a okno ve vlastnim Xvfb.
 
-Spusteni:
-  python3 -m unittest packages/luxos-desktop/tests/test_luxos_keyboard.py -v
-  env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_keyboard.py -v
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_keyboard.py -v
 
-GUI cast bezi jen pod xvfb-run (jinak se preskoci) a s falesnymi localectl, setxkbmap
-a xfconf-query - skutecne nastaveni systemu ani uzivatele nemeni.
+Model (files/lsl/luxos_keyboard_model.lsl) v tests/lsl/luxos-keyboard-model-test.lsl bez displeje; okno
+files/lsl/luxos_keyboard_x11.lsl rizene pres luxos_testctl s falesnymi localectl, setxkbmap a xfconf-query -
+skutecne nastaveni systemu ani uzivatele nemeni. LUXOS_TEST_SHOTS = slozka pro snimky.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -18,251 +19,142 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
-import importlib.machinery
-import importlib.util
+import json
 import os
+import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 import time
 import unittest
 
-sys.dont_write_bytecode = True   # zadny __pycache__ ve files/ (balik instaluje bin/*)
 HERE = os.path.dirname(os.path.abspath(__file__))
-PYDIR = os.path.normpath(os.path.join(HERE, "..", "files", "python"))
-BIN = os.path.normpath(os.path.join(HERE, "..", "files", "bin"))
-I18N = os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
-sys.path.insert(0, PYDIR)
-sys.path.insert(1, I18N)
-import luxos_keyboard as kb  # noqa: E402
+PKG = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
 
-TMP = tempfile.mkdtemp(prefix="luxos-kbd-unit-")
-
-# 00-keyboard.conf, jak ho zapise systemd-localed (localectl set-x11-keymap cz,us pc105 qwerty, ...)
-LOCALED = """# Written by systemd-localed(8), read by systemd-localed and Xorg. It's
-# probably wise not to edit this file manually. Use localectl(1) to
-# update this file.
-Section "InputClass"
-        Identifier "system-keyboard"
-        MatchIsKeyboard "on"
-        Option "XkbLayout" "cz,us"
-        Option "XkbModel" "pc105"
-        Option "XkbVariant" "qwerty,"
-        Option "XkbOptions" "grp:alt_shift_toggle,compose:ralt"
-EndSection
-"""
-# Starsi instalator LuxOS (prazdne XkbOptions, jiny odsazeni)
-OLD_INSTALLER = """Section "InputClass"
-    Identifier "system-keyboard"
-    MatchIsKeyboard "on"
-    Option "XkbLayout" "de"
-    Option "XkbVariant" ""
-    Option "XkbOptions" ""
-EndSection
-"""
+TMP = tempfile.mkdtemp(prefix="luxos-keyboard-test-")
+RULES = "/usr/share/X11/xkb/rules/evdev.lst"
+_built = {}
 
 
-class Parse(unittest.TestCase):
-    def test_localed_format(self):
-        cfg = kb.parse_conf(LOCALED)
-        self.assertEqual(cfg["layouts"], [("cz", "qwerty"), ("us", "")])
-        self.assertEqual(cfg["model"], "pc105")
-        self.assertEqual(cfg["options"], ["grp:alt_shift_toggle", "compose:ralt"])
-
-    def test_old_installer_format(self):
-        cfg = kb.parse_conf(OLD_INSTALLER)
-        self.assertEqual(cfg["layouts"], [("de", "")])
-        self.assertEqual(cfg["options"], [])
-
-    def test_fewer_variants_than_layouts(self):
-        self.assertEqual(kb.from_strings("cz,us,de", "qwerty")["layouts"], [("cz", "qwerty"), ("us", ""), ("de", "")])
-
-    def test_vconsole(self):
-        cfg = kb.parse_vconsole('KEYMAP=cz-qwerty\nXKBLAYOUT=cz,us\nXKBVARIANT="qwerty,"\nXKBOPTIONS=grp:caps_toggle\n')
-        self.assertEqual(cfg["layouts"], [("cz", "qwerty"), ("us", "")])
-        self.assertEqual(cfg["options"], ["grp:caps_toggle"])
-
-    def test_read_system_fallbacks(self):
-        with tempfile.TemporaryDirectory() as d:
-            conf, vcon = os.path.join(d, "00-keyboard.conf"), os.path.join(d, "vconsole.conf")
-            self.assertEqual(kb.read_system(conf, vcon)["layouts"], [("us", "")])   # nic
-            with open(vcon, "w") as f:
-                f.write("KEYMAP=sk-qwerty\nXKBLAYOUT=sk\nXKBVARIANT=qwerty\n")
-            self.assertEqual(kb.read_system(conf, vcon)["layouts"], [("sk", "qwerty")])
-            with open(conf, "w") as f:
-                f.write(LOCALED)
-            self.assertEqual(kb.read_system(conf, vcon)["layouts"], [("cz", "qwerty"), ("us", "")])
+def tearDownModule():
+    shutil.rmtree(TMP, ignore_errors=True)
 
 
-class Generate(unittest.TestCase):
-    L = [("cz", "qwerty"), ("us", "")]
+def binary():
+    if "app" not in _built:
+        _built["app"] = lsl_app.build("luxos-keyboard-settings", TMP)
+    return _built["app"]
 
-    def test_strings(self):
-        self.assertEqual(kb.xkb_strings(self.L), ("cz,us", "qwerty,"))
-        self.assertEqual(kb.xkb_strings([("us", "")]), ("us", ""))
 
-    def test_conf_roundtrip(self):
-        for layouts, opts, model in ((self.L, ["grp:alt_shift_toggle"], ""), ([("de", "")], [], "pc105"),
-                                     ([("cz", ""), ("us", ""), ("ua", "phonetic"), ("de", "")],
-                                      ["grp:caps_toggle", "compose:ralt"], "")):
-            text = kb.conf_text(layouts, opts, model)
-            self.assertEqual(kb.parse_conf(text), {"layouts": layouts, "model": model, "options": opts})
-        self.assertNotIn("XkbVariant", kb.conf_text([("cz", ""), ("us", "")], ["grp:alt_shift_toggle"]))
-        self.assertNotIn("XkbOptions", kb.conf_text([("cz", "")]))
+def conf_text(layouts, options=(), model=""):
+    """00-keyboard.conf jako ho pise systemd-localed (stejne jako luxos_keyboard_model.conf_text)."""
+    lines = ["# Written by systemd-localed(8), read by systemd-localed and Xorg. It's",
+             "# probably wise not to edit this file manually. Use localectl(1) to", "# update this file.",
+             'Section "InputClass"', '        Identifier "system-keyboard"', '        MatchIsKeyboard "on"',
+             '        Option "XkbLayout" "%s"' % ",".join(lay for lay, _v in layouts)]
+    if model:
+        lines.append('        Option "XkbModel" "%s"' % model)
+    var = ",".join(v for _l, v in layouts)
+    if var.replace(",", ""):
+        lines.append('        Option "XkbVariant" "%s"' % var)
+    if options:
+        lines.append('        Option "XkbOptions" "%s"' % ",".join(options))
+    return "\n".join(lines + ["EndSection"]) + "\n"
 
-    def test_localectl(self):
-        self.assertEqual(kb.localectl_cmd(self.L, ["grp:alt_shift_toggle"], "pc105"),
-                         ["localectl", "set-x11-keymap", "cz,us", "pc105", "qwerty,", "grp:alt_shift_toggle"])
-        self.assertEqual(kb.localectl_cmd([("us", "")]), ["localectl", "set-x11-keymap", "us", "", "", ""])
 
-    def test_setxkbmap_clears_old_options(self):
-        self.assertEqual(kb.setxkbmap_cmd(self.L, ["grp:ctrl_shift_toggle"]),
-                         ["setxkbmap", "-layout", "cz,us", "-variant", "qwerty,", "-option", "",
-                          "-option", "grp:ctrl_shift_toggle"])
-        self.assertEqual(kb.setxkbmap_cmd([("us", "")])[-2:], ["-option", ""])
+class Model(unittest.TestCase):
+    def test_model(self):
+        lslc = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
+        if not lslc:
+            self.skipTest("lslc is not installed")
+        out = os.path.join(TMP, "kbtest")
+        r = subprocess.run([lslc, "--target", "linux-x86_64-gnu", "--system-bindings", lsl_app.LSL_DIR,
+                            os.path.join(HERE, "lsl", "luxos-keyboard-model-test.lsl"), out],
+                           capture_output=True, text=True, timeout=900)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        work = tempfile.mkdtemp(dir=TMP)
+        env = {"PATH": os.environ["PATH"], "LANG": "C", "KBD_TEST_TMP": work}
+        if os.path.exists(RULES):
+            env["KBD_TEST_RULES"] = RULES
+        r = subprocess.run([out], capture_output=True, text=True, timeout=60, env=env)
+        lines = r.stdout.splitlines()
+        self.assertEqual([line for line in lines if not line.startswith("ok ")], [], r.stderr)
+        self.assertEqual(r.returncode, 0)
+        self.assertGreaterEqual(len(lines), 77 + (3 if os.path.exists(RULES) else 0))
 
-    def test_validate(self):
-        bad = [([], []), ([("cz", ""), ("us", ""), ("de", ""), ("fr", ""), ("pl", "")], []),
-               ([("cz", ""), ("cz", "")], []), ([('cz"', "")], []), ([("cz", "qw erty")], []),
-               ([("CZ", "")], []), ([("cz", "")], ["grp:alt shift"]), ([("cz", "")], ['grp:x"']),
-               # koncovy novy radek (regularni vyraz s "$" ho pustil) = dalsi radek v konfiguraci X
-               ([("cz\n", "")], []), ([("cz", "qwerty\n")], []), ([("cz", "")], ["grp:caps_toggle\n"])]
-        for layouts, opts in bad:
-            with self.assertRaises(kb.KeyboardError, msg=f"{layouts} {opts}"):
-                kb.localectl_cmd(layouts, opts)
-        for model in ("pc105\n", 'pc105"\n        Option "X" "y', None):
-            with self.assertRaises(kb.KeyboardError, msg=repr(model)):
-                kb.conf_text([("cz", "")], [], model)
-        self.assertIn('Option "XkbModel" "pc105"', kb.conf_text([("cz", "")], [], "pc105"))
-        kb.validate([("cz", ""), ("cz", "qwerty"), ("us", ""), ("ua", "phonetic")], ["grp:alt_shift_toggle"])
 
-    def test_switch(self):
-        self.assertEqual(kb.switch_of(["compose:ralt", "grp:caps_toggle"]), "grp:caps_toggle")
-        self.assertEqual(kb.switch_of(["compose:ralt"]), "")
-        self.assertEqual(kb.with_switch(["grp:caps_toggle", "compose:ralt"], "grp:alt_shift_toggle"),
-                         ["grp:alt_shift_toggle", "compose:ralt"])
-        self.assertEqual(kb.with_switch(["grp:caps_toggle", "compose:ralt"], ""), ["compose:ralt"])
-        # Super+Mezernik je v LuxOS Hledani - nesmi byt v nabidce
-        self.assertNotIn("grp:win_space_toggle", [o for o, _l in kb.SWITCH_OPTIONS])
-        self.assertEqual(kb.SWITCH_OPTIONS[0][0], kb.DEFAULT_SWITCH)
-        self.assertEqual(kb.DEFAULT_SWITCH, "grp:shifts_toggle")
-        self.assertEqual(kb.SWITCH_OPTIONS[0], ("grp:shifts_toggle", "Both Shift keys"))
-        self.assertIn(("grp:alt_shift_toggle", "Alt + Shift"), kb.SWITCH_OPTIONS)   # dal na vyber
+class Migrate(unittest.TestCase):
+    """luxos-keyboard-settings --migrate-switch a jeho volani z luxos-desktop.install (post_upgrade)."""
 
-    def test_migrate_options(self):
-        m = kb.migrate_options
-        self.assertEqual(m("grp:alt_shift_toggle"), "grp:shifts_toggle")
-        self.assertEqual(m("terminate:ctrl_alt_bksp,grp:alt_shift_toggle,compose:ralt"),
-                         "terminate:ctrl_alt_bksp,grp:shifts_toggle,compose:ralt")
-        self.assertEqual(m("grp:alt_shift_toggle,grp_led:scroll"), "grp:shifts_toggle,grp_led:scroll")
-        for keep in ("", "compose:ralt", "grp:ctrl_shift_toggle", "grp:shifts_toggle", "grp:caps_toggle,compose:ralt",
-                     "grp:alt_shift_toggle,grp:caps_toggle", "grp:alt_shift_toggle_bidir"):
-            self.assertIsNone(m(keep), keep)
-
-    def migrate_files(self, conf_text, vc_text=None, marker_exists=False):
+    def files(self, conf, vconsole=None):
         d = tempfile.mkdtemp(dir=TMP)
-        conf, vc, marker = (os.path.join(d, n) for n in ("00-keyboard.conf", "vconsole.conf", "lib/migrated"))
-        if conf_text is not None:
-            with open(conf, "w") as f:
-                f.write(conf_text)
-            os.chmod(conf, 0o644)
-        if vc_text is not None:
-            with open(vc, "w") as f:
-                f.write(vc_text)
-        if marker_exists:
-            os.makedirs(os.path.dirname(marker))
-            open(marker, "w").close()
-        changed = kb.migrate_default_switch(conf, vc, marker)
+        paths = {"LUXOS_KEYBOARD_CONF": os.path.join(d, "00-keyboard.conf"),
+                 "LUXOS_VCONSOLE_CONF": os.path.join(d, "vconsole.conf"),
+                 "LUXOS_KEYBOARD_MIGRATED": os.path.join(d, "var", "lib", "luxos", "keyboard-switch-migrated")}
+        if conf is not None:
+            with open(paths["LUXOS_KEYBOARD_CONF"], "w") as f:
+                f.write(conf)
+            os.chmod(paths["LUXOS_KEYBOARD_CONF"], 0o644)
+        if vconsole is not None:
+            with open(paths["LUXOS_VCONSOLE_CONF"], "w") as f:
+                f.write(vconsole)
+        return paths
 
-        def rd(p):
-            try:
-                with open(p) as f:
-                    return f.read()
-            except FileNotFoundError:
-                return None
-        return changed, rd(conf), rd(vc), os.path.exists(marker), conf, vc, marker
+    def hook(self, paths):
+        """Funkce _luxos_keyboard z luxos-desktop.install s binarkou z testu."""
+        with open(os.path.join(PKG, "luxos-desktop.install")) as f:
+            src = f.read()
+        start = src.index("_luxos_keyboard() {")
+        block = src[start:src.index("\n}\n", start) + 3]
+        self.assertNotIn("python", block)
+        env = dict(paths, PATH="/usr/bin:/bin", LUXOS_KEYBOARD_SETTINGS=binary())
+        return subprocess.run(["bash", "-c", block + "_luxos_keyboard"], env=env, capture_output=True, text=True,
+                              timeout=30)
 
-    def test_migrate_old_default(self):
-        old = kb.conf_text([("cz", "qwerty"), ("us", "")], ["grp:alt_shift_toggle", "compose:ralt"], "pc105")
-        vc = "KEYMAP=cz-qwerty\nXKBLAYOUT=cz,us\nXKBMODEL=pc105\nXKBVARIANT=qwerty,\nXKBOPTIONS=grp:alt_shift_toggle,compose:ralt\n"
-        changed, conf, vcon, marked, cpath, vpath, marker = self.migrate_files(old, vc)
-        self.assertTrue(changed)
-        self.assertEqual(conf, old.replace("grp:alt_shift_toggle", "grp:shifts_toggle"))
-        self.assertEqual(vcon, vc.replace("grp:alt_shift_toggle", "grp:shifts_toggle"))
-        self.assertTrue(marked)
-        self.assertEqual(stat.S_IMODE(os.stat(cpath).st_mode), 0o644)
-        cfg = kb.read_system(cpath, vpath)
-        self.assertEqual(cfg["options"], ["grp:shifts_toggle", "compose:ralt"])
-        self.assertEqual(cfg["layouts"], [("cz", "qwerty"), ("us", "")])
-        self.assertEqual(cfg["model"], "pc105")
-        self.assertFalse(os.path.exists(cpath + ".luxos-new"))
-        # Podruhe (znacka existuje) uz nic - ani kdyz si uzivatel Alt+Shift pozdeji vybere znovu
-        with open(cpath, "w") as f:
+    def test_install_hook(self):
+        old = conf_text([("cz", "qwerty"), ("us", "")], ["grp:alt_shift_toggle", "compose:ralt"], "pc105")
+        vc = "KEYMAP=cz-qwerty\nXKBLAYOUT=cz,us\nXKBOPTIONS=grp:alt_shift_toggle,compose:ralt\n"
+        paths = self.files(old, vc)
+        r = self.hook(paths)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "==> Keyboard layouts now switch with both Shift keys (from the next login).\n")
+        with open(paths["LUXOS_KEYBOARD_CONF"]) as f:
+            self.assertEqual(f.read(), old.replace("grp:alt_shift_toggle", "grp:shifts_toggle"))
+        with open(paths["LUXOS_VCONSOLE_CONF"]) as f:
+            self.assertEqual(f.read(), vc.replace("grp:alt_shift_toggle", "grp:shifts_toggle"))
+        self.assertEqual(stat.S_IMODE(os.stat(paths["LUXOS_KEYBOARD_CONF"]).st_mode), 0o644)
+        with open(paths["LUXOS_KEYBOARD_MIGRATED"]) as f:
+            self.assertEqual(f.read(), "grp:shifts_toggle\n")
+        # podruhe nic (znacka), ani vedome znovu zvolene Alt+Shift
+        with open(paths["LUXOS_KEYBOARD_CONF"], "w") as f:
             f.write(old)
-        self.assertFalse(kb.migrate_default_switch(cpath, vpath, marker))
-        with open(cpath) as f:
+        r = self.hook(paths)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+        with open(paths["LUXOS_KEYBOARD_CONF"]) as f:
             self.assertEqual(f.read(), old)
 
-    def test_migrate_quoted_vconsole(self):
-        old = kb.conf_text([("de", ""), ("us", "")], ["grp:alt_shift_toggle"])
-        changed, conf, vcon, *_r = self.migrate_files(old, 'KEYMAP=de\nXKBOPTIONS="grp:alt_shift_toggle"\n')
-        self.assertTrue(changed)
-        self.assertIn('Option "XkbOptions" "grp:shifts_toggle"', conf)
-        self.assertEqual(vcon, 'KEYMAP=de\nXKBOPTIONS="grp:shifts_toggle"\n')
-
-    def test_migrate_keeps_custom_choice(self):
-        for opts in (["grp:ctrl_shift_toggle"], [], ["compose:ralt"], ["grp:caps_toggle", "compose:ralt"]):
-            text = kb.conf_text([("cz", ""), ("us", "")], opts)
-            changed, conf, _v, marked, *_r = self.migrate_files(text, None)
-            self.assertFalse(changed, opts)
-            self.assertEqual(conf, text, opts)
-            self.assertTrue(marked, opts)       # rozhodnuto - uz nikdy znovu
-
-    def test_migrate_without_config(self):
-        # Instalace jeste rozlozeni nezapsala: nic, ani znacka (zkusi se pri dalsi aktualizaci)
-        changed, conf, vcon, marked, *_r = self.migrate_files(None, None)
-        self.assertFalse(changed)
-        self.assertIsNone(conf)
-        self.assertFalse(marked)
-
-    def test_migrate_marker_blocks(self):
-        old = kb.conf_text([("cz", ""), ("us", "")], ["grp:alt_shift_toggle"])
-        changed, conf, *_r = self.migrate_files(old, None, marker_exists=True)
-        self.assertFalse(changed)
-        self.assertEqual(conf, old)
-
-
-class Catalog(unittest.TestCase):
-    def test_fake_rules(self):
-        with tempfile.NamedTemporaryFile("w", suffix=".lst", delete=False) as f:
-            f.write("! model\n  pc105  Generic 105-key PC\n\n! layout\n  us   English (US)\n  cz   Czech\n"
-                    "  ara  Arabic\n\n! variant\n  qwerty  cz: Czech (QWERTY)\n  phonetic ua: Ukrainian (phonetic)\n"
-                    "\n! option\n  grp:alt_shift_toggle  Alt+Shift\n")
-        try:
-            cat = kb.load_catalog(f.name)
-        finally:
-            os.unlink(f.name)
-        keys = [k for k, _d in cat]
-        self.assertEqual(keys[0], ("us", ""))                       # bezna nahore
-        self.assertEqual(len(keys), len(set(keys)))                 # bez duplicit
-        self.assertIn(("ara", ""), keys)
-        self.assertIn(("ua", "phonetic"), keys)
-        self.assertNotIn(("grp:alt_shift_toggle", ""), keys)        # volby nejsou rozlozeni
-        self.assertEqual(kb.describe(("ua", "phonetic"), cat), "Ukrainian (phonetic)")
-        self.assertEqual(kb.describe(("cz", "qwerty"), cat), "Czech (QWERTY)")
-        self.assertEqual(kb.describe(("xx", "yy")), "xx (yy)")
-        self.assertEqual(kb.short(("cz", "qwerty")), "CZ qwerty")
-
-    @unittest.skipUnless(os.path.exists("/usr/share/X11/xkb/rules/evdev.lst"), "no evdev.lst")
-    def test_real_rules(self):
-        keys = [k for k, _d in kb.load_catalog("/usr/share/X11/xkb/rules/evdev.lst")]
-        self.assertGreater(len(keys), 300)
-        for k in keys:   # vse z katalogu musi projit kontrolou pred zapisem
-            kb.validate([k])
-
-
-def under_xvfb():
-    return bool(os.environ.get("DISPLAY")) and "xvfb-run" in os.environ.get("XAUTHORITY", "")
+    def test_install_hook_custom_and_missing(self):
+        own = conf_text([("cz", ""), ("us", "")], ["grp:caps_toggle"])
+        paths = self.files(own)
+        r = self.hook(paths)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+        with open(paths["LUXOS_KEYBOARD_MIGRATED"]) as f:
+            self.assertEqual(f.read(), "unchanged\n")
+        paths = self.files(None)
+        r = self.hook(paths)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+        self.assertFalse(os.path.exists(paths["LUXOS_KEYBOARD_MIGRATED"]))
+        # bez binarky (rozbita instalace) hook neselze
+        with open(os.path.join(PKG, "luxos-desktop.install")) as f:
+            src = f.read()
+        start = src.index("_luxos_keyboard() {")
+        block = src[start:src.index("\n}\n", start) + 3]
+        r = subprocess.run(["bash", "-c", block + "_luxos_keyboard; echo rc=$?"], capture_output=True, text=True,
+                           env=dict(paths, PATH="/usr/bin:/bin", LUXOS_KEYBOARD_SETTINGS="/nonexistent"))
+        self.assertEqual(r.stdout, "rc=0\n")
 
 
 FAKE_TOOL = """#!/bin/sh
@@ -276,166 +168,269 @@ exit 0
 """
 
 
-@unittest.skipUnless(under_xvfb(), "GUI only under xvfb-run (never on a real display)")
+@unittest.skipUnless(shutil.which("Xvfb"), "Xvfb is missing")
 class App(unittest.TestCase):
+    """Okno Rozlozeni klavesnice na X11 (parita s testy okna v Pythonu)."""
+
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="luxos-kbd-")
-        fake = os.path.join(cls.tmp, "bin")
-        os.makedirs(fake)
-        for tool in ("setxkbmap", "localectl", "xfconf-query", "xfce4-keyboard-settings"):
-            p = os.path.join(fake, tool)
+        cls.binary = binary()
+        cls.x = lsl_app.Xvfb()
+        cls.fake = os.path.join(TMP, "fakebin")
+        os.makedirs(cls.fake, exist_ok=True)
+        for tool in ("setxkbmap", "localectl", "xfconf-query"):
+            p = os.path.join(cls.fake, tool)
             with open(p, "w") as f:
                 f.write(FAKE_TOOL)
             os.chmod(p, stat.S_IRWXU)
-        os.environ["PATH"] = fake + ":" + os.environ["PATH"]
-        os.environ["KBD_TEST_LOG"] = cls.log = os.path.join(cls.tmp, "log")
-        conf = os.path.join(cls.tmp, "00-keyboard.conf")
-        with open(conf, "w") as f:
-            f.write(kb.conf_text([("cz", ""), ("us", "")], ["grp:alt_shift_toggle"]))
-        kb.CONF, kb.VCONSOLE = conf, os.path.join(cls.tmp, "vconsole.conf")
-        os.environ["LUXOS_I18N_DIR"] = I18N
-        loader = importlib.machinery.SourceFileLoader("luxos_keyboard_app", os.path.join(BIN, "luxos-keyboard"))
-        spec = importlib.util.spec_from_loader(loader.name, loader)
-        cls.app = importlib.util.module_from_spec(spec)
-        loader.exec_module(cls.app)
-        from gi.repository import Gtk
-        cls.Gtk = Gtk
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.x.stop()
 
     def setUp(self):
+        self.tmp = tempfile.mkdtemp(dir=TMP)
+        self.log = os.path.join(self.tmp, "log")
         open(self.log, "w").close()
-        os.environ.pop("KBD_TEST_DENY", None)
-        os.environ.pop("KBD_TEST_XKBDISABLE", None)
+        self.conf = os.path.join(self.tmp, "00-keyboard.conf")
+        with open(self.conf, "w") as f:
+            f.write(conf_text([("cz", ""), ("us", "")], ["grp:alt_shift_toggle"]))
+        self.app = None
 
-    def pump(self, until=None, timeout=5.0):
-        end = time.time() + timeout
-        while time.time() < end:
-            while self.Gtk.events_pending():
-                self.Gtk.main_iteration_do(False)
-            if until is None or until():
-                return True
-            time.sleep(0.02)
-        return False
+    def tearDown(self):
+        if self.app:
+            self.app.stop()
+
+    def start(self, **extra):
+        env = {"PATH": self.fake + ":" + os.environ["PATH"], "DISPLAY": self.x.display, "HOME": self.tmp,
+               "XDG_CONFIG_HOME": os.path.join(self.tmp, "config"), "XDG_RUNTIME_DIR": self.tmp, "LANG": "en_US.UTF-8",
+               "GTK_THEME": "Adwaita", "KBD_TEST_LOG": self.log, "LUXOS_KEYBOARD_CONF": self.conf,
+               "LUXOS_VCONSOLE_CONF": os.path.join(self.tmp, "vconsole.conf"),
+               "DBUS_SESSION_BUS_ADDRESS": "unix:path=/nonexistent"}
+        env.update(extra)
+        luxos_testguard.check_env(env)
+        self.app = lsl_app.App([self.binary], env)
+        self.assertTrue(self.app.wait(lambda: self.state() is not None, 20), self.app.stderr())
+        return self.app
+
+    def state(self):
+        try:
+            return json.loads(self.app.ask("state", "state ", timeout=5))
+        except AssertionError:
+            return None
 
     def calls(self, prefix):
         with open(self.log) as f:
-            return [ln.strip() for ln in f if ln.startswith(prefix)]
+            return [ln.rstrip("\n") for ln in f if ln.startswith(prefix)]
+
+    def clear_log(self):
+        open(self.log, "w").close()
+
+    def shot(self, name):
+        d = os.environ.get("LUXOS_TEST_SHOTS")
+        if d:
+            os.makedirs(d, exist_ok=True)
+            lsl_app.shot(self.x.display, os.path.join(d, name + ".png"))
 
     def test_edit_and_apply(self):
-        w = self.app.KeyboardSettings()
-        w.show_all()
-        w.update()
-        self.pump()
-        self.assertEqual(w.layouts, [("cz", ""), ("us", "")])
-        self.assertEqual(w.switch.get_active_id(), "grp:alt_shift_toggle")
-        self.assertFalse(w.apply_btn.get_sensitive())            # nic se nezmenilo
-        self.assertFalse(w.note.get_visible())
-        # pridat (dialog s hledanim), presunout, odebrat
-        dlg = self.app.AddDialog(w, w.catalog, set(w.layouts))
-        dlg.show_all()
-        dlg.entry.set_text("german")
-        self.pump()
-        visible = [r for r in dlg.lb.get_children() if dlg.flt(r)]
-        self.assertTrue(visible and all("german" in r.hay for r in visible))
-        self.assertNotIn(("cz", ""), [r.key for r in dlg.lb.get_children()])   # uz pouzite chybi
-        dlg.lb.select_row(next(r for r in visible if r.key == ("de", "")))
-        self.assertEqual(dlg.chosen(), ("de", ""))
-        dlg.destroy()
-        w.layouts.append(("de", ""))
-        w.changed()
-        w.move(2, -1)
-        self.assertEqual(w.layouts, [("cz", ""), ("de", ""), ("us", "")])
-        w.move(0, -1)                                             # mimo rozsah - nic
-        w.remove(2)
-        self.assertEqual(w.layouts, [("cz", ""), ("de", "")])
-        w.switch.set_active_id("grp:caps_toggle")
-        self.pump()
-        self.assertTrue(w.apply_btn.get_sensitive())
+        self.start()
+        s = self.state()
+        self.assertEqual(s["layouts"], [["cz", ""], ["us", ""]])
+        self.assertEqual(s["switch"], "grp:alt_shift_toggle")
+        self.assertFalse(s["apply"])                     # nic se nezmenilo
+        self.assertFalse(s["note"])
+        win = self.app.dump()
+        self.assertEqual(win[0]["title"], "Keyboard Layouts")
+        self.assertTrue(win[0]["close_button"])
+        texts = lsl_app.texts(win)
+        for t in ("Layouts", "Czech", "English (US)", "CZ", "US", "Default", "Switching", "Switch layouts with"):
+            self.assertIn(t, texts)
+        self.shot("keyboard-layouts")
+        # pridat (dialog s hledanim): jen hledane, uz pouzite chybi
+        self.app.send("click Add Layout…")
+        self.assertTrue(self.app.wait(lambda: self.state()["dialog"]))
+        self.app.ask("search german")
+        visible = self.state()["visible"]
+        self.assertTrue(visible)
+        self.assertIn("de:", visible)
+        self.assertNotIn("cz:", visible)
+        self.assertTrue(all("german" in h for h in self.state()["hay"]), [h for h in self.state()["hay"] if "german" not in h])
+        dlg = [w for w in self.app.dump() if w["dialog"]][0]
+        add = lsl_app.find([dlg], text="Add", kind="GtkButton")
+        self.assertFalse(add["sens"])                    # nic vybrano
+        self.app.ask("pick de:")
+        self.assertEqual(json.loads(self.app.ask("chosen", "chosen ")), ["de", ""])
+        dlg = [w for w in self.app.dump() if w["dialog"]][0]
+        self.assertTrue(lsl_app.find([dlg], text="Add", kind="GtkButton")["sens"])
+        self.shot("keyboard-add")
+        self.app.send("respond -5")
+        self.assertTrue(self.app.wait(lambda: not self.state()["dialog"]))
+        self.assertEqual(self.state()["layouts"], [["cz", ""], ["us", ""], ["de", ""]])
+        self.app.ask("layout up 2")
+        self.assertEqual(self.state()["layouts"], [["cz", ""], ["de", ""], ["us", ""]])
+        self.app.ask("layout up 0")                      # mimo rozsah - nic
+        self.app.ask("layout remove 2")
+        self.assertEqual(self.state()["layouts"], [["cz", ""], ["de", ""]])
+        self.app.ask("switch-id grp:caps_toggle")
+        self.assertTrue(self.state()["apply"])
         # nahled v relaci
-        self.assertIn("setxkbmap -layout cz,de -variant , -option  -option grp:caps_toggle", self.calls("setxkbmap"))
+        self.assertTrue(self.app.wait(lambda: "setxkbmap -layout cz,de -variant , -option  -option grp:caps_toggle"
+                                      in self.calls("setxkbmap")))
         # pouziti pro cely system
-        open(self.log, "w").close()
-        w.on_apply(None)
-        self.assertTrue(self.pump(lambda: not w.busy))
+        self.clear_log()
+        self.app.send("click Apply to All Users and the Login Screen")
+        self.assertTrue(self.app.wait(lambda: not self.state()["busy"] and self.state()["applied"]))
         self.assertEqual(self.calls("localectl"), ["localectl set-x11-keymap cz,de  , grp:caps_toggle"])
-        self.assertIn("xfconf-query -c keyboard-layout -p /Default/XkbDisable -n -t bool -s true",
-                      self.calls("xfconf-query"))
+        self.assertIn("xfconf-query -c keyboard-layout -p /Default/XkbDisable -n -t bool -s true", self.calls("xfconf-query"))
         self.assertTrue(self.calls("setxkbmap -layout cz,de"))
-        self.assertFalse(w.apply_btn.get_sensitive())
-        self.assertFalse(w.dirty())
+        s = self.state()
+        self.assertFalse(s["apply"])
+        self.assertFalse(s["dirty"])
+        self.assertEqual(s["status"], "Saved for all users and the login screen.")
         # zavreni bez dalsich zmen: zadny navrat
-        open(self.log, "w").close()
-        w.on_close()
+        self.clear_log()
+        self.app.send("close")
+        self.app.proc.wait(10)
         self.assertEqual(self.calls("setxkbmap"), [])
-        w.destroy()
 
     def test_remove_last_and_limit(self):
-        w = self.app.KeyboardSettings()
-        w.show_all()
-        w.remove(1)
-        w.remove(0)                                               # posledni zustane
-        self.assertEqual(w.layouts, [("cz", "")])
-        w.layouts += [("us", ""), ("de", ""), ("fr", "")]
-        w.changed()
-        add = [c for c in self._walk(w) if isinstance(c, self.Gtk.Button) and c.get_label() == self.app._("Add Layout…")]
-        self.assertTrue(add and not add[0].get_sensitive())       # 4 = maximum
-        w.destroy()
+        self.start()
+        self.app.ask("layout remove 1")
+        self.app.ask("layout remove 0")                  # posledni zustane
+        self.assertEqual(self.state()["layouts"], [["cz", ""]])
+        remove = lsl_app.find(self.app.dump(), text="Remove", kind="GtkButton")
+        self.assertFalse(remove["sens"])
+        for key in ("us:", "de:", "fr:"):
+            self.app.ask("add-layout " + key)
+        self.app.ask("add-layout pl:")                   # 5. uz ne
+        self.assertEqual(len(self.state()["layouts"]), 4)
+        add = lsl_app.find(self.app.dump(), text="Add Layout…", kind="GtkButton")
+        self.assertFalse(add["sens"])                    # 4 = maximum
+        self.assertEqual(add["tip"], "At most 4 layouts are possible.")
 
     def test_switch_offered_when_second_layout_added(self):
-        with open(kb.CONF) as f:
-            saved = f.read()
-        with open(kb.CONF, "w") as f:
-            f.write(kb.conf_text([("de", "")]))
-        try:
-            w = self.app.KeyboardSettings()
-            self.assertEqual(w.switch.get_active_id(), "none")
-            orig = self.app.AddDialog
-            self.app.AddDialog = type("D", (), {"__init__": lambda s, *a: None, "show_all": lambda s: None,
-                                                "run": lambda s: self.Gtk.ResponseType.OK,
-                                                "chosen": lambda s: ("us", ""), "destroy": lambda s: None})
-            try:
-                w.on_add(None)
-            finally:
-                self.app.AddDialog = orig
-            self.assertEqual(w.layouts, [("de", ""), ("us", "")])
-            self.assertEqual(w.options, ["grp:shifts_toggle"])     # vychozi: obe klavesy Shift
-            self.assertEqual(w.switch.get_active_id(), "grp:shifts_toggle")
-            w.destroy()
-        finally:
-            with open(kb.CONF, "w") as f:
-                f.write(saved)
+        with open(self.conf, "w") as f:
+            f.write(conf_text([("de", "")]))
+        self.start()
+        self.assertEqual(self.state()["switch"], "none")
+        self.app.ask("add-layout us:")
+        s = self.state()
+        self.assertEqual(s["layouts"], [["de", ""], ["us", ""]])
+        self.assertEqual(s["options"], ["grp:shifts_toggle"])     # vychozi: obe klavesy Shift
+        self.assertEqual(s["switch"], "grp:shifts_toggle")
 
     def test_denied_and_revert_on_close(self):
-        os.environ["KBD_TEST_DENY"] = "1"
-        w = self.app.KeyboardSettings()
-        w.show_all()
-        w.move(0, 1)
-        w.on_apply(None)
-        self.assertTrue(self.pump(lambda: not w.busy))
-        self.assertIn("cancelled", w.status.get_text())
-        self.assertTrue(w.dirty())
+        self.start(KBD_TEST_DENY="1")
+        self.app.ask("layout down 0")
+        self.app.send("click Apply to All Users and the Login Screen")
+        self.assertTrue(self.app.wait(lambda: "cancelled" in self.state()["status"]))
+        s = self.state()
+        self.assertFalse(s["busy"])
+        self.assertTrue(s["dirty"])
+        self.assertEqual(s["status"], "Not saved: administrator authentication was cancelled.")
         self.assertEqual(self.calls("xfconf-query -c keyboard-layout -p /Default/XkbDisable -n"), [])
-        open(self.log, "w").close()
-        w.on_close()
+        self.clear_log()
+        self.app.send("close")
+        self.app.proc.wait(10)
         # navrat do stavu relace pred otevrenim (falesny setxkbmap -query: de + compose:ralt)
         self.assertEqual(self.calls("setxkbmap"), ["setxkbmap -layout de -variant  -option  -option compose:ralt"])
-        w.destroy()
 
     def test_user_override_note(self):
-        os.environ["KBD_TEST_XKBDISABLE"] = "false"
-        w = self.app.KeyboardSettings()
-        w.show_all()
-        w.update()
-        self.pump()
-        self.assertTrue(w.note.get_visible())
-        self.assertTrue(w.apply_btn.get_sensitive())              # i beze zmeny: vratit uzivatele k systemu
-        w.destroy()
+        self.start(KBD_TEST_XKBDISABLE="false")
+        s = self.state()
+        self.assertTrue(s["note"])
+        self.assertTrue(s["apply"])                      # i beze zmeny: vratit uzivatele k systemu
+        self.assertIn("Your account uses its own keyboard layouts from Xfce settings. Applying switches it back to "
+                      "the layouts set here.", lsl_app.texts(self.app.dump()))
 
-    def _walk(self, w):
-        yield w
-        if isinstance(w, self.Gtk.Container):
-            for c in w.get_children():
-                yield from self._walk(c)
+    def test_unknown_switch_kept_and_czech(self):
+        with open(self.conf, "w") as f:
+            f.write(conf_text([("cz", ""), ("us", "")], ["grp:lwin_toggle"]))
+        self.start(LANG="cs_CZ.UTF-8", LUXOS_I18N_DIR=lsl_app.I18N)
+        self.assertEqual(self.state()["switch"], "grp:lwin_toggle")   # jina volba z localectl se neztrati
+        win = self.app.dump()
+        self.assertEqual(win[0]["title"], "Rozložení klávesnice")
+        self.assertIn("Čeština", lsl_app.texts(win))
+
+    def test_window_size_and_pss(self):
+        self.start()
+        time.sleep(1.5)
+        geo = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Keyboard Layouts$"],
+                             env={"DISPLAY": self.x.display, "PATH": os.environ["PATH"]}, capture_output=True,
+                             text=True).stdout.split() if shutil.which("xdotool") else []
+        if geo:
+            out = subprocess.run(["xdotool", "getwindowgeometry", "--shell", geo[0]], capture_output=True, text=True,
+                                 env={"DISPLAY": self.x.display, "PATH": os.environ["PATH"]}).stdout
+            vals = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+            # okno podle obsahu (Python: drive 600 px vysoke s prazdnou plochou), na obrazovku 1366x768
+            self.assertLess(int(vals["HEIGHT"]), 600)
+            self.assertLessEqual(int(vals["HEIGHT"]), 768 - 16)
+            self.assertLessEqual(int(vals["WIDTH"]), 1366)
+        pss = self.app.pss_kb()
+        print("\nluxos-keyboard (LSL) PSS %d kB" % pss, file=sys.stderr)
+        self.assertLess(pss, 52218)                      # Python + GTK pod Xvfb: 52218 kB
+
+
+REPO = os.path.normpath(os.path.join(PKG, "..", ".."))
+WLT = os.path.join(REPO, "scripts", "wl-test", "wlt")
+WLT_OUT = os.environ.get("WLT_OUT") or os.path.join(REPO, "out", "wl-test")
+LUXWM_BUILD = os.environ.get("LUXWM_BUILD") or os.path.join(REPO, "out", "luxwm-test", "build")
+
+
+@unittest.skipUnless(os.path.exists(os.path.join(LUXWM_BUILD, "luxwm")) and os.path.exists(WLT),
+                     "luxwm (packages/luxwm/tests/build-host.sh) or wl-test harness missing")
+class Wayland(unittest.TestCase):
+    """Na Waylandu (luxwm headless) okno s kartami: rozlozeni z 00-keyboard.conf, pridani jen pro uzivatele."""
+
+    def test_layouts_tab(self):
+        tmp = tempfile.mkdtemp(dir=TMP)
+        conf = os.path.join(tmp, "luxwm-system.conf")
+        with open(os.path.join(REPO, "packages", "luxwm", "luxwm.conf")) as f:
+            conf_lines = [line for line in f if not line.startswith("xwayland")]
+        with open(conf, "w") as f:
+            f.write("xwayland = no\n" + "".join(conf_lines))
+        name = "kbd%d" % (os.getpid() % 10000)
+        env = dict(os.environ, WLT_OUT=WLT_OUT, WLT_COMPOSITOR_ENV="LUXWM_SYSTEM_CONFIG=%s LD_LIBRARY_PATH=%s:%s/sysroot/usr/lib"
+                   % (conf, LUXWM_BUILD, WLT_OUT))
+        r = subprocess.run([WLT, "start", "--mode", "headless", "--size", "1366x768", "--timeout", "300", "--name", name,
+                            "--", os.path.join(LUXWM_BUILD, "luxwm")], env=env, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        session = r.stdout.strip().splitlines()[-1]
+        app = None
+        try:
+            wl = {}
+            for line in subprocess.run([WLT, "env", session], capture_output=True, text=True, env=env).stdout.splitlines():
+                key, _, value = line.removeprefix("export ").partition("=")
+                wl[key] = value
+            kconf = os.path.join(tmp, "00-keyboard.conf")
+            with open(kconf, "w") as f:
+                f.write(conf_text([("cz", ""), ("us", "")], ["grp:shifts_toggle"]))
+            cfg = os.path.join(tmp, "config")
+            aenv = {"PATH": os.environ["PATH"], "HOME": tmp, "XDG_CONFIG_HOME": cfg, "LANG": "en_US.UTF-8",
+                    "WAYLAND_DISPLAY": wl["WAYLAND_DISPLAY"], "XDG_RUNTIME_DIR": wl["XDG_RUNTIME_DIR"],
+                    "GDK_BACKEND": "wayland", "LUXOS_KEYBOARD_CONF": kconf, "LUXWM_SYSTEM_CONFIG": conf,
+                    "DBUS_SYSTEM_BUS_ADDRESS": "unix:path=/nonexistent", "DBUS_SESSION_BUS_ADDRESS": "unix:path=/nonexistent"}
+            app = lsl_app.App([binary()], aenv)
+            self.assertTrue(app.wait(lambda: app.proc.poll() is None and "Czech" in lsl_app.texts(app.dump()), 20),
+                            app.stderr())
+            texts = lsl_app.texts(app.dump())
+            for t in ("Layouts", "Czech", "English (US)", "Default · CZ", "Switching"):
+                self.assertIn(t, texts)
+            self.assertEqual(json.loads(app.ask("state", "state ")), {"layouts": [["cz", ""], ["us", ""]],
+                                                                       "options": ["grp:shifts_toggle"], "own": False})
+            app.send("click Add Layout…")
+            self.assertTrue(app.wait(lambda: lsl_app.find(app.dump(), text="German   DE") is not None))
+            self.assertIsNone(lsl_app.find(app.dump(), text="Czech   CZ"))      # uz pouzite chybi
+            app.send("click German   DE")
+            self.assertTrue(app.wait(lambda: json.loads(app.ask("state", "state "))["own"]))
+            self.assertEqual(json.loads(app.ask("state", "state "))["layouts"], [["cz", ""], ["us", ""], ["de", ""]])
+            with open(os.path.join(cfg, "luxwm", "luxwm.conf")) as f:
+                self.assertIn("xkb_layout = cz,us,de", f.read())
+        finally:
+            if app:
+                app.stop()
+            subprocess.run([WLT, "stop", session], capture_output=True, env=env)
+            shutil.rmtree(session, True)
 
 
 if __name__ == "__main__":

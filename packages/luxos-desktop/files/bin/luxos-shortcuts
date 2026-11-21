@@ -1,0 +1,3 @@
+#!/bin/sh
+# LuxOS - Klavesove zkratky (X11 i Wayland): okno v LSL, /usr/lib/luxos/luxos-keyboard-settings --shortcuts
+exec /usr/lib/luxos/luxos-keyboard-settings --shortcuts "$@"

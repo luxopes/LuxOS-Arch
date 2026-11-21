@@ -83,26 +83,6 @@ class Defaults(unittest.TestCase):
         self.assertEqual(values.count("cycle_reverse_app_windows_key"), 1)
         self.assertEqual(binds["<Super>grave"], "switch_window_key")
 
-    def test_catalog_and_group_setting(self):
-        state = os.path.join(TMP, "xfconf-group.json")
-        env = {"LUXOS_XFCONF_QUERY": os.path.join(HERE, "fake-shortcuts", "xfconf-query"),
-               "FAKE_XFCONF": state, "FAKE_XFCONF_DEFAULTS": os.path.join(XFCONF_DIR, "xfwm4.xml")}
-        code = ("import sys, luxos_shortcuts as ls\n"
-                "c = {a.id: (a.label, a.values) for a in ls.catalog()}\n"
-                "print(c['cycle-app'][1], c['cycle-app-reverse'][1], c['switch-app'][1])\n"
-                "print(ls.format_accel('<Alt>grave'), '|', ls.format_accel('<Alt><Shift>grave'))\n"
-                "print(ls.group_apps_enabled())\nprint(ls.set_group_apps(True), ls.group_apps_enabled())\n"
-                "print(ls.set_group_apps(False), ls.group_apps_enabled())\n")
-        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
-                           env=dict(os.environ, PYTHONPATH=os.path.join(FILES, "python"), LANG="C", **env))
-        self.assertEqual(r.returncode, 0, r.stderr)
-        lines = r.stdout.splitlines()
-        self.assertEqual(lines[0], "['cycle_app_windows_key'] ['cycle_reverse_app_windows_key'] ['switch_window_key']")
-        self.assertEqual(lines[1], "Alt + ` | Alt + Shift + `")
-        self.assertEqual(lines[2:], ["False", "True True", "True False"])
-        with open(state) as f:
-            self.assertEqual(json.load(f), {"/general/cycle_group_apps": "false"})
-
     def test_translations(self):
         keys = ["Switch windows of the current app", "Switch windows of the current app backwards",
                 "Next window of the same app (without previews)", "Group windows by app in Alt+Tab",

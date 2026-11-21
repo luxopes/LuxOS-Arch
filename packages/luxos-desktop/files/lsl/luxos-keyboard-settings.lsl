@@ -1,9 +1,11 @@
-# LuxOS - Klavesnice na Waylandu (luxwm): rozlozeni a jejich prepinani, klavesove zkratky. Nahrazuje
-# luxos-keyboard a luxos-shortcuts (Python, X11) v relaci Waylandu; bin/luxos-keyboard a luxos-shortcuts
-# sem na Waylandu predaji rizeni.
+# LuxOS - Klavesnice: rozlozeni a jejich prepinani, klavesove zkratky (/usr/lib/luxos/luxos-keyboard-settings,
+# spousti ho luxos-keyboard a luxos-shortcuts). Na X11 okna Rozlozeni klavesnice a Klavesove zkratky nad
+# localectl/setxkbmap a xfconf (luxos_keyboard_x11.lsl), na Waylandu (luxwm) jedno okno s kartami nize.
 #
 #   luxos-keyboard-settings [--shortcuts]       okno (karta Rozlozeni, s --shortcuts karta Zkratky)
 #   luxos-keyboard-settings --import-shortcuts  jen jednou prevede zkratky Xfce do ~/.config/luxwm/luxwm.conf
+#   luxos-keyboard-settings --migrate-switch    jednou za zivot systemu stare vychozi prepinani Alt+Shift ->
+#                                               obe klavesy Shift (luxos-desktop.install, jako root)
 #
 # Rozlozeni: zdroj je localed (cely system, prihlaseni, konzole). Zmena v okne plati hned jen pro uzivatele
 # (xkb_* v ~/.config/luxwm/luxwm.conf, luxwm je hned nacte); "Pouzit pro vsechny" ji zapise pres localectl
@@ -16,18 +18,15 @@ load luxos_i18n as i18n
 load luxos_luxwm as wm
 load luxos_wm_config as cfg
 load luxos_glib as lglib
+load luxos_keyboard_model as kb
+load luxos_keyboard_x11 as x11
+load luxos_testctl as testctl
+load luxos_sys as sys
 
-MAX_LAYOUTS = 4
-RULES = "/usr/share/X11/xkb/rules/evdev.lst"
-XORG_CONF = "/etc/X11/xorg.conf.d/00-keyboard.conf"
-DEFAULT_SWITCH = "grp:shifts_toggle"
-SWITCH_OPTIONS = [["grp:shifts_toggle", "Both Shift keys"], ["grp:alt_shift_toggle", "Alt + Shift"],
-    ["grp:ctrl_shift_toggle", "Ctrl + Shift"], ["grp:caps_toggle", "Caps Lock"], ["grp:menu_toggle", "Menu key"],
-    ["", "Only by clicking the flag in the menu bar"]]
-COMMON = [["English (US)", "us", ""], ["Czech", "cz", ""], ["Czech (QWERTY)", "cz", "qwerty"], ["Slovak", "sk", ""],
-    ["Slovak (QWERTY)", "sk", "qwerty"], ["German", "de", ""], ["English (UK)", "gb", ""], ["French", "fr", ""],
-    ["Spanish", "es", ""], ["Italian", "it", ""], ["Polish", "pl", ""], ["Hungarian", "hu", ""], ["Ukrainian", "ua", ""],
-    ["Portuguese", "pt", ""], ["Portuguese (Brazil)", "br", ""], ["Swedish", "se", ""]]
+MAX_LAYOUTS = kb.MAX_LAYOUTS
+XORG_CONF = kb.CONF
+DEFAULT_SWITCH = kb.DEFAULT_SWITCH
+SWITCH_OPTIONS = kb.SWITCH_OPTIONS
 # Zkratky v okne: [nazev, hodnota luxwm]; stejne nazvy jako luxos-shortcuts (maji preklady)
 CATALOG = [["Windows", [["Close window", "close_window_key"], ["Minimize window", "hide_window_key"],
         ["Switch windows", "cycle_windows_key"], ["Switch windows backwards", "cycle_reverse_windows_key"],
@@ -119,20 +118,11 @@ function load_keyboard():
 end
 
 function switch_of(options):
-    for o in options:
-        if o.startswith("grp:"):
-            return o
-        end
-    end
-    return ""
+    return kb.switch_of(options)
 end
 
 function with_switch(options, switch):
-    rest = [o for o in options if not o.startswith("grp:")]
-    if switch != "":
-        return [switch] + rest
-    end
-    return rest
+    return kb.with_switch(options, switch)
 end
 
 function joined(layouts, index):
@@ -185,72 +175,22 @@ end
 # ---- katalog rozlozeni (evdev.lst) -------------------------------------------------------------------
 
 function catalog():
-    if len(ui["catalog"]) > 0:
-        return ui["catalog"]
+    if len(ui["catalog"]) == 0:
+        ui["catalog"] = kb.catalog("")
     end
-    out = []
-    seen = []
-    for item in COMMON:
-        out.append([[item[1], item[2]], i18n.T(item[0])])
-        seen.append(item[1] + ":" + item[2])
-    end
-    rest = {}
-    section = ""
-    for line in lglib.read_text(env.get("LUXOS_XKB_RULES", RULES)).split("\n"):
-        if line.startswith("!"):
-            section = line[1:].strip()
-            continue
-        end
-        text = line.strip()
-        cut = text.find(" ")
-        if cut <= 0 or not line.startswith(" "):
-            continue
-        end
-        name = text[:cut]
-        desc = text[cut:].strip()
-        key = []
-        if section == "layout":
-            key = [name, ""]
-        elif section == "variant" and desc.find(":") > 0:
-            key = [desc[:desc.find(":")].strip(), name]
-            desc = desc[desc.find(":") + 1:].strip()
-        else:
-            continue
-        end
-        if not ((key[0] + ":" + key[1]) in seen):
-            seen.append(key[0] + ":" + key[1])
-            rest[desc.lower() + "\t" + key[0] + ":" + key[1]] = [key, desc]
-        end
-    end
-    for name in sorted(rest.keys()):
-        out.append(rest[name])
-    end
-    ui["catalog"] = out
-    return out
+    return ui["catalog"]
+end
+
+function tr(text):
+    return i18n.T(text)
 end
 
 function describe(key):
-    for item in COMMON:
-        if item[1] == key[0] and item[2] == key[1]:
-            return i18n.T(item[0])
-        end
-    end
-    for item in catalog():
-        if item[0][0] == key[0] and item[0][1] == key[1]:
-            return item[1]
-        end
-    end
-    if key[1] != "":
-        return key[0] + " (" + key[1] + ")"
-    end
-    return key[0]
+    return kb.describe(key, catalog(), tr)
 end
 
 function short(key):
-    if key[1] != "":
-        return key[0].upper() + " " + key[1]
-    end
-    return key[0].upper()
+    return kb.short(key)
 end
 
 # ---- zkratky ------------------------------------------------------------------------------------------
@@ -554,12 +494,12 @@ function add_dialog():
         if (item[0][0] + ":" + item[0][1]) in used:
             continue
         end
-        b = gtk.button_new(item[1] + "   " + short(item[0]))
+        b = gtk.button_new(describe(item[0]) + "   " + short(item[0]))
         call gtk.button_set_relief(b, gtk.RELIEF_NONE)
         call gtk.label_set_xalign(gtk.bin_get_child(b), 0)
         call lglib.connect_data(b, "clicked", 0, on_pick, item[0])
         call gtk.box_pack_start(list_box, b, False, False, 0)
-        rows.append([b, (item[1] + " " + item[0][0] + " " + item[0][1]).lower()])
+        rows.append([b, (describe(item[0]) + " " + item[1] + " " + item[0][0] + " " + item[0][1]).lower()])
     end
     ui["rows"] = rows
     ui["dialog"] = dialog
@@ -665,6 +605,13 @@ function on_capture_key(event, dialog):
     return True
 end
 
+# Testy (LUXOS_TEST_CONTROL=1): state = rozlozeni, volby a vlastni rozlozeni uzivatele
+function on_test(command, rest):
+    if command == "state":
+        call sys.out("state " + json.encode({"layouts": ui["layouts"], "options": ui["options"], "own": ui["own"]}) + "\n")
+    end
+end
+
 function on_delete(event, window):
     call gtk.main_quit()
     return False
@@ -672,12 +619,26 @@ end
 
 # ---- start -------------------------------------------------------------------------------------------------
 
+if "--migrate-switch" in args:
+    if kb.migrate_default_switch("", "", ""):
+        print "==> Keyboard layouts now switch with both Shift keys (from the next login)."
+    end
+    exit(0)
+end
 if "--import-shortcuts" in args:
     count = cfg.import_xfce()
     print "imported " + String(count)
     if count > 0:
         call wm.connect(None)
         call luxwm_reload()
+    end
+    exit(0)
+end
+if env.get("WAYLAND_DISPLAY", "") == "":
+    if "--shortcuts" in args:
+        call x11.shortcuts_main()
+    else:
+        call x11.layouts_main()
     end
     exit(0)
 end
@@ -712,4 +673,5 @@ call gtk.widget_show_all(window)
 if "--shortcuts" in args:
     call gtk.notebook_set_current_page(notebook, 1)
 end
+call testctl.start(on_test)
 call gtk.main()

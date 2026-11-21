@@ -47,13 +47,10 @@ APPS = {
 }
 FPRINTD = os.path.join(HERE, "fingerprint", "fake_fprintd.py")
 APPS.update({
-    "luxos-keyboard": {},
     "luxos-bluetooth": {"_sysbus": "1"},             # soukroma prazdna "systemova" sbernice: bez BlueZ
     "luxos-fingerprint": {"LUXOS_FPRINT_BUS": "session"},
     "luxos-profile-picture": {"LUXOS_CAMERA_TEST": "none"},
     "luxos-wifi-qr": {"LUXOS_CAMERA_TEST": "none", "LUXOS_NMCLI": "false"},
-    "luxos-shortcuts": lambda tmp: {"LUXOS_XFCONF_QUERY": os.path.join(HERE, "fake-shortcuts", "xfconf-query"),
-                                    "FAKE_XFCONF": os.path.join(tmp, "xfconf.json")},
 })
 PRE = {"luxos-fingerprint": [sys.executable, FPRINTD, "--enrolled", "right-index-finger"]}
 LAPTOP = {"name": "eDP-1", "connected": True, "edid": "", "mm": [344, 194], "primary": True,
@@ -183,15 +180,12 @@ class WindowFits(unittest.TestCase):
                     self.assertGreaterEqual(win["min"]["height"], MIN_USABLE, (app, screen, win))
                     self.assertGreaterEqual(win["min"]["width"], 340, (app, screen, win))
 
-    def test_shortcuts(self):
-        self.check("luxos-shortcuts")
-
 
 @unittest.skipUnless(shutil.which("Xvfb") and shutil.which("dbus-run-session"), "Xvfb/dbus-run-session missing")
 class SizedToContent(unittest.TestCase):
     """Okna bez velke prazdne plochy dole: vyska podle obsahu, ne pevna vychozi (drive + HeaderBar 45 px)."""
 
-    OLD = {"luxos-keyboard": 600, "luxos-display-settings": 700}
+    OLD = {"luxos-display-settings": 700}
 
     def test_heights(self):
         for app, old in self.OLD.items():
