@@ -54,7 +54,9 @@ root=$(readlink -f "$root")
 rm -rf "$root/m" "$root/h" "$root/t" "$root/logs" "$root/w/sessions"
 mkdir -p "$root/m" "$root/h" "$root/t" "$root/logs" "$root/w"
 touch "$root/.luxos-test-root"
-safe_env=(env -i "PATH=$path" "LANG=C.UTF-8" "USER=$(id -un)" "LOGNAME=$(id -un)" "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent")
+# --default-signal: moduly bezi na pozadi skriptu, kde bash SIGINT a SIGQUIT ignoruje - testy, ktere programum
+# posilaji Ctrl+C (zruseni prenosu LuxDrop), by jinak cekaly na vysledek, ktery nikdy neprijde
+safe_env=(env --default-signal -i "PATH=$path" "LANG=C.UTF-8" "USER=$(id -un)" "LOGNAME=$(id -un)" "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent")
 scope=(systemd-run --user --scope -q -p TasksMax=300 -p MemorySwapMax=0)
 
 # harness: sysroot z repozitare, bin a sezeni v kratke pracovni slozce
