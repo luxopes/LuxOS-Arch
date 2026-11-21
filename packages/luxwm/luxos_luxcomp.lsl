@@ -124,8 +124,20 @@ THEME_SHADOW_ACTIVE = 15
 THEME_SHADOW_INACTIVE = 16
 THEME_SHADOW_ACTIVE_SIZE = 17
 THEME_SHADOW_INACTIVE_SIZE = 18
-THEME_SHADOW_ACTIVE_Y = 19
-THEME_SHADOW_INACTIVE_Y = 20
+THEME_TITLE_HEIGHT_COMPACT = 19
+THEME_BUTTON_INSET = 20
+THEME_BUTTON_INSET_COMPACT = 21
+THEME_BUTTON_RING = 22
+THEME_BG_LIGHT = 23
+THEME_BG_DARK = 24
+THEME_DARK_TEXT_ACTIVE = 25
+THEME_DARK_TEXT_INACTIVE = 26
+THEME_DARK_BUTTON_INACTIVE = 27
+THEME_DARK_BUTTON_RING = 28
+THEME_ACCENT = 29
+THEME_BORDER = 30
+THEME_SHADOW_ACTIVE_OFFSET = 31
+THEME_SHADOW_INACTIVE_OFFSET = 32
 
 function ptr(value):
     unsafe:
@@ -357,6 +369,12 @@ end
 function view_set_decorated(view, on):
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("luxcomp_view_set_decorated"), ptr(view), ptr(on))
+    end
+end
+
+function view_set_compact(view, on):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_view_set_compact"), ptr(view), ptr(on))
     end
 end
 

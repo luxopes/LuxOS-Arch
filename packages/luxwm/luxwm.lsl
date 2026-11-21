@@ -17,6 +17,7 @@ load luxos_luxcomp as lc
 load luxos_tokens as tokens
 
 CASCADE = 28
+PLACE_MARGIN = 8
 DOUBLE_CLICK_US = 400000
 SYSTEM_CONFIG = "/usr/share/luxwm/luxwm.conf"
 PRIVILEGED = "/usr/share/luxwm/privileged.conf"
@@ -136,7 +137,9 @@ function load_config():
     keys = {}
     if greeter:
         # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
-        settings = {"workspaces": "1", "slide_ms": "0", "wrap_workspaces": "no", "xwayland": "no", "keys": {}}
+        general.update({"workspaces": "1", "slide_ms": "0", "xwayland": "no"})
+        settings = general
+        settings["keys"] = {}
         return
     end
     system = glib.getenv("LUXWM_SYSTEM_CONFIG")
@@ -303,33 +306,57 @@ function dark_mode():
     return text == "dark"
 end
 
+function with_alpha(c, a):
+    return [c[0], c[1], c[2], a]
+end
+
+# Zahlavi podle tokens.TITLEBAR (stejne jako zahlavi GTK v luxos-themes). Inkoust (nazev, neaktivni semafor)
+# je pro svetle i tmave zahlavi: jadro bere barvu zahlavi z obsahu okna, tmavy terminal ma tmave zahlavi
+# i ve svetlem rezimu.
 function apply_theme(dark):
     look["dark"] = dark
+    t = tokens.TITLEBAR
     window = tokens.color("window", dark)
-    call lc.theme_set(lc.THEME_TITLE_HEIGHT, tokens.LIGHT_SIZE + tokens.SPACE["m"])
+    call lc.theme_set(lc.THEME_TITLE_HEIGHT, t["height"])
+    call lc.theme_set(lc.THEME_TITLE_HEIGHT_COMPACT, t["height_compact"])
     call lc.theme_set(lc.THEME_CORNER_RADIUS, tokens.RADIUS["m"])
-    call lc.theme_set(lc.THEME_BUTTON_SIZE, 12)
-    call lc.theme_set(lc.THEME_BUTTON_SPACING, tokens.SPACE["s"])
+    call lc.theme_set(lc.THEME_BUTTON_SIZE, t["light"])
+    call lc.theme_set(lc.THEME_BUTTON_SPACING, t["pitch"] - t["light"])
+    call lc.theme_set(lc.THEME_BUTTON_INSET, t["inset"])
+    call lc.theme_set(lc.THEME_BUTTON_INSET_COMPACT, t["inset_compact"])
     call lc.theme_set(lc.THEME_BG_ACTIVE, argb(window))
     call lc.theme_set(lc.THEME_BG_INACTIVE, argb(window))
-    call lc.theme_set(lc.THEME_TEXT_ACTIVE, argb(tokens.color("fg", dark)))
-    # neaktivni titulek fg_soft: "dim" ma na svetlem pozadi kontrast jen 4:1, fg_soft 6:1
-    call lc.theme_set(lc.THEME_TEXT_INACTIVE, argb(tokens.color("fg_soft", dark)))
+    call lc.theme_set(lc.THEME_BG_LIGHT, argb(tokens.color("window", False)))
+    call lc.theme_set(lc.THEME_BG_DARK, argb(tokens.color("window", True)))
+    for mode in [False, True]:
+        fg = tokens.color("fg", mode)
+        ink = [255, 255, 255] if mode else [0, 0, 0]
+        props = [lc.THEME_TEXT_ACTIVE, lc.THEME_TEXT_INACTIVE, lc.THEME_BUTTON_INACTIVE, lc.THEME_BUTTON_RING]
+        if mode:
+            props = [lc.THEME_DARK_TEXT_ACTIVE, lc.THEME_DARK_TEXT_INACTIVE, lc.THEME_DARK_BUTTON_INACTIVE,
+                     lc.THEME_DARK_BUTTON_RING]
+        end
+        call lc.theme_set(props[0], argb(with_alpha(fg, 1.0)))
+        call lc.theme_set(props[1], argb(with_alpha(fg, t["inactive_title_alpha"])))
+        call lc.theme_set(props[2], argb(with_alpha(ink, t["light_inactive_alpha"])))
+        call lc.theme_set(props[3], argb(with_alpha(ink, t["light_ring_alpha"])))
+    end
     call lc.theme_set(lc.THEME_CLOSE, argb(tokens.COLORS["light_close"]))
     call lc.theme_set(lc.THEME_MINIMIZE, argb(tokens.COLORS["light_min"]))
     call lc.theme_set(lc.THEME_MAXIMIZE, argb(tokens.COLORS["light_max"]))
-    call lc.theme_set(lc.THEME_BUTTON_INACTIVE, argb(tokens.color("light_inactive", dark)))
-    call lc.theme_set(lc.THEME_SEPARATOR, argb(tokens.color("border", dark)))
+    # zahlavi splyva s obsahem okna, bez cary pod nim
+    call lc.theme_set(lc.THEME_SEPARATOR, 0)
     call lc.theme_set(lc.THEME_GLYPH, argb(tokens.COLORS["light_glyph"]))
+    call lc.theme_set(lc.THEME_ACCENT, argb(tokens.COLORS["accent"]))
+    call lc.theme_set(lc.THEME_BORDER, argb(t["border_dark"] if dark else t["border_light"]))
     shadow = tokens.WINDOW_SHADOW
     call lc.theme_set(lc.THEME_SHADOW_ACTIVE, argb([0, 0, 0, shadow["active_alpha"]]))
     call lc.theme_set(lc.THEME_SHADOW_INACTIVE, argb([0, 0, 0, shadow["inactive_alpha"]]))
     call lc.theme_set(lc.THEME_SHADOW_ACTIVE_SIZE, shadow["active_size"])
     call lc.theme_set(lc.THEME_SHADOW_INACTIVE_SIZE, shadow["inactive_size"])
-    call lc.theme_set(lc.THEME_SHADOW_ACTIVE_Y, shadow["active_y"])
-    call lc.theme_set(lc.THEME_SHADOW_INACTIVE_Y, shadow["inactive_y"])
-    # titulek jako v xfwm4 (Inter Semi-Bold 10): velikost tela v px na body
-    call lc.theme_set_font(tokens.FONT["family"] + " Semi-Bold " + String(tokens.TYPE["body_strong"][0] * 3 // 4 + 1))
+    call lc.theme_set(lc.THEME_SHADOW_ACTIVE_OFFSET, shadow["active_y"])
+    call lc.theme_set(lc.THEME_SHADOW_INACTIVE_OFFSET, shadow["inactive_y"])
+    call lc.theme_set_font(tokens.FONT["family"] + " Semi-Bold " + String(t["title_px"]) + "px")
     call apply_material(dark)
     # pod tapetou (vrstva background) stejna nahradni barva jako u skla bez tapety
     fb = tokens.GLASS["fallback"]
@@ -471,18 +498,19 @@ function usable(out):
             lc.output_get(out, lc.OUT_USABLE_W), lc.output_get(out, lc.OUT_USABLE_H)]
 end
 
-# Kam se umistuji nova okna: pouzitelna plocha bez Docku, ktery jinak jen uhyba (exkluzivni zona 0)
+# Kam se umistuji nova okna: pouzitelna plocha bez Docku (exkluzivni zona, nebo dock_zone kdyz jen uhyba)
+# a s okrajem PLACE_MARGIN, aby okno nelezelo na liste ani na Docku
 function place_area(out):
     u = usable(out)
     zone = dock_zones.get(lc.output_name(out))
-    if zone == None:
-        return u
+    if zone != None:
+        bottom = min(u[1] + u[3], lc.output_get(out, lc.OUT_Y) + lc.output_get(out, lc.OUT_H) - zone[1])
+        if bottom - u[1] >= u[3] // 2:
+            u = [u[0], u[1], u[2], bottom - u[1]]
+        end
     end
-    bottom = min(u[1] + u[3], lc.output_get(out, lc.OUT_Y) + lc.output_get(out, lc.OUT_H) - zone[1])
-    if bottom - u[1] < u[3] // 2:
-        return u
-    end
-    return [u[0], u[1], u[2], bottom - u[1]]
+    m = PLACE_MARGIN
+    return [u[0] + m, u[1] + m, u[2] - 2 * m, u[3] - 2 * m]
 end
 
 # Ram okna (obsah + zahlavi kompozitoru): [x, y, w, h]
@@ -653,11 +681,12 @@ function fit_size(v, w, h, u):
     return [fw, fh]
 end
 
+# Nove okno vodorovne uprostred, svisle v horni tretine volneho mista (jako macOS)
 function place_sized(v, w, content_h, u):
     top = vget(v, lc.VIEW_DECO_TOP)
     h = content_h + top
     x = u[0] + (u[2] - w) // 2
-    y = max(u[1], u[1] + (u[3] - h) // 2)
+    y = max(u[1], u[1] + (u[3] - h) // 3)
     parent = vget(v, lc.VIEW_PARENT)
     if parent != 0:
         # dialog nad stred rodice, cely v pouzitelne plose
@@ -1223,6 +1252,7 @@ function view_mapped(v):
         space = vget(parent, lc.VIEW_WORKSPACE)
     end
     call lc.view_set_workspace(v, space)
+    call lc.view_set_compact(v, 1 if compact_window(v) else 0)
     spot = place(v, adopt_xroot(v))
     call note("place " + String(v) + " " + lc.view_app_id(v) + " " + String(spot[0]) + "," + String(spot[1])
         + " " + String(vget(v, lc.VIEW_W)) + "x" + String(vget(v, lc.VIEW_H)))
@@ -1239,6 +1269,35 @@ function view_mapped(v):
     else:
         call focus(v)
     end
+end
+
+# Nizke zahlavi: cizi aplikace a dialogy. Aplikace LuxOS maji bezne zahlavi jako jejich okna s GTK
+# headerbarem, aby obe varianty vypadaly stejne.
+function compact_window(v):
+    app = lc.view_app_id(v)
+    if vget(v, lc.VIEW_SANDBOXED) == 1:
+        app = lc.view_sandbox_app_id(v)
+    end
+    return vget(v, lc.VIEW_PARENT) != 0 or not (app.startswith("luxos") or app.startswith("luxai"))
+end
+
+# Klient sam zvetsil okno (GTK po namapovani, aplikace podle obsahu): kdyz pretece pres plochu pro okna
+# (pod Dock), zmensit a posunout zpet. Okno, ktere uzivatel odsunul mimo plochu, se nechava.
+function view_resized(v):
+    if v in maxed or v in tiled or v in full or vget(v, lc.VIEW_VISIBLE) != 1:
+        return
+    end
+    u = place_area(output_of(v))
+    f = frame(v)
+    if not inside(f, u) or (f[0] + f[2] <= u[0] + u[2] and f[1] + f[3] <= u[1] + u[3]):
+        return
+    end
+    top = vget(v, lc.VIEW_DECO_TOP)
+    size = fit_size(v, f[2], f[3] - top, u)
+    x = max(u[0], min(f[0], u[0] + u[2] - size[0]))
+    y = max(u[1], min(f[1], u[1] + u[3] - size[1] - top))
+    call lc.view_move(v, x, y + top)
+    call note("refit " + String(v) + " " + String(x) + "," + String(y))
 end
 
 function view_gone(v):
@@ -1397,6 +1456,8 @@ function handle(event, id, a, b, c):
         call view_mapped(id)
     elif event == lc.EV_VIEW_UNMAP:
         call view_gone(id)
+    elif event == lc.EV_VIEW_SIZE:
+        call view_resized(id)
     elif event == lc.EV_VIEW_DESTROY:
         call forget(id)
     elif event == lc.EV_BUTTON:

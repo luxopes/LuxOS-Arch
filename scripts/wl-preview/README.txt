@@ -15,12 +15,15 @@ Spusteni
   ./start.sh --virtio    graficka karta virtio-vga (taky bez 3D, bez virgl)
   ./start.sh --reset     zahodit vsechny zmeny ve VM a zacit od cisteho obrazu
                          (lze i spolu: ./start.sh --reset --virtio)
+  ./start.sh --tablet    mys jen pres usb-tablet (bez vmmouse QEMU)
 
 VM ma 6 GB RAM a 4 jadra. Zmeny se ukladaji do disk.qcow2, cisty obraz base.qcow2 se nemeni.
 Mys se z okna QEMU uvolni pres Ctrl+Alt+G.
 
 Prihlaseni
 ----------
+Start jako nainstalovany system: splash LuxOS (Plymouth) od initramfs, splash skonci az pod hotovou
+prihlasovaci obrazovkou (bez cerne mezery a textove konzole).
 Po startu prihlasovaci obrazovka LuxOS (greetd, luxos-greeter v LSL pod luxwm, bez X serveru).
 Uzivatel luxos, heslo luxos. Vlevo dole volba relace: LuxOS (Wayland, vychozi) nebo LuxOS (X11)
 (puvodni Xfce); volba se pamatuje pro kazdeho uzivatele. Na starych kartach NVIDIA (470 a starsi)

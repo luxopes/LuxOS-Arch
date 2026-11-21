@@ -184,6 +184,7 @@ view_size_changed(struct view *v)
 	v->last_w = w;
 	v->last_h = h;
 	emit(LUXCOMP_EV_VIEW_SIZE, v->id, w, h, 0);
+	cursor_rebase();
 }
 
 void
@@ -204,6 +205,9 @@ view_map_common(struct view *v)
 	v->last_w = view_width(v);
 	v->last_h = view_height(v);
 	emit(LUXCOMP_EV_VIEW_MAP, v->id, v->last_w, v->last_h, 0);
+	/* okno se objevilo pod stojicim kurzorem (greeter, dialog): bez toho by dostalo ukazatel az po
+	 * pohybu mysi a prvni klik by sel jinam */
+	cursor_rebase();
 }
 
 static void
@@ -227,6 +231,7 @@ view_unmap_common(struct view *v)
 		comp.focused = NULL;
 	}
 	emit(LUXCOMP_EV_VIEW_UNMAP, v->id, 0, 0, 0);
+	cursor_rebase();
 }
 
 static void
@@ -670,7 +675,7 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	case LUXCOMP_VIEW_W: return w;
 	case LUXCOMP_VIEW_H: return h;
 	case LUXCOMP_VIEW_DECO_TOP:
-		return v->decorated && v->deco && !luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN) ? deco_height() : 0;
+		return v->decorated && v->deco && !luxcomp_view_get(id, LUXCOMP_VIEW_FULLSCREEN) ? deco_height(v->deco) : 0;
 	case LUXCOMP_VIEW_OUTPUT: {
 		struct output *o = output_at(v->x + w / 2, v->y + h / 2);
 		return o ? o->id : 0;
@@ -737,6 +742,19 @@ luxcomp_view_sandbox_instance(int64_t id)
 {
 	const struct wlr_security_context_v1_state *s = view_sandbox(view_by_id(id));
 	return s && s->instance_id ? s->instance_id : "";
+}
+
+void
+luxcomp_view_set_compact(int64_t id, int64_t on)
+{
+	struct view *v = view_by_id(id);
+	if (!v || v->compact == !!on) {
+		return;
+	}
+	v->compact = on;
+	if (v->deco) {
+		deco_redraw(v->deco);
+	}
 }
 
 void

@@ -241,9 +241,9 @@ class Greeter:
         self.keys.stdin.flush()
         time.sleep(0.15 * len(commands) + 0.2)
 
-    def shot(self, name):
+    def shot(self, name, ext="png"):
         os.makedirs(RESULTS, exist_ok=True)
-        path = os.path.join(RESULTS, name + ".png")
+        path = os.path.join(RESULTS, name + "." + ext)
         wlt("shot", self.dir, path)
         return path
 
@@ -271,20 +271,74 @@ class Greeter:
         self.greetd.close()
 
 
+# Rozmisteni jako luxos_lock_draw (tokens.LOCK, meritko u = vyska / 1080, nejmene 0.75)
+U = max(0.75, H / 1080.0)
+
+
+def bottom_row():
+    d = px(U, 44.0, 34)
+    label = float(int(px(U, 12.0, 10) * 1.35 + 0.5))
+    return H - px(U, 40.0, 26) - label - px(U, 8.0, 5) - d / 2.0
+
+
 def session_button():
-    u = max(0.55, H / 1080.0)
-    d = px(u, 44.0, 34)
-    cy = H - px(u, 42.0, 26) - px(u, 20.0, 14) - d / 2.0
-    return int(px(u, 42.0, 26) + d), int(cy)
+    return int(px(U, 32.0, 20) + 20), int(bottom_row())
+
+
+def session_item(i, count=2):
+    row = px(U, 30.0, 24)
+    pad = px(U, 5.0, 4)
+    top = bottom_row() - px(U, 32.0, 26) / 2.0 - px(U, 6.0, 4) - (count * row + 2 * pad)
+    return int(px(U, 32.0, 20) + 50), int(top + pad + row * (i + 0.5))
+
+
+def read_ppm(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    magic, w, h, depth, pixels = data.split(maxsplit=4)
+    assert magic == b"P6" and depth == b"255"
+    return int(w), pixels
+
+
+def changed_pixels(a, b, box):
+    """Pocet pixelu, ktere se mezi snimky a, b v obdelniku box (x, y, w, h) zmenily."""
+    w, pa = read_ppm(a)
+    _, pb = read_ppm(b)
+    x, y, bw, bh = box
+    n = 0
+    for row in range(y, y + bh):
+        i = (row * w + x) * 3
+        ra, rb = pa[i:i + bw * 3], pb[i:i + bw * 3]
+        n += sum(1 for k in range(0, bw * 3, 3) if ra[k:k + 3] != rb[k:k + 3])
+    return n
 
 
 def power_buttons():
-    u = max(0.55, H / 1080.0)
-    d = px(u, 44.0, 34)
-    cy = H - px(u, 42.0, 26) - px(u, 20.0, 14) - d / 2.0
-    space = px(u, 40.0, 26) + d
-    x = W / 2.0 - space
-    return {"suspend": (int(x), int(cy)), "reboot": (int(x + space), int(cy)), "poweroff": (int(x + 2 * space), int(cy))}
+    pitch = px(U, 96.0, 70)
+    x = W / 2.0 - pitch
+    cy = bottom_row()
+    return {"suspend": (int(x), int(cy)), "reboot": (int(x + pitch), int(cy)), "poweroff": (int(x + 2 * pitch), int(cy))}
+
+
+def field_rect():
+    d = px(U, 96.0, 64)
+    ay = float(int(H * 0.62))
+    name_y = ay + d / 2.0 + px(U, 14.0, 9)
+    fy = name_y + float(int(px(U, 17.0, 13) * 1.3 + 0.5)) + px(U, 14.0, 9)
+    fw = px(U, 300.0, 220)
+    return int((W - fw) / 2.0), int(fy), int(fw), int(px(U, 40.0, 30))
+
+
+def ppm_pixels(path):
+    with open(path, "rb") as f:
+        magic, size, depth, data = f.read().split(b"\n", 3)
+    w, h = map(int, size.split())
+    return w, data
+
+
+def region(path, x0, y0, x1, y1):
+    w, data = ppm_pixels(path)
+    return [tuple(data[(y * w + x) * 3:(y * w + x) * 3 + 3]) for y in range(y0, y1) for x in range(x0, x1)]
 
 
 class GreeterTest(unittest.TestCase):
@@ -303,6 +357,9 @@ class GreeterTest(unittest.TestCase):
         self.assertIn("session=wayland:luxos.desktop", t)
         self.assertIn("users=3", t)           # luxos, eva, otisk (bez systemovych a nologin)
         print(f"greeter_ready_s={g.ready_s:.2f}")
+        # prvni snimek na obrazovce: znacka pro konec splashe (luxos-greetd-splash)
+        g.wait_for("shown")
+        self.assertTrue(os.path.exists(os.path.join(g.dir, "run", "luxos-greeter-shown")))
         g.shot("login")
         # bez X serveru: luxwm --greeter XWayland nespousti
         procs = [comm(p) for p in descendants(g.top)]
@@ -330,10 +387,21 @@ class GreeterTest(unittest.TestCase):
 
     def test_wrong_password_then_right(self):
         self.g = g = Greeter("wrong")
+        fx, fy, fw, fh = field_rect()
         g.input("type spatne", "key Return")
         g.wait_for("hint error Incorrect password. Try again.")
         g.wait_for("shake")
+        time.sleep(0.6)
+        # chyba je videt: cerveny okraj pole a svetle cervena hlaska pod nim (drive snimek = klidovy stav);
+        # okraj sviti jen tokens.LOCK["error_rim"] = 1,2 s, proto snimek hned po zatreseni
+        shot = os.path.join(g.dir, "wrong.ppm")
+        wlt("shot", g.dir, shot)
         g.shot("wrong-password")
+        rim = [p for p in region(shot, fx + 20, fy - 2, fx + fw - 20, fy) if p[0] > p[1] + 60 and p[0] > p[2] + 60]
+        self.assertGreater(len(rim), 50)
+        text = [p for p in region(shot, fx - 60, fy + fh + 6, fx + fw + 60, fy + fh + 30)
+                if p[0] > 200 and 150 < p[1] < 200 and 150 < p[2] < 200]
+        self.assertGreater(len(text), 20)
         self.assertIn("cancel_session", g.greetd.kinds())
         self.assertEqual(g.greetd.sessions, [])
         self.assertTrue(g.alive())
@@ -377,8 +445,14 @@ class GreeterTest(unittest.TestCase):
     def test_session_choice_x11(self):
         self.g = g = Greeter("session")
         x, y = session_button()
+        # mys k tlacitku jako clovek: pohyb o vic nez 8 px ukaze vyzvu, v klidu by prvni klik jen probudil
+        g.input("move 400 300", f"move {x} {y}", "click")
+        g.wait_for("menu True")
+        g.shot("session-menu")
+        x, y = session_item(1)
         g.input(f"move {x} {y}", "click")
         g.wait_for("session x11:luxos.desktop")
+        g.wait_for("click menu")
         g.shot("session-x11")
         g.input("type luxos", "key Return")
         g.wait_for("leaving")
@@ -427,10 +501,70 @@ class GreeterTest(unittest.TestCase):
         self.assertEqual(kinds[0], "create_session")
         self.assertEqual(kinds[-1], "start_session")
 
+    def test_redraws_after_mouse_and_keys(self):
+        # Regrese: greeter ukazal jen prvni snimek a dal se neprekresloval (luxcomp neposilal frame callbacky
+        # oknu na celou obrazovku), klik ani psani nebylo videt. Kontroluji se pixely, ne jen stopa greeteru.
+        self.g = g = Greeter("redraw")
+        fx, fy, fw, fh = field_rect()
+        # mys nad greeterem jako clovek: pohyb pres obrazovku, klik do pole
+        g.input("move 100 100", "move 400 300", f"move {fx + fw // 2} {fy + fh // 2}", "click")
+        g.wait_for("click field")
+        g.input("move 40 40")
+        before = g.shot("redraw-before", "ppm")
+        g.input("type abc")
+        time.sleep(0.5)
+        typed = g.shot("redraw-typed", "ppm")
+        self.assertGreater(changed_pixels(before, typed, (fx, fy, fw, fh)), 50, "password dots not drawn")
+        # odeslani sipkou v poli (mysi): spatne heslo, hlaska pod polem
+        g.input(f"move {fx + fw - fh // 2} {fy + fh // 2}", "click")
+        g.wait_for("hint error Incorrect password. Try again.")
+        g.input("move 40 40")
+        time.sleep(0.8)   # konec zatreseni
+        wrong = g.shot("redraw-wrong", "ppm")
+        self.assertGreater(changed_pixels(typed, wrong, (fx - 100, fy + fh, fw + 200, 40)), 50, "error hint not drawn")
+        # volba relace mysi: nabidka se nakresli, po vyberu se zmeni popisek tlacitka
+        x, y = session_button()
+        g.input(f"move {x} {y}", "click")
+        g.wait_for("menu True")
+        g.input("move 40 40")
+        time.sleep(0.3)
+        menu = g.shot("redraw-menu", "ppm")
+        self.assertGreater(changed_pixels(wrong, menu, (0, y - 150, 300, 140)), 200, "session menu not drawn")
+        mx, my = session_item(1)
+        g.input(f"move {mx} {my}", "click")
+        g.wait_for("session x11:luxos.desktop")
+        g.input("move 40 40")
+        time.sleep(0.5)
+        session = g.shot("redraw-session", "ppm")
+        self.assertGreater(changed_pixels(wrong, session, (0, y - 20, 300, 40)), 20, "session label not redrawn")
+        g.input("type luxos", "key Return")
+        g.wait_for("leaving")
+        self.assertEqual(g.greetd.sessions[0]["cmd"][0], "/usr/lib/luxos/luxos-x11-session")
+
+    def test_idle_then_prompt(self):
+        """Klid: jen tapeta, hodiny a stav (zadne pole); prvni klavesa ukaze vyzvu a je uz v poli."""
+        self.g = g = Greeter("idle")
+        fx, fy, fw, fh = field_rect()
+        idle = os.path.join(g.dir, "idle.ppm")
+        wlt("shot", g.dir, idle)
+        g.shot("idle")
+        g.input("type l")
+        g.wait_for("prompt")
+        time.sleep(0.6)
+        typed = os.path.join(g.dir, "typed.ppm")
+        wlt("shot", g.dir, typed)
+        g.shot("prompt")
+        box = (fx + 10, fy + 4, fx + fw - 10, fy + fh - 4)
+        changed = sum(a != b for a, b in zip(region(idle, *box), region(typed, *box)))
+        self.assertGreater(changed, 500)
+        g.input("type uxos", "key Return")
+        g.wait_for("leaving")
+        self.assertEqual(g.greetd.requests[1]["response"], "luxos")
+
     def test_power_buttons(self):
         self.g = g = Greeter("power")
         x, y = power_buttons()["reboot"]
-        g.input(f"move {x} {y}", "click")
+        g.input("move 400 300", f"move {x} {y}", "click")
         g.wait_for("power reboot")
         x, y = power_buttons()["poweroff"]
         g.input(f"move {x} {y}", "click")

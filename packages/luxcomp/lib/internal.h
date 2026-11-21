@@ -77,6 +77,7 @@ struct view {
 	int layer;
 	int x, y;
 	bool mapped, visible, decorated;
+	bool compact;		/* luxcomp_view_set_compact(): lower title bar */
 	struct deco *deco;
 	char *badge;		/* luxcomp_view_set_badge(), drawn by deco.c */
 	char *app_id_override, *title_override;	/* luxcomp_view_set_names() */
@@ -225,7 +226,7 @@ void deco_redraw(struct deco *deco);		/* unconditionally (badge) */
 void deco_set_ssd(struct deco *deco, bool on);	/* server-side title bar or only shadow + corners (CSD) */
 int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
-int deco_height(void);
+int deco_height(struct deco *deco);		/* title bar of this view (normal or compact) */
 void deco_hover(struct deco *deco, int part);	/* NULL = pointer is not over a title bar */
 struct wlr_buffer *cairo_buffer_create(int width, int height, struct _cairo_surface **surface);
 
@@ -233,10 +234,10 @@ struct wlr_buffer *cairo_buffer_create(int width, int height, struct _cairo_surf
 struct shadow;
 struct shadow *shadow_create(struct wlr_scene_tree *parent);
 void shadow_destroy(struct shadow *shadow);
-/* frame = window incl. title bar, relative to parent; size 0 hides the shadow */
-/* dy = posun dolu, < 0 = ctvrtina velikosti */
-void shadow_update(struct shadow *shadow, struct wlr_box frame, int size, int radius,
-	uint32_t argb, int dy, int scale);
+/* frame = window incl. title bar, relative to parent; size 0 hides the shadow; offset moves it
+ * down; blur false = a sharp outline 1 px around the frame (size 1) */
+void shadow_update(struct shadow *shadow, struct wlr_box frame, int size, int offset, int radius,
+	uint32_t argb, int scale, bool blur);
 
 /* blur.c: material (rozmazane pozadi a stin) pod plochami layer-shell a jejich popupy */
 

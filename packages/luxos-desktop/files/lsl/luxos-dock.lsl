@@ -7,10 +7,12 @@
 # Zvetseni (zaseknuta lupa v Planku, LuxOS 1.0.4): po odchodu mysi do 0,45 s pryc v kazdem smeru, pri navratu jde za
 # mysi; snimek drazsi nez rozpocet (4 ms) zvetseni vypne. Bez animace Dock nebezi v zadnem casovaci.
 #
-# Rezimy skryvani (HIDE): none = vyhradi misto u spodniho okraje, dodge = uhne zamerenemu oknu, ktere ho prekryva (jako
-# window-dodge Planku; ram okna posila luxwm, pod jinym kompozitorem jen maximalizovanemu nebo celoobrazovkovemu oknu
-# z foreign-toplevel), autohide = skryty, dokud mys nenajede ke spodnimu okraji. V rezimu dodge Dock hlasi luxwm svou
-# vysku (dock_zone), aby nova okna lezela nad nim.
+# Rezimy skryvani (HIDE): none a dodge vyhradi misto u spodniho okraje (exkluzivni zona: okna se neotviraji pod Dockem,
+# maximalizovane konci nad nim; design review 1.1.0), dodge navic uhne oknu, ktere na Dock uzivatel presune (ram
+# zamereneho okna posila luxwm, pod jinym kompozitorem jen celoobrazovkovemu oknu z foreign-toplevel), autohide = skryty,
+# dokud mys nenajede ke spodnimu okraji. Mimo autohide Dock hlasi luxwm i svou vysku (dock_zone) pro umisteni oken.
+# Nad oknem (autohide, presunute okno) Dock kresli nepruhledny podklad misto skla z tapety, aby byl citelny nad
+# cernym i bilym oknem.
 #
 # LUXOS_DOCK_DEBUG=1 vypisuje udalosti a cenu snimku (testy), LUXOS_DOCK_FRAME_BUDGET_US jiny rozpocet snimku.
 load env, process
@@ -63,7 +65,7 @@ geo = {}
 output = {"name": "", "w": 0, "h": 0, "monitor": 0}
 view = {"blur": material.compositor_blur(), "hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
     "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "drawn": [0, 0, 0, 0], "seq": 0,
-    "strip": None, "light": True}
+    "strip": None, "light": True, "over_window": False}
 anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1]}
 timers = {"tick": 0, "hide": 0, "guard": 0}
 costs = []
@@ -208,14 +210,51 @@ function load_icon(item, size, scale):
         end
         return apps.icon_named(name, size, scale)
     end
+    icon = 0
     if item["info"] != 0:
-        return apps.icon(item["info"], size, scale)
+        icon = apps.own_icon(item["info"], size, scale)
+    elif item["app_id"] != "":
+        icon = apps.icon_named(item["app_id"].lower(), size, scale)
     end
-    icon = apps.icon_named(item["app_id"].lower(), size, scale)
     if icon == 0:
-        icon = apps.icon_named(apps.FALLBACK_ICON, size, scale)
+        icon = letter_icon(item_name(item), size, scale)
     end
     return icon
+end
+
+# Aplikace bez ikony: neutralni zaobleny ctverec s prvnim pismenem nazvu (sablona ikon 56/64, polomer 13/64),
+# ne obecne ozubene kolo, ktere vypadalo jako Nastaveni
+function letter_icon(name, size, scale):
+    surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, size * scale, size * scale)
+    call material.set_device_scale(surface, scale)
+    cr = cairo.create(surface)
+    s = Float(size)
+    plate = s * 56.0 / 64.0
+    x = (s - plate) / 2.0
+    y = x - s / 64.0
+    radius = s * 13.0 / 64.0
+    shade = cairo.pattern_create_linear(0.0, y, 0.0, y + plate)
+    call cairo.pattern_add_color_stop_rgba(shade, 0.0, 0.96, 0.96, 0.97, 1.0)
+    call cairo.pattern_add_color_stop_rgba(shade, 1.0, 0.84, 0.85, 0.87, 1.0)
+    call cairo.set_source(cr, shade)
+    call cairo.rounded_rectangle(cr, x, y, plate, plate, radius)
+    call cairo.fill(cr)
+    call cairo.pattern_destroy(shade)
+    # spodni stin 2 px a jemny okraj jako u ostatnich ikon (svetlo zleva shora)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.12)
+    call cairo.set_line_width(cr, 1.0)
+    call cairo.rounded_rectangle(cr, x + 0.5, y + 0.5, plate - 1.0, plate - 1.0, radius - 0.5)
+    call cairo.stroke(cr)
+    letter = name.strip()[:1].upper()
+    if letter != "":
+        font = tokens.FONT["family"] + " Semi-Bold " + String(max(6, Int(plate * 0.42)))
+        dim = pango.text_size(cr, letter, font)
+        call cairo.set_source_rgba(cr, 0.27, 0.29, 0.33, 1.0)
+        call pango.draw_text(cr, (s - Float(dim[0])) / 2.0, y + (plate - Float(dim[1])) / 2.0, letter, font)
+    end
+    call cairo.destroy(cr)
+    call cairo.surface_flush(surface)
+    return surface
 end
 
 function load_icons(item):
@@ -400,7 +439,7 @@ function update_geometry():
     if window != 0:
         call gtk.widget_set_size_request(window, geo["width"], geo["height"])
         call gtk.window_resize(window, geo["width"], geo["height"])
-        if conf["hide"] == "none":
+        if conf["hide"] != "autohide":
             call layer.set_exclusive_zone(window, MARGIN + geo["panel_h"])
         else:
             call layer.set_exclusive_zone(window, 0)
@@ -424,7 +463,7 @@ function send_zone():
         return 0
     end
     want = [output["name"], 0]
-    if conf["hide"] == "dodge":
+    if conf["hide"] != "autohide":
         want[1] = geo["panel_h"] + MARGIN
     end
     if want != zone["sent"]:
@@ -588,19 +627,25 @@ function want_hidden():
         return True
     end
     if conf["hide"] == "dodge" and focus["known"]:
-        a = panel_area()
-        f = focus["frame"]
-        return len(a) == 4 and len(f) == 4 and f[0] < a[0] + a[2] and a[0] < f[0] + f[2] and f[1] < a[1] + a[3] and a[1] < f[1] + f[3]
+        return over_window()
     end
+    # bez luxwm: maximalizovane okno konci nad vyhrazenym mistem, uhnout jen cele obrazovce
     if conf["hide"] == "dodge":
         for handle in windows:
             state = windows[handle]["state"]
-            if (state & wl.STATE_ACTIVATED) != 0 and (state & wl.STATE_MINIMIZED) == 0 and (state & (wl.STATE_MAXIMIZED | wl.STATE_FULLSCREEN)) != 0:
+            if (state & wl.STATE_ACTIVATED) != 0 and (state & wl.STATE_MINIMIZED) == 0 and (state & wl.STATE_FULLSCREEN) != 0:
                 return True
             end
         end
     end
     return False
+end
+
+# Zamerene okno (ram od luxwm) zasahuje do panelu Docku
+function over_window():
+    a = panel_area()
+    f = focus["frame"]
+    return focus["known"] and len(a) == 4 and len(f) == 4 and f[0] < a[0] + a[2] and a[0] < f[0] + f[2] and f[1] < a[1] + a[3] and a[1] < f[1] + f[3]
 end
 
 function hide_now(unused):
@@ -663,7 +708,11 @@ function draw_panel(cr, x, y, w, h):
     call cairo.save(cr)
     call cairo.rounded_rectangle(cr, x, y, w, h, radius)
     call cairo.clip(cr)
-    if len(strip) > 0:
+    # nad oknem (bez rozmazani v kompozitoru) nepruhledny material, sklo z tapety by lhalo
+    if view["over_window"]:
+        call cairo.set_source_color(cr, tokens.rgb01(tokens.material("dock", not view["light"], False)))
+        call cairo.paint(cr)
+    elif len(strip) > 0:
         call cairo.set_source_surface(cr, strip[0], 0, y)
         call cairo.paint(cr)
     else:
@@ -1243,12 +1292,24 @@ function on_wm_event(event):
         focus["known"] = True
         focus["frame"] = event.get("frame", [])
         call update_hide(True)
+        call update_over_window()
+    end
+    return 0
+end
+
+function update_over_window():
+    over = over_window()
+    if over != view["over_window"]:
+        view["over_window"] = over
+        call debug("over-window " + ("1" if over else "0"))
+        call queue_redraw()
     end
     return 0
 end
 
 function on_wm_state(up):
     focus["known"] = False
+    call update_over_window()
     zone["sent"] = None
     if up:
         call send_zone()

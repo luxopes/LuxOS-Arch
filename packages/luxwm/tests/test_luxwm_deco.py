@@ -20,6 +20,7 @@ from test_luxwm import BUILD, RESULTS, TITLE, W, H, WLT, Session, frame, wlt  # 
 
 RADIUS = 12         # tokens.RADIUS["m"]
 BUTTON, SPACING = 12, 8
+INSET = 14          # TITLEBAR inset_compact: centre of the first light
 FRAME_BUDGET_MS = 8.0
 
 
@@ -150,8 +151,10 @@ class LuxwmDeco(unittest.TestCase):
         ratio_in, ink, bg = title_contrast(img, frame(st["Inactive_window"]))
         ratio_act, _, _ = title_contrast(img, frame(st["Active_window"]))
         print(f"\ntitle contrast: inactive {ratio_in:.2f}:1 (text {ink} on {bg}), active {ratio_act:.2f}:1")
-        self.assertGreaterEqual(ratio_in, 4.5)
-        self.assertGreater(ratio_act, ratio_in)
+        # neaktivni nazev = fg na 45 % (design review 1.1.0, cast 10), aktivni plny fg
+        self.assertGreaterEqual(ratio_in, 2.5)
+        self.assertGreaterEqual(ratio_act, 4.5)
+        self.assertGreater(ratio_act, ratio_in * 2)
 
     def test_hover_glyphs(self):
         s = self.start()
@@ -159,7 +162,7 @@ class LuxwmDeco(unittest.TestCase):
         s.client("B", size="300x200")
         a = frame(s.state()["views"]["A"])
         cy = a[1] + TITLE // 2
-        centres = [a[0] + SPACING + BUTTON // 2 + i * (BUTTON + SPACING) for i in range(3)]
+        centres = [a[0] + INSET + i * (BUTTON + SPACING) for i in range(3)]
         s.input("move %d %d" % (a[0] + a[2] // 2, a[1] + a[3] // 2))
         img = grab(s)
         idle = [img.px(cx, cy) for cx in centres]
@@ -175,9 +178,9 @@ class LuxwmDeco(unittest.TestCase):
             # znak (tmavy inkoust) uprostred, barevna vypln u okraje kolecka
             self.assertLess(lum(centre), lum(edge) * 0.6, f"button {i}: no glyph, centre {centre} edge {edge}")
             self.assertGreater(max(edge) - min(edge), 60, f"button {i} not coloured: {edge}")
-            # ostatni tlacitka bez znaku
+            # znaky ukazuji vsechna tri tlacitka skupiny (jako macOS)
             other = centres[(i + 1) % 3]
-            self.assertTrue(near(img.px(other, cy), idle[(i + 1) % 3], 3))
+            self.assertLess(lum(img.px(other, cy)), lum(img.px(other + 4, cy - 4)) * 0.6, "group hover")
         s.input("move %d %d" % (a[0] + a[2] // 2, a[1] + a[3] // 2), wait=0.3)
         img = grab(s)
         self.assertTrue(near(img.px(centres[2], cy), idle[2], 3), "glyph stays after the pointer left")
@@ -221,7 +224,7 @@ class LuxwmDeco(unittest.TestCase):
         self.assertGreater(img.px(x + 2 * RADIUS, y + h - 1)[0], 150)
         ratio, _, _ = title_contrast(img, frame(v), 2)
         print(f"\nscale 2: inactive title contrast {ratio:.2f}:1")
-        self.assertGreaterEqual(ratio, 4.5)
+        self.assertGreaterEqual(ratio, 2.5)
 
     def test_cursor_theme_and_scale(self):
         if not os.path.isdir("/usr/share/icons/WhiteSur-cursors"):

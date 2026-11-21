@@ -370,6 +370,14 @@ class WaylandBar(unittest.TestCase):
         mark = bar.mark()
         self.input("move 360 400", "click")
         bar.wait(r"^app Foo Example$", start=mark)
+        # bez .desktop titulek okna, nikdy syrovy app_id programu; koren Xwayland ze sandboxu ani ten ne
+        mark = bar.mark()
+        self.client("luxos-displays-settings", "Monitory", "300x200", "a04020")
+        bar.wait(r"^app Monitory$", start=mark)
+        mark = bar.mark()
+        self.client("org.example.NoDesktop", "Xwayland on :0", "300x200", "4020a0")
+        bar.wait(r"^app Desktop$", start=mark)
+        self.assertFalse([line for line in bar.lines if re.match(r"^app (luxos-displays-settings|org\.example|Xwayland)", line)])
         # zadne aktivni okno: Plocha
         mark = bar.mark()
         for p in self.procs[1:]:
@@ -503,7 +511,10 @@ class WaylandBar(unittest.TestCase):
         bar.wait(r"^status network network-wireless-signal-excellent-symbolic$")
         bar.wait(r"^status battery battery-level-80-symbolic 76 %$")
         bar.wait(r"^status keyboard CZ$")
-        bar.wait(r"^flag cz " + re.escape(str(flags / "cz.svg")) + "$")
+        # rozlozeni: tichy stitek 18x15 s tenkym rameckem (navrh 1.1.0), vlajka jen s BAR_KEYBOARD=flag
+        time.sleep(0.5)
+        widths = [int(line.split()[3]) for line in bar.lines if line.startswith("badge keyboard ")]
+        self.assertTrue(widths and abs(widths[-1] - 28) <= 6, "keyboard item widths %s" % widths)
         bar.wait(r"^status notifications notification-new-symbolic$")
         bar.wait(r"^tray watcher own=True$")
         bar.wait(r"^tray \S+ audio-volume-high-symbolic Active$")
@@ -524,9 +535,19 @@ class WaylandBar(unittest.TestCase):
         # prava cast listy: oznamovaci oblast, CZ, Wi-Fi, baterie, Hledani, Ovladaci centrum, zvonek, hodiny
         right = crop(image, 900, 0, 380, BAR)
         self.compare_golden("bar-status", right)
-        # modry klin vlajky misto textu CZ
-        blue = [x for x in range(900, 1280) for y in range(6, 22) if pixel(image, x, y) == "11457e"]
-        self.assertGreater(len(blue), 10, "no flag in the bar")
+        blue = lambda img: [x for x in range(900, 1280) for y in range(6, 22) if pixel(img, x, y) == "11457e"]  # noqa: E731
+        self.assertEqual(blue(image), [], "flag shown although BAR_KEYBOARD is not flag")
+        # vlajka na prani: modry klin vlajky misto textu CZ
+        mark = bar.mark()
+        conf = self.session / "config/luxos/appearance.conf"
+        tmp = conf.with_suffix(".new")
+        tmp.write_text(conf.read_text() + "BAR_KEYBOARD=flag\n")
+        tmp.rename(conf)
+        bar.wait(r"^flag cz " + re.escape(str(flags / "cz.svg")) + "$", start=mark)
+        time.sleep(0.5)
+        self.assertGreater(len(blue(self.shot())), 10, "no flag in the bar")
+        conf.write_text(conf.read_text().replace("BAR_KEYBOARD=flag\n", ""))
+        time.sleep(0.5)
         # zvonek: historie oznameni; bubliny luxos-notify skryte, dokud je okno otevrene; zavreni = precteno
         mark = bar.mark()
         self.input("move 1145 14", "click")   # zvonek vlevo od hodin

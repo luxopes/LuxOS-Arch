@@ -7,7 +7,7 @@ knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (ver
 `LUXCOMP_API_VERSION` = 8: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
 a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
-a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell) a posun stínu oken), balík `packages/luxcomp`.
+a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell)), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -211,8 +211,6 @@ Jak to jádro kreslí:
   maskou. Pixely rohů se čtou jen když je klient v rozích změnil. Povrch s viewportem nebo rotací
   a textura, kterou nejde číst, mají rohy ostré.
 - `LUXCOMP_STATS=1` vypíše po každém tažení okna počet snímků a nejdelší a průměrný čas kreslení.
-
-Stín okna je posunutý dolů o `SHADOW_ACTIVE_Y`/`SHADOW_INACTIVE_Y` px (−1 = čtvrtina dosahu, výchozí).
 
 ### Material (rozmazané pozadí)
 

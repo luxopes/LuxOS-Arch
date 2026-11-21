@@ -64,7 +64,7 @@ entries = []
 usage = {}
 S = {"blur": material.compositor_blur(), "shadow": None, "open": False, "mode": "launchpad", "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
     "query": "", "light": True, "strip": None, "geo": {}, "size": [0, 0], "pending": False, "drawn": False,
-    "fade": 0, "tick": 0, "animate": True, "luxai": ""}
+    "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": []}
 window = 0
 entry = 0
 fixed = 0
@@ -286,8 +286,9 @@ function update_geometry():
         g["grid"] = [g["x"] + 8, g["y"] + 12 + FIELD_H + 10]
         g["tile_w"] = g["w"] - 16
     else:
-        g["w"] = max(min(w - 32, 560), min(1040, w * 6 // 10))
-        g["cols"] = 7
+        # 6 sloupcu po ~136 px (navrh 1.1.0): dvouradkove ceske nazvy se vejdou bez vypustky
+        g["w"] = max(min(w - 32, 560), min(880, w * 7 // 10))
+        g["cols"] = 6
         if g["w"] < 700:
             g["cols"] = 5
         end
@@ -576,6 +577,33 @@ function draw_text(cr, value, font, x, y, width, align):
     return size
 end
 
+# Popisek dlazdice: nejvys dva radky zalomene mezi slovy, vypustka jen na konci druheho radku
+# ("Aktualizace softwaru" misto "Aktualizace s...")
+function draw_label(cr, value, font, x, y, width):
+    layout = pango.cairo_create_layout(cr)
+    call pango.layout_set_font(layout, font)
+    call pango.layout_set_text(layout, value)
+    call pango.layout_set_width(layout, width)
+    call pango.layout_set_wrap(layout, pango.WRAP_WORD_CHAR)
+    call pango.layout_set_height(layout, -2)
+    call pango.layout_set_ellipsize(layout, pango.ELLIPSIZE_END)
+    call pango.layout_set_alignment(layout, pango.ALIGN_CENTER)
+    call cairo.move_to(cr, x, y)
+    call pango.cairo_show_layout(cr, layout)
+    if TRACE and not (value in S["labels"]):
+        S["labels"].append(value)
+        widest = 0
+        for word in value.split(" "):
+            widest = max(widest, pango.text_size(cr, word, font)[0])
+        end
+        call trace("label lines=" + String(pango.layout_get_line_count(layout)) + " ellipsized="
+            + String(1 if pango.layout_is_ellipsized(layout) else 0) + " word=" + String(widest) + " width=" + String(width)
+            + " " + value)
+    end
+    call pango.layout_unref(layout)
+    return 0
+end
+
 function item_label(item):
     if item["kind"] == "app":
         return item["entry"]["name"]
@@ -636,9 +664,9 @@ function draw_tile(cr, r, item, selected):
         end
         return 0
     end
-    call draw_icon(cr, item_icon(item), r[0] + (r[2] - ICON) // 2, r[1] + 12, ICON)
+    call draw_icon(cr, item_icon(item), r[0] + (r[2] - ICON) // 2, r[1] + 10, ICON)
     call cairo.set_source_color(cr, color("fg"))
-    call draw_text(cr, item_label(item), tokens.FONT["family"] + " 10", r[0] + 4, r[1] + 12 + ICON + 8, r[2] - 8, pango.ALIGN_CENTER)
+    call draw_label(cr, item_label(item), tokens.FONT["family"] + " 10", r[0] + 4, r[1] + 10 + ICON + 5, r[2] - 8)
     return 0
 end
 

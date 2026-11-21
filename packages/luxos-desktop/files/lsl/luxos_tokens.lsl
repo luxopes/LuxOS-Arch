@@ -233,6 +233,69 @@ INK = {
 }
 BAR = {"height": 28}
 
+# ---- LOCK/LOGIN: zamek a prihlasovaci obrazovka (luxos_lock_draw) ----------------------------
+# Navrh 1.1.0 (design review, sekce 2 a 3): px pri vysce 1080, meritko u = vyska / 1080, nejmene unit_floor.
+# Typova skala G4 (caption 11, footnote 12, body 13, title 15) a polomery G3 (xs 6, s 8, m 12) jen pro tyto
+# dve obrazovky; sdilene FONT/RADIUS zustavaji, dokud je neprevezme spolecny material.
+# Pozadi: v klidu ostra tapeta se zavojem nahore a dole; pri zadavani hesla tapeta rozmazana (blur = sigma
+# v px, pocita se jednou ve ctvrtinovem rozliseni) a ztmavena o dim. Casy v ms. Tlacitka napajeni maji barevne
+# sklo jako X11 (luxos-lock-ui.c), tlumene, at nepusobi jako vystraha.
+LOCK = {
+    "unit_floor": 0.75,
+    "scrim_top": 0.28,
+    "scrim_top_end": 0.30,
+    "scrim_mid_end": 0.55,
+    "scrim_bottom": 0.34,
+    "blur": 24,
+    "blur_scale": 4,
+    "saturate": 1.2,
+    "dim": 0.18,
+    "date_y": 0.09,
+    "date": 24,
+    "clock": 132,
+    "clock_tracking": -2,
+    "status_top": 20,
+    "status_right": 24,
+    "status": 13,
+    "status_gap": 14,
+    "layout_label": 11,
+    "avatar": 96,
+    "avatar_small": 72,
+    "avatar_y": 0.62,
+    "user_gap": 32,
+    "name": 17,
+    "name_gap": 14,
+    "field_w": 300,
+    "field_h": 40,
+    "field_text": 15,
+    "dot": 8,
+    "dot_pitch": 14,
+    "submit": 28,
+    "message": 13,
+    "message_gap": 10,
+    "radius_xs": 6,
+    "radius_m": 12,
+    "radius_message": 10,
+    "power": 44,
+    "power_glyph": 20,
+    "power_label": 12,
+    "power_pitch": 96,
+    "bottom": 40,
+    "session_h": 32,
+    "session_inset": 32,
+    "menu_row": 30,
+    "rise": 12,
+    "shake_px": 10,
+    "shake_cycles": 3,
+    "error_rim": 1200,
+    "idle_after": 8000,
+    "field_fill": [255, 255, 255, 0.20],
+    "glass_hover": [255, 255, 255, 0.34],
+    "message_bg": [0, 0, 0, 0.38],
+    "power_tint": {"suspend": [116, 128, 255, 0.55], "reboot": [255, 166, 48, 0.55], "poweroff": [255, 84, 72, 0.60]}
+}
+LOCK_CURVE = [0.2, 0.0, 0.0, 1.0]
+
 # ---- barvy: zapis ---------------------------------------------------------------------------
 
 function color(name, dark):
@@ -546,6 +609,17 @@ end
 function menu_css(dark, blur):
     return css_defines(dark, blur) + css_menu_rules()
 end
+
+# ---- zahlavi oken ----------------------------------------------------------------------------
+# Jedna mira pro zahlavi kompozitoru (luxwm, libluxcomp deco.c) i GTK s vlastnim zahlavim (luxos-themes
+# luxos-gtk3.css, shodu hlida test_luxos_themes.py), aby nastaveni LuxOS nemela dva vzhledy (design review
+# 1.1.0, cast 10): bezne 38 px, nizke 30 px (cizi aplikace, dialogy), svetla 12 px po 20 px, stred prvniho
+# na x = 20 (nizke 14); nazev 13 px tucny 600, neaktivni na 45 %; neaktivni svetla inkoust 22 % s krouzkem
+# 10 %; obrys okna svetly cerna 20 %, tmavy cerna 60 %.
+# Zaobleni okna je RADIUS["m"] (12 px).
+TITLEBAR = {"height": 38, "height_compact": 30, "light": 12, "pitch": 20, "inset": 20, "inset_compact": 14,
+    "title_px": 13, "title_weight": 600, "inactive_title_alpha": 0.45, "light_inactive_alpha": 0.22,
+    "light_ring_alpha": 0.10, "border_light": [0, 0, 0, 0.20], "border_dark": [0, 0, 0, 0.60]}
 
 # ---- generator: tema luxwm (labwc 0.20) ---------------------------------------------------
 # Dekorace oken jako okna z matneho skla: titulek v barve okna, semafor vlevo (layout v rc.xml),

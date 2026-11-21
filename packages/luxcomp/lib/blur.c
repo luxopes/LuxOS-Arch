@@ -341,8 +341,7 @@ blur_set_box(struct blur *b, struct wlr_box box)
 	const struct material *m = material_find(b->material);
 	int r = b->radius < box.width / 2 ? b->radius : box.width / 2;
 	r = r < box.height / 2 ? r : box.height / 2;
-	shadow_update(b->shadow, box, m ? m->shadow_size : 0, r, m ? m->shadow : 0,
-		m ? m->shadow_y : 0, 1);
+	shadow_update(b->shadow, box, m ? m->shadow_size : 0, m ? m->shadow_y : 0, r, m ? m->shadow : 0, 1, true);
 }
 
 /* ---- material plochy layer-shell: obdelniky vstupni oblasti ---- */

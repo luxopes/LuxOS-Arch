@@ -1,8 +1,9 @@
 /* wlt-client - testovaci okno xdg-shell (jednobarevna plocha s pruhy, bez fontu)
- * Pouziti: wlt-client [--title T] [--app-id ID] [--size WxH] [--color RRGGBB] [--hstripes] [--events]
+ * Pouziti: wlt-client [--title T] [--app-id ID] [--size WxH] [--color RRGGBB] [--hstripes] [--solid] [--events]
  * --events vypisuje na stdout udalosti (configure, enter, button, key) pro kontrolu vstupu.
  * --hstripes: vodorovne pruhy pro rychly vodorovny pohyb (prejezd ploch). Svisle pruhy posunute
- * o ~100 px mezi snimky se v pulce bloku nahodou shoduji a detektor blikani by mezisnimek oznacil. */
+ * o ~100 px mezi snimky se v pulce bloku nahodou shoduji a detektor blikani by mezisnimek oznacil.
+ * --solid: jen barva --color bez pruhu (obsah jako terminal nebo dokument). */
 #define _GNU_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
@@ -26,7 +27,7 @@ static struct wl_surface *surface;
 static struct xdg_toplevel *toplevel;
 static struct xkb_context *xkb;
 static struct xkb_state *xkb_state;
-static int width = 400, height = 300, pending_w, pending_h, running = 1, events, hstripes;
+static int width = 400, height = 300, pending_w, pending_h, running = 1, events, hstripes, solid;
 static uint32_t color = 0x3b82f6;
 
 static void say(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
@@ -59,7 +60,7 @@ static void draw(void)
 	if (px == MAP_FAILED)
 		exit(1);
 	/* svisle pruhy: pri tazeni okna je posun dobre videt i ve zmensenem snimku */
-	uint32_t dark = (color >> 1) & 0x7f7f7f;
+	uint32_t dark = solid ? color : (color >> 1) & 0x7f7f7f;
 	for (int y = 0; y < height; y++)
 		for (int x = 0; x < width; x++)
 			px[y * width + x] = 0xff000000 | (((hstripes ? y : x) / 40) % 2 ? dark : color);
@@ -215,6 +216,8 @@ int main(int argc, char **argv)
 			events = 1;
 		else if (!strcmp(argv[i], "--hstripes"))
 			hstripes = 1;
+		else if (!strcmp(argv[i], "--solid"))
+			solid = 1;
 		else if (i + 1 < argc && !strcmp(argv[i], "--title"))
 			title = argv[++i];
 		else if (i + 1 < argc && !strcmp(argv[i], "--app-id"))
@@ -224,7 +227,7 @@ int main(int argc, char **argv)
 		else if (i + 1 < argc && !strcmp(argv[i], "--color"))
 			color = strtoul(argv[++i], NULL, 16);
 		else {
-			fprintf(stderr, "usage: wlt-client [--title T] [--app-id ID] [--size WxH] [--color RRGGBB] [--hstripes] [--events]\n");
+			fprintf(stderr, "usage: wlt-client [--title T] [--app-id ID] [--size WxH] [--color RRGGBB] [--hstripes] [--solid] [--events]\n");
 			return 2;
 		}
 	}

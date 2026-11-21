@@ -79,6 +79,63 @@ class Css(unittest.TestCase):
         self.assertGreaterEqual(alpha, 0.9)
 
 
+class TitlebarSpec(unittest.TestCase):
+    """Zahlavi GTK (CSD) ve stejne mire jako zahlavi kompozitoru luxwm: luxos_tokens.lsl TITLEBAR.
+    Pixelove porovnani obou je v packages/luxwm/tests/test_luxwm_titlebar.py."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(os.path.join(FILES, "luxos-gtk3.css")) as f:
+            cls.css = f.read()
+        tokens = os.path.join(PKG, "..", "luxos-desktop", "files", "lsl", "luxos_tokens.lsl")
+        with open(tokens) as f:
+            text = f.read()
+        block = text[text.index("TITLEBAR = {"):]
+        block = block[:block.index("}") + 1]
+        cls.spec = {k: float(v) for k, v in re.findall(r'"(\w+)": (-?[\d.]+)(?=[,}])', block)}
+        # zaobleni okna je ze stupnice polomeru (RADIUS m), ne ze zahlavi
+        cls.spec["radius"] = float(re.search(r'RADIUS = \{[^}]*"m": (\d+)', text).group(1))
+
+    def rule(self, selector):
+        m = re.search(r"(?m)^" + re.escape(selector) + r"\s*(?:,[^{]*)?\{([^}]*)\}", self.css)
+        self.assertIsNotNone(m, selector)
+        return dict((k.strip(), v.strip()) for k, v in (d.split(":", 1) for d in m.group(1).split(";") if ":" in d))
+
+    def px(self, value):
+        return float(value.replace("px", "").split()[0])
+
+    def test_heights_and_title(self):
+        self.assertEqual(self.px(self.rule("headerbar")["min-height"]), self.spec["height"])
+        self.assertEqual(self.px(self.rule("headerbar.compact")["min-height"]), self.spec["height_compact"])
+        title = self.rule("headerbar .title")
+        self.assertEqual(self.px(title["font-size"]), self.spec["title_px"])
+        self.assertEqual(float(title["font-weight"]), self.spec["title_weight"])
+        self.assertIn("alpha(@theme_fg_color, %.2f)" % self.spec["inactive_title_alpha"],
+                      self.rule("headerbar:backdrop .title")["color"])
+
+    def test_lights_geometry(self):
+        """Stred prvniho svetla: okraj headerbaru WhiteSur 8 px + box.left + okraj tlacitka + pul svetla"""
+        light = self.rule("headerbar button.titlebutton.close")
+        size = self.px(light["min-width"])
+        margin = self.px(light["margin"].split()[1])
+        self.assertEqual(size, self.spec["light"])
+        # GTK dava mezi tlacitka zahlavi 6 px (spacing GtkHeaderBar)
+        self.assertEqual(size + 2 * margin + 6, self.spec["pitch"])
+        left = self.px(self.rule("headerbar > box.left")["padding-left"])
+        self.assertEqual(8 + left + margin + size / 2, self.spec["inset"])
+        compact = self.px(self.rule("headerbar.compact")["padding-left"])
+        self.assertEqual(compact + left + margin + size / 2, self.spec["inset_compact"])
+        self.assertEqual(self.px(light["border-radius"]), size / 2)
+        inactive = self.rule("headerbar:backdrop button.titlebutton.close")
+        self.assertIn("%.2f" % self.spec["light_inactive_alpha"], inactive["background-color"])
+        self.assertIn("%.2f" % self.spec["light_ring_alpha"], inactive["box-shadow"])
+
+    def test_window_radius(self):
+        self.assertEqual(self.px(self.rule("window.csd > decoration")["border-radius"]), self.spec["radius"])
+        self.assertEqual(self.rule("window.csd > .titlebar")["border-radius"],
+                         "%dpx %dpx 0 0" % (self.spec["radius"], self.spec["radius"]))
+
+
 class Pkgbuild(unittest.TestCase):
     def setUp(self):
         with open(os.path.join(PKG, "PKGBUILD")) as f:

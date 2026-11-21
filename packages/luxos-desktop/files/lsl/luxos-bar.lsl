@@ -114,8 +114,9 @@ function bar_css():
         + ".luxos-bar .lb-clock { " + tokens.type_css("body_strong") + " font-feature-settings: \"tnum\"; }\n"
         + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 2px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["xs"]) + "px; }\n"
-        + ".luxos-bar .lb-badge { font-size: 11px; font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.3px; border: 1px solid;"
-        + " border-radius: 4px; padding: 0 3px; }\n"
+        # rozlozeni klavesnice: tichy stitek (18x15, jen tenky ramecek), ne nejhlasitejsi prvek listy
+        + ".luxos-bar .lb-badge { font-size: 11px; font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.3px;"
+        + " border: 1px solid; border-radius: 4px; padding: 0 2px; min-width: 14px; min-height: 13px; }\n"
         + ".luxos-bar.ink-white label, .luxos-bar.ink-white image { color: " + white + "; }\n"
         + ".luxos-bar.ink-white label { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white image { -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
@@ -152,6 +153,7 @@ function on_conf_changed(path, event, other):
     for bar in bars:
         call place_clock(bar)
         call refresh_look(bar)
+        call apply_status(bar)
     end
     return 0
 end
@@ -690,10 +692,20 @@ function app_name(app_id):
             end
         end
     end
-    if name == "":
-        name = app_id
-    end
     ui["app_names"][app_id] = name
+    return name
+end
+
+# Nazev do listy: Name z .desktop, bez nej titulek okna, nikdy syrovy app_id nebo nazev programu.
+# Korenove okno Xwayland v sandboxu ("Xwayland on :0") luxwm prejmenuje na aplikaci ze sandboxu.
+function window_name(app_id, title):
+    name = ""
+    if app_id != "":
+        name = app_name(app_id)
+    end
+    if name == "" and title != "" and not title.startswith("Xwayland on "):
+        name = title
+    end
     return name
 end
 
@@ -702,10 +714,7 @@ function update_app():
     if wl.available():
         for t in wl.toplevels():
             if (wl.toplevel_state(t) & wl.STATE_ACTIVATED) != 0:
-                app_id = wl.toplevel_app_id(t)
-                if app_id != "":
-                    name = app_name(app_id)
-                end
+                name = window_name(wl.toplevel_app_id(t), wl.toplevel_title(t))
                 break
             end
         end
@@ -817,7 +826,11 @@ function apply_status(bar):
     kb = s["keyboard"]
     item = bar["items"]["keyboard"]
     call gtk.label_set_text(item[1], kb["short"])
-    pixbuf = flag_pixbuf(kb["short"].lower())
+    # vlajka jako panel xkb na X11 jen na prani (BAR_KEYBOARD=flag v appearance.conf), jinak stitek
+    pixbuf = 0
+    if conf("BAR_KEYBOARD", "") == "flag":
+        pixbuf = flag_pixbuf(kb["short"].lower())
+    end
     if pixbuf != 0:
         call gtk.image_set_from_pixbuf(item[2], pixbuf)
     end
