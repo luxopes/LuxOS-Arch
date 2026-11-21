@@ -2,7 +2,7 @@
 # LuxOS - vzhled aplikaci v relaci na Waylandu misto xfsettingsd: GTK na Waylandu necte XSETTINGS, ale
 # org.gnome.desktop.interface (gsettings), takze se pri prihlaseni prenese nastaveni z kanalu xsettings
 # (vychozi LuxOS v /etc/xdg/luxos/xfce4/xfconf a zmeny uzivatele z Nastaveni): tema, ikony, kurzor, pisma,
-# vyhlazovani a hinting, rozlozeni tlacitek a meritko textu. Zapisuje se jen to, co se lisi (bez zbytecnych
+# vyhlazovani a hinting, rozlozeni tlacitek, meritko textu a animace. Zapisuje se jen to, co se lisi (bez zbytecnych
 # zapisu do dconf pri kazdem prihlaseni).
 #
 #   luxos-wayland-settings          prenest do gsettings
@@ -51,6 +51,12 @@ dpi=$(xs /Xft/DPI)
 [[ $dpi =~ ^[0-9]+$ ]] && ((dpi > 0)) || dpi=96
 # tvar jako gsettings get (1.0, 1.25, 1.5), at se stejna hodnota nezapisuje znovu
 set_key $gi text-scaling-factor "$(awk -v d="$dpi" 'BEGIN { s = sprintf("%.2f", d / 96); sub(/0$/, "", s); print s }')"
+
+# Omezit pohyb (Nastaveni > Zpristupneni)
+case $(xs /Gtk/EnableAnimations) in
+    false) set_key $gi enable-animations false ;;
+    true) set_key $gi enable-animations true ;;
+esac
 
 layout=$(xs /Gtk/DecorationLayout)
 set_key org.gnome.desktop.wm.preferences button-layout "$(q "$layout")"

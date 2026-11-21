@@ -1,15 +1,13 @@
-# LuxOS - Nastaveni > Plocha a Dock: vzhled, spousteci obrazovka, tapeta, widgety, Dock a horni lista.
-# Nahrazuje xfdesktop-settings (viz /usr/lib/luxos/override-bin). Vzhled, tapeta a pruhlednost jdou pres
-# luxos-appearance (umi X11 i Wayland). Dock: na X11 GSettings Planku, na Waylandu ~/.config/luxos/dock.conf
+# LuxOS - Nastaveni > Plocha a Dock: spousteci obrazovka, tapeta, widgety, Dock a horni lista (svetly/tmavy
+# vzhled je na strance Vzhled). Nahrazuje xfdesktop-settings (viz /usr/lib/luxos/override-bin). Tapeta
+# a pruhlednost jdou pres luxos-appearance (umi X11 i Wayland). Dock: na X11 GSettings Planku, na Waylandu ~/.config/luxos/dock.conf
 # (luxos-dock ho sleduje). Tapeta na X11 z xfconf (xfdesktop), na Waylandu z appearance.conf.
 load env
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
-load gio, cairo
-load luxos_date as date
+load gio
 load luxos_i18n as i18n
 load luxos_text as text
-load luxos_sun as sun
 load luxos_dock_model as dockmodel
 load luxos_settings_ui as ui
 
@@ -18,19 +16,16 @@ THUMB_W = 150
 THUMB_H = 94
 DOCK_SCHEMA = "net.launchpad.plank.dock.settings"
 DOCK_PATH = "/net/launchpad/plank/docks/dock1/"
-MODES = [["light", "Light", ["#f5f6fb", "#d9dcea"]], ["dark", "Dark", ["#23243a", "#3a3c5c"]],
-    ["auto", "Auto", ["#f5f6fb", "#d9dcea", "#23243a", "#3a3c5c"]]]
 SPLASHES = [["blue", "Blue"], ["purple", "Purple"], ["orange", "Orange"], ["green", "Green"], ["light", "White"]]
 
 home = glib.home_dir()
 config = glib.user_config_dir() + "/luxos"
 PREFS = config + "/appearance.conf"
-NOTIFY_PREFS = config + "/notifications.conf"
 WIDGETS_CONF = config + "/widgets.conf"
 DOCK_CONF = config + "/dock.conf"
 THUMB_DIR = glib.user_cache_dir() + "/luxos/wallpaper-thumbs"
 
-app = {"window": 0, "modes": {}, "splashes": {}, "splash_current": "", "splash_busy": False, "spinner": 0,
+app = {"window": 0, "splashes": {}, "splash_current": "", "splash_busy": False, "spinner": 0,
        "splash_label": 0, "thumbs": {}, "queue": [], "widgets": 0, "dock": 0, "zoom_size": 0}
 
 function wayland():
@@ -62,55 +57,6 @@ function on_off(on, yes, no):
     return no
 end
 
-# ---- Vzhled ------------------------------------------------------------------------------------------------
-
-function hex_byte(pair):
-    digits = "0123456789abcdef"
-    return digits.find(pair[0:1].lower()) * 16 + digits.find(pair[1:2].lower())
-end
-
-function hex_rgb(color):
-    return [Float(hex_byte(color[1:3])) / 255.0, Float(hex_byte(color[3:5])) / 255.0, Float(hex_byte(color[5:7])) / 255.0]
-end
-
-function set_rgb(cr, color):
-    c = hex_rgb(color)
-    return cairo.set_source_rgb(cr, c[0], c[1], c[2])
-end
-
-function draw_mode(colors, cr, area):
-    w = Float(gtk.widget_get_allocated_width(area))
-    h = Float(gtk.widget_get_allocated_height(area))
-    r = 10.0
-    call cairo.new_path(cr)
-    call cairo.arc(cr, w - r, r, r, -1.5708, 0.0)
-    call cairo.arc(cr, w - r, h - r, r, 0.0, 1.5708)
-    call cairo.arc(cr, r, h - r, r, 1.5708, 3.1416)
-    call cairo.arc(cr, r, r, r, 3.1416, 4.7124)
-    call cairo.close_path(cr)
-    call set_rgb(cr, colors[0])
-    call cairo.fill_preserve(cr)
-    if len(colors) == 4:
-        # Automaticky: leva pulka svetla, prava tmava
-        call cairo.save(cr)
-        call cairo.clip(cr)
-        call set_rgb(cr, colors[2])
-        call cairo.rectangle(cr, w / 2.0, 0.0, w / 2.0, h)
-        call cairo.fill(cr)
-        call cairo.restore(cr)
-    end
-    call cairo.new_path(cr)
-    call set_rgb(cr, colors[1])
-    call cairo.rectangle(cr, 10.0, 10.0, w - 20.0, 10.0)
-    call cairo.fill(cr)
-    call cairo.rectangle(cr, 10.0, 28.0, (w - 20.0) * 0.6, 34.0)
-    call cairo.fill(cr)
-    call cairo.set_source_rgb(cr, 0.24, 0.48, 1.0)
-    call cairo.rectangle(cr, w * 0.6 + 4.0, 28.0, w * 0.4 - 14.0, 34.0)
-    call cairo.fill(cr)
-    return False
-end
-
 function mark(buttons, key):
     for k in buttons.keys():
         call gtk.widget_set_class(buttons[k], "current", k == key)
@@ -128,58 +74,6 @@ function choice_button(content, caption):
     call gtk.box_pack_start(inner, gtk.label_new(caption), False, False, 0)
     call gtk.container_add(b, inner)
     return b
-end
-
-function sun_hint():
-    lat_lon = sun.location()
-    now = glib.localtime(glib.now())
-    times = None
-    safe:
-        times = sun.sun_times(date.ordinal(now[0], now[1], now[2]), lat_lon[0], lat_lon[1])
-    end
-    if times == None:
-        return ""
-    end
-    return i18n.TF("Auto: light from sunrise (%s) to sunset (%s), based on your time zone.", [hhmm(times[0]), hhmm(times[1])])
-end
-
-function hhmm(t):
-    tm = glib.localtime(t)
-    return text.pad(tm[3], 2) + ":" + text.pad(tm[4], 2)
-end
-
-function build_appearance(page):
-    g = ui.group(page, i18n.T("Appearance"))
-    box = gtk.box_new(gtk.HORIZONTAL, 12)
-    call gtk.widget_set_margins(box, 12, 12, 12, 12)
-    call gtk.widget_set_halign(box, gtk.ALIGN_START)
-    current = ui.run(["luxos-appearance", "mode"])
-    if current == "":
-        current = "light"
-    end
-    for mode in MODES:
-        preview = gtk.drawing_area_new()
-        call gtk.widget_set_size_request(preview, 120, 76)
-        call glib.connect_data(preview, "draw", 1, draw_mode, mode[2])
-        b = choice_button(preview, i18n.T(mode[1]))
-        call glib.connect_data(b, "clicked", 0, on_mode, mode[0])
-        app["modes"][mode[0]] = b
-        call gtk.box_pack_start(box, b, False, False, 0)
-    end
-    call mark(app["modes"], current)
-    call gtk.box_pack_start(g["box"], box, False, False, 0)
-    hint = sun_hint()
-    if hint != "":
-        l = ui.label(hint, "hint")
-        call gtk.widget_set_margins(l, 12, 0, 0, 8)
-        call gtk.box_pack_start(g["box"], l, False, False, 0)
-    end
-end
-
-function on_mode(mode, button):
-    call mark(app["modes"], mode)
-    call ui.launch(["luxos-appearance", mode])
-    return 0
 end
 
 # ---- Spousteci obrazovka (Plymouth, luxos-splash z luxos-branding) -----------------------------------------
@@ -596,14 +490,6 @@ function build_bar(page, prefs):
     call ui.row(g, i18n.T("Menu bar opacity"), "", ui.slider(0, 100, number(prefs["BAR_OPACITY"], 62), 220, on_opacity, "bar-opacity"))
     call ui.row(g, i18n.T("Clock in the middle"), "", ui.switch(prefs["BAR_CLOCK"] == "center", on_appearance_switch, ["bar-clock", "center", "right"]))
     call ui.row(g, i18n.T("Rounded corners"), "", ui.switch(prefs["BAR_STYLE"] == "rounded", on_appearance_switch, ["bar-style", "rounded", "classic"]))
-    # upozorneni na letni/zimni cas (luxos-hub, luxos_timechange.lsl); jen kde se cas meni
-    timechange = ui.switch(ui.read_kv(NOTIFY_PREFS).get("TIME_CHANGE", "") != "0", on_timechange, 0)
-    call ui.row(g, i18n.T("Notify about summer and winter time"),
-                i18n.T("In the evening before the clocks change and in the morning after."), timechange)
-end
-
-function on_timechange(unused, on):
-    return ui.write_kv(NOTIFY_PREFS, "TIME_CHANGE", on_off(on, "1", "0"))
 end
 
 # ---- stranka ----------------------------------------------------------------------------------------------
@@ -618,7 +504,6 @@ function build(host):
     app["window"] = host["window"]
     prefs = read_prefs()
     page = ui.page_box()
-    call build_appearance(page)
     call build_boot_screen(page)
     call build_wallpaper(page, prefs)
     call build_widgets(page)
