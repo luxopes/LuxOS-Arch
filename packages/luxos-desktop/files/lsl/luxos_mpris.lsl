@@ -159,12 +159,12 @@ function changed():
     global idle_pending
     if not idle_pending:
         idle_pending = True
-        call glib.idle_add(emit)
+        call glib.idle_add_data(emit, 0)
     end
     return 0
 end
 
-function emit():
+function emit(unused):
     global idle_pending
     idle_pending = False
     for handler in callbacks:

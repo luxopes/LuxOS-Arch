@@ -65,7 +65,7 @@ class GlibCapture(unittest.TestCase):
     def test_signal_records_freed_with_object(self):
         r = subprocess.run([self.signal_prog], capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(r.stdout.split("\n")[:2], ["fired 1001", "alive 0 0"])
+        self.assertEqual(r.stdout.split("\n")[:3], ["fired 1001", "alive 0 0", "sources 1000 0 0"])
 
 
 if __name__ == "__main__":

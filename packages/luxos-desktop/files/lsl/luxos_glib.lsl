@@ -5,7 +5,7 @@
 # Zpetna volani s vazanou hodnotou (LSL nema uzavery): obsluha dostane `data` jako prvni argument.
 #   connect_data(obj, signal, nargs, f, data)   f(data, argumenty signalu..., obj); zaznam se uvolni sam se signalem
 #   timeout_add_data(ms, f, data), timeout_add_seconds_data(s, f, data), idle_add_data(f, data)
-#       f(data) se opakuje, dokud vraci True; zaznam obsluhy se po skonceni uvolni
+#       f(data) se opakuje, dokud vraci True; zaznam obsluhy se uvolni s koncem i odebranim zdroje
 #   spawn_watched_data(argv, f, data)           po skonceni f(data, pid, status)
 #   spawn_capture(argv, f, data)                po skonceni f(data, stdout_text, status); stderr zahozen
 #   spawn_stream(argv, f, data)                 f(data, kus_vystupu) prubezne, po konci f(data, "")
@@ -60,29 +60,22 @@ end
 
 # ---- zdroje hlavni smycky ----------------------------------------------------------------------------
 
-# state = [handler, data, id]
+# state = [handler, data]; zaznam uvolni GLib (callback_destroy), az zdroj skonci (False) nebo ho nekdo odebere
 function source_trampoline(state):
     handler = state[0]
     result = handler(state[1])
-    if result == True or (result != False and result != None and result != 0):
-        return True
-    end
-    call release(state[2])
-    return False
+    return result == True or (result != False and result != None and result != 0)
 end
 
 function add_source(kind, interval, handler, bound):
-    state = [handler, bound, 0]
-    tracked = track(source_trampoline, 0, state)
-    state[2] = tracked[1]
+    record = glib.record_bound(source_trampoline, 0, [handler, bound])
     unsafe:
-        record = tracked[0]
         if kind == 1:
-            return __lsl_qbe_call5(__lsl_symbol("g_timeout_add_full"), 0, ptr(interval), glib.callback_first(), ptr(record), 0)
+            return __lsl_qbe_call5(__lsl_symbol("g_timeout_add_full"), 0, ptr(interval), glib.callback_first(), ptr(record), glib.callback_destroy())
         elif kind == 2:
-            return __lsl_qbe_call5(__lsl_symbol("g_timeout_add_seconds_full"), 0, ptr(interval), glib.callback_first(), ptr(record), 0)
+            return __lsl_qbe_call5(__lsl_symbol("g_timeout_add_seconds_full"), 0, ptr(interval), glib.callback_first(), ptr(record), glib.callback_destroy())
         end
-        return __lsl_qbe_call4(__lsl_symbol("g_idle_add_full"), 0, glib.callback_first(), ptr(record), 0)
+        return __lsl_qbe_call4(__lsl_symbol("g_idle_add_full"), 0, glib.callback_first(), ptr(record), glib.callback_destroy())
     end
 end
 

@@ -73,13 +73,18 @@ scripts/wl-test/wlt stop "$s"
   - `keydown NAME`, `keyup NAME`: hold a key across commands, e.g. `keydown alt` `key Tab` `key Tab` `keyup alt`
   - `type TEXT` (US layout)
   - `sleep SEC`
+  - `echo TEXT`: prints TEXT once the commands before it reached the compositor (a test feeding one long-running
+    `wlt input` on stdin waits for this line)
 
   Coordinates are pixels of the whole output layout (`S/layout`).
 - `WLT_STAMP=1 wlt input ...` prints `stamp KEY US` (CLOCK_MONOTONIC in µs) when a key goes down, for latency
   measurements from a key press to a client's first frame.
-- Every `wlt input` call creates its own virtual keyboard and removes it at the end. labwc then takes the keyboard
-  focus away (the seat has no keyboard left) and a GTK client loses the first key of the next call. For keyboard
-  scenarios keep one `wlt input` running and feed it commands on stdin, as a real keyboard stays plugged in.
+- `start` also keeps a virtual pointer and keyboard plugged in for the whole session (a `wlt-input` reading
+  `S/hold.fifo`), like real hardware. Without them every `wlt input` call changed the seat capabilities: clients
+  recreated `wl_pointer`/`wl_keyboard` and could lose the first click or key of the call, and labwc took the
+  keyboard focus away after the call. `WLT_HOLD_INPUT=0` turns this off. Each `wlt input` call still adds its
+  own devices; a test that needs one ordered stream can keep one `wlt input` running and feed it on stdin
+  (`packages/luxos-desktop/tests/test_luxos_dock.py`, `Dock.input`).
 - `env S` prints `export` lines for the session, e.g. for running an LSL client by hand.
 - Logs: `S/compositor.log`, `S/clients.log`, `S/xvfb.log`. For a debug log, use `wlt start -- labwc -d`.
 

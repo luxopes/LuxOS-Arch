@@ -8,6 +8,7 @@
 #   connected(), disconnect(), socket_path()
 #   on_state(f)           f(True/False) pri spojeni a odpojeni
 load glib, env, fd, net, json
+load luxos_glib as lglib
 
 MAX_LINE = 65536
 
@@ -199,7 +200,7 @@ function open_socket():
     return True
 end
 
-function on_retry():
+function on_retry(unused):
     c["retry"] = 0
     if c["fd"] < 0 and c["auto"] and not open_socket():
         call schedule_retry()
@@ -209,7 +210,9 @@ end
 
 function schedule_retry():
     if c["retry"] == 0 and c["auto"]:
-        c["retry"] = glib.timeout_add_seconds(c["delay"], on_retry)
+        # zaznam obsluhy uvolni GLib (glib.timeout_add_seconds by ho drzel navzdy: bez luxwm, napr. pod labwc,
+        # pribyval kazdych 30 s)
+        c["retry"] = lglib.timeout_add_seconds_data(c["delay"], on_retry, 0)
         c["delay"] = min(30, c["delay"] * 2)
     end
     return 0

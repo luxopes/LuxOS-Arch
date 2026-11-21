@@ -453,8 +453,9 @@ class Locker(LockBase):
         shots.mkdir(parents=True, exist_ok=True)
         self.start(size="2048x1280")
         p = self.scaled_lock("2")
-        self.assertIn("configure 1024x640", self.lines(p))
-        self.assertIn("scale 2.0", self.lines(p))
+        # meritko muze prijit az po prvnim configure (wp_fractional_scale_v1): zamek pak prekresli a vypise ho pozdeji
+        self.wait_line(p, "configure 1024x640")
+        self.wait_line(p, "scale 2.0")
         subprocess.run([str(WLT), "shot", str(self.session), str(shots / "lock-scale2.png")], check=True,
                        capture_output=True)
         shot = self.shot()
@@ -475,8 +476,8 @@ class Locker(LockBase):
         self.assertEqual(p.wait(10), 0)
         # zlomkove meritko (wp_fractional_scale_v1 + wp_viewporter)
         p = self.scaled_lock("1.5")
-        self.assertIn("configure 1365x853", self.lines(p))
-        self.assertIn("scale 1.5", self.lines(p))
+        self.wait_line(p, "configure 1365x853")
+        self.wait_line(p, "scale 1.5")
         self.keys(f"type {PASSWORD}", "key Return")
         self.assertEqual(p.wait(10), 0)
 
