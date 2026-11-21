@@ -60,7 +60,7 @@ DESKTOP_CHANNEL = """<?xml version="1.0" encoding="UTF-8"?>
 </channel>
 """
 # mrizka luxos_desk pro ikonu 56 a pismo 10: bunka 100x108 od (8, 40) (lista 32 + 8)
-CELL_W, CELL_H, GRID_X, GRID_Y = 100, 108, 8, 40
+CELL_W, CELL_H, GRID_X, GRID_Y = 100, 108, 8, 36   # GRID_Y = tokens.BAR["height"] + 8
 
 
 def pattern(width, height):
