@@ -52,7 +52,11 @@ MENU = [["About This Computer", ["luxos-about"]], ["Settings", ["luxos-settings"
 bars = []
 ui = {"provider": 0, "app": "", "app_names": {}, "wm_classes": None, "clock": "", "clock_tip": "", "conf": {},
       "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "menu": 0, "layout_menu": 0, "layout_items": [],
-      "layout_names": [], "thumbs": {}}
+      "layout_names": [], "thumbs": {}, "flags": {}}
+# Vlajky rozlozeni klavesnice jako panel xkb v X11 relaci (xfce4-xkb-plugin, display-type 0); bez vlajky kod
+FLAGS = env.get("LUXOS_XKB_FLAGS", "/usr/share/xfce4/xkb/flags")
+FLAG_W = 20
+FLAG_H = 15
 
 function trace(message):
     if ui["trace"]:
@@ -426,8 +430,14 @@ function build_bar(bar):
     bar["tray"] = tray
     badge = gtk.label_new("")
     call gtk.widget_add_class(badge, "lb-badge")
-    kb = bar_button(bar, badge, "", on_item_press, "keyboard")
-    bar["items"]["keyboard"] = [kb, badge, 0]
+    flag = gtk.image_new_from_pixbuf(0)
+    call luxos_gtk.widget_set_no_show_all(flag, True)
+    call luxos_gtk.widget_set_no_show_all(badge, True)
+    keys = gtk.box_new(0, 0)
+    call gtk.box_pack_start(keys, flag, False, False, 0)
+    call gtk.box_pack_start(keys, badge, False, False, 0)
+    kb = bar_button(bar, keys, "", on_item_press, "keyboard")
+    bar["items"]["keyboard"] = [kb, badge, flag]
     if ui["trace"]:
         call gtk.connect(kb, "size-allocate", on_badge_allocate)
     end
@@ -777,10 +787,34 @@ function apply_status(bar):
     notes = s["notifications"]
     call gtk.image_set_from_icon_name(bar["items"]["notifications"][1], notes["icon"], 1)
     kb = s["keyboard"]
-    call gtk.label_set_text(bar["items"]["keyboard"][1], kb["short"])
-    call gtk.widget_set_visible(bar["items"]["keyboard"][0], kb["short"] != "")
-    call gtk.widget_set_tooltip(bar["items"]["keyboard"][0], kb["tip"])
+    item = bar["items"]["keyboard"]
+    call gtk.label_set_text(item[1], kb["short"])
+    pixbuf = flag_pixbuf(kb["short"].lower())
+    if pixbuf != 0:
+        call gtk.image_set_from_pixbuf(item[2], pixbuf)
+    end
+    call gtk.widget_set_visible(item[2], pixbuf != 0)
+    call gtk.widget_set_visible(item[1], pixbuf == 0)
+    call gtk.widget_set_visible(item[0], kb["short"] != "")
+    call gtk.widget_set_tooltip(item[0], kb["tip"])
     return 0
+end
+
+function flag_pixbuf(code):
+    if code == "":
+        return 0
+    end
+    if code not in ui["flags"]:
+        ui["flags"][code] = 0
+        path = FLAGS + "/" + code + ".svg"
+        if exists(path):
+            safe:
+                ui["flags"][code] = gtk.pixbuf_new_from_file_at_scale(path, FLAG_W, FLAG_H, 1)
+            end
+            call trace("flag " + code + (" " + path if ui["flags"][code] != 0 else " failed"))
+        end
+    end
+    return ui["flags"][code]
 end
 
 function on_status(kind):
