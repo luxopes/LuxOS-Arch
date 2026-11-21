@@ -1007,6 +1007,7 @@ end
 function main():
     call glib.set_prgname("luxos-notify")
     call gtk.init()
+    call material.grayscale_text()
     if not layer.is_supported():
         call glib.report("luxos-notify: compositor without layer-shell\n")
         exit(1)

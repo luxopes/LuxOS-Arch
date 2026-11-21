@@ -1401,6 +1401,7 @@ if not gtk_ready() or not layer.is_wayland() or not layer.is_supported():
     call luxos_sys.eprint("luxos-backdrop: needs a Wayland compositor with layer-shell")
     call exit(2)
 end
+call material.grayscale_text()
 # Jen vystupy: bez zwlr_output_manager_v1 (wlroots 0.20.2 pada na assert pri zapnuti vystupu, kdyz ho
 # nekdo drzi) a bez spravy oken, schranky a dalsich protokolu, ktere plocha nepotrebuje
 if wl.on_event(on_wl):

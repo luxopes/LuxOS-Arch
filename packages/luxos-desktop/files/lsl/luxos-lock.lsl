@@ -656,6 +656,7 @@ function event(kind, handle, a, b):
 end
 
 function main():
+    call material.grayscale_text()
     call load_config()
     ui["placeholder"] = i18n.T("Enter Password")
     ui["font"] = state.get("font", "Inter")

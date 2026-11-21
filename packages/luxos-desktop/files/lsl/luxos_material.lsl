@@ -1,3 +1,4 @@
+# lsl: link libfontconfig.so.1 libpangoft2-1.0.so.0 libpangocairo-1.0.so.0 libgtk-3.so.0
 # LuxOS - material ploch layer-shell na Waylandu. Pod luxwm kresli rozmazane pozadi kompozitor (jmenny prostor
 # tokens.namespace, luxcomp blur.c) a klient jen tonovani tokens.material(); compositor_blur() to zjisti.
 # Jinde (labwc) a pro zamek: sklo z tapety - vyrez rozostrene tapety pod plochou, mlecny podklad, zavoj podle jasu
@@ -30,6 +31,7 @@
 #   material.glass(cesta), material.map_for(sklo, out_w, out_h)   rozostrena tapeta a jeji mapa na vystup (fill)
 #   material.map_mode(sklo, out_w, out_h, rezim)                    mapa pro rezim zobrazeni tapety (jako luxos-backdrop)
 #   material.reload()                    zmena tapety nebo appearance.conf: zahodit mezipamet
+#   material.grayscale_text()            pismo procesu vyhlazovat v odstinech sedi (plochy shellu, zamek); po gtk.init
 #   material.forget_output(vystup)       vystup odpojen
 #
 # Vykon (LSL: Float v lokalnich promennych bez alokaci, GC zastavi svet): kazdy pixel se pocita jen pri zmene tapety
@@ -86,6 +88,38 @@ end
 
 function clamp(x, lo, hi):
     return max(lo, min(hi, x))
+end
+
+# ---- pismo na skle ------------------------------------------------------------------------------
+# Podpixelove vyhlazovani (rgba v gsettings a fontconfig obrazu LuxOS) zapise do pruhledneho povrchu barevne
+# slozky pokryti, ktere kompozitor nad rozmazanym pozadim slozi jako zelene a fialove lemy; na zamku a plose je
+# zvetseni (VM, HiDPI) ukaze taky. Plochy shellu proto vyhlazuji v odstinech sedi jako macOS: fontconfig procesu
+# pro text kresleny primo pres pango a GtkSettings pro widgety GTK (ty maji vyhlazovani z gsettings).
+GRAYSCALE_FC = "<?xml version=\"1.0\"?><!DOCTYPE fontconfig SYSTEM \"urn:fontconfig:fonts.dtd\"><fontconfig><match target=\"font\"><edit name=\"rgba\" mode=\"assign\"><const>none</const></edit></match></fontconfig>"
+
+function cstr(text):
+    unsafe:
+        return __lsl_address(text) + 16
+    end
+end
+
+function grayscale_text():
+    rule = GRAYSCALE_FC
+    unsafe:
+        config = __lsl_qbe_call0(__lsl_symbol("FcConfigGetCurrent"))
+        call __lsl_qbe_call3(__lsl_symbol("FcConfigParseAndLoadFromMemory"), config, cstr(rule), ptr(0))
+        call __lsl_qbe_call1(__lsl_symbol("pango_fc_font_map_config_changed"), __lsl_qbe_call0(__lsl_symbol("pango_cairo_font_map_get_default")))
+        settings = __lsl_qbe_call0(__lsl_symbol("gtk_settings_get_default"))
+    end
+    if settings != 0:
+        name = "gtk-xft-rgba"
+        value = "none"
+        origin = "luxos"
+        unsafe:
+            call __lsl_qbe_call4(__lsl_symbol("gtk_settings_set_string_property"), settings, cstr(name), cstr(value), cstr(origin))
+        end
+    end
+    return 0
 end
 
 # ---- material z kompozitoru -------------------------------------------------------------------

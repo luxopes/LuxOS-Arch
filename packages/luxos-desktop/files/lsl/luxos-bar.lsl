@@ -1056,6 +1056,7 @@ if not gtk_ready() or not layer.is_wayland() or not layer.is_supported():
     call luxos_sys.eprint("luxos-bar: needs a Wayland compositor with layer-shell")
     call exit(2)
 end
+call material.grayscale_text()
 call read_conf()
 call apply_css()
 # jedno spojeni: protokoly luxos_wl na soketu GDK (udalosti rozesila GDK)

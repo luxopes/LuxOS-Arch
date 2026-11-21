@@ -1992,6 +1992,7 @@ end
 
 function start():
     call gtk.init()
+    call material.grayscale_text()
     call read_conf()
     if not conf["enabled"]:
         return 0

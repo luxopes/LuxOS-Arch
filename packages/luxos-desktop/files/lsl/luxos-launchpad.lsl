@@ -1171,6 +1171,7 @@ end
 
 call glib.set_prgname("luxos-launchpad")
 call gtk.init()
+call material.grayscale_text()
 if not layer.is_wayland() or not layer.is_supported():
     print "luxos-launchpad: needs a Wayland compositor with layer-shell (the X11 session uses rofi)"
     exit(2)

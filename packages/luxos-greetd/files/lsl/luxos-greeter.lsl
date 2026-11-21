@@ -1365,6 +1365,7 @@ if not trace:
 end
 call glib.set_prgname("luxos-greeter")
 call gtk.init()
+call material.grayscale_text()
 call load_config()
 call load_layouts()
 state["legacy_gpu"] = legacy_gpu()

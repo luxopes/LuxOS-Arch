@@ -44,6 +44,7 @@ load luxos_sys
 load luxos_text as text
 load luxos_mpris as mpris
 load luxos_cc as cc
+load luxos_material as material
 load luxos_cal as cal
 load luxos_sun as sun
 load luxos_awake as awake
@@ -924,6 +925,7 @@ function main_hub():
     call glib.set_prgname("luxos-hub")
     call glib.set_application_name("LuxOS")
     call gtk.init()
+    call material.grayscale_text()
     # Snimek obrazovky: pozadavky klienta luxos-screenshot (okna se postavi s ostatnimi, nebo pri prvnim pozadavku)
     try:
         call shot.start_server(False)
@@ -1133,6 +1135,7 @@ function main_control_center():
     call glib.unix_signal_add(SIGUSR1, on_sigusr1)
     call glib.set_prgname("luxos-control-center")
     call gtk.init()
+    call material.grayscale_text()
     call cc.create()
     if not has_arg("--background"):
         call cc.toggle()
@@ -1161,6 +1164,7 @@ function main_calendar():
     call glib.set_prgname("luxos-calendar")
     call glib.set_application_name(i18n.T("Calendar"))
     call gtk.init()
+    call material.grayscale_text()
     background = has_arg("--background")
     call cal.create(background)
     if not background:
