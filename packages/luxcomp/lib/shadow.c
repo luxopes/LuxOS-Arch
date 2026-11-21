@@ -15,6 +15,7 @@
 
 struct shadow_texture {
 	int size, radius, scale;
+	bool blur;
 	uint32_t argb;
 	struct wlr_buffer *buffer;
 };
@@ -24,8 +25,8 @@ struct shadow {
 	struct wlr_scene_buffer *piece[8];
 };
 
-/* aktivni a neaktivni okno; vic kombinaci naraz neni */
-static struct shadow_texture cache[2];
+/* stin a obrys aktivniho a neaktivniho okna; vic kombinaci naraz neni */
+static struct shadow_texture cache[4];
 static int next;
 
 /* Box blur radku nebo sloupce s nulami za okrajem; tri pruchody davaji temer gauss */
@@ -58,10 +59,15 @@ corner_size(int size, int radius)
 }
 
 static struct wlr_buffer *
-render(int size, int radius, uint32_t argb, int scale)
+render(int size, int radius, uint32_t argb, int scale, bool blur)
 {
 	int n = (2 * corner_size(size, radius) + 1) * scale;
 	int s = size * scale, r = radius * scale;
+	if (!blur) {
+		/* obrys: tvar okna o 1 px vetsi, okno ho prekryje az na okraj */
+		s -= scale;
+		r += scale;
+	}
 	cairo_surface_t *mask = cairo_image_surface_create(CAIRO_FORMAT_A8, n, n);
 	cairo_t *cr = cairo_create(mask);
 	cairo_new_path(cr);
@@ -78,7 +84,7 @@ render(int size, int radius, uint32_t argb, int scale)
 	int stride = cairo_image_surface_get_stride(mask);
 	int br = s / 3 > 0 ? s / 3 : 1;
 	uint8_t *tmp = malloc(n);
-	for (int pass = 0; pass < 3; pass++) {
+	for (int pass = 0; blur && pass < 3; pass++) {
 		for (int y = 0; y < n; y++) {
 			blur_line(a + y * stride, n, 1, br, tmp);
 		}
@@ -106,22 +112,23 @@ render(int size, int radius, uint32_t argb, int scale)
 }
 
 static struct wlr_buffer *
-texture(int size, int radius, uint32_t argb, int scale)
+texture(int size, int radius, uint32_t argb, int scale, bool blur)
 {
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 4; i++) {
 		struct shadow_texture *c = &cache[i];
 		if (c->buffer && c->size == size && c->radius == radius && c->argb == argb
-				&& c->scale == scale) {
+				&& c->scale == scale && c->blur == blur) {
 			return c->buffer;
 		}
 	}
 	/* okna drzi starou texturu dal (zamek wlr_buffer), dokud se neprekresli */
 	struct shadow_texture *t = &cache[next];
-	next ^= 1;
+	next = (next + 1) % 4;
 	if (t->buffer) {
 		wlr_buffer_drop(t->buffer);
 	}
-	*t = (struct shadow_texture){ size, radius, scale, argb, render(size, radius, argb, scale) };
+	*t = (struct shadow_texture){ size, radius, scale, blur, argb,
+		render(size, radius, argb, scale, blur) };
 	return t->buffer;
 }
 
@@ -155,23 +162,23 @@ shadow_destroy(struct shadow *sh)
 }
 
 void
-shadow_update(struct shadow *sh, struct wlr_box f, int size, int radius, uint32_t argb,
-		int scale)
+shadow_update(struct shadow *sh, struct wlr_box f, int size, int offset, int radius,
+		uint32_t argb, int scale, bool blur)
 {
 	bool on = size > 0 && (argb >> 24) > 0 && f.width > 0 && f.height > 0;
 	wlr_scene_node_set_enabled(&sh->tree->node, on);
 	if (!on) {
 		return;
 	}
-	struct wlr_buffer *buffer = texture(size, radius, argb, scale);
+	struct wlr_buffer *buffer = texture(size, radius, argb, scale, blur);
 	int c = corner_size(size, radius), n = 2 * c + 1;
-	/* svetlo shora: stin posunuty dolu o ctvrtinu velikosti */
-	int x0 = f.x - size, y0 = f.y - size + size / 4;
+	/* svetlo shora: stin posunuty dolu */
+	int x0 = f.x - size, y0 = f.y - size + offset;
 	int w = f.width + 2 * size, h = f.height + 2 * size;
 	/* u maleho okna se rohy zkrati, aby se neprekryvaly */
 	int cx = c < w / 2 ? c : w / 2, cy = c < h / 2 ? c : h / 2;
 	/* hrany jen tak siroke, kolik je stinu vedle okna; zbytek by se kreslil pod nim */
-	int t = size + size / 4, tx = t < cx ? t : cx, ty = t < cy ? t : cy;
+	int t = size + abs(offset), tx = t < cx ? t : cx, ty = t < cy ? t : cy;
 	int ew = w - 2 * cx, eh = h - 2 * cy;
 	struct { int sx, sy, sw, sh, x, y, w, h; } part[8] = {
 		{ 0, 0, cx, cy, x0, y0, cx, cy },
