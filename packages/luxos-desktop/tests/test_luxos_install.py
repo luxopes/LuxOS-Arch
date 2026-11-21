@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - skript balicku luxos-desktop.install bez Pythonu na cilovem systemu.
+"""LuxOS - skript balicku luxos-desktop.install bez Pythonu na cilovem systemu (aktualizace nesmi zaviset na python3).
 
     python3 -m unittest packages/luxos-desktop/tests/test_luxos_install.py -v
 
@@ -98,6 +98,13 @@ class OwnDelay(unittest.TestCase):
                 f.write("<channel><property name=")
             self.assertFalse(self.own_delay(bad))
             self.assertFalse(self.own_delay(os.path.join(d, "missing.xml")))
+
+
+class NoPython(unittest.TestCase):
+    def test_no_python_on_target(self):
+        with open(INSTALL) as f:
+            lines = [ln for ln in f if "python" in ln and not ln.lstrip().startswith("#")]
+        self.assertEqual(lines, [])
 
 
 if __name__ == "__main__":
