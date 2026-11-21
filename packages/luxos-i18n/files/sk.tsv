@@ -631,7 +631,7 @@ remove apps from the sandbox	odstráni aplikácie zo sandboxu
 wipe the sandbox and create it again	vymaže sandbox a vytvorí ho znova
 delete the sandbox	vymaže sandbox
 network: internet only, no local network, no services of this computer	sieť: len internet, žiadna miestna sieť ani služby tohto počítača
-own window (nested X server), never your desktop	vlastné okno (vnorený X server), nikdy vaša plocha
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	vlastné okno: na Waylande obmedzené pripojenie (bez snímania obrazovky, bez iných okien), na X11 vnorený X server; nikdy vaša plocha
 make ~/Sandbox visible as /home/sandbox/Shared	sprístupní ~/Sandbox ako /home/sandbox/Shared
 Get started	Začíname
 No sandbox yet	Sandbox zatiaľ neexistuje

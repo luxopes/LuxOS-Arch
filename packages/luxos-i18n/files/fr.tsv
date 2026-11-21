@@ -631,7 +631,7 @@ remove apps from the sandbox	supprimer des apps du bac à sable
 wipe the sandbox and create it again	effacer le bac à sable et le recréer
 delete the sandbox	supprimer le bac à sable
 network: internet only, no local network, no services of this computer	réseau : Internet uniquement, pas de réseau local ni de services de cet ordinateur
-own window (nested X server), never your desktop	fenêtre dédiée (serveur X imbriqué), jamais votre bureau
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	fenêtre dédiée : sous Wayland une connexion restreinte (pas de capture d'écran, pas d'autres fenêtres), sous X11 un serveur X imbriqué ; jamais votre bureau
 make ~/Sandbox visible as /home/sandbox/Shared	rendre ~/Sandbox visible en tant que /home/sandbox/Shared
 Get started	Commencer
 No sandbox yet	Pas encore de bac à sable

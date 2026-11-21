@@ -631,7 +631,7 @@ remove apps from the sandbox	вилучити програми з пісочни
 wipe the sandbox and create it again	стерти пісочницю й створити її заново
 delete the sandbox	видалити пісочницю
 network: internet only, no local network, no services of this computer	мережа: лише інтернет, без локальної мережі та служб цього комп’ютера
-own window (nested X server), never your desktop	власне вікно (вкладений X-сервер), ніколи не ваш робочий стіл
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	власне вікно: у Wayland обмежене з'єднання (без захоплення екрана, без інших вікон), у X11 вкладений X-сервер; ніколи не ваш робочий стіл
 make ~/Sandbox visible as /home/sandbox/Shared	зробити ~/Sandbox видимою як /home/sandbox/Shared
 Get started	Почати
 No sandbox yet	Пісочниці ще немає

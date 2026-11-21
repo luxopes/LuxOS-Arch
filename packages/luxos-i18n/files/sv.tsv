@@ -631,7 +631,7 @@ remove apps from the sandbox	ta bort appar från sandlådan
 wipe the sandbox and create it again	rensa sandlådan och skapa den igen
 delete the sandbox	radera sandlådan
 network: internet only, no local network, no services of this computer	nätverk: endast internet, inget lokalt nätverk, inga tjänster på den här datorn
-own window (nested X server), never your desktop	eget fönster (nästlad X-server), aldrig ditt skrivbord
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	eget fönster: på Wayland en begränsad anslutning (ingen skärminspelning, inga andra fönster), på X11 en nästlad X-server; aldrig ditt skrivbord
 make ~/Sandbox visible as /home/sandbox/Shared	gör ~/Sandbox synlig som /home/sandbox/Shared
 Get started	Kom igång
 No sandbox yet	Ingen sandlåda ännu

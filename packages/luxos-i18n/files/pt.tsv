@@ -631,7 +631,7 @@ remove apps from the sandbox	remover apps da sandbox
 wipe the sandbox and create it again	apagar a sandbox e criá-la novamente
 delete the sandbox	apagar a sandbox
 network: internet only, no local network, no services of this computer	rede: somente internet, sem rede local, sem serviços deste computador
-own window (nested X server), never your desktop	janela própria (servidor X aninhado), nunca a sua mesa
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	janela própria: no Wayland uma ligação restrita (sem captura de ecrã, sem outras janelas), no X11 um servidor X aninhado; nunca a sua mesa
 make ~/Sandbox visible as /home/sandbox/Shared	tornar ~/Sandbox visível como /home/sandbox/Shared
 Get started	Começar
 No sandbox yet	Ainda não há sandbox

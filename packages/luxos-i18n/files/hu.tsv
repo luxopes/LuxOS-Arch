@@ -631,7 +631,7 @@ remove apps from the sandbox	appok eltávolítása a sandboxból
 wipe the sandbox and create it again	törli a sandboxot, és újra létrehozza
 delete the sandbox	a sandbox törlése
 network: internet only, no local network, no services of this computer	hálózat: csak internet, se helyi hálózat, se a számítógép szolgáltatásai
-own window (nested X server), never your desktop	saját ablak (beágyazott X-szerver), soha nem a te íróasztalod
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	saját ablak: Waylanden korlátozott kapcsolat (nincs képernyőrögzítés, nincsenek más ablakok), X11-en beágyazott X-szerver; soha nem a te íróasztalod
 make ~/Sandbox visible as /home/sandbox/Shared	a ~/Sandbox elérhetővé tétele /home/sandbox/Shared néven
 Get started	Első lépések
 No sandbox yet	Még nincs sandbox

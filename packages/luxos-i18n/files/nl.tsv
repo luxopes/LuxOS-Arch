@@ -631,7 +631,7 @@ remove apps from the sandbox	verwijder apps uit de sandbox
 wipe the sandbox and create it again	wis de sandbox en maak hem opnieuw aan
 delete the sandbox	verwijder de sandbox
 network: internet only, no local network, no services of this computer	netwerk: alleen internet, geen lokaal netwerk, geen diensten van deze computer
-own window (nested X server), never your desktop	eigen venster (geneste X-server), nooit je bureaublad
+own window: on Wayland a restricted connection (no screen capture, no other windows), on X11 a nested X server; never your desktop	eigen venster: onder Wayland een beperkte verbinding (geen schermopname, geen andere vensters), onder X11 een geneste X-server; nooit je bureaublad
 make ~/Sandbox visible as /home/sandbox/Shared	maak ~/Sandbox zichtbaar als /home/sandbox/Shared
 Get started	Aan de slag
 No sandbox yet	Nog geen sandbox
