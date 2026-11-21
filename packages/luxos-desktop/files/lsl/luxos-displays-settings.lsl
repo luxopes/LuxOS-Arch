@@ -1,4 +1,5 @@
-# LuxOS - Monitory na Waylandu (/usr/lib/luxos/luxos-displays-settings; X11 ma luxos-display-settings v Pythonu):
+# LuxOS - Monitory na Waylandu (/usr/lib/luxos/luxos-displays-settings, /usr/bin/luxos-display-settings je odkaz sem;
+# na X11 preda Monitorum v Pythonu, /usr/lib/luxos/luxos-display-settings-x11):
 # usporadani pretazenim (prichyceni k hrane, bez mezer a prekryvu), hlavni monitor (bila lista: Dock, oznameni
 # a okna z odpojenych monitoru), zrcadleni, rezim vice monitoru, rozliseni, frekvence, meritko vcetne
 # zlomkoveho a otoceni. Kazda zmena se hned pouzije a do 15 s se musi potvrdit, jinak se vrati puvodni.
@@ -19,6 +20,7 @@ load luxos_layer as layer
 load luxos_displays as dw
 
 HELPER = "/usr/lib/luxos/luxos-displays"
+X11_SETTINGS = "/usr/lib/luxos/luxos-display-settings-x11"
 CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 10px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.65; }\n.error { color: #c0392b; }\n.osd { border-radius: 18px; padding: 18px; background-color: alpha(@theme_bg_color, 0.96); border: 1px solid alpha(currentColor, 0.15); }\n.osd-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; }\n.osd button { border-radius: 12px; padding: 12px; min-width: 132px; }\n.osd button.current { background-image: none; background-color: alpha(@theme_selected_bg_color, 0.25); }\n.osd-label { font-size: 12px; }\n.osd label, .osd image { color: @theme_fg_color; }\n"
 PAD = 18
 SNAP_PX = 10
@@ -891,6 +893,13 @@ end
 
 # ---- start ---------------------------------------------------------------------------------------------
 
+# spousteni jmenem (Launchpad, Ovladaci centrum, nabidka plochy) na Waylandu bez Pythonu, na X11 aplikace v Pythonu
+display = env.get("WAYLAND_DISPLAY", "")
+if display == None or display == "":
+    call glib.exec([X11_SETTINGS] + args[1:])
+    call glib.report("luxos-display-settings: cannot run " + X11_SETTINGS + chr(10))
+    exit(127)
+end
 call glib.set_prgname("luxos-displays-settings")
 call gtk.init()
 call gtk.css_load(CSS)

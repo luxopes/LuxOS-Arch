@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=99
+pkgrel=100
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -244,7 +244,7 @@ package() {
     # posta pro exo-open (MailReader v helpers.rc)
     install -Dm644 -t "$pkgdir/usr/share/xfce4/helpers" "$f"/helpers/*.desktop
     # jen soubory: __pycache__ z testu v pracovnim stromu by install zastavil
-    install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f | sort) luxos-menubar luxos-session-cover \
+    install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f ! -name luxos-display-settings | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
@@ -267,6 +267,9 @@ package() {
     install -Dm755 luxos-keyboard-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
     install -Dm755 luxos-displays-wayland "$pkgdir/usr/lib/luxos/luxos-displays"
     install -Dm755 luxos-displays-settings "$pkgdir/usr/lib/luxos/luxos-displays-settings"
+    # Monitory jmenem: LSL, na X11 preda aplikaci v Pythonu
+    install -Dm755 "$f/bin/luxos-display-settings" "$pkgdir/usr/lib/luxos/luxos-display-settings-x11"
+    ln -s ../lib/luxos/luxos-displays-settings "$pkgdir/usr/bin/luxos-display-settings"
     install -Dm644 "$f/systemd-user/luxos-backdrop.service" "$pkgdir/usr/lib/systemd/user/luxos-backdrop.service"
     # Vazby LSL na C (a moduly, ktere nacitaji) pro dalsi programy: load luxos_gtk bez kopirovani zdroju
     install -Dm644 -t "$pkgdir/usr/lib/lsl/system" "$f"/lsl/luxos_{apps,gio,glib,gtk,layer,lock_sys,material,notify_sys,sni,sys,text,tokens,wl,x11}.lsl

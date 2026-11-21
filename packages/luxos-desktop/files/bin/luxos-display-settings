@@ -12,17 +12,13 @@ je v ~/.config/luxos/displays.json; luxos-displays ho pouziva po prihlaseni
 (luxos-session) i po pripojeni monitoru (luxos-menubar). Velikost textu je Xft/DPI
 v kanalu xsettings (xfsettingsd ji hned rozesle vsem aplikacim).
 
-Nahrazuje xfce4-display-settings (viz /usr/lib/luxos/override-bin).
+Nahrazuje xfce4-display-settings (viz /usr/lib/luxos/override-bin). Instaluje se jako
+/usr/lib/luxos/luxos-display-settings-x11; /usr/bin/luxos-display-settings je aplikace v LSL,
+ktera sem na X11 preda (na Waylandu se tak Python vubec nespousti).
 """
 import os
+import subprocess
 import sys
-
-# Na Waylandu (luxwm) jsou Monitory v LSL: luxos-displays-settings (wlr-output-management)
-WAYLAND_SETTINGS = "/usr/lib/luxos/luxos-displays-settings"
-if os.environ.get("WAYLAND_DISPLAY") and os.access(WAYLAND_SETTINGS, os.X_OK):
-    os.execv(WAYLAND_SETTINGS, [WAYLAND_SETTINGS] + sys.argv[1:])
-
-import subprocess  # noqa: E402
 
 sys.path.insert(0, os.environ.get("LUXOS_PYDIR") or "/usr/lib/luxos/python")
 import luxos_arrange as la  # noqa: E402
