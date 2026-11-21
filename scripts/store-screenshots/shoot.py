@@ -41,7 +41,7 @@ SCREEN = (1280, 800)
 MAX_WIDTH = 1280
 MAX_BYTES = 150 * 1024
 # Spolecne moduly LuxOS pro programy v Pythonu spoustene ze zdroju (jinak /usr/lib/luxos/python)
-PYTHON_PATHS = [os.path.join(PACKAGES, "luxos-i18n", "files"), os.path.join(PACKAGES, "luxos-desktop", "files", "python")]
+PYTHON_PATHS = [os.path.join(PACKAGES, "luxos-i18n", "files")]
 
 
 def die(msg):
