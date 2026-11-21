@@ -2,6 +2,7 @@
 # prepis tridy BluetoothAgent z luxos-hub. Vychozi agent BlueZ na pozadi: dialogy a kody jako v aplikaci
 # luxos-bluetooth; pred parovanim bez kodu a sluzbou neduveryhodneho zarizeni se zepta.
 #   call agent.watch(system_bus)   BlueZ bezi jen s adapterem (i USB pripojenym pozdeji): registrace pri objeveni
+#   call agent.set_parent(okno)    dialogy nad oknem aplikace (luxos-bluetooth), jinak samostatne
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
@@ -25,7 +26,11 @@ REJECTED = "org.bluez.Error.Rejected"
 # dotaz agenta by byl druhy dotaz na totez. BlueZ ji prijme jen od sparovaneho zarizeni.
 COMPANION_UUID = "ad9b7c10-6ce5-4f35-9952-728f760fcb70"
 
-state = {"bus": 0, "registered": False, "code_dlg": 0, "code_body": 0}
+state = {"bus": 0, "registered": False, "code_dlg": 0, "code_body": 0, "parent": 0}
+
+function set_parent(window):
+    state["parent"] = window
+end
 
 function watch(bus):
     state["bus"] = bus
@@ -40,7 +45,7 @@ function on_appeared(name, owner):
             call gio.register_object(state["bus"], AGENT_PATH, AGENT_XML, on_method)
         else:
             ok = False
-            call eprint("luxos-hub: bluetooth: " + String(last_error()))
+            call eprint("bluetooth agent: " + String(last_error()))
         end
         if not ok:
             return 0
@@ -60,7 +65,7 @@ function register():
         call gio.call_values(state["bus"], "org.bluez", "/org/bluez", "org.bluez.AgentManager1", "RegisterAgent", [AGENT_PATH, "KeyboardDisplay"], "(os)", 3000)
         call gio.call_values(state["bus"], "org.bluez", "/org/bluez", "org.bluez.AgentManager1", "RequestDefaultAgent", [AGENT_PATH], "(o)", 3000)
     else:
-        call eprint("luxos-hub: bluetooth agent: " + String(last_error()))
+        call eprint("bluetooth agent: " + String(last_error()))
     end
     return 0
 end
@@ -88,7 +93,12 @@ function build_dialog(primary, secondary, with_entry, with_buttons, ok_label):
     dlg = gtk.dialog_new()
     call gtk.window_set_title(dlg, "")
     call gtk.window_set_type_hint(dlg, gtk.TYPE_HINT_DIALOG)
-    call gtk.window_set_position(dlg, gtk.WIN_POS_CENTER)
+    if state["parent"] != 0:
+        call gtk.window_set_transient_for(dlg, state["parent"])
+        call gtk.window_set_position(dlg, gtk.WIN_POS_CENTER_ON_PARENT)
+    else:
+        call gtk.window_set_position(dlg, gtk.WIN_POS_CENTER)
+    end
     area = gtk.dialog_get_content_area(dlg)
     call gtk.container_set_border_width(area, 12)
     call gtk.box_set_spacing(area, 10)

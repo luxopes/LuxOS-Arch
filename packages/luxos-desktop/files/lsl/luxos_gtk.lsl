@@ -12,6 +12,8 @@
 #   Emoji a symboly: selection_set_text/_image, selection_owned, selection_request_text/_image (asynchronne,
 #   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
 #   primary_monitor_info() -> [x, y, w, h, nazev vystupu] (widgety plochy: tapeta hlavniho monitoru)
+#   aplikace prepsane z Pythonu: window_set_header(okno, nadpis), spinner_new/spinner_set, list_box_add (radek bez
+#   zvyrazneni), list_box_set_placeholder
 load glib, gtk, cairo
 load luxos_glib
 
@@ -183,6 +185,64 @@ end
 function dialog_response(dialog, response):
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("gtk_dialog_response"), ptr(dialog), ptr(response))
+    end
+end
+
+# ---- okna nastaveni (aplikace prepsane z Pythonu: HeaderBar, seznamy, kolecko) -------------------------------
+
+# HeaderBar s nadpisem a zaviracim tlacitkem jako titulek okna
+function window_set_header(window, title):
+    unsafe:
+        bar = __lsl_qbe_call0(__lsl_symbol("gtk_header_bar_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_title"), bar, cstr(title))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_show_close_button"), bar, 1)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_titlebar"), ptr(window), bar)
+        return bar
+    end
+end
+
+function header_bar_pack_start(bar, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_pack_start"), ptr(bar), ptr(child))
+    end
+end
+
+function header_bar_pack_end(bar, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_pack_end"), ptr(bar), ptr(child))
+    end
+end
+
+function spinner_new():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("gtk_spinner_new"))
+    end
+end
+
+function spinner_set(spinner, active):
+    unsafe:
+        if active:
+            call __lsl_qbe_call1(__lsl_symbol("gtk_spinner_start"), ptr(spinner))
+        else:
+            call __lsl_qbe_call1(__lsl_symbol("gtk_spinner_stop"), ptr(spinner))
+        end
+    end
+end
+
+function list_box_set_placeholder(box, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_set_placeholder"), ptr(box), ptr(child))
+    end
+end
+
+# Radek seznamu bez zvyrazneni po kliknuti (Gtk.ListBoxRow(activatable=False))
+function list_box_add(box, child):
+    unsafe:
+        row = __lsl_qbe_call0(__lsl_symbol("gtk_list_box_row_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_row_set_activatable"), row, 0)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_container_add"), row, ptr(child))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_container_add"), ptr(box), row)
+        return row
     end
 end
 
