@@ -90,7 +90,7 @@ class Protocols(unittest.TestCase):
         shutil.copy(cls.probe, cls.trusted)
         cls.allow = os.path.join(cls.tmp, "privileged.conf")
         tools = [os.path.realpath(os.path.join(SYSROOT, "usr/bin", t)) for t in ("wlr-randr", "grim")]
-        tools.append(os.path.join(ROOT, "out", "wl-test", "bin", "wlt-input"))
+        tools.append(os.path.realpath(os.path.join(ROOT, "out", "wl-test", "bin", "wlt-input")))
         with open(cls.allow, "w") as f:
             f.write("# testy luxwm\n" + "\n".join(tools + [cls.trusted, cls.wltest]) + "\nrelative/ignored\n")
 
