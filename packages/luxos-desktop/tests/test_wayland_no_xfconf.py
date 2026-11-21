@@ -25,7 +25,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.normpath(os.path.join(HERE, "..", "files"))
-MODULES = ["luxos-hub.lsl", "luxos_cc.lsl", "luxos_cal.lsl", "luxos_awake.lsl"]
+MODULES = ["luxos-hub.lsl", "luxos_cc.lsl", "luxos_cal.lsl", "luxos_awake.lsl", "luxos-settings.lsl", "luxos-power.lsl", "luxos-lock-settings.lsl"]
 APPEARANCE = os.path.join(FILES, "bin", "luxos-appearance")
 TOKENS = ["xfconf-query", "org.xfce.Xfconf", "xfwm4", "xfce4-panel", "org.xfce.Panel"]
 X11_REF = re.compile(r"\b(\w+_x11)\b")

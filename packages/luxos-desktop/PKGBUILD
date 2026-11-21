@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=99
+pkgrel=100
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -208,9 +208,10 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-displays-settings.lsl" luxos-displays-settings
     # Agent polkitu relace na Waylandu (okno s heslem pro pkexec a Nastaveni); X11 relace dal polkit-gnome
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-polkit.lsl" luxos-polkit
-    # Aplikace nastaveni drive v Pythonu (WP-15): Bluetooth, Otisk prstu, Profilova fotka, QR kod Wi-Fi,
-    # Vychozi nastaveni aplikaci
-    for p in luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset; do
+    # Aplikace nastaveni drive v Pythonu (WP-15): Plocha a Dock, Baterie, Sporic a zamek, Co je noveho, Prohlidka,
+    # Bluetooth, Otisk prstu, Profilova fotka, QR kod Wi-Fi, Vychozi nastaveni aplikaci (X11 i Wayland)
+    for p in luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
+        luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset; do
         lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/$p.lsl" "$p"
     done
     rm -rf tokens
@@ -252,6 +253,7 @@ package() {
     install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news \
+        luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
         luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-sun "$pkgdir/usr/lib/luxos/luxos-sun"

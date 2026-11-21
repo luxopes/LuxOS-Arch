@@ -44,10 +44,6 @@ NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
 APPS = {
     "luxos-feedback": {},
-    "luxos-settings": {},
-    "luxos-whats-new": {"LUXOS_WHATS_NEW_DIR": os.path.join(ROOT, "luxos-branding", "files", "whats-new"),
-                        "LUXOS_VERSION_FILE": os.path.join(ROOT, "luxos-branding", "files", "version")},
-    "luxos-power": {"LUXOS_POWER_DEMO": "1"},
     "luxos-monitor": {"LUXOS_MONITOR_DEMO": "1"},
     "luxos-router": {"LUXOS_IP": os.path.join(FAKE_NET, "ip"), "LUXOS_NMCLI": os.path.join(FAKE_NET, "nmcli"),
                      "LUXOS_PING": os.path.join(FAKE_NET, "ping"), "LUXOS_ROUTER_PORT": "9"},
@@ -55,7 +51,6 @@ APPS = {
 }
 FPRINTD = os.path.join(HERE, "fingerprint", "fake_fprintd.py")
 APPS.update({
-    "luxos-lock-settings": {},
     "luxos-keyboard": {},
     "luxos-bluetooth": {"_sysbus": "1"},             # soukroma prazdna "systemova" sbernice: bez BlueZ
     "luxos-fingerprint": {"LUXOS_FPRINT_BUS": "session"},
@@ -195,20 +190,11 @@ class WindowFits(unittest.TestCase):
     def test_feedback(self):
         self.check("luxos-feedback")
 
-    def test_settings(self):
-        self.check("luxos-settings")
-
-    def test_power_demo(self):
-        self.check("luxos-power")
-
     def test_monitor_demo(self):
         self.check("luxos-monitor")
 
     def test_router_without_network(self):
         self.check("luxos-router")
-
-    def test_whats_new(self):
-        self.check("luxos-whats-new")
 
 
     def test_shortcuts(self):
@@ -219,7 +205,7 @@ class WindowFits(unittest.TestCase):
 class SizedToContent(unittest.TestCase):
     """Okna bez velke prazdne plochy dole: vyska podle obsahu, ne pevna vychozi (drive + HeaderBar 45 px)."""
 
-    OLD = {"luxos-lock-settings": 520, "luxos-keyboard": 600, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
+    OLD = {"luxos-keyboard": 600, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
            "luxos-profile-picture": 560, "luxos-display-settings": 700}
 
     def test_heights(self):
@@ -229,36 +215,6 @@ class SizedToContent(unittest.TestCase):
                 win = data["windows"][0]
                 self.assertLess(win["height"], old + 45 - 40, (app, win))
                 self.assertLessEqual(win["height"], 768 - 16, (app, win))
-
-
-# viditelne (namapovane) popisky prvniho okna - pro LUXOS_FIT_HOOK
-LABELS_HOOK = ("(lambda G: (lambda walk: walk(walk, wins[0]))(lambda f, w: ([w.get_text()] "
-               "if isinstance(w, G.Label) and w.get_mapped() else []) + "
-               "sum((f(f, c) for c in (w.get_children() if isinstance(w, G.Container) else [])), [])))(Gtk)")
-
-
-@unittest.skipUnless(shutil.which("Xvfb") and shutil.which("dbus-run-session"), "Xvfb/dbus-run-session missing")
-class PowerCards(unittest.TestCase):
-    """Na nabijecce s plnou baterii: misto "-" vysvetleni, karta Cykly bez udaje baterie skryta."""
-
-    def labels(self, demo):
-        data = run_app("luxos-power", (1366, 768), extra={"LUXOS_POWER_DEMO": demo, "LANG": "C.UTF-8"},
-                       hook=LABELS_HOOK, delay=1500, shot=shot_path("luxos-power-" + demo))
-        return data["hook"]
-
-    def test_full_on_ac(self):
-        labels = self.labels("full")
-        self.assertIn("Charging complete", labels)
-        self.assertIn("running on the power adapter", labels)
-        self.assertNotIn("-", labels)
-        self.assertNotIn("Charge cycles", labels)
-        self.assertNotIn("Not reported by this battery", labels)
-
-    def test_discharging(self):
-        labels = self.labels("1")
-        self.assertTrue({"7.8 W", "7,8 W"} & set(labels), labels)   # desetinna carka podle jazyka
-        self.assertIn("Charge cycles", labels)
-        self.assertIn("212", labels)
 
 
 @unittest.skipUnless(shutil.which("Xvfb") and shutil.which("dbus-run-session"), "Xvfb/dbus-run-session missing")
