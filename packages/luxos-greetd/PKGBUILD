@@ -5,14 +5,14 @@
 
 pkgname=luxos-greetd
 pkgver=1.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc="LuxOS login screen on Wayland (greetd + LSL greeter under luxwm)"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # !strip: programy v LSL po strip nejdou spustit
 options=(!debug !strip)
-depends=(greetd 'luxwm>=0.1.0-12' 'luxos-desktop>=1.1.0-98' gtk3 cairo pango luxos-i18n accountsservice)
+depends=(greetd 'luxwm>=0.1.0-15' 'luxos-desktop>=1.1.0-98' gtk3 cairo pango luxos-i18n accountsservice)
 optdepends=('xorg-xinit: login screen on NVIDIA 470 and older (Xorg instead of Wayland)')
 makedepends=('lsl>=0.11.0')
 backup=(etc/greetd/luxos.toml)
@@ -22,11 +22,13 @@ build() {
     # vazby na C (greetd IPC, GDK) a spolecne moduly luxos-desktop jako systemove bindingy LSL
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" \
         --system-bindings "$startdir/../luxos-desktop/files/lsl" "$startdir/files/lsl/luxos-greeter.lsl" luxos-greeter
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o libluxos-greetd-vt.so "$startdir/files/luxos-greetd-vt.c"
 }
 
 package() {
     local f="$startdir/files"
     install -Dm755 luxos-greeter "$pkgdir/usr/lib/luxos/luxos-greeter"
+    install -Dm755 libluxos-greetd-vt.so "$pkgdir/usr/lib/luxos/libluxos-greetd-vt.so"
     install -Dm755 "$f/luxos-greeter-session" "$pkgdir/usr/lib/luxos/luxos-greeter-session"
     install -Dm755 "$f/luxos-greetd-splash" "$pkgdir/usr/lib/luxos/luxos-greetd-splash"
     install -Dm644 "$f/luxos.toml" "$pkgdir/etc/greetd/luxos.toml"

@@ -664,10 +664,11 @@ function on_draw(cr, widget):
 end
 
 # Prvni snimek je na obrazovce: greetd (luxos-greetd-splash) az ted ukonci splash Plymouthu, do te doby
-# zustava videt jeho posledni obraz (bez cerne mezery a textove konzole mezi splashem a prihlasenim)
+# zustava videt jeho posledni obraz (bez cerne mezery a textove konzole mezi splashem a prihlasenim).
+# Pod luxwm znacku zaklada luxwm --hold, az je snimek opravdu na obrazovce; tady jen pod Xorg (NVIDIA 470).
 function mark_shown():
     dir = env.get("XDG_RUNTIME_DIR", "")
-    if dir != "":
+    if dir != "" and env.get("WAYLAND_DISPLAY", "") == "":
         safe:
             call lglib.write_atomic(dir + "/luxos-greeter-shown", "")
         end

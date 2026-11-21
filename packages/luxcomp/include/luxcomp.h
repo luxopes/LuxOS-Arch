@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 9
+#define LUXCOMP_API_VERSION 10
 
 #pragma GCC visibility push(default)
 
@@ -50,6 +50,8 @@ enum luxcomp_event {
 	LUXCOMP_EV_IPC_CLOSE,		/* id=IPC client; the id is dead after this */
 	LUXCOMP_EV_VIEW_SIZE,		/* id=view a=w b=h; the client changed its size (not sent during an
 					 * interactive move/resize, the button release ends those) */
+	LUXCOMP_EV_HOLD_END,		/* a=1 a client frame ended luxcomp_hold(), 0 the timeout; sent once
+					 * that frame is on every output (the old picture may go away now) */
 };
 
 enum luxcomp_request {
@@ -181,6 +183,9 @@ enum luxcomp_theme_prop {
 /* Lifecycle and event loop */
 int64_t luxcomp_init(luxcomp_event_fn fn, void *user);	/* 0 = ok */
 const char *luxcomp_socket(void);			/* WAYLAND_DISPLAY name after init */
+/* Before luxcomp_start(): outputs already lit (the boot splash) keep their mode and picture, nothing
+ * is committed until a client surface is visible or timeout_ms passed (no black modeset frame) */
+void luxcomp_hold(int64_t timeout_ms);
 int64_t luxcomp_start(void);				/* starts the backend, 0 = ok */
 int64_t luxcomp_fd(void);				/* poll this, then luxcomp_dispatch(0) */
 int64_t luxcomp_dispatch(int64_t timeout_ms);		/* <0 = quit requested or error */

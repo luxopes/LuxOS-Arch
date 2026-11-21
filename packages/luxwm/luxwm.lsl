@@ -7,6 +7,8 @@
 #   luxwm [-d] [PRIKAZ...]    -d = stopa rozhodnuti na stderr; prikazy se spusti po startu
 #   luxwm --greeter PRIKAZ    prihlasovaci obrazovka (greetd): jeden klient pres celou obrazovku, zadne
 #                             zkratky, XWayland ani privilegovane protokoly; konci s kodem klienta
+#   --hold                    obraz pred startem (splash Plymouthu) zustane, dokud klient nenakresli prvni
+#                             snimek (nejdele HOLD_MS); s --greeter pak $XDG_RUNTIME_DIR/luxos-greeter-shown
 # Signaly: SIGTERM/SIGINT konec, SIGHUP znovu nacte luxwm.conf a vzhled, SIGUSR1 jen vzhled
 # (prepnuti svetly/tmavy), SIGUSR2 vypise stav na stderr (testy).
 # IPC pro shell (lista, Dock, nastaveni): $XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock, radkovy JSON,
@@ -38,6 +40,9 @@ MODS = {"primary": lc.MOD_CTRL, "control": lc.MOD_CTRL, "ctrl": lc.MOD_CTRL, "sh
 
 trace = False
 greeter = False
+hold = False
+# hold konci nejpozdeji pred luxos-greetd-splash (10 s): splash nesmi skoncit, dokud ho drzime
+HOLD_MS = 8000
 settings = {}
 binds = {}           # id zkratky -> akce
 outputs = []
@@ -1621,6 +1626,18 @@ function request(v, what, arg, origin):
     end
 end
 
+# Prvni snimek greeteru je na obrazovce: luxos-greetd-splash az ted ukonci Plymouth (plymouth quit
+# --retain-splash). Driv by zmizel framebuffer splashe, ktery CRTC jeste zobrazuje (cerna obrazovka).
+function hold_end(by_client):
+    call log("hold end" + ("" if by_client else " (timeout)"))
+    dir = glib.getenv("XDG_RUNTIME_DIR")
+    if greeter and dir != None and dir != "":
+        safe:
+            call writefile(dir + "/luxos-greeter-shown", "")
+        end
+    end
+end
+
 function handle(event, id, a, b, c):
     if event == lc.EV_VIEW_NEW:
         call sandbox_window(id)
@@ -1681,6 +1698,9 @@ function handle(event, id, a, b, c):
     elif event == lc.EV_IPC_CLOSE:
         call drop_client(id)
         return
+    elif event == lc.EV_HOLD_END:
+        call hold_end(a == 1)
+        return
     elif event == lc.EV_SLIDE_DONE:
         if focused() == 0:
             call focus(top_on_current(0))
@@ -1691,7 +1711,8 @@ end
 
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
-               "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close", "view-size"]
+               "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close", "view-size",
+               "hold-end"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -2268,6 +2289,8 @@ for i in range(1, len(args)):
         trace = True
     elif args[i] == "--greeter":
         greeter = True
+    elif args[i] == "--hold":
+        hold = True
     else:
         commands.append(args[i])
     end
@@ -2304,6 +2327,9 @@ if sock != "" and lc.ipc_listen(sock) == 0:
 else:
     call log("no IPC socket" + (" at " + sock if sock != "" else " (no XDG_RUNTIME_DIR)"))
     sock = ""
+end
+if hold:
+    call lc.hold(HOLD_MS)
 end
 if lc.start() != 0:
     call log("cannot start the backend")

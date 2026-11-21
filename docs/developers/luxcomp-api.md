@@ -4,10 +4,10 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 9: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+`LUXCOMP_API_VERSION` = 10: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
 a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
-a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput), balík `packages/luxcomp`.
+a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput, 10 `luxcomp_hold()` a událost `HOLD_END`), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -43,6 +43,7 @@ Rozhraní je navržené pro FFI LSL (`# lsl: internal-abi`, `__lsl_qbe_callN`, t
 ```c
 luxcomp_init(on_event, user);      // 0 = ok; vytvoří socket a nastaví WAYLAND_DISPLAY
 /* ... luxcomp_workspace_new(), luxcomp_bind_key(), luxcomp_theme_set() ... */
+luxcomp_hold(8000);                // volitelně: převzít obraz splashe (viz níže)
 luxcomp_start();                   // spustí backend (DRM, headless, x11 ve vnořeném režimu)
 // buď:
 luxcomp_run();                     // do luxcomp_quit()
@@ -53,6 +54,17 @@ luxcomp_destroy();
 
 `luxcomp_dispatch()` vrací záporné číslo po `luxcomp_quit()` nebo při chybě. Klienty spouští
 `luxcomp_spawn(cmd)` (`sh -c`, dvojitý fork, nezůstanou zombie).
+
+**Převzetí obrazu splashe (`luxcomp_hold(timeout_ms)`, před `luxcomp_start()`).** wlroots převezme
+rozsvícený CRTC s jeho režimem a sám na něm nic nemění. Jádro pak na takový výstup nic necommitne,
+dokud ve scéně není vidět plocha klienta (první snímek greeteru) nebo neuplyne `timeout_ms`. Na
+obrazovce tak zůstane poslední snímek splashe Plymouthu. Bez toho by tam byl prázdný černý buffer
+modesetu a pak pozadí scény. První commit nese už snímek s klientem ve stávajícím režimu, takže
+jde o obyčejnou výměnu bufferu bez modesetu. Když ji ovladač odmítne, následuje modeset ve stejném
+režimu, už s hotovým snímkem. Výstupy zhasnuté při startu se zapnou a kreslí normálně.
+Událost `HOLD_END` přijde, až je první snímek po hold opravdu na všech výstupech (událost
+present). Teprve pak smí splash skončit. Framebuffer Plymouthu po `plymouth quit` zmizí a CRTC,
+který by ho ještě zobrazoval, jádro zhasne.
 
 ## Události
 
@@ -67,6 +79,7 @@ luxcomp_destroy();
 | `VIEW_DESTROY` | okno | id potom už neplatí |
 | `VIEW_TITLE`, `VIEW_APP_ID` | okno | změnil se název nebo app_id |
 | `VIEW_SIZE` | okno | šířka, výška; klient sám změnil velikost (ne během tažení myší, to končí uvolněním tlačítka) |
+| `HOLD_END` | 0 | 1 = `luxcomp_hold()` ukončil snímek klienta, 0 = časový limit; snímek je už na všech výstupech |
 | `VIEW_REQUEST` | okno | `LUXCOMP_REQ_*` a argument (viz níže) |
 | `BUTTON` | okno nebo 0 | tlačítko (kód Linuxu, 272 = levé), 1 stisk / 0 uvolnění, `LUXCOMP_PART_*` |
 | `KEYBIND` | zkratka | |
