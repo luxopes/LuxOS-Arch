@@ -90,13 +90,139 @@ send_frame_done(struct wlr_scene_buffer *buffer, int sx, int sy, void *data)
 }
 
 static void
+output_enable(struct wlr_output *wo)
+{
+	struct wlr_output_state state;
+	wlr_output_state_init(&state);
+	wlr_output_state_set_enabled(&state, true);
+	struct wlr_output_mode *mode = wlr_output_preferred_mode(wo);
+	const char *custom = getenv("LUXCOMP_OUTPUT_MODE");
+	int w, h;
+	if (mode) {
+		wlr_output_state_set_mode(&state, mode);
+	} else if (custom && sscanf(custom, "%dx%d", &w, &h) == 2) {
+		/* headless a vnoreny backend nemaji rezimy; velikost pro testy a okno */
+		wlr_output_state_set_custom_mode(&state, w, h, 0);
+	}
+	if (!wlr_output_commit_state(wo, &state)) {
+		/* rezim neprosel (napr. VM bez daneho rozliseni): zkusit bez nej */
+		wlr_output_state_finish(&state);
+		wlr_output_state_init(&state);
+		wlr_output_state_set_enabled(&state, true);
+		wlr_output_commit_state(wo, &state);
+	}
+	wlr_output_state_finish(&state);
+}
+
+/* ---- hold: obraz pred startem (splash Plymouthu) zustava do prvniho snimku klienta ----
+ * wlroots prebira rozsviceny CRTC s jeho rezimem a nic na nem nemeni, dokud nekdo necommitne. Drzeny
+ * vystup tedy dal ukazuje posledni snimek splashe; prvni commit uz nese snimek s klientem (greeter),
+ * bez prazdneho cerneho bufferu modesetu a bez pozadi sceny mezi tim. */
+
+static void
+client_buffer(struct wlr_scene_buffer *buffer, int sx, int sy, void *data)
+{
+	if (wlr_scene_surface_try_from_buffer(buffer)) {
+		*(bool *)data = true;
+	}
+}
+
+static void
+hold_release(bool by_client)
+{
+	comp.hold = false;
+	comp.hold_by_client = by_client;
+	if (comp.hold_timer) {
+		wl_event_source_remove(comp.hold_timer);
+		comp.hold_timer = NULL;
+	}
+	struct output *o;
+	wl_list_for_each(o, &comp.outputs, link) {
+		if (o->wlr_output->enabled) {
+			o->hold_wait = true;
+			comp.hold_pending++;
+			wlr_output_schedule_frame(o->wlr_output);
+		}
+	}
+	if (comp.hold_pending == 0) {
+		emit(LUXCOMP_EV_HOLD_END, 0, by_client, 0, 0);
+	}
+}
+
+static int
+hold_timeout(void *data)
+{
+	comp.hold_timer = NULL;
+	if (comp.hold) {
+		hold_release(false);
+	}
+	return 0;
+}
+
+/* Az kdyz je prvni snimek po hold opravdu na obrazovce, smi splash skoncit (jeho framebuffer zmizi) */
+static void
+hold_presented(struct output *o)
+{
+	o->hold_wait = false;
+	if (--comp.hold_pending == 0) {
+		emit(LUXCOMP_EV_HOLD_END, 0, comp.hold_by_client, 0, 0);
+	}
+}
+
+static void
+output_present(struct wl_listener *listener, void *data)
+{
+	struct output *o = wl_container_of(listener, o, present);
+	const struct wlr_output_event_present *event = data;
+	if (o->hold_wait && event->presented) {
+		hold_presented(o);
+	}
+}
+
+/* Prvni commit drzeneho vystupu: jen novy buffer ve stavajicim rezimu (plynula vymena). Kdyz to ovladac
+ * odmitne (rezim splashe nejde prevzit bez modesetu), modeset ve stejnem rezimu, uz s hotovym snimkem. */
+static bool
+held_output_commit(struct output *o)
+{
+	struct wlr_output *wo = o->wlr_output;
+	struct wlr_output_state state;
+	wlr_output_state_init(&state);
+	bool ok = wlr_scene_output_build_state(o->scene_output, &state, NULL);
+	if (ok && !wlr_output_commit_state(wo, &state)) {
+		if (wo->current_mode) {
+			wlr_output_state_set_mode(&state, wo->current_mode);
+		} else {
+			wlr_output_state_set_custom_mode(&state, wo->width, wo->height, wo->refresh);
+		}
+		ok = wlr_output_commit_state(wo, &state);
+	}
+	wlr_output_state_finish(&state);
+	if (!ok) {
+		/* stav splashe nejde prevzit vubec: normalni zapnuti (kratce cerna) a snimek hned potom */
+		output_enable(wo);
+		wlr_output_schedule_frame(wo);
+	}
+	o->held = false;
+	return ok;
+}
+
+static void
 output_frame(struct wl_listener *listener, void *data)
 {
 	struct output *o = wl_container_of(listener, o, frame);
+	if (comp.hold) {
+		bool client = false;
+		wlr_scene_output_for_each_buffer(o->scene_output, client_buffer, &client);
+		if (client) {
+			hold_release(true);
+		} else if (o->held) {
+			return;	/* splash zustava; vystup zhasnuty pri startu kresli normalne */
+		}
+	}
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
 	bool blurred = blur_output_frame(o);
-	bool done = wlr_scene_output_commit(o->scene_output, NULL);
+	bool done = o->held ? held_output_commit(o) : wlr_scene_output_commit(o->scene_output, NULL);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
 	int64_t render_ns = (t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
 	blur_frame_time(o, render_ns, blurred);
@@ -249,7 +375,11 @@ output_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&o->frame.link);
 	wl_list_remove(&o->request_state.link);
 	wl_list_remove(&o->destroy.link);
+	wl_list_remove(&o->present.link);
 	wl_list_remove(&o->link);
+	if (o->hold_wait) {
+		hold_presented(o);
+	}
 	free(o);
 	layers_arrange_all();
 	output_config_update();
@@ -263,30 +393,16 @@ new_output(struct wl_listener *listener, void *data)
 		return;
 	}
 
-	struct wlr_output_state state;
-	wlr_output_state_init(&state);
-	wlr_output_state_set_enabled(&state, true);
-	struct wlr_output_mode *mode = wlr_output_preferred_mode(wo);
-	const char *custom = getenv("LUXCOMP_OUTPUT_MODE");
-	int w, h;
-	if (mode) {
-		wlr_output_state_set_mode(&state, mode);
-	} else if (custom && sscanf(custom, "%dx%d", &w, &h) == 2) {
-		/* headless a vnoreny backend nemaji rezimy; velikost pro testy a okno */
-		wlr_output_state_set_custom_mode(&state, w, h, 0);
+	/* hold: rozsviceny vystup (splash) si necha rezim i obraz, prvni commit az se snimkem klienta */
+	bool held = comp.hold && wo->enabled && wo->width > 0 && wo->height > 0;
+	if (!held) {
+		output_enable(wo);
 	}
-	if (!wlr_output_commit_state(wo, &state)) {
-		/* rezim neprosel (napr. VM bez daneho rozliseni): zkusit bez nej */
-		wlr_output_state_finish(&state);
-		wlr_output_state_init(&state);
-		wlr_output_state_set_enabled(&state, true);
-		wlr_output_commit_state(wo, &state);
-	}
-	wlr_output_state_finish(&state);
 
 	struct output *o = calloc(1, sizeof(*o));
 	o->id = ++comp.next_id;
 	o->wlr_output = wo;
+	o->held = held;
 	wo->data = o;
 	o->frame.notify = output_frame;
 	wl_signal_add(&wo->events.frame, &o->frame);
@@ -294,6 +410,8 @@ new_output(struct wl_listener *listener, void *data)
 	wl_signal_add(&wo->events.request_state, &o->request_state);
 	o->destroy.notify = output_destroy;
 	wl_signal_add(&wo->events.destroy, &o->destroy);
+	o->present.notify = output_present;
+	wl_signal_add(&wo->events.present, &o->present);
 	wl_list_insert(comp.outputs.prev, &o->link);
 
 	struct wlr_output_layout_output *lo = wlr_output_layout_add_auto(comp.layout, wo);
@@ -397,6 +515,14 @@ const char *
 luxcomp_socket(void)
 {
 	return comp.socket;
+}
+
+void
+luxcomp_hold(int64_t timeout_ms)
+{
+	comp.hold = true;
+	comp.hold_timer = wl_event_loop_add_timer(comp.loop, hold_timeout, NULL);
+	wl_event_source_timer_update(comp.hold_timer, timeout_ms > 0 ? (int)timeout_ms : 1);
 }
 
 int64_t

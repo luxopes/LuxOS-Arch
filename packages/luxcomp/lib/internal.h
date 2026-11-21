@@ -53,8 +53,10 @@ struct output {
 	bool lock_shown;		/* rendered a frame with the lock cover */
 	bool head_enabled, head_published;
 	bool mirror;			/* shows another output (same origin), own layers hidden */
+	bool held;			/* luxcomp_hold: still shows what was there before (boot splash) */
+	bool hold_wait;			/* the first frame after the hold is not on screen yet */
 	int last_x, last_y;	/* last state sent through wlr-output-management */
-	struct wl_listener frame, request_state, destroy;
+	struct wl_listener frame, request_state, destroy, present;
 };
 
 struct workspace {
@@ -141,6 +143,11 @@ struct comp {
 	struct wl_listener new_kde_decoration;
 	struct wlr_output_manager_v1 *output_mgr;
 	bool software;
+	/* luxcomp_hold: lit outputs are not touched until the first client frame */
+	bool hold;
+	int hold_pending;		/* outputs whose first frame after the hold is not on screen yet */
+	bool hold_by_client;
+	struct wl_event_source *hold_timer;
 	bool virtual_input_open;	/* LUXCOMP_VIRTUAL_INPUT: virtual input for every unsandboxed client */
 	char **privileged;		/* executables allowed to bind privileged globals */
 	size_t n_privileged;
