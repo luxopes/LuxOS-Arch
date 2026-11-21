@@ -255,9 +255,11 @@ scripts/wl-test/run-all -k test_power --keep packages/...                  # one
 ```
 
 - Builds first: sysroot (`fetch-sysroot.sh`, also the Xorg `dummy` driver for the scroll tests), `wlt` tools,
-  luxwm (`packages/luxwm/tests/build-host.sh`) and the greeter (`packages/luxos-greetd/tests/build.sh`).
+  luxwm (`packages/luxwm/tests/build-host.sh`), the greeter (`packages/luxos-greetd/tests/build.sh`) and the
+  programs tests otherwise take from the system (`luxos-mail`, `luxos-terminal`, `luxos-text`, via `build()` of
+  their PKGBUILD; `LUXOS_*_BIN`).
 - Every module runs from `env -i` under `systemd-run --user --scope` (`TasksMax=300`, `MemoryMax=1500M`,
-  `RUN_ALL_MEMORY`) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), with its own `HOME` and `TMPDIR`, its own Xvfb on
+  `RUN_ALL_MEMORY`; whatever a module leaves running is stopped with its scope) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), with its own `HOME` and `TMPDIR`, its own Xvfb on
   :300–:399 with a cookie, a private session bus (`dbus-run-session`, no service directories) and a dead system bus.
 - LSL comes from `LSL_HOME` (an unpacked release, never installed on the host), otherwise `lslc` from `PATH`;
   older than 0.11.1 is refused.

@@ -124,7 +124,8 @@ run_one() {  # run_one INDEX MODUL
     mkdir -p "$home" "$tmp"
     local t0=$SECONDS rc x
     x=$(start_x "$tmp") || { echo "$t: no free X display" >"$log"; x="0 0"; }
-    "${scope[@]}" -p MemoryMax="${RUN_ALL_MEMORY:-1500M}" -- \
+    local unit=run-all-$$-$i
+    "${scope[@]}" --unit="$unit" -p MemoryMax="${RUN_ALL_MEMORY:-1500M}" -- \
         "${safe_env[@]}" HOME="$home" TMPDIR="$tmp" LUXOS_TEST_ROOT="$root" \
         LUXOS_LSLC="$lslc" LSLC="$lslc" WLT_OUT="$root/w" LUXOS_WL_SYSROOT="$repo/out/wl-test/sysroot" \
         LUXWM_BUILD="$root/luxwm" LUXOS_GREETER_BIN="$root/greeter/luxos-greeter" \
@@ -137,6 +138,8 @@ run_one() {  # run_one INDEX MODUL
         python3 -m unittest discover -v -s "$(dirname "$t")" -p "$(basename "$t")" "${kargs[@]}" \
         >"$log" 2>&1
     rc=$?
+    # co modul nechal bezet (falesne servery testu, ktery spadl v setUp), skonci se scope
+    systemctl --user stop "$unit.scope" 2>/dev/null
     ((${x#* })) && kill "${x#* }" 2>/dev/null
     local ran ok sk fails
     ran=$(grep -oE '^Ran [0-9]+' "$log" | awk '{print $2}')
