@@ -77,7 +77,8 @@ class CsdWindows(unittest.TestCase):
 
     def test_plain_window_gets_server_side_title_bar(self):
         v = self.window("--plain", "Plain")
-        self.assertEqual(v["top"], 32, "okno bez headerbaru chce zahlavi LuxOS (org_kde_kwin_server_decoration)")
+        # cizi aplikace: nizke zahlavi (TITLEBAR height_compact)
+        self.assertEqual(v["top"], 30, "okno bez headerbaru chce zahlavi LuxOS (org_kde_kwin_server_decoration)")
         # zahlavi nad obsahem: semafor vlevo nahore (cervena)
         r, g, b = self.s.pixel(v["x"] + 18, v["y"] - 16)
         self.assertGreater(r, 180)

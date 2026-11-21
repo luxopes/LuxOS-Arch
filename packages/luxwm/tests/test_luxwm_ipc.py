@@ -11,6 +11,7 @@ packages/luxos-desktop/files/lsl do docasneho adresare. Jiny uid se simuluje pre
 """
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -29,7 +30,8 @@ DESKTOP = os.path.join(ROOT, "packages", "luxos-desktop")
 XFCE_DEFAULTS = os.path.join(DESKTOP, "files/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml")
 MSG = os.path.join(BUILD, "luxwm-msg")
 W, H = 1280, 800
-TITLE = 32
+TITLE = 30          # TITLEBAR height_compact (wlt-client is a foreign app)
+MARGIN = 8          # luxwm PLACE_MARGIN
 
 
 def ppm(path):
@@ -332,7 +334,7 @@ class LuxwmIpc(unittest.TestCase):
         # vysoke okno (Nastaveni, Pruvodce): cele nad Dockem, i tlacitka dole
         s.client("Tall", app="tall", size="500x780")
         f = self.window_event(c, "Tall", lambda f: f[1] + f[3] <= H - zone)
-        self.assertEqual((f[1], f[3]), (0, H - zone), f)
+        self.assertEqual((f[1], f[3]), (MARGIN, H - zone - 2 * MARGIN), f)
         self.assertEqual(f[0], (W - 500) // 2)
         # male okno na stred plochy nad Dockem
         s.client("Small", app="small", size="400x300")
@@ -357,8 +359,8 @@ class LuxwmIpc(unittest.TestCase):
         c.send('{"id": 1, "cmd": "subscribe", "events": ["window"]}')
         c.line()
         s.client("Tall2", app="tall2", size="500x780")
-        f = self.window_event(c, "Tall2", lambda f: f[3] == H)
-        self.assertEqual(f[1], 0)
+        f = self.window_event(c, "Tall2", lambda f: f[3] == H - 2 * MARGIN)
+        self.assertEqual(f[1], MARGIN)
         c.close()
         self.assertNotIn("error in", s.log())
 
@@ -571,8 +573,10 @@ class LuxwmIpc(unittest.TestCase):
         s.spawn(app, "--shortcuts", env={**s.env, "LUXOS_SHORTCUTS_DEFAULTS": XFCE_DEFAULTS})
         time.sleep(2.5)
         s.shot("keyboard-settings-shortcuts.ppm")
-        # "Zmenit..." u Zavrit okno (prvni radek, okno je uprostred)
-        s.input("move 788 190", "click", wait=0.8)
+        # "Zmenit..." u Zavrit okno (prvni radek): 132 px pod hornim okrajem ramu okna ("place" ve stope luxwm)
+        m = re.findall(r"place \d+ luxos-(?:keyboard\S*|shortcuts) (\d+),(\d+) (\d+)x(\d+)", s.log())[-1]
+        x, y, w, h = map(int, m)
+        s.input(f"move {x + 458} {y + 132}", "click", wait=0.8)
         self.assertTrue(s.wait_log("shortcuts suspended"), "luxwm vypne zkratky behem zadavani")
         s.input("keydown ctrl", "keydown alt", "key k", "keyup alt", "keyup ctrl", wait=1.0)
         conf = open(s.path("luxwm", "luxwm.conf")).read()
@@ -619,10 +623,10 @@ class LuxwmIpc(unittest.TestCase):
         windows = json.loads(s.msg("list-windows", exe=self.msg_priv).stdout)["windows"]
         self.assertEqual(windows[0]["title"], "Themed")
         before = s.shot("theme-light.ppm")
-        # stred zahlavi okna 500x300 uprostred pouzitelne plochy (pod listou)
+        # stred zahlavi okna 500x300 v horni tretine pouzitelne plochy s okrajem (pod listou)
         u = s.state()["output"]["outputs"][0]["usable"]
         cx = u[0] + u[2] // 2
-        top = u[1] + (u[3] - 300 - TITLE) // 2
+        top = u[1] + MARGIN + (u[3] - 2 * MARGIN - 300 - TITLE) // 3
         probe = (cx - 150, top + TITLE // 2)
         light = pixel(before, *probe)
         open(os.path.join(conf, "appearance"), "w").write("dark\n")
