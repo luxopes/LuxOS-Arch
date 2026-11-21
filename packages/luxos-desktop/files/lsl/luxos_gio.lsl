@@ -2,6 +2,8 @@
 # LuxOS - doplnky k modulu gio LSL 0.10.6 (D-Bus) pro luxos-hub; programy nacitaji `load luxos_gio, gio as gio`.
 #   call_async(bus, name, path, iface, method, values, signature, ms, f, data)   f(data, hodnoty odpovedi nebo None, chyba)
 #   call_interactive(...)                                                         totez, smi se zeptat na heslo (polkit)
+#   call_sync_flags(bus, name, path, iface, method, values, signature, ms, flags) jako gio.call_values s priznaky
+#                                                                                 (2 = smi se zeptat na heslo); DBusError
 #   bus_for_address(address)                                                      vlastni spojeni se sbernici podle adresy
 #   remote_error(chyba)                                                           jmeno chyby D-Bus z textu chyby ("" = jina)
 #   subscribe_data(bus, sender, iface, member, path, arg0, flags, f, data)        f(data, sender, path, iface, signal, hodnoty);
@@ -127,6 +129,24 @@ function vanished_trampoline(pair, sender, path, interface, signal, values):
         call handler(pair[1], values[0])
     end
     return 0
+end
+
+function call_sync_flags(bus, name, path, interface, method, values, signature, timeout, flags):
+    unsafe:
+        parameters = 0
+        if len(signature) > 0:
+            parameters = __lsl_qbe_call1(__lsl_symbol("g_variant_ref_sink"), ptr(gio.value_to_variant(values, signature)))
+        end
+        cell = gio.error_cell()
+        reply = __lsl_qbe_call11(__lsl_symbol("g_dbus_connection_call_sync"), ptr(bus), cstr(name), cstr(path), cstr(interface), cstr(method), parameters, 0, ptr(flags), ptr(timeout), 0, glib.array_data(cell))
+        if parameters != 0:
+            call __lsl_qbe_call1(__lsl_symbol("g_variant_unref"), parameters)
+        end
+        call gio.take_error(cell)
+        result = gio.variant_to_value(reply)
+        call __lsl_qbe_call1(__lsl_symbol("g_variant_unref"), reply)
+        return result
+    end
 end
 
 # Spojeni se sbernici podle adresy ("unix:path=..."; testy s vlastnim dbus-daemonem); DBusError pri chybe

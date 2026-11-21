@@ -156,6 +156,23 @@ class SettingsAppsWayland(unittest.TestCase):
         c = calls.read_text().split("\n")
         self.assertEqual(c.count("Claim "), c.count("Release"))
 
+    def test_profile_picture(self):
+        # kamera = videotestsrc (LUXOS_CAMERA_TEST), uzly video* jen v prazdne slozce
+        videos = self.session / "no-cameras"
+        videos.mkdir()
+        self.open("luxos-profile-picture", "--camera", HOME=str(self.session / "home"), LUXOS_CAMERA_TEST="1",
+                  LUXOS_VIDEO_DEV_DIR=str(videos), LUXOS_ACCOUNTS_FAKE=str(self.session / "accounts"))
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.assertTrue(self.app.wait(lambda: state()["cam"] == "preview"))
+        self.check_window("luxos-profile-picture", "Profile Picture")
+        self.app.ask("photo")
+        self.assertTrue(self.app.wait(lambda: state()["page"] == "crop"))
+        time.sleep(0.4)                 # prolinani stranek
+        self.shot("luxos-profile-picture-crop")
+        self.app.ask("click Save")
+        self.assertTrue(self.app.wait(lambda: (self.session / "home/.face").exists()))
+        self.assertEqual((self.session / "accounts").read_text(), str(self.session / "home/.face"))
+
 
 if __name__ == "__main__":
     unittest.main()

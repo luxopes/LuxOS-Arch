@@ -183,8 +183,9 @@ Control Center) and calls AccountsService `SetIconFile` on your user over D-Bus.
 copies it to `/var/lib/AccountsService/icons/<user>`, where the login screen (`luxos-greeter`) and the
 user button of the LuxOS menu (Whisker Menu) read it. Changing your own picture needs no password
 (polkit `org.freedesktop.accounts.change-own-user-data` for the active local session). If
-AccountsService fails, the picture is still saved in `~/.face` and the window says so. The Python
-helper is `/usr/lib/luxos/python/luxos_avatar.py`.
+AccountsService fails, the picture is still saved in `~/.face` and the window says so. The app is
+native (LSL, module `luxos_avatar.lsl`); LuxAI Account uses the same logic from
+`/usr/lib/luxos/python/luxos_avatar.py`.
 
 ## Screen Saver & Lock
 

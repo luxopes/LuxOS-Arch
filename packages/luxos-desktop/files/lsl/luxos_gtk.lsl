@@ -13,7 +13,9 @@
 #   CLIPBOARD i PRIMARY), x11_server_time(widget), window_set_icon_list(okno, ikona) 16-256 px,
 #   primary_monitor_info() -> [x, y, w, h, nazev vystupu] (widgety plochy: tapeta hlavniho monitoru)
 #   aplikace prepsane z Pythonu: window_set_header(okno, nadpis), spinner_new/spinner_set, list_box_add (radek bez
-#   zvyrazneni), list_box_set_placeholder, stack_new/stack_add_named/stack_*_visible_child_name, dialog_new_header
+#   zvyrazneni), list_box_set_placeholder, stack_new/stack_add_named/stack_*_visible_child_name, dialog_new_header,
+#   file_chooser_native_new/native_dialog_run/file_chooser_add_image_filter, overlay_set_pass_through,
+#   box_set_center_widget, window_get_focus, widget_get_sensitive, widget_is_button
 load glib, gtk, cairo
 load luxos_glib
 
@@ -285,6 +287,62 @@ end
 function dialog_new_header():
     unsafe:
         return __lsl_qbe_call4(__lsl_symbol("g_object_new"), __lsl_qbe_call0(__lsl_symbol("gtk_dialog_get_type")), cstr("use-header-bar"), 1, 0)
+    end
+end
+
+# Vyber souboru pres portal (Gtk.FileChooserNative); run -> RESPONSE_ACCEPT (-3), po pouziti object_unref
+function file_chooser_native_new(title, parent, action, accept, cancel):
+    unsafe:
+        return __lsl_qbe_call5(__lsl_symbol("gtk_file_chooser_native_new"), cstr(title), ptr(parent), ptr(action), cstr(accept), cstr(cancel))
+    end
+end
+
+function native_dialog_run(dialog):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_native_dialog_run"), ptr(dialog)))
+    end
+end
+
+# Filtr se vsemi formaty obrazku, ktere umi GdkPixbuf
+function file_chooser_add_image_filter(chooser, name):
+    unsafe:
+        filter = __lsl_qbe_call0(__lsl_symbol("gtk_file_filter_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_set_name"), filter, cstr(name))
+        call __lsl_qbe_call1(__lsl_symbol("gtk_file_filter_add_pixbuf_formats"), filter)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_chooser_add_filter"), ptr(chooser), filter)
+    end
+end
+
+function overlay_set_pass_through(overlay, child):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("gtk_overlay_set_overlay_pass_through"), ptr(overlay), ptr(child), 1)
+    end
+end
+
+function box_set_center_widget(box, child):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_box_set_center_widget"), ptr(box), ptr(child))
+    end
+end
+
+function window_get_focus(window):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("gtk_window_get_focus"), ptr(window))
+    end
+end
+
+function widget_get_sensitive(widget):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_widget_get_sensitive"), ptr(widget))) != 0
+    end
+end
+
+function widget_is_button(widget):
+    unsafe:
+        if ptr(widget) == 0:
+            return False
+        end
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("g_type_check_instance_is_a"), ptr(widget), __lsl_qbe_call0(__lsl_symbol("gtk_button_get_type")))) != 0
     end
 end
 

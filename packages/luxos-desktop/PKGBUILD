@@ -203,8 +203,8 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
     # Agent polkitu relace na Waylandu (okno s heslem pro pkexec a Nastaveni); X11 relace dal polkit-gnome
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-polkit.lsl" luxos-polkit
-    # Aplikace nastaveni drive v Pythonu (WP-15): Bluetooth, Otisk prstu
-    for p in luxos-bluetooth luxos-fingerprint; do
+    # Aplikace nastaveni drive v Pythonu (WP-15): Bluetooth, Otisk prstu, Profilova fotka
+    for p in luxos-bluetooth luxos-fingerprint luxos-profile-picture; do
         lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/$p.lsl" "$p"
     done
     rm -rf tokens
@@ -246,7 +246,7 @@ package() {
     install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news \
-        luxos-bluetooth luxos-fingerprint
+        luxos-bluetooth luxos-fingerprint luxos-profile-picture
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-notify "$pkgdir/usr/lib/luxos/luxos-notify"
     install -Dm644 "$f/systemd-user/luxos-notify.service" "$pkgdir/usr/lib/systemd/user/luxos-notify.service"
