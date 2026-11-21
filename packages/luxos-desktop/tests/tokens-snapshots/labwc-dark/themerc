@@ -18,9 +18,9 @@ window.button.hover.bg.color: #00000000
 window.button.hover.bg.corner-radius: 10
 window.active.button.unpressed.image.color: #f4f4faff
 window.inactive.button.unpressed.image.color: #f4f4fa99
-window.active.shadow.size: 40
-window.inactive.shadow.size: 24
-window.active.shadow.color: #00000059
+window.active.shadow.size: 48
+window.inactive.shadow.size: 28
+window.active.shadow.color: #00000052
 window.inactive.shadow.color: #0000002e
 menu.overlap.x: 0
 menu.overlap.y: 0
@@ -28,7 +28,7 @@ menu.width.min: 160
 menu.width.max: 360
 menu.border.width: 1
 menu.border.color: #ffffff24
-menu.items.bg.color: #202134ff
+menu.items.bg.color: #1e1f2aff
 menu.items.text.color: #f4f4faff
 menu.items.active.bg.color: #3d7bffff
 menu.items.active.text.color: #ffffffff
@@ -38,10 +38,10 @@ menu.separator.width: 1
 menu.separator.padding.width: 8
 menu.separator.padding.height: 4
 menu.separator.color: #ffffff24
-menu.title.bg.color: #202134ff
+menu.title.bg.color: #1e1f2aff
 menu.title.text.color: #f4f4fa99
 menu.title.text.justify: Left
-osd.bg.color: #202134ff
+osd.bg.color: #1e1f2aff
 osd.border.color: #ffffff24
 osd.border.width: 1
 osd.label.text.color: #f4f4faff

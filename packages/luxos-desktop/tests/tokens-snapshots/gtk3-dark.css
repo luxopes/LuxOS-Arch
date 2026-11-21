@@ -1,4 +1,6 @@
 @define-color lx_accent #3d7bff;
+@define-color lx_accent_hover #2f6ae6;
+@define-color lx_accent_pressed #285bcc;
 @define-color lx_accent_text #ffffff;
 @define-color lx_card_edge rgba(255, 255, 255, 0.38);
 @define-color lx_card_edge_bottom rgba(255, 255, 255, 0.2);
@@ -16,7 +18,6 @@
 @define-color lx_light_min #febc2e;
 @define-color lx_on_glass #ffffff;
 @define-color lx_on_glass_light #191f2b;
-@define-color lx_selection #2f6fed;
 @define-color lx_white #ffffff;
 @define-color lx_border rgba(255, 255, 255, 0.14);
 @define-color lx_bubble rgba(255, 255, 255, 0.14);
@@ -24,57 +25,67 @@
 @define-color lx_button_hover rgba(255, 255, 255, 0.16);
 @define-color lx_dim rgba(244, 244, 250, 0.6);
 @define-color lx_fg #f4f4fa;
+@define-color lx_fg_secondary rgba(244, 244, 250, 0.84);
 @define-color lx_fg_soft rgba(244, 244, 250, 0.72);
 @define-color lx_field rgba(0, 0, 0, 0.24);
 @define-color lx_fill rgba(255, 255, 255, 0.85);
 @define-color lx_light_inactive rgba(255, 255, 255, 0.22);
 @define-color lx_link #7aa7ff;
-@define-color lx_notification rgba(32, 33, 52, 0.8);
-@define-color lx_notification_solid rgba(32, 33, 52, 0.95);
-@define-color lx_popup rgba(32, 33, 52, 0.86);
-@define-color lx_popup_solid rgba(32, 33, 52, 0.96);
 @define-color lx_tile rgba(255, 255, 255, 0.08);
 @define-color lx_tile_hover rgba(255, 255, 255, 0.13);
 @define-color lx_trough rgba(255, 255, 255, 0.14);
 @define-color lx_window #21242b;
+@define-color lx_mat_bar rgba(28, 29, 38, 0.96);
+@define-color lx_mat_dim rgba(30, 31, 42, 0.96);
+@define-color lx_mat_dock rgba(28, 29, 38, 0.96);
+@define-color lx_mat_menu rgba(30, 31, 42, 0.96);
+@define-color lx_mat_popup rgba(30, 31, 42, 0.96);
+@define-color lx_mat_sheet rgba(30, 31, 42, 0.96);
+@define-color lx_mat_toast rgba(30, 31, 42, 0.96);
+@define-color lx_mat_border rgba(0, 0, 0, 0.45);
+@define-color lx_mat_highlight rgba(255, 255, 255, 0.16);
 * { font-family: "Inter", "Cantarell", sans-serif; }
 window.lx { background: transparent; color: @lx_fg; }
-.lx-popup { background-color: @lx_popup; border-radius: 18px; border: 1px solid @lx_border; padding: 12px; color: @lx_fg; }
-.lx-glass { background-color: transparent; border: 1px solid @lx_card_edge; border-top-color: @lx_card_edge_top; border-bottom-color: @lx_card_edge_bottom; box-shadow: inset 0 1px rgba(255, 255, 255, 0.18); }
-.lx-card { border-radius: 22px; padding: 16px 18px; box-shadow: 0 8px 16px -8px rgba(8, 12, 24, 0.16), inset 0 1px rgba(255, 255, 255, 0.18); }
-.lx-head { font-weight: 700; font-size: 14px; }
-.lx-title { font-weight: 600; font-size: 14px; }
-.lx-caption { font-weight: 600; font-size: 11px; color: @lx_dim; margin: 6px 4px 0 4px; }
-.lx-dim { font-size: 11px; color: @lx_dim; }
-.lx-error { color: @lx_error; font-size: 11px; }
-.lx-section { background-color: @lx_tile; border-radius: 14px; padding: 6px; }
-button.lx-row { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 10px; padding: 6px 8px; min-height: 22px; color: @lx_fg; }
+.lx-popup { background-color: @lx_mat_popup; border-radius: 16px; border: 1px solid @lx_mat_border; box-shadow: inset 0 1px @lx_mat_highlight; padding: 12px; color: @lx_fg; }
+.lx-glass { background-color: transparent; }
+.lx-card { border-radius: 24px; padding: 16px; box-shadow: 0 8px 16px -8px rgba(8, 12, 24, 0.16), inset 0 1px rgba(255, 255, 255, 0.18); }
+.lx-head { font-size: 15px; font-weight: 600; }
+.lx-title { font-size: 13px; font-weight: 600; }
+.lx-caption { font-size: 11px; font-weight: 400; color: @lx_fg_secondary; margin: 8px 4px 0 4px; }
+.lx-dim { font-size: 12px; font-weight: 400; color: @lx_fg_secondary; }
+.lx-error { color: @lx_error; font-size: 12px; font-weight: 400; }
+.lx-section { background-color: @lx_tile; border-radius: 12px; padding: 8px; }
+button.lx-row { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 8px; padding: 4px 8px; min-height: 20px; color: @lx_fg; }
 button.lx-row:hover { background-color: @lx_tile_hover; }
-button.lx-row label { font-size: 13px; }
-.lx-bubble { background-color: @lx_bubble; border-radius: 999px; min-width: 26px; min-height: 26px; }
+button.lx-row label { font-size: 13px; font-weight: 400; }
+.lx-bubble { background-color: @lx_bubble; border-radius: 999px; min-width: 28px; min-height: 28px; }
 button.lx-row.on .lx-bubble { background-color: @lx_accent; color: @lx_accent_text; }
-button.lx-icon { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 999px; min-width: 26px; min-height: 26px; padding: 0; color: @lx_fg; }
+button.lx-icon { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 999px; min-width: 28px; min-height: 28px; padding: 0; color: @lx_fg; }
 button.lx-icon:hover { background-color: @lx_tile_hover; }
-button.lx-accent { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 999px; padding: 3px 14px; background-color: @lx_accent; }
-button.lx-accent label { color: @lx_accent_text; font-weight: 600; font-size: 12px; }
-button.lx-button { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 8px; padding: 3px 10px; background-color: @lx_button; color: @lx_fg; }
+button.lx-accent { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 8px; padding: 0 12px; min-height: 28px; background-color: @lx_accent; }
+button.lx-accent:hover { background-color: @lx_accent_hover; }
+button.lx-accent:active { background-color: @lx_accent_pressed; }
+button.lx-accent label { color: @lx_accent_text; font-size: 12px; font-weight: 400; font-weight: 500; }
+button.lx-button { background: none; background-image: none; border: none; box-shadow: none; outline: none; border-radius: 8px; padding: 0 12px; min-height: 28px; background-color: @lx_button; color: @lx_fg; }
 button.lx-button:hover { background-color: @lx_button_hover; }
+button.lx-button label { font-size: 12px; font-weight: 400; font-weight: 500; }
 .lx-popup entry { min-height: 28px; border-radius: 8px; border: none; background-image: none; background-color: @lx_field; box-shadow: inset 0 0 0 1px @lx_border; color: @lx_fg; }
 .lx-popup entry:focus { box-shadow: 0 0 0 3px alpha(#3d7bff, 0.25); }
-.lx-popup switch { border-radius: 999px; border: none; background-image: none; background-color: @lx_bubble; box-shadow: none; min-height: 22px; }
+.lx-popup switch { border-radius: 999px; border: none; background-image: none; background-color: @lx_bubble; box-shadow: none; min-height: 24px; min-width: 40px; }
 .lx-popup switch:checked { background-color: @lx_accent; }
-.lx-popup switch slider { border-radius: 999px; min-width: 20px; min-height: 20px; margin: 1px; border: none; background-image: none; background-color: @lx_white; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
-.lx-popup scale trough { min-height: 22px; border-radius: 11px; background-color: @lx_trough; border: none; }
-.lx-popup scale highlight { min-height: 22px; border-radius: 11px; background-color: @lx_fill; border: none; }
-.lx-popup scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px; background-color: @lx_white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.lx-popup switch slider { border-radius: 999px; min-width: 22px; min-height: 22px; margin: 1px; border: none; background-image: none; background-color: @lx_white; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
+.lx-popup scale trough { min-height: 28px; border-radius: 14px; background-color: @lx_trough; border: none; }
+.lx-popup scale highlight { min-height: 28px; border-radius: 14px; background-color: @lx_fill; border: none; }
+.lx-popup scale slider { min-width: 28px; min-height: 28px; margin: 0; border-radius: 14px; background-color: @lx_white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 .lx-popup progressbar trough { background-color: @lx_trough; border: none; border-radius: 4px; min-height: 6px; }
 .lx-popup progressbar progress { border-radius: 4px; min-height: 6px; }
 .lx-unread { background-color: @lx_accent; border-radius: 999px; min-width: 8px; min-height: 8px; }
-.lx-notification { background-color: @lx_notification_solid; border-radius: 14px; border: 1px solid @lx_border; padding: 4px; color: @lx_fg; }
-.lx-notification .lx-summary { font-weight: 700; }
-.lx-notification .lx-body, .lx-notification .lx-dim { color: @lx_fg_soft; }
+.lx-notification { background-color: @lx_mat_toast; border-radius: 16px; border: 1px solid @lx_mat_border; box-shadow: inset 0 1px @lx_mat_highlight; padding: 12px; color: @lx_fg; }
+.lx-notification .lx-summary { font-size: 13px; font-weight: 600; }
+.lx-notification .lx-body { font-size: 13px; font-weight: 400; color: @lx_fg_secondary; }
+.lx-notification .lx-dim { color: @lx_fg_secondary; }
 button.lx-close { background: none; background-image: none; border: none; box-shadow: none; outline: none; min-width: 18px; min-height: 18px; padding: 0; }
-button.lx-close label { color: @lx_close_glyph; font-size: 14px; font-weight: 700; }
+button.lx-close label { color: @lx_close_glyph; font-size: 15px; font-weight: 600; font-weight: 700; }
 button.lx-close:hover label { color: @lx_close_glyph_hover; }
 button.lx-light { min-width: 12px; min-height: 12px; padding: 0; margin: 0 4px 0 0; border-radius: 999px; border: 1px solid @lx_light_border; background-image: none; box-shadow: none; outline: none; }
 button.lx-light label { font-size: 9px; font-weight: 800; color: transparent; margin-top: -1px; }
@@ -83,7 +94,11 @@ button.lx-light-close { background-color: @lx_light_close; }
 button.lx-light-min { background-color: @lx_light_min; }
 button.lx-light-max { background-color: @lx_light_max; }
 .lx-backdrop button.lx-light { background-color: @lx_light_inactive; }
-menu, .menu { background-color: @lx_popup_solid; border-radius: 12px; padding: 5px; }
-menu > menuitem { border-radius: 6px; padding: 4px 10px; min-height: 20px; }
+.csd.popup decoration { box-shadow: none; border-radius: 12px; }
+menu, .menu { background-color: @lx_mat_menu; border-radius: 12px; padding: 5px; border: none; }
+menu > menuitem { border-radius: 6px; padding: 4px 10px; min-height: 18px; font-size: 13px; font-weight: 400; }
 menu > menuitem:hover { background-color: @lx_accent; color: @lx_accent_text; }
-menu > separator { margin: 4px 8px; }
+menu > menuitem:disabled { color: alpha(@lx_fg, 0.35); }
+menu > menuitem accelerator { color: @lx_fg_secondary; }
+menu > menuitem:hover accelerator { color: alpha(@lx_accent_text, 0.8); }
+menu > separator { margin: 5px 10px; min-height: 1px; background-color: @lx_border; }

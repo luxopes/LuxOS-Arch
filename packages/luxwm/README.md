@@ -85,7 +85,8 @@ value turns a default shortcut off. Unknown actions are skipped, so the tabwin k
 `Escape`…) are never grabbed globally.
 
 Settings: `workspaces` (1–16), `slide_ms` (0 = no animation), `wrap_workspaces` (yes/no),
-`xwayland` (yes/no), `displays_command` (run with `sh -c` once, 300 ms after outputs are plugged in or
+`xwayland` (yes/no), `blur` (yes/no: material of shell surfaces blurred or a solid colour, see
+`docs/developers/luxcomp-api.md`), `displays_command` (run with `sh -c` once, 300 ms after outputs are plugged in or
 out and at startup; default `luxos-displays auto`, which applies the saved display settings for the
 connected set of monitors; empty = nothing).
 
