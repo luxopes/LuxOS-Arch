@@ -63,8 +63,10 @@ recently, …). The router and this computer are marked.
 
 ## For scripts and AI assistants
 
-The logic is in `/usr/lib/luxos/python/luxos_netadmin.py` (no GTK): `default_gateway()`,
-`network_info()`, `lan_policy(url, gateway)` (allow / resolve / external / block),
-`tls_exception_allowed(url, gateway)`, `neighbours()`, `oui_lookup(macs)`, `ping(host)`,
-`dns_test()`. Never put router passwords into files or commands. Change router settings only
+The app is native (LSL). Its rules are in the module `luxos_netadmin.lsl` (no GTK):
+`lan_policy(url, gateway)` (allow / resolve / external / block), `tls_exception_allowed(url, gateway)`,
+`parse_routes`, `parse_neigh`, `scan_targets`, `parse_ping`. It reads the same tools you can run
+yourself: `ip -j route show default`, `nmcli -t device show DEV`, `ip -j neigh show`, `ping -c 4 HOST`,
+`getent ahosts NAME` (name lookup), `curl` (public address, speed estimate). The web view
+(WebKitGTK) is loaded only when the Router tab opens. Never put router passwords into files or commands. Change router settings only
 through its web admin, with the user watching.

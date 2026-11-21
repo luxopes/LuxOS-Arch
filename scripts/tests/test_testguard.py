@@ -151,25 +151,12 @@ class TestGuardSystemBusAndCamera(unittest.TestCase):
 
 
 class TestCameraNodesFromGuardDir(unittest.TestCase):
-    """luxos_camera / luxos-wifi-qr hledaji kamery v LUXOS_VIDEO_DEV_DIR (pojistka: prazdna slozka)."""
+    """luxos_camera.lsl / luxos-wifi-qr hledaji kamery v LUXOS_VIDEO_DEV_DIR (pojistka: prazdna slozka)."""
 
     def test_video_nodes(self):
+        # poradi uzlu (video10 za video2) overuje tests/lsl/luxos-camera-test.lsl (test_luxos_camera.py)
         repo = os.path.dirname(SCRIPTS)
-        pydir = os.path.join(repo, "packages", "luxos-desktop", "files", "python")
-        with tempfile.TemporaryDirectory() as d:
-            for n in ("video10", "video2", "video0", "other"):
-                open(os.path.join(d, n), "w").close()
-            code = ("import sys; sys.path.insert(0, sys.argv[1]); import luxos_camera as c; "
-                    "print('|'.join(c.video_nodes()))")
-            env = dict(os.environ, LUXOS_VIDEO_DEV_DIR=d)
-            env.pop("LUXOS_CAMERA_TEST", None)
-            r = subprocess.run([sys.executable, "-c", code, pydir], env=env, capture_output=True, text=True,
-                               timeout=60)
-            if r.returncode and "gi" in r.stderr and "No module" in r.stderr:
-                self.skipTest("python-gobject missing")
-            self.assertEqual(r.returncode, 0, r.stderr)
-            self.assertEqual(r.stdout.strip().split("|"), [os.path.join(d, n) for n in ("video0", "video2", "video10")])
-        # aplikace v LSL (QR kod Wi-Fi, Profilova fotka) hledaji uzly tamtez
+        # aplikace v LSL (QR kod Wi-Fi, Kamera, Profilova fotka) hledaji uzly jen tam
         for name in ("luxos-wifi-qr.lsl", "luxos_camera.lsl"):
             with open(os.path.join(repo, "packages", "luxos-desktop", "files", "lsl", name)) as f:
                 self.assertIn('env.get("LUXOS_VIDEO_DEV_DIR"', f.read(), name)

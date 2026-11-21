@@ -34,7 +34,7 @@ priv=${LUXOS_PRIVATE_DIR:-/nonexistent}
 export LUXOS_DOMAIN_CLI=$priv/packages/luxos-domain/tests/fake-gui/lux-domain FAKE_DOMAIN_DIR=$tmp
 apps=(
     packages/luxos-account/files/luxos-account
-    packages/luxos-desktop/files/bin/luxos-{calculator,camera,display-settings,feedback,keyboard,monitor,router,shortcuts}
+    packages/luxos-desktop/files/bin/luxos-{display-settings,keyboard,shortcuts}
     packages/luxos-weather/files/luxos-weather
     packages/luxos-maps/files/luxos-maps
     packages/luxos-companion/files/luxos-companion
@@ -56,9 +56,9 @@ for a in "${apps[@]}"; do
     printf '%-60s %s\n' "$a" "${out#LUXOS-TITLEBAR }"
     [[ $out == *FAIL* ]] && fail=1
 done
-# Aplikace prepsane z Pythonu do LSL (luxos-bluetooth, luxos-fingerprint, luxos-profile-picture, luxos-wifi-qr):
-# horni listu se zaviracim tlacitkem overuji jejich testy (packages/luxos-desktop/tests, "close_button"
-# z luxos_testctl)
+# Aplikace prepsane z Pythonu do LSL (luxos-bluetooth, luxos-fingerprint, luxos-profile-picture, luxos-wifi-qr,
+# luxos-calculator, luxos-monitor, luxos-feedback, luxos-router, luxos-camera): horni listu se zaviracim tlacitkem
+# overuji jejich testy (packages/luxos-desktop/tests, "close_button" z luxos_testctl)
 # Firemni sit (luxos-domain-settings) je od 1.0.0-3 nativni program v LSL: horni listu se zaviracim
 # tlacitkem overuje jeho vlastni test GUI v soukromem repozitari (zastupny lux-domain, stejna Xvfb)
 dt=$priv/packages/luxos-domain/tests/gui-settings.py

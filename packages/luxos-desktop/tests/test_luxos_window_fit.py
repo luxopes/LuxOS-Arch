@@ -5,7 +5,7 @@
 
 Kazda aplikace bezi ve vlastnim Xvfb 1366x768 a 1280x800 (nikdy na skutecne obrazovce), s mrtvou
 systemovou sbernici a bez kamer (scripts/luxos_testguard.py) a jen v testovacich rezimech s vymyslenymi
-daty (LUXOS_POWER_DEMO, LUXOS_MONITOR_DEMO, falesne nmcli/ip/ping). Sonda tests/fit-probe zmeri X okno
+daty (LUXOS_POWER_DEMO, falesne nmcli/ip/ping). Sonda tests/fit-probe zmeri X okno
 vcetne HeaderBar, okno pak zmensi na 100x100 a zmeri nejmensi dovolenou velikost.
 Snimky obrazovky: LUXOS_FIT_SHOTS=<slozka>.
 """
@@ -43,10 +43,6 @@ NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
 APPS = {
-    "luxos-feedback": {},
-    "luxos-monitor": {"LUXOS_MONITOR_DEMO": "1"},
-    "luxos-router": {"LUXOS_IP": os.path.join(FAKE_NET, "ip"), "LUXOS_NMCLI": os.path.join(FAKE_NET, "nmcli"),
-                     "LUXOS_PING": os.path.join(FAKE_NET, "ping"), "LUXOS_ROUTER_PORT": "9"},
     "luxos-display-settings": lambda tmp: displays_env(tmp),
 }
 FPRINTD = os.path.join(HERE, "fingerprint", "fake_fprintd.py")
@@ -187,16 +183,6 @@ class WindowFits(unittest.TestCase):
                     self.assertGreaterEqual(win["min"]["height"], MIN_USABLE, (app, screen, win))
                     self.assertGreaterEqual(win["min"]["width"], 340, (app, screen, win))
 
-    def test_feedback(self):
-        self.check("luxos-feedback")
-
-    def test_monitor_demo(self):
-        self.check("luxos-monitor")
-
-    def test_router_without_network(self):
-        self.check("luxos-router")
-
-
     def test_shortcuts(self):
         self.check("luxos-shortcuts")
 
@@ -214,42 +200,6 @@ class SizedToContent(unittest.TestCase):
                 win = data["windows"][0]
                 self.assertLess(win["height"], old + 45 - 40, (app, win))
                 self.assertLessEqual(win["height"], 768 - 16, (app, win))
-
-
-@unittest.skipUnless(shutil.which("Xvfb") and shutil.which("dbus-run-session"), "Xvfb/dbus-run-session missing")
-class RouterOffline(unittest.TestCase):
-    """Bez site jsou tlacitka Zobrazit / Vyzkouset / Zmerit neaktivni (s vysvetlenim), se siti aktivni."""
-
-    def buttons(self, net):
-        code = ("(lambda G: (lambda walk: walk(walk, wins[0]))(lambda f, w: ([(w.get_label(), w.get_sensitive())] "
-                "if isinstance(w, G.Button) and w.get_label() and w.get_mapped() else []) + "
-                "sum((f(f, c) for c in (w.get_children() if isinstance(w, G.Container) else [])), [])))(Gtk)")
-        tmp = tempfile.mkdtemp(prefix="luxos-fit-net-", dir=luxos_testguard._private_dir())
-        try:
-            path = os.path.join(tmp, "net.json")
-            with open(path, "w") as f:
-                json.dump(net, f)
-            data = run_app("luxos-router", (1366, 768), extra={"FAKE_NET": path, "LANG": "C.UTF-8"},
-                           hook=code, delay=1500)
-        finally:
-            shutil.rmtree(tmp, True)
-        return dict((label, sens) for label, sens in data["hook"])
-
-    def test_offline_disabled(self):
-        b = self.buttons(NO_NET)
-        for label in ("Show", "Test", "Measure"):
-            self.assertIn(label, b)
-            self.assertFalse(b[label], (label, b))
-
-    def test_online_enabled(self):
-        net = {"routes": [{"dst": "default", "gateway": "192.168.1.1", "dev": "wlp4s0", "metric": 600}],
-               "device": "GENERAL.DEVICE: wlp4s0\nGENERAL.TYPE: wifi\nGENERAL.STATE: 100 (connected)\n"
-                         "GENERAL.CONNECTION: Domov\nIP4.ADDRESS[1]: 192.168.1.23/24\n",
-               "wifi": "yes:Domov\n", "neigh": [], "ping": {}}
-        b = self.buttons(net)
-        for label in ("Show", "Test", "Measure"):
-            self.assertIn(label, b)
-            self.assertTrue(b[label], (label, b))
 
 
 if __name__ == "__main__":

@@ -22,13 +22,13 @@ def shots(s):
     s.launch_python("luxos-desktop/files/bin/luxos-calculator")
     s.window(name="^Calculator$", size=None)
     router = _recipe("luxos-router")
-    s.launch_python("luxos-desktop/files/bin/luxos-router", env=router.net_env(s, "net.json", "192.168.1.1"))
+    s.launch([s.lslc("luxos-desktop/files/lsl/luxos-router.lsl")], env=router.net_env(s, "net.json", "192.168.1.1"))
     s.window(cls="luxos-router", size=None)
     fw = _recipe("luxos-firewall-settings")
     fw.launch_demo(s)
     s.window(cls="luxos-firewall-settings", size=None)
 
-    p = s.launch_python("luxos-desktop/files/bin/luxos-monitor")
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-monitor.lsl")])
     win = s.window(pid=p.pid, size=(1070, 640))
     s.sleep(62)                       # graf za posledni minutu se cely naplni
     s.capture("1", win)

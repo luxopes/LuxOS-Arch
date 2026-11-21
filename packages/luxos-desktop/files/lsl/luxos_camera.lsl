@@ -1,13 +1,17 @@
 # lsl: link libgstapp-1.0.so.0 libgstreamer-1.0.so.0 libcairo.so.2 libgobject-2.0.so.0 libglib-2.0.so.0
-# LuxOS - webkamera (v4l2 + GStreamer) pro aplikace v LSL; stejne chovani jako files/python/luxos_camera.py.
+# LuxOS - webkamera (v4l2 + GStreamer) pro aplikace v LSL (Kamera, Profilova fotka; drive files/python/luxos_camera.py).
 #
 #   scan_devices() -> [kamery, pocet uzlu bez opravneni]   kamera = {"path", "name"}
 #   probe_caps(path) -> [caps, je MJPEG, chyba]    vhodny format kamery ("missing" bez v4l2src, "open")
 #   pick_caps(caps_text) -> [caps, je MJPEG] nebo None   <= 1280 px, >= 20 fps, raw pred MJPEG
 #   start(dev, caps, jpeg) -> "" nebo chyba    nahled: zrcadleny obraz BGRx, snimky si program vyzvedava
-#   poll() -> "frame" | "error" | ""           z casovace hlavni smycky (zadna vlakna: zpetna volani LSL jen
-#                                              v hlavnim vlakne); error_text(), error_busy()
-#   surface() -> posledni snimek (cairo RGB24, 0 = zatim zadny), stop()
+#   start_with(dev, caps, jpeg, volby)         volby: mirror, image (testovaci obrazek), record = {"path",
+#                                              "encoder": [video, muxer, pripona, audio], "audio": zdroj nebo ""}
+#   poll() -> "frame" | "error" | "eos" | ""   z casovace hlavni smycky (zadna vlakna: zpetna volani LSL jen
+#                                              v hlavnim vlakne); error_text(), error_busy(), error_debug(),
+#                                              error_source() (cesta prvku, napr. .../asrc)
+#   surface() -> posledni snimek (cairo RGB24, 0 = zatim zadny), stop(), set_mirror(zap), send_eos(),
+#   wait_eos(sekundy) (dopsani videa pri zavreni okna), has(prvek) - je plugin GStreamer nainstalovan
 # Testovani bez kamery: LUXOS_CAMERA_TEST=1 (jedna testovaci kamera videotestsrc), 2 (dve), none (zadna),
 # busy (kamera obsazena), denied (chybi opravneni). LUXOS_VIDEO_DEV_DIR: kde hledat uzly video* (vychozi
 # /dev); pojistka testu (scripts/luxos_testguard.py) ji nastavi na prazdnou slozku.
@@ -21,7 +25,8 @@ VIDIOC_QUERYCAP = 2154321408   # _IOR('V', 0, struct v4l2_capability), 104 bajtu
 V4L2_CAP_VIDEO_CAPTURE = 1
 V4L2_CAP_DEVICE_CAPS = 2147483648
 
-cam = {"init": False, "pipeline": 0, "sink": 0, "bus": 0, "surface": 0, "w": 0, "h": 0, "error": "", "busy": False}
+cam = {"init": False, "pipeline": 0, "sink": 0, "bus": 0, "surface": 0, "w": 0, "h": 0, "error": "", "busy": False,
+    "debug": "", "source": ""}
 
 function ptr(value):
     unsafe:
@@ -335,11 +340,48 @@ end
 # ---- nahled --------------------------------------------------------------------------------------
 
 function start(path, caps, jpeg):
+    return start_with(path, caps, jpeg, {"mirror": True})
+end
+
+function has(factory):
+    call init()
+    unsafe:
+        found = __lsl_qbe_call1(__lsl_symbol("gst_element_factory_find"), cstr(factory))
+        if found == 0:
+            return False
+        end
+        call __lsl_qbe_call1(__lsl_symbol("gst_object_unref"), found)
+    end
+    return True
+end
+
+function element_set(name, property, value):
+    if cam["pipeline"] == 0:
+        return 0
+    end
+    unsafe:
+        element = __lsl_qbe_call2(__lsl_symbol("gst_bin_get_by_name"), ptr(cam["pipeline"]), cstr(name))
+        if element != 0:
+            call __lsl_qbe_call3(__lsl_symbol("gst_util_set_object_arg"), element, cstr(property), cstr(value))
+            call __lsl_qbe_call1(__lsl_symbol("gst_object_unref"), element)
+        end
+    end
+end
+
+function set_mirror(on):
+    call element_set("flip", "method", "horizontal-flip" if on else "none")
+end
+
+function start_with(path, caps, jpeg, opts):
     call init()
     call stop()
+    image = opts.get("image", "")
     src = ""
-    if path.startswith("test:"):
-        src = "videotestsrc is-live=true pattern=smpte ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
+    if path.startswith("test:") and image != "":
+        src = "filesrc name=img ! decodebin ! videoconvert ! imagefreeze is-live=true ! video/x-raw,framerate=15/1 ! "
+    elif path.startswith("test:"):
+        pattern = "smpte" if path == "test:0" else "ball"
+        src = "videotestsrc name=src is-live=true pattern=" + pattern + " ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
     else:
         src = "v4l2src name=src ! "
         if caps != "":
@@ -349,7 +391,15 @@ function start(path, caps, jpeg):
             src += "jpegdec ! "
         end
     end
-    desc = src + "videoconvert ! videoflip method=horizontal-flip ! videoconvert ! video/x-raw,format=BGRx ! appsink name=view sync=false drop=true max-buffers=1"
+    desc = src + "videoconvert ! videoflip name=flip ! tee name=t t. ! queue leaky=downstream max-size-buffers=2 ! videoconvert ! video/x-raw,format=BGRx ! appsink name=view sync=false drop=true max-buffers=1 "
+    record = opts.get("record", None)
+    if record != None:
+        enc = record["encoder"]
+        desc += "t. ! queue leaky=downstream max-size-buffers=0 max-size-bytes=0 max-size-time=3000000000 ! videoconvert ! " + enc[0] + " ! queue ! " + enc[1] + " name=mux ! filesink name=out "
+        if record.get("audio", "") != "" and enc[3] != "":
+            desc += record["audio"] + " name=asrc ! queue max-size-time=3000000000 ! audioconvert ! audioresample ! " + enc[3] + " ! queue ! mux. "
+        end
+    end
     message = ""
     unsafe:
         cell = __lsl_byte_zeros(8)
@@ -367,20 +417,49 @@ function start(path, caps, jpeg):
     if message != "":
         return message
     end
+    cam["pipeline"] = pipe
+    if not path.startswith("test:"):
+        call element_set("src", "device", path)
+    elif image != "":
+        call element_set("img", "location", image)
+    end
+    if record != None:
+        call element_set("out", "location", record["path"])
+    end
+    call set_mirror(opts.get("mirror", True))
     unsafe:
-        if not path.startswith("test:"):
-            element = __lsl_qbe_call2(__lsl_symbol("gst_bin_get_by_name"), pipe, cstr("src"))
-            call __lsl_qbe_call4(__lsl_symbol("g_object_set"), element, cstr("device"), cstr(path), 0)
-            call __lsl_qbe_call1(__lsl_symbol("gst_object_unref"), element)
-        end
         cam["sink"] = __lsl_qbe_call2(__lsl_symbol("gst_bin_get_by_name"), pipe, cstr("view"))
         cam["bus"] = __lsl_qbe_call1(__lsl_symbol("gst_element_get_bus"), pipe)
         # GST_STATE_PLAYING = 4
         call __lsl_qbe_call2(__lsl_symbol("gst_element_set_state"), pipe, 4)
     end
-    cam["pipeline"] = pipe
     cam["error"] = ""
     return ""
+end
+
+# Konec proudu: muxer dopise soubor a na sbernici prijde EOS (poll vrati "eos")
+function send_eos():
+    if cam["pipeline"] == 0:
+        return 0
+    end
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gst_element_send_event"), ptr(cam["pipeline"]), __lsl_qbe_call0(__lsl_symbol("gst_event_new_eos")))
+    end
+end
+
+# Ceka na EOS nebo chybu (nejvys sekundy) - pri zavirani okna, kdy uz hlavni smycka nebezi
+function wait_eos(seconds):
+    if cam["pipeline"] == 0:
+        return 0
+    end
+    call send_eos()
+    unsafe:
+        # GST_MESSAGE_EOS | GST_MESSAGE_ERROR
+        message = __lsl_qbe_call3(__lsl_symbol("gst_bus_timed_pop_filtered"), ptr(cam["bus"]), ptr(seconds) * 1000000000, 1 | 2)
+        if message != 0:
+            call __lsl_qbe_call1(__lsl_symbol("gst_mini_object_unref"), message)
+        end
+    end
 end
 
 function stop():
@@ -418,20 +497,41 @@ function error_busy():
     return cam["busy"]
 end
 
-# Chyba na sbernici GStreamer (kamera obsazena, odpojena...): "error", novy snimek: "frame"
+function error_debug():
+    return cam["debug"]
+end
+
+function error_source():
+    return cam["source"]
+end
+
+# Chyba na sbernici GStreamer (kamera obsazena, odpojena...): "error", konec videa "eos", novy snimek: "frame"
 function poll():
     if cam["pipeline"] == 0:
         return ""
     end
     unsafe:
+        # GST_MESSAGE_EOS = 1
+        message = __lsl_qbe_call2(__lsl_symbol("gst_bus_pop_filtered"), ptr(cam["bus"]), 1)
+        if message != 0:
+            call __lsl_qbe_call1(__lsl_symbol("gst_mini_object_unref"), message)
+            return "eos"
+        end
         # GST_MESSAGE_ERROR = 2
         message = __lsl_qbe_call2(__lsl_symbol("gst_bus_pop_filtered"), ptr(cam["bus"]), 2)
         if message != 0:
+            # GstMessage.src (za GstMiniObject 64 B, type a timestamp)
+            src = __lsl_qbe_load64(message + 80)
+            cam["source"] = ""
+            if src != 0:
+                cam["source"] = glib.take_c(__lsl_qbe_call1(__lsl_symbol("gst_object_get_path_string"), src))
+            end
             cell = __lsl_byte_zeros(16)
             base = __lsl_qbe_load64(__lsl_address(cell) + 24)
             call __lsl_qbe_call3(__lsl_symbol("gst_message_parse_error"), message, base, base + 8)
             error = __lsl_qbe_load64(base)
             reason = glib.from_c(__lsl_qbe_load64(error + 8))
+            cam["debug"] = glib.from_c(__lsl_qbe_load64(base + 8))
             # GST_RESOURCE_ERROR_BUSY = 4
             busy = __lsl_qbe_s32(__lsl_qbe_load32(error)) == __lsl_qbe_s32(__lsl_qbe_call0(__lsl_symbol("gst_resource_error_quark"))) and __lsl_qbe_s32(__lsl_qbe_load32(error + 4)) == 4
             call __lsl_qbe_call1(__lsl_symbol("g_error_free"), error)

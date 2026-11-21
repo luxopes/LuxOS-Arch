@@ -3,11 +3,6 @@
 a skutecne udaje pocitace se neukazuji)."""
 import http.server
 import json
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import _a  # noqa: E402
 
 MESSAGE = ("It would be great if the Dock could show a small badge with the number of unread "
            "messages for every app, like Mail already does.")
@@ -31,8 +26,7 @@ class FakeFeedback(http.server.BaseHTTPRequestHandler):
 def shots(s):
     port = s.serve_http(FakeFeedback)
     s.env["LUXAI_ORIGIN"] = "http://127.0.0.1:%d" % port
-    p = _a.run_python(s, "luxos-desktop/files/bin/luxos-feedback",
-                      paths=("luxos-account/files",), modules=("luxai_account", "luxos_i18n"))
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-feedback.lsl")])
     win = s.window(pid=p.pid, size=None)
     s.sleep(1.0)
     # karta Napad, text a e-mail (souradnice v okne 580x720 s hlavickou)

@@ -94,12 +94,12 @@ def net_env(s, name, gateway):
         json.dump(net, f)
     fake = s.src("luxos-desktop/tests/fake-net")
     return {"FAKE_NET": path, "LUXOS_IP": os.path.join(fake, "ip"), "LUXOS_NMCLI": os.path.join(fake, "nmcli"),
-            "LUXOS_PING": os.path.join(fake, "ping"), "LUXOS_PYDIR": s.src("luxos-desktop/files/python")}
+            "LUXOS_PING": os.path.join(fake, "ping")}
 
 
 def shots(s):
     env = net_env(s, "net.json", "192.168.1.1")
-    p = s.launch_python("luxos-desktop/files/bin/luxos-router", env=env)
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-router.lsl")], env=env)
     win = s.window(pid=p.pid, size=(900, 700))
     s.click(836, 521, win)              # Ping router -> falesny ping
     s.click(836, 568, win)              # Ping internet -> falesny ping
@@ -108,7 +108,7 @@ def shots(s):
     s.stop()
 
     # zarizeni v siti (jen falesne "ip neigh", tlacitko Hledat v siti se nemacka)
-    p = s.launch_python("luxos-desktop/files/bin/luxos-router", env=dict(env, LUXOS_ROUTER_PAGE="devices"))
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-router.lsl")], env=dict(env, LUXOS_ROUTER_PAGE="devices"))
     win = s.window(pid=p.pid, size=(900, 560))
     s.sleep(1.5)
     s.capture("2", win)
@@ -118,7 +118,7 @@ def shots(s):
     port = s.serve_http(RouterHandler)
     env = net_env(s, "net-router.json", "127.0.0.1")
     env.update({"LUXOS_ROUTER_PAGE": "router", "LUXOS_ROUTER_PORT": str(port)})
-    p = s.launch_python("luxos-desktop/files/bin/luxos-router", env=env)
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-router.lsl")], env=env)
     win = s.window(pid=p.pid, size=(900, 600))
     s.sleep(4)
     s.capture("3", win)
