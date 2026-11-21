@@ -212,7 +212,7 @@ class HubWayland:
 
     def client(self):
         """Okno aplikace s fokusem -> bod v nem pro klik mimo vyskakovaci okno (polohu urcuje kompozitor)."""
-        client = REPO / "out/wl-test/bin/wlt-client"
+        client = Path(os.environ.get("WLT_OUT") or REPO / "out/wl-test") / "bin/wlt-client"
         p = subprocess.Popen([str(client), "--app-id", "test.window", "--title", "Window", "--size", "500x300",
                               "--color", "3a6ea5"], env=self.env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.procs.append(p)
