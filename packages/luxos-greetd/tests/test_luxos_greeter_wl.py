@@ -241,9 +241,9 @@ class Greeter:
         self.keys.stdin.flush()
         time.sleep(0.15 * len(commands) + 0.2)
 
-    def shot(self, name):
+    def shot(self, name, ext="png"):
         os.makedirs(RESULTS, exist_ok=True)
-        path = os.path.join(RESULTS, name + ".png")
+        path = os.path.join(RESULTS, name + "." + ext)
         wlt("shot", self.dir, path)
         return path
 
@@ -276,6 +276,35 @@ def session_button():
     d = px(u, 44.0, 34)
     cy = H - px(u, 42.0, 26) - px(u, 20.0, 14) - d / 2.0
     return int(px(u, 42.0, 26) + d), int(cy)
+
+
+def field_rect():
+    """Pole pro heslo jako luxos_lock_draw.field_rect (x, y, sirka, vyska)."""
+    u = max(0.55, H / 1080.0)
+    fw, fh = px(u, 250.0, 180), px(u, 36.0, 28)
+    y = H - px(u, 150.0, 110) - px(u, 24.0, 18) - px(u, 14.0, 9) - px(u, 22.0, 16) - px(u, 14.0, 9) - fh
+    return int((W - fw) / 2.0), int(y), int(fw), int(fh)
+
+
+def read_ppm(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    magic, w, h, depth, pixels = data.split(maxsplit=4)
+    assert magic == b"P6" and depth == b"255"
+    return int(w), pixels
+
+
+def changed(a, b, box):
+    """Pocet pixelu, ktere se mezi snimky a, b v obdelniku box (x, y, w, h) zmenily."""
+    w, pa = read_ppm(a)
+    _, pb = read_ppm(b)
+    x, y, bw, bh = box
+    n = 0
+    for row in range(y, y + bh):
+        i = (row * w + x) * 3
+        ra, rb = pa[i:i + bw * 3], pb[i:i + bw * 3]
+        n += sum(1 for k in range(0, bw * 3, 3) if ra[k:k + 3] != rb[k:k + 3])
+    return n
 
 
 def power_buttons():
@@ -426,6 +455,39 @@ class GreeterTest(unittest.TestCase):
         kinds = g.greetd.kinds()
         self.assertEqual(kinds[0], "create_session")
         self.assertEqual(kinds[-1], "start_session")
+
+    def test_redraws_after_mouse_and_keys(self):
+        # Regrese: greeter ukazal jen prvni snimek a dal se neprekresloval (luxcomp neposilal frame callbacky
+        # oknu na celou obrazovku), klik ani psani nebylo videt. Kontroluji se pixely, ne jen stopa greeteru.
+        self.g = g = Greeter("redraw")
+        fx, fy, fw, fh = field_rect()
+        # mys nad greeterem jako clovek: pohyb pres obrazovku, klik do pole
+        g.input("move 100 100", "move 400 300", f"move {fx + fw // 2} {fy + fh // 2}", "click")
+        g.wait_for("click field")
+        g.input("move 40 40")
+        before = g.shot("redraw-before", "ppm")
+        g.input("type abc")
+        time.sleep(0.5)
+        typed = g.shot("redraw-typed", "ppm")
+        self.assertGreater(changed(before, typed, (fx, fy, fw, fh)), 50, "password dots not drawn")
+        # odeslani sipkou v poli (mysi): spatne heslo, hlaska pod polem
+        g.input(f"move {fx + fw - fh // 2} {fy + fh // 2}", "click")
+        g.wait_for("hint error Incorrect password. Try again.")
+        g.input("move 40 40")
+        time.sleep(0.8)   # konec zatreseni
+        wrong = g.shot("redraw-wrong", "ppm")
+        self.assertGreater(changed(typed, wrong, (fx - 100, fy + fh, fw + 200, 40)), 50, "error hint not drawn")
+        # volba relace mysi: popisek pod tlacitkem se zmeni
+        x, y = session_button()
+        g.input(f"move {x} {y}", "click")
+        g.wait_for("session x11:luxos.desktop")
+        g.input("move 40 40")
+        time.sleep(0.3)
+        session = g.shot("redraw-session", "ppm")
+        self.assertGreater(changed(wrong, session, (0, y, 200, H - y)), 20, "session label not redrawn")
+        g.input("type luxos", "key Return")
+        g.wait_for("leaving")
+        self.assertEqual(g.greetd.sessions[0]["cmd"][0], "/usr/lib/luxos/luxos-x11-session")
 
     def test_power_buttons(self):
         self.g = g = Greeter("power")
