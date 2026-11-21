@@ -985,7 +985,7 @@ function main_hub():
         end
     end
 
-    # Horke rohy (Nastaveni > Plocha a Dock): levy horni Launchpad, pravy dolni plocha
+    # Horke rohy (Nastaveni > Plocha a Dock): vychozi jen levy horni Launchpad
     try:
         call hotcorners.start(hotcorner_control_center)
     else:

@@ -272,7 +272,7 @@ class Hub(unittest.TestCase):
         return self.hub
 
     def test_hot_corners(self):
-        """Horke rohy: levy horni Launchpad, pravy dolni plocha (vychozi), az po chvili v rohu, jednou za najeti;
+        """Horke rohy: vychozi jen levy horni Launchpad (pravy dolni nic), az po chvili v rohu, jednou za najeti;
         nastaveni ~/.config/luxos/hotcorners plati bez restartu; na tabletu bez klavesnice vypnute."""
         log = os.path.join(self.home, "corners.log")
         self.start_hub(LUXOS_HOTCORNERS_DWELL="3")
@@ -303,10 +303,12 @@ class Hub(unittest.TestCase):
         move(w // 2, h // 2)
         time.sleep(0.4)
         move(w - 1, h - 1)
-        self.assertTrue(self.wait_for(lambda: actions() == ["launchpad", "desktop"], 3), actions())
-        # vlastni nastaveni: pravy horni zamknout, levy horni nic
+        time.sleep(1.2)
+        self.assertEqual(actions(), ["launchpad"], "pravy dolni roh ve vychozim stavu nic nespousti")
+        move(w // 2, h // 2)          # (ukazatel z rohu pryc, nez se roh zapne)
+        # vlastni nastaveni: pravy horni zamknout, pravy dolni plocha, levy horni nic
         with open(os.path.join(self.cfg, "hotcorners"), "w") as f:
-            f.write("tl=none\ntr=lock\nbogus=launchpad\nbl=rm -rf\n")
+            f.write("tl=none\ntr=lock\nbr=desktop\nbogus=launchpad\nbl=rm -rf\n")
         time.sleep(2.5)
         move(w // 2, h // 2)
         time.sleep(0.4)
@@ -316,7 +318,11 @@ class Hub(unittest.TestCase):
         time.sleep(0.4)
         move(w - 1, 0)
         self.assertTrue(self.wait_for(lambda: actions()[-1:] == ["lock"], 3), actions())
-        self.assertEqual(actions(), ["launchpad", "desktop", "lock"])
+        move(w // 2, h // 2)
+        time.sleep(0.4)
+        move(w - 1, h - 1)
+        self.assertTrue(self.wait_for(lambda: actions()[-1:] == ["desktop"], 3), actions())
+        self.assertEqual(actions(), ["launchpad", "lock", "desktop"])
         # tablet bez klavesnice (luxos-touch): rohy vypnute
         with open(os.path.join(self.cfg, "touch-state"), "w") as f:
             f.write("touchscreen=1 keyboard=0 accel=0\n")
@@ -325,7 +331,7 @@ class Hub(unittest.TestCase):
         time.sleep(0.4)
         move(w - 1, 0)
         time.sleep(1.2)
-        self.assertEqual(actions(), ["launchpad", "desktop", "lock"])
+        self.assertEqual(actions(), ["launchpad", "lock", "desktop"])
 
     def hub_err(self):
         with open(self.err_path) as f:

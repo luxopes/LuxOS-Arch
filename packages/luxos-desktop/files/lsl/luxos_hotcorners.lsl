@@ -1,8 +1,9 @@
 # LuxOS - horke rohy (v hubu): najeti ukazatelem do rohu obrazovky spusti akci, jako v macOS.
-#   ~/.config/luxos/hotcorners: radky "tl=launchpad", "tr=none", "bl=none", "br=desktop" (Nastaveni > Plocha a Dock)
+#   ~/.config/luxos/hotcorners: radky "tl=launchpad", "tr=none", "bl=none", "br=none" (Nastaveni > Plocha a Dock)
 #   akce: none, launchpad, desktop (ukazat plochu / vratit okna), control-center, lock (zamknout),
 #         screensaver (spustit sporic obrazovky)
-#   Vychozi: levy horni Launchpad, pravy dolni Ukazat plochu. Ukazatel musi v rohu zustat asi 0,3 s (cestou
+#   Vychozi: jen levy horni Launchpad (pravy dolni s Ukazat plochu se spoustel nechtene cestou k Docku
+#   a oknum - zapina si ho uzivatel). Ukazatel musi v rohu zustat asi 0,3 s (cestou
 #   k logu LuxOS v levem hornim rohu se Launchpad nespusti) a znovu se roh spusti az po odjeti z rohu.
 #   Rohy cele obrazovky X (pri vice monitorech vnejsi rohy). Na tabletu bez klavesnice (luxos-touch:
 #   touchscreen=1 keyboard=0) vypnute - klepnuti do rohu by je spoustelo.
@@ -11,7 +12,7 @@ load env
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 
-DEFAULTS = {"tl": "launchpad", "tr": "none", "bl": "none", "br": "desktop"}
+DEFAULTS = {"tl": "launchpad", "tr": "none", "bl": "none", "br": "none"}
 ACTIONS = ["none", "launchpad", "desktop", "control-center", "lock", "screensaver"]
 TICK_MS = 100
 RELOAD_TICKS = 20          # nastaveni znovu nacist kazde 2 s (zmena v Nastaveni plati hned)

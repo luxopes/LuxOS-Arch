@@ -525,7 +525,7 @@ class Settings(Gtk.Window):
         group = Group(page, _("Hot Corners"))
         path = os.path.join(os.path.dirname(PREFS), "hotcorners")
         conf = read_kv(path)
-        defaults = {"tl": "launchpad", "tr": "none", "bl": "none", "br": "desktop"}
+        defaults = {"tl": "launchpad", "tr": "none", "bl": "none", "br": "none"}
         actions = (("none", "—"), ("launchpad", _("Launchpad")), ("desktop", _("Show Desktop")),
                    ("control-center", _("Control Center")), ("lock", _("Lock Screen")),
                    ("screensaver", _("Start Screen Saver")))

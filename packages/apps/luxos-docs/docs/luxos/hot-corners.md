@@ -8,8 +8,11 @@ action, like hot corners on a Mac.
 | Corner | Action |
 |---|---|
 | Top left | Launchpad (all apps) |
-| Bottom right | Show the desktop; the second time the windows come back |
-| Top right, bottom left | nothing |
+| Top right, bottom left, bottom right | nothing |
+
+**Show Desktop** (for example in the bottom right corner, like in Windows) moves all windows aside so the
+desktop is visible; the second time the windows come back. It is off by default, because the bottom
+right corner is easy to hit on the way to the Dock.
 
 A corner runs again only after the pointer leaves it. Passing through the top left corner on the way
 to the LuxOS menu does not open Launchpad.
