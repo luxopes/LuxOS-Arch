@@ -642,7 +642,9 @@ if env.get("WAYLAND_DISPLAY", "") == "":
     end
     exit(0)
 end
-call glib.set_prgname("luxos-keyboard-settings")
+# app_id jako polozka .desktop, ze ktere se okno otevrelo (nazev v liste, ikona v Docku)
+app_id = "luxos-shortcuts" if "--shortcuts" in args else "luxos-keyboard"
+call glib.set_prgname(app_id)
 call gtk.init()
 call gtk.css_load(CSS)
 # zkratky z X11 relace, pokud je jeste nikdo neprevedl (session je jinak prevede pri startu)
@@ -651,7 +653,7 @@ call wm.connect(None)
 call load_keyboard()
 window = gtk.window_new(i18n.T("Keyboard"))
 ui["window"] = window
-call gtk.window_set_wmclass(window, "luxos-keyboard-settings", "luxos-keyboard-settings")
+call gtk.window_set_wmclass(window, app_id, app_id)
 call gtk.window_set_icon_name(window, "preferences-desktop-keyboard")
 call gtk.window_set_default_size(window, 620, 640)
 outer = gtk.box_new(gtk.VERTICAL, 0)

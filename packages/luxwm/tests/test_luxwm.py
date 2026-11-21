@@ -35,7 +35,9 @@ def test_conf(name, head=""):
     return path
 
 BAR = 30
-TITLE = 32          # tokens.LIGHT_SIZE + 2 * SPACE["s"]
+TITLE = 30          # tokens.TITLEBAR height_compact: wlt-client (app "test") is a foreign app
+TITLE_LUXOS = 38    # TITLEBAR height: apps with app_id luxos-*
+MARGIN = 8          # luxwm PLACE_MARGIN around the area for new windows
 W, H = 1280, 800
 
 
@@ -166,7 +168,8 @@ class LuxwmHeadless(unittest.TestCase):
         s.client("A")
         a = s.state()["views"]["A"]
         # 1. stred pouzitelne plochy (pod listou)
-        self.assertEqual(frame(a), ((W - 400) // 2, BAR + (H - BAR - 300 - TITLE) // 2, 400, 300 + TITLE))
+        # vodorovne uprostred, svisle v horni tretine plochy bez listy s okrajem 8 px
+        self.assertEqual(frame(a), ((W - 400) // 2, BAR + MARGIN + (H - BAR - 2 * MARGIN - 300 - TITLE) // 3, 400, 300 + TITLE))
         # 2. volne misto bez prekryti
         s.client("B")
         views = s.state()["views"]

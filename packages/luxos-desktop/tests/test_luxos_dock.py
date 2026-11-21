@@ -511,6 +511,29 @@ class Dock(DockBase):
         text = (self.cfg / "luxos/dock.conf").read_text()
         self.assertIn('ITEMS="test-alpha.desktop test-beta.desktop trash"', text)
 
+    def test_letter_icon_fallback(self):
+        """Aplikace bez ikony (bez .desktop, nebo s Icon=, ktera v tematu neni): neutralni ctverec s prvnim
+        pismenem nazvu, ne obecna ikona programu (ozubene kolo)."""
+        (self.apps / "test-noicon.desktop").write_text(
+            "[Desktop Entry]\nType=Application\nName=Quux\nExec=true\nIcon=luxos-no-such-icon\nStartupWMClass=cz.test.noicon\n")
+        self.conf(items=["test-alpha.desktop", "trash"])
+        self.start_dock()
+        n = len(self.dock.lines)
+        self.run_window("noicon")
+        self.run_window("nodesk")
+        _, m = self.wait_line(self.dock, r"^\d+ items (\S+ trash \S+ \S+)$", start=n)
+        self.assertEqual([Path(k).name for k in m.group(1).split()][0], "test-alpha.desktop")
+        time.sleep(0.8)
+        centers = self.slots()
+        w, h, buf = self.shot("letter-icons", y0=H - 170)
+        for slot in (2, 3):
+            box = [px(buf, w, centers[slot] + dx, h - 34 + dy) for dx in range(-18, 19) for dy in range(-18, 19)]
+            plate = [c for c in box if max(c) - min(c) <= 8 and 190 <= c[0] <= 250]
+            ink = [c for c in box if max(c) < 110 and max(c) - min(c) <= 16]
+            print(f"\n  slot {slot}: plate {len(plate)}/{len(box)} px, letter {len(ink)} px")
+            self.assertGreater(len(plate), len(box) // 3, f"slot {slot}: no neutral plate")
+            self.assertGreater(len(ink), 15, f"slot {slot}: no letter")
+
     def test_reorder_persists(self):
         self.conf()
         self.start_dock()
@@ -619,19 +642,21 @@ class Dock(DockBase):
         self.assertEqual(self.wait_height(lambda v: v == 0, 1.5), 0, "dock did not hide again")
 
     def test_dodge_maximized(self):
+        """Mimo autohide Dock vyhradi misto (exkluzivni zona): maximalizovane okno konci nad nim, Dock neuhyba"""
         self.conf(hide="dodge")
         self.start_dock()
         self.mouse(W // 2, 200)
+        dock_h = self.wait_height(lambda v: v > 40)
         n = len(self.dock.lines)
         self.spawn([str(self.bin / "luxos-wl-window"), "cz.test.alpha", "Window alpha", "--maximize"])
-        self.wait_line(self.dock, r"hide-end 1\.0", start=n)
-        time.sleep(0.3)
-        w, h, buf = self.shot(y0=H - 100)
-        bottom = {px(buf, w, x, h - 20) for x in range(W // 2 - 100, W // 2 + 100, 7)}
-        self.assertEqual(bottom, {WINDOW}, "dock still over the maximized window")
-        n = len(self.dock.lines)
-        self.glide([(W // 2, 200), (W // 2, H - 1)], step=40)
-        self.wait_line(self.dock, r"hide-end 0\.0", start=n)
+        self.pump(self.dock, 1.5)
+        self.assertFalse(any("hide-end 1.0" in ln for ln in self.dock.lines[n:]), "dock hid for a maximized window")
+        w, h, buf = self.shot(y0=H - 170, name="dodge-maximized-zone")
+        above = {px(buf, w, x, h - dock_h - 4) for x in range(W // 2 - 100, W // 2 + 100, 7)}
+        under = {px(buf, w, x, h - 4) for x in range(W // 2 - 100, W // 2 + 100, 7)}
+        self.assertEqual(above, {WINDOW}, "maximized window above the dock")
+        self.assertNotIn(WINDOW, under, "maximized window reaches under the dock")
+        self.assertGreater(self.height(), 40)
 
     def test_badge_dbus(self):
         """com.canonical.Unity.LauncherEntry na soukrome sbernici: cislo a prubeh, po konci odesilatele pryc."""
@@ -747,7 +772,8 @@ class DockLuxwm(DockBase):
         # vysoke okno se zmensi a lezi cele nad Dockem: Dock zustava videt
         n = len(self.dock.lines)
         client = self.spawn(["wlt-client", "--size", "500x790", "--events", "--app-id", "cz.test.tall"])
-        self.wait_line(client, r"configure 500 %d" % (H - zone - 32))
+        # plocha pro okna = nad Dockem s okrajem 8 px nahore i dole, zahlavi ciziho okna 30 px
+        self.wait_line(client, r"configure 500 %d" % (H - zone - 2 * 8 - 30))
         self.pump(self.dock, 1.0)
         self.assertFalse(any("hide-end 1.0" in ln for ln in self.dock.lines[n:]), "dock hid for a window above it")
         self.assertGreater(self.height(), 40)
@@ -765,6 +791,33 @@ class DockLuxwm(DockBase):
         client.terminate()
         client.wait(5)
         self.assertGreater(self.wait_height(lambda v: v > 40, 2.0), 40)
+
+    def test_autohide_over_window_is_opaque(self):
+        """Vysunuty Dock nad oknem: nepruhledny podklad, citelny nad cernym i bilym oknem"""
+        self.conf(hide="autohide")
+        self.start_dock()
+        self.mouse(W // 2, 100)
+        panels = {}
+        for color in ("000000", "ffffff"):
+            n = len(self.dock.lines)
+            client = self.spawn(["wlt-client", "--solid", "--color", color, "--size", "1200x790", "--app-id",
+                                 "cz.test.cover" + color])
+            self.wait_line(self.dock, r"over-window 1", start=n)
+            self.glide([(W // 2, 100), (W // 2, H - 1)], step=40)
+            dock_h = self.wait_height(lambda v: v > 40, 1.5)
+            self.assertGreater(dock_h, 40)
+            w, h, buf = self.shot(y0=H - 170, name="autohide-over-" + color)
+            # panel vedle ikon (levy okraj panelu): ani cerny, ani bily obsah okna pod nim neprosvita
+            row = h - dock_h // 2
+            xs = [x for x in range(W // 4, W // 2) if px(buf, w, x, row) != px(buf, w, 2, row)]
+            panels[color] = px(buf, w, xs[0] + 6, h - 4)
+            client.terminate()
+            client.wait(5)
+            self.mouse(W // 2, 100)
+            self.wait_height(lambda v: v == 0, 1.5)
+        print(f"\n  panel over black {panels['000000']}, over white {panels['ffffff']}")
+        for a, b in zip(panels["000000"], panels["ffffff"]):
+            self.assertLessEqual(abs(a - b), 14, panels)
 
 
 EMIT_PY = r'''

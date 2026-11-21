@@ -153,12 +153,29 @@ enum luxcomp_theme_prop {
 	LUXCOMP_THEME_MINIMIZE,
 	LUXCOMP_THEME_MAXIMIZE,
 	LUXCOMP_THEME_BUTTON_INACTIVE,
-	LUXCOMP_THEME_SEPARATOR,
+	LUXCOMP_THEME_SEPARATOR,	/* line under the title bar, 0 = none */
 	LUXCOMP_THEME_GLYPH,		/* x - + on a hovered traffic light */
 	LUXCOMP_THEME_SHADOW_ACTIVE,	/* shadow colour incl. alpha, 0 = no shadow */
 	LUXCOMP_THEME_SHADOW_INACTIVE,
 	LUXCOMP_THEME_SHADOW_ACTIVE_SIZE,	/* px the shadow reaches beyond the window */
 	LUXCOMP_THEME_SHADOW_INACTIVE_SIZE,
+	LUXCOMP_THEME_TITLE_HEIGHT_COMPACT,	/* luxcomp_view_set_compact() */
+	LUXCOMP_THEME_BUTTON_INSET,		/* centre x of the first traffic light */
+	LUXCOMP_THEME_BUTTON_INSET_COMPACT,
+	LUXCOMP_THEME_BUTTON_RING,		/* 1 px ring of an inactive light */
+	/* The bar takes the client's colour (uniform neutral top row of its content); a translucent or
+	 * coloured client gets BG_LIGHT or BG_DARK, an unknown one BG_ACTIVE/BG_INACTIVE. TEXT_* and
+	 * BUTTON_INACTIVE/RING are the ink on a light bar, DARK_* the ink on a dark bar. */
+	LUXCOMP_THEME_BG_LIGHT,
+	LUXCOMP_THEME_BG_DARK,
+	LUXCOMP_THEME_DARK_TEXT_ACTIVE,
+	LUXCOMP_THEME_DARK_TEXT_INACTIVE,
+	LUXCOMP_THEME_DARK_BUTTON_INACTIVE,
+	LUXCOMP_THEME_DARK_BUTTON_RING,
+	LUXCOMP_THEME_ACCENT,			/* sandbox badge */
+	LUXCOMP_THEME_BORDER,			/* 1 px line around the window, 0 = none */
+	LUXCOMP_THEME_SHADOW_ACTIVE_OFFSET,	/* px the shadow is moved down, -1 = size / 4 */
+	LUXCOMP_THEME_SHADOW_INACTIVE_OFFSET,
 };
 
 /* Lifecycle and event loop */
@@ -198,7 +215,9 @@ void luxcomp_view_set_state(int64_t view, int64_t state, int64_t on);
 void luxcomp_view_set_layer(int64_t view, int64_t layer);
 void luxcomp_view_set_workspace(int64_t view, int64_t workspace);
 void luxcomp_view_set_decorated(int64_t view, int64_t on);
-/* Small label at the right end of the server-side title bar (sandboxed apps); NULL or "" = none */
+/* Lower title bar (LUXCOMP_THEME_TITLE_HEIGHT_COMPACT): foreign apps, utility windows */
+void luxcomp_view_set_compact(int64_t view, int64_t on);
+/* Small label after the traffic lights of the server-side title bar (sandboxed apps); NULL or "" = none */
 void luxcomp_view_set_badge(int64_t view, const char *text);
 /* app_id and title the shell sees instead of what the client sets (the rootful Xwayland of a
  * sandbox shows "Xwayland on :0"); NULL or "" = the client's own */

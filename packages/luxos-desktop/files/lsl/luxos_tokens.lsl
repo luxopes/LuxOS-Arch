@@ -506,6 +506,18 @@ function gtk3_css(dark):
     return css_defines(dark) + css_rules()
 end
 
+# ---- zahlavi oken ----------------------------------------------------------------------------
+# Jedna mira pro zahlavi kompozitoru (luxwm, libluxcomp deco.c) i GTK s vlastnim zahlavim (luxos-themes
+# luxos-gtk3.css, shodu hlida test_luxos_themes.py), aby nastaveni LuxOS nemela dva vzhledy (design review
+# 1.1.0, cast 10): bezne 38 px, nizke 30 px (cizi aplikace, dialogy), svetla 12 px po 20 px, stred prvniho
+# na x = 20 (nizke 14); nazev 13 px tucny 600, neaktivni na 45 %; neaktivni svetla inkoust 22 % s krouzkem
+# 10 %; obrys okna svetly cerna 20 %, tmavy cerna 60 %.
+# TODO(wl/material): zaobleni okna 12 px patri do RADIUS["window"] (review: 16 je na 30px zahlavi moc mekke);
+# az tam bude, "radius" odsud smazat a luxwm vezme RADIUS["window"].
+TITLEBAR = {"height": 38, "height_compact": 30, "light": 12, "pitch": 20, "inset": 20, "inset_compact": 14,
+    "title_px": 13, "title_weight": 600, "inactive_title_alpha": 0.45, "light_inactive_alpha": 0.22,
+    "light_ring_alpha": 0.10, "radius": 12, "border_light": [0, 0, 0, 0.20], "border_dark": [0, 0, 0, 0.60]}
+
 # ---- generator: tema luxwm (labwc 0.20) ---------------------------------------------------
 # Dekorace oken jako okna z matneho skla: titulek v barve okna, semafor vlevo (layout v rc.xml),
 # tlacitka 20 px s kruhem 12 px (luxos_glass.lsl), stin okna podle WINDOW_SHADOW.

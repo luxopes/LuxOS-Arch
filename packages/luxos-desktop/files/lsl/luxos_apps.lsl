@@ -17,6 +17,7 @@
 #   launch(a)                 spusteni (GdkAppLaunchContext = xdg-activation na Waylandu); True kdyz bezi
 #   launch_uri(uri)           adresa ve vychozi aplikaci (soubor, slozka, trash:///) se stejnym kontextem
 #   icon(a, size, scale)      ikona aplikace jako cairo surface (volajici ji znici), 0 kdyz neni
+#   own_icon(a, size, scale)  jen ikona z Icon= (bez application-x-executable), 0 kdyz neni
 #   icon_named(name, size, scale), icon_gicon(gicon, size, scale), base_name(cesta)
 #
 # Objekty aplikaci se drzi po celou dobu behu (rejstrik a find sdileji jeden objekt na soubor). Po reload() dostane
@@ -401,11 +402,16 @@ function icon_gicon(gicon, size, scale):
     return load_icon(found)
 end
 
-function icon(info, size, scale):
+# Jen vlastni ikona aplikace (Icon= v tematu nebo cesta), bez nahradni; 0 kdyz neni
+function own_icon(info, size, scale):
     unsafe:
         gicon = __lsl_qbe_call1(__lsl_symbol("g_app_info_get_icon"), ptr(info))
     end
-    surface = icon_gicon(gicon, size, scale)
+    return icon_gicon(gicon, size, scale)
+end
+
+function icon(info, size, scale):
+    surface = own_icon(info, size, scale)
     if surface == 0:
         return icon_named(FALLBACK_ICON, size, scale)
     end
