@@ -215,7 +215,7 @@ case ${1:-auto} in
             [[ $st == connected && $active == 1 ]] && xrandr --output "$name" --brightness "$b"
         done < <(outputs) ;;
     menu)
-        pkill -x rofi && exit 0
+        pkill -u "$(id -u)" -x rofi --env "DISPLAY=${DISPLAY-}" && exit 0
         light=()
         [[ $(luxos-appearance status) == light ]] && light=(-theme-str '@import "luxos-light-colors"')
         choice=$(printf '%s\0icon\x1f%s\n' \

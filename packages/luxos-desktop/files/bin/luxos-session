@@ -178,7 +178,7 @@ if [[ ! -e $cfg/waves-migrated ]]; then
 fi
 
 # Kompozitor xfwm4 (stiny, pruhlednost): zapnout i po pokusu s picom, ktery ho vypinal
-pgrep -u "$USER" -x picom >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
+pgrep -u "$USER" -x picom --env "DISPLAY=$DISPLAY" >/dev/null || xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null
 
 # Alt+Tab: nahled obsahu oken s ikonou aplikace (rozlisi vic terminalu), vybrane okno se vysune
 # dopredu, bez ramecku.
@@ -308,7 +308,7 @@ if [[ $(gsettings get net.launchpad.plank.dock.settings:/net/launchpad/plank/doc
 else
     rm -f "$cfg/dock-autohide"
 fi
-pgrep -u "$USER" -x luxos-menubar >/dev/null || { /usr/bin/luxos-menubar & }
+pgrep -u "$USER" -x luxos-menubar --env "DISPLAY=$DISPLAY" >/dev/null || { /usr/bin/luxos-menubar & }
 # Trezor: zamceni pri odhlaseni (sluzba) a zalozka v Souborech; zamceni obrazovky a uspani hlida luxos-hub
 if command -v luxos-safe >/dev/null; then
     systemctl --user start luxos-safe-watch.service 2>/dev/null &
@@ -346,7 +346,7 @@ fi
 
 # Tapeta i pro nove pripojene monitory (xfdesktop musi uz bezet)
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-    pgrep -u "$USER" -x xfdesktop >/dev/null && break
+    pgrep -u "$USER" -x xfdesktop --env "DISPLAY=$DISPLAY" >/dev/null && break
     sleep 0.5
 done
 /usr/bin/luxos-appearance reapply

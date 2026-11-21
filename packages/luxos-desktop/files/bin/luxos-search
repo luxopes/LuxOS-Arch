@@ -56,7 +56,7 @@ if [[ $1 == --add-to-panel ]]; then
     exit 0
 fi
 
-if pkill -x rofi; then exit 0; fi
+if pkill -u "$(id -u)" -x rofi --env "DISPLAY=${DISPLAY-}"; then exit 0; fi   # rofi teto relace
 # Bez LuxAI (LuxOS Desktop na jine distribuci) jen hledani
 if command -v luxos-luxai-rofi >/dev/null; then
     combi="luxai:luxos-luxai-rofi,drun" placeholder=$(T "Search or ask LuxAI")

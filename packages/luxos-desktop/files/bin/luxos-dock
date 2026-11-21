@@ -3,7 +3,8 @@
 # Plank 0.11 spadne (SIGABRT v Services/Logger.c string_replace) na nekterych varovanich,
 # napr. pri prepnuti svetleho/tmaveho rezimu - Dock by pak zmizel. Normalni ukonceni
 # (rc 0) a zamerne ukonceni (SIGTERM/SIGINT) ho nechaji vypnuty; konec relace X take.
-pgrep -u "$USER" -x plank >/dev/null && exit 0
+# jen Dock teto relace (displeje), ne druhe relace stejneho uzivatele
+pgrep -u "$USER" -x plank --env "DISPLAY=${DISPLAY-}" >/dev/null && exit 0
 # Vystup Docku do logu (varovani "Animation stalled" a pady pomahaji hledat zaseknute zvetseni);
 # jedna predchozi kopie, aby log nerostl
 log=${XDG_STATE_HOME:-$HOME/.local/state}/luxos/dock.log
