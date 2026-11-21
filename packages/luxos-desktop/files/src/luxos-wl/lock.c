@@ -18,6 +18,7 @@
 #include <glib.h>
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-compose.h>
+#include <wayland-cursor.h>
 #include "internal.h"
 #include "ext-session-lock-v1-client-protocol.h"
 #include "fractional-scale-v1-client-protocol.h"
@@ -59,6 +60,9 @@ static struct wl_pointer *pointer;
 static struct wl_touch *touch;
 static struct surface *pointer_focus;
 static wl_fixed_t pointer_x, pointer_y;
+static struct wl_cursor_theme *cursor_theme;
+static struct wl_surface *cursor_surface;
+static int cursor_scale;
 static struct xkb_context *xkb;
 static struct xkb_keymap *keymap;
 static struct xkb_state *xkb_state;
@@ -66,6 +70,8 @@ static struct surface *focus;
 static struct xkb_compose_table *compose_table;
 static struct xkb_compose_state *compose;
 static int32_t repeat_rate = 25, repeat_delay = 600;
+static uint32_t mods[3], server_group;
+static int group_override = -1;
 static xkb_keycode_t repeat_code;
 static guint repeat_timer;
 
@@ -606,10 +612,29 @@ static void kb_modifiers(void *data, struct wl_keyboard *kb, uint32_t serial, ui
 	uint32_t locked_mods, uint32_t group)
 {
 	(void)data; (void)kb; (void)serial;
+	/* skupinu prepnutou kliknutim na rozlozeni (lwl_lock_layout_next) drzi zamek, dokud ji kompozitor nezmeni sam */
+	if (group != server_group)
+		group_override = -1;
+	server_group = group;
+	mods[0] = depressed;
+	mods[1] = latched;
+	mods[2] = locked_mods;
 	if (xkb_state) {
-		xkb_state_update_mask(xkb_state, depressed, latched, locked_mods, 0, 0, group);
+		xkb_state_update_mask(xkb_state, depressed, latched, locked_mods, 0, 0,
+				      group_override >= 0 ? (uint32_t)group_override : group);
 		keyboard_state(false);
 	}
+}
+
+/* Dalsi rozlozeni kliknutim (jako XkbLockGroup v X11 zamku): jen pro psani hesla do zamku */
+LWL_EXPORT void lwl_lock_layout_next(void)
+{
+	if (!xkb_state || layout_count < 2)
+		return;
+	int current = (int)xkb_state_serialize_layout(xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+	group_override = (current + 1) % layout_count;
+	xkb_state_update_mask(xkb_state, mods[0], mods[1], mods[2], 0, 0, (uint32_t)group_override);
+	keyboard_state(false);
 }
 
 static void kb_repeat(void *data, struct wl_keyboard *kb, int32_t rate, int32_t delay)
@@ -631,7 +656,8 @@ static const struct wl_keyboard_listener keyboard_listener = {
 	.repeat_info = kb_repeat,
 };
 
-/* ---- mys a dotyk: klik nebo dotek jen probudi vyzvu k heslu (LWL_POINTER), kurzor je skryty ---- */
+/* ---- mys a dotyk: klik nebo dotek (LWL_POINTER) a pohyb (LWL_POINTER_MOTION), kurzor ze systemoveho tematu
+ * jako X11 zamek (XCURSOR_THEME, XCURSOR_SIZE) ---- */
 
 static struct surface *surface_for(struct wl_surface *wl)
 {
@@ -642,18 +668,56 @@ static struct surface *surface_for(struct wl_surface *wl)
 	return NULL;
 }
 
+static void cursor_set(struct wl_pointer *p, uint32_t serial, struct surface *s)
+{
+	int scale = s ? (surface_scale(s) + 119) / 120 : 1;
+	const char *size_env = getenv("XCURSOR_SIZE");
+	int size = size_env && atoi(size_env) > 0 ? atoi(size_env) : 24;
+	if (!lwl.shm || !lwl.compositor) {
+		wl_pointer_set_cursor(p, serial, NULL, 0, 0);
+		return;
+	}
+	if (cursor_theme && cursor_scale != scale) {
+		wl_cursor_theme_destroy(cursor_theme);
+		cursor_theme = NULL;
+	}
+	if (!cursor_theme) {
+		cursor_theme = wl_cursor_theme_load(getenv("XCURSOR_THEME"), size * scale, lwl.shm);
+		cursor_scale = scale;
+	}
+	struct wl_cursor *c = cursor_theme ? wl_cursor_theme_get_cursor(cursor_theme, "default") : NULL;
+	if (!c && cursor_theme)
+		c = wl_cursor_theme_get_cursor(cursor_theme, "left_ptr");
+	if (!c || c->image_count == 0) {
+		wl_pointer_set_cursor(p, serial, NULL, 0, 0);
+		return;
+	}
+	struct wl_cursor_image *img = c->images[0];
+	if (!cursor_surface)
+		cursor_surface = wl_compositor_create_surface(lwl.compositor);
+	wl_surface_set_buffer_scale(cursor_surface, scale);
+	wl_surface_attach(cursor_surface, wl_cursor_image_get_buffer(img), 0, 0);
+	wl_surface_damage(cursor_surface, 0, 0, (int32_t)img->width, (int32_t)img->height);
+	wl_surface_commit(cursor_surface);
+	wl_pointer_set_cursor(p, serial, cursor_surface, (int32_t)img->hotspot_x / scale, (int32_t)img->hotspot_y / scale);
+}
+
 static void ptr_enter(void *data, struct wl_pointer *p, uint32_t serial, struct wl_surface *wl, wl_fixed_t x, wl_fixed_t y)
 {
 	(void)data;
 	pointer_focus = surface_for(wl);
 	pointer_x = x;
 	pointer_y = y;
-	wl_pointer_set_cursor(p, serial, NULL, 0, 0);
+	cursor_set(p, serial, pointer_focus);
+	if (pointer_focus)
+		lwl_emit(LWL_POINTER_MOTION, pointer_focus->id, wl_fixed_to_int(x), wl_fixed_to_int(y));
 }
 
 static void ptr_leave(void *data, struct wl_pointer *p, uint32_t serial, struct wl_surface *wl)
 {
 	(void)data; (void)p; (void)serial; (void)wl;
+	if (pointer_focus)
+		lwl_emit(LWL_POINTER_MOTION, pointer_focus->id, -1, -1);
 	pointer_focus = NULL;
 }
 
@@ -662,6 +726,8 @@ static void ptr_motion(void *data, struct wl_pointer *p, uint32_t time, wl_fixed
 	(void)data; (void)p; (void)time;
 	pointer_x = x;
 	pointer_y = y;
+	if (pointer_focus)
+		lwl_emit(LWL_POINTER_MOTION, pointer_focus->id, wl_fixed_to_int(x), wl_fixed_to_int(y));
 }
 
 static void ptr_button(void *data, struct wl_pointer *p, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
@@ -773,6 +839,12 @@ void lwl_lock_keyboard_update(void)
 		wl_pointer_release(pointer);
 		pointer = NULL;
 		pointer_focus = NULL;
+		if (cursor_surface)
+			wl_surface_destroy(cursor_surface);
+		if (cursor_theme)
+			wl_cursor_theme_destroy(cursor_theme);
+		cursor_surface = NULL;
+		cursor_theme = NULL;
 	}
 	want = any && (lwl.seat_caps & WL_SEAT_CAPABILITY_TOUCH);
 	if (want && !touch) {

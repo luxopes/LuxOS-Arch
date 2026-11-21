@@ -1,8 +1,8 @@
 # LuxOS - prihlasovaci obrazovka pro greetd (1.1.0, Wayland): bezi pod `luxwm --greeter` jako jedno okno pres
-# celou obrazovku, kresli vse cairem stejne jako zamek (luxos_lock_draw): v klidu ostra tapeta, hodiny a stav,
-# po klavese, kliknuti nebo pohybu mysi vyzva s avatarem a polem pro heslo. Navic rada uzivatelu, Jiny uzivatel
-# (domena: volne jmeno), volba relace (pilulka s nabidkou: LuxOS na Waylandu / LuxOS (X11)) a tlacitka Uspat /
-# Restartovat / Vypnout.
+# celou obrazovku, kresli vse cairem a vypada presne jako X11 luxos-greeter (luxos_lock_draw): v klidu tapeta, hodiny
+# a stav, po klavese, kliknuti nebo pohybu mysi vyzva s avatarem a polem pro heslo. Navic rada uzivatelu (vybrany
+# uprostred), Jiny uzivatel (domena: volne jmeno), relace jako kulate tlacitko s nazvem pred Uspat / Restartovat /
+# Vypnout (klik prepne na dalsi: LuxOS na Waylandu / LuxOS (X11)).
 #
 # Overeni dela greetd (PAM v greetd, ne tady): zpravy JSON pres GREETD_SOCK (luxos_greetd). Zpravy PAM (otisk prstu,
 # zamceny ucet, domena, vyprsele heslo) prichazeji jako auth_message a ukazuji se jako hlaska pod polem.
@@ -40,7 +40,7 @@ trace = env.get("LUXOS_GREETER_TRACE", "") == "1"
 
 ui = draw.new_ui("greeter")
 # input: znaky v poli (seznam, at jde heslo smazat); visible = pole ukazuje text (jmeno, viditelna vyzva PAM)
-state = {"users": [], "sel": 0, "sessions": [], "session": 0, "input": [], "visible": False, "login": "",
+state = {"hits": [], "users": [], "sel": 0, "sessions": [], "session": 0, "input": [], "visible": False, "login": "",
          "fd": -1, "inflight": False, "phase": "idle", "pending": None, "auth_error": False, "locked_hint": "",
          "caps_at_submit": False, "fprint": False, "fp_wait": False, "domain": None, "domain_note": "",
          "power": [], "redraw": 0, "frame_timer": 0, "soft_timer": 0, "motion": None,
@@ -161,7 +161,7 @@ function load_face(path):
     face = None
     if path != "" and exists(path):
         safe:
-            face = gtk.pixbuf_new_from_file_at_scale(path, 256, 256, True)
+            face = gtk.pixbuf_new_from_file(path)
         end
         if face == 0:
             face = None
@@ -616,10 +616,6 @@ function sync_ui():
     ui["sel"] = state["sel"]
     ui["sessions"] = [x["name"] for x in state["sessions"]]
     ui["session_sel"] = state["session"]
-    ui["session"] = ""
-    if len(state["sessions"]) > 0:
-        ui["session"] = i18n.TF("Session: %s", [state["sessions"][state["session"]]["name"]])
-    end
     ui["power"] = [[k, i18n.T(POWER_LABELS[k])] for k in ["suspend", "reboot", "poweroff"] if k in state["power"]]
     line = domain_line()
     if line == "":
@@ -647,11 +643,21 @@ function on_draw(cr, widget):
     ui["scale"] = scale
     bd = draw.backdrop(wallpaper(), w, h, scale)
     call draw.frame(cr, w, h, ui, bd)
-    if bd["soft"] == None and state["soft_timer"] == 0:
+    if trace and ui["hits"] != state["hits"]:
+        for h in ui["hits"]:
+            call log("hit " + h[4][0] + String(h[4][1]) + " " + String(h[0]) + " " + String(h[1]) + " " + String(h[2]) + " " + String(h[3]))
+        end
+    end
+    state["hits"] = ui["hits"]
+    if bd["blur"] == None and state["soft_timer"] == 0:
         state["soft_timer"] = glib.timeout_add(30, prepare_soft)
     end
-    if again and state["frame_timer"] == 0:
-        state["frame_timer"] = glib.timeout_add(tokens.MOTION["frame"], next_frame)
+    if state["frame_timer"] == 0:
+        if again:
+            state["frame_timer"] = glib.timeout_add(tokens.MOTION["frame"], next_frame)
+        elif ui["wake"] > 0:
+            state["frame_timer"] = glib.timeout_add(ui["wake"], next_frame)
+        end
     end
     if state["pending_click"] != None and len(ui["hits"]) > 0:
         call glib.idle_add(pending_click)
@@ -691,7 +697,6 @@ end
 function idle_check():
     quiet = (glib.monotonic_time() - state["last_input"]) / 1000 >= tokens.LOCK["idle_after"]
     if quiet and len(state["input"]) == 0 and not ui["busy"] and not state["leaving"] and ui["rev_to"] > 0.0:
-        ui["menu"] = False
         call draw.prompt(ui, False)
         call log("idle")
         call redraw()
@@ -703,15 +708,11 @@ end
 
 function sync_field():
     ui["length"] = len(state["input"])
-    ui["visible_text"] = False
-    if state["visible"] and len(state["input"]) > 0:
-        # viditelny text (jmeno): kresli se jako popisek pole
-        ui["placeholder"] = "".join(state["input"])
-        ui["length"] = 0
-        ui["visible_text"] = True
-    else:
-        ui["placeholder"] = state["prompt"]
-    end
+    # viditelny text (jmeno Jineho uzivatele) jako text pole, heslo tecky
+    ui["visible_text"] = state["visible"]
+    ui["text"] = "".join(state["input"]) if state["visible"] else ""
+    ui["placeholder"] = state["prompt"]
+    call draw.typed(ui)
     call redraw()
     return 0
 end
@@ -738,7 +739,6 @@ function set_hint(message, error):
     end
     ui["hint"] = message
     ui["error"] = error
-    ui["hint_icon"] = ""
     ui["lockout"] = False
     call redraw()
     return 0
@@ -810,7 +810,6 @@ end
 function auth_failed(description):
     if state["locked_hint"] != "":
         call set_hint(state["locked_hint"], True)
-        ui["hint_icon"] = "lock"
         ui["lockout"] = True
     elif state["auth_error"]:
         # hlaska z PAM uz je videt
@@ -855,7 +854,6 @@ function pam_message(kind, message):
             state["locked_hint"] = i18n.T("Too many failed attempts. Wait a moment, then try again.")
         end
         call set_hint(state["locked_hint"], True)
-        ui["hint_icon"] = "lock"
         ui["lockout"] = True
         return 0
     end
@@ -866,13 +864,11 @@ function pam_message(kind, message):
             ui["busy"] = False
             if not ui["error"]:
                 call set_hint(i18n.T("Touch the fingerprint sensor or enter your password"), False)
-                ui["hint_icon"] = "fingerprint"
             end
             return 0
         end
         if state["fp_wait"]:
             call set_hint(i18n.T("Fingerprint not recognized. Try again or enter your password."), True)
-            ui["hint_icon"] = "fingerprint"
             call shake()
             return 0
         end
@@ -1015,7 +1011,6 @@ end
 # greetd relaci spusti, az greeter skonci: posledni snimek je tapeta bez formulare (luxwm --greeter pak skonci s nim)
 function leave():
     state["leaving"] = True
-    ui["menu"] = False
     call gtk.widget_queue_draw(window)
     call log("leaving")
     call glib.timeout_add(120, quit_now)
@@ -1084,7 +1079,6 @@ function select_user(index):
 end
 
 function choose_session(index):
-    ui["menu"] = False
     if index >= 0 and index < len(state["sessions"]) and index != state["session"]:
         state["session"] = index
         state["notice"] = ""
@@ -1150,9 +1144,11 @@ function update_caps():
     return False
 end
 
+# Rozlozeni vpravo nahore vzdy, pod polem jen pri vic rozlozenich (jako X11 luxos-greeter)
 function update_layout(group):
-    name = ""
-    if len(state["layouts"]) > 1 and group < len(state["layouts"]):
+    ui["layouts"] = len(state["layouts"])
+    name = "US"
+    if group < len(state["layouts"]) and state["layouts"][group] != "":
         name = state["layouts"][group].upper()
     end
     if name != ui["layout"]:
@@ -1171,15 +1167,10 @@ function on_key(event, widget):
     if state["leaving"]:
         return True
     end
-    if name == "Escape" and len(state["input"]) == 0 and (ui["menu"] or not current()["other"]):
-        # Esc: zavrit nabidku relaci, s prazdnym polem zpet do klidu
-        if ui["menu"]:
-            ui["menu"] = False
-            call redraw()
-        else:
-            state["last_input"] = 0
-            call idle_check()
-        end
+    if name == "Escape" and len(state["input"]) == 0 and not current()["other"]:
+        # Esc s prazdnym polem: zpet do klidu
+        state["last_input"] = 0
+        call idle_check()
         return True
     end
     call show_prompt()
@@ -1264,31 +1255,22 @@ end
 function click_at(x, y):
     h = hit_at(x, y)
     if h == None:
-        if ui["menu"]:
-            ui["menu"] = False
-            call redraw()
-        end
         return 0
     end
     action = h[4]
     call log("click " + action[0])
-    if action[0] != "session" and action[0] != "menu":
-        ui["menu"] = False
-    end
     if action[0] == "user":
         call select_user(action[1])
     elif action[0] == "session":
-        ui["menu"] = not ui["menu"]
-        call log("menu " + String(ui["menu"]))
-        call redraw()
-    elif action[0] == "menu":
-        call choose_session(action[1])
-    elif action[0] == "field":
-        # sipka v poli = odeslat
-        if x > h[0] + h[2] - h[3]:
-            call submit()
+        # jako X11: relace se prepina kliknutim na dalsi
+        if len(state["sessions"]) > 0:
+            call choose_session((state["session"] + 1) % len(state["sessions"]))
         end
-    else:
+    elif action[0] == "go":
+        call submit()
+    elif action[0] == "layout" or action[0] == "chip":
+        call log("layout click")
+    elif action[0] != "field":
         call power(action[0])
     end
     return 0
@@ -1320,7 +1302,7 @@ function on_motion(event, widget):
     key = ""
     if h != None:
         key = h[4][0]
-        if key == "user" or key == "menu":
+        if key == "user":
             key = key + String(h[4][1])
         end
     end
@@ -1373,6 +1355,7 @@ state["legacy_gpu"] = legacy_gpu()
 state["system"] = system_bus()
 state["fprint"] = fprint_enabled()
 ui["caps_text"] = i18n.T("Caps Lock is on")
+ui["lang"] = i18n.lang()
 call load_users()
 call load_sessions()
 last = load_saved()

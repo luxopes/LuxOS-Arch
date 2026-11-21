@@ -6,7 +6,7 @@ GEN := $(OUT)/gen
 HEADERS := $(patsubst protocol/%.xml,$(GEN)/%-client-protocol.h,$(PROTOCOLS))
 CODE := $(patsubst protocol/%.xml,$(GEN)/%-protocol.c,$(PROTOCOLS))
 SRC := core.c toplevel.c lock.c capture.c clipboard.c vkbd.c heads.c idle.c
-PKGS := wayland-client xkbcommon glib-2.0
+PKGS := wayland-client wayland-cursor xkbcommon glib-2.0
 CFLAGS ?= -O2 -g
 override CFLAGS += -std=c11 -Wall -Wextra -fPIC -fvisibility=hidden $(shell pkg-config --cflags $(PKGS)) -I$(GEN) -I.
 LDLIBS := $(shell pkg-config --libs $(PKGS))

@@ -19,7 +19,7 @@
 #            (Float, i zlomkove; kreslit s cairo.scale), surface_commit(s, surface), KEY(s, keysym, znak), unlock()
 #            lock_secret(True): znaky hesla zustavaji v knihovne (KEY(s, 0 nebo keysym, delka)),
 #            lock_secret_write(fd) je posle do roury a smaze; KEYBOARD(s, caps, skupina), lock_layout_code(g),
-#            POINTER(s, x, y) klik nebo dotek na zamykaci plose
+#            POINTER(s, x, y) klik nebo dotek na zamykaci plose, POINTER_MOTION(s, x, y) pohyb (-1, -1 = mimo)
 # Snimek:    capture_output(o, kurzor), capture_toplevel(lt, kurzor) -> READY(c, w, h)/FAILED(c, duvod),
 #            capture_surface(c, w, h) -> kopie jako cairo surface, capture_write_png(c, w, h, cesta),
 #            capture_format(c), capture_free(c)
@@ -64,6 +64,7 @@ RESUMED = 23
 DISCONNECTED = 24
 KEYBOARD = 25
 POINTER = 26
+POINTER_MOTION = 27
 
 STATE_ACTIVATED = 1
 STATE_MAXIMIZED = 2
@@ -85,7 +86,7 @@ NAMES = ["lwl_set_handler", "lwl_bind_only", "lwl_connect", "lwl_attach", "lwl_d
     "lwl_head_mode_count", "lwl_head_mode", "lwl_output_config_begin", "lwl_output_config_head",
     "lwl_output_config_apply", "lwl_idle_watch", "lwl_idle_release", "lwl_idle_watch_full", "lwl_lock_secret",
     "lwl_lock_secret_length", "lwl_lock_secret_clear", "lwl_lock_secret_write", "lwl_lock_caps", "lwl_lock_layout",
-    "lwl_lock_layout_count", "lwl_lock_layout_code", "lwl_surface_scale", "lwl_surface_buffer_width",
+    "lwl_lock_layout_count", "lwl_lock_layout_code", "lwl_lock_layout_next", "lwl_surface_scale", "lwl_surface_buffer_width",
     "lwl_surface_buffer_height"]
 
 # cairo_format_t podle formatu wl_shm (0 ARGB8888, 1 XRGB8888)
@@ -410,6 +411,11 @@ end
 
 function lock_layout_code(group):
     return text1("lwl_lock_layout_code", group)
+end
+
+# Dalsi rozlozeni pro psani hesla (klik na rozlozeni); KEYBOARD hlasi novou skupinu
+function lock_layout_next():
+    return call0("lwl_lock_layout_next")
 end
 
 function surface_size(surface):

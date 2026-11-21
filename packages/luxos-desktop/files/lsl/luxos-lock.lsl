@@ -1,7 +1,8 @@
 # LuxOS - zamek obrazovky na Waylandu (1.1.0): ext-session-lock-v1, jedna zamykaci plocha na monitor (i pripojeny
 # za zamceni), kresba cairem (luxos_lock_draw, spolecna s prihlasovaci obrazovkou). Nahrazuje xfce4-screensaver
-# s luxos-lock-ui.c. V klidu jen tapeta, hodiny a stav; klavesa, klik nebo dotek ukaze vyzvu k heslu (prvni znak
-# uz je v poli), po LOCK["idle_after"] bez vstupu s prazdnym polem se vrati klid.
+# s luxos-lock-ui.c a vypada stejne (luxos_lock_draw). V klidu jen tapeta a hodiny; klavesa, klik nebo dotek ukaze
+# vyzvu k heslu (prvni znak uz je v poli), po LOCK["idle_after"] bez vstupu s prazdnym polem se vrati klid. Klik na
+# rozlozeni prepne rozlozeni, na sipku odesle heslo; Uspat / Restartovat / Vypnout podle logind (CanSuspend, ...).
 #
 #   luxos-lock            zamknout hned; konci po odemceni (kod 0)
 #   luxos-lock --notify   navic radek "ready" na stdout, az je zamceno a kazdy monitor ma nakreslenou plochu
@@ -18,7 +19,7 @@
 # Testy: LUXOS_LOCK_AUTH (jiny luxos-auth, napr. s napodobenym PAM), LUXOS_LOCK_FPRINT_MODULE (misto
 # /usr/lib/security/pam_fprintd.so), LUXOS_LOCK_POWER_SUPPLY (misto /sys/class/power_supply),
 # LUXOS_LOCK_NET (misto /sys/class/net), LUXOS_LOCK_PROMPT_MS (vyzva -> klid), LUXOS_LOCK_NOW="HH:MM" (pevne hodiny), LUXOS_LOCK_DEMO_NAME (jmeno na
-# snimcich), LUXOS_LOCK_TRACE=1 (udalosti na stdout).
+# snimcich), LUXOS_LOCK_POWER=fake (tlacitka napajeni bez logind, klik jen do stopy), LUXOS_LOCK_TRACE=1 (udalosti na stdout).
 load env, cairo, glib, gio, gtk, math
 load luxos_glib as lglib
 load luxos_gio as lgio
@@ -42,10 +43,14 @@ LOGIN1 = "org.freedesktop.login1"
 notify = arg_count() > 1 and arg(1) == "--notify"
 trace = env.get("LUXOS_LOCK_TRACE", "") == "1"
 
-# surfaces: id plochy -> [vystup, sirka, vyska, nakresleno]
+# surfaces: id plochy -> [vystup, sirka, vyska, nakresleno, klic tapety, aktivni mista]
 state = {"locked": False, "ready": False, "surfaces": {}, "redraw": 0, "frame_timer": 0, "soft_timer": 0,
          "auth": [], "auth_error": False, "locked_hint": "", "caps_at_submit": False, "fp": [], "fp_seen": False,
-         "fp_off": False, "fp_ended": 0, "system": 0, "session": "", "last_input": 0, "idle_timer": 0}
+         "fp_off": False, "fp_ended": 0, "system": 0, "session": "", "last_input": 0, "idle_timer": 0,
+         "can": {}, "power_timer": 0, "power_tries": 0}
+# napajeni: klic kresby, dotaz a metoda logind, popisek (jako luxos-lock-ui.c)
+POWER = [["suspend", "CanSuspend", "Suspend", "Sleep"], ["reboot", "CanReboot", "Reboot", "Restart"],
+         ["poweroff", "CanPowerOff", "PowerOff", "Shut Down"]]
 ui = draw.new_ui("lock")
 
 
@@ -174,15 +179,11 @@ function backdrop_for(s, scale):
     name = wl.output_name(s[0])
     path = material.wallpaper_path(name)
     bd = draw.backdrop(path, s[1], s[2], scale)
-    if len(s) < 5 or s[4] != bd["key"]:
+    if s[4] != bd["key"]:
         call log("wallpaper " + name + " " + path)
-        if len(s) < 5:
-            s.append(bd["key"])
-        else:
-            s[4] = bd["key"]
-        end
+        s[4] = bd["key"]
     end
-    if bd["soft"] == None and state["soft_timer"] == 0:
+    if bd["blur"] == None and state["soft_timer"] == 0:
         state["soft_timer"] = glib.timeout_add(30, prepare_soft)
     end
     return bd
@@ -223,19 +224,25 @@ function draw_all():
             again = True
             continue
         end
-        cr = cairo.create(image)
         scale = wl.surface_scale(id)
-        if scale != 1.0:
-            call cairo.scale(cr, scale, scale)
-        end
         ui["scale"] = scale
-        call draw.frame(cr, s[1], s[2], ui, backdrop_for(s, scale))
-        call cairo.destroy(cr)
+        call draw.paint(image, s[1], s[2], ui, backdrop_for(s, scale))
         call wl.surface_commit(id, image)
         s[3] = True
+        if trace and ui["hits"] != s[5]:
+            for h in ui["hits"]:
+                call log("hit " + h[4][0] + " " + String(h[0]) + " " + String(h[1]) + " " + String(h[2]) + " " + String(h[3]))
+            end
+        end
+        s[5] = ui["hits"]
     end
-    if again and state["frame_timer"] == 0:
-        state["frame_timer"] = glib.timeout_add(tokens.MOTION["frame"], redraw_later)
+    if state["frame_timer"] == 0:
+        if again:
+            state["frame_timer"] = glib.timeout_add(tokens.MOTION["frame"], redraw_later)
+        elif ui["wake"] > 0:
+            # blikani kurzoru: dalsi snimek az pri zmene
+            state["frame_timer"] = glib.timeout_add(ui["wake"], redraw_later)
+        end
     end
     call check_ready()
     return False
@@ -271,7 +278,6 @@ end
 function set_hint(message, error):
     ui["hint"] = message
     ui["error"] = error
-    ui["hint_icon"] = ""
     call redraw()
     return 0
 end
@@ -289,6 +295,7 @@ function show_prompt():
     state["last_input"] = glib.monotonic_time()
     if draw.prompt(ui, True):
         call prepare_soft()
+        call power_refresh()
         call log("prompt")
         if state["idle_timer"] == 0:
             state["idle_timer"] = glib.timeout_add(1000, idle_check)
@@ -370,6 +377,7 @@ function submit():
     state["auth_error"] = False
     state["locked_hint"] = ""
     state["caps_at_submit"] = ui["caps"]
+    call draw.typed(ui)
     ui["busy"] = True
     ui["lockout"] = False
     ui["length"] = 0
@@ -388,7 +396,6 @@ end
 function auth_failed():
     if state["locked_hint"] != "":
         call set_hint(state["locked_hint"], True)
-        ui["hint_icon"] = "lock"
     elif not state["auth_error"]:
         if state["caps_at_submit"]:
             call set_hint(i18n.T("Incorrect password – Caps Lock is on"), True)
@@ -409,7 +416,6 @@ function pam_message(kind, message, fingerprint):
             state["locked_hint"] = i18n.T("Too many failed attempts. Wait a moment, then try again.")
         end
         call set_hint(state["locked_hint"], True)
-        ui["hint_icon"] = "lock"
         ui["lockout"] = True
         return 0
     end
@@ -418,11 +424,9 @@ function pam_message(kind, message, fingerprint):
             state["fp_seen"] = True
             if not ui["error"]:
                 call set_hint(i18n.T("Touch the fingerprint sensor or enter your password"), False)
-                ui["hint_icon"] = "fingerprint"
             end
         else:
             call set_hint(i18n.T("Fingerprint not recognized. Try again or enter your password."), True)
-            ui["hint_icon"] = "fingerprint"
             call shake()
         end
         return 0
@@ -569,17 +573,143 @@ end
 function add_surface(output):
     id = wl.lock_surface(output)
     if id > 0:
-        state["surfaces"][id] = [output, 0, 0, False]
+        state["surfaces"][id] = [output, 0, 0, False, "", []]
+    end
+    return 0
+end
+
+# ---- napajeni (logind, bez hesla): tlacitka jen pri odpovedi "yes"; dotaz znovu pri vyzve a pak kazdou sekundu
+# (nejvys 5x), dokud nejsou vsechna potvrzena - po probuzeni logind a polkit chvili neodpovidaji ----
+
+function sync_power():
+    ui["power"] = [[p[0], i18n.T(p[3])] for p in POWER if state["can"].get(p[0], False)]
+    call redraw()
+    return 0
+end
+
+function on_can(key, reply, error):
+    if reply != None and len(reply) > 0:
+        state["can"][key] = String(reply[0]) == "yes"
+        call sync_power()
+    end
+    return 0
+end
+
+function power_query():
+    if env.get("LUXOS_LOCK_POWER", "") == "fake":
+        for p in POWER:
+            state["can"][p[0]] = True
+        end
+        return sync_power()
+    end
+    if state["system"] == 0:
+        return 0
+    end
+    for p in POWER:
+        call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager", p[1],
+                             [], "", 5000, on_can, p[0])
+    end
+    return 0
+end
+
+function power_refresh():
+    call power_query()
+    state["power_tries"] = 5
+    if state["power_timer"] == 0:
+        state["power_timer"] = glib.timeout_add(1000, power_retry)
+    end
+    return 0
+end
+
+function power_retry():
+    state["power_tries"] = state["power_tries"] - 1
+    if len(ui["power"]) == len(POWER) or state["power_tries"] < 0:
+        state["power_timer"] = 0
+        return False
+    end
+    call power_query()
+    return True
+end
+
+function on_power_done(key, reply, error):
+    if reply == None:
+        call log("power " + key + " failed")
+        call set_hint(i18n.T("This action is not available right now."), True)
+    end
+    return 0
+end
+
+function power(key):
+    call log("power " + key)
+    if env.get("LUXOS_LOCK_POWER", "") == "fake":
+        return 0
+    end
+    if state["system"] == 0:
+        return set_hint(i18n.T("This action is not available right now."), True)
+    end
+    for p in POWER:
+        if p[0] == key:
+            call lgio.call_async(state["system"], LOGIN1, "/org/freedesktop/login1", "org.freedesktop.login1.Manager", p[2],
+                                 [False], "(b)", 25000, on_power_done, key)
+        end
+    end
+    return 0
+end
+
+# ---- mys a dotyk ----
+
+function hit_at(id, x, y):
+    if id not in state["surfaces"]:
+        return None
+    end
+    for h in state["surfaces"][id][5]:
+        if x >= h[0] and x < h[0] + h[2] and y >= h[1] and y < h[1] + h[3]:
+            return h[4]
+        end
+    end
+    return None
+end
+
+function click(id, x, y):
+    call log("pointer " + String(x) + " " + String(y))
+    if ui["rev_to"] <= 0.0:
+        call show_prompt()
+        call fingerprint_start()
+        return 0
+    end
+    state["last_input"] = glib.monotonic_time()
+    action = hit_at(id, x, y)
+    if action == None:
+        return 0
+    end
+    call log("click " + action[0])
+    if action[0] == "layout" or action[0] == "chip":
+        call wl.lock_layout_next()
+    elif action[0] == "go":
+        call submit()
+    elif action[0] != "field" and action[0] != "user":
+        call power(action[0])
+    end
+    return 0
+end
+
+function motion(id, x, y):
+    action = hit_at(id, x, y)
+    key = "" if action == None else action[0]
+    if key != ui["hover"]:
+        ui["hover"] = key
+        call redraw()
     end
     return 0
 end
 
 function keyboard_changed(caps, group):
     ui["caps"] = caps != 0
-    ui["layout"] = ""
-    # rozlozeni jen pri vic nez jednom (jinak neni co splest)
-    if wl.lock_layout_count() > 1:
-        ui["layout"] = wl.lock_layout_code(group)
+    # vpravo nahore vzdy, pod polem jen pri vic rozlozenich (jako luxos-lock-ui.c)
+    ui["layouts"] = wl.lock_layout_count()
+    ui["layout"] = wl.lock_layout_code(group)
+    if ui["layout"] == "":
+        ui["layout"] = "US"
     end
     call log("keyboard caps=" + String(ui["caps"]) + " layout=" + ui["layout"])
     call redraw()
@@ -589,6 +719,7 @@ end
 function key(sym, length):
     call log("key " + String(sym) + " " + String(length))
     ui["length"] = length
+    call draw.typed(ui)
     if sym == KEY_ESCAPE and length == 0 and not ui["busy"]:
         # Esc s prazdnym polem: zpet do klidu
         state["last_input"] = 0
@@ -613,7 +744,7 @@ function event(kind, handle, a, b):
             s[1] = a
             s[2] = b
             call log("configure " + String(a) + "x" + String(b))
-            r = draw.field_rect(a, b, 0.0)
+            r = draw.field_rect(a, b, ui)
             call log("field " + String(Int(r[0])) + " " + String(Int(r[1])) + " " + String(Int(r[2])) + " " + String(Int(r[3])))
             if wl.surface_scale(handle) != 1.0:
                 call log("scale " + String(wl.surface_scale(handle)))
@@ -625,9 +756,9 @@ function event(kind, handle, a, b):
     elif kind == wl.KEYBOARD:
         call keyboard_changed(a, b)
     elif kind == wl.POINTER:
-        call log("pointer " + String(a) + " " + String(b))
-        call show_prompt()
-        call fingerprint_start()
+        call click(handle, a, b)
+    elif kind == wl.POINTER_MOTION:
+        call motion(handle, a, b)
     elif kind == wl.LOCKED:
         state["locked"] = True
         call log("locked")
@@ -659,6 +790,7 @@ function main():
     call material.grayscale_text()
     call load_config()
     ui["placeholder"] = i18n.T("Enter Password")
+    ui["lang"] = i18n.lang()
     ui["font"] = state.get("font", "Inter")
     ui["caps_text"] = i18n.T("Caps Lock is on")
     call update_clock()

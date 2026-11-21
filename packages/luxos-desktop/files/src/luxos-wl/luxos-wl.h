@@ -51,6 +51,7 @@ enum lwl_event {
 	LWL_DISCONNECTED,           /* kompozitor skoncil */
 	LWL_KEYBOARD,               /* zamek: handle = plocha s fokusem, a = Caps Lock, b = skupina (rozlozeni) */
 	LWL_POINTER,                /* zamek: klik nebo dotek na plose handle, a = x, b = y (logicke) */
+	LWL_POINTER_MOTION,         /* zamek: ukazatel nad plochou handle na a, b (logicke); -1, -1 = opustil ji */
 };
 
 /* bity stavu okna */
@@ -101,6 +102,7 @@ int lwl_lock_caps(void);
 int lwl_lock_layout(void);
 int lwl_lock_layout_count(void);
 const char *lwl_lock_layout_code(int group);
+void lwl_lock_layout_next(void);
 int lwl_surface_width(int surface);
 int lwl_surface_height(int surface);
 int lwl_surface_scale(int surface);           /* 1/120: 240 = 2x, 180 = 1.5x */
