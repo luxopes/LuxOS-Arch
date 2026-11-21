@@ -47,6 +47,30 @@ now_ms(void)
 	return t.tv_sec * 1000 + t.tv_nsec / 1000000;
 }
 
+/* Stisknute klavesy pro vstup do plochy, bez tech, ktere spolkla zkratka: jejich uvolneni klient
+ * nedostane a XWayland by je opakoval donekonecna (Super+Q zavre dialog X11, hlavni okno pak pise "qqq") */
+static size_t
+held_keys(struct wlr_keyboard *wlr, uint32_t *out)
+{
+	struct keyboard *kb, *own = NULL;
+	wl_list_for_each(kb, &comp.keyboards, link) {
+		if (kb->wlr == wlr) {
+			own = kb;
+		}
+	}
+	size_t n = 0;
+	for (size_t i = 0; i < wlr->num_keycodes; i++) {
+		bool swallowed = false;
+		for (size_t j = 0; own && j < 8; j++) {
+			swallowed |= own->swallowed[j] == wlr->keycodes[i] + 8;
+		}
+		if (!swallowed) {
+			out[n++] = wlr->keycodes[i];
+		}
+	}
+	return n;
+}
+
 void
 seat_focus_surface(struct wlr_surface *surface)
 {
@@ -60,8 +84,8 @@ seat_focus_surface(struct wlr_surface *surface)
 	}
 	struct wlr_keyboard *kb = wlr_seat_get_keyboard(comp.seat);
 	if (kb) {
-		wlr_seat_keyboard_notify_enter(comp.seat, surface, kb->keycodes,
-			kb->num_keycodes, &kb->modifiers);
+		uint32_t keys[WLR_KEYBOARD_KEYS_CAP];
+		wlr_seat_keyboard_notify_enter(comp.seat, surface, keys, held_keys(kb, keys), &kb->modifiers);
 	} else {
 		wlr_seat_keyboard_notify_enter(comp.seat, surface, NULL, 0, NULL);
 	}
@@ -78,7 +102,8 @@ seat_enter_direct(struct wlr_surface *surface)
 	if (!surface) {
 		wlr_seat_keyboard_clear_focus(comp.seat);
 	} else if (kb) {
-		wlr_seat_keyboard_enter(comp.seat, surface, kb->keycodes, kb->num_keycodes, &kb->modifiers);
+		uint32_t keys[WLR_KEYBOARD_KEYS_CAP];
+		wlr_seat_keyboard_enter(comp.seat, surface, keys, held_keys(kb, keys), &kb->modifiers);
 	} else {
 		wlr_seat_keyboard_enter(comp.seat, surface, NULL, 0, NULL);
 	}

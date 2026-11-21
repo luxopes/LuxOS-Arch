@@ -39,3 +39,6 @@ export LESS='-R -F -i'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export MANROFFOPT='-c'
 export BAT_THEME="${BAT_THEME:-ansi}"
+
+# ssh -X/-Y v relaci na Waylandu pres waypipe, jinak pres XWayland
+. /usr/share/luxos/shell/remote-apps.sh
