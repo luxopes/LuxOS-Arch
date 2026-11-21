@@ -58,7 +58,6 @@ DEFAULT_WIDGETS = "today,system,music"
 ALL_WIDGETS = ["today", "system", "music", "calendar"]
 GRID = 8
 WEATHER_MAX_AGE = 10800
-SOCKET = "luxos-widgets-"
 GLASS_RADIUS = 22.0
 
 CSS = ("window.lw { background: transparent; }\n"
@@ -1891,8 +1890,8 @@ function start():
     if not conf["enabled"]:
         return 0
     end
-    # jedna instance na uzivatele a displej (abstraktni socket zmizi s procesem)
-    if sys.unix_listen(SOCKET + String(sys.getuid()) + "-" + glib.getenv("DISPLAY")) < 0:
+    # jedna instance v relaci (abstraktni socket zmizi s procesem)
+    if sys.unix_listen(sys.instance_name("luxos-widgets")) < 0:
         return 0
     end
     call start_common()

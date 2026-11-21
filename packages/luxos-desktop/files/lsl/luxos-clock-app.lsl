@@ -33,7 +33,6 @@ SOUNDS = [["classic", "Classic", SOUND], ["sunrise", "Sunrise", SOUND_DIR + "sun
           ["breeze", "Breeze", SOUND_DIR + "breeze.oga"], ["pulse", "Pulse", SOUND_DIR + "pulse.oga"]]
 SNOOZE_MIN = 10
 RING_MAX_SEC = 600      # bez reakce zvoneni po 10 minutach utichne (oznameni zustane), jako v Androidu
-SOCKET = "luxos-clock-app-"
 DAY_KEYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 DEFAULT_CITIES = ["Europe/London", "America/New_York", "Asia/Tokyo"]
 KEY_ESCAPE = 65307
@@ -1360,7 +1359,7 @@ function on_listen(listen_fd, handle, condition):
 end
 
 function main(background):
-    name = SOCKET + String(sys.getuid()) + "-" + glib.getenv("DISPLAY")
+    name = sys.instance_name("luxos-clock-app")
     fd = sys.unix_listen(name)
     if fd < 0:
         # uz bezi: jen ukazat okno

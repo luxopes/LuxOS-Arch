@@ -544,17 +544,9 @@ end
 
 # ---- prepinace a protokol klient -> hub -------------------------------------------------------------------------
 
-function runtime_dir():
-    value = env.get("XDG_RUNTIME_DIR", "")
-    if value == None or value == "":
-        return "/tmp"
-    end
-    return value
-end
-
-# Abstraktni socket UNIX (bez souboru; uzivatele protistrany overuje SO_PEERCRED)
+# Abstraktni socket UNIX v teto relaci (bez souboru; uzivatele protistrany overuje SO_PEERCRED)
 function socket_name():
-    return runtime_dir() + "/luxos-emoji"
+    return luxos_sys.instance_name("luxos-emoji")
 end
 
 # {"action": "toggle"|"open"|"close", "search": text|None, "help": bool} nebo {"error": text}

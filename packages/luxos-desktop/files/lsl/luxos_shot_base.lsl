@@ -61,9 +61,9 @@ function runtime_dir():
     return value
 end
 
-# Jmeno abstraktniho socketu UNIX (bez souboru; pristup jen pro stejneho uzivatele overuje SO_PEERCRED)
+# Jmeno abstraktniho socketu UNIX v teto relaci (bez souboru; stejneho uzivatele overuje SO_PEERCRED)
 function socket_name():
-    return runtime_dir() + "/luxos-screenshot"
+    return luxos_sys.instance_name("luxos-screenshot")
 end
 
 # ---- volby ---------------------------------------------------------------------------------------------
