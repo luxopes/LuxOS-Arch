@@ -67,7 +67,7 @@ class GlibCapture(unittest.TestCase):
     def test_signal_records_freed_with_object(self):
         r = subprocess.run([self.signal_prog], capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(r.stdout.split("\n")[:2], ["fired 1001", "alive 0 0"])
+        self.assertEqual(r.stdout.split("\n")[:3], ["fired 1001", "alive 0 0", "sources 1000 0 0"])
 
     def test_unix_signal_default_priority(self):
         # HIGH by v kole se signalem preskocil kontrolu zdroje Waylandu s rozectenym spojenim (zamrznuti hubu)

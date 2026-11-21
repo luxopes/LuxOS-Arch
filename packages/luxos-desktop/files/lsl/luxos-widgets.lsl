@@ -1999,7 +1999,11 @@ function start():
     ui["wayland"] = layer.is_wayland() and layer.is_supported()
     display_name = glib.getenv("DISPLAY")
     if ui["wayland"]:
+        # nazev soketu Waylandu je relativni k XDG_RUNTIME_DIR: soubezne relace (i testy) maji stejne "wayland-0"
         display_name = glib.getenv("WAYLAND_DISPLAY")
+        if not display_name.startswith("/"):
+            display_name = glib.user_runtime_dir() + "/" + display_name
+        end
         # jen nazvy vystupu pro WALLPAPER_<VYSTUP>
         if wl.available():
             call wl.bind_only(["wl_output", "zxdg_output_manager_v1"])

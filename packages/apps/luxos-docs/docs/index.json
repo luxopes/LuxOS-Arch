@@ -500,7 +500,7 @@
         {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
-          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, light/dark/auto mode, wallpapers, boot splash, login screen, login transition, luxos-hub, multiple monitors and touchpad.",
+          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, login screen, login transition, luxos-hub, multiple monitors and touchpad; appearance and wallpapers are in appearance.md.",
           "keywords": [
             "desktop",
             "top bar",
@@ -513,13 +513,6 @@
             "rofi",
             "notifications",
             "do not disturb",
-            "dark mode",
-            "light mode",
-            "auto appearance",
-            "luxos-appearance",
-            "wallpaper",
-            "luxos-splash",
-            "plymouth",
             "login screen",
             "luxos-greeter",
             "lightdm",
@@ -530,6 +523,29 @@
             "search icon",
             "login animation",
             "luxos-session-cover"
+          ]
+        },
+        {
+          "path": "luxos/appearance.md",
+          "title": "Appearance, Wallpapers and Desktop Icons",
+          "summary": "Light, dark and auto mode (luxos-appearance, sunrise/sunset), LuxOS wallpapers, per-monitor wallpaper and modes in the Wayland session (luxos-backdrop), desktop icons on Wayland and the Plymouth boot splash (luxos-splash).",
+          "keywords": [
+            "dark mode",
+            "light mode",
+            "auto appearance",
+            "luxos-appearance",
+            "wallpaper",
+            "luxos-splash",
+            "plymouth",
+            "appearance",
+            "sunrise",
+            "sunset",
+            "luxos-backdrop",
+            "wallpaper mode",
+            "per-monitor wallpaper",
+            "desktop icons",
+            "boot splash",
+            "boot screen"
           ]
         },
         {

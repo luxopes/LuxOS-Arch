@@ -1,6 +1,7 @@
 /* Prikazy scenare:
  *   move X Y | down [left|right|middle] | up [..] | click [..]
  *   drag X1 Y1 X2 Y2 [MS] [BTN] | key NAME[+NAME..] | keydown NAME | keyup NAME | type TEXT | sleep SEC
+ *   echo TEXT (po odeslani predchozich prikazu vypise TEXT: synchronizace s trvale bezicim wlt-input)
  * Souradnice jsou pixely celeho rozvrzeni vystupu. */
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -66,6 +67,13 @@ int scen_line(const struct scen_ops *ops, void *ctx, char *line)
 		int r = ops->text(ctx, rest);
 		ops->flush(ctx);
 		return r;
+	}
+	if (!strcmp(cmd, "echo")) {
+		char *rest = strtok(NULL, "\r\n");
+		ops->flush(ctx);
+		printf("%s\n", rest ? rest : "");
+		fflush(stdout);
+		return 0;
 	}
 	while (n < 6 && (a[n] = strtok(NULL, " \t\r\n")))
 		n++;

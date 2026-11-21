@@ -1,6 +1,7 @@
 # Testovaci okno GTK pro test_luxos_wl.py: luxos-wl-window APP_ID TITULEK [barva] [--maximize] [--entry]
 # S --entry vypisuje obsah pole po kazde zmene ("text: ..."), pri zavreni "closed".
 load glib, gtk
+load luxos_sys
 
 app_id = arg(1)
 title = arg(2)
@@ -20,8 +21,15 @@ while index < arg_count():
     index += 1
 end
 
+# radek jednim write(): okna spustena Dockem sdileji jeho stdout a print zapisuje text a konec radku zvlast
+# (dve okna zavrena naraz daval "closedclosed")
+function say(text):
+    call luxos_sys.out(text + "\n")
+    return 0
+end
+
 function changed(entry):
-    print "text: " + gtk.entry_get_text(entry)
+    call say("text: " + gtk.entry_get_text(entry))
     return 0
 end
 
@@ -30,13 +38,13 @@ function drawn(cr, widget):
     global announced
     if not announced:
         announced = True
-        print "shown"
+        call say("shown")
     end
     return False
 end
 
 function destroyed(widget):
-    print "closed"
+    call say("closed")
     call gtk.main_quit()
     return 0
 end

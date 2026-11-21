@@ -192,6 +192,14 @@ cmd_start() {
         sleep 0.2
     fi
     read_layout "$s" >"$s/layout"
+    # Mys a klavesnice pripojene po celou relaci jako skutecny hardware: bez nich seat pri kazdem `wlt input`
+    # ziska nove schopnosti, klient si wl_pointer/wl_keyboard vytvori znovu a prvni klik nebo klavesa se ztrati.
+    # Fronta otevrena pro cteni i zapis nikdy nehlasi konec. WLT_HOLD_INPUT=0 = bez nich.
+    if [[ ${WLT_HOLD_INPUT:-1} == 1 ]]; then
+        mkfifo "$s/hold.fifo"
+        WLT_CMD_TIMEOUT=$timeout in_session "$s" wlt-input <>"$s/hold.fifo" >"$s/hold.log" 2>&1 &
+        echo $! >>"$s/pids"
+    fi
     echo "$s"
 }
 

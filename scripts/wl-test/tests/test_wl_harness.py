@@ -212,6 +212,20 @@ class Headless(unittest.TestCase):
                      "key x down"):
             self.assertIn(line, log)
 
+    def test_input_echo_after_commands(self):
+        """Trvale bezici wlt input: radek echo prijde az po odeslani predchozich prikazu, klient je uz ma."""
+        self.start_client()
+        p = subprocess.Popen([str(WLT), "input", str(self.session)], env=clean_env(), stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE, text=True)
+        p.stdin.write("move 512 384\nkey b\necho one two\n")
+        p.stdin.flush()
+        self.assertEqual(p.stdout.readline(), "one two\n")
+        time.sleep(0.1)
+        self.assertIn("key b down", (self.session / "clients.log").read_text())
+        p.stdin.close()
+        self.assertEqual(p.wait(10), 0)
+        p.stdout.close()
+
     def test_drag_moves_window(self):
         self.start_client()
         wlt("shot", self.session, self.tmp / "a.ppm")

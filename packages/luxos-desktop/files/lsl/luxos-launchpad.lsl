@@ -148,7 +148,7 @@ end
 # Ikony predem v necinnosti po startu: prvni otevreni uz je nenacita
 # Po startu v necinnosti jednou nakreslit panel mimo obrazovku pro prvni monitor: ikony, rozmazana tapeta pro sklo
 # a pisma se nactou predem, prvni otevreni uz jen kresli
-function warm_up():
+function warm_up(unused):
     screens = layer.monitors()
     if not S["open"] and len(screens) > 0:
         g = layer.monitor_geometry(screens[0])
@@ -1089,7 +1089,7 @@ function on_config(file, event, other):
         if S["open"]:
             call gtk.widget_queue_draw(window)
         else:
-            call glib.idle_add(warm_up)
+            call glib.idle_add_data(warm_up, 0)
         end
     end
     return 0
@@ -1179,5 +1179,5 @@ call trace("ready pid=" + String(glib.getpid()) + " apps=" + String(len(entries)
 if mode_arg != "":
     call show(mode_arg)
 end
-call glib.idle_add(warm_up)
+call glib.idle_add_data(warm_up, 0)
 call gtk.main()

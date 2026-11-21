@@ -94,29 +94,3 @@ A recognised fingerprint resets the failure counter like a correct password (`pa
 authsucc`). The `account` part of each service is untouched, so an expired or disabled account,
 `pam_access` and `pam_time` apply to fingerprints as well. Fingerprints stay allowed for the login
 screen, the lock screen, sudo and polkit.
-
-## Session startup and luxos-hub
-
-`luxos-session` runs at every login (autostart). It:
-
-- on first login: creates the standard folders and applies the default look;
-- re-applies saved display settings (`luxos-displays auto`) and software brightness;
-- starts `luxos-appname watch`, `luxos-menubar`, the Safe watcher (`luxos-safe-watch` user
-  service, plus a "Safe" bookmark in Files) and **`luxos-hub`** (restarted if it crashes);
-- re-applies Data Saver (`luxos-datasaver reapply`) and the wallpaper for new monitors;
-- on first login starts the LuxOS Tour and then Welcome. After an update to a new LuxOS version it
-  shows What's New.
-
-`luxos-hub` is one light process that replaces several background programs:
-
-- keeps Control Center (SIGUSR1) and Calendar (SIGUSR2) preloaded, as well as the screenshot toolbar
-  and the Emoji & Symbols panel (`luxos-screenshot` and `luxos-emoji` pass requests over a socket);
-- locks the Safe on screen lock and before sleep;
-- marks new networks as metered while Data Saver is on;
-- notifies when earlyoom ended a program because memory ran low;
-- shows the "!" network warning;
-- runs the Bluetooth pairing agent (instead of blueman-applet, which is disabled);
-- switches the sound output to a newly connected monitor (HDMI/DisplayPort), USB or Bluetooth
-  device and back after unplugging (see [settings-apps.md](settings-apps.md#sound-output-switching));
-- runs the auto light/dark check;
-- once per boot, notifies about missing drivers.

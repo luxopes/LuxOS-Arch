@@ -135,22 +135,3 @@ workspaces, without a taskbar entry and without taking focus. Weather comes from
 summary (at most 3 hours old) or from `luxos-weather --json forecast` every 30 minutes when a place
 is saved; widgets never look up the location themselves. The program is written in LSL
 (`files/lsl/luxos-widgets.lsl`), started by `luxos-session`, and exits right away when widgets are off.
-
-## Desktop icons on Wayland
-
-Desktop icons on Wayland follow the same xfconf settings as on X11 (channel `xfce4-desktop`,
-`desktop-icons/style` 2 = file icons, 0 = none; `icon-size`, `font-size`, `file-icons/show-home`,
-`show-filesystem`, `show-trash`, `show-removable`). They show the files in `~/Desktop` and mounted
-removable drives on the first monitor, in columns from the top left below the bar:
-
-- click selects, double-click (or Enter) opens in the default app; a `.desktop` launcher starts its
-  app only when it is executable, like in Thunar
-- drag from an empty spot selects with a rectangle, dragging icons moves them (positions are kept in
-  `~/.config/luxos/desktop-icons`)
-- right-click an icon: Open, Rename…, Move to Trash (drives: Open, Eject); keys: arrows, Enter, F2,
-  Delete, Escape, Menu
-- files dropped from the file manager are copied (or moved, if the file manager asks for a move) to
-  `~/Desktop` where they were dropped
-
-The desktop takes the keyboard only while the pointer is over it, so a click into a window always
-gives the window the keyboard back. Thumbnails of pictures are not shown yet.

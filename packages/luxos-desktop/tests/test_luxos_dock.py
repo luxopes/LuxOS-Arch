@@ -136,8 +136,14 @@ class Dock(unittest.TestCase):
         (self.cfg / "luxos").mkdir(parents=True, exist_ok=True)
         self.procs = []
         self.dock = None
+        self.inp = None
+        self.seq = 0
 
     def tearDown(self):
+        if self.inp is not None:
+            self.inp.stdin.close()
+            self.inp.wait(10)
+            self.inp.stdout.close()
         for p in self.procs:
             if p.poll() is None:
                 p.terminate()
@@ -214,9 +220,18 @@ class Dock(unittest.TestCase):
         return self.spawn([str(self.bin / "luxos-wl-window"), f"cz.test.{app}", f"Window {app}"])
 
     def input(self, *cmds):
-        r = subprocess.run([str(WLT), "input", str(self.s)], input="\n".join(cmds) + "\n", text=True,
-                           capture_output=True, env=self.outer())
-        self.assertEqual(r.returncode, 0, r.stderr)
+        """Prikazy jednomu stale bezicimu `wlt input`: virtualni klavesnice zustava v seatu (nova klavesnice
+        kazdeho volani pripravila GTK o prvni klavesu, napr. Escape nebo sipku v nabidce); `echo` = hotovo."""
+        if self.inp is None:
+            self.inp = subprocess.Popen([str(WLT), "input", str(self.s)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT, text=True, bufsize=1, env=self.outer())
+        self.seq += 1
+        self.inp.stdin.write("\n".join(cmds) + f"\necho done {self.seq}\n")
+        self.inp.stdin.flush()
+        out = []
+        while (line := self.inp.stdout.readline()) != f"done {self.seq}\n":
+            self.assertNotEqual(line, "", "wlt input skoncil: " + "".join(out))
+            out.append(line)
 
     def glide(self, points, step=12, delay=0.008):
         self.input(*self.glide_cmds(points, step, delay))
@@ -345,8 +360,7 @@ class Dock(unittest.TestCase):
                 self.glide(path, step=step, delay=delay)
                 end = path[-1]
             else:
-                # pres menu ikony: nahoru do menu, Escape, pryc (jedna virtualni klavesnice wlt-input:
-                # klavesy noveho zarizeni uz otevrena nabidka nedostane)
+                # pres menu ikony: nahoru do menu, Escape, pryc
                 self.input("click right", "sleep 0.6", *self.glide_cmds([start, (cx - 60, H - 140)], 10, 0.01),
                            "key Escape", *self.glide_cmds([(cx - 60, H - 140), (cx - 60, H - 300)], 40, 0.002))
                 end = (cx - 60, H - 300)
