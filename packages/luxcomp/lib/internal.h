@@ -293,6 +293,7 @@ enum { GLOBAL_SANDBOX_DENIED = 1, GLOBAL_PRIVILEGED = 2, GLOBAL_VIRTUAL_INPUT = 
 
 /* xwayland.c */
 void xwayland_finish(void);
+void xwayland_root_cursor(void);
 
 /* ipc.c */
 void ipc_finish(void);

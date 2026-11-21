@@ -997,7 +997,20 @@ function fit_fullscreen(v):
     call lc.view_resize(v, lc.output_get(out, lc.OUT_W), lc.output_get(out, lc.OUT_H))
 end
 
+# Okno pevne velikosti (min = max, dialogy X11): maximalizace ani pulka obrazovky by ho nezvetsily, zbyl by
+# jen ram velky jako obrazovka
+function fixed_size(v):
+    w = vget(v, lc.VIEW_MAX_W)
+    h = vget(v, lc.VIEW_MAX_H)
+    return w > 0 and h > 0 and vget(v, lc.VIEW_MIN_W) == w and vget(v, lc.VIEW_MIN_H) == h
+end
+
 function set_maximized(v, on):
+    if on and not (v in maxed) and fixed_size(v):
+        call lc.view_set_state(v, lc.STATE_MAXIMIZED, 0)
+        call note("maximize " + String(v) + " fixed size")
+        return
+    end
     if on and not (v in maxed):
         call remember_geometry(v)
         if v in tiled:
@@ -1023,7 +1036,7 @@ function set_maximized(v, on):
 end
 
 function set_tiled(v, side):
-    if v in maxed or v in full:
+    if v in maxed or v in full or fixed_size(v):
         return
     end
     if tiled.get(v, "") == side:

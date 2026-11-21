@@ -862,6 +862,7 @@ luxcomp_set_cursor(const char *theme, int64_t size)
 	wlr_xcursor_manager_destroy(comp.cursor_mgr);
 	comp.cursor_mgr = mgr;
 	cursor_rebase();
+	xwayland_root_cursor();
 	if (theme && *theme) {
 		setenv("XCURSOR_THEME", theme, 1);
 	} else {
