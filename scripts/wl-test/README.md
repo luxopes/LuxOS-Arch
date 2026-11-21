@@ -217,3 +217,31 @@ env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS
 # also check the detector on real VM frames (needs a run with WLT_KEEP_FRAMES=1):
 WLT_FRAMES_DIR=out/wl-test/vm-runs/TIME/std-auto/scenario python3 -m unittest ...
 ```
+
+## Whole suite: `run-all`
+
+One command runs every test module of the repository (`packages/*/tests/test_*.py`, `scripts/*/tests/test_*.py`),
+each in its own process, and prints a summary:
+
+```sh
+env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY -u WAYLAND_DISPLAY \
+  DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent LSL_HOME=$HOME/LuxOS-Arch/out/lsl-0.11.2/lsl-0.11.2 \
+  scripts/wl-test/run-all -j 2
+scripts/wl-test/run-all packages/luxos-desktop/tests/test_luxos_lock.py     # some modules
+scripts/wl-test/run-all -k test_power --keep packages/...                  # one test, keep HOME/TMPDIR
+```
+
+- Builds first: sysroot (`fetch-sysroot.sh`, also the Xorg `dummy` driver for the scroll tests), `wlt` tools,
+  luxwm (`packages/luxwm/tests/build-host.sh`) and the greeter (`packages/luxos-greetd/tests/build.sh`).
+- Every module runs from `env -i` under `systemd-run --user --scope` (`TasksMax=300`, `MemoryMax=1500M`,
+  `RUN_ALL_MEMORY`) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), with its own `HOME` and `TMPDIR`, its own Xvfb on
+  :300–:399 with a cookie, a private session bus (`dbus-run-session`, no service directories) and a dead system bus.
+- LSL comes from `LSL_HOME` (an unpacked release, never installed on the host), otherwise `lslc` from `PATH`;
+  older than 0.11.1 is refused.
+- Work directory `LUXOS_TEST_DIR`, by default `out/rt` of the repository (`out/rt-HASH` of the main checkout for
+  a worktree deeper in `out/`): Wayland and test sockets live below it and must stay under 108 characters, so it
+  may be 38 characters at most. It is marked as `LUXOS_TEST_ROOT` (file `.luxos-test-root`), which
+  `luxos_testguard` accepts as not the real session although it lies in the home.
+- Output: one line per module (`ok`/`FAIL`/`TIMEOUT`, seconds, tests run, skipped, failing tests), every skip
+  with its reason, totals; `SUMMARY` and per-module logs in the work directory. Exit code 0 only if every module
+  passed.

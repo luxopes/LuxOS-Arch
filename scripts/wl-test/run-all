@@ -1,0 +1,172 @@
+#!/bin/bash
+# run-all - vsechny testy repozitare (packages/*/tests, scripts/*/tests), kazdy modul ve vlastnim procesu
+#
+#   scripts/wl-test/run-all [-j N] [-k VZOR].. [--no-build] [--keep] [MODUL.py..]
+#
+# Kazdy modul: python3 -m unittest pod systemd-run --user --scope (MemoryMax, TasksMax) a timeout,
+# env -i, soukromy HOME/TMPDIR/WLT_OUT v pracovni slozce, vlastni Xvfb a soukroma sbernice
+# relace (dbus-run-session), systemova sbernice mrtva. Nic ze skutecne relace (DISPLAY, sbernice, HOME).
+# Pred behem sestavi harness (sysroot, wlt), luxwm (build-host.sh), greeter (build.sh) a programy, ktere testy
+# jinak berou ze systemu (luxos-mail, luxos-terminal, luxos-text podle build() v PKGBUILD).
+#
+# Prostredi:
+#   LSL_HOME          rozbalene vydani LSL (bin/lslc); jinak lslc z PATH, nutne >= 0.11.1
+#   LUXOS_TEST_DIR    pracovni slozka (vychozi out/rt; cesty soketu Wayland musi zustat < 108 znaku,
+#                     proto kratka - v dlouhe ceste worktree se pouzije out/rt-WORKTREE hlavniho repozitare)
+#   RUN_ALL_MEMORY    MemoryMax jednoho modulu (vychozi 1500M), RUN_ALL_TIMEOUT sekundy (vychozi 1800)
+# Vysledek: tabulka modulu, duvody preskoceni a souhrn v $LUXOS_TEST_DIR/SUMMARY, logy v $LUXOS_TEST_DIR/logs.
+# Navratovy kod 0 jen kdyz zadny modul neselhal.
+set -uo pipefail
+here=$(dirname "$(readlink -f "$0")")
+repo=$(readlink -f "$here/../..")
+cd "$repo" || exit 1
+
+jobs=1 build=1 keep=0 mods=() kargs=()
+while (($#)); do
+    case $1 in
+        -j) jobs=$2; shift 2 ;;
+        -k) kargs+=(-k "$2"); shift 2 ;;
+        --no-build) build=0; shift ;;
+        --keep) keep=1; shift ;;          # HOME a TMPDIR modulu zustanou (ladeni)
+        -h | --help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) mods+=("$1"); shift ;;
+    esac
+done
+die() { echo "run-all: $*" >&2; exit 2; }
+
+# LSL: vydani z LSL_HOME ma prednost (na hostiteli muze byt starsi lsl)
+path=/usr/local/bin:/usr/bin:/bin
+[[ -n ${LSL_HOME-} ]] && path=$(readlink -f "$LSL_HOME")/bin:$path
+lslc=$(PATH=$path command -v lslc) || die "no lslc (set LSL_HOME to an unpacked LSL >= 0.11.1)"
+ver=$("${lslc%c}" --version 2>/dev/null || true)
+[[ $(printf '%s\n' 0.11.1 "$ver" | sort -V | head -1) == 0.11.1 ]] || die "lsl $ver is too old, need >= 0.11.1 (LSL_HOME)"
+
+# pracovni slozka: kratka cesta (XDG_RUNTIME_DIR/wayland-0, luxwm ipc a sokety testu pod 108 znaku)
+root=${LUXOS_TEST_DIR:-$repo/out/rt}
+# (sokety testu lezi az 70 znaku hloubeji); worktree hluboko v out/ dostane out/rt-HASH hlavniho repozitare
+if [[ -z ${LUXOS_TEST_DIR-} ]] && ((${#root} > 38)); then
+    common=$(readlink -f "$(git rev-parse --git-common-dir)/..")
+    root=$common/out/rt-$(sha1sum <<<"$repo" | cut -c1-6)
+fi
+((${#root} <= 38)) || die "$root is too long for socket paths, set LUXOS_TEST_DIR (<= 38 chars, under ~/LuxOS-Arch/out)"
+mkdir -p "$root" || exit 1
+root=$(readlink -f "$root")
+rm -rf "$root/m" "$root/h" "$root/t" "$root/logs" "$root/w/sessions"
+mkdir -p "$root/m" "$root/h" "$root/t" "$root/logs" "$root/w"
+touch "$root/.luxos-test-root"
+safe_env=(env -i "PATH=$path" "LANG=C.UTF-8" "USER=$(id -un)" "LOGNAME=$(id -un)" "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent")
+scope=(systemd-run --user --scope -q -p TasksMax=300 -p MemorySwapMax=0)
+
+# harness: sysroot z repozitare, bin a sezeni v kratke pracovni slozce
+ln -sfn "$repo/out/wl-test/sysroot" "$root/w/sysroot"
+if ((build)); then
+    echo "build: harness, luxwm, greeter"
+    if [[ ! -x $repo/out/wl-test/sysroot/usr/bin/labwc || $here/packages.lock -nt $repo/out/wl-test/sysroot ]]; then
+        "${safe_env[@]}" HOME="$root" timeout 1200 "$here/fetch-sysroot.sh" >"$root/logs/build-sysroot.log" 2>&1 \
+            || die "fetch-sysroot failed ($root/logs/build-sysroot.log)"
+    fi
+    "${safe_env[@]}" HOME="$root" WLT_OUT="$root/w" timeout 600 "$here/wlt" build >"$root/logs/build-wlt.log" 2>&1 \
+        || die "wlt build failed ($root/logs/build-wlt.log)"
+    rm -rf "$root/luxwm"
+    "${scope[@]}" -p MemoryMax=3G -- "${safe_env[@]}" HOME="$root" LUXWM_BUILD="$root/luxwm" \
+        timeout 1200 packages/luxwm/tests/build-host.sh >"$root/logs/build-luxwm.log" 2>&1 \
+        || die "luxwm build failed ($root/logs/build-luxwm.log)"
+    "${scope[@]}" -p MemoryMax=3G -- "${safe_env[@]}" HOME="$root" LUXOS_GREETER_BUILD="$root/greeter" \
+        timeout 1200 packages/luxos-greetd/tests/build.sh >"$root/logs/build-greeter.log" 2>&1 \
+        || die "greeter build failed ($root/logs/build-greeter.log)"
+    # programy, ktere testy jinak hledaji v systemu (LUXOS_*_BIN): build() z PKGBUILD jako makepkg
+    for p in apps/luxos-mail luxos-terminal luxos-text; do
+        rm -rf "$root/pkg/${p#*/}"
+        mkdir -p "$root/pkg/${p#*/}"
+        "${scope[@]}" -p MemoryMax=3G -- "${safe_env[@]}" HOME="$root" timeout 1200 bash -c \
+            'set -e; startdir=$1 srcdir=$2; cd "$srcdir"; source "$startdir/PKGBUILD"; build' x \
+            "$repo/packages/$p" "$root/pkg/${p#*/}" >"$root/logs/build-${p#*/}.log" 2>&1 \
+            || die "$p build failed ($root/logs/build-${p#*/}.log)"
+    done
+fi
+
+if ((${#mods[@]} == 0)); then
+    mapfile -t mods < <(git ls-files 'packages/*/tests/test_*.py' 'packages/apps/*/tests/test_*.py' \
+        'scripts/tests/test_*.py' 'scripts/*/tests/test_*.py' | sort -u)
+fi
+
+# Vlastni Xvfb modulu na :300-399 (wlt ma :200-299, luxos_testguard :90-199) s cookie; displej je nas,
+# az kdyz zamek /tmp/.XN-lock nese PID naseho Xvfb (soubezne moduly a jine relace o cislo soutezi).
+# Slozka s cookie se jmenuje xvfb-run.*: podle toho testy poznaji virtualni displej (jako u xvfb-run).
+start_x() {  # start_x SLOZKA -> "CISLO PID"
+    local auth=$1/xvfb-run.x/Xauthority n p
+    mkdir -p "${auth%/*}"
+    for n in $(shuf -i 300-399); do
+        [[ -e /tmp/.X11-unix/X$n || -e /tmp/.X$n-lock ]] && continue
+        xauth -q -f "$auth" add ":$n" . "$(mcookie)" 2>/dev/null
+        "${scope[@]}" -p MemoryMax=512M -- Xvfb ":$n" -auth "$auth" -screen 0 1280x800x24 -nolisten tcp \
+            >/dev/null 2>&1 &
+        p=$!
+        for _ in $(seq 100); do
+            if [[ -S /tmp/.X11-unix/X$n && $(tr -d ' \n' </tmp/.X$n-lock 2>/dev/null) == "$p" ]]; then
+                echo "$n $p"
+                return 0
+            fi
+            kill -0 "$p" 2>/dev/null || break
+            sleep 0.05
+        done
+        kill "$p" 2>/dev/null
+        wait "$p" 2>/dev/null
+    done
+    return 1
+}
+
+run_one() {  # run_one INDEX MODUL
+    local i=$1 t=$2 home=$root/h/$1 tmp=$root/t/$1
+    local name log
+    name=$(sed 's|^packages/||; s|/tests/|:|; s|\.py$||; s|/|_|g' <<<"$t")
+    log=$root/logs/$name.log
+    mkdir -p "$home" "$tmp"
+    local t0=$SECONDS rc x
+    x=$(start_x "$tmp") || { echo "$t: no free X display" >"$log"; x="0 0"; }
+    "${scope[@]}" -p MemoryMax="${RUN_ALL_MEMORY:-1500M}" -- \
+        "${safe_env[@]}" HOME="$home" TMPDIR="$tmp" LUXOS_TEST_ROOT="$root" \
+        LUXOS_LSLC="$lslc" LSLC="$lslc" WLT_OUT="$root/w" LUXOS_WL_SYSROOT="$repo/out/wl-test/sysroot" \
+        LUXWM_BUILD="$root/luxwm" LUXOS_GREETER_BIN="$root/greeter/luxos-greeter" \
+        LUXOS_MAIL_BIN="$root/pkg/luxos-mail/luxos-mail" LUXOS_TERMINAL_BIN="$root/pkg/luxos-terminal/luxos-terminal" \
+        LUXOS_TEXT_BIN="$root/pkg/luxos-text/luxos-text" \
+        LUXOS_XORG_DUMMY_DIR="$repo/out/wl-test/sysroot/usr/lib/xorg/modules" \
+        DISPLAY=":${x% *}" XAUTHORITY="$tmp/xvfb-run.x/Xauthority" \
+        timeout -k 10 "${RUN_ALL_TIMEOUT:-1800}" \
+        dbus-run-session --config-file packages/luxos-desktop/tests/dbus-private.conf -- \
+        python3 -m unittest discover -v -s "$(dirname "$t")" -p "$(basename "$t")" "${kargs[@]}" \
+        >"$log" 2>&1
+    rc=$?
+    ((${x#* })) && kill "${x#* }" 2>/dev/null
+    local ran ok sk fails
+    ran=$(grep -oE '^Ran [0-9]+' "$log" | awk '{print $2}')
+    sk=$(grep -oE '^(OK|FAILED) \(.*skipped=[0-9]+' "$log" | grep -oE '[0-9]+$')
+    fails=$(grep -E '^(FAIL|ERROR):' "$log" | awk '{print $2}' | sort -u | tr '\n' ' ')
+    if ((rc == 0)) && grep -q '^OK' "$log"; then ok=ok; elif ((rc == 5)) && grep -q '^NO TESTS RAN' "$log"; then ok=ok; elif ((rc == 124)); then ok=TIMEOUT; else ok=FAIL; fi
+    printf '%-52s %-7s %4ss ran=%-4s skip=%-3s %s\n' "$name" "$ok" "$((SECONDS - t0))" "${ran:-0}" "${sk:-0}" "$fails" \
+        >"$root/m/$i.result"
+    cat "$root/m/$i.result"
+    ((keep)) || rm -rf "$home" "$tmp"
+}
+
+echo "run-all: ${#mods[@]} modules, lsl $ver, jobs $jobs, dir $root"
+t0=$SECONDS
+i=0
+for t in "${mods[@]}"; do
+    i=$((i + 1))
+    while (($(jobs -rp | wc -l) >= jobs)); do wait -n; done
+    run_one "$i" "$t" &
+done
+wait
+
+{
+    echo "== $(date '+%F %T') lsl $ver, $((SECONDS - t0)) s"
+    cat $(ls "$root"/m/*.result | sort -V)
+    echo "== skipped"
+    grep -hE ' \.\.\. skipped ' "$root"/logs/*.log | sed -E 's/^(\S+) \((\S+)\).*skipped (.*)$/\2.\1: \3/' | sort | uniq
+    awk '{m++; if ($2 == "ok") ok++; else bad++; for (i = 4; i <= 5; i++) { split($i, a, "="); s[a[1]] += a[2] }; nf += NF - 5 }
+         END { printf "== modules %d: ok %d, failed %d; tests %d, skipped %d, failing tests %d\n", m, ok, bad, s["ran"], s["skip"], nf }' \
+        "$root"/m/*.result
+} >"$root/SUMMARY"
+sed -n '/^== skipped/,$p' "$root/SUMMARY"
+! grep -qvE '^\S+ +ok ' "$root"/m/*.result
