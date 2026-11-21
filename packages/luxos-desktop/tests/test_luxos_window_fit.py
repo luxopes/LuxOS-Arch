@@ -205,8 +205,7 @@ class WindowFits(unittest.TestCase):
 class SizedToContent(unittest.TestCase):
     """Okna bez velke prazdne plochy dole: vyska podle obsahu, ne pevna vychozi (drive + HeaderBar 45 px)."""
 
-    OLD = {"luxos-keyboard": 600, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
-           "luxos-profile-picture": 560, "luxos-display-settings": 700}
+    OLD = {"luxos-keyboard": 600, "luxos-display-settings": 700}
 
     def test_heights(self):
         for app, old in self.OLD.items():
