@@ -1,9 +1,11 @@
-"""Testy pro Bluetooth: jmeno pocitace (Alias adapteru BlueZ) - kontrola jmena, zapis pres D-Bus
-a zobrazeni v okne. Falesny BlueZ bezi na soukromem dbus-daemonu (ne na systemove sbernici),
-skutecny Bluetooth adapter ani nastaveni se nemeni.
+"""Testy pro Bluetooth (files/lsl/luxos-bluetooth.lsl): jmeno pocitace (Alias adapteru BlueZ), viditelnost pri
+otevrenem okne, hledani v pozadi, parovani a agent BlueZ. Falesny BlueZ (tests/bluetooth/fake_bluez.py) bezi na
+soukromem dbus-daemonu (ne na systemove sbernici), rfkill je falesny skript - skutecny Bluetooth adapter ani
+nastaveni se nemeni. Okno bezi ve vlastnim Xvfb a ridi se pres luxos_testctl (LUXOS_TEST_CONTROL=1).
 
-Spusteni: env -u DISPLAY xvfb-run -a python3 -m unittest packages/luxos-desktop/tests/test_luxos_bluetooth.py -v
-(bez DISPLAY se testy okna preskoci; nikdy ne na skutecne obrazovce)
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_bluetooth.py -v
+
+Prekladac lslc (balik lsl) je potreba; bez nej se testy preskoci.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -15,8 +17,6 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
-import importlib.machinery
-import importlib.util
 import json
 import os
 import shutil
@@ -27,565 +27,545 @@ import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BIN = os.path.normpath(os.path.join(HERE, "..", "files", "bin"))
-I18N = os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
-sys.path.insert(0, I18N)
-sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "files", "python")))   # luxos_winsize
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
 
-import gi  # noqa: E402
-
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gio, GLib  # noqa: E402
-
-# Falesny BlueZ: ObjectManager na /, adapter hci0 (Properties Get/Set/GetAll, StartDiscovery...).
-# Set Alias "" vrati jmeno systemu (jako BlueZ); kazdy Set se zapise do $LOG (JSON radky).
-FAKE_BLUEZ = r'''
-import json, os, sys
-from gi.repository import Gio, GLib
-LOG = os.environ["FAKE_BLUEZ_LOG"]
+FAKE = os.path.join(HERE, "bluetooth", "fake_bluez.py")
 A = "/org/bluez/hci0"
-props = {"Address": "00:11:22:33:44:55", "Name": "luxos-pc", "Alias": "luxos-pc",
-         "Powered": True, "Discoverable": False, "DiscoverableTimeout": 0, "Discovering": False}
-SIG = {"Address": "s", "Name": "s", "Alias": "s", "Powered": "b", "Discoverable": "b", "DiscoverableTimeout": "u",
-       "Discovering": "b"}
 DEV = A + "/dev_AA_BB_CC_DD_EE_01"
-dev_props = {"Address": GLib.Variant("s", "AA:BB:CC:DD:EE:01"), "Alias": GLib.Variant("s", "Pixel Test"),
-             "Name": GLib.Variant("s", "Pixel Test"), "RSSI": GLib.Variant("n", -55),
-             "Adapter": GLib.Variant("o", A), "Paired": GLib.Variant("b", False), "Trusted": GLib.Variant("b", False)}
-XML = """<node>
-<interface name="org.freedesktop.DBus.ObjectManager">
- <method name="GetManagedObjects"><arg type="a{oa{sa{sv}}}" direction="out"/></method>
-</interface>
-<interface name="org.freedesktop.DBus.Properties">
- <method name="Get"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="out"/></method>
- <method name="GetAll"><arg type="s" direction="in"/><arg type="a{sv}" direction="out"/></method>
- <method name="Set"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="v" direction="in"/></method>
-</interface>
-<interface name="org.bluez.Adapter1">
- <method name="StartDiscovery"/><method name="StopDiscovery"/>
-</interface>
-</node>"""
-node = Gio.DBusNodeInfo.new_for_xml(XML)
-loop = GLib.MainLoop()
-bus = Gio.DBusConnection.new_for_address_sync(
-    os.environ["FAKE_BLUEZ_ADDR"],
-    Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, None, None)
-
-def variants():
-    return {k: GLib.Variant(SIG[k], v) for k, v in props.items()}
-
-def log(entry):
-    with open(LOG, "a") as f:
-        f.write(json.dumps(entry) + "\n")
-
-def call(conn, sender, path, iface, method, params, inv):
-    args = params.unpack()
-    if method == "GetManagedObjects":
-        inv.return_value(GLib.Variant("(a{oa{sa{sv}}})", ({A: {"org.bluez.Adapter1": variants()},
-                                                            DEV: {"org.bluez.Device1": dev_props}},)))
-    elif method == "GetAll":
-        inv.return_value(GLib.Variant("(a{sv})", (variants(),)))
-    elif method == "Get":
-        inv.return_value(GLib.Variant("(v)", (variants()[args[1]],)))
-    elif method == "Set":
-        iface_, name, value = args
-        log({"set": name, "value": value})
-        if name not in ("Alias", "Powered", "Discoverable", "DiscoverableTimeout") or path != A:
-            inv.return_dbus_error("org.bluez.Error.InvalidArguments", "Invalid arguments")
-            return
-        if name == "Alias" and os.path.exists(LOG + ".deny"):
-            inv.return_dbus_error("org.freedesktop.DBus.Error.AccessDenied", "Rejected send message")
-            return
-        props[name] = value if not (name == "Alias" and value == "") else props["Name"]
-        inv.return_value(None)
-        conn.emit_signal(None, A, "org.freedesktop.DBus.Properties", "PropertiesChanged",
-                         GLib.Variant("(sa{sv}as)", ("org.bluez.Adapter1", {name: GLib.Variant(SIG[name], props[name])}, [])))
-    else:
-        log({"call": method})
-        inv.return_value(None)
-
-for path in ("/", A):
-    for i in node.interfaces:
-        bus.register_object(path, i, call, None, None)
-Gio.bus_own_name_on_connection(bus, "org.bluez", Gio.BusNameOwnerFlags.NONE,
-                               lambda *a: print("READY", flush=True), lambda *a: loop.quit())
-loop.run()
-'''
+TMP = None
+BINARY = None
 
 
-def load_app():
-    loader = importlib.machinery.SourceFileLoader("luxos_bluetooth", os.path.join(BIN, "luxos-bluetooth"))
-    spec = importlib.util.spec_from_loader("luxos_bluetooth", loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
-    return mod
+def setUpModule():
+    global TMP, BINARY
+    TMP = tempfile.mkdtemp(prefix="luxos-bt-test.", dir=luxos_testguard._private_dir())
+    BINARY = lsl_app.build("luxos-bluetooth", TMP)
 
 
-bt = load_app()
+def tearDownModule():
+    if TMP:
+        shutil.rmtree(TMP, True)
 
 
-class AliasCheck(unittest.TestCase):
-    def test_valid(self):
-        for name in ("Jana's laptop", "Počítač Honzy", "LuxOS 💻", "x" * 248, ""):
-            self.assertIsNone(bt.alias_problem(name), name)
-
-    def test_too_long(self):
-        self.assertIsNotNone(bt.alias_problem("x" * 249))
-        # limit je v bajtech UTF-8: 125 x "č" = 250 B
-        self.assertIsNotNone(bt.alias_problem("č" * 125))
-        self.assertIsNone(bt.alias_problem("č" * 124))
-
-    def test_control_chars(self):
-        for name in ("a\nb", "tab\there", "nul\x00", "del\x7f"):
-            self.assertIsNotNone(bt.alias_problem(name), repr(name))
-
-    def test_clean(self):
-        self.assertEqual(bt.clean_alias("  My PC \n"), "My PC")
-        self.assertEqual(bt.clean_alias(None), "")
-
-
-class BusFixture(unittest.TestCase):
-    """Soukromy dbus-daemon + falesny BlueZ; aplikace dostane tuto sbernici misto systemove."""
+class Fixture(unittest.TestCase):
+    """Vlastni Xvfb; pro kazdy test soukromy dbus-daemon, falesny BlueZ a nove okno."""
 
     @classmethod
     def setUpClass(cls):
-        if not shutil.which("dbus-daemon"):
-            raise unittest.SkipTest("dbus-daemon is missing")
-        cls.tmp = tempfile.mkdtemp(prefix="luxos-bt-test.")
-        cls.log = os.path.join(cls.tmp, "calls.jsonl")
-        cls.bus_proc = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
-                                      stdout=subprocess.PIPE, text=True)
-        cls.addr = cls.bus_proc.stdout.readline().strip()
-        env = dict(os.environ, FAKE_BLUEZ_ADDR=cls.addr, FAKE_BLUEZ_LOG=cls.log)
-        cls.fake = subprocess.Popen([sys.executable, "-c", FAKE_BLUEZ], env=env, stdout=subprocess.PIPE, text=True)
-        assert cls.fake.stdout.readline().strip() == "READY"
-        # kazde okno/Bluez vlastni spojeni (agent BlueZ se registruje na pevne ceste)
-        bt.BUS = lambda: Gio.DBusConnection.new_for_address_sync(
-            cls.addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
-            None, None)
+        cls.x = lsl_app.Xvfb()
 
     @classmethod
     def tearDownClass(cls):
-        bt.BUS = bt.system_bus
-        cls.fake.terminate()
-        cls.bus_proc.terminate()
-        cls.fake.wait(5)
-        cls.bus_proc.wait(5)
-        shutil.rmtree(cls.tmp, ignore_errors=True)
+        cls.x.stop()
 
     def setUp(self):
+        self.dir = tempfile.mkdtemp(dir=TMP)
+        self.log = os.path.join(self.dir, "calls.jsonl")
         open(self.log, "w").close()
+        # falesny rfkill: zapnuti v okne nesmi odblokovat skutecne radio
+        self.bin = os.path.join(self.dir, "bin")
+        os.mkdir(self.bin)
+        with open(os.path.join(self.bin, "rfkill"), "w") as f:
+            f.write('#!/bin/sh\necho "$*" >> "%s/rfkill.log"\n' % self.dir)
+        os.chmod(os.path.join(self.bin, "rfkill"), 0o755)
+        self.bus = lsl_app.Bus()
+        self.fake = None
+        self.app = None
 
-    def wait(self, cond, timeout=5.0):
-        ctx = GLib.MainContext.default()
-        end = time.monotonic() + timeout
-        while time.monotonic() < end:
-            while ctx.pending():
-                ctx.iteration(False)
-            if cond():
-                return True
-            time.sleep(0.01)
-        return cond()
+    def tearDown(self):
+        if self.app:
+            self.app.stop()
+        if self.fake:
+            self.fake.terminate()
+            self.fake.wait(5)
+        self.bus.stop()
+
+    def start_fake(self, **env):
+        self.fake = subprocess.Popen([sys.executable, FAKE], stdout=subprocess.PIPE, text=True,
+                                     env=dict(os.environ, FAKE_BLUEZ_ADDR=self.bus.address, FAKE_BLUEZ_LOG=self.log, **env))
+        self.assertEqual(self.fake.stdout.readline().strip(), "READY")
+
+    def start(self, fake=True, lang="C.UTF-8", **fake_env):
+        if fake:
+            self.start_fake(**fake_env)
+        env = dict(os.environ, DISPLAY=self.x.display, DBUS_SYSTEM_BUS_ADDRESS=self.bus.address, LANG=lang,
+                   LC_ALL=lang, PATH=self.bin + os.pathsep + os.environ["PATH"])
+        luxos_testguard.check_env(env)
+        self.app = lsl_app.App([BINARY], env)
+        self.assertTrue(self.app.wait(lambda: self.hint() != ""), self.app.stderr())
+        return self.app
+
+    # ---- stav okna ----
+    def named(self, name, key="text"):
+        w = lsl_app.find(self.app.dump(), name=name)
+        return None if w is None else w.get(key)
+
+    def hint(self):
+        return self.named("hint") or ""
+
+    def name_label(self):
+        return self.named("name-label")
+
+    def wait_for(self, cond, timeout=6.0):
+        return self.app.wait(cond, timeout)
 
     def calls(self):
         with open(self.log) as f:
             return [json.loads(line) for line in f if line.strip()]
 
-    def alias(self, bz):
-        bz.reload()
-        return bz.adapter()[1].get("Alias")
-
-
-class FakeBluez(BusFixture):
-    def test_system_bus_address_is_honoured(self):
-        # scripts/check-titlebars.sh pousti okno nad soukromou sbernici pres DBUS_SYSTEM_BUS_ADDRESS -
-        # skutecny adapter se nesmi zapnout, zviditelnit ani prohledavat okoli
-        code = ("import importlib.machinery, importlib.util, sys\n"
-                "l = importlib.machinery.SourceFileLoader('b', sys.argv[1])\n"
-                "s = importlib.util.spec_from_loader('b', l); m = importlib.util.module_from_spec(s); l.exec_module(m)\n"
-                "print(m.Bluez(lambda: None).adapter()[1].get('Alias'))\n")
-        env = dict(os.environ, DBUS_SYSTEM_BUS_ADDRESS=self.addr,
-                   PYTHONPATH=os.pathsep.join((I18N, os.path.normpath(os.path.join(BIN, "..", "python")))))
-        out = subprocess.run([sys.executable, "-c", code, os.path.join(BIN, "luxos-bluetooth")], env=env,
-                             capture_output=True, text=True, timeout=30)
-        self.assertEqual(out.stdout.strip(), "luxos-pc", out.stderr)
-
-    def test_bluez_layer_sets_alias(self):
-        changes = []
-        bz = bt.Bluez(lambda: changes.append(1))
-        path, adapter = bz.adapter()
-        self.assertEqual(path, "/org/bluez/hci0")
-        self.assertEqual(adapter["Alias"], "luxos-pc")
-        errs = []
-        bz.set_prop(path, "org.bluez.Adapter1", "Alias", GLib.Variant("s", "Jana's laptop"), done=errs.append)
-        self.assertTrue(self.wait(lambda: errs))
-        self.assertIsNone(errs[0])
-        self.assertIn({"set": "Alias", "value": "Jana's laptop"}, self.calls())
-        self.assertEqual(self.alias(bz), "Jana's laptop")
-        # PropertiesChanged -> reload -> on_change
-        self.assertTrue(self.wait(lambda: len(changes) > 2))
-        # prazdne jmeno = vychozi jmeno systemu
-        errs.clear()
-        bz.set_prop(path, "org.bluez.Adapter1", "Alias", GLib.Variant("s", ""), done=errs.append)
-        self.assertTrue(self.wait(lambda: errs))
-        self.assertEqual(self.alias(bz), "luxos-pc")
-
-    def test_error_is_reported(self):
-        bz = bt.Bluez(lambda: None)
-        open(self.log + ".deny", "w").close()
-        try:
-            errs = []
-            bz.set_prop("/org/bluez/hci0", "org.bluez.Adapter1", "Alias", GLib.Variant("s", "x"), done=errs.append)
-            self.assertTrue(self.wait(lambda: errs))
-            self.assertIsNotNone(errs[0])
-            self.assertIn("AccessDenied", errs[0].message)
-        finally:
-            os.unlink(self.log + ".deny")
-        self.assertEqual(self.alias(bz), "luxos-pc")
-
-    @staticmethod
-    def props_changed(iface, changed, invalidated=()):
-        return GLib.Variant("(sa{sv}as)", (iface, changed, list(invalidated)))
-
-    def test_rssi_does_not_reload(self):
-        """Pri hledani posila BlueZ RSSI zarizeni v okoli nekolikrat za sekundu - bez nacteni a prekresleni."""
-        changes = []
-        bz = bt.Bluez(lambda: changes.append(1))
-        self.addCleanup(bz.close)
-        dev = "/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01"
-        changes.clear()
-        for changed in ({"RSSI": GLib.Variant("n", -60)}, {"TxPower": GLib.Variant("n", 4)},
-                        {"RSSI": GLib.Variant("n", -61), "ManufacturerData": GLib.Variant("a{qv}", {})}):
-            bz.on_props(None, None, dev, None, None, self.props_changed("org.bluez.Device1", changed))
-        self.assertEqual(changes, [])
-        # zmeny, ktere okno ukazuje, se nactou
-        for iface, changed in (("org.bluez.Device1", {"Connected": GLib.Variant("b", True)}),
-                               ("org.bluez.Device1", {"RSSI": GLib.Variant("n", -50), "Name": GLib.Variant("s", "x")}),
-                               ("org.bluez.Battery1", {"Percentage": GLib.Variant("y", 70)}),
-                               ("org.bluez.Adapter1", {"Discovering": GLib.Variant("b", True)})):
-            bz.on_props(None, None, dev, None, None, self.props_changed(iface, changed))
-        self.assertEqual(len(changes), 4)
-        # zneplatnena vlastnost (RSSI zmizelo = zarizeni mimo dosah) se nacte
-        bz.on_props(None, None, dev, None, None, self.props_changed("org.bluez.Device1", {}, ["RSSI"]))
-        self.assertEqual(len(changes), 5)
-
-
-@unittest.skipUnless(os.environ.get("DISPLAY") and "xvfb-run" in os.environ.get("XAUTHORITY", ""),
-                     "needs xvfb-run (never the real display)")
-class Window(BusFixture):
-    def make(self):
-        from gi.repository import Gtk
-        win = bt.BluetoothWindow()
-        self.addCleanup(win.destroy)
-        self.Gtk = Gtk
-        self.wait(lambda: False, 0.3)
-        return win
-
-    def test_name_row_and_rename(self):
-        win = self.make()
-        self.assertTrue(win.name_group.get_visible())
-        self.assertEqual(win.name_label.get_text(), "luxos-pc")
-        self.assertIn("luxos-pc", win.hint.get_text())
-        self.assertTrue(win.set_alias("Honzův notebook"))
-        self.assertTrue(self.wait(lambda: win.name_label.get_text() == "Honzův notebook"))
-        self.assertIn("Honzův notebook", win.hint.get_text())
-        # neplatne jmeno se vubec neodesle
-        open(self.log, "w").close()
-        self.assertFalse(win.set_alias("a\nb"))
-        self.assertFalse(win.set_alias("x" * 300))
-        self.wait(lambda: False, 0.3)
-        self.assertEqual([c for c in self.calls() if c.get("set") == "Alias"], [])
-        # vychozi jmeno
-        self.assertTrue(win.set_alias(""))
-        self.assertTrue(self.wait(lambda: win.name_label.get_text() == "luxos-pc"))
-
-    def test_rename_dialog_validation(self):
-        win = self.make()
-        dlg, entry, err, ok = win.rename_dialog()
-        self.addCleanup(dlg.destroy)
-        self.assertEqual(entry.get_text(), "luxos-pc")
-        self.assertTrue(ok.get_sensitive())
-        entry.set_text("x" * 249)
-        self.assertFalse(ok.get_sensitive())
-        self.assertTrue(err.get_text())
-        entry.set_text("   ")
-        self.assertTrue(ok.get_sensitive())            # prazdne = vychozi jmeno
-        self.assertIn("luxos-pc", err.get_text())
-        entry.set_text("Kitchen PC")
-        self.assertTrue(ok.get_sensitive())
-        self.assertEqual(err.get_text(), "")
-
-    def test_rename_ok_and_default_buttons(self):
-        win = self.make()
-        Gtk = self.Gtk
-        # dialog.run() nahradime odpovedi tlacitka (bez interakce)
-        orig = Gtk.Dialog.run
-
-        def fake_run(resp, text=None):
-            def run(dlg):
-                if text is not None:
-                    dlg.get_content_area().get_children()[1].set_text(text)
-                return resp
-            return run
-        try:
-            Gtk.Dialog.run = fake_run(Gtk.ResponseType.OK, "  Office PC  ")
-            win.rename()
-            self.assertTrue(self.wait(lambda: win.name_label.get_text() == "Office PC"))
-            Gtk.Dialog.run = fake_run(Gtk.ResponseType.CANCEL, "Ignored")
-            open(self.log, "w").close()
-            win.rename()
-            self.wait(lambda: False, 0.3)
-            self.assertEqual([c for c in self.calls() if c.get("set") == "Alias"], [])
-            Gtk.Dialog.run = fake_run(Gtk.ResponseType.REJECT)
-            win.rename()
-            self.assertTrue(self.wait(lambda: win.name_label.get_text() == "luxos-pc"))
-            self.assertIn({"set": "Alias", "value": ""}, self.calls())
-        finally:
-            Gtk.Dialog.run = orig
-
-    def test_access_denied_shows_error(self):
-        win = self.make()
-        shown = []
-        win.error = lambda title, text, advice=True: shown.append((title, text, advice))
-        open(self.log + ".deny", "w").close()
-        try:
-            win.set_alias("Denied")
-            self.assertTrue(self.wait(lambda: shown))
-        finally:
-            os.unlink(self.log + ".deny")
-        self.assertFalse(shown[0][2])
-        self.assertEqual(win.name_label.get_text(), "luxos-pc")
-
-
-    # ---- viditelnost pri otevrenem okne ----
-    def bluez_set(self, name, value):
-        """Zmena vlastnosti adapteru "zvenku" (bluetoothctl, vyprseni casovace)."""
-        bt.BUS().call_sync("org.bluez", "/org/bluez/hci0", "org.freedesktop.DBus.Properties", "Set",
-                           GLib.Variant("(ssv)", ("org.bluez.Adapter1", name, value)), None, 0, 3000, None)
-
-    def adapter(self):
-        bz = bt.Bluez(lambda: None)
-        return bz.adapter()[1]
-
     def sets(self, name=None):
         return [(c["set"], c["value"]) for c in self.calls() if "set" in c and (name is None or c["set"] == name)]
 
+    def clear_log(self):
+        open(self.log, "w").close()
+
+    def gdbus(self, *args):
+        return subprocess.run(["gdbus", "call", "--address", self.bus.address] + list(args),
+                              capture_output=True, text=True, timeout=15)
+
+    def adapter(self):
+        from gi.repository import Gio, GLib
+        bus = Gio.DBusConnection.new_for_address_sync(
+            self.bus.address, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+            None, None)
+        try:
+            return bus.call_sync("org.bluez", A, "org.freedesktop.DBus.Properties", "GetAll",
+                                 GLib.Variant("(s)", ("org.bluez.Adapter1",)), None, 0, 3000, None).unpack()[0]
+        finally:
+            bus.close_sync(None)
+
+    def bluez_set(self, name, value):
+        """Zmena vlastnosti adapteru "zvenku" (bluetoothctl, vyprseni casovace)."""
+        r = self.gdbus("--dest", "org.bluez", "--object-path", A, "--method", "org.freedesktop.DBus.Properties.Set",
+                       "org.bluez.Adapter1", name, value)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def emit(self, iface, changed, invalidated="@as []"):
+        r = self.gdbus("--dest", "org.bluez", "--object-path", "/", "--method", "cz.luxos.Test.Emit", DEV, iface,
+                       changed, invalidated)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def dialog_texts(self):
+        return lsl_app.texts(self.app.dump(), dialog=True)
+
+    def flag(self, name):
+        open(self.log + "." + name, "w").close()
+        self.addCleanup(os.unlink, self.log + "." + name)
+
+
+class AliasCheck(Fixture):
+    def check(self, name):
+        return json.loads(self.app.ask("check " + json.dumps(name), "check"))
+
+    def test_valid(self):
+        self.start()
+        for name in ("Jana's laptop", "Počítač Honzy", "LuxOS 💻", "x" * 248, ""):
+            self.assertEqual(self.check(name), "", name)
+
+    def test_too_long(self):
+        self.start()
+        self.assertNotEqual(self.check("x" * 249), "")
+        # limit je v bajtech UTF-8: 125 x "č" = 250 B, emoji 4 B
+        self.assertNotEqual(self.check("č" * 125), "")
+        self.assertEqual(self.check("č" * 124), "")
+        self.assertEqual(self.check("💻" * 62), "")
+        self.assertIn("248", self.check("💻" * 63))
+
+    def test_control_chars(self):
+        self.start()
+        for name in ("a\nb", "tab\there", "nul\x01", "del\x7f"):
+            self.assertIn("control characters", self.check(name), repr(name))
+
+    def test_clean(self):
+        # jmeno z pole formulare bez mezer na zacatku a konci (Prejmenovat)
+        self.start()
+        self.app.send("click Rename…")
+        self.assertTrue(self.wait_for(lambda: "Rename This Computer" in [w["title"] for w in self.app.dump()]))
+        self.app.ask("entry   My PC  ")
+        self.app.ask("respond -5")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "My PC"))
+        self.assertIn(("Alias", "My PC"), self.sets())
+
+
+class FakeBluez(Fixture):
+    def test_system_bus_address_is_honoured(self):
+        # okno bezi nad soukromou sbernici pres DBUS_SYSTEM_BUS_ADDRESS - skutecny adapter se nesmi zapnout,
+        # zviditelnit ani prohledavat okoli
+        self.start()
+        # horni lista se zaviracim tlacitkem (drive scripts/check-titlebars.sh)
+        self.assertEqual([(w["title"], w["close_button"]) for w in self.app.dump()], [("Bluetooth", True)])
+        self.assertEqual(self.name_label(), "luxos-pc")
+        calls = self.calls()
+        self.assertIn({"call": "StartDiscovery", "path": A}, [{k: c[k] for k in ("call", "path")} for c in calls if "call" in c])
+
+    def test_bluez_layer_sets_alias(self):
+        self.start()
+        before = int(self.app.ask("reloads", "reloads"))
+        self.assertEqual(self.app.ask("alias " + json.dumps("Jana's laptop"), "alias"), "True")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "Jana's laptop"))
+        self.assertIn(("Alias", "Jana's laptop"), self.sets())
+        self.assertEqual(self.adapter()["Alias"], "Jana's laptop")
+        # PropertiesChanged -> nove nacteni
+        self.assertGreater(int(self.app.ask("reloads", "reloads")), before)
+        # prazdne jmeno = vychozi jmeno systemu
+        self.app.ask("alias " + json.dumps(""), "alias")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "luxos-pc"))
+        self.assertEqual(self.adapter()["Alias"], "luxos-pc")
+
+    def test_error_is_reported(self):
+        self.start()
+        self.flag("deny")
+        self.app.ask("alias " + json.dumps("x"), "alias")
+        self.assertTrue(self.wait_for(lambda: "Could not rename this computer" in self.dialog_texts()))
+        self.assertIn("Rejected send message", self.dialog_texts())
+        self.app.ask("respond -5")
+        self.assertEqual(self.adapter()["Alias"], "luxos-pc")
+        self.assertEqual(self.name_label(), "luxos-pc")
+
+    def test_rssi_does_not_reload(self):
+        """Pri hledani posila BlueZ RSSI zarizeni v okoli nekolikrat za sekundu - bez nacteni a prekresleni."""
+        self.start()
+        time.sleep(0.5)
+        count = lambda: int(self.app.ask("reloads", "reloads"))  # noqa: E731
+        before = count()
+        for changed in ("{'RSSI': <int16 -60>}", "{'TxPower': <int16 4>}",
+                        "{'RSSI': <int16 -61>, 'ManufacturerData': <@a{qv} {}>}"):
+            self.emit("org.bluez.Device1", changed)
+        time.sleep(0.4)
+        self.assertEqual(count(), before)
+        # zmeny, ktere okno ukazuje, se nactou
+        for iface, changed in (("org.bluez.Device1", "{'Connected': <false>}"),
+                               ("org.bluez.Device1", "{'RSSI': <int16 -50>, 'Name': <'x'>}"),
+                               ("org.bluez.Battery1", "{'Percentage': <byte 70>}"),
+                               ("org.bluez.Adapter1", "{'Discovering': <true>}")):
+            self.emit(iface, changed)
+        self.assertTrue(self.wait_for(lambda: count() == before + 4))
+        # zneplatnena vlastnost (RSSI zmizelo = zarizeni mimo dosah) se nacte
+        self.emit("org.bluez.Device1", "@a{sv} {}", "['RSSI']")
+        self.assertTrue(self.wait_for(lambda: count() == before + 5))
+
+
+class Window(Fixture):
+    def test_name_row_and_rename(self):
+        self.start()
+        self.assertTrue(self.named("name-group", "vis"))
+        self.assertEqual(self.name_label(), "luxos-pc")
+        self.assertTrue(self.wait_for(lambda: "luxos-pc" in self.hint()))
+        self.assertEqual(self.app.ask("alias " + json.dumps("Honzův notebook"), "alias"), "True")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "Honzův notebook"))
+        self.assertTrue(self.wait_for(lambda: "Honzův notebook" in self.hint()))
+        # neplatne jmeno se vubec neodesle
+        self.clear_log()
+        self.assertEqual(self.app.ask("alias " + json.dumps("a\nb"), "alias"), "False")
+        self.assertEqual(self.app.ask("alias " + json.dumps("x" * 300), "alias"), "False")
+        time.sleep(0.3)
+        self.assertEqual(self.sets("Alias"), [])
+        # vychozi jmeno
+        self.app.ask("alias " + json.dumps(""), "alias")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "luxos-pc"))
+
+    def open_rename(self):
+        self.app.send("click Rename…")
+        self.assertTrue(self.wait_for(lambda: any(w["dialog"] for w in self.app.dump())))
+
+    def rename_form(self):
+        d = self.app.dump()
+        entry = lsl_app.find(d, kind="GtkEntry", dialog=True)
+        ok = lsl_app.find(d, text="Rename", kind="GtkButton", dialog=True)
+        labels = [w for w in lsl_app.widgets(d, dialog=True) if w["t"] == "GtkLabel"]
+        # popisky dialogu: informace, chyba, pak tlacitka
+        return entry["text"], labels[1]["text"], ok["sens"]
+
+    def test_rename_dialog_validation(self):
+        self.start()
+        self.open_rename()
+        d = self.app.dump()
+        self.assertEqual([w["title"] for w in d if w["dialog"]], ["Rename This Computer"])
+        self.assertEqual(lsl_app.find(d, text="Use Default", dialog=True)["tip"], "Use the system name “luxos-pc”")
+        text, err, ok = self.rename_form()
+        self.assertEqual(text, "luxos-pc")
+        self.assertTrue(ok)
+        self.app.ask("entry " + "x" * 249)
+        text, err, ok = self.rename_form()
+        self.assertFalse(ok)
+        self.assertTrue(err)
+        self.app.ask("entry    ")
+        text, err, ok = self.rename_form()
+        self.assertTrue(ok)                     # prazdne = vychozi jmeno
+        self.assertIn("luxos-pc", err)
+        self.app.ask("entry Kitchen PC")
+        text, err, ok = self.rename_form()
+        self.assertTrue(ok)
+        self.assertEqual(err, "")
+        self.app.ask("respond -6")
+
+    def test_rename_ok_and_default_buttons(self):
+        self.start()
+        self.open_rename()
+        self.app.ask("entry   Office PC  ")
+        self.app.ask("click Rename")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "Office PC"))
+        # Zrusit: nic se neodesle
+        self.open_rename()
+        self.app.ask("entry Ignored")
+        self.clear_log()
+        self.app.ask("click Cancel")
+        time.sleep(0.3)
+        self.assertEqual(self.sets("Alias"), [])
+        self.assertEqual(self.name_label(), "Office PC")
+        # Pouzit vychozi
+        self.open_rename()
+        self.app.ask("click Use Default")
+        self.assertTrue(self.wait_for(lambda: self.name_label() == "luxos-pc"))
+        self.assertIn(("Alias", ""), self.sets())
+
+    def test_access_denied_shows_error(self):
+        self.start()
+        self.flag("deny")
+        self.app.ask("alias " + json.dumps("Denied"), "alias")
+        self.assertTrue(self.wait_for(lambda: "Could not rename this computer" in self.dialog_texts()))
+        # bez rady o parovacim rezimu (ta je jen u pripojeni zarizeni)
+        self.assertFalse(any("pairing mode" in t for t in self.dialog_texts()))
+        self.app.ask("click Close")
+        self.assertEqual(self.name_label(), "luxos-pc")
+
+    # ---- viditelnost pri otevrenem okne ----
     def test_visible_while_open(self):
-        win = self.make()
-        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable")))
+        self.start()
+        self.assertTrue(self.wait_for(lambda: self.adapter().get("Discoverable") is True))
         # nejdriv casovac 180 s (pad okna), pak viditelnost
         self.assertEqual(self.sets()[:2], [("DiscoverableTimeout", 180), ("Discoverable", True)])
-        self.assertTrue(self.wait(lambda: win.hint.get_text() == "Visible as “luxos-pc” while this window is open."))
-        self.assertIn("visible now", win.name_sub.get_text())
+        self.assertTrue(self.wait_for(lambda: self.hint() == "Visible as “luxos-pc” while this window is open."))
+        self.assertIn("visible now", self.named("name-sub"))
         # casovac vyprsel / vypnuto zvenku -> pri otevrenem okne znovu viditelny
-        open(self.log, "w").close()
-        self.bluez_set("Discoverable", GLib.Variant("b", False))
-        self.assertTrue(self.wait(lambda: ("Discoverable", True) in self.sets()))
-        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable")))
+        self.clear_log()
+        self.bluez_set("Discoverable", "<false>")
+        self.assertTrue(self.wait_for(lambda: ("Discoverable", True) in self.sets()))
+        self.assertTrue(self.wait_for(lambda: self.adapter().get("Discoverable") is True))
         # obnova casovace (BlueZ znovu spusti odpocet)
-        open(self.log, "w").close()
-        self.assertTrue(win.renew_visible())
-        self.assertTrue(self.wait(lambda: self.sets() == [("DiscoverableTimeout", 180)]))
+        self.clear_log()
+        self.assertEqual(self.app.ask("renew", "renew"), "True")
+        self.assertTrue(self.wait_for(lambda: self.sets() == [("DiscoverableTimeout", 180)]))
         # zavreni: viditelnost vypnuta, puvodni casovac (0) zpet
-        open(self.log, "w").close()
-        win.destroy()
+        self.clear_log()
+        self.app.send("close")
+        self.app.proc.wait(10)
         self.assertEqual(self.sets(), [("Discoverable", False), ("DiscoverableTimeout", 0)])
         a = self.adapter()
         self.assertFalse(a.get("Discoverable"))
         self.assertEqual(a.get("DiscoverableTimeout"), 0)
-        self.wait(lambda: False, 0.4)
-        self.assertEqual(self.sets(), [("Discoverable", False), ("DiscoverableTimeout", 0)])
 
     def test_already_visible_is_left_alone(self):
-        self.bluez_set("Discoverable", GLib.Variant("b", True))
-        self.addCleanup(self.bluez_set, "Discoverable", GLib.Variant("b", False))
-        open(self.log, "w").close()
-        win = self.make()
-        self.wait(lambda: False, 0.3)
-        self.assertEqual(win.hint.get_text(), "Visible to nearby devices as “luxos-pc”.")
+        self.start_fake()
+        self.bluez_set("Discoverable", "<true>")
+        self.clear_log()
+        self.start(fake=False)
+        self.assertTrue(self.wait_for(lambda: self.hint() == "Visible to nearby devices as “luxos-pc”."))
         self.assertEqual(self.sets("Discoverable"), [])
-        win.renew_visible()
-        win.destroy()
-        self.wait(lambda: False, 0.3)
+        self.app.ask("renew", "renew")
+        self.app.send("close")
+        self.app.proc.wait(10)
         self.assertEqual(self.sets(), [])                    # nezaplo ji okno -> nevypina ji
         self.assertTrue(self.adapter().get("Discoverable"))
 
     def test_power_off_hides(self):
-        win = self.make()
-        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable")))
-        open(self.log, "w").close()
-        win.power.set_active(False)
-        self.assertTrue(self.wait(lambda: ("Powered", False) in self.sets()))
+        self.start()
+        self.assertTrue(self.wait_for(lambda: self.adapter().get("Discoverable") is True))
+        self.clear_log()
+        self.app.ask("switch 0")
+        self.assertTrue(self.wait_for(lambda: ("Powered", False) in self.sets()))
         self.assertEqual(self.sets()[:2], [("Discoverable", False), ("Powered", False)])
-        self.assertTrue(self.wait(lambda: win.hint.get_text().startswith("Turn on Bluetooth")))
+        self.assertTrue(self.wait_for(lambda: self.hint().startswith("Turn on Bluetooth")))
         self.assertFalse(self.adapter().get("Discoverable"))
-        open(self.log, "w").close()
-        win.power.set_active(True)
-        self.assertTrue(self.wait(lambda: self.adapter().get("Discoverable"), 5))
+        # vypnuty Bluetooth: seznamy zarizeni skryte, jmeno pocitace zustava
+        d = self.app.dump()
+        self.assertFalse(lsl_app.find(d, name="list-nearby")["vis"])
+        self.assertFalse(lsl_app.find(d, name="head-paired")["vis"])
+        self.assertTrue(lsl_app.find(d, name="name-group")["vis"])
+        self.assertFalse(os.path.exists(os.path.join(self.dir, "rfkill.log")))
+        self.clear_log()
+        self.app.ask("switch 1")
+        self.assertTrue(self.wait_for(lambda: self.adapter().get("Discoverable") is True))
         self.assertIn(("Discoverable", True), self.sets())
-        win.destroy()
+        self.assertTrue(self.wait_for(lambda: {"call": "StartDiscovery"} in
+                                      [{"call": c["call"]} for c in self.calls() if "call" in c]))
+        with open(os.path.join(self.dir, "rfkill.log")) as f:
+            self.assertEqual(f.read(), "unblock bluetooth\n")
+        self.app.send("close")
+        self.app.proc.wait(10)
         self.assertFalse(self.adapter().get("Discoverable"))
 
     def test_hint_not_visible(self):
-        win = self.make()
-        win.visible_failed = True                            # BlueZ viditelnost odmitl
-        self.bluez_set("Discoverable", GLib.Variant("b", False))
-        self.assertTrue(self.wait(lambda: win.hint.get_text() == "Not visible to other devices."))
+        # BlueZ viditelnost odmitl: okno to nezkousi porad dokola a ukaze, ze pocitac neni viditelny
+        self.flag("deny-visible")
+        self.start()
+        self.assertTrue(self.wait_for(lambda: self.hint() == "Not visible to other devices."))
+        time.sleep(0.6)
+        self.assertEqual(self.sets("Discoverable"), [("Discoverable", True)])
+        self.app.stop()
+        self.assertIn("discoverable: ", self.app.stderr())
 
     # ---- pamet: okno otevrene hodiny (sluchatka pripojena, hledani bezi) ----
     def test_refresh_does_not_leak_rows(self):
         """Prekresleni radky nahradi a stare uvolni (drive zustavaly v pameti: 2,2 GB za 19 h)."""
-        import gc
-        import weakref
-        win = self.make()
-        self.assertTrue(self.wait(lambda: win.lists["nearby"].get_children()))
-        refs = [weakref.ref(r) for lb in win.lists.values() for r in lb.get_children()]
-        self.assertTrue(refs)
+        self.start()
+        nearby = lambda: [w for w in lsl_app.widgets(self.app.dump()) if w.get("text") == "Pixel Test"]  # noqa: E731
+        self.assertTrue(self.wait_for(lambda: len(nearby()) == 1))
         for _ in range(50):
-            win.refresh()
-        self.wait(lambda: False, 0.2)
-        gc.collect()
-        self.assertEqual([r for r in refs if r() is not None], [], "stare radky zustaly v pameti")
-        self.assertEqual(len(win.lists["nearby"].get_children()), 1)
-        # pocet objektu Pythonu po dalsich prekreslenich neroste
-        gc.collect()
-        before = len(gc.get_objects())
+            self.app.ask("refresh")
+        first = int(self.app.ask("records", "records"))
         for _ in range(200):
-            win.refresh()
-        self.wait(lambda: False, 0.2)
-        gc.collect()
-        self.assertLess(len(gc.get_objects()) - before, 200)
+            self.app.ask("refresh")
+        # kazdy radek ma 2-3 obsluhy: unik by po 200 prekreslenich byl stovky zaznamu (casovac nebo volani
+        # D-Bus, ktere prave bezi, je jeden zaznam navic)
+        self.assertLessEqual(abs(int(self.app.ask("records", "records")) - first), 2, "obsluhy starych radku zustaly")
+        self.assertEqual(len(nearby()), 1)
 
     def test_scan_pauses_in_background(self):
         """Okno v pozadi po SCAN_IDLE prestane hledat zarizeni, po navratu hleda znovu."""
-        win = self.make()
-        open(self.log, "w").close()
-        win.is_active = lambda: False
-        win.on_active()
-        self.assertTrue(win.scan_pause_timer)
-        self.assertFalse(win.pause_scan())               # vyprseni SCAN_IDLE
-        self.assertTrue(win.scan_paused)
-        self.assertIn({"call": "StopDiscovery"}, self.calls())
-        open(self.log, "w").close()
-        win.is_active = lambda: True
-        win.on_active()
-        self.assertFalse(win.scan_paused)
-        self.assertEqual(win.scan_pause_timer, 0)
-        self.assertTrue(self.wait(lambda: {"call": "StartDiscovery"} in self.calls()))
+        self.start()
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        discovery = lambda what: {"call": what} in [{"call": c["call"]} for c in self.calls() if "call" in c]  # noqa: E731
+        self.clear_log()
+        self.app.ask("active 0")
+        self.assertTrue(state()["scan_timer"])
+        self.assertEqual(self.app.ask("pause", "pause"), "False")       # vyprseni SCAN_IDLE
+        self.assertTrue(state()["scan_paused"])
+        self.assertTrue(discovery("StopDiscovery"))
+        self.clear_log()
+        self.app.ask("active 1")
+        self.assertEqual(state(), {"scan_paused": False, "scan_timer": False, "visible_ours": True})
+        self.assertTrue(self.wait_for(lambda: discovery("StartDiscovery")))
         # kratky odskok do jineho okna hledani nezastavi
-        open(self.log, "w").close()
-        win.is_active = lambda: False
-        win.on_active()
-        win.is_active = lambda: True
-        win.on_active()
-        self.assertEqual(win.scan_pause_timer, 0)
-        self.wait(lambda: False, 0.2)
-        self.assertNotIn({"call": "StopDiscovery"}, self.calls())
-        # zavreni okna zrusi casovac
-        win.is_active = lambda: False
-        win.on_active()
-        win.destroy()
-        self.assertEqual(win.scan_pause_timer, 0)
+        self.clear_log()
+        self.app.ask("active 0")
+        self.app.ask("active 1")
+        self.assertFalse(state()["scan_timer"])
+        time.sleep(0.2)
+        self.assertFalse(discovery("StopDiscovery"))
+        # zavreni okna zrusi casovac (proces skonci hned)
+        self.app.ask("active 0")
+        self.app.send("close")
+        self.assertEqual(self.app.proc.wait(10), 0)
+
+    # ---- parovani z okna ----
+    def test_pair_connect_and_forget(self):
+        self.start()
+        self.clear_log()
+        self.app.ask("click Connect")
+        self.assertTrue(self.wait_for(lambda: lsl_app.find(self.app.dump(), text="Disconnect") is not None))
+        methods = [c["call"] for c in self.calls() if "call" in c and c["path"] == DEV]
+        self.assertEqual(methods, ["Pair", "Connect"])
+        self.assertIn(("Trusted", True), self.sets())
+        d = self.app.dump()
+        self.assertIn("Phone · Connected", lsl_app.texts(d))
+        self.assertIn("Pixel Test", [w.get("text") for w in lsl_app.widgets(d)])
+        # sparovane zarizeni je jen v Moje zarizeni
+        self.assertIsNone(lsl_app.find(d, text="Connect"))
+        self.app.ask("click Disconnect")
+        self.assertTrue(self.wait_for(lambda: "Phone · Not connected" in lsl_app.texts(self.app.dump())))
+        self.app.ask("click Forget this device")
+        self.assertTrue(self.wait_for(lambda: "Pixel Test" not in lsl_app.texts(self.app.dump())))
+        self.assertIn({"call": "RemoveDevice", "args": [DEV]},
+                      [{"call": c["call"], "args": c["args"]} for c in self.calls() if "call" in c])
+
+    def test_connect_error(self):
+        self.flag("fail-connect")
+        self.start()
+        self.app.ask("click Connect")
+        self.assertTrue(self.wait_for(lambda: "Could not connect" in self.dialog_texts()))
+        body = [t for t in self.dialog_texts() if t.startswith("Page Timeout")]
+        self.assertEqual(body, ["Page Timeout\n\nMake sure the device is on, close by and in pairing mode."])
+        self.app.ask("click Close")
+        self.assertTrue(self.wait_for(lambda: "Phone · Not connected" in lsl_app.texts(self.app.dump())))
+
+    def test_czech(self):
+        self.start(lang="cs_CZ.UTF-8")
+        self.assertTrue(self.wait_for(lambda: self.hint() == "Viditelný jako „luxos-pc“, dokud je toto okno otevřené."))
+        texts = lsl_app.texts(self.app.dump())
+        self.assertIn("MOJE ZAŘÍZENÍ", texts)
+        self.assertIn("ZAŘÍZENÍ V OKOLÍ", texts)
+        self.assertIn("Telefon", texts)
 
     # ---- agent: parovani, ktere zacal telefon ----
-    def agent_call(self, win, method, args, sig):
-        out = {}
-        client = bt.BUS()
+    def agent(self):
+        senders = [c["sender"] for c in self.calls() if c.get("call") == "RegisterAgent"]
+        self.assertTrue(senders)
+        return senders[-1]
 
-        def done(conn, res):
-            try:
-                out["r"] = conn.call_finish(res).unpack()
-            except GLib.Error as e:
-                out["e"] = e.message
-        client.call(win.bz.bus.get_unique_name(), bt.AGENT_PATH, "org.bluez.Agent1", method,
-                    GLib.Variant(sig, args) if sig else None, None, 0, 5000, None, done)
-        self.assertTrue(self.wait(lambda: out))
-        return out
+    def agent_call(self, method, *args):
+        return subprocess.Popen(["gdbus", "call", "--address", self.bus.address, "--dest", self.agent(), "--object-path",
+                                 "/org/luxos/bluetooth/agent", "--method", "org.bluez.Agent1." + method] + list(args),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def answer(self, call):
+        out, err = call.communicate(timeout=10)
+        return out.strip() or err.strip()
 
     def test_agent_phone_pairing(self):
-        win = self.make()
-        Gtk = self.Gtk
-        shown = []
-        answer = [Gtk.ResponseType.OK]
-        orig = Gtk.Dialog.run
-
-        def run(dlg):
-            area = dlg.get_message_area()
-            shown.append([w.get_text() for w in area.get_children() if isinstance(w, Gtk.Label)])
-            return answer[0]
-        Gtk.Dialog.run = run
-        try:
-            # ciselne porovnani (telefon i pocitac ukazuji kod)
-            out = self.agent_call(win, "RequestConfirmation", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 42), "(ou)")
-            self.assertEqual(out, {"r": ()})
-            self.assertEqual(shown[-1][0], "Pair this device?")
-            self.assertIn("000042", shown[-1][1])
-            answer[0] = Gtk.ResponseType.CANCEL
-            out = self.agent_call(win, "RequestConfirmation", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 7), "(ou)")
-            self.assertIn("Rejected", out["e"])
-            # kod na pocitaci, telefon ho zada
-            # BlueZ vola DisplayPasskey s kazdou zadanou cislici: jedno okno, odpoved hned, zavre ho Cancel
-            n = len(shown)
-            for entered in range(3):
-                out = self.agent_call(win, "DisplayPasskey", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", 123456, entered),
-                                      "(ouq)")
-                self.assertEqual(out, {"r": ()})
-            self.assertEqual(len(shown), n)
-            dlg = win.agent.code_dlg
-            self.assertTrue(dlg.get_visible())
-            labels = [w.get_text() for w in dlg.get_message_area().get_children() if isinstance(w, Gtk.Label)]
-            self.assertIn("123456", labels[1])
-            self.assertEqual(self.agent_call(win, "Cancel", None, None), {"r": ()})
-            self.assertIsNone(win.agent.code_dlg)
-            # PIN od zarizeni jde do Pango markupu: musi se escapovat
-            self.agent_call(win, "DisplayPinCode", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01", "<b>12&"), "(os)")
-            labels = [w.get_text() for w in win.agent.code_dlg.get_message_area().get_children()
-                      if isinstance(w, Gtk.Label)]
-            self.assertIn("<b>12&", labels[1])
-            self.agent_call(win, "Cancel", None, None)
-            # parovani bez kodu: dotaz se jmenem zarizeni, odmitnuti
-            out = self.agent_call(win, "RequestAuthorization", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",), "(o)")
-            self.assertIn("Rejected", out["e"])
-            self.assertEqual(shown[-1][0], "Allow “Pixel Test” to pair with this computer?")
-            answer[0] = Gtk.ResponseType.OK
-            out = self.agent_call(win, "RequestAuthorization", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",), "(o)")
-            self.assertEqual(out, {"r": ()})
-            # sluzba LuxOS Companion bez dotazu (schvaluje ji aplikace)
-            n = len(shown)
-            out = self.agent_call(win, "AuthorizeService", ("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01",
-                                                            "AD9B7C10-6CE5-4F35-9952-728F760FCB70"), "(os)")
-            self.assertEqual((out, len(shown)), ({"r": ()}, n))
-        finally:
-            Gtk.Dialog.run = orig
+        self.start()
+        self.assertTrue(self.wait_for(lambda: any(c.get("call") == "RequestDefaultAgent" for c in self.calls())))
+        # ciselne porovnani (telefon i pocitac ukazuji kod)
+        call = self.agent_call("RequestConfirmation", DEV, "42")
+        self.assertTrue(self.wait_for(lambda: "Pair this device?" in self.dialog_texts()))
+        self.assertIn("000042", self.dialog_texts()[1])
+        self.app.ask("click Pair")
+        self.assertEqual(self.answer(call), "()")
+        call = self.agent_call("RequestConfirmation", DEV, "7")
+        self.assertTrue(self.wait_for(lambda: "Pair this device?" in self.dialog_texts()))
+        self.app.ask("click Cancel")
+        self.assertIn("Rejected", self.answer(call))
+        # kod na pocitaci, telefon ho zada: BlueZ vola DisplayPasskey s kazdou zadanou cislici - jedno okno,
+        # odpoved hned, zavre ho Cancel
+        for entered in range(3):
+            self.assertEqual(self.answer(self.agent_call("DisplayPasskey", DEV, "123456", str(entered))), "()")
+        d = self.app.dump()
+        self.assertEqual(len([w for w in d if w["dialog"]]), 1)
+        self.assertIn("123456\n\nThen press Enter on it.", lsl_app.texts(d, dialog=True))
+        self.assertEqual(self.answer(self.agent_call("Cancel")), "()")
+        self.assertTrue(self.wait_for(lambda: not any(w["dialog"] for w in self.app.dump())))
+        # PIN od zarizeni jde do Pango markupu: musi se escapovat
+        self.answer(self.agent_call("DisplayPinCode", DEV, "<b>12&"))
+        self.assertIn("<b>12&\n\nThen press Enter on it.", self.dialog_texts())
+        self.answer(self.agent_call("Cancel"))
+        # parovani bez kodu: dotaz se jmenem zarizeni, odmitnuti a povoleni
+        call = self.agent_call("RequestAuthorization", DEV)
+        self.assertTrue(self.wait_for(lambda: "Allow “Pixel Test” to pair with this computer?" in self.dialog_texts()))
+        self.app.ask("click Cancel")
+        self.assertIn("Rejected", self.answer(call))
+        call = self.agent_call("RequestAuthorization", DEV)
+        self.assertTrue(self.wait_for(lambda: self.dialog_texts()))
+        self.app.ask("click Allow")
+        self.assertEqual(self.answer(call), "()")
+        # sluzba LuxOS Companion bez dotazu (schvaluje ji aplikace)
+        self.assertEqual(self.answer(self.agent_call("AuthorizeService", DEV, "AD9B7C10-6CE5-4F35-9952-728F760FCB70")),
+                         "()")
+        self.assertFalse(any(w["dialog"] for w in self.app.dump()))
 
 
-@unittest.skipUnless(os.environ.get("DISPLAY"), "potrebuje X (xvfb-run)")
-class NoAdapter(unittest.TestCase):
+class NoAdapter(Fixture):
     """Pocitac bez adapteru (BlueZ nebezi): jen hlaska, bez Prejmenovat u prazdneho jmena a bez "Hledam…"."""
 
     def test_window_without_bluez(self):
-        from gi.repository import Gtk
-        proc = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
-                                stdout=subprocess.PIPE, text=True)
-        self.addCleanup(lambda: (proc.terminate(), proc.wait(5)))
-        addr = proc.stdout.readline().strip()
-        bt.BUS = lambda: Gio.DBusConnection.new_for_address_sync(
-            addr, Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
-            None, None)
-        self.addCleanup(setattr, bt, "BUS", bt.system_bus)
-        win = bt.BluetoothWindow()
-        self.addCleanup(win.destroy)
-        win.show_all()                  # jako main()
-        win.refresh()
-        while Gtk.events_pending():
-            Gtk.main_iteration_do(False)
-        self.assertFalse(win.name_group.get_visible())
-        self.assertFalse(win.head_nearby.get_visible())
-        self.assertFalse(any(lb.get_visible() for lb in win.lists.values()))
-        self.assertFalse(win.power.get_sensitive())
-        with open(os.path.join(BIN, "luxos-bluetooth")) as f:
-            main = f.read().split("def main():")[1]
-        self.assertLess(main.index("win.show_all()"), main.index("win.refresh()"))
+        self.start(fake=False)
+        d = self.app.dump()
+        self.assertEqual(lsl_app.find(d, name="hint")["text"], "No Bluetooth adapter was found on this computer.")
+        self.assertFalse(lsl_app.find(d, name="name-group")["vis"])
+        self.assertFalse(lsl_app.find(d, name="head-nearby")["vis"])
+        self.assertFalse(lsl_app.find(d, name="list-paired")["vis"])
+        self.assertFalse(lsl_app.find(d, name="list-nearby")["vis"])
+        self.assertFalse(lsl_app.find(d, name="power")["sens"])
+
+    def test_window_without_system_bus(self):
+        # systemova sbernice vubec neni (kontejner, chroot): okno se otevre s hlaskou, nespadne
+        self.start(fake=False)
+        self.app.stop()
+        env = dict(os.environ, DISPLAY=self.x.display, DBUS_SYSTEM_BUS_ADDRESS="unix:path=" + self.dir + "/none",
+                   LC_ALL="C.UTF-8")
+        self.app = lsl_app.App([BINARY], env)
+        self.assertTrue(self.app.wait(lambda: self.hint() == "No Bluetooth adapter was found on this computer."),
+                        self.app.stderr())
 
 
 if __name__ == "__main__":

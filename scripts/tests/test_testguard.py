@@ -169,9 +169,10 @@ class TestCameraNodesFromGuardDir(unittest.TestCase):
                 self.skipTest("python-gobject missing")
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertEqual(r.stdout.strip().split("|"), [os.path.join(d, n) for n in ("video0", "video2", "video10")])
-        with open(os.path.join(repo, "packages", "luxos-desktop", "files", "bin", "luxos-wifi-qr")) as f:
-            src = f.read()
-        self.assertNotIn('glob.glob("/dev/video*")', src)
+        # aplikace v LSL (QR kod Wi-Fi, Profilova fotka) hledaji uzly tamtez
+        for name in ("luxos-wifi-qr.lsl", "luxos_camera.lsl"):
+            with open(os.path.join(repo, "packages", "luxos-desktop", "files", "lsl", name)) as f:
+                self.assertIn('env.get("LUXOS_VIDEO_DEV_DIR"', f.read(), name)
 
 
 if __name__ == "__main__":

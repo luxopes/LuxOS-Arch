@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""LuxOS - aplikace Otisk prstu proti napodobene sluzbe fprintd na soukrome D-Bus sbernici.
+"""LuxOS - aplikace Otisk prstu (files/lsl/luxos-fingerprint.lsl) proti napodobene sluzbe fprintd na soukrome
+D-Bus sbernici.
 
-    xvfb-run -a python3 packages/luxos-desktop/tests/test_luxos_fingerprint.py [--shots DIR]
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_fingerprint.py -v
+    (LUXOS_SHOTS=adresar ulozi snimky okna)
 
-Spusti vlastni dbus-daemon (session), na nem fingerprint/fake_fprintd.py a aplikaci
-s LUXOS_FPRINT_BUS=session. Overuje seznam otisku, pridani s prubehem, chyby snimani,
-odebrani, odmitnuti opravneni, obsazenou ctecku a pocitac bez ctecky.
+Spusti vlastni Xvfb a dbus-daemon, na nem fingerprint/fake_fprintd.py a aplikaci s LUXOS_FPRINT_BUS=adresa.
+Overuje seznam otisku, pridani s prubehem, chyby snimani, odebrani, odmitnuti opravneni, obsazenou ctecku
+a pocitac bez ctecky. Skutecna ctecka ani fprintd se nikdy nepouziji. Okno se ridi pres luxos_testctl.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -17,102 +19,85 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
-import atexit
+import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
-from importlib.machinery import SourceFileLoader
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FILES = os.path.join(HERE, "..", "files")
-I18N = os.path.join(HERE, "..", "..", "luxos-i18n", "files")
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+
 FAKE = os.path.join(HERE, "fingerprint", "fake_fprintd.py")
-SHOTS = sys.argv[sys.argv.index("--shots") + 1] if "--shots" in sys.argv else ""
-if SHOTS:
-    del sys.argv[sys.argv.index("--shots"):sys.argv.index("--shots") + 2]
-
-os.environ.update({"LANG": "en_US.UTF-8", "LUXOS_I18N_DIR": I18N})
-DBUS = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
-                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-# i pri "unittest discover" (bez __main__): vlastni sbernici po testech vzdy ukoncit
-atexit.register(DBUS.terminate)
-# Aplikace i napodobeny fprintd jdou na tuto sbernici podle adresy - sdilena session sbernice
-# procesu (a DBUS_SESSION_BUS_ADDRESS ostatnich testu) zustava beze zmeny
-FP_BUS = DBUS.stdout.readline().strip()
-os.environ["LUXOS_FPRINT_BUS"] = FP_BUS
-sys.path.insert(0, I18N)
-sys.path.insert(0, os.path.join(FILES, "python"))   # luxos_winsize
-app = SourceFileLoader("luxos_fingerprint", os.path.join(FILES, "bin", "luxos-fingerprint")).load_module()
-from gi.repository import Gdk, Gtk  # noqa: E402
-
-# Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1 ve VM) - nikdy skutecna obrazovka
-HAVE_DISPLAY = Gdk.Display.get_default() is not None and (
-    "xvfb-run" in os.environ.get("XAUTHORITY", "") or os.environ.get("LUXOS_TEST_X") == "1")
+SHOTS = os.environ.get("LUXOS_SHOTS", "")
+TMP = None
+BINARY = None
+XVFB = None
 
 
-def pump(sec=0.0, until=None):
-    end = time.monotonic() + sec
-    while True:
-        while Gtk.events_pending():
-            Gtk.main_iteration_do(False)
-        if until and until():
-            return True
-        if time.monotonic() >= end:
-            return bool(until and until())
-        time.sleep(0.01)
+def setUpModule():
+    global TMP, BINARY, XVFB
+    TMP = tempfile.mkdtemp(prefix="luxos-fp-test.", dir=luxos_testguard._private_dir())
+    os.mkdir(os.path.join(TMP, "no-programs"))
+    BINARY = lsl_app.build("luxos-fingerprint", TMP)
+    XVFB = lsl_app.Xvfb()
 
 
-def shot(win, name):
-    if not SHOTS:
-        return
-    pump(0.2)
-    w = win.get_window()
-    pb = Gdk.pixbuf_get_from_window(w, 0, 0, w.get_width(), w.get_height())
-    os.makedirs(SHOTS, exist_ok=True)
-    pb.savev(os.path.join(SHOTS, f"{name}.png"), "png", [], [])
+def tearDownModule():
+    if XVFB:
+        XVFB.stop()
+    if TMP:
+        shutil.rmtree(TMP, True)
 
 
-class Unit(unittest.TestCase):
-    def test_enroll_messages(self):
-        self.assertEqual(app.enroll_message("enroll-stage-passed"),
-                         ("Lift your finger, then touch the sensor again", False, False))
-        self.assertEqual(app.enroll_message("enroll-stage-passed", swipe=True)[0], "Swipe your finger again")
-        self.assertEqual(app.enroll_message("enroll-completed"), ("Fingerprint added", True, False))
-        self.assertEqual(app.enroll_message("enroll-retry-scan")[1:], (False, True))
-        for r in ("enroll-failed", "enroll-data-full", "enroll-duplicate", "enroll-disconnected",
-                  "enroll-unknown-error", "something-new"):
-            text, done, err = app.enroll_message(r)
-            self.assertTrue(done and err and text, r)
+class Fixture(unittest.TestCase):
+    def setUp(self):
+        self.bus = lsl_app.Bus()
+        self.state = os.path.join(tempfile.mkdtemp(dir=TMP), "calls")
+        self.svc = None
+        self.app = None
 
-    def test_finger_labels(self):
-        self.assertEqual(app.finger_label("right-index-finger"), "Right index finger")
-        self.assertEqual(app.finger_label("left-little-finger"), "Left little finger")
-        self.assertEqual(app.finger_label("any"), "Any")
-        self.assertEqual(len({k for k, _l in app.FINGERS}), 10)
+    def tearDown(self):
+        if self.app:
+            self.app.stop()
+        if self.svc:
+            self.svc.terminate()
+            self.svc.wait(5)
+        self.bus.stop()
 
+    def start(self, *fake_args, fake=True, lang="C.UTF-8", **extra):
+        if fake:
+            self.svc = subprocess.Popen([sys.executable, FAKE, "--state", self.state, *fake_args],
+                                        stdout=subprocess.PIPE, text=True,
+                                        env=dict(os.environ, DBUS_SESSION_BUS_ADDRESS=self.bus.address))
+            self.assertEqual(self.svc.stdout.readline().strip(), "ready")
+        # bez luxos-drivers v PATH (tlacitko Otevrit ovladace by spustilo skutecnou aplikaci)
+        env = dict(os.environ, DISPLAY=XVFB.display, LUXOS_FPRINT_BUS=self.bus.address, LANG=lang, LC_ALL=lang,
+                   PATH=os.path.join(TMP, "no-programs"), **extra)
+        luxos_testguard.check_env(env)
+        self.app = lsl_app.App([BINARY], env)
+        self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
 
-@unittest.skipUnless(HAVE_DISPLAY, "needs X display (xvfb-run)")
-class Gui(unittest.TestCase):
-    def start(self, *fake_args):
-        self.state = tempfile.mktemp(prefix="luxos-fprintd-")
-        self.svc = subprocess.Popen([sys.executable, FAKE, "--state", self.state, *fake_args],
-                                    stdout=subprocess.PIPE, text=True,
-                                    env=dict(os.environ, DBUS_SESSION_BUS_ADDRESS=FP_BUS))
-        self.assertEqual(self.svc.stdout.readline().strip(), "ready")
-        self.addCleanup(self.stop)
-        self.win = app.FingerprintWindow(client=None)
-        self.win.show()
-        self.addCleanup(self.win.destroy)
-        pump(0.05)
+    def st(self):
+        return json.loads(self.app.ask("state", "state"))
 
-    def stop(self):
-        self.svc.terminate()
-        self.svc.wait(5)
-        if os.path.exists(self.state):
-            os.remove(self.state)
+    def page(self):
+        return self.st()["page"]
+
+    def text(self, name):
+        w = lsl_app.find(self.app.dump(), name=name)
+        return None if w is None else w["text"]
+
+    def visible(self, text):
+        w = lsl_app.find(self.app.dump(), text=text, kind="GtkButton")
+        return w is not None and w["vis"]
+
+    def rows(self):
+        return [w["text"] for w in lsl_app.widgets(self.app.dump()) if w.get("name") == "finger-row" and w["vis"]]
 
     def calls(self):
         try:
@@ -121,162 +106,239 @@ class Gui(unittest.TestCase):
         except OSError:
             return []
 
-    def page(self):
-        return self.win.stack.get_visible_child_name()
-
-    def rows(self):
-        out = []
-        for row in self.win.group.box.get_children():
-            labels = [c.get_text() for c in row.get_children() if isinstance(c, Gtk.Label)]
-            out.extend(labels)
-        return out
+    def wait(self, cond, timeout=5.0):
+        return self.app.wait(cond, timeout)
 
     def wait_main(self):
-        self.assertTrue(pump(5, lambda: self.page() == "main"), self.page())
-        pump(0.1)
+        self.assertTrue(self.wait(lambda: self.page() == "main"), self.page())
+        time.sleep(0.1)
 
-    def test_list_and_enroll(self):
-        self.start("--enrolled", "left-thumb", "--stages", "4")
-        self.wait_main()
-        self.assertEqual(self.rows(), ["Left thumb"])
-        self.assertEqual(self.win.reader_label.get_text(), "Fake Sensor 3000")
-        shot(self.win, "fingerprint-list")
-        self.win.enroll("right-index-finger")
-        self.assertEqual(self.page(), "enroll")
-        self.assertTrue(pump(3, lambda: self.win.passed == 2))
-        self.assertEqual(self.win.enroll_status.get_text(), "Lift your finger, then touch the sensor again")
-        self.assertEqual(self.win.enroll_count.get_text(), "Step 3 of 4")
-        self.assertAlmostEqual(self.win.ridges.progress, 0.5)
-        shot(self.win, "fingerprint-enroll")
-        self.assertTrue(pump(3, lambda: self.win.enroll_done.get_visible()))
-        self.assertEqual(self.win.enroll_status.get_text(), "Fingerprint added")
-        self.assertEqual(self.win.ridges.progress, 1.0)
-        self.assertFalse(self.win.enroll_cancel.get_visible())
-        shot(self.win, "fingerprint-done")
-        pump(0.3)
+    def shot(self, name):
+        if SHOTS:
+            os.makedirs(SHOTS, exist_ok=True)
+            time.sleep(0.3)
+            lsl_app.shot(XVFB.display, os.path.join(SHOTS, name + ".png"))
+
+    def released(self):
         c = self.calls()
-        self.assertIn("EnrollStart right-index-finger", c)
-        self.assertIn("EnrollStop", c)
-        self.assertEqual(c.count("Claim "), c.count("Release"), "device released")
-        self.win.enroll_done.clicked()
+        return c.count("Claim ") == c.count("Release")
+
+
+class Unit(Fixture):
+    def test_enroll_messages(self):
+        self.start("--no-device")
+        msg = lambda r: json.loads(self.app.ask("message " + r, "message"))  # noqa: E731
+        self.assertEqual(msg("enroll-stage-passed"), ["Lift your finger, then touch the sensor again", False, False])
+        self.assertEqual(msg("enroll-stage-passed swipe")[0], "Swipe your finger again")
+        self.assertEqual(msg("enroll-completed"), ["Fingerprint added", True, False])
+        self.assertEqual(msg("enroll-retry-scan")[1:], [False, True])
+        for r in ("enroll-failed", "enroll-data-full", "enroll-duplicate", "enroll-disconnected",
+                  "enroll-unknown-error", "something-new"):
+            text, done, err = msg(r)
+            self.assertTrue(done and err and text, r)
+        # technicky duvod od ctecky jen u neznamych chyb
+        self.assertTrue(msg("something-new")[0].endswith("\n(something-new)"))
+        self.assertTrue(msg("enroll-failed")[0].endswith("\n(enroll-failed)"))
+        self.assertNotIn("(", msg("enroll-duplicate")[0])
+
+    def test_finger_labels(self):
+        self.start("--no-device")
+        self.assertEqual(self.app.ask("finger right-index-finger", "finger"), "Right index finger")
+        self.assertEqual(self.app.ask("finger left-little-finger", "finger"), "Left little finger")
+        self.assertEqual(self.app.ask("finger any", "finger"), "Any")
+        self.assertEqual(self.app.ask("finger some-new-finger", "finger"), "Some new finger")
+
+
+class Gui(Fixture):
+    def test_list_and_enroll(self):
+        self.start("--enrolled", "left-thumb", "--stages", "8")
+        self.wait_main()
+        d = self.app.dump()
+        self.assertEqual([(w["title"], w["close_button"]) for w in d], [("Fingerprint Login", True)])
+        self.assertEqual(self.rows(), ["Left thumb"])
+        self.assertEqual(self.text("reader-label"), "Fake Sensor 3000")
+        self.assertFalse(self.visible("Remove All"))
+        self.shot("fingerprint-list")
+        self.app.ask("enroll right-index-finger")
+        self.assertEqual(self.page(), "enroll")
+        self.assertEqual(self.text("enroll-title"), "Right index finger")
+        self.assertTrue(self.wait(lambda: 2 <= self.st()["passed"] < 7))
+        # jeden snimek stavu (fprintd posila dalsi kroky kazdych 60 ms)
+        st = self.st()
+        if st["passed"] < 7:
+            self.assertEqual(st["status"], "Lift your finger, then touch the sensor again")
+            self.assertEqual(st["count"], "Step %d of 8" % (st["passed"] + 1))
+            self.assertAlmostEqual(st["progress"], st["passed"] / 8)
+        self.shot("fingerprint-enroll")
+        self.assertTrue(self.wait(lambda: self.visible("Done")))
+        self.assertEqual(self.text("enroll-status"), "Fingerprint added")
+        self.assertEqual(self.st()["progress"], 1.0)
+        self.assertFalse(self.visible("Back"))
+        self.assertFalse(self.visible("Cancel"))
+        self.shot("fingerprint-done")
+        self.assertTrue(self.wait(lambda: "EnrollStop" in self.calls() and self.released()))
+        self.assertIn("EnrollStart right-index-finger", self.calls())
+        self.app.ask("click Done")
         self.wait_main()
         self.assertEqual(self.rows(), ["Right index finger", "Left thumb"])
-        self.assertTrue(self.win.remove_all_btn.get_visible())
+        self.assertTrue(self.visible("Remove All"))
+
+    def test_add_dialog(self):
+        # Pridat otisk: v nabidce jen prsty, ktere jeste nejsou pridane
+        self.start("--enrolled", "right-index-finger", "--stages", "40")
+        self.wait_main()
+        self.app.send("click Add Fingerprint…")
+        self.assertTrue(self.wait(lambda: any(w["dialog"] for w in self.app.dump())))
+        d = self.app.dump()
+        self.assertEqual([w["title"] for w in d if w["dialog"]], ["Add Fingerprint"])
+        self.assertIn("Which finger do you want to add?", lsl_app.texts(d, dialog=True))
+        self.app.ask("click Continue")
+        self.assertTrue(self.wait(lambda: self.page() == "enroll"))
+        self.assertEqual(self.text("enroll-title"), "Left index finger")
+        self.app.ask("click Cancel")
+        self.wait_main()
+        self.assertTrue(self.wait(self.released))
 
     def test_enroll_retry_and_fail(self):
         self.start("--enroll-script", "enroll-stage-passed,enroll-retry-scan,enroll-failed")
         self.wait_main()
         self.assertEqual(self.rows(), ["No fingerprints added yet."])
-        self.assertFalse(self.win.remove_all_btn.get_visible())
-        self.win.enroll("left-index-finger")
-        self.assertTrue(pump(3, lambda: "Didn't catch" in self.win.enroll_status.get_text()))
-        self.assertIn("error", self.win.enroll_status.get_style_context().list_classes())
-        self.assertTrue(pump(3, lambda: "could not read your finger" in self.win.enroll_status.get_text()))
-        self.assertTrue(self.win.enroll_cancel.get_visible())
-        self.assertEqual(self.win.enroll_cancel.get_label(), "Back")
-        self.assertFalse(self.win.enroll_done.get_visible())
-        self.win.enroll_cancel.clicked()
+        self.assertFalse(self.visible("Remove All"))
+        self.app.ask("enroll left-index-finger")
+        self.assertTrue(self.wait(lambda: "Didn't catch" in self.text("enroll-status")))
+        self.assertTrue(self.st()["enroll_error"])
+        self.assertTrue(self.wait(lambda: "could not read your finger" in self.text("enroll-status")))
+        self.assertTrue(self.st()["ridges_error"])
+        self.assertTrue(self.visible("Back"))
+        self.assertFalse(self.visible("Done"))
+        self.app.ask("click Back")
         self.wait_main()
         self.assertEqual(self.rows(), ["No fingerprints added yet."])
-        pump(0.2)
-        c = self.calls()
-        self.assertEqual(c.count("Claim "), c.count("Release"))
+        self.assertTrue(self.wait(self.released))
 
     def test_enroll_try_again(self):
         """Po neuspechu tlacitko Zkusit znovu: stejny prst znovu, az po uvolneni ctecky."""
         self.start("--enroll-script", "enroll-failed")
         self.wait_main()
-        self.win.enroll("left-index-finger")
-        self.assertTrue(pump(3, lambda: self.win.enroll_retry.get_visible() and self.win.enroll_retry.get_sensitive()))
-        c = self.calls()
-        self.assertEqual(c.count("Claim "), c.count("Release"))
-        self.win.enroll_retry.clicked()
-        self.assertEqual(self.win.enroll_title.get_text(), "Left index finger")
-        self.assertFalse(self.win.enroll_retry.get_visible())
-        self.assertEqual(self.win.enroll_cancel.get_label(), "Cancel")
-        self.assertTrue(pump(3, lambda: sum(c.startswith("EnrollStart") for c in self.calls()) == 2))
-        self.assertTrue(pump(3, lambda: self.win.enroll_retry.get_visible()))
+        self.app.ask("enroll left-index-finger")
+        try_again = lambda: lsl_app.find(self.app.dump(), text="Try Again")  # noqa: E731
+        self.assertTrue(self.wait(lambda: (try_again() or {}).get("vis") and try_again()["sens"]))
+        self.assertTrue(self.released())
+        self.app.ask("click Try Again")
+        self.assertEqual(self.text("enroll-title"), "Left index finger")
+        self.assertFalse(self.visible("Try Again"))
+        self.assertTrue(self.visible("Cancel"))
+        self.assertTrue(self.wait(lambda: sum(c.startswith("EnrollStart") for c in self.calls()) == 2))
+        self.assertTrue(self.wait(lambda: self.visible("Try Again")))
 
     def test_cancel_enroll(self):
         self.start("--stages", "40")
         self.wait_main()
-        self.win.enroll("right-thumb")
-        self.assertTrue(pump(2, lambda: self.win.passed >= 1))
-        self.win.enroll_cancel.clicked()
+        self.app.ask("enroll right-thumb")
+        self.assertTrue(self.wait(lambda: self.st()["passed"] >= 1))
+        self.app.ask("click Cancel")
         self.wait_main()
-        pump(0.3)
-        c = self.calls()
-        self.assertIn("EnrollStop", c)
-        self.assertIn("Release", c)
+        self.assertTrue(self.wait(lambda: "Release" in self.calls()))
+        self.assertIn("EnrollStop", self.calls())
         self.assertEqual(self.rows(), ["No fingerprints added yet."])
 
     def test_cancel_while_claim_waits(self):
         # Zrusit, zatimco Claim ceka na heslo: po dobehnuti Claim se nesmi zacit snimat a ctecka se uvolni
         self.start("--stages", "40", "--claim-delay", "0.8")
         self.wait_main()
-        self.win.enroll("right-thumb")
-        pump(0.2)
-        self.win.enroll_cancel.clicked()
+        self.app.ask("enroll right-thumb")
+        time.sleep(0.2)
+        self.app.ask("click Cancel")
         self.wait_main()
-        pump(1.5)
+        time.sleep(1.5)
         c = self.calls()
         self.assertNotIn("EnrollStart right-thumb", c)
+        self.assertIn("Release", c)
+
+    def test_close_while_enrolling(self):
+        # Zavreni okna behem snimani: EnrollStop a uvolneni ctecky, pak konec procesu
+        self.start("--stages", "40")
+        self.wait_main()
+        self.app.ask("enroll right-thumb")
+        self.assertTrue(self.wait(lambda: self.st()["passed"] >= 1))
+        self.app.send("close")
+        self.assertEqual(self.app.proc.wait(10), 0)
+        c = self.calls()
+        self.assertIn("EnrollStop", c)
         self.assertIn("Release", c)
 
     def test_remove_one_and_all(self):
         self.start("--enrolled", "right-index-finger,left-thumb,right-thumb")
         self.wait_main()
-        self.win.confirm = lambda *_a: True
-        self.win.on_remove(None, "left-thumb")
-        self.assertTrue(pump(3, lambda: "Left thumb" not in self.rows() and not self.win.busy))
+        self.assertEqual(self.rows(), ["Right index finger", "Right thumb", "Left thumb"])
+        # Odebrat u Leveho palce: potvrzovaci dialog
+        remove = [w for w in lsl_app.widgets(self.app.dump()) if w["t"] == "GtkButton" and w["text"] == "Remove"]
+        self.assertEqual(len(remove), 3)
+        self.app.send("remove left-thumb")
+        self.assertTrue(self.wait(lambda: "Remove the fingerprint “Left thumb”?" in lsl_app.texts(self.app.dump(), dialog=True)))
+        self.app.ask("respond -5")
+        self.assertTrue(self.wait(lambda: "Left thumb" not in self.rows() and not self.st()["busy"]))
         self.assertEqual(self.rows(), ["Right index finger", "Right thumb"])
         self.assertIn("DeleteEnrolledFinger left-thumb", self.calls())
-        self.win.on_remove_all(None)
-        self.assertTrue(pump(3, lambda: self.rows() == ["No fingerprints added yet."]))
-        pump(0.2)
-        c = self.calls()
-        self.assertEqual(c.count("Claim "), c.count("Release"))
+        self.app.send("click Remove All")
+        self.assertTrue(self.wait(lambda: "Remove all fingerprints?" in lsl_app.texts(self.app.dump(), dialog=True)))
+        self.app.ask("click Remove")
+        self.assertTrue(self.wait(lambda: self.rows() == ["No fingerprints added yet."]))
+        self.assertTrue(self.wait(self.released))
+        self.assertIn("DeleteEnrolledFingers2", self.calls())
+
+    def test_remove_cancelled(self):
         # zamitnute potvrzeni nic nesmaze
-        self.win.confirm = lambda *_a: False
-        self.win.on_remove(None, "right-thumb")
+        self.start("--enrolled", "right-thumb")
+        self.wait_main()
+        self.app.send("click Remove")
+        self.assertTrue(self.wait(lambda: any(w["dialog"] for w in self.app.dump())))
+        self.app.ask("click Cancel")
+        time.sleep(0.3)
         self.assertNotIn("DeleteEnrolledFinger right-thumb", self.calls())
+        self.assertNotIn("Claim ", self.calls())
+        self.assertEqual(self.rows(), ["Right thumb"])
 
     def test_permission_denied(self):
         self.start("--enrolled", "left-thumb", "--deny-claim")
         self.wait_main()
-        self.win.confirm = lambda *_a: True
-        self.win.on_remove(None, "left-thumb")
-        self.assertTrue(pump(3, lambda: not self.win.busy))
-        self.assertEqual(self.win.status.get_text(), "You are not allowed to change fingerprints.")
+        self.app.send("click Remove")
+        self.assertTrue(self.wait(lambda: any(w["dialog"] for w in self.app.dump())))
+        self.app.ask("respond -5")
+        self.assertTrue(self.wait(lambda: self.text("status") == "You are not allowed to change fingerprints."))
+        self.assertTrue(self.st()["status_error"])
+        self.assertFalse(self.st()["busy"])
         self.assertEqual(self.rows(), ["Left thumb"])
-        self.win.enroll("right-thumb")
-        self.assertTrue(pump(3, lambda: self.win.enroll_cancel.get_label() == "Back"))
-        self.assertEqual(self.win.enroll_status.get_text(), "You are not allowed to change fingerprints.")
+        self.app.ask("enroll right-thumb")
+        self.assertTrue(self.wait(lambda: self.visible("Back")))
+        self.assertEqual(self.text("enroll-status"), "You are not allowed to change fingerprints.")
 
     def test_reader_busy(self):
         self.start("--busy")
         self.wait_main()
-        self.win.enroll("right-thumb")
-        self.assertTrue(pump(3, lambda: "another app" in self.win.enroll_status.get_text()))
+        self.app.ask("enroll right-thumb")
+        self.assertTrue(self.wait(lambda: "another app" in self.text("enroll-status")))
 
     def test_no_device(self):
         self.start("--no-device")
-        self.assertTrue(pump(5, lambda: self.page() == "message" and self.win.msg_title.get_text()
-                             == "No fingerprint reader found"))
-        self.assertIn("no supported fingerprint reader", self.win.msg_text.get_text())
-        shot(self.win, "fingerprint-no-reader")
+        self.assertTrue(self.wait(lambda: self.page() == "message" and self.text("msg-title") == "No fingerprint reader found"))
+        self.assertIn("no supported fingerprint reader", self.text("msg-text"))
+        # bez luxos-drivers v PATH zadne tlacitko
+        self.assertFalse(self.visible("Open Drivers"))
+        self.shot("fingerprint-no-reader")
 
     def test_service_missing(self):
         # sluzba neni na sbernici (fprintd nenainstalovany)
-        self.win = app.FingerprintWindow(client=None)
-        self.addCleanup(self.win.destroy)
-        self.win.show()
-        self.assertTrue(pump(5, lambda: self.win.msg_title.get_text() == "No fingerprint reader found"))
-        self.assertIn("not installed", self.win.msg_text.get_text())
+        self.start(fake=False)
+        self.assertTrue(self.wait(lambda: self.text("msg-title") == "No fingerprint reader found"))
+        self.assertIn("not installed", self.text("msg-text"))
+
+    def test_czech(self):
+        self.start("--enrolled", "left-thumb", lang="cs_CZ.UTF-8")
+        self.wait_main()
+        self.assertEqual(self.rows(), ["Levý palec"])
+        self.assertEqual([w["title"] for w in self.app.dump()], ["Přihlášení otiskem prstu"])
 
 
 if __name__ == "__main__":
-    try:
-        unittest.main(verbosity=2)
-    finally:
-        DBUS.terminate()
+    unittest.main()
