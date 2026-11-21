@@ -1,9 +1,13 @@
-"""Testy Spravy site (luxos-router): brana, nmcli, pravidla jen pro domaci sit, zarizeni (ip neigh,
-OUI), ping a aplikace pod Xvfb s mistnim "routerem" (HTTP a HTTPS s vlastnim certifikatem).
+"""Testy Spravy site (luxos-router, files/lsl/luxos-router.lsl): brana, nmcli, pravidla jen pro domaci sit,
+zarizeni (ip neigh, OUI), nastroje a okno ve vlastnim Xvfb s mistnim "routerem" (HTTP a HTTPS s vlastnim
+certifikatem, prihlaseni HTTP Basic, stazeni zalohy).
 
-Spusteni: env -u DISPLAY xvfb-run -a python3 -m unittest discover -s packages/luxos-desktop/tests
-Falesne ip/nmcli/ping z fake-net, router = server na 127.0.0.1 (brana v testu). Zadna sit navic.
-LUXOS_TEST_SHOTS=adresar ulozi snimky oken.
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_netadmin.py -v
+
+Rozbor a pravidla: tests/lsl/luxos-netadmin-test.lsl (luxos_netadmin.lsl). Falesne ip/nmcli/ping z fake-net,
+curl a getent jako skripty, router = server na 127.0.0.1 (brana v testu). Zadna skutecna sit, prohlizec se
+nespousti (otevrene adresy jen hlasi stav okna). LUXOS_TEST_SHOTS=adresar ulozi snimky oken, LANG prepise
+jazyk okna (vychozi anglictina).
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -15,9 +19,8 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
+import base64
 import http.server
-import importlib.machinery
-import importlib.util
 import json
 import os
 import shutil
@@ -30,12 +33,13 @@ import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PYDIR = os.path.normpath(os.path.join(HERE, "..", "files", "python"))
-BIN = os.path.normpath(os.path.join(HERE, "..", "files", "bin"))
+PKG = os.path.normpath(os.path.join(HERE, ".."))
 FAKE = os.path.join(HERE, "fake-net")
-sys.path.insert(0, PYDIR)
-sys.path.insert(1, os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files")))
-import luxos_netadmin as na  # noqa: E402
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+
+TMP = tempfile.mkdtemp(prefix="luxos-router-test-")
+LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 
 DEVICE = """GENERAL.DEVICE:wlp4s0
 GENERAL.TYPE:wifi
@@ -51,270 +55,93 @@ IP6.ADDRESS[1]:fe80::687b:1a76:a3e:2bc9/64
 IP6.GATEWAY:--
 IP6.DNS[1]:fd00\\:\\:1
 """
+NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
+OUI = ("OUI/MA-L\t\t\tOrganization\n00-1A-2B   (hex)\t\tAyecom Technology Co., Ltd.\n"
+       "001A2B     (base 16)\t\tAyecom\n\n9C-2F-9D   (hex)\t\tLiteon Technology Corporation\n")
 
 
-class Routes(unittest.TestCase):
-    def test_json(self):
-        text = json.dumps([
-            {"dst": "default", "gateway": "10.0.0.1", "dev": "enp1s0", "metric": 100},
-            {"dst": "default", "gateway": "192.168.1.1", "dev": "wlp4s0", "protocol": "dhcp", "metric": 600},
-            {"dst": "default", "dev": "wg0"}])
-        r = na.parse_routes(text)
-        self.assertEqual([x["gateway"] for x in r], ["10.0.0.1", "192.168.1.1"])
-        self.assertEqual(r[0]["dev"], "enp1s0")
-
-    def test_text(self):
-        text = ("default via 192.168.1.1 dev wlp4s0 proto dhcp src 192.168.1.23 metric 600 \n"
-                "default via 10.0.0.1 dev enp1s0 proto static metric 100\n"
-                "10.0.0.0/24 dev enp1s0 scope link\n")
-        r = na.parse_routes(text)
-        self.assertEqual(r[0], {"gateway": "10.0.0.1", "dev": "enp1s0", "metric": 100})
-        self.assertEqual(len(r), 2)
-
-    def test_garbage(self):
-        self.assertEqual(na.parse_routes(""), [])
-        self.assertEqual(na.parse_routes("[broken"), [])
-        self.assertEqual(na.parse_routes("Error: ..."), [])
-
-    def test_nmcli(self):
-        d = na.parse_device_show(DEVICE)
-        self.assertEqual(d["connection"], "Domov 5G")
-        self.assertEqual(d["type"], "wifi")
-        self.assertEqual(d["ip4"], ["192.168.1.23/24"])
-        self.assertEqual(d["dns"], ["192.168.1.1", "1.1.1.1", "fd00::1"])
-        self.assertEqual(d["gateway"], "192.168.1.1")
-        self.assertEqual(d["hwaddr"], "9C:2F:9D:76:21:DB")
-
-    def test_terse_and_ssid(self):
-        self.assertEqual(na.split_terse(r"yes:Moje\:sit\\x"), ["yes", "Moje:sit\\x"])
-        self.assertEqual(na.parse_wifi_ssid("no:Soused\nyes:Moje\\:sit\n"), "Moje:sit")
-        self.assertEqual(na.parse_wifi_ssid("no:A\n"), "")
-        self.assertEqual(na.parse_resolv_conf("# x\nnameserver 127.0.0.53\noptions edns0\n"), ["127.0.0.53"])
-
-    def test_network_info_fake(self):
-        with tempfile.TemporaryDirectory() as d:
-            p = os.path.join(d, "net.json")
-            with open(p, "w") as f:
-                json.dump({"routes": [{"dst": "default", "gateway": "192.168.1.1", "dev": "wlp4s0", "metric": 600}],
-                           "device": DEVICE, "wifi": "no:Soused\nyes:Domov 5G\n"}, f)
-            env = {"FAKE_NET": p, "LUXOS_IP": os.path.join(FAKE, "ip"), "LUXOS_NMCLI": os.path.join(FAKE, "nmcli")}
-            old = os.environ.copy()
-            os.environ.update(env)
-            try:
-                info = na.network_info()
-            finally:
-                os.environ.clear()
-                os.environ.update(old)
-        self.assertEqual((info["gateway"], info["dev"], info["ssid"]), ("192.168.1.1", "wlp4s0", "Domov 5G"))
-        self.assertEqual(info["ip4"], ["192.168.1.23/24"])
+def tearDownModule():
+    shutil.rmtree(TMP, ignore_errors=True)
 
 
-class Policy(unittest.TestCase):
-    def test_private(self):
-        for ip in ("192.168.1.1", "10.0.0.138", "172.16.0.1", "172.31.255.254", "169.254.1.1", "fd00::1",
-                   "fe80::1", "fe80::1%wlan0", "::ffff:192.168.0.1"):
-            self.assertTrue(na.is_lan_ip(ip), ip)
-        for ip in ("8.8.8.8", "172.32.0.1", "100.64.0.1", "127.0.0.1", "2a00::1", "nonsense", ""):
-            self.assertFalse(na.is_lan_ip(ip), ip)
-        self.assertTrue(na.is_lan_ip("100.64.0.1", gateway="100.64.0.1"))     # brana vzdy
-
-    def test_lan_policy(self):
-        gw = "192.168.1.1"
-        cases = {
-            "http://192.168.1.1/": "allow",
-            "https://192.168.1.1:8443/login.htm": "allow",
-            "http://10.0.0.5/status": "allow",
-            "http://[fe80::1]/": "allow",
-            "http://8.8.8.8/": "external",
-            "https://www.example.com/": "resolve",
-            "http://fritz.box/": "resolve",
-            "http://localhost:631/": "external",
-            "http://127.0.0.1/": "external",
-            "file:///etc/passwd": "block",
-            "javascript:alert(1)": "block",
-            "data:text/html,<b>x</b>": "block",
-            "mailto:support@example.com": "external",
-            "http://192.168.1.1@evil.example/": "block",
-            "about:blank": "allow",
-            "http:///nohost": "block",
-        }
-        for url, want in cases.items():
-            self.assertEqual(na.lan_policy(url, gw), want, url)
-        # brana mimo privatni rozsahy (nektere site poskytovatelu)
-        self.assertEqual(na.lan_policy("http://100.64.0.1/", "100.64.0.1"), "allow")
-        self.assertEqual(na.lan_policy("http://100.64.0.2/", "100.64.0.1"), "external")
-
-    def test_resolve(self):
-        def fake(host, port):
-            table = {"fritz.box": ["192.168.178.1"], "routerlogin.net": ["192.168.1.1"],
-                     "example.com": ["93.184.216.34"], "rebind.example": ["192.168.1.1", "93.184.216.34"]}
-            if host not in table:
-                raise OSError("no such host")
-            return [(2, 1, 6, "", (a, 0)) for a in table[host]]
-        self.assertTrue(na.resolves_to_lan("fritz.box", resolver=fake))
-        self.assertTrue(na.resolves_to_lan("routerlogin.net", resolver=fake))
-        self.assertFalse(na.resolves_to_lan("example.com", resolver=fake))
-        self.assertFalse(na.resolves_to_lan("rebind.example", resolver=fake))     # vse musi byt v siti
-        self.assertFalse(na.resolves_to_lan("missing.lan", resolver=fake))
-
-    def test_tls_scope(self):
-        gw = "192.168.1.1"
-        self.assertTrue(na.tls_exception_allowed("https://192.168.1.1/", gw))
-        self.assertTrue(na.tls_exception_allowed("https://192.168.1.1:8443/x", gw))
-        self.assertFalse(na.tls_exception_allowed("https://192.168.1.2/", gw))     # jine zarizeni
-        self.assertFalse(na.tls_exception_allowed("https://fritz.box/", gw))
-        self.assertFalse(na.tls_exception_allowed("http://192.168.1.1/", gw))
-        self.assertFalse(na.tls_exception_allowed("https://192.168.1.1/", ""))
-
-    def test_router_url(self):
-        self.assertEqual(na.router_url("192.168.1.1"), "http://192.168.1.1/")
-        self.assertEqual(na.router_url("192.168.1.1", https=True), "https://192.168.1.1/")
-        self.assertEqual(na.router_url("fd00::1"), "http://[fd00::1]/")
-        self.assertEqual(na.router_url(""), "")
+def script(name, text):
+    path = os.path.join(TMP, name)
+    with open(path, "w") as f:
+        f.write(text)
+    os.chmod(path, 0o755)
+    return path
 
 
-class Devices(unittest.TestCase):
-    def test_neigh_json(self):
-        text = json.dumps([
-            {"dst": "192.168.1.20", "dev": "wlp4s0", "lladdr": "AA:BB:CC:00:11:22", "state": ["STALE"]},
-            {"dst": "192.168.1.1", "dev": "wlp4s0", "lladdr": "00:1a:2b:3c:4d:5e", "state": ["REACHABLE"]},
-            {"dst": "192.168.1.30", "dev": "wlp4s0", "state": ["FAILED"]},
-            {"dst": "192.168.1.31", "dev": "wlp4s0", "lladdr": "00:00:00:00:00:01", "state": ["INCOMPLETE"]},
-            {"dst": "fe80::1", "dev": "wlp4s0", "lladdr": "00:1a:2b:3c:4d:5e", "router": None, "state": ["REACHABLE"]}])
-        n = na.parse_neigh(text)
-        self.assertEqual([x["ip"] for x in n], ["192.168.1.1", "192.168.1.20", "fe80::1"])
-        self.assertEqual(n[1]["mac"], "aa:bb:cc:00:11:22")
-        self.assertEqual(n[0]["state"], "REACHABLE")
-
-    def test_neigh_text(self):
-        text = ("10.2.0.2 dev wlp4s0 lladdr d2:99:b5:44:9a:c1 DELAY \n"
-                "fe80::d099:b5ff:fe44:9ac1 dev wlp4s0 lladdr d2:99:b5:44:9a:c1 router REACHABLE\n"
-                "10.2.0.9 dev wlp4s0 FAILED\n")
-        n = na.parse_neigh(text)
-        self.assertEqual([(x["ip"], x["state"]) for x in n], [("10.2.0.2", "DELAY"), ("fe80::d099:b5ff:fe44:9ac1", "REACHABLE")])
-
-    def test_random_mac(self):
-        self.assertTrue(na.is_random_mac("d2:99:b5:44:9a:c1"))
-        self.assertTrue(na.is_random_mac("02:00:00:00:00:00"))
-        self.assertFalse(na.is_random_mac("00:1a:2b:3c:4d:5e"))
-        self.assertFalse(na.is_random_mac("zz"))
-
-    def test_oui(self):
-        with tempfile.TemporaryDirectory() as d:
-            p = os.path.join(d, "oui.txt")
-            with open(p, "w") as f:
-                f.write("OUI/MA-L\t\t\tOrganization\n"
-                        "00-1A-2B   (hex)\t\tAyecom Technology Co., Ltd.\n001A2B     (base 16)\t\tAyecom\n\n"
-                        "9C-2F-9D   (hex)\t\tLiteon Technology Corporation\n")
-            r = na.oui_lookup(["00:1a:2b:3c:4d:5e", "9c:2f:9d:76:21:db", "d2:99:b5:44:9a:c1", "11:22:33:44:55:66"],
-                              paths=(os.path.join(d, "missing"), p))
-        self.assertEqual(r, {"00:1a:2b:3c:4d:5e": "Ayecom Technology Co., Ltd.",
-                             "9c:2f:9d:76:21:db": "Liteon Technology Corporation"})
-        self.assertEqual(na.oui_lookup([], paths=(p,)), {})
-
-    @unittest.skipUnless(os.path.exists("/usr/share/hwdata/oui.txt"), "hwdata neni nainstalovano")
-    def test_oui_system(self):
-        r = na.oui_lookup(["00:00:0c:12:34:56"])
-        self.assertIn("Cisco", r.get("00:00:0c:12:34:56", ""))
-
-    def test_scan_targets(self):
-        t = na.scan_targets("192.168.1.23/24")
-        self.assertEqual(len(t), 253)
-        self.assertNotIn("192.168.1.23", t)
-        self.assertEqual(len(na.scan_targets("10.2.9.254/16")), 253)     # jen /24 kolem sebe
-        self.assertTrue(all(x.startswith("10.2.9.") for x in na.scan_targets("10.2.9.254/16")))
-        self.assertEqual(na.scan_targets("fd00::5/64"), [])
-        self.assertEqual(na.scan_targets("bad"), [])
+# curl: verejna adresa a mereni rychlosti bez internetu (FAKE_CURL = "ok" | "fail"), volani do FAKE_CURL_LOG
+CURL = script("curl", """#!/bin/sh
+echo "$*" >>"$FAKE_CURL_LOG"
+[ "$FAKE_CURL" = fail ] && exit 7
+case "$*" in
+*size_download*) printf '10000000 2.000000' ;;
+*ipify*) printf 'not an address' ;;
+*icanhazip*) printf '203.0.113.7\\n' ;;
+esac
+""")
+# getent ahosts: jen pro anglicky systemovy resolver; example.com odpovi, ostatni ne
+GETENT = script("getent", """#!/bin/sh
+case "$2" in
+example.com) printf '93.184.216.34   STREAM example.com\\n93.184.216.34   DGRAM\\n' ;;
+router.lan) printf '127.0.0.1       STREAM router.lan\\n' ;;
+*) exit 2 ;;
+esac
+""")
 
 
-class Tools(unittest.TestCase):
-    def test_parse_ping(self):
-        out = ("PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.\n\n--- 192.168.1.1 ping statistics ---\n"
-               "4 packets transmitted, 3 received, 25% packet loss, time 3004ms\n"
-               "rtt min/avg/max/mdev = 1.153/2.481/4.002/1.102 ms\n")
-        self.assertEqual(na.parse_ping(out), {"sent": 4, "received": 3, "avg": 2.481})
-        self.assertEqual(na.parse_ping("4 packets transmitted, 0 received, 100% packet loss"),
-                         {"sent": 4, "received": 0, "avg": None})
-        self.assertEqual(na.parse_ping(""), {"sent": 0, "received": 0, "avg": None})
-
-    def test_ping_fake(self):
-        with tempfile.TemporaryDirectory() as d:
-            p = os.path.join(d, "net.json")
-            with open(p, "w") as f:
-                json.dump({"ping": {"192.168.1.1": 1.5}}, f)
-            old = os.environ.copy()
-            os.environ.update({"FAKE_NET": p, "LUXOS_PING": os.path.join(FAKE, "ping")})
-            try:
-                self.assertEqual(na.ping("192.168.1.1")["avg"], 1.5)
-                self.assertEqual(na.ping("192.168.1.9")["received"], 0)
-            finally:
-                os.environ.clear()
-                os.environ.update(old)
-
-    def test_ping_localized_system(self):
-        # cesky system: ping by psal "1 paketu odeslano, 1 prijato" - spousti se s LC_ALL=C
-        with tempfile.TemporaryDirectory() as d:
-            fake = os.path.join(d, "ping")
-            with open(fake, "w") as f:
-                f.write('#!/bin/sh\nif [ "$LC_ALL" = C ]; then\n'
-                        'echo "1 packets transmitted, 1 received, 0% packet loss, time 0ms"\n'
-                        'echo "rtt min/avg/max/mdev = 0.2/0.25/0.3/0.0 ms"\nelse\n'
-                        'echo "1 paketu odeslano, 1 prijato, 0% packet loss, time 0ms"\nfi\n')
-            os.chmod(fake, 0o755)
-            old = os.environ.copy()
-            os.environ.update({"LUXOS_PING": fake, "LANG": "cs_CZ.UTF-8", "LC_ALL": "cs_CZ.UTF-8"})
-            try:
-                self.assertEqual(na.ping("10.0.2.2", count=1), {"sent": 1, "received": 1, "avg": 0.25})
-            finally:
-                os.environ.clear()
-                os.environ.update(old)
-
-    def test_nmcli_localized_system(self):
-        # cesky nmcli by misto "yes:SSID" psal "ano:SSID"
-        with tempfile.TemporaryDirectory() as d:
-            fake = os.path.join(d, "nmcli")
-            with open(fake, "w") as f:
-                f.write('#!/bin/sh\nif [ "$LC_ALL" = C ]; then echo "yes:Domov"; else echo "ano:Domov"; fi\n')
-            os.chmod(fake, 0o755)
-            old = os.environ.copy()
-            os.environ.update({"LANG": "cs_CZ.UTF-8", "LC_ALL": "cs_CZ.UTF-8"})
-            try:
-                self.assertEqual(na.parse_wifi_ssid(na.run([fake])), "Domov")
-            finally:
-                os.environ.clear()
-                os.environ.update(old)
-
-    def test_dns(self):
-        ok, ms, addrs = na.dns_test("x", resolver=lambda h, p: [(2, 1, 6, "", ("1.2.3.4", p))])
-        self.assertTrue(ok)
-        self.assertEqual(addrs, ["1.2.3.4"])
-
-        def fail(h, p):
-            raise OSError("x")
-        self.assertFalse(na.dns_test("x", resolver=fail)[0])
-
-    def test_public_ip_and_speed_offline(self):
-        # Nedostupne adresy: zadna vyjimka, prazdny vysledek (skutecny internet se v testech nepouziva)
-        self.assertEqual(na.public_ip(urls=("http://127.0.0.1:9/",), timeout=1), "")
-        self.assertIsNone(na.speed_test(1000, url="http://127.0.0.1:9/%d", timeout=1))
+@unittest.skipUnless(LSLC, "lslc (lsl) is not installed")
+class Units(unittest.TestCase):
+    def test_netadmin_units(self):
+        out = os.path.join(TMP, "netadmin-test")
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", lsl_app.LSL_DIR,
+                            os.path.join(HERE, "lsl", "luxos-netadmin-test.lsl"), out], capture_output=True, text=True,
+                           timeout=600)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        r = subprocess.run([out], capture_output=True, text=True, timeout=60)
+        fails = [line for line in r.stdout.splitlines() if not line.startswith("ok ")]
+        self.assertEqual((r.returncode, fails), (0, []), r.stderr)
+        self.assertGreater(len(r.stdout.splitlines()), 90)
+        print(f"\n  {len(r.stdout.splitlines())} pripadu rozboru a pravidel")
 
 
-# ---- aplikace pod Xvfb --------------------------------------------------------------------
+# ---- mistni "router" ------------------------------------------------------------------------------------------
 PAGE = """<html><head><title>Router</title></head><body style="font-family:sans-serif">
 <h1 id="h">Test router admin</h1>
 <a id="lan" href="/status">Status</a> <a id="out" href="http://93.184.216.34/">Internet</a>
+<a id="named" href="http://router.lan:%d/status">Named</a> <a id="backup" href="/backup.cfg">Backup</a>
 <form><input name="user"><input type="password" name="pw"></form></body></html>"""
+AUTH_SEEN = []
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        ctype = "text/html; charset=utf-8"
         if self.path == "/away":
             # presmerovani bez kliknuti uzivatele (napr. cloudovy portal vyrobce)
             body = '<html><head><meta http-equiv="refresh" content="0;url=http://8.8.8.8/"></head></html>'.encode()
+        elif self.path == "/auth":
+            got = self.headers.get("Authorization", "")
+            if not got:
+                self.send_response(401)
+                self.send_header("WWW-Authenticate", 'Basic realm="router"')
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            AUTH_SEEN.append(base64.b64decode(got.split()[1]).decode())
+            body = b"<html><head><title>Signed in</title></head><body>ok</body></html>"
+        elif self.path == "/backup.cfg":
+            ctype = "application/octet-stream"
+            body = b"router-config-v1\n"
         else:
-            body = (PAGE if self.path == "/" else "<html><body><h1>Status OK</h1></body></html>").encode()
+            body = (PAGE % self.server.server_address[1] if self.path == "/"
+                    else "<html><body><h1>Status OK</h1></body></html>").encode()
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", ctype)
+        if ctype.startswith("application/"):
+            self.send_header("Content-Disposition", 'attachment; filename="backup.cfg"')
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -336,251 +163,338 @@ def start_server(tls_dir=None):
     return srv
 
 
-def load_app():
-    loader = importlib.machinery.SourceFileLoader("luxos_router", os.path.join(BIN, "luxos-router"))
-    spec = importlib.util.spec_from_loader("luxos_router", loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
-    return mod
-
-
-SHOT_CODE = ("import sys, gi; gi.require_version('Gdk', '3.0'); from gi.repository import Gdk; "
-             "r = Gdk.get_default_root_window(); "
-             "Gdk.pixbuf_get_from_window(r, 0, 0, r.get_width(), r.get_height()).savev(sys.argv[1], 'png', [], [])")
-
-
-def shot(path):
-    """Snimek cele virtualni obrazovky (Xvfb) do PNG - v samostatnem procesu (nemeni stav X testu)."""
-    import subprocess
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    subprocess.run([sys.executable, "-c", SHOT_CODE, path], timeout=20)
-
-
-def js(view, code):
-    view.evaluate_javascript(code, -1, None, None, None, None, None)
-
-
 def webkit_ok():
-    try:
-        import gi
-        gi.require_version("WebKit2", "4.1")
-        return True
-    except (ValueError, ImportError):
-        return False
+    return any(os.path.exists(os.path.join(d, "libwebkit2gtk-4.1.so.0")) for d in ("/usr/lib", "/usr/lib64"))
 
 
-@unittest.skipUnless(os.environ.get("DISPLAY") and ("xvfb-run" in os.environ.get("XAUTHORITY", "")
-                                                    or os.environ.get("LUXOS_TEST_X") == "1"),
-                     "potrebuje virtualni X (xvfb-run)")
+@unittest.skipUnless(LSLC, "lslc (lsl) is not installed")
 class App(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dir = tempfile.mkdtemp(prefix="luxos-router-test-")
+        cls.binary = lsl_app.build("luxos-router", TMP)
+        cls.x = lsl_app.Xvfb("1366x768")
         cls.http = start_server()
-        cls.https = start_server(tls_dir=cls.dir)
-        net = {"routes": [{"dst": "default", "gateway": "127.0.0.1", "dev": "wlp4s0", "metric": 600}],
-               "device": DEVICE.replace("192.168.1.23/24", "127.0.0.5/24"),
-               "wifi": "yes:Domov 5G\n",
-               "neigh": [{"dst": "127.0.0.1", "dev": "wlp4s0", "lladdr": "00:1a:2b:3c:4d:5e", "state": ["REACHABLE"]},
-                         {"dst": "127.0.0.20", "dev": "wlp4s0", "lladdr": "d2:99:b5:44:9a:c1", "state": ["STALE"]}],
-               "ping": {"127.0.0.1": 1.2, "1.1.1.1": 14.0}}
-        cls.net = os.path.join(cls.dir, "net.json")
-        with open(cls.net, "w") as f:
-            json.dump(net, f)
-        cls.opened = []
-        cls.saved_env = os.environ.copy()
-        os.environ.update({"FAKE_NET": cls.net, "LUXOS_IP": os.path.join(FAKE, "ip"),
-                           "LUXOS_NMCLI": os.path.join(FAKE, "nmcli"), "LUXOS_PING": os.path.join(FAKE, "ping"),
-                           "FAKE_PING_LOG": os.path.join(cls.dir, "ping.log"),
-                           "LUXOS_ROUTER_PORT": str(cls.http.server_address[1]),
-                           "XDG_CONFIG_HOME": os.path.join(cls.dir, "config"),
-                           "XDG_DATA_HOME": os.path.join(cls.dir, "data"),
-                           "XDG_CACHE_HOME": os.path.join(cls.dir, "cache"), "LUXOS_PYDIR": PYDIR})
-        cls.app = load_app()
-        cls.app.open_in_browser = lambda uri: cls.opened.append(uri)
-        from gi.repository import GLib, Gtk
-        cls.GLib, cls.Gtk = GLib, Gtk
-        # Ikona aplikace ze zdroju (na LuxOS je v hicolor)
-        Gtk.IconTheme.get_default().append_search_path(os.path.join(HERE, "..", "files", "icons"))
+        cls.https = start_server(tls_dir=TMP)
+        cls.net = os.path.join(TMP, "net.json")
+        cls.oui = os.path.join(TMP, "oui.txt")
+        with open(cls.oui, "w") as f:
+            f.write(OUI)
 
     @classmethod
     def tearDownClass(cls):
         cls.http.shutdown()
         cls.https.shutdown()
-        os.environ.clear()
-        os.environ.update(cls.saved_env)
-        shutil.rmtree(cls.dir, ignore_errors=True)
+        cls.x.stop()
 
-    def setUp(self):
-        self.opened.clear()
-        self.win = self.app.Router()
-        self.win.show_all()
-        self.pump(0.3)
+    def online(self):
+        return {"routes": [{"dst": "default", "gateway": "127.0.0.1", "dev": "wlp4s0", "metric": 600}],
+                "device": DEVICE.replace("192.168.1.23/24", "127.0.0.5/24"), "wifi": "yes:Domov 5G\n",
+                "neigh": [{"dst": "127.0.0.1", "dev": "wlp4s0", "lladdr": "00:1a:2b:3c:4d:5e", "state": ["REACHABLE"]},
+                          {"dst": "127.0.0.20", "dev": "wlp4s0", "lladdr": "d2:99:b5:44:9a:c1", "state": ["STALE"]}],
+                "ping": {"127.0.0.1": 1.2, "1.1.1.1": 14.0}}
 
-    def tearDown(self):
-        self.win.destroy()
-        self.pump(0.2)
+    def start(self, net=None, **extra):
+        with open(self.net, "w") as f:
+            json.dump(self.online() if net is None else net, f)
+        self.home = tempfile.mkdtemp(prefix="home-", dir=TMP)
+        env = dict(os.environ, DISPLAY=self.x.display, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
+                   XDG_DATA_HOME=os.path.join(self.home, ".local/share"), XDG_CACHE_HOME=os.path.join(self.home, ".cache"),
+                   FAKE_NET=self.net, LUXOS_IP=os.path.join(FAKE, "ip"), LUXOS_NMCLI=os.path.join(FAKE, "nmcli"),
+                   LUXOS_PING=os.path.join(FAKE, "ping"), LUXOS_CURL=CURL, LUXOS_GETENT=GETENT,
+                   FAKE_CURL_LOG=os.path.join(TMP, "curl.log"), FAKE_PING_LOG=os.path.join(TMP, "ping.log"),
+                   LUXOS_ROUTER_PORT=str(self.http.server_address[1]), LUXOS_OUI_FILE=self.oui,
+                   GTK_THEME=os.environ.get("GTK_THEME", "Adwaita"), LANG=os.environ.get("LANG_UI", "en_US.UTF-8"),
+                   LC_ALL=os.environ.get("LANG_UI", "en_US.UTF-8"))
+        env.pop("WAYLAND_DISPLAY", None)
+        env.update(extra)
+        luxos_testguard.check_env(env)
+        self.app = lsl_app.App([self.binary], env)
+        self.addCleanup(self.app.stop)
+        self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
 
-    def pump(self, seconds, until=None):
-        end = time.time() + seconds
-        ctx = self.GLib.MainContext.default()
-        while time.time() < end:
-            while ctx.pending():
-                ctx.iteration(False)
-            if until and until():
-                return True
-            time.sleep(0.01)
-        return bool(until and until())
+    def st(self):
+        return json.loads(self.app.ask("state", "state"))
 
-    def labels(self, widget):
-        out = []
+    def wait(self, cond, timeout=10):
+        return self.app.wait(cond, timeout)
 
-        def walk(w):
-            if isinstance(w, self.Gtk.Label):
-                out.append(w.get_text())
-            if isinstance(w, self.Gtk.Container):
-                w.foreach(walk)
-        walk(widget)
-        return out
+    def shot(self, name):
+        out = os.environ.get("LUXOS_TEST_SHOTS")
+        if out:
+            os.makedirs(out, exist_ok=True)
+            time.sleep(0.6)
+            lsl_app.shot(self.x.display, os.path.join(out, name + ".png"))
 
+    # ---- prehled ----
     def test_overview(self):
-        hb = self.win.get_titlebar()
-        self.assertIsInstance(hb, self.Gtk.HeaderBar)
-        self.assertTrue(hb.get_show_close_button())
-        texts = self.labels(self.win.overview_scroll)
-        self.assertIn("Domov 5G", texts)
-        self.assertIn("127.0.0.1", texts)
-        self.assertIn("127.0.0.5/24", texts)
-        self.assertIn("192.168.1.1, 1.1.1.1, fd00::1", texts)
+        self.start()
+        d = self.app.dump()
+        self.assertEqual([(w["title"], w["close_button"]) for w in d], [("Router", True)])
+        texts = lsl_app.texts(d)
+        for want in ("Domov 5G", "127.0.0.1", "127.0.0.5/24", "192.168.1.1, 1.1.1.1, fd00::1", "wlp4s0",
+                     "9C:2F:9D:76:21:DB", "Domov 5G · Wi-Fi", "Router: 127.0.0.1"):
+            self.assertIn(want, texts)
+        # prepinac karet v horni liste
+        for title in ("Overview", "Devices"):
+            self.assertIn(title, texts)
         # WebKit se v prehledu nenacita
-        self.assertIsNone(self.win.router.view)
-        shots = os.environ.get("LUXOS_TEST_SHOTS")
-        if shots:
-            self.win.resize(980, 760)
-            self.pump(0.5)
-            shot(os.path.join(shots, "router-overview.png"))
+        self.assertFalse(self.st()["view"])
+        with open("/proc/%d/maps" % self.app.proc.pid) as f:
+            self.assertNotIn("libwebkit2gtk", f.read())
+        self.shot("router-overview")
 
-    def find_tools(self):
-        tools = []
+    def test_localized_tools_run_in_c_locale(self):
+        # cesky nmcli by misto "yes:SSID" psal "ano:SSID", cesky ping "1 paketu odeslano, 1 prijato"
+        nmcli = script("nmcli-cs", '#!/bin/sh\nif [ "$LC_ALL" != C ]; then echo "ano:Cesky"; exit 0; fi\n'
+                       'exec "%s" "$@"\n' % os.path.join(FAKE, "nmcli"))
+        ping = script("ping-cs", '#!/bin/sh\nif [ "$LC_ALL" = C ]; then\n'
+                      'echo "4 packets transmitted, 4 received, 0% packet loss, time 0ms"\n'
+                      'echo "rtt min/avg/max/mdev = 0.2/0.3/0.4/0.0 ms"\nelse\n'
+                      'echo "4 paketu odeslano, 4 prijato, 0% packet loss, time 0ms"\nfi\n')
+        self.start(LUXOS_NMCLI=nmcli, LUXOS_PING=ping, LANG="cs_CZ.UTF-8", LC_ALL="cs_CZ.UTF-8")
+        self.assertIn("Domov 5G", lsl_app.texts(self.app.dump()))
+        self.app.ask("tool 1")
+        self.assertTrue(self.wait(lambda: self.st()["tools"][1] != ""))
+        self.assertEqual(self.st()["tools"][1], "0,3 ms")
 
-        def walk(w):
-            if isinstance(w, self.app.Tool):
-                tools.append(w)
-            elif isinstance(w, self.Gtk.Container):
-                w.foreach(walk)
-        walk(self.win.overview_scroll)
-        return tools
+    def test_offline_tools_disabled(self):
+        self.start(NO_NET)
+        s = self.st()
+        # bez brany: Zobrazit, Vyzkouset (internet), Vyzkouset (DNS), Zmerit neaktivni s vysvetlenim
+        self.assertEqual(s["tool_sensitive"], [False, False, False, False])
+        self.assertEqual(s["tools"], ["Not connected to a network"] * 4)
+        texts = lsl_app.texts(self.app.dump())
+        self.assertIn("Not connected", texts)
+        self.assertIn("No router (default gateway) found.", texts)
+        self.assertIsNone(lsl_app.find(self.app.dump(), text="Open Router Settings"))
+        self.shot("router-offline")
 
+    def test_online_tools_enabled(self):
+        net = {"routes": [{"dst": "default", "gateway": "192.168.1.1", "dev": "wlp4s0", "metric": 600}],
+               "device": "GENERAL.DEVICE: wlp4s0\nGENERAL.TYPE: wifi\nGENERAL.STATE: 100 (connected)\n"
+                         "GENERAL.CONNECTION: Domov\nIP4.ADDRESS[1]: 192.168.1.23/24\n",
+               "wifi": "yes:Domov\n", "neigh": [], "ping": {}}
+        self.start(net)
+        self.assertEqual(self.st()["tool_sensitive"], [True] * 5)
+
+    def test_window_fits_screen(self):
+        # cele okno se vejde na 1366x768 (i s HeaderBar) a jde zmensit nejvys na 600x420
+        self.start()
+        s = self.st()
+        self.assertLessEqual(s["size"][1] + 45, 768 - 16, s)
+        self.assertLessEqual(s["size"][0], 1366)
+        self.assertEqual(s["min"], [600, 420])
+
+    # ---- nastroje ----
     def test_ping_tools(self):
-        tools = self.find_tools()
-        ping_router, ping_inet = tools[1], tools[2]
-        ping_router.button.clicked()
-        ping_inet.button.clicked()
-        self.assertTrue(self.pump(10, lambda: ping_router.result.get_text() and ping_inet.result.get_text()))
-        self.assertEqual(ping_router.result.get_text(), "1.2 ms")
-        self.assertEqual(ping_inet.result.get_text(), "14.0 ms")
+        self.start()
+        self.app.ask("tool 1")
+        self.app.ask("tool 2")
+        self.assertTrue(self.wait(lambda: all(self.st()["tools"][1:3])))
+        self.assertEqual(self.st()["tools"][1:3], ["1.2 ms", "14.0 ms"])
 
-    def test_devices(self):
-        self.win.stack.set_visible_child_name("devices")
-        self.assertTrue(self.pump(10, lambda: len(self.win.dev_store) == 3))
-        rows = [tuple(r)[:4] for r in self.win.dev_store]
-        self.assertTrue(rows[0][1].startswith("Router"))
-        self.assertIn("Private address", rows[1][1])
-        self.assertTrue(rows[2][1].startswith("This computer"))
-        if os.path.exists("/usr/share/hwdata/oui.txt"):
-            self.assertIn("Ayecom", rows[0][1])
-        shots = os.environ.get("LUXOS_TEST_SHOTS")
-        if shots:
-            self.pump(0.5)
-            shot(os.path.join(shots, "router-devices.png"))
+    def test_ping_no_reply_and_lost(self):
+        net = self.online()
+        net["ping"] = {"127.0.0.1": 3.0}
+        self.start(net, LANG="cs_CZ.UTF-8", LC_ALL="cs_CZ.UTF-8")
+        self.app.ask("tool 1")
+        self.app.ask("tool 2")
+        self.assertTrue(self.wait(lambda: all(self.st()["tools"][1:3])))
+        # desetinna carka v cestine, internet neodpovida
+        self.assertEqual(self.st()["tools"][1:3], ["3,0 ms", "Bez odpovědi"])
 
-    def test_scan(self):
-        self.win.stack.set_visible_child_name("devices")
-        log = os.path.join(self.dir, "ping.log")
+    def test_dns_public_ip_and_speed(self):
+        log = os.path.join(TMP, "curl.log")
         if os.path.exists(log):
             os.unlink(log)
-        self.win.scan_btn.clicked()
-        self.assertTrue(self.pump(60, lambda: self.win.scan_btn.get_sensitive()))
+        self.start()
+        for i in (0, 3, 4):
+            self.app.ask("tool %d" % i)
+        self.assertTrue(self.wait(lambda: all(self.st()["tools"][i] for i in (0, 3, 4))))
+        s = self.st()
+        # prvni sluzba vrati nesmysl -> druha; 10 MB za 2 s = 40 Mbit/s
+        self.assertEqual(s["tools"][0], "203.0.113.7")
+        self.assertTrue(s["tools"][3].startswith("Works ("), s["tools"][3])
+        self.assertEqual(s["tools"][4], "40.0 Mbit/s")
+        with open(log) as f:
+            calls = f.read()
+        self.assertIn("https://api.ipify.org", calls)
+        self.assertIn("https://speed.cloudflare.com/__down?bytes=10000000", calls)
+        self.assertIn("-A LuxOS", calls)
+
+    def test_tools_fail_cleanly(self):
+        self.start(LUXOS_GETENT="false", FAKE_CURL="fail")
+        for i in (0, 3, 4):
+            self.app.ask("tool %d" % i)
+        self.assertTrue(self.wait(lambda: all(self.st()["tools"][i] for i in (0, 3, 4))))
+        self.assertEqual([self.st()["tools"][i] for i in (0, 3, 4)],
+                         ["Not available", "Name lookup failed", "Measurement failed"])
+        self.assertTrue(all(self.st()["tool_sensitive"]))
+
+    # ---- zarizeni ----
+    def test_devices(self):
+        self.start()
+        self.app.ask("page devices")
+        self.assertTrue(self.wait(lambda: len(self.st()["devices"]) == 3))
+        rows = self.st()["devices"]
+        self.assertEqual(rows[0], ["127.0.0.1", "Router – Ayecom Technology Co., Ltd.", "00:1a:2b:3c:4d:5e", "Active"])
+        self.assertEqual(rows[1], ["127.0.0.20", "Private address (random MAC)", "d2:99:b5:44:9a:c1", "Seen recently"])
+        self.assertEqual(rows[2], ["127.0.0.5", "This computer – Liteon Technology Corporation", "9c:2f:9d:76:21:db",
+                                   "This computer"])
+        self.assertTrue(self.wait(lambda: lsl_app.find(self.app.dump(), name="dev-status")["text"] == "3 devices"))
+        self.shot("router-devices")
+
+    def test_devices_without_oui_file(self):
+        self.start(LUXOS_OUI_FILE=os.path.join(TMP, "missing"))
+        self.app.ask("page devices")
+        self.assertTrue(self.wait(lambda: len(self.st()["devices"]) == 3))
+        self.assertEqual([r[1] for r in self.st()["devices"]], ["Router", "Private address (random MAC)", "This computer"])
+
+    def test_scan(self):
+        log = os.path.join(TMP, "ping.log")
+        if os.path.exists(log):
+            os.unlink(log)
+        self.start()
+        self.app.ask("page devices")
+        self.app.ask("click Search Network")
+        self.assertFalse(self.st()["scan_sensitive"])
+        self.assertTrue(self.wait(lambda: self.st()["scan_sensitive"], 90))
         with open(log) as f:
             hosts = f.read().split()
         self.assertEqual(len(hosts), 253)
+        self.assertEqual(len(set(hosts)), 253)
         self.assertNotIn("127.0.0.5", hosts)
+        self.assertTrue(self.wait(lambda: len(self.st()["devices"]) == 3))
+
+    # ---- webova sprava ----
+    def test_no_webkit(self):
+        self.start(LUXOS_WEBKIT_LIB="none")
+        self.app.ask("page router")
+        d = self.app.dump()
+        self.assertIn("The built-in web view (WebKitGTK) is not available. The router settings will open in your "
+                      "web browser.", lsl_app.texts(d))
+        self.app.ask("click Open in Browser")
+        self.assertEqual(self.st()["opened"], ["http://127.0.0.1:%d/" % self.http.server_address[1]])
+
+    def router_page(self):
+        self.app.ask("page router")
+        s = self.st()
+        self.assertTrue(s["view"])
+        self.assertTrue(s["ephemeral"])
+        self.assertTrue(self.wait(lambda: self.st()["title"] == "Router" and not self.st()["loading"], 30),
+                        self.st())
 
     @unittest.skipUnless(webkit_ok(), "WebKit2 4.1 neni k dispozici")
     def test_router_page_lan_only(self):
-        self.win.stack.set_visible_child_name("router")
-        r = self.win.router
-        self.assertIsNotNone(r.view)
-        self.assertTrue(r.ctx.is_ephemeral())
-        self.assertTrue(self.pump(20, lambda: r.view.get_title() == "Router" and not r.view.is_loading()))
-        self.assertTrue(r.view.get_uri().startswith("http://127.0.0.1:"))
-        shots = os.environ.get("LUXOS_TEST_SHOTS")
-        if shots:
-            self.win.resize(980, 760)
-            self.pump(1.0)
-            shot(os.path.join(shots, "router-webview.png"))
+        self.start()
+        self.router_page()
+        port = self.http.server_address[1]
+        self.assertTrue(self.st()["uri"].startswith("http://127.0.0.1:%d/" % port))
+        self.assertEqual(lsl_app.find(self.app.dump(), name="address")["text"], self.st()["uri"])
+        self.shot("router-webview")
         # odkaz do internetu (klik uzivatele) -> bezny prohlizec, stranka zustane
-        js(r.view, "document.getElementById('out').click()")
-        self.assertTrue(self.pump(10, lambda: self.opened))
-        self.assertEqual(self.opened, ["http://93.184.216.34/"])
-        self.assertTrue(r.view.get_uri().startswith("http://127.0.0.1:"))
+        self.app.ask("js document.getElementById('out').click()")
+        self.assertTrue(self.wait(lambda: self.st()["opened"]))
+        self.assertEqual(self.st()["opened"], ["http://93.184.216.34/"])
+        self.assertTrue(self.st()["uri"].startswith("http://127.0.0.1:"))
+        self.assertTrue(self.st()["info"])
         # odkaz v domaci siti -> v aplikaci
-        js(r.view, "document.getElementById('lan').click()")
-        self.assertTrue(self.pump(10, lambda: r.view.get_uri().endswith("/status") and not r.view.is_loading()))
+        self.app.ask("js document.getElementById('lan').click()")
+        self.assertTrue(self.wait(lambda: self.st()["uri"].endswith("/status") and not self.st()["loading"]))
         # presmerovani skriptem (bez kliknuti) jinam -> jen oznameni, nic se neotevre
-        self.opened.clear()
-        r.view.load_uri("http://127.0.0.1:%d/away" % self.http.server_address[1])
-        self.assertTrue(self.pump(10, lambda: r.infobar.get_revealed()))
-        self.assertEqual(self.opened, [])
-        self.assertIn("8.8.8.8", r.info_label.get_text())
-        self.assertEqual(r.info_uri, "http://8.8.8.8/")
+        self.app.ask("load http://127.0.0.1:%d/away" % port)
+        self.assertTrue(self.wait(lambda: "8.8.8.8" in self.st().get("info_text", "") and self.st()["info"]))
+        self.assertEqual(self.st()["opened"], ["http://93.184.216.34/"])
+        self.assertEqual(self.st()["info_uri"], "http://8.8.8.8/")
+        self.shot("router-webview-outside")
+        # jmeno prekladane jen do domaci site (router.lan -> 127.0.0.1) se otevre v aplikaci
+        self.app.ask("load http://127.0.0.1:%d/" % port)
+        self.assertTrue(self.wait(lambda: self.st()["title"] == "Router" and not self.st()["loading"]))
+        self.app.ask("js document.getElementById('named').click()")
+        self.assertTrue(self.wait(lambda: self.st()["uri"] == "http://router.lan:%d/status" % port, 15), self.st())
+        # file: a javascript: se neotevrou vubec
+        self.app.ask("load file:///etc/hostname")
+        time.sleep(1)
+        self.assertTrue(self.st()["uri"].startswith("http://router.lan:"))
+        self.assertEqual(len(self.st()["opened"]), 1)
 
     @unittest.skipUnless(webkit_ok(), "WebKit2 4.1 neni k dispozici")
     def test_self_signed_needs_confirmation(self):
-        self.win.stack.set_visible_child_name("router")
-        r = self.win.router
-        self.assertTrue(self.pump(20, lambda: not r.view.is_loading()))
+        self.start()
+        self.router_page()
         url = "https://127.0.0.1:%d/" % self.https.server_address[1]
-        seen = []
-        shots = os.environ.get("LUXOS_TEST_SHOTS")
-
-        def answer(resp):
-            def tick():
-                d = self.win.tls_dialog
-                if d is None:
-                    return True
-                seen.append(d.get_property("text"))
-                if shots and resp == self.Gtk.ResponseType.OK:
-                    shot(os.path.join(shots, "router-certificate.png"))
-                d.response(resp)
-                return False
-            self.GLib.timeout_add(300, tick)
-
-        # 1) Zrusit: zadna vyjimka
-        answer(self.Gtk.ResponseType.CANCEL)
-        r.view.load_uri(url)
-        self.assertTrue(self.pump(20, lambda: seen))
-        self.assertEqual(r.tls_allowed, set())
-        self.pump(1)
+        # 1) Zrusit: zadna vyjimka, zpet na HTTP
+        self.app.send("load " + url)
+        self.assertTrue(self.wait(lambda: any(w["dialog"] for w in self.app.dump()), 20))
+        d = self.app.dump()
+        self.assertIn("The router uses its own security certificate", lsl_app.texts(d, dialog=True))
+        self.app.send("respond -6")
+        self.assertTrue(self.wait(lambda: not self.st()["tls_dialog"]))
+        self.assertEqual(self.st()["tls_allowed"], [])
+        self.assertTrue(self.wait(lambda: self.st()["uri"].startswith("http://") and not self.st()["loading"], 20))
         # 2) Pokracovat: vyjimka jen pro adresu brany, stranka se nacte
-        seen.clear()
-        answer(self.Gtk.ResponseType.OK)
-        r.view.load_uri(url)
-        self.assertTrue(self.pump(25, lambda: r.view.get_uri() == url and r.view.get_title() == "Router"
-                                  and not r.view.is_loading()))
-        self.assertEqual(r.tls_allowed, {"127.0.0.1"})
-        self.assertEqual(seen, ["The router uses its own security certificate"])
+        self.app.send("load " + url)
+        self.assertTrue(self.wait(lambda: any(w["dialog"] for w in self.app.dump()), 20))
+        self.shot("router-certificate")
+        self.app.send("respond -5")
+        self.assertTrue(self.wait(lambda: self.st()["uri"] == url and self.st()["title"] == "Router"
+                                  and not self.st()["loading"], 25), self.st())
+        self.assertEqual(self.st()["tls_allowed"], ["127.0.0.1"])
+        self.assertEqual(self.st()["proto"], "https")
 
     @unittest.skipUnless(webkit_ok(), "WebKit2 4.1 neni k dispozici")
     def test_self_signed_other_host_refused(self):
         # Brana je 127.0.0.1; certifikat jineho zarizeni (10.x / jmeno) nejde povolit
-        self.win.stack.set_visible_child_name("router")
-        r = self.win.router
-        self.assertTrue(self.pump(20, lambda: not r.view.is_loading()))
-        self.assertFalse(r.on_tls(r.view, "https://10.0.0.7/", None, 0) is False)
-        self.assertTrue(r.infobar.get_revealed())
-        self.assertIn("10.0.0.7", r.info_label.get_text())
-        self.assertIsNone(self.win.tls_dialog)
+        self.start()
+        self.router_page()
+        self.app.ask("tls https://10.0.0.7/")
+        s = self.st()
+        self.assertTrue(s["info"])
+        self.assertIn("10.0.0.7", s["info_text"])
+        self.assertFalse(s["tls_dialog"])
+        self.assertFalse(any(w["dialog"] for w in self.app.dump()))
+
+    @unittest.skipUnless(webkit_ok(), "WebKit2 4.1 neni k dispozici")
+    def test_basic_auth_dialog(self):
+        AUTH_SEEN.clear()
+        self.start()
+        self.router_page()
+        self.app.send("load http://127.0.0.1:%d/auth" % self.http.server_address[1])
+        self.assertTrue(self.wait(lambda: any(w["dialog"] for w in self.app.dump()), 20))
+        d = self.app.dump()
+        self.assertEqual([w["title"] for w in d if w["dialog"]], ["Sign In"])
+        self.assertIn("127.0.0.1 asks for a user name and password. They are not saved.", lsl_app.texts(d, dialog=True))
+        self.shot("router-sign-in")
+        self.app.send("entry admin")
+        self.app.send("respond -5")
+        # prvni pole = jmeno; heslo zustane prazdne
+        self.assertTrue(self.wait(lambda: self.st()["title"] == "Signed in", 20), self.st())
+        self.assertEqual(AUTH_SEEN, ["admin:"])
+
+    @unittest.skipUnless(webkit_ok(), "WebKit2 4.1 neni k dispozici")
+    def test_backup_download(self):
+        self.start()
+        self.router_page()
+        os.makedirs(os.path.join(self.home, "Downloads"))
+        with open(os.path.join(self.home, "Downloads", "backup.cfg"), "w") as f:
+            f.write("old")
+        self.app.ask("js document.getElementById('backup').click()")
+        saved = os.path.join(self.home, "Downloads", "backup (1).cfg")
+        self.assertTrue(self.wait(lambda: os.path.exists(saved) and self.st()["info"], 20), self.st())
+        with open(saved) as f:
+            self.assertEqual(f.read(), "router-config-v1\n")
+        self.assertEqual(self.st()["info_text"], "Saved to Downloads: backup (1).cfg")
+
+    @unittest.skipUnless(webkit_ok(), "WebKit2 4.1 neni k dispozici")
+    def test_resident_memory(self):
+        self.start()
+        time.sleep(1.5)
+        overview = self.app.pss_kb()
+        self.router_page()
+        time.sleep(1.5)
+        router = self.app.pss_kb()
+        print(f"\n  PSS luxos-router: prehled {overview // 1024} MB, s kartou Router {router // 1024} MB")
+        self.assertLess(overview, 60 * 1024)
 
 
 if __name__ == "__main__":

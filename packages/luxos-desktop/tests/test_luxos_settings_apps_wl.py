@@ -173,6 +173,40 @@ class SettingsAppsWayland(unittest.TestCase):
         self.assertTrue(self.app.wait(lambda: (self.session / "home/.face").exists()))
         self.assertEqual((self.session / "accounts").read_text(), str(self.session / "home/.face"))
 
+    def test_router(self):
+        # falesna sit (tests/fake-net), router = mistni server HTTP; zadna skutecna sit
+        import http.server
+        import threading
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), type("H", (http.server.BaseHTTPRequestHandler,), {
+            "do_GET": lambda h: (h.send_response(200), h.send_header("Content-Type", "text/html"), h.end_headers(),
+                                 h.wfile.write(b"<html><head><title>Router</title></head><body><h1>Admin</h1></body></html>")),
+            "log_message": lambda h, *a: None}))
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.shutdown)
+        net = self.session / "net.json"
+        net.write_text(json.dumps({
+            "routes": [{"dst": "default", "gateway": "127.0.0.1", "dev": "wlp4s0", "metric": 600}],
+            "device": "GENERAL.TYPE:wifi\nGENERAL.CONNECTION:Domov 5G\nIP4.ADDRESS[1]:127.0.0.5/24\n",
+            "wifi": "yes:Domov 5G\n", "neigh": [], "ping": {"127.0.0.1": 1.2}}))
+        fake = HERE / "fake-net"
+        self.open("luxos-router", FAKE_NET=str(net), LUXOS_IP=str(fake / "ip"), LUXOS_NMCLI=str(fake / "nmcli"),
+                  LUXOS_PING=str(fake / "ping"), LUXOS_CURL="false", LUXOS_GETENT="false",
+                  LUXOS_ROUTER_PORT=str(srv.server_address[1]), LANG=os.environ.get("LANG_UI", "en_US.UTF-8"),
+                  LC_ALL=os.environ.get("LANG_UI", "en_US.UTF-8"), GTK_THEME=os.environ.get("GTK_THEME_UI", "Adwaita"))
+        self.check_window("luxos-router", "Správa sítě" if os.environ.get("LANG_UI", "").startswith("cs") else "Router")
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.app.ask("tool 1")
+        self.assertTrue(self.app.wait(lambda: state()["tools"][1] != ""))
+        self.assertIn(state()["tools"][1], ("1.2 ms", "1,2 ms"))
+        # webova sprava (WebKit) i pod Waylandem bez GPU
+        self.app.ask("page router")
+        self.assertTrue(self.app.wait(lambda: state()["title"] == "Router" and not state()["loading"], 30), state())
+        time.sleep(1)
+        self.shot("luxos-router-web")
+        self.app.ask("page devices")
+        self.assertTrue(self.app.wait(lambda: len(state()["devices"]) == 1))
+        self.shot("luxos-router-devices")
+
     def test_wifi_qr(self):
         nm = self.session / "nm"
         nm.mkdir()
