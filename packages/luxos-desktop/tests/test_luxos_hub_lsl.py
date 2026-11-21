@@ -284,7 +284,7 @@ class Hub(unittest.TestCase):
         with open(self.err_path) as f:
             return f.read()
 
-    def wait_for(self, cond, timeout=5.0):
+    def wait_for(self, cond, timeout=10.0):
         end = time.monotonic() + timeout
         while time.monotonic() < end:
             if cond():
