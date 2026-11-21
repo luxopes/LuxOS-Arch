@@ -3,11 +3,12 @@
 #
 #   follow(f)   f(monitor) hned, jak je hlavni monitor znamy, a po kazde jeho zmene (i kdyz GDK monitor
 #               pridal az po udalosti luxwm); bez luxwm (labwc) se nevola - okno umisti kompozitor
+#   also(f)     f(udalost) pro ostatni udalosti luxwm stejneho spojeni (klient IPC ma jednu obsluhu)
 load luxos_luxwm as wm
 load luxos_layer as layer
 load glib
 
-P = {"handler": None, "origin": None, "monitor": 0}
+P = {"handler": None, "origin": None, "monitor": 0, "also": None}
 
 function monitor_at(origin):
     for monitor in layer.monitors():
@@ -33,6 +34,10 @@ end
 
 function on_wm(event):
     if event.get("event") != "output":
+        if P["also"] != None:
+            f = P["also"]
+            call f(event)
+        end
         return 0
     end
     for o in event.get("outputs", []):
@@ -47,6 +52,11 @@ function on_monitors(monitor, display):
     # odpojeny monitor: GDK objekt zanika, dalsi shoda podle pocatku ho nahradi
     P["monitor"] = 0
     return apply()
+end
+
+function also(f):
+    P["also"] = f
+    return 0
 end
 
 function follow(handler):
