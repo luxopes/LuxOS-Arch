@@ -168,7 +168,9 @@ wait
     echo "== $(date '+%F %T') lsl $ver, $((SECONDS - t0)) s"
     cat $(ls "$root"/m/*.result | sort -V)
     echo "== skipped"
-    grep -hE ' \.\.\. skipped ' "$root"/logs/*.log | sed -E 's/^(\S+) \((\S+)\).*skipped (.*)$/\2.\1: \3/' | sort | uniq
+    # "test (modul.Trida.test) ... skipped 'duvod'", u testu s docstringem az na dalsim radku
+    awk 'match($0, /^[A-Za-z_][A-Za-z0-9_]* \(([^ )]+)\)/) { id = substr($2, 2, length($2) - 2) }
+         / \.\.\. skipped / { sub(/.* \.\.\. skipped /, ""); print id ": " $0 }' "$root"/logs/*.log | sort -u
     awk '{m++; if ($2 == "ok") ok++; else bad++; for (i = 4; i <= 5; i++) { split($i, a, "="); s[a[1]] += a[2] }; nf += NF - 5 }
          END { printf "== modules %d: ok %d, failed %d; tests %d, skipped %d, failing tests %d\n", m, ok, bad, s["ran"], s["skip"], nf }' \
         "$root"/m/*.result
