@@ -367,7 +367,8 @@ class FakeServer(threading.Thread):
     def __init__(self, runtime, replies):
         super().__init__(daemon=True)
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.sock.bind("\0" + runtime + "/luxos-screenshot")
+        # jmeno jako luxos_sys.abstract_address: nejvyse 100 bajtu (dlouhe XDG_RUNTIME_DIR spoustece testu)
+        self.sock.bind("\0" + (runtime + "/luxos-screenshot").encode()[:100].decode())
         self.sock.listen(4)
         self.replies, self.requests = replies, []
         self.start()
