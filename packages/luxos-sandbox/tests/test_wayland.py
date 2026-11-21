@@ -406,6 +406,7 @@ class WaylandSandbox(unittest.TestCase):
         self.stop_proc(p)
         time.sleep(0.5)
         self.assertFalse(os.path.exists(f"/proc/{pid}"), "Xwayland outlived the sandbox")
+        self.assertNotIn("error in", s.log())
         self.assertEqual(os.listdir(os.path.join(self.run_dir, "luxos-sandbox")), [])
 
     def test_wayland_only_app_starts_no_xwayland(self):

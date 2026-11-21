@@ -759,10 +759,11 @@ function adopt_xroot(v):
     app = lc.view_sandbox_app_id(v)
     xroots[v] = instance
     pending = xroot_pending.pop(instance, None)
-    call lc.view_set_names(v, app, pending[2] if pending != None and pending[2] != "" else app)
     if pending == None:
+        call lc.view_set_names(v, app, app)
         return []
     end
+    call lc.view_set_names(v, app, pending[2] if pending[2] != "" else app)
     return [max(XROOT_MIN[0], pending[0]), max(XROOT_MIN[1], pending[1])]
 end
 
