@@ -83,7 +83,11 @@ class ClockApp(unittest.TestCase):
             except ProcessLookupError:
                 pass
             p.wait(timeout=10)
-        subprocess.run(["pkill", "-f", "^sh -c while :; do paplay"], capture_output=True)
+        for pid in self.sound_pids():
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
 
     def write(self, alarms, cities=()):
         with open(os.path.join(self.data, "luxos", "clock", "clock.json"), "w") as f:
@@ -118,9 +122,25 @@ class ClockApp(unittest.TestCase):
             time.sleep(0.1)
         return check()
 
+    def sound_pids(self):
+        """Smycky zvoneni tohoto testu (FAKE_LOG v prostredi) - ne pgrep/pkill podle jmena: soubezne testy
+        a jine relace maji sve vlastni."""
+        pids = []
+        mark = ("FAKE_LOG=" + self.log).encode()
+        for pid in filter(str.isdigit, os.listdir("/proc")):
+            try:
+                with open("/proc/%s/cmdline" % pid, "rb") as f:
+                    if not f.read().startswith(b"sh\0-c\0while :; do paplay"):
+                        continue
+                with open("/proc/%s/environ" % pid, "rb") as f:
+                    if mark in f.read().split(b"\0"):
+                        pids.append(int(pid))
+            except OSError:
+                pass
+        return pids
+
     def sound_loops(self):
-        r = subprocess.run(["pgrep", "-f", "^sh -c while :; do paplay"], capture_output=True, text=True)
-        return len(r.stdout.split())
+        return len(self.sound_pids())
 
     def test_background_without_alarms_exits(self):
         self.write([{"h": 7, "m": 0, "label": "", "days": [], "on": False}])
