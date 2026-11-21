@@ -16,6 +16,20 @@ import luxos_keyboard as k
 k.migrate_default_switch() and print("==> Keyboard layouts now switch with both Shift keys (from the next login).")' \
         2>/dev/null || true
 }
+# Ma uzivatel v xfconf vlastni /lock/saver-activation/delay (hodnotu, ne jen prazdnou vlastnost)?
+_luxos_own_delay() {
+    awk '
+        /<property[ \t]/ {
+            match($0, /name="[^"]*"/)
+            path[++depth] = substr($0, RSTART + 6, RLENGTH - 7)
+            if (depth == 3 && path[1] == "lock" && path[2] == "saver-activation" && path[3] == "delay" && / value="/)
+                found = 1
+            if ($0 ~ /\/>[ \t]*$/) depth--
+            next
+        }
+        /<\/property>/ { depth-- }
+        END { exit !found }' "$1" 2>/dev/null
+}
 # Zamek obrazovky: heslo hned po spusteni sporice. Stare vychozi bylo 1 minuta - sporic po Enteru
 # pustil na plochu bez hesla. Bezicim relacim se nastavi hned (bez prihlaseni), jen uzivatelum, kteri
 # si dobu sami nezvolili (v jejich xfconf neni vlastni hodnota delay).
@@ -27,11 +41,7 @@ _luxos_lock_now() {
         user=$(getent passwd "$uid" | cut -d: -f1)
         [[ -n $user ]] || continue
         xml=$(getent passwd "$uid" | cut -d: -f6)/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml
-        if [[ -f $xml ]] && python3 - "$xml" <<'PY' 2>/dev/null; then continue; fi
-import sys, xml.etree.ElementTree as ET
-sa = ET.parse(sys.argv[1]).getroot().find("./property[@name='lock']/property[@name='saver-activation']/property[@name='delay']")
-sys.exit(0 if sa is not None and sa.get("value") is not None else 1)
-PY
+        [[ -f $xml ]] && _luxos_own_delay "$xml" && continue
         runuser -u "$user" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
             timeout 5 xfconf-query -c xfce4-screensaver -p /lock/saver-activation/delay -n -t int -s 0 \
             || true
