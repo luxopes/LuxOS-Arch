@@ -8,9 +8,13 @@
  * poradove cislo commitu povrchu). Pri klidu se nepocita nic.
  *
  * gles2: zachyceni pruchodem rendereru, dual Kawase (4 pruchody dolu, 4 nahoru) shadery GLES2,
- * v poslednim saturace a zaobleni. pixman: zachyceni ve ctvrtinovem rozliseni, trikrat box blur v C,
- * zvetseni rendererem a zaobleni rohu. Kdyz snimky s prepoctem trvaji tri po sobe pres 8 ms,
- * vystup prejde na jednolitou barvu materialu (tier C).
+ * v poslednim saturace a zaobleni. pixman: zachyceni ve ctvrtinovem rozliseni, trikrat box blur v C;
+ * plochu bez zaobleni zvetsuje scena pri skladani snimku, jinak renderer a zaobleni rohu.
+ *
+ * pixman navic drzi pro kazdy vystup rozmazanou tapetu (vrstva pozadi, pocita se jen pri jeji zmene).
+ * Plocha, pod kterou neni nic nez tapeta, je jen jeji vyrez. Kdyz prepocet jedne plochy trva tri snimky
+ * po sobe pres rozpocet, plocha docasne prejde na tentyz vyrez (sklo bez oken pod nim) a pozdeji
+ * zkusi rozmazani znovu. Jednolita barva materialu (tier 0) jen pri vypnutem rozmazani a chybe GLES2.
  */
 #define _GNU_SOURCE
 #include <EGL/egl.h>
@@ -40,8 +44,13 @@
 
 #define MAX_MATERIALS 16
 #define LEVELS 4		/* dual Kawase: pruchody dolu = pruchody nahoru */
-#define SLOW_NS 8000000	/* rozpocet snimku 1080p pod pixman; testy: LUXCOMP_BLUR_SLOW_MS */
-#define SLOW_FRAMES 3
+#define DOWN 4			/* pixman: zmenseni vyrezu */
+#define SLOW_NS 8000000	/* rozpocet prepoctu jedne plochy pod pixman; testy: LUXCOMP_BLUR_SLOW_MS */
+#define SLOW_FRAMES 3		/* pomale prepocty po sobe ... */
+#define BURST_NS 500000000LL	/* ... kazdy do 0,5 s od predchoziho */
+#define RETRY_MS 2000		/* nahradni vyrez, pak znovu rozmazani; pri dalsim neuspechu dvojnasob */
+#define RETRY_MAX_MS 32000
+#define CALM_NS 30000000000LL	/* tak dlouho bez neuspechu = cekani zase od RETRY_MS */
 
 struct material {
 	char name[16];
@@ -74,6 +83,7 @@ static struct {
 	bool stats;
 	int frames, updates, over;
 	int64_t max_ns, sum_ns, blur_max_ns, blur_sum_ns;
+	int fallbacks;
 } cfg = { .radius = 32, .saturation = 160, .mode = 1 };
 
 struct blur {
@@ -85,7 +95,10 @@ struct blur {
 	int radius;
 	struct wlr_box box;		/* v souradnicich parent */
 	uint64_t sig;
-	bool solid, dirty;
+	bool dirty;
+	/* pixman: pomale prepocty po sobe, nahradni vyrez tapety do retry_at (0 = rozmazani) */
+	int slow, backoff_ms;
+	int64_t last_ns, retry_at, glass_since;
 	struct wlr_buffer *out[2];	/* hotovy obraz, stridave (scena drzi predchozi) */
 	int cur, out_w, out_h;
 	bool out_gpu;			/* out[] z alokatoru (gles2), jinak v pameti */
@@ -100,8 +113,7 @@ struct blur {
 };
 
 static struct wl_list blurs = { &blurs, &blurs };
-static int slow_frames;
-static bool degraded;
+static struct wl_event_source *retry_timer;
 
 /* ---- buffer v pameti s pristupem pro zapis (renderer pixman do nej kresli) ---- */
 
@@ -199,6 +211,9 @@ luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, int64_t
 	if (!m) {
 		return;
 	}
+	/* zmena rezimu meni barvy vsech materialu: rozmazany obraz na nich nezavisi, prepocet jen pro jednolitou
+	 * barvu (jinak by se po prepnuti pocitaly vsechny plochy naraz) */
+	bool repaint = m->fallback != (uint32_t)fallback || m->radius != radius;
 	m->radius = radius;
 	m->fallback = (uint32_t)fallback;
 	m->shadow = (uint32_t)shadow;
@@ -207,7 +222,7 @@ luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, int64_t
 	struct blur *b;
 	wl_list_for_each(b, &blurs, link) {
 		if (!strcmp(b->material, name)) {
-			b->dirty = true;
+			b->dirty |= repaint && luxcomp_blur_tier() == 0;
 			blur_set_box(b, b->box);
 		}
 	}
@@ -216,14 +231,20 @@ luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, int64_t
 void
 luxcomp_blur_set(int64_t radius, int64_t saturation_pct, int64_t mode)
 {
-	cfg.radius = radius > 0 ? radius : 32;
-	cfg.saturation = saturation_pct > 0 ? saturation_pct : 100;
-	cfg.mode = mode ? 1 : 0;
-	degraded = false;
-	slow_frames = 0;
+	radius = radius > 0 ? radius : 32;
+	saturation_pct = saturation_pct > 0 ? saturation_pct : 100;
+	mode = mode ? 1 : 0;
+	if (radius == cfg.radius && saturation_pct == cfg.saturation && mode == cfg.mode) {
+		return;
+	}
+	cfg.radius = radius;
+	cfg.saturation = saturation_pct;
+	cfg.mode = mode;
 	struct blur *b;
 	wl_list_for_each(b, &blurs, link) {
 		b->dirty = true;
+		b->retry_at = 0;
+		b->slow = b->backoff_ms = 0;
 	}
 }
 
@@ -231,7 +252,7 @@ luxcomp_blur_set(int64_t radius, int64_t saturation_pct, int64_t mode)
 int64_t
 luxcomp_blur_tier(void)
 {
-	if (!cfg.mode || degraded || cfg.gpu_broken) {
+	if (!cfg.mode || cfg.gpu_broken) {
 		return 0;
 	}
 	return comp.software ? 1 : 2;
@@ -395,6 +416,9 @@ struct walk {
 	struct wlr_box box;		/* vyrez v souradnicich rozlozeni */
 	bool done;
 	uint64_t sig;
+	/* od uzlu backdrop_end dal (nad vrstvou pozadi) neco zasahuje do vyrezu */
+	struct wlr_scene_node *backdrop_end;
+	bool past, covered;
 	/* kresleni; pass NULL = jen podpis */
 	struct wlr_render_pass *pass;
 	double k;			/* px vyrezu na logicky px */
@@ -494,6 +518,7 @@ walk_buffer(struct walk *w, struct wlr_scene_buffer *sb, int x, int y)
 	if (!wlr_box_intersection(&hit, &nb, &w->box)) {
 		return;
 	}
+	w->covered |= w->past;
 	mix(&w->sig, (uintptr_t)sb);
 	mix(&w->sig, (uintptr_t)sb->buffer);
 	mix(&w->sig, ((uint64_t)(uint32_t)x << 32) | (uint32_t)y);
@@ -544,6 +569,7 @@ walk_node(struct walk *w, struct wlr_scene_node *node, int x, int y)
 	if (!node->enabled) {
 		return;
 	}
+	w->past |= node == w->backdrop_end;
 	x += node->x;
 	y += node->y;
 	switch (node->type) {
@@ -564,6 +590,7 @@ walk_node(struct walk *w, struct wlr_scene_node *node, int x, int y)
 		if (r->color[3] <= 0 || !wlr_box_intersection(&hit, &nb, &w->box)) {
 			break;
 		}
+		w->covered |= w->past;
 		mix(&w->sig, (uintptr_t)r);
 		mix(&w->sig, ((uint64_t)(uint32_t)hit.x << 32) | (uint32_t)hit.y);
 		mix(&w->sig, ((uint64_t)(uint32_t)hit.width << 32) | (uint32_t)hit.height);
@@ -691,10 +718,12 @@ next_out(struct blur *b, struct output *o, int w, int h, bool gpu)
 	return b->out[b->cur];
 }
 
+/* src = vyrez bufferu (ctvrtinove rozliseni, zvetsi scena), NULL = cely */
 static void
-show(struct blur *b, struct wlr_buffer *buffer, bool solid)
+show(struct blur *b, struct wlr_buffer *buffer, const struct wlr_fbox *src, bool solid)
 {
 	wlr_scene_buffer_set_buffer(b->node, buffer);
+	wlr_scene_buffer_set_source_box(b->node, src);
 	wlr_scene_buffer_set_dest_size(b->node, b->box.width, b->box.height);
 	wlr_scene_buffer_set_filter_mode(b->node, WLR_SCALE_FILTER_BILINEAR);
 	set_opaque(b, b->box.width, b->box.height, solid);
@@ -715,7 +744,7 @@ paint_solid(struct blur *b, struct output *o)
 		px[i] = pre;
 	}
 	round_corners(px, w, w, h, b->radius);
-	show(b, buf, true);
+	show(b, buf, NULL, true);
 }
 
 /* ---- pixman: ctvrtinove rozliseni, box blur v C ---- */
@@ -782,20 +811,19 @@ capture_box(struct blur *b, struct output *o, struct wlr_box abs)
 	return hit;
 }
 
-static bool
-blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
+static int
+quarter(int n)
 {
-	const int down = 4;
-	struct wlr_box cap = capture_box(b, o, abs);
-	int sw = (cap.width + down - 1) / down, sh = (cap.height + down - 1) / down;
-	if (!b->small || b->small_w != sw || b->small_h != sh) {
-		drop(&b->small);
-		b->small = mem_create(sw, sh);
-		b->small_w = sw;
-		b->small_h = sh;
-	}
-	struct walk w = { .stop = &b->parent->node, .box = cap, .k = 1.0 / down };
-	w.pass = wlr_renderer_begin_buffer_pass(comp.renderer, b->small, NULL);
+	return (n + DOWN - 1) / DOWN;
+}
+
+/* Scena pod stop ve vyrezu cap rozmazana do dst (ctvrtinove rozliseni cap) */
+static bool
+quarter_blur(struct wlr_buffer *dst, struct wlr_box cap, struct wlr_scene_node *stop)
+{
+	int sw = dst->width, sh = dst->height;
+	struct walk w = { .stop = stop, .box = cap, .k = 1.0 / DOWN };
+	w.pass = wlr_renderer_begin_buffer_pass(comp.renderer, dst, NULL);
 	if (!w.pass) {
 		return false;
 	}
@@ -810,9 +838,9 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 		return false;
 	}
 	/* tri box blury ~ gauss; polomer je v logickych px, tady ve ctvrtinach */
-	int r = cfg.radius / (2 * down);
+	int r = cfg.radius / (2 * DOWN);
 	r = r < 1 ? 1 : r;
-	uint32_t *px = mem_data(b->small);
+	uint32_t *px = mem_data(dst);
 	int n = sw > sh ? sw : sh;
 	uint64_t *tmp = malloc((size_t)n * 8);
 	for (int pass = 0; pass < 3; pass++) {
@@ -825,11 +853,24 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 	}
 	free(tmp);
 	saturate(px, sw * sh, cfg.saturation / 100.0);
+	return true;
+}
 
-	/* zvetseni rendererem (bilinearne) na plnou velikost plochy, pak rohy */
+/* Cast ctvrtinoveho obrazu small (pokryva cap) pod plochou abs */
+static struct wlr_fbox
+part(struct wlr_box cap, struct wlr_box abs)
+{
+	return (struct wlr_fbox){ (double)(abs.x - cap.x) / DOWN, (double)(abs.y - cap.y) / DOWN,
+		(double)abs.width / DOWN, (double)abs.height / DOWN };
+}
+
+/* Plocha se zaoblenim: zvetseni rendererem (bilinearne) na plnou velikost, pak rohy */
+static bool
+upscale(struct blur *b, struct output *o, struct wlr_buffer *small, struct wlr_box cap, struct wlr_box abs)
+{
 	int ow = abs.width, oh = abs.height;
 	struct wlr_buffer *buf = next_out(b, o, ow, oh, false);
-	struct wlr_texture *tex = wlr_texture_from_buffer(comp.renderer, b->small);
+	struct wlr_texture *tex = wlr_texture_from_buffer(comp.renderer, small);
 	struct wlr_render_pass *pass = tex ? wlr_renderer_begin_buffer_pass(comp.renderer, buf, NULL) : NULL;
 	if (!pass) {
 		if (tex) {
@@ -837,22 +878,173 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 		}
 		return false;
 	}
-	double k = 1.0 / down;
 	wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
 		.texture = tex,
-		.src_box = { (abs.x - cap.x) * k, (abs.y - cap.y) * k, ow * k, oh * k },
+		.src_box = part(cap, abs),
 		.dst_box = { 0, 0, ow, oh },
 		.filter_mode = WLR_SCALE_FILTER_BILINEAR,
 		.blend_mode = WLR_RENDER_BLEND_MODE_NONE,
 	});
-	ok = wlr_render_pass_submit(pass);
+	bool ok = wlr_render_pass_submit(pass);
 	wlr_texture_destroy(tex);
 	if (!ok) {
 		return false;
 	}
 	round_corners(mem_data(buf), ow, ow, oh, b->radius);
-	show(b, buf, false);
+	show(b, buf, NULL, false);
 	return true;
+}
+
+static bool
+blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
+{
+	struct wlr_box cap = capture_box(b, o, abs);
+	int sw = quarter(cap.width), sh = quarter(cap.height);
+	if (b->radius <= 0) {
+		/* lista, ztmaveni Launchpadu: zvetsi az scena, jen tam, kde kresli */
+		struct wlr_buffer *buf = next_out(b, o, sw, sh, false);
+		if (!quarter_blur(buf, cap, &b->parent->node)) {
+			return false;
+		}
+		struct wlr_fbox src = part(cap, abs);
+		show(b, buf, &src, false);
+		return true;
+	}
+	if (!b->small || b->small_w != sw || b->small_h != sh) {
+		drop(&b->small);
+		b->small = mem_create(sw, sh);
+		b->small_w = sw;
+		b->small_h = sh;
+	}
+	return quarter_blur(b->small, cap, &b->parent->node) && upscale(b, o, b->small, cap, abs);
+}
+
+/* ---- pixman: rozmazana tapeta vystupu ---- */
+
+struct backdrop {
+	struct wlr_addon addon;		/* u wlr_output */
+	struct wlr_buffer *small;	/* ctvrtinove rozliseni, novy buffer pri kazde zmene (scena drzi stary) */
+	struct wlr_box box;		/* vystup v souradnicich rozlozeni */
+	uint64_t sig;
+};
+
+static void
+backdrop_destroy(struct wlr_addon *addon)
+{
+	struct backdrop *bd = wl_container_of(addon, bd, addon);
+	wlr_addon_finish(addon);
+	drop(&bd->small);
+	free(bd);
+}
+
+static const struct wlr_addon_interface backdrop_impl = {
+	.name = "luxcomp-backdrop",
+	.destroy = backdrop_destroy,
+};
+
+/* Vrstva pozadi vystupu rozmazana; prepocet jen kdyz se zmenila (tapeta, velikost) */
+static struct backdrop *
+backdrop_update(struct output *o)
+{
+	struct wlr_addon *addon = wlr_addon_find(&o->wlr_output->addons, &blurs, &backdrop_impl);
+	struct backdrop *bd;
+	if (addon) {
+		bd = wl_container_of(addon, bd, addon);
+	} else {
+		bd = calloc(1, sizeof(*bd));
+		wlr_addon_init(&bd->addon, &o->wlr_output->addons, &blurs, &backdrop_impl);
+	}
+	struct wlr_box box;
+	wlr_output_layout_get_box(comp.layout, o->wlr_output, &box);
+	struct walk w = { .stop = &comp.layer_bottom->node, .box = box };
+	walk_scene(&w);
+	mix(&w.sig, ((uint64_t)(uint32_t)box.x << 32) | (uint32_t)box.y);
+	mix(&w.sig, ((uint64_t)(uint32_t)box.width << 32) | (uint32_t)box.height);
+	mix(&w.sig, ((uint64_t)cfg.radius << 32) | (uint32_t)cfg.saturation);
+	if (bd->small && w.sig == bd->sig) {
+		return bd;
+	}
+	struct wlr_buffer *small = mem_create(quarter(box.width), quarter(box.height));
+	if (!quarter_blur(small, box, &comp.layer_bottom->node)) {
+		wlr_buffer_drop(small);
+		return bd->small ? bd : NULL;
+	}
+	drop(&bd->small);
+	bd->small = small;
+	bd->box = box;
+	bd->sig = w.sig;
+	return bd;
+}
+
+static bool
+blur_backdrop(struct blur *b, struct output *o, struct backdrop *bd, struct wlr_box abs)
+{
+	if (b->radius > 0) {
+		return upscale(b, o, bd->small, bd->box, abs);
+	}
+	struct wlr_fbox src = part(bd->box, abs);
+	show(b, bd->small, &src, false);
+	return true;
+}
+
+/* ---- pixman: pomale plochy ---- */
+
+static int
+retry_due(void *data)
+{
+	int64_t now = now_ns(), next = 0;
+	struct blur *b;
+	wl_list_for_each(b, &blurs, link) {
+		if (b->retry_at && b->retry_at <= now) {
+			b->dirty = true;
+		} else if (b->retry_at && (!next || b->retry_at < next)) {
+			next = b->retry_at;
+		}
+	}
+	struct output *o;
+	wl_list_for_each(o, &comp.outputs, link) {
+		wlr_output_schedule_frame(o->wlr_output);
+	}
+	if (next) {
+		wl_event_source_timer_update(retry_timer, (int)((next - now) / 1000000) + 1);
+	}
+	return 0;
+}
+
+/* Cas prepoctu plochy pod pixman. Tri pomale po sobe (kazdy do BURST_NS od predchoziho: neco se pod plochou
+ * hybe) = nahradni vyrez tapety na RETRY_MS, kazdy dalsi neuspech dvojnasob; jednotlivy pomaly prepocet
+ * (otevreni Launchpadu, nova tapeta) nevadi. */
+static void
+note_cost(struct blur *b, struct output *o, int64_t ns, int64_t now)
+{
+	const char *env = getenv("LUXCOMP_BLUR_SLOW_MS");
+	int64_t budget = env ? atoll(env) * 1000000 : SLOW_NS;
+	bool burst = b->last_ns && now - b->last_ns < BURST_NS;
+	b->last_ns = now;
+	if (ns <= budget) {
+		b->slow = 0;
+		return;
+	}
+	b->slow = burst ? b->slow + 1 : 1;
+	if (b->slow < SLOW_FRAMES) {
+		return;
+	}
+	if (!b->backoff_ms || now - b->glass_since > CALM_NS) {
+		b->backoff_ms = RETRY_MS;
+	} else if (b->backoff_ms < RETRY_MAX_MS) {
+		b->backoff_ms *= 2;
+	}
+	b->slow = 0;
+	b->retry_at = now + b->backoff_ms * 1000000LL;
+	b->dirty = true;
+	cfg.fallbacks++;
+	wlr_log(WLR_ERROR, "luxcomp: blur of %s %dx%d over %ld ms, wallpaper glass for %d s", b->material,
+		b->box.width, b->box.height, (long)(budget / 1000000), b->backoff_ms / 1000);
+	if (!retry_timer) {
+		retry_timer = wl_event_loop_add_timer(comp.loop, retry_due, NULL);
+	}
+	retry_due(NULL);
+	wlr_output_schedule_frame(o->wlr_output);
 }
 
 /* ---- gles2: dual Kawase ---- */
@@ -1128,7 +1320,7 @@ blur_gpu(struct blur *b, struct output *o, struct wlr_box abs)
 	if (!ok) {
 		return false;
 	}
-	show(b, out, false);
+	show(b, out, NULL, false);
 	return true;
 }
 
@@ -1150,11 +1342,12 @@ on_output(struct blur *b, struct output *o, struct wlr_box *abs)
 }
 
 /* Pred vykreslenim snimku vystupu: prepocitat plochy, pod kterymi se neco zmenilo. Vraci true,
- * kdyz se nejaka prepocitala (snimek se pak pocita do rozpoctu). */
+ * kdyz se nejaka prepocitala. */
 bool
 blur_output_frame(struct output *o)
 {
-	bool worked = false;
+	bool worked = false, solid = luxcomp_blur_tier() == 0, tried = false;
+	struct backdrop *bd = NULL;
 	int64_t t0 = now_ns();
 	struct blur *b;
 	wl_list_for_each(b, &blurs, link) {
@@ -1162,25 +1355,50 @@ blur_output_frame(struct output *o)
 		if (!on_output(b, o, &abs)) {
 			continue;
 		}
-		bool solid = luxcomp_blur_tier() == 0;
 		struct wlr_box cap = solid ? abs : capture_box(b, o, abs);
-		struct walk w = { .stop = &b->parent->node, .box = cap };
+		struct walk w = { .stop = &b->parent->node, .box = cap, .backdrop_end = &comp.layer_bottom->node };
 		if (!solid) {
 			walk_scene(&w);
 		}
-		mix(&w.sig, ((uint64_t)(uint32_t)abs.x << 32) | (uint32_t)abs.y);
-		mix(&w.sig, ((uint64_t)(uint32_t)abs.width << 32) | (uint32_t)abs.height);
-		mix(&w.sig, (uint64_t)(o->wlr_output->scale * 1000) << 1 | solid);
-		if (!b->dirty && w.sig == b->sig) {
+		/* pixman: jen tapeta pod plochou nebo nahradni rezim = vyrez rozmazane tapety */
+		bool from_backdrop = false;
+		if (!solid && comp.software) {
+			if (b->retry_at && t0 >= b->retry_at) {
+				b->retry_at = 0;
+				b->slow = 0;
+				b->glass_since = t0;
+			}
+			if (b->retry_at || !w.covered) {
+				if (!tried) {
+					bd = backdrop_update(o);
+					tried = true;
+				}
+				from_backdrop = bd != NULL;
+			}
+		}
+		uint64_t sig = from_backdrop ? bd->sig : w.sig;
+		mix(&sig, ((uint64_t)(uint32_t)abs.x << 32) | (uint32_t)abs.y);
+		mix(&sig, ((uint64_t)(uint32_t)abs.width << 32) | (uint32_t)abs.height);
+		mix(&sig, (uint64_t)(o->wlr_output->scale * 1000) << 2 | solid << 1 | from_backdrop);
+		if (!b->dirty && sig == b->sig) {
 			continue;
 		}
-		b->sig = w.sig;
+		b->sig = sig;
 		b->dirty = false;
 		worked = true;
 		bool ok = false;
-		if (!solid) {
-			ok = comp.software ? blur_cpu(b, o, abs) : blur_gpu(b, o, abs);
-			if (!ok && !comp.software && !cfg.gpu_broken) {
+		if (from_backdrop) {
+			ok = blur_backdrop(b, o, bd, abs);
+		} else if (!solid && comp.software) {
+			int64_t t = now_ns();
+			ok = blur_cpu(b, o, abs);
+			int64_t done = now_ns();
+			if (ok) {
+				note_cost(b, o, done - t, done);
+			}
+		} else if (!solid) {
+			ok = blur_gpu(b, o, abs);
+			if (!ok && !cfg.gpu_broken) {
 				wlr_log(WLR_ERROR, "luxcomp: gles2 blur failed, solid material from now on");
 				cfg.gpu_broken = true;
 			}
@@ -1188,7 +1406,6 @@ blur_output_frame(struct output *o)
 		if (!ok) {
 			paint_solid(b, o);
 		}
-		b->solid = !ok;
 	}
 	if (worked && cfg.stats) {
 		int64_t ns = now_ns() - t0;
@@ -1201,25 +1418,10 @@ blur_output_frame(struct output *o)
 	return worked;
 }
 
-/* Cas celeho snimku (prepocet + vykresleni); tri pomale snimky s prepoctem po sobe = jednolita barva */
+/* LUXCOMP_STATS: cas celeho snimku (prepocet + vykresleni) */
 void
 blur_frame_time(struct output *o, int64_t ns, bool worked)
 {
-	if (worked && comp.software && !degraded) {
-		const char *env = getenv("LUXCOMP_BLUR_SLOW_MS");
-		int64_t budget = env ? atoll(env) * 1000000 : SLOW_NS;
-		slow_frames = ns > budget ? slow_frames + 1 : 0;
-		if (slow_frames >= SLOW_FRAMES) {
-			degraded = true;
-			wlr_log(WLR_ERROR, "luxcomp: blur frames over %ld ms on %s, solid material from now on",
-				(long)(budget / 1000000), o->wlr_output->name);
-			struct blur *b;
-			wl_list_for_each(b, &blurs, link) {
-				b->dirty = true;
-			}
-			wlr_output_schedule_frame(o->wlr_output);
-		}
-	}
 	if (!cfg.stats || wl_list_empty(&blurs)) {
 		return;
 	}
@@ -1231,9 +1433,9 @@ blur_frame_time(struct output *o, int64_t ns, bool worked)
 	}
 	if (cfg.frames % 120 == 0) {
 		fprintf(stderr, "luxcomp: blur stats tier %ld frames %d max %.2f ms avg %.2f ms over 8 ms %d, "
-			"updates %d max %.2f ms avg %.2f ms\n", (long)luxcomp_blur_tier(), cfg.frames,
+			"updates %d max %.2f ms avg %.2f ms, fallbacks %d\n", (long)luxcomp_blur_tier(), cfg.frames,
 			cfg.max_ns / 1e6, cfg.sum_ns / 1e6 / cfg.frames, cfg.over, cfg.updates, cfg.blur_max_ns / 1e6,
-			cfg.updates ? cfg.blur_sum_ns / 1e6 / cfg.updates : 0.0);
+			cfg.updates ? cfg.blur_sum_ns / 1e6 / cfg.updates : 0.0, cfg.fallbacks);
 		cfg.frames = cfg.updates = cfg.over = 0;
 		cfg.max_ns = cfg.sum_ns = cfg.blur_max_ns = cfg.blur_sum_ns = 0;
 	}

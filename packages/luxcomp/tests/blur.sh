@@ -1,6 +1,6 @@
 # Material (blur.c) headless pod pixman: plocha "test-popup@popup:16" 400x500 nad oknem s pruhy;
 # snimky s rozmazanim, pri pohybu okna (wiggle, cas snimku v demo.log s LUXCOMP_STATS), jednolita barva,
-# plocha bez materialu a automaticky prechod na jednolitou barvu (LUXCOMP_BLUR_SLOW_MS v druhem behu).
+# plocha bez materialu a docasny prechod na vyrez rozmazane tapety (LUXCOMP_BLUR_SLOW_MS v druhem behu).
 # Vyhodnoceni: blur_check.py
 python3 /src/tests/material.py stripes 1600 900 >>"$OUT/clients.log" 2>&1 &
 for i in $(seq 40); do cmd list 0.25; grep -q "title=stripes" "$OUT/demo.log" && break; done

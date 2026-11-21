@@ -238,11 +238,22 @@ nepočítá nic, ani když plocha sama překresluje obsah (hodiny).
 | Tier (`luxcomp_blur_tier()`) | Kdy | Jak |
 |---|---|---|
 | 2 | gles2 | výřez v plném rozlišení průchodem rendereru, dual Kawase shadery GLES2 (4 průchody dolů, 4 nahoru, efektivní poloměr 32 px), v posledním saturace a zaoblení |
-| 1 | pixman | výřez ve čtvrtinovém rozlišení, 3× box blur v C (kanály v 16bitových pruzích), zvětšení rendererem, zaoblení rohů |
-| 0 | `luxcomp_blur_set(…, 0)`, chyba shaderu nebo pomalé snímky | neprůhledná barva `fallback` materiálu se zaoblenými rohy |
+| 1 | pixman | výřez ve čtvrtinovém rozlišení, 3× box blur v C (kanály v 16bitových pruzích), saturace; plochu bez zaoblení (lišta, ztmavení Launchpadu) zvětšuje scéna při skládání snímku, jinak renderer a zaoblení rohů |
+| 0 | `luxcomp_blur_set(…, 0)` nebo chyba GLES2 | neprůhledná barva `fallback` materiálu se zaoblenými rohy |
 
-Pod pixman se hlídá čas snímku: když tři snímky s přepočtem po sobě trvají přes 8 ms, kompozitor
-přejde na tier 0 (do dalšího `luxcomp_blur_set`). Naměřeno headless 1920×1080 pixman, plocha
+Pod pixman drží kompozitor pro každý výstup rozmazanou tapetu: vrstvu pozadí (tapeta, ikony plochy) ve
+čtvrtinovém rozlišení, přepočítanou jen při její změně (nová tapeta, velikost výstupu). Plocha, pod kterou
+(i s okrajem o poloměr rozmazání) není nic než tapeta, je jen výřez z ní – lišta, Dock nad prázdnou plochou,
+Launchpad bez oken pod sebou nestojí nic. Okno pod plochou znamená skutečný výřez scény.
+
+Přepočet každé plochy se měří zvlášť. Když trvá tři snímky po sobě (každý do 0,5 s od předchozího, tedy
+pod plochou se něco hýbe) přes 8 ms, plocha **dočasně** přejde na výřez rozmazané tapety: sklo zůstane
+sklem, jen okna pod ním nejsou vidět. Za 2 s zkusí rozmazání znovu; při dalším neúspěchu čeká dvakrát déle
+(nejvýš 32 s), po 30 s bez neúspěchu zase od 2 s. Jednotlivý pomalý přepočet (otevření Launchpadu, nová
+tapeta, přepnutí režimu) nevadí. Dřív kompozitor po třech pomalých snímcích přešel natrvalo na tier 0 pro
+všechny plochy: na pomalém počítači (QEMU std VGA) pak byly lišta a Dock po přepnutí režimu bílé a ztmavení
+Launchpadu šedé. Přepnutí světlý/tmavý nic nepřepočítává (rozmazaný obraz na režimu nezávisí), jen klienti
+překreslí tónování. Naměřeno headless 1920×1080 pixman, plocha
 400×500 nad oknem 1600×900, které se každých 8 ms posune o 12 px: snímek průměrně 3,6 ms, nejvýš
 5,4 ms; přepočet výřezu 1,5 ms (nejvýš 2,1 ms).
 
@@ -255,9 +266,9 @@ nimi se hýbe každých 8 ms (všechny čtyři výřezy se přepočítávají v 
 |---|---|---|---|
 | AMD (gles2) | 3,8 ms, přepočet 2,6 ms | 3,6 ms, přepočet 2,3 ms | 21 % (5 %) |
 | NVIDIA (gles2) | 5,6 ms, přepočet 4,1 ms | 4,8 ms, přepočet 3,5 ms | 25 % (10–13 %) |
-| pixman (bez přechodu na tier 0) | 27,7 ms, přepočet 18,9 ms | – | 63 % |
+| pixman (bez náhradního výřezu) | 27,7 ms, přepočet 18,9 ms | – | 63 % |
 
-Pixman tu po třech snímcích přejde na tier 0, jak má. V klidu nula probuzení a 0 % CPU na všech třech;
+Pixman tu po třech snímcích přejde u pomalých ploch na výřez rozmazané tapety, jak má. V klidu nula probuzení a 0 % CPU na všech třech;
 2000 otevření a zavření plochy s materiálem bez růstu PSS, deskriptorů ani paměti GPU (fdinfo amdgpu).
 
 Proč to tak je:
@@ -276,8 +287,10 @@ Proč to tak je:
   `bar`, `dock`, `menu`, `popup`, `toast`, `sheet`, `dim`; luxwm ji přepíše z `luxos_tokens.lsl`
   (`MATERIAL`, `ELEVATION`) při startu a změně režimu.
 - `luxcomp_blur_set(poloměr, saturace_%, režim)`: režim 0 = jen neprůhledná barva, 1 = automaticky.
-- `LUXCOMP_STATS=1` vypíše každých 120 snímků s materiálem nejdelší a průměrný snímek a přepočet;
-  `LUXCOMP_BLUR_SLOW_MS` mění rozpočet 8 ms (testy přechodu na tier 0).
+- `LUXCOMP_STATS=1` vypíše každých 120 snímků s materiálem nejdelší a průměrný snímek a přepočet a počet
+  přechodů na náhradní výřez; `LUXCOMP_BLUR_SLOW_MS` mění rozpočet 8 ms jedné plochy (testy, 0 = pomalý počítač).
+- Písmo na skle: klienti shellu volají `material.grayscale_text()` (luxos_material.lsl) – podpixelové vyhlazování
+  v průsvitném povrchu by kompozitor nad rozmazaným pozadím složil jako zelené a fialové lemy.
 
 `luxcomp_set_cursor(téma, velikost)` nastaví ukazatel kompozitoru (plocha, zahlaví) a exportuje
 `XCURSOR_THEME`/`XCURSOR_SIZE` pro později spuštěné klienty. Velikost je v logických px, obrázek
