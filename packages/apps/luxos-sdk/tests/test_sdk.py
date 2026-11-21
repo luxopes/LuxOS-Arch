@@ -19,6 +19,7 @@ import unittest
 
 PACKAGE = Path(__file__).resolve().parents[1]
 ROOT = next((p for p in PACKAGE.parents if (p / "packages/apps").is_dir()), PACKAGE)
+LSL = shutil.which("lsl")      # prekladac z PATH testu (vydani LSL mimo /usr/bin), program ma PATH systemu
 
 DRIVER = r'''load gtk
 load glib
@@ -59,7 +60,7 @@ call gtk.pump()
 '''
 
 
-@unittest.skipUnless(shutil.which('lsl') and shutil.which('xvfb-run'), 'LSL and Xvfb required')
+@unittest.skipUnless(LSL and shutil.which('xvfb-run'), 'LSL and Xvfb required')
 class NativeSdk(unittest.TestCase):
     def test_native_module_compiles_and_buttons_update_state(self):
         build = ROOT / 'out' / 'studio-sdk-tests'
@@ -76,7 +77,7 @@ class NativeSdk(unittest.TestCase):
                        GSETTINGS_BACKEND='memory', GDK_BACKEND='x11', GTK_MODULES='', GTK3_MODULES='')
             (path/'test.lsl').write_text(DRIVER)
             binary = path/'sdk-test'
-            result = subprocess.run(['lsl', 'compile', '--unsafe', '--target', 'linux-x86_64-gnu',
+            result = subprocess.run([LSL, 'compile', '--unsafe', '--target', 'linux-x86_64-gnu',
                                      '--system-bindings', str(PACKAGE/'files'), str(path/'test.lsl'), str(binary)],
                                     env=env, capture_output=True, text=True, timeout=120)
             self.assertEqual(result.returncode, 0, result.stderr)
