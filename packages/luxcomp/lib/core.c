@@ -780,9 +780,9 @@ layer_commit(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, commit);
 	struct wlr_layer_surface_v1 *s = l->surface;
-	if (l->blur) {
-		blur_set_box(l->blur, (struct wlr_box){ 0, 0, s->surface->current.width,
-			s->surface->current.height });
+	if (l->blur.material[0] && strcmp(l->blur.material, "popups")) {
+		blur_set_update(&l->blur, l->scene->tree, &s->surface->current.input,
+			s->surface->current.width, s->surface->current.height);
 	}
 	if (!s->initialized || !l->output) {
 		return;
@@ -807,7 +807,7 @@ layer_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&l->commit.link);
 	wl_list_remove(&l->new_popup.link);
 	wl_list_remove(&l->destroy.link);
-	blur_destroy(l->blur);
+	blur_set_clear(&l->blur);
 	free(l);
 }
 
@@ -856,7 +856,7 @@ layer_new_popup(struct wl_listener *listener, void *data)
 	h->destroy.notify = popup_holder_destroy;
 	wl_signal_add(&popup->events.destroy, &h->destroy);
 	popup_attach(popup, h->tree);
-	if (l->blur && popup->base->data) {
+	if (l->blur.material[0] && popup->base->data) {
 		char menu[16] = "menu";
 		int radius = 0;
 		blur_parse_namespace("@menu", menu, &radius);
@@ -888,9 +888,7 @@ new_layer_surface(struct wl_listener *listener, void *data)
 	l->scene = wlr_scene_layer_surface_v1_create(layer_tree(s->pending.layer), s);
 	l->scene->tree->node.data = l;
 	s->data = l->scene->tree;	/* rodic pro popupy */
-	if (blur_parse_namespace(s->namespace, l->material, &l->radius)) {
-		l->blur = blur_create(l->scene->tree, l->material, l->radius);
-	}
+	blur_parse_namespace(s->namespace, l->blur.material, &l->blur.radius);
 	l->map.notify = layer_map;
 	wl_signal_add(&s->surface->events.map, &l->map);
 	l->unmap.notify = layer_unmap;

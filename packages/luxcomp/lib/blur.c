@@ -71,7 +71,7 @@ static struct {
 	GLint u_tex[3], u_half[3], u_off[3], u_sat, u_size, u_radius, a_pos[3];
 	/* LUXCOMP_STATS */
 	bool stats;
-	int frames, updates;
+	int frames, updates, over;
 	int64_t max_ns, sum_ns, blur_max_ns, blur_sum_ns;
 } cfg = { .radius = 32, .saturation = 160, .mode = 1 };
 
@@ -340,6 +340,48 @@ blur_set_box(struct blur *b, struct wlr_box box)
 	r = r < box.height / 2 ? r : box.height / 2;
 	shadow_update(b->shadow, box, m ? m->shadow_size : 0, r, m ? m->shadow : 0,
 		m ? m->shadow_y : 0, 1);
+}
+
+/* ---- material plochy layer-shell: obdelniky vstupni oblasti ---- */
+
+/* Sklo je tam, kam jde kliknout: kazdy obdelnik vstupni oblasti povrchu (vychozi = cely povrch, Dock si
+ * nastavi jen panel, oznameni jen bubliny). Obdelniky tenci nez MIN_SIDE (horka hrana skryteho Docku)
+ * material nemaji. */
+#define MIN_SIDE 8
+
+void
+blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixman_region32_t *input,
+		int width, int height)
+{
+	pixman_region32_t region;
+	pixman_region32_init(&region);
+	pixman_region32_intersect_rect(&region, input, 0, 0, width, height);
+	int n = 0, count = 0;
+	const pixman_box32_t *rects = pixman_region32_rectangles(&region, &count);
+	for (int i = 0; i < count && n < BLUR_SET_MAX; i++) {
+		struct wlr_box box = { rects[i].x1, rects[i].y1, rects[i].x2 - rects[i].x1, rects[i].y2 - rects[i].y1 };
+		if (box.width < MIN_SIDE || box.height < MIN_SIDE) {
+			continue;
+		}
+		if (!set->blur[n]) {
+			set->blur[n] = blur_create(parent, set->material, set->radius);
+		}
+		blur_set_box(set->blur[n++], box);
+	}
+	pixman_region32_fini(&region);
+	for (int i = n; i < BLUR_SET_MAX; i++) {
+		blur_destroy(set->blur[i]);
+		set->blur[i] = NULL;
+	}
+}
+
+void
+blur_set_clear(struct blur_set *set)
+{
+	for (int i = 0; i < BLUR_SET_MAX; i++) {
+		blur_destroy(set->blur[i]);
+		set->blur[i] = NULL;
+	}
 }
 
 /* ---- co je pod plochou ---- */
@@ -1083,16 +1125,17 @@ blur_frame_time(struct output *o, int64_t ns, bool worked)
 		return;
 	}
 	cfg.frames++;
+	cfg.over += ns > SLOW_NS;
 	cfg.sum_ns += ns;
 	if (ns > cfg.max_ns) {
 		cfg.max_ns = ns;
 	}
 	if (cfg.frames % 120 == 0) {
-		fprintf(stderr, "luxcomp: blur stats tier %ld frames %d max %.2f ms avg %.2f ms, "
+		fprintf(stderr, "luxcomp: blur stats tier %ld frames %d max %.2f ms avg %.2f ms over 8 ms %d, "
 			"updates %d max %.2f ms avg %.2f ms\n", (long)luxcomp_blur_tier(), cfg.frames,
-			cfg.max_ns / 1e6, cfg.sum_ns / 1e6 / cfg.frames, cfg.updates, cfg.blur_max_ns / 1e6,
+			cfg.max_ns / 1e6, cfg.sum_ns / 1e6 / cfg.frames, cfg.over, cfg.updates, cfg.blur_max_ns / 1e6,
 			cfg.updates ? cfg.blur_sum_ns / 1e6 / cfg.updates : 0.0);
-		cfg.frames = cfg.updates = 0;
+		cfg.frames = cfg.updates = cfg.over = 0;
 		cfg.max_ns = cfg.sum_ns = cfg.blur_max_ns = cfg.blur_sum_ns = 0;
 	}
 }

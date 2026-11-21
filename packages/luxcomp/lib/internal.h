@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <wayland-server-core.h>
+#include <pixman.h>
 #include <wlr/util/box.h>
 #include "luxcomp.h"
 
@@ -23,6 +24,14 @@ struct xkb_keymap;
 
 enum grab_mode { GRAB_NONE, GRAB_MOVE, GRAB_RESIZE };
 
+struct blur;
+#define BLUR_SET_MAX 8
+struct blur_set {
+	char material[16];	/* "" = bez materialu; "popups" = jen popupy plochy (nabidka plochy) */
+	int radius;
+	struct blur *blur[BLUR_SET_MAX];
+};
+
 /* prvni polozka struktur, na ktere ukazuje node->data ve scene */
 enum node_kind { KIND_VIEW = 1, KIND_LAYER };
 
@@ -31,9 +40,7 @@ struct layer {
 	struct wlr_layer_surface_v1 *surface;
 	struct wlr_scene_layer_surface_v1 *scene;
 	struct output *output;
-	struct blur *blur;		/* jmenny prostor "nazev@material[:polomer]" */
-	char material[16];
-	int radius;
+	struct blur_set blur;		/* jmenny prostor "nazev@material[:polomer]" */
 	struct wl_listener map, unmap, commit, destroy, new_popup;
 };
 
@@ -232,13 +239,17 @@ void shadow_update(struct shadow *shadow, struct wlr_box frame, int size, int ra
 	uint32_t argb, int dy, int scale);
 
 /* blur.c: material (rozmazane pozadi a stin) pod plochami layer-shell a jejich popupy */
-struct blur;
+
 bool blur_parse_namespace(const char *ns, char material[16], int *radius);
 struct blur *blur_create(struct wlr_scene_tree *parent, const char *material, int radius);
 void blur_destroy(struct blur *blur);
 void blur_set_box(struct blur *blur, struct wlr_box box);	/* v souradnicich parent */
 bool blur_output_frame(struct output *o);		/* pred vykreslenim; true = neco prepocital */
 void blur_frame_time(struct output *o, int64_t ns, bool worked);
+/* obdelniky vstupni oblasti povrchu w x h (nejvys BLUR_SET_MAX) */
+void blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixman_region32_t *input,
+	int width, int height);
+void blur_set_clear(struct blur_set *set);
 
 /* view.c, shared with xwayland.c */
 struct view *view_create(void);

@@ -222,12 +222,16 @@ kompozitor nečte. Soukromý protokol by klienti GTK (gtk-layer-shell) museli v�
 `wl_display` GDK; jmenný prostor nastaví jedno volání `gtk_layer_set_namespace()` a labwc ho ignoruje.
 
 Pod povrch jde v jeho stromu scény:
-- **rozmazaný výřez** všeho, co je ve scéně pod plochou (tapeta, okna, nižší vrstvy), v obdélníku
-  povrchu se zaoblenými rohy daného poloměru, saturace 1,6;
+- **rozmazaný výřez** všeho, co je ve scéně pod plochou (tapeta, okna, nižší vrstvy), v každém
+  obdélníku vstupní oblasti povrchu (`wl_surface.set_input_region`, výchozí je celý povrch) se
+  zaoblenými rohy daného poloměru, saturace 1,6. Sklo je tam, kam jde kliknout: Dock si vstupní oblast
+  nastaví na panel (ne na místo pro zvětšené ikony a popisky), oznámení na bubliny. Obdélníky tenčí než
+  8 px (horká hrana skrytého Docku) material nemají, nejvýš 8 obdélníků;
 - **stín** materiálu (úroveň výšky: barva s alfou, dosah, posun dolů), kreslený vně plochy.
 
 Klient kreslí jen tónování materiálu (průhlednou barvu) a obsah. Popupy xdg takové plochy (nabídky
-GTK) dostanou material `menu` v obdélníku geometrie okna (stín GTK kolem nabídky je mimo).
+GTK) dostanou material `menu` v obdélníku geometrie okna (stín GTK kolem nabídky je mimo). Material
+`popups` (`luxos-widgets@popups`) dá material jen popupům, plocha sama žádný nemá (nabídka plochy).
 
 Výřez se počítá znovu jen tehdy, když se změnilo, co pod plochou je. Podpis tvoří uzly scény pod
 výřezem: poloha, velikost, buffer, průhlednost a pořadové číslo commitu povrchu. Při klidu se
