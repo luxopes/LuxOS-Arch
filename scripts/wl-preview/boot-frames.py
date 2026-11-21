@@ -64,7 +64,8 @@ def main():
     os.makedirs(out, exist_ok=True)
     frame = os.path.join(out, "frame.ppm")
     t0 = time.monotonic()
-    seen = []          # (cas, druh)
+    seen = []          # (cas, druh, poradi snimku) pri kazde zmene
+    samples = []       # druh kazdeho snimku
     greeter_since = None
     while time.monotonic() - t0 < limit:
         t = time.monotonic() - t0
@@ -74,8 +75,9 @@ def main():
         except (OSError, ValueError):
             time.sleep(0.2)
             continue
+        samples.append(kind)
         if not seen or seen[-1][1] != kind:
-            seen.append((t, kind))
+            seen.append((t, kind, len(samples) - 1))
             print(f"{t:6.1f} s {kind} (mean {mean:.0f})", flush=True)
             if kind in ("splash", "greeter"):
                 shutil.copy(frame, os.path.join(out, f"first-{kind}.ppm"))
@@ -87,17 +89,19 @@ def main():
             greeter_since = None
         time.sleep(0.1)
     os.unlink(frame)
-    kinds = [k for _, k in seen]
-    if "splash" not in kinds or "greeter" not in kinds:
+    kinds = [k for _, k, _ in seen]
+    # splash = aspon 1 s v kuse (obrazovka BIOSu nebo prechod do greeteru muze na jeden snimek vypadat stejne)
+    first = next((i for i in range(len(seen) - 1) if kinds[i] == "splash" and seen[i + 1][0] - seen[i][0] >= 1), None)
+    if first is None or "greeter" not in kinds[first:]:
         print("no splash or no greeter")
         return 1
-    first = kinds.index("splash")
     last = kinds.index("greeter", first)
     splash_s = seen[last][0] - seen[first][0]
     # temne pozadi mezi koncem splashe a prvnim snimkem greeteru (plymouth deactivate -> luxwm -> greeter)
     dark_s = sum(seen[i + 1][0] - seen[i][0] for i in range(first, last) if seen[i][1] == "dark")
     print(f"splash_to_greeter_s={splash_s:.1f}")
     print(f"dark_gap_s={dark_s:.1f}")
+    print(f"dark_frames={samples[seen[first][2]:seen[last][2]].count('dark')}")
     if "flat" in kinds[first:last]:
         print("flat (bright) frame between the splash and the greeter")
         return 1
