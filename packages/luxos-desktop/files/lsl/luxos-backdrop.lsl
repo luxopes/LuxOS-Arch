@@ -28,6 +28,7 @@ load luxos_gtk
 load luxos_sys
 load luxos_i18n as i18n
 load luxos_layer as layer
+load luxos_automount as automount
 load luxos_wl as wl
 load luxos_material as material
 load luxos_tokens as tokens
@@ -481,7 +482,7 @@ function menu_keyboard(b):
 end
 
 function menu_entries():
-    entries = [["New Folder", "new-folder"], "", ["Change Wallpaper…", ["luxos-settings"]]]
+    entries = [["New Folder", "new-folder"], "", ["Change Wallpaper…", ["luxos-settings", "desktop"]]]
     if glib.find_program_in_path("luxos-widgets") != "":
         entries.append(["Edit Widgets…", ["luxos-widgets", "settings"]])
     end
@@ -1421,5 +1422,7 @@ call lglib.mkdir_p(config_dir())
 call gio.file_monitor(config_dir() + "/appearance.conf", on_conf_changed)
 call gio.file_monitor(config_dir() + "/appearance", on_conf_changed)
 call icons_start()
+# vymenitelne disky po zasunuti (na X11 thunar-volman); plocha bezi v kazde relaci na Waylandu
+call automount.start()
 call trace("ready")
 call gtk.main()

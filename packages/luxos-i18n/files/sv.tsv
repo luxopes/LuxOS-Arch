@@ -5404,3 +5404,135 @@ Authentication required	Autentisering krävs
 Authenticate	Autentisera
 Authentication is not available.	Autentisering är inte tillgänglig.
 Lock the screen after inactivity of	Lås skärmen efter inaktivitet i
+This page could not be opened.	Det gick inte att öppna sidan.
+Screen Lock	Skärmlås
+Xfce Settings Manager	Xfce-inställningshanterare
+Accessibility	Hjälpmedel
+Windows & Workspaces	Fönster och arbetsytor
+Mouse & Touchpad	Mus och styrplatta
+Default Apps	Standardappar
+Login Items	Inloggningsobjekt
+Removable Drives	Flyttbara enheter
+A light tap clicks, a two-finger tap is a right click.	Ett lätt tryck klickar, ett tryck med två fingrar är ett högerklick.
+Click in the bottom right corner	Klicka i nedre högra hörnet
+Click with two fingers	Klicka med två fingrar
+Content follows your fingers.	Innehållet följer dina fingrar.
+Content moves the same way as the wheel, like on a touchpad.	Innehållet rör sig åt samma håll som hjulet, som på en styrplatta.
+Fast	Snabb
+Faster movements move the pointer farther.	Snabbare rörelser flyttar pekaren längre.
+Ignore the touchpad while typing	Ignorera styrplattan vid skrivning
+Left button	Vänster knapp
+Middle click with both buttons	Mittenklick med båda knapparna
+Natural scrolling	Naturlig rullning
+Natural wheel direction	Naturlig hjulriktning
+Pointer acceleration	Pekaracceleration
+Pointer speed	Pekarhastighet
+Pressing the left and right buttons together acts as the middle button.	Att trycka på vänster och höger knapp samtidigt fungerar som mittenknappen.
+Prevents accidental clicks with your palm.	Förhindrar oavsiktliga klick med handflatan.
+Primary mouse button	Primär musknapp
+Right button	Höger knapp
+Right click	Högerklick
+Right edge	Högerkanten
+Scroll with	Rulla med
+Slow	Långsam
+Tap and drag	Tryck och dra
+Tap, then touch again and move to drag a window or select text.	Tryck, rör igen och flytta för att dra ett fönster eller markera text.
+Tap to click	Tryck för att klicka
+Touchpad	Styrplatta
+Tracking speed	Spårningshastighet
+Two fingers	Två fingrar
+LuxOS (follows Light and Dark)	LuxOS (följer Ljust och Mörkt)
+%s px	%s px
+Icons and Pointer	Symboler och pekare
+Icons	Symboler
+Pointer	Pekare
+Pointer size	Pekarens storlek
+Fonts	Typsnitt
+Subpixel (LCD screens)	Subpixel (LCD-skärmar)
+Grayscale	Gråskala
+Font smoothing	Kantutjämning
+Subpixel smoothing is sharpest on most laptop and desktop screens.	Subpixelutjämning är skarpast på de flesta bärbara och stationära skärmar.
+Slight	Lätt
+Medium	Medel
+Full	Full
+Hinting	Hinting
+Text size	Textstorlek
+Reduce motion	Minska rörelse
+Turns off sliding between workspaces and animations in apps.	Stänger av glidningen mellan arbetsytor och animationer i appar.
+Mouse Keys	Mustangenter
+Move the pointer with the numeric keypad.	Flytta pekaren med det numeriska tangentbordet.
+On-screen keyboard	Skärmtangentbord
+Zoom (maximize)	Zooma (maximera)
+Minimize	Minimera
+Roll up	Rulla upp
+Fill free space	Fyll ledigt utrymme
+Do nothing	Gör ingenting
+Off while Reduce motion is on in Accessibility.	Av så länge Minska rörelse är på i Hjälpmedel.
+Workspaces	Arbetsytor
+Number of workspaces	Antal arbetsytor
+Go from the last workspace to the first	Gå från sista arbetsytan till den första
+Switching past the last workspace with the keyboard continues at the first one.	Byte förbi sista arbetsytan med tangentbordet fortsätter på den första.
+Animate switching workspaces	Animera byte av arbetsyta
+Double-click a title bar to	Dubbelklicka på en namnlist för att
+Snap windows to screen edges	Fäst fönster mot skärmkanterna
+Snap windows to other windows	Fäst fönster mot andra fönster
+Tile windows dragged to a screen edge	Placera fönster som dras till skärmkanten sida vid sida
+Focus follows the pointer	Fokus följer pekaren
+A window is focused when the pointer moves over it, without a click.	Ett fönster får fokus när pekaren förs över det, utan klick.
+Interface font	Gränssnittets typsnitt
+Monospace font	Typsnitt med fast breddsteg
+Sticky Keys	Tröga tangenter
+Slow Keys	Långsamma tangenter
+Bounce Keys	Studsande tangenter
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	Kombinationstangenter som Skift och Ctrl förblir nedtryckta till nästa tangent, så kortkommandon kan skrivas en tangent i taget.
+A key has to be held for a moment before it is accepted.	En tangent måste hållas ned en stund innan den godtas.
+Quickly repeated presses of the same key are ignored.	Snabbt upprepade tryck på samma tangent ignoreras.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	Banderoller förblir dolda, utom brådskande. Notiser hamnar fortfarande i listan i menyraden.
+%d seconds	%d sekunder
+Show banners for	Visa banderoller i
+Apps can ask for a different time; urgent notifications stay until you close them.	Appar kan begära en annan tid; brådskande notiser ligger kvar tills du stänger dem.
+Play sounds	Spela upp ljud
+History	Historik
+Keep notifications in the menu bar	Spara notiser i menyraden
+Missed notifications and reminders wait in the list until you read them.	Missade notiser och påminnelser väntar i listan tills du läser dem.
+Number of notifications to keep	Antal notiser att spara
+Applications	Appar
+Apps appear here after they send a notification.	Appar visas här när de har skickat en notis.
+Reminders	Påminnelser
+Open with	Öppna med
+File manager	Filhanterare
+Text editor	Textredigerare
+Image viewer	Bildvisare
+PDF and documents	PDF och dokument
+No app installed	Ingen app installerad
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	Används för ”Öppna terminal här” i Filer och för appar som körs i en terminal.
+Apps you install later appear here automatically if they can open these files.	Appar som du installerar senare visas här automatiskt om de kan öppna de här filerna.
+Open at Login	Öppna vid inloggning
+No apps open at login.	Ingen app öppnas vid inloggning.
+Choose an app…	Välj en app…
+Add an App	Lägg till en app
+These apps open each time you log in.	De här apparna öppnas varje gång du loggar in.
+When a Drive Is Connected	När en enhet ansluts
+Mount USB drives and memory cards	Montera USB-enheter och minneskort
+Files on the drive are ready right away, without clicking it in Files.	Filerna på enheten är tillgängliga direkt, utan att klicka i Filer.
+Mount inserted CDs and DVDs	Montera insatta cd- och dvd-skivor
+Open a window with the drive's files	Öppna ett fönster med enhetens filer
+Cameras and Phones	Kameror och telefoner
+Import photos when a camera is connected	Importera bilder när en kamera ansluts
+Play audio CDs when inserted	Spela upp ljud-cd när de sätts in
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	Interna diskar monteras aldrig automatiskt. Program på en enhet startar aldrig av sig själva.
+3 seconds	3 sekunder
+5 seconds	5 sekunder
+6 seconds	6 sekunder
+10 seconds	10 sekunder
+15 seconds	15 sekunder
+30 seconds	30 sekunder
+App	App
+Key Repeat	Tangentupprepning
+Key repeat rate	Upprepningshastighet
+Delay until repeat	Fördröjning före upprepning
+Long	Lång
+Short	Kort
+Xfce Settings	Xfce-inställningar
+Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Utseende, Wi-Fi, Bluetooth, skärmar, tangentbord, mus och allt annat
+Wallpaper, widgets, Dock and menu bar	Bakgrundsbild, widgetar, Dock och menyrad

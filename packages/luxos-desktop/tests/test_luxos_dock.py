@@ -829,6 +829,68 @@ class DockLuxwm(DockBase):
                 self.assertLessEqual(abs(got - exp), 10, (color, panels[color], want))
 
 
+    def cover_dock(self):
+        """Pruhovane okno (pripnuta aplikace alpha) stazene az za Dock: sklo (rozmazane pruhy) je pak videt i mimo
+        panel."""
+        _, m = self.wait_line(self.dock, r" zone HEADLESS-1 (\d+)")
+        zone = int(m.group(1))
+        client = self.spawn(["wlt-client", "--events", "--size", f"{W - 40}x{H - zone - 2 * 8 - 30}", "--app-id", "cz.test.alpha"])
+        self.wait_line(client, r"configure")
+        time.sleep(0.3)
+        self.input(f"move {W // 2} 20", "down", *self.glide_cmds([(W // 2, 20), (W // 2, 220)], 20, 0.01), "up",
+                   f"move {W // 2} 100")
+        time.sleep(0.5)
+        return zone
+
+    def test_zoom_glass_stays_panel(self):
+        """Zvetseni jako Plank: ikony vystoupi nad panel, sklo (material kompozitoru pod vstupni oblasti) zustane
+        jen panel - nad panelem vedle zvetsenych ikon se nic nezmeni (drive se cele sklo zvedlo s ikonou)."""
+        self.conf()
+        self.start_dock()
+        zone = self.cover_dock()
+        rest = self.shot("zoom-glass-rest")
+        x = self.centers[0]
+        self.glide([(W // 2, 100), (x, H - 30)], step=12)
+        time.sleep(0.8)
+        hover = self.shot("zoom-glass-hover")
+        w, h = rest[0], rest[1]
+        panel_top = h - zone
+        size = (self.centers[1] - self.centers[0]) * 24 // 31
+        # zvetsene ikony u leve strany siri nez 3 sloty; vpravo od nich nad panelem musi zustat okno
+        xs = range(self.centers[0] + 3 * (self.centers[1] - self.centers[0]), self.centers[-1] + size // 2, 3)
+        changed = [(xx, y) for y in range(panel_top - size // 2 + 2, panel_top - 1) for xx in xs
+                   if differs(px(hover[2], w, xx, y), px(rest[2], w, xx, y), 6)]
+        self.assertEqual(changed[:10], [], f"glass rose above the panel at {len(changed)} px")
+        # a zvetsena ikona opravdu vycniva nad panel (jinak by test nic nemeril)
+        icon = [1 for y in range(panel_top - size // 2, panel_top - 2) for xx in range(x - 10, x + 10)
+                if differs(px(hover[2], w, xx, y), px(rest[2], w, xx, y), 20)]
+        self.assertGreater(len(icon), 50, "no magnified icon above the panel")
+
+    def test_label_leaves_no_remnant(self):
+        """Popisek krajni ikony je sirsi nez Dock: po odchodu mysi z nej nesmi zustat zamrzly zbytek
+        (prekreslovala se jen sirka Docku, popisek mimo ni zustal v bufferu)."""
+        name = "Monitor systemu s velmi dlouhym nazvem"
+        (self.apps / "test-long.desktop").write_text(
+            "[Desktop Entry]\nType=Application\nName=" + name + "\nExec=true\nIcon=utilities-terminal\n")
+        self.conf(items=["test-alpha.desktop", "test-beta.desktop", "test-long.desktop"])
+        self.start_dock()
+        self.cover_dock()
+        rest = self.shot("label-rest")
+        for x, away in ((self.centers[-1], W - 5), (self.centers[0], 5)):
+            self.glide([(W // 2, 100), (x, H - 30)], step=12)
+            time.sleep(0.6)
+            hover = self.shot()
+            w, h = hover[0], hover[1]
+            label = [(xx, y) for y in range(h - 160, h - 60) for xx in range(0, W, 2)
+                     if differs(px(hover[2], w, xx, y), px(rest[2], w, xx, y), 20)]
+            self.assertGreater(len(label), 100, "no label")
+            self.glide([(x, H - 30), (away, H - 30), (away, 300)], step=30, delay=0.002)
+            time.sleep(1.0)
+            after = self.shot("label-away-" + ("right" if away > 100 else "left"))
+            left = [(xx, y) for (xx, y) in label if differs(px(after[2], w, xx, y), px(rest[2], w, xx, y), 6)]
+            self.assertEqual(left[:10], [], f"label remnant: {len(left)} px")
+
+
 EMIT_PY = r'''
 import sys
 from gi.repository import Gio, GLib

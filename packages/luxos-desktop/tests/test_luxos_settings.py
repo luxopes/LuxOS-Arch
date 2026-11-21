@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - Plocha a Dock (files/lsl/luxos-settings.lsl) v relaci X11 (vlastni Xvfb) i na Waylandu (luxwm headless).
+"""LuxOS - Nastaveni > Plocha a Dock (luxos-settings desktop) a karty svetly/tmavy na strance Vzhled v relaci X11 (vlastni Xvfb) i na Waylandu (luxwm headless).
 
     env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \\
       systemd-run --user --scope -p TasksMax=300 -p MemoryMax=2G -p MemorySwapMax=0 -- timeout 900 \\
@@ -70,10 +70,10 @@ def wait_for(cond, timeout=8):
 
 @unittest.skipUnless(h.HAVE_X11, "Xvfb, xdotool or dbus-run-session missing")
 class X11(unittest.TestCase):
-    def run_app(self, script, tmp=None, env=None, size=(1366, 768)):
+    def run_app(self, script, tmp=None, env=None, size=(1366, 768), page="desktop"):
         if env is None:
             tmp, env = make_env()
-        app = h.X11App([str(h.build("luxos-settings"))], env, script, size=size, tmp=tmp)
+        app = h.X11App([str(h.build("luxos-settings")), page], env, script, size=size, tmp=tmp)
         self.addCleanup(app.close)
         return app
 
@@ -81,45 +81,53 @@ class X11(unittest.TestCase):
         tmp, env = make_env()
         app = self.run_app(["dump", "quit"], tmp, env)
         d = app.wait_dump()
-        for title in ("Appearance", "Boot Screen", "Wallpaper", "Widgets", "Dock", "Menu Bar"):
+        for title in ("Boot Screen", "Wallpaper", "Widgets", "Dock", "Menu Bar"):
             self.assertIn("GtkLabel\t" + title, d)
-        for link in ("Displays…", "Advanced Desktop Settings…", "Menu Bar Items…"):
+        for link in ("Advanced Desktop Settings…", "Menu Bar Items…"):
             self.assertIn("GtkButton\t" + link, d)
+        self.assertNotIn("GtkButton\tDisplays…", d)
+        # svetly/tmavy rezim je na strance Vzhled
+        self.assertFalse([line for line in d if line.startswith("GtkButton\tDark")], d)
         self.assertEqual(find(d, "GtkComboBoxText", "Position on screen"), ["bottom"])
         self.assertIn("GtkButton\tBlue [current]", d)
-        # stav vzhledu a spousteci obrazovky z luxos-appearance / luxos-splash, tapeta z xfconf
-        self.assertIn("luxos-appearance mode", calls(tmp))
+        # stav spousteci obrazovky z luxos-splash, tapeta z xfconf
+        self.assertNotIn("luxos-appearance mode", calls(tmp))
         self.assertIn("luxos-splash get", calls(tmp))
         self.assertIn("xfconf-query -c xfce4-desktop -l", calls(tmp))
 
-    def test_appearance_and_bar(self):
+    def test_bar(self):
         tmp, env = make_env()
-        app = self.run_app(["click Dark", "switch Clock in the middle on", "switch Rounded corners on",
+        app = self.run_app(["switch Clock in the middle on", "switch Rounded corners on",
                             "switch Darken bright wallpaper under the menu bar and widgets off",
-                            "switch Notify about summer and winter time off", "slider Menu bar opacity 40",
-                            "wait 600", "dump", "quit"], tmp, env)
-        d = app.wait_dump()
+                            "slider Menu bar opacity 40", "wait 600", "quit"], tmp, env)
         app.wait_exit()
         log = calls(tmp)
-        for want in ("luxos-appearance dark", "luxos-appearance bar-clock center", "luxos-appearance bar-style rounded",
+        for want in ("luxos-appearance bar-clock center", "luxos-appearance bar-style rounded",
                      "luxos-appearance desktop-scrim off", "luxos-appearance bar-opacity 40"):
             self.assertIn(want, log)
+
+    def test_appearance_mode_cards(self):
+        tmp, env = make_env()
+        app = self.run_app(["dump", "click Dark", "wait 300", "dump", "quit"], tmp, env, page="appearance")
+        first = app.wait_dump(1)
+        self.assertIn("GtkButton\tLight [current]", first)
+        d = app.wait_dump(2)
+        app.wait_exit()
+        self.assertIn("luxos-appearance mode", calls(tmp))
+        self.assertIn("luxos-appearance dark", calls(tmp))
         self.assertIn("GtkButton\tDark [current]", d)
         self.assertNotIn("GtkButton\tLight [current]", d)
-        self.assertIn("TIME_CHANGE=0", (tmp / "config/luxos/notifications.conf").read_text().splitlines())
 
     def test_prefs_shown(self):
         tmp, env = make_env()
         (tmp / "config/luxos").mkdir(parents=True)
         (tmp / "config/luxos/appearance.conf").write_text("BAR_OPACITY=30\nBAR_CLOCK=center\nDESKTOP_SCRIM=0\n"
                                                           "DOCK_OPACITY=55\nBAR_STYLE=rounded\n")
-        (tmp / "config/luxos/notifications.conf").write_text("TIME_CHANGE=0\n")
         d = self.run_app(["dump", "quit"], tmp, env).wait_dump()
         self.assertEqual(find(d, "GtkScale", "Menu bar opacity"), ["30"])
         self.assertEqual(find(d, "GtkScale", "Dock opacity"), ["55"])
         self.assertEqual(find(d, "GtkSwitch", "Clock in the middle"), ["on"])
         self.assertEqual(find(d, "GtkSwitch", "Rounded corners"), ["on"])
-        self.assertEqual(find(d, "GtkSwitch", "Notify about summer and winter time"), ["off"])
         self.assertEqual(find(d, "GtkSwitch", "Darken bright wallpaper under the menu bar and widgets"), ["off"])
 
     def test_dock_gsettings(self):
@@ -188,14 +196,14 @@ class X11(unittest.TestCase):
     def test_czech(self):
         tmp, env = make_env("cs_CZ.UTF-8")
         d = self.run_app(["dump", "quit"], tmp, env).wait_dump()
-        for title in ("Vzhled", "Tapeta", "Horní lišta"):
+        for title in ("Tapeta", "Horní lišta"):
             self.assertIn("GtkLabel\t" + title, d)
 
 
 @unittest.skipUnless(h.HAVE_WAYLAND, "luxwm (LUXWM_BUILD) or wl-test sysroot missing")
 class Wayland(unittest.TestCase):
     def run_app(self, script, tmp, env):
-        app = h.WaylandApp([str(h.build("luxos-settings"))], env, script, tmp=tmp)
+        app = h.WaylandApp([str(h.build("luxos-settings")), "desktop"], env, script, tmp=tmp)
         self.addCleanup(app.close)
         return app
 
@@ -206,13 +214,15 @@ class Wayland(unittest.TestCase):
         if wall:
             (tmp / "config/luxos/appearance.conf").write_text(f"WALLPAPER='{wall[0]}'\n")
         d = self.run_app(["dump", "quit"], tmp, env).wait_dump()
-        self.assertIn("GtkButton\tDisplays…", d)
+        self.assertNotIn("GtkButton\tDisplays…", d)
         self.assertNotIn("GtkButton\tAdvanced Desktop Settings…", d)
         self.assertNotIn("GtkButton\tMenu Bar Items…", d)
         self.assertIsNone(find(d, "GtkComboBoxText", "Position on screen"))     # luxos-dock je jen dole
         self.assertFalse([c for c in calls(tmp) if c.startswith("xfconf-query")], calls(tmp))
         if wall:
-            self.assertEqual(sum(1 for line in d if line.startswith("GtkButton") and line.endswith("[current]")), 3)
+            # spousteci obrazovka a tapeta (karty rezimu jsou na strance Vzhled)
+            self.assertEqual(sum(1 for line in d if line.startswith("GtkButton") and line.endswith("[current]")),
+                             2 if Path("/usr/bin/luxos-splash").exists() else 1)
 
     def test_dock_conf(self):
         tmp, env = make_env()

@@ -7,6 +7,9 @@
 #     (jmena org.xfce.Notifyd i org.freedesktop.Notifications) a cz.luxos.NotificationHistory
 #     (Activate jako luxos-notifyd.c, Nerusit, skryti bublin pod vyskakovacim oknem listy)
 #   - Nerusit: bez bublin (krome kriticke nalehavosti), oznameni hned zavrene s duvodem 4, historie zustava
+#   - nastaveni z ~/.config/luxos/notifications.conf (Nastaveni > Oznameni), zmena se nacte hned: DO_NOT_DISTURB,
+#     BANNER_SECONDS (bez casu od aplikace), SOUNDS, HISTORY, HISTORY_SIZE, MUTED_APPS (jmena aplikaci oddelena ";",
+#     jako muted_applications xfce4-notifyd: bez bublin); aplikace, ktere uz oznamovaly, v notification-apps
 # Vse na udalostech: jeden casovac jen pro nejblizsi vyprseni, zadny periodicky beh.
 load luxos_layer as layer
 load luxos_primary as primary
@@ -18,6 +21,7 @@ load luxos_gtk
 load luxos_notify_store as store
 load luxos_notify_sys as sys
 load luxos_i18n as i18n
+load luxos_text as ltext
 
 FDO = "org.freedesktop.Notifications"
 FDO_PATH = "/org/freedesktop/Notifications"
@@ -80,7 +84,8 @@ LOG_XML = LOG_XML + "</interface></node>"
 # notes: cislo -> oznameni; shown: cisla viditelnych bublin (nejnovejsi prvni); waiting: fronta
 S = {"bus": 0, "notes": {}, "shown": [], "waiting": [], "slots": [], "window": 0, "column": 0,
      "dnd": False, "hidden": False, "paused": False, "timer": 0, "timer_record": 0, "save_id": 0,
-     "save_record": 0, "css": 0, "dark": False, "tz": "", "sound": False}
+     "save_record": 0, "css": 0, "dark": False, "tz": "", "sound": False, "banner_ms": DEFAULT_TIMEOUT,
+     "sounds_on": True, "history_on": True, "muted": [], "known": []}
 
 function now_us():
     return glib.monotonic_time()
@@ -406,7 +411,8 @@ function notify(note):
         end
     end
     note["id"] = nid
-    if note["keep"]:
+    call remember_app(note["app"])
+    if note["keep"] and S["history_on"]:
         call history_add(note, nid)
     end
     old = S["notes"].get(nid, None)
@@ -423,7 +429,7 @@ function notify(note):
         return nid
     end
     S["notes"][nid] = note
-    note["quiet"] = S["dnd"] and note["urgency"] < 2
+    note["quiet"] = (S["dnd"] or note["app"] in S["muted"]) and note["urgency"] < 2
     if not note["quiet"]:
         S["waiting"].append(nid)
         call drop_overflow()
@@ -501,7 +507,7 @@ function timeout_of(note):
         return 0
     end
     if note["timeout"] < 0:
-        return DEFAULT_TIMEOUT
+        return S["banner_ms"]
     end
     return note["timeout"]
 end
@@ -573,6 +579,18 @@ function pause(on):
     return 0
 end
 
+function conf_path():
+    return config_dir() + "/notifications.conf"
+end
+
+# KLIC=hodnota v notifications.conf; ostatni radky (TIME_CHANGE pro luxos-hub, volby Nastaveni) zustanou
+function conf_write(key, value):
+    lines = [line for line in lglib.read_text(conf_path()).split("\n") if line != "" and not line.startswith(key + "=")]
+    lines.append(key + "=" + value)
+    call lglib.mkdir_p(config_dir())
+    return lglib.write_atomic(conf_path(), "\n".join(lines) + "\n")
+end
+
 function set_dnd(on):
     if on == S["dnd"]:
         return 0
@@ -582,19 +600,65 @@ function set_dnd(on):
     if on:
         value = "true"
     end
-    call lglib.mkdir_p(config_dir())
-    call lglib.write_atomic(config_dir() + "/notifications.conf", "DO_NOT_DISTURB=" + value + "\n")
+    call conf_write("DO_NOT_DISTURB", value)
     call emit(HISTORY_PATH, HISTORY_IFACE, "DoNotDisturbChanged", [on], "(b)")
     return 0
 end
 
-function load_dnd():
-    for line in lglib.read_text(config_dir() + "/notifications.conf").split("\n"):
-        if line.strip() == "DO_NOT_DISTURB=true":
-            return True
+function number(value, default, lo, hi):
+    if ltext.is_digits(value):
+        return min(hi, max(lo, Int(value)))
+    end
+    return default
+end
+
+function load_config():
+    conf = {}
+    for line in lglib.read_text(conf_path()).split("\n"):
+        cut = line.find("=")
+        if cut > 0:
+            conf[line[0:cut].strip()] = line[cut + 1:].strip()
         end
     end
-    return False
+    S["banner_ms"] = number(conf.get("BANNER_SECONDS", ""), DEFAULT_TIMEOUT // 1000, 1, 600) * 1000
+    S["sounds_on"] = conf.get("SOUNDS", "1") != "0"
+    S["history_on"] = conf.get("HISTORY", "1") != "0"
+    call store.set_max(number(conf.get("HISTORY_SIZE", ""), store.MAX, 1, 1000))
+    S["muted"] = [a for a in conf.get("MUTED_APPS", "").split(";") if a != ""]
+    return conf.get("DO_NOT_DISTURB", "") == "true"
+end
+
+# Zmena z Nastaveni nebo zapis vlastniho Nerusit (pak beze zmeny a bez signalu)
+function on_config(path, event, other):
+    dnd = load_config()
+    if dnd != S["dnd"]:
+        S["dnd"] = dnd
+        call emit(HISTORY_PATH, HISTORY_IFACE, "DoNotDisturbChanged", [dnd], "(b)")
+    end
+    if not S["history_on"]:
+        return 0
+    end
+    removed = store.truncate(store.state["max"])
+    if len(removed) > 0:
+        call forget_icons(removed)
+        call schedule_save()
+        call emit_log("RowDeleted", removed)
+    end
+    return 0
+end
+
+# Seznam aplikaci pro Nastaveni > Oznameni (jako known_applications xfce4-notifyd); zapis jen u nove aplikace
+function apps_path():
+    return glib.user_data_dir() + "/luxos/notification-apps"
+end
+
+function remember_app(name):
+    if name == "" or name in S["known"] or len(S["known"]) >= 200:
+        return 0
+    end
+    S["known"].append(name)
+    call lglib.mkdir_p(glib.user_data_dir() + "/luxos")
+    return lglib.write_atomic(apps_path(), "\n".join(S["known"]) + "\n")
 end
 
 # Vyskakovaci okno listy je otevrene: bubliny pod nim nemaji byt, odpocet stoji a po zavreni bezi znovu cely
@@ -617,7 +681,7 @@ function set_hidden(on):
 end
 
 function play_sound(note):
-    if S["sound"] and note["sound"] != "":
+    if S["sound"] and S["sounds_on"] and note["sound"] != "":
         parts = note["sound"].split("\n")
         call lglib.spawn_quiet(["canberra-gtk-play", parts[0], parts[1], "-d", "luxos-notify"])
     end
@@ -1019,7 +1083,8 @@ function main():
         exit(1)
     end
     S["tz"] = sys.local_tz()
-    S["dnd"] = load_dnd()
+    S["dnd"] = load_config()
+    S["known"] = [a for a in lglib.read_text(apps_path()).split("\n") if a != ""]
     S["sound"] = glib.find_program_in_path("canberra-gtk-play") != ""
     S["timer_record"] = glib.record_new(on_timer, 0)
     S["save_record"] = glib.record_new(on_save, 0)
@@ -1027,6 +1092,10 @@ function main():
     call load_css()
     safe:
         S["appearance"] = gio.file_monitor(config_dir() + "/appearance", on_appearance)
+    end
+    safe:
+        call lglib.mkdir_p(config_dir())
+        S["config"] = gio.file_monitor(conf_path(), on_config)
     end
     call build_window()
     call sys.register_raw(S["bus"], FDO_PATH, FDO_XML, on_fdo)

@@ -443,6 +443,15 @@ apply() {
         gtk=WhiteSur-Dark icons=WhiteSur-dark prefer=prefer-dark
         rgba=(0.09 0.09 0.12 "$alpha")
     fi
+    # Vlastni sada ikon (Nastaveni > Vzhled) zustava; svetle/tmave se stridaji jen ikony WhiteSur
+    local cur_icons
+    if wayland; then
+        cur_icons=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null)
+        cur_icons=${cur_icons//\'/}
+    else
+        cur_icons=$(xfconf-query -c xsettings -p /Net/IconThemeName 2>/dev/null)
+    fi
+    [[ -z $cur_icons || $cur_icons == WhiteSur* ]] || icons=$cur_icons
 
     if ! wayland && command -v xfconf-query >/dev/null; then
         xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s "$gtk"

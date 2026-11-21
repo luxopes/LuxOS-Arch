@@ -20,10 +20,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[2] / "scripts"))
 import luxos_testguard  # noqa: E402
+import lsl_app  # noqa: E402
 
 PKG = HERE.parent
 REPO = PKG.parent.parent
-LSL_DIR = PKG / "files" / "lsl"
+LSL_DIR = Path(os.environ.get("LUXOS_LSL_DIR") or PKG / "files" / "lsl")
 I18N = REPO / "packages" / "luxos-i18n" / "files"
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
 WLT = REPO / "scripts/wl-test/wlt"
@@ -56,6 +57,11 @@ def build(name):
     if name in _built:
         return _built[name]
     out = Path(tempfile.mkdtemp(prefix="lslbuild-", dir=private_dir())) / name
+    if not (LSL_DIR / f"{name}.lsl").exists() and name in lsl_app.SETTINGS_ALIASES:
+        # stary program nastaveni je odkaz na luxos-settings (stranka podle jmena)
+        out.symlink_to(build("luxos-settings"))
+        _built[name] = out
+        return out
     r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(LSL_DIR),
                         str(LSL_DIR / f"{name}.lsl"), str(out)], capture_output=True, text=True, timeout=900)
     if r.returncode:

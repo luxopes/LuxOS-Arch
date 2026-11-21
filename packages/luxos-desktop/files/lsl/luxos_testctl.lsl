@@ -71,7 +71,8 @@ function run(line):
                 break
             end
         end
-    elif command == "switch":
+    elif command == "switch" and (rest == "0" or rest == "1"):
+        # "switch RADEK = on" (luxos-settings) patri aplikaci
         w = first_of(windows(), "GtkSwitch")
         if w != 0:
             call gtk.switch_set_active(w, rest == "1")

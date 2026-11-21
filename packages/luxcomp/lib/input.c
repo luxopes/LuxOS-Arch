@@ -1,10 +1,13 @@
 /* Vstup: seat, klavesnice a zkratky, kurzor, presun a zmena velikosti oken */
 #define _GNU_SOURCE
+#include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <wlr/backend.h>
+#include <wlr/backend/libinput.h>
 #include <wlr/backend/session.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/types/wlr_cursor.h>
@@ -20,6 +23,7 @@
 #include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
+#include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
@@ -38,6 +42,19 @@ struct keyboard {
 };
 
 static bool syncing_group;
+
+/* Mysi a touchpady z libinput: nastaveni podle druhu plati pro pripojena i pozdeji pripojena zarizeni */
+#define INPUT_PROPS (LUXCOMP_INPUT_SCROLL_METHOD + 1)
+
+struct pointer {
+	struct wl_list link;
+	int64_t id;
+	struct wlr_input_device *wlr;
+	struct wl_listener destroy;
+};
+
+static struct wl_list pointers;
+static int64_t input_conf[3][INPUT_PROPS];	/* [druh][vlastnost], LUXCOMP_INPUT_DEFAULT = nechat */
 
 static uint32_t
 now_ms(void)
@@ -334,6 +351,8 @@ new_keyboard(struct wlr_input_device *device, bool own_keymap)
 	wlr_seat_set_keyboard(comp.seat, kb->wlr);
 }
 
+static void new_pointer(struct wlr_input_device *device);
+
 static void
 add_device(struct wlr_input_device *device, bool own_keymap)
 {
@@ -341,6 +360,9 @@ add_device(struct wlr_input_device *device, bool own_keymap)
 		new_keyboard(device, own_keymap);
 	} else if (device->type == WLR_INPUT_DEVICE_POINTER) {
 		wlr_cursor_attach_input_device(comp.cursor, device);
+		if (wlr_input_device_is_libinput(device)) {
+			new_pointer(device);
+		}
 	}
 }
 
@@ -558,6 +580,23 @@ request_cursor(struct wl_listener *listener, void *data)
 	}
 }
 
+/* cursor-shape-v1: GTK 3 a 4 nastavuji kurzor jen jmenem. Bez obsluhy zustal posledni obrazek, i skryty
+ * (aplikace kurzor skryla pres wl_pointer, ostatni ho pak uz neukazaly). Tvar, ktery tema nema, je sipka. */
+static void
+request_shape(struct wl_listener *listener, void *data)
+{
+	struct wlr_cursor_shape_manager_v1_request_set_shape_event *e = data;
+	if (e->device_type != WLR_CURSOR_SHAPE_MANAGER_V1_DEVICE_TYPE_POINTER
+			|| comp.seat->pointer_state.focused_client != e->seat_client) {
+		return;
+	}
+	const char *name = wlr_cursor_shape_v1_name(e->shape);
+	if (!wlr_xcursor_manager_get_xcursor(comp.cursor_mgr, name, 1)) {
+		name = "default";
+	}
+	wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, name);
+}
+
 static void
 request_selection(struct wl_listener *listener, void *data)
 {
@@ -607,6 +646,13 @@ input_init(void)
 		size && atoi(size) > 0 ? atoi(size) : 24);
 	/* HiDPI: wlr_cursor si z manazeru nacte obrazky pro meritko kazdeho vystupu */
 
+	wl_list_init(&pointers);
+	for (int k = 0; k < 3; k++) {
+		for (int p = 0; p < INPUT_PROPS; p++) {
+			input_conf[k][p] = LUXCOMP_INPUT_DEFAULT;
+		}
+	}
+
 	comp.new_input.notify = new_input;
 	wl_signal_add(&comp.backend->events.new_input, &comp.new_input);
 	/* Vstup od klientu (psani shellu, testy pres scripts/wl-test). Klient jim muze psat do
@@ -634,6 +680,9 @@ input_init(void)
 	wl_signal_add(&comp.cursor->events.frame, &comp.cursor_frame);
 	comp.request_cursor.notify = request_cursor;
 	wl_signal_add(&comp.seat->events.request_set_cursor, &comp.request_cursor);
+	struct wlr_cursor_shape_manager_v1 *shapes = wlr_cursor_shape_manager_v1_create(comp.display, 1);
+	comp.request_shape.notify = request_shape;
+	wl_signal_add(&shapes->events.request_set_shape, &comp.request_shape);
 	comp.drag_icons = wlr_scene_tree_create(&comp.scene->tree);
 	comp.request_start_drag.notify = request_start_drag;
 	wl_signal_add(&comp.seat->events.request_start_drag, &comp.request_start_drag);
@@ -655,6 +704,7 @@ input_finish(void)
 	wl_list_remove(&comp.cursor_axis.link);
 	wl_list_remove(&comp.cursor_frame.link);
 	wl_list_remove(&comp.request_cursor.link);
+	wl_list_remove(&comp.request_shape.link);
 	wl_list_remove(&comp.request_selection.link);
 	wl_list_remove(&comp.request_primary.link);
 	wl_list_remove(&comp.request_start_drag.link);
@@ -840,6 +890,7 @@ luxcomp_set_cursor(const char *theme, int64_t size)
 	wlr_xcursor_manager_destroy(comp.cursor_mgr);
 	comp.cursor_mgr = mgr;
 	cursor_rebase();
+	xwayland_root_cursor();
 	if (theme && *theme) {
 		setenv("XCURSOR_THEME", theme, 1);
 	} else {
@@ -848,4 +899,249 @@ luxcomp_set_cursor(const char *theme, int64_t size)
 	char text[16];
 	snprintf(text, sizeof(text), "%d", (int)size);
 	setenv("XCURSOR_SIZE", text, 1);
+}
+
+/* ---- mys a touchpad (libinput) ---- */
+
+static int
+pointer_kind(struct libinput_device *dev)
+{
+	return libinput_device_config_tap_get_finger_count(dev) > 0 ? LUXCOMP_INPUT_TOUCHPAD : LUXCOMP_INPUT_MOUSE;
+}
+
+static const uint32_t click_methods[] = { LIBINPUT_CONFIG_CLICK_METHOD_NONE,
+	LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS, LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER };
+static const uint32_t scroll_methods[] = { LIBINPUT_CONFIG_SCROLL_NO_SCROLL, LIBINPUT_CONFIG_SCROLL_2FG,
+	LIBINPUT_CONFIG_SCROLL_EDGE, LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN };
+
+static int64_t
+method_index(const uint32_t *methods, size_t n, uint32_t method)
+{
+	for (size_t i = 0; i < n; i++) {
+		if (methods[i] == method) {
+			return i;
+		}
+	}
+	return LUXCOMP_INPUT_NONE;
+}
+
+/* Hodnota, kterou ma libinput, nebo vychozi hodnota zarizeni; LUXCOMP_INPUT_NONE = volbu nema */
+static int64_t
+pointer_value(struct libinput_device *dev, int prop, bool def)
+{
+	switch (prop) {
+	case LUXCOMP_INPUT_KIND:
+		return pointer_kind(dev);
+	case LUXCOMP_INPUT_SPEED:
+		if (!libinput_device_config_accel_is_available(dev)) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return lround(100 * (def ? libinput_device_config_accel_get_default_speed(dev)
+			: libinput_device_config_accel_get_speed(dev)));
+	case LUXCOMP_INPUT_ACCEL_PROFILE: {
+		uint32_t profiles = libinput_device_config_accel_get_profiles(dev);
+		if (!(profiles & LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT) || !(profiles & LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE)) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		enum libinput_config_accel_profile p = def ? libinput_device_config_accel_get_default_profile(dev)
+			: libinput_device_config_accel_get_profile(dev);
+		return p == LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+	}
+	case LUXCOMP_INPUT_NATURAL_SCROLL:
+		if (!libinput_device_config_scroll_has_natural_scroll(dev)) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return def ? libinput_device_config_scroll_get_default_natural_scroll_enabled(dev)
+			: libinput_device_config_scroll_get_natural_scroll_enabled(dev);
+	case LUXCOMP_INPUT_LEFT_HANDED:
+		if (!libinput_device_config_left_handed_is_available(dev)) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return def ? libinput_device_config_left_handed_get_default(dev)
+			: libinput_device_config_left_handed_get(dev);
+	case LUXCOMP_INPUT_MIDDLE_EMULATION:
+		if (!libinput_device_config_middle_emulation_is_available(dev)) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return (def ? libinput_device_config_middle_emulation_get_default_enabled(dev)
+			: libinput_device_config_middle_emulation_get_enabled(dev)) == LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED;
+	case LUXCOMP_INPUT_TAP:
+		if (libinput_device_config_tap_get_finger_count(dev) == 0) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return (def ? libinput_device_config_tap_get_default_enabled(dev)
+			: libinput_device_config_tap_get_enabled(dev)) == LIBINPUT_CONFIG_TAP_ENABLED;
+	case LUXCOMP_INPUT_TAP_DRAG:
+		if (libinput_device_config_tap_get_finger_count(dev) == 0) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return (def ? libinput_device_config_tap_get_default_drag_enabled(dev)
+			: libinput_device_config_tap_get_drag_enabled(dev)) == LIBINPUT_CONFIG_DRAG_ENABLED;
+	case LUXCOMP_INPUT_DISABLE_WHILE_TYPING:
+		if (!libinput_device_config_dwt_is_available(dev)) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return (def ? libinput_device_config_dwt_get_default_enabled(dev)
+			: libinput_device_config_dwt_get_enabled(dev)) == LIBINPUT_CONFIG_DWT_ENABLED;
+	case LUXCOMP_INPUT_CLICK_METHOD:
+		if (libinput_device_config_click_get_methods(dev) == LIBINPUT_CONFIG_CLICK_METHOD_NONE) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return method_index(click_methods, 3, def ? libinput_device_config_click_get_default_method(dev)
+			: libinput_device_config_click_get_method(dev));
+	case LUXCOMP_INPUT_SCROLL_METHOD:
+		if (libinput_device_config_scroll_get_methods(dev) == LIBINPUT_CONFIG_SCROLL_NO_SCROLL) {
+			return LUXCOMP_INPUT_NONE;
+		}
+		return method_index(scroll_methods, 4, def ? libinput_device_config_scroll_get_default_method(dev)
+			: libinput_device_config_scroll_get_method(dev));
+	}
+	return LUXCOMP_INPUT_NONE;
+}
+
+static enum libinput_config_status
+pointer_apply(struct libinput_device *dev, int prop, int64_t value)
+{
+	if (value == LUXCOMP_INPUT_DEFAULT) {
+		value = pointer_value(dev, prop, true);
+	}
+	if (value == LUXCOMP_INPUT_NONE || pointer_value(dev, prop, false) == LUXCOMP_INPUT_NONE) {
+		return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+	}
+	switch (prop) {
+	case LUXCOMP_INPUT_SPEED:
+		value = value < -100 ? -100 : value > 100 ? 100 : value;
+		return libinput_device_config_accel_set_speed(dev, value / 100.0);
+	case LUXCOMP_INPUT_ACCEL_PROFILE:
+		return libinput_device_config_accel_set_profile(dev, value
+			? LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT : LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE);
+	case LUXCOMP_INPUT_NATURAL_SCROLL:
+		return libinput_device_config_scroll_set_natural_scroll_enabled(dev, value != 0);
+	case LUXCOMP_INPUT_LEFT_HANDED:
+		return libinput_device_config_left_handed_set(dev, value != 0);
+	case LUXCOMP_INPUT_MIDDLE_EMULATION:
+		return libinput_device_config_middle_emulation_set_enabled(dev, value
+			? LIBINPUT_CONFIG_MIDDLE_EMULATION_ENABLED : LIBINPUT_CONFIG_MIDDLE_EMULATION_DISABLED);
+	case LUXCOMP_INPUT_TAP:
+		return libinput_device_config_tap_set_enabled(dev, value
+			? LIBINPUT_CONFIG_TAP_ENABLED : LIBINPUT_CONFIG_TAP_DISABLED);
+	case LUXCOMP_INPUT_TAP_DRAG:
+		return libinput_device_config_tap_set_drag_enabled(dev, value
+			? LIBINPUT_CONFIG_DRAG_ENABLED : LIBINPUT_CONFIG_DRAG_DISABLED);
+	case LUXCOMP_INPUT_DISABLE_WHILE_TYPING:
+		return libinput_device_config_dwt_set_enabled(dev, value
+			? LIBINPUT_CONFIG_DWT_ENABLED : LIBINPUT_CONFIG_DWT_DISABLED);
+	case LUXCOMP_INPUT_CLICK_METHOD:
+		if (value < 0 || value > 2) {
+			return LIBINPUT_CONFIG_STATUS_INVALID;
+		}
+		return libinput_device_config_click_set_method(dev, click_methods[value]);
+	case LUXCOMP_INPUT_SCROLL_METHOD:
+		if (value < 0 || value > 3) {
+			return LIBINPUT_CONFIG_STATUS_INVALID;
+		}
+		return libinput_device_config_scroll_set_method(dev, scroll_methods[value]);
+	}
+	return LIBINPUT_CONFIG_STATUS_UNSUPPORTED;
+}
+
+static void
+pointer_set(struct pointer *p, int prop, int64_t value)
+{
+	struct libinput_device *dev = wlr_libinput_get_device_handle(p->wlr);
+	enum libinput_config_status status = pointer_apply(dev, prop, value);
+	/* volbu, kterou zarizeni nema (mys a klepnuti), neni treba hlasit */
+	if (status == LIBINPUT_CONFIG_STATUS_INVALID) {
+		wlr_log(WLR_ERROR, "luxcomp: %s: input option %d = %" PRId64 " refused",
+			libinput_device_get_name(dev), prop, value);
+	}
+}
+
+static void
+pointer_destroy(struct wl_listener *listener, void *data)
+{
+	struct pointer *p = wl_container_of(listener, p, destroy);
+	wl_list_remove(&p->destroy.link);
+	wl_list_remove(&p->link);
+	free(p);
+}
+
+static void
+new_pointer(struct wlr_input_device *device)
+{
+	struct pointer *p = calloc(1, sizeof(*p));
+	p->id = ++comp.next_id;
+	p->wlr = device;
+	p->destroy.notify = pointer_destroy;
+	wl_signal_add(&device->events.destroy, &p->destroy);
+	wl_list_insert(pointers.prev, &p->link);
+	int kind = pointer_kind(wlr_libinput_get_device_handle(device));
+	for (int prop = LUXCOMP_INPUT_SPEED; prop < INPUT_PROPS; prop++) {
+		if (input_conf[kind][prop] != LUXCOMP_INPUT_DEFAULT) {
+			pointer_set(p, prop, input_conf[kind][prop]);
+		}
+	}
+}
+
+static struct pointer *
+pointer_by_id(int64_t id)
+{
+	struct pointer *p;
+	wl_list_for_each(p, &pointers, link) {
+		if (p->id == id) {
+			return p;
+		}
+	}
+	return NULL;
+}
+
+void
+luxcomp_input_set(int64_t kind, int64_t prop, int64_t value)
+{
+	if (kind < LUXCOMP_INPUT_MOUSE || kind > LUXCOMP_INPUT_TOUCHPAD
+			|| prop < LUXCOMP_INPUT_SPEED || prop >= INPUT_PROPS) {
+		return;
+	}
+	input_conf[kind][prop] = value;
+	struct pointer *p;
+	wl_list_for_each(p, &pointers, link) {
+		if (pointer_kind(wlr_libinput_get_device_handle(p->wlr)) == kind) {
+			pointer_set(p, prop, value);
+		}
+	}
+}
+
+int64_t
+luxcomp_input_next(int64_t device)
+{
+	struct wl_list *from = &pointers;
+	if (device) {
+		struct pointer *p = pointer_by_id(device);
+		if (!p) {
+			return 0;
+		}
+		from = &p->link;
+	}
+	if (from->next == &pointers) {
+		return 0;
+	}
+	struct pointer *next = wl_container_of(from->next, next, link);
+	return next->id;
+}
+
+const char *
+luxcomp_input_name(int64_t device)
+{
+	struct pointer *p = pointer_by_id(device);
+	return p ? libinput_device_get_name(wlr_libinput_get_device_handle(p->wlr)) : "";
+}
+
+int64_t
+luxcomp_input_get(int64_t device, int64_t prop)
+{
+	struct pointer *p = pointer_by_id(device);
+	if (!p || prop < LUXCOMP_INPUT_KIND || prop >= INPUT_PROPS) {
+		return LUXCOMP_INPUT_NONE;
+	}
+	return pointer_value(wlr_libinput_get_device_handle(p->wlr), prop, false);
 }

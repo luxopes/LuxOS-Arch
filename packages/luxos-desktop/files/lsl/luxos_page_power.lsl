@@ -1,4 +1,4 @@
-# LuxOS - Baterie a napajeni: stav baterie, grafy za 24 hodin a nastaveni.
+# LuxOS - Nastaveni > Baterie a napajeni (drive luxos-power): stav baterie, grafy za 24 hodin a nastaveni.
 # Udaje z UPower (systemova sbernice): procenta, nabijeni/vybijeni, odhad vydrze, spotreba ve wattech, zdravi
 # baterie a historie urovne a spotreby. Rezim napajeni primo pres power-profiles-daemon (D-Bus), Sporic baterie
 # (luxos-powersaver), casy vypnuti obrazovky a uspani (xfce4-power-manager, jen relace X11 - na Waylandu vik
@@ -6,7 +6,8 @@
 #
 # LUXOS_POWER_DEMO=1 ukazkova data (zarizeni bez baterie, testy), LUXOS_POWER_DEMO=full nabijecka a plne nabita
 # baterie bez poctu cyklu. Ukazkovy rezim nesaha na systemovou sbernici ani na luxos-gpu.
-load env
+# Stav se obnovuje jen pri zobrazene strance (casovace zapina show, vypina leave).
+load env, json
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load gio, cairo
@@ -20,7 +21,7 @@ PPD = [["org.freedesktop.UPower.PowerProfiles", "/org/freedesktop/UPower/PowerPr
     ["net.hadess.PowerProfiles", "/net/hadess/PowerProfiles"]]
 PM = "xfce4-power-manager"
 COLORS = {"cpu": "#3d7bff", "battery": "#30c48d", "battery_low": "#ff453a"}
-CSS = ".hero-pct { font-size: 44px; font-weight: 800; }\n.hero-state { font-size: 14px; opacity: 0.75; }\n.card { border-radius: 16px; padding: 14px; background-color: alpha(currentColor, 0.05); }\n.card-title { font-weight: 700; font-size: 13px; }\n.card-value { font-size: 20px; font-weight: 700; }\n.card-sub { font-size: 11px; opacity: 0.6; }\n.card-na { font-size: 15px; font-weight: 600; opacity: 0.8; }\n.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.row { padding: 10px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n.section-title { font-size: 15px; font-weight: 700; margin-top: 8px; }\n.mode { border-radius: 12px; padding: 10px 14px; }\n"
+CSS = ".power-pct { font-size: 44px; font-weight: 800; }\n.power-state { font-size: 14px; opacity: 0.75; }\n.power-card { padding: 14px; }\n.power-card-title { font-weight: 700; font-size: 13px; }\n.power-value { font-size: 20px; font-weight: 700; }\n.power-sub { font-size: 11px; opacity: 0.6; }\n.power-na { font-size: 15px; font-weight: 600; opacity: 0.8; }\n.power-modes .mode { padding: 8px 12px; }\n"
 
 DEMO = env.get("LUXOS_POWER_DEMO", "") in ["1", "full"]
 DEMO_FULL = env.get("LUXOS_POWER_DEMO", "") == "full"
@@ -34,7 +35,7 @@ SLEEP_WHILE_PLAYING = config + "/sleep-while-playing"
 SLEEP_OVERRIDE = config + "/sleep-override"
 
 app = {"bus": None, "paths": [], "modes": {}, "syncing": False, "saver": 0, "saver_touched": -60000000,
-       "gpu": None, "gpu_label": 0, "pm": None, "charts": {}, "points": {}, "icon": [0.0, False]}
+       "gpu": None, "gpu_label": 0, "pm": None, "charts": {}, "points": {}, "icon": [0.0, False], "css": 0, "timers": []}
 w = {}
 
 function wayland():
@@ -375,27 +376,20 @@ end
 
 function card(title, value, sub):
     box = gtk.box_new(gtk.VERTICAL, 2)
-    call gtk.widget_add_class(box, "card")
-    call gtk.box_pack_start(box, label(title, "card-title"), False, False, 0)
+    call gtk.widget_add_class(box, "power-card")
+    call gtk.widget_add_class(box, "group")
+    call gtk.box_pack_start(box, label(title, "power-card-title"), False, False, 0)
     call gtk.label_set_xalign(value, 0)
-    call gtk.widget_add_class(value, "card-value")
+    call gtk.widget_add_class(value, "power-value")
     call gtk.label_set_xalign(sub, 0)
-    call gtk.widget_add_class(sub, "card-sub")
+    call gtk.widget_add_class(sub, "power-sub")
     call gtk.box_pack_start(box, value, False, False, 0)
     call gtk.box_pack_start(box, sub, False, False, 0)
     return box
 end
 
 function section(page, title):
-    call gtk.box_pack_start(page, label(title, "section-title"), False, False, 0)
-end
-
-function group(page, title):
-    call section(page, title)
-    g = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_add_class(g, "group")
-    call gtk.box_pack_start(page, g, False, False, 0)
-    return {"box": g, "rows": 0}
+    call gtk.box_pack_start(page, label(title, "group-title"), False, False, 0)
 end
 
 function build_battery(page):
@@ -410,8 +404,8 @@ function build_battery(page):
     call gtk.box_pack_start(hero, icon, False, False, 0)
     texts = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(texts, gtk.ALIGN_CENTER)
-    w["pct"] = label("", "hero-pct")
-    w["state"] = label("", "hero-state")
+    w["pct"] = label("", "power-pct")
+    w["state"] = label("", "power-state")
     call gtk.box_pack_start(texts, w["pct"], False, False, 0)
     call gtk.box_pack_start(texts, w["state"], False, False, 0)
     call gtk.box_pack_start(hero, texts, True, True, 0)
@@ -433,23 +427,25 @@ function build_battery(page):
     end
     call gtk.box_pack_start(box, cards, False, False, 0)
     for item in [["Battery level - last 24 hours", "charge"], ["Power usage - last 24 hours", "rate"]]:
-        call gtk.box_pack_start(box, label(i18n.T(item[0]), "section-title"), False, False, 0)
+        call gtk.box_pack_start(box, label(i18n.T(item[0]), "group-title"), False, False, 0)
         chart = gtk.drawing_area_new()
         call gtk.widget_set_size_request(chart, -1, 170)
         call glib.connect_data(chart, "draw", 1, draw_chart, item[1])
         frame = gtk.box_new(gtk.HORIZONTAL, 0)
-        call gtk.widget_add_class(frame, "card")
+        call gtk.widget_add_class(frame, "power-card")
+        call gtk.widget_add_class(frame, "group")
         call gtk.box_pack_start(frame, chart, True, True, 0)
         call gtk.box_pack_start(box, frame, False, False, 0)
         app["charts"][item[1]] = chart
     end
-    w["no_battery"] = label(i18n.T("This computer runs on mains power - there is no battery."), "hero-state")
+    w["no_battery"] = label(i18n.T("This computer runs on mains power - there is no battery."), "power-state")
     call gtk.box_pack_start(page, w["no_battery"], False, False, 0)
 end
 
-function build_settings(page, window):
+function build_settings(page):
     call section(page, i18n.T("Power mode"))
     modes = gtk.box_new(gtk.HORIZONTAL, 8)
+    call gtk.widget_add_class(modes, "power-modes")
     state = ppd_state()
     first = 0
     for item in [["power-saver", "Power Saver", "Longest battery life"], ["balanced", "Balanced", "Recommended"],
@@ -464,7 +460,7 @@ function build_settings(page, window):
         call gtk.widget_add_class(b, "mode")
         inner = gtk.box_new(gtk.VERTICAL, 0)
         call gtk.box_pack_start(inner, label(i18n.T(item[1]), ""), False, False, 0)
-        call gtk.box_pack_start(inner, label(i18n.T(item[2]), "card-sub"), False, False, 0)
+        call gtk.box_pack_start(inner, label(i18n.T(item[2]), "power-sub"), False, False, 0)
         call gtk.container_add(b, inner)
         call gtk.toggle_button_set_active(b, item[0] == state[0])
         call glib.connect_data(b, "toggled", 0, on_mode, item[0])
@@ -472,23 +468,24 @@ function build_settings(page, window):
         call gtk.box_pack_start(modes, b, True, True, 0)
     end
     call gtk.box_pack_start(page, modes, False, False, 0)
+    call mark_mode(state[0])
     # Grafika v rezimu Vykon (luxos-gpu): radek jen u pocitace se samostatnou grafikou
     app["gpu"] = gpu_info()
-    gpu = label("", "card-sub")
+    gpu = label("", "power-sub")
     call gtk.label_set_line_wrap(gpu, True)
     call gtk.widget_set_no_show_all(gpu, app["gpu"] == None)
     call gtk.box_pack_start(page, gpu, False, False, 0)
     app["gpu_label"] = gpu
     call update_gpu(state[0])
 
-    g = group(page, i18n.T("Battery Saver"))
+    g = ui.group(page, i18n.T("Battery Saver"))
     # na pozadi: prepnuti monitoru na 60 Hz apod. nesmi zdrzet okno
     app["saver"] = ui.switch(exists(SAVER_STATE), on_saver, 0)
     call ui.row(g, i18n.T("Battery Saver"), i18n.T("Longer battery life: slower processor without turbo, slightly lower brightness, idle devices sleep and background tasks pause."), app["saver"])
     call ui.row(g, i18n.T("Turn on automatically at 20 %"), i18n.T("Turns off again when the computer is charging."), ui.switch(exists(AUTO_SAVER), on_flag, AUTO_SAVER))
     call ui.row(g, i18n.T("Lower the screen to 60 Hz"), i18n.T("A little more battery on 90-165 Hz screens. The screen goes dark for a moment when Battery Saver turns on or off."), ui.switch(exists(SAVER_60HZ), on_flag, SAVER_60HZ))
 
-    g = group(page, i18n.T("Screen and sleep"))
+    g = ui.group(page, i18n.T("Screen and sleep"))
     if not wayland():
         # xfce4-power-manager: u necinnosti znamena 14 "nikdy" (nejmensi hodnota je 15 minut)
         times = [[0, i18n.T("Never")], [1, i18n.T("1 minute")], [2, i18n.T("2 minutes")], [5, i18n.T("5 minutes")],
@@ -521,6 +518,14 @@ function update_gpu(profile):
         return gtk.label_set_text(app["gpu_label"], i18n.TF("Graphics: %s for games and demanding apps", [name]))
     end
     return gtk.label_set_text(app["gpu_label"], i18n.TF("Graphics: integrated (Performance mode uses %s for games)", [name]))
+end
+
+# Vybrany rezim ma prstenec v barve zvyrazneni (.mode.current z ui.css)
+function mark_mode(profile):
+    for key in app["modes"]:
+        call gtk.widget_set_class(app["modes"][key], "current", key == profile)
+    end
+    return 0
 end
 
 # ---- xfce4-power-manager ----------------------------------------------------------------------------------------
@@ -600,6 +605,7 @@ function on_mode(key, button):
         call ui.switch_set(app["saver"], False)
     end
     call ppd_set(key)
+    call mark_mode(key)
     call update_gpu(key)
     return 0
 end
@@ -640,12 +646,13 @@ function sync_controls(profile):
     if glib.monotonic_time() - app["saver_touched"] > 15000000:
         call ui.switch_set(app["saver"], exists(SAVER_STATE))
     end
+    call mark_mode(profile)
     return update_gpu(profile)
 end
 
 function set_value_class(on):
-    call gtk.widget_set_class(w["v_rate"], "card-na", not on)
-    return gtk.widget_set_class(w["v_rate"], "card-value", on)
+    call gtk.widget_set_class(w["v_rate"], "power-na", not on)
+    return gtk.widget_set_class(w["v_rate"], "power-value", on)
 end
 
 function refresh():
@@ -716,42 +723,55 @@ function refresh_history():
     return True
 end
 
-function on_destroy(window):
-    call gtk.main_quit()
-    return 0
-end
-
-function main():
-    call glib.set_prgname("luxos-power")
-    call gtk.init()
-    call gtk.css_load(CSS)
+function build(host):
+    if app["css"] == 0:
+        app["css"] = gtk.css_load(CSS)
+    end
     if not DEMO:
         safe:
             app["bus"] = gio.system_bus()
         end
     end
     app["paths"] = find_batteries()
-    ui.state["hint_chars"] = 0
-    ui.state["hint_class"] = "card-sub"
-    window = ui.window(i18n.T("Battery & Power"), "battery-good", 820, 720, 560, 420)
-    call gtk.window_set_wmclass(window, "luxos-power", "luxos-power")
-    scroll = gtk.scrolled_window_new()
-    call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-    call gtk.container_add(window, scroll)
-    page = gtk.box_new(gtk.VERTICAL, 14)
-    call gtk.widget_set_margins(page, 22, 22, 22, 22)
-    call gtk.container_add(scroll, page)
+    page = ui.page_box()
     call build_battery(page)
-    call build_settings(page, window)
-    call refresh()
-    call refresh_history()
-    call glib.timeout_add_seconds(5, refresh)
-    call glib.timeout_add_seconds(120, refresh_history)
-    call gtk.connect(window, "destroy", on_destroy)
-    call gtk.widget_show_all(window)
-    call ui.scroll_to_top(window, scroll)
-    call refresh()
-    call gtk.main()
+    call build_settings(page)
+    return page
 end
 
-call main()
+function show(host):
+    call refresh()
+    call refresh_history()
+    if len(app["timers"]) == 0:
+        app["timers"] = [glib.timeout_add_seconds(5, refresh), glib.timeout_add_seconds(120, refresh_history)]
+    end
+    return 0
+end
+
+function leave(host):
+    for timer in app["timers"]:
+        call glib.source_remove(timer)
+    end
+    app["timers"] = []
+    return 0
+end
+
+# Testy (LUXOS_TEST_CONTROL=1): "mode KLIC" klikne na rezim (testctl click hleda jen popisek tlacitka, rezim ma
+# dva radky), "page-state" = vybrany rezim, Sporic a bezici casovace obnovy
+function test(command, rest):
+    if command == "mode" and rest in app["modes"]:
+        call gtk.button_clicked(app["modes"][rest])
+        return True
+    end
+    if command != "page-state":
+        return False
+    end
+    mode = ""
+    for key in app["modes"]:
+        if gtk.toggle_button_get_active(app["modes"][key]):
+            mode = key
+        end
+    end
+    print "page-state " + json.encode({"mode": mode, "saver": gtk.switch_get_active(app["saver"]), "timers": len(app["timers"])})
+    return True
+end

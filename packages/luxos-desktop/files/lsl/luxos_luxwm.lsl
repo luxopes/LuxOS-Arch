@@ -7,13 +7,14 @@
 #   request(zprava, f)    posle prikaz, f(odpoved) nebo None; False kdyz spojeni neni
 #   connected(), disconnect(), socket_path()
 #   on_state(f)           f(True/False) pri spojeni a odpojeni
+#   listen(f)             dalsi f(udalost) vedle connect (stranky okna Nastaveni ve spolecnem spojeni)
 load glib, env, fd, net, json
 load luxos_glib as lglib
 
 MAX_LINE = 65536
 
 c = {"fd": -1, "watch": 0, "handler": None, "state": None, "topics": [], "pending": [], "next_id": 1,
-     "buffer": None, "retry": 0, "delay": 1, "auto": False}
+     "buffer": None, "retry": 0, "delay": 1, "auto": False, "listeners": []}
 
 function socket_path():
     path = env.get("LUXWM_SOCK", "")
@@ -33,6 +34,11 @@ end
 
 function connected():
     return c["fd"] >= 0
+end
+
+function listen(f):
+    c["listeners"].append(f)
+    return 0
 end
 
 function on_state(f):
@@ -92,6 +98,9 @@ function deliver(line):
         handler = c["handler"]
         if handler != None:
             call handler(message)
+        end
+        for f in c["listeners"]:
+            call f(message)
         end
         return 0
     end

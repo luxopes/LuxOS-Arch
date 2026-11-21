@@ -1,0 +1,4 @@
+#!/bin/sh
+# LuxOS: na Waylandu Xfce nebezi - dialog Xfce otevre stranku Nastaveni; v relaci X11 puvodni dialog
+[ -n "$WAYLAND_DISPLAY" ] && exec luxos-settings login-items
+exec /usr/bin/xfce4-session-settings "$@"

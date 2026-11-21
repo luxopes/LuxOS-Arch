@@ -80,6 +80,12 @@ def programs():
     for out, dest in re.findall(r'install -Dm755 ([\w-]+) "\$pkgdir/usr/lib/luxos/([\w-]+)"', pkgbuild):
         if out in built:
             installed["/usr/lib/luxos/" + dest] = [built[out], []]
+    # stare programy nastaveni = odkazy na luxos-settings (stranka podle jmena)
+    for names in re.findall(r'for alias in ([^;]+);\s*do\s*\n\s*ln -s luxos-settings "\$pkgdir/usr/bin/\$alias"', pkgbuild):
+        for name in names.replace("\\\n", " ").split():
+            installed[name] = installed["luxos-settings"]
+    for link in re.findall(r'ln -s \S*luxos-settings "\$pkgdir/usr/lib/luxos/([\w-]+)"', pkgbuild):
+        installed["/usr/lib/luxos/" + link] = installed["luxos-settings"]
     for target, link in re.findall(r'ln -s (\S+) "\$pkgdir/usr/bin/([\w-]+)"', pkgbuild):
         key = "/usr/lib/luxos/" + target.split("/")[-1] if "/" in target else target
         if key in installed:
@@ -89,6 +95,11 @@ def programs():
         if m and m.group(1) in installed:
             installed[script.name] = [installed[m.group(1)][0], m.group(2).split()]
     return installed
+
+
+def window_id(app, src):
+    """app_id okna: stranky Nastaveni maji jedno okno luxos-settings"""
+    return "luxos-settings" if src == "luxos-settings" else app
 
 
 def luxos_apps():
@@ -134,6 +145,7 @@ class StaticAppIds(unittest.TestCase):
             calls = [i for i, line in enumerate(lines) if "glib.set_prgname(" in line]
             with self.subTest(app=app):
                 hit = None
+                app = window_id(app, src)
                 for i in calls:
                     head = [lines[j] for j in range(owner[i], i + 1) if owner[j] == owner[i]]
                     # id primo v argumentu, nebo v promenne nastavene v tomtez bloku pred volanim
@@ -221,7 +233,7 @@ class RuntimeAppIds(unittest.TestCase):
                             break
                     self.assertTrue(found, "%s: no window (exit %s) %s" % (app, p.poll(),
                                                                            p.stderr.read()[-300:] if p.poll() is not None else ""))
-                    self.assertEqual(found, [app])
+                    self.assertEqual(found, [window_id(app, src)])
                 finally:
                     p.terminate()
                     try:

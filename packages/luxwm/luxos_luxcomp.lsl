@@ -5,12 +5,12 @@
 #   init(handler)          handler(event, id, a, b, c) pro vsechny udalosti; chyba v obsluze se jen
 #                          vypise ("LSL callback error"), kompozitor bezi dal (glib.dispatch)
 #   view_title(v), view_app_id(v), view_sandbox_app_id(v), view_sandbox_instance(v), output_name(o),
-#   socket(), layout_name(i), ipc_line(k)
+#   socket(), layout_name(i), ipc_line(k), input_name(d)
 #                          kopie retezce ("" kdyz neni)
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 8
+API_VERSION = 9
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -232,6 +232,13 @@ end
 function blur_tier():
     unsafe:
         return __lsl_qbe_call0(__lsl_symbol("luxcomp_blur_tier"))
+    end
+end
+
+# Material pod obdelnikem obsahu okna (souradnice geometrie okna); name "" nebo w/h <= 0 ho zrusi
+function view_set_material(view, name, x, y, w, h):
+    unsafe:
+        call __lsl_qbe_call6(__lsl_symbol("luxcomp_view_set_material"), ptr(view), cstr(name), ptr(x), ptr(y), ptr(w), ptr(h))
     end
 end
 
@@ -487,6 +494,50 @@ end
 function layout_name(index):
     unsafe:
         return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_layout_name"), ptr(index)))
+    end
+end
+
+# ---- mys a touchpad (libinput) ---------------------------------------------------------------
+
+INPUT_MOUSE = 1
+INPUT_TOUCHPAD = 2
+
+INPUT_KIND = 1
+INPUT_SPEED = 2
+INPUT_ACCEL_PROFILE = 3
+INPUT_NATURAL_SCROLL = 4
+INPUT_LEFT_HANDED = 5
+INPUT_MIDDLE_EMULATION = 6
+INPUT_TAP = 7
+INPUT_TAP_DRAG = 8
+INPUT_DISABLE_WHILE_TYPING = 9
+INPUT_CLICK_METHOD = 10
+INPUT_SCROLL_METHOD = 11
+
+INPUT_DEFAULT = -1000
+INPUT_NONE = -1001
+
+function input_set(kind, prop, value):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("luxcomp_input_set"), ptr(kind), ptr(prop), ptr(value))
+    end
+end
+
+function input_next(device):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("luxcomp_input_next"), ptr(device))
+    end
+end
+
+function input_name(device):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_input_name"), ptr(device)))
+    end
+end
+
+function input_get(device, prop):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("luxcomp_input_get"), ptr(device), ptr(prop))
     end
 end
 

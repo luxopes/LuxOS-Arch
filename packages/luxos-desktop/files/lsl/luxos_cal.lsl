@@ -19,6 +19,7 @@ load luxos_date as date
 load luxos_ics as ics
 load luxos_text as text
 load luxos_hub_popup as popup
+load luxos_glass as glass
 
 WIDTH = 324
 REMINDER_MIN = 10
@@ -32,7 +33,8 @@ REPEAT_KEYS = ["", "FREQ=DAILY", "FREQ=WEEKLY", "FREQ=MONTHLY", "FREQ=YEARLY"]
 REPEAT_NAMES = ["Never", "Daily", "Weekly", "Monthly", "Yearly"]
 
 CSS = ("window.lc { background: transparent; }\n"
-    + ".lc-box { background-color: @lc_bg; border-radius: 16px; border: 1px solid @lc_border; box-shadow: inset 0 1px @lc_highlight; padding: 12px; color: @lc_fg; }\n"
+    + ".lc-box { background-color: @lc_bg; border-radius: 18px; " + popup.card("lc") + " padding: 12px; color: @lc_fg; }\n"
+    + ".lc-box.lx-wallglass, .lc-box.lg-panel { background-color: transparent; }\n"
     + ".lc-box label { color: @lc_fg; }\n"
     + ".lc-box label.dim, .lc-dim { color: @lc_dim; }\n"
     + ".lc-daynum { font-size: 44px; font-weight: 700; }\n"
@@ -1772,7 +1774,7 @@ end
 # ---- start -------------------------------------------------------------------------------------------------------
 
 function window_hints_x11(win):
-    call gtk.window_set_decorated(win, False)
+    call gtk.window_set_undecorated(win)
     call gtk.window_set_skip_taskbar_hint(win, True)
     call gtk.window_set_skip_pager_hint(win, True)
     call gtk.window_set_keep_above(win, True)
@@ -1820,6 +1822,12 @@ function create(background):
     call gtk.widget_add_class(root, "lc-box")
     call gtk.widget_set_size_request(root, WIDTH, -1)
     call gtk.container_add(win, root)
+    if wayland():
+        call popup.glass(win, root)
+    else:
+        # X11 (verze 1.1.1): sklo z tapety plochy pod kartou (luxos_glass.panel, jen s kompozitorem)
+        call glass.panel(win, root, 18)
+    end
     cal["root"] = root
     top = gtk.box_new(gtk.HORIZONTAL, 8)
     cal["seg"] = segmented_new(["day", "month", "year"], [i18n.T("Day"), i18n.T("Month"), i18n.T("Year")], on_seg_change, False)

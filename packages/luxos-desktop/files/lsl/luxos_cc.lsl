@@ -3,6 +3,8 @@
 # stav baterie; prave hrajici hudba (MPRIS); Obrazovky (Zrcadlit / Rozsirit / Jen externi) jen pri 2+ pripojenych
 # monitorech - misto okna, ktere by vyskakovalo pri pripojeni. Okno se zavre pri ztrate fokusu nebo klavesou Esc.
 # Na Waylandu je okno plocha layer-shell pod tlacitkem listy (luxos_hub_popup), bez jedineho volani X11.
+# Wi-Fi a Bluetooth tam jako v Androidu: klik na bublinu s ikonou prepne, jinam na dlazdici otevre okno Wi-Fi
+# z listy, resp. aplikaci Bluetooth.
 #
 #   call cc.create()      skryte okno se styly podle motivu (pouziva luxos-hub i samostatny program)
 #   call cc.toggle()      ukaze/skryje okno (klik v liste)
@@ -19,10 +21,14 @@ load luxos_text as text
 load luxos_layer as layer
 load luxos_wl as wl
 load luxos_hub_popup as popup
+load luxos_glass as glass
 
+# Vzhled Ovladaciho centra verze 1.1.1 (luxos_cc.lsl na vetvi glass-ui): karta 18 px ze skla, dlazdice
+# a sekce 14 px, posuvniky 22 px, odkazy dole jako text
 CSS = ("window.cc { background: transparent; }\n"
-    + ".cc-box { background-color: @cc_bg; border-radius: 16px; border: 1px solid @cc_border; box-shadow: inset 0 1px @cc_highlight; padding: 12px; color: @cc_fg; }\n"
-    + ".tile { background-color: @cc_tile; border-radius: 12px; padding: 10px; border: none; box-shadow: none; background-image: none; color: @cc_fg; }\n"
+    + ".cc-box { background-color: @cc_bg; border-radius: 18px; " + popup.card("cc") + " padding: 12px; color: @cc_fg; }\n"
+    + ".cc-box.lx-wallglass, .cc-box.lg-panel { background-color: transparent; }\n"
+    + ".tile { background-color: @cc_tile; border-radius: 14px; padding: 10px 12px; border: none; box-shadow: none; background-image: none; color: @cc_fg; }\n"
     + ".tile:hover { background-color: @cc_tile_hover; }\n"
     + ".tile .bubble { background-color: @cc_bubble; border-radius: 999px; min-width: 30px; min-height: 30px; color: @cc_fg; }\n"
     + ".tile.on .bubble { background-color: @cc_accent; color: white; }\n"
@@ -32,19 +38,21 @@ CSS = ("window.cc { background: transparent; }\n"
     + ".tile:disabled { opacity: 0.45; }\n"
     + ".tile.mode { padding: 8px 4px 6px 4px; }\n"
     + ".tile.mode .title { font-weight: 500; font-size: 11px; }\n"
-    + ".section { background-color: @cc_tile; border-radius: 12px; padding: 10px; }\n"
+    + ".section { background-color: @cc_tile; border-radius: 14px; padding: 10px 12px; }\n"
     + ".section .title { font-weight: 600; font-size: 12px; }\n"
     + ".section .sub { font-size: 11px; color: @cc_dim; }\n"
-    + ".cc-box scale trough { min-height: 28px; border-radius: 14px; background-color: @cc_trough; border: none; }\n"
-    + ".cc-box scale highlight { border-radius: 14px; background-color: @cc_fill; border: none; min-height: 28px; }\n"
-    + ".cc-box scale slider { min-width: 28px; min-height: 28px; margin: 0; border-radius: 14px; background-color: white; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }\n"
-    + ".footer { background-color: alpha(@cc_fg, 0.06); border: none; box-shadow: none; color: @cc_fg; padding: 0 10px; min-height: 28px; font-size: 12px; font-weight: 500; border-radius: 8px; }\n"
-    + ".footer:hover { background-color: @cc_tile_hover; }\n"
+    + ".cc-box scale trough { min-height: 22px; border-radius: 11px; background-color: @cc_trough; border: none; }\n"
+    + ".cc-box scale highlight { border-radius: 11px; background-color: @cc_fill; border: none; min-height: 22px; }\n"
+    + ".cc-box scale slider { min-width: 22px; min-height: 22px; margin: 0; border-radius: 11px; background-color: white; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.35); }\n"
+    + ".footer { background: none; border: none; box-shadow: none; color: @cc_fg; padding: 4px 6px; font-size: 12px; font-weight: 500; border-radius: 8px; }\n"
+    + ".footer:hover { background-color: @cc_tile; }\n"
     + "button.plain { padding: 0; border: none; background: none; box-shadow: none; }\n"
     + ".art { border-radius: 9px; min-width: 42px; min-height: 42px; color: white; background-image: linear-gradient(135deg, #ff5f6d, #c445ff); }\n"
     + "button.media { padding: 4px; border: none; background: none; box-shadow: none; color: @cc_fg; border-radius: 999px; min-width: 30px; min-height: 30px; }\n"
     + "button.media:hover { background-color: @cc_tile_hover; }\n"
     + ".avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white; background-image: linear-gradient(135deg, @cc_accent, #8b4dff); }\n")
+
+SIGUSR1 = 10
 
 cc = {}            # stav okna (widgety a priznaky)
 created = False
@@ -247,7 +255,7 @@ end
 
 # Dlazdice: {button, image, title, sub, action}
 function tile_new(icon, title, action):
-    tile = {"action": action}
+    tile = {"action": action, "name": title}
     button = gtk.button_new_empty()
     call gtk.widget_set_can_focus(button, False)
     call gtk.widget_add_class(button, "tile")
@@ -287,12 +295,31 @@ function tile_new(icon, title, action):
     tile["image"] = image
     tile["title"] = title_label
     tile["sub"] = sub
+    tile["bubble"] = bubble
+    tile["settings"] = None
+    tile["on_bubble"] = True
+    call gtk.connect_data(button, "button-press-event", 1, on_tile_press, tile)
     call gtk.connect_data(button, "clicked", 0, on_tile_clicked, tile)
     return tile
 end
 
+# Dlazdice s nastavenim (Wi-Fi, Bluetooth na Waylandu) jako v Androidu: bublina s ikonou prepne, zbytek
+# dlazdice otevre nastaveni. Souradnice stisku jsou vuci tlacitku, bublina se prepocita na nej.
+function on_tile_press(tile, event, button):
+    a = gtk.widget_get_allocation(tile["bubble"])
+    b = gtk.widget_get_allocation(button)
+    x = gtk.event_x(event) - Float(a[0] - b[0])
+    y = gtk.event_y(event) - Float(a[1] - b[1])
+    tile["on_bubble"] = x >= -4.0 and x <= Float(a[2]) + 4.0 and y >= -4.0 and y <= Float(a[3]) + 4.0
+    return False
+end
+
 function on_tile_clicked(tile, button):
     action = tile["action"]
+    if tile["settings"] != None and not tile["on_bubble"]:
+        action = tile["settings"]
+    end
+    call log_test("tile " + tile["name"] + (" toggle" if action == tile["action"] else " settings"))
     call action()
     return 0
 end
@@ -395,7 +422,7 @@ end
 
 # Spusti program a zavre okno
 function on_launch_clicked(command, button):
-    call glib.spawn_quiet([command])
+    call glib.spawn_quiet(command.split(" "))
     call close()
     return 0
 end
@@ -474,6 +501,12 @@ function create():
     call gtk.widget_add_class(outer, "cc-box")
     call gtk.widget_set_size_request(outer, 340, -1)
     call gtk.container_add(win, outer)
+    if wayland():
+        call popup.glass(win, outer)
+    else:
+        # X11 (verze 1.1.1): sklo z tapety plochy pod kartou (luxos_glass.panel, jen s kompozitorem)
+        call glass.panel(win, outer, 18)
+    end
 
     # Profil: ucet LuxAI (~/.config/luxai/account.json), klik otevre Ucet LuxAI
     prof = gtk.button_new_empty()
@@ -504,6 +537,11 @@ function create():
     call gtk.grid_set_column_homogeneous(grid, True)
     cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi)
     cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt)
+    if wayland():
+        cc["t_wifi"]["settings"] = open_wifi
+        cc["t_bt"]["action"] = toggle_bt_power
+        cc["t_bt"]["settings"] = toggle_bt
+    end
     cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd)
     cc["t_dark"] = tile_new("weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark)
     cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data)
@@ -592,7 +630,7 @@ function create():
     call gtk.box_pack_start(outer, bat_button, False, False, 0)
 
     footer = gtk.box_new(gtk.HORIZONTAL, 4)
-    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings")
+    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop")
     call footer_button(footer, i18n.T("Battery…"), "luxos-power")
     call footer_button(footer, i18n.T("All Settings…"), settings_command())
     call gtk.box_pack_start(outer, footer, False, False, 0)
@@ -612,7 +650,7 @@ function create():
 end
 
 function window_hints_x11(win):
-    call gtk.window_set_decorated(win, False)
+    call gtk.window_set_undecorated(win)
     call gtk.window_set_skip_taskbar_hint(win, True)
     call gtk.window_set_skip_pager_hint(win, True)
     call gtk.window_set_keep_above(win, True)
@@ -623,12 +661,9 @@ function window_hints_x11(win):
     return 0
 end
 
-# Vsechna nastaveni: na Waylandu nebezi xfce4-settings-manager
+# Vsechna nastaveni: okno Nastaveni LuxOS v obou relacich (Xfce Spravce nastaveni je v nem odkazem jen na X11)
 function settings_command():
-    if wayland():
-        return "luxos-settings"
-    end
-    return "xfce4-settings-manager"
+    return "luxos-settings"
 end
 
 function log_test(message):
@@ -707,7 +742,21 @@ function show_wayland():
     width = gtk.widget_get_preferred_width(cc["win"])[1]
     call log_test("placed " + popup.place(cc["win"], width, "right"))
     call popup.show(cc["win"])
+    if cc["test_log"] != "":
+        call glib.timeout_add(400, log_tile_positions)
+    end
     return 0
+end
+
+# Testy: stred bubliny a nazvu dlazdic Wi-Fi a Bluetooth v okne ("tilepos wifi-bubble x y")
+function log_tile_positions():
+    for pair in [["wifi", cc["t_wifi"]], ["bt", cc["t_bt"]]]:
+        for part in [["bubble", pair[1]["bubble"]], ["title", pair[1]["title"]]]:
+            a = gtk.widget_get_allocation(part[1])
+            call log_test("tilepos " + pair[0] + "-" + part[0] + " " + String(a[0] + a[2] // 2) + " " + String(a[1] + a[3] // 2))
+        end
+    end
+    return False
 end
 
 function refresh_slow_once():
@@ -1214,6 +1263,44 @@ end
 function toggle_bt():
     call glib.spawn_quiet(["luxos-bluetooth"])
     call close()
+    return 0
+end
+
+# Bublina Bluetooth na Waylandu: zapnout/vypnout adapter (BlueZ Powered, zablokovany rfkill odblokuje);
+# bez Bluetooth nebo pri chybe okno Bluetooth
+function toggle_bt_power():
+    state = bluetooth_state()
+    if state[0] == None:
+        return toggle_bt()
+    end
+    ok = False
+    try:
+        call gio.set_property(gio.system_bus(), "org.bluez", "/org/bluez/hci0", "org.bluez.Adapter1", "Powered", not state[0], "b")
+        ok = True
+    else:
+        if not state[0]:
+            call glib.spawn_sync_quiet(["rfkill", "unblock", "bluetooth"])
+            safe:
+                call gio.set_property(gio.system_bus(), "org.bluez", "/org/bluez/hci0", "org.bluez.Adapter1", "Powered", True, "b")
+                ok = True
+            end
+        end
+    end
+    if not ok:
+        return toggle_bt()
+    end
+    bt = bluetooth_state()
+    call tile_set_state(cc["t_bt"], bt[0], bt[1])
+    return 0
+end
+
+# Zbytek dlazdice Wi-Fi na Waylandu: okno Wi-Fi z listy (luxos-bar, SIGUSR1 podle $XDG_RUNTIME_DIR/luxos-bar.pid)
+function open_wifi():
+    call close()
+    pid = text.to_int(glib.read_text(popup.runtime_file("luxos-bar.pid")).strip(), 0)
+    if pid > 0 and glib.read_text("/proc/" + String(pid) + "/cmdline").find("luxos-bar") >= 0:
+        call glib.kill(pid, SIGUSR1)
+    end
     return 0
 end
 

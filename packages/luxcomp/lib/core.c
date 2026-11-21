@@ -15,7 +15,6 @@
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
-#include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_data_control_v1.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_ext_data_control_v1.h>
@@ -385,7 +384,6 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	foreign_init();
 	idle_init();
 	lock_init();
-	wlr_cursor_shape_manager_v1_create(comp.display, 1);
 
 	comp.socket = wl_display_add_socket_auto(comp.display);
 	if (!comp.socket) {

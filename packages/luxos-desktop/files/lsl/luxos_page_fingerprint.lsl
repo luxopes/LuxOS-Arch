@@ -1,14 +1,16 @@
-# LuxOS - Otisk prstu: pridani a odebrani otisku pro prihlaseni, zamek, sudo a polkit (drive Python + GTK).
+# LuxOS - Nastaveni > Otisk prstu (drive luxos-fingerprint): pridani a odebrani otisku pro prihlaseni, zamek, sudo
+# a polkit.
 #
-# Mluvi s fprintd pres D-Bus (net.reactivated.Fprint) - prubeh snimani ukazuje primo v okne. Prihlasovani
-# otiskem zapina luxos-fingerprint-pam (hook spravce baliku po instalaci fprintd).
+# Mluvi s fprintd pres D-Bus (net.reactivated.Fprint) - prubeh snimani ukazuje primo na strance. Prihlasovani
+# otiskem zapina luxos-fingerprint-pam (hook spravce baliku po instalaci fprintd). Odchod ze stranky nebo zavreni
+# okna zastavi snimani a uvolni ctecku (jinak by ji ostatni aplikace nemohly pouzit).
 # LUXOS_FPRINT_BUS=session nebo adresa unix:...: fprintd na session / vlastni sbernici (testy s napodobenou sluzbou).
 load env, cairo, math, json
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load luxos_gio, gio as gio
 load luxos_i18n as i18n
-load luxos_testctl as testctl
+load luxos_settings_ui as ui
 
 NAME = "net.reactivated.Fprint"
 MANAGER = "/net/reactivated/Fprint/Manager"
@@ -39,10 +41,10 @@ ENROLL = {"enroll-stage-passed": ["Lift your finger, then touch the sensor again
     "enroll-disconnected": ["The fingerprint reader was disconnected.", True, True],
     "enroll-unknown-error": ["Something went wrong. Try again.", True, True]}
 
-CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 8px 14px; min-height: 30px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n.title-big { font-size: 18px; font-weight: 700; }\n.status { font-size: 13px; }\n.status.error { color: #e0443e; }\n"
+CSS = ".fp-title { font-size: 18px; font-weight: 700; }\n.fp-status { font-size: 13px; }\n.fp-status.error { color: #e0443e; }\n"
 
 fp = {"bus": 0, "dev": "", "props": {}, "claimed": False, "sub": 0, "gen": 0}
-ui = {"window": 0, "stack": 0, "enrolled": [], "finger": "", "passed": 0, "busy": False, "enrolling": False,
+fv = {"window": 0, "page": 0, "css": 0, "stack": 0, "enrolled": [], "finger": "", "passed": 0, "busy": False, "enrolling": False,
       "progress": 0.0, "error": False, "msg_action": None, "rows": 0}
 
 # ---- texty ---------------------------------------------------------------------------------------------------
@@ -159,7 +161,7 @@ function on_props(unused, reply, error):
     if error == "":
         fp["props"] = reply[0]
     end
-    call gtk.label_set_text(ui["reader_label"], reader_name())
+    call gtk.label_set_text(fv["reader_label"], reader_name())
     call refresh(0)
     return 0
 end
@@ -273,9 +275,9 @@ end
 # ---- kresba otisku: hrebinky se postupne obarvuji podle prubehu snimani (0..1) ----------------------------------
 
 function set_ridges(progress, error):
-    ui["progress"] = max(0.0, min(1.0, Float(progress)))
-    ui["error"] = error
-    call gtk.widget_queue_draw(ui["ridges"])
+    fv["progress"] = max(0.0, min(1.0, Float(progress)))
+    fv["error"] = error
+    call gtk.widget_queue_draw(fv["ridges"])
 end
 
 function on_draw(unused, cr, widget):
@@ -284,7 +286,7 @@ function on_draw(unused, cr, widget):
     s = min(w, h)
     fg = gtk.widget_get_color(widget, 0)
     n = 7
-    lit = math.round_half_even_int(ui["progress"] * n)
+    lit = math.round_half_even_int(fv["progress"] * n)
     # zaoblene konce
     call cairo.set_line_cap(cr, 1)
     call cairo.set_line_width(cr, s * 0.035)
@@ -292,7 +294,7 @@ function on_draw(unused, cr, widget):
         r = s * (0.08 + i * 0.058)
         # otevreny oblouk dole (jako konecek prstu), kazdy hrebinek trochu jinak
         gap = 0.55 + 0.12 * (i % 3)
-        if i < lit and ui["error"]:
+        if i < lit and fv["error"]:
             call cairo.set_source_rgba(cr, 0.88, 0.27, 0.24, 1.0)
         elif i < lit:
             call cairo.set_source_rgba(cr, 0.20, 0.52, 0.98, 1.0)
@@ -341,26 +343,25 @@ function build_message():
     page = gtk.box_new(gtk.VERTICAL, 10)
     call gtk.widget_set_margin(page, 30)
     call gtk.widget_set_valign(page, gtk.ALIGN_CENTER)
-    ui["msg_icon"] = gtk.image_new()
-    call gtk.image_set_pixel_size(ui["msg_icon"], 64)
-    ui["msg_spinner"] = gtk.spinner_new()
-    call gtk.widget_set_size_request(ui["msg_spinner"], 32, 32)
-    ui["msg_title"] = centered("title-big", 40)
-    call gtk.widget_set_name(ui["msg_title"], "msg-title")
-    ui["msg_text"] = centered("dim-label", 48)
-    call gtk.widget_set_name(ui["msg_text"], "msg-text")
-    ui["msg_button"] = button("", "", on_msg_button)
-    call gtk.widget_set_halign(ui["msg_button"], gtk.ALIGN_CENTER)
-    call gtk.widget_set_margins(ui["msg_button"], 0, 0, 8, 0)
+    fv["msg_icon"] = gtk.image_new()
+    call gtk.image_set_pixel_size(fv["msg_icon"], 64)
+    fv["msg_spinner"] = gtk.spinner_new()
+    call gtk.widget_set_size_request(fv["msg_spinner"], 32, 32)
+    fv["msg_title"] = centered("fp-title", 40)
+    call gtk.widget_set_name(fv["msg_title"], "msg-title")
+    fv["msg_text"] = centered("dim-label", 48)
+    call gtk.widget_set_name(fv["msg_text"], "msg-text")
+    fv["msg_button"] = button("", "", on_msg_button)
+    call gtk.widget_set_halign(fv["msg_button"], gtk.ALIGN_CENTER)
+    call gtk.widget_set_margins(fv["msg_button"], 0, 0, 8, 0)
     for key in ["msg_icon", "msg_spinner", "msg_title", "msg_text", "msg_button"]:
-        call gtk.box_pack_start(page, ui[key], False, False, 0)
+        call gtk.box_pack_start(page, fv[key], False, False, 0)
     end
-    call gtk.stack_add_named(ui["stack"], page, "message")
+    call gtk.stack_add_named(fv["stack"], page, "message")
 end
 
 function build_main():
     page = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_margins(page, 22, 22, 10, 22)
     top = gtk.box_new(gtk.HORIZONTAL, 14)
     icon = gtk.image_new_from_icon_name("luxos-fingerprint", gtk.ICON_DIALOG)
     call gtk.image_set_pixel_size(icon, 56)
@@ -372,98 +373,98 @@ function build_main():
     call gtk.label_set_line_wrap(intro, True)
     call gtk.label_set_max_width_chars(intro, 50)
     call gtk.box_pack_start(texts, intro, False, False, 0)
-    ui["reader_label"] = label("", "hint")
-    call gtk.widget_set_name(ui["reader_label"], "reader-label")
-    call gtk.label_set_xalign(ui["reader_label"], 0)
-    call gtk.box_pack_start(texts, ui["reader_label"], False, False, 0)
+    fv["reader_label"] = label("", "hint")
+    call gtk.widget_set_name(fv["reader_label"], "reader-label")
+    call gtk.label_set_xalign(fv["reader_label"], 0)
+    call gtk.box_pack_start(texts, fv["reader_label"], False, False, 0)
     call gtk.box_pack_start(top, texts, True, True, 0)
     call gtk.box_pack_start(page, top, False, False, 0)
 
     title = label(i18n.T("Fingerprints"), "group-title")
     call gtk.label_set_xalign(title, 0)
     call gtk.box_pack_start(page, title, False, False, 0)
-    ui["group"] = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_add_class(ui["group"], "group")
-    call gtk.box_pack_start(page, ui["group"], False, False, 0)
-    ui["status"] = label("", "status")
-    call gtk.widget_set_name(ui["status"], "status")
-    call gtk.label_set_xalign(ui["status"], 0)
-    call gtk.label_set_line_wrap(ui["status"], True)
-    call gtk.widget_set_margins(ui["status"], 4, 0, 8, 0)
+    fv["group"] = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.widget_add_class(fv["group"], "group")
+    call gtk.box_pack_start(page, fv["group"], False, False, 0)
+    fv["status"] = label("", "fp-status")
+    call gtk.widget_set_name(fv["status"], "status")
+    call gtk.label_set_xalign(fv["status"], 0)
+    call gtk.label_set_line_wrap(fv["status"], True)
+    call gtk.widget_set_margins(fv["status"], 4, 0, 8, 0)
     # prazdny stav nedela mezeru nad tlacitky
-    call gtk.widget_set_no_show_all(ui["status"], True)
-    call gtk.box_pack_start(page, ui["status"], False, False, 0)
+    call gtk.widget_set_no_show_all(fv["status"], True)
+    call gtk.box_pack_start(page, fv["status"], False, False, 0)
 
     bar = gtk.box_new(gtk.HORIZONTAL, 8)
     call gtk.widget_set_margins(bar, 0, 0, 14, 0)
-    ui["add_btn"] = button(i18n.T("Add Fingerprint…"), "suggested-action", on_add)
-    call gtk.box_pack_start(bar, ui["add_btn"], False, False, 0)
-    ui["remove_all_btn"] = button(i18n.T("Remove All"), "", on_remove_all)
-    call gtk.box_pack_end(bar, ui["remove_all_btn"], False, False, 0)
+    fv["add_btn"] = button(i18n.T("Add Fingerprint…"), "suggested-action", on_add)
+    call gtk.box_pack_start(bar, fv["add_btn"], False, False, 0)
+    fv["remove_all_btn"] = button(i18n.T("Remove All"), "", on_remove_all)
+    call gtk.box_pack_end(bar, fv["remove_all_btn"], False, False, 0)
     call gtk.box_pack_start(page, bar, False, False, 0)
-    call gtk.stack_add_named(ui["stack"], page, "main")
+    call gtk.stack_add_named(fv["stack"], page, "main")
 end
 
 function build_enroll():
     page = gtk.box_new(gtk.VERTICAL, 10)
     call gtk.widget_set_margin(page, 26)
     call gtk.widget_set_valign(page, gtk.ALIGN_CENTER)
-    ui["enroll_title"] = label("", "title-big")
-    call gtk.widget_set_name(ui["enroll_title"], "enroll-title")
-    call gtk.box_pack_start(page, ui["enroll_title"], False, False, 0)
-    ui["ridges"] = gtk.drawing_area_new()
-    call gtk.widget_set_size_request(ui["ridges"], 150, 150)
-    call gtk.widget_set_halign(ui["ridges"], gtk.ALIGN_CENTER)
-    call gtk.connect_data(ui["ridges"], "draw", 1, on_draw, 0)
-    call gtk.box_pack_start(page, ui["ridges"], False, False, 6)
-    ui["enroll_status"] = centered("status", 44)
-    call gtk.widget_set_name(ui["enroll_status"], "enroll-status")
-    call gtk.box_pack_start(page, ui["enroll_status"], False, False, 0)
-    ui["enroll_count"] = label("", "hint")
-    call gtk.widget_set_name(ui["enroll_count"], "enroll-count")
-    call gtk.box_pack_start(page, ui["enroll_count"], False, False, 0)
+    fv["enroll_title"] = label("", "fp-title")
+    call gtk.widget_set_name(fv["enroll_title"], "enroll-title")
+    call gtk.box_pack_start(page, fv["enroll_title"], False, False, 0)
+    fv["ridges"] = gtk.drawing_area_new()
+    call gtk.widget_set_size_request(fv["ridges"], 150, 150)
+    call gtk.widget_set_halign(fv["ridges"], gtk.ALIGN_CENTER)
+    call gtk.connect_data(fv["ridges"], "draw", 1, on_draw, 0)
+    call gtk.box_pack_start(page, fv["ridges"], False, False, 6)
+    fv["enroll_status"] = centered("fp-status", 44)
+    call gtk.widget_set_name(fv["enroll_status"], "enroll-status")
+    call gtk.box_pack_start(page, fv["enroll_status"], False, False, 0)
+    fv["enroll_count"] = label("", "hint")
+    call gtk.widget_set_name(fv["enroll_count"], "enroll-count")
+    call gtk.box_pack_start(page, fv["enroll_count"], False, False, 0)
     bar = gtk.box_new(gtk.HORIZONTAL, 8)
     call gtk.widget_set_halign(bar, gtk.ALIGN_CENTER)
     call gtk.widget_set_margins(bar, 0, 0, 10, 0)
-    ui["enroll_cancel"] = button(i18n.T("Cancel"), "", on_enroll_cancel)
+    fv["enroll_cancel"] = button(i18n.T("Cancel"), "", on_enroll_cancel)
     # Po neuspesnem pridani: znovu stejny prst (bez navratu na seznam a volby prstu)
-    ui["enroll_retry"] = button(i18n.T("Try Again"), "suggested-action", on_retry)
-    call gtk.widget_set_no_show_all(ui["enroll_retry"], True)
-    ui["enroll_done"] = button(i18n.T("Done"), "suggested-action", on_done)
+    fv["enroll_retry"] = button(i18n.T("Try Again"), "suggested-action", on_retry)
+    call gtk.widget_set_no_show_all(fv["enroll_retry"], True)
+    fv["enroll_done"] = button(i18n.T("Done"), "suggested-action", on_done)
     for key in ["enroll_cancel", "enroll_retry", "enroll_done"]:
-        call gtk.box_pack_start(bar, ui[key], False, False, 0)
+        call gtk.box_pack_start(bar, fv[key], False, False, 0)
     end
     call gtk.box_pack_start(page, bar, False, False, 0)
-    call gtk.stack_add_named(ui["stack"], page, "enroll")
+    call gtk.stack_add_named(fv["stack"], page, "enroll")
 end
 
 function show_message(icon, title, text, button_text, action, spinner):
-    call gtk.image_set_from_icon_name(ui["msg_icon"], icon, gtk.ICON_DIALOG)
-    call gtk.image_set_pixel_size(ui["msg_icon"], 64)
-    call gtk.widget_set_visible(ui["msg_icon"], not spinner)
-    call gtk.widget_set_visible(ui["msg_spinner"], spinner)
-    call gtk.spinner_set(ui["msg_spinner"], spinner)
-    call gtk.label_set_text(ui["msg_title"], title)
-    call gtk.label_set_text(ui["msg_text"], text)
-    call gtk.widget_set_visible(ui["msg_text"], text != "")
-    call gtk.button_set_label(ui["msg_button"], button_text)
-    call gtk.widget_set_visible(ui["msg_button"], button_text != "")
-    ui["msg_action"] = action
-    call gtk.stack_set_visible_child_name(ui["stack"], "message")
+    call gtk.image_set_from_icon_name(fv["msg_icon"], icon, gtk.ICON_DIALOG)
+    call gtk.image_set_pixel_size(fv["msg_icon"], 64)
+    call gtk.widget_set_visible(fv["msg_icon"], not spinner)
+    call gtk.widget_set_visible(fv["msg_spinner"], spinner)
+    call gtk.spinner_set(fv["msg_spinner"], spinner)
+    call gtk.label_set_text(fv["msg_title"], title)
+    call gtk.label_set_text(fv["msg_text"], text)
+    call gtk.widget_set_visible(fv["msg_text"], text != "")
+    call gtk.button_set_label(fv["msg_button"], button_text)
+    call gtk.widget_set_visible(fv["msg_button"], button_text != "")
+    fv["msg_action"] = action
+    call gtk.stack_set_visible_child_name(fv["stack"], "message")
 end
 
 function on_msg_button(unused, b):
-    if ui["msg_action"] != None:
-        action = ui["msg_action"]
+    if fv["msg_action"] != None:
+        action = fv["msg_action"]
         call action()
     end
     return 0
 end
 
 function set_status(text, error):
-    call gtk.label_set_text(ui["status"], text)
-    call gtk.widget_set_visible(ui["status"], text != "")
-    call gtk.widget_set_class(ui["status"], "error", error)
+    call gtk.label_set_text(fv["status"], text)
+    call gtk.widget_set_visible(fv["status"], text != "")
+    call gtk.widget_set_class(fv["status"], "error", error)
 end
 
 # ---- prubeh -------------------------------------------------------------------------------------------------------
@@ -533,12 +534,12 @@ end
 
 function on_listed(unused, reply, error):
     if error != "" and not gio.remote_error(error).endswith("NoEnrolledPrints"):
-        ui["enrolled"] = []
+        fv["enrolled"] = []
         call fill()
         call set_status(error_message(error), True)
         return 0
     end
-    ui["enrolled"] = [] if error != "" else reply[0]
+    fv["enrolled"] = [] if error != "" else reply[0]
     call fill()
     call set_status("", False)
     return 0
@@ -547,7 +548,7 @@ end
 function add_row(title, widget):
     box = gtk.box_new(gtk.HORIZONTAL, 12)
     call gtk.widget_add_class(box, "row")
-    if ui["rows"] > 0:
+    if fv["rows"] > 0:
         call gtk.widget_add_class(box, "row-sep")
     end
     text = gtk.label_new(title)
@@ -558,43 +559,41 @@ function add_row(title, widget):
         call gtk.widget_set_valign(widget, gtk.ALIGN_CENTER)
         call gtk.box_pack_end(box, widget, False, False, 0)
     end
-    call gtk.box_pack_start(ui["group"], box, False, False, 0)
+    call gtk.box_pack_start(fv["group"], box, False, False, 0)
     call gtk.widget_show_all(box)
-    ui["rows"] += 1
+    fv["rows"] += 1
 end
 
 function free_fingers():
-    return [item[0] for item in FINGERS if not (item[0] in ui["enrolled"])]
+    return [item[0] for item in FINGERS if not (item[0] in fv["enrolled"])]
 end
 
 function fill():
-    for child in gtk.container_get_children(ui["group"]):
+    for child in gtk.container_get_children(fv["group"]):
         call gtk.widget_destroy(child)
     end
-    ui["rows"] = 0
-    if len(ui["enrolled"]) == 0:
+    fv["rows"] = 0
+    if len(fv["enrolled"]) == 0:
         call add_row(i18n.T("No fingerprints added yet."), 0)
     end
     known = [item[0] for item in FINGERS]
-    ordered = [f for f in known if f in ui["enrolled"]] + [f for f in ui["enrolled"] if not (f in known)]
+    ordered = [f for f in known if f in fv["enrolled"]] + [f for f in fv["enrolled"] if not (f in known)]
     for finger in ordered:
         b = gtk.button_new(i18n.T("Remove"))
         call gtk.connect_data(b, "clicked", 0, on_remove, finger)
         call add_row(finger_label(finger), b)
     end
-    call gtk.widget_set_sensitive(ui["add_btn"], len(free_fingers()) > 0 and not ui["busy"])
-    call gtk.widget_set_visible(ui["remove_all_btn"], len(ui["enrolled"]) > 1)
-    call gtk.widget_set_sensitive(ui["remove_all_btn"], not ui["busy"])
-    call gtk.stack_set_visible_child_name(ui["stack"], "main")
-    # po strance s pridavanim (vyssi) zase jen tak vysoke jako obsah
-    call gtk.window_resize(ui["window"], gtk.window_get_size(ui["window"])[0], 1)
+    call gtk.widget_set_sensitive(fv["add_btn"], len(free_fingers()) > 0 and not fv["busy"])
+    call gtk.widget_set_visible(fv["remove_all_btn"], len(fv["enrolled"]) > 1)
+    call gtk.widget_set_sensitive(fv["remove_all_btn"], not fv["busy"])
+    call gtk.stack_set_visible_child_name(fv["stack"], "main")
 end
 
 function set_busy(on):
-    ui["busy"] = on
-    call gtk.widget_set_sensitive(ui["group"], not on)
-    call gtk.widget_set_sensitive(ui["add_btn"], not on)
-    call gtk.widget_set_sensitive(ui["remove_all_btn"], not on)
+    fv["busy"] = on
+    call gtk.widget_set_sensitive(fv["group"], not on)
+    call gtk.widget_set_sensitive(fv["add_btn"], not on)
+    call gtk.widget_set_sensitive(fv["remove_all_btn"], not on)
 end
 
 # ---- odebrani ------------------------------------------------------------------------------------------------------
@@ -634,7 +633,7 @@ end
 function confirm(title, text):
     dialog = gtk.dialog_new()
     call gtk.window_set_title(dialog, "")
-    call gtk.window_set_transient_for(dialog, ui["window"])
+    call gtk.window_set_transient_for(dialog, fv["window"])
     call gtk.window_set_modal(dialog, True)
     area = gtk.dialog_get_content_area(dialog)
     call gtk.container_set_border_width(area, 12)
@@ -667,7 +666,7 @@ function on_add(unused, b):
     end
     dialog = gtk.dialog_new_header()
     call gtk.window_set_title(dialog, i18n.T("Add Fingerprint"))
-    call gtk.window_set_transient_for(dialog, ui["window"])
+    call gtk.window_set_transient_for(dialog, fv["window"])
     call gtk.window_set_modal(dialog, True)
     call gtk.dialog_add_button(dialog, i18n.T("Cancel"), gtk.RESPONSE_CANCEL)
     go = gtk.dialog_add_button(dialog, i18n.T("Continue"), gtk.RESPONSE_OK)
@@ -685,12 +684,12 @@ function on_add(unused, b):
     end
     call gtk.combo_box_set_active(combo, 0)
     call gtk.box_pack_start(box, combo, False, False, 0)
-    ui["finger_combo"] = combo
+    fv["finger_combo"] = combo
     call gtk.widget_show_all(dialog)
     response = gtk.dialog_run(dialog)
     index = gtk.combo_box_get_active(combo)
     call gtk.widget_destroy(dialog)
-    ui["finger_combo"] = 0
+    fv["finger_combo"] = 0
     if response == gtk.RESPONSE_OK and index >= 0:
         call enroll(free[index])
     end
@@ -698,29 +697,29 @@ function on_add(unused, b):
 end
 
 function enroll(finger):
-    ui["finger"] = finger
-    ui["passed"] = 0
-    call gtk.label_set_text(ui["enroll_title"], finger_label(finger))
+    fv["finger"] = finger
+    fv["passed"] = 0
+    call gtk.label_set_text(fv["enroll_title"], finger_label(finger))
     call set_ridges(0, False)
     if swipe():
         call set_enroll_status(i18n.T("Swipe your finger across the sensor."), False)
     else:
         call set_enroll_status(i18n.T("Place your finger on the sensor, then lift it."), False)
     end
-    call gtk.label_set_text(ui["enroll_count"], "")
-    call gtk.button_set_label(ui["enroll_cancel"], i18n.T("Cancel"))
-    call gtk.widget_set_visible(ui["enroll_cancel"], True)
-    call gtk.widget_set_sensitive(ui["enroll_cancel"], True)
-    call gtk.widget_set_visible(ui["enroll_done"], False)
-    call gtk.widget_set_visible(ui["enroll_retry"], False)
-    call gtk.stack_set_visible_child_name(ui["stack"], "enroll")
-    ui["enrolling"] = True
+    call gtk.label_set_text(fv["enroll_count"], "")
+    call gtk.button_set_label(fv["enroll_cancel"], i18n.T("Cancel"))
+    call gtk.widget_set_visible(fv["enroll_cancel"], True)
+    call gtk.widget_set_sensitive(fv["enroll_cancel"], True)
+    call gtk.widget_set_visible(fv["enroll_done"], False)
+    call gtk.widget_set_visible(fv["enroll_retry"], False)
+    call gtk.stack_set_visible_child_name(fv["stack"], "enroll")
+    fv["enrolling"] = True
     call enroll_start(finger)
 end
 
 function set_enroll_status(text, error):
-    call gtk.label_set_text(ui["enroll_status"], text)
-    call gtk.widget_set_class(ui["enroll_status"], "error", error)
+    call gtk.label_set_text(fv["enroll_status"], text)
+    call gtk.widget_set_class(fv["enroll_status"], "error", error)
 end
 
 function on_enroll_status(result, done):
@@ -728,52 +727,52 @@ function on_enroll_status(result, done):
     finished = message[1] or done
     error = message[2]
     if result == "enroll-stage-passed":
-        ui["passed"] += 1
+        fv["passed"] += 1
     end
     n = stages()
     progress = 0.0
     if result == "enroll-completed":
         progress = 1.0
     elif n > 0:
-        progress = min(Float(ui["passed"]) / n, 0.95)
-        call gtk.label_set_text(ui["enroll_count"], i18n.TF("Step %d of %d", [min(ui["passed"] + 1, n), n]))
+        progress = min(Float(fv["passed"]) / n, 0.95)
+        call gtk.label_set_text(fv["enroll_count"], i18n.TF("Step %d of %d", [min(fv["passed"] + 1, n), n]))
     else:
-        progress = min(ui["passed"] * 0.12, 0.9)
+        progress = min(fv["passed"] * 0.12, 0.9)
     end
     call set_ridges(progress, error and finished)
     call set_enroll_status(message[0], error)
     if finished:
         ok = result == "enroll-completed"
-        ui["enrolling"] = False
-        call gtk.label_set_text(ui["enroll_count"], "")
-        call gtk.button_set_label(ui["enroll_cancel"], i18n.T("Back"))
-        call gtk.widget_set_visible(ui["enroll_cancel"], not ok)
-        call gtk.widget_set_visible(ui["enroll_done"], ok)
+        fv["enrolling"] = False
+        call gtk.label_set_text(fv["enroll_count"], "")
+        call gtk.button_set_label(fv["enroll_cancel"], i18n.T("Back"))
+        call gtk.widget_set_visible(fv["enroll_cancel"], not ok)
+        call gtk.widget_set_visible(fv["enroll_done"], ok)
         # Zkusit znovu az po uvolneni ctecky (jinak by nove pridani narazilo na AlreadyInUse)
         again = not ok and result != "enroll-data-full" and result != "enroll-duplicate"
-        call gtk.widget_set_visible(ui["enroll_retry"], again)
-        call gtk.widget_set_sensitive(ui["enroll_retry"], False)
+        call gtk.widget_set_visible(fv["enroll_retry"], again)
+        call gtk.widget_set_sensitive(fv["enroll_retry"], False)
         call enroll_stop(retry_ready)
     end
 end
 
 function retry_ready(unused):
-    call gtk.widget_set_sensitive(ui["enroll_retry"], True)
+    call gtk.widget_set_sensitive(fv["enroll_retry"], True)
 end
 
 function enroll_failed(error):
     call eprint("luxos-fingerprint: " + error)
-    ui["enrolling"] = False
+    fv["enrolling"] = False
     call set_ridges(0, False)
     call set_enroll_status(error_message(error), True)
-    call gtk.button_set_label(ui["enroll_cancel"], i18n.T("Back"))
+    call gtk.button_set_label(fv["enroll_cancel"], i18n.T("Back"))
     # ctecka uz je uvolnena (enroll_start pri chybe vola release)
-    call gtk.widget_set_visible(ui["enroll_retry"], True)
-    call gtk.widget_set_sensitive(ui["enroll_retry"], True)
+    call gtk.widget_set_visible(fv["enroll_retry"], True)
+    call gtk.widget_set_sensitive(fv["enroll_retry"], True)
 end
 
 function on_retry(unused, b):
-    call enroll(ui["finger"])
+    call enroll(fv["finger"])
     return 0
 end
 
@@ -783,10 +782,10 @@ function on_done(unused, b):
 end
 
 function on_enroll_cancel(unused, b):
-    call gtk.button_set_label(ui["enroll_cancel"], i18n.T("Cancel"))
-    if ui["enrolling"]:
-        ui["enrolling"] = False
-        call gtk.widget_set_sensitive(ui["enroll_cancel"], False)
+    call gtk.button_set_label(fv["enroll_cancel"], i18n.T("Cancel"))
+    if fv["enrolling"]:
+        fv["enrolling"] = False
+        call gtk.widget_set_sensitive(fv["enroll_cancel"], False)
         call enroll_stop(refresh)
     else:
         call refresh(0)
@@ -794,74 +793,76 @@ function on_enroll_cancel(unused, b):
     return 0
 end
 
-# Zavreni pri snimani: nejdriv EnrollStop a uvolneni ctecky, pak konec
-function on_delete(unused, event, window):
-    if fp["bus"] != 0 and ui["enrolling"]:
-        ui["enrolling"] = False
-        call enroll_stop(quit)
-        call gtk.widget_hide(window)
-        return True
+# ---- stranka v okne Nastaveni -------------------------------------------------------------------------------------
+
+function build(host):
+    fv["window"] = host["window"]
+    if fv["css"] == 0:
+        fv["css"] = gtk.css_load(CSS)
     end
-    return False
+    page = ui.page_box()
+    fv["page"] = page
+    fv["stack"] = gtk.stack_new(False)
+    call gtk.box_pack_start(page, fv["stack"], True, True, 0)
+    call build_message()
+    call build_main()
+    call build_enroll()
+    call gtk.widget_show_all(fv["stack"])
+    call show_message("content-loading-symbolic", i18n.T("Looking for a fingerprint reader…"), "", "", None, True)
+    call glib.idle_add_data(start, 0)
+    return page
 end
 
-function quit(unused):
-    call gtk.main_quit()
-end
-
-function on_destroy(unused, window):
-    call gtk.main_quit()
+# Odchod ze stranky i zavreni okna: snimani zastavit a ctecku uvolnit hned (synchronne - po zavreni okna proces
+# konci a asynchronni volani by uz neodeslo)
+function leave(host):
+    fp["gen"] += 1
+    call unsubscribe()
+    if fp["bus"] == 0 or fp["dev"] == "":
+        return 0
+    end
+    if fp["claimed"]:
+        fp["claimed"] = False
+        if fv["enrolling"]:
+            safe:
+                call gio.call_values(fp["bus"], NAME, fp["dev"], IFACE_DEVICE, "EnrollStop", [], "", 3000)
+            end
+        end
+        safe:
+            call gio.call_values(fp["bus"], NAME, fp["dev"], IFACE_DEVICE, "Release", [], "", 3000)
+        end
+    end
+    if fv["enrolling"] or gtk.stack_get_visible_child_name(fv["stack"]) == "enroll":
+        # po navratu na stranku seznam otisku, ne rozpracovane pridavani
+        fv["enrolling"] = False
+        call fill()
+    end
     return 0
 end
 
-# ---- testy (LUXOS_TEST_CONTROL=1) ------------------------------------------------------------------------------
+# ---- testy (LUXOS_TEST_CONTROL=1, luxos-settings preda prikazy, ktere nezna) -----------------------------------
+# "state" patri oknu Nastaveni, stav stranky je "page-state"
 
-function on_test(command, rest):
+function test(command, rest):
     if command == "enroll":
         call enroll(rest)
     elif command == "remove":
         call on_remove(rest, 0)
-    elif command == "state":
-        print "state " + json.encode({"page": gtk.stack_get_visible_child_name(ui["stack"]), "passed": ui["passed"],
-            "progress": ui["progress"], "ridges_error": ui["error"], "busy": ui["busy"], "enrolling": ui["enrolling"],
-            "status_error": gtk.widget_has_class(ui["status"], "error"),
-            "enroll_error": gtk.widget_has_class(ui["enroll_status"], "error"),
-            "status": gtk.label_get_text(ui["enroll_status"]), "count": gtk.label_get_text(ui["enroll_count"])})
+    elif command == "page-state":
+        print "page-state " + json.encode({"page": gtk.stack_get_visible_child_name(fv["stack"]), "passed": fv["passed"],
+            "progress": fv["progress"], "ridges_error": fv["error"], "busy": fv["busy"], "enrolling": fv["enrolling"],
+            "status_error": gtk.widget_has_class(fv["status"], "error"),
+            "enroll_error": gtk.widget_has_class(fv["enroll_status"], "error"), "claimed": fp["claimed"],
+            "status": gtk.label_get_text(fv["enroll_status"]), "count": gtk.label_get_text(fv["enroll_count"])})
     elif command == "message":
         parts = rest.split(" ")
         print "message " + json.encode(enroll_message(parts[0], len(parts) > 1 and parts[1] == "swipe"))
     elif command == "finger":
         print "finger " + finger_label(rest)
     elif command == "close":
-        call gtk.window_close(ui["window"])
+        call gtk.window_close(fv["window"])
+    else:
+        return False
     end
+    return True
 end
-
-# ---- start ---------------------------------------------------------------------------------------------------------
-
-call glib.set_prgname("luxos-fingerprint")
-call glib.set_application_name(i18n.T("Fingerprint Login"))
-call gtk.init()
-call gtk.css_load(CSS)
-window = gtk.window_new(i18n.T("Fingerprint Login"))
-ui["window"] = window
-call gtk.window_set_wmclass(window, "luxos-fingerprint", "luxos-fingerprint")
-# Vyska podle obsahu (pod seznamem otisku zadna prazdna plocha)
-call gtk.window_set_default_size(window, 520, -1)
-call gtk.window_set_icon_name(window, "luxos-fingerprint")
-header = gtk.window_set_header(window, i18n.T("Fingerprint Login"))
-call gtk.widget_show_all(header)
-# vyska podle stranky: seznam neni tak vysoky jako pridavani otisku
-ui["stack"] = gtk.stack_new(False)
-call gtk.container_add(window, ui["stack"])
-call build_message()
-call build_main()
-call build_enroll()
-call gtk.connect_data(window, "delete-event", 1, on_delete, 0)
-call gtk.connect_data(window, "destroy", 0, on_destroy, 0)
-call gtk.widget_show_all(ui["stack"])
-call show_message("content-loading-symbolic", i18n.T("Looking for a fingerprint reader…"), "", "", None, True)
-call gtk.widget_show(window)
-call glib.idle_add_data(start, 0)
-call testctl.start(on_test)
-call gtk.main()

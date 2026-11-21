@@ -12,7 +12,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
-from test_luxwm import BUILD, Session, wlt  # noqa: E402
+from test_luxwm import BUILD, SYSROOT, Session, wlt  # noqa: E402
 
 CLIENT = os.path.join(os.path.dirname(__file__), "clients", "gtk-window.py")
 GREEN = (0x20, 0xa0, 0x40)
@@ -101,6 +101,31 @@ class CsdWindows(unittest.TestCase):
         v = self.s.state()["views"]["B"]
         self.assertEqual(v["maximized"], 1)
         self.assertEqual(self.s.pixel(v["x"], v["y"] + v["h"] - 1), GREEN, "maximalizovane: ostry roh")
+
+    def cursor_pixels(self, x, y):
+        """Pixely kurzoru (jine nez zelene okno) ve ctverci pod hotspotem na x, y; snimek s kurzorem (grim -c)."""
+        path = os.path.join(self.s.dir, "cursor.ppm")
+        wlt("run", self.s.dir, os.path.join(SYSROOT, "usr/bin/grim"), "-c", "-t", "ppm", "-g", f"{x},{y} 24x24", path)
+        with open(path, "rb") as f:
+            _, size, _, pixels = f.read().split(b"\n", 3)
+        return sum(tuple(pixels[i:i + 3]) != GREEN for i in range(0, len(pixels), 3))
+
+    def test_cursor_comes_back_after_an_app_hides_it(self):
+        # Kurzor zmizel po posouvani a uz se neukazal: aplikace ho skryla (wl_pointer.set_cursor bez obrazku)
+        # a GTK pak nastavuje kurzor jen pres cursor-shape-v1, ktery luxcomp ignoroval
+        self.window("--headerbar", "Hides", "300x200", "--hide-cursor")
+        hides = self.procs[-1]
+        self.window("--headerbar", "Shows", "300x200")
+        st = self.s.state()["views"]
+        pa = (st["Hides"]["x"] + 150, st["Hides"]["y"] + 120)
+        pb = (st["Shows"]["x"] + 150, st["Shows"]["y"] + 120)
+        self.s.input(f"move {pb[0]} {pb[1]}", f"move {pb[0] + 5} {pb[1]}", wait=0.5)
+        self.assertGreater(self.cursor_pixels(pb[0] + 5, pb[1]), 20, "no cursor over a GTK window")
+        self.s.input(f"move {pa[0]} {pa[1]}", f"move {pa[0] + 5} {pa[1]}", "scroll 3", wait=0.5)
+        self.assertEqual(hides.stdout.readline().strip(), "hidden")
+        self.assertEqual(self.cursor_pixels(pa[0] + 5, pa[1]), 0, "app could not hide the cursor")
+        self.s.input(f"move {pb[0]} {pb[1]}", f"move {pb[0] + 5} {pb[1]}", wait=0.5)
+        self.assertGreater(self.cursor_pixels(pb[0] + 5, pb[1]), 20, "cursor did not come back over another window")
 
     def test_redraws_when_maximized_and_fullscreen(self):
         # Regrese: pruh mezi zaoblenymi rohy je druha kopie povrchu ve scene; kdyz zmizel (maximalizace, cela

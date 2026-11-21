@@ -1,7 +1,7 @@
-# LuxOS - Vychozi nastaveni aplikaci: aplikace s nastavenim v domovske slozce a reset jedne z nich
-# (nastaveni se presune do zalohy, nic se nemaze). Logika: luxos_app_reset.lsl (drive Python).
+# LuxOS - Nastaveni > Vychozi nastaveni aplikaci (drive luxos-app-reset): aplikace s nastavenim v domovske slozce
+# a reset jedne z nich (nastaveni se presune do zalohy, nic se nemaze). Logika: luxos_app_reset.lsl.
 #
-#   luxos-app-reset                   okno (Nastaveni)
+#   luxos-app-reset                   stranka v Nastaveni
 #   luxos-app-reset list [--json]     aplikace s nastavenim
 #   luxos-app-reset reset APLIKACE [--yes] [--force]
 #                                     presune nastaveni do zalohy (--force i kdyz aplikace bezi)
@@ -11,18 +11,16 @@ load env, json
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load luxos_i18n as i18n
-load luxos_sys as sys
 load luxos_app_reset as core
-load luxos_testctl as testctl
+load luxos_settings_ui as ui
 
 USAGE = [["luxos-app-reset", "window (Settings)"],
     ["luxos-app-reset list [--json]", "apps with settings in your home folder"],
     ["luxos-app-reset reset APP [--yes] [--force]", "move the app's settings to a backup (--force: even while the app is running)"],
     ["luxos-app-reset backups", "list backups"],
     ["luxos-app-reset restore FOLDER", "restore a backup (the current settings are backed up first)"]]
-CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 8px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n"
 
-ui = {"window": 0, "search": 0, "box": 0, "status": 0, "apps": []}
+V = {"window": 0, "search": 0, "box": 0, "status": 0, "apps": []}
 
 # ---- prikazova radka -----------------------------------------------------------------------
 
@@ -173,7 +171,7 @@ function usage(to_stderr):
     end
 end
 
-# ---- okno ----------------------------------------------------------------------------------
+# ---- stranka: seznam aplikaci a zaloh -------------------------------------------------------------------------
 
 function label(value, css, chars):
     l = gtk.label_new(value)
@@ -188,47 +186,17 @@ function label(value, css, chars):
     return l
 end
 
-function build():
-    window = gtk.window_new(i18n.T("Reset App Settings"))
-    ui["window"] = window
-    call gtk.window_set_wmclass(window, "luxos-app-reset", "luxos-app-reset")
-    call gtk.window_set_default_size(window, 640, 620)
-    call gtk.window_set_icon_name(window, "preferences-system")
-    outer = gtk.box_new(gtk.VERTICAL, 6)
-    call gtk.widget_set_margin(outer, 18)
-    call gtk.container_add(window, outer)
-    intro = label(i18n.T("An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later."), "", 70)
-    call gtk.box_pack_start(outer, intro, False, False, 0)
-    ui["search"] = gtk.search_entry_new()
-    call gtk.entry_set_placeholder_text(ui["search"], i18n.T("Search apps"))
-    call gtk.widget_set_margins(ui["search"], 0, 0, 8, 0)
-    call gtk.connect_data(ui["search"], "search-changed", 0, on_search, 0)
-    call gtk.box_pack_start(outer, ui["search"], False, False, 0)
-    scroll = gtk.scrolled_window_new()
-    call gtk.widget_set_vexpand(scroll, True)
-    call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-    ui["box"] = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.container_add(scroll, ui["box"])
-    call gtk.box_pack_start(outer, scroll, True, True, 0)
-    ui["status"] = label("", "hint", 0)
-    call gtk.widget_set_name(ui["status"], "status")
-    call gtk.label_set_line_wrap(ui["status"], True)
-    call gtk.box_pack_start(outer, ui["status"], False, False, 0)
-    call gtk.label_set_text(ui["status"], i18n.T("Looking for apps…"))
-    call gtk.connect_data(window, "destroy", 0, on_destroy, 0)
-end
-
 function load(unused):
-    ui["apps"] = core.scan(True)
+    V["apps"] = core.scan(True)
     call fill()
     return False
 end
 
 function group(title):
-    call gtk.box_pack_start(ui["box"], label(title, "group-title", 0), False, False, 0)
+    call gtk.box_pack_start(V["box"], label(title, "group-title", 0), False, False, 0)
     g = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_add_class(g, "group")
-    call gtk.box_pack_start(ui["box"], g, False, False, 0)
+    call gtk.box_pack_start(V["box"], g, False, False, 0)
     return g
 end
 
@@ -255,11 +223,11 @@ function row(g, icon, title, sub, button):
 end
 
 function fill():
-    for child in gtk.container_get_children(ui["box"]):
+    for child in gtk.container_get_children(V["box"]):
         call gtk.widget_destroy(child)
     end
-    q = gtk.entry_get_text(ui["search"]).strip().lower()
-    shown = [a for a in ui["apps"] if q == "" or a["name"].lower().find(q) >= 0 or a["label"].lower().find(q) >= 0]
+    q = gtk.entry_get_text(V["search"]).strip().lower()
+    shown = [a for a in V["apps"] if q == "" or a["name"].lower().find(q) >= 0 or a["label"].lower().find(q) >= 0]
     for section in [[i18n.T("Apps"), True], [i18n.T("Other folders with settings"), False]]:
         items = [a for a in shown if a["known"] == section[1]]
         if len(items) == 0:
@@ -281,8 +249,8 @@ function fill():
             call row(g, "document-revert", String(bk.get("app", "")), String(bk.get("time", "")).replace("_", " "), b)
         end
     end
-    call gtk.label_set_text(ui["status"], i18n.TF("%d apps with settings", [len(ui["apps"])]))
-    call gtk.widget_show_all(ui["box"])
+    call gtk.label_set_text(V["status"], i18n.TF("%d apps with settings", [len(V["apps"])]))
+    call gtk.widget_show_all(V["box"])
 end
 
 function on_search(unused, entry):
@@ -294,7 +262,7 @@ end
 function message(title, secondary, buttons, default):
     dialog = gtk.dialog_new()
     call gtk.window_set_title(dialog, "")
-    call gtk.window_set_transient_for(dialog, ui["window"])
+    call gtk.window_set_transient_for(dialog, V["window"])
     call gtk.window_set_modal(dialog, True)
     area = gtk.dialog_get_content_area(dialog)
     call gtk.container_set_border_width(area, 12)
@@ -374,57 +342,63 @@ function restore_backup(bk):
     call load(0)
 end
 
-function on_destroy(unused, window):
-    call gtk.main_quit()
-    return 0
-end
+# ---- testy (LUXOS_TEST_CONTROL=1, prikazy, ktere okno Nastaveni nezna; hledani v seznamu je "filter") -----------
 
-# ---- testy (LUXOS_TEST_CONTROL=1) ------------------------------------------------------------------------------
-
-function on_test(command, rest):
+function test(command, rest):
     if command == "reset":
-        call reset_app(core.find(ui["apps"], rest))
+        call reset_app(core.find(V["apps"], rest))
     elif command == "restore":
         call restore_backup(core.list_backups()[Int(rest)])
-    elif command == "search":
-        call gtk.entry_set_text(ui["search"], rest)
+    elif command == "filter":
+        call gtk.entry_set_text(V["search"], rest)
+    else:
+        return False
     end
+    return True
 end
 
-function gui():
-    call glib.set_prgname("luxos-app-reset")
-    call gtk.init()
-    call gtk.css_load(CSS)
-    call build()
-    call gtk.widget_show_all(ui["window"])
-    call glib.idle_add_data(load, 0)
-    call testctl.start(on_test)
-    call gtk.main()
-    return 0
-end
+# ---- stranka -------------------------------------------------------------------------------------------------------
 
-# ---- start ---------------------------------------------------------------------------------------------------------
-
-command = ""
-if len(args) > 1:
-    command = args[1]
-end
-rest = args[2:]
-status = 0
-if command == "list":
-    status = cli_list(rest)
-elif command == "reset":
-    status = cli_reset(rest)
-elif command == "backups":
-    status = cli_backups(rest)
-elif command == "restore":
-    status = cli_restore(rest)
-elif command == "-h" or command == "--help" or command == "help":
-    call usage(False)
-elif command != "":
+# Prikazovy rezim bez okna; bez argumentu None = stranka v okne
+function cli(args):
+    if len(args) == 0:
+        return None
+    end
+    command = args[0]
+    rest = args[1:]
+    if command == "list":
+        return cli_list(rest)
+    elif command == "reset":
+        return cli_reset(rest)
+    elif command == "backups":
+        return cli_backups(rest)
+    elif command == "restore":
+        return cli_restore(rest)
+    elif command == "-h" or command == "--help" or command == "help":
+        call usage(False)
+        return 0
+    end
     call usage(True)
-    status = 2
-else:
-    status = gui()
+    return 2
 end
-exit(status)
+
+function build(host):
+    V["window"] = host["window"]
+    page = ui.page_box()
+    intro = label(i18n.T("An app that misbehaves often works again with its default settings. Resetting moves its settings to a backup folder - nothing is deleted and you can restore them later."), "hint", 70)
+    call gtk.box_pack_start(page, intro, False, False, 0)
+    V["search"] = gtk.search_entry_new()
+    call gtk.entry_set_placeholder_text(V["search"], i18n.T("Search apps"))
+    call gtk.widget_set_margins(V["search"], 0, 0, 12, 0)
+    call gtk.connect_data(V["search"], "search-changed", 0, on_search, 0)
+    call gtk.box_pack_start(page, V["search"], False, False, 0)
+    V["box"] = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.box_pack_start(page, V["box"], False, False, 0)
+    V["status"] = label("", "hint", 0)
+    call gtk.widget_set_name(V["status"], "status")
+    call gtk.widget_set_margins(V["status"], 16, 0, 12, 0)
+    call gtk.box_pack_start(page, V["status"], False, False, 0)
+    call gtk.label_set_text(V["status"], i18n.T("Looking for apps…"))
+    call glib.idle_add_data(load, 0)
+    return page
+end

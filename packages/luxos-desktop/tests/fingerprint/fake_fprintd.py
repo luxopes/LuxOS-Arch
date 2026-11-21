@@ -2,7 +2,7 @@
 """LuxOS - napodobena sluzba fprintd (net.reactivated.Fprint) pro testy na session sbernici.
 
     fake_fprintd.py [--no-device] [--stages N] [--enrolled a,b] [--deny-claim] [--busy]
-                    [--enroll-script r1,r2,...] [--state FILE]
+                    [--enroll-script r1,r2,...] [--step-ms N] [--state FILE]
 
 --enroll-script: vysledky EnrollStatus po sobe (posledni ma done=true); vychozi N-1x
 enroll-stage-passed a enroll-completed. Do --state zapisuje volani (pro kontrolu v testech).
@@ -45,6 +45,7 @@ ap.add_argument("--busy", action="store_true")
 ap.add_argument("--enroll-script", default="")
 ap.add_argument("--state", default="")
 ap.add_argument("--claim-delay", type=float, default=0)    # s: Claim ceka (jako okno polkitu)
+ap.add_argument("--step-ms", type=int, default=60)         # odstup vysledku EnrollStatus
 args = ap.parse_args()
 
 enrolled = [f for f in args.enrolled.split(",") if f]
@@ -120,7 +121,7 @@ def device_call(conn, sender, path, iface, method, params, inv):
             conn.emit_signal(None, DEV, "net.reactivated.Fprint.Device", "EnrollStatus",
                              GLib.Variant("(sb)", (r, last)))
             if not last:
-                GLib.timeout_add(60, emit, i + 1)
+                GLib.timeout_add(args.step_ms, emit, i + 1)
             return False
         GLib.timeout_add(80, emit)
         return None

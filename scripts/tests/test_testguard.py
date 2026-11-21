@@ -238,7 +238,7 @@ class TestCameraNodesFromGuardDir(unittest.TestCase):
         # poradi uzlu (video10 za video2) overuje tests/lsl/luxos-camera-test.lsl (test_luxos_camera.py)
         repo = os.path.dirname(SCRIPTS)
         # aplikace v LSL (QR kod Wi-Fi, Kamera, Profilova fotka) hledaji uzly jen tam
-        for name in ("luxos-wifi-qr.lsl", "luxos_camera.lsl"):
+        for name in ("luxos_page_wifi.lsl", "luxos_camera.lsl"):
             with open(os.path.join(repo, "packages", "luxos-desktop", "files", "lsl", name)) as f:
                 self.assertIn('env.get("LUXOS_VIDEO_DEV_DIR"', f.read(), name)
 

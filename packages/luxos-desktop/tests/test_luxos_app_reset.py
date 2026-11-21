@@ -1,5 +1,6 @@
-"""Testy Vychoziho nastaveni aplikaci (files/lsl/luxos-app-reset.lsl + luxos_app_reset.lsl): seznam
-aplikaci v docasne domovske slozce, chranene slozky, reset presunem do zalohy, obnova, prikazova radka, okno.
+"""Testy Vychoziho nastaveni aplikaci (stranka Nastaveni luxos_page_app_reset.lsl pod odkazem luxos-app-reset,
+luxos_app_reset.lsl): seznam aplikaci v docasne domovske slozce, chranene slozky, reset presunem do zalohy, obnova,
+prikazova radka, okno.
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_app_reset.py -v
 
@@ -443,7 +444,7 @@ class Window(Home):
         self.assertTrue(self.app.wait(lambda: self.dialog_texts()))
         self.app.ask("click Cancel")
         self.assertTrue(os.path.exists(self.path(".config/vlc")))
-        self.app.ask("search spot")
+        self.app.ask("filter spot")
         self.assertTrue(self.app.wait(lambda: self.names() == ["Spotify"]))
 
     def test_running_app(self):

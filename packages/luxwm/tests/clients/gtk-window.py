@@ -1,11 +1,13 @@
 """Testovaci okno GTK 3: s headerbarem (vlastni zahlavi, CSD) nebo bez (jako Thunar, chce zahlavi od kompozitoru).
 
   gtk-window.py --headerbar|--plain [--title T] [--size WxH] [--app-id ID] [--themed] [--compact] [--grow WxH] [--toggle]
+                [--hide-cursor]
 Stin a zaobleni klienta jsou vypnute (CSS), aby test videl jen to, co kresli kompozitor; obsah je jednobarevny.
 --themed: vzhled z tematu (GTK_THEME), jako aplikace LuxOS: pozadi okna a 12 px pod zahlavim zacina
 modry obdelnik (z nej test pozna vysku zahlavi); --compact = headerbar.compact (Kalkulacka);
 --grow: za 1 s se okno samo zvetsi (aplikace podle obsahu).
 --toggle: klik do okna prepne barvu obsahu zelena <-> modra (kontrola, ze se okno po vstupu prekresli).
+--hide-cursor: kolecko mysi nad oknem skryje kurzor (jako aplikace, ktere ho pri posouvani nebo psani schovaji).
 """
 import sys
 
@@ -74,6 +76,13 @@ if "--toggle" in args:
     win.add(area)
     win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
     win.connect("button-press-event", toggle)
+if "--hide-cursor" in args:
+    def hide(widget, event):
+        widget.get_window().set_cursor(Gdk.Cursor.new_for_display(widget.get_display(), Gdk.CursorType.BLANK_CURSOR))
+        print("hidden", flush=True)
+        return False
+    win.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+    win.connect("scroll-event", hide)
 win.show_all()
 if "--grow" in args:
     gw, gh = map(int, args[args.index("--grow") + 1].split("x"))

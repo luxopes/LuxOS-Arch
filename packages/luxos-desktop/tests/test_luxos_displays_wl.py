@@ -1,5 +1,5 @@
-"""Monitory na Waylandu: luxos-displays (pomocnik), luxos-displays-settings (okno a rychla volba) a luxwm
-s libluxcomp pres harness scripts/wl-test (headless pixman, dva vystupy).
+"""Monitory na Waylandu: luxos-displays (pomocnik), luxos-displays-settings (odkaz na luxos-settings: stranka
+Monitory a rychla volba) a luxwm s libluxcomp pres harness scripts/wl-test (headless pixman, dva vystupy).
 
 Spusteni:
   scripts/wl-test/fetch-sysroot.sh && packages/luxwm/tests/build-host.sh
@@ -8,7 +8,7 @@ Spusteni:
     python3 -m unittest -v packages/luxos-desktop/tests/test_luxos_displays_wl.py
 
 Programy v LSL a libluxos-wl se prekladaji do out/luxos-displays-test. Allowlist privilegovanych protokolu
-dostane jen prelozeny pomocnik a luxwm-msg (WLT_PRIVILEGED); okno nastaveni privilegovane neni.
+dostane jen prelozeny pomocnik a luxwm-msg (WLT_PRIVILEGED); okno Nastaveni privilegovane neni.
 Pripojeni a odpojeni monitoru simuluje prikaz IPC test_output (jen headless backend).
 """
 import json
@@ -16,8 +16,12 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import time
 import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import lsl_app  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.dirname(HERE)
@@ -54,16 +58,21 @@ def pixel(image, x, y):
 def build():
     os.makedirs(os.path.join(OUT, "src"), exist_ok=True)
     subprocess.run(["make", "-s", "-C", os.path.join(PKG, "files/src/luxos-wl"), f"OUT={OUT}"], check=True)
-    lsl = os.path.join(PKG, "files", "lsl")
+    lsl = lsl_app.LSL_DIR
     for f in os.listdir(lsl):
-        shutil.copy(os.path.join(lsl, f), os.path.join(OUT, "src"))
+        if f.endswith(".lsl") and os.path.exists(os.path.join(lsl, f)):
+            shutil.copy(os.path.join(lsl, f), os.path.join(OUT, "src"))
     shutil.copy(os.path.join(HERE, "lsl", "luxos-displays-test.lsl"), os.path.join(OUT, "src"))
-    for name, exe in (("luxos-displays", HELPER), ("luxos-displays-settings", SETTINGS), ("luxos-notify", NOTIFY),
-                      ("luxos-displays-test", os.path.join(OUT, "unit"))):
-        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", os.path.join(OUT, "src", name + ".lsl"), exe],
-                           capture_output=True, text=True)
+    for name, exe in (("luxos-displays", HELPER), ("luxos-settings", os.path.join(OUT, "luxos-settings")),
+                      ("luxos-notify", NOTIFY), ("luxos-displays-test", os.path.join(OUT, "unit"))):
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", os.path.join(OUT, "src"),
+                            os.path.join(OUT, "src", name + ".lsl"), exe], capture_output=True, text=True)
         if r.returncode != 0:
             raise RuntimeError(name + ": " + r.stdout + r.stderr)
+    # stary program je odkaz na luxos-settings (stranka Monitory, --menu = rychla volba)
+    if os.path.lexists(SETTINGS):
+        os.unlink(SETTINGS)
+    os.symlink("luxos-settings", SETTINGS)
 
 
 class Session:
@@ -455,25 +464,35 @@ class DisplaysWayland(unittest.TestCase):
         self.assertEqual(s.outputs()[0]["HEADLESS-2"]["y"], 720)
         self.assertEqual(s.saved()["outputs"]["HEADLESS-2|Headless output 2"]["width"], 1024)
 
+    def page_state(self, app):
+        return json.loads(app.ask("page-state", "state "))
+
     def test_settings_window_drag_and_revert(self):
         s = self.session("dsp-gui")
-        env = dict(s.env, LUXOS_DISPLAYS_CONFIRM_SECONDS="3")
-        p = subprocess.Popen([SETTINGS], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-        s.procs.append(p)
-        time.sleep(4)
-        # okno na HEADLESS-2 (vlevo): modre obdelniky usporadani (0.24, 0.48, 1.0)
-        shot = s.shot("gui.ppm", "HEADLESS-2")
-        self.assertEqual(pixel(shot, 577, 180)[2], 255)
-        self.assertEqual(pixel(shot, 701, 180)[2], 255)
-        # obdelnik HEADLESS-1 pretazeny pod HEADLESS-2
-        s.input("drag 701 180 577 262 600")
-        time.sleep(1.5)
-        outs, _ = s.outputs()
-        self.assertEqual((outs["HEADLESS-1"]["x"], outs["HEADLESS-1"]["y"]), (0, 720))
-        # bez potvrzeni po 3 s zpet
-        self.assertTrue(s.wait(lambda: s.outputs()[0]["HEADLESS-1"]["y"] == 0, 8))
-        self.assertIsNone(s.saved())
-        self.assertIsNone(p.poll())
+        app = lsl_app.App([SETTINGS], dict(s.env, LUXOS_DISPLAYS_CONFIRM_SECONDS="3"))
+        try:
+            self.assertTrue(app.wait(lambda: len(self.page_state(app)["rects"]) == 2, 15), app.stderr())
+            dump = app.dump()
+            self.assertEqual(dump[0]["title"], "Displays")
+            self.assertIn("Arrangement", lsl_app.texts(dump))
+            # obdelnik HEADLESS-1 (vpravo) pretazeny pod HEADLESS-2
+            app.ask("drag HEADLESS-1 -1280 720")
+            self.assertTrue(s.wait(lambda: self.page_state(app)["dialog"], 5))
+            outs, _ = s.outputs()
+            self.assertEqual((outs["HEADLESS-1"]["x"], outs["HEADLESS-1"]["y"]), (0, 720))
+            # bez potvrzeni po 3 s zpet
+            self.assertTrue(s.wait(lambda: s.outputs()[0]["HEADLESS-1"]["y"] == 0, 8))
+            self.assertIsNone(s.saved())
+            self.assertTrue(s.wait(lambda: not self.page_state(app)["dialog"], 5))
+            # znovu a odchod ze stranky behem odpoctu: nepotvrzene nastaveni se vrati hned
+            app.ask("drag HEADLESS-1 -1280 720")
+            self.assertTrue(s.wait(lambda: s.outputs()[0]["HEADLESS-1"]["y"] == 720, 5))
+            app.ask("page keyboard")
+            self.assertTrue(s.wait(lambda: s.outputs()[0]["HEADLESS-1"]["y"] == 0, 2.5))
+            self.assertIsNone(s.saved())
+            self.assertIsNone(app.proc.poll())
+        finally:
+            app.stop()
 
     # ---- prava ----
 

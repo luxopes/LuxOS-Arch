@@ -1,28 +1,28 @@
-# LuxOS - Bluetooth: zapnuti, sparovana zarizeni a pripojeni noveho jednim klikem (drive Python + GTK).
+# LuxOS - Nastaveni > Bluetooth (drive luxos-bluetooth): zapnuti, sparovana zarizeni a pripojeni noveho jednim klikem.
 #
-# Pracuje primo s BlueZ pres D-Bus. Pri otevrenem okne hleda zarizeni v okoli; "Pripojit" u noveho zarizeni
+# Pracuje primo s BlueZ pres D-Bus. Pri zobrazene strance hleda zarizeni v okoli; "Pripojit" u noveho zarizeni
 # ho sparuje, nastavi jako duveryhodne a pripoji. Kody pri parovani resi agent BlueZ (luxos_bt_agent, stejny
-# jako v luxos-hub). Pri otevrenem okne a zapnutem Bluetooth je pocitac viditelny pro ostatni zarizeni (jako
-# macOS/GNOME): viditelnost zapina jen toto okno a po zavreni ji vypne (jen kdyz ji zaplo ono);
-# DiscoverableTimeout 180 s - kdyz okno spadne, BlueZ ji vypne sam. Jmeno pocitace viditelne pro ostatni
-# zarizeni = Alias adapteru (prazdny vrati jmeno systemu); zapis povoluje politika D-Bus BlueZ, polkit ne.
+# jako v luxos-hub). Pri zobrazene strance a zapnutem Bluetooth je pocitac viditelny pro ostatni zarizeni (jako
+# macOS/GNOME): viditelnost zapina jen tato stranka a pri odchodu ze stranky nebo zavreni okna ji vypne (jen kdyz
+# ji zapla ona); DiscoverableTimeout 180 s - kdyz okno spadne, BlueZ ji vypne sam. Jmeno pocitace viditelne pro
+# ostatni zarizeni = Alias adapteru (prazdny vrati jmeno systemu); zapis povoluje politika D-Bus BlueZ, polkit ne.
 # GIO respektuje DBUS_SYSTEM_BUS_ADDRESS: testy okno pousti nad soukromou sbernici s falesnym BlueZ.
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load luxos_gio, gio as gio
 load luxos_i18n as i18n
 load luxos_bt_agent as agent
-load luxos_testctl as testctl
 load luxos_text as text
+load luxos_settings_ui as ui
 load json
 
 BLUEZ = "org.bluez"
 ADAPTER = "org.bluez.Adapter1"
 DEVICE = "org.bluez.Device1"
-CSS = ".section-title { font-size: 13px; font-weight: 700; opacity: 0.7; margin: 14px 4px 6px; }\n.group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group row { padding: 8px 12px; }\n.dev-name { font-weight: 600; }\n.dev-sub { font-size: 11px; opacity: 0.6; }\n.big-switch-label { font-size: 15px; font-weight: 700; }\n.empty { opacity: 0.6; padding: 18px; }\n"
+CSS = ".bt-list row { min-height: 28px; padding: 8px 16px; }\n.bt-name { font-weight: 600; }\n.bt-sub { font-size: 11px; opacity: 0.6; }\n.bt-empty { opacity: 0.6; padding: 18px; }\n.bt-hint { margin: 8px 16px 0 16px; }\n"
 
-VISIBLE_TIMEOUT = 180   # s, BlueZ viditelnost vypne sam (pad okna); otevrene okno ji obnovuje
-VISIBLE_REFRESH = 60    # s, jak casto okno obnovi DiscoverableTimeout (BlueZ znovu spusti odpocet)
+VISIBLE_TIMEOUT = 180   # s, BlueZ viditelnost vypne sam (pad okna); zobrazena stranka ji obnovuje
+VISIBLE_REFRESH = 60    # s, jak casto stranka obnovi DiscoverableTimeout (BlueZ znovu spusti odpocet)
 SCAN_IDLE = 120         # s, po jak dlouhe dobe v pozadi okno prestane hledat zarizeni
 ALIAS_MAX = 248         # nejdelsi jmeno zarizeni v Bluetooth (HCI local name, bajty UTF-8)
 # Vlastnosti Device1, ktere okno nezobrazuje a ktere BlueZ pri hledani meni porad dokola
@@ -32,8 +32,8 @@ KIND = {"audio-headset": "Headphones", "audio-headphones": "Headphones", "audio-
     "input-tablet": "Tablet", "phone": "Phone", "computer": "Computer"}
 
 bz = {"bus": 0, "objects": {}, "reloads": 0}
-ui = {"window": 0, "power": 0, "hint": 0, "name_group": 0, "name_label": 0, "name_sub": 0, "lists": {}, "heads": {},
-      "scan_spinner": 0, "busy": {}, "apath": "", "closing": False, "pending": True, "syncing": False,
+bt = {"window": 0, "page": 0, "css": 0, "power": 0, "hint": 0, "name_group": 0, "name_label": 0, "name_sub": 0, "lists": {}, "heads": {},
+      "scan_spinner": 0, "busy": {}, "apath": "", "hidden": True, "pending": True, "syncing": False,
       "visible_ours": False, "visible_busy": False, "visible_failed": False, "saved_timeout": None,
       "visible_timer": 0, "scan_paused": False, "scan_pause_timer": 0, "active": None}
 
@@ -113,10 +113,10 @@ function adapter_path():
 end
 
 function adapter_props():
-    if ui["apath"] == "":
+    if bt["apath"] == "":
         return {}
     end
-    return props_of(ui["apath"], ADAPTER)
+    return props_of(bt["apath"], ADAPTER)
 end
 
 function name_of(props):
@@ -154,7 +154,7 @@ end
 
 function set_prop_sync(name, signature, value):
     try:
-        call gio.call_values(bz["bus"], BLUEZ, ui["apath"], "org.freedesktop.DBus.Properties", "Set", [ADAPTER, name, [signature, value]], "(ssv)", 2000)
+        call gio.call_values(bz["bus"], BLUEZ, bt["apath"], "org.freedesktop.DBus.Properties", "Set", [ADAPTER, name, [signature, value]], "(ssv)", 2000)
     else:
         return False
     end
@@ -186,6 +186,7 @@ function group():
     lb = gtk.list_box_new()
     call gtk.list_box_set_selection_mode(lb, 0)
     call gtk.widget_add_class(lb, "group")
+    call gtk.widget_add_class(lb, "bt-list")
     return lb
 end
 
@@ -200,7 +201,7 @@ function device_row(path, props):
     call gtk.box_pack_start(box, gtk.image_new_from_icon_name(icon + "-symbolic", gtk.ICON_LARGE_TOOLBAR), False, False, 0)
     texts = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(texts, gtk.ALIGN_CENTER)
-    name = label(name_of(props), "dev-name")
+    name = label(name_of(props), "bt-name")
     call gtk.label_set_ellipsize(name, 3)
     call gtk.box_pack_start(texts, name, False, False, 0)
     parts = [i18n.T(KIND.get(icon, "Device"))]
@@ -213,7 +214,7 @@ function device_row(path, props):
     if battery != None:
         parts.append(i18n.TF("battery %d %%", [battery]))
     end
-    sub = label(" · ".join(parts), "dev-sub")
+    sub = label(" · ".join(parts), "bt-sub")
     call gtk.box_pack_start(texts, sub, False, False, 0)
     call gtk.box_pack_start(box, texts, True, True, 0)
     spinner = gtk.spinner_new()
@@ -236,9 +237,9 @@ function device_row(path, props):
         call gtk.connect_data(b, "clicked", 0, on_pair, row)
         call gtk.box_pack_start(box, b, False, False, 0)
     end
-    call gtk.list_box_add(ui["lists"]["paired" if paired else "nearby"], box)
-    if path in ui["busy"]:
-        call row_busy(row, True, ui["busy"][path])
+    call gtk.list_box_add(bt["lists"]["paired" if paired else "nearby"], box)
+    if path in bt["busy"]:
+        call row_busy(row, True, bt["busy"][path])
     end
 end
 
@@ -249,212 +250,198 @@ function row_busy(row, on, value):
     end
 end
 
-function build_window():
-    window = gtk.window_new(i18n.T("Bluetooth"))
-    ui["window"] = window
-    call gtk.window_set_wmclass(window, "luxos-bluetooth", "luxos-bluetooth")
-    call gtk.window_set_icon_name(window, "bluetooth")
-    call gtk.window_set_header(window, i18n.T("Bluetooth"))
-    page = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_margin(page, 20)
-    scroll = gtk.scrolled_window_new()
-    call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-    call gtk.container_add(scroll, page)
-    call gtk.container_add(window, scroll)
-    # okno podle obsahu, nejvys pracovni plocha (bez HeaderBar a okraje); seznam zarizeni se posouva
-    area = gtk.primary_monitor_workarea()
-    cap = max(360, area[3] - 56 - 16)
-    call gtk.scrolled_window_set_max_content_height(scroll, cap)
-    call gtk.scrolled_window_set_min_content_height(scroll, min(260, cap))
-    call gtk.window_set_default_size(window, min(560, max(360, area[2] - 32)), -1)
-
+function build_page():
+    page = ui.page_box()
+    bt["page"] = page
+    power = group()
     top = gtk.box_new(gtk.HORIZONTAL, 12)
-    call gtk.box_pack_start(top, label(i18n.T("Bluetooth"), "big-switch-label"), True, True, 0)
-    ui["power"] = gtk.switch_new()
-    call gtk.widget_set_name(ui["power"], "power")
-    call gtk.widget_set_valign(ui["power"], gtk.ALIGN_CENTER)
-    call gtk.connect_data(ui["power"], "notify::active", 1, on_power, 0)
-    call gtk.box_pack_end(top, ui["power"], False, False, 0)
-    call gtk.box_pack_start(page, top, False, False, 0)
-    ui["hint"] = label("", "dev-sub")
-    call gtk.widget_set_name(ui["hint"], "hint")
-    call gtk.label_set_line_wrap(ui["hint"], True)
-    call gtk.box_pack_start(page, ui["hint"], False, False, 4)
+    call gtk.box_pack_start(top, label(i18n.T("Bluetooth"), ""), True, True, 0)
+    bt["power"] = gtk.switch_new()
+    call gtk.widget_set_name(bt["power"], "power")
+    call gtk.widget_set_valign(bt["power"], gtk.ALIGN_CENTER)
+    call gtk.connect_data(bt["power"], "notify::active", 1, on_power, 0)
+    call gtk.box_pack_end(top, bt["power"], False, False, 0)
+    call gtk.list_box_add(power, top)
+    call gtk.box_pack_start(page, power, False, False, 0)
+    bt["hint"] = label("", "bt-sub")
+    call gtk.widget_add_class(bt["hint"], "bt-hint")
+    call gtk.widget_set_name(bt["hint"], "hint")
+    call gtk.label_set_line_wrap(bt["hint"], True)
+    call gtk.box_pack_start(page, bt["hint"], False, False, 0)
 
     # Jmeno tohoto pocitace (Alias adapteru) - vidi ho telefon, sluchatka...
-    ui["name_group"] = group()
-    call gtk.widget_set_name(ui["name_group"], "name-group")
-    call gtk.widget_set_margins(ui["name_group"], 0, 0, 10, 0)
+    bt["name_group"] = group()
+    call gtk.widget_set_name(bt["name_group"], "name-group")
+    call gtk.widget_set_margins(bt["name_group"], 0, 0, 16, 0)
     nbox = gtk.box_new(gtk.HORIZONTAL, 12)
     call gtk.box_pack_start(nbox, gtk.image_new_from_icon_name("computer-symbolic", gtk.ICON_LARGE_TOOLBAR), False, False, 0)
     ntext = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(ntext, gtk.ALIGN_CENTER)
-    ui["name_label"] = label("", "dev-name")
-    call gtk.widget_set_name(ui["name_label"], "name-label")
-    call gtk.label_set_ellipsize(ui["name_label"], 3)
-    ui["name_sub"] = label("", "dev-sub")
-    call gtk.widget_set_name(ui["name_sub"], "name-sub")
-    call gtk.label_set_line_wrap(ui["name_sub"], True)
-    call gtk.box_pack_start(ntext, ui["name_label"], False, False, 0)
-    call gtk.box_pack_start(ntext, ui["name_sub"], False, False, 0)
+    bt["name_label"] = label("", "bt-name")
+    call gtk.widget_set_name(bt["name_label"], "name-label")
+    call gtk.label_set_ellipsize(bt["name_label"], 3)
+    bt["name_sub"] = label("", "bt-sub")
+    call gtk.widget_set_name(bt["name_sub"], "name-sub")
+    call gtk.label_set_line_wrap(bt["name_sub"], True)
+    call gtk.box_pack_start(ntext, bt["name_label"], False, False, 0)
+    call gtk.box_pack_start(ntext, bt["name_sub"], False, False, 0)
     call gtk.box_pack_start(nbox, ntext, True, True, 0)
     rename_button = gtk.button_new(i18n.T("Rename…"))
     call gtk.widget_set_valign(rename_button, gtk.ALIGN_CENTER)
     call gtk.connect_data(rename_button, "clicked", 0, on_rename, 0)
     call gtk.box_pack_start(nbox, rename_button, False, False, 0)
-    call gtk.list_box_add(ui["name_group"], nbox)
-    call gtk.box_pack_start(page, ui["name_group"], False, False, 0)
+    call gtk.list_box_add(bt["name_group"], nbox)
+    call gtk.box_pack_start(page, bt["name_group"], False, False, 0)
 
     for key in ["paired", "nearby"]:
         head = gtk.box_new(gtk.HORIZONTAL, 8)
         call gtk.widget_set_name(head, "head-" + key)
         title = i18n.T("My devices") if key == "paired" else i18n.T("Nearby devices")
-        call gtk.box_pack_start(head, label(title.upper(), "section-title"), False, False, 0)
+        call gtk.box_pack_start(head, label(title, "group-title"), False, False, 0)
         if key == "nearby":
-            ui["scan_spinner"] = gtk.spinner_new()
-            call gtk.widget_set_valign(ui["scan_spinner"], gtk.ALIGN_CENTER)
-            call gtk.widget_set_margins(ui["scan_spinner"], 0, 0, 8, 0)
-            call gtk.box_pack_start(head, ui["scan_spinner"], False, False, 0)
+            bt["scan_spinner"] = gtk.spinner_new()
+            call gtk.widget_set_valign(bt["scan_spinner"], gtk.ALIGN_CENTER)
+            call gtk.widget_set_margins(bt["scan_spinner"], 0, 0, 8, 0)
+            call gtk.box_pack_start(head, bt["scan_spinner"], False, False, 0)
         end
         call gtk.box_pack_start(page, head, False, False, 0)
         lb = group()
         call gtk.widget_set_name(lb, "list-" + key)
         empty = gtk.label_new(i18n.T("No devices") if key == "paired" else i18n.T("Searching… Put the device into pairing mode."))
-        call gtk.widget_add_class(empty, "empty")
+        call gtk.widget_add_class(empty, "bt-empty")
         call gtk.widget_show(empty)
         call gtk.list_box_set_placeholder(lb, empty)
         call gtk.box_pack_start(page, lb, False, False, 0)
-        ui["lists"][key] = lb
-        ui["heads"][key] = head
+        bt["lists"][key] = lb
+        bt["heads"][key] = head
     end
-    call gtk.connect_data(window, "destroy", 0, on_destroy, 0)
-    call gtk.connect_data(window, "notify::is-active", 1, on_active, 0)
+    return page
 end
 
 # Udalosti chodi v davkach - prekreslit jednou
 function schedule_refresh():
-    if not ui["pending"]:
-        ui["pending"] = True
+    if not bt["pending"]:
+        bt["pending"] = True
         call glib.timeout_add_data(250, refresh, 0)
     end
 end
 
 function show_lists(on):
     for key in ["paired", "nearby"]:
-        call gtk.widget_set_visible(ui["lists"][key], on)
-        call gtk.widget_set_visible(ui["heads"][key], on)
+        call gtk.widget_set_visible(bt["lists"][key], on)
+        call gtk.widget_set_visible(bt["heads"][key], on)
     end
 end
 
 function refresh(unused):
-    ui["pending"] = False
-    if ui["closing"]:
+    bt["pending"] = False
+    if bt["hidden"]:
         return False
     end
     apath = adapter_path()
-    ui["apath"] = apath
+    bt["apath"] = apath
     if apath == "":
-        call gtk.widget_set_sensitive(ui["power"], False)
-        call gtk.label_set_text(ui["hint"], i18n.T("No Bluetooth adapter was found on this computer."))
+        call gtk.widget_set_sensitive(bt["power"], False)
+        call gtk.label_set_text(bt["hint"], i18n.T("No Bluetooth adapter was found on this computer."))
         call show_lists(False)
-        call gtk.widget_set_visible(ui["name_group"], False)
+        call gtk.widget_set_visible(bt["name_group"], False)
         return False
     end
     adapter = props_of(apath, ADAPTER)
     on = adapter.get("Powered") == True
     discoverable = adapter.get("Discoverable") == True
-    call gtk.widget_set_sensitive(ui["power"], True)
-    ui["syncing"] = True
-    call gtk.switch_set_active(ui["power"], on)
-    ui["syncing"] = False
+    call gtk.widget_set_sensitive(bt["power"], True)
+    bt["syncing"] = True
+    call gtk.switch_set_active(bt["power"], on)
+    bt["syncing"] = False
     alias = name_of({"Alias": adapter.get("Alias"), "Name": adapter.get("Name")})
     call keep_visible(on, adapter)
     if not on:
-        call gtk.label_set_text(ui["hint"], i18n.T("Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone."))
-    elif discoverable and ui["visible_ours"]:
-        call gtk.label_set_text(ui["hint"], i18n.TF("Visible as “%s” while this window is open.", [alias]))
+        call gtk.label_set_text(bt["hint"], i18n.T("Turn on Bluetooth to connect headphones, a mouse, a keyboard or a phone."))
+    elif discoverable and bt["visible_ours"]:
+        call gtk.label_set_text(bt["hint"], i18n.TF("Visible as “%s” while this window is open.", [alias]))
     elif discoverable:
-        call gtk.label_set_text(ui["hint"], i18n.TF("Visible to nearby devices as “%s”.", [alias]))
+        call gtk.label_set_text(bt["hint"], i18n.TF("Visible to nearby devices as “%s”.", [alias]))
     else:
-        call gtk.label_set_text(ui["hint"], i18n.T("Not visible to other devices."))
+        call gtk.label_set_text(bt["hint"], i18n.T("Not visible to other devices."))
     end
-    call gtk.label_set_text(ui["name_label"], alias)
+    call gtk.label_set_text(bt["name_label"], alias)
     sub = i18n.T("This computer's name, shown to other Bluetooth devices")
     if on and discoverable:
         sub = sub + " · " + i18n.T("visible now")
     end
-    call gtk.label_set_text(ui["name_sub"], sub)
-    call gtk.spinner_set(ui["scan_spinner"], adapter.get("Discovering") == True)
+    call gtk.label_set_text(bt["name_sub"], sub)
+    call gtk.spinner_set(bt["scan_spinner"], adapter.get("Discovering") == True)
     for key in ["paired", "nearby"]:
-        for child in gtk.container_get_children(ui["lists"][key]):
+        for child in gtk.container_get_children(bt["lists"][key]):
             call gtk.widget_destroy(child)
         end
     end
     for path in devices(apath):
         call device_row(path, props_of(path, DEVICE))
     end
-    call gtk.widget_show_all(ui["window"])
+    call gtk.widget_show_all(bt["page"])
     call show_lists(on)
     return False
 end
 
 # ---- viditelnost pocitace (Discoverable adapteru) ------------------------------------------------------------
 
-# Okno otevrene a Bluetooth zapnute -> pocitac viditelny. Uz viditelny (bluetoothctl, jina aplikace) se
-# nemeni; kdyz viditelnost od okna vyprsi nebo ji nekdo vypne, zapne se znovu.
+# Stranka zobrazena a Bluetooth zapnuty -> pocitac viditelny. Uz viditelny (bluetoothctl, jina aplikace) se
+# nemeni; kdyz viditelnost od stranky vyprsi nebo ji nekdo vypne, zapne se znovu.
 function keep_visible(on, adapter):
-    if ui["closing"] or not on or ui["apath"] == "" or ui["visible_busy"] or ui["visible_failed"]:
+    if bt["hidden"] or not on or bt["apath"] == "" or bt["visible_busy"] or bt["visible_failed"]:
         return 0
     end
     if adapter.get("Discoverable") == True:
         return 0
     end
-    ui["visible_busy"] = True
-    ui["visible_ours"] = True
-    if ui["saved_timeout"] == None:
-        ui["saved_timeout"] = adapter.get("DiscoverableTimeout")
+    bt["visible_busy"] = True
+    bt["visible_ours"] = True
+    if bt["saved_timeout"] == None:
+        bt["saved_timeout"] = adapter.get("DiscoverableTimeout")
     end
     # nejdriv casovac, pak viditelnost: i kdyz okno hned spadne, BlueZ ji za 3 minuty vypne
-    call set_prop(ui["apath"], ADAPTER, "DiscoverableTimeout", "u", VISIBLE_TIMEOUT, on_timeout_set, 0)
+    call set_prop(bt["apath"], ADAPTER, "DiscoverableTimeout", "u", VISIBLE_TIMEOUT, on_timeout_set, 0)
 end
 
 function on_timeout_set(unused, reply, error):
-    call set_prop(ui["apath"], ADAPTER, "Discoverable", "b", True, on_visible, 0)
+    call set_prop(bt["apath"], ADAPTER, "Discoverable", "b", True, on_visible, 0)
     return 0
 end
 
 function on_visible(unused, reply, error):
-    ui["visible_busy"] = False
+    bt["visible_busy"] = False
     if error != "":
-        ui["visible_failed"] = True
+        bt["visible_failed"] = True
         call eprint("luxos-bluetooth: discoverable: " + error)
     end
     call schedule_refresh()
     return 0
 end
 
-# Novy DiscoverableTimeout znovu spusti odpocet BlueZ - pri otevrenem okne viditelnost nevyprsi
+# Novy DiscoverableTimeout znovu spusti odpocet BlueZ - pri zobrazene strance viditelnost nevyprsi
 function renew_visible(unused):
-    if ui["closing"]:
+    if bt["hidden"]:
         return False
     end
-    if ui["visible_ours"] and adapter_props().get("Discoverable") == True:
-        call set_prop(ui["apath"], ADAPTER, "DiscoverableTimeout", "u", VISIBLE_TIMEOUT, ignore_reply, 0)
+    if bt["visible_ours"] and adapter_props().get("Discoverable") == True:
+        call set_prop(bt["apath"], ADAPTER, "DiscoverableTimeout", "u", VISIBLE_TIMEOUT, ignore_reply, 0)
     end
     return True
 end
 
-# Vypne viditelnost, jen kdyz ji zaplo toto okno; restore vrati puvodni DiscoverableTimeout. Synchronne -
+# Vypne viditelnost, jen kdyz ji zapla tato stranka; restore vrati puvodni DiscoverableTimeout. Synchronne -
 # po zavreni okna proces hned konci.
 function hide_visible(restore):
-    if ui["apath"] == "":
+    if bt["apath"] == "":
         return 0
     end
-    if ui["visible_ours"]:
-        ui["visible_ours"] = False
+    if bt["visible_ours"]:
+        bt["visible_ours"] = False
         call set_prop_sync("Discoverable", "b", False)
     end
-    saved = ui["saved_timeout"]
+    saved = bt["saved_timeout"]
     if restore and saved != None and saved != VISIBLE_TIMEOUT:
         call set_prop_sync("DiscoverableTimeout", "u", saved)
     end
@@ -463,16 +450,16 @@ end
 # ---- hledani zarizeni -------------------------------------------------------------------------------------------
 
 function start_scan(unused):
-    if ui["apath"] != "":
-        call gio.call_async(bz["bus"], BLUEZ, ui["apath"], ADAPTER, "StartDiscovery", [], "", 60000, ignore_reply, 0)
+    if bt["apath"] != "":
+        call gio.call_async(bz["bus"], BLUEZ, bt["apath"], ADAPTER, "StartDiscovery", [], "", 60000, ignore_reply, 0)
     end
     return False
 end
 
 function stop_scan():
-    if ui["apath"] != "":
+    if bt["apath"] != "":
         try:
-            call gio.call_values(bz["bus"], BLUEZ, ui["apath"], ADAPTER, "StopDiscovery", [], "", 2000)
+            call gio.call_values(bz["bus"], BLUEZ, bt["apath"], ADAPTER, "StopDiscovery", [], "", 2000)
         else:
             return 0
         end
@@ -480,60 +467,102 @@ function stop_scan():
 end
 
 function is_active():
-    if ui["active"] != None:
-        return ui["active"]
+    if bt["active"] != None:
+        return bt["active"]
     end
-    return gtk.window_is_active(ui["window"])
+    return gtk.window_is_active(bt["window"])
 end
 
 # Hledani zbytecne zatezuje radio (horsi zvuk sluchatek, baterie) a BlueZ pri nem posila stale udalosti -
 # okno odlozene v pozadi ho po chvili zastavi, po navratu obnovi
 function on_active(unused, pspec, window):
-    if ui["scan_pause_timer"] != 0:
-        call glib.source_remove(ui["scan_pause_timer"])
-        ui["scan_pause_timer"] = 0
+    if bt["scan_pause_timer"] != 0:
+        call glib.source_remove(bt["scan_pause_timer"])
+        bt["scan_pause_timer"] = 0
     end
-    if ui["closing"]:
+    if bt["hidden"]:
         return 0
     end
     if is_active():
-        if ui["scan_paused"]:
-            ui["scan_paused"] = False
+        if bt["scan_paused"]:
+            bt["scan_paused"] = False
             call start_scan(0)
         end
     else:
-        ui["scan_pause_timer"] = glib.timeout_add_seconds_data(SCAN_IDLE, pause_scan, 0)
+        bt["scan_pause_timer"] = glib.timeout_add_seconds_data(SCAN_IDLE, pause_scan, 0)
     end
     return 0
 end
 
 function pause_scan(unused):
-    ui["scan_pause_timer"] = 0
-    if not ui["closing"] and not ui["scan_paused"]:
-        ui["scan_paused"] = True
+    bt["scan_pause_timer"] = 0
+    if not bt["hidden"] and not bt["scan_paused"]:
+        bt["scan_paused"] = True
         call stop_scan()
     end
     return False
 end
 
-function on_destroy(unused, window):
-    ui["closing"] = True
+# ---- stranka v okne Nastaveni ----------------------------------------------------------------------------------
+
+function build(host):
+    bt["window"] = host["window"]
+    if bt["css"] == 0:
+        bt["css"] = gtk.css_load(CSS)
+    end
+    try:
+        bz["bus"] = gio.system_bus()
+    else:
+        bz["bus"] = 0
+        call eprint("luxos-bluetooth: " + String(last_error()))
+    end
+    page = build_page()
+    # okno je spolecne pro vsechny stranky: obsluha jen pri zobrazene strance (bt["hidden"])
+    call gtk.connect_data(host["window"], "notify::is-active", 1, on_active, 0)
+    if bz["bus"] != 0:
+        call gio.subscribe_values(bz["bus"], BLUEZ, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded", "", on_objects)
+        call gio.subscribe_values(bz["bus"], BLUEZ, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved", "", on_objects)
+        call gio.subscribe_values(bz["bus"], BLUEZ, "org.freedesktop.DBus.Properties", "PropertiesChanged", "", on_props)
+        call agent.set_parent(host["window"])
+        call agent.watch(bz["bus"])
+    end
+    call reload()
+    return page
+end
+
+function show(host):
+    if not bt["hidden"]:
+        return 0
+    end
+    bt["hidden"] = False
+    bt["visible_failed"] = False
+    call refresh(0)
+    call start_scan(0)
+    bt["visible_timer"] = glib.timeout_add_seconds_data(VISIBLE_REFRESH, renew_visible, 0)
+    call on_active(0, 0, host["window"])
+    return 0
+end
+
+# Odchod ze stranky i zavreni okna: hledani a viditelnost jen pri zobrazene strance
+function leave(host):
+    bt["hidden"] = True
     for timer in ["visible_timer", "scan_pause_timer"]:
-        if ui[timer] != 0:
-            call glib.source_remove(ui[timer])
-            ui[timer] = 0
+        if bt[timer] != 0:
+            call glib.source_remove(bt[timer])
+            bt[timer] = 0
         end
     end
+    bt["scan_paused"] = False
     call stop_scan()
     call hide_visible(True)
-    call gtk.main_quit()
+    bt["saved_timeout"] = None
     return 0
 end
 
 # ---- akce --------------------------------------------------------------------------------------------------------
 
 function on_power(unused, pspec, switch):
-    if ui["syncing"] or ui["apath"] == "":
+    if bt["syncing"] or bt["apath"] == "":
         return 0
     end
     on = gtk.switch_get_active(switch)
@@ -542,9 +571,9 @@ function on_power(unused, pspec, switch):
     else:
         # po zapnuti ji refresh zapne znovu
         call hide_visible(False)
-        ui["visible_failed"] = False
+        bt["visible_failed"] = False
     end
-    call set_prop(ui["apath"], ADAPTER, "Powered", "b", on, ignore_reply, 0)
+    call set_prop(bt["apath"], ADAPTER, "Powered", "b", on, ignore_reply, 0)
     if on:
         call glib.timeout_add_data(800, start_scan, 0)
     end
@@ -552,13 +581,13 @@ function on_power(unused, pspec, switch):
 end
 
 function mark(row, value):
-    ui["busy"][row["path"]] = value
+    bt["busy"][row["path"]] = value
     call row_busy(row, True, value)
 end
 
 function on_done(row, reply, error):
-    if row["path"] in ui["busy"]:
-        call ui["busy"].pop(row["path"])
+    if row["path"] in bt["busy"]:
+        call bt["busy"].pop(row["path"])
     end
     if error != "":
         call show_error(i18n.T("Could not connect"), error_text(error), True)
@@ -596,7 +625,7 @@ function on_toggle(bound, button):
 end
 
 function on_forget(row, button):
-    call gio.call_async(bz["bus"], BLUEZ, ui["apath"], ADAPTER, "RemoveDevice", [row["path"]], "(o)", 60000, on_done, row)
+    call gio.call_async(bz["bus"], BLUEZ, bt["apath"], ADAPTER, "RemoveDevice", [row["path"]], "(o)", 60000, on_done, row)
     return 0
 end
 
@@ -605,7 +634,7 @@ function show_error(title, message, advice):
         message = message + "\n\n" + i18n.T("Make sure the device is on, close by and in pairing mode.")
     end
     parts = agent.build_dialog(title, glib.markup_escape(message), False, False, i18n.T("Close"))
-    call gtk.window_set_transient_for(parts[0], ui["window"])
+    call gtk.window_set_transient_for(parts[0], bt["window"])
     call gtk.window_set_modal(parts[0], True)
     call gtk.dialog_run(parts[0])
     call gtk.widget_destroy(parts[0])
@@ -622,13 +651,13 @@ function default_name():
 end
 
 function on_rename(unused, button):
-    if ui["apath"] == "":
+    if bt["apath"] == "":
         return 0
     end
     default = default_name()
     dialog = gtk.dialog_new()
     call gtk.window_set_title(dialog, i18n.T("Rename This Computer"))
-    call gtk.window_set_transient_for(dialog, ui["window"])
+    call gtk.window_set_transient_for(dialog, bt["window"])
     call gtk.window_set_modal(dialog, True)
     call gtk.dialog_add_button(dialog, i18n.T("Cancel"), gtk.RESPONSE_CANCEL)
     use_default = gtk.dialog_add_button(dialog, i18n.T("Use Default"), -2)
@@ -649,7 +678,7 @@ function on_rename(unused, button):
     call gtk.entry_set_activates_default(entry, True)
     call gtk.entry_set_placeholder_text(entry, default)
     call gtk.box_pack_start(box, entry, False, False, 0)
-    err = label("", "dev-sub")
+    err = label("", "bt-sub")
     call gtk.label_set_line_wrap(err, True)
     call gtk.label_set_max_width_chars(err, 48)
     call gtk.box_pack_start(box, err, False, False, 0)
@@ -683,10 +712,10 @@ end
 
 # Novy Alias adapteru ("" = vychozi jmeno systemu); BlueZ ho ulozi trvale
 function set_alias(name):
-    if ui["apath"] == "" or alias_problem(name) != "":
+    if bt["apath"] == "" or alias_problem(name) != "":
         return False
     end
-    call set_prop(ui["apath"], ADAPTER, "Alias", "s", name, on_alias_set, 0)
+    call set_prop(bt["apath"], ADAPTER, "Alias", "s", name, on_alias_set, 0)
     return True
 end
 
@@ -698,9 +727,10 @@ function on_alias_set(unused, reply, error):
     return 0
 end
 
-# ---- testy (LUXOS_TEST_CONTROL=1) ------------------------------------------------------------------------------
+# ---- testy (LUXOS_TEST_CONTROL=1, luxos-settings preda prikazy, ktere nezna) -----------------------------------
+# "state" patri oknu Nastaveni, stav stranky je "page-state"
 
-function on_test(command, rest):
+function test(command, rest):
     if command == "check":
         print "check " + json.encode(alias_problem(json.decode(rest)))
     elif command == "alias":
@@ -714,41 +744,17 @@ function on_test(command, rest):
     elif command == "renew":
         print "renew " + String(renew_visible(0))
     elif command == "active":
-        ui["active"] = rest == "1"
-        call on_active(0, 0, ui["window"])
+        bt["active"] = rest == "1"
+        call on_active(0, 0, bt["window"])
     elif command == "pause":
         print "pause " + String(pause_scan(0))
-    elif command == "state":
-        print "state " + json.encode({"scan_paused": ui["scan_paused"], "scan_timer": ui["scan_pause_timer"] != 0,
-            "visible_ours": ui["visible_ours"]})
+    elif command == "page-state":
+        print "page-state " + json.encode({"scan_paused": bt["scan_paused"], "scan_timer": bt["scan_pause_timer"] != 0,
+            "visible_ours": bt["visible_ours"], "shown": not bt["hidden"]})
     elif command == "close":
-        call gtk.widget_destroy(ui["window"])
+        call gtk.widget_destroy(bt["window"])
+    else:
+        return False
     end
+    return True
 end
-
-# ---- start ---------------------------------------------------------------------------------------------------------
-
-call glib.set_prgname("luxos-bluetooth")
-call gtk.init()
-call gtk.css_load(CSS)
-try:
-    bz["bus"] = gio.system_bus()
-else:
-    bz["bus"] = 0
-    call eprint("luxos-bluetooth: " + String(last_error()))
-end
-call build_window()
-if bz["bus"] != 0:
-    call gio.subscribe_values(bz["bus"], BLUEZ, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded", "", on_objects)
-    call gio.subscribe_values(bz["bus"], BLUEZ, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved", "", on_objects)
-    call gio.subscribe_values(bz["bus"], BLUEZ, "org.freedesktop.DBus.Properties", "PropertiesChanged", "", on_props)
-    call agent.set_parent(ui["window"])
-    call agent.watch(bz["bus"])
-end
-call reload()
-call gtk.widget_show_all(ui["window"])
-call refresh(0)
-call start_scan(0)
-ui["visible_timer"] = glib.timeout_add_seconds_data(VISIBLE_REFRESH, renew_visible, 0)
-call testctl.start(on_test)
-call gtk.main()

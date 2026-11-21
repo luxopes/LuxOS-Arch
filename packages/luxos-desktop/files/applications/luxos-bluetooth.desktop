@@ -8,4 +8,3 @@ Icon=bluetooth
 Terminal=false
 Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=bluetooth;headphones;pair;sluchátka;párování;
-StartupWMClass=luxos-bluetooth

@@ -14,7 +14,7 @@ load luxos_text as text
 
 # Vychozi Dock LuxOS (dconf/10-luxos: dock-items, icon-size, zoom-percent, hide-mode)
 DEFAULT_ITEMS = ["luxos-launchpad.desktop", "luxai.desktop", "luxos-store.desktop", "thunar.desktop",
-    "firefox.desktop", "luxos-terminal.desktop", "luxos-text.desktop", "xfce-settings-manager.desktop", "trash"]
+    "firefox.desktop", "luxos-terminal.desktop", "luxos-text.desktop", "luxos-settings.desktop", "trash"]
 DEFAULTS = {"icon_size": 48, "zoom": 150, "hide": "dodge"}
 HIDE_MODES = ["none", "dodge", "autohide"]
 # Plank hide-mode -> nas rezim (intellihide/window-dodge/dodge-maximized/dodge-active = uhnout oknu)
@@ -44,6 +44,8 @@ function parse_conf(content):
         "hide": DEFAULTS["hide"]}
     if "ITEMS" in kv:
         conf["items"] = [item for item in unquote(kv["ITEMS"]).split(" ") if item != ""]
+        # Spravce nastaveni Xfce na Waylandu nebezi: polozka z drivejsiho Docku vede do Nastaveni LuxOS
+        conf["items"] = [("luxos-settings.desktop" if item == "xfce-settings-manager.desktop" else item) for item in conf["items"]]
     end
     conf["icon_size"] = number(kv.get("ICON_SIZE", ""), DEFAULTS["icon_size"], 24, 128)
     # 100 = bez zvetseni; vic nez dvojnasobek se do plochy Docku nevejde
@@ -78,6 +80,9 @@ end
 function item_for_launcher(uri):
     if uri == "docklet://trash":
         return "trash"
+    end
+    if uri.endswith("/xfce-settings-manager.desktop"):
+        return "luxos-settings.desktop"
     end
     if uri.startswith("file://") and uri.endswith(".desktop"):
         return uri[7:]

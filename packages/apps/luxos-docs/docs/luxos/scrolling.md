@@ -3,7 +3,7 @@
 LuxOS scrolls like macOS: the touchpad moves the content pixel by pixel and, after a quick swipe,
 the content keeps gliding and slows down (inertia, "kinetic scrolling"). The mouse wheel glides to the
 new position instead of jumping. Both are on by default and can be turned off in
-**Settings › Scrolling** (`luxos-scrolling`).
+**Settings › Mouse & Touchpad** (`luxos-scrolling` opens the same page).
 
 ## Where it works
 
@@ -19,14 +19,25 @@ Touching the touchpad to move the pointer, a tap or a click stops the glide. On 
 driver does not report fingers that only rest on the touchpad, so resting two fingers without moving
 does not stop it (macOS does); moving them slightly does.
 
-## Settings › Scrolling
+## Settings › Mouse & Touchpad
+
+- **Mouse**: pointer speed, pointer acceleration, natural wheel direction, primary mouse button,
+  middle click with both buttons.
+- **Touchpad** (shown when a touchpad is connected): tracking speed, tap to click, tap and drag,
+  natural scrolling, scroll with two fingers or the right edge, right click in the corner or with two
+  fingers, ignore the touchpad while typing.
+
+On Wayland the page writes `mouse_*` and `touchpad_*` entries to `~/.config/luxwm/luxwm.conf` and the
+window manager applies them at once to every mouse and touchpad, also to ones plugged in later
+(`luxwm-msg get-input` shows what each device really uses). In the X11 session it changes the devices
+right away (`xinput`) and stores the values per device in the xfconf channel `pointers`, which xfsettingsd
+applies after login and when the device is plugged in again (the same place `xfce4-mouse-settings` uses).
+The same values go to `luxwm.conf`, so both sessions behave alike.
 
 - **Smooth scrolling with the mouse wheel** – each notch glides for 200 ms (ease-out); more notches
   during the glide add up. The distance is the same as without it. It is not used while animations are
   off (Battery Saver, `Gtk/EnableAnimations` = false) or with `Ctrl`/`Alt`/`Super` held (zoom in apps).
 - **Inertia on the touchpad** – off: the content stops when the fingers lift.
-- **Mouse and touchpad settings** opens `xfce4-mouse-settings` (pointer speed, scrolling direction,
-  edge or two-finger scrolling, tap to click).
 
 Changes apply right away, also in windows that are already open. From the command line:
 

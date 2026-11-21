@@ -18,6 +18,8 @@
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_xcursor_manager.h>
+#include <wlr/xcursor.h>
 #include <wlr/xwayland/server.h>
 #include <wlr/xwayland/xwayland.h>
 
@@ -60,6 +62,11 @@ x_associate(struct wl_listener *listener, void *data)
 	wl_signal_add(&s->events.unmap, &v->unmap);
 	v->commit.notify = x_commit;
 	wl_signal_add(&s->events.commit, &v->commit);
+	/* Xwayland obcas nakresli okno driv, nez ho wlroots spoji s X oknem (dialog namapovany hned po hlavnim
+	 * okne); dalsi commit uz nepride a wlroots by povrch s bufferem nikdy nenamapoval */
+	if (wlr_surface_has_buffer(s)) {
+		wlr_surface_map(s);
+	}
 }
 
 static void
@@ -357,6 +364,23 @@ ready(struct wl_listener *listener, void *data)
 	wlr_xwayland_set_seat(comp.xwayland, comp.seat);
 }
 
+/* Kurzor korenoveho okna: X11 okna bez vlastniho kurzoru (i vzdalena pres ssh -X) by jinak ukazovala krizek
+ * X serveru. wlroots si buffer drzi a pouzije ho i pro X server, ktery se teprve spusti. */
+void
+xwayland_root_cursor(void)
+{
+	if (!comp.xwayland) {
+		return;
+	}
+	wlr_xcursor_manager_load(comp.cursor_mgr, 1);
+	struct wlr_xcursor *xc = wlr_xcursor_manager_get_xcursor(comp.cursor_mgr, "default", 1);
+	if (xc) {
+		struct wlr_xcursor_image *image = xc->images[0];
+		wlr_xwayland_set_cursor(comp.xwayland, wlr_xcursor_image_get_buffer(image),
+			image->hotspot_x, image->hotspot_y);
+	}
+}
+
 int64_t
 luxcomp_xwayland_start(void)
 {
@@ -379,6 +403,7 @@ luxcomp_xwayland_start(void)
 	wl_signal_add(&comp.xwayland->events.new_surface, &comp.xwayland_surface);
 	comp.xwayland_ready.notify = ready;
 	wl_signal_add(&comp.xwayland->events.ready, &comp.xwayland_ready);
+	xwayland_root_cursor();
 	setenv("DISPLAY", comp.xwayland->display_name, 1);
 	return 0;
 }
@@ -414,5 +439,6 @@ int64_t luxcomp_xwayland_start(void) { return -1; }
 const char *luxcomp_xwayland_display(void) { return NULL; }
 int64_t luxcomp_xwayland_running(void) { return 0; }
 void xwayland_finish(void) { }
+void xwayland_root_cursor(void) { }
 
 #endif

@@ -1,5 +1,5 @@
 /* Prikazy scenare:
- *   move X Y | down [left|right|middle] | up [..] | click [..]
+ *   move X Y | down [left|right|middle] | up [..] | click [..] | scroll N (kolecko, kladne = dolu)
  *   drag X1 Y1 X2 Y2 [MS] [BTN] | key NAME[+NAME..] | keydown NAME | keyup NAME | type TEXT | sleep SEC
  *   echo TEXT (po odeslani predchozich prikazu vypise TEXT: synchronizace s trvale bezicim wlt-input)
  * Souradnice jsou pixely celeho rozvrzeni vystupu. */
@@ -114,6 +114,13 @@ int scen_line(const struct scen_ops *ops, void *ctx, char *line)
 		}
 		scen_sleep(0.05);
 		ops->button(ctx, b, 0);
+	} else if (!strcmp(cmd, "scroll") && n == 1) {
+		int steps = atoi(a[0]);
+		for (int i = 0; i < abs(steps); i++) {
+			ops->scroll(ctx, steps > 0 ? 1 : -1);
+			ops->flush(ctx);
+			scen_sleep(0.03);
+		}
 	} else if (!strcmp(cmd, "key") && n == 1) {
 		return combo(ops, ctx, a[0]);
 	} else if ((!strcmp(cmd, "keydown") || !strcmp(cmd, "keyup")) && n == 1) {

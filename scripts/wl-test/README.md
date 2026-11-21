@@ -72,6 +72,7 @@ scripts/wl-test/wlt stop "$s"
 - `input` commands, one per argument or one per stdin line (`src/scen.c`):
   - `move X Y`
   - `down|up|click [left|right|middle]`
+  - `scroll N`: N wheel steps, positive = down
   - `drag X1 Y1 X2 Y2 [MS] [BTN]`
   - `key NAME[+NAME...]` (xkb names: `Return`, `Escape`, `ctrl+alt+t`, `super`)
   - `keydown NAME`, `keyup NAME`: hold a key across commands, e.g. `keydown alt` `key Tab` `key Tab` `keyup alt`

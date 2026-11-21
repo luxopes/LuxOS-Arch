@@ -78,7 +78,7 @@ static struct {
 	/* gles2 */
 	bool gl_ready;
 	GLuint prog[3], vbo;
-	GLint u_tex[3], u_half[3], u_off[3], u_sat, u_size, u_radius, u_box, a_pos[3];
+	GLint u_tex[3], u_half[3], u_off[3], u_sat, u_size, u_radii, u_box, a_pos[3];
 	/* LUXCOMP_STATS */
 	bool stats;
 	int frames, updates, over;
@@ -94,6 +94,9 @@ struct blur {
 	char material[16];
 	int radius;
 	struct wlr_box box;		/* v souradnicich parent */
+	struct wlr_scene_node *stop;	/* zachyceni sceny konci pred timto uzlem (parent, u okna strom okna) */
+	int corners;			/* zaoblene rohy, CORNER_* */
+	bool flat;			/* material v okne: bez vlastniho stinu */
 	uint64_t sig;
 	bool dirty;
 	/* pixman: pomale prepocty po sobe, nahradni vyrez tapety do retry_at (0 = rozmazani) */
@@ -114,6 +117,8 @@ struct blur {
 
 static struct wl_list blurs = { &blurs, &blurs };
 static struct wl_event_source *retry_timer;
+
+enum { CORNER_TL = 1, CORNER_TR = 2, CORNER_BR = 4, CORNER_BL = 8, CORNER_ALL = 15 };
 
 /* ---- buffer v pameti s pristupem pro zapis (renderer pixman do nej kresli) ---- */
 
@@ -303,6 +308,7 @@ parent_destroyed(struct wl_listener *listener, void *data)
 	b->shadow = NULL;
 	b->node = NULL;
 	b->parent = NULL;
+	b->stop = NULL;
 }
 
 struct blur *
@@ -312,6 +318,8 @@ blur_create(struct wlr_scene_tree *parent, const char *material, int radius)
 	b->parent = parent;
 	snprintf(b->material, sizeof(b->material), "%s", material);
 	b->radius = radius;
+	b->stop = &parent->node;
+	b->corners = CORNER_ALL;
 	b->node = wlr_scene_buffer_create(parent, NULL);
 	b->node->point_accepts_input = no_input;
 	wlr_scene_node_lower_to_bottom(&b->node->node);
@@ -364,7 +372,7 @@ blur_set_box(struct blur *b, struct wlr_box box)
 	const struct material *m = material_find(b->material);
 	int r = b->radius < box.width / 2 ? b->radius : box.width / 2;
 	r = r < box.height / 2 ? r : box.height / 2;
-	shadow_update(b->shadow, box, m ? m->shadow_size : 0, m ? m->shadow_y : 0, r, m ? m->shadow : 0, 1, true);
+	shadow_update(b->shadow, box, m && !b->flat ? m->shadow_size : 0, m ? m->shadow_y : 0, r, m ? m->shadow : 0, 1, true);
 }
 
 /* ---- material plochy layer-shell: obdelniky vstupni oblasti ---- */
@@ -373,6 +381,20 @@ blur_set_box(struct blur *b, struct wlr_box box)
  * nastavi jen panel, oznameni jen bubliny). Obdelniky tenci nez MIN_SIDE (horka hrana skryteho Docku)
  * material nemaji. */
 #define MIN_SIDE 8
+
+/* Obdelnik, ktery primo lezi na sirsim obdelniku pod sebou, je vystupek (zvetsene ikony Docku nad panelem):
+ * jde na nej kliknout, ale sklo zustava jen panel, jinak by se s ikonou zvedl cely panel */
+static bool
+raised(const pixman_box32_t *r, const pixman_box32_t *rects, int count)
+{
+	for (int i = 0; i < count; i++) {
+		const pixman_box32_t *s = &rects[i];
+		if (s->y1 == r->y2 && s->x1 <= r->x1 && s->x2 >= r->x2 && s->x2 - s->x1 > r->x2 - r->x1) {
+			return true;
+		}
+	}
+	return false;
+}
 
 void
 blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixman_region32_t *input,
@@ -385,7 +407,7 @@ blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixma
 	const pixman_box32_t *rects = pixman_region32_rectangles(&region, &count);
 	for (int i = 0; i < count && n < BLUR_SET_MAX; i++) {
 		struct wlr_box box = { rects[i].x1, rects[i].y1, rects[i].x2 - rects[i].x1, rects[i].y2 - rects[i].y1 };
-		if (box.width < MIN_SIDE || box.height < MIN_SIDE) {
+		if (box.width < MIN_SIDE || box.height < MIN_SIDE || raised(&rects[i], rects, count)) {
 			continue;
 		}
 		if (!set->blur[n]) {
@@ -627,9 +649,9 @@ now_ns(void)
 	return t.tv_sec * 1000000000LL + t.tv_nsec;
 }
 
-/* Alfa pixelu (x, y) obdelniku w x h se zaoblenymi rohy r; vyhlazena hrana */
+/* Alfa pixelu (x, y) obdelniku w x h se zaoblenymi rohy r (jen rohy v masce CORNER_*); vyhlazena hrana */
 static double
-corner_alpha(int x, int y, int w, int h, double r)
+corner_alpha(int x, int y, int w, int h, double r, int corners)
 {
 	double cx = x + 0.5, cy = y + 0.5, dx = 0, dy = 0;
 	if (cx < r) {
@@ -645,13 +667,17 @@ corner_alpha(int x, int y, int w, int h, double r)
 	if (dx == 0 || dy == 0) {
 		return 1;
 	}
+	int corner = cy < r ? (cx < r ? CORNER_TL : CORNER_TR) : (cx < r ? CORNER_BL : CORNER_BR);
+	if (!(corners & corner)) {
+		return 1;
+	}
 	double d = sqrt(dx * dx + dy * dy) - r;
 	return d <= -0.5 ? 1 : d >= 0.5 ? 0 : 0.5 - d;
 }
 
 /* Zaobleni rohu hotoveho obrazu: jen ctverce r x r v rozich */
 static void
-round_corners(uint32_t *px, int stride, int w, int h, int r)
+round_corners(uint32_t *px, int stride, int w, int h, int r, int corners)
 {
 	if (r <= 0) {
 		return;
@@ -665,7 +691,7 @@ round_corners(uint32_t *px, int stride, int w, int h, int r)
 				x = w - r - 1;
 				continue;
 			}
-			double a = corner_alpha(x, y, w, h, r);
+			double a = corner_alpha(x, y, w, h, r, corners);
 			if (a >= 1) {
 				continue;
 			}
@@ -743,7 +769,7 @@ paint_solid(struct blur *b, struct output *o)
 	for (int i = 0; i < w * h; i++) {
 		px[i] = pre;
 	}
-	round_corners(px, w, w, h, b->radius);
+	round_corners(px, w, w, h, b->radius, b->corners);
 	show(b, buf, NULL, true);
 }
 
@@ -864,11 +890,24 @@ part(struct wlr_box cap, struct wlr_box abs)
 		(double)abs.width / DOWN, (double)abs.height / DOWN };
 }
 
-/* Plocha se zaoblenim: zvetseni rendererem (bilinearne) na plnou velikost, pak rohy */
+/* Plocha cela ve vyrezu: zvetsi ji az scena pri skladani snimku (lista, ztmaveni Launchpadu) */
+static bool
+inside(struct wlr_box cap, struct wlr_box abs)
+{
+	struct wlr_box vis;
+	return wlr_box_intersection(&vis, &abs, &cap) && wlr_box_equal(&vis, &abs);
+}
+
+/* Zvetseni rendererem (bilinearne) na plnou velikost plochy, pak rohy. Cast mimo vyrez (okno pri prejezdu
+ * plochy, na kraji obrazovky) obraz nema: tam barva materialu */
 static bool
 upscale(struct blur *b, struct output *o, struct wlr_buffer *small, struct wlr_box cap, struct wlr_box abs)
 {
 	int ow = abs.width, oh = abs.height;
+	struct wlr_box vis;
+	if (!wlr_box_intersection(&vis, &abs, &cap)) {
+		return false;
+	}
 	struct wlr_buffer *buf = next_out(b, o, ow, oh, false);
 	struct wlr_texture *tex = wlr_texture_from_buffer(comp.renderer, small);
 	struct wlr_render_pass *pass = tex ? wlr_renderer_begin_buffer_pass(comp.renderer, buf, NULL) : NULL;
@@ -878,10 +917,19 @@ upscale(struct blur *b, struct output *o, struct wlr_buffer *small, struct wlr_b
 		}
 		return false;
 	}
+	if (!wlr_box_equal(&vis, &abs)) {
+		const struct material *m = material_find(b->material);
+		uint32_t c = m ? m->fallback : 0xfff6f7fc;
+		wlr_render_pass_add_rect(pass, &(struct wlr_render_rect_options){
+			.box = { 0, 0, ow, oh },
+			.color = { (c >> 16 & 0xff) / 255.0f, (c >> 8 & 0xff) / 255.0f, (c & 0xff) / 255.0f, 1 },
+			.blend_mode = WLR_RENDER_BLEND_MODE_NONE,
+		});
+	}
 	wlr_render_pass_add_texture(pass, &(struct wlr_render_texture_options){
 		.texture = tex,
-		.src_box = part(cap, abs),
-		.dst_box = { 0, 0, ow, oh },
+		.src_box = part(cap, vis),
+		.dst_box = { vis.x - abs.x, vis.y - abs.y, vis.width, vis.height },
 		.filter_mode = WLR_SCALE_FILTER_BILINEAR,
 		.blend_mode = WLR_RENDER_BLEND_MODE_NONE,
 	});
@@ -890,7 +938,7 @@ upscale(struct blur *b, struct output *o, struct wlr_buffer *small, struct wlr_b
 	if (!ok) {
 		return false;
 	}
-	round_corners(mem_data(buf), ow, ow, oh, b->radius);
+	round_corners(mem_data(buf), ow, ow, oh, b->radius, b->corners);
 	show(b, buf, NULL, false);
 	return true;
 }
@@ -900,10 +948,9 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 {
 	struct wlr_box cap = capture_box(b, o, abs);
 	int sw = quarter(cap.width), sh = quarter(cap.height);
-	if (b->radius <= 0) {
-		/* lista, ztmaveni Launchpadu: zvetsi az scena, jen tam, kde kresli */
+	if (b->radius <= 0 && inside(cap, abs)) {
 		struct wlr_buffer *buf = next_out(b, o, sw, sh, false);
-		if (!quarter_blur(buf, cap, &b->parent->node)) {
+		if (!quarter_blur(buf, cap, b->stop)) {
 			return false;
 		}
 		struct wlr_fbox src = part(cap, abs);
@@ -916,7 +963,7 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 		b->small_w = sw;
 		b->small_h = sh;
 	}
-	return quarter_blur(b->small, cap, &b->parent->node) && upscale(b, o, b->small, cap, abs);
+	return quarter_blur(b->small, cap, b->stop) && upscale(b, o, b->small, cap, abs);
 }
 
 /* ---- pixman: rozmazana tapeta vystupu ---- */
@@ -979,7 +1026,7 @@ backdrop_update(struct output *o)
 static bool
 blur_backdrop(struct blur *b, struct output *o, struct backdrop *bd, struct wlr_box abs)
 {
-	if (b->radius > 0) {
+	if (b->radius > 0 || !inside(bd->box, abs)) {
 		return upscale(b, o, bd->small, bd->box, abs);
 	}
 	struct wlr_fbox src = part(bd->box, abs);
@@ -1084,14 +1131,17 @@ static const char *up_src =
 	"void main() {\n  vec2 p = uv;\n" UP_BODY "  gl_FragColor = s;\n}\n";
 
 /* posledni pruchod nahoru: jen cast vyrezu pod plochou (box = poloha a velikost plochy v texture vyrezu,
- * vyrez ma okraj o polomer rozmazani), saturace a zaobleny obdelnik (vyhlazena hrana) */
+ * vyrez ma okraj o polomer rozmazani), saturace a zaobleny obdelnik (vyhlazena hrana); radii = polomery
+ * rohu vlevo nahore, vpravo nahore, vpravo dole, vlevo dole (uv.y = 0 je horni radek) */
 static const char *final_src =
 	"precision mediump float;\n"
 	"uniform sampler2D tex; uniform vec2 half_px; uniform float offset; varying vec2 uv;\n"
-	"uniform float sat; uniform vec2 size; uniform float radius; uniform vec4 box;\n"
+	"uniform float sat; uniform vec2 size; uniform vec4 radii; uniform vec4 box;\n"
 	"void main() {\n  vec2 p = box.xy + uv * box.zw;\n" UP_BODY
 	"  float l = dot(s.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
 	"  vec3 c = clamp(mix(vec3(l), s.rgb, sat), 0.0, 1.0);\n"
+	"  vec2 h = uv.x < 0.5 ? radii.xw : radii.yz;\n"
+	"  float radius = uv.y < 0.5 ? h.x : h.y;\n"
 	"  vec2 q = abs(uv * size - size * 0.5) - (size * 0.5 - vec2(radius));\n"
 	"  float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;\n"
 	"  gl_FragColor = vec4(c, 1.0) * clamp(0.5 - d, 0.0, 1.0);\n"
@@ -1156,7 +1206,7 @@ gl_setup(void)
 	}
 	cfg.u_sat = glGetUniformLocation(cfg.prog[2], "sat");
 	cfg.u_size = glGetUniformLocation(cfg.prog[2], "size");
-	cfg.u_radius = glGetUniformLocation(cfg.prog[2], "radius");
+	cfg.u_radii = glGetUniformLocation(cfg.prog[2], "radii");
 	cfg.u_box = glGetUniformLocation(cfg.prog[2], "box");
 	static const GLfloat quad[] = { -1, -1, 1, -1, -1, 1, 1, 1 };
 	glGenBuffers(1, &cfg.vbo);
@@ -1188,7 +1238,7 @@ gl_target(struct wlr_buffer *buffer, GLuint *tex, GLuint *fbo)
 /* Jeden pruchod: textura src do FBO dst */
 static bool
 gl_pass(int prog, GLuint src, int src_w, int src_h, GLuint fbo, int dst_w, int dst_h, double scale,
-		int radius, const GLfloat box[4])
+		const GLfloat radii[4], const GLfloat box[4])
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	glViewport(0, 0, dst_w, dst_h);
@@ -1210,7 +1260,7 @@ gl_pass(int prog, GLuint src, int src_w, int src_h, GLuint fbo, int dst_w, int d
 	if (prog == 2) {
 		glUniform1f(cfg.u_sat, cfg.saturation / 100.0f);
 		glUniform2f(cfg.u_size, (GLfloat)dst_w, (GLfloat)dst_h);
-		glUniform1f(cfg.u_radius, (GLfloat)radius);
+		glUniform4fv(cfg.u_radii, 1, radii);
 		glUniform4fv(cfg.u_box, 1, box);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, cfg.vbo);
@@ -1300,18 +1350,21 @@ blur_gpu(struct blur *b, struct output *o, struct wlr_box abs, struct wlr_scene_
 	double off = cfg.radius / 32.0;
 	for (int i = 0; ok && i < LEVELS; i++) {
 		ok = gl_pass(0, b->ltex[i], b->lw[i], b->lh[i], b->lfbo[i + 1], b->lw[i + 1], b->lh[i + 1],
-			off, 0, NULL);
+			off, NULL, NULL);
 	}
 	for (int i = LEVELS; ok && i > 1; i--) {
 		ok = gl_pass(1, b->ltex[i], b->lw[i], b->lh[i], b->lfbo[i - 1], b->lw[i - 1], b->lh[i - 1],
-			off, 0, NULL);
+			off, NULL, NULL);
 	}
 	/* posledni pruchod rovnou do vysledku: jen cast vyrezu pod plochou */
 	if (ok) {
 		const GLfloat box[4] = { (GLfloat)(abs.x - cap.x) / cap.width, (GLfloat)(abs.y - cap.y) / cap.height,
 			(GLfloat)abs.width / cap.width, (GLfloat)abs.height / cap.height };
-		ok = gl_pass(2, b->ltex[1], b->lw[1], b->lh[1], out_fbo, ow, oh, off,
-			(int)(b->radius * scale), box);
+		GLfloat radii[4];
+		for (int i = 0; i < 4; i++) {
+			radii[i] = b->corners & 1 << i ? (GLfloat)(b->radius * scale) : 0;
+		}
+		ok = gl_pass(2, b->ltex[1], b->lw[1], b->lh[1], out_fbo, ow, oh, off, radii, box);
 	}
 	ok = ok && glGetError() == GL_NO_ERROR;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1360,7 +1413,7 @@ blur_output_frame(struct output *o)
 		struct wlr_box out, cap = solid ? abs : capture_box(b, o, abs);
 		wlr_output_layout_get_box(comp.layout, o->wlr_output, &out);
 		bool full = wlr_box_equal(&abs, &out);
-		struct wlr_scene_node *stop = full ? &comp.layer_bottom->node : &b->parent->node;
+		struct wlr_scene_node *stop = full ? &comp.layer_bottom->node : b->stop;
 		struct walk w = { .stop = stop, .box = cap, .backdrop_end = &comp.layer_bottom->node };
 		if (!solid) {
 			walk_scene(&w);
@@ -1444,4 +1497,69 @@ blur_frame_time(struct output *o, int64_t ns, bool worked)
 		cfg.frames = cfg.updates = cfg.over = 0;
 		cfg.max_ns = cfg.sum_ns = cfg.blur_max_ns = cfg.blur_sum_ns = 0;
 	}
+}
+
+/* ---- material pod obdelnikem okna (luxcomp_view_set_material) ---- */
+
+/* Pozadavek se jen ulozi; uzel vznika az s dekoraci okna (deco_update -> blur_view_update), aby byl
+ * pod kopiemi zaoblenych rohu klienta, ktere deco_create taky dava na spodek stromu */
+void
+luxcomp_view_set_material(int64_t id, const char *name, int64_t x, int64_t y, int64_t w, int64_t h)
+{
+	struct view *v = view_by_id(id);
+	if (!v) {
+		return;
+	}
+	if (!name || !*name || strlen(name) >= sizeof(v->material_name) || w <= 0 || h <= 0) {
+		blur_destroy(v->material);
+		v->material = NULL;
+		v->material_name[0] = '\0';
+		return;
+	}
+	if (v->material && strcmp(v->material->material, name)) {
+		blur_destroy(v->material);
+		v->material = NULL;
+	}
+	strcpy(v->material_name, name);
+	v->material_box = (struct wlr_box){ x, y, w, h };
+	if (v->deco) {
+		deco_update(v->deco);
+	}
+}
+
+/* Obdelnik oriznuty na geometrii okna; rohy obdelniku, ktere lezi v zaoblenych rozich okna
+ * (@rounded = CORNER_* okna), dostanou stejny polomer, ostatni jsou ostre */
+void
+blur_view_update(struct view *v, int radius, int rounded)
+{
+	if (!v->material_name[0]) {
+		return;
+	}
+	struct wlr_box geo = { 0, 0, view_width(v), view_height(v) }, box;
+	if (!wlr_box_intersection(&box, &v->material_box, &geo)) {
+		box = (struct wlr_box){ 0 };
+	}
+	if (!v->material) {
+		v->material = blur_create(v->body, v->material_name, 0);
+		v->material->stop = &v->tree->node;
+		v->material->flat = true;
+	}
+	struct blur *b = v->material;
+	int corners = 0;
+	bool left = box.x == 0, top = box.y == 0;
+	bool right = box.x + box.width == geo.width, bottom = box.y + box.height == geo.height;
+	corners |= top && left ? CORNER_TL : 0;
+	corners |= top && right ? CORNER_TR : 0;
+	corners |= bottom && right ? CORNER_BR : 0;
+	corners |= bottom && left ? CORNER_BL : 0;
+	corners &= rounded;
+	if (!corners) {
+		radius = 0;
+	}
+	if (corners != b->corners || radius != b->radius) {
+		b->corners = corners;
+		b->radius = radius;
+		b->dirty = true;
+	}
+	blur_set_box(b, box);
 }

@@ -64,7 +64,7 @@ function pages():
         [T("Installing Apps"), T("LuxOS Store offers apps sorted into categories with one-click installs and updates. In the Terminal (Super + T) the lux command does the same: lux install, lux search, lux update."),
          [[T("Open LuxOS Store"), ["luxos-store"]], [T("Open Terminal"), ["luxos-terminal"]]]],
         [T("Light, Dark or Auto"), T("Choose how LuxOS looks. Auto switches between light and dark at sunrise and sunset. Wallpaper, Dock and much more are in Settings (Super + ,)."),
-         [["mode", "mode"], [T("Open Settings"), ["luxos-settings"]]]],
+         [["mode", "mode"], [T("Open Settings"), ["luxos-settings", "appearance"]]]],
         [T("Share and Print"), T("LuxDrop sends files to computers and phones nearby – it also works with the LocalSend app. Printers & Scanners finds devices on your network or USB by itself: just plug in and print."),
          [[T("Open LuxDrop"), ["luxdrop"]], [T("Printers & Scanners"), ["luxos-printers"]]]],
         [T("Help and Shortcuts"), T("Found a bug or have an idea? Feedback sends it straight to the author of LuxOS. All keyboard shortcuts are listed in Keyboard Shortcuts. Enjoy LuxOS!"),

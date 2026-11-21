@@ -30,6 +30,7 @@ deps = [
   wlroots,
   dependency('wayland-server'),
   dependency('xkbcommon'),
+  dependency('libinput'),
   dependency('libdrm'),
   dependency('egl'),
   dependency('glesv2'),

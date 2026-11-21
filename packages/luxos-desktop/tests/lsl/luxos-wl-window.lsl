@@ -1,13 +1,16 @@
-# Testovaci okno GTK pro test_luxos_wl.py: luxos-wl-window APP_ID TITULEK [barva] [--maximize] [--entry]
-# S --entry vypisuje obsah pole po kazde zmene ("text: ..."), pri zavreni "closed".
+# Testovaci okno GTK pro test_luxos_wl.py: luxos-wl-window APP_ID TITULEK [barva] [--maximize] [--entry] [--undecorated]
+# S --entry vypisuje obsah pole po kazde zmene ("text: ..."), pri zavreni "closed". --undecorated = bez zahlavi
+# jako okna luxos_glass (Hodiny: semafor v obsahu).
 load glib, gtk
 load luxos_sys
+load luxos_gtk as lgtk
 
 app_id = arg(1)
 title = arg(2)
 color = "#3a6ea5"
 maximize = False
 with_entry = False
+undecorated = False
 announced = False
 index = 3
 while index < arg_count():
@@ -15,6 +18,8 @@ while index < arg_count():
         maximize = True
     elif arg(index) == "--entry":
         with_entry = True
+    elif arg(index) == "--undecorated":
+        undecorated = True
     else:
         color = arg(index)
     end
@@ -59,6 +64,9 @@ if with_entry:
     entry = gtk.entry_new()
     call glib.signal_connect(entry, "changed", changed, 0)
     call gtk.container_add(window, entry)
+end
+if undecorated:
+    call lgtk.window_set_undecorated(window)
 end
 if maximize:
     call gtk.window_maximize(window)

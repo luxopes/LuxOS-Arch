@@ -121,6 +121,32 @@ Python greeter keep working as in 1.0.x (X11 only).
 - **Not carried over:** the xfconf migrations, which have no meaning without Xfce, and these, which are left to
   WP-12: `luxos-hub`, saved display layout, software brightness, power saver re-apply, clock alarms and data saver.
 
+## Top bar and its popups (`luxos-bar`, `luxos-hub`)
+
+The look follows the unreleased 1.1.1 glass UI the owner had on local branches (`gpt-features-1.1.1`,
+`~/LuxOS-Arch-ui`, owner feedback 2026-11-21, item 8):
+
+- **Glass cards.** The bar popups (system menu, Wi-Fi, Sound, Notifications), the Control Center and the Calendar
+  paint a cut-out of the blurred wallpaper under their card (`luxos_hub_popup.paint_glass` →
+  `luxos_material.strip`, the same maths as `luxos-glass.c`): a veil measured from the wallpaper keeps the text
+  readable, white card edges, sheen, radius 18 px. The client paints it, so the cards stay transparent without
+  compositor blur too (pixman, VMs without 3D). Without a wallpaper the CSS material applies. Like 1.1.1, the
+  card shows the wallpaper, not the windows behind it. The compositor still draws the shadow (`@popup:18`).
+- **Keyboard layout:** a bold code (`US`, `CZ`) in the bar ink, no frame, only with two or more layouts. A click
+  switches to the next layout at once (luxwm `next_layout`) and flashes the accent for 650 ms. Right click or a
+  500 ms hold opens the layout menu with Keyboard Settings.
+- **Control Center:** on Wayland the Wi-Fi and Bluetooth tiles work like Android. The round icon toggles (NetworkManager radio,
+  BlueZ `Powered`). The rest of the tile opens the Wi-Fi popup of the bar (SIGUSR1 to the PID in
+  `$XDG_RUNTIME_DIR/luxos-bar.pid`) or the Bluetooth app.
+- **LuxOS logo = system menu (decision for item 10).** It stays a system menu and does not become an app menu:
+  apps live in Launchpad and Search, and an app menu would duplicate them with a second, smaller list. It has the
+  1.1.1 Whisker Menu look as a glass popup: photo and name on top, About This Computer, Settings and Launchpad,
+  then round buttons with labels for Lock Screen, Sign Out, Restart and Shut Down. Launchpad therefore does not need
+  to change for this item.
+- **X11:** the Control Center and Calendar get the 1.1.1 glass card on X11 too (`luxos_glass.panel`, only with a
+  compositor) and the same CSS; their tiles keep the X11 behaviour. The rest of the 1.1.1 X11 work (glass `luxos-bar.c`, the `luxos-xkb` text plugin,
+  the X11 bar popups, the `luxos-glass` GTK module) is not ported; the X11 bar is unchanged.
+
 ## Tests
 
 | Test | What it covers |

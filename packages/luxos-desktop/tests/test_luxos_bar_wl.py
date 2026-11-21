@@ -476,6 +476,30 @@ class WaylandBar(unittest.TestCase):
         time.sleep(0.3)
         self.assertEqual(pixel(self.shot(), 1150, BAR + 30), "000000")
 
+    def test_logo_opens_system_menu_and_signal_opens_wifi(self):
+        self.start()
+        bar = self.bar()
+        bar.wait(r"^drawn ")
+        mark = bar.mark()
+        self.input("move 14 14", "click")
+        bar.wait(r"^popup system shown", start=mark)
+        time.sleep(0.3)
+        image = self.shot()
+        # nabidka systemu ze skla vlevo pod logem, pod vyhradnou zonou listy
+        self.assertNotEqual(pixel(image, 60, BAR + 40), "000000")
+        self.assertEqual(pixel(image, 60, BAR + 2), "000000")
+        mark = bar.mark()
+        self.input("move 14 14", "click")
+        bar.wait(r"^popup system hidden", start=mark)
+        # SIGUSR1 (zbytek dlazdice Wi-Fi v Ovladacim centru): okno Wi-Fi; PID v $XDG_RUNTIME_DIR/luxos-bar.pid
+        pid = int((Path(self.env["XDG_RUNTIME_DIR"]) / "luxos-bar.pid").read_text())
+        self.assertEqual(pid, bar.proc.pid)
+        mark = bar.mark()
+        os.kill(pid, signal.SIGUSR1)
+        bar.wait(r"^signal wifi$", start=mark)
+        bar.wait(r"^popup wifi shown", start=mark)
+        self.assertIsNone(bar.proc.poll())
+
     # ---- stav systemu (soukrome sbernice) ----
 
     def private_buses(self):
@@ -516,10 +540,21 @@ class WaylandBar(unittest.TestCase):
         bar.wait(r"^status network network-wireless-signal-excellent-symbolic$")
         bar.wait(r"^status battery battery-level-80-symbolic 76 %$")
         bar.wait(r"^status keyboard CZ$")
-        # rozlozeni: tichy stitek 18x15 s tenkym rameckem (navrh 1.1.0), vlajka jen s BAR_KEYBOARD=flag
+        # rozlozeni: tucny kod bez ramecku jako luxos-xkb.c verze 1.1.1, vlajka jen s BAR_KEYBOARD=flag
         time.sleep(0.5)
         widths = [int(line.split()[3]) for line in bar.lines if line.startswith("badge keyboard ")]
-        self.assertTrue(widths and abs(widths[-1] - 28) <= 6, "keyboard item widths %s" % widths)
+        self.assertTrue(widths and abs(widths[-1] - 35) <= 6, "keyboard item widths %s" % widths)
+        # klik na kod: hned dalsi rozlozeni (luxwm IPC, tady bez luxwm jen pozadavek) a zablesk akcentem
+        x = [int(line.split()[2]) + int(line.split()[3]) // 2 for line in bar.lines if line.startswith("badge keyboard ")][-1]
+        mark = bar.mark()
+        self.input(f"move {x} 14", "click", "move 640 400")
+        bar.wait(r"^layout next 1$", start=mark)
+        time.sleep(0.1)
+        accent = [x2 for x2 in range(x - 14, x + 14) if pixel(self.shot(), x2, 5) == "3d7bff"]
+        self.assertTrue(accent, "zablesk po prepnuti rozlozeni")
+        time.sleep(1.0)
+        self.assertEqual([x2 for x2 in range(x - 14, x + 14) if pixel(self.shot(), x2, 5) == "3d7bff"], [], "zablesk zmizel")
+        self.assertFalse(any(line.startswith("layout menu") for line in bar.lines[mark:]), "klik neotevira nabidku")
         bar.wait(r"^status notifications notification-new-symbolic$")
         bar.wait(r"^tray watcher own=True$")
         bar.wait(r"^tray \S+ audio-volume-high-symbolic Active$")

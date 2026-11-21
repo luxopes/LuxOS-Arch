@@ -64,7 +64,7 @@ entries = {}            # id .desktop -> LauncherEntry {"count", "count-visible"
 geo = {}
 output = {"name": "", "w": 0, "h": 0, "monitor": 0}
 view = {"blur": material.compositor_blur(), "hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
-    "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "drawn": [0, 0, 0, 0], "seq": 0,
+    "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "seq": 0,
     "strip": None, "light": True, "over_window": False}
 anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1]}
 timers = {"tick": 0, "hide": 0, "guard": 0}
@@ -499,32 +499,35 @@ function dock_rect(lay):
     return [x, top + dy, Int(lay[2] + lay[3] + 0.999) - x, geo["height"] - top]
 end
 
-# Oblast pro mys = viditelny Dock: kliknuti nad nim (i do mista zvetseni, kdyz zrovna neni) jde oknum pod nim
+# Oblast pro mys = viditelny Dock: kliknuti nad nim (i do mista zvetseni, kdyz zrovna neni) jde oknum pod nim.
+# Se zvetsenim panel a nad nim uzsi obdelnik ikon: luxcomp dava sklo jen panelu, ikony vystoupi nad nej (Plank).
 function update_region(lay):
+    py = geo["panel_y"] + hide_offset()
     if anims["hide"][0] >= 1.0 and not view["hovered"]:
-        region = [geo["x0"], geo["height"] - 2, geo["base_w"], 2]
+        region = [[geo["x0"], geo["height"] - 2, geo["base_w"], 2]]
     elif anims["zoom"][0] > 0.0 or view["hovered"]:
-        region = dock_rect(lay)
+        r = dock_rect(lay)
+        region = [[r[0], py, r[2], geo["panel_h"] + MARGIN]]
+        if r[1] < py and len(items) > 0:
+            x = Int(lay[0][0])
+            region.append([x, r[1], Int(lay[0][-1] + lay[1][-1] + 0.999) - x, py - r[1]])
+        end
     else:
-        region = [geo["x0"], geo["panel_y"] + hide_offset(), geo["base_w"], geo["panel_h"] + MARGIN]
+        region = [[geo["x0"], py, geo["base_w"], geo["panel_h"] + MARGIN]]
     end
     if region != view["region"]:
         view["region"] = region
-        call gtk.widget_input_rect(window, region[0], region[1], region[2], max(1, region[3]))
+        call gtk.widget_input_rects(window, region)
     end
     return 0
 end
 
-# Prekreslit jen to, co Dock zabiral a bude zabirat (vcetne popisku nad ikonou)
+# Cela plocha: popisek krajni ikony siri nez Dock a jeho zbytek by po odchodu mysi zustal v bufferu;
+# plocha je jen o rozsireni zvetsenim a SIDE sirsi nez Dock
 function queue_redraw():
-    if window == 0 or len(geo) == 0:
-        return 0
+    if window != 0 and len(geo) > 0:
+        call gtk.widget_queue_draw_area(window, 0, 0, geo["width"], geo["height"])
     end
-    r = dock_rect(current_layout())
-    x = min(r[0], view["drawn"][0]) - 2
-    y = 0
-    x1 = max(r[0] + r[2], view["drawn"][0] + view["drawn"][2]) + 2
-    call gtk.widget_queue_draw_area(window, max(0, x), y, min(geo["width"], x1) - max(0, x), geo["height"])
     return 0
 end
 
@@ -869,7 +872,6 @@ function on_draw(cr, widget):
     if hover >= 0:
         call draw_label(cr, items[hover]["name"], lay[0][hover] + lay[1][hover] / 2.0, base - lay[1][hover])
     end
-    view["drawn"] = dock_rect(lay)
     call update_region(lay)
     if timers["tick"] != 0 and anims["zoom"][3] != 0:
         cost = now() - started

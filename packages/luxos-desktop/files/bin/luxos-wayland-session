@@ -35,6 +35,8 @@ autostart() {
                 case $key in
                     \[*) [[ $key == "[Desktop Entry]" ]] || break ;;
                     Hidden) hidden=$value ;;
+                    # vypnuti v Nastaveni > Polozky po prihlaseni i v aplikacich psanych pro GNOME
+                    X-GNOME-Autostart-enabled) [[ $value == false ]] && hidden=true ;;
                     OnlyShowIn) only=$value ;;
                     NotShowIn) not=$value ;;
                     TryExec) try=$value ;;

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""LuxOS - testy Klavesovych zkratek (luxos-keyboard-settings --shortcuts v LSL, na X11 okno drive
-bin/luxos-shortcuts v Pythonu): nazvy zkratek, xfconf, kolize, vlastni zkratky a okno ve vlastnim Xvfb.
+"""LuxOS - testy Klavesovych zkratek (karta Zkratky stranky Klavesnice okna Nastaveni, luxos-keyboard-settings
+--shortcuts; na X11 drive okno bin/luxos-shortcuts v Pythonu): nazvy zkratek, xfconf, kolize, vlastni zkratky
+a stranka ve vlastnim Xvfb.
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_shortcuts.py -v
 
@@ -117,7 +118,7 @@ class App(unittest.TestCase):
         if self.app.proc.poll() is not None:
             raise AssertionError("app exited: " + self.app.stderr())
         try:
-            return json.loads(self.app.ask("state", "state ", timeout=5))
+            return json.loads(self.app.ask("page-state", "state ", timeout=5))
         except AssertionError:
             return None
 
@@ -167,7 +168,7 @@ class App(unittest.TestCase):
 
     def test_window(self):
         win = self.app.dump()
-        self.assertEqual(win[0]["title"], "Keyboard Shortcuts")
+        self.assertEqual(win[0]["title"], "Keyboard")
         self.assertTrue(win[0]["close_button"])
         page = lsl_app.texts(win) + [w.get("text") for w in lsl_app.widgets(win) if w["t"] == "GtkButton"]
         for title in ("Windows", "Apps & System", "Screenshots", "Custom Shortcuts"):
@@ -180,8 +181,6 @@ class App(unittest.TestCase):
         self.assertIn("Super key alone opens Launchpad", page)
         self.assertIn("Add Shortcut…", page)
         self.assertFalse(any("⌘" in (t or "") for t in page))
-        tips = [w.get("tip") for w in lsl_app.widgets(win) if w["t"] == "GtkButton"]
-        self.assertIn("Add Shortcut…", tips)             # + v HeaderBar
         self.assertEqual(self.writes(), [])
         self.shot("shortcuts-window")
 
@@ -376,7 +375,7 @@ class App(unittest.TestCase):
         time.sleep(1.5)
         if shutil.which("xdotool"):
             env = {"DISPLAY": self.x.display, "PATH": os.environ["PATH"]}
-            ids = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Keyboard Shortcuts$"], env=env,
+            ids = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Keyboard$"], env=env,
                                  capture_output=True, text=True).stdout.split()
             self.assertTrue(ids)
             out = subprocess.run(["xdotool", "getwindowgeometry", "--shell", ids[0]], env=env, capture_output=True,

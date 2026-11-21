@@ -381,6 +381,28 @@ class Luxwm(WaylandShell, unittest.TestCase):
                    LUXWM_SYSTEM_CONFIG=str(REPO / "packages/luxwm/luxwm.conf"))
         return [str(LUXWM), "-d"]
 
+    def title_bar_above(self, color):
+        """Semafor zahlavi kompozitoru (cervena) v 30 radcich nad obsahem okna barvy color."""
+        w, h, pixel = self.screenshot()
+        rows = [y for y in range(0, h, 2) if pixel(w // 2, y) == color]
+        self.assertTrue(rows, "window not on screen")
+        top = rows[0]
+        xs = [x for x in range(0, w, 2) if pixel(x, top + 4) == color]
+        left = xs[0]
+        red = [1 for y in range(max(0, top - 30), top) for x in range(left, left + 60)
+               if (c := bytes.fromhex(pixel(x, y)))[0] > 180 and c[1] < 140 and c[2] < 140]
+        return len(red) > 10
+
+    def test_undecorated_window_has_one_title_bar(self):
+        # GTK 3 zada pres org_kde_kwin_server_decoration o zahlavi kompozitoru i pro okno bez dekoraci: Hodiny
+        # (luxos_glass, semafor v obsahu) mely dve zahlavi nad sebou; window_set_undecorated ohlasi CSD
+        p = self.window("luxos.test.plain", "Bezne", "#20a040")
+        self.assertTrue(self.title_bar_above("20a040"), "plain GTK window: no server-side title bar (test broken)")
+        p.terminate()
+        p.wait(5)
+        self.window("luxos.test.glass", "Bez zahlavi", "#20a040", "--undecorated")
+        self.assertFalse(self.title_bar_above("20a040"), "undecorated window got a server-side title bar")
+
 
 if __name__ == "__main__":
     unittest.main()

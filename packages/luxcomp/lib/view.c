@@ -268,6 +268,7 @@ view_destroy_common(struct view *v)
 		deco_destroy(v->deco);
 	}
 	wlr_scene_node_destroy(&v->tree->node);
+	blur_destroy(v->material);
 	free(v->badge);
 	free(v->app_id_override);
 	free(v->title_override);

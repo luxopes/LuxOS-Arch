@@ -5,13 +5,12 @@ Spusteni:
   env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \
     systemd-run --user --scope -p TasksMax=300 -- timeout 900 python3 -m unittest -v packages/luxwm/tests/test_luxwm_ipc.py
 
-Protokol: docs/developers/luxwm-ipc.md. Lista (luxos-bar) a luxos-keyboard-settings se prekladaji z
-packages/luxos-desktop/files/lsl do docasneho adresare. Jiny uid se simuluje pres podman unshare + setpriv
-(subuid); kdyz neni k dispozici, test se preskoci.
+Protokol: docs/developers/luxwm-ipc.md. Lista (luxos-bar) a luxos-settings (luxos-keyboard-settings je odkaz
+na nej) se prekladaji z packages/luxos-desktop/files/lsl do docasneho adresare. Jiny uid se simuluje pres
+podman unshare + setpriv (subuid); kdyz neni k dispozici, test se preskoci.
 """
 import json
 import os
-import re
 import shutil
 import socket
 import subprocess
@@ -193,8 +192,9 @@ class LuxwmIpc(unittest.TestCase):
         if r.returncode != 0:
             raise RuntimeError("libluxos-wl: " + r.stdout + r.stderr)
         cls.wl_lib = os.path.join(cls.tmp, "libluxos-wl.so.0")
-        for name in ("luxos-bar", "luxos-keyboard-settings", "luxos-wm-config-probe"):
+        for name in ("luxos-bar", "luxos-settings", "luxos-wm-config-probe"):
             lslc(src, name, os.path.join(cls.tmp, name))
+        os.symlink("luxos-settings", os.path.join(cls.tmp, "luxos-keyboard-settings"))
         # druha kopie luxwm-msg: na allowlist jde jen ona, prvni zustava neprivilegovana
         cls.msg_priv = os.path.join(cls.tmp, "luxwm-msg-priv")
         shutil.copy(MSG, cls.msg_priv)
@@ -435,6 +435,36 @@ class LuxwmIpc(unittest.TestCase):
         s.input("type a")
         self.assertIn("key a down", s.clients_log())
 
+    def test_input_config_reload_and_get_input(self):
+        """Mys a touchpad z luxwm.conf; headless nema zarizeni libinput (ty overuje test_luxwm_libinput_vm.py)."""
+        s = self.session()
+        info = json.loads(s.msg("get-input").stdout)
+        self.assertEqual(info["devices"], [])
+        self.assertEqual(set(info["config"]), {"mouse", "touchpad"})
+        self.assertTrue(all(v is None for kind in info["config"].values() for v in kind.values()), "bez polozek = vychozi zarizeni")
+        s.write_user_conf("mouse_speed = -40\nmouse_accel = flat\nmouse_natural_scroll = yes\ntouchpad_speed = 250\n"
+                          "touchpad_tap = yes\ntouchpad_tap_drag = no\ntouchpad_scroll_method = edge\n"
+                          "touchpad_click_method = clickfinger\ntouchpad_disable_while_typing = maybe\n")
+        s.msg("reload")
+        config = json.loads(s.msg("get-input").stdout)["config"]
+        self.assertEqual(config["mouse"]["speed"], -40)
+        self.assertEqual(config["mouse"]["accel"], "flat")
+        self.assertIs(config["mouse"]["natural_scroll"], True)
+        self.assertIsNone(config["mouse"]["tap"])
+        self.assertEqual(config["touchpad"]["speed"], 100, "mimo rozsah = hranice")
+        self.assertIs(config["touchpad"]["tap"], True)
+        self.assertIs(config["touchpad"]["tap_drag"], False)
+        self.assertEqual(config["touchpad"]["scroll_method"], "edge")
+        self.assertEqual(config["touchpad"]["click_method"], "clickfinger")
+        self.assertIsNone(config["touchpad"]["disable_while_typing"])
+        self.assertIn("bad touchpad_disable_while_typing = maybe", s.log())
+        # smazana polozka vraci vychozi hodnotu zarizeni
+        s.write_user_conf("touchpad_tap = yes\n")
+        s.msg("reload")
+        config = json.loads(s.msg("get-input").stdout)["config"]
+        self.assertIsNone(config["mouse"]["speed"])
+        self.assertIs(config["touchpad"]["tap"], True)
+
     def test_bar_badge_follows_layout_and_menu_switches(self):
         s = self.session("xwayland = no\nxkb_layout = us,cz\n")
         bar_exe = os.path.join(self.tmp, "luxos-bar")
@@ -447,13 +477,16 @@ class LuxwmIpc(unittest.TestCase):
         with open(log, "w") as f:
             s.spawn(bar_exe, env=env, out=f)
 
-        def wait_bar(text, timeout=8.0):
+        def bar_lines():
+            return open(log, errors="replace").read().splitlines()
+
+        def wait_bar(text, timeout=8.0, start=0):
             deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
-                if text in open(log, errors="replace").read():
+                if any(text in line for line in bar_lines()[start:]):
                     return True
                 time.sleep(0.05)
-            raise AssertionError(f"{text!r} not in bar log:\n" + open(log, errors="replace").read()[-2000:])
+            raise AssertionError(f"{text!r} not in bar log:\n" + "\n".join(bar_lines()[-40:]))
 
         wait_bar("status keyboard US")
         t0 = time.monotonic()
@@ -462,24 +495,45 @@ class LuxwmIpc(unittest.TestCase):
         print(f"\n  badge US -> CZ {(time.monotonic() - t0) * 1000:.0f} ms")
         s.msg("switch-layout", "us")
         time.sleep(0.3)
-        lines = [l for l in open(log, errors="replace").read().splitlines() if l.startswith("status keyboard")]
+        lines = [l for l in bar_lines() if l.startswith("status keyboard")]
         self.assertEqual(lines[-1], "status keyboard US")
-        # klik na odznak: nabidka rozlozeni (xdg_popup s grabem) dostane klavesnici, i kdyz lista zadnou nema
         wait_bar("badge keyboard ")
-        x, w = [int(v) for l in open(log).read().splitlines() if l.startswith("badge keyboard ")
-                for v in l.split()[2:4]][-2:]
+        x, w = [int(v) for l in bar_lines() if l.startswith("badge keyboard ") for v in l.split()[2:4]][-2:]
         s.client("Focused", app="focused")
-        # Esc nabidku zavre a klavesnice se vrati oknu (jedna virtualni klavesnice pro cely scenar)
-        s.input(f"move {x + w // 2} 16", "click", "sleep 0.6", "key Escape", "sleep 0.4", "type q", wait=0.6)
-        wait_bar("layout menu 2")
+        # jeden klik na kod rozlozeni prepne hned na dalsi rozlozeni (bez nabidky), druhy zpet
+        mark = len(bar_lines())
+        t0 = time.monotonic()
+        s.input(f"move {x + w // 2} 16", "click", wait=0.2)
+        wait_bar("layout next 1", start=mark)
+        wait_bar("status keyboard CZ", start=mark)
+        print(f"  click US -> CZ {(time.monotonic() - t0) * 1000:.0f} ms")
+        self.assertEqual(s.state()["keyboard"]["current"], 1)
+        self.assertFalse(any("layout menu" in l for l in bar_lines()[mark:]), "klik neotevira nabidku")
+        mark = len(bar_lines())
+        s.input(f"move {x + w // 2} 16", "click", wait=0.2)
+        wait_bar("status keyboard US", start=mark)
+        self.assertEqual(s.state()["keyboard"]["current"], 0)
+        # prave tlacitko: nabidka rozlozeni (xdg_popup s grabem) dostane klavesnici, i kdyz lista zadnou nema;
+        # Esc ji zavre a klavesnice se vrati oknu (jedna virtualni klavesnice pro cely scenar)
+        mark = len(bar_lines())
+        s.input(f"move {x + w // 2} 16", "click right", "sleep 0.6", "key Escape", "sleep 0.4", "type q", wait=0.6)
+        wait_bar("layout menu 2", start=mark)
         self.assertIn("key q down", s.clients_log(), "po zavreni nabidky pise okno")
+        self.assertEqual(s.state()["keyboard"]["current"], 0, "prave tlacitko neprepina")
         before = s.clients_log().count("key Down down")
-        s.input(f"move {x + w // 2} 16", "click", "sleep 0.6", "key Down", "key Down", "key Return", wait=0.6)
+        s.input(f"move {x + w // 2} 16", "click right", "sleep 0.6", "key Down", "key Down", "key Return", wait=0.6)
         s.shot("bar-layout-menu.ppm")
         wait_bar("layout switch 1")
         self.assertEqual(s.clients_log().count("key Down down"), before, "sipky dostala nabidka, ne okno")
         self.assertEqual(s.state()["keyboard"]["current"], 1)
         wait_bar("status keyboard CZ")
+        s.input("key Escape", wait=0.3)
+        # podrzeni (500 ms) = nabidka misto prepnuti
+        mark = len(bar_lines())
+        s.input(f"move {x + w // 2} 16", "down", "sleep 0.8", "up", "sleep 0.3", "key Escape", wait=0.4)
+        wait_bar("layout menu 2", start=mark)
+        self.assertFalse(any("layout next" in l for l in bar_lines()[mark:]), "podrzeni neprepina")
+        self.assertEqual(s.state()["keyboard"]["current"], 1)
         self.assertIsNone(s.procs[-1].poll(), "lista bezi")
 
     # ---- zkratky -----------------------------------------------------------------------------------------
@@ -570,13 +624,13 @@ class LuxwmIpc(unittest.TestCase):
     def test_settings_app_changes_shortcut_with_capture(self):
         s = self.session()
         app = os.path.join(self.tmp, "luxos-keyboard-settings")
-        s.spawn(app, "--shortcuts", env={**s.env, "LUXOS_SHORTCUTS_DEFAULTS": XFCE_DEFAULTS})
+        # "Zmenit..." u Zavrit okno (prvni radek karty Zkratky) stiskne skript stranky; klavesy jdou skutecnym vstupem
+        script = os.path.join(s.dir, "ui-test")
+        with open(script, "w") as f:
+            f.write("wait 1500\nclick Change…\n")
+        s.spawn(app, "--shortcuts", env={**s.env, "LUXOS_SHORTCUTS_DEFAULTS": XFCE_DEFAULTS, "LUXOS_UI_TEST": script})
         time.sleep(2.5)
         s.shot("keyboard-settings-shortcuts.ppm")
-        # "Zmenit..." u Zavrit okno (prvni radek): 132 px pod hornim okrajem ramu okna ("place" ve stope luxwm)
-        m = re.findall(r"place \d+ luxos-(?:keyboard\S*|shortcuts) (\d+),(\d+) (\d+)x(\d+)", s.log())[-1]
-        x, y, w, h = map(int, m)
-        s.input(f"move {x + 458} {y + 132}", "click", wait=0.8)
         self.assertTrue(s.wait_log("shortcuts suspended"), "luxwm vypne zkratky behem zadavani")
         s.input("keydown ctrl", "keydown alt", "key k", "keyup alt", "keyup ctrl", wait=1.0)
         conf = open(s.path("luxwm", "luxwm.conf")).read()

@@ -1,4 +1,5 @@
-# LuxOS - vyskakovaci okna horni listy na Waylandu: Wi-Fi, Zvuk a Oznameni (hodiny otevrou Kalendar hubu). Okna
+# LuxOS - vyskakovaci okna horni listy na Waylandu: nabidka systemu (logo), Wi-Fi, Zvuk a Oznameni (hodiny otevrou
+# Kalendar hubu). Okna
 # jsou prevzate z luxos_bar_popups.lsl (vetev gpt-features-1.1.1): nmcli a heslo NetworkManageru pres
 # D-Bus, pactl; historie oznameni od luxos-notify (org.xfce.Notifyd.Log, cz.luxos.NotificationHistory: Activate,
 # Get/SetDoNotDisturb). Dokud je nektere okno otevrene, luxos-notify neukazuje bubliny (SetPopupsHidden).
@@ -12,7 +13,11 @@
 #
 #   popup.init(tmavy, trace)            trace(text) = ladici vypis listy
 #   popup.toggle(druh, monitor, vystup, out_w, out_h, meritko, stred_x, tlacitko, cas_udalosti)
-#                                       druh "wifi" | "sound" | "notifications"; stred_x = stred ikony v liste
+#                                       druh "system" | "wifi" | "sound" | "notifications"; stred_x = stred ikony v liste
+#
+# Nabidka systemu (logo vlevo) zustava nabidkou systemu, ne aplikaci (aplikace jsou v Launchpadu): vzhled jako nabidka
+# Whisker Menu verze 1.1.1 - nahore fotka a jmeno, uprostred O tomto pocitaci, Nastaveni a Launchpad, dole kulata
+# tlacitka s popisky Zamknout, Odhlasit, Restartovat a Vypnout.
 #   popup.close(druh), popup.close_all(), popup.set_dark(tmavy)
 load cairo, json, net
 load glib, gtk, gio
@@ -23,9 +28,28 @@ load luxos_text as text
 load luxos_i18n as i18n
 load luxos_layer as layer
 load luxos_tokens as tokens
+load luxos_avatar as avatar
+load luxos_hub_popup as hub_popup
 
-KINDS = ["wifi", "sound", "notifications"]
+KINDS = ["system", "wifi", "sound", "notifications"]
 WIDTH = 320
+SYSTEM_WIDTH = 272
+# [text, ikona, prikaz]; lista bezi jako uzivatelska sluzba mimo relaci logindu: relaci urcuje XDG_SESSION_ID
+# z luxos-wayland-session
+SYSTEM_ITEMS = [["About This Computer", "help-about-symbolic", ["luxos-about"]],
+    ["Settings", "preferences-system-symbolic", ["luxos-settings"]],
+    ["Launchpad", "view-app-grid-symbolic", ["luxos-launchpad"]]]
+SYSTEM_POWER = [["Lock Screen", "system-lock-screen-symbolic", ["sh", "-c", "exec loginctl lock-session \"${XDG_SESSION_ID:-auto}\""]],
+    ["Sign Out", "system-log-out-symbolic", ["sh", "-c", "exec loginctl terminate-session \"${XDG_SESSION_ID:-auto}\""]],
+    ["Restart", "system-reboot-symbolic", ["systemctl", "reboot"]],
+    ["Shut Down", "system-shutdown-symbolic", ["systemctl", "poweroff"]]]
+SYSTEM_CSS = (".lx-avatar { border-radius: 999px; min-width: 36px; min-height: 36px; font-weight: 800; color: white;"
+    + " background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }\n"
+    + ".lx-system button.lx-row:focus { background-color: @lx_tile_hover; }\n"
+    + "button.lx-power { background: none; background-image: none; border: none; box-shadow: none; outline: none; padding: 2px 0; border-radius: 8px; }\n"
+    + "button.lx-power .lx-bubble { min-width: 34px; min-height: 34px; }\n"
+    + "button.lx-power:hover .lx-bubble, button.lx-power:focus .lx-bubble { background-color: @lx_tile_hover; }\n"
+    + "button.lx-power label { font-size: 11px; color: @lx_fg_secondary; }\n")
 GAP = 6
 EDGE = 8
 NM = "org.freedesktop.NetworkManager"
@@ -38,7 +62,7 @@ HISTORY = "cz.luxos.NotificationHistory"
 P = {"wins": {}, "boxes": {}, "dark": False, "trace": None, "open": "", "place": {}, "click": {}, "lost": {}, "w": {},
      "wifi": {"enabled": True, "nets": [], "pending": "", "ask": "", "error": "", "iface": "", "scan": 0, "loaded": False},
      "sound": {"sinks": [], "sources": [], "sink": "", "source": "", "lock": False},
-     "notes": {"items": [], "dnd": False, "lock": False}, "session": -1}
+     "notes": {"items": [], "dnd": False, "lock": False}, "session": -1, "face": None, "face_css": 0}
 
 function trace(message):
     if P["trace"] != None:
@@ -143,7 +167,7 @@ function window_for(kind):
     box = gtk.box_new(gtk.VERTICAL, 8)
     call gtk.widget_add_class(box, "lx-popup")
     call gtk.widget_add_class(box, "lx-glass")
-    call gtk.widget_set_size_request(box, WIDTH, -1)
+    call gtk.widget_set_size_request(box, width_of(kind), -1)
     call gtk.container_add(win, box)
     call lglib.connect_data(win, "draw", 1, on_draw, kind)
     call lglib.connect_data(win, "key-press-event", 1, on_key, kind)
@@ -152,7 +176,9 @@ function window_for(kind):
     call lglib.connect_data(win, "realize", 0, on_realize, kind)
     P["wins"][kind] = win
     P["boxes"][kind] = box
-    if kind == "wifi":
+    if kind == "system":
+        call system_build(box)
+    elif kind == "wifi":
         call wifi_build(box)
     elif kind == "sound":
         call sound_build(box)
@@ -160,6 +186,13 @@ function window_for(kind):
         call notes_build(box)
     end
     return win
+end
+
+function width_of(kind):
+    if kind == "system":
+        return SYSTEM_WIDTH
+    end
+    return WIDTH
 end
 
 function is_visible(kind):
@@ -211,11 +244,14 @@ function toggle(kind, monitor, output, out_w, out_h, scale, center_x, button, ev
     call close_all()
     P["click"][kind] = [event_time & 0xffffffff, glib.monotonic_time() // 1000]
     win = window_for(kind)
-    x = max(EDGE, min(center_x - WIDTH // 2, out_w - WIDTH - EDGE))
+    width = width_of(kind)
+    x = max(EDGE, min(center_x - width // 2, out_w - width - EDGE))
     P["place"][kind] = [output, out_w, out_h, scale, x]
     call layer.set_monitor(win, monitor)
     call layer.set_margin(win, layer.EDGE_LEFT, x)
-    if kind == "wifi":
+    if kind == "system":
+        call face_update()
+    elif kind == "wifi":
         P["wifi"]["loaded"] = False
         call wifi_refresh(True)
     elif kind == "sound":
@@ -229,6 +265,10 @@ function toggle(kind, monitor, output, out_w, out_h, scale, center_x, button, ev
     P["button"] = button
     call luxos_gtk.widget_set_class(button, "open", True)
     call gtk.widget_show_all(win)
+    # nabidka systemu: radky jdou projit klavesnici, ale zadny neni vybrany hned po otevreni
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_focus"), __lsl_unbox_int(win), 0)
+    end
     return 0
 end
 
@@ -284,15 +324,97 @@ function on_focus_out(kind, event, window):
     return False
 end
 
-# Podklad okna je jen CSS .lx-popup (material popup); rozmazane pozadi pod nim kresli kompozitor, bez nej (labwc)
-# je material skoro nepruhledny. Okno samo je pruhledne (rohy).
+# Podklad karty je sklo z tapety jako verze 1.1.1 (hub_popup.paint_glass, kresli ho lista, pruhledne i bez
+# rozmazani v kompozitoru); bez tapety material z CSS .lx-popup. Okno samo je pruhledne (rohy).
 function on_draw(kind, cr, window):
     call cairo.save(cr)
     call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
     call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0)
     call cairo.paint(cr)
     call cairo.restore(cr)
+    place = P["place"].get(kind)
+    if place != None:
+        call hub_popup.paint_glass(cr, P["boxes"][kind], place[0], place[1], place[2], place[4], tokens.BAR["height"] + GAP)
+    end
     return False
+end
+
+# ---- nabidka systemu ------------------------------------------------------------------------------
+
+function system_build(box):
+    call gtk.widget_add_class(box, "lx-system")
+    P["face_css"] = gtk.css_load(SYSTEM_CSS)
+    head = gtk.box_new(gtk.HORIZONTAL, 10)
+    name = avatar.real_name()
+    face = label(avatar.initials(name), ["lx-avatar"], 0.5)
+    call gtk.widget_set_valign(face, gtk.ALIGN_CENTER)
+    P["w"]["face"] = face
+    call gtk.box_pack_start(head, face, False, False, 0)
+    who = label(name, ["lx-title"], 0.0)
+    call gtk.label_set_ellipsize(who, gtk.ELLIPSIZE_END)
+    call gtk.box_pack_start(head, who, True, True, 0)
+    call gtk.box_pack_start(box, head, False, False, 2)
+    items = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.widget_add_class(items, "lx-section")
+    for entry in SYSTEM_ITEMS:
+        b = gtk.button_new_empty()
+        call gtk.widget_add_class(b, "lx-row")
+        row = gtk.box_new(gtk.HORIZONTAL, 10)
+        image = gtk.image_new_from_icon_name(entry[1], luxos_gtk.ICON_MENU)
+        call gtk.box_pack_start(row, image, False, False, 0)
+        call gtk.box_pack_start(row, label(i18n.T(entry[0]), [], 0.0), True, True, 0)
+        call gtk.container_add(b, row)
+        call lglib.connect_data(b, "clicked", 0, on_launch, entry[2])
+        call gtk.box_pack_start(items, b, False, False, 0)
+    end
+    call gtk.box_pack_start(box, items, False, False, 0)
+    power = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.box_set_homogeneous(power, True)
+    for entry in SYSTEM_POWER:
+        b = gtk.button_new_empty()
+        call gtk.widget_add_class(b, "lx-power")
+        col = gtk.box_new(gtk.VERTICAL, 4)
+        bubble = gtk.box_new(gtk.HORIZONTAL, 0)
+        call gtk.widget_add_class(bubble, "lx-bubble")
+        call gtk.widget_set_halign(bubble, gtk.ALIGN_CENTER)
+        image = gtk.image_new_from_icon_name(entry[1], luxos_gtk.ICON_MENU)
+        call gtk.widget_set_hexpand(image, True)
+        call gtk.box_pack_start(bubble, image, True, True, 0)
+        call gtk.box_pack_start(col, bubble, False, False, 0)
+        caption = label(i18n.T(entry[0]), [], 0.5)
+        call gtk.label_set_justify(caption, gtk.JUSTIFY_CENTER)
+        call gtk.label_set_line_wrap(caption, True)
+        call gtk.label_set_max_width_chars(caption, 9)
+        call gtk.box_pack_start(col, caption, False, False, 0)
+        call gtk.container_add(b, col)
+        call gtk.widget_set_tooltip(b, i18n.T(entry[0]))
+        call lglib.connect_data(b, "clicked", 0, on_launch, entry[2])
+        call gtk.box_pack_start(power, b, True, True, 0)
+    end
+    call gtk.box_pack_start(box, power, False, False, 2)
+    return 0
+end
+
+# Profilova fotka (~/.face z luxos-profile-picture) misto pismena; styl se meni jen po zmene souboru
+function face_update():
+    path = avatar.face_path()
+    st = lglib.stat(path)
+    key = ""
+    if len(st) > 0 and st[0] > 0:
+        key = path + ":" + String(st[1])
+    end
+    if key == P["face"]:
+        return 0
+    end
+    P["face"] = key
+    css = SYSTEM_CSS
+    if key != "":
+        uri = "file://" + path.replace("%", "%25").replace(" ", "%20").replace("\"", "%22")
+        css = css + ".lx-avatar.photo { background-image: url(\"" + uri + "\"); background-size: cover; background-position: center; color: transparent; }\n"
+    end
+    call luxos_gtk.css_set(P["face_css"], css)
+    call luxos_gtk.widget_set_class(P["w"]["face"], "photo", key != "")
+    return 0
 end
 
 # ---- Wi-Fi ----------------------------------------------------------------------------------------
@@ -349,7 +471,7 @@ end
 # Okno ze skla pri zmene obsahu (seznam siti, oznameni) na novou velikost, i mensi
 function fit(kind):
     if is_visible(kind):
-        call gtk.window_resize(P["wins"][kind], WIDTH, 1)
+        call gtk.window_resize(P["wins"][kind], width_of(kind), 1)
     end
     return 0
 end

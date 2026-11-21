@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""LuxOS - aplikace Otisk prstu (files/lsl/luxos-fingerprint.lsl) proti napodobene sluzbe fprintd na soukrome
-D-Bus sbernici.
+"""LuxOS - Otisk prstu (stranka okna Nastaveni files/lsl/luxos_page_fingerprint.lsl, luxos-fingerprint je odkaz
+na luxos-settings) proti napodobene sluzbe fprintd na soukrome D-Bus sbernici.
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_fingerprint.py -v
     (LUXOS_SHOTS=adresar ulozi snimky okna)
@@ -83,7 +83,7 @@ class Fixture(unittest.TestCase):
         self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
 
     def st(self):
-        return json.loads(self.app.ask("state", "state"))
+        return json.loads(self.app.ask("page-state", "page-state"))
 
     def page(self):
         return self.st()["page"]
@@ -154,7 +154,8 @@ class Gui(Fixture):
         self.start("--enrolled", "left-thumb", "--stages", "8")
         self.wait_main()
         d = self.app.dump()
-        self.assertEqual([(w["title"], w["close_button"]) for w in d], [("Fingerprint Login", True)])
+        # titulek okna Nastaveni = titulek stranky
+        self.assertEqual([(w["title"], w["close_button"]) for w in d], [("Fingerprint", True)])
         self.assertEqual(self.rows(), ["Left thumb"])
         self.assertEqual(self.text("reader-label"), "Fake Sensor 3000")
         self.assertFalse(self.visible("Remove All"))
@@ -200,7 +201,8 @@ class Gui(Fixture):
         self.assertTrue(self.wait(self.released))
 
     def test_enroll_retry_and_fail(self):
-        self.start("--enroll-script", "enroll-stage-passed,enroll-retry-scan,enroll-failed")
+        # mezivysledek (Nezachyceno) vydrzi dele nez jeden vypis okna
+        self.start("--enroll-script", "enroll-stage-passed,enroll-retry-scan,enroll-failed", "--step-ms", "1500")
         self.wait_main()
         self.assertEqual(self.rows(), ["No fingerprints added yet."])
         self.assertFalse(self.visible("Remove All"))
@@ -337,7 +339,7 @@ class Gui(Fixture):
         self.start("--enrolled", "left-thumb", lang="cs_CZ.UTF-8")
         self.wait_main()
         self.assertEqual(self.rows(), ["Levý palec"])
-        self.assertEqual([w["title"] for w in self.app.dump()], ["Přihlášení otiskem prstu"])
+        self.assertEqual([w["title"] for w in self.app.dump()], ["Otisk"])
 
 
 if __name__ == "__main__":

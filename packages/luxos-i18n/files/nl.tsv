@@ -5404,3 +5404,135 @@ Authentication required	Authenticatie vereist
 Authenticate	Authenticeren
 Authentication is not available.	Authenticatie is niet beschikbaar.
 Lock the screen after inactivity of	Scherm vergrendelen na inactiviteit van
+This page could not be opened.	Deze pagina kon niet worden geopend.
+Screen Lock	Schermvergrendeling
+Xfce Settings Manager	Xfce-instellingenbeheer
+Accessibility	Toegankelijkheid
+Windows & Workspaces	Vensters en werkbladen
+Mouse & Touchpad	Muis en touchpad
+Default Apps	Standaardapps
+Login Items	Inlogonderdelen
+Removable Drives	Verwisselbare schijven
+A light tap clicks, a two-finger tap is a right click.	Licht tikken klikt, tikken met twee vingers is een rechterklik.
+Click in the bottom right corner	Klik in de rechterbenedenhoek
+Click with two fingers	Klik met twee vingers
+Content follows your fingers.	De inhoud volgt je vingers.
+Content moves the same way as the wheel, like on a touchpad.	De inhoud beweegt in dezelfde richting als het wieltje, zoals op een touchpad.
+Fast	Snel
+Faster movements move the pointer farther.	Snellere bewegingen verplaatsen de aanwijzer verder.
+Ignore the touchpad while typing	Touchpad negeren tijdens typen
+Left button	Linkerknop
+Middle click with both buttons	Middelklik met beide knoppen
+Natural scrolling	Natuurlijk scrollen
+Natural wheel direction	Natuurlijke wielrichting
+Pointer acceleration	Aanwijzerversnelling
+Pointer speed	Aanwijzersnelheid
+Pressing the left and right buttons together acts as the middle button.	Tegelijk op de linker- en rechterknop drukken werkt als middelste knop.
+Prevents accidental clicks with your palm.	Voorkomt onbedoelde klikken met je handpalm.
+Primary mouse button	Primaire muisknop
+Right button	Rechterknop
+Right click	Rechterklik
+Right edge	Rechterrand
+Scroll with	Scrollen met
+Slow	Langzaam
+Tap and drag	Tikken en slepen
+Tap, then touch again and move to drag a window or select text.	Tik, raak opnieuw aan en beweeg om een venster te slepen of tekst te selecteren.
+Tap to click	Tikken om te klikken
+Touchpad	Touchpad
+Tracking speed	Volgsnelheid
+Two fingers	Twee vingers
+LuxOS (follows Light and Dark)	LuxOS (volgt Licht en Donker)
+%s px	%s px
+Icons and Pointer	Pictogrammen en aanwijzer
+Icons	Pictogrammen
+Pointer	Aanwijzer
+Pointer size	Grootte van aanwijzer
+Fonts	Lettertypen
+Subpixel (LCD screens)	Subpixel (lcd-schermen)
+Grayscale	Grijstinten
+Font smoothing	Lettertype-afvlakking
+Subpixel smoothing is sharpest on most laptop and desktop screens.	Subpixel-afvlakking is op de meeste laptop- en desktopschermen het scherpst.
+Slight	Licht
+Medium	Gemiddeld
+Full	Volledig
+Hinting	Hinting
+Text size	Tekstgrootte
+Reduce motion	Beweging verminderen
+Turns off sliding between workspaces and animations in apps.	Schakelt het schuiven tussen werkbladen en animaties in apps uit.
+Mouse Keys	Muistoetsen
+Move the pointer with the numeric keypad.	Beweeg de aanwijzer met het numerieke toetsenblok.
+On-screen keyboard	Schermtoetsenbord
+Zoom (maximize)	Zoomen (maximaliseren)
+Minimize	Minimaliseren
+Roll up	Oprollen
+Fill free space	Vrije ruimte vullen
+Do nothing	Niets doen
+Off while Reduce motion is on in Accessibility.	Uit zolang ‘Beweging verminderen’ in Toegankelijkheid aan staat.
+Workspaces	Werkbladen
+Number of workspaces	Aantal werkbladen
+Go from the last workspace to the first	Van het laatste werkblad naar het eerste gaan
+Switching past the last workspace with the keyboard continues at the first one.	Met het toetsenbord voorbij het laatste werkblad schakelen gaat verder bij het eerste.
+Animate switching workspaces	Wisselen van werkblad animeren
+Double-click a title bar to	Dubbelklikken op een titelbalk om
+Snap windows to screen edges	Vensters aan schermranden vastklikken
+Snap windows to other windows	Vensters aan andere vensters vastklikken
+Tile windows dragged to a screen edge	Vensters die naar een schermrand worden gesleept tegelen
+Focus follows the pointer	Focus volgt de aanwijzer
+A window is focused when the pointer moves over it, without a click.	Een venster krijgt focus zodra de aanwijzer erover beweegt, zonder klik.
+Interface font	Lettertype van interface
+Monospace font	Lettertype met vaste breedte
+Sticky Keys	Plaktoetsen
+Slow Keys	Trage toetsen
+Bounce Keys	Bounce-toetsen
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	Wijzigingstoetsen zoals Shift en Ctrl blijven ingedrukt tot de volgende toets, zodat sneltoetsen toets voor toets kunnen worden getypt.
+A key has to be held for a moment before it is accepted.	Een toets moet even worden vastgehouden voordat die wordt geaccepteerd.
+Quickly repeated presses of the same key are ignored.	Snel herhaalde aanslagen van dezelfde toets worden genegeerd.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	Banners blijven verborgen, behalve dringende. Meldingen komen nog steeds in de lijst in de menubalk.
+%d seconds	%d seconden
+Show banners for	Banners tonen gedurende
+Apps can ask for a different time; urgent notifications stay until you close them.	Apps kunnen om een andere tijd vragen; dringende meldingen blijven staan tot je ze sluit.
+Play sounds	Geluiden afspelen
+History	Geschiedenis
+Keep notifications in the menu bar	Meldingen bewaren in de menubalk
+Missed notifications and reminders wait in the list until you read them.	Gemiste meldingen en herinneringen wachten in de lijst tot je ze leest.
+Number of notifications to keep	Aantal bewaarde meldingen
+Applications	Apps
+Apps appear here after they send a notification.	Apps verschijnen hier nadat ze een melding hebben gestuurd.
+Reminders	Herinneringen
+Open with	Openen met
+File manager	Bestandsbeheerder
+Text editor	Teksteditor
+Image viewer	Afbeeldingsviewer
+PDF and documents	PDF en documenten
+No app installed	Geen app geïnstalleerd
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	Gebruikt voor ‘Terminal hier openen’ in Bestanden en voor apps die in een terminal draaien.
+Apps you install later appear here automatically if they can open these files.	Apps die je later installeert, verschijnen hier vanzelf als ze deze bestanden kunnen openen.
+Open at Login	Openen bij inloggen
+No apps open at login.	Er wordt geen app geopend bij het inloggen.
+Choose an app…	Kies een app…
+Add an App	App toevoegen
+These apps open each time you log in.	Deze apps openen elke keer dat je inlogt.
+When a Drive Is Connected	Bij het aansluiten van een schijf
+Mount USB drives and memory cards	USB-schijven en geheugenkaarten koppelen
+Files on the drive are ready right away, without clicking it in Files.	De bestanden op de schijf zijn meteen beschikbaar, zonder klikken in Bestanden.
+Mount inserted CDs and DVDs	Geplaatste cd’s en dvd’s koppelen
+Open a window with the drive's files	Een venster met de bestanden van de schijf openen
+Cameras and Phones	Camera’s en telefoons
+Import photos when a camera is connected	Foto’s importeren bij het aansluiten van een camera
+Play audio CDs when inserted	Audio-cd’s afspelen bij plaatsen
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	Interne schijven worden nooit automatisch gekoppeld. Programma’s op een schijf starten nooit vanzelf.
+3 seconds	3 seconden
+5 seconds	5 seconden
+6 seconds	6 seconden
+10 seconds	10 seconden
+15 seconds	15 seconden
+30 seconds	30 seconden
+App	App
+Key Repeat	Toetsherhaling
+Key repeat rate	Herhaalsnelheid
+Delay until repeat	Vertraging voor herhaling
+Long	Lang
+Short	Kort
+Xfce Settings	Xfce-instellingen
+Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Weergave, wifi, Bluetooth, beeldschermen, toetsenbord, muis en al het andere
+Wallpaper, widgets, Dock and menu bar	Achtergrond, widgets, Dock en menubalk
