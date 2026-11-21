@@ -40,7 +40,7 @@ import gi  # noqa: E402
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
-from test_luxos_power import PLAYER_XML, FakePlayer, FakeXfconf, ServiceThread, spin  # noqa: E402,F401
+from test_luxos_awake import PLAYER_XML, FakePlayer, FakeXfconf, ServiceThread  # noqa: E402,F401
 
 
 def translation(key):
@@ -205,10 +205,14 @@ class Hub(unittest.TestCase):
         with open(cls.care_helper, "w") as f:
             f.write('import json, os, sys\nopen(os.environ["FAKE_LOG"], "a").write("care-ask " + sys.argv[2] + "\\n")\n'
                     'print(json.dumps({"option": None, "info": "signed_out", "started": False}))\n')
-        cls.drivers_helper = os.path.join(TMP, "drivers_helper.py")
-        with open(cls.drivers_helper, "w") as f:
-            f.write('import json, os\nopen(os.environ["FAKE_LOG"], "a").write("drivers-check\\n")\n'
-                    'print(json.dumps({"notify": True, "names": ["Grafika NVIDIA"], "key": "nvidia-open-dkms nvidia-utils"}))\n')
+        # luxos-hwdetect --json: grafika bez ovladace, procesor s nainstalovanym intel-ucode (viz drivers_root)
+        cls.hwdetect = os.path.join(TMP, "luxos-hwdetect")
+        devices = {"devices": [{"id": "gpu-1", "title": "Grafika NVIDIA", "packages": ["nvidia-utils", "nvidia-open-dkms"]},
+                               {"id": "cpu", "title": "Procesor", "packages": ["intel-ucode"]},
+                               {"id": "wifi", "title": "Wi-Fi", "packages": []}]}
+        with open(cls.hwdetect, "w") as f:
+            f.write("#!/bin/sh\necho \"drivers-check $*\" >>\"$FAKE_LOG\"\ncat <<'EOF'\n%s\nEOF\n" % json.dumps(devices))
+        os.chmod(cls.hwdetect, 0o755)
 
     @classmethod
     def tearDownClass(cls):
@@ -250,7 +254,8 @@ class Hub(unittest.TestCase):
                "LUXOS_CC_TEST_LOG": os.path.join(self.home, "cc.log"), "LUXOS_CAL_TEST_LOG": os.path.join(self.home, "cal.log"),
                "LUXOS_CALENDAR_DIR": os.path.join(self.home, "calendar"), "LUXOS_POWER_SUPPLY": os.path.join(self.home, "nosupply"),
                "LUXOS_BACKLIGHT": os.path.join(self.home, "nobacklight"), "LUXOS_CARE_HELPER": self.care_helper,
-               "LUXOS_DRIVERS_HELPER": self.drivers_helper, "LUXOS_CARE_ROOT": os.path.join(self.home, "root"),
+               "LUXOS_HWDETECT": self.hwdetect, "LUXOS_DRIVERS_ROOT": os.path.join(self.home, "root"),
+               "LUXOS_CARE_ROOT": os.path.join(self.home, "root"),
                "LUXOS_CARE_DELAY": "1", "LUXOS_DRIVERS_DELAY": "1", "LUXOS_DRM_DIR": os.path.join(self.home, "drm"),
                "LUXOS_MOUNTINFO": os.path.join(self.home, "mountinfo"), "GTK_THEME": "Adwaita:dark",
                "LUXOS_HUB_NO_AUTOHIDE": "1", "LUXOS_GPU": "/nonexistent", "LUXOS_GPU_DELAY": "1",
@@ -542,7 +547,8 @@ class Hub(unittest.TestCase):
         Klik spusti skutecny luxos-displays nad falesnym xrandr (fake-displays), stav se ukaze v Ovladacim centru
         a rezim se ulozi pro sadu monitoru. Svetly i tmavy motiv; LUXOS_TEST_SHOTS ulozi snimky."""
         import test_luxos_displays as td
-        import luxos_displays as ld
+        import luxos_xrandr_lsl as lx
+        from luxos_xrandr_lsl import ld
         fake = os.path.join(self.home, "fake-xr")
         os.makedirs(fake)
         for name in ("xrandr", "wmctrl", "dconf", "luxos-appearance"):
@@ -625,7 +631,7 @@ class Hub(unittest.TestCase):
                     os.unlink(p)
             write(one)
             hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", FAKE_XRANDR_STATE=state,
-                                 LUXOS_PYDIR=td.PYDIR, GTK_THEME=gtk_theme)
+                                 LUXOS_DISPLAYS_HELPER=lx.helper(), GTK_THEME=gtk_theme)
             # 1 monitor: sekce Obrazovky neni
             hub.send_signal(signal.SIGUSR1)
             self.assertTrue(self.wait_for(lambda: log().count("shown") == 1), self.hub_err())
@@ -1331,6 +1337,10 @@ class Hub(unittest.TestCase):
                                             {"seq": 2, "kind": "problem", "title": "Disk %s is almost full", "args": ["/"], "time": now}]}, f)
         with open(os.path.join(root, "state.json"), "w") as f:
             json.dump({"problems": [{"id": "p1", "title": "x", "ai": {"request_id": "0123456789ab", "status": "pending", "options": []}}]}, f)
+        os.makedirs(os.path.join(self.home, "root", "var", "lib", "lux", "local", "intel-ucode-20250812-1"))
+        os.makedirs(os.path.join(self.home, "root", "proc", "sys", "kernel", "random"))
+        with open(os.path.join(self.home, "root", "proc", "sys", "kernel", "random", "boot_id"), "w") as f:
+            f.write("boot-1\n")
         self.start_hub()
         self.assertTrue(self.wait_for(lambda: len([c for c in notes.calls if c[0] == "Notify"]) >= 3, 10), notes.calls)
         titles = [c[1][3] for c in notes.calls if c[0] == "Notify"]
@@ -1340,7 +1350,12 @@ class Hub(unittest.TestCase):
         bodies = [c[1][4] for c in notes.calls if c[0] == "Notify"]
         self.assertIn(translation("%d packages were updated.").replace("%d", "7"), bodies)
         self.assertTrue(any("Grafika NVIDIA" in b for b in bodies))
-        self.assertTrue(self.wait_for(lambda: "care-ask 0123456789ab" in self.calls() and "drivers-check" in self.calls(), 5))
+        self.assertTrue(self.wait_for(lambda: "care-ask 0123456789ab" in self.calls() and "drivers-check --json" in self.calls(), 5))
+        drv = [c for c in notes.calls if c[0] == "Notify" and c[1][3] == translation("Additional drivers are available")]
+        self.assertEqual(len(drv), 1)
+        self.assertTrue(drv[0][1][4].startswith("Grafika NVIDIA\n"), drv[0][1][4])      # jen zarizeni bez ovladace
+        with open(os.path.join(self.cache, "drivers-checked")) as f:
+            self.assertEqual(f.read().strip(), "boot-1")
         # odpoved "neprihlasen" -> dalsi upozorneni s vyzvou k prihlaseni
         self.assertTrue(self.wait_for(lambda: any(translation("Sign in to LuxAI to let LuxOS fix unknown problems.") in c[1][4]
                                                   for c in notes.calls if c[0] == "Notify"), 5))
@@ -1384,9 +1399,10 @@ class Hub(unittest.TestCase):
                     'echo "Event \'change\' on card #47"\necho "Event \'change\' on card #47"\n'
                     'echo "Event \'new\' on sink #80"\nexec sleep 30\n')
         os.chmod(os.path.join(fake, "pactl"), 0o755)
-        helper = os.path.join(self.home, "audio_helper.py")
+        helper = os.path.join(self.home, "audio-helper")
         with open(helper, "w") as f:
-            f.write('import os, sys\nopen(os.environ["FAKE_LOG"], "a").write("audio-" + sys.argv[1] + "\\n")\n')
+            f.write('#!/bin/sh\necho "audio-$1" >>"$FAKE_LOG"\n')
+        os.chmod(helper, 0o755)
         self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", LUXOS_AUDIO_HELPER=helper)
         checks = lambda: [c for c in self.calls() if c == "audio-check"]
         self.assertTrue(self.wait_for(lambda: "subscribe C" in self.calls(), 5), self.calls())

@@ -1,12 +1,12 @@
-"""Testy pro Klavesove zkratky: luxos_shortcuts (nazvy zkratek, xfconf, kolize, vlastni zkratky)
-a okno luxos-shortcuts (jen pod Xvfb).
+#!/usr/bin/env python3
+"""LuxOS - testy Klavesovych zkratek (luxos-keyboard-settings --shortcuts v LSL, na X11 okno drive
+bin/luxos-shortcuts v Pythonu): nazvy zkratek, xfconf, kolize, vlastni zkratky a okno ve vlastnim Xvfb.
 
-Spusteni:  python3 -m unittest packages/luxos-desktop/tests/test_luxos_shortcuts.py -v
-GUI cast:  env -u DISPLAY xvfb-run -a -s "-screen 0 1280x900x24" python3 -m unittest \
-               packages/luxos-desktop/tests/test_luxos_shortcuts.py -v
-LUXOS_SHOT_DIR=/slozka ulozi snimky okna pro vizualni kontrolu.
-Vsechna volani xfconf-query jdou na falesny prikaz z fake-shortcuts (LUXOS_XFCONF_QUERY),
-skutecne nastaveni uzivatele se nemeni.
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_shortcuts.py -v
+
+Model (files/lsl/luxos_shortcuts_model.lsl) v tests/lsl/luxos-shortcuts-model-test.lsl; okno
+files/lsl/luxos_keyboard_x11.lsl rizene pres luxos_testctl. Vsechna volani xfconf-query jdou na falesny prikaz
+z fake-shortcuts (LUXOS_XFCONF_QUERY), skutecne nastaveni uzivatele se nemeni. LUXOS_TEST_SHOTS = snimky.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -18,693 +18,381 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
-import importlib.machinery
-import importlib.util
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PYDIR = os.path.normpath(os.path.join(HERE, "..", "files", "python"))
-BIN = os.path.normpath(os.path.join(HERE, "..", "files", "bin"))
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+
 FAKE_XFCONF = os.path.join(HERE, "fake-shortcuts", "xfconf-query")
 DEFAULTS_XML = os.path.normpath(os.path.join(
     HERE, "..", "files", "xdg", "xfce4", "xfconf", "xfce-perchannel-xml", "xfce4-keyboard-shortcuts.xml"))
-
 TMP = tempfile.mkdtemp(prefix="luxos-shortcuts-test-")
-# Nikdy skutecny xfconf ani konfigurace uzivatele - nastavit pred importem modulu
-os.environ.update({
-    "LUXOS_XFCONF_QUERY": FAKE_XFCONF,
-    "FAKE_XFCONF_DEFAULTS": DEFAULTS_XML,
-    "FAKE_XFCONF": os.path.join(TMP, "xfconf.json"),
-    "FAKE_XFCONF_LOG": os.path.join(TMP, "xfconf.log"),
-    "LUXOS_SHORTCUTS_DEFAULTS": DEFAULTS_XML,
-    "LUXOS_XKB_CONF": os.path.join(TMP, "00-keyboard.conf"),
-    "XDG_CONFIG_HOME": os.path.join(TMP, "config"),
-    "LUXOS_PYDIR": PYDIR,
-    "LANG": "en_US.UTF-8",
-})
-os.environ.pop("LC_ALL", None)
-os.environ.pop("LC_MESSAGES", None)
-os.environ.pop("FAKE_XFCONF_FAIL", None)
-sys.path.insert(0, PYDIR)
-sys.path.insert(1, os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files")))
-import luxos_shortcuts as ls  # noqa: E402
+_built = {}
 
 
 def tearDownModule():
     shutil.rmtree(TMP, ignore_errors=True)
 
 
-def reset_fake():
-    for p in (os.environ["FAKE_XFCONF"], os.environ["FAKE_XFCONF_LOG"], ls.store_path(),
-              os.environ["LUXOS_XKB_CONF"]):
-        if os.path.exists(p):
-            os.unlink(p)
+def binary():
+    if "app" not in _built:
+        _built["app"] = lsl_app.build("luxos-keyboard-settings", TMP)
+    return _built["app"]
 
 
-def user_values():
-    try:
-        with open(os.environ["FAKE_XFCONF"]) as f:
-            return json.load(f)
-    except OSError:
-        return {}
-
-
-def calls():
-    try:
-        with open(os.environ["FAKE_XFCONF_LOG"]) as f:
-            return [json.loads(line) for line in f]
-    except OSError:
-        return []
-
-
-def writes():
-    return [c for c in calls() if "-s" in c or "-r" in c]
-
-
-def action(model, aid):
-    return next(a for a in model.actions() if a.id == aid)
-
-
-class Accel(unittest.TestCase):
-    def test_parse(self):
-        self.assertEqual(ls.parse_accel("<Super><Shift>4"), (frozenset({"super", "shift"}), "4"))
-        self.assertEqual(ls.parse_accel("XF86Calculator"), (frozenset(), "XF86Calculator"))
-        self.assertEqual(ls.parse_accel("<Super>A"), (frozenset({"super"}), "a"))
-        for bad in ("", None, "<Super>", "<Foo>a", "<Super", "<Super>a b", 5):
-            self.assertIsNone(ls.parse_accel(bad), bad)
-
-    def test_normalize(self):
-        self.assertEqual(ls.normalize("<Shift><Super>Down"), ls.normalize("<Super><Shift>Down"))
-        self.assertEqual(ls.normalize("<Super><Shift>3"), "<Shift><Super>3")
-        self.assertEqual(ls.normalize("<Control><Alt>Delete"), "<Primary><Alt>Delete")
-        self.assertEqual(ls.normalize("<Mod4>space"), "<Super>space")
-        self.assertEqual(ls.normalize("<Mod1>F4"), "<Alt>F4")
-        self.assertEqual(ls.normalize("<Super>E"), "<Super>e")
-        self.assertNotEqual(ls.normalize("<Super>Tab"), ls.normalize("<Super><Shift>Tab"))
-        # Tvar z make_accel se znovu rozpozna stejne
-        for t in ("<Primary><Shift><Alt><Super>x", "F11", "<Super>KP_1"):
-            self.assertEqual(ls.normalize(ls.normalize(t)), ls.normalize(t))
-
-    def test_format(self):
-        f = ls.format_accel
-        self.assertEqual(f("<Super><Shift>4"), "Super + Shift + 4")
-        self.assertEqual(f("<Shift><Super>4"), "Super + Shift + 4")
-        self.assertEqual(f("<Primary><Super>f"), "Ctrl + Super + F")
-        self.assertEqual(f("<Super><Alt>Escape"), "Super + Alt + Esc")
-        self.assertEqual(f("<Primary><Alt>Delete"), "Ctrl + Alt + Delete")
-        self.assertEqual(f("<Super>comma"), "Super + ,")
-        self.assertEqual(f("<Super>space"), "Super + Space")
-        self.assertEqual(f("<Super>Up"), "Super + ↑")
-        self.assertEqual(f("<Super>grave"), "Super + `")
-        self.assertEqual(f("XF86Calculator"), "Calculator")
-        self.assertEqual(f("XF86AudioPlay"), "Audio Play")
-        self.assertEqual(f("<Super>KP_1"), "Super + Num 1")
-        self.assertEqual(f("<Alt><Shift>Page_Down"), "Alt + Shift + Page Down")
-        self.assertEqual(f("<Shift>Print"), "Shift + Print Screen")
-        self.assertNotIn("⌘", f("<Super>q"))
-
-    def test_allowed(self):
-        a = ls.accel_allowed
-        self.assertTrue(a("<Super>e"))
-        self.assertTrue(a("<Primary><Alt>t"))
-        self.assertTrue(a("F11"))
-        self.assertTrue(a("Print"))
-        self.assertTrue(a("XF86Calculator"))
-        self.assertFalse(a("e"))                  # pismeno bez modifikatoru by blokovalo psani
-        self.assertFalse(a("<Shift>e"))
-        self.assertFalse(a("Escape"))
-        self.assertFalse(a("<Super>Shift_L"))     # jen modifikatory
-        self.assertFalse(a(""))
-
-
-class Parsing(unittest.TestCase):
-    def test_listing(self):
-        text = ("/commands/custom/<Super>e                  thunar\n"
-                "/commands/custom/<Super>t                  xfce4-terminal --drop-down\n"
-                "/commands/custom/<Super>t/startup-notify   true\n"
-                "/commands/custom/<Super>x\n"
-                "/commands/custom/override                  true\n"
-                "/commands/default/<Alt>F2                  xfrun4\n"
-                "/xfwm4/custom/<Super>q                     close_window_key\n"
-                "/xfwm4/default/<Alt>F4                     close_window_key\n")
-        out = ls.parse_listing(text)
-        self.assertEqual(out["cmd"], {"<Super>e": "thunar", "<Super>t": "xfce4-terminal --drop-down",
-                                      "<Super>x": ""})
-        self.assertEqual(out["wm"], {"<Super>q": "close_window_key"})
-        self.assertEqual(ls.parse_listing(""), {"cmd": {}, "wm": {}})
-
-    def test_defaults_xml(self):
-        d = ls.read_defaults(DEFAULTS_XML)
-        self.assertEqual(d["cmd"]["<Super>e"], "thunar")
-        self.assertEqual(d["cmd"]["<Super><Shift>4"], "luxos-screenshot --portion")
-        self.assertEqual(d["wm"]["<Super>q"], "close_window_key")
-        self.assertNotIn("override", d["cmd"])
-        self.assertEqual(ls.read_defaults(os.path.join(TMP, "missing.xml")), {"cmd": {}, "wm": {}})
-
-    def test_layout_switch(self):
-        p = os.path.join(TMP, "kb.conf")
-        with open(p, "w") as f:
-            f.write('Section "InputClass"\n  Option "XkbLayout" "cz,us"\n'
-                    '  Option "XkbOptions" "terminate:ctrl_alt_bksp,grp:alt_shift_toggle"\nEndSection\n')
-        self.assertEqual(ls.layout_switch(p), "Alt + Shift")
-        with open(p, "w") as f:
-            f.write('Option "XkbOptions" "grp:win_space_toggle"\n')
-        self.assertEqual(ls.layout_switch(p), "Super + Space")
-        with open(p, "w") as f:
-            f.write('Option "XkbLayout" "us"\n')
-        self.assertIsNone(ls.layout_switch(p))
-        self.assertIsNone(ls.layout_switch(os.path.join(TMP, "none.conf")))
-        with open(p, "w") as f:
-            f.write('Option "XkbOptions" "grp:shifts_toggle,compose:ralt"\n')   # vychozi LuxOS
-        self.assertEqual(ls.layout_switch(p), "Left Shift + Right Shift")
-
-    def test_super_tap_setting(self):
-        flag = ls.super_tap_flag()
-        self.assertEqual(flag, os.path.join(TMP, "config", "luxos", "super-launchpad-off"))
-        if os.path.exists(flag):
-            os.unlink(flag)
-        self.assertTrue(ls.super_tap_enabled())             # vychozi: zapnuto
-        self.assertTrue(ls.set_super_tap(False))
-        self.assertTrue(os.path.exists(flag))
-        self.assertFalse(ls.super_tap_enabled())
-        self.assertTrue(ls.set_super_tap(False))            # opakovane bez chyby
-        self.assertTrue(ls.set_super_tap(True))
-        self.assertFalse(os.path.exists(flag))
-        self.assertTrue(ls.set_super_tap(True))
-        # Nezapisovatelne misto -> False, zadna vyjimka
-        bad = os.path.join(TMP, "file-not-dir")
-        open(bad, "w").close()
-        self.assertFalse(ls.set_super_tap(False, os.path.join(bad, "x", "flag")))
-
-    def test_short_label(self):
-        self.assertEqual(ls.short_label("exo-open --launch WebBrowser"), "Web Browser")
-        self.assertEqual(ls.short_label("/usr/bin/xfce4-appfinder --collapsed"), "xfce4-appfinder")
-        self.assertEqual(ls.short_label("exo-open --launch"), "exo-open")
-        self.assertEqual(ls.short_label("bad 'quote"), "bad")
-
-    def test_field_codes(self):
-        self.assertEqual(ls.strip_field_codes("firefox %u"), "firefox")
-        self.assertEqual(ls.strip_field_codes("env A=1 'my app' --file=%f"), "env A=1 'my app' --file=")
-        self.assertEqual(ls.strip_field_codes("echo 100%%"), "echo 100%")
-
-
-class Store(unittest.TestCase):
-    def setUp(self):
-        reset_fake()
-
-    def test_roundtrip_and_broken(self):
-        p = os.path.join(TMP, "s", "shortcuts.json")
-        self.assertEqual(ls.load_names(p), {})
-        ls.save_names({"<Super>n": {"name": "Notes", "command": "mousepad"}}, p)
-        self.assertEqual(ls.load_names(p), {"<Super>n": {"name": "Notes", "command": "mousepad"}})
-        with open(p, "w") as f:
-            f.write("{broken")
-        self.assertEqual(ls.load_names(p), {})
-        with open(p, "w") as f:
-            json.dump({"custom": {"<Mod4>n": {"name": "A", "command": "a"}, "bad<": {"name": "x", "command": "y"},
-                                  "<Super>m": "nope", "<Super>k": {"name": 1, "command": "z"}}}, f)
-        self.assertEqual(ls.load_names(p), {"<Super>n": {"name": "A", "command": "a"}})
-        with open(p, "w") as f:
-            json.dump([1, 2], f)
-        self.assertEqual(ls.load_names(p), {})
+def fake_env(tmp):
+    return {"LUXOS_XFCONF_QUERY": FAKE_XFCONF, "FAKE_XFCONF_DEFAULTS": DEFAULTS_XML,
+            "FAKE_XFCONF": os.path.join(tmp, "xfconf.json"), "FAKE_XFCONF_LOG": os.path.join(tmp, "xfconf.log"),
+            "LUXOS_SHORTCUTS_DEFAULTS": DEFAULTS_XML, "LUXOS_XKB_CONF": os.path.join(tmp, "00-keyboard.conf"),
+            "XDG_CONFIG_HOME": os.path.join(tmp, "config"), "HOME": tmp, "LANG": "en_US.UTF-8",
+            "LUXOS_I18N_DIR": lsl_app.I18N}
 
 
 class Model(unittest.TestCase):
-    def setUp(self):
-        reset_fake()
-        self.m = ls.Shortcuts()
-
-    def test_initial(self):
-        m = self.m
-        self.assertTrue(m.available)
-        self.assertEqual(m.accels_for(action(m, "close")), ["<Super>q", "<Alt>F4"])
-        self.assertEqual(m.accels_for(action(m, "hide")), ["<Super>m", "<Super>h", "<Super>Down"])
-        self.assertEqual(m.accels_for(action(m, "shot-region")), ["<Shift><Super>4", "<Shift>Print"])
-        self.assertEqual(m.accels_for(action(m, "search")), ["<Super>space"])
-        self.assertTrue(all(m.is_default(a) for a in m.actions()))
-        self.assertEqual(m.custom_actions(), [])
-        self.assertEqual(writes(), [])            # cteni nic nezapisuje
-        self.assertTrue(all(c[:2] == ["-c", "xfce4-keyboard-shortcuts"] for c in calls()))
-
-    def test_conflict(self):
-        m = self.m
-        files = action(m, "files")
-        self.assertIsNone(m.conflict(files, "<Super>e"))           # vlastni zkratka
-        self.assertIsNone(m.conflict(files, "<Super>y"))           # volna
-        self.assertEqual(m.conflict(files, "<Super>t"), "Terminal")
-        self.assertEqual(m.conflict(files, "<Super>q"), "Close window")   # napric prikazy / xfwm4
-        self.assertEqual(m.conflict(action(m, "close"), "<Super>e"), "Files")
-        self.assertEqual(m.conflict(None, ls.normalize("<Super><Shift>3")), "Screenshot")
-        self.assertEqual(m.conflict(files, "<Primary><Super>1"), "Go to workspace 1")
-
-    def test_change_and_restore(self):
-        m = self.m
-        files = action(m, "files")
-        self.assertTrue(m.assign(files, "<Super>f", replace="<Super>e"))
-        self.assertEqual(m.accels_for(files), ["<Super>f"])
-        self.assertFalse(m.is_default(files))
-        u = user_values()
-        self.assertEqual(u["/commands/custom/<Super>e"], "")       # systemova zkratka vypnuta prazdnou hodnotou
-        self.assertEqual(u["/commands/custom/<Super>f"], "thunar")
-        self.assertTrue(m.restore(files))
-        self.assertEqual(m.accels_for(files), ["<Super>e"])
-        self.assertTrue(m.is_default(files))
-        self.assertEqual(user_values(), {})                         # zadne zbytky
-
-    def test_replace_conflict(self):
-        m = self.m
-        files, term = action(m, "files"), action(m, "terminal")
-        m.assign(files, "<Super>t", replace="<Super>e")
-        self.assertEqual(m.accels_for(files), ["<Super>t"])
-        self.assertEqual(m.accels_for(term), ["<Primary><Alt>t"])   # druha zkratka Terminalu zustala
-        self.assertEqual(m.owner_label("<Super>t"), "Files")
-        m.restore(term)
-        self.assertEqual(m.accels_for(term), ["<Super>t", "<Primary><Alt>t"])
-        self.assertEqual(m.accels_for(files), [])                   # Soubory zkratku vratily
-
-    def test_cross_kind_conflict(self):
-        m = self.m
-        lp = action(m, "launchpad")
-        m.assign(lp, "<Super>q", replace="<Super>a")
-        self.assertEqual(m.accels_for(action(m, "close")), ["<Alt>F4"])
-        self.assertEqual(user_values()["/xfwm4/custom/<Super>q"], "")
-        self.assertEqual(m.accels_for(lp), ["<Super>q", "XF86LaunchA"])
-
-    def test_raw_property_name_reused(self):
-        # Systemova vlastnost je "<Super><Shift>4" - zapis musi pouzit stejny nazev, ne kanonicky
-        m = self.m
-        shot = action(m, "shot-region")
-        m.assign(shot, "<Primary><Super>4", replace=ls.normalize("<Super><Shift>4"))
-        u = user_values()
-        self.assertEqual(u["/commands/custom/<Super><Shift>4"], "")
-        self.assertEqual(u["/commands/custom/<Primary><Super>4"], "luxos-screenshot --portion")
-        self.assertNotIn("/commands/custom/<Shift><Super>4", u)
-
-    def test_same_accel_noop(self):
-        m = self.m
-        files = action(m, "files")
-        m.assign(files, "<Super>e", replace="<Super>e")
-        self.assertEqual(user_values(), {})
-        self.assertEqual(m.accels_for(files), ["<Super>e"])
-
-    def test_disable(self):
-        m = self.m
-        close = action(m, "close")
-        self.assertTrue(m.disable(close))
-        self.assertEqual(m.accels_for(close), [])
-        self.assertIsNone(m.owner("<Super>q"))
-        m.restore(close)
-        self.assertEqual(m.accels_for(close), ["<Super>q", "<Alt>F4"])
-
-    def test_custom(self):
-        m = self.m
-        self.assertTrue(m.save_custom("Notes", "mousepad", "<Super>n"))
-        cust = m.custom_actions()
-        self.assertEqual([(a.label, a.value) for a in cust], [("Notes", "mousepad")])
-        self.assertEqual(ls.load_names(), {"<Super>n": {"name": "Notes", "command": "mousepad"}})
-        self.assertEqual(m.conflict(action(m, "files"), "<Super>n"), "Notes")
-        # Zmena zkratky a nazvu
-        self.assertTrue(m.save_custom("My Notes", "mousepad ~/notes.txt", "<Super><Alt>n", old="<Super>n"))
-        self.assertIsNone(m.owner("<Super>n"))
-        self.assertEqual([(a.label, a.value) for a in m.custom_actions()],
-                         [("My Notes", "mousepad ~/notes.txt")])
-        self.assertEqual(list(ls.load_names()), ["<Alt><Super>n"])
-        # Smazani
-        self.assertTrue(m.delete_custom("<Alt><Super>n"))
-        self.assertEqual(m.custom_actions(), [])
-        self.assertEqual(ls.load_names(), {})
-        self.assertEqual(user_values(), {})
-
-    def test_custom_overrides_default_then_delete(self):
-        m = self.m
-        m.save_custom("Browser", "firefox", "<Super>l")
-        self.assertEqual(m.accels_for(action(m, "lock")), ["<Primary><Super>q"])
-        self.assertEqual(m.owner_label("<Super>l"), "Browser")
-        m.delete_custom("<Super>l")
-        self.assertEqual(m.accels_for(action(m, "lock")), ["<Primary><Super>q", "<Super>l"])
-
-    def test_named_custom_with_catalog_command(self):
-        # Vlastni zkratka se stejnym prikazem jako katalog patri do Vlastnich, ne k Souborum
-        m = self.m
-        m.save_custom("Second Files", "thunar", "<Super>j")
-        self.assertEqual(m.accels_for(action(m, "files")), ["<Super>e"])
-        self.assertEqual([a.label for a in m.custom_actions()], ["Second Files"])
-
-    def test_unnamed_custom_from_xfconf(self):
-        ls.xfconf("-p", "/commands/custom/<Super>g", "-n", "-t", "string", "-s", "gimp")
-        m = ls.Shortcuts()
-        self.assertEqual([(a.label, a.value, a.id) for a in m.custom_actions()],
-                         [("gimp", "gimp", "custom:<Super>g")])
-        # Pojmenovany zaznam s jinym prikazem se nepouzije
-        ls.save_names({"<Super>g": {"name": "Old", "command": "inkscape"}})
-        m.reload()
-        self.assertEqual(m.custom_actions()[0].label, "gimp")
-
-    def test_restore_all(self):
-        m = self.m
-        m.save_custom("Notes", "mousepad", "<Super>n")
-        m.save_custom("Browser", "firefox", "<Super>l")             # prebira vychozi zkratku
-        m.assign(action(m, "files"), "<Super>f", replace="<Super>e")
-        m.disable(action(m, "close"))
-        self.assertTrue(m.restore_all())
-        self.assertTrue(all(m.is_default(a) for a in m.catalog))
-        self.assertEqual([a.label for a in m.custom_actions()], ["Notes"])
-        self.assertEqual(ls.load_names(), {"<Super>n": {"name": "Notes", "command": "mousepad"}})
-        self.assertEqual(user_values(), {"/commands/custom/<Super>n": "mousepad"})
-
-    def test_other_actions(self):
-        # Vychozi prikazy mimo katalog (tady zadne krome katalogovych) a xfwm4 mimo katalog se nezobrazi
-        defaults = {"cmd": {"<Super>e": "thunar", "<Alt>F2": "xfrun4", "<Super>r": "xfrun4"},
-                    "wm": {"<Super>q": "close_window_key"}}
-        m = ls.Shortcuts(defaults=defaults)
-        other = m.other_actions()
-        self.assertEqual([(a.id, a.label) for a in other], [("other:xfrun4", "xfrun4")])
-        self.assertEqual(m.accels_for(other[0]), [])          # falesny xfconf je ma vypnute (nejsou v XML)
-
-    def test_xfconf_unavailable(self):
-        os.environ["FAKE_XFCONF_FAIL"] = "1"
-        try:
-            m = ls.Shortcuts()
-            self.assertFalse(m.available)
-            self.assertEqual(m.accels_for(action(m, "files")), ["<Super>e"])   # zobrazi vychozi
-            self.assertFalse(m.assign(action(m, "files"), "<Super>f", replace="<Super>e"))
-        finally:
-            del os.environ["FAKE_XFCONF_FAIL"]
-        self.assertEqual(user_values(), {})
-
-    def test_never_real_xfconf(self):
-        self.assertEqual(ls.xfconf_cmd(), FAKE_XFCONF)
+    def test_model(self):
+        lslc = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
+        if not lslc:
+            self.skipTest("lslc is not installed")
+        out = os.path.join(TMP, "sctest")
+        r = subprocess.run([lslc, "--target", "linux-x86_64-gnu", "--system-bindings", lsl_app.LSL_DIR,
+                            os.path.join(HERE, "lsl", "luxos-shortcuts-model-test.lsl"), out],
+                           capture_output=True, text=True, timeout=900)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        work = tempfile.mkdtemp(dir=TMP)
+        os.makedirs(os.path.join(work, "config"))
+        env = dict(fake_env(work), PATH=os.environ["PATH"], SC_TEST_TMP=work, SC_FAKE=FAKE_XFCONF,
+                   SC_DEFAULTS=DEFAULTS_XML)
+        r = subprocess.run([out], capture_output=True, text=True, timeout=120, env=env)
+        lines = r.stdout.splitlines()
+        self.assertEqual([line for line in lines if not line.startswith("ok ")], [], r.stderr)
+        self.assertEqual(r.returncode, 0)
+        self.assertGreaterEqual(len(lines), 145)
+        # cteni nikdy nesahne na skutecny xfconf: kazde volani je v zaznamu falesneho prikazu
+        self.assertTrue(os.path.exists(env["FAKE_XFCONF_LOG"]))
 
 
-def load_app():
-    loader = importlib.machinery.SourceFileLoader("luxos_shortcuts_app", os.path.join(BIN, "luxos-shortcuts"))
-    spec = importlib.util.spec_from_loader("luxos_shortcuts_app", loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
-    return mod
-
-
-# Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1 ve VM) - nikdy skutecna obrazovka
-@unittest.skipUnless(os.environ.get("DISPLAY") and ("xvfb-run" in os.environ.get("XAUTHORITY", "")
-                                                    or os.environ.get("LUXOS_TEST_X") == "1"),
-                     "potrebuje virtualni X (xvfb-run)")
+@unittest.skipUnless(shutil.which("Xvfb"), "Xvfb is missing")
 class App(unittest.TestCase):
+    """Okno Klavesove zkratky na X11 (parita s testy okna v Pythonu)."""
+
     @classmethod
     def setUpClass(cls):
-        cls.app = load_app()
-        from gi.repository import Gdk, GLib, Gtk
-        cls.Gdk, cls.GLib, cls.Gtk = Gdk, GLib, Gtk
-        provider = Gtk.CssProvider()
-        provider.load_from_data(cls.app.CSS)
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
-                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        cls.binary = binary()
+        cls.x = lsl_app.Xvfb("1280x900")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.x.stop()
 
     def setUp(self):
-        reset_fake()
-        with open(os.environ["LUXOS_XKB_CONF"], "w") as f:
+        self.tmp = tempfile.mkdtemp(dir=TMP)
+        self.env = fake_env(self.tmp)
+        with open(self.env["LUXOS_XKB_CONF"], "w") as f:
             f.write('Option "XkbOptions" "grp:shifts_toggle"\n')
-        flag = ls.super_tap_flag()
-        if os.path.exists(flag):
-            os.unlink(flag)
-        self.asked = []
-        self.answer = True
-        self.app.ask = self.fake_ask
-        self.app.warn = lambda _p, text: self.asked.append(("warn", text))
-        self.win = self.app.ShortcutsWindow()
-        self.win.show_all()
-        self.pump(0.3)
+        self.app = None
+        self.start()
 
     def tearDown(self):
-        self.win.destroy()
-        self.pump(0.1)
+        if self.app:
+            self.app.stop()
 
-    def fake_ask(self, _parent, text, secondary, ok_label, destructive=False):
-        self.asked.append(("ask", text))
-        return self.answer
+    def start(self):
+        if self.app:
+            self.app.stop()
+        env = dict(self.env, PATH=os.environ["PATH"], DISPLAY=self.x.display, XDG_RUNTIME_DIR=self.tmp,
+                   GTK_THEME="Adwaita", DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent")
+        luxos_testguard.check_env(env)
+        self.app = lsl_app.App([self.binary, "--shortcuts"], env)
+        self.assertTrue(self.app.wait(lambda: self.state() is not None, 20), self.app.stderr())
 
-    def pump(self, seconds):
-        end = time.time() + seconds
-        ctx = self.GLib.MainContext.default()
-        while time.time() < end:
-            while ctx.pending():
-                ctx.iteration(False)
-            time.sleep(0.01)
+    def state(self):
+        if self.app.proc.poll() is not None:
+            raise AssertionError("app exited: " + self.app.stderr())
+        try:
+            return json.loads(self.app.ask("state", "state ", timeout=5))
+        except AssertionError:
+            return None
 
-    def labels(self, widget):
-        out = []
+    def user_values(self):
+        try:
+            with open(self.env["FAKE_XFCONF"]) as f:
+                return json.load(f)
+        except OSError:
+            return {}
 
-        def collect(w):
-            if isinstance(w, self.Gtk.Label):
-                out.append(w.get_text())
-            elif isinstance(w, self.Gtk.Button) and w.get_label():
-                out.append(w.get_label())
-            if isinstance(w, self.Gtk.Container):
-                w.foreach(collect)
-        collect(widget)
-        return out
+    def calls(self):
+        try:
+            with open(self.env["FAKE_XFCONF_LOG"]) as f:
+                return [json.loads(line) for line in f]
+        except OSError:
+            return []
 
-    def shot(self, name, row=None):
-        d = os.environ.get("LUXOS_SHOT_DIR")
-        if not d:
-            return
-        os.makedirs(d, exist_ok=True)
-        self.pump(0.3)
-        if row is not None:
-            # Posunout seznam k radku (spodni sekce nejsou bez posunuti videt)
-            _x, y = row.translate_coordinates(self.win.page, 0, 0)
-            self.win.scroll.get_vadjustment().set_value(max(0, y - 200))
-            self.pump(0.3)
-        win = self.win.get_window()
-        w, h = win.get_width(), win.get_height()
-        pix = self.Gdk.pixbuf_get_from_window(win, 0, 0, w, h)
-        pix.savev(os.path.join(d, name + ".png"), "png", [], [])
+    def writes(self):
+        return [c for c in self.calls() if "-s" in c or "-r" in c]
 
-    def key_event(self, keyval, state=0):
-        Gdk = self.Gdk
-        ev = Gdk.Event.new(Gdk.EventType.KEY_PRESS)
-        ev.keyval = keyval
-        ev.state = Gdk.ModifierType(state)
-        ok, keys = Gdk.Keymap.get_for_display(Gdk.Display.get_default()).get_entries_for_keyval(keyval)
-        ev.hardware_keycode = keys[0].keycode if ok and keys else 0
-        ev.group = 0
-        return ev
+    def names(self):
+        try:
+            with open(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "shortcuts.json")) as f:
+                return json.load(f)["custom"]
+        except OSError:
+            return {}
+
+    def accels(self, aid):
+        return json.loads(self.app.ask("accels " + aid, "accels "))
+
+    def set(self, aid, value):
+        """Vysledek zachyceni bez dialogu (apply_change); dotaz na kolizi se otevre jako skutecny dialog."""
+        self.app.send("set %s %s" % (aid, value))
+
+    def dialog(self):
+        return [w for w in self.app.dump() if w["dialog"]]
+
+    def wait_dialog(self, text):
+        self.assertTrue(self.app.wait(lambda: any(text in t for t in lsl_app.texts(self.dialog(), dialog=True))),
+                        lsl_app.texts(self.app.dump()))
+
+    def shot(self, name):
+        d = os.environ.get("LUXOS_TEST_SHOTS")
+        if d:
+            os.makedirs(d, exist_ok=True)
+            lsl_app.shot(self.x.display, os.path.join(d, name + ".png"))
 
     def test_window(self):
-        page = self.labels(self.win.page)
-        for title in ("Windows", "Apps & System", "Screenshots", "Custom Shortcuts", "Other Xfce Shortcuts"):
-            if title == "Other Xfce Shortcuts":
-                continue                     # zdrojove XML LuxOS nema prikazy mimo katalog
+        win = self.app.dump()
+        self.assertEqual(win[0]["title"], "Keyboard Shortcuts")
+        self.assertTrue(win[0]["close_button"])
+        page = lsl_app.texts(win) + [w.get("text") for w in lsl_app.widgets(win) if w["t"] == "GtkButton"]
+        for title in ("Windows", "Apps & System", "Screenshots", "Custom Shortcuts"):
             self.assertIn(title, page)
+        self.assertNotIn("Other Xfce Shortcuts", page)   # zdrojove XML LuxOS nema prikazy mimo katalog
         self.assertIn("Super + Q, Alt + F4", page)
         self.assertIn("Super + Shift + 4, Shift + Print Screen", page)
         self.assertIn("Switch keyboard layout", page)
         self.assertIn("Left Shift + Right Shift", page)
         self.assertIn("Super key alone opens Launchpad", page)
         self.assertIn("Add Shortcut…", page)
-        self.assertFalse(any("⌘" in t for t in page))
-        self.assertEqual(writes(), [])
+        self.assertFalse(any("⌘" in (t or "") for t in page))
+        tips = [w.get("tip") for w in lsl_app.widgets(win) if w["t"] == "GtkButton"]
+        self.assertIn("Add Shortcut…", tips)             # + v HeaderBar
+        self.assertEqual(self.writes(), [])
         self.shot("shortcuts-window")
-        self.shot("shortcuts-window-apps", self.win.rows["search"])
 
     def test_super_tap_row(self):
-        row = self.win.rows["super-tap"]
-        launchpad = self.win.rows["launchpad"]
-        box = row.get_parent()
-        kids = box.get_children()
-        self.assertEqual(kids.index(row), kids.index(launchpad) + 1)     # hned pod Launchpadem
-        sw = self.win.super_switch
-        self.assertTrue(sw.get_active())
-        flag = ls.super_tap_flag()
-        sw.set_active(False)
-        self.pump(0.1)
+        s = self.state()
+        order = s["order"]
+        self.assertEqual(order.index("super-tap"), order.index("launchpad") + 1)     # hned pod Launchpadem
+        self.assertIn("switch:on", s["rows"]["super-tap"])
+        flag = os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "super-launchpad-off")
+        self.app.ask("super off")
         self.assertTrue(os.path.exists(flag))
-        sw.set_active(True)
-        self.pump(0.1)
+        self.app.ask("super on")
         self.assertFalse(os.path.exists(flag))
-        self.assertEqual(writes(), [])                  # xfconf se nemeni
-        sw.set_active(False)
-        self.pump(0.1)
-        self.win.destroy()
-        self.win = self.app.ShortcutsWindow()           # stav po znovuotevreni
-        self.win.show_all()
-        self.pump(0.2)
-        self.assertFalse(self.win.super_switch.get_active())
-        self.shot("shortcuts-super-tap", self.win.rows["super-tap"])
+        self.assertEqual(self.writes(), [])              # xfconf se nemeni
+        self.app.ask("super off")
+        self.start()                                     # stav po znovuotevreni
+        self.assertIn("switch:off", self.state()["rows"]["super-tap"])
 
     def test_group_apps_row(self):
-        row = self.win.rows["group-apps"]
-        box = row.get_parent()
-        kids = box.get_children()
-        self.assertEqual(kids.index(row), kids.index(self.win.rows["cycle-app-reverse"]) + 1)  # pod Alt+`
-        self.assertIn("Alt + `", self.labels(self.win.rows["cycle-app"]))
-        self.assertIn("Alt + Shift + `", self.labels(self.win.rows["cycle-app-reverse"]))
-        self.assertIn("Super + `", self.labels(self.win.rows["switch-app"]))
-        sw = self.win.group_switch
-        self.assertFalse(sw.get_active())                    # vychozi vypnuto
-        sw.set_active(True)
-        self.pump(0.1)
-        self.assertIn(["-c", "xfwm4", "-p", "/general/cycle_group_apps", "-n", "-t", "bool", "-s", "true"], writes())
-        self.assertEqual(user_values().get("/general/cycle_group_apps"), "true")
-        self.win.destroy()
-        self.win = self.app.ShortcutsWindow()                # stav po znovuotevreni
-        self.win.show_all()
-        self.pump(0.2)
-        self.assertTrue(self.win.group_switch.get_active())
-        self.shot("shortcuts-group-apps", self.win.rows["group-apps"])
-        self.win.group_switch.set_active(False)
-        self.pump(0.1)
-        self.assertEqual(user_values().get("/general/cycle_group_apps"), "false")
+        s = self.state()
+        order = s["order"]
+        self.assertEqual(order.index("group-apps"), order.index("cycle-app-reverse") + 1)  # pod Alt+`
+        self.assertIn("Alt + `", s["rows"]["cycle-app"])
+        self.assertIn("Alt + Shift + `", s["rows"]["cycle-app-reverse"])
+        self.assertIn("Super + `", s["rows"]["switch-app"])
+        self.assertIn("switch:off", s["rows"]["group-apps"])                    # vychozi vypnuto
+        self.app.ask("group on")
+        self.assertIn(["-c", "xfwm4", "-p", "/general/cycle_group_apps", "-n", "-t", "bool", "-s", "true"], self.writes())
+        self.assertEqual(self.user_values().get("/general/cycle_group_apps"), "true")
+        self.start()
+        self.assertIn("switch:on", self.state()["rows"]["group-apps"])
+        self.app.ask("group off")
+        self.assertEqual(self.user_values().get("/general/cycle_group_apps"), "false")
 
     def test_capture_dialog_keys(self):
-        Gdk = self.Gdk
-        dlg = self.app.CaptureDialog(self.win, "Files")
-        dlg.show_all()
-        self.pump(0.2)
-        responses = []
-        dlg.connect("response", lambda _d, r: responses.append(r))
-        # Pismeno bez modifikatoru se neprijme
-        dlg.on_key(dlg, self.key_event(Gdk.KEY_e))
-        self.assertIsNone(dlg.result)
-        self.assertIn("Use at least one", dlg.hint.get_text())
+        self.app.send("capture 1 Files")
+        self.assertTrue(self.app.wait(lambda: self.state()["capture"] is not None))
+        self.assertIn("Press the new shortcut for “Files”", lsl_app.texts(self.dialog(), dialog=True))
+        # pismeno bez modifikatoru se neprijme
+        self.app.ask("key - e")
+        cap = self.state()["capture"]
+        self.assertIsNone(cap["result"])
+        self.assertIn("Use at least one", cap["hint"])
+        self.assertEqual(cap["keys"], "E")
+        self.shot("shortcuts-capture")
         # Super + Shift + 4 (keyval dollar se prevede na zakladni klavesu 4)
-        dlg.on_key(dlg, self.key_event(Gdk.KEY_dollar, Gdk.ModifierType.SUPER_MASK | Gdk.ModifierType.SHIFT_MASK))
-        self.assertEqual(ls.normalize(dlg.result[1]), "<Shift><Super>4")
-        self.assertEqual(responses, [self.Gtk.ResponseType.OK])
-        dlg.destroy()
+        self.app.send("key super+shift dollar")
+        self.assertEqual(json.loads(self.app.line("captured ")), ["set", "<Shift><Super>4"])
+        # Backspace vypne, Esc zrusi
+        self.app.send("capture 1 Files")
+        self.assertTrue(self.app.wait(lambda: self.state()["capture"] is not None))
+        self.app.send("key - BackSpace")
+        self.assertEqual(json.loads(self.app.line("captured ")), ["off", None])
+        self.app.send("capture 1 Files")
+        self.assertTrue(self.app.wait(lambda: self.state()["capture"] is not None))
+        self.app.send("key - Escape")
+        self.assertIsNone(json.loads(self.app.line("captured ")))
+        # pri pridavani vlastni zkratky Backspace nic nevypina
+        self.app.send("capture 0 New")
+        self.assertTrue(self.app.wait(lambda: self.state()["capture"] is not None))
+        self.assertIn("Esc cancels.", lsl_app.texts(self.dialog(), dialog=True))
+        self.app.ask("key - BackSpace")
+        self.assertIsNotNone(self.state()["capture"])
+        self.assertIsNone(self.state()["capture"]["result"])
+        self.app.send("key - Escape")
+        self.assertIsNone(json.loads(self.app.line("captured ")))
+        self.assertEqual(self.writes(), [])
 
-        dlg = self.app.CaptureDialog(self.win, "Files")
-        dlg.show_all()
-        dlg.on_key(dlg, self.key_event(Gdk.KEY_BackSpace))
-        self.assertEqual(dlg.result, ("off", None))
-        dlg.destroy()
-
-        dlg = self.app.CaptureDialog(self.win, "Files")
-        dlg.show_all()
-        responses = []
-        dlg.connect("response", lambda _d, r: responses.append(r))
-        dlg.on_key(dlg, self.key_event(Gdk.KEY_Escape))
-        self.assertIsNone(dlg.result)
-        self.assertEqual(responses, [self.Gtk.ResponseType.CANCEL])
-        dlg.destroy()
-
-        # Pri pridavani vlastni zkratky Backspace nic nevypina
-        dlg = self.app.CaptureDialog(self.win, "New", allow_disable=False)
-        dlg.show_all()
-        self.shot_dialog(dlg, "shortcuts-capture")
-        dlg.on_key(dlg, self.key_event(Gdk.KEY_BackSpace))
-        self.assertNotEqual(dlg.result, ("off", None))
-        dlg.destroy()
-
-    def shot_dialog(self, dlg, name):
-        d = os.environ.get("LUXOS_SHOT_DIR")
-        if not d:
-            return
-        os.makedirs(d, exist_ok=True)
-        self.pump(0.3)
-        win = dlg.get_window()
-        pix = self.Gdk.pixbuf_get_from_window(win, 0, 0, win.get_width(), win.get_height())
-        pix.savev(os.path.join(d, name + ".png"), "png", [], [])
+    def test_capture_changes_shortcut(self):
+        # cela cesta: klik na zkratku Kalkulacky, stisk Super + Alt + C v dialogu, zapis do xfconf
+        self.app.send("change calculator")
+        self.assertTrue(self.app.wait(lambda: self.state()["capture"] is not None))
+        self.app.send("key super+alt c")
+        self.assertTrue(self.app.wait(lambda: self.accels("calculator") == ["<Alt><Super>c"]))
+        self.assertEqual(self.user_values()["/commands/custom/<Alt><Super>c"], "luxos-calculator")
+        self.app.send("change calculator")
+        self.assertTrue(self.app.wait(lambda: self.state()["capture"] is not None))
+        self.app.send("key super+shift dollar")         # Super+Shift+4 patri Snimku oblasti: dotaz
+        self.wait_dialog("is already used by")
+        self.app.send("respond -6")
+        self.assertTrue(self.app.wait(lambda: not self.dialog()))
+        self.assertEqual(self.accels("calculator"), ["<Alt><Super>c"])
 
     def test_change_with_conflict(self):
-        m = self.win.model
-        files = action(m, "files")
-        self.answer = False
-        self.assertFalse(self.win.apply_change(files, ("set", "<Super>t")))
-        self.assertEqual(self.asked[0][0], "ask")
-        self.assertIn("Terminal", self.asked[0][1])
-        self.assertEqual(writes(), [])                 # odmitnuti nic nezapise
-        self.answer = True
-        self.assertTrue(self.win.apply_change(files, ("set", "<Super>t")))
-        self.assertEqual(self.win.model.accels_for(action(self.win.model, "files")), ["<Super>t"])
-        self.pump(0.2)
-        # Zmeneny radek ma tlacitko Obnovit
-        row = self.win.rows["files"]
-        tips = []
-        row.foreach(lambda w: tips.append(w.get_tooltip_text()))
-        self.assertIn("Restore Default", tips)
-        self.shot("shortcuts-changed", self.win.rows["files"])
+        self.set("files", "<Super>t")
+        self.wait_dialog("“Super + T” is already used by “Terminal”.")
+        self.app.send("respond -6")                      # odmitnuti nic nezapise
+        self.assertEqual(self.app.line("set "), "false")
+        self.assertEqual(self.writes(), [])
+        self.set("files", "<Super>t")
+        self.wait_dialog("is already used by")
+        self.shot("shortcuts-conflict")
+        self.app.send("respond -5")
+        self.assertEqual(self.app.line("set "), "true")
+        self.assertEqual(self.accels("files"), ["<Super>t"])
+        # zmeneny radek ma tlacitko Obnovit
+        self.assertIn("tip:Restore Default", self.state()["rows"]["files"])
 
     def test_change_free_and_off(self):
-        m = self.win.model
-        self.assertTrue(self.win.apply_change(action(m, "calculator"), ("set", "<Super><Alt>c")))
-        self.assertEqual(self.asked, [])               # volna zkratka - bez dotazu
-        self.assertEqual(self.win.model.accels_for(action(self.win.model, "calculator")), ["<Alt><Super>c"])
-        self.assertTrue(self.win.apply_change(action(self.win.model, "calculator"), ("off", None)))
-        self.assertEqual(self.win.model.accels_for(action(self.win.model, "calculator")), [])
-        self.assertIn("Off", self.labels(self.win.rows["calculator"]))
+        self.set("calculator", "<Super><Alt>c")
+        self.assertEqual(self.app.line("set "), "true")
+        self.assertFalse(self.dialog())                  # volna zkratka - bez dotazu
+        self.assertEqual(self.accels("calculator"), ["<Alt><Super>c"])
+        self.set("calculator", "off")
+        self.assertEqual(self.app.line("set "), "true")
+        self.assertEqual(self.accels("calculator"), [])
+        self.assertIn("Off", self.state()["rows"]["calculator"])
 
     def test_custom_dialog(self):
-        dlg = self.app.CustomDialog(self.win, self.win.model)
-        dlg.show_all()
-        self.assertFalse(dlg.save.get_sensitive())
-        dlg.name.set_text("Notes")
-        dlg.command.set_text("mousepad")
-        self.assertFalse(dlg.save.get_sensitive())     # chybi zkratka
-        dlg.accel = "<Super>e"
-        dlg.update()
-        self.assertTrue(dlg.save.get_sensitive())
-        self.assertIn("Files", dlg.note.get_text())    # upozorneni na kolizi
-        dlg.accel = "<Super>n"
-        dlg.update()
-        self.assertEqual(dlg.note.get_text(), "")
-        self.assertEqual(dlg.values(), ("Notes", "mousepad", "<Super>n"))
-        self.shot_dialog(dlg, "shortcuts-add")
-        dlg.destroy()
-        self.assertTrue(self.win.model.save_custom("Notes", "mousepad", "<Super>n"))
-        self.win.build()
-        self.pump(0.2)
-        self.assertIn("custom:<Super>n", self.win.rows)
-        self.assertIn("Notes", self.labels(self.win.rows["custom:<Super>n"]))
-        self.assertIn("Super + N", self.labels(self.win.rows["custom:<Super>n"]))
-        self.shot("shortcuts-custom", self.win.rows["custom:<Super>n"])
-        # Zmena zkratky vlastni polozky pres zachyceni
-        cust = self.win.model.custom_actions()[0]
-        self.assertTrue(self.win.apply_change(cust, ("set", "<Super>j")))
-        self.assertEqual(list(ls.load_names()), ["<Super>j"])
-        self.assertEqual(ls.load_names()["<Super>j"]["name"], "Notes")
-        # Smazani
-        self.win.delete_custom(self.win.model.custom_actions()[0])
-        self.assertEqual(self.win.model.custom_actions(), [])
-        self.assertEqual(user_values(), {})
+        self.app.send("custom-dialog")
+        self.assertTrue(self.app.wait(lambda: self.state()["custom"] is not None))
+        self.assertFalse(self.state()["custom"]["save"])
+        self.app.ask("custom-name Notes")
+        self.app.ask("custom-command mousepad")
+        self.assertFalse(self.state()["custom"]["save"])         # chybi zkratka
+        self.app.ask("custom-accel <Super>e")
+        c = self.state()["custom"]
+        self.assertTrue(c["save"])
+        self.assertIn("Files", c["note"])                         # upozorneni na kolizi
+        self.app.ask("custom-accel <Super>n")
+        c = self.state()["custom"]
+        self.assertEqual(c["note"], "")
+        self.assertEqual(c["values"], ["Notes", "mousepad", "<Super>n"])
+        self.assertIn("Super + N", [w.get("text") for w in lsl_app.widgets(self.dialog()) if w["t"] == "GtkButton"])
+        self.shot("shortcuts-add")
+        self.app.send("respond -5")                               # Ulozit
+        self.assertTrue(self.app.wait(lambda: self.state()["custom"] is None))
+        s = self.state()
+        self.assertIn("custom:<Super>n", s["rows"])
+        self.assertIn("Notes", s["rows"]["custom:<Super>n"])
+        self.assertIn("Super + N", s["rows"]["custom:<Super>n"])
+        self.assertEqual(self.names(), {"<Super>n": {"command": "mousepad", "name": "Notes"}})
+        # zmena zkratky vlastni polozky pres zachyceni
+        self.set("custom:<Super>n", "<Super>j")
+        self.assertEqual(self.app.line("set "), "true")
+        self.assertEqual(list(self.names()), ["<Super>j"])
+        self.assertEqual(self.names()["<Super>j"]["name"], "Notes")
+        # smazani (s dotazem)
+        self.app.send("delete-custom custom:<Super>j")
+        self.wait_dialog("Delete the shortcut “Notes”?")
+        self.app.send("respond -5")
+        self.assertTrue(self.app.wait(lambda: self.state()["customs"] == []))
+        self.assertEqual(self.user_values(), {})
 
     def test_app_chooser(self):
-        dlg = self.app.AppChooser(self.win)
-        dlg.show_all()
-        self.pump(0.2)
-        rows = dlg.listbox.get_children()
-        if rows:
-            dlg.listbox.select_row(rows[0])
-            name, command = dlg.chosen()
-            self.assertTrue(name and command)
-            self.assertNotIn("%u", command)
-            self.assertNotIn("%U", command)
-        dlg.destroy()
+        apps = os.path.join(self.tmp, "data", "applications")
+        os.makedirs(apps)
+        with open(os.path.join(apps, "notes-test.desktop"), "w") as f:
+            f.write("[Desktop Entry]\nType=Application\nName=Notes Test\nExec=true --notes %U\nIcon=text-editor\n")
+        with open(os.path.join(apps, "top-test.desktop"), "w") as f:
+            f.write("[Desktop Entry]\nType=Application\nName=Top Test\nExec=top\nTerminal=true\n")
+        self.env["XDG_DATA_HOME"] = os.path.join(self.tmp, "data")
+        self.start()
+        self.app.send("chooser")
+        self.assertTrue(self.app.wait(lambda: self.state()["chooser"] is not None))
+        listed = self.state()["chooser"]
+        self.assertIn(["Notes Test", "true --notes"], listed)                # bez %U
+        self.assertIn(["Top Test", "luxos-terminal -x top"], listed)         # Terminal=true
+        self.assertFalse([c for _n, c in listed if "%u" in c.lower() or "%f" in c.lower()])
+        self.assertEqual([n.lower() for n, _c in listed], sorted(n.lower() for n, _c in listed))
+        first = json.loads(self.app.ask("chooser-pick 0", "chooser-pick "))
+        self.assertEqual(first, listed[0])
+        self.app.send("respond -6")
+        self.assertTrue(self.app.wait(lambda: self.state()["chooser"] is None))
 
     def test_restore_all(self):
-        m = self.win.model
-        m.assign(action(m, "files"), "<Super>f", replace="<Super>e")
-        self.win.restore_all()
-        self.assertTrue(all(self.win.model.is_default(a) for a in self.win.model.catalog))
-        self.asked.clear()
-        self.answer = False
-        m = self.win.model
-        m.assign(action(m, "files"), "<Super>f", replace="<Super>e")
-        self.win.restore_all()                          # zruseno v dotazu
-        self.assertFalse(self.win.model.is_default(action(self.win.model, "files")))
+        self.app.ask("assign files <Super>f <Super>e")
+        self.app.send("restore-all")
+        self.wait_dialog("Restore all shortcuts to their defaults?")
+        self.app.send("respond -5")
+        self.assertTrue(self.app.wait(lambda: self.accels("files") == ["<Super>e"]))
+        self.assertNotIn("tip:Restore Default", self.state()["rows"]["files"])
+        self.app.ask("assign files <Super>f <Super>e")
+        self.app.send("restore-all")                     # zruseno v dotazu
+        self.wait_dialog("Restore all shortcuts to their defaults?")
+        self.app.send("respond -6")
+        self.assertTrue(self.app.wait(lambda: not self.dialog()))
+        self.assertEqual(self.accels("files"), ["<Super>f"])
 
     def test_write_failure_warns(self):
-        os.environ["FAKE_XFCONF_FAIL"] = "1"
-        try:
-            self.win.apply_change(action(self.win.model, "calculator"), ("set", "<Super><Alt>c"))
-        finally:
-            del os.environ["FAKE_XFCONF_FAIL"]
-        self.assertEqual(self.asked[-1], ("warn", "The shortcut could not be saved."))
+        self.env["LUXOS_XFCONF_QUERY"] = "/bin/false"
+        self.start()
+        self.assertFalse(self.state()["available"])
+        self.assertIn("Shortcuts could not be read from the Xfce settings service. Changes will not be saved.",
+                      lsl_app.texts(self.app.dump()))
+        self.set("calculator", "<Super><Alt>c")
+        self.wait_dialog("The shortcut could not be saved.")
+        self.app.send("respond -5")
+        self.assertEqual(self.app.line("set "), "false")
+
+    def test_window_size_and_pss(self):
+        time.sleep(1.5)
+        if shutil.which("xdotool"):
+            env = {"DISPLAY": self.x.display, "PATH": os.environ["PATH"]}
+            ids = subprocess.run(["xdotool", "search", "--onlyvisible", "--name", "^Keyboard Shortcuts$"], env=env,
+                                 capture_output=True, text=True).stdout.split()
+            self.assertTrue(ids)
+            out = subprocess.run(["xdotool", "getwindowgeometry", "--shell", ids[0]], env=env, capture_output=True,
+                                 text=True).stdout
+            vals = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+            self.assertLessEqual(int(vals["HEIGHT"]), 900 - 16)
+            hints = subprocess.run(["xprop", "-id", ids[0], "WM_NORMAL_HINTS"], env=env, capture_output=True,
+                                   text=True).stdout if shutil.which("xprop") else ""
+            for line in hints.splitlines():
+                if "minimum size" in line:
+                    w, h = line.split(":")[1].strip().split(" by ")
+                    self.assertGreaterEqual(int(h), 300)
+                    self.assertGreaterEqual(int(w), 340)
+        pss = self.app.pss_kb()
+        print("\nluxos-shortcuts (LSL) PSS %d kB" % pss, file=sys.stderr)
+        self.assertLess(pss, 53997)                      # Python + GTK pod Xvfb: 53997 kB
 
 
 if __name__ == "__main__":

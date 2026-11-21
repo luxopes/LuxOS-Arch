@@ -26,8 +26,7 @@ def main():
     parser.add_argument("--events", type=int, default=4000)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    sys.path[:0] = [str(args.files), str(root / "luxos-desktop/files/python"),
-                    str(root / "luxos-i18n/files")]
+    sys.path[:0] = [str(args.files), str(root / "luxos-i18n/files")]
     with tempfile.TemporaryDirectory(prefix="companion-memory-") as tmp:
         for kind in ("CONFIG", "DATA", "STATE", "CACHE"):
             os.environ[f"XDG_{kind}_HOME"] = str(Path(tmp) / kind.lower())

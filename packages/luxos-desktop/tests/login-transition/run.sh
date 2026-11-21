@@ -34,9 +34,13 @@ gcc -O2 -Wall -Werror -o "$BIN/luxos-session-cover" "$HERE/../../files/src/luxos
     -lX11 -lXfixes -lXcomposite -lXrandr -lXrender -lcairo -lm -pthread || exit 1
 gcc -O2 -Wall -o "$BIN/capture" "$HERE/capture.c" -lX11 -lXext || exit 1
 gcc -O2 -Wall -o "$BIN/diffcap" "$HERE/diffcap.c" -lX11 -lXext || exit 1
-printf '#!/bin/sh\nexec /usr/bin/python3 %s "$@"\n' "$(cd "$HERE/../../files/screensaver" && pwd)/luxos-screensaver" \
-    >"$BIN/luxos-saver"
-chmod +x "$BIN/luxos-saver"
+# setric z repozitare (LSL); bez lslc se zamek testuje s nainstalovanym
+if command -v lslc >/dev/null; then
+    lslc --target linux-x86_64-gnu --system-bindings "$HERE/../../files/lsl" "$HERE/../../files/lsl/luxos-screensaver.lsl" \
+        "$BIN/luxos-saver" || exit 1
+else
+    ln -sf /usr/lib/xfce4-screensaver/luxos "$BIN/luxos-saver"
+fi
 export CAPTURE=$BIN/capture
 fail=0
 for i in $(seq "$RUNS"); do

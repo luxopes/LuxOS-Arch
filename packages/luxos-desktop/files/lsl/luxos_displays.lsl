@@ -1,6 +1,6 @@
 # LuxOS - monitory na Waylandu: stav z wlr-output-management (luxos_wl), ulozene nastaveni pro sadu
 # monitoru, plany rezimu (rozsirit, zrcadlit, jen externi, jen vestaveny) a usporadani bez mezer
-# a prekryvu (port luxos_arrange.py z X11). Pouziva pomocnik luxos-displays (jediny s pravem menit
+# a prekryvu (spolecne s X11, luxos_xrandr.lsl). Pouziva pomocnik luxos-displays (jediny s pravem menit
 # monitory) a okno luxos-displays-settings.
 #
 # Monitor (read_outputs): {"head", "name", "description", "enabled", "x", "y", "width", "height" (rezim

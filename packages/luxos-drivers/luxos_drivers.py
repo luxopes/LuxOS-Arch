@@ -1,8 +1,8 @@
 """LuxOS - stav ovladacu: co doporucuje luxos-hwdetect a co uz je nainstalovane.
 
-Pouziva aplikace Ovladace (/usr/bin/luxos-drivers), jeji pomocnik pro root
-(/usr/lib/luxos/drivers/luxos-drivers-helper) a upozorneni po prihlaseni
-(luxos_drivers_session v luxos-hub). Nic nemeni - jen cte sysfs a databazi baliku (lux).
+Pouziva aplikace Ovladace (/usr/bin/luxos-drivers) a jeji pomocnik pro root
+(/usr/lib/luxos/drivers/luxos-drivers-helper); upozorneni po prihlaseni ma stejna pravidla v LSL
+(luxos_drivers_hub.lsl v luxos-hub). Nic nemeni - jen cte sysfs a databazi baliku (lux).
 """
 import json
 import os

@@ -3,7 +3,7 @@
 
 pkgname=luxos-i18n
 pkgver=1.0.0
-pkgrel=101
+pkgrel=102
 pkgdesc="LuxOS translations (English, Czech, Slovak, Polish, Ukrainian, Hungarian, German, French, Spanish, Italian, Portuguese, Dutch, Swedish)"
 arch=(any)
 url="https://luxos.lux-ai.cz/repo/"
@@ -14,6 +14,8 @@ package() {
     local f="$startdir/files"
     install -Dm644 "$f/i18n.sh" "$pkgdir/usr/lib/luxos/i18n.sh"
     install -Dm644 "$f/luxos_i18n.py" "$pkgdir/usr/lib/luxos/python/luxos_i18n.py"
+    # ostra ikona okna pro aplikace v Pythonu (Obchod, Lux Guard, Pocasi; drive v luxos-desktop)
+    install -Dm644 "$f/luxos_wm_icon.py" "$pkgdir/usr/lib/luxos/python/luxos_wm_icon.py"
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/share/luxos/i18n" "$f"/*.tsv
 }

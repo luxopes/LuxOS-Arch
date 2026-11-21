@@ -308,9 +308,8 @@ verzi; žádná část nezůstává v paměti jako Python.
   ("Neupozorňovat") dělá hub.
 - `luxos-safe lock --force` a nové `luxos-safe --trust-launcher` – zamykání gocryptfs s otevřenými soubory
   a upozorněními; hub drží zpožďovací inhibitor logind (`Inhibit` → fd) a uvolní ho, až zamykání skončí.
-- Původní programy jsou v `packages/luxos-desktop/files/python-legacy/` (neinstalují se; `test_luxos_power.py`
-  je dál testuje jako referenci). `luxos_calendar_ics.py` a `luxos_mpris.py` zůstávají v `files/python`
-  kvůli testům a ostatním aplikacím.
+- Původní programy v Pythonu (`files/python-legacy/`, `luxos_mpris.py`) jsou odstraněné (WP-15, 1.1.0);
+  hlídač přehrávačů a neuspávání při přehrávání testuje `test_luxos_awake.py` přímo na modulech LSL.
 
 ### Testy
 

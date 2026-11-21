@@ -211,12 +211,12 @@ def view_text(w):
 
 @pytest.fixture
 def icons():
-    """Ikona luxos-guard ze zdroju a ostre ikony okna z luxos-desktop (jako na nainstalovanem systemu)."""
+    """Ikona luxos-guard ze zdroju a ostre ikony okna z luxos-i18n (jako na nainstalovanem systemu)."""
     import sys
     Gtk.IconTheme.get_default().append_search_path(os.path.join(HERE, "..", "files"))
-    sys.path.insert(0, os.path.join(HERE, "..", "..", "luxos-desktop", "files", "python"))
+    sys.path.insert(0, os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
     yield
-    sys.path.remove(os.path.join(HERE, "..", "..", "luxos-desktop", "files", "python"))
+    sys.path.remove(os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
 
 
 def test_output_window(tmp_path, icons):

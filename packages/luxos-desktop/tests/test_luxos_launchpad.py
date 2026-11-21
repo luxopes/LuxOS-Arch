@@ -30,7 +30,8 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "..", "files")
 LAUNCHPAD = os.path.join(FILES, "bin", "luxos-launchpad")
-PY = os.path.join(FILES, "python", "luxos_launchpad.py")
+TMP = tempfile.mkdtemp(prefix="luxos-launchpad-test-")
+ORDER = None        # luxos-launchpad-order (LSL), prelozeny v setUpModule
 DESKTOP = os.path.join(FILES, "applications", "luxos-launchpad.desktop")
 ROFI = os.environ.get("LUXOS_ROFI") or shutil.which("rofi")
 COLS, ROWS, APPS = 7, 4, 60
@@ -62,6 +63,18 @@ def rofi_has_custom_resort():
 
 
 RESORT = rofi_has_custom_resort()
+
+
+def setUpModule():
+    global ORDER
+    import sys
+    sys.path.insert(0, HERE)
+    import lsl_app
+    ORDER = lsl_app.build("luxos-launchpad-order", TMP)
+
+
+def tearDownModule():
+    shutil.rmtree(TMP, ignore_errors=True)
 
 
 def xdo(*args):
@@ -118,7 +131,7 @@ class TestLaunchpadMouse(unittest.TestCase):
                         XDG_DATA_DIRS=os.path.join(self.t, "sys"), XDG_CONFIG_HOME=os.path.join(home, ".config"),
                         XDG_CACHE_HOME=os.path.join(self.t, "cache"), XDG_CURRENT_DESKTOP="XFCE",
                         PATH=fake + ":" + os.environ.get("PATH", "/usr/bin"),
-                        XDG_RUNTIME_DIR=os.path.join(self.t, "run"), LUXOS_LAUNCHPAD_PY=PY)
+                        XDG_RUNTIME_DIR=os.path.join(self.t, "run"), LUXOS_LAUNCHPAD_ORDER=ORDER)
         os.makedirs(self.env["XDG_RUNTIME_DIR"], mode=0o700)
         self.env.pop("LC_ALL", None)
         self.proc = None
@@ -287,7 +300,7 @@ class TestLaunchpadMouse(unittest.TestCase):
         with open(os.path.join(self.env["XDG_DATA_HOME"], "luxos", "launchpad-usage.json"), "w") as f:
             json.dump({"version": 1, "apps": usage}, f)
         for mode in ("recent", "most"):
-            subprocess.run(["python3", PY, "order", mode,
+            subprocess.run([ORDER, "order", mode,
                             os.path.join(self.env["XDG_CACHE_HOME"], "luxos", "launchpad-order-" + mode)],
                            env=self.env, check=True)
 
@@ -433,19 +446,14 @@ class TestLaunchpadMouse(unittest.TestCase):
 
 
 class TestSortOrder(unittest.TestCase):
-    """luxos_launchpad.py: poradi pro rofi a pocitani spusteni (bez GUI)."""
+    """luxos-launchpad-order: poradi pro rofi a pocitani spusteni (bez GUI)."""
 
     def setUp(self):
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("luxos_launchpad", PY)
-        self.lp = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.lp)
         self.t = tempfile.mkdtemp(prefix="luxos-launchpad-order-")
         self.addCleanup(shutil.rmtree, self.t, True)
-        self.old_env = dict(os.environ)
-        self.addCleanup(lambda: (os.environ.clear(), os.environ.update(self.old_env)))
-        os.environ.update(XDG_DATA_HOME=os.path.join(self.t, "data"), XDG_CACHE_HOME=os.path.join(self.t, "cache"),
-                          XDG_DATA_DIRS=os.path.join(self.t, "sys"), LANG="cs_CZ.UTF-8")
+        self.env = {k: v for k, v in os.environ.items() if k not in ("LC_ALL", "LC_MESSAGES")}
+        self.env.update(XDG_DATA_HOME=os.path.join(self.t, "data"), XDG_CACHE_HOME=os.path.join(self.t, "cache"),
+                        XDG_DATA_DIRS=os.path.join(self.t, "sys"), LANG="cs_CZ.UTF-8", HOME=self.t)
 
     def app(self, did, name, cats, root="sys", extra=""):
         d = os.path.join(self.t, root, "applications")
@@ -454,34 +462,62 @@ class TestSortOrder(unittest.TestCase):
             f.write("[Desktop Entry]\nType=Application\nName=%s\nCategories=%s\nExec=true\n%s"
                     "[Desktop Action new]\nName=Zzz\n" % (name, cats, extra))
 
+    def run_order(self, *args):
+        return subprocess.run([ORDER, *args], env=self.env, capture_output=True, text=True, timeout=30)
+
     def hist(self, path):
         with open(path) as f:
             return [ln.split(" ", 1)[1].strip() for ln in f]
 
+    def usage_path(self):
+        return os.path.join(self.t, "data", "luxos", "launchpad-usage.json")
+
+    def order_path(self, mode):
+        return os.path.join(self.t, "cache", "luxos", "launchpad-order-" + mode)
+
+    def write_usage(self, apps):
+        os.makedirs(os.path.dirname(self.usage_path()), exist_ok=True)
+        with open(self.usage_path(), "w") as f:
+            json.dump({"version": 1, "apps": apps}, f)
+
+    def order(self, mode):
+        out = os.path.join(self.t, "out", mode)
+        self.assertEqual(self.run_order("order", mode, out).returncode, 0)
+        return self.hist(out)
+
     def test_modes(self):
-        usage = {"a.desktop": {"count": 1, "last": 300}, "b.desktop": {"count": 5, "last": 100},
-                 "c.desktop": {"count": 5, "last": 200}, "d.desktop": {"count": 0, "last": 0}}
-        self.assertEqual(self.lp.order_ids("recent", usage), ["a.desktop", "c.desktop", "b.desktop"])
-        self.assertEqual(self.lp.order_ids("most", usage), ["c.desktop", "b.desktop", "a.desktop"])
-        self.assertEqual(self.lp.order_ids("alpha", usage), [])
+        self.write_usage({"a.desktop": {"count": 1, "last": 300}, "b.desktop": {"count": 5, "last": 100},
+                          "c.desktop": {"count": 5, "last": 200}, "d.desktop": {"count": 0, "last": 0}})
+        sentinel = ["luxos-launchpad-sentinel"]
+        self.assertEqual(self.order("recent"), ["a.desktop", "c.desktop", "b.desktop"] + sentinel)
+        self.assertEqual(self.order("most"), ["c.desktop", "b.desktop", "a.desktop"] + sentinel)
+        self.assertEqual(self.order("alpha"), sentinel)
 
     def test_history_text_descending_with_sentinel(self):
-        text = self.lp.history_text(["x.desktop", "y.desktop"])
-        self.assertEqual(text, "2 x.desktop\n1 y.desktop\n0 luxos-launchpad-sentinel\n")
+        self.write_usage({"x.desktop": {"count": 2, "last": 2}, "y.desktop": {"count": 1, "last": 1}})
+        out = os.path.join(self.t, "h")
+        self.run_order("order", "most", out)
+        with open(out) as f:
+            self.assertEqual(f.read(), "2 x.desktop\n1 y.desktop\n0 luxos-launchpad-sentinel\n")
 
     def test_category_order_localized(self):
         self.app("gimp.desktop", "GIMP", "Graphics;2DGraphics;")
         self.app("firefox.desktop", "Firefox", "Network;WebBrowser;")
-        self.app("calc.desktop", "Calculator", "Utility;", extra="Name[cs]=Kalkulacka\n")
+        self.app("calc.desktop", "Calculator", "Utility;", extra="Name[cs]=Výpočty\n")
         self.app("zed.desktop", "Zed", "")
         self.app("abiword.desktop", "AbiWord", "Office;")
         self.app("evolution.desktop", "Evolution", "Office;Network;")
         os.makedirs(os.path.join(self.t, "sys", "applications", "kde"))
         with open(os.path.join(self.t, "sys", "applications", "kde", "kate.desktop"), "w") as f:
             f.write("[Desktop Entry]\nName=Kate\nCategories=Utility;TextEditor;\n")
-        ids = self.lp.order_ids("category", {})
-        self.assertEqual(ids, ["evolution.desktop", "firefox.desktop", "abiword.desktop", "gimp.desktop",
-                               "calc.desktop", "kde-kate.desktop", "zed.desktop"])
+        # uzivatelska kopie ma prednost (jiny nazev, jina kategorie)
+        self.app("zed.desktop", "Zed", "Development;", root="data")
+        self.assertEqual(self.order("category"), ["evolution.desktop", "firefox.desktop", "abiword.desktop",
+                                                  "gimp.desktop", "zed.desktop", "kde-kate.desktop", "calc.desktop",
+                                                  "luxos-launchpad-sentinel"])
+        # Výpočty (cs, bez diakritiky "vypocty") az za Kate - v anglictine Calculator pred Kate
+        self.env["LANG"] = "C.UTF-8"
+        self.assertEqual(self.order("category")[-3:-1], ["calc.desktop", "kde-kate.desktop"])
 
     def test_record_counts_launched_app(self):
         before = os.path.join(self.t, "before")
@@ -491,18 +527,25 @@ class TestSortOrder(unittest.TestCase):
         # rofi zapsal +1 u a.desktop a seradil podle poctu
         with open(after, "w") as f:
             f.write("2 a.desktop\n2 b.desktop\n0 luxos-launchpad-sentinel\n")
-        self.assertEqual(self.lp.record(before, after, now=1000), "a.desktop")
+        t0 = int(time.time())
+        self.assertEqual(self.run_order("record", before, after).returncode, 0)
         with open(after, "w") as f:
             f.write("2 b.desktop\n1 a.desktop\n1 new.desktop\n0 luxos-launchpad-sentinel\n")
-        self.assertEqual(self.lp.record(before, after, now=2000), "new.desktop")
-        with open(self.lp.usage_path()) as f:
-            data = json.load(f)
-        self.assertEqual(data["apps"], {"a.desktop": {"count": 1, "last": 1000},
-                                        "new.desktop": {"count": 1, "last": 2000}})
-        self.assertEqual(self.hist(self.lp.order_path("recent")),
-                         ["new.desktop", "a.desktop", "luxos-launchpad-sentinel"])
+        time.sleep(1.1)
+        self.run_order("record", before, after)
+        with open(self.usage_path()) as f:
+            apps = json.load(f)["apps"]
+        self.assertEqual(sorted(apps), ["a.desktop", "new.desktop"])
+        self.assertEqual([apps["a.desktop"]["count"], apps["new.desktop"]["count"]], [1, 1])
+        self.assertTrue(t0 <= apps["a.desktop"]["last"] < apps["new.desktop"]["last"] <= time.time())
+        self.assertEqual(self.hist(self.order_path("recent")), ["new.desktop", "a.desktop", "luxos-launchpad-sentinel"])
+        self.assertEqual(self.hist(self.order_path("most")), ["new.desktop", "a.desktop", "luxos-launchpad-sentinel"])
         # nic nespusteno (Esc, dotaz LuxAI): beze zmeny
-        self.assertIsNone(self.lp.record(before, before))
+        with open(self.usage_path()) as f:
+            saved = f.read()
+        self.run_order("record", before, before)
+        with open(self.usage_path()) as f:
+            self.assertEqual(f.read(), saved)
 
     def test_usage_file_has_only_ids_counts_times(self):
         before = os.path.join(self.t, "before")
@@ -511,8 +554,8 @@ class TestSortOrder(unittest.TestCase):
         after = os.path.join(self.t, "after")
         with open(after, "w") as f:
             f.write("1 org.gnome.Calculator.desktop\n0 luxos-launchpad-sentinel\n")
-        self.lp.record(before, after, now=5)
-        with open(self.lp.usage_path()) as f:
+        self.run_order("record", before, after)
+        with open(self.usage_path()) as f:
             data = json.load(f)
         self.assertEqual(set(data), {"version", "apps"})
         self.assertEqual(set(data["apps"]["org.gnome.Calculator.desktop"]), {"count", "last"})
@@ -521,17 +564,18 @@ class TestSortOrder(unittest.TestCase):
         os.makedirs(os.path.join(self.t, "cache"))
         with open(os.path.join(self.t, "cache", "rofi3.druncache"), "w") as f:
             f.write("7 firefox.desktop\n2 gimp.desktop\n")
-        self.assertEqual(self.lp.order_ids("most", self.lp.load_usage()), ["firefox.desktop", "gimp.desktop"])
+        self.assertEqual(self.order("most"), ["firefox.desktop", "gimp.desktop", "luxos-launchpad-sentinel"])
 
     def test_cli_order_alpha_and_bad_mode(self):
         out = os.path.join(self.t, "o", "h")
-        self.assertEqual(self.lp.main(["x", "order", "alpha", out]), 0)
+        self.assertEqual(self.run_order("order", "alpha", out).returncode, 0)
         self.assertEqual(self.hist(out), ["luxos-launchpad-sentinel"])
-        self.assertEqual(self.lp.main(["x", "order", "bogus", out]), 0)     # neznamy -> vychozi
-        import contextlib
-        import io
-        with contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(self.lp.main(["x"]), 2)
+        self.write_usage({"x.desktop": {"count": 3, "last": 1}})
+        self.assertEqual(self.run_order("order", "bogus", out).returncode, 0)     # neznamy -> vychozi (most)
+        self.assertEqual(self.hist(out), ["x.desktop", "luxos-launchpad-sentinel"])
+        r = self.run_order()
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("usage", r.stderr)
 
 
 if __name__ == "__main__":

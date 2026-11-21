@@ -36,7 +36,7 @@ def run_python(s, rel, *args, paths=(), modules=(), env=None):
 
 
 def no_real_avatar(s):
-    """Profilova fotka: nikdy skutecna fotka uzivatele z AccountsService (luxos_avatar)."""
+    """Profilova fotka: nikdy skutecna fotka uzivatele z AccountsService (LUXOS_ACCOUNTS_FAKE)."""
     s.env["LUXOS_ACCOUNTS_FAKE"] = os.path.join(s.tmp, "no-accounts-icon")
 
 

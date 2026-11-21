@@ -88,13 +88,9 @@ current() {
     [[ $m == dark ]] && echo dark || echo light    # vychozi je svetly rezim
 }
 
-# Na Waylandu nesmi bezet Python: stejny vypocet v LSL (luxos-sun, luxos_sun.lsl)
+# Vychod/zapad slunce v LSL (luxos-sun, luxos_sun.lsl, stejny vypocet jako luxos-hub)
 sun_mode() {
-    if wayland; then
-        "${LUXOS_SUN:-/usr/lib/luxos/luxos-sun}" 2>/dev/null || current
-    else
-        python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null || current
-    fi
+    "${LUXOS_SUN:-/usr/lib/luxos/luxos-sun}" 2>/dev/null || current
 }
 
 # Cisla ploch pro tapetu: aspon 0-3, pri vic plochach (Prepinac ploch, "+") vsechny - jinak mela

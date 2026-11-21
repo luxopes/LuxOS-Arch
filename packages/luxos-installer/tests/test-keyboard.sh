@@ -168,27 +168,23 @@ chroot_kbd novar 'XKB_LAYOUT=cz,us XKB_VARIANT=, CONSOLE_KEYMAP=cz-us-qwertz'
 d=$TMP/chroot-novar
 check "bez XKB_OPTIONS v env (set -u) a variant ',': bez XkbVariant" bash -c "grep -q '\"cz,us\"' '$d/X11/00-keyboard.conf' && ! grep -q XkbVariant '$d/X11/00-keyboard.conf'"
 
-# Stejny soubor musi precist aplikace Klavesnice i prihlasovaci obrazovka
+# Stejny soubor musi precist prihlasovaci obrazovka; aplikace Klavesnice (LSL) cte presne tento vystup
+# v packages/luxos-desktop/tests/lsl/luxos-keyboard-model-test.lsl (installer-multi)
 PYCHK=$(cat <<'PY'
-import ast, os, sys
-sys.path.insert(0, sys.argv[1])
-import luxos_keyboard as kb
-cfg = kb.read_system(sys.argv[3], "/nonexistent")
-src = open(sys.argv[2], encoding="utf-8").read()
+import ast, sys
+src = open(sys.argv[1], encoding="utf-8").read()
 tree = ast.parse(src)
 fn = next(n for c in ast.walk(tree) if isinstance(c, ast.ClassDef) and c.name == "Keyboard"
           for n in c.body if isinstance(n, ast.FunctionDef) and n.name == "_read_conf")
 fn.decorator_list = []
-ns = {"KEYBOARD_CONF": sys.argv[3]}
+ns = {"KEYBOARD_CONF": sys.argv[2]}
 exec(compile(ast.Module(body=[fn], type_ignores=[]), "greeter", "exec"), ns)
 g_layouts, g_opts = ns["_read_conf"]()
-print(cfg["layouts"], cfg["options"], g_layouts, g_opts)
+print(g_layouts, g_opts)
 PY
 )
-out=$(python3 -c "$PYCHK" "$ROOT/luxos-desktop/files/python" "$ROOT/luxos-greeter/files/luxos-greeter" \
-      "$TMP/chroot-multi/X11/00-keyboard.conf" 2>&1)
-eq "aplikace Klavesnice + greeter ctou vysledek instalatoru" \
-    "[('cz', 'qwerty'), ('us', '')] ['grp:alt_shift_toggle'] [('cz', 'qwerty'), ('us', '')] grp:alt_shift_toggle" "$out"
+out=$(python3 -c "$PYCHK" "$ROOT/luxos-greeter/files/luxos-greeter" "$TMP/chroot-multi/X11/00-keyboard.conf" 2>&1)
+eq "greeter cte vysledek instalatoru" "[('cz', 'qwerty'), ('us', '')] grp:alt_shift_toggle" "$out"
 
 echo "## luxos-install: luxos-setup.env obsahuje XKB_OPTIONS"
 check "vychozi prepinani: obe klavesy Shift" grep -qx 'XKB_SWITCH_DEFAULT=grp:shifts_toggle' "$FILES/luxos-install"

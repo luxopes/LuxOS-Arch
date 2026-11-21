@@ -271,7 +271,7 @@ fi
 
 # Svetly/tmavy rezim: automaticky podle vychodu a zapadu slunce (je-li zapnuto)
 if [[ $(/usr/bin/luxos-appearance mode) == auto ]]; then
-    m=$(python3 -I /usr/lib/luxos/python/luxos_sun.py mode 2>/dev/null)
+    m=$(/usr/lib/luxos/luxos-sun 2>/dev/null)
     [[ -n $m && $m != "$(/usr/bin/luxos-appearance status)" ]] && /usr/bin/luxos-appearance auto
 fi
 

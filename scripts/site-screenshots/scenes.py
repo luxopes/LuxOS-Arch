@@ -170,8 +170,8 @@ def launchpad(s):
     with open(script, "w", encoding="utf-8") as f:
         f.write(text)
     s.write(".config/luxos/launchpad-sort", "category\n")
-    env = {"LUXOS_LAUNCHPAD_PY": os.path.join(PACKAGES, "luxos-desktop", "files", "python", "luxos_launchpad.py")}
-    s.launch(["bash", script], env=env)
+    # poradi dlazdic: nainstalovany /usr/lib/luxos/luxos-launchpad-order (LSL)
+    s.launch(["bash", script])
     s.window(cls="rofi", size=None, place=False, timeout=30)
     s.sleep(2.5)
     return frame(s)

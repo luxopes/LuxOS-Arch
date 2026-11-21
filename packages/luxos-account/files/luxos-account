@@ -75,10 +75,35 @@ from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 import luxai_account_gtk as accgtk  # noqa: E402
 
-try:   # profilova fotka uctu v pocitaci (luxos-desktop)
-    import luxos_avatar  # noqa: E402
-except ImportError:
-    luxos_avatar = None
+# Profilova fotka uctu v pocitaci: okno Profilova fotka (luxos-profile-picture) je v luxos-desktop
+PROFILE_PICTURE = bool(GLib.find_program_in_path("luxos-profile-picture"))
+
+
+def photo_path():
+    """Aktualni fotka (~/.face, jinak IconFile z AccountsService) nebo None - jako luxos_avatar.lsl."""
+    face = os.path.join(os.path.expanduser("~"), ".face")
+    if os.path.isfile(face) and os.path.getsize(face) > 0:
+        return face
+    fake = os.environ.get("LUXOS_ACCOUNTS_FAKE")      # testy a snimky pro Obchod
+    if fake:
+        try:
+            with open(fake, encoding="utf-8") as f:
+                path = f.read().strip()
+        except OSError:
+            return None
+        return path if path and os.path.isfile(path) else None
+    from gi.repository import Gio
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        user = bus.call_sync("org.freedesktop.Accounts", "/org/freedesktop/Accounts", "org.freedesktop.Accounts",
+                             "FindUserById", GLib.Variant("(x)", (os.getuid(),)), GLib.VariantType("(o)"),
+                             Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
+        path = bus.call_sync("org.freedesktop.Accounts", user, "org.freedesktop.DBus.Properties", "Get",
+                             GLib.Variant("(ss)", ("org.freedesktop.Accounts.User", "IconFile")),
+                             GLib.VariantType("(v)"), Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+    except GLib.Error:
+        return None
+    return path if path and os.path.isfile(path) and os.access(path, os.R_OK) else None
 
 import cairo  # noqa: E402
 
@@ -136,7 +161,7 @@ class PhotoButton(Gtk.Button):
         self.reload()
 
     def reload(self):
-        path = luxos_avatar.current() if luxos_avatar else None
+        path = photo_path() if PROFILE_PICTURE else None
         try:
             stamp = (path, os.stat(path).st_mtime_ns) if path else None
         except OSError:
@@ -235,7 +260,7 @@ class AccountWindow(Gtk.Window):
     # ---- prihlaseni ----
     def show_login(self, message=None, mode="password"):
         box = self.page()
-        if luxos_avatar:
+        if PROFILE_PICTURE:
             me = Gtk.Box(spacing=12)
             me.pack_start(self.photo(44, computer_name()), False, False, 0)
             who = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
@@ -430,7 +455,7 @@ class AccountWindow(Gtk.Window):
     def identity(self, box, size=72):
         top = Gtk.Box(spacing=16)
         name = self.user.get("displayName") or self.user.get("username") or self.user.get("email", "")
-        if luxos_avatar:
+        if PROFILE_PICTURE:
             avatar = self.photo(size, name)
         else:
             avatar = Gtk.Label(label=(name[:1] or "?").upper())
@@ -544,7 +569,7 @@ class AccountWindow(Gtk.Window):
         btn.connect("clicked", lambda b: accgtk.open_url(b, "mailto:" + acc.SUPPORT_EMAIL))
         c.pack_start(btn, False, False, 0)
 
-        if luxos_avatar:
+        if PROFILE_PICTURE:
             c = self.card(box, _("Profile Picture"), _("The picture is stored on this computer (login screen, "
                                                        "menu, LuxAI Account). The LuxAI website does not use "
                                                        "profile pictures."))

@@ -80,7 +80,7 @@ call expect("recent", ids(model.order(apps, "recent", usage))[0:4], ["firefox.de
 call expect("category", ids(model.order(apps, "category", usage))[0:3], ["firefox.desktop", "org.gnome.Epiphany.desktop", "gimp.desktop"])
 call expect("order-all", len(model.order(apps, "most", usage)), len(apps))
 
-# pocty spusteni: soubor luxos_launchpad.py, poskozeny soubor, prevzeti z rofi
+# pocty spusteni: soubor launchpad-usage.json, poskozeny soubor, prevzeti z rofi
 u = model.parse_usage("{\"version\": 1, \"apps\": {\"a.desktop\": {\"count\": 3, \"last\": 17}, \"bad\": 5}}")
 call expect("usage-parse", u, {"a.desktop": {"count": 3, "last": 17}})
 call expect("usage-broken", model.parse_usage("{not json"), None)

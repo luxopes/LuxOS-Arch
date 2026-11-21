@@ -39,7 +39,7 @@ def sign_in(srv):
 
 def launch(s):
     return _a.run_python(s, "luxos-account/files/luxos-account", paths=("luxos-account/files",),
-                         modules=("luxai_account", "luxai_account_gtk", "luxos_i18n", "luxos_avatar"))
+                         modules=("luxai_account", "luxai_account_gtk", "luxos_i18n"))
 
 
 def shots(s):

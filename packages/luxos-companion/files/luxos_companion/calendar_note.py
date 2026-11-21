@@ -73,14 +73,14 @@ def set_translator(fn):
 
 
 def ics_module():
-    """luxos_calendar_ics z luxos-desktop (/usr/lib/luxos/python)."""
+    """luxos_calendar_ics (/usr/lib/luxos/python, tento balik); nacita se az pri prvni poznamce."""
     import luxos_calendar_ics
     return luxos_calendar_ics
 
 
 def calendar_dir():
-    # stejna cesta jako luxos_calendar_ics.default_dir(); bez importu, aby sluzba nespadla, kdyz
-    # luxos-desktop chybi (zapis poznamky pak skonci chybou storage_failed, ne cela sluzba)
+    # stejna cesta jako luxos_calendar_ics.default_dir() a Kalendar (luxos_ics.lsl); bez importu modulu,
+    # sluzba ho nacte az pri prvni poznamce (pamet)
     if os.environ.get("LUXOS_CALENDAR_DIR"):
         return os.environ["LUXOS_CALENDAR_DIR"]
     base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")

@@ -1,6 +1,7 @@
-"""Testy pro luxos_calendar_ics (cteni/zapis iCalendar, opakovani, datumova matematika).
+"""Testy pro luxos_calendar_ics (cteni/zapis iCalendar, opakovani, datumova matematika) - zapis poznamek
+z telefonu; Kalendar v luxos-desktop ma stejne chovani v LSL (luxos_ics.lsl, test_lsl_calendar.py).
 
-Spusteni: python3 -m unittest discover -s packages/luxos-desktop/tests -v
+Spusteni: python3 -m unittest packages/luxos-companion/tests/test_luxos_calendar_ics.py -v
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -19,7 +20,7 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "files", "python"))
+sys.path.insert(0, os.path.join(HERE, "..", "files"))
 os.environ["TZ"] = "Europe/Prague"
 import time  # noqa: E402
 
