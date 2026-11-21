@@ -109,10 +109,10 @@ function bar_css():
     # nazev aplikace a hodiny body_strong (hodiny s cislicemi stejne siroke), stisknuta polozka ink 0,14, najeti 0,08
     return (tokens.gtk3_css(ui["dark"], ui["blur"])
         + "window.luxos-bar { background: transparent; }\n"
-        + ".luxos-bar label { " + tokens.type_css("body") + " }\n"
+        + ".luxos-bar label { font-size: " + String(tokens.TYPE["body"][0]) + "px; }\n"
         + ".luxos-bar .lb-app { " + tokens.type_css("body_strong") + " }\n"
         + ".luxos-bar .lb-clock { " + tokens.type_css("body_strong") + " font-feature-settings: \"tnum\"; }\n"
-        + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 2px; min-height: 0; min-width: 0; border-radius: "
+        + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["xs"]) + "px; }\n"
         # rozlozeni klavesnice: tichy stitek (18x15, jen tenky ramecek), ne nejhlasitejsi prvek listy
         + ".luxos-bar .lb-badge { font-size: 11px; font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.3px;"

@@ -530,7 +530,6 @@ function css_rules():
         + "window.lx { background: transparent; color: @lx_fg; }\n"
         + ".lx-popup { background-color: @lx_mat_popup; border-radius: " + px(radius_of("popup")) + ";" + edge
         + " padding: " + px(s["m"]) + "; color: @lx_fg; }\n"
-        + ".lx-glass { background-color: transparent; }\n"
         + ".lx-card { border-radius: " + px(r["xl"]) + "; padding: " + px(s["l"]) + "; box-shadow: " + SHADOW["card"] + ", " + SHADOW["inset"] + "; }\n"
         + ".lx-head { " + type_css("title") + " }\n"
         + ".lx-title { " + type_css("body_strong") + " }\n"

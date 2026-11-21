@@ -11,7 +11,8 @@ Tapeta ma svisle pruhy 4 px (cerna/bila). Pod plochou s materialem je kompozitor
 v radku pod plochou musi zmizet (rozmazani je pritomne), mimo plochu zustane (kontrola, ze tapeta pruhy ma).
 Snimky ploch: tests/wl-material-goldens/*.png, novy vzor LUXOS_MATERIAL_UPDATE_GOLDENS=1. Vsechny snimky obrazovky
 ulozi LUXOS_MATERIAL_SHOTS=adresar; LUXOS_MATERIAL_LSL=adresar prelozi klienty z jinych zdroju (snimky "pred" pro
-srovnani, kontroly a vzory se pak preskoci).
+srovnani, kontroly a vzory se pak preskoci). LUXOS_MATERIAL_COMPOSITOR_ENV prida promenne kompozitoru (napr.
+LD_PRELOAD=libasan.so pro sestaveni s ASan).
 
 Sbernice jen soukrome (dbus-daemon testu, nahradni sluzby fake_bar_services.py), luxos-notify na nich.
 """
