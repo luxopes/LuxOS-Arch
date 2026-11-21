@@ -1,6 +1,7 @@
 # LuxOS - zamek obrazovky na Waylandu (1.1.0): ext-session-lock-v1, jedna zamykaci plocha na monitor (i pripojeny
 # za zamceni), kresba cairem (luxos_lock_draw, spolecna s prihlasovaci obrazovkou). Nahrazuje xfce4-screensaver
-# s luxos-lock-ui.c a vypada stejne (luxos_lock_draw). V klidu jen tapeta a hodiny; klavesa, klik nebo dotek ukaze
+# s luxos-lock-ui.c a vypada stejne (luxos_lock_draw). V klidu tapeta a hodiny, nebo setric vybrany v nastaveni
+# xfce4-screensaver (luxos_saver, stejne jako X11 setric luxos-screensaver); klavesa, klik nebo dotek ukaze
 # vyzvu k heslu (prvni znak uz je v poli), po LOCK["idle_after"] bez vstupu s prazdnym polem se vrati klid. Klik na
 # rozlozeni prepne rozlozeni, na sipku odesle heslo; Uspat / Restartovat / Vypnout podle logind (CanSuspend, ...).
 #
@@ -19,7 +20,7 @@
 # Testy: LUXOS_LOCK_AUTH (jiny luxos-auth, napr. s napodobenym PAM), LUXOS_LOCK_FPRINT_MODULE (misto
 # /usr/lib/security/pam_fprintd.so), LUXOS_LOCK_POWER_SUPPLY (misto /sys/class/power_supply),
 # LUXOS_LOCK_NET (misto /sys/class/net), LUXOS_LOCK_PROMPT_MS (vyzva -> klid), LUXOS_LOCK_NOW="HH:MM" (pevne hodiny), LUXOS_LOCK_DEMO_NAME (jmeno na
-# snimcich), LUXOS_LOCK_POWER=fake (tlacitka napajeni bez logind, klik jen do stopy), LUXOS_LOCK_TRACE=1 (udalosti na stdout).
+# snimcich), LUXOS_LOCK_SAVER=styl (klid jako setric, misto nastaveni), LUXOS_LOCK_POWER=fake (tlacitka napajeni bez logind, klik jen do stopy), LUXOS_LOCK_TRACE=1 (udalosti na stdout).
 load env, cairo, glib, gio, gtk, math
 load luxos_glib as lglib
 load luxos_gio as lgio
@@ -31,6 +32,8 @@ load luxos_material as material
 load luxos_lock_draw as draw
 load luxos_lock_sys as sys
 load luxos_tokens as tokens
+load luxos_xfconf as xfconf
+load luxos_saver as saver
 
 AUTH = "/usr/lib/luxos/luxos-auth"
 FPRINT_MODULE = "/usr/lib/security/pam_fprintd.so"
@@ -83,6 +86,30 @@ function load_config():
     if conf.get("show-battery", "true").strip() == "false":
         state["no_battery"] = True
     end
+    return 0
+end
+
+# Klid jako setric xfce4-screensaver: rezim 0 jen cerna, 1 nahodne tema ze seznamu, 2 vybrane tema
+# (LUXOS_LOCK_SAVER = styl primo, testy)
+function load_saver():
+    style = env.get("LUXOS_LOCK_SAVER", "")
+    if style == "":
+        conf = xfconf.channel("xfce4-screensaver")
+        themes = xfconf.array("xfce4-screensaver", "/saver/themes/list")
+        mode = conf.get("/saver/mode", "2")
+        style = "desktop"
+        if mode == "0":
+            style = "blank"
+        elif len(themes) > 0:
+            pick = 0
+            if mode == "1":
+                pick = Int(glib.monotonic_time() // 1000) % len(themes)
+            end
+            style = saver.style_for_theme(themes[pick])
+        end
+    end
+    ui["saver"] = style
+    call log("saver " + style)
     return 0
 end
 
@@ -794,6 +821,7 @@ function main():
     ui["caps_text"] = i18n.T("Caps Lock is on")
     call update_clock()
     call update_status()
+    call load_saver()
     call wl.on_event(event)
     if not wl.connect(""):
         call luxos_sys.eprint("luxos-lock: no Wayland compositor")

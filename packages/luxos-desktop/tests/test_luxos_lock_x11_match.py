@@ -101,6 +101,38 @@ class LockX11Match(unittest.TestCase):
             with self.subTest(config=d.name):
                 self.match(d, lang, theme, size, scale, names, f"/usr/share/backgrounds/luxos/luxos-{theme}.jpg")
 
+    def test_idle_screensaver_style(self):
+        """Klid zamku s jinym setricem nez tapeta plochy (napr. tema screensavers-luxos = styl wallpapers): presne
+        jako X11 setric luxos-screensaver (spolecna kresba luxos_saver), stejny cas i tapety."""
+        fake = OUT / "x11-fake.so"
+        r = subprocess.run(["gcc", "-shared", "-fPIC", "-O2", "-o", str(fake), str(HERE / "lock/x11-fake.c"), "-ldl"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        saver = OUT / "luxos-screensaver"
+        r = subprocess.run([LSLC, "--target", "linux-x86_64-gnu", "--system-bindings", str(PKG / "files/lsl"),
+                            str(PKG / "files/lsl/luxos-screensaver.lsl"), str(saver)], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        walls = OUT / "saver-walls"
+        walls.mkdir(exist_ok=True)
+        for theme in ("light", "dark"):
+            shutil.copy(self.walls[theme], walls / f"luxos-{theme}-test.jpg")
+        env = {"PATH": "/usr/bin:/bin", "HOME": str(OUT), "TZ": "UTC", "LANG": "en_US.UTF-8", "LD_PRELOAD": str(fake),
+               "LUXOS_FAKE_EPOCH": "1795290480", "LUXOS_SCREENSAVER_WALLS": str(walls),
+               "LUXOS_I18N_DIR": str(REPO / "packages/luxos-i18n/files")}
+        x11 = OUT / "saver-x11.png"
+        r = subprocess.run([str(saver), "--render", "wallpapers", "1280", "800", str(x11), "0"], capture_output=True,
+                           text=True, env=env, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        out = OUT / "saver-wl"
+        out.mkdir(exist_ok=True)
+        r = subprocess.run([str(self.render), str(out), "1280", "800", "1", str(self.walls["light"]), "idle"],
+                           capture_output=True, text=True, timeout=300,
+                           env=dict(env, LOCK_RENDER_SAVER="wallpapers", LOCK_RENDER_SAVER_T="0"))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        res = pixdiff.compare(x11, out / "idle.png")
+        print(f"\n  idle as screensaver 'wallpapers': {100 * res['ratio']:.3f} % beyond AA")
+        self.assertLessEqual(res["ratio"], TOLERANCE)
+
     def test_frame_cost_1080p(self):
         """Snimek do bufferu ARGB32 (jako wl_shm, pixman) 1920x1080: prumer do 8 ms."""
         cost = self.render_states(OUT / "perf", "en", (1920, 1080), 1, self.walls["light"],
