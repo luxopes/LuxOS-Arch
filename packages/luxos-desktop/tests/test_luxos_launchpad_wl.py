@@ -445,7 +445,7 @@ class WaylandLaunchpad(unittest.TestCase):
         self.start(sort="alpha")
         lp = self.resident()
         order = alpha_order()
-        cols = 7
+        cols = 6
         self.open_by_key(lp)
         mark = lp.mark()
         self.input.send("key Down", "key Right", "key Right")
@@ -603,6 +603,53 @@ class WaylandLaunchpad(unittest.TestCase):
 
     def test_golden_dark(self):
         self.golden_case(True, "dark", "launchpad-dark")
+
+    def test_labels_two_lines_no_hard_cut(self):
+        """Nazvy aplikaci LuxOS na prvni strane: nejvys dva radky zalomene mezi slovy, bez vypustky
+        (drive "Aktualizace s...", "Klávesové zk...", "Prohlížeč do...")."""
+        spec = __import__("importlib.util").util.spec_from_file_location(
+            "desktop_i18n", REPO / "packages/luxos-i18n/files/desktop-i18n.py")
+        i18n = __import__("importlib.util").util.module_from_spec(spec)
+        spec.loader.exec_module(i18n)
+        tabs = i18n.load(str(REPO / "packages/luxos-i18n/files"))
+        names = set()
+        for path in sorted((PKG / "files/applications").glob("*.desktop")):
+            text = i18n.translate(path.read_text(encoding="utf-8"), tabs)
+            m = re.search(r"^Name\[cs\]=(.*)$", text if isinstance(text, str) else path.read_text(encoding="utf-8"), re.M)
+            if m:
+                names.add(m.group(1))
+        must = ["Aktualizace softwaru", "Klávesové zkratky", "Prohlížeč dokumentů"]
+        names = must + sorted(names - set(must), key=len, reverse=True)[:18]
+        share = self.tmp / "labels-share"
+        (share / "applications").mkdir(parents=True, exist_ok=True)
+        if not (share / "icons").exists() and (self.tmp / "share/icons").exists():
+            (share / "icons").symlink_to(self.tmp / "share/icons")
+        for i, name in enumerate(names):
+            (share / "applications" / f"org.example.Label{i:02d}.desktop").write_text(
+                f"[Desktop Entry]\nType=Application\nName={name}\nExec=true\nIcon=applications-utilities\nCategories=Utility;\n")
+        self.start()
+        self.env["XDG_DATA_DIRS"] = str(share)
+        lp = self.resident()
+        self.open_by_key(lp)
+        time.sleep(0.4)
+        labels = {}
+        for line in lp.lines:
+            m = re.search(r" label lines=(\d+) ellipsized=(\d) word=(\d+) width=(\d+) (.*)$", line)
+            if m:
+                labels[m.group(5)] = [int(v) for v in m.groups()[:4]]
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn(name, labels, "not drawn on the first page")
+                lines, cut, word, width = labels[name]
+                self.assertEqual(cut, 0, "ellipsized")
+                self.assertLessEqual(lines, 2)
+                # kazde slovo se vejde na radek, takze Pango zalamuje jen mezi slovy
+                self.assertLessEqual(word, width, "a word is wider than the label")
+                self.assertLessEqual(lines, len(name.split(" ")))
+        print(f"\n  popisky: {len(names)} nazvu, dvouradkove {sum(1 for n in names if labels[n][0] == 2)}")
+        keep = Path(os.environ.get("LUXOS_LAUNCHPAD_SHOTS") or self.tmp.parent / "launchpad-shots")
+        keep.mkdir(parents=True, exist_ok=True)
+        png_write(keep / "labels.png", *self.shot())
 
     def test_search_mode_and_cli(self):
         self.start()
