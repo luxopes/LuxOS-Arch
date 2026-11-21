@@ -55,7 +55,6 @@ TOOLS = (
     ("luxdrop/files/luxdrop", ["--help"], False),
     ("luxos-domain/files/lux-domain", ["--help"], False),
     ("luxos-printing/files/luxos-scan", ["--help"], False),
-    ("luxos-desktop/files/bin/luxos-app-reset", ["--help"], False),
     ("luxos-companion/files/luxos-companion", ["--help"], False),
     ("luxos-desktop/files/bin/luxos-unfreeze", ["--help"], False),
     ("luxos-desktop/files/bin/luxos-appearance", ["--help"], False),

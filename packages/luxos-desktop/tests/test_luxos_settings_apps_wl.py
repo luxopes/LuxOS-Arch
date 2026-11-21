@@ -193,6 +193,24 @@ class SettingsAppsWayland(unittest.TestCase):
         self.app.ask("click Copy QR code image")
         self.assertTrue(state()["clipboard"])
 
+    def test_app_reset(self):
+        home = self.session / "fixture"
+        (home / ".config/someapp").mkdir(parents=True)
+        (home / ".config/someapp/conf").write_text("c")
+        self.open("luxos-app-reset", HOME=str(home), XDG_CONFIG_HOME="", XDG_DATA_HOME="", XDG_CACHE_HOME="",
+                  LUXOS_DESKTOP_DIRS=str(self.session / "no-apps"))
+        status = lambda: lsl_app.find(self.app.dump(), name="status")["text"]  # noqa: E731
+        self.assertTrue(self.app.wait(lambda: status() == "1 apps with settings"))
+        self.check_window("luxos-app-reset", "Reset App Settings")
+        self.app.send("reset someapp")
+        self.assertTrue(self.app.wait(lambda: any(w["dialog"] for w in self.app.dump())))
+        self.shot("luxos-app-reset-dialog")
+        self.app.ask("click Reset")
+        self.assertTrue(self.app.wait(lambda: "Settings of someapp were reset" in lsl_app.texts(self.app.dump(), dialog=True)))
+        self.app.ask("click OK")
+        self.assertTrue(self.app.wait(lambda: status() == "0 apps with settings"))
+        self.assertFalse((home / ".config/someapp").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
