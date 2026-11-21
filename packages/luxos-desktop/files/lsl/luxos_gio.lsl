@@ -1,6 +1,11 @@
 # lsl: link libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - doplnky k modulu gio LSL 0.10.6 (D-Bus) pro luxos-hub; programy nacitaji `load luxos_gio, gio as gio`.
 #   call_async(bus, name, path, iface, method, values, signature, ms, f, data)   f(data, hodnoty odpovedi nebo None, chyba)
+#   call_interactive(...)                                                         totez, smi se zeptat na heslo (polkit)
+#   call_sync_flags(bus, name, path, iface, method, values, signature, ms, flags) jako gio.call_values s priznaky
+#                                                                                 (2 = smi se zeptat na heslo); DBusError
+#   bus_for_address(address)                                                      vlastni spojeni se sbernici podle adresy
+#   remote_error(chyba)                                                           jmeno chyby D-Bus z textu chyby ("" = jina)
 #   subscribe_data(bus, sender, iface, member, path, arg0, flags, f, data)        f(data, sender, path, iface, signal, hodnoty);
 #                                                                                 arg0 a priznaky (SIGNAL_MATCH_ARG0_NAMESPACE pro MPRIS)
 #   watch_name_data(bus, name, appeared, vanished, data)                          appeared(data, name, owner), vanished(data, name)
@@ -36,6 +41,15 @@ end
 # ---- asynchronni volani ------------------------------------------------------------------------------------
 
 function call_async(bus, name, path, interface, method, values, signature, timeout, handler, bound):
+    return call_flags(bus, name, path, interface, method, values, signature, timeout, 0, handler, bound)
+end
+
+# G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION: sluzba smi pockat na heslo v okne polkitu
+function call_interactive(bus, name, path, interface, method, values, signature, timeout, handler, bound):
+    return call_flags(bus, name, path, interface, method, values, signature, timeout, 2, handler, bound)
+end
+
+function call_flags(bus, name, path, interface, method, values, signature, timeout, flags, handler, bound):
     unsafe:
         parameters = 0
         if len(signature) > 0:
@@ -44,7 +58,7 @@ function call_async(bus, name, path, interface, method, values, signature, timeo
         state = [handler, bound, 0]
         tracked = luxos_glib.track(async_trampoline, 2, state)
         state[2] = tracked[1]
-        call __lsl_qbe_call12(__lsl_symbol("g_dbus_connection_call"), ptr(bus), cstr(name), cstr(path), cstr(interface), cstr(method), parameters, 0, 0, ptr(timeout), 0, __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
+        call __lsl_qbe_call12(__lsl_symbol("g_dbus_connection_call"), ptr(bus), cstr(name), cstr(path), cstr(interface), cstr(method), parameters, 0, ptr(flags), ptr(timeout), 0, __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
         if parameters != 0:
             call __lsl_qbe_call1(__lsl_symbol("g_variant_unref"), parameters)
         end
@@ -115,6 +129,50 @@ function vanished_trampoline(pair, sender, path, interface, signal, values):
         call handler(pair[1], values[0])
     end
     return 0
+end
+
+function call_sync_flags(bus, name, path, interface, method, values, signature, timeout, flags):
+    unsafe:
+        parameters = 0
+        if len(signature) > 0:
+            parameters = __lsl_qbe_call1(__lsl_symbol("g_variant_ref_sink"), ptr(gio.value_to_variant(values, signature)))
+        end
+        cell = gio.error_cell()
+        reply = __lsl_qbe_call11(__lsl_symbol("g_dbus_connection_call_sync"), ptr(bus), cstr(name), cstr(path), cstr(interface), cstr(method), parameters, 0, ptr(flags), ptr(timeout), 0, glib.array_data(cell))
+        if parameters != 0:
+            call __lsl_qbe_call1(__lsl_symbol("g_variant_unref"), parameters)
+        end
+        call gio.take_error(cell)
+        result = gio.variant_to_value(reply)
+        call __lsl_qbe_call1(__lsl_symbol("g_variant_unref"), reply)
+        return result
+    end
+end
+
+# Spojeni se sbernici podle adresy ("unix:path=..."; testy s vlastnim dbus-daemonem); DBusError pri chybe
+function bus_for_address(address):
+    unsafe:
+        cell = gio.error_cell()
+        # G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT | MESSAGE_BUS_CONNECTION
+        bus = __lsl_qbe_call5(__lsl_symbol("g_dbus_connection_new_for_address_sync"), cstr(address), 1 | 8, 0, 0, glib.array_data(cell))
+        if bus == 0:
+            call gio.take_error(cell)
+        end
+        return bus
+    end
+end
+
+# "GDBus.Error:net.reactivated.Fprint.Error.PermissionDenied: Not Authorized" -> jmeno chyby
+function remote_error(message):
+    if not message.startswith("GDBus.Error:"):
+        return ""
+    end
+    rest = message[12:]
+    cut = rest.find(":")
+    if cut < 0:
+        return rest
+    end
+    return rest[:cut]
 end
 
 function name_has_owner(bus, name, timeout):
