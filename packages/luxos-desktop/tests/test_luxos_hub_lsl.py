@@ -170,6 +170,12 @@ class FakeService:
         self.svc.run(self.conn.close_sync, None)
 
 
+def last_state(lines):
+    """Posledni shown/hidden okna - asynchronni hlaseni (nmcli, xrandr) se mohou zapsat az po skryti."""
+    states = [line for line in lines if line in ("shown", "hidden")]
+    return states[-1] if states else None
+
+
 @unittest.skipUnless(BIN, "chybi lslc (LSL >= 0.10.6, LUXOS_LSLC) nebo DISPLAY (spustit pod xvfb-run)")
 class Hub(unittest.TestCase):
     @classmethod
@@ -498,7 +504,7 @@ class Hub(unittest.TestCase):
                 subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], name)],
                                env=dict(os.environ), timeout=20)
             hub.send_signal(signal.SIGUSR1)
-            self.assertTrue(self.wait_for(lambda: self.ui_log("cc.log")[-1] == "hidden"))
+            self.assertTrue(self.wait_for(lambda: last_state(self.ui_log("cc.log")) == "hidden"))
         err = self.hub_err()
         self.assertNotIn("LSL callback error", err, err)
 
@@ -644,7 +650,7 @@ class Hub(unittest.TestCase):
             self.assertFalse([e for e in log() if e.startswith("displays:")], log())
             shot(f"cc-1-monitor-{theme}.png")
             hub.send_signal(signal.SIGUSR1)
-            self.assertTrue(self.wait_for(lambda: log()[-1] == "hidden"))
+            self.assertTrue(self.wait_for(lambda: last_state(log()) == "hidden"))
 
             # 2 monitory (rozsireno): sekce s rozsvicenym Rozsirit
             write(two)
@@ -686,7 +692,7 @@ class Hub(unittest.TestCase):
             self.assertTrue(st["eDP-1"]["primary"])
             # Stolni pocitac (bez vestaveneho displeje): jen Zrcadlit a Rozsirit, Jen externi neni
             hub.send_signal(signal.SIGUSR1)
-            self.assertTrue(self.wait_for(lambda: log()[-1] == "hidden"))
+            self.assertTrue(self.wait_for(lambda: last_state(log()) == "hidden"))
             desk = td.fake_state()
             desk["outputs"][0]["name"] = "DP-2"
             write(desk)
@@ -719,7 +725,7 @@ class Hub(unittest.TestCase):
             subprocess.run([sys.executable, "-c", SHOT, os.path.join(os.environ["LUXOS_TEST_SHOTS"], "calendar-weather.png")],
                            env=dict(os.environ), timeout=20)
         hub.send_signal(signal.SIGUSR2)
-        self.assertTrue(self.wait_for(lambda: self.ui_log("cal.log")[-1] == "hidden"))
+        self.assertTrue(self.wait_for(lambda: last_state(self.ui_log("cal.log")) == "hidden"))
         # stary souhrn (4 h) se neukaze
         summary["fetched"] -= 4 * 3600
         with open(os.path.join(wdir, "summary.json"), "w") as f:
