@@ -307,6 +307,50 @@ class HubWayland:
         self.assertNotIn("shown", self.cc.lines()[mark:], "klik mimo okno znovu otevrel")
         self.assertIsNone(hub.poll())
 
+    def test_wifi_and_bluetooth_tiles_toggle_on_bubble_open_on_rest(self):
+        # jako verze 1.1.1: bublina s ikonou prepne, zbytek dlazdice otevre okno Wi-Fi z listy / aplikaci Bluetooth
+        self.start()
+        bar = self.bar()
+        hub = self.hub()
+        button = 2 * OUT_W - 162
+
+        def open_cc():
+            mark = self.cc.mark()
+            self.input(f"move {button} 14", "sleep 0.1", "click")
+            left = int(self.cc.wait("placed ", mark, timeout=SHOW_LIMIT).split()[3])
+            self.cc.wait("shown", mark, timeout=SHOW_LIMIT)
+            pos = {}
+            for name in ("wifi-bubble", "wifi-title", "bt-bubble", "bt-title"):
+                words = self.cc.wait(f"tilepos {name} ", mark).split()
+                pos[name] = f"move {left + int(words[2])} {BAR + 6 + int(words[3])}"
+            time.sleep(0.3)
+            return pos
+
+        pos = open_cc()
+        mark, bmark = self.cc.mark(), bar.mark()
+        self.input(pos["wifi-title"], "sleep 0.1", "click")
+        self.cc.wait("tile Wi-Fi settings", mark)
+        self.cc.wait("hidden", mark)
+        bar.wait(r"^signal wifi$", start=bmark)
+        bar.wait(r"^popup wifi shown", start=bmark)
+        self.input("key Escape")
+        bar.wait(r"^popup wifi hidden", start=bmark)
+        pos = open_cc()
+        mark = self.cc.mark()
+        self.input(pos["wifi-bubble"], "sleep 0.1", "click")
+        self.cc.wait("tile Wi-Fi toggle", mark)
+        time.sleep(0.4)
+        self.assertNotIn("hidden", self.cc.lines()[mark:], "prepnuti Wi-Fi okno nezavira")
+        mark = self.cc.mark()
+        self.input(pos["bt-title"], "sleep 0.1", "click")
+        self.cc.wait("tile Bluetooth settings", mark)
+        self.cc.wait("hidden", mark)
+        pos = open_cc()
+        mark = self.cc.mark()
+        self.input(pos["bt-bubble"], "sleep 0.1", "click")
+        self.cc.wait("tile Bluetooth toggle", mark)
+        self.assertIsNone(hub.poll())
+
     def test_clock_opens_calendar_under_it(self):
         # hodiny vpravo v liste otevrou Kalendar hubu (luxos_cal) jako na X11, ne maly kalendar listy
         self.start()
