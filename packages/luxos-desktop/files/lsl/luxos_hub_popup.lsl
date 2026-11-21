@@ -11,27 +11,41 @@
 #   popup.focus_out(okno) z focus-out-event -> True = klik jinam, zavrit
 #   popup.same_click(ztraceno_ms)         klik v liste, ktery oknu prave vzal fokus (a zavrel ho)?
 #   popup.write_anchor(x, y, stred, cas)  lista tesne pred luxos-cc-toggle
-#   popup.colors(predpona, tmavy)         @define-color predpona_bg/border/highlight/fg/dim/faint/tile/tile_hover/bubble/
-#                                         trough/fill/accent z tokenu (material popup; rozmazani pod nim kresli luxwm)
+#   popup.glass(okno, karta)              karta okna ze skla z tapety jako verze 1.1.1 (luxos_glass.panel, luxos-glass.c):
+#                                         vyrez rozostrene tapety pod oknem se zavojem podle barvy textu, kresli ho klient
+#                                         (material.strip), takze je pruhledna i bez rozmazani v kompozitoru (pixman, VM);
+#                                         poloha okna z popup.place, bez tapety plati material z CSS
+#   popup.paint_glass(cr, karta, vystup, out_w, out_h, x, y)   totez pro okna listy (x, y = roh okna na vystupu)
+#   popup.output_for(monitor)             nazev vystupu Waylandu pro monitor GDK (tapeta muze byt pro kazdy vystup)
+#   popup.colors(predpona, tmavy)         @define-color predpona_bg/border/border_top/border_bottom/highlight/fg/dim/faint/
+#                                         tile/tile_hover/bubble/trough/fill/accent z tokenu (material popup; rozmazani pod nim
+#                                         kresli luxwm); popup.card(predpona) = CSS karty skla (okraj, odlesk, lesk)
 load env
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
+load cairo
 load luxos_layer as layer
+load luxos_wl as wl
 load luxos_text as text
 load luxos_tokens as tokens
 load luxos_material as material
 
 ANCHOR = "luxos-popup-anchor"
+WALLGLASS = "lx-wallglass"
 FRESH_MS = 2000
 GAP = 6
 EDGE = 8
 
-function anchor_path():
+function runtime_file(name):
     dir = env.get("XDG_RUNTIME_DIR", "")
     if dir == None or dir == "":
         dir = "/tmp"
     end
-    return dir + "/" + ANCHOR
+    return dir + "/" + name
+end
+
+function anchor_path():
+    return runtime_file(ANCHOR)
 end
 
 function write_anchor(x, y, center, pressed):
@@ -84,6 +98,102 @@ function read_anchor():
     return None
 end
 
+# Nazev vystupu Waylandu (HEADLESS-1, eDP-1) pro monitor GDK podle polohy z wlr-output-management (wl_output
+# polohu neposila, xdg-output knihovna nema)
+function output_for(monitor):
+    geo = layer.monitor_geometry(monitor)
+    if wl.available():
+        for h in wl.heads():
+            info = wl.head_info(h)
+            if info[2] and info[3] == geo[0] and info[4] == geo[1]:
+                return info[0]
+            end
+        end
+        names = wl.outputs()
+        if len(names) == 1:
+            return wl.output_name(names[0])
+        end
+    end
+    model = layer.monitor_model(monitor)
+    if model == None:
+        return ""
+    end
+    return model
+end
+
+# ---- sklo z tapety pod kartou ------------------------------------------------------------------
+
+# okno -> {"box", "monitor", "align" ("left" | "right" | "center"), "x"}
+glassy = {}
+
+function scale_of(widget):
+    unsafe:
+        return max(1, __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_widget_get_scale_factor"), __lsl_unbox_int(widget))))
+    end
+end
+
+# Svetle sklo pod tmavym textem (jako luxos_glass.on_panel_draw: jas barvy textu karty)
+function dark_text(box):
+    fg = gtk.widget_get_color(box, 0)
+    return 0.2126 * fg[0] + 0.7152 * fg[1] + 0.0722 * fg[2] <= 0.5
+end
+
+# Karta ze skla do cr pod obsah okna; False = neni tapeta (plati material z CSS)
+function paint_glass(cr, box, output, out_w, out_h, x, y):
+    a = gtk.widget_get_allocation(box)
+    ink = 0
+    if dark_text(box):
+        ink = 1
+    end
+    hit = material.strip(output, out_w, out_h, x + a[0], y + a[1], a[2], a[3], tokens.radius_of("popup"), ink, scale_of(box))
+    call gtk.widget_set_class(box, WALLGLASS, hit != None)
+    if hit == None:
+        return False
+    end
+    call cairo.set_source_surface(cr, hit[0], Float(a[0]), Float(a[1]))
+    call cairo.paint(cr)
+    return True
+end
+
+function glass(win, box):
+    glassy[win] = {"box": box, "monitor": None, "align": "right", "x": 0}
+    call gtk.connect_data(win, "draw", 1, on_glass_draw, win)
+    return 0
+end
+
+function on_glass_draw(win, cr, widget):
+    call cairo.save(cr)
+    call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0)
+    call cairo.paint(cr)
+    call cairo.restore(cr)
+    info = glassy.get(win)
+    if info == None or info["monitor"] == None:
+        return False
+    end
+    geo = layer.monitor_geometry(info["monitor"])
+    w = gtk.widget_get_allocated_width(win)
+    x = info["x"]
+    if info["align"] == "right":
+        x = geo[2] - w - EDGE
+    elif info["align"] == "center":
+        x = (geo[2] - w) // 2
+    end
+    # pod vyhradnou zonou listy
+    call paint_glass(cr, info["box"], output_for(info["monitor"]), geo[2], geo[3], x, tokens.BAR["height"] + GAP)
+    return False
+end
+
+function glass_place(win, monitor, align, x):
+    info = glassy.get(win)
+    if info != None:
+        info["monitor"] = monitor
+        info["align"] = align
+        info["x"] = x
+    end
+    return 0
+end
+
 function setup(win, name):
     call layer.init_for_window(win)
     call layer.set_namespace(win, tokens.namespace(name, "popup"))
@@ -98,8 +208,10 @@ end
 focused = {}
 
 function colors(prefix, dark):
-    values = {"bg": tokens.material("popup", dark, material.compositor_blur()), "border": tokens.material_border("popup", dark),
-              "highlight": tokens.material_highlight("popup", dark), "fg": tokens.color("fg", dark), "dim": tokens.color("fg_secondary", dark),
+    # okraj karty skla jako vyskakovaci okna listy (tokens .lx-popup)
+    values = {"bg": tokens.material("popup", dark, material.compositor_blur()), "border": tokens.COLORS["card_edge"],
+              "border_top": tokens.COLORS["card_edge_top"], "border_bottom": tokens.COLORS["card_edge_bottom"],
+              "highlight": tokens.COLORS["card_inset"], "fg": tokens.color("fg", dark), "dim": tokens.color("fg_secondary", dark),
               "faint": tokens.with_alpha(tokens.color("fg", dark), 0.28), "tile": tokens.color("tile", dark),
               "tile_hover": tokens.color("tile_hover", dark), "bubble": tokens.color("bubble", dark),
               "trough": tokens.color("trough", dark), "fill": tokens.color("fill", dark), "accent": tokens.COLORS["accent"]}
@@ -108,6 +220,11 @@ function colors(prefix, dark):
         out = out + "@define-color " + prefix + "_" + name + " " + tokens.css_color(values[name]) + ";\n"
     end
     return out
+end
+
+function card(prefix):
+    return ("border: 1px solid @" + prefix + "_border; border-top-color: @" + prefix + "_border_top; border-bottom-color: @" + prefix
+        + "_border_bottom; box-shadow: inset 0 1px @" + prefix + "_highlight; background-image: " + tokens.SHEEN + ";")
 end
 
 function show(win):
@@ -136,9 +253,11 @@ function place(win, width, align):
         call layer.set_monitor(win, hit[0])
         call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_LEFT])
         call layer.set_margin(win, layer.EDGE_LEFT, x)
+        call glass_place(win, hit[0], "left", x)
         return "anchor " + String(geo[0]) + " " + String(geo[0] + x)
     end
     call layer.set_monitor(win, 0)
+    call glass_place(win, 0, align, 0)
     if align == "center":
         call layer.set_anchors(win, [layer.EDGE_TOP])
     else:

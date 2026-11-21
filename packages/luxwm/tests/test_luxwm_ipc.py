@@ -447,13 +447,16 @@ class LuxwmIpc(unittest.TestCase):
         with open(log, "w") as f:
             s.spawn(bar_exe, env=env, out=f)
 
-        def wait_bar(text, timeout=8.0):
+        def bar_lines():
+            return open(log, errors="replace").read().splitlines()
+
+        def wait_bar(text, timeout=8.0, start=0):
             deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
-                if text in open(log, errors="replace").read():
+                if any(text in line for line in bar_lines()[start:]):
                     return True
                 time.sleep(0.05)
-            raise AssertionError(f"{text!r} not in bar log:\n" + open(log, errors="replace").read()[-2000:])
+            raise AssertionError(f"{text!r} not in bar log:\n" + "\n".join(bar_lines()[-40:]))
 
         wait_bar("status keyboard US")
         t0 = time.monotonic()
@@ -462,24 +465,45 @@ class LuxwmIpc(unittest.TestCase):
         print(f"\n  badge US -> CZ {(time.monotonic() - t0) * 1000:.0f} ms")
         s.msg("switch-layout", "us")
         time.sleep(0.3)
-        lines = [l for l in open(log, errors="replace").read().splitlines() if l.startswith("status keyboard")]
+        lines = [l for l in bar_lines() if l.startswith("status keyboard")]
         self.assertEqual(lines[-1], "status keyboard US")
-        # klik na odznak: nabidka rozlozeni (xdg_popup s grabem) dostane klavesnici, i kdyz lista zadnou nema
         wait_bar("badge keyboard ")
-        x, w = [int(v) for l in open(log).read().splitlines() if l.startswith("badge keyboard ")
-                for v in l.split()[2:4]][-2:]
+        x, w = [int(v) for l in bar_lines() if l.startswith("badge keyboard ") for v in l.split()[2:4]][-2:]
         s.client("Focused", app="focused")
-        # Esc nabidku zavre a klavesnice se vrati oknu (jedna virtualni klavesnice pro cely scenar)
-        s.input(f"move {x + w // 2} 16", "click", "sleep 0.6", "key Escape", "sleep 0.4", "type q", wait=0.6)
-        wait_bar("layout menu 2")
+        # jeden klik na kod rozlozeni prepne hned na dalsi rozlozeni (bez nabidky), druhy zpet
+        mark = len(bar_lines())
+        t0 = time.monotonic()
+        s.input(f"move {x + w // 2} 16", "click", wait=0.2)
+        wait_bar("layout next 1", start=mark)
+        wait_bar("status keyboard CZ", start=mark)
+        print(f"  click US -> CZ {(time.monotonic() - t0) * 1000:.0f} ms")
+        self.assertEqual(s.state()["keyboard"]["current"], 1)
+        self.assertFalse(any("layout menu" in l for l in bar_lines()[mark:]), "klik neotevira nabidku")
+        mark = len(bar_lines())
+        s.input(f"move {x + w // 2} 16", "click", wait=0.2)
+        wait_bar("status keyboard US", start=mark)
+        self.assertEqual(s.state()["keyboard"]["current"], 0)
+        # prave tlacitko: nabidka rozlozeni (xdg_popup s grabem) dostane klavesnici, i kdyz lista zadnou nema;
+        # Esc ji zavre a klavesnice se vrati oknu (jedna virtualni klavesnice pro cely scenar)
+        mark = len(bar_lines())
+        s.input(f"move {x + w // 2} 16", "click right", "sleep 0.6", "key Escape", "sleep 0.4", "type q", wait=0.6)
+        wait_bar("layout menu 2", start=mark)
         self.assertIn("key q down", s.clients_log(), "po zavreni nabidky pise okno")
+        self.assertEqual(s.state()["keyboard"]["current"], 0, "prave tlacitko neprepina")
         before = s.clients_log().count("key Down down")
-        s.input(f"move {x + w // 2} 16", "click", "sleep 0.6", "key Down", "key Down", "key Return", wait=0.6)
+        s.input(f"move {x + w // 2} 16", "click right", "sleep 0.6", "key Down", "key Down", "key Return", wait=0.6)
         s.shot("bar-layout-menu.ppm")
         wait_bar("layout switch 1")
         self.assertEqual(s.clients_log().count("key Down down"), before, "sipky dostala nabidka, ne okno")
         self.assertEqual(s.state()["keyboard"]["current"], 1)
         wait_bar("status keyboard CZ")
+        s.input("key Escape", wait=0.3)
+        # podrzeni (500 ms) = nabidka misto prepnuti
+        mark = len(bar_lines())
+        s.input(f"move {x + w // 2} 16", "down", "sleep 0.8", "up", "sleep 0.3", "key Escape", wait=0.4)
+        wait_bar("layout menu 2", start=mark)
+        self.assertFalse(any("layout next" in l for l in bar_lines()[mark:]), "podrzeni neprepina")
+        self.assertEqual(s.state()["keyboard"]["current"], 1)
         self.assertIsNone(s.procs[-1].poll(), "lista bezi")
 
     # ---- zkratky -----------------------------------------------------------------------------------------

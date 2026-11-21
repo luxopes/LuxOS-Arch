@@ -2,10 +2,12 @@
 # nahore/vlevo/vpravo, vyhradni zona), pozadi z matneho skla tapety (luxos_material). Nahrazuje xfce4-panel
 # s pluginem luxos-bar.c, genmon skripty (hodiny, baterie, sit, nazev aplikace) a systray.
 #
-#   vlevo     logo LuxOS (nabidka systemu) a nazev aktivni aplikace (wlr-foreign-toplevel, stav activated)
+#   vlevo     logo LuxOS (nabidka systemu, luxos_bar_popup) a nazev aktivni aplikace (wlr-foreign-toplevel,
+#             stav activated)
 #   uprostred hodiny jako luxos-clock (datum podle jazyka plochy), klik = kalendar
-#   vpravo    oznamovaci oblast (StatusNotifierItem), rozlozeni klavesnice (z luxwm, klik = nabidka rozlozeni),
-#             zvuk, Wi-Fi/sit, baterie,
+#   vpravo    oznamovaci oblast (StatusNotifierItem), rozlozeni klavesnice jako tucny kod (US, CZ; z luxwm): klik
+#             prepne na dalsi rozlozeni a kod kratce blikne akcentem, prave tlacitko nebo podrzeni = nabidka
+#             rozlozeni; zvuk, Wi-Fi/sit, baterie,
 #             zvonek s historii oznameni (luxos-notify) a Ovladaci centrum (luxos-cc-toggle)
 #
 # Pismo listy: v tmavem rezimu bile, ve svetlem podle tapety pod listou (kontrast WCAG s hysterezi,
@@ -13,6 +15,9 @@
 # pismem na svetle tapete zavoj (scrim) - samostatna plocha na vrstve BOTTOM bez vstupu (DESKTOP_SCRIM=0 vypne).
 # Vse na udalosti: okna, monitory a stav systemu chodi signaly (Wayland, D-Bus, pactl subscribe), jediny
 # casovac jsou hodiny jednou za minutu.
+#
+# SIGUSR1 otevre okno Wi-Fi pod listou, kde se naposledy klikalo (zbytek dlazdice Wi-Fi v Ovladacim centru);
+# PID je v $XDG_RUNTIME_DIR/luxos-bar.pid.
 #
 # Ladeni a testy: LUXOS_BAR_TRACE=1 vypisuje udalosti na stdout, LUXOS_BAR_NOW="YYYY-MM-DD HH:MM" zastavi hodiny.
 load env, cairo
@@ -42,17 +47,16 @@ SHORT = {"thunar": "Files", "luxos-terminal": "Terminal", "xfce4-terminal": "Ter
     "luxos-calendar": "Calendar", "luxos-control-center": "Control Center", "luxos-whats-new": "What's New",
     "luxos-screenshot": "Screenshot"}
 
-# Nabidka loga: [text, prikaz]; "" = oddelovac
-MENU = [["About This Computer", ["luxos-about"]], ["Settings", ["luxos-settings"]], ["Launchpad", ["luxos-launchpad"]], "",
-    # lista bezi jako uzivatelska sluzba mimo relaci logindu: relaci urcuje XDG_SESSION_ID z luxos-wayland-session
-    ["Lock Screen", ["sh", "-c", "exec loginctl lock-session \"${XDG_SESSION_ID:-auto}\""]],
-    ["Sign Out", ["sh", "-c", "exec loginctl terminate-session \"${XDG_SESSION_ID:-auto}\""]],
-    ["Restart", ["systemctl", "reboot"]], ["Shut Down", ["systemctl", "poweroff"]]]
+SIGUSR1 = 10
+# Podrzeni kodu rozlozeni = nabidka misto prepnuti; delka zablesku po prepnuti
+LONG_PRESS_MS = 500
+FLASH_MS = 650
 
 bars = []
 ui = {"provider": 0, "app": "", "app_names": {}, "wm_classes": None, "clock": "", "clock_tip": "", "conf": {},
-      "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "menu": 0, "layout_menu": 0, "layout_items": [],
-      "layout_names": [], "thumbs": {}, "flags": {}}
+      "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "layout_menu": 0, "layout_items": [],
+      "layout_names": [], "thumbs": {}, "flags": {}, "kb_press": 0, "kb_held": False, "kb_widget": 0, "kb_flash": 0,
+      "last_bar": None}
 # Vlajky rozlozeni klavesnice jako panel xkb v X11 relaci (xfce4-xkb-plugin, display-type 0); bez vlajky kod
 FLAGS = env.get("LUXOS_XKB_FLAGS", "/usr/share/xfce4/xkb/flags")
 FLAG_W = 20
@@ -114,19 +118,22 @@ function bar_css():
         + ".luxos-bar .lb-clock { " + tokens.type_css("body_strong") + " font-feature-settings: \"tnum\"; }\n"
         + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["xs"]) + "px; }\n"
-        # rozlozeni klavesnice: tichy stitek (18x15, jen tenky ramecek), ne nejhlasitejsi prvek listy
-        + ".luxos-bar .lb-badge { font-size: 11px; font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.3px;"
-        + " border: 1px solid; border-radius: 4px; padding: 0 2px; min-width: 14px; min-height: 13px; }\n"
+        # rozlozeni klavesnice jako text verze 1.1.1 (luxos-xkb.c): tucny kod barvou pisma listy, bez ramecku;
+        # po prepnuti kratce na akcentu (potvrzeni kliku, pravidlo na konci)
+        + ".luxos-bar .lb-badge { font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.4px; padding: 0 2px; }\n"
+        + ".luxos-bar button.lb.kb { transition: background-color 200ms ease-out; }\n"
         + ".luxos-bar.ink-white label, .luxos-bar.ink-white image { color: " + white + "; }\n"
         + ".luxos-bar.ink-white label { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white image { -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
-        + ".luxos-bar.ink-white .lb-badge { border-color: alpha(" + white + ", 0.55); }\n"
         + ".luxos-bar.ink-white button.lb:hover { background-color: alpha(" + white + ", 0.08); }\n"
         + ".luxos-bar.ink-white button.lb.open { background-color: alpha(" + white + ", 0.14); }\n"
         + ".luxos-bar.ink-dark label, .luxos-bar.ink-dark image { color: " + dark + "; }\n"
-        + ".luxos-bar.ink-dark .lb-badge { border-color: alpha(" + dark + ", 0.55); }\n"
         + ".luxos-bar.ink-dark button.lb:hover { background-color: alpha(" + dark + ", 0.08); }\n"
-        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n")
+        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n"
+        # zablesk po prepnuti rozlozeni prebije najeti mysi (stejna specificita, proto :hover a az na konci)
+        + ".luxos-bar button.lb.kb.flash, .luxos-bar button.lb.kb.flash:hover { background-color: "
+        + tokens.css_color(tokens.COLORS["accent"]) + "; transition: none; }\n"
+        + ".luxos-bar button.lb.kb.flash label { color: " + tokens.css_color(tokens.COLORS["accent_text"]) + "; text-shadow: none; }\n")
 end
 
 function apply_css():
@@ -381,29 +388,6 @@ end
 
 # ---- listy na monitorech ------------------------------------------------------------------------
 
-# Nazev vystupu Waylandu (HEADLESS-1, eDP-1) pro monitor GDK podle polohy z wlr-output-management (wl_output
-# polohu neposila, xdg-output knihovna nema); tapeta muze byt pro kazdy vystup
-function output_for(monitor):
-    geo = layer.monitor_geometry(monitor)
-    if wl.available():
-        for h in wl.heads():
-            info = wl.head_info(h)
-            if info[2] and info[3] == geo[0] and info[4] == geo[1]:
-                return info[0]
-            end
-        end
-        names = wl.outputs()
-        if len(names) == 1:
-            return wl.output_name(names[0])
-        end
-    end
-    model = layer.monitor_model(monitor)
-    if model == None:
-        return ""
-    end
-    return model
-end
-
 # Obsluha signalu patrici liste: zaznam uvolni GLib se zanikem okna (odpojeni monitoru)
 function connect(bar, instance, signal, nargs, handler, bound):
     call lglib.connect_data(instance, signal, nargs, handler, bound)
@@ -467,6 +451,8 @@ function build_bar(bar):
     call gtk.box_pack_start(keys, flag, False, False, 0)
     call gtk.box_pack_start(keys, badge, False, False, 0)
     kb = bar_button(bar, keys, "", on_item_press, "keyboard")
+    call gtk.widget_add_class(kb, "kb")
+    call connect(bar, kb, "button-release-event", 1, on_keyboard_release, 0)
     bar["items"]["keyboard"] = [kb, badge, flag]
     if ui["trace"]:
         call gtk.connect(kb, "size-allocate", on_badge_allocate)
@@ -532,7 +518,7 @@ function add_bar(monitor):
     end
     geo = layer.monitor_geometry(monitor)
     win = gtk.window_new("luxos-bar")
-    bar = {"win": win, "monitor": monitor, "output": output_for(monitor), "out_w": geo[2], "out_h": geo[3],
+    bar = {"win": win, "monitor": monitor, "output": hub_popup.output_for(monitor), "out_w": geo[2], "out_h": geo[3],
            "scale": max(1, monitor_scale(monitor)), "dark_ink": False, "scrim": 0.0, "scrim_win": 0, "items": {},
            "drawn": False, "traced": False}
     call layer.init_for_window(win)
@@ -736,7 +722,7 @@ function on_wl(kind, handle, a, b):
     elif kind == wl.OUTPUT_NEW or kind == wl.HEAD_NEW or kind == wl.HEAD_CHANGED:
         # vystup Waylandu muze prijit az po monitoru GDK: nazev pro tapetu doplnit
         for bar in bars:
-            name = output_for(bar["monitor"])
+            name = hub_popup.output_for(bar["monitor"])
             if name != bar["output"]:
                 bar["output"] = name
                 call refresh_look(bar)
@@ -833,7 +819,8 @@ function apply_status(bar):
     end
     call gtk.widget_set_visible(item[2], pixbuf != 0)
     call gtk.widget_set_visible(item[1], pixbuf == 0)
-    call gtk.widget_set_visible(item[0], kb["short"] != "")
+    # jedno rozlozeni: neni co prepinat (jako luxos-xkb.c na X11)
+    call gtk.widget_set_visible(item[0], len(kb["layouts"]) > 1)
     call gtk.widget_set_tooltip(item[0], kb["tip"])
     return 0
 end
@@ -884,28 +871,6 @@ function bar_of(widget):
         end
     end
     return None
-end
-
-function show_menu(widget):
-    if ui["menu"] == 0:
-        menu = luxos_gtk.menu_new()
-        for entry in MENU:
-            if entry == "":
-                call luxos_gtk.menu_append(menu, luxos_gtk.separator_menu_item_new())
-                continue
-            end
-            item = luxos_gtk.menu_item_new(i18n.T(entry[0]))
-            call lglib.connect_data(item, "activate", 0, on_menu_item, entry[1])
-            call luxos_gtk.menu_append(menu, item)
-        end
-        call gtk.widget_show_all(menu)
-        ui["menu"] = menu
-    end
-    unsafe:
-        # GDK_GRAVITY_SOUTH_WEST 7 / NORTH_WEST 1: pod tlacitkem (xdg_popup nad plochou listy)
-        call __lsl_qbe_call5(__lsl_symbol("gtk_menu_popup_at_widget"), ptr(ui["menu"]), ptr(widget), 7, 1, 0)
-    end
-    return 0
 end
 
 function on_menu_item(argv, item):
@@ -976,7 +941,58 @@ function on_layout_item(index, item):
     return 0
 end
 
+# Klik na kod rozlozeni: prepnout hned pri pusteni (dalsi rozlozeni, zablesk); podrzeni LONG_PRESS_MS = nabidka
+function keyboard_press(widget):
+    ui["kb_press"] += 1
+    ui["kb_held"] = True
+    ui["kb_widget"] = widget
+    call lglib.timeout_add_data(LONG_PRESS_MS, on_keyboard_long, ui["kb_press"])
+    return 0
+end
+
+function on_keyboard_long(press):
+    if press == ui["kb_press"] and ui["kb_held"]:
+        ui["kb_held"] = False
+        call show_layouts(ui["kb_widget"])
+    end
+    return False
+end
+
+function on_keyboard_release(unused, event, widget):
+    if gtk.event_button(event) != 1 or not ui["kb_held"]:
+        return True
+    end
+    ui["kb_held"] = False
+    kb = status.state["keyboard"]
+    if len(kb["layouts"]) > 1:
+        call trace("layout next " + String((kb["current"] + 1) % len(kb["layouts"])))
+        call status.next_layout()
+        call flash(widget)
+    end
+    return True
+end
+
+function flash(widget):
+    ui["kb_flash"] += 1
+    call luxos_gtk.widget_set_class(widget, "flash", True)
+    call lglib.timeout_add_data(FLASH_MS, on_flash_end, [ui["kb_flash"], widget])
+    return 0
+end
+
+function on_flash_end(pending):
+    if pending[0] == ui["kb_flash"]:
+        call luxos_gtk.widget_set_class(pending[1], "flash", False)
+    end
+    return False
+end
+
 function on_item_press(kind, event, widget):
+    # rozlozeni klavesnice: prave tlacitko = nabidka
+    if kind == "keyboard" and gtk.event_button(event) == 3 and plain_press(event):
+        call popup.close_all()
+        call show_layouts(widget)
+        return True
+    end
     # jen prvni stisk: rychly druhy klik posle navic GDK_2BUTTON_PRESS (prepnuti by se vratilo)
     if gtk.event_button(event) != 1 or plain_press(event) == False:
         return True
@@ -985,9 +1001,9 @@ function on_item_press(kind, event, widget):
     if bar == None:
         return False
     end
+    ui["last_bar"] = bar
     if kind == "menu":
-        call popup.close_all()
-        call show_menu(widget)
+        call open_popup(bar, "system", widget, gtk.event_time(event))
     elif kind == "control-center" or kind == "battery":
         call popup.close_all()
         call open_hub(bar, widget, gtk.event_time(event), "luxos-cc-toggle")
@@ -996,7 +1012,7 @@ function on_item_press(kind, event, widget):
         call open_hub(bar, widget, gtk.event_time(event), "luxos-calendar-toggle")
     elif kind == "keyboard":
         call popup.close_all()
-        call show_layouts(widget)
+        call keyboard_press(widget)
     elif kind == "search":
         call popup.close_all()
         call glib.spawn_quiet(["luxos-search"])
@@ -1008,11 +1024,44 @@ function on_item_press(kind, event, widget):
         if kind == "network":
             name = "wifi"
         end
-        a = gtk.widget_get_allocation(widget)
-        call popup.toggle(name, bar["monitor"], bar["output"], bar["out_w"], bar["out_h"], bar["scale"], a[0] + a[2] // 2,
-                          widget, gtk.event_time(event))
+        call open_popup(bar, name, widget, gtk.event_time(event))
     end
     return True
+end
+
+function open_popup(bar, name, widget, event_time):
+    a = gtk.widget_get_allocation(widget)
+    call popup.toggle(name, bar["monitor"], bar["output"], bar["out_w"], bar["out_h"], bar["scale"], a[0] + a[2] // 2,
+                      widget, event_time)
+    return 0
+end
+
+# SIGUSR1 (Ovladaci centrum): okno Wi-Fi pod ikonou site listy, kde se naposledy klikalo; bez ikony site pod
+# Ovladacim centrem
+function on_sigusr1():
+    bar = ui["last_bar"]
+    if bar == None or bar not in bars:
+        if len(bars) == 0:
+            return True
+        end
+        bar = bars[0]
+    end
+    widget = bar["items"]["network"][0]
+    if not gtk.widget_get_visible(widget):
+        widget = bar["items"]["control-center"][0]
+    end
+    call trace("signal wifi")
+    if not popup.is_visible("wifi"):
+        call open_popup(bar, "wifi", widget, monotonic_ms())
+    end
+    return True
+end
+
+function write_pid():
+    safe:
+        call lglib.write_atomic(hub_popup.runtime_file("luxos-bar.pid"), String(glib.getpid()) + "\n")
+    end
+    return 0
 end
 
 # Ovladaci centrum a Kalendar bezi v luxos-hub a signal nic nenese: monitor listy a stred tlacitka mu preda soubor
@@ -1080,5 +1129,7 @@ call update_app()
 call schedule_clock()
 call gio.file_monitor(config_dir() + "/appearance.conf", on_conf_changed)
 call gio.file_monitor(config_dir() + "/appearance", on_conf_changed)
+call lglib.unix_signal_add(SIGUSR1, on_sigusr1)
+call write_pid()
 call trace("ready")
 call gtk.main()
