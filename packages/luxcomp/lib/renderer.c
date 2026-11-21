@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -31,10 +32,15 @@
 #include <wlr/util/log.h>
 #include <xf86drm.h>
 
-/* Stejny render node, jaky si bez DRM backendu (headless, vnoreny) otevre wlroots: prvni v poradi drmGetDevices2 */
+/* Stejny render node, jaky si otevre wlroots: WLR_RENDER_DRM_DEVICE, bez DRM backendu (headless, vnoreny)
+ * jinak prvni v poradi drmGetDevices2 */
 static int
 open_render_node(void)
 {
+	const char *forced = getenv("WLR_RENDER_DRM_DEVICE");
+	if (forced && *forced) {
+		return open(forced, O_RDWR | O_CLOEXEC);
+	}
 	drmDevice *devices[64];
 	int n = drmGetDevices2(0, devices, 64);
 	int fd = -1;
@@ -82,7 +88,9 @@ driver_no_3d(int fd)
 static const char *
 no_3d_reason(int drm_fd)
 {
-	if (drm_fd < 0) {
+	/* WLR_RENDER_DRM_DEVICE ma ve wlroots prednost i pred GPU displeje */
+	const char *forced = getenv("WLR_RENDER_DRM_DEVICE");
+	if (drm_fd < 0 || (forced && *forced)) {
 		/* headless/vnoreny, treba v kontejneru ve VM bez 3D: zkontrolovat render node, ktery dostane wlroots */
 		int fd = open_render_node();
 		if (fd < 0) {
@@ -102,7 +110,10 @@ no_3d_reason(int drm_fd)
 	return driver_no_3d(drm_fd);
 }
 
-/* Mesa bez ovladace pro dane GPU spadne na softwarovy rasterizer (llvmpipe, softpipe, kms_swrast) */
+static char gl_name[128];
+
+/* Mesa bez ovladace pro dane GPU spadne na softwarovy rasterizer (llvmpipe, softpipe, kms_swrast).
+ * Jmeno GPU si nechame pro radek s volbou rendereru (hlaseni chyb na konkretnim GPU). */
 static bool
 gles2_is_software(struct wlr_renderer *renderer)
 {
@@ -112,6 +123,7 @@ gles2_is_software(struct wlr_renderer *renderer)
 		return false;
 	}
 	const char *name = (const char *)glGetString(GL_RENDERER);
+	snprintf(gl_name, sizeof(gl_name), "%s", name ? name : "?");
 	bool software = name && (strstr(name, "llvmpipe") || strstr(name, "softpipe")
 		|| strstr(name, "swrast"));
 	if (software) {
@@ -159,6 +171,9 @@ renderer_create(struct wlr_backend *backend, struct wlr_allocator **allocator,
 	if (forced && *forced) {
 		renderer = wlr_renderer_autocreate(backend);
 		if (renderer && create_allocator(backend, renderer, allocator)) {
+			if (wlr_renderer_is_gles2(renderer)) {
+				gles2_is_software(renderer);
+			}
 			goto done;
 		}
 		if (!strcmp(forced, "pixman")) {
@@ -194,7 +209,8 @@ done:
 		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
 	}
 	/* WLR_ERROR, aby volba byla v kazdem logu */
-	wlr_log(WLR_ERROR, "luxcomp: renderer %s%s%s%s%s", renderer_name(renderer),
+	wlr_log(WLR_ERROR, "luxcomp: renderer %s%s%s%s%s%s%s", renderer_name(renderer),
+		gl_name[0] && !software ? " on " : "", gl_name[0] && !software ? gl_name : "",
 		software ? " + software cursor" : "",
 		reason ? " (" : forced && *forced ? " (WLR_RENDERER)" : "",
 		reason ? reason : "", reason ? ")" : "");

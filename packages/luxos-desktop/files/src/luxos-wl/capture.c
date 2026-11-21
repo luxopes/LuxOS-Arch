@@ -78,6 +78,42 @@ static void frame_ready(void *data, struct ext_image_copy_capture_frame_v1 *f)
 	struct capture *c = data;
 	(void)f;
 	end_session(c);
+	/* 24bitove pixely (NVIDIA): na XRGB8888 do nove pameti */
+	if (c->format == WL_SHM_FORMAT_BGR888 || c->format == WL_SHM_FORMAT_RGB888) {
+		int stride = c->width * 4, r = c->format == WL_SHM_FORMAT_BGR888 ? 0 : 2;
+		size_t size = (size_t)stride * c->height;
+		uint8_t *rgb = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (rgb == MAP_FAILED) {
+			fail(c, -1);
+			return;
+		}
+		for (int y = 0; y < c->height; y++) {
+			const uint8_t *src = (const uint8_t *)c->data + (size_t)y * c->stride;
+			uint8_t *dst = rgb + (size_t)y * stride;
+			for (int x = 0; x < c->width; x++, src += 3, dst += 4) {
+				dst[0] = src[2 - r];
+				dst[1] = src[1];
+				dst[2] = src[r];
+				dst[3] = 0xff;
+			}
+		}
+		munmap(c->data, c->size);
+		c->data = rgb;
+		c->size = size;
+		c->stride = stride;
+		c->format = WL_SHM_FORMAT_XRGB8888;
+	}
+	/* poradi RGBA (gles2 cte pixely tak): na ARGB prohodit R a B */
+	if (c->format == WL_SHM_FORMAT_XBGR8888 || c->format == WL_SHM_FORMAT_ABGR8888) {
+		uint8_t *row = c->data;
+		for (int y = 0; y < c->height; y++, row += c->stride)
+			for (uint8_t *p = row; p < row + c->width * 4; p += 4) {
+				uint8_t r = p[0];
+				p[0] = p[2];
+				p[2] = r;
+			}
+		c->format = c->format == WL_SHM_FORMAT_XBGR8888 ? WL_SHM_FORMAT_XRGB8888 : WL_SHM_FORMAT_ARGB8888;
+	}
 	c->done = true;
 	lwl_emit(LWL_CAPTURE_READY, c->id, c->width, c->height);
 }
@@ -104,14 +140,28 @@ static void session_buffer_size(void *data, struct ext_image_copy_capture_sessio
 	c->height = (int)height;
 }
 
+/* Kompozitor s rendererem gles2 nabidne jen format, ve kterem GPU cte pixely (Mesa XBGR8888, NVIDIA BGR888),
+ * pixman XRGB8888 */
+static int format_rank(uint32_t format)
+{
+	switch (format) {
+	case WL_SHM_FORMAT_XRGB8888: return 6;
+	case WL_SHM_FORMAT_ARGB8888: return 5;
+	case WL_SHM_FORMAT_XBGR8888: return 4;
+	case WL_SHM_FORMAT_ABGR8888: return 3;
+	case WL_SHM_FORMAT_RGB888: return 2;
+	case WL_SHM_FORMAT_BGR888: return 1;
+	default: return 0;
+	}
+}
+
 static void session_shm_format(void *data, struct ext_image_copy_capture_session_v1 *s, uint32_t format)
 {
 	struct capture *c = data;
 	(void)s;
-	/* cairo umi ARGB32 i RGB24 primo; jine formaty jen kdyz nic z toho neni */
-	if (format == WL_SHM_FORMAT_XRGB8888 || format == WL_SHM_FORMAT_ARGB8888) {
-		if (!c->have_format || c->format != WL_SHM_FORMAT_XRGB8888)
-			c->format = format;
+	/* cairo umi ARGB32 i RGB24 primo, poradi RGBA se po snimku prehodi */
+	if (format_rank(format) > (c->have_format ? format_rank(c->format) : 0)) {
+		c->format = format;
 		c->have_format = true;
 	}
 }
@@ -135,7 +185,8 @@ static void session_done(void *data, struct ext_image_copy_capture_session_v1 *s
 		fail(c, -1);
 		return;
 	}
-	c->stride = c->width * 4;
+	bool packed = c->format == WL_SHM_FORMAT_BGR888 || c->format == WL_SHM_FORMAT_RGB888;
+	c->stride = packed ? (c->width * 3 + 3) & ~3 : c->width * 4;
 	c->size = (size_t)c->stride * c->height;
 	int fd = lwl_shm_fd(c->size);
 	if (fd < 0) {

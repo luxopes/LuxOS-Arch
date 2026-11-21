@@ -34,6 +34,7 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
+#include <wlr/util/addon.h>
 #include <wlr/util/log.h>
 #include "internal.h"
 
@@ -68,7 +69,7 @@ static struct {
 	/* gles2 */
 	bool gl_ready;
 	GLuint prog[3], vbo;
-	GLint u_tex[3], u_half[3], u_off[3], u_sat, u_size, u_radius, a_pos[3];
+	GLint u_tex[3], u_half[3], u_off[3], u_sat, u_size, u_radius, u_box, a_pos[3];
 	/* LUXCOMP_STATS */
 	bool stats;
 	int frames, updates, over;
@@ -94,6 +95,7 @@ struct blur {
 	/* gles2: urovne dual Kawase, 0 = zachyceni */
 	struct wlr_buffer *level[LEVELS + 1];
 	int lw[LEVELS + 1], lh[LEVELS + 1];
+	GLuint ltex[LEVELS + 1], lfbo[LEVELS + 1];	/* zijou s bufferem (doplnek wlroots) */
 	struct wl_listener parent_destroy;
 };
 
@@ -396,9 +398,72 @@ struct walk {
 	/* kresleni; pass NULL = jen podpis */
 	struct wlr_render_pass *pass;
 	double k;			/* px vyrezu na logicky px */
-	struct wlr_texture *temp[64];
-	int n_temp;
+	struct wlr_texture **temp;
+	int n_temp, max_temp;
 };
+
+/* Textury bufferu, ktere nejsou klientske (zahlavi, stiny oken): gles2 by je pri kazdem prepoctu nahraval do GPU
+ * znovu (64 textur pod ztmavenim Launchpadu ~9 ms). Textura zije s bufferem; jen pro buffery v pameti, textura
+ * z dmabuf (pixman i gles2 z dmabuf) buffer zamyka, takze by se nikdy neuvolnil. */
+struct tex_cache {
+	struct wlr_addon addon;
+	struct wlr_texture *texture;
+};
+
+static void
+tex_cache_destroy(struct wlr_addon *addon)
+{
+	struct tex_cache *c = wl_container_of(addon, c, addon);
+	wlr_addon_finish(addon);
+	wlr_texture_destroy(c->texture);
+	free(c);
+}
+
+static const struct wlr_addon_interface tex_cache_impl = {
+	.name = "luxcomp-blur-texture",
+	.destroy = tex_cache_destroy,
+};
+
+static struct wlr_texture *
+cached_texture(struct wlr_buffer *buffer)
+{
+	struct wlr_dmabuf_attributes dmabuf;
+	if (!wlr_renderer_is_gles2(comp.renderer) || wlr_buffer_get_dmabuf(buffer, &dmabuf)) {
+		return NULL;
+	}
+	struct wlr_addon *addon = wlr_addon_find(&buffer->addons, &blurs, &tex_cache_impl);
+	if (addon) {
+		struct tex_cache *c = wl_container_of(addon, c, addon);
+		return c->texture;
+	}
+	struct wlr_texture *texture = wlr_texture_from_buffer(comp.renderer, buffer);
+	if (!texture) {
+		return NULL;
+	}
+	struct tex_cache *c = calloc(1, sizeof(*c));
+	c->texture = texture;
+	wlr_addon_init(&c->addon, &buffer->addons, &blurs, &tex_cache_impl);
+	return texture;
+}
+
+/* Buffer se bude prepisovat (vlastni hotovy obraz materialu): textura v mezipameti by byla stara */
+static void
+forget_texture(struct wlr_buffer *buffer)
+{
+	struct wlr_addon *addon = wlr_addon_find(&buffer->addons, &blurs, &tex_cache_impl);
+	if (addon) {
+		tex_cache_destroy(addon);
+	}
+}
+
+static void
+free_temp(struct walk *w)
+{
+	for (int i = 0; i < w->n_temp; i++) {
+		wlr_texture_destroy(w->temp[i]);
+	}
+	free(w->temp);
+}
 
 static void
 mix(uint64_t *h, uint64_t v)
@@ -445,8 +510,12 @@ walk_buffer(struct walk *w, struct wlr_scene_buffer *sb, int x, int y)
 	struct wlr_client_buffer *cb = wlr_client_buffer_get(sb->buffer);
 	if (cb && cb->texture) {
 		tex = cb->texture;
-	} else if (w->n_temp < (int)(sizeof(w->temp) / sizeof(*w->temp))) {
+	} else if (!(tex = cached_texture(sb->buffer))) {
 		tex = wlr_texture_from_buffer(comp.renderer, sb->buffer);
+		if (tex && w->n_temp == w->max_temp) {
+			w->max_temp = w->max_temp ? 2 * w->max_temp : 16;
+			w->temp = realloc(w->temp, w->max_temp * sizeof(*w->temp));
+		}
 		if (tex) {
 			w->temp[w->n_temp++] = tex;
 		}
@@ -583,13 +652,19 @@ round_corners(uint32_t *px, int stride, int w, int h, int r)
 	}
 }
 
+/* Rozmazany material neni pro scenu nepruhledny: co je pod nim, je videt (rozmazane). Scena by jinak poskozeni
+ * pod nim zahodila a nekreslila snimek (pohyb okna cele pod ztmavenim Launchpadu, video pod vyskakovacim oknem
+ * by zustaly v materialu stare) a zakrytym klientum by neposilala frame done. Nepruhledna je jen jednolita barva. */
 static void
-set_opaque(struct blur *b, int w, int h)
+set_opaque(struct blur *b, int w, int h, bool opaque)
 {
 	pixman_region32_t region;
 	int r = b->radius;
-	pixman_region32_init_rect(&region, 0, r, w, h > 2 * r ? h - 2 * r : 0);
-	pixman_region32_union_rect(&region, &region, r, 0, w > 2 * r ? w - 2 * r : 0, h);
+	pixman_region32_init(&region);
+	if (opaque) {
+		pixman_region32_union_rect(&region, &region, 0, r, w, h > 2 * r ? h - 2 * r : 0);
+		pixman_region32_union_rect(&region, &region, r, 0, w > 2 * r ? w - 2 * r : 0, h);
+	}
 	wlr_scene_buffer_set_opaque_region(b->node, &region);
 	pixman_region32_fini(&region);
 }
@@ -610,17 +685,19 @@ next_out(struct blur *b, struct output *o, int w, int h, bool gpu)
 	b->cur ^= 1;
 	if (!b->out[b->cur]) {
 		b->out[b->cur] = gpu ? gl_buffer(o, w, h) : mem_create(w, h);
+	} else {
+		forget_texture(b->out[b->cur]);
 	}
 	return b->out[b->cur];
 }
 
 static void
-show(struct blur *b, struct wlr_buffer *buffer, int w, int h)
+show(struct blur *b, struct wlr_buffer *buffer, bool solid)
 {
 	wlr_scene_buffer_set_buffer(b->node, buffer);
 	wlr_scene_buffer_set_dest_size(b->node, b->box.width, b->box.height);
 	wlr_scene_buffer_set_filter_mode(b->node, WLR_SCALE_FILTER_BILINEAR);
-	set_opaque(b, b->box.width, b->box.height);
+	set_opaque(b, b->box.width, b->box.height, solid);
 }
 
 /* Tier C: jednolita barva materialu (nebo vypnuty blur) */
@@ -638,7 +715,7 @@ paint_solid(struct blur *b, struct output *o)
 		px[i] = pre;
 	}
 	round_corners(px, w, w, h, b->radius);
-	show(b, buf, w, h);
+	show(b, buf, true);
 }
 
 /* ---- pixman: ctvrtinove rozliseni, box blur v C ---- */
@@ -728,9 +805,7 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 	});
 	walk_scene(&w);
 	bool ok = wlr_render_pass_submit(w.pass);
-	for (int i = 0; i < w.n_temp; i++) {
-		wlr_texture_destroy(w.temp[i]);
-	}
+	free_temp(&w);
 	if (!ok) {
 		return false;
 	}
@@ -776,7 +851,7 @@ blur_cpu(struct blur *b, struct output *o, struct wlr_box abs)
 		return false;
 	}
 	round_corners(mem_data(buf), ow, ow, oh, b->radius);
-	show(b, buf, ow, oh);
+	show(b, buf, false);
 	return true;
 }
 
@@ -798,33 +873,35 @@ static const char *down_src =
 	"  gl_FragColor = s / 8.0;\n"
 	"}\n";
 
+/* p = misto ve zdrojove texture */
 #define UP_BODY \
 	"  vec2 o = half_px * offset;\n" \
-	"  vec4 s = texture2D(tex, uv + vec2(-o.x * 2.0, 0.0));\n" \
-	"  s += texture2D(tex, uv + vec2(-o.x, o.y)) * 2.0;\n" \
-	"  s += texture2D(tex, uv + vec2(0.0, o.y * 2.0));\n" \
-	"  s += texture2D(tex, uv + vec2(o.x, o.y)) * 2.0;\n" \
-	"  s += texture2D(tex, uv + vec2(o.x * 2.0, 0.0));\n" \
-	"  s += texture2D(tex, uv + vec2(o.x, -o.y)) * 2.0;\n" \
-	"  s += texture2D(tex, uv + vec2(0.0, -o.y * 2.0));\n" \
-	"  s += texture2D(tex, uv + vec2(-o.x, -o.y)) * 2.0;\n" \
+	"  vec4 s = texture2D(tex, p + vec2(-o.x * 2.0, 0.0));\n" \
+	"  s += texture2D(tex, p + vec2(-o.x, o.y)) * 2.0;\n" \
+	"  s += texture2D(tex, p + vec2(0.0, o.y * 2.0));\n" \
+	"  s += texture2D(tex, p + vec2(o.x, o.y)) * 2.0;\n" \
+	"  s += texture2D(tex, p + vec2(o.x * 2.0, 0.0));\n" \
+	"  s += texture2D(tex, p + vec2(o.x, -o.y)) * 2.0;\n" \
+	"  s += texture2D(tex, p + vec2(0.0, -o.y * 2.0));\n" \
+	"  s += texture2D(tex, p + vec2(-o.x, -o.y)) * 2.0;\n" \
 	"  s /= 12.0;\n"
 
 static const char *up_src =
 	"precision mediump float;\n"
 	"uniform sampler2D tex; uniform vec2 half_px; uniform float offset; varying vec2 uv;\n"
-	"void main() {\n" UP_BODY "  gl_FragColor = s;\n}\n";
+	"void main() {\n  vec2 p = uv;\n" UP_BODY "  gl_FragColor = s;\n}\n";
 
-/* posledni pruchod nahoru: saturace a zaobleny obdelnik (vyhlazena hrana) */
+/* posledni pruchod nahoru: jen cast vyrezu pod plochou (box = poloha a velikost plochy v texture vyrezu,
+ * vyrez ma okraj o polomer rozmazani), saturace a zaobleny obdelnik (vyhlazena hrana) */
 static const char *final_src =
 	"precision mediump float;\n"
 	"uniform sampler2D tex; uniform vec2 half_px; uniform float offset; varying vec2 uv;\n"
-	"uniform float sat; uniform vec2 size; uniform float radius;\n"
-	"void main() {\n" UP_BODY
+	"uniform float sat; uniform vec2 size; uniform float radius; uniform vec4 box;\n"
+	"void main() {\n  vec2 p = box.xy + uv * box.zw;\n" UP_BODY
 	"  float l = dot(s.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
 	"  vec3 c = clamp(mix(vec3(l), s.rgb, sat), 0.0, 1.0);\n"
 	"  vec2 q = abs(uv * size - size * 0.5) - (size * 0.5 - vec2(radius));\n"
-	"  float d = length(max(q, 0.0)) - radius;\n"
+	"  float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;\n"
 	"  gl_FragColor = vec4(c, 1.0) * clamp(0.5 - d, 0.0, 1.0);\n"
 	"}\n";
 
@@ -888,6 +965,7 @@ gl_setup(void)
 	cfg.u_sat = glGetUniformLocation(cfg.prog[2], "sat");
 	cfg.u_size = glGetUniformLocation(cfg.prog[2], "size");
 	cfg.u_radius = glGetUniformLocation(cfg.prog[2], "radius");
+	cfg.u_box = glGetUniformLocation(cfg.prog[2], "box");
 	static const GLfloat quad[] = { -1, -1, 1, -1, -1, 1, 1, 1 };
 	glGenBuffers(1, &cfg.vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, cfg.vbo);
@@ -897,27 +975,34 @@ gl_setup(void)
 	return true;
 }
 
-/* Jeden pruchod: textura z bufferu src do FBO bufferu dst */
+/* Textura a FBO bufferu urovne. wlroots je ma ulozene u bufferu, ale kazde wlr_texture_from_buffer znovu
+ * pripoji EGLImage a prepina kontext EGL; na NVIDIA to stalo ~0,2 ms za pruchod. Kreslime do nich jen
+ * my v kontextu rendereru, takze staci jednou. */
 static bool
-gl_pass(int prog, struct wlr_buffer *src, int src_w, int src_h, struct wlr_buffer *dst,
-		int dst_w, int dst_h, double scale, int radius)
+gl_target(struct wlr_buffer *buffer, GLuint *tex, GLuint *fbo)
 {
-	struct wlr_texture *tex = wlr_texture_from_buffer(comp.renderer, src);
-	if (!tex) {
+	struct wlr_texture *t = wlr_texture_from_buffer(comp.renderer, buffer);
+	if (!t) {
 		return false;
 	}
 	struct wlr_gles2_texture_attribs attr;
-	wlr_gles2_texture_get_attribs(tex, &attr);
-	GLuint fbo = wlr_gles2_renderer_get_buffer_fbo(comp.renderer, dst);
-	if (attr.target != GL_TEXTURE_2D || !fbo) {
-		wlr_texture_destroy(tex);
-		return false;
-	}
+	wlr_gles2_texture_get_attribs(t, &attr);
+	wlr_texture_destroy(t);
+	*tex = attr.target == GL_TEXTURE_2D ? attr.tex : 0;
+	*fbo = wlr_gles2_renderer_get_buffer_fbo(comp.renderer, buffer);
+	return *tex && *fbo;
+}
+
+/* Jeden pruchod: textura src do FBO dst */
+static bool
+gl_pass(int prog, GLuint src, int src_w, int src_h, GLuint fbo, int dst_w, int dst_h, double scale,
+		int radius, const GLfloat box[4])
+{
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	glViewport(0, 0, dst_w, dst_h);
 	glUseProgram(cfg.prog[prog]);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, attr.tex);
+	glBindTexture(GL_TEXTURE_2D, src);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -934,6 +1019,7 @@ gl_pass(int prog, struct wlr_buffer *src, int src_w, int src_h, struct wlr_buffe
 		glUniform1f(cfg.u_sat, cfg.saturation / 100.0f);
 		glUniform2f(cfg.u_size, (GLfloat)dst_w, (GLfloat)dst_h);
 		glUniform1f(cfg.u_radius, (GLfloat)radius);
+		glUniform4fv(cfg.u_box, 1, box);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, cfg.vbo);
 	glEnableVertexAttribArray(cfg.a_pos[prog]);
@@ -942,8 +1028,7 @@ gl_pass(int prog, struct wlr_buffer *src, int src_w, int src_h, struct wlr_buffe
 	glDisableVertexAttribArray(cfg.a_pos[prog]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	wlr_texture_destroy(tex);
-	return glGetError() == GL_NO_ERROR;
+	return true;
 }
 
 static struct wlr_buffer *
@@ -959,9 +1044,24 @@ gl_buffer(struct output *o, int w, int h)
 	return wlr_allocator_create_buffer(comp.allocator, w, h, &fmt);
 }
 
+/* Kontext rendereru nechame aktualni natrvalo: wlroots ho kolem kazdeho pruchodu nastavi a pak vrati
+ * predchozi, a uvolneni kontextu stalo na NVIDIA 0,3-1,8 ms (flush) - nekolikrat za snimek. Kdyz je
+ * aktualni porad, jsou ta prepnuti prazdna. Nikdo jiny v procesu EGL nepouziva. */
+static bool
+gl_current(void)
+{
+	struct wlr_egl *egl = wlr_gles2_renderer_get_egl(comp.renderer);
+	EGLContext ctx = wlr_egl_get_context(egl);
+	return eglGetCurrentContext() == ctx
+		|| eglMakeCurrent(wlr_egl_get_display(egl), EGL_NO_SURFACE, EGL_NO_SURFACE, ctx);
+}
+
 static bool
 blur_gpu(struct blur *b, struct output *o, struct wlr_box abs)
 {
+	if (!gl_current()) {
+		return false;
+	}
 	double scale = o->wlr_output->scale;
 	struct wlr_box cap = capture_box(b, o, abs);
 	int w0 = (int)ceil(cap.width * scale), h0 = (int)ceil(cap.height * scale);
@@ -971,7 +1071,8 @@ blur_gpu(struct blur *b, struct output *o, struct wlr_box abs)
 			b->lw[i] = w0 >> i > 0 ? w0 >> i : 1;
 			b->lh[i] = h0 >> i > 0 ? h0 >> i : 1;
 			b->level[i] = gl_buffer(o, b->lw[i], b->lh[i]);
-			if (!b->level[i]) {
+			if (!b->level[i] || !gl_target(b->level[i], &b->ltex[i], &b->lfbo[i])) {
+				free_levels(b);
 				return false;
 			}
 		}
@@ -987,51 +1088,47 @@ blur_gpu(struct blur *b, struct output *o, struct wlr_box abs)
 	});
 	walk_scene(&w);
 	bool ok = wlr_render_pass_submit(w.pass);
-	for (int i = 0; i < w.n_temp; i++) {
-		wlr_texture_destroy(w.temp[i]);
-	}
+	free_temp(&w);
 	if (!ok) {
 		return false;
 	}
 
 	int ow = (int)ceil(abs.width * scale), oh = (int)ceil(abs.height * scale);
 	struct wlr_buffer *out = next_out(b, o, ow, oh, true);
-	if (!out) {
-		return false;
-	}
-	struct wlr_egl *egl = wlr_gles2_renderer_get_egl(comp.renderer);
-	EGLDisplay dpy = wlr_egl_get_display(egl);
-	EGLContext prev = eglGetCurrentContext();
-	EGLSurface prev_draw = eglGetCurrentSurface(EGL_DRAW), prev_read = eglGetCurrentSurface(EGL_READ);
-	if (!eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(egl))) {
+	GLuint out_tex, out_fbo;	/* textura vysledku tu neni potreba */
+	if (!out || !gl_target(out, &out_tex, &out_fbo)) {
 		return false;
 	}
 	ok = gl_setup();
+	while (glGetError() != GL_NO_ERROR) {
+	}
 	glDisable(GL_BLEND);
 	glDisable(GL_SCISSOR_TEST);
 	/* offset 1.0 na kazde urovni: 4 pruchody davaji efektivni polomer ~2^4 * 2 = 32 px */
 	double off = cfg.radius / 32.0;
 	for (int i = 0; ok && i < LEVELS; i++) {
-		ok = gl_pass(0, b->level[i], b->lw[i], b->lh[i], b->level[i + 1], b->lw[i + 1], b->lh[i + 1],
-			off, 0);
+		ok = gl_pass(0, b->ltex[i], b->lw[i], b->lh[i], b->lfbo[i + 1], b->lw[i + 1], b->lh[i + 1],
+			off, 0, NULL);
 	}
 	for (int i = LEVELS; ok && i > 1; i--) {
-		ok = gl_pass(1, b->level[i], b->lw[i], b->lh[i], b->level[i - 1], b->lw[i - 1], b->lh[i - 1],
-			off, 0);
+		ok = gl_pass(1, b->ltex[i], b->lw[i], b->lh[i], b->lfbo[i - 1], b->lw[i - 1], b->lh[i - 1],
+			off, 0, NULL);
 	}
 	/* posledni pruchod rovnou do vysledku: jen cast vyrezu pod plochou */
 	if (ok) {
-		ok = gl_pass(2, b->level[1], b->lw[1], b->lh[1], out, ow, oh, off,
-			(int)(b->radius * scale));
+		const GLfloat box[4] = { (GLfloat)(abs.x - cap.x) / cap.width, (GLfloat)(abs.y - cap.y) / cap.height,
+			(GLfloat)abs.width / cap.width, (GLfloat)abs.height / cap.height };
+		ok = gl_pass(2, b->ltex[1], b->lw[1], b->lh[1], out_fbo, ow, oh, off,
+			(int)(b->radius * scale), box);
 	}
+	ok = ok && glGetError() == GL_NO_ERROR;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glUseProgram(0);
-	glFlush();
-	eglMakeCurrent(dpy, prev_draw, prev_read, prev);
+	/* bez glFlush: scena kresli vysledek ve stejnem kontextu, poradi prikazu GL staci */
 	if (!ok) {
 		return false;
 	}
-	show(b, out, ow, oh);
+	show(b, out, false);
 	return true;
 }
 

@@ -15,6 +15,7 @@ The harness is shell plus small C tools. Python is used only in tests.
 | `src/wlt-input.c` | input through `zwlr_virtual_pointer_v1` and `zwp_virtual_keyboard_v1` |
 | `src/wlt-client.c` | test window (xdg-shell, server-side decorations, striped content, no fonts); `--events` prints input it receives |
 | `src/wlt-bar.c` | test bar through layer-shell (top or bottom edge, exclusive zone, solid colour) |
+| `src/wlt-popups.c` | load for the compositor material: translucent layer-shell popups `wlt-popup@popup:16`, optional full-screen dim `wlt-dim@dim`, open/close cycles |
 | `src/wlt-qmp.c` | QMP client: `screendump` capture at a fixed fps, input via `input-send-event` |
 | `src/wlt-frames.c` | PPM statistics and the flicker detector |
 | `labwc/` | deterministic labwc config for tests (centered windows, no shadows, fixed root menu) |
@@ -24,7 +25,7 @@ Everything generated goes to `out/wl-test/` (`WLT_OUT`): `bin/`, `sysroot/`, `se
 
 ## Safety
 
-- A compositor only ever gets `WLR_BACKENDS=headless` or `x11`, plus `WLR_RENDERER=pixman`, `WLR_DRM_DEVICES=/nonexistent` and `WLR_LIBINPUT_NO_DEVICES=1`. It never touches the host's DRM or input devices.
+- A compositor only ever gets `WLR_BACKENDS=headless` or `x11`, plus `WLR_RENDERER=pixman`, `WLR_DRM_DEVICES=/nonexistent` and `WLR_LIBINPUT_NO_DEVICES=1`. It never touches the host's DRM or input devices. The only exception is the GPU mode below: a render node, never a card node.
 - Sessions start from `env -i`. Nothing from the real session is passed on: no `DISPLAY`, `WAYLAND_DISPLAY`, session bus or `HOME`. `XDG_RUNTIME_DIR`, `HOME` and `XDG_CONFIG_HOME` are private under `out/wl-test/sessions/NAME/`.
 - Nested mode starts its own Xvfb on display :200–:299 (the test guard uses :90–:199).
 - The compositor runs under `systemd-run --user --scope -p TasksMax=300 -p MemoryMax=1G -p MemorySwapMax=0` (`WLT_MEMORY_MAX` changes the limit) (set `WLT_SCOPE=0` to skip this) and `timeout`. Clients run under `timeout`. `wlt stop` kills only PIDs the session started.
@@ -63,6 +64,9 @@ scripts/wl-test/wlt stop "$s"
   - `WLT_COMPOSITOR_ENV="VAR=x ..."` adds variables to the compositor's environment.
   - For luxwm, `start` writes `S/privileged.conf` with wlr-randr, grim and wlt-input, and passes it as `LUXWM_PRIVILEGED`. `WLT_PRIVILEGED="/abs/prog ..."` adds programs under test (their real executables). Only allowlisted programs get the privileged protocols (output management, capture, virtual input). It also sets `WLR_XWAYLAND` to the sysroot's Xwayland. XWayland creates its X socket in `/tmp/.X11-unix` on a free display number, never `:0`.
 - `wlt-bar [--height N] [--bottom] [--color RRGGBB]` is a layer-shell bar with an exclusive zone, for placement tests below a bar or above a dock.
+- `wlt-popups [--count N] [--size WxH] [--dim] [--cycles N]` opens N translucent popups with the `popup` material (and a
+  full-screen Launchpad-like `dim` with `--dim`); `--cycles N` closes and reopens them N times, each opening waits for its
+  first frame, then exits (leak checks).
 - `wlt-client --events` prints `focus US` (CLOCK_MONOTONIC in µs) when it gets keyboard focus, for latency measurements.
 - `run S CMD...` runs a client in the session environment. With `--bg`, output goes to `S/clients.log`, so you can read what `wlt-client --events` received.
 - `input` commands, one per argument or one per stdin line (`src/scen.c`):
@@ -87,6 +91,25 @@ scripts/wl-test/wlt stop "$s"
   (`packages/luxos-desktop/tests/test_luxos_dock.py`, `Dock.input`).
 - `env S` prints `export` lines for the session, e.g. for running an LSL client by hand.
 - Logs: `S/compositor.log`, `S/clients.log`, `S/xvfb.log`. For a debug log, use `wlt start -- labwc -d`.
+
+## GPU mode
+
+`WLT_RENDER_NODE=/dev/dri/renderD128 wlt start ...` runs the compositor with the GLES2 renderer on that GPU instead of
+pixman. Every test that starts its sessions through `wlt` (luxwm, luxos-desktop) runs on the GPU this way:
+
+```sh
+WLT_RENDER_NODE=/dev/dri/renderD129 python3 -m unittest -v packages/luxwm/tests/test_luxwm*.py
+```
+
+- Only a render node (`/dev/dri/renderD*`) is accepted and passed as `WLR_RENDER_DRM_DEVICE`; the backend stays headless
+  or nested, so nothing opens `/dev/dri/card*` or becomes DRM master. `WLR_RENDERER` is not set: the compositor picks
+  the renderer itself, as on a real machine (luxcomp logs `luxcomp: renderer gles2 on <GL_RENDERER>`).
+- `GBM_BACKENDS_PATH` points at the sysroot's Mesa first (same version as its `libgbm`), then the host's `/usr/lib/gbm`
+  (`nvidia-drm_gbm.so`).
+- On a hybrid laptop, glvnd loads every EGL vendor into the compositor (NVIDIA's ~37 MB PSS also when it renders on
+  AMD), so PSS limits written for pixman don't hold on the GPU; compare PSS only within one renderer.
+- Results on the AMD Ryzen 5500U iGPU and the NVIDIA GTX 1650 (frame times, CPU, leaks) are in
+  `docs/developers/luxcomp-api.md`, section Material.
 
 ## Flicker detector
 

@@ -23,6 +23,8 @@ struct shadow_texture {
 struct shadow {
 	struct wlr_scene_tree *tree;
 	struct wlr_scene_buffer *piece[8];
+	/* zobrazeny buffer drzime: scena ho po nahrani do GPU pusti a material (blur.c) by stin nevidel */
+	struct wlr_buffer *held;
 };
 
 /* stin a obrys aktivniho a neaktivniho okna a stiny urovni materialu (blur.c) */
@@ -159,6 +161,9 @@ void
 shadow_destroy(struct shadow *sh)
 {
 	wlr_scene_node_destroy(&sh->tree->node);
+	if (sh->held) {
+		wlr_buffer_unlock(sh->held);
+	}
 	free(sh);
 }
 
@@ -172,6 +177,12 @@ shadow_update(struct shadow *sh, struct wlr_box f, int size, int offset, int rad
 		return;
 	}
 	struct wlr_buffer *buffer = texture(size, radius, argb, scale, blur);
+	if (buffer != sh->held) {
+		if (sh->held) {
+			wlr_buffer_unlock(sh->held);
+		}
+		sh->held = wlr_buffer_lock(buffer);
+	}
 	int c = corner_size(size, radius), n = 2 * c + 1;
 	/* svetlo shora: stin posunuty dolu */
 	int x0 = f.x - size, y0 = f.y - size + offset;
@@ -197,7 +208,11 @@ shadow_update(struct shadow *sh, struct wlr_box f, int size, int offset, int rad
 		if (part[i].w <= 0 || part[i].h <= 0) {
 			continue;
 		}
-		wlr_scene_buffer_set_buffer(p, buffer);
+		/* stejny buffer znovu: scena by zahodila texturu a gles2 by ji pri kazde zmene velikosti
+		 * nahraval do GPU znovu */
+		if (p->buffer != buffer) {
+			wlr_scene_buffer_set_buffer(p, buffer);
+		}
 		wlr_scene_buffer_set_source_box(p, &(struct wlr_fbox){ part[i].sx * scale,
 			part[i].sy * scale, part[i].sw * scale, part[i].sh * scale });
 		wlr_scene_buffer_set_dest_size(p, part[i].w, part[i].h);
