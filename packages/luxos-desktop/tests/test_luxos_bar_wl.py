@@ -378,11 +378,16 @@ class WaylandBar(unittest.TestCase):
         self.client("org.example.NoDesktop", "Xwayland on :0", "300x200", "4020a0")
         bar.wait(r"^app Desktop$", start=mark)
         self.assertFalse([line for line in bar.lines if re.match(r"^app (luxos-displays-settings|org\.example|Xwayland)", line)])
-        # zadne aktivni okno: Plocha
-        mark = bar.mark()
+        # zadne aktivni okno: Plocha (posledni okno bez .desktop uz Plochu ukazuje, takze novy radek prijit
+        # nemusi - plati posledni hlaseni, az vsechna okna skonci)
         for p in self.procs[1:]:
             p.terminate()
-        bar.wait(r"^app Desktop$", start=mark)
+        for p in self.procs[1:]:
+            p.wait(10)
+        time.sleep(1.0)
+        with bar.cond:
+            apps = [line for line in bar.lines if line.startswith("app ")]
+        self.assertEqual(apps[-1], "app Desktop", apps)
 
     def test_exclusive_zone_under_maximized_window(self):
         self.start()
