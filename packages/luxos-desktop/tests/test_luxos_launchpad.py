@@ -65,7 +65,9 @@ RESORT = rofi_has_custom_resort()
 
 
 def xdo(*args):
-    return subprocess.run(["xdotool", *map(str, args)], capture_output=True, text=True, timeout=10).stdout
+    # env=os.environ: Gio.TestDBus jineho modulu muze DISPLAY smazat v prostredi C, ktere by xdotool jinak zdedil
+    return subprocess.run(["xdotool", *map(str, args)], env=os.environ, capture_output=True, text=True,
+                          timeout=10).stdout
 
 
 class TestDesktopEntry(unittest.TestCase):
@@ -386,7 +388,7 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.open()                                 # pripravi poradi podle kategorie (jen App00..59)
         self.proc.terminate()
         self.proc.wait(timeout=10)
-        subprocess.run(["xdotool", "search", "--class", "rofi", "windowkill"], capture_output=True)
+        subprocess.run(["xdotool", "search", "--class", "rofi", "windowkill"], env=os.environ, capture_output=True)
         order = os.path.join(self.env["XDG_CACHE_HOME"], "luxos", "launchpad-order-category")
         self.assertTrue(os.path.exists(order))
         time.sleep(1.1)                             # mtime slozky musi byt novejsi nez poradi

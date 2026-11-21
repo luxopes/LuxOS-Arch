@@ -208,6 +208,11 @@ class Hub(unittest.TestCase):
     def tearDownClass(cls):
         cls.svc.stop()
         cls.tdbus.down()
+        # Gio.TestDBus smaze DISPLAY a adresu sbernice jen v prostredi C (os.environ o tom nevi) -
+        # podprocesy dalsich modulu spustene bez env= by jinak bezely bez obrazovky
+        for k in ("DISPLAY", "DBUS_SESSION_BUS_ADDRESS"):
+            if k in os.environ:
+                os.putenv(k, os.environ[k])
 
     def setUp(self):
         self.home = tempfile.mkdtemp(prefix="home-", dir=TMP)
