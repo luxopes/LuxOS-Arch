@@ -230,6 +230,32 @@ class SettingsAppsWayland(unittest.TestCase):
         self.app.send("press ctrl+q")
         self.assertEqual(self.app.proc.wait(10), 0)
 
+    def test_monitor(self):
+        # aplikace na Waylandu = proces s polozkou .desktop (cizi okna luxwm neprivilegovanemu klientovi neda);
+        # ukoncuje se jen proces spusteny testem
+        data = self.session / "data"
+        (data / "applications").mkdir(parents=True)
+        (data / "applications/luxos-test-app.desktop").write_text(
+            "[Desktop Entry]\nType=Application\nName=Test App\nExec=luxos-test-app\nIcon=utilities-terminal\n")
+        bindir = self.session / "bin"
+        bindir.mkdir()
+        (bindir / "luxos-test-app").symlink_to(shutil.which("sleep"))
+        helper = subprocess.Popen([str(bindir / "luxos-test-app"), "300"])
+        self.procs.append(helper)
+        path = f"{bindir}:{os.environ['PATH']}"
+        self.open("luxos-monitor", PATH=path, XDG_DATA_HOME=str(data), LANG="en_US.UTF-8")
+        self.check_window("luxos-monitor", "System Monitor")
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.assertTrue(self.app.wait(lambda: any(r["name"] == "Test App" for r in state()["rows"])), state())
+        self.assertTrue(state()["title"].startswith("Open apps ("))
+        self.app.ask("sort name")
+        self.assertEqual(state()["heads"]["name"], "Name ▲")
+        self.app.ask("quit Test App")
+        self.assertEqual(helper.wait(10), -15)
+        self.assertTrue(self.app.wait(lambda: all(r["name"] != "Test App" for r in state()["rows"])))
+        self.app.send("close")
+        self.assertEqual(self.app.proc.wait(10), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,7 +5,7 @@
 
 Kazda aplikace bezi ve vlastnim Xvfb 1366x768 a 1280x800 (nikdy na skutecne obrazovce), s mrtvou
 systemovou sbernici a bez kamer (scripts/luxos_testguard.py) a jen v testovacich rezimech s vymyslenymi
-daty (LUXOS_POWER_DEMO, LUXOS_MONITOR_DEMO, falesne nmcli/ip/ping). Sonda tests/fit-probe zmeri X okno
+daty (LUXOS_POWER_DEMO, falesne nmcli/ip/ping). Sonda tests/fit-probe zmeri X okno
 vcetne HeaderBar, okno pak zmensi na 100x100 a zmeri nejmensi dovolenou velikost.
 Snimky obrazovky: LUXOS_FIT_SHOTS=<slozka>.
 """
@@ -44,7 +44,6 @@ NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
 APPS = {
     "luxos-feedback": {},
-    "luxos-monitor": {"LUXOS_MONITOR_DEMO": "1"},
     "luxos-router": {"LUXOS_IP": os.path.join(FAKE_NET, "ip"), "LUXOS_NMCLI": os.path.join(FAKE_NET, "nmcli"),
                      "LUXOS_PING": os.path.join(FAKE_NET, "ping"), "LUXOS_ROUTER_PORT": "9"},
     "luxos-display-settings": lambda tmp: displays_env(tmp),
@@ -189,9 +188,6 @@ class WindowFits(unittest.TestCase):
 
     def test_feedback(self):
         self.check("luxos-feedback")
-
-    def test_monitor_demo(self):
-        self.check("luxos-monitor")
 
     def test_router_without_network(self):
         self.check("luxos-router")

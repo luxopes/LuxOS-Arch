@@ -28,7 +28,7 @@ def shots(s):
     fw.launch_demo(s)
     s.window(cls="luxos-firewall-settings", size=None)
 
-    p = s.launch_python("luxos-desktop/files/bin/luxos-monitor")
+    p = s.launch([s.lslc("luxos-desktop/files/lsl/luxos-monitor.lsl")])
     win = s.window(pid=p.pid, size=(1070, 640))
     s.sleep(62)                       # graf za posledni minutu se cely naplni
     s.capture("1", win)
