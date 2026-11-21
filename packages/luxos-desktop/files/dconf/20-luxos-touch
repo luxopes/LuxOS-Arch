@@ -12,7 +12,11 @@ show-tooltips=false
 
 [org/onboard/auto-show]
 enabled=true
-keyboard-device-detection-enabled=true
+# Ukazat se i kdyz system vidi klavesnici: u konvertibilnich notebooku zustava vestavena klavesnice pripojena
+# i ve slozenem rezimu (bez spinace "tablet mode" by se klavesnice sama neukazala nikdy). Psani na fyzicke
+# klavesnici klavesnici na obrazovce hned schova (hide-on-key-press).
+keyboard-device-detection-enabled=false
+hide-on-key-press=true
 tablet-mode-detection-enabled=true
 
 [org/onboard/window]

@@ -5378,3 +5378,6 @@ Top right corner	Jobb felső sarok
 Bottom left corner	Bal alsó sarok
 Bottom right corner	Jobb alsó sarok
 Move the pointer into a corner of the screen and keep it there for a moment.	Vigye a mutatót a képernyő egyik sarkába, és tartsa ott egy pillanatig.
+Scale	Méretezés
+Size of everything on the screen	Minden elem mérete a képernyőn
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Nagyobbá teszi a szöveget, a gombokat, az ablakok címsorát, a menüsort és a Dockot – hasznos érintőképernyőn és kis, nagy felbontású kijelzőkön. Egyes alkalmazásokat újra meg kell nyitni.

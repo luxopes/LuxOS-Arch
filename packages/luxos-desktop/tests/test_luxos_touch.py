@@ -103,6 +103,11 @@ class TouchTest(unittest.TestCase):
         if shutil.which("touchegg"):
             self.assertIn("SPAWN touchegg", out)
         self.assertIn("rotate-watch", out)
+        self.assertIn(" guard", out)
+        if shutil.which("unclutter"):
+            self.assertIn("SPAWN unclutter --hide-on-touch", out)
+        # sbernice zpristupneni hned zapnuta (Onboard se pak ukaze i v uz bezicich aplikacich)
+        self.assertIn("org.a11y.Status IsEnabled <true>", out)
         with open(os.path.join(self.home, ".config", "luxos", "touch-state")) as f:
             self.assertEqual(f.read().strip(), "touchscreen=1 keyboard=0 accel=1")
         # gesta: vychozi konfigurace LuxOS do ~/.config/touchegg
@@ -137,6 +142,40 @@ class TouchTest(unittest.TestCase):
         out = subprocess.run(["bash", "-c", script], capture_output=True, text=True).stdout.split()
         self.assertEqual(out, ["normal", "inverted", "left", "right", "none"])
 
+    def test_osk_size_from_screen(self):
+        m = self.machine([])
+        for screen, land, port in (("1920 1080", 432, 576), ("1280 800", 320, 384), ("1080 1920", 432, 576),
+                                   ("1024 600", 240, 307), ("800 480", 205, 240)):
+            with self.subTest(screen=screen):
+                shutil.rmtree(os.path.join(self.home, ".config"), ignore_errors=True)
+                out = self.run_touch(m, "osk-size", extra={"LUXOS_TOUCH_SCREEN": screen}).stdout
+                self.assertIn("RUN gsettings set org.onboard.window.landscape dock-height %d" % land, out)
+                self.assertIn("RUN gsettings set org.onboard.window.portrait dock-height %d" % port, out)
+
+    def test_guard_reattaches_floating_touch(self):
+        """Dotyk odpojeny od ukazatele (Onboard) se po dvou kontrolach vrati; pripojeny se nemeni."""
+        m = self.machine([("ELAN Touchscreen", ["ID_INPUT_TOUCHSCREEN"], None, False)])
+        fake = os.path.join(self.tmp, "fakebin")
+        os.makedirs(fake)
+        count = os.path.join(self.tmp, "count")
+        script = """#!/bin/bash
+case "$1 $2" in
+  "list --id-only") echo 7 ;;
+  "list-props 7") printf '\\tDevice Node (270):\\t"/dev/input/event0"\\n' ;;
+  "list --short") n=$(cat %(c)s 2>/dev/null || echo 0); echo $((n + 1)) > %(c)s
+                  if (( n < 3 )); then echo "∼ ELAN Touchscreen  id=7 [floating slave]"
+                  else echo "↳ ELAN Touchscreen  id=7 [slave  pointer  (2)]"; fi ;;
+esac
+""" % {"c": count}
+        for name, body in (("xinput", script), ("xset", "#!/bin/sh\nexit 0\n")):
+            with open(os.path.join(fake, name), "w") as f:
+                f.write(body)
+            os.chmod(os.path.join(fake, name), 0o755)
+        r = self.run_touch(m, "guard", extra={"PATH": fake + ":/usr/bin:/bin", "LUXOS_TOUCH_GUARD_EVERY": "0.05",
+                                              "LUXOS_TOUCH_GUARD_ONCE": "1"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.count("RUN xinput reattach 7 Virtual core pointer"), 2, r.stdout)
+
     def test_osk_embed_without_touchscreen_exits(self):
         m = self.machine([("Keyboard", ["ID_INPUT_KEYBOARD"], FULL_KEYBOARD, False)])
         r = self.run_touch(m, "osk-embed")
@@ -152,12 +191,16 @@ class TouchTest(unittest.TestCase):
                     for g in doc.getElementsByTagName("gesture")}
         self.assertIn(("SWIPE", "3", "UP"), gestures)
         self.assertIn(("TAP", "2", ""), gestures)
+        # plochy i ctyrmi prsty (tri prsty s otevrenou aplikaci casto posouvaji v aplikaci)
+        self.assertIn(("SWIPE", "4", "LEFT"), gestures)
+        self.assertIn(("SWIPE", "4", "RIGHT"), gestures)
 
     def test_dconf_defaults(self):
         with open(os.path.join(FILES, "dconf", "20-luxos-touch"), encoding="utf-8") as f:
             text = f.read()
-        for line in ("[org/onboard/auto-show]", "enabled=true", "keyboard-device-detection-enabled=true",
-                     "docking-enabled=true", "start-minimized=true"):
+        # klavesnice se ukaze i u konvertibilu s pripojenou vestavenou klavesnici; psani na ni ji schova
+        for line in ("[org/onboard/auto-show]", "enabled=true", "keyboard-device-detection-enabled=false",
+                     "hide-on-key-press=true", "docking-enabled=true", "start-minimized=true"):
             self.assertIn(line, text)
 
 

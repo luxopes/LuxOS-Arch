@@ -39,6 +39,13 @@ MODES = ("extend", "mirror", "external", "internal")
 # Qt i Firefoxu). None = vychozi (vlastnost se odstrani).
 TEXT_SIZES = (84, None, 108, 120, 132)
 DEFAULT_DPI = 96
+# Meritko obrazovky (jako 100-200 % ve Windows): 100-150 % = vetsi pismo (Xft/DPI), horni lista, Dock, kurzor
+# a ramecky oken; 175 a 200 % = GTK 2x (Gdk/WindowScalingFactor) a DPI dopocitane na presny pomer.
+# Velikost textu (TEXT_SIZES) se pocita relativne k meritku. Ulozene v ~/.config/luxos/display-scale.
+SCALES = (100, 125, 150, 175, 200)
+PANEL_SIZE = 28      # vychozi vyska horni listy LuxOS (xfce4-panel, panel-1)
+DOCK_ICONS = 48      # vychozi velikost ikon Docku (Plank)
+CURSOR_SIZE = 24
 
 
 def conf_path():
@@ -429,11 +436,111 @@ def rate_restore(outputs, name, mode, rate):
 
 
 # ---- velikost textu (xsettings Xft/DPI) ------------------------------------------
-def text_size_index(dpi):
-    """Index v TEXT_SIZES pro aktualni Xft/DPI (None/neplatne = vychozi, jinak nejblizsi)."""
-    if dpi is None or dpi <= 0 or dpi == DEFAULT_DPI:
+def text_size_index(dpi, scale=100):
+    """Index v TEXT_SIZES pro aktualni Xft/DPI pri danem meritku (None/neplatne = vychozi, jinak nejblizsi)."""
+    base = scale_dpi(scale)
+    if dpi is None or dpi <= 0:
+        dpi = DEFAULT_DPI if scale_factor(scale) == 1 and base == DEFAULT_DPI else base
+    rel = dpi * DEFAULT_DPI / base          # DPI odpovidajici meritku 100 %
+    if abs(rel - DEFAULT_DPI) < 1:
         return TEXT_SIZES.index(None)
-    return min(range(len(TEXT_SIZES)), key=lambda i: abs((TEXT_SIZES[i] or DEFAULT_DPI) - dpi))
+    return min(range(len(TEXT_SIZES)), key=lambda i: abs((TEXT_SIZES[i] or DEFAULT_DPI) - rel))
+
+
+def scale_factor(scale):
+    """Gdk/WindowScalingFactor pro meritko."""
+    return 2 if scale >= 175 else 1
+
+
+def scale_dpi(scale):
+    """Xft/DPI pro meritko pri vychozi velikosti textu (s WindowScalingFactor 2 se pismo jeste zdvojnasobi)."""
+    return round(DEFAULT_DPI * scale / 100 / scale_factor(scale))
+
+
+def scale_path():
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(base, "luxos", "display-scale")
+
+
+def read_scale():
+    try:
+        with open(scale_path()) as f:
+            value = int(f.read().strip())
+        return value if value in SCALES else 100
+    except (OSError, ValueError):
+        return 100
+
+
+def _xfconf_get(channel, prop):
+    try:
+        r = subprocess.run(["xfconf-query", "-c", channel, "-p", prop], capture_output=True, text=True, timeout=5)
+        return int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+
+
+def _xfconf_set(channel, prop, kind, value):
+    try:
+        return subprocess.run(["xfconf-query", "-c", channel, "-p", prop, "-n", "-t", kind, "-s", str(value)],
+                              capture_output=True, timeout=5).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def _effective(scale):
+    """Kolikrat vetsi kresli LuxOS prvky, ktere GTK samo nezvetsuje (lista, Dock): 125 % = 1.25, 200 % = 1.0."""
+    return scale / 100 / scale_factor(scale)
+
+
+def scaled_size(current, base, old_scale, new_scale, lo, hi):
+    """Nova velikost prvku pri zmene meritka; vlastni velikost uzivatele (prepoctena na 100 %) zustava."""
+    unit = round(current / _effective(old_scale)) if current else base
+    return max(lo, min(hi, round(unit * _effective(new_scale))))
+
+
+def plank_settings():
+    try:
+        from gi.repository import Gio
+        source = Gio.SettingsSchemaSource.get_default()
+        if source.lookup("net.launchpad.plank.dock.settings", True):
+            return Gio.Settings.new_with_path("net.launchpad.plank.dock.settings", "/net/launchpad/plank/docks/dock1/")
+    except Exception:          # bez GI / bez Plank: Dock se neprizpusobi
+        pass
+    return None
+
+
+def set_scale(scale):
+    """Nastavi meritko obrazovky (100-200 %). Velikost textu, vlastni velikost listy a Docku zustanou."""
+    if scale not in SCALES:
+        raise ValueError(scale)
+    old = read_scale()
+    text = text_size_index(read_dpi(), old)
+    wsf = scale_factor(scale)
+    ok = _xfconf_set("xsettings", "/Gdk/WindowScalingFactor", "int", wsf)
+    dpi = round(scale_dpi(scale) * (TEXT_SIZES[text] or DEFAULT_DPI) / DEFAULT_DPI)
+    if dpi == DEFAULT_DPI and wsf == 1:
+        subprocess.run(["xfconf-query", "-c", "xsettings", "-p", "/Xft/DPI", "-r"], capture_output=True, timeout=5)
+    else:
+        ok = _xfconf_set("xsettings", "/Xft/DPI", "int", dpi) and ok
+    _xfconf_set("xsettings", "/Gtk/CursorThemeSize", "int", round(CURSOR_SIZE * _effective(scale)))
+    panel = _xfconf_get("xfce4-panel", "/panels/panel-1/size")
+    _xfconf_set("xfce4-panel", "/panels/panel-1/size", "uint",
+                scaled_size(panel, PANEL_SIZE, old, scale, 16, 64))
+    dock = plank_settings()
+    if dock is not None:
+        dock.set_int("icon-size", scaled_size(dock.get_int("icon-size"), DOCK_ICONS, old, scale, 24, 128))
+        dock.sync()
+    os.makedirs(os.path.dirname(scale_path()), exist_ok=True)
+    tmp = scale_path() + ".tmp"
+    with open(tmp, "w") as f:
+        f.write("%d\n" % scale)
+    os.replace(tmp, scale_path())
+    # ramecky oken: hdpi (1,5x) pro 125-150 %, xhdpi pro 2x
+    try:
+        subprocess.run(["luxos-appearance", "wm-theme"], capture_output=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return ok
 
 
 def read_dpi():
@@ -446,8 +553,12 @@ def read_dpi():
 
 
 def set_text_size(index):
-    """Nastavi velikost textu; vychozi krok vlastnost odstrani (navrat k vychozimu DPI)."""
-    dpi = TEXT_SIZES[index]
+    """Nastavi velikost textu (relativne k meritku obrazovky); vychozi krok pri meritku 100 % vlastnost
+    odstrani (navrat k vychozimu DPI)."""
+    scale = read_scale()
+    dpi = round(scale_dpi(scale) * (TEXT_SIZES[index] or DEFAULT_DPI) / DEFAULT_DPI)
+    if dpi == DEFAULT_DPI and scale_factor(scale) == 1:
+        dpi = None
     if dpi is None:
         cmd = ["xfconf-query", "-c", "xsettings", "-p", "/Xft/DPI", "-r"]
     else:
@@ -505,6 +616,11 @@ def main(argv):
                 save(load(), layouts=layouts)
         print(" ".join(p["args"]))
         return 0
+    if argv[1:2] == ["scale-get"]:
+        print(read_scale())
+        return 0
+    if argv[1:2] == ["scale-set"] and len(argv) == 3 and argv[2].isdigit() and int(argv[2]) in SCALES:
+        return 0 if set_scale(int(argv[2])) else 1
     if argv[1:2] == ["rate-cap"]:
         for name, mode, rate in rate_cap(query()):
             print(name, mode, rate)
@@ -513,7 +629,7 @@ def main(argv):
         rate_restore(query(), *argv[2:5])
         return 0
     print("usage: luxos_displays.py output-args | layout-args [extend] | mode-get | mode-set MODE | mirror-args"
-          " | rate-cap | rate-restore OUTPUT MODE RATE", file=sys.stderr)
+          " | rate-cap | rate-restore OUTPUT MODE RATE | scale-get | scale-set 100|125|150|175|200", file=sys.stderr)
     return 2
 
 

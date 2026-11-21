@@ -12,6 +12,8 @@
 #   luxos-touch rotate normal|left|right|inverted      otocit vestaveny displej a dotyk
 #   luxos-touch map               dotyk na vestaveny displej (i po pripojeni monitoru)
 #   luxos-touch rotate-watch      sleduje senzor otoceni (spousti session)
+#   luxos-touch guard             vraci odpojeny dotyk zpet k ukazateli (spousti session)
+#   luxos-touch osk-size          vyska ukotvene klavesnice podle obrazovky (spousti session)
 #
 # Testy: LUXOS_TOUCH_UDEV (adresar dat udev, vychozi /run/udev/data), LUXOS_TOUCH_SYS (/sys/class/input),
 # LUXOS_TOUCH_FORCE=1 (dotykova obrazovka i bez hardwaru), LUXOS_TOUCH_DRY=1 (jen vypsat prikazy).
@@ -170,7 +172,68 @@ rotation_lock() {
     if [[ -e $LOCK_FILE ]]; then echo locked; else echo unlocked; fi
 }
 
+# Pojistka: Onboard pri simulaci kliknuti docasne odpoji dotykove zarizeni od ukazatele ("floating
+# slave", CSFloatingSlave). Kdyz ho po chybe nevrati, dotyk prestane fungovat uplne ("nereaguje, at klepu
+# kamkoli"). Odpojene dotykove zarizeni (dve kontroly po sobe, tj. 2-4 s) se vrati k hlavnimu ukazateli.
+floating_touch_ids() {   # ID dotykovych zarizeni, ktera jsou ted odpojena (floating)
+    local id
+    for id in $(touch_xinput_ids); do
+        xinput list --short "$id" 2>/dev/null | grep -q 'floating slave' && echo "$id"
+    done
+}
+
+guard() {
+    local prev="" now id
+    while sleep "${LUXOS_TOUCH_GUARD_EVERY:-2}"; do
+        xset q >/dev/null 2>&1 || exit 0          # X skoncil (odhlaseni)
+        now=$(floating_touch_ids | tr '\n' ' ')
+        for id in $now; do
+            [[ " $prev " == *" $id "* ]] && run xinput reattach "$id" "Virtual core pointer"
+        done
+        prev=$now
+        [[ ${LUXOS_TOUCH_GUARD_ONCE:-0} == 1 && -z $now ]] && return 0
+    done
+}
+
 # ---- klavesnice na obrazovce (Onboard) -------------------------------------------------------------
+
+# Vyska ukotvene klavesnice podle obrazovky (vychozich 205 px je na tabletu s Full HD malo): na sirku 40 %
+# vysky obrazovky, na vysku 30 %. Vlastni vysku uzivatele (zmenena v nastaveni Onboardu) nemeni.
+osk_size() {
+    local geo="" w="" h="" short long land port out
+    out=$(internal_output)
+    if [[ -n $out ]]; then   # vestaveny displej (s otocenim)
+        geo=$(xrandr --query 2>/dev/null | awk -v o="$out" '$1 == o {for (i = 3; i <= NF; i++) if ($i ~ /^[0-9]+x[0-9]+\+/) {split($i, a, /[x+]/); print a[1], a[2]; exit}}')
+    fi
+    [[ -n $geo ]] || geo=$(xrandr --query 2>/dev/null | sed -n 's/.* current \([0-9]*\) x \([0-9]*\),.*/\1 \2/p' | head -1)
+    [[ -n ${LUXOS_TOUCH_SCREEN:-} ]] && geo=$LUXOS_TOUCH_SCREEN
+    read -r w h <<<"$geo"
+    [[ $w =~ ^[0-9]+$ && $h =~ ^[0-9]+$ ]] || return 0
+    short=$(( w < h ? w : h )) long=$(( w < h ? h : w ))
+    land=$(( short * 40 / 100 )) port=$(( long * 30 / 100 ))
+    (( land < 205 )) && land=205
+    (( port < 200 )) && port=200
+    osk_size_set landscape "$land"
+    osk_size_set portrait "$port"
+}
+
+# Nastavi vysku, jen kdyz ji uzivatel nezmenil: hodnota v dconf chybi, nebo je to ta, kterou nastavil LuxOS
+osk_size_set() {   # osk_size_set landscape|portrait VYSKA
+    local key=/org/onboard/window/$1/dock-height mark="$CFG/osk-size-$1" cur last=""
+    cur=$(dconf read "$key" 2>/dev/null)
+    [[ -r $mark ]] && last=$(<"$mark")
+    [[ -z $cur || $cur == "$last" ]] || return 0
+    run gsettings set "org.onboard.window.$1" dock-height "$2"
+    mkdir -p "$CFG" && echo "$2" >"$mark"
+}
+
+# Prepinac "zpristupneni" na sberni AT-SPI (aplikace podle nej hlasi textova pole a Onboard se pri psani sam
+# ukaze); gsettings samo plati az pro nove spustene sbernice
+a11y_on() {
+    run gsettings set org.gnome.desktop.interface toolkit-accessibility true 2>/dev/null
+    run gdbus call --session --dest org.a11y.Bus --object-path /org/a11y/bus \
+        --method org.freedesktop.DBus.Properties.Set org.a11y.Status IsEnabled '<true>'
+}
 
 onboard_call() {   # metoda D-Bus beziciho Onboardu
     gdbus call --session --dest org.onboard.Onboard --object-path /org/onboard/Onboard/Keyboard \
@@ -249,10 +312,17 @@ session() {
     lock_screen_keyboard "$kb"
 
     # Onboard se pri psani ukazuje pres AT-SPI (zpristupneni) - zapnout jen na dotykovych zarizenich
-    run gsettings set org.gnome.desktop.interface toolkit-accessibility true 2>/dev/null
+    a11y_on
     if command -v onboard >/dev/null; then
+        osk_size
         spawn onboard
     fi
+    # dotyk neni mys: kurzor se pri dotyku schova a ukaze se zase pri pohybu mysi (jako ve Windows a GNOME)
+    if command -v unclutter >/dev/null; then
+        spawn unclutter --hide-on-touch --timeout 86400
+    fi
+    # pojistka proti "mrtvemu" dotyku (odpojene zarizeni po Onboardu)
+    spawn "$0" guard
 
     # gesta: klient Touchegg (demon spousti udev pravidlo pro dotykove obrazovky)
     touchegg_config
@@ -277,5 +347,7 @@ case ${1:-} in
     rotate) shift; rotate "$@" ;;
     map) map_touch ;;
     rotate-watch) rotate_watch ;;
-    *) sed -n '2,14s/^# \{0,1\}//p' "$0"; exit 2 ;;
+    guard) guard ;;
+    osk-size) osk_size ;;
+    *) sed -n '2,16s/^# \{0,1\}//p' "$0"; exit 2 ;;
 esac

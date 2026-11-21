@@ -186,6 +186,71 @@ class SavedArgs(unittest.TestCase):
             self.assertEqual(ld.load(p), {"y": {"mode": "1x1"}})
 
 
+class Scale(unittest.TestCase):
+    """Meritko obrazovky 100-200 % (Monitory > Meritko): falesny xfconf-query, Dock jen v pameti."""
+
+    def setUp(self):
+        self.d = tempfile.mkdtemp(prefix="scale-")
+        self.addCleanup(shutil.rmtree, self.d, True)
+        self.old = os.environ.copy()
+        self.addCleanup(self.restore)
+        os.environ.update(FAKE_XFCONF=os.path.join(self.d, "x.json"), XDG_CONFIG_HOME=os.path.join(self.d, "cfg"),
+                          PATH=FAKE + os.pathsep + os.environ["PATH"], GSETTINGS_BACKEND="memory")
+
+    def restore(self):
+        os.environ.clear()
+        os.environ.update(self.old)
+
+    def xs(self, prop, channel="xsettings"):
+        with open(os.environ["FAKE_XFCONF"]) as f:
+            v = json.load(f).get(channel, {}).get(prop)
+        return None if v is None else int(v)
+
+    def test_math(self):
+        self.assertEqual([ld.scale_factor(s) for s in ld.SCALES], [1, 1, 1, 2, 2])
+        self.assertEqual([ld.scale_dpi(s) for s in ld.SCALES], [96, 120, 144, 84, 96])
+        # velikost textu relativne k meritku
+        self.assertEqual(ld.text_size_index(144, 150), ld.TEXT_SIZES.index(None))
+        self.assertEqual(ld.text_size_index(None, 200), ld.TEXT_SIZES.index(None))
+        self.assertEqual(ld.text_size_index(135, 125), 2)
+        # vlastni velikost listy se prepocita (32 px pri 100 % -> 48 px pri 150 %), meze
+        self.assertEqual(ld.scaled_size(32, 28, 100, 150, 16, 64), 48)
+        self.assertEqual(ld.scaled_size(None, 28, 100, 125, 16, 64), 35)
+        self.assertEqual(ld.scaled_size(42, 28, 150, 200, 16, 64), 28)
+        self.assertEqual(ld.scaled_size(60, 28, 100, 150, 16, 64), 64)
+
+    def test_set_scale_keeps_text_size_and_custom_bar(self):
+        ld._xfconf_set("xfce4-panel", "/panels/panel-1/size", "uint", 32)
+        self.assertEqual(ld.read_scale(), 100)
+        self.assertTrue(ld.set_scale(150))
+        self.assertEqual(ld.read_scale(), 150)
+        self.assertEqual((self.xs("/Gdk/WindowScalingFactor"), self.xs("/Xft/DPI"), self.xs("/Gtk/CursorThemeSize")),
+                         (1, 144, 36))
+        self.assertEqual(self.xs("/panels/panel-1/size", "xfce4-panel"), 48)
+        # 200 %: GTK 2x, DPI a lista zpet na zaklad (GTK je zdvojnasobi samo)
+        self.assertTrue(ld.set_scale(200))
+        self.assertEqual((self.xs("/Gdk/WindowScalingFactor"), self.xs("/Xft/DPI"), self.xs("/Gtk/CursorThemeSize")),
+                         (2, 96, 24))
+        self.assertEqual(self.xs("/panels/panel-1/size", "xfce4-panel"), 32)
+        # Velikost textu "Velke" pri 200 %, pak 125 %: krok zustava
+        self.assertTrue(ld.set_text_size(2))
+        self.assertEqual(self.xs("/Xft/DPI"), 108)
+        self.assertTrue(ld.set_scale(125))
+        self.assertEqual(self.xs("/Xft/DPI"), 135)
+        self.assertEqual(ld.text_size_index(ld.read_dpi(), ld.read_scale()), 2)
+        # zpet na 100 % a vychozi text: vlastnost DPI odstranena, GTK 1x, lista uzivatele 32 px
+        self.assertTrue(ld.set_text_size(ld.TEXT_SIZES.index(None)))
+        self.assertTrue(ld.set_scale(100))
+        self.assertIsNone(self.xs("/Xft/DPI"))
+        self.assertEqual(self.xs("/Gdk/WindowScalingFactor"), 1)
+        self.assertEqual(self.xs("/panels/panel-1/size", "xfce4-panel"), 32)
+
+    def test_bad_scale(self):
+        with self.assertRaises(ValueError):
+            ld.set_scale(130)
+        self.assertEqual(ld.main(["x", "scale-set", "130"]), 2)
+
+
 class TextSize(unittest.TestCase):
     def test_index(self):
         default = ld.TEXT_SIZES.index(None)
@@ -377,6 +442,7 @@ class App(unittest.TestCase):
         cls.saved_env = os.environ.copy()
         os.environ.update(cls.f.env)
         os.environ["LUXOS_DISPLAYS_CONFIRM_SECONDS"] = "2"
+        os.environ["GSETTINGS_BACKEND"] = "memory"        # Dock pri zmene meritka jen v pameti
         cls.app = load_app()
         from gi.repository import GLib, Gtk
         cls.GLib, cls.Gtk = GLib, Gtk
@@ -389,7 +455,7 @@ class App(unittest.TestCase):
 
     def setUp(self):
         self.f.write_state(fake_state())
-        for p in (self.f.conf, self.f.xfconf):
+        for p in (self.f.conf, self.f.xfconf, ld.scale_path()):
             if os.path.exists(p):
                 os.unlink(p)
         self.win = self.app.Displays()
@@ -435,6 +501,25 @@ class App(unittest.TestCase):
         self.assertIn("Built-in Display", titles)
         self.assertIn("Multiple Displays", titles)
         self.assertIn("Text Size", titles)
+        self.assertIn("Scale", titles)
+
+    def test_scale(self):
+        combo = self.win.scale_combo
+        self.assertEqual([r[0] for r in combo.get_model()], ["100 % (Default)", "125 %", "150 %", "175 %", "200 %"])
+        self.assertEqual(combo.get_active_id(), "100")
+        combo.set_active_id("150")
+        self.pump(0.3)
+        self.assertEqual(ld.read_scale(), 150)
+        with open(self.f.xfconf) as f:
+            xs = json.load(f)["xsettings"]
+        self.assertEqual((xs["/Xft/DPI"], xs["/Gdk/WindowScalingFactor"]), ("144", "1"))
+        # nove otevrene okno ukazuje ulozene meritko a velikost textu Vychozi (relativne k meritku)
+        win = self.app.Displays()
+        try:
+            self.assertEqual(win.scale_combo.get_active_id(), "150")
+            self.assertEqual(int(win.text_scale.get_value()), ld.TEXT_SIZES.index(None))
+        finally:
+            win.destroy()
 
     def change_resolution(self, name, mode):
         res = self.win.combos[name][0]

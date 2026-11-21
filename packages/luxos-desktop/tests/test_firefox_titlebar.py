@@ -739,6 +739,42 @@ class FirstRunWelcome(unittest.TestCase):
 
 
 @unittest.skipUnless(GUI, NEEDS_GUI)
+class TouchPrefs(unittest.TestCase):
+    """Dotykova obrazovka (luxos-touch: ~/.config/luxos/touch-state): dotyk jako dotyk (posouvani stranky
+    prstem), bez ni vychozi chovani Firefoxu."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tl.build_root(os.path.join(tl.OUT, "ffroot-touch"), PKG)
+        cls.s = tl.Session(name="touch")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.stop()
+
+    def prefs(self):
+        return self.s.mn.js("return [Services.prefs.getIntPref('dom.w3c_touch_events.enabled', -1), "
+                            "Services.prefs.prefHasUserValue('dom.w3c_touch_events.enabled')]")
+
+    def test_touch_events_only_with_touchscreen(self):
+        s = self.s
+        state = os.path.join(s.env["XDG_CONFIG_HOME"], "luxos", "touch-state")
+        os.makedirs(os.path.dirname(state), exist_ok=True)
+        for text, want in (("touchscreen=0 keyboard=1 accel=0\n", False), ("touchscreen=1 keyboard=0 accel=1\n", True)):
+            with self.subTest(state=text.strip()):
+                with open(state, "w") as f:
+                    f.write(text)
+                s.start_firefox(self.root)
+                value, user = wait_for(self.prefs)
+                s.quit_firefox()
+                self.assertFalse(user)                    # vychozi hodnota, uzivatel ji muze zmenit
+                if want:
+                    self.assertEqual(value, 1)
+                else:
+                    self.assertNotEqual(value, 1)
+
+
+@unittest.skipUnless(GUI, NEEDS_GUI)
 class WelcomeActions(unittest.TestCase):
     """Dlazdice otevrou aplikace LuxOS (testovaci napodobeniny), bez aplikace web; tlacitko Zpet akci
     neopakuje; prefers-reduced-motion vypne animace; fokus z klavesnice je videt."""

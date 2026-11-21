@@ -5378,3 +5378,6 @@ Top right corner	Övre högra hörnet
 Bottom left corner	Nedre vänstra hörnet
 Bottom right corner	Nedre högra hörnet
 Move the pointer into a corner of the screen and keep it there for a moment.	Flytta pekaren till ett hörn av skärmen och håll den där en kort stund.
+Scale	Skalning
+Size of everything on the screen	Storlek på allt på skärmen
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Gör text, knappar, namnlister, menyraden och Dock större – bra på pekskärmar och små skärmar med hög upplösning. Vissa appar behöver öppnas igen.

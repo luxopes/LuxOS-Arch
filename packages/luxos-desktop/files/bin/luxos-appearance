@@ -332,11 +332,17 @@ bar_layout() {
 # s dvojnasobnymi obrazky, jinak by byla lista okna polovicni a titulek oriznuty.
 # Zmenu meritka hlida luxos-hub (luxos-appearance wm-theme).
 themes_dir=${LUXOS_THEMES_DIR:-/usr/share/themes}
-wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light nebo WhiteSur-Light-xhdpi
-    local scale
+# Meritko obrazovky 125-150 % (Monitory > Meritko, ~/.config/luxos/display-scale): varianta -hdpi (1,5x),
+# vetsi tlacitka oken i pro dotyk.
+wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light, WhiteSur-Light-hdpi nebo WhiteSur-Light-xhdpi
+    local scale display=100
     scale=$(xfconf-query -c xsettings -p /Gdk/WindowScalingFactor 2>/dev/null)
+    [[ -r $state_dir/display-scale ]] && read -r display <"$state_dir/display-scale"
+    [[ $display =~ ^[0-9]+$ ]] || display=100
     if [[ $scale =~ ^[0-9]+$ ]] && (( scale >= 2 )) && [[ -r $themes_dir/$1-xhdpi/xfwm4/themerc ]]; then
         echo "$1-xhdpi"
+    elif (( display >= 125 && display < 175 )) && [[ -r $themes_dir/$1-hdpi/xfwm4/themerc ]]; then
+        echo "$1-hdpi"
     else
         echo "$1"
     fi
@@ -485,7 +491,7 @@ case ${1:-status} in
     reapply)    set_wallpaper "$(current)" 0 ;;
     # Po zmene meritka oken: jen tema ramecku (vlastni tema xfwm4 mimo WhiteSur zustava)
     wm-theme)   cur=$(xfconf-query -c xfwm4 -p /general/theme 2>/dev/null)
-                if [[ -z $cur || $cur == WhiteSur-@(Light|Dark)?(-xhdpi) ]]; then
+                if [[ -z $cur || $cur == WhiteSur-@(Light|Dark)?(-hdpi|-xhdpi) ]]; then
                     m=$([[ $(current) == dark ]] && echo Dark || echo Light)
                     want=$(wm_theme "WhiteSur-$m")
                     [[ $cur == "$want" ]] || xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$want"

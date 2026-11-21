@@ -415,6 +415,7 @@ class Displays(Gtk.Window):
         self.combos = {}
         for out in outs:
             self.build_output(page, out)
+        self.build_scale(page)
         self.build_text(page)
         page.set_sensitive(not self.busy)
         page.show_all()
@@ -719,6 +720,29 @@ class Displays(Gtk.Window):
             done(ok)
         proc.wait_check_async(None, finished)
 
+    # ---- meritko obrazovky (100-200 %, jako ve Windows) -----------------------------------
+    def build_scale(self, page):
+        group = Group(page, _("Scale"))
+        combo = Gtk.ComboBoxText()
+        for value in ld.SCALES:
+            label = "%d %%" % value
+            if value == 100:
+                label += " (" + _("Default") + ")"
+            combo.append(str(value), label)
+        combo.set_active_id(str(ld.read_scale()))
+        combo.connect("changed", self.on_scale)
+        self.scale_combo = combo
+        group.row(_("Size of everything on the screen"), combo,
+                  _("Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch "
+                    "screens and small high-resolution displays. Some apps need to be reopened."))
+
+    def on_scale(self, combo):
+        if self.building or not combo.get_active_id():
+            return
+        ld.set_scale(int(combo.get_active_id()))
+        # velikost textu je relativni k meritku: posuvnik zustava na stejnem kroku
+        return
+
     # ---- velikost textu ------------------------------------------------------------
     def build_text(self, page):
         group = Group(page, _("Text Size"))
@@ -731,7 +755,7 @@ class Displays(Gtk.Window):
         # pod znackami. Vybranou velikost ukazuje popisek pod posuvnikem.
         for i in range(len(labels)):
             scale.add_mark(i, Gtk.PositionType.BOTTOM, None)
-        scale.set_value(ld.text_size_index(ld.read_dpi()))
+        scale.set_value(ld.text_size_index(ld.read_dpi(), ld.read_scale()))
         self.text_labels = labels
         self.text_value = Gtk.Label(xalign=0.5, margin_bottom=2)
         self.text_value.get_style_context().add_class("text-size-value")

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=99
+pkgrel=100
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -41,7 +41,8 @@ depends=(
     # Graficky server a vstup
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
     # Dotykove obrazovky (luxos-touch): klavesnice na obrazovce, gesta, otaceni podle senzoru
-    onboard touchegg iio-sensor-proxy
+    # unclutter: kurzor se pri dotyku schova (dotyk neni mys)
+    onboard touchegg iio-sensor-proxy unclutter
     # Xfce (jen potrebne casti); xfwm4 z [luxos]: umisteni oken a Alt+` (packages/xfwm4)
     xfce4-session 'xfwm4>=4.20.0-2.1' xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
     # plugin horni listy luxos-bar (hodiny uprostred, neprusvitna lista pod okny)
