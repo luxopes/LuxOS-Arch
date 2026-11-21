@@ -731,6 +731,8 @@ function main():
         end
     end
     app["paths"] = find_batteries()
+    ui.state["hint_chars"] = 0
+    ui.state["hint_class"] = "card-sub"
     window = ui.window(i18n.T("Battery & Power"), "battery-good", 820, 720, 560, 420)
     call gtk.window_set_wmclass(window, "luxos-power", "luxos-power")
     scroll = gtk.scrolled_window_new()

@@ -6,6 +6,7 @@
 #   ui.window(titulek, ikona, sirka, vyska, min_sirka, min_vyska) -> okno (vyska <= 0 = podle obsahu,
 #                                     min_sirka <= 0 = nejmensi velikost podle obsahu)
 #   ui.label(text, css), ui.group(page, titulek) -> {box, rows}, ui.row(g, titulek, napoveda, widget)
+#   ui.state["hint_chars"], ui.state["hint_class"]  sirka a trida napovedy radku (0 = bez omezeni)
 #   ui.combo(volby [[id, popisek]], aktivni, f, data)  f(data, id) po zmene; hodnota mimo volby se prida
 #   ui.slider(od, do, hodnota, sirka, f, data)       f(data, cele cislo) 250 ms po posledni zmene
 #   ui.switch(zapnuto, f, data)                      f(data, zapnuto) jen po zmene uzivatelem
@@ -26,7 +27,8 @@ MARGIN = 16
 MIN_WIDTH = 360
 MIN_HEIGHT = 360
 
-state = {"switches": {}, "combos": {}, "sliders": {}, "quiet": False, "rows": {}, "test": [], "window": 0}
+state = {"switches": {}, "combos": {}, "sliders": {}, "quiet": False, "rows": {}, "test": [], "window": 0,
+         "hint_chars": 48, "hint_class": "hint"}
 
 function ptr(value):
     unsafe:
@@ -137,10 +139,14 @@ function row(g, title, hint, widget):
     end
     texts = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(texts, gtk.ALIGN_CENTER)
-    call gtk.box_pack_start(texts, label(title, ""), False, False, 0)
+    t = gtk.label_new(title)
+    call gtk.label_set_xalign(t, 0)
+    call gtk.box_pack_start(texts, t, False, False, 0)
     if hint != "":
-        h = label(hint, "hint")
-        call gtk.label_set_max_width_chars(h, 48)
+        h = label(hint, state["hint_class"])
+        if state["hint_chars"] > 0:
+            call gtk.label_set_max_width_chars(h, state["hint_chars"])
+        end
         call gtk.box_pack_start(texts, h, False, False, 0)
     end
     call gtk.box_pack_start(box, texts, True, True, 0)

@@ -53,7 +53,6 @@ APPS = {
 }
 FPRINTD = os.path.join(HERE, "fingerprint", "fake_fprintd.py")
 APPS.update({
-    "luxos-lock-settings": {},
     "luxos-keyboard": {},
     "luxos-bluetooth": {"_sysbus": "1"},             # soukroma prazdna "systemova" sbernice: bez BlueZ
     "luxos-fingerprint": {"LUXOS_FPRINT_BUS": "session"},
@@ -211,7 +210,7 @@ class WindowFits(unittest.TestCase):
 class SizedToContent(unittest.TestCase):
     """Okna bez velke prazdne plochy dole: vyska podle obsahu, ne pevna vychozi (drive + HeaderBar 45 px)."""
 
-    OLD = {"luxos-lock-settings": 520, "luxos-keyboard": 600, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
+    OLD = {"luxos-keyboard": 600, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
            "luxos-profile-picture": 560, "luxos-display-settings": 700}
 
     def test_heights(self):
