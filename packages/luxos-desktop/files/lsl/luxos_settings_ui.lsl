@@ -1,6 +1,6 @@
 # lsl: link libgtk-3.so.0 libgdk-3.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
 # LuxOS - spolecne casti oken Nastaveni v LSL (luxos-settings, luxos-power, luxos-lock-settings): okno
-# s HeaderBar velikosti podle pracovni plochy (jako luxos_winsize.py), skupiny radku ve stylu macOS,
+# s HeaderBar velikosti podle pracovni plochy (drive luxos_winsize.py), skupiny radku ve stylu macOS,
 # rozbalovaci seznamy s id, posuvnik s odlozenou zmenou, GSettings a soubory KLIC=hodnota.
 #
 #   ui.window(titulek, ikona, sirka, vyska, min_sirka, min_vyska) -> okno (vyska <= 0 = podle obsahu,

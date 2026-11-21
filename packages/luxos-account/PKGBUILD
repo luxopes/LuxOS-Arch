@@ -8,7 +8,7 @@ pkgdesc="LuxAI account for LuxOS (sign in once, used by LuxAI, Lux Code and LSL 
 arch=(any)
 url="https://lux-ai.cz"
 license=(GPL-3.0-or-later)
-depends=(python python-gobject gtk3 luxos-i18n xdg-utils)
+depends=(python python-gobject python-cairo gtk3 luxos-i18n xdg-utils)
 makedepends=(python)
 
 package() {

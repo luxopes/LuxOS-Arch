@@ -27,12 +27,10 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
-PYDIR = os.path.join(ROOT, "luxos-desktop", "files", "python")
 BIN = os.path.join(ROOT, "luxos-desktop", "files", "bin")
 HELPER = os.path.join(ROOT, "luxos-tweaks", "files", "power", "luxos-powersaver-helper")
 UNMETERED = os.path.join(ROOT, "luxos-tweaks", "files", "power", "luxos-unmetered")
 FAKE_XRANDR = os.path.join(HERE, "fake-displays", "xrandr")
-sys.path.insert(0, PYDIR)
 sys.path.insert(1, os.path.join(ROOT, "luxos-i18n", "files"))
 
 sys.path.insert(0, HERE)

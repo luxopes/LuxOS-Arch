@@ -32,7 +32,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PKG = os.path.normpath(os.path.join(HERE, ".."))
 ROOT = os.path.normpath(os.path.join(PKG, ".."))
 BIN = os.path.join(PKG, "files", "bin")
-PYDIR = os.path.join(PKG, "files", "python")
 I18N = os.path.join(ROOT, "luxos-i18n", "files")
 PROBE = os.path.join(HERE, "fit-probe")
 FAKE_NET = os.path.join(HERE, "fake-net")
@@ -92,8 +91,8 @@ def run_app(app, screen, extra=None, shot=None, hook=None, delay=2500):
         env.update({"DISPLAY": x.display, "HOME": os.path.join(tmp, "home"),
                     "XDG_CONFIG_HOME": os.path.join(tmp, "config"), "XDG_DATA_HOME": os.path.join(tmp, "data"),
                     "XDG_CACHE_HOME": os.path.join(tmp, "cache"), "XDG_RUNTIME_DIR": os.path.join(tmp, "run"),
-                    "PYTHONPATH": ":".join((PROBE, PYDIR, I18N)), "LUXOS_FIT_PYDIR": ":".join((PYDIR, I18N)),
-                    "LUXOS_PYDIR": PYDIR, "LUXOS_I18N_DIR": I18N, "LUXOS_FIT_OUT": out,
+                    "PYTHONPATH": ":".join((PROBE, I18N)), "LUXOS_FIT_PYDIR": I18N,
+                    "LUXOS_I18N_DIR": I18N, "LUXOS_FIT_OUT": out,
                     "LUXOS_FIT_DELAY": str(delay), "GTK_USE_PORTAL": "0", "NO_AT_BRIDGE": "1",
                     "GIO_USE_VFS": "local", "LANG": "cs_CZ.UTF-8", "LUXOS_NMCLI": "false"})
         os.makedirs(env["XDG_RUNTIME_DIR"], mode=0o700)
