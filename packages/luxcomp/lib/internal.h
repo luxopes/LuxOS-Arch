@@ -69,6 +69,8 @@ struct view {
 	bool mapped, visible, decorated;
 	struct deco *deco;
 	char *badge;		/* luxcomp_view_set_badge(), drawn by deco.c */
+	char *app_id_override, *title_override;	/* luxcomp_view_set_names() */
+	int last_w, last_h;	/* size of the last VIEW_MAP/VIEW_SIZE */
 	struct wlr_xdg_toplevel_decoration_v1 *xdg_deco;
 	struct wl_listener map, unmap, commit, destroy;
 	struct wl_listener request_move, request_resize, request_maximize,
@@ -236,6 +238,7 @@ void view_destroy_common(struct view *v);
 struct wlr_surface *view_surface(struct view *v);
 int view_width(struct view *v);
 int view_height(struct view *v);
+void view_size_changed(struct view *v);
 struct view *view_from_surface(struct wlr_surface *surface);
 bool view_shown(struct view *v);
 void tree_track(struct wlr_scene_tree **tree);

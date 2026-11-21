@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 6
+#define LUXCOMP_API_VERSION 7
 
 #pragma GCC visibility push(default)
 
@@ -48,6 +48,8 @@ enum luxcomp_event {
 	LUXCOMP_EV_IPC_CONNECT,		/* id=IPC client a=pid b=1 privileged (allowlisted executable) */
 	LUXCOMP_EV_IPC_LINE,		/* id=IPC client; luxcomp_ipc_line() is the received line */
 	LUXCOMP_EV_IPC_CLOSE,		/* id=IPC client; the id is dead after this */
+	LUXCOMP_EV_VIEW_SIZE,		/* id=view a=w b=h; the client changed its size (not sent during an
+					 * interactive move/resize, the button release ends those) */
 };
 
 enum luxcomp_request {
@@ -198,6 +200,9 @@ void luxcomp_view_set_workspace(int64_t view, int64_t workspace);
 void luxcomp_view_set_decorated(int64_t view, int64_t on);
 /* Small label at the right end of the server-side title bar (sandboxed apps); NULL or "" = none */
 void luxcomp_view_set_badge(int64_t view, const char *text);
+/* app_id and title the shell sees instead of what the client sets (the rootful Xwayland of a
+ * sandbox shows "Xwayland on :0"); NULL or "" = the client's own */
+void luxcomp_view_set_names(int64_t view, const char *app_id, const char *title);
 /* wp-security-context-v1 metadata of a sandboxed view ("" when not sandboxed or not set) */
 const char *luxcomp_view_sandbox_engine(int64_t view);
 const char *luxcomp_view_sandbox_app_id(int64_t view);

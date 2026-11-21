@@ -4,9 +4,10 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 6: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+`LUXCOMP_API_VERSION` = 7: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
-a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`), balík `packages/luxcomp`.
+a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
+a `luxcomp_view_set_names()`), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -65,6 +66,7 @@ luxcomp_destroy();
 | `VIEW_UNMAP` | okno | |
 | `VIEW_DESTROY` | okno | id potom už neplatí |
 | `VIEW_TITLE`, `VIEW_APP_ID` | okno | změnil se název nebo app_id |
+| `VIEW_SIZE` | okno | šířka, výška; klient sám změnil velikost (ne během tažení myší, to končí uvolněním tlačítka) |
 | `VIEW_REQUEST` | okno | `LUXCOMP_REQ_*` a argument (viz níže) |
 | `BUTTON` | okno nebo 0 | tlačítko (kód Linuxu, 272 = levé), 1 stisk / 0 uvolnění, `LUXCOMP_PART_*` |
 | `KEYBIND` | zkratka | |
@@ -118,6 +120,10 @@ backendu) a `luxcomp_test_output_remove(id)` ho odpojí; skutečné výstupy (DR
 
 `luxcomp_view_set_badge(id, text)` nakreslí krátký tlumený štítek u pravého okraje záhlaví od
 kompozitoru (luxwm: „Sandbox · příkaz“ u oken sandboxu), `""` ho odebere.
+
+`luxcomp_view_set_names(id, app_id, title)` přepíše app_id a název, které vidí záhlaví, Dock
+(foreign-toplevel) i `luxcomp_view_app_id()`/`luxcomp_view_title()`; `""` vrátí hodnotu klienta.
+luxwm tak ukazuje u kořenového okna Xwayland sandboxu („Xwayland on :0“) aplikaci ze sandboxu.
 
 Okna v pořadí od nejvyššího projde `luxcomp_view_next(0)`, `luxcomp_view_next(id)` … až po 0.
 
