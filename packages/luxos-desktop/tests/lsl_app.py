@@ -21,8 +21,13 @@ import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LSL_DIR = os.path.normpath(os.path.join(HERE, "..", "files", "lsl"))
+LSL_DIR = os.environ.get("LUXOS_LSL_DIR") or os.path.normpath(os.path.join(HERE, "..", "files", "lsl"))
 I18N = os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files"))
+
+# programy, ktere jsou ted strankou okna Nastaveni (odkaz na luxos-settings, PKGBUILD)
+SETTINGS_ALIASES = {"luxos-power", "luxos-lock-settings", "luxos-bluetooth", "luxos-fingerprint", "luxos-profile-picture",
+                    "luxos-wifi-qr", "luxos-app-reset", "luxos-scrolling", "luxos-firewall-settings",
+                    "luxos-keyboard-settings", "luxos-displays-settings", "luxos-display-settings"}
 
 
 def build(name, tmp):
@@ -30,6 +35,12 @@ def build(name, tmp):
     if not lslc:
         raise unittest.SkipTest("lslc (lsl) is not installed")
     out = os.path.join(tmp, name)
+    if not os.path.exists(os.path.join(LSL_DIR, name + ".lsl")):
+        if name in SETTINGS_ALIASES:
+            # stary program nastaveni je odkaz na luxos-settings (stranka podle jmena)
+            if not os.path.exists(out):
+                os.symlink(build("luxos-settings", tmp), out)
+            return out
     r = subprocess.run([lslc, "--target", "linux-x86_64-gnu", "--system-bindings", LSL_DIR,
                         os.path.join(LSL_DIR, name + ".lsl"), out], capture_output=True, text=True, timeout=900)
     if r.returncode:

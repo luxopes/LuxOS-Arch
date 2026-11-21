@@ -179,14 +179,10 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-emoji.lsl" luxos-emoji
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-emoji-ui.lsl" luxos-emoji-ui
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-emoji-data.lsl" luxos-emoji-data
-    # Nastaveni > Firewall (luxos-firewall: zapnuti, vyjimky, Tailscale, nedavno zablokovane programy)
-    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-firewall-settings.lsl" luxos-firewall-settings
     # Widgety na plose (cas a pocasi, mesic, vytizeni, hudba); vypnute = po spusteni hned skonci
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-widgets.lsl" luxos-widgets
     # Hodiny (budik, svetovy cas, stopky, minutka); budiky hlida na pozadi (--background)
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-clock-app.lsl" luxos-clock-app
-    # Nastaveni > Posouvani (plynule kolecko, setrvacnost touchpadu; ~/.config/luxos/scrolling.conf)
-    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-scrolling.lsl" luxos-scrolling
     # O tomto pocitaci (drive yad: jiny vzhled, bez UTF-8 locale se neotevrelo)
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-about.lsl" luxos-about
     # Uvitani po prvnim prihlaseni (drive yad: sedm tlacitek v rade roztahlo okno na Waylandu pres 1260 px)
@@ -208,19 +204,14 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-launchpad.lsl" luxos-launchpad-wayland
     # Tapeta a nabidka plochy relace na Waylandu (vrstva BACKGROUND na kazdem monitoru); X11 relace dal xfdesktop
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-backdrop.lsl" luxos-backdrop
-    # Klavesnice a zkratky (luxos-keyboard, luxos-shortcuts): na X11 localectl/setxkbmap a xfconf, na Waylandu
-    # luxwm.conf a IPC luxwm; take prevod stareho prepinani rozlozeni v luxos-desktop.install (--migrate-switch)
-    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
     # Monitory: pomocnik (na Waylandu jediny s pravem na wlr-output-management, allowlist luxwm; na X11 xrandr
     # pro skript luxos-displays) a okno/rychla volba
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-displays.lsl" luxos-displays-wayland
-    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-displays-settings.lsl" luxos-displays-settings
     # Agent polkitu relace na Waylandu (okno s heslem pro pkexec a Nastaveni); X11 relace dal polkit-gnome
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-polkit.lsl" luxos-polkit
-    # Aplikace nastaveni drive v Pythonu (WP-15): Plocha a Dock, Baterie, Sporic a zamek, Co je noveho, Prohlidka,
-    # Bluetooth, Otisk prstu, Profilova fotka, QR kod Wi-Fi, Vychozi nastaveni aplikaci (X11 i Wayland)
-    for p in luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
-        luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset; do
+    # Nastaveni: jedno okno se strankami (luxos_page_*.lsl, drive samostatne programy - jejich jmena jsou odkazy
+    # na luxos-settings), Co je noveho, Prohlidka (X11 i Wayland)
+    for p in luxos-settings luxos-whats-new luxos-tour; do
         lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/$p.lsl" "$p"
     done
     # Aplikace drive v Pythonu (WP-15): Kalkulacka, Monitor systemu, Zpetna vazba, kontrola portalu site, Sprava site, Kamera
@@ -274,9 +265,8 @@ package() {
     # jen soubory: __pycache__ z testu v pracovnim stromu by install zastavil
     install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-welcome luxos-news \
-        luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
-        luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset \
+        luxos-screenshot luxos-gpu luxos-widgets luxos-clock-app luxos-about luxos-welcome luxos-news \
+        luxos-settings luxos-whats-new luxos-tour \
         luxos-calculator luxos-monitor luxos-feedback luxos-portal-check luxos-router luxos-camera
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
     install -Dm755 luxos-sun "$pkgdir/usr/lib/luxos/luxos-sun"
@@ -298,9 +288,15 @@ package() {
     install -Dm644 "$f/systemd-user/luxos-launchpad.service" "$pkgdir/usr/lib/systemd/user/luxos-launchpad.service"
     install -Dm644 "$f/dbus-services/cz.luxos.Launchpad.service" "$pkgdir/usr/share/dbus-1/services/cz.luxos.Launchpad.service"
     install -Dm755 luxos-backdrop "$pkgdir/usr/bin/luxos-backdrop"
-    install -Dm755 luxos-keyboard-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
+    # Stare programy nastaveni = stranky okna Nastaveni (luxos-settings vybere stranku podle jmena)
+    local alias
+    for alias in luxos-power luxos-lock-settings luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr \
+        luxos-app-reset luxos-scrolling luxos-firewall-settings; do
+        ln -s luxos-settings "$pkgdir/usr/bin/$alias"
+    done
+    ln -s ../../bin/luxos-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
     install -Dm755 luxos-displays-wayland "$pkgdir/usr/lib/luxos/luxos-displays"
-    install -Dm755 luxos-displays-settings "$pkgdir/usr/lib/luxos/luxos-displays-settings"
+    ln -s ../../bin/luxos-settings "$pkgdir/usr/lib/luxos/luxos-displays-settings"
     # Monitory jmenem (X11 i Wayland)
     ln -s ../lib/luxos/luxos-displays-settings "$pkgdir/usr/bin/luxos-display-settings"
     install -Dm644 "$f/systemd-user/luxos-backdrop.service" "$pkgdir/usr/lib/systemd/user/luxos-backdrop.service"

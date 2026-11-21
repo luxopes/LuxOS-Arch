@@ -1,655 +1,617 @@
-# LuxOS - Plocha a Dock: vzhled, spousteci obrazovka, tapeta, widgety, Dock a horni lista na jednom miste.
-# Nahrazuje xfdesktop-settings (viz /usr/lib/luxos/override-bin). Vzhled, tapeta a pruhlednost jdou pres
-# luxos-appearance (umi X11 i Wayland). Dock: na X11 GSettings Planku, na Waylandu ~/.config/luxos/dock.conf
-# (luxos-dock ho sleduje). Tapeta na X11 z xfconf (xfdesktop), na Waylandu z appearance.conf.
-load env
+# LuxOS - Nastaveni: jedno okno jako Nastaveni systemu v macOS. Vlevo panel z matneho skla s hledanim a seznamem
+# stranek, vpravo stranka. Stranky jsou moduly luxos_page_*.lsl (seznam luxos_settings_pages.lsl), stavi se az
+# pri prvnim otevreni. Nahrazuje xfce4-settings-manager a samostatna okna nastaveni.
+#
+#   luxos-settings [STRANKA [ARGUMENTY..]]   okno na strance (bez stranky naposledy otevrena)
+#   luxos-power, luxos-bluetooth ...         odkazy na tento program: stranka podle jmena (aliases), argumenty
+#                                            jako drive; prikazovy rezim stareho programu (cli) bez okna
+# Jedna instance v relaci: jmeno cz.luxos.Settings na sbernici relace; druhe spusteni jen ukaze stranku v bezicim
+# okne (Show) a skonci. Sklo panelu kresli luxwm (set_window_material); jinde nepruhledna barva materialu.
+# Testy: LUXOS_TEST_CONTROL=1 (luxos_testctl) - page ID, search TEXT, sidebar, state, switch|combo|slider RADEK = HODNOTA.
+load env, json
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
-load gio, cairo
-load luxos_date as date
+load gio
 load luxos_i18n as i18n
 load luxos_text as text
-load luxos_sun as sun
-load luxos_dock_model as dockmodel
+load luxos_tokens as tokens
+load luxos_luxwm as wm
+load luxos_testctl as testctl
+load luxos_sys as lsys
+load luxos_launchpad_model as model
 load luxos_settings_ui as ui
+load luxos_settings_pages as pages
 
-WALL_DIRS = ["/usr/share/backgrounds/luxos", "~/Pictures/Wallpapers"]
-THUMB_W = 150
-THUMB_H = 94
-DOCK_SCHEMA = "net.launchpad.plank.dock.settings"
-DOCK_PATH = "/net/launchpad/plank/docks/dock1/"
-MODES = [["light", "Light", ["#f5f6fb", "#d9dcea"]], ["dark", "Dark", ["#23243a", "#3a3c5c"]],
-    ["auto", "Auto", ["#f5f6fb", "#d9dcea", "#23243a", "#3a3c5c"]]]
-SPLASHES = [["blue", "Blue"], ["purple", "Purple"], ["orange", "Orange"], ["green", "Green"], ["light", "White"]]
-CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 10px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n.thumb { border-radius: 10px; padding: 3px; border: 2px solid transparent; background: none; }\n.thumb.current { border-color: #3d7bff; }\n.mode { border-radius: 12px; padding: 8px; border: 2px solid transparent; background: none; }\n.mode.current { border-color: #3d7bff; }\n"
+BUS_NAME = "cz.luxos.Settings"
+BUS_PATH = "/cz/luxos/Settings"
+BUS_XML = "<node><interface name='cz.luxos.Settings'><method name='Show'><arg type='s' direction='in'/><arg type='as' direction='in'/></method></interface></node>"
+WIDTH = 920
+HEIGHT = 640
+SIDEBAR = 220
+DEFAULT_PAGE = "appearance"
 
-home = glib.home_dir()
-config = glib.user_config_dir() + "/luxos"
-PREFS = config + "/appearance.conf"
-NOTIFY_PREFS = config + "/notifications.conf"
-WIDGETS_CONF = config + "/widgets.conf"
-DOCK_CONF = config + "/dock.conf"
-THUMB_DIR = glib.user_cache_dir() + "/luxos/wallpaper-thumbs"
-
-app = {"window": 0, "modes": {}, "splashes": {}, "splash_current": "", "splash_busy": False, "spinner": 0,
-       "splash_label": 0, "thumbs": {}, "queue": [], "widgets": 0, "dock": 0, "zoom_size": 0}
+S = {"window": 0, "header": 0, "stack": 0, "list": 0, "search": 0, "sidebar": 0, "pages": [], "by_id": {}, "rows": {},
+     "row_of": {}, "separators": [], "built": {}, "page_rows": {}, "current": "", "host": {}, "glass": False,
+     "region": [], "quiet": False, "dark": False, "css": 0, "bus": 0}
 
 function wayland():
     return env.get("WAYLAND_DISPLAY", "") != ""
 end
 
-function read_prefs():
-    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1", "BAR_STYLE": "classic", "BAR_CLOCK": "right"}
-    kv = ui.read_kv(PREFS)
-    for key in prefs.keys():
-        if key in kv:
-            prefs[key] = kv[key]
+function basename(path):
+    return path[text.rfind(path, "/") + 1:]
+end
+
+function ptr(value):
+    unsafe:
+        return __lsl_unbox_int(value)
+    end
+end
+
+function cstr(value):
+    unsafe:
+        return __lsl_address(value) + 16
+    end
+end
+
+# ---- stranky ----------------------------------------------------------------------------------------------------
+
+function available(p):
+    if p["only"] == "wayland" and not wayland():
+        return False
+    end
+    if p["only"] == "x11" and wayland():
+        return False
+    end
+    if len(p["exec"]) > 0:
+        return glib.find_program_in_path(p["exec"][0]) != ""
+    end
+    return True
+end
+
+function find_page(name):
+    for p in pages.all():
+        if p["id"] == name or name in p["aliases"]:
+            return p
         end
     end
-    return prefs
+    return None
 end
 
-function number(value, fallback):
-    if text.is_digits(value):
-        return Int(value)
+function last_page_path():
+    return glib.user_cache_dir() + "/luxos/settings-page"
+end
+
+function remember(id):
+    call glib.mkdir_p(glib.user_cache_dir() + "/luxos")
+    return glib.write_atomic(last_page_path(), id + "\n")
+end
+
+function start_page():
+    id = glib.read_text(last_page_path()).strip()
+    if id in S["by_id"] and len(S["by_id"][id]["exec"]) == 0:
+        return id
     end
-    return fallback
+    return DEFAULT_PAGE
 end
 
-function on_off(on, yes, no):
-    if on:
-        return yes
+# Stranka se postavi pri prvnim otevreni: titulek a okraje okolo widgetu modulu, posuvnik
+function build_page(p):
+    ui.state["rows"] = {}
+    S["host"] = {"window": S["window"], "wayland": wayland(), "args": S["host"].get("args", []), "page": p["id"]}
+    body = None
+    try:
+        body = p["build"](S["host"])
+    else:
+        call glib.report("luxos-settings: page " + p["id"] + ": " + String(last_error()) + "\n")
+        body = ui.label(i18n.T("This page could not be opened."), "hint")
     end
-    return no
+    S["page_rows"][p["id"]] = ui.state["rows"]
+    box = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.widget_set_margins(box, 28, 28, 18, 28)
+    title = gtk.label_new(i18n.T(p["title"]))
+    call gtk.label_set_xalign(title, 0)
+    call gtk.widget_add_class(title, "page-title")
+    call gtk.box_pack_start(box, title, False, False, 0)
+    call gtk.box_pack_start(box, body, True, True, 0)
+    scroll = gtk.scrolled_window_new()
+    call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+    call gtk.widget_add_class(scroll, "content")
+    call gtk.container_add(scroll, box)
+    call gtk.widget_show_all(scroll)
+    call gtk.stack_add_named(S["stack"], scroll, p["id"])
+    S["built"][p["id"]] = scroll
+    return scroll
 end
 
-# ---- Vzhled ------------------------------------------------------------------------------------------------
-
-function hex_byte(pair):
-    digits = "0123456789abcdef"
-    return digits.find(pair[0:1].lower()) * 16 + digits.find(pair[1:2].lower())
-end
-
-function hex_rgb(color):
-    return [Float(hex_byte(color[1:3])) / 255.0, Float(hex_byte(color[3:5])) / 255.0, Float(hex_byte(color[5:7])) / 255.0]
-end
-
-function set_rgb(cr, color):
-    c = hex_rgb(color)
-    return cairo.set_source_rgb(cr, c[0], c[1], c[2])
-end
-
-function draw_mode(colors, cr, area):
-    w = Float(gtk.widget_get_allocated_width(area))
-    h = Float(gtk.widget_get_allocated_height(area))
-    r = 10.0
-    call cairo.new_path(cr)
-    call cairo.arc(cr, w - r, r, r, -1.5708, 0.0)
-    call cairo.arc(cr, w - r, h - r, r, 0.0, 1.5708)
-    call cairo.arc(cr, r, h - r, r, 1.5708, 3.1416)
-    call cairo.arc(cr, r, r, r, 3.1416, 4.7124)
-    call cairo.close_path(cr)
-    call set_rgb(cr, colors[0])
-    call cairo.fill_preserve(cr)
-    if len(colors) == 4:
-        # Automaticky: leva pulka svetla, prava tmava
-        call cairo.save(cr)
-        call cairo.clip(cr)
-        call set_rgb(cr, colors[2])
-        call cairo.rectangle(cr, w / 2.0, 0.0, w / 2.0, h)
-        call cairo.fill(cr)
-        call cairo.restore(cr)
+function call_hook(p, name):
+    if p[name] == None:
+        return 0
     end
-    call cairo.new_path(cr)
-    call set_rgb(cr, colors[1])
-    call cairo.rectangle(cr, 10.0, 10.0, w - 20.0, 10.0)
-    call cairo.fill(cr)
-    call cairo.rectangle(cr, 10.0, 28.0, (w - 20.0) * 0.6, 34.0)
-    call cairo.fill(cr)
-    call cairo.set_source_rgb(cr, 0.24, 0.48, 1.0)
-    call cairo.rectangle(cr, w * 0.6 + 4.0, 28.0, w * 0.4 - 14.0, 34.0)
-    call cairo.fill(cr)
+    try:
+        call p[name](S["host"])
+    else:
+        call glib.report("luxos-settings: " + name + " " + p["id"] + ": " + String(last_error()) + "\n")
+    end
+    return 0
+end
+
+function open_page(id, args):
+    p = S["by_id"].get(id, None)
+    if p == None:
+        return False
+    end
+    if len(p["exec"]) > 0:
+        call ui.launch(p["exec"] + args)
+        return True
+    end
+    if S["current"] != "" and S["current"] != id:
+        call call_hook(S["by_id"][S["current"]], "leave")
+    end
+    S["host"]["args"] = args
+    if not (id in S["built"]):
+        call build_page(p)
+    else:
+        S["host"]["args"] = args
+        S["host"]["page"] = id
+        ui.state["rows"] = S["page_rows"][id]
+    end
+    S["current"] = id
+    call gtk.stack_set_visible_child_name(S["stack"], id)
+    call set_title(i18n.T(p["title"]))
+    call select_row(id)
+    call call_hook(p, "show")
+    call remember(id)
+    return True
+end
+
+function set_title(title):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_title"), ptr(S["header"]), cstr(title))
+    end
+    return gtk.window_set_title(S["window"], title)
+end
+
+# ---- postranni panel --------------------------------------------------------------------------------------------
+
+function plate(p):
+    box = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.widget_add_class(box, "plate")
+    call gtk.widget_set_name(box, "plate-" + p["id"])
+    call gtk.widget_set_valign(box, gtk.ALIGN_CENTER)
+    image = gtk.image_new_from_icon_name(p["icon"], gtk.ICON_MENU)
+    call gtk.image_set_pixel_size(image, 14)
+    call gtk.widget_set_halign(image, gtk.ALIGN_CENTER)
+    call gtk.box_pack_start(box, image, True, True, 0)
+    return box
+end
+
+function row_widget(p):
+    box = gtk.box_new(gtk.HORIZONTAL, 8)
+    call gtk.widget_add_class(box, "side-row")
+    call gtk.box_pack_start(box, plate(p), False, False, 0)
+    label = gtk.label_new(i18n.T(p["title"]))
+    call gtk.label_set_xalign(label, 0)
+    call gtk.label_set_ellipsize(label, 3)
+    call gtk.box_pack_start(box, label, True, True, 0)
+    if len(p["exec"]) > 0:
+        # samostatna aplikace: otevre se v novem okne
+        arrow = gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU)
+        call gtk.image_set_pixel_size(arrow, 12)
+        call gtk.widget_add_class(arrow, "side-arrow")
+        call gtk.box_pack_end(box, arrow, False, False, 0)
+    end
+    return box
+end
+
+function list_row(child, selectable):
+    unsafe:
+        row = __lsl_qbe_call0(__lsl_symbol("gtk_list_box_row_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_row_set_selectable"), row, gtk.flag(selectable))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_row_set_activatable"), row, gtk.flag(selectable))
+        call gtk.container_add(row, child)
+        call gtk.container_add(ptr(S["list"]), row)
+        return row
+    end
+end
+
+function select_row(id):
+    row = S["row_of"].get(id, 0)
+    S["quiet"] = True
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_list_box_select_row"), ptr(S["list"]), ptr(row))
+    end
+    S["quiet"] = False
+    return 0
+end
+
+function on_row_selected(row, listbox):
+    if S["quiet"] or row == 0 or not (row in S["rows"]):
+        return 0
+    end
+    id = S["rows"][row]
+    p = S["by_id"][id]
+    call open_page(id, [])
+    if len(p["exec"]) > 0 and S["current"] != "":
+        # aplikace se otevrela ve vlastnim okne, vyber zustava na strance
+        call select_row(S["current"])
+    end
+    return 0
+end
+
+function build_sidebar():
+    side = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.widget_add_class(side, "sidebar")
+    call gtk.widget_set_size_request(side, SIDEBAR, -1)
+    search = gtk.search_entry_new()
+    call gtk.entry_set_placeholder_text(search, i18n.T("Search"))
+    call gtk.widget_set_margins(search, 12, 12, 10, 8)
+    call gtk.connect(search, "search-changed", on_search)
+    call gtk.connect(search, "activate", on_search_activate)
+    S["search"] = search
+    call gtk.box_pack_start(side, search, False, False, 0)
+    scroll = gtk.scrolled_window_new()
+    call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+    call gtk.widget_add_class(scroll, "sidebar-scroll")
+    S["list"] = gtk.list_box_new()
+    call gtk.widget_add_class(S["list"], "side-list")
+    call gtk.container_add(scroll, S["list"])
+    call gtk.box_pack_start(side, scroll, True, True, 0)
+    group = -1
+    for p in S["pages"]:
+        if p["group"] != group and group >= 0:
+            sep = list_row(gtk.box_new(gtk.HORIZONTAL, 0), False)
+            call gtk.widget_add_class(sep, "side-gap")
+            S["separators"].append(sep)
+        end
+        group = p["group"]
+        row = list_row(row_widget(p), True)
+        call gtk.widget_set_name(row, "side-" + p["id"])
+        S["rows"][row] = p["id"]
+        S["row_of"][p["id"]] = row
+    end
+    call gtk.connect(S["list"], "row-selected", on_row_selected)
+    S["sidebar"] = side
+    return side
+end
+
+function search_words(p):
+    words = [i18n.T(p["title"]), p["title"]]
+    for k in p["keywords"]:
+        words.append(i18n.T(k))
+        words.append(k)
+    end
+    return model.fold(" | ".join(words))
+end
+
+function matches(p, query):
+    hay = search_words(p)
+    for word in model.words(query):
+        if hay.find(word) < 0:
+            return False
+        end
+    end
+    return True
+end
+
+function on_search(entry):
+    query = gtk.entry_get_text(entry).strip()
+    for row in S["rows"]:
+        call gtk.widget_set_visible(row, query == "" or matches(S["by_id"][S["rows"][row]], query))
+    end
+    for sep in S["separators"]:
+        call gtk.widget_set_visible(sep, query == "")
+    end
+    return 0
+end
+
+function visible_ids():
+    return [p["id"] for p in S["pages"] if gtk.widget_get_visible(S["row_of"][p["id"]])]
+end
+
+function on_search_activate(entry):
+    ids = visible_ids()
+    if len(ids) > 0:
+        call open_page(ids[0], [])
+    end
+    return 0
+end
+
+# ---- vzhled a sklo -----------------------------------------------------------------------------------------------
+
+function sidebar_css():
+    dark = S["dark"]
+    tint = tokens.material("popup", dark, S["glass"])
+    if not S["glass"]:
+        tint = [tint[0], tint[1], tint[2], 1.0]
+    end
+    out = ".sidebar, .sidebar-scroll, .side-list, .side-list row { background-color: transparent; }\n"
+    out = out + ".sidebar { background-color: " + tokens.css_color(tint) + "; color: " + ui.c("fg", dark) + "; border-right: 1px solid " + ui.c("border", dark) + "; }\n"
+    out = out + ".side-list row { min-height: 30px; padding: 0 8px; margin: 0 10px; border-radius: 6px; }\n"
+    out = out + ".side-list row:hover { background-color: " + ui.c("tile", dark) + "; }\n"
+    out = out + ".side-list row:selected { background-color: " + ui.c("accent", dark) + "; color: #ffffff; }\n"
+    out = out + ".side-list row:selected label { color: #ffffff; }\n"
+    out = out + ".side-list row.side-gap { min-height: 10px; }\n"
+    out = out + ".side-arrow { opacity: 0.45; }\n"
+    out = out + ".plate { min-width: 20px; min-height: 20px; border-radius: 5px; color: #ffffff; }\n"
+    out = out + ".plate image { -gtk-icon-style: symbolic; color: #ffffff; }\n"
+    for p in S["pages"]:
+        out = out + "#plate-" + p["id"] + " { background-color: " + p["color"] + "; }\n"
+    end
+    if S["glass"]:
+        out = out + "window.settings-window.glass, window.settings-window.glass > box { background-color: transparent; }\n"
+    end
+    return out
+end
+
+function apply_css():
+    css = ui.css(S["dark"]) + sidebar_css()
+    if S["css"] == 0:
+        S["css"] = gtk.css_load(css)
+    else:
+        call gtk.css_set(S["css"], css)
+    end
+    call gtk.widget_set_class(S["window"], "glass", S["glass"])
+    return 0
+end
+
+function on_appearance(file, event, other):
+    dark = ui.dark_mode()
+    if dark != S["dark"]:
+        S["dark"] = dark
+        call apply_css()
+    end
+    return 0
+end
+
+# Obdelnik panelu v souradnicich okna bez stinu CSD (od leveho horniho rohu HeaderBar)
+function sidebar_region():
+    unsafe:
+        xy = __lsl_byte_zeros(16)
+        hb = __lsl_byte_zeros(16)
+        call __lsl_qbe_call6(__lsl_symbol("gtk_widget_translate_coordinates"), ptr(S["sidebar"]), ptr(S["window"]), 0, 0,
+                             gtk.data(xy), gtk.data(xy) + 4)
+        call __lsl_qbe_call6(__lsl_symbol("gtk_widget_translate_coordinates"), ptr(S["header"]), ptr(S["window"]), 0, 0,
+                             gtk.data(hb), gtk.data(hb) + 4)
+        x = __lsl_qbe_s32(__lsl_qbe_load32(gtk.data(xy))) - __lsl_qbe_s32(__lsl_qbe_load32(gtk.data(hb)))
+        y = __lsl_qbe_s32(__lsl_qbe_load32(gtk.data(xy) + 4)) - __lsl_qbe_s32(__lsl_qbe_load32(gtk.data(hb) + 4))
+    end
+    return [x, y, gtk.widget_get_allocated_width(S["sidebar"]), gtk.widget_get_allocated_height(S["sidebar"])]
+end
+
+function send_region():
+    if not wayland() or not wm.connected() or not gtk.widget_get_visible(S["window"]):
+        return False
+    end
+    r = sidebar_region()
+    if r == S["region"] or r[2] <= 1:
+        return False
+    end
+    S["region"] = r
+    call wm.request({"cmd": "set_window_material", "app_id": "luxos-settings", "material": "popup", "radius": 0,
+                     "x": r[0], "y": r[1], "w": r[2], "h": r[3]}, on_material_reply)
     return False
 end
 
-function mark(buttons, key):
-    for k in buttons.keys():
-        call gtk.widget_set_class(buttons[k], "current", k == key)
+function on_material_reply(reply):
+    glass = reply != None and reply.get("ok", False) == True
+    if glass != S["glass"]:
+        S["glass"] = glass
+        call apply_css()
     end
     return 0
 end
 
-function choice_button(content, caption):
-    b = gtk.button_new_empty()
-    call gtk.widget_add_class(b, "mode")
-    inner = gtk.box_new(gtk.VERTICAL, 6)
-    if content != 0:
-        call gtk.box_pack_start(inner, content, False, False, 0)
-    end
-    call gtk.box_pack_start(inner, gtk.label_new(caption), False, False, 0)
-    call gtk.container_add(b, inner)
-    return b
-end
-
-function sun_hint():
-    lat_lon = sun.location()
-    now = glib.localtime(glib.now())
-    times = None
-    safe:
-        times = sun.sun_times(date.ordinal(now[0], now[1], now[2]), lat_lon[0], lat_lon[1])
-    end
-    if times == None:
-        return ""
-    end
-    return i18n.TF("Auto: light from sunrise (%s) to sunset (%s), based on your time zone.", [hhmm(times[0]), hhmm(times[1])])
-end
-
-function hhmm(t):
-    tm = glib.localtime(t)
-    return text.pad(tm[3], 2) + ":" + text.pad(tm[4], 2)
-end
-
-function build_appearance(page):
-    g = ui.group(page, i18n.T("Appearance"))
-    box = gtk.box_new(gtk.HORIZONTAL, 12)
-    call gtk.widget_set_margins(box, 12, 12, 12, 12)
-    call gtk.widget_set_halign(box, gtk.ALIGN_START)
-    current = ui.run(["luxos-appearance", "mode"])
-    if current == "":
-        current = "light"
-    end
-    for mode in MODES:
-        preview = gtk.drawing_area_new()
-        call gtk.widget_set_size_request(preview, 120, 76)
-        call glib.connect_data(preview, "draw", 1, draw_mode, mode[2])
-        b = choice_button(preview, i18n.T(mode[1]))
-        call glib.connect_data(b, "clicked", 0, on_mode, mode[0])
-        app["modes"][mode[0]] = b
-        call gtk.box_pack_start(box, b, False, False, 0)
-    end
-    call mark(app["modes"], current)
-    call gtk.box_pack_start(g["box"], box, False, False, 0)
-    hint = sun_hint()
-    if hint != "":
-        l = ui.label(hint, "hint")
-        call gtk.widget_set_margins(l, 12, 0, 0, 8)
-        call gtk.box_pack_start(g["box"], l, False, False, 0)
-    end
-end
-
-function on_mode(mode, button):
-    call mark(app["modes"], mode)
-    call ui.launch(["luxos-appearance", mode])
+function on_sidebar_allocate(allocation, widget):
+    call glib.idle_add(send_region)
     return 0
 end
 
-# ---- Spousteci obrazovka (Plymouth, luxos-splash z luxos-branding) -----------------------------------------
-
-function build_boot_screen(page):
-    if not exists("/usr/bin/luxos-splash"):
-        return 0
-    end
-    g = ui.group(page, i18n.T("Boot Screen"))
-    box = gtk.box_new(gtk.HORIZONTAL, 8)
-    call gtk.widget_set_margins(box, 12, 12, 12, 4)
-    call gtk.widget_set_halign(box, gtk.ALIGN_START)
-    current = ui.run(["luxos-splash", "get"])
-    for item in SPLASHES:
-        image = 0
-        pix = gtk.pixbuf_new_from_file_at_scale("/usr/share/luxos/splash/" + item[0] + ".png", 104, 58, True)
-        if pix != 0:
-            image = gtk.image_new_from_pixbuf(pix)
-            call glib.object_unref(pix)
-        end
-        b = choice_button(image, i18n.T(item[1]))
-        call glib.connect_data(b, "clicked", 0, on_splash, item[0])
-        app["splashes"][item[0]] = b
-        call gtk.box_pack_start(box, b, False, False, 0)
-    end
-    call mark(app["splashes"], current)
-    call gtk.box_pack_start(g["box"], box, False, False, 0)
-    status = gtk.box_new(gtk.HORIZONTAL, 8)
-    call gtk.widget_set_margins(status, 14, 14, 0, 10)
-    spinner = ui.spinner_new()
-    # skryty mimo prubeh zmeny: jinak odsazuje popisek oproti ostatnim napovedam
-    call gtk.widget_set_no_show_all(spinner, True)
-    l = ui.label(i18n.T("Shown while the computer starts. A change rebuilds the boot image, which takes about a minute."), "hint")
-    call gtk.box_pack_start(status, spinner, False, False, 0)
-    call gtk.box_pack_start(status, l, True, True, 0)
-    call gtk.box_pack_start(g["box"], status, False, False, 0)
-    app["spinner"] = spinner
-    app["splash_label"] = l
-    app["splash_current"] = current
-    return 0
-end
-
-function on_splash(key, button):
-    if app["splash_busy"] or key == app["splash_current"]:
-        return 0
-    end
-    app["splash_busy"] = True
-    call mark(app["splashes"], key)
-    for k in app["splashes"].keys():
-        call gtk.widget_set_sensitive(app["splashes"][k], False)
-    end
-    call gtk.widget_show(app["spinner"])
-    call ui.spinner_run(app["spinner"], True)
-    call gtk.label_set_text(app["splash_label"], i18n.T("Applying the boot screen…"))
-    # stderr pkexec i luxos-splash do vystupu: posledni radek se ukaze jako duvod chyby
-    argv = ["sh", "-c", "exec pkexec /usr/bin/luxos-splash set \"$0\" 2>&1", key]
-    if glib.spawn_capture(argv, on_splash_done, key) == 0:
-        call splash_done(key, 1, "")
+function on_wm_state(up):
+    if up:
+        S["region"] = []
+        call glib.idle_add(send_region)
+    elif S["glass"]:
+        S["glass"] = False
+        call apply_css()
     end
     return 0
 end
 
-function on_splash_done(key, output, status):
-    code = 1
-    if status & 127 == 0:
-        code = (status >> 8) & 255
-    end
-    return splash_done(key, code, output)
-end
-
-function splash_done(key, code, output):
-    app["splash_busy"] = False
-    call ui.spinner_run(app["spinner"], False)
-    call gtk.widget_hide(app["spinner"])
-    for k in app["splashes"].keys():
-        call gtk.widget_set_sensitive(app["splashes"][k], True)
-    end
-    if code == 0:
-        app["splash_current"] = key
-        call gtk.label_set_text(app["splash_label"], i18n.T("The new boot screen will be shown at the next start."))
-        return 0
-    end
-    call mark(app["splashes"], app["splash_current"])
-    if code == 126 or code == 127:
-        # pkexec: overeni zruseno nebo zamitnuto
-        call gtk.label_set_text(app["splash_label"], i18n.T("Change cancelled."))
-        return 0
-    end
-    lines = [line for line in output.strip().split("\n") if line.strip() != ""]
-    message = i18n.T("Could not change the boot screen.")
-    if len(lines) > 0:
-        message = message + " (" + lines[len(lines) - 1].strip() + ")"
-    end
-    call gtk.label_set_text(app["splash_label"], message)
+function on_wm_event(event):
     return 0
 end
 
-# ---- Tapeta ------------------------------------------------------------------------------------------------
-
-function unquote(value):
-    v = value.strip()
-    if len(v) >= 2 and (v[0] == "\"" or v[0] == "'") and v[len(v) - 1] == v[0]:
-        return v[1:len(v) - 1]
-    end
-    return v
-end
-
-function current_wallpaper():
-    if wayland():
-        path = unquote(ui.read_kv(PREFS).get("WALLPAPER", ""))
-        if path == "":
-            mode = "light"
-            if glib.read_text(config + "/appearance").strip() == "dark":
-                mode = "dark"
-            end
-            path = "/usr/share/backgrounds/luxos/luxos-" + mode + ".jpg"
-        end
-    else:
-        prop = ""
-        for p in ui.run(["xfconf-query", "-c", "xfce4-desktop", "-l"]).split("\n"):
-            if prop == "" and p.endswith("/workspace0/last-image"):
-                prop = p.strip()
-            end
-        end
-        if prop == "":
-            return ""
-        end
-        path = ui.run(["xfconf-query", "-c", "xfce4-desktop", "-p", prop])
-    end
-    if path == "":
-        return ""
-    end
-    return glib.realpath(path)
-end
-
-function is_picture(name):
-    low = name.lower()
-    return low.endswith(".jpg") or low.endswith(".jpeg") or low.endswith(".png") or low.endswith(".webp")
-end
-
-function build_wallpaper(page, prefs):
-    g = ui.group(page, i18n.T("Wallpaper"))
-    current = current_wallpaper()
-    flow = ui.flow_box(4, 6)
-    call gtk.widget_set_margins(flow, 10, 10, 10, 10)
-    seen = []
-    for folder in WALL_DIRS:
-        folder = folder.replace("~", home)
-        for name in glib.list_dir(folder):
-            real = glib.realpath(folder + "/" + name)
-            if real != "" and is_picture(name) and not (real in seen):
-                seen.append(real)
-                call add_thumb(flow, real, real == current)
-            end
-        end
-    end
-    call gtk.box_pack_start(g["box"], flow, False, False, 0)
-    choose = gtk.button_new(i18n.T("Choose…"))
-    call gtk.connect(choose, "clicked", on_choose)
-    call ui.row(g, i18n.T("Your own picture"), "", choose)
-    # ztmaveni velmi svetle tapety pod listou a kolem widgetu (luxos-bar, luxos-widgets)
-    scrim = ui.switch(prefs["DESKTOP_SCRIM"] != "0", on_appearance_switch, ["desktop-scrim", "on", "off"])
-    call ui.row(g, i18n.T("Darken bright wallpaper under the menu bar and widgets"),
-                i18n.T("On a very bright wallpaper the area under the menu bar and around widgets gets a soft shade, so white text stays readable."), scrim)
-end
-
-function thumb_title(path):
-    name = path[text.rfind(path, "/") + 1:]
-    dot = text.rfind(name, ".")
-    if dot > 0:
-        name = name[0:dot]
-    end
-    words = []
-    for word in name.replace("luxos-", "").replace("-", " ").split(" "):
-        if word != "":
-            words.append(word[0:1].upper() + word[1:].lower())
-        end
-    end
-    return " ".join(words)
-end
-
-function add_thumb(flow, path, current):
-    b = gtk.button_new_empty()
-    call gtk.widget_add_class(b, "thumb")
-    call gtk.widget_set_class(b, "current", current)
-    # obrazek az po zobrazeni okna (jeden nahled na volny cyklus smycky)
-    image = gtk.image_new()
-    call gtk.widget_set_size_request(image, THUMB_W, THUMB_H)
-    call gtk.container_add(b, image)
-    if len(app["queue"]) == 0:
-        call glib.idle_add(load_thumbs)
-    end
-    app["queue"].append([image, path, b])
-    call gtk.widget_set_tooltip(b, thumb_title(path))
-    call glib.connect_data(b, "clicked", 0, on_thumb, path)
-    app["thumbs"][path] = b
-    call gtk.container_add(flow, b)
-end
-
-# Dekodovani velkeho JPEG trva desitky ms: nahled se uklada do cache (PNG 150x94 se nacte hned)
-function wallpaper_thumb(path):
-    st = glib.stat(path)
-    if len(st) == 0:
-        return 0
-    end
-    cache = THUMB_DIR + "/" + ui.sha1(path + ":" + String(st[1]) + ":" + String(st[0])) + ".png"
-    if exists(cache):
-        pix = gtk.pixbuf_new_from_file(cache)
-        if pix != 0:
-            return pix
-        end
-    end
-    pix = gtk.pixbuf_new_from_file_at_scale(path, THUMB_W, THUMB_H, False)
-    if pix == 0:
-        return 0
-    end
-    call glib.mkdir_p(THUMB_DIR)
-    tmp = cache + ".tmp"
-    if gtk.pixbuf_save_png(pix, tmp) == "":
-        call glib.rename(tmp, cache)
-    end
-    return pix
-end
-
-function load_thumbs():
-    if len(app["queue"]) == 0:
-        return False
-    end
-    item = app["queue"].pop(0)
-    pix = wallpaper_thumb(item[1])
-    if pix != 0:
-        call gtk.image_set_from_pixbuf(item[0], pix)
-        call glib.object_unref(pix)
-    else:
-        # nelze nacist (poskozeny soubor)
-        call app["thumbs"].pop(item[1])
-        call gtk.widget_destroy(item[2])
-    end
-    return len(app["queue"]) > 0
-end
-
-function set_wallpaper(path):
-    call mark(app["thumbs"], path)
-    call ui.launch(["luxos-appearance", "wallpaper", path])
-    return 0
-end
-
-function on_thumb(path, button):
-    return set_wallpaper(path)
-end
-
-function on_choose(button):
-    path = ui.choose_picture(app["window"], i18n.T("Choose a picture"), i18n.T("Pictures"))
-    if path != "":
-        call set_wallpaper(path)
-    end
-    return 0
-end
-
-function on_appearance_switch(args, on):
-    call ui.launch(["luxos-appearance", args[0], on_off(on, args[1], args[2])])
-    return 0
-end
-
-# ---- Widgety na plose (luxos-widgets) -----------------------------------------------------------------------
-
-function widgets_on():
-    return ui.read_kv(WIDGETS_CONF).get("ENABLED", "") == "1"
-end
-
-function build_widgets(page):
-    if glib.find_program_in_path("luxos-widgets") == "":
-        return 0
-    end
-    g = ui.group(page, i18n.T("Widgets"))
-    app["widgets"] = ui.switch(widgets_on(), on_widgets, 0)
-    call ui.row(g, i18n.T("Show widgets on the desktop"),
-                i18n.T("Clock & Weather, System Health, Now Playing and Calendar cards on the desktop."), app["widgets"])
-    edit = gtk.button_new(i18n.T("Edit Widgets…"))
-    call glib.connect_data(edit, "clicked", 0, on_launch, ["luxos-widgets", "settings"])
-    call ui.row(g, i18n.T("Choose and arrange widgets"),
-                i18n.T("You can also right-click a widget or the desktop and choose Edit Widgets…"), edit)
-    # vypnuti/zapnuti z galerie nebo z nabidky widgetu: vypinac sleduje widgets.conf
-    call glib.mkdir_p(config)
-    safe:
-        call gio.file_monitor(config, on_config_changed)
-    end
-    return 0
-end
-
-function on_widgets(unused, on):
-    call ui.launch(["luxos-widgets", on_off(on, "on", "off")])
-    return 0
-end
-
-function on_config_changed(file, event, other):
-    if file.endswith("/widgets.conf") and app["widgets"] != 0:
-        call ui.switch_set(app["widgets"], widgets_on())
-    end
-    return 0
-end
-
-function on_launch(argv, button):
-    return ui.launch(argv)
-end
-
-# ---- Dock --------------------------------------------------------------------------------------------------
-# Na Waylandu luxos-dock: jen dole, zvetseni = ZOOM nad 100 (100 = vypnuto), HIDE autohide/dodge
-
-function dock_conf():
-    return dockmodel.parse_conf(glib.read_text(DOCK_CONF))
-end
-
-function dock_set(key, value):
-    return ui.write_kv(DOCK_CONF, key, value)
-end
-
-function build_dock(page, prefs):
-    wl = wayland()
-    d = 0
-    if not wl:
-        d = ui.gsettings(DOCK_SCHEMA, DOCK_PATH)
-        if d == 0:
-            return 0
-        end
-    end
-    app["dock"] = d
-    if wl:
-        conf = dock_conf()
-        autohide = conf["hide"] == "autohide"
-        size = conf["icon_size"]
-        zoom_on = conf["zoom"] > 100
-        zoom = conf["zoom"]
-        if not zoom_on:
-            zoom = 150
-        end
-    else:
-        autohide = ui.gs_get_string(d, "hide-mode") == "auto"
-        size = ui.gs_get_int(d, "icon-size")
-        zoom_on = ui.gs_get_bool(d, "zoom-enabled")
-        zoom = ui.gs_get_int(d, "zoom-percent")
-    end
-    g = ui.group(page, i18n.T("Dock"))
-    call ui.row(g, i18n.T("Automatically hide and show the Dock"),
-                i18n.T("The Dock appears when you move the pointer to the bottom edge."), ui.switch(autohide, on_autohide, 0))
-    call ui.row(g, i18n.T("Size"), "", ui.slider(32, 80, size, 220, on_dock_size, 0))
-    call ui.row(g, i18n.T("Magnification"), "", ui.switch(zoom_on, on_zoom, 0))
-    zoom_size = ui.slider(110, 200, zoom, 220, on_zoom_size, 0)
-    call ui.row(g, i18n.T("Magnification size"), "", zoom_size)
-    # velikost zvetseni jen se zapnutym zvetsovanim (jako v macOS)
-    call gtk.widget_set_sensitive(zoom_size, zoom_on)
-    app["zoom_size"] = zoom_size
-    if not wl:
-        position = ui.gs_get_string(d, "position")
-        if not (position in ["bottom", "left", "right"]):
-            position = "bottom"
-        end
-        pos = ui.combo([["bottom", i18n.T("Bottom")], ["left", i18n.T("Left")], ["right", i18n.T("Right")]], position, "", on_position, 0)
-        call ui.row(g, i18n.T("Position on screen"), "", pos)
-    end
-    call ui.row(g, i18n.T("Dock opacity"), "", ui.slider(0, 100, number(prefs["DOCK_OPACITY"], 75), 220, on_opacity, "dock-opacity"))
-    return 0
-end
-
-# Skryvani Docku (oba rezimy Dock skryvaji, luxos-menubar ho vysune i kousek nad okrajem)
-function on_autohide(unused, on):
-    if wayland():
-        call dock_set("HIDE", on_off(on, "autohide", "dodge"))
-        return 0
-    end
-    call ui.gs_set_string(app["dock"], "hide-mode", on_off(on, "auto", "window-dodge"))
-    call ui.touch(config + "/dock-autohide")
-    return 0
-end
-
-function on_dock_size(unused, value):
-    if wayland():
-        return dock_set("ICON_SIZE", String(value))
-    end
-    return ui.gs_set_int(app["dock"], "icon-size", value)
-end
-
-function on_zoom(unused, on):
-    call gtk.widget_set_sensitive(app["zoom_size"], on)
-    if wayland():
-        zoom = "100"
-        if on:
-            zoom = String(Int(gtk.range_get_value(app["zoom_size"]) + 0.5))
-        end
-        return dock_set("ZOOM", zoom)
-    end
-    return ui.gs_set_bool(app["dock"], "zoom-enabled", on)
-end
-
-function on_zoom_size(unused, value):
-    if wayland():
-        return dock_set("ZOOM", String(value))
-    end
-    return ui.gs_set_int(app["dock"], "zoom-percent", value)
-end
-
-function on_position(unused, value):
-    return ui.gs_set_string(app["dock"], "position", value)
-end
-
-function on_opacity(what, value):
-    return ui.launch(["luxos-appearance", what, String(value)])
-end
-
-# ---- Horni lista -------------------------------------------------------------------------------------------
-
-function build_bar(page, prefs):
-    g = ui.group(page, i18n.T("Menu Bar"))
-    call ui.row(g, i18n.T("Menu bar opacity"), "", ui.slider(0, 100, number(prefs["BAR_OPACITY"], 62), 220, on_opacity, "bar-opacity"))
-    call ui.row(g, i18n.T("Clock in the middle"), "", ui.switch(prefs["BAR_CLOCK"] == "center", on_appearance_switch, ["bar-clock", "center", "right"]))
-    call ui.row(g, i18n.T("Rounded corners"), "", ui.switch(prefs["BAR_STYLE"] == "rounded", on_appearance_switch, ["bar-style", "rounded", "classic"]))
-    # upozorneni na letni/zimni cas (luxos-hub, luxos_timechange.lsl); jen kde se cas meni
-    timechange = ui.switch(ui.read_kv(NOTIFY_PREFS).get("TIME_CHANGE", "") != "0", on_timechange, 0)
-    call ui.row(g, i18n.T("Notify about summer and winter time"),
-                i18n.T("In the evening before the clocks change and in the morning after."), timechange)
-end
-
-function on_timechange(unused, on):
-    return ui.write_kv(NOTIFY_PREFS, "TIME_CHANGE", on_off(on, "1", "0"))
-end
-
-# ---- okno --------------------------------------------------------------------------------------------------
+# ---- okno ---------------------------------------------------------------------------------------------------------
 
 function on_destroy(window):
+    if S["current"] != "":
+        call call_hook(S["by_id"][S["current"]], "leave")
+    end
     call ui.gs_sync()
     call gtk.main_quit()
     return 0
 end
 
+function build_window():
+    w = gtk.window_new(i18n.T("Settings"))
+    S["window"] = w
+    call gtk.window_set_wmclass(w, "luxos-settings", "luxos-settings")
+    call gtk.window_set_icon_list(w, "preferences-system")
+    call gtk.widget_add_class(w, "settings-window")
+    if wayland():
+        call gtk.widget_set_rgba_visual(w)
+    end
+    unsafe:
+        bar = __lsl_qbe_call0(__lsl_symbol("gtk_header_bar_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_header_bar_set_show_close_button"), bar, 1)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_window_set_titlebar"), ptr(w), bar)
+        S["header"] = bar
+    end
+    area = gtk.primary_monitor_workarea()
+    width = min(WIDTH, max(ui.MIN_WIDTH, area[2] - 2 * ui.MARGIN))
+    height = min(HEIGHT, ui.max_content_height())
+    call gtk.window_set_default_size(w, width, height)
+    call gtk.widget_set_size_request(w, min(640, width), min(420, height))
+    body = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.box_pack_start(body, build_sidebar(), False, False, 0)
+    S["stack"] = gtk.stack_new(False)
+    call gtk.stack_set_transition_duration(S["stack"], 0)
+    call gtk.widget_add_class(S["stack"], "content")
+    call gtk.box_pack_start(body, S["stack"], True, True, 0)
+    call gtk.container_add(w, body)
+    call gtk.connect(w, "destroy", on_destroy)
+    call gtk.connect(S["sidebar"], "size-allocate", on_sidebar_allocate)
+    call ui.attach_test(w)
+    return w
+end
+
+# ---- jedna instance ---------------------------------------------------------------------------------------------
+
+function on_bus_call(sender, path, interface, method, values, invocation):
+    if method == "Show":
+        id = values[0]
+        if find_page(id) != None:
+            id = find_page(id)["id"]
+        else:
+            id = S["current"]
+        end
+        call open_page(id, values[1])
+        call gtk.window_present_with_time(S["window"], gtk.get_current_event_time())
+    end
+    call gio.return_value(invocation, [], "")
+    return 0
+end
+
+# True = jsme jedina instance (nebo sbernice neni); False = stranku ukazala bezici instance
+function claim_instance(id, args):
+    bus = 0
+    safe:
+        bus = gio.session_bus()
+    end
+    if bus == 0:
+        return True
+    end
+    S["bus"] = bus
+    reply = None
+    safe:
+        reply = gio.call_values(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
+                                [BUS_NAME, 4], "(su)", 2000)
+    end
+    if reply == None or reply[0] == 1 or reply[0] == 4:
+        safe:
+            call gio.register_object(bus, BUS_PATH, BUS_XML, on_bus_call)
+        end
+        return True
+    end
+    shown = False
+    safe:
+        call gio.call_values(bus, BUS_NAME, BUS_PATH, BUS_NAME, "Show", [id, args], "(sas)", 5000)
+        shown = True
+    end
+    return not shown
+end
+
+# ---- testy --------------------------------------------------------------------------------------------------------
+
+function test_row(kind, rest):
+    cut = rest.find(" = ")
+    if cut < 0:
+        return False
+    end
+    title = rest[:cut]
+    value = rest[cut + 3:]
+    w = ui.state["rows"].get(title, 0)
+    if w == 0:
+        call lsys.out("missing " + title + "\n")
+        return True
+    end
+    if kind == "switch":
+        call gtk.switch_set_active(w, value == "on")
+    elif kind == "combo":
+        call ui.combo_set_active_id(w, value)
+    else:
+        call gtk.range_set_value(w, Float(Int(value)))
+    end
+    return True
+end
+
+function on_test(command, rest):
+    if command == "page":
+        parts = [a for a in rest.split(" ") if a != ""]
+        call open_page(parts[0], parts[1:])
+    elif command == "search":
+        call gtk.entry_set_text(S["search"], rest)
+        call on_search(S["search"])
+    elif command == "sidebar":
+        call lsys.out("sidebar " + json.encode(visible_ids()) + "\n")
+    elif command == "state":
+        call lsys.out("state " + json.encode({"page": S["current"], "glass": S["glass"], "region": S["region"],
+                                                       "dark": S["dark"], "built": [k for k in S["built"]]}) + "\n")
+    elif command in ["switch", "combo", "slider"] and rest.find(" = ") > 0:
+        call test_row(command, rest)
+    elif S["current"] != "" and S["by_id"][S["current"]]["test"] != None:
+        call S["by_id"][S["current"]]["test"](command, rest)
+    end
+    return 0
+end
+
+# ---- start --------------------------------------------------------------------------------------------------------
+
 function main():
+    argv = [a for a in args]
+    name = basename(argv[0])
+    rest = argv[1:]
+    target = None
+    if name != "luxos-settings":
+        target = find_page(name)
+    end
+    if target == None and len(rest) > 0 and find_page(rest[0]) != None:
+        target = find_page(rest[0])
+        rest = rest[1:]
+    end
+    # prikazovy rezim stareho programu (luxos-app-reset list, luxos-scrolling status ...)
+    if target != None and target["cli"] != None:
+        code = target["cli"](rest)
+        if code != None:
+            exit(code)
+        end
+    end
     call glib.set_prgname("luxos-settings")
     call gtk.init()
-    call gtk.css_load(CSS)
-    window = ui.window(i18n.T("Desktop & Dock"), "preferences-desktop-wallpaper", 720, 720, 360, 420)
-    call gtk.window_set_wmclass(window, "luxos-settings", "luxos-settings")
-    app["window"] = window
-    prefs = read_prefs()
-    scroll = gtk.scrolled_window_new()
-    call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-    call gtk.container_add(window, scroll)
-    page = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_margins(page, 22, 22, 6, 22)
-    call gtk.container_add(scroll, page)
-    call build_appearance(page)
-    call build_boot_screen(page)
-    call build_wallpaper(page, prefs)
-    call build_widgets(page)
-    call build_dock(page, prefs)
-    call build_bar(page, prefs)
-    more = gtk.box_new(gtk.HORIZONTAL, 8)
-    call gtk.widget_set_margins(more, 0, 0, 18, 0)
-    links = [["Displays…", ["luxos-display-settings"]]]
-    if not wayland():
-        # Xfce: jen v relaci X11
-        links = links + [["Advanced Desktop Settings…", ["/usr/bin/xfdesktop-settings"]], ["Menu Bar Items…", ["xfce4-panel", "--preferences"]]]
+    for p in pages.all():
+        if available(p):
+            S["pages"].append(p)
+            S["by_id"][p["id"]] = p
+        end
     end
-    for link in links:
-        b = gtk.button_new(i18n.T(link[0]))
-        call glib.connect_data(b, "clicked", 0, on_launch, link[1])
-        call gtk.box_pack_start(more, b, False, False, 0)
+    id = ""
+    if target != None and target["id"] in S["by_id"]:
+        id = target["id"]
     end
-    call gtk.box_pack_start(page, more, False, False, 0)
-    call gtk.connect(window, "destroy", on_destroy)
-    call gtk.widget_show_all(window)
+    if not claim_instance(id, rest):
+        exit(0)
+    end
+    if id == "":
+        id = start_page()
+    end
+    S["dark"] = ui.dark_mode()
+    call build_window()
+    call apply_css()
+    safe:
+        call glib.mkdir_p(glib.user_config_dir() + "/luxos")
+        call gio.file_monitor(glib.user_config_dir() + "/luxos/appearance", on_appearance)
+    end
+    call gtk.widget_show_all(S["window"])
+    call open_page(id, rest)
+    if len(S["by_id"][id]["exec"]) > 0:
+        call open_page(DEFAULT_PAGE, [])
+    end
+    if wayland():
+        call wm.on_state(on_wm_state)
+        call wm.connect(on_wm_event)
+    end
+    call testctl.start(on_test)
     call gtk.main()
 end
 

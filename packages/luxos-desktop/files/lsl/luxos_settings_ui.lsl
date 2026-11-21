@@ -16,12 +16,17 @@
 #   ui.attach_test(okno)  LUXOS_UI_TEST pro okno vytvorene jinak nez ui.window
 #   ui.run(argv) -> stdout bez mezer na koncich ("" pri chybe), ui.launch(argv) v nove relaci
 #
+#   ui.dark_mode(), ui.css(dark)   tmavy vzhled podle tematu GTK / ~/.config/luxos/appearance, CSS karet a radku
+#                                 jednoho okna Nastaveni (out/plan-1.1.0/design-review.md, Nastaveni)
+#   ui.page_box()                  svisla stranka pro luxos-settings (titulek a okraje prida okno)
+#
 # Testy: LUXOS_UI_TEST=soubor s prikazy (po radcich, po zobrazeni okna): dump (viditelne prvky do souboru.out),
 # click POPISEK, switch RADEK on|off, combo RADEK ID, slider RADEK N, wait MS, quit. RADEK = titulek radku.
 load env, process
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
 load luxos_text as text
+load luxos_tokens as tokens
 
 TITLEBAR = 56
 MARGIN = 16
@@ -154,6 +159,53 @@ function row(g, title, hint, widget):
     g["rows"] = g["rows"] + 1
     state["rows"][title] = widget
     return box
+end
+
+function page_box():
+    return gtk.box_new(gtk.VERTICAL, 0)
+end
+
+function dark_mode():
+    theme = env.get("GTK_THEME", "")
+    if theme == "":
+        theme = gtk.settings_theme_name()
+    end
+    if theme.lower().find("dark") >= 0 or gtk.settings_prefer_dark():
+        return True
+    end
+    return env.get("GTK_THEME", "") == "" and glib.read_text(glib.user_config_dir() + "/luxos/appearance").strip() == "dark"
+end
+
+function c(name, dark):
+    return tokens.css_color(tokens.color(name, dark))
+end
+
+# Karty a radky jako Nastaveni macOS: karta bila (tmave bila 0,06 s okrajem) na barve okna, radky aspon 44 px,
+# oddelovac odsazeny 16 px, napoveda footnote fg_soft, ovladace 28 px, jediny akcent z tokens
+function css(dark):
+    card = "#ffffff"
+    edge = "none"
+    ink = "rgba(0, 0, 0, 0.08)"
+    if dark:
+        card = "rgba(255, 255, 255, 0.06)"
+        edge = "1px solid rgba(255, 255, 255, 0.08)"
+        ink = "rgba(255, 255, 255, 0.08)"
+    end
+    accent = c("accent", dark)
+    out = ".content { background-color: " + c("window", dark) + "; color: " + c("fg", dark) + "; }\n"
+    out = out + ".page-title { " + tokens.type_css("headline") + " margin: 2px 0 4px 2px; }\n"
+    out = out + ".group { background-color: " + card + "; border: " + edge + "; border-radius: 12px; }\n"
+    out = out + ".group-title { " + tokens.type_css("body_strong") + " color: " + c("fg_soft", dark) + "; margin: 24px 0 8px 16px; }\n"
+    out = out + ".row { min-height: 28px; margin-left: 16px; padding: 8px 16px 8px 0; }\n"
+    out = out + ".row-sep { border-top: 1px solid " + ink + "; }\n"
+    out = out + ".hint { " + tokens.type_css("footnote") + " color: " + c("fg_soft", dark) + "; }\n"
+    out = out + ".content button, .content combobox button, .content entry { min-height: 26px; }\n"
+    out = out + ".content switch:checked { background-color: " + accent + "; border-color: " + accent + "; }\n"
+    out = out + ".content button.suggested-action { background: " + accent + "; color: #ffffff; }\n"
+    out = out + ".thumb, .mode { border-radius: 10px; padding: 3px; border: 2px solid transparent; background: none; box-shadow: none; }\n"
+    out = out + ".thumb.current, .mode.current { border-color: " + accent + "; }\n"
+    out = out + ".mode.current label { font-weight: 600; }\n"
+    return out
 end
 
 # ---- ovladaci prvky ----------------------------------------------------------------------------------------
