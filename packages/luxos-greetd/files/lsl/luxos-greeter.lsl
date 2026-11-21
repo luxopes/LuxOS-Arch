@@ -1,7 +1,8 @@
 # LuxOS - prihlasovaci obrazovka pro greetd (1.1.0, Wayland): bezi pod `luxwm --greeter` jako jedno okno pres
-# celou obrazovku, kresli vse cairem ve vzhledu zamku (luxos_lock_draw: rozostrena tapeta, datum a hodiny, avatar,
-# matne pole pro heslo, Caps Lock, rozlozeni, baterie). Navic radek uzivatelu, Jiny uzivatel (domena: volne jmeno),
-# volba relace (LuxOS na Waylandu / LuxOS (X11)) a tlacitka Uspat / Restartovat / Vypnout.
+# celou obrazovku, kresli vse cairem stejne jako zamek (luxos_lock_draw): v klidu ostra tapeta, hodiny a stav,
+# po klavese, kliknuti nebo pohybu mysi vyzva s avatarem a polem pro heslo. Navic rada uzivatelu, Jiny uzivatel
+# (domena: volne jmeno), volba relace (pilulka s nabidkou: LuxOS na Waylandu / LuxOS (X11)) a tlacitka Uspat /
+# Restartovat / Vypnout.
 #
 # Overeni dela greetd (PAM v greetd, ne tady): zpravy JSON pres GREETD_SOCK (luxos_greetd). Zpravy PAM (otisk prstu,
 # zamceny ucet, domena, vyprsele heslo) prichazeji jako auth_message a ukazuji se jako hlaska pod polem.
@@ -10,7 +11,7 @@
 # Testy a ladeni: LUXOS_GREETER_TRACE=1 (udalosti na stdout), LUXOS_GREETER_CONF, LUXOS_GREETER_PASSWD,
 # LUXOS_GREETER_ICONS, LUXOS_GREETER_STATE_DIR, LUXOS_GREETER_WAYLAND_SESSIONS, LUXOS_GREETER_X_SESSIONS,
 # LUXOS_GREETER_SYS (koren /sys), LUXOS_GREETER_DOMAIN_INFO (JSON misto lux-domain), LUXOS_GREETER_POWER=fake
-# (tlacitka napajeni bez logind, jen stopa), LUXOS_GREETER_NOW="HH:MM", LUXOS_LOCK_POWER_SUPPLY (baterie).
+# (tlacitka napajeni bez logind, jen stopa), LUXOS_GREETER_NOW="HH:MM", LUXOS_LOCK_POWER_SUPPLY (baterie), LUXOS_LOCK_NET (sit).
 load env, cairo, pango, glib, gio, gtk, json, math
 load luxos_glib as lglib
 load luxos_gio as lgio
@@ -37,14 +38,12 @@ MOD_ALT = 8
 
 trace = env.get("LUXOS_GREETER_TRACE", "") == "1"
 
-ui = {"font": "Inter", "clock": "", "date": "", "name": "", "face": None, "length": 0, "placeholder": "",
-      "hint": "", "error": False, "caps": False, "caps_text": "", "layout": "", "busy": False, "shake": 0.0,
-      "battery": None}
+ui = draw.new_ui("greeter")
 # input: znaky v poli (seznam, at jde heslo smazat); visible = pole ukazuje text (jmeno, viditelna vyzva PAM)
 state = {"users": [], "sel": 0, "sessions": [], "session": 0, "input": [], "visible": False, "login": "",
          "fd": -1, "inflight": False, "phase": "idle", "pending": None, "auth_error": False, "locked_hint": "",
          "caps_at_submit": False, "fprint": False, "fp_wait": False, "domain": None, "domain_note": "",
-         "power": [], "hits": [], "redraw": 0, "shake_start": 0, "shake_timer": 0, "glass": None, "glass_size": [0, 0],
+         "power": [], "redraw": 0, "frame_timer": 0, "soft_timer": 0, "motion": None,
          "bg_path": "", "layouts": [], "conf": {}, "idle": 0, "last_input": 0, "leaving": False, "notice": "",
          "system": 0, "legacy_gpu": False, "prompt": "",
          "prompted": False}
@@ -280,6 +279,7 @@ function refresh_user():
     u = current()
     ui["name"] = u["real"]
     ui["face"] = u["face"]
+    ui["initial"] = "+" if u["other"] else ""
     call redraw()
     return 0
 end
@@ -538,39 +538,24 @@ function update_clock():
     return 0
 end
 
-function update_battery():
+function update_status():
     ui["battery"] = None
-    if state["conf"].get("show-battery", "true").strip() == "false":
-        return 0
+    if state["conf"].get("show-battery", "true").strip() != "false":
+        ui["battery"] = locksys.battery(getenv_or("LUXOS_LOCK_POWER_SUPPLY", sys_root() + "/class/power_supply"))
     end
-    base = getenv_or("LUXOS_LOCK_POWER_SUPPLY", sys_root() + "/class/power_supply")
-    mains = False
-    found = None
-    for name in lglib.list_dir(base):
-        dir = base + "/" + name
-        kind = lglib.read_text(dir + "/type").strip()
-        if (kind == "Mains" or kind == "USB") and lglib.read_text(dir + "/online").strip() == "1":
-            mains = True
-        end
-        cap = lglib.read_text(dir + "/capacity").strip()
-        if found == None and kind == "Battery" and lglib.read_text(dir + "/scope").strip() != "Device" and text.is_digits(cap) and cap != "":
-            found = [min(100, Int(cap)), lglib.read_text(dir + "/status").strip()]
-        end
-    end
-    if found != None:
-        ui["battery"] = [found[0], found[1] == "Charging" or (found[1] != "Discharging" and mains)]
-    end
+    ui["net"] = locksys.network(getenv_or("LUXOS_LOCK_NET", sys_root() + "/class/net"), "/proc/net/wireless")
     return 0
 end
 
 function tick():
     call update_clock()
-    call update_battery()
+    call update_status()
     # necinnost: rozepsane heslo a hlasky pryc (heslo nezustane na obrazovce, kdyz uzivatel odejde)
     if state["idle"] > 0 and len(state["input"]) > 0 and glib.monotonic_time() - state["last_input"] > state["idle"] * 1000000:
         call clear_input()
         call set_hint("", False)
     end
+    call idle_check()
     call redraw()
     call glib.timeout_add((60 - lglib.localtime(lglib.now())[5]) * 1000 + 50, tick)
     return False
@@ -591,230 +576,118 @@ function queue():
     return False
 end
 
-function glass_for(w, h):
-    if state["glass"] == None:
-        path = state["bg_path"]
-        if not exists(path):
-            path = "/usr/share/backgrounds/luxos/luxos-light.jpg"
-        end
-        state["glass"] = material.glass(path)
+function next_frame():
+    state["frame_timer"] = 0
+    call gtk.widget_queue_draw(window)
+    return False
+end
+
+function wallpaper():
+    path = state["bg_path"]
+    if not exists(path):
+        path = "/usr/share/backgrounds/luxos/luxos-light.jpg"
     end
-    return state["glass"]
+    return path
 end
 
-function hit(x, y, w, h, action):
-    state["hits"].append([x, y, w, h, action])
-    return 0
-end
-
-function small_text(cr, message, size, cx, y, alpha):
-    return draw.centered_text(cr, message, draw.font(ui, "Semi-Bold", size), cx, y, alpha, 2.0)
-end
-
-function draw_users(cr, w, cy, d, u):
-    users = state["users"]
-    n = len(users)
-    if n < 2:
-        return 0
+function scale_factor():
+    f = 1
+    safe:
+        f = gtk.monitor_scale_factor(0)
     end
-    small = draw.px(u, 64.0, 44)
-    step = d * 0.5 + small * 0.5 + draw.px(u, 34.0, 20)
-    gap = small + draw.px(u, 56.0, 34)
-    cx = Float(w) / 2.0
-    name_size = draw.px(u, 13.0, 11)
-    for i in range(n):
-        if i == state["sel"]:
-            continue
-        end
-        k = i - state["sel"]
-        side = 1.0 if k > 0 else -1.0
-        x = cx + side * (step + (Float(abs(k)) - 1.0) * gap)
-        if x < small or x > Float(w) - small:
-            continue
-        end
-        other = users[i]
-        face = {"font": ui["font"], "face": other["face"], "name": other["real"]}
-        if other["other"]:
-            face["name"] = "+"
-        end
-        call material.push_group(cr)
-        call draw.avatar(cr, x, cy, small, face)
-        call small_text(cr, other["real"], name_size, x, cy + small / 2.0 + draw.px(u, 6.0, 4), 1.0)
-        call material.pop_group_to_source(cr)
-        call cairo.paint_with_alpha(cr, 0.72)
-        call hit(x - small / 2.0 - 8.0, cy - small / 2.0 - 8.0, small + 16.0, small + 16.0 + name_size * 1.6, ["user", i])
-    end
-    return 0
+    return max(1, f)
 end
 
-function icon_power(cr, cx, cy, s):
-    r = s * 0.36
-    call cairo.set_line_width(cr, max(1.4, s * 0.085))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy + s * 0.03, r, -cairo.PI / 2.0 + 0.62, -cairo.PI / 2.0 - 0.62 + 2.0 * cairo.PI)
-    call cairo.stroke(cr)
-    call cairo.move_to(cr, cx, cy - s * 0.45)
-    call cairo.line_to(cr, cx, cy - s * 0.05)
-    call cairo.stroke(cr)
-    return 0
-end
-
-function icon_restart(cr, cx, cy, s):
-    r = s * 0.36
-    call cairo.set_line_width(cr, max(1.4, s * 0.085))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    a0 = -cairo.PI / 2.0 + 0.25
-    a1 = -cairo.PI / 2.0 + 2.0 * cairo.PI - 0.75
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy, r, a0, a1)
-    call cairo.stroke(cr)
-    ex = cx + r * math.cos(a1)
-    ey = cy + r * math.sin(a1)
-    tx = -math.sin(a1)
-    ty = math.cos(a1)
-    nx = math.cos(a1)
-    ny = math.sin(a1)
-    k = s * 0.2
-    call cairo.move_to(cr, ex + tx * k * 0.9, ey + ty * k * 0.9)
-    call cairo.line_to(cr, ex + nx * k * 0.75 - tx * k * 0.25, ey + ny * k * 0.75 - ty * k * 0.25)
-    call cairo.line_to(cr, ex - nx * k * 0.75 - tx * k * 0.25, ey - ny * k * 0.75 - ty * k * 0.25)
-    call cairo.close_path(cr)
-    call cairo.fill(cr)
-    return 0
-end
-
-function icon_sleep(cr, cx, cy, s):
-    r = s * 0.40
-    call cairo.save(cr)
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy, r, 0.0, 2.0 * cairo.PI)
-    call cairo.clip(cr)
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy, r, 0.0, 2.0 * cairo.PI)
-    call cairo.move_to(cr, cx + r * 0.55 + r * 0.82, cy - r * 0.45)
-    call cairo.arc(cr, cx + r * 0.55, cy - r * 0.45, r * 0.82, 0.0, 2.0 * cairo.PI)
-    call lgtk.cairo_set_fill_rule(cr, 1)
-    call cairo.fill(cr)
-    call cairo.restore(cr)
-    return 0
-end
-
-function icon_session(cr, cx, cy, s):
-    q = s * 0.3
-    g = s * 0.08
-    for dx in [-1.0, 1.0]:
-        for dy in [-1.0, 1.0]:
-            x = cx + g / 2.0 if dx > 0.0 else cx - g / 2.0 - q
-            y = cy + g / 2.0 if dy > 0.0 else cy - g / 2.0 - q
-            call material.rounded_path(cr, x, y, q, q, q * 0.25)
-            call cairo.fill(cr)
+# Rozmazana tapeta az po prvnim snimku (start nesmi cekat), pred prvni vyzvou nejpozdeji
+function prepare_soft():
+    state["soft_timer"] = 0
+    if window != 0:
+        ms = draw.backdrop_soft(draw.backdrop(wallpaper(), gtk.widget_get_allocated_width(window),
+                                              gtk.widget_get_allocated_height(window), Float(scale_factor())))
+        if ms > 0:
+            call log("blur " + String(ms) + " ms")
         end
     end
-    return 0
+    return False
 end
 
-function round_button(cr, w, h, cx, cy, d, gl, kind, label, u):
-    call cairo.save(cr)
-    call material.push_group(cr)
-    if gl != None:
-        call material.paint(cr, cx - d / 2.0, cy - d / 2.0, d, d, d / 2.0, cx - d / 2.0, cy - d / 2.0, 0, gl, material.map_for(gl, w, h))
+function sync_ui():
+    ui["users"] = state["users"]
+    ui["sel"] = state["sel"]
+    ui["sessions"] = [x["name"] for x in state["sessions"]]
+    ui["session_sel"] = state["session"]
+    ui["session"] = ""
+    if len(state["sessions"]) > 0:
+        ui["session"] = i18n.TF("Session: %s", [state["sessions"][state["session"]]["name"]])
     end
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy, d / 2.0, 0.0, 2.0 * cairo.PI)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.16)
-    call cairo.fill(cr)
-    call material.pop_group_to_source(cr)
-    call cairo.paint(cr)
-    call cairo.restore(cr)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
-    if kind == "poweroff":
-        call icon_power(cr, cx, cy, d * 0.46)
-    elif kind == "reboot":
-        call icon_restart(cr, cx, cy, d * 0.46)
-    elif kind == "suspend":
-        call icon_sleep(cr, cx, cy, d * 0.46)
-    else:
-        call icon_session(cr, cx, cy, d * 0.46)
+    ui["power"] = [[k, i18n.T(POWER_LABELS[k])] for k in ["suspend", "reboot", "poweroff"] if k in state["power"]]
+    line = domain_line()
+    if line == "":
+        line = state["notice"]
     end
-    size = small_text(cr, label, draw.px(u, 13.0, 11), cx, cy + d / 2.0 + draw.px(u, 5.0, 3), 0.92)
-    call hit(cx - max(d, Float(size[0])) / 2.0, cy - d / 2.0, max(d, Float(size[0])), d + Float(size[1]) + 6.0, [kind, 0])
+    ui["notice"] = line
+    ui["leaving"] = state["leaving"]
+    if state["leaving"]:
+        # posledni snimek pred startem relace: ostra tapeta bez formulare a hodin (relace zacina tapetou)
+        ui["reveal"] = 0.0
+        ui["rev_from"] = 0.0
+        ui["rev_to"] = 0.0
+    end
     return 0
 end
 
 POWER_LABELS = {"suspend": "Sleep", "reboot": "Restart", "poweroff": "Shut Down"}
 
-function draw_buttons(cr, w, h, gl, u):
-    d = draw.px(u, 44.0, 34)
-    cy = Float(h) - draw.px(u, 42.0, 26) - draw.px(u, 20.0, 14) - d / 2.0
-    space = draw.px(u, 40.0, 26) + d
-    kinds = [k for k in ["suspend", "reboot", "poweroff"] if k in state["power"]]
-    x = Float(w) / 2.0 - Float(len(kinds) - 1) * space / 2.0
-    for k in kinds:
-        call round_button(cr, w, h, x, cy, d, gl, k, i18n.T(POWER_LABELS[k]), u)
-        x = x + space
-    end
-    # volba relace vlevo dole (jen kdyz je z ceho vybirat)
-    if len(state["sessions"]) > 1:
-        call round_button(cr, w, h, draw.px(u, 42.0, 26) + d, cy, d, gl, "session",
-                          state["sessions"][state["session"]]["name"], u)
-    end
-    return 0
-end
-
-function frame(cr, w, h):
-    state["hits"] = []
-    u = draw.unit(h)
-    gl = glass_for(w, h)
-    call draw.background(cr, w, h, gl)
-    if state["leaving"]:
-        # posledni snimek pred startem relace: jen tapeta, prechod bez formulare a hodin
-        return 0
-    end
-    call draw.clock(cr, w, h, ui, u)
-    call draw.status(cr, w, ui, u)
-    r = draw.field(cr, w, h, ui, gl, u)
-    call hit(r[0], r[1], r[2], r[3], ["field", 0])
-    fy = r[1]
-    gap = draw.px(u, 14.0, 9)
-    name_size = draw.px(u, 17.0, 13)
-    name_y = fy - gap - name_size * 1.3
-    d = draw.px(u, 104.0, 64)
-    cy = name_y - draw.px(u, 8.0, 5) - d / 2.0
-    call draw.avatar(cr, Float(w) / 2.0, cy, d, {"font": ui["font"], "face": ui["face"],
-                                                 "name": "+" if current()["other"] else ui["name"]})
-    call draw.centered_text(cr, ui["name"], draw.font(ui, "Semi-Bold", name_size), Float(w) / 2.0, name_y, 1.0, 3.0 * u)
-    call draw_users(cr, w, cy, d, u)
-    hint_y = fy + r[3] + gap
-    call draw.hint(cr, w, hint_y, ui, u)
-    row_y = hint_y + draw.px(u, 22.0, 16) + gap
-    call draw.keyboard_row(cr, w, row_y, ui, u)
-    line = domain_line()
-    if line == "":
-        line = state["notice"]
-    end
-    if line != "":
-        call small_text(cr, line, draw.px(u, 13.0, 10), Float(w) / 2.0, row_y + draw.px(u, 24.0, 18) + gap, 0.85)
-    end
-    call draw_buttons(cr, w, h, gl, u)
-    return 0
-end
-
 function on_draw(cr, widget):
     w = gtk.widget_get_allocated_width(widget)
     h = gtk.widget_get_allocated_height(widget)
-    call frame(cr, w, h)
+    scale = Float(scale_factor())
+    call sync_ui()
+    again = draw.step(ui)
+    ui["scale"] = scale
+    bd = draw.backdrop(wallpaper(), w, h, scale)
+    call draw.frame(cr, w, h, ui, bd)
+    if bd["soft"] == None and state["soft_timer"] == 0:
+        state["soft_timer"] = glib.timeout_add(30, prepare_soft)
+    end
+    if again and state["frame_timer"] == 0:
+        state["frame_timer"] = glib.timeout_add(tokens.MOTION["frame"], next_frame)
+    end
     return False
+end
+
+# Vyzva k heslu (prechod z klidu)
+function show_prompt():
+    state["last_input"] = glib.monotonic_time()
+    if draw.prompt(ui, True):
+        call prepare_soft()
+        call log("prompt")
+    end
+    call redraw()
+    return 0
+end
+
+function idle_check():
+    quiet = (glib.monotonic_time() - state["last_input"]) / 1000 >= tokens.LOCK["idle_after"]
+    if quiet and len(state["input"]) == 0 and not ui["busy"] and not state["leaving"] and ui["rev_to"] > 0.0:
+        ui["menu"] = False
+        call draw.prompt(ui, False)
+        call log("idle")
+        call redraw()
+    end
+    return 0
 end
 
 # ---- pole a hlasky ----
 
 function sync_field():
     ui["length"] = len(state["input"])
+    ui["visible_text"] = False
     if state["visible"] and len(state["input"]) > 0:
         # viditelny text (jmeno): kresli se jako popisek pole
         ui["placeholder"] = "".join(state["input"])
         ui["length"] = 0
+        ui["visible_text"] = True
     else:
         ui["placeholder"] = state["prompt"]
     end
@@ -844,28 +717,15 @@ function set_hint(message, error):
     end
     ui["hint"] = message
     ui["error"] = error
+    ui["hint_icon"] = ""
+    ui["lockout"] = False
     call redraw()
     return 0
 end
 
-function shake_step():
-    p = Float(glib.monotonic_time() - state["shake_start"]) / 480000.0
-    if p >= 1.0:
-        ui["shake"] = 0.0
-        state["shake_timer"] = 0
-        call redraw()
-        return False
-    end
-    ui["shake"] = Float(Int(math.sin(p * cairo.PI * 8.0) * (1.0 - p) * 16.0 + 0.5))
-    call redraw()
-    return True
-end
-
 function shake():
-    state["shake_start"] = glib.monotonic_time()
-    if state["shake_timer"] == 0:
-        state["shake_timer"] = glib.timeout_add(16, shake_step)
-    end
+    call show_prompt()
+    call draw.shake(ui)
     call log("shake")
     return 0
 end
@@ -929,6 +789,8 @@ end
 function auth_failed(description):
     if state["locked_hint"] != "":
         call set_hint(state["locked_hint"], True)
+        ui["hint_icon"] = "lock"
+        ui["lockout"] = True
     elif state["auth_error"]:
         # hlaska z PAM uz je videt
         call redraw()
@@ -972,6 +834,8 @@ function pam_message(kind, message):
             state["locked_hint"] = i18n.T("Too many failed attempts. Wait a moment, then try again.")
         end
         call set_hint(state["locked_hint"], True)
+        ui["hint_icon"] = "lock"
+        ui["lockout"] = True
         return 0
     end
     # pam_fprintd mluvi pred vyzvou k heslu (text muze byt v jinem jazyce)
@@ -981,11 +845,13 @@ function pam_message(kind, message):
             ui["busy"] = False
             if not ui["error"]:
                 call set_hint(i18n.T("Touch the fingerprint sensor or enter your password"), False)
+                ui["hint_icon"] = "fingerprint"
             end
             return 0
         end
         if state["fp_wait"]:
             call set_hint(i18n.T("Fingerprint not recognized. Try again or enter your password."), True)
+            ui["hint_icon"] = "fingerprint"
             call shake()
             return 0
         end
@@ -1128,6 +994,7 @@ end
 # greetd relaci spusti, az greeter skonci: posledni snimek je tapeta bez formulare (luxwm --greeter pak skonci s nim)
 function leave():
     state["leaving"] = True
+    ui["menu"] = False
     call gtk.widget_queue_draw(window)
     call log("leaving")
     call glib.timeout_add(120, quit_now)
@@ -1195,13 +1062,14 @@ function select_user(index):
     return 0
 end
 
-function next_session():
-    if len(state["sessions"]) > 1:
-        state["session"] = (state["session"] + 1) % len(state["sessions"])
+function choose_session(index):
+    ui["menu"] = False
+    if index >= 0 and index < len(state["sessions"]) and index != state["session"]:
+        state["session"] = index
         state["notice"] = ""
         call log("session " + state["sessions"][state["session"]]["id"])
-        call redraw()
     end
+    call redraw()
     return 0
 end
 
@@ -1275,7 +1143,6 @@ function update_layout(group):
 end
 
 function on_key(event, widget):
-    state["last_input"] = glib.monotonic_time()
     name = gtk.event_key_name(event)
     mods = gtk.event_key_state(event)
     call update_layout(gsys.key_group(event))
@@ -1283,6 +1150,18 @@ function on_key(event, widget):
     if state["leaving"]:
         return True
     end
+    if name == "Escape" and len(state["input"]) == 0 and (ui["menu"] or not current()["other"]):
+        # Esc: zavrit nabidku relaci, s prazdnym polem zpet do klidu
+        if ui["menu"]:
+            ui["menu"] = False
+            call redraw()
+        else:
+            state["last_input"] = 0
+            call idle_check()
+        end
+        return True
+    end
+    call show_prompt()
     if name == "Return" or name == "KP_Enter":
         call submit()
     elif name == "BackSpace":
@@ -1325,30 +1204,82 @@ function on_key_release(event, widget):
     return False
 end
 
-function on_press(event, widget):
-    state["last_input"] = glib.monotonic_time()
-    x = gtk.event_x(event)
-    y = gtk.event_y(event)
-    for h in state["hits"]:
+function hit_at(x, y):
+    for h in ui["hits"]:
         if x >= h[0] and x < h[0] + h[2] and y >= h[1] and y < h[1] + h[3]:
-            action = h[4]
-            call log("click " + action[0])
-            if action[0] == "user":
-                call select_user(action[1])
-            elif action[0] == "session":
-                call next_session()
-            elif action[0] == "field":
-                # sipka v poli = odeslat
-                if x > h[0] + h[2] - h[3]:
-                    call submit()
-                end
-            else:
-                call power(action[0])
-            end
-            return True
+            return h
         end
     end
+    return None
+end
+
+function on_press(event, widget):
+    x = gtk.event_x(event)
+    y = gtk.event_y(event)
+    if ui["rev_to"] <= 0.0:
+        call show_prompt()
+        return True
+    end
+    state["last_input"] = glib.monotonic_time()
+    h = hit_at(x, y)
+    if h == None:
+        if ui["menu"]:
+            ui["menu"] = False
+            call redraw()
+        end
+        return True
+    end
+    action = h[4]
+    call log("click " + action[0])
+    if action[0] != "session" and action[0] != "menu":
+        ui["menu"] = False
+    end
+    if action[0] == "user":
+        call select_user(action[1])
+    elif action[0] == "session":
+        ui["menu"] = not ui["menu"]
+        call log("menu " + String(ui["menu"]))
+        call redraw()
+    elif action[0] == "menu":
+        call choose_session(action[1])
+    elif action[0] == "field":
+        # sipka v poli = odeslat
+        if x > h[0] + h[2] - h[3]:
+            call submit()
+        end
+    else:
+        call power(action[0])
+    end
     return True
+end
+
+# Pohyb mysi: zvyrazneni pod kurzorem; vetsi pohyb v klidu ukaze vyzvu (ne chveni pri startu)
+function on_motion(event, widget):
+    x = gtk.event_x(event)
+    y = gtk.event_y(event)
+    if state["motion"] == None:
+        state["motion"] = [x, y]
+    end
+    if ui["rev_to"] <= 0.0:
+        if abs(x - state["motion"][0]) + abs(y - state["motion"][1]) > 8.0:
+            call show_prompt()
+        end
+        return False
+    end
+    state["last_input"] = glib.monotonic_time()
+    h = hit_at(x, y)
+    key = ""
+    if h != None:
+        key = h[4][0]
+        if key == "user" or key == "menu":
+            key = key + String(h[4][1])
+        end
+    end
+    if key != ui["hover"]:
+        ui["hover"] = key
+        call redraw()
+    end
+    return False
 end
 
 # ---- start ----
@@ -1405,7 +1336,7 @@ call pick_session()
 call check_failed_start()
 call reset_field()
 call update_clock()
-call update_battery()
+call update_status()
 call load_domain()
 call load_power()
 if state["system"] != 0:
@@ -1423,6 +1354,7 @@ call gtk.connect(window, "draw", on_draw)
 call gtk.connect(window, "key-press-event", on_key)
 call gtk.connect(window, "key-release-event", on_key_release)
 call gtk.connect(window, "button-press-event", on_press)
+call gtk.connect(window, "motion-notify-event", on_motion)
 call gtk.connect(window, "destroy", quit_now)
 geometry = []
 safe:

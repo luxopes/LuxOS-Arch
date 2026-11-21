@@ -55,6 +55,10 @@ static struct wp_viewporter *viewporter;
 static guint spare_timer;
 
 static struct wl_keyboard *keyboard;
+static struct wl_pointer *pointer;
+static struct wl_touch *touch;
+static struct surface *pointer_focus;
+static wl_fixed_t pointer_x, pointer_y;
 static struct xkb_context *xkb;
 static struct xkb_keymap *keymap;
 static struct xkb_state *xkb_state;
@@ -197,6 +201,8 @@ static void surface_destroy(struct surface *s)
 {
 	if (focus == s)
 		focus = NULL;
+	if (pointer_focus == s)
+		pointer_focus = NULL;
 	wl_list_remove(&s->link);
 	if (s->fractional)
 		wp_fractional_scale_v1_destroy(s->fractional);
@@ -234,6 +240,14 @@ static void destroy_all(void)
 	if (keyboard) {
 		wl_keyboard_release(keyboard);
 		keyboard = NULL;
+	}
+	if (pointer) {
+		wl_pointer_release(pointer);
+		pointer = NULL;
+	}
+	if (touch) {
+		wl_touch_release(touch);
+		touch = NULL;
 	}
 	if (spare_timer) {
 		g_source_remove(spare_timer);
@@ -617,10 +631,132 @@ static const struct wl_keyboard_listener keyboard_listener = {
 	.repeat_info = kb_repeat,
 };
 
-/* klavesnici jen kdyz jsou zamykaci plochy a seat ji ma */
+/* ---- mys a dotyk: klik nebo dotek jen probudi vyzvu k heslu (LWL_POINTER), kurzor je skryty ---- */
+
+static struct surface *surface_for(struct wl_surface *wl)
+{
+	struct surface *s;
+	wl_list_for_each(s, &surfaces, link)
+		if (s->wl == wl)
+			return s;
+	return NULL;
+}
+
+static void ptr_enter(void *data, struct wl_pointer *p, uint32_t serial, struct wl_surface *wl, wl_fixed_t x, wl_fixed_t y)
+{
+	(void)data;
+	pointer_focus = surface_for(wl);
+	pointer_x = x;
+	pointer_y = y;
+	wl_pointer_set_cursor(p, serial, NULL, 0, 0);
+}
+
+static void ptr_leave(void *data, struct wl_pointer *p, uint32_t serial, struct wl_surface *wl)
+{
+	(void)data; (void)p; (void)serial; (void)wl;
+	pointer_focus = NULL;
+}
+
+static void ptr_motion(void *data, struct wl_pointer *p, uint32_t time, wl_fixed_t x, wl_fixed_t y)
+{
+	(void)data; (void)p; (void)time;
+	pointer_x = x;
+	pointer_y = y;
+}
+
+static void ptr_button(void *data, struct wl_pointer *p, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
+{
+	(void)data; (void)p; (void)serial; (void)time; (void)button;
+	if (state == WL_POINTER_BUTTON_STATE_PRESSED && pointer_focus)
+		lwl_emit(LWL_POINTER, pointer_focus->id, wl_fixed_to_int(pointer_x), wl_fixed_to_int(pointer_y));
+}
+
+static void ptr_axis(void *data, struct wl_pointer *p, uint32_t time, uint32_t axis, wl_fixed_t value)
+{
+	(void)data; (void)p; (void)time; (void)axis; (void)value;
+}
+
+static void ptr_frame(void *data, struct wl_pointer *p)
+{
+	(void)data; (void)p;
+}
+
+static void ptr_axis_source(void *data, struct wl_pointer *p, uint32_t source)
+{
+	(void)data; (void)p; (void)source;
+}
+
+static void ptr_axis_stop(void *data, struct wl_pointer *p, uint32_t time, uint32_t axis)
+{
+	(void)data; (void)p; (void)time; (void)axis;
+}
+
+static void ptr_axis_discrete(void *data, struct wl_pointer *p, uint32_t axis, int32_t discrete)
+{
+	(void)data; (void)p; (void)axis; (void)discrete;
+}
+
+static const struct wl_pointer_listener pointer_listener = {
+	.enter = ptr_enter,
+	.leave = ptr_leave,
+	.motion = ptr_motion,
+	.button = ptr_button,
+	.axis = ptr_axis,
+	.frame = ptr_frame,
+	.axis_source = ptr_axis_source,
+	.axis_stop = ptr_axis_stop,
+	.axis_discrete = ptr_axis_discrete,
+};
+
+static void touch_down(void *data, struct wl_touch *t, uint32_t serial, uint32_t time, struct wl_surface *wl, int32_t id,
+		       wl_fixed_t x, wl_fixed_t y)
+{
+	struct surface *s = surface_for(wl);
+	(void)data; (void)t; (void)serial; (void)time; (void)id;
+	if (s)
+		lwl_emit(LWL_POINTER, s->id, wl_fixed_to_int(x), wl_fixed_to_int(y));
+}
+
+static void touch_up(void *data, struct wl_touch *t, uint32_t serial, uint32_t time, int32_t id)
+{
+	(void)data; (void)t; (void)serial; (void)time; (void)id;
+}
+
+static void touch_motion(void *data, struct wl_touch *t, uint32_t time, int32_t id, wl_fixed_t x, wl_fixed_t y)
+{
+	(void)data; (void)t; (void)time; (void)id; (void)x; (void)y;
+}
+
+static void touch_frame(void *data, struct wl_touch *t)
+{
+	(void)data; (void)t;
+}
+
+static void touch_shape(void *data, struct wl_touch *t, int32_t id, wl_fixed_t major, wl_fixed_t minor)
+{
+	(void)data; (void)t; (void)id; (void)major; (void)minor;
+}
+
+static void touch_orientation(void *data, struct wl_touch *t, int32_t id, wl_fixed_t orientation)
+{
+	(void)data; (void)t; (void)id; (void)orientation;
+}
+
+static const struct wl_touch_listener touch_listener = {
+	.down = touch_down,
+	.up = touch_up,
+	.motion = touch_motion,
+	.frame = touch_frame,
+	.cancel = touch_frame,
+	.shape = touch_shape,
+	.orientation = touch_orientation,
+};
+
+/* klavesnici (a mys a dotyk) jen kdyz jsou zamykaci plochy a seat je ma */
 void lwl_lock_keyboard_update(void)
 {
-	bool want = lwl.seat && (lwl.seat_caps & WL_SEAT_CAPABILITY_KEYBOARD) && !wl_list_empty(&surfaces);
+	bool any = lwl.seat && !wl_list_empty(&surfaces);
+	bool want = any && (lwl.seat_caps & WL_SEAT_CAPABILITY_KEYBOARD);
 	if (want && !keyboard) {
 		keyboard = wl_seat_get_keyboard(lwl.seat);
 		wl_keyboard_add_listener(keyboard, &keyboard_listener, NULL);
@@ -628,6 +764,23 @@ void lwl_lock_keyboard_update(void)
 		wl_keyboard_release(keyboard);
 		keyboard = NULL;
 		focus = NULL;
+	}
+	want = any && (lwl.seat_caps & WL_SEAT_CAPABILITY_POINTER);
+	if (want && !pointer) {
+		pointer = wl_seat_get_pointer(lwl.seat);
+		wl_pointer_add_listener(pointer, &pointer_listener, NULL);
+	} else if (!want && pointer) {
+		wl_pointer_release(pointer);
+		pointer = NULL;
+		pointer_focus = NULL;
+	}
+	want = any && (lwl.seat_caps & WL_SEAT_CAPABILITY_TOUCH);
+	if (want && !touch) {
+		touch = wl_seat_get_touch(lwl.seat);
+		wl_touch_add_listener(touch, &touch_listener, NULL);
+	} else if (!want && touch) {
+		wl_touch_release(touch);
+		touch = NULL;
 	}
 }
 

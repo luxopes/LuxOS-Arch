@@ -271,20 +271,53 @@ class Greeter:
         self.greetd.close()
 
 
+# Rozmisteni jako luxos_lock_draw (tokens.LOCK, meritko u = vyska / 1080, nejmene 0.75)
+U = max(0.75, H / 1080.0)
+
+
+def bottom_row():
+    d = px(U, 44.0, 34)
+    label = float(int(px(U, 12.0, 10) * 1.35 + 0.5))
+    return H - px(U, 40.0, 26) - label - px(U, 8.0, 5) - d / 2.0
+
+
 def session_button():
-    u = max(0.55, H / 1080.0)
-    d = px(u, 44.0, 34)
-    cy = H - px(u, 42.0, 26) - px(u, 20.0, 14) - d / 2.0
-    return int(px(u, 42.0, 26) + d), int(cy)
+    return int(px(U, 32.0, 20) + 20), int(bottom_row())
+
+
+def session_item(i, count=2):
+    row = px(U, 30.0, 24)
+    pad = px(U, 5.0, 4)
+    top = bottom_row() - px(U, 32.0, 26) / 2.0 - px(U, 6.0, 4) - (count * row + 2 * pad)
+    return int(px(U, 32.0, 20) + 50), int(top + pad + row * (i + 0.5))
 
 
 def power_buttons():
-    u = max(0.55, H / 1080.0)
-    d = px(u, 44.0, 34)
-    cy = H - px(u, 42.0, 26) - px(u, 20.0, 14) - d / 2.0
-    space = px(u, 40.0, 26) + d
-    x = W / 2.0 - space
-    return {"suspend": (int(x), int(cy)), "reboot": (int(x + space), int(cy)), "poweroff": (int(x + 2 * space), int(cy))}
+    pitch = px(U, 96.0, 70)
+    x = W / 2.0 - pitch
+    cy = bottom_row()
+    return {"suspend": (int(x), int(cy)), "reboot": (int(x + pitch), int(cy)), "poweroff": (int(x + 2 * pitch), int(cy))}
+
+
+def field_rect():
+    d = px(U, 96.0, 64)
+    ay = float(int(H * 0.62))
+    name_y = ay + d / 2.0 + px(U, 14.0, 9)
+    fy = name_y + float(int(px(U, 17.0, 13) * 1.3 + 0.5)) + px(U, 14.0, 9)
+    fw = px(U, 300.0, 220)
+    return int((W - fw) / 2.0), int(fy), int(fw), int(px(U, 40.0, 30))
+
+
+def ppm_pixels(path):
+    with open(path, "rb") as f:
+        magic, size, depth, data = f.read().split(b"\n", 3)
+    w, h = map(int, size.split())
+    return w, data
+
+
+def region(path, x0, y0, x1, y1):
+    w, data = ppm_pixels(path)
+    return [tuple(data[(y * w + x) * 3:(y * w + x) * 3 + 3]) for y in range(y0, y1) for x in range(x0, x1)]
 
 
 class GreeterTest(unittest.TestCase):
@@ -330,10 +363,20 @@ class GreeterTest(unittest.TestCase):
 
     def test_wrong_password_then_right(self):
         self.g = g = Greeter("wrong")
+        fx, fy, fw, fh = field_rect()
         g.input("type spatne", "key Return")
         g.wait_for("hint error Incorrect password. Try again.")
         g.wait_for("shake")
+        time.sleep(0.6)
         g.shot("wrong-password")
+        # chyba je videt: cerveny okraj pole a svetle cervena hlaska pod nim (drive snimek = klidovy stav)
+        shot = os.path.join(g.dir, "wrong.ppm")
+        wlt("shot", g.dir, shot)
+        rim = [p for p in region(shot, fx + 20, fy - 2, fx + fw - 20, fy) if p[0] > p[1] + 60 and p[0] > p[2] + 60]
+        self.assertGreater(len(rim), 50)
+        text = [p for p in region(shot, fx - 60, fy + fh + 6, fx + fw + 60, fy + fh + 30)
+                if p[0] > 200 and 150 < p[1] < 200 and 150 < p[2] < 200]
+        self.assertGreater(len(text), 20)
         self.assertIn("cancel_session", g.greetd.kinds())
         self.assertEqual(g.greetd.sessions, [])
         self.assertTrue(g.alive())
@@ -378,7 +421,12 @@ class GreeterTest(unittest.TestCase):
         self.g = g = Greeter("session")
         x, y = session_button()
         g.input(f"move {x} {y}", "click")
+        g.wait_for("menu True")
+        g.shot("session-menu")
+        x, y = session_item(1)
+        g.input(f"move {x} {y}", "click")
         g.wait_for("session x11:luxos.desktop")
+        g.wait_for("click menu")
         g.shot("session-x11")
         g.input("type luxos", "key Return")
         g.wait_for("leaving")
@@ -426,6 +474,26 @@ class GreeterTest(unittest.TestCase):
         kinds = g.greetd.kinds()
         self.assertEqual(kinds[0], "create_session")
         self.assertEqual(kinds[-1], "start_session")
+
+    def test_idle_then_prompt(self):
+        """Klid: jen tapeta, hodiny a stav (zadne pole); prvni klavesa ukaze vyzvu a je uz v poli."""
+        self.g = g = Greeter("idle")
+        fx, fy, fw, fh = field_rect()
+        idle = os.path.join(g.dir, "idle.ppm")
+        wlt("shot", g.dir, idle)
+        g.shot("idle")
+        g.input("type l")
+        g.wait_for("prompt")
+        time.sleep(0.6)
+        typed = os.path.join(g.dir, "typed.ppm")
+        wlt("shot", g.dir, typed)
+        g.shot("prompt")
+        box = (fx + 10, fy + 4, fx + fw - 10, fy + fh - 4)
+        changed = sum(a != b for a, b in zip(region(idle, *box), region(typed, *box)))
+        self.assertGreater(changed, 500)
+        g.input("type uxos", "key Return")
+        g.wait_for("leaving")
+        self.assertEqual(g.greetd.requests[1]["response"], "luxos")
 
     def test_power_buttons(self):
         self.g = g = Greeter("power")
