@@ -2,19 +2,20 @@
 
 pkgname=luxos-shell
 pkgver=1.1.0
-pkgrel=21
+pkgrel=22
 pkgdesc="LuxOS shell experience: lsh (Lux shell) with ble.sh, zsh, starship prompt, fastfetch"
 arch=(any)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # shadow: adduser/deluser (useradd, userdel, gpasswd, passwd); lsb-release: lsb_release (branding prepise /etc/lsb-release)
+# xorg-xauth, util-linux (mcookie): "ssh -X" v relaci na Waylandu (remote-apps.sh)
 depends=(bash lsh lsl bash-completion blesh starship fzf zoxide eza bat fastfetch xclip
-         zsh zsh-autosuggestions zsh-syntax-highlighting ttf-jetbrains-mono-nerd shadow lsb-release)
+         zsh zsh-autosuggestions zsh-syntax-highlighting ttf-jetbrains-mono-nerd shadow lsb-release xorg-xauth util-linux)
 install=luxos-shell.install
 
 package() {
     local f="$startdir/files"
-    install -Dm644 -t "$pkgdir/usr/share/luxos/shell" "$f"/{bashrc,blerc,aliases.sh,zshrc,starship.toml}
+    install -Dm644 -t "$pkgdir/usr/share/luxos/shell" "$f"/{bashrc,blerc,aliases.sh,remote-apps.sh,zshrc,starship.toml}
     install -Dm644 "$f/profile.sh" "$pkgdir/etc/profile.d/luxos.sh"
     # prikazy aplikaci ze sandboxu (luxos-sandbox) na KONCI PATH - "zz", aby byl i za skripty, ktere PATH prodluzuji
     install -Dm644 "$f/sandbox-path.sh" "$pkgdir/etc/profile.d/zz-luxos-sandbox.sh"

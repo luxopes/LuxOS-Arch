@@ -16,7 +16,8 @@ while [ "${p:-0}" -gt 1 ] && [ $i -lt 16 ]; do
             done
             echo "Xfce Terminal${v:+ $v}"; exit 0 ;;
         sshd*) echo "SSH"; exit 0 ;;
-        fastfetch|sh|bash|lsh|zsh|fish|dash|sudo|su|doas|tmux*|screen|script) ;;
+        # waypipe: shell pres "ssh -X" z LuxOS na Waylandu (waypipe server mezi sshd a shellem)
+        fastfetch|sh|bash|lsh|zsh|fish|dash|sudo|su|doas|tmux*|screen|script|waypipe) ;;
         *) echo "$c"; exit 0 ;;
     esac
     p=$(awk '{print $4}' "/proc/$p/stat" 2>/dev/null)
