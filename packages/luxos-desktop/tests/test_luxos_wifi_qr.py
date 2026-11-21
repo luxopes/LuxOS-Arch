@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - testy okna QR kodu Wi-Fi (files/lsl/luxos-wifi-qr.lsl): QR kod pripojene site, stavy, heslo spravce.
+"""LuxOS - testy stranky Wi-Fi Nastaveni (files/lsl/luxos_page_wifi.lsl, odkaz luxos-wifi-qr): QR kod pripojene site, stavy, heslo spravce.
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_wifi_qr.py -v
 
@@ -113,7 +113,7 @@ def nm_calls():
 
 @unittest.skipUnless(HAVE_ZXING, "needs libZXing (zxing-cpp) or LUXOS_ZXING_LIB")
 class TestShareWindow(unittest.TestCase):
-    """Okno luxos-wifi-qr v LSL: QR kod pripojene site, stavy, heslo spravce, kopirovani obrazku."""
+    """Stranka Wi-Fi okna Nastaveni (drive luxos-wifi-qr): QR kod pripojene site, stavy, heslo spravce, kopirovani."""
 
     @classmethod
     def setUpClass(cls):
@@ -147,7 +147,7 @@ class TestShareWindow(unittest.TestCase):
         self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
 
     def st(self):
-        return json.loads(self.app.ask("state", "state"))
+        return json.loads(self.app.ask("page-state", "page-state"))
 
     def named(self, name):
         return lsl_app.find(self.app.dump(), name=name)["text"]
@@ -160,7 +160,7 @@ class TestShareWindow(unittest.TestCase):
 
     def test_share_window_shows_scannable_code(self):
         self.start("connected")
-        self.assertEqual([(w["title"], w["close_button"]) for w in self.app.dump()], [("Wi-Fi QR Code", True)])
+        self.assertEqual([(w["title"], w["close_button"]) for w in self.app.dump()], [("Wi-Fi", True)])
         self.assertTrue(self.wait(lambda: self.st()["page"] == "qr"))
         self.assertEqual(self.named("ssid"), "Kavárna:1")
         self.assertFalse(self.st()["password_shown"])
@@ -242,7 +242,9 @@ class TestShareWindow(unittest.TestCase):
     def test_czech(self):
         self.start("connected", LANG="cs_CZ.UTF-8", LC_ALL="cs_CZ.UTF-8")
         self.assertTrue(self.wait(lambda: self.st()["page"] == "qr"))
-        self.assertEqual([w["title"] for w in self.app.dump()], ["QR kód Wi\u2011Fi"])
+        self.assertEqual([w["title"] for w in self.app.dump()], ["Wi-Fi"])
+        texts = lsl_app.texts(self.app.dump())
+        self.assertIn("Naskenujte kód fotoaparátem telefonu a připojte se k této síti.", texts)
 
 
 if __name__ == "__main__":
