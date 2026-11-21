@@ -353,6 +353,20 @@ blur_set_box(struct blur *b, struct wlr_box box)
  * material nemaji. */
 #define MIN_SIDE 8
 
+/* Obdelnik, ktery primo lezi na sirsim obdelniku pod sebou, je vystupek (zvetsene ikony Docku nad panelem):
+ * jde na nej kliknout, ale sklo zustava jen panel, jinak by se s ikonou zvedl cely panel */
+static bool
+raised(const pixman_box32_t *r, const pixman_box32_t *rects, int count)
+{
+	for (int i = 0; i < count; i++) {
+		const pixman_box32_t *s = &rects[i];
+		if (s->y1 == r->y2 && s->x1 <= r->x1 && s->x2 >= r->x2 && s->x2 - s->x1 > r->x2 - r->x1) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void
 blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixman_region32_t *input,
 		int width, int height)
@@ -364,7 +378,7 @@ blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixma
 	const pixman_box32_t *rects = pixman_region32_rectangles(&region, &count);
 	for (int i = 0; i < count && n < BLUR_SET_MAX; i++) {
 		struct wlr_box box = { rects[i].x1, rects[i].y1, rects[i].x2 - rects[i].x1, rects[i].y2 - rects[i].y1 };
-		if (box.width < MIN_SIDE || box.height < MIN_SIDE) {
+		if (box.width < MIN_SIDE || box.height < MIN_SIDE || raised(&rects[i], rects, count)) {
 			continue;
 		}
 		if (!set->blur[n]) {

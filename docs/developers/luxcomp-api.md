@@ -223,8 +223,10 @@ Pod povrch jde v jeho stromu scény:
 - **rozmazaný výřez** všeho, co je ve scéně pod plochou (tapeta, okna, nižší vrstvy), v každém
   obdélníku vstupní oblasti povrchu (`wl_surface.set_input_region`, výchozí je celý povrch) se
   zaoblenými rohy daného poloměru, saturace 1,6. Sklo je tam, kam jde kliknout: Dock si vstupní oblast
-  nastaví na panel (ne na místo pro zvětšené ikony a popisky), oznámení na bubliny. Obdélníky tenčí než
-  8 px (horká hrana skrytého Docku) material nemají, nejvýš 8 obdélníků;
+  nastaví na panel (ne na místo pro popisky), oznámení na bubliny. Obdélník, který přímo leží na širším
+  obdélníku pod sebou (zvětšené ikony Docku nad panelem), je výstupek: jde na něj kliknout, ale skla nemá,
+  takže panel se s ikonou nezvedá. Obdélníky tenčí než 8 px (horká hrana skrytého Docku) material nemají,
+  nejvýš 8 obdélníků;
 - **stín** materiálu (úroveň výšky: barva s alfou, dosah, posun dolů), kreslený vně plochy.
 
 Klient kreslí jen tónování materiálu (průhlednou barvu) a obsah. Popupy xdg takové plochy (nabídky
