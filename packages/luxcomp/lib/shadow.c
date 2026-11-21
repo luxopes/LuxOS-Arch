@@ -24,8 +24,9 @@ struct shadow {
 	struct wlr_scene_buffer *piece[8];
 };
 
-/* aktivni a neaktivni okno; vic kombinaci naraz neni */
-static struct shadow_texture cache[2];
+/* aktivni a neaktivni okno a urovne materialu (blur.c) */
+#define CACHE 8
+static struct shadow_texture cache[CACHE];
 static int next;
 
 /* Box blur radku nebo sloupce s nulami za okrajem; tri pruchody davaji temer gauss */
@@ -108,7 +109,7 @@ render(int size, int radius, uint32_t argb, int scale)
 static struct wlr_buffer *
 texture(int size, int radius, uint32_t argb, int scale)
 {
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < CACHE; i++) {
 		struct shadow_texture *c = &cache[i];
 		if (c->buffer && c->size == size && c->radius == radius && c->argb == argb
 				&& c->scale == scale) {
@@ -117,7 +118,7 @@ texture(int size, int radius, uint32_t argb, int scale)
 	}
 	/* okna drzi starou texturu dal (zamek wlr_buffer), dokud se neprekresli */
 	struct shadow_texture *t = &cache[next];
-	next ^= 1;
+	next = (next + 1) % CACHE;
 	if (t->buffer) {
 		wlr_buffer_drop(t->buffer);
 	}
@@ -156,7 +157,7 @@ shadow_destroy(struct shadow *sh)
 
 void
 shadow_update(struct shadow *sh, struct wlr_box f, int size, int radius, uint32_t argb,
-		int scale)
+		int dy, int scale)
 {
 	bool on = size > 0 && (argb >> 24) > 0 && f.width > 0 && f.height > 0;
 	wlr_scene_node_set_enabled(&sh->tree->node, on);
@@ -165,13 +166,14 @@ shadow_update(struct shadow *sh, struct wlr_box f, int size, int radius, uint32_
 	}
 	struct wlr_buffer *buffer = texture(size, radius, argb, scale);
 	int c = corner_size(size, radius), n = 2 * c + 1;
-	/* svetlo shora: stin posunuty dolu o ctvrtinu velikosti */
-	int x0 = f.x - size, y0 = f.y - size + size / 4;
+	/* svetlo shora: stin posunuty dolu (dy < 0 = ctvrtina velikosti) */
+	dy = dy < 0 ? size / 4 : dy;
+	int x0 = f.x - size, y0 = f.y - size + dy;
 	int w = f.width + 2 * size, h = f.height + 2 * size;
 	/* u maleho okna se rohy zkrati, aby se neprekryvaly */
 	int cx = c < w / 2 ? c : w / 2, cy = c < h / 2 ? c : h / 2;
 	/* hrany jen tak siroke, kolik je stinu vedle okna; zbytek by se kreslil pod nim */
-	int t = size + size / 4, tx = t < cx ? t : cx, ty = t < cy ? t : cy;
+	int t = size + dy, tx = t < cx ? t : cx, ty = t < cy ? t : cy;
 	int ew = w - 2 * cx, eh = h - 2 * cy;
 	struct { int sx, sy, sw, sh, x, y, w, h; } part[8] = {
 		{ 0, 0, cx, cy, x0, y0, cx, cy },

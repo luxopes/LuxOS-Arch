@@ -5,7 +5,8 @@
  * okno nad listou.
  *
  * Prikazy na stdin (testy bez vstupnich zarizeni): "slide", "slide-left", "focus-next", "fullscreen",
- * "spawn PRIKAZ", "list", "quit". Stdin a luxcomp_fd() hlida poll(), stejne jako to bude
+ * "spawn PRIKAZ", "list", "quit", "blur MODE" (luxcomp_blur_set), "wiggle N" (nejvyssi okno se
+ * N kroku po 8 ms posouva sem a tam, test rozmazani pod pohybujicim se oknem). Stdin a luxcomp_fd() hlida poll(), stejne jako to bude
  * delat smycka GLib v LSL.
  */
 #define _POSIX_C_SOURCE 200809L
@@ -18,6 +19,7 @@
 
 #define CASCADE 28
 
+static int wiggle;
 static int64_t ws[2], current, bind_tab, bind_left, bind_right, bind_close, bind_grave;
 
 static int64_t
@@ -265,6 +267,12 @@ command(char *line)
 				(long)vget(o, LUXCOMP_VIEW_FOCUSED), (long)vget(o, LUXCOMP_VIEW_LAYER));
 		}
 		fflush(stdout);
+	} else if (!strncmp(line, "blur ", 5)) {
+		luxcomp_blur_set(32, 160, atoi(line + 5));
+		printf("blur tier %ld\n", (long)luxcomp_blur_tier());
+		fflush(stdout);
+	} else if (!strncmp(line, "wiggle ", 7)) {
+		wiggle = atoi(line + 7);
 	} else if (!strcmp(line, "quit")) {
 		luxcomp_quit();
 	}
@@ -321,8 +329,16 @@ main(int argc, char *argv[])
 	};
 	char line[512];
 	while (luxcomp_dispatch(0) == 0) {
-		if (poll(fds, 2, -1) < 0) {
+		if (poll(fds, 2, wiggle > 0 ? 8 : -1) < 0) {
 			continue;
+		}
+		if (wiggle > 0) {
+			int64_t v = luxcomp_view_next(0);
+			int step = (wiggle / 40) % 2 ? -12 : 12;
+			wiggle--;
+			if (v) {
+				luxcomp_view_move(v, vget(v, LUXCOMP_VIEW_X) + step, vget(v, LUXCOMP_VIEW_Y));
+			}
 		}
 		if (fds[1].revents & POLLIN) {
 			if (fgets(line, sizeof(line), stdin)) {

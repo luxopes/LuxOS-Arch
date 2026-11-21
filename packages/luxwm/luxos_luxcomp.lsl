@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 7
+API_VERSION = 8
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -124,6 +124,8 @@ THEME_SHADOW_ACTIVE = 15
 THEME_SHADOW_INACTIVE = 16
 THEME_SHADOW_ACTIVE_SIZE = 17
 THEME_SHADOW_INACTIVE_SIZE = 18
+THEME_SHADOW_ACTIVE_Y = 19
+THEME_SHADOW_INACTIVE_Y = 20
 
 function ptr(value):
     unsafe:
@@ -199,6 +201,25 @@ end
 function software_rendering():
     unsafe:
         return __lsl_qbe_call0(__lsl_symbol("luxcomp_software_rendering"))
+    end
+end
+
+# Material ploch layer-shell s priponou jmenneho prostoru "nazev@material[:polomer]" (luxcomp-api.md)
+function material_set(name, radius, fallback, shadow, size, dy):
+    unsafe:
+        call __lsl_qbe_call6(__lsl_symbol("luxcomp_material_set"), cstr(name), ptr(radius), ptr(fallback), ptr(shadow), ptr(size), ptr(dy))
+    end
+end
+
+function blur_set(radius, saturation_pct, mode):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("luxcomp_blur_set"), ptr(radius), ptr(saturation_pct), ptr(mode))
+    end
+end
+
+function blur_tier():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_blur_tier"))
     end
 end
 

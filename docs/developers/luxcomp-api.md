@@ -4,10 +4,10 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 7: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+`LUXCOMP_API_VERSION` = 8: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
 a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
-a `luxcomp_view_set_names()`), balík `packages/luxcomp`.
+a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell) a posun stínu oken), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -212,6 +212,48 @@ Jak to jádro kreslí:
   a textura, kterou nejde číst, mají rohy ostré.
 - `LUXCOMP_STATS=1` vypíše po každém tažení okna počet snímků a nejdelší a průměrný čas kreslení.
 
+Stín okna je posunutý dolů o `SHADOW_ACTIVE_Y`/`SHADOW_INACTIVE_Y` px (−1 = čtvrtina dosahu, výchozí).
+
+### Material (rozmazané pozadí)
+
+Plocha layer-shell o material požádá příponou jmenného prostoru: `název@material[:poloměr]`, např.
+`luxos-cc@popup:16`, `luxos-launchpad@dim:0`. Bez přípony je plocha jako dřív. Část před `@`
+kompozitor nečte. Soukromý protokol by klienti GTK (gtk-layer-shell) museli vázat sami přes
+`wl_display` GDK; jmenný prostor nastaví jedno volání `gtk_layer_set_namespace()` a labwc ho ignoruje.
+
+Pod povrch jde v jeho stromu scény:
+- **rozmazaný výřez** všeho, co je ve scéně pod plochou (tapeta, okna, nižší vrstvy), v obdélníku
+  povrchu se zaoblenými rohy daného poloměru, saturace 1,6;
+- **stín** materiálu (úroveň výšky: barva s alfou, dosah, posun dolů), kreslený vně plochy.
+
+Klient kreslí jen tónování materiálu (průhlednou barvu) a obsah. Popupy xdg takové plochy (nabídky
+GTK) dostanou material `menu` v obdélníku geometrie okna (stín GTK kolem nabídky je mimo).
+
+Výřez se počítá znovu jen tehdy, když se změnilo, co pod plochou je. Podpis tvoří uzly scény pod
+výřezem: poloha, velikost, buffer, průhlednost a pořadové číslo commitu povrchu. Při klidu se
+nepočítá nic, ani když plocha sama překresluje obsah (hodiny).
+
+| Tier (`luxcomp_blur_tier()`) | Kdy | Jak |
+|---|---|---|
+| 2 | gles2 | výřez v plném rozlišení průchodem rendereru, dual Kawase shadery GLES2 (4 průchody dolů, 4 nahoru, efektivní poloměr 32 px), v posledním saturace a zaoblení |
+| 1 | pixman | výřez ve čtvrtinovém rozlišení, 3× box blur v C (kanály v 16bitových pruzích), zvětšení rendererem, zaoblení rohů |
+| 0 | `luxcomp_blur_set(…, 0)`, chyba shaderu nebo pomalé snímky | neprůhledná barva `fallback` materiálu se zaoblenými rohy |
+
+Pod pixman se hlídá čas snímku: když tři snímky s přepočtem po sobě trvají přes 8 ms, kompozitor
+přejde na tier 0 (do dalšího `luxcomp_blur_set`). Naměřeno headless 1920×1080 pixman, plocha
+400×500 nad oknem 1600×900, které se každých 8 ms posune o 12 px: snímek průměrně 3,6 ms, nejvýš
+5,4 ms; přepočet výřezu 1,5 ms (nejvýš 2,1 ms). Tier 2 je přeložený, ale bez GPU v testech
+nespuštěný.
+
+- `luxcomp_material_set(název, poloměr, fallback, stín, dosah, posun)`: poloměr je výchozí pro
+  jmenný prostor bez `:poloměr`, `fallback` neprůhledná barva tieru 0, stín `0xAARRGGBB` (alfa 0 = bez
+  stínu). Neznámý název se přidá (nejvýš 16 materiálů). Výchozí tabulka je světlý režim tokenů:
+  `bar`, `dock`, `menu`, `popup`, `toast`, `sheet`, `dim`; luxwm ji přepíše z `luxos_tokens.lsl`
+  (`MATERIAL`, `ELEVATION`) při startu a změně režimu.
+- `luxcomp_blur_set(poloměr, saturace_%, režim)`: režim 0 = jen neprůhledná barva, 1 = automaticky.
+- `LUXCOMP_STATS=1` vypíše každých 120 snímků s materiálem nejdelší a průměrný snímek a přepočet;
+  `LUXCOMP_BLUR_SLOW_MS` mění rozpočet 8 ms (testy přechodu na tier 0).
+
 `luxcomp_set_cursor(téma, velikost)` nastaví ukazatel kompozitoru (plocha, zahlaví) a exportuje
 `XCURSOR_THEME`/`XCURSOR_SIZE` pro později spuštěné klienty. Velikost je v logických px, obrázek
 pro měřítko každého výstupu si wlroots načte sám. luxwm bere téma a velikost z `gtk-3.0/settings.ini`
@@ -353,7 +395,11 @@ zjišťuje, že kompozitor běží, a nastavuje `--size`. Po změně velikosti p
 - **headless pixman 1920×1080** (`scenario.sh`): umístění, testovací lišta layer-shell,
   celoobrazovkové okno nad listou, přejezd ploch a obrácení, PSS;
 - **vnořený backend x11 v soukromém Xvfb** (`nested.sh`, `input.sh`): klik, přesun za zahlaví,
-  zavření semaforem, Alt+Tab, Ctrl+šipky a psaní do zaměřeného okna přes xdotool.
+  zavření semaforem, Alt+Tab, Ctrl+šipky a psaní do zaměřeného okna přes xdotool;
+- **material** (`blur.sh`, `blur_check.py`): plocha `test-popup@popup:16` nad oknem s pruhy 4 px;
+  pod plochou s materiálem pruhy zmizí (směrodatná odchylka jasu v řádku < 3), bez materiálu zůstanou
+  (> 20), tier 0 je jednolitý; čas snímku při pohybu okna v `demo.log`, druhý běh s
+  `LUXCOMP_BLUR_SLOW_MS=0` ověří automatický přechod na tier 0.
 
 Protokoly shellu se testují přes luxwm:
 - `packages/luxwm/tests/test_luxwm_protocols.py`: Dock, xdg-activation, zámek, allowlist a XWayland;
@@ -373,6 +419,8 @@ bude luxwm v LSL. Testy jsou dočasně tady, dokud nebude hotový harness WP-1 (
 - Přejezd ploch na více monitorech posouvá strom plochy o šířku monitoru pod kurzorem.
   Samostatný posun pro každý monitor zatím chybí.
 - Navázání rychlosti při přerušeném přejezdu. Navazuje se poloha, rychlost zatím ne.
-- `org.freedesktop.a11y.KeyboardMonitor`, blur a režim greeteru.
+- `org.freedesktop.a11y.KeyboardMonitor` a režim greeteru.
+- Material pro okna (průsvitný terminál) a pro vnořené popupy (podnabídky); material jen u ploch
+  layer-shell a jejich prvních popupů.
 - Hlídání sériových čísel u `REQ_MOVE`/`REQ_RESIZE`. Teď stačí, že politika tah spustí jen pro
   okno pod kurzorem.

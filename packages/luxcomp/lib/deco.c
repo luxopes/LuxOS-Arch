@@ -20,7 +20,7 @@
 
 static struct {
 	int title_height, radius, button, spacing;
-	int shadow_size[2];
+	int shadow_size[2], shadow_y[2];
 	uint32_t bg[2], text[2], shadow[2];
 	uint32_t close, minimize, maximize, button_inactive, separator, glyph;
 	char *font;
@@ -30,6 +30,7 @@ static struct {
 	.button = 12,
 	.spacing = 8,
 	.shadow_size = { 24, 40 },
+	.shadow_y = { -1, -1 },
 	.bg = { 0xffe8e8e8, 0xfff6f6f6 },	/* [0] neaktivni, [1] aktivni */
 	.text = { 0xff6e6e6e, 0xff3c3c3c },
 	.shadow = { 0x2e000000, 0x59000000 },
@@ -527,7 +528,8 @@ deco_update(struct deco *d)
 		t = theme.title_height;
 	}
 	shadow_update(d->shadow, (struct wlr_box){ 0, -t, width, height + t },
-		square ? 0 : theme.shadow_size[active], theme.radius, theme.shadow[active], scale);
+		square ? 0 : theme.shadow_size[active], theme.radius, theme.shadow[active],
+		theme.shadow_y[active], scale);
 }
 
 bool
@@ -619,6 +621,8 @@ luxcomp_theme_set(int64_t prop, int64_t value)
 	case LUXCOMP_THEME_SHADOW_INACTIVE: theme.shadow[0] = c; break;
 	case LUXCOMP_THEME_SHADOW_ACTIVE_SIZE: theme.shadow_size[1] = value; break;
 	case LUXCOMP_THEME_SHADOW_INACTIVE_SIZE: theme.shadow_size[0] = value; break;
+	case LUXCOMP_THEME_SHADOW_ACTIVE_Y: theme.shadow_y[1] = value; break;
+	case LUXCOMP_THEME_SHADOW_INACTIVE_Y: theme.shadow_y[0] = value; break;
 	default: return;
 	}
 	redraw_all();

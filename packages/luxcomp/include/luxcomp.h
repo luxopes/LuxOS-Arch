@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 7
+#define LUXCOMP_API_VERSION 8
 
 #pragma GCC visibility push(default)
 
@@ -159,6 +159,8 @@ enum luxcomp_theme_prop {
 	LUXCOMP_THEME_SHADOW_INACTIVE,
 	LUXCOMP_THEME_SHADOW_ACTIVE_SIZE,	/* px the shadow reaches beyond the window */
 	LUXCOMP_THEME_SHADOW_INACTIVE_SIZE,
+	LUXCOMP_THEME_SHADOW_ACTIVE_Y,		/* px the shadow is moved down, -1 = a quarter of its size */
+	LUXCOMP_THEME_SHADOW_INACTIVE_Y,
 };
 
 /* Lifecycle and event loop */
@@ -258,6 +260,16 @@ int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locke
 /* Server-side decorations */
 void luxcomp_theme_set(int64_t prop, int64_t value);
 void luxcomp_theme_set_font(const char *pango_font);
+
+/* Material of layer surfaces that ask for it with a namespace suffix "name@material[:radius]"
+ * (and of their xdg popups, material "menu"): blurred backdrop under the surface plus a shadow.
+ * @fallback is the opaque colour used when blur is off or too slow, @shadow the shadow colour
+ * with alpha (0 = none), size and downward offset in px. Unknown names are added. */
+void luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, int64_t shadow,
+	int64_t shadow_size, int64_t shadow_y);
+/* Blur radius (logical px), saturation in % (160 = 1.6) and mode (0 = solid colour, 1 = auto) */
+void luxcomp_blur_set(int64_t radius, int64_t saturation_pct, int64_t mode);
+int64_t luxcomp_blur_tier(void);	/* 2 = gles2 dual Kawase, 1 = pixman in C, 0 = solid colour */
 
 /* Pointer image of the compositor (desktop, title bars); also exported as XCURSOR_THEME/SIZE
  * for clients started later. NULL theme = libxcursor default. Size in logical px. */
