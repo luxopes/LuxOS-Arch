@@ -204,7 +204,8 @@ build() {
     # Klavesnice a zkratky (luxos-keyboard, luxos-shortcuts): na X11 localectl/setxkbmap a xfconf, na Waylandu
     # luxwm.conf a IPC luxwm; take prevod stareho prepinani rozlozeni v luxos-desktop.install (--migrate-switch)
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-keyboard-settings.lsl" luxos-keyboard-settings
-    # Monitory na Waylandu: pomocnik s pravem na wlr-output-management (allowlist luxwm) a okno/rychla volba
+    # Monitory: pomocnik (na Waylandu jediny s pravem na wlr-output-management, allowlist luxwm; na X11 xrandr
+    # pro skript luxos-displays) a okno/rychla volba
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-displays.lsl" luxos-displays-wayland
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-displays-settings.lsl" luxos-displays-settings
     # Agent polkitu relace na Waylandu (okno s heslem pro pkexec a Nastaveni); X11 relace dal polkit-gnome
@@ -264,7 +265,7 @@ package() {
     # posta pro exo-open (MailReader v helpers.rc)
     install -Dm644 -t "$pkgdir/usr/share/xfce4/helpers" "$f"/helpers/*.desktop
     # jen soubory: __pycache__ z testu v pracovnim stromu by install zastavil
-    install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f ! -name luxos-display-settings | sort) luxos-menubar luxos-session-cover \
+    install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
         luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news \
         luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
@@ -293,8 +294,7 @@ package() {
     install -Dm755 luxos-keyboard-settings "$pkgdir/usr/lib/luxos/luxos-keyboard-settings"
     install -Dm755 luxos-displays-wayland "$pkgdir/usr/lib/luxos/luxos-displays"
     install -Dm755 luxos-displays-settings "$pkgdir/usr/lib/luxos/luxos-displays-settings"
-    # Monitory jmenem: LSL, na X11 preda aplikaci v Pythonu
-    install -Dm755 "$f/bin/luxos-display-settings" "$pkgdir/usr/lib/luxos/luxos-display-settings-x11"
+    # Monitory jmenem (X11 i Wayland)
     ln -s ../lib/luxos/luxos-displays-settings "$pkgdir/usr/bin/luxos-display-settings"
     install -Dm644 "$f/systemd-user/luxos-backdrop.service" "$pkgdir/usr/lib/systemd/user/luxos-backdrop.service"
     # Vazby LSL na C (a moduly, ktere nacitaji) pro dalsi programy: load luxos_gtk bez kopirovani zdroju

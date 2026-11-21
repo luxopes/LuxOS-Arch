@@ -3,6 +3,7 @@ vyber spolecneho rozliseni, pomer stran, --scale-from bez spolecneho rozliseni, 
 xrandr, navrat meritka pri rozsireni a rezim ulozeny pro kazdou sadu monitoru.
 
 Spusteni: env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_mirror.py -v
+Funkce luxos_xrandr.lsl pres tests/lsl/luxos-xrandr-probe.lsl, skript luxos-displays s pomocnikem v LSL.
 Falesny xrandr/xfconf-query/dconf z fake-displays - skutecna obrazovka se nikdy nemeni.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
@@ -23,16 +24,16 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import test_luxos_displays as td  # noqa: E402
-import luxos_arrange as la  # noqa: E402
-import luxos_displays as ld  # noqa: E402
+import luxos_xrandr_lsl as lx  # noqa: E402
+from luxos_xrandr_lsl import la, ld  # noqa: E402
 
-DELL_ID = ld.edid_id(td.EDID_DELL)
+DELL_ID = lx.md5_id(td.EDID_DELL)
 EDID_PROJ = td.make_edid("EPSON PROJ")
-PROJ_ID = ld.edid_id(EDID_PROJ)
+PROJ_ID = lx.md5_id(EDID_PROJ)
 
 
 def xr(*blocks):
-    """Vystupy z textu xrandr (hlavicka + rezimy) - bez spousteni procesu."""
+    """Vystupy z textu xrandr (hlavicka + rezimy)."""
     return ld.parse("Screen 0: minimum 320 x 200, current 1920 x 1080, maximum 16384 x 16384\n" + "".join(blocks))
 
 
@@ -165,10 +166,10 @@ class MirrorPlan(unittest.TestCase):
     def test_layout_mirror_uses_common_mode(self):
         # Prepinac Zrcadlit v Monitorech > Usporadani: stejny vyber rozliseni (nic se neorizne)
         outs = xr(LAPTOP, PROJ)
-        lay = la.make_layout(outs, {"eDP-1": (0, 0), "HDMI-1": (1920, 0)}, "eDP-1", mirror=True)
+        lay = la.make_layout(outs, {"eDP-1": [0, 0], "HDMI-1": [1920, 0]}, "eDP-1", mirror=True)
         p = la.plan(outs, {}, {la.set_key(outs): lay})
         self.assertTrue(p["mirror"])
-        self.assertEqual(p["pos"], {"eDP-1": (0, 0), "HDMI-1": (0, 0)})
+        self.assertEqual(p["pos"], {"eDP-1": [0, 0], "HDMI-1": [0, 0]})
         self.assertIn("--output eDP-1 --mode 1280x720", " ".join(p["args"]))
         self.assertTrue(la.matches(xr(LAPTOP.replace("1920x1080+0+0", "1280x720+0+0"),
                                       PROJ.replace("+1920+0", "+0+0").replace("1024x768+", "1280x720+")), p))
@@ -192,7 +193,7 @@ class Unscale(unittest.TestCase):
     def test_extend_plan_resets_scale(self):
         tv_scaled = TV.replace("1920x1080+1366+0", "1366x768+0+0").replace("3840x2160     60.00 +", "3840x2160     60.00*+")
         outs = xr(SMALL, tv_scaled)
-        lay = la.make_layout(outs, {"eDP-1": (0, 0), "HDMI-1": (1366, 0)}, "eDP-1")
+        lay = la.make_layout(outs, {"eDP-1": [0, 0], "HDMI-1": [1366, 0]}, "eDP-1")
         p = la.plan(outs, {}, {la.set_key(outs): lay}, force_extend=True)
         self.assertIn("--output HDMI-1 --auto --rotate normal --scale 1x1 --pos 1366x0", " ".join(p["args"]))
         self.assertNotIn("--scale", " ".join(p["args"]).split("--output HDMI-1")[0])

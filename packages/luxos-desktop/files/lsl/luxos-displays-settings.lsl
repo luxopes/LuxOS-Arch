@@ -1,11 +1,12 @@
-# LuxOS - Monitory na Waylandu (/usr/lib/luxos/luxos-displays-settings, /usr/bin/luxos-display-settings je odkaz sem;
-# na X11 preda Monitorum v Pythonu, /usr/lib/luxos/luxos-display-settings-x11):
+# LuxOS - Monitory (/usr/lib/luxos/luxos-displays-settings, /usr/bin/luxos-display-settings je odkaz sem):
 # usporadani pretazenim (prichyceni k hrane, bez mezer a prekryvu), hlavni monitor (bila lista: Dock, oznameni
 # a okna z odpojenych monitoru), zrcadleni, rezim vice monitoru, rozliseni, frekvence, meritko vcetne
 # zlomkoveho a otoceni. Kazda zmena se hned pouzije a do 15 s se musi potvrdit, jinak se vrati puvodni.
+# Na X11 (xrandr) jako drive Monitory v Pythonu: bez meritka, navic velikost textu (Xft/DPI v xsettings),
+# rezim vice monitoru se pouzije hned skriptem luxos-displays (jako Super+P).
 #
-# Okno samo monitory nemeni (nema pravo na wlr-output-management): stav cte z `luxos-displays get` a zmenu
-# posila `luxos-displays try JSON`. Casovac vraceni bezi v pomocniku, takze se puvodni nastaveni vrati
+# Okno samo monitory nemeni (na Waylandu nema pravo na wlr-output-management): stav cte z `luxos-displays get`
+# a zmenu posila `luxos-displays try JSON`. Casovac vraceni bezi v pomocniku, takze se puvodni nastaveni vrati
 # i kdyz okno spadne. Potvrzeni = SIGUSR1 pomocniku, vratit hned = SIGUSR2.
 #
 #   luxos-displays-settings          okno
@@ -19,17 +20,22 @@ load luxos_luxwm as wm
 load luxos_layer as layer
 load luxos_primary as primary
 load luxos_displays as dw
+load luxos_xrandr as xr
+load luxos_testctl as testctl
+load luxos_sys as lsys
 
 HELPER = "/usr/lib/luxos/luxos-displays"
-X11_SETTINGS = "/usr/lib/luxos/luxos-display-settings-x11"
-CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 10px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.65; }\n.error { color: #c0392b; }\n.osd { border-radius: 18px; padding: 18px; background-color: alpha(@theme_bg_color, 0.96); border: 1px solid alpha(currentColor, 0.15); }\n.osd-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; }\n.osd button { border-radius: 12px; padding: 12px; min-width: 132px; }\n.osd button.current { background-image: none; background-color: alpha(@theme_selected_bg_color, 0.25); }\n.osd-label { font-size: 12px; }\n.osd label, .osd image { color: @theme_fg_color; }\n"
+SCRIPT = "luxos-displays"
+CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 10px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.65; }\n.error { color: #c0392b; }\n.osd { border-radius: 18px; padding: 18px; background-color: alpha(@theme_bg_color, 0.96); border: 1px solid alpha(currentColor, 0.15); }\n.osd-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; }\n.osd button { border-radius: 12px; padding: 12px; min-width: 132px; }\n.osd button.current { background-image: none; background-color: alpha(@theme_selected_bg_color, 0.25); }\n.osd-label { font-size: 12px; }\n.osd label, .osd image { color: @theme_fg_color; }\n.big-a { font-size: 18px; font-weight: 600; }\n.small-a { font-size: 11px; font-weight: 600; }\n.text-size-value { font-size: 12px; font-weight: 600; opacity: 0.8; }\n"
 PAD = 18
 SNAP_PX = 10
 ROTATIONS = [[0, "Standard"], [1, "90°"], [2, "180°"], [3, "270°"]]
 
 ui = {"window": 0, "outer": 0, "page": 0, "building": False, "busy": False, "data": None, "config": {},
       "primary": "", "mode": "extend", "widgets": {}, "area": 0, "drag": None, "view": None, "pid": 0,
-      "output": "", "dialog": 0, "countdown": 0, "left": 0, "tick": 0, "message": "", "refresh": 0}
+      "output": "", "dialog": 0, "countdown": 0, "left": 0, "tick": 0, "message": "", "refresh": 0,
+      "x11": False, "named": {}, "text_scale": 0, "text_value": 0, "text_timer": 0, "switch": 0}
+TEXT_LABELS = ["Smaller", "Default", "Large", "Larger", "Largest"]
 
 function helper():
     value = env.get("LUXOS_DISPLAYS_HELPER", "")
@@ -151,7 +157,13 @@ function row(g, title, hint, widget):
     return box
 end
 
-# Rozbalovaci seznam: items = [[hodnota, text]..]; f(hodnota, data) po zmene uzivatelem
+# Rozbalovaci seznam: items = [[hodnota, text]..]; f(hodnota, data) po zmene uzivatelem; name pro testy
+function named_combo(name, items, current, f, data):
+    c = combo(items, current, f, data)
+    ui["named"][name] = c
+    return c
+end
+
 function combo(items, current, f, data):
     c = gtk.combo_box_text_new()
     active = -1
@@ -193,7 +205,10 @@ end
 function build():
     ui["building"] = True
     ui["widgets"] = {}
+    ui["named"] = {}
     ui["area"] = 0
+    ui["switch"] = 0
+    ui["text_scale"] = 0
     if ui["page"] != 0:
         call gtk.widget_destroy(ui["page"])
     end
@@ -203,13 +218,17 @@ function build():
     call gtk.box_pack_start(ui["outer"], page, True, True, 0)
     outs = outputs()
     if len(outs) == 0:
-        call gtk.box_pack_start(page, label(i18n.T("No displays found. Display settings need a Wayland session with LuxOS."), "hint"), False, False, 24)
+        text = i18n.T("No displays found. Display settings need a Wayland session with LuxOS.")
+        if ui["x11"]:
+            text = i18n.T("No displays found. Display settings need an X11 session.")
+        end
+        call gtk.box_pack_start(page, label(text, "hint"), False, False, 24)
     elif len(outs) > 1:
         call build_arrangement(page)
         g = group(page, i18n.T("Multiple Displays"))
         modes = [["extend", i18n.T("Extend - use both screens")], ["mirror", i18n.T("Mirror - same picture on both")],
                  ["external", i18n.T("Only external screen")], ["internal", i18n.T("Only this computer's screen")]]
-        call row(g, i18n.T("Use as"), i18n.T("You can also switch with Super+P."), combo(modes, ui["mode"], on_mode, None))
+        call row(g, i18n.T("Use as"), i18n.T("You can also switch with Super+P."), named_combo("mode", modes, ui["mode"], on_mode, None))
     else:
         call build_arrangement(page)
     end
@@ -217,7 +236,14 @@ function build():
         call gtk.box_pack_start(page, label(ui["message"], "error"), False, False, 8)
     end
     for o in outs:
-        call build_output(page, o)
+        if ui["x11"]:
+            call build_output_x11(page, o)
+        else:
+            call build_output(page, o)
+        end
+    end
+    if ui["x11"]:
+        call build_text_size(page)
     end
     call gtk.widget_show_all(page)
     if ui["busy"]:
@@ -260,10 +286,11 @@ function build_arrangement(page):
             items.append([o["name"], display_name(o)])
         end
     end
-    main = combo(items, ui["primary"], on_main, None)
-    call gtk.widget_set_sensitive(main, len(items) > 1)
+    main = named_combo("main", items, ui["primary"], on_main, None)
+    call gtk.widget_set_sensitive(main, len(items) > 1 and not (ui["x11"] and mirrored()))
     call row(g, i18n.T("Main display"), i18n.T("The menu bar and Dock appear on the main display."), main)
     sw = gtk.switch_new()
+    ui["switch"] = sw
     call gtk.switch_set_active(sw, mirrored())
     call gtk.connect(sw, "state-set", on_mirror)
     call row(g, i18n.T("Mirror displays"), i18n.T("Show the same picture on all displays."), sw)
@@ -314,6 +341,110 @@ function build_output(page, o):
     end
     call row(g, i18n.T("Rotation"), "", combo(items, c["transform"], on_rotation, o["name"]))
     return 0
+end
+
+# X11: rezimy xrandr podle nazvu (prokladane jen aktualni), frekvence jak je pise xrandr, otoceni, ktera vystup umi
+function build_output_x11(page, o):
+    g = group(page, display_name(o))
+    if not o["enabled"]:
+        call row(g, i18n.T("This display is turned off."), i18n.T("Turn it on with Super+P or under Multiple Displays."), 0)
+        return 0
+    end
+    items = []
+    for c in o["choices"]:
+        items.append([c[0], i18n.TF("%s (Recommended)", [c[1]]) if c[2] else c[1]])
+    end
+    call row(g, i18n.T("Resolution"), i18n.T("A lower resolution makes everything larger; the recommended one is the sharpest."),
+             named_combo("res:" + o["name"], items, o["current"], on_x11_resolution, o["name"]))
+    if len(o["rates"]) > 0:
+        call row(g, i18n.T("Refresh rate"), "", named_combo("rate:" + o["name"], o["rates"], o["rate"], on_x11_rate, o["name"]))
+    end
+    items = [[r[0], i18n.T(r[1])] for r in o["rotations"]]
+    call row(g, i18n.T("Rotation"), "", named_combo("rot:" + o["name"], items, o["rotation"], on_x11_rotation, o["name"]))
+    return 0
+end
+
+function on_x11_resolution(mode, name):
+    o = output(name)
+    call try_request({"output": name, "mode": mode, "rate": None, "rotate": o["rotation"]})
+end
+
+function on_x11_rate(rate, name):
+    o = output(name)
+    call try_request({"output": name, "mode": o["current"], "rate": rate, "rotate": o["rotation"]})
+end
+
+function on_x11_rotation(rotation, name):
+    o = output(name)
+    call try_request({"output": name, "mode": o["current"], "rate": o["rate"], "rotate": rotation})
+end
+
+# Velikost textu (Xft/DPI v xsettings; xfsettingsd ji hned rozesle vsem aplikacim)
+function build_text_size(page):
+    g = group(page, i18n.T("Text Size"))
+    scale = gtk.scale_new_with_range(gtk.HORIZONTAL, 0, len(xr.TEXT_SIZES) - 1, 1)
+    call gtk.scale_set_draw_value(scale, False)
+    call gtk.widget_set_hexpand(scale, True)
+    # znacky bez popisku: GTK krajni popisky posouva dovnitr, vybranou velikost ukazuje popisek pod posuvnikem
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_range_set_round_digits"), glib.ptr(scale), 0)
+        for i in range(len(TEXT_LABELS)):
+            call __lsl_qbe_call4(__lsl_symbol("gtk_scale_add_mark"), glib.ptr(scale), Float(i), 3, 0)
+        end
+    end
+    value = 1
+    if type(ui["data"].get("text_size")) == "Int":
+        value = ui["data"]["text_size"]
+    end
+    call gtk.range_set_value(scale, Float(value))
+    ui["text_scale"] = scale
+    ui["text_value"] = gtk.label_new("")
+    call gtk.widget_add_class(ui["text_value"], "text-size-value")
+    call gtk.widget_set_margins(ui["text_value"], 0, 0, 0, 2)
+    box = gtk.box_new(gtk.HORIZONTAL, 10)
+    call gtk.widget_set_margins(box, 14, 14, 10, 0)
+    small = gtk.label_new("A")
+    call gtk.widget_add_class(small, "small-a")
+    big = gtk.label_new("A")
+    call gtk.widget_add_class(big, "big-a")
+    call gtk.box_pack_start(box, small, False, False, 0)
+    call gtk.box_pack_start(box, scale, True, True, 0)
+    call gtk.box_pack_start(box, big, False, False, 0)
+    call gtk.box_pack_start(g["box"], box, False, False, 0)
+    call gtk.box_pack_start(g["box"], ui["text_value"], False, False, 0)
+    call show_text_value()
+    hint = label(i18n.T("Changes the size of text in the menu bar, window titles and apps. Some apps need to be reopened."), "hint")
+    call gtk.widget_set_margins(hint, 14, 14, 0, 10)
+    call gtk.box_pack_start(g["box"], hint, False, False, 0)
+    call gtk.connect(scale, "value-changed", on_text_size)
+    return 0
+end
+
+function text_index():
+    return max(0, min(len(TEXT_LABELS) - 1, math.round(gtk.range_get_value(ui["text_scale"]))))
+end
+
+function show_text_value():
+    call gtk.label_set_text(ui["text_value"], i18n.T(TEXT_LABELS[text_index()]))
+end
+
+function on_text_size(scale):
+    call show_text_value()
+    if ui["building"]:
+        return 0
+    end
+    # zmena DPI prekresli vsechny aplikace - az po kratke pauze
+    if ui["text_timer"] != 0:
+        call glib.source_remove(ui["text_timer"])
+    end
+    ui["text_timer"] = glib.timeout_add(350, apply_text_size)
+    return 0
+end
+
+function apply_text_size():
+    ui["text_timer"] = 0
+    call xr.set_text_size(text_index())
+    return False
 end
 
 # ---- usporadani (kresleni a tazeni) ----------------------------------------------------------------
@@ -371,30 +502,41 @@ function editable():
 end
 
 function on_press(event, area):
-    if not editable() or gtk.event_button(event) != 1:
+    if gtk.event_button(event) != 1:
         return False
     end
-    found = hit(gtk.event_x(event), gtk.event_y(event))
+    return press_at(gtk.event_x(event), gtk.event_y(event))
+end
+
+function press_at(x, y):
+    if not editable():
+        return False
+    end
+    found = hit(x, y)
     if found[0] == None:
         return False
     end
-    ui["drag"] = {"name": found[0], "bar": found[1], "x0": gtk.event_x(event), "y0": gtk.event_y(event),
+    ui["drag"] = {"name": found[0], "bar": found[1], "x0": x, "y0": y,
                   "view": ui["view"] if ui["view"] != None else compute_view(), "dx": 0.0, "dy": 0.0}
     return True
 end
 
 function on_motion(event, area):
-    d = ui["drag"]
-    if d == None:
+    if ui["drag"] == None:
         if editable():
             name = hit(gtk.event_x(event), gtk.event_y(event))[0]
             call gtk.widget_set_cursor(area, "grab" if name != None else "")
         end
         return False
     end
-    d["dx"] = gtk.event_x(event) - d["x0"]
-    d["dy"] = gtk.event_y(event) - d["y0"]
-    call gtk.widget_queue_draw(area)
+    return motion_at(gtk.event_x(event), gtk.event_y(event))
+end
+
+function motion_at(x, y):
+    d = ui["drag"]
+    d["dx"] = x - d["x0"]
+    d["dy"] = y - d["y0"]
+    call gtk.widget_queue_draw(ui["area"])
     return True
 end
 
@@ -408,19 +550,21 @@ function proposal(d):
 end
 
 function on_release(event, area):
-    d = ui["drag"]
-    if d == None or gtk.event_button(event) != 1:
+    if ui["drag"] == None or gtk.event_button(event) != 1:
         return False
     end
+    return release_at(gtk.event_x(event), gtk.event_y(event))
+end
+
+function release_at(x, y):
+    d = ui["drag"]
     ui["drag"] = None
-    call gtk.widget_queue_draw(area)
+    call gtk.widget_queue_draw(ui["area"])
     if abs(d["dx"]) <= 3 and abs(d["dy"]) <= 3:
         return True
     end
     if d["bar"]:
         # lista pretazena na jiny monitor = novy hlavni monitor
-        x = gtk.event_x(event)
-        y = gtk.event_y(event)
         r = rects()
         for name in r.keys():
             v = to_view(r[name], d["view"])
@@ -541,7 +685,10 @@ function on_mirror(state, sw):
     if ui["building"]:
         return False
     end
-    if state != 0:
+    if ui["x11"]:
+        # X11: zrcadleni je soucast rozlozeni sady (vypnuti vrati ulozene polohy)
+        call try_request({"mirror": state != 0, "primary": ui["primary"]})
+    elif state != 0:
         call try_request({"mode": "mirror"})
     else:
         call try_request({"mode": "extend"})
@@ -550,7 +697,26 @@ function on_mirror(state, sw):
 end
 
 function on_mode(mode, data):
-    call try_request({"mode": mode})
+    if not ui["x11"]:
+        call try_request({"mode": mode})
+        return 0
+    end
+    # X11: rezim hned skriptem luxos-displays (jako Super+P), bez potvrzovani
+    if ui["busy"]:
+        return 0
+    end
+    ui["busy"] = True
+    call gtk.widget_set_sensitive(ui["page"], False)
+    if glib.spawn_capture([SCRIPT, mode], on_mode_done, None) == 0:
+        call on_mode_done(None, "", 1)
+    end
+    return 0
+end
+
+function on_mode_done(data, text, status):
+    ui["busy"] = False
+    call refresh()
+    return 0
 end
 
 function change(name, field_values):
@@ -723,6 +889,7 @@ function on_state(data, text, status):
         ui["config"] = {}
     else:
         ui["data"] = state
+        ui["x11"] = state.get("x11") == True
         ui["primary"] = state["primary"]
         ui["mode"] = state["mode"]
         config = {}
@@ -738,6 +905,10 @@ function on_state(data, text, status):
     end
     if not ui["busy"]:
         call build()
+    end
+    if not gtk.widget_get_visible(ui["window"]):
+        # X11: okno az s obsahem (vyska podle obsahu se pocita pri prvnim zobrazeni)
+        call gtk.widget_show_all(ui["window"])
     end
     return 0
 end
@@ -755,6 +926,101 @@ function on_delete(event, window):
     call signal_helper(12)
     call gtk.main_quit()
     return False
+end
+
+# ---- rizeni z testu (luxos_testctl, jen s LUXOS_TEST_CONTROL=1) -----------------------------------------------
+
+function test_state():
+    combos = {}
+    for name in ui["named"].keys():
+        c = ui["named"][name]
+        w = ui["widgets"][c]
+        i = gtk.combo_box_get_active(c)
+        combos[name] = {"values": [it[0] for it in w["items"]], "labels": [it[1] for it in w["items"]],
+                        "active": w["items"][i][0] if i >= 0 else None, "sensitive": gtk.widget_get_sensitive(c)}
+    end
+    text = None
+    if ui["text_scale"] != 0:
+        text = [text_index(), gtk.label_get_text(ui["text_value"])]
+    end
+    return {"x11": ui["x11"], "busy": ui["busy"], "dialog": ui["dialog"] != 0, "message": ui["message"],
+            "primary": ui["primary"], "mode": ui["mode"], "rects": rects(), "mirrored": mirrored(),
+            "editable": len(rects()) > 1 and not mirrored(), "combos": combos, "text": text,
+            "switch": gtk.switch_get_active(ui["switch"]) if ui["switch"] != 0 else None,
+            "page_sensitive": gtk.widget_get_sensitive(ui["page"]) if ui["page"] != 0 else False,
+            "size": gtk.window_get_size(ui["window"])}
+end
+
+# drag NAZEV DX DY [bar]: pretazeni o DX, DY pixelu plochy (stred obdelniku, nebo bila lista)
+function test_drag(rest):
+    parts = rest.split(" ")
+    view = compute_view()
+    r = rects()[parts[0]]
+    v = to_view(r, view)
+    x = v[0] + v[2] / 2
+    y = v[1] + v[3] / 2
+    if len(parts) > 3 and parts[3] == "bar":
+        y = v[1] + 8
+    end
+    dx = Float(parts[1]) * view[0]
+    dy = Float(parts[2]) * view[0]
+    if not press_at(x, y):
+        call lsys.out("drag refused\n")
+        return 0
+    end
+    call motion_at(x + dx / 2, y + dy / 2)
+    call motion_at(x + dx, y + dy)
+    if len(parts) > 3 and parts[len(parts) - 1] == "hold":
+        return 0
+    end
+    call release_at(x + dx, y + dy)
+    return 0
+end
+
+function on_test(command, rest):
+    if command == "state":
+        call lsys.out("state " + json.encode(test_state()) + "\n")
+    elif command == "select":
+        # select NAZEV [JSON_HODNOTA]: polozka rozbalovaciho seznamu jako vyber uzivatelem
+        cut = rest.find(" ")
+        c = ui["named"].get(rest[:cut])
+        value = json.decode(rest[cut + 1:])[0]
+        if c != None:
+            items = ui["widgets"][c]["items"]
+            for i in range(len(items)):
+                if items[i][0] == value:
+                    call gtk.combo_box_set_active(c, i)
+                end
+            end
+        end
+    elif command == "drag":
+        call test_drag(rest)
+    elif command == "text":
+        call gtk.range_set_value(ui["text_scale"], Float(Int(rest)))
+    elif command == "mirror":
+        call gtk.switch_set_active(ui["switch"], rest == "1")
+    elif command == "close":
+        # jako krizek spravce oken: nejvyssi okno (potvrzovaci dialog, jinak hlavni okno)
+        call gtk.window_close(ui["dialog"] if ui["dialog"] != 0 else ui["window"])
+    elif command == "drawcheck":
+        # drawcheck NAZEV: nahled monitoru 100x70 na plose 400x160; pocet pixelu mimo jeho obdelnik
+        surface = cairo.image_surface_create(0, 400, 160)
+        cr = cairo.create(surface)
+        call draw_display(cr, [150, 40, 100, 70], rest, True, [0.1, 0.1, 0.1], 1.0, False)
+        call cairo.surface_flush(surface)
+        outside = 0
+        for y in range(160):
+            for x in range(400):
+                if (x < 150 or x >= 250 or y < 40 or y >= 110) and cairo.image_surface_pixel(surface, x, y) != 0:
+                    outside += 1
+                end
+            end
+        end
+        call cairo.destroy(cr)
+        call cairo.surface_destroy(surface)
+        call lsys.out("outside " + String(outside) + "\n")
+    end
+    return 0
 end
 
 # ---- rychla volba rezimu (Super+P) --------------------------------------------------------------------
@@ -899,13 +1165,8 @@ end
 
 # ---- start ---------------------------------------------------------------------------------------------
 
-# spousteni jmenem (Launchpad, Ovladaci centrum, nabidka plochy) na Waylandu bez Pythonu, na X11 aplikace v Pythonu
 display = env.get("WAYLAND_DISPLAY", "")
-if display == None or display == "":
-    call glib.exec([X11_SETTINGS] + args[1:])
-    call glib.report("luxos-display-settings: cannot run " + X11_SETTINGS + chr(10))
-    exit(127)
-end
+wayland = display != None and display != ""
 # app_id jako polozka luxos-display-settings.desktop: nazev v liste a ikona v Docku
 call glib.set_prgname("luxos-display-settings")
 call gtk.init()
@@ -918,16 +1179,35 @@ window = gtk.window_new(i18n.T("Displays"))
 ui["window"] = window
 call gtk.window_set_wmclass(window, "luxos-display-settings", "luxos-display-settings")
 call gtk.window_set_icon_list(window, "luxos-displays")
-call gtk.window_set_default_size(window, 640, 680)
 scroll = gtk.scrolled_window_new()
 call gtk.scrolled_window_set_policy(scroll, gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+if wayland:
+    call gtk.window_set_default_size(window, 640, 680)
+else:
+    # X11 (xfwm4): HeaderBar se zaviracim tlacitkem jako ostatni okna Nastaveni, okno vysoke podle obsahu
+    # (bez prazdne plochy dole), nejvys pracovni plocha bez HeaderBar - zbytek se posouva
+    call gtk.window_set_header(window, i18n.T("Displays"))
+    area = gtk.primary_monitor_workarea()
+    cap = max(360, area[3] - 56 - 16)
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_scrolled_window_set_propagate_natural_height"), glib.ptr(scroll), 1)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_scrolled_window_set_max_content_height"), glib.ptr(scroll), cap)
+        call __lsl_qbe_call2(__lsl_symbol("gtk_scrolled_window_set_min_content_height"), glib.ptr(scroll), min(300, cap))
+    end
+    call gtk.window_set_default_size(window, min(640, max(360, area[2] - 32)), -1)
+end
 outer = gtk.box_new(gtk.VERTICAL, 0)
 ui["outer"] = outer
 call gtk.container_add(scroll, outer)
 call gtk.container_add(window, scroll)
 call gtk.connect(window, "delete-event", on_delete)
-call wm.connect(on_wm)
-call wm.subscribe(["output"])
+if wayland:
+    call wm.connect(on_wm)
+    call wm.subscribe(["output"])
+end
 call refresh()
-call gtk.widget_show_all(window)
+if wayland:
+    call gtk.widget_show_all(window)
+end
+call testctl.start(on_test)
 call gtk.main()

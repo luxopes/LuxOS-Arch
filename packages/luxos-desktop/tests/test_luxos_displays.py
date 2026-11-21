@@ -1,9 +1,10 @@
-"""Testy pro Monitory: luxos_displays (parsovani xrandr, ulozene rezimy, velikost textu),
-luxos-displays auto s ulozenym nastavenim a aplikace luxos-display-settings (Xvfb).
+"""Testy pro Monitory na X11: luxos_xrandr.lsl (parsovani xrandr, ulozene rezimy, velikost textu), skript
+luxos-displays s pomocnikem v LSL a okno luxos-displays-settings (vlastni Xvfb, rizene pres luxos_testctl).
 
-Spusteni: xvfb-run -a python3 -m unittest discover -s packages/luxos-desktop/tests -v
-(bez DISPLAY se testy GUI preskoci). Pouziva falesny xrandr/xfconf-query z fake-displays,
-skutecne nastaveni uzivatele nemeni.
+    env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_displays.py -v
+
+Funkce luxos_xrandr.lsl vola tests/lsl/luxos-xrandr-probe.lsl (luxos_xrandr_lsl.py). Pouziva falesny
+xrandr/xfconf-query z fake-displays, skutecne nastaveni uzivatele nemeni. LUXOS_TEST_SHOTS=adresar ulozi snimky.
 """
 # LuxOS: testy GUI nikdy na skutecne obrazovce a v relaci uzivatele (scripts/luxos_testguard.py)
 import os as _tg_os, sys as _tg_sys  # noqa: E401
@@ -15,8 +16,6 @@ if _tg_d != "/":
     import luxos_testguard  # noqa: E402,F401
 else:
     _tg_os.environ.pop("DISPLAY", None)
-import importlib.machinery
-import importlib.util
 import json
 import os
 import shutil
@@ -24,16 +23,15 @@ import subprocess
 import sys
 import tempfile
 import time
-import types
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PYDIR = os.path.normpath(os.path.join(HERE, "..", "files", "python"))
 BIN = os.path.normpath(os.path.join(HERE, "..", "files", "bin"))
 FAKE = os.path.join(HERE, "fake-displays")
-sys.path.insert(0, PYDIR)
-sys.path.insert(1, os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files")))
-import luxos_displays as ld  # noqa: E402
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+import luxos_xrandr_lsl as lx  # noqa: E402
+from luxos_xrandr_lsl import ld  # noqa: E402
 
 # Skutecny vystup xrandr --current (notebook + monitor, HDMI otoceny, odpojeny DP)
 REAL = """Screen 0: minimum 320 x 200, current 3000 x 1920, maximum 16384 x 16384
@@ -75,12 +73,12 @@ class Parse(unittest.TestCase):
         self.assertEqual(list(self.outs), ["eDP-1", "HDMI-1", "DP-1", "DP-2"])
         e = self.outs["eDP-1"]
         self.assertTrue(e["connected"] and e["primary"] and e["active"])
-        self.assertEqual(e["geometry"], (1920, 1080, 0, 0))
-        self.assertEqual(e["mm"], (344, 194))
+        self.assertEqual(e["geometry"], [1920, 1080, 0, 0])
+        self.assertEqual(e["mm"], [344, 194])
         h = self.outs["HDMI-1"]
         self.assertFalse(h["primary"])
         self.assertEqual(h["rotation"], "left")
-        self.assertEqual(h["geometry"], (1080, 1920, 1920, 0))
+        self.assertEqual(h["geometry"], [1080, 1920, 1920, 0])
         self.assertFalse(self.outs["DP-1"]["connected"])
         # pripojeny, ale vypnuty
         d = self.outs["DP-2"]
@@ -90,14 +88,14 @@ class Parse(unittest.TestCase):
 
     def test_rates_and_flags(self):
         e = self.outs["eDP-1"]
-        self.assertEqual(ld.current_mode(e), ("1920x1080", "60.02"))
-        self.assertEqual(ld.preferred_mode(e), ("1920x1080", "60.02"))
+        self.assertEqual(ld.current_mode(e), ["1920x1080", "60.02"])
+        self.assertEqual(ld.preferred_mode(e), ["1920x1080", "60.02"])
         self.assertEqual(ld.find_mode(e, "1920x1080")["rates"], ["60.02", "60.01", "59.97", "48.01"])
         h = self.outs["HDMI-1"]
         # "+" oddelene mezerou patri k predchozi frekvenci
-        self.assertEqual(ld.preferred_mode(h), ("1920x1080", "60.00"))
-        self.assertEqual(ld.current_mode(h), ("2560x1440", "59.95"))
-        self.assertEqual(ld.current_mode(self.outs["DP-2"]), (None, None))
+        self.assertEqual(ld.preferred_mode(h), ["1920x1080", "60.00"])
+        self.assertEqual(ld.current_mode(h), ["2560x1440", "59.95"])
+        self.assertEqual(ld.current_mode(self.outs["DP-2"]), [None, None])
 
     def test_choices(self):
         h = self.outs["HDMI-1"]
@@ -125,7 +123,7 @@ class Parse(unittest.TestCase):
         o = ld.parse(text)[0]
         self.assertEqual(o["edid"], EDID_DELL)
         self.assertEqual(ld.edid_name(o["edid"]), "DELL U2419H")
-        self.assertEqual(ld.current_mode(o), ("1920x1080", "60.00"))   # vlastnosti nepokazi rezimy
+        self.assertEqual(ld.current_mode(o), ["1920x1080", "60.00"])   # vlastnosti nepokazi rezimy
         self.assertEqual(len(ld.edid_id(o["edid"])), 12)
         self.assertEqual(ld.edid_name(""), "")
         self.assertEqual(ld.edid_name("zz"), "")
@@ -170,7 +168,7 @@ class SavedArgs(unittest.TestCase):
                    "DP-1|": {"mode": "1920x1080", "rotate": "normal"}}
         # HDMI-1 ve vzorku: plocha 1080x1920 neodpovida rezimu 2560x1440 = zbyle meritko -> --scale 1x1
         self.assertEqual(ld.all_output_args(outs, entries),
-                         [("HDMI-1", ["--mode", "1680x1050", "--rate", "59.88", "--rotate", "normal", "--scale", "1x1"])])
+                         [["HDMI-1", ["--mode", "1680x1050", "--rate", "59.88", "--rotate", "normal", "--scale", "1x1"]]])
 
     def test_save_load(self):
         with tempfile.TemporaryDirectory() as d:
@@ -242,7 +240,8 @@ class FakeEnv:
         self.env = {"PATH": FAKE + os.pathsep + os.environ["PATH"], "FAKE_XRANDR_STATE": self.state,
                     "FAKE_XRANDR_LOG": self.log, "FAKE_XFCONF": self.xfconf,
                     "XDG_CONFIG_HOME": os.path.join(self.dir, "config"),
-                    "XDG_RUNTIME_DIR": os.path.join(self.dir, "run"), "LUXOS_PYDIR": PYDIR}
+                    "XDG_RUNTIME_DIR": os.path.join(self.dir, "run"),
+                    "LUXOS_DISPLAYS_HELPER": lx.helper()}
         self.conf = os.path.join(self.dir, "config", "luxos", "displays.json")
 
     def write_state(self, st):
@@ -336,230 +335,295 @@ class DisplaysScript(unittest.TestCase):
         self.assertIn("--output eDP-1 --auto", self.f.calls()[-1])
 
 
-def load_app():
-    loader = importlib.machinery.SourceFileLoader("luxos_display_settings", os.path.join(BIN, "luxos-display-settings"))
-    spec = importlib.util.spec_from_loader("luxos_display_settings", loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
-    return mod
+class Window:
+    """Okno luxos-displays-settings ve vlastnim Xvfb s falesnym xrandr (FakeEnv) rizene pres luxos_testctl."""
+
+    def __init__(self, f, display, extra=None):
+        env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "XAUTHORITY")}
+        env.update(f.env, DISPLAY=display, LUXOS_DISPLAYS_CONFIRM_SECONDS="2", GDK_BACKEND="x11", **(extra or {}))
+        self.app = lsl_app.App([lx.window()], env)
+        self.wait(lambda s: s["x11"], 15)
+
+    def state(self):
+        return json.loads(self.app.ask("state", "state "))
+
+    def wait(self, cond, timeout=15.0):
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            st = self.state()
+            if cond(st):
+                return st
+            time.sleep(0.1)
+        raise AssertionError("timeout, state: %s; stderr: %s" % (self.state(), self.app.stderr()))
+
+    def select(self, name, value):
+        self.app.ask("select %s %s" % (name, json.dumps([value])))
+
+    def wait_dialog(self):
+        return self.wait(lambda s: s["dialog"])
+
+    def wait_idle(self):
+        return self.wait(lambda s: not s["busy"] and not s["dialog"] and s["page_sensitive"])
+
+    def stop(self):
+        self.app.stop()
 
 
-class Drawing(unittest.TestCase):
-    """Skutecne vykresleni nahledu do Cairo povrchu bez X serveru."""
-
-    def test_display_labels_stay_inside_their_rectangles(self):
-        import cairo
-        app = load_app()
-        for label in ("DELL U2419H (DisplayPort-0)", "Built-in Display = DELL U2419H", "HDMI-1"):
-            with self.subTest(label=label):
-                surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 400, 160)
-                cr = cairo.Context(surface)
-                fg = types.SimpleNamespace(red=0.1, green=0.1, blue=0.1)
-                app.Arrangement.draw_display(None, cr, 150, 40, 100, 70, label, True, fg)
-                surface.flush()
-                data, stride = bytes(surface.get_data()), surface.get_stride()
-                outside = sum(
-                    any(data[y * stride + x * 4:y * stride + x * 4 + 4])
-                    for y in range(160) for x in range(400) if not (150 <= x < 250 and 40 <= y < 110))
-                self.assertEqual(outside, 0, "nazev monitoru nesmi zasahovat do sousedniho nahledu")
-
-
-# Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1 ve VM) - nikdy skutecna obrazovka
-@unittest.skipUnless(os.environ.get("DISPLAY") and ("xvfb-run" in os.environ.get("XAUTHORITY", "")
-                                                    or os.environ.get("LUXOS_TEST_X") == "1"),
-                     "potrebuje virtualni X (xvfb-run)")
 class App(unittest.TestCase):
     """Okno Monitory s falesnym xrandr: zkusebni pouziti, potvrzeni, vraceni, velikost textu."""
 
     @classmethod
     def setUpClass(cls):
+        lx.window()
+        lx.helper()
+        cls.x = lsl_app.Xvfb()
         cls.f = FakeEnv()
-        cls.saved_env = os.environ.copy()
-        os.environ.update(cls.f.env)
-        os.environ["LUXOS_DISPLAYS_CONFIRM_SECONDS"] = "2"
-        cls.app = load_app()
-        from gi.repository import GLib, Gtk
-        cls.GLib, cls.Gtk = GLib, Gtk
 
     @classmethod
     def tearDownClass(cls):
-        os.environ.clear()
-        os.environ.update(cls.saved_env)
+        cls.x.stop()
         cls.f.cleanup()
 
     def setUp(self):
         self.f.write_state(fake_state())
-        for p in (self.f.conf, self.f.xfconf):
+        for p in (self.f.conf, self.f.xfconf, self.f.log, os.path.join(self.f.dir, "config", "luxos", "displays-mode")):
             if os.path.exists(p):
                 os.unlink(p)
-        self.win = self.app.Displays()
-        self.win.show_all()
-        self.pump(0.2)
+        self.win = Window(self.f, self.x.display)
 
     def tearDown(self):
-        self.win.pending = None
-        self.win.destroy()
-        self.pump(0.1)
+        self.win.stop()
 
-    def pump(self, seconds, until=None):
-        end = time.time() + seconds
-        ctx = self.GLib.MainContext.default()
-        while time.time() < end:
-            while ctx.pending():
-                ctx.iteration(False)
-            if until and until():
-                return True
-            time.sleep(0.01)
-        return bool(until and until())
+    def restart(self, extra=None):
+        self.win.stop()
+        self.win = Window(self.f, self.x.display, extra)
+
+    def preview_path(self):
+        return os.path.join(self.f.dir, "run", "luxos-displays-preview.json")
+
+    def change(self, combo, value):
+        self.win.select(combo, value)
+        return self.win.wait_dialog()
 
     def test_window(self):
-        self.assertEqual(set(self.win.combos), {"eDP-1", "HDMI-1"})
-        res, rate, rot = self.win.combos["HDMI-1"]
-        self.assertEqual(res.get_active_id(), "1920x1080")
-        model = [r[0] for r in res.get_model()]
-        self.assertIn("1920 × 1080 (Recommended)", model)
-        self.assertNotIn("1920 × 1080 i", model)
-        self.assertEqual(rate.get_active_id(), "60.00")
-        self.assertEqual([r[0] for r in rate.get_model()], ["74.97 Hz", "60 Hz", "50 Hz"])
-        self.assertEqual(rot.get_active_id(), "normal")
-        # Nazvy z EDID / vestaveny displej v nadpisech skupin
-        titles = []
-
-        def collect(w):
-            if isinstance(w, self.Gtk.Label):
-                titles.append(w.get_text())
-            elif isinstance(w, self.Gtk.Container):
-                w.foreach(collect)
-        self.win.page.foreach(collect)
-        self.assertIn("DELL U2419H", titles)
-        self.assertIn("Built-in Display", titles)
-        self.assertIn("Multiple Displays", titles)
-        self.assertIn("Text Size", titles)
-
-    def change_resolution(self, name, mode):
-        res = self.win.combos[name][0]
-        res.set_active_id(mode)
-        ok = self.pump(15, lambda: self.win.dialog is not None)
-        self.assertTrue(ok, "potvrzovaci dialog se neukazal")
+        st = self.win.state()
+        self.assertTrue(st["x11"])
+        c = st["combos"]
+        self.assertEqual({k for k in c if k.startswith("res:")}, {"res:eDP-1", "res:HDMI-1"})
+        self.assertEqual(c["res:HDMI-1"]["active"], "1920x1080")
+        self.assertIn("1920 × 1080 (Recommended)", c["res:HDMI-1"]["labels"])
+        self.assertNotIn("1920 × 1080 i", c["res:HDMI-1"]["labels"])
+        self.assertEqual(c["rate:HDMI-1"]["active"], "60.00")
+        self.assertEqual(c["rate:HDMI-1"]["labels"], ["74.97 Hz", "60 Hz", "50 Hz"])
+        self.assertEqual(c["rot:HDMI-1"]["active"], "normal")
+        self.assertEqual(c["rot:HDMI-1"]["labels"], ["Standard", "90°", "180°", "270°"])
+        # Nazvy z EDID / vestaveny displej v nadpisech skupin; meritko na X11 neni (jako drive)
+        windows = self.win.app.dump()
+        titles = lsl_app.texts(windows)
+        for title in ("DELL U2419H", "Built-in Display", "Multiple Displays", "Text Size", "Arrangement"):
+            self.assertIn(title, titles)
+        self.assertNotIn("Scale", titles)
+        self.assertTrue(windows[0]["close_button"])
+        print("\nPSS okna Monitory (X11, LSL): %d kB" % self.win.app.pss_kb())
 
     def test_keep(self):
-        self.change_resolution("HDMI-1", "1280x1024")
-        st = self.f.read_state()
-        self.assertEqual(st["HDMI-1"]["current"], ["1280x1024", "75.02"])     # doporucena -> nejvyssi
-        self.assertFalse(os.path.exists(self.f.conf))                           # jeste neulozeno
-        self.assertFalse(self.win.page.get_sensitive())
-        self.win.dialog.response(self.Gtk.ResponseType.OK)
-        self.pump(0.3)
-        saved = ld.load(self.f.conf)
-        self.assertEqual(saved, {"HDMI-1|" + ld.edid_id(EDID_DELL): {"mode": "1280x1024", "rate": "75.02",
-                                                                     "rotate": "normal"}})
-        self.assertTrue(self.win.page.get_sensitive())
-        self.assertFalse(os.path.exists(self.win.preview_path()))
+        st = self.change("res:HDMI-1", "1280x1024")
+        self.assertEqual(self.f.read_state()["HDMI-1"]["current"], ["1280x1024", "75.02"])     # doporucena -> nejvyssi
+        self.assertFalse(os.path.exists(self.f.conf))                                           # jeste neulozeno
+        self.assertFalse(st["page_sensitive"])
+        self.win.app.ask("click Keep Changes")
+        st = self.win.wait_idle()
+        self.assertEqual(ld.load(self.f.conf), {"HDMI-1|" + lx.md5_id(EDID_DELL): {"mode": "1280x1024", "rate": "75.02",
+                                                                                   "rotate": "normal"}})
+        self.assertEqual(st["combos"]["res:HDMI-1"]["active"], "1280x1024")
+        self.assertFalse(os.path.exists(self.preview_path()))
         # Po prihlaseni/pripojeni plati ulozene nastaveni
         self.f.write_state(fake_state())
         self.f.run_displays("auto")
         self.assertEqual(self.f.read_state()["HDMI-1"]["current"], ["1280x1024", "75.02"])
 
     def test_timeout_reverts(self):
-        self.change_resolution("eDP-1", "1280x720")
+        self.change("res:eDP-1", "1280x720")
         self.assertEqual(self.f.read_state()["eDP-1"]["current"], ["1280x720", "60.00"])
         # Odpocet 2 s, pak luxos-displays auto s puvodnim nastavenim
-        ok = self.pump(15, lambda: self.win.dialog is None and not self.win.busy)
-        self.assertTrue(ok)
+        st = self.win.wait_idle()
         self.assertEqual(self.f.read_state()["eDP-1"]["current"], ["1920x1080", "60.02"])
         self.assertFalse(os.path.exists(self.f.conf))
-        self.assertEqual(self.win.combos["eDP-1"][0].get_active_id(), "1920x1080")
+        self.assertEqual(st["combos"]["res:eDP-1"]["active"], "1920x1080")
 
     def test_revert_button_keeps_previous_saved(self):
-        key = "HDMI-1|" + ld.edid_id(EDID_DELL)
+        key = "HDMI-1|" + lx.md5_id(EDID_DELL)
         ld.save({key: {"mode": "1280x720", "rate": "50.00", "rotate": "normal"}}, self.f.conf)
-        self.win.destroy()
         self.f.run_displays("auto")
-        self.win = self.app.Displays()
-        self.win.show_all()
-        self.assertEqual(self.win.combos["HDMI-1"][1].get_active_id(), "50.00")
-        rot = self.win.combos["HDMI-1"][2]
-        rot.set_active_id("right")
-        self.assertTrue(self.pump(15, lambda: self.win.dialog is not None))
+        self.restart()
+        self.assertEqual(self.win.state()["combos"]["rate:HDMI-1"]["active"], "50.00")
+        self.change("rot:HDMI-1", "right")
         self.assertEqual(self.f.read_state()["HDMI-1"]["rotation"], "right")
-        self.win.dialog.response(self.Gtk.ResponseType.CANCEL)
-        self.assertTrue(self.pump(15, lambda: not self.win.busy))
+        self.win.app.ask("click Revert")
+        self.win.wait_idle()
         st = self.f.read_state()["HDMI-1"]
         self.assertEqual((st["current"], st["rotation"]), (["1280x720", "50.00"], "normal"))
         self.assertEqual(ld.load(self.f.conf)[key]["rotate"], "normal")
 
     def test_rejected_mode(self):
-        os.environ["FAKE_XRANDR_REJECT"] = "1600x900"
-        try:
-            res = self.win.combos["eDP-1"][0]
-            res.set_active_id("1600x900")
-            self.assertTrue(self.pump(15, lambda: self.win.pending is None and not self.win.busy))
-        finally:
-            del os.environ["FAKE_XRANDR_REJECT"]
-        self.assertIsNone(self.win.dialog)
+        self.restart({"FAKE_XRANDR_REJECT": "1600x900"})
+        self.win.select("res:eDP-1", "1600x900")
+        st = self.win.wait(lambda s: not s["busy"] and s["message"] != "")
+        self.assertFalse(st["dialog"])
+        self.assertIn("could not use this setting", st["message"])
         self.assertEqual(self.f.read_state()["eDP-1"]["current"], ["1920x1080", "60.02"])
         self.assertFalse(os.path.exists(self.f.conf))
 
     def test_recommended_removes_entry(self):
-        key = "eDP-1|"
-        ld.save({key: {"mode": "1280x720", "rate": "60.00", "rotate": "normal"}}, self.f.conf)
-        self.win.destroy()
+        ld.save({"eDP-1|": {"mode": "1280x720", "rate": "60.00", "rotate": "normal"}}, self.f.conf)
         self.f.run_displays("auto")
-        self.win = self.app.Displays()
-        self.win.show_all()
-        self.win.combos["eDP-1"][0].set_active_id("1920x1080")
-        self.assertTrue(self.pump(15, lambda: self.win.dialog is not None))
-        self.win.dialog.response(self.Gtk.ResponseType.OK)
-        self.pump(0.2)
+        self.restart()
+        self.change("res:eDP-1", "1920x1080")
+        self.win.app.ask("click Keep Changes")
+        self.win.wait_idle()
         self.assertEqual(ld.load(self.f.conf), {})
 
     def test_forget_xfce_profile(self):
         with open(self.f.xfconf, "w") as f:
             json.dump({"displays": {"/Default/HDMI-1/Resolution": "800x600", "/Notify": "0"}}, f)
-        self.change_resolution("eDP-1", "1280x720")
-        self.win.dialog.response(self.Gtk.ResponseType.OK)
-        self.pump(0.2)
+        self.change("res:eDP-1", "1280x720")
+        self.win.app.ask("click Keep Changes")
+        self.win.wait_idle()
         with open(self.f.xfconf) as f:
             self.assertEqual(json.load(f)["displays"], {"/Notify": "0"})
 
     def test_text_size(self):
-        scale = self.win.text_scale
-        self.assertEqual(scale.get_value(), ld.TEXT_SIZES.index(None))
-        scale.set_value(4)
-        self.pump(0.6)
+        st = self.win.state()
+        self.assertEqual(st["text"], [1, "Default"])
+        self.win.app.ask("text 4")
+        time.sleep(0.8)
+        self.assertEqual(self.win.state()["text"], [4, "Largest"])
         with open(self.f.xfconf) as f:
             self.assertEqual(json.load(f)["xsettings"]["/Xft/DPI"], "132")
-        scale.set_value(1)
-        self.pump(0.6)
+        self.win.app.ask("text 1")
+        time.sleep(0.8)
         with open(self.f.xfconf) as f:
             self.assertNotIn("/Xft/DPI", json.load(f)["xsettings"])
+        # ulozena velikost po novem otevreni
+        self.win.app.ask("text 3")
+        time.sleep(0.8)
+        self.restart()
+        self.assertEqual(self.win.state()["text"], [3, "Larger"])
 
-    def test_close_during_preview_reverts(self):
-        self.change_resolution("eDP-1", "1280x720")
-        # Zavreni hlavniho okna behem odpoctu (main() vola abandon pri "destroy")
-        d = self.win.dialog
-        d.finished = True
-        self.GLib.source_remove(d.timer)
-        d.destroy()
-        self.win.dialog = None
-        self.win.abandon()
-        self.assertIsNone(self.win.pending)
-        self.assertTrue(self.pump(10, lambda: self.f.read_state()["eDP-1"]["current"] == ["1920x1080", "60.02"]))
+    def wait_xrandr(self, name, current, timeout=10):
+        end = time.monotonic() + timeout
+        while time.monotonic() < end and self.f.read_state()[name]["current"] != current:
+            time.sleep(0.1)
+        return self.f.read_state()[name]["current"]
+
+    def test_close_dialog_reverts(self):
+        # Krizek potvrzovaciho dialogu = vratit (modalni dialog nepusti zavreni hlavniho okna)
+        self.change("res:eDP-1", "1280x720")
+        self.win.app.ask("close")
+        st = self.win.wait_idle()
+        self.assertEqual(self.wait_xrandr("eDP-1", ["1920x1080", "60.02"]), ["1920x1080", "60.02"])
+        self.assertEqual(st["combos"]["res:eDP-1"]["active"], "1920x1080")
+        self.assertFalse(os.path.exists(self.f.conf))
+        # bez dialogu krizek okno zavre
+        self.win.app.send("close")
+        self.win.app.proc.wait(10)
+
+    def test_crash_during_preview_reverts(self):
+        # Okno spadne behem odpoctu: puvodni nastaveni vrati pomocnik sam (drive abandon() v Pythonu)
+        self.change("res:eDP-1", "1280x720")
+        os.kill(self.win.app.proc.pid, 9)
+        self.win.app.proc.wait(10)
+        self.assertEqual(self.wait_xrandr("eDP-1", ["1920x1080", "60.02"]), ["1920x1080", "60.02"])
+        self.assertFalse(os.path.exists(self.f.conf))
+        self.assertFalse(os.path.exists(self.preview_path()))
+
+    def test_multiple_displays_mode(self):
+        # Rezim vice monitoru se pouzije hned (luxos-displays MODE jako Super+P), bez potvrzovani
+        self.win.select("mode", "mirror")
+        st = self.win.wait(lambda s: not s["busy"] and s["mirrored"])
+        self.assertFalse(st["dialog"])
+        self.assertEqual(st["combos"]["mode"]["active"], "mirror")
+        self.assertEqual(self.f.read_state()["HDMI-1"]["pos"], [0, 0])
+        self.assertTrue(st["switch"])
+        self.win.select("mode", "internal")
+        st = self.win.wait(lambda s: not s["busy"] and len(s["rects"]) == 1)
+        self.assertEqual(self.f.read_state()["HDMI-1"]["current"], None)
+        titles = lsl_app.texts(self.win.app.dump())
+        self.assertIn("This display is turned off.", titles)
 
 
-@unittest.skipUnless(os.environ.get("DISPLAY") and shutil.which("xrandr") and
-                     os.environ.get("LUXOS_TEST_REAL_XRANDR") == "1", "LUXOS_TEST_REAL_XRANDR=1 pod xvfb-run")
+class WindowFits(unittest.TestCase):
+    """Okno vysoke podle obsahu (bez prazdne plochy dole), nejvys pracovni plocha (drive luxos_winsize v Pythonu)."""
+
+    def test_sizes(self):
+        lx.window()
+        for screen in ((1366, 768), (1280, 800)):
+            for monitors in (1, 2):
+                with self.subTest(screen=screen, monitors=monitors):
+                    x = lsl_app.Xvfb("%dx%d" % screen)
+                    f = FakeEnv()
+                    st = fake_state()
+                    if monitors == 1:
+                        st["outputs"][1].update(connected=False, current=None)
+                    f.write_state(st)
+                    try:
+                        win = Window(f, x.display)
+                        try:
+                            time.sleep(0.5)
+                            w, h = win.state()["size"]
+                            self.assertLessEqual(h, screen[1] - 16)
+                            self.assertLessEqual(w, screen[0])
+                            self.assertGreaterEqual(h, 300)
+                            if monitors == 1:
+                                self.assertLess(h, 700 + 45 - 40)
+                        finally:
+                            win.stop()
+                    finally:
+                        x.stop()
+                        f.cleanup()
+
+
+class Drawing(unittest.TestCase):
+    """Nazev monitoru v nahledu nezasahuje do sousedniho obdelniku (kresleni do obrazku Cairo v okne)."""
+
+    def test_display_labels_stay_inside_their_rectangles(self):
+        lx.window()
+        x = lsl_app.Xvfb()
+        f = FakeEnv()
+        try:
+            win = Window(f, x.display)
+            try:
+                for label in ("DELL U2419H (DisplayPort-0)", "Built-in Display = DELL U2419H", "HDMI-1"):
+                    with self.subTest(label=label):
+                        self.assertEqual(win.app.ask("drawcheck " + label, "outside "), "0")
+            finally:
+                win.stop()
+        finally:
+            x.stop()
+            f.cleanup()
+
+
+@unittest.skipUnless(shutil.which("Xvfb") and shutil.which("xrandr") and os.environ.get("LUXOS_TEST_REAL_XRANDR") == "1",
+                     "LUXOS_TEST_REAL_XRANDR=1 (skutecny xrandr na vlastnim Xvfb)")
 class RealXrandr(unittest.TestCase):
     """Skutecny xrandr na Xvfb (RandR): vystup se precte a zmena rezimu projde."""
 
     def test_query(self):
-        outs = [o for o in ld.query() if o["connected"]]
-        self.assertTrue(outs)
-        mode, _rate = ld.current_mode(outs[0])
-        self.assertTrue(mode)
-        args = ld.output_args(outs[0], {"mode": mode, "rotate": "normal"})
-        r = subprocess.run(["xrandr", "--output", outs[0]["name"], *args], capture_output=True, text=True)
-        self.assertEqual(r.returncode, 0, r.stderr)
+        x = lsl_app.Xvfb()
+        try:
+            env = dict(os.environ, DISPLAY=x.display)
+            text = subprocess.run(["xrandr", "--current", "--prop"], env=env, capture_output=True, text=True).stdout
+            outs = [o for o in ld.parse(text) if o["connected"]]
+            self.assertTrue(outs)
+            mode, _rate = ld.current_mode(outs[0])
+            self.assertTrue(mode)
+            args = ld.output_args(outs[0], {"mode": mode, "rotate": "normal"})
+            r = subprocess.run(["xrandr", "--output", outs[0]["name"], *args], env=env, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            r = subprocess.run([lx.helper(), "output-args"], env=env, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+        finally:
+            x.stop()
 
 
 if __name__ == "__main__":

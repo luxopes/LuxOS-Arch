@@ -547,7 +547,8 @@ class Hub(unittest.TestCase):
         Klik spusti skutecny luxos-displays nad falesnym xrandr (fake-displays), stav se ukaze v Ovladacim centru
         a rezim se ulozi pro sadu monitoru. Svetly i tmavy motiv; LUXOS_TEST_SHOTS ulozi snimky."""
         import test_luxos_displays as td
-        import luxos_displays as ld
+        import luxos_xrandr_lsl as lx
+        from luxos_xrandr_lsl import ld
         fake = os.path.join(self.home, "fake-xr")
         os.makedirs(fake)
         for name in ("xrandr", "wmctrl", "dconf", "luxos-appearance"):
@@ -630,7 +631,7 @@ class Hub(unittest.TestCase):
                     os.unlink(p)
             write(one)
             hub = self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", FAKE_XRANDR_STATE=state,
-                                 LUXOS_PYDIR=td.PYDIR, GTK_THEME=gtk_theme)
+                                 LUXOS_DISPLAYS_HELPER=lx.helper(), GTK_THEME=gtk_theme)
             # 1 monitor: sekce Obrazovky neni
             hub.send_signal(signal.SIGUSR1)
             self.assertTrue(self.wait_for(lambda: log().count("shown") == 1), self.hub_err())

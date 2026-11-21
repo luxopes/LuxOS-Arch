@@ -41,8 +41,9 @@ pick_primary() {
     echo "$first"
 }
 
-pydisplays() {
-    python3 -I "${LUXOS_PYDIR:-/usr/lib/luxos/python}/luxos_displays.py" "$@" 2>/dev/null
+# Ulozene nastaveni, rozlozeni a rezimy pro sadu monitoru cte pomocnik v LSL (xrandr, displays.json)
+helper() {
+    "${LUXOS_DISPLAYS_HELPER:-/usr/lib/luxos/luxos-displays}" "$@" 2>/dev/null
 }
 
 # Ulozene rozliseni, frekvence a otoceni z aplikace Monitory (luxos-display-settings):
@@ -55,7 +56,7 @@ load_saved() {
     [[ -f ${LUXOS_DISPLAYS_CONF:-$cfg/displays.json} ]] || return 0
     while read -r name rest; do
         [[ -n $name && -n $rest ]] && saved[$name]=$rest
-    done < <(pydisplays output-args)
+    done < <(helper output-args)
 }
 
 # on VYSTUP [dalsi argumenty]: zapnout vystup v ulozenem (jinak doporucenem) rezimu
@@ -87,13 +88,13 @@ follow_primary() {
 # Ulozene rozlozeni (Monitory > Usporadani) pro prave pripojenou sadu monitoru:
 # cely prikaz xrandr (polohy, hlavni monitor, zrcadleni), nebo nic
 layout_args() {
-    pydisplays layout-args "$@"
+    helper layout-args "$@"
 }
 
 # Rezim pro auto: zkusebni z Monitoru, ulozeny pro tuto sadu monitoru, posledni zvoleny, extend
 saved_mode() {
     local m=${LUXOS_DISPLAYS_MODE:-}
-    [[ -n $m ]] || m=$(pydisplays mode-get)
+    [[ -n $m ]] || m=$(helper mode-get)
     [[ -n $m ]] || m=$(cat "$mode_file" 2>/dev/null)
     case $m in extend|mirror|external|internal) echo "$m" ;; *) echo extend ;; esac
 }
@@ -112,7 +113,7 @@ apply_mode() {  # apply_mode extend|mirror|external|internal [explicit]
         line=$(layout_args ${2:+extend})
     elif [[ $mode == mirror ]]; then
         # Spolecne rozliseni vsech monitoru (jinak --scale-from), hlavni monitor s listou a Dockem
-        line=$(pydisplays mirror-args)
+        line=$(helper mirror-args)
     fi
     if [[ -n $line ]]; then
         read -r -a args <<<"$line"
@@ -204,7 +205,7 @@ case ${1:-auto} in
     extend|mirror|external|internal)
         mkdir -p "$cfg"
         echo "$1" >"$mode_file"
-        pydisplays mode-set "$1"
+        helper mode-set "$1"
         apply_mode "$1" explicit ;;
     mode) saved_mode ;;
     rescue) rescue ;;

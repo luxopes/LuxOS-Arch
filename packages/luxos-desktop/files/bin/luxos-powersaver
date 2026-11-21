@@ -21,7 +21,7 @@ saved=$cfg/powersaver.saved
 cap60=$cfg/powersaver-60hz
 dock=net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/
 unit=luxos-powersaver.service
-displays=${LUXOS_DISPLAYS_PY:-/usr/lib/luxos/python/luxos_displays.py}
+displays=${LUXOS_DISPLAYS_HELPER:-/usr/lib/luxos/luxos-displays}   # frekvence vestaveneho displeje (xrandr)
 backlight=${LUXOS_BACKLIGHT:-/sys/class/backlight}     # testy: falesne podsviceni
 
 # ---- ulozene puvodni hodnoty ----
@@ -95,10 +95,10 @@ restore_zoom() {
 # 60 Hz - zmena frekvence obrazovku na okamzik zcerna. Puvodni frekvence se ulozi pro vypnuti sporice.
 cap_rate() {
     local name mode rate
-    [[ -e $cap60 && -n ${DISPLAY:-} && -r $displays ]] || return 0
+    [[ -e $cap60 && -n ${DISPLAY:-} && -x $displays ]] || return 0
     while read -r name mode rate; do
         [[ -n $rate ]] && put "rate-$name" "$mode $rate"
-    done < <(python3 -I "$displays" rate-cap 2>/dev/null)
+    done < <("$displays" rate-cap 2>/dev/null)
 }
 
 apply_on() {  # apply_on [first] - "first" = prvni zapnuti (ulozit puvodni hodnoty, ztlumit)
@@ -127,11 +127,11 @@ apply_off() {
     system_part stop
     restore_zoom
     restore_animations
-    if [[ -n ${DISPLAY:-} && -r $displays && -f $saved ]]; then
+    if [[ -n ${DISPLAY:-} && -x $displays && -f $saved ]]; then
         while IFS= read -r line; do
             name=${line%%=*}; name=${name#rate-}
             read -r mode v <<<"${line#*=}"
-            python3 -I "$displays" rate-restore "$name" "$mode" "$v" 2>/dev/null
+            "$displays" rate-restore "$name" "$mode" "$v" 2>/dev/null
         done < <(grep '^rate-' "$saved")
     fi
     # Jas vratit jen kdyz ho uzivatel mezitim nezmenil

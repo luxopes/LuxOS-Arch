@@ -42,9 +42,7 @@ MIN_USABLE = 300      # okno nesmi jit zmensit pod tuto vysku (X okno vcetne Hea
 NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
-APPS = {
-    "luxos-display-settings": lambda tmp: displays_env(tmp),
-}
+APPS = {}
 FPRINTD = os.path.join(HERE, "fingerprint", "fake_fprintd.py")
 APPS.update({
     "luxos-bluetooth": {"_sysbus": "1"},             # soukroma prazdna "systemova" sbernice: bez BlueZ
@@ -53,21 +51,6 @@ APPS.update({
     "luxos-wifi-qr": {"LUXOS_CAMERA_TEST": "none", "LUXOS_NMCLI": "false"},
 })
 PRE = {"luxos-fingerprint": [sys.executable, FPRINTD, "--enrolled", "right-index-finger"]}
-LAPTOP = {"name": "eDP-1", "connected": True, "edid": "", "mm": [344, 194], "primary": True,
-          "modes": [["1920x1080", ["60.02", "48.01"]], ["1280x720", ["60.00"]]], "preferred": ["1920x1080", "60.02"],
-          "current": ["1920x1080", "60.02"], "rotation": "normal", "pos": [0, 0]}
-
-
-def displays_env(tmp):
-    """Monitory: falesny xrandr / xfconf-query / luxos-displays (tests/fake-displays), jeden displej notebooku."""
-    fake = os.path.join(HERE, "fake-displays")
-    state = os.path.join(tmp, "xrandr.json")
-    with open(state, "w") as f:
-        json.dump({"outputs": [LAPTOP]}, f)
-    return {"PATH": fake + os.pathsep + os.environ["PATH"], "FAKE_XRANDR_STATE": state,
-            "FAKE_XRANDR_LOG": os.path.join(tmp, "xrandr.log"), "FAKE_XFCONF": os.path.join(tmp, "xfconf.json")}
-
-
 def free_display():
     for n in range(400, 500):
         if not os.path.exists("/tmp/.X11-unix/X%d" % n) and not os.path.exists("/tmp/.X%d-lock" % n):
@@ -179,21 +162,6 @@ class WindowFits(unittest.TestCase):
                 if require_min and win["resizable"]:
                     self.assertGreaterEqual(win["min"]["height"], MIN_USABLE, (app, screen, win))
                     self.assertGreaterEqual(win["min"]["width"], 340, (app, screen, win))
-
-
-@unittest.skipUnless(shutil.which("Xvfb") and shutil.which("dbus-run-session"), "Xvfb/dbus-run-session missing")
-class SizedToContent(unittest.TestCase):
-    """Okna bez velke prazdne plochy dole: vyska podle obsahu, ne pevna vychozi (drive + HeaderBar 45 px)."""
-
-    OLD = {"luxos-display-settings": 700}
-
-    def test_heights(self):
-        for app, old in self.OLD.items():
-            with self.subTest(app=app):
-                data = run_app(app, (1366, 768), shot=shot_path(app), extra={"LUXOS_FIT_NO_SHRINK": "1"})
-                win = data["windows"][0]
-                self.assertLess(win["height"], old + 45 - 40, (app, win))
-                self.assertLessEqual(win["height"], 768 - 16, (app, win))
 
 
 if __name__ == "__main__":

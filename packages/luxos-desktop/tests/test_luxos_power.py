@@ -35,7 +35,9 @@ FAKE_XRANDR = os.path.join(HERE, "fake-displays", "xrandr")
 sys.path.insert(0, PYDIR)
 sys.path.insert(1, os.path.join(ROOT, "luxos-i18n", "files"))
 
-import luxos_displays as ld  # noqa: E402
+sys.path.insert(0, HERE)
+import luxos_xrandr_lsl as lx  # noqa: E402
+from luxos_xrandr_lsl import ld  # noqa: E402
 
 
 def write(path, text):
@@ -200,7 +202,7 @@ class PowersaverScript(unittest.TestCase):
         self.cfg = os.path.join(self.d, "config")
         self.env = dict(os.environ, PATH=self.bin + os.pathsep + os.environ["PATH"], FAKE_STATE=self.state,
                         XDG_CONFIG_HOME=self.cfg, LUXOS_BACKLIGHT=self.bl, LUXOS_XRANDR=FAKE_XRANDR,
-                        FAKE_XRANDR_STATE=self.xr, LUXOS_DISPLAYS_PY=os.path.join(PYDIR, "luxos_displays.py"),
+                        FAKE_XRANDR_STATE=self.xr, LUXOS_DISPLAYS_HELPER=lx.helper(),
                         DISPLAY=":luxos-test-fake", LUXOS_SYSROOT=self.d)
 
     def tearDown(self):
@@ -352,7 +354,7 @@ class PowersaverScript(unittest.TestCase):
         os.chmod(os.path.join(self.bin, "luxos-powersaver"), 0o755)
         write(f"{self.cfg}/luxos/displays-mode", "extend\n")
         env = dict(self.env, PATH=self.bin + os.pathsep + fake + os.pathsep + os.environ["PATH"],
-                   FAKE_XFCONF=os.path.join(self.d, "xfconf.json"), LUXOS_PYDIR=PYDIR)
+                   FAKE_XFCONF=os.path.join(self.d, "xfconf.json"))
         r = subprocess.run(["bash", os.path.join(BIN, "luxos-displays"), "auto"], env=env,
                            capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -448,7 +450,7 @@ class RateCap(unittest.TestCase):
 
     def test_targets(self):
         self.assertEqual(ld.rate_cap_target(self.out("eDP-1", ["144.00", "120.00", "60.01", "59.95"], "144.00")),
-                         ("1920x1080", "144.00", "60.01"))
+                         ["1920x1080", "144.00", "60.01"])
         self.assertIsNone(ld.rate_cap_target(self.out("eDP-1", ["60.02", "48.01"], "60.02")))
         self.assertIsNone(ld.rate_cap_target(self.out("HDMI-1", ["144.00", "60.00"], "144.00")))   # externi ne
         self.assertIsNone(ld.rate_cap_target(self.out("eDP-1", ["144.00", "60.00"], "144.00", active=False)))

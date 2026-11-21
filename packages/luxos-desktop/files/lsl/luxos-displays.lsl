@@ -1,6 +1,8 @@
-# LuxOS - monitory na Waylandu (/usr/lib/luxos/luxos-displays, spousti ho /usr/bin/luxos-displays). Jediny
+# LuxOS - monitory (/usr/lib/luxos/luxos-displays, spousti ho /usr/bin/luxos-displays). Na Waylandu jediny
 # program s pravem menit monitory (wlr-output-management, allowlist luxwm); okno nastaveni a rychla volba
-# rezimu ho jen volaji. Logika a ulozeni: luxos_displays.lsl.
+# rezimu ho jen volaji. Logika a ulozeni: luxos_displays.lsl. Na X11 (bez WAYLAND_DISPLAY) get a try pro okno
+# a prikazy skriptu luxos-displays (output-args, layout-args, mode-get/-set, mirror-args, rate-cap/-restore)
+# dela luxos_displays_x11.lsl nad xrandr.
 #
 #   luxos-displays [auto]         ulozene nastaveni pro pripojenou sadu monitoru (luxwm po pripojeni nebo
 #                                 odpojeni monitoru a pri startu); nova sada = rozsirit, novy monitor vpravo
@@ -18,8 +20,10 @@ load json, env
 load luxos_wl as wl
 load luxos_luxwm as wm
 load luxos_displays as dw
+load luxos_displays_x11 as x11
 
 SETTINGS = "/usr/lib/luxos/luxos-displays-settings"
+X11_COMMANDS = ["output-args", "layout-args", "mode-get", "mode-set", "mirror-args", "rate-cap", "rate-restore"]
 
 job = {"cmd": "", "store": None, "outs": [], "plan": None, "undo": None, "undo_primary": "", "hint": "",
        "retried": False, "after": None, "pending": False, "timer": 0}
@@ -323,6 +327,10 @@ if len(args) > 1:
 end
 job["arg"] = ""
 job["seconds"] = 15
+wayland = env.get("WAYLAND_DISPLAY", "")
+if job["cmd"] in X11_COMMANDS or ((wayland == None or wayland == "") and job["cmd"] in ["get", "try"]):
+    call x11.main(args[1:])
+end
 if job["cmd"] == "menu":
     settings = env.get("LUXOS_DISPLAYS_SETTINGS", "")
     if settings == "":
