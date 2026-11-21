@@ -428,24 +428,97 @@ scale.horizontal marks.top {
     margin-bottom: 7px;
 }
 
-/* Titulek neaktivniho okna s vlastnim zahlavim (terminal, Thunar na Waylandu): WhiteSur ma ve svetlem
-   motivu rgba(87,87,87,0.7) na bile, kontrast 2,7:1, a titulek skoro mizi. Barva textu se 72 % jako
-   fg_soft v luxos_tokens: svetly 6:1, tmavy 5,5:1 */
-headerbar:backdrop {
-    color: alpha(@theme_fg_color, 0.72);
+/* Zahlavi oken s vlastnim zahlavim (CSD: GTK headerbar) ve stejne mire jako zahlavi kompozitoru luxwm
+   (luxos_tokens TITLEBAR, shodu hlida test_luxos_themes.py), aby nastaveni LuxOS nemela dva vzhledy:
+   vyska 38 px, barva okna bez cary (splyva s obsahem), nazev 13 px tucny 600, neaktivni na 45 %. */
+headerbar,
+headerbar:backdrop,
+headerbar.default-decoration,
+.csd headerbar.default-decoration,
+.csd headerbar.default-decoration:backdrop {
+    min-height: 38px;
+    padding-top: 0;
+    padding-bottom: 0;
+    background-color: @theme_bg_color;
+    background-image: none;
+    border: none;
+    box-shadow: none;
 }
 
-/* Okna s vlastnim zahlavim (CSD: terminal, Thunar, vetsina GTK 3 na Waylandu): rohy 16 px jako okna
-   s rameckem kompozitoru (luxos_tokens RADIUS window); WhiteSur ma 12 px. Stin zustava z WhiteSur:
+headerbar .title {
+    font-size: 13px;
+    font-weight: 600;
+    color: @theme_fg_color;
+}
+
+headerbar:backdrop .title,
+headerbar:backdrop .subtitle {
+    color: alpha(@theme_fg_color, 0.45);
+}
+
+/* Semafor: kruhy 12 px po 20 px (mezera boxu GTK 6 px + okraje 2 x 1 px), stred prvniho na x = 20
+   (okraj headerbaru 8 px + 5 px + 1 px). Kresli se barvou misto obrazku WhiteSur (14 px, jiny odstin). */
+headerbar > box.left {
+    padding-left: 5px;
+}
+
+/* nizke zahlavi malych pomocnych oken (Kalkulacka): 30 px, stred prvniho svetla na x = 14 */
+headerbar.compact {
+    min-height: 30px;
+    padding-left: 2px;
+}
+
+headerbar button.titlebutton.close,
+headerbar button.titlebutton.minimize,
+headerbar button.titlebutton.maximize,
+headerbar.default-decoration button.titlebutton {
+    min-width: 12px;
+    min-height: 12px;
+    margin: 0 1px;
+    padding: 0;
+    border-radius: 6px;
+    background-image: none;
+    box-shadow: none;
+}
+
+headerbar button.titlebutton.close { background-color: #ff5f57; }
+headerbar button.titlebutton.minimize { background-color: #febc2e; }
+headerbar button.titlebutton.maximize { background-color: #28c840; }
+
+/* neaktivni okno: tlumeny inkoust s krouzkem, viditelny i na bilem */
+headerbar:backdrop button.titlebutton.close,
+headerbar:backdrop button.titlebutton.minimize,
+headerbar:backdrop button.titlebutton.maximize {
+    background-color: alpha(@theme_fg_color, 0.22);
+    box-shadow: inset 0 0 0 1px alpha(@theme_fg_color, 0.10);
+}
+
+/* znaky x - + na vsech trech pri najeti na skupinu (i v neaktivnim okne, pak s barvami) */
+headerbar:backdrop > box.left:hover button.titlebutton.close { background-color: #ff5f57; box-shadow: none; }
+headerbar:backdrop > box.left:hover button.titlebutton.minimize { background-color: #febc2e; box-shadow: none; }
+headerbar:backdrop > box.left:hover button.titlebutton.maximize { background-color: #28c840; box-shadow: none; }
+
+/* ikona 16 px by tlacitko roztahla: zaporny okraj ji vejde do 12 px, kresli se zmensena */
+headerbar button.titlebutton image {
+    margin: -2px;
+    color: transparent;
+    -gtk-icon-transform: scale(0.6);
+}
+
+headerbar > box.left:hover button.titlebutton image {
+    color: rgba(60, 20, 10, 0.7);
+}
+
+/* Rohy okna 12 px jako okna se zahlavim kompozitoru (TITLEBAR radius). Stin zustava z WhiteSur:
    wlroots (wlr_scene_xdg_surface) orizne povrch na geometrii okna, takze stin klienta na Waylandu
    neni videt - vetsi stin by jen zvetsil buffer kazdeho okna. Stin CSD oken patri kompozitoru. */
 window.csd > decoration {
-    border-radius: 16px;
+    border-radius: 12px;
 }
 
 window.csd > .titlebar,
 window.csd > headerbar {
-    border-radius: 16px 16px 0 0;
+    border-radius: 12px 12px 0 0;
 }
 
 window.csd.maximized > decoration, window.csd.fullscreen > decoration, window.csd.tiled > decoration,
