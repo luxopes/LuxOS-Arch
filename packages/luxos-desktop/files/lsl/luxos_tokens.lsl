@@ -46,6 +46,8 @@ COLORS = {
     "card_edge_top": [255, 255, 255, 0.62],
     "card_edge_bottom": [255, 255, 255, 0.20],
     "card_inset": [255, 255, 255, 0.18],
+    "menu_edge": [255, 255, 255, 0.30],
+    "menu_inset": [255, 255, 255, 0.22],
     "desktop_hover": [0, 0, 0, 0.30]
 }
 
@@ -110,13 +112,15 @@ MATERIAL = {
 }
 # Rozmazani v kompozitoru (dual Kawase, 4 pruchody); bez nej (labwc, X11) kryje material fallback_opacity
 BLUR = {"radius": 32, "passes": 4, "saturation": 1.6, "fallback_opacity": 0.96}
+# Karta skla vyskakovacich oken, Ovladaciho centra a Kalendare jako verze 1.1.1 (luxos_glass.panel(okno, box, 18))
+CARD_RADIUS = 18
 # Plochy shellu: [material, uroven vysky, polomer]; jmeno = material v kompozitoru (luxwm luxcomp_material_set).
 # dim = zatemneni pod Launchpadem (rozmazana cela obrazovka, klient kresli cernou 0,28 a panel sheet).
 SURFACE = {
     "bar": ["thin", 0, 0],
     "dock": ["thin", 1, 24],
     "menu": ["thick", 2, 12],
-    "popup": ["regular", 3, 16],
+    "popup": ["regular", 3, CARD_RADIUS],
     "toast": ["thick", 3, 16],
     "sheet": ["regular", 4, 24],
     "dim": ["regular", 0, 0]
@@ -176,6 +180,8 @@ SHADOW = {
     "focus": "0 0 0 3px alpha(#3d7bff, 0.25)",
     "text_desktop": "0 1px 3px alpha(black, 0.75)"
 }
+# Lesk skla vyskakovacich oken a oznameni (luxos_glass.paint_panel: bila 8 % do 35 % sirky, sikmo dolu)
+SHEEN = "linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%)"
 # Stin okna (kompozitor): dosah, posun dolu, alfa; aktivni okno se zretelne oddeli od okna za nim
 WINDOW_SHADOW = {"active_size": 48, "active_y": 16, "active_alpha": 0.32, "inactive_size": 28, "inactive_y": 8, "inactive_alpha": 0.18}
 
@@ -525,11 +531,16 @@ function css_rules():
     h = CONTROL["height"]
     pill = px(r["pill"])
     plain = " background: none; background-image: none; border: none; box-shadow: none; outline: none;"
-    edge = " border: 1px solid @lx_mat_border; box-shadow: inset 0 1px @lx_mat_highlight;"
+    # okraj karty skla jako widgety a vyskakovaci okna verze 1.1.1 (luxos_glass.panel): svetla hrana, nahore
+    # jasnejsi, dole tlumena, odlesk uvnitr a sikmy lesk pres material
+    edge = (" border: 1px solid @lx_card_edge; border-top-color: @lx_card_edge_top; border-bottom-color: @lx_card_edge_bottom;"
+        + " box-shadow: inset 0 1px @lx_card_inset; background-image: " + SHEEN + ";")
     return ("* { font-family: " + FONT["fallback"] + "; }\n"
         + "window.lx { background: transparent; color: @lx_fg; }\n"
         + ".lx-popup { background-color: @lx_mat_popup; border-radius: " + px(radius_of("popup")) + ";" + edge
         + " padding: " + px(s["m"]) + "; color: @lx_fg; }\n"
+        # sklo z tapety kresli pod kartu klient (luxos_hub_popup.paint_glass)
+        + ".lx-popup.lx-wallglass { background-color: transparent; }\n"
         + ".lx-card { border-radius: " + px(r["xl"]) + "; padding: " + px(s["l"]) + "; box-shadow: " + SHADOW["card"] + ", " + SHADOW["inset"] + "; }\n"
         + ".lx-head { " + type_css("title") + " }\n"
         + ".lx-title { " + type_css("body_strong") + " }\n"
@@ -589,7 +600,8 @@ function css_menu_rules():
     r = RADIUS
     s = SPACE
     return (".csd.popup decoration { box-shadow: none; border-radius: " + px(radius_of("menu")) + "; }\n"
-        + "menu, .menu { background-color: @lx_mat_menu; border-radius: " + px(radius_of("menu")) + "; padding: 5px; border: none; }\n"
+        + "menu, .menu { background-color: @lx_mat_menu; border-radius: " + px(radius_of("menu")) + "; padding: 5px; border: none;"
+        + " box-shadow: inset 0 0 0 1px " + css_color(COLORS["menu_edge"]) + ", inset 0 1px " + css_color(COLORS["menu_inset"]) + "; }\n"
         + "menu > menuitem { border-radius: " + px(r["xs"]) + "; padding: " + px(s["xs"]) + " 10px; min-height: 18px; color: @lx_fg; " + type_css("body") + " }\n"
         + "menu > menuitem label { color: inherit; }\n"
         + "menu > menuitem:hover { background-color: @lx_accent; color: @lx_accent_text; }\n"

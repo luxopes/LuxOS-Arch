@@ -240,7 +240,8 @@ print(json.dumps(out))
         for surface, (material, level, radius) in t["surface"].items():
             self.assertIn(material, t["material"], surface)
             self.assertTrue(level == 0 or str(level) in t["elevation"], surface)
-            self.assertIn(radius, list(t["radius"].values()) + [0], surface)
+            # karta skla vyskakovacich oken 18 px jako verze 1.1.1 (owner feedback 2026-11-21, bod 8)
+            self.assertIn(radius, list(t["radius"].values()) + [0, 18], surface)
 
     def test_ink_hysteresis_like_bar(self):
         # luxos-bar.c want_dark_ink: na tmave pod 2,0, zpet na bile az nad 2,3
