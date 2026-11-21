@@ -43,7 +43,6 @@ NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
 APPS = {
-    "luxos-feedback": {},
     "luxos-router": {"LUXOS_IP": os.path.join(FAKE_NET, "ip"), "LUXOS_NMCLI": os.path.join(FAKE_NET, "nmcli"),
                      "LUXOS_PING": os.path.join(FAKE_NET, "ping"), "LUXOS_ROUTER_PORT": "9"},
     "luxos-display-settings": lambda tmp: displays_env(tmp),
@@ -185,9 +184,6 @@ class WindowFits(unittest.TestCase):
                 if require_min and win["resizable"]:
                     self.assertGreaterEqual(win["min"]["height"], MIN_USABLE, (app, screen, win))
                     self.assertGreaterEqual(win["min"]["width"], 340, (app, screen, win))
-
-    def test_feedback(self):
-        self.check("luxos-feedback")
 
     def test_router_without_network(self):
         self.check("luxos-router")

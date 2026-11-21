@@ -256,6 +256,47 @@ class SettingsAppsWayland(unittest.TestCase):
         self.app.send("close")
         self.assertEqual(self.app.proc.wait(10), 0)
 
+    def test_feedback(self):
+        import http.server
+        import threading
+        got = []
+
+        class Fake(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *_a):
+                pass
+
+            def do_POST(self):  # noqa: N802
+                got.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"id": "FB-WL-1"}')
+        srv = http.server.HTTPServer(("127.0.0.1", 0), Fake)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        env = dict(LUXAI_ORIGIN="http://127.0.0.1:%d" % srv.server_address[1], HOME=str(self.session / "home"),
+                   XDG_DATA_HOME=str(self.session / "data"), XDG_CONFIG_HOME=str(self.session / "config"))
+        shots = os.environ.get("LUXOS_WL_SHOTS")
+        # snimky svetly/tmavy a cesky/anglicky (jen s LUXOS_WL_SHOTS)
+        for theme, lang in ((("WhiteSur-Light", "en_US.UTF-8"), ("WhiteSur-Dark", "en_US.UTF-8"),
+                             ("WhiteSur-Light", "cs_CZ.UTF-8"), ("WhiteSur-Dark", "cs_CZ.UTF-8")) if shots else ()):
+            self.open("luxos-feedback", GTK_THEME=theme, LANG=lang, **env)
+            time.sleep(1.5)
+            self.shot("luxos-feedback-%s-%s" % ("dark" if "Dark" in theme else "light", lang[:2]))
+            self.app.stop()
+            self.app = None
+        self.open("luxos-feedback", **env)
+        self.check_window("luxos-feedback", "Feedback")
+        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        self.app.ask("sysinfo 0")
+        self.app.ask("type Wayland report from the test.")
+        self.assertTrue(state()["send"])
+        self.app.ask("click Send")
+        self.assertTrue(self.app.wait(lambda: state()["page"] == "done", 30), self.app.stderr())
+        self.assertEqual(lsl_app.find(self.app.dump(), name="done-id")["text"], "Report ID: FB-WL-1")
+        self.assertEqual(got[-1]["message"], "Wayland report from the test.")
+        self.shot("luxos-feedback-done")
+
 
 if __name__ == "__main__":
     unittest.main()
