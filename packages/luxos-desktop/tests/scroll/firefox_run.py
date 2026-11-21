@@ -14,7 +14,11 @@ PAGE = ("<!doctype html><html><head><title>scrolltest</title></head><body style=
         + "<script>addEventListener('scroll', () => dump('SCROLL ' + scrollY + '\\n'));"
           "addEventListener('load', () => setTimeout(() => dump('READY\\n'), 1500));</script></body></html>")
 
+# malo procesu (jeden obsahovy, bez fission): testy bezi ve scope s TasksMax=300 a pocita se kazde vlakno
 PREFS = """user_pref("browser.dom.window.dump.enabled", true);
+user_pref("dom.ipc.processCount", 1);
+user_pref("fission.autostart", false);
+user_pref("dom.ipc.processPrelaunch.enabled", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.aboutwelcome.enabled", false);
 user_pref("datareporting.policy.dataSubmissionEnabled", false);

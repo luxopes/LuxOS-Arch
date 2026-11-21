@@ -8,6 +8,7 @@ snimky obrazovky pres GDK z korenoveho okna Xvfb, spravce oken xfwm4 s tematem W
 import json
 import os
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -20,7 +21,11 @@ REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 OUT = os.environ.get("LUXOS_FIREFOX_TL_OUT") or os.path.join(REPO, "out", "firefox-tl")
 FIREFOX_DIR = "/usr/lib/firefox"
 
+# malo procesu (jeden obsahovy, bez fission): testy bezi ve scope s TasksMax=300 a pocita se kazde vlakno
 PREFS = """user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("dom.ipc.processCount", 1);
+user_pref("fission.autostart", false);
+user_pref("dom.ipc.processPrelaunch.enabled", false);
 user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("app.update.disabledForTesting", true);
 user_pref("browser.tabs.warnOnClose", false);
@@ -367,6 +372,16 @@ class Session:
                 p.wait(5)
             except subprocess.TimeoutExpired:
                 p.kill()
+        # sluzby, ktere sbernice relace aktivovala (xfconfd, portaly, klicenka, a11y): podle adresy sbernice
+        # v prostredi, jinak zustanou bezet a kazda dalsi relace modulu pridava dalsi (pamet, limit procesu)
+        mark = ("DBUS_SESSION_BUS_ADDRESS=" + self.env["DBUS_SESSION_BUS_ADDRESS"]).encode()
+        for pid in filter(str.isdigit, os.listdir("/proc")):
+            try:
+                with open("/proc/%s/environ" % pid, "rb") as f:
+                    if mark in f.read().split(b"\0"):
+                        os.kill(int(pid), signal.SIGTERM)
+            except OSError:
+                pass
         self.bus.stdout.close()
         self.wm_log.close()
         if self.ff:
