@@ -63,7 +63,13 @@ Vše kromě vytvoření/smazání běží **bez root práv** jako uživatel.
   klient téhož soketu sandboxu; spustí se až s prvním spojením X11 a skončí s posledním (aplikace pro
   Wayland na něm nestojí paměť). Běží ve vlastním bwrap (jen `/usr`, bez domova, sítě, IPC a sezení,
   softwarově `-glamor off`); do sandboxu jde jen jeho X soket. Volba *důvěryhodný displej* na Waylandu
-  nic nemění (sdílená paměť `wl_shm` je rychlá i tak).
+  nic nemění (sdílená paměť `wl_shm` je rychlá i tak). Okno X obrazovky má velikost a název hlavního okna
+  aplikace: `luxos-sandbox` (mimo sandbox) se k Xwayland sandboxu připojí s jeho cookie jako malý klient
+  protokolu X11 v Pythonu (bez Xlib, chyba spojení ho neukončí), čte jen velikost a název prvního okna
+  (délky omezené, název jen tisknutelné znaky, nejvýš 120) a pošle je luxwm (`sandbox_window`). Ten mění
+  jen kořenové okno Xwayland té instance; značka „Sandbox · příkaz“ zůstává od kompozitoru. Bez
+  kořene (rootless) by okna X sandboxu spravoval správce oken luxwm mimo sandbox, což wlroots pro
+  X server, který sám nespustil, neumí.
 - **GUI v relaci X11 (`--gui`):** aplikace dostane jen socket vlastního X serveru **Xephyr** v okně
   „Sandbox – aplikace“ (`-nolisten tcp -nolisten local`, vlastní MIT cookie). Na displej plochy (`:0`)
   se nedostane, schránka se nesdílí.

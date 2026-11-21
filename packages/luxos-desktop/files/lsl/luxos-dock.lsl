@@ -7,9 +7,10 @@
 # Zvetseni (zaseknuta lupa v Planku, LuxOS 1.0.4): po odchodu mysi do 0,45 s pryc v kazdem smeru, pri navratu jde za
 # mysi; snimek drazsi nez rozpocet (4 ms) zvetseni vypne. Bez animace Dock nebezi v zadnem casovaci.
 #
-# Rezimy skryvani (HIDE): none = vyhradi misto u spodniho okraje, dodge = uhne maximalizovanemu nebo celoobrazovkovemu
-# aktivnimu oknu (foreign-toplevel nedava polohu oken, Plank uhybal kazdemu oknu pres Dock), autohide = skryty, dokud
-# mys nenajede ke spodnimu okraji.
+# Rezimy skryvani (HIDE): none = vyhradi misto u spodniho okraje, dodge = uhne zamerenemu oknu, ktere ho prekryva (jako
+# window-dodge Planku; ram okna posila luxwm, pod jinym kompozitorem jen maximalizovanemu nebo celoobrazovkovemu oknu
+# z foreign-toplevel), autohide = skryty, dokud mys nenajede ke spodnimu okraji. V rezimu dodge Dock hlasi luxwm svou
+# vysku (dock_zone), aby nova okna lezela nad nim.
 #
 # LUXOS_DOCK_DEBUG=1 vypisuje udalosti a cenu snimku (testy), LUXOS_DOCK_FRAME_BUDGET_US jiny rozpocet snimku.
 load env, process
@@ -18,6 +19,7 @@ load luxos_gtk, gtk as gtk
 load gio, cairo, pango
 load luxos_layer as layer
 load luxos_primary as primary
+load luxos_luxwm as wm
 load luxos_wl as wl
 load luxos_material as material
 load luxos_tokens as tokens
@@ -35,7 +37,8 @@ HIDE_DELAY_MS = 300
 DRAG_START = 6
 LABEL_H = 30
 SIDE = 8
-MARGIN = 6
+# mezera pod panelem: zadna, Dock lezi na spodnim okraji jako Plank s motivem WhiteSur
+MARGIN = 0
 BUDGET_SKIP = 4
 BUDGET_FRAMES = 24
 
@@ -67,6 +70,9 @@ costs = []
 window = 0
 menu = {}
 tick_record = 0
+# zamerene okno od luxwm (ram v souradnicich rozlozeni) a posledni vyska poslana jako dock_zone
+focus = {"known": False, "frame": []}
+zone = {"sent": None}
 
 # Radek s casem v ms (monotonni hodiny, jako time.monotonic v testech)
 function debug(line):
@@ -400,6 +406,32 @@ function update_geometry():
             call layer.set_exclusive_zone(window, 0)
         end
     end
+    call send_zone()
+    return 0
+end
+
+# Panel Docku na vystupu v souradnicich rozlozeni (bez zvetseni a skryti)
+function panel_area():
+    if output["monitor"] == 0 or len(geo) == 0:
+        return []
+    end
+    g = layer.monitor_geometry(output["monitor"])
+    return [g[0] + (g[2] - geo["base_w"]) // 2, g[1] + g[3] - MARGIN - geo["panel_h"], geo["base_w"], geo["panel_h"] + MARGIN]
+end
+
+function send_zone():
+    if len(geo) == 0 or output["name"] == "" or not wm.connected():
+        return 0
+    end
+    want = [output["name"], 0]
+    if conf["hide"] == "dodge":
+        want[1] = geo["panel_h"] + MARGIN
+    end
+    if want != zone["sent"]:
+        zone["sent"] = want
+        call wm.request({"cmd": "dock_zone", "output": want[0], "height": want[1]}, None)
+        call debug("zone " + want[0] + " " + String(want[1]))
+    end
     return 0
 end
 
@@ -554,6 +586,11 @@ function want_hidden():
     end
     if conf["hide"] == "autohide":
         return True
+    end
+    if conf["hide"] == "dodge" and focus["known"]:
+        a = panel_area()
+        f = focus["frame"]
+        return len(a) == 4 and len(f) == 4 and f[0] < a[0] + a[2] and a[0] < f[0] + f[2] and f[1] < a[1] + a[3] and a[1] < f[1] + f[3]
     end
     if conf["hide"] == "dodge":
         for handle in windows:
@@ -1183,6 +1220,27 @@ function on_wl(kind, handle, a, b):
     return 0
 end
 
+# Zamerene okno a jeho ram od luxwm: Dock uhne, kdyz ho okno prekryva
+function on_wm_event(event):
+    if event.get("event") == "window":
+        focus["known"] = True
+        focus["frame"] = event.get("frame", [])
+        call update_hide(True)
+    end
+    return 0
+end
+
+function on_wm_state(up):
+    focus["known"] = False
+    zone["sent"] = None
+    if up:
+        call send_zone()
+    else:
+        call update_hide(True)
+    end
+    return 0
+end
+
 # Dock je na hlavnim monitoru luxwm (Monitory, bily pruh)
 function on_primary(monitor):
     output["monitor"] = monitor
@@ -1329,6 +1387,9 @@ screens = layer.monitors()
 if len(screens) > 0:
     call layer.set_monitor(window, screens[0])
 end
+call wm.subscribe(["window"])
+call wm.on_state(on_wm_state)
+call primary.also(on_wm_event)
 call primary.follow(on_primary)
 call gtk.widget_add_events(window, gtk.POINTER_MOTION_MASK + gtk.BUTTON_PRESS_MASK + gtk.BUTTON_RELEASE_MASK + gtk.ENTER_NOTIFY_MASK + gtk.LEAVE_NOTIFY_MASK)
 call gtk.connect(window, "draw", on_draw)

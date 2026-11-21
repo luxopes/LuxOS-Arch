@@ -169,6 +169,21 @@ view_commit(struct wl_listener *listener, void *data)
 	if (v->deco) {
 		deco_update(v->deco);
 	}
+	view_size_changed(v);
+}
+
+/* Po commitu: velikost, kterou si klient zvolil sam, politika potrebuje (Dock uhyba zamerenemu oknu).
+ * Behem tazeni ne, konec tazeni hlasi uvolneni tlacitka. */
+void
+view_size_changed(struct view *v)
+{
+	int w = view_width(v), h = view_height(v);
+	if (!v->mapped || comp.grab_view == v || (w == v->last_w && h == v->last_h)) {
+		return;
+	}
+	v->last_w = w;
+	v->last_h = h;
+	emit(LUXCOMP_EV_VIEW_SIZE, v->id, w, h, 0);
 }
 
 void
@@ -186,7 +201,9 @@ view_map_common(struct view *v)
 	wlr_scene_node_raise_to_top(&v->tree->node);
 	view_update_enabled(v);
 	foreign_map(v);
-	emit(LUXCOMP_EV_VIEW_MAP, v->id, view_width(v), view_height(v), 0);
+	v->last_w = view_width(v);
+	v->last_h = view_height(v);
+	emit(LUXCOMP_EV_VIEW_MAP, v->id, v->last_w, v->last_h, 0);
 }
 
 static void
@@ -247,6 +264,8 @@ view_destroy_common(struct view *v)
 	}
 	wlr_scene_node_destroy(&v->tree->node);
 	free(v->badge);
+	free(v->app_id_override);
+	free(v->title_override);
 	free(v);
 }
 
@@ -740,11 +759,38 @@ luxcomp_view_set_badge(int64_t id, const char *text)
 	}
 }
 
+static void
+set_override(char **slot, const char *text)
+{
+	free(*slot);
+	*slot = text && *text ? strdup(text) : NULL;
+}
+
+void
+luxcomp_view_set_names(int64_t id, const char *app_id, const char *title)
+{
+	struct view *v = view_by_id(id);
+	if (!v) {
+		return;
+	}
+	set_override(&v->app_id_override, app_id);
+	set_override(&v->title_override, title);
+	if (v->deco) {
+		deco_update(v->deco);
+	}
+	if (v->mapped) {
+		foreign_update(v);
+	}
+}
+
 /* X11: app_id = WM_CLASS (trida), jako u labwc a xfwm4 */
 const char *
 luxcomp_view_app_id(int64_t id)
 {
 	struct view *v = view_by_id(id);
+	if (v && v->app_id_override) {
+		return v->app_id_override;
+	}
 #if WLR_HAS_XWAYLAND
 	if (v && v->xsurface) {
 		return v->xsurface->class;
@@ -757,6 +803,9 @@ const char *
 luxcomp_view_title(int64_t id)
 {
 	struct view *v = view_by_id(id);
+	if (v && v->title_override) {
+		return v->title_override;
+	}
 #if WLR_HAS_XWAYLAND
 	if (v && v->xsurface) {
 		return v->xsurface->title;

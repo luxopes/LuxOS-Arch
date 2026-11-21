@@ -55,6 +55,12 @@ chybný JSON: `"error": "bad request"` (spojení zůstává).
 | `focus_window` | `window` (id okna) | ano | zaměří okno (i na jiné ploše, obnoví minimalizované) |
 | `set_primary` | `output`: název výstupu | ano | hlavní monitor (viz níže); odpověď `"primary"` = skutečně použitý |
 | `test_output` | `add`: `"WxH"` nebo `remove`: název | ano | jen testy: připojí/odpojí headless výstup (na skutečném backendu `"no headless backend"`) |
+| `dock_zone` | `output`: název, `height`: px od spodního okraje (0 = nic) | ano | Dock, který jen uhýbá oknům (exkluzivní zóna 0): nová okna luxwm umisťuje nad něj a příliš vysoká zmenší; platí do dalšího `dock_zone` nebo do odpojení klienta |
+| `sandbox_window` | `instance`, `width`, `height`, `title` | ne | `luxos-sandbox`: velikost a název hlavního okna X11 aplikace v sandboxu; luxwm podle nich nastaví kořenové okno Xwayland té instance sandboxu (jiných oken se netýká) |
+
+`sandbox_window` je neprivilegovaný, protože ho posílá `luxos-sandbox` (skript, nemůže být na
+allowlistu). Aplikace v sandboxu soket nemá; příkaz mění jen velikost a název kořenového okna
+Xwayland s danou (náhodnou) instancí sandboxu, štítek „Sandbox · příkaz“ zůstává od kompozitoru.
 
 Proč jsou příkazy neprivilegované: totéž dokáže každý proces uživatele i bez soketu (upraví
 `~/.config/luxwm/luxwm.conf` a pošle `SIGHUP`) a přepnutí plochy nebo rozložení nic neprozradí.
@@ -72,7 +78,7 @@ a nepřihlásí se nic.
 
 | Téma | Událost | Kdy |
 |---|---|---|
-| `window` | `{"event": "window", "id": 7, "app_id": "org.gnome.Calculator", "title": "Kalkulačka"}` | zaměřené okno se změní (i jeho název nebo app_id); bez okna `id` 0 a prázdné řetězce |
+| `window` | `{"event": "window", "id": 7, "app_id": "org.gnome.Calculator", "title": "Kalkulačka", "frame": [340, 120, 600, 432]}` | zaměřené okno se změní (i jeho název, app_id, poloha nebo velikost: `frame` je rám se záhlavím v souřadnicích rozložení, při tažení až po uvolnění tlačítka); bez okna `id` 0, prázdné řetězce a `frame` `[]` |
 | `workspace` | `{"event": "workspace", "current": 2, "count": 4}` | přepnutí plochy (hned, ne až po animaci) |
 | `keyboard` | `{"event": "keyboard", "current": 1, "layouts": [{"code": "us", "variant": "", "name": "English (US)"}, {"code": "cz", "variant": "", "name": "Czech"}]}` | přepnutí rozložení (zkratka `grp:…`, příkaz, klik v liště), nový seznam po `reload` |
 | `output` | `{"event": "output", "primary": "HDMI-A-1", "outputs": [{"name": "HDMI-A-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 100, "refresh_mhz": 60000, "usable": [0, 30, 1920, 1050], "primary": true}]}` | monitor přidán nebo odebrán, změna použitelné plochy (lišta, Dock), změna hlavního monitoru; vypnutý monitor má `width` 0 a `usable` `[0, 0, 0, 0]` |

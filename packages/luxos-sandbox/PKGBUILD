@@ -4,7 +4,7 @@
 
 pkgname=luxos-sandbox
 pkgver=1.0.0
-pkgrel=14
+pkgrel=15
 pkgdesc="LuxOS Sandbox - isolated per-user system for untrusted applications"
 arch=(x86_64)
 url="https://lsl.lux-ai.cz/luxos/"

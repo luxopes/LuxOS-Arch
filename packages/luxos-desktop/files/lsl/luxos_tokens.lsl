@@ -42,13 +42,18 @@ COLORS = {
 }
 
 # Svetly a tmavy rezim: vyskakovaci okna listy (luxos_bar_popups.lsl LIGHT/DARK), oznameni
-# (luxos-themes/notify), odkazy (luxos-account GLASS_*); semafor neaktivniho okna je novy (dosud xfwm4/WhiteSur)
+# (luxos-themes/notify), odkazy (luxos-account GLASS_*); semafor neaktivniho okna je novy (dosud xfwm4/WhiteSur).
+# *_solid: oznameni a nabidky na Waylandu. X11 pod jejich sklo kreslil rozmazanou tapetu (luxos-glass.c), tady by
+# pres 80-88 % kryti prosvitala okna a ikony plochy; text musi mit kontrast aspon 4,5:1 i nad bilym oknem a pestrou
+# tapetou (test_luxos_tokens.py test_solid_glass_contrast)
 LIGHT = {
     "fg": [29, 29, 43, 1.0],
     "fg_soft": [29, 29, 43, 0.72],
     "dim": [29, 29, 43, 0.58],
     "popup": [246, 247, 252, 0.88],
+    "popup_solid": [246, 247, 252, 0.96],
     "notification": [246, 247, 252, 0.80],
+    "notification_solid": [246, 247, 252, 0.95],
     "window": [242, 242, 247, 1.0],
     "border": [0, 0, 0, 0.10],
     "tile": [0, 0, 0, 0.05],
@@ -67,7 +72,9 @@ DARK = {
     "fg_soft": [244, 244, 250, 0.72],
     "dim": [244, 244, 250, 0.60],
     "popup": [32, 33, 52, 0.86],
+    "popup_solid": [32, 33, 52, 0.96],
     "notification": [32, 33, 52, 0.80],
+    "notification_solid": [32, 33, 52, 0.95],
     "window": [33, 36, 43, 1.0],
     "border": [255, 255, 255, 0.14],
     "tile": [255, 255, 255, 0.08],
@@ -411,10 +418,10 @@ function css_rules():
         + ".lx-popup progressbar trough { background-color: @lx_trough; border: none; border-radius: " + px(r["progress"]) + "; min-height: 6px; }\n"
         + ".lx-popup progressbar progress { border-radius: " + px(r["progress"]) + "; min-height: 6px; }\n"
         + ".lx-unread { background-color: @lx_accent; border-radius: " + pill + "; min-width: 8px; min-height: 8px; }\n"
-        + ".lx-notification { background-color: @lx_notification; border-radius: " + px(r["notification"]) + "; border: 1px solid @lx_border;"
+        + ".lx-notification { background-color: @lx_notification_solid; border-radius: " + px(r["notification"]) + "; border: 1px solid @lx_border;"
         + " padding: " + px(s["xs"]) + "; color: @lx_fg; }\n"
         + ".lx-notification .lx-summary { font-weight: " + String(w["bold"]) + "; }\n"
-        + ".lx-notification .lx-body { color: @lx_fg_soft; }\n"
+        + ".lx-notification .lx-body, .lx-notification .lx-dim { color: @lx_fg_soft; }\n"
         + "button.lx-close {" + plain + " min-width: 18px; min-height: 18px; padding: 0; }\n"
         + "button.lx-close label { color: @lx_close_glyph; font-size: " + px(f["title"]) + "; font-weight: " + String(w["bold"]) + "; }\n"
         + "button.lx-close:hover label { color: @lx_close_glyph_hover; }\n"
@@ -426,7 +433,7 @@ function css_rules():
         + "button.lx-light-min { background-color: @lx_light_min; }\n"
         + "button.lx-light-max { background-color: @lx_light_max; }\n"
         + ".lx-backdrop button.lx-light { background-color: @lx_light_inactive; }\n"
-        + "menu, .menu { background-color: @lx_popup; border-radius: " + px(r["menu"]) + "; padding: 5px; }\n"
+        + "menu, .menu { background-color: @lx_popup_solid; border-radius: " + px(r["menu"]) + "; padding: 5px; }\n"
         + "menu > menuitem { border-radius: " + px(r["menu_item"]) + "; padding: " + px(s["xs"]) + " 10px; min-height: 20px; }\n"
         + "menu > menuitem:hover { background-color: @lx_accent; color: @lx_accent_text; }\n"
         + "menu > separator { margin: " + px(s["xs"]) + " " + px(s["m"]) + "; }\n")

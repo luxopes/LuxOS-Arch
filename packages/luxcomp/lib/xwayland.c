@@ -44,6 +44,7 @@ x_commit(struct wl_listener *listener, void *data)
 	if (v->deco) {
 		deco_update(v->deco);
 	}
+	view_size_changed(v);
 }
 
 static void

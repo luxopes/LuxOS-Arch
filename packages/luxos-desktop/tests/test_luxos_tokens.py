@@ -181,6 +181,39 @@ print(json.dumps(out))
         # text popupu na bilem pozadi: WCAG AA
         self.assertGreaterEqual(self.helpers["contrast"], 4.5)
 
+    def test_solid_glass_contrast(self):
+        """Oznameni a nabidky na Waylandu (bez rozmazani pozadi): text aspon 4,5:1 nad nejhorsim, co muze
+        prosvitat - bile okno, cerny terminal a pestra tapeta (jeji nejtmavsi a nejsvetlejsi misto)."""
+        def over(top, bottom):
+            a = top[3]
+            return [top[i] * a + bottom[i] * (1 - a) for i in range(3)]
+
+        def lum(c):
+            return 0.2126 * srgb_linear(c[0]) + 0.7152 * srgb_linear(c[1]) + 0.0722 * srgb_linear(c[2])
+
+        backgrounds = {"white window": [255, 255, 255], "black terminal": [0, 0, 0],
+                       "wallpaper red": [196, 30, 20], "wallpaper yellow": [250, 220, 60], "wallpaper blue": [20, 40, 120]}
+        worst = {}
+        for mode in ("light", "dark"):
+            m = self.tokens[mode]
+            for surface, texts in (("notification_solid", ("fg", "fg_soft")), ("popup_solid", ("fg",))):
+                for name, under in backgrounds.items():
+                    bg = over(m[surface], under)
+                    for text in texts:
+                        ink = over(m[text], bg)
+                        l1, l2 = sorted((lum(ink), lum(bg)), reverse=True)
+                        ratio = (l1 + 0.05) / (l2 + 0.05)
+                        key = (mode, surface, text)
+                        worst[key] = min(worst.get(key, 99), ratio)
+                        self.assertGreaterEqual(ratio, 4.5, (mode, surface, text, name, round(ratio, 2)))
+            # vic kryti nez sklo X11 (rozmazana tapeta tam schovala, co je pod oknem)
+            self.assertGreater(m["notification_solid"][3], m["notification"][3])
+            self.assertGreater(m["popup_solid"][3], m["popup"][3])
+        print("\n  nejhorsi kontrast: " + ", ".join(f"{k[0]} {k[1]} {k[2]} {v:.1f}" for k, v in sorted(worst.items())))
+        css = self.run_gen("css", "light")
+        self.assertIn(".lx-notification { background-color: @lx_notification_solid;", css)
+        self.assertRegex(css, r"menu, \.menu \{ background-color: @lx_popup_solid;")
+
     def test_ink_hysteresis_like_bar(self):
         # luxos-bar.c want_dark_ink: na tmave pod 2,0, zpet na bile az nad 2,3
         expected, current = [], False

@@ -491,11 +491,19 @@ class WaylandBar(unittest.TestCase):
         self.procs.append(fake)
         services = Bar(fake)
         services.wait(r"^ready$")
-        env = dict(self.env, DBUS_SYSTEM_BUS_ADDRESS=addrs["system"], DBUS_SESSION_BUS_ADDRESS=addrs["session"])
+        # vlajka rozlozeni jako panel xkb na X11 (vlastni adresar: snimek nezavisi na hostiteli)
+        flags = self.session / "flags"
+        flags.mkdir()
+        (flags / "cz.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="15">'
+                                      '<rect width="20" height="15" fill="#d7141a"/><rect width="20" height="7.5" fill="#fff"/>'
+                                      '<path d="M0 0L10 7.5L0 15Z" fill="#11457e"/></svg>')
+        env = dict(self.env, DBUS_SYSTEM_BUS_ADDRESS=addrs["system"], DBUS_SESSION_BUS_ADDRESS=addrs["session"],
+                   LUXOS_XKB_FLAGS=str(flags))
         bar = self.bar(env)
         bar.wait(r"^status network network-wireless-signal-excellent-symbolic$")
         bar.wait(r"^status battery battery-level-80-symbolic 76 %$")
         bar.wait(r"^status keyboard CZ$")
+        bar.wait(r"^flag cz " + re.escape(str(flags / "cz.svg")) + "$")
         bar.wait(r"^status notifications notification-new-symbolic$")
         bar.wait(r"^tray watcher own=True$")
         bar.wait(r"^tray \S+ audio-volume-high-symbolic Active$")
@@ -516,6 +524,9 @@ class WaylandBar(unittest.TestCase):
         # prava cast listy: oznamovaci oblast, CZ, Wi-Fi, baterie, Hledani, Ovladaci centrum, zvonek, hodiny
         right = crop(image, 900, 0, 380, BAR)
         self.compare_golden("bar-status", right)
+        # modry klin vlajky misto textu CZ
+        blue = [x for x in range(900, 1280) for y in range(6, 22) if pixel(image, x, y) == "11457e"]
+        self.assertGreater(len(blue), 10, "no flag in the bar")
         # zvonek: historie oznameni; bubliny luxos-notify skryte, dokud je okno otevrene; zavreni = precteno
         mark = bar.mark()
         self.input("move 1145 14", "click")   # zvonek vlevo od hodin

@@ -31,10 +31,12 @@ PKG = HERE.parent
 REPO = PKG.parent.parent
 WLT = REPO / "scripts/wl-test/wlt"
 LSLC = os.environ.get("LUXOS_LSLC") or shutil.which("lslc")
-SYSROOT = REPO / "out/wl-test/sysroot"
+SYSROOT = Path(os.environ.get("WLT_OUT") or REPO / "out/wl-test") / "sysroot"
+LUXWM_BUILD = Path(os.environ.get("LUXWM_BUILD") or REPO / "out/luxwm-test/build")
 OUT = Path(os.environ.get("LUXOS_DOCK_TEST_OUT") or REPO / "out/dock-test")
 IDLE_SECONDS = int(os.environ.get("LUXOS_DOCK_IDLE_SECONDS", "60"))
 W, H = 1280, 800
+MARGIN = 0                           # luxos-dock MARGIN: panel lezi na spodnim okraji
 APPS = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"]
 WINDOW = (0x3a, 0x6e, 0xa5)          # vychozi barva luxos-wl-window
 ZOOM_MIN = 6
@@ -87,7 +89,7 @@ def record(name, value):
 
 @unittest.skipUnless(LSLC and (SYSROOT / "usr/bin/labwc").exists() and shutil.which("make"),
                      "chybi lslc, sysroot wl-test (scripts/wl-test/fetch-sysroot.sh) nebo make")
-class Dock(unittest.TestCase):
+class DockBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.bin = OUT / "bin"
@@ -111,9 +113,10 @@ class Dock(unittest.TestCase):
     # ---- relace ----
 
     def setUp(self):
-        name = "dock-" + self.id().rsplit(".", 1)[-1].replace("_", "-")
-        r = subprocess.run([str(WLT), "start", "--size", f"{W}x{H}", "--name", name, "--timeout", "600"],
-                           capture_output=True, text=True, env=self.outer())
+        # kratke jmeno: soket luxwm v relaci musi projit do sun_path (108 znaku)
+        name = "dock-" + self.id().rsplit(".", 1)[-1].replace("_", "-")[5:24]
+        r = subprocess.run([str(WLT), "start", "--size", f"{W}x{H}", "--name", name, "--timeout", "600",
+                            *self.compositor()], capture_output=True, text=True, env=self.outer())
         self.assertEqual(r.returncode, 0, r.stderr)
         self.s = Path(r.stdout.strip().splitlines()[-1])
         self.env = {}
@@ -153,6 +156,9 @@ class Dock(unittest.TestCase):
                     p.kill()
                     p.wait()
         subprocess.run([str(WLT), "stop", str(self.s)], capture_output=True)
+
+    def compositor(self):
+        return []
 
     @staticmethod
     def outer():
@@ -302,8 +308,8 @@ class Dock(unittest.TestCase):
         self.pump(self.dock, 0.05)
         return self.dock.lines[n:]
 
-    # ---- testy ----
 
+class Dock(DockBase):
     def test_model(self):
         r = subprocess.run([str(self.bin / "luxos-dock-model-test")], capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
@@ -564,11 +570,11 @@ class Dock(unittest.TestCase):
             time.sleep(0.8)
             self.shot(f"indicator-{mode}")
             w, h, buf = self.shot(y0=H - 40)
-            # tecka pod ikonou: stred 4,5 px nad spodnim okrajem panelu (MARGIN 6, BOTTOM 9), polomer 2
+            # tecka pod ikonou: stred 4,5 px nad spodnim okrajem panelu (BOTTOM 9), polomer 2
             def spot(x):
-                around = [px(buf, w, x + dx, y) for y in range(h - 6 - 7, h - 6 - 2) for dx in (-1, 0, 1)]
+                around = [px(buf, w, x + dx, y) for y in range(h - MARGIN - 7, h - MARGIN - 2) for dx in (-1, 0, 1)]
                 return min(around, key=lum) if mode == "light" else max(around, key=lum)
-            glass = px(buf, w, self.centers[0] + 30, h - 6 - 4)
+            glass = px(buf, w, self.centers[0] + 30, h - MARGIN - 4)
             dot_running = spot(self.centers[0])
             dot_pinned = spot(self.centers[1])
             results[mode] = {"glass": glass, "running": dot_running, "pinned_only": dot_pinned}
@@ -708,6 +714,57 @@ class Dock(unittest.TestCase):
                         "threads": s1["Threads"]})
         self.assertLessEqual(wake, 10, "dock wakes up while idle")
         self.assertLess(pss1, 40 * 1024)
+
+
+@unittest.skipUnless((LUXWM_BUILD / "luxwm").exists(), "chybi luxwm (packages/luxwm/tests/build-host.sh, LUXWM_BUILD)")
+class DockLuxwm(DockBase):
+    """Dock pod luxwm: hlasi svou vysku (dock_zone), nova okna lezi nad nim, uhyba kazdemu zamerenemu oknu,
+    ktere ho prekryva (ram z udalosti window), jako window-dodge Planku na X11."""
+
+    def compositor(self):
+        conf = OUT / "luxwm-dock.conf"
+        lines = [ln for ln in (REPO / "packages/luxwm/luxwm.conf").read_text().splitlines()
+                 if not ln.startswith("displays_command")]
+        conf.write_text("xwayland = no\n" + "\n".join(lines) + "\n")
+        # allowlist: nastroje harnessu (wlt) a Dock (seznam oken, tema window, dock_zone)
+        os.environ["WLT_PRIVILEGED"] = str(self.bin / "luxos-dock")
+        os.environ["WLT_COMPOSITOR_ENV"] = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_TRACE=1 LUXWM_SYSTEM_CONFIG={conf} "
+                                            f"LD_LIBRARY_PATH={LUXWM_BUILD}:{SYSROOT}/usr/lib")
+        return ["--", str(LUXWM_BUILD / "luxwm")]
+
+    def tearDown(self):
+        os.environ.pop("WLT_COMPOSITOR_ENV", None)
+        os.environ.pop("WLT_PRIVILEGED", None)
+        super().tearDown()
+
+    def test_zone_placement_and_dodge_overlap(self):
+        self.conf(hide="dodge")
+        self.start_dock()
+        _, m = self.wait_line(self.dock, r" zone HEADLESS-1 (\d+)")
+        zone = int(m.group(1))
+        self.assertGreater(zone, 40)
+        self.mouse(W // 2, 100)
+        # vysoke okno se zmensi a lezi cele nad Dockem: Dock zustava videt
+        n = len(self.dock.lines)
+        client = self.spawn(["wlt-client", "--size", "500x790", "--events", "--app-id", "cz.test.tall"])
+        self.wait_line(client, r"configure 500 %d" % (H - zone - 32))
+        self.pump(self.dock, 1.0)
+        self.assertFalse(any("hide-end 1.0" in ln for ln in self.dock.lines[n:]), "dock hid for a window above it")
+        self.assertGreater(self.height(), 40)
+        self.shot("luxwm-tall-window-above-dock")
+        # okno stazene pres Dock: Dock uhne, zpet nahoru: Dock se vrati
+        n = len(self.dock.lines)
+        self.input(f"move {W // 2} 16", "down", *self.glide_cmds([(W // 2, 16), (W // 2, 316)], 20, 0.01), "up",
+                   f"move {W // 2 + 300} 200")
+        self.wait_line(self.dock, r"hide-end 1\.0", start=n)
+        n = len(self.dock.lines)
+        self.input(f"move {W // 2} 316", "down", *self.glide_cmds([(W // 2, 316), (W // 2, 16)], 20, 0.01), "up",
+                   f"move {W // 2 + 300} 200")
+        self.wait_line(self.dock, r"hide-end 0\.0", start=n)
+        # bez zamereneho okna Dock videt (okno zavrene)
+        client.terminate()
+        client.wait(5)
+        self.assertGreater(self.wait_height(lambda v: v > 40, 2.0), 40)
 
 
 EMIT_PY = r'''

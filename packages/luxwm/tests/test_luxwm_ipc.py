@@ -14,6 +14,7 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -296,9 +297,70 @@ class LuxwmIpc(unittest.TestCase):
         time.sleep(0.5)
         events = [json.loads(line) for line in open(out) if line.strip()]
         self.assertEqual(events[0]["title"], "Beta", "aktualni stav po odberu")
-        self.assertEqual(events[-1], {"event": "window", "id": windows[1]["id"], "app_id": "alpha", "title": "Alpha"})
+        self.assertEqual({k: v for k, v in events[-1].items() if k != "frame"},
+                         {"event": "window", "id": windows[1]["id"], "app_id": "alpha", "title": "Alpha"})
+        self.assertEqual(len(events[-1]["frame"]), 4, "ram zamereneho okna pro Dock")
         # neprivilegovany porad nic: allowlist je podle programu, ne podle relace
         self.assertEqual(s.msg("list-windows", check=False).returncode, 1)
+
+    def window_event(self, c, title, pred=lambda f: True, timeout=5.0):
+        """Dalsi udalost window okna title, jehoz ram splnuje pred."""
+        c.s.settimeout(timeout)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            ev = c.line()
+            if ev.get("event") == "window" and ev["title"] == title and pred(ev["frame"]):
+                return ev["frame"]
+        self.fail(f"no window event for {title}")
+
+    def test_dock_zone_placement_and_focused_frame(self):
+        """Dock bez exkluzivni zony (uhyba oknum) hlasi svou vysku: nova okna lezi nad nim, vysoka se zmensi.
+        Udalost window nese ram zamereneho okna i po maximalizaci, presunu mysi a konci Docku."""
+        s = self.session()
+        zone = 90
+        r = s.msg("--raw", json.dumps({"cmd": "dock_zone", "output": "HEADLESS-1", "height": zone}), check=False)
+        self.assertEqual(r.returncode, 1, "dock_zone jen pro allowlist")
+        s.allow(sys.executable)
+        c = Raw(s.sock)
+        c.send('{"id": 1, "cmd": "subscribe", "events": ["window"]}')
+        self.assertEqual(c.line(), {"id": 1, "ok": True})
+        self.assertEqual(c.line(), {"event": "window", "id": 0, "app_id": "", "title": "", "frame": []})
+        c.send(json.dumps({"id": 2, "cmd": "dock_zone", "output": "HEADLESS-1", "height": zone}))
+        self.assertEqual(c.line(), {"id": 2, "ok": True})
+        c.send('{"id": 3, "cmd": "dock_zone", "output": "HEADLESS-1", "height": -5}')
+        self.assertFalse(c.line()["ok"])
+        # vysoke okno (Nastaveni, Pruvodce): cele nad Dockem, i tlacitka dole
+        s.client("Tall", app="tall", size="500x780")
+        f = self.window_event(c, "Tall", lambda f: f[1] + f[3] <= H - zone)
+        self.assertEqual((f[1], f[3]), (0, H - zone), f)
+        self.assertEqual(f[0], (W - 500) // 2)
+        # male okno na stred plochy nad Dockem
+        s.client("Small", app="small", size="400x300")
+        f = self.window_event(c, "Small")
+        self.assertEqual(f[2:], [400, 300 + TITLE])
+        self.assertLessEqual(f[1] + f[3], H - zone)
+        # maximalizace: ram pres celou pouzitelnou plochu (Dock se schova)
+        s.input("key super+Up")
+        f = self.window_event(c, "Small", lambda f: f[3] == H)
+        self.assertEqual(f, [0, 0, W, H])
+        s.input("key super+Up")
+        f = self.window_event(c, "Small", lambda f: f[2] == 400)
+        # presun za zahlavi: udalost az po pusteni tlacitka
+        x, y = f[0] + 200, f[1] + 10
+        s.input(f"drag {x} {y} {x + 100} {y + 250} 300", wait=0.5)
+        moved = self.window_event(c, "Small", lambda g: g[1] != f[1])
+        self.assertEqual((moved[0] - f[0], moved[1] - f[1]), (100, 250))
+        # Dock skoncil: misto se uz nedrzi
+        c.close()
+        time.sleep(0.3)
+        c = Raw(s.sock)
+        c.send('{"id": 1, "cmd": "subscribe", "events": ["window"]}')
+        c.line()
+        s.client("Tall2", app="tall2", size="500x780")
+        f = self.window_event(c, "Tall2", lambda f: f[3] == H)
+        self.assertEqual(f[1], 0)
+        c.close()
+        self.assertNotIn("error in", s.log())
 
     def test_other_uid_is_rejected(self):
         if not shutil.which("podman") or not shutil.which("setpriv"):

@@ -1,10 +1,10 @@
 [Desktop Entry]
 Name=NetworkManager Applet
-Comment=LuxOS: applet as StatusNotifier item (--indicator) - the top bar draws its symbolic icon in the bar text colour (an XEmbed icon kept the applet's own colour, e.g. black on a bar with white text)
+Comment=LuxOS: applet as StatusNotifier item (--indicator) - the top bar draws its symbolic icon in the bar text colour (an XEmbed icon kept the applet's own colour, e.g. black on a bar with white text). Not in the LuxOS Wayland session: its bar has its own network item
 Icon=nm-device-wireless
 Exec=nm-applet --indicator
 Terminal=false
 Type=Application
 NoDisplay=true
-NotShowIn=KDE;GNOME;
+NotShowIn=KDE;GNOME;LuxOS;
 X-GNOME-UsesNotifications=true

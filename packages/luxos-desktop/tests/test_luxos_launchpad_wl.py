@@ -249,7 +249,10 @@ class WaylandLaunchpad(unittest.TestCase):
         for line in self.wlt("env", str(self.session)).splitlines():
             k, _, v = line.removeprefix("export ").partition("=")
             env[k] = v
-        input_env = dict(env)
+        # wlt input si prostredi relace vezme sam; zvenku jen WLT_OUT/WLT_SYSROOT (jinak by nastroje harnessu
+        # stavel znovu v out/wl-test s knihovnami sysrootu a skoncil hned na startu - BrokenPipe v testech)
+        input_env = {k: v for k, v in os.environ.items()
+                     if k not in ("DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS")}
         env.pop("LD_LIBRARY_PATH", None)
         env.update(GDK_BACKEND="wayland", NO_AT_BRIDGE="1", GTK_A11Y="none", LUXOS_LAUNCHPAD_TRACE="1",
                    DBUS_SESSION_BUS_ADDRESS=f"unix:path={bus}", XDG_DATA_DIRS=str(self.tmp / "share"),
@@ -525,7 +528,7 @@ class WaylandLaunchpad(unittest.TestCase):
         lp = self.resident()
         self.open_by_key(lp)
         for query, shown in (("2+2*3", "=8"), ("sqrt(2)", "=1,41421356237"), ("15% z 300", "=45"), ("2^10", "=1024"),
-                             ("(1+2)*3/4", "=2,25")):
+                             ("(1+2)*3/4", "=2,25"), ("0,1+0,2", "=0,3"), ("1/3*3", "=1")):
             with self.subTest(query=query):
                 self.assertEqual(self.type_query(lp, query)[0], shown)
         self.assertNotIn("=", "".join(self.type_query(lp, "42")))

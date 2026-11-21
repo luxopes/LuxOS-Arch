@@ -22,8 +22,10 @@ looks for modules next to the importing file.
 - **Placement** is the xfwm4 `luxos` mode (`packages/xfwm4/luxos-windows.patch`): the centre of the
   usable area when nothing is there, otherwise the leftmost, then topmost free spot, otherwise a 28 px
   cascade from the topmost window of the same app, wrapping at the edges. A window never lands on the
-  same corner as another one. The usable area excludes layer-shell exclusive zones (bar, Dock). A dialog
-  goes over the centre of its parent. When the bar appears, windows under it move down. Maximised,
+  same corner as another one. The usable area excludes layer-shell exclusive zones (bar, Dock). A Dock
+  that only dodges windows reports its height over IPC (`dock_zone`), and new windows go above it. A
+  window taller or wider than that area shrinks to fit (not below its minimum size), like in the X11
+  session, so its bottom buttons stay visible. A dialog goes over the centre of its parent. When the bar appears, windows under it move down. Maximised,
   tiled and fullscreen windows are fitted again.
 - **Focus**: click to focus. When the focused window closes, focus goes to its parent, otherwise to
   the most recent window on the workspace. The traffic lights of an inactive window work without
@@ -55,6 +57,11 @@ looks for modules next to the importing file.
   security context (set by the launcher), so the app can neither change nor drop it (a request for
   client-side decorations is ignored). Their activation requests pass only while the same sandbox has
   the focus: "same app" for activation means the same app_id and the same sandbox instance.
+  An X11 app in the sandbox runs in the sandbox's own rootful Xwayland. luxwm shows that window with the
+  sandbox app_id and title, and `luxos-sandbox` reports the size and title of the app's main X window
+  (`sandbox_window`): the Xwayland window takes that size, and the app's window follows when the user
+  resizes it. A rootless Xwayland would need luxwm's X window manager inside the sandbox's Xwayland,
+  which wlroots cannot attach to an X server it did not start.
 - **Title bars** take their colours from `luxos_tokens`: window, fg/dim, traffic lights, inactive
   light, border, radius 16, Inter Semi-Bold 10. Light or dark follows `~/.config/luxos/appearance`.
 
