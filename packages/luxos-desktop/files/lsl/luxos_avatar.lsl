@@ -1,6 +1,6 @@
 # lsl: link libgdk_pixbuf-2.0.so.0 libgio-2.0.so.0 libgobject-2.0.so.0 libglib-2.0.so.0
-# LuxOS - profilova fotka uzivatele (prihlasovaci a zamykaci obrazovka, nabidka, Ovladaci centrum); stejne
-# chovani jako files/python/luxos_avatar.py (ten zustava pro aplikace v Pythonu).
+# LuxOS - profilova fotka uzivatele (prihlasovaci a zamykaci obrazovka, nabidka, Ovladaci centrum); drive
+# files/python/luxos_avatar.py (Ucet LuxAI si fotku cte sam, photo_path v luxos-account).
 #
 # Fotka se ulozi jako ctverec PNG do ~/.face (cte ho zamykaci obrazovka a Ovladaci centrum) a preda se
 # AccountsService (SetIconFile): ta si ji zkopiruje do /var/lib/AccountsService/icons, odkud ji bere

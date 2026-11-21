@@ -105,7 +105,7 @@ class Fixture(unittest.TestCase):
 
 
 class Crop(Fixture):
-    """Geometrie orezu jako luxos_avatar.py (tests/test_luxos_avatar.py)."""
+    """Geometrie orezu (drive i v luxos_avatar.py pro aplikace v Pythonu)."""
 
     def crop(self, *v):
         return json.loads(self.app.ask("crop " + " ".join(str(x) for x in v), "crop"))
@@ -122,12 +122,75 @@ class Crop(Fixture):
         self.assertEqual((x, y, side), (200.0, 100.0, 200.0))
         self.assertEqual(self.crop(600, 400, 280, 99, 0, 0)[2], 100.0)      # nejvys MAX_ZOOM
         self.assertEqual(self.crop(600, 400, 280, 0.2, 0, 0)[2], 400.0)     # nejmene 1x
+        # vyska presne pod kruhem: svisly posun neni
+        self.assertEqual(json.loads(self.app.ask("clamp 600 400 280 1.0 0 50", "clamp")), [0.0, 0.0])
+
+    def test_load_limits_and_rejects(self):
+        self.start()
+        big = os.path.join(self.home, "big.png")
+        GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 4000, 1000).savev(big, "png", [], [])
+        self.assertEqual(self.app.ask("open " + big, "open"), "True")
+        self.assertEqual(self.st()["size"], [2048, 512])            # nejvys MAX_SOURCE px
+        bad = os.path.join(self.home, "bad.jpg")
+        with open(bad, "w") as f:
+            f.write("not an image")
+        self.assertEqual(self.app.ask("open " + bad, "open"), "False")
+        self.assertEqual(self.st()["page"], "main")
+        self.assertTrue(lsl_app.find(self.app.dump(), name="hint")["text"].startswith("This file is not a picture"))
 
     def test_initials(self):
         self.start()
         self.assertEqual(self.app.ask("initials anna Nováková", "initials"), "A")
         self.assertEqual(self.app.ask("initials   ", "initials"), "?")
         self.assertEqual(self.app.ask("initials čeněk", "initials"), "Č")
+
+
+ACCOUNTS_XML = """<node><interface name="org.freedesktop.Accounts">
+  <method name="FindUserById"><arg type="x" direction="in"/><arg type="o" direction="out"/></method>
+</interface><interface name="org.freedesktop.Accounts.User">
+  <method name="SetIconFile"><arg type="s" direction="in"/></method>
+</interface></node>"""
+
+
+class AccountsError(Fixture):
+    """Chyba AccountsService: text bez predpony "GDBus.Error:jmeno: " (Python ukazoval "True")."""
+
+    def test_remote_error_text(self):
+        from gi.repository import Gio, GLib
+        from test_luxos_awake import ServiceThread, connect, own
+        bus = lsl_app.Bus()
+        svc = ServiceThread()
+        calls = []
+
+        def on_call(_c, _s, _p, _i, method, params, inv):
+            calls.append(method)
+            if method == "FindUserById":
+                inv.return_value(GLib.Variant("(o)", ("/org/freedesktop/Accounts/User1000",)))
+            else:
+                inv.return_dbus_error("org.freedesktop.Accounts.Error.PermissionDenied", "Not authorized")
+
+        def init():
+            conn = connect(bus.address)
+            node = Gio.DBusNodeInfo.new_for_xml(ACCOUNTS_XML)
+            conn.register_object("/org/freedesktop/Accounts", node.interfaces[0], on_call, None, None)
+            conn.register_object("/org/freedesktop/Accounts/User1000", node.interfaces[1], on_call, None, None)
+            own(conn, "org.freedesktop.Accounts")
+            return conn
+        conn = svc.run(init)
+        try:
+            env = dict(os.environ, DISPLAY=XVFB.display, HOME=self.home, LUXOS_TEST_SYSTEM_BUS=bus.address,
+                       DBUS_SYSTEM_BUS_ADDRESS=bus.address, LANG="C.UTF-8", LC_ALL="C.UTF-8",
+                       LUXOS_VIDEO_DEV_DIR=self.videos, LUXOS_CAMERA_TEST="1")
+            env.pop("LUXOS_ACCOUNTS_FAKE", None)
+            luxos_testguard.check_env(env)
+            self.app = lsl_app.App([BINARY], env)
+            self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
+            self.assertEqual(self.app.ask("seticon /tmp/x.png", "seticon"), "Not authorized")
+            self.assertEqual(calls[-2:], ["FindUserById", "SetIconFile"])
+        finally:
+            svc.run(conn.close_sync, None)
+            svc.stop()
+            bus.stop()
 
 
 class Window(Fixture):

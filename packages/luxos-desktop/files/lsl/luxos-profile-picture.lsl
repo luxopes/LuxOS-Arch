@@ -682,6 +682,11 @@ function on_test(command, rest):
     elif command == "crop":
         v = [Float(x) for x in rest.split(" ")]
         print "crop " + json.encode(avatar.crop_rect(Int(v[0]), Int(v[1]), Int(v[2]), v[3], v[4], v[5]))
+    elif command == "clamp":
+        v = [Float(x) for x in rest.split(" ")]
+        print "clamp " + json.encode(avatar.clamp_offset(Int(v[0]), Int(v[1]), Int(v[2]), v[3], v[4], v[5]))
+    elif command == "seticon":
+        print "seticon " + avatar.set_icon_file(rest)
     elif command == "initials":
         print "initials " + avatar.initials(rest)
     elif command == "pick":
