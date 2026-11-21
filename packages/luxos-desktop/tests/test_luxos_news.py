@@ -381,6 +381,8 @@ class Check(unittest.TestCase):
         self.check()
         ui = os.path.join(self.t, "ui.log")
         env = dict(self.env, LUXOS_NEWS_TEST_LOG=ui, DISPLAY=os.environ["DISPLAY"], NO_AT_BRIDGE="1")
+        if os.environ.get("XAUTHORITY"):        # cookie testovaciho Xvfb (setUp prostredi relace XAUTHORITY vynechava)
+            env["XAUTHORITY"] = os.environ["XAUTHORITY"]
         for round_ in (1, 2):
             open(ui, "w").close()
             p = subprocess.Popen([NEWS], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
