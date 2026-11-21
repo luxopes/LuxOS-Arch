@@ -299,6 +299,18 @@ class WaylandBackdrop(unittest.TestCase):
         self.wlt("shot", str(self.session), str(path))
         return ppm_read(path)
 
+    def new_window_center(self, before):
+        """Stred okna, ktere se objevilo od snimku `before` (stred ohraniceni zmenenych pixelu vcetne stinu).
+        luxwm nova okna klade do horni tretiny plochy, labwc testu doprostred."""
+        width, height, old = before
+        _, _, new = self.shot()
+        row = width * 3
+        ys = [y for y in range(height) if old[y * row:(y + 1) * row] != new[y * row:(y + 1) * row]]
+        self.assertTrue(ys, "no new window on screen")
+        xs = [x for y in ys[::4] for x in range(width)
+              if old[y * row + x * 3:y * row + x * 3 + 3] != new[y * row + x * 3:y * row + x * 3 + 3]]
+        return (min(xs) + max(xs)) // 2, (ys[0] + ys[-1]) // 2
+
     def compositor_alive(self):
         pid = int((self.session / "compositor.pid").read_text())
         return Path(f"/proc/{pid}").exists()
@@ -806,20 +818,22 @@ class WaylandBackdrop(unittest.TestCase):
     def test_keyboard_navigation_and_window_focus(self):
         d = self.icon_backdrop("a.txt", "b.txt", "c.txt")
         client = Path(os.environ.get("WLT_OUT") or REPO / "out/wl-test") / "bin/wlt-client"
+        before = self.shot()
         p = subprocess.Popen([str(client), "--events", "--title", "T", "--size", "200x120"], env=self.env, stdout=subprocess.PIPE)
         self.procs.append(p)
         c = Proc(p)
         c.wait(r"^configure")
         time.sleep(0.3)
+        wx, wy = self.new_window_center(before)
         pos = self.icons(d)
         x, y = self.center(pos["a.txt"])
         mark = d.mark()
         cmark = c.mark()
         # jedna virtualni klavesnice po celou dobu (nova by vzala fokus): okno, plocha, okno
-        self.input("key shift", "move 512 320", "click", "sleep 0.2", "key a", "sleep 0.2",
+        self.input("key shift", f"move {wx} {wy}", "click", "sleep 0.2", "key a", "sleep 0.2",
                    f"move {x} {y}", "sleep 0.1", "click", "sleep 0.3", "key Down", "sleep 0.1", "key Down", "sleep 0.1",
                    "key Up", "sleep 0.1", "key Return", "sleep 0.3",
-                   "move 512 320", "sleep 0.1", "click", "sleep 0.3", "key c", "sleep 0.2")
+                   f"move {wx} {wy}", "sleep 0.1", "click", "sleep 0.3", "key c", "sleep 0.2")
         d.wait(r"^open b.txt$", start=mark)
         out = [l for _, l in d.lines[mark:] if l.startswith("selected")]
         self.assertEqual(out, ["selected a.txt", "selected b.txt", "selected c.txt", "selected b.txt"])
@@ -834,14 +848,16 @@ class WaylandBackdrop(unittest.TestCase):
         src = self.session / "outside.txt"
         src.write_text("x\n")
         env = dict(self.env)
+        before = self.shot()
         p = subprocess.Popen(["python3", str(HERE / "backdrop/drag_source.py"), str(src)], env=env, stdout=subprocess.PIPE)
         self.procs.append(p)
         s = Proc(p)
         s.wait(r"^ready$")
         time.sleep(0.5)
+        wx, wy = self.new_window_center(before)
         mark = d.mark()
-        # okno zdroje je uprostred (labwc testu), pustit vpravo dole na plose
-        self.input("drag 512 320 700 450 600")
+        # z okna zdroje pustit vpravo dole na plose
+        self.input(f"drag {wx} {wy} 700 450 600")
         d.wait(r"^drop copy 1$", start=mark)
         lines = self.ran_lines(1)
         desktop_uri = (self.session / "home/Desktop").as_uri()
