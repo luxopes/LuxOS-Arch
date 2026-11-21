@@ -741,6 +741,9 @@ deco_update(struct deco *d)
 		&& square == d->square && scale == d->scale && v->compact == d->compact;
 	d->square = square;
 	corners_update(d);
+	/* material okna kopiruje tvar okna: dolni rohy jen kdyz je zaobluje kompozitor, horni zaobluje
+	 * klient s vlastnim zahlavim */
+	blur_view_update(v, theme.radius, (d->rounded ? 12 : 0) | (!d->ssd && !square ? 3 : 0));
 	if (d->ssd) {
 		sample_update(d, false);
 		same = same && d->width == width;

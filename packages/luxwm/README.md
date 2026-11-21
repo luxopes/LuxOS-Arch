@@ -84,11 +84,22 @@ convert the user's xfconf shortcuts one to one. `exec COMMAND` starts a program 
 value turns a default shortcut off. Unknown actions are skipped, so the tabwin keys of xfwm4 (`Up`,
 `Escape`…) are never grabbed globally.
 
-Settings: `workspaces` (1–16), `slide_ms` (0 = no animation), `wrap_workspaces` (yes/no),
+Settings: `workspaces` (1–16, also changed by `reload`: windows of removed workspaces move to the last one),
+`slide_ms` (0 = no animation), `reduce_motion` (yes = no workspace slide), `wrap_workspaces` (yes/no),
+`double_click_action` (title bar double-click: maximize, hide, none),
 `xwayland` (yes/no), `blur` (yes/no: material of shell surfaces blurred or a solid colour, see
 `docs/developers/luxcomp-api.md`), `displays_command` (run with `sh -c` once, 300 ms after outputs are plugged in or
 out and at startup; default `luxos-displays auto`, which applies the saved display settings for the
 connected set of monitors; empty = nothing).
+
+Mouse and touchpad (Settings > Mouse & Touchpad writes them): `mouse_OPTION` and `touchpad_OPTION`, applied
+by libluxcomp to every libinput device of that kind, also to devices plugged in later (a touchpad is a
+device that can tap). Options: `speed` (-100 slow .. 100 fast, libinput accel speed -1..1), `accel`
+(`adaptive`/`flat`), `natural_scroll`, `left_handed`, `middle_emulation`, `tap`, `tap_drag`,
+`disable_while_typing` (yes/no), `click_method` (`areas`/`clickfinger`/`none`), `scroll_method`
+(`two_finger`/`edge`/`button`/`none`). A missing or empty entry is the libinput default of the device,
+also after `reload`; an option the device lacks is ignored. IPC `get_input` returns the configured values
+and what libinput really has on each device.
 
 Displays: windows whose centre is on no enabled output (unplugged or turned off) move to the main
 display. The main display is chosen in the display settings (`set_primary` over IPC); without a choice
@@ -121,14 +132,18 @@ backend is up.
 luxwm listens on `$XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock` (exported as `LUXWM_SOCK`): line-based
 JSON, same-uid peers only (`SO_PEERCRED` in libluxcomp), window information and control only for
 programs on `privileged.conf`. Events: window, workspace, keyboard, output, theme. Commands: switch and
-next layout, switch workspace, reload, set theme, suspend shortcuts, list and focus windows. The
+next layout, switch workspace, reload, set theme, suspend shortcuts, list and focus windows, mouse and touchpad state (`get_input`). The
 protocol is in `docs/developers/luxwm-ipc.md`; the shell client is
 `packages/luxos-desktop/files/lsl/luxos_luxwm.lsl`.
 
 The keymap comes from `org.freedesktop.locale1` (`X11Layout`, `X11Variant`, `X11Options`), and
 `xkb_layout`, `xkb_variant`, `xkb_options` in `luxwm.conf` override it. These are written by
-`luxos-keyboard-settings`. Layouts are switched by the XKB `grp:` option (LuxOS default: both Shift
-keys) or over IPC (the bar badge). The layout is the same for all windows, as in the X11 session.
+Settings > Keyboard (`luxos-keyboard-settings`). Layouts are switched by the XKB `grp:` option (LuxOS
+default: both Shift keys) or over IPC (the bar badge). The layout is the same for all windows, as in the X11 session.
+Key repeat comes from `repeat_rate` (characters per second, 0-100, 0 turns repeat off, default 25) and
+`repeat_delay` (ms before the first repeat, 100-3000, default 600) in `luxwm.conf`, applied to every
+keyboard at start and on reload and reported in the `keyboard` event (`repeat`); Settings > Keyboard
+writes them and sends `reload`.
 Shortcuts in `[keys]` are compared in canonical form (`<Primary><Shift><Alt><Super>key`). The Xfce
 shortcuts of a user are imported once (`luxos-keyboard-settings --import-shortcuts`).
 

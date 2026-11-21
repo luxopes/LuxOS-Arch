@@ -42,6 +42,7 @@ settings = {}
 binds = {}           # id zkratky -> akce
 outputs = []
 ws = []              # id ploch, cur = index zobrazene
+spare_ws = []        # plochy odebrane zmenou poctu ploch (apply_workspaces)
 cur = 0
 mru = []             # okna od naposledy zamereneho
 saved = {}           # okno -> [x, y, w, h] pred maximalizaci, pulkou nebo celou obrazovkou
@@ -64,7 +65,7 @@ PRIVILEGED_COMMANDS = ["list_windows", "focus_window", "set_primary", "test_outp
 
 deferred = {"on": False, "items": []}
 ipc = {}             # klient IPC -> {"privileged": bool, "topics": [...]}
-keyboard = {"layouts": [], "locale": {}}
+keyboard = {"layouts": [], "locale": {}, "repeat": {}}
 look = {"dark": False}
 last_window = [-1, "", "", []]
 # Dock bez exkluzivni zony (uhyba oknum): nazev vystupu -> [klient IPC, vyska od spodniho okraje].
@@ -445,6 +446,21 @@ function apply_keyboard():
     call broadcast("keyboard", keyboard_event())
 end
 
+# Opakovani drzene klavesy (Nastaveni > Klavesnice): znaky za sekundu (0 = vypnuto) a prodleva v ms,
+# vychozi jako libluxcomp
+function apply_repeat():
+    rate = 25
+    delay = 600
+    if settings.get("repeat_rate", "") != "":
+        rate = setting_int("repeat_rate", 0, 100)
+    end
+    if settings.get("repeat_delay", "") != "":
+        delay = setting_int("repeat_delay", 100, 3000)
+    end
+    call lc.set_repeat(rate, delay)
+    keyboard["repeat"] = {"rate": rate, "delay": delay}
+end
+
 function on_locale_changed(sender, path, interface, signal, values):
     call read_locale()
     call apply_keyboard()
@@ -495,6 +511,95 @@ function apply_cursor():
     end
     call lc.set_cursor(theme, size)
     call note("cursor " + theme + " " + String(size))
+end
+
+# Mys a touchpad (Nastaveni > Mys a touchpad): polozky mouse_* a touchpad_* v luxwm.conf. Chybejici nebo
+# prazdna polozka = vychozi hodnota zarizeni z libinput, i kdyz predtim byla nastavena (reload).
+INPUT_KINDS = {"mouse": lc.INPUT_MOUSE, "touchpad": lc.INPUT_TOUCHPAD}
+INPUT_OPTIONS = {"speed": lc.INPUT_SPEED, "accel": lc.INPUT_ACCEL_PROFILE, "natural_scroll": lc.INPUT_NATURAL_SCROLL,
+                 "left_handed": lc.INPUT_LEFT_HANDED, "middle_emulation": lc.INPUT_MIDDLE_EMULATION, "tap": lc.INPUT_TAP,
+                 "tap_drag": lc.INPUT_TAP_DRAG, "disable_while_typing": lc.INPUT_DISABLE_WHILE_TYPING,
+                 "click_method": lc.INPUT_CLICK_METHOD, "scroll_method": lc.INPUT_SCROLL_METHOD}
+# nazvy hodnot v poradi cisel jadra
+INPUT_NAMES = {"accel": ["adaptive", "flat"], "click_method": ["none", "areas", "clickfinger"],
+               "scroll_method": ["none", "two_finger", "edge", "button"]}
+input_config = {}
+
+# Text z luxwm.conf -> cislo pro jadro, None = vychozi hodnota zarizeni
+function input_value(option, text):
+    if text == "":
+        return None
+    end
+    if option == "speed":
+        value = None
+        safe:
+            value = max(-100, min(100, Int(text)))
+        end
+        return value
+    end
+    if option in INPUT_NAMES:
+        if text in INPUT_NAMES[option]:
+            return INPUT_NAMES[option].index(text)
+        end
+        return None
+    end
+    if text in ["yes", "true", "on", "1"]:
+        return 1
+    end
+    if text in ["no", "false", "off", "0"]:
+        return 0
+    end
+    return None
+end
+
+# Cislo jadra -> hodnota v IPC: rychlost cislem, metoda nazvem, ostatni bool
+function input_json(option, value):
+    if option == "speed":
+        return value
+    end
+    if option in INPUT_NAMES:
+        names = INPUT_NAMES[option]
+        return names[value] if value >= 0 and value < len(names) else String(value)
+    end
+    return value == 1
+end
+
+function apply_input():
+    global input_config
+    config = {}
+    for kind in INPUT_KINDS.keys():
+        config[kind] = {}
+        for option in INPUT_OPTIONS.keys():
+            name = kind + "_" + option
+            text = String(settings.get(name, "")).strip()
+            value = input_value(option, text)
+            if value == None and text != "":
+                call log("bad " + name + " = " + text)
+            end
+            call lc.input_set(INPUT_KINDS[kind], INPUT_OPTIONS[option], value if value != None else lc.INPUT_DEFAULT)
+            config[kind][option] = input_json(option, value) if value != None else None
+        end
+    end
+    input_config = config
+end
+
+# Co skutecne nastavil libinput, po zarizenich (headless backend zadna nema)
+function input_devices():
+    out = []
+    d = lc.input_next(0)
+    while d != 0:
+        kind = lc.input_get(d, lc.INPUT_KIND)
+        item = {"name": lc.input_name(d), "kind": "touchpad" if kind == lc.INPUT_TOUCHPAD else "mouse"}
+        for option in INPUT_OPTIONS.keys():
+            value = lc.input_get(d, INPUT_OPTIONS[option])
+            if value != lc.INPUT_NONE:
+                item[option] = input_json(option, value)
+            end
+        end
+        out.append(item)
+        d = lc.input_next(d)
+    end
+    return out
 end
 
 # ---- geometrie -------------------------------------------------------------------------------
@@ -1106,8 +1211,50 @@ function switch_to(index):
     # zamereni hned (klavesnice patri nove plose uz behem prejezdu); celoobrazovkove okno stare
     # plochy se tim vrati do jejiho stromu a odjede s ni
     call focus(top_on_current(0))
-    call lc.workspace_slide(ws[old], ws[index], 1 if index > old else -1, setting_int("slide_ms", 0, 2000))
+    ms = setting_int("slide_ms", 0, 2000)
+    if settings.get("reduce_motion", "no") == "yes":
+        ms = 0
+    end
+    call lc.workspace_slide(ws[old], ws[index], 1 if index > old else -1, ms)
     call note("workspace " + String(index + 1))
+    call broadcast("workspace", workspace_event())
+end
+
+# Zmena poctu ploch za behu (reload): jadro plochu zrusit neumi, odebrana ceka v spare_ws na dalsi
+# pridani; jeji okna prejdou na posledni zbyvajici plochu
+function apply_workspaces():
+    global cur
+    count = setting_int("workspaces", 1, 16)
+    if count == len(ws):
+        return
+    end
+    while len(ws) < count:
+        if len(spare_ws) > 0:
+            ws.append(spare_ws.pop())
+        else:
+            ws.append(lc.workspace_new())
+        end
+    end
+    if len(ws) > count:
+        last = ws[count - 1]
+        gone = ws[count:]
+        o = lc.view_next(0)
+        while o != 0:
+            if vget(o, lc.VIEW_WORKSPACE) in gone:
+                call lc.view_set_workspace(o, last)
+            end
+            o = lc.view_next(o)
+        end
+        if cur >= count:
+            call lc.workspace_slide(ws[cur], last, -1, 0)
+            cur = count - 1
+            call focus(top_on_current(0))
+        end
+        while len(ws) > count:
+            spare_ws.append(ws.pop())
+        end
+    end
+    call note("workspaces " + String(count))
     call broadcast("workspace", workspace_event())
 end
 
@@ -1382,7 +1529,13 @@ function button(v, pressed, part):
         now = glib.monotonic_time()
         if last_title_click[0] == v and now - last_title_click[1] < DOUBLE_CLICK_US:
             last_title_click[0] = 0
-            call set_maximized(v, not (v in maxed))
+            # double_click_action jako xfwm4 (Nastaveni > Okna a plochy): maximize, hide, none
+            action = settings.get("double_click_action", "maximize")
+            if action == "hide":
+                call minimize(v)
+            elif action != "none":
+                call set_maximized(v, not (v in maxed))
+            end
             return
         end
         last_title_click[0] = v
@@ -1460,6 +1613,7 @@ function handle(event, id, a, b, c):
         call sandbox_window(id)
     elif event == lc.EV_VIEW_MAP:
         call view_mapped(id)
+        call material_mapped(id)
     elif event == lc.EV_VIEW_UNMAP:
         call view_gone(id)
     elif event == lc.EV_VIEW_SIZE:
@@ -1506,7 +1660,7 @@ function handle(event, id, a, b, c):
         call note("layout " + String(a))
         call broadcast("keyboard", keyboard_event())
     elif event == lc.EV_IPC_CONNECT:
-        ipc[id] = {"privileged": b == 1, "topics": []}
+        ipc[id] = {"privileged": b == 1, "topics": [], "pid": a}
         call note("ipc connect " + String(id) + " pid " + String(a) + (" privileged" if b == 1 else ""))
         return
     elif event == lc.EV_IPC_LINE:
@@ -1548,7 +1702,7 @@ function workspace_event():
 end
 
 function keyboard_event():
-    return {"event": "keyboard", "current": lc.layout(), "layouts": keyboard["layouts"]}
+    return {"event": "keyboard", "current": lc.layout(), "layouts": keyboard["layouts"], "repeat": keyboard["repeat"]}
 end
 
 function output_event():
@@ -1597,6 +1751,9 @@ end
 
 function drop_client(client):
     if client in ipc:
+        if "material" in ipc[client]:
+            call apply_window_material(client, None)
+        end
         suspended = ipc.pop(client).get("suspend", False)
         if suspended:
             call update_suspend()
@@ -1690,6 +1847,88 @@ function list_windows():
     return items
 end
 
+# ---- material okna (set_window_material) -------------------------------------------------------
+# Sklo pod castmi okna (panel Nastaveni): klient pozada pro sva vlastni okna, jadro kresli rozmazane
+# pozadi pod obdelnikem obsahu. Plati jen pro namapovana hlavni okna procesu klienta IPC se shodnym
+# app_id, nikdy pro okna ze sandboxu; zije se spojenim (klient bez spojeni kresli panel nepruhledne).
+
+function material_target(client, v):
+    m = ipc[client]["material"]
+    return (vget(v, lc.VIEW_MAPPED) == 1 and vget(v, lc.VIEW_PARENT) == 0 and vget(v, lc.VIEW_SANDBOXED) != 1
+            and vget(v, lc.VIEW_PID) == ipc[client]["pid"] and lc.view_app_id(v) == m["app_id"])
+end
+
+# m = None zrusi material oken klienta; vraci pocet oken, kterych se tyka
+function apply_window_material(client, m):
+    if m != None:
+        ipc[client]["material"] = m
+    elif "material" not in ipc[client]:
+        return 0
+    end
+    count = 0
+    o = lc.view_next(0)
+    while o != 0:
+        if material_target(client, o):
+            if m == None:
+                call lc.view_set_material(o, "", 0, 0, 0, 0)
+            else:
+                call lc.view_set_material(o, m["material"], m["x"], m["y"], m["w"], m["h"])
+            end
+            count += 1
+        end
+        o = lc.view_next(o)
+    end
+    if m == None:
+        call ipc[client].pop("material")
+    end
+    return count
+end
+
+# Okno se namapovalo az po pozadavku (klient posila pri kazde zmene velikosti panelu)
+function material_mapped(v):
+    for client in ipc.keys():
+        if "material" in ipc[client] and material_target(client, v):
+            m = ipc[client]["material"]
+            call lc.view_set_material(v, m["material"], m["x"], m["y"], m["w"], m["h"])
+        end
+    end
+end
+
+function set_window_material(client, request):
+    app = request.get("app_id", "")
+    name = request.get("material", "")
+    box = [request.get(k, 0) for k in ["x", "y", "w", "h"]]
+    if type(app) != "String" or app == "" or type(name) != "String" or request.get("radius", 0) != 0:
+        return {"ok": False, "error": "bad request"}
+    end
+    for n in box:
+        if type(n) != "Int" or n < -100000 or n > 100000:
+            return {"ok": False, "error": "bad request"}
+        end
+    end
+    if name == "" or box[2] <= 0 or box[3] <= 0:
+        call apply_window_material(client, None)
+        return {"ok": True}
+    end
+    if name not in tokens.SURFACE or name == "dim":
+        return {"ok": False, "error": "unknown material"}
+    end
+    if settings.get("blur", "yes") == "no":
+        call apply_window_material(client, None)
+        return {"ok": False, "error": "blur off"}
+    end
+    if "material" in ipc[client] and ipc[client]["material"]["app_id"] != app:
+        call apply_window_material(client, None)
+    end
+    m = {"app_id": app, "material": name, "x": box[0], "y": box[1], "w": box[2], "h": box[3]}
+    count = apply_window_material(client, m)
+    call note("window material " + app + " " + name + " " + String(box) + " windows " + String(count))
+    if count == 0:
+        return {"ok": False, "error": "no such window"}
+    end
+    return {"ok": True}
+end
+
 function ipc_command(client, request):
     privileged = ipc[client]["privileged"]
     cmd = request.get("cmd", "")
@@ -1760,6 +1999,8 @@ function ipc_command(client, request):
             return {"ok": False, "error": "bad workspace"}
         end
         return {"ok": True}
+    elif cmd == "get_input":
+        return {"ok": True, "config": input_config, "devices": input_devices()}
     elif cmd == "reload":
         call on_reload()
         call update_suspend()
@@ -1774,6 +2015,18 @@ function ipc_command(client, request):
             return {"ok": False, "error": "bad theme"}
         end
         call apply_theme(theme == "dark")
+        return {"ok": True}
+    elif cmd == "set_cursor":
+        # Nastaveni > Vzhled: plati do konce relace (i po reload); trvale je v xsettings, odkud ho pri
+        # prihlaseni bere prostredi relace (XCURSOR_THEME, luxos-wayland-settings --env)
+        theme = request.get("theme", "")
+        size = request.get("size", 0)
+        if type(theme) != "String" or theme == "" or theme.find("/") >= 0 or type(size) != "Int" or size < 8 or size > 256:
+            return {"ok": False, "error": "bad cursor"}
+        end
+        session_cursor[0] = theme
+        session_cursor[1] = String(size)
+        call apply_cursor()
         return {"ok": True}
     elif cmd == "list_windows":
         return {"ok": True, "windows": list_windows()}
@@ -1834,6 +2087,8 @@ function ipc_command(client, request):
             xroot_pending[instance] = [w, h, title]
         end
         return {"ok": True}
+    elif cmd == "set_window_material":
+        return set_window_material(client, request)
     elif cmd == "test_output":
         # testy: pripojeni/odpojeni monitoru, funguje jen na headless backendu
         size = request.get("add", "")
@@ -1954,9 +2209,12 @@ function on_reload():
     call load_config()
     call load_privileged()
     call bind_keys()
+    call apply_workspaces()
     call apply_cursor()
+    call apply_input()
     call read_locale()
     call apply_keyboard()
+    call apply_repeat()
     call apply_theme(dark_mode())
     call log("configuration reloaded")
     return True
@@ -2022,8 +2280,10 @@ end
 call lc.workspace_show(ws[0], 1)
 call bind_keys()
 call apply_cursor()
+call apply_input()
 call read_locale()
 call apply_keyboard()
+call apply_repeat()
 call apply_theme(dark_mode())
 sock = ipc_path()
 if sock != "" and lc.ipc_listen(sock) == 0:
