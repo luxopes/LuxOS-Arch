@@ -90,3 +90,4 @@ libxkbfile libxkbfile-1.2.0-1-x86_64.pkg.tar.zst 78f14e9854c70527975cf2204a6dcbb
 xorg-xkbcomp xorg-xkbcomp-1.5.0-1-x86_64.pkg.tar.zst 662f4ad50763b9d4192bb4f2bbd81ba3c50630a0ec2a83a13deb8770f785734d
 xorg-xwayland xorg-xwayland-24.1.15-1-x86_64.pkg.tar.zst 0a8be13f25f64f22ed110f4890e907cfceb34009aeab5b0fd316b6a92ab15a7f
 xorg-xeyes xorg-xeyes-1.3.1-1-x86_64.pkg.tar.zst 1f5c2e7863fe69391d30e0a7fd2879c4a1508dd41d89914c486e2d8da5ef36e3
+xf86-video-dummy xf86-video-dummy-0.4.1-3-x86_64.pkg.tar.zst 07123c812258c5d2221995265c205d62919b39b56f323fb0a467211eecd21f87
