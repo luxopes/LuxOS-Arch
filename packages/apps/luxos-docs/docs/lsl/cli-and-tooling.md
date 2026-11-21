@@ -1,6 +1,6 @@
 # LSL command line and tooling
 
-All subcommands of the `lsl` command (0.10.2), the offline manual, the terminal editor, colors
+All subcommands of the `lsl` command (0.11.1), the offline manual, the terminal editor, colors
 and updates. Library management (`install`, `search`, `list`, `check`, `origin`) is detailed
 in [modules.md](modules.md#installing-libraries-from-the-registry).
 
@@ -28,29 +28,41 @@ lsl version                                 print the version (also lsl --versio
 
 Options: `-h`, `--help`, `--version`; environment `NO_COLOR` disables colors.
 
+The full `lsl compile` usage is `lsl compile [--unsafe] [--target NAME] [--system-bindings DIR]...
+SOURCE OUTPUT` (printed on wrong usage, exit 2). In 0.11.1 `lsl help` and `lsl help compile` do
+not list `--system-bindings` (`lsl help compile` shows only `--unsafe`).
+
 ## Running and compiling
 
-- `lsl file.lsl args...` compiles in memory and runs. Arguments: `arg(1)`, `arg_count()`.
+- `lsl file.lsl args...` compiles and runs. Arguments: `arg(1)`, `arg_count()`, `args`.
+  Since 0.10.5 the compiled program is cached in `$XDG_CACHE_HOME/lsl/programs` (default
+  `~/.cache/lsl/programs`), so the next start takes about 1 ms instead of a compile; any change
+  of the script, stdlib or modules recompiles. `LSL_CACHE=0` disables the cache; sandboxed
+  scripts are not cached.
 - `lsl compile SOURCE OUTPUT` creates a native statically linked ELF (static PIE, non-executable
   stack, no symbol table). Compilation does not run the program. The default is **checked**
   compilation, which rejects private `__lsl_*`, native and thread operations outside an
   `unsafe:` block (also in imported user modules).
 - `--unsafe` enables the unsafe compiler mode explicitly (needed e.g. for the directive
   `# lsl: unchecked-intarray`). The low-level `lslc` is the explicit trust-core compiler.
-- `--system-bindings DIR` (repeatable, also for `lslc`) trusts the modules in `DIR` like the
-  installed system bindings in `/usr/lib/lsl/system/`: they may call C (`__lsl_qbe_*`,
-  `__lsl_symbol`) and a normal program loads them with `load NAME`. A system binding wins over a
-  same-named file next to the program. LuxOS installs its bindings there (`luxos_gtk`,
-  `luxos_glib`, `luxos_gio`, `luxos_sys`, ...).
-- `--target NAME` cross-compiles: `linux-arm64`, `linux-riscv64`, `linux-arm`, `linux-x86`,
-  `windows-x86_64`, `windows-arm64`, `macos-x86_64`, `macos-arm64`, `wasm32-wasi`,
-  `wasm32-wasi-threads`, `baremetal-riscv64`.
+- `--system-bindings DIR` (since 0.11.0, repeatable, also for `lslc`) trusts the modules in
+  `DIR` like the installed system bindings in `<prefix>/lib/lsl/system/` (`/usr/lib/lsl/system/`
+  on LuxOS): see [modules.md](modules.md#system-bindings).
+- `--target NAME` cross-compiles: `linux-x86_64` (default), `linux-x86_64-gnu`, `linux-arm64`,
+  `linux-riscv64`, `linux-arm`, `linux-x86`, `windows-x86_64`, `windows-arm64`, `macos-x86_64`,
+  `macos-arm64`, `wasm32-wasi`, `wasm32-wasi-threads`, `baremetal-riscv64`. Since 0.10.3 all
+  targets are linked by LuxIR itself (no LLVM, Xcode, wabt or binutils needed).
+- `linux-x86_64-gnu` (since 0.10.4) is a dynamically linked PIE over glibc; it is required by
+  the modules that call system libraries (`glib`, `gio`, `gtk`, `cairo`, `pango`, `net`, `tls`,
+  `crypto`, `mdns`) and by system bindings that call C. A module names its libraries with
+  `# lsl: link libX.so.N`; a missing C function is a compile error, not a crash at start.
 - Exit status of `lsl FILE` is the program's status; an uncaught runtime error exits with 1 and
   prints `error[Kind]` with position and help to stderr.
 
 ```bash
 lsl compile app.lsl app && ./app
 lsl compile --target linux-arm64 app.lsl app-arm64
+lsl compile --target linux-x86_64-gnu --system-bindings ./sys gui.lsl gui
 ```
 
 ## help and man
@@ -71,16 +83,19 @@ internet). In the browser: Enter opens a chapter, arrows/PgUp/PgDn scroll, `/` s
 
 Inside programs: `help()` prints the topic index; `help("print")`, `help("random")` or
 `help(topic_variable)` print help for a command, keyword, builtin or module (works in a
-standalone ELF too). It returns `None`; an unknown topic raises `HelpError`.
+standalone ELF too). It returns `None`. In 0.11.1 an unknown topic prints `No help available for
+topic: NAME. ...` and returns `None` (no `HelpError`, despite what the manual says);
+`lsl help NAME` exits with 1 for an unknown topic.
 
-Help topics in 0.10.2 include: Bool, ByteArray, Dictionary, Error, Float, FloatArray, Int,
-IntArray, List, RealArray, String, Tuple, about, abs, ai, appendfile, arg, arg_count, bigint,
-break, capture, check, chr, class, clock, compile, config, continue, ctype, cuda, dedup, del,
-exit, fd, for, function, gc, global, help, httpserver, if, input, install, json, last_error,
-len, list, load, lock, loop, man, math, max, min, monotonic, ord, origin, os, print, printl,
-printr, process, random, rang, range, readbytes, readfile, requests, return, run, safe,
-sandbox, search, server, set, sorted, sqrt, sum, system, tensor, time, try, tui, type,
-unsafe, update, version, while, writebytes, writefile.
+Help topics in 0.11.1 (`help()` prints the list): Bool, ByteArray, Dictionary, Error, Float,
+FloatArray, Int, IntArray, List, RealArray, String, Tuple, about, abs, ai, appendfile, arg,
+arg_count, bigint, break, cairo, capture, check, chr, class, clock, compile, config, continue,
+crypto, ctype, cuda, dedup, del, eprint, exit, fd, for, function, gc, gio, glib, global, gtk,
+help, httpserver, if, input, input_eof, install, json, last_error, len, list, listdir, load,
+lock, loop, man, math, max, mdns, min, monotonic, net, ord, origin, os, pango, print, printl,
+printr, process, random, rang, range, readbytes, readfile, requests, return, run, safe, sandbox,
+search, server, set, sorted, sqrt, sum, system, tensor, time, tls, try, tui, type, unsafe,
+update, version, while, writebytes, writefile.
 
 ## Interactive mode
 
@@ -152,8 +167,20 @@ lslc [--safe | --unsafe | --sandbox] [--target NAME] [--system-bindings DIR]... 
 `lslc` compiles one source file into a native executable like `lsl compile`, but it is the
 explicit trust-core developer tool: the safety policy of the `lsl` command is not applied to it.
 `--safe` is checked compilation (the default for normal sources), `--unsafe` the unsafe compiler
-mode, `--sandbox` also refuses `unsafe:` blocks (code meant for a sandbox). The header
-`# lsl: internal-abi` is only for the LSL sources themselves; elsewhere it gives warning `W3001`
-(an error in a later release) - put modules that call C into a system bindings directory
-instead. `--target NAME` cross-compiles like `lsl compile --target`; the optional `LSL-QBE` selects another backend. Wrong usage prints the
-usage line and exits with status 2. For normal programs use `lsl compile`.
+mode, `--sandbox` also refuses `unsafe:` blocks (code meant for a sandbox). `--target NAME`
+cross-compiles like `lsl compile --target`, `--system-bindings DIR` works as for `lsl compile`;
+the optional `LSL-QBE` selects another backend. Wrong usage prints the usage line and exits with
+status 2. For normal programs use `lsl compile`.
+
+The header `# lsl: internal-abi` (first line) switches a source to the raw internal ABI. It is
+only for the LSL sources themselves; elsewhere `lslc` prints warning `W3001` (an error in a
+later release) - put modules that call C into a system bindings directory instead (see
+[modules.md](modules.md#system-bindings)). In the internal ABI values are raw words: **Int 0
+and `None` are the same word**, so `json.encode([0, 1])` gives `[null,1]` and `x == 0` is true
+for `x = None`. Known gaps in 0.11.1:
+
+- `lsl compile` and `lsl FILE` ignore the header completely (no `W3001`, normal ABI); only
+  `lslc` honours it.
+- With `lslc`, the header of a loaded module is ignored unless the main file has it too: the
+  module is then compiled as ordinary untrusted code (no `W3001`; C calls fail with "unsafe
+  operation outside an unsafe block").

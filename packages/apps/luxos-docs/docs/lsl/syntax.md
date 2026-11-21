@@ -1,6 +1,6 @@
 # LSL syntax, variables, operators and output
 
-Basic writing rules of Lux Simple Lang 0.10.2. Types and collections are in
+Basic writing rules of Lux Simple Lang 0.11.1. Types and collections are in
 [types-and-collections.md](types-and-collections.md), control flow in
 [control-flow.md](control-flow.md).
 
@@ -36,7 +36,7 @@ reachable path before it is read; otherwise the compiler reports **E2002** (also
 
 Compound assignment: `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `~=`, `<<=`, `>>=`.
 
-**Note (0.10.2):** `//=` is not accepted by the parser (`E1100`); write `x = x // 2`.
+**Note (0.11.1):** `//=` is not accepted by the parser (`E1100`); write `x = x // 2`.
 
 ### Multiple assignment and unpacking (since 0.9.1)
 
@@ -78,9 +78,16 @@ parameter cannot be re-declared this way (use a new local).
 |---|---|
 | `+` `-` `*` | addition (also String/List concatenation), subtraction, multiplication (`String * Int` repeats) |
 | `/` | division, always returns Float (`7 / 2` is `3.5`) |
-| `//` | floor division, Int result rounded down also for negatives (`-7 // 3` is `-3`) |
-| `%` | remainder, non-negative for a positive divisor (`-7 % 3` is `2`) |
+| `//` | floor division, rounded down also for negatives (`-7 // 3` is `-3`); Int for two Ints, Float otherwise (`7.5 // 2` is `3.0`) |
+| `%` | remainder with the sign of the divisor (`-7 % 3` is `2`, `7 % -3` is `-2`); also for Floats (`7.5 % 2` is `1.5`) |
 | `^` | power, right associative (`2 ^ 3 ^ 2` is `512`); the old `**` is invalid since 0.6 |
+
+The exponent of `^` must be an `Int`: `Int ^ Int` gives an Int (a negative exponent raises
+`ValueError`), a Float base gives a Float (`2.0 ^ -1` is `0.5`). A Float exponent such as
+`2 ^ 0.5` is a compile error (a dynamic one raises `TypeError`); use `sqrt(x)` or
+`math.exp(y * math.log(x))`. Division or remainder by zero raises `ZeroDivisionError`.
+Float results of `%`, `//` and `^` stored in local variables were wrong in 0.10.11–0.10.13
+(fixed in 0.10.13 and 0.10.14).
 
 `Int` is a signed 64-bit two's-complement value: arithmetic, power, negation and conversion
 from decimal strings wrap modulo 2^64 (no `OverflowError`). Use the `bigint` module for
@@ -90,10 +97,13 @@ arbitrary precision.
 
 `==`, `!=`, `<`, `<=`, `>`, `>=`, `in` (membership in collections and substrings),
 `and`, `or`, `not`. Comparisons return `Bool`. `1 == 1.0` is `True`, `0.0 == -0.0` is `True`
-and NaN is not equal to anything.
+and NaN is not equal to anything. Since 0.10.12 an Int is compared with a Float exactly, also
+above 2^53 (`9007199254740993 == 9007199254740992.0` is `False`), and `in` uses the same
+equality as `==` (`2 in [2.0]` and `(1, 2) in [(1, 2)]` are `True`).
 
-**Note (0.10.2):** ordered comparison (`<`, `>` ...) requires numeric operands; comparing two
-Strings with `<` is a compile error.
+**Note (0.11.1):** ordered comparison (`<`, `>` ...) requires numeric operands (Int, Float,
+Bool); comparing two Strings with `<` is a compile error, or a `TypeError` at run time when the
+types are not known statically. `sorted()` and `.sort()` still order Strings (by code point).
 
 ### Bitwise operators
 
@@ -114,9 +124,10 @@ literals may use `0x`, `0o`, `0b` prefixes (case-insensitive); they wrap modulo 
 ### Precedence
 
 From lowest to highest: `or`, `and`, comparisons, `|`, `~` (XOR), `&`, `<<` `>>`, `+` `-`,
-`*` `/` `//` `%`, unary operators, `^`. Therefore `1 << 2 + 1 == 8` and `5 & 3 | 8 == 9`.
-`not` is unary and binds tighter than comparisons and bitwise operators: `not 0 & 1` means
-`(not 0) & 1`. Use parentheses when in doubt.
+`*` `/` `//` `%`, `^`, unary operators (`-`, `+`, `not`, `~`). Therefore `1 << 2 + 1 == 8`
+and `5 & 3 | 8 == 9`. Unary operators bind tighter than everything else, including `^`:
+`-2 ^ 2` is `4` (write `-(2 ^ 2)` for `-4`), and `not 0 & 1` means `(not 0) & 1`. Use
+parentheses when in doubt.
 
 ## Strings
 
@@ -159,7 +170,12 @@ String methods are listed in [types-and-collections.md](types-and-collections.md
 | `print a, b, ...` | prints values separated by one space and ends with a newline |
 | `printl "text {expr}"` | prints an interpolated string and a newline (same as `print l"..."`) |
 | `printr a, b, ...` | (0.9.1+) prints values exactly, no separators, no trailing newline |
-| `input "prompt"` / `input("prompt")` | prints the prompt without a newline, reads one line from stdin, returns a String without the trailing LF/CRLF |
+| `eprint(value)` | (0.10.6+) prints a value and a newline to stderr |
+| `input "prompt"` / `input("prompt")` | prints the prompt without a newline, reads one line from stdin, returns a String without the trailing LF/CRLF; at end of input it returns `""` |
+| `input_eof()` | (0.10.10+) `True` when the last `input` hit end of input (Ctrl-D, end of a pipe), so it can be told apart from an empty line |
+
+`print(a, b)` written without a space before the parenthesis prints the arguments separated by
+a space (since 0.10.10); `print (a, b)` with a space prints the Tuple `('a', 1)`.
 
 ```lsl
 printr "Loading"

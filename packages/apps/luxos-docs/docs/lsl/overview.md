@@ -5,19 +5,21 @@ author. Source files are UTF-8 with the extension `.lsl`. The production compile
 self-hosted (written in LSL) and produces native, statically linked executables; there is no
 interpreter or virtual machine at run time. Website and downloads: <https://lsl.lux-ai.cz>.
 
-This library describes **LSL 0.10.2**, the version packaged for LuxOS. Its content is
-translated from the official LSL manual and function reference (LSL-Web 0.10.2) and from the
-built-in `help()` texts of the 0.10.2 compiler. Places where the tested 0.10.2 compiler behaves
-differently from the reference are marked **Note (0.10.2)**.
+This library describes **LSL 0.11.1**, the version packaged for LuxOS. Its content is
+translated from the official LSL manual and function reference (LSL-Web 0.11.1) and from the
+built-in `help()` texts of the 0.11.1 compiler; examples were run with the 0.11.1 release.
+Places where the compiler behaves differently from the reference, or has a known limitation,
+are marked **Note (0.11.1)**.
 
 ## LSL on LuxOS
 
 | Item | Value |
 |---|---|
 | Package | `lsl` in the `[luxos-apps]` repository (`lux install lsl`) |
-| Version | 0.10.2 (official binary release, `lsl-0.10.2-linux-x86_64.tar.gz`) |
-| Commands | `/usr/bin/lsl`, `lslc` (low-level compiler), `luxir` (backend: assembler + linker), `lsl-configure`, `lsl-cuda-worker` |
+| Version | 0.11.1 (official binary release, `lsl-0.11.1-linux-x86_64.tar.gz`) |
+| Commands | `/usr/bin/lsl`, `lslc` (low-level compiler), `luxir` (backend: assembler + linker), `lsl-configure`, `lsl-cuda-worker`, `lsl-test` |
 | Bundled libraries | `/usr/lib/lsl/stdlib/*.lsl` (found relative to the `lsl` executable) |
+| System bindings | `/usr/lib/lsl/system/` – distribution modules allowed to call C (since 0.11.0, installed by their packages) |
 | Per-user libraries | `~/.local/lib/lsl/stdlib/` (installed with `lsl install NAME`, no sudo) |
 | Docs | `/usr/share/doc/lsl/README.md`, `RELEASE_NOTES.md`; offline manual `lsl man` |
 | License | MIT (backend LuxIR derived from QBE, license in `/usr/share/licenses/lsl/`) |
@@ -38,7 +40,7 @@ lsl hello.lsl              # compile in memory and run immediately
 lsl hello.lsl arg1 arg2    # program arguments: arg(1), arg(2)
 lsl compile hello.lsl hello   # build a standalone native ELF
 ./hello                    # runs without LSL installed
-lsl version                # prints e.g. 0.10.2 (same as lsl --version)
+lsl version                # prints e.g. 0.11.1 (same as lsl --version)
 ```
 
 `hello.lsl`:
@@ -49,8 +51,14 @@ print "Hello, world!"
 
 Running `lsl FILE` compiles the whole file to machine code and runs it. `lsl compile` writes
 an executable that no longer depends on LSL and can be copied to another Linux machine with
-the same architecture. Since 0.10.2 the LuxIR backend has a built-in assembler and linker, so
-GNU binutils are no longer needed to compile on Linux.
+the same architecture. The LuxIR backend has a built-in assembler and linker: since 0.10.2
+GNU binutils are not needed on Linux, and since 0.10.3 no external tools (LLVM, Xcode, wabt,
+binutils) are needed for any host or target.
+
+Since 0.10.5 `lsl FILE` caches the compiled program in `~/.cache/lsl/programs`
+(`$XDG_CACHE_HOME/lsl/programs`), so a second start takes about 1 ms instead of a full
+compile. Any change to the script, the standard library, a loaded module or the `lsl` binary
+triggers a new compile; `LSL_CACHE=0` disables the cache.
 
 ## Interactive mode, pipes and heredocs
 
@@ -78,7 +86,8 @@ The interactive `exit` terminator is not part of the language and is different f
 
 The compiler runs on Linux x86_64, ARM64 and RISC-V 64, and since 0.10.1 natively on Windows
 10/11 (x64, ARM64) and macOS (Apple Silicon, Intel). `lsl compile --target NAME` can produce:
-`linux-arm64`, `linux-riscv64`, `linux-arm` (armv7 hard-float, 32-bit), `linux-x86` (i686),
+`linux-arm64`, `linux-riscv64`, `linux-x86_64-gnu` (dynamically linked against glibc for the
+`glib`, `gio`, `gtk` modules, since 0.10.4), `linux-arm` (armv7 hard-float, 32-bit), `linux-x86` (i686),
 `windows-x86_64`, `windows-arm64`, `macos-x86_64`, `macos-arm64`, `wasm32-wasi`,
 `wasm32-wasi-threads` and `baremetal-riscv64`. LSL values stay 64-bit on 32-bit targets.
 WebAssembly has no processes or sockets; the process sandbox is Linux-only.
@@ -110,6 +119,7 @@ call square(2)                   # a call used as a statement needs `call`
   a line containing `end`. Indentation is ignored (4 spaces recommended).
 - Names are case sensitive.
 - `^` is power, `~` is XOR / bitwise NOT, `//` is floor division.
+- Conditional expression (since 0.10.7): `label = "adult" if age >= 18 else "child"`.
 
 ## Where to go next
 

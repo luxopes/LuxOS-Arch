@@ -19,7 +19,7 @@ stored unboxed and contiguous (the manual's sieve of 1,000,000 numbers drops fro
 | `float_sum(arr)` | sum of all elements |
 | `float_dot(a, b)` | dot product of two FloatArrays |
 | `float_axpy(alpha, x, y)` | `y = alpha * x + y` in place (BLAS AXPY); `alpha` must be Float, `x` and `y` the same length; returns `None` |
-| `float_matmul(a, b, m, k, n)` | multiply `(m×k) × (k×n)` matrices, return a new `(m×n)` FloatArray |
+| `float_matmul(a, b, m, k, n)` | multiply `(m×k) × (k×n)` matrices, return a new `(m×n)` FloatArray; dimensions that do not match the array lengths (also huge ones) raise `ValueError` (since 0.10.12, before a crash) |
 
 Kernels use two SSE2 lanes with a scalar tail. `float_sum` and `float_dot` accumulate even and
 odd elements separately, so the last bits may differ from a sequential sum on long arrays;
@@ -110,6 +110,18 @@ print gpu.probe(), gpu.devices(), gpu.backend()
 - The compiler folds constant Int expressions, removes dead branches, uses immediate scalar
   arithmetic and specializes direct non-escaping functions by argument types. Float expressions
   are not folded at compile time (exact NaN/Infinity/signed zero behaviour).
-- Garbage collection runs automatically according to allocation volume (since 0.8.4); manual
-  `gc()` is optional.
+- Since 0.10.11 a local `Float` variable inside a function holds the number directly: `+ - * /`
+  on literals, `Float(int)` and such locals do not allocate (`f = f + Float(i) * 0.5` costs
+  ~1 ns per iteration instead of 24–90 ns), and Float literals are created once at start-up.
+- Garbage collection runs automatically according to allocation volume (since 0.8.4; budget
+  2 MiB between collections, adapted to the live heap); manual `gc()` is optional and may only
+  be called from the main thread. A collection is stop-the-world and costs roughly 45–50 ns per
+  live object (0.11.1, x86-64: ~2 ms for 50,000, ~90–100 ms for 2,000,000 objects), so a 60 Hz
+  GUI should keep well under ~300,000 live `List`/`Dictionary` objects; keep numbers, pixels
+  and bytes in `IntArray`/`FloatArray`/`ByteArray`.
+- After a one-off peak (a big file loaded into lists and released) the heap does not shrink.
+  Since 0.11.1 the automatic budget grows to at least half of the small-object heap while
+  allocations reuse freed blocks, so allocation is no longer up to 10× slower after the peak
+  (2,000,000 short allocations after a 1,000,000-list peak: 0.63 s in 0.11.1, 2.3 s in 0.10.15).
+- Since 0.10.13 `sorted()`/`sort()` are 4–9× faster on large lists.
 - Use `lsl compile` for repeated runs: compilation happens once and start-up is fast.

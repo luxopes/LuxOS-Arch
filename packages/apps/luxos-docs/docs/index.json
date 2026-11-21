@@ -1907,7 +1907,7 @@
         {
           "path": "lsl/modules.md",
           "title": "LSL modules, libraries and packages",
-          "summary": "load syntax and aliases, from ... load, module search order, bundled libraries in 0.10.2, optional registry packages, lsl install/search/update/check/origin and libraries with sudo.",
+          "summary": "load syntax and aliases, from ... load, module search order, bundled libraries in 0.11.1, system bindings (trusted C-calling modules), optional registry packages, lsl install/search/update/check/origin and libraries with sudo.",
           "keywords": [
             "load",
             "import",

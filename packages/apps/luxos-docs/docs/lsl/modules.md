@@ -1,7 +1,7 @@
 # LSL modules, libraries and packages
 
-How `load` works, where modules are searched, which libraries are bundled with LSL 0.10.2 and
-how to install per-user libraries from the LSL registry.
+How `load` works, where modules are searched, which libraries are bundled with LSL 0.11.1,
+system bindings that may call C, and how to install per-user libraries from the LSL registry.
 
 ## load syntax
 
@@ -12,6 +12,7 @@ load os, time                 # several modules (max 32) in one line
 load time, os as a            # shared alias: a.monotonic() and a.which(...)
 from helpers load area        # import a single symbol
 from helpers load area as surface
+from helpers load area, perimeter as p   # several symbols (since 0.10.10)
 ```
 
 - Each `.lsl` file is a module; its public variables, functions and classes are available under
@@ -25,20 +26,23 @@ from helpers load area as surface
 - Module symbols get a deterministic namespace prefix. Classes marked `ctype Private` are not
   reachable from outside; public classes can be constructed directly.
 
-**Note (0.10.2):** `from lux load l` fails because the shipped `lux` module has no `l`
-function (see [stdlib-core.md](stdlib-core.md#lux)). `from MODULE load NAME` works with your own
-modules.
+- `from MODULE load NAME` checks the name at the import: a module without that function, class
+  or global is error **E3003** (since 0.10.10), e.g. `from lux load l` (the `lux` module has no
+  `l`).
 
 ## Search order
 
 `load foo.bar` looks for `foo/bar.lsl` in this order:
 
-1. relative to the importing source file,
-2. compiler-internal modules,
-3. bundled/system stdlib `<prefix>/lib/lsl/stdlib/` (`/usr/lib/lsl/stdlib` on LuxOS),
+1. bundled/compiler-internal modules (`<prefix>/lib/lsl/stdlib/`, `/usr/lib/lsl/stdlib` on
+   LuxOS),
+2. system bindings (since 0.11.0): each `--system-bindings DIR` in order, then
+   `<prefix>/lib/lsl/system/` (`/usr/lib/lsl/system` on LuxOS),
+3. relative to the importing source file,
 4. per-user libraries `~/.local/lib/lsl/stdlib/`.
 
-Bundled modules **cannot be shadowed** by a local or per-user file of the same name. Exception
+Bundled modules **cannot be shadowed** by a local or per-user file of the same name, and a
+system binding wins over a same-named file next to the program. Exception
 (since 0.9.1): `load ai` uses a per-user `aikit.lsl` if it is newer than the bundled `ai`.
 
 A missing library is error **E3001** with the name and the exact import location (also for
@@ -46,7 +50,7 @@ imports inside another library); the message suggests checking the local file an
 `lsl search NAME` / `lsl install NAME`. Nothing is downloaded automatically. A missing bundled
 module means a damaged LSL installation. An existing but unreadable module is **E3002**.
 
-## Bundled libraries in 0.10.2
+## Bundled libraries in 0.11.1
 
 Listed by `lsl list` as `bundled` (descriptions from `lsl about NAME`):
 
@@ -54,20 +58,28 @@ Listed by `lsl list` as `bundled` (descriptions from `lsl about NAME`):
 |---|---|
 | `ai` | OpenAI-compatible chat client with tools (function calling), live SSE streaming, structured errors and retries |
 | `bigint` | arbitrary-precision signed integers (`BigInt`) |
+| `cairo` | 2D drawing with Cairo in GTK draw handlers or into PNG images (gnu) |
 | `config` | helpers for declarative configuration modules evaluated by `lsl config` |
 | `configure` | generates the native configuration evaluator wrapper (internal, used by `lsl-configure`) |
+| `crypto` | system OpenSSL hashes, HMAC, EC P-256 keys, ECDSA signatures, self-signed certificates (gnu) |
 | `cuda` | optional NVIDIA CUDA backend in a separate worker process |
 | `env` | environment variables and `.env` files |
 | `fd` | raw file-descriptor I/O for devices, sockets, ioctl/mmap, bounded procfs/sysfs reads |
+| `gio` | D-Bus over GIO: method calls, properties, signals, name watching and ownership (gnu) |
+| `glib` | GLib main loop, timers, UNIX signals, process spawning, GObject signals (gnu) |
+| `gtk` | GTK 3 windows, widgets and signal handlers over the GLib main loop (gnu) |
 | `http` | HTTP(S) client (dictionary results) |
 | `httpserver` | bounded HTTP/1.1 server and static files (also behind `lsl server`) |
 | `json` | JSON encoder/decoder (4 MiB input limit, strict errors) |
 | `lconf` | strict dependency-manifest codec (`config.lconf`) for `.lux` package archives |
-| `lux` | core module: name and small helpers |
+| `lux` | core module with LSL version metadata (`lux.version`) and small shared helpers |
 | `luxos` | declarative system configuration engine for LuxOS |
 | `math` | mathematics and statistics |
+| `mdns` | DNS-SD browse and announce over Avahi D-Bus with a raw mDNS fallback (gnu) |
 | `native` | restricted fork-isolated ABI for self-contained native kernels |
+| `net` | TCP and UDP sockets with timeouts, IPv6 link-local, UDP multicast, interface addresses (gnu) |
 | `os` | run programs via direct `execve` with argv, PATH lookup; never a shell |
+| `pango` | text layout with system fonts, wrapping, ellipsis and markup over cairo (gnu) |
 | `plugin` | process plugin ABI v1 (JSON on stdin/stdout) |
 | `process` | structured process helpers (separate stdout/stderr, stdin, streaming) |
 | `random` | Python-style pseudo-random numbers (MT19937 `Random(seed)`, `SystemRandom`) |
@@ -76,8 +88,13 @@ Listed by `lsl list` as `bundled` (descriptions from `lsl about NAME`):
 | `system` | imperative LuxOS/Debian administration helpers (packages, services, users, files) |
 | `tensor` | dense CPU tensors over FloatArray with optional CUDA dispatch |
 | `time` | wall clock, monotonic timing, sleep, UTC formatting |
+| `tls` | TLS 1.2/1.3 over system OpenSSL with key pinning, mTLS, ALPN, cipher control (gnu) |
 | `tui` | full-screen terminal toolkit (cbreak, alternate screen, key decoding) |
 | `unixsock` | Unix-domain sockets with file-descriptor passing |
+
+"(gnu)" marks modules that need `--target linux-x86_64-gnu` (see
+[cli-and-tooling.md](cli-and-tooling.md#running-and-compiling)); since 0.10.12 `lsl install`
+refuses the name of a bundled module.
 
 Optional registry packages (install with `lsl install NAME`) include `display` (X11 /
 framebuffer / DRM output), `gfx` (2D raster graphics), `ui` (widgets), `css` (styles),
@@ -88,6 +105,27 @@ updatable AI library). Run `lsl search` for the current catalog.
 API details: [stdlib-core.md](stdlib-core.md), [stdlib-system.md](stdlib-system.md),
 [stdlib-network-ai.md](stdlib-network-ai.md), [stdlib-graphics-io.md](stdlib-graphics-io.md),
 [stdlib-compute.md](stdlib-compute.md).
+
+## System bindings
+
+Since 0.11.0 a module that calls C (a binding shipped by the distribution) belongs in a system
+bindings directory: `<prefix>/lib/lsl/system/` (`/usr/lib/lsl/system/` on LuxOS) or a directory
+passed with `--system-bindings DIR` to `lsl compile` or `lslc` (repeatable). Such a module is
+trusted like the bundled stdlib: it may call C (`__lsl_qbe_*`, `__lsl_symbol`) even when a
+normal program loads it with `load NAME`, it needs no `# lsl: internal-abi` header and it runs
+in the normal ABI. The same code in a file next to the program is refused ("unsafe operation
+outside an unsafe block"). C calls link only for `--target linux-x86_64-gnu`.
+
+```bash
+# sys/demo_bind.lsl:  function pid(): return __lsl_qbe_call0(__lsl_symbol("getpid")) > 0 ...
+lsl compile --target linux-x86_64-gnu --system-bindings sys app/main.lsl app/main
+```
+
+LuxOS installs its bindings there: `luxos_*` modules (`luxos_gtk`, `luxos_glib`, `luxos_gio`,
+`luxos_sys`, ...) from `luxos-desktop` and `luxui` from `luxos-sdk`. Write applications without
+`# lsl: internal-abi`: outside the LSL sources and these directories it gives warning `W3001`,
+and in that raw ABI Int 0 and `None` are the same word (details and the 0.11.1 gaps in
+[cli-and-tooling.md](cli-and-tooling.md#lslc)).
 
 ## Installing libraries from the registry
 

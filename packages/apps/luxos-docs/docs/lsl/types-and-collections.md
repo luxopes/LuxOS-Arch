@@ -1,8 +1,8 @@
 # LSL types and collections
 
 Built-in value types of Lux Simple Lang, conversions, and the methods of every collection
-type. Source: LSL language specification and function reference (0.10.2), checked against the
-0.10.2 compiler.
+type. Source: LSL language specification and function reference (0.11.1), checked against the
+0.11.1 compiler.
 
 ## Built-in types
 
@@ -34,7 +34,7 @@ else is true. `Bool(value)` converts explicitly.
 
 | Function | Description |
 |---|---|
-| `Int(value)` | to integer; accepts numbers, Bool and decimal Strings (`Int("x")` raises `ValueError`) |
+| `Int(value)` | to integer; accepts numbers (Float truncates toward zero: `Int(-3.7)` is `-3`), Bool and decimal Strings (`Int("x")` and `Int(" 12 ")` raise `ValueError`) |
 | `Float(value)` | to Float (correctly rounded decimal parsing since 0.9.2) |
 | `String(value)` | to text; Float prints the shortest round-trip digits (like Python `repr`) |
 | `Bool(value)` | to truth value |
@@ -42,6 +42,11 @@ else is true. `Bool(value)` converts explicitly.
 | `IntArray()` / `FloatArray()` / `ByteArray()` | new empty packed array; with one argument a checked cast of an existing array of the same type |
 | `set()` / `set(iterable)` | new Set; a Dictionary contributes its keys |
 | `sorted(iterable)` | new stable ascending List (one argument, no `key`/`reverse`); works on sequences, Set and Dictionary keys of compatible numbers or Strings |
+
+Sorting (`sorted()` and `lst.sort()`) accepts either only numbers (Int, Float and Bool mix
+freely: `sorted([3, 1.5, True])` is `[True, 1.5, 3]`) or only Strings, ordered by code point
+(`"C"` before `"a"`). Mixing numbers and Strings, or sorting Lists/Tuples, raises `TypeError`.
+Since 0.10.13 sorting large Lists is 4–9 times faster.
 | `dedup(list)` | shallow List without duplicates in first-occurrence order (structural equality, nested collections allowed) |
 
 ## Indexing and slicing
@@ -60,8 +65,9 @@ del(items[0])
 print items[-2:]
 ```
 
-**Note (0.10.2):** the alternative call-style indexing `items(1)` mentioned in older
-specifications crashed the tested 0.10.2 build; always use `items[1]`.
+**Note (0.11.1):** the alternative call-style indexing `items(1)` mentioned in older
+specifications still crashes the program (segmentation fault, not a catchable error) in
+0.11.1, as does calling any non-Function value; always use `items[1]`.
 
 ## List
 
@@ -76,16 +82,21 @@ specifications crashed the tested 0.10.2 build; always use `items[1]`.
 | `lst.index(x)` | index of the first occurrence |
 | `lst.find(x)` | index of the first occurrence or `-1` (since 0.8.7; also Tuple, RealArray) |
 | `lst.count(x)` | number of occurrences |
-| `lst.sort()` | sort in place |
+| `lst.sort()` | sort in place (same rules as `sorted()`) |
 | `lst.reverse()` | reverse in place |
 | `lst.copy()` | shallow copy |
 
-`+` concatenates Lists (and Tuples).
+`+` concatenates Lists. Tuples cannot be concatenated with `+` (compile error or `TypeError`);
+use `Tuple(List(a) + List(b))`.
 
 ## Dictionary
 
 Keys may be immutable scalars: `String`, `Int`, `Bool`, `None`, `Float` or `Function`.
-Collections, Dictionaries, classes and instances are rejected as keys. Iterating a Dictionary
+Collections, Dictionaries, classes and instances are rejected as keys (compile error `E2001`).
+
+**Note (0.11.1):** the key check is only done at compile time. A List key that reaches the
+Dictionary through an untyped value (a function parameter, a List element) or inside a `try`
+block is stored without an error; do not rely on it. Iterating a Dictionary
 (`for k in d`) yields keys in insertion order.
 
 | Method | Description |
@@ -153,12 +164,12 @@ tables (much faster).
 | Method | Description |
 |---|---|
 | `s.lower()` / `s.upper()` | lower / upper case |
-| `s.strip()` / `s.lstrip()` / `s.rstrip()` | trim whitespace (both ends / start / end) |
+| `s.strip()` / `s.lstrip()` / `s.rstrip()` | trim whitespace (both ends / start / end); with an argument (0.10.6+) trim those characters: `"--x-".strip("-")` is `"x"` |
 | `s.split(sep)` | split into a List. Without argument (0.9.1+) splits on a single space `" "` and does **not** merge repeated spaces: `"a  b".split()` is `["a", "", "b"]` |
 | `s.replace(old, new)` | replace all occurrences |
 | `s.join(list)` | join Strings with `s` as separator |
 | `s.startswith(p)` / `s.endswith(p)` | prefix / suffix test |
-| `s.find(sub)` | index of the first occurrence or `-1` |
+| `s.find(sub)` / `s.find(sub, start)` | index of the first occurrence (from `start`, 0.10.6+) or `-1` |
 | `s.count(sub)` | number of occurrences |
 | `s.title()` / `s.capitalize()` | capitalize words / the first letter |
 

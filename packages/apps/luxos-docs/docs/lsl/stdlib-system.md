@@ -19,7 +19,7 @@ or an argv List.
 | `os.check(command)` | return stdout; non-zero status raises `OSCommandError` |
 | `os.run_argv(program, arguments)` | explicit two-argument variant of `run` |
 | `os.capture_argv(program, arguments)` | explicit two-argument variant of `capture` (`os.capture_argv_clean` also exists) |
-| `os.which(name)` | path of an executable in PATH, or `None` (`os.which_trusted(name)` searches only trusted system directories) |
+| `os.which(name)` | path of an executable in PATH, or `None`; since 0.10.12 an empty PATH entry no longer means the current directory (`os.which_trusted(name)` searches only trusted system directories) |
 | `os.executable(name)` | checked path to an executable |
 
 Errors: `OSCommandError` (non-zero status in `check`), `OSError` (invalid arguments).
@@ -80,7 +80,7 @@ Errors: `SystemError` (invalid input, missing tool, failed command), `PackageErr
 | `system.set_hostname(name)` / `set_timezone(zone)` / `set_locale(locale)` | identity (`"Europe/Prague"`, `"C.UTF-8"`) |
 | `system.ensure_group(name)` / `remove_group(name)` | idempotent group management |
 | `system.ensure_user(name, shell, groups)` / `remove_user(name)` | idempotent user management |
-| `system.write_file(path, content, mode)` | atomic write with permissions |
+| `system.write_file(path, content, mode)` | atomic write with permissions (temporary file + rename); absolute path; since 0.10.13 a directory target raises `SystemError` instead of the file being moved inside |
 | `system.write_owned_file(path, content, mode, owner, group)` | atomic write with owner |
 | `system.ensure_directory(path, mode)` | create a directory with permissions |
 | `system.remove_file(path)` | delete a file |
@@ -95,13 +95,20 @@ Every function also has a `_with` variant that takes explicit tool paths, e.g.
 `system.write_file_with(p, content, mode, owner, group, tool)`,
 `system.rollback_with(g, dry_run, lux)`.
 
+The built-in `writefile` writes in place (truncate, then write), so it also works for `/proc`
+and `/sys`; for configuration that must never be left half-written use `system.write_file`.
+
 **On LuxOS:** `system.install("git")` runs `lux install git` (the LuxOS package manager),
 which asks for confirmation and administrator rights like any `lux` call.
 `system.update(package)` runs `lux update PACKAGE`, and LuxOS `lux update` always updates the
 whole system (it ignores a package name). The declarative
-functions (`check_system`, `apply_system`, `lux_status`, `generations`, `rollback`) call
-`lux check`/`lux apply`/... subcommands from the LSL world; the LuxOS `lux` package manager
-(0.9.x) has no such subcommands, so do not rely on them on LuxOS.
+functions (`check_system`, `apply_system`, `dry_run_system`, `lux_status`, `generations`,
+`rollback`, `rollback_dry`) call `lux check -c`/`lux apply -c`/`lux status`/`lux generations`/
+`lux rollback GEN` subcommands from the LSL world. The LuxOS `lux` package manager (LuxOS 1.0,
+`lux` 0.3) has no `apply`, `status` or `generations`, and its `lux check` and
+`lux rollback [snapshot]` mean something else (list available updates / return the whole system
+to a snapshot). **Do not call these functions on LuxOS**; LuxOS has its own declarative
+`lux system show|check|diff|apply` over `/etc/luxos/system.lsl`.
 
 ```lsl
 load system
@@ -126,7 +133,7 @@ records generations for rollback.
 | `luxos.validate_config(config)` / `luxos.field(config, name, fallback)` | validation / field access |
 
 Errors: `ValueError` for an invalid manifest. This engine belongs to the LSL project; LuxOS
-(Arch-based, 0.9.x) does not use it for its own configuration.
+(Arch-based, 1.x) does not use it for its own configuration (see `lux system` above).
 
 ## config and lsl config
 

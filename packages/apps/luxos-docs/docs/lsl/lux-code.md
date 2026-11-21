@@ -95,7 +95,9 @@ A Qt 6 development environment that uses the installed `lsl` for everything:
   matching, comment toggle (Ctrl+/), find/replace, tabs, 11 color themes (Neon default).
 - **Errors:** background check by running `lsl compile` on a hidden copy about 0.7 s after
   typing (retried with `--unsafe` when needed); squiggles and a Problems panel with the
-  compiler's code, message and `help:` hint. The compiler reports one error at a time.
+  compiler's code, message and `help:` hint (warnings too). The compiler reports one error at a
+  time (verified with LSL 0.11.1). Because the check uses `lsl compile`, it does not show
+  `W3001` for `# lsl: internal-abi` in 0.11.1 (only `lslc` reports it).
 - **Completion and symbols:** keywords, built-ins, local functions/classes, modules from
   `lsl list` and their functions; F12/Ctrl+click go to definition (also into stdlib), Ctrl+I
   symbol info, F1 manual.

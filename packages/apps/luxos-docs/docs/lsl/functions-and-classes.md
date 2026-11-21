@@ -78,8 +78,11 @@ f = double
 print f(4), apply(double, 5)     # 8 10
 ```
 
-Lexical closures are **not** supported (a nested function does not capture local variables of
-the enclosing function). Pass data explicitly or use globals.
+Nested functions are not supported (`E1248`, since 0.10.7), so there are no lexical closures.
+Define helpers at module level and pass data explicitly or use globals.
+
+A function that returns a number on one path and `None` on another really returns `None`
+(before 0.10.7 it could come back as `0`).
 
 ## Classes
 
@@ -107,20 +110,24 @@ print car.motor(10)        # Lux: 10
 - `ctype Public` (default) exports the class from its module; `ctype Private` prevents export.
 - The historical header `class Name(True):` remains valid.
 
-**Note (0.10.2) – instances in collections:** in the tested 0.10.2 build, calling a method or
-reading a field with `.` works when the compiler knows the class of the variable (it was
-assigned from a constructor, or is `self`, or a parameter of a function called with such a
-variable). On values taken out of a List/Dictionary (type `Any`), `x.method()` failed
-(`type Any has no method ...` at compile time, or `AttributeError` at run time) and `x.field`
-was rejected. Reading fields with dictionary syntax works there: `x["field"]`. Keep
-heterogeneous records as Dictionaries, or keep instances in individual variables.
+**Instances in collections and parameters (since 0.10.7):** `x.field` and `x.method()` also
+work on instances taken out of a List or Dictionary or passed to a function, where the
+compiler does not know the class. Dictionary syntax `x["field"]` works as well.
 
 ```lsl
 items = [Car("Lux"), Car("Nova")]
 for c in items:
-    print c["brand"]          # works; c.brand / c.motor(1) did not in 0.10.2
+    print c.brand, c.motor(1), c["brand"]
 end
 ```
+
+**Note (0.11.1) – methods defined by several classes:** when the class of the receiver is not
+known at compile time (parameter, List element) and more than one class defines a method with
+that name (for example a parent and a child that overrides it), `x.method()` raises
+`AttributeError: method ... is defined by several classes and the receiver's class is not
+known` (or `E2001` at compile time). Call such methods on variables assigned from a
+constructor, or give the methods distinct names. Also, inside an inherited method `self.m()`
+calls the parent's own `m`, not the child's override (no virtual dispatch through `self`).
 
 ### Class (static) attributes
 
@@ -142,9 +149,9 @@ b = Counter()
 print a.number, b.number, Counter.total     # 1 2 2
 ```
 
-**Note (0.10.2):** read class attributes through the class name (`Counter.total`). Reading a
+**Note (0.11.1):** read class attributes through the class name (`Counter.total`). Reading a
 class attribute through an instance (`a.total`), as shown in older specification examples,
-raised `KeyError` in the tested 0.10.2 build.
+still raises `KeyError` in 0.11.1.
 
 ### Inheritance and origin
 
@@ -193,7 +200,7 @@ load helpers
 print helpers.area(3, 4)
 ```
 
-`load util.text` loads `util/text.lsl` relative to the importing file; in 0.10.2 its members
+`load util.text` loads `util/text.lsl` relative to the importing file; in 0.11.1 its members
 are then used with the last name component, `text.shout(...)` (or give an alias:
 `load util.text as t`, then `t.shout(...)`). Avoid cyclic imports.
 See [modules.md](modules.md) for aliases, `from ... load` and the search order.

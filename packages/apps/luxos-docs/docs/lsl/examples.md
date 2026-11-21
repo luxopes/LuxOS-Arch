@@ -1,7 +1,8 @@
 # LSL examples
 
-Complete programs for Lux Simple Lang 0.10.2. Every example on this page was compiled and run
-with the 0.10.2 compiler (the HTTP example against the live LSL registry). Save as `NAME.lsl`
+Complete programs for Lux Simple Lang 0.11.1. Every example on this page was compiled and run
+with the 0.11.1 compiler (the HTTP example against the live LSL registry; the chatbot was only
+compiled). Save as `NAME.lsl`
 and run with `lsl NAME.lsl`.
 
 ## Hello world and arguments
@@ -49,7 +50,8 @@ end
 ```
 
 `input` always returns a String, so the text is converted with `Int(...)` inside `try`. At end
-of input (Ctrl-D or a pipe) `input` returns an empty string, which ends the loop here.
+of input (Ctrl-D or a pipe) `input` returns an empty string, which ends the loop here; where an
+empty line must be told apart from end of input, test `input_eof()` (0.10.10+).
 
 ## Word count of a file (arguments, files, dictionaries, sorting)
 

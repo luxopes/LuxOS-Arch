@@ -1,8 +1,10 @@
 # LSL standard library: terminal, graphics and low-level I/O
 
-`tui`, `fd`, `unixsock`, `native`, `plugin` (bundled) and the graphics modules `display`,
+`tui`, `fd`, `unixsock`, `native`, `plugin` (bundled), the graphics modules `display`,
 `gfx`, `ui`, `css`, `input` (since 0.8.2 **optional registry packages**: `lsl install display`,
-`lsl install gfx`, `lsl install ui`, `lsl install css`, `lsl install input`).
+`lsl install gfx`, `lsl install ui`, `lsl install css`, `lsl install input`) and a short
+overview of the bundled GTK/GLib/cairo modules (target `linux-x86_64-gnu`). Checked against
+LSL 0.11.1.
 
 ## tui — full-screen terminal programs
 
@@ -32,8 +34,10 @@ call term.leave()              # always restore the terminal
 ```
 
 Drawing: `clear`, `clear_line`, `move(row, col)`, `text_at(row, col, text)`, `emit(text)`,
-`flush`. Style: `reset_style`, `set_fg(code)`, `set_bg(code)`, `bold`, `invert`. Input:
-`read_byte(timeout)`, `read_key()`. `emit` + `flush` also give smooth output without newlines
+`flush` (since 0.10.3 `emit` copies text in linear time, so long frames no longer build up
+quadratically). Style: `reset_style`, `set_fg(code)`, `set_bg(code)`, `bold`, `invert`. Input:
+`read_byte(timeout)`, `read_key()`. Helper `tui.fit(text, width)` pads or truncates to exactly
+`width` columns. `emit` + `flush` also give smooth output without newlines
 in normal programs (e.g. streaming AI text).
 
 The registry package `term` offers lower-level raw terminal control (termios ioctls,
@@ -70,6 +74,9 @@ count)`, `send_fd(handle, payload, count, descriptor)`, `send_from(...)`, `send_
 `recv_fds(handle, payload, count, fds)`, helpers `memfd(name, size)`, `pipe_nonblock()`,
 `set_nonblocking(handle)`, `chmod_path`, `chown_path`. Errors: `UnixSocketError`.
 
+Sends use `MSG_NOSIGNAL`: since 0.10.13 writing to a client that has disconnected returns a
+negative errno (`-32`, EPIPE) instead of killing the server with SIGPIPE – check the result.
+
 ## native — fork-isolated native kernels
 
 | Function | Description |
@@ -89,6 +96,7 @@ part of ABI v1. Native operations must be inside an `unsafe:` block under checke
 | `plugin.request(executable, operation, payload)` | run the plugin as a process, exchange JSON over stdin/stdout, check the exit status |
 | `plugin.request_input(executable, operation, payload)` | compatible alias of `request` |
 | `plugin.request_argv(executable, operation, payload)` | legacy argv transport; do not use for secrets |
+| `plugin.request_with_timeout(executable, operation, payload, seconds)` | like `request`, but the plugin process is stopped after `seconds` (1–3600, via `timeout`) |
 
 ## display — window output (optional package)
 
@@ -120,7 +128,10 @@ Rasterizers over raw IntArray pixels (`pixels, w, h` first): `raster_clear`, `ra
 `raster_fill_pill`, `raster_glyph` / `raster_text` (8×16 font), `raster_glyph_scaled` /
 `raster_text_scaled`, `raster_glyph_aa` / `raster_text_aa` (2×2 supersampling),
 `raster_gradient(pixels, w, h, top, bottom)`, `raster_round_rect(..., radius, color, alpha,
-feather)`, `raster_round_rect_grad`, `raster_shadow(..., radius, color, alpha, blur)`.
+feather)`, `raster_round_rect_grad`, `raster_shadow(..., radius, color, alpha, blur)`. Package gfx 0.10.9+ adds in-place
+`raster_blur(pixels, w, h, radius)` (≈ Gaussian, cost independent of the radius) and
+`raster_saturate(pixels, w, h, factor)`; since gfx 0.10.10 they keep the alpha of `0xAARRGGBB`
+pixels and a Float or huge radius no longer hangs (`lsl update gfx` for an older copy).
 
 Surface object `s = gfx.surface(width, height, color)`: `clear`, `get(x, y)`, `set(x, y, c)`,
 `hline`, `vline`, `fill_rect`, `rect`, `line`, `blit`, `text(x, y, value, color)` (returns width),
@@ -157,3 +168,48 @@ colors: `ui.color_background`, `color_text`, `color_muted`, `color_accent`,
 `key_tab`, `key_space` (the installed version may differ; check `lsl man input`).
 
 A complete graphical example (Snake) in the LSL sources needs `display` and `gfx`.
+
+## GTK, GLib, D-Bus, cairo and pango (target linux-x86_64-gnu)
+
+Bundled since 0.10.4–0.10.6: `glib` (main loop, timers, UNIX signals, processes, locale date
+and time), `gio` (D-Bus, file monitors), `gtk` (GTK 3 widgets and windows), `cairo` and
+`pango`. They call the system libraries directly, so the program must be built for the dynamic
+glibc target:
+
+```bash
+lsl compile --target linux-x86_64-gnu app.lsl app
+```
+
+Running such a source directly with `lsl app.lsl` uses the static target and fails with
+`luxir: link: undefined symbol g_...`.
+
+```lsl
+load glib
+function on_tick():
+    print "tick"
+    call glib.main_quit()
+    return False        # False removes the timer
+end
+call glib.timeout_add(100, on_tick)
+call glib.main()
+```
+
+Callback records (0.11.0): every handler handed to C is kept in a record owned by `glib`.
+`glib.record_new(f, count)` / `record_bound(f, count, value)` create one and return the
+pointer for `user_data`; `glib.record_free(record)` releases it (`True` if it existed, a second
+call returns `False`); `glib.callback_destroy()` is a `GDestroyNotify` that frees the record
+when the library no longer needs it; `glib.record_count()` counts live records (leak hunting in
+long-running shells and panels). `glib.listener_new(f)` / `glib.listener_free(l)` create and
+unlink a `struct wl_listener` for wayland-server/wlroots (`notify` calls `f(data)`).
+
+**Note (0.11.1):** the convenience wrappers `glib.timeout_add`, `idle_add`,
+`timeout_add_full`, `signal_connect` (and the same in `gtk`) do not pass `callback_destroy`,
+so their records stay alive after a timer returns `False` or a signal is disconnected
+(`record_count()` grows). Avoid creating unbounded numbers of one-shot timers in a service.
+
+Callbacks may only arrive on the thread that created the first record (the main loop). A
+callback from another thread prints `LSL callback from non-main thread` and aborts the process;
+forward such events through a pipe or `g_main_context_invoke`. A handler error in `gtk` is
+printed to stderr and the loop keeps running. Since 0.10.10 `gtk.pixbuf_blur` keeps transparent
+edges and blur/saturate with other formats than ARGB32/RGB24 raise `ValueError`. Full reference:
+`lsl man gtk`.

@@ -1,18 +1,20 @@
 # LSL built-in functions
 
 Functions and statements available everywhere without `load` (section 1 of the official LSL
-function reference), with notes where the tested **0.10.2** compiler differs. `help("NAME")`
+function reference), with notes on the tested **0.11.1** compiler. `help("NAME")`
 inside a program and `lsl help NAME` print the built-in help text for most of them.
 
 ## Output and input
 
 | Function | Description |
 |---|---|
-| `print arg1, arg2, ...` | print arguments separated by a space, end with a newline |
+| `print arg1, arg2, ...` | print arguments separated by a space, end with a newline; since 0.10.10 `print(a, b)` does the same, while `print (a, b)` with a space prints the Tuple |
+| `eprint(value)` | write `String(value)` and a newline to stderr (pending `print` output is flushed first; 0.10.6+) |
 | `printl "text {expr}"` | print an interpolated string (expressions in `{...}` are replaced) and a newline |
 | `printr arg1, ...` | print values exactly, no separators and no newline (0.9.1+) |
 | `l"text {expr}"` | first-class interpolated String; can be assigned, returned and passed |
-| `input "prompt"` / `input("prompt")` | print the prompt, read one line from stdin, return a String without the trailing LF |
+| `input "prompt"` / `input("prompt")` | print the prompt, read one line from stdin, return a String without the trailing LF; `""` at end of input |
+| `input_eof()` | `True` when `input` hit end of input (Ctrl-D, end of a pipe), so an empty line can be told apart (0.10.10+) |
 
 ## Type conversion and construction
 
@@ -41,7 +43,7 @@ Variable declarations (`Int(x) = 10`), `i++` and initialization rules are descri
 | `sum(collection)` | sum of the elements |
 | `abs(x)` | absolute value (Int, Bool or Float) |
 | `sqrt(x)` | square root as Float; negative input raises `ValueError` |
-| `round(x)` | round a Float to the nearest integer |
+| `math.round(x)` | round to the nearest integer (`load math`; there is no built-in `round`, it is error E2001) |
 
 ## Bits
 
@@ -57,7 +59,7 @@ Variable declarations (`Int(x) = 10`), `i++` and initialization rules are descri
 
 | Function | Description |
 |---|---|
-| `chr(code)` | one-character String for a Unicode code point |
+| `chr(code)` | one-character String for a Unicode code point; outside 0..0x10FFFF `ValueError` (0.10.13+) |
 | `ord(char)` | Unicode code point of the first character |
 
 ## Time and processes (basic)
@@ -127,12 +129,13 @@ print thread_join(t), thread_join(u), counter[0]   # 0 0 2000
 | Function | Description |
 |---|---|
 | `mkdir(path)` | create a directory |
-| `cwd()` | absolute path of the working directory – **Note (0.10.2):** not available, compile error "unknown native function" |
-| `chdir(path)` | change the working directory – **Note (0.10.2):** not available |
-| `remove_path(path)` | delete a file or empty directory – **Note (0.10.2):** not available |
+| `cwd()` | absolute path of the working directory |
+| `chdir(path)` | change the working directory |
+| `remove_path(path)` | delete a file or empty directory |
+| `listdir(path)` | List of entry names without `.` and `..`, unspecified order (use `sorted`); `FileError` if unreadable |
 
-In 0.10.2 use the `os` module instead, e.g. `os.run(["rm", "-f", path])`,
-`os.capture("pwd")`, or `system.remove_file(path)` from the `system` module.
+`cwd`, `chdir`, `remove_path` and `args` work since 0.10.7 (in 0.10.2 they were missing);
+`listdir` exists since 0.10.6.
 
 ## Process and arguments
 
@@ -140,7 +143,7 @@ In 0.10.2 use the `os` module instead, e.g. `os.run(["rm", "-f", path])`,
 |---|---|
 | `arg(index)` | program argument at a position (0 = program name, 1 = first user argument), or `None` |
 | `arg_count()` | number of arguments including the program name |
-| `args` | global List of all arguments – **Note (0.10.2):** not available (unknown variable); use `arg()` and `arg_count()` |
+| `args` | global List of all arguments, `args[0]` is the program path (0.10.7+) |
 | `run(program, arguments)` | run a program with an argv List, no shell; returns the exit status |
 | `capture(program, arguments)` | run and return stdout as String |
 | `capture_stream(program, arguments, callback)` | run and stream output chunks to a callback |
@@ -151,9 +154,9 @@ In 0.10.2 use the `os` module instead, e.g. `os.run(["rm", "-f", path])`,
 | `exit(status)` | terminate the program with the exit code |
 
 Status codes: exit code of the program, `128 + signal` when killed by a signal, `126` when fork
-or wait failed, `127` when exec failed. In 0.10.2 `run`/`capture` need a path to the
-executable (`capture("/usr/bin/echo", ["hi"])`); `capture("echo", ...)` returned status 127.
-Use `system()` or the `os` module for PATH lookup.
+or wait failed, `127` when exec failed. `run`/`capture` do no PATH lookup and need a path to the
+executable (`capture("/usr/bin/echo", ["hi"])`); in 0.11.1 `capture("echo", ...)` still returns
+status 127. Use `system()` or the `os` module for PATH lookup.
 
 ```lsl
 out = capture("/usr/bin/uname", ["-r"])
@@ -177,7 +180,7 @@ See [errors.md](errors.md).
 | Function | Description |
 |---|---|
 | `len(value)` | length of a String (Unicode characters), list, dictionary or array |
-| `help()` / `help("TOPIC")` | print the topic list / help for a command, construct or module; accepts a runtime String, returns `None`; unknown topic raises `HelpError`. For a library the output starts with the same short description as `lsl about NAME` and works for installed user libraries too. Full manual: `lsl man` |
+| `help()` / `help("TOPIC")` | print the topic list / help for a command, construct or module; accepts a runtime String, returns `None`; in 0.11.1 an unknown topic prints `No help available for topic: ...` and returns `None` (no `HelpError`). For a library the output starts with the same short description as `lsl about NAME` and works for installed user libraries too. Full manual: `lsl man` |
 | `del(x)` | delete a variable, collection element or instance member |
 | `rang(...)` / `range(...)` | integer sequences (see [control-flow.md](control-flow.md#rang--range)) |
 

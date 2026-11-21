@@ -87,7 +87,7 @@ end
 
 ## check — preconditions
 
-`check(condition, "message")` raises an error (reported as `CheckError` in 0.10.2) when the
+`check(condition, "message")` raises an error (reported as `CheckError`, verified in 0.11.1) when the
 condition is false. Division by zero raises `ZeroDivisionError`.
 
 ```lsl
@@ -136,7 +136,9 @@ error[TypeError]: sequence index must be Int, got String
 Colors follow `NO_COLOR` / `FORCE_COLOR` / `TERM=dumb`. The source line is shown only for
 `.lsl` files, so errors pointing into `.env` or configuration do not print secret values. A
 worker thread that dies with an uncaught error prints `LSL worker error: ...`; other threads
-and the main program continue.
+and the main program continue. An error in a GLib/GTK handler (target `linux-x86_64-gnu`) prints
+`LSL callback error: ...` and the handler returns 0; the main loop keeps running. A callback from
+a thread other than the main one aborts the process (`LSL callback from non-main thread`).
 
 ## Error types used by standard modules
 
@@ -148,8 +150,14 @@ and the main program continue.
 | `system` | `PackageError`, `SystemError` | packaging / system administration error |
 | `tensor` | `TensorShapeError`, `TensorIndexError`, `TensorLayoutError` | bad shape, index out of range, non-contiguous tensor |
 | `config` | `ConfigCycleError` | cyclic configuration dependency |
-| `fd` | `FileError` | file or socket error |
-| built-in `help()` | `HelpError` | unknown help topic |
+| `fd`, `listdir`, `crypto` | `FileError` | file or socket error |
+| `net` | `OSError`, `TimeoutError` | socket error, timeout |
+| `tls` | `TLSError`, `TimeoutError` | handshake/verification failure, write after a reset (0.10.13+) |
+| `crypto` | `CryptoError` | OpenSSL operation failed |
+| `mdns` | `MDNSError` | DNS-SD / mDNS failure |
+| `gio` | `DBusError` | D-Bus call or name error |
+| `chr`, `cairo`, many modules | `ValueError` | argument out of range |
+| built-in `help()` | `HelpError` | documented for an unknown topic, but in 0.11.1 `help("unknown")` only prints `No help available ...` and returns `None` |
 | X11 output | `X11Error` | display disconnected or timed out |
 
 ```lsl
@@ -167,20 +175,25 @@ end
 
 Compile errors and warnings have codes and point at the source:
 
-| Code | Meaning (examples seen in the manual and 0.10.2) |
+| Code | Meaning (examples seen in the manual and 0.11.1) |
 |---|---|
 | `E0011` | unterminated block comment |
 | `E1100` | expected an expression (syntax) |
 | `E1119` | comma before `for` in a comprehension (`[0, for x in rang(3)]`) |
-| `E2001` | unknown function/variable, wrong operand types, or a call statement without `call` |
+| `E1248` | nested function definition (define it at module level; 0.10.7+) |
+| `E2001` | unknown function/variable (also `round`), wrong operand types, or a discarded function result without `call` (`f()` must be `call f()`; instance method calls such as `a.m()` are exempt) |
 | `E2002` | local variable read before it is assigned on every path |
 | `E2003` | conflicting type-constraint declarations |
 | `W2004` | assignment inside a function creates a local that shadows a global (use `global`) |
 | `E3001` | library not found (`load NAME`): check `./NAME.lsl`, or `lsl search NAME` / `lsl install NAME` |
 | `E3002` | library exists but cannot be read |
+| `E3003` | `from MODULE load NAME`: the module has no such function, class or global (0.10.10+) |
+| `W3001` | `# lsl: internal-abi` outside the LSL sources and system binding directories (`lslc` only in 0.11.1); an error in a later release. Since 0.11.1 the help line explains that Int 0 and `None` are the same word in that ABI |
 
 The compiler reports the first error it finds. `lsl compile` (checked mode) also rejects private
-`__lsl_*`, native and thread operations outside an `unsafe:` block.
+`__lsl_*`, native and thread operations outside an `unsafe:` block ("unsafe operation outside an
+unsafe block"), except in trusted system bindings (see
+[modules.md](modules.md#system-bindings)). Warnings do not stop compilation.
 
 ## How to choose
 

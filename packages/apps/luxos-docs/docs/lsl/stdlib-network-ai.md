@@ -1,6 +1,7 @@
 # LSL standard library: HTTP, servers and AI
 
-`http`, `requests`, `httpserver` (and `lsl server`) and `ai` (`aikit`). The HTTP clients run
+`http`, `requests`, `httpserver` (and `lsl server`), `ai` (`aikit`) and a pointer to the raw
+network modules `net`, `tls`, `crypto` and `mdns`; checked against LSL 0.11.1. The HTTP clients run
 the system `/usr/bin/curl` by direct `execve` with its configuration on **stdin**, so request
 bodies, Authorization headers and other secrets never appear in the process argv. Plain HTTP is
 allowed only for numeric loopback `127.0.0.1` / `[::1]`; everything else requires HTTPS
@@ -67,7 +68,7 @@ path and symlink escapes fail in the kernel.
 | `httpserver.serve_static_tls(root, address, port, cert, key, max_requests)` | static HTTPS through the system nginx/OpenSSL; `max_requests` must be `0` |
 | `httpserver.serve_workers(handler, address, port, workers, max_requests)` | worker pool of 1–64 threads (protect shared state with `lock`/atomics); returns the number of requests served |
 | `httpserver.serve_listener(...)`, `serve_listener_workers(...)` | serve an existing listener |
-| `httpserver.set_body_limit(n)` / `body_limit()` | request body limit (default unlimited) |
+| `httpserver.set_body_limit(n)` / `body_limit()` | request body limit; since 0.10.12 the default is 16 MiB (`16777216`), `set_body_limit(0)` = unlimited; larger bodies get `413` |
 | `httpserver.stream_write(stream, data)` | send a String/ByteArray chunk; `False` when the client closed |
 | `httpserver.sse_event(stream, data, event=None)` | send one Server-Sent Event |
 
@@ -76,7 +77,10 @@ The handler receives `{"ok", "method", "target", "version", "headers" (lowercase
 charset=utf-8"}`, `{"status": 404, "body": "not found"}` or `{"content_type":
 "text/event-stream", "stream": function(stream)}`. An error in the handler becomes `500`.
 Invalid methods/targets/header values get `400`; repeated `Content-Length`,
-`Transfer-Encoding` and `Host` are rejected. The plain `serve` accept loop is single-threaded.
+`Transfer-Encoding` and `Host` are rejected. Since 0.10.12 the request header must arrive
+within 10 s (an idle read times out sooner) and the body at an average of at least 16 KiB/s,
+otherwise `408`; transient `accept` errors no longer stop the server. The plain `serve` accept
+loop is single-threaded.
 Errors: `ServerError` (e.g. port in use).
 
 ```lsl
@@ -99,7 +103,7 @@ lsl server --help          # defaults and all options (--once, --max-requests N)
 
 ## ai — OpenAI-compatible chat with tools
 
-`load ai` (bundled; in 0.10.2 at the level of `aikit` 1.2.0). The same API is available as
+`load ai` (bundled; in 0.11.1 still at the level of `aikit` 1.2.0, `ai.version == "1.2.0"`). The same API is available as
 the separately updatable registry package `aikit`: `lsl install ai` / `lsl update ai` install
 `aikit`, and since 0.9.1 `load ai` uses the per-user `aikit.lsl` when it is newer than the
 bundled module. On older LSL write `load aikit as ai`.
@@ -141,3 +145,22 @@ Tool calling: pass `{"tools": tools, "tool_choice": "required"}`, read
 `ai.tool_message(call["id"], call["name"], result)` per call, then repeat the request. Keep the
 API key in `.env` (read with `load env`); the library does not store it and it is not passed in
 argv. See the full streaming chatbot in [examples.md](examples.md).
+
+## net, tls, crypto, mdns — raw networking (target linux-x86_64-gnu)
+
+Bundled since 0.10.7 for programs built with `lsl compile --target linux-x86_64-gnu`:
+`net` (TCP IPv4/IPv6 with timeouts – `tcp_listen`, `accept`, `tcp_connect(host, port,
+timeout_ms=10000)`, `send`, `recv` – UDP, multicast, `interfaces()`), `tls` (TLS 1.2/1.3 over
+the system OpenSSL: `context("client"|"server")`, `verify_system`, `verify_none` plus key
+pinning, mTLS, ALPN, `client(ctx, sock, server_name)`, `server`, `handshake`, `read`, `write`,
+`close`), `crypto` (SHA-2, HMAC, EC P-256 keys, ECDSA, self-signed X.509, constant-time compare)
+and `mdns` (DNS-SD through Avahi or plain mDNS). Full reference: `lsl man network`.
+
+- Since 0.10.12 `tls.client` with `verify_system` requires `server_name` (raises `TLSError`
+  otherwise); an IP `server_name` is matched against the IP in the certificate. mDNS ignores
+  packets from outside the local subnet.
+- Since 0.10.13 a write after the peer reset the connection raises a catchable `TLSError`
+  (`Broken pipe`) instead of killing the process with SIGPIPE; `net.send` uses `MSG_NOSIGNAL`.
+- `lsl install` refuses names of built-in modules (since 0.10.12), so a registry package
+  cannot shadow `tls`, `net` and others.
+

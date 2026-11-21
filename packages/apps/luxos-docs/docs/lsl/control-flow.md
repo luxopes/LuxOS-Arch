@@ -18,6 +18,14 @@ end
 At most one branch runs. `elif` and `else` are optional and conditions may nest. Any value can
 be a condition (see truthiness in [types-and-collections.md](types-and-collections.md#truthiness)).
 
+### Conditional expression (since 0.10.7)
+
+`A if CONDITION else B` is an expression: only the chosen side is evaluated.
+
+```lsl
+label = "adult" if age >= 18 else "child"
+```
+
 ## for
 
 `for ITEM in ITERABLE: ... end` iterates over Lists, Tuples, Sets, arrays, Dictionaries (keys),
@@ -64,7 +72,10 @@ Nested loops that reuse the same variable name have their own counters.
 
 In `for i in rang(...)` no List is built. Anywhere else (since 0.8.7) `rang(...)` is a List
 value, so `List(rang(2, 101))`, `len(rang(10))` or `print rang(3)` work. At most 100,000,000
-elements.
+elements. Since 0.10.12 `for i in rang(...)` whose step would pass the end of the Int64 range stops
+correctly instead of wrapping around. **Note (0.11.1):** the List form of such a range (for
+example `len(rang(9223372036854775800, 9223372036854775807, 5))`) still fails with
+`MemoryError`.
 
 ## while
 
@@ -84,7 +95,7 @@ Repeats while the condition is true.
 ```lsl
 loop:
     line = input "> "
-    if line == "quit":
+    if line == "quit" or input_eof():   # input_eof(): Ctrl-D / end of a pipe
         break
     end
     print "You typed", line

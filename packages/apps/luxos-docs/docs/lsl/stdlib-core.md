@@ -1,7 +1,7 @@
 # LSL standard library: core modules
 
 `lux`, `math`, `bigint`, `json`, `lconf`, `env`, `time` and `random`. All are bundled with
-LSL 0.10.2 (`load NAME`). `lsl man NAME` shows the offline manual of a module.
+LSL 0.11.1 (`load NAME`). `lsl man NAME` shows the offline manual of a module.
 
 ## lux
 
@@ -15,9 +15,9 @@ Core module with small helpers.
 | `lux.clamp(value, low, high)` | clamp into `<low, high>` |
 | `lux.is_empty(collection)` | `True` if the collection is empty |
 
-**Note (0.10.2):** the reference also lists `lux.l(value)` (alias of `type`), but the shipped
-`lux.lsl` does not define it – use `type(value)`. The shipped `lux.version` still says `"0.7.8"`;
-use `lsl version` for the real compiler version.
+**Note (0.11.1):** the reference also lists `lux.l(value)` (alias of `type`), but the shipped
+`lux.lsl` does not define it – use `type(value)`. Since 0.10.10 `lux.version` matches the real
+compiler version (`"0.11.1"`; in 0.10.2 it still said `"0.7.8"`).
 
 ## math
 
