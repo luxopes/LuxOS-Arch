@@ -125,7 +125,17 @@ cmd_start() {
     echo "$mode" >"$s/mode"
 
     # Jen virtualni backendy - kompozitor nikdy nesmi sahnout na DRM/libinput hostitele
-    local -a wenv=(WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 WLR_DRM_DEVICES=/nonexistent)
+    local -a wenv=(WLR_LIBINPUT_NO_DEVICES=1 WLR_DRM_DEVICES=/nonexistent)
+    # WLT_RENDER_NODE=/dev/dri/renderD128: renderer gles2 na GPU (jen render node, nikdy card* ani DRM master);
+    # renderer vybira kompozitor sam jako na skutecnem pocitaci. Backend gbm hleda i v sysrootu (Mesa stejne verze).
+    if [[ -n ${WLT_RENDER_NODE-} ]]; then
+        [[ $WLT_RENDER_NODE =~ ^/dev/dri/renderD[0-9]+$ && -c $WLT_RENDER_NODE ]] \
+            || die "WLT_RENDER_NODE must be a render node /dev/dri/renderD*"
+        wenv+=("WLR_RENDER_DRM_DEVICE=$WLT_RENDER_NODE")
+        [[ -n $sysroot ]] && wenv+=("GBM_BACKENDS_PATH=$sysroot/usr/lib/gbm:/usr/lib/gbm")
+    else
+        wenv+=(WLR_RENDERER=pixman)
+    fi
     if [[ $mode == headless ]]; then
         wenv+=(WLR_BACKENDS=headless "WLR_HEADLESS_OUTPUTS=$outputs")
     else
