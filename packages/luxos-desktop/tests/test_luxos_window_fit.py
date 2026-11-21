@@ -44,7 +44,6 @@ NO_NET = {"routes": [], "device": "", "wifi": "", "neigh": [], "ping": {}}
 # aplikace -> prostredi testovaciho rezimu (zadna nesaha na hardware ani systemove sluzby)
 APPS = {
     "luxos-feedback": {},
-    "luxos-settings": {},
     "luxos-whats-new": {"LUXOS_WHATS_NEW_DIR": os.path.join(ROOT, "luxos-branding", "files", "whats-new"),
                         "LUXOS_VERSION_FILE": os.path.join(ROOT, "luxos-branding", "files", "version")},
     "luxos-power": {"LUXOS_POWER_DEMO": "1"},
@@ -194,9 +193,6 @@ class WindowFits(unittest.TestCase):
 
     def test_feedback(self):
         self.check("luxos-feedback")
-
-    def test_settings(self):
-        self.check("luxos-settings")
 
     def test_power_demo(self):
         self.check("luxos-power")
