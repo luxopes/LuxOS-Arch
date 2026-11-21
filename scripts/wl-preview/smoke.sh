@@ -6,6 +6,8 @@
 # do plochy (lista + Dock), pad listy = jen lista znovu, Terminal, prejezd plochy, oznameni, XWayland, zamek,
 # PSS cele relace a zadny Python v necinne relaci, odhlaseni zpet na prihlaseni, pad kompozitoru zpet na
 # prihlaseni, relace LuxOS (X11) z prihlasovaci obrazovky; casy start -> prihlaseni a prihlaseni -> plocha.
+# Greeter, lista, Dock a okna se ovladaji i mysi (absolutni mys QEMU) a kontroluje se, ze se obraz opravdu zmeni.
+#   LUXOS_SMOKE_START=--tablet ...   totez s usb-tablet misto vmmouse (start.sh --tablet)
 set -uo pipefail
 here=$(dirname "$(readlink -f "$0")")
 repo=$(readlink -f "$here/../..")
@@ -46,16 +48,40 @@ luxos_session() { ctl exec "loginctl list-sessions --no-legend | awk '\$3 == \"l
 login() {  # prihlaseni heslem z prihlasovaci obrazovky
     ctl keys luxos >/dev/null; ctl key ret >/dev/null
 }
+# Vstup mysi jako clovek (QMP input-send-event: absolutni mys QEMU, vmmouse nebo usb-tablet) a kontrola, ze se
+# obraz opravdu zmenil: zamrzly klient (greeter po prvnim snimku) proces i stopu ma, ale nic neprekresli
+click() { ctl click "$1" "$2" "$W" "$H" >/dev/null; }
+grab() { ctl move 8 400 "$W" "$H" >/dev/null; sleep "${2:-0.6}"; ctl shot "$out/$1.ppm" >/dev/null; }   # kurzor mimo
+changed() {  # changed A B X Y W H: pocet zmenenych pixelu v obdelniku (snimky z grab)
+    python3 -c 'import sys
+def load(p):
+    d = open(p, "rb").read()
+    m, w, h, mx, px = d.split(maxsplit=4)
+    return int(w), px
+(w, a), (_, b) = load(sys.argv[1]), load(sys.argv[2])
+x, y, bw, bh = map(int, sys.argv[3:7])
+print(sum(a[i:i + 3] != b[i:i + 3] for r in range(y, y + bh) for i in range((r * w + x) * 3, (r * w + x + bw) * 3, 3)))' \
+        "$out/$1.ppm" "$out/$2.ppm" "${@:3}"
+}
+redrawn() { (($(changed "$@") > 40)); }   # redrawn A B X Y W H
 
 "$vm/start.sh" --reset >/dev/null
 t0=$(now)
-"$vm/start.sh" --headless >"$out/qemu.log" 2>&1 &
+"$vm/start.sh" --headless ${LUXOS_SMOKE_START:-} >"$out/qemu.log" 2>&1 &
 qpid=$!
 trap 'ctl quit >/dev/null 2>&1; wait $qpid 2>/dev/null; "$vm/start.sh" --reset >/dev/null' EXIT
+
+# prubeh obrazu pri startu: splash Plymouthu az do greeteru bez cerne mezery a textove konzole
+sleep 0.5
+python3 "$here/boot-frames.py" "$vm/qmp2.sock" "$out/boot" 300 >"$out/boot-frames.txt" 2>&1 &
+frames_pid=$!
 
 # 1. start do prihlasovaci obrazovky
 check "greeter up after boot" wait_for 300 "$greeter_up"
 echo "boot_to_greeter_s=$(since "$t0")" | tee "$out/result.txt"
+check "boot splash until the greeter, no dark frame in between" wait $frames_pid
+grep splash_to_greeter_s "$out/boot-frames.txt" | tee -a "$out/result.txt"
+check "splash ended (plymouth quit after the greeter's first frame)" bash -c "! ctl exec 'pgrep -x plymouthd' 2>/dev/null | grep -q '[0-9]'"
 sleep 3   # prvni snimek (rozostrena tapeta)
 shot 1-greeter
 # rozliseni obrazovky VM ze snimku (souradnice tlacitek greeteru)
@@ -66,11 +92,28 @@ ctl exec 'for p in $(pgrep -u greeter); do echo "$(awk "/^Pss:/{print \$2}" /pro
     >"$out/greeter-pss.txt" 2>&1
 awk '{s += $1} END {printf "greeter_pss_mb=%.1f\n", s / 1024}' "$out/greeter-pss.txt" | tee -a "$out/result.txt"
 
-# 2. spatne heslo, pak prihlaseni
-ctl keys spatne >/dev/null; ctl key ret >/dev/null; sleep 4
+# pole pro heslo (luxos_lock_draw.field_rect) a tlacitko relace vlevo dole (draw_buttons v luxos-greeter)
+read -r fx fy fw fh sx sy < <(awk -v w="$W" -v h="$H" 'function px(v, lo) {x = int(v * u + 0.5); return x < lo ? lo : x}
+    BEGIN {u = h / 1080; if (u < 0.55) u = 0.55; fw = px(250, 180); fh = px(36, 28); d = px(44, 34)
+           print int((w - fw) / 2), h - px(150, 110) - px(24, 18) - px(14, 9) - px(22, 16) - px(14, 9) - fh, fw, fh,
+                 px(42, 26) + d, h - px(42, 26) - px(20, 14) - d / 2}')
+
+# 2. mysi: klik do pole, spatne heslo, odeslani sipkou v poli; pak prihlaseni klikem do pole, heslo a Enter
+grab g0
+click $((fx + fw / 2)) $((fy + fh / 2)); ctl keys spatne >/dev/null
+grab g1
+check "greeter draws the typed password (click into the field)" redrawn g0 g1 "$fx" "$fy" "$fw" "$fh"
+click $((fx + fw - fh / 2)) $((fy + fh / 2)); sleep 3
 shot 2-wrong-password
+grab g2
+check "greeter draws the error hint (submit by the arrow)" redrawn g1 g2 $((fx - 100)) $((fy + fh)) $((fw + 200)) 40
 check "greeter stays after a wrong password" has 'pgrep -u greeter -x luxos-greeter' '[0-9]'
+# zamrzly greeter mel hodiny porad na minute startu: pockat na dalsi minutu (hodiny VM jdou s hostitelem)
+sleep $((62 - 10#$(date +%S)))
+grab g3
+check "greeter clock follows the time" redrawn g2 g3 0 0 "$W" $((H / 4))
 t1=$(now)
+click $((fx + fw / 2)) $((fy + fh / 2))
 login
 check "desktop session up after login" wait_for 120 "$desktop_up"
 echo "login_to_desktop_s=$(since "$t1")" | tee -a "$out/result.txt"
@@ -81,6 +124,34 @@ check "session type wayland" has "loginctl show-session $(luxos_session) -p Type
 check "luxwm on pixman" has 'cat /home/luxos/.local/state/luxos/luxwm.log' 'software rendering'
 ctl exec 'systemctl --machine=luxos@ --user --no-pager list-units "luxos-*" "graphical-session*"' >"$out/units.txt" 2>&1
 check "polkit agent registered" has 'systemctl --machine=luxos@ --user is-active luxos-polkit.service' '^active'
+
+# 2b. mys v relaci: nabidka LuxOS a Ovladaci centrum v liste, Terminal z Docku, psani do okna normalniho
+# i maximalizovaneho (zamrzla okna: luxcomp prestal posilat frame callbacky). Prohlidka LuxOS pryc, at se nehybe obraz
+ctl exec 'systemctl --machine=luxos@ --user stop luxos-first-run.service' >/dev/null 2>&1
+grab d0 1.5
+click 14 13
+grab d1
+check "bar: LuxOS menu opens on a click" redrawn d0 d1 0 30 320 300
+ctl key esc >/dev/null
+grab d2
+click $((W - 158)) 13
+grab d3
+check "bar: Control Center opens on a click" redrawn d2 d3 $((W - 420)) 30 420 300
+ctl key esc >/dev/null
+click $((W / 2)) $((H - 33))
+check "dock: Terminal starts on a click" wait_for 15 'pgrep -u luxos -x luxos-terminal'
+grab t0 2
+ctl keys 'echo mouse' >/dev/null
+grab t1
+check "terminal window redraws typed text" redrawn t0 t1 0 30 "$W" $((H - 120))
+ctl key meta_l-up >/dev/null
+grab t2 1
+ctl keys ' ok' >/dev/null
+grab t3
+check "maximized terminal redraws typed text" redrawn t2 t3 0 30 "$W" $((H - 120))
+shot 3b-terminal-maximized
+ctl exec 'pkill -u luxos -x luxos-terminal' >/dev/null 2>&1
+sleep 1
 
 # 3. pad listy: systemd spusti jen listu znovu, kompozitor a Dock bezi dal
 bar=$(ctl exec 'systemctl --machine=luxos@ --user show -p MainPID --value luxos-bar.service' | tr -d '[:space:]')
@@ -158,11 +229,12 @@ echo "crash_to_greeter_s=$(since "$tc")" | tee -a "$out/result.txt"
 sleep 3
 shot 9-greeter-after-crash
 # 8. relace LuxOS (X11): tlacitko relace vlevo dole
-u=$(awk -v h="$H" 'BEGIN {u = h / 1080; if (u < 0.55) u = 0.55; print u}')
-read -r sx sy < <(awk -v u="$u" -v h="$H" 'function px(v, lo) {x = int(v * u + 0.5); return x < lo ? lo : x}
-    BEGIN {d = px(44, 34); print px(42, 26) + d, h - px(42, 26) - px(20, 14) - d / 2}')
-ctl click "$sx" "$sy" "$W" "$H" >/dev/null; sleep 1
+grab s0
+click "$sx" "$sy"
+grab s1
+check "greeter draws the chosen session (session button)" redrawn s0 s1 0 $((sy - 30)) 240 $((H - sy + 30))
 shot 10-greeter-x11
+click $((fx + fw / 2)) $((fy + fh / 2))
 login
 check "X11 session (Xorg + xfce4-session) from greetd" wait_for 120 'pgrep -u luxos -x xfce4-session && pgrep -x Xorg'
 sleep 10

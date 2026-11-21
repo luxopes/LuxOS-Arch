@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LuxOS - ovladani testovaci VM (QMP + QEMU guest agent).
 
-  vmctl.py shot out.png            snimek obrazovky
+  vmctl.py shot out.png            snimek obrazovky (out.ppm: PPM pro porovnani pixelu)
   vmctl.py exec 'prikaz'           spusti prikaz v hostu (root, bash -c), vypise vystup
   vmctl.py keys 'text'             napise text (US rozlozeni)
   vmctl.py key ctrl-alt-t          stiskne kombinaci klaves (nazvy QEMU qcode)
@@ -91,7 +91,7 @@ def main():
     c = a[0]
     if c == "shot":
         out = os.path.abspath(a[1])
-        qmp("screendump", {"filename": out, "format": "png"})
+        qmp("screendump", {"filename": out, "format": "ppm" if out.endswith(".ppm") else "png"})
         print(out)
     elif c == "exec":
         rc, out, err = gexec(a[1], timeout=int(a[2]) if len(a) > 2 else 600)
