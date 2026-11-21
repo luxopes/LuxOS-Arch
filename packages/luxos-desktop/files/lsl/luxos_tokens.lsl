@@ -528,7 +528,8 @@ function css_menu_rules():
     s = SPACE
     return (".csd.popup decoration { box-shadow: none; border-radius: " + px(radius_of("menu")) + "; }\n"
         + "menu, .menu { background-color: @lx_mat_menu; border-radius: " + px(radius_of("menu")) + "; padding: 5px; border: none; }\n"
-        + "menu > menuitem { border-radius: " + px(r["xs"]) + "; padding: " + px(s["xs"]) + " 10px; min-height: 18px; " + type_css("body") + " }\n"
+        + "menu > menuitem { border-radius: " + px(r["xs"]) + "; padding: " + px(s["xs"]) + " 10px; min-height: 18px; color: @lx_fg; " + type_css("body") + " }\n"
+        + "menu > menuitem label { color: inherit; }\n"
         + "menu > menuitem:hover { background-color: @lx_accent; color: @lx_accent_text; }\n"
         + "menu > menuitem:disabled { color: alpha(@lx_fg, 0.35); }\n"
         + "menu > menuitem accelerator { color: @lx_fg_secondary; }\n"

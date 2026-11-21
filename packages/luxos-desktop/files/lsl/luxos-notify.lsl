@@ -972,22 +972,31 @@ function build_window():
     return 0
 end
 
-# Vstupni oblast = bubliny (mezery mezi nimi propousti kliky); kompozitor pod kazdou da material toast
+# Vstupni oblast = bubliny (mezery mezi nimi propousti kliky); kompozitor pod kazdou da material toast. Karta ma
+# vlastni GdkWindow, jeji alokace je v souradnicich okna. Nastavuje se az po rozlozeni (GDK ji posle s dalsim
+# commitem plochy, proto i prekresleni).
 function on_column_allocated(unused, allocation, widget):
+    if not S.get("input_pending", False):
+        S["input_pending"] = True
+        call lglib.idle_add_data(update_input, 0)
+    end
+    return 0
+end
+
+function update_input(unused):
+    S["input_pending"] = False
     rects = []
     for slot in S["slots"]:
         if gtk.widget_get_visible(slot["card"]):
-            at = luxos_gtk.widget_offset(slot["box"], S["window"])
-            if at != None:
-                rects.append([at[0], at[1], gtk.widget_get_allocated_width(slot["box"]), gtk.widget_get_allocated_height(slot["box"])])
-            end
+            rects.append(gtk.widget_get_allocation(slot["card"]))
         end
     end
-    if rects != S.get("input", None):
+    if len(rects) > 0 and rects != S.get("input", None):
         S["input"] = rects
         call luxos_gtk.widget_input_rects(S["window"], rects)
+        call gtk.widget_queue_draw(S["window"])
     end
-    return 0
+    return False
 end
 
 function on_primary(monitor):

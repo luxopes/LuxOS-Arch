@@ -131,28 +131,47 @@ function paint_tint(cr, surface, dark, blur, x, y, w, h, edge):
     return 0
 end
 
-# Stin kreslený jednou do povrchu: soustredne zaoblene obdelniky s klesajici alfou (rozmazani bez smycky pres
-# pixely), vnitrek panelu vymazany, at stin neztmavi pruhledny material
+# Stin kresleny jednou do povrchu: soustredne zaoblene obdelniky v osmine rozliseni, zvetsene bilinearne (schody
+# zmizi, bez smycky pres pixely v LSL); vnitrek panelu vymazany, at stin neztmavi pruhledny material
 function shadow_surface(w, h, radius, surface, dark):
     e = tokens.elevation(surface, dark)
     reach = e[0]
-    surf = cairo.image_surface_create(cairo.FORMAT_ARGB32, w + 2 * reach, h + 2 * reach)
-    cr = cairo.create(surf)
-    steps = 16
+    k = 8
+    sw = (w + 2 * reach) // k + 1
+    sh = (h + 2 * reach) // k + 1
+    small = cairo.image_surface_create(cairo.FORMAT_ARGB32, sw, sh)
+    cr = cairo.create(small)
+    call cairo.scale(cr, 1.0 / Float(k), 1.0 / Float(k))
+    steps = 12
+    # alfa jednoho kroku: uprostred se slozi na alfu urovne vysky
+    a = 1.0 - pow(1.0 - e[2], 1.0 / Float(steps))
     for i in range(steps):
-        t = Float(i + 1) / Float(steps)
-        grow = Float(reach) * (1.0 - t)
+        grow = Float(reach) * (1.0 - Float(i + 1) / Float(steps))
         call rounded_path(cr, Float(reach) - grow, Float(reach + e[1]) - grow, Float(w) + 2.0 * grow, Float(h) + 2.0 * grow,
                           Float(radius) + grow)
-        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, e[2] / Float(steps) * 1.6)
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, a)
         call cairo.fill(cr)
     end
+    call cairo.destroy(cr)
+    surf = cairo.image_surface_create(cairo.FORMAT_ARGB32, w + 2 * reach, h + 2 * reach)
+    cr = cairo.create(surf)
+    call cairo.save(cr)
+    call cairo.scale(cr, Float(k), Float(k))
+    # vychozi filtr cairo (GOOD) zvetsuje bilinearne
+    call cairo.set_source_surface(cr, small, 0.0, 0.0)
+    call cairo.paint(cr)
+    call cairo.restore(cr)
     call rounded_path(cr, Float(reach), Float(reach), Float(w), Float(h), Float(radius))
     call cairo.set_operator(cr, cairo.OPERATOR_CLEAR)
     call cairo.fill(cr)
     call cairo.destroy(cr)
+    call cairo.surface_destroy(small)
     call cairo.surface_flush(surf)
     return surf
+end
+
+function pow(x, y):
+    return tokens.pow(x, y)
 end
 
 # ---- tapeta z nastaveni LuxOS -----------------------------------------------------------------
