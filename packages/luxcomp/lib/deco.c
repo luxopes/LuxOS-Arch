@@ -62,8 +62,13 @@ struct deco {
 	struct wlr_scene_tree *strip;
 	struct wlr_surface *strip_surface;
 	struct wlr_scene_buffer *corner[2];
+	struct wlr_buffer *held[3];	/* zobrazene buffery: zahlavi, rohy (show_buffer) */
 	struct wlr_box corner_geo;
 	int corner_px;
+	/* poskozeni povrchu plati pro posledni commit a zustava, dokud neprijde dalsi: commit (seq), jehoz
+	 * poskozeni uz rohy a vzorkovani zahlavi zpracovaly, jinak by kazde deco_update cetlo pixely znovu
+	 * a casovac vzorkovani se natahoval porad dokola (5x za sekundu u kazdeho okna) */
+	uint32_t corner_seq, sample_seq;
 	bool rounded;
 	int width, height, scale, hover;
 	bool active, square, compact;
@@ -77,6 +82,18 @@ struct deco {
 };
 
 static struct deco *hovered;
+
+/* Scena buffer po nahrani do GPU (gles2) pusti a necha si jen texturu, material (blur.c) pak zahlavi a rohy
+ * okna pod plochou nevidi. Proto zobrazeny buffer drzime sami; s pixman to dela textura sama. */
+static void
+show_buffer(struct wlr_scene_buffer *node, struct wlr_buffer **held, struct wlr_buffer *buffer)
+{
+	wlr_scene_buffer_set_buffer(node, buffer);
+	if (*held) {
+		wlr_buffer_unlock(*held);
+	}
+	*held = buffer ? wlr_buffer_lock(buffer) : NULL;
+}
 
 /* ---- wlr_buffer nad pameti cairo ---- */
 
@@ -339,11 +356,11 @@ static void
 redraw(struct deco *d)
 {
 	if (d->width <= 0) {
-		wlr_scene_buffer_set_buffer(d->node, NULL);
+		show_buffer(d->node, &d->held[0], NULL);
 		return;
 	}
 	struct wlr_buffer *b = render(d);
-	wlr_scene_buffer_set_buffer(d->node, b);
+	show_buffer(d->node, &d->held[0], b);
 	wlr_buffer_drop(b);
 	int h = title_height(d);
 	wlr_scene_buffer_set_dest_size(d->node, d->width, h);
@@ -412,7 +429,7 @@ corner_read(struct deco *d, int i, struct wlr_texture *tex, int x, int y, int n)
 			}
 		}
 		cairo_surface_mark_dirty(img);
-		wlr_scene_buffer_set_buffer(d->corner[i], buffer);
+		show_buffer(d->corner[i], &d->held[1 + i], buffer);
 	}
 	wlr_buffer_drop(buffer);
 	return ok;
@@ -472,7 +489,10 @@ corners_update(struct deco *d)
 		|| !wlr_box_equal(&g, &d->corner_geo);
 	pixman_region32_t damage;
 	pixman_region32_init(&damage);
-	wlr_surface_get_effective_damage(s, &damage);
+	if (s->current.seq != d->corner_seq) {
+		wlr_surface_get_effective_damage(s, &damage);
+		d->corner_seq = s->current.seq;
+	}
 	for (int i = 0; i < 2; i++) {
 		pixman_box32_t box = { g.x + (i ? g.width - r : 0), g.y + g.height - r,
 			g.x + (i ? g.width : r), g.y + g.height };
@@ -590,6 +610,10 @@ sample_update(struct deco *d, bool force)
 	struct wlr_box g = geometry(v);
 	if (!force && wlr_box_equal(&g, &d->sampled_geo)) {
 		/* jen kdyz se horni radek zmenil (prepnuti tmaveho rezimu), video nahore nevycerpa GPU */
+		if (s->current.seq == d->sample_seq) {
+			return;
+		}
+		d->sample_seq = s->current.seq;
 		pixman_region32_t damage;
 		pixman_region32_init(&damage);
 		wlr_surface_get_effective_damage(s, &damage);
@@ -607,6 +631,7 @@ sample_update(struct deco *d, bool force)
 	}
 	d->sampled_geo = g;
 	d->sampled_ms = now_ms();
+	d->sample_seq = s->current.seq;
 	uint32_t color = sample_client(d, tex, s, g);
 	if (color != d->client_bg) {
 		d->client_bg = color;
@@ -677,6 +702,11 @@ deco_destroy(struct deco *d)
 	shadow_destroy(d->outline);
 	wl_event_source_remove(d->sample_timer);
 	wlr_scene_node_destroy(&d->node->node);
+	for (int i = 0; i < 3; i++) {
+		if (d->held[i]) {
+			wlr_buffer_unlock(d->held[i]);
+		}
+	}
 	free(d->title);
 	free(d);
 }
