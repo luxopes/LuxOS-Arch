@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 9
+API_VERSION = 10
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -32,6 +32,7 @@ EV_IPC_CONNECT = 17
 EV_IPC_LINE = 18
 EV_IPC_CLOSE = 19
 EV_VIEW_SIZE = 20
+EV_HOLD_END = 21
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -207,6 +208,13 @@ end
 function spawn(command):
     unsafe:
         return __lsl_qbe_call1(__lsl_symbol("luxcomp_spawn"), cstr(command))
+    end
+end
+
+# Pred start(): rozsvicene vystupy (splash) zustanou beze zmeny do prvniho snimku klienta (EV_HOLD_END)
+function hold(timeout_ms):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_hold"), ptr(timeout_ms))
     end
 end
 
