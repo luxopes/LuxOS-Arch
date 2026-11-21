@@ -21,7 +21,6 @@ SCRIPTS = {
     "luxos-maps/files/luxos-maps": ("luxos-maps/files", "luxos_maps"),
     "luxos-weather/files/luxos-weather": ("luxos-weather/files", "luxos_weather"),
     "luxos-desktop/files/bin/luxos-camera": ("luxos-desktop/files/python", "luxos_camera"),
-    "luxos-desktop/files/bin/luxos-tour": ("luxos-desktop/files/python", None),
     "luxos-printing/files/luxos-printers": ("luxos-printing/files", "luxos_printing"),
     "luxos-printing/files/luxos-scan": ("luxos-printing/files", "luxos_scan"),
 }
@@ -61,7 +60,7 @@ class TestSourceModulePath(unittest.TestCase):
 
     def test_installed_layout_has_no_bogus_entries(self):
         # instalovany /usr/bin/luxos-camera: /usr/python neexistuje a do sys.path se nepridava
-        for rel in ("luxos-desktop/files/bin/luxos-camera", "luxos-desktop/files/bin/luxos-tour"):
+        for rel in ("luxos-desktop/files/bin/luxos-camera",):
             with self.subTest(script=rel):
                 text = open(os.path.join(ROOT, rel), encoding="utf-8").read()
                 tree = ast.parse(text)

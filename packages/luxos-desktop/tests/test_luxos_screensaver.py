@@ -185,11 +185,11 @@ class Defaults(unittest.TestCase):
         self.assertEqual(values, ["screensavers-luxos-wallpaper"])
         with open(os.path.join(FILES, "screensaver", "luxos-wallpaper.desktop")) as f:
             self.assertIn("Exec=/usr/lib/xfce4-screensaver/luxos --style desktop\n", f.read())
-        with open(os.path.join(FILES, "bin", "luxos-lock-settings")) as f:
+        with open(os.path.join(FILES, "lsl", "luxos-lock-settings.lsl")) as f:
             src = f.read()
-        self.assertIn('("screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock")', src)
+        self.assertIn('["screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock"]', src)
         # kazdy styl z nastaveni existuje v setrici a ma .desktop soubor
-        for theme, style in re.findall(r'\("(screensavers-[a-z-]+)", "([a-z]+)"', src):
+        for theme, style in re.findall(r'\["(screensavers-[a-z-]+)", "([a-z]+)"', src):
             self.assertIn(style, ss.STYLES)
             name = theme[len("screensavers-"):] + ".desktop"
             with open(os.path.join(FILES, "screensaver", name)) as f:
@@ -212,23 +212,6 @@ class LockDefaults(unittest.TestCase):
         with open(os.path.join(HERE, "..", "luxos-desktop.install")) as f:
             inst = f.read()
         self.assertIn("_luxos_lock_now", inst.split("post_upgrade()")[1].splitlines()[0])
-
-
-@unittest.skipUnless(os.environ.get("DISPLAY"), "potrebuje X (xvfb-run)")
-class LockSettingsCombo(unittest.TestCase):
-    """Hodnota mimo nabidku (LOCK_AFTER od spravce, napr. 3 min) se ukaze, ne "Nikdy"/"Hned"."""
-
-    def test_custom_value_shown(self):
-        import sys
-        sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "luxos-i18n", "files")))
-        ls = SourceFileLoader("luxos_lock_settings", os.path.join(FILES, "bin", "luxos-lock-settings")).load_module()
-        opts = [(0, "Never"), (1, "1 minute"), (10, "10 minutes")]
-        c = ls.combo(opts, "3")
-        self.assertEqual(c.get_active_id(), "3")
-        self.assertEqual(c.get_active_text(), "3 min")
-        self.assertEqual(ls.combo(opts, "10").get_active_id(), "10")
-        self.assertEqual(ls.combo(opts, "garbage").get_active_id(), "0")
-        self.assertEqual(ls.combo([(0, "Now"), ("never", "Never")], "never").get_active_id(), "never")
 
 
 if __name__ == "__main__":
