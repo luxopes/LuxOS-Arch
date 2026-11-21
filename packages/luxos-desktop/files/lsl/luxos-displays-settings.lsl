@@ -906,7 +906,8 @@ if display == None or display == "":
     call glib.report("luxos-display-settings: cannot run " + X11_SETTINGS + chr(10))
     exit(127)
 end
-call glib.set_prgname("luxos-displays-settings")
+# app_id jako polozka luxos-display-settings.desktop: nazev v liste a ikona v Docku
+call glib.set_prgname("luxos-display-settings")
 call gtk.init()
 call gtk.css_load(CSS)
 if len(args) > 1 and args[1] == "--menu":
@@ -915,7 +916,7 @@ if len(args) > 1 and args[1] == "--menu":
 end
 window = gtk.window_new(i18n.T("Displays"))
 ui["window"] = window
-call gtk.window_set_wmclass(window, "luxos-displays-settings", "luxos-displays-settings")
+call gtk.window_set_wmclass(window, "luxos-display-settings", "luxos-display-settings")
 call gtk.window_set_icon_list(window, "luxos-displays")
 call gtk.window_set_default_size(window, 640, 680)
 scroll = gtk.scrolled_window_new()
