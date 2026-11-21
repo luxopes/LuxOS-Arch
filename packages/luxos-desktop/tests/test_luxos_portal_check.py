@@ -3,12 +3,16 @@
 
     python3 packages/luxos-desktop/tests/test_luxos_portal_check.py
 
-Falesny DNS server (UDP na localhostu) a falesna sit (HTTP na localhostu); zadna skutecna sit.
+Program v LSL (files/lsl/luxos-portal-check.lsl, prekladac lslc z PATH nebo LUXOS_LSLC). Falesny DNS server
+(UDP na localhostu), falesna sit (HTTP na localhostu) a falesny nmcli; zadna skutecna sit.
 """
 import os
+import resource
+import shutil
 import socket
 import struct
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -16,7 +20,20 @@ import unittest.mock
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(HERE, "..", "files", "bin", "luxos-portal-check")
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+
+TMP = tempfile.mkdtemp(prefix="luxos-portal-check-")
+PROG = None
+
+
+def setUpModule():
+    global PROG
+    PROG = lsl_app.build("luxos-portal-check", TMP)
+
+
+def tearDownModule():
+    shutil.rmtree(TMP, ignore_errors=True)
 
 
 class FakeDNS(threading.Thread):
@@ -81,7 +98,7 @@ class PortalCheck(unittest.TestCase):
         env = dict(os.environ, LUXOS_PORTAL_DNS=servers, LUXOS_PORTAL_URI="http://check.test/nm-check.txt",
                    LUXOS_PORTAL_HTTP_PORT=str(srv.server_address[1]), LUXOS_PORTAL_CACHE=self.cache,
                    LUXOS_PORTAL_NOLOG="1")
-        out = subprocess.run(["python3", "-I", SCRIPT], env=env, capture_output=True, text=True, timeout=30)
+        out = subprocess.run([PROG], env=env, capture_output=True, text=True, timeout=30)
         self.dns = dns
         return out.stdout.strip()
 
@@ -147,22 +164,73 @@ class PortalCheck(unittest.TestCase):
             req.end_headers()
         self.assertEqual(self.run_check({}, portal, dns_alive=False), "portal http://127.0.0.1/login?x=1 127.0.0.1")
 
+    def test_html_location_and_relative_meta(self):
+        def js(req):
+            req.send_response(200)
+            req.end_headers()
+            req.wfile.write(b"<script>window.location.href = '../portal/login.html?a=1';</script>\xff")
+        out = self.run_check({"check.test": "127.0.0.1"}, js)
+        self.assertEqual(out, "portal http://check.test/portal/login.html?a=1 127.0.0.1")
+
+    def test_wrong_body_is_portal_not_online(self):
+        def h(req):
+            req.send_response(200)
+            req.end_headers()
+            req.wfile.write(b"<html>Hotel Wi-Fi</html>")
+        self.assertEqual(self.run_check({"check.test": "127.0.0.1"}, h), "portal http://check.test/nm-check.txt 127.0.0.1")
+
     def test_servers_include_gateway_and_public_dns(self):
-        import importlib.machinery
-        import importlib.util
-        loader = importlib.machinery.SourceFileLoader("luxos_portal_check", SCRIPT)
-        spec = importlib.util.spec_from_loader("luxos_portal_check", loader)
-        mod = importlib.util.module_from_spec(spec)
-        loader.exec_module(mod)
-        outputs = {
-            ("nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device"): "wlp4s0:wifi:connected\nlo:loopback:connected (externally)\n",
-            ("nmcli", "-g", "IP4.DNS,IP4.GATEWAY", "device", "show", "wlp4s0"): "10.0.0.53 | 10.0.0.54\n10.0.0.1\n",
-        }
-        mod.run = lambda argv: outputs.get(tuple(argv), "")
-        env = dict(os.environ)
+        # falesny nmcli: DNS a brana pripojeneho Wi-Fi; LC_ALL=C (cesky "pripojeno" by se nenaslo)
+        fake = os.path.join(TMP, "fake-nm")
+        os.makedirs(fake, exist_ok=True)
+        with open(os.path.join(fake, "nmcli"), "w") as f:
+            f.write('#!/bin/sh\n[ "$LC_ALL" = C ] || exit 3\ncase "$*" in\n'
+                    '"-t -f DEVICE,TYPE,STATE device") printf "wlp4s0:wifi:connected\\nlo:loopback:connected (externally)\\n'
+                    'eth0:ethernet:disconnected\\n" ;;\n'
+                    '"-g IP4.DNS,IP4.GATEWAY device show wlp4s0") printf "10.0.0.53 | 10.0.0.54\\n10.0.0.1\\n" ;;\n'
+                    '*) exit 2 ;;\nesac\n')
+        os.chmod(os.path.join(fake, "nmcli"), 0o755)
+        env = dict(os.environ, PATH=fake + os.pathsep + os.environ["PATH"])
         env.pop("LUXOS_PORTAL_DNS", None)
-        with unittest.mock.patch.dict(os.environ, env, clear=True):
-            self.assertEqual(mod.dns_servers(), ["10.0.0.53", "10.0.0.54", "10.0.0.1", "1.1.1.1", "8.8.8.8"])
+        out = subprocess.run([PROG, "--dns-servers"], env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(out.stdout.split(), ["10.0.0.53", "10.0.0.54", "10.0.0.1", "1.1.1.1", "8.8.8.8"])
+
+    def test_help_translated(self):
+        env = dict(os.environ, LUXOS_I18N_DIR=lsl_app.I18N)
+        en = subprocess.run([PROG, "--help"], env=dict(env, LANG="en_US.UTF-8"), capture_output=True, text=True)
+        cs = subprocess.run([PROG, "-h"], env=dict(env, LANG="cs_CZ.UTF-8"), capture_output=True, text=True)
+        self.assertEqual(en.returncode, 0)
+        self.assertIn("Usage: luxos-portal-check", en.stdout)
+        self.assertIn("online, portal URL IP or none", en.stdout)
+        self.assertNotEqual(cs.stdout, en.stdout)
+        self.assertIn("luxos-portal-check", cs.stdout)
+
+    def test_log_line_goes_to_logger(self):
+        """Bez LUXOS_PORTAL_NOLOG zapise vysledek pres logger -t luxos-portal-check (falesny logger)."""
+        fake = os.path.join(TMP, "fake-logger")
+        os.makedirs(fake, exist_ok=True)
+        log = os.path.join(fake, "log")
+        with open(os.path.join(fake, "logger"), "w") as f:
+            f.write('#!/bin/sh\nprintf "%%s|" "$@" >>"%s"\n' % log)
+        os.chmod(os.path.join(fake, "logger"), 0o755)
+        env = dict(os.environ, PATH=fake + os.pathsep + os.environ["PATH"], LUXOS_PORTAL_DNS="127.0.0.1:9",
+                   LUXOS_PORTAL_URI="http://check.test/x", LUXOS_PORTAL_CACHE=os.path.join(fake, "none"))
+        out = subprocess.run([PROG], env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(out.stdout.strip(), "none")
+        with open(log) as f:
+            self.assertEqual(f.read(), "-t|luxos-portal-check|--|none (DNS 127.0.0.1:9=-, cached -)|")
+
+    def test_resources(self):
+        """Jeden beh: cas a nejvyssi RSS (pro srovnani s verzi v Pythonu)."""
+        def ok(req):
+            req.send_response(200)
+            req.end_headers()
+            req.wfile.write(b"NetworkManager is online\n")
+        before = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        self.assertEqual(self.run_check({"check.test": "127.0.0.1"}, ok), "online")
+        rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        if rss > before:
+            print("\n  luxos-portal-check max RSS %d KB" % rss)
 
 
 if __name__ == "__main__":

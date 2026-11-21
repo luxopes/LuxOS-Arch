@@ -63,7 +63,6 @@ TOOLS = (
     ("luxos-desktop/files/bin/luxos-displays", ["--help"], False),
     ("luxos-desktop/files/bin/luxos-powersaver", ["--help"], False),
     ("luxos-desktop/files/bin/luxos-network-login", ["--help"], False),
-    ("luxos-desktop/files/bin/luxos-portal-check", ["--help"], False),
     ("luxos-branding/files/plymouth/luxos-splash", ["--help"], False),
     ("luxos-drivers/luxos-hwdetect", ["--help"], False),
     ("luxos-drivers/luxos-hwdetect", ["--no-such-option"], False),
