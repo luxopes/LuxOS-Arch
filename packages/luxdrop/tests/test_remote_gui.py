@@ -101,12 +101,13 @@ class AutoConfirm(remote.ConnectCallbacks):
         return True, True
 
 
+def tearDownModule():
+    # az po vsech tridach: SettingsPageTest bezi po AccessDialogTest ve stejnem HOME
+    shutil.rmtree(TMP, ignore_errors=True)
+
+
 @unittest.skipUnless(HAVE_DISPLAY, "needs a display (xvfb-run)")
 class AccessDialogTest(unittest.TestCase):
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(TMP, ignore_errors=True)
-
     def test_service_asker_dialog_always_with_write(self):
         bob, alice = Side("Bob-PC"), Side("Alice-PC")
         os.makedirs(os.path.join(os.environ["HOME"], "Public"), exist_ok=True)
@@ -211,6 +212,7 @@ class SettingsPageTest(unittest.TestCase):
         from luxdrop import gui
         conf = os.path.join(os.environ["HOME"], ".config", "luxdrop")
         os.makedirs(conf, exist_ok=True)
+        os.makedirs(os.path.join(os.environ["HOME"], "Public"), exist_ok=True)     # sdilena slozka ve vychozim stavu
         with open(os.path.join(conf, "settings.json"), "w") as f:
             f.write('{"name": "Gui-PC", "port": 0, "localsend": false}')
         app = gui.App()
