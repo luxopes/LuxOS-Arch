@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -102,10 +103,13 @@ class FirewallTest(unittest.TestCase):
         self.write("usr/bin/luxdrop", "")
         self.bin = os.path.join(self.root, "bin")
         os.makedirs(self.bin)
-        # falesny systemctl: sshd zapnuty jen kdyz existuje soubor sshd-enabled
-        self.script("systemctl", '#!/bin/sh\nfor u in "$@"; do case $u in sshd.service) '
-                                 'if [ -e "%s/sshd-enabled" ]; then echo enabled; else echo disabled; fi;; '
-                                 'is-*) ;; *) echo disabled;; esac; done\nexit 0\n' % self.root)
+        # falesny systemctl: sshd zapnuty jen kdyz existuje soubor sshd-enabled, stav behu v souboru sshd-active
+        self.script("systemctl", '#!/bin/sh\nverb=$1; shift\nfor u in "$@"; do case $verb:$u in '
+                                 'is-active:sshd.service) cat "%s/sshd-active" 2>/dev/null || echo inactive;; '
+                                 'is-active:*) echo inactive;; '
+                                 '*:sshd.service) if [ -e "%s/sshd-enabled" ]; then echo enabled; '
+                                 'else echo disabled; fi;; '
+                                 '*) echo disabled;; esac; done\nexit 0\n' % (self.root, self.root))
         self.script("nft-fake", '#!/bin/sh\ncat >> "%s/nft-input"\necho "$@" >> "%s/nft-args"\nexit 0\n'
                     % (self.root, self.root))
         self.script("ss", '#!/bin/sh\ncat "%s/ss-output" 2>/dev/null\nexit 0\n' % self.root)
@@ -293,6 +297,15 @@ class FirewallTest(unittest.TestCase):
         self.assertIn("2222", any_tcp)
         self.assertNotIn(" 22 ", any_tcp.replace(",", " "))
 
+    def test_sshd_started_without_enable(self):
+        # systemctl start sshd (bez enable) otevre port; obnova z ExecStartPost vidi sshd jeste "activating"
+        self.write("usr/bin/sshd", "")
+        for state, open_ in (("inactive", False), ("activating", True), ("active", True),
+                             ("deactivating", False), ("failed", False)):
+            self.write("sshd-active", state + "\n")
+            any_tcp = self.run_fw("render").stdout.split("set any_tcp")[1].split("}")[0]
+            self.assertEqual("22" in any_tcp.replace(",", " ").split(), open_, state)
+
     def test_cups_sharing_and_tailscale(self):
         self.write("etc/cups/cupsd.conf", "Listen localhost:631\nListen /run/cups/cups.sock\n")
         self.assertNotIn("631", self.run_fw("render").stdout)
@@ -451,6 +464,146 @@ class FirewallTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         r = self.run_fw("unload", netns=True)
         self.assertEqual(r.returncode, 0, r.stderr)
+
+
+def private_manager_ok():
+    # vlastni systemd --user jen v oddelenem pid namespace (scripts/wl-test/isolate, run-all), nikdy vedle
+    # skutecneho spravce relace
+    try:
+        with open("/proc/1/comm") as f:
+            pid1 = f.read().strip()
+    except OSError:
+        return False
+    return pid1 != "systemd" and os.path.exists("/usr/lib/systemd/systemd") and shutil.which("systemctl") \
+        and shutil.which("unshare") and subprocess.run(["unshare", "-r", "true"]).returncode == 0
+
+
+@unittest.skipUnless(private_manager_ok(), "needs isolate (own pid namespace) for a private systemd --user")
+class SshdStartStop(unittest.TestCase):
+    """Skutecne drop-iny sshd.service.d/sshd.socket.d pod soukromym systemd --user: start/stop sshd bez enable
+    hned zmeni pravidla (drive se port 22 otevrel jen po systemctl enable)."""
+
+    def setUp(self):
+        self.t = tempfile.mkdtemp(prefix="luxos-fw-sd-")
+        self.addCleanup(self.cleanup)
+        self.units = os.path.join(self.t, "units")
+        self.root = os.path.join(self.t, "root")
+        for d in ("usr/bin", "etc/luxos", "etc/ssh", "proc/net"):
+            os.makedirs(os.path.join(self.root, d))
+        open(os.path.join(self.root, "usr/bin/sshd"), "w").close()
+        bin_ = os.path.join(self.t, "bin")
+        os.makedirs(bin_)
+        self.systemctl = self.script(bin_, "systemctl", '#!/bin/sh\nexec /usr/bin/systemctl --user "$@"\n')
+        self.ruleset = os.path.join(self.t, "ruleset")
+        nft = self.script(bin_, "nft", '#!/bin/sh\ncase "$*" in *-f*) cat > "%s.new" && mv "%s.new" "%s";; esac\n'
+                          'exit 0\n' % (self.ruleset, self.ruleset, self.ruleset))
+        os.makedirs(self.units)
+        self.unit("default.target", "[Unit]\nDescription=test\n")
+        # luxos-firewall.service bez sandboxu (ten v uzivatelskem spravci nejde), load jako root v user namespace
+        load = "/usr/bin/unshare -r %s load" % binary()
+        self.unit("luxos-firewall.service",
+                  "[Unit]\nDefaultDependencies=no\n[Service]\nType=oneshot\nRemainAfterExit=yes\n"
+                  "Environment=PATH=/usr/bin LUXOS_FIREWALL_ROOT=%s LUXOS_FIREWALL_SYSTEMCTL=%s "
+                  "LUXOS_FIREWALL_NFT=%s LUXOS_FIREWALL_SS=/bin/true\nExecStart=%s\nExecReload=%s\n"
+                  % (self.root, self.systemctl, nft, load, load))
+        self.unit("sshd.service", "[Unit]\nDefaultDependencies=no\n[Service]\nExecStart=/usr/bin/sleep infinity\n")
+        self.unit("sshd.socket", "[Unit]\nDefaultDependencies=no\n[Socket]\nListenStream=%s/ssh.sock\n" % self.t)
+        files = os.path.join(HERE, "..", "files", "dropins")
+        for unit in ("sshd.service", "sshd.socket"):
+            with open(os.path.join(files, unit + ".conf")) as f:
+                text = f.read()
+            self.assertIn("/usr/bin/systemctl ", text)
+            self.unit(unit + ".d/luxos-firewall.conf", text.replace("/usr/bin/systemctl ", self.systemctl + " "))
+        self.env = {"PATH": "/usr/bin:/bin", "HOME": self.t, "XDG_RUNTIME_DIR": os.path.join(self.t, "rt"),
+                    "SYSTEMD_UNIT_PATH": self.units, "LANG": "C"}
+        os.makedirs(self.env["XDG_RUNTIME_DIR"], mode=0o700)
+        self.log = open(os.path.join(self.t, "manager.log"), "w")
+        self.manager = subprocess.Popen(["/usr/lib/systemd/systemd", "--user"], env=self.env,
+                                        stdout=self.log, stderr=subprocess.STDOUT)
+        sock = os.path.join(self.env["XDG_RUNTIME_DIR"], "systemd", "private")
+        for _ in range(100):
+            if os.path.exists(sock) and self.ctl("is-system-running", check=False).stdout.strip() in (
+                    "running", "degraded"):
+                return
+            time.sleep(0.05)
+        self.skipTest("private systemd --user did not start")
+
+    def cleanup(self):
+        if getattr(self, "manager", None):
+            # exit.target v testovacich jednotkach neni: sluzby zastavit a spravce ukoncit primo
+            self.ctl("stop", "sshd.service", "sshd.socket", "luxos-firewall.service", check=False)
+            self.manager.kill()
+            self.manager.wait()
+            self.log.close()
+        # systemd zaklada soubory bez prav (rt/systemd/inaccessible)
+        subprocess.run(["chmod", "-R", "u+rwX", self.t])
+        shutil.rmtree(self.t, ignore_errors=True)
+
+    def script(self, d, name, text):
+        path = os.path.join(d, name)
+        with open(path, "w") as f:
+            f.write(text)
+        os.chmod(path, 0o755)
+        return path
+
+    def unit(self, rel, text):
+        path = os.path.join(self.units, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(text)
+
+    def ctl(self, *args, check=True):
+        r = subprocess.run([self.systemctl, *args], env=self.env, capture_output=True, text=True, timeout=30)
+        if check and r.returncode != 0:
+            self.fail(f"systemctl {args} -> {r.returncode}\n{r.stderr}")
+        return r
+
+    def ssh_open(self):
+        try:
+            with open(self.ruleset) as f:
+                text = f.read()
+        except FileNotFoundError:
+            return None
+        return "22" in text.split("set any_tcp")[1].split("}")[0].replace(",", " ").split()
+
+    def wait_ssh(self, want):
+        # hlidani neni soucasti opravy: jen cekani testu na asynchronni obnovu (--no-block)
+        for _ in range(100):
+            if self.ssh_open() == want:
+                return
+            time.sleep(0.05)
+        self.fail(f"ssh port open={self.ssh_open()}, expected {want}")
+
+    def test_start_stop_sshd_service(self):
+        self.ctl("start", "luxos-firewall.service")
+        self.wait_ssh(False)
+        self.ctl("start", "sshd.service")
+        self.wait_ssh(True)
+        self.ctl("stop", "sshd.service")
+        self.wait_ssh(False)
+        # restart: zaver musi byt "otevreno", i kdyz obnova ze stop dobehne pozde
+        self.ctl("start", "sshd.service")
+        self.wait_ssh(True)
+        self.ctl("restart", "sshd.service")
+        time.sleep(1)
+        self.wait_ssh(True)
+        self.ctl("stop", "sshd.service")
+        self.wait_ssh(False)
+
+    def test_start_stop_sshd_socket(self):
+        self.ctl("start", "luxos-firewall.service")
+        self.wait_ssh(False)
+        self.ctl("start", "sshd.socket")
+        self.wait_ssh(True)
+        self.ctl("stop", "sshd.socket")
+        self.wait_ssh(False)
+
+    def test_stopped_firewall_stays_stopped(self):
+        # try-reload-or-restart: start sshd firewall zastaveny pres systemctl stop nezapne
+        self.ctl("start", "sshd.service")
+        time.sleep(1)
+        self.assertEqual(self.ctl("is-active", "luxos-firewall.service", check=False).stdout.strip(), "inactive")
+        self.assertIsNone(self.ssh_open())
 
 
 if __name__ == "__main__":
