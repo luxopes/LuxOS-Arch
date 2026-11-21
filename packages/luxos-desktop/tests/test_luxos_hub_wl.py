@@ -280,7 +280,9 @@ class HubWayland:
         self.assertTrue(self.wait_pixels(lambda image: pixel(image, left + 40, BAR + 40) != empty))
         image = self.shot()
         self.assertEqual(pixel(image, left - OUT_W + 40, BAR + 40), pixel(before, left - OUT_W + 40, BAR + 40))
-        self.assertEqual(pixel(image, left + 40, BAR + 2), pixel(before, left + 40, BAR + 2))
+        # mezera pod listou: jen stin okna (material popup, kompozitor kresli stin vne plochy), ne okno samo
+        gap, was = bytes.fromhex(pixel(image, left + 40, BAR + 2)), bytes.fromhex(pixel(before, left + 40, BAR + 2))
+        self.assertTrue(all(b <= a and a - b <= 24 for a, b in zip(was, gap)), (gap.hex(), was.hex()))
         # Esc zavre
         mark = self.cc.mark()
         self.input("key Escape")

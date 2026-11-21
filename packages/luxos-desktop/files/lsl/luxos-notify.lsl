@@ -13,6 +13,8 @@ load luxos_primary as primary
 load glib, gtk, gio
 load luxos_glib as lglib
 load luxos_tokens as tokens
+load luxos_material as material
+load luxos_gtk
 load luxos_notify_store as store
 load luxos_notify_sys as sys
 load luxos_i18n as i18n
@@ -28,9 +30,9 @@ LOG_IFACE = "org.xfce.Notifyd.Log"
 DEFAULT_TIMEOUT = 6000
 MAX_VISIBLE = 4
 MAX_WAITING = 20
-WIDTH = 340
+WIDTH = 344
 GAP = 8
-ICON = 40
+ICON = 36
 MAX_ACTIONS = 3
 MAX_SUMMARY = 200
 MAX_BODY = 2000
@@ -746,8 +748,10 @@ function fill(slot, note):
     if app == "":
         app = note["desktop"]
     end
+    # nazev aplikace jen v tipu a v historii, v bubline je prvni nadpis (navrh 1.1.0)
     call gtk.label_set_text(slot["app"], app)
-    call gtk.widget_set_visible(slot["app"], app != "")
+    call gtk.widget_set_visible(slot["app"], False)
+    call gtk.widget_set_tooltip(slot["card"], app)
     call gtk.label_set_text(slot["summary"], note["summary"])
     call gtk.label_set_markup(slot["body"], body_markup(note["body"]))
     call gtk.widget_set_visible(slot["body"], note["body"] != "")
@@ -916,9 +920,8 @@ function new_slot(index):
     return slot
 end
 
-CSS = ".lx-notification { padding: 12px 14px; }\n"
-CSS = CSS + ".lx-notification.critical { border-color: @lx_error; }\n"
-CSS = CSS + ".lx-notification .lx-dim { font-size: 11px; }\n"
+CSS = ".lx-notification.critical { border-color: @lx_error; }\n"
+CSS = CSS + ".lx-notification button.lx-button { min-height: 26px; }\n"
 CSS = CSS + "button.lx-close { margin: 4px; }\n"
 
 function load_css():
@@ -930,7 +933,7 @@ function load_css():
         call gtk.css_remove(S["css"])
     end
     S["dark"] = dark
-    S["css"] = gtk.css_load(tokens.gtk3_css(dark) + CSS)
+    S["css"] = gtk.css_load(tokens.gtk3_css(dark, material.compositor_blur()) + CSS)
     return 0
 end
 
@@ -942,7 +945,7 @@ end
 function build_window():
     window = gtk.window_new("luxos-notify")
     call layer.init_for_window(window)
-    call layer.set_namespace(window, "luxos-notify")
+    call layer.set_namespace(window, tokens.namespace("luxos-notify", "toast"))
     call layer.set_layer(window, layer.LAYER_OVERLAY)
     call layer.set_anchors(window, [layer.EDGE_TOP, layer.EDGE_RIGHT])
     # vyhradni zona 0: kompozitor bubliny posune pod listu
@@ -963,9 +966,37 @@ function build_window():
         index += 1
     end
     call gtk.widget_show(column)
+    call lglib.connect_data(column, "size-allocate", 1, on_column_allocated, 0)
     # bubliny na hlavnim monitoru luxwm (jinak vybere kompozitor)
     call primary.follow(on_primary)
     return 0
+end
+
+# Vstupni oblast = bubliny (mezery mezi nimi propousti kliky); kompozitor pod kazdou da material toast. Karta ma
+# vlastni GdkWindow, jeji alokace je v souradnicich okna. Nastavuje se az po rozlozeni (GDK ji posle s dalsim
+# commitem plochy, proto i prekresleni).
+function on_column_allocated(unused, allocation, widget):
+    if not S.get("input_pending", False):
+        S["input_pending"] = True
+        call lglib.idle_add_data(update_input, 0)
+    end
+    return 0
+end
+
+function update_input(unused):
+    S["input_pending"] = False
+    rects = []
+    for slot in S["slots"]:
+        if gtk.widget_get_visible(slot["card"]):
+            rects.append(gtk.widget_get_allocation(slot["card"]))
+        end
+    end
+    if len(rects) > 0 and rects != S.get("input", None):
+        S["input"] = rects
+        call luxos_gtk.widget_input_rects(S["window"], rects)
+        call gtk.widget_queue_draw(S["window"])
+    end
+    return False
 end
 
 function on_primary(monitor):

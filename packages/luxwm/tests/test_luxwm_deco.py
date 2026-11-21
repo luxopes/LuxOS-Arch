@@ -18,7 +18,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(__file__))
 from test_luxwm import BUILD, RESULTS, TITLE, W, H, WLT, Session, frame, wlt  # noqa: E402
 
-RADIUS = 12         # tokens.TITLEBAR radius
+RADIUS = 12         # tokens.RADIUS["m"]
 BUTTON, SPACING = 12, 8
 INSET = 14          # TITLEBAR inset_compact: centre of the first light
 FRAME_BUDGET_MS = 8.0

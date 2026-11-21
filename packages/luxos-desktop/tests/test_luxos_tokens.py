@@ -76,6 +76,7 @@ class Tokens(unittest.TestCase):
         out = {"json.json": json.dumps(self.tokens, indent=1, sort_keys=True) + "\n"}
         for mode in ("light", "dark"):
             out["gtk3-%s.css" % mode] = self.run_gen("css", mode)
+            out["gtk3-%s-blur.css" % mode] = self.run_gen("css", mode, "blur")
             out["rc-%s.xml" % mode] = self.run_gen("rc", mode)
             d = self.tmp / ("labwc-" + mode)
             self.run_gen("labwc", str(d), mode)
@@ -98,7 +99,7 @@ class Tokens(unittest.TestCase):
             self.assertEqual((SNAP / name).read_text(), text, name)
 
     def test_usage_errors(self):
-        for argv in ([], ["css"], ["css", "blue"], ["labwc", "x"], ["nic"]):
+        for argv in ([], ["css"], ["css", "blue"], ["css", "light", "x"], ["labwc", "x"], ["nic"]):
             r = subprocess.run([str(self.gen), *argv], capture_output=True, text=True, timeout=30)
             self.assertEqual(r.returncode, 2, argv)
 
@@ -181,38 +182,65 @@ print(json.dumps(out))
         # text popupu na bilem pozadi: WCAG AA
         self.assertGreaterEqual(self.helpers["contrast"], 4.5)
 
-    def test_solid_glass_contrast(self):
-        """Oznameni a nabidky na Waylandu (bez rozmazani pozadi): text aspon 4,5:1 nad nejhorsim, co muze
-        prosvitat - bile okno, cerny terminal a pestra tapeta (jeji nejtmavsi a nejsvetlejsi misto)."""
-        def over(top, bottom):
-            a = top[3]
+    def test_material_contrast(self):
+        """Text na kazdem materialu aspon 4,5:1 nad cimkoli, co muze byt pod nim: bile okno, cerny terminal, sede a pestre
+        pozadi. S rozmazanim (kompozitor) je pod tonovanim rozmazane pozadi se saturaci 1,6, bez nej (labwc) kryje material
+        BLUR fallback_opacity. Lista nese jen hlavni pismo (fg), ostatni plochy i vedlejsi (fg_secondary)."""
+        def over(top, a, bottom):
             return [top[i] * a + bottom[i] * (1 - a) for i in range(3)]
 
         def lum(c):
             return 0.2126 * srgb_linear(c[0]) + 0.7152 * srgb_linear(c[1]) + 0.0722 * srgb_linear(c[2])
 
-        backgrounds = {"white window": [255, 255, 255], "black terminal": [0, 0, 0],
-                       "wallpaper red": [196, 30, 20], "wallpaper yellow": [250, 220, 60], "wallpaper blue": [20, 40, 120]}
+        def saturate(c, k):
+            l = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+            return [min(255.0, max(0.0, l + (x - l) * k)) for x in c]
+
+        backgrounds = {"white window": [255, 255, 255], "black terminal": [0, 0, 0], "grey": [128, 128, 128],
+                       "wallpaper red": [196, 30, 20], "wallpaper yellow": [250, 220, 60], "wallpaper blue": [20, 40, 120],
+                       "green": [40, 160, 60], "magenta": [200, 40, 200]}
+        t = self.tokens
         worst = {}
-        for mode in ("light", "dark"):
-            m = self.tokens[mode]
-            for surface, texts in (("notification_solid", ("fg", "fg_soft")), ("popup_solid", ("fg",))):
-                for name, under in backgrounds.items():
-                    bg = over(m[surface], under)
-                    for text in texts:
-                        ink = over(m[text], bg)
-                        l1, l2 = sorted((lum(ink), lum(bg)), reverse=True)
-                        ratio = (l1 + 0.05) / (l2 + 0.05)
-                        key = (mode, surface, text)
-                        worst[key] = min(worst.get(key, 99), ratio)
-                        self.assertGreaterEqual(ratio, 4.5, (mode, surface, text, name, round(ratio, 2)))
-            # vic kryti nez sklo X11 (rozmazana tapeta tam schovala, co je pod oknem)
-            self.assertGreater(m["notification_solid"][3], m["notification"][3])
-            self.assertGreater(m["popup_solid"][3], m["popup"][3])
-        print("\n  nejhorsi kontrast: " + ", ".join(f"{k[0]} {k[1]} {k[2]} {v:.1f}" for k, v in sorted(worst.items())))
+        for surface, texts in (("bar", ("fg",)), ("popup", ("fg", "fg_secondary")), ("menu", ("fg", "fg_secondary")),
+                               ("toast", ("fg", "fg_secondary")), ("sheet", ("fg", "fg_secondary"))):
+            for mode in ("light", "dark"):
+                m = t["material"][t["surface"][surface][0]][mode]
+                for blur in (True, False):
+                    a = m["opacity"] if blur else max(m["opacity"], t["blur"]["fallback_opacity"])
+                    for name, under in backgrounds.items():
+                        bg = over(m["tint"], a, saturate(under, t["blur"]["saturation"]) if blur else under)
+                        for text in texts:
+                            c = t[mode][text]
+                            ink = over(c, c[3], bg)
+                            l1, l2 = sorted((lum(ink), lum(bg)), reverse=True)
+                            ratio = (l1 + 0.05) / (l2 + 0.05)
+                            key = (surface, mode, text, "blur" if blur else "solid")
+                            worst[key] = min(worst.get(key, 99), ratio)
+                            self.assertGreaterEqual(ratio, 4.5, (key, name, round(ratio, 2)))
+        print("\n  nejhorsi kontrast: " + ", ".join(f"{' '.join(k)} {v:.2f}" for k, v in sorted(worst.items())))
         css = self.run_gen("css", "light")
-        self.assertIn(".lx-notification { background-color: @lx_notification_solid;", css)
-        self.assertRegex(css, r"menu, \.menu \{ background-color: @lx_popup_solid;")
+        self.assertIn(".lx-notification { background-color: @lx_mat_toast;", css)
+        self.assertRegex(css, r"menu, \.menu \{ background-color: @lx_mat_menu;")
+        self.assertIn("@define-color lx_mat_popup rgba(246, 247, 252, 0.96);", css)
+        self.assertIn("@define-color lx_mat_popup rgba(246, 247, 252, 0.72);", self.run_gen("css", "light", "blur"))
+
+    def test_scales(self):
+        """Navrh 1.1.0: sest polomeru, typograficka stupnice se 7 rolemi, mrizka 4/8 bez 6, ovladace 28 px, jeden akcent."""
+        t = self.tokens
+        self.assertEqual(sorted(t["radius"].values()), [6, 8, 12, 16, 24, 999])
+        self.assertEqual(list(t["type"]), ["caption", "footnote", "body", "body_strong", "title", "headline", "large"])
+        self.assertTrue(all(v[0] >= 11 for v in t["type"].values()))
+        self.assertEqual(sorted(t["space"].values()), [2, 4, 8, 12, 16, 24, 32])
+        self.assertEqual(t["control"]["height"], 28)
+        blues = [n for n, c in t["colors"].items() if c[2] > 180 and c[0] < 120]
+        self.assertEqual(sorted(blues), ["accent", "accent_hover", "accent_pressed"])
+        for level in ("1", "2", "3", "4"):
+            self.assertIn(level, t["elevation"])
+        self.assertGreater(t["window_shadow"]["active_alpha"], t["window_shadow"]["inactive_alpha"])
+        for surface, (material, level, radius) in t["surface"].items():
+            self.assertIn(material, t["material"], surface)
+            self.assertTrue(level == 0 or str(level) in t["elevation"], surface)
+            self.assertIn(radius, list(t["radius"].values()) + [0], surface)
 
     def test_ink_hysteresis_like_bar(self):
         # luxos-bar.c want_dark_ink: na tmave pod 2,0, zpet na bile az nad 2,3
@@ -266,29 +294,15 @@ print(json.dumps(out))
                           ("readable_light_scrim", "READABLE_LIGHT_TEXT_SCRIM"), ("scrim_height", "SCRIM_HEIGHT"),
                           ("scrim_max", "SCRIM_MAX"), ("scrim_c_none", "SCRIM_C_NONE"), ("scrim_c_full", "SCRIM_C_FULL")):
             self.assertEqual(float(ink[key]), float(defines[name]), name)
-        self.assertEqual(self.tokens["bar"]["opacity"], int(defines["DEFAULT_OPACITY"]))
-        self.assertIn("(GdkRGBA) { 0.09, 0.09, 0.12, 1 } : (GdkRGBA) { 0.96, 0.96, 0.97, 1 }", bar)
-        self.assertEqual(self.tokens["bar"]["tint_dark"], [0.09, 0.09, 0.12])
-        self.assertEqual(self.tokens["bar"]["tint_light"], [0.96, 0.96, 0.97])
-        self.assertIn("(faint ? %s : 1.0)" % self.tokens["bar"]["faint"], bar)
 
     def test_values_match_glass_and_widgets(self):
         glass = (FILES / "lsl/luxos_glass.lsl").read_text()
         widgets = (FILES / "lsl/luxos-widgets.lsl").read_text()
         ref = (HERE / "glass-ref/luxos-glass-material.c").read_text()
-        g, wg, c = self.tokens["glass"], self.tokens["window_glass"], self.tokens["colors"]
-        self.assertIn("RADIUS = %.1f" % self.tokens["radius"]["window"], glass)
-        self.assertIn("BLUR_SIZE = %d" % wg["size"], glass)
-        self.assertIn("BLUR_RADIUS = %d" % wg["blur"], glass)
-        self.assertIn("pixbuf_saturate(pb, %s)" % wg["saturate"], glass)
-        self.assertIn("set_source_rgba(cr, %s, %s, %s, %s)" % tuple(wg["tint_light"]), glass)
-        self.assertIn("set_source_rgba(cr, %s, %s, %s, %s)" % tuple(wg["tint_dark"]), glass)
-        self.assertIn("set_source_rgba(cr, 0.06, 0.07, 0.10, 0.52)", glass)
-        self.assertEqual(wg["veil_dark"], [0.06, 0.07, 0.1, 0.52])
-        self.assertIn("1.0, 1.0, 1.0, %s)" % wg["sheen"], glass)
+        # sklo oken a karty widgetu maji vlastni hodnoty (WINDOW_GLASS z tokenu nahradil MATERIAL); tady jen semafor a hrany
+        g, c = self.tokens["glass"], self.tokens["colors"]
         for name, cls in (("light_close", "lg-close"), ("light_min", "lg-min"), ("light_max", "lg-max")):
             self.assertIn("button.%s { background-color: %s; }" % (cls, self.rgba(c[name])), glass)
-        self.assertIn("GLASS_RADIUS = %.1f" % self.tokens["radius"]["card"], widgets)
         for name in ("card_edge", "card_edge_top", "card_edge_bottom"):
             self.assertColor(widgets, "", c[name], "")
         self.assertIn("box-shadow: " + self.tokens["shadow"]["card"], widgets)
@@ -302,26 +316,15 @@ print(json.dumps(out))
         self.assertIn("x + w * %s, y + h" % g["sheen_reach"], ref)
 
     def test_values_match_themes(self):
+        """Relace X11 ma vlastni CSS (luxos-themes); material Waylandu ji nemeni. Spolecny zustava akcent, stiny a krizek."""
         gtk3 = (REPO / "packages/luxos-themes/files/luxos-gtk3.css").read_text()
         light = (REPO / "packages/luxos-themes/files/notify/Light.css").read_text()
-        dark = (REPO / "packages/luxos-themes/files/notify/Dark.css").read_text()
-        r, c = self.tokens["radius"], self.tokens["colors"]
+        c = self.tokens["colors"]
         self.assertIn(self.rgba(c["accent"]), gtk3)
-        self.assertIn(self.rgba(c["selection"]), gtk3)
-        self.assertRegex(gtk3, r"menu,\n\.background\.popup > menu \{[^}]*border-radius: %dpx" % r["menu"])
-        self.assertRegex(gtk3, r"menu > menuitem \{[^}]*border-radius: %dpx" % r["menu_item"])
-        self.assertRegex(gtk3, r"#login_box \{[^}]*border-radius: %dpx" % r["dialog"])
         self.assertIn("box-shadow: " + self.tokens["shadow"]["dialog"], gtk3)
         self.assertIn("box-shadow: " + self.tokens["shadow"]["focus"], gtk3)
-        for css, mode in ((light, "light"), (dark, "dark")):
-            m = self.tokens[mode]
-            self.assertColor(css, "background-color: ", m["notification"], ";")
-            self.assertColor(css, "color: ", m["fg"], ";")
-            self.assertColor(css, "color: ", m["fg_soft"], ";")
-            self.assertIn("border-radius: %dpx;" % r["notification"], css)
-            self.assertIn("border-radius: %dpx;" % r["button"], css)
-            self.assertIn("color: %s;" % self.rgba(c["close_glyph"]), css)
-            self.assertIn("color: %s;" % self.rgba(c["close_glyph_hover"]), css)
+        self.assertIn("color: %s;" % self.rgba(c["close_glyph"]), light)
+        self.assertIn("color: %s;" % self.rgba(c["close_glyph_hover"]), light)
 
     def test_values_match_lock_and_motion(self):
         lock = (REPO / "packages/xfce4-screensaver/luxos-lock-ui.c").read_text()
@@ -344,17 +347,13 @@ print(json.dumps(out))
         popups = git_show("packages/luxos-desktop/files/lsl/luxos_bar_popups.lsl")
         if popups is None:
             self.skipTest("vetev %s neni k dispozici" % GPT_BRANCH)
-        r = self.tokens["radius"]
         for mode, block in (("light", "LIGHT = ("), ("dark", "DARK = (")):
             start = popups.index(block)
             text = popups[start:popups.index("\n\n", start)]
             m = self.tokens[mode]
-            for name in ("popup", "border", "fg", "dim", "tile", "tile_hover", "bubble", "trough", "fill", "field"):
-                key = {"popup": "bg"}.get(name, name)
-                self.assertColor(text, "@define-color bp_%s " % key, m[name], ";", (mode, name))
-        self.assertIn("border-radius: %dpx; border: 1px solid @bp_border" % r["popup"], popups)
-        self.assertIn(".bp-section { background-color: @bp_tile; border-radius: %dpx" % r["tile"], popups)
-        self.assertIn("button.bp-row { border-radius: %dpx" % r["row"], popups)
+            # podklad a polomery nahradil material a stupnice polomeru, barvy obsahu zustaly
+            for name in ("border", "fg", "dim", "tile", "tile_hover", "bubble", "trough", "fill", "field"):
+                self.assertColor(text, "@define-color bp_%s " % name, m[name], ";", (mode, name))
 
 
 if __name__ == "__main__":

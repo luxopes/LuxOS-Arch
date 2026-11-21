@@ -133,7 +133,7 @@ end
 function load_config():
     global settings
     general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
-               "xwayland": "yes", "displays_command": ""}
+               "xwayland": "yes", "displays_command": "", "blur": "yes"}
     keys = {}
     if greeter:
         # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
@@ -319,7 +319,7 @@ function apply_theme(dark):
     window = tokens.color("window", dark)
     call lc.theme_set(lc.THEME_TITLE_HEIGHT, t["height"])
     call lc.theme_set(lc.THEME_TITLE_HEIGHT_COMPACT, t["height_compact"])
-    call lc.theme_set(lc.THEME_CORNER_RADIUS, t["radius"])
+    call lc.theme_set(lc.THEME_CORNER_RADIUS, tokens.RADIUS["m"])
     call lc.theme_set(lc.THEME_BUTTON_SIZE, t["light"])
     call lc.theme_set(lc.THEME_BUTTON_SPACING, t["pitch"] - t["light"])
     call lc.theme_set(lc.THEME_BUTTON_INSET, t["inset"])
@@ -349,15 +349,15 @@ function apply_theme(dark):
     call lc.theme_set(lc.THEME_GLYPH, argb(tokens.COLORS["light_glyph"]))
     call lc.theme_set(lc.THEME_ACCENT, argb(tokens.COLORS["accent"]))
     call lc.theme_set(lc.THEME_BORDER, argb(t["border_dark"] if dark else t["border_light"]))
-    # TODO(wl/material): posun stinu dolu ("active_y", "inactive_y") az bude ve WINDOW_SHADOW (review G2)
     shadow = tokens.WINDOW_SHADOW
     call lc.theme_set(lc.THEME_SHADOW_ACTIVE, argb([0, 0, 0, shadow["active_alpha"]]))
     call lc.theme_set(lc.THEME_SHADOW_INACTIVE, argb([0, 0, 0, shadow["inactive_alpha"]]))
     call lc.theme_set(lc.THEME_SHADOW_ACTIVE_SIZE, shadow["active_size"])
     call lc.theme_set(lc.THEME_SHADOW_INACTIVE_SIZE, shadow["inactive_size"])
-    call lc.theme_set(lc.THEME_SHADOW_ACTIVE_OFFSET, shadow.get("active_y", -1))
-    call lc.theme_set(lc.THEME_SHADOW_INACTIVE_OFFSET, shadow.get("inactive_y", -1))
+    call lc.theme_set(lc.THEME_SHADOW_ACTIVE_OFFSET, shadow["active_y"])
+    call lc.theme_set(lc.THEME_SHADOW_INACTIVE_OFFSET, shadow["inactive_y"])
     call lc.theme_set_font(tokens.FONT["family"] + " Semi-Bold " + String(t["title_px"]) + "px")
+    call apply_material(dark)
     # pod tapetou (vrstva background) stejna nahradni barva jako u skla bez tapety
     fb = tokens.GLASS["fallback"]
     bg = [Int(fb[0] * 255.0), Int(fb[1] * 255.0), Int(fb[2] * 255.0), 1.0]
@@ -369,6 +369,23 @@ function apply_theme(dark):
     call lc.set_background(argb(bg))
     call note("theme " + ("dark" if dark else "light"))
     call broadcast("theme", theme_event())
+end
+
+# Material ploch shellu v kompozitoru (luxcomp_material_set): nahradni nepruhledna barva = tonovani,
+# stin podle vysky; dim pod Launchpadem. blur = no v luxwm.conf nechava jen nepruhlednou barvu.
+function apply_material(dark):
+    for surface in tokens.SURFACE.keys():
+        m = tokens.material(surface, dark, True)
+        e = tokens.elevation(surface, dark)
+        fallback = [m[0], m[1], m[2], 1.0]
+        if surface == "dim":
+            d = tokens.DIM["fallback"]
+            fallback = [d[0], d[1], d[2], 1.0]
+        end
+        call lc.material_set(surface, tokens.radius_of(surface), argb(fallback), argb([0, 0, 0, e[2]]), e[0], e[1])
+    end
+    call lc.blur_set(tokens.BLUR["radius"], Int(tokens.BLUR["saturation"] * 100.0 + 0.5), 1 if settings.get("blur", "yes") != "no" else 0)
+    return 0
 end
 
 # ---- rozlozeni klavesnice --------------------------------------------------------------------

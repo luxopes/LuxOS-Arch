@@ -40,11 +40,12 @@ HISTORY = ("org.freedesktop.Notifications", "/cz/luxos/NotificationHistory", "cz
 LOG = ("org.xfce.Notifyd", "/org/xfce/Notifyd", "org.xfce.Notifyd.Log")
 
 W, H = 1280, 800
-# karta: vrstva 4 px od praveho a horniho okraje, karta ma okraj 4 px, sirka 340
-CARD_LEFT, CARD_RIGHT, CARD_TOP = W - 8 - 340, W - 8, 8
+# karta: vrstva 4 px od praveho a horniho okraje, karta ma okraj 4 px, sirka 344 (navrh 1.1.0)
+CARD_LEFT, CARD_RIGHT, CARD_TOP = W - 8 - 344, W - 8, 8
 PROBE_X = CARD_LEFT + 200          # pruh karty bez textu (vpravo od kratkeho nadpisu)
-LIGHT_CARD = (234, 235, 239)       # notification_solid rgba(246, 247, 252, 0.95) na cerne
-DARK_CARD = (30, 31, 49)           # notification_solid rgba(32, 33, 52, 0.95) na cerne
+# material toast bez rozmazani (labwc): tonovani s kryti BLUR fallback_opacity 0,96 na cerne
+LIGHT_CARD = (236, 237, 242)       # rgba(246, 247, 252, 0.96)
+DARK_CARD = (29, 30, 40)           # rgba(30, 31, 42, 0.96)
 
 
 def near(rgb, want, tol=8):

@@ -1,6 +1,15 @@
-# LuxOS - material z matneho skla pro plochy layer-shell na Waylandu (lista, Dock, vyskakovaci okna, oznameni):
-# vyrez rozostrene tapety pod plochou, mlecny podklad, zavoj podle jasu vyrezu a odlesk. Bez XShape a bez snimani
-# obrazovky; programy nacitaji `load luxos_material as material`.
+# LuxOS - material ploch layer-shell na Waylandu. Pod luxwm kresli rozmazane pozadi kompozitor (jmenny prostor
+# tokens.namespace, luxcomp blur.c) a klient jen tonovani tokens.material(); compositor_blur() to zjisti.
+# Jinde (labwc) a pro zamek: sklo z tapety - vyrez rozostrene tapety pod plochou, mlecny podklad, zavoj podle jasu
+# vyrezu a odlesk. Programy nacitaji `load luxos_material as material`.
+#
+#   material.compositor_blur()           True = kompozitor pod plochy s materialem kresli rozmazane pozadi (bezi luxwm);
+#                                        LUXOS_BLUR=1/0 to prepise (testy)
+#   material.paint_tint(cr, plocha, dark, blur, x, y, w, h, okraj)
+#                                        tonovani plochy (zaoblene polomerem plochy), odlesk nahore, okraj = i 1 px obrys
+#   material.shadow_surface(w, h, polomer, uroven, dark)
+#                                        stin panelu uvnitr povrchu (Launchpad): povrch (w + 2 dosah) x (h + 2 dosah), panel
+#                                        na [dosah, dosah - posun]; vnitrek panelu pruhledny. Volajici ho nici.
 # Cisla jsou stejna jako luxos-widgets.lsl on_card_draw a luxos-glass.c glass_paint (gpt-features-1.1.1),
 # test tests/test_luxos_material.py porovnava pixely s C (tests/glass-ref/luxos-glass-material.c).
 #
@@ -77,6 +86,92 @@ end
 
 function clamp(x, lo, hi):
     return max(lo, min(hi, x))
+end
+
+# ---- material z kompozitoru -------------------------------------------------------------------
+
+function compositor_blur():
+    forced = glib.getenv("LUXOS_BLUR")
+    if forced == "1":
+        return True
+    end
+    if forced == "0":
+        return False
+    end
+    runtime = glib.getenv("XDG_RUNTIME_DIR")
+    display = glib.getenv("WAYLAND_DISPLAY")
+    if runtime == None or runtime == "" or display == None or display == "" or display.startswith("/"):
+        return False
+    end
+    return exists(runtime + "/luxwm-" + display + ".sock")
+end
+
+function set_rgba(cr, c):
+    call cairo.set_source_rgba(cr, Float(c[0]) / 255.0, Float(c[1]) / 255.0, Float(c[2]) / 255.0, Float(c[3]))
+    return 0
+end
+
+# Tonovani a 1 px okraj materialu (svetly odlesk nahore uvnitr); polomer plochy z tokens.SURFACE
+function paint_tint(cr, surface, dark, blur, x, y, w, h, edge):
+    r = Float(tokens.radius_of(surface))
+    call cairo.save(cr)
+    call rounded_path(cr, Float(x), Float(y), Float(w), Float(h), r)
+    call set_rgba(cr, tokens.material(surface, dark, blur))
+    call cairo.fill(cr)
+    if edge:
+        call rounded_path(cr, Float(x) + 0.5, Float(y) + 0.5, Float(w) - 1.0, Float(h) - 1.0, max(0.0, r - 0.5))
+        call set_rgba(cr, tokens.material_border(surface, dark))
+        call cairo.set_line_width(cr, 1.0)
+        call cairo.stroke(cr)
+    end
+    call cairo.rectangle(cr, Float(x) + r, Float(y) + 1.0, Float(w) - 2.0 * r, 1.0)
+    call set_rgba(cr, tokens.material_highlight(surface, dark))
+    call cairo.fill(cr)
+    call cairo.restore(cr)
+    return 0
+end
+
+# Stin kresleny jednou do povrchu: soustredne zaoblene obdelniky v osmine rozliseni, zvetsene bilinearne (schody
+# zmizi, bez smycky pres pixely v LSL); vnitrek panelu vymazany, at stin neztmavi pruhledny material
+function shadow_surface(w, h, radius, surface, dark):
+    e = tokens.elevation(surface, dark)
+    reach = e[0]
+    k = 8
+    sw = (w + 2 * reach) // k + 1
+    sh = (h + 2 * reach) // k + 1
+    small = cairo.image_surface_create(cairo.FORMAT_ARGB32, sw, sh)
+    cr = cairo.create(small)
+    call cairo.scale(cr, 1.0 / Float(k), 1.0 / Float(k))
+    steps = 12
+    # alfa jednoho kroku: uprostred se slozi na alfu urovne vysky
+    a = 1.0 - pow(1.0 - e[2], 1.0 / Float(steps))
+    for i in range(steps):
+        grow = Float(reach) * (1.0 - Float(i + 1) / Float(steps))
+        call rounded_path(cr, Float(reach) - grow, Float(reach + e[1]) - grow, Float(w) + 2.0 * grow, Float(h) + 2.0 * grow,
+                          Float(radius) + grow)
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, a)
+        call cairo.fill(cr)
+    end
+    call cairo.destroy(cr)
+    surf = cairo.image_surface_create(cairo.FORMAT_ARGB32, w + 2 * reach, h + 2 * reach)
+    cr = cairo.create(surf)
+    call cairo.save(cr)
+    call cairo.scale(cr, Float(k), Float(k))
+    # vychozi filtr cairo (GOOD) zvetsuje bilinearne
+    call cairo.set_source_surface(cr, small, 0.0, 0.0)
+    call cairo.paint(cr)
+    call cairo.restore(cr)
+    call rounded_path(cr, Float(reach), Float(reach), Float(w), Float(h), Float(radius))
+    call cairo.set_operator(cr, cairo.OPERATOR_CLEAR)
+    call cairo.fill(cr)
+    call cairo.destroy(cr)
+    call cairo.surface_destroy(small)
+    call cairo.surface_flush(surf)
+    return surf
+end
+
+function pow(x, y):
+    return tokens.pow(x, y)
 end
 
 # ---- tapeta z nastaveni LuxOS -----------------------------------------------------------------

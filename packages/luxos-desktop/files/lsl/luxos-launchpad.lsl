@@ -62,7 +62,7 @@ usage_path = glib.user_data_dir() + "/luxos/launchpad-usage.json"
 
 entries = []
 usage = {}
-S = {"open": False, "mode": "launchpad", "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
+S = {"blur": material.compositor_blur(), "shadow": None, "open": False, "mode": "launchpad", "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
     "query": "", "light": True, "strip": None, "geo": {}, "size": [0, 0], "pending": False, "drawn": False,
     "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": []}
 window = 0
@@ -430,7 +430,10 @@ function glass():
     if S["strip"] == None:
         g = S["geo"]
         S["strip"] = []
-        hit = material.strip("", S["size"][0], S["size"][1], g["x"], g["y"], g["w"], g["h"], 0, -1, gtk.widget_scale_factor(window))
+        hit = None
+        if not S["blur"]:
+            hit = material.strip("", S["size"][0], S["size"][1], g["x"], g["y"], g["w"], g["h"], 0, -1, gtk.widget_scale_factor(window))
+        end
         if hit != None:
             S["strip"] = hit
             S["light"] = hit[1]
@@ -447,7 +450,7 @@ end
 
 function apply_css():
     fg = tokens.css_color(tokens.color("fg", dark()))
-    sel = tokens.css_color(tokens.COLORS["selection"])
+    sel = tokens.css_color(tokens.COLORS["accent"])
     text = ("#luxos-launchpad-entry { background: transparent; border: none; box-shadow: none; outline: none; "
         + "padding: 0; min-height: 0; color: " + fg + "; caret-color: " + fg + "; font-family: " + tokens.FONT["fallback"]
         + "; font-size: 17px; } #luxos-launchpad-entry selection { background-color: " + sel + "; color: white; }")
@@ -455,9 +458,32 @@ function apply_css():
     return 0
 end
 
-function draw_panel(cr):
+# Pod luxwm: celou obrazovku rozmaze kompozitor (material dim), panel je material sheet se stinem urovne 4
+# (stin uvnitr povrchu, kresli se jednou pro velikost panelu)
+function draw_sheet(cr):
     g = S["geo"]
-    radius = Float(tokens.RADIUS["card"])
+    call glass()
+    radius = tokens.radius_of("sheet")
+    key = [g["w"], g["h"], dark()]
+    if S["shadow"] == None or S["shadow"][1] != key:
+        if S["shadow"] != None:
+            call cairo.surface_destroy(S["shadow"][0])
+        end
+        S["shadow"] = [material.shadow_surface(g["w"], g["h"], radius, "sheet", dark()), key]
+    end
+    reach = tokens.elevation("sheet", dark())[0]
+    call cairo.set_source_surface(cr, S["shadow"][0], Float(g["x"] - reach), Float(g["y"] - reach))
+    call cairo.paint(cr)
+    call material.paint_tint(cr, "sheet", dark(), True, g["x"], g["y"], g["w"], g["h"], True)
+    return 0
+end
+
+function draw_panel(cr):
+    if S["blur"]:
+        return draw_sheet(cr)
+    end
+    g = S["geo"]
+    radius = Float(tokens.radius_of("sheet"))
     strip = glass()
     call cairo.save(cr)
     call cairo.rounded_rectangle(cr, g["x"], g["y"], g["w"], g["h"], radius)
@@ -467,7 +493,7 @@ function draw_panel(cr):
         call cairo.paint(cr)
     else:
         # bez tapety: neprusvitny podklad (U-15: pruhledny panel byl na pestrem pozadi necitelny)
-        c = tokens.opaque(tokens.color("popup", dark()))
+        c = tokens.opaque(tokens.material("sheet", dark(), False))
         call cairo.set_source_color(cr, tokens.rgb01(c))
         call cairo.paint(cr)
     end
@@ -601,7 +627,7 @@ function draw_calc(cr, r, item, selected):
     else:
         call cairo.set_source_color(cr, color("tile"))
     end
-    call cairo.rounded_rectangle(cr, r[0] + 3, r[1] + 3, r[2] - 6, r[3] - 6, Float(tokens.RADIUS["tile"]))
+    call cairo.rounded_rectangle(cr, r[0] + 3, r[1] + 3, r[2] - 6, r[3] - 6, Float(tokens.RADIUS["l"]))
     call cairo.fill(cr)
     big = 30
     if S["mode"] == "search":
@@ -621,7 +647,7 @@ end
 function draw_tile(cr, r, item, selected):
     if selected:
         call cairo.set_source_color(cr, color("tile_hover"))
-        call cairo.rounded_rectangle(cr, r[0] + 3, r[1] + 2, r[2] - 6, r[3] - 4, Float(tokens.RADIUS["tile"]))
+        call cairo.rounded_rectangle(cr, r[0] + 3, r[1] + 2, r[2] - 6, r[3] - 4, Float(tokens.RADIUS["l"]))
         call cairo.fill(cr)
     end
     if S["mode"] == "search":
@@ -703,7 +729,13 @@ end
 function paint(cr):
     call cairo.save(cr)
     call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
-    call cairo.set_source_rgba(cr, SCRIM[0], SCRIM[1], SCRIM[2], SCRIM[3])
+    if S["blur"]:
+        # zatemneni nad rozmazanou obrazovkou (material dim od kompozitoru)
+        d = tokens.DIM["dark" if dark() else "light"]
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, d[3])
+    else:
+        call cairo.set_source_rgba(cr, SCRIM[0], SCRIM[1], SCRIM[2], SCRIM[3])
+    end
     call cairo.paint(cr)
     call cairo.restore(cr)
     alpha = fade_alpha()
@@ -1171,7 +1203,7 @@ call load_entries()
 window = gtk.window_new("luxos-launchpad")
 call gtk.window_set_rgba(window)
 call layer.init_for_window(window)
-call layer.set_namespace(window, "luxos-launchpad")
+call layer.set_namespace(window, tokens.namespace("luxos-launchpad", "dim"))
 call layer.set_layer(window, layer.LAYER_OVERLAY)
 call layer.set_anchors(window, [layer.EDGE_TOP, layer.EDGE_BOTTOM, layer.EDGE_LEFT, layer.EDGE_RIGHT])
 # pres celou obrazovku vcetne listy a Docku

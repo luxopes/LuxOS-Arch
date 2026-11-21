@@ -1,7 +1,7 @@
 <theme>
   <name>LuxOS</name>
   <titlebar><layout>close,iconify,max:</layout><showTitle>yes</showTitle></titlebar>
-  <cornerRadius>16</cornerRadius>
+  <cornerRadius>12</cornerRadius>
   <keepBorder>yes</keepBorder>
   <maximizedDecoration>titlebar</maximizedDecoration>
   <dropShadows>yes</dropShadows>

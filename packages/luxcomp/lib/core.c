@@ -96,9 +96,11 @@ output_frame(struct wl_listener *listener, void *data)
 	struct output *o = wl_container_of(listener, o, frame);
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
+	bool blurred = blur_output_frame(o);
 	bool done = wlr_scene_output_commit(o->scene_output, NULL);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
 	int64_t render_ns = (t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
+	blur_frame_time(o, render_ns, blurred);
 	if (done) {
 		lock_frame_done(o);
 		if (comp.grab != GRAB_NONE) {
@@ -799,6 +801,10 @@ layer_commit(struct wl_listener *listener, void *data)
 {
 	struct layer *l = wl_container_of(listener, l, commit);
 	struct wlr_layer_surface_v1 *s = l->surface;
+	if (l->blur.material[0] && strcmp(l->blur.material, "popups")) {
+		blur_set_update(&l->blur, l->scene->tree, &s->surface->current.input,
+			s->surface->current.width, s->surface->current.height);
+	}
 	if (!s->initialized || !l->output) {
 		return;
 	}
@@ -822,6 +828,7 @@ layer_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&l->commit.link);
 	wl_list_remove(&l->new_popup.link);
 	wl_list_remove(&l->destroy.link);
+	blur_set_clear(&l->blur);
 	free(l);
 }
 
@@ -829,7 +836,9 @@ layer_destroy(struct wl_listener *listener, void *data)
  * at ho nezakryji okna; strom zanikne s popupem */
 struct popup_holder {
 	struct wlr_scene_tree *tree;
-	struct wl_listener destroy;
+	struct wlr_xdg_popup *popup;
+	struct blur *blur;		/* nabidka plochy s materialem dostane material "menu" */
+	struct wl_listener destroy, commit;
 };
 
 static void
@@ -837,8 +846,21 @@ popup_holder_destroy(struct wl_listener *listener, void *data)
 {
 	struct popup_holder *h = wl_container_of(listener, h, destroy);
 	wl_list_remove(&h->destroy.link);
+	if (h->blur) {
+		wl_list_remove(&h->commit.link);
+		blur_destroy(h->blur);
+	}
 	wlr_scene_node_destroy(&h->tree->node);
 	free(h);
+}
+
+/* strom popupu zacina v rohu geometrie okna (stin GTK kolem nabidky je mimo) */
+static void
+popup_holder_commit(struct wl_listener *listener, void *data)
+{
+	struct popup_holder *h = wl_container_of(listener, h, commit);
+	struct wlr_box g = h->popup->base->current.geometry;
+	blur_set_box(h->blur, (struct wlr_box){ 0, 0, g.width, g.height });
 }
 
 static void
@@ -851,9 +873,18 @@ layer_new_popup(struct wl_listener *listener, void *data)
 	int lx = 0, ly = 0;
 	wlr_scene_node_coords(&l->scene->tree->node, &lx, &ly);
 	wlr_scene_node_set_position(&h->tree->node, lx, ly);
+	h->popup = popup;
 	h->destroy.notify = popup_holder_destroy;
 	wl_signal_add(&popup->events.destroy, &h->destroy);
 	popup_attach(popup, h->tree);
+	if (l->blur.material[0] && popup->base->data) {
+		char menu[16] = "menu";
+		int radius = 0;
+		blur_parse_namespace("@menu", menu, &radius);
+		h->blur = blur_create(popup->base->data, menu, radius);
+		h->commit.notify = popup_holder_commit;
+		wl_signal_add(&popup->base->surface->events.commit, &h->commit);
+	}
 }
 
 static void
@@ -878,6 +909,7 @@ new_layer_surface(struct wl_listener *listener, void *data)
 	l->scene = wlr_scene_layer_surface_v1_create(layer_tree(s->pending.layer), s);
 	l->scene->tree->node.data = l;
 	s->data = l->scene->tree;	/* rodic pro popupy */
+	blur_parse_namespace(s->namespace, l->blur.material, &l->blur.radius);
 	l->map.notify = layer_map;
 	wl_signal_add(&s->surface->events.map, &l->map);
 	l->unmap.notify = layer_unmap;

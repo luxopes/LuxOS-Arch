@@ -25,8 +25,9 @@ struct shadow {
 	struct wlr_scene_buffer *piece[8];
 };
 
-/* stin a obrys aktivniho a neaktivniho okna; vic kombinaci naraz neni */
-static struct shadow_texture cache[4];
+/* stin a obrys aktivniho a neaktivniho okna a stiny urovni materialu (blur.c) */
+#define CACHE 12
+static struct shadow_texture cache[CACHE];
 static int next;
 
 /* Box blur radku nebo sloupce s nulami za okrajem; tri pruchody davaji temer gauss */
@@ -114,7 +115,7 @@ render(int size, int radius, uint32_t argb, int scale, bool blur)
 static struct wlr_buffer *
 texture(int size, int radius, uint32_t argb, int scale, bool blur)
 {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < CACHE; i++) {
 		struct shadow_texture *c = &cache[i];
 		if (c->buffer && c->size == size && c->radius == radius && c->argb == argb
 				&& c->scale == scale && c->blur == blur) {
@@ -123,7 +124,7 @@ texture(int size, int radius, uint32_t argb, int scale, bool blur)
 	}
 	/* okna drzi starou texturu dal (zamek wlr_buffer), dokud se neprekresli */
 	struct shadow_texture *t = &cache[next];
-	next = (next + 1) % 4;
+	next = (next + 1) % CACHE;
 	if (t->buffer) {
 		wlr_buffer_drop(t->buffer);
 	}

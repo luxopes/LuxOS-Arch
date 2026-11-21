@@ -93,6 +93,8 @@ class TitlebarSpec(unittest.TestCase):
         block = text[text.index("TITLEBAR = {"):]
         block = block[:block.index("}") + 1]
         cls.spec = {k: float(v) for k, v in re.findall(r'"(\w+)": (-?[\d.]+)(?=[,}])', block)}
+        # zaobleni okna je ze stupnice polomeru (RADIUS m), ne ze zahlavi
+        cls.spec["radius"] = float(re.search(r'RADIUS = \{[^}]*"m": (\d+)', text).group(1))
 
     def rule(self, selector):
         m = re.search(r"(?m)^" + re.escape(selector) + r"\s*(?:,[^{]*)?\{([^}]*)\}", self.css)

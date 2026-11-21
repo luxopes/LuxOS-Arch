@@ -90,6 +90,7 @@ end
 function read_conf():
     ui["conf"] = text.parse_kv(lglib.read_text(config_dir() + "/appearance.conf"))
     ui["dark"] = lglib.read_text(config_dir() + "/appearance").strip() == "dark"
+    ui["blur"] = material.compositor_blur()
     return 0
 end
 
@@ -105,13 +106,14 @@ function bar_css():
     white = tokens.css_color(tokens.COLORS["on_glass"])
     dark = tokens.css_color(tokens.COLORS["on_glass_light"])
     plain = " background: none; background-image: none; border: none; box-shadow: none; outline: none;"
-    return (tokens.gtk3_css(ui["dark"])
+    # nazev aplikace a hodiny body_strong (hodiny s cislicemi stejne siroke), stisknuta polozka ink 0,14, najeti 0,08
+    return (tokens.gtk3_css(ui["dark"], ui["blur"])
         + "window.luxos-bar { background: transparent; }\n"
-        + ".luxos-bar label { font-size: " + String(tokens.FONT["body"]) + "px; }\n"
-        + ".luxos-bar .lb-app { font-weight: " + String(tokens.WEIGHT["bold"]) + "; }\n"
-        + ".luxos-bar .lb-clock { font-weight: " + String(tokens.WEIGHT["bold"]) + "; }\n"
+        + ".luxos-bar label { font-size: " + String(tokens.TYPE["body"][0]) + "px; }\n"
+        + ".luxos-bar .lb-app { " + tokens.type_css("body_strong") + " }\n"
+        + ".luxos-bar .lb-clock { " + tokens.type_css("body_strong") + " font-feature-settings: \"tnum\"; }\n"
         + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
-        + String(tokens.RADIUS["menu_item"]) + "px; }\n"
+        + String(tokens.RADIUS["xs"]) + "px; }\n"
         # rozlozeni klavesnice: tichy stitek (18x15, jen tenky ramecek), ne nejhlasitejsi prvek listy
         + ".luxos-bar .lb-badge { font-size: 11px; font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.3px;"
         + " border: 1px solid; border-radius: 4px; padding: 0 2px; min-width: 14px; min-height: 13px; }\n"
@@ -119,10 +121,12 @@ function bar_css():
         + ".luxos-bar.ink-white label { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white image { -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white .lb-badge { border-color: alpha(" + white + ", 0.55); }\n"
-        + ".luxos-bar.ink-white button.lb:hover, .luxos-bar.ink-white button.lb.open { background-color: rgba(255, 255, 255, 0.20); }\n"
+        + ".luxos-bar.ink-white button.lb:hover { background-color: alpha(" + white + ", 0.08); }\n"
+        + ".luxos-bar.ink-white button.lb.open { background-color: alpha(" + white + ", 0.14); }\n"
         + ".luxos-bar.ink-dark label, .luxos-bar.ink-dark image { color: " + dark + "; }\n"
         + ".luxos-bar.ink-dark .lb-badge { border-color: alpha(" + dark + ", 0.55); }\n"
-        + ".luxos-bar.ink-dark button.lb:hover, .luxos-bar.ink-dark button.lb.open { background-color: rgba(0, 0, 0, 0.09); }\n")
+        + ".luxos-bar.ink-dark button.lb:hover { background-color: alpha(" + dark + ", 0.08); }\n"
+        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n")
 end
 
 function apply_css():
@@ -212,6 +216,17 @@ end
 
 # Bile nebo tmave pismo a sila zavoje pro listu podle tapety jejiho vystupu
 function decide_look(bar):
+    if ui["blur"]:
+        # material listy ma kontrast 4,5:1 pro pismo rezimu nad cimkoli (tokens MATERIAL thin), bez zavoje
+        changed = bar["dark_ink"] == ui["dark"] or bar["scrim"] != 0.0
+        bar["dark_ink"] = not ui["dark"]
+        bar["scrim"] = 0.0
+        if changed or not bar["traced"]:
+            bar["traced"] = True
+            call trace("look " + bar["output"] + " ink=" + ("dark" if bar["dark_ink"] else "white") + " material")
+        end
+        return 0
+    end
     forced = conf("BAR_TEXT", "")
     path = material.wallpaper_path(bar["output"])
     th = None
@@ -279,6 +294,23 @@ end
 
 function on_bar_draw(bar, cr, widget):
     w = gtk.widget_get_allocated_width(widget)
+    if ui["blur"]:
+        # rozmazane pozadi kresli kompozitor; tonovani a vlasova cara dole (svetla lista nad svetlym oknem)
+        call cairo.save(cr)
+        call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
+        call material.set_rgba(cr, tokens.material("bar", ui["dark"], True))
+        call cairo.paint(cr)
+        call cairo.set_operator(cr, cairo.OPERATOR_OVER)
+        call material.set_rgba(cr, [255, 255, 255, 0.08] if ui["dark"] else [0, 0, 0, 0.10])
+        call cairo.rectangle(cr, 0.0, Float(HEIGHT - 1), Float(w), 1.0)
+        call cairo.fill(cr)
+        call cairo.restore(cr)
+        if not bar["drawn"]:
+            bar["drawn"] = True
+            call trace("drawn " + bar["output"] + " " + String(w) + "x" + String(HEIGHT) + " material")
+        end
+        return False
+    end
     ink = 0
     if bar["dark_ink"]:
         ink = 1
@@ -289,12 +321,8 @@ function on_bar_draw(bar, cr, widget):
     if hit != None:
         call cairo.set_source_surface(cr, hit[0], 0.0, 0.0)
     else:
-        # bez tapety ton listy jako luxos-bar.c (svetly / tmavy, BAR_OPACITY)
-        t = tokens.BAR["tint_light"]
-        if not bar["dark_ink"]:
-            t = tokens.BAR["tint_dark"]
-        end
-        call cairo.set_source_rgba(cr, t[0], t[1], t[2], Float(tokens.BAR["opacity"]) / 100.0)
+        # bez tapety nepruhledny material listy podle barvy pisma
+        call material.set_rgba(cr, tokens.material("bar", not bar["dark_ink"], False))
     end
     call cairo.paint(cr)
     call cairo.restore(cr)
@@ -508,7 +536,7 @@ function add_bar(monitor):
            "scale": max(1, monitor_scale(monitor)), "dark_ink": False, "scrim": 0.0, "scrim_win": 0, "items": {},
            "drawn": False, "traced": False, "handlers": []}
     call layer.init_for_window(win)
-    call layer.set_namespace(win, "luxos-bar")
+    call layer.set_namespace(win, tokens.namespace("luxos-bar", "bar"))
     call layer.set_layer(win, layer.LAYER_TOP)
     call layer.set_monitor(win, monitor)
     call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_LEFT, layer.EDGE_RIGHT])
