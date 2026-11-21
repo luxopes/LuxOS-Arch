@@ -40,7 +40,7 @@ import gi  # noqa: E402
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
-from test_luxos_power import PLAYER_XML, FakePlayer, FakeXfconf, ServiceThread, spin  # noqa: E402,F401
+from test_luxos_awake import PLAYER_XML, FakePlayer, FakeXfconf, ServiceThread  # noqa: E402,F401
 
 
 def translation(key):

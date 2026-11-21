@@ -40,7 +40,7 @@ import gi  # noqa: E402
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
-from test_luxos_power import ServiceThread  # noqa: E402
+from test_luxos_awake import ServiceThread  # noqa: E402
 
 PPD_XML = """<node><interface name="org.freedesktop.UPower.PowerProfiles">
   <property name="ActiveProfile" type="s" access="readwrite"/>
@@ -489,71 +489,6 @@ class Gpu(unittest.TestCase):
         self.set_profile("performance")
         r = self.gpu("run", "sh", "-c", 'echo "$__NV_PRIME_RENDER_OFFLOAD $1"', "x", "arg")
         self.assertEqual(r.stdout.strip(), "1 arg")
-
-
-class PowerAppGpuLine(unittest.TestCase):
-    """Baterie a napajeni: radek "Grafika: ..." z `luxos-gpu status` a Vykon vypne Sporic baterie."""
-
-    @classmethod
-    def setUpClass(cls):
-        from test_luxos_power import load_power
-        cls.mod = load_power()
-
-    def test_gpu_info(self):
-        mod = self.mod
-        orig = mod.run
-        try:
-            mod.run = lambda *a: "gpu=nvidia\nname=NVIDIA GeForce GTX 1650\nprofile=balanced\noffload=no"
-            self.assertEqual(mod.gpu_info(), {"kind": "nvidia", "name": "NVIDIA GeForce GTX 1650"})
-            mod.run = lambda *a: "gpu=none\nname=\nprofile=performance\noffload=no"
-            self.assertIsNone(mod.gpu_info())
-            mod.run = lambda *a: ""                 # luxos-gpu chybi
-            self.assertIsNone(mod.gpu_info())
-        finally:
-            mod.run = orig
-
-    def test_texts_and_saver(self):
-        mod = self.mod
-        labels, calls, sets = [], [], []
-
-        class Label:
-            def set_text(self, t):
-                labels.append(t)
-
-        class Switch:
-            def handler_block(self, h):
-                calls.append(("block", h))
-
-            def handler_unblock(self, h):
-                calls.append(("unblock", h))
-
-            def set_active(self, v):
-                calls.append(("active", v))
-
-        win = mod.PowerWindow.__new__(mod.PowerWindow)
-        win.gpu = {"kind": "nvidia", "name": "NVIDIA X"}
-        win.gpu_label, win.saver, win.saver_handler = Label(), Switch(), 7
-        win.bat = type("B", (), {"bus": None})()
-        orig = (mod.run, mod.ppd_set, mod.SAVER_STATE)
-        tmp = tempfile.mkdtemp(dir=TMP)
-        try:
-            mod.run = lambda *a: calls.append(a) or ""
-            mod.ppd_set = lambda bus, k: sets.append(k) or True
-            mod.SAVER_STATE = os.path.join(tmp, "powersaver")
-            win.set_mode("balanced")
-            self.assertEqual(labels[-1], mod._("Graphics: integrated (Performance mode uses %s for games)") % "NVIDIA X")
-            self.assertEqual(calls, [])
-            open(mod.SAVER_STATE, "w").close()          # Sporic baterie zapnuty
-            win.set_mode("performance")
-            self.assertEqual(calls, [("luxos-powersaver", "off"), ("block", 7), ("active", False), ("unblock", 7)])
-            self.assertEqual(sets, ["balanced", "performance"])
-            self.assertEqual(labels[-1], mod._("Graphics: %s for games and demanding apps") % "NVIDIA X")
-            win.gpu = None
-            n = len(labels)
-            win.update_gpu("performance")
-            self.assertEqual(len(labels), n)
-        finally:
-            mod.run, mod.ppd_set, mod.SAVER_STATE = orig
 
 
 if __name__ == "__main__":
