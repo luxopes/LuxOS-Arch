@@ -13,15 +13,36 @@ _luxos_tg_private() {  # _luxos_tg_private :N
     for pid in /proc/[0-9]*; do
         [[ -O $pid ]] || continue
         argv=$(tr '\0' '\n' <"$pid/cmdline" 2>/dev/null) || continue
+        grep -qx ":$num" <<<"$argv" || continue
         case ${argv%%$'\n'*} in
-            *Xvfb | *Xephyr | *Xvnc) grep -qx ":$num" <<<"$argv" && return 0 ;;
+            *Xvfb | *Xephyr | *Xvnc) return 0 ;;
+            */Xorg | Xorg) _luxos_tg_in_root "$pid/cwd" && return 0 ;;
         esac
     done
     return 1
 }
+_luxos_tg_root() {  # oznacena pracovni slozka spoustece testu (LUXOS_TEST_ROOT, viz luxos_testguard.py)
+    local r home
+    [[ -n ${LUXOS_TEST_ROOT-} && -O $LUXOS_TEST_ROOT/.luxos-test-root ]] || return 1
+    r=$(realpath -m -- "$LUXOS_TEST_ROOT")
+    home=$(realpath -m -- "$(getent passwd "$(id -u)" | cut -d: -f6)")
+    if [[ $r == "$home"/* ]]; then
+        [[ /${r#"$home"/} != */.* ]] || return 1
+    elif [[ $r == "$home" || $home == "$r"/* || $r == /run/user/* ]]; then
+        return 1
+    fi
+    echo "$r"
+}
+_luxos_tg_in_root() {  # lezi cesta v oznacene slozce spoustece testu?
+    local p r
+    r=$(_luxos_tg_root) || return 1
+    p=$(realpath -m -- "$1")
+    [[ $p == "$r" || $p == "$r"/* ]]
+}
 _luxos_tg_real() {  # cesta ve skutecnem domove nebo /run/user/UID?
     local p
     [[ -n ${1-} ]] || return 1
+    _luxos_tg_in_root "$1" && return 1
     p=$(realpath -m -- "$1")
     local home
     home=$(getent passwd "$(id -u)" | cut -d: -f6)

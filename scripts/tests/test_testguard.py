@@ -150,6 +150,87 @@ class TestGuardSystemBusAndCamera(unittest.TestCase):
             self.assertEqual(count.strip(), "0")
 
 
+ROOT_PROBE = r"""
+import json, os, sys
+sys.path.insert(0, sys.argv[1])
+import luxos_testguard as g
+out = {"home": os.environ["HOME"], "root": g.test_root()}
+try:
+    g.check_env({"HOME": sys.argv[3] + "/sub", "XDG_RUNTIME_DIR": sys.argv[3] + "/run"})
+    out["check_env"] = "ok"
+except g.RealSessionError:
+    out["check_env"] = "refused"
+# pravidla pro slozku v domove proti napodobenemu domovu (skutecny domov se nemeni)
+fake = sys.argv[2]
+g._REAL_HOME = fake
+rules = {}
+for name in ("", "out/rt", ".cache/rt", "out/.x/rt", ".."):
+    d = os.path.normpath(os.path.join(fake, name))
+    os.makedirs(d, exist_ok=True)
+    open(os.path.join(d, ".luxos-test-root"), "w").close()
+    os.environ["LUXOS_TEST_ROOT"] = d
+    rules[name] = g.test_root() is not None
+out["rules"] = rules
+out["real_still_real"] = g._real_path(fake) and g._real_path(fake + "/Documents")
+print(json.dumps(out))
+"""
+
+
+class TestGuardTestRoot(unittest.TestCase):
+    """LUXOS_TEST_ROOT (scripts/wl-test/run-all): oznacena slozka spoustece testu v domove neni skutecna relace."""
+
+    def probe(self, root, marked):
+        os.makedirs(os.path.join(root, "home"))
+        if marked:
+            open(os.path.join(root, ".luxos-test-root"), "w").close()
+        fake = os.path.join(root, "fakehome", "u")
+        env = {"PATH": os.environ.get("PATH", "/usr/bin"), "HOME": os.path.join(root, "home"),
+               "TMPDIR": os.path.join(root, "home"), "LUXOS_TEST_ROOT": root}
+        r = subprocess.run([sys.executable, "-c", ROOT_PROBE, SCRIPTS, fake, env["HOME"]], env=env, capture_output=True,
+                           text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        import json
+        return json.loads(r.stdout.strip().splitlines()[-1])
+
+    def workdir(self):
+        # slozka v domove jako ~/LuxOS-Arch/out/rt (repozitar lezi v domove), jinak v TMPDIR
+        out = os.path.join(os.path.dirname(SCRIPTS), "out")
+        return tempfile.TemporaryDirectory(dir=out if os.path.isdir(out) else None)
+
+    def test_marked_root_is_private(self):
+        with self.workdir() as root:
+            out = self.probe(root, True)
+            self.assertEqual(out["root"], os.path.realpath(root))
+            self.assertEqual(out["home"], os.path.join(root, "home"))     # HOME zustal
+            self.assertEqual(out["check_env"], "ok")
+            # domov sam, skryte slozky domova (~/.cache) ani nadrazena slozka domova nikdy
+            self.assertEqual(out["rules"], {"": False, "out/rt": True, ".cache/rt": False, "out/.x/rt": False,
+                                            "..": False})
+            self.assertTrue(out["real_still_real"])
+
+    def test_unmarked_root_is_ignored(self):
+        with self.workdir() as root:
+            out = self.probe(root, False)
+            self.assertIsNone(out["root"])
+            if os.path.realpath(root).startswith(os.path.realpath(REAL_HOME) + os.sep):
+                self.assertEqual(out["check_env"], "refused")
+
+    def test_shell_guard_root(self):
+        sh = '. "$1/luxos-testguard.sh"; printf "%s\\n" "$HOME"'
+        with self.workdir() as root:
+            home = os.path.join(root, "home")
+            os.makedirs(home)
+            env = {"PATH": os.environ.get("PATH", "/usr/bin"), "HOME": home, "LUXOS_TEST_ROOT": root}
+            in_home = os.path.realpath(root).startswith(os.path.realpath(REAL_HOME) + os.sep)
+            for marked in (False, True):
+                if marked:
+                    open(os.path.join(root, ".luxos-test-root"), "w").close()
+                r = subprocess.run(["bash", "-c", sh, "x", SCRIPTS], env=env, capture_output=True, text=True,
+                                   timeout=60)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout.strip() == home, marked or not in_home, (marked, r.stdout))
+
+
 class TestCameraNodesFromGuardDir(unittest.TestCase):
     """luxos_camera.lsl / luxos-wifi-qr hledaji kamery v LUXOS_VIDEO_DEV_DIR (pojistka: prazdna slozka)."""
 

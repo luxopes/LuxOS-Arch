@@ -4,13 +4,14 @@ Importuje ho kazdy test, ktery spousti okna, xdotool, setxkbmap, spravce oken ne
 (packages/*/tests). Pri importu:
 
   - DISPLAY, ktery neni virtualni obrazovka spustena pro testy (Xvfb/Xephyr/Xvnc tohoto uzivatele,
-    napr. z xvfb-run), se nahradi vlastnim Xvfb (ukonci se s testem); bez Xvfb se DISPLAY odebere
+    napr. z xvfb-run, nebo jeho Xorg s pracovni slozkou v LUXOS_TEST_ROOT), se nahradi vlastnim Xvfb (ukonci se s testem); bez Xvfb se DISPLAY odebere
     a testy GUI se preskoci. Nevyplneny DISPLAY zustava (testy GUI se preskoci jako dosud).
   - XAUTHORITY skutecne relace se odebere, sbernice D-Bus skutecne relace
     (DBUS_SESSION_BUS_ADDRESS = /run/user/UID/bus) se nahradi vlastni (dbus-daemon, skonci s testem).
   - HOME, XDG_RUNTIME_DIR a XDG_CONFIG/DATA/CACHE/STATE_HOME ukazujici do skutecneho domova nebo
     /run/user/UID se nahradi docasnou slozkou (xfconf, dconf, gtk.css, klavesnice skutecneho
-    uzivatele se nikdy nezmeni).
+    uzivatele se nikdy nezmeni). Vyjimka: oznacena pracovni slozka spoustece testu (LUXOS_TEST_ROOT,
+    scripts/wl-test/run-all) - jeji HOME, TMPDIR a sezeni lezi v ~/LuxOS-Arch/out a skutecne nejsou.
   - Systemova sbernice: DBUS_SYSTEM_BUS_ADDRESS vzdy miri na neexistujici soket (BlueZ, UPower,
     NetworkManager, fprintd, logind pocitace jsou pro testy nedostupne). Vlastni falesnou systemovou
     sbernici preda test jen schvalenou promennou LUXOS_TEST_SYSTEM_BUS (adresa jeho dbus-daemon), nebo
@@ -43,6 +44,8 @@ _PRIVATE_X = ("Xvfb", "Xephyr", "Xvnc")
 _REAL_SYSTEM_SOCKETS = ("/run/dbus/system_bus_socket", "/var/run/dbus/system_bus_socket")
 _SYSTEM_BUS_VAR = "LUXOS_TEST_SYSTEM_BUS"     # schvalena falesna systemova sbernice testu
 _VIDEO_VAR = "LUXOS_VIDEO_DEV_DIR"
+_ROOT_VAR = "LUXOS_TEST_ROOT"             # pracovni slozka spoustece testu (scripts/wl-test/run-all)
+_ROOT_MARK = ".luxos-test-root"
 _procs = []
 _tmp = None
 
@@ -74,16 +77,49 @@ def is_private_display(display):
                 argv = f.read().split(b"\0")
         except OSError:
             continue
-        if argv and os.path.basename(argv[0].decode(errors="replace")) in _PRIVATE_X \
-                and (":" + num).encode() in argv:
+        if (":" + num).encode() not in argv:
+            continue
+        name = os.path.basename(argv[0].decode(errors="replace"))
+        if name in _PRIVATE_X or (name == "Xorg" and _in_test_root("/proc/%s/cwd" % pid)):
             return True
     return False
+
+
+def _in_test_root(path):
+    """Lezi cesta v oznacene slozce spoustece testu? (Xorg testu s ovladacem dummy bezi v ni, skutecny ne)"""
+    root = test_root()
+    path = os.path.realpath(path)
+    return bool(root) and (path == root or path.startswith(root + os.sep))
+
+
+def test_root():
+    """Slozka spoustece testu z LUXOS_TEST_ROOT, nebo None. Plati jen oznacena (soubor .luxos-test-root
+    tohoto uzivatele) a mimo skryte slozky domova (~/.config, ~/.local, ...) - cesty v ni nejsou
+    skutecna relace, i kdyz lezi v domove (~/LuxOS-Arch/out/rt). Sam domov to byt nemuze."""
+    root = os.environ.get(_ROOT_VAR)
+    if not root:
+        return None
+    root = os.path.realpath(root)
+    try:
+        if os.stat(os.path.join(root, _ROOT_MARK)).st_uid != _UID:
+            return None
+    except OSError:
+        return None
+    home = os.path.realpath(_REAL_HOME)
+    if root.startswith(home + os.sep):
+        if any(part.startswith(".") for part in root[len(home) + 1:].split(os.sep)):
+            return None
+    elif root == home or home.startswith(root + os.sep) or root.startswith("/run/user/"):
+        return None
+    return root
 
 
 def _real_path(path):
     if not path:
         return False
     path = os.path.realpath(path)
+    if _in_test_root(path):
+        return False
     # vlastni docasna slozka testu (TMPDIR muze byt v domove, napr. ~/LuxOS-Arch/out) neni skutecna relace
     if _tmp and (path == os.path.realpath(_tmp) or path.startswith(os.path.realpath(_tmp) + os.sep)):
         return False
