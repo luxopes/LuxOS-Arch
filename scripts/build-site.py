@@ -963,7 +963,12 @@ def main():
     os.makedirs(OUT)
     stamp = time.strftime("%Y%m%d%H%M")
     today = datetime.date.today().isoformat()
+    # Verze ve stable: site/stable.json (packages/luxos-branding/files/version se zvedne uz pri priprave
+    # vydani ve staging - release.json by pak hlasil nevydanou verzi a Discord bot by ji oznamil)
     ver = read_kv(os.path.join(ROOT, "packages", "luxos-branding", "files", "version"))
+    with open(os.path.join(SITE, "stable.json"), encoding="utf-8") as f:
+        stable = json.load(f)
+    ver.update(VERSION=stable["version"], CODENAME=stable["codename"])
     with open(os.path.join(SITE, "iso.json"), encoding="utf-8") as f:
         iso = json.load(f)
     release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "stable",

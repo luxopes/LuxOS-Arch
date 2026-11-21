@@ -4,6 +4,8 @@
 #
 #   scripts/compose-stable-repo.sh [ZDROJ] [CIL]     vychozi out/repo -> out/repo-stable
 #   LUXOS_REPO_SRC=out/repo-stable LUXOS_REPO_CHANNEL=stable scripts/publish-repo.sh
+#   Po vydani do stable zvysit verzi v site/stable.json a zverejnit web (scripts/publish-site.sh) - web
+#   (release.json, Discord bot, stranka zmen) bere verzi stable odtud, ne z luxos-branding.
 #
 # Z kopie ZDROJE (reflink, zdroj se nemeni):
 #   - LUXOS_STABLE_EXCLUDE (vychozi "luxos-mail luxos-app-studio luxos-icon-studio luxos-sdk"): baliky se z databaze odeberou a jejich soubory
