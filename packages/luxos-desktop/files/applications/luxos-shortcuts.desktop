@@ -7,4 +7,3 @@ Comment[cs]=Zobrazení a změna klávesových zkratek
 Exec=luxos-shortcuts
 Icon=shortcuts
 Categories=Settings;
-StartupWMClass=luxos-shortcuts

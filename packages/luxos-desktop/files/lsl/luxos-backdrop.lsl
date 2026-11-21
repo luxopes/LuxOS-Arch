@@ -481,7 +481,7 @@ function menu_keyboard(b):
 end
 
 function menu_entries():
-    entries = [["New Folder", "new-folder"], "", ["Change Wallpaper…", ["luxos-settings"]]]
+    entries = [["New Folder", "new-folder"], "", ["Change Wallpaper…", ["luxos-settings", "desktop"]]]
     if glib.find_program_in_path("luxos-widgets") != "":
         entries.append(["Edit Widgets…", ["luxos-widgets", "settings"]])
     end

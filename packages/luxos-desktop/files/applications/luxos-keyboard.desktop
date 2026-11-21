@@ -32,4 +32,3 @@ Terminal=false
 Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=keyboard;layout;language;input;switch;qwerty;qwertz;klávesnice;rozložení;jazyk;
 Keywords[cs]=klávesnice;rozložení;jazyk klávesnice;přepínání;qwerty;qwertz;keyboard;layout;
-StartupWMClass=luxos-keyboard

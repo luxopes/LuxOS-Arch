@@ -25,6 +25,9 @@ conf["hide"] = "autohide"
 again = model.parse_conf(model.conf_text(conf))
 call expect("roundtrip", [again["items"], again["icon_size"], again["zoom"], again["hide"]], [conf["items"], 128, 150, "autohide"])
 call expect("empty-items", model.parse_conf("ITEMS=\"\"")["items"], [])
+# Spravce nastaveni Xfce z drivejsiho Docku -> Nastaveni LuxOS (na Waylandu Xfce nebezi)
+call expect("xfce-settings", model.parse_conf("ITEMS=\"a.desktop xfce-settings-manager.desktop\"")["items"], ["a.desktop", "luxos-settings.desktop"])
+call expect("item-xfce-settings", model.item_for_launcher("file:///var/lib/luxos/apps/applications/xfce-settings-manager.desktop"), "luxos-settings.desktop")
 
 # Plank
 call expect("launcher", model.dockitem_launcher("[PlankDockItemPreferences]\nLauncher=file:///usr/share/applications/firefox.desktop\n"), "file:///usr/share/applications/firefox.desktop")

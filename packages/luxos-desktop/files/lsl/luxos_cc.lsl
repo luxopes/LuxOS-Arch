@@ -395,7 +395,7 @@ end
 
 # Spusti program a zavre okno
 function on_launch_clicked(command, button):
-    call glib.spawn_quiet([command])
+    call glib.spawn_quiet(command.split(" "))
     call close()
     return 0
 end
@@ -592,7 +592,7 @@ function create():
     call gtk.box_pack_start(outer, bat_button, False, False, 0)
 
     footer = gtk.box_new(gtk.HORIZONTAL, 4)
-    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings")
+    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop")
     call footer_button(footer, i18n.T("Battery…"), "luxos-power")
     call footer_button(footer, i18n.T("All Settings…"), settings_command())
     call gtk.box_pack_start(outer, footer, False, False, 0)
@@ -623,12 +623,9 @@ function window_hints_x11(win):
     return 0
 end
 
-# Vsechna nastaveni: na Waylandu nebezi xfce4-settings-manager
+# Vsechna nastaveni: okno Nastaveni LuxOS v obou relacich (Xfce Spravce nastaveni je v nem odkazem jen na X11)
 function settings_command():
-    if wayland():
-        return "luxos-settings"
-    end
-    return "xfce4-settings-manager"
+    return "luxos-settings"
 end
 
 function log_test(message):

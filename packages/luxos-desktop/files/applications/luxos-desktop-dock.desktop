@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Desktop & Dock
+Name[cs]=Plocha a Dock
+Comment=Wallpaper, widgets, Dock and menu bar
+Comment[cs]=Tapeta, widgety, Dock a horní lišta
+Exec=luxos-settings desktop
+Icon=preferences-desktop-wallpaper
+Terminal=false
+Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
+Keywords=wallpaper;dock;background;tapeta;pozadí;

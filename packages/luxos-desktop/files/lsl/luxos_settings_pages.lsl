@@ -101,6 +101,9 @@ function all():
              ["luxos-app-reset"], {"build": app_reset.build, "cli": app_reset.cli, "test": app_reset.test}))
     out.append(app("update", "Software Update", "software-update-available-symbolic", "#8e8e93", 5, ["updates", "upgrade", "kernel"], ["luxos-update"]))
     out.append(app("drivers", "Drivers", "application-x-firmware-symbolic", "#8e8e93", 5, ["nvidia", "graphics", "firmware"], ["luxos-drivers"]))
+    xfce = app("xfce", "Xfce Settings Manager", "preferences-system-symbolic", "#8e8e93", 5, ["xfce", "advanced"], ["/usr/bin/xfce4-settings-manager"])
+    xfce["only"] = "x11"
+    out.append(xfce)
     out.append(app("about", "About This Computer", "computer-symbolic", "#8e8e93", 5, ["system", "version", "hardware", "memory"], ["luxos-about"]))
     return out
 end

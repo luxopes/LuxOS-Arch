@@ -32,4 +32,3 @@ Terminal=false
 Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=display;displays;monitor;screen;resolution;refresh rate;rotation;scale;text size;font size;larger text;dpi;
 Keywords[cs]=obrazovka;monitor;displej;rozlišení;frekvence;otočení;velikost textu;velikost písma;větší text;display;resolution;
-StartupWMClass=luxos-display-settings

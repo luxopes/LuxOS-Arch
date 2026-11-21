@@ -32,4 +32,3 @@ Terminal=false
 Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=scroll;scrolling;smooth;inertia;kinetic;momentum;touchpad;mouse;wheel;posouvání;setrvačnost;kolečko;myš;
 Keywords[cs]=posouvání;rolování;plynulé;setrvačnost;touchpad;myš;kolečko;scroll;kinetic;
-StartupWMClass=luxos-scrolling

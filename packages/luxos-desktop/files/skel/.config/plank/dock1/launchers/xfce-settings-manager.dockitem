@@ -1,2 +1,2 @@
 [PlankDockItemPreferences]
-Launcher=file:///var/lib/luxos/apps/applications/xfce-settings-manager.desktop
+Launcher=file:///usr/share/applications/luxos-settings.desktop

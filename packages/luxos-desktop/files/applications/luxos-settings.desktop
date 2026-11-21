@@ -1,12 +1,13 @@
 [Desktop Entry]
 Type=Application
-Name=Desktop & Dock
-Name[cs]=Plocha a Dock
-Comment=Wallpaper, appearance, Dock and menu bar
-Comment[cs]=Tapeta, vzhled, Dock a horní lišta
+Name=Settings
+Name[cs]=Nastavení
+Comment=Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else
+Comment[cs]=Vzhled, Wi-Fi, Bluetooth, monitory, klávesnice, myš a vše ostatní
 Exec=luxos-settings
-Icon=preferences-desktop-wallpaper
+Icon=luxos-settings
 Terminal=false
-Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
-Keywords=wallpaper;dock;background;dark;light;tapeta;pozadí;vzhled;
+Categories=Settings;System;GTK;
+Keywords=settings;preferences;system;control panel;nastavení;předvolby;ovládací panely;
 StartupWMClass=luxos-settings
+StartupNotify=true
