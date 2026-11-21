@@ -141,14 +141,14 @@ class MaterialShell(unittest.TestCase):
             self.fail(f"wlt {args[0]}: " + r.stdout + r.stderr)
         return r.stdout
 
-    def start(self, dark):
+    def start(self, dark, compositor_env=""):
         name = f"m{os.getpid() % 100000}{'d' if dark else 'l'}"
         conf = self.tmp / f"luxwm-{name}.conf"
         conf.write_text("xwayland = no\n" + (REPO / "packages/luxwm/luxwm.conf").read_text())
         env = dict(os.environ)
         env["WLT_COMPOSITOR_ENV"] = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXCOMP_STATS=1 LUXWM_SYSTEM_CONFIG={conf} "
                                      f"LD_LIBRARY_PATH={LUXWM_BUILD}:{SYSROOT}/usr/lib "
-                                     + os.environ.get("LUXOS_MATERIAL_COMPOSITOR_ENV", ""))
+                                     + os.environ.get("LUXOS_MATERIAL_COMPOSITOR_ENV", "") + " " + compositor_env)
         env["WLT_PRIVILEGED"] = f"{self.bin / 'luxos-bar'} {self.bin / 'luxos-dock'}"
         self.session = Path(self.wlt("start", "--mode", "headless", "--size", f"{W}x{H}", "--timeout", "900",
                                      "--name", name, "--", str(LUXWM_BUILD / "luxwm"), env=env).strip().splitlines()[-1])
