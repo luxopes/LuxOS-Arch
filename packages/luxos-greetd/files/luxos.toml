@@ -1,5 +1,5 @@
 # LuxOS - greetd (balik luxos-greetd): prihlasovaci obrazovka luxos-greeter pod luxwm --greeter na VT 1.
-# greetd.service ho cte pres /usr/lib/systemd/system/greetd.service.d/luxos.conf; config.toml baliku greetd
+# luxos-greetd.service ho cte (greetd --config); config.toml baliku greetd
 # zustava beze zmeny. Navrat k LightDM: odebrat balik luxos-greetd (viz docs/developers/wayland-session.md).
 [terminal]
 vt = 1

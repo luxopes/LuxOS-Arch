@@ -30,6 +30,6 @@ package() {
     install -Dm755 "$f/luxos-greeter-session" "$pkgdir/usr/lib/luxos/luxos-greeter-session"
     install -Dm755 "$f/luxos-greetd-splash" "$pkgdir/usr/lib/luxos/luxos-greetd-splash"
     install -Dm644 "$f/luxos.toml" "$pkgdir/etc/greetd/luxos.toml"
-    install -Dm644 "$f/greetd-luxos.conf" "$pkgdir/usr/lib/systemd/system/greetd.service.d/luxos.conf"
+    install -Dm644 "$f/luxos-greetd.service" "$pkgdir/usr/lib/systemd/system/luxos-greetd.service"
     install -Dm644 "$f/luxos-greetd.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/luxos-greetd.conf"
 }

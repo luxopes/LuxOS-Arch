@@ -36,7 +36,7 @@ Docku systemd hned opravi, pad kompozitoru ukonci relaci a vrati prihlasovaci ob
 Konzole: Ctrl+Alt+F2 (v QEMU pres nabidku View nebo Ctrl+Alt+Shift+F2), prihlaseni luxos/luxos.
 Zpet do grafiky Ctrl+Alt+F1.
 Log spravce oken: ~/.local/state/luxos/luxwm.log, sluzby shellu: journalctl --user -b,
-prihlasovaci obrazovka: sudo journalctl -b -u greetd
+prihlasovaci obrazovka: sudo journalctl -b -u luxos-greetd
 
 Klavesnice: cestina a anglictina, prepinani Alt+Shift (ve VM klavesu Super/Cmd zachyti QEMU
 jen kdyz je mys v okne zachycena).

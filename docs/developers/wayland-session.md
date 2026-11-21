@@ -27,8 +27,13 @@ systemd --user
   - `/usr/lib/luxos/luxos-greeter`: the LSL greeter (`packages/luxos-greetd/files/lsl`).
   - `/usr/lib/luxos/luxos-greeter-session`: the greetd command.
   - `/etc/greetd/luxos.toml`.
-  - The drop-in `greetd.service.d/luxos.conf`, which runs `greetd --config /etc/greetd/luxos.toml`.
-    The `config.toml` of the greetd package is left alone, so the two packages never fight over a file.
+  - `luxos-greetd.service` (alias `display-manager.service`), which runs `greetd --config /etc/greetd/luxos.toml`.
+    The `config.toml` of the greetd package is left alone, so the two packages never fight over a file. It is its own
+    unit because `greetd.service` is ordered after `plymouth-quit-wait.service` (a drop-in cannot remove that), which
+    meant a black screen and the text console between the boot splash and the login screen.
+  - The boot splash hand-off, like LightDM: `plymouth-quit.service` conflicts, `plymouth deactivate` runs before
+    greetd so luxwm gets DRM, and `luxos-greetd-splash` runs `plymouth quit --retain-splash` once the greeter has
+    drawn its first frame (it writes `$XDG_RUNTIME_DIR/luxos-greeter-shown`; at most 10 s).
 - PAM runs in greetd, under the `greetd` service. The greeter only speaks the JSON IPC on `GREETD_SOCK`, so no PAM
   code and no password check run in the UI process.
 - **What the greeter shows and handles:**

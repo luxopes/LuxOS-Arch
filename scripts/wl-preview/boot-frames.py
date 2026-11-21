@@ -5,9 +5,9 @@
 
 Snimky QMP screendump co 0,1 s, z kazdeho jen par cisel (ulozi se prvni snimek splashe a prvni snimek
 greeteru). Snimek je "greeter" (rozostrena tapeta), "splash" (temer cerne pozadi a svetle logo uprostred),
-"flat" (jednolita plocha, napr. pozadi kompozitoru pred prvnim snimkem greeteru) nebo "dark" (cerna, textova
-konzole). Vypise casy a skonci kodem 1, kdyz mezi prvnim snimkem splashe a greeterem byl snimek "dark" nebo
-"flat", nebo se splash vubec neukazal.
+"flat" (jednolita svetla plocha) nebo "dark" (cerna, textova konzole). Vypise casy a skonci kodem 1, kdyz mezi
+prvnim snimkem splashe a greeterem byl snimek "flat", temna mezera byla delsi nez DARK_GAP_MAX nebo se splash
+vubec neukazal.
 """
 import json
 import os
@@ -16,6 +16,9 @@ import socket
 import sys
 import time
 
+# Mezi splashem a greeterem zustava kratka temna mezera (luxwm modesetuje az po plymouth deactivate a greeter
+# kresli prvni snimek az pak); delsi znamena, ze splash skoncil driv nez greeter (cerna obrazovka, konzole)
+DARK_GAP_MAX = 3.0
 
 def qmp(path, cmd, args):
     s = socket.socket(socket.AF_UNIX)
@@ -88,11 +91,18 @@ def main():
     if "splash" not in kinds or "greeter" not in kinds:
         print("no splash or no greeter")
         return 1
-    between = kinds[kinds.index("splash"):kinds.index("greeter", kinds.index("splash"))]
-    splash_s = next(t for t, k in seen if k == "greeter") - next(t for t, k in seen if k == "splash")
+    first = kinds.index("splash")
+    last = kinds.index("greeter", first)
+    splash_s = seen[last][0] - seen[first][0]
+    # temne pozadi mezi koncem splashe a prvnim snimkem greeteru (plymouth deactivate -> luxwm -> greeter)
+    dark_s = sum(seen[i + 1][0] - seen[i][0] for i in range(first, last) if seen[i][1] == "dark")
     print(f"splash_to_greeter_s={splash_s:.1f}")
-    if "dark" in between or "flat" in between:
-        print("dark or flat frame between the splash and the greeter")
+    print(f"dark_gap_s={dark_s:.1f}")
+    if "flat" in kinds[first:last]:
+        print("flat (bright) frame between the splash and the greeter")
+        return 1
+    if dark_s > DARK_GAP_MAX:
+        print(f"dark gap longer than {DARK_GAP_MAX} s")
         return 1
     return 0
 

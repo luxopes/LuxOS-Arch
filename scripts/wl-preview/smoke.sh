@@ -79,8 +79,8 @@ frames_pid=$!
 # 1. start do prihlasovaci obrazovky
 check "greeter up after boot" wait_for 300 "$greeter_up"
 echo "boot_to_greeter_s=$(since "$t0")" | tee "$out/result.txt"
-check "boot splash until the greeter, no dark frame in between" wait $frames_pid
-grep splash_to_greeter_s "$out/boot-frames.txt" | tee -a "$out/result.txt"
+check "boot splash until the greeter, no bright flash, dark gap <= 3 s" wait $frames_pid
+grep -E "splash_to_greeter_s|dark_gap_s" "$out/boot-frames.txt" | tee -a "$out/result.txt"
 check "splash ended (plymouth quit after the greeter's first frame)" bash -c "! ctl exec 'pgrep -x plymouthd' 2>/dev/null | grep -q '[0-9]'"
 sleep 3   # prvni snimek (rozostrena tapeta)
 shot 1-greeter

@@ -72,7 +72,7 @@ cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
         case $s in ""|"#"*|lightdm.service|reflector.timer) continue ;; esac
         systemctl --root=$r enable "$s" >/dev/null 2>&1 || true
     done <$r/usr/lib/luxos/services
-    systemctl --root=$r enable -f greetd.service >/dev/null
+    systemctl --root=$r enable -f luxos-greetd.service >/dev/null
     systemctl --root=$r enable qemu-guest-agent.service >/dev/null 2>&1 || true
     systemctl --root=$r set-default graphical.target >/dev/null
     systemctl --root=$r mask systemd-networkd-wait-online.service NetworkManager-wait-online.service >/dev/null 2>&1 || true

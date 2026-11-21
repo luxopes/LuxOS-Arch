@@ -360,7 +360,13 @@ function apply_theme(dark):
     call lc.theme_set_font(tokens.FONT["family"] + " Semi-Bold " + String(t["title_px"]) + "px")
     # pod tapetou (vrstva background) stejna nahradni barva jako u skla bez tapety
     fb = tokens.GLASS["fallback"]
-    call lc.set_background(argb([Int(fb[0] * 255.0), Int(fb[1] * 255.0), Int(fb[2] * 255.0), 1.0]))
+    bg = [Int(fb[0] * 255.0), Int(fb[1] * 255.0), Int(fb[2] * 255.0), 1.0]
+    if greeter:
+        # prihlasovaci obrazovka prebira obraz od splashe (Plymouth, luxos.script bg_r/g/b): do prvniho snimku
+        # greeteru stejne temer cerne pozadi jako splash, ne svetla plocha
+        bg = [1, 2, 7, 1.0]
+    end
+    call lc.set_background(argb(bg))
     call note("theme " + ("dark" if dark else "light"))
     call broadcast("theme", theme_event())
 end
