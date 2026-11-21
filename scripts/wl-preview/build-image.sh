@@ -41,9 +41,10 @@ cp "$repo/packages/luxos-keyring/files/luxos.gpg" "$work/"
     pacman -Sp --config /w/pacman.conf linux-luxos >/dev/null 2>&1 || kernel=linux
     local_pkgs=$(pacman -Sl --config /w/pacman.conf wlpreview | awk "{print \$2}")
     # zaklad instalace LuxOS (luxos-installer/files/packages) bez firmwaru, plymouth, posty a soukromych aplikaci;
-    # aplikace na zkouseni (gtk3-demo, xeyes pres XWayland), guest agent pro testy
+    # aplikace na zkouseni (gtk3-demo, xeyes pres XWayland), busybox pro maly koren sandboxu bez pacstrapu
+    # (smoke.sh), guest agent pro testy
     pacstrap -C /w/pacman.conf -c $r base lux-engine $kernel sudo nano networkmanager pipewire-jack noto-fonts \
-        luxos-desktop greetd $local_pkgs gtk3-demos xorg-xeyes xorg-xwayland libnotify firefox \
+        luxos-desktop greetd $local_pkgs gtk3-demos xorg-xeyes xorg-xwayland libnotify firefox busybox \
         qemu-guest-agent >/w/pacstrap.log 2>&1 || { tail -30 /w/pacstrap.log; exit 1; }
 
 

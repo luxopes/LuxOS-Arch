@@ -72,14 +72,15 @@ Zname chybi / omezeni nahledu
 -----------------------------
   - Prihlasovaci obrazovka je jen na prvnim monitoru (ostatni maji barvu pozadi); rozlozeni
     klavesnice se na ni prepina zkratkou (Alt+Shift), klik na cip rozlozeni nic nedela.
-  - Snimek obrazovky, emoji, nastaveni monitoru a klavesnice jsou jeste z X11 (WP-12); aplikace
-    z Pythonu (Nastaveni ...) bezi pres XWayland nebo GTK na Waylandu podle toho, co umi.
+  - Aplikace z Pythonu (Nastaveni ...) bezi pres XWayland nebo GTK na Waylandu podle toho, co umi;
+    snimek obrazovky, emoji, Monitory (Super+P) a klavesnice uz jsou na Waylandu v LSL.
   - Rozlozeni klavesnice se bere z /etc/vconsole.conf pri startu relace, ne zive z locale1.
   - Bez zvuku (VM nema zvukovou kartu).
   - Navrat k LightDM (X11 prihlaseni): sudo lux remove luxos-greetd a restart.
 
 Znovu postavit obraz (vetev wayland-1.1)
 ---------------------------------------------
-  LUXOS_SIGNING_DIR=none ./build.sh one wlroots0.20 luxcomp luxwm luxos-desktop luxos-greetd luxos-i18n luxos-themes
-  scripts/wl-preview/build-image.sh out/single/{wlroots0.20,luxcomp,luxwm,luxos-desktop,luxos-greetd,luxos-i18n,luxos-themes}-[0-9]*.pkg.tar.zst
-  (luxos-i18n a luxos-themes z vetve: preklady shellu na Waylandu a rohy oken s vlastnim zahlavim)
+  LUXOS_SIGNING_DIR=none ./build.sh one lsl wlroots0.20 luxcomp luxwm luxos-desktop luxos-greetd luxos-greeter \
+      luxos-sandbox luxos-i18n luxos-themes luxos-docs luxos-guard luxos-firewall
+  scripts/wl-preview/build-image.sh $(ls out/single/*.pkg.tar.zst | grep -v -- -debug-)
+  (vsechny baliky z vetve: LSL 0.11.1, preklady shellu na Waylandu, rohy oken s vlastnim zahlavim, sandbox)
