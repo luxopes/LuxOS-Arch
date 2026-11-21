@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=101
+pkgrel=102
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -184,6 +184,8 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-scrolling.lsl" luxos-scrolling
     # O tomto pocitaci (drive yad: jiny vzhled, bez UTF-8 locale se neotevrelo)
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-about.lsl" luxos-about
+    # Uvitani po prvnim prihlaseni (drive yad: sedm tlacitek v rade roztahlo okno na Waylandu pres 1260 px)
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-welcome.lsl" luxos-welcome
     # Novinky LuxOS: oznameni od vyvojaru (okno, kontrola z luxos-hub, nastroje validate/new)
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-news.lsl" luxos-news
     # Dock pro relaci na Waylandu (misto Planku); /usr/bin/luxos-dock ho spusti, kdyz bezi Wayland
@@ -252,7 +254,7 @@ package() {
     # jen soubory: __pycache__ z testu v pracovnim stromu by install zastavil
     install -Dm755 -t "$pkgdir/usr/bin" $(find "$f/bin" -maxdepth 1 -type f ! -name luxos-display-settings | sort) luxos-menubar luxos-session-cover \
         luxos-clock luxos-battery luxos-netcheck luxos-cc-toggle luxos-calendar-toggle luxos-appname luxos-hub \
-        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-news \
+        luxos-screenshot luxos-gpu luxos-firewall-settings luxos-widgets luxos-clock-app luxos-scrolling luxos-about luxos-welcome luxos-news \
         luxos-settings luxos-power luxos-lock-settings luxos-whats-new luxos-tour \
         luxos-bluetooth luxos-fingerprint luxos-profile-picture luxos-wifi-qr luxos-app-reset
     install -Dm755 luxos-screenshot-ui "$pkgdir/usr/lib/luxos/luxos-screenshot-ui"
