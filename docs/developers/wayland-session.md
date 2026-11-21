@@ -32,8 +32,16 @@ systemd --user
     unit because `greetd.service` is ordered after `plymouth-quit-wait.service` (a drop-in cannot remove that), which
     meant a black screen and the text console between the boot splash and the login screen.
   - The boot splash hand-off, like LightDM: `plymouth-quit.service` conflicts, `plymouth deactivate` runs before
-    greetd so luxwm gets DRM, and `luxos-greetd-splash` runs `plymouth quit --retain-splash` once the greeter has
-    drawn its first frame (it writes `$XDG_RUNTIME_DIR/luxos-greeter-shown`; at most 10 s).
+    greetd so luxwm gets DRM, and `luxos-greetd-splash` runs `plymouth quit --retain-splash` once the greeter's
+    first frame is on screen (`$XDG_RUNTIME_DIR/luxos-greeter-shown`; at most 10 s).
+  - No dark gap: while Plymouth runs, `luxos-greeter-session` starts `luxwm --greeter --hold`. libluxcomp
+    (`luxcomp_hold()`) takes over the lit CRTC with its mode and commits nothing until the greeter's surface is
+    in the scene, so the splash's last frame stays up instead of wlroots' black modeset buffer and the empty
+    background. The first commit already carries the greeter (a plain buffer swap in the splash's mode; a
+    modeset in the same mode only if the driver refuses that). Once that frame was presented on every output,
+    luxwm writes the marker; only then may Plymouth exit, because its framebuffer goes away and a CRTC still
+    showing it would go dark. Hold ends after 8 s even without a greeter frame. Under Xorg (NVIDIA 470) the
+    greeter writes the marker itself.
 - PAM runs in greetd, under the `greetd` service. The greeter only speaks the JSON IPC on `GREETD_SOCK`, so no PAM
   code and no password check run in the UI process.
 - **What the greeter shows and handles:**

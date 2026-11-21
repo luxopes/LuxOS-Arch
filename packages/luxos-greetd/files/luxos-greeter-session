@@ -19,4 +19,8 @@ if legacy_gpu; then
     export GDK_BACKEND=x11
     exec xinit /usr/lib/luxos/luxos-greeter -- /usr/bin/Xorg :0 "vt${XDG_VTNR:-1}" -keeptty -nolisten tcp -background none
 fi
-exec /usr/bin/luxwm --greeter /usr/lib/luxos/luxos-greeter
+# bezi splash (prvni start): luxwm prevezme jeho posledni snimek a necha ho na obrazovce az do prvniho snimku
+# greeteru (bez cerneho modesetu); plymouth quit pak az po HOLD_END (luxos-greetd-splash)
+hold=()
+[[ -e /run/plymouth/pid ]] && hold=(--hold)
+exec /usr/bin/luxwm --greeter "${hold[@]}" /usr/lib/luxos/luxos-greeter

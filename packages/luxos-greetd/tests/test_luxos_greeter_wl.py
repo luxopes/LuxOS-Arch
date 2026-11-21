@@ -200,7 +200,7 @@ class Greeter:
         envs = f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_TRACE=1 LD_LIBRARY_PATH={LUXWM_BUILD}:{SYSROOT}/usr/lib"
         t0 = time.monotonic()
         out = subprocess.run([WLT, "start", "--mode", "headless", "--size", f"{W}x{H}", "--",
-                              os.path.join(LUXWM_BUILD, "luxwm"), "--greeter", cmd],
+                              os.path.join(LUXWM_BUILD, "luxwm"), "--greeter", "--hold", cmd],
                              check=True, capture_output=True, text=True, timeout=120,
                              env={**os.environ, "WLT_COMPOSITOR_ENV": envs}).stdout
         self.dir = out.strip().splitlines()[-1]
@@ -357,9 +357,11 @@ class GreeterTest(unittest.TestCase):
         self.assertIn("session=wayland:luxos.desktop", t)
         self.assertIn("users=3", t)           # luxos, eva, otisk (bez systemovych a nologin)
         print(f"greeter_ready_s={g.ready_s:.2f}")
-        # prvni snimek na obrazovce: znacka pro konec splashe (luxos-greetd-splash)
+        # prvni snimek na obrazovce: znacku pro konec splashe (luxos-greetd-splash) zaklada luxwm --hold az po
+        # snimku greeteru (present), ne po casovem limitu hold
         g.wait_for("shown")
         self.assertTrue(os.path.exists(os.path.join(g.dir, "run", "luxos-greeter-shown")))
+        self.assertIn("luxwm: hold end\n", g.log())
         g.shot("login")
         # bez X serveru: luxwm --greeter XWayland nespousti
         procs = [comm(p) for p in descendants(g.top)]

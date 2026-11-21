@@ -1,8 +1,9 @@
 # LuxOS - prihlasovaci obrazovka greetd s konfiguraci LuxOS (balik luxos-greetd). Vlastni jednotka misto
 # greetd.service: ta je po plymouth-quit-wait, tedy az po konci splashe (cerna obrazovka a textova konzole).
 # Obraz se prebira primo od splashe jako u LightDM: plymouth-quit se nespusti (konflikt), pred startem
-# plymouth deactivate (luxwm dostane DRM), splash skonci az po prvnim snimku greeteru (luxos-greetd-splash:
-# plymouth quit --retain-splash). Dobehnuti progress baru (luxos-plymouth-finish.service) bezi pred tim.
+# plymouth deactivate (luxwm dostane DRM, obraz splashe zustava a luxwm --hold ho necha az do prvniho snimku
+# greeteru), splash skonci az kdyz je ten snimek na obrazovce (luxos-greetd-splash: plymouth quit
+# --retain-splash). Dobehnuti progress baru (luxos-plymouth-finish.service) bezi pred tim.
 [Unit]
 Description=LuxOS login screen (greetd)
 After=systemd-user-sessions.service plymouth-start.service luxos-plymouth-finish.service
