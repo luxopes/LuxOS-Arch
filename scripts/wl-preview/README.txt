@@ -25,7 +25,8 @@ Prihlaseni
 Start jako nainstalovany system: splash LuxOS (Plymouth) od initramfs, splash skonci az pod hotovou
 prihlasovaci obrazovkou (bez cerne mezery a textove konzole).
 Po startu prihlasovaci obrazovka LuxOS (greetd, luxos-greeter v LSL pod luxwm, bez X serveru).
-Uzivatel luxos, heslo luxos. Vlevo dole volba relace: LuxOS (Wayland, vychozi) nebo LuxOS (X11)
+Uzivatel luxos, heslo luxos. Vzhled je stejny jako X11 prihlaseni a zamek. Relace je kulate tlacitko dole
+vlevo od Uspat (klik prepne): LuxOS (Wayland, vychozi) nebo LuxOS (X11)
 (puvodni Xfce); volba se pamatuje pro kazdeho uzivatele. Na starych kartach NVIDIA (470 a starsi)
 a po relaci na Waylandu, ktera skoncila do 10 s od startu, je vybrana LuxOS (X11) sama.
 Odhlaseni (nabidka LuxOS > Odhlasit) vrati prihlasovaci obrazovku.

@@ -1,111 +1,245 @@
-# LuxOS - spolecna kresba zamku (luxos-lock) a prihlasovaci obrazovky (luxos-greeter) na Waylandu, vse cairem.
-# Dva stavy: klid = ostra tapeta se zavojem nahore a dole, datum, velke hodiny a stav vpravo nahore (rozlozeni,
-# sit, baterie); zadavani = rozmazana a ztmavena tapeta (prolnuti), avatar, jmeno, pole pro heslo, hlasky
-# (chyba, Caps Lock, otisk prstu, zamceny ucet) a u prihlaseni navic uzivatele, relace a napajeni.
-# Rozmery a barvy: tokens.LOCK (navrh 1.1.0, sekce zamku a prihlaseni).
+# LuxOS - kresba zamku (luxos-lock) a prihlasovaci obrazovky (luxos-greeter) na Waylandu, vse cairem. Vzhled je presna
+# kopie X11: zamek luxos-lock-ui.c (xfce4-screensaver) a prihlaseni luxos-greeter (Python, LightDM). Rozmery, pisma,
+# barvy, rozvrzeni widgetu GTK (box, popisky se stinem textu, pole pro heslo s kurzorem) i casy animaci jsou prevzate
+# odtud; pri zmene X11 vzhledu upravit i tady. Testy: tests/test_luxos_lock_x11_match.py porovnava snimky s X11.
 #
 #   draw.new_ui(mode)                     stav kresby; mode "lock" nebo "greeter"
-#   draw.backdrop(cesta, w, h, scale)     ostra tapeta se zavojem v pixelech zarizeni (mezipamet podle tapety a velikosti)
-#   draw.backdrop_soft(bd)                rozmazana verze (jednou; volat po prvnim snimku, ne pri kazdem)
-#   draw.frame(cr, w, h, ui, bd)          cela plocha v logickych souradnicich; ui["hits"] = [[x, y, w, h, akce]]
-#   draw.prompt(ui, on)                   prechod klid <-> zadavani (lock_enter / lock_leave)
-#   draw.shake(ui)                        zatreseni pole a cerveny okraj po chybe
-#   draw.step(ui)                         posun animaci k aktualnimu casu; True = kreslit dalsi snimek
-#   draw.field_rect(w, h, dx)             [x, y, w, h] pole pro heslo v klidove poloze (testy)
-#
-# Vykon: tapeta i rozmazani jsou hotove povrchy (rozmazani ve ctvrtinovem rozliseni, jednou na tapetu a velikost),
-# hodiny s mekkym stinem jsou povrch platny do zmeny minuty; snimek jen sklada povrchy a par kratkych textu.
-load cairo, pango, gtk, glib, math
+#   draw.backdrop(cesta, w, h, scale)     tapeta (vyplnit) a jeji rozmazana zmensenina pro matne prvky
+#   draw.paint(image, w, h, ui, bd)       cela plocha do obrazku (pixely zarizeni = w * scale)
+#   draw.frame(cr, w, h, ui, bd)          totez do kontextu, jehoz cil uz ma meritko zarizeni (GTK draw)
+#                                         ui["hits"] = [[x, y, w, h, [akce, index]]] po kazdem snimku
+#   draw.prompt(ui, on)                   prechod klid <-> zadavani; draw.shake(ui) zatreseni pole
+#   draw.typed(ui)                        vstup do pole (kurzor znovu sviti)
+#   draw.step(ui)                         posun animaci k aktualnimu casu: True = dalsi snimek hned; jinak za ui["wake"] ms
+#                                         (blikani kurzoru, 0 = nic)
+#   draw.field_rect(w, h, ui)             [x, y, w, h] pole pro heslo (testy, kliknuti)
+load cairo, gtk, glib, math
 load luxos_glib as lglib
-load luxos_gtk as lgtk
-load luxos_material as material
-load luxos_tokens as tokens
 load luxos_lock_sys as sys
+load luxos_tokens as tokens
 
 PI = cairo.PI
-L = tokens.LOCK
-BACKDROPS = 4
+# PangoWeight
+THIN = 200
+NORMAL = 400
+MEDIUM = 500
+SEMIBOLD = 600
+BOLD = 700
+# Pisma jako X11 (cairo_font_options: styl hintovani, metriky, vyhlazovani, poradi subpixelu). Zamek bezi v relaci
+# LuxOS (xsettings.xml: Xft hintslight, rgb): popisky GTK subpixelove, text kresleny primo cairem (hodiny, datum,
+# inicialy, zastupny text) podle povrchu okna. Prihlaseni pod LightDM bez xsettings: plne hintovani, sede vyhlazovani.
+FONT_OPTIONS = {"lock|cr": [2, 2, 0, 1], "lock|gtk": [2, 2, 3, 1], "greeter|cr": [4, 2, 2, 1], "greeter|gtk": [4, 2, 2, 1]}
+# GTK: kurzor sviti 2/3 a nesviti 1/3 periody gtk-cursor-blink-time, po gtk-cursor-blink-timeout uz jen sviti
+BLINK = 1200
+BLINK_TIMEOUT = 10000
+TEXTS = 160
 
-state = {"backdrops": {}, "order": [], "clock_key": "", "clock": None, "layouts": {}, "sprites": {}, "sprite_order": []}
+state = {"backdrops": {}, "order": [], "texts": {}, "text_order": [], "masks": {}, "faces": {}, "groups": {}, "probe": None,
+         "hint_style": "lock"}
 
-
-function px(u, v, lo):
-    return max(Float(lo), Float(Int(Float(v) * u + 0.5)))
-end
-
-function unit(h):
-    return max(L["unit_floor"], Float(h) / 1080.0)
-end
-
-function font(ui, weight, size):
-    return ui["font"] + ",Inter,Cantarell,Noto Sans " + weight + " " + String(Int(size + 0.5)) + "px"
-end
 
 function new_ui(mode):
     return {"mode": mode, "font": "Inter", "scale": 1.0, "clock": "", "date": "", "battery": None, "net": None,
-            "layout": "", "name": "", "face": None, "length": 0, "placeholder": "", "hint": "", "hint_icon": "",
-            "error": False, "caps": False, "caps_text": "", "busy": False, "lockout": False, "users": [], "sel": 0,
-            "session": "", "sessions": [], "session_sel": 0, "menu": False, "power": [], "notice": "",
-            "hover": "", "leaving": False, "visible_text": False, "initial": "", "hits": [],
-            "reveal": 0.0, "rev_from": 0.0, "rev_to": 0.0, "rev_start": 0, "shake": 0.0, "shake_start": 0,
-            "rim": 0.0, "rim_start": 0, "spin_start": 0}
+            "layout": "US", "layouts": 1, "name": "", "face": None, "length": 0, "text": "", "visible_text": False,
+            "placeholder": "", "hint": "", "error": False, "caps": False, "caps_text": "", "busy": False, "lockout": False,
+            "power": [], "users": [], "sel": 0, "session": "", "sessions": [], "session_sel": 0, "notice": "",
+            "hover": "", "leaving": False, "focus": True, "hits": [], "initial": "",
+            "reveal": 0.0, "rev_from": 0.0, "rev_to": 0.0, "rev_start": 0, "shake": 0, "shake_start": 0,
+            "input_at": 0, "caret": True, "wake": 0, "lang": "en"}
 end
 
-function rgba(cr, c, alpha):
-    call cairo.set_source_rgba(cr, Float(c[0]) / 255.0, Float(c[1]) / 255.0, Float(c[2]) / 255.0, Float(c[3]) * alpha)
-    return 0
-end
+# ---- cisla jako v C / GTK ------------------------------------------------------------------------
 
-# Jedno rozvrzeni na popis pisma po celou dobu behu: nove PangoContext pri kazdem textu by pokazde znovu
-# hledalo pismo (fontconfig) a snimek by stal milisekundy navic. Nevolat layout_unref.
-function text_layout(cr, text, desc):
-    layout = state["layouts"].get(desc)
-    if layout == None:
-        layout = pango.cairo_create_layout(cr)
-        call pango.layout_set_font(layout, desc)
-        state["layouts"][desc] = layout
-    else:
-        call pango.cairo_update_layout(cr, layout)
-        call pango.layout_set_width(layout, -1)
-        call pango.layout_set_ellipsize(layout, 0)
+function cround(v):
+    if v < 0.0:
+        return -Int(math.floor(-v + 0.5))
     end
-    call pango.layout_set_text(layout, text)
-    return layout
+    return Int(math.floor(v + 0.5))
 end
 
-# Bily text s mekkym stinem o pixel niz (citelny i na svetle tapete)
-function show(cr, layout, x, y, alpha, u):
-    call cairo.move_to(cr, x, y + max(1.0, u))
-    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.22 * alpha)
-    call pango.cairo_show_layout(cr, layout)
-    call cairo.move_to(cr, x, y)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, alpha)
-    call pango.cairo_show_layout(cr, layout)
+# Python round() (prihlaseni X11 je v Pythonu): pul k sude
+function pyround(v):
+    f = math.floor(v)
+    d = v - f
+    if d > 0.5 or (d == 0.5 and Int(f) % 2 == 1):
+        return Int(f) + 1
+    end
+    return Int(f)
+end
+
+function px(ui, v, lo):
+    x = Float(v) * ui["u"]
+    r = cround(x)
+    if ui["mode"] == "greeter":
+        r = pyround(x)
+    end
+    return max(lo, r)
+end
+
+# C celociselne deleni kladnych i zapornych cisel (k nule)
+function cdiv(a, b):
+    if a < 0:
+        return -((-a) // b)
+    end
+    return a // b
+end
+
+function ease(t):
+    if t < 0.5:
+        return 4.0 * t * t * t
+    end
+    k = -2.0 * t + 2.0
+    return 1.0 - k * k * k / 2.0
+end
+
+# gtk_widget_set_opacity drzi alfu v 8 bitech
+function opacity8(v):
+    return Float(cround(v * 255.0)) / 255.0
+end
+
+# ---- text ----------------------------------------------------------------------------------------
+
+function probe():
+    if state["probe"] == None:
+        surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, 1, 1)
+        state["probe"] = cairo.create(surface)
+    end
+    return state["probe"]
+end
+
+function pfloor(v):
+    return v // 1024
+end
+
+function pceil(v):
+    return -((-v) // 1024)
+end
+
+# PANGO_PIXELS
+function ppix(v):
+    return (v + 512) // 1024
+end
+
+# Rozvrzeni textu (mezipamet): {"layout", "ink": [x, y, w, h] a "log": pixely vcetne (pango_extents_to_pixels),
+# "w", "h": prirozena velikost popisku GTK (zaokrouhleno nahoru)}
+# kind: "gtk" pisma popisku z CSS, "cr" pisma kreslena primo v luxos-lock-ui.c (text_layout)
+function text(t, size, weight, family, spacing, kind, width):
+    hs = state["hint_style"]
+    key = t + "|" + String(size) + "|" + String(weight) + "|" + family + "|" + String(spacing) + "|" + kind + "|" + String(width) + "|" + hs
+    e = state["texts"].get(key)
+    if e != None:
+        return e
+    end
+    fam = family + ",Inter,Cantarell,sans-serif"
+    if kind == "cr":
+        fam = family + ",Inter,Cantarell,Noto Sans,sans-serif"
+    end
+    layout = sys.text_layout(probe(), t, size, weight, fam, spacing)
+    o = FONT_OPTIONS[hs + ("|cr" if kind == "cr" else "|gtk")]
+    call sys.font_options(layout, o[0], o[1], o[2], o[3])
+    if width > 0:
+        if kind == "wrap":
+            call sys.layout_wrap(layout, width)
+        else:
+            call sys.layout_ellipsize(layout, width)
+        end
+    end
+    x = sys.extents(layout)
+    ink = [pfloor(x[0]), pfloor(x[1]), pceil(x[0] + x[2]) - pfloor(x[0]), pceil(x[1] + x[3]) - pfloor(x[1])]
+    lg = [pfloor(x[4]), pfloor(x[5]), pceil(x[4] + x[6]) - pfloor(x[4]), pceil(x[5] + x[7]) - pfloor(x[5])]
+    e = {"layout": layout, "ink": ink, "log": lg, "w": pceil(x[6]), "h": pceil(x[7]), "raw": x, "lines": sys.line_count(layout)}
+    if len(state["text_order"]) >= TEXTS:
+        old = state["texts"].pop(state["text_order"].pop(0))
+        call sys.layout_unref(old["layout"])
+        m = state["masks"].pop(String(old["layout"]), None)
+        if m != None:
+            call cairo.surface_destroy(m[1])
+        end
+    end
+    state["texts"][key] = e
+    state["text_order"].append(key)
+    return e
+end
+
+# Popisek GTK: prirozena sirka s max-width-chars (vypustka) nebo zalomenim (wrap)
+function label(ui, t, size, weight, spacing, max_chars, wrap):
+    e = text(t, size, weight, ui["font"], spacing, "gtk", -1)
+    if max_chars > 0:
+        cw = sys.char_pixels(e["layout"]) * max_chars
+        if e["raw"][6] > cw:
+            if wrap:
+                return text(t, size, weight, ui["font"], spacing, "wrap", cw)
+            end
+            return text(t, size, weight, ui["font"], spacing, "ell", cw)
+        end
+    end
+    return e
+end
+
+function show(cr, e, x, y):
+    call cairo.move_to(cr, Float(x), Float(y))
+    call sys.show_layout(cr, e["layout"])
     return 0
 end
 
-function text_at(cr, text, desc, x, y, alpha, u):
-    layout = text_layout(cr, text, desc)
-    size = pango.layout_get_pixel_size(layout)
-    call show(cr, layout, x, y, alpha, u)
-    return size
+# Stin textu GTK (gtkcssshadowvalue.c): polomer <= 1 kopie textu posunuta o dy, jinak maska A8 rozmazana
+# _gtk_cairo_blur_surface v pixelech zarizeni
+function shadow_mask(e, radius, scale):
+    key = String(e["layout"])
+    m = state["masks"].get(key)
+    if m != None and m[0] == String(radius) + "@" + String(scale):
+        return m[1]
+    end
+    if m != None:
+        call cairo.surface_destroy(m[1])
+    end
+    ink = e["ink"]
+    clip = Int(math.floor(Float(radius) * 1.8799712059732503 * 1.5 + 0.5))
+    s = sys.mask_surface(ink[2] + 2 * clip, ink[3] + 2 * clip, scale, -ink[0] + clip, -ink[1] + clip)
+    mcr = cairo.create(s)
+    call cairo.move_to(mcr, 0.0, 0.0)
+    call sys.show_layout(mcr, e["layout"])
+    call cairo.destroy(mcr)
+    call sys.blur_a8(s, Float(radius) * scale)
+    state["masks"][key] = [String(radius) + "@" + String(scale), s]
+    return s
 end
 
-function centered(cr, text, desc, cx, y, alpha, u):
-    layout = text_layout(cr, text, desc)
-    size = pango.layout_get_pixel_size(layout)
-    call show(cr, layout, cx - Float(size[0]) / 2.0, y, alpha, u)
-    return size
+# Popisek GTK v obsahu x, y, w, h (zarovnani na stred): stin [dy, polomer, alfa] a barva [r, g, b, a]
+function draw_label(cr, ui, e, x, y, w, h, color, shadow):
+    lg = e["log"]
+    lx = Int(math.floor(Float(x) + 0.5 * Float(w - lg[2]))) - lg[0]
+    if e["lines"] == 1:
+        ly = Int(math.floor(Float(y) + Float(h - lg[3]) * 0.5)) - lg[1]
+    else:
+        ly = Int(math.floor(Float(y) + max(Float(h - lg[3]) * 0.5, 0.0))) - lg[1]
+    end
+    if shadow != None and shadow[2] > 0.0:
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, shadow[2])
+        if shadow[1] <= 1:
+            call show(cr, e, lx, ly + shadow[0])
+        else:
+            call cairo.save(cr)
+            call cairo.translate(cr, Float(lx), Float(ly + shadow[0]))
+            call sys.mask(cr, shadow_mask(e, shadow[1], ui["scale"]), 0.0, 0.0)
+            call cairo.restore(cr)
+        end
+    end
+    call cairo.set_source_rgba(cr, color[0], color[1], color[2], color[3])
+    call show(cr, e, lx, ly)
+    return 0
 end
 
-function text_width(cr, text, desc):
-    layout = text_layout(cr, text, desc)
-    size = pango.layout_get_pixel_size(layout)
-    return Float(size[0])
-end
+# ---- tvary a ikony (luxos-lock-ui.c) ---------------------------------------------------------------
 
-function pill(cr, x, y, w, h):
-    call material.rounded_path(cr, x, y, w, h, h / 2.0)
+function rounded(cr, x, y, w, h, r):
+    r = min(r, min(w / 2.0, h / 2.0))
+    call sys.new_sub_path(cr)
+    call cairo.arc(cr, x + w - r, y + r, r, -PI / 2.0, 0.0)
+    call cairo.arc(cr, x + w - r, y + h - r, r, 0.0, PI / 2.0)
+    call cairo.arc(cr, x + r, y + h - r, r, PI / 2.0, PI)
+    call cairo.arc(cr, x + r, y + r, r, PI, 1.5 * PI)
+    call cairo.close_path(cr)
     return 0
 end
 
@@ -115,477 +249,84 @@ function circle(cr, cx, cy, r):
     return 0
 end
 
-function hit(ui, x, y, w, h, action):
-    ui["hits"].append([x, y, w, h, action])
-    return 0
-end
-
-# Hotovy obrazek prvku (avatar, tlacitko): kresli se jednou do povrchu, pak jen sklada. f(cr, a) kresli v souradnicich
-# plochy; obdelnik x, y, w, h ho musi obsahovat.
-function sprite(cr, key, x, y, w, h, scale, f, a, alpha):
-    x0 = Float(Int(x * scale)) / scale
-    y0 = Float(Int(y * scale)) / scale
-    key = key + "|" + String(Int((x - x0) * 64.0)) + "," + String(Int((y - y0) * 64.0)) + "@" + String(scale)
-    s = state["sprites"].get(key)
-    if s == None:
-        s = cairo.image_surface_create(cairo.FORMAT_ARGB32, Int((w + 2.0) * scale + 0.5), Int((h + 2.0) * scale + 0.5))
-        scr = cairo.create(s)
-        call cairo.scale(scr, scale, scale)
-        call cairo.translate(scr, -x0, -y0)
-        call f(scr, a)
-        call cairo.destroy(scr)
-        call material.set_device_scale(s, scale)
-        if len(state["sprite_order"]) >= 48:
-            call cairo.surface_destroy(state["sprites"].pop(state["sprite_order"].pop(0)))
-        end
-        state["sprites"][key] = s
-        state["sprite_order"].append(key)
-    end
-    call cairo.set_source_surface(cr, s, x0, y0)
-    if alpha >= 1.0:
-        call cairo.paint(cr)
-    else:
-        call cairo.paint_with_alpha(cr, alpha)
-    end
-    return 0
-end
-
-# ---- pozadi -------------------------------------------------------------------------------------
-
-# Zavoj: nahore pod hodinami, uprostred nic, dole pod tlacitky
-function scrim(cr, w, h):
-    g = cairo.pattern_create_linear(0.0, 0.0, 0.0, Float(h))
-    call cairo.pattern_add_color_stop_rgba(g, 0.0, 0.0, 0.0, 0.0, L["scrim_top"])
-    call cairo.pattern_add_color_stop_rgba(g, L["scrim_top_end"], 0.0, 0.0, 0.0, 0.0)
-    call cairo.pattern_add_color_stop_rgba(g, L["scrim_mid_end"], 0.0, 0.0, 0.0, 0.0)
-    call cairo.pattern_add_color_stop_rgba(g, 1.0, 0.0, 0.0, 0.0, L["scrim_bottom"])
-    call cairo.set_source(cr, g)
-    call cairo.paint(cr)
-    call cairo.pattern_destroy(g)
-    return 0
-end
-
-# Tapeta zvetsena na celou plochu (styl vyplnit) v plnem rozliseni zarizeni
-function paint_wallpaper(cr, path, dw, dh):
-    fb = tokens.GLASS["fallback"]
-    g = cairo.pattern_create_linear(0.0, 0.0, 0.0, Float(dh))
-    call cairo.pattern_add_color_stop_rgba(g, 0.0, fb[0] * 0.8, fb[1] * 0.9, fb[2] * 1.6, 1.0)
-    call cairo.pattern_add_color_stop_rgba(g, 1.0, fb[0] * 0.5, fb[1] * 0.5, fb[2] * 0.8, 1.0)
-    call cairo.set_source(cr, g)
-    call cairo.paint(cr)
-    call cairo.pattern_destroy(g)
-    if path == "" or not exists(path):
-        return 0
-    end
-    dims = material.image_size(path)
-    if dims[0] <= 0 or dims[1] <= 0:
-        return 0
-    end
-    k = max(Float(dw) / Float(dims[0]), Float(dh) / Float(dims[1]))
-    pb = gtk.pixbuf_new_from_file_at_scale(path, max(dw, Int(Float(dims[0]) * k + 0.5)), max(dh, Int(Float(dims[1]) * k + 0.5)), False)
-    if pb == 0:
-        return 0
-    end
-    pw = gtk.pixbuf_get_width(pb)
-    ph = gtk.pixbuf_get_height(pb)
-    call gtk.cairo_set_source_pixbuf(cr, pb, Float(dw - pw) / 2.0, Float(dh - ph) / 2.0)
-    call cairo.paint(cr)
-    call glib.object_unref(pb)
-    return 0
-end
-
-function backdrop(path, w, h, scale):
-    dw = max(1, Int(Float(w) * scale + 0.5))
-    dh = max(1, Int(Float(h) * scale + 0.5))
-    stamp = ""
-    if path != "" and exists(path):
-        stamp = String(lglib.stat(path))
-    end
-    key = path + "|" + stamp + "|" + String(dw) + "x" + String(dh) + "@" + String(scale)
-    bd = state["backdrops"].get(key)
-    if bd != None:
-        return bd
-    end
-    sharp = cairo.image_surface_create(cairo.FORMAT_RGB24, dw, dh)
-    cr = cairo.create(sharp)
-    call paint_wallpaper(cr, path, dw, dh)
-    call scrim(cr, dw, dh)
-    call cairo.destroy(cr)
-    call cairo.surface_flush(sharp)
-    call material.set_device_scale(sharp, scale)
-    bd = {"key": key, "sharp": sharp, "soft": None, "w": w, "h": h, "scale": scale, "dw": dw, "dh": dh}
-    while len(state["order"]) >= BACKDROPS:
-        old = state["backdrops"].pop(state["order"].pop(0))
-        call cairo.surface_destroy(old["sharp"])
-        if old["soft"] != None:
-            call cairo.surface_destroy(old["soft"])
-        end
-    end
-    state["backdrops"][key] = bd
-    state["order"].append(key)
-    return bd
-end
-
-# Rozmazani: ctvrtinova zmensenina, tri krabicove pruchody (~Gauss se sigmou L["blur"] px), sytost, zpet na plnou
-# velikost s linearni interpolaci a ztmaveni. Jednou na tapetu a velikost; snimky pak jen skladaji.
-function backdrop_soft(bd):
-    if bd["soft"] != None:
-        return 0
-    end
-    t0 = glib.monotonic_time()
-    q = Float(L["blur_scale"])
-    sw = max(1, Int(Float(bd["dw"]) / q + 0.5))
-    sh = max(1, Int(Float(bd["dh"]) / q + 0.5))
-    small = cairo.image_surface_create(cairo.FORMAT_RGB24, sw, sh)
-    cr = cairo.create(small)
-    call cairo.scale(cr, Float(sw) / Float(bd["w"]), Float(sh) / Float(bd["h"]))
-    call cairo.set_source_surface(cr, bd["sharp"], 0.0, 0.0)
-    call cairo.paint(cr)
-    call cairo.destroy(cr)
-    call cairo.surface_flush(small)
-    call cairo.image_surface_blur(small, max(1, Int(3.0 * Float(L["blur"]) * bd["scale"] / q + 0.5)))
-    call cairo.image_surface_saturate(small, L["saturate"])
-    soft = cairo.image_surface_create(cairo.FORMAT_RGB24, bd["dw"], bd["dh"])
-    cr = cairo.create(soft)
-    call cairo.save(cr)
-    call cairo.scale(cr, Float(bd["dw"]) / Float(sw), Float(bd["dh"]) / Float(sh))
-    call cairo.set_source_surface(cr, small, 0.0, 0.0)
-    call sys.source_pad(cr)
-    call cairo.paint(cr)
-    call cairo.restore(cr)
-    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, L["dim"])
-    call cairo.paint(cr)
-    call cairo.destroy(cr)
-    call cairo.surface_destroy(small)
-    call cairo.surface_flush(soft)
-    call material.set_device_scale(soft, bd["scale"])
-    bd["soft"] = soft
-    return Int((glib.monotonic_time() - t0) / 1000)
-end
-
-function paint_surface(cr, surface, alpha, op):
-    call cairo.set_source_surface(cr, surface, 0.0, 0.0)
-    if op:
-        call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
-    end
-    if alpha >= 1.0:
-        call cairo.paint(cr)
-    else:
-        call cairo.paint_with_alpha(cr, alpha)
-    end
-    call cairo.set_operator(cr, cairo.OPERATOR_OVER)
-    return 0
-end
-
-function background(cr, bd, t):
-    if t <= 0.0 or bd["soft"] == None:
-        call paint_surface(cr, bd["sharp"], 1.0, True)
-    elif t >= 1.0:
-        call paint_surface(cr, bd["soft"], 1.0, True)
-    else:
-        call paint_surface(cr, bd["sharp"], 1.0, True)
-        call paint_surface(cr, bd["soft"], t, False)
-    end
-    return 0
-end
-
-# ---- datum a hodiny -----------------------------------------------------------------------------
-
-function clock_markup(ui, u):
-    track = Int(Float(L["clock_tracking"]) * u * 1024.0)
-    return "<span font_features=\"tnum\" letter_spacing=\"" + String(track) + "\">" + ui["clock"] + "</span>"
-end
-
-# Povrch s datem a hodinami (mekky stin 0 2px 12px, rozmazany v polovicnim rozliseni); [povrch, x, y]
-function clock_surface(w, h, ui, u):
-    scale = ui["scale"]
-    key = ui["clock"] + "|" + ui["date"] + "|" + String(w) + "x" + String(h) + "@" + String(scale) + ui["font"]
-    if key == state["clock_key"]:
-        return state["clock"]
-    end
-    if state["clock"] != None:
-        call cairo.surface_destroy(state["clock"][0])
-    end
-    probe = cairo.image_surface_create(cairo.FORMAT_ARGB32, 1, 1)
-    pcr = cairo.create(probe)
-    date = pango.cairo_create_layout(pcr)
-    call pango.layout_set_font(date, font(ui, "Semi-Bold", px(u, L["date"], 12)))
-    call pango.layout_set_text(date, ui["date"])
-    big = px(u, L["clock"], 40)
-    clock = pango.cairo_create_layout(pcr)
-    call pango.layout_set_font(clock, font(ui, "Light", big))
-    call pango.layout_set_markup(clock, clock_markup(ui, u))
-    ds = pango.layout_get_pixel_size(date)
-    cs = pango.layout_get_pixel_size(clock)
-    # hodiny: horni hrana cislic (vyska verzalek Inter ~0.73) kousek pod datem; baseline je v px
-    gap = px(u, 10.0, 7) - (Float(pango.layout_get_baseline(clock)) - 0.73 * big)
-    pad = px(u, 24.0, 16)
-    bw = Float(max(ds[0], cs[0])) + 2.0 * pad
-    bh = Float(ds[1]) + gap + Float(cs[1]) + 2.0 * pad
-    x0 = Float(Int((Float(w) - bw) / 2.0))
-    y0 = Float(Int(Float(h) * L["date_y"] - pad))
-    dw = max(1, Int(bw * scale + 0.5))
-    dh = max(1, Int(bh * scale + 0.5))
-    places = [[(bw - Float(ds[0])) / 2.0, pad, date, 0.90], [(bw - Float(cs[0])) / 2.0, pad + Float(ds[1]) + gap, clock, 0.95]]
-    # stin: texty cerne do polovicniho rozliseni, rozmazat, pak pod bile texty
-    half = cairo.image_surface_create(cairo.FORMAT_ARGB32, max(1, dw // 2), max(1, dh // 2))
-    scr = cairo.create(half)
-    call cairo.scale(scr, scale / 2.0, scale / 2.0)
-    call cairo.set_source_rgba(scr, 0.0, 0.0, 0.0, 1.0)
-    for p in places:
-        call cairo.move_to(scr, p[0], p[1])
-        call pango.cairo_show_layout(scr, p[2])
-    end
-    call cairo.destroy(scr)
-    call cairo.surface_flush(half)
-    call cairo.image_surface_blur(half, max(1, Int(9.0 * u * scale / 2.0 + 0.5)))
-    surface = cairo.image_surface_create(cairo.FORMAT_ARGB32, dw, dh)
-    cr = cairo.create(surface)
-    call cairo.scale(cr, scale, scale)
-    call cairo.save(cr)
-    call cairo.translate(cr, 0.0, px(u, 2.0, 1))
-    call cairo.scale(cr, 2.0 / scale, 2.0 / scale)
-    call cairo.set_source_surface(cr, half, 0.0, 0.0)
-    call cairo.paint_with_alpha(cr, 0.25)
-    call cairo.restore(cr)
-    for p in places:
-        call cairo.move_to(cr, p[0], p[1] + max(1.0, u))
-        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.14)
-        call pango.cairo_show_layout(cr, p[2])
-        call cairo.move_to(cr, p[0], p[1])
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, p[3])
-        call pango.cairo_show_layout(cr, p[2])
-    end
-    call cairo.destroy(cr)
-    call cairo.surface_destroy(half)
-    call pango.layout_unref(date)
-    call pango.layout_unref(clock)
-    call cairo.destroy(pcr)
-    call cairo.surface_destroy(probe)
-    call material.set_device_scale(surface, scale)
-    state["clock"] = [surface, x0, y0]
-    state["clock_key"] = key
-    return state["clock"]
-end
-
-function clock(cr, w, h, ui, u):
-    c = clock_surface(w, h, ui, u)
-    call cairo.set_source_surface(cr, c[0], c[1], c[2])
-    call cairo.paint(cr)
-    return 0
-end
-
-# ---- stav vpravo nahore: rozlozeni, sit, baterie ------------------------------------------------
-
-function bolt_path(cr, cx, cy, k):
-    call cairo.new_path(cr)
-    for p in [[0.14, -1.0], [-0.58, 0.14], [-0.07, 0.14], [-0.14, 1.0], [0.58, -0.14], [0.07, -0.14]]:
-        call cairo.line_to(cr, cx + p[0] * k, cy + p[1] * k)
-    end
-    call cairo.close_path(cr)
-    return 0
-end
-
-# Obrys baterie s vyplni podle nabiti; nabijeni = blesk pres stred
-function battery(cr, x, y, h, level, charging):
-    w = h * 2.05
-    lw = max(1.0, h * 0.09)
-    bw = w - h * 0.22 - lw
-    br = h * 0.26
-    ix = x + lw
-    iy = y + lw
-    iw = bw - lw
-    ih = h - 2.0 * lw
-    fw = max(h * 0.12, (iw - h * 0.16) * min(1.0, max(0.0, Float(level) / 100.0)))
-    call cairo.save(cr)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.92)
-    call cairo.set_line_width(cr, lw)
-    call material.rounded_path(cr, x + lw / 2.0, y + lw / 2.0, bw, h - lw, br)
-    call cairo.stroke(cr)
-    call material.rounded_path(cr, x + w - h * 0.2, y + h * 0.33, h * 0.14, h * 0.34, h * 0.06)
-    call cairo.fill(cr)
-    if level <= 15 and not charging:
-        call rgba(cr, tokens.COLORS["error"], 1.0)
-    end
-    call material.rounded_path(cr, ix + h * 0.08, iy + h * 0.08, fw, ih - h * 0.16, h * 0.14)
-    call cairo.fill(cr)
-    if charging:
-        call bolt_path(cr, x + lw / 2.0 + bw / 2.0, y + h / 2.0, ih / 2.0 + lw * 0.6)
-        call cairo.set_line_width(cr, max(1.0, h * 0.12))
-        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.55)
-        call cairo.stroke_preserve(cr)
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0)
-        call cairo.fill(cr)
-    end
-    call cairo.restore(cr)
-    return w
-end
-
-# Wi-Fi: tri oblouky a tecka, nesvitici dilky slabe; level 0-3
-function wifi_icon(cr, cx, by, s, level):
-    call cairo.save(cr)
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    call cairo.set_line_width(cr, max(1.4, s * 0.13))
-    for i in range(3):
-        r = s * (0.30 + 0.30 * Float(i))
-        call cairo.new_path(cr)
-        call cairo.arc(cr, cx, by, r, -PI * 0.75, -PI * 0.25)
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.92 if level > i else 0.32)
-        call cairo.stroke(cr)
-    end
-    call circle(cr, cx, by - s * 0.02, max(1.2, s * 0.09))
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.92)
-    call cairo.fill(cr)
-    call cairo.restore(cr)
-    return 0
-end
-
-# Kabel: tri ctverecky spojene do stromu (jako ikona site v liste)
-function wired_icon(cr, cx, cy, s):
-    q = s * 0.30
-    call cairo.save(cr)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.92)
-    call material.rounded_path(cr, cx - q / 2.0, cy - s * 0.5, q, q, q * 0.2)
-    call cairo.fill(cr)
-    for dx in [-0.33, 0.33]:
-        call material.rounded_path(cr, cx + dx * s - q / 2.0, cy + s * 0.5 - q, q, q, q * 0.2)
-        call cairo.fill(cr)
-    end
-    call cairo.set_line_width(cr, max(1.2, s * 0.09))
-    call cairo.move_to(cr, cx, cy - s * 0.5 + q)
-    call cairo.line_to(cr, cx, cy)
-    call cairo.move_to(cr, cx - s * 0.33, cy + s * 0.5 - q)
-    call cairo.line_to(cr, cx - s * 0.33, cy)
-    call cairo.line_to(cr, cx + s * 0.33, cy)
-    call cairo.line_to(cr, cx + s * 0.33, cy + s * 0.5 - q)
-    call cairo.stroke(cr)
-    call cairo.restore(cr)
-    return 0
-end
-
-function status(cr, w, ui, u):
-    s = px(u, 16.0, 12)
-    cy = px(u, L["status_top"], 12) + s / 2.0
-    x = Float(w) - px(u, L["status_right"], 14)
-    gap = px(u, L["status_gap"], 10)
-    desc = font(ui, "Semi-Bold", px(u, L["status"], 11))
-    bat = ui["battery"]
-    if bat != None:
-        bh = s * 0.72
-        x = x - bh * 2.05
-        call battery(cr, x, cy - bh / 2.0, bh, bat[0], bat[1])
-        layout = text_layout(cr, String(bat[0]) + " %", desc)
-        size = pango.layout_get_pixel_size(layout)
-        x = x - px(u, 6.0, 4) - Float(size[0])
-        call show(cr, layout, x, cy - Float(size[1]) / 2.0, 0.92, u)
-        x = x - gap
-    end
-    net = ui["net"]
-    if net != None and net[0] != "none":
-        x = x - s
-        if net[0] == "wifi":
-            call wifi_icon(cr, x + s / 2.0, cy + s * 0.42, s, net[1])
-        else:
-            call wired_icon(cr, x + s / 2.0, cy, s * 0.9)
-        end
-        x = x - gap
-    end
-    if ui["layout"] != "":
-        # kratky stitek v tenkem obrysu, ne plny box (jako lista)
-        layout = text_layout(cr, ui["layout"], font(ui, "Bold", px(u, L["layout_label"], 10)))
-        size = pango.layout_get_pixel_size(layout)
-        lw = Float(size[0]) + px(u, 9.0, 7)
-        lh = px(u, 16.0, 13)
-        x = x - lw
-        call material.rounded_path(cr, x + 0.5, cy - lh / 2.0 + 0.5, lw - 1.0, lh - 1.0, px(u, 4.0, 3))
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.55)
-        call cairo.set_line_width(cr, 1.0)
-        call cairo.stroke(cr)
-        call show(cr, layout, x + (lw - Float(size[0])) / 2.0, cy - Float(size[1]) / 2.0, 0.92, u)
-    end
-    return 0
-end
-
-# ---- avatar ---------------------------------------------------------------------------------------
-
-function avatar(cr, cx, cy, d, face, name, font_name, u, scale, alpha):
-    m = px(u, 10.0, 6)
-    key = "avatar|" + String(face) + "|" + name + "|" + font_name + "|" + String(d) + "|" + String(u)
-    call sprite(cr, key, cx - d / 2.0 - m, cy - d / 2.0 - m, d + 2.0 * m, d + 2.0 * m + px(u, 6.0, 3), scale,
-                avatar_paint, [cx, cy, d, face, name, font_name, u], alpha)
-    return 0
-end
-
-function avatar_paint(cr, a):
-    cx = a[0]
-    cy = a[1]
-    d = a[2]
-    face = a[3]
-    name = a[4]
-    font_name = a[5]
-    u = a[6]
-    r = d / 2.0
-    # stin 0 6px 18px: soustredne kruhy se slabou alfou
-    for i in range(6):
-        k = Float(i) / 5.0
-        call circle(cr, cx, cy + px(u, 6.0, 3), r + px(u, 9.0, 5) * (1.0 - k))
-        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.05)
-        call cairo.fill(cr)
-    end
+function icon_sleep(cr, cx, cy, s):
+    r = s * 0.40
     call cairo.save(cr)
     call circle(cr, cx, cy, r)
     call cairo.clip(cr)
-    if face != None:
-        fw = Float(gtk.pixbuf_get_width(face))
-        fh = Float(gtk.pixbuf_get_height(face))
-        sc = max(d / fw, d / fh)
-        call cairo.translate(cr, cx - fw * sc / 2.0, cy - fh * sc / 2.0)
-        call cairo.scale(cr, sc, sc)
-        call gtk.cairo_set_source_pixbuf(cr, face, 0.0, 0.0)
-        call cairo.paint(cr)
-    else:
-        g = cairo.pattern_create_linear(cx - r, cy - r, cx + r, cy + r)
-        call cairo.pattern_add_color_stop_rgba(g, 0.0, 0.30, 0.52, 1.0, 1.0)
-        call cairo.pattern_add_color_stop_rgba(g, 1.0, 0.66, 0.42, 0.98, 1.0)
-        call cairo.set_source(cr, g)
-        call cairo.paint(cr)
-        call cairo.pattern_destroy(g)
-        initial = name.strip()
-        if initial == "":
-            initial = "?"
-        end
-        layout = text_layout(cr, initial[0].upper(), font_name + ",Inter,Cantarell,Noto Sans Medium " + String(Int(d * 0.42 + 0.5)) + "px")
-        size = pango.layout_get_pixel_size(layout)
-        call cairo.move_to(cr, cx - Float(size[0]) / 2.0, cy - Float(size[1]) / 2.0)
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.97)
-        call pango.cairo_show_layout(cr, layout)
-    end
+    call circle(cr, cx, cy, r)
+    call sys.new_sub_path(cr)
+    call cairo.arc(cr, cx + r * 0.55, cy - r * 0.45, r * 0.82, 0.0, 2.0 * PI)
+    call sys.fill_rule(cr, 1)
+    call cairo.fill(cr)
     call cairo.restore(cr)
-    call circle(cr, cx, cy, r - 0.75)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.35)
-    call cairo.set_line_width(cr, 1.5)
+    return 0
+end
+
+function icon_restart(cr, cx, cy, s):
+    r = s * 0.36
+    a0 = -PI / 2.0 + 0.25
+    a1 = -PI / 2.0 + 2.0 * PI - 0.75
+    k = s * 0.2
+    call cairo.set_line_width(cr, max(1.4, s * 0.085))
+    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
+    call cairo.new_path(cr)
+    call cairo.arc(cr, cx, cy, r, a0, a1)
+    call cairo.stroke(cr)
+    ex = cx + r * math.cos(a1)
+    ey = cy + r * math.sin(a1)
+    tx = -math.sin(a1)
+    ty = math.cos(a1)
+    nx = math.cos(a1)
+    ny = math.sin(a1)
+    call cairo.move_to(cr, ex + tx * k * 0.9, ey + ty * k * 0.9)
+    call cairo.line_to(cr, ex + nx * k * 0.75 - tx * k * 0.25, ey + ny * k * 0.75 - ty * k * 0.25)
+    call cairo.line_to(cr, ex - nx * k * 0.75 - tx * k * 0.25, ey - ny * k * 0.75 - ty * k * 0.25)
+    call cairo.close_path(cr)
+    call cairo.fill(cr)
+    return 0
+end
+
+function icon_power(cr, cx, cy, s):
+    call cairo.set_line_width(cr, max(1.4, s * 0.085))
+    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
+    call cairo.new_path(cr)
+    call cairo.arc(cr, cx, cy + s * 0.03, s * 0.36, -PI / 2.0 + 0.62, -PI / 2.0 - 0.62 + 2.0 * PI)
+    call cairo.stroke(cr)
+    call cairo.move_to(cr, cx, cy - s * 0.45)
+    call cairo.line_to(cr, cx, cy - s * 0.05)
     call cairo.stroke(cr)
     return 0
 end
 
-# ---- ikony ------------------------------------------------------------------------------------------
+function icon_session(cr, cx, cy, s):
+    q = s * 0.3
+    g = s * 0.08
+    for dx in [-1, 1]:
+        for dy in [-1, 1]:
+            x = cx + g / 2.0 if dx > 0 else cx - g / 2.0 - q
+            y = cy + g / 2.0 if dy > 0 else cy - g / 2.0 - q
+            call rounded(cr, x, y, q, q, q * 0.25)
+        end
+    end
+    call cairo.fill(cr)
+    return 0
+end
 
-function arrow(cr, cx, cy, s):
-    call cairo.set_line_width(cr, max(1.5, s * 0.12))
+function icon_arrow(cr, cx, cy, s):
+    call cairo.set_line_width(cr, max(1.5, s * 0.11))
     call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
     call cairo.set_line_join(cr, cairo.LINE_JOIN_ROUND)
-    call cairo.new_path(cr)
-    call cairo.move_to(cr, cx - s * 0.32, cy)
-    call cairo.line_to(cr, cx + s * 0.32, cy)
-    call cairo.move_to(cr, cx + s * 0.04, cy - s * 0.27)
-    call cairo.line_to(cr, cx + s * 0.32, cy)
-    call cairo.line_to(cr, cx + s * 0.04, cy + s * 0.27)
+    call cairo.move_to(cr, cx - s * 0.3, cy)
+    call cairo.line_to(cr, cx + s * 0.3, cy)
+    call cairo.move_to(cr, cx + s * 0.05, cy - s * 0.25)
+    call cairo.line_to(cr, cx + s * 0.3, cy)
+    call cairo.line_to(cr, cx + s * 0.05, cy + s * 0.25)
     call cairo.stroke(cr)
     return 0
 end
 
-# Caps Lock: obrys sipky nahoru s carkou pod ni (jako na klavese)
-function caps_icon(cr, cx, cy, s):
+function icon_caps(cr, cx, cy, s):
     w = s * 0.80
     stem = s * 0.36
     top = cy - s * 0.46
@@ -608,545 +349,968 @@ function caps_icon(cr, cx, cy, s):
     return 0
 end
 
-# Otisk prstu: soustredne oblouky otevrene dole
-function fingerprint_icon(cr, cx, cy, s):
-    call cairo.save(cr)
-    call cairo.set_line_width(cr, max(1.2, s * 0.075))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    for i in range(4):
-        r = s * (0.12 + 0.12 * Float(i))
-        open = 0.55 - 0.08 * Float(i)
-        call cairo.new_path(cr)
-        call cairo.arc(cr, cx, cy + s * 0.06, r, PI * (0.5 + open), PI * (2.5 - open))
-        call cairo.stroke(cr)
-    end
-    call cairo.move_to(cr, cx, cy + s * 0.06)
-    call cairo.line_to(cr, cx, cy + s * 0.34)
-    call cairo.stroke(cr)
-    call cairo.restore(cr)
-    return 0
-end
-
-# Zamek (zamceny ucet): telo a oblouk
-function lock_icon(cr, cx, cy, s):
-    call cairo.save(cr)
-    call material.rounded_path(cr, cx - s * 0.36, cy - s * 0.06, s * 0.72, s * 0.52, s * 0.1)
+function icon_person(cr, cx, cy, s):
+    call circle(cr, cx, cy - s * 0.16, s * 0.17)
     call cairo.fill(cr)
-    call cairo.set_line_width(cr, max(1.3, s * 0.11))
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy - s * 0.12, s * 0.22, PI, 2.0 * PI)
-    call cairo.line_to(cr, cx + s * 0.22, cy - s * 0.04)
-    call cairo.move_to(cr, cx - s * 0.22, cy - s * 0.04)
-    call cairo.line_to(cr, cx - s * 0.22, cy - s * 0.12)
-    call cairo.stroke(cr)
+    call cairo.save(cr)
+    call cairo.translate(cr, cx, cy + s * 0.34)
+    call cairo.scale(cr, s * 0.32, s * 0.27)
+    call cairo.arc(cr, 0.0, 0.0, 1.0, PI, 2.0 * PI)
     call cairo.restore(cr)
-    return 0
-end
-
-function icon_power(cr, cx, cy, s):
-    call cairo.set_line_width(cr, max(1.6, s * 0.10))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy + s * 0.04, s * 0.38, -PI / 2.0 + 0.62, -PI / 2.0 - 0.62 + 2.0 * PI)
-    call cairo.stroke(cr)
-    call cairo.move_to(cr, cx, cy - s * 0.46)
-    call cairo.line_to(cr, cx, cy - s * 0.04)
-    call cairo.stroke(cr)
-    return 0
-end
-
-function icon_restart(cr, cx, cy, s):
-    r = s * 0.38
-    call cairo.set_line_width(cr, max(1.6, s * 0.10))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    a0 = -PI / 2.0 + 0.25
-    a1 = -PI / 2.0 + 2.0 * PI - 0.75
-    call cairo.new_path(cr)
-    call cairo.arc(cr, cx, cy, r, a0, a1)
-    call cairo.stroke(cr)
-    ex = cx + r * math.cos(a1)
-    ey = cy + r * math.sin(a1)
-    tx = -math.sin(a1)
-    ty = math.cos(a1)
-    nx = math.cos(a1)
-    ny = math.sin(a1)
-    k = s * 0.22
-    call cairo.move_to(cr, ex + tx * k * 0.9, ey + ty * k * 0.9)
-    call cairo.line_to(cr, ex + nx * k * 0.75 - tx * k * 0.25, ey + ny * k * 0.75 - ty * k * 0.25)
-    call cairo.line_to(cr, ex - nx * k * 0.75 - tx * k * 0.25, ey - ny * k * 0.75 - ty * k * 0.25)
     call cairo.close_path(cr)
     call cairo.fill(cr)
     return 0
 end
 
-function icon_sleep(cr, cx, cy, s):
-    r = s * 0.40
-    call cairo.save(cr)
-    call circle(cr, cx, cy, r)
-    call cairo.clip(cr)
-    call circle(cr, cx, cy, r)
-    call cairo.move_to(cr, cx + r * 0.55 + r * 0.82, cy - r * 0.45)
-    call cairo.arc(cr, cx + r * 0.55, cy - r * 0.45, r * 0.82, 0.0, 2.0 * PI)
-    call lgtk.cairo_set_fill_rule(cr, 1)
+function icon_wifi(cr, x, y, s):
+    cx = x + s / 2.0
+    cy = y + s * 0.86
+    call cairo.set_line_width(cr, max(1.3, s * 0.11))
+    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
+    for r in [0.3, 0.55, 0.8]:
+        call cairo.new_path(cr)
+        call cairo.arc(cr, cx, cy, s * r * 0.85, -PI * 0.75, -PI * 0.25)
+        call cairo.stroke(cr)
+    end
+    call cairo.arc(cr, cx, cy, s * 0.08, 0.0, 2.0 * PI)
     call cairo.fill(cr)
+    return 0
+end
+
+function icon_wired(cr, x, y, s):
+    b = s * 0.26
+    call rounded(cr, x + s / 2.0 - b / 2.0, y + s * 0.08, b, b, b * 0.2)
+    call rounded(cr, x + s * 0.08, y + s * 0.66, b, b, b * 0.2)
+    call rounded(cr, x + s * 0.92 - b, y + s * 0.66, b, b, b * 0.2)
+    call cairo.fill(cr)
+    call cairo.set_line_width(cr, max(1.2, s * 0.08))
+    call cairo.move_to(cr, x + s / 2.0, y + s * 0.08 + b)
+    call cairo.line_to(cr, x + s / 2.0, y + s * 0.52)
+    call cairo.move_to(cr, x + s * 0.08 + b / 2.0, y + s * 0.66)
+    call cairo.line_to(cr, x + s * 0.08 + b / 2.0, y + s * 0.52)
+    call cairo.line_to(cr, x + s * 0.92 - b / 2.0, y + s * 0.52)
+    call cairo.line_to(cr, x + s * 0.92 - b / 2.0, y + s * 0.66)
+    call cairo.stroke(cr)
+    return 0
+end
+
+# Baterie (luxos-lock-battery.c): tmavy stin a podklad, bily obrys, vypln; blesk nad vyplni tmavy, nad prazdnou
+# casti bily
+function bolt(cr, cx, cy, k):
+    call cairo.new_path(cr)
+    for p in [[0.14, -1.0], [-0.58, 0.14], [-0.07, 0.14], [-0.14, 1.0], [0.58, -0.14], [0.07, -0.14]]:
+        call cairo.line_to(cr, cx + p[0] * k, cy + p[1] * k)
+    end
+    call cairo.close_path(cr)
+    return 0
+end
+
+function battery(cr, x, y, h, level, charging):
+    w = h * 2.05
+    lw = max(1.0, h * 0.09)
+    bx = x + lw / 2.0
+    by = y + lw / 2.0
+    bw = w - h * 0.22 - lw
+    bh = h - lw
+    br = h * 0.26
+    ix = x + lw
+    iy = y + lw
+    iw = bw - lw
+    ih = h - 2.0 * lw
+    frac = min(1.0, max(0.0, Float(level) / 100.0))
+    fx = ix + h * 0.08
+    fy = iy + h * 0.08
+    fw = max(h * 0.12, (iw - h * 0.16) * frac)
+    fh = ih - h * 0.16
+    ring = max(1.0, h * 0.08)
+    cx = bx + bw / 2.0
+    cy = y + h / 2.0
+    k = ih / 2.0 - ring * 0.75
+    halo = max(0.75, h * 0.06)
+    call cairo.save(cr)
+    call cairo.set_line_join(cr, cairo.LINE_JOIN_ROUND)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.38)
+    call cairo.set_line_width(cr, lw + 2.0 * halo)
+    call rounded(cr, bx, by, bw, bh, br)
+    call cairo.stroke(cr)
+    call rounded(cr, x + w - h * 0.2 - halo, y + h * 0.33 - halo, h * 0.14 + 2.0 * halo, h * 0.34 + 2.0 * halo, h * 0.06 + halo)
+    call cairo.fill(cr)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.38)
+    call rounded(cr, ix, iy, iw, ih, br - lw / 2.0)
+    call cairo.fill(cr)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9)
+    call cairo.set_line_width(cr, lw)
+    call rounded(cr, bx, by, bw, bh, br)
+    call cairo.stroke(cr)
+    call rounded(cr, x + w - h * 0.2, y + h * 0.33, h * 0.14, h * 0.34, h * 0.06)
+    call cairo.fill(cr)
+    if level <= 15 and not charging:
+        call cairo.set_source_rgba(cr, 1.0, 0.36, 0.33, 1.0)
+    else:
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
+    end
+    call rounded(cr, fx, fy, fw, fh, h * 0.14)
+    call cairo.fill(cr)
+    if charging:
+        ex = fx + fw
+        call cairo.set_line_width(cr, 2.0 * ring)
+        if ex > ix:
+            call cairo.save(cr)
+            call cairo.rectangle(cr, ix, iy, ex - ix, ih)
+            call cairo.clip(cr)
+            call bolt(cr, cx, cy, k)
+            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
+            call cairo.stroke_preserve(cr)
+            call cairo.set_source_rgba(cr, 0.10, 0.10, 0.12, 0.92)
+            call cairo.fill(cr)
+            call cairo.restore(cr)
+        end
+        if ex < ix + iw:
+            call cairo.save(cr)
+            call cairo.rectangle(cr, ex, iy, ix + iw - ex, ih)
+            call cairo.clip(cr)
+            call bolt(cr, cx, cy, k)
+            call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.60)
+            call cairo.stroke_preserve(cr)
+            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.97)
+            call cairo.fill(cr)
+            call cairo.restore(cr)
+        end
+    end
     call cairo.restore(cr)
     return 0
 end
 
-function chevron(cr, cx, cy, s, up):
-    k = -1.0 if up else 1.0
-    call cairo.set_line_width(cr, max(1.3, s * 0.16))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    call cairo.set_line_join(cr, cairo.LINE_JOIN_ROUND)
-    call cairo.new_path(cr)
-    call cairo.move_to(cr, cx - s * 0.4, cy - k * s * 0.2)
-    call cairo.line_to(cr, cx, cy + k * s * 0.2)
-    call cairo.line_to(cr, cx + s * 0.4, cy - k * s * 0.2)
-    call cairo.stroke(cr)
-    return 0
-end
+# ---- tapeta ----------------------------------------------------------------------------------------
 
-function check_icon(cr, cx, cy, s):
-    call cairo.set_line_width(cr, max(1.4, s * 0.16))
-    call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-    call cairo.set_line_join(cr, cairo.LINE_JOIN_ROUND)
-    call cairo.new_path(cr)
-    call cairo.move_to(cr, cx - s * 0.38, cy)
-    call cairo.line_to(cr, cx - s * 0.1, cy + s * 0.3)
-    call cairo.line_to(cr, cx + s * 0.4, cy - s * 0.3)
-    call cairo.stroke(cr)
-    return 0
-end
-
-function monitor_icon(cr, cx, cy, s):
-    call cairo.set_line_width(cr, max(1.2, s * 0.1))
-    call material.rounded_path(cr, cx - s * 0.48, cy - s * 0.38, s * 0.96, s * 0.62, s * 0.1)
-    call cairo.stroke(cr)
-    call cairo.move_to(cr, cx - s * 0.22, cy + s * 0.44)
-    call cairo.line_to(cr, cx + s * 0.22, cy + s * 0.44)
-    call cairo.stroke(cr)
-    return 0
-end
-
-# ---- rozmisteni -------------------------------------------------------------------------------------
-
-# Svisle polohy shluku pro zadavani: avatar uprostred na avatar_y, pod nim jmeno, pole a hlasky
-function metrics(w, h):
-    u = unit(h)
-    d = px(u, L["avatar"], 64)
-    ay = Float(Int(Float(h) * L["avatar_y"]))
-    name_y = ay + d / 2.0 + px(u, L["name_gap"], 9)
-    name_h = Float(Int(px(u, L["name"], 13) * 1.3 + 0.5))
-    fw = px(u, L["field_w"], 220)
-    fh = px(u, L["field_h"], 30)
-    fy = name_y + name_h + px(u, L["name_gap"], 9)
-    return {"u": u, "d": d, "ay": ay, "name_y": name_y, "fx": Float(Int((Float(w) - fw) / 2.0)), "fy": fy, "fw": fw,
-            "fh": fh, "my": fy + fh + px(u, L["message_gap"], 7)}
-end
-
-function field_rect(w, h, dx):
-    m = metrics(w, h)
-    return [m["fx"] + dx, m["fy"], m["fw"], m["fh"]]
-end
-
-# ---- pole pro heslo ---------------------------------------------------------------------------------
-
-function field(cr, ui, m, y):
-    u = m["u"]
-    x = m["fx"] + ui["shake"] * u
-    fw = m["fw"]
-    fh = m["fh"]
-    dim = 1.0
-    if ui["busy"] or ui["lockout"]:
-        dim = 0.6
+# Tapeta vyplni plochu (zmensena bilinearne jako gdk_pixbuf_scale_simple v luxos-lock-ui.c); meritko muze byt
+# zlomkove (wp_fractional_scale), povrch ma pak presne velikost buferu
+function backdrop(path, w, h, scale):
+    stamp = ""
+    if path != "" and exists(path):
+        stamp = String(lglib.stat(path))
     end
-    # pole: svetle sklo nad rozmazanou tapetou, vnitrni okraj svetlejsi nahore, prstenec zamereni venku
-    call pill(cr, x - 1.0, y - 1.0, fw + 2.0, fh + 2.0)
-    call cairo.set_line_width(cr, 2.0)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.55 * dim)
-    if ui["rim"] > 0.0:
-        call cairo.stroke_preserve(cr)
-        call rgba(cr, tokens.COLORS["error"], 0.9 * ui["rim"])
+    key = path + "|" + stamp + "|" + String(w) + "x" + String(h) + "@" + String(scale)
+    bd = state["backdrops"].get(key)
+    if bd != None:
+        return bd
     end
-    call cairo.stroke(cr)
-    call pill(cr, x, y, fw, fh)
-    call rgba(cr, L["field_fill"], dim)
-    call cairo.fill(cr)
-    g = cairo.pattern_create_linear(0.0, y, 0.0, y + fh)
-    call cairo.pattern_add_color_stop_rgba(g, 0.0, 1.0, 1.0, 1.0, 0.45 * dim)
-    call cairo.pattern_add_color_stop_rgba(g, 1.0, 1.0, 1.0, 1.0, 0.15 * dim)
-    call pill(cr, x + 0.5, y + 0.5, fw - 1.0, fh - 1.0)
-    call cairo.set_source(cr, g)
-    call cairo.set_line_width(cr, 1.0)
-    call cairo.stroke(cr)
-    call cairo.pattern_destroy(g)
-
-    pad = px(u, 16.0, 12)
-    sd = px(u, L["submit"], 22)
-    room = fw - pad - sd - px(u, 12.0, 8)
-    length = ui["length"]
-    if length == 0:
-        layout = text_layout(cr, ui["placeholder"], font(ui, "Regular", px(u, L["field_text"], 12)))
-        call pango.layout_set_width(layout, Int(room * 1024.0))
-        call pango.layout_set_ellipsize(layout, 3)
-        size = pango.layout_get_pixel_size(layout)
-        call cairo.move_to(cr, x + pad, y + (fh - Float(size[1])) / 2.0)
-        alpha = 0.70
-        if ui["visible_text"]:
-            alpha = 0.95
-        end
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, alpha * dim)
-        call pango.cairo_show_layout(cr, layout)
+    dw = max(1, cround(Float(w) * scale))
+    dh = max(1, cround(Float(h) * scale))
+    sharp = cairo.image_surface_create(cairo.FORMAT_RGB24, dw, dh)
+    call sys.device_scale(sharp, scale)
+    cr = cairo.create(sharp)
+    pb = 0
+    if path != "" and exists(path):
+        pb = gtk.pixbuf_new_from_file(path)
+    end
+    if pb == 0 and exists("/usr/share/backgrounds/luxos/luxos-light.jpg"):
+        pb = gtk.pixbuf_new_from_file("/usr/share/backgrounds/luxos/luxos-light.jpg")
+    end
+    if pb != 0:
+        pw = gtk.pixbuf_get_width(pb)
+        ph = gtk.pixbuf_get_height(pb)
+        sc = max(Float(w) / Float(pw), Float(h) / Float(ph))
+        tw = max(1, cround(Float(pw) * sc))
+        th = max(1, cround(Float(ph) * sc))
+        scaled = gtk.pixbuf_scale_simple(pb, Int(Float(tw) * scale), Int(Float(th) * scale), 2)
+        call cairo.save(cr)
+        call cairo.scale(cr, 1.0 / scale, 1.0 / scale)
+        call gtk.cairo_set_source_pixbuf(cr, scaled, (Float(w - tw) / 2.0) * scale, (Float(h - th) / 2.0) * scale)
+        call cairo.paint(cr)
+        call cairo.restore(cr)
+        call glib.object_unref(scaled)
+        call glib.object_unref(pb)
     else:
-        r = px(u, L["dot"], 6) / 2.0
-        step = px(u, L["dot_pitch"], 10)
-        count = min(length, Int(room / step))
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95 * dim)
-        for i in range(count):
-            call circle(cr, x + pad + r + Float(i) * step, y + fh / 2.0, r)
-            call cairo.fill(cr)
+        g = cairo.pattern_create_linear(0.0, 0.0, Float(w), Float(h))
+        call cairo.pattern_add_color_stop_rgba(g, 0.0, 0.10, 0.11, 0.25, 1.0)
+        call cairo.pattern_add_color_stop_rgba(g, 0.6, 0.27, 0.20, 0.52, 1.0)
+        call cairo.pattern_add_color_stop_rgba(g, 1.0, 0.55, 0.36, 0.78, 1.0)
+        call cairo.set_source(cr, g)
+        call cairo.paint(cr)
+        call cairo.pattern_destroy(g)
+    end
+    call cairo.destroy(cr)
+    bd = {"key": key, "sharp": sharp, "blur": None, "w": w, "h": h, "scale": scale, "dw": dw, "dh": dh, "veils": {}}
+    while len(state["order"]) >= 3:
+        old = state["backdrops"].pop(state["order"].pop(0))
+        for k in ["sharp", "blur", "dimmed"]:
+            if old.get(k) != None:
+                call cairo.surface_destroy(old[k])
+            end
         end
     end
-    # odeslat: kruh vpravo, akcent kdyz je co odeslat; behem overeni tocici se oblouk
-    cx = x + fw - px(u, 6.0, 4) - sd / 2.0
-    cy = y + fh / 2.0
-    if ui["busy"]:
-        a = Float(glib.monotonic_time() - ui["spin_start"]) / 1000000.0 * 2.0 * PI * 1.1
-        call cairo.set_line_width(cr, max(1.6, 2.0 * u))
-        call cairo.set_line_cap(cr, cairo.LINE_CAP_ROUND)
-        call cairo.new_path(cr)
-        call cairo.arc(cr, cx, cy, px(u, 8.0, 6), a, a + PI * 1.4)
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9)
+    state["backdrops"][key] = bd
+    state["order"].append(key)
+    return bd
+end
+
+# Podklad matnych prvku: zmensenina 64 px vysoka rozmazana box_blur(2, 3) se sytosti 1.25, zvetsuje se bilinearne.
+# V klidu neni potreba: zamek ho pocita az po prvnim snimku (zamceni nesmi cekat); -> ms
+function backdrop_soft(bd):
+    if bd["blur"] != None:
+        return 0
+    end
+    t0 = glib.monotonic_time()
+    w = bd["w"]
+    h = bd["h"]
+    sh = 64
+    sw = max(8, cround(Float(w) * Float(sh) / Float(h)))
+    small = cairo.image_surface_create(cairo.FORMAT_RGB24, sw, sh)
+    cr = cairo.create(small)
+    call cairo.scale(cr, Float(sw) / Float(w), Float(sh) / Float(h))
+    call cairo.set_source_surface(cr, bd["sharp"], 0.0, 0.0)
+    # CAIRO_FILTER_GOOD
+    call sys.filter(cr, 1)
+    call cairo.paint(cr)
+    call cairo.destroy(cr)
+    call sys.box_blur(small, 2, 3, 1.25)
+    # zustava zmensenina: frost() ji zvetsuje bilinearne pri kresleni (stejne vzorky jako zvetsena kopie v X11,
+    # bez dalsiho povrchu velikosti obrazovky)
+    bd["blur"] = small
+    bd["sw"] = sw
+    bd["sh"] = sh
+    return max(1, Int((glib.monotonic_time() - t0) / 1000))
+end
+
+# Matny prvek: vyrez rozmazane tapety, svetly zavoj a jemny okraj
+function blur_source(cr, bd):
+    call cairo.scale(cr, Float(bd["w"]) / Float(bd["sw"]), Float(bd["h"]) / Float(bd["sh"]))
+    call cairo.set_source_surface(cr, bd["blur"], 0.0, 0.0)
+    # CAIRO_FILTER_BILINEAR, CAIRO_EXTEND_PAD
+    call sys.filter(cr, 4)
+    call sys.extend(cr, 3)
+    return 0
+end
+
+function frost(cr, bd, x, y, w, h, r, tint, border):
+    call cairo.save(cr)
+    call rounded(cr, x, y, w, h, r)
+    call cairo.clip(cr)
+    call cairo.save(cr)
+    call blur_source(cr, bd)
+    call cairo.paint(cr)
+    call cairo.restore(cr)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, tint)
+    call cairo.paint(cr)
+    call cairo.restore(cr)
+    if border > 0.0:
+        call rounded(cr, x + 0.5, y + 0.5, w - 1.0, h - 1.0, r)
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, border)
+        call cairo.set_line_width(cr, 1.0)
         call cairo.stroke(cr)
-    elif not ui["lockout"]:
-        call circle(cr, cx, cy, sd / 2.0)
-        if length > 0 or ui["visible_text"]:
-            call rgba(cr, tokens.COLORS["accent"], 1.0)
+    end
+    return 0
+end
+
+function lin_rgb(c):
+    if c <= 0.03928:
+        return c / 12.92
+    end
+    return math.exp(2.4 * math.log((c + 0.055) / 1.055))
+end
+
+# Tmavy zavoj pole podle jasu rozmazane tapety pod nim (field_veil v luxos-lock-ui.c)
+function field_veil(bd, x, y, w, h, tint):
+    key = String(x) + "," + String(y) + "," + String(w) + "," + String(h)
+    v = bd["veils"].get(key)
+    if v == None:
+        v = field_veil_calc(bd, x, y, w, h, tint)
+        bd["veils"][key] = v
+    end
+    return v
+end
+
+function field_veil_calc(bd, x, y, w, h, tint):
+    s = bd["scale"]
+    # rozmazana tapeta pod polem v pixelech zarizeni (jako zvetsena kopie v X11)
+    region = cairo.image_surface_create(cairo.FORMAT_RGB24, bd["dw"], max(1, Int(Float(y + h + 2) * s)))
+    call sys.device_scale(region, s)
+    rcr = cairo.create(region)
+    call cairo.rectangle(rcr, Float(x), Float(y), Float(w), Float(h))
+    call cairo.clip(rcr)
+    call blur_source(rcr, bd)
+    call cairo.paint(rcr)
+    call cairo.destroy(rcr)
+    call cairo.surface_flush(region)
+    total = 0.0
+    n = 0
+    for j in range(1, 6):
+        for i in range(1, 16):
+            sx = Int((Float(x) + Float(w) * Float(i) / 16.0) * s)
+            sy = Int((Float(y) + Float(h) * Float(j) / 6.0) * s)
+            if sx < 0 or sy < 0 or sx >= bd["dw"] or sy >= cairo.image_surface_get_height(region):
+                continue
+            end
+            q = sys.pixel_bgr(region, sx, sy)
+            b = Float(q[0]) / 255.0 * (1.0 - tint) + tint
+            g = Float(q[1]) / 255.0 * (1.0 - tint) + tint
+            r = Float(q[2]) / 255.0 * (1.0 - tint) + tint
+            total = total + 0.2126 * lin_rgb(r) + 0.7152 * lin_rgb(g) + 0.0722 * lin_rgb(b)
+            n = n + 1
+        end
+    end
+    call cairo.surface_destroy(region)
+    lum = 0.5
+    if n > 0:
+        lum = total / Float(n)
+    end
+    veil = 0.24
+    if lum > 0.13:
+        veil = 1.0 - math.exp(math.log(0.13 / lum) / 2.2)
+    end
+    return min(0.62, max(0.24, veil))
+end
+
+# ---- rozvrzeni (jako GtkBox a GtkOverlay v X11) ----------------------------------------------------
+
+function sizes(ui, w, h):
+    ui["u"] = max(0.55, Float(h) / 1080.0)
+    return {"avatar": px(ui, 104, 64), "pw_w": px(ui, 250, 180), "pw_h": px(ui, 36, 28), "round": px(ui, 44, 34),
+            "status": px(ui, 16, 12), "pad": px(ui, 18, 10), "pw_pad": px(ui, 16, 11), "pw_font": px(ui, 15, 12)}
+end
+
+function shadow_spec(ui):
+    return [1, px(ui, 3, 2), 0.45]
+end
+
+function status_items(ui, sz):
+    items = []
+    lab = label(ui, ui["layout"], px(ui, 13, 11), BOLD, 1024, 0, False)
+    items.append(["kbd", lab["w"] + 2 * px(ui, 10, 7), lab["h"] + 2 * px(ui, 3, 2), lab])
+    net = ui["net"]
+    if net != None and net[0] != "none":
+        items.append(["net", sz["status"] + 4, sz["status"] + 4, None])
+    end
+    bat = ui["battery"]
+    if bat != None:
+        items.append(["bat", Int(math.ceil(Float(sz["status"]) * 0.9 * 2.05)) + 4, sz["status"] + 4, None])
+        t = String(bat[0]) + (" %" if ui.get("lang", "") == "cs" else "%")
+        t = String(bat[0]) + " %" if ui.get("lang", "") == "cs" else String(bat[0]) + "%"
+        lab = label(ui, t, px(ui, 14, 11), SEMIBOLD, 0, 0, False)
+        items.append(["batlabel", lab["w"], lab["h"], lab])
+    end
+    return items
+end
+
+function draw_status(cr, ui, bd, w, sz):
+    items = status_items(ui, sz)
+    sp = px(ui, 14, 8)
+    bh = 0
+    bw = -sp
+    for it in items:
+        bh = max(bh, it[2])
+        bw = bw + it[1] + sp
+    end
+    x = w - sz["pad"] - bw
+    y = sz["pad"]
+    for it in items:
+        iw = it[1]
+        if it[0] == "kbd":
+            hover = ui["hover"] == "layout"
+            call frost(cr, bd, Float(x), Float(y), Float(iw), Float(bh), Float(bh) * 0.5, 0.16 + (0.06 if hover else 0.0), 0.18)
+            call draw_label(cr, ui, it[3], x + px(ui, 10, 7), y + px(ui, 3, 2), iw - 2 * px(ui, 10, 7), bh - 2 * px(ui, 3, 2),
+                            [1.0, 1.0, 1.0, 1.0], shadow_spec(ui))
+            ui["hits"].append([x, y, iw, bh, ["layout", 0]])
+        elif it[0] == "net":
+            s = Float(sz["status"])
+            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
+            if ui["net"][0] == "wifi":
+                call icon_wifi(cr, Float(x) + (Float(iw) - s) / 2.0, Float(y) + (Float(bh) - s) / 2.0, s)
+            else:
+                call icon_wired(cr, Float(x) + (Float(iw) - s) / 2.0, Float(y) + (Float(bh) - s) / 2.0, s)
+            end
+        elif it[0] == "bat":
+            hb = Float(sz["status"]) * 0.9
+            call battery(cr, Float(x) + 1.0, Float(y) + (Float(bh) - hb) / 2.0, hb, ui["battery"][0], ui["battery"][1])
         else:
-            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.25)
+            call draw_label(cr, ui, it[3], x, y, iw, bh, [1.0, 1.0, 1.0, 1.0], shadow_spec(ui))
         end
-        call cairo.fill(cr)
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
-        call arrow(cr, cx, cy, sd * 0.62)
+        x = x + iw + sp
     end
-    call hit(ui, x, y, fw, fh, ["field", 0])
     return 0
 end
 
-# ---- hlasky pod polem ---------------------------------------------------------------------------------
-
-# Pilulka s textem (a ikonou): chyba svetle cervena, ostatni bile; tmavy podklad pro svetlou tapetu
-function message(cr, w, y, text, icon, error, ui, u, alpha):
-    desc = font(ui, "Semi-Bold", px(u, L["message"], 11))
-    layout = text_layout(cr, text, desc)
-    call pango.layout_set_width(layout, Int(Float(w) * 0.7 * 1024.0))
-    call pango.layout_set_ellipsize(layout, 3)
-    size = pango.layout_get_pixel_size(layout)
-    tw = Float(size[0])
-    th = Float(size[1])
-    isz = 0.0
-    if icon != "":
-        isz = px(u, 16.0, 12)
+# Datum a velke tenke hodiny (draw_bg): mekky stin z peti posunutych kopii
+function shadow_text(cr, e, x, y, alpha, blur):
+    for o in [[0.0, 1.0], [0.0, 2.0], [-1.0, 1.5], [1.0, 1.5], [0.0, 3.0]]:
+        call cairo.move_to(cr, x + o[0] * blur * 0.35, y + o[1] * blur * 0.45)
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.055 * alpha)
+        call sys.show_layout(cr, e["layout"])
     end
-    gap = px(u, 6.0, 4) if icon != "" else 0.0
-    padx = px(u, 10.0, 8)
-    pady = px(u, 4.0, 3)
-    total = isz + gap + tw
-    x = Float(Int((Float(w) - total) / 2.0))
-    ph = th + 2.0 * pady
-    call material.rounded_path(cr, x - padx, y, total + 2.0 * padx, ph, px(u, L["radius_message"], 8))
-    call rgba(cr, L["message_bg"], (1.0 if error else 0.75) * alpha)
-    call cairo.fill(cr)
-    c = tokens.COLORS["error_soft"] if error else tokens.COLORS["white"]
-    call rgba(cr, c, (1.0 if error else 0.95) * alpha)
-    cy = y + ph / 2.0
-    if icon == "caps":
-        call caps_icon(cr, x + isz / 2.0, cy, isz)
-    elif icon == "fingerprint":
-        call fingerprint_icon(cr, x + isz / 2.0, cy, isz)
-    elif icon == "lock":
-        call lock_icon(cr, x + isz / 2.0, cy, isz)
-    end
-    call cairo.move_to(cr, x + isz + gap, y + pady)
-    call pango.cairo_show_layout(cr, layout)
-    return ph
+    call cairo.move_to(cr, x, y)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, alpha)
+    call sys.show_layout(cr, e["layout"])
+    return 0
 end
 
-function messages(cr, w, y, ui, u, alpha):
-    lines = []
-    if ui["hint"] != "":
-        lines.append([ui["hint"], ui["hint_icon"], ui["error"]])
-    end
-    if ui["caps"] and ui["hint"].find("Caps") < 0:
-        lines.append([ui["caps_text"], "caps", False])
-    end
-    if ui["notice"] != "":
-        lines.append([ui["notice"], "", False])
-    end
-    for line in lines:
-        y = y + message(cr, w, y, line[0], line[1], line[2], ui, u, alpha) + px(u, 6.0, 4)
-    end
-    return y
-end
-
-# ---- prihlaseni: uzivatele, relace, napajeni ----------------------------------------------------------
-
-function users_row(cr, w, ui, m):
-    users = ui["users"]
-    if len(users) < 2:
-        return 0
-    end
-    u = m["u"]
-    ds = px(u, L["avatar_small"], 48)
-    gap = px(u, L["user_gap"], 20)
+function draw_clock(cr, ui, w, h, e):
+    u = ui["u"]
     cx = Float(w) / 2.0
-    desc = font(ui, "Medium", px(u, 12.0, 10))
-    for i in range(len(users)):
-        k = i - ui["sel"]
-        if k == 0:
-            continue
+    y0 = Float(h) * 0.105 - e * Float(h) * 0.045
+    alpha = 1.0 - 0.12 * e
+    dl = text(ui["date"], 27.0 * u, SEMIBOLD, ui["font"], 0, "cr", -1)
+    lg = dl["log"]
+    call shadow_text(cr, dl, cx - Float(lg[2]) / 2.0, y0, alpha * 0.92, 2.0 * u)
+    cl = text(ui["clock"], 180.0 * u, THIN, ui["font"], 0, "cr", -1)
+    ink = cl["ink"]
+    cy = y0 + Float(lg[3]) + 14.0 * u - Float(ink[1])
+    call shadow_text(cr, cl, cx - Float(ink[0]) - Float(ink[2]) / 2.0, cy, alpha, 4.0 * u)
+    return 0
+end
+
+# Avatar: obrazek predpocitany v presne velikosti (HYPER) nebo prechod s inicialou, stin a tenky okraj
+function face_surface(face, size):
+    key = String(face) + "|" + String(size)
+    f = state["faces"].get(key)
+    if f == None:
+        pw = gtk.pixbuf_get_width(face)
+        ph = gtk.pixbuf_get_height(face)
+        sc = max(Float(size) / Float(pw), Float(size) / Float(ph))
+        f = gtk.pixbuf_scale_simple(face, max(1, cround(Float(pw) * sc)), max(1, cround(Float(ph) * sc)), 3)
+        if len(state["faces"]) > 8:
+            for k in List(state["faces"].keys()):
+                call glib.object_unref(state["faces"].pop(k))
+            end
         end
-        side = 1.0 if k > 0 else -1.0
-        x = cx + side * (m["d"] / 2.0 + gap + ds / 2.0 + Float(abs(k) - 1) * (ds + gap))
-        if x < ds or x > Float(w) - ds:
-            continue
-        end
-        other = users[i]
-        alpha = 1.0 if ui["hover"] == "user" + String(i) else 0.72
-        key = "user|" + String(other["face"]) + "|" + other["real"] + "|" + String(other["other"]) + "|" + String(ds) + desc
-        call sprite(cr, key, x - (ds + gap) / 2.0, m["ay"] - ds / 2.0 - px(u, 10.0, 6), ds + gap, ds + px(u, 44.0, 30), ui["scale"],
-                    user_paint, [x, m["ay"], ds, gap, other, ui, u, desc], alpha)
-        call hit(ui, x - ds / 2.0 - gap / 2.0, m["ay"] - ds / 2.0, ds + gap, ds + px(u, 28.0, 20), ["user", i])
+        state["faces"][key] = f
     end
-    return 0
+    return f
 end
 
-function user_paint(cr, a):
-    x = a[0]
-    ds = a[2]
-    other = a[4]
-    u = a[6]
-    call avatar_paint(cr, [x, a[1], ds, other["face"], "+" if other["other"] else other["real"], a[5]["font"], u])
-    layout = text_layout(cr, other["real"], a[7])
-    call pango.layout_set_width(layout, Int((ds + a[3] - px(u, 4.0, 2)) * 1024.0))
-    call pango.layout_set_ellipsize(layout, 3)
-    size = pango.layout_get_pixel_size(layout)
-    call show(cr, layout, x - Float(size[0]) / 2.0, a[1] + ds / 2.0 + px(u, 8.0, 5), 0.9, u)
-    return 0
-end
-
-# Spodni rada prihlaseni: svisly stred tlacitek napajeni (a pilulky relace)
-function bottom_row(h, u):
-    d = px(u, L["power"], 34)
-    label = Float(Int(px(u, L["power_label"], 10) * 1.35 + 0.5))
-    return Float(h) - px(u, L["bottom"], 26) - label - px(u, 8.0, 5) - d / 2.0
-end
-
-function power_buttons(cr, w, h, ui, u):
-    kinds = ui["power"]
-    if len(kinds) == 0:
-        return 0
-    end
-    d = px(u, L["power"], 34)
-    cy = bottom_row(h, u)
-    pitch = px(u, L["power_pitch"], 70)
-    x = Float(w) / 2.0 - Float(len(kinds) - 1) * pitch / 2.0
-    desc = font(ui, "Medium", px(u, L["power_label"], 10))
-    label_h = Float(Int(px(u, L["power_label"], 10) * 1.35 + 0.5))
-    for p in kinds:
-        key = "power|" + p[0] + "|" + p[1] + "|" + String(ui["hover"] == p[0]) + "|" + String(u) + desc
-        call sprite(cr, key, x - pitch / 2.0, cy - d / 2.0 - 2.0, pitch, d + px(u, 10.0, 6) + label_h + 4.0, ui["scale"],
-                    power_paint, [p, x, cy, d, desc, ui["hover"] == p[0], u], 1.0)
-        call hit(ui, x - pitch / 2.0, cy - d / 2.0, pitch, d + px(u, 8.0, 5) + label_h, [p[0], 0])
-        x = x + pitch
-    end
-    return 0
-end
-
-function power_paint(cr, a):
-    kind = a[0][0]
-    x = a[1]
-    cy = a[2]
-    d = a[3]
-    u = a[6]
-    call circle(cr, x, cy, d / 2.0)
-    call rgba(cr, L["power_tint"][kind], 1.25 if a[5] else 1.0)
+function draw_avatar(cr, ui, bd, cx, cy, d, face, name, other, border, border_w, full):
+    s = ui["scale"]
+    call circle(cr, cx, cy + d * 0.03, d / 2.0 + 1.0)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.18)
     call cairo.fill(cr)
-    call circle(cr, x, cy, d / 2.0 - 0.5)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.30)
-    call cairo.set_line_width(cr, 1.0)
-    call cairo.stroke(cr)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.97)
-    g = px(u, L["power_glyph"], 14)
-    if kind == "suspend":
-        call icon_sleep(cr, x, cy, g)
-    elif kind == "reboot":
-        call icon_restart(cr, x, cy, g)
+    call cairo.save(cr)
+    call circle(cr, cx, cy, d / 2.0)
+    call cairo.clip(cr)
+    if face != None:
+        f = face_surface(face, cround(full * s))
+        fw = Float(gtk.pixbuf_get_width(f))
+        fh = Float(gtk.pixbuf_get_height(f))
+        call cairo.translate(cr, cx, cy)
+        call cairo.scale(cr, d / full / s, d / full / s)
+        call gtk.cairo_set_source_pixbuf(cr, f, -fw / 2.0, -fh / 2.0)
+        call sys.filter(cr, 1)
+        call cairo.paint(cr)
+    elif other:
+        call frost(cr, bd, cx - d / 2.0, cy - d / 2.0, d, d, d / 2.0, 0.22, 0.0)
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9)
+        call icon_person(cr, cx, cy, d * 0.62)
     else:
-        call icon_power(cr, x, cy, g)
+        g = cairo.pattern_create_linear(cx - d / 2.0, cy - d / 2.0, cx + d / 2.0, cy + d / 2.0)
+        call cairo.pattern_add_color_stop_rgba(g, 0.0, 0.30, 0.52, 1.0, 1.0)
+        call cairo.pattern_add_color_stop_rgba(g, 1.0, 0.66, 0.42, 0.98, 1.0)
+        call cairo.set_source(cr, g)
+        call cairo.paint(cr)
+        call cairo.pattern_destroy(g)
+        initial = name.strip()
+        initial = initial[0].upper() if initial != "" else "?"
+        e = text(initial, d * 0.44, MEDIUM, ui["font"], 0, "cr", -1)
+        ink = e["ink"]
+        call cairo.move_to(cr, cx - Float(ink[0]) - Float(ink[2]) / 2.0, cy - Float(ink[1]) - Float(ink[3]) / 2.0)
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.97)
+        call sys.show_layout(cr, e["layout"])
     end
-    call centered(cr, a[0][1], a[4], x, cy + d / 2.0 + px(u, 8.0, 5), 0.85, u)
-    return 0
-end
-
-# Volba relace vlevo dole: pilulka "Relace: LuxOS" se sipkou, po kliknuti nabidka nad ni
-function session_pill(cr, w, h, ui, u):
-    if len(ui["sessions"]) < 2:
-        return 0
-    end
-    ph = px(u, L["session_h"], 26)
-    x = px(u, L["session_inset"], 20)
-    y = bottom_row(h, u) - ph / 2.0
-    desc = font(ui, "Medium", px(u, L["message"], 11))
-    layout = text_layout(cr, ui["session"], desc)
-    size = pango.layout_get_pixel_size(layout)
-    icon = px(u, 14.0, 11)
-    pad = px(u, 12.0, 9)
-    pw = pad + icon + px(u, 8.0, 6) + Float(size[0]) + px(u, 10.0, 7) + icon * 0.8 + pad
-    call pill(cr, x, y, pw, ph)
-    call rgba(cr, L["glass_hover"] if ui["hover"] == "session" or ui["menu"] else L["field_fill"], 1.0)
-    call cairo.fill(cr)
-    call pill(cr, x + 0.5, y + 0.5, pw - 1.0, ph - 1.0)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.30)
-    call cairo.set_line_width(cr, 1.0)
+    call cairo.restore(cr)
+    call circle(cr, cx, cy, d / 2.0 - 0.5)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, border)
+    call cairo.set_line_width(cr, border_w)
     call cairo.stroke(cr)
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
-    call monitor_icon(cr, x + pad + icon / 2.0, y + ph / 2.0, icon)
-    tx = x + pad + icon + px(u, 8.0, 6)
-    call cairo.move_to(cr, tx, y + (ph - Float(size[1])) / 2.0)
-    call pango.cairo_show_layout(cr, layout)
-    call chevron(cr, tx + Float(size[0]) + px(u, 10.0, 7) + icon * 0.4, y + ph / 2.0, icon * 0.7, ui["menu"])
-    call hit(ui, x, y, pw, ph, ["session", 0])
-    if ui["menu"]:
-        call session_menu(cr, x, y, ui, u)
-    end
     return 0
 end
 
-function session_menu(cr, x, bottom, ui, u):
-    row = px(u, L["menu_row"], 24)
-    pad = px(u, 5.0, 4)
-    desc = font(ui, "Regular", px(u, L["message"], 11))
-    mark = px(u, 22.0, 16)
-    width = 0.0
-    for name in ui["sessions"]:
-        width = max(width, text_width(cr, name, desc))
+# Pole pro heslo (pw-box): matny oval, tmavy zavoj, zastupny text nebo tecky (GtkEntry), kurzor a sipka
+function field_w(ui, sz):
+    if ui["mode"] == "greeter":
+        # GtkEntry bez width-chars (luxos-greeter): prirozena sirka 150 px + odsazeni, pak sipka
+        return max(sz["pw_w"], 150 + sz["pw_pad"] + sz["pw_h"])
     end
-    mw = max(px(u, 180.0, 140), width + mark + px(u, 26.0, 20))
-    mh = Float(len(ui["sessions"])) * row + 2.0 * pad
-    my = bottom - px(u, 6.0, 4) - mh
-    # stin a tmave sklo nabidky
-    for i in range(4):
-        k = Float(i + 1) * px(u, 3.0, 2)
-        call material.rounded_path(cr, x - k / 2.0, my - k / 4.0 + k / 2.0, mw + k, mh + k, px(u, L["radius_m"], 9) + k / 2.0)
-        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.05)
+    return sz["pw_w"]
+end
+
+function draw_field(cr, ui, bd, sz, x, y):
+    pw = field_w(ui, sz)
+    ph = sz["pw_h"]
+    ew = pw - ph
+    call frost(cr, bd, Float(x), Float(y), Float(pw), Float(ph), Float(ph) * 0.5, 0.20, 0.18)
+    call rounded(cr, Float(x) + 1.0, Float(y) + 1.0, Float(pw - 2), Float(ph - 2), Float(ph - 2) * 0.5)
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, field_veil(bd, x, y, pw, ph, 0.20))
+    call cairo.fill(cr)
+    sens = not ui["busy"]
+    shown = ui["text"] if ui["visible_text"] else "●" * ui["length"]
+    if shown == "" and ui["placeholder"] != "":
+        e = text(ui["placeholder"], Float(sz["pw_font"]), NORMAL, ui["font"], 0, "cr", max(1, ew - sz["pw_pad"] - 4) * 1024)
+        lg = e["log"]
+        tx = Float(x + sz["pw_pad"] + 2)
+        ty = Float(y) + Float(ph - lg[3]) / 2.0
+        call cairo.move_to(cr, tx, ty + 1.0)
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.35 if sens else 0.2)
+        call sys.show_layout(cr, e["layout"])
+        call cairo.move_to(cr, tx, ty)
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.92 if sens else 0.5)
+        call sys.show_layout(cr, e["layout"])
+    end
+    # GtkEntry: text na svisle poloze podle ascent/descent pisma (get_layout_position), kurzor 1 px
+    e = text(shown, Float(sz["pw_font"]), NORMAL, ui["font"], 0, "gtk", -1)
+    fm = sys.font_metrics(e["layout"])
+    area = ph * 1024
+    raw = e["raw"]
+    # logical_rect.y radku je -baseline
+    ypos = cdiv(area - fm[0] - fm[1], 2) + fm[0] - sys.baseline(e["layout"])
+    if raw[7] > area:
+        ypos = cdiv(area - raw[7], 2)
+    elif ypos < 0:
+        ypos = 0
+    elif ypos + raw[7] > area:
+        ypos = area - raw[7]
+    end
+    ty = y + cdiv(ypos, 1024)
+    tx = x + sz["pw_pad"]
+    if shown != "":
+        call cairo.move_to(cr, Float(tx), Float(ty))
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0 if sens else 0.5)
+        call sys.show_layout(cr, e["layout"])
+    end
+    if ui["focus"] and sens and ui["caret"]:
+        c = sys.cursor_x(e["layout"], byte_len(shown))
+        hgt = ppix(c[3])
+        stem = Int(Float(hgt) * 0.04 + 1.0)
+        call cairo.rectangle(cr, Float(tx + ppix(c[0]) - stem // 2), Float(ty + ppix(c[1])), Float(stem), Float(hgt))
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0)
         call cairo.fill(cr)
     end
-    call material.rounded_path(cr, x, my, mw, mh, px(u, L["radius_m"], 9))
-    call cairo.set_source_rgba(cr, 0.12, 0.13, 0.18, 0.86)
+    # sipka (go-area)
+    gx = x + ew
+    d = Float(ph - max(8, cround(Float(ph) * 0.26)))
+    cx = Float(gx) + Float(ph) / 2.0 - 2.0
+    cy = Float(y) + Float(ph) / 2.0
+    has = shown != ""
+    hover = ui["hover"] == "go"
+    call circle(cr, cx, cy, d / 2.0)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, (0.30 if has else 0.12) + (0.1 if hover else 0.0))
     call cairo.fill(cr)
-    call material.rounded_path(cr, x + 0.5, my + 0.5, mw - 1.0, mh - 1.0, px(u, L["radius_m"], 9))
-    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.16)
-    call cairo.set_line_width(cr, 1.0)
-    call cairo.stroke(cr)
-    y = my + pad
-    for i in range(len(ui["sessions"])):
-        if ui["hover"] == "menu" + String(i):
-            call material.rounded_path(cr, x + pad, y, mw - 2.0 * pad, row, px(u, L["radius_xs"], 4))
-            call rgba(cr, tokens.COLORS["accent"], 1.0)
-            call cairo.fill(cr)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95 if has else 0.55)
+    call icon_arrow(cr, cx, cy, d * 0.62)
+    ui["hits"].append([x, y, ew, ph, ["field", 0]])
+    ui["hits"].append([gx, y, ph, ph, ["go", 0]])
+    return 0
+end
+
+# Delka textu v bajtech UTF-8 (index kurzoru pango)
+function byte_len(t):
+    n = 0
+    for ch in t:
+        c = ord(ch)
+        if c < 128:
+            n = n + 1
+        elif c < 2048:
+            n = n + 2
+        elif c < 65536:
+            n = n + 3
+        else:
+            n = n + 4
         end
+    end
+    return n
+end
+
+function power_items(ui):
+    out = []
+    if ui["mode"] == "greeter" and len(ui["sessions"]) > 1:
+        out.append(["session", ui["sessions"][ui["session_sel"]]])
+    end
+    for p in ui["power"]:
+        out.append(p)
+    end
+    return out
+end
+
+function draw_power(cr, ui, bd, w, h, sz):
+    items = power_items(ui)
+    if len(items) == 0:
+        return 0
+    end
+    aw = sz["round"] + px(ui, 8, 6)
+    gap = px(ui, 5, 3)
+    sp = px(ui, 40, 26)
+    labs = []
+    bw = -sp
+    bh = 0
+    for it in items:
+        lab = label(ui, it[1], px(ui, 13, 11), MEDIUM, 0, 0, False)
+        labs.append(lab)
+        bw = bw + max(aw, lab["w"]) + sp
+        bh = max(bh, aw + gap + lab["h"])
+    end
+    # GtkOverlay centruje dite jako sirka / 2 - pozadavek / 2 (kazde zvlast celociselne)
+    x = w // 2 - bw // 2
+    y = h - px(ui, 42, 26) - bh
+    for i in range(len(items)):
+        lab = labs[i]
+        iw = max(aw, lab["w"])
+        key = items[i][0]
+        d = Float(sz["round"])
+        ax = Float(x) + Float(iw) / 2.0
+        ay = Float(y) + Float(aw) / 2.0
+        tint = 0.16 + (0.10 if ui["hover"] == key else 0.0)
+        call frost(cr, bd, ax - d / 2.0, ay - d / 2.0, d, d, d / 2.0, tint, 0.18)
         call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
-        if i == ui["session_sel"]:
-            call check_icon(cr, x + pad + mark / 2.0 + px(u, 2.0, 1), y + row / 2.0, px(u, 12.0, 9))
+        if key == "suspend":
+            call icon_sleep(cr, ax, ay, d * 0.46)
+        elif key == "reboot":
+            call icon_restart(cr, ax, ay, d * 0.46)
+        elif key == "session":
+            call icon_session(cr, ax, ay, d * 0.46)
+        else:
+            call icon_power(cr, ax, ay, d * 0.46)
         end
-        layout = text_layout(cr, ui["sessions"][i], desc)
-        size = pango.layout_get_pixel_size(layout)
-        call cairo.move_to(cr, x + pad + mark + px(u, 4.0, 3), y + (row - Float(size[1])) / 2.0)
-        call pango.cairo_show_layout(cr, layout)
-        call hit(ui, x, y, mw, row, ["menu", i])
-        y = y + row
+        call draw_label(cr, ui, lab, x, y + aw + gap, iw, lab["h"], [1.0, 1.0, 1.0, 0.92], shadow_spec(ui))
+        ui["hits"].append([x, y, iw, bh, [key, 0]])
+        x = x + iw + sp
     end
     return 0
 end
 
-# ---- cela plocha ------------------------------------------------------------------------------------
+# Uzivatele (users-box): jeden v zamku, v prihlaseni rada s vybranym uprostred (ostatni mensi a tlumenejsi)
+function user_boxes(ui, sz):
+    users = ui["users"]
+    if ui["mode"] != "greeter" or len(users) == 0:
+        users = [{"real": ui["name"], "face": ui["face"], "other": False}]
+    end
+    aw = sz["avatar"] + px(ui, 8, 6)
+    gap = px(ui, 8, 5)
+    out = []
+    for u in users:
+        lab = label(ui, u["real"], px(ui, 17, 13), SEMIBOLD, 0, 22, False)
+        out.append([max(aw, lab["w"]), aw + gap + lab["h"], lab, u])
+    end
+    return out
+end
 
-# Kreslit pres skupinu omezenou na obdelnik (pruhlednost pri prolnuti), jinak primo
-function begin_fade(cr, x, y, w, h, t):
-    if t >= 1.0:
+function draw_users(cr, ui, bd, w, sz, y, boxes, row_w, row_h):
+    aw = sz["avatar"] + px(ui, 8, 6)
+    gap = px(ui, 8, 5)
+    sp = px(ui, 34, 20)
+    multi = len(boxes) > 1
+    shift = 0
+    if multi:
+        x = 0
+        centre = 0.0
+        for i in range(len(boxes)):
+            if i == ui["sel"]:
+                centre = Float(x) + Float(boxes[i][0]) / 2.0
+            end
+            x = x + boxes[i][0] + sp
+        end
+        room = max(0.0, Float(w - (x - sp)) / 2.0)
+        shift = pyround(max(-room, min(room, Float(x - sp) / 2.0 - centre)))
+    end
+    ms = max(0, 2 * shift)
+    me = max(0, -2 * shift)
+    x = ms + cdiv(w - ms - me - row_w, 2)
+    for i in range(len(boxes)):
+        b = boxes[i]
+        sel = i == ui["sel"] or not multi
+        d = Float(sz["avatar"])
+        if not sel:
+            d = Float(pyround(d * 0.8))
+        end
+        hover = ui["hover"] == "user" + String(i)
+        # zamek: avatar halign center (auth-face-image), prihlaseni: pres celou sirku tlacitka
+        cx = Float(x + cdiv(b[0] - aw, 2)) + Float(aw) / 2.0
+        if ui["mode"] == "greeter":
+            cx = Float(x) + Float(b[0]) / 2.0
+        end
+        cy = Float(y) + Float(aw) / 2.0
+        u = b[3]
+        border = 0.55 if (hover and multi) else 0.22
+        a = [cx, cy, d, u["face"], u["real"], u["other"], border, 1.5 if hover else 1.0, Float(sz["avatar"]), x, y + aw + gap, b]
+        if multi and not sel:
+            # nevybrany uzivatel s pruhlednosti (avatar 0.75, jmeno 0.7 jako luxos-greeter): hotovy obrazek skupiny
+            r = Int(d / 2.0) + 4
+            call cached_group(cr, ui, bd, "avatar", a, Int(cx) - r, Int(cy) - r, 2 * r, 2 * r + 2, opacity8(0.75))
+            call cached_group(cr, ui, bd, "name", a, x - 8, y + aw + gap - 8, b[0] + 16, b[2]["h"] + 16, opacity8(0.7))
+        else:
+            call user_part(cr, ui, bd, "avatar", a)
+            call user_part(cr, ui, bd, "name", a)
+        end
+        ui["hits"].append([x, y, b[0], b[1], ["user", i]])
+        x = x + b[0] + sp
+    end
+    return 0
+end
+
+# Skupina s pruhlednosti jen v obdelniku prvku (cairo_push_group jinak alokuje celou plochu)
+function user_part(cr, ui, bd, kind, a):
+    if kind == "avatar":
+        call draw_avatar(cr, ui, bd, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8])
+    else:
+        call draw_label(cr, ui, a[11][2], a[9], a[10], a[11][0], a[11][2]["h"], [1.0, 1.0, 1.0, 1.0], shadow_spec(ui))
+    end
+    return 0
+end
+
+# Skupina s pruhlednosti kreslena jednou do obrazku v obdelniku x, y, w, h (cele logicke souradnice = cele pixely
+# zarizeni, stejne vzorky jako cairo_push_group), pak jen slozena s alfou
+function cached_group(cr, ui, bd, kind, a, x, y, w, h, alpha):
+    scale = ui["scale"]
+    key = kind + "|" + bd["key"] + "|" + String(a[0]) + "," + String(a[1]) + "," + String(a[2]) + "," + String(a[3]) + a[4] + String(a[6]) + String(x) + "," + String(y) + "@" + String(scale)
+    g = state["groups"].get(key)
+    if g == None:
+        if len(state["groups"]) > 24:
+            for k in List(state["groups"].keys()):
+                call cairo.surface_destroy(state["groups"].pop(k))
+            end
+        end
+        g = cairo.image_surface_create(cairo.FORMAT_ARGB32, cround(Float(w) * scale), cround(Float(h) * scale))
+        call sys.device_scale(g, scale)
+        call sys.device_offset(g, -Float(x) * scale, -Float(y) * scale)
+        gcr = cairo.create(g)
+        call user_part(gcr, ui, bd, kind, a)
+        call cairo.destroy(gcr)
+        state["groups"][key] = g
+    end
+    call cairo.set_source_surface(cr, g, 0.0, 0.0)
+    call cairo.paint_with_alpha(cr, alpha)
+    return 0
+end
+
+function material_group(cr, x, y, w, h):
+    call cairo.save(cr)
+    call cairo.rectangle(cr, Float(x), Float(y), Float(w), Float(h))
+    call cairo.clip(cr)
+    call cairo_push_group(cr)
+    return 0
+end
+
+function end_group(cr, alpha):
+    call cairo_pop_group(cr)
+    call cairo.paint_with_alpha(cr, alpha)
+    call cairo.restore(cr)
+    return 0
+end
+
+function cairo_push_group(cr):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("cairo_push_group"), __lsl_unbox_int(cr))
+    end
+end
+
+function cairo_pop_group(cr):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("cairo_pop_group_to_source"), __lsl_unbox_int(cr))
+    end
+end
+
+# Svisle rozvrzeni login_window (valign end): uzivatele, pole, radek Caps Lock/rozlozeni, hlaska (a domena)
+function login_layout(ui, w, h, sz, e):
+    boxes = user_boxes(ui, sz)
+    sp = px(ui, 14, 9)
+    row_w = -px(ui, 34, 20)
+    row_h = 0
+    for b in boxes:
+        row_w = row_w + b[0] + px(ui, 34, 20)
+        row_h = max(row_h, b[1])
+    end
+    kbd = []
+    if ui["caps"]:
+        icon = px(ui, 16, 12)
+        lab = label(ui, ui["caps_text"], px(ui, 14, 11), SEMIBOLD, 0, 0, False)
+        kbd.append(["caps", icon + px(ui, 6, 4) + lab["w"], max(icon, lab["h"]), lab])
+    end
+    if ui["layouts"] > 1:
+        lab = label(ui, ui["layout"], px(ui, 13, 11), BOLD, 1024, 0, False)
+        kbd.append(["chip", lab["w"] + 2 * px(ui, 10, 7), lab["h"] + 2 * px(ui, 3, 2), lab])
+    end
+    kw = -px(ui, 14, 9)
+    kh = px(ui, 24, 18)
+    for k in kbd:
+        kw = kw + k[1] + px(ui, 14, 9)
+        kh = max(kh, k[2])
+    end
+    hint = label(ui, ui["hint"], px(ui, 14, 11), SEMIBOLD if ui["error"] else MEDIUM, 0, 60, True)
+    hh = max(px(ui, 22, 16), hint["h"] + 2)
+    parts = [row_h, sz["pw_h"], kh, hh]
+    notice = None
+    if ui["mode"] == "greeter" and ui["notice"] != "":
+        notice = label(ui, ui["notice"], px(ui, 13, 10), MEDIUM, 0, 60, True)
+        parts.append(notice["h"])
+    end
+    total = -sp
+    for p in parts:
+        total = total + p + sp
+    end
+    if ui["mode"] == "greeter":
+        bottom = h - (cround(150.0 * ui["u"]) - pyround((1.0 - e) * 24.0 * ui["u"]))
+    else:
+        bottom = h - (px(ui, 150, 110) - cround((1.0 - e) * 24.0 * ui["u"]))
+    end
+    top = bottom - total
+    return {"boxes": boxes, "row_w": row_w, "row_h": row_h, "kbd": kbd, "kw": kw, "kh": kh, "hint": hint, "hh": hh,
+            "notice": notice, "top": top, "sp": sp,
+            "pw_y": top + row_h + sp, "kbd_y": top + row_h + sp + sz["pw_h"] + sp,
+            "hint_y": top + row_h + sp + sz["pw_h"] + sp + kh + sp}
+end
+
+# Posun pole pri zatreseni: okraje 2*dx na jedne strane, GTK_ALIGN_CENTER drzi stred
+function field_x(ui, w, sz):
+    dx = ui["shake"]
+    ms = max(0, 2 * dx)
+    me = max(0, -2 * dx)
+    return ms + cdiv(w - ms - me - field_w(ui, sz), 2)
+end
+
+function field_rect(w, h, ui):
+    sz = sizes(ui, w, h)
+    m = login_layout(ui, w, h, sz, 1.0)
+    return [field_x(ui, w, sz), m["pw_y"], field_w(ui, sz), sz["pw_h"]]
+end
+
+function draw_login(cr, ui, bd, w, h, sz, e):
+    m = login_layout(ui, w, h, sz, e)
+    call draw_users(cr, ui, bd, w, sz, m["top"], m["boxes"], m["row_w"], m["row_h"])
+    call draw_field(cr, ui, bd, sz, field_x(ui, w, sz), m["pw_y"])
+    x = cdiv(w - m["kw"], 2)
+    y = m["kbd_y"]
+    kh = m["kh"]
+    for k in m["kbd"]:
+        if k[0] == "caps":
+            icon = px(ui, 16, 12)
+            iy = y + cdiv(kh - icon, 2)
+            s = Float(icon)
+            call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.30)
+            call icon_caps(cr, Float(x) + s / 2.0, Float(iy) + s / 2.0 + 1.0, s)
+            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95)
+            call icon_caps(cr, Float(x) + s / 2.0, Float(iy) + s / 2.0, s)
+            lx = x + icon + px(ui, 6, 4)
+            call draw_label(cr, ui, k[3], lx, y, k[3]["w"], kh, [1.0, 1.0, 1.0, 1.0], [1, 3, 0.7])
+        else:
+            cy = y + cdiv(kh - k[2], 2)
+            hover = ui["hover"] == "chip"
+            call frost(cr, bd, Float(x), Float(cy), Float(k[1]), Float(k[2]), Float(k[2]) * 0.5, 0.16 + (0.06 if hover else 0.0), 0.18)
+            call draw_label(cr, ui, k[3], x + px(ui, 10, 7), cy + px(ui, 3, 2), k[1] - 2 * px(ui, 10, 7), k[2] - 2 * px(ui, 3, 2),
+                            [1.0, 1.0, 1.0, 1.0], shadow_spec(ui))
+            ui["hits"].append([x, cy, k[1], k[2], ["chip", 0]])
+        end
+        x = x + k[1] + px(ui, 14, 9)
+    end
+    hint = m["hint"]
+    hw = hint["w"] + 20
+    hx = cdiv(w - hw, 2)
+    hy = m["hint_y"]
+    if ui["error"] and ui["hint"] != "":
+        call rounded(cr, Float(hx), Float(hy), Float(hw), Float(m["hh"]), 9.0)
+        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.38)
+        call cairo.fill(cr)
+    end
+    if ui["hint"] != "":
+        color = [1.0, 0.7058823529411765, 0.6784313725490196, 1.0] if ui["error"] else [1.0, 1.0, 1.0, 0.88]
+        call draw_label(cr, ui, hint, hx + 10, hy + 1, hint["w"], m["hh"] - 2, color, shadow_spec(ui))
+    end
+    if m["notice"] != None:
+        n = m["notice"]
+        call draw_label(cr, ui, n, cdiv(w - n["w"], 2), hy + m["hh"] + m["sp"], n["w"], n["h"], [1.0, 1.0, 1.0, 0.78], shadow_spec(ui))
+    end
+    return 0
+end
+
+# Kreslit pres skupinu s pruhlednosti widgetu (gtk_widget_set_opacity), pri 1 primo
+function begin_opacity(cr, a, x, y, w, h):
+    if a >= 1.0:
         return False
     end
-    call cairo.save(cr)
-    call cairo.rectangle(cr, x, y, w, h)
-    call cairo.clip(cr)
-    call material.push_group(cr)
+    call material_group(cr, x, y, w, h)
     return True
 end
 
-function end_fade(cr, faded, t):
-    if faded:
-        call material.pop_group_to_source(cr)
-        call cairo.paint_with_alpha(cr, t)
-        call cairo.restore(cr)
+function end_opacity(cr, grouped, a):
+    if grouped:
+        call end_group(cr, a)
     end
     return 0
 end
 
-function prompt_cluster(cr, w, h, ui, t):
-    m = metrics(w, h)
-    u = m["u"]
-    rise = (1.0 - t) * px(u, L["rise"], 8)
-    cx = Float(w) / 2.0
-    layout = text_layout(cr, ui["name"], font(ui, "Semi-Bold", px(u, L["name"], 13)))
-    call pango.layout_set_width(layout, Int(Float(w) * 0.6 * 1024.0))
-    call pango.layout_set_ellipsize(layout, 3)
-    size = pango.layout_get_pixel_size(layout)
-    # prolnuti pres skupinu jen v obdelniku avatar..pole (s uzivateli), hlasky maji alfu samy
-    bw = max(m["fw"], Float(size[0])) + px(u, 24.0, 16)
-    if ui["mode"] == "greeter" and len(ui["users"]) > 1:
-        bw = Float(w)
-    end
-    top = m["ay"] - m["d"] / 2.0 - px(u, 12.0, 8)
-    faded = begin_fade(cr, cx - bw / 2.0, top + rise, bw, m["fy"] + m["fh"] + 4.0 - top, t)
-    call cairo.save(cr)
-    call cairo.translate(cr, 0.0, rise)
-    call avatar(cr, cx, m["ay"], m["d"], ui["face"], ui["initial"] if ui["initial"] != "" else ui["name"], ui["font"], u, ui["scale"], 1.0)
-    if ui["mode"] == "greeter":
-        call users_row(cr, w, ui, m)
-    end
-    call show(cr, layout, cx - Float(size[0]) / 2.0, m["name_y"], 1.0, u)
-    call field(cr, ui, m, m["fy"])
-    call cairo.restore(cr)
-    call end_fade(cr, faded, t)
-    call messages(cr, w, m["my"] + rise, ui, u, t)
-    if ui["mode"] == "greeter":
-        top = bottom_row(h, u) - px(u, L["power"], 34) / 2.0 - px(u, 8.0, 6)
-        faded = begin_fade(cr, 0.0, top, Float(w), Float(h) - top, t)
-        call power_buttons(cr, w, h, ui, u)
-        call session_pill(cr, w, h, ui, u)
-        call end_fade(cr, faded, t)
-    end
-    return 0
-end
+# ---- cela plocha -----------------------------------------------------------------------------------
 
 function frame(cr, w, h, ui, bd):
     ui["hits"] = []
-    u = unit(h)
-    t = ui["reveal"]
-    call background(cr, bd, t)
+    state["hint_style"] = ui["mode"]
+    sz = sizes(ui, w, h)
+    e = ease(ui["reveal"])
+    # tapeta ztmavena o 0.10 + 0.14 e (X11: tapeta a pres ni cerna): cerny podklad a tapeta s alfou jsou jeden
+    # pruchod pres celou plochu mene (rozdil zaokrouhleni nejvys 1)
+    call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
+    if e == 0.0 or e == 1.0:
+        # v klidu i ve vyzve hotova ztmavena kopie: snimek ji jen zkopiruje
+        call cairo.set_source_surface(cr, dimmed(bd, e), 0.0, 0.0)
+        call cairo.paint(cr)
+        call cairo.set_operator(cr, cairo.OPERATOR_OVER)
+    else:
+        call dim_paint(cr, bd, e)
+    end
     if ui["leaving"]:
         return 0
     end
-    call clock(cr, w, h, ui, u)
-    call status(cr, w, ui, u)
-    if t > 0.0:
-        call prompt_cluster(cr, w, h, ui, t)
+    call draw_clock(cr, ui, w, h, e)
+    a = opacity8(e)
+    # v prihlaseni je stav vpravo nahore videt i v klidu
+    sa = 1.0 if ui["mode"] == "greeter" else a
+    if sa > 0.0:
+        call backdrop_soft(bd)
+        g = begin_opacity(cr, sa, 0, 0, w, sz["pad"] + sz["status"] * 3)
+        call draw_status(cr, ui, bd, w, sz)
+        call end_opacity(cr, g, sa)
+    end
+    if a > 0.0:
+        call backdrop_soft(bd)
+        g = begin_opacity(cr, a, 0, h // 3, w, h - h // 3)
+        call draw_login(cr, ui, bd, w, h, sz, e)
+        call end_opacity(cr, g, a)
+        g = begin_opacity(cr, a, 0, h - h // 4, w, h // 4)
+        call draw_power(cr, ui, bd, w, h, sz)
+        call end_opacity(cr, g, a)
     end
     return 0
 end
 
-# ---- animace ------------------------------------------------------------------------------------------
+function dim_paint(cr, bd, e):
+    call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 1.0)
+    call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
+    call cairo.paint(cr)
+    call cairo.set_operator(cr, cairo.OPERATOR_OVER)
+    call cairo.set_source_surface(cr, bd["sharp"], 0.0, 0.0)
+    call cairo.paint_with_alpha(cr, 1.0 - (0.10 + 0.14 * e))
+    return 0
+end
+
+function dimmed(bd, e):
+    if bd.get("dim_e", -1.0) != e:
+        if bd.get("dimmed") == None:
+            # ARGB32 jako bufer wl_shm: kopie je prosty memcpy
+            bd["dimmed"] = cairo.image_surface_create(cairo.FORMAT_ARGB32, bd["dw"], bd["dh"])
+            call sys.device_scale(bd["dimmed"], bd["scale"])
+        end
+        dcr = cairo.create(bd["dimmed"])
+        call dim_paint(dcr, bd, e)
+        call cairo.destroy(dcr)
+        bd["dim_e"] = e
+    end
+    return bd["dimmed"]
+end
+
+function paint(image, w, h, ui, bd):
+    call sys.device_scale(image, ui["scale"])
+    cr = cairo.create(image)
+    call frame(cr, w, h, ui, bd)
+    call cairo.destroy(cr)
+    call sys.device_scale(image, 1.0)
+    return 0
+end
+
+# ---- animace (casy z luxos-lock-ui.c / luxos-greeter) ------------------------------------------------
 
 function prompt(ui, on):
     target = 1.0 if on else 0.0
@@ -1156,13 +1320,20 @@ function prompt(ui, on):
     ui["rev_from"] = ui["reveal"]
     ui["rev_to"] = target
     ui["rev_start"] = glib.monotonic_time()
+    if on:
+        call typed(ui)
+    end
     return True
 end
 
 function shake(ui):
-    now = glib.monotonic_time()
-    ui["shake_start"] = now
-    ui["rim_start"] = now
+    ui["shake_start"] = glib.monotonic_time()
+    return 0
+end
+
+function typed(ui):
+    ui["input_at"] = glib.monotonic_time()
+    ui["caret"] = True
     return 0
 end
 
@@ -1170,43 +1341,36 @@ function step(ui):
     now = glib.monotonic_time()
     more = False
     if ui["reveal"] != ui["rev_to"]:
-        span = tokens.MOTION["lock_enter"] if ui["rev_to"] > ui["rev_from"] else tokens.MOTION["lock_leave"]
-        p = Float(now - ui["rev_start"]) / (Float(span) * 1000.0)
-        if p >= 1.0:
-            ui["reveal"] = ui["rev_to"]
-        else:
-            ui["reveal"] = ui["rev_from"] + (ui["rev_to"] - ui["rev_from"]) * tokens.cubic_bezier(tokens.LOCK_CURVE, p)
-            more = True
+        span = Float(tokens.MOTION["lock_enter"]) * 1000.0
+        if ui["rev_to"] < ui["rev_from"]:
+            # luxos-greeter odchazi do klidu pomaleji nez zamek
+            span = 520000.0 if ui["mode"] == "greeter" else Float(tokens.MOTION["lock_leave"]) * 1000.0
         end
+        p = min(1.0, Float(now - ui["rev_start"]) / span)
+        ui["reveal"] = ui["rev_from"] + (ui["rev_to"] - ui["rev_from"]) * p
+        more = p < 1.0
     end
-    ui["shake"] = 0.0
+    ui["shake"] = 0
     if ui["shake_start"] != 0:
         p = Float(now - ui["shake_start"]) / (Float(tokens.MOTION["shake"]) * 1000.0)
         if p >= 1.0:
             ui["shake_start"] = 0
         else:
-            ui["shake"] = Float(Int(math.sin(p * 2.0 * PI * Float(L["shake_cycles"])) * (1.0 - p) * Float(L["shake_px"]) + 0.5))
+            ui["shake"] = cround(math.sin(p * PI * 8.0) * (1.0 - p) * 16.0 * ui.get("u", 1.0))
             more = True
         end
     end
-    ui["rim"] = 0.0
-    if ui["rim_start"] != 0:
-        ms = Float(now - ui["rim_start"]) / 1000.0
-        hold = Float(L["error_rim"])
-        if ms >= hold:
-            ui["rim_start"] = 0
+    # kurzor jako GtkEntry: sviti 800 ms, 400 ms ne, po 10 s bez vstupu uz jen sviti; ui["wake"] = ms do dalsi zmeny
+    ui["wake"] = 0
+    if ui["input_at"] != 0 and ui["reveal"] > 0.0:
+        ms = (now - ui["input_at"]) // 1000
+        if ms >= BLINK_TIMEOUT:
+            ui["caret"] = True
         else:
-            ui["rim"] = min(1.0, (hold - ms) / 200.0)
-            more = True
+            phase = ms % BLINK
+            ui["caret"] = phase < BLINK * 2 // 3
+            ui["wake"] = max(1, (BLINK * 2 // 3 - phase) if ui["caret"] else (BLINK - phase))
         end
-    end
-    if ui["busy"]:
-        if ui["spin_start"] == 0:
-            ui["spin_start"] = now
-        end
-        more = True
-    else:
-        ui["spin_start"] = 0
     end
     return more
 end
