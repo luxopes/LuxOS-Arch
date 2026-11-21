@@ -59,7 +59,7 @@ fi
 # Wayland: Hledani je uzky rezim Launchpadu v LSL
 [[ -n $WAYLAND_DISPLAY ]] && LUXOS_LAUNCHPAD_MODE=search exec luxos-launchpad
 
-if pkill -x rofi; then exit 0; fi
+if pkill -u "$(id -u)" -x rofi --env "DISPLAY=${DISPLAY-}"; then exit 0; fi   # rofi teto relace
 extra=(-theme-str "entry { placeholder: \"$(T "Search or ask LuxAI")\"; }")
 [[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
 # Bez -hover-select: Enter spusti prvni (nejlepsi) shodu, ne polozku pod kurzorem mysi

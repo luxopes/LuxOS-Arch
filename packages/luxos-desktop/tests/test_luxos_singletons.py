@@ -173,5 +173,74 @@ class Singletons(unittest.TestCase):
         self.assertEqual(self.probe(env_a, "same", "0").stdout.strip(), "False")
 
 
+BIN = os.path.join(HERE, "..", "files", "bin")
+
+
+class SessionScripts(unittest.TestCase):
+    """Skripty relace X11 (Dock, rofi Launchpadu) hledaji a ukoncuji jen procesy sveho displeje."""
+
+    def setUp(self):
+        self.t = tempfile.mkdtemp(prefix="x-", dir=TMP)
+        self.addCleanup(shutil.rmtree, self.t, True)
+        self.fake = os.path.join(self.t, "fake")
+        os.makedirs(self.fake)
+        self.log = os.path.join(self.t, "calls")
+        self.procs = []
+        self.addCleanup(self.stop_all)
+
+    def stop_all(self):
+        for p in self.procs:
+            if p.poll() is None:
+                p.kill()
+            p.wait(timeout=5)
+
+    def running(self, name, display):
+        """Proces se jmenem name (kopie sleep) na displeji display - jako Plank nebo rofi jine relace."""
+        d = os.path.join(self.t, "proc-" + display.strip(":"))
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, name)
+        shutil.copy(shutil.which("sleep"), path)
+        p = subprocess.Popen([path, "60"], env={"PATH": "/usr/bin:/bin", "DISPLAY": display})
+        self.procs.append(p)
+        time.sleep(0.2)
+        return p
+
+    def script(self, name, body):
+        path = os.path.join(self.fake, name)
+        with open(path, "w") as f:
+            f.write("#!/bin/sh\n" + body)
+        os.chmod(path, 0o755)
+
+    def run_script(self, name, display, *args):
+        env = {"PATH": self.fake + ":/usr/bin:/bin", "HOME": self.t, "USER": os.environ.get("USER") or "user",
+               "XDG_RUNTIME_DIR": self.t, "DISPLAY": display, "FAKE_LOG": self.log}
+        return subprocess.run([os.path.join(BIN, name), *args], env=env, capture_output=True, text=True, timeout=20)
+
+    def calls(self):
+        if not os.path.exists(self.log):
+            return []
+        with open(self.log) as f:
+            return f.read().split()
+
+    def test_dock_ignores_plank_of_another_session(self):
+        self.script("plank", 'echo "plank-$DISPLAY" >>"$FAKE_LOG"\n')
+        self.script("xprop", "exit 1\n")
+        other = self.running("plank", ":7")
+        self.assertEqual(self.run_script("luxos-dock", ":5").returncode, 0)
+        self.assertEqual(self.calls(), ["plank-:5"], "Dock teto relace se spusti")
+        # Plank teto relace uz bezi: nic dalsiho
+        self.running("plank", ":5")
+        self.assertEqual(self.run_script("luxos-dock", ":5").returncode, 0)
+        self.assertEqual(self.calls(), ["plank-:5"])
+        self.assertIsNone(other.poll())
+
+    def test_launchpad_toggle_closes_only_own_rofi(self):
+        other = self.running("rofi", ":7")
+        own = self.running("rofi", ":5")
+        self.assertEqual(self.run_script("luxos-launchpad", ":5").returncode, 0)
+        self.assertEqual(own.wait(timeout=5), -15, "rofi teto relace se zavre (prepinac)")
+        self.assertIsNone(other.poll(), "rofi jine relace bezi dal")
+
+
 if __name__ == "__main__":
     unittest.main()
