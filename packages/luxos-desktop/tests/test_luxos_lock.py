@@ -485,7 +485,8 @@ class Locker(LockBase):
                     sharp += 1
                     odd += x % 2
         print(f"\n  scale 2: {sharp} sharp edges in the clock, {odd} at odd x")
-        self.assertGreater(sharp, 300)
+        # pismo v odstinech sedi (material.grayscale_text) ma ~200 takovych hran, podpixelove s barevnymi lemy ~1600
+        self.assertGreater(sharp, 100)
         self.assertGreater(odd, sharp // 4)
         self.keys(f"type {PASSWORD}", "key Return")
         self.assertEqual(p.wait(10), 0)
