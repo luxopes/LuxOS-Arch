@@ -1,5 +1,6 @@
 """Testy pro Monitory na X11: luxos_xrandr.lsl (parsovani xrandr, ulozene rezimy, velikost textu), skript
-luxos-displays s pomocnikem v LSL a okno luxos-displays-settings (vlastni Xvfb, rizene pres luxos_testctl).
+luxos-displays s pomocnikem v LSL a stranka Monitory okna Nastaveni (luxos-displays-settings je odkaz na
+luxos-settings; vlastni Xvfb, rizene pres luxos_testctl).
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_displays.py -v
 
@@ -336,16 +337,17 @@ class DisplaysScript(unittest.TestCase):
 
 
 class Window:
-    """Okno luxos-displays-settings ve vlastnim Xvfb s falesnym xrandr (FakeEnv) rizene pres luxos_testctl."""
+    """Stranka Monitory (luxos-displays-settings) ve vlastnim Xvfb s falesnym xrandr (FakeEnv) rizena pres luxos_testctl."""
 
     def __init__(self, f, display, extra=None):
         env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "XAUTHORITY")}
-        env.update(f.env, DISPLAY=display, LUXOS_DISPLAYS_CONFIRM_SECONDS="2", GDK_BACKEND="x11", **(extra or {}))
+        env.update(f.env, DISPLAY=display, LUXOS_DISPLAYS_CONFIRM_SECONDS="2", GDK_BACKEND="x11",
+                   DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent", **(extra or {}))
         self.app = lsl_app.App([lx.window()], env)
         self.wait(lambda s: s["x11"], 15)
 
     def state(self):
-        return json.loads(self.app.ask("state", "state "))
+        return json.loads(self.app.ask("page-state", "state "))
 
     def wait(self, cond, timeout=15.0):
         end = time.monotonic() + timeout

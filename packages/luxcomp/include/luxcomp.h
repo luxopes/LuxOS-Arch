@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 8
+#define LUXCOMP_API_VERSION 9
 
 #pragma GCC visibility push(default)
 
@@ -253,6 +253,37 @@ int64_t luxcomp_layout(void);
 int64_t luxcomp_layout_count(void);
 const char *luxcomp_layout_name(int64_t index);		/* xkb name, "English (US)"; "" = none */
 
+/* Mice and touchpads (libinput devices; virtual pointers and the headless backend have none).
+ * luxcomp_input_set() stores the value for every current and later plugged device of that kind;
+ * LUXCOMP_INPUT_DEFAULT returns the device default. A device without the option ignores it. */
+enum luxcomp_input_kind {
+	LUXCOMP_INPUT_MOUSE = 1,	/* also trackballs and trackpoints */
+	LUXCOMP_INPUT_TOUCHPAD,		/* devices that can tap */
+};
+
+enum luxcomp_input_prop {
+	LUXCOMP_INPUT_KIND = 1,		/* luxcomp_input_get() only: LUXCOMP_INPUT_MOUSE/TOUCHPAD */
+	LUXCOMP_INPUT_SPEED,		/* pointer acceleration speed -100..100 (libinput -1..1) */
+	LUXCOMP_INPUT_ACCEL_PROFILE,	/* 0 adaptive, 1 flat */
+	LUXCOMP_INPUT_NATURAL_SCROLL,	/* 0/1 */
+	LUXCOMP_INPUT_LEFT_HANDED,
+	LUXCOMP_INPUT_MIDDLE_EMULATION,	/* left + right together = middle button */
+	LUXCOMP_INPUT_TAP,		/* tap to click */
+	LUXCOMP_INPUT_TAP_DRAG,
+	LUXCOMP_INPUT_DISABLE_WHILE_TYPING,
+	LUXCOMP_INPUT_CLICK_METHOD,	/* 0 none, 1 button areas, 2 clickfinger */
+	LUXCOMP_INPUT_SCROLL_METHOD,	/* 0 none, 1 two fingers, 2 edge, 3 on button down */
+};
+
+#define LUXCOMP_INPUT_DEFAULT (-1000)	/* luxcomp_input_set(): the device default */
+#define LUXCOMP_INPUT_NONE (-1001)	/* luxcomp_input_get(): the device has no such option */
+
+void luxcomp_input_set(int64_t kind, int64_t prop, int64_t value);
+/* Read-back of what libinput really has, per device: 0 starts/ends the list */
+int64_t luxcomp_input_next(int64_t device);
+const char *luxcomp_input_name(int64_t device);
+int64_t luxcomp_input_get(int64_t device, int64_t prop);
+
 /* Privileged globals (screen capture, data-control, foreign-toplevel management, virtual input,
  * output management, session lock) are offered only to clients whose executable (/proc/PID/exe)
  * is on this list, never to clients of a wp-security-context socket. NULL clears the list. */
@@ -287,6 +318,12 @@ void luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, in
 /* Blur radius (logical px), saturation in % (160 = 1.6) and mode (0 = solid colour, 1 = auto) */
 void luxcomp_blur_set(int64_t radius, int64_t saturation_pct, int64_t mode);
 int64_t luxcomp_blur_tier(void);	/* 2 = gles2 dual Kawase, 1 = pixman in C, 0 = solid colour */
+/* Material under a rectangle of a view's content (a translucent sidebar), in window geometry
+ * coordinates (xdg window geometry: without the client's shadow margins), clipped to the window.
+ * Same blur tiers and fallback colour as layer surfaces, no shadow of its own; corners lying in the
+ * rounded corners of the window get the window radius. Follows the view (move, resize, workspace,
+ * minimize); the backdrop is everything below the view. NULL or "" name or w/h <= 0 removes it. */
+void luxcomp_view_set_material(int64_t view, const char *name, int64_t x, int64_t y, int64_t w, int64_t h);
 
 /* Pointer image of the compositor (desktop, title bars); also exported as XCURSOR_THEME/SIZE
  * for clients started later. NULL theme = libxcursor default. Size in logical px. */

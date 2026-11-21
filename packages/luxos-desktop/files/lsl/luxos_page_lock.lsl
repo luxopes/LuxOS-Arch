@@ -1,4 +1,4 @@
-# LuxOS - Sporic a zamek: kdy se spusti setric obrazovky, jaky a kdy chtit heslo.
+# LuxOS - Nastaveni > Zamceni obrazovky (drive luxos-lock-settings): kdy se spusti setric obrazovky, jaky a kdy chtit heslo.
 # Relace X11: kanal xfconf xfce4-screensaver pres xfconf-query (sluzbu setrice dal pouziva xfce4-screensaver).
 # Wayland: setric neni, zamyka luxos-lock-session podle stejneho kanalu (necinnost = /saver/idle-activation/delay
 # + /lock/saver-activation/delay); xfconfd tam nebezi, okno cte a zapisuje primo soubor kanalu (luxos_xfconf),
@@ -23,7 +23,6 @@ THEMES = [["screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clo
     ["screensavers-luxos-photos", "photos", "Photos"],
     ["screensavers-luxos-logo", "logo", "Floating Logo"],
     ["blank", "blank", "Black screen"]]
-CSS = ".group { border-radius: 12px; border: 1px solid alpha(currentColor, 0.12); background-color: alpha(currentColor, 0.04); }\n.group-title { font-weight: 700; font-size: 13px; margin: 14px 4px 6px; }\n.row { padding: 10px 14px; }\n.row-sep { border-top: 1px solid alpha(currentColor, 0.08); }\n.hint { font-size: 11px; opacity: 0.6; }\n"
 
 app = {"kind": 0, "conf": {}}
 
@@ -178,25 +177,11 @@ function on_launch(argv, button):
     return ui.launch(argv)
 end
 
-function on_destroy(window):
-    call gtk.main_quit()
-    return 0
-end
-
-function main():
-    call glib.set_prgname("luxos-lock-settings")
-    call gtk.init()
-    call gtk.css_load(CSS)
+function build(host):
     if wayland():
         app["conf"] = xfconf.channel(CH)
     end
-    ui.state["hint_chars"] = 46
-    # vyska podle obsahu (drive 520 px s prazdnou plochou dole)
-    window = ui.window(i18n.T("Screen Saver & Lock"), "preferences-desktop-screensaver", 560, -1, 0, 0)
-    call gtk.window_set_wmclass(window, "luxos-lock-settings", "luxos-lock-settings")
-    page = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_margins(page, 22, 22, 6, 22)
-    call gtk.container_add(window, page)
+    page = ui.page_box()
     g = None
     if wayland():
         g = build_wayland(page)
@@ -207,7 +192,7 @@ function main():
     # otisk prstu jen s nainstalovanym fprintd (luxos-drivers ho pridava pri nalezene ctecce)
     if exists(env.get("LUXOS_FPRINT_SERVICE", FPRINT_SERVICE)):
         fp = gtk.button_new(i18n.T("Set Up…"))
-        call glib.connect_data(fp, "clicked", 0, on_launch, ["luxos-fingerprint"])
+        call glib.connect_data(fp, "clicked", 0, on_launch, ["luxos-settings", "fingerprint"])
         call ui.row(g, i18n.T("Fingerprint Login"), i18n.T("Unlock and log in with your fingerprint instead of the password."), fp)
     end
     bottom = gtk.box_new(gtk.HORIZONTAL, 8)
@@ -221,9 +206,5 @@ function main():
     call glib.connect_data(now, "clicked", 0, on_launch, lock)
     call gtk.box_pack_start(bottom, now, False, False, 0)
     call gtk.box_pack_start(page, bottom, False, False, 0)
-    call gtk.connect(window, "destroy", on_destroy)
-    call gtk.widget_show_all(window)
-    call gtk.main()
+    return page
 end
-
-call main()

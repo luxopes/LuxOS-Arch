@@ -14,7 +14,7 @@ pkgdesc='LuxOS compositor core library on wlroots 0.20 (flat C API for the LSL w
 arch=('x86_64')
 url='https://github.com/luxopes/LuxOS-Arch'
 license=('GPL-3.0-or-later')
-depends=('wlroots0.20>=0.20.2' 'libwlroots-0.20.so' 'wayland' 'libxkbcommon' 'libdrm' 'libglvnd' 'pixman'
+depends=('wlroots0.20>=0.20.2' 'libwlroots-0.20.so' 'wayland' 'libxkbcommon' 'libinput' 'libdrm' 'libglvnd' 'pixman'
          'cairo' 'pango')
 optdepends=('xorg-xwayland: X11 applications (luxcomp_xwayland_start)')
 makedepends=('meson' 'ninja' 'wayland-protocols')

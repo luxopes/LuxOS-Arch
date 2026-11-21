@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - Sporic a zamek (files/lsl/luxos-lock-settings.lsl): v relaci X11 kanal xfce4-screensaver pres
+"""LuxOS - Sporic a zamek (files/lsl/luxos_page_lock.lsl, stranka Nastaveni): v relaci X11 kanal xfce4-screensaver pres
 xfconf-query (falesny program se stavem v JSON), na Waylandu (luxwm headless) primo soubor kanalu, ktery cte
 luxos-lock-session (luxos_xfconf.lsl).
 
@@ -65,7 +65,7 @@ class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="lock-", dir=h.private_dir()))
         self.env = h.base_env(self.tmp)
-        fakes = h.fake_bin(self.tmp / "bin", ["xfconf-query", "xflock4", "loginctl", "luxos-fingerprint"],
+        fakes = h.fake_bin(self.tmp / "bin", ["xfconf-query", "xflock4", "loginctl", "luxos-settings"],
                            {"xfconf-query": XFCONF})
         self.env.update(PATH=str(fakes) + ":" + os.environ["PATH"], FAKE_XFCONF=str(self.tmp / "xfconf.json"),
                         LUXOS_FPRINT_SERVICE=str(self.tmp / "no-fprintd"))
@@ -151,12 +151,12 @@ class X11(Base):
         app = self.run_app(["dump", "click Set Up…", "wait 300", "quit"])
         self.assertIn("Fingerprint Login", labels(app.wait_dump()))
         app.wait_exit()
-        self.assertIn("luxos-fingerprint", self.calls())
+        self.assertIn("luxos-settings fingerprint", self.calls())
 
-    def test_sized_to_content(self):
+    def test_page_in_settings_window(self):
+        # luxos-lock-settings je odkaz na okno Nastaveni se strankou Zamykani obrazovky
         app = self.run_app(["wait 600000"])
-        win = app.window("Screen Saver & Lock")
-        self.assertLess(win["height"], 520 + 45 - 40, win)        # drive 520 px s prazdnou plochou dole
+        self.assertTrue(app.window("Screen Lock"))
 
     def test_czech(self):
         self.env["LANG"] = "cs_CZ.UTF-8"
@@ -242,7 +242,7 @@ class Wayland(Base):
 
 class Static(unittest.TestCase):
     def test_themes_exist(self):
-        src = (FILES / "lsl/luxos-lock-settings.lsl").read_text()
+        src = (FILES / "lsl/luxos_page_lock.lsl").read_text()
         self.assertIn('["screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock"]', src)
         styles = re.findall(r'\["(screensavers-[a-z-]+)", "([a-z]+)"', src)
         self.assertGreater(len(styles), 5)

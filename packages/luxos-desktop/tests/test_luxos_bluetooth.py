@@ -1,5 +1,5 @@
-"""Testy pro Bluetooth (files/lsl/luxos-bluetooth.lsl): jmeno pocitace (Alias adapteru BlueZ), viditelnost pri
-otevrenem okne, hledani v pozadi, parovani a agent BlueZ. Falesny BlueZ (tests/bluetooth/fake_bluez.py) bezi na
+"""Testy pro Bluetooth (stranka okna Nastaveni files/lsl/luxos_page_bluetooth.lsl, luxos-bluetooth je odkaz na
+luxos-settings): jmeno pocitace (Alias adapteru BlueZ), viditelnost pri zobrazene strance, hledani v pozadi, parovani a agent BlueZ. Falesny BlueZ (tests/bluetooth/fake_bluez.py) bezi na
 soukromem dbus-daemonu (ne na systemove sbernici), rfkill je falesny skript - skutecny Bluetooth adapter ani
 nastaveni se nemeni. Okno bezi ve vlastnim Xvfb a ridi se pres luxos_testctl (LUXOS_TEST_CONTROL=1).
 
@@ -425,7 +425,7 @@ class Window(Fixture):
     def test_scan_pauses_in_background(self):
         """Okno v pozadi po SCAN_IDLE prestane hledat zarizeni, po navratu hleda znovu."""
         self.start()
-        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        state = lambda: json.loads(self.app.ask("page-state", "page-state"))  # noqa: E731
         discovery = lambda what: {"call": what} in [{"call": c["call"]} for c in self.calls() if "call" in c]  # noqa: E731
         self.clear_log()
         self.app.ask("active 0")
@@ -435,7 +435,7 @@ class Window(Fixture):
         self.assertTrue(discovery("StopDiscovery"))
         self.clear_log()
         self.app.ask("active 1")
-        self.assertEqual(state(), {"scan_paused": False, "scan_timer": False, "visible_ours": True})
+        self.assertEqual(state(), {"scan_paused": False, "scan_timer": False, "visible_ours": True, "shown": True})
         self.assertTrue(self.wait_for(lambda: discovery("StartDiscovery")))
         # kratky odskok do jineho okna hledani nezastavi
         self.clear_log()
@@ -484,8 +484,8 @@ class Window(Fixture):
         self.start(lang="cs_CZ.UTF-8")
         self.assertTrue(self.wait_for(lambda: self.hint() == "Viditelný jako „luxos-pc“, dokud je toto okno otevřené."))
         texts = lsl_app.texts(self.app.dump())
-        self.assertIn("MOJE ZAŘÍZENÍ", texts)
-        self.assertIn("ZAŘÍZENÍ V OKOLÍ", texts)
+        self.assertIn("Moje zařízení", texts)
+        self.assertIn("Zařízení v okolí", texts)
         self.assertIn("Telefon", texts)
 
     # ---- agent: parovani, ktere zacal telefon ----

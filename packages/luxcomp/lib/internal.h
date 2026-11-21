@@ -82,6 +82,10 @@ struct view {
 	char *badge;		/* luxcomp_view_set_badge(), drawn by deco.c */
 	char *app_id_override, *title_override;	/* luxcomp_view_set_names() */
 	int last_w, last_h;	/* size of the last VIEW_MAP/VIEW_SIZE */
+	/* luxcomp_view_set_material(): blurred backdrop under a rectangle of the content (blur.c) */
+	struct blur *material;
+	char material_name[16];		/* "" = none */
+	struct wlr_box material_box;	/* window geometry coordinates, clipped to the window when shown */
 	struct wlr_xdg_toplevel_decoration_v1 *xdg_deco;
 	struct wl_listener map, unmap, commit, destroy;
 	struct wl_listener request_move, request_resize, request_maximize,
@@ -251,6 +255,9 @@ void blur_frame_time(struct output *o, int64_t ns, bool worked);
 void blur_set_update(struct blur_set *set, struct wlr_scene_tree *parent, const pixman_region32_t *input,
 	int width, int height);
 void blur_set_clear(struct blur_set *set);
+/* material okna (luxcomp_view_set_material); z deco_update: polomer rohu okna a ktere rohy jsou zaoblene
+ * (1 levy horni, 2 pravy horni, 4 pravy dolni, 8 levy dolni) */
+void blur_view_update(struct view *v, int radius, int rounded);
 
 /* view.c, shared with xwayland.c */
 struct view *view_create(void);

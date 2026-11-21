@@ -123,7 +123,8 @@ class SettingsAppsWayland(unittest.TestCase):
         self.fake([sys.executable, str(HERE / "bluetooth/fake_bluez.py")], FAKE_BLUEZ_ADDR=self.bus.address,
                   FAKE_BLUEZ_LOG=str(log))
         self.open("luxos-bluetooth")
-        self.check_window("luxos-bluetooth", "Bluetooth")
+        # stranka okna Nastaveni
+        self.check_window("luxos-settings", "Bluetooth")
         d = self.app.dump()
         self.assertEqual(lsl_app.find(d, name="name-label")["text"], "luxos-pc")
         self.assertTrue(self.app.wait(lambda: "while this window is open" in lsl_app.find(self.app.dump(), name="hint")["text"]))
@@ -147,7 +148,7 @@ class SettingsAppsWayland(unittest.TestCase):
         self.open("luxos-fingerprint", LUXOS_FPRINT_BUS=self.bus.address)
         rows = lambda: [w["text"] for w in lsl_app.widgets(self.app.dump()) if w.get("name") == "finger-row" and w["vis"]]  # noqa: E731
         self.assertTrue(self.app.wait(lambda: rows() == ["Left thumb"]))
-        self.check_window("luxos-fingerprint", "Fingerprint Login")
+        self.check_window("luxos-settings", "Fingerprint")
         self.app.ask("enroll right-thumb")
         self.assertTrue(self.app.wait(lambda: lsl_app.find(self.app.dump(), name="enroll-status")["text"] == "Fingerprint added"))
         self.shot("luxos-fingerprint-done")
@@ -162,9 +163,10 @@ class SettingsAppsWayland(unittest.TestCase):
         videos.mkdir()
         self.open("luxos-profile-picture", "--camera", HOME=str(self.session / "home"), LUXOS_CAMERA_TEST="1",
                   LUXOS_VIDEO_DEV_DIR=str(videos), LUXOS_ACCOUNTS_FAKE=str(self.session / "accounts"))
-        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        state = lambda: json.loads(self.app.ask("page-state", "page-state"))  # noqa: E731
         self.assertTrue(self.app.wait(lambda: state()["cam"] == "preview"))
-        self.check_window("luxos-profile-picture", "Profile Picture")
+        # stranka okna Nastaveni
+        self.check_window("luxos-settings", "Profile Picture")
         self.app.ask("photo")
         self.assertTrue(self.app.wait(lambda: state()["page"] == "crop"))
         time.sleep(0.4)                 # prolinani stranek
@@ -172,6 +174,11 @@ class SettingsAppsWayland(unittest.TestCase):
         self.app.ask("click Save")
         self.assertTrue(self.app.wait(lambda: (self.session / "home/.face").exists()))
         self.assertEqual((self.session / "accounts").read_text(), str(self.session / "home/.face"))
+        # zavreni okna zastavi kameru i pri otevrenem nahledu
+        self.app.ask("click Take Photo")
+        self.assertTrue(self.app.wait(lambda: state()["camera"]))
+        self.app.send("close")
+        self.assertEqual(self.app.proc.wait(10), 0)
 
     def test_router(self):
         # falesna sit (tests/fake-net), router = mistni server HTTP; zadna skutecna sit
@@ -219,9 +226,9 @@ class SettingsAppsWayland(unittest.TestCase):
         (nm / "nmcli").chmod(0o755)
         self.open("luxos-wifi-qr", LUXOS_NMCLI=str(nm / "nmcli"), LUXOS_CAMERA_TEST="1",
                   LUXOS_VIDEO_DEV_DIR=str(nm))
-        state = lambda: json.loads(self.app.ask("state", "state"))  # noqa: E731
+        state = lambda: json.loads(self.app.ask("page-state", "page-state"))  # noqa: E731
         self.assertTrue(self.app.wait(lambda: state()["page"] == "qr"))
-        self.check_window("luxos-wifi-qr", "Wi-Fi QR Code")
+        self.check_window("luxos-settings", "Wi-Fi")
         self.assertEqual(lsl_app.find(self.app.dump(), name="ssid")["text"], "Home")
         # kopirovani obrazku do schranky Waylandu
         self.app.ask("click Copy QR code image")
@@ -235,7 +242,7 @@ class SettingsAppsWayland(unittest.TestCase):
                   LUXOS_DESKTOP_DIRS=str(self.session / "no-apps"))
         status = lambda: lsl_app.find(self.app.dump(), name="status")["text"]  # noqa: E731
         self.assertTrue(self.app.wait(lambda: status() == "1 apps with settings"))
-        self.check_window("luxos-app-reset", "Reset App Settings")
+        self.check_window("luxos-settings", "Reset App Settings")
         self.app.send("reset someapp")
         self.assertTrue(self.app.wait(lambda: any(w["dialog"] for w in self.app.dump())))
         self.shot("luxos-app-reset-dialog")

@@ -20,8 +20,8 @@ for xml in $proto/stable/xdg-shell/xdg-shell.xml $proto/staging/cursor-shape/cur
   [[ $h -nt $xml ]] || "$sysroot/usr/bin/wayland-scanner" server-header "$xml" "$h"
 done
 cflags="-O2 -g -std=c11 -Wall -Wno-unused-parameter -DWLR_USE_UNSTABLE -I$comp/include -I$b/proto
-  $(pkg-config --cflags wlroots-0.20 wayland-server xkbcommon libdrm pixman-1 cairo pangocairo)"
-libs="$(pkg-config --libs wlroots-0.20 wayland-server xkbcommon cairo pangocairo) -lm"
+  $(pkg-config --cflags wlroots-0.20 wayland-server xkbcommon libinput libdrm pixman-1 cairo pangocairo)"
+libs="$(pkg-config --libs wlroots-0.20 wayland-server xkbcommon libinput cairo pangocairo) -lm"
 gcc $cflags -fPIC -fvisibility=hidden -shared -Wl,-soname,libluxcomp.so.0 -o "$b/libluxcomp.so.0" \
   "$comp"/lib/*.c $libs
 ln -sf libluxcomp.so.0 "$b/libluxcomp.so"

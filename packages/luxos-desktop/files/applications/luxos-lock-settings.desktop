@@ -9,4 +9,3 @@ Icon=preferences-desktop-screensaver
 Terminal=false
 Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
 Keywords=screensaver;lock;password;spořič;zámek;heslo;
-StartupWMClass=luxos-lock-settings

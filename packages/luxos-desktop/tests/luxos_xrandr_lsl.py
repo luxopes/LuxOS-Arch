@@ -3,7 +3,7 @@
   build(nazev)     prelozi files/lsl/<nazev>.lsl nebo tests/lsl/<nazev>.lsl jednou za beh testu (lslc z PATH nebo
                    LUXOS_LSLC; bez lslc SkipTest)
   helper()         pomocnik luxos-displays (prikazy skriptu, get/try pro okno)
-  window()         okno luxos-displays-settings
+  window()         luxos-displays-settings (odkaz na luxos-settings: stranka Monitory okna Nastaveni)
   ld, la           funkce luxos_xrandr.lsl a geometrie luxos_displays.lsl volane pres tests/lsl/luxos-xrandr-probe.lsl
                    (stejna jmena jako drive moduly v Pythonu; vysledky jsou JSON - seznamy misto n-tic)
 """
@@ -17,7 +17,8 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LSL_DIR = os.path.normpath(os.path.join(HERE, "..", "files", "lsl"))
+LSL_DIR = os.environ.get("LUXOS_LSL_DIR") or os.path.normpath(os.path.join(HERE, "..", "files", "lsl"))
+SETTINGS_ALIASES = {"luxos-displays-settings", "luxos-display-settings"}
 TMP = tempfile.mkdtemp(prefix="luxos-xrandr-lsl-")
 atexit.register(shutil.rmtree, TMP, True)
 _built = {}
@@ -30,9 +31,14 @@ def build(name):
     if not lslc:
         raise unittest.SkipTest("lslc (lsl) is not installed")
     src = os.path.join(LSL_DIR, name + ".lsl")
+    out = os.path.join(TMP, name)
+    if not os.path.exists(src) and name in SETTINGS_ALIASES:
+        # stary program je odkaz na luxos-settings (stranka podle jmena)
+        os.symlink(build("luxos-settings"), out)
+        _built[name] = out
+        return out
     if not os.path.exists(src):
         src = os.path.join(HERE, "lsl", name + ".lsl")
-    out = os.path.join(TMP, name)
     r = subprocess.run([lslc, "--target", "linux-x86_64-gnu", "--system-bindings", LSL_DIR, src, out],
                        capture_output=True, text=True, timeout=900)
     if r.returncode:

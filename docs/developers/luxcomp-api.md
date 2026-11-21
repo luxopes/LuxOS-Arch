@@ -4,10 +4,10 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 8: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+`LUXCOMP_API_VERSION` = 9: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
 a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
-a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell)), balík `packages/luxcomp`.
+a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -175,6 +175,19 @@ jiné okno), rozhoduje politika. Viz `luxos-fullscreen-layer.patch` u xfwm4.
   aktivní rozložení je jedno pro všechny klávesnice. Přepnutí volbou XKB `grp:` na fyzické klávesnici
   pošle `LAYOUT` (`a` = index); po `set_layout`/`set_keymap` událost nepřijde.
 - `luxcomp_set_repeat(rate, delay)`.
+- Myš a touchpad (zařízení libinput; virtuální ukazatele a headless backend žádná nemají):
+  - `luxcomp_input_set(kind, prop, value)`: `kind` je `LUXCOMP_INPUT_MOUSE` nebo `LUXCOMP_INPUT_TOUCHPAD`
+    (zařízení, které umí klepnout). Hodnota platí pro všechna připojená zařízení toho druhu i pro
+    později připojená. `LUXCOMP_INPUT_DEFAULT` vrátí výchozí hodnotu zařízení. Zařízení bez volby ji
+    tiše přeskočí, odmítnutou hodnotu jádro zapíše do logu.
+  - Vlastnosti `LUXCOMP_INPUT_*`: `SPEED` (-100..100, libinput -1..1), `ACCEL_PROFILE` (0 adaptive,
+    1 flat), `NATURAL_SCROLL`, `LEFT_HANDED`, `MIDDLE_EMULATION`, `TAP`, `TAP_DRAG`,
+    `DISABLE_WHILE_TYPING` (0/1), `CLICK_METHOD` (0 žádná, 1 oblasti tlačítek, 2 clickfinger),
+    `SCROLL_METHOD` (0 žádná, 1 dvěma prsty, 2 okrajem, 3 s tlačítkem).
+  - Zpětné čtení po zařízeních (co má libinput opravdu nastavené, pro IPC a testy):
+    `luxcomp_input_next(id)` (0 začne i skončí seznam), `luxcomp_input_name(id)`,
+    `luxcomp_input_get(id, prop)`; `prop` `LUXCOMP_INPUT_KIND` vrátí druh, volba, kterou zařízení
+    nemá, vrátí `LUXCOMP_INPUT_NONE`.
 - `luxcomp_bind_key(mods, key)`:
   - `mods` je `LUXCOMP_MOD_*` (Shift 1, Ctrl 4, Alt 8, Super 64).
   - `key` je název keysym xkb (`"Tab"`, `"Left"`, `"F4"`). Hledá se v aktuálním i prvním
@@ -233,6 +246,20 @@ Klient kreslí jen tónování materiálu (průhlednou barvu) a obsah. Popupy xd
 GTK) dostanou material `menu` v obdélníku geometrie okna (stín GTK kolem nabídky je mimo). Material
 `popups` (`luxos-widgets@popups`) dá material jen popupům, plocha sama žádný nemá (nabídka plochy).
 
+**Material okna** (`luxcomp_view_set_material(okno, název, x, y, w, h)`, luxwm IPC `set_window_material`):
+rozmazané pozadí pod obdélníkem obsahu okna xdg nebo X11 (průsvitný panel Nastavení). Souřadnice jsou
+v geometrii okna (bez okrajů klienta pro stín CSD), obdélník se ořízne na okno. Uzel je ve stromu těla
+okna úplně dole (pod povrchem klienta i pod kopiemi zaoblených rohů), takže jde s oknem při přesunu,
+změně velikosti, přejezdu plochy i minimalizaci. Výřez končí pod oknem: vlastní stín okna ani okna nad
+ním do něj nepatří a překreslování okna samotného nic nepřepočítává. Material okna nemá vlastní stín.
+Rohy obdélníku, které leží v zaoblených rozích okna, dostanou poloměr rohu okna (dolní, když je zaobluje
+kompozitor; horní u okna s vlastním záhlavím), ostatní jsou ostré; maximalizované okno ostré všechny.
+Barva `fallback`, tiery a hlídání času snímku jsou stejné jako u ploch. Uzel vzniká až s dekorací okna
+(při namapování), požadavek před tím se jen uloží. `""` nebo `w`/`h` ≤ 0 material zruší.
+
+Část okna mimo výstup (přejezd plochy, okno na kraji obrazovky) výřez nemá; pod pixman je tam barva
+materiálu, pod gles2 protažený okraj výřezu.
+
 Výřez se počítá znovu jen tehdy, když se změnilo, co pod plochou je. Podpis tvoří uzly scény pod
 výřezem: poloha, velikost, buffer, průhlednost a pořadové číslo commitu povrchu. Při klidu se
 nepočítá nic, ani když plocha sama překresluje obsah (hodiny).
@@ -278,6 +305,8 @@ Proč to tak je:
   `bar`, `dock`, `menu`, `popup`, `toast`, `sheet`, `dim`; luxwm ji přepíše z `luxos_tokens.lsl`
   (`MATERIAL`, `ELEVATION`) při startu a změně režimu.
 - `luxcomp_blur_set(poloměr, saturace_%, režim)`: režim 0 = jen neprůhledná barva, 1 = automaticky.
+- `luxcomp_view_set_material(okno, název, x, y, w, h)`: material pod obdélníkem okna (viz výše), přidáno
+  bez změny verze API (9).
 - `LUXCOMP_STATS=1` vypíše každých 120 snímků s materiálem nejdelší a průměrný snímek a přepočet;
   `LUXCOMP_BLUR_SLOW_MS` mění rozpočet 8 ms (testy přechodu na tier 0).
 
@@ -439,6 +468,10 @@ zjišťuje, že kompozitor běží, a nastavuje `--size`. Po změně velikosti p
   celoobrazovkové okno nad listou, přejezd ploch a obrácení, PSS;
 - **vnořený backend x11 v soukromém Xvfb** (`nested.sh`, `input.sh`): klik, přesun za zahlaví,
   zavření semaforem, Alt+Tab, Ctrl+šipky a psaní do zaměřeného okna přes xdotool;
+- **material okna**: `packages/luxwm/tests/test_luxwm_window_material.py` (pixman a gles2 s render node,
+  `material-probe.c`: pruhledný panel nad pruhy 4 px, cizí PID, sandbox, oříznutí, přesun, plocha, odpojení,
+  skutečný `luxos-settings`). Pixman 1280×800, tažení okna 360×260 s panelem 120×260 (přepočet každý snímek):
+  snímek průměrně 1,3 ms, nejvýš 3–7 ms; přepočet výřezu 0,5 ms (nejvýš 1,8 ms).
 - **material** (`blur.sh`, `blur_check.py`): plocha `test-popup@popup:16` nad oknem s pruhy 4 px;
   pod plochou s materiálem pruhy zmizí (směrodatná odchylka jasu v řádku < 3), bez materiálu zůstanou
   (> 20), tier 0 je jednolitý; čas snímku při pohybu okna v `demo.log`, druhý běh s
@@ -463,7 +496,7 @@ bude luxwm v LSL. Testy jsou dočasně tady, dokud nebude hotový harness WP-1 (
   Samostatný posun pro každý monitor zatím chybí.
 - Navázání rychlosti při přerušeném přejezdu. Navazuje se poloha, rychlost zatím ne.
 - `org.freedesktop.a11y.KeyboardMonitor` a režim greeteru.
-- Material pro okna (průsvitný terminál) a pro vnořené popupy (podnabídky); material jen u ploch
-  layer-shell a jejich prvních popupů.
+- Material pro vnořené popupy (podnabídky); material jen u ploch layer-shell, jejich prvních popupů
+  a obdélníku okna, o který okno požádá přes luxwm (`set_window_material`, zatím jen vlastní okna shellu).
 - Hlídání sériových čísel u `REQ_MOVE`/`REQ_RESIZE`. Teď stačí, že politika tah spustí jen pro
   okno pod kurzorem.

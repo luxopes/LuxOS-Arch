@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""LuxOS - Profilova fotka (files/lsl/luxos-profile-picture.lsl, luxos_avatar.lsl, luxos_camera.lsl): orez
-obrazku, fotka z testovaci kamery, ulozeni a odebrani, chybove stavy kamery.
+"""LuxOS - Profilova fotka (stranka Nastaveni files/lsl/luxos_page_profile.lsl pod odkazem luxos-profile-picture,
+luxos_avatar.lsl, luxos_camera.lsl): orez obrazku, fotka z testovaci kamery, ulozeni a odebrani, chybove stavy kamery.
 
     env -u DISPLAY python3 -m unittest packages/luxos-desktop/tests/test_luxos_profile_picture.py -v
     (LUXOS_SHOTS=adresar ulozi snimky okna)
@@ -79,7 +79,7 @@ class Fixture(unittest.TestCase):
         self.assertTrue(self.app.wait(lambda: self.app.dump()), self.app.stderr())
 
     def st(self):
-        return json.loads(self.app.ask("state", "state"))
+        return json.loads(self.app.ask("page-state", "page-state"))
 
     def photo(self, name="photo.jpg", w=600, h=400, alpha=False):
         """Obrazek: vlevo cerveny, vpravo modry pruh."""

@@ -9,4 +9,3 @@ Icon=luxos-fingerprint
 Terminal=false
 Categories=Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;GTK;
 Keywords=fingerprint;finger;reader;login;unlock;fprintd;otisk;prst;čtečka;přihlášení;odemknout;
-StartupWMClass=luxos-fingerprint

@@ -200,6 +200,28 @@ class LuxwmDeco(unittest.TestCase):
         s.input("move %d %d" % (v["x"] + 200, v["y"] - TITLE // 2), "click", "sleep 0.6", "click", wait=0.6)
         self.assertEqual(s.state()["views"]["D"]["maximized"], 0)
 
+    def test_double_click_action(self):
+        # double_click_action z uzivatelskeho luxwm.conf (Nastaveni > Okna a plochy), zmena pres reload
+        conf = os.path.join(RESULTS, "dblclick-config")
+        os.makedirs(os.path.join(conf, "luxwm"), exist_ok=True)
+        with open(os.path.join(conf, "luxwm", "luxwm.conf"), "w") as f:
+            f.write("double_click_action = hide\n")
+        s = self.start(env=f"XDG_CONFIG_HOME={conf}")
+        s.client("D", size="400x300")
+        v = s.state()["views"]["D"]
+        s.input("move %d %d" % (v["x"] + 200, v["y"] - TITLE // 2), "click", "click", wait=0.6)
+        v = s.state()["views"]["D"]
+        self.assertEqual((v["visible"], v["maximized"]), (0, 0))
+        with open(os.path.join(conf, "luxwm", "luxwm.conf"), "w") as f:
+            f.write("double_click_action = none\n")
+        os.kill(s.pid, signal.SIGHUP)
+        s.input("key alt+Tab", wait=0.6)
+        v = s.state()["views"]["D"]
+        self.assertEqual(v["visible"], 1)
+        s.input("move %d %d" % (v["x"] + 200, v["y"] - TITLE // 2), "click", "click", wait=0.6)
+        v = s.state()["views"]["D"]
+        self.assertEqual((v["visible"], v["maximized"], v["w"]), (1, 0, 400))
+
     def test_scale_2(self):
         s = self.start()
         wlt("run", s.dir, "wlr-randr", "--output", "HEADLESS-1", "--scale", "2")

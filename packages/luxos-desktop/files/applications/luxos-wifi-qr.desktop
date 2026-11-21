@@ -32,7 +32,6 @@ Terminal=false
 Categories=Network;GTK;
 Keywords=wifi;wi-fi;wlan;qr;qr code;share;password;scan;network;
 Keywords[cs]=wifi;wi-fi;qr;qr kód;sdílet;heslo;síť;skenovat;připojit;
-StartupWMClass=luxos-wifi-qr
 Actions=Scan;
 
 [Desktop Action Scan]

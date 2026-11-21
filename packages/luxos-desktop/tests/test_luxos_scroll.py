@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - testy plynuleho posouvani a setrvacnosti (modul GTK luxos-scroll, luxos-scrolling).
+"""LuxOS - testy plynuleho posouvani a setrvacnosti (modul GTK luxos-scroll, Nastaveni > Mys a touchpad = luxos-scrolling).
 
     LUXOS_XORG_DUMMY_DIR=<rozbaleny xf86-video-dummy>/usr/lib/xorg/modules \\
         python3 -m unittest packages/luxos-desktop/tests/test_luxos_scroll.py -v
@@ -39,8 +39,10 @@ SRC = os.path.join(FILES, "src", "luxos-scroll.c")
 APP = os.path.join(HERE, "scroll", "scroll_app.py")
 WEBKIT_APP = os.path.join(HERE, "scroll", "webkit_app.py")
 XINIT_FIREFOX = os.path.join(FILES, "xinit", "50-luxos-firefox-xinput2.sh")
-SETTINGS_LSL = os.path.join(FILES, "lsl", "luxos-scrolling.lsl")
+SETTINGS_LSL = os.path.join(FILES, "lsl", "luxos_page_mouse.lsl")
 sys.path.insert(0, os.path.join(HERE, "scroll"))
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
 import firefox_run  # noqa: E402
 import xinputtest  # noqa: E402
 
@@ -120,7 +122,8 @@ class TestSources(unittest.TestCase):
         with open(os.path.join(HERE, "..", "PKGBUILD")) as f:
             pkg = f.read()
         self.assertIn("usr/lib/gtk-3.0/modules/libluxos-scroll.so", pkg)
-        self.assertIn("luxos-scrolling.lsl", pkg)
+        # luxos-scrolling je odkaz na okno Nastaveni (stranka Mys a touchpad)
+        self.assertRegex(pkg, r"for alias in [^;]*luxos-scrolling")
 
     def test_firefox_prefs(self):
         with open(os.path.join(FILES, "firefox", "luxos.js")) as f:
@@ -148,7 +151,7 @@ class TestSources(unittest.TestCase):
         self.assertIn("X-XFCE-SettingsDialog", text)
 
     def test_ui_strings_translated(self):
-        """Vsechny texty okna Posouvani maji preklad ve vsech 12 jazycich."""
+        """Vsechny texty stranky Mys a touchpad maji preklad ve vsech 12 jazycich."""
         import re
         with open(SETTINGS_LSL, encoding="utf-8") as f:
             texts = set(re.findall(r'i18n\.T\("((?:[^"\\]|\\.)*)"\)', f.read()))
@@ -205,16 +208,12 @@ class TestSessionBlock(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("lslc"), "needs lslc (LSL compiler)")
 class TestSettingsCli(unittest.TestCase):
-    """luxos-scrolling status / kinetic / smooth-wheel (zapis souboru, ktery modul sleduje)."""
+    """luxos-scrolling status / kinetic / smooth-wheel (zapis souboru, ktery modul sleduje); odkaz na luxos-settings."""
 
     @classmethod
     def setUpClass(cls):
         cls.dir = workdir("test-scroll-cli-")
-        cls.bin = os.path.join(cls.dir, "luxos-scrolling")
-        r = subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SETTINGS_LSL), SETTINGS_LSL, cls.bin],
-                           capture_output=True, text=True, cwd=os.path.dirname(SETTINGS_LSL))
-        if r.returncode != 0:
-            raise unittest.SkipTest("lslc failed: " + r.stderr[-500:])
+        cls.bin = lsl_app.build("luxos-scrolling", cls.dir)
 
     @classmethod
     def tearDownClass(cls):
@@ -732,31 +731,16 @@ class ScrollGui(unittest.TestCase):
         self.assertIsNone(self.app.poll(), "app still runs")
         self.assertGreaterEqual(len(rows), 8, f"wheel animated after the module loaded: {rows}")
 
-    # ---- okno Nastaveni > Posouvani ----
+    # ---- Nastaveni > Mys a touchpad (posouvani) ----
     @unittest.skipUnless(shutil.which("lslc"), "needs lslc (LSL compiler)")
     def test_settings_window_switch(self):
-        """Prepinac v okne zapise volbu a otevrena aplikace ji hned pouzije."""
-        binary = os.path.join(self.work, "luxos-scrolling")
-        if not os.path.exists(binary):
-            subprocess.run(["lslc", "--target", "linux-x86_64-gnu", "--system-bindings", os.path.dirname(SETTINGS_LSL), SETTINGS_LSL, binary], check=True,
-                           capture_output=True, cwd=os.path.dirname(SETTINGS_LSL))
+        """Prepinac na strance Mys a touchpad zapise volbu a otevrena aplikace ji hned pouzije."""
+        binary = lsl_app.build("luxos-scrolling", self.work)
         self.start(pointer=(0.5, 0.5))
-        win = subprocess.Popen([binary], env=self.env(module=False, LUXOS_I18N_DIR="/nonexistent"),
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.addCleanup(win.wait, 10)
-        self.addCleanup(win.terminate)
-        wid = ""
-        for _ in range(50):
-            wid = subprocess.run(["xdotool", "search", "--onlyvisible", "--class", "luxos-scrolling"],
-                                 capture_output=True, text=True, env=self.env()).stdout.split()
-            if wid:
-                break
-            time.sleep(0.1)
-        self.assertTrue(wid, "settings window")
-        time.sleep(0.5)
-        # bez spravce oken jde klavesnice do okna pod mysi; GTK da fokus prvnimu prepinaci, Tab = setrvacnost
-        subprocess.run(["xdotool", "mousemove", "--window", wid[0], "20", "330", "key", "Tab", "space"],
-                       env=self.env(), check=True)
+        win = lsl_app.App([binary], self.env(module=False, LUXOS_I18N_DIR="/nonexistent", PATH=os.environ["PATH"]))
+        self.addCleanup(win.stop)
+        self.assertTrue(win.wait(lambda: win.dump()), win.stderr())
+        win.ask("switch Inertia on the touchpad = off")
         conf = os.path.join(self.home, ".config", "luxos", "scrolling.conf")
         if os.environ.get("SHOT"):
             subprocess.run([sys.executable, "-c", "import gi,sys; gi.require_version('Gdk','3.0'); from gi.repository import Gdk; r=Gdk.get_default_root_window(); Gdk.pixbuf_get_from_window(r,0,0,r.get_width(),r.get_height()).savev(sys.argv[1],'png',[],[])", os.environ["SHOT"]], env=self.env())

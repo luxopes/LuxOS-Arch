@@ -1,40 +1,54 @@
-# LuxOS Settings Apps
+# LuxOS Settings
 
-LuxOS replaces several Xfce settings dialogs with simpler apps of its own. Most of them are in
-Launchpad and in Settings (`xfce4-settings-manager`, `Super+,`). The original Xfce dialogs are
-redirected to the LuxOS apps through wrappers in `/usr/lib/luxos/override-bin`:
+All settings are in one window, **Settings** (`luxos-settings`, `Super+,`, Control Center › All Settings…,
+Dock, Launchpad). On the left is a sidebar with a search field (it matches page names and keywords, with or
+without diacritics); on Wayland the sidebar is frosted glass drawn by luxwm. The window remembers the last page.
+Only one Settings window runs per session: starting it again shows the requested page in the open window.
 
-- `xfdesktop-settings` opens Desktop & Dock;
-- `xfce4-display-settings` opens Displays;
-- `xfce4-keyboard-settings` with no arguments opens Keyboard Layouts;
-- `xfce4-screenshooter` opens Screenshot.
+`luxos-settings PAGE [ARGS]` opens a page directly. The older program names are links to their page and still
+take their old arguments and command-line modes (`luxos-power`, `luxos-bluetooth`, `luxos-fingerprint`,
+`luxos-profile-picture [FILE|--camera]`, `luxos-wifi-qr [--scan]`, `luxos-lock-settings`, `luxos-display-settings`,
+`luxos-keyboard` / `luxos-shortcuts`, `luxos-scrolling [status]`, `luxos-firewall-settings`,
+`luxos-app-reset [list|reset ...]`).
 
-| App | Command | What it sets |
+| Page | `luxos-settings` page | What it sets |
 |---|---|---|
-| Desktop & Dock | `luxos-settings` | appearance, boot screen, wallpaper, widgets, Dock, menu bar |
-| Displays | `luxos-display-settings` | resolution, refresh rate, rotation, text size, multiple monitors |
-| Keyboard Layouts | `luxos-keyboard` | layouts and switching, for all users ([keyboard.md](keyboard.md)) |
-| Keyboard Shortcuts | `luxos-shortcuts` | global shortcuts ([keyboard.md](keyboard.md)) |
-| Battery & Power | `luxos-power` | battery info, power mode, Battery Saver, screen-off and sleep times, lid |
-| Bluetooth | `luxos-bluetooth` | turn Bluetooth on or off, pair and connect devices |
-| Fingerprint | `luxos-fingerprint` | fingerprints for login, lock, sudo, polkit |
-| Profile Picture | `luxos-profile-picture` | the picture of your account (login and lock screen, menu, Control Center) |
-| Screen Saver & Lock | `luxos-lock-settings` | screen saver, when to ask for the password |
-| Scrolling | `luxos-scrolling` | smooth mouse wheel, touchpad inertia ([scrolling.md](scrolling.md)) |
-| Control Center | `luxos-control-center` | quick toggles ([desktop.md](desktop.md#control-center)) |
-| Printers & Scanners | `luxos-printers` | [printing-scanning.md](printing-scanning.md) |
-| LuxAI Account | `luxos-account` | [luxai-account.md](luxai-account.md) |
-| Drivers | `luxos-drivers` | [drivers.md](drivers.md) |
-| Firewall | `luxos-firewall-settings` | firewall on/off, allowed ports, recently blocked programs ([firewall.md](firewall.md)) |
-| Organization Network | `luxos-domain-settings` | join a Windows domain (Active Directory), offline sign-in, domain administrators ([domain.md](domain.md)) |
+| Wi-Fi | `wifi` | share the current network as a QR code, join a network from a QR code |
+| Bluetooth | `bluetooth` | turn Bluetooth on or off, pair and connect devices |
+| Firewall | `firewall` | firewall on/off, allowed ports, recently blocked programs ([firewall.md](firewall.md)) |
+| Notifications | `notifications` | Do Not Disturb, banner time, sounds, history, per-app notifications, summer/winter time notice |
+| Appearance | `appearance` | Light / Dark / Auto, icons, pointer, fonts, font smoothing, text size |
+| Accessibility | `accessibility` | reduce motion, text and pointer size; on X11 also Sticky/Slow/Bounce Keys and Mouse Keys |
+| Desktop & Dock | `desktop` | boot screen, wallpaper, widgets, Dock, menu bar |
+| Windows & Workspaces | `windows` | number of workspaces, wrapping, animation, title bar double-click |
+| Displays | `displays` | resolution, refresh rate, rotation, scale, text size, multiple monitors |
+| Screen Lock | `lock` | when the screen locks and asks for the password |
+| Battery & Power | `power` | battery info, power mode, Battery Saver, screen-off and sleep times, lid |
+| Keyboard | `keyboard` | key repeat, layouts and switching (for all users), shortcuts ([keyboard.md](keyboard.md)) |
+| Mouse & Touchpad | `mouse` | pointer speed, natural scrolling, tap to click, smooth mouse wheel, touchpad inertia ([scrolling.md](scrolling.md)) |
+| Fingerprint | `fingerprint` | fingerprints for login, lock, sudo, polkit |
+| Profile Picture | `profile` | the picture of your account (login and lock screen, menu, Control Center) |
+| Default Apps | `default-apps` | web browser, mail, files, text editor, images, videos, music, documents, terminal |
+| Login Items | `login-items` | apps that open at login (autostart) |
+| Removable Drives | `drives` | mount USB drives and discs when plugged in, open a window |
+| Reset App Settings | `app-reset` | move an app's settings to a backup and start fresh |
+
+Rows with an arrow open their own app: Network (`luxos-router`), Sound, Printers & Scanners (`luxos-printers`,
+[printing-scanning.md](printing-scanning.md)), Phone, LuxAI Account ([luxai-account.md](luxai-account.md)),
+Organization Network ([domain.md](domain.md)), Software Update, Drivers ([drivers.md](drivers.md)), About This
+Computer, and on X11 the Xfce Settings Manager.
+
+On Wayland the Xfce settings dialogs do not run; their commands (for example `xfce4-mouse-settings`,
+`xfce4-appearance-settings`, `xfce4-settings-manager`) open the matching Settings page through wrappers in
+`/usr/lib/luxos/override-bin`. In the X11 session the wrappers start the original Xfce dialogs, except
+`xfdesktop-settings` (Desktop & Dock), `xfce4-display-settings` (Displays), `xfce4-keyboard-settings` without
+arguments (Keyboard) and `xfce4-screenshooter` (Screenshot).
 
 ## Desktop & Dock
 
-Run `luxos-settings`, or use Control Center › Desktop & Dock…. It replaces the Xfce desktop
+Run `luxos-settings desktop`, or use Control Center › Desktop & Dock…. It replaces the Xfce desktop
 settings. Sections:
 
-- **Appearance**: Light / Dark / Auto. Auto is light from sunrise to sunset, based on the time
-  zone (`luxos-appearance`, see [appearance.md](appearance.md#light-dark-and-auto-appearance)).
 - **Boot Screen**: Blue, Purple, Orange, Green or White. It runs `luxos-splash set` through pkexec
   and rebuilds the initramfs, and it takes effect at the next boot.
 - **Wallpaper**: thumbnails from `/usr/share/backgrounds/luxos` and `~/Pictures/Wallpapers`, plus
@@ -47,8 +61,11 @@ settings. Sections:
   opacity. These are stored in Plank's GSettings, and opacity goes through
   `luxos-appearance dock-opacity`.
 - **Menu Bar**: menu bar opacity (`luxos-appearance bar-opacity`).
-- Buttons: Displays…, Advanced Desktop Settings… (`/usr/bin/xfdesktop-settings`, desktop icons and
+- Buttons (X11 only): Advanced Desktop Settings… (`/usr/bin/xfdesktop-settings`, desktop icons and
   so on), Menu Bar Items… (`xfce4-panel --preferences`).
+
+Light / Dark / Auto moved to the Appearance page (Auto is light from sunrise to sunset, based on the time
+zone; `luxos-appearance`, see [appearance.md](appearance.md#light-dark-and-auto-appearance)).
 
 ## Displays
 

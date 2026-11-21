@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""LuxOS - Baterie a napajeni (files/lsl/luxos-power.lsl, luxos_power_model.lsl) proti falesnemu UPower
-a power-profiles-daemon na soukrome systemove sbernici; v Xvfb a v luxwm headless.
+"""LuxOS - Baterie a napajeni (stranka okna Nastaveni files/lsl/luxos_page_power.lsl, luxos_power_model.lsl;
+luxos-power je odkaz na luxos-settings) proti falesnemu UPower a power-profiles-daemon na soukrome systemove
+sbernici; v Xvfb a v luxwm headless.
 
     env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u XAUTHORITY DBUS_SYSTEM_BUS_ADDRESS=unix:path=/nonexistent \\
       systemd-run --user --scope -p TasksMax=300 -p MemoryMax=2G -p MemorySwapMax=0 -- timeout 900 \\
@@ -71,6 +72,7 @@ def serve(address, state_path, log_path):
                      "Profiles": GLib.Variant("aa{sv}", [{"Profile": GLib.Variant("s", p)} for p in st["profiles"]])}
             inv.return_value(GLib.Variant("(a{sv})", (props,)))
         elif method == "GetAll":
+            log(f"getall {path}")
             dev = st.get("display", {}) if path == DISPLAY_DEVICE else st["devices"].get(path, {})
             inv.return_value(GLib.Variant("(a{sv})", ({k: variant(k, v) for k, v in dev.items()},)))
         elif method == "Set":
@@ -309,7 +311,8 @@ class X11(Base):
         self.assertIn("running on the power adapter", texts)
         self.assertNotIn("-", texts)
         self.assertNotIn("Charge cycles", texts)
-        self.assertEqual([line for line in d if line.startswith("GtkScrolledWindow")], ["GtkScrolledWindow\t0"])
+        # postranni panel a stranka Nastaveni, obe nahore
+        self.assertEqual([line for line in d if line.startswith("GtkScrolledWindow")], ["GtkScrolledWindow\t0"] * 2)
         self.assertFalse(self.log.exists())          # ukazkovy rezim nesaha na sbernici
 
     def test_window_fits(self):

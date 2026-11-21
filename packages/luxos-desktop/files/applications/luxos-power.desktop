@@ -9,4 +9,3 @@ Icon=battery-good
 Terminal=false
 Categories=Settings;HardwareSettings;X-XFCE-SettingsDialog;X-XFCE-HardwareSettings;GTK;
 Keywords=battery;power;energy;sleep;baterie;napájení;spotřeba;úspora;
-StartupWMClass=luxos-power

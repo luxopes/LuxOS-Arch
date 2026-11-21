@@ -5405,3 +5405,135 @@ Authentication required	Wymagane uwierzytelnienie
 Authenticate	Uwierzytelnij
 Authentication is not available.	Uwierzytelnianie jest niedostępne.
 Lock the screen after inactivity of	Zablokuj ekran po bezczynności trwającej
+This page could not be opened.	Nie udało się otworzyć tej strony.
+Screen Lock	Blokada ekranu
+Xfce Settings Manager	Menedżer ustawień Xfce
+Accessibility	Dostępność
+Windows & Workspaces	Okna i obszary robocze
+Mouse & Touchpad	Mysz i touchpad
+Default Apps	Domyślne aplikacje
+Login Items	Elementy logowania
+Removable Drives	Dyski wymienne
+A light tap clicks, a two-finger tap is a right click.	Lekkie stuknięcie klika, stuknięcie dwoma palcami to prawy klik.
+Click in the bottom right corner	Kliknięcie w prawy dolny róg
+Click with two fingers	Kliknięcie dwoma palcami
+Content follows your fingers.	Zawartość podąża za palcami.
+Content moves the same way as the wheel, like on a touchpad.	Zawartość przesuwa się w tym samym kierunku co kółko, jak na touchpadzie.
+Fast	Szybko
+Faster movements move the pointer farther.	Szybsze ruchy przesuwają wskaźnik dalej.
+Ignore the touchpad while typing	Ignoruj touchpad podczas pisania
+Left button	Lewy przycisk
+Middle click with both buttons	Środkowy klik obydwoma przyciskami
+Natural scrolling	Naturalne przewijanie
+Natural wheel direction	Naturalny kierunek kółka
+Pointer acceleration	Przyspieszenie wskaźnika
+Pointer speed	Szybkość wskaźnika
+Pressing the left and right buttons together acts as the middle button.	Jednoczesne naciśnięcie lewego i prawego przycisku działa jak środkowy przycisk.
+Prevents accidental clicks with your palm.	Zapobiega przypadkowym kliknięciom dłonią.
+Primary mouse button	Główny przycisk myszy
+Right button	Prawy przycisk
+Right click	Prawy klik
+Right edge	Prawą krawędzią
+Scroll with	Przewijanie
+Slow	Wolno
+Tap and drag	Stuknij i przeciągnij
+Tap, then touch again and move to drag a window or select text.	Stuknij, dotknij ponownie i przesuń, aby przeciągnąć okno lub zaznaczyć tekst.
+Tap to click	Stuknięcie jako kliknięcie
+Touchpad	Touchpad
+Tracking speed	Szybkość śledzenia
+Two fingers	Dwoma palcami
+LuxOS (follows Light and Dark)	LuxOS (zgodnie z trybem jasnym i ciemnym)
+%s px	%s px
+Icons and Pointer	Ikony i wskaźnik
+Icons	Ikony
+Pointer	Wskaźnik
+Pointer size	Rozmiar wskaźnika
+Fonts	Czcionki
+Subpixel (LCD screens)	Subpikselowe (ekrany LCD)
+Grayscale	Skala szarości
+Font smoothing	Wygładzanie czcionek
+Subpixel smoothing is sharpest on most laptop and desktop screens.	Wygładzanie subpikselowe jest najostrzejsze na większości ekranów laptopów i monitorów.
+Slight	Lekkie
+Medium	Średnie
+Full	Pełne
+Hinting	Hinting
+Text size	Rozmiar tekstu
+Reduce motion	Ogranicz ruch
+Turns off sliding between workspaces and animations in apps.	Wyłącza przesuwanie między obszarami roboczymi i animacje w aplikacjach.
+Mouse Keys	Klawisze myszy
+Move the pointer with the numeric keypad.	Przesuwaj wskaźnik za pomocą klawiatury numerycznej.
+On-screen keyboard	Klawiatura ekranowa
+Zoom (maximize)	Powiększ (maksymalizuj)
+Minimize	Minimalizuj
+Roll up	Zwiń do paska tytułu
+Fill free space	Wypełnij wolne miejsce
+Do nothing	Nic nie rób
+Off while Reduce motion is on in Accessibility.	Wyłączone, gdy w Dostępności włączono Ogranicz ruch.
+Workspaces	Obszary robocze
+Number of workspaces	Liczba obszarów roboczych
+Go from the last workspace to the first	Przechodź z ostatniego obszaru roboczego do pierwszego
+Switching past the last workspace with the keyboard continues at the first one.	Przełączanie klawiaturą poza ostatni obszar roboczy przechodzi do pierwszego.
+Animate switching workspaces	Animuj przełączanie obszarów roboczych
+Double-click a title bar to	Dwukrotne kliknięcie paska tytułu
+Snap windows to screen edges	Przyciągaj okna do krawędzi ekranu
+Snap windows to other windows	Przyciągaj okna do innych okien
+Tile windows dragged to a screen edge	Okno przeciągnięte do krawędzi zajmuje połowę ekranu
+Focus follows the pointer	Fokus podąża za wskaźnikiem
+A window is focused when the pointer moves over it, without a click.	Okno staje się aktywne po najechaniu wskaźnikiem, bez klikania.
+Interface font	Czcionka interfejsu
+Monospace font	Czcionka o stałej szerokości
+Sticky Keys	Klawisze trwałe
+Slow Keys	Klawisze powolne
+Bounce Keys	Klawisze przeskakujące
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	Klawisze modyfikujące, takie jak Shift i Ctrl, pozostają wciśnięte do następnego klawisza, więc skróty można wpisywać po jednym klawiszu.
+A key has to be held for a moment before it is accepted.	Klawisz trzeba chwilę przytrzymać, zanim zostanie przyjęty.
+Quickly repeated presses of the same key are ignored.	Szybko powtarzane naciśnięcia tego samego klawisza są ignorowane.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	Dymki pozostają ukryte, z wyjątkiem pilnych. Powiadomienia nadal trafiają na listę na górnym pasku.
+%d seconds	%d sekund
+Show banners for	Pokazuj dymki przez
+Apps can ask for a different time; urgent notifications stay until you close them.	Aplikacje mogą wybrać inny czas; pilne powiadomienia pozostają do czasu ich zamknięcia.
+Play sounds	Odtwarzaj dźwięki
+History	Historia
+Keep notifications in the menu bar	Przechowuj powiadomienia na górnym pasku
+Missed notifications and reminders wait in the list until you read them.	Pominięte powiadomienia i przypomnienia czekają na liście, aż je przeczytasz.
+Number of notifications to keep	Liczba przechowywanych powiadomień
+Applications	Aplikacje
+Apps appear here after they send a notification.	Aplikacje pojawią się tutaj, gdy wyślą powiadomienie.
+Reminders	Przypomnienia
+Open with	Otwieraj w
+File manager	Menedżer plików
+Text editor	Edytor tekstu
+Image viewer	Przeglądarka obrazów
+PDF and documents	PDF i dokumenty
+No app installed	Brak zainstalowanej aplikacji
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	Używany dla „Otwórz terminal tutaj” w Plikach i dla aplikacji działających w terminalu.
+Apps you install later appear here automatically if they can open these files.	Aplikacje zainstalowane później pojawią się tutaj same, jeśli potrafią otwierać te pliki.
+Open at Login	Otwórz po zalogowaniu
+No apps open at login.	Po zalogowaniu nie otwiera się żadna aplikacja.
+Choose an app…	Wybierz aplikację…
+Add an App	Dodaj aplikację
+These apps open each time you log in.	Te aplikacje otwierają się przy każdym logowaniu.
+When a Drive Is Connected	Po podłączeniu dysku
+Mount USB drives and memory cards	Montuj dyski USB i karty pamięci
+Files on the drive are ready right away, without clicking it in Files.	Pliki na dysku są od razu dostępne, bez klikania w Plikach.
+Mount inserted CDs and DVDs	Montuj włożone płyty CD i DVD
+Open a window with the drive's files	Otwórz okno z plikami dysku
+Cameras and Phones	Aparaty i telefony
+Import photos when a camera is connected	Importuj zdjęcia po podłączeniu aparatu
+Play audio CDs when inserted	Odtwarzaj płyty audio CD po włożeniu
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	Dyski wewnętrzne nigdy nie są montowane automatycznie. Programy z dysku nigdy nie uruchamiają się same.
+3 seconds	3 sekundy
+5 seconds	5 sekund
+6 seconds	6 sekund
+10 seconds	10 sekund
+15 seconds	15 sekund
+30 seconds	30 sekund
+App	Aplikacja
+Key Repeat	Powtarzanie klawiszy
+Key repeat rate	Szybkość powtarzania
+Delay until repeat	Opóźnienie przed powtarzaniem
+Long	Długie
+Short	Krótkie
+Xfce Settings	Ustawienia Xfce
+Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Wygląd, Wi-Fi, Bluetooth, monitory, klawiatura, mysz i cała reszta
+Wallpaper, widgets, Dock and menu bar	Tapeta, widżety, Dock i pasek menu

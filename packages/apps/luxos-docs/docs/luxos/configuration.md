@@ -92,7 +92,7 @@ contain defaults for the **Plank Dock** (`net.launchpad.plank.dock.settings`
 | `calculator` | Calculator | calculator state |
 | `safe.json` | Safe | `idle_minutes`, `lock_on_screen_lock` |
 | `shell.conf` | bash/lsh/zsh setup | `LUXOS_BLESH=0`, `LUXOS_FASTFETCH=0` |
-| `scrolling.conf` | Scrolling (`luxos-scrolling`) | `[scrolling] smooth_wheel`, `kinetic` ([scrolling.md](scrolling.md)) |
+| `scrolling.conf` | Mouse & Touchpad (`luxos-scrolling`) | `[scrolling] smooth_wheel`, `kinetic` ([scrolling.md](scrolling.md)) |
 | `drivers-ignored` | Drivers notifier | hardware the user chose to ignore |
 | `netcheck-added` | luxos-hub | top-bar network check plugin added |
 | `calendar-clock-migrated` | Calendar | one-time migration flag |

@@ -5404,3 +5404,135 @@ Authentication required	Hitelesítés szükséges
 Authenticate	Hitelesítés
 Authentication is not available.	A hitelesítés nem érhető el.
 Lock the screen after inactivity of	Képernyő zárolása ennyi tétlenség után:
+This page could not be opened.	Ez az oldal nem nyitható meg.
+Screen Lock	Képernyőzár
+Xfce Settings Manager	Xfce beállításkezelő
+Accessibility	Kisegítő lehetőségek
+Windows & Workspaces	Ablakok és munkaterületek
+Mouse & Touchpad	Egér és érintőpad
+Default Apps	Alapértelmezett alkalmazások
+Login Items	Bejelentkezési elemek
+Removable Drives	Cserélhető meghajtók
+A light tap clicks, a two-finger tap is a right click.	Egy könnyű koppintás kattint, a kétujjas koppintás jobb kattintás.
+Click in the bottom right corner	Kattintás a jobb alsó sarokba
+Click with two fingers	Kattintás két ujjal
+Content follows your fingers.	A tartalom követi az ujjait.
+Content moves the same way as the wheel, like on a touchpad.	A tartalom a görgővel azonos irányba mozog, mint az érintőpadon.
+Fast	Gyors
+Faster movements move the pointer farther.	Gyorsabb mozdulatnál a mutató messzebbre jut.
+Ignore the touchpad while typing	Érintőpad figyelmen kívül hagyása gépelés közben
+Left button	Bal gomb
+Middle click with both buttons	Középső kattintás mindkét gombbal
+Natural scrolling	Természetes görgetés
+Natural wheel direction	Természetes görgőirány
+Pointer acceleration	Mutatógyorsítás
+Pointer speed	Mutató sebessége
+Pressing the left and right buttons together acts as the middle button.	A bal és a jobb gomb együttes lenyomása középső gombként működik.
+Prevents accidental clicks with your palm.	Megakadályozza a tenyérrel történő véletlen kattintásokat.
+Primary mouse button	Elsődleges egérgomb
+Right button	Jobb gomb
+Right click	Jobb kattintás
+Right edge	Jobb szél
+Scroll with	Görgetés ezzel
+Slow	Lassú
+Tap and drag	Koppintás és húzás
+Tap, then touch again and move to drag a window or select text.	Koppintson, érintse meg újra, és mozdítsa el egy ablak húzásához vagy szöveg kijelöléséhez.
+Tap to click	Koppintás kattintásként
+Touchpad	Érintőpad
+Tracking speed	Követési sebesség
+Two fingers	Két ujj
+LuxOS (follows Light and Dark)	LuxOS (követi a világos és sötét módot)
+%s px	%s px
+Icons and Pointer	Ikonok és mutató
+Icons	Ikonok
+Pointer	Mutató
+Pointer size	Mutató mérete
+Fonts	Betűtípusok
+Subpixel (LCD screens)	Képpontrészlet (LCD-kijelzők)
+Grayscale	Szürkeárnyalatos
+Font smoothing	Betűsimítás
+Subpixel smoothing is sharpest on most laptop and desktop screens.	A képpontrészlet-simítás a legtöbb laptop- és asztali kijelzőn a legélesebb.
+Slight	Enyhe
+Medium	Közepes
+Full	Teljes
+Hinting	Hinting
+Text size	Szövegméret
+Reduce motion	Mozgás csökkentése
+Turns off sliding between workspaces and animations in apps.	Kikapcsolja a munkaterületek közötti csúsztatást és az alkalmazások animációit.
+Mouse Keys	Egérbillentyűk
+Move the pointer with the numeric keypad.	A mutató mozgatása a számbillentyűzettel.
+On-screen keyboard	Képernyő-billentyűzet
+Zoom (maximize)	Nagyítás (teljes méret)
+Minimize	Kis méret
+Roll up	Felgördítés
+Fill free space	Szabad hely kitöltése
+Do nothing	Ne csináljon semmit
+Off while Reduce motion is on in Accessibility.	Kikapcsolva, amíg a Kisegítő lehetőségekben be van kapcsolva a Mozgás csökkentése.
+Workspaces	Munkaterületek
+Number of workspaces	Munkaterületek száma
+Go from the last workspace to the first	Az utolsó munkaterület után az első következik
+Switching past the last workspace with the keyboard continues at the first one.	Ha billentyűzettel továbblép az utolsó munkaterületről, az elsőn folytatódik.
+Animate switching workspaces	Munkaterület-váltás animálása
+Double-click a title bar to	Dupla kattintás a címsorra
+Snap windows to screen edges	Ablakok illesztése a képernyő széleihez
+Snap windows to other windows	Ablakok illesztése más ablakokhoz
+Tile windows dragged to a screen edge	A képernyő szélére húzott ablak a fél képernyőt kitölti
+Focus follows the pointer	A fókusz követi a mutatót
+A window is focused when the pointer moves over it, without a click.	Az ablak kattintás nélkül aktív lesz, amikor a mutató fölé kerül.
+Interface font	Felület betűtípusa
+Monospace font	Rögzített szélességű betűtípus
+Sticky Keys	Ragadós billentyűk
+Slow Keys	Lassú billentyűk
+Bounce Keys	Pergésmentes billentyűk
+Modifier keys such as Shift and Ctrl stay pressed until the next key, so shortcuts can be typed one key at a time.	A módosítóbillentyűk (Shift, Ctrl) a következő billentyűig lenyomva maradnak, így a gyorsbillentyűk egyenként is beírhatók.
+A key has to be held for a moment before it is accepted.	A billentyűt egy pillanatig nyomva kell tartani, mielőtt elfogadja a rendszer.
+Quickly repeated presses of the same key are ignored.	Ugyanazon billentyű gyorsan ismételt lenyomásait a rendszer figyelmen kívül hagyja.
+Banners stay hidden, except urgent ones. Notifications still go to the list in the menu bar.	A szalagcímek rejtve maradnak, kivéve a sürgőseket. Az értesítések továbbra is a menüsor listájába kerülnek.
+%d seconds	%d másodperc
+Show banners for	Szalagcímek megjelenítése
+Apps can ask for a different time; urgent notifications stay until you close them.	Az alkalmazások más időt is kérhetnek; a sürgős értesítések addig maradnak, amíg be nem zárja őket.
+Play sounds	Hangok lejátszása
+History	Előzmények
+Keep notifications in the menu bar	Értesítések megőrzése a menüsorban
+Missed notifications and reminders wait in the list until you read them.	Az elmulasztott értesítések és emlékeztetők a listában várnak, amíg el nem olvassa őket.
+Number of notifications to keep	Megőrzött értesítések száma
+Applications	Alkalmazások
+Apps appear here after they send a notification.	Az alkalmazások akkor jelennek meg itt, amikor értesítést küldenek.
+Reminders	Emlékeztetők
+Open with	Megnyitás ezzel
+File manager	Fájlkezelő
+Text editor	Szövegszerkesztő
+Image viewer	Képnézegető
+PDF and documents	PDF és dokumentumok
+No app installed	Nincs telepített alkalmazás
+Used for “Open Terminal Here” in Files and for apps that run in a terminal.	A Fájlok „Terminál megnyitása itt” parancsához és a terminálban futó alkalmazásokhoz.
+Apps you install later appear here automatically if they can open these files.	A később telepített alkalmazások maguktól megjelennek itt, ha meg tudják nyitni ezeket a fájlokat.
+Open at Login	Megnyitás bejelentkezéskor
+No apps open at login.	Bejelentkezéskor egy alkalmazás sem nyílik meg.
+Choose an app…	Válasszon alkalmazást…
+Add an App	Alkalmazás hozzáadása
+These apps open each time you log in.	Ezek az alkalmazások minden bejelentkezéskor megnyílnak.
+When a Drive Is Connected	Meghajtó csatlakoztatásakor
+Mount USB drives and memory cards	USB-meghajtók és memóriakártyák csatolása
+Files on the drive are ready right away, without clicking it in Files.	A meghajtó fájljai azonnal elérhetők, kattintás nélkül a Fájlokban.
+Mount inserted CDs and DVDs	Behelyezett CD-k és DVD-k csatolása
+Open a window with the drive's files	Ablak megnyitása a meghajtó fájljaival
+Cameras and Phones	Fényképezőgépek és telefonok
+Import photos when a camera is connected	Fényképek importálása fényképezőgép csatlakoztatásakor
+Play audio CDs when inserted	Hang-CD-k lejátszása behelyezéskor
+Internal disks are never mounted automatically. Programs on a drive never start by themselves.	A belső lemezek soha nem csatolódnak automatikusan. A meghajtón lévő programok soha nem indulnak el maguktól.
+3 seconds	3 másodperc
+5 seconds	5 másodperc
+6 seconds	6 másodperc
+10 seconds	10 másodperc
+15 seconds	15 másodperc
+30 seconds	30 másodperc
+App	Alkalmazás
+Key Repeat	Billentyűismétlés
+Key repeat rate	Ismétlési sebesség
+Delay until repeat	Késleltetés az ismétlés előtt
+Long	Hosszú
+Short	Rövid
+Xfce Settings	Xfce beállítások
+Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Megjelenés, Wi-Fi, Bluetooth, kijelzők, billentyűzet, egér és minden más
+Wallpaper, widgets, Dock and menu bar	Háttérkép, widgetek, Dock és menüsor
