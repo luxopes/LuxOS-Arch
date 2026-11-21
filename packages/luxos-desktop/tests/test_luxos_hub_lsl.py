@@ -1384,9 +1384,10 @@ class Hub(unittest.TestCase):
                     'echo "Event \'change\' on card #47"\necho "Event \'change\' on card #47"\n'
                     'echo "Event \'new\' on sink #80"\nexec sleep 30\n')
         os.chmod(os.path.join(fake, "pactl"), 0o755)
-        helper = os.path.join(self.home, "audio_helper.py")
+        helper = os.path.join(self.home, "audio-helper")
         with open(helper, "w") as f:
-            f.write('import os, sys\nopen(os.environ["FAKE_LOG"], "a").write("audio-" + sys.argv[1] + "\\n")\n')
+            f.write('#!/bin/sh\necho "audio-$1" >>"$FAKE_LOG"\n')
+        os.chmod(helper, 0o755)
         self.start_hub(PATH=fake + ":" + self.fake + ":/usr/bin:/bin", LUXOS_AUDIO_HELPER=helper)
         checks = lambda: [c for c in self.calls() if c == "audio-check"]
         self.assertTrue(self.wait_for(lambda: "subscribe C" in self.calls(), 5), self.calls())

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LuxOS - automaticke prepnuti zvukoveho vystupu (luxos_audio_switch.py) proti falesnemu pactl.
+"""LuxOS - automaticke prepnuti zvukoveho vystupu (luxos-audio-switch v LSL, spousti luxos-hub) proti falesnemu pactl.
 
     python3 -m unittest packages/luxos-desktop/tests/test_luxos_audio_switch.py -v
 
@@ -16,8 +16,21 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HELPER = os.path.join(HERE, "..", "files", "python", "luxos_audio_switch.py")
 FAKE = os.path.join(HERE, "fake-pactl", "pactl")
+sys.path.insert(0, HERE)
+import lsl_app  # noqa: E402
+
+TMP = tempfile.mkdtemp(prefix="luxos-audio-switch-test-")
+HELPER = None
+
+
+def setUpModule():
+    global HELPER
+    HELPER = lsl_app.build("luxos-audio-switch", TMP)
+
+
+def tearDownModule():
+    shutil.rmtree(TMP, ignore_errors=True)
 
 ANALOG = "output:analog-stereo+input:analog-stereo"
 HDMI = "output:hdmi-stereo+input:analog-stereo"
@@ -126,8 +139,7 @@ class AudioSwitch(unittest.TestCase):
             return []
 
     def check(self):
-        r = subprocess.run([sys.executable, "-I", HELPER, "check"], env=self.env, capture_output=True,
-                           text=True, timeout=30)
+        r = subprocess.run([HELPER, "check"], env=self.env, capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 0, r.stderr)
         return self.read()
 
@@ -302,48 +314,60 @@ class AudioSwitch(unittest.TestCase):
 
     def test_pactl_missing_is_harmless(self):
         env = dict(self.env, LUXOS_PACTL=os.path.join(self.t, "nope"))
-        r = subprocess.run([sys.executable, "-I", HELPER, "check"], env=env, capture_output=True, text=True)
+        r = subprocess.run([HELPER, "check"], env=env, capture_output=True, text=True, timeout=30)
         self.assertEqual(r.returncode, 1)
+        self.assertFalse(os.listdir(os.path.join(self.t, "run")))     # zadny stav
+
+    def test_usage(self):
+        r = subprocess.run([HELPER], env=self.env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("usage", r.stderr)
 
 
 class StatePath(unittest.TestCase):
-    """Bez XDG_RUNTIME_DIR: stav ve vlastni slozce 700 v /tmp, nikdy v souboru primo v /tmp."""
+    """Bez XDG_RUNTIME_DIR: stav ve vlastni slozce 700 v $TMPDIR (/tmp), nikdy v souboru primo v /tmp."""
 
     def setUp(self):
-        sys.path.insert(0, os.path.dirname(HELPER))
-        import luxos_audio_switch
-        self.mod = luxos_audio_switch
         self.t = tempfile.mkdtemp(prefix="luxos-audio-state-")
         self.addCleanup(shutil.rmtree, self.t, True)
-        self.saved = dict(os.environ), tempfile.tempdir
-        os.environ.pop("XDG_RUNTIME_DIR", None)
-        tempfile.tempdir = self.t
+        self.pa = os.path.join(self.t, "pa.json")
+        with open(self.pa, "w") as f:
+            json.dump({"cards": [hda_card()], "profile_sinks": {"alsa_card.pci-0000_00_1f.3": HDA_SINKS},
+                       "default": SPK, "inputs": []}, f)
+        self.env = {k: v for k, v in os.environ.items() if k != "XDG_RUNTIME_DIR"}
+        self.env.update(FAKE_PA=self.pa, LUXOS_PACTL=FAKE, TMPDIR=self.t, LUXOS_AUDIO_WAIT="0.5")
+        self.own = os.path.join(self.t, "luxos-%d" % os.getuid())
 
-    def tearDown(self):
-        env, tempfile.tempdir = self.saved
-        os.environ.clear()
-        os.environ.update(env)
+    def check(self):
+        r = subprocess.run([HELPER, "check"], env=self.env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_private_folder(self):
-        path = self.mod.state_path()
-        own = os.path.join(self.t, "luxos-%d" % os.getuid())
-        self.assertEqual(path, os.path.join(own, "luxos-audio-switch.json"))
-        self.assertEqual(os.stat(own).st_mode & 0o777, 0o700)
+        self.check()
+        self.assertEqual(os.stat(self.own).st_mode & 0o777, 0o700)
+        self.assertEqual(os.listdir(self.own), ["luxos-audio-switch.json"])
+        with open(os.path.join(self.own, "luxos-audio-switch.json")) as f:
+            self.assertEqual(json.load(f)["default"], SPK)
 
     def test_unsafe_folder_not_used(self):
-        own = os.path.join(self.t, "luxos-%d" % os.getuid())
-        os.mkdir(own)
-        os.chmod(own, 0o777)
-        self.assertIsNone(self.mod.state_path())
-        self.mod.save({"cards": {}})          # nic nezapise, nespadne
-        self.assertEqual(os.listdir(own), [])
-        os.rmdir(own)
-        os.symlink(self.t, own)
-        self.assertIsNone(self.mod.state_path())
+        os.mkdir(self.own)
+        os.chmod(self.own, 0o777)
+        self.check()                          # nic nezapise, nespadne
+        self.assertEqual(os.listdir(self.own), [])
+        os.rmdir(self.own)
+        target = os.path.join(self.t, "elsewhere")
+        os.mkdir(target, 0o700)
+        os.symlink(target, self.own)
+        self.check()
+        self.assertEqual(os.listdir(target), [])
 
     def test_runtime_dir_preferred(self):
-        os.environ["XDG_RUNTIME_DIR"] = self.t
-        self.assertEqual(self.mod.state_path(), os.path.join(self.t, "luxos-audio-switch.json"))
+        run = os.path.join(self.t, "run")
+        os.mkdir(run, 0o700)
+        self.env["XDG_RUNTIME_DIR"] = run
+        self.check()
+        self.assertEqual(os.listdir(run), ["luxos-audio-switch.json"])
+        self.assertFalse(os.path.exists(self.own))
 
 
 if __name__ == "__main__":

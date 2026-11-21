@@ -1,14 +1,14 @@
 # LuxOS Zvuk - automaticke prepnuti vystupu na nove pripojene zarizeni (bezi uvnitr luxos-hub).
 # `pactl subscribe` hlasi zmeny karet (monitor HDMI/DisplayPort zmeni dostupnost portu), serveru (vychozi
 # vystup) a pridani/odebrani vystupu (USB, Bluetooth). Po davce udalosti (0,4 s) se spusti pomocny program
-# `luxos_audio_switch.py check`, ktery porovna stav s minulym a prepne (profil karty, vychozi vystup,
+# `luxos-audio-switch check` (luxos-audio-switch.lsl), ktery porovna stav s minulym a prepne (profil karty, vychozi vystup,
 # presun prehravanych zvuku), pri odpojeni vrati puvodni; rucni volbu uzivatele respektuje.
 # Zmeny hlasitosti (udalosti 'change' na sink/source) pomocny program nespousti.
 #   call audio.subscribe()   jen kdyz je pactl
 load env
 load luxos_glib, glib as glib
 
-HELPER = "/usr/lib/luxos/python/luxos_audio_switch.py"
+HELPER = "/usr/lib/luxos/luxos-audio-switch"
 
 state = {"running": False, "pending": False, "armed": False, "started": 0, "fails": 0}
 
@@ -77,7 +77,7 @@ function check_now():
         return 0
     end
     state["running"] = True
-    if glib.spawn_watched_data(["python3", "-I", helper_path(), "check"], on_checked, 0) == 0:
+    if glib.spawn_watched_data([helper_path(), "check"], on_checked, 0) == 0:
         state["running"] = False
         call log("helper " + helper_path() + " could not be started")
     end

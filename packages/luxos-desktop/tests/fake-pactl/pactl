@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Falesny pactl pro testy luxos_audio_switch.py a Ovladaciho centra: stav v JSON ($FAKE_PA), prikazy
+"""Falesny pactl pro testy luxos-audio-switch a Ovladaciho centra: stav v JSON ($FAKE_PA), prikazy
 se zapisuji do $FAKE_PA.log. Nikdy nesaha na skutecny zvuk.
 
 Stav: {"cards": [karta jako `pactl -f json list cards`], "profile_sinks": {karta: {profil: [sinky]}},

@@ -14,7 +14,7 @@
 #                     s portalem (hotel, letiste): okno pro prihlaseni (luxos-network-login)
 #   Bluetooth         agent pro parovani z telefonu a sluchatek (misto blueman-applet)
 #   Zvuk              nove pripojeny monitor (HDMI/DisplayPort), USB a Bluetooth -> vychozi vystup,
-#                     po odpojeni zpet (luxos_audio_hub + luxos_audio_switch.py)
+#                     po odpojeni zpet (luxos_audio_hub + luxos-audio-switch)
 #   Svetly/tmavy      automaticky rezim podle vychodu a zapadu slunce
 #   Prehravani        pri hrajici hudbe/videu neuspava (ani zavreny vik), viz luxos_awake
 #   Ovladace          jednou za start upozorneni na chybejici ovladace (luxos-drivers)
