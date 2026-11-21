@@ -562,7 +562,7 @@ function want_hidden():
     return False
 end
 
-function hide_now():
+function hide_now(unused):
     timers["hide"] = 0
     if want_hidden():
         call animate("hide", 1.0, HIDE_MS)
@@ -578,7 +578,7 @@ function update_hide(delay):
     if not want_hidden():
         call animate("hide", 0.0, HIDE_MS)
     elif delay:
-        timers["hide"] = glib.timeout_add(HIDE_DELAY_MS, hide_now)
+        timers["hide"] = glib.timeout_add_data(HIDE_DELAY_MS, hide_now, 0)
     else:
         call animate("hide", 1.0, HIDE_MS)
     end
@@ -801,7 +801,7 @@ function on_enter(event, widget):
     return False
 end
 
-function zoom_guard():
+function zoom_guard(unused):
     timers["guard"] = 0
     if not view["hovered"] and not view["menu_open"] and anims["zoom"][0] > 0.0:
         call debug("zoom-guard")
@@ -814,7 +814,7 @@ end
 function leave():
     call animate("zoom", 0.0, ZOOM_OUT_MS)
     if timers["guard"] == 0:
-        timers["guard"] = glib.timeout_add(ZOOM_GUARD_MS, zoom_guard)
+        timers["guard"] = glib.timeout_add_data(ZOOM_GUARD_MS, zoom_guard, 0)
     end
     call update_hide(True)
     call queue_redraw()

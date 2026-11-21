@@ -15,6 +15,7 @@
 #
 # Tapeta se nacte jednou pro vsechna okna procesu a pri zmene v xfconf se prekresli. Potrebuje LSL >= 0.10.9.
 load cairo, glib, gio, gtk
+load luxos_glib as lglib
 
 RADIUS = 16.0
 EDGE = 8
@@ -110,12 +111,12 @@ end
 
 function on_xfconf_changed(sender, path, interface, signal, values):
     if len(values) >= 2 and values[0] == "xfce4-desktop" and String(values[1]).endswith("last-image"):
-        call glib.timeout_add(300, reload_once)
+        call lglib.timeout_add_data(300, reload_once, 0)
     end
     return 0
 end
 
-function reload_once():
+function reload_once(unused):
     call load_wallpaper()
     if len(state["panels"]) > 0:
         call load_panel_material()
