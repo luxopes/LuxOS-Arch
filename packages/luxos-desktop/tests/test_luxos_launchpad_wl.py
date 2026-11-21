@@ -669,6 +669,21 @@ class WaylandLaunchpad(unittest.TestCase):
         mark = lp.mark()
         self.assertEqual(self.gdbus("Hide").returncode, 0)
         lp.wait(r" hidden$", start=mark)
+        # jina relace na stejne sbernici (sbernice uzivatele je spolecna vsem jeho relacim): Launchpad
+        # teto relace neovlada ani nenahradi, skonci s chybou
+        other = self.session / "other-run"
+        other.mkdir(mode=0o700, exist_ok=True)
+        wayland = self.env["WAYLAND_DISPLAY"]
+        if not wayland.startswith("/"):
+            wayland = os.path.join(self.env["XDG_RUNTIME_DIR"], wayland)
+        mark = lp.mark()
+        r = subprocess.run([str(self.tmp / "luxos-launchpad"), "--show", "search"], capture_output=True, timeout=10,
+                           env=dict(self.env, XDG_RUNTIME_DIR=str(other), WAYLAND_DISPLAY=wayland))
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn(b"another session", r.stderr)
+        time.sleep(0.5)
+        self.assertNotRegex("\n".join(lp.lines[mark:]), r" shown ")
+        self.assertIsNone(lp.proc.poll(), "Launchpad teto relace bezi dal")
 
     def test_app_index_follows_file_changes(self):
         self.start()

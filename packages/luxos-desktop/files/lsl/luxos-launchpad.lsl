@@ -27,6 +27,7 @@ load luxos_apps as apps
 load luxos_launchpad_model as model
 load luxos_calc as calc
 load luxos_i18n as i18n
+load luxos_sys
 
 BUS_NAME = "cz.luxos.Launchpad"
 BUS_PATH = "/cz/luxos/Launchpad"
@@ -1187,7 +1188,16 @@ if bus != 0:
         owner = gio.call_values(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName", [BUS_NAME, 4], "(su)", -1)[0]
     end
     if owner == 3:
-        # uz bezi: predat pozadavek jemu
+        # uz bezi: predat pozadavek jemu, jen kdyz je z teto relace (sbernici uzivatele sdileji vsechny
+        # jeho relace; Launchpad jine relace se neovlada ani nenahrazuje)
+        pid = 0
+        safe:
+            pid = gio.call_values(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetConnectionUnixProcessID", [BUS_NAME], "(s)", 2000)[0]
+        end
+        if not luxos_sys.same_session(pid):
+            call luxos_sys.eprint("luxos-launchpad: " + BUS_NAME + " belongs to another session")
+            exit(1)
+        end
         if mode_arg != "":
             call gio.call_values(bus, BUS_NAME, BUS_PATH, BUS_NAME, "Show", [mode_arg], "(s)", 2000)
         end
