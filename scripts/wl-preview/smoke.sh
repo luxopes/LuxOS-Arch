@@ -92,11 +92,16 @@ ctl exec 'for p in $(pgrep -u greeter); do echo "$(awk "/^Pss:/{print \$2}" /pro
     >"$out/greeter-pss.txt" 2>&1
 awk '{s += $1} END {printf "greeter_pss_mb=%.1f\n", s / 1024}' "$out/greeter-pss.txt" | tee -a "$out/result.txt"
 
-# pole pro heslo (luxos_lock_draw.field_rect) a tlacitko relace vlevo dole (draw_buttons v luxos-greeter)
-read -r fx fy fw fh sx sy < <(awk -v w="$W" -v h="$H" 'function px(v, lo) {x = int(v * u + 0.5); return x < lo ? lo : x}
-    BEGIN {u = h / 1080; if (u < 0.55) u = 0.55; fw = px(250, 180); fh = px(36, 28); d = px(44, 34)
-           print int((w - fw) / 2), h - px(150, 110) - px(24, 18) - px(14, 9) - px(22, 16) - px(14, 9) - fh, fw, fh,
-                 px(42, 26) + d, h - px(42, 26) - px(20, 14) - d / 2}')
+# pole pro heslo, tlacitko relace vlevo dole a polozky jeho nabidky (rozmisteni jako luxos_lock_draw, viz
+# field_rect/session_button/session_item v packages/luxos-greetd/tests/test_luxos_greeter_wl.py)
+read -r fx fy fw fh sx sy mx my1 < <(awk -v w="$W" -v h="$H" 'function px(v, lo) {x = int(v * u + 0.5); return x < lo ? lo : x}
+    BEGIN {u = h / 1080; if (u < 0.75) u = 0.75
+           d = px(96, 64); fy = int(h * 0.62) + d / 2 + px(14, 9); fy += int(px(17, 13) * 1.3 + 0.5) + px(14, 9)
+           fw = px(300, 220); fh = px(40, 30)
+           row_y = h - px(40, 26) - int(px(12, 10) * 1.35 + 0.5) - px(8, 5) - px(44, 34) / 2
+           r = px(30, 24); pad = px(5, 4); top = row_y - px(32, 26) / 2 - px(6, 4) - (2 * r + 2 * pad)
+           print int((w - fw) / 2), int(fy), fw, fh, px(32, 20) + 20, int(row_y), px(32, 20) + 50,
+                 int(top + pad + r * 1.5)}')
 
 # 2. mysi: klik do pole, spatne heslo, odeslani sipkou v poli; pak prihlaseni klikem do pole, heslo a Enter
 grab g0
@@ -232,7 +237,10 @@ shot 9-greeter-after-crash
 grab s0
 click "$sx" "$sy"
 grab s1
-check "greeter draws the chosen session (session button)" redrawn s0 s1 0 $((sy - 30)) 240 $((H - sy + 30))
+check "greeter draws the session menu (session button)" redrawn s0 s1 0 $((sy - 150)) 320 150
+click "$mx" "$my1"
+grab s2
+check "greeter draws the chosen session (menu item LuxOS (X11))" redrawn s0 s2 0 $((sy - 20)) 320 40
 shot 10-greeter-x11
 click $((fx + fw / 2)) $((fy + fh / 2))
 login
