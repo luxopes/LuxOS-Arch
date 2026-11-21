@@ -12,9 +12,9 @@
  * plochu bez zaobleni zvetsuje scena pri skladani snimku, jinak renderer a zaobleni rohu.
  *
  * pixman navic drzi pro kazdy vystup rozmazanou tapetu (vrstva pozadi, pocita se jen pri jeji zmene).
- * Plocha, pod kterou neni nic nez tapeta, je jen jeji vyrez. Kdyz prepocet jedne plochy trva tri snimky
- * po sobe pres rozpocet, plocha docasne prejde na tentyz vyrez (sklo bez oken pod nim) a pozdeji
- * zkusi rozmazani znovu. Jednolita barva materialu (tier 0) jen pri vypnutem rozmazani a chybe GLES2.
+ * Plocha, pod kterou neni nic nez tapeta, je jen jeji vyrez. Kdyz prepocet
+ * jedne plochy trva tri snimky po sobe pres rozpocet, plocha docasne prejde na tentyz vyrez (sklo bez oken
+ * pod nim) a pozdeji zkusi rozmazani znovu. Jednolita barva materialu (tier 0) jen pri vypnutem rozmazani a chybe GLES2.
  */
 #define _GNU_SOURCE
 #include <EGL/egl.h>
@@ -1249,7 +1249,7 @@ gl_current(void)
 }
 
 static bool
-blur_gpu(struct blur *b, struct output *o, struct wlr_box abs)
+blur_gpu(struct blur *b, struct output *o, struct wlr_box abs, struct wlr_scene_node *stop)
 {
 	if (!gl_current()) {
 		return false;
@@ -1269,7 +1269,7 @@ blur_gpu(struct blur *b, struct output *o, struct wlr_box abs)
 			}
 		}
 	}
-	struct walk w = { .stop = &b->parent->node, .box = cap, .k = scale };
+	struct walk w = { .stop = stop, .box = cap, .k = scale };
 	w.pass = wlr_renderer_begin_buffer_pass(comp.renderer, b->level[0], NULL);
 	if (!w.pass) {
 		return false;
@@ -1355,12 +1355,17 @@ blur_output_frame(struct output *o)
 		if (!on_output(b, o, &abs)) {
 			continue;
 		}
-		struct wlr_box cap = solid ? abs : capture_box(b, o, abs);
-		struct walk w = { .stop = &b->parent->node, .box = cap, .backdrop_end = &comp.layer_bottom->node };
+		/* plocha pres cely vystup (ztmaveni Launchpadu a Hledani) rozmazava jen vrstvu pozadi, jako macOS a 1.0:
+		 * okna pod ni nejsou videt a pod pixman by prepocet celeho vystupu stal cely snimek */
+		struct wlr_box out, cap = solid ? abs : capture_box(b, o, abs);
+		wlr_output_layout_get_box(comp.layout, o->wlr_output, &out);
+		bool full = wlr_box_equal(&abs, &out);
+		struct wlr_scene_node *stop = full ? &comp.layer_bottom->node : &b->parent->node;
+		struct walk w = { .stop = stop, .box = cap, .backdrop_end = &comp.layer_bottom->node };
 		if (!solid) {
 			walk_scene(&w);
 		}
-		/* pixman: jen tapeta pod plochou nebo nahradni rezim = vyrez rozmazane tapety */
+		/* pixman: vyrez rozmazane tapety, kdyz je pod plochou jen tapeta, a v nahradnim rezimu */
 		bool from_backdrop = false;
 		if (!solid && comp.software) {
 			if (b->retry_at && t0 >= b->retry_at) {
@@ -1397,7 +1402,7 @@ blur_output_frame(struct output *o)
 				note_cost(b, o, done - t, done);
 			}
 		} else if (!solid) {
-			ok = blur_gpu(b, o, abs);
+			ok = blur_gpu(b, o, abs, stop);
 			if (!ok && !cfg.gpu_broken) {
 				wlr_log(WLR_ERROR, "luxcomp: gles2 blur failed, solid material from now on");
 				cfg.gpu_broken = true;

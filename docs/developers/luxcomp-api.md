@@ -246,6 +246,10 @@ Pod pixman drží kompozitor pro každý výstup rozmazanou tapetu: vrstvu pozad
 (i s okrajem o poloměr rozmazání) není nic než tapeta, je jen výřez z ní – lišta, Dock nad prázdnou plochou,
 Launchpad bez oken pod sebou nestojí nic. Okno pod plochou znamená skutečný výřez scény.
 
+Plocha přes celý výstup (ztmavení Launchpadu a Hledání) rozmazává jen vrstvu pozadí, na GPU i pod pixman:
+jako v macOS a v 1.0 je pod ní jen tapeta, ne okna, a pod pixman je to výřez rozmazané tapety (přepočet
+celého výstupu by stál celý snímek).
+
 Přepočet každé plochy se měří zvlášť. Když trvá tři snímky po sobě (každý do 0,5 s od předchozího, tedy
 pod plochou se něco hýbe) přes 8 ms, plocha **dočasně** přejde na výřez rozmazané tapety: sklo zůstane
 sklem, jen okna pod ním nejsou vidět. Za 2 s zkusí rozmazání znovu; při dalším neúspěchu čeká dvakrát déle
