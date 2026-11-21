@@ -10,6 +10,7 @@ load env, json, net
 load crypto
 load luxos_glib, glib as glib
 load mail_bytes as mb
+load luxos_sys
 
 FIELDS = ["uid", "flags", "internal", "date", "from_name", "from_email", "to", "subject", "preview", "size", "att"]
 
@@ -352,13 +353,17 @@ function wipe_mailbox(id, raw):
     return 0
 end
 
-# Abstraktni sockety sluzby a okna; LUXOS_MAIL_INSTANCE oddeli testy od skutecne relace
+# Abstraktni sockety sluzby a okna. Sluzba jedna na data (jiny HOME nebo XDG_DATA_HOME = jina schranka, i pod
+# stejnym UID), okno jedno v relaci (luxos_sys.instance_name). LUXOS_MAIL_INSTANCE zvoli jmeno primo (testy).
 function socket_name(kind):
     suffix = env.get("LUXOS_MAIL_INSTANCE", "")
-    if suffix == None:
-        suffix = ""
+    if suffix != None and suffix != "":
+        return "luxos-mail-" + kind + String(mb.getuid()) + suffix
     end
-    return "luxos-mail-" + kind + String(mb.getuid()) + suffix
+    if kind == "":
+        return "luxos-mail-" + String(mb.getuid()) + "-" + luxos_sys.short_hash(base_data())
+    end
+    return luxos_sys.instance_name("luxos-mail-" + kind[0:len(kind) - 1])
 end
 
 # Program okna: vedle sluzby (vyvoj, testy) nebo /usr/bin/luxos-mail
