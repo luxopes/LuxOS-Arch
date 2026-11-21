@@ -186,11 +186,17 @@ class MaterialShell(unittest.TestCase):
                         PATH=f"{self.bin}:/usr/bin:/bin", LUXOS_BAR_TRACE="1", LUXOS_BAR_NOW="2026-11-20 09:41",
                         DBUS_SYSTEM_BUS_ADDRESS=addrs["system"], DBUS_SESSION_BUS_ADDRESS=addrs["session"],
                         LUXOS_HUB_PREBUILD_DELAY="1", LUXOS_HUB_NEWS_DELAY="100000", LUXOS_HUB_NO_PORTAL="1",
-                        LUXOS_CALENDAR_DIR=str(self.session / "calendar"), LUXOS_POWER_SUPPLY=str(self.session / "power"))
+                        LUXOS_CALENDAR_DIR=str(self.session / "calendar"), LUXOS_POWER_SUPPLY=str(self.session / "power"),
+                        LUXOS_BACKLIGHT=str(self.session / "backlight"))
         if dark:
             # hub bere rezim z nazvu motivu GTK (na Waylandu z GSettings, settings.ini nestaci)
             self.env["GTK_THEME"] = "Adwaita:dark"
         (self.session / "power").mkdir()
+        # jas pevne 30 % (jako ve vzorech): jinak posuvnik Ovladaciho centra ukazuje podsviceni pocitace
+        bl = self.session / "backlight/test"
+        bl.mkdir(parents=True)
+        (bl / "brightness").write_text("30\n")
+        (bl / "max_brightness").write_text("100\n")
         self.spawn(str(self.bin / "luxos-backdrop"))
         bar = Bar(self.spawn(str(self.bin / "luxos-bar"), out=True))
         bar.wait(r"^drawn HEADLESS-1")
