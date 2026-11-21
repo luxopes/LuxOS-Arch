@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 6
+API_VERSION = 7
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -31,6 +31,7 @@ EV_LAYOUT = 16
 EV_IPC_CONNECT = 17
 EV_IPC_LINE = 18
 EV_IPC_CLOSE = 19
+EV_VIEW_SIZE = 20
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -341,6 +342,12 @@ end
 function view_set_badge(view, text):
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("luxcomp_view_set_badge"), ptr(view), cstr(text))
+    end
+end
+
+function view_set_names(view, app_id, title):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("luxcomp_view_set_names"), ptr(view), cstr(app_id), cstr(title))
     end
 end
 

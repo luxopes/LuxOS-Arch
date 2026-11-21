@@ -59,13 +59,22 @@ LOCALE = "org.freedesktop.locale1"
 IPC_TOPICS = ["window", "workspace", "keyboard", "output", "theme"]
 # informace o cizich oknech a jejich ovladani jen pro allowlist (jako wlr-foreign-toplevel)
 PRIVILEGED_TOPICS = ["window"]
-PRIVILEGED_COMMANDS = ["list_windows", "focus_window", "set_primary", "test_output"]
+PRIVILEGED_COMMANDS = ["list_windows", "focus_window", "set_primary", "test_output", "dock_zone"]
 
 deferred = {"on": False, "items": []}
 ipc = {}             # klient IPC -> {"privileged": bool, "topics": [...]}
 keyboard = {"layouts": [], "locale": {}}
 look = {"dark": False}
-last_window = [-1, "", ""]
+last_window = [-1, "", "", []]
+# Dock bez exkluzivni zony (uhyba oknum): nazev vystupu -> [klient IPC, vyska od spodniho okraje].
+# Nova okna se umistuji nad nej, jako na X11 s Plankem.
+dock_zones = {}
+# korenove okno Xwayland aplikace v sandboxu (cela X obrazovka v jednom okne) -> instance sandboxu;
+# xroot_pending: velikost a nazev od luxos-sandbox, ktere prisly pred namapovanim okna
+xroots = {}
+xroot_pending = {}
+XWAYLAND_APP_ID = "org.freedesktop.Xwayland"
+XROOT_MIN = [320, 200]   # mensi korenove okno Xwayland neumi
 # hlavni monitor (Dock, oznameni, okna z odpojenych monitoru) podle nastaveni monitoru; displays_run =
 # odlozene spusteni displays_command po pripojeni/odpojeni monitoru
 displays = {"primary": "", "timer": 0}
@@ -442,6 +451,20 @@ function usable(out):
             lc.output_get(out, lc.OUT_USABLE_W), lc.output_get(out, lc.OUT_USABLE_H)]
 end
 
+# Kam se umistuji nova okna: pouzitelna plocha bez Docku, ktery jinak jen uhyba (exkluzivni zona 0)
+function place_area(out):
+    u = usable(out)
+    zone = dock_zones.get(lc.output_name(out))
+    if zone == None:
+        return u
+    end
+    bottom = min(u[1] + u[3], lc.output_get(out, lc.OUT_Y) + lc.output_get(out, lc.OUT_H) - zone[1])
+    if bottom - u[1] < u[3] // 2:
+        return u
+    end
+    return [u[0], u[1], u[2], bottom - u[1]]
+end
+
 # Ram okna (obsah + zahlavi kompozitoru): [x, y, w, h]
 function frame(v):
     top = vget(v, lc.VIEW_DECO_TOP)
@@ -583,15 +606,36 @@ function taken(fx, fy, frames):
     return False
 end
 
-function place(v):
+# want = [w, h], ktere okno dostane (korenove okno Xwayland sandboxu), nebo [] = jeho velikost
+function place(v, want):
     out = lc.output_at(lc.cursor_x(), lc.cursor_y())
     if out == 0:
         out = output_of(v)
     end
-    u = usable(out)
+    u = place_area(out)
+    if len(want) == 0:
+        want = [vget(v, lc.VIEW_W), vget(v, lc.VIEW_H)]
+    end
+    size = fit_size(v, want[0], want[1], u)
+    return place_sized(v, size[0], size[1], u)
+end
+
+# Okno vetsi nez plocha se zmensi, aby bylo cele videt (i tlacitka dole nad Dockem), jako v X11 relaci;
+# ne pod svou minimalni velikost
+function fit_size(v, w, h, u):
     top = vget(v, lc.VIEW_DECO_TOP)
-    w = vget(v, lc.VIEW_W)
-    h = vget(v, lc.VIEW_H) + top
+    fw = min(w, max(u[2], vget(v, lc.VIEW_MIN_W)))
+    fh = min(h, max(u[3] - top, vget(v, lc.VIEW_MIN_H)))
+    if fw != vget(v, lc.VIEW_W) or fh != vget(v, lc.VIEW_H):
+        call lc.view_resize(v, fw, fh)
+        call note("shrink " + String(v) + " " + String(w) + "x" + String(h) + " -> " + String(fw) + "x" + String(fh))
+    end
+    return [fw, fh]
+end
+
+function place_sized(v, w, content_h, u):
+    top = vget(v, lc.VIEW_DECO_TOP)
+    h = content_h + top
     x = u[0] + (u[2] - w) // 2
     y = max(u[1], u[1] + (u[3] - h) // 2)
     parent = vget(v, lc.VIEW_PARENT)
@@ -703,6 +747,54 @@ function sandbox_window(v):
     call lc.view_set_decorated(v, 1)
     call lc.view_set_badge(v, "Sandbox" + (" · " + app if app != "" else ""))
     call note("sandbox " + String(v) + " " + app)
+end
+
+# X11 aplikace v sandboxu bezi ve vlastnim Xwayland s korenovym oknem ("Xwayland on :0"). Lista, Dock
+# a zahlavi ukazuji aplikaci ze sandboxu; velikost a nazev hlavniho okna X posila luxos-sandbox.
+function adopt_xroot(v):
+    if vget(v, lc.VIEW_SANDBOXED) != 1 or lc.view_app_id(v) != XWAYLAND_APP_ID:
+        return []
+    end
+    instance = lc.view_sandbox_instance(v)
+    app = lc.view_sandbox_app_id(v)
+    xroots[v] = instance
+    pending = xroot_pending.pop(instance, None)
+    call lc.view_set_names(v, app, pending[2] if pending != None and pending[2] != "" else app)
+    if pending == None:
+        return []
+    end
+    return [max(XROOT_MIN[0], pending[0]), max(XROOT_MIN[1], pending[1])]
+end
+
+function size_xroot(v, w, h, title):
+    app = lc.view_sandbox_app_id(v)
+    call lc.view_set_names(v, app, title if title != "" else app)
+    if v in maxed or v in full or v in tiled:
+        return
+    end
+    u = place_area(output_of(v))
+    size = fit_size(v, max(XROOT_MIN[0], w), max(XROOT_MIN[1], h), u)
+    # stred okna zustava (neskace do rohu), cele okno v plose
+    f = frame(v)
+    top = vget(v, lc.VIEW_DECO_TOP)
+    x = max(u[0], min(f[0] + (f[2] - size[0]) // 2, u[0] + u[2] - size[0]))
+    y = max(u[1], min(f[1] + (f[3] - size[1] - top) // 2, u[1] + u[3] - size[1] - top))
+    call lc.view_move(v, x, y + top)
+    call note("xroot " + String(v) + " " + String(size[0]) + "x" + String(size[1]))
+end
+
+# Nazev z X serveru sandboxu: jen tisknutelne znaky, kratky
+function clean_title(text):
+    out = ""
+    for ch in text:
+        if ord(ch) >= 32 and ord(ch) != 127:
+            out += ch
+        end
+        if len(out) >= 120:
+            break
+        end
+    end
+    return out.strip()
 end
 
 function on_current(v):
@@ -1110,7 +1202,7 @@ function view_mapped(v):
         space = vget(parent, lc.VIEW_WORKSPACE)
     end
     call lc.view_set_workspace(v, space)
-    spot = place(v)
+    spot = place(v, adopt_xroot(v))
     call note("place " + String(v) + " " + lc.view_app_id(v) + " " + String(spot[0]) + "," + String(spot[1])
         + " " + String(vget(v, lc.VIEW_W)) + "x" + String(vget(v, lc.VIEW_H)))
     # Okno na jine plose (dialog schovane aplikace) nebo nove okno pod zamerenou celou obrazovkou
@@ -1143,7 +1235,7 @@ function view_gone(v):
 end
 
 function forget(v):
-    for table in [saved, maxed, tiled, full]:
+    for table in [saved, maxed, tiled, full, xroots]:
         if v in table:
             call table.pop(v)
         end
@@ -1344,7 +1436,7 @@ end
 
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
-               "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close"]
+               "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close", "view-size"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -1387,12 +1479,13 @@ function theme_event():
     return {"event": "theme", "theme": "dark" if look["dark"] else "light"}
 end
 
+# frame = ram okna se zahlavim v souradnicich rozlozeni (Dock uhyba, kdyz ho okno prekryva)
 function window_event():
     v = focused()
     if v == 0:
-        return {"event": "window", "id": 0, "app_id": "", "title": ""}
+        return {"event": "window", "id": 0, "app_id": "", "title": "", "frame": []}
     end
-    return {"event": "window", "id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v)}
+    return {"event": "window", "id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v), "frame": frame(v)}
 end
 
 function topic_event(topic):
@@ -1419,6 +1512,12 @@ function drop_client(client):
         suspended = ipc.pop(client).get("suspend", False)
         if suspended:
             call update_suspend()
+        end
+    end
+    # Dock skoncil nebo spadl: jeho misto se uz nedrzi
+    for name in List(dock_zones):
+        if dock_zones[name][0] == client:
+            call dock_zones.pop(name)
         end
     end
 end
@@ -1469,7 +1568,7 @@ function window_changed():
         return
     end
     v = focused()
-    now = [v, lc.view_app_id(v) if v != 0 else "", lc.view_title(v) if v != 0 else ""]
+    now = [v, lc.view_app_id(v) if v != 0 else "", lc.view_title(v) if v != 0 else "", frame(v) if v != 0 else []]
     if now != last_window:
         last_window = now
         call broadcast("window", window_event())
@@ -1606,6 +1705,47 @@ function ipc_command(client, request):
         call rescue_windows()
         call broadcast("output", output_event())
         return {"ok": True, "primary": output_event()["primary"]}
+    elif cmd == "dock_zone":
+        name = request.get("output", "")
+        height = request.get("height", 0)
+        if type(name) != "String" or type(height) != "Int" or height < 0 or height > 1000:
+            return {"ok": False, "error": "bad request"}
+        end
+        for key in List(dock_zones):
+            if dock_zones[key][0] == client:
+                call dock_zones.pop(key)
+            end
+        end
+        if height > 0 and name != "":
+            dock_zones[name] = [client, height]
+        end
+        call note("dock zone " + name + " " + String(height))
+        return {"ok": True}
+    elif cmd == "sandbox_window":
+        # luxos-sandbox (bezi mimo sandbox, aplikace sama na soket nedosahne): velikost a nazev hlavniho
+        # okna X11 aplikace; plati jen pro korenove okno Xwayland teto instance sandboxu
+        instance = request.get("instance", "")
+        w = request.get("width", 0)
+        h = request.get("height", 0)
+        title = request.get("title", "")
+        if type(instance) != "String" or instance == "" or type(w) != "Int" or type(h) != "Int" or type(title) != "String":
+            return {"ok": False, "error": "bad request"}
+        end
+        title = clean_title(title)
+        found = False
+        for v in List(xroots):
+            if xroots[v] == instance and vget(v, lc.VIEW_MAPPED) == 1:
+                call size_xroot(v, w, h, title)
+                found = True
+            end
+        end
+        if not found:
+            if len(xroot_pending) > 32:
+                xroot_pending.clear()
+            end
+            xroot_pending[instance] = [w, h, title]
+        end
+        return {"ok": True}
     elif cmd == "test_output":
         # testy: pripojeni/odpojeni monitoru, funguje jen na headless backendu
         size = request.get("add", "")
