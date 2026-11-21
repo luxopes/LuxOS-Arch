@@ -254,12 +254,15 @@ scripts/wl-test/run-all packages/luxos-desktop/tests/test_luxos_lock.py     # so
 scripts/wl-test/run-all -k test_power --keep packages/...                  # one test, keep HOME/TMPDIR
 ```
 
-- Builds first: sysroot (`fetch-sysroot.sh`, also the Xorg `dummy` driver for the scroll tests), `wlt` tools,
+- Builds first: sysroot (`fetch-sysroot.sh`, also the Xorg `dummy` driver for the scroll tests and `busybox` for
+  the sandbox root, offered on `PATH` alone), pytest from `pytest.lock` (sha256-checked wheels in
+  `out/wl-test/pylib`, for modules written for pytest: `import pytest` or a `conftest.py`), `wlt` tools,
   luxwm (`packages/luxwm/tests/build-host.sh`), the greeter (`packages/luxos-greetd/tests/build.sh`) and the
-  programs tests otherwise take from the system (`luxos-mail`, `luxos-terminal`, `luxos-text`, via `build()` of
+  programs tests otherwise take from the system (`luxos-mail`, `luxos-terminal`, `luxos-text`, Icon and App Studio, via `build()` of
   their PKGBUILD; `LUXOS_*_BIN`).
 - Every module runs from `env -i` under `systemd-run --user --scope` (`TasksMax=300`, `MemoryMax=1500M`,
-  `RUN_ALL_MEMORY`; whatever a module leaves running is stopped with its scope) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), with its own `HOME` and `TMPDIR`, its own Xvfb on
+  `RUN_ALL_MEMORY`, or `# run-all: MemoryMax=3G` in the module's first lines; whatever a module leaves running is
+  stopped with its scope) and `timeout` (`RUN_ALL_TIMEOUT`, 1800 s), with its own `HOME` and `TMPDIR`, its own Xvfb on
   :300–:399 with a cookie, a private session bus (`dbus-run-session`, no service directories) and a dead system bus.
 - LSL comes from `LSL_HOME` (an unpacked release, never installed on the host), otherwise `lslc` from `PATH`;
   older than 0.11.1 is refused.

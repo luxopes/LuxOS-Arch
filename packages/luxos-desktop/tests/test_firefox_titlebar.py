@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# run-all: MemoryMax=3G
+# (uBlock Origin v novem profilu: Firefox pri prvnim prekladu filtru presahne 1,5 GB)
 """Firefox: tlacitka okna jako barevna kolecka LuxOS (luxos.cfg + titlebar.css) a uvitaci stranka LuxOS.
 
 Bez displeje bezi kontroly souboru a hlidac selektoru proti nainstalovanemu Firefoxu (omni.ja): kdyz

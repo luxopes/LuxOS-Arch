@@ -180,6 +180,22 @@ return {buttons: out, scale: window.devicePixelRatio, mozInnerScreenX: window.mo
 """
 
 
+BUS_CONF = """<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+  <type>session</type>
+  <listen>unix:tmpdir=/tmp</listen>
+  <auth>EXTERNAL</auth>
+  <servicedir>%s</servicedir>
+  <policy context="default">
+    <allow send_destination="*" eavesdrop="true"/>
+    <allow eavesdrop="true"/>
+    <allow own="*"/>
+  </policy>
+</busconfig>
+"""
+
+
 class Session:
     """Xvfb uz bezi (xvfb-run); vlastni HOME/XDG_* pod out/, vlastni D-Bus, xfwm4, GTK nastaveni LuxOS."""
 
@@ -228,7 +244,16 @@ class Session:
                 if p == real_home or not p.startswith(os.path.realpath(OUT)):
                     raise RuntimeError("refusing %s=%s outside the test dir" % (k, v))
         self.env = env
-        self.bus = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--print-address=1"],
+        # sbernice aktivuje jen xfconfd (xfwm4 cte nastaveni), ne portaly, klicenku a FUSE dokumentu systemu
+        services = os.path.join(self.home, "dbus-services")
+        os.makedirs(services)
+        xfconf = "/usr/share/dbus-1/services/org.xfce.Xfconf.service"
+        if os.path.exists(xfconf):
+            shutil.copy(xfconf, services)
+        conf = os.path.join(self.home, "bus.conf")
+        with open(conf, "w") as f:
+            f.write(BUS_CONF % services)
+        self.bus = subprocess.Popen(["dbus-daemon", "--config-file", conf, "--nofork", "--print-address=1"],
                                     env=env, stdout=subprocess.PIPE, text=True)
         env["DBUS_SESSION_BUS_ADDRESS"] = self.bus.stdout.readline().strip()
         self.wm_log = open(os.path.join(self.home, "xfwm4.log"), "w")
