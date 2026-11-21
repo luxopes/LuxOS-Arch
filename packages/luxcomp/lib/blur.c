@@ -12,9 +12,9 @@
  * plochu bez zaobleni zvetsuje scena pri skladani snimku, jinak renderer a zaobleni rohu.
  *
  * pixman navic drzi pro kazdy vystup rozmazanou tapetu (vrstva pozadi, pocita se jen pri jeji zmene).
- * Plocha, pod kterou neni nic nez tapeta, je jen jeji vyrez. Kdyz prepocet
- * jedne plochy trva tri snimky po sobe pres rozpocet, plocha docasne prejde na tentyz vyrez (sklo bez oken
- * pod nim) a pozdeji zkusi rozmazani znovu. Jednolita barva materialu (tier 0) jen pri vypnutem rozmazani a chybe GLES2.
+ * Plocha, pod kterou neni nic nez tapeta, je jen jeji vyrez. Kdyz prepocet jedne plochy trva tri snimky
+ * po sobe pres rozpocet, plocha docasne prejde na tentyz vyrez (sklo bez oken pod nim) a pozdeji zkusi
+ * rozmazani znovu. Jednolita barva materialu (tier 0) jen pri vypnutem rozmazani a chybe GLES2.
  */
 #define _GNU_SOURCE
 #include <EGL/egl.h>
@@ -213,7 +213,7 @@ luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, int64_t
 	}
 	/* zmena rezimu meni barvy vsech materialu: rozmazany obraz na nich nezavisi, prepocet jen pro jednolitou
 	 * barvu (jinak by se po prepnuti pocitaly vsechny plochy naraz) */
-	bool repaint = m->fallback != (uint32_t)fallback || m->radius != radius;
+	bool repaint = m->fallback != (uint32_t)fallback;
 	m->radius = radius;
 	m->fallback = (uint32_t)fallback;
 	m->shadow = (uint32_t)shadow;

@@ -78,6 +78,7 @@ def stripe_energy(image, y, x0, x1):
 @unittest.skipUnless(LSLC and TOOLS and WLT.exists() and (LUXWM_BUILD / "luxwm").exists()
                      and (SYSROOT / "usr/lib").exists(), "chybi lslc, luxwm (build-host.sh), sysroot nebo dbus/notify-send")
 class MaterialShell(unittest.TestCase):
+    PREFIX = "m"    # jmeno relace; moduly pod run-all maji kazdy vlastni PID namespace (stejna PID)
     @classmethod
     def setUpClass(cls):
         base = REPO / "out/wl-test"
@@ -101,6 +102,10 @@ class MaterialShell(unittest.TestCase):
                 raise RuntimeError(f"{name}: " + out.decode())
         os.symlink("luxos-hub", cls.bin / "luxos-control-center")
         os.symlink("luxos-hub", cls.bin / "luxos-calendar")
+        # posuvnik hlasitosti Ovladaciho centra (pactl) jako bez zvukoveho serveru: pactl hostitele, ktery se k nejakemu
+        # serveru pripoji, by menil vzor cc-* podle pocitace
+        (cls.bin / "pactl").write_text("#!/bin/sh\nexit 1\n")
+        (cls.bin / "pactl").chmod(0o755)
         cls.wall = cls.tmp / "stripes.png"
         png_write(cls.wall, W, H, stripes())
 
@@ -142,7 +147,7 @@ class MaterialShell(unittest.TestCase):
         return r.stdout
 
     def start(self, dark, compositor_env=""):
-        name = f"m{os.getpid() % 100000}{'d' if dark else 'l'}"
+        name = f"{self.PREFIX}{os.getpid() % 100000}{'d' if dark else 'l'}"
         conf = self.tmp / f"luxwm-{name}.conf"
         conf.write_text("xwayland = no\n" + (REPO / "packages/luxwm/luxwm.conf").read_text())
         env = dict(os.environ)

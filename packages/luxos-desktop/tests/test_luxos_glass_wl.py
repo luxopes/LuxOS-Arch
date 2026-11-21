@@ -85,6 +85,7 @@ def chroma(image, x, y, w, h):
                      and (mat.SYSROOT / "usr/lib").exists(), "chybi lslc, luxwm (build-host.sh), sysroot nebo dbus/notify-send")
 class Glass(mat.MaterialShell):
     test_light = test_dark = None   # material bez nouze testuje test_luxos_material_wl
+    PREFIX = "g"
 
     @classmethod
     def setUpClass(cls):
@@ -172,6 +173,22 @@ class Glass(mat.MaterialShell):
             image = self.snap(f"after-{mode}")
             self.assert_glass(image, f"lista po {mode}", 12)
             self.assert_glass(image, f"Dock po {mode}", H - 12, x0=W // 2 - 150, x1=W // 2 + 130)
+        self.no_solid()
+
+    def test_theme_switch_no_flash(self):
+        """3: prepnuti rezimu bez probliknuti (zadny jedno- az dvousnimkovy stav mezi starym a novym tonovanim)."""
+        self.launch(False, self.split)
+        frames = self.session / "frames"
+        cap = subprocess.Popen([str(mat.WLT), "capture", str(self.session), str(frames), "20", "6"],
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        time.sleep(1.0)
+        for dark in (True, False, True, False):
+            self.set_theme(dark)
+            time.sleep(1.2)
+        out = cap.communicate(timeout=60)[0]
+        r = subprocess.run([str(mat.WLT), "check", str(frames)], capture_output=True, text=True, timeout=120)
+        print(f"\n  {out.strip()}; {r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ''}", end="")
+        self.assertEqual(r.returncode, 0, "probliknuti pri prepnuti rezimu:\n" + r.stdout + r.stderr)
         self.no_solid()
 
     def dim_shows_wallpaper(self, dark):
