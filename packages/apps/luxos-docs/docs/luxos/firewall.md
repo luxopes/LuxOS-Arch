@@ -112,7 +112,9 @@ nothing listens (scans) are only counted.
   the network stays open and `luxos-firewall status` shows the error (it never locks you out).
 - `luxos-firewall-refresh.path` reloads the rules when `/etc/luxos/firewall.json`, enabled services,
   `sshd_config`, `cupsd.conf`, `/etc/default/tailscaled` or system Flathub apps change; a package
-  manager hook does the same after `lux install`/`lux remove`.
+  manager hook does the same after `lux install`/`lux remove`. Starting or stopping `sshd`
+  (`systemctl start sshd`) opens or closes the SSH port right away (a drop-in in
+  `sshd.service.d`/`sshd.socket.d` reloads the rules).
 
 | File | Content |
 |---|---|
