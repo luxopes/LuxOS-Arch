@@ -9,6 +9,8 @@
 #                             zkratky, XWayland ani privilegovane protokoly; konci s kodem klienta
 #   --hold                    obraz pred startem (splash Plymouthu) zustane, dokud klient nenakresli prvni
 #                             snimek (nejdele HOLD_MS); s --greeter pak $XDG_RUNTIME_DIR/luxos-greeter-shown
+#   --intro                   prechod po prihlaseni jako v X11 (luxos-session-cover): obrazovka zakryta, dokud
+#                             tapeta, lista a Dock nenakresli prvni snimek, pak se plocha behem 280 ms objevi
 # Signaly: SIGTERM/SIGINT konec, SIGHUP znovu nacte luxwm.conf a vzhled, SIGUSR1 jen vzhled
 # (prepnuti svetly/tmavy), SIGUSR2 vypise stav na stderr (testy).
 # IPC pro shell (lista, Dock, nastaveni): $XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock, radkovy JSON,
@@ -43,6 +45,18 @@ greeter = False
 hold = False
 # hold konci nejpozdeji pred luxos-greetd-splash (10 s): splash nesmi skoncit, dokud ho drzime
 HOLD_MS = 8000
+# Animace oken z picom.conf LuxOS 1.0.x (ms); vypina je "omezit pohyb" (reduce_motion) a Sporic baterie
+ANIM_MS = {lc.ANIM_OPEN: 180, lc.ANIM_CLOSE: 140, lc.ANIM_MINIMIZE: 320, lc.ANIM_RESTORE: 300}
+# zaneprazdneny ukazatel po spusteni aplikace nejdele tak dlouho (mutter 15 s; xfwm4 30 s, ale aplikace bez
+# xdg-activation na Waylandu spusteni nikdy neohlasi)
+LAUNCH_FEEDBACK_MS = 15000
+# Prechod po prihlaseni (--intro): cerna jako konec greeteru, plocha se objevi az nakreslena. Bez Docku
+# (dock_zone) se po liste ceka nejvys INTRO_DOCK_MS, vzdy konec po INTRO_MAX_MS (relace bez shellu).
+INTRO_COLOR = 0xFF000000
+INTRO_DOCK_MS = 1500
+INTRO_SETTLE_MS = 100
+INTRO_MAX_MS = 10000
+intro = {"on": False, "backgrounds": [], "bar": False, "timer": 0}
 settings = {}
 binds = {}           # id zkratky -> akce
 outputs = []
@@ -1009,9 +1023,35 @@ function child_of(v):
     return 0
 end
 
+function motion_off():
+    return greeter or settings.get("reduce_motion", "no") == "yes" or exists(glib.user_config_dir() + "/luxos/powersaver")
+end
+
+function apply_motion():
+    for kind in List(ANIM_MS):
+        call lc.anim_set(kind, ANIM_MS[kind])
+    end
+    ms = LAUNCH_FEEDBACK_MS
+    safe:
+        ms = Int(glib.getenv("LUXWM_LAUNCH_FEEDBACK_MS"))
+    end
+    call lc.launch_feedback(0 if greeter else ms)
+end
+
+# Sporic baterie se muze zapnout kdykoli, proto se kontroluje u kazde animace
+function animate(v, kind):
+    if not motion_off():
+        call lc.view_animate(v, kind)
+    end
+end
+
 function show(v, remember):
     if vget(v, lc.VIEW_VISIBLE) == 0:
         call lc.view_set_visible(v, 1)
+        # Alt+Tab ukazuje minimalizovana okna jen docasne, bez animace
+        if not cycle["on"]:
+            call animate(v, lc.ANIM_RESTORE)
+        end
     end
     call lc.view_raise(v)
     child = child_of(v)
@@ -1189,6 +1229,7 @@ end
 
 function minimize(v):
     was = vget(v, lc.VIEW_FOCUSED) == 1
+    call animate(v, lc.ANIM_MINIMIZE)
     call lc.view_set_visible(v, 0)
     if was:
         call focus_next(v, 0)
@@ -1366,6 +1407,7 @@ function run_action(action):
     v = focused()
     if action.startswith("exec "):
         call lc.spawn(action[5:])
+        call lc.launch_start()
     elif action == "cycle_windows_key":
         call cycle_step(1, False)
     elif action == "cycle_reverse_windows_key":
@@ -1440,6 +1482,9 @@ function view_mapped(v):
     else:
         call focus(v)
     end
+    if v not in full and space == current_ws():
+        call animate(v, lc.ANIM_OPEN)
+    end
 end
 
 # Nizke zahlavi: cizi aplikace a dialogy. Aplikace LuxOS maji bezne zahlavi jako jejich okna s GTK
@@ -1472,6 +1517,7 @@ function view_resized(v):
 end
 
 function view_gone(v):
+    call animate(v, lc.ANIM_CLOSE)
     was = v == focused() or focused() == 0
     parent = vget(v, lc.VIEW_PARENT)
     if v in mru:
@@ -1628,6 +1674,71 @@ end
 
 # Prvni snimek greeteru je na obrazovce: luxos-greetd-splash az ted ukonci Plymouth (plymouth quit
 # --retain-splash). Driv by zmizel framebuffer splashe, ktery CRTC jeste zobrazuje (cerna obrazovka).
+# ---- prechod po prihlaseni (--intro) -------------------------------------------------------------
+
+function intro_start():
+    intro["on"] = True
+    call lc.cover(INTRO_COLOR)
+    intro["timer"] = glib.timeout_add(INTRO_MAX_MS, intro_timeout)
+end
+
+function intro_timeout():
+    intro["timer"] = 0
+    call intro_end("timeout")
+    return False
+end
+
+function intro_settled():
+    intro["timer"] = 0
+    call intro_end("ready")
+    return False
+end
+
+function intro_end(why):
+    if not intro["on"]:
+        return
+    end
+    intro["on"] = False
+    if intro["timer"] != 0:
+        call glib.source_remove(intro["timer"])
+        intro["timer"] = 0
+    end
+    call lc.cover_fade(0 if motion_off() else tokens.MOTION["login_fade"])
+    # volano z casovace glib: naplanovany snimek (idle zdroj smycky wayland) by jinak cekal na dalsi
+    # udalost na soketu kompozitoru
+    call lc.dispatch(0)
+    call log("intro end (" + why + ")")
+end
+
+# Plocha je nakreslena, kdyz ma tapetu kazdy monitor a lista (vrstva s exkluzivni zonou) i Dock (dock_zone)
+# prvni snimek; Dock nemusi byt (vypnuty), tak se na nej ceka jen chvili
+function intro_check():
+    if not intro["on"] or not intro["bar"] or len(outputs) == 0:
+        return
+    end
+    for out in outputs:
+        if out not in intro["backgrounds"]:
+            return
+        end
+    end
+    wait = INTRO_SETTLE_MS if len(dock_zones) > 0 else INTRO_DOCK_MS
+    if intro["timer"] != 0:
+        call glib.source_remove(intro["timer"])
+    end
+    intro["timer"] = glib.timeout_add(wait, intro_settled)
+end
+
+function intro_layer(out, layer, exclusive):
+    if layer == 0 and out not in intro["backgrounds"]:
+        intro["backgrounds"].append(out)
+    elif exclusive:
+        intro["bar"] = True
+    else:
+        return
+    end
+    call intro_check()
+end
+
 function hold_end(by_client):
     call log("hold end" + ("" if by_client else " (timeout)"))
     dir = glib.getenv("XDG_RUNTIME_DIR")
@@ -1701,6 +1812,11 @@ function handle(event, id, a, b, c):
     elif event == lc.EV_HOLD_END:
         call hold_end(a == 1)
         return
+    elif event == lc.EV_LAYER_MAP:
+        if intro["on"]:
+            call intro_layer(id, a, b == 1)
+        end
+        return
     elif event == lc.EV_SLIDE_DONE:
         if focused() == 0:
             call focus(top_on_current(0))
@@ -1712,7 +1828,7 @@ end
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
                "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close", "view-size",
-               "hold-end"]
+               "hold-end", "layer-map"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -2095,6 +2211,7 @@ function ipc_command(client, request):
             dock_zones[name] = [client, height]
         end
         call note("dock zone " + name + " " + String(height))
+        call intro_check()
         return {"ok": True}
     elif cmd == "sandbox_window":
         # luxos-sandbox (bezi mimo sandbox, aplikace sama na soket nedosahne): velikost a nazev hlavniho
@@ -2284,6 +2401,7 @@ function on_greeter_exit(pid, status):
 end
 
 commands = []
+intro_wanted = False
 for i in range(1, len(args)):
     if args[i] == "-d":
         trace = True
@@ -2291,6 +2409,8 @@ for i in range(1, len(args)):
         greeter = True
     elif args[i] == "--hold":
         hold = True
+    elif args[i] == "--intro":
+        intro_wanted = True
     else:
         commands.append(args[i])
     end
@@ -2321,6 +2441,7 @@ call read_locale()
 call apply_keyboard()
 call apply_repeat()
 call apply_theme(dark_mode())
+call apply_motion()
 sock = ipc_path()
 if sock != "" and lc.ipc_listen(sock) == 0:
     call lc.setenv("LUXWM_SOCK", sock)
@@ -2330,6 +2451,9 @@ else:
 end
 if hold:
     call lc.hold(HOLD_MS)
+end
+if intro_wanted and not greeter:
+    call intro_start()
 end
 if lc.start() != 0:
     call log("cannot start the backend")

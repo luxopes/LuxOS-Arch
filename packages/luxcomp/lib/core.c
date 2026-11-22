@@ -219,6 +219,7 @@ output_frame(struct wl_listener *listener, void *data)
 			return;	/* splash zustava; vystup zhasnuty pri startu kresli normalne */
 		}
 	}
+	anim_frame();
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
 	bool blurred = blur_output_frame(o);
@@ -237,6 +238,9 @@ output_frame(struct wl_listener *listener, void *data)
 		}
 	}
 	workspaces_frame_done(render_ns);
+	if (done) {
+		anim_frame_done(render_ns);
+	}
 	wlr_scene_output_for_each_buffer(o->scene_output, send_frame_done,
 		&(struct frame_done){ o->scene_output, &t1 });
 }
@@ -494,6 +498,7 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	comp.layer_overlay = wlr_scene_tree_create(root);
 	comp.layer_hidden = wlr_scene_tree_create(root);
 	wlr_scene_node_set_enabled(&comp.layer_hidden->node, false);
+	anim_init();
 	comp.default_ws = workspace_create();
 
 	views_init();
@@ -567,11 +572,13 @@ luxcomp_quit(void)
 void
 luxcomp_destroy(void)
 {
+	luxcomp_launch_feedback(0);
 	xwayland_finish();
 	ipc_finish();
 	wl_display_destroy_clients(comp.display);
 	wl_list_remove(&comp.toplevel_capture.link);
 	wl_list_remove(&comp.activate.link);
+	wl_list_remove(&comp.new_token.link);
 	wl_list_remove(&comp.new_inhibitor.link);
 	wl_list_remove(&comp.new_lock.link);
 	wl_list_remove(&comp.new_toplevel.link);
@@ -903,6 +910,9 @@ layer_map(struct wl_listener *listener, void *data)
 	}
 	layer_update_focus();
 	cursor_rebase();
+	if (l->output) {
+		emit(LUXCOMP_EV_LAYER_MAP, l->output->id, s->current.layer, s->current.exclusive_zone > 0, 0);
+	}
 }
 
 static void

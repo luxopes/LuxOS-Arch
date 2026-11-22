@@ -10,6 +10,7 @@
 #include <wlr/types/wlr_ext_foreign_toplevel_list_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_scene.h>
 #include "internal.h"
@@ -55,6 +56,23 @@ ftl_close(struct wl_listener *listener, void *data)
 	emit(LUXCOMP_EV_VIEW_REQUEST, v->id, LUXCOMP_REQ_CLOSE, 0, LUXCOMP_ORIGIN_TASKBAR);
 }
 
+/* Ikona okna v Docku: cil animace minimalizace */
+static void
+ftl_rectangle(struct wl_listener *listener, void *data)
+{
+	struct view *v = wl_container_of(listener, v, ftl_rectangle);
+	struct wlr_foreign_toplevel_handle_v1_set_rectangle_event *e = data;
+	struct wlr_layer_surface_v1 *ls = e->surface
+		? wlr_layer_surface_v1_try_from_wlr_surface(e->surface) : NULL;
+	struct wlr_scene_tree *tree = ls ? ls->data : NULL;
+	int lx, ly;
+	if (!tree || e->width <= 0 || e->height <= 0 || !wlr_scene_node_coords(&tree->node, &lx, &ly)) {
+		v->icon_box = (struct wlr_box){ 0 };
+		return;
+	}
+	v->icon_box = (struct wlr_box){ lx + e->x, ly + e->y, e->width, e->height };
+}
+
 void
 foreign_map(struct view *v)
 {
@@ -81,6 +99,8 @@ foreign_map(struct view *v)
 	wl_signal_add(&v->ftl->events.request_fullscreen, &v->ftl_fullscreen);
 	v->ftl_close.notify = ftl_close;
 	wl_signal_add(&v->ftl->events.request_close, &v->ftl_close);
+	v->ftl_rectangle.notify = ftl_rectangle;
+	wl_signal_add(&v->ftl->events.set_rectangle, &v->ftl_rectangle);
 	struct view *parent = view_by_id(luxcomp_view_get(v->id, LUXCOMP_VIEW_PARENT));
 	if (parent && parent->ftl) {
 		wlr_foreign_toplevel_handle_v1_set_parent(v->ftl, parent->ftl);
@@ -97,6 +117,7 @@ foreign_unmap(struct view *v)
 		wl_list_remove(&v->ftl_maximize.link);
 		wl_list_remove(&v->ftl_fullscreen.link);
 		wl_list_remove(&v->ftl_close.link);
+		wl_list_remove(&v->ftl_rectangle.link);
 		/* deti ukazuji na rodice; handle rodice by jinak visel */
 		struct view *c;
 		wl_list_for_each(c, &comp.views_list, link) {

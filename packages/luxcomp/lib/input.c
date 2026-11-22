@@ -401,7 +401,19 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 	/* ikona tazeni je pod kurzorem: cil hledat pod ni */
 	bool dragging = comp.drag_icons->node.enabled;
 	wlr_scene_node_set_enabled(&comp.drag_icons->node, false);
-	struct wlr_scene_node *node = wlr_scene_node_at(root, x, y, sx, sy);
+	struct wlr_scene_node *node = NULL;
+	if (comp.cover->node.enabled && !comp.locked) {
+		/* zakryti po prihlaseni je jen obraz, vstup jde na plochu pod nim */
+		struct wlr_scene_node *child;
+		wl_list_for_each_reverse(child, &comp.scene->tree.children, link) {
+			if (child != &comp.cover->node
+					&& (node = wlr_scene_node_at(child, x, y, sx, sy))) {
+				break;
+			}
+		}
+	} else {
+		node = wlr_scene_node_at(root, x, y, sx, sy);
+	}
 	wlr_scene_node_set_enabled(&comp.drag_icons->node, dragging);
 	if (!node) {
 		return LUXCOMP_PART_NONE;
@@ -430,6 +442,33 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 		return deco_part_at(v->deco, x - v->x, y - v->y);
 	}
 	return LUXCOMP_PART_CLIENT;
+}
+
+/* Posledni tvar kurzoru od klienta pod ukazatelem; NULL = klient ma vlastni obrazek (nebo zadny) */
+static const char *client_shape;
+
+/* Sipka behem spousteni aplikace = animovany "progress" (launch_busy) */
+static const char *
+pointer_name(const char *name)
+{
+	if (launch_busy() && !strcmp(name, "default")
+			&& wlr_xcursor_manager_get_xcursor(comp.cursor_mgr, "progress", 1)) {
+		return "progress";
+	}
+	return name;
+}
+
+void
+cursor_busy_update(void)
+{
+	if (comp.grab != GRAB_NONE) {
+		return;
+	}
+	if (!comp.seat->pointer_state.focused_surface) {
+		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name("default"));
+	} else if (client_shape) {
+		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name(client_shape));
+	}
 }
 
 static void
@@ -484,7 +523,7 @@ process_motion(uint32_t time)
 		wlr_seat_pointer_notify_enter(comp.seat, surface, sx, sy);
 		wlr_seat_pointer_notify_motion(comp.seat, time, sx, sy);
 	} else {
-		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, "default");
+		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name("default"));
 		wlr_seat_pointer_clear_focus(comp.seat);
 	}
 }
@@ -576,6 +615,7 @@ request_cursor(struct wl_listener *listener, void *data)
 {
 	struct wlr_seat_pointer_request_set_cursor_event *e = data;
 	if (comp.seat->pointer_state.focused_client == e->seat_client) {
+		client_shape = NULL;
 		wlr_cursor_set_surface(comp.cursor, e->surface, e->hotspot_x, e->hotspot_y);
 	}
 }
@@ -594,7 +634,8 @@ request_shape(struct wl_listener *listener, void *data)
 	if (!wlr_xcursor_manager_get_xcursor(comp.cursor_mgr, name, 1)) {
 		name = "default";
 	}
-	wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, name);
+	client_shape = name;
+	wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name(name));
 }
 
 static void

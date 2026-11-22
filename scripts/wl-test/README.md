@@ -63,7 +63,7 @@ scripts/wl-test/wlt stop "$s"
   - `-- COMMAND...`: another compositor, e.g. `-- luxwm -d`. The compositor must support `wlr-output-management` (for `--size` and the readiness check) and virtual pointer/keyboard (for `input`).
   - `WLT_COMPOSITOR_ENV="VAR=x ..."` adds variables to the compositor's environment.
   - For luxwm, `start` writes `S/privileged.conf` with wlr-randr, grim and wlt-input, and passes it as `LUXWM_PRIVILEGED`. `WLT_PRIVILEGED="/abs/prog ..."` adds programs under test (their real executables). Only allowlisted programs get the privileged protocols (output management, capture, virtual input). It also sets `WLR_XWAYLAND` to the sysroot's Xwayland. XWayland creates its X socket in `/tmp/.X11-unix` on a free display number, never `:0`.
-- `wlt-bar [--height N] [--bottom] [--color RRGGBB]` is a layer-shell bar with an exclusive zone, for placement tests below a bar or above a dock.
+- `wlt-bar [--height N] [--bottom] [--color RRGGBB] [--layer top|bottom|overlay|background]` is a layer-shell bar with an exclusive zone, for placement tests below a bar or above a dock. `--layer background` is a wallpaper stand-in without an exclusive zone.
 - `wlt-popups [--count N] [--size WxH] [--dim] [--cycles N]` opens N translucent popups with the `popup` material (and a
   full-screen Launchpad-like `dim` with `--dim`); `--cycles N` closes and reopens them N times, each opening waits for its
   first frame, then exits (leak checks).
