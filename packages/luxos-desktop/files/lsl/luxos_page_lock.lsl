@@ -75,7 +75,7 @@ function build_x11(page):
     current = "blank"
     if conf_get("/saver/mode", "0") == "2":
         themes = [line.strip() for line in conf_get("/saver/themes/list", "").split("\n") if line.strip() != ""]
-        current = "screensavers-luxos-wallpaper"
+        current = "screensavers-luxos"
         if len(themes) > 0:
             current = themes[len(themes) - 1]
         end

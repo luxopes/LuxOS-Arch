@@ -1051,11 +1051,12 @@ function analog_draw(cr, w, h, t):
 end
 
 # Tema xfce4-screensaver (xfconf /saver/themes/list, "screensavers-" + nazev souboru .desktop) -> styl; nezname
-# tema (jiny setric) -> desktop
+# tema (jiny setric) -> vychozi styl (stridajici se tapety, jako vychozi tema v /etc/xdg)
+DEFAULT_STYLE = "wallpapers"
 THEMES = {"screensavers-luxos": "wallpapers", "screensavers-luxos-wallpaper": "desktop", "screensavers-luxos-analog": "analog",
           "screensavers-luxos-clock": "clock", "screensavers-luxos-aurora": "aurora", "screensavers-luxos-photos": "photos",
           "screensavers-luxos-logo": "logo"}
 
 function style_for_theme(name):
-    return THEMES.get(name, "desktop")
+    return THEMES.get(name, DEFAULT_STYLE)
 end

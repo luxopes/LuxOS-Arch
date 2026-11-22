@@ -253,15 +253,24 @@ class Analog(Env, unittest.TestCase):
 
 
 class Defaults(unittest.TestCase):
-    def test_default_theme_is_desktop_wallpaper(self):
+    def test_default_theme_is_changing_wallpapers(self):
+        # owner 2026-11-22 (item 42): stridajici se tapety LuxOS; X11 (xfce4-screensaver), klid zamku na Waylandu
+        # (luxos-lock: chybejici seznam i nezname tema) a stranka Nastaveni maji stejnou vychozi hodnotu
         tree = ET.parse(os.path.join(FILES, "xdg", "xfce4", "xfconf", "xfce-perchannel-xml", "xfce4-screensaver.xml"))
         values = [v.get("value") for v in tree.iter("value")]
-        self.assertEqual(values, ["screensavers-luxos-wallpaper"])
-        with open(os.path.join(FILES, "screensaver", "luxos-wallpaper.desktop")) as f:
-            self.assertIn("Exec=/usr/lib/xfce4-screensaver/luxos --style desktop\n", f.read())
+        self.assertEqual(values, ["screensavers-luxos"])
+        with open(os.path.join(FILES, "screensaver", "luxos.desktop")) as f:
+            self.assertIn("Exec=/usr/lib/xfce4-screensaver/luxos --style wallpapers\n", f.read())
         with open(os.path.join(FILES, "lsl", "luxos_page_lock.lsl")) as f:
             src = f.read()
-        self.assertIn('["screensavers-luxos-wallpaper", "desktop", "Desktop wallpaper and clock"]', src)
+        self.assertIn('["screensavers-luxos", "wallpapers", "LuxOS - wallpapers and clock"]', src)
+        self.assertIn('current = "screensavers-luxos"\n', src)
+        with open(os.path.join(FILES, "lsl", "luxos_saver.lsl")) as f:
+            saver = f.read()
+        self.assertIn('DEFAULT_STYLE = "wallpapers"\n', saver)
+        self.assertIn('"screensavers-luxos": "wallpapers"', saver)
+        with open(os.path.join(FILES, "lsl", "luxos-lock.lsl")) as f:
+            self.assertIn("style = saver.DEFAULT_STYLE\n", f.read())
         # kazdy styl z nastaveni existuje v setrici a ma .desktop soubor
         for theme, style in re.findall(r'\["(screensavers-[a-z-]+)", "([a-z]+)"', src):
             self.assertIn(style, STYLES)

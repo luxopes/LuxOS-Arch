@@ -876,6 +876,30 @@ class Session(LockBase):
                                                '<property name="enabled" type="bool" value="false"/>'))
         self.wait_line(w, "idle 0")
 
+    def test_idle_saver_from_screensaver_theme(self):
+        # klid zamku = tema xfce4-screensaver; nezname tema (jiny setric) -> vychozi stridajici se tapety (item 42)
+        self.start()
+        xml = self.home / ".config/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml"
+        xml.parent.mkdir(parents=True, exist_ok=True)
+        for theme, style in (("screensavers-luxos-aurora", "aurora"), ("screensavers-something-else", "wallpapers"),
+                             ("screensavers-luxos", "wallpapers")):
+            xml.write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-screensaver" version="1.0">
+  <property name="saver" type="empty">
+    <property name="mode" type="int" value="2"/>
+    <property name="themes" type="empty">
+      <property name="list" type="array">
+        <value type="string" value="{theme}"/>
+      </property>
+    </property>
+  </property>
+</channel>
+""")
+            p = self.locker(XDG_CONFIG_HOME=str(self.home / ".config"))
+            self.assertEqual(self.wait_line(p, "saver "), "saver " + style)
+            self.keys(f"type {PASSWORD}", "key Return")
+            self.assertEqual(p.wait(10), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

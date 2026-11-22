@@ -97,7 +97,7 @@ function load_saver():
         conf = xfconf.channel("xfce4-screensaver")
         themes = xfconf.array("xfce4-screensaver", "/saver/themes/list")
         mode = conf.get("/saver/mode", "2")
-        style = "desktop"
+        style = saver.DEFAULT_STYLE
         if mode == "0":
             style = "blank"
         elif len(themes) > 0:
