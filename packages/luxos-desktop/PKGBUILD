@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=114
+pkgrel=115
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -51,7 +51,7 @@ depends=(
     gtk-layer-shell wayland libxkbcommon
     # relace na Waylandu (luxos-wayland-session): spravce oken, portaly snimku a sdileni obrazovky; relace X11
     # z greetd startuje Xorg pres startx (luxos-x11-session)
-    'luxwm>=0.1.0-13' xdg-desktop-portal xdg-desktop-portal-wlr xorg-xinit
+    'luxwm>=0.1.0-16' xdg-desktop-portal xdg-desktop-portal-wlr xorg-xinit
     # aplikace X11 na Waylandu (luxwm ho spousti az s prvni z nich) a okna aplikaci z jineho pocitace:
     # "ssh -X" mezi pocitaci s LuxOS jde pres waypipe na obou stranach (luxos-shell remote-apps.sh)
     xorg-xwayland waypipe
