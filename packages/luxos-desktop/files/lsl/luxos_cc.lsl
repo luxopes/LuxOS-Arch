@@ -23,6 +23,7 @@ load luxos_wl as wl
 load luxos_hub_popup as popup
 load luxos_glass as glass
 load luxos_luxwm as wm
+load luxos_svg_icon as svg_icon
 
 # Vzhled Ovladaciho centra verze 1.1.1 (luxos_cc.lsl na vetvi glass-ui): karta 18 px ze skla, dlazdice
 # a sekce 14 px, posuvniky 22 px, odkazy dole jako text
@@ -53,58 +54,147 @@ CSS = ("window.cc { background: transparent; }\n"
     + "button.media:hover { background-color: @cc_tile_hover; }\n"
     + ".avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white; background-image: linear-gradient(135deg, @cc_accent, #8b4dff); }\n")
 
-# Wayland: vzhled Samsung One UI (prototyp vlastnika z 2026-11-18, ~/.local/share/luxos-control-center-preview):
-# velka karta, dlazdice jako pilulky s bilou bublinou zapnute volby, posuvniky jako siroke pilulky s ikonou uvnitr
-# a kulatym tlacitkem vedle. Zmenseno proti prototypu (432 px) na sirku ostatnich vyskakovacich oken listy.
+# Wayland: vzhled Samsung One UI podle prototypu vlastnika (~/.local/share/luxos-control-center-preview, ui.py a
+# drawing.py): rozmery, pisma, barvy a pruhlednosti z jeho kresby v meritku 0,8 (karta 432 -> 346 px, vejde se
+# s baterii i obrazovkami pod listu na 1366x768). Pilulky jsou bile s pruhlednosti podle prototypu (alfa/0,15 * 0,28
+# ve svetlem, * 0,10 v tmavem rezimu), bubliny vypnute bile 28 % / 10 %, zapnute plne bile s tmavou ikonou.
+# Ikony jsou kresby prototypu (CC_ICONS, luxos_svg_icon), ne symbolicke ikony motivu.
 ONEUI_RADIUS = 28
-ONEUI_WIDTH = 336
-ONEUI_CSS = (".oneui .cc-box { border-radius: " + String(ONEUI_RADIUS) + "px; padding: 14px; }\n"
-    + ".oneui .head { font-size: 17px; font-weight: 600; padding-left: 4px; }\n"
-    + ".oneui button.round { min-width: 32px; min-height: 32px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background: none; color: @cc_fg; }\n"
-    + ".oneui button.round:hover { background-color: @cc_tile_hover; }\n"
-    + ".oneui .tile, .oneui .section, .oneui button.row { border-radius: 999px; }\n"
-    + ".oneui .tile { padding: 8px 10px 8px 8px; }\n"
-    + ".oneui .bubble { min-width: 40px; min-height: 40px; padding: 0; border: none; box-shadow: none; background-image: none; border-radius: 999px; background-color: @cc_bubble; color: @cc_fg; }\n"
-    + ".oneui .bubble.on { background-color: white; color: #343947; }\n"
-    + ".oneui button.bubble:hover { background-color: @cc_tile_hover; }\n"
+ONEUI_WIDTH = 346
+ONEUI_CSS = (".oneui .cc-box { border-radius: " + String(ONEUI_RADIUS) + "px; padding: 0 16px 17.6px 16px; border: none; box-shadow: none; "
+    + "background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)); color: @cc1_ink; }\n"
+    + ".oneui label { color: @cc1_ink; }\n"
+    + ".oneui .sub, .oneui .tile .sub, .oneui .section .sub { color: @cc1_dim; font-size: 9.2px; font-weight: 400; }\n"
+    + ".oneui .head-row { margin-top: 14.4px; min-height: 28px; }\n"
+    + ".oneui .head { font-size: 15.2px; font-weight: 600; padding-left: 1.6px; }\n"
+    + ".oneui button.round { min-width: 28px; min-height: 28px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background: none; }\n"
+    + ".oneui button.round:hover { background-color: @cc1_pill_soft; }\n"
+    + ".oneui .tile, .oneui .section, .oneui button.row { border-radius: 999px; border: 1px solid @cc1_edge; box-shadow: none; background-image: none; }\n"
+    # ucet: pilulka 49,6 px, bile kolecko s pismenem (fotka profilu ho prekryje)
+    + ".oneui .account { margin-top: 10.4px; }\n"
+    + ".oneui .account .section { min-height: 47.6px; padding: 0 10.4px 0 10.2px; background-color: @cc1_pill_soft; }\n"
+    + ".oneui .account .title { font-size: 12px; font-weight: 600; }\n"
+    + ".oneui .avatar { min-width: 32px; min-height: 32px; border-radius: 999px; background-image: none; background-color: rgba(255, 255, 255, 0.92); "
+    + "color: #3b4355; font-size: 18.4px; font-weight: 600; }\n"
+    # dlazdice 152 x 56, bublina 35,2, nazev 11,2 px, popisek 9,2 px
+    + ".oneui .tiles { margin-top: 10.4px; }\n"
+    + ".oneui .tile { min-height: 54px; padding: 0 7px; background-color: @cc1_pill_toggle; }\n"
+    + ".oneui .tile:hover { background-color: @cc1_pill_hover; }\n"
+    + ".oneui .tile .title { font-size: 11.2px; font-weight: 600; }\n"
+    + ".oneui .tile .title.long { font-size: 10.4px; }\n"
+    + ".oneui .bubble { min-width: 35.2px; min-height: 35.2px; padding: 0; border: none; box-shadow: none; background-image: none; border-radius: 999px; background-color: @cc1_bubble; }\n"
+    + ".oneui .bubble.on { background-color: rgba(255, 255, 255, 0.98); }\n"
+    + ".oneui button.bubble:hover { background-color: @cc1_pill_hover; }\n"
     + ".oneui button.bubble.on:hover { background-color: rgba(255, 255, 255, 0.85); }\n"
-    + ".oneui .tile .title, .oneui .section .title { font-size: 13px; }\n"
-    + ".oneui .tile .title.long { font-size: 12px; }\n"
-    + ".oneui .savers { padding: 8px 10px; }\n"
-    + ".oneui .savers .tile { background: none; padding: 0; }\n"
-    + ".oneui .section { padding: 8px 14px 8px 8px; }\n"
-    + ".oneui .section.media { border-radius: 24px; padding: 10px 12px; }\n"
-    + ".oneui .section.screens { border-radius: 24px; padding: 8px 12px 6px 12px; }\n"
-    + ".oneui .tile.mode { border-radius: 18px; padding: 6px 4px 4px 4px; background: none; }\n"
-    + ".oneui .tile.mode:hover { background-color: @cc_tile_hover; }\n"
-    # mensi bubliny rezimu: s obrazovkami a baterii se okno vejde pod listu i na 1366x768
-    + ".oneui .tile.mode .bubble { min-width: 34px; min-height: 34px; }\n"
-    # zvoleny rezim obrazovek bila bublina jako zapnute dlazdice (ne modra z vzhledu X11)
-    + ".oneui .tile.mode.on .bubble { background-color: white; color: #343947; }\n"
-    + ".oneui button.row { background-color: @cc_tile; border: none; box-shadow: none; background-image: none; color: @cc_fg; padding: 10px 14px; }\n"
-    + ".oneui button.row:hover, .oneui button.plain:hover .section { background-color: @cc_tile_hover; }\n"
-    + ".oneui button.row label { font-size: 13px; font-weight: 500; }\n"
-    + ".oneui .footbar { background-color: @cc_tile; border-radius: 999px; padding: 4px; }\n"
-    + ".oneui .footbar .footer { padding: 8px 6px; border-radius: 999px; font-size: 11px; }\n"
-    # Pilulka posuvniku je box kolem nej: GTK nosi stred kolecka (44 px) po celem zlabu, vnitrni okraj boxu 22 px
+    # sporice: jedna pilulka 63,2 px, dve poloviny s bublinou 33,6 px
+    + ".oneui .savers { margin-top: 11.2px; min-height: 61.2px; padding: 0; background-color: @cc1_pill_row; }\n"
+    + ".oneui .savers .tile { background: none; border: none; padding: 0 0 0 13.4px; min-height: 0; }\n"
+    + ".oneui .savers .bubble { min-width: 33.6px; min-height: 33.6px; }\n"
+    + ".oneui .savers .title { font-size: 10.4px; }\n"
+    + ".oneui .savers .sub { font-size: 8.8px; }\n"
+    # posuvniky 40 px (prototyp 39,2; cele pixely, jinak se vypln a kolecko lisi o radek), kulate tlacitko vedle stejne velke
+    # prototyp: radek posuvniku konci 10,4 px pred okrajem obsahu
+    + ".oneui .slider-row { margin-top: 11.2px; margin-right: 10.4px; }\n"
+    + ".oneui .slider-row.first { margin-top: 12.8px; }\n"
+    # Pilulka posuvniku je box kolem nej: GTK nosi stred kolecka po celem zlabu, vnitrni okraj boxu (pul kolecka)
     # drzi kolecko uvnitr pilulky (na 100 % by jinak prejelo pod kulate tlacitko vedle). Okraj na samotnem
-    # posuvniku by GTK odecetl od drahy kolecka a klik by prestal odpovidat poloze. Levych 22 px pilulky je vzdy
-    # bilych (kolecko na nule je tam taky), vypln a kolecko nepruhledne bile (One UI i v tmavem rezimu), tenky
-    # obrys jako v prototypu.
-    + ".oneui .level { min-height: 44px; padding: 0 22px; border-radius: 22px; background-color: @cc_trough; background-image: linear-gradient(to right, white 22px, transparent 22px); box-shadow: inset 0 0 0 1px @cc_edge; }\n"
+    # posuvniku by GTK odecetl od drahy kolecka a klik by prestal odpovidat poloze. Levy okraj pilulky je vzdy
+    # bily (kolecko na nule je tam taky), vypln a kolecko nepruhledne bile (One UI i v tmavem rezimu).
+    + ".oneui .level { min-height: 40px; padding: 0 20px; border-radius: 20px; background-color: @cc1_pill_slider; "
+    + "background-image: linear-gradient(to right, @cc1_fill 20px, transparent 20px); box-shadow: inset 0 0 0 1px @cc1_edge; }\n"
     + ".oneui scale { padding: 0; margin: 0; }\n"
-    + ".oneui scale trough { min-height: 44px; border-radius: 0; background: none; border: none; box-shadow: none; }\n"
-    + ".oneui scale highlight { min-height: 44px; border-radius: 0; background-color: white; border: none; }\n"
-    + ".oneui scale slider { min-width: 44px; min-height: 44px; margin: 0; border-radius: 22px; background-color: white; background-image: none; border: none; box-shadow: none; }\n"
+    + ".oneui scale trough { min-height: 40px; border-radius: 0; background: none; border: none; box-shadow: none; }\n"
+    + ".oneui scale highlight { min-height: 40px; border-radius: 0; background-color: @cc1_fill; border: none; }\n"
+    + ".oneui scale slider { min-width: 40px; min-height: 40px; margin: 0; border-radius: 20px; background-color: @cc1_fill; background-image: none; border: none; box-shadow: none; }\n"
     # krouzek kolem kolecka jen kdyz GTK ukazuje fokus (focus-visible okna, jako obrys tlacitek), ne po kliknuti
     # mysi; GTK 3 nema :focus-visible, proto trida keynav
     + ".oneui.keynav scale:focus slider { box-shadow: 0 0 0 2px alpha(@cc_accent, 0.9); }\n"
-    + ".oneui .level-icon { color: #343947; margin-left: 14px; }\n"
-    + ".oneui button.side { min-width: 44px; min-height: 44px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background-image: none; background-color: @cc_bubble; color: @cc_fg; }\n"
-    + ".oneui button.side:hover { background-color: @cc_tile_hover; }\n"
-    + ".oneui button.side.on { background-color: white; color: #343947; }\n"
+    + ".oneui .level-icon { margin-left: 12px; }\n"
+    + ".oneui button.side { min-width: 40px; min-height: 40px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background-image: none; background-color: @cc1_bubble; }\n"
+    + ".oneui button.side:hover { background-color: @cc1_pill_hover; }\n"
+    + ".oneui button.side.on { background-color: rgba(255, 255, 255, 0.98); }\n"
+    # radek QR 39,2 px, baterie 49,6 px s bilou bublinou
+    + ".oneui button.row { margin-top: 12.8px; min-height: 37.2px; background-color: @cc1_pill_row; padding: 0 10.4px 0 12.8px; }\n"
+    + ".oneui button.row:hover, .oneui button.plain:hover .section { background-color: @cc1_pill_hover; }\n"
+    + ".oneui button.row label { font-size: 10.4px; font-weight: 500; }\n"
+    + ".oneui .battery { margin-top: 12px; }\n"
+    + ".oneui .battery .section { min-height: 47.6px; padding: 0 10.4px 0 9.4px; background-color: @cc1_pill_row; }\n"
+    + ".oneui .battery .title { font-size: 12px; font-weight: 600; }\n"
+    + ".oneui .section.media { margin-top: 12px; border-radius: 24px; padding: 8px 10.4px; background-color: @cc1_pill_row; }\n"
+    + ".oneui .section.media .title { font-size: 11.2px; font-weight: 600; }\n"
+    + ".oneui .art { min-width: 33.6px; min-height: 33.6px; border-radius: 8px; }\n"
+    + ".oneui button.media { min-width: 28px; min-height: 28px; padding: 0; }\n"
+    + ".oneui button.media:hover { background-color: @cc1_pill_hover; }\n"
+    + ".oneui .section.screens { margin-top: 12px; border-radius: 24px; padding: 8px 10.4px 6px 10.4px; background-color: @cc1_pill_row; }\n"
+    + ".oneui .section.screens .title { font-size: 11.2px; font-weight: 600; }\n"
+    + ".oneui .tile.mode { border-radius: 16px; padding: 4px 4px 2px 4px; background: none; border: none; min-height: 0; }\n"
+    + ".oneui .tile.mode:hover { background-color: @cc1_pill_hover; }\n"
+    + ".oneui .tile.mode .title { font-size: 9.6px; font-weight: 500; }\n"
+    + ".oneui .tile.mode .bubble { min-width: 30px; min-height: 30px; }\n"
+    # zvoleny rezim obrazovek bila bublina jako zapnute dlazdice (ne modra z vzhledu X11)
+    + ".oneui .tile.mode.on .bubble { background-color: rgba(255, 255, 255, 0.98); color: #343947; }\n"
+    # dolni odkazy: pilulka 45,6 px, ikony 16 px, pismo 8 px
+    + ".oneui .footbar { margin-top: 15.2px; min-height: 43.6px; background-color: @cc1_pill_soft; border: 1px solid @cc1_edge; border-radius: 999px; padding: 0 4px; }\n"
+    + ".oneui .footbar .footer { padding: 4px 6px; border-radius: 999px; font-size: 8px; font-weight: 500; }\n"
+    + ".oneui .footbar .footer:hover { background-color: @cc1_pill_hover; }\n"
     + ".oneui button:focus { outline: 2px solid alpha(@cc_accent, 0.9); outline-offset: 1px; -gtk-outline-radius: 999px; }\n"
     + ".oneui scale:focus, .oneui scale:focus trough { outline-width: 0; outline-style: none; }\n")
+
+# Barvy prototypu: inkoust a popisky podle svetleho/tmaveho skla, pilulky bile s alfou podle typu radku
+# (prototyp pill(alpha): alfa/0,15 * 0,28 ve svetlem, * 0,10 v tmavem rezimu), obrys 0,7 px
+function oneui_colors(dark):
+    base = 0.10 if dark else 0.28
+    out = ""
+    for item in [["toggle", 0.17], ["row", 0.16], ["soft", 0.12], ["slider", 0.23], ["hover", 0.25]]:
+        out = out + "@define-color cc1_pill_" + item[0] + " rgba(255, 255, 255, " + String(item[1] / 0.15 * base) + ");\n"
+    end
+    out = out + "@define-color cc1_bubble rgba(255, 255, 255, " + String(base) + ");\n"
+    out = out + "@define-color cc1_edge " + ("rgba(255, 255, 255, 0.06)" if dark else "rgba(25, 31, 43, 0.04)") + ";\n"
+    # vypln posuvniku: prototyp ma bilou 91 % nad pilulkou; prekryvajici se kolecko by pruhlednou zdvojilo, proto plna
+    out = out + "@define-color cc1_fill " + ("#efeff1" if dark else "#fdfdfd") + ";\n"
+    out = out + "@define-color cc1_ink " + ("#ffffff" if dark else "#191f2b") + ";\n"
+    out = out + "@define-color cc1_dim " + ("#edf0f5" if dark else "#353b47") + ";\n"
+    return out
+end
+
+# Ikony prototypu (drawing.py ICONS + ui.py), kresba 24x24, cary 1,7 px; doplnene v jeho stylu: nocni svetlo
+# (mesic s hvezdami, mesic samotny patri tmavemu rezimu jako v prototypu), Bluetooth nedostupne, Ethernet,
+# napajeni a ovladani prehravace
+CC_ICONS = {
+    "wifi": "<path d=\"M3 8a14 14 0 0 1 18 0M6 11.5a9 9 0 0 1 12 0M9 15a4.5 4.5 0 0 1 6 0\"/><circle cx=\"12\" cy=\"19\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>",
+    "ethernet": "<rect x=\"4\" y=\"8\" width=\"16\" height=\"10\" rx=\"2\"/><path d=\"M8 12v2m4-2v2m4-2v2M9 8V5h6v3\"/>",
+    "bluetooth": "<path d=\"m7 7 10 10-5 4V3l5 4L7 17\"/>",
+    "bluetooth-off": "<path d=\"m7 7 10 10-5 4V3l5 4L7 17\"/><path d=\"M4 4l16 16\"/>",
+    "minus": "<path d=\"M21 12a9 9 0 1 1-18 0 9 9 0 1 1 18 0ZM8 11h8v2H8Z\" fill=\"currentColor\" fill-rule=\"evenodd\" stroke=\"none\"/>",
+    "moon": "<path d=\"M20.5 15.7A9 9 0 0 1 8.3 3.5 9 9 0 1 0 20.5 15.7Z\" fill=\"currentColor\" stroke=\"none\"/>",
+    "nightlight": "<path d=\"M18 16.4A7.6 7.6 0 0 1 7.6 6 7.6 7.6 0 1 0 18 16.4Z\" fill=\"currentColor\" stroke=\"none\"/>"
+        + "<path d=\"M17 2.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9ZM21 9.5l.5 1.1 1.1.5-1.1.5-.5 1.1-.5-1.1-1.1-.5 1.1-.5Z\" fill=\"currentColor\" stroke=\"none\"/>",
+    "data": "<path d=\"M4 19v-3M9 19v-7M14 19V8M19 19V3\" stroke-width=\"3.2\"/>",
+    "battery": "<rect x=\"2\" y=\"6\" width=\"18\" height=\"12\" rx=\"2.5\"/><path d=\"M23 10v4\"/><path d=\"m11 8-4 5h4l-1 3 5-5h-4l1-3\" stroke-width=\"1.1\"/>",
+    "batteryempty": "<rect x=\"2\" y=\"6\" width=\"18\" height=\"12\" rx=\"2.5\"/><path d=\"M23 10v4\"/>",
+    "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5\"/>",
+    "sound": "<path d=\"M4 9h4l5-4v14l-5-4H4Z\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14\"/>",
+    "muted": "<path d=\"M4 9h4l5-4v14l-5-4H4Z\" fill=\"currentColor\" stroke=\"none\"/><path d=\"m17 9 5 6m0-6-5 6\"/>",
+    "chevron": "<path d=\"m9 4 8 8-8 8\"/>",
+    "monitor": "<rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M8 21h8m-4-4v4\"/>",
+    "qr": "<rect x=\"3\" y=\"3\" width=\"6\" height=\"6\" rx=\"1.2\"/><rect x=\"15\" y=\"3\" width=\"6\" height=\"6\" rx=\"1.2\"/><rect x=\"3\" y=\"15\" width=\"6\" height=\"6\" rx=\"1.2\"/>"
+        + "<path d=\"M15 14h2v3h4m-7 3v1m6-7v1m-3 6h1m3-3v3\"/>",
+    "power": "<path d=\"M12 2v10m-6-7a9 9 0 1 0 12 0\"/>",
+    # ozubene kolo: preferences-system-symbolic sady elementary jako v prototypu (16x16 -> 24x24)
+    "settings": "<path transform=\"scale(1.5)\" fill=\"currentColor\" stroke=\"none\" d=\"M7 0C6.8 0 6.63.86 6.51 2.19a6 6 0 0 0-1.55.65C3.92 1.98 3.19 1.5 3.05 1.64L1.64 3.05c-.14.14.34.87 1.2 1.9a6 6 0 0 0-.64 1.56C.86 6.63 0 6.8 0 7v2c0 .2.86.37 2.19.49a6 6 0 0 0 .65 1.55c-.86 1.04-1.34 1.77-1.2 1.91l1.41 1.41c.14.14.87-.34 1.9-1.2a6 6 0 0 0 1.56.64C6.63 15.14 6.8 16 7 16h2c.2 0 .37-.86.49-2.19a6 6 0 0 0 1.55-.65c1.04.86 1.77 1.34 1.91 1.2l1.41-1.41c.14-.14-.35-.87-1.2-1.9a6 6 0 0 0 .64-1.56C15.14 9.37 16 9.2 16 9V7c0-.2-.86-.37-2.19-.49a6 6 0 0 0-.65-1.55c.86-1.04 1.34-1.77 1.2-1.91l-1.41-1.41c-.14-.14-.87.35-1.9 1.2a6 6 0 0 0-1.56-.64C9.37.86 9.2 0 9 0Zm1 4.75a3.25 3.25 0 1 1 0 6.5 3.25 3.25 0 0 1 0-6.5Z\"/>",
+    "play": "<path d=\"M8 5v14l11-7Z\" fill=\"currentColor\" stroke=\"none\"/>",
+    "pause": "<path d=\"M7 5h3.5v14H7ZM13.5 5H17v14h-3.5Z\" fill=\"currentColor\" stroke=\"none\"/>",
+    "previous": "<path d=\"M18 6v12l-9-6ZM6 6v12\" fill=\"currentColor\"/>",
+    "next": "<path d=\"M6 6v12l9-6ZM18 6v12\" fill=\"currentColor\"/>"
+}
+
+# Baterie prototypu (batteryfull): zelena vypln podle nabiti, pod 20 % cervena
+function battery_glyph(level):
+    width = max(1.5, 13.0 * Float(min(100, max(0, level))) / 100.0)
+    fill = "#38c81c" if level >= 20 else "#ff3b30"
+    return ("<rect x=\"1\" y=\"5\" width=\"19\" height=\"14\" rx=\"3\"/><path d=\"M23 9v6\"/><rect x=\"4\" y=\"8\" width=\""
+        + String(width) + "\" height=\"8\" rx=\"1.2\" fill=\"" + fill + "\" stroke=\"none\"/>")
+end
 
 SIGUSR1 = 10
 SIGUSR2 = 12
@@ -325,7 +415,7 @@ function tile_new(icon, title, action, settings):
     button = focusable(gtk.button_new_empty())
     call gtk.widget_add_class(button, "tile")
     tile["widget"] = button
-    box = gtk.box_new(gtk.HORIZONTAL, 10)
+    box = gtk.box_new(gtk.HORIZONTAL, 9 if cc["oneui"] else 10)
     bubble = gtk.box_new(gtk.HORIZONTAL, 0)
     tile["spot"] = bubble
     if settings != None:
@@ -334,7 +424,7 @@ function tile_new(icon, title, action, settings):
         tile["widget"] = overlay
         # misto pro bublinu v dlazdici (velikost bubliny One UI)
         spot = gtk.box_new(gtk.HORIZONTAL, 0)
-        call gtk.widget_set_size_request(spot, 40, 40)
+        call gtk.widget_set_size_request(spot, 35, 35)
         call gtk.box_pack_start(box, spot, False, False, 0)
         tile["spot"] = spot
         bubble = focusable(gtk.button_new_empty())
@@ -351,14 +441,13 @@ function tile_new(icon, title, action, settings):
     call gtk.widget_add_class(bubble, "bubble")
     # obrazek vyplni bublinu baleni, ne hexpand: ten by se rozsiril na celou bublinu v radku dlazdice,
     # bublina by dostala cast volneho mista a text kratkych nazvu by se posunul doprava
-    image = oneui_icon(icon)
+    image = oneui_icon(icon, 19.2)
     if settings != None:
         call gtk.container_add(bubble, image)
     else:
         call gtk.box_pack_start(bubble, image, True, True, 0)
     end
-    column = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_valign(column, gtk.ALIGN_CENTER)
+    column = text_column()
     # pevna sirka (okno se nerozsiri za okraj): delsi preklad mensim pismem ("Datensparmodus") a na dva
     # radky ("Economiseur de / batterie"), az pak se zkrati
     title_label = label(title, "title", 0)
@@ -379,6 +468,7 @@ function tile_new(icon, title, action, settings):
     call gtk.box_pack_start(column, sub, False, False, 0)
     call gtk.box_pack_start(box, column, True, True, 0)
     call gtk.container_add(button, box)
+    tile["box"] = box
     tile["button"] = button
     tile["image"] = image
     tile["title"] = title_label
@@ -388,13 +478,74 @@ function tile_new(icon, title, action, settings):
     return tile
 end
 
-# Ikona bubliny, posuvniku a kulateho tlacitka: One UI 20 px (prototyp 24 px v bubline 44 px)
-function oneui_icon(name):
-    image = gtk.image_new_from_icon_name(name, gtk.ICON_MENU)
+# Nazev a popisek pod sebou, svisle uprostred radku; One UI s mezerou prototypu (popisek 17,6 px pod nazvem)
+# a o kousek vys
+function text_column():
+    column = gtk.box_new(gtk.VERTICAL, 4 if cc["oneui"] else 0)
+    call gtk.widget_set_valign(column, gtk.ALIGN_CENTER)
     if cc["oneui"]:
-        call gtk.image_set_pixel_size(image, 20)
+        call gtk.widget_set_margins(column, 0, 0, 0, 3)
     end
+    return column
+end
+
+# Ikona [nazev v motivu (X11), kresba prototypu (One UI)]; One UI v pixelech prototypu * 0,8
+function oneui_icon(icon, size):
+    if cc["oneui"]:
+        return cc_icon(icon[1], size, "ink")
+    end
+    return gtk.image_new_from_icon_name(icon[0], gtk.ICON_MENU)
+end
+
+# Ikony prototypu: [obrazek, kresba, velikost, role]; role "ink" = inkoust skla, "on" = tmava na bile bubline
+function cc_icon(name, size, role):
+    image = gtk.image_new()
+    item = [image, name, size, role]
+    cc["icons"].append(item)
+    call paint_icon(item)
     return image
+end
+
+function paint_icon(item):
+    body = item[1]
+    if not body.startswith("<"):
+        body = CC_ICONS[body]
+    end
+    color = "#343947"
+    if item[3] == "ink":
+        color = "#ffffff" if cc["dark"] else "#191f2b"
+    end
+    call svg_icon.set(item[0], body, item[2], color, cc["scale"])
+    return 0
+end
+
+# Jina kresba nebo role ikony (zapnuta bublina, ztlumeni, uroven baterie)
+function set_icon(image, name, role):
+    for item in cc["icons"]:
+        if item[0] == image and (item[1] != name or item[3] != role):
+            item[1] = name
+            item[3] = role
+            call paint_icon(item)
+        end
+    end
+    return 0
+end
+
+function icon_name(image):
+    for item in cc["icons"]:
+        if item[0] == image:
+            return item[1]
+        end
+    end
+    return ""
+end
+
+# Prepnuti svetly/tmavy nebo jine HiDPI: vsechny ikony znovu
+function paint_icons():
+    for item in cc["icons"]:
+        call paint_icon(item)
+    end
+    return 0
 end
 
 function on_bubble_clicked(tile, button):
@@ -421,6 +572,9 @@ end
 function tile_set_state(tile, on, sub):
     call gtk.widget_set_class(tile["button"], "on", on == True)
     call gtk.widget_set_class(tile["bubble"], "on", on == True)
+    if cc["oneui"]:
+        call set_icon(tile["image"], icon_name(tile["image"]), "on" if on == True else "ink")
+    end
     if sub != None:
         call gtk.label_set_text(tile["sub"], sub)
     end
@@ -438,6 +592,9 @@ function slider_new(title, icon, on_change, on_icon, side_icon, tooltip):
     row = {"lock": False, "on_change": on_change, "on_icon": on_icon, "busy": False, "want": -1}
     if cc["oneui"]:
         return slider_new_oneui(row, icon, side_icon, tooltip)
+    end
+    if type(icon) == "List":
+        icon = icon[0]
     end
     box = gtk.box_new(gtk.VERTICAL, 6)
     call gtk.widget_add_class(box, "section")
@@ -464,7 +621,7 @@ function slider_new(title, icon, on_change, on_icon, side_icon, tooltip):
 end
 
 function slider_new_oneui(row, icon, side_icon, tooltip):
-    box = gtk.box_new(gtk.HORIZONTAL, 12)
+    box = gtk.box_new(gtk.HORIZONTAL, 10)
     scale = focusable(gtk.scale_new_with_range(gtk.HORIZONTAL, 0, 100, 1))
     call gtk.scale_set_draw_value(scale, False)
     call gtk.range_set_increments(scale, 5, 10)
@@ -475,7 +632,7 @@ function slider_new_oneui(row, icon, side_icon, tooltip):
     overlay = gtk.overlay_new()
     call gtk.widget_set_hexpand(overlay, True)
     call gtk.container_add(overlay, pill)
-    level = oneui_icon(icon)
+    level = cc_icon(icon[1], 19.2, "on")
     call gtk.widget_add_class(level, "level-icon")
     call gtk.widget_set_halign(level, gtk.ALIGN_START)
     call gtk.widget_set_valign(level, gtk.ALIGN_CENTER)
@@ -485,7 +642,7 @@ function slider_new_oneui(row, icon, side_icon, tooltip):
     call gtk.widget_add_class(button, "side")
     call gtk.widget_set_valign(button, gtk.ALIGN_CENTER)
     call gtk.widget_set_tooltip(button, tooltip)
-    image = oneui_icon(side_icon)
+    image = oneui_icon(side_icon, 19.2)
     call gtk.container_add(button, image)
     call gtk.connect_data(button, "clicked", 0, on_slider_icon, row)
     call gtk.box_pack_start(box, overlay, True, True, 0)
@@ -552,7 +709,7 @@ function footer_button(box, title, command, icon):
         button = focusable(gtk.button_new_empty())
         line = gtk.box_new(gtk.HORIZONTAL, 6)
         call gtk.widget_set_halign(line, gtk.ALIGN_CENTER)
-        image = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
+        image = cc_icon(icon[1], 16.0, "ink")
         call gtk.box_pack_start(line, image, False, False, 0)
         name = label(title.replace("…", ""), "", 0)
         call gtk.label_set_ellipsize(name, gtk.ELLIPSIZE_END)
@@ -564,7 +721,7 @@ function footer_button(box, title, command, icon):
     end
     call gtk.widget_add_class(button, "footer")
     call gtk.connect_data(button, "clicked", 0, on_launch_clicked, command)
-    call gtk.box_pack_start(box, button, cc["oneui"], cc["oneui"], 0)
+    call gtk.box_pack_start(box, button, False, False, 0)
     return [button, image, name]
 end
 
@@ -575,11 +732,23 @@ function on_launch_clicked(command, button):
     return 0
 end
 
+# Sipka na konci radku (prototyp 18 px)
+function chevron():
+    if cc["oneui"]:
+        return cc_icon("chevron", 14.4, "ink")
+    end
+    return gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU)
+end
+
 function media_button(box, name, icon, size):
     button = focusable(gtk.button_new_empty())
     call gtk.widget_set_valign(button, gtk.ALIGN_CENTER)
     call gtk.widget_add_class(button, "media")
-    call gtk.container_add(button, gtk.image_new_from_icon_name(icon, size))
+    if cc["oneui"]:
+        call gtk.container_add(button, cc_icon(icon[1], 19.2 if name == "PlayPause" else 16.0, "ink"))
+    else:
+        call gtk.container_add(button, gtk.image_new_from_icon_name(icon[0], size))
+    end
     call gtk.connect_data(button, "clicked", 0, on_media_clicked, name)
     call gtk.box_pack_start(box, button, False, False, 0)
     return button
@@ -597,10 +766,9 @@ function css_text():
     name = gtk.settings_theme_name().lower()
     dark = name.find("dark") >= 0
     css = popup.colors("cc", dark) + CSS
-    # obrys pilulek posuvniku (prototyp: tmavy 5,5 % ve svetlem, bily 8 % v tmavem rezimu)
-    css = css + "@define-color cc_edge " + ("rgba(255, 255, 255, 0.08)" if dark else "rgba(25, 31, 43, 0.055)") + ";\n"
+    cc["dark"] = dark
     if cc["oneui"]:
-        css = css + ONEUI_CSS
+        css = css + oneui_colors(dark) + ONEUI_CSS
     end
     return css
 end
@@ -608,6 +776,9 @@ end
 # Svetly/tmavy rezim se muze prepnout za behu (automaticky podle slunce)
 function on_theme_changed(pspec, settings):
     call gtk.css_set(cc["provider"], css_text())
+    if cc["oneui"]:
+        call paint_icons()
+    end
     return 0
 end
 
@@ -619,6 +790,9 @@ function create():
     end
     created = True
     cc["oneui"] = wayland()
+    cc["icons"] = []
+    cc["scale"] = 1
+    cc["dark"] = False
     cc["provider"] = gtk.css_load(css_text())
     # Profilova fotka (~/.face) jako pozadi kolecka profilu - vlastni styl, meni se jen s fotkou
     cc["face_provider"] = gtk.css_load("")
@@ -658,7 +832,8 @@ function create():
         call window_hints_x11(win)
     end
 
-    outer = gtk.box_new(gtk.VERTICAL, 10)
+    # One UI: mezery mezi radky jsou okraje radku z ONEUI_CSS (prototyp ma kazdou jinou)
+    outer = gtk.box_new(gtk.VERTICAL, 0 if cc["oneui"] else 10)
     call gtk.widget_add_class(outer, "cc-box")
     call gtk.widget_set_size_request(outer, ONEUI_WIDTH if cc["oneui"] else 340, -1)
     call gtk.container_add(win, outer)
@@ -671,19 +846,20 @@ function create():
 
     # One UI: nadpis a ozubene kolo (vsechna nastaveni) nad profilem
     if cc["oneui"]:
-        head = gtk.box_new(gtk.HORIZONTAL, 4)
+        head = gtk.box_new(gtk.HORIZONTAL, 7)
+        call gtk.widget_add_class(head, "head-row")
         call gtk.box_pack_start(head, label(i18n.T("Control Center"), "head", 0), True, True, 0)
         gear = focusable(gtk.button_new_empty())
         call gtk.widget_add_class(gear, "round")
         call gtk.widget_set_tooltip(gear, i18n.T("All Settings…"))
-        call gtk.container_add(gear, gtk.image_new_from_icon_name("preferences-system-symbolic", gtk.ICON_LARGE_TOOLBAR))
+        call gtk.container_add(gear, cc_icon("settings", 17.6, "ink"))
         call gtk.connect_data(gear, "clicked", 0, on_launch_clicked, settings_command())
         call gtk.box_pack_end(head, gear, False, False, 0)
         # napajeni: nabidka LuxOS z listy (zamknout, odhlasit, restart, vypnout) jako v prototypu
         power = focusable(gtk.button_new_empty())
         call gtk.widget_add_class(power, "round")
         call gtk.widget_set_tooltip(power, i18n.T("Shut Down"))
-        call gtk.container_add(power, gtk.image_new_from_icon_name("system-shutdown-symbolic", gtk.ICON_LARGE_TOOLBAR))
+        call gtk.container_add(power, cc_icon("power", 17.6, "ink"))
         call gtk.connect(power, "clicked", on_power_clicked)
         call gtk.box_pack_end(head, power, False, False, 0)
         cc["power"] = power
@@ -694,40 +870,41 @@ function create():
     prof = focusable(gtk.button_new_empty())
     call gtk.button_set_relief(prof, gtk.RELIEF_NONE)
     call gtk.widget_add_class(prof, "plain")
+    call gtk.widget_add_class(prof, "account")
     pbox = gtk.box_new(gtk.HORIZONTAL, 10)
     call gtk.widget_add_class(pbox, "section")
     avatar = gtk.label_new("")
     call gtk.widget_add_class(avatar, "avatar")
+    call gtk.widget_set_valign(avatar, gtk.ALIGN_CENTER)
     cc["p_avatar"] = avatar
-    ptext = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_valign(ptext, gtk.ALIGN_CENTER)
+    ptext = text_column()
     cc["p_title"] = label("", "title", 0)
     cc["p_sub"] = label("", "sub", 0)
     call gtk.box_pack_start(ptext, cc["p_title"], False, False, 0)
     call gtk.box_pack_start(ptext, cc["p_sub"], False, False, 0)
     call gtk.box_pack_start(pbox, avatar, False, False, 0)
     call gtk.box_pack_start(pbox, ptext, True, True, 0)
-    call gtk.box_pack_end(pbox, gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU), False, False, 0)
+    call gtk.box_pack_end(pbox, chevron(), False, False, 0)
     call gtk.container_add(prof, pbox)
     call gtk.connect_data(prof, "clicked", 0, on_launch_clicked, "luxos-account")
     call gtk.box_pack_start(outer, prof, False, False, 0)
 
     grid = gtk.grid_new()
-    call gtk.grid_set_row_spacing(grid, 8)
-    call gtk.grid_set_column_spacing(grid, 8)
+    call gtk.widget_add_class(grid, "tiles")
+    call gtk.grid_set_row_spacing(grid, 10 if cc["oneui"] else 8)
+    call gtk.grid_set_column_spacing(grid, 10 if cc["oneui"] else 8)
     call gtk.grid_set_column_homogeneous(grid, True)
     if wayland():
-        cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi, open_wifi)
-        cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt_power, toggle_bt)
+        cc["t_wifi"] = tile_new(["network-wireless-symbolic", "wifi"], i18n.T("Wi-Fi"), toggle_wifi, open_wifi)
+        cc["t_bt"] = tile_new(["bluetooth-active-symbolic", "bluetooth"], i18n.T("Bluetooth"), toggle_bt_power, toggle_bt)
     else:
-        cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi, None)
-        cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt, None)
+        cc["t_wifi"] = tile_new(["network-wireless-symbolic", "wifi"], i18n.T("Wi-Fi"), toggle_wifi, None)
+        cc["t_bt"] = tile_new(["bluetooth-active-symbolic", "bluetooth"], i18n.T("Bluetooth"), toggle_bt, None)
     end
-    cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd, None)
-    # One UI: mesic patri nocnimu svetlu vedle jasu, tmavy rezim ma napul vyplneny kruh jako v Androidu
-    cc["t_dark"] = tile_new("luxos-dark-mode-symbolic" if cc["oneui"] else "weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark, None)
-    cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data, None)
-    cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power, None)
+    cc["t_dnd"] = tile_new(["notifications-disabled-symbolic", "minus"], i18n.T("Do Not Disturb"), toggle_dnd, None)
+    cc["t_dark"] = tile_new(["weather-clear-night-symbolic", "moon"], i18n.T("Dark Mode"), toggle_dark, None)
+    cc["t_data"] = tile_new(["network-cellular-signal-good-symbolic", "data"], i18n.T("Data Saver"), toggle_data, None)
+    cc["t_power"] = tile_new(["battery-level-50-symbolic", "battery"], i18n.T("Battery Saver"), toggle_power, None)
     tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"]]
     # One UI: sporice dat a baterie spolu v jedne pilulce pod ctyrmi velkymi dlazdicemi
     if not cc["oneui"]:
@@ -740,8 +917,10 @@ function create():
     end
     call gtk.box_pack_start(outer, grid, False, False, 0)
     if cc["oneui"]:
-        savers = gtk.box_new(gtk.HORIZONTAL, 8)
+        savers = gtk.box_new(gtk.HORIZONTAL, 0)
         call gtk.box_set_homogeneous(savers, True)
+        call gtk.box_set_spacing(cc["t_data"]["box"], 7)
+        call gtk.box_set_spacing(cc["t_power"]["box"], 7)
         call gtk.widget_add_class(savers, "section")
         call gtk.widget_add_class(savers, "savers")
         call gtk.box_pack_start(savers, cc["t_data"]["button"], True, True, 0)
@@ -751,23 +930,28 @@ function create():
 
     # One UI: kulate tlacitko vedle jasu zapina nocni svetlo (luxwm); X11: klik na ikonu otevre Monitory
     if cc["oneui"]:
-        cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, toggle_night, "weather-clear-night-symbolic", i18n.T("Night Light"))
+        cc["s_bright"] = slider_new(i18n.T("Display"), ["display-brightness-symbolic", "sun"], set_brightness, toggle_night, ["", "nightlight"], i18n.T("Night Light"))
     else:
         cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays, "video-display-symbolic", i18n.T("Displays"))
     end
-    cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute, "audio-volume-high-symbolic", i18n.T("Mute"))
+    cc["s_vol"] = slider_new(i18n.T("Sound"), ["audio-volume-high-symbolic", "sound"], set_volume, toggle_mute, ["audio-volume-high-symbolic", "sound"], i18n.T("Mute"))
+    if cc["oneui"]:
+        call gtk.widget_add_class(cc["s_bright"]["box"], "slider-row")
+        call gtk.widget_add_class(cc["s_bright"]["box"], "first")
+        call gtk.widget_add_class(cc["s_vol"]["box"], "slider-row")
+    end
 
     # QR kod Wi-Fi: pripojeno = sdilet sit (luxos-wifi-qr), Wi-Fi zapnuta bez site = naskenovat kod
     if cc["oneui"]:
         # radek-pilulka s ikonou QR a sipkou jako v prototypu
         wifi_qr = focusable(gtk.button_new_empty())
         call gtk.widget_add_class(wifi_qr, "row")
-        line = gtk.box_new(gtk.HORIZONTAL, 12)
-        call gtk.box_pack_start(line, gtk.image_new_from_icon_name("luxos-qr-symbolic", gtk.ICON_MENU), False, False, 0)
+        line = gtk.box_new(gtk.HORIZONTAL, 10)
+        call gtk.box_pack_start(line, cc_icon("qr", 18.4, "ink"), False, False, 0)
         cc["wifi_qr_label"] = label(i18n.T("Share Wi-Fi with QR Code…"), "", 0)
         call gtk.label_set_ellipsize(cc["wifi_qr_label"], gtk.ELLIPSIZE_END)
         call gtk.box_pack_start(line, cc["wifi_qr_label"], True, True, 0)
-        call gtk.box_pack_end(line, gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU), False, False, 0)
+        call gtk.box_pack_end(line, chevron(), False, False, 0)
         call gtk.container_add(wifi_qr, line)
         call gtk.widget_show_all(line)
     else:
@@ -817,9 +1001,9 @@ function create():
     call gtk.box_pack_start(mtext, cc["m_title"], False, False, 0)
     call gtk.box_pack_start(mtext, cc["m_artist"], False, False, 0)
     call gtk.box_pack_start(media, mtext, True, True, 0)
-    cc["m_prev"] = media_button(media, "Previous", "media-skip-backward-symbolic", gtk.ICON_MENU)
-    cc["m_play"] = media_button(media, "PlayPause", "media-playback-start-symbolic", gtk.ICON_LARGE_TOOLBAR)
-    cc["m_next"] = media_button(media, "Next", "media-skip-forward-symbolic", gtk.ICON_MENU)
+    cc["m_prev"] = media_button(media, "Previous", ["media-skip-backward-symbolic", "previous"], gtk.ICON_MENU)
+    cc["m_play"] = media_button(media, "PlayPause", ["media-playback-start-symbolic", "play"], gtk.ICON_LARGE_TOOLBAR)
+    cc["m_next"] = media_button(media, "Next", ["media-skip-forward-symbolic", "next"], gtk.ICON_MENU)
     call gtk.widget_set_no_show_all(media, True)
     call gtk.box_pack_start(outer, media, False, False, 0)
     try:
@@ -835,38 +1019,42 @@ function create():
     bat_button = focusable(gtk.button_new_empty())
     call gtk.button_set_relief(bat_button, gtk.RELIEF_NONE)
     call gtk.widget_add_class(bat_button, "plain")
+    call gtk.widget_add_class(bat_button, "battery")
     call gtk.connect_data(bat_button, "clicked", 0, on_launch_clicked, "luxos-power")
-    cc["bat_icon"] = gtk.image_new_from_icon_name("battery-level-50-symbolic", gtk.ICON_LARGE_TOOLBAR)
-    bat_lead = cc["bat_icon"]
+    bat_lead = None
     if cc["oneui"]:
-        # bila bublina jako v prototypu (stred baterie a kruhu v obou osach)
-        call gtk.image_set_pixel_size(cc["bat_icon"], 22)
+        # bila bublina s baterii prototypu (zelena vypln podle nabiti)
+        cc["bat_icon"] = cc_icon(battery_glyph(100), 19.2, "on")
         bat_lead = gtk.box_new(gtk.HORIZONTAL, 0)
         call gtk.widget_add_class(bat_lead, "bubble")
         call gtk.widget_add_class(bat_lead, "on")
         call gtk.widget_set_valign(bat_lead, gtk.ALIGN_CENTER)
         call gtk.box_pack_start(bat_lead, cc["bat_icon"], True, True, 0)
+    else:
+        cc["bat_icon"] = gtk.image_new_from_icon_name("battery-level-50-symbolic", gtk.ICON_LARGE_TOOLBAR)
+        bat_lead = cc["bat_icon"]
     end
-    bat_text = gtk.box_new(gtk.VERTICAL, 0)
-    call gtk.widget_set_valign(bat_text, gtk.ALIGN_CENTER)
+    bat_text = text_column()
     cc["bat_title"] = label("", "title", 0)
     cc["bat_sub"] = label("", "sub", 0)
     call gtk.box_pack_start(bat_text, cc["bat_title"], False, False, 0)
     call gtk.box_pack_start(bat_text, cc["bat_sub"], False, False, 0)
     call gtk.box_pack_start(bat_box, bat_lead, False, False, 0)
     call gtk.box_pack_start(bat_box, bat_text, True, True, 0)
-    call gtk.box_pack_end(bat_box, gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU), False, False, 0)
+    call gtk.box_pack_end(bat_box, chevron(), False, False, 0)
     call gtk.container_add(bat_button, bat_box)
     cc["bat_wrap"] = bat_button
     call gtk.box_pack_start(outer, bat_button, False, False, 0)
 
-    footer = gtk.box_new(gtk.HORIZONTAL, 4)
+    # One UI: odkazy zleva se stejnymi mezerami jako v prototypu
+    footer = gtk.box_new(gtk.HORIZONTAL, 24 if cc["oneui"] else 4)
     if cc["oneui"]:
         call gtk.widget_add_class(footer, "footbar")
     end
-    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop", "video-display-symbolic")
-    cc["foot_power"] = footer_button(footer, i18n.T("Battery…"), "luxos-power", "battery-good-symbolic")
-    call footer_button(footer, i18n.T("All Settings…"), settings_command(), "preferences-system-symbolic")
+    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop", ["video-display-symbolic", "monitor"])
+    cc["foot_power"] = footer_button(footer, i18n.T("Battery…"), "luxos-power", ["battery-good-symbolic", "batteryempty"])
+    # One UI: kratce "Nastaveni" jako prototyp (radek ma 8 px pismo)
+    call footer_button(footer, i18n.T("Settings") if cc["oneui"] else i18n.T("All Settings…"), settings_command(), ["preferences-system-symbolic", "settings"])
     call gtk.box_pack_start(outer, footer, False, False, 0)
 
     call gtk.connect(win, "focus-in-event", on_focus_in)
@@ -976,6 +1164,12 @@ end
 # Plocha layer-shell: monitor a poloha pred zobrazenim, fokus da kompozitor (klavesnice on demand).
 # Zadne gtk_window_present: GDK by na Waylandu cekal na aktivacni token v blokujicim roundtripu.
 function show_wayland():
+    # ikony prototypu v HiDPI monitoru, kde se okno ukaze (pri prvnim zobrazeni a po zmene)
+    scale = popup.scale_of(cc["win"])
+    if scale != cc["scale"]:
+        cc["scale"] = scale
+        call paint_icons()
+    end
     call gtk.widget_show_all(gtk.bin_get_child(cc["win"]))
     width = gtk.widget_get_preferred_width(cc["win"])[1]
     call log_test("placed " + popup.place(cc["win"], width, "right"))
@@ -1147,7 +1341,7 @@ function face_update():
     css = ""
     if key != "":
         uri = "file://" + path.replace("%", "%25").replace(" ", "%20").replace("\"", "%22")
-        css = ".avatar.photo { background-image: url(\"" + uri + "\"); background-size: cover; background-position: center; color: transparent; }\n"
+        css = ".avatar.photo, .oneui .avatar.photo { background-image: url(\"" + uri + "\"); background-size: cover; background-position: center; color: transparent; }\n"
     end
     call gtk.css_set(cc["face_provider"], css)
     call gtk.widget_set_class(cc["p_avatar"], "photo", key != "")
@@ -1197,7 +1391,7 @@ function refresh_fast():
     if cc["oneui"]:
         foot = cc["foot_power"]
         call gtk.label_set_text(foot[2], i18n.T("Battery") if bat != None else i18n.T("Power"))
-        call gtk.image_set_from_icon_name(foot[1], "battery-good-symbolic" if bat != None else "system-shutdown-symbolic", gtk.ICON_MENU)
+        call set_icon(foot[1], "batteryempty" if bat != None else "power", "ink")
     end
     if bat != None:
         cap = bat[0]
@@ -1208,8 +1402,13 @@ function refresh_fast():
         if status == "Charging":
             icon = icon + "-charging"
         end
-        call gtk.image_set_from_icon_name(cc["bat_icon"], icon + "-symbolic", gtk.ICON_LARGE_TOOLBAR)
-        call gtk.label_set_text(cc["bat_title"], i18n.T("Battery") + "  " + String(cap) + " %")
+        if cc["oneui"]:
+            call set_icon(cc["bat_icon"], battery_glyph(cap), "on")
+            call gtk.label_set_text(cc["bat_title"], i18n.T("Battery") + " " + String(cap) + " %")
+        else:
+            call gtk.image_set_from_icon_name(cc["bat_icon"], icon + "-symbolic", gtk.ICON_LARGE_TOOLBAR)
+            call gtk.label_set_text(cc["bat_title"], i18n.T("Battery") + "  " + String(cap) + " %")
+        end
         sub = i18n.T("Fully charged")
         if status == "Charging":
             sub = i18n.T("Charging")
@@ -1258,8 +1457,7 @@ end
 function show_bt(state):
     call tile_set_state(cc["t_bt"], state[0], state[1])
     if cc["oneui"]:
-        icon = "bluetooth-disabled-symbolic" if state[0] == None else "bluetooth-active-symbolic"
-        call gtk.image_set_from_icon_name(cc["t_bt"]["image"], icon, gtk.ICON_MENU)
+        call set_icon(cc["t_bt"]["image"], "bluetooth-off" if state[0] == None else "bluetooth", "on" if state[0] == True else "ink")
     end
     return 0
 end
@@ -1272,7 +1470,7 @@ function show_wired(wired):
     end
     tile["wired"] = wired
     call gtk.label_set_text(tile["title"], i18n.T("Ethernet") if wired else i18n.T("Wi-Fi"))
-    call gtk.image_set_from_icon_name(tile["image"], "network-wired-symbolic" if wired else "network-wireless-symbolic", gtk.ICON_MENU)
+    call set_icon(tile["image"], "ethernet" if wired else "wifi", "on" if tile_is_on(tile) else "ink")
     return 0
 end
 
@@ -1457,12 +1655,16 @@ end
 
 # Ikona ztlumeni; v One UI je tlacitko vedle posuvniku bile, kdyz zvuk hraje
 function show_muted(muted):
+    call gtk.widget_set_class(cc["s_vol"]["button"], "on", not muted)
+    if cc["oneui"]:
+        call set_icon(cc["s_vol"]["icon"], "muted" if muted else "sound", "ink" if muted else "on")
+        return 0
+    end
     icon = "audio-volume-high-symbolic"
     if muted:
         icon = "audio-volume-muted-symbolic"
     end
     call gtk.image_set_from_icon_name(cc["s_vol"]["icon"], icon, gtk.ICON_MENU)
-    call gtk.widget_set_class(cc["s_vol"]["button"], "on", not muted)
     return 0
 end
 
@@ -1538,6 +1740,10 @@ function apply_media():
 end
 
 function set_play_icon(playing):
+    if cc["oneui"]:
+        call set_icon(gtk.bin_get_child(cc["m_play"]), "pause" if playing else "play", "ink")
+        return 0
+    end
     icon = "media-playback-start-symbolic"
     if playing:
         icon = "media-playback-pause-symbolic"
@@ -2055,6 +2261,7 @@ end
 function show_night(on):
     cc["night"] = on
     call gtk.widget_set_class(cc["s_bright"]["button"], "on", on)
+    call set_icon(cc["s_bright"]["icon"], "nightlight", "on" if on else "ink")
     return 0
 end
 

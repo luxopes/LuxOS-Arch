@@ -227,7 +227,7 @@ class ControlCenter:
         return f"unix:path={address}"
 
     def start(self, dark=False, backlight=True, battery=True, bluetooth=True, net="wifi", vol=40, mute=False,
-              media=False, outputs=1, night=None, luxwm_conf=""):
+              media=False, outputs=1, night=None, luxwm_conf="", lang="C"):
         self.runs = getattr(self, "runs", 0) + 1
         self.outputs = outputs
         self.net = net
@@ -310,7 +310,8 @@ class ControlCenter:
                         GSETTINGS_BACKEND="keyfile",
                         LUXOS_HUB_PREBUILD_DELAY="1", LUXOS_HUB_NEWS_DELAY="100000", LUXOS_HUB_NO_PORTAL="1",
                         LUXOS_CC_TEST_LOG=str(self.cc.path), LUXOS_BACKLIGHT=str(backlight.parent),
-                        LUXOS_POWER_SUPPLY=str(bat.parent), LUXOS_CALENDAR_DIR=str(self.session / "calendar"), LANG="C.UTF-8")
+                        LUXOS_POWER_SUPPLY=str(bat.parent), LUXOS_CALENDAR_DIR=str(self.session / "calendar"),
+                        LANG="cs_CZ.UTF-8" if lang == "cs" else "C.UTF-8", LUXOS_I18N_DIR=str(REPO / "packages/luxos-i18n/files"))
         hub = subprocess.Popen([str(self.bin / "luxos-hub")], env=self.env, stdout=subprocess.DEVNULL,
                                stderr=open(self.session / "hub.log", "w"))
         self.procs.append(hub)
@@ -450,6 +451,19 @@ class ControlCenterLabwc(ControlCenter, unittest.TestCase):
         "media": dict(media=True),
         "two-monitors": dict(outputs=2),
     }
+
+    # snimky k porovnani s prototypem vlastnika (stejna data, cestina; out/r3cc2/render_proto.py)
+    def test_look_prototype_cs(self):
+        for dark in (False, True):
+            with self.subTest(dark=dark):
+                try:
+                    self.start(dark=dark, lang="cs")
+                    self.open()
+                    x, y, w, h = self.rect
+                    self.save("cc-proto-cs-" + ("dark" if dark else "light"), crop(self.shot(), x - 10, 0, w + 18, h + 20))
+                finally:
+                    self.tearDown()
+                    self.setUp()
 
     def matrix(self, dark, names):
         for name in names:
