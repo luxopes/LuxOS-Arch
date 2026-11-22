@@ -140,8 +140,17 @@ case "$1" in
 esac''',
     "luxos-datasaver": r'''if [ "$1" = on ]; then : >"$XDG_CONFIG_HOME/luxos/datasaver"; else rm -f "$XDG_CONFIG_HOME/luxos/datasaver"; fi''',
     "luxos-powersaver": r'''if [ "$1" = on ]; then : >"$XDG_CONFIG_HOME/luxos/powersaver"; else rm -f "$XDG_CONFIG_HOME/luxos/powersaver"; fi''',
+    # jako skutecny: nejdriv motiv GTK a rezim, pak vychozi tapeta druheho rezimu v appearance.conf (mv)
+    "luxos-appearance": r'''
+[ "$1" = toggle ] || exit 0
+c="$XDG_CONFIG_HOME/luxos"
+if [ "$(cat "$c/appearance")" = dark ]; then m=light t=Adwaita; else m=dark t=Adwaita-dark; fi
+sed -i "s/^gtk-theme=.*/gtk-theme='$t'/" "$XDG_CONFIG_HOME/glib-2.0/settings/keyfile"
+echo "$m" >"$c/appearance"
+echo "WALLPAPER=$FAKE_STATE/../wall-$m.png" >"$c/appearance.conf.new"
+mv -f "$c/appearance.conf.new" "$c/appearance.conf"''',
 }
-LAUNCHED = ("luxos-appearance", "luxos-bluetooth", "luxos-wifi-qr", "luxos-settings", "luxos-account", "luxos-power",
+LAUNCHED = ("luxos-bluetooth", "luxos-wifi-qr", "luxos-settings", "luxos-account", "luxos-power",
             "luxos-displays", "luxos-network-login", "rfkill")
 
 
@@ -265,11 +274,10 @@ class ControlCenter:
         conf = self.session / "config"
         (conf / "luxos").mkdir(parents=True, exist_ok=True)
         (conf / "luxos/appearance").write_text("dark\n" if dark else "light\n")
-        wall = self.session / "wall.png"
-        if dark:
-            png_write(wall, 320, 200, gradient(320, 200, (24, 30, 62), (46, 28, 60)))
-        else:
-            png_write(wall, 320, 200, gradient(320, 200, (246, 214, 196), (214, 222, 246)))
+        # vychozi tapety obou rezimu (luxos-appearance toggle je prepina)
+        png_write(self.session / "wall-dark.png", 320, 200, gradient(320, 200, (24, 30, 62), (46, 28, 60)))
+        png_write(self.session / "wall-light.png", 320, 200, gradient(320, 200, (246, 214, 196), (214, 222, 246)))
+        wall = self.session / ("wall-dark.png" if dark else "wall-light.png")
         (conf / "luxos/appearance.conf").write_text(f"WALLPAPER={wall}\n")
         (conf / "luxai").mkdir()
         (conf / "luxai/account.json").write_text('{"sessionToken": "t", "user": {"displayName": "Alex Morgan"}}')
@@ -404,6 +412,9 @@ class ControlCenterLabwc(ControlCenter, unittest.TestCase):
         self.start(dark=dark, **hw)
         # pravy pruh obrazovky i pred otevrenim (snimky pred/po pro vlastnika)
         self.open()
+        self.compare(name)
+
+    def compare(self, name):
         image = self.shot()
         self.save(name + "-screen", crop(image, self.out_x + OUT_W - 440, 0, 440, OUT_H))
         x, y, w, h = self.rect
@@ -434,6 +445,29 @@ class ControlCenterLabwc(ControlCenter, unittest.TestCase):
 
     def test_golden_dark(self):
         self.golden(True, "cc-dark")
+
+    def test_golden_after_mode_switch(self):
+        """Prepnuti rezimu za behu meni i tapetu (appearance.conf): karta pak vypada jako po startu v novem rezimu,
+        sklo z nove tapety, ne ze stare (hnede sklo nad modrou tmavou tapetou ve VM)."""
+        self.start(dark=False)
+        self.open()
+        mark = self.cc.mark()
+        self.hub.send_signal(signal.SIGUSR1)
+        self.cc.wait("hidden", mark)
+        # zavrena karta, prepnuti odjinud (Nastaveni, automaticky rezim): pri dalsim otevreni nova tapeta
+        subprocess.run([str(self.bin / "luxos-appearance"), "toggle"], env=self.env, check=True)
+        time.sleep(1.0)
+        self.open()
+        self.compare("cc-dark")
+        # otevrena karta, dlazdice Tmavy rezim: zustane otevrena a prekresli se v novem motivu i skle
+        mark = self.cc.mark()
+        self.click("dark")
+        self.wait_call("luxos-appearance toggle")
+        self.input(f"move {self.rect[0] - 200} 400")
+        time.sleep(1.5)
+        self.compare("cc-light")
+        self.assertNotIn("hidden", self.cc.lines()[mark:])
+        self.assertIsNone(self.hub.poll())
 
     # Matice hardwaru a stavu: kazda kombinace musi vypadat stejne uhledne jako vychozi notebook
     # (stolni pocitac a VM bez podsviceni, baterie a Bluetooth, jen Ethernet, hlasitost, prehravani, 2 monitory)
@@ -511,6 +545,10 @@ class Interaction:
         self.click("power")
         self.wait_call("luxos-powersaver off")
         self.assert_bubble("power", False)
+        # Tmavy rezim: okno zustane otevrene, bublina hned zapnuta
+        self.click("dark")
+        self.wait_call("luxos-appearance toggle")
+        self.assert_bubble("dark", True)
         self.assertNotIn("hidden", self.cc.lines())
         # ztlumeni tlacitkem vedle posuvniku, posuvnik hlasitosti klikem (zvuk zase zapne)
         self.click("vol-side")
@@ -534,8 +572,7 @@ class Interaction:
 
     def test_links_open_apps_and_close(self):
         self.start()
-        for name, call in (("wifi-title", None), ("bt-title", "luxos-bluetooth "), ("qr", "luxos-wifi-qr "),
-                           ("dark", "luxos-appearance toggle")):
+        for name, call in (("wifi-title", None), ("bt-title", "luxos-bluetooth "), ("qr", "luxos-wifi-qr ")):
             self.open()
             mark = self.cc.mark()
             self.click(name)

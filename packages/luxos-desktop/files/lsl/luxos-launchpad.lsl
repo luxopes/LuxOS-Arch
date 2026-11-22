@@ -1133,6 +1133,11 @@ function on_apps_changed(monitor):
 end
 
 function on_config(file, event, other):
+    # luxos-appearance zapisuje appearance.conf prejmenovanim docasneho souboru: monitor (WATCH_MOVES) hlasi
+    # RENAMED se starym nazvem ve file a novym v other - bez toho zustalo sklo ze stare tapety
+    if event == 8:
+        file = other
+    end
     if file.endswith("/appearance.conf") or file.endswith("/appearance"):
         call material.reload()
         S["strip"] = None

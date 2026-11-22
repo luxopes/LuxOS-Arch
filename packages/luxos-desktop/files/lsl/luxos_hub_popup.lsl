@@ -16,7 +16,8 @@
 #   popup.glass(okno, karta)              karta okna ze skla z tapety jako verze 1.1.1 (luxos_glass.panel, luxos-glass.c):
 #                                         vyrez rozostrene tapety pod oknem se zavojem podle barvy textu, kresli ho klient
 #                                         (material.strip), takze je pruhledna i bez rozmazani v kompozitoru (pixman, VM);
-#                                         poloha okna z popup.place, bez tapety plati material z CSS
+#                                         poloha okna z popup.place, bez tapety plati material z CSS; zmena tapety
+#                                         nebo rezimu (appearance.conf, appearance) sklo hned prekresli
 #   popup.paint_glass(cr, karta, vystup, out_w, out_h, x, y)   totez pro okna listy (x, y = roh okna na vystupu)
 #   popup.output_for(monitor)             nazev vystupu Waylandu pro monitor GDK (tapeta muze byt pro kazdy vystup)
 #   popup.colors(predpona, tmavy)         @define-color predpona_bg/border/border_top/border_bottom/highlight/fg/dim/faint/
@@ -24,6 +25,7 @@
 #                                         kresli luxwm); popup.card(predpona) = CSS karty skla (okraj, odlesk, lesk)
 load env
 load luxos_glib, glib as glib
+load gio
 load luxos_gtk, gtk as gtk
 load cairo
 load luxos_layer as layer
@@ -164,7 +166,46 @@ end
 function glass(win, box):
     glassy[win] = {"box": box, "monitor": None, "align": "right", "x": 0, "radius": radii.get(win, tokens.radius_of("popup"))}
     call gtk.connect_data(win, "draw", 1, on_glass_draw, win)
+    call watch_wallpaper()
     return 0
+end
+
+# luxos-appearance pri prepnuti rezimu prepise WALLPAPER v appearance.conf; material si soubor pamatuje,
+# takze bez zahozeni by karta zustala ze skla stare tapety (hnede sklo nad modrou tmavou tapetou)
+watch = {"on": False, "pending": 0}
+
+function watch_wallpaper():
+    if watch["on"]:
+        return 0
+    end
+    watch["on"] = True
+    dir = glib.user_config_dir() + "/luxos"
+    safe:
+        call gio.file_monitor(dir + "/appearance.conf", on_appearance_changed)
+        call gio.file_monitor(dir + "/appearance", on_appearance_changed)
+    end
+    return 0
+end
+
+function on_appearance_changed(path, event, other):
+    # G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT 1, DELETED 2, CREATED 3, RENAMED 8, MOVED_IN 9
+    if event != 1 and event != 2 and event != 3 and event != 8 and event != 9:
+        return 0
+    end
+    # rezim a tapeta se zapisuji tesne po sobe: jedno prekresleni
+    if watch["pending"] == 0:
+        watch["pending"] = glib.timeout_add_data(20, on_wallpaper_changed, 0)
+    end
+    return 0
+end
+
+function on_wallpaper_changed(unused):
+    watch["pending"] = 0
+    call material.reload()
+    for win in glassy.keys():
+        call gtk.widget_queue_draw(win)
+    end
+    return False
 end
 
 # Monitor GDK, na kterem okno je (0 = zatim nevi)

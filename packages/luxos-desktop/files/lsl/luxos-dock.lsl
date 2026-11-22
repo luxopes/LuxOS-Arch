@@ -1555,6 +1555,11 @@ function on_trash(file, event, other):
 end
 
 function on_config(file, event, other):
+    # luxos-appearance zapisuje appearance.conf prejmenovanim docasneho souboru: monitor (WATCH_MOVES) hlasi
+    # RENAMED se starym nazvem ve file a novym v other - bez toho zustalo sklo ze stare tapety
+    if event == 8:
+        file = other
+    end
     if file.endswith("/dock.conf"):
         if glib.read_text(conf_path) != conf_text:
             call load_conf()

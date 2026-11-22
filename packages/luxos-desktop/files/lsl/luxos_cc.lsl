@@ -1845,9 +1845,16 @@ function toggle_dnd():
     return 0
 end
 
+# Na Waylandu karta zustane otevrena jako u ostatnich dlazdic: novy motiv prebarvi on_theme_changed, sklo
+# z nove tapety luxos_hub_popup (sleduje appearance.conf)
 function toggle_dark():
+    dark = not dark_state()
     call glib.spawn_quiet(["luxos-appearance", "toggle"])
-    call close()
+    if wayland():
+        call tile_set_state(cc["t_dark"], dark, on_off(dark))
+    else:
+        call close()
+    end
     return 0
 end
 

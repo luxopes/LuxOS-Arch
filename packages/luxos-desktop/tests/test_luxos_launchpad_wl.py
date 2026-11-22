@@ -604,6 +604,26 @@ class WaylandLaunchpad(unittest.TestCase):
     def test_golden_dark(self):
         self.golden_case(True, "dark", "launchpad-dark")
 
+    def test_golden_after_mode_switch(self):
+        """Bezici Launchpad po prepnuti rezimu: jako luxos-appearance nejdriv rezim, pak appearance.conf prejmenovanim
+        docasneho souboru (monitor hlasi RENAMED) -> sklo z nove tapety jako po startu v tmavem rezimu."""
+        self.start(dark=False, wallpaper="light")
+        lp = self.resident()
+        self.open_by_key(lp)
+        self.close_by_key(lp)
+        conf = self.session / "config/luxos"
+        dark_wall = self.session / "wall-dark.png"
+        png_write(dark_wall, 320, 200, gradient(320, 200, (24, 30, 62), (46, 28, 60)))
+        (conf / "appearance").write_text("dark\n")
+        time.sleep(0.5)
+        tmp = conf / "appearance.conf.new.1"
+        tmp.write_text(f"WALLPAPER={dark_wall}\n")
+        os.replace(tmp, conf / "appearance.conf")
+        time.sleep(0.5)
+        self.open_by_key(lp)
+        time.sleep(0.3)
+        self.compare_golden("launchpad-dark", self.shot())
+
     def test_labels_two_lines_no_hard_cut(self):
         """Nazvy aplikaci LuxOS na prvni strane: nejvys dva radky zalomene mezi slovy, bez vypustky
         (drive "Aktualizace s...", "Klávesové zk...", "Prohlížeč do...")."""
