@@ -19,10 +19,10 @@ load luxos_i18n as i18n
 load luxos_layer as layer
 load luxos_mpris as mpris
 load luxos_text as text
-load luxos_layer as layer
 load luxos_wl as wl
 load luxos_hub_popup as popup
 load luxos_glass as glass
+load luxos_luxwm as wm
 
 # Vzhled Ovladaciho centra verze 1.1.1 (luxos_cc.lsl na vetvi glass-ui): karta 18 px ze skla, dlazdice
 # a sekce 14 px, posuvniky 22 px, odkazy dole jako text
@@ -72,27 +72,39 @@ ONEUI_CSS = (".oneui .cc-box { border-radius: " + String(ONEUI_RADIUS) + "px; pa
     + ".oneui .tile .title.long { font-size: 12px; }\n"
     + ".oneui .savers { padding: 8px 10px; }\n"
     + ".oneui .savers .tile { background: none; padding: 0; }\n"
-    + ".oneui .savers .tile .bubble { min-width: 36px; min-height: 36px; }\n"
     + ".oneui .section { padding: 8px 14px 8px 8px; }\n"
-    + ".oneui .section.media, .oneui .section.screens { border-radius: 24px; padding: 10px 12px; }\n"
-    + ".oneui .tile.mode { border-radius: 18px; padding: 8px 4px 6px 4px; }\n"
+    + ".oneui .section.media { border-radius: 24px; padding: 10px 12px; }\n"
+    + ".oneui .section.screens { border-radius: 24px; padding: 8px 12px 6px 12px; }\n"
+    + ".oneui .tile.mode { border-radius: 18px; padding: 6px 4px 4px 4px; background: none; }\n"
+    + ".oneui .tile.mode:hover { background-color: @cc_tile_hover; }\n"
+    # mensi bubliny rezimu: s obrazovkami a baterii se okno vejde pod listu i na 1366x768
+    + ".oneui .tile.mode .bubble { min-width: 34px; min-height: 34px; }\n"
+    # zvoleny rezim obrazovek bila bublina jako zapnute dlazdice (ne modra z vzhledu X11)
+    + ".oneui .tile.mode.on .bubble { background-color: white; color: #343947; }\n"
     + ".oneui button.row { background-color: @cc_tile; border: none; box-shadow: none; background-image: none; color: @cc_fg; padding: 10px 14px; }\n"
     + ".oneui button.row:hover, .oneui button.plain:hover .section { background-color: @cc_tile_hover; }\n"
     + ".oneui button.row label { font-size: 13px; font-weight: 500; }\n"
     + ".oneui .footbar { background-color: @cc_tile; border-radius: 999px; padding: 4px; }\n"
     + ".oneui .footbar .footer { padding: 8px 6px; border-radius: 999px; font-size: 11px; }\n"
+    # Pilulka posuvniku je box kolem nej: GTK nosi stred kolecka (44 px) po celem zlabu, vnitrni okraj boxu 22 px
+    # drzi kolecko uvnitr pilulky (na 100 % by jinak prejelo pod kulate tlacitko vedle). Okraj na samotnem
+    # posuvniku by GTK odecetl od drahy kolecka a klik by prestal odpovidat poloze. Levych 22 px pilulky je vzdy
+    # bilych (kolecko na nule je tam taky), vypln a kolecko nepruhledne bile (One UI i v tmavem rezimu), tenky
+    # obrys jako v prototypu.
+    + ".oneui .level { min-height: 44px; padding: 0 22px; border-radius: 22px; background-color: @cc_trough; background-image: linear-gradient(to right, white 22px, transparent 22px); box-shadow: inset 0 0 0 1px @cc_edge; }\n"
     + ".oneui scale { padding: 0; margin: 0; }\n"
-    + ".oneui scale trough { min-height: 44px; border-radius: 22px; background-color: @cc_trough; border: none; }\n"
-    # GTK kresli vypln do stredu kolecka posuvniku: rovny konec kolecko zakryje; obe nepruhledne (jako v One UI
-    # bila i v tmavem rezimu), jinak by se pod koleckem pruhledna vypln zdvojila
-    + ".oneui scale highlight { min-height: 44px; border-radius: 22px 0 0 22px; background-color: white; border: none; }\n"
+    + ".oneui scale trough { min-height: 44px; border-radius: 0; background: none; border: none; box-shadow: none; }\n"
+    + ".oneui scale highlight { min-height: 44px; border-radius: 0; background-color: white; border: none; }\n"
     + ".oneui scale slider { min-width: 44px; min-height: 44px; margin: 0; border-radius: 22px; background-color: white; background-image: none; border: none; box-shadow: none; }\n"
+    # krouzek kolem kolecka jen kdyz GTK ukazuje fokus (focus-visible okna, jako obrys tlacitek), ne po kliknuti
+    # mysi; GTK 3 nema :focus-visible, proto trida keynav
+    + ".oneui.keynav scale:focus slider { box-shadow: 0 0 0 2px alpha(@cc_accent, 0.9); }\n"
     + ".oneui .level-icon { color: #343947; margin-left: 14px; }\n"
     + ".oneui button.side { min-width: 44px; min-height: 44px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background-image: none; background-color: @cc_bubble; color: @cc_fg; }\n"
     + ".oneui button.side:hover { background-color: @cc_tile_hover; }\n"
     + ".oneui button.side.on { background-color: white; color: #343947; }\n"
-    + ".oneui button:focus, .oneui scale:focus { outline: 2px solid alpha(@cc_accent, 0.9); outline-offset: 1px; -gtk-outline-radius: 999px; }\n"
-    + ".oneui scale:focus { -gtk-outline-radius: 24px; }\n")
+    + ".oneui button:focus { outline: 2px solid alpha(@cc_accent, 0.9); outline-offset: 1px; -gtk-outline-radius: 999px; }\n"
+    + ".oneui scale:focus, .oneui scale:focus trough { outline-width: 0; outline-style: none; }\n")
 
 SIGUSR1 = 10
 SIGUSR2 = 12
@@ -337,10 +349,14 @@ function tile_new(icon, title, action, settings):
     end
     call gtk.widget_set_valign(bubble, gtk.ALIGN_CENTER)
     call gtk.widget_add_class(bubble, "bubble")
-    image = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
-    call gtk.widget_set_hexpand(image, True)
-    call gtk.widget_set_vexpand(image, True)
-    call gtk.container_add(bubble, image)
+    # obrazek vyplni bublinu baleni, ne hexpand: ten by se rozsiril na celou bublinu v radku dlazdice,
+    # bublina by dostala cast volneho mista a text kratkych nazvu by se posunul doprava
+    image = oneui_icon(icon)
+    if settings != None:
+        call gtk.container_add(bubble, image)
+    else:
+        call gtk.box_pack_start(bubble, image, True, True, 0)
+    end
     column = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(column, gtk.ALIGN_CENTER)
     # pevna sirka (okno se nerozsiri za okraj): delsi preklad mensim pismem ("Datensparmodus") a na dva
@@ -372,7 +388,19 @@ function tile_new(icon, title, action, settings):
     return tile
 end
 
+# Ikona bubliny, posuvniku a kulateho tlacitka: One UI 20 px (prototyp 24 px v bubline 44 px)
+function oneui_icon(name):
+    image = gtk.image_new_from_icon_name(name, gtk.ICON_MENU)
+    if cc["oneui"]:
+        call gtk.image_set_pixel_size(image, 20)
+    end
+    return image
+end
+
 function on_bubble_clicked(tile, button):
+    if tile.get("wired", False):
+        return on_tile_clicked(tile, button)
+    end
     call log_test("tile " + tile["name"] + " toggle")
     action = tile["action"]
     call action()
@@ -436,15 +464,18 @@ function slider_new(title, icon, on_change, on_icon, side_icon, tooltip):
 end
 
 function slider_new_oneui(row, icon, side_icon, tooltip):
-    box = gtk.box_new(gtk.HORIZONTAL, 10)
+    box = gtk.box_new(gtk.HORIZONTAL, 12)
     scale = focusable(gtk.scale_new_with_range(gtk.HORIZONTAL, 0, 100, 1))
     call gtk.scale_set_draw_value(scale, False)
     call gtk.range_set_increments(scale, 5, 10)
     call gtk.connect_data(scale, "value-changed", 0, on_slider_changed, row)
+    pill = gtk.box_new(gtk.HORIZONTAL, 0)
+    call gtk.widget_add_class(pill, "level")
+    call gtk.box_pack_start(pill, scale, True, True, 0)
     overlay = gtk.overlay_new()
     call gtk.widget_set_hexpand(overlay, True)
-    call gtk.container_add(overlay, scale)
-    level = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
+    call gtk.container_add(overlay, pill)
+    level = oneui_icon(icon)
     call gtk.widget_add_class(level, "level-icon")
     call gtk.widget_set_halign(level, gtk.ALIGN_START)
     call gtk.widget_set_valign(level, gtk.ALIGN_CENTER)
@@ -454,7 +485,7 @@ function slider_new_oneui(row, icon, side_icon, tooltip):
     call gtk.widget_add_class(button, "side")
     call gtk.widget_set_valign(button, gtk.ALIGN_CENTER)
     call gtk.widget_set_tooltip(button, tooltip)
-    image = gtk.image_new_from_icon_name(side_icon, gtk.ICON_MENU)
+    image = oneui_icon(side_icon)
     call gtk.container_add(button, image)
     call gtk.connect_data(button, "clicked", 0, on_slider_icon, row)
     call gtk.box_pack_start(box, overlay, True, True, 0)
@@ -513,12 +544,16 @@ function slider_set_value(row, value):
     return 0
 end
 
+# Odkaz dole -> [tlacitko, ikona, popisek] (ikona a popisek jen One UI)
 function footer_button(box, title, command, icon):
+    image = None
+    name = None
     if cc["oneui"]:
         button = focusable(gtk.button_new_empty())
         line = gtk.box_new(gtk.HORIZONTAL, 6)
         call gtk.widget_set_halign(line, gtk.ALIGN_CENTER)
-        call gtk.box_pack_start(line, gtk.image_new_from_icon_name(icon, gtk.ICON_MENU), False, False, 0)
+        image = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
+        call gtk.box_pack_start(line, image, False, False, 0)
         name = label(title.replace("…", ""), "", 0)
         call gtk.label_set_ellipsize(name, gtk.ELLIPSIZE_END)
         call gtk.box_pack_start(line, name, False, False, 0)
@@ -530,7 +565,7 @@ function footer_button(box, title, command, icon):
     call gtk.widget_add_class(button, "footer")
     call gtk.connect_data(button, "clicked", 0, on_launch_clicked, command)
     call gtk.box_pack_start(box, button, cc["oneui"], cc["oneui"], 0)
-    return button
+    return [button, image, name]
 end
 
 # Spusti program a zavre okno
@@ -560,7 +595,10 @@ end
 
 function css_text():
     name = gtk.settings_theme_name().lower()
-    css = popup.colors("cc", name.find("dark") >= 0) + CSS
+    dark = name.find("dark") >= 0
+    css = popup.colors("cc", dark) + CSS
+    # obrys pilulek posuvniku (prototyp: tmavy 5,5 % ve svetlem, bily 8 % v tmavem rezimu)
+    css = css + "@define-color cc_edge " + ("rgba(255, 255, 255, 0.08)" if dark else "rgba(25, 31, 43, 0.055)") + ";\n"
     if cc["oneui"]:
         css = css + ONEUI_CSS
     end
@@ -594,6 +632,11 @@ function create():
     cc["pending"] = {}
     cc["mpris"] = False
     cc["muted"] = False
+    cc["night"] = False
+    cc["soft_save"] = 0
+    if wayland():
+        call wm.connect(on_wm_event)
+    end
     cc["test_log"] = env.get("LUXOS_CC_TEST_LOG", "")
     if cc["test_log"] == None:
         cc["test_log"] = ""
@@ -681,7 +724,8 @@ function create():
         cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt, None)
     end
     cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd, None)
-    cc["t_dark"] = tile_new("weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark, None)
+    # One UI: mesic patri nocnimu svetlu vedle jasu, tmavy rezim ma napul vyplneny kruh jako v Androidu
+    cc["t_dark"] = tile_new("luxos-dark-mode-symbolic" if cc["oneui"] else "weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark, None)
     cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data, None)
     cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power, None)
     tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"]]
@@ -705,8 +749,12 @@ function create():
         call gtk.box_pack_start(outer, savers, False, False, 0)
     end
 
-    # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
-    cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays, "video-display-symbolic", i18n.T("Displays"))
+    # One UI: kulate tlacitko vedle jasu zapina nocni svetlo (luxwm); X11: klik na ikonu otevre Monitory
+    if cc["oneui"]:
+        cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, toggle_night, "weather-clear-night-symbolic", i18n.T("Night Light"))
+    else:
+        cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays, "video-display-symbolic", i18n.T("Displays"))
+    end
     cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute, "audio-volume-high-symbolic", i18n.T("Mute"))
 
     # QR kod Wi-Fi: pripojeno = sdilet sit (luxos-wifi-qr), Wi-Fi zapnuta bez site = naskenovat kod
@@ -762,10 +810,10 @@ function create():
     call gtk.widget_set_valign(mtext, gtk.ALIGN_CENTER)
     cc["m_title"] = label("", "title", 0)
     call gtk.label_set_ellipsize(cc["m_title"], gtk.ELLIPSIZE_END)
-    call gtk.label_set_max_width_chars(cc["m_title"], 18)
+    call gtk.label_set_max_width_chars(cc["m_title"], 8 if cc["oneui"] else 18)
     cc["m_artist"] = label("", "sub", 0)
     call gtk.label_set_ellipsize(cc["m_artist"], gtk.ELLIPSIZE_END)
-    call gtk.label_set_max_width_chars(cc["m_artist"], 18)
+    call gtk.label_set_max_width_chars(cc["m_artist"], 8 if cc["oneui"] else 18)
     call gtk.box_pack_start(mtext, cc["m_title"], False, False, 0)
     call gtk.box_pack_start(mtext, cc["m_artist"], False, False, 0)
     call gtk.box_pack_start(media, mtext, True, True, 0)
@@ -789,12 +837,23 @@ function create():
     call gtk.widget_add_class(bat_button, "plain")
     call gtk.connect_data(bat_button, "clicked", 0, on_launch_clicked, "luxos-power")
     cc["bat_icon"] = gtk.image_new_from_icon_name("battery-level-50-symbolic", gtk.ICON_LARGE_TOOLBAR)
+    bat_lead = cc["bat_icon"]
+    if cc["oneui"]:
+        # bila bublina jako v prototypu (stred baterie a kruhu v obou osach)
+        call gtk.image_set_pixel_size(cc["bat_icon"], 22)
+        bat_lead = gtk.box_new(gtk.HORIZONTAL, 0)
+        call gtk.widget_add_class(bat_lead, "bubble")
+        call gtk.widget_add_class(bat_lead, "on")
+        call gtk.widget_set_valign(bat_lead, gtk.ALIGN_CENTER)
+        call gtk.box_pack_start(bat_lead, cc["bat_icon"], True, True, 0)
+    end
     bat_text = gtk.box_new(gtk.VERTICAL, 0)
+    call gtk.widget_set_valign(bat_text, gtk.ALIGN_CENTER)
     cc["bat_title"] = label("", "title", 0)
     cc["bat_sub"] = label("", "sub", 0)
     call gtk.box_pack_start(bat_text, cc["bat_title"], False, False, 0)
     call gtk.box_pack_start(bat_text, cc["bat_sub"], False, False, 0)
-    call gtk.box_pack_start(bat_box, cc["bat_icon"], False, False, 0)
+    call gtk.box_pack_start(bat_box, bat_lead, False, False, 0)
     call gtk.box_pack_start(bat_box, bat_text, True, True, 0)
     call gtk.box_pack_end(bat_box, gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU), False, False, 0)
     call gtk.container_add(bat_button, bat_box)
@@ -806,7 +865,7 @@ function create():
         call gtk.widget_add_class(footer, "footbar")
     end
     call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop", "video-display-symbolic")
-    call footer_button(footer, i18n.T("Battery…"), "luxos-power", "battery-good-symbolic")
+    cc["foot_power"] = footer_button(footer, i18n.T("Battery…"), "luxos-power", "battery-good-symbolic")
     call footer_button(footer, i18n.T("All Settings…"), settings_command(), "preferences-system-symbolic")
     call gtk.box_pack_start(outer, footer, False, False, 0)
 
@@ -816,6 +875,7 @@ function create():
     end
     call gtk.connect(win, "focus-out-event", on_focus_out)
     call gtk.connect(win, "key-press-event", on_key)
+    call gtk.connect(win, "notify::focus-visible", on_focus_visible)
     if not wayland():
         call gtk.connect(win, "realize", on_realize_x11)
         call gtk.connect(win, "configure-event", on_configure_x11)
@@ -1053,6 +1113,11 @@ function on_key(event, window):
     return False
 end
 
+function on_focus_visible(pspec, window):
+    call gtk.widget_set_class(cc["win"], "keynav", gtk.window_get_focus_visible(cc["win"]))
+    return 0
+end
+
 function on_delete(event, window):
     call close()
     return True
@@ -1125,15 +1190,15 @@ function refresh_fast():
     if b != None:
         call slider_set_value(cc["s_bright"], b)
     end
-    # Wayland bez podsviceni (stolni pocitac, VM): softwarovy jas pres gamma by drzel jen bezici klient
-    if wayland():
-        bright = backlight() != ""
-        call gtk.widget_set_no_show_all(cc["s_bright"]["box"], not bright)
-        call gtk.widget_set_visible(cc["s_bright"]["box"], bright)
-    end
     bat = battery()
     call gtk.widget_set_no_show_all(cc["bat_wrap"], bat == None)
     call gtk.widget_set_visible(cc["bat_wrap"], bat != None)
+    # bez baterie (stolni pocitac, VM) vede odkaz dole na Napajeni (rezim, uspani), ne na Baterii
+    if cc["oneui"]:
+        foot = cc["foot_power"]
+        call gtk.label_set_text(foot[2], i18n.T("Battery") if bat != None else i18n.T("Power"))
+        call gtk.image_set_from_icon_name(foot[1], "battery-good-symbolic" if bat != None else "system-shutdown-symbolic", gtk.ICON_MENU)
+    end
     if bat != None:
         cap = bat[0]
         status = bat[1]
@@ -1173,8 +1238,7 @@ end
 # Udaje ze sluzeb (sit, Bluetooth, zvuk, oznameni) - asynchronne, bez blokovani okna
 function refresh_slow():
     call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "radio", "wifi"], on_wifi_radio, 0)
-    bt = bluetooth_state()
-    call tile_set_state(cc["t_bt"], bt[0], bt[1])
+    call show_bt(bluetooth_state())
     if wayland():
         call notify_call("GetDoNotDisturb", [], "", on_dnd_reply)
     else:
@@ -1182,10 +1246,33 @@ function refresh_slow():
     end
     call glib.spawn_capture(["env", "LC_ALL=C", "pactl", "get-sink-volume", "@DEFAULT_SINK@"], on_volume, 0)
     if wayland():
+        call wm.request({"cmd": "get_night_light"}, on_night_state)
         call displays_apply(displays_wayland())
     else:
         call glib.spawn_capture(["xrandr", "--current"], on_displays, 0)
     end
+    return 0
+end
+
+# Bez adapteru Bluetooth preskrtnuta ikona, aby vypnuta bublina nevypadala jako porucha
+function show_bt(state):
+    call tile_set_state(cc["t_bt"], state[0], state[1])
+    if cc["oneui"]:
+        icon = "bluetooth-disabled-symbolic" if state[0] == None else "bluetooth-active-symbolic"
+        call gtk.image_set_from_icon_name(cc["t_bt"]["image"], icon, gtk.ICON_MENU)
+    end
+    return 0
+end
+
+# Pocitac jen s kabelem (bez karty Wi-Fi): dlazdice Ethernet, bublina i zbytek otevrou okno site v liste
+function show_wired(wired):
+    tile = cc["t_wifi"]
+    if tile.get("wired", False) == wired:
+        return 0
+    end
+    tile["wired"] = wired
+    call gtk.label_set_text(tile["title"], i18n.T("Ethernet") if wired else i18n.T("Wi-Fi"))
+    call gtk.image_set_from_icon_name(tile["image"], "network-wired-symbolic" if wired else "network-wireless-symbolic", gtk.ICON_MENU)
     return 0
 end
 
@@ -1251,7 +1338,11 @@ function on_wifi_list(on, output, status):
             end
         end
     end
+    if ssid != "":
+        call show_wired(False)
+    end
     if not on:
+        call show_wired(False)
         call tile_set_state(cc["t_wifi"], False, i18n.T("Off"))
         call set_wifi_qr("")
         return 0
@@ -1285,6 +1376,15 @@ function on_wifi_devices(unused, output, status):
     if status == 0:
         wired = output
     end
+    no_wifi = wired.find("wifi:") < 0
+    if wired.find("ethernet:connected") >= 0 and no_wifi and wayland():
+        call show_wired(True)
+        call tile_set_state(cc["t_wifi"], True, i18n.T("Connected"))
+        call set_wifi_qr("")
+        call glib.spawn_capture(["env", "LC_ALL=C", "nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_connectivity, "")
+        return 0
+    end
+    call show_wired(False)
     if wired.find("ethernet:connected") >= 0:
         call tile_set_state(cc["t_wifi"], True, i18n.T("Ethernet"))
         call set_wifi_qr("")
@@ -1497,8 +1597,7 @@ function toggle_bt_power():
     if not ok:
         return toggle_bt()
     end
-    bt = bluetooth_state()
-    call tile_set_state(cc["t_bt"], bt[0], bt[1])
+    call show_bt(bluetooth_state())
     return 0
 end
 
@@ -1884,6 +1983,9 @@ end
 function set_brightness(value):
     v = max(value, 10)
     if wayland():
+        if backlight() == "":
+            return set_brightness_soft(v)
+        end
         return set_brightness_logind(v)
     end
     if backlight() != "":
@@ -1917,6 +2019,52 @@ function set_brightness_logind(percent):
         call eprint("luxos-control-center: brightness: " + String(last_error()))
     end
     return None
+end
+
+# Monitor bez podsviceni: softwarovy jas v luxwm (gamma tabulka nebo zavoj), ulozeny pro pristi prihlaseni
+# (luxwm ho cte pri startu); soubor az po dotazeni, ne pri kazdem kroku posuvniku
+function set_brightness_soft(percent):
+    call wm.request({"cmd": "set_brightness", "value": Int(percent)}, None)
+    cc["soft_value"] = Int(percent)
+    if cc["soft_save"] != 0:
+        call glib.source_remove(cc["soft_save"])
+    end
+    cc["soft_save"] = glib.timeout_add(600, save_brightness_soft)
+    call log_test("soft-brightness " + String(Int(percent)))
+    return None
+end
+
+function save_brightness_soft():
+    cc["soft_save"] = 0
+    call glib.mkdir_p(config_dir())
+    call writefile(soft_brightness_path(), String(cc["soft_value"]) + "\n")
+    return False
+end
+
+function on_wm_event(event):
+    return 0
+end
+
+function on_night_state(reply):
+    if reply != None and reply.get("ok", False):
+        call show_night(reply.get("on", False) == True)
+    end
+    return 0
+end
+
+function show_night(on):
+    cc["night"] = on
+    call gtk.widget_set_class(cc["s_bright"]["button"], "on", on)
+    return 0
+end
+
+# Mesic vedle jasu: prepne hned, luxwm potvrdi (v rozvrhu plati do pristi hranice)
+function toggle_night():
+    on = not cc["night"]
+    call log_test("night " + ("on" if on else "off"))
+    call show_night(on)
+    call wm.request({"cmd": "set_night_light", "on": on}, on_night_state)
+    return 0
 end
 
 function on_brightness_set(row, values, error):

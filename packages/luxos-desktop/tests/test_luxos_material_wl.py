@@ -106,6 +106,13 @@ class MaterialShell(unittest.TestCase):
         # serveru pripoji, by menil vzor cc-* podle pocitace
         (cls.bin / "pactl").write_text("#!/bin/sh\nexit 1\n")
         (cls.bin / "pactl").chmod(0o755)
+        # symbolicke ikony balicku (tmavy rezim, QR) jako v /usr/share/icons/hicolor
+        icons = cls.tmp / "data/icons/hicolor/scalable/apps"
+        icons.mkdir(parents=True)
+        for f in (PKG / "files/icons").glob("*-symbolic.svg"):
+            shutil.copy(f, icons)
+        (cls.tmp / "data/icons/hicolor/index.theme").write_text(
+            "[Icon Theme]\nName=Hicolor\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=16\nMinSize=8\nMaxSize=512\nType=Scalable\n")
         cls.wall = cls.tmp / "stripes.png"
         png_write(cls.wall, W, H, stripes())
 
@@ -193,7 +200,7 @@ class MaterialShell(unittest.TestCase):
                         DBUS_SYSTEM_BUS_ADDRESS=addrs["system"], DBUS_SESSION_BUS_ADDRESS=addrs["session"],
                         LUXOS_HUB_PREBUILD_DELAY="1", LUXOS_HUB_NEWS_DELAY="100000", LUXOS_HUB_NO_PORTAL="1",
                         LUXOS_CALENDAR_DIR=str(self.session / "calendar"), LUXOS_POWER_SUPPLY=str(self.session / "power"),
-                        LUXOS_BACKLIGHT=str(self.session / "backlight"))
+                        LUXOS_BACKLIGHT=str(self.session / "backlight"), XDG_DATA_DIRS=f"{self.tmp}/data:/usr/share")
         if dark:
             # hub bere rezim z nazvu motivu GTK (na Waylandu z GSettings, settings.ini nestaci)
             self.env["GTK_THEME"] = "Adwaita:dark"

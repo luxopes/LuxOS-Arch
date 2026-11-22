@@ -36,7 +36,10 @@ TEXT_LABELS = ["Smaller", "Default", "Large", "Larger", "Largest"]
 D = {"window": 0, "outer": 0, "page": 0, "css": 0, "building": False, "busy": False, "data": None, "config": {},
      "primary": "", "mode": "extend", "widgets": {}, "area": 0, "drag": None, "view": None, "pid": 0,
      "output": "", "dialog": 0, "countdown": 0, "left": 0, "tick": 0, "message": "", "refresh": 0,
-     "x11": False, "named": {}, "text_scale": 0, "text_value": 0, "text_timer": 0, "switch": 0, "wm": False}
+     "x11": False, "named": {}, "text_scale": 0, "text_value": 0, "text_timer": 0, "switch": 0, "wm": False,
+     "night": None}
+# Nocni svetlo (luxwm): sila = teplota barev
+NIGHT_WARMTH = [[5000, "Low"], [4000, "Medium"], [3000, "High"]]
 
 function helper():
     value = env.get("LUXOS_DISPLAYS_HELPER", "")
@@ -209,6 +212,8 @@ function fill():
     end
     if D["x11"]:
         call build_text_size(page)
+    elif len(outs) > 0:
+        call build_night(page)
     end
     call gtk.widget_show_all(page)
     if D["busy"]:
@@ -344,6 +349,62 @@ function on_x11_rotation(rotation, name):
 end
 
 # Velikost textu (Xft/DPI v xsettings; xfsettingsd ji hned rozesle vsem aplikacim)
+# Nocni svetlo v luxwm (gamma tabulka monitoru); prepina ho i Ovladaci centrum
+function build_night(page):
+    n = D["night"]
+    if n == None:
+        return 0
+    end
+    g = ui.group(page, i18n.T("Night Light"))
+    modes = [["off", i18n.T("Off")], ["schedule", i18n.T("Scheduled")], ["on", i18n.T("Always on")]]
+    call ui.row(g, i18n.T("Night Light"), i18n.T("Warmer colours in the evening are easier on the eyes."),
+                named_combo("night", modes, n["mode"], on_night_set, "mode"))
+    if n["mode"] == "schedule":
+        call ui.row(g, i18n.T("Turns on"), "", named_combo("night-from", night_times(n["from"]), n["from"], on_night_set, "from"))
+        call ui.row(g, i18n.T("Turns off"), "", named_combo("night-to", night_times(n["to"]), n["to"], on_night_set, "to"))
+    end
+    warmth = [[w[0], i18n.T(w[1])] for w in NIGHT_WARMTH]
+    current = NIGHT_WARMTH[1][0]
+    for w in NIGHT_WARMTH:
+        if abs(n["temperature"] - w[0]) < abs(n["temperature"] - current):
+            current = w[0]
+        end
+    end
+    call ui.row(g, i18n.T("Warmth"), "", named_combo("night-warmth", warmth, current, on_night_set, "temperature"))
+    return 0
+end
+
+# Casy po pul hodine a k tomu ulozeny cas, kdyz mezi nimi neni
+function night_times(current):
+    items = []
+    for m in range(0, 1440, 30):
+        t = String(m // 60) + ":" + ("30" if m % 60 else "00")
+        items.append([t, t])
+    end
+    if current not in [it[0] for it in items]:
+        items.append([current, current])
+    end
+    return items
+end
+
+function on_night_set(value, key):
+    call wm.request({"cmd": "set_night_light", key: value}, on_night)
+    return 0
+end
+
+function on_night(reply):
+    if reply == None or not reply.get("ok", False):
+        return 0
+    end
+    changed = D["night"] == None or D["night"]["mode"] != reply["mode"]
+    D["night"] = reply
+    # rozvrh ukaze/schova radky casu
+    if changed and D["page"] != 0 and not D["busy"]:
+        call fill()
+    end
+    return 0
+end
+
 function build_text_size(page):
     g = ui.group(page, i18n.T("Text Size"))
     scale = gtk.scale_new_with_range(gtk.HORIZONTAL, 0, len(xr.TEXT_SIZES) - 1, 1)
@@ -841,6 +902,7 @@ function refresh():
         D["refresh"] = 0
     end
     call glib.spawn_capture([helper(), "get"], on_state, None)
+    call wm.request({"cmd": "get_night_light"}, on_night)
     return False
 end
 

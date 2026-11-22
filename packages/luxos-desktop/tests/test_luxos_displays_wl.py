@@ -494,6 +494,37 @@ class DisplaysWayland(unittest.TestCase):
         finally:
             app.stop()
 
+    def test_settings_night_light(self):
+        """Skupina Nocni svetlo (luxwm IPC): rezim, rozvrh s casy a teplota, ulozene v luxwm.conf."""
+        s = self.session("dsp-night")
+        app = lsl_app.App([SETTINGS], dict(s.env))
+        conf = os.path.join(s.env["XDG_CONFIG_HOME"], "luxwm", "luxwm.conf")
+
+        def saved():
+            return open(conf).read() if os.path.exists(conf) else ""
+        try:
+            self.assertTrue(app.wait(lambda: "night" in self.page_state(app)["combos"], 15), app.stderr())
+            combos = self.page_state(app)["combos"]
+            self.assertEqual((combos["night"]["values"], combos["night"]["active"]), (["off", "schedule", "on"], "off"))
+            self.assertNotIn("night-from", combos, "casy jen v rozvrhu")
+            self.assertEqual(combos["night-warmth"]["active"], 4000)
+            app.ask('select night ["schedule"]')
+            self.assertTrue(s.wait(lambda: "night-from" in self.page_state(app)["combos"], 5))
+            self.assertIn("night_light = schedule", saved())
+            combos = self.page_state(app)["combos"]
+            self.assertEqual((combos["night-from"]["active"], combos["night-to"]["active"]), ("21:00", "7:00"))
+            app.ask('select night-from ["22:30"]')
+            app.ask('select night-warmth [3000]')
+            self.assertTrue(s.wait(lambda: "night_light_from = 22:30" in saved() and "night_light_temperature = 3000" in saved(), 5))
+            state = s.msg("night-light")
+            self.assertEqual((state["mode"], state["from"], state["temperature"]), ("schedule", "22:30", 3000))
+            app.ask('select night ["off"]')
+            self.assertTrue(s.wait(lambda: "night-from" not in self.page_state(app)["combos"], 5))
+            self.assertIn("night_light = off", saved())
+            self.assertIsNone(app.proc.poll())
+        finally:
+            app.stop()
+
     # ---- prava ----
 
     def test_copy_outside_allowlist_cannot_apply(self):

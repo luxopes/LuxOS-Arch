@@ -8,7 +8,9 @@
 
 Nahradni sluzby: nmcli, pactl, sporice a spoustene aplikace jsou skripty v PATH (zapisuji volani do calls.log),
 BlueZ a logind na vlastni systemove sbernici, historie oznameni (Nerusit) na vlastni sbernici relace.
-Vzory: tests/wl-cc-goldens/*.png, novy vzor LUXOS_CC_UPDATE_GOLDENS=1; snimky i do LUXOS_CC_SHOTS.
+Vzory: tests/wl-cc-goldens/*.png (vychozi notebook a matice hardwaru a stavu MATRIX: bez podsviceni, baterie,
+Bluetooth, jen kabel, hlasitost, prehravani, 2 monitory), novy vzor LUXOS_CC_UPDATE_GOLDENS=1; snimky i do LUXOS_CC_SHOTS.
+Nocni svetlo a softwarovy jas jen pod luxwm (IPC), ten na headless vystupu kresli zavoj.
 """
 import os
 from pathlib import Path
@@ -44,10 +46,16 @@ FAKE_SERVICES = r'''
 import sys
 from gi.repository import Gio, GLib
 system, session, log = sys.argv[1], sys.argv[2], open(sys.argv[3], "a", buffering=1)
+with_bluez, with_player = sys.argv[4] == "1", sys.argv[5] == "1"
 state = {"powered": True, "dnd": False}
 BLUEZ = """<node><interface name="org.bluez.Adapter1"><property name="Powered" type="b" access="readwrite"/></interface></node>"""
 LOGIND = """<node><interface name="org.freedesktop.login1.Session">
 <method name="SetBrightness"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="u" direction="in"/></method>
+</interface></node>"""
+PLAYER = """<node><interface name="org.mpris.MediaPlayer2.Player">
+<method name="PlayPause"/><method name="Next"/><method name="Previous"/>
+<property name="PlaybackStatus" type="s" access="read"/><property name="Metadata" type="a{sv}" access="read"/>
+<property name="CanGoNext" type="b" access="read"/><property name="CanGoPrevious" type="b" access="read"/>
 </interface></node>"""
 HISTORY = """<node><interface name="cz.luxos.NotificationHistory">
 <method name="GetDoNotDisturb"><arg type="b" direction="out"/></method>
@@ -74,18 +82,31 @@ def history(conn, sender, path, name, method, params, inv):
         inv.return_value(None)
     else:
         inv.return_value(GLib.Variant("(b)", (state["dnd"],)))
+def player_get(conn, sender, path, name, prop):
+    return {"PlaybackStatus": GLib.Variant("s", "Playing"), "CanGoNext": GLib.Variant("b", True),
+            "CanGoPrevious": GLib.Variant("b", True),
+            "Metadata": GLib.Variant("a{sv}", {"xesam:title": GLib.Variant("s", "Northern Lights"),
+                                               "xesam:artist": GLib.Variant("as", ["Aurora Trio"])})}[prop]
+def player(conn, sender, path, name, method, params, inv):
+    print("player", method, file=log)
+    inv.return_value(None)
 sys_bus, ses_bus = bus(system), bus(session)
-sys_bus.register_object("/org/bluez/hci0", iface(BLUEZ), None, bluez_get, bluez_set)
+want = [(sys_bus, "org.freedesktop.login1"), (ses_bus, "org.freedesktop.Notifications")]
+if with_bluez:
+    sys_bus.register_object("/org/bluez/hci0", iface(BLUEZ), None, bluez_get, bluez_set)
+    want.append((sys_bus, "org.bluez"))
+if with_player:
+    ses_bus.register_object("/org/mpris/MediaPlayer2", iface(PLAYER), player, player_get, None)
+    want.append((ses_bus, "org.mpris.MediaPlayer2.fake"))
 sys_bus.register_object("/org/freedesktop/login1/session/auto", iface(LOGIND), logind, None, None)
 ses_bus.register_object("/cz/luxos/NotificationHistory", iface(HISTORY), history, None, None)
 names = []
 def owned(conn, name):
     names.append(name)
-    if len(names) == 3:
+    if len(names) == len(want):
         print("ready", flush=True)
-Gio.bus_own_name_on_connection(sys_bus, "org.bluez", 0, owned, None)
-Gio.bus_own_name_on_connection(sys_bus, "org.freedesktop.login1", 0, owned, None)
-Gio.bus_own_name_on_connection(ses_bus, "org.freedesktop.Notifications", 0, owned, None)
+for conn, name in want:
+    Gio.bus_own_name_on_connection(conn, name, 0, owned, None)
 GLib.MainLoop().run()
 '''
 
@@ -96,9 +117,13 @@ case "$*" in
     "radio wifi") cat "$FAKE_STATE/wifi" ;;
     "radio wifi on") echo enabled >"$FAKE_STATE/wifi" ;;
     "radio wifi off") echo disabled >"$FAKE_STATE/wifi" ;;
-    "-t -f ACTIVE,SSID device wifi") echo "yes:Home Network" ;;
+    "-t -f ACTIVE,SSID device wifi") [ "$(cat "$FAKE_STATE/net")" = wifi ] && echo "yes:Home Network" ;;
     "-t -f CONNECTIVITY general") echo full ;;
-    "-t -f TYPE,STATE device") echo wifi:connected ;;
+    "-t -f TYPE,STATE device") case "$(cat "$FAKE_STATE/net")" in
+        wifi) echo wifi:connected ;;
+        ethernet) printf 'ethernet:connected\nloopback:connected (externally)\n' ;;
+        both) printf 'ethernet:connected\nwifi:disconnected\n' ;;
+    esac ;;
 esac''',
     "pactl": r'''
 case "$1" in
@@ -201,13 +226,19 @@ class ControlCenter:
             time.sleep(0.02)
         return f"unix:path={address}"
 
-    def start(self, dark=False):
-        name = f"c{self.compositor[:2]}{os.getpid() % 100000}-{self._testMethodName[-6:]}"
-        args = ["start", "--mode", "headless", "--outputs", "1", "--size", f"{OUT_W}x{OUT_H}", "--timeout", "600", "--name", name]
+    def start(self, dark=False, backlight=True, battery=True, bluetooth=True, net="wifi", vol=40, mute=False,
+              media=False, outputs=1, night=None, luxwm_conf=""):
+        self.runs = getattr(self, "runs", 0) + 1
+        self.outputs = outputs
+        self.net = net
+        name = f"c{self.compositor[:2]}{os.getpid() % 100000}-{self._testMethodName[-6:]}{self.runs}"
+        args = ["start", "--mode", "headless", "--outputs", str(outputs), "--size", f"{OUT_W}x{OUT_H}", "--timeout", "600",
+                "--name", name]
         env = dict(os.environ)
         if self.compositor == "luxwm":
             conf = self.tmp / f"luxwm-{name}.conf"
-            conf.write_text("xwayland = no\n" + (REPO / "packages/luxwm/luxwm.conf").read_text())
+            conf.write_text("xwayland = no\n" + (REPO / "packages/luxwm/luxwm.conf").read_text().replace(
+                "displays_command", "#") + luxwm_conf)
             env["WLT_COMPOSITOR_ENV"] = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_SYSTEM_CONFIG={conf} "
                                          f"LD_LIBRARY_PATH={LUXWM_BUILD}:{SYSROOT}/usr/lib")
             args += ["--", str(LUXWM_BUILD / "luxwm")]
@@ -220,12 +251,14 @@ class ControlCenter:
         state = self.session / "state"
         state.mkdir()
         (state / "wifi").write_text("enabled\n")
-        (state / "vol").write_text("40\n")
-        (state / "mute").write_text("no\n")
+        (state / "net").write_text(net + "\n")
+        (state / "vol").write_text(f"{vol}\n")
+        (state / "mute").write_text("yes\n" if mute else "no\n")
         self.calls = self.session / "calls.log"
         self.calls.write_text("")
         system, bus = self.daemon("system_bus"), self.daemon("session_bus")
-        fake = subprocess.Popen(["python3", "-I", "-c", FAKE_SERVICES, system, bus, str(self.calls)], stdout=subprocess.PIPE,
+        fake = subprocess.Popen(["python3", "-I", "-c", FAKE_SERVICES, system, bus, str(self.calls), "1" if bluetooth else "0",
+                                 "1" if media else "0"], stdout=subprocess.PIPE,
                                 env=dict(os.environ, PYTHONUNBUFFERED="1"))
         self.procs.append(fake)
         Bar(fake).wait(r"^ready$")
@@ -249,15 +282,27 @@ class ControlCenter:
         (conf / "glib-2.0/settings").mkdir(parents=True)
         (conf / "glib-2.0/settings/keyfile").write_text(f"[org/gnome/desktop/interface]\ngtk-theme='{theme}'\n"
                                                         f"icon-theme='{icons}'\nfont-name='Inter 10'\nenable-animations=false\n")
-        backlight = self.session / "backlight/intel_backlight"
-        backlight.mkdir(parents=True)
-        (backlight / "brightness").write_text("900\n")
-        (backlight / "max_brightness").write_text("1200\n")
+        if night is not None:
+            (conf / "luxwm").mkdir(parents=True, exist_ok=True)
+            (conf / "luxwm/luxwm.conf").write_text(f"night_light = {'on' if night else 'off'}\n")
+        light = self.session / "backlight/intel_backlight"
+        light.mkdir(parents=True)
+        if backlight:
+            (light / "brightness").write_text("900\n")
+            (light / "max_brightness").write_text("1200\n")
+        else:
+            light.rmdir()
         bat = self.session / "power/BAT0"
         bat.mkdir(parents=True)
-        for key, value in {"capacity": 76, "status": "Discharging", "energy_now": 38000000, "energy_full": 50000000,
-                           "power_now": 16000000}.items():
-            (bat / key).write_text(f"{value}\n")
+        if battery:
+            for key, value in {"capacity": 76, "status": "Discharging", "energy_now": 38000000, "energy_full": 50000000,
+                               "power_now": 16000000}.items():
+                (bat / key).write_text(f"{value}\n")
+        else:
+            bat.rmdir()
+            (bat.parent / "AC").mkdir()
+            (bat.parent / "AC/online").write_text("1\n")
+        backlight = light
         self.cc = Log(self.session / "cc.log")
         self.env.update(GDK_BACKEND="wayland", NO_AT_BRIDGE="1", GTK_A11Y="none", LUXOS_WL_LIB=str(self.lib),
                         PATH=f"{self.bin}:/usr/bin:/bin", DBUS_SYSTEM_BUS_ADDRESS=system, DBUS_SESSION_BUS_ADDRESS=bus,
@@ -279,12 +324,25 @@ class ControlCenter:
 
     def open(self):
         """Ukaze okno (SIGUSR1 jako zkratka) -> slovnik poloh prvku na obrazovce a obdelnik okna."""
+        before = self.shot() if self.outputs > 1 else None
         mark = self.cc.mark()
         self.hub.send_signal(signal.SIGUSR1)
         self.cc.wait("shown", mark, timeout=3)
-        self.cc.wait("wifi-qr:share", 0, timeout=5)
+        if self.net != "wifi":
+            time.sleep(1.0)     # kabel: odkaz QR zustava skryty, zadny zaznam wifi-qr
+        else:
+            self.cc.wait("wifi-qr:", 0, timeout=5)
         w, h = map(int, self.cc.wait("size ", mark).split()[1:])
-        self.rect = (OUT_W - EDGE - w, TOP, w, h)
+        # vic monitoru: okno je na tom, kde se obraz zmenil
+        self.out_x = 0
+        if before:
+            time.sleep(0.5)
+            after = self.shot()
+            changes = [sum(a != b for a, b in zip(crop(before, k * OUT_W + OUT_W - EDGE - w, TOP, w, h)[2],
+                                                  crop(after, k * OUT_W + OUT_W - EDGE - w, TOP, w, h)[2]))
+                       for k in range(self.outputs)]
+            self.out_x = changes.index(max(changes)) * OUT_W
+        self.rect = (self.out_x + OUT_W - EDGE - w, TOP, w, h)
         self.pos = {}
         for line in self.cc.lines()[mark:]:
             if line.startswith("tilepos "):
@@ -341,12 +399,12 @@ class ControlCenter:
 class ControlCenterLabwc(ControlCenter, unittest.TestCase):
     compositor = "labwc"
 
-    def golden(self, dark, name):
-        self.start(dark=dark)
+    def golden(self, dark, name, **hw):
+        self.start(dark=dark, **hw)
         # pravy pruh obrazovky i pred otevrenim (snimky pred/po pro vlastnika)
         self.open()
         image = self.shot()
-        self.save(name + "-screen", crop(image, OUT_W - 440, 0, 440, OUT_H))
+        self.save(name + "-screen", crop(image, self.out_x + OUT_W - 440, 0, 440, OUT_H))
         x, y, w, h = self.rect
         self.assertLessEqual(y + h, OUT_H, "okno presahuje obrazovku")
         # sirka jako ostatni vyskakovaci okna listy, cele na obrazovce i na 1366x768 pod listou
@@ -375,6 +433,38 @@ class ControlCenterLabwc(ControlCenter, unittest.TestCase):
 
     def test_golden_dark(self):
         self.golden(True, "cc-dark")
+
+    # Matice hardwaru a stavu: kazda kombinace musi vypadat stejne uhledne jako vychozi notebook
+    # (stolni pocitac a VM bez podsviceni, baterie a Bluetooth, jen Ethernet, hlasitost, prehravani, 2 monitory)
+    MATRIX = {
+        "vm": dict(backlight=False, battery=False, bluetooth=False, net="ethernet"),
+        "no-backlight": dict(backlight=False),
+        "no-battery": dict(battery=False),
+        "no-bluetooth": dict(bluetooth=False),
+        "ethernet": dict(net="ethernet"),
+        "wired-wifi": dict(net="both"),
+        "vol0": dict(vol=0),
+        "vol50": dict(vol=50),
+        "vol100": dict(vol=100),
+        "muted": dict(vol=60, mute=True),
+        "media": dict(media=True),
+        "two-monitors": dict(outputs=2),
+    }
+
+    def matrix(self, dark, names):
+        for name in names:
+            with self.subTest(name):
+                try:
+                    self.golden(dark, f"cc-{name}" + ("-dark" if dark else ""), **self.MATRIX[name])
+                finally:
+                    self.tearDown()
+                    self.setUp()
+
+    def test_matrix_light(self):
+        self.matrix(False, self.MATRIX)
+
+    def test_matrix_dark(self):
+        self.matrix(True, ("vm", "media", "vol100", "no-bluetooth"))
 
 
 class Interaction:
@@ -431,7 +521,7 @@ class Interaction:
     def test_links_open_apps_and_close(self):
         self.start()
         for name, call in (("wifi-title", None), ("bt-title", "luxos-bluetooth "), ("qr", "luxos-wifi-qr "),
-                           ("bright-side", "luxos-displays "), ("dark", "luxos-appearance toggle")):
+                           ("dark", "luxos-appearance toggle")):
             self.open()
             mark = self.cc.mark()
             self.click(name)
@@ -493,6 +583,48 @@ class InteractionLuxwm(Interaction, ControlCenter, unittest.TestCase):
         self.cc.wait("hidden", mark)
         self.assertIsNone(self.hub.poll())
 
+    def rgb(self, x, y):
+        return bytes.fromhex(pixel(self.shot(), x, y))
+
+    def wait_file(self, path, text, timeout=5.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if path.exists() and text in path.read_text():
+                return
+            time.sleep(0.05)
+        self.fail(f"{path}: chybi {text!r}")
+
+    def test_night_light_and_soft_brightness(self):
+        """Mesic vedle jasu prepne nocni svetlo v luxwm (headless: zavoj), bez podsviceni jas softwarove v luxwm."""
+        self.start(backlight=False)
+        self.open()
+        probe = (200, 400)
+        plain = self.rgb(*probe)
+        self.assert_bubble("bright-side", False)
+        self.click("bright-side")
+        self.cc.wait("night on")
+        self.wait_file(self.session / "config/luxwm/luxwm.conf", "night_light = on")
+        time.sleep(0.3)
+        warm = self.rgb(*probe)
+        print(f"\n  plocha {tuple(plain)} -> nocni svetlo {tuple(warm)}")
+        self.assertGreater(warm[0] - warm[2], plain[0] - plain[2] + 20, "teplejsi obraz")
+        self.click("bright-side")
+        self.cc.wait("night off")
+        self.wait_file(self.session / "config/luxwm/luxwm.conf", "night_light = off")
+        time.sleep(0.3)
+        self.assertEqual(self.rgb(*probe), plain)
+        # posuvnik jasu uplne vlevo: 10 %, luxwm ztlumi cernou, soubor pro dalsi prihlaseni az po dotazeni
+        x, y, width = self.pos["bright"]
+        self.click("bright", -width // 2 + 4)
+        self.cc.wait("soft-brightness 10")
+        self.wait_file(self.session / "config/luxos/brightness", "10")
+        time.sleep(0.3)
+        dim = self.rgb(*probe)
+        for a, b in zip(plain, dim):
+            self.assertLessEqual(abs(b - a * 0.1), 3, (plain, dim))
+        self.assertNotIn("hidden", self.cc.lines())
+        self.assertIsNone(self.hub.poll())
+
     # snimky s materialem kompozitoru (rozmazani, stin) pro vlastnika; vzory jsou z labwc
     def test_look_light(self):
         self.start()
@@ -503,6 +635,13 @@ class InteractionLuxwm(Interaction, ControlCenter, unittest.TestCase):
         self.start(dark=True)
         self.open()
         self.save("cc-luxwm-dark", crop(self.shot(), OUT_W - 440, 0, 440, OUT_H))
+
+    def test_look_vm_night(self):
+        # jako VM: bez podsviceni, baterie a Bluetooth, jen kabel, nocni svetlo zapnute (zavoj pres celou obrazovku)
+        self.start(backlight=False, battery=False, bluetooth=False, net="ethernet", night=True)
+        self.open()
+        time.sleep(0.5)
+        self.save("cc-luxwm-vm-night", crop(self.shot(), OUT_W - 440, 0, 440, OUT_H))
 
 
 if __name__ == "__main__":
