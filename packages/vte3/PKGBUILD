@@ -2,7 +2,7 @@
 # VTE z Archu + obnovena podpora obrazku SIXEL pro Terminal LuxOS (packages/luxos-terminal).
 # Stabilni vetve VTE (0.76+) SIXEL z kodu odstranuji (upstream commit 3bd4f9a3 "all: Remove SIXEL
 # support from stable branch" - na vyvojove vetvi kod zustava a vyviji se dal). restore-sixel.patch je
-# presne obraceny tento commit pro 0.84.1, sestaveni s -D sixel=true. Kresleni obrazku ale ani na vyvojove
+# presne obraceny tento commit pro 0.84.1 (na 0.84.2 jde beze zmen), sestaveni s -D sixel=true. Kresleni obrazku ale ani na vyvojove
 # vetvi neni (po prepisu kresleni pro GTK4 zustalo jako FIXME - obrazek se nacte, ale nezobrazi):
 # sixel-draw-gtk3.patch ho doplnuje pro GTK3 (cairo, Image::paint z image.cc): kresli jen obrazky v
 # prekreslovane oblasti, z kopie na X serveru vytvorene jednou (jinak by kazde prekresleni - kurzor,
@@ -27,8 +27,8 @@ pkgname=(
   vte4-utils
   vte-docs
 )
-pkgver=0.84.1
-pkgrel=1.2
+pkgver=0.84.2
+pkgrel=1.1
 pkgdesc="Virtual Terminal Emulator widget (LuxOS: SIXEL images)"
 url="https://gitlab.gnome.org/GNOME/vte"
 arch=(x86_64)
@@ -74,7 +74,7 @@ options=(!lto)
 source=("git+https://gitlab.gnome.org/GNOME/vte.git#tag=$pkgver"
         restore-sixel.patch
         sixel-draw-gtk3.patch)
-b2sums=('f8f03ea82a08697d28a8e7a76729c39cb2088335380eb21b0af54f04519fb293f257a334c8b41948707b50cebbb8bb9c792a2c745b38f3834c9351ae730610ce'
+b2sums=('6075d50037eef730aeb26fe8f03ef0e0b70658a37a99508210585320dddc5ee797615a258998a0eb19cb26f34541b8f0dfe47c197ca2cbb331937dde676eaf53'
         '4610e8517829d3885c35f4b78709745a635c48d27ce51ae46a3b2cd11df1549cc2140ce7339dd1152ce3d5c8da5a1a1a0fac85a399d279452d38f0c6563871d1'
         '40cd7a29691359347ba2e58c0d16da023c4ff6c1f145252d2c8c066524fb9361a488ba2d50b23f1bddae8d521b9698eb863be1177ce19390d4772ed5b3310b6c')
 
