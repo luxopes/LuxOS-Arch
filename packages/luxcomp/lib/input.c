@@ -225,7 +225,11 @@ keyboard_key(struct wl_listener *listener, void *data)
 	} else if (switch_vt(kb->wlr->xkb_state, keycode)) {
 		swallow(kb, keycode, true);
 		return;
-	} else if (!comp.locked) {
+	} else if (!comp.locked && gaming_shortcut_escape(kb->wlr->xkb_state, keycode,
+			wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK)) {
+		swallow(kb, keycode, true);
+		return;
+	} else if (!comp.locked && !gaming_shortcuts_inhibited()) {
 		uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK;
 		struct keybind *b;
 		wl_list_for_each(b, &comp.keybinds, link) {
@@ -518,6 +522,10 @@ process_motion(uint32_t time)
 	struct wlr_surface *surface;
 	double sx, sy;
 	int part = hit_test(comp.cursor->x, comp.cursor->y, &v, &l, &surface, &sx, &sy);
+	if (gaming_pointer_focus(&surface, &sx, &sy)) {
+		v = comp.focused;
+		part = LUXCOMP_PART_CLIENT;
+	}
 	deco_hover(v ? v->deco : NULL, part);
 	if (surface) {
 		wlr_seat_pointer_notify_enter(comp.seat, surface, sx, sy);
@@ -526,6 +534,7 @@ process_motion(uint32_t time)
 		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name("default"));
 		wlr_seat_pointer_clear_focus(comp.seat);
 	}
+	gaming_pointer_update();
 }
 
 void
@@ -538,7 +547,9 @@ static void
 cursor_motion(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_motion_event *e = data;
-	wlr_cursor_move(comp.cursor, &e->pointer->base, e->delta_x, e->delta_y);
+	double dx = e->delta_x, dy = e->delta_y;
+	gaming_pointer_motion(e->time_msec, &dx, &dy, e->unaccel_dx, e->unaccel_dy);
+	wlr_cursor_move(comp.cursor, &e->pointer->base, dx, dy);
 	idle_activity();
 	process_motion(e->time_msec);
 }
@@ -547,7 +558,13 @@ static void
 cursor_motion_abs(struct wl_listener *listener, void *data)
 {
 	struct wlr_pointer_motion_absolute_event *e = data;
-	wlr_cursor_warp_absolute(comp.cursor, &e->pointer->base, e->x, e->y);
+	/* tablet, VM a virtualni ukazatel: posun od kurzoru jako relativni pohyb, at hry rozhlizeni
+	 * dostanou a zamceny ukazatel stoji */
+	double lx, ly;
+	wlr_cursor_absolute_to_layout_coords(comp.cursor, &e->pointer->base, e->x, e->y, &lx, &ly);
+	double dx = lx - comp.cursor->x, dy = ly - comp.cursor->y;
+	gaming_pointer_motion(e->time_msec, &dx, &dy, dx, dy);
+	wlr_cursor_move(comp.cursor, &e->pointer->base, dx, dy);
 	idle_activity();
 	process_motion(e->time_msec);
 }
@@ -563,6 +580,11 @@ cursor_button(struct wl_listener *listener, void *data)
 	struct wlr_surface *surface;
 	double sx, sy;
 	int part = hit_test(comp.cursor->x, comp.cursor->y, &v, &l, &surface, &sx, &sy);
+	if (gaming_pointer_focus(&surface, &sx, &sy)) {
+		v = comp.focused;
+		l = NULL;
+		part = LUXCOMP_PART_CLIENT;
+	}
 
 	if (!pressed && comp.grab != GRAB_NONE) {
 		if (getenv("LUXCOMP_STATS") && comp.grab_frames > 0) {

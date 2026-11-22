@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 11
+#define LUXCOMP_API_VERSION 12
 
 #pragma GCC visibility push(default)
 
@@ -54,6 +54,7 @@ enum luxcomp_event {
 					 * that frame is on every output (the old picture may go away now) */
 	LUXCOMP_EV_LAYER_MAP,		/* id=output a=layer (0 background .. 3 overlay) b=1 with an exclusive
 					 * zone; a layer-shell surface (wallpaper, bar, Dock) shows its first frame */
+	LUXCOMP_EV_VIEW_CONTENT_TYPE,	/* id=view a=LUXCOMP_CONTENT_* (wp-content-type-v1 changed) */
 };
 
 enum luxcomp_request {
@@ -106,6 +107,20 @@ enum luxcomp_output_prop {
 	LUXCOMP_OUT_USABLE_X, LUXCOMP_OUT_USABLE_Y, LUXCOMP_OUT_USABLE_W, LUXCOMP_OUT_USABLE_H,
 	LUXCOMP_OUT_REFRESH_MHZ,
 	LUXCOMP_OUT_SCALE_PCT,
+	LUXCOMP_OUT_VRR,		/* adaptive sync LUXCOMP_VRR_*, default FULLSCREEN; luxcomp_output_set() */
+	LUXCOMP_OUT_TEARING,		/* 1 (default) = a fullscreen client asking for async presentation
+					 * (tearing-control-v1) gets tearing page flips; luxcomp_output_set() */
+	LUXCOMP_OUT_VRR_SUPPORTED,	/* the display and driver can do adaptive sync */
+	LUXCOMP_OUT_VRR_ACTIVE,		/* adaptive sync is on now */
+	LUXCOMP_OUT_FULLSCREEN,		/* fullscreen view on top of this output or 0 */
+	LUXCOMP_OUT_SCANOUT,		/* 1 = the last frame was a client buffer scanned out directly */
+	LUXCOMP_OUT_TORN,		/* 1 = the last frame was an async (tearing) page flip */
+};
+
+enum luxcomp_vrr {
+	LUXCOMP_VRR_OFF = 0,
+	LUXCOMP_VRR_FULLSCREEN,		/* only under a fullscreen view (on the desktop VRR can flicker) */
+	LUXCOMP_VRR_ALWAYS,
 };
 
 /* Properties for luxcomp_view_get() */
@@ -128,6 +143,15 @@ enum luxcomp_view_prop {
 	LUXCOMP_VIEW_PID,
 	LUXCOMP_VIEW_X11,		/* 1 = X11 window through XWayland */
 	LUXCOMP_VIEW_SANDBOXED,		/* 1 = client of a wp-security-context socket (app sandbox) */
+	LUXCOMP_VIEW_CONTENT_TYPE,	/* LUXCOMP_CONTENT_* (wp-content-type-v1) */
+	LUXCOMP_VIEW_TEARING,		/* 1 = the client asks for async presentation (tearing-control-v1) */
+};
+
+enum luxcomp_content {
+	LUXCOMP_CONTENT_NONE = 0,
+	LUXCOMP_CONTENT_PHOTO,
+	LUXCOMP_CONTENT_VIDEO,
+	LUXCOMP_CONTENT_GAME,
 };
 
 /* View stacking layers, bottom to top: background, bottom, NORMAL, ABOVE, top (bar), FULLSCREEN, overlay */
@@ -202,6 +226,7 @@ void luxcomp_set_background(int64_t argb);		/* solid colour below the wallpaper 
 int64_t luxcomp_output_get(int64_t output, int64_t prop);
 const char *luxcomp_output_name(int64_t output);
 int64_t luxcomp_output_at(int64_t x, int64_t y);
+void luxcomp_output_set(int64_t output, int64_t prop, int64_t value);	/* LUXCOMP_OUT_VRR, _TEARING */
 /* Tests only: plug in a headless output of this size (returns its id, 0 without the headless
  * backend) and unplug it again. Real (DRM) outputs are never touched. */
 int64_t luxcomp_test_output_add(int64_t width, int64_t height);
@@ -311,6 +336,15 @@ int64_t luxcomp_ipc_send(int64_t client, const char *line);
 void luxcomp_ipc_close(int64_t client);
 
 int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locker died) */
+
+/* Games. A view on top of an output in LUXCOMP_LAYER_FULLSCREEN with the fullscreen state is scanned out
+ * directly when nothing is drawn over it (no title bar, shadow, rounded corners, material). Clients get
+ * pointer-constraints + relative-pointer (only in the focused view), keyboard-shortcuts-inhibit (key
+ * bindings go to the client; Super+Escape toggles them back, Ctrl+Alt+F1..F12 always switches the VT),
+ * tearing-control, content-type, gamma-control, drm-lease (non-desktop outputs, DRM only),
+ * linux-dmabuf with scanout feedback and linux-drm-syncobj (when renderer and backend support them). */
+int64_t luxcomp_pointer_constraint(void);	/* 0 none, 1 pointer locked, 2 confined */
+void luxcomp_idle_inhibit(int64_t on);		/* policy keeps the screen on (fullscreen video or game) */
 
 /* Server-side decorations */
 void luxcomp_theme_set(int64_t prop, int64_t value);

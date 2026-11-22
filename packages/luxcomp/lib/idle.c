@@ -43,7 +43,7 @@ idle_update(void)
 	if (!comp.inhibit) {
 		return;
 	}
-	bool inhibited = false;
+	bool inhibited = comp.idle_inhibit;
 	struct wlr_idle_inhibitor_v1 *i;
 	wl_list_for_each(i, &comp.inhibit->inhibitors, link) {
 		if (surface_visible(i->surface)) {
@@ -91,6 +91,14 @@ new_inhibitor(struct wl_listener *listener, void *data)
 	wl_signal_add(&i->surface->events.map, &in->map);
 	in->unmap.notify = inhibitor_changed;
 	wl_signal_add(&i->surface->events.unmap, &in->unmap);
+	idle_update();
+}
+
+/* Politika drzi obrazovku zapnutou (celoobrazovkove video nebo hra bez vlastniho idle-inhibit) */
+void
+luxcomp_idle_inhibit(int64_t on)
+{
+	comp.idle_inhibit = on != 0;
 	idle_update();
 }
 

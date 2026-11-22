@@ -1405,7 +1405,7 @@ blur_output_frame(struct output *o)
 	struct blur *b;
 	wl_list_for_each(b, &blurs, link) {
 		struct wlr_box abs;
-		if (!on_output(b, o, &abs)) {
+		if (!on_output(b, o, &abs) || node_under_fullscreen(&b->node->node, o)) {
 			continue;
 		}
 		/* plocha pres cely vystup (ztmaveni Launchpadu a Hledani) rozmazava jen vrstvu pozadi, jako macOS a 1.0:

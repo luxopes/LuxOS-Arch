@@ -56,6 +56,10 @@ struct output {
 	bool held;			/* luxcomp_hold: still shows what was there before (boot splash) */
 	bool hold_wait;			/* the first frame after the hold is not on screen yet */
 	int last_x, last_y;	/* last state sent through wlr-output-management */
+	int vrr;			/* LUXCOMP_VRR_* */
+	int vrr_refused;		/* adaptive sync value the output refused, -1 none */
+	bool tearing;			/* fullscreen clients asking for async presentation may tear */
+	bool scanout, torn;		/* last frame: client buffer scanned out directly, async page flip */
 	struct wl_listener frame, request_state, destroy, present;
 };
 
@@ -84,6 +88,7 @@ struct view {
 	char *badge;		/* luxcomp_view_set_badge(), drawn by deco.c */
 	char *app_id_override, *title_override;	/* luxcomp_view_set_names() */
 	int last_w, last_h;	/* size of the last VIEW_MAP/VIEW_SIZE */
+	int content_type;	/* wp-content-type-v1 of the last commit (VIEW_CONTENT_TYPE) */
 	/* luxcomp_view_set_material(): blurred backdrop under a rectangle of the content (blur.c) */
 	struct blur *material;
 	char material_name[16];		/* "" = none */
@@ -157,6 +162,7 @@ struct comp {
 	struct wlr_xdg_activation_v1 *activation;
 	struct wlr_idle_notifier_v1 *idle;
 	struct wlr_idle_inhibit_manager_v1 *inhibit;
+	bool idle_inhibit;		/* luxcomp_idle_inhibit(): the policy keeps the screen on */
 	struct wlr_foreign_toplevel_manager_v1 *ftl_mgr;
 	struct wlr_ext_foreign_toplevel_list_v1 *ext_list;
 	struct wlr_xwayland *xwayland;
@@ -302,6 +308,25 @@ void idle_update(void);
 const char *idle_shell_token(void);
 bool launch_busy(void);			/* a started program has no window yet: busy pointer */
 void launch_window_mapped(void);
+
+/* gaming.c: games, VR and GPU clients. output_fullscreen() is the fullscreen view on top of an output;
+ * everything drawn over it (title bar, shadow, rounded corners, material, animations) has to stay off
+ * so that wlr_scene can scan its buffer out directly. */
+void gaming_init(void);
+void gaming_finish(void);
+struct view *output_fullscreen(struct output *o);
+bool node_under_fullscreen(struct wlr_scene_node *node, struct output *o);
+bool gaming_output_commit(struct output *o);
+bool gaming_offer_output(struct wlr_output *wo);	/* non-desktop (VR) output: leased, not used */
+void gaming_pointer_update(void);		/* after the pointer or keyboard focus changed */
+void gaming_pointer_motion(uint32_t time_msec, double *dx, double *dy, double udx, double udy);
+bool gaming_pointer_focus(struct wlr_surface **surface, double *sx, double *sy);
+struct xkb_state;
+bool gaming_shortcuts_inhibited(void);
+bool gaming_shortcut_escape(struct xkb_state *state, uint32_t keycode, uint32_t mods);
+int gaming_content_type(struct wlr_surface *surface);
+bool gaming_tearing_hint(struct wlr_surface *surface);
+void gaming_view_commit(struct view *v);
 
 /* security.c */
 void security_init(void);

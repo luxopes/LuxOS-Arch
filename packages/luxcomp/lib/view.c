@@ -27,6 +27,7 @@
 #include "internal.h"
 
 static const struct wlr_security_context_v1_state *view_sandbox(struct view *v);
+static void request(struct view *v, int64_t what, int64_t arg);
 
 struct view *
 view_by_id(int64_t id)
@@ -164,11 +165,16 @@ view_commit(struct wl_listener *listener, void *data)
 			| WLR_XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN
 			| WLR_XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE);
 		apply_decoration_mode(v);
+		/* hra nebo prehravac chce celou obrazovku uz od startu (SDL, mpv --fs): prvni buffer v plne velikosti */
+		if (v->toplevel->requested.fullscreen) {
+			request(v, LUXCOMP_REQ_FULLSCREEN, 1);
+		}
 		return;
 	}
 	if (v->deco) {
 		deco_update(v->deco);
 	}
+	gaming_view_commit(v);
 	view_size_changed(v);
 }
 
@@ -335,7 +341,10 @@ static void
 request_fullscreen(struct wl_listener *listener, void *data)
 {
 	struct view *v = wl_container_of(listener, v, request_fullscreen);
-	request(v, LUXCOMP_REQ_FULLSCREEN, v->toplevel->requested.fullscreen);
+	/* pred prvnim commitem nejde stav poslat; pozadavek se zopakuje pri nem (view_commit) */
+	if (v->toplevel->base->initialized) {
+		request(v, LUXCOMP_REQ_FULLSCREEN, v->toplevel->requested.fullscreen);
+	}
 }
 
 static void
@@ -689,6 +698,8 @@ luxcomp_view_get(int64_t id, int64_t prop)
 	case LUXCOMP_VIEW_LAYER: return v->layer;
 	case LUXCOMP_VIEW_X11: return v->xsurface != NULL;
 	case LUXCOMP_VIEW_SANDBOXED: return view_sandbox(v) != NULL;
+	case LUXCOMP_VIEW_CONTENT_TYPE: return gaming_content_type(view_surface(v));
+	case LUXCOMP_VIEW_TEARING: return gaming_tearing_hint(view_surface(v));
 	}
 	if (v->xsurface) {
 		return xview_get(v, prop);
