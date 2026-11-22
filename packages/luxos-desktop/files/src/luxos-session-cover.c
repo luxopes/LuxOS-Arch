@@ -377,6 +377,8 @@ static int restore_frame(Pixmap snap, Visual *vis, int depth, unsigned w, unsign
     return ok;
 }
 
+static void dbg(long t, const char *fmt, ...);
+
 static int x_errors;
 
 static int ignore_errors(Display *d, XErrorEvent *e)
@@ -608,10 +610,15 @@ typedef struct {
     int quit;
     int log_fd;                 /* LUXOS_COVER_FRAMELOG: casy snimku (mereni trhani) */
     int bench;                  /* LUXOS_COVER_BENCH: vypln stale v pohybu (jen testy) */
+    int keep_track;             /* draha uz je ve snimku (bar Plymouthu) - nekreslit ji znovu */
+    double from;                /* kde bar zacina (0 = prazdny, navazani na Plymouth: jeho postup) */
+    double fill[4];             /* barva vyplne RGBA */
 } Bar;
 
-/* Misto pole pro heslo (pod avatarem) na hlavnim monitoru - stejne rozmery jako luxos-greeter */
-static void bar_geometry(Bar *b, int sw, int sh)
+/* Misto pole pro heslo (pod avatarem) na hlavnim monitoru - stejne rozmery jako luxos-greeter.
+ * splash: misto baru Plymouthu (automaticke prihlaseni, na obrazovce zustal posledni snimek splashe) -
+ * stejny vypocet jako luxos-branding/files/plymouth/luxos.script v logickych bodech (meritko k). */
+static void bar_geometry(Bar *b, int sw, int sh, int splash, int k)
 {
     int mx = 0, my = 0, mw = sw, mh = sh, ev, er, n = 0;
     if (XRRQueryExtension(dpy, &ev, &er)) {
@@ -630,13 +637,100 @@ static void bar_geometry(Bar *b, int sw, int sh)
     if (u < 0.55)
         u = 0.55;
     /* Plymouth kresli bar v logickych bodech (220x6, na HiDPI dvojnasobek) - stejne */
-    int k = (int)(mh / 1080.0 + 0.5);
+    if (k < 1)
+        k = (int)(mh / 1080.0 + 0.5);
     if (k < 1)
         k = 1;
     b->w = BAR_W * k;
     b->h = BAR_H * k;
+    if (splash) {
+        double lw = (double)mw / k, lh = (double)mh / k;
+        int logo = (int)(lh * 0.16);
+        if (logo < 80)
+            logo = 80;
+        double logo_y = lh / 2 - logo / 2.0 - lh * 0.04;
+        b->x = mx + (int)(lw / 2 - BAR_W / 2.0) * k;
+        b->y = my + (int)(logo_y + logo + lh * 0.07) * k;
+        return;
+    }
     b->x = mx + mw / 2 - b->w / 2;
     b->y = my + mh - (int)(204 * u + 0.5) - b->h / 2;
+}
+
+/* ---- navazani na bar Plymouthu (automaticke prihlaseni) -----------------------------------------
+ *
+ * Pri automatickem prihlaseni (live ISO, volba v instalatoru) neni prihlasovaci obrazovka: X server
+ * ponecha posledni snimek splashe (logo a bar) a zakryti by pod nim kreslilo druhy bar na miste pole
+ * pro heslo - dva bary pod sebou. luxos-plymouth-finish v tom pripade bar nedotahne do konce a zapise
+ * /run/luxos/splash-handoff; zakryti pak pokracuje primo v baru splashe: stejne misto, barva vyplne
+ * ze snimku a postup od mista, kde splash skoncil. */
+
+#define SPLASH_HANDOFF_MAX_AGE_S 120
+
+static int splash_handoff(void)
+{
+    const char *p = getenv("LUXOS_SPLASH_HANDOFF");
+    struct stat st;
+    if (stat(p && *p ? p : "/run/luxos/splash-handoff", &st) != 0)
+        return 0;
+    long age = (long)(time(NULL) - st.st_mtime);
+    return age <= SPLASH_HANDOFF_MAX_AGE_S && age >= -5;
+}
+
+static unsigned long snap_pixel(XImage *im, int x, int y)
+{
+    if (x < 0 || y < 0 || x >= im->width || y >= im->height)
+        return 0;
+    return XGetPixel(im, x, y) & 0xffffff;
+}
+
+static int pixel_dist(unsigned long a, unsigned long c)
+{
+    int d = 0;
+    for (int s = 0; s < 24; s += 8) {
+        int v = (int)((a >> s) & 0xff) - (int)((c >> s) & 0xff);
+        d += v < 0 ? -v : v;
+    }
+    return d;
+}
+
+/* Najde bar splashe ve snimku: 1 = nalezen (draha je videt), b->from a b->fill podle snimku */
+static int splash_probe(Bar *b, Pixmap snap, unsigned sw, unsigned sh)
+{
+    /* jen okoli baru (cela obrazovka by se cetla zbytecne dlouho) */
+    int w = b->w, h = b->h, ox = b->x - 2 * h, oy = b->y - 2 * h;
+    if (ox < 0 || oy < 0 || ox + w + 2 * h > (int)sw || oy + 3 * h > (int)sh)
+        return 0;
+    XImage *im = XGetImage(dpy, snap, ox, oy, (unsigned)(w + 2 * h), (unsigned)(3 * h), AllPlanes, ZPixmap);
+    if (!im)
+        return 0;
+    int x = 2 * h, cy = 2 * h + h / 2;     /* souradnice baru ve vyrezu */
+    unsigned long bg = snap_pixel(im, 0, cy);
+    unsigned long above = snap_pixel(im, x + w / 2, 0);
+    unsigned long track = snap_pixel(im, x + w - h, cy);
+    unsigned long left = snap_pixel(im, x + h, cy);
+    int found = pixel_dist(track, bg) > 6 && pixel_dist(track, above) > 6;
+    int light = ((bg >> 16 & 0xff) + (bg >> 8 & 0xff) + (bg & 0xff)) > 3 * 128;
+    if (found && pixel_dist(left, track) > 24) {
+        /* vypln konci tam, kde je bod bliz draze nez vyplni */
+        int end = h;
+        while (end < w - h / 2) {
+            unsigned long p = snap_pixel(im, x + end, cy);
+            if (pixel_dist(p, track) < pixel_dist(p, left))
+                break;
+            end++;
+        }
+        b->from = (double)end / w;
+        b->fill[0] = (left >> 16 & 0xff) / 255.0;
+        b->fill[1] = (left >> 8 & 0xff) / 255.0;
+        b->fill[2] = (left & 0xff) / 255.0;
+        b->fill[3] = 1.0;
+    } else if (light) {
+        b->fill[0] = 0x2a / 255.0, b->fill[1] = 0x2c / 255.0, b->fill[2] = 0x32 / 255.0, b->fill[3] = 1.0;
+    }
+    XDestroyImage(im);
+    b->keep_track = found;
+    return found;
 }
 
 /* Postup relace (hlavni vlakno): faze 1..4, t = ms od startu */
@@ -671,6 +765,13 @@ static double bar_goal(const long *stage_at, long t, int *last)
     long since = t - (k ? stage_at[k] : 0);
     double a = bar_level[k], next = bar_level[k + 1];
     return a + (next - a) * 0.85 * (1.0 - exp(-(double)since / BAR_CREEP_MS));
+}
+
+/* Navazani na splash: faze relace plni jen zbytek za postupem splashe */
+static double bar_goal_from(const Bar *b, const long *stage_at, long t, int *last)
+{
+    double g = bar_goal(stage_at, t, last);
+    return b->from + (1.0 - b->from) * g;
 }
 
 /* Zaobleny obdelnik (pulkruhy na koncich) jako rounded() v make-variants.py */
@@ -732,10 +833,11 @@ static void *bar_thread(void *arg)
     Pixmap fillp = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, 32);
     Pixmap maskp = XCreatePixmap(d, r, (unsigned)w, (unsigned)h, 8);
     Picture track = rounded_picture(d, trackp, 0, w, h, 1, 1, 1, 0.22);
-    Picture fill = rounded_picture(d, fillp, 0, w, h, 0xee / 255.0, 0xf4 / 255.0, 1.0, 0.95);   /* bar-fill */
+    Picture fill = rounded_picture(d, fillp, 0, w, h, b->fill[0], b->fill[1], b->fill[2], b->fill[3]);   /* bar-fill */
     Picture mask = rounded_picture(d, maskp, 1, w, h, 0, 0, 0, 1);                             /* tvar drahy */
     Picture basep = XRenderCreatePicture(d, base, vf, 0, NULL);
-    XRenderComposite(d, PictOpOver, track, None, basep, 0, 0, 0, 0, 0, 0, (unsigned)w, (unsigned)h);
+    if (!b->keep_track)
+        XRenderComposite(d, PictOpOver, track, None, basep, 0, 0, 0, 0, 0, 0, (unsigned)w, (unsigned)h);
     XRenderSetPictureFilter(d, fill, FilterBilinear, NULL, 0);     /* posun o zlomky bodu */
 
     /* Zadni buffery: hotovy snimek baru, pri prvnim zobrazeni jeste prolnuti se snimkem */
@@ -752,7 +854,7 @@ static void *bar_thread(void *arg)
         timerfd_settime(tfd, 0, &its, NULL);
     static long logbuf[BAR_LOG_MAX];
     int nlog = 0;
-    double shown = 0;
+    double shown = b->from;
     long prev = -1;
     for (;;) {
         pthread_mutex_lock(&b->lock);
@@ -773,7 +875,7 @@ static void *bar_thread(void *arg)
         /* Poloha z hodin: exponencialni dobihani k cili podle skutecne uplynule doby (vypadly snimek =
          * stejny vysledek, jen bez mezikroku) */
         int last;
-        double goal = bar_goal(st, t, &last);
+        double goal = bar_goal_from(b, st, t, &last);
         long dt = prev < 0 ? 0 : t - prev;
         prev = t;
         double tau = last == BAR_STAGES - 1 ? BAR_FINISH_TAU_MS : BAR_TAU_MS;
@@ -833,10 +935,21 @@ static void *bar_thread(void *arg)
     return NULL;
 }
 
-static void bar_start(Bar *b, Pixmap snap, Visual *vis, int depth, int sw, int sh, Window target, long start)
+static void bar_start(Bar *b, Pixmap snap, Visual *vis, int depth, int sw, int sh, Window target, long start,
+                      int splash)
 {
     memset(b, 0, sizeof *b);
-    bar_geometry(b, sw, sh);
+    b->fill[0] = 0xee / 255.0, b->fill[1] = 0xf4 / 255.0, b->fill[2] = 1.0, b->fill[3] = 0.95;
+    bar_geometry(b, sw, sh, splash, 0);
+    if (splash && !splash_probe(b, snap, (unsigned)sw, (unsigned)sh)) {
+        /* Plymouth mohl zvolit jine meritko (HiDPI) - zkusit druhe, jinak vychozi bez drahy ze snimku */
+        Bar alt = *b;
+        bar_geometry(&alt, sw, sh, 1, b->w / BAR_W == 1 ? 2 : 1);
+        if (splash_probe(&alt, snap, (unsigned)sw, (unsigned)sh))
+            *b = alt;
+    }
+    dbg(0, "bar %dx%d+%d+%d splash=%d track-in-frame=%d from=%.2f", b->w, b->h, b->x, b->y, splash,
+        b->keep_track, b->from);
     b->snap = snap;
     b->visual = XVisualIDFromVisual(vis);
     b->depth = depth;
@@ -1013,7 +1126,8 @@ static int login_main(void)
     int motion = motion_allowed();
     long start = now_ms(), listed_at = 0, ready_at = 0, last_scan = 0, image_at = 0, solid_at = 0, cm_at = 0;
     Bar bar;
-    bar_start(&bar, snap, ra.visual, ra.depth, (int)w, (int)h, win, start);
+    int splash = held == None && !restored && splash_handoff();
+    bar_start(&bar, snap, ra.visual, ra.depth, (int)w, (int)h, win, start, splash);
     Atom a_wm = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
     int wm_seen = 0;
     unsigned long last_sum = 0;

@@ -343,6 +343,87 @@ class LoginCover(unittest.TestCase):
         self.X.set_root(self.X.black)
         self.finish(p)
 
+    def splash_rect(self):
+        """Bar Plymouthu (luxos.script): 220x6 pod logem, logo 16 % vysky obrazovky."""
+        w, h = self.screen_size()
+        logo = max(80, int(h * 0.16))
+        logo_y = h / 2 - logo / 2 - h * 0.04
+        return int(w / 2 - 110), int(logo_y + logo + h * 0.07), 220, 6
+
+    def draw_splash(self, part, bg=0x101418, track=0x303848, fill=0xf0e8ff):
+        """Posledni snimek splashe na korenovem okne: pozadi, draha a vypln do 'part'."""
+        self.X.set_root(bg)
+        x, y, bw, bh = self.splash_rect()
+        root = Gdk.get_default_root_window()
+        import cairo
+        with __import__("warnings").catch_warnings():
+            __import__("warnings").simplefilter("ignore")
+            cr = Gdk.cairo_create(root)
+        for color, width in ((track, bw), (fill, int(bw * part))):
+            cr.set_source_rgb((color >> 16) / 255, (color >> 8 & 0xff) / 255, (color & 0xff) / 255)
+            cr.rectangle(x, y, width, bh)
+            cr.fill()
+        del cr
+        root.get_display().flush()
+        self.X.x.XSync(self.X.dpy, 0)
+        return x, y, bw, bh
+
+    def splash_env(self):
+        mark = os.path.join(self.home, "splash-handoff")
+        open(mark, "w").close()
+        return dict(os.environ, HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
+                    LUXOS_LOGIN_FRAME_DIR=self.frames, LUXOS_SPLASH_HANDOFF=mark), mark
+
+    def test_autologin_continues_splash_bar(self):
+        # automaticke prihlaseni: na obrazovce zustal splash (bar do 40 %) - zakryti kresli jeden bar na
+        # jeho miste, se stejnou vyplni, pokracuje od 40 % a na miste pole pro heslo nic nekresli
+        bg, fill = 0x101418, 0xf0e8ff
+        x, y, bw, bh = self.draw_splash(0.4, bg=bg, fill=fill)
+        env, _mark = self.splash_env()
+        p = subprocess.Popen([self.bin, "--login"], env=env)
+        try:
+            pump(0.6)
+            cy = y + bh // 2
+            start = self.fill_end(x, y, bw, bh)
+            self.assertGreaterEqual(start, int(bw * 0.4) - 2)                   # zadny skok zpet
+            self.assertLess(start, bw * 0.6)
+            self.assertEqual(self.X.pixel(x + bh, cy), fill)                      # barva vyplne splashe
+            self.assertEqual(self.X.pixel(x + bw - 2, cy), 0x303848)              # draha splashe beze zmeny
+            gx, gy, gbw, gbh = self.bar_rect()
+            self.assertEqual(self.X.pixel(gx + gbw // 2, gy + gbh // 2), bg)      # zadny druhy bar
+            self.wm_check(True)
+            pump(1.2)
+            self.assertGreater(self.fill_end(x, y, bw, bh), start + bw * 0.05)
+        finally:
+            self.wm_check(False)
+        self.X.set_root(self.X.black)
+        self.finish(p)
+
+    def test_old_handoff_mark_ignored(self):
+        # znacka z drivejska (napr. odhlaseni a nove prihlaseni) - bar zase na miste pole pro heslo
+        x, y, bw, bh = self.draw_splash(0.4)
+        env, mark = self.splash_env()
+        t = time.time() - 600
+        os.utime(mark, (t, t))
+        p = subprocess.Popen([self.bin, "--login"], env=env)
+        pump(0.6)
+        gx, gy, gbw, gbh = self.bar_rect()
+        self.assertGreater(self.X.pixel(gx + bh, gy + gbh // 2) & 0xff, 0xd0)    # bar u hesla
+        self.X.set_root(self.X.black)
+        self.finish(p)
+
+    def test_handoff_without_splash_frame(self):
+        # snimek splashe se neudrzel (cerna, napr. QEMU bochs): bar na miste splashe, vlastni draha
+        self.X.set_root(self.X.black)
+        env, _mark = self.splash_env()
+        p = subprocess.Popen([self.bin, "--login"], env=env)
+        pump(0.6)
+        x, y, bw, bh = self.splash_rect()
+        self.assertGreater(self.X.pixel(x + bh, y + bh // 2) & 0xff, 0xd0)
+        track = self.X.pixel(x + bw - bh, y + bh // 2) & 0xff
+        self.assertTrue(0x30 < track < 0x90, hex(track))
+        self.finish(p)
+
     def test_frames_steady_under_cpu_load(self):
         # bar kresli vlastni vlakno v taktu 60 Hz podle hodin: ani plne vytizeny procesor (procesy relace
         # na vsech jadrech) nesmi zpusobit dlouhou mezeru mezi snimky (drive trhani pri prihlaseni)
