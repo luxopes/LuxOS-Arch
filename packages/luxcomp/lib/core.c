@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/backend/headless.h>
 #include <wlr/backend/multi.h>
 #include <wlr/render/allocator.h>
@@ -213,7 +214,8 @@ output_frame(struct wl_listener *listener, void *data)
 	if (comp.hold) {
 		bool client = false;
 		wlr_scene_output_for_each_buffer(o->scene_output, client_buffer, &client);
-		if (client) {
+		/* zakryti po prihlaseni (snimek greeteru) je hotovy obraz jako snimek klienta */
+		if (client || comp.cover->node.enabled) {
 			hold_release(true);
 		} else if (o->held) {
 			return;	/* splash zustava; vystup zhasnuty pri startu kresli normalne */
@@ -622,6 +624,19 @@ luxcomp_set_background(int64_t argb)
 	} else {
 		wlr_scene_rect_set_color(comp.background, color);
 	}
+}
+
+/* Prepnuti VT pres relaci logindu (libseat); greeter tak preda obrazovku bez textove konzole */
+int64_t
+luxcomp_switch_vt(int64_t vt)
+{
+	return comp.session && vt > 0 && wlr_session_change_vt(comp.session, vt);
+}
+
+int64_t
+luxcomp_session_active(void)
+{
+	return !comp.session || comp.session->active;
 }
 
 int64_t

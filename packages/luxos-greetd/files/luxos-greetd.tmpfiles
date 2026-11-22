@@ -4,3 +4,5 @@ d /var/lib/luxos-greeter 0700 greeter greeter -
 # luxos-fingerprint-pam); soubor zaklada luxos-fingerprint.conf pro uzivatele lightdm, greeter dostane pravo ACL
 a+ /run/luxos-fingerprint - - - - u:greeter:rwx
 a+ /run/luxos-fingerprint/password-only - - - - u:greeter:rw
+# posledni snimek prihlasovaci obrazovky pro prechod do relace (luxos-greeter zapise, luxwm --intro cte)
+d /run/luxos-greeter 0755 greeter greeter -

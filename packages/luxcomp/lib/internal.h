@@ -355,4 +355,9 @@ void anim_init(void);
 void anim_frame(void);			/* before rendering a frame */
 void anim_frame_done(int64_t render_ns);
 
+/* cover.c */
+void cover_init(double time_scale);
+bool cover_step(int64_t now_ns);		/* true = needs another frame */
+void cover_frame_done(int64_t render_ns);
+
 #endif

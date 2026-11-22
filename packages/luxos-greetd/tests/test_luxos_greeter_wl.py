@@ -325,6 +325,28 @@ def region(path, x0, y0, x1, y1):
     return [tuple(data[(y * w + x) * 3:(y * w + x) * 3 + 3]) for y in range(y0, y1) for x in range(x0, x1)]
 
 
+def x11_login_frame(path, w, h):
+    """Posledni snimek X11 greeteru 1.0.5 (luxos-greeter save_frame): tapeta pres celou obrazovku zmensena
+    bilinearne (gdk_pixbuf_scale_simple) a pres ni cerna 0.10 + 0.14 * ease(1) -> bajty BGRx"""
+    import cairo
+    import gi
+    gi.require_version("GdkPixbuf", "2.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, GdkPixbuf
+    pb = GdkPixbuf.Pixbuf.new_from_file(path)
+    pw, ph = pb.get_width(), pb.get_height()
+    sc = max(w / pw, h / ph)
+    tw, th = max(1, round(pw * sc)), max(1, round(ph * sc))
+    surf = cairo.ImageSurface(cairo.FORMAT_RGB24, w, h)
+    cr = cairo.Context(surf)
+    Gdk.cairo_set_source_pixbuf(cr, pb.scale_simple(tw, th, GdkPixbuf.InterpType.BILINEAR), (w - tw) / 2, (h - th) / 2)
+    cr.paint()
+    cr.set_source_rgba(0, 0, 0, 0.24)
+    cr.paint()
+    surf.flush()
+    return bytes(surf.get_data())
+
+
 class GreeterTest(unittest.TestCase):
     def setUp(self):
         self.g = None
@@ -370,6 +392,26 @@ class GreeterTest(unittest.TestCase):
         self.assertIn("session.luxos=wayland:luxos.desktop", saved)
         self.assertIn("wayland-start=", saved)
         self.assertIn("greeter exited with status 0", g.log())
+
+    def test_login_saves_last_frame_like_x11(self):
+        """Posledni snimek pro prechod do relace (luxwm --intro): ztmavena tapeta jako X11 greeter 1.0.5"""
+        frame = os.path.join(ROOT, "out", "greeter-test", "login-frame")
+        if os.path.exists(frame):
+            os.unlink(frame)
+        self.g = g = Greeter("frame", env={"LUXOS_LOGIN_FRAME": frame})
+        g.input("type luxos", "key Return")
+        g.wait_for("login frame saved")
+        self.assertTrue(g.wait_exit())
+        with open(frame, "rb") as f:
+            data = f.read()
+        head, pixels = data.split(b"\n", 1)
+        self.assertEqual(head, b"LUXFRAME1 %d %d" % (W, H))
+        self.assertEqual(len(pixels), W * H * 4)
+        self.assertEqual(os.stat(frame).st_mode & 0o777, 0o644)
+        ref = x11_login_frame("/usr/share/backgrounds/luxos/luxos-light.jpg", W, H)
+        diff = [abs(pixels[i] - ref[i]) for i in range(0, len(ref), 4 * 97) for i in (i, i + 1, i + 2)]
+        print(f"frame vs X11 greeter: max diff {max(diff)}, mean {sum(diff) / len(diff):.3f}")
+        self.assertLessEqual(max(diff), 2)
 
     def test_wrong_password_then_right(self):
         self.g = g = Greeter("wrong")

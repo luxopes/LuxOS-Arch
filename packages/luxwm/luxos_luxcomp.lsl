@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 12
+API_VERSION = 13
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -709,6 +709,32 @@ end
 function cover(argb):
     unsafe:
         call __lsl_qbe_call1(__lsl_symbol("luxcomp_cover"), ptr(argb))
+    end
+end
+
+# Posledni snimek greeteru do zakryti (soubor LUXFRAME1, nejvys max_age_s stary); 1 = nacten
+function cover_frame(path, max_age_s):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("luxcomp_cover_frame"), cstr(path), ptr(max_age_s))
+    end
+end
+
+# Bar prubehu v zakryti: 0 ho ukaze, 1..4 faze relace (4 = hotovo)
+function cover_stage(stage):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_cover_stage"), ptr(stage))
+    end
+end
+
+function switch_vt(vt):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("luxcomp_switch_vt"), ptr(vt))
+    end
+end
+
+function session_active():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_session_active"))
     end
 end
 

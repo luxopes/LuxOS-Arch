@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 12
+#define LUXCOMP_API_VERSION 13
 
 #pragma GCC visibility push(default)
 
@@ -220,6 +220,11 @@ void luxcomp_quit(void);
 void luxcomp_destroy(void);
 int64_t luxcomp_spawn(const char *command);		/* sh -c in the session with an activation token, returns pid */
 int64_t luxcomp_software_rendering(void);		/* 1 = pixman (no 3D), animations should be cheap */
+/* VT switch through the logind session (DRM backend only, else 0); luxcomp_session_active() turns 0 once the
+ * switch took the session away (1 without a session). The greeter hands the screen over through an empty
+ * graphics VT (docs/developers/wayland-session.md). */
+int64_t luxcomp_switch_vt(int64_t vt);
+int64_t luxcomp_session_active(void);
 void luxcomp_set_background(int64_t argb);		/* solid colour below the wallpaper layer */
 
 /* Outputs */
@@ -393,10 +398,17 @@ enum luxcomp_anim {
 void luxcomp_anim_set(int64_t kind, int64_t ms);
 void luxcomp_view_animate(int64_t view, int64_t kind);	/* no-op for a hidden view or kind off */
 
-/* Login transition: a solid colour over everything but the lock screen, already in the first frame
- * when set before luxcomp_start(); it takes no input. luxcomp_cover_fade() fades it out (CSS
- * "ease") and removes it, ms <= 0 at once. argb with alpha 0 removes it too. */
+/* Login transition like luxos-session-cover --login of the X11 session: a solid colour over everything
+ * but the lock screen, already in the first frame when set before luxcomp_start() (with luxcomp_hold()
+ * the cover ends the hold: the first commit carries it, no black modeset frame); it takes no input.
+ * luxcomp_cover_frame() puts the greeter's last frame on the first output ("LUXFRAME1 <w> <h>\n" +
+ * w*h*4 bytes BGRx, at most max_age_s old; 1 = loaded). luxcomp_cover_stage(0) shows the Plymouth-like
+ * progress bar (220x6 where the password field was), stages 1..4 move it on (4 = done, it fills up).
+ * luxcomp_cover_fade() fades everything out with opacity (1 - t)^2 and removes it, ms <= 0 at once;
+ * argb with alpha 0 removes it too. */
 void luxcomp_cover(int64_t argb);
+int64_t luxcomp_cover_frame(const char *path, int64_t max_age_s);
+void luxcomp_cover_stage(int64_t stage);
 void luxcomp_cover_fade(int64_t ms);
 
 #pragma GCC visibility pop

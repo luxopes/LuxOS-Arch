@@ -1,5 +1,5 @@
 /*
- * Animace oken (otevreni, zavreni, minimalizace do Docku, obnoveni) a zakryti obrazovky po prihlaseni.
+ * Animace oken (otevreni, zavreni, minimalizace do Docku, obnoveni).
  *
  * Scena wlroots neumi zmensit cely strom, takze se zmensuji jeho uzly: poloha kazdeho uzlu pod korenem
  * i velikost bufferu krat meritko, koren posunuty tak, aby stred okna zustal na miste. Klient muze behem
@@ -76,14 +76,6 @@ static struct wl_list anims = { &anims, &anims };
 static int64_t duration_ms[KINDS];
 static double time_scale = 1;	/* LUXCOMP_ANIM_SCALE: zpomaleni pro snimky v testech */
 static int slow_frames;
-
-static struct {
-	struct wlr_scene_rect *rect;
-	float color[4];
-	int64_t start_ns, duration_ns;	/* 0 = stoji */
-	int frames;
-	int64_t render_max_ns;
-} cover;
 
 static int64_t
 now_ns(void)
@@ -410,40 +402,6 @@ anim_start(struct view *v, int kind)
 	schedule_frames();
 }
 
-/* ---- zakryti obrazovky (prechod po prihlaseni) ---- */
-
-static void
-cover_set_alpha(double alpha)
-{
-	float c[4] = { cover.color[0] * alpha, cover.color[1] * alpha, cover.color[2] * alpha,
-		cover.color[3] * alpha };
-	wlr_scene_rect_set_color(cover.rect, c);
-}
-
-static void
-cover_end(void)
-{
-	if (getenv("LUXCOMP_STATS") && cover.frames) {
-		wlr_log(WLR_ERROR, "luxcomp: cover fade %d frames, slowest render %.2f ms",
-			cover.frames, cover.render_max_ns / 1e6);
-	}
-	cover.duration_ns = 0;
-	cover.frames = 0;
-	cover.render_max_ns = 0;
-	wlr_scene_node_set_enabled(&comp.cover->node, false);
-}
-
-static void
-cover_step(int64_t now)
-{
-	double p = (double)(now - cover.start_ns) / cover.duration_ns;
-	if (p >= 1) {
-		cover_end();
-		return;
-	}
-	cover_set_alpha(1 - bezier((struct curve){ 0.25, 0.1, 0.25, 1 }, p < 0 ? 0 : p));
-}
-
 /* ---- snimky ---- */
 
 void
@@ -454,10 +412,8 @@ anim_frame(void)
 	wl_list_for_each_safe(a, tmp, &anims, link) {
 		anim_step(a, now);
 	}
-	if (cover.duration_ns) {
-		cover_step(now);
-	}
-	if (!wl_list_empty(&anims) || cover.duration_ns) {
+	bool cover = cover_step(now);
+	if (!wl_list_empty(&anims) || cover) {
 		schedule_frames();
 	}
 }
@@ -465,7 +421,8 @@ anim_frame(void)
 void
 anim_frame_done(int64_t render_ns)
 {
-	if (wl_list_empty(&anims) && !cover.duration_ns) {
+	cover_frame_done(render_ns);
+	if (wl_list_empty(&anims)) {
 		slow_frames = 0;
 		return;
 	}
@@ -476,13 +433,6 @@ anim_frame_done(int64_t render_ns)
 			a->render_max_ns = render_ns;
 		}
 	}
-	if (cover.duration_ns) {
-		cover.frames++;
-		if (render_ns > cover.render_max_ns) {
-			cover.render_max_ns = render_ns;
-		}
-	}
-	/* prolnuti zakryti trva jen chvili a nema trhat - jen okna skoci na konec */
 	slow_frames = render_ns > SLOW_FRAME_NS ? slow_frames + 1 : 0;
 	if (slow_frames >= 2) {
 		wl_list_for_each_safe(a, tmp, &anims, link) {
@@ -499,10 +449,7 @@ anim_init(void)
 	if (scale && atof(scale) > 0) {
 		time_scale = atof(scale);
 	}
-	comp.cover = wlr_scene_tree_create(&comp.scene->tree);
-	cover.rect = wlr_scene_rect_create(comp.cover, 32768, 32768, (float[4]){ 0, 0, 0, 1 });
-	wlr_scene_node_set_position(&cover.rect->node, -16384, -16384);
-	wlr_scene_node_set_enabled(&comp.cover->node, false);
+	cover_init(time_scale);
 }
 
 /* ---- API ---- */
@@ -528,37 +475,4 @@ luxcomp_view_animate(int64_t id, int64_t kind)
 		return;
 	}
 	anim_start(v, kind);
-}
-
-void
-luxcomp_cover(int64_t argb)
-{
-	cover.color[3] = (argb >> 24 & 0xff) / 255.0f;
-	cover.color[0] = (argb >> 16 & 0xff) / 255.0f * cover.color[3];
-	cover.color[1] = (argb >> 8 & 0xff) / 255.0f * cover.color[3];
-	cover.color[2] = (argb & 0xff) / 255.0f * cover.color[3];
-	cover.duration_ns = 0;
-	if (!(argb >> 24 & 0xff)) {
-		cover_end();
-		return;
-	}
-	cover_set_alpha(1);
-	wlr_scene_node_set_enabled(&comp.cover->node, true);
-}
-
-void
-luxcomp_cover_fade(int64_t ms)
-{
-	if (!comp.cover->node.enabled) {
-		return;
-	}
-	if (ms <= 0) {
-		cover_end();
-		return;
-	}
-	cover.start_ns = now_ns();
-	cover.duration_ns = ms * 1000000.0 * time_scale;
-	cover.frames = 0;
-	cover.render_max_ns = 0;
-	schedule_frames();
 }

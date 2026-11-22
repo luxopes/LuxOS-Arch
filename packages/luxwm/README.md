@@ -68,9 +68,11 @@ looks for modules next to the importing file.
   (`docs/developers/luxcomp-api.md`, section Animace oken). `reduce_motion = yes` or Battery Saver turn them off.
 - **Launch feedback**: after a launcher asks for an xdg-activation token, or an `exec` shortcut, the arrow
   is the animated busy pointer until the app's window maps (at most 15 s), like startup-notification on X11.
-- **Login transition** (`--intro`, used by `luxos-wayland-session`): the screen stays black until the
-  wallpaper, the bar and the Dock drew their first frame, then the desktop fades in over 280 ms, like
-  `luxos-session-cover --login` on X11 (without the fade under reduce motion or Battery Saver).
+- **Login transition** (`--intro`, used by `luxos-wayland-session`), like `luxos-session-cover --login` on X11:
+  the greeter's last frame (dimmed wallpaper, `/run/luxos-greeter/login-frame`) with the Plymouth-like progress
+  bar where the password field was, until the wallpaper, the bar and the Dock drew their first frame; then it
+  fades into the desktop over 280 ms (no fade under reduce motion or Battery Saver). In `--greeter` mode luxwm
+  hands the screen over through the empty graphics VT 12 after a login, so no text console shows in between.
 - **Title bars** take their colours from `luxos_tokens`: window, fg/dim, traffic lights, inactive
   light, border, radius 16, Inter Semi-Bold 10. Light or dark follows `~/.config/luxos/appearance`.
 

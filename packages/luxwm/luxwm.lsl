@@ -9,8 +9,9 @@
 #                             zkratky, XWayland ani privilegovane protokoly; konci s kodem klienta
 #   --hold                    obraz pred startem (splash Plymouthu) zustane, dokud klient nenakresli prvni
 #                             snimek (nejdele HOLD_MS); s --greeter pak $XDG_RUNTIME_DIR/luxos-greeter-shown
-#   --intro                   prechod po prihlaseni jako v X11 (luxos-session-cover): obrazovka zakryta, dokud
-#                             tapeta, lista a Dock nenakresli prvni snimek, pak se plocha behem 280 ms objevi
+#   --intro                   prechod po prihlaseni jako v X11 (luxos-session-cover --login): posledni snimek
+#                             greeteru s barem prubehu, dokud tapeta, lista a Dock nenakresli prvni snimek, pak se
+#                             behem 280 ms rozplyne do plochy
 # Signaly: SIGTERM/SIGINT konec, SIGHUP znovu nacte luxwm.conf a vzhled, SIGUSR1 jen vzhled
 # (prepnuti svetly/tmavy), SIGUSR2 vypise stav na stderr (testy).
 # IPC pro shell (lista, Dock, nastaveni): $XDG_RUNTIME_DIR/luxwm-$WAYLAND_DISPLAY.sock, radkovy JSON,
@@ -19,6 +20,7 @@
 load glib, gio, json
 load luxos_luxcomp as lc
 load luxos_tokens as tokens
+load luxos_glib as lglib
 
 CASCADE = 28
 PLACE_MARGIN = 8
@@ -52,8 +54,15 @@ ANIM_MS = {lc.ANIM_OPEN: 180, lc.ANIM_CLOSE: 140, lc.ANIM_MINIMIZE: 320, lc.ANIM
 # zaneprazdneny ukazatel po spusteni aplikace nejdele tak dlouho (mutter 15 s; xfwm4 30 s, ale aplikace bez
 # xdg-activation na Waylandu spusteni nikdy neohlasi)
 LAUNCH_FEEDBACK_MS = 15000
-# Prechod po prihlaseni (--intro): cerna jako konec greeteru, plocha se objevi az nakreslena. Bez Docku
-# (dock_zone) se po liste ceka nejvys INTRO_DOCK_MS, vzdy konec po INTRO_MAX_MS (relace bez shellu).
+# Prechod po prihlaseni (--intro): posledni snimek greeteru (LOGIN_FRAME) s barem prubehu, plocha se objevi az
+# nakreslena. Bez Docku (dock_zone) se po liste ceka nejvys INTRO_DOCK_MS, vzdy konec po INTRO_MAX_MS (relace bez
+# shellu). Bez snimku cerna jako v X11 bez snimku od greeteru.
+LOGIN_FRAME = "/run/luxos-greeter/login-frame"
+LOGIN_FRAME_MAX_AGE = 60
+# Predani obrazovky z greeteru do relace bez textove konzole: greeter po prihlaseni prepne na prazdny VT v grafickem
+# rezimu (pripravi ho libluxos-greetd-vt.so v greetd), kde zustava jeho posledni snimek, dokud relace neprevezme VT 1
+HANDOFF_VT = 12
+HANDOFF_MAX_AGE = 20
 INTRO_COLOR = 0xFF000000
 INTRO_DOCK_MS = 1500
 INTRO_SETTLE_MS = 100
@@ -1744,10 +1753,15 @@ end
 # --retain-splash). Driv by zmizel framebuffer splashe, ktery CRTC jeste zobrazuje (cerna obrazovka).
 # ---- prechod po prihlaseni (--intro) -------------------------------------------------------------
 
+# Pred lc.start(): True = snimek greeteru nacten (prvni commit ho uz nese, hold bez cerneho modesetu)
 function intro_start():
     intro["on"] = True
     call lc.cover(INTRO_COLOR)
+    framed = lc.cover_frame(LOGIN_FRAME, LOGIN_FRAME_MAX_AGE) == 1
+    call lc.cover_stage(0)
     intro["timer"] = glib.timeout_add(INTRO_MAX_MS, intro_timeout)
+    call log("intro" + (" with the greeter frame" if framed else ""))
+    return framed
 end
 
 function intro_timeout():
@@ -1796,6 +1810,17 @@ function intro_check():
     intro["timer"] = glib.timeout_add(wait, intro_settled)
 end
 
+# Faze baru jako v X11: 1 spravce oken bezi, 2 tapeta, 3 lista, 4 hotovo (rozplynuti)
+function intro_stage():
+    backgrounds = len(outputs) > 0
+    for out in outputs:
+        if out not in intro["backgrounds"]:
+            backgrounds = False
+        end
+    end
+    call lc.cover_stage(1 + (1 if backgrounds else 0) + (1 if intro["bar"] else 0))
+end
+
 function intro_layer(out, layer, exclusive):
     if layer == 0 and out not in intro["backgrounds"]:
         intro["backgrounds"].append(out)
@@ -1804,6 +1829,7 @@ function intro_layer(out, layer, exclusive):
     else:
         return
     end
+    call intro_stage()
     call intro_check()
 end
 
@@ -2474,8 +2500,30 @@ function on_greeter_exit(pid, status):
     global greeter_status
     greeter_status = status
     call log("greeter exited with status " + String(status))
+    if status == 0:
+        call handoff()
+    end
     call stop()
     return 0
+end
+
+# Prihlaseni (greeter ulozil posledni snimek): obraz zustane na obrazovce, dokud ho neprevezme relace. Konec
+# luxwm vraci VT do textoveho rezimu (logind) a ten by vynutil textovou konzoli - na jinem nez zobrazenem VT
+# se nic nestane. Pri prepnuti na prazdny VT v grafickem rezimu jadro vrati na displej framebuffer konzole a nic
+# do nej nekresli; snimek greeteru do nej da greetd (libluxos-greetd-vt.so), jakmile VT prevezme.
+function handoff():
+    st = lglib.stat(LOGIN_FRAME)
+    if len(st) < 2 or lglib.now() - st[1] // 1000000000 > HANDOFF_MAX_AGE:
+        return
+    end
+    if lc.switch_vt(HANDOFF_VT) != 1:
+        return
+    end
+    deadline = glib.monotonic_time() + 1000000
+    while lc.session_active() == 1 and glib.monotonic_time() < deadline:
+        call lc.dispatch(50)
+    end
+    call log("handoff to VT " + String(HANDOFF_VT) + ("" if lc.session_active() == 0 else " (still active)"))
 end
 
 commands = []
@@ -2495,6 +2543,9 @@ for i in range(1, len(args)):
 end
 if glib.getenv("LUXWM_TRACE") == "1":
     trace = True
+end
+if glib.getenv("LUXOS_LOGIN_FRAME") != None and glib.getenv("LUXOS_LOGIN_FRAME") != "":
+    LOGIN_FRAME = glib.getenv("LUXOS_LOGIN_FRAME")
 end
 
 call load_config()
@@ -2530,13 +2581,16 @@ end
 if hold:
     call lc.hold(HOLD_MS)
 end
-if intro_wanted and not greeter:
-    call intro_start()
+if intro_wanted and not greeter and intro_start():
+    call lc.hold(HOLD_MS)
 end
 if lc.start() != 0:
     call log("cannot start the backend")
     call lc.destroy()
     exit(1)
+end
+if intro["on"]:
+    call lc.cover_stage(1)
 end
 call log("running on " + lc.socket() + (" (software rendering)" if lc.software_rendering() == 1 else "")
     + ", " + String(ws_count) + " workspaces, " + String(len(binds)) + " shortcuts"

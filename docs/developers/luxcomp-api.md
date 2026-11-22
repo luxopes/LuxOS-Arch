@@ -4,10 +4,10 @@
 `docs/proposals/wayland-desktop-1.1.0.md`). Jádro vlastní všechny objekty wlroots a kreslí.
 O oknech nerozhoduje. Umístění, zaměření, plochy, klávesové zkratky a dekorace řídí program nad
 knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (verze API
-`LUXCOMP_API_VERSION` = 10: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
+`LUXCOMP_API_VERSION` = 13: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
 a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
-a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput, 10 `luxcomp_hold()` a událost `HOLD_END`, 11 animace oken, `luxcomp_cover()`, ukazatel při spouštění a událost `LAYER_MAP`), balík `packages/luxcomp`.
+a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput, 10 `luxcomp_hold()` a událost `HOLD_END`, 11 animace oken, `luxcomp_cover()`, ukazatel při spouštění a událost `LAYER_MAP`, 12 protokoly pro hry (`LUXCOMP_OUT_VRR` a další, událost `VIEW_CONTENT_TYPE`), 13 snímek greeteru a bar v zakrytí, `luxcomp_switch_vt()`), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -265,11 +265,23 @@ Jak to jádro kreslí:
   z cursor-shape-v1; vlastní obrázek klienta se nemění). Konec: token použit nebo zanikl, namapovalo se
   nové okno (nejstarší spuštění), nebo uplynulo `ms` (luxwm 15 s). Ukáže se až po 150 ms, takže okno,
   které se samo aktivuje čerstvým tokenem, kurzorem neblikne. Animaci kurzoru dělá wlroots podle tématu.
-- `luxcomp_cover(argb)` před `luxcomp_start()`: jednolitá barva nad vším kromě zámku, už v prvním snímku,
-  vstup jde skrz. `luxcomp_cover_fade(ms)` ji rozplyne (CSS „ease“) a odstraní. luxwm `--intro`
-  (spouští ho `luxos-wayland-session`) zakryje obrazovku černou a po `LAYER_MAP` tapety na každém
-  monitoru a lišty (vrstva s exkluzivní zónou) plus Docku (`dock_zone`, nejvýš 1,5 s) ji za 280 ms
-  rozplyne, jako `luxos-session-cover --login` na X11. Nejpozději po 10 s vždy.
+- Přechod po přihlášení jako `luxos-session-cover --login` v X11 (`cover.c`): `luxcomp_cover(argb)` před
+  `luxcomp_start()` je jednolitá barva nad vším kromě zámku, už v prvním snímku, vstup jde skrz.
+  `luxcomp_cover_frame(cesta, max_s)` nad ni dá poslední snímek greeteru (soubor „LUXFRAME1 š v\n“ + BGRx,
+  stejný formát jako `login-frame.raw` v X11) na první výstup, `luxcomp_cover_stage(0)` ukáže bar průběhu
+  jako Plymouth (220×6, na HiDPI násobek, 204·v/1080 nad spodním okrajem, dráha bílá 22 %, výplň #eef4ff 95 %,
+  prolnutí 250 ms) a fáze 1–4 ho posouvají (úrovně 4/30/55/80/100 %, v každé fázi pomalé přibližování
+  k další, 300 ms doběh, hotovo 70 ms). `luxcomp_cover_fade(ms)` vše rozplyne s průhledností (1 − t)² jako
+  14 kroků v X11. S `luxcomp_hold()` zakrytí hold ukončí: první commit rozsvíceného výstupu ho už nese
+  (bez černého snímku modesetu).
+- luxwm `--intro` (spouští ho `luxos-wayland-session`): snímek greeteru z `/run/luxos-greeter/login-frame`
+  (nejvýš 60 s starý, jinak černá), bar ve fázi 1 hned po startu, 2 tapeta na každém monitoru, 3 lišta
+  (`LAYER_MAP` s exkluzivní zónou), rozplynutí za 280 ms po Docku (`dock_zone`, nejvýš 1,5 s) a vždy do 10 s.
+  Porovnání s X11 (`test_luxwm_anim.py`, 1280×800, stejný snímek): bar na stejném místě a ve stejné velikosti,
+  pixely mimo rozdíl délky výplně nejvýš o 3, zbytek obrazovky shodný.
+- Předání obrazovky bez textové konzole: luxwm `--greeter` po přihlášení (greeter uložil snímek) přepne
+  `luxcomp_switch_vt(12)` na prázdný VT v grafickém režimu a počká, až ho logind deaktivuje
+  (`luxcomp_session_active()`). Viz `docs/developers/wayland-session.md`.
 - `LUXCOMP_STATS=1` vypíše po každé animaci počet snímků a nejpomalejší vykreslení, po rozplynutí
   zakrytí totéž a změny kurzoru (`busy pointer on/off`). `LUXCOMP_ANIM_SCALE=N` animace N× zpomalí
   (snímky mezistavů v testech `packages/luxwm/tests/test_luxwm_anim.py`).

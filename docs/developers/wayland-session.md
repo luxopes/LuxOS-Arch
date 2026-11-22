@@ -47,6 +47,25 @@ systemd --user
     luxwm writes the marker; only then may Plymouth exit, because its framebuffer goes away and a CRTC still
     showing it would go dark. Hold ends after 8 s even without a greeter frame. Under Xorg (NVIDIA 470) the
     greeter writes the marker itself.
+- **Login to session without a gap** (like LightDM + `luxos-session-cover --login` on X11, where one X server
+  carried the picture):
+  - The greeter saves its last frame (wallpaper dimmed like the prompt, without the form) to
+    `/run/luxos-greeter/login-frame` (tmpfiles, owner greeter, file 0644). `luxwm --intro` of the session shows it
+    with the Plymouth-like progress bar and fades it into the finished desktop.
+  - Ending the greeter's compositor makes logind put VT 1 back into text mode, and KD_TEXT on the shown VT forces
+    the text console onto the screen (the Xorg exception in `drm_fb_helper_set_par`). So after a login
+    `luxwm --greeter` first switches to VT 12, which `libluxos-greetd-vt.so` set to graphics mode under
+    `VT_PROCESS` when greetd started (the kernel never switches away from a graphics VT in `VT_AUTO`; the main
+    greetd process acknowledges the switches). fbcon draws nothing on a graphics VT, but the switch puts the
+    console framebuffer back on screen, so the preload copies the frame into `/dev/fb0` as soon as VT 12 is
+    entered. logind's text mode then only changes VT 1 in memory.
+  - Measured in the QEMU preview (std VGA, pixman, `scripts/wl-preview/login-frames.py`): black frames between
+    the greeter and the desktop went from about 2.8 s to 0-5 frames (0-150 ms) at the VT switch: the kernel
+    shows the console framebuffer before the preload's copy lands. Writing it before the switch does not help
+    (fbdev emulation does not take writes while a compositor is DRM master).
+  - Before the session greetd sets VT 1 to KD_TEXT and switches back to it; while the frame is fresh (20 s)
+    the preload makes that KD_GRAPHICS, so the switch draws nothing either. `luxwm --intro` with the frame uses
+    `luxcomp_hold()`: its first commit on the still lit output already carries the same picture with the bar.
 - PAM runs in greetd, under the `greetd` service. The greeter only speaks the JSON IPC on `GREETD_SOCK`, so no PAM
   code and no password check run in the UI process.
 - **What the greeter shows and handles:**
