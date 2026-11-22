@@ -14,7 +14,7 @@
 #include "internal.h"
 
 struct shadow_texture {
-	int size, radius, scale;
+	int size, radius, scale, offset;
 	bool blur;
 	uint32_t argb;
 	struct wlr_buffer *buffer;
@@ -61,11 +61,22 @@ corner_size(int size, int radius)
 	return 2 * size + radius;
 }
 
+static void
+rounded_rect(cairo_t *cr, double x, double y, double w, double h, double r)
+{
+	cairo_new_path(cr);
+	cairo_arc(cr, x + r, y + r, r, M_PI, 1.5 * M_PI);
+	cairo_arc(cr, x + w - r, y + r, r, 1.5 * M_PI, 2 * M_PI);
+	cairo_arc(cr, x + w - r, y + h - r, r, 0, 0.5 * M_PI);
+	cairo_arc(cr, x + r, y + h - r, r, 0.5 * M_PI, M_PI);
+	cairo_close_path(cr);
+}
+
 static struct wlr_buffer *
-render(int size, int radius, uint32_t argb, int scale, bool blur)
+render(int size, int radius, uint32_t argb, int scale, bool blur, int offset)
 {
 	int n = (2 * corner_size(size, radius) + 1) * scale;
-	int s = size * scale, r = radius * scale;
+	int s = size * scale, r = radius * scale, frame = s, frame_r = r;
 	if (!blur) {
 		/* obrys: tvar okna o 1 px vetsi, okno ho prekryje az na okraj */
 		s -= scale;
@@ -73,12 +84,7 @@ render(int size, int radius, uint32_t argb, int scale, bool blur)
 	}
 	cairo_surface_t *mask = cairo_image_surface_create(CAIRO_FORMAT_A8, n, n);
 	cairo_t *cr = cairo_create(mask);
-	cairo_new_path(cr);
-	cairo_arc(cr, s + r, s + r, r, M_PI, 1.5 * M_PI);
-	cairo_arc(cr, n - s - r, s + r, r, 1.5 * M_PI, 2 * M_PI);
-	cairo_arc(cr, n - s - r, n - s - r, r, 0, 0.5 * M_PI);
-	cairo_arc(cr, s + r, n - s - r, r, 0.5 * M_PI, M_PI);
-	cairo_close_path(cr);
+	rounded_rect(cr, s, s, n - 2 * s, n - 2 * s, r);
 	cairo_fill(cr);
 	cairo_destroy(cr);
 	cairo_surface_flush(mask);
@@ -111,16 +117,24 @@ render(int size, int radius, uint32_t argb, int scale, bool blur)
 	}
 	cairo_surface_mark_dirty(img);
 	cairo_surface_destroy(mask);
+	/* pod oknem nic: okno s pruhlednymi pixely (sklo, vlastni zaobleni klienta, podpovrchy) by ukazovalo
+	 * tmave ctverce dilu stinu a obrysu. Stin je posunuty dolu, okno je v texture o offset vys. */
+	cr = cairo_create(img);
+	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+	rounded_rect(cr, frame, frame - offset * scale, n - 2 * frame, n - 2 * frame, frame_r);
+	cairo_fill(cr);
+	cairo_destroy(cr);
+	cairo_surface_flush(img);
 	return buffer;
 }
 
 static struct wlr_buffer *
-texture(int size, int radius, uint32_t argb, int scale, bool blur)
+texture(int size, int radius, uint32_t argb, int scale, bool blur, int offset)
 {
 	for (int i = 0; i < CACHE; i++) {
 		struct shadow_texture *c = &cache[i];
 		if (c->buffer && c->size == size && c->radius == radius && c->argb == argb
-				&& c->scale == scale && c->blur == blur) {
+				&& c->scale == scale && c->blur == blur && c->offset == offset) {
 			return c->buffer;
 		}
 	}
@@ -130,8 +144,8 @@ texture(int size, int radius, uint32_t argb, int scale, bool blur)
 	if (t->buffer) {
 		wlr_buffer_drop(t->buffer);
 	}
-	*t = (struct shadow_texture){ size, radius, scale, blur, argb,
-		render(size, radius, argb, scale, blur) };
+	*t = (struct shadow_texture){ size, radius, scale, offset, blur, argb,
+		render(size, radius, argb, scale, blur, offset) };
 	return t->buffer;
 }
 
@@ -176,7 +190,7 @@ shadow_update(struct shadow *sh, struct wlr_box f, int size, int offset, int rad
 	if (!on) {
 		return;
 	}
-	struct wlr_buffer *buffer = texture(size, radius, argb, scale, blur);
+	struct wlr_buffer *buffer = texture(size, radius, argb, scale, blur, offset);
 	if (buffer != sh->held) {
 		if (sh->held) {
 			wlr_buffer_unlock(sh->held);

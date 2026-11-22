@@ -28,6 +28,7 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
+#include <linux/input-event-codes.h>
 #include "internal.h"
 
 #define MOD_MASK (LUXCOMP_MOD_SHIFT | LUXCOMP_MOD_CTRL | LUXCOMP_MOD_ALT | LUXCOMP_MOD_SUPER)
@@ -471,13 +472,48 @@ cursor_busy_update(void)
 	}
 }
 
+/* Kolik okna zustava na obrazovce pri presunu mysi: vodorovne kus zahlavi, svisle cele zahlavi */
+#define REACH_X 100
+#define REACH_TITLE 30
+
+/* Zahlavi presouvaneho okna musi zustat dosazitelne: ram nahore ne pod listou (exkluzivni zony monitoru
+ * pod kurzorem), nahore aspon vyska zahlavi nad spodnim okrajem plochy a vodorovne kus okna na obrazovce.
+ * Okno zatazene pod listu uz neslo chytit ani zavrit (pripominka 28). */
+static void
+keep_reachable(struct view *v, int *x, int *y)
+{
+	struct output *o = output_at(comp.cursor->x, comp.cursor->y);
+	if (!o || wlr_box_empty(&o->usable)) {
+		return;
+	}
+	struct wlr_box u = o->usable, all;
+	int top = luxcomp_view_get(v->id, LUXCOMP_VIEW_DECO_TOP);
+	int fy = *y - top, title = top > 0 ? top : REACH_TITLE;
+	if (fy > u.y + u.height - title) {
+		fy = u.y + u.height - title;
+	}
+	if (fy < u.y) {
+		fy = u.y;
+	}
+	*y = fy + top;
+	wlr_output_layout_get_box(comp.layout, NULL, &all);
+	if (*x > all.x + all.width - REACH_X) {
+		*x = all.x + all.width - REACH_X;
+	}
+	if (*x < all.x + REACH_X - view_width(v)) {
+		*x = all.x + REACH_X - view_width(v);
+	}
+}
+
 static void
 process_grab(void)
 {
 	struct view *v = comp.grab_view;
 	double cx = comp.cursor->x, cy = comp.cursor->y;
 	if (comp.grab == GRAB_MOVE) {
-		luxcomp_view_move(v->id, cx - comp.grab_x, cy - comp.grab_y);
+		int x = lround(cx - comp.grab_x), y = lround(cy - comp.grab_y);
+		keep_reachable(v, &x, &y);
+		luxcomp_view_move(v->id, x, y);
 		return;
 	}
 	struct wlr_box b = comp.grab_box;
@@ -490,6 +526,8 @@ process_grab(void)
 	if (comp.grab_edges & LUXCOMP_EDGE_TOP) {
 		top = b.y + dy;
 		if (bottom - top < min_h) top = bottom - min_h;
+		int x = left;
+		keep_reachable(v, &x, &top);
 	} else if (comp.grab_edges & LUXCOMP_EDGE_BOTTOM) {
 		bottom = b.y + b.height + dy;
 		if (bottom - top < min_h) bottom = top + min_h;
@@ -552,6 +590,8 @@ cursor_motion_abs(struct wl_listener *listener, void *data)
 	process_motion(e->time_msec);
 }
 
+static void begin_grab(struct view *v, enum grab_mode mode, uint32_t edges);
+
 static void
 cursor_button(struct wl_listener *listener, void *data)
 {
@@ -575,6 +615,14 @@ cursor_button(struct wl_listener *listener, void *data)
 		wlr_seat_pointer_notify_button(comp.seat, e->time_msec, e->button, e->state);
 		cursor_rebase();
 		emit(LUXCOMP_EV_BUTTON, v ? v->id : 0, e->button, 0, part);
+		return;
+	}
+	/* Super + leve tlacitko kdekoli v okne presouva okno (jako v Xfce s Alt), klient klik nedostane */
+	if (pressed && e->button == BTN_LEFT && v && v->mapped && (luxcomp_modifiers() & LUXCOMP_MOD_SUPER)
+			&& !luxcomp_view_get(v->id, LUXCOMP_VIEW_MAXIMIZED)
+			&& !luxcomp_view_get(v->id, LUXCOMP_VIEW_FULLSCREEN)) {
+		begin_grab(v, GRAB_MOVE, 0);
+		emit(LUXCOMP_EV_BUTTON, v->id, e->button, 1, LUXCOMP_PART_CLIENT);
 		return;
 	}
 	if (pressed && l && l->surface->current.keyboard_interactive

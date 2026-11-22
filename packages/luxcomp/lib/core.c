@@ -219,6 +219,8 @@ output_frame(struct wl_listener *listener, void *data)
 			return;	/* splash zustava; vystup zhasnuty pri startu kresli normalne */
 		}
 	}
+	/* rohy pred animaci: animace prevezme jejich novou polohu jako vychozi a zmensi ji */
+	decos_frame();
 	anim_frame();
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
