@@ -46,7 +46,7 @@ LUXWM_BUILD = Path(os.environ.get("LUXWM_BUILD") or REPO / "out/luxwm-test/build
 USE_LUXWM = (LUXWM_BUILD / "luxwm").exists() and os.environ.get("LUXOS_BACKDROP_LABWC") != "1"
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
 COLOR = "204060"
-FAKE_COMMANDS = ("luxos-settings", "luxos-display-settings", "luxos-widgets", "xdg-open", "gio")
+FAKE_COMMANDS = ("luxos-settings", "luxos-display-settings", "luxos-widgets", "xdg-open", "gio", "luxos-clock-app")
 DESKTOP_CHANNEL = """<?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-desktop" version="1.0">
   <property name="desktop-icons" type="empty">
@@ -927,6 +927,102 @@ class WaylandBackdrop(unittest.TestCase):
         # karta je sklo (svetlejsi nez tapeta), ne cerny ctverec
         x = (min(changed) + max(changed)) // 2
         self.assertGreater(sum(bytes.fromhex(pixel(image, x, 40))), sum(bytes.fromhex(pixel(plain, x, 40))))
+
+    def card_box(self, image, plain):
+        xs, ys = [], []
+        for y in range(0, 800, 4):
+            for x in range(0, 1280, 4):
+                if pixel(image, x, y) != pixel(plain, x, y):
+                    xs.append(x)
+                    ys.append(y)
+        self.assertTrue(xs, "karta widgetu neni videt")
+        return min(xs), min(ys), max(xs), max(ys)
+
+    def test_widget_drag_and_click(self):
+        # tazeni karty jako na X11: ukazatel zustane karte i mimo jeji puvodni misto (implicitni grab
+        # kompozitoru), pozice se ulozi na mrizku 8 px; klik na cas otevre Hodiny
+        self.start(size="1280x800")
+        wall = self.image("wall.png", 320, 200, solid(320, 200, (40, 70, 130)))
+        self.set_conf(f"WALLPAPER={wall}\n")
+        d = self.backdrop()
+        d.wait(r"^drawn HEADLESS-1")
+        time.sleep(0.3)
+        plain = self.shot()
+        w = self.widgets("today")
+        time.sleep(3)
+        self.assertIsNone(w.poll(), "luxos-widgets skoncil")
+        x0, y0, x1, y1 = self.card_box(self.shot(), plain)
+        cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+        # rychly tah (ukazatel predbehne kartu, ktera se hybe az po commitu klienta), pred pustenim chvile stani
+        moves = [f"move {cx - 600 * i // 12} {cy + 300 * i // 12}" for i in range(1, 13)]
+        self.input(f"move {cx} {cy}", "sleep 0.1", "down", *moves, "sleep 0.6", "up")
+        time.sleep(1)
+        conf = (self.conf / "widgets.conf").read_text()
+        pos = re.search(r"^POS_today=(-?\d+),(-?\d+)$", conf, re.M)
+        self.assertTrue(pos, conf)
+        self.assertEqual([int(pos[1]) % 8, int(pos[2]) % 8], [0, 0])
+        nx0, ny0, nx1, ny1 = self.card_box(self.shot(), plain)
+        # karta je pod ukazatelem jako pri stisku (na mrizku 8 px) a ulozi se tam, kde je videt
+        self.assertLessEqual(abs(nx0 - (x0 - 600)), 4, (x0, nx0))
+        self.assertLessEqual(abs(ny0 - (y0 + 300)), 4, (y0, ny0))
+        self.assertEqual(int(pos[1]) - (1280 - 340), nx0 - x0, conf)
+        self.assertEqual((nx1 - nx0, ny1 - ny0), (x1 - x0, y1 - y0))
+        # klik do leve casti karty (cas)
+        self.input(f"move {nx0 + 40} {(ny0 + ny1) // 2}", "click")
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not (self.ran.exists() and "luxos-clock-app" in self.ran.read_text()):
+            time.sleep(0.1)
+        self.assertIn("luxos-clock-app", self.ran.read_text() if self.ran.exists() else "")
+        # karta se tazenim nikam neposouva sama a po kliku zustava
+        self.assertEqual(self.card_box(self.shot(), plain), (nx0, ny0, nx1, ny1))
+        # pusteni v plnem pohybu (tah za 150 ms): karta skonci presne pod ukazatelem
+        cx, cy = (nx0 + nx1) // 2, (ny0 + ny1) // 2
+        self.input(f"drag {cx} {cy} {cx + 400} {cy - 200} 150")
+        time.sleep(1)
+        mx0, my0, _, _ = self.card_box(self.shot(), plain)
+        self.assertLessEqual(abs(mx0 - (nx0 + 400)), 4, (nx0, mx0))
+        self.assertLessEqual(abs(my0 - (ny0 - 200)), 4, (ny0, my0))
+
+    def blue_buttons(self, image):
+        """Leve horni rohy modrych tlacitek Pridat (#2f6fed) galerie."""
+        def blue(x, y):
+            p = bytes.fromhex(pixel(image, x, y))
+            return p[0] < 80 and 95 < p[1] < 130 and p[2] > 210
+        corners = []
+        for y in range(0, 800, 2):
+            for x in range(0, 1280, 2):
+                if blue(x, y) and not any(abs(x - cx) < 90 and abs(y - cy) < 40 for cx, cy in corners):
+                    corners.append((x, y))
+        # vypinac "Zobrazit widgety" je taky modry, ale uzsi nez tlacitko (hledat ve vysce textu tlacitka)
+        return [(x, y) for x, y in corners if sum(blue(i, y + 10) for i in range(x - 30, x + 90)) > 52]
+
+    def test_widget_gallery_when_off(self):
+        # vypnute widgety (vychozi stav): galerie nesmi tvrdit, ze jsou karty pridane; Pridat zapne widgety
+        # s prave touto kartou a spusti je
+        self.start(size="1280x800")
+        g = subprocess.Popen([str(self.tmp / "luxos-widgets"), "settings"], env=self.env, stdout=subprocess.PIPE)
+        self.procs.append(g)
+        time.sleep(3)
+        image = self.shot()
+        if os.environ.get("LUXOS_WIDGETS_SHOTS"):
+            shutil.copy(self.session / "shot.ppm", Path(os.environ["LUXOS_WIDGETS_SHOTS"]) / "gallery-off.ppm")
+        adds = self.blue_buttons(image)
+        self.assertGreaterEqual(len(adds), 2, adds)
+        self.assertFalse((self.conf / "widgets.conf").exists())
+        x, y = min(adds, key=lambda p: (p[1], p[0]))
+        self.input(f"move {x + 10} {y + 8}", "click")
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not (self.ran.exists() and "luxos-widgets" in self.ran.read_text()):
+            time.sleep(0.1)
+        self.assertEqual(self.ran.read_text().splitlines(), ["luxos-widgets "])
+        conf = (self.conf / "widgets.conf").read_text().splitlines()
+        self.assertIn("ENABLED=1", conf)
+        self.assertIn("WIDGETS=today", conf)
+        time.sleep(0.5)
+        image = self.shot()
+        if os.environ.get("LUXOS_WIDGETS_SHOTS"):
+            shutil.copy(self.session / "shot.ppm", Path(os.environ["LUXOS_WIDGETS_SHOTS"]) / "gallery-added.ppm")
+        self.assertEqual(len(self.blue_buttons(image)), len(adds) - 1)
 
     # ---- necinnost a pamet ----
 

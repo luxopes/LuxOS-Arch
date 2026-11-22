@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 13
+#define LUXCOMP_API_VERSION 14
 
 #pragma GCC visibility push(default)
 
@@ -55,6 +55,7 @@ enum luxcomp_event {
 	LUXCOMP_EV_LAYER_MAP,		/* id=output a=layer (0 background .. 3 overlay) b=1 with an exclusive
 					 * zone; a layer-shell surface (wallpaper, bar, Dock) shows its first frame */
 	LUXCOMP_EV_VIEW_CONTENT_TYPE,	/* id=view a=LUXCOMP_CONTENT_* (wp-content-type-v1 changed) */
+	LUXCOMP_EV_CAPS_LOCK,		/* a=1 Caps Lock on, 0 off (keyboard that typed last) */
 };
 
 enum luxcomp_request {
@@ -287,6 +288,7 @@ int64_t luxcomp_modifiers(void);			/* LUXCOMP_MOD_* currently held */
 /* Keyboard layouts of the keymap from luxcomp_set_keymap() ("us,cz" = 2 layouts) */
 void luxcomp_set_layout(int64_t index);
 int64_t luxcomp_layout(void);
+int64_t luxcomp_caps_lock(void);			/* 1 = Caps Lock on */
 int64_t luxcomp_layout_count(void);
 const char *luxcomp_layout_name(int64_t index);		/* xkb name, "English (US)"; "" = none */
 

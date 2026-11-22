@@ -14,7 +14,8 @@
 #   id(a), name(a), path(a), wm_class(a), executable(a)
 #   generic_name(a), keywords(a) -> [..], categories(a) ("Network;WebBrowser;"), string(a, klic) (bez prekladu)
 #   nodisplay(a), shown_here(a) (OnlyShowIn/NotShowIn podle XDG_CURRENT_DESKTOP)
-#   launch(a)                 spusteni (GdkAppLaunchContext = xdg-activation na Waylandu); True kdyz bezi
+#   launch(a)                 spusteni (GdkAppLaunchContext = xdg-activation na Waylandu); True kdyz bezi;
+#                             ze sluzby shellu ve vlastnim scope systemd (luxos_glib.app_scope)
 #   launch_uri(uri)           adresa ve vychozi aplikaci (soubor, slozka, trash:///) se stejnym kontextem
 #   icon(a, size, scale)      ikona aplikace jako cairo surface (volajici ji znici), 0 kdyz neni
 #   own_icon(a, size, scale)  jen ikona z Icon= (bez application-x-executable), 0 kdyz neni
@@ -23,6 +24,7 @@
 # Objekty aplikaci se drzi po celou dobu behu (rejstrik a find sdileji jeden objekt na soubor). Po reload() dostane
 # zmeneny soubor novy objekt; stare zustanou platne pro toho, kdo je drzi (zmena .desktop je vzacna).
 load glib
+load luxos_glib as lglib
 load luxos_text as text
 
 LOOKUP_FORCE_SIZE = 16
@@ -336,7 +338,7 @@ function launch_context():
     end
 end
 
-function launch(info):
+function launch_info(info):
     context = launch_context()
     unsafe:
         cell = __lsl_byte_zeros(8)
@@ -353,7 +355,37 @@ function launch(info):
     return ok != 0
 end
 
+# Prikaz pres GAppInfo z prikazove radky: GLib mu da token xdg-activation z kontextu GDK v prostredi
+# (XDG_ACTIVATION_TOKEN projde pres systemd-run a gio az do aplikace). Radka ma pravidla Exec: % jako %%.
+function launch_command(argv):
+    line = " ".join([glib.shell_quote(a) for a in argv]).replace("%", "%%")
+    unsafe:
+        # G_APP_INFO_CREATE_SUPPORTS_STARTUP_NOTIFICATION = 4
+        info = __lsl_qbe_call4(__lsl_symbol("g_app_info_create_from_commandline"), cstr(line), 0, 4, 0)
+    end
+    if info == 0:
+        return False
+    end
+    ok = launch_info(info)
+    call unref(info)
+    return ok
+end
+
+# Ze sluzby shellu ve vlastnim scope (luxos_glib.app_scope); DBusActivatable spousti D-Bus ve vlastni jednotce
+function launch(info):
+    file = path(info)
+    scope = lglib.app_scope(strip_desktop(base_name(file)))
+    if scope == [] or string(info, "DBusActivatable") == "true":
+        return launch_info(info)
+    end
+    return launch_command(scope + ["gio", "launch", file])
+end
+
 function launch_uri(uri):
+    scope = lglib.app_scope("open")
+    if scope != []:
+        return launch_command(scope + ["gio", "open", uri])
+    end
     context = launch_context()
     unsafe:
         cell = __lsl_byte_zeros(8)

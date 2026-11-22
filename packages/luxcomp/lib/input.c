@@ -43,6 +43,7 @@ struct keyboard {
 };
 
 static bool syncing_group;
+static bool caps_lock;
 
 /* Mysi a touchpady z libinput: nastaveni podle druhu plati pro pripojena i pozdeji pripojena zarizeni */
 #define INPUT_PROPS (LUXCOMP_INPUT_SCROLL_METHOD + 1)
@@ -305,6 +306,11 @@ keyboard_modifiers(struct wl_listener *listener, void *data)
 			emit(LUXCOMP_EV_LAYOUT, 0, group, 0, 0);
 		}
 	}
+	bool caps = xkb_state_mod_name_is_active(kb->wlr->xkb_state, XKB_MOD_NAME_CAPS, XKB_STATE_MODS_LOCKED) > 0;
+	if (caps != caps_lock) {
+		caps_lock = caps;
+		emit(LUXCOMP_EV_CAPS_LOCK, 0, caps, 0, 0);
+	}
 }
 
 static void
@@ -395,10 +401,42 @@ new_virtual_pointer(struct wl_listener *listener, void *data)
 /* ---- kurzor ---- */
 
 /* Co je pod kurzorem: okno nebo vrstva, povrch a cast okna */
+/* Buffer povrchu z posledniho hit_test (NULL = povrch odjinud, napr. roh dekorace) */
+static struct wlr_scene_buffer *hit_buffer;
+
+/* Implicitni grab jako v X11: se stisknutym tlacitkem jde ukazatel dal povrchu, kde se stisklo (vyber textu
+ * nebo posuvnik tazeny mimo okno). Souradnice jsou vuci soucasne poloze povrchu, jen plocha na vrstve BOTTOM
+ * (widgety, ktere se pri tazeni posouvaji samy) je dostava vuci poloze pri stisku jako koren v X11: udalosti
+ * na ceste ke klientovi jsou vuci poloze, o ktere klient nevi, jestli ji kompozitor uz pouzil */
+static struct {
+	struct wlr_scene_buffer *buffer;
+	struct wlr_surface *surface;
+	bool frozen;
+	int x, y;
+	struct wl_listener destroy;
+} held;
+
+static void
+held_clear(void)
+{
+	if (held.buffer) {
+		wl_list_remove(&held.destroy.link);
+		held.buffer = NULL;
+		held.surface = NULL;
+	}
+}
+
+static void
+held_destroy(struct wl_listener *listener, void *data)
+{
+	held_clear();
+}
+
 static int
 hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 		struct wlr_surface **surface, double *sx, double *sy)
 {
+	hit_buffer = NULL;
 	*view_out = NULL;
 	*layer_out = NULL;
 	*surface = NULL;
@@ -428,6 +466,7 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 			wlr_scene_surface_try_from_buffer(wlr_scene_buffer_from_node(node));
 		if (ss) {
 			*surface = ss->surface;
+			hit_buffer = ss->buffer;
 		}
 	}
 	struct wlr_scene_node *n = node;
@@ -558,6 +597,17 @@ process_motion(uint32_t time)
 		process_grab();
 		return;
 	}
+	/* seat grab (xdg_popup, tazeni dat) a omezeny ukazatel hry si fokus ridi samy */
+	if (held.buffer && comp.seat->pointer_state.button_count > 0
+			&& comp.seat->pointer_state.focused_surface == held.surface
+			&& !wlr_seat_pointer_has_grab(comp.seat) && !luxcomp_pointer_constraint()) {
+		int nx = held.x, ny = held.y;
+		if (!held.frozen) {
+			wlr_scene_node_coords(&held.buffer->node, &nx, &ny);
+		}
+		wlr_seat_pointer_notify_motion(comp.seat, time, comp.cursor->x - nx, comp.cursor->y - ny);
+		return;
+	}
 	struct view *v;
 	struct layer *l;
 	struct wlr_surface *surface;
@@ -663,9 +713,23 @@ cursor_button(struct wl_listener *listener, void *data)
 			seat_focus_surface(view_surface(v));
 		}
 	}
+	if (pressed && !held.buffer && surface && hit_buffer
+			&& surface == comp.seat->pointer_state.focused_surface) {
+		held.buffer = hit_buffer;
+		held.surface = surface;
+		struct wlr_layer_surface_v1 *ls = wlr_layer_surface_v1_try_from_wlr_surface(surface);
+		held.frozen = ls && ls->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
+		wlr_scene_node_coords(&hit_buffer->node, &held.x, &held.y);
+		held.destroy.notify = held_destroy;
+		wl_signal_add(&hit_buffer->node.events.destroy, &held.destroy);
+	}
 	/* pusteni tlacitka mimo povrch musi tazeni ukoncit */
-	if (surface || comp.seat->drag) {
+	if (surface || comp.seat->drag || held.buffer) {
 		wlr_seat_pointer_notify_button(comp.seat, e->time_msec, e->button, e->state);
+	}
+	if (!pressed && held.buffer && comp.seat->pointer_state.button_count == 0) {
+		held_clear();
+		cursor_rebase();
 	}
 	emit(LUXCOMP_EV_BUTTON, v ? v->id : 0, e->button, pressed, part);
 }
@@ -917,6 +981,12 @@ int64_t
 luxcomp_layout(void)
 {
 	return comp.kb_group;
+}
+
+int64_t
+luxcomp_caps_lock(void)
+{
+	return caps_lock;
 }
 
 int64_t

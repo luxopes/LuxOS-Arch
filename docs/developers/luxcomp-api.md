@@ -198,6 +198,8 @@ jiné okno), rozhoduje politika. Viz `luxos-fullscreen-layer.patch` u xfwm4.
 - `luxcomp_set_layout(i)`, `luxcomp_layout()`, `luxcomp_layout_count()`, `luxcomp_layout_name(i)`:
   aktivní rozložení je jedno pro všechny klávesnice. Přepnutí volbou XKB `grp:` na fyzické klávesnici
   pošle `LAYOUT` (`a` = index); po `set_layout`/`set_keymap` událost nepřijde.
+- `luxcomp_caps_lock()`: 1 = Caps Lock zapnutý na klávesnici, která psala naposledy; změna pošle `CAPS_LOCK`
+  (`a` = 1/0). Lišta podle něj podtrhne kód rozložení (API 14).
 - `luxcomp_set_repeat(rate, delay)`.
 - Myš a touchpad (zařízení libinput; virtuální ukazatele a headless backend žádná nemají):
   - `luxcomp_input_set(kind, prop, value)`: `kind` je `LUXCOMP_INPUT_MOUSE` nebo `LUXCOMP_INPUT_TOUCHPAD`

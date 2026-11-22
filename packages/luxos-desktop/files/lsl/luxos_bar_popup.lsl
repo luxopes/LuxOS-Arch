@@ -130,7 +130,7 @@ function footer(box, title, command):
 end
 
 function on_launch(command, button):
-    call glib.spawn_quiet(command)
+    call lglib.spawn_app(command)
     call close_all()
     return 0
 end
@@ -756,7 +756,7 @@ function on_known_profiles(net, output, status):
     end
     if net["security"].find("802.1X") >= 0:
         # podnikova sit: prihlaseni pres pruvodce NetworkManageru (uzivatel, certifikat)
-        call glib.spawn_quiet(["nm-connection-editor", "--create", "--type=802-11-wireless"])
+        call lglib.spawn_app(["nm-connection-editor", "--create", "--type=802-11-wireless"])
         call close_all()
         return 0
     end
