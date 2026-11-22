@@ -156,7 +156,9 @@ class LockBase(unittest.TestCase):
         env.pop("LD_LIBRARY_PATH", None)
         env.update(LUXOS_WL_LIB=str(self.build / "libluxos-wl.so.0"), LUXOS_LOCK_AUTH=str(self.build / "auth-fake"),
                    LUXOS_LOCK_TRACE="1", LUXOS_LOCK_FPRINT_MODULE="/nonexistent",
-                   LUXOS_LOCK_POWER_SUPPLY=str(self.tmp / "power"), LUXOS_LOCK_NOW="9:41", LUXOS_LOCK_DEMO_NAME="Alex Novak")
+                   LUXOS_LOCK_POWER_SUPPLY=str(self.tmp / "power"), LUXOS_LOCK_NOW="9:41", LUXOS_LOCK_DEMO_NAME="Alex Novak",
+                   # klid jako tapeta plochy (staticky): nezavisle na /etc/xdg hostitele a vychozim setrici
+                   LUXOS_LOCK_SAVER="desktop")
         self.env = env
         self.home = Path(env["HOME"])
         self.home.mkdir(parents=True, exist_ok=True)
@@ -895,7 +897,7 @@ class Session(LockBase):
   </property>
 </channel>
 """)
-            p = self.locker(XDG_CONFIG_HOME=str(self.home / ".config"))
+            p = self.locker(XDG_CONFIG_HOME=str(self.home / ".config"), LUXOS_LOCK_SAVER="")
             self.assertEqual(self.wait_line(p, "saver "), "saver " + style)
             self.keys(f"type {PASSWORD}", "key Return")
             self.assertEqual(p.wait(10), 0)
