@@ -5,7 +5,10 @@
  * Po kazdem pohybu vraci kurzor doprostred (XWarpPointer). Vypisuje "mapped", "grab RESULT"
  * a "delta DX DY" (posun od stredu okna) za kazdy MotionNotify.
  *
- *   x11-mouselook [--title JMENO] [--fullscreen]   (--fullscreen: _NET_WM_STATE_FULLSCREEN uz pred namapovanim)
+ *   x11-mouselook [--title JMENO] [--fullscreen] [--override | --override-late]
+ *   --fullscreen: _NET_WM_STATE_FULLSCREEN uz pred namapovanim
+ *   --override: zelene okno override-redirect pres celou obrazovku (Wine bez spravce oken);
+ *   --override-late: totez, ale override-redirect az po vytvoreni okna (XChangeWindowAttributes)
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,12 +25,16 @@ int
 main(int argc, char **argv)
 {
 	const char *title = "xgame";
-	int fullscreen = 0;
+	int fullscreen = 0, override = 0;
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--title") && i + 1 < argc) {
 			title = argv[++i];
 		} else if (!strcmp(argv[i], "--fullscreen")) {
 			fullscreen = 1;
+		} else if (!strcmp(argv[i], "--override")) {
+			override = 1;
+		} else if (!strcmp(argv[i], "--override-late")) {
+			override = 2;
 		}
 	}
 	Display *dpy = XOpenDisplay(NULL);
@@ -35,8 +42,16 @@ main(int argc, char **argv)
 		fprintf(stderr, "x11-mouselook: no display\n");
 		return 1;
 	}
-	Window win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0, W, H, 0, 0,
-		BlackPixel(dpy, DefaultScreen(dpy)));
+	int scr = DefaultScreen(dpy);
+	XSetWindowAttributes a = { .override_redirect = override == 1, .background_pixel = 0x00ff00 };
+	Window win = override
+		? XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0, DisplayWidth(dpy, scr), DisplayHeight(dpy, scr), 0,
+			CopyFromParent, InputOutput, CopyFromParent, CWOverrideRedirect | CWBackPixel, &a)
+		: XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0, W, H, 0, 0, BlackPixel(dpy, scr));
+	if (override == 2) {
+		a.override_redirect = True;
+		XChangeWindowAttributes(dpy, win, CWOverrideRedirect, &a);
+	}
 	XStoreName(dpy, win, title);
 	XClassHint class = { (char *)title, "X11Mouselook" };
 	XSetClassHint(dpy, win, &class);

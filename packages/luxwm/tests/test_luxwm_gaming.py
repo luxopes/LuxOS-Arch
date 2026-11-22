@@ -412,6 +412,29 @@ class Gaming(unittest.TestCase):
         v = self.view(s, "xgame")
         self.assertEqual((v["w"], v["h"], v["fullscreen"]), (400, 300, 0))
 
+    @unittest.skipUnless(os.path.exists(XWAYLAND) and os.path.exists("/usr/include/X11/extensions/Xfixes.h"),
+                         "Xwayland in the sysroot and libXfixes headers")
+    def test_xwayland_override_redirect_fullscreen_over_bar(self):
+        """Wine bez spravce oken: okno override-redirect pres celou obrazovku je nad listou (pod X11 taky)"""
+        wrapper = os.path.join(ROOT, "packages/luxcomp/xwayland-sw")
+        s = self.session(env=f"LUXCOMP_XWAYLAND_WRAPPER={wrapper}")
+        s.bar()
+        display = s.log().split("xwayland ")[1].split()[0]
+        # override-redirect od vytvoreni i prepnuty az pred namapovanim (wlroots by pri preskladani spadl)
+        for mode in ("--override", "--override-late"):
+            x = Probe(self, s, "env", f"DISPLAY={display}", self.xprobe, mode)
+            x.wait("mapped", 20)
+            time.sleep(0.5)
+            for px, py in ((640, 10), (5, 5), (640, 400), (1275, 795)):
+                r, g, b = s.pixel(px, py)
+                self.assertTrue(g > 200 and r < 60 and b < 60, (mode, (px, py), (r, g, b)))
+            self.assertNotIn("xgame", s.state()["views"], "override-redirect is not a managed window")
+            kill_tree(x.p.pid)
+            x.p.wait(5)
+            time.sleep(0.5)
+            r, g, b = s.pixel(640, 10)
+            self.assertFalse(g > 200 and r < 60 and b < 60, (mode, "still on screen after exit"))
+
     # ---- klavesnice ----
 
     def test_shortcuts_inhibit_and_escape(self):

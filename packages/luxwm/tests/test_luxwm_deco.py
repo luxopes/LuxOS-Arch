@@ -141,6 +141,22 @@ class LuxwmDeco(unittest.TestCase):
         self.assertGreater(img.px(0, H - 1)[0], 100)
         self.assertGreater(img.px(W - 1, H - 1)[0], 100)
 
+    def test_bottom_corner_belongs_to_window(self):
+        """Roh je kopie pixelu: ukazatel i klik v nem patri oknu, ne tomu, co je pod nim"""
+        s = self.start()
+        s.client("C", size="400x300")
+        v = s.state()["views"]["C"]
+        log = os.path.join(s.dir, "clients.log")
+        for dx, dy in ((2, 2), (6, 6)):
+            for cx, sx in ((v["x"] + dx, dx), (v["x"] + v["w"] - 1 - dx, v["w"] - 1 - dx)):
+                cy = v["y"] + v["h"] - 1 - dy
+                before = open(log).read().count("button 272 down")
+                s.input("move 640 790", f"move {cx} {cy}", "click")
+                text = open(log).read()
+                self.assertIn(f"enter {sx} {v['h'] - 1 - dy}", text, (cx, cy))
+                self.assertEqual(text.count("button 272 down"), before + 1, (cx, cy))
+        self.assertEqual(s.state()["views"]["C"]["focused"], 1)
+
     def test_inactive_title_contrast(self):
         s = self.start()
         s.client("Inactive window", size="400x200")

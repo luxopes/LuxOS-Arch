@@ -16,6 +16,7 @@
 
 #if WLR_HAS_XWAYLAND
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_xcursor_manager.h>
@@ -177,6 +178,21 @@ x_set_decorations(struct wl_listener *listener, void *data)
 	emit(LUXCOMP_EV_VIEW_REQUEST, v->id, LUXCOMP_REQ_DECORATION, server, 0);
 }
 
+static void unmanaged(struct wlr_xwayland_surface *xs, bool mapped);
+static void x_destroy(struct wl_listener *listener, void *data);
+
+/* Okno prepnute na override-redirect az po vytvoreni (XChangeWindowAttributes pred namapovanim, Wine) uz neni
+ * spravovane: wlroots by pri preskladani spadl (assert v wlr_xwayland_surface_restack) */
+static void
+x_set_override_redirect(struct wl_listener *listener, void *data)
+{
+	struct view *v = wl_container_of(listener, v, x_override);
+	struct wlr_xwayland_surface *xs = v->xsurface;
+	bool mapped = xs->surface && xs->surface->mapped;
+	x_destroy(&v->destroy, NULL);
+	unmanaged(xs, mapped);
+}
+
 static void
 x_destroy(struct wl_listener *listener, void *data)
 {
@@ -187,7 +203,7 @@ x_destroy(struct wl_listener *listener, void *data)
 	struct wl_listener *ls[] = { &v->destroy, &v->x_associate, &v->x_dissociate,
 		&v->x_configure, &v->request_move, &v->request_resize, &v->request_maximize,
 		&v->request_fullscreen, &v->request_minimize, &v->x_activate, &v->set_title,
-		&v->set_app_id, &v->x_decorations };
+		&v->set_app_id, &v->x_decorations, &v->x_override };
 	for (size_t i = 0; i < sizeof(ls) / sizeof(*ls); i++) {
 		wl_list_remove(&ls[i]->link);
 	}
@@ -219,6 +235,7 @@ manage(struct wlr_xwayland_surface *xs)
 		{ &xs->events.set_title, &v->set_title, x_set_title },
 		{ &xs->events.set_class, &v->set_app_id, x_set_class },
 		{ &xs->events.set_decorations, &v->x_decorations, x_set_decorations },
+		{ &xs->events.set_override_redirect, &v->x_override, x_set_override_redirect },
 	};
 	for (size_t i = 0; i < sizeof(ls) / sizeof(*ls); i++) {
 		ls[i].listener->notify = ls[i].fn;
@@ -240,11 +257,32 @@ struct unmanaged {
 	struct wl_listener associate, dissociate, map, unmap, geometry, configure, destroy;
 };
 
+/* Okno pres cely monitor (hra ve Wine s oknem override-redirect) patri nad listu a okna na cele obrazovce,
+ * jako pod X11; menu a tooltipy zustavaji pod listou */
+static bool
+um_covers_output(struct wlr_xwayland_surface *xs)
+{
+	struct output *o = output_at(xs->x + xs->width / 2.0, xs->y + xs->height / 2.0);
+	if (!o) {
+		return false;
+	}
+	struct wlr_box out;
+	wlr_output_layout_get_box(comp.layout, o->wlr_output, &out);
+	return xs->x <= out.x && xs->y <= out.y && xs->x + xs->width >= out.x + out.width
+		&& xs->y + xs->height >= out.y + out.height;
+}
+
 static void
 um_place(struct unmanaged *u)
 {
-	if (u->tree) {
-		wlr_scene_node_set_position(&u->tree->node, u->xs->x, u->xs->y);
+	if (!u->tree) {
+		return;
+	}
+	wlr_scene_node_set_position(&u->tree->node, u->xs->x, u->xs->y);
+	struct wlr_scene_tree *parent = um_covers_output(u->xs) ? comp.fullscreen : comp.unmanaged;
+	if (u->tree->node.parent != parent) {
+		wlr_scene_node_reparent(&u->tree->node, parent);
+		wlr_scene_node_raise_to_top(&u->tree->node);
 	}
 }
 
@@ -328,7 +366,7 @@ um_destroy(struct wl_listener *listener, void *data)
 }
 
 static void
-unmanaged(struct wlr_xwayland_surface *xs)
+unmanaged(struct wlr_xwayland_surface *xs, bool mapped)
 {
 	struct unmanaged *u = calloc(1, sizeof(*u));
 	u->xs = xs;
@@ -345,6 +383,9 @@ unmanaged(struct wlr_xwayland_surface *xs)
 	if (xs->surface) {
 		um_associate(&u->associate, NULL);
 	}
+	if (mapped) {
+		um_map(&u->map, NULL);
+	}
 }
 
 static void
@@ -352,7 +393,7 @@ new_surface(struct wl_listener *listener, void *data)
 {
 	struct wlr_xwayland_surface *xs = data;
 	if (xs->override_redirect) {
-		unmanaged(xs);
+		unmanaged(xs, false);
 	} else {
 		manage(xs);
 	}
