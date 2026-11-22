@@ -202,6 +202,7 @@ view_map_common(struct view *v)
 	wlr_scene_node_raise_to_top(&v->tree->node);
 	view_update_enabled(v);
 	foreign_map(v);
+	launch_window_mapped();
 	v->last_w = view_width(v);
 	v->last_h = view_height(v);
 	emit(LUXCOMP_EV_VIEW_MAP, v->id, v->last_w, v->last_h, 0);

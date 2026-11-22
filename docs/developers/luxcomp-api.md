@@ -7,7 +7,7 @@ knihovnou: `luxwm` v LSL. Hlavička je `packages/luxcomp/include/luxcomp.h` (ver
 `LUXCOMP_API_VERSION` = 10: 3 přidala stíny, kurzor a znaky semaforu, 4 IPC a rozložení klávesnice,
 5 sandbox oken a štítek záhlaví, 6 monitory (testovací výstupy, zrcadlení, hlavní monitor), stín
 a zaoblení oken s vlastním záhlavím a `org_kde_kwin_server_decoration`, 7 událost `VIEW_SIZE`
-a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput, 10 `luxcomp_hold()` a událost `HOLD_END`), balík `packages/luxcomp`.
+a `luxcomp_view_set_names()`, 8 material (rozmazané pozadí ploch layer-shell), 9 myš a touchpad přes libinput, 10 `luxcomp_hold()` a událost `HOLD_END`, 11 animace oken, `luxcomp_cover()`, ukazatel při spouštění a událost `LAYER_MAP`), balík `packages/luxcomp`.
 
 ```
 klienti Wayland ──► libluxcomp (C: wlroots, scéna, vstup, renderer, dekorace, animace)
@@ -80,6 +80,7 @@ který by ho ještě zobrazoval, jádro zhasne.
 | `VIEW_TITLE`, `VIEW_APP_ID` | okno | změnil se název nebo app_id |
 | `VIEW_SIZE` | okno | šířka, výška; klient sám změnil velikost (ne během tažení myší, to končí uvolněním tlačítka) |
 | `HOLD_END` | 0 | 1 = `luxcomp_hold()` ukončil snímek klienta, 0 = časový limit; snímek je už na všech výstupech |
+| `LAYER_MAP` | výstup | a = vrstva (0 pozadí … 3 overlay), b = 1 s exkluzivní zónou; povrch layer-shell ukázal první snímek |
 | `VIEW_REQUEST` | okno | `LUXCOMP_REQ_*` a argument (viz níže) |
 | `BUTTON` | okno nebo 0 | tlačítko (kód Linuxu, 272 = levé), 1 stisk / 0 uvolnění, `LUXCOMP_PART_*` |
 | `KEYBIND` | zkratka | |
@@ -237,6 +238,40 @@ Jak to jádro kreslí:
   maskou. Pixely rohů se čtou jen když je klient v rozích změnil. Povrch s viewportem nebo rotací
   a textura, kterou nejde číst, mají rohy ostré.
 - `LUXCOMP_STATS=1` vypíše po každém tažení okna počet snímků a nejdelší a průměrný čas kreslení.
+
+### Animace oken, ukazatel při spouštění a přechod po přihlášení (`anim.c`, `idle.c`)
+
+- `luxcomp_anim_set(kind, ms)` nastaví délku druhu animace (0 = vypnuto, výchozí stav),
+  `luxcomp_view_animate(view, kind)` ji spustí. Politika rozhoduje kdy: luxwm volá `OPEN` po umístění
+  nového okna, `CLOSE` při `VIEW_UNMAP`, `MINIMIZE` před skrytím a `RESTORE` po obnovení z Docku
+  (ne v Alt+Tab ani u „ukázat plochu“). Délky a křivky jsou z `picom.conf` LuxOS 1.0.x (commit 82c1a813):
+  otevření 180 ms (90 % → 100 %, prolnutí), zavření 140 ms, minimalizace 320 ms do ikony v Docku
+  (`set_rectangle` z wlr-foreign-toplevel, jinak střed spodního okraje monitoru), obnovení 300 ms.
+  „Omezit pohyb“ (`reduce_motion`) a Spořič baterie (`~/.config/luxos/powersaver`) je v luxwm vypnou.
+- Scéna wlroots neumí změnit měřítko stromu, takže se mění uzly okna: poloha každého uzlu i
+  `dest_size` bufferů krát měřítko, kořen posunutý tak, aby střed rámu zůstal. Co klient mezi kroky
+  sám změní (commit, podpovrch, popup), je nová výchozí hodnota; na konci se vše vrátí.
+- Vstup se nikdy neblokuje: otevírané a obnovené okno je živé (klik na zmenšené okno dostane, souřadnice
+  uvnitř jsou během animace o pár procent mimo), zavírané a minimalizované okno je kopie posledního obrazu
+  (zamčené buffery, `point_accepts_input` = ne), kliky jdou hned na okno pod ní.
+- Krok běží před každým snímkem výstupu; mění se jen uzly okna, scéna tedy překreslí jen oblast okna a stínu.
+  Na pixmanu se zmenšuje bez filtru (nearest); dva snímky pomalejší než 12 ms za sebou animace dokončí.
+  Headless pixman 1920x1080, okno 900x600: otevření 9 snímků (nejpomalejší 4–6 ms), zavření 8 (1,5 ms),
+  minimalizace 19 (2–3 ms), obnovení 16 (4–5 ms).
+- `luxcomp_launch_feedback(ms)`: po novém tokenu xdg-activation (GTK si ho vyžádá při
+  `g_app_info_launch` z Docku, Launchpadu…) nebo po `luxcomp_launch_start()` (luxwm u zkratek `exec`)
+  je místo šipky animovaný kurzor `progress` (plocha, zahlaví, klienti s tvarem `default`
+  z cursor-shape-v1; vlastní obrázek klienta se nemění). Konec: token použit nebo zanikl, namapovalo se
+  nové okno (nejstarší spuštění), nebo uplynulo `ms` (luxwm 15 s). Ukáže se až po 150 ms, takže okno,
+  které se samo aktivuje čerstvým tokenem, kurzorem neblikne. Animaci kurzoru dělá wlroots podle tématu.
+- `luxcomp_cover(argb)` před `luxcomp_start()`: jednolitá barva nad vším kromě zámku, už v prvním snímku,
+  vstup jde skrz. `luxcomp_cover_fade(ms)` ji rozplyne (CSS „ease“) a odstraní. luxwm `--intro`
+  (spouští ho `luxos-wayland-session`) zakryje obrazovku černou a po `LAYER_MAP` tapety na každém
+  monitoru a lišty (vrstva s exkluzivní zónou) plus Docku (`dock_zone`, nejvýš 1,5 s) ji za 280 ms
+  rozplyne, jako `luxos-session-cover --login` na X11. Nejpozději po 10 s vždy.
+- `LUXCOMP_STATS=1` vypíše po každé animaci počet snímků a nejpomalejší vykreslení, po rozplynutí
+  zakrytí totéž a změny kurzoru (`busy pointer on/off`). `LUXCOMP_ANIM_SCALE=N` animace N× zpomalí
+  (snímky mezistavů v testech `packages/luxwm/tests/test_luxwm_anim.py`).
 
 ### Material (rozmazané pozadí)
 
@@ -485,6 +520,7 @@ zjišťuje, že kompozitor běží, a nastavuje `--size`. Po změně velikosti p
 |---|---|
 | `LUXCOMP_DEBUG` | ladicí log wlroots |
 | `LUXCOMP_STATS` | po každém přejezdu ploch počet snímků a nejpomalejší vykreslení |
+| `LUXCOMP_ANIM_SCALE=N` | animace oken a přechod po přihlášení N× pomalejší (testy) |
 | `LUXCOMP_OUTPUT_MODE=1920x1080` | velikost výstupu bez režimů (headless, vnořené okno) |
 | `LUXCOMP_VIRTUAL_INPUT=1` | virtual-keyboard-v1 a wlr-virtual-pointer-v1 pro každého klienta mimo sandbox (vstup z testů `scripts/wl-test`); bez ní jen pro allowlist |
 | `LUXCOMP_XWAYLAND_WRAPPER` | jiná cesta k `xwayland-sw` (testy ze stromu zdrojů) |

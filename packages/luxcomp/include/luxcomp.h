@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 10
+#define LUXCOMP_API_VERSION 11
 
 #pragma GCC visibility push(default)
 
@@ -52,6 +52,8 @@ enum luxcomp_event {
 					 * interactive move/resize, the button release ends those) */
 	LUXCOMP_EV_HOLD_END,		/* a=1 a client frame ended luxcomp_hold(), 0 the timeout; sent once
 					 * that frame is on every output (the old picture may go away now) */
+	LUXCOMP_EV_LAYER_MAP,		/* id=output a=layer (0 background .. 3 overlay) b=1 with an exclusive
+					 * zone; a layer-shell surface (wallpaper, bar, Dock) shows its first frame */
 };
 
 enum luxcomp_request {
@@ -333,6 +335,35 @@ void luxcomp_view_set_material(int64_t view, const char *name, int64_t x, int64_
 /* Pointer image of the compositor (desktop, title bars); also exported as XCURSOR_THEME/SIZE
  * for clients started later. NULL theme = libxcursor default. Size in logical px. */
 void luxcomp_set_cursor(const char *theme, int64_t size);
+
+/* Launch feedback: after a client gets an xdg-activation token (Dock, Launchpad: GTK asks for one
+ * when it starts an app) or after luxcomp_launch_start(), the arrow becomes the animated "progress"
+ * pointer (desktop, title bars and clients that ask for the "default" shape) until the token is
+ * used, a new window maps or timeout_ms passed. Shown only after 150 ms, so a window activating
+ * itself with a fresh token does not blink it. 0 = off (the default). */
+void luxcomp_launch_feedback(int64_t timeout_ms);
+void luxcomp_launch_start(void);	/* the policy started a program itself (key binding) */
+
+/* Window animations, stepped in C before every output frame; only the window's region is
+ * redrawn. Each kind has a duration, 0 = off (the default). Input is never blocked: a closing or
+ * minimising window is a picture of its last frame that takes no input, an opening or restored
+ * window is live (clicks land on it while it grows). On pixman two slow frames in a row end the
+ * running animations. A new animation of a view ends its previous one. */
+enum luxcomp_anim {
+	LUXCOMP_ANIM_OPEN = 1,	/* grows from 90 % and fades in; call after placing a mapped view */
+	LUXCOMP_ANIM_CLOSE,	/* shrinks to 90 % and fades out; call on VIEW_UNMAP */
+	LUXCOMP_ANIM_MINIMIZE,	/* shrinks into the Dock icon (set_rectangle of wlr-foreign-toplevel,
+				 * else the bottom centre of its output); call before hiding the view */
+	LUXCOMP_ANIM_RESTORE,	/* grows out of the Dock icon; call after showing the view */
+};
+void luxcomp_anim_set(int64_t kind, int64_t ms);
+void luxcomp_view_animate(int64_t view, int64_t kind);	/* no-op for a hidden view or kind off */
+
+/* Login transition: a solid colour over everything but the lock screen, already in the first frame
+ * when set before luxcomp_start(); it takes no input. luxcomp_cover_fade() fades it out (CSS
+ * "ease") and removes it, ms <= 0 at once. argb with alpha 0 removes it too. */
+void luxcomp_cover(int64_t argb);
+void luxcomp_cover_fade(int64_t ms);
 
 #pragma GCC visibility pop
 
