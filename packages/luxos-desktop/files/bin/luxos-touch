@@ -268,9 +268,11 @@ osk_visible() {
 }
 
 # Rofi (Launchpad, Hledani) nehlasi textove pole pres AT-SPI, takze se Onboard sam neukaze. Na dotykovem
-# zarizeni ho rofi-begin ukaze sam a vypise volby: -no-click-to-exit (klepnuti na klavesnici mimo okno rofi
-# by ho jinak zavrelo) a okno nahore pod listou s tolika radky (RADEK px na radek, OSTATNI px zbytek okna,
-# nejvys MAX), kolik se vejde nad klavesnici. Bez dotykove obrazovky nic.
+# zarizeni ho rofi-begin ukaze sam a vypise (po radcich) LUXOS_ROFI_KEEP_BELOW=Y - horni okraj klavesnice:
+# rofi z [luxos] (luxos-swipe.patch) pak klepnutim mimo okno zavre Launchpad/Hledani, jen klepnuti na
+# klavesnici ne - a volby rofi: okno nahore pod listou s tolika radky (RADEK px na radek, OSTATNI px zbytek
+# okna, nejvys MAX), kolik se vejde nad klavesnici. Spoustec promennou exportuje, ostatni radky preda rofi.
+# Bez rozmeru (nezname obrazovka nebo vyska klavesnice) jen -no-click-to-exit. Bez dotykove obrazovky nic.
 rofi_begin() {
     local state="$CFG/touch-state" mark="${XDG_RUNTIME_DIR:-/tmp}/luxos-touch-rofi-osk" w h oh scale=100 bar lines
     grep -qs 'touchscreen=1' "$state" || return 0
@@ -283,13 +285,13 @@ rofi_begin() {
         echo hidden >"$mark"
     fi
     run osk show >/dev/null 2>&1
-    echo "-no-click-to-exit"
-    (($# == 3)) || return 0
+    (($# == 3)) || { echo "-no-click-to-exit"; return 0; }
     read -r w h <<<"${LUXOS_TOUCH_SCREEN:-$(xdotool getdisplaygeometry 2>/dev/null)}"
-    [[ $w =~ ^[0-9]+$ && $h =~ ^[0-9]+$ ]] || return 0
+    [[ $w =~ ^[0-9]+$ && $h =~ ^[0-9]+$ ]] || { echo "-no-click-to-exit"; return 0; }
     oh=$(gsettings get "org.onboard.window.$( ((w >= h)) && echo landscape || echo portrait)" dock-height 2>/dev/null)
     oh=${LUXOS_TOUCH_OSK_HEIGHT:-$oh}
-    [[ $oh =~ ^[0-9]+$ ]] || return 0
+    [[ $oh =~ ^[0-9]+$ ]] || { echo "-no-click-to-exit"; return 0; }
+    echo "LUXOS_ROFI_KEEP_BELOW=$(( h - oh ))"
     [[ -r $CFG/display-scale ]] && read -r scale <"$CFG/display-scale"
     [[ $scale =~ ^[0-9]+$ ]] || scale=100
     bar=$(( 28 * scale / 100 ))
@@ -364,11 +366,20 @@ touchegg_config() {
 session() {
     local state kb accel
     state=$(detect)
-    [[ $state == *touchscreen=1* ]] || exit 0
+    if [[ $state != *touchscreen=1* ]]; then
+        # dotyk uz neni (odpojeny dotykovy monitor): zase bezne tlacitka oken
+        if [[ -e $CFG/touch-state ]]; then
+            rm -f "$CFG/touch-state"
+            command -v luxos-appearance >/dev/null && luxos-appearance wm-theme >/dev/null 2>&1
+        fi
+        exit 0
+    fi
     kb=$([[ $state == *keyboard=1* ]] && echo 1 || echo 0)
     accel=$([[ $state == *accel=1* ]] && echo 1 || echo 0)
     mkdir -p "$CFG"
     echo "$state" >"$CFG/touch-state"
+    # vetsi tlacitka oken (zavrit/minimalizovat/maximalizovat) pro prst
+    command -v luxos-appearance >/dev/null && luxos-appearance wm-theme >/dev/null 2>&1
 
     map_touch
     lock_screen_keyboard "$kb"

@@ -12,10 +12,10 @@ index 419cf06..74f8110 100644
    /** Total rows. */
    textbox *tb_total_rows;
 diff --git a/include/view.h b/include/view.h
-index 37541c8..a1eb1aa 100644
+index 37541c8..753a15f 100644
 --- a/include/view.h
 +++ b/include/view.h
-@@ -116,6 +116,13 @@ void rofi_view_handle_text(RofiViewState *state, char *text);
+@@ -116,6 +116,19 @@ void rofi_view_handle_text(RofiViewState *state, char *text);
   *
   * Update the state if needed.
   */
@@ -26,11 +26,35 @@ index 37541c8..a1eb1aa 100644
 + */
 +gboolean rofi_view_luxos_swipe(RofiViewState *state, int dir);
 +
++/**
++ * LuxOS: svisly tah prstem pres seznam posune o stranku dal (dir 1, prst
++ * nahoru) / zpet (dir -1, prst dolu), jako na telefonu.
++ */
++void rofi_view_luxos_scroll(RofiViewState *state, int dir);
++
  void rofi_view_handle_mouse_motion(RofiViewState *state, gint x, gint y,
                                     gboolean find_mouse_target);
  /**
+diff --git a/include/widgets/listview.h b/include/widgets/listview.h
+index 9fee5b5..b18c27f 100644
+--- a/include/widgets/listview.h
++++ b/include/widgets/listview.h
+@@ -191,6 +191,13 @@ void listview_nav_left(listview *lv);
+  */
+ void listview_nav_page_next(listview *lv);
+ 
++/**
++ * LuxOS: posun o stranku tahem prstem - mrizka s -hover-no-scroll posune
++ * pohled o tolik radku, kolik je videt (jako kolecko, jen vic), jinak jako
++ * Page Down / Page Up. dir 1 = dal, -1 = zpet.
++ */
++void listview_luxos_scroll_page(listview *lv, int dir);
++
+ /**
+  * @param lv The listview handle
+  *
 diff --git a/source/view.c b/source/view.c
-index 26ff522..c697e84 100644
+index 26ff522..aa3fc9e 100644
 --- a/source/view.c
 +++ b/source/view.c
 @@ -1037,6 +1037,7 @@ static gboolean luxos_resort(RofiViewState *state, unsigned int index) {
@@ -41,7 +65,7 @@ index 26ff522..c697e84 100644
    // Zvyrazneni zvoleneho tlacitka: stav "selected", ostatni "alternate"
    // (button-sort-X selected / alternate v motivu)
    gchar *want = g_strdup_printf("kb-custom-%u", index + 1);
-@@ -1064,6 +1065,30 @@ static gboolean luxos_resort(RofiViewState *state, unsigned int index) {
+@@ -1064,6 +1065,38 @@ static gboolean luxos_resort(RofiViewState *state, unsigned int index) {
  #endif
  }
  
@@ -69,10 +93,18 @@ index 26ff522..c697e84 100644
 +  return luxos_resort(state, (unsigned int)next);
 +}
 +
++void rofi_view_luxos_scroll(RofiViewState *state, int dir) {
++  if (state == NULL || state->list_view == NULL) {
++    return;
++  }
++  listview_luxos_scroll_page(state->list_view, dir);
++  rofi_view_queue_redraw();
++}
++
  static void rofi_view_trigger_global_action(KeyBindingAction action) {
    RofiViewState *state = rofi_view_get_active();
    switch (action) {
-@@ -1897,6 +1922,7 @@ RofiViewState *rofi_view_create(Mode *sw, const char *input,
+@@ -1897,6 +1930,7 @@ RofiViewState *rofi_view_create(Mode *sw, const char *input,
                                  void (*finalize)(RofiViewState *)) {
    TICK();
    RofiViewState *state = __rofi_view_state_create();
@@ -80,7 +112,7 @@ index 26ff522..c697e84 100644
    state->menu_flags = menu_flags;
    state->sw = sw;
    state->selected_line = UINT32_MAX;
-@@ -2014,6 +2040,7 @@ static void rofi_error_user_callback(const char *msg) {
+@@ -2014,6 +2048,7 @@ static void rofi_error_user_callback(const char *msg) {
  
  int rofi_view_error_dialog(const char *msg, int markup) {
    RofiViewState *state = __rofi_view_state_create();
@@ -88,8 +120,37 @@ index 26ff522..c697e84 100644
    state->retv = MENU_CANCEL;
    state->menu_flags = MENU_ERROR_DIALOG;
    state->finalize = process_result;
+diff --git a/source/widgets/listview.c b/source/widgets/listview.c
+index 9838a45..fbe7d35 100644
+--- a/source/widgets/listview.c
++++ b/source/widgets/listview.c
+@@ -1162,6 +1162,24 @@ void listview_nav_page_prev(listview *lv) {
+     listview_nav_page_prev_int(lv);
+   }
+ }
++void listview_luxos_scroll_page(listview *lv, int dir) {
++  if (lv == NULL) {
++    return;
++  }
++  if (listview_keep_rows(lv)) {
++    unsigned int rows = MAX(1u, lv->max_rows);
++    for (unsigned int i = 0; i < rows; i++) {
++      listview_scroll_rows(lv, dir);
++    }
++    return;
++  }
++  if (dir > 0) {
++    listview_nav_page_next(lv);
++  } else {
++    listview_nav_page_prev(lv);
++  }
++}
++
+ void listview_nav_page_next(listview *lv) {
+   if (lv == NULL) {
+     return;
 diff --git a/source/xcb/display.c b/source/xcb/display.c
-index b91327d..00a40bd 100644
+index b91327d..968a144 100644
 --- a/source/xcb/display.c
 +++ b/source/xcb/display.c
 @@ -1219,6 +1219,10 @@ static void rofi_key_release_event_handler(xcb_key_release_event_t *xkre,
@@ -116,7 +177,7 @@ index b91327d..00a40bd 100644
      rofi_view_handle_mouse_motion(state, bpe->event_x, bpe->event_y, FALSE);
      if (x11_button_to_nk_bindings_button(bpe->detail, &button)) {
        nk_bindings_seat_handle_button(xcb->bindings_seat, NULL, button,
-@@ -1340,6 +1350,25 @@ static void main_loop_x11_event_handler_view(xcb_generic_event_t *event) {
+@@ -1340,12 +1350,49 @@ static void main_loop_x11_event_handler_view(xcb_generic_event_t *event) {
      NkBindingsMouseButton button;
  
      xcb->last_timestamp = bre->time;
@@ -130,9 +191,16 @@ index b91327d..00a40bd 100644
 +      luxos_press_active = FALSE;
 +      gboolean swiped = ABS(dx) >= 80 && ABS(dx) > 2 * ABS(dy) &&
 +                        rofi_view_luxos_swipe(state, dx < 0 ? 1 : -1);
++      // svisly tah (aspon 60 px, vic nahoru/dolu nez do strany) v okne
++      // posune seznam o stranku - prst nahoru = dalsi aplikace
++      gboolean scrolled = FALSE;
++      if (!swiped && ABS(dy) >= 60 && ABS(dy) > ABS(dx)) {
++        rofi_view_luxos_scroll(state, dy < 0 ? 1 : -1);
++        scrolled = TRUE;
++      }
 +      // jakykoli tah (posun o vic nez 24 px) neni klepnuti: nic nespustit
-+      if (swiped || (config.custom_resort != NULL &&
-+                     (ABS(dx) > 24 || ABS(dy) > 24))) {
++      if (swiped || scrolled ||
++          (config.custom_resort != NULL && (ABS(dx) > 24 || ABS(dy) > 24))) {
 +        if (config.click_to_exit == TRUE) {
 +          xcb->mouse_seen--;
 +        }
@@ -142,3 +210,20 @@ index b91327d..00a40bd 100644
      if (x11_button_to_nk_bindings_button(bre->detail, &button)) {
        nk_bindings_seat_handle_button(xcb->bindings_seat, NULL, button,
                                       NK_BINDINGS_BUTTON_STATE_RELEASE,
+                                      bre->time);
+     }
+     if (config.click_to_exit == TRUE) {
++      // LuxOS: klepnuti na klavesnici na obrazovce (pod LUXOS_ROFI_KEEP_BELOW,
++      // y v pixelech obrazovky) Launchpad/Hledani nezavre, klepnuti jinam ano
++      const char *keep = g_getenv("LUXOS_ROFI_KEEP_BELOW");
++      gboolean on_osk = keep != NULL && atoi(keep) > 0 &&
++                        bre->root_y >= atoi(keep);
++      if (!xcb->mouse_seen && on_osk) {
++        // klavesnice: stisk rofi nevidelo (jen puštěni pres zachyceni na
++        // korenovem okne), citac zustava - jinak by dalsi klepnuti mimo okno
++        // uz nezavrelo
++        break;
++      }
+       if (!xcb->mouse_seen) {
+         rofi_view_temp_click_to_exit(state, bre->event);
+       }

@@ -12,6 +12,8 @@ screen are not changed.
   type into stays visible.
 - **Launchpad and Search** (Super+Space) show the keyboard as soon as they open and move up above it,
   so you can type a search right away; it hides again when they close (unless it was already open).
+  Tapping the keyboard keeps them open; tapping anywhere else (the desktop, a window) closes them, so a
+  Launchpad opened by accident goes away with one tap.
 - **With a physical keyboard** (a 2-in-1 laptop, a detachable tablet with its keyboard, a touch monitor
   with a keyboard) it appears as well – also in laptop mode – and hides as soon as you type on the
   physical keyboard. To show it only without a physical keyboard:
@@ -36,6 +38,7 @@ settings (layout, theme, size) open from its menu key.
 |---|---|
 | Swipe up with 3 fingers | Launchpad (all apps) |
 | In Launchpad: swipe left / right with 1 finger | Next / previous sorting (Alphabetical, Recently used, Most used, Category) |
+| In Launchpad and Search: swipe up / down with 1 finger | Scroll the list by a page (up = more apps, down = back) |
 | Swipe down with 3 fingers | Show the desktop |
 | Swipe left / right with 3 or 4 fingers | Next / previous workspace (4 fingers also work with an app open, which may scroll with 3) |
 | Pinch with 3 fingers | Close the window |
@@ -58,8 +61,10 @@ first sign-in; when you edit that file, LuxOS keeps your version.
   zoom. Its window has the normal LuxOS title bar there (`browser.tabs.inTitlebar` = 0): dragging the
   window by the tab bar with a finger used to leave Firefox thinking the finger was still down – pages
   stopped scrolling and the close button stopped working.
-- Window buttons are small at 100 %: in **Displays › Scale** choose 125 % or 150 % – text, title bars,
-  window buttons, the menu bar and the Dock get bigger. A three-finger pinch also closes a window.
+- Window buttons (close, minimize, maximize) are one size bigger on a touch device, so a finger hits
+  them: the larger title bar variant (`-hdpi`, from 125 % scale `-xhdpi`) is chosen at sign-in by
+  `luxos-appearance wm-theme`. For even bigger text, title bars, menu bar and Dock choose 125 % or 150 %
+  in **Displays › Scale**. A three-finger pinch also closes a window.
 - If touch ever stops reacting while the on-screen keyboard was in use (the keyboard briefly detaches
   the touch screen from the pointer), LuxOS reattaches it within a few seconds (`luxos-touch guard`).
 

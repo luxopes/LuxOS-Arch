@@ -68,7 +68,10 @@ extra=(-theme-str "entry { placeholder: \"$placeholder\"; }")
 # Dotykove zarizeni: klavesnice na obrazovce pro hledani (rofi ji sama nevyvola), okno nad ni
 touch=()
 command -v luxos-touch >/dev/null && mapfile -t touch < <(luxos-touch rofi-begin 40 90 8)
-extra+=("${touch[@]}")
+# LUXOS_ROFI_KEEP_BELOW (horni okraj klavesnice): klepnuti na ni rofi nezavre, klepnuti jinam ano
+for a in "${touch[@]}"; do
+    if [[ $a == LUXOS_ROFI_KEEP_BELOW=* ]]; then export "$a"; else extra+=("$a"); fi
+done
 # Bez -hover-select: Enter spusti prvni (nejlepsi) shodu, ne polozku pod kurzorem mysi
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
 rofi -show combi -modi 'combi,window,filebrowser,run' -combi-modi "$combi" -combi-hide-mode-prefix \

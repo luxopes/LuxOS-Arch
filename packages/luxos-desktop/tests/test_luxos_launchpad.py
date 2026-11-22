@@ -22,6 +22,7 @@ else:
 import json
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -62,6 +63,17 @@ def rofi_has_custom_resort():
 
 
 RESORT = rofi_has_custom_resort()
+
+
+def rofi_has_touch():
+    """rofi z [luxos] 2.0.0-1.5+: svisly tah posouva, LUXOS_ROFI_KEEP_BELOW (klavesnice na obrazovce)."""
+    if not ROFI:
+        return False
+    try:
+        with open(os.path.realpath(ROFI), "rb") as f:
+            return b"LUXOS_ROFI_KEEP_BELOW" in f.read()
+    except OSError:
+        return False
 
 
 def rofi_has_swipe():
@@ -137,14 +149,20 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.proc = None
 
     def tearDown(self):
-        if self.proc and self.proc.poll() is None:
-            self.proc.terminate()
+        # cela skupina (bash + rofi): rofi, ktere zustalo po neuspesnem testu, by drzelo klavesnici
+        # a mys a dalsi testy by selhaly take
+        if self.proc:
+            try:
+                os.killpg(self.proc.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
             self.proc.wait(timeout=10)
 
     def open(self):
         xdo("mousemove", 2, 2)
         time.sleep(0.3)
-        self.proc = subprocess.Popen(["bash", LAUNCHPAD], env=self.env, stderr=subprocess.DEVNULL)
+        self.proc = subprocess.Popen(["bash", LAUNCHPAD], env=self.env, stderr=subprocess.DEVNULL,
+                                     start_new_session=True)
         out = ""
         for _ in range(50):
             out = xdo("search", "--class", "rofi", "getwindowgeometry", "--shell", "%@")
@@ -202,7 +220,8 @@ class TestLaunchpadMouse(unittest.TestCase):
         """Mys stoji nad mrizkou uz pri otevreni: zvyrazneni zacina na prvni aplikaci."""
         xdo("mousemove", 640, 400)
         time.sleep(0.3)
-        self.proc = subprocess.Popen(["bash", LAUNCHPAD], env=self.env, stderr=subprocess.DEVNULL)
+        self.proc = subprocess.Popen(["bash", LAUNCHPAD], env=self.env, stderr=subprocess.DEVNULL,
+                                     start_new_session=True)
         time.sleep(1.5)
         self.assertEqual(self.enter(), ["App00"])
 
@@ -366,7 +385,7 @@ class TestLaunchpadMouse(unittest.TestCase):
         """Vodorovny tah pres dlazdice prepne razeni (doleva dalsi, doprava predchozi, dokola) a nic
         nespusti; svisly tah razeni nemeni; klepnuti dlazdici dal spousti."""
         if not rofi_has_swipe():
-            self.skipTest("needs rofi with luxos-swipe.patch (packages/rofi 2.0.0-1.4, LUXOS_ROFI)")
+            self.skipTest("needs rofi with luxos-swipe.patch (packages/rofi 2.0.0-1.5, LUXOS_ROFI)")
         os.makedirs(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos"))
         conf = os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort")
         with open(conf, "w") as f:
@@ -386,7 +405,7 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.drag(self.cell(1, 1), self.cell(1, 5))
         self.drag(self.cell(1, 1), self.cell(1, 5))           # z prvniho dokola na posledni
         self.assertEqual(sort(), "category")
-        self.drag(self.cell(0, 2), self.cell(2, 2))           # svisle: nic
+        self.drag(self.cell(0, 2), self.cell(2, 2))           # svisle: razeni zustava (jen posun)
         self.assertEqual(sort(), "category")
         self.assertEqual(xdo("search", "--class", "rofi").split(), old)     # stale stejne okno
         self.assertFalse(os.path.exists(self.launched), "tah nesmi spustit aplikaci")
@@ -394,6 +413,44 @@ class TestLaunchpadMouse(unittest.TestCase):
         self.hover(0, 0)
         xdo("click", 1)
         self.assertEqual(len(self.result()), 1)
+
+    def need_touch_rofi(self):
+        if not rofi_has_touch():
+            self.skipTest("needs rofi with LUXOS_ROFI_KEEP_BELOW (packages/rofi 2.0.0-1.5, LUXOS_ROFI)")
+
+    @unittest.skipUnless(RESORT, "needs rofi with -custom-resort (packages/rofi)")
+    def test_vertical_drag_scrolls(self):
+        """Svisly tah prstem posune mrizku o stranku (prst nahoru = dalsi aplikace, dolu = zpet) a nic
+        nespusti - na dotyku jinak aplikace mimo prvni stranku nejdou najit."""
+        self.need_touch_rofi()
+        self.open()
+        self.drag(self.cell(3, 3), self.cell(0, 3))           # nahoru: o 4 radky (stranku) dal
+        self.drag(self.cell(0, 3), self.cell(3, 3))           # dolu: zpet na zacatek
+        self.drag(self.cell(3, 3), self.cell(0, 3))           # a zase dal
+        self.assertFalse(os.path.exists(self.launched), "tah nesmi spustit aplikaci")
+        self.hover(0, 0)
+        xdo("click", 1)
+        self.assertEqual(self.result(), ["App%02d" % (COLS * ROWS)])
+
+    def test_click_outside_closes_but_not_on_keyboard(self):
+        """Klepnuti mimo Launchpad ho zavre (omylem otevreny), klepnuti do pasu klavesnice na obrazovce
+        (pod LUXOS_ROFI_KEEP_BELOW od luxos-touch rofi-begin) ne."""
+        self.need_touch_rofi()
+        w, h = (int(v) for v in xdo("getdisplaygeometry").split())
+        self.env["LUXOS_ROFI_KEEP_BELOW"] = str(h - 60)
+        self.open()
+        x, y, ww, wh = self.win
+        self.assertLess(y + wh, h - 80, "okno musi koncit nad pasem klavesnice")
+        xdo("mousemove", w // 2, h - 20)                     # "klavesnice"
+        time.sleep(0.2)
+        xdo("click", 1)
+        time.sleep(0.6)
+        self.assertIsNone(self.proc.poll(), "klepnuti na klavesnici Launchpad zavrelo")
+        xdo("mousemove", w // 2, (y + wh + h - 60) // 2)      # plocha mezi oknem a klavesnici
+        time.sleep(0.2)
+        xdo("click", 1)
+        self.proc.wait(timeout=10)
+        self.assertFalse(os.path.exists(self.launched))
 
     @unittest.skipUnless(RESORT, "needs rofi with -custom-resort (packages/rofi)")
     def test_resort_keeps_filter(self):

@@ -116,7 +116,10 @@ export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
 # Dotykove zarizeni: klavesnice na obrazovce pro hledani (rofi ji sama nevyvola), Launchpad nad ni
 touch=()
 command -v luxos-touch >/dev/null && mapfile -t touch < <(luxos-touch rofi-begin 110 142 4)
-base+=("${touch[@]}")
+# LUXOS_ROFI_KEEP_BELOW (horni okraj klavesnice): klepnuti na ni rofi nezavre, klepnuti jinam ano
+for a in "${touch[@]}"; do
+    if [[ $a == LUXOS_ROFI_KEEP_BELOW=* ]]; then export "$a"; else base+=("$a"); fi
+done
 
 while :; do
     prepare_order

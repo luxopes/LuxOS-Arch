@@ -195,13 +195,18 @@ esac
         with open(os.path.join(self.home, ".config", "luxos", "touch-state"), "w") as f:
             f.write("touchscreen=1 keyboard=1 accel=1\n")
         out = self.run_touch(m, "rofi-begin", "110", "142", "4", extra=extra).stdout.splitlines()
-        # klepnuti na klavesnici mimo okno rofi ho nezavre; 800 - 320 - 28 - 24 - 142 = 286 -> 2 radky
-        self.assertEqual(out, ["-no-click-to-exit", "-theme-str",
+        # klepnuti pod 800 - 320 = 480 (klavesnice) rofi nezavre, jinam ano; 800 - 320 - 28 - 24 - 142 = 286 -> 2 radky
+        self.assertEqual(out, ["LUXOS_ROFI_KEEP_BELOW=480", "-theme-str",
                                "window { location: north; anchor: north; y-offset: 40px; } listview { lines: 2; }"])
         # vetsi displej (Z13 1920x1200, klavesnice 480 px): 4 radky (nejvys MAX)
         big = dict(extra, LUXOS_TOUCH_SCREEN="1920 1200", LUXOS_TOUCH_OSK_HEIGHT="480")
         out = self.run_touch(m, "rofi-begin", "110", "142", "4", extra=big).stdout.splitlines()
         self.assertTrue(out[-1].endswith("listview { lines: 4; }"), out)
+        self.assertEqual(out[0], "LUXOS_ROFI_KEEP_BELOW=720")
+        # neznama vyska klavesnice: klepnuti mimo okno nezavira vubec (klavesnice muze byt kdekoli)
+        odd = dict(extra, LUXOS_TOUCH_OSK_HEIGHT="x")
+        self.assertEqual(self.run_touch(m, "rofi-begin", "110", "142", "4", extra=odd).stdout.splitlines(),
+                         ["-no-click-to-exit"])
         # bez rozmeru (Hledani bez argumentu): jen -no-click-to-exit
         self.assertEqual(self.run_touch(m, "rofi-begin", extra=extra).stdout.splitlines(), ["-no-click-to-exit"])
         # konec: klavesnice byla pred otevrenim schovana -> zase schovat; podruhe uz nic

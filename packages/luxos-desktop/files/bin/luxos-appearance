@@ -334,14 +334,18 @@ bar_layout() {
 themes_dir=${LUXOS_THEMES_DIR:-/usr/share/themes}
 # Meritko obrazovky 125-150 % (Monitory > Meritko, ~/.config/luxos/display-scale): varianta -hdpi (1,5x),
 # vetsi tlacitka oken i pro dotyk.
+# Dotykova obrazovka (luxos-touch session zapise touch-state a zavola wm-theme): o stupen vetsi - tlacitka
+# zavrit/minimalizovat/maximalizovat musi jit trefit prstem (pri 100 % -hdpi, od 125 % -xhdpi).
 wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light, WhiteSur-Light-hdpi nebo WhiteSur-Light-xhdpi
-    local scale display=100
+    local scale display=100 touch=0
     scale=$(xfconf-query -c xsettings -p /Gdk/WindowScalingFactor 2>/dev/null)
     [[ -r $state_dir/display-scale ]] && read -r display <"$state_dir/display-scale"
     [[ $display =~ ^[0-9]+$ ]] || display=100
-    if [[ $scale =~ ^[0-9]+$ ]] && (( scale >= 2 )) && [[ -r $themes_dir/$1-xhdpi/xfwm4/themerc ]]; then
+    grep -qs 'touchscreen=1' "$state_dir/touch-state" && touch=1
+    if { [[ $scale =~ ^[0-9]+$ ]] && (( scale >= 2 )) || (( touch && display >= 125 )); } &&
+        [[ -r $themes_dir/$1-xhdpi/xfwm4/themerc ]]; then
         echo "$1-xhdpi"
-    elif (( display >= 125 && display < 175 )) && [[ -r $themes_dir/$1-hdpi/xfwm4/themerc ]]; then
+    elif { (( display >= 125 && display < 175 )) || (( touch )); } && [[ -r $themes_dir/$1-hdpi/xfwm4/themerc ]]; then
         echo "$1-hdpi"
     else
         echo "$1"

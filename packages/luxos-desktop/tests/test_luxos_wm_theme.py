@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """luxos-appearance wm-theme: ramecky oken xfwm4 podle meritka - 125-150 % (Monitory > Meritko) varianta
--hdpi (vetsi tlacitka oken i pro dotyk), Gdk/WindowScalingFactor 2 varianta -xhdpi, jinak zakladni.
+-hdpi (vetsi tlacitka oken i pro dotyk), Gdk/WindowScalingFactor 2 varianta -xhdpi, jinak zakladni;
+dotykova obrazovka o stupen vetsi.
 Falesny xfconf-query a slozka motivu; nic se nemeni na skutecnem systemu.
 
     python3 -m unittest packages/luxos-desktop/tests/test_luxos_wm_theme.py
@@ -76,6 +77,25 @@ class WmTheme(unittest.TestCase):
         self.assertEqual(self.wm(wsf="2", scale=200, cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark")
         self.assertEqual(self.wm(scale=150, cur="Greybird"), "Greybird")
         self.assertEqual(self.wm(scale=150, cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark-hdpi")
+
+    def test_touch_screen_bigger_buttons(self):
+        """Dotykova obrazovka (touch-state od luxos-touch): o stupen vetsi tlacitka oken pro prst."""
+        state = os.path.join(self.cfg, "luxos", "touch-state")
+        with open(state, "w") as f:
+            f.write("touchscreen=1 keyboard=1 accel=1\n")
+        self.assertEqual(self.wm(), "WhiteSur-Light-hdpi")
+        self.assertEqual(self.wm(scale=100), "WhiteSur-Light-hdpi")
+        self.assertEqual(self.wm(scale=150), "WhiteSur-Light-xhdpi")
+        self.assertEqual(self.wm(wsf="2", scale=200), "WhiteSur-Light-xhdpi")
+        # tmavy rezim bez -xhdpi: aspon -hdpi
+        self.assertEqual(self.wm(scale=150, cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark-hdpi")
+        # touchscreen=0 a smazany stav (dotykovy monitor odpojen): zase podle meritka
+        with open(state, "w") as f:
+            f.write("touchscreen=0 keyboard=1 accel=0\n")
+        self.assertEqual(self.wm(cur="WhiteSur-Light-hdpi"), "WhiteSur-Light")
+        os.unlink(state)
+        self.assertEqual(self.wm(scale=150, cur="WhiteSur-Light-xhdpi"), "WhiteSur-Light-hdpi")
+        self.assertEqual(self.wm(scale=200, cur="WhiteSur-Light-xhdpi"), "WhiteSur-Light")
 
 
 if __name__ == "__main__":
