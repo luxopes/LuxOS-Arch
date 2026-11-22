@@ -13,6 +13,8 @@
 #   release(id)                                 uvolni zaznam obsluhy (po zniceni widgetu)
 #   spawn(argv), spawn_quiet(argv)              jako glib.spawn/spawn_quiet, ale v nove relaci (setsid, jako
 #                                               subprocess.Popen(start_new_session=True))
+#   spawn_app(argv), launch_uri(uri)            aplikace (adresa ve vychozi aplikaci); ze sluzby shellu ve vlastnim
+#                                               scope (app_scope(jmeno): argv systemd-run, [] mimo sluzbu)
 # Cas pres libc (glib ma jen format_unix/local_date): localtime(t), gmtime(t), mktime(...), timegm(...),
 #   set_tz(name)/unset_tz() pro TZID kalendare, now().
 # Soubory: stat(path) -> [velikost, mtime_ns], rename, unlink, mkdir_p, is_dir, realpath, readlink,
@@ -596,8 +598,54 @@ function trash_file(path):
     end
 end
 
+# ---- aplikace spustene ze sluzby shellu ----
+# Sluzba (Dock, Launchpad, lista: systemd ji dal INVOCATION_ID) spousti aplikace ve vlastnim scope uzivatelskeho
+# systemd, app-luxos-ID-N.scope jako GNOME a KDE. Jinak by aplikace zustala v cgroup sluzby: pod jejim MemoryHigh
+# (Dock 96 MB) se Firefox pri startu zasekl a okno neukazal (pripominka 44) a restart sluzby by ji zabil.
+# systemd-run --scope spusti prikaz az po presunu sebe do scope, takze tam jsou i prvni potomci aplikace.
+scopes = 0
+
+function app_scope(name):
+    global scopes
+    if glib.getenv("INVOCATION_ID") == "":
+        return []
+    end
+    scopes += 1
+    unit = "app-luxos-" + unit_escape(name) + "-" + String(glib.getpid()) + "_" + String(scopes)
+    return ["systemd-run", "--user", "--scope", "--quiet", "--collect", "--unit=" + unit, "--"]
+end
+
+# jako systemd-escape: "-" oddeluje casti jmena jednotky
+function unit_escape(name):
+    out = ""
+    for ch in name:
+        code = ord(ch)
+        if (code >= 97 and code <= 122) or (code >= 65 and code <= 90) or (code >= 48 and code <= 57) or ch == "_" or ch == "." or ch == ":":
+            out += ch
+        elif code < 128:
+            out += "\\x" + "0123456789abcdef"[code // 16] + "0123456789abcdef"[code % 16]
+        else:
+            out += "_"
+        end
+    end
+    return out
+end
+
+function spawn_app(argv):
+    return spawn_quiet(app_scope(base_name(argv[0])) + argv)
+end
+
+function base_name(path):
+    parts = path.split("/")
+    return parts[len(parts) - 1]
+end
+
 # Otevre adresu ve vychozi aplikaci; False pri chybe
 function launch_uri(uri):
+    scope = app_scope("open")
+    if scope != []:
+        return spawn_quiet(scope + ["gio", "open", uri]) != 0
+    end
     unsafe:
         cell = __lsl_byte_zeros(8)
         ok = __lsl_qbe_call3(__lsl_symbol("g_app_info_launch_default_for_uri"), cstr(uri), 0, data(cell))

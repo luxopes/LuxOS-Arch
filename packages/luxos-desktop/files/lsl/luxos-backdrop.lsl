@@ -518,7 +518,7 @@ function on_menu_item(action, item):
         return 0
     end
     call trace("run " + " ".join(action))
-    call lglib.spawn_quiet(action)
+    call lglib.spawn_app(action)
     return 0
 end
 

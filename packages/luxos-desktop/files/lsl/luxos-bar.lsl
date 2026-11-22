@@ -1010,7 +1010,7 @@ function bar_of(widget):
 end
 
 function on_menu_item(argv, item):
-    call glib.spawn_quiet(argv)
+    call lglib.spawn_app(argv)
     return 0
 end
 
@@ -1139,7 +1139,7 @@ function on_item_press(kind, event, widget):
         call glib.spawn_quiet(["luxos-search"])
     elif kind == "network" and status.state["network"]["portal"]:
         call popup.close_all()
-        call glib.spawn_quiet(["luxos-network-login"])
+        call lglib.spawn_app(["luxos-network-login"])
     else:
         name = kind
         if kind == "network":
