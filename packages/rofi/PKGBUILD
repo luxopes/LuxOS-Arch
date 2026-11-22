@@ -15,7 +15,7 @@
 
 pkgname=rofi
 pkgver=2.0.0
-pkgrel=1.3
+pkgrel=1.4
 pkgdesc="A window switcher, application launcher and dmenu replacement (LuxOS: hover without scrolling)"
 url="https://davatorium.github.io/rofi"
 arch=('x86_64')
@@ -31,14 +31,16 @@ source=("git+https://github.com/davatorium/rofi.git#tag=${pkgver}"
         'fix_xfce4-terminal_binary_name.patch'
         'hover-no-scroll.patch'
         'luxos-launchpad.patch'
-        'argb-visual.patch')
+        'argb-visual.patch'
+        'luxos-swipe.patch')
 sha256sums=('3ad746f25b373bfa2e49db20c5009ffd4d959dd113e47281e98e7132f7314ac8'
             'SKIP'
             'SKIP'
             '0cd6f1360580f49647ceb7d169ab015f4998e778fd750ce3ad2e861f333824e3'
             'd029d1248d5fa03a25fa47cd88ce289e5c71715df151a7ba7e732998c49b0ef7'
             '086063455536e901374c7c0b97a09916b163f3a8c8c3e5c572c81b6e8ca2c657'
-            'f2493d689150893db1fd3ca1f72b0fb00f2ed5b3529c485729430f349ec8d54e')
+            'f2493d689150893db1fd3ca1f72b0fb00f2ed5b3529c485729430f349ec8d54e'
+            '9e9433c0d58318119fd7c712233c1d83c0d9241fe3f6c2c1e26d56e52254763b')
 
 prepare() {
 	cd "${pkgname}"
@@ -57,6 +59,8 @@ prepare() {
 	# LuxOS: 32bitovy vizual s alfou podle XRender (Xorg s GLX nabizi i vizualy hloubky 32 bez alfy;
 	# compositor pak okno kreslil nepruhledne a rohy Launchpadu byly cerne)
 	patch -Np1 -i "${srcdir}/argb-visual.patch"
+	# LuxOS: vodorovny tah pres Launchpad (prst, mys) prepne razeni (luxos-swipe.patch)
+	patch -Np1 -i "${srcdir}/luxos-swipe.patch"
 }
 
 build() {

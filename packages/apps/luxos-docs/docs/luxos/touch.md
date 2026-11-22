@@ -10,6 +10,8 @@ screen are not changed.
 - **In apps:** the on-screen keyboard (Onboard) appears by itself when you tap a text field and hides
   again when you leave it. It is docked at the bottom edge and windows shrink so that the field you
   type into stays visible.
+- **Launchpad and Search** (Super+Space) show the keyboard as soon as they open and move up above it,
+  so you can type a search right away; it hides again when they close (unless it was already open).
 - **With a physical keyboard** (a 2-in-1 laptop, a detachable tablet with its keyboard, a touch monitor
   with a keyboard) it appears as well – also in laptop mode – and hides as soon as you type on the
   physical keyboard. To show it only without a physical keyboard:
@@ -33,6 +35,7 @@ settings (layout, theme, size) open from its menu key.
 | Gesture | Action |
 |---|---|
 | Swipe up with 3 fingers | Launchpad (all apps) |
+| In Launchpad: swipe left / right with 1 finger | Next / previous sorting (Alphabetical, Recently used, Most used, Category) |
 | Swipe down with 3 fingers | Show the desktop |
 | Swipe left / right with 3 or 4 fingers | Next / previous workspace (4 fingers also work with an app open, which may scroll with 3) |
 | Pinch with 3 fingers | Close the window |

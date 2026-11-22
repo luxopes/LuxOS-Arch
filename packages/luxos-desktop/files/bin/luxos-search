@@ -65,10 +65,17 @@ else
 fi
 extra=(-theme-str "entry { placeholder: \"$placeholder\"; }")
 [[ $(luxos-appearance status) == light ]] && extra+=(-theme-str '@import "luxos-light-colors"')
+# Dotykove zarizeni: klavesnice na obrazovce pro hledani (rofi ji sama nevyvola), okno nad ni
+touch=()
+command -v luxos-touch >/dev/null && mapfile -t touch < <(luxos-touch rofi-begin 40 90 8)
+extra+=("${touch[@]}")
 # Bez -hover-select: Enter spusti prvni (nejlepsi) shodu, ne polozku pod kurzorem mysi
 # Aplikace + LuxAI: text bez shody s aplikaci (nebo Ctrl+Enter) je dotaz pro LuxAI (luxos-luxai-rofi)
-exec rofi -show combi -modi 'combi,window,filebrowser,run' -combi-modi "$combi" -combi-hide-mode-prefix \
+rofi -show combi -modi 'combi,window,filebrowser,run' -combi-modi "$combi" -combi-hide-mode-prefix \
     -theme luxos-search "${extra[@]}" \
     -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf \
     -display-combi "$(T "Apps")" -display-window "$(T "Windows")" -display-filebrowser "$(T "Files")" -display-run "$(T "Run")" \
     -me-select-entry '' -me-accept-entry MousePrimary
+rc=$?
+command -v luxos-touch >/dev/null && luxos-touch rofi-end
+exit $rc

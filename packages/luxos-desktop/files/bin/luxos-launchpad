@@ -113,8 +113,15 @@ done
 # (samostatne aplikace s kategorii Nastaveni dela launchpad_apps, viz LAUNCHPAD_APPS)
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
 
+# Dotykove zarizeni: klavesnice na obrazovce pro hledani (rofi ji sama nevyvola), Launchpad nad ni
+touch=()
+command -v luxos-touch >/dev/null && mapfile -t touch < <(luxos-touch rofi-begin 110 142 4)
+base+=("${touch[@]}")
+
 while :; do
     prepare_order
+    # tah prstem/mysi do strany prepne razeni (rofi z [luxos], luxos-swipe.patch): odkud zacit
+    for i in "${!modes[@]}"; do [[ ${modes[i]} == "$sort" ]] && export LUXOS_ROFI_SORT=$((i + 1)); done
     # -scroll-method 1: kolecko/touchpad posouva mrizku plynule po radcich (ne skok o celou stranu)
     # -hover-select -hover-no-scroll (rofi z [luxos]): zvyraznena je dlazdice pod mysi jako v macOS,
     # ale pohled se najetim nehne (puvodni rofi vyber vycentroval a mrizka sama ujizdela); kolecko
@@ -123,10 +130,12 @@ while :; do
     # -custom-resort (rofi z [luxos]): tlacitko razeni / Alt+1..4 spusti "luxos-launchpad --sort N"
     # a rofi preradi dlazdice na miste (okno se nezavre, hledany text zustane, vybrana prvni).
     # -custom-exit: zaloha pro starsi rofi bez -custom-resort - konec s kodem 10..13 a nove spusteni
+    # !MousePrimary: aplikace se spusti az pri puštěni (klepnuti), ne pri stisku - vodorovny tah pres
+    # dlazdice tak muze prepnout razeni (doleva dalsi, doprava predchozi) a nic nespusti
     rofi -show combi -modi combi -combi-modi "$combi" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${base[@]}" \
         -theme-str "button-sort-$sort { background-color: @lux-accent; text-color: @lux-sel-fg; }" \
         -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf -scroll-method 1 \
-        -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry MousePrimary \
+        -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry '!MousePrimary' \
         -cache-dir "$run" -max-history-size 100000 -custom-exit -custom-resort "bash ${self@Q} --sort"
     rc=$?
     if (( rc >= 10 && rc <= 13 )); then
@@ -136,6 +145,7 @@ while :; do
     fi
     break
 done
+command -v luxos-touch >/dev/null && luxos-touch rofi-end
 # razeni mohlo byt zmeneno v okne (--sort)
 [[ -r $conf ]] && read -r sort <"$conf"
 # spustena aplikace -> pocty a pripravene poradi (az po zavreni okna, nic nezdrzi)

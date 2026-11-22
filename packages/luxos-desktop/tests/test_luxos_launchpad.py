@@ -64,6 +64,17 @@ def rofi_has_custom_resort():
 RESORT = rofi_has_custom_resort()
 
 
+def rofi_has_swipe():
+    """rofi z [luxos] s luxos-swipe.patch (nenaleza se v -help: podle retezce v binarce)."""
+    if not ROFI:
+        return False
+    try:
+        with open(os.path.realpath(ROFI), "rb") as f:
+            return b"LUXOS_ROFI_SORT" in f.read()
+    except OSError:
+        return False
+
+
 def xdo(*args):
     # env=os.environ: Gio.TestDBus jineho modulu muze DISPLAY smazat v prostredi C, ktere by xdotool jinak zdedil
     return subprocess.run(["xdotool", *map(str, args)], env=os.environ, capture_output=True, text=True,
@@ -337,6 +348,52 @@ class TestLaunchpadMouse(unittest.TestCase):
             time.sleep(0.1)
         with open(usage) as f:
             self.assertEqual(json.load(f)["apps"]["app42.desktop"]["count"], 101)
+
+    def drag(self, start, end, steps=10):
+        """Tah levym tlacitkem (dotykova obrazovka posila rofi stejny tah ukazatelem)."""
+        (x1, y1), (x2, y2) = start, end
+        xdo("mousemove", x1, y1)
+        time.sleep(0.15)
+        xdo("mousedown", 1)
+        for i in range(1, steps + 1):
+            xdo("mousemove", x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+            time.sleep(0.03)
+        xdo("mouseup", 1)
+        time.sleep(0.5)
+
+    @unittest.skipUnless(RESORT, "needs rofi with -custom-resort (packages/rofi)")
+    def test_swipe_changes_sort(self):
+        """Vodorovny tah pres dlazdice prepne razeni (doleva dalsi, doprava predchozi, dokola) a nic
+        nespusti; svisly tah razeni nemeni; klepnuti dlazdici dal spousti."""
+        if not rofi_has_swipe():
+            self.skipTest("needs rofi with luxos-swipe.patch (packages/rofi 2.0.0-1.4, LUXOS_ROFI)")
+        os.makedirs(os.path.join(self.env["XDG_CONFIG_HOME"], "luxos"))
+        conf = os.path.join(self.env["XDG_CONFIG_HOME"], "luxos", "launchpad-sort")
+        with open(conf, "w") as f:
+            f.write("alpha\n")
+        self.open()
+        old = xdo("search", "--class", "rofi").split()
+
+        def sort():
+            with open(conf) as f:
+                return f.read().strip()
+        self.drag(self.cell(1, 5), self.cell(1, 1))           # doleva: dalsi
+        self.assertEqual(sort(), "recent")
+        self.drag(self.cell(2, 5), self.cell(2, 1))
+        self.assertEqual(sort(), "most")
+        self.drag(self.cell(1, 1), self.cell(1, 5))           # doprava: predchozi
+        self.assertEqual(sort(), "recent")
+        self.drag(self.cell(1, 1), self.cell(1, 5))
+        self.drag(self.cell(1, 1), self.cell(1, 5))           # z prvniho dokola na posledni
+        self.assertEqual(sort(), "category")
+        self.drag(self.cell(0, 2), self.cell(2, 2))           # svisle: nic
+        self.assertEqual(sort(), "category")
+        self.assertEqual(xdo("search", "--class", "rofi").split(), old)     # stale stejne okno
+        self.assertFalse(os.path.exists(self.launched), "tah nesmi spustit aplikaci")
+        # klepnuti (stisk + puštěni na miste) spusti dlazdici pod mysi
+        self.hover(0, 0)
+        xdo("click", 1)
+        self.assertEqual(len(self.result()), 1)
 
     @unittest.skipUnless(RESORT, "needs rofi with -custom-resort (packages/rofi)")
     def test_resort_keeps_filter(self):

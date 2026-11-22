@@ -182,6 +182,32 @@ esac
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.count("RUN xinput reattach 7 Virtual core pointer"), 2, r.stdout)
 
+    @unittest.skipUnless(shutil.which("onboard"), "needs onboard")
+    def test_rofi_begin_end(self):
+        """Launchpad/Hledani (rofi): na dotykovem zarizeni klavesnice + okno nad ni, jinak nic."""
+        m = self.machine([])
+        extra = {"LUXOS_TOUCH_SCREEN": "1280 800", "LUXOS_TOUCH_OSK_HEIGHT": "320",
+                 "XDG_RUNTIME_DIR": self.tmp}
+        # bez dotykove obrazovky (zadny touch-state): zadne volby, klavesnice se nemeni
+        r = self.run_touch(m, "rofi-begin", "110", "142", "4", extra=extra)
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+        os.makedirs(os.path.join(self.home, ".config", "luxos"))
+        with open(os.path.join(self.home, ".config", "luxos", "touch-state"), "w") as f:
+            f.write("touchscreen=1 keyboard=1 accel=1\n")
+        out = self.run_touch(m, "rofi-begin", "110", "142", "4", extra=extra).stdout.splitlines()
+        # klepnuti na klavesnici mimo okno rofi ho nezavre; 800 - 320 - 28 - 24 - 142 = 286 -> 2 radky
+        self.assertEqual(out, ["-no-click-to-exit", "-theme-str",
+                               "window { location: north; anchor: north; y-offset: 40px; } listview { lines: 2; }"])
+        # vetsi displej (Z13 1920x1200, klavesnice 480 px): 4 radky (nejvys MAX)
+        big = dict(extra, LUXOS_TOUCH_SCREEN="1920 1200", LUXOS_TOUCH_OSK_HEIGHT="480")
+        out = self.run_touch(m, "rofi-begin", "110", "142", "4", extra=big).stdout.splitlines()
+        self.assertTrue(out[-1].endswith("listview { lines: 4; }"), out)
+        # bez rozmeru (Hledani bez argumentu): jen -no-click-to-exit
+        self.assertEqual(self.run_touch(m, "rofi-begin", extra=extra).stdout.splitlines(), ["-no-click-to-exit"])
+        # konec: klavesnice byla pred otevrenim schovana -> zase schovat; podruhe uz nic
+        self.assertIn("RUN osk hide", self.run_touch(m, "rofi-end", extra=extra).stdout)
+        self.assertEqual(self.run_touch(m, "rofi-end", extra=extra).stdout, "")
+
     def test_osk_embed_without_touchscreen_exits(self):
         m = self.machine([("Keyboard", ["ID_INPUT_KEYBOARD"], FULL_KEYBOARD, False)])
         r = self.run_touch(m, "osk-embed")

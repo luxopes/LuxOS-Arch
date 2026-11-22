@@ -14,6 +14,9 @@
 #   luxos-touch rotate-watch      sleduje senzor otoceni (spousti session)
 #   luxos-touch guard             vraci odpojeny dotyk zpet k ukazateli (spousti session)
 #   luxos-touch osk-size          vyska ukotvene klavesnice podle obrazovky (spousti session)
+#   luxos-touch rofi-begin [RADEK OSTATNI MAX]   Launchpad/Hledani (rofi) na dotykovem zarizeni: ukaze
+#                                 klavesnici a vypise volby rofi (po radcich) - okno nad klavesnici
+#   luxos-touch rofi-end          po zavreni rofi: klavesnici schova, kdyz predtim schovana byla
 #
 # Testy: LUXOS_TOUCH_UDEV (adresar dat udev, vychozi /run/udev/data), LUXOS_TOUCH_SYS (/sys/class/input),
 # LUXOS_TOUCH_FORCE=1 (dotykova obrazovka i bez hardwaru), LUXOS_TOUCH_DRY=1 (jen vypsat prikazy).
@@ -259,6 +262,51 @@ onboard_running() {
         --method org.freedesktop.DBus.NameHasOwner org.onboard.Onboard 2>/dev/null | grep -q true
 }
 
+osk_visible() {
+    onboard_running && gdbus call --session --dest org.onboard.Onboard --object-path /org/onboard/Onboard/Keyboard \
+        --method org.freedesktop.DBus.Properties.Get org.onboard.Onboard.Keyboard Visible 2>/dev/null | grep -q true
+}
+
+# Rofi (Launchpad, Hledani) nehlasi textove pole pres AT-SPI, takze se Onboard sam neukaze. Na dotykovem
+# zarizeni ho rofi-begin ukaze sam a vypise volby: -no-click-to-exit (klepnuti na klavesnici mimo okno rofi
+# by ho jinak zavrelo) a okno nahore pod listou s tolika radky (RADEK px na radek, OSTATNI px zbytek okna,
+# nejvys MAX), kolik se vejde nad klavesnici. Bez dotykove obrazovky nic.
+rofi_begin() {
+    local state="$CFG/touch-state" mark="${XDG_RUNTIME_DIR:-/tmp}/luxos-touch-rofi-osk" w h oh scale=100 bar lines
+    grep -qs 'touchscreen=1' "$state" || return 0
+    command -v onboard >/dev/null || return 0
+    if [[ ${LUXOS_TOUCH_DRY:-0} == 1 ]]; then
+        echo hidden >"$mark"
+    elif osk_visible; then
+        echo visible >"$mark"
+    else
+        echo hidden >"$mark"
+    fi
+    run osk show >/dev/null 2>&1
+    echo "-no-click-to-exit"
+    (($# == 3)) || return 0
+    read -r w h <<<"${LUXOS_TOUCH_SCREEN:-$(xdotool getdisplaygeometry 2>/dev/null)}"
+    [[ $w =~ ^[0-9]+$ && $h =~ ^[0-9]+$ ]] || return 0
+    oh=$(gsettings get "org.onboard.window.$( ((w >= h)) && echo landscape || echo portrait)" dock-height 2>/dev/null)
+    oh=${LUXOS_TOUCH_OSK_HEIGHT:-$oh}
+    [[ $oh =~ ^[0-9]+$ ]] || return 0
+    [[ -r $CFG/display-scale ]] && read -r scale <"$CFG/display-scale"
+    [[ $scale =~ ^[0-9]+$ ]] || scale=100
+    bar=$(( 28 * scale / 100 ))
+    lines=$(( (h - oh - bar - 24 - $2 * scale / 100) / ($1 * scale / 100) ))
+    (( lines > $3 )) && lines=$3
+    (( lines < 1 )) && lines=1
+    echo "-theme-str"
+    echo "window { location: north; anchor: north; y-offset: $(( bar + 12 ))px; } listview { lines: $lines; }"
+}
+
+rofi_end() {
+    local mark="${XDG_RUNTIME_DIR:-/tmp}/luxos-touch-rofi-osk"
+    [[ -r $mark ]] || return 0
+    [[ $(<"$mark") == hidden ]] && run osk hide 2>/dev/null
+    rm -f "$mark"
+}
+
 osk() {
     local what=${1:-toggle} i
     case $what in show|hide|toggle) ;; *) echo "usage: luxos-touch osk [show|hide|toggle]" >&2; return 2 ;; esac
@@ -362,6 +410,8 @@ case ${1:-} in
     map) map_touch ;;
     rotate-watch) rotate_watch ;;
     guard) guard ;;
+    rofi-begin) shift; rofi_begin "$@" ;;
+    rofi-end) rofi_end ;;
     osk-size) osk_size ;;
-    *) sed -n '2,16s/^# \{0,1\}//p' "$0"; exit 2 ;;
+    *) sed -n '2,19s/^# \{0,1\}//p' "$0"; exit 2 ;;
 esac
