@@ -5381,3 +5381,5 @@ Move the pointer into a corner of the screen and keep it there for a moment.	Pre
 Scale	Mierka
 Size of everything on the screen	Veľkosť všetkého na obrazovke
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Zväčší text, tlačidlá, záhlavia okien, hornú lištu a Dock – hodí sa na dotykové obrazovky a malé displeje s vysokým rozlíšením. Niektoré aplikácie treba znova otvoriť.
+Window buttons	Tlačidlá okien
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Tlačidlá zavrieť, minimalizovať a maximalizovať v záhlaví okna. Automaticky ich na dotykových obrazovkách zväčší.

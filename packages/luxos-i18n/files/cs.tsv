@@ -5380,3 +5380,5 @@ Move the pointer into a corner of the screen and keep it there for a moment.	Naj
 Scale	Měřítko
 Size of everything on the screen	Velikost všeho na obrazovce
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Zvětší text, tlačítka, záhlaví oken, horní lištu a Dock – hodí se na dotykové obrazovky a malé displeje s vysokým rozlišením. Některé aplikace je potřeba znovu otevřít.
+Window buttons	Tlačítka oken
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Tlačítka zavřít, minimalizovat a maximalizovat v záhlaví okna. Automaticky je na dotykových obrazovkách zvětší.

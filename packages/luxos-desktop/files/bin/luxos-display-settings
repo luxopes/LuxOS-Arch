@@ -735,6 +735,33 @@ class Displays(Gtk.Window):
         group.row(_("Size of everything on the screen"), combo,
                   _("Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch "
                     "screens and small high-resolution displays. Some apps need to be reopened."))
+        # Tlacitka oken zvlast: na dotyku je chce nekdo vetsi, nekdo ne (luxos-appearance wm-buttons)
+        buttons = Gtk.ComboBoxText()
+        for key, label in (("auto", _("Automatic")), ("standard", _("Standard")),
+                           ("large", _("Large")), ("larger", _("Larger"))):
+            buttons.append(key, label)
+        buttons.set_active_id(self.read_wm_buttons())
+        buttons.connect("changed", self.on_wm_buttons)
+        self.buttons_combo = buttons
+        group.row(_("Window buttons"), buttons,
+                  _("Close, minimize and maximize buttons in the title bar. Automatic makes them larger on "
+                    "touch screens."))
+
+    @staticmethod
+    def read_wm_buttons():
+        try:
+            r = subprocess.run(["luxos-appearance", "wm-buttons"], capture_output=True, text=True, timeout=10)
+            value = r.stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            value = ""
+        return value if value in ("auto", "standard", "large", "larger") else "auto"
+
+    def on_wm_buttons(self, combo):
+        if self.building or not combo.get_active_id():
+            return
+        # na pozadi: prepnuti tematu xfwm4 chvili trva, okno nema zamrznout
+        subprocess.Popen(["luxos-appearance", "wm-buttons", combo.get_active_id()],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def on_scale(self, combo):
         if self.building or not combo.get_active_id():

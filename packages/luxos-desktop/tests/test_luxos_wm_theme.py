@@ -43,7 +43,7 @@ class WmTheme(unittest.TestCase):
         self.theme = os.path.join(self.tmp, "theme")
         self.path = fake + ":/usr/bin:/bin"
 
-    def wm(self, wsf="1", scale=None, cur="WhiteSur-Light", mode="light"):
+    def wm(self, wsf="1", scale=None, cur="WhiteSur-Light", mode="light", buttons=None):
         with open(self.theme, "w") as f:
             f.write(cur)
         p = os.path.join(self.cfg, "luxos", "display-scale")
@@ -55,6 +55,13 @@ class WmTheme(unittest.TestCase):
                 f.write("%d\n" % scale)
         with open(os.path.join(self.cfg, "luxos", "appearance"), "w") as f:
             f.write(mode)
+        prefs = os.path.join(self.cfg, "luxos", "appearance.conf")
+        if buttons is None:
+            if os.path.exists(prefs):
+                os.unlink(prefs)
+        else:
+            with open(prefs, "w") as f:
+                f.write("WM_BUTTONS=%s\n" % buttons)
         env = {"PATH": self.path, "HOME": self.tmp, "XDG_CONFIG_HOME": self.cfg, "LUXOS_THEMES_DIR": self.themes,
                "FAKE_WSF": wsf, "FAKE_THEME": self.theme}
         r = subprocess.run(["bash", SCRIPT, "wm-theme"], env=env, capture_output=True, text=True, timeout=30)
@@ -73,8 +80,8 @@ class WmTheme(unittest.TestCase):
         self.assertEqual(self.wm(scale=100, cur="WhiteSur-Light-hdpi"), "WhiteSur-Light")
 
     def test_missing_variant_and_own_theme(self):
-        # tmavy rezim bez -xhdpi: zakladni; vlastni motiv uzivatele se nemeni
-        self.assertEqual(self.wm(wsf="2", scale=200, cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark")
+        # tmavy rezim bez -xhdpi: nejblizsi mensi (-hdpi); vlastni motiv uzivatele se nemeni
+        self.assertEqual(self.wm(wsf="2", scale=200, cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark-hdpi")
         self.assertEqual(self.wm(scale=150, cur="Greybird"), "Greybird")
         self.assertEqual(self.wm(scale=150, cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark-hdpi")
 
@@ -96,6 +103,40 @@ class WmTheme(unittest.TestCase):
         os.unlink(state)
         self.assertEqual(self.wm(scale=150, cur="WhiteSur-Light-xhdpi"), "WhiteSur-Light-hdpi")
         self.assertEqual(self.wm(scale=200, cur="WhiteSur-Light-xhdpi"), "WhiteSur-Light")
+
+    def test_user_choice(self):
+        """Volba Monitory > Tlacitka oken (WM_BUTTONS) ma prednost pred automatikou - i na dotyku."""
+        with open(os.path.join(self.cfg, "luxos", "touch-state"), "w") as f:
+            f.write("touchscreen=1 keyboard=1 accel=1\n")
+        self.assertEqual(self.wm(buttons="auto"), "WhiteSur-Light-hdpi")
+        self.assertEqual(self.wm(buttons="standard", cur="WhiteSur-Light-hdpi"), "WhiteSur-Light")
+        self.assertEqual(self.wm(buttons="standard", scale=150), "WhiteSur-Light-hdpi")   # meritko plati dal
+        self.assertEqual(self.wm(buttons="large"), "WhiteSur-Light-hdpi")
+        self.assertEqual(self.wm(buttons="larger"), "WhiteSur-Light-xhdpi")
+        self.assertEqual(self.wm(buttons="larger", cur="WhiteSur-Dark", mode="dark"), "WhiteSur-Dark-hdpi")
+        self.assertEqual(self.wm(buttons="nonsense"), "WhiteSur-Light-hdpi")              # neplatna = auto
+        os.unlink(os.path.join(self.cfg, "luxos", "touch-state"))
+        self.assertEqual(self.wm(buttons="large"), "WhiteSur-Light-hdpi")                 # i bez dotyku
+
+    def test_wm_buttons_command(self):
+        """luxos-appearance wm-buttons: ulozi volbu, hned prepne ramecek; bez hodnoty ji vypise."""
+        env = {"PATH": self.path, "HOME": self.tmp, "XDG_CONFIG_HOME": self.cfg, "LUXOS_THEMES_DIR": self.themes,
+               "FAKE_WSF": "1", "FAKE_THEME": self.theme}
+        with open(self.theme, "w") as f:
+            f.write("WhiteSur-Light")
+        with open(os.path.join(self.cfg, "luxos", "appearance"), "w") as f:
+            f.write("light")
+
+        def run(*args):
+            return subprocess.run(["bash", SCRIPT, *args], env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(run("wm-buttons").stdout.strip(), "auto")
+        r = run("wm-buttons", "larger")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(self.theme) as f:
+            self.assertEqual(f.read(), "WhiteSur-Light-xhdpi")
+        self.assertEqual(run("wm-buttons").stdout.strip(), "larger")
+        self.assertEqual(run("wm-buttons", "huge").returncode, 2)
+        self.assertEqual(run("wm-buttons").stdout.strip(), "larger")
 
 
 if __name__ == "__main__":

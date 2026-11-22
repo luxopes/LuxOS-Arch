@@ -5381,3 +5381,5 @@ Move the pointer into a corner of the screen and keep it there for a moment.	Fly
 Scale	Skalning
 Size of everything on the screen	Storlek på allt på skärmen
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Gör text, knappar, namnlister, menyraden och Dock större – bra på pekskärmar och små skärmar med hög upplösning. Vissa appar behöver öppnas igen.
+Window buttons	Fönsterknappar
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Knapparna stäng, minimera och maximera i namnlisten. ”Automatiskt” gör dem större på pekskärmar.

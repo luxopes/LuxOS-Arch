@@ -63,8 +63,9 @@ first sign-in; when you edit that file, LuxOS keeps your version.
   stopped scrolling and the close button stopped working.
 - Window buttons (close, minimize, maximize) are one size bigger on a touch device, so a finger hits
   them: the larger title bar variant (`-hdpi`, from 125 % scale `-xhdpi`) is chosen at sign-in by
-  `luxos-appearance wm-theme`. For even bigger text, title bars, menu bar and Dock choose 125 % or 150 %
-  in **Displays › Scale**. A three-finger pinch also closes a window.
+  `luxos-appearance wm-theme`. Too big or still too small? Choose **Displays › Scale › Window buttons**:
+  Standard, Large or Larger (Automatic is the default). For bigger text, menu bar and Dock as well choose
+  125 % or 150 % in **Displays › Scale**. A three-finger pinch also closes a window.
 - If touch ever stops reacting while the on-screen keyboard was in use (the keyboard briefly detaches
   the touch screen from the pointer), LuxOS reattaches it within a few seconds (`luxos-touch guard`).
 

@@ -55,6 +55,12 @@ login (`luxos-session`) and whenever a monitor is connected (`luxos-menubar` run
   200 % switch GTK to 2× (`Gdk/WindowScalingFactor`) with `-xhdpi` frames. Your own menu bar height
   and Dock size are kept relative to the scale. Stored in `~/.config/luxos/display-scale`; command
   `python3 /usr/lib/luxos/python/luxos_displays.py scale-set 150`. Some apps need to be reopened.
+- **Window buttons**: Automatic (default) / Standard / Large / Larger – the size of the close, minimize
+  and maximize buttons (and the title bar) on their own, without changing anything else. Automatic
+  follows the scale and makes them one size bigger on a touch screen; Standard follows only the scale
+  (also on a touch screen); Large is at least the `-hdpi` frame (1.5×), Larger the `-xhdpi` frame (2×).
+  Stored as `WM_BUTTONS` in `~/.config/luxos/appearance.conf`; command
+  `luxos-appearance wm-buttons auto|standard|large|larger` (without a value it prints the current one).
 - **Text Size**: Smaller / Default / Large / Larger / Largest, relative to the scale. Sets Xft DPI in
   the xfconf channel `xsettings`, and apps pick it up immediately.
 - **Multiple Displays › Use as**:
