@@ -115,10 +115,24 @@ cmd_start() {
     local -a comp=("$@")
     ((${#comp[@]})) || comp=(labwc)
     build
-    name=${name:-$mode-$$-$(date +%s)}
-    local s=$out/sessions/$name
-    if [[ -f $s/compositor.pid ]] && pid_alive "$(<"$s/compositor.pid")"; then die "session $name is running"; fi
-    rm -rf "$s"
+    local s
+    mkdir -p "$out/sessions"
+    if [[ -n $name ]]; then
+        s=$out/sessions/$name
+        if [[ -f $s/compositor.pid ]] && pid_alive "$(<"$s/compositor.pid")"; then die "session $name is running"; fi
+        rm -rf "$s"
+        mkdir "$s"
+    else
+        # PID ve vlastnim PID namespace (run-all -j: kazdy modul v isolate) se mezi soubezne bezicimi moduly
+        # opakuje: jmeno zabere az mkdir, jinak by si dva moduly prepsaly sezeni
+        local n=0
+        name=$mode-$$-$(date +%s)
+        until mkdir "$out/sessions/$name" 2>/dev/null; do
+            ((++n < 100)) || die "cannot create a session directory in $out/sessions"
+            name=$mode-$$-$(date +%s)-$n
+        done
+        s=$out/sessions/$name
+    fi
     mkdir -p "$s/run" "$s/home" "$s/config"
     chmod 700 "$s/run"
     [[ -d $config ]] && cp -r "$config" "$s/config/labwc"
