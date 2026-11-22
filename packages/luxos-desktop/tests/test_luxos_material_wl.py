@@ -189,6 +189,7 @@ class MaterialShell(unittest.TestCase):
         Bar(fake).wait(r"^ready$")
         self.env.update(GDK_BACKEND="wayland", NO_AT_BRIDGE="1", GTK_A11Y="none", LUXOS_WL_LIB=str(self.lib),
                         PATH=f"{self.bin}:/usr/bin:/bin", LUXOS_BAR_TRACE="1", LUXOS_BAR_NOW="2026-11-20 09:41",
+                        LUXOS_NOW="2026-11-20 09:41",
                         DBUS_SYSTEM_BUS_ADDRESS=addrs["system"], DBUS_SESSION_BUS_ADDRESS=addrs["session"],
                         LUXOS_HUB_PREBUILD_DELAY="1", LUXOS_HUB_NEWS_DELAY="100000", LUXOS_HUB_NO_PORTAL="1",
                         LUXOS_CALENDAR_DIR=str(self.session / "calendar"), LUXOS_POWER_SUPPLY=str(self.session / "power"),

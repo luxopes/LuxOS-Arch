@@ -498,6 +498,11 @@ class WaylandBar(unittest.TestCase):
         os.kill(pid, signal.SIGUSR1)
         bar.wait(r"^signal wifi$", start=mark)
         bar.wait(r"^popup wifi shown", start=mark)
+        # SIGUSR2 (tlacitko napajeni v Ovladacim centru): nabidka LuxOS pod logem misto okna Wi-Fi
+        mark = bar.mark()
+        os.kill(pid, signal.SIGUSR2)
+        bar.wait(r"^signal system$", start=mark)
+        bar.wait(r"^popup system shown", start=mark)
         self.assertIsNone(bar.proc.poll())
 
     # ---- stav systemu (soukrome sbernice) ----

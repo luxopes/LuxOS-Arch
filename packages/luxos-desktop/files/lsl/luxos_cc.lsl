@@ -95,6 +95,7 @@ ONEUI_CSS = (".oneui .cc-box { border-radius: " + String(ONEUI_RADIUS) + "px; pa
     + ".oneui scale:focus { -gtk-outline-radius: 24px; }\n")
 
 SIGUSR1 = 10
+SIGUSR2 = 12
 
 cc = {}            # stav okna (widgety a priznaky)
 created = False
@@ -304,8 +305,9 @@ end
 
 # Dlazdice: {widget, button, bubble, image, title, sub, action, settings}. Se settings (Wi-Fi, Bluetooth na
 # Waylandu) jako v Androidu: bublina s ikonou je vlastni tlacitko nad dlazdici (prepne), zbytek dlazdice otevre
-# nastaveni - mysi, dotykem i klavesnici bez hledani mista stisku. Bublina lezi v GtkOverlay: uvnitr tlacitka
-# by udalosti dostalo vnejsi tlacitko (jeho okno udalosti je nad potomky).
+# nastaveni - mysi, dotykem i klavesnici bez hledani mista stisku (dve zastavky Tab). Bublina lezi v GtkOverlay
+# vedle tlacitka: uvnitr nej by udalosti dostalo vnejsi tlacitko (jeho okno udalosti je nad potomky) a Tab by do
+# ni nevesel.
 function tile_new(icon, title, action, settings):
     tile = {"action": action, "name": title, "settings": settings}
     button = focusable(gtk.button_new_empty())
@@ -315,7 +317,6 @@ function tile_new(icon, title, action, settings):
     bubble = gtk.box_new(gtk.HORIZONTAL, 0)
     tile["spot"] = bubble
     if settings != None:
-        call gtk.widget_set_can_focus(button, False)
         overlay = gtk.overlay_new()
         call gtk.container_add(overlay, button)
         tile["widget"] = overlay
@@ -635,6 +636,14 @@ function create():
         call gtk.container_add(gear, gtk.image_new_from_icon_name("preferences-system-symbolic", gtk.ICON_LARGE_TOOLBAR))
         call gtk.connect_data(gear, "clicked", 0, on_launch_clicked, settings_command())
         call gtk.box_pack_end(head, gear, False, False, 0)
+        # napajeni: nabidka LuxOS z listy (zamknout, odhlasit, restart, vypnout) jako v prototypu
+        power = focusable(gtk.button_new_empty())
+        call gtk.widget_add_class(power, "round")
+        call gtk.widget_set_tooltip(power, i18n.T("Shut Down"))
+        call gtk.container_add(power, gtk.image_new_from_icon_name("system-shutdown-symbolic", gtk.ICON_LARGE_TOOLBAR))
+        call gtk.connect(power, "clicked", on_power_clicked)
+        call gtk.box_pack_end(head, power, False, False, 0)
+        cc["power"] = power
         call gtk.box_pack_start(outer, head, False, False, 0)
     end
 
@@ -698,7 +707,7 @@ function create():
 
     # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
     cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays, "video-display-symbolic", i18n.T("Displays"))
-    cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute, "audio-volume-high-symbolic", i18n.T("Sound"))
+    cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute, "audio-volume-high-symbolic", i18n.T("Mute"))
 
     # QR kod Wi-Fi: pripojeno = sdilet sit (luxos-wifi-qr), Wi-Fi zapnuta bez site = naskenovat kod
     if cc["oneui"]:
@@ -923,7 +932,7 @@ function test_marks():
         ["bt-title", cc["t_bt"]["title"]], ["dnd", cc["t_dnd"]["bubble"]], ["dark", cc["t_dark"]["bubble"]],
         ["data", cc["t_data"]["bubble"]], ["power", cc["t_power"]["bubble"]], ["bright", cc["s_bright"]["scale"]],
         ["bright-side", cc["s_bright"]["button"]], ["vol", cc["s_vol"]["scale"]], ["vol-side", cc["s_vol"]["button"]],
-        ["qr", cc["wifi_qr"]]]
+        ["qr", cc["wifi_qr"]], ["power-button", cc["power"]]]
 end
 
 # Testy: stred prvku v okne ("tilepos wifi-bubble x y", u posuvniku i sirka "tilepos vol x y w") a velikost okna
@@ -938,7 +947,8 @@ end
 
 # Testy: prvek s fokusem klavesnice ("focus vol")
 function on_set_focus(unused, widget, window):
-    tiles = [["wifi-bubble", cc["t_wifi"]["bubble"]], ["bt-bubble", cc["t_bt"]["bubble"]], ["dnd", cc["t_dnd"]["button"]],
+    tiles = [["wifi-bubble", cc["t_wifi"]["bubble"]], ["bt-bubble", cc["t_bt"]["bubble"]], ["wifi-tile", cc["t_wifi"]["button"]],
+        ["bt-tile", cc["t_bt"]["button"]], ["dnd", cc["t_dnd"]["button"]],
         ["dark", cc["t_dark"]["button"]], ["data", cc["t_data"]["button"]], ["power", cc["t_power"]["button"]]]
     name = "other"
     for mark in test_marks() + tiles:
@@ -1495,9 +1505,22 @@ end
 # Zbytek dlazdice Wi-Fi na Waylandu: okno Wi-Fi z listy (luxos-bar, SIGUSR1 podle $XDG_RUNTIME_DIR/luxos-bar.pid)
 function open_wifi():
     call close()
+    call signal_bar(SIGUSR1)
+    return 0
+end
+
+# Tlacitko napajeni v One UI: nabidka LuxOS listy (SIGUSR2)
+function on_power_clicked(button):
+    call log_test("power")
+    call close()
+    call signal_bar(SIGUSR2)
+    return 0
+end
+
+function signal_bar(signum):
     pid = text.to_int(glib.read_text(popup.runtime_file("luxos-bar.pid")).strip(), 0)
     if pid > 0 and glib.read_text("/proc/" + String(pid) + "/cmdline").find("luxos-bar") >= 0:
-        call glib.kill(pid, SIGUSR1)
+        call glib.kill(pid, signum)
     end
     return 0
 end

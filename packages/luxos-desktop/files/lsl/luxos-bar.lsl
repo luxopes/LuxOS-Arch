@@ -16,8 +16,8 @@
 # Vse na udalosti: okna, monitory a stav systemu chodi signaly (Wayland, D-Bus, pactl subscribe), jediny
 # casovac jsou hodiny jednou za minutu.
 #
-# SIGUSR1 otevre okno Wi-Fi pod listou, kde se naposledy klikalo (zbytek dlazdice Wi-Fi v Ovladacim centru);
-# PID je v $XDG_RUNTIME_DIR/luxos-bar.pid.
+# SIGUSR1 otevre okno Wi-Fi pod listou, kde se naposledy klikalo (zbytek dlazdice Wi-Fi v Ovladacim centru),
+# SIGUSR2 nabidku LuxOS s napajenim (tlacitko napajeni v Ovladacim centru); PID je v $XDG_RUNTIME_DIR/luxos-bar.pid.
 #
 # Ladeni a testy: LUXOS_BAR_TRACE=1 vypisuje udalosti na stdout, LUXOS_BAR_NOW="YYYY-MM-DD HH:MM" zastavi hodiny.
 load env, cairo
@@ -48,6 +48,7 @@ SHORT = {"thunar": "Files", "luxos-terminal": "Terminal", "xfce4-terminal": "Ter
     "luxos-screenshot": "Screenshot"}
 
 SIGUSR1 = 10
+SIGUSR2 = 12
 # Podrzeni kodu rozlozeni = nabidka misto prepnuti; delka zablesku po prepnuti
 LONG_PRESS_MS = 500
 FLASH_MS = 650
@@ -1036,15 +1037,24 @@ function open_popup(bar, name, widget, event_time):
     return 0
 end
 
-# SIGUSR1 (Ovladaci centrum): okno Wi-Fi pod ikonou site listy, kde se naposledy klikalo; bez ikony site pod
-# Ovladacim centrem
-function on_sigusr1():
+# Lista, kde se naposledy klikalo (signaly z Ovladaciho centra), jinak prvni; None = zadna
+function signal_bar():
     bar = ui["last_bar"]
     if bar == None or bar not in bars:
         if len(bars) == 0:
-            return True
+            return None
         end
         bar = bars[0]
+    end
+    return bar
+end
+
+# SIGUSR1 (Ovladaci centrum): okno Wi-Fi pod ikonou site listy, kde se naposledy klikalo; bez ikony site pod
+# Ovladacim centrem
+function on_sigusr1():
+    bar = signal_bar()
+    if bar == None:
+        return True
     end
     widget = bar["items"]["network"][0]
     if not gtk.widget_get_visible(widget):
@@ -1053,6 +1063,19 @@ function on_sigusr1():
     call trace("signal wifi")
     if not popup.is_visible("wifi"):
         call open_popup(bar, "wifi", widget, monotonic_ms())
+    end
+    return True
+end
+
+# SIGUSR2 (tlacitko napajeni Ovladaciho centra): nabidka LuxOS pod logem (zamknout, odhlasit, restart, vypnout)
+function on_sigusr2():
+    bar = signal_bar()
+    if bar == None:
+        return True
+    end
+    call trace("signal system")
+    if not popup.is_visible("system"):
+        call open_popup(bar, "system", bar["items"]["menu"][0], monotonic_ms())
     end
     return True
 end
@@ -1131,6 +1154,7 @@ call schedule_clock()
 call gio.file_monitor(config_dir() + "/appearance.conf", on_conf_changed)
 call gio.file_monitor(config_dir() + "/appearance", on_conf_changed)
 call lglib.unix_signal_add(SIGUSR1, on_sigusr1)
+call lglib.unix_signal_add(SIGUSR2, on_sigusr2)
 call write_pid()
 call trace("ready")
 call gtk.main()

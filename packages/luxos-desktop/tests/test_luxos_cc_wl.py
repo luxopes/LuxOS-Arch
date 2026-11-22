@@ -439,6 +439,12 @@ class Interaction:
             if call:
                 self.wait_call(call)
             time.sleep(0.4)
+        # napajeni: zavre okno a posle liste SIGUSR2 (nabidka LuxOS, test_luxos_hub_wl)
+        self.open()
+        mark = self.cc.mark()
+        self.click("power-button")
+        self.cc.wait("power", mark)
+        self.cc.wait("hidden", mark)
         self.assertIn("tile Wi-Fi settings", self.cc.lines())
         self.assertIsNone(self.hub.poll())
 
@@ -475,6 +481,13 @@ class InteractionLuxwm(Interaction, ControlCenter, unittest.TestCase):
         self.tab_to("bt-bubble")
         self.input("key Return")
         self.wait_call("bluez Powered False")
+        # zbytek dlazdice (nastaveni) je vlastni zastavka Tab
+        self.tab_to("wifi-tile")
+        mark = self.cc.mark()
+        self.input("key Return")
+        self.cc.wait("tile Wi-Fi settings", mark)
+        self.cc.wait("hidden", mark)
+        self.open()
         mark = self.cc.mark()
         self.input("key Escape")
         self.cc.wait("hidden", mark)

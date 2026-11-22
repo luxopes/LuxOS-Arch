@@ -178,7 +178,14 @@ function local_from_utc(moment):
     return local_from_unix(t)
 end
 
+# Testy a snimky: LUXOS_NOW="YYYY-MM-DD HH:MM" zastavi hodiny (Kalendar nezavisi na dnesnim datu)
 function now():
+    fixed = env.get("LUXOS_NOW", "")
+    if fixed != None and fixed != "":
+        d = fixed.split(" ")[0].split("-")
+        t = fixed.split(" ")[1].split(":")
+        return make(ordinal(Int(d[0]), Int(d[1]), Int(d[2])), Int(t[0]), Int(t[1]), 0)
+    end
     return local_from_unix(glib.now())
 end
 

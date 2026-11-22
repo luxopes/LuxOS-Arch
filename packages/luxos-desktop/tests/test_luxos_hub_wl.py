@@ -320,7 +320,7 @@ class HubWayland:
             left = int(self.cc.wait("placed ", mark, timeout=SHOW_LIMIT).split()[3])
             self.cc.wait("shown", mark, timeout=SHOW_LIMIT)
             pos = {}
-            for name in ("wifi-bubble", "wifi-title", "bt-bubble", "bt-title"):
+            for name in ("wifi-bubble", "wifi-title", "bt-bubble", "bt-title", "power-button"):
                 words = self.cc.wait(f"tilepos {name} ", mark).split()
                 pos[name] = f"move {left + int(words[2])} {BAR + 6 + int(words[3])}"
             time.sleep(0.3)
@@ -349,6 +349,16 @@ class HubWayland:
         mark = self.cc.mark()
         self.input(pos["bt-bubble"], "sleep 0.1", "click")
         self.cc.wait("tile Bluetooth toggle", mark)
+        # bez BlueZ otevre bublina aplikaci Bluetooth a okno zavre
+        self.cc.wait("hidden", mark)
+        # napajeni v nadpisu (One UI): nabidka LuxOS listy pod logem na stejnem vystupu
+        time.sleep(0.6)
+        pos = open_cc()
+        mark, bmark = self.cc.mark(), bar.mark()
+        self.input(pos["power-button"], "sleep 0.1", "click")
+        self.cc.wait("hidden", mark)
+        bar.wait(r"^signal system$", start=bmark)
+        bar.wait(r"^popup system shown", start=bmark)
         self.assertIsNone(hub.poll())
 
     def test_clock_opens_calendar_under_it(self):
