@@ -511,6 +511,34 @@ class Dock(DockBase):
         text = (self.cfg / "luxos/dock.conf").read_text()
         self.assertIn('ITEMS="test-alpha.desktop test-beta.desktop trash"', text)
 
+    def test_add_remove_slides(self):
+        """Pribyla a ubyla ikona: sousedi se posunou a ikona naroste/zmizi za 200 ms (Plank ItemMoveTime), plocha se
+        zuzi az po dobehnuti (odebirana ikona se neorizne)."""
+        self.conf(items=["test-alpha.desktop", "trash"])
+        self.start_dock()
+        n = len(self.dock.lines)
+        win = self.run_window("beta")
+        i, m = self.wait_line(self.dock, r"^(\d+) items .*test-beta", start=n)
+        added = int(m.group(1))
+        j, m = self.wait_line(self.dock, r"^(\d+) move-end ", start=i)
+        took = int(m.group(1)) - added
+        self.assertTrue(150 <= took <= 700, f"posun pri pridani {took} ms")
+        time.sleep(0.4)
+        wide = int([line for line in self.dock.lines if " slots " in line][-1].split()[2])
+        n = len(self.dock.lines)
+        win.terminate()
+        win.wait(5)
+        i, m = self.wait_line(self.dock, r"^(\d+) items test-alpha.desktop trash$", start=n)
+        removed = int(m.group(1))
+        # hned po zmene plocha zustava siroka
+        self.assertEqual(int([line for line in self.dock.lines[:i + 2] if " slots " in line][-1].split()[2]), wide)
+        j, m = self.wait_line(self.dock, r"^(\d+) move-end ", start=i)
+        took = int(m.group(1)) - removed
+        self.assertTrue(150 <= took <= 700, f"posun pri odebrani {took} ms")
+        k, m = self.wait_line(self.dock, r" slots (\d+) ", start=j)
+        self.assertLess(int(m.group(1)), wide)
+        self.assertNotIn("LSL", "\n".join(self.dock.lines))
+
     def test_letter_icon_fallback(self):
         """Aplikace bez ikony (bez .desktop, nebo s Icon=, ktera v tematu neni): neutralni ctverec s prvnim
         pismenem nazvu, ne obecna ikona programu (ozubene kolo)."""
@@ -577,7 +605,8 @@ class Dock(DockBase):
         self.assertEqual(self.items_line(), ["test-gamma.desktop", "trash", "test-alpha.desktop", "test-beta.desktop"])
 
     def test_indicators_light_dark(self):
-        """Tecka bezici aplikace na svetlem a tmavem skle (snimky out/dock-test/shots/indicator-*.png)."""
+        """Tecka bezici aplikace jako Plank na X11 (modra zarici tecka na spodnim okraji panelu) na svetlem i tmavem
+        skle (snimky out/dock-test/shots/indicator-*.png)."""
         light = self.home / "light.png"
         dark = self.home / "dark.png"
         png(light, 64, 40, lambda x, y: (232, 236, 244 - y))
@@ -585,6 +614,10 @@ class Dock(DockBase):
         self.conf(items=["test-alpha.desktop", "test-beta.desktop", "trash"])
         self.run_window("alpha")
         results = {}
+
+        def blue(p):
+            return p[2] - max(p[0], p[1])
+
         for mode, wall in (("light", light), ("dark", dark)):
             (self.cfg / "luxos/appearance.conf").write_text(f"WALLPAPER={wall}\n")
             (self.cfg / "luxos/appearance").write_text(mode + "\n")
@@ -593,22 +626,24 @@ class Dock(DockBase):
             time.sleep(0.8)
             self.shot(f"indicator-{mode}")
             w, h, buf = self.shot(y0=H - 40)
-            # tecka pod ikonou: stred 4,5 px nad spodnim okrajem panelu (BOTTOM 9), polomer 2
+            # stred tecky na spodnim okraji panelu, jadro (barva #0860f2) do 1,2 px od stredu
             def spot(x):
-                around = [px(buf, w, x + dx, y) for y in range(h - MARGIN - 7, h - MARGIN - 2) for dx in (-1, 0, 1)]
-                return min(around, key=lum) if mode == "light" else max(around, key=lum)
+                return max((px(buf, w, x + dx, h - MARGIN - 2) for dx in (-1, 0, 1)), key=blue)
             glass = px(buf, w, self.centers[0] + 30, h - MARGIN - 4)
             dot_running = spot(self.centers[0])
             dot_pinned = spot(self.centers[1])
-            results[mode] = {"glass": glass, "running": dot_running, "pinned_only": dot_pinned}
+            # zare nad jadrem slabne: 4 px nad okrajem uz jen nadech modre
+            halo = px(buf, w, self.centers[0], h - MARGIN - 5)
+            results[mode] = {"glass": glass, "running": dot_running, "pinned_only": dot_pinned, "halo": halo}
+            self.assertGreater(blue(dot_running), 100, results)
+            self.assertLess(dot_running[0], 80, results)
+            self.assertLess(abs(dot_running[1] - 96), 40, results)
+            self.assertLess(blue(dot_pinned), blue(glass) + 15, results)
+            self.assertLess(blue(halo), 110, results)
             if mode == "light":
                 self.assertGreater(lum(glass), 150, results)
-                self.assertLess(lum(dot_running), lum(glass) - 60, results)
-                self.assertGreater(lum(dot_pinned), lum(glass) - 25, results)
             else:
                 self.assertLess(lum(glass), 110, results)
-                self.assertGreater(lum(dot_running), lum(glass) + 60, results)
-                self.assertLess(lum(dot_pinned), lum(glass) + 25, results)
             self.stop_dock()
         record("indicators", results)
 

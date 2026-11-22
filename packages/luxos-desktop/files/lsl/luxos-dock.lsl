@@ -35,6 +35,8 @@ ZOOM_OUT_MS = 200
 # pojistka: kdyby kompozitor prestal posilat snimky, zvetseni doskoci nejpozdeji tady (MOTION dock_zoom_leave = 450)
 ZOOM_GUARD_MS = 380
 HIDE_MS = 250
+# pridani a odebrani ikony: sousedi se posunou, nova ikona naroste, odebrana zmizi (Plank ItemMoveTime)
+MOVE_MS = 200
 HIDE_DELAY_MS = 300
 DRAG_START = 6
 LABEL_H = 30
@@ -43,6 +45,9 @@ SIDE = 8
 MARGIN = 0
 BUDGET_SKIP = 4
 BUDGET_FRAMES = 24
+# barva tecky: vybrana barva motivu WhiteSur (#0860f2), naleha-li aplikace, posunuty odstin (UrgentHueShift 150)
+INDICATOR = [0.031, 0.376, 0.949]
+INDICATOR_URGENT = [0.949, 0.145, 0.031]
 
 DEBUG = env.get("LUXOS_DOCK_DEBUG", "") != ""
 BUDGET_US = 4000
@@ -66,7 +71,10 @@ output = {"name": "", "w": 0, "h": 0, "monitor": 0}
 view = {"blur": material.compositor_blur(), "hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
     "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "seq": 0,
     "strip": None, "light": True, "over_window": False}
-anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1]}
+anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1], "move": [1.0, 1.0, 1.0, 0, 1]}
+# posun ikon: kreslene polohy z posledniho snimku (klic -> [levy okraj od stredu okna, velikost], panel [x, w]),
+# polohy na zacatku posunu a odebirane polozky [polozka, levy okraj, velikost]
+move = {"drawn": {}, "drawn_panel": None, "from": {}, "panel": None, "leaving": [], "hold": False}
 timers = {"tick": 0, "hide": 0, "guard": 0}
 costs = []
 window = 0
@@ -344,16 +352,20 @@ function sync_items():
             end
         end
     end
-    for item in items:
-        if not (item["key"] in keys):
-            call free_icons(item)
-        end
-    end
     changed = len(fresh) != len(items)
     if not changed:
         for i in range(len(fresh)):
             if fresh[i]["key"] != items[i]["key"]:
                 changed = True
+            end
+        end
+    end
+    if changed and len(items) > 0 and window != 0:
+        call start_move(keys)
+    else:
+        for item in items:
+            if not (item["key"] in keys):
+                call free_icons(item)
             end
         end
     end
@@ -424,6 +436,11 @@ function update_geometry():
     geo["zoom_h"] = geo["zoom_size"] - size
     geo["base_w"] = model.panel_width(n, size, geo["gap"], geo["pad"])
     geo["width"] = geo["base_w"] + model.max_zoom_extra(n, size, geo["gap"], geo["pad"], zoom) + 2 * SIDE
+    # behem posunu se plocha nezmensi (odebirana ikona by se orizla), az po nem (anims_done)
+    if anims["move"][3] != 0:
+        geo["width"] = max(geo["width"], geo.get("old_width", 0))
+    end
+    geo["old_width"] = geo["width"]
     geo["height"] = LABEL_H + geo["zoom_h"] + geo["panel_h"] + MARGIN
     geo["x0"] = (geo["width"] - geo["base_w"]) // 2
     geo["panel_y"] = geo["height"] - MARGIN - geo["panel_h"]
@@ -540,7 +557,7 @@ end
 
 function step_anims(t):
     active = False
-    for name in ["zoom", "hide"]:
+    for name in ["zoom", "hide", "move"]:
         a = anims[name]
         if a[3] != 0:
             f = Float(t - a[3]) / Float(a[4])
@@ -593,7 +610,41 @@ function animate(name, target, ms):
     return 0
 end
 
+# Posun od poloh posledniho snimku: zmena uprostred posunu pokracuje odtud, ne skokem
+function start_move(keys):
+    call drop_leaving()
+    move["from"] = move["drawn"]
+    move["panel"] = move["drawn_panel"]
+    for item in items:
+        if not (item["key"] in keys):
+            old = move["drawn"].get(item["key"])
+            if old != None:
+                move["leaving"].append([item, old[0], old[1]])
+            else:
+                call free_icons(item)
+            end
+        end
+    end
+    move["hold"] = True
+    anims["move"] = [0.0, 0.0, 0.0, 0, 1]
+    call animate("move", 1.0, MOVE_MS)
+    return 0
+end
+
+function drop_leaving():
+    for gone in move["leaving"]:
+        call free_icons(gone[0])
+    end
+    move["leaving"] = []
+    return 0
+end
+
 function anims_done():
+    if move["hold"] and anims["move"][3] == 0:
+        move["hold"] = False
+        call drop_leaving()
+        call update_geometry()
+    end
     # rozpocet snimku prekroceny: Dock bez zvetseni az po dobehu, aby se plocha nemenila pod mysi
     if view.get("zoom_off_pending", False) and anims["zoom"][0] == 0.0:
         view["zoom_off_pending"] = False
@@ -823,6 +874,21 @@ function apply_menu_css():
     return 0
 end
 
+# Tecka bezici aplikace jako Plank s motivem WhiteSur v relaci X11 (DockTheme.create_indicator): zarici kruh
+# o polomeru ctvrtiny ikony (IndicatorSize 5) se stredem na spodnim okraji panelu, spodni pulka za okrajem
+function draw_indicator(cr, cx, cy, radius, c):
+    g = cairo.pattern_create_radial(cx, cy, 0.0, cx, cy, radius)
+    call cairo.pattern_add_color_stop_rgba(g, 0.0, 1.0, 1.0, 1.0, 1.0)
+    for stop in [[0.1, 1.0], [0.2, 0.6], [0.25, 0.25], [0.5, 0.15], [1.0, 0.0]]:
+        call cairo.pattern_add_color_stop_rgba(g, stop[0], c[0], c[1], c[2], stop[1])
+    end
+    call cairo.set_source(cr, g)
+    call cairo.arc(cr, cx, cy, radius, 0.0, 2.0 * cairo.PI)
+    call cairo.fill(cr)
+    call cairo.pattern_destroy(g)
+    return 0
+end
+
 function hovered_index(lay):
     if not view["hovered"] or view["dragging"] or view["menu_open"]:
         return -1
@@ -842,34 +908,58 @@ function on_draw(cr, widget):
     lay = current_layout()
     dy = hide_offset()
     py = geo["panel_y"] + dy
-    call draw_panel(cr, lay[2], py, lay[3], geo["panel_h"])
-    base = Float(py + geo["top"] + geo["size"])
-    if view["light"]:
-        dot = [0.0, 0.0, 0.0, 0.62]
-    else:
-        dot = [1.0, 1.0, 1.0, 0.85]
+    half = Float(geo["width"]) / 2.0
+    moving = anims["move"][3] != 0
+    t = anims["move"][0]
+    panel = [lay[2], lay[3]]
+    if moving and move["panel"] != None:
+        panel = [half + move["panel"][0] + (lay[2] - half - move["panel"][0]) * t, move["panel"][1] + (lay[3] - move["panel"][1]) * t]
     end
+    move["drawn_panel"] = [panel[0] - half, panel[1]]
+    call draw_panel(cr, panel[0], py, panel[1], geo["panel_h"])
+    base = Float(py + geo["top"] + geo["size"])
     hover = hovered_index(lay)
+    for gone in move["leaving"]:
+        z = gone[2] * (1.0 - t)
+        if z >= 1.0:
+            call draw_icon(cr, gone[0], half + gone[1] + (gone[2] - z) / 2.0, base - z, z)
+        end
+    end
+    drawn = {}
     for i in range(len(items)):
         item = items[i]
         z = lay[1][i]
         x = lay[0][i]
+        if moving:
+            old = move["from"].get(item["key"])
+            if old == None:
+                # nova ikona naroste ze stredu sveho mista
+                x = x + z * (1.0 - t) / 2.0
+                z = z * t
+            else:
+                x = half + old[0] + (x - half - old[0]) * t
+                z = old[1] + (z - old[1]) * t
+            end
+        end
+        drawn[item["key"]] = [x - half, z]
+        if z < 1.0:
+            continue
+        end
         call draw_icon(cr, item, x, base - z, z)
         entry = entries.get(item["desktop_id"])
         if entry != None:
             call draw_badge(cr, entry, x, base - z, z)
         end
         if len(item["windows"]) > 0:
+            color = INDICATOR
             if entry != None and entry.get("urgent", False):
-                call cairo.set_source_color(cr, tokens.rgb01(tokens.COLORS["accent"]))
-            else:
-                call cairo.set_source_rgba(cr, dot[0], dot[1], dot[2], dot[3])
+                color = INDICATOR_URGENT
             end
-            call cairo.arc(cr, x + z / 2.0, Float(py + geo["panel_h"]) - Float(geo["bottom"]) / 2.0, max(2.0, Float(geo["size"]) / 22.0), 0.0, 2.0 * cairo.PI)
-            call cairo.fill(cr)
+            call draw_indicator(cr, x + z / 2.0, Float(py + geo["panel_h"]), Float(geo["size"]) / 4.0, color)
         end
     end
-    if hover >= 0:
+    move["drawn"] = drawn
+    if hover >= 0 and not moving:
         call draw_label(cr, items[hover]["name"], lay[0][hover] + lay[1][hover] / 2.0, base - lay[1][hover])
     end
     call update_region(lay)
