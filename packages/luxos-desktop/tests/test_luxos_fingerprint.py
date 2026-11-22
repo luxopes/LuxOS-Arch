@@ -339,7 +339,7 @@ class Gui(Fixture):
         self.start("--enrolled", "left-thumb", lang="cs_CZ.UTF-8")
         self.wait_main()
         self.assertEqual(self.rows(), ["Levý palec"])
-        self.assertEqual([w["title"] for w in self.app.dump()], ["Otisk"])
+        self.assertEqual([w["title"] for w in self.app.dump()], ["Otisk prstu"])
 
 
 if __name__ == "__main__":

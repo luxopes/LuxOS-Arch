@@ -33,7 +33,7 @@ DEFAULT_PAGE = "appearance"
 
 S = {"window": 0, "header": 0, "stack": 0, "list": 0, "search": 0, "sidebar": 0, "pages": [], "by_id": {}, "rows": {},
      "row_of": {}, "separators": [], "built": {}, "page_rows": {}, "current": "", "host": {}, "glass": False,
-     "region": [], "quiet": False, "dark": False, "css": 0, "bus": 0, "retry": 0}
+     "region": [], "quiet": False, "dark": False, "css": 0, "bus": 0, "retry": 0, "glyphs": 0, "glyph_files": {}}
 
 function wayland():
     return env.get("WAYLAND_DISPLAY", "") != ""
@@ -178,13 +178,51 @@ end
 
 # ---- postranni panel --------------------------------------------------------------------------------------------
 
+# Znak na dlazdici vzdy z WhiteSur-light jako soubor: v jinem motivu ikon chybejici symbolicka ikona spadne na barevnou,
+# mensi nez dlazdice, a zbytek dlazdice zustane tmavy. Soubor -symbolic.svg GTK prebarvi podle CSS jako ikonu z motivu.
+function glyph_file(name):
+    unsafe:
+        if S["glyphs"] == 0:
+            S["glyphs"] = __lsl_qbe_call0(__lsl_symbol("gtk_icon_theme_new"))
+            call __lsl_qbe_call2(__lsl_symbol("gtk_icon_theme_set_custom_theme"), ptr(S["glyphs"]), cstr("WhiteSur-light"))
+        end
+        info = __lsl_qbe_call4(__lsl_symbol("gtk_icon_theme_lookup_icon"), ptr(S["glyphs"]), cstr(name), 16, 0)
+        if info == 0:
+            return ""
+        end
+        path = glib.from_c(__lsl_qbe_call1(__lsl_symbol("gtk_icon_info_get_filename"), info))
+        call glib.object_unref(info)
+    end
+    if path.endswith("/" + name + ".svg"):
+        return path
+    end
+    return ""
+end
+
+function glyph(p):
+    path = glyph_file(p["icon"])
+    S["glyph_files"][p["id"]] = path
+    if path == "":
+        return gtk.image_new_from_icon_name(p["icon"], gtk.ICON_MENU)
+    end
+    unsafe:
+        file = __lsl_qbe_call1(__lsl_symbol("g_file_new_for_path"), cstr(path))
+        icon = __lsl_qbe_call1(__lsl_symbol("g_file_icon_new"), file)
+        image = __lsl_qbe_call2(__lsl_symbol("gtk_image_new_from_gicon"), icon, gtk.ICON_MENU)
+        call glib.object_unref(icon)
+        call glib.object_unref(file)
+    end
+    return image
+end
+
 function plate(p):
     box = gtk.box_new(gtk.HORIZONTAL, 0)
     call gtk.widget_add_class(box, "plate")
     call gtk.widget_set_name(box, "plate-" + p["id"])
     call gtk.widget_set_valign(box, gtk.ALIGN_CENTER)
-    image = gtk.image_new_from_icon_name(p["icon"], gtk.ICON_MENU)
-    call gtk.image_set_pixel_size(image, 14)
+    image = glyph(p)
+    # navrh WhiteSur je na mrizce 16 px: 14 px rozmaze tahy a necha znak maly
+    call gtk.image_set_pixel_size(image, 16)
     call gtk.widget_set_halign(image, gtk.ALIGN_CENTER)
     call gtk.box_pack_start(box, image, True, True, 0)
     return box
@@ -562,6 +600,8 @@ function on_test(command, rest):
         call on_search(S["search"])
     elif command == "sidebar":
         call lsys.out("sidebar " + json.encode(visible_ids()) + "\n")
+    elif command == "glyphs":
+        call lsys.out("glyphs " + json.encode(S["glyph_files"]) + "\n")
     elif command == "state":
         call lsys.out("state " + json.encode({"page": S["current"], "glass": S["glass"], "region": S["region"],
                                                        "dark": S["dark"], "built": [k for k in S["built"]]}) + "\n")

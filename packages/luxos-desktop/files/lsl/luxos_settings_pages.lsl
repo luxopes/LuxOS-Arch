@@ -49,61 +49,61 @@ function all():
     out.append(page("bluetooth", "Bluetooth", "bluetooth-active-symbolic", "#3d7bff", 0, ["devices", "pair", "headphones", "mouse"],
              ["luxos-bluetooth"], {"build": bluetooth.build, "leave": bluetooth.leave, "show": bluetooth.show, "test": bluetooth.test}))
     out.append(app("network", "Network", "network-workgroup-symbolic", "#3d7bff", 0, ["router", "ip address", "dns", "ping", "speed"], ["luxos-router"]))
-    out.append(page("firewall", "Firewall", "security-high-symbolic", "#8e8e93", 0, ["ports", "ssh", "block", "allow", "security"],
+    out.append(page("firewall", "Firewall", "security-high-symbolic", "#ff9500", 0, ["ports", "ssh", "block", "allow", "security"],
              ["luxos-firewall-settings"], {"build": firewall.build, "show": firewall.show, "test": firewall.test}))
     out.append(page("notifications", "Notifications", "preferences-system-notifications-symbolic", "#ff3b30", 1,
              ["do not disturb", "banners", "alerts", "sounds", "history"], [], {"build": notifications.build, "test": notifications.test}))
     out.append(app("sound", "Sound", "audio-volume-high-symbolic", "#ff2d55", 1, ["volume", "speakers", "microphone", "output", "input"], ["pavucontrol"]))
-    out.append(page("appearance", "Appearance", "preferences-desktop-theme-symbolic", "#48484a", 2,
+    out.append(page("appearance", "Appearance", "dark-mode-symbolic", "#af52de", 2,
              ["dark mode", "light mode", "accent color", "theme", "icons", "fonts", "text size", "cursor"], [],
              {"build": appearance.build, "test": appearance.test}))
     out.append(page("accessibility", "Accessibility", "preferences-desktop-accessibility-symbolic", "#3d7bff", 2,
              ["reduce motion", "larger text", "contrast", "pointer size", "sticky keys", "zoom"], [],
              {"build": accessibility.build, "test": accessibility.test}))
-    out.append(page("desktop", "Desktop & Dock", "user-desktop-symbolic", "#48484a", 2,
+    out.append(page("desktop", "Desktop & Dock", "user-desktop-symbolic", "#32ade6", 2,
              ["wallpaper", "widgets", "dock", "menu bar", "boot screen", "magnification"], ["xfdesktop-settings"],
              {"build": desktop.build, "leave": desktop.leave}))
-    out.append(page("windows", "Windows & Workspaces", "preferences-system-windows-symbolic", "#5856d6", 2,
+    out.append(page("windows", "Windows & Workspaces", "view-dual-symbolic", "#5856d6", 2,
              ["workspaces", "title bar", "double-click", "animation", "focus", "window manager"], [],
              {"build": windows.build, "test": windows.test}))
     out.append(page("displays", "Displays", "video-display-symbolic", "#3d7bff", 2,
              ["monitor", "resolution", "scale", "refresh rate", "night light", "mirror", "rotation"],
              ["luxos-display-settings", "luxos-displays-settings"],
              {"build": displays.build, "cli": displays.cli, "leave": displays.leave, "show": displays.show, "test": displays.test}))
-    out.append(page("lock", "Screen Lock", "system-lock-screen-symbolic", "#48484a", 2,
+    out.append(page("lock", "Screen Lock", "system-lock-screen-symbolic", "#30b0c7", 2,
              ["screen saver", "password", "lock", "inactivity", "sleep"], ["luxos-lock-settings"], {"build": lock.build}))
     out.append(page("power", "Battery & Power", "battery-good-symbolic", "#34c759", 3,
              ["battery", "power mode", "battery saver", "sleep", "lid", "screen off"], ["luxos-power"],
              {"build": power.build, "leave": power.leave, "show": power.show, "test": power.test}))
-    out.append(page("keyboard", "Keyboard", "input-keyboard-symbolic", "#8e8e93", 3,
+    out.append(page("keyboard", "Keyboard", "input-keyboard-symbolic", "#7d7aff", 3,
              ["layout", "shortcuts", "key repeat", "language", "input source"],
              ["luxos-keyboard-settings"], {"build": keyboard.build, "cli": keyboard.cli, "show": keyboard.show, "leave": keyboard.leave, "test": keyboard.test}))
-    out.append(page("mouse", "Mouse & Touchpad", "input-mouse-symbolic", "#8e8e93", 3,
+    out.append(page("mouse", "Mouse & Touchpad", "input-mouse-symbolic", "#32ade6", 3,
              ["pointer speed", "natural scrolling", "tap to click", "trackpad", "scrolling", "inertia", "left-handed"],
              ["luxos-scrolling"], {"build": mouse.build, "cli": mouse.cli, "test": mouse.test}))
-    out.append(app("printers", "Printers & Scanners", "printer-symbolic", "#8e8e93", 3, ["print", "scan"], ["luxos-printers"]))
+    out.append(app("printers", "Printers & Scanners", "printer-symbolic", "#ff9500", 3, ["print", "scan"], ["luxos-printers"]))
     out.append(app("phone", "Phone", "phone-symbolic", "#34c759", 3, ["companion", "android", "iphone"], ["luxos-companion"]))
     out.append(page("fingerprint", "Fingerprint", "fingerprint-symbolic", "#ff3b30", 4, ["touch id", "login", "unlock", "sudo"],
              ["luxos-fingerprint"], {"build": fingerprint.build, "leave": fingerprint.leave, "test": fingerprint.test}))
-    out.append(page("profile", "Profile Picture", "avatar-default-symbolic", "#8e8e93", 4, ["account", "user", "photo", "avatar", "camera"],
+    out.append(page("profile", "Profile Picture", "avatar-default-symbolic", "#30b0c7", 4, ["account", "user", "photo", "avatar", "camera"],
              ["luxos-profile-picture"], {"build": profile.build, "cli": profile.cli, "show": profile.show, "leave": profile.leave, "test": profile.test}))
-    out.append(app("account", "LuxAI Account", "user-info-symbolic", "#5856d6", 4, ["luxai", "sign in", "subscription"], ["luxos-account"]))
-    out.append(app("domain", "Organization Network", "network-server-symbolic", "#8e8e93", 4, ["domain", "active directory", "company"],
+    out.append(app("account", "LuxAI Account", "system-users-symbolic", "#5856d6", 4, ["luxai", "sign in", "subscription"], ["luxos-account"]))
+    out.append(app("domain", "Organization Network", "network-server-symbolic", "#3d7bff", 4, ["domain", "active directory", "company"],
             ["luxos-domain-settings"]))
-    out.append(page("default-apps", "Default Apps", "applications-system-symbolic", "#8e8e93", 5,
+    out.append(page("default-apps", "Default Apps", "applications-system-symbolic", "#3d7bff", 5,
              ["browser", "email", "mail", "file manager", "terminal", "open with", "mime"], [],
              {"build": default_apps.build, "test": default_apps.test}))
-    out.append(page("login-items", "Login Items", "system-run-symbolic", "#8e8e93", 5, ["autostart", "startup", "open at login", "background"],
+    out.append(page("login-items", "Login Items", "system-run-symbolic", "#00c7be", 5, ["autostart", "startup", "open at login", "background"],
              [], {"build": login_items.build, "test": login_items.test}))
-    out.append(page("drives", "Removable Drives", "drive-removable-media-symbolic", "#8e8e93", 5,
+    out.append(page("drives", "Removable Drives", "drive-removable-media-symbolic", "#ff9500", 5,
              ["usb", "automount", "media", "cd", "camera", "autorun"], [], {"build": drives.build, "test": drives.test}))
-    out.append(page("app-reset", "Reset App Settings", "edit-undo-symbolic", "#8e8e93", 5, ["reset", "defaults", "backup"],
+    out.append(page("app-reset", "Reset App Settings", "edit-undo-symbolic", "#ff3b30", 5, ["reset", "defaults", "backup"],
              ["luxos-app-reset"], {"build": app_reset.build, "cli": app_reset.cli, "test": app_reset.test}))
-    out.append(app("update", "Software Update", "software-update-available-symbolic", "#8e8e93", 5, ["updates", "upgrade", "kernel"], ["luxos-update"]))
-    out.append(app("drivers", "Drivers", "application-x-firmware-symbolic", "#8e8e93", 5, ["nvidia", "graphics", "firmware"], ["luxos-drivers"]))
-    xfce = app("xfce", "Xfce Settings Manager", "preferences-system-symbolic", "#8e8e93", 5, ["xfce", "advanced"], ["/usr/bin/xfce4-settings-manager"])
+    out.append(app("update", "Software Update", "software-update-available-symbolic", "#34c759", 5, ["updates", "upgrade", "kernel"], ["luxos-update"]))
+    out.append(app("drivers", "Drivers", "application-x-firmware-symbolic", "#af52de", 5, ["nvidia", "graphics", "firmware"], ["luxos-drivers"]))
+    xfce = app("xfce", "Xfce Settings Manager", "preferences-system-symbolic", "#30b0c7", 5, ["xfce", "advanced"], ["/usr/bin/xfce4-settings-manager"])
     xfce["only"] = "x11"
     out.append(xfce)
-    out.append(app("about", "About This Computer", "computer-symbolic", "#8e8e93", 5, ["system", "version", "hardware", "memory"], ["luxos-about"]))
+    out.append(app("about", "About This Computer", "computer-symbolic", "#5856d6", 5, ["system", "version", "hardware", "memory"], ["luxos-about"]))
     return out
 end
