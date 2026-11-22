@@ -20,6 +20,8 @@ load luxos_tokens as tokens
 
 CASCADE = 28
 PLACE_MARGIN = 8
+REACH_X = 100       # tolik px okna zustava vodorovne na monitoru (keep_reachable, presun mysi v jadre)
+REACH_TITLE = 30    # u okna s vlastnim zahlavim (CSD) vyska jeho zahlavi
 DOUBLE_CLICK_US = 400000
 SYSTEM_CONFIG = "/usr/share/luxwm/luxwm.conf"
 PRIVILEGED = "/usr/share/luxwm/privileged.conf"
@@ -702,6 +704,8 @@ function rescue_windows():
                 call fit_tiled(o)
             end
             call note("rescued " + String(o) + " to " + lc.output_name(target))
+        else:
+            call keep_reachable(o)
         end
         o = lc.view_next(o)
     end
@@ -1073,6 +1077,32 @@ function restore_geometry(v):
         g = saved.pop(v)
         call lc.view_resize(v, g[2], g[3])
         call lc.view_move(v, g[0], g[1])
+        call keep_reachable(v)
+    end
+end
+
+# Zahlavi okna musi jit chytit (pripominka 28): ram nahore ne pod listou, nahore aspon vyska zahlavi nad spodkem
+# pouzitelne plochy, vodorovne aspon REACH_X px na monitoru. Presun mysi hlida jadro (input.c keep_reachable).
+function keep_reachable(v):
+    if v in maxed or v in tiled or v in full:
+        return
+    end
+    f = frame(v)
+    out = lc.output_at(f[0] + f[2] // 2, f[1])
+    if out == 0:
+        out = output_of(v)
+    end
+    u = usable(out)
+    if u[2] <= 0 or u[3] <= 0:
+        return
+    end
+    top = vget(v, lc.VIEW_DECO_TOP)
+    title = top if top > 0 else REACH_TITLE
+    y = max(u[1], min(f[1], u[1] + u[3] - title))
+    x = max(u[0] + REACH_X - f[2], min(f[0], u[0] + u[2] - REACH_X))
+    if x != f[0] or y != f[1]:
+        call lc.view_move(v, x, y + top)
+        call note("reachable " + String(v) + " " + String(x) + "," + String(y))
     end
 end
 
@@ -1512,10 +1542,7 @@ function usable_changed(out):
             elif o in tiled:
                 call fit_tiled(o)
             else:
-                top = vget(o, lc.VIEW_DECO_TOP)
-                if vget(o, lc.VIEW_Y) - top < u[1]:
-                    call lc.view_move(o, vget(o, lc.VIEW_X), u[1] + top)
-                end
+                call keep_reachable(o)
             end
         end
         o = lc.view_next(o)
