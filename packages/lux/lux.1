@@ -1,5 +1,6 @@
+'\" t
 .\" LuxOS - manualova stranka lux(1); prikazy musi odpovidat "lux --help" (test_lux_cli.py ji kontroluje)
-.TH LUX 1 "2026-10-24" "LuxOS" "LuxOS Manual"
+.TH LUX 1 "2026-11-23" "LuxOS" "LuxOS Manual"
 .SH NAME
 lux \- LuxOS package manager (repositories, Flathub, community/AUR and .lux apps)
 .SH SYNOPSIS
@@ -34,7 +35,15 @@ command instead.
 .SH COMMANDS
 .TP
 .B (no command)
-Interactive app store in the terminal (fzf): search, install, remove and update.
+Interactive app store in the terminal (fzf): type to search,
+.B Enter
+installs,
+.B Ctrl\-R
+removes,
+.B Ctrl\-U
+updates the whole system and
+.B Tab
+selects more packages.
 .TP
 .BR install ", " i " " \fIpkg\fR...
 Install packages. Sources are tried in this order: the LuxOS and Arch Linux repositories,
@@ -43,6 +52,15 @@ LuxOS
 apps, Flathub (for example
 .B lux install zoom
 installs us.zoom.Zoom), and last the community source (AUR).
+Packages that are already installed are skipped. A local file works too:
+.I app.lux
+or
+.IR package.pkg.tar.zst .
+See
+.B SOURCES
+and
+.B COMMUNITY PACKAGES (AUR)
+below.
 .IP
 Community packages are build scripts written by other users and are not checked by LuxOS.
 Before building, the script is checked by fixed rules and by LuxAI Lite (when you are signed in
@@ -108,6 +126,11 @@ List available updates (from the last downloaded package lists; see
 .BR "list \-\-lux" ", " "list \-\-aur"
 List LuxOS (.lux) or AUR packages.
 .TP
+.BR "list \-\-explicit" ", " "list \-\-orphans"
+Packages you installed on purpose (not as a dependency), or dependencies nothing needs any more
+(remove them with
+.BR autoremove ).
+.TP
 .BI reinstall " pkg..."
 Install the same version again.
 .TP
@@ -117,8 +140,11 @@ Remove dependencies nothing needs any more.
 .BI files " pkg"
 Files installed by a package.
 .TP
-.BI owns " file"
-Which package owns a file.
+.BR owns ", " owner " " \fIfile\fR
+Which package owns a file; a command name from
+.B PATH
+works too
+.RB ( "lux owns firefox" ).
 .TP
 .B clean
 Clean the package cache (keeps the number of versions set by
@@ -126,7 +152,10 @@ Clean the package cache (keeps the number of versions set by
 and remove unneeded packages.
 .TP
 .B fix
-Repair a locked package database and the signing keys.
+Repair a locked package database (only when no package manager is running), delete unfinished
+downloads and renew the signing keys (Arch Linux and LuxOS keyrings). Use it when
+.B lux
+says the database is locked or a signature is unknown or corrupted.
 .TP
 .B configs
 Review and merge new configuration files (.luxnew, .luxsave; older .pacnew, .pacsave) left by updates.
@@ -147,6 +176,8 @@ choose without asking.
 .BR "config check" ", " "config edit" ", " "config migrate"
 Check or edit /etc/lux/lux.conf
 .RB ( "config show" " prints the file;"
+.B config engine
+prints the configuration generated for the core tools (makepkg, hooks);
 .B config migrate
 converts a file in the old LuxOS 0.9 format to the new one and keeps the original as
 .IR lux.conf.old\-format ).
@@ -229,6 +260,95 @@ accounts (also offline), administrators from domain groups. Needs the package
 .BR luxos\-domain .
 See
 .BR luxos\-domain (8).
+.SH SOURCES
+.B lux install
+looks for each name in this order and uses the first source that has it:
+.IP 1. 4
+the LuxOS and Arch Linux repositories (in the order of the
+.RI [repo. NAME ]
+tables in
+.IR /etc/lux/lux.conf ),
+signed and checked before installing;
+.IP 2. 4
+LuxOS apps
+.RB ( .lux
+packages, also from the LuxOS Store);
+.IP 3. 4
+Flathub: the name is looked up through the Flathub API and the download size includes the shared
+runtime when it is not installed yet;
+.IP 4. 4
+the community source (AUR).
+.PP
+.B \-\-repo
+uses only the repositories and
+.B \-\-aur
+only the community source.
+.B lux search
+shows where a name is available before you install it.
+.SH COMMUNITY PACKAGES (AUR)
+The AUR holds build scripts (PKGBUILD) written by other users. LuxOS does not check them, so
+.B lux
+is careful with them:
+.IP \(bu 2
+the script is checked by fixed rules and, when you are signed in to LuxAI, by LuxAI Lite;
+with
+.B review_pkgbuild = true
+.RB ( [packages] )
+you are also offered the script to read before it is built;
+.IP \(bu 2
+the package is built on this computer and installed into your sandbox
+.RB ( luxos\-sandbox ),
+isolated from your files and the system;
+.IP \(bu 2
+into the system only with
+.BR \-\-system ,
+or when you choose it and type the word
+.BR system .
+A script found dangerous is never installed into the system; an unchecked one only after you
+confirm it (never with
+.BR \-y );
+.IP \(bu 2
+.B lux update
+updates community packages in the system and checks new versions of their scripts again;
+.B lux list \-\-aur
+lists them.
+.PP
+.B aur = false
+in
+.B [packages]
+turns the AUR off (for one user in
+.IR ~/.config/lux/lux.conf ).
+.SH UPDATES
+.B lux update
+refreshes the package lists, renews the signing keys first and then updates the whole system,
+community packages in the system, .lux apps and Flatpak apps (and removes unused Flatpak runtimes).
+On a Btrfs system LuxOS Care takes a snapshot before the change, so an update can be undone with
+.B lux rollback
+or from the boot menu.
+.PP
+Held packages
+.RB ( hold " in " [packages] )
+are skipped. A failed download is retried up to 3 times; Ctrl+C during installing finishes the
+package in progress and stops safely. Updates in the background (with notifications) are done by
+LuxOS Care and Software Update.
+.PP
+.B Update channel.
+.B channel = \(dqstable\(dq
+.RB ( [general] )
+gets released versions.
+.B \(dqstaging\(dq
+gets test builds before a release (for testers): addresses starting with
+.I https://luxos.lux\-ai.cz/repo/
+are read from
+.I https://luxos.lux\-ai.cz/staging/
+instead. Arch Linux and your own repositories do not change. Switch it in Software Update, with
+.B updates.channel
+in
+.I /etc/luxos/system.lsl
+and
+.BR "sudo lux system apply" ,
+or with
+.BR "sudo /usr/lib/lux/lux\-config set\-channel staging" .
 .SH OPTIONS
 .TP
 .BR \-y ", " \-\-yes
@@ -293,6 +413,137 @@ or use
 which checks the file right away.
 The full format is described in /usr/share/doc/lux/lux.md and in the LuxOS documentation
 (/usr/share/luxos/docs, also on https://luxos.lux\-ai.cz/docs/).
+.SS Keys
+.TP
+.B [general]
+.B architecture
+(\(dqauto\(dq),
+.BR color ", " candy " (Pac\-Man progress bar), " verbose
+(true),
+.B syslog
+(false: also log to the system journal),
+.B channel
+(\(dqstable\(dq or \(dqstaging\(dq, see
+.BR UPDATES ),
+.B countme
+(true, see
+.BR "config countme" ).
+.TP
+.B [downloads]
+.B parallel
+(10 files at once),
+.B check_space
+(true),
+.B user
+(\(dqalpm\(dq: downloads run without root rights; \(dqnone\(dq),
+.B timeout
+(true;
+.B false
+waits for slow mirrors),
+.B sandbox
+(true: the download process is restricted).
+.TP
+.B [security]
+.B signatures
+(\(dqrequired\(dq or \(dqoptional\(dq; \(dqnever\(dq only for a local file:// repository),
+.B local_signatures
+(\(dqoptional\(dq: packages installed from a file, e.g. built from the AUR),
+.B protect
+([\(dqlux\-engine\(dq, \(dqglibc\(dq]: packages
+.B lux remove
+never removes without asking, not even with
+.BR \-y ).
+.TP
+.B [packages]
+.B aur
+(true),
+.B review_pkgbuild
+(true),
+.B flatpak
+(true:
+.B lux update
+updates Flatpak apps too),
+.B cache_keep
+(2 versions kept by
+.BR "lux clean" ),
+.B hold
+(packages
+.B lux update
+skips),
+.B ignore_group
+(the same for groups),
+.B no_upgrade
+(paths without the leading /, an update writes a new version as .luxnew instead),
+.B no_extract
+(path patterns that are never unpacked, e.g. usr/share/doc/*).
+.TP
+.B [paths]
+.BR cache ", " hooks ", " database ", " log ", " keyring
+(other locations than the defaults in
+.BR FILES ).
+.TP
+.B [include]
+.B files
+(more files, read after the whole file; relative paths are relative to the file).
+.PP
+Lists from all files are added together (a
+.B hold
+in conf.d adds more packages); other values from a file read later replace earlier ones.
+.SS Repositories
+One
+.RI [repo. NAME ]
+table per repository; the order of the tables is the search order. A name with a dot or + needs
+quotes:
+.RB [repo.\(dq my.repo \(dq].
+Keys:
+.B server
+(\(dqhttps://...\(dq, http, ftp or file, or a list;
+.B $repo
+and
+.B $arch
+are filled in),
+.B mirrors
+(a mirror list file such as \(dq/etc/lux/mirrorlist\(dq),
+.B signatures
+(overrides the global setting),
+.B usage
+([\(dqsync\(dq, \(dqsearch\(dq, \(dqinstall\(dq, \(dqupgrade\(dq] or \(dqall\(dq).
+.PP
+Add a repository in its own file, for example
+.IR /etc/lux/conf.d/my.conf :
+.PP
+.RS 4
+.nf
+[repo.my]
+server = "https://example.org/$repo/$arch"
+.fi
+.RE
+.PP
+Import its key with
+.B "sudo /usr/lib/lux/alpm/bin/lux\-engine\-key \-\-recv\-keys" \fIID\fR
+and
+.BR \-\-lsign\-key " " \fIID\fR ,
+then run
+.BR "lux update" .
+The
+.B multilib
+repository (Steam) is turned on with
+.BR "sudo /usr/lib/lux/lux\-config enable\-repo multilib" .
+.SS Errors
+A syntax error or a wrong value is an error with the file name and line number, for example
+.PP
+.RS 4
+.nf
+/etc/lux/lux.conf:11: 'parallel' in [downloads] must be a whole
+number of at least 1 (without quotes), not "10"
+.fi
+.RE
+.PP
+Until it is fixed,
+.B lux
+(and the Store and LuxOS Care) installs and updates nothing. An unknown key is only a warning in
+.B lux config check
+(with a suggestion) and is not used.
 .SH FILES
 .TP
 .B /etc/lux/lux.conf
@@ -315,6 +566,85 @@ Downloaded packages. A damaged file found there is deleted and downloaded again.
 .TP
 .B /var/log/lux.log
 Log of package changes (lux history).
+.TP
+.B /etc/lux/keyring/
+GnuPG keyring for package signatures
+.RB ( "lux fix" " repairs it)."
+.TP
+.B /etc/lux/hooks/
+The administrator's own transaction hooks
+.RI ( *.hook ,
+alpm\-hooks format).
+.TP
+.BI file .luxnew ", " file .luxsave ", " file .lux\-old
+New configuration version that could not be merged, your changed file kept after
+.BR remove ,
+your previous file kept after an automatic merge.
+.TP
+.B /run/lux/engine.conf
+Generated from lux.conf for the core tools \- do not edit.
+.SH ENVIRONMENT
+.TP
+.B NO_COLOR
+No colours and progress bars (also when the output is not a terminal; then it is plain text).
+.TP
+.B LUX_BACKEND=engine
+Use the core tool
+.B lux\-engine
+instead of libalpm through pyalpm (normally only a fallback when pyalpm cannot be used).
+.SH PACMAN EQUIVALENTS
+There is no pacman on LuxOS; these
+.B lux
+commands do the same:
+.PP
+.TS
+l l.
+pacman \-Syu	lux update
+pacman \-S \fIpkg\fR (\-\-needed)	lux install \fIpkg\fR
+pacman \-U \fIfile\fR	lux install \fIfile\fR
+pacman \-Rs \fIpkg\fR (\-Rns)	lux remove \fIpkg\fR (\-n)
+pacman \-Ss \fIterm\fR	lux search \fIterm\fR
+pacman \-Qi / \-Si \fIpkg\fR	lux info \fIpkg\fR
+pacman \-Q	lux list
+pacman \-Qu / checkupdates	lux list \-\-upgradable / lux check
+pacman \-Qe / \-Qm / \-Qdt	lux list \-\-explicit / \-\-aur / \-\-orphans
+pacman \-Ql \fIpkg\fR	lux files \fIpkg\fR
+pacman \-Qo \fIfile\fR	lux owns \fIfile\fR
+paccache \-rk2	lux clean
+pacdiff	lux configs
+pacman\-key \-\-init/\-\-populate	lux fix
+.TE
+.SH TROUBLESHOOTING
+.TP
+.B The database is locked
+Another program is changing packages (Software Update, the Store, LuxOS Care). Wait for it; if
+nothing is running any more, run
+.BR "lux fix" .
+.TP
+.B Signature or key errors
+.B lux fix
+renews the signing keys, then try again.
+.TP
+.B A downloaded package is corrupted
+.B lux
+deletes it from /var/cache/lux/pkg and downloads it once more by itself; only when it is still
+corrupted does it name the package.
+.TP
+.B Error in the configuration
+.B lux config check
+shows the file and line;
+.B lux config edit
+checks the file right after editing.
+.TP
+.B An update broke something
+.B lux rollback
+(or "LuxOS (before update of ...)" in the boot menu) returns the system to the snapshot taken before it.
+.TP
+.B More details
+.B \-v
+shows the full package lists, script output and raw libalpm errors;
+.B lux doctor
+checks services, disk space, the configuration and updates.
 .SH EXIT STATUS
 .TP
 .B 0
@@ -352,6 +682,25 @@ The last changes of one package.
 .TP
 .B lux \-y remove vlc
 Remove without asking.
+.TP
+.B lux install \-\-aur \-\-system IpkgR
+Build a package from the AUR and install it into the system instead of the sandbox.
+.TP
+.B lux install ./app.lux
+Install a LuxOS app from a file.
+.TP
+.B lux owns firefox
+Which package the command firefox comes from.
+.TP
+.B lux list \-\-orphans
+Dependencies nothing needs any more (remove them with
+.BR "lux autoremove" ).
+.TP
+.B lux config countme off
+Turn off the anonymous weekly install count.
+.TP
+.B lux rollback
+Go back to the system before the last update.
 .SH SEE ALSO
 .BR luxos\-care (8),
 .BR luxos\-system (5),
