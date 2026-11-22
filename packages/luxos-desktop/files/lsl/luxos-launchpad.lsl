@@ -415,7 +415,13 @@ function panel_redraw():
         return 0
     end
     g = S["geo"]
-    call gtk.widget_queue_draw_area(window, g["x"] - 2, g["y"] - 2, g["w"] + 4, g["h"] + 4)
+    # se stinem panelu (pod luxwm) i jeho dosah: pri nabehu zustal stin mimo prekreslenou oblast s alfou
+    # prvniho snimku a kolem panelu byl ostry tmavsi obdelnik (pripominka 26)
+    m = 2
+    if S["blur"]:
+        m = tokens.elevation("sheet", dark())[0]
+    end
+    call gtk.widget_queue_draw_area(window, g["x"] - m, g["y"] - m, g["w"] + 2 * m, g["h"] + 2 * m)
     return 0
 end
 
