@@ -103,6 +103,13 @@ Settings: `workspaces` (1–16, also changed by `reload`: windows of removed wor
 out and at startup; default `luxos-displays auto`, which applies the saved display settings for the
 connected set of monitors; empty = nothing).
 
+Night light (Control Center moon next to brightness, Settings > Displays): `night_light` (`off`, `on`,
+`schedule` from `night_light_from` to `night_light_to`, `H:MM`, also across midnight), `night_light_temperature`
+(kelvin, 1000–6500, default 4000). A quick toggle in schedule mode lasts until the next schedule boundary; IPC
+`get_night_light`/`set_night_light`, `luxwm-msg night-light [on|off]`. Screens without a backlight get software
+brightness from `~/.config/luxos/brightness` (IPC `set_brightness`). libluxcomp uses the output's gamma table,
+or a warm and a black overlay where there is none (VMs).
+
 Mouse and touchpad (Settings > Mouse & Touchpad writes them): `mouse_OPTION` and `touchpad_OPTION`, applied
 by libluxcomp to every libinput device of that kind, also to devices plugged in later (a touchpad is a
 device that can tap). Options: `speed` (-100 slow .. 100 fast, libinput accel speed -1..1), `accel`

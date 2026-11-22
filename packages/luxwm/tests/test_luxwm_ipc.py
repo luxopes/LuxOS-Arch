@@ -699,6 +699,84 @@ class LuxwmIpc(unittest.TestCase):
         s.msg("set-theme", "light")
         self.assertEqual(pixel(s.shot("theme-light2.ppm"), *probe), light)
 
+    # ---- nocni svetlo a softwarovy jas ----------------------------------------------------------------
+
+    def night(self, s, **request):
+        r = s.msg("--raw", json.dumps({"cmd": "set_night_light", **request}), check=False)
+        return json.loads(r.stdout) if r.returncode == 0 else {"ok": False, "error": r.stderr.strip()}
+
+    def test_night_light_overlay_toggle_and_brightness(self):
+        """Headless vystup nema gamma tabulku: teply zavoj a ztlumeni nad vsim, vstup jde pod ne."""
+        s = self.session()
+        s.client("Under", size="500x300")
+        probe = (W // 2, H // 2)
+        plain = pixel(s.shot("night-off.ppm"), *probe)
+        state = json.loads(s.msg("night-light").stdout)
+        self.assertEqual((state["mode"], state["on"], state["temperature"], state["from"], state["to"]),
+                         ("off", False, 4000, "21:00", "7:00"))
+        state = json.loads(s.msg("night-light", "on").stdout)
+        self.assertTrue(state["on"])
+        warm = pixel(s.shot("night-on.ppm"), *probe)
+        print(f"\n  nocni svetlo {plain} -> {warm}")
+        self.assertGreaterEqual(warm[0], plain[0] - 2, "cervena zustava")
+        self.assertLess(warm[2], plain[2] - 15, "modre ubude")
+        self.assertGreater(warm[0] - warm[2], plain[0] - plain[2] + 40, "teplejsi")
+        self.assertIn("night_light = on", open(s.path("luxwm", "luxwm.conf")).read(), "on/off se ulozi")
+        # klik projde zavojem do okna
+        mark = len(s.clients_log())
+        s.input(f"move {probe[0]} {probe[1]}", "click")
+        self.assertIn("button", s.clients_log()[mark:])
+        # softwarovy jas: cerne ztlumeni presne (plus zaokrouhleni)
+        s.msg("night-light", "off")
+        self.assertEqual(pixel(s.shot("night-off2.ppm"), *probe), plain, "vypnuto = puvodni obraz")
+        s.msg("--raw", '{"cmd": "set_brightness", "value": 50}')
+        half = pixel(s.shot("bright-50.ppm"), *probe)
+        for a, b in zip(plain, half):
+            self.assertLessEqual(abs(b - a / 2), 2, (plain, half))
+        for bad in (5, 101, "50"):
+            r = s.msg("--raw", json.dumps({"cmd": "set_brightness", "value": bad}), check=False)
+            self.assertEqual(r.returncode, 1, bad)
+        # jas po reload z ~/.config/luxos/brightness (uklada Ovladaci centrum)
+        os.makedirs(s.path("luxos"), exist_ok=True)
+        open(s.path("luxos", "brightness"), "w").write("100\n")
+        s.msg("reload")
+        self.assertEqual(pixel(s.shot("bright-100.ppm"), *probe), plain)
+        self.assertNotIn("error in", s.log())
+
+    def test_night_light_schedule_and_bad_input(self):
+        s = self.session()
+        t = time.localtime()
+        now = t.tm_hour * 60 + t.tm_min
+
+        def clock(m):
+            m %= 1440
+            return f"{m // 60}:{m % 60:02d}"
+        # okno kolem ted (i pres pulnoc): zapnuto; rychle prepnuti plati do pristi hranice, rozvrh zustava
+        s.write_user_conf(f"night_light = schedule\nnight_light_from = {clock(now - 60)}\nnight_light_to = {clock(now + 60)}\n")
+        s.msg("reload")
+        state = json.loads(s.msg("night-light").stdout)
+        self.assertEqual((state["mode"], state["on"]), ("schedule", True))
+        self.assertFalse(self.night(s, on=False)["on"])
+        conf = open(s.path("luxwm", "luxwm.conf")).read()
+        self.assertIn("night_light = schedule", conf, "prepnuti v rozvrhu se neuklada")
+        self.assertTrue(self.night(s, on=True)["on"])
+        # okno az za hodinu: vypnuto
+        state = self.night(s, **{"from": clock(now + 60), "to": clock(now + 120)})
+        self.assertFalse(state["on"])
+        self.assertEqual(state["from"], clock(now + 60))
+        self.assertIn("night_light_from = " + clock(now + 60), open(s.path("luxwm", "luxwm.conf")).read())
+        state = self.night(s, mode="on", temperature=3000)
+        self.assertEqual((state["mode"], state["on"], state["temperature"]), ("on", True, 3000))
+        for bad in ({"on": 1}, {"mode": "auto"}, {"temperature": 999}, {"temperature": "4000"}, {"from": "25:00"},
+                    {"to": "7"}, {"from": 700}):
+            self.assertFalse(self.night(s, **bad)["ok"], bad)
+        self.assertEqual(json.loads(s.msg("night-light").stdout)["temperature"], 3000, "spatny pozadavek nic nezmeni")
+        # spatna hodnota v luxwm.conf = vychozi
+        s.write_user_conf("night_light = maybe\nnight_light_temperature = hot\nnight_light_from = x\n")
+        s.msg("reload")
+        state = json.loads(s.msg("night-light").stdout)
+        self.assertEqual((state["mode"], state["on"], state["temperature"], state["from"]), ("off", False, 4000, "21:00"))
+
 
 if __name__ == "__main__":
     unittest.main()

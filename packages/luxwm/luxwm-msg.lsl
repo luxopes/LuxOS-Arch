@@ -2,7 +2,7 @@
 # Protokol: docs/developers/luxwm-ipc.md
 #
 #   luxwm-msg next-layout | switch-layout KOD|INDEX | switch-workspace N | set-theme light|dark
-#             | reload | get-state | get-input | list-windows | focus-window ID
+#             | reload | get-state | get-input | list-windows | focus-window ID | night-light [on|off]
 #   luxwm-msg --raw '{"cmd": ...}'          libovolny pozadavek, vypise odpoved
 #   luxwm-msg --watch TEMA...               vypisuje udalosti (window workspace keyboard output theme)
 # Konec: 0 = ok, 1 = luxwm odmitl (chyba na stderr), 2 = luxwm nebezi nebo spatne argumenty.
@@ -13,7 +13,7 @@ result = {"code": 2}
 
 function usage():
     call glib.report("usage: luxwm-msg next-layout | switch-layout CODE|INDEX | switch-workspace N | set-theme light|dark"
-        + " | reload | get-state | get-input | list-windows | focus-window ID | --raw JSON | --watch TOPIC..." + chr(10))
+        + " | reload | get-state | get-input | list-windows | focus-window ID | night-light [on|off] | --raw JSON | --watch TOPIC..." + chr(10))
     exit(2)
 end
 
@@ -47,6 +47,10 @@ function build(words):
         return {"cmd": "set_theme", "theme": arg}
     elif cmd == "focus-window" and number(arg) != None:
         return {"cmd": "focus_window", "window": number(arg)}
+    elif cmd == "night-light" and arg == "":
+        return {"cmd": "get_night_light"}
+    elif cmd == "night-light" and (arg == "on" or arg == "off"):
+        return {"cmd": "set_night_light", "on": arg == "on"}
     end
     return None
 end

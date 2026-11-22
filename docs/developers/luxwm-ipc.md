@@ -52,6 +52,9 @@ chybný JSON: `"error": "bad request"` (spojení zůstává).
 | `reload` | – | ne | znovu načte `luxwm.conf`, rozložení a opakování klávesnice, allowlist a vzhled (jako `SIGHUP`) |
 | `set_theme` | `theme`: `"light"` / `"dark"` | ne | překreslí záhlaví oken a pošle událost `theme` |
 | `set_cursor` | `theme`: název motivu kurzoru, `size`: 8–256 | ne | kurzor kompozitoru do konce relace (i po `reload`); trvale ho nastavuje Nastaveni > Vzhled v kanálu xsettings, odkud ho při přihlášení bere prostředí relace |
+| `get_night_light` | – | ne | noční světlo: `{"ok": true, "mode": "off"/"on"/"schedule", "on": právě zapnuto, "temperature": K, "from": "21:00", "to": "7:00", "brightness": %}` |
+| `set_night_light` | `on`: `true`/`false` (rychlé přepnutí) nebo `mode`, `temperature` (1000–6500), `from`, `to` (`"H:MM"`) | ne | v režimu `schedule` platí `on` do příští hranice rozvrhu, v `on`/`off` a ostatní položky se uloží do `~/.config/luxwm/luxwm.conf`; odpověď jako `get_night_light` |
+| `set_brightness` | `value`: 10–100 | ne | softwarový jas všech výstupů (monitor bez podsvícení) do konce relace; trvale ho drží `~/.config/luxos/brightness` (Ovládací centrum), luxwm ho čte při startu a `reload` |
 | `suspend_shortcuts` | `on`: `true` / `false` | ne | vypne globální zkratky, dokud klient neřekne `false` nebo se neodpojí (zadávání nové zkratky v nastavení) |
 | `list_windows` | – | ano | `{"ok": true, "windows": [okno, ...]}` v pořadí od naposledy zaměřeného |
 | `focus_window` | `window` (id okna) | ano | zaměří okno (i na jiné ploše, obnoví minimalizované) |

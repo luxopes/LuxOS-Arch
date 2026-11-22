@@ -21,6 +21,7 @@ load glib, gio, json
 load luxos_luxcomp as lc
 load luxos_tokens as tokens
 load luxos_glib as lglib
+load luxos_wm_config as wmconf
 
 CASCADE = 28
 PLACE_MARGIN = 8
@@ -164,7 +165,8 @@ end
 function load_config():
     global settings
     general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
-               "xwayland": "yes", "displays_command": "", "blur": "yes", "vrr": "fullscreen", "tearing": "yes"}
+               "xwayland": "yes", "displays_command": "", "blur": "yes", "vrr": "fullscreen", "tearing": "yes",
+               "night_light": "off", "night_light_temperature": "4000", "night_light_from": "21:00", "night_light_to": "07:00"}
     keys = {}
     if greeter:
         # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
@@ -605,6 +607,159 @@ function apply_gaming(out):
     end
     call lc.output_set(out, lc.OUT_VRR, VRR_MODES[vrr])
     call lc.output_set(out, lc.OUT_TEARING, 0 if settings.get("tearing", "yes") == "no" else 1)
+end
+
+# ---- nocni svetlo a softwarovy jas ----------------------------------------------------------------
+# luxwm.conf: night_light = off | on | schedule (od night_light_from do night_light_to, i pres pulnoc),
+# night_light_temperature v kelvinech. Rychle prepnuti (Ovladaci centrum) v rezimu schedule plati do pristi
+# hranice rozvrhu, v rezimech on/off se ulozi. Jas monitoru bez podsviceni: ~/.config/luxos/brightness
+# (uklada Ovladaci centrum, za behu IPC set_brightness). Vystup kresli libluxcomp (gamma tabulka nebo zavoj).
+NIGHT_MODES = ["off", "on", "schedule"]
+# override = [chteny stav, stav rozvrhu pri prepnuti]: plati, dokud se stav rozvrhu nezmeni
+night = {"override": None, "timer": 0, "brightness": 100, "on": False}
+
+function clock_minutes(text, fallback):
+    parts = String(text).strip().split(":")
+    value = -1
+    if len(parts) == 2 and len(parts[1]) == 2:
+        safe:
+            value = Int(parts[0]) * 60 + Int(parts[1])
+        end
+    end
+    if value < 0 or value >= 1440:
+        return fallback
+    end
+    return value
+end
+
+function clock_text(minutes):
+    return String(minutes // 60) + ":" + String(minutes % 60 // 10) + String(minutes % 10)
+end
+
+function night_mode():
+    mode = settings.get("night_light", "off")
+    return mode if mode in NIGHT_MODES else "off"
+end
+
+function night_kelvin():
+    value = 4000
+    safe:
+        value = Int(settings.get("night_light_temperature", "4000"))
+    end
+    return max(1000, min(6500, value))
+end
+
+function night_window():
+    return [clock_minutes(settings.get("night_light_from", ""), 21 * 60), clock_minutes(settings.get("night_light_to", ""), 7 * 60)]
+end
+
+function night_scheduled():
+    t = lglib.localtime(lglib.now())
+    now = t[3] * 60 + t[4]
+    w = night_window()
+    if w[0] <= w[1]:
+        return now >= w[0] and now < w[1]
+    end
+    return now >= w[0] or now < w[1]
+end
+
+function night_active():
+    mode = night_mode()
+    if mode != "schedule":
+        return mode == "on"
+    end
+    scheduled = night_scheduled()
+    if night["override"] != None:
+        if night["override"][1] == scheduled:
+            return night["override"][0]
+        end
+        night["override"] = None
+    end
+    return scheduled
+end
+
+function read_brightness():
+    value = 100
+    safe:
+        value = Int(readfile(glib.user_config_dir() + "/luxos/brightness").strip())
+    end
+    night["brightness"] = max(10, min(100, value))
+end
+
+function apply_night():
+    on = not greeter and night_active()
+    night["on"] = on
+    call lc.set_night_light(night_kelvin() if on else 6500, 100 if greeter else night["brightness"])
+    # rozvrh: kontrola kazdou minutu (sedi i po zmene casu a probuzeni z uspani)
+    schedule = not greeter and night_mode() == "schedule"
+    if schedule and night["timer"] == 0:
+        night["timer"] = glib.timeout_add_seconds(60, night_tick)
+    elif not schedule and night["timer"] != 0:
+        call glib.source_remove(night["timer"])
+        night["timer"] = 0
+    end
+end
+
+function night_tick():
+    if night_active() != night["on"]:
+        call apply_night()
+    end
+    return True
+end
+
+function night_state():
+    w = night_window()
+    return {"ok": True, "mode": night_mode(), "on": night["on"], "temperature": night_kelvin(),
+            "from": clock_text(w[0]), "to": clock_text(w[1]), "brightness": night["brightness"]}
+end
+
+# {"on": bool} rychle prepnuti; {"mode", "temperature", "from", "to"} z Nastaveni (ulozi se do luxwm.conf)
+function set_night_light(request):
+    save = {}
+    on = request.get("on", None)
+    if on != None:
+        if type(on) != "Bool":
+            return {"ok": False, "error": "bad request"}
+        end
+        if night_mode() == "schedule":
+            scheduled = night_scheduled()
+            night["override"] = None if on == scheduled else [on, scheduled]
+        else:
+            save["night_light"] = "on" if on else "off"
+        end
+    end
+    mode = request.get("mode", None)
+    if mode != None:
+        if mode not in NIGHT_MODES:
+            return {"ok": False, "error": "bad mode"}
+        end
+        save["night_light"] = mode
+        night["override"] = None
+    end
+    kelvin = request.get("temperature", None)
+    if kelvin != None:
+        if type(kelvin) != "Int" or kelvin < 1000 or kelvin > 6500:
+            return {"ok": False, "error": "bad temperature"}
+        end
+        save["night_light_temperature"] = String(kelvin)
+    end
+    for key in ["from", "to"]:
+        value = request.get(key, None)
+        if value != None:
+            if type(value) != "String" or clock_minutes(value, -1) < 0:
+                return {"ok": False, "error": "bad time"}
+            end
+            save["night_light_" + key] = clock_text(clock_minutes(value, 0))
+        end
+    end
+    if len(save) > 0:
+        settings.update(save)
+        if not wmconf.save(save, {}):
+            call log("cannot save night light to " + wmconf.user_path())
+        end
+    end
+    call apply_night()
+    return night_state()
 end
 
 # Hra nebo video na cele obrazovce nenecha obrazovku zhasnout ani zamknout; hry pres XWayland a
@@ -2245,6 +2400,18 @@ function ipc_command(client, request):
             return {"ok": False, "error": "bad workspace"}
         end
         return {"ok": True}
+    elif cmd == "get_night_light":
+        return night_state()
+    elif cmd == "set_night_light":
+        return set_night_light(request)
+    elif cmd == "set_brightness":
+        value = request.get("value", None)
+        if type(value) != "Int" or value < 10 or value > 100:
+            return {"ok": False, "error": "bad brightness"}
+        end
+        night["brightness"] = value
+        call apply_night()
+        return {"ok": True}
     elif cmd == "get_input":
         return {"ok": True, "config": input_config, "devices": input_devices()}
     elif cmd == "reload":
@@ -2471,6 +2638,8 @@ function on_reload():
     call apply_keyboard()
     call apply_repeat()
     call apply_theme(dark_mode())
+    call read_brightness()
+    call apply_night()
     call log("configuration reloaded")
     return True
 end
@@ -2571,6 +2740,8 @@ call apply_keyboard()
 call apply_repeat()
 call apply_theme(dark_mode())
 call apply_motion()
+call read_brightness()
+call apply_night()
 sock = ipc_path()
 if sock != "" and lc.ipc_listen(sock) == 0:
     call lc.setenv("LUXWM_SOCK", sock)

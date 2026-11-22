@@ -310,6 +310,21 @@ function output_at(x, y):
 end
 
 # OUT_VRR (VRR_*) a OUT_TEARING (0/1) vystupu
+# Nocni svetlo a softwarovy jas vsech vystupu (luxcomp_set_night_light): kelviny (6500 = vypnuto), jas 10..100 %
+function set_night_light(kelvin, brightness):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_set_night_light"), ptr(kelvin), ptr(brightness))
+    end
+    return 0
+end
+
+# 0 vypnuto, 1 gamma tabulka vystupu, 2 zavoj (vystup bez gamma tabulky)
+function night_light_mode(output):
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("luxcomp_night_light_mode"), ptr(output))
+    end
+end
+
 function output_set(output, prop, value):
     unsafe:
         call __lsl_qbe_call3(__lsl_symbol("luxcomp_output_set"), ptr(output), ptr(prop), ptr(value))
