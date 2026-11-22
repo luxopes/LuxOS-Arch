@@ -10,8 +10,8 @@
 #                                        tonovani plochy (zaoblene polomerem plochy), odlesk nahore, okraj = i 1 px obrys
 #                                        (tmavy rezim svetly)
 #   material.shadow_surface(w, h, polomer, uroven, dark)
-#                                        stin panelu uvnitr povrchu (Launchpad): povrch (w + 2 dosah) x (h + 2 dosah), panel
-#                                        na [dosah, dosah - posun]; vnitrek panelu pruhledny. Volajici ho nici.
+#                                        stin panelu uvnitr povrchu (Launchpad): povrch (w + 2 dosah) x (h + 2 dosah + posun),
+#                                        panel na [dosah, dosah]; vnitrek panelu pruhledny. Volajici ho nici.
 # Cisla jsou stejna jako luxos-widgets.lsl on_card_draw a luxos-glass.c glass_paint (gpt-features-1.1.1),
 # test tests/test_luxos_material.py porovnava pixely s C (tests/glass-ref/luxos-glass-material.c).
 #
@@ -178,7 +178,8 @@ function shadow_surface(w, h, radius, surface, dark):
     reach = e[0]
     k = 8
     sw = (w + 2 * reach) // k + 1
-    sh = (h + 2 * reach) // k + 1
+    # stin posunuty dolu o e[1] by se jinak dole usekl
+    sh = (h + 2 * reach + e[1]) // k + 1
     small = cairo.image_surface_create(cairo.FORMAT_ARGB32, sw, sh)
     cr = cairo.create(small)
     call cairo.scale(cr, 1.0 / Float(k), 1.0 / Float(k))
@@ -193,7 +194,7 @@ function shadow_surface(w, h, radius, surface, dark):
         call cairo.fill(cr)
     end
     call cairo.destroy(cr)
-    surf = cairo.image_surface_create(cairo.FORMAT_ARGB32, w + 2 * reach, h + 2 * reach)
+    surf = cairo.image_surface_create(cairo.FORMAT_ARGB32, w + 2 * reach, h + 2 * reach + e[1])
     cr = cairo.create(surf)
     call cairo.save(cr)
     call cairo.scale(cr, Float(k), Float(k))
