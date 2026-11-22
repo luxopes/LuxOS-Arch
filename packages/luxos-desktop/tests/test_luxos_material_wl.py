@@ -106,10 +106,13 @@ class MaterialShell(unittest.TestCase):
         # serveru pripoji, by menil vzor cc-* podle pocitace
         (cls.bin / "pactl").write_text("#!/bin/sh\nexit 1\n")
         (cls.bin / "pactl").chmod(0o755)
-        # symbolicke ikony balicku (tmavy rezim, QR) jako v /usr/share/icons/hicolor
+        # symbolicke ikony balicku (tmavy rezim, QR) a luxos-branding (logo, Ovladaci centrum) jako v
+        # /usr/share/icons/hicolor; tento index.theme zakryje hicolor hostitele, bez loga by lista vzala barevne luxos-logo
         icons = cls.tmp / "data/icons/hicolor/scalable/apps"
         icons.mkdir(parents=True)
-        for f in (PKG / "files/icons").glob("*-symbolic.svg"):
+        branding = REPO / "packages/luxos-branding/files"
+        for f in [*(PKG / "files/icons").glob("*-symbolic.svg"), *(branding / "symbolic").glob("*-symbolic.svg"),
+                  branding / "logo/luxos-logo-symbolic.svg"]:
             shutil.copy(f, icons)
         (cls.tmp / "data/icons/hicolor/index.theme").write_text(
             "[Icon Theme]\nName=Hicolor\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=16\nMinSize=8\nMaxSize=512\nType=Scalable\n")
