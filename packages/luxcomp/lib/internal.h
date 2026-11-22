@@ -99,7 +99,7 @@ struct view {
 		request_fullscreen, request_minimize, set_title, set_app_id;
 	struct wl_listener deco_request_mode, deco_destroy;
 	/* xwayland.c */
-	struct wl_listener x_associate, x_dissociate, x_configure, x_activate, x_decorations;
+	struct wl_listener x_associate, x_dissociate, x_configure, x_activate, x_decorations, x_override;
 	/* foreign.c: handles for the Dock, they exist while the view is mapped */
 	struct wlr_foreign_toplevel_handle_v1 *ftl;
 	struct wlr_ext_foreign_toplevel_handle_v1 *ext;
@@ -246,6 +246,8 @@ void deco_redraw(struct deco *deco);		/* unconditionally (badge) */
 void deco_set_ssd(struct deco *deco, bool on);	/* server-side title bar or only shadow + corners (CSD) */
 int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
+bool deco_corner_surface(struct deco *deco, struct wlr_scene_node *node, double x, double y,
+	struct wlr_surface **surface, double *sx, double *sy);	/* rounded corner = the window's surface */
 int deco_height(struct deco *deco);		/* title bar of this view (normal or compact) */
 void deco_hover(struct deco *deco, int part);	/* NULL = pointer is not over a title bar */
 void decos_frame(void);				/* before rendering: corners of subsurfaces changed alone */

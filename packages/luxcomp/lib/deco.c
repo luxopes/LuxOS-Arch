@@ -406,12 +406,6 @@ content_tree(struct view *v)
 	return wlr_scene_tree_from_node(first);
 }
 
-static bool
-no_input(struct wlr_scene_buffer *buffer, double *sx, double *sy)
-{
-	return false;
-}
-
 struct corner_list {
 	struct wlr_box box;		/* roh v souradnicich korenoveho povrchu */
 	struct corner_src src[CORNER_SURFACES];
@@ -758,7 +752,6 @@ deco_create(struct view *view)
 	d->node = wlr_scene_buffer_create(view->tree, NULL);
 	for (int i = 0; i < 2; i++) {
 		d->corner[i] = wlr_scene_buffer_create(view->body, NULL);
-		d->corner[i]->point_accepts_input = no_input;
 		wlr_scene_node_lower_to_bottom(&d->corner[i]->node);
 		wlr_scene_node_set_enabled(&d->corner[i]->node, false);
 	}
@@ -880,6 +873,27 @@ decos_frame(void)
 			corners_update(v->deco);
 		}
 	}
+}
+
+/* Roh je kopie pixelu, ne povrch: klik do nej patri povrchu okna pod rohem, jinak propadl na to, co je pod oknem */
+bool
+deco_corner_surface(struct deco *d, struct wlr_scene_node *node, double x, double y,
+		struct wlr_surface **surface, double *sx, double *sy)
+{
+	if (!d->rounded || (node != &d->corner[0]->node && node != &d->corner[1]->node)) {
+		return false;
+	}
+	int bx, by;
+	wlr_scene_node_coords(&d->view->body->node, &bx, &by);
+	struct wlr_surface *root = view_surface(d->view);
+	double rx = x - bx + d->corner_geo.x, ry = y - by + d->corner_geo.y;
+	*surface = wlr_surface_surface_at(root, rx, ry, sx, sy);
+	if (!*surface) {
+		*surface = root;
+		*sx = rx;
+		*sy = ry;
+	}
+	return true;
 }
 
 bool

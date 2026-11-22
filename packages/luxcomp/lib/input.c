@@ -443,6 +443,9 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 	}
 	struct view *v = n->data;
 	*view_out = v;
+	if (v->deco && deco_corner_surface(v->deco, node, x, y, surface, sx, sy)) {
+		return LUXCOMP_PART_CLIENT;
+	}
 	if (v->deco && deco_owns_node(v->deco, node)) {
 		return deco_part_at(v->deco, x - v->x, y - v->y);
 	}
