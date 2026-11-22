@@ -67,7 +67,6 @@ class Capture:
     """grim na pozadi (wlt capture), behem toho test spusti akci"""
 
     def __init__(self, s, name, fps, sec):
-        assert isinstance(sec, int), "wlt capture takes whole seconds"
         self.dir = os.path.join(RESULTS, name)
         os.makedirs(self.dir, exist_ok=True)
         for f in os.listdir(self.dir):
