@@ -91,6 +91,8 @@ def programs():
         if key in installed:
             installed[link] = installed[key]
     for script in (FILES / "bin").iterdir():
+        if not script.is_file():    # __pycache__ po testech, ktere skripty z bin importuji
+            continue
         m = re.search(r"^exec (/usr/lib/luxos/[\w-]+)((?: --?[\w-]+)*) \"\$@\"$", script.read_text(errors="replace"), re.M)
         if m and m.group(1) in installed:
             installed[script.name] = [installed[m.group(1)][0], m.group(2).split()]
