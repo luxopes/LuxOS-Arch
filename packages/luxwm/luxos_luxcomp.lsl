@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 11
+API_VERSION = 12
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -34,6 +34,7 @@ EV_IPC_CLOSE = 19
 EV_VIEW_SIZE = 20
 EV_HOLD_END = 21
 EV_LAYER_MAP = 22
+EV_VIEW_CONTENT_TYPE = 23
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -77,6 +78,17 @@ OUT_USABLE_W = 7
 OUT_USABLE_H = 8
 OUT_REFRESH_MHZ = 9
 OUT_SCALE_PCT = 10
+OUT_VRR = 11
+OUT_TEARING = 12
+OUT_VRR_SUPPORTED = 13
+OUT_VRR_ACTIVE = 14
+OUT_FULLSCREEN = 15
+OUT_SCANOUT = 16
+OUT_TORN = 17
+
+VRR_OFF = 0
+VRR_FULLSCREEN = 1
+VRR_ALWAYS = 2
 
 VIEW_X = 1
 VIEW_Y = 2
@@ -99,6 +111,13 @@ VIEW_MAX_H = 18
 VIEW_PID = 19
 VIEW_X11 = 20
 VIEW_SANDBOXED = 21
+VIEW_CONTENT_TYPE = 22
+VIEW_TEARING = 23
+
+CONTENT_NONE = 0
+CONTENT_PHOTO = 1
+CONTENT_VIDEO = 2
+CONTENT_GAME = 3
 
 LAYER_NORMAL = 0
 LAYER_ABOVE = 1
@@ -288,6 +307,14 @@ function output_at(x, y):
     unsafe:
         return __lsl_qbe_call2(__lsl_symbol("luxcomp_output_at"), ptr(x), ptr(y))
     end
+end
+
+# OUT_VRR (VRR_*) a OUT_TEARING (0/1) vystupu
+function output_set(output, prop, value):
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("luxcomp_output_set"), ptr(output), ptr(prop), ptr(value))
+    end
+    return 0
 end
 
 function cursor_x():
@@ -611,6 +638,20 @@ function locked():
     unsafe:
         return __lsl_qbe_call0(__lsl_symbol("luxcomp_locked"))
     end
+end
+
+# 0 nic, 1 zamceny ukazatel, 2 omezeny na oblast (pointer-constraints hry)
+function pointer_constraint():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_pointer_constraint"))
+    end
+end
+
+function idle_inhibit(on):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_idle_inhibit"), ptr(on))
+    end
+    return 0
 end
 
 # ---- dekorace -------------------------------------------------------------------------------
