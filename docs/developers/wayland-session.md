@@ -54,9 +54,15 @@ systemd --user
     with the Plymouth-like progress bar and fades it into the finished desktop.
   - Ending the greeter's compositor makes logind put VT 1 back into text mode, and KD_TEXT on the shown VT forces
     the text console onto the screen (the Xorg exception in `drm_fb_helper_set_par`). So after a login
-    `luxwm --greeter` first switches to VT 12, which `libluxos-greetd-vt.so` set to graphics mode when greetd
-    started: fbcon draws nothing there and the framebuffer mode is the same, so the greeter's frame stays up
-    (wlroots leaves the CRTC on with `drmModeCloseFB`). logind's text mode then only changes VT 1 in memory.
+    `luxwm --greeter` first switches to VT 12, which `libluxos-greetd-vt.so` set to graphics mode under
+    `VT_PROCESS` when greetd started (the kernel never switches away from a graphics VT in `VT_AUTO`; the main
+    greetd process acknowledges the switches). fbcon draws nothing on a graphics VT, but the switch puts the
+    console framebuffer back on screen, so the preload copies the frame into `/dev/fb0` as soon as VT 12 is
+    entered. logind's text mode then only changes VT 1 in memory.
+  - Measured in the QEMU preview (std VGA, pixman, `scripts/wl-preview/login-frames.py`): black frames between
+    the greeter and the desktop went from about 2.8 s to 0-5 frames (0-150 ms) at the VT switch: the kernel
+    shows the console framebuffer before the preload's copy lands. Writing it before the switch does not help
+    (fbdev emulation does not take writes while a compositor is DRM master).
   - Before the session greetd sets VT 1 to KD_TEXT and switches back to it; while the frame is fresh (20 s)
     the preload makes that KD_GRAPHICS, so the switch draws nothing either. `luxwm --intro` with the frame uses
     `luxcomp_hold()`: its first commit on the still lit output already carries the same picture with the bar.
