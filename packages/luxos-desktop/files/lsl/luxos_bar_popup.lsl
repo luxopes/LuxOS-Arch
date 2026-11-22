@@ -16,8 +16,8 @@
 #                                       druh "system" | "wifi" | "sound" | "notifications"; stred_x = stred ikony v liste
 #
 # Nabidka systemu (logo vlevo) zustava nabidkou systemu, ne aplikaci (aplikace jsou v Launchpadu): vzhled jako nabidka
-# Whisker Menu verze 1.1.1 - nahore fotka a jmeno, uprostred O tomto pocitaci, Nastaveni a Launchpad, dole kulata
-# tlacitka s popisky Zamknout, Odhlasit, Restartovat a Vypnout.
+# Whisker Menu verze 1.1.1 - nahore fotka a jmeno (klik = ucet LuxAI), uprostred O tomto pocitaci, Nastaveni
+# a Launchpad, dole kulata tlacitka s popisky Zamknout, Odhlasit, Restartovat a Vypnout.
 #   popup.close(druh), popup.close_all(), popup.set_dark(tmavy)
 load cairo, json, net
 load glib, gtk, gio
@@ -46,6 +46,8 @@ SYSTEM_POWER = [["Lock Screen", "system-lock-screen-symbolic", ["sh", "-c", "exe
 SYSTEM_CSS = (".lx-avatar { border-radius: 999px; min-width: 36px; min-height: 36px; font-weight: 800; color: white;"
     + " background-image: linear-gradient(135deg, #3d7bff, #8b4dff); }\n"
     + ".lx-system button.lx-row:focus { background-color: @lx_tile_hover; }\n"
+    + "button.lx-account { background: none; background-image: none; border: none; box-shadow: none; outline: none; padding: 2px 4px; border-radius: 10px; }\n"
+    + "button.lx-account:hover, button.lx-account:focus { background-color: @lx_tile_hover; }\n"
     + "button.lx-power { background: none; background-image: none; border: none; box-shadow: none; outline: none; padding: 2px 0; border-radius: 8px; }\n"
     + "button.lx-power .lx-bubble { min-width: 34px; min-height: 34px; }\n"
     + "button.lx-power:hover .lx-bubble, button.lx-power:focus .lx-bubble { background-color: @lx_tile_hover; }\n"
@@ -353,7 +355,12 @@ function system_build(box):
     who = label(name, ["lx-title"], 0.0)
     call gtk.label_set_ellipsize(who, gtk.ELLIPSIZE_END)
     call gtk.box_pack_start(head, who, True, True, 0)
-    call gtk.box_pack_start(box, head, False, False, 2)
+    # fotka se jmenem otevre ucet LuxAI jako jmeno uzivatele v nabidce na X11 (Whisker Menu command-profile)
+    account = gtk.button_new_empty()
+    call gtk.widget_add_class(account, "lx-account")
+    call gtk.container_add(account, head)
+    call lglib.connect_data(account, "clicked", 0, on_launch, ["luxos-account"])
+    call gtk.box_pack_start(box, account, False, False, 0)
     items = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_add_class(items, "lx-section")
     for entry in SYSTEM_ITEMS:
