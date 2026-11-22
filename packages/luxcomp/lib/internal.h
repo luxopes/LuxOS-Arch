@@ -60,6 +60,9 @@ struct output {
 	int vrr_refused;		/* adaptive sync value the output refused, -1 none */
 	bool tearing;			/* fullscreen clients asking for async presentation may tear */
 	bool scanout, torn;		/* last frame: client buffer scanned out directly, async page flip */
+	/* night.c: night_overlay = no usable gamma table, rectangles instead; client_gamma = gamma-control client */
+	bool night_dirty, night_overlay, night_lut, client_gamma;
+	struct wlr_scene_rect *night_tint, *night_dim;
 	struct wl_listener frame, request_state, destroy, present;
 };
 
@@ -137,6 +140,7 @@ struct comp {
 		*layer_top, *fullscreen, *layer_overlay, *lock_tree;
 	struct wlr_scene_tree *layer_hidden;	/* layer surfaces of mirrored outputs */
 	struct wlr_scene_tree *cover;		/* luxcomp_cover(): over everything but the lock, no input */
+	struct wlr_scene_tree *night;		/* night.c: overlay over everything, no input */
 	struct wlr_scene_rect *background;
 	const char *socket;
 
@@ -330,6 +334,17 @@ bool gaming_shortcut_escape(struct xkb_state *state, uint32_t keycode, uint32_t 
 int gaming_content_type(struct wlr_surface *surface);
 bool gaming_tearing_hint(struct wlr_surface *surface);
 void gaming_view_commit(struct view *v);
+
+/* night.c */
+struct wlr_gamma_control_manager_v1;
+struct wlr_output_state;
+void night_init(struct wlr_gamma_control_manager_v1 *gamma);
+void night_finish(void);
+void night_output_init(struct output *o);
+void night_output_changed(struct output *o);	/* mode set or output enabled: apply again */
+void night_output_destroy(struct output *o);
+void night_frame(struct output *o);		/* before building the frame */
+void night_apply(struct output *o, struct wlr_output_state *state);	/* after wlr_scene_output_build_state */
 
 /* security.c */
 void security_init(void);

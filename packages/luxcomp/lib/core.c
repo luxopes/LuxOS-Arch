@@ -226,6 +226,7 @@ output_frame(struct wl_listener *listener, void *data)
 	anim_frame();
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
+	night_frame(o);
 	bool blurred = blur_output_frame(o);
 	bool done = o->held ? held_output_commit(o) : gaming_output_commit(o);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
@@ -328,6 +329,7 @@ output_config_apply(struct wlr_output_configuration_v1 *config, bool test)
 			continue;
 		}
 		struct output *o = wo->data;
+		night_output_changed(o);
 		if (head->state.enabled) {
 			bool placed = wlr_output_layout_get(comp.layout, wo) != NULL;
 			struct wlr_output_layout_output *lo =
@@ -370,6 +372,7 @@ output_request_state(struct wl_listener *listener, void *data)
 	struct output *o = wl_container_of(listener, o, request_state);
 	const struct wlr_output_event_request_state *event = data;
 	wlr_output_commit_state(o->wlr_output, event->state);
+	night_output_changed(o);
 	layers_arrange(o);
 	output_config_update();
 }
@@ -388,6 +391,7 @@ output_destroy(struct wl_listener *listener, void *data)
 	if (o->hold_wait) {
 		hold_presented(o);
 	}
+	night_output_destroy(o);
 	free(o);
 	layers_arrange_all();
 	output_config_update();
@@ -428,6 +432,7 @@ new_output(struct wl_listener *listener, void *data)
 	struct wlr_output_layout_output *lo = wlr_output_layout_add_auto(comp.layout, wo);
 	o->scene_output = wlr_scene_output_create(comp.scene, wo);
 	wlr_scene_output_layout_add_output(comp.scene_layout, lo, o->scene_output);
+	night_output_init(o);
 	layers_arrange(o);
 	output_config_update();
 	emit(LUXCOMP_EV_OUTPUT_ADD, o->id, wo->width, wo->height, 0);

@@ -123,7 +123,7 @@ bool
 gaming_output_commit(struct output *o)
 {
 	struct wlr_output *wo = o->wlr_output;
-	if (!wlr_scene_output_needs_frame(o->scene_output)) {
+	if (!wlr_scene_output_needs_frame(o->scene_output) && !o->night_dirty) {
 		return true;
 	}
 	struct view *fs = output_fullscreen(o);
@@ -137,6 +137,7 @@ gaming_output_commit(struct output *o)
 	}
 	bool ok = wlr_scene_output_build_state(o->scene_output, &state, NULL);
 	if (ok) {
+		night_apply(o, &state);
 		state.tearing_page_flip = wants_tearing(o, fs);
 		if (state.tearing_page_flip && !wlr_output_test_state(wo, &state)) {
 			state.tearing_page_flip = false;
@@ -462,6 +463,7 @@ gaming_init(void)
 	struct wlr_gamma_control_manager_v1 *gamma = wlr_gamma_control_manager_v1_create(comp.display);
 	wlr_scene_set_gamma_control_manager_v1(comp.scene, gamma);
 	security_mark(gamma->global, GLOBAL_SANDBOX_DENIED);
+	night_init(gamma);
 
 	/* jen na DRM backendu; pronajem dava klientovi primo displej, proto ne v sandboxu */
 	g.lease = wlr_drm_lease_v1_manager_create(comp.display, comp.backend);
@@ -496,6 +498,7 @@ gaming_finish(void)
 	wl_list_remove(&g.new_constraint.link);
 	wl_list_remove(&g.new_inhibitor.link);
 	wl_list_remove(&g.focus_change.link);
+	night_finish();
 	if (g.lease) {
 		wl_list_remove(&g.lease_request.link);
 	}

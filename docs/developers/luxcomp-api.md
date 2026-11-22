@@ -118,6 +118,15 @@ Klik se klientovi předá vždy, když je pod kurzorem jeho povrch. Klik do zahl
 **Výstupy.** `luxcomp_output_get(id, LUXCOMP_OUT_*)` vrací X, Y, W, H, `USABLE_*` (bez
 exkluzivních zón), `REFRESH_MHZ` a `SCALE_PCT`. Další funkce: `luxcomp_output_name(id)`,
 `luxcomp_output_at(x, y)`, `luxcomp_cursor_x()` a `luxcomp_cursor_y()`.
+`luxcomp_set_night_light(kelvin, jas)` nastaví noční světlo (teplota barev 1000–6500 K, 6500 =
+vypnuto) a softwarový jas 10–100 % všech výstupů (luxwm: `night_light*` v `luxwm.conf`, jas monitoru
+bez podsvícení). Výstup s gamma tabulkou (KMS `GAMMA_LUT`, skoro každý skutečný displej) dostane
+tabulku při změně, nic se nepřekresluje a přímý scanout zůstává. Výstupy bez ní (VM s bochs/virtio,
+headless) mají nad celou scénou dva obdélníky: teplý závoj a černé ztlumení. Ztlumení je přesné,
+závoj jen přibližný (scéna barvy neumí násobit): bílá dostane odstín bílého bodu s 60 % jeho síly,
+tmavé plochy zčervenají nejvýš o pětinu. Závoj je vidět i na snímcích obrazovky, vstup prochází
+pod něj. Klient gamma-control (gammastep) má na svém výstupu přednost.
+`luxcomp_night_light_mode(id)` vrací 0 (vypnuto), 1 (gamma tabulka) nebo 2 (závoj).
 Jen pro testy: `luxcomp_test_output_add(w, h)` připojí headless výstup (vrací id, 0 bez headless
 backendu) a `luxcomp_test_output_remove(id)` ho odpojí; skutečné výstupy (DRM) to nezmění.
 
@@ -431,7 +440,7 @@ labwc. `test_luxos_wl.py` je spouští proti oběma kompozitorům.
 | content-type-v1 | `VIEW_CONTENT_TYPE` a událost `VIEW_CONTENT_TYPE`. luxwm podle něj drží obrazovku zapnutou (`luxcomp_idle_inhibit`) pod zaměřeným celoobrazovkovým videem nebo hrou a pod každým celoobrazovkovým oknem X11 (Proton nemá idle-inhibit). |
 | linux-dmabuf-v1 (v5) | S feedbackem scény: celoobrazovkové okno dostane formáty a modifikátory pro přímý scanout. Jen s DRM zařízením rendereru (gles2), pixman dmabuf nemá. |
 | linux-drm-syncobj-v1 | Explicitní synchronizace (NVIDIA 555+, Mesa), jen když ji umí renderer i backend. Ověřeno na AMD i NVIDIA render node (headless). |
-| gamma-control-v1 | Přes scénu (`wlr_scene_set_gamma_control_manager_v1`), mimo sandbox. Gamma převáděná rendererem vypíná scanout. |
+| gamma-control-v1 | Přes scénu (`wlr_scene_set_gamma_control_manager_v1`), mimo sandbox. Gamma převáděná rendererem vypíná scanout. Klient má na svém výstupu přednost před nočním světlem (`luxcomp_set_night_light`). |
 | drm-lease-v1 | Jen na DRM backendu: výstup `non_desktop` (VR helma) se nepoužije pro plochu a nabídne se k pronájmu, pronájem se vždy povolí, mimo sandbox. |
 
 **Přímý scanout.** Okno ve vrstvě `LAYER_FULLSCREEN` se stavem fullscreen navrchu výstupu je

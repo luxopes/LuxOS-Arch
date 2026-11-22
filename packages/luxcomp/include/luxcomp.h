@@ -351,6 +351,14 @@ int64_t luxcomp_locked(void);			/* ext-session-lock active (also after the locke
 int64_t luxcomp_pointer_constraint(void);	/* 0 none, 1 pointer locked, 2 confined */
 void luxcomp_idle_inhibit(int64_t on);		/* policy keeps the screen on (fullscreen video or game) */
 
+/* Night light and software brightness of every output: colour temperature in kelvin (<= 0 or 6500 =
+ * neutral, 1000..6500) and brightness in % (10..100, for screens without a backlight). Uses the output's
+ * gamma table (KMS GAMMA_LUT, no rendering cost); outputs without one (VMs, headless) get a warm and a
+ * black translucent rectangle over everything instead (approximate, visible in screenshots). A gamma-control
+ * client (gammastep, wlsunset) takes precedence on its output. */
+void luxcomp_set_night_light(int64_t kelvin, int64_t brightness);
+int64_t luxcomp_night_light_mode(int64_t output);	/* 0 off, 1 gamma table, 2 overlay */
+
 /* Server-side decorations */
 void luxcomp_theme_set(int64_t prop, int64_t value);
 void luxcomp_theme_set_font(const char *pango_font);

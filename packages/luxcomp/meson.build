@@ -43,7 +43,7 @@ deps = [
 lib = shared_library('luxcomp',
   'lib/core.c', 'lib/view.c', 'lib/input.c', 'lib/deco.c', 'lib/workspace.c',
   'lib/renderer.c', 'lib/security.c', 'lib/foreign.c', 'lib/lock.c', 'lib/idle.c',
-  'lib/xwayland.c', 'lib/shadow.c', 'lib/blur.c', 'lib/ipc.c', 'lib/anim.c', 'lib/gaming.c', 'lib/cover.c', protos,
+  'lib/xwayland.c', 'lib/shadow.c', 'lib/blur.c', 'lib/ipc.c', 'lib/anim.c', 'lib/gaming.c', 'lib/cover.c', 'lib/night.c', protos,
   include_directories: include_directories('include'),
   dependencies: deps,
   gnu_symbol_visibility: 'hidden',

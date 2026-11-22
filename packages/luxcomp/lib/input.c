@@ -407,11 +407,11 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 	bool dragging = comp.drag_icons->node.enabled;
 	wlr_scene_node_set_enabled(&comp.drag_icons->node, false);
 	struct wlr_scene_node *node = NULL;
-	if (comp.cover->node.enabled && !comp.locked) {
-		/* zakryti po prihlaseni je jen obraz, vstup jde na plochu pod nim */
+	if (!comp.locked) {
+		/* zakryti po prihlaseni a zavoj nocniho svetla jsou jen obraz, vstup jde na plochu pod nimi */
 		struct wlr_scene_node *child;
 		wl_list_for_each_reverse(child, &comp.scene->tree.children, link) {
-			if (child != &comp.cover->node
+			if (child != &comp.cover->node && child != &comp.night->node
 					&& (node = wlr_scene_node_at(child, x, y, sx, sy))) {
 				break;
 			}
