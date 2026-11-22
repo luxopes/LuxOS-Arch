@@ -2,11 +2,20 @@
 
 ## Co je LuxOS?
 
-LuxOS je rychlý a lehký linuxový systém postavený na Arch Linuxu s prostředím ve stylu macOS (pod ním je
-Xfce). Má vlastní správce balíků `lux`, vlastní sestavení jádra `linux-luxos`, automatické ovladače,
-aktualizace, které jde vrátit, AI asistenta LuxAI, terminálového programovacího agenta Lux Code
-a vlastní programovací jazyk LSL. Je to průběžně aktualizovaný systém (rolling release); aktuální verze
+LuxOS je linuxový systém zdarma, který funguje hned (plug and play), postavený na Arch Linuxu
+s prostředím ve stylu macOS (pod ním je Xfce). Ovladače se nastaví samy, dotykové obrazovky fungují
+a aktualizace jdou vrátit. Aplikace jsou z repozitářů Arch Linuxu a z Flathubu – přes Obchod LuxOS
+nebo příkaz `lux` (nahrazuje `pacman`). Používá vlastní sestavení jádra `linux-luxos`; volitelné
+doplňky jsou AI asistent LuxAI, terminálový programovací agent Lux Code a programovací jazyk LSL. Je to průběžně aktualizovaný systém (rolling release); aktuální verze
 je 1.0.5 „Sirius“ (první stabilní verze byla 1.0.3).
+
+## Hodí se LuxOS pro začátečníky?
+
+Ano, právě pro ně je dělaný. Grafický instalátor se zeptá na jazyk, klávesnici, disk a účet; ovladače
+grafiky, Wi-Fi, zvuku, tiskáren a skenerů se nastaví samy; aktualizace se instalují na pozadí a jdou
+vrátit. Aplikace se instalují z Obchodu LuxOS (Flathub a repozitáře Archu) bez terminálu. Není potřeba
+zakládat účet a systém nemá telemetrii (jen anonymní týdenní počet, který jde vypnout). Kdo zná Arch Linux, může dál používat jeho balíky i většinu
+návodů z Arch Wiki – místo `pacman` stačí napsat `lux`.
 
 ## Je LuxOS zdarma? Jakou má licenci?
 
@@ -105,7 +114,8 @@ znovu běžící systém; i samotný návrat jde stejně vrátit. Složka `/home
 Příkaz `pacman` v LuxOS není, správce balíků je `lux`. Když napíšete příkaz pacmanu, shell ukáže odpovídající
 příkaz `lux` (`pacman -Syu` se změní na `lux update`). `lux install` hledá v repozitářích LuxOS a Arch,
 v aplikacích `.lux`, na Flathubu a v komunitním repozitáři (AUR); balíčky z AUR se zkontrolují a sestaví
-v Sandboxu. Můžete použít i grafický [Obchod LuxOS](store.html). Viz
+v Sandboxu. Balíky jsou stejné jako v Arch Linuxu, takže návody z Arch Wiki dál platí – jen
+místo `pacman` použijte příkaz `lux`. Můžete použít i grafický [Obchod LuxOS](store.html). Viz
 [Správa balíků pomocí lux](package-management.html) (anglicky).
 
 ## Co je LuxAI? Musím ho používat?

@@ -2,11 +2,20 @@
 
 ## What is LuxOS?
 
-LuxOS is a fast, lightweight Linux distribution based on Arch Linux with a macOS-like desktop (Xfce
-underneath). It has its own package manager `lux`, its own kernel build `linux-luxos`, automatic
-drivers, updates that can be rolled back, the AI assistant LuxAI, the terminal coding agent Lux Code
-and its own programming language, LSL. It is a rolling release; the current version is 1.0.5
+LuxOS is a free, plug-and-play Linux distribution based on Arch Linux with a macOS-like desktop (Xfce
+underneath). Drivers set themselves up, touch screens work and updates can be undone. Apps come from
+the Arch Linux repositories and Flathub through the LuxOS Store or the `lux` command (which replaces
+`pacman`). It uses its own kernel build `linux-luxos`; optional extras are the AI assistant LuxAI, the
+terminal coding agent Lux Code and the programming language LSL. It is a rolling release; the current version is 1.0.5
 "Sirius" (the first stable release was 1.0.3).
+
+## Is LuxOS good for beginners?
+
+Yes, that is who it is made for. The graphical installer asks for the language, keyboard, disk and
+account; drivers for graphics, Wi-Fi, sound, printers and scanners set themselves up; updates install
+in the background and can be undone. Apps are installed from the LuxOS Store (Flathub and Arch
+repositories) without the terminal. There is no account to create and no telemetry (only an anonymous weekly count you can turn off). If you know
+Arch Linux, the packages and most Arch Wiki guides apply – use `lux` where a guide says `pacman`.
 
 ## Is LuxOS free? What licence does it use?
 
@@ -109,7 +118,8 @@ way. `/home` is not rolled back. See [LuxOS Care](care-updates.html).
 There is no `pacman` command in LuxOS; the package manager is `lux`. If you type a pacman command, the
 shell shows the matching `lux` command (`pacman -Syu` becomes `lux update`). `lux install` searches
 the LuxOS and Arch repositories, `.lux` apps, Flathub and the community repository (AUR); AUR
-packages are checked and built in the Sandbox. You can also use the graphical
+packages are checked and built in the Sandbox. The packages are the same as in Arch Linux, so Arch
+Wiki guides still apply – just use the `lux` command where a guide says `pacman`. You can also use the graphical
 [LuxOS Store](store.html). See [Package management with lux](package-management.html).
 
 ## What is LuxAI? Do I have to use it?
