@@ -34,6 +34,11 @@ end
 
 function read_prefs():
     prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1", "BAR_STYLE": "classic", "BAR_CLOCK": "right"}
+    # lista na Waylandu (luxos-bar.lsl) ma bez nastaveni zaoblene rohy a hodiny uprostred
+    if wayland():
+        prefs["BAR_STYLE"] = "rounded"
+        prefs["BAR_CLOCK"] = "center"
+    end
     kv = ui.read_kv(PREFS)
     for key in prefs.keys():
         if key in kv:

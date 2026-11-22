@@ -274,8 +274,8 @@ class MaterialShell(unittest.TestCase):
         self.start(dark)
         image = self.shot(f"desktop-{mode}")
         self.sharp(image, 500, 100, 400)
-        # lista: pruh 28 px nahore pres celou sirku, uprostred bez textu
-        self.blurred(image, f"bar-{mode}", 14, 400, 900)
+        # lista: pruh 28 px nahore pres celou sirku, mezi nazvem aplikace a hodinami uprostred bez textu
+        self.blurred(image, f"bar-{mode}", 14, 160, 520)
         self.golden(f"bar-{mode}", crop(image, 0, 0, W, BAR))
         # Dock dole uprostred (panel = vstupni oblast)
         self.blurred(image, f"dock-{mode}", H - 4, W // 2 - 30, W // 2 + 30)
@@ -300,8 +300,8 @@ class MaterialShell(unittest.TestCase):
             self.golden(f"{name}-{mode}", crop(image, W - 8 - width - 20, BAR, width + 28, 420))
             self.close()
 
-        # vyskakovaci okno listy: zvonek vlevo od hodin
-        self.input("move 1145 14", "click")
+        # vyskakovaci okno listy: zvonek vpravo (hodiny uprostred)
+        self.input("move 1262 14", "click")
         time.sleep(1.0)
         image = self.shot(f"popup-{mode}")
         self.blurred(image, f"popup-{mode}", BAR + 10, W - 330, W - 30)
@@ -316,11 +316,11 @@ class MaterialShell(unittest.TestCase):
         self.golden(f"menu-{mode}", crop(image, 290, 390, 260, 240))
         self.close()
 
-        # Launchpad: rozmazana cela obrazovka se zatemnenim a panel sheet
+        # Launchpad: karta ze skla jako nabidka listy, obrazovka kolem ostra (pripominka 30, kolo 2)
         self.spawn(str(self.bin / "luxos-launchpad"), "--show", "launchpad")
         time.sleep(2.5)
         image = self.shot(f"launchpad-{mode}")
-        self.blurred(image, f"launchpad-{mode}", 20, 20, 200)
+        self.sharp(image, 40, 20, 140)
         self.golden(f"launchpad-{mode}", self.half(image))
         self.close()
         if not BEFORE:
