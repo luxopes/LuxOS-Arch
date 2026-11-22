@@ -14,7 +14,8 @@ repo=$(readlink -f "$here/../..")
 vm=$(readlink -f "${1:-$repo/out/vm-wayland-preview}")
 out=$vm/smoke
 bin=$repo/out/wl-test/bin
-make -s -C "$repo/scripts/wl-test" OUT="$repo/out/wl-test"
+# jen wlt-qmp (bez Waylandu): ostatni nastroje harnessu potrebuji xdg-shell.xml, ktery bez sysrootu neni
+make -s -C "$repo/scripts/wl-test" OUT="$repo/out/wl-test" "$bin/wlt-qmp" || exit 1
 rm -rf "$out" && mkdir -p "$out"
 export LUXOS_VM_DIR=$vm
 W=${SCR_W:-1280} H=${SCR_H:-800}
