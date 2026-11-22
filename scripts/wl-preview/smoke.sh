@@ -138,11 +138,13 @@ grab d1
 check "bar: LuxOS menu opens on a click" redrawn d0 d1 0 30 320 300
 ctl key esc >/dev/null
 grab d2
-click $((W - 158)) 13
+# Ovladaci centrum: druha ikona zprava (hodiny jsou od 1.1.0-115 uprostred listy)
+click $((W - 47)) 13
 grab d3
 check "bar: Control Center opens on a click" redrawn d2 d3 $((W - 420)) 30 420 300
 ctl key esc >/dev/null
-click $((W / 2)) $((H - 33))
+# Terminal: 5. z 8 ikon Docku (Launchpad, Obchod, Soubory, Firefox, Terminal, ...), rozestup 62 px
+click $((W / 2 + 31)) $((H - 33))
 check "dock: Terminal starts on a click" wait_for 15 'pgrep -u luxos -x luxos-terminal'
 grab t0 2
 ctl keys 'echo mouse' >/dev/null
