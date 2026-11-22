@@ -290,7 +290,9 @@ function place(win, width, align):
         return "anchor " + String(geo[0]) + " " + String(geo[0] + x)
     end
     call layer.set_monitor(win, 0)
-    call glass_place(win, 0, align, 0)
+    # vystup vybere kompozitor; sklo z tapety prvniho monitoru (monitor 0 by GDK shodil v monitor_geometry)
+    monitors = layer.monitors()
+    call glass_place(win, monitors[0] if len(monitors) > 0 else None, align, 0)
     if align == "center":
         call layer.set_anchors(win, [layer.EDGE_TOP])
     else:

@@ -4,6 +4,9 @@ The top bar of LuxOS can have square or rounded bottom corners, with the clock o
 weather, month, computer usage and music in the corner of the desktop. Everything is switched with
 `luxos-appearance` and `luxos-widgets` and applies right away.
 
+In the Wayland session (`luxos-bar`) the bar has rounded corners and the clock in the middle unless
+`appearance.conf` says `BAR_STYLE=classic` or `BAR_CLOCK=right`.
+
 ## The luxos-bar plugin
 
 Between the left and the right part of the top bar is the `luxos-bar` plugin (a C plugin running inside the panel,

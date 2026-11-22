@@ -11,7 +11,8 @@
 #include "internal.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 
-struct lwl_state lwl;
+/* seznam vystupu prazdny uz pred pripojenim: klient bez lwl_attach (luxos-hub) se muze ptat na vystupy */
+struct lwl_state lwl = {.outputs = {&lwl.outputs, &lwl.outputs}};
 
 struct event { int kind, handle, a, b; };
 
@@ -568,6 +569,7 @@ LWL_EXPORT void lwl_disconnect(void)
 	int next_id = lwl.next_id;
 	memset(&lwl, 0, sizeof lwl);
 	lwl.next_id = next_id;   /* handly se nepouziji znovu ani po novem pripojeni */
+	wl_list_init(&lwl.outputs);
 	if (own)
 		wl_display_disconnect(display);
 	else

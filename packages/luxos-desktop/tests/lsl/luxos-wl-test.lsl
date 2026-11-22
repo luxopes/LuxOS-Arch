@@ -12,6 +12,7 @@
 #   luxos-wl-test heads                 monitory, test a pouziti nove polohy
 #   luxos-wl-test idle MS               necinnost a navrat (vstup virtualni klavesnici)
 #   luxos-wl-test soak N                N kol snimku a schranky; RSS na zacatku a na konci
+#   luxos-wl-test unattached            vystupy a hlavy bez pripojeni (0 a 0, ne pad)
 # Vystup: radky "klic hodnota"; kod 0 hotovo, 1 chyba nebo vyprseni (10 s).
 load luxos_wl as wl
 load glib, cairo, fd
@@ -460,6 +461,11 @@ call glib.unbuffered()
 if not wl.on_event(event):
     print "no-library"
     call exit(2)
+end
+# knihovna nactena, ale nepripojena (luxos-hub): dotazy na vystupy a hlavy nesmi spadnout
+if scenario == "unattached":
+    print "outputs " + String(len(wl.outputs())) + " heads " + String(len(wl.heads()))
+    call exit(0)
 end
 if not wl.connect(""):
     print "no-connection"

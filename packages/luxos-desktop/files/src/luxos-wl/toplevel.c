@@ -370,6 +370,17 @@ LWL_EXPORT int lwl_toplevel_set_maximized(int id, int on)
 	return 1;
 }
 
+/* misto ikony v Docku (souradnice plochy surface): minimalizace okna leti do ni */
+LWL_EXPORT int lwl_toplevel_set_rectangle(int id, struct wl_surface *surface, int x, int y, int width, int height)
+{
+	struct zwlr_foreign_toplevel_handle_v1 *h = managed(id);
+	if (!h || !surface)
+		return 0;
+	zwlr_foreign_toplevel_handle_v1_set_rectangle(h, surface, x, y, width, height);
+	wl_display_flush(lwl.display);
+	return 1;
+}
+
 LWL_EXPORT int lwl_toplevel_close(int id)
 {
 	struct zwlr_foreign_toplevel_handle_v1 *h = managed(id);

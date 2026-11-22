@@ -192,15 +192,22 @@ class Glass(mat.MaterialShell):
         self.no_solid()
 
     def dim_shows_wallpaper(self, dark):
-        """5, 9: ztmaveni Launchpadu a Hledani = rozmazana tapeta, ne seda plocha."""
+        """Pripominka 30 (kolo 2): Launchpad a Hledani nerozmazavaji obrazovku - kolem karty zustava ostra tapeta
+        (a lista, Dock) presne jako bez nich, zadne ztmaveni ani seda plocha (5, 9)."""
         self.launch(dark, self.split)
+        plain = self.snap("plain")
         for mode in ("launchpad", "search"):
             self.spawn(str(self.bin / "luxos-launchpad"), "--show", mode)
             time.sleep(2.5)
             image = self.snap(mode)
-            # nad panelem Launchpadu / pod polem Hledani: jen ztmaveni
-            self.assert_glass(image, f"{mode} ztmaveni nahore", 40, x0=40, x1=W - 80)
-            self.assert_glass(image, f"{mode} ztmaveni dole", H - 40, x0=40, x1=W - 80)
+            for y in (40, H - 40):
+                for x in (40, W - 80):
+                    before, now = mean(plain, x, y, 20, 4), mean(image, x, y, 20, 4)
+                    self.assertTrue(all(abs(a - b) <= 6 for a, b in zip(before, now)),
+                                    f"{mode}: kolem karty se obraz zmenil v {x},{y}: {before} -> {now}")
+            sharp = mat.stripe_energy(plain, 40, 40, 104)
+            self.assertGreater(sharp, 8.0)
+            self.assertGreater(mat.stripe_energy(image, 40, 40, 104), sharp * 0.8, f"{mode}: tapeta kolem karty rozmazana")
             self.close()
             time.sleep(0.6)
         self.no_solid()

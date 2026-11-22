@@ -13,6 +13,7 @@
 #            output_scale(o), output_name_at(x, y) -> nazev vystupu s levym hornim rohem x, y ("" = neni)
 # Okna:      toplevels() (wlr: ovladani), list_toplevels() (ext: identifikator pro snimek okna),
 #            toplevel_app_id/title/identifier/state(t), activate(t), minimize(t, zap), maximize(t, zap),
+#            set_rectangle(t, wl_surface, x, y, w, h) (kam minimalizace leti),
 #            close(t); STATE_* bity stavu
 # Zamek:     lock() -> LOCKED/LOCK_FINISHED, lock_surface(o) -> SURFACE_CONFIGURE(s, w, h),
 #            surface_begin(s) -> cairo surface (ARGB32, v pixelech) nebo 0, surface_scale(s) -> meritko
@@ -76,7 +77,7 @@ NAMES = ["lwl_set_handler", "lwl_bind_only", "lwl_connect", "lwl_attach", "lwl_d
     "lwl_output_count", "lwl_output_at", "lwl_output_name", "lwl_output_x", "lwl_output_y", "lwl_output_width",
     "lwl_output_height", "lwl_output_scale", "lwl_toplevel_count", "lwl_toplevel_at", "lwl_toplevel_app_id",
     "lwl_toplevel_title", "lwl_toplevel_identifier", "lwl_toplevel_state", "lwl_toplevel_activate",
-    "lwl_toplevel_set_minimized", "lwl_toplevel_set_maximized", "lwl_toplevel_close", "lwl_lock",
+    "lwl_toplevel_set_minimized", "lwl_toplevel_set_maximized", "lwl_toplevel_close", "lwl_toplevel_set_rectangle", "lwl_lock",
     "lwl_lock_surface", "lwl_unlock", "lwl_surface_width", "lwl_surface_height", "lwl_surface_begin",
     "lwl_surface_commit", "lwl_capture_output", "lwl_capture_toplevel", "lwl_capture_data", "lwl_capture_stride",
     "lwl_capture_format", "lwl_capture_free", "lwl_clipboard_set", "lwl_clipboard_set_file", "lwl_clipboard_mime_types",
@@ -362,6 +363,13 @@ end
 
 function close(toplevel):
     return call1("lwl_toplevel_close", toplevel) == 1
+end
+
+# Misto ikony okna v Docku: surface = wl_surface GDK okna na stejnem spojeni (attach), x, y, w, h v jeji plose
+function set_rectangle(toplevel, surface, x, y, w, h):
+    unsafe:
+        return __lsl_qbe_icall6(sym("lwl_toplevel_set_rectangle"), ptr(toplevel), ptr(surface), ptr(x), ptr(y), ptr(w), ptr(h)) == 1
+    end
 end
 
 # ---- zamek ----

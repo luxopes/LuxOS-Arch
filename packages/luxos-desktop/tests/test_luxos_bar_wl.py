@@ -437,8 +437,8 @@ class WaylandBar(unittest.TestCase):
         self.start()
         bar = self.bar()
         bar.wait(r"^drawn ")
-        # Oznameni vlevo od hodin (hodiny otevrou Kalendar hubu, test_luxos_hub_wl)
-        bell = "move 1150 14"
+        # Oznameni vpravo, hodiny uprostred (otevrou Kalendar hubu, test_luxos_hub_wl)
+        bell = "move 1262 14"
         # prvni otevreni stavi okno (studene), pak teple
         mark = bar.mark()
         self.input(bell, "click")
@@ -447,7 +447,7 @@ class WaylandBar(unittest.TestCase):
         time.sleep(0.3)
         image = self.shot()
         # okno ze skla pod zvonkem, pod vyhradnou zonou listy
-        self.assertNotEqual(pixel(image, 1150, BAR + 30), "000000")
+        self.assertNotEqual(pixel(image, 1240, BAR + 30), "000000")
         self.assertEqual(pixel(image, 1150, BAR + 2), "000000")
         mark = bar.mark()
         self.input("key Escape")
@@ -474,7 +474,62 @@ class WaylandBar(unittest.TestCase):
         self.input("move 640 600", "click")
         bar.wait(r"^popup notifications hidden", start=mark)
         time.sleep(0.3)
-        self.assertEqual(pixel(self.shot(), 1150, BAR + 30), "000000")
+        self.assertEqual(pixel(self.shot(), 1240, BAR + 30), "000000")
+
+    def test_clock_center_and_rounded_corners(self):
+        # jako lista verze 1.0.5: hodiny uprostred a zaoblene spodni rohy; BAR_CLOCK=right a BAR_STYLE=classic vrati
+        # hodiny vpravo a rovne rohy bez restartu
+        self.start()
+        bar = self.bar()
+        bar.wait(r"^drawn ")
+        time.sleep(0.4)
+
+        def ink(image, x0, x1):
+            # tmave pismo listy na svetle tapete
+            return sum(1 for x in range(x0, x1) for y in range(8, 20) if int(pixel(image, x, y)[:2], 16) < 110)
+
+        image = self.shot()
+        self.assertGreater(ink(image, 590, 690), 40, "hodiny uprostred")
+        # roh: pod zaoblenim nic (cerny vystup bez tapety), kousek dal uz sklo listy
+        self.assertEqual(pixel(image, 0, BAR - 1), "000000")
+        self.assertEqual(pixel(image, 1279, BAR - 1), "000000")
+        self.assertNotEqual(pixel(image, 12, BAR - 1), "000000")
+        self.assertNotEqual(pixel(image, 0, 2), "000000")
+        conf = self.session / "config/luxos/appearance.conf"
+        tmp = conf.with_suffix(".new")
+        tmp.write_text(conf.read_text() + "BAR_CLOCK=right\nBAR_STYLE=classic\n")
+        tmp.rename(conf)
+        time.sleep(0.8)
+        image = self.shot()
+        self.assertLess(ink(image, 590, 690), 5, "hodiny vpravo")
+        self.assertGreater(ink(image, 1180, 1276), 40, "hodiny vpravo")
+        self.assertNotEqual(pixel(image, 0, BAR - 1), "000000")
+        self.assertNotEqual(pixel(image, 1279, BAR - 1), "000000")
+
+    def test_account_row_opens_luxos_account(self):
+        # radek s fotkou a jmenem v nabidce systemu otevre ucet LuxAI jako jmeno uzivatele v nabidce na X11
+        self.start()
+        fake = self.session / "fakebin"
+        fake.mkdir()
+        opened = self.session / "account-opened"
+        (fake / "luxos-account").write_text(f"#!/bin/sh\necho \"$@\" > {opened}\n")
+        (fake / "luxos-account").chmod(0o755)
+        bar = self.bar(dict(self.env, PATH=f"{fake}:{self.env['PATH']}"))
+        bar.wait(r"^drawn ")
+        mark = bar.mark()
+        self.input("move 14 14", "click")
+        bar.wait(r"^popup system shown", start=mark)
+        time.sleep(0.3)
+        mark = bar.mark()
+        # jmeno vpravo od fotky na prvnim radku karty (okraj 8, karta 6 px pod listou)
+        self.input("move 120 66", "click")
+        bar.wait(r"^popup system hidden", start=mark)
+        for _ in range(50):
+            if opened.exists():
+                break
+            time.sleep(0.1)
+        self.assertTrue(opened.exists(), "luxos-account se nespustil")
+        self.assertEqual(opened.read_text().strip(), "")
 
     def test_logo_opens_system_menu_and_signal_opens_wifi(self):
         self.start()
@@ -549,16 +604,16 @@ class WaylandBar(unittest.TestCase):
         time.sleep(0.5)
         widths = [int(line.split()[3]) for line in bar.lines if line.startswith("badge keyboard ")]
         self.assertTrue(widths and abs(widths[-1] - 35) <= 6, "keyboard item widths %s" % widths)
-        # klik na kod: hned dalsi rozlozeni (luxwm IPC, tady bez luxwm jen pozadavek) a zablesk akcentem
+        # klik na kod: hned dalsi rozlozeni (luxwm IPC, tady bez luxwm jen pozadavek), bez modreho zablesku
         x = [int(line.split()[2]) + int(line.split()[3]) // 2 for line in bar.lines if line.startswith("badge keyboard ")][-1]
         mark = bar.mark()
         self.input(f"move {x} 14", "click", "move 640 400")
         bar.wait(r"^layout next 1$", start=mark)
-        time.sleep(0.1)
-        accent = [x2 for x2 in range(x - 14, x + 14) if pixel(self.shot(), x2, 5) == "3d7bff"]
-        self.assertTrue(accent, "zablesk po prepnuti rozlozeni")
-        time.sleep(1.0)
-        self.assertEqual([x2 for x2 in range(x - 14, x + 14) if pixel(self.shot(), x2, 5) == "3d7bff"], [], "zablesk zmizel")
+        for _ in range(4):
+            image = self.shot()
+            self.assertEqual([x2 for x2 in range(x - 14, x + 14) for y in (5, 14) if pixel(image, x2, y) == "3d7bff"], [],
+                             "zablesk po prepnuti rozlozeni")
+            time.sleep(0.15)
         self.assertFalse(any(line.startswith("layout menu") for line in bar.lines[mark:]), "klik neotevira nabidku")
         bar.wait(r"^status notifications notification-new-symbolic$")
         bar.wait(r"^tray watcher own=True$")
@@ -595,7 +650,7 @@ class WaylandBar(unittest.TestCase):
         time.sleep(0.5)
         # zvonek: historie oznameni; bubliny luxos-notify skryte, dokud je okno otevrene; zavreni = precteno
         mark = bar.mark()
-        self.input("move 1145 14", "click")   # zvonek vlevo od hodin
+        self.input("move 1262 14", "click")   # zvonek vpravo (hodiny uprostred)
         bar.wait(r"^popup notifications shown", start=mark)
         services.wait(r"^popups-hidden True$")
         time.sleep(0.4)

@@ -256,8 +256,8 @@ class HubWayland:
         bar = self.bar()
         hub = self.hub()
         self.client()
-        # Ovladaci centrum vlevo od zvonku a hodin (poradi jako na X11), tady na druhem vystupu
-        button = 2 * OUT_W - 162
+        # Ovladaci centrum vlevo od zvonku (hodiny uprostred listy), tady na druhem vystupu
+        button = 2 * OUT_W - 46
         before = self.shot()
         mark, bmark = self.cc.mark(), bar.mark()
         clicked = time.monotonic()
@@ -312,7 +312,7 @@ class HubWayland:
         self.start()
         bar = self.bar()
         hub = self.hub()
-        button = 2 * OUT_W - 162
+        button = 2 * OUT_W - 46
 
         def open_cc():
             mark = self.cc.mark()
@@ -362,11 +362,11 @@ class HubWayland:
         self.assertIsNone(hub.poll())
 
     def test_clock_opens_calendar_under_it(self):
-        # hodiny vpravo v liste otevrou Kalendar hubu (luxos_cal) jako na X11, ne maly kalendar listy
+        # hodiny uprostred listy otevrou Kalendar hubu (luxos_cal) jako na X11, ne maly kalendar listy
         self.start()
         bar = self.bar()
         hub = self.hub()
-        clock = f"move {2 * OUT_W - 64} 14"
+        clock = f"move {OUT_W + OUT_W // 2} 14"
         mark, bmark = self.cal.mark(), bar.mark()
         self.input(clock, "sleep 0.1", "click")
         _, m = bar.wait(r"^luxos-calendar-toggle (\d+) (\d+)", start=bmark)

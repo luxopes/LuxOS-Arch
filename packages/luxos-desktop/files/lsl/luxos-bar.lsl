@@ -4,12 +4,13 @@
 #
 #   vlevo     logo LuxOS (nabidka systemu, luxos_bar_popup) a nazev aktivni aplikace (wlr-foreign-toplevel,
 #             stav activated)
-#   uprostred hodiny jako luxos-clock (datum podle jazyka plochy), klik = kalendar
+#   uprostred hodiny jako luxos-clock (datum podle jazyka plochy), klik = kalendar; BAR_CLOCK=right je da vpravo
 #   vpravo    oznamovaci oblast (StatusNotifierItem), rozlozeni klavesnice jako tucny kod (US, CZ; z luxwm): klik
-#             prepne na dalsi rozlozeni a kod kratce blikne akcentem, prave tlacitko nebo podrzeni = nabidka
-#             rozlozeni; zvuk, Wi-Fi/sit, baterie,
+#             prepne na dalsi rozlozeni, prave tlacitko nebo podrzeni = nabidka rozlozeni; zvuk, Wi-Fi/sit, baterie,
 #             zvonek s historii oznameni (luxos-notify) a Ovladaci centrum (luxos-cc-toggle)
 #
+# Spodni rohy zaoblene jako lista verze 1.0.5 (luxos-appearance, border-radius 0 0 10px 10px); BAR_STYLE=classic
+# v appearance.conf = rovne.
 # Pismo listy: v tmavem rezimu bile, ve svetlem podle tapety pod listou (kontrast WCAG s hysterezi,
 # tokens.want_dark_ink jako luxos-bar.c); BAR_TEXT=white|dark v appearance.conf ho pevne nastavi. Pod bilym
 # pismem na svetle tapete zavoj (scrim) - samostatna plocha na vrstve BOTTOM bez vstupu (DESKTOP_SCRIM=0 vypne).
@@ -37,6 +38,7 @@ load luxos_hub_popup as hub_popup
 load luxos_sni as sni
 
 HEIGHT = tokens.BAR["height"]
+RADIUS = 10
 DEFAULT_APPS = "/usr/share/applications"
 RENAMED_APPS = "/var/lib/luxos/apps/applications"
 
@@ -49,14 +51,13 @@ SHORT = {"thunar": "Files", "luxos-terminal": "Terminal", "xfce4-terminal": "Ter
 
 SIGUSR1 = 10
 SIGUSR2 = 12
-# Podrzeni kodu rozlozeni = nabidka misto prepnuti; delka zablesku po prepnuti
+# Podrzeni kodu rozlozeni = nabidka misto prepnuti
 LONG_PRESS_MS = 500
-FLASH_MS = 650
 
 bars = []
 ui = {"provider": 0, "app": "", "app_names": {}, "wm_classes": None, "clock": "", "clock_tip": "", "conf": {},
       "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "layout_menu": 0, "layout_items": [],
-      "layout_names": [], "thumbs": {}, "flags": {}, "kb_press": 0, "kb_held": False, "kb_widget": 0, "kb_flash": 0,
+      "layout_names": [], "thumbs": {}, "flags": {}, "kb_press": 0, "kb_held": False, "kb_widget": 0,
       "last_bar": None}
 # Vlajky rozlozeni klavesnice jako panel xkb v X11 relaci (xfce4-xkb-plugin, display-type 0); bez vlajky kod
 FLAGS = env.get("LUXOS_XKB_FLAGS", "/usr/share/xfce4/xkb/flags")
@@ -119,10 +120,8 @@ function bar_css():
         + ".luxos-bar .lb-clock { " + tokens.type_css("body_strong") + " font-feature-settings: \"tnum\"; }\n"
         + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["xs"]) + "px; }\n"
-        # rozlozeni klavesnice jako text verze 1.1.1 (luxos-xkb.c): tucny kod barvou pisma listy, bez ramecku;
-        # po prepnuti kratce na akcentu (potvrzeni kliku, pravidlo na konci)
+        # rozlozeni klavesnice jako text verze 1.1.1 (luxos-xkb.c): tucny kod barvou pisma listy, bez ramecku
         + ".luxos-bar .lb-badge { font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.4px; padding: 0 2px; }\n"
-        + ".luxos-bar button.lb.kb { transition: background-color 200ms ease-out; }\n"
         + ".luxos-bar.ink-white label, .luxos-bar.ink-white image { color: " + white + "; }\n"
         + ".luxos-bar.ink-white label { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white image { -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
@@ -130,11 +129,7 @@ function bar_css():
         + ".luxos-bar.ink-white button.lb.open { background-color: alpha(" + white + ", 0.14); }\n"
         + ".luxos-bar.ink-dark label, .luxos-bar.ink-dark image { color: " + dark + "; }\n"
         + ".luxos-bar.ink-dark button.lb:hover { background-color: alpha(" + dark + ", 0.08); }\n"
-        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n"
-        # zablesk po prepnuti rozlozeni prebije najeti mysi (stejna specificita, proto :hover a az na konci)
-        + ".luxos-bar button.lb.kb.flash, .luxos-bar button.lb.kb.flash:hover { background-color: "
-        + tokens.css_color(tokens.COLORS["accent"]) + "; transition: none; }\n"
-        + ".luxos-bar button.lb.kb.flash label { color: " + tokens.css_color(tokens.COLORS["accent_text"]) + "; text-shadow: none; }\n")
+        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n")
 end
 
 function apply_css():
@@ -300,8 +295,24 @@ function paint_scrim(cr, strength, height):
     return 0
 end
 
+function rounded():
+    return ui["conf"].get("BAR_STYLE", "") != "classic"
+end
+
 function on_bar_draw(bar, cr, widget):
     w = gtk.widget_get_allocated_width(widget)
+    call cairo.save(cr)
+    if rounded():
+        # horni rohy mimo plochu: zaoblene jen spodni
+        call material.rounded_path(cr, 0.0, Float(-RADIUS), Float(w), Float(HEIGHT + RADIUS), Float(RADIUS))
+        call cairo.clip(cr)
+    end
+    call paint_bar(bar, cr, w)
+    call cairo.restore(cr)
+    return False
+end
+
+function paint_bar(bar, cr, w):
     if ui["blur"]:
         # rozmazane pozadi kresli kompozitor; tonovani a vlasova cara dole (svetla lista nad svetlym oknem)
         call cairo.save(cr)
@@ -317,7 +328,7 @@ function on_bar_draw(bar, cr, widget):
             bar["drawn"] = True
             call trace("drawn " + bar["output"] + " " + String(w) + "x" + String(HEIGHT) + " material")
         end
-        return False
+        return 0
     end
     ink = 0
     if bar["dark_ink"]:
@@ -339,7 +350,7 @@ function on_bar_draw(bar, cr, widget):
         bar["drawn"] = True
         call trace("drawn " + bar["output"] + " " + String(w) + "x" + String(HEIGHT))
     end
-    return False
+    return 0
 end
 
 function on_scrim_draw(bar, cr, widget):
@@ -485,10 +496,10 @@ function build_bar(bar):
     return 0
 end
 
-# Hodiny vpravo jako na X11; BAR_CLOCK=center v appearance.conf je da na stred cele listy, ne mezi levou
-# a pravou cast (luxos-bar.c bod 1). Zmena nastaveni hodiny presune bez restartu listy.
+# Hodiny na stredu cele listy, ne mezi levou a pravou casti (luxos-bar.c bod 1); BAR_CLOCK=right v appearance.conf
+# je da vpravo. Zmena nastaveni hodiny presune bez restartu listy.
 function place_clock(bar):
-    center = ui["conf"].get("BAR_CLOCK", "") == "center"
+    center = ui["conf"].get("BAR_CLOCK", "") != "right"
     if bar["clock_center"] == center:
         return 0
     end
@@ -523,7 +534,8 @@ function add_bar(monitor):
            "scale": max(1, monitor_scale(monitor)), "dark_ink": False, "scrim": 0.0, "scrim_win": 0, "items": {},
            "drawn": False, "traced": False}
     call layer.init_for_window(win)
-    call layer.set_namespace(win, tokens.namespace("luxos-bar", "bar"))
+    # polomer pro rozmazani v kompozitoru (vsechny rohy; horni lezi na okraji obrazovky)
+    call layer.set_namespace(win, "luxos-bar@bar:" + String(RADIUS if rounded() else tokens.radius_of("bar")))
     call layer.set_layer(win, layer.LAYER_TOP)
     call layer.set_monitor(win, monitor)
     call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_LEFT, layer.EDGE_RIGHT])
@@ -942,7 +954,7 @@ function on_layout_item(index, item):
     return 0
 end
 
-# Klik na kod rozlozeni: prepnout hned pri pusteni (dalsi rozlozeni, zablesk); podrzeni LONG_PRESS_MS = nabidka
+# Klik na kod rozlozeni: prepnout hned pri pusteni na dalsi rozlozeni; podrzeni LONG_PRESS_MS = nabidka
 function keyboard_press(widget):
     ui["kb_press"] += 1
     ui["kb_held"] = True
@@ -968,23 +980,8 @@ function on_keyboard_release(unused, event, widget):
     if len(kb["layouts"]) > 1:
         call trace("layout next " + String((kb["current"] + 1) % len(kb["layouts"])))
         call status.next_layout()
-        call flash(widget)
     end
     return True
-end
-
-function flash(widget):
-    ui["kb_flash"] += 1
-    call luxos_gtk.widget_set_class(widget, "flash", True)
-    call lglib.timeout_add_data(FLASH_MS, on_flash_end, [ui["kb_flash"], widget])
-    return 0
-end
-
-function on_flash_end(pending):
-    if pending[0] == ui["kb_flash"]:
-        call luxos_gtk.widget_set_class(pending[1], "flash", False)
-    end
-    return False
 end
 
 function on_item_press(kind, event, widget):
