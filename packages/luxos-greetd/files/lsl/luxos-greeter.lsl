@@ -30,6 +30,8 @@ CONF = "/etc/lightdm/luxos-greeter.conf"
 LOGIN1 = "org.freedesktop.login1"
 X11_WRAPPER = "/usr/lib/luxos/luxos-x11-session"
 FPRINT_SKIP = "/run/luxos-fingerprint/password-only"
+# posledni snimek pro prechod do relace (luxos-greetd.tmpfiles; LUXOS_LOGIN_FRAME pro testy)
+FRAME = env.get("LUXOS_LOGIN_FRAME", "/run/luxos-greeter/login-frame")
 DOMAIN_UID_MIN = 100000
 # relace X11 navic k LuxOS (X11): Xfce je totez bez nastaveni LuxOS, v nabidce by mylila
 HIDDEN_SESSIONS = ["xfce.desktop", "xfce-wayland.desktop", "labwc.desktop"]
@@ -624,10 +626,11 @@ function sync_ui():
     ui["notice"] = line
     ui["leaving"] = state["leaving"]
     if state["leaving"]:
-        # posledni snimek pred startem relace: ostra tapeta bez formulare a hodin (relace zacina tapetou)
-        ui["reveal"] = 0.0
-        ui["rev_from"] = 0.0
-        ui["rev_to"] = 0.0
+        # posledni snimek pred startem relace: tapeta ztmavena jako ve vyzve (X11: 0.10 + 0.14), bez formulare
+        # a hodin; relace ho ukaze s barem prubehu a rozplyne do plochy (luxwm --intro)
+        ui["reveal"] = 1.0
+        ui["rev_from"] = 1.0
+        ui["rev_to"] = 1.0
     end
     return 0
 end
@@ -1011,9 +1014,27 @@ end
 # greetd relaci spusti, az greeter skonci: posledni snimek je tapeta bez formulare (luxwm --greeter pak skonci s nim)
 function leave():
     state["leaving"] = True
+    call save_frame()
     call gtk.widget_queue_draw(window)
     call log("leaving")
     call glib.timeout_add(120, quit_now)
+    return 0
+end
+
+# Stejny snimek do souboru: luxwm --intro relace s nim zakryje skladani plochy (jako luxos-session-cover v X11) a
+# luxwm --greeter a greetd (libluxos-greetd-vt.so) podle nej obrazovku predaji bez textove konzole
+function save_frame():
+    if window == 0:
+        return 0
+    end
+    t0 = glib.monotonic_time()
+    bd = draw.backdrop(wallpaper(), gtk.widget_get_allocated_width(window), gtk.widget_get_allocated_height(window),
+                       Float(scale_factor()))
+    if gsys.write_frame(FRAME, draw.dimmed(bd, 1.0)):
+        call log("login frame saved in " + String((glib.monotonic_time() - t0) // 1000) + " ms")
+    else:
+        call log("login frame not saved")
+    end
     return 0
 end
 

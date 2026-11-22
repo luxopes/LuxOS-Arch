@@ -5,14 +5,14 @@
 
 pkgname=luxos-greetd
 pkgver=1.1.0
-pkgrel=6
+pkgrel=7
 pkgdesc="LuxOS login screen on Wayland (greetd + LSL greeter under luxwm)"
 arch=(x86_64)
 url="https://github.com/luxopes/LuxOS-Arch"
 license=(GPL-3.0-or-later)
 # !strip: programy v LSL po strip nejdou spustit
 options=(!debug !strip)
-depends=(greetd 'luxwm>=0.1.0-15' 'luxos-desktop>=1.1.0-98' gtk3 cairo pango luxos-i18n accountsservice)
+depends=(greetd 'luxwm>=0.1.0-17' 'luxos-desktop>=1.1.0-98' gtk3 cairo pango luxos-i18n accountsservice)
 optdepends=('xorg-xinit: login screen on NVIDIA 470 and older (Xorg instead of Wayland)')
 makedepends=('lsl>=0.11.0')
 backup=(etc/greetd/luxos.toml)
