@@ -1394,6 +1394,24 @@ on_output(struct blur *b, struct output *o, struct wlr_box *abs)
 		&& wlr_box_contains_point(&out, abs->x + abs->width / 2.0, abs->y + abs->height / 2.0);
 }
 
+/* Zmenilo se od posledniho snimku neco primo v obdelniku plochy? Poskozeni vystupu, ktere scena sbira do
+ * vykresleni, je levnejsi nez pruchod scenou a nema slepa mista (vic commitu klienta mezi snimky). Okraj vyrezu
+ * (polomer rozmazani) se nehlida: posouvany obsah maximalizovaneho okna tesne pod listou nebo nad Dockem by
+ * jinak prepocital material kazdy snimek (pod pixman ~1 ms na plochu); okraj se dopocita s pristi zmenou pod
+ * plochou. */
+static bool
+damaged(struct output *o, struct wlr_box abs)
+{
+	struct wlr_scene_output *so = o->scene_output;
+	if (o->wlr_output->transform != WL_OUTPUT_TRANSFORM_NORMAL) {
+		return true;
+	}
+	double k = o->wlr_output->scale;
+	pixman_box32_t box = { floor((abs.x - so->x) * k), floor((abs.y - so->y) * k),
+		ceil((abs.x + abs.width - so->x) * k), ceil((abs.y + abs.height - so->y) * k) };
+	return pixman_region32_contains_rectangle(&so->damage_ring.current, &box) != PIXMAN_REGION_OUT;
+}
+
 /* Pred vykreslenim snimku vystupu: prepocitat plochy, pod kterymi se neco zmenilo. Vraci true,
  * kdyz se nejaka prepocitala. */
 bool
@@ -1405,7 +1423,7 @@ blur_output_frame(struct output *o)
 	struct blur *b;
 	wl_list_for_each(b, &blurs, link) {
 		struct wlr_box abs;
-		if (!on_output(b, o, &abs)) {
+		if (!on_output(b, o, &abs) || (!b->dirty && b->sig && !damaged(o, abs))) {
 			continue;
 		}
 		/* plocha pres cely vystup (ztmaveni Launchpadu a Hledani) rozmazava jen vrstvu pozadi, jako macOS a 1.0:
