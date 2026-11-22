@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 struct wl_display;
+struct wl_surface;
 
 typedef void (*lwl_handler)(void *user, int kind, int handle, int a, int b);
 
@@ -90,6 +91,7 @@ int lwl_toplevel_activate(int toplevel);
 int lwl_toplevel_set_minimized(int toplevel, int on);
 int lwl_toplevel_set_maximized(int toplevel, int on);
 int lwl_toplevel_close(int toplevel);
+int lwl_toplevel_set_rectangle(int toplevel, struct wl_surface *surface, int x, int y, int width, int height);
 
 int lwl_lock(void);
 int lwl_lock_surface(int output);

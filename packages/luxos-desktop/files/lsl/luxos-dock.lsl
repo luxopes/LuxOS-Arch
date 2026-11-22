@@ -3,7 +3,9 @@
 # tecka pod bezici aplikaci, zvetseni ikon pod mysi, skryvani, cisla a prubeh z com.canonical.Unity.LauncherEntry.
 #
 # Klik = aktivovat okna aplikace nebo ji spustit, klik na aktivni aplikaci = minimalizovat, prostredni tlacitko =
-# nove okno, prave = nabidka (Ponechat v Docku / Odebrat z Docku, Ukoncit), tazeni = jine poradi.
+# nove okno, prave = nabidka (Ponechat v Docku / Odebrat z Docku, Ukoncit), tazeni = jine poradi. Spustena aplikace
+# poskoci jako v Planku, pribyla/ubyla ikona se plynule vsune/vysune; kompozitor zna misto ikony kazdeho okna
+# (set_rectangle), minimalizace leti do ni.
 # Zvetseni (zaseknuta lupa v Planku, LuxOS 1.0.4): po odchodu mysi do 0,45 s pryc v kazdem smeru, pri navratu jde za
 # mysi; snimek drazsi nez rozpocet (4 ms) zvetseni vypne. Bez animace Dock nebezi v zadnem casovaci.
 #
@@ -18,7 +20,7 @@
 load env, process
 load luxos_glib, glib as glib
 load luxos_gtk, gtk as gtk
-load gio, cairo, pango
+load gio, cairo, pango, math
 load luxos_layer as layer
 load luxos_primary as primary
 load luxos_luxwm as wm
@@ -37,6 +39,10 @@ ZOOM_GUARD_MS = 380
 HIDE_MS = 250
 # pridani a odebrani ikony: sousedi se posunou, nova ikona naroste, odebrana zmizi (Plank ItemMoveTime)
 MOVE_MS = 200
+# poskakovani ikony po spusteni aplikace jako Plank s motivem WhiteSur (LaunchBounceTime 600, LaunchBounceHeight 0,7
+# velikosti ikony): |sin| s periodou 600 ms = dva poskoky
+BOUNCE_MS = 600
+BOUNCE_HEIGHT = 0.7
 HIDE_DELAY_MS = 300
 DRAG_START = 6
 LABEL_H = 30
@@ -75,6 +81,9 @@ anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1], "move": [
 # posun ikon: kreslene polohy z posledniho snimku (klic -> [levy okraj od stredu okna, velikost], panel [x, w]),
 # polohy na zacatku posunu a odebirane polozky [polozka, levy okraj, velikost]
 move = {"drawn": {}, "drawn_panel": None, "from": {}, "panel": None, "leaving": [], "hold": False}
+# klic polozky -> zacatek poskakovani (us, now()); okno -> obdelnik ikony poslany kompozitoru (set_rectangle)
+bounces = {}
+rects = {}
 timers = {"tick": 0, "hide": 0, "guard": 0}
 costs = []
 window = 0
@@ -378,6 +387,7 @@ function sync_items():
         call debug("items " + text.join([item["key"] for item in items], " "))
         call update_geometry()
     end
+    call send_rects()
     call queue_redraw()
     return 0
 end
@@ -575,7 +585,16 @@ function step_anims(t):
 end
 
 function on_tick(widget, clock):
-    active = step_anims(now())
+    t = now()
+    active = step_anims(t)
+    for key in List(bounces.keys()):
+        if t - bounces[key] >= BOUNCE_MS * 1000:
+            call bounces.pop(key)
+            call debug("bounce-end " + key)
+        else:
+            active = True
+        end
+    end
     call queue_redraw()
     if not active:
         timers["tick"] = 0
@@ -644,6 +663,7 @@ function anims_done():
         move["hold"] = False
         call drop_leaving()
         call update_geometry()
+        call send_rects()
     end
     # rozpocet snimku prekroceny: Dock bez zvetseni az po dobehu, aby se plocha nemenila pod mysi
     if view.get("zoom_off_pending", False) and anims["zoom"][0] == 0.0:
@@ -945,7 +965,12 @@ function on_draw(cr, widget):
         if z < 1.0:
             continue
         end
-        call draw_icon(cr, item, x, base - z, z)
+        lift = 0.0
+        if item["key"] in bounces:
+            phase = Float(now() - bounces[item["key"]]) / Float(BOUNCE_MS * 1000)
+            lift = abs(math.sin(2.0 * math.PI * phase)) * BOUNCE_HEIGHT * Float(geo["size"])
+        end
+        call draw_icon(cr, item, x, base - z - lift, z)
         entry = entries.get(item["desktop_id"])
         if entry != None:
             call draw_badge(cr, entry, x, base - z, z)
@@ -1157,6 +1182,46 @@ function launch(item):
     elif item["info"] != 0:
         call debug("launch " + item["key"])
         call apps.launch(item["info"])
+        bounces[item["key"]] = now()
+        call ensure_tick()
+    end
+    return 0
+end
+
+function wl_surface():
+    gw = gtk.widget_get_window(window)
+    if gw == 0:
+        return 0
+    end
+    unsafe:
+        return __lsl_qbe_call1(__lsl_symbol("gdk_wayland_window_get_wl_surface"), __lsl_unbox_int(gw))
+    end
+end
+
+# Kompozitoru misto ikony kazdeho okna (bez zvetseni): minimalizace leti do sve ikony
+function send_rects():
+    if window == 0 or len(geo) == 0:
+        return 0
+    end
+    surface = wl_surface()
+    if surface == 0:
+        return 0
+    end
+    size = geo["size"]
+    for i in range(len(items)):
+        rect = [geo["x0"] + geo["pad"] + i * (size + geo["gap"]), geo["panel_y"] + geo["top"], size, size]
+        for handle in items[i]["windows"]:
+            if rects.get(handle) != rect:
+                rects[handle] = rect
+                call wl.set_rectangle(handle, surface, rect[0], rect[1], rect[2], rect[3])
+                call debug("rect " + String(handle) + " " + text.join(rect, " "))
+            end
+        end
+    end
+    for handle in List(rects.keys()):
+        if not (handle in windows):
+            call rects.pop(handle)
+        end
     end
     return 0
 end
@@ -1585,6 +1650,7 @@ if want_hidden():
 end
 call gtk.widget_show_all(window)
 call update_region(current_layout())
+call send_rects()
 call watch_launcher_entries()
 call watch_files()
 call debug("ready " + String(geo["width"]) + " " + String(geo["height"]))
