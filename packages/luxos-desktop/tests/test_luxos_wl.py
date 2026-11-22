@@ -354,6 +354,9 @@ class WaylandShell:
         self.assertEqual((r.returncode, r.stdout.strip()), (2, "no-library"))
         r = self.run_client("luxos-wl-test", "capture", "x.png", env=dict(self.env, WAYLAND_DISPLAY="wayland-9"))
         self.assertEqual((r.returncode, r.stdout.strip()), (2, "no-connection"))
+        # Kalendar luxos-hub se ptal na vystupy bez lwl_attach a padal (seznam vystupu nebyl inicializovany)
+        r = self.run_client("luxos-wl-test", "unattached")
+        self.assertEqual((r.returncode, r.stdout.strip()), (0, "outputs 0 heads 0"))
 
 
 @unittest.skipUnless(LSLC and LABWC and TOOLS, "chybi lslc, labwc (LUXOS_WL_SYSROOT) nebo make/gcc/wayland-scanner")
