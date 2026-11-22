@@ -1,0 +1,4 @@
+#!/bin/sh
+# LuxOS - systemd-shutdown (po ukonceni sluzeb, tesne pred restartem/vypnutim): uvolnit cip Realtek
+# RTL8723DE, aby po restartu Wi-Fi nezustala vypnuta (viz /usr/lib/luxos/drivers/luxos-wifi-quirk)
+exec /usr/lib/luxos/drivers/luxos-wifi-quirk shutdown

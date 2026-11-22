@@ -5382,3 +5382,5 @@ Size of everything on the screen	Velikost všeho na obrazovce
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Zvětší text, tlačítka, záhlaví oken, horní lištu a Dock – hodí se na dotykové obrazovky a malé displeje s vysokým rozlišením. Některé aplikace je potřeba znovu otevřít.
 Window buttons	Tlačítka oken
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Tlačítka zavřít, minimalizovat a maximalizovat v záhlaví okna. Automaticky je na dotykových obrazovkách zvětší.
+Wi-Fi adapter did not start	Adaptér Wi-Fi se nespustil
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Adaptér Wi-Fi se zasekl po restartu z jiného systému. Vypněte počítač, podržte tlačítko napájení 30 sekund a pak ho znovu zapněte. Restart nestačí.

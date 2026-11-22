@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Wi-Fi adapter check
+Comment=LuxOS: tells you when a Realtek RTL8723DE Wi-Fi adapter got stuck after a restart (only on computers with that adapter)
+Exec=/usr/lib/luxos/drivers/luxos-wifi-quirk notify
+NoDisplay=true
+Terminal=false
+X-GNOME-Autostart-enabled=true

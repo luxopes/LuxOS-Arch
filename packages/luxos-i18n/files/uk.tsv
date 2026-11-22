@@ -5384,3 +5384,5 @@ Size of everything on the screen	Розмір усього на екрані
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Збільшує текст, кнопки, заголовки вікон, верхню панель і Dock – корисно на сенсорних екранах і малих дисплеях із високою роздільністю. Деякі застосунки потрібно відкрити знову.
 Window buttons	Кнопки вікон
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Кнопки «закрити», «згорнути» і «розгорнути» в заголовку вікна. «Автоматично» збільшує їх на сенсорних екранах.
+Wi-Fi adapter did not start	Адаптер Wi-Fi не запустився
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Адаптер Wi-Fi завис після перезапуску з іншої системи. Вимкніть комп’ютер, утримуйте кнопку живлення 30 секунд, а потім увімкніть його знову. Перезапуску недостатньо.

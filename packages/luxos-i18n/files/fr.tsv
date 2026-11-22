@@ -5383,3 +5383,5 @@ Size of everything on the screen	Taille de tous les éléments à l'écran
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Agrandit le texte, les boutons, les barres de titre, la barre de menus et le Dock – utile sur les écrans tactiles et les petits écrans haute résolution. Certaines apps doivent être rouvertes.
 Window buttons	Boutons des fenêtres
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Boutons fermer, réduire et agrandir de la barre de titre. « Automatique » les agrandit sur les écrans tactiles.
+Wi-Fi adapter did not start	L’adaptateur Wi-Fi n’a pas démarré
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	L’adaptateur Wi-Fi est resté bloqué après un redémarrage depuis un autre système. Éteignez l’ordinateur, maintenez le bouton d’alimentation enfoncé 30 secondes, puis rallumez-le. Un redémarrage ne suffit pas.

@@ -5383,3 +5383,5 @@ Size of everything on the screen	Minden elem mérete a képernyőn
 Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Nagyobbá teszi a szöveget, a gombokat, az ablakok címsorát, a menüsort és a Dockot – hasznos érintőképernyőn és kis, nagy felbontású kijelzőkön. Egyes alkalmazásokat újra meg kell nyitni.
 Window buttons	Ablakgombok
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	A címsor bezárás, kis méret és teljes méret gombjai. Az „Automatikus” érintőképernyőn nagyobbra állítja őket.
+Wi-Fi adapter did not start	A Wi-Fi-adapter nem indult el
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	A Wi-Fi-adapter beragadt egy másik rendszerből történt újraindítás után. Kapcsolja ki a számítógépet, tartsa lenyomva a bekapcsológombot 30 másodpercig, majd kapcsolja be újra. Az újraindítás nem elég.
