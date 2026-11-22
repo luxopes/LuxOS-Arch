@@ -5,6 +5,8 @@
 # vystup kompozitor - ten s kurzorem.
 #
 #   popup.setup(okno, nazev)              pred prvnim zobrazenim: vrstva OVERLAY, klavesnice on demand
+#   popup.setup_radius(okno, nazev, r)    totez s vlastnim zaoblenim karty (Ovladaci centrum One UI); kompozitor
+#                                         ho cte z nazvu vrstvy, sklo popup.glass ho prevezme
 #   popup.place(okno, sirka, zarovnani)   monitor a okraj pred zobrazenim; zarovnani bez zapisu listy
 #                                         "right" | "center"; vraci popis pro testy ("anchor 1280 1104")
 #   popup.show(okno)                      zobrazit (po place); popup.focus_in(okno) z focus-in-event,
@@ -140,12 +142,16 @@ end
 
 # Karta ze skla do cr pod obsah okna; False = neni tapeta (plati material z CSS)
 function paint_glass(cr, box, output, out_w, out_h, x, y):
+    return paint_glass_radius(cr, box, output, out_w, out_h, x, y, tokens.radius_of("popup"))
+end
+
+function paint_glass_radius(cr, box, output, out_w, out_h, x, y, radius):
     a = gtk.widget_get_allocation(box)
     ink = 0
     if dark_text(box):
         ink = 1
     end
-    hit = material.strip(output, out_w, out_h, x + a[0], y + a[1], a[2], a[3], tokens.radius_of("popup"), ink, scale_of(box))
+    hit = material.strip(output, out_w, out_h, x + a[0], y + a[1], a[2], a[3], radius, ink, scale_of(box))
     call gtk.widget_set_class(box, WALLGLASS, hit != None)
     if hit == None:
         return False
@@ -156,9 +162,20 @@ function paint_glass(cr, box, output, out_w, out_h, x, y):
 end
 
 function glass(win, box):
-    glassy[win] = {"box": box, "monitor": None, "align": "right", "x": 0}
+    glassy[win] = {"box": box, "monitor": None, "align": "right", "x": 0, "radius": radii.get(win, tokens.radius_of("popup"))}
     call gtk.connect_data(win, "draw", 1, on_glass_draw, win)
     return 0
+end
+
+# Monitor GDK, na kterem okno je (0 = zatim nevi)
+function window_monitor(win):
+    unsafe:
+        window = __lsl_qbe_call1(__lsl_symbol("gtk_widget_get_window"), __lsl_unbox_int(win))
+        if window == 0:
+            return 0
+        end
+        return __lsl_qbe_call2(__lsl_symbol("gdk_display_get_monitor_at_window"), __lsl_qbe_call1(__lsl_symbol("gdk_window_get_display"), window), window)
+    end
 end
 
 function on_glass_draw(win, cr, widget):
@@ -171,7 +188,15 @@ function on_glass_draw(win, cr, widget):
     if info == None or info["monitor"] == None:
         return False
     end
-    geo = layer.monitor_geometry(info["monitor"])
+    # bez zapisu listy (klavesova zkratka) vybral vystup kompozitor: monitor 0 neni GdkMonitor
+    monitor = info["monitor"]
+    if monitor == 0:
+        monitor = window_monitor(win)
+        if monitor == 0:
+            return False
+        end
+    end
+    geo = layer.monitor_geometry(monitor)
     w = gtk.widget_get_allocated_width(win)
     x = info["x"]
     if info["align"] == "right":
@@ -180,7 +205,7 @@ function on_glass_draw(win, cr, widget):
         x = (geo[2] - w) // 2
     end
     # pod vyhradnou zonou listy
-    call paint_glass(cr, info["box"], output_for(info["monitor"]), geo[2], geo[3], x, tokens.BAR["height"] + GAP)
+    call paint_glass_radius(cr, info["box"], output_for(monitor), geo[2], geo[3], x, tokens.BAR["height"] + GAP, info["radius"])
     return False
 end
 
@@ -194,9 +219,17 @@ function glass_place(win, monitor, align, x):
     return 0
 end
 
+# okno -> zaobleni karty, kdyz neni jako ostatni vyskakovaci okna
+radii = {}
+
 function setup(win, name):
+    return setup_radius(win, name, tokens.radius_of("popup"))
+end
+
+function setup_radius(win, name, radius):
+    radii[win] = radius
     call layer.init_for_window(win)
-    call layer.set_namespace(win, tokens.namespace(name, "popup"))
+    call layer.set_namespace(win, name + "@popup:" + String(radius))
     call layer.set_layer(win, layer.LAYER_OVERLAY)
     call layer.set_keyboard_mode(win, layer.KEYBOARD_ON_DEMAND)
     call layer.set_margin(win, layer.EDGE_TOP, GAP)

@@ -2,7 +2,8 @@
 # Dlazdice: Wi-Fi (+ odkaz na QR kod site), Bluetooth, Nerusit, Tmavy rezim, Sporic dat, Sporic baterie; posuvniky jasu a hlasitosti;
 # stav baterie; prave hrajici hudba (MPRIS); Obrazovky (Zrcadlit / Rozsirit / Jen externi) jen pri 2+ pripojenych
 # monitorech - misto okna, ktere by vyskakovalo pri pripojeni. Okno se zavre pri ztrate fokusu nebo klavesou Esc.
-# Na Waylandu je okno plocha layer-shell pod tlacitkem listy (luxos_hub_popup), bez jedineho volani X11.
+# Na Waylandu je okno plocha layer-shell pod tlacitkem listy (luxos_hub_popup), bez jedineho volani X11,
+# ve vzhledu Samsung One UI (ONEUI_CSS) a ovladatelne i klavesnici; X11 zustava u vzhledu verze 1.1.1.
 # Wi-Fi a Bluetooth tam jako v Androidu: klik na bublinu s ikonou prepne, jinam na dlazdici otevre okno Wi-Fi
 # z listy, resp. aplikaci Bluetooth.
 #
@@ -51,6 +52,47 @@ CSS = ("window.cc { background: transparent; }\n"
     + "button.media { padding: 4px; border: none; background: none; box-shadow: none; color: @cc_fg; border-radius: 999px; min-width: 30px; min-height: 30px; }\n"
     + "button.media:hover { background-color: @cc_tile_hover; }\n"
     + ".avatar { border-radius: 999px; min-width: 34px; min-height: 34px; font-weight: 800; color: white; background-image: linear-gradient(135deg, @cc_accent, #8b4dff); }\n")
+
+# Wayland: vzhled Samsung One UI (prototyp vlastnika z 2026-11-18, ~/.local/share/luxos-control-center-preview):
+# velka karta, dlazdice jako pilulky s bilou bublinou zapnute volby, posuvniky jako siroke pilulky s ikonou uvnitr
+# a kulatym tlacitkem vedle. Zmenseno proti prototypu (432 px) na sirku ostatnich vyskakovacich oken listy.
+ONEUI_RADIUS = 28
+ONEUI_WIDTH = 336
+ONEUI_CSS = (".oneui .cc-box { border-radius: " + String(ONEUI_RADIUS) + "px; padding: 14px; }\n"
+    + ".oneui .head { font-size: 17px; font-weight: 600; padding-left: 4px; }\n"
+    + ".oneui button.round { min-width: 32px; min-height: 32px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background: none; color: @cc_fg; }\n"
+    + ".oneui button.round:hover { background-color: @cc_tile_hover; }\n"
+    + ".oneui .tile, .oneui .section, .oneui button.row { border-radius: 999px; }\n"
+    + ".oneui .tile { padding: 8px 10px 8px 8px; }\n"
+    + ".oneui .bubble { min-width: 40px; min-height: 40px; padding: 0; border: none; box-shadow: none; background-image: none; border-radius: 999px; background-color: @cc_bubble; color: @cc_fg; }\n"
+    + ".oneui .bubble.on { background-color: white; color: #343947; }\n"
+    + ".oneui button.bubble:hover { background-color: @cc_tile_hover; }\n"
+    + ".oneui button.bubble.on:hover { background-color: rgba(255, 255, 255, 0.85); }\n"
+    + ".oneui .tile .title, .oneui .section .title { font-size: 13px; }\n"
+    + ".oneui .tile .title.long { font-size: 12px; }\n"
+    + ".oneui .savers { padding: 8px 10px; }\n"
+    + ".oneui .savers .tile { background: none; padding: 0; }\n"
+    + ".oneui .savers .tile .bubble { min-width: 36px; min-height: 36px; }\n"
+    + ".oneui .section { padding: 8px 14px 8px 8px; }\n"
+    + ".oneui .section.media, .oneui .section.screens { border-radius: 24px; padding: 10px 12px; }\n"
+    + ".oneui .tile.mode { border-radius: 18px; padding: 8px 4px 6px 4px; }\n"
+    + ".oneui button.row { background-color: @cc_tile; border: none; box-shadow: none; background-image: none; color: @cc_fg; padding: 10px 14px; }\n"
+    + ".oneui button.row:hover, .oneui button.plain:hover .section { background-color: @cc_tile_hover; }\n"
+    + ".oneui button.row label { font-size: 13px; font-weight: 500; }\n"
+    + ".oneui .footbar { background-color: @cc_tile; border-radius: 999px; padding: 4px; }\n"
+    + ".oneui .footbar .footer { padding: 8px 6px; border-radius: 999px; font-size: 11px; }\n"
+    + ".oneui scale { padding: 0; margin: 0; }\n"
+    + ".oneui scale trough { min-height: 44px; border-radius: 22px; background-color: @cc_trough; border: none; }\n"
+    # GTK kresli vypln do stredu kolecka posuvniku: rovny konec kolecko zakryje; obe nepruhledne (jako v One UI
+    # bila i v tmavem rezimu), jinak by se pod koleckem pruhledna vypln zdvojila
+    + ".oneui scale highlight { min-height: 44px; border-radius: 22px 0 0 22px; background-color: white; border: none; }\n"
+    + ".oneui scale slider { min-width: 44px; min-height: 44px; margin: 0; border-radius: 22px; background-color: white; background-image: none; border: none; box-shadow: none; }\n"
+    + ".oneui .level-icon { color: #343947; margin-left: 14px; }\n"
+    + ".oneui button.side { min-width: 44px; min-height: 44px; padding: 0; border-radius: 999px; border: none; box-shadow: none; background-image: none; background-color: @cc_bubble; color: @cc_fg; }\n"
+    + ".oneui button.side:hover { background-color: @cc_tile_hover; }\n"
+    + ".oneui button.side.on { background-color: white; color: #343947; }\n"
+    + ".oneui button:focus, .oneui scale:focus { outline: 2px solid alpha(@cc_accent, 0.9); outline-offset: 1px; -gtk-outline-radius: 999px; }\n"
+    + ".oneui scale:focus { -gtk-outline-radius: 24px; }\n")
 
 SIGUSR1 = 10
 
@@ -253,22 +295,51 @@ function label(text_value, class_name, xalign):
     return lab
 end
 
-# Dlazdice: {button, image, title, sub, action}
-function tile_new(icon, title, action):
-    tile = {"action": action, "name": title}
-    button = gtk.button_new_empty()
-    call gtk.widget_set_can_focus(button, False)
+# Ovladaci prvky dostanou fokus klavesnice jen ve vzhledu One UI (Tab, sipky, Enter); na X11 zustava okno
+# bez fokusu prvku jako dosud
+function focusable(widget):
+    call gtk.widget_set_can_focus(widget, cc["oneui"])
+    return widget
+end
+
+# Dlazdice: {widget, button, bubble, image, title, sub, action, settings}. Se settings (Wi-Fi, Bluetooth na
+# Waylandu) jako v Androidu: bublina s ikonou je vlastni tlacitko nad dlazdici (prepne), zbytek dlazdice otevre
+# nastaveni - mysi, dotykem i klavesnici bez hledani mista stisku. Bublina lezi v GtkOverlay: uvnitr tlacitka
+# by udalosti dostalo vnejsi tlacitko (jeho okno udalosti je nad potomky).
+function tile_new(icon, title, action, settings):
+    tile = {"action": action, "name": title, "settings": settings}
+    button = focusable(gtk.button_new_empty())
     call gtk.widget_add_class(button, "tile")
+    tile["widget"] = button
     box = gtk.box_new(gtk.HORIZONTAL, 10)
     bubble = gtk.box_new(gtk.HORIZONTAL, 0)
-    call gtk.widget_set_halign(bubble, gtk.ALIGN_CENTER)
+    tile["spot"] = bubble
+    if settings != None:
+        call gtk.widget_set_can_focus(button, False)
+        overlay = gtk.overlay_new()
+        call gtk.container_add(overlay, button)
+        tile["widget"] = overlay
+        # misto pro bublinu v dlazdici (velikost bubliny One UI)
+        spot = gtk.box_new(gtk.HORIZONTAL, 0)
+        call gtk.widget_set_size_request(spot, 40, 40)
+        call gtk.box_pack_start(box, spot, False, False, 0)
+        tile["spot"] = spot
+        bubble = focusable(gtk.button_new_empty())
+        call gtk.widget_set_tooltip(bubble, title)
+        call gtk.connect_data(bubble, "clicked", 0, on_bubble_clicked, tile)
+        call gtk.widget_set_margins(bubble, 8, 0, 0, 0)
+        call gtk.widget_set_halign(bubble, gtk.ALIGN_START)
+        call gtk.overlay_add_overlay(overlay, bubble)
+    else:
+        call gtk.widget_set_halign(bubble, gtk.ALIGN_CENTER)
+        call gtk.box_pack_start(box, bubble, False, False, 0)
+    end
     call gtk.widget_set_valign(bubble, gtk.ALIGN_CENTER)
     call gtk.widget_add_class(bubble, "bubble")
     image = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
     call gtk.widget_set_hexpand(image, True)
     call gtk.widget_set_vexpand(image, True)
-    call gtk.box_pack_start(bubble, image, True, True, 0)
-    call gtk.box_pack_start(box, bubble, False, False, 0)
+    call gtk.container_add(bubble, image)
     column = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_set_valign(column, gtk.ALIGN_CENTER)
     # pevna sirka (okno se nerozsiri za okraj): delsi preklad mensim pismem ("Datensparmodus") a na dva
@@ -296,30 +367,23 @@ function tile_new(icon, title, action):
     tile["title"] = title_label
     tile["sub"] = sub
     tile["bubble"] = bubble
-    tile["settings"] = None
-    tile["on_bubble"] = True
-    call gtk.connect_data(button, "button-press-event", 1, on_tile_press, tile)
     call gtk.connect_data(button, "clicked", 0, on_tile_clicked, tile)
     return tile
 end
 
-# Dlazdice s nastavenim (Wi-Fi, Bluetooth na Waylandu) jako v Androidu: bublina s ikonou prepne, zbytek
-# dlazdice otevre nastaveni. Souradnice stisku jsou vuci tlacitku, bublina se prepocita na nej.
-function on_tile_press(tile, event, button):
-    a = gtk.widget_get_allocation(tile["bubble"])
-    b = gtk.widget_get_allocation(button)
-    x = gtk.event_x(event) - Float(a[0] - b[0])
-    y = gtk.event_y(event) - Float(a[1] - b[1])
-    tile["on_bubble"] = x >= -4.0 and x <= Float(a[2]) + 4.0 and y >= -4.0 and y <= Float(a[3]) + 4.0
-    return False
+function on_bubble_clicked(tile, button):
+    call log_test("tile " + tile["name"] + " toggle")
+    action = tile["action"]
+    call action()
+    return 0
 end
 
 function on_tile_clicked(tile, button):
-    action = tile["action"]
-    if tile["settings"] != None and not tile["on_bubble"]:
-        action = tile["settings"]
+    if tile["settings"] == None:
+        return on_bubble_clicked(tile, button)
     end
-    call log_test("tile " + tile["name"] + (" toggle" if action == tile["action"] else " settings"))
+    call log_test("tile " + tile["name"] + " settings")
+    action = tile["settings"]
     call action()
     return 0
 end
@@ -327,6 +391,7 @@ end
 # on: True/False/None (None = vypnuto), sub: text nebo None (beze zmeny)
 function tile_set_state(tile, on, sub):
     call gtk.widget_set_class(tile["button"], "on", on == True)
+    call gtk.widget_set_class(tile["bubble"], "on", on == True)
     if sub != None:
         call gtk.label_set_text(tile["sub"], sub)
     end
@@ -337,10 +402,14 @@ function tile_is_on(tile):
     return gtk.widget_has_class(tile["button"], "on")
 end
 
-# Posuvnik s ikonou: {box, scale, icon, lock, on_change, on_icon, busy, want}
-# on_change(hodnota) vraci prikaz (argv) k nastaveni hodnoty, nebo None
-function slider_new(title, icon, on_change, on_icon):
+# Posuvnik s ikonou: {box, scale, icon, button, lock, on_change, on_icon, busy, want}
+# on_change(hodnota) vraci prikaz (argv) k nastaveni hodnoty, nebo None; on_icon = klik na ikonu (One UI:
+# kulate tlacitko vedle posuvniku s ikonou side_icon, ikona icon je uvnitr pilulky)
+function slider_new(title, icon, on_change, on_icon, side_icon, tooltip):
     row = {"lock": False, "on_change": on_change, "on_icon": on_icon, "busy": False, "want": -1}
+    if cc["oneui"]:
+        return slider_new_oneui(row, icon, side_icon, tooltip)
+    end
     box = gtk.box_new(gtk.VERTICAL, 6)
     call gtk.widget_add_class(box, "section")
     call gtk.box_pack_start(box, label(title, "title", 0), False, False, 0)
@@ -361,6 +430,38 @@ function slider_new(title, icon, on_change, on_icon):
     row["box"] = box
     row["scale"] = scale
     row["icon"] = image
+    row["button"] = button
+    return row
+end
+
+function slider_new_oneui(row, icon, side_icon, tooltip):
+    box = gtk.box_new(gtk.HORIZONTAL, 10)
+    scale = focusable(gtk.scale_new_with_range(gtk.HORIZONTAL, 0, 100, 1))
+    call gtk.scale_set_draw_value(scale, False)
+    call gtk.range_set_increments(scale, 5, 10)
+    call gtk.connect_data(scale, "value-changed", 0, on_slider_changed, row)
+    overlay = gtk.overlay_new()
+    call gtk.widget_set_hexpand(overlay, True)
+    call gtk.container_add(overlay, scale)
+    level = gtk.image_new_from_icon_name(icon, gtk.ICON_MENU)
+    call gtk.widget_add_class(level, "level-icon")
+    call gtk.widget_set_halign(level, gtk.ALIGN_START)
+    call gtk.widget_set_valign(level, gtk.ALIGN_CENTER)
+    call gtk.overlay_add_overlay(overlay, level)
+    call gtk.overlay_set_pass_through(overlay, level)
+    button = focusable(gtk.button_new_empty())
+    call gtk.widget_add_class(button, "side")
+    call gtk.widget_set_valign(button, gtk.ALIGN_CENTER)
+    call gtk.widget_set_tooltip(button, tooltip)
+    image = gtk.image_new_from_icon_name(side_icon, gtk.ICON_MENU)
+    call gtk.container_add(button, image)
+    call gtk.connect_data(button, "clicked", 0, on_slider_icon, row)
+    call gtk.box_pack_start(box, overlay, True, True, 0)
+    call gtk.box_pack_start(box, button, False, False, 0)
+    row["box"] = box
+    row["scale"] = scale
+    row["icon"] = image
+    row["button"] = button
     return row
 end
 
@@ -411,12 +512,23 @@ function slider_set_value(row, value):
     return 0
 end
 
-function footer_button(box, title, command):
-    button = gtk.button_new(title)
-    call gtk.widget_set_can_focus(button, False)
+function footer_button(box, title, command, icon):
+    if cc["oneui"]:
+        button = focusable(gtk.button_new_empty())
+        line = gtk.box_new(gtk.HORIZONTAL, 6)
+        call gtk.widget_set_halign(line, gtk.ALIGN_CENTER)
+        call gtk.box_pack_start(line, gtk.image_new_from_icon_name(icon, gtk.ICON_MENU), False, False, 0)
+        name = label(title.replace("…", ""), "", 0)
+        call gtk.label_set_ellipsize(name, gtk.ELLIPSIZE_END)
+        call gtk.box_pack_start(line, name, False, False, 0)
+        call gtk.container_add(button, line)
+        call gtk.widget_set_tooltip(button, title)
+    else:
+        button = focusable(gtk.button_new(title))
+    end
     call gtk.widget_add_class(button, "footer")
     call gtk.connect_data(button, "clicked", 0, on_launch_clicked, command)
-    call gtk.box_pack_start(box, button, False, False, 0)
+    call gtk.box_pack_start(box, button, cc["oneui"], cc["oneui"], 0)
     return button
 end
 
@@ -428,8 +540,7 @@ function on_launch_clicked(command, button):
 end
 
 function media_button(box, name, icon, size):
-    button = gtk.button_new_empty()
-    call gtk.widget_set_can_focus(button, False)
+    button = focusable(gtk.button_new_empty())
     call gtk.widget_set_valign(button, gtk.ALIGN_CENTER)
     call gtk.widget_add_class(button, "media")
     call gtk.container_add(button, gtk.image_new_from_icon_name(icon, size))
@@ -448,7 +559,11 @@ end
 
 function css_text():
     name = gtk.settings_theme_name().lower()
-    return popup.colors("cc", name.find("dark") >= 0) + CSS
+    css = popup.colors("cc", name.find("dark") >= 0) + CSS
+    if cc["oneui"]:
+        css = css + ONEUI_CSS
+    end
+    return css
 end
 
 # Svetly/tmavy rezim se muze prepnout za behu (automaticky podle slunce)
@@ -464,6 +579,7 @@ function create():
         return 0
     end
     created = True
+    cc["oneui"] = wayland()
     cc["provider"] = gtk.css_load(css_text())
     # Profilova fotka (~/.face) jako pozadi kolecka profilu - vlastni styl, meni se jen s fotkou
     cc["face_provider"] = gtk.css_load("")
@@ -490,7 +606,8 @@ function create():
     call gtk.window_set_resizable(win, False)
     call gtk.window_set_rgba(win)
     if wayland():
-        call popup.setup(win, "luxos-control-center")
+        call gtk.widget_add_class(win, "oneui")
+        call popup.setup_radius(win, "luxos-control-center", ONEUI_RADIUS)
         # vystupy pro dlazdici Obrazovky; spojeni GTK, zadna vlastni obsluha udalosti (ta patri Emoji v hubu)
         call wl.attach(layer.wl_display())
     else:
@@ -499,7 +616,7 @@ function create():
 
     outer = gtk.box_new(gtk.VERTICAL, 10)
     call gtk.widget_add_class(outer, "cc-box")
-    call gtk.widget_set_size_request(outer, 340, -1)
+    call gtk.widget_set_size_request(outer, ONEUI_WIDTH if cc["oneui"] else 340, -1)
     call gtk.container_add(win, outer)
     if wayland():
         call popup.glass(win, outer)
@@ -508,9 +625,21 @@ function create():
         call glass.panel(win, outer, 18)
     end
 
+    # One UI: nadpis a ozubene kolo (vsechna nastaveni) nad profilem
+    if cc["oneui"]:
+        head = gtk.box_new(gtk.HORIZONTAL, 4)
+        call gtk.box_pack_start(head, label(i18n.T("Control Center"), "head", 0), True, True, 0)
+        gear = focusable(gtk.button_new_empty())
+        call gtk.widget_add_class(gear, "round")
+        call gtk.widget_set_tooltip(gear, i18n.T("All Settings…"))
+        call gtk.container_add(gear, gtk.image_new_from_icon_name("preferences-system-symbolic", gtk.ICON_LARGE_TOOLBAR))
+        call gtk.connect_data(gear, "clicked", 0, on_launch_clicked, settings_command())
+        call gtk.box_pack_end(head, gear, False, False, 0)
+        call gtk.box_pack_start(outer, head, False, False, 0)
+    end
+
     # Profil: ucet LuxAI (~/.config/luxai/account.json), klik otevre Ucet LuxAI
-    prof = gtk.button_new_empty()
-    call gtk.widget_set_can_focus(prof, False)
+    prof = focusable(gtk.button_new_empty())
     call gtk.button_set_relief(prof, gtk.RELIEF_NONE)
     call gtk.widget_add_class(prof, "plain")
     pbox = gtk.box_new(gtk.HORIZONTAL, 10)
@@ -535,49 +664,84 @@ function create():
     call gtk.grid_set_row_spacing(grid, 8)
     call gtk.grid_set_column_spacing(grid, 8)
     call gtk.grid_set_column_homogeneous(grid, True)
-    cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi)
-    cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt)
     if wayland():
-        cc["t_wifi"]["settings"] = open_wifi
-        cc["t_bt"]["action"] = toggle_bt_power
-        cc["t_bt"]["settings"] = toggle_bt
+        cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi, open_wifi)
+        cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt_power, toggle_bt)
+    else:
+        cc["t_wifi"] = tile_new("network-wireless-symbolic", i18n.T("Wi-Fi"), toggle_wifi, None)
+        cc["t_bt"] = tile_new("bluetooth-active-symbolic", i18n.T("Bluetooth"), toggle_bt, None)
     end
-    cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd)
-    cc["t_dark"] = tile_new("weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark)
-    cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data)
-    cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power)
-    tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"], cc["t_data"], cc["t_power"]]
+    cc["t_dnd"] = tile_new("notifications-disabled-symbolic", i18n.T("Do Not Disturb"), toggle_dnd, None)
+    cc["t_dark"] = tile_new("weather-clear-night-symbolic", i18n.T("Dark Mode"), toggle_dark, None)
+    cc["t_data"] = tile_new("network-cellular-signal-good-symbolic", i18n.T("Data Saver"), toggle_data, None)
+    cc["t_power"] = tile_new("battery-level-50-symbolic", i18n.T("Battery Saver"), toggle_power, None)
+    tiles = [cc["t_wifi"], cc["t_bt"], cc["t_dnd"], cc["t_dark"]]
+    # One UI: sporice dat a baterie spolu v jedne pilulce pod ctyrmi velkymi dlazdicemi
+    if not cc["oneui"]:
+        tiles = tiles + [cc["t_data"], cc["t_power"]]
+    end
     index = 0
-    while index < 6:
-        tile = tiles[index]
-        call gtk.grid_attach(grid, tile["button"], index % 2, index // 2, 1, 1)
+    while index < len(tiles):
+        call gtk.grid_attach(grid, tiles[index]["widget"], index % 2, index // 2, 1, 1)
         index += 1
     end
     call gtk.box_pack_start(outer, grid, False, False, 0)
+    if cc["oneui"]:
+        savers = gtk.box_new(gtk.HORIZONTAL, 8)
+        call gtk.box_set_homogeneous(savers, True)
+        call gtk.widget_add_class(savers, "section")
+        call gtk.widget_add_class(savers, "savers")
+        call gtk.box_pack_start(savers, cc["t_data"]["button"], True, True, 0)
+        call gtk.box_pack_start(savers, cc["t_power"]["button"], True, True, 0)
+        call gtk.box_pack_start(outer, savers, False, False, 0)
+    end
+
+    # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
+    cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays, "video-display-symbolic", i18n.T("Displays"))
+    cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute, "audio-volume-high-symbolic", i18n.T("Sound"))
 
     # QR kod Wi-Fi: pripojeno = sdilet sit (luxos-wifi-qr), Wi-Fi zapnuta bez site = naskenovat kod
-    wifi_qr = gtk.button_new(i18n.T("Share Wi-Fi with QR Code…"))
-    call gtk.widget_set_can_focus(wifi_qr, False)
-    call gtk.widget_add_class(wifi_qr, "footer")
-    call gtk.widget_set_halign(wifi_qr, gtk.ALIGN_START)
+    if cc["oneui"]:
+        # radek-pilulka s ikonou QR a sipkou jako v prototypu
+        wifi_qr = focusable(gtk.button_new_empty())
+        call gtk.widget_add_class(wifi_qr, "row")
+        line = gtk.box_new(gtk.HORIZONTAL, 12)
+        call gtk.box_pack_start(line, gtk.image_new_from_icon_name("luxos-qr-symbolic", gtk.ICON_MENU), False, False, 0)
+        cc["wifi_qr_label"] = label(i18n.T("Share Wi-Fi with QR Code…"), "", 0)
+        call gtk.label_set_ellipsize(cc["wifi_qr_label"], gtk.ELLIPSIZE_END)
+        call gtk.box_pack_start(line, cc["wifi_qr_label"], True, True, 0)
+        call gtk.box_pack_end(line, gtk.image_new_from_icon_name("go-next-symbolic", gtk.ICON_MENU), False, False, 0)
+        call gtk.container_add(wifi_qr, line)
+        call gtk.widget_show_all(line)
+    else:
+        wifi_qr = focusable(gtk.button_new(i18n.T("Share Wi-Fi with QR Code…")))
+        cc["wifi_qr_label"] = gtk.bin_get_child(wifi_qr)
+        call gtk.widget_add_class(wifi_qr, "footer")
+        call gtk.widget_set_halign(wifi_qr, gtk.ALIGN_START)
+    end
     call gtk.connect(wifi_qr, "clicked", on_wifi_qr_clicked)
     call gtk.widget_set_no_show_all(wifi_qr, True)
     cc["wifi_qr"] = wifi_qr
     cc["wifi_qr_scan"] = False
     cc["wifi_signin"] = False
     cc["wifi_qr_mode"] = ""
-    call gtk.box_pack_start(outer, wifi_qr, False, False, 0)
-
-    # Klik na ikonu jasu otevre Monitory (rozliseni, velikost textu)
-    cc["s_bright"] = slider_new(i18n.T("Display"), "display-brightness-symbolic", set_brightness, open_displays)
-    call gtk.box_pack_start(outer, cc["s_bright"]["box"], False, False, 0)
-    call displays_section(outer)
-    cc["s_vol"] = slider_new(i18n.T("Sound"), "audio-volume-high-symbolic", set_volume, toggle_mute)
-    call gtk.box_pack_start(outer, cc["s_vol"]["box"], False, False, 0)
+    # One UI: posuvniky hned pod dlazdicemi, odkaz QR pod nimi (na X11 odkaz pod dlazdici Wi-Fi jako dosud)
+    if cc["oneui"]:
+        call gtk.box_pack_start(outer, cc["s_bright"]["box"], False, False, 0)
+        call gtk.box_pack_start(outer, cc["s_vol"]["box"], False, False, 0)
+        call gtk.box_pack_start(outer, wifi_qr, False, False, 0)
+        call displays_section(outer)
+    else:
+        call gtk.box_pack_start(outer, wifi_qr, False, False, 0)
+        call gtk.box_pack_start(outer, cc["s_bright"]["box"], False, False, 0)
+        call displays_section(outer)
+        call gtk.box_pack_start(outer, cc["s_vol"]["box"], False, False, 0)
+    end
 
     # Prave hrajici hudba (MPRIS: Firefox, Spotify, VLC, mpv...) - jen kdyz nejaky prehravac bezi
     media = gtk.box_new(gtk.HORIZONTAL, 10)
     call gtk.widget_add_class(media, "section")
+    call gtk.widget_add_class(media, "media")
     cc["media_box"] = media
     cc["m_art"] = gtk.image_new()
     art_wrap = gtk.box_new(gtk.HORIZONTAL, 0)
@@ -611,8 +775,7 @@ function create():
 
     bat_box = gtk.box_new(gtk.HORIZONTAL, 10)
     call gtk.widget_add_class(bat_box, "section")
-    bat_button = gtk.button_new_empty()
-    call gtk.widget_set_can_focus(bat_button, False)
+    bat_button = focusable(gtk.button_new_empty())
     call gtk.button_set_relief(bat_button, gtk.RELIEF_NONE)
     call gtk.widget_add_class(bat_button, "plain")
     call gtk.connect_data(bat_button, "clicked", 0, on_launch_clicked, "luxos-power")
@@ -630,12 +793,18 @@ function create():
     call gtk.box_pack_start(outer, bat_button, False, False, 0)
 
     footer = gtk.box_new(gtk.HORIZONTAL, 4)
-    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop")
-    call footer_button(footer, i18n.T("Battery…"), "luxos-power")
-    call footer_button(footer, i18n.T("All Settings…"), settings_command())
+    if cc["oneui"]:
+        call gtk.widget_add_class(footer, "footbar")
+    end
+    call footer_button(footer, i18n.T("Desktop & Dock…"), "luxos-settings desktop", "video-display-symbolic")
+    call footer_button(footer, i18n.T("Battery…"), "luxos-power", "battery-good-symbolic")
+    call footer_button(footer, i18n.T("All Settings…"), settings_command(), "preferences-system-symbolic")
     call gtk.box_pack_start(outer, footer, False, False, 0)
 
     call gtk.connect(win, "focus-in-event", on_focus_in)
+    if cc["test_log"] != "" and cc["oneui"]:
+        call gtk.connect_data(win, "set-focus", 1, on_set_focus, 0)
+    end
     call gtk.connect(win, "focus-out-event", on_focus_out)
     call gtk.connect(win, "key-press-event", on_key)
     if not wayland():
@@ -748,15 +917,37 @@ function show_wayland():
     return 0
 end
 
-# Testy: stred bubliny a nazvu dlazdic Wi-Fi a Bluetooth v okne ("tilepos wifi-bubble x y")
+# Testy: ovladaci prvky podle jmena [jmeno, widget]
+function test_marks():
+    return [["wifi-bubble", cc["t_wifi"]["spot"]], ["wifi-title", cc["t_wifi"]["title"]], ["bt-bubble", cc["t_bt"]["spot"]],
+        ["bt-title", cc["t_bt"]["title"]], ["dnd", cc["t_dnd"]["bubble"]], ["dark", cc["t_dark"]["bubble"]],
+        ["data", cc["t_data"]["bubble"]], ["power", cc["t_power"]["bubble"]], ["bright", cc["s_bright"]["scale"]],
+        ["bright-side", cc["s_bright"]["button"]], ["vol", cc["s_vol"]["scale"]], ["vol-side", cc["s_vol"]["button"]],
+        ["qr", cc["wifi_qr"]]]
+end
+
+# Testy: stred prvku v okne ("tilepos wifi-bubble x y", u posuvniku i sirka "tilepos vol x y w") a velikost okna
 function log_tile_positions():
-    for pair in [["wifi", cc["t_wifi"]], ["bt", cc["t_bt"]]]:
-        for part in [["bubble", pair[1]["bubble"]], ["title", pair[1]["title"]]]:
-            a = gtk.widget_get_allocation(part[1])
-            call log_test("tilepos " + pair[0] + "-" + part[0] + " " + String(a[0] + a[2] // 2) + " " + String(a[1] + a[3] // 2))
+    for mark in test_marks():
+        a = gtk.widget_get_allocation(mark[1])
+        call log_test("tilepos " + mark[0] + " " + String(a[0] + a[2] // 2) + " " + String(a[1] + a[3] // 2) + " " + String(a[2]))
+    end
+    call log_test("size " + String(gtk.widget_get_allocated_width(cc["win"])) + " " + String(gtk.widget_get_allocated_height(cc["win"])))
+    return False
+end
+
+# Testy: prvek s fokusem klavesnice ("focus vol")
+function on_set_focus(unused, widget, window):
+    tiles = [["wifi-bubble", cc["t_wifi"]["bubble"]], ["bt-bubble", cc["t_bt"]["bubble"]], ["dnd", cc["t_dnd"]["button"]],
+        ["dark", cc["t_dark"]["button"]], ["data", cc["t_data"]["button"]], ["power", cc["t_power"]["button"]]]
+    name = "other"
+    for mark in test_marks() + tiles:
+        if mark[1] == widget:
+            name = mark[0]
         end
     end
-    return False
+    call log_test("focus " + name)
+    return 0
 end
 
 function refresh_slow_once():
@@ -1014,11 +1205,11 @@ function set_wifi_qr(mode):
     cc["wifi_qr_scan"] = mode == "scan"
     cc["wifi_signin"] = mode == "signin"
     if mode == "signin":
-        call gtk.button_set_label(button, i18n.T("Sign In to Network…"))
+        call gtk.label_set_text(cc["wifi_qr_label"], i18n.T("Sign In to Network…"))
     elif mode == "scan":
-        call gtk.button_set_label(button, i18n.T("Join Wi-Fi with QR Code…"))
+        call gtk.label_set_text(cc["wifi_qr_label"], i18n.T("Join Wi-Fi with QR Code…"))
     else:
-        call gtk.button_set_label(button, i18n.T("Share Wi-Fi with QR Code…"))
+        call gtk.label_set_text(cc["wifi_qr_label"], i18n.T("Share Wi-Fi with QR Code…"))
     end
     call gtk.widget_set_visible(button, True)
     return 0
@@ -1073,7 +1264,7 @@ function on_connectivity(network, output, status):
         call set_wifi_qr("signin")
         call log_test("wifi-signin:" + network)
         if network != "":
-            call gtk.button_set_label(cc["wifi_qr"], i18n.TF("Sign In to “%s”…", [network]))
+            call gtk.label_set_text(cc["wifi_qr_label"], i18n.TF("Sign In to “%s”…", [network]))
         end
     end
     return 0
@@ -1150,11 +1341,18 @@ function on_mute(level, output, status):
     muted = status == 0 and output.strip().endswith("yes")
     cc["muted"] = muted
     call slider_set_value(cc["s_vol"], level)
+    call show_muted(muted)
+    return 0
+end
+
+# Ikona ztlumeni; v One UI je tlacitko vedle posuvniku bile, kdyz zvuk hraje
+function show_muted(muted):
     icon = "audio-volume-high-symbolic"
     if muted:
         icon = "audio-volume-muted-symbolic"
     end
     call gtk.image_set_from_icon_name(cc["s_vol"]["icon"], icon, gtk.ICON_MENU)
+    call gtk.widget_set_class(cc["s_vol"]["button"], "on", not muted)
     return 0
 end
 
@@ -1358,7 +1556,7 @@ function set_volume(value):
     if cc["muted"]:
         cc["muted"] = False
         call glib.spawn_quiet(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"])
-        call gtk.image_set_from_icon_name(cc["s_vol"]["icon"], "audio-volume-high-symbolic", gtk.ICON_MENU)
+        call show_muted(False)
     end
     return ["pactl", "set-sink-volume", "@DEFAULT_SINK@", String(value) + "%"]
 end
@@ -1495,8 +1693,7 @@ end
 
 # Tlacitko rezimu: ikona v kolecku nad nazvem (jako dlazdice, zapnuty rezim modre)
 function mode_button_new(icon, title, mode):
-    button = gtk.button_new_empty()
-    call gtk.widget_set_can_focus(button, False)
+    button = focusable(gtk.button_new_empty())
     call gtk.widget_add_class(button, "tile")
     call gtk.widget_add_class(button, "mode")
     call gtk.widget_set_tooltip(button, title)
@@ -1521,6 +1718,7 @@ end
 function displays_section(outer):
     box = gtk.box_new(gtk.VERTICAL, 8)
     call gtk.widget_add_class(box, "section")
+    call gtk.widget_add_class(box, "screens")
     head = gtk.box_new(gtk.HORIZONTAL, 8)
     call gtk.box_pack_start(head, label(i18n.T("Screens"), "title", 0), False, False, 0)
     cc["disp_sub"] = label("", "sub", 1)
