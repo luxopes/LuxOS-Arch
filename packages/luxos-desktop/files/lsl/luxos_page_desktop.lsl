@@ -376,6 +376,10 @@ function on_widgets(unused, on):
 end
 
 function on_config_changed(file, event, other):
+    # luxos-widgets zapisuje widgets.conf pres docasny soubor a prejmenovani: RENAMED ma cilove jmeno v other
+    if event == gio.FILE_RENAMED:
+        file = other
+    end
     if file.endswith("/widgets.conf") and app["widgets"] != 0:
         call ui.switch_set(app["widgets"], widgets_on())
     end

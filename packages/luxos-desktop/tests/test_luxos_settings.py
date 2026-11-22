@@ -157,6 +157,21 @@ class X11(unittest.TestCase):
         # zmena souboru zvenku nespusti luxos-widgets, vypnuti uzivatelem ano
         self.assertEqual([c for c in calls(tmp) if c.startswith("luxos-widgets")], ["luxos-widgets off"])
 
+    def test_widgets_follow_rename(self):
+        # luxos-widgets zapisuje widgets.conf pres widgets.conf.new a prejmenovani (monitor hlasi RENAMED)
+        tmp, env = make_env()
+        app = self.run_app(["dump", "wait 1500", "dump", "wait 1500", "dump", "quit"], tmp, env)
+        self.assertEqual(find(app.wait_dump(1), "GtkSwitch", "Show widgets on the desktop"), ["off"])
+        conf = tmp / "config/luxos/widgets.conf"
+        conf.with_name("widgets.conf.new").write_text("ENABLED=1\n")
+        os.replace(conf.with_name("widgets.conf.new"), conf)
+        self.assertEqual(find(app.wait_dump(2), "GtkSwitch", "Show widgets on the desktop"), ["on"])
+        conf.with_name("widgets.conf.new").write_text("ENABLED=0\n")
+        os.replace(conf.with_name("widgets.conf.new"), conf)
+        self.assertEqual(find(app.wait_dump(3), "GtkSwitch", "Show widgets on the desktop"), ["off"])
+        app.wait_exit()
+        self.assertEqual([c for c in calls(tmp) if c.startswith("luxos-widgets")], [])
+
     def test_boot_screen(self):
         for rc, text, current in (("0", "The new boot screen will be shown at the next start.", "Purple"),
                                   ("126", "Change cancelled.", "Blue")):

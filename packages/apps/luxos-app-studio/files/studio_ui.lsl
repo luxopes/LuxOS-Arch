@@ -228,6 +228,10 @@ function source_changed(path, event, other):
     if event in [2, 3, 8, 9, 10]:
         call refresh_files()
     end
+    # editory ukladaji casto pres docasny soubor a prejmenovani: RENAMED ma cilove jmeno v other
+    if event == 8:
+        path = other
+    end
     current = ui["project"]["path"] + "/" + ui["current"]
     if ui["current"] and path == current and native.exists(current) and not native.modified(ui["editor"]):
         text = readfile(current)

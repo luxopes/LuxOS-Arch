@@ -341,7 +341,7 @@ end
 # Nove zablokovany program (requests.json od luxos-firewall-watch): obnovit seznam, pokud uzivatel nic nepise
 function on_requests(path, event, other):
     name = path
-    if other != "":
+    if event == gio.FILE_RENAMED:
         name = other
     end
     if not name.endswith("/requests.json") or fw["timer"] != 0:
