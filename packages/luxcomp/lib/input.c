@@ -43,6 +43,7 @@ struct keyboard {
 };
 
 static bool syncing_group;
+static bool caps_lock;
 
 /* Mysi a touchpady z libinput: nastaveni podle druhu plati pro pripojena i pozdeji pripojena zarizeni */
 #define INPUT_PROPS (LUXCOMP_INPUT_SCROLL_METHOD + 1)
@@ -304,6 +305,11 @@ keyboard_modifiers(struct wl_listener *listener, void *data)
 			sync_group();
 			emit(LUXCOMP_EV_LAYOUT, 0, group, 0, 0);
 		}
+	}
+	bool caps = xkb_state_mod_name_is_active(kb->wlr->xkb_state, XKB_MOD_NAME_CAPS, XKB_STATE_MODS_LOCKED) > 0;
+	if (caps != caps_lock) {
+		caps_lock = caps;
+		emit(LUXCOMP_EV_CAPS_LOCK, 0, caps, 0, 0);
 	}
 }
 
@@ -975,6 +981,12 @@ int64_t
 luxcomp_layout(void)
 {
 	return comp.kb_group;
+}
+
+int64_t
+luxcomp_caps_lock(void)
+{
+	return caps_lock;
 }
 
 int64_t

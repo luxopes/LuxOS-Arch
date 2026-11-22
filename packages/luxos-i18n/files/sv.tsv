@@ -5537,3 +5537,7 @@ Xfce Settings	Xfce-inställningar
 Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Utseende, Wi-Fi, Bluetooth, skärmar, tangentbord, mus och allt annat
 Wallpaper, widgets, Dock and menu bar	Bakgrundsbild, widgetar, Dock och menyrad
 Mute	Stäng av ljud
+Menu bar without background	Menyrad utan bakgrund
+Shadow under the menu bar	Skugga under menyraden
+Like the lock screen: only the wallpaper and white icons.	Som på låsskärmen: bara bakgrundsbilden och vita ikoner.
+Darkens the top edge so white icons stay readable on light wallpapers.	Gör överkanten mörkare så att vita ikoner syns även på ljusa bakgrundsbilder.

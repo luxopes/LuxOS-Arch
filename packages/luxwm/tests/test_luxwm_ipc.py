@@ -16,6 +16,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 
@@ -535,6 +536,57 @@ class LuxwmIpc(unittest.TestCase):
         self.assertFalse(any("layout next" in l for l in bar_lines()[mark:]), "podrzeni neprepina")
         self.assertEqual(s.state()["keyboard"]["current"], 1)
         self.assertIsNone(s.procs[-1].poll(), "lista bezi")
+
+    def test_caps_lock_underlines_bar_badge(self):
+        # Caps Lock jako luxos-xkb.c na X11: kod rozlozeni podtrzeny, v tipu "– Caps Lock"; s jedinym rozlozenim
+        # je kod videt jen se zapnutym Caps Lock
+        s = self.session("xwayland = no\nxkb_layout = us\n")
+        self.assertFalse(s.state()["keyboard"]["caps"])
+        bar_exe = os.path.join(self.tmp, "luxos-bar")
+        s.allow(bar_exe)
+        conf = s.path("luxos")
+        os.makedirs(conf, exist_ok=True)
+        open(os.path.join(conf, "appearance"), "w").write("light\n")
+        env = {**s.env, "LUXOS_WL_LIB": self.wl_lib, "LUXOS_BAR_TRACE": "1", "LUXOS_BAR_NOW": "2026-11-20 09:41"}
+        log = os.path.join(s.dir, "bar.log")
+        with open(log, "w") as f:
+            s.spawn(bar_exe, env=env, out=f)
+
+        def wait_bar(text, start=0, timeout=8.0):
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                lines = open(log, errors="replace").read().splitlines()
+                if any(line == text for line in lines[start:]):
+                    return len(lines)
+                time.sleep(0.05)
+            raise AssertionError(f"{text!r} not in bar log:\n" + "\n".join(lines[-30:]))
+
+        mark = wait_bar("status keyboard US")
+        time.sleep(0.5)
+        before = s.shot("bar-no-caps.ppm")
+        out = os.path.join(s.dir, "watch.txt")
+        with open(out, "w") as f:
+            s.spawn(MSG, "--watch", "keyboard", out=f)
+        time.sleep(0.3)
+        s.client("Typing")
+        # jedna virtualni klavesnice pro zapnuti i vypnuti (kazdy `wlt input` ma vlastni stav XKB)
+        typing = threading.Thread(target=s.input, args=("key Caps_Lock", "sleep 2.5", "key Caps_Lock"))
+        typing.start()
+        mark = wait_bar("status keyboard US caps", start=mark)
+        self.assertTrue(s.state()["keyboard"]["caps"])
+        time.sleep(0.4)
+        after = s.shot("bar-caps-lock.ppm")
+        badge = [l for l in open(log).read().splitlines() if l.startswith("badge keyboard ")]
+        x, w = [int(v) for v in badge[-1].split()[2:4]]
+        changed = sum(before[2][(y * before[0] + i) * 3:(y * before[0] + i) * 3 + 3]
+                      != after[2][(y * after[0] + i) * 3:(y * after[0] + i) * 3 + 3]
+                      for y in range(2, 30) for i in range(x, x + w))
+        self.assertGreater(changed, 20, "se zapnutym Caps Lock je kod videt")
+        typing.join()
+        wait_bar("status keyboard US", start=mark)
+        self.assertFalse(s.state()["keyboard"]["caps"])
+        events = [json.loads(line)["caps"] for line in open(out) if line.strip()]
+        self.assertEqual(events, [False, True, False])   # stav pri prihlaseni odberu, zapnuti, vypnuti
 
     # ---- zkratky -----------------------------------------------------------------------------------------
 

@@ -1895,6 +1895,8 @@ function handle(event, id, a, b, c):
     elif event == lc.EV_LAYOUT:
         call note("layout " + String(a))
         call broadcast("keyboard", keyboard_event())
+    elif event == lc.EV_CAPS_LOCK:
+        call broadcast("keyboard", keyboard_event())
     elif event == lc.EV_IPC_CONNECT:
         ipc[id] = {"privileged": b == 1, "topics": [], "pid": a}
         call note("ipc connect " + String(id) + " pid " + String(a) + (" privileged" if b == 1 else ""))
@@ -1948,7 +1950,8 @@ function workspace_event():
 end
 
 function keyboard_event():
-    return {"event": "keyboard", "current": lc.layout(), "layouts": keyboard["layouts"], "repeat": keyboard["repeat"]}
+    return {"event": "keyboard", "current": lc.layout(), "layouts": keyboard["layouts"], "repeat": keyboard["repeat"],
+            "caps": lc.caps_lock()}
 end
 
 function output_event():

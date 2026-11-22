@@ -113,7 +113,7 @@ a nepřihlásí se nic.
 |---|---|---|
 | `window` | `{"event": "window", "id": 7, "app_id": "org.gnome.Calculator", "title": "Kalkulačka", "frame": [340, 120, 600, 432]}` | zaměřené okno se změní (i jeho název, app_id, poloha nebo velikost: `frame` je rám se záhlavím v souřadnicích rozložení, při tažení až po uvolnění tlačítka); bez okna `id` 0, prázdné řetězce a `frame` `[]` |
 | `workspace` | `{"event": "workspace", "current": 2, "count": 4}` | přepnutí plochy (hned, ne až po animaci) |
-| `keyboard` | `{"event": "keyboard", "current": 1, "layouts": [{"code": "us", "variant": "", "name": "English (US)"}, {"code": "cz", "variant": "", "name": "Czech"}], "repeat": {"rate": 25, "delay": 600}}` | přepnutí rozložení (zkratka `grp:…`, příkaz, klik v liště), nový seznam po `reload`; `repeat` = použité opakování klávesy (viz níže) |
+| `keyboard` | `{"event": "keyboard", "current": 1, "layouts": [{"code": "us", "variant": "", "name": "English (US)"}, {"code": "cz", "variant": "", "name": "Czech"}], "repeat": {"rate": 25, "delay": 600}, "caps": false}` | přepnutí rozložení (zkratka `grp:…`, příkaz, klik v liště), nový seznam po `reload`, zapnutí/vypnutí Caps Lock; `repeat` = použité opakování klávesy (viz níže), `caps` = Caps Lock zapnutý |
 | `output` | `{"event": "output", "primary": "HDMI-A-1", "outputs": [{"name": "HDMI-A-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 100, "refresh_mhz": 60000, "usable": [0, 30, 1920, 1050], "primary": true}]}` | monitor přidán nebo odebrán, změna použitelné plochy (lišta, Dock), změna hlavního monitoru; vypnutý monitor má `width` 0 a `usable` `[0, 0, 0, 0]` |
 | `theme` | `{"event": "theme", "theme": "dark"}` | `set_theme`, `reload`, `SIGUSR1` |
 

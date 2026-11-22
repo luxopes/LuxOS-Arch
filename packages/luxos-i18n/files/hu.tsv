@@ -5537,3 +5537,7 @@ Xfce Settings	Xfce beállítások
 Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Megjelenés, Wi-Fi, Bluetooth, kijelzők, billentyűzet, egér és minden más
 Wallpaper, widgets, Dock and menu bar	Háttérkép, widgetek, Dock és menüsor
 Mute	Némítás
+Menu bar without background	Menüsor háttér nélkül
+Shadow under the menu bar	Árnyék a menüsor alatt
+Like the lock screen: only the wallpaper and white icons.	Mint a zárolási képernyőn: csak a háttérkép és fehér ikonok.
+Darkens the top edge so white icons stay readable on light wallpapers.	Elsötétíti a felső szélt, hogy a fehér ikonok világos háttérképen is olvashatók maradjanak.

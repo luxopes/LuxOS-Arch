@@ -5538,3 +5538,7 @@ Xfce Settings	Налаштування Xfce
 Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Вигляд, Wi-Fi, Bluetooth, монітори, клавіатура, миша й усе інше
 Wallpaper, widgets, Dock and menu bar	Шпалери, віджети, Dock і рядок меню
 Mute	Вимкнути звук
+Menu bar without background	Панель меню без тла
+Shadow under the menu bar	Тінь під панеллю меню
+Like the lock screen: only the wallpaper and white icons.	Як на екрані блокування: лише шпалери та білі значки.
+Darkens the top edge so white icons stay readable on light wallpapers.	Затемнює верхній край, щоб білі значки було видно на світлих шпалерах.

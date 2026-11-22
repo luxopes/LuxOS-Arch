@@ -39,6 +39,11 @@ load luxos_sni as sni
 
 HEIGHT = tokens.BAR["height"]
 RADIUS = 10
+# Lista bez pozadi (BAR_COVER=clear, jako zamykaci obrazovka; luxos-bar.c verze 1.1.1): ostra tapeta, bile pismo
+# se stinem a ztmaveni shora BAR_SHADE (0-100, vychozi 35): plna sila SHADE_MAX do 35 % vysky listy, do ztracena
+# SHADE_EXTRA px pod listou (v okne zavoje)
+SHADE_MAX = 0.75
+SHADE_EXTRA = 14
 DEFAULT_APPS = "/usr/share/applications"
 RENAMED_APPS = "/var/lib/luxos/apps/applications"
 
@@ -97,6 +102,9 @@ function read_conf():
     ui["conf"] = text.parse_kv(lglib.read_text(config_dir() + "/appearance.conf"))
     ui["dark"] = lglib.read_text(config_dir() + "/appearance").strip() == "dark"
     ui["blur"] = material.compositor_blur()
+    ui["clear"] = conf("BAR_COVER", "") == "clear"
+    shade = conf("BAR_SHADE", "35")
+    ui["shade"] = min(100, Int(shade)) if text.is_digits(shade) else 35
     return 0
 end
 
@@ -122,6 +130,8 @@ function bar_css():
         + String(tokens.RADIUS["xs"]) + "px; }\n"
         # rozlozeni klavesnice jako text verze 1.1.1 (luxos-xkb.c): tucny kod barvou pisma listy, bez ramecku
         + ".luxos-bar .lb-badge { font-weight: " + String(tokens.WEIGHT["bold"]) + "; letter-spacing: 0.4px; padding: 0 2px; }\n"
+        # zapnuty Caps Lock = podtrzeny kod (jako luxos-xkb.c); vnitrni stin nemeni rozmer stitku
+        + ".luxos-bar .lb-badge.caps { box-shadow: inset 0 -2px alpha(currentColor, 0.9); }\n"
         + ".luxos-bar.ink-white label, .luxos-bar.ink-white image { color: " + white + "; }\n"
         + ".luxos-bar.ink-white label { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
         + ".luxos-bar.ink-white image { -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }\n"
@@ -129,7 +139,9 @@ function bar_css():
         + ".luxos-bar.ink-white button.lb.open { background-color: alpha(" + white + ", 0.14); }\n"
         + ".luxos-bar.ink-dark label, .luxos-bar.ink-dark image { color: " + dark + "; }\n"
         + ".luxos-bar.ink-dark button.lb:hover { background-color: alpha(" + dark + ", 0.08); }\n"
-        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n")
+        + ".luxos-bar.ink-dark button.lb.open { background-color: alpha(" + dark + ", 0.14); }\n"
+        + ".luxos-bar.clear label { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }\n"
+        + ".luxos-bar.clear image { -gtk-icon-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }\n")
 end
 
 function apply_css():
@@ -148,11 +160,21 @@ function on_conf_changed(path, event, other):
     if event != 1 and event != 2 and event != 3 and event != 8 and event != 9:
         return 0
     end
+    was_clear = ui.get("clear", False)
     call read_conf()
     call material.reload()
     ui["thumbs"] = {}
     call apply_css()
     call popup.set_dark(ui["dark"])
+    if ui["clear"] != was_clear:
+        # jmenny prostor plochy (rozmazani v kompozitoru ano/ne) se po namapovani nemeni
+        for bar in List(bars):
+            monitor = bar["monitor"]
+            call remove_bar(monitor)
+            call add_bar(monitor)
+        end
+        return 0
+    end
     for bar in bars:
         call place_clock(bar)
         call refresh_look(bar)
@@ -219,6 +241,17 @@ end
 
 # Bile nebo tmave pismo a sila zavoje pro listu podle tapety jejiho vystupu
 function decide_look(bar):
+    if ui["clear"]:
+        shade = Float(ui["shade"]) / 100.0
+        changed = bar["dark_ink"] or bar["scrim"] != shade
+        bar["dark_ink"] = False
+        bar["scrim"] = shade
+        if changed or not bar["traced"]:
+            bar["traced"] = True
+            call trace("look " + bar["output"] + " ink=white clear shade=" + String(ui["shade"]))
+        end
+        return 0
+    end
     if ui["blur"]:
         # material listy ma kontrast 4,5:1 pro pismo rezimu nad cimkoli (tokens MATERIAL thin), bez zavoje
         changed = bar["dark_ink"] == ui["dark"] or bar["scrim"] != 0.0
@@ -272,6 +305,7 @@ function refresh_look(bar):
     call decide_look(bar)
     call luxos_gtk.widget_set_class(bar["win"], "ink-dark", bar["dark_ink"])
     call luxos_gtk.widget_set_class(bar["win"], "ink-white", not bar["dark_ink"])
+    call luxos_gtk.widget_set_class(bar["win"], "clear", ui["clear"])
     call update_scrim(bar)
     call gtk.widget_queue_draw(bar["win"])
     return 0
@@ -295,6 +329,68 @@ function paint_scrim(cr, strength, height):
     return 0
 end
 
+# Ztmaveni listy bez pozadi: plne do 35 % vysky listy, smoothstep do nuly SHADE_EXTRA px pod listou
+function paint_shade(cr, strength, height):
+    top = SHADE_MAX * strength
+    if top <= 0.0:
+        return 0
+    end
+    pattern = cairo.pattern_create_linear(0.0, 0.35 * Float(HEIGHT), 0.0, Float(HEIGHT + SHADE_EXTRA - 1))
+    for i in range(9):
+        t = Float(i) / 8.0
+        call cairo.pattern_add_color_stop_rgba(pattern, t, 0.0, 0.0, 0.0, top * (1.0 - t * t * (3.0 - 2.0 * t)))
+    end
+    call cairo.set_source(cr, pattern)
+    call cairo.rectangle(cr, 0.0, 0.0, 100000.0, Float(height))
+    call cairo.fill(cr)
+    call cairo.pattern_destroy(pattern)
+    return 0
+end
+
+# Ostry pas tapety pod listou jako plocha (rezim tapety, barva pozadi); dekoduje se jen pri zmene tapety nebo
+# rozmeru, drzi se jen pas listy
+function sharp_strip(bar, w):
+    path = material.wallpaper_path(bar["output"])
+    mode = material.wallpaper_mode(bar["output"])
+    s = bar["scale"]
+    key = path + "|" + String(lglib.stat(path)) + "|" + mode + "|" + String([bar["out_w"], bar["out_h"], w, s])
+    if bar.get("sharp_key", "") == key:
+        return bar["sharp"]
+    end
+    if bar.get("sharp", 0) != 0:
+        call cairo.surface_destroy(bar["sharp"])
+    end
+    surface = cairo.image_surface_create(cairo.FORMAT_RGB24, w * s, HEIGHT * s)
+    call material.set_device_scale(surface, s)
+    cr = cairo.create(surface)
+    c = material.wallpaper_color()
+    call cairo.set_source_rgb(cr, c[0], c[1], c[2])
+    call cairo.paint(cr)
+    dims = material.image_size(path) if path != "" else [0, 0]
+    if dims[0] > 0 and dims[1] > 0:
+        k = 1.0
+        if mode == "fill":
+            k = max(Float(bar["out_w"]) / Float(dims[0]), Float(bar["out_h"]) / Float(dims[1]))
+        elif mode == "fit":
+            k = min(Float(bar["out_w"]) / Float(dims[0]), Float(bar["out_h"]) / Float(dims[1]))
+        end
+        pb = gtk.pixbuf_new_from_file_at_scale(path, max(1, Int(Float(dims[0]) * k * Float(s) + 0.5)),
+                                               max(1, Int(Float(dims[1]) * k * Float(s) + 0.5)), True)
+        if pb != 0:
+            m = material.map_mode([0, 0, gtk.pixbuf_get_width(pb), gtk.pixbuf_get_height(pb), dims[0], dims[1]],
+                                  bar["out_w"], bar["out_h"], mode)
+            call cairo.scale(cr, 1.0 / m[2], 1.0 / m[2])
+            call gtk.cairo_set_source_pixbuf(cr, pb, -m[3], -m[4])
+            call cairo.paint(cr)
+            call glib.object_unref(pb)
+        end
+    end
+    call cairo.destroy(cr)
+    bar["sharp"] = surface
+    bar["sharp_key"] = key
+    return surface
+end
+
 function rounded():
     return ui["conf"].get("BAR_STYLE", "") != "classic"
 end
@@ -313,6 +409,19 @@ function on_bar_draw(bar, cr, widget):
 end
 
 function paint_bar(bar, cr, w):
+    if ui["clear"]:
+        call cairo.save(cr)
+        call cairo.set_operator(cr, cairo.OPERATOR_SOURCE)
+        call cairo.set_source_surface(cr, sharp_strip(bar, w), 0.0, 0.0)
+        call cairo.paint(cr)
+        call cairo.restore(cr)
+        call paint_shade(cr, bar["scrim"], HEIGHT)
+        if not bar["drawn"]:
+            bar["drawn"] = True
+            call trace("drawn " + bar["output"] + " " + String(w) + "x" + String(HEIGHT) + " clear")
+        end
+        return 0
+    end
     if ui["blur"]:
         # rozmazane pozadi kresli kompozitor; tonovani a vlasova cara dole (svetla lista nad svetlym oknem)
         call cairo.save(cr)
@@ -358,7 +467,11 @@ function on_scrim_draw(bar, cr, widget):
     call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0)
     call cairo.paint(cr)
     call cairo.set_operator(cr, cairo.OPERATOR_OVER)
-    call paint_scrim(cr, bar["scrim"], tokens.INK["scrim_height"])
+    if ui["clear"]:
+        call paint_shade(cr, bar["scrim"], HEIGHT + SHADE_EXTRA)
+    else:
+        call paint_scrim(cr, bar["scrim"], tokens.INK["scrim_height"])
+    end
     return False
 end
 
@@ -456,6 +569,8 @@ function build_bar(bar):
     bar["tray"] = tray
     badge = gtk.label_new("")
     call gtk.widget_add_class(badge, "lb-badge")
+    # podtrzeni Caps Lock hned pod pismem, ne u spodniho okraje listy
+    call gtk.widget_set_valign(badge, gtk.ALIGN_CENTER)
     flag = gtk.image_new_from_pixbuf(0)
     call luxos_gtk.widget_set_no_show_all(flag, True)
     call luxos_gtk.widget_set_no_show_all(badge, True)
@@ -535,7 +650,11 @@ function add_bar(monitor):
            "drawn": False, "traced": False}
     call layer.init_for_window(win)
     # polomer pro rozmazani v kompozitoru (vsechny rohy; horni lezi na okraji obrazovky)
-    call layer.set_namespace(win, "luxos-bar@bar:" + String(RADIUS if rounded() else tokens.radius_of("bar")))
+    if ui["clear"]:
+        call layer.set_namespace(win, "luxos-bar")
+    else:
+        call layer.set_namespace(win, "luxos-bar@bar:" + String(RADIUS if rounded() else tokens.radius_of("bar")))
+    end
     call layer.set_layer(win, layer.LAYER_TOP)
     call layer.set_monitor(win, monitor)
     call layer.set_anchors(win, [layer.EDGE_TOP, layer.EDGE_LEFT, layer.EDGE_RIGHT])
@@ -573,6 +692,9 @@ function remove_bar(monitor):
                 call gtk.widget_destroy(bar["scrim_win"])
             end
             call gtk.widget_destroy(bar["win"])
+            if bar.get("sharp", 0) != 0:
+                call cairo.surface_destroy(bar["sharp"])
+            end
             call material.forget_output(bar["output"])
             call trace("bar removed " + bar["output"])
         end
@@ -822,6 +944,7 @@ function apply_status(bar):
     kb = s["keyboard"]
     item = bar["items"]["keyboard"]
     call gtk.label_set_text(item[1], kb["short"])
+    call luxos_gtk.widget_set_class(item[1], "caps", kb["caps"])
     # vlajka jako panel xkb na X11 jen na prani (BAR_KEYBOARD=flag v appearance.conf), jinak stitek
     pixbuf = 0
     if conf("BAR_KEYBOARD", "") == "flag":
@@ -832,8 +955,8 @@ function apply_status(bar):
     end
     call gtk.widget_set_visible(item[2], pixbuf != 0)
     call gtk.widget_set_visible(item[1], pixbuf == 0)
-    # jedno rozlozeni: neni co prepinat (jako luxos-xkb.c na X11)
-    call gtk.widget_set_visible(item[0], len(kb["layouts"]) > 1)
+    # jedno rozlozeni: neni co prepinat (jako luxos-xkb.c na X11), jen zapnuty Caps Lock je videt
+    call gtk.widget_set_visible(item[0], len(kb["layouts"]) > 1 or kb["caps"])
     call gtk.widget_set_tooltip(item[0], kb["tip"])
     return 0
 end

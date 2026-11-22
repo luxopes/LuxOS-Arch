@@ -5537,3 +5537,7 @@ Xfce Settings	Nastavenia Xfce
 Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Vzhľad, Wi-Fi, Bluetooth, monitory, klávesnica, myš a všetko ostatné
 Wallpaper, widgets, Dock and menu bar	Tapeta, widgety, Dock a horná lišta
 Mute	Stlmiť
+Menu bar without background	Lišta bez pozadia
+Shadow under the menu bar	Stmavenie pod lištou
+Like the lock screen: only the wallpaper and white icons.	Ako na uzamknutej obrazovke: len tapeta a biele ikony.
+Darkens the top edge so white icons stay readable on light wallpapers.	Stmaví horný okraj, aby boli biele ikony čitateľné aj na svetlej tapete.

@@ -5537,3 +5537,7 @@ Xfce Settings	Configuración de Xfce
 Appearance, Wi-Fi, Bluetooth, displays, keyboard, mouse and everything else	Apariencia, Wi-Fi, Bluetooth, pantallas, teclado, ratón y todo lo demás
 Wallpaper, widgets, Dock and menu bar	Fondo de pantalla, widgets, Dock y barra de menús
 Mute	Silenciar
+Menu bar without background	Barra de menús sin fondo
+Shadow under the menu bar	Sombra bajo la barra de menús
+Like the lock screen: only the wallpaper and white icons.	Como en la pantalla de bloqueo: solo el fondo de pantalla e iconos blancos.
+Darkens the top edge so white icons stay readable on light wallpapers.	Oscurece el borde superior para que los iconos blancos se lean bien sobre fondos claros.
