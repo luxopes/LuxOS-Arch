@@ -258,44 +258,52 @@ luxcomp_cover(int64_t argb)
 	schedule_frames();
 }
 
-/* "LUXFRAME1 <w> <h>\n" + w*h*4 bajtu BGRx (cairo RGB24 na little-endian), jako login-frame.raw v X11 */
-int64_t
-luxcomp_cover_frame(const char *path, int64_t max_age_s)
+/* "LUXFRAME1 <w> <h>\n" + w*h*4 bajtu BGRx (cairo RGB24 na little-endian), jako login-frame.raw v X11.
+ * Otevreny soubor za hlavickou, NULL = chybi, je starsi nez max_age_s nebo nesedi velikost. */
+static FILE *
+frame_open(const char *path, int64_t max_age_s, unsigned *w, unsigned *h)
 {
 	struct stat st;
 	if (!path || stat(path, &st) != 0 || time(NULL) - st.st_mtime > max_age_s
 			|| time(NULL) - st.st_mtime < -5) {
-		return 0;
+		return NULL;
 	}
 	FILE *f = fopen(path, "rb");
+	if (f && fscanf(f, "LUXFRAME1 %u %u", w, h) == 2 && fgetc(f) == '\n' && *w && *h
+			&& *w <= FRAME_MAX_SIDE && *h <= FRAME_MAX_SIDE
+			&& st.st_size - ftell(f) == (off_t)*w * *h * 4) {
+		return f;
+	}
+	if (f) {
+		fclose(f);
+	}
+	return NULL;
+}
+
+int64_t
+luxcomp_cover_frame(const char *path, int64_t max_age_s)
+{
+	unsigned w = 0, h = 0;
+	FILE *f = frame_open(path, max_age_s, &w, &h);
 	if (!f) {
 		return 0;
 	}
-	unsigned w = 0, h = 0;
-	struct wlr_buffer *buffer = NULL;
-	if (fscanf(f, "LUXFRAME1 %u %u", &w, &h) == 2 && fgetc(f) == '\n' && w && h
-			&& w <= FRAME_MAX_SIDE && h <= FRAME_MAX_SIDE
-			&& st.st_size - ftell(f) == (off_t)w * h * 4) {
-		cairo_surface_t *s;
-		buffer = cairo_buffer_create(w, h, &s);
-		unsigned char *data = cairo_image_surface_get_data(s);
-		int stride = cairo_image_surface_get_stride(s);
-		bool ok = true;
-		for (unsigned y = 0; y < h && ok; y++) {
-			unsigned char *row = data + (size_t)y * stride;
-			ok = fread(row, 4, w, f) == w;
-			for (unsigned x = 0; x < w; x++) {
-				row[x * 4 + 3] = 0xff;
-			}
-		}
-		cairo_surface_mark_dirty(s);
-		if (!ok) {
-			wlr_buffer_drop(buffer);
-			buffer = NULL;
+	cairo_surface_t *s;
+	struct wlr_buffer *buffer = cairo_buffer_create(w, h, &s);
+	unsigned char *data = cairo_image_surface_get_data(s);
+	int stride = cairo_image_surface_get_stride(s);
+	bool ok = true;
+	for (unsigned y = 0; y < h && ok; y++) {
+		unsigned char *row = data + (size_t)y * stride;
+		ok = fread(row, 4, w, f) == w;
+		for (unsigned x = 0; x < w; x++) {
+			row[x * 4 + 3] = 0xff;
 		}
 	}
+	cairo_surface_mark_dirty(s);
 	fclose(f);
-	if (!buffer) {
+	if (!ok) {
+		wlr_buffer_drop(buffer);
 		wlr_log(WLR_ERROR, "luxcomp: bad cover frame %s", path);
 		return 0;
 	}
@@ -354,3 +362,5 @@ luxcomp_cover_fade(int64_t ms)
 	cover.render_max_ns = 0;
 	schedule_frames();
 }
+
+

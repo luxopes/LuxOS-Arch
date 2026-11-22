@@ -196,8 +196,9 @@ void luxcomp_quit(void);
 void luxcomp_destroy(void);
 int64_t luxcomp_spawn(const char *command);		/* sh -c in the session with an activation token, returns pid */
 int64_t luxcomp_software_rendering(void);		/* 1 = pixman (no 3D), animations should be cheap */
-/* VT switch through the logind session (DRM backend only, else 0); luxcomp_session_active() turns 0
- * once the switch took the session away. The greeter hands the screen over through an empty graphics VT. */
+/* VT switch through the logind session (DRM backend only, else 0); luxcomp_session_active() turns 0 once the
+ * switch took the session away (1 without a session). The greeter hands the screen over through an empty
+ * graphics VT (docs/developers/wayland-session.md). */
 int64_t luxcomp_switch_vt(int64_t vt);
 int64_t luxcomp_session_active(void);
 void luxcomp_set_background(int64_t argb);		/* solid colour below the wallpaper layer */
