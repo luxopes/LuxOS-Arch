@@ -239,6 +239,7 @@ int deco_part_at(struct deco *deco, double x, double y);
 bool deco_owns_node(struct deco *deco, struct wlr_scene_node *node);
 int deco_height(struct deco *deco);		/* title bar of this view (normal or compact) */
 void deco_hover(struct deco *deco, int part);	/* NULL = pointer is not over a title bar */
+void decos_frame(void);				/* before rendering: corners of subsurfaces changed alone */
 struct wlr_buffer *cairo_buffer_create(int width, int height, struct _cairo_surface **surface);
 
 /* shadow.c: window shadow drawn from shared pre-blurred 9-slice textures */

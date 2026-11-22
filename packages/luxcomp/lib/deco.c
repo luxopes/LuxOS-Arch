@@ -53,22 +53,32 @@ static struct {
 	.border = 0x33000000,
 };
 
+/* Povrch klienta pod rohem okna: kopie rohu se cte znovu, jen kdyz se zmenil (commit s poskozenim v rohu) */
+#define CORNER_SURFACES 8
+struct corner_src {
+	struct wlr_surface *surface;
+	uint32_t seq;
+	int x, y;		/* poloha vuci korenovemu povrchu */
+};
+
 struct deco {
 	struct view *view;
 	struct wlr_scene_buffer *node;
 	struct shadow *shadow, *outline;
 	/* zaoblene dolni rohy: obsah oriznuty nad dolnim pruhem, pruh mezi rohy (druhy strom
-	 * stejneho povrchu) a dva rohy jako kopie pixelu klienta s maskou */
+	 * stejneho povrchu) a dva rohy jako kopie pixelu klienta (koren i podpovrchy) s maskou */
 	struct wlr_scene_tree *strip;
 	struct wlr_surface *strip_surface;
 	struct wlr_scene_buffer *corner[2];
 	struct wlr_buffer *held[3];	/* zobrazene buffery: zahlavi, rohy (show_buffer) */
 	struct wlr_box corner_geo;
 	int corner_px;
+	struct corner_src src[2][CORNER_SURFACES];	/* povrchy, ze kterych je kopie rohu */
+	int n_src[2];
 	/* poskozeni povrchu plati pro posledni commit a zustava, dokud neprijde dalsi: commit (seq), jehoz
-	 * poskozeni uz rohy a vzorkovani zahlavi zpracovaly, jinak by kazde deco_update cetlo pixely znovu
+	 * poskozeni uz vzorkovani zahlavi zpracovalo, jinak by kazde deco_update cetlo pixely znovu
 	 * a casovac vzorkovani se natahoval porad dokola (5x za sekundu u kazdeho okna) */
-	uint32_t corner_seq, sample_seq;
+	uint32_t sample_seq;
 	bool rounded;
 	int width, height, scale, hover;
 	bool active, square, compact;
@@ -402,18 +412,114 @@ no_input(struct wlr_scene_buffer *buffer, double *sx, double *sy)
 	return false;
 }
 
-/* Kopie rohu klienta (n x n px bufferu) s vyhlazenou maskou ctvrtkruhu; i = 0 levy, 1 pravy */
+struct corner_list {
+	struct wlr_box box;		/* roh v souradnicich korenoveho povrchu */
+	struct corner_src src[CORNER_SURFACES];
+	int n;
+	bool overflow;
+};
+
+static void
+corner_collect(struct wlr_surface *s, int sx, int sy, void *data)
+{
+	struct corner_list *c = data;
+	struct wlr_box sb = { sx, sy, s->current.width, s->current.height }, hit;
+	if (!wlr_surface_has_buffer(s) || !wlr_box_intersection(&hit, &sb, &c->box)) {
+		return;
+	}
+	if (c->n == CORNER_SURFACES) {
+		c->overflow = true;
+		return;
+	}
+	c->src[c->n++] = (struct corner_src){ s, s->current.seq, sx, sy };
+}
+
+/* Zmenilo se neco pod rohem? Poskozeni povrchu plati jen pro jeho posledni commit: preskoceny commit = cist znovu */
 static bool
-corner_read(struct deco *d, int i, struct wlr_texture *tex, int x, int y, int n)
+corner_changed(struct deco *d, int i, struct corner_list *c)
+{
+	if (c->n != d->n_src[i]) {
+		return true;
+	}
+	for (int k = 0; k < c->n; k++) {
+		struct corner_src *was = &d->src[i][k], *now = &c->src[k];
+		if (was->surface != now->surface || was->x != now->x || was->y != now->y) {
+			return true;
+		}
+		if (now->seq == was->seq) {
+			continue;
+		}
+		if (now->seq != was->seq + 1) {
+			return true;
+		}
+		pixman_region32_t damage;
+		pixman_region32_init(&damage);
+		wlr_surface_get_effective_damage(now->surface, &damage);
+		pixman_box32_t box = { c->box.x - now->x, c->box.y - now->y,
+			c->box.x - now->x + c->box.width, c->box.y - now->y + c->box.height };
+		bool hit = pixman_region32_contains_rectangle(&damage, &box) != PIXMAN_REGION_OUT;
+		pixman_region32_fini(&damage);
+		if (hit) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Kopie rohu klienta (n x n px pri meritku bufferu f) slozena ze vsech jeho povrchu v rohu (Firefox kresli
+ * obsah do podpovrchu, koren je tam pruhledny) s vyhlazenou maskou ctvrtkruhu; i = 0 levy, 1 pravy */
+static bool
+corner_read(struct deco *d, int i, struct corner_list *c, double f, int n)
 {
 	cairo_surface_t *img;
 	struct wlr_buffer *buffer = cairo_buffer_create(n, n, &img);
 	cairo_surface_flush(img);
 	uint8_t *px = cairo_image_surface_get_data(img);
 	int stride = cairo_image_surface_get_stride(img);
-	bool ok = wlr_texture_read_pixels(tex, &(struct wlr_texture_read_pixels_options){
-		.data = px, .format = DRM_FORMAT_ARGB8888, .stride = stride,
-		.src_box = { x, y, n, n } });
+	pixman_image_t *dst = pixman_image_create_bits_no_clear(PIXMAN_a8r8g8b8, n, n, (uint32_t *)px, stride);
+	uint32_t *tmp = malloc((size_t)n * n * 4);
+	bool ok = true;
+	for (int k = 0; ok && k < c->n; k++) {
+		struct wlr_surface *s = c->src[k].surface;
+		struct wlr_texture *tex = wlr_surface_get_texture(s);
+		struct wlr_fbox src;
+		wlr_surface_get_buffer_source_box(s, &src);
+		/* podpovrch v jinem meritku nebo otoceny by se musel prevzorkovat: rohy radeji ostre */
+		if (!tex || s->current.transform != WL_OUTPUT_TRANSFORM_NORMAL
+				|| fabs(src.width / s->current.width - f) > 0.01
+				|| fabs(src.height / s->current.height - f) > 0.01) {
+			ok = false;
+			break;
+		}
+		int x0 = lround(src.x + (c->box.x - c->src[k].x) * f), y0 = lround(src.y + (c->box.y - c->src[k].y) * f);
+		struct wlr_box want = { x0, y0, n, n }, hit,
+			valid = { lround(src.x), lround(src.y), lround(src.width), lround(src.height) },
+			whole = { 0, 0, tex->width, tex->height };
+		if (!wlr_box_intersection(&valid, &valid, &whole) || !wlr_box_intersection(&hit, &want, &valid)) {
+			continue;
+		}
+		ok = wlr_texture_read_pixels(tex, &(struct wlr_texture_read_pixels_options){
+			.data = tmp, .format = DRM_FORMAT_ARGB8888, .stride = hit.width * 4, .src_box = hit });
+		if (!ok) {
+			break;
+		}
+		/* format bez alfy (XRGB) nese v alfe cokoli: nepruhledna oblast povrchu je nepruhledna */
+		for (int y = 0; y < hit.height; y++) {
+			for (int x = 0; x < hit.width; x++) {
+				int lx = (int)floor((hit.x + x + 0.5 - src.x) / f), ly = (int)floor((hit.y + y + 0.5 - src.y) / f);
+				if (pixman_region32_contains_point(&s->opaque_region, lx, ly, NULL)) {
+					tmp[y * hit.width + x] |= 0xff000000;
+				}
+			}
+		}
+		pixman_image_t *part = pixman_image_create_bits_no_clear(PIXMAN_a8r8g8b8, hit.width, hit.height, tmp,
+			hit.width * 4);
+		pixman_image_composite32(PIXMAN_OP_OVER, part, NULL, dst, 0, 0, 0, 0, hit.x - x0, hit.y - y0,
+			hit.width, hit.height);
+		pixman_image_unref(part);
+	}
+	free(tmp);
+	pixman_image_unref(dst);
 	if (ok) {
 		double cx = i ? 0 : n;	/* stred kruhu = vnitrni horni roh dlazdice */
 		for (int py = 0; py < n; py++) {
@@ -423,8 +529,8 @@ corner_read(struct deco *d, int i, struct wlr_texture *tex, int x, int y, int n)
 					continue;
 				}
 				uint8_t *p = px + py * stride + qx * 4;
-				for (int c = 0; c < 4; c++) {
-					p[c] = a <= 0 ? 0 : p[c] * a;
+				for (int ch = 0; ch < 4; ch++) {
+					p[ch] = a <= 0 ? 0 : p[ch] * a;
 				}
 			}
 		}
@@ -449,11 +555,13 @@ corners_off(struct deco *d)
 	wlr_scene_node_set_enabled(&d->corner[1]->node, false);
 	d->rounded = false;
 	d->corner_px = 0;
+	d->n_src[0] = d->n_src[1] = 0;
 }
 
 /* Klient kresli az k okraji okna, kompozitor mu dolni rohy zaobli. Pixely rohu se ctou jen kdyz
- * je klient v rozich zmenil (poskozeni povrchu), u terminalu tedy skoro nikdy. Pri neobvyklem
- * povrchu (viewport, rotace) nebo kdyz texturu nejde cist, zustanou rohy ostre. */
+ * je klient v rozich zmenil (poskozeni povrchu), u terminalu tedy skoro nikdy. Vola se pri commitu
+ * korene i pred kazdym snimkem (podpovrch s desync se meni bez commitu korene). Pri neobvyklem
+ * povrchu (rotace, podpovrchy v jinem meritku) nebo kdyz texturu nejde cist, zustanou rohy ostre. */
 static void
 corners_update(struct deco *d)
 {
@@ -467,44 +575,34 @@ corners_update(struct deco *d)
 		wlr_scene_node_destroy(&d->strip->node);
 	}
 	if (d->square || !tex || r <= 0 || g.width < 2 * r || g.height < 2 * r
-			|| s->current.viewport.has_src
 			|| s->current.transform != WL_OUTPUT_TRANSFORM_NORMAL) {
 		if (d->rounded) {
 			corners_off(d);
 		}
 		return;
 	}
-	double f = (double)tex->width / s->current.width;
+	struct wlr_fbox src;
+	wlr_surface_get_buffer_source_box(s, &src);
+	double f = src.width / s->current.width;
 	int n = lround(r * f);
-	int bx[2] = { lround(g.x * f), lround((g.x + g.width - r) * f) };
-	int by = lround((g.y + g.height - r) * f);
-	if (bx[0] < 0 || by < 0 || bx[1] + n > (int)tex->width || by + n > (int)tex->height) {
-		if (d->rounded) {
-			corners_off(d);
-		}
-		return;
-	}
-
 	bool moved = !d->rounded || !d->strip || n != d->corner_px
 		|| !wlr_box_equal(&g, &d->corner_geo);
-	pixman_region32_t damage;
-	pixman_region32_init(&damage);
-	if (s->current.seq != d->corner_seq) {
-		wlr_surface_get_effective_damage(s, &damage);
-		d->corner_seq = s->current.seq;
-	}
 	for (int i = 0; i < 2; i++) {
-		pixman_box32_t box = { g.x + (i ? g.width - r : 0), g.y + g.height - r,
-			g.x + (i ? g.width : r), g.y + g.height };
-		if (moved || pixman_region32_contains_rectangle(&damage, &box) != PIXMAN_REGION_OUT) {
-			if (!corner_read(d, i, tex, bx[i], by, n)) {
-				pixman_region32_fini(&damage);
+		struct corner_list c = { .box = { g.x + (i ? g.width - r : 0), g.y + g.height - r, r, r } };
+		wlr_surface_for_each_surface(s, corner_collect, &c);
+		if (c.overflow || c.n == 0) {
+			if (d->rounded) {
 				corners_off(d);
-				return;
 			}
+			return;
 		}
+		if ((moved || corner_changed(d, i, &c)) && !corner_read(d, i, &c, f, n)) {
+			corners_off(d);
+			return;
+		}
+		memcpy(d->src[i], c.src, sizeof(c.src));
+		d->n_src[i] = c.n;
 	}
-	pixman_region32_fini(&damage);
 	if (!moved) {
 		return;
 	}
@@ -770,6 +868,18 @@ deco_update(struct deco *d)
 	shadow_update(d->shadow, frame, square ? 0 : size, offset < 0 ? size / 4 : offset, theme.radius,
 		theme.shadow[active], scale, true);
 	shadow_update(d->outline, frame, square ? 0 : 1, 0, theme.radius, theme.border, scale, false);
+}
+
+/* Pred snimkem: rohy oken, jejichz podpovrchy se zmenily bez commitu korene */
+void
+decos_frame(void)
+{
+	struct view *v;
+	wl_list_for_each(v, &comp.views_list, link) {
+		if (v->deco && v->deco->rounded && view_shown(v)) {
+			corners_update(v->deco);
+		}
+	}
 }
 
 bool

@@ -221,6 +221,7 @@ output_frame(struct wl_listener *listener, void *data)
 	}
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
+	decos_frame();
 	bool blurred = blur_output_frame(o);
 	bool done = o->held ? held_output_commit(o) : wlr_scene_output_commit(o->scene_output, NULL);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
