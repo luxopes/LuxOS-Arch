@@ -1,14 +1,18 @@
 # LuxOS Desktop
 
+> [!WARNING]
+> **Unofficial and unsupported.** LuxOS Desktop for other distributions is a side project. It is
+> **not supported** like LuxOS, it gets **no regular testing**, and it **can be out of date** with
+> the desktop in LuxOS – features may be missing or broken, and updates may come late or not at
+> all. Use it at your own risk; your other desktops are not changed and it can be removed with your
+> package manager. The supported and tested way to get this desktop is
+> **[LuxOS](https://luxos.lux-ai.cz)** itself.
+
 The desktop of [LuxOS](https://luxos.lux-ai.cz) for your own Linux distribution: menu bar,
 Dock, Launchpad, Control Center, widgets, hot corners, Emoji & Symbols, screenshots,
 notifications and the LuxOS settings – on top of Xfce, as an extra **"LuxOS Desktop"** session
 on your login screen. Most of it is written in [LSL](https://lsl.lux-ai.cz), the Lux Simple
 Language.
-
-> **Community edition, best effort.** LuxOS Desktop is tested on Fedora and Arch, but the
-> place where everything is fully supported and tested together is LuxOS itself. Bug reports
-> are welcome.
 
 ## Supported distributions
 
@@ -23,10 +27,13 @@ x86_64 only. The session runs on X11 (Xfce 4.20).
 ## Install
 
 ```sh
-git clone https://github.com/luxopes/LuxOS-Arch.git --depth 1
-cd LuxOS-Arch/desktop-standalone
+git clone https://github.com/luxopes/lux-desktop.git
+cd lux-desktop
 ./install.sh
 ```
+
+(or from the LuxOS source: `git clone --depth 1 https://github.com/luxopes/LuxOS-Arch.git` and
+`LuxOS-Arch/desktop-standalone/install.sh`)
 
 Run it as your normal user; it asks for `sudo` only to install packages. It installs the build
 tools, builds a native package (`lux-desktop` RPM on Fedora, a pacman package on Arch) and
