@@ -898,7 +898,7 @@ function activate(i):
         call trace("copy " + value)
     elif item["kind"] == "luxai":
         call trace("luxai " + query)
-        call glib.spawn_quiet([S["luxai"], "--agent", query])
+        call glib.spawn_app([S["luxai"], "--agent", query])
     else:
         e = item["entry"]
         call trace("launch " + e["id"])

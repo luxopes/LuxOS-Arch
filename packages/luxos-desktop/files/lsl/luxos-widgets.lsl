@@ -843,7 +843,7 @@ function on_card_realize(widget):
 end
 
 function spawn(argv):
-    call glib.spawn_quiet(argv)
+    call glib.spawn_app(argv)
     return 0
 end
 

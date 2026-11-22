@@ -535,7 +535,7 @@ end
 
 # Spusti program a zavre okno
 function on_launch_clicked(command, button):
-    call glib.spawn_quiet(command.split(" "))
+    call glib.spawn_app(command.split(" "))
     call close()
     return 0
 end
@@ -1228,13 +1228,13 @@ end
 function on_wifi_qr_clicked(button):
     if cc["wifi_signin"]:
         call log_test("network sign-in")
-        call glib.spawn_quiet(["luxos-network-login"])
+        call glib.spawn_app(["luxos-network-login"])
     elif cc["wifi_qr_scan"]:
         call log_test("wifi-qr scan")
-        call glib.spawn_quiet(["luxos-wifi-qr", "--scan"])
+        call glib.spawn_app(["luxos-wifi-qr", "--scan"])
     else:
         call log_test("wifi-qr share")
-        call glib.spawn_quiet(["luxos-wifi-qr"])
+        call glib.spawn_app(["luxos-wifi-qr"])
     end
     call close()
     return 0
@@ -1469,7 +1469,7 @@ end
 
 # Okno Bluetooth: zapnuti, sparovana zarizeni i pripojeni noveho
 function toggle_bt():
-    call glib.spawn_quiet(["luxos-bluetooth"])
+    call glib.spawn_app(["luxos-bluetooth"])
     call close()
     return 0
 end
@@ -1873,9 +1873,9 @@ end
 # Na Waylandu nova aplikace Monitory: luxos-displays bez argumentu ji otevre
 function open_displays():
     if wayland():
-        call glib.spawn_quiet(["luxos-displays"])
+        call glib.spawn_app(["luxos-displays"])
     else:
-        call glib.spawn_quiet(["luxos-display-settings"])
+        call glib.spawn_app(["luxos-display-settings"])
     end
     call close()
     return 0
