@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 10
+API_VERSION = 11
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -33,6 +33,7 @@ EV_IPC_LINE = 18
 EV_IPC_CLOSE = 19
 EV_VIEW_SIZE = 20
 EV_HOLD_END = 21
+EV_LAYER_MAP = 22
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -629,5 +630,49 @@ end
 function set_cursor(theme, size):
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("luxcomp_set_cursor"), cstr(theme), ptr(size))
+    end
+end
+
+# Zaneprazdneny ukazatel po vyzadani tokenu xdg-activation (spousteni z Docku), nejdele timeout_ms; 0 = vypnuto
+function launch_feedback(timeout_ms):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_launch_feedback"), ptr(timeout_ms))
+    end
+end
+
+function launch_start():
+    unsafe:
+        call __lsl_qbe_call0(__lsl_symbol("luxcomp_launch_start"))
+    end
+end
+
+# ---- animace oken a zakryti po prihlaseni ---------------------------------------------------
+
+ANIM_OPEN = 1
+ANIM_CLOSE = 2
+ANIM_MINIMIZE = 3
+ANIM_RESTORE = 4
+
+function anim_set(kind, ms):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_anim_set"), ptr(kind), ptr(ms))
+    end
+end
+
+function view_animate(view, kind):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_view_animate"), ptr(view), ptr(kind))
+    end
+end
+
+function cover(argb):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_cover"), ptr(argb))
+    end
+end
+
+function cover_fade(ms):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_cover_fade"), ptr(ms))
     end
 end

@@ -93,6 +93,23 @@ class Common:
         app.ask("search ")
         self.assertEqual(self.sidebar(app), ids)
 
+    def test_sidebar_glyphs(self):
+        # owner 2026-11-22 (shot 80): Appearance had a small colour icon on a black tile in a theme without the
+        # symbolic name; the glyphs come from WhiteSur-light whatever icon theme the user picked, every page in colour
+        if not Path("/usr/share/icons/WhiteSur-light/index.theme").exists():
+            self.skipTest("WhiteSur-light icon theme is not installed")
+        (self.home / "config/gtk-3.0").mkdir(parents=True)
+        (self.home / "config/gtk-3.0/settings.ini").write_text("[Settings]\ngtk-icon-theme-name=Adwaita\n")
+        app = self.open("desktop")
+        glyphs = json.loads(app.ask("glyphs", "glyphs"))
+        self.assertGreaterEqual(len(glyphs), 20)
+        for page, path in glyphs.items():
+            self.assertTrue(path.startswith("/usr/share/icons/WhiteSur-light/") and path.endswith("-symbolic.svg"),
+                            (page, path))
+        pages = (REPO / "packages/luxos-desktop/files/lsl/luxos_settings_pages.lsl").read_text()
+        for grey in ("#8e8e93", "#48484a", "#636366"):
+            self.assertNotIn(grey, pages)
+
     def test_search_czech_without_diacritics(self):
         app = self.open("desktop", LANG="cs_CZ.UTF-8", LC_ALL="cs_CZ.UTF-8")
         app.ask("search tapeta")

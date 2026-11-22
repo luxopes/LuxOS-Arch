@@ -139,7 +139,8 @@ cleanup() {
 # odhlaseni (loginctl terminate-session) posle SIGTERM cele relaci: luxwm konci sam, tady jen uklid
 trap 'kill -TERM "$wm" 2>/dev/null' TERM HUP INT
 
-/usr/bin/luxwm "$0 --started" >"$log" 2>&1 &
+# --intro: plocha se po prihlaseni objevi az nakreslena (prolnuti z cerne jako luxos-session-cover na X11)
+/usr/bin/luxwm --intro "$0 --started" >"$log" 2>&1 &
 wm=$!
 wait "$wm"
 rc=$?

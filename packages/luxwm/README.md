@@ -62,6 +62,15 @@ looks for modules next to the importing file.
   (`sandbox_window`): the Xwayland window takes that size, and the app's window follows when the user
   resizes it. A rootless Xwayland would need luxwm's X window manager inside the sandbox's Xwayland,
   which wlroots cannot attach to an X server it did not start.
+- **Animations** like the picom setup of LuxOS 1.0.x: a new window grows from 90 % and fades in (180 ms),
+  a closing one shrinks and fades out (140 ms), minimise flies into the Dock (320 ms), restore from the
+  Dock grows back out of it (300 ms). Alt+Tab and Show desktop stay instant. Input is never blocked
+  (`docs/developers/luxcomp-api.md`, section Animace oken). `reduce_motion = yes` or Battery Saver turn them off.
+- **Launch feedback**: after a launcher asks for an xdg-activation token, or an `exec` shortcut, the arrow
+  is the animated busy pointer until the app's window maps (at most 15 s), like startup-notification on X11.
+- **Login transition** (`--intro`, used by `luxos-wayland-session`): the screen stays black until the
+  wallpaper, the bar and the Dock drew their first frame, then the desktop fades in over 280 ms, like
+  `luxos-session-cover --login` on X11 (without the fade under reduce motion or Battery Saver).
 - **Title bars** take their colours from `luxos_tokens`: window, fg/dim, traffic lights, inactive
   light, border, radius 16, Inter Semi-Bold 10. Light or dark follows `~/.config/luxos/appearance`.
 
@@ -85,7 +94,7 @@ value turns a default shortcut off. Unknown actions are skipped, so the tabwin k
 `Escape`…) are never grabbed globally.
 
 Settings: `workspaces` (1–16, also changed by `reload`: windows of removed workspaces move to the last one),
-`slide_ms` (0 = no animation), `reduce_motion` (yes = no workspace slide), `wrap_workspaces` (yes/no),
+`slide_ms` (0 = no animation), `reduce_motion` (yes = no workspace slide and no window animations; also off while Battery Saver is on), `wrap_workspaces` (yes/no),
 `double_click_action` (title bar double-click: maximize, hide, none),
 `xwayland` (yes/no), `blur` (yes/no: material of shell surfaces blurred or a solid colour, see
 `docs/developers/luxcomp-api.md`), `displays_command` (run with `sh -c` once, 300 ms after outputs are plugged in or

@@ -59,10 +59,10 @@ def pss_kb(pid):
 
 
 class Session:
-    def __init__(self, program="luxwm", mode="headless", env="", size=f"{W}x{H}"):
+    def __init__(self, program="luxwm", mode="headless", env="", size=f"{W}x{H}", args=()):
         envs = (f"LUXCOMP_VIRTUAL_INPUT=1 LUXWM_TRACE=1 LUXWM_SYSTEM_CONFIG={test_conf('luxwm-test.conf')} "
                 f"LD_LIBRARY_PATH={BUILD}:{SYSROOT}/usr/lib {env}")
-        out = subprocess.run([WLT, "start", "--mode", mode, "--size", size, "--", os.path.join(BUILD, program)],
+        out = subprocess.run([WLT, "start", "--mode", mode, "--size", size, "--", os.path.join(BUILD, program), *args],
                              check=True, capture_output=True, text=True, timeout=120,
                              env={**os.environ, "WLT_COMPOSITOR_ENV": envs}).stdout
         self.dir = out.strip().splitlines()[-1]

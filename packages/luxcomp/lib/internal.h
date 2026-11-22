@@ -100,8 +100,9 @@ struct view {
 	struct wlr_ext_foreign_toplevel_handle_v1 *ext;
 	struct wlr_output *ftl_output;
 	struct wlr_ext_image_capture_source_v1 *capture;
+	struct wlr_box icon_box;	/* Dock icon (foreign-toplevel set_rectangle), layout coordinates */
 	struct wl_listener ftl_activate, ftl_minimize, ftl_maximize, ftl_fullscreen,
-		ftl_close, capture_destroy;
+		ftl_close, ftl_rectangle, capture_destroy;
 };
 
 struct keybind {
@@ -130,6 +131,7 @@ struct comp {
 	struct wlr_scene_tree *layer_bg, *layer_bottom, *views, *above, *unmanaged,
 		*layer_top, *fullscreen, *layer_overlay, *lock_tree;
 	struct wlr_scene_tree *layer_hidden;	/* layer surfaces of mirrored outputs */
+	struct wlr_scene_tree *cover;		/* luxcomp_cover(): over everything but the lock, no input */
 	struct wlr_scene_rect *background;
 	const char *socket;
 
@@ -227,6 +229,7 @@ void input_finish(void);
 void seat_focus_surface(struct wlr_surface *surface);
 void seat_enter_direct(struct wlr_surface *surface);
 void cursor_rebase(void);
+void cursor_busy_update(void);
 
 /* deco.c */
 struct deco;
@@ -297,6 +300,8 @@ void idle_init(void);
 void idle_activity(void);
 void idle_update(void);
 const char *idle_shell_token(void);
+bool launch_busy(void);			/* a started program has no window yet: busy pointer */
+void launch_window_mapped(void);
 
 /* security.c */
 void security_init(void);
@@ -316,5 +321,10 @@ void ipc_finish(void);
 struct workspace *workspace_by_id(int64_t id);
 struct workspace *workspace_create(void);
 void workspaces_frame_done(int64_t frame_ns);
+
+/* anim.c */
+void anim_init(void);
+void anim_frame(void);			/* before rendering a frame */
+void anim_frame_done(int64_t render_ns);
 
 #endif

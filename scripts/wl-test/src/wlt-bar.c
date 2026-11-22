@@ -1,5 +1,5 @@
 /* wlt-bar - testovaci lista pres layer-shell: horni (nebo dolni) okraj, exkluzivni zona, jednolita barva.
- * Pouziti: wlt-bar [--height N] [--bottom] [--color RRGGBB] [--layer top|bottom|overlay] */
+ * Pouziti: wlt-bar [--height N] [--bottom] [--color RRGGBB] [--layer top|bottom|overlay|background] */
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,9 +87,10 @@ int main(int argc, char *argv[])
 			i++;
 			layer = !strcmp(argv[i], "bottom") ? ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM
 				: !strcmp(argv[i], "overlay") ? ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+				: !strcmp(argv[i], "background") ? ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND
 				: ZWLR_LAYER_SHELL_V1_LAYER_TOP;
 		} else {
-			fprintf(stderr, "usage: wlt-bar [--height N] [--bottom] [--color RRGGBB] [--layer top|bottom|overlay]\n");
+			fprintf(stderr, "usage: wlt-bar [--height N] [--bottom] [--color RRGGBB] [--layer top|bottom|overlay|background]\n");
 			return 2;
 		}
 	}
@@ -112,7 +113,8 @@ int main(int argc, char *argv[])
 	zwlr_layer_surface_v1_set_anchor(ls, ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT
 		| (bottom ? ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM : ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP));
 	zwlr_layer_surface_v1_set_size(ls, 0, height);
-	zwlr_layer_surface_v1_set_exclusive_zone(ls, height);
+	/* pozadi (tapeta) nic neodsouva */
+	zwlr_layer_surface_v1_set_exclusive_zone(ls, layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ? 0 : height);
 	wl_surface_commit(surface);
 	while (running && wl_display_dispatch(display) != -1)
 		;

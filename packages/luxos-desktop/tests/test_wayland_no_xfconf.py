@@ -22,6 +22,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.normpath(os.path.join(HERE, "..", "files"))
@@ -261,6 +262,41 @@ class AppearanceWayland(unittest.TestCase):
         r = self.run_cmd(["light"])
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.mode(), "light")
+
+    def xsettings(self):
+        path = os.path.join(self.cfg, "xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
+        root = ET.parse(path).getroot()
+        net = root.find("./property[@name='Net']")
+        return {p.get("name"): p.get("value") for p in net}, root
+
+    def test_mode_written_to_xsettings(self):
+        # owner item 22: po prepnuti na Waylandu a novem prihlaseni vratil luxos-wayland-settings stare tema z xsettings
+        self.run_cmd(["dark"])
+        net, _ = self.xsettings()
+        self.assertEqual((net["ThemeName"], net["IconThemeName"]), ("WhiteSur-Dark", "WhiteSur-dark"))
+        # ostatni vlastnosti kanalu (Nastaveni je pise do stejneho souboru) zustanou, nic se nezdvoji
+        path = os.path.join(self.cfg, "xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
+        with open(path, "w") as f:
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n\n<channel name="xsettings" version="1.0">\n'
+                    '  <property name="Net" type="empty">\n'
+                    '    <property name="DoubleClickTime" type="int" value="400"/>\n'
+                    '    <property name="ThemeName" type="string" value="WhiteSur-Dark"/>\n  </property>\n'
+                    '  <property name="Gtk" type="empty">\n'
+                    '    <property name="FontName" type="string" value="Inter 11"/>\n  </property>\n</channel>\n')
+        # vlastni sada ikon zustava (cte se z gsettings)
+        with open(os.path.join(self.fake, "gsettings"), "w") as f:
+            f.write(FAKE + '[ "$1" = get ] && echo "\'Adwaita\'"\nexit 0\n')
+        self.run_cmd(["light"])
+        net, root = self.xsettings()
+        self.assertEqual(net, {"DoubleClickTime": "400", "ThemeName": "WhiteSur-Light", "IconThemeName": "Adwaita"})
+        self.assertEqual(root.find("./property[@name='Gtk']/property[@name='FontName']").get("value"), "Inter 11")
+        self.assertEqual(len(root.findall("./property[@name='Net']")), 1)
+        # bez xsettings.xml i bez bloku Net
+        os.unlink(path)
+        with open(path, "w") as f:
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n<channel name="xsettings" version="1.0">\n</channel>\n')
+        self.run_cmd(["dark"])
+        self.assertEqual(self.xsettings()[0], {"ThemeName": "WhiteSur-Dark", "IconThemeName": "Adwaita"})
 
     def test_x11_unchanged(self):
         r = self.run_cmd(["dark"], wayland=False)

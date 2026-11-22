@@ -156,7 +156,9 @@ class LockBase(unittest.TestCase):
         env.pop("LD_LIBRARY_PATH", None)
         env.update(LUXOS_WL_LIB=str(self.build / "libluxos-wl.so.0"), LUXOS_LOCK_AUTH=str(self.build / "auth-fake"),
                    LUXOS_LOCK_TRACE="1", LUXOS_LOCK_FPRINT_MODULE="/nonexistent",
-                   LUXOS_LOCK_POWER_SUPPLY=str(self.tmp / "power"), LUXOS_LOCK_NOW="9:41", LUXOS_LOCK_DEMO_NAME="Alex Novak")
+                   LUXOS_LOCK_POWER_SUPPLY=str(self.tmp / "power"), LUXOS_LOCK_NOW="9:41", LUXOS_LOCK_DEMO_NAME="Alex Novak",
+                   # klid jako tapeta plochy (staticky): nezavisle na /etc/xdg hostitele a vychozim setrici
+                   LUXOS_LOCK_SAVER="desktop")
         self.env = env
         self.home = Path(env["HOME"])
         self.home.mkdir(parents=True, exist_ok=True)
@@ -875,6 +877,30 @@ class Session(LockBase):
         xml.write_text(xml.read_text().replace('<property name="delay" type="int" value="2"/>',
                                                '<property name="enabled" type="bool" value="false"/>'))
         self.wait_line(w, "idle 0")
+
+    def test_idle_saver_from_screensaver_theme(self):
+        # klid zamku = tema xfce4-screensaver; nezname tema (jiny setric) -> vychozi stridajici se tapety (item 42)
+        self.start()
+        xml = self.home / ".config/xfce4/xfconf/xfce-perchannel-xml/xfce4-screensaver.xml"
+        xml.parent.mkdir(parents=True, exist_ok=True)
+        for theme, style in (("screensavers-luxos-aurora", "aurora"), ("screensavers-something-else", "wallpapers"),
+                             ("screensavers-luxos", "wallpapers")):
+            xml.write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-screensaver" version="1.0">
+  <property name="saver" type="empty">
+    <property name="mode" type="int" value="2"/>
+    <property name="themes" type="empty">
+      <property name="list" type="array">
+        <value type="string" value="{theme}"/>
+      </property>
+    </property>
+  </property>
+</channel>
+""")
+            p = self.locker(XDG_CONFIG_HOME=str(self.home / ".config"), LUXOS_LOCK_SAVER="")
+            self.assertEqual(self.wait_line(p, "saver "), "saver " + style)
+            self.keys(f"type {PASSWORD}", "key Return")
+            self.assertEqual(p.wait(10), 0)
 
 
 if __name__ == "__main__":
