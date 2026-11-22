@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- LuxOS: QR kod site Wi-Fi (vlastni kresba, jen vyplne: GTK symbolicke ikony barvi fill) -->
+  <path fill="#2e3436" fill-rule="evenodd" d="M2 1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm.5 1.5v3h3v-3zM10 1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm.5 1.5v3h3v-3zM2 9h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zm.5 1.5v3h3v-3z"/>
+  <path fill="#2e3436" d="M3.25 3.25h1.5v1.5h-1.5zM11.25 3.25h1.5v1.5h-1.5zM3.25 11.25h1.5v1.5h-1.5zM9 9h2v2H9zM11 11h2v2h-2zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z"/>
+</svg>

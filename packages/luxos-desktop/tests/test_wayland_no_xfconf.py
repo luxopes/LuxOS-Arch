@@ -126,7 +126,7 @@ class LslStatic(unittest.TestCase):
             with open(os.path.join(FILES, "lsl", name), encoding="utf-8") as f:
                 source = f.read()
             with self.subTest(module=name):
-                self.assertIn("call popup.setup(win, ", source)
+                self.assertRegex(source, r"call popup\.setup(_radius)?\(win, ")
                 self.assertIn("call popup.show(", source)
         self.assertEqual([n for n, _ in violations("function a():\n    call gtk.window_present(w)\nend\n"
                                                    "function b_x11():\n    call gtk.window_move(w, 0, 0)\nend\n",
