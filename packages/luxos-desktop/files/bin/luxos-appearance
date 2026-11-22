@@ -432,6 +432,27 @@ restart_panel() {
     } 9>"$lock" &
 }
 
+# Wayland: tema a ikony i do kanalu xsettings v souboru uzivatele (xfconfd tam nebezi, Nastaveni pise soubor
+# stejne). luxos-wayland-settings ho pri prihlaseni prenese do gsettings - bez zapisu by se vratilo predchozi tema.
+xsettings_net() {  # xsettings_net TEMA IKONY
+    local xml=${XDG_CONFIG_HOME:-$HOME/.config}/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml tmp
+    mkdir -p "${xml%/*}"
+    [[ -s $xml ]] || printf '<?xml version="1.0" encoding="UTF-8"?>\n\n<channel name="xsettings" version="1.0">\n</channel>\n' >"$xml"
+    tmp=$xml.new.$$
+    # listy v Net jsou jednoradkove (/>), prvni </property> po <property name="Net"> ho uzavira
+    awk -v theme="$1" -v icons="$2" '
+        function leaf(name, value) { print "    <property name=\"" name "\" type=\"string\" value=\"" value "\"/>" }
+        /<property name="Net" type="empty">/ { net = 1; seen = 1; print; next }
+        net && /<property name="ThemeName"/ { leaf("ThemeName", theme); t = 1; next }
+        net && /<property name="IconThemeName"/ { leaf("IconThemeName", icons); i = 1; next }
+        net && /<\/property>/ { if (!t) leaf("ThemeName", theme); if (!i) leaf("IconThemeName", icons); net = 0 }
+        /<\/channel>/ && !seen {
+            print "  <property name=\"Net\" type=\"empty\">"; leaf("ThemeName", theme); leaf("IconThemeName", icons)
+            print "  </property>"
+        }
+        { print }' "$xml" >"$tmp" && mv -f -- "$tmp" "$xml"
+}
+
 apply() {
     local mode=$1 gtk icons rgba prefer
     local alpha
@@ -482,6 +503,7 @@ apply() {
     mkdir -p "$state_dir"
     echo "$mode" > "$state_file"
     if wayland; then
+        xsettings_net "$gtk" "$icons"
         # luxwm nemusi bezet (jina relace na Waylandu) - pak jen soubor
         command -v luxwm-msg >/dev/null && luxwm-msg set-theme "$mode" >/dev/null 2>&1
         return 0
