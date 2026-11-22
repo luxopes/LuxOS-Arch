@@ -24,6 +24,7 @@
 #include <linux/fb.h>
 #include <linux/kd.h>
 #include <linux/vt.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <string.h>
@@ -32,20 +33,72 @@
 #include <time.h>
 #include <unistd.h>
 
+/* testy (test_luxos_greetd_vt.py) prekladaji s vlastni cestou snimku a uzivatelem */
+#ifndef FRAME
 #define FRAME "/run/luxos-greeter/login-frame"
+#endif
+#ifndef GREETER_USER
+#define GREETER_USER "greeter"
+#endif
 #define FRAME_MAX_AGE_S 20
 #define HANDOFF_TTY "/dev/tty12"	/* luxwm.lsl HANDOFF_VT */
 
 static int (*real_ioctl)(int, unsigned long, ...);
 static int handoff_fd = -1;
+static uid_t greeter_uid = (uid_t)-1;
+
+/* Snimek zapisuje neprivilegovany greeter, cte ho root: jen obycejny soubor uzivatele greeter (ne odkaz, ne FIFO),
+ * cerstvy a presne tak velky, jak rika hlavicka. Vraci otevreny popisovac nebo -1; w, h, len z hlavicky. Bezi
+ * i v obsluze signalu: jen open/fstat/read/close a cas. */
+static int
+frame_open(unsigned *w, unsigned *h, unsigned *len)
+{
+	if (greeter_uid == (uid_t)-1) {
+		return -1;
+	}
+	int fd = open(FRAME, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
+	struct stat st;
+	char head[64];
+	struct timespec now;
+	if (fd < 0) {
+		return -1;
+	}
+	clock_gettime(CLOCK_REALTIME, &now);
+	ssize_t n = fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_uid == greeter_uid
+		&& now.tv_sec - st.st_mtime <= FRAME_MAX_AGE_S && now.tv_sec - st.st_mtime >= -5
+		? read(fd, head, sizeof(head) - 1) : -1;
+	*w = *h = *len = 0;
+	if (n > 10 && !memcmp(head, "LUXFRAME1 ", 10)) {
+		head[n] = 0;
+		char *p = head + 10;
+		while (*p >= '0' && *p <= '9' && *w < 100000) *w = *w * 10 + (unsigned)(*p++ - '0');
+		if (*p == ' ') p++;
+		while (*p >= '0' && *p <= '9' && *h < 100000) *h = *h * 10 + (unsigned)(*p++ - '0');
+		*len = *p == '\n' ? (unsigned)(p + 1 - head) : 0;
+	}
+	if (!*len || !*w || !*h || st.st_size != (off_t)*len + (off_t)*w * *h * 4) {
+		close(fd);
+		return -1;
+	}
+	return fd;
+}
 
 static int
 handoff(void)
 {
-	struct stat st;
-	time_t now = time(NULL);
-	return stat(FRAME, &st) == 0 && now - st.st_mtime <= FRAME_MAX_AGE_S && now - st.st_mtime >= -5;
+	unsigned w, h, len;
+	int fd = frame_open(&w, &h, &len);
+	if (fd < 0) {
+		return 0;
+	}
+	close(fd);
+	return 1;
 }
+
+#ifdef GREETD_VT_TEST
+int luxos_greetd_vt_frame_ok(void) { return handoff(); }
+void luxos_greetd_vt_init(void) { struct passwd *pw = getpwnam(GREETER_USER); greeter_uid = pw ? pw->pw_uid : (uid_t)-1; }
+#endif
 
 /* "LUXFRAME1 <w> <h>\n" + BGRx (luxos-greeter) do framebufferu konzole, jen 32 bitu XRGB stejne velikosti. Bezi
  * v obsluze signalu: jen open/read/pwrite/ioctl a buffer na zasobniku. */
@@ -54,20 +107,13 @@ show_frame(void)
 {
 	/* velke kusy: co nejdriv cely obraz (displej uz framebuffer ukazuje) */
 	static char chunk[1 << 20];
-	char head[64];
-	int in = open(FRAME, O_RDONLY | O_CLOEXEC), out = open("/dev/fb0", O_WRONLY | O_CLOEXEC);
+	unsigned w, h, len;
+	int in = frame_open(&w, &h, &len);
+	int out = in >= 0 ? open("/dev/fb0", O_WRONLY | O_CLOEXEC) : -1;
 	struct fb_var_screeninfo var;
 	struct fb_fix_screeninfo fix;
-	ssize_t n = in >= 0 ? read(in, head, sizeof(head) - 1) : -1;
-	unsigned w = 0, h = 0, len = 0;
-	if (n > 10 && !memcmp(head, "LUXFRAME1 ", 10) && out >= 0 && real_ioctl(out, FBIOGET_VSCREENINFO, &var) == 0
-			&& real_ioctl(out, FBIOGET_FSCREENINFO, &fix) == 0) {
-		head[n] = 0;
-		char *p = head + 10;
-		while (*p >= '0' && *p <= '9') w = w * 10 + (unsigned)(*p++ - '0');
-		if (*p == ' ') p++;
-		while (*p >= '0' && *p <= '9') h = h * 10 + (unsigned)(*p++ - '0');
-		len = *p == '\n' ? (unsigned)(p + 1 - head) : 0;
+	if (out < 0 || real_ioctl(out, FBIOGET_VSCREENINFO, &var) != 0 || real_ioctl(out, FBIOGET_FSCREENINFO, &fix) != 0) {
+		len = 0;
 	}
 	if (len && w == var.xres && h == var.yres && var.bits_per_pixel == 32 && var.red.offset == 16
 			&& w * 4 <= sizeof(chunk) && fix.line_length >= w * 4) {
@@ -130,7 +176,13 @@ __attribute__((constructor)) static void
 prepare_handoff_vt(void)
 {
 	real_ioctl = (int (*)(int, unsigned long, ...))dlsym(RTLD_NEXT, "ioctl");
-	if (geteuid() != 0 || !main_process()) {
+	if (geteuid() != 0) {
+		return;
+	}
+	/* jednou tady: getpwnam neni pro obsluhu signalu; bez uzivatele greeter zadne predani */
+	struct passwd *pw = getpwnam(GREETER_USER);
+	greeter_uid = pw ? pw->pw_uid : (uid_t)-1;
+	if (!main_process()) {
 		return;
 	}
 	handoff_fd = open(HANDOFF_TTY, O_RDWR | O_NOCTTY | O_CLOEXEC);
