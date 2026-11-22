@@ -225,7 +225,7 @@ output_frame(struct wl_listener *listener, void *data)
 	struct timespec t0, t1;
 	clock_gettime(CLOCK_MONOTONIC, &t0);
 	bool blurred = blur_output_frame(o);
-	bool done = o->held ? held_output_commit(o) : wlr_scene_output_commit(o->scene_output, NULL);
+	bool done = o->held ? held_output_commit(o) : gaming_output_commit(o);
 	clock_gettime(CLOCK_MONOTONIC, &t1);
 	int64_t render_ns = (t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
 	blur_frame_time(o, render_ns, blurred);
@@ -395,7 +395,7 @@ static void
 new_output(struct wl_listener *listener, void *data)
 {
 	struct wlr_output *wo = data;
-	if (!wlr_output_init_render(wo, comp.allocator, comp.renderer)) {
+	if (gaming_offer_output(wo) || !wlr_output_init_render(wo, comp.allocator, comp.renderer)) {
 		return;
 	}
 
@@ -409,6 +409,9 @@ new_output(struct wl_listener *listener, void *data)
 	o->id = ++comp.next_id;
 	o->wlr_output = wo;
 	o->held = held;
+	o->vrr = LUXCOMP_VRR_FULLSCREEN;
+	o->vrr_refused = -1;
+	o->tearing = true;
 	wo->data = o;
 	o->frame.notify = output_frame;
 	wl_signal_add(&wo->events.frame, &o->frame);
@@ -455,7 +458,7 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	if (!comp.renderer) {
 		return -1;
 	}
-	wlr_renderer_init_wl_display(comp.renderer, comp.display);
+	wlr_renderer_init_wl_shm(comp.renderer, comp.display);	/* dmabuf: gaming_init() */
 
 	security_init();
 	comp.compositor = wlr_compositor_create(comp.display, 6, comp.renderer);
@@ -509,6 +512,7 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	foreign_init();
 	idle_init();
 	lock_init();
+	gaming_init();
 
 	comp.socket = wl_display_add_socket_auto(comp.display);
 	if (!comp.socket) {
@@ -578,6 +582,7 @@ luxcomp_destroy(void)
 	xwayland_finish();
 	ipc_finish();
 	wl_display_destroy_clients(comp.display);
+	gaming_finish();
 	wl_list_remove(&comp.toplevel_capture.link);
 	wl_list_remove(&comp.activate.link);
 	wl_list_remove(&comp.new_token.link);
@@ -686,6 +691,14 @@ luxcomp_output_get(int64_t id, int64_t prop)
 	case LUXCOMP_OUT_USABLE_H: return o->usable.height;
 	case LUXCOMP_OUT_REFRESH_MHZ: return o->wlr_output->refresh;
 	case LUXCOMP_OUT_SCALE_PCT: return (int64_t)(o->wlr_output->scale * 100 + 0.5);
+	case LUXCOMP_OUT_VRR: return o->vrr;
+	case LUXCOMP_OUT_TEARING: return o->tearing;
+	case LUXCOMP_OUT_VRR_SUPPORTED: return o->wlr_output->adaptive_sync_supported;
+	case LUXCOMP_OUT_VRR_ACTIVE:
+		return o->wlr_output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED;
+	case LUXCOMP_OUT_FULLSCREEN: return output_fullscreen(o) ? output_fullscreen(o)->id : 0;
+	case LUXCOMP_OUT_SCANOUT: return o->scanout;
+	case LUXCOMP_OUT_TORN: return o->torn;
 	}
 	return 0;
 }

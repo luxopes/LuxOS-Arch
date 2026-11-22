@@ -87,6 +87,7 @@ který by ho ještě zobrazoval, jádro zhasne.
 | `MODS_RELEASED` | | po zkratce se pustily všechny modifikátory (konec Alt+Tab) |
 | `SLIDE_DONE` | plocha | přejezd skončil, plocha je vidět |
 | `LOCK` | | a = 1 zamčeno, 0 odemčeno; b = 1 zamykač skončil bez odemčení (zůstává zamčeno) |
+| `VIEW_CONTENT_TYPE` | okno | `LUXCOMP_CONTENT_*` (wp-content-type-v1: 0 nic, 1 foto, 2 video, 3 hra) |
 
 Požadavky (`VIEW_REQUEST`): `MOVE` (tah za zahlaví CSD), `RESIZE` (b = okraje
 `LUXCOMP_EDGE_*`), `MAXIMIZE` a `FULLSCREEN` (b = 1/0), `MINIMIZE` (b = 1 minimalizovat,
@@ -407,6 +408,33 @@ labwc. `test_luxos_wl.py` je spouští proti oběma kompozitorům.
 | wlr-output-management-v1 | Viz výše. |
 | virtual-keyboard-v1, wlr-virtual-pointer-v1 | Psaní shellu a testy. |
 
+## Hry
+
+| Protokol | V jádře |
+|---|---|
+| pointer-constraints-v1, relative-pointer-v1 | Relativní pohyb dostane klient s ukazatelem vždy (i z absolutního zařízení: tablet, VM, virtuální ukazatel). Zámek nebo omezení se aktivuje jen v zaměřeném okně, když je ukazatel v oblasti; hra v pozadí kurzor nechytí. Zamčený kurzor stojí, omezený nevyjede z oblasti a ukazatel zůstává na povrchu hry (zaoblené rohy ani oznámení ho neseberou). Po uvolnění zámku se kurzor objeví na `cursor_position_hint`. Hry pod XWayland: Xwayland zamyká sám (skrytý kurzor + grab s confine_to, Wine/Proton/SDL); zámek se aktivuje i bez commitu povrchu. |
+| keyboard-shortcuts-inhibit-v1 | Zkratky kompozitoru (`luxcomp_bind_key`) jdou zaměřenému povrchu, který o to požádá (hra, VM, vzdálená plocha, Xwayland s grabem klávesnice). **Super+Esc** je vrátí a dalším Super+Esc je dá zpět; přepnutí konzole Ctrl+Alt+F1..F12 platí vždy, zámek obrazovky taky. Nové zaměření zruší Super+Esc. |
+| tearing-control-v1 | Celoobrazovkové okno (`OUT_FULLSCREEN`), které chce `async`, dostane tearing page flip, když ho výstup dovolí (`OUT_TEARING`, výchozí 1) a ovladač ho přijme (jinak normální snímek). V okně nikdy. |
+| adaptivní synchronizace (VRR) | `OUT_VRR`: `VRR_OFF`, `VRR_FULLSCREEN` (výchozí: jen pod celoobrazovkovým oknem, na ploše může VRR blikat), `VRR_ALWAYS`. Zapíná se ve snímku; když ji monitor odmítne, další pokus až po změně nastavení. |
+| content-type-v1 | `VIEW_CONTENT_TYPE` a událost `VIEW_CONTENT_TYPE`. luxwm podle něj drží obrazovku zapnutou (`luxcomp_idle_inhibit`) pod zaměřeným celoobrazovkovým videem nebo hrou a pod každým celoobrazovkovým oknem X11 (Proton nemá idle-inhibit). |
+| linux-dmabuf-v1 (v5) | S feedbackem scény: celoobrazovkové okno dostane formáty a modifikátory pro přímý scanout. Jen s DRM zařízením rendereru (gles2), pixman dmabuf nemá. |
+| linux-drm-syncobj-v1 | Explicitní synchronizace (NVIDIA 555+, Mesa), jen když ji umí renderer i backend. Ověřeno na AMD i NVIDIA render node (headless). |
+| gamma-control-v1 | Přes scénu (`wlr_scene_set_gamma_control_manager_v1`), mimo sandbox. Gamma převáděná rendererem vypíná scanout. |
+| drm-lease-v1 | Jen na DRM backendu: výstup `non_desktop` (VR helma) se nepoužije pro plochu a nabídne se k pronájmu, pronájem se vždy povolí, mimo sandbox. |
+
+**Přímý scanout.** Okno ve vrstvě `LAYER_FULLSCREEN` se stavem fullscreen navrchu výstupu je
+`OUT_FULLSCREEN`. Když je jeho buffer neprůhledný, pokrývá výstup a nic se nekreslí nad ním (zahlaví,
+stín, obrys, zaoblené rohy i material jsou u celé obrazovky vypnuté, `deco_update` s `square`),
+wlr_scene ho pošle přímo na obrazovku (`OUT_SCANOUT` = 1 za poslední snímek; ladicí log wlroots
+„Direct scan-out enabled“). Material ploch pod celoobrazovkovým oknem (lišta, Dock, ztmavení) se nepřepočítává
+(`node_under_fullscreen`). Cokoli nového nad celoobrazovkovým oknem (animace, efekty) musí
+`output_fullscreen()` respektovat, jinak scanout skončí. Okno, které chce celou obrazovku už před
+prvním commitem (SDL, `mpv --fs`) nebo X11 okno s `_NET_WM_STATE_FULLSCREEN` před namapováním,
+dostane celou obrazovku hned (první configure v plné velikosti).
+
+HDR / color-management-v1: wlroots 0.20 ho má (`wlr_color_manager_v1`), ale výstup HDR potřebuje
+renderer Vulkan a image description výstupu; s gles2 by to byl jen protokol bez účinku. Zatím ne.
+
 ## Privilegované protokoly
 
 Privilegované globaly jsou:
@@ -545,6 +573,9 @@ zjišťuje, že kompozitor běží, a nastavuje `--size`. Po změně velikosti p
 
 Protokoly shellu se testují přes luxwm:
 - `packages/luxwm/tests/test_luxwm_protocols.py`: Dock, xdg-activation, zámek, allowlist a XWayland;
+- `packages/luxwm/tests/test_luxwm_gaming.py`: protokoly her, zámek a omezení ukazatele (Wayland i XWayland),
+  Super+Esc, tearing, scanout, nečinnost, celá obrazovka od startu; s `GAMING_RENDER_NODE` dmabuf/syncobj,
+  PRIME offload (klient na NVIDIA, kompozitor na AMD) a vnořený gamescope (`fetch-gamescope.sh`);
 - `packages/luxos-desktop/tests/test_luxos_wl.py`: stejná sada pro luxwm i labwc.
 
 `luxcomp-demo` (`tests/demo.c`) je nejmenší politika v C. Slouží jen k testům, skutečná politika

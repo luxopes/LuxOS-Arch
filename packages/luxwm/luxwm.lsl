@@ -155,7 +155,7 @@ end
 function load_config():
     global settings
     general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
-               "xwayland": "yes", "displays_command": "", "blur": "yes"}
+               "xwayland": "yes", "displays_command": "", "blur": "yes", "vrr": "fullscreen", "tearing": "yes"}
     keys = {}
     if greeter:
         # prihlasovaci obrazovka bezi pod uzivatelem greetd: zadna konfigurace, zadne zkratky
@@ -583,6 +583,35 @@ function input_json(option, value):
         return names[value] if value >= 0 and value < len(names) else String(value)
     end
     return value == 1
+end
+
+# Hry: VRR a tearing po vystupech (luxwm.conf vrr, tearing)
+VRR_MODES = {"no": lc.VRR_OFF, "fullscreen": lc.VRR_FULLSCREEN, "always": lc.VRR_ALWAYS}
+
+function apply_gaming(out):
+    vrr = settings.get("vrr", "fullscreen")
+    if vrr not in VRR_MODES:
+        call log("bad vrr = " + String(vrr))
+        vrr = "fullscreen"
+    end
+    call lc.output_set(out, lc.OUT_VRR, VRR_MODES[vrr])
+    call lc.output_set(out, lc.OUT_TEARING, 0 if settings.get("tearing", "yes") == "no" else 1)
+end
+
+# Hra nebo video na cele obrazovce nenecha obrazovku zhasnout ani zamknout; hry pres XWayland a
+# Proton idle-inhibit nemaji (XScreenSaverSuspend se do Waylandu nedostane), proto kazde celoobrazovkove X11 okno
+idle_held = False
+
+function update_idle_inhibit():
+    global idle_held
+    v = focused()
+    on = v != 0 and v in full and vget(v, lc.VIEW_VISIBLE) == 1
+    on = on and (vget(v, lc.VIEW_CONTENT_TYPE) >= lc.CONTENT_VIDEO or vget(v, lc.VIEW_X11) == 1)
+    if on != idle_held:
+        idle_held = on
+        call lc.idle_inhibit(1 if on else 0)
+        call note("idle inhibit " + String(on))
+    end
 end
 
 function apply_input():
@@ -1499,6 +1528,18 @@ function view_mapped(v):
     spot = place(v, adopt_xroot(v))
     call note("place " + String(v) + " " + lc.view_app_id(v) + " " + String(spot[0]) + "," + String(spot[1])
         + " " + String(vget(v, lc.VIEW_W)) + "x" + String(vget(v, lc.VIEW_H)))
+    # cela obrazovka uz od startu: xdg pozadavek pred prvnim commitem (SDL, mpv --fs) uz je ve full, X11 okno
+    # s _NET_WM_STATE_FULLSCREEN pred namapovanim (Wine/Proton) zadny pozadavek neposle
+    if v in full:
+        # klient mel od zacatku velikost obrazovky: okno po opusteni cele obrazovky na 2/3 plochy
+        u = place_area(output_of(v))
+        w = u[2] * 2 // 3
+        h = u[3] * 2 // 3
+        saved[v] = [u[0] + (u[2] - w) // 2, u[1] + (u[3] - h) // 2, w, h]
+        call fit_fullscreen(v)
+    elif vget(v, lc.VIEW_FULLSCREEN) == 1:
+        call set_fullscreen(v, True)
+    end
     # Okno na jine plose (dialog schovane aplikace) nebo nove okno pod zamerenou celou obrazovkou
     # zamereni nekrade: jen se zaradi pod aktualni okno
     current = focused()
@@ -1815,6 +1856,7 @@ function handle(event, id, a, b, c):
         call broadcast("output", output_event())
     elif event == lc.EV_OUTPUT_ADD:
         outputs.append(id)
+        call apply_gaming(id)
         call displays_changed()
         call broadcast("output", output_event())
     elif event == lc.EV_OUTPUT_REMOVE:
@@ -1849,13 +1891,14 @@ function handle(event, id, a, b, c):
             call focus(top_on_current(0))
         end
     end
+    call update_idle_inhibit()
     call window_changed()
 end
 
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
                "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close", "view-size",
-               "hold-end", "layer-map"]
+               "hold-end", "layer-map", "view-content-type"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -2339,12 +2382,16 @@ end
 
 function dump():
     call log("workspace " + String(cur + 1) + "/" + String(len(ws)) + " locked=" + String(lc.locked())
+        + " pointer=" + String(lc.pointer_constraint()) + " idle_inhibit=" + String(1 if idle_held else 0)
         + " xwayland=" + String(lc.xwayland_running()) + " layout=" + String(lc.layout()) + "/" + String(lc.layout_count())
         + " ipc=" + String(len(ipc)) + " theme=" + ("dark" if look["dark"] else "light"))
     for out in outputs:
         u = usable(out)
         call log("output " + String(out) + " " + lc.output_name(out) + " " + String(lc.output_get(out, lc.OUT_W)) + "x"
-            + String(lc.output_get(out, lc.OUT_H)) + " usable=" + String(u[0]) + "," + String(u[1]) + "," + String(u[2]) + "x" + String(u[3]))
+            + String(lc.output_get(out, lc.OUT_H)) + " usable=" + String(u[0]) + "," + String(u[1]) + "," + String(u[2]) + "x" + String(u[3])
+            + " fullscreen=" + String(lc.output_get(out, lc.OUT_FULLSCREEN)) + " scanout=" + String(lc.output_get(out, lc.OUT_SCANOUT))
+            + " torn=" + String(lc.output_get(out, lc.OUT_TORN)) + " vrr=" + String(lc.output_get(out, lc.OUT_VRR))
+            + " vrr_active=" + String(lc.output_get(out, lc.OUT_VRR_ACTIVE)) + " tearing=" + String(lc.output_get(out, lc.OUT_TEARING)))
     end
     o = lc.view_next(0)
     while o != 0:
@@ -2355,6 +2402,7 @@ function dump():
             + " focused=" + String(vget(o, lc.VIEW_FOCUSED)) + " visible=" + String(vget(o, lc.VIEW_VISIBLE))
             + " fullscreen=" + String(vget(o, lc.VIEW_FULLSCREEN)) + " maximized=" + String(1 if o in maxed else 0)
             + " layer=" + String(vget(o, lc.VIEW_LAYER)) + " x11=" + String(vget(o, lc.VIEW_X11))
+            + " content=" + String(vget(o, lc.VIEW_CONTENT_TYPE)) + " tearing=" + String(vget(o, lc.VIEW_TEARING))
             + " sandbox=" + (lc.view_sandbox_app_id(o) if vget(o, lc.VIEW_SANDBOXED) == 1 else "-"))
         o = lc.view_next(o)
     end
@@ -2390,6 +2438,9 @@ function on_reload():
     call apply_workspaces()
     call apply_cursor()
     call apply_input()
+    for out in outputs:
+        call apply_gaming(out)
+    end
     call read_locale()
     call apply_keyboard()
     call apply_repeat()
