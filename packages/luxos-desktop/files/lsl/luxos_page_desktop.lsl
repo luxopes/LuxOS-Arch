@@ -33,7 +33,8 @@ function wayland():
 end
 
 function read_prefs():
-    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1", "BAR_STYLE": "classic", "BAR_CLOCK": "right"}
+    prefs = {"BAR_OPACITY": "62", "DOCK_OPACITY": "", "DESKTOP_SCRIM": "1", "BAR_STYLE": "classic", "BAR_CLOCK": "right",
+             "BAR_COVER": "wallpaper", "BAR_SHADE": "35"}
     # lista na Waylandu (luxos-bar.lsl) ma bez nastaveni zaoblene rohy a hodiny uprostred
     if wayland():
         prefs["BAR_STYLE"] = "rounded"
@@ -495,6 +496,21 @@ function build_bar(page, prefs):
     call ui.row(g, i18n.T("Menu bar opacity"), "", ui.slider(0, 100, number(prefs["BAR_OPACITY"], 62), 220, on_opacity, "bar-opacity"))
     call ui.row(g, i18n.T("Clock in the middle"), "", ui.switch(prefs["BAR_CLOCK"] == "center", on_appearance_switch, ["bar-clock", "center", "right"]))
     call ui.row(g, i18n.T("Rounded corners"), "", ui.switch(prefs["BAR_STYLE"] == "rounded", on_appearance_switch, ["bar-style", "rounded", "classic"]))
+    # lista bez pozadi jako zamykaci obrazovka umi jen lista na Waylandu (luxos-bar.lsl)
+    if wayland():
+        clear = prefs["BAR_COVER"] == "clear"
+        shade = ui.slider(0, 100, number(prefs["BAR_SHADE"], 35), 220, on_opacity, "bar-shade")
+        call gtk.widget_set_sensitive(shade, clear)
+        call ui.row(g, i18n.T("Menu bar without background"), i18n.T("Like the lock screen: only the wallpaper and white icons."),
+                    ui.switch(clear, on_bar_cover, shade))
+        call ui.row(g, i18n.T("Shadow under the menu bar"),
+                    i18n.T("Darkens the top edge so white icons stay readable on light wallpapers."), shade)
+    end
+end
+
+function on_bar_cover(shade, on):
+    call gtk.widget_set_sensitive(shade, on)
+    return ui.launch(["luxos-appearance", "bar-cover", on_off(on, "clear", "wallpaper")])
 end
 
 # ---- stranka ----------------------------------------------------------------------------------------------

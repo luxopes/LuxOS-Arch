@@ -103,7 +103,7 @@ conf = {"enabled": True, "widgets": [], "side": "right", "pos": {}}
 # at: nazev -> [x, y], kam okno karty na Waylandu prave posunulo (poloha okna se tam neda zjistit)
 ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}, "wayland": False, "at": {}}
 theme = {"provider": 0, "wallpaper": "", "surface": 0, "raw": 0, "map": [], "geometry": [], "pool": True, "cache": {}}
-drag = {"name": "", "start": [], "origin": [], "moved": False}
+drag = {"name": "", "start": [], "origin": [], "base": [0, 0], "moved": False}
 cpu = {"busy": 0, "total": 0, "pct": 0, "recent": []}
 stats = {"cpu": 0, "mem": 0, "disk": 0, "disk_at": 0.0}
 weather = {"data": None, "fetching": False}
@@ -692,6 +692,7 @@ function on_card_press(event, widget):
         return False
     end
     drag["name"] = c["name"]
+    drag["base"] = ui["at"].get(c["name"], [0, 0])
     drag["start"] = pointer(event, c["name"])
     drag["origin"] = ui["placed"].get(c["name"], [0, 0])
     drag["moved"] = False
@@ -719,10 +720,11 @@ end
 
 function on_card_release(event, widget):
     name = drag["name"]
-    drag["name"] = ""
     if name == "":
         return False
     end
+    xy = pointer(event, name)
+    drag["name"] = ""
     c = ui["cards"].get(name)
     if not drag["moved"]:
         if c != None and c["click"] != None:
@@ -732,7 +734,6 @@ function on_card_release(event, widget):
     end
     # misto upusteni: na mrizku, do pracovni plochy; pozice vuci pracovni plose
     geo = gtk.primary_monitor_workarea()
-    xy = pointer(event, name)
     x = drag["origin"][0] + Int(xy[0] - drag["start"][0])
     y = drag["origin"][1] + Int(xy[1] - drag["start"][1])
     x = geo[0] + snap(x - geo[0])
@@ -742,13 +743,14 @@ function on_card_release(event, widget):
     return True
 end
 
-# Ukazatel na obrazovce. Wayland nezna polohu okna: souradnice vuci karte + kam jsme kartu posunuli
-# (pri tazeni se okno pod ukazatelem hybe, samotne souradnice vuci oknu by se menily s nim).
+# Ukazatel na obrazovce. Wayland nezna polohu okna: souradnice vuci karte + kde karta je. Pri tazeni
+# (drzene tlacitko) posila luxcomp souradnice plochy na vrstve BOTTOM vuci jeji poloze pri stisku, jako
+# koren v X11 - kam jsme kartu mezitim posunuli, nehraje roli.
 function pointer(event, name):
     x = gtk.event_x_root(event)
     y = gtk.event_y_root(event)
     if ui["wayland"]:
-        at = ui["at"].get(name, [0, 0])
+        at = drag["base"] if drag["name"] == name else ui["at"].get(name, [0, 0])
         x = x + Float(at[0])
         y = y + Float(at[1])
     end
@@ -1022,7 +1024,7 @@ function on_today_click(event, widget):
     # pocasi vpravo otevre aplikaci Pocasi, cas aplikaci Hodiny (bez ni Kalendar)
     card = ui["cards"]["today"]
     # poloha v okne karty (udalost muze prijit z kreslici plochy s vlastnimi souradnicemi)
-    x = gtk.event_x_root(event) - Float(ui["placed"].get("today", [0, 0])[0] + PAD)
+    x = pointer(event, "today")[0] - Float(ui["placed"].get("today", [0, 0])[0] + PAD)
     if gtk.widget_get_visible(card["wx"]) and x > Float(gtk.widget_get_allocated_width(widget)) * 0.55:
         call spawn(["luxos-weather"])
     elif glib.find_program_in_path("luxos-clock-app") != "":
@@ -2042,7 +2044,8 @@ function gallery_refresh():
     call gtk.switch_set_active(g["switch"], conf["enabled"])
     for name in ALL_WIDGETS:
         b = g["buttons"][name]
-        on = name in conf["widgets"]
+        # vypnute widgety nejsou na plose: zadna karta neni pridana, i kdyz je ve WIDGETS
+        on = conf["enabled"] and name in conf["widgets"]
         if on:
             call gtk.button_set_label(b, i18n.T("Remove"))
         else:
@@ -2060,6 +2063,12 @@ function on_gallery_toggle(button):
             name = n
         end
     end
+    # vypnute widgety: Pridat ukaze prave tuto kartu
+    if not conf["enabled"]:
+        call write_conf({"WIDGETS": name, "ENABLED": "1"}, "")
+        call spawn(["luxos-widgets"])
+        return 0
+    end
     names = []
     for n in conf["widgets"]:
         if n != name:
@@ -2070,11 +2079,6 @@ function on_gallery_toggle(button):
         names.append(name)
     end
     call set_widgets(names)
-    # pridany widget zobrazit: zapnout widgety, kdyz byly vypnute
-    if name not in conf["widgets"] and not conf["enabled"]:
-        call write_conf_value("ENABLED", "1")
-        call spawn(["luxos-widgets"])
-    end
     return 0
 end
 

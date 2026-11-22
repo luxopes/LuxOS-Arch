@@ -6,6 +6,9 @@
 #          luxos-appearance bar-opacity 0-100 | dock-opacity 0-100|default
 #          luxos-appearance bar-style classic|rounded | bar-clock right|center | bar-text auto|white
 #          luxos-appearance desktop-scrim on|off (ztmaveni velmi svetle tapety pod listou a widgety)
+#          luxos-appearance bar-cover wallpaper|clear | bar-shade 0-100
+#          (clear = lista bez pozadi jako zamykaci obrazovka, bar-shade = sila ztmaveni pod ni; lista na Waylandu
+#          si zmenu nacte sama)
 set -u
 
 state_dir="${XDG_CONFIG_HOME:-$HOME/.config}/luxos"
@@ -515,7 +518,7 @@ apply() {
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
     . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
     if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
-    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE [OUTPUT]|greeter-sync|wm-theme|wallpaper-mode fill|fit|center|tile [OUTPUT]|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off]"
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE [OUTPUT]|greeter-sync|wm-theme|wallpaper-mode fill|fit|center|tile [OUTPUT]|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off|bar-cover wallpaper|clear|bar-shade N]"
 }
 
 case ${1:-status} in
@@ -533,6 +536,10 @@ case ${1:-status} in
                 bar_layout
                 panel_css "$(current)"
                 restart_panel ;;
+    bar-cover)  [[ ${2-} == @(wallpaper|clear) ]] || usage "bar-cover wallpaper|clear"
+                set_pref BAR_COVER "$2" ;;
+    bar-shade)  [[ ${2-} =~ ^[0-9]+$ && ${2-} -le 100 ]] || usage "bar-shade 0-100"
+                set_pref BAR_SHADE "$2" ;;
     # Hodiny: plugin luxos-bar si zmenu nacte sam (bez restartu), Kalendar se otevre pod nimi
     bar-clock)  [[ ${2-} == @(right|center) ]] || usage "bar-clock right|center"
                 BAR_CLOCK=$2

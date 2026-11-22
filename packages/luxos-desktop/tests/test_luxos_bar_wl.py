@@ -506,6 +506,56 @@ class WaylandBar(unittest.TestCase):
         self.assertNotEqual(pixel(image, 0, BAR - 1), "000000")
         self.assertNotEqual(pixel(image, 1279, BAR - 1), "000000")
 
+    def test_clear_cover_sharp_wallpaper_and_shade(self):
+        # lista bez pozadi (BAR_COVER=clear, verze 1.1.1): ostra tapeta pod listou misto skla, bile pismo, ztmaveni
+        # shora podle BAR_SHADE; prepnuti zpet na sklo bez restartu
+        self.start()
+        stripes = bytearray()
+        for y in range(200):
+            for x in range(320):
+                stripes += bytes([255, 255, 255]) if (x // 4) % 2 else bytes([0, 0, 0])
+        wall = self.session / "wall-stripes.png"
+        png_write(wall, 320, 200, bytes(stripes))
+        conf = self.session / "config/luxos/appearance.conf"
+
+        def write(extra):
+            tmp = conf.with_suffix(".new")
+            tmp.write_text(f"WALLPAPER={wall}\n" + extra)
+            tmp.rename(conf)
+
+        write("BAR_COVER=clear\nBAR_SHADE=0\n")
+        bar = self.bar()
+        bar.wait(r"^look HEADLESS-1 ink=white clear shade=0$")
+        bar.wait(r"^drawn HEADLESS-1 1280x28 clear$")
+        time.sleep(0.5)
+        image = self.shot()
+        keep = Path(os.environ.get("LUXOS_BAR_SHOTS") or self.tmp.parent / "bar-shots")
+        keep.mkdir(parents=True, exist_ok=True)
+        png_write(keep / "bar-clear-shade0.png", *crop(image, 0, 0, 1280, BAR + 14))
+        # pruhy tapety 4x zvetsene (16 px) ostre v prazdne casti listy: cerna a bila, ne seda rozmazaneho skla
+        for x in (328, 344, 360, 376):
+            self.assertEqual(pixel(image, x, 6), "000000" if (x // 16) % 2 == 0 else "ffffff", x)
+        mark = bar.mark()
+        write("BAR_COVER=clear\nBAR_SHADE=100\n")
+        bar.wait(r"^look HEADLESS-1 ink=white clear shade=100$", start=mark)
+        time.sleep(0.5)
+        image = self.shot()
+        png_write(keep / "bar-clear-shade100.png", *crop(image, 0, 0, 1280, BAR + 14))
+        # bila: nahore 75 % cerne, k dolnimu okraji listy slabne
+        top = int(pixel(image, 344, 4)[:2], 16)
+        bottom = int(pixel(image, 344, BAR - 2)[:2], 16)
+        self.assertLess(abs(top - 64), 6, top)
+        self.assertGreater(bottom, top + 60, (top, bottom))
+        # zpet na sklo: nova lista (s materialem), tapeta pod ni rozmazana
+        mark = bar.mark()
+        write("")
+        bar.wait(r"^bar added HEADLESS-1", start=mark)
+        bar.wait(r"^drawn HEADLESS-1 1280x28$", start=mark)
+        time.sleep(0.5)
+        image = self.shot()
+        v = [int(pixel(image, x, 6)[:2], 16) for x in (328, 344)]
+        self.assertLess(abs(v[0] - v[1]), 60, v)
+
     def test_account_row_opens_luxos_account(self):
         # radek s fotkou a jmenem v nabidce systemu otevre ucet LuxAI jako jmeno uzivatele v nabidce na X11
         self.start()

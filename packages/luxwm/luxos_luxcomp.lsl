@@ -10,7 +10,7 @@
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 13
+API_VERSION = 14
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -35,6 +35,7 @@ EV_VIEW_SIZE = 20
 EV_HOLD_END = 21
 EV_LAYER_MAP = 22
 EV_VIEW_CONTENT_TYPE = 23
+EV_CAPS_LOCK = 24
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -533,6 +534,12 @@ end
 function layout():
     unsafe:
         return __lsl_qbe_call0(__lsl_symbol("luxcomp_layout"))
+    end
+end
+
+function caps_lock():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_caps_lock")) == 1
     end
 end
 

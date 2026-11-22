@@ -31,7 +31,7 @@ state = {
     "network": {"icon": "", "tip": "", "portal": False, "props": {}, "ap": {}, "id": ""},
     "sound": {"icon": "", "tip": "", "volume": -1, "muted": False},
     "battery": {"icon": "", "tip": "", "text": "", "props": {}},
-    "keyboard": {"short": "", "tip": "", "layouts": [], "names": [], "current": 0},
+    "keyboard": {"short": "", "tip": "", "layouts": [], "names": [], "current": 0, "caps": False},
     "notifications": {"icon": "notification-symbolic", "unread": False}
 }
 st = {"changed": None, "system": 0, "session": 0, "ap_path": "", "ap_sub": 0, "pactl_started": 0,
@@ -476,16 +476,20 @@ end
 
 # ---- klavesnice: aktivni rozlozeni z luxwm (IPC), bez luxwm prvni rozlozeni z localed ----------------
 
-function show_keyboard(codes, names, current):
+function show_keyboard(codes, names, current, caps):
     kb = state["keyboard"]
     kb["layouts"] = codes
     kb["names"] = names
     kb["current"] = current
+    kb["caps"] = caps
     kb["short"] = ""
     kb["tip"] = ""
     if current >= 0 and current < len(codes):
         kb["short"] = codes[current].upper()
         kb["tip"] = i18n.T("Keyboard") + ": " + names[current]
+    end
+    if caps:
+        kb["tip"] = kb["tip"] + " – Caps Lock"
     end
     call emit("keyboard")
     return 0
@@ -501,7 +505,7 @@ function locale_changed(props):
             codes.append(part.strip())
         end
     end
-    call show_keyboard(codes, codes, 0)
+    call show_keyboard(codes, codes, 0, False)
     return 0
 end
 
@@ -529,7 +533,7 @@ function on_wm(event):
         codes.append(item["code"])
         names.append(item["name"])
     end
-    call show_keyboard(codes, names, event["current"])
+    call show_keyboard(codes, names, event["current"], event.get("caps", False) == True)
     return 0
 end
 
@@ -607,7 +611,7 @@ function summary(kind):
     if kind == "battery":
         return state["battery"]["icon"] + " " + state["battery"]["text"]
     elif kind == "keyboard":
-        return state["keyboard"]["short"]
+        return state["keyboard"]["short"] + (" caps" if state["keyboard"]["caps"] else "")
     elif kind in state:
         return state[kind]["icon"]
     end
