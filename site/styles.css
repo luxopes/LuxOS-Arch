@@ -95,6 +95,7 @@ body.light .doc th{background:#00000008}
 .about{padding:24px 28px;margin-top:26px}
 .about h2{font-size:22px;letter-spacing:-.4px;margin:0 0 10px}
 .about p{margin:0;line-height:1.7;color:var(--muted)}
+.about .about-idea{margin-bottom:12px;font-size:17px}
 .about a{color:#8fa0ff}
 .docs-highlights{margin-top:10px}
 .docs-highlights .doc-index{margin-top:0}

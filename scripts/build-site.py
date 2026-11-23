@@ -129,8 +129,8 @@ T = {
         "changes_title": "LuxOS {version} – What's new: safer backups, more privacy",
         "changes_desc": ("Changelog of every LuxOS release. {version} “{codename}”: hundreds of fixes from a full audit, "
                          "safer backups, safe install next to Windows and more privacy."),
-        "home_title": "LuxOS – plug and play Linux with a macOS-like desktop",
-        "home_desc": "Free plug and play Linux based on Arch: drivers set themselves up, touch screens just work, updates can be undone, a Mac-like desktop. Download the ISO.",
+        "home_title": "LuxOS – free Linux for PCs that can’t run Windows 11",
+        "home_desc": "The computer takes care of you, not the other way round: drivers, updates and backups run on their own. Free, no TPM or Microsoft account. Get the ISO.",
         "site_desc": ("LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop, "
                       "the lux package manager, automatic drivers and the LuxAI assistant."),
         "landing_title": "LuxOS for you", "more_pages": "More about LuxOS", "compare_more": "More comparisons",
@@ -173,8 +173,8 @@ T = {
         "changes_title": "LuxOS {version} – novinky: bezpečnější zálohy a soukromí",
         "changes_desc": ("Seznam změn všech verzí LuxOS. {version} „{codename}“: stovky oprav z úplné kontroly, bezpečnější "
                          "zálohy, bezpečná instalace vedle Windows a víc soukromí."),
-        "home_title": "LuxOS – Linux plug and play s prostředím jako macOS",
-        "home_desc": "Linux zdarma, který funguje hned: ovladače se nastaví samy, dotykové obrazovky fungují, aktualizace jdou vrátit, prostředí jako macOS. Stáhněte ISO.",
+        "home_title": "LuxOS – Linux zdarma pro PC, které nezvládnou Windows 11",
+        "home_desc": "Počítač se stará o vás, ne vy o něj: ovladače, aktualizace a zálohy běží samy. Zdarma, bez TPM a účtu Microsoft, i pro starší PC. Stáhněte si ISO.",
         "site_desc": ("LuxOS je rychlý a lehký systém na Arch Linuxu s prostředím ve stylu macOS, správcem balíků lux, "
                       "automatickými ovladači a asistentem LuxAI."),
         "landing_title": "LuxOS pro vás", "more_pages": "Další o LuxOS", "compare_more": "Další srovnání",
@@ -1030,7 +1030,7 @@ def main():
             "GALLERY": "\n".join(gallery), "DOC_CARDS": "\n".join(cards),
             "HERO_SHOT": hero, "LOGO_HERO": logo_svg("hero", "logo hero-mark"),
             "DOCS": docs_index_url(lang), "CHANGES": changes_url(lang),
-            "DOWNLOAD": landing_url(lang, "download"),
+            "DOWNLOAD": landing_url(lang, "download"), "WIN10": landing_url(lang, "windows-10"),
             "LANDING_CARDS": landing_cards(lang, [k for k in LANDING_META["pages"] if k != "download"]),
             "COMPARE": landing_url(lang, "compare"),
         }
