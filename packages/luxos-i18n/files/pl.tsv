@@ -5386,3 +5386,17 @@ Window buttons	Przyciski okien
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Przyciski zamknij, minimalizuj i maksymalizuj na pasku tytułu. „Automatycznie” powiększa je na ekranach dotykowych.
 Wi-Fi adapter did not start	Karta Wi-Fi nie uruchomiła się
 The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Karta Wi-Fi zawiesiła się po ponownym uruchomieniu z innego systemu. Wyłącz komputer, przytrzymaj przycisk zasilania przez 30 sekund, a następnie włącz go ponownie. Samo ponowne uruchomienie nie wystarczy.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Metody wprowadzania
+Vietnamese	Wietnamski
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	metoda wprowadzania
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Pisz po wietnamsku na swojej klawiaturze, na przykład Vieejt Nam → Việt Nam. Włączaj i wyłączaj skrótem Ctrl+Spacja lub ikoną na pasku menu.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Nie zainstalowano (pakiety fcitx5, fcitx5-gtk i fcitx5-bamboo).
+Typing style	Sposób pisania
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex wpisuje akcenty literami (aa → â, s → ´), VNI cyframi (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Twoje konto używa własnych ustawień fcitx5. Włączenie doda do nich wietnamski.
+Could not change the input method: %s	Nie udało się zmienić metody wprowadzania: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Wietnamski jest włączony. Przełączaj skrótem Ctrl+Spacja. Aplikacje, które były już otwarte, zaczną go używać po ponownym uruchomieniu.
+Vietnamese is off.	Wietnamski jest wyłączony.
+Typing style: %s	Sposób pisania: %s

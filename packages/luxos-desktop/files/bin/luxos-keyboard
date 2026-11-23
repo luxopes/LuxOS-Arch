@@ -7,6 +7,10 @@ Seznam rozlozeni (prvni = vychozi, nejvyse 4), prepinani zkratkou a tlacitko
 a /etc/vconsole.conf. Zmeny se hned zkusi v bezici relaci (setxkbmap); bez pouziti
 se pri zavreni okna vrati puvodni stav. Uzivateli se zaroven vypne vlastni rozlozeni
 Xfce (keyboard-layout /Default/XkbDisable = true), aby se ridil systemem.
+
+Metody zadavani (psani vietnamsky pres fcitx5, luxos_input_method): jen pro tento ucet, plati hned
+bez overeni spravce; v Pridat rozlozeni je najde i hledani "Vietnam" (rozlozeni XKB "vn" Vietnamci
+skoro nepouzivaji - pisou Telexem nebo VNI na bezne klavesnici).
 """
 import os
 import shutil
@@ -18,6 +22,7 @@ sys.path.insert(0, "/usr/lib/luxos/python")
 from luxos_i18n import _  # noqa: E402
 from luxos_winsize import fit_content  # noqa: E402
 import luxos_keyboard as kb  # noqa: E402
+import luxos_input_method as im  # noqa: E402
 
 import gi  # noqa: E402
 
@@ -119,6 +124,20 @@ class AddDialog(Gtk.Dialog):
         self.entry = Gtk.SearchEntry(placeholder_text=_("Type to search"))
         area.pack_start(self.entry, False, False, 0)
         self.lb = Gtk.ListBox()
+        for lang, info in im.LANGS.items():
+            if ("@im", lang) in used or not im.available(lang):
+                continue
+            row = Gtk.ListBoxRow()
+            row.key = ("@im", lang)
+            name = _("%s (Telex, VNI)") % _(info["name"])
+            row.hay = f"{name} {info['name']} vietnam telex vni viqr tieng viet {lang}".lower()
+            box = Gtk.Box(spacing=8, margin=6)
+            box.pack_start(Gtk.Label(label=name, xalign=0), True, True, 0)
+            code = Gtk.Label(label=_("input method"))
+            code.get_style_context().add_class("hint")
+            box.pack_end(code, False, False, 0)
+            row.add(box)
+            self.lb.add(row)
         for key, desc in catalog:
             if key in used:
                 continue
@@ -205,6 +224,9 @@ class KeyboardSettings(Gtk.Window):
         tbox.pack_start(test, True, True, 0)
         g.pack_start(tbox, False, False, 0)
 
+        self.im_busy = False
+        self.build_im(page)
+
         self.note = Gtk.Label(xalign=0, wrap=True, max_width_chars=60, no_show_all=True)
         self.note.get_style_context().add_class("hint")
         self.note.set_margin_top(12)
@@ -229,6 +251,83 @@ class KeyboardSettings(Gtk.Window):
 
         self.connect("delete-event", self.on_close)
         self.fill()
+
+    # ---- metody zadavani (jen tento ucet, plati hned) ----
+    def build_im(self, page):
+        g = Group(page, _("Input Methods"))
+        self.im_switch = Gtk.Switch()
+        ok = im.available("vi")
+        self.im_switch.set_active(ok and im.active() == "vi")
+        self.im_switch.set_sensitive(ok)
+        self.im_switch.connect("notify::active", self.on_im_switch)
+        hint = (_("Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. "
+                  "Turn it on and off with Ctrl+Space or the icon in the menu bar.") if ok
+                else _("Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo)."))
+        g.row(_("Vietnamese"), self.im_switch, hint, first=True)
+        self.im_style = Gtk.ComboBoxText()
+        cur = im.style()
+        for st in im.STYLES:
+            self.im_style.append(st, st)
+        if cur not in im.STYLES:   # jiny zpusob z nastaveni Bamboo - nabidnout ho, at se neztrati
+            self.im_style.append(cur, cur)
+        self.im_style.set_active_id(cur)
+        self.im_style.set_sensitive(self.im_switch.get_active())
+        self.im_style.connect("changed", self.on_im_style)
+        g.row(_("Typing style"), self.im_style, _("Telex types accents with letters (aa → â, s → ´), "
+                                                   "VNI with numbers (a6 → â, 1 → ´)."))
+        self.im_status = Gtk.Label(xalign=0, wrap=True, max_width_chars=60)
+        self.im_status.get_style_context().add_class("hint")
+        self.im_status.set_margin_top(6)
+        self.im_status.set_margin_start(4)
+        page.pack_start(self.im_status, False, False, 0)
+        if im.active() == "user":
+            self.im_status.set_text(_("Your account uses its own fcitx5 settings. "
+                                      "Turning Vietnamese on adds it to them."))
+
+    def im_work(self, fn, msg):
+        if self.im_busy:
+            return
+        self.im_busy = True
+        self.im_switch.set_sensitive(False)
+        self.im_style.set_sensitive(False)
+
+        def work():
+            err = None
+            try:
+                fn()
+            except Exception as e:   # noqa: BLE001 - chyba se ukaze, ovladani se nesmi zaseknout
+                err = str(e) or type(e).__name__
+            finally:
+                GLib.idle_add(done, err)
+
+        def done(err):
+            # prepinac podle skutecneho stavu (pri chybe se vrati), im_busy brani on_im_switch
+            self.im_switch.set_active(im.active() == "vi")
+            self.im_busy = False
+            self.im_switch.set_sensitive(True)
+            self.im_style.set_sensitive(self.im_switch.get_active())
+            self.im_status.set_text(_("Could not change the input method: %s") % err if err else msg)
+            return False
+        # ne daemon: zavreni okna behem zmeny pocka (on_close), fcitx5 nezustane zastaveny
+        self.im_thread = threading.Thread(target=work)
+        self.im_thread.start()
+
+    def on_im_switch(self, sw, _p):
+        if self.im_busy:
+            return
+        if sw.get_active():
+            st = self.im_style.get_active_id()
+            self.im_work(lambda: im.enable("vi", st if st in im.STYLES else None),
+                         _("Vietnamese is on. Switch with Ctrl+Space. "
+                           "Apps that were already open start using it after you restart them."))
+        else:
+            self.im_work(im.disable, _("Vietnamese is off."))
+
+    def on_im_style(self, c):
+        st = c.get_active_id()
+        if self.im_busy or st not in im.STYLES or not self.im_switch.get_active():
+            return
+        self.im_work(lambda: im.set_style(st), _("Typing style: %s") % st)
 
     # ---- seznam rozlozeni ----
     def fill(self):
@@ -270,11 +369,16 @@ class KeyboardSettings(Gtk.Window):
             self.changed()
 
     def on_add(self, _b):
-        dlg = AddDialog(self, self.catalog, set(self.layouts))
+        used = set(self.layouts) | ({("@im", "vi")} if self.im_switch.get_active() else set())
+        dlg = AddDialog(self, self.catalog, used)
         dlg.show_all()
         resp = dlg.run()
         key = dlg.chosen() if resp == Gtk.ResponseType.OK else None
         dlg.destroy()
+        if key and key[0] == "@im":
+            if not self.im_busy:
+                self.im_switch.set_active(True)   # zapne metodu (on_im_switch)
+            return
         if key and key not in self.layouts and len(self.layouts) < kb.MAX_LAYOUTS:
             self.layouts.append(key)
             # Druhe rozlozeni bez prepinani by neslo zapnout klavesnici - nabidnout obe klavesy Shift
@@ -356,6 +460,9 @@ class KeyboardSettings(Gtk.Window):
         threading.Thread(target=work, daemon=True).start()
 
     def on_close(self, *_a):
+        if self.im_busy:   # rozpracovane zapnuti/vypnuti metody zadavani dokoncit (fcitx5 se restartuje)
+            self.im_status.set_text(_("Saving…"))
+            return True
         # Nepouzite zmeny: vratit relaci do posledniho pouziteho stavu (nebo stavu pred otevrenim okna)
         back = self.system if self.applied else self.session
         if self.dirty() and back:

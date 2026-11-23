@@ -62,6 +62,76 @@ installation also show up here.
   pressed together). With "Only by clicking the flag", there is no key combination.
 - **Check the current settings:** `localectl status` (system), `setxkbmap -query` (session).
 
+## Typing Vietnamese (input methods)
+
+Vietnamese is typed on an ordinary keyboard (US, Czech, …) with an **input method**, not with
+another XKB layout: the fcitx5 input method with the Bamboo engine (packages `fcitx5`, `fcitx5-gtk`
+and `fcitx5-bamboo`, installed with `luxos-desktop`). For example, Telex turns `Vieejt Nam` into
+"Việt Nam".
+
+- **Turn it on:** Keyboard Layouts › **Input Methods** › **Vietnamese** switch, or Add Layout… and
+  search "Vietnam" → "Vietnamese (Telex, VNI)" (this turns the same switch on). It is set **for
+  your account only**, applies at once and needs no administrator password.
+- **Typing style:** the combo next to it: **Telex** (default), **VNI** or **VIQR**.
+- **Switching:** Vietnamese is active right after turning it on and after every login.
+  **Ctrl+Space** switches between English and Vietnamese (Super+Space stays Search), or click the
+  input method icon in the menu bar. The XKB layout and the flag in the menu bar do not change.
+- **Vietnamese language accounts:** an account whose language is Vietnamese (`vi_*`) gets it
+  turned on automatically at its first login.
+- For other users fcitx5 never runs. Users who set fcitx5 up themselves (an existing
+  `~/.config/fcitx5/profile` and no choice made in LuxOS) are left alone; the app then says "Your
+  account uses its own fcitx5 settings", and turning Vietnamese on adds it to their profile.
+
+### Telex and VNI cheat sheet
+
+| Result | Telex | VNI |
+|---|---|---|
+| â ê ô | `aa` `ee` `oo` | `a6` `e6` `o6` |
+| ă | `aw` | `a8` |
+| ơ ư | `ow` `uw` (also `w` alone → ư) | `o7` `u7` |
+| đ | `dd` | `d9` |
+| sắc (á) | `s` | `1` |
+| huyền (à) | `f` | `2` |
+| hỏi (ả) | `r` | `3` |
+| ngã (ã) | `x` | `4` |
+| nặng (ạ) | `j` | `5` |
+| remove the tone | `z` | `0` |
+
+Tone keys go after the vowel or at the end of the word (Telex `tieesng` or `tieengs` → "tiếng",
+VNI `Vie65t` or `Vie6t5` → "Việt"). Pressing a mark key twice undoes it and types the letter (`ss` → "s").
+VIQR types the marks after the vowel: `^` (â), `(` (ă), `+` (ơ), `'` `` ` `` `?` `~` `.` for the
+five tones, and `dd` for đ. VNI needs digit keys on the number
+row; on layouts whose number row types letters (such as Czech), use Telex.
+
+### How it works
+
+- The choice is stored in `~/.config/luxos/input-method` (`IM=vi` or `IM=none`, `VI_STYLE=Telex|VNI|VIQR`);
+  the fcitx5 configuration is written to `~/.config/fcitx5/`.
+- fcitx5 is started at login by `/etc/xdg/luxos/autostart/org.fcitx.Fcitx5.desktop` (it replaces
+  fcitx5's own autostart) through `luxos-input-method autostart`, only when the account uses it.
+- `GTK_IM_MODULE`, `QT_IM_MODULE`, `XMODIFIERS` and `SDL_IM_MODULE` are set at login by
+  `/etc/X11/xinit/xinitrc.d/55-luxos-input-method.sh`, only for accounts that use it (values you set
+  yourself win). When you turn it on during a session, GTK apps get it through XSETTINGS
+  (`Gtk/IMModule`); it works in GTK apps, Firefox and LuxOS Terminal.
+- Command line (in your own session):
+
+  | Command | What it does |
+  |---|---|
+  | `luxos-input-method status` | active method (`vi`, `user` or `none`), style, whether it is installed |
+  | `luxos-input-method enable [vi] [--style Telex\|VNI\|VIQR]` | turn Vietnamese on |
+  | `luxos-input-method disable` | turn it off |
+  | `luxos-input-method style STYLE` | change the typing style |
+
+### Troubleshooting Vietnamese typing
+
+- **An app ignores it:** restart apps that were already open when you turned it on. The
+  environment variables are set only at login, so logging out and in again also helps.
+- **Qt apps (e.g. KDE apps):** install the Qt module with `lux install fcitx5-qt`, then restart the
+  app (or log in again).
+- **Nothing happens when typing:** check the menu bar icon or press Ctrl+Space, and check
+  `luxos-input-method status`. "Not installed" in Keyboard Layouts means a missing package:
+  `lux install fcitx5 fcitx5-gtk fcitx5-bamboo`.
+
 ## Keyboard Shortcuts (luxos-shortcuts)
 
 Open it with `luxos-shortcuts`, from Welcome (Shortcuts) or from the last page of the LuxOS Tour.

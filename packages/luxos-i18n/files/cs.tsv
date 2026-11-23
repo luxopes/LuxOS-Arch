@@ -5384,3 +5384,17 @@ Window buttons	Tlačítka oken
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Tlačítka zavřít, minimalizovat a maximalizovat v záhlaví okna. Automaticky je na dotykových obrazovkách zvětší.
 Wi-Fi adapter did not start	Adaptér Wi-Fi se nespustil
 The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Adaptér Wi-Fi se zasekl po restartu z jiného systému. Vypněte počítač, podržte tlačítko napájení 30 sekund a pak ho znovu zapněte. Restart nestačí.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Metody zadávání
+Vietnamese	Vietnamština
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	metoda zadávání
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Pište vietnamsky na své klávesnici, například Vieejt Nam → Việt Nam. Zapnete a vypnete ji zkratkou Ctrl+Mezerník nebo ikonou v horní liště.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Není nainstalováno (balíky fcitx5, fcitx5-gtk a fcitx5-bamboo).
+Typing style	Způsob psaní
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex píše diakritiku písmeny (aa → â, s → ´), VNI číslicemi (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Váš účet používá vlastní nastavení fcitx5. Zapnutím se do něj vietnamština přidá.
+Could not change the input method: %s	Metodu zadávání se nepodařilo změnit: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamština je zapnutá. Přepínejte zkratkou Ctrl+Mezerník. Aplikace, které už byly otevřené, ji začnou používat po novém spuštění.
+Vietnamese is off.	Vietnamština je vypnutá.
+Typing style: %s	Způsob psaní: %s

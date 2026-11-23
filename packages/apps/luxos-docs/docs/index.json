@@ -614,7 +614,7 @@
         {
           "path": "luxos/keyboard.md",
           "title": "Keyboard Layouts and Keyboard Shortcuts",
-          "summary": "Keyboard Layouts app (system-wide layouts, switching keys, localectl) and Keyboard Shortcuts app with the full list of default LuxOS shortcuts.",
+          "summary": "Keyboard Layouts app (system-wide layouts, switching keys, localectl), Vietnamese typing (fcitx5 + Bamboo, Telex/VNI, luxos-input-method) and Keyboard Shortcuts app with the full list of default LuxOS shortcuts.",
           "keywords": [
             "keyboard",
             "layout",
@@ -634,7 +634,14 @@
             "xfce4-keyboard-shortcuts",
             "default shortcuts",
             "screenshot shortcut",
-            "lock screen shortcut"
+            "lock screen shortcut",
+            "vietnamese",
+            "telex",
+            "vni",
+            "input method",
+            "fcitx5",
+            "bamboo",
+            "luxos-input-method"
           ]
         },
         {

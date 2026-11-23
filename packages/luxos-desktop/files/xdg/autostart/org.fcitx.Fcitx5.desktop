@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Fcitx 5
+GenericName=Input Method
+Comment=LuxOS: starts the input method only for users who turned it on (Vietnamese typing) or set fcitx5 up themselves - luxos-input-method autostart
+Exec=/usr/bin/luxos-input-method autostart
+Icon=fcitx
+NoDisplay=true
+Terminal=false
+Type=Application
+StartupNotify=false
+X-GNOME-AutoRestart=false
+X-GNOME-Autostart-Notify=false

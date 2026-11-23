@@ -5385,3 +5385,17 @@ Window buttons	Ablakgombok
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	A címsor bezárás, kis méret és teljes méret gombjai. Az „Automatikus” érintőképernyőn nagyobbra állítja őket.
 Wi-Fi adapter did not start	A Wi-Fi-adapter nem indult el
 The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	A Wi-Fi-adapter beragadt egy másik rendszerből történt újraindítás után. Kapcsolja ki a számítógépet, tartsa lenyomva a bekapcsológombot 30 másodpercig, majd kapcsolja be újra. Az újraindítás nem elég.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Beviteli módok
+Vietnamese	Vietnami
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	beviteli mód
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Írjon vietnamiul a billentyűzetén, például Vieejt Nam → Việt Nam. Be- és kikapcsolás a Ctrl+Szóköz billentyűkkel vagy a menüsor ikonjával.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Nincs telepítve (fcitx5, fcitx5-gtk és fcitx5-bamboo csomagok).
+Typing style	Írásmód
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	A Telex betűkkel írja az ékezeteket (aa → â, s → ´), a VNI számokkal (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	A fiókja saját fcitx5-beállításokat használ. Bekapcsoláskor a vietnami ezekhez adódik hozzá.
+Could not change the input method: %s	Nem sikerült módosítani a beviteli módot: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	A vietnami be van kapcsolva. Váltás a Ctrl+Szóköz billentyűkkel. A már megnyitott alkalmazások újraindítás után használják.
+Vietnamese is off.	A vietnami ki van kapcsolva.
+Typing style: %s	Írásmód: %s

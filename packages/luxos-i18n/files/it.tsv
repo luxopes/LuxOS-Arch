@@ -5385,3 +5385,17 @@ Window buttons	Pulsanti delle finestre
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Pulsanti chiudi, riduci a icona e ingrandisci della barra del titolo. «Automatico» li ingrandisce sugli schermi touch.
 Wi-Fi adapter did not start	L’adattatore Wi-Fi non si è avviato
 The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	L’adattatore Wi-Fi si è bloccato dopo il riavvio da un altro sistema. Spegni il computer, tieni premuto il pulsante di accensione per 30 secondi, poi riaccendilo. Il riavvio non basta.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Metodi di input
+Vietnamese	Vietnamita
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	metodo di input
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Scrivi in vietnamita con la tua tastiera, ad esempio Vieejt Nam → Việt Nam. Attivalo e disattivalo con Ctrl+Spazio o con l’icona nella barra dei menu.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Non installato (pacchetti fcitx5, fcitx5-gtk e fcitx5-bamboo).
+Typing style	Stile di scrittura
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex scrive gli accenti con lettere (aa → â, s → ´), VNI con numeri (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Il tuo account usa impostazioni fcitx5 proprie. Attivandolo, il vietnamita viene aggiunto a esse.
+Could not change the input method: %s	Impossibile modificare il metodo di input: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Il vietnamita è attivo. Passa con Ctrl+Spazio. Le app già aperte lo useranno dopo il riavvio.
+Vietnamese is off.	Il vietnamita è disattivato.
+Typing style: %s	Stile di scrittura: %s

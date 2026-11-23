@@ -5385,3 +5385,17 @@ Window buttons	Botões das janelas
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Botões de fechar, minimizar e maximizar da barra de título. "Automático" os aumenta em telas sensíveis ao toque.
 Wi-Fi adapter did not start	O adaptador Wi-Fi não iniciou
 The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	O adaptador Wi-Fi ficou bloqueado após reiniciar a partir de outro sistema. Desligue o computador, mantenha o botão de energia premido durante 30 segundos e volte a ligá-lo. Reiniciar não chega.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Métodos de entrada
+Vietnamese	Vietnamita
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	método de entrada
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Digite em vietnamita no seu teclado, por exemplo Vieejt Nam → Việt Nam. Ative e desative com Ctrl+Espaço ou pelo ícone na barra de menus.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Não instalado (pacotes fcitx5, fcitx5-gtk e fcitx5-bamboo).
+Typing style	Estilo de digitação
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	O Telex digita acentos com letras (aa → â, s → ´), o VNI com números (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Sua conta usa configurações próprias do fcitx5. Ao ativar, o vietnamita é adicionado a elas.
+Could not change the input method: %s	Não foi possível alterar o método de entrada: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	O vietnamita está ativado. Alterne com Ctrl+Espaço. Os apps que já estavam abertos passam a usá-lo depois de reiniciados.
+Vietnamese is off.	O vietnamita está desativado.
+Typing style: %s	Estilo de digitação: %s

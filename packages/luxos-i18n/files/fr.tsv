@@ -5385,3 +5385,17 @@ Window buttons	Boutons des fenêtres
 Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Boutons fermer, réduire et agrandir de la barre de titre. « Automatique » les agrandit sur les écrans tactiles.
 Wi-Fi adapter did not start	L’adaptateur Wi-Fi n’a pas démarré
 The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	L’adaptateur Wi-Fi est resté bloqué après un redémarrage depuis un autre système. Éteignez l’ordinateur, maintenez le bouton d’alimentation enfoncé 30 secondes, puis rallumez-le. Un redémarrage ne suffit pas.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Méthodes de saisie
+Vietnamese	Vietnamien
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	méthode de saisie
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Tapez en vietnamien sur votre clavier, par exemple Vieejt Nam → Việt Nam. Activez-le ou désactivez-le avec Ctrl+Espace ou l’icône de la barre des menus.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Non installé (paquets fcitx5, fcitx5-gtk et fcitx5-bamboo).
+Typing style	Style de saisie
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex tape les accents avec des lettres (aa → â, s → ´), VNI avec des chiffres (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Votre compte utilise ses propres réglages fcitx5. L’activation y ajoute le vietnamien.
+Could not change the input method: %s	Impossible de modifier la méthode de saisie : %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Le vietnamien est activé. Basculez avec Ctrl+Espace. Les apps déjà ouvertes l’utiliseront après leur redémarrage.
+Vietnamese is off.	Le vietnamien est désactivé.
+Typing style: %s	Style de saisie : %s
