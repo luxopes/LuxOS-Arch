@@ -349,6 +349,36 @@ class Window(unittest.TestCase):
         self.keys("5+=")
         self.assertEqual(self.shown(), "10")
 
+    def test_expression_stays_on_one_line(self):
+        # rozepsany priklad je cely na velkem radku, pod nim prubezny vysledek; po "=" vysledek
+        self.keys("7*")
+        self.assertEqual(self.shown(), "7 ×")
+        self.keys("9")
+        self.assertEqual(self.shown(), "7 × 9")
+        self.assertEqual(self.c.expr.get_text().strip(), "")
+        self.assertEqual(self.c.preview.get_text(), "= 63")
+        self.assertEqual(self.c.copy_text, "9")      # Ctrl+C kopiruje cislo, ne priklad
+        self.keys("+(2-")
+        self.assertEqual(self.shown(), "7 × 9 + (2 −")
+        self.keys("5)")
+        self.assertEqual(self.shown(), "7 × 9 + (2 − 5)")
+        self.assertEqual(self.c.preview.get_text(), "= 60")
+        self.keys("=")
+        self.assertEqual(self.shown(), "60")
+        self.assertEqual(self.c.expr.get_text(), "7 × 9 + (2 − 5) =")
+        self.assertEqual(self.c.copy_text, "60")
+        self.c.backspace()                           # zpet k uprave: znovu na jednom radku
+        self.assertEqual(self.shown(), "7 × 9 + (2 − 5)")
+
+    def test_equals_after_open_parenthesis(self):
+        # "(2 + 3 × (" + "=" nesmi skoncit chybou s prazdnou zavorkou "()" (nalezeno fuzzingem)
+        self.keys("(2+3*(=")
+        self.assertEqual(self.shown(), "11")         # (2 + 3 × 3) - "5 + =" pravidlo
+        self.c.backspace()
+        self.c.percent()                             # driv IndexError
+        self.keys("(=")
+        self.assertNotIn("()", self.c.expr.get_text())
+
     def test_lone_number_equals_then_new_number(self):
         # "5 =" a pak "7" ma zacit nove cislo (ne 57), "1. =" ukaze 1 (ne "1,")
         self.keys("5=7")

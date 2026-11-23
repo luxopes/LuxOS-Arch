@@ -269,8 +269,11 @@ class Calculator(Gtk.Window):
         self.add(box)
         self.expr = Gtk.Label(xalign=1, ellipsize=3)
         self.expr.get_style_context().add_class("calc-expr")
-        self.value = Gtk.Label(xalign=1)
+        # rozepsany priklad je cely na tomto radku ("7 × 9"), po "=" tu je vysledek;
+        # dlouhy priklad se zkrati zleva, aby byl videt jeho konec
+        self.value = Gtk.Label(xalign=1, ellipsize=1, max_width_chars=1)
         self.value.get_style_context().add_class("calc-value")
+        self.copy_text = "0"    # Ctrl+C kopiruje cislo (vysledek / prave psane), ne cely priklad
         box.pack_start(self.expr, False, False, 0)
         box.pack_start(self.value, False, False, 0)
         # prubezny vysledek pod cislem (jako kalkulacka Samsung): "425 / 25" -> "= 17"
@@ -482,7 +485,12 @@ class Calculator(Gtk.Window):
             return
         if self.entry:
             self.push_entry()
-        elif isinstance(self.last(), str) and self.last() in PREC:
+        while self.tokens and self.last() == "(":
+            self.tokens.pop()              # "2 × (" + "=": prazdna zavorka by byla chyba -> "2 × ="
+        if not self.tokens:
+            self.refresh()
+            return
+        if isinstance(self.last(), str) and self.last() in PREC:
             if len(self.tokens) >= 2 and isinstance(self.tokens[-2], Decimal):
                 self.tokens.append(self.tokens[-2])  # 5 + = -> 5 + 5
             else:
@@ -611,7 +619,7 @@ class Calculator(Gtk.Window):
             else:
                 value = value / 100
             self.set_current(value)
-        except ArithmeticError:
+        except (ArithmeticError, IndexError):
             self.show(self.expression_text(), _("Error"))
             return
         self.refresh()
@@ -680,8 +688,10 @@ class Calculator(Gtk.Window):
             return None
 
     # ---- zobrazeni -------------------------------------------------------
-    def expression_text(self):
+    def expression_text(self, entry=None):
         parts = [fmt(t) if isinstance(t, Decimal) else OPS.get(t, t) for t in self.tokens]
+        if entry:
+            parts.append(entry)
         return " ".join(parts).replace("( ", "(").replace(" )", ")")
 
     def entry_text(self):
@@ -694,10 +704,11 @@ class Calculator(Gtk.Window):
         text = group(("-" if neg else "") + (whole or "0"))
         return text + (DEC + frac if dot else "")
 
-    def show(self, expr, value):
+    def show(self, expr, value, copy=None):
+        self.copy_text = copy if copy is not None else value
         self.expr.set_text(expr or " ")
         self.preview.set_text("")          # po "=" a pri chybe; refresh() ho pak doplni
-        size = 46 if len(value) <= 9 else max(24, 46 - (len(value) - 9) * 3)
+        size = 46 if len(value) <= 9 else max(20, 46 - (len(value) - 9) * 3)
         self.value.set_markup(f'<span size="{size * 1024}">{GLib.markup_escape_text(value)}</span>')
         self.clear_btn.set_label("C" if self.entry else "AC")
 
@@ -706,7 +717,11 @@ class Calculator(Gtk.Window):
         if text is None:
             nums = [t for t in self.tokens if isinstance(t, Decimal)]
             text = fmt(self.result) if self.result is not None else (fmt(nums[-1]) if nums else "0")
-        self.show(self.expression_text(), text)
+        if self.tokens:
+            # rozepsany priklad na jednom radku: "7 × 9" (horni radek je prazdny)
+            self.show("", self.expression_text(self.entry_text()), copy=text)
+        else:
+            self.show(self.expression_text(), text)
         value = self.preview_value()
         self.preview.set_text("= " + fmt(value) if value is not None else "")
         self.update_ops()
@@ -727,7 +742,7 @@ class Calculator(Gtk.Window):
         if ctrl and key in ("1", "2"):
             self.set_scientific(key == "2")
         elif ctrl and key.lower() == "c":
-            Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.value.get_text(), -1)
+            Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(self.copy_text, -1)
         elif ctrl and key.lower() == "v":
             text = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text() or ""
             text = text.strip().replace(GROUP, "").replace(" ", "").replace(DEC, ".")
