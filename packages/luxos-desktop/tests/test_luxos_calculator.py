@@ -60,7 +60,7 @@ class OperandLogic(unittest.TestCase):
     def setUp(self):
         self.shown = None
         self.c = types.SimpleNamespace(tokens=[], entry="", fresh=False, result=None, degrees=True,
-                                       op_buttons={})
+                                       op_buttons={}, prev_tokens=None)
         for name, method in calc.Calculator.__dict__.items():
             if callable(method) and not name.startswith("__"):
                 setattr(self.c, name, types.MethodType(method, self.c))
@@ -78,6 +78,87 @@ class OperandLogic(unittest.TestCase):
                 self.c.equals()
             else:
                 self.c.operator(key)
+
+    def test_backspace_removes_operator_and_edits_previous_number(self):
+        # "425 x" a Backspace: zmizi operator, 425 jde dal mazat (drive Backspace nedelal nic)
+        self.keys("425*")
+        self.c.backspace()
+        self.assertEqual((self.c.tokens, self.c.entry), ([], "425"))
+        self.c.backspace()
+        self.assertEqual(self.c.entry, "42")
+        self.keys("*3=")
+        self.assertEqual(self.c.result, Decimal(126))
+
+    def test_backspace_after_operator_inside_expression(self):
+        self.keys("2+30*")
+        self.c.backspace()
+        self.c.backspace()
+        self.assertEqual((self.c.tokens, self.c.entry), ([Decimal(2), "+"], "3"))
+        self.keys("=")
+        self.assertEqual(self.c.result, Decimal(5))
+
+    def test_backspace_after_operator_following_parenthesis(self):
+        self.keys("(2+3)*")
+        self.c.backspace()
+        self.assertEqual(self.c.tokens[-1], ")")
+        self.assertEqual(self.c.entry, "")
+        self.c.backspace()
+        self.c.backspace()
+        self.assertEqual(self.c.tokens, ["(", Decimal(2), "+"])
+
+    def test_backspace_after_equals_restores_expression(self):
+        # 425 / 25 = 17, Backspace -> zase 425 / 25 a 25 jde upravit (pocitani v prikladu dal)
+        self.keys("425/25=")
+        self.assertEqual(self.c.result, Decimal(17))
+        self.c.backspace()
+        self.assertEqual((self.c.result, self.c.tokens, self.c.entry), (None, [Decimal(425), "/"], "25"))
+        self.c.backspace()
+        self.keys("0=")
+        self.assertEqual(self.c.result, Decimal("21.25"))   # 25 -> 2 -> 20
+        self.assertEqual(self.c.prev_tokens, [Decimal(425), "/", Decimal(20)])
+
+    def test_backspace_after_equals_with_parentheses_and_continue(self):
+        self.keys("(2+3)*4=")
+        self.c.backspace()
+        self.keys("+1=")
+        self.assertEqual(self.c.result, Decimal(21))
+
+    def test_backspace_after_error_restores_expression(self):
+        self.keys("8/0=")
+        self.assertEqual(self.shown, "Error")
+        self.c.backspace()
+        self.assertEqual((self.c.tokens, self.c.entry), ([Decimal(8), "/"], "0"))
+        self.c.backspace()
+        self.keys("2=")
+        self.assertEqual(self.c.result, Decimal(4))
+
+    def test_backspace_edits_lone_result(self):
+        self.keys("425=")
+        self.c.backspace()
+        self.assertEqual((self.c.result, self.c.entry), (None, "42"))
+
+    def test_operator_after_equals_continues_with_result(self):
+        self.keys("2+3=*4=")
+        self.assertEqual(self.c.result, Decimal(20))
+
+    def test_preview_while_typing(self):
+        self.assertIsNone(self.c.preview_value())
+        self.keys("425")
+        self.assertIsNone(self.c.preview_value())          # jen cislo: nic k pocitani
+        self.keys("/")
+        self.assertIsNone(self.c.preview_value())
+        self.keys("25")
+        self.assertEqual(self.c.preview_value(), Decimal(17))
+        self.keys("+(3*")
+        self.assertEqual(self.c.preview_value(), Decimal(20))  # 17 + (3), operator na konci se vynecha
+        self.keys("2")
+        self.assertEqual(self.c.preview_value(), Decimal(23))
+        self.keys("/0")
+        self.assertIsNone(self.c.preview_value())          # deleni nulou: zadny nahled, zadna chyba
+
+    def test_backspace_on_empty_does_nothing(self):
+        self.c.backspace()
+        self.assertEqual((self.c.result, self.c.entry, self.c.tokens), (None, "", []))
 
     def test_function_on_parenthesized_expression(self):
         self.keys("(2+3)")

@@ -46,6 +46,7 @@ window.luxcalc { background-image: linear-gradient(165deg, @calc_bg_top, @calc_b
 window.luxcalc headerbar { min-height: 34px; }   /* nepruhledna lista z motivu (svetla/tmava) */
 .calc-expr { color: @calc_dim; font-size: 15px; }
 .calc-value { color: @calc_fg; font-size: 46px; font-weight: 300; }
+.calc-preview { color: @calc_dim; font-size: 17px; }
 button.key {
     border: none; border-radius: 16px; box-shadow: none; text-shadow: none;
     background-image: none; background-color: @calc_key; color: @calc_fg;
@@ -260,6 +261,7 @@ class Calculator(Gtk.Window):
         self.entry = ""         # prave psane cislo (bez formatovani)
         self.fresh = False      # entry je vysledek funkce - dalsi cislice ho nahradi
         self.result = None      # vysledek posledniho "="
+        self.prev_tokens = None # vyraz pred poslednim "=" (Backspace hned po "=" ho vrati k uprave)
         self.degrees = True
         self.op_buttons = {}
 
@@ -270,7 +272,11 @@ class Calculator(Gtk.Window):
         self.value = Gtk.Label(xalign=1)
         self.value.get_style_context().add_class("calc-value")
         box.pack_start(self.expr, False, False, 0)
-        box.pack_start(self.value, False, False, 6)
+        box.pack_start(self.value, False, False, 0)
+        # prubezny vysledek pod cislem (jako kalkulacka Samsung): "425 / 25" -> "= 17"
+        self.preview = Gtk.Label(xalign=1)
+        self.preview.get_style_context().add_class("calc-preview")
+        box.pack_start(self.preview, False, False, 2)
 
         keys = Gtk.Box(spacing=10)
         box.pack_start(keys, True, True, 0)
@@ -469,6 +475,7 @@ class Calculator(Gtk.Window):
     def equals(self):
         if not self.tokens:
             if self.entry:                 # samotne cislo + "=": dalsi cislice zacne nove cislo
+                self.prev_tokens = None
                 self.result = Decimal(self.entry)
                 self.entry, self.fresh = "", False
                 self.refresh()
@@ -482,10 +489,12 @@ class Calculator(Gtk.Window):
                 self.tokens.pop()
         self.tokens.extend(")" * self.open_parens())
         expr = self.expression_text() + " ="
+        self.prev_tokens = list(self.tokens)
         try:
             self.result = evaluate(self.tokens)
         except (ArithmeticError, IndexError):
-            self.result = None
+            # chybny vyraz (deleni nulou) jde po Backspace opravit
+            self.result = Decimal(0)
             self.tokens, self.entry = [], ""
             self.show(expr, _("Error"))
             return
@@ -607,6 +616,15 @@ class Calculator(Gtk.Window):
             return
         self.refresh()
 
+    def edit_value(self, value):
+        """Hotove cislo (operand pred operatorem, vysledek) zpet do rozpracovaneho, aby slo mazat
+        po cislicich; delsi nez displej (1/3) nebo s exponentem se smaze cele."""
+        text = entry_text_for(value)
+        digits = text.lstrip("-").replace(".", "")
+        if "E" in text or "e" in text or len(digits.lstrip("0")) > MAX_DIGITS:
+            return ""
+        return text
+
     def backspace(self):
         if self.fresh:
             self.entry, self.fresh = "", False
@@ -614,9 +632,52 @@ class Calculator(Gtk.Window):
             self.entry = self.entry[:-1]
             if self.entry in ("-", "-0"):
                 self.entry = ""
-        elif self.tokens and self.tokens[-1] in ("(", ")"):
-            self.tokens.pop()
+        elif self.tokens:
+            # "425 x" + Backspace: zmizi operator a 425 jde dal mazat (drive Backspace nedelal nic)
+            if self.tokens[-1] in PREC:
+                self.tokens.pop()
+                if self.tokens and isinstance(self.tokens[-1], Decimal):
+                    self.entry = self.edit_value(self.tokens[-1])
+                    if self.entry:         # jinak (1/3 x) zustane cislo jako hotovy operand
+                        self.tokens.pop()
+            elif self.tokens[-1] in ("(", ")"):
+                self.tokens.pop()
+            elif isinstance(self.tokens[-1], Decimal):
+                self.entry = self.edit_value(self.tokens.pop())[:-1]
+                if self.entry in ("-", "-0"):
+                    self.entry = ""
+        elif self.result is not None and self.prev_tokens:
+            # hned po "=": vrati se cely priklad k uprave (425 / 25 = 17, Backspace -> 425 / 25)
+            self.tokens, self.prev_tokens, self.result = self.prev_tokens, None, None
+            if isinstance(self.tokens[-1], Decimal):
+                self.entry = self.edit_value(self.tokens[-1])
+                if self.entry:
+                    self.tokens.pop()
+        elif self.result is not None:
+            # samotny vysledek (5 =): maze se po cislicich jako psane cislo
+            self.entry = self.edit_value(self.result)[:-1]
+            if self.entry in ("-", "-0"):
+                self.entry = ""
+            self.result = None
         self.refresh()
+
+    def preview_value(self):
+        """Prubezny vysledek rozpracovaneho prikladu, None kdyz jeste neni co pocitat (jen cislo)."""
+        toks = list(self.tokens)
+        if self.entry and self.entry not in ("-", "."):
+            try:
+                toks.append(Decimal(self.entry))
+            except InvalidOperation:
+                return None
+        while toks and (toks[-1] == "(" or (isinstance(toks[-1], str) and toks[-1] in PREC)):
+            toks.pop()
+        if not any(isinstance(t, str) and t in PREC for t in toks):
+            return None
+        toks.extend(")" * (toks.count("(") - toks.count(")")))
+        try:
+            return evaluate(toks)
+        except (ArithmeticError, IndexError, ValueError, OverflowError):
+            return None
 
     # ---- zobrazeni -------------------------------------------------------
     def expression_text(self):
@@ -635,6 +696,7 @@ class Calculator(Gtk.Window):
 
     def show(self, expr, value):
         self.expr.set_text(expr or " ")
+        self.preview.set_text("")          # po "=" a pri chybe; refresh() ho pak doplni
         size = 46 if len(value) <= 9 else max(24, 46 - (len(value) - 9) * 3)
         self.value.set_markup(f'<span size="{size * 1024}">{GLib.markup_escape_text(value)}</span>')
         self.clear_btn.set_label("C" if self.entry else "AC")
@@ -645,6 +707,8 @@ class Calculator(Gtk.Window):
             nums = [t for t in self.tokens if isinstance(t, Decimal)]
             text = fmt(self.result) if self.result is not None else (fmt(nums[-1]) if nums else "0")
         self.show(self.expression_text(), text)
+        value = self.preview_value()
+        self.preview.set_text("= " + fmt(value) if value is not None else "")
         self.update_ops()
 
     def update_ops(self):
