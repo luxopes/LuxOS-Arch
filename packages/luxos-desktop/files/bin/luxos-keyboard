@@ -245,8 +245,10 @@ class KeyboardSettings(Gtk.Window):
             more.connect("clicked", lambda _b: subprocess.Popen(["/usr/bin/xfce4-keyboard-settings"], start_new_session=True))
             bottom.pack_end(more, False, False, 0)
         page.pack_start(bottom, False, False, 0)
-        self.status = Gtk.Label(xalign=0, wrap=True, max_width_chars=60)
+        # prazdne stavove radky nezabiraji misto (drive ~50 px prazdne plochy dole)
+        self.status = Gtk.Label(xalign=0, wrap=True, max_width_chars=60, no_show_all=True)
         self.status.set_margin_top(8)
+        self.status.connect("notify::label", self.on_message)
         page.pack_start(self.status, False, False, 0)
 
         self.connect("delete-event", self.on_close)
@@ -275,7 +277,8 @@ class KeyboardSettings(Gtk.Window):
         self.im_style.connect("changed", self.on_im_style)
         g.row(_("Typing style"), self.im_style, _("Telex types accents with letters (aa → â, s → ´), "
                                                    "VNI with numbers (a6 → â, 1 → ´)."))
-        self.im_status = Gtk.Label(xalign=0, wrap=True, max_width_chars=60)
+        self.im_status = Gtk.Label(xalign=0, wrap=True, max_width_chars=60, no_show_all=True)
+        self.im_status.connect("notify::label", self.on_message)
         self.im_status.get_style_context().add_class("hint")
         self.im_status.set_margin_top(6)
         self.im_status.set_margin_start(4)
@@ -283,6 +286,21 @@ class KeyboardSettings(Gtk.Window):
         if im.active() == "user":
             self.im_status.set_text(_("Your account uses its own fcitx5 settings. "
                                       "Turning Vietnamese on adds it to them."))
+
+    def on_message(self, label, _pspec):
+        label.set_visible(bool(label.get_text()))
+        if label.get_visible():
+            GLib.idle_add(self.grow)
+
+    def grow(self):
+        """Okno podle obsahu i po zobrazeni zpravy (jinak by byla schovana pod okrajem a posouvala se)."""
+        if not self.get_realized():
+            return False
+        w, h = self.get_size()
+        need = self.get_preferred_height_for_width(w)[1]
+        if need > h:
+            self.resize(w, need)
+        return False
 
     def im_work(self, fn, msg):
         if self.im_busy:

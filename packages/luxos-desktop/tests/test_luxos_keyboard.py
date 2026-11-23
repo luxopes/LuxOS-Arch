@@ -321,6 +321,21 @@ class App(unittest.TestCase):
         with open(self.log) as f:
             return [ln.strip() for ln in f if ln.startswith(prefix)]
 
+    def test_status_lines_take_space_only_with_text(self):
+        # prazdne stavove radky nezabiraji misto; zprava se ukaze a okno se kvuli ni zvetsi
+        w = self.app.KeyboardSettings()
+        w.show_all()
+        self.pump(timeout=0.5)
+        self.assertFalse(w.status.get_visible())
+        self.assertFalse(w.im_status.get_visible())
+        h = w.get_size()[1]
+        w.status.set_text("Saved for all users and the login screen.")
+        self.assertTrue(self.pump(lambda: w.get_size()[1] > h, 3), (h, w.get_size()))
+        self.assertTrue(w.status.get_mapped())
+        w.status.set_text("")
+        self.assertFalse(w.status.get_visible())
+        w.destroy()
+
     def test_edit_and_apply(self):
         w = self.app.KeyboardSettings()
         w.show_all()

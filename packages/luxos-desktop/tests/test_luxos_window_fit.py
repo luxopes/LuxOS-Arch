@@ -219,8 +219,10 @@ class WindowFits(unittest.TestCase):
 class SizedToContent(unittest.TestCase):
     """Okna bez velke prazdne plochy dole: vyska podle obsahu, ne pevna vychozi (drive + HeaderBar 45 px)."""
 
-    OLD = {"luxos-lock-settings": 520, "luxos-keyboard": 600, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
-           "luxos-profile-picture": 560, "luxos-display-settings": 700}
+    # drivejsi pevne vysky; Rozlozeni klavesnice ma od 1.1.0-107 oddil Metody zadavani (+~70 px),
+    # Monitory od 1.1.0-105 radek Tlacitka oken (+~70 px) - pribyl obsah, ne prazdna plocha
+    OLD = {"luxos-lock-settings": 520, "luxos-keyboard": 670, "luxos-bluetooth": 620, "luxos-fingerprint": 500,
+           "luxos-profile-picture": 560, "luxos-display-settings": 770}
 
     def test_heights(self):
         for app, old in self.OLD.items():
