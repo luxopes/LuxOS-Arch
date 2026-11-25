@@ -24,8 +24,8 @@ PROFILE_VARS=(PATH XDG_CONFIG_DIRS XDG_DATA_DIRS)
 # XDG_CONFIG_DIRS): Hidden, OnlyShowIn/NotShowIn proti LuxOS a TryExec. Kazda polozka jako docasna jednotka relace.
 autostart() {
     local dir f id seen=" " key value hidden only not try exec
-    # lista ma vlastni sit a zvuk; applety z X11 na Waylandu nefunguji nebo duplikuji
-    local skip=" nm-applet "
+    # Lista ma vlastni sit; xdg-user-dirs uz spousti systemd pred grafickou relaci.
+    local skip=" nm-applet xdg-user-dirs "
     local IFS=:
     for dir in "${XDG_CONFIG_HOME:-$HOME/.config}" ${XDG_CONFIG_DIRS:-/etc/xdg}; do
         for f in "$dir"/autostart/*.desktop; do
@@ -113,6 +113,7 @@ systemctl --user reset-failed 2>/dev/null
 
 # Standardni slozky pri prvnim prihlaseni; dalsi relace respektuji uzivatelovo nastaveni.
 [[ -e ${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs ]] || xdg-user-dirs-update 2>/dev/null
+/usr/lib/luxos/luxos-user-dirs-repair
 
 # Prvni prihlaseni: vychozi vzhled a nastaveni noveho uzivatele od spravce
 if [[ ! -e $cfg/initialized ]]; then

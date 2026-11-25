@@ -25,6 +25,7 @@ if [[ ! -e $cfg/initialized ]]; then
     [[ -r /etc/luxos/new-users.conf ]] && /usr/lib/luxos/luxos-new-user-defaults
     : > "$cfg/initialized"
 fi
+/usr/lib/luxos/luxos-user-dirs-repair
 
 # Chromium: WebGPU na Linuxu jen s Vulkanem (bez techto voleb stranky hlasi chybejici grafiku) - jednou,
 # a jen kdyz uzivatel vlastni soubor s volbami nema (jeho volby se nikdy nemeni)

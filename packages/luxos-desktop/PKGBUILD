@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=143
+pkgrel=144
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -258,6 +258,8 @@ check() {
     # Firefox: luxos.cfg, titlebar.css (styl musi cilit na tlacitka teto verze Firefoxu), uvitaci stranka;
     # cast se skutecnym Firefoxem bezi jen pod xvfb-run (tady se preskoci)
     env -u DISPLAY python3 -I "$startdir/tests/test_firefox_titlebar.py"
+    python3 -I "$startdir/tests/test_user_dirs_repair.py"
+    python3 -I "$startdir/tests/test_wayland_autostart.py"
 }
 
 package() {
@@ -323,7 +325,8 @@ package() {
     install -Dm644 "$f/wayland-sessions/luxos.desktop" "$pkgdir/usr/share/wayland-sessions/luxos.desktop"
     install -Dm644 "$f/xdg-desktop-portal/luxos-portals.conf" "$pkgdir/usr/share/xdg-desktop-portal/luxos-portals.conf"
     # Relace X11 z greetd (LuxOS (X11)): startx s xinitrc.d misto Xsession LightDM
-    install -Dm755 -t "$pkgdir/usr/lib/luxos" "$f/session/luxos-x11-session" "$f/session/luxos-xsession"
+    install -Dm755 -t "$pkgdir/usr/lib/luxos" "$f/session/luxos-x11-session" "$f/session/luxos-xsession" \
+        "$f/session/luxos-user-dirs-repair"
     # Znelky budiku Hodin (generovane AI - StepFun, puvod v files/sounds/clock/SOURCES.md)
     install -Dm644 -t "$pkgdir/usr/share/sounds/luxos/clock" "$f"/sounds/clock/*.oga "$f"/sounds/clock/SOURCES.md
     install -Dm755 luxos-emoji "$pkgdir/usr/bin/luxos-emoji"

@@ -1,0 +1,38 @@
+#!/bin/bash
+# Oprava stareho mapovani vsech uzivatelskych slozek na home z relace Wayland.
+set -euo pipefail
+
+config=${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs
+[[ -f $config ]] || exit 0
+
+types=(DESKTOP DOWNLOAD TEMPLATES PUBLICSHARE DOCUMENTS MUSIC PICTURES VIDEOS PROJECTS)
+folders=(Desktop Downloads Templates Public Documents Music Pictures Videos Projects)
+home_count=0
+for type in "${types[@]}"; do
+    if grep -Fqx "XDG_${type}_DIR=\"\$HOME/\"" "$config"; then
+        ((home_count += 1))
+    fi
+done
+
+# Opravovat jen vsech devet chybnych cest, pripadne osm po drivejsi oprave Downloads.
+if ((home_count == 8)); then
+    grep -Fqx 'XDG_DOWNLOAD_DIR="$HOME/Downloads"' "$config" || exit 0
+else
+    ((home_count == 9)) || exit 0
+fi
+
+backup=${XDG_STATE_HOME:-$HOME/.local/state}/luxos/user-dirs.dirs.before-wayland-repair
+umask 077
+mkdir -p "${backup%/*}"
+if [[ ! -e $backup ]]; then
+    install -m600 -- "$config" "$backup"
+fi
+
+for i in "${!types[@]}"; do
+    type=${types[i]}
+    folder=${folders[i]}
+    [[ -d $HOME/$folder ]] || continue
+    if grep -Fqx "XDG_${type}_DIR=\"\$HOME/\"" "$config"; then
+        xdg-user-dirs-update --set "$type" "$HOME/$folder"
+    fi
+done

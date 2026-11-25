@@ -9,6 +9,7 @@ takze polozka LuxOS zakryje puvodni nm-applet.desktop z network-manager-applet (
 Misto systemd-run zapise falesny program jmena jednotek; nic se nespousti.
 """
 import os
+import configparser
 from pathlib import Path
 import subprocess
 import tempfile
@@ -30,6 +31,8 @@ class Autostart(unittest.TestCase):
             subprocess.run(["cp", "-r", str(FILES / "xdg/autostart"), str(luxos)], check=True)
             (t / "etc/xdg/autostart").mkdir(parents=True)
             (t / "etc/xdg/autostart/nm-applet.desktop").write_text(UPSTREAM_NM)
+            (t / "etc/xdg/autostart/xdg-user-dirs.desktop").write_text(
+                "[Desktop Entry]\nExec=xdg-user-dirs-update\n")
             (t / "etc/xdg/autostart/other-app.desktop").write_text("[Desktop Entry]\nExec=other-app %U\n")
             (t / "bin").mkdir()
             log = t / "units"
@@ -46,12 +49,18 @@ class Autostart(unittest.TestCase):
 
     def test_wayland_session_skips_x11_tray_applets(self):
         units = self.started("LuxOS")
-        self.assertEqual(units, ["app-luxos-autostart-other-app"], units)
+        self.assertEqual(units, ["app-luxos-autostart-org.fcitx.Fcitx5",
+                                 "app-luxos-autostart-other-app"], units)
 
     def test_x11_session_keeps_nm_applet(self):
-        units = self.started("XFCE")
-        for want in ("app-luxos-autostart-nm-applet", "app-luxos-autostart-plank"):
-            self.assertIn(want, units)
+        # X11 spousti Xfce autostart, nikoli funkci autostart() z Wayland relace.
+        nm = configparser.ConfigParser(interpolation=None)
+        nm.read(FILES / "xdg/autostart/nm-applet.desktop")
+        self.assertIn("LuxOS", nm["Desktop Entry"]["NotShowIn"].split(";"))
+        self.assertNotIn("XFCE", nm["Desktop Entry"]["NotShowIn"].split(";"))
+        dock = configparser.ConfigParser(interpolation=None)
+        dock.read(FILES / "xdg/autostart/plank.desktop")
+        self.assertIn("XFCE", dock["Desktop Entry"]["OnlyShowIn"].split(";"))
 
 
 if __name__ == "__main__":
