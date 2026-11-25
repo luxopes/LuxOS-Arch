@@ -7,6 +7,12 @@ export XCURSOR_THEME=WhiteSur-cursors XCURSOR_SIZE=24 GDK_BACKEND=wayland,x11
 # bez gvfsd a portalu: greeter soubory neotevira (o ~10 MB mene v uzivateli greeter)
 export GIO_USE_VFS=local GTK_USE_PORTAL=0
 
+# Vystup do systemoveho zurnalu, ne na obrazovku: greetd napojil stdout/stderr na tty1 a pri prihlaseni a odhlaseni
+# by se tam na okamzik objevil text konzole (hlasky luxwm, luxcomp, systemctl), nez se obrazovka prepne do grafiky.
+# Uzivatel z Windows by si myslel, ze se pocitac rozbil. (journalctl -t luxos-greeter)
+if [[ -t 2 ]] && command -v systemd-cat >/dev/null; then
+    exec > >(exec systemd-cat -t luxos-greeter) 2>&1
+fi
 legacy_gpu() {
     local v
     v=$(cat /sys/module/nvidia/version 2>/dev/null) || return 1

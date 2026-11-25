@@ -3,7 +3,9 @@
  * brani necinnosti, jen dokud je jeho okno videt) a xdg-activation-v1 (tokeny: kdo smi
  * zamerit jine okno, rozhoduje politika podle puvodu tokenu).
  */
+#include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
@@ -20,6 +22,28 @@ void
 idle_activity(void)
 {
 	wlr_idle_notifier_v1_notify_activity(comp.idle, comp.seat);
+}
+
+static int64_t
+monotonic_ms(void)
+{
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	return t.tv_sec * 1000LL + t.tv_nsec / 1000000;
+}
+
+/* Stisk klavesy, tlacitka nebo dotyk (pohyb mysi ne): politika podle nej povoli aktivaci okna bez tokenu
+ * kratce po akci uzivatele (odkaz z terminalu otevre bezici prohlizec), jako xfwm4 podle casu udalosti */
+void
+input_pressed(void)
+{
+	comp.last_press_ms = monotonic_ms();
+}
+
+int64_t
+luxcomp_input_idle_ms(void)
+{
+	return comp.last_press_ms ? monotonic_ms() - comp.last_press_ms : 1000000000000LL;
 }
 
 static bool

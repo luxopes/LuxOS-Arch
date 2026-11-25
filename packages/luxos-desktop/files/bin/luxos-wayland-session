@@ -9,6 +9,12 @@
 #   luxos-wayland-session            relace (greetd)
 #   luxos-wayland-session --started  (spousti luxwm, az ma socket) predani prostredi a start shellu
 set -u
+# Vystup do systemoveho zurnalu, ne na obrazovku: greetd napojil stdout/stderr na tty1 a pri prihlaseni a odhlaseni
+# by se tam na okamzik objevil text konzole (hlasky luxwm, luxcomp, systemctl), nez se obrazovka prepne do grafiky.
+# Uzivatel z Windows by si myslel, ze se pocitac rozbil. (journalctl -t luxos-wayland-session)
+if [[ -t 2 ]] && command -v systemd-cat >/dev/null; then
+    exec > >(exec systemd-cat -t luxos-wayland-session) 2>&1
+fi
 cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
 # promenne, ktere potrebuji uzivatelske jednotky a aktivace pres D-Bus (na konci relace se zase smazou,
 # jinak by je dalsi prihlaseni do X11 nebo nova relace zdedily se starym socketem)

@@ -104,6 +104,9 @@ fun hide_password() {
 }
 
 fun display_normal_cb() {
+    # konec zadavani hesla k disku (heslo proslo): chyba ze spatneho pokusu ("Passphrase incorrect")
+    # uz neplati a nesmi zustat na obrazovce az do konce startu
+    if (password_mode) message.sprite.SetOpacity(0);
     hide_password();
 }
 
@@ -143,8 +146,14 @@ fun message_cb(text) {
     message.image = Image.Text(text, text_r, text_g, text_b, 0.7, "Sans 10");
     message.sprite.SetImage(message.image);
     message.sprite.SetPosition(screen_x + screen_w / 2 - message.image.GetWidth() / 2, screen_y + screen_h * 0.9, 30);
+    message.sprite.SetOpacity(1);
 }
 Plymouth.SetMessageFunction(message_cb);
+
+fun hide_message_cb(text) {
+    message.sprite.SetOpacity(0);
+}
+Plymouth.SetHideMessageFunction(hide_message_cb);
 
 fun quit_cb() {
     logo.sprite.SetOpacity(1);

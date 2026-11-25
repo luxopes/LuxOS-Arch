@@ -8,7 +8,10 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 #include <wlr/backend.h>
+#include <wlr/backend/drm.h>
 #include <wlr/backend/session.h>
 #include <wlr/backend/headless.h>
 #include <wlr/backend/multi.h>
@@ -88,6 +91,83 @@ send_frame_done(struct wlr_scene_buffer *buffer, int sx, int sy, void *data)
 	if (ss && buffer->primary_output == fd->scene_output) {
 		wlr_surface_send_frame_done(ss->surface, fd->when);
 	}
+}
+
+/* ---- frame callbacky viditelnych oken ----
+ * wlr_scene posila frame callback jen povrchum, ktere ma za viditelne na vystupu (primary_output): podpovrch
+ * zakryty jinym nepruhlednym povrchem, bez obsahu nebo mimo orez nedostane nic. Firefox (WebGL, video) si
+ * kresleni ridi frame callbacky na svem podpovrchu; kdyz neprijdou, prestane kreslit a probudi ho az vstup
+ * (hra stoji, po kliknuti se na chvili rozjede). Proto: kazdy snimek vystupu frame callback vsem povrchum
+ * viditelnych oken na nem a commit, ktery ceka na frame callback, naplanuje snimek (i bez noveho obsahu). */
+
+static struct output *
+view_output(struct view *v)
+{
+	struct output *o = output_by_id(luxcomp_view_get(v->id, LUXCOMP_VIEW_OUTPUT));
+	if (!o && !wl_list_empty(&comp.outputs)) {
+		o = wl_container_of(comp.outputs.next, o, link);
+	}
+	return o;
+}
+
+static void
+surface_frame_done(struct wlr_surface *surface, int sx, int sy, void *data)
+{
+	wlr_surface_send_frame_done(surface, data);
+}
+
+static void
+views_frame_done(struct output *o, struct timespec *when)
+{
+	struct view *v;
+	wl_list_for_each(v, &comp.views_list, link) {
+		struct wlr_surface *surface = view_surface(v);
+		if (surface && view_shown(v) && view_output(v) == o) {
+			wlr_surface_for_each_surface(surface, surface_frame_done, when);
+		}
+	}
+}
+
+struct surface_watch {
+	struct wlr_surface *surface;
+	struct wl_listener commit, destroy;
+};
+
+static void
+surface_watch_commit(struct wl_listener *listener, void *data)
+{
+	struct surface_watch *w = wl_container_of(listener, w, commit);
+	if (wl_list_empty(&w->surface->current.frame_callback_list)) {
+		return;
+	}
+	struct view *v = view_from_surface(wlr_surface_get_root_surface(w->surface));
+	struct output *o = v && view_shown(v) ? view_output(v) : NULL;
+	if (o && o->wlr_output->enabled) {
+		wlr_output_schedule_frame(o->wlr_output);
+	}
+}
+
+static void
+surface_watch_destroy(struct wl_listener *listener, void *data)
+{
+	struct surface_watch *w = wl_container_of(listener, w, destroy);
+	wl_list_remove(&w->commit.link);
+	wl_list_remove(&w->destroy.link);
+	free(w);
+}
+
+static void
+new_surface(struct wl_listener *listener, void *data)
+{
+	struct surface_watch *w = calloc(1, sizeof(*w));
+	if (!w) {
+		return;
+	}
+	w->surface = data;
+	w->commit.notify = surface_watch_commit;
+	wl_signal_add(&w->surface->events.commit, &w->commit);
+	w->destroy.notify = surface_watch_destroy;
+	wl_signal_add(&w->surface->events.destroy, &w->destroy);
 }
 
 static void
@@ -248,6 +328,7 @@ output_frame(struct wl_listener *listener, void *data)
 	}
 	wlr_scene_output_for_each_buffer(o->scene_output, send_frame_done,
 		&(struct frame_done){ o->scene_output, &t1 });
+	views_frame_done(o, &t1);
 }
 
 /* Aktualni rozlozeni pro wlr-output-management (wlr-randr, nastaveni monitoru, harness testu).
@@ -377,6 +458,158 @@ output_request_state(struct wl_listener *listener, void *data)
 	output_config_update();
 }
 
+struct vm_device {
+	struct wlr_device *dev;
+	struct wl_listener change, remove;
+};
+
+/* ---- virtualni stroj: rozliseni podle velikosti okna ----
+ * QEMU (virtio-gpu, QXL), VirtualBox a VMware pri zmene velikosti okna hlasi hotplug s novym doporucenym rezimem
+ * na stale pripojenem konektoru. wlroots seznam rezimu nacte jen pri pripojeni, takze plocha by zustala v puvodnim
+ * rozliseni s cernymi okraji. Tady se po hotplugu precte doporuceny rezim primo z jadra a vystup se na nej prepne.
+ * Jen pro ovladace virtualni grafiky: na skutecnem monitoru rozhoduje uzivatel (Nastaveni > Monitory). */
+
+static bool
+virtual_gpu(int fd)
+{
+	static const char *names[] = { "virtio_gpu", "qxl", "vmwgfx", "vboxvideo", "bochs-drm", "bochs", "cirrus",
+		"cirrus-qemu", "hyperv_drm", NULL };
+	drmVersionPtr v = drmGetVersion(fd);
+	bool found = false;
+	for (int i = 0; v && names[i] && !found; i++) {
+		found = !strcmp(v->name, names[i]);
+	}
+	drmFreeVersion(v);
+	return found;
+}
+
+static void
+vm_resize_check(void *data)
+{
+	struct wlr_device *dev = data;
+	comp.vm_resize_idle = NULL;
+	if (!comp.session || !comp.session->active || !virtual_gpu(dev->fd)) {
+		return;
+	}
+	struct output *o;
+	wl_list_for_each(o, &comp.outputs, link) {
+		struct wlr_output *wo = o->wlr_output;
+		if (!wo->enabled || !wlr_output_is_drm(wo)) {
+			continue;
+		}
+		drmModeConnector *conn = drmModeGetConnector(dev->fd, wlr_drm_connector_get_id(wo));
+		if (!conn) {
+			continue;
+		}
+		const drmModeModeInfo *pref = NULL;
+		for (int i = 0; i < conn->count_modes && !pref; i++) {
+			if (conn->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
+				pref = &conn->modes[i];
+			}
+		}
+		if (pref && (pref->hdisplay != wo->width || pref->vdisplay != wo->height)) {
+			struct wlr_output_mode *mode = wlr_drm_connector_add_mode(wo, pref);
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			if (mode) {
+				wlr_output_state_set_mode(&state, mode);
+			} else {
+				wlr_output_state_set_custom_mode(&state, pref->hdisplay, pref->vdisplay, 0);
+			}
+			if (wlr_output_commit_state(wo, &state)) {
+				wlr_log(WLR_INFO, "luxcomp: %s follows the VM window: %dx%d", wo->name,
+					pref->hdisplay, pref->vdisplay);
+				night_output_changed(o);
+				layers_arrange(o);
+				output_config_update();
+			}
+			wlr_output_state_finish(&state);
+		}
+		drmModeFreeConnector(conn);
+	}
+}
+
+static void
+vm_device_change(struct wl_listener *listener, void *data)
+{
+	struct vm_device *d = wl_container_of(listener, d, change);
+	/* az po vlastnim zpracovani hotplugu ve wlroots (to bezi ve stejne udalosti) */
+	if (!comp.vm_resize_idle) {
+		comp.vm_resize_idle = wl_event_loop_add_idle(comp.loop, vm_resize_check, d->dev);
+	}
+}
+
+/* Hlidac hlavni smycky: casovac kazdych 100 ms; kdyz prijde o vic nez LAG_LOG_MS pozde, smycka byla zablokovana
+ * (synchronni volani, cekani na GPU) a do logu jde jeden radek. Odlisi zaseknuti kompozitoru od zaseknuti
+ * aplikace (ta kompozitor nezdrzi). */
+#define LAG_TICK_MS 100
+#define LAG_LOG_MS 250
+
+static int64_t lag_expected;
+static struct wl_event_source *lag_timer;
+
+static int64_t
+lag_now_ms(void)
+{
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	return t.tv_sec * 1000LL + t.tv_nsec / 1000000;
+}
+
+static int
+lag_tick(void *data)
+{
+	int64_t now = lag_now_ms();
+	if (lag_expected && now - lag_expected > LAG_LOG_MS) {
+		wlr_log(WLR_ERROR, "luxcomp: main loop blocked %lld ms", (long long)(now - lag_expected));
+	}
+	lag_expected = now + LAG_TICK_MS;
+	wl_event_source_timer_update(lag_timer, LAG_TICK_MS);
+	return 0;
+}
+
+static void
+lag_init(void)
+{
+	lag_timer = wl_event_loop_add_timer(comp.loop, lag_tick, NULL);
+	if (lag_timer) {
+		lag_tick(NULL);
+	}
+}
+
+static void
+vm_device_remove(struct wl_listener *listener, void *data)
+{
+	struct vm_device *d = wl_container_of(listener, d, remove);
+	if (comp.vm_resize_idle) {
+		wl_event_source_remove(comp.vm_resize_idle);
+		comp.vm_resize_idle = NULL;
+	}
+	wl_list_remove(&d->change.link);
+	wl_list_remove(&d->remove.link);
+	free(d);
+}
+
+static void
+vm_resize_init(void)
+{
+	if (!comp.session) {
+		return;
+	}
+	struct wlr_device *dev;
+	wl_list_for_each(dev, &comp.session->devices, link) {
+		if (!virtual_gpu(dev->fd)) {
+			continue;
+		}
+		struct vm_device *d = calloc(1, sizeof(*d));
+		d->dev = dev;
+		d->change.notify = vm_device_change;
+		wl_signal_add(&dev->events.change, &d->change);
+		d->remove.notify = vm_device_remove;
+		wl_signal_add(&dev->events.remove, &d->remove);
+	}
+}
+
 static void
 output_destroy(struct wl_listener *listener, void *data)
 {
@@ -469,6 +702,8 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 
 	security_init();
 	comp.compositor = wlr_compositor_create(comp.display, 6, comp.renderer);
+	comp.new_surface.notify = new_surface;
+	wl_signal_add(&comp.compositor->events.new_surface, &comp.new_surface);
 	wlr_subcompositor_create(comp.display);
 	wlr_data_device_manager_create(comp.display);
 	wlr_primary_selection_v1_device_manager_create(comp.display);
@@ -547,7 +782,12 @@ luxcomp_hold(int64_t timeout_ms)
 int64_t
 luxcomp_start(void)
 {
-	return wlr_backend_start(comp.backend) ? 0 : -1;
+	if (!wlr_backend_start(comp.backend)) {
+		return -1;
+	}
+	vm_resize_init();
+	lag_init();
+	return 0;
 }
 
 int64_t
@@ -602,6 +842,7 @@ luxcomp_destroy(void)
 	wl_list_remove(&comp.new_kde_decoration.link);
 	wl_list_remove(&comp.new_layer_surface.link);
 	wl_list_remove(&comp.new_output.link);
+	wl_list_remove(&comp.new_surface.link);
 	wl_list_remove(&comp.new_input.link);
 	wl_list_remove(&comp.output_mgr_apply.link);
 	wl_list_remove(&comp.output_mgr_test.link);

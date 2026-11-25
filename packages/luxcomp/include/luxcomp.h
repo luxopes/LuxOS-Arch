@@ -58,6 +58,9 @@ enum luxcomp_event {
 	LUXCOMP_EV_CAPS_LOCK,		/* a=1 Caps Lock on, 0 off (keyboard that typed last) */
 	LUXCOMP_EV_SUPER_ALONE,		/* Super pressed and released without any other key */
 	LUXCOMP_EV_MODIFIERS,		/* a=LUXCOMP_MOD_* held by the active keyboard */
+	LUXCOMP_EV_MOVE_EDGE,		/* id=view being moved a=-1 left, 1 right: the pointer kept pushing at the
+					 * outer edge of the layout (luxcomp_set_wrap_resistance() motion events),
+					 * like xfwm4 wrap_windows; the policy may switch workspace and warp */
 };
 
 enum luxcomp_request {
@@ -239,6 +242,8 @@ void luxcomp_output_set(int64_t output, int64_t prop, int64_t value);	/* LUXCOMP
  * backend) and unplug it again. Real (DRM) outputs are never touched. */
 int64_t luxcomp_test_output_add(int64_t width, int64_t height);
 void luxcomp_test_output_remove(int64_t output);
+void luxcomp_set_wrap_resistance(int64_t events);	/* LUXCOMP_EV_MOVE_EDGE after so many motion events at the edge (0 = never) */
+void luxcomp_cursor_warp(int64_t x, int64_t y);		/* move the pointer; a window being moved follows it */
 int64_t luxcomp_cursor_x(void);
 int64_t luxcomp_cursor_y(void);
 
@@ -290,6 +295,7 @@ int64_t luxcomp_bind_key(int64_t mods, const char *key);
 /* Stejne jako bind_key, ale drzeny klavesovy vstup opakuje az do uvolneni klavesy. */
 int64_t luxcomp_bind_key_repeat(int64_t mods, const char *key);
 void luxcomp_unbind_key(int64_t binding);
+int64_t luxcomp_input_idle_ms(void);		/* ms since the last key/button press (10^12 = none yet) */
 int64_t luxcomp_modifiers(void);			/* LUXCOMP_MOD_* currently held */
 /* Keyboard layouts of the keymap from luxcomp_set_keymap() ("us,cz" = 2 layouts) */
 void luxcomp_set_layout(int64_t index);

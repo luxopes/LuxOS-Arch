@@ -38,6 +38,7 @@ EV_VIEW_CONTENT_TYPE = 23
 EV_CAPS_LOCK = 24
 EV_SUPER_ALONE = 25
 EV_MODIFIERS = 26
+EV_MOVE_EDGE = 27
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -530,6 +531,29 @@ end
 function unbind_key(binding):
     unsafe:
         call __lsl_qbe_call1(__lsl_symbol("luxcomp_unbind_key"), ptr(binding))
+    end
+end
+
+# Udalost EV_MOVE_EDGE po tolika pohybech ukazatele na okraji pri tazeni okna (0 = nikdy)
+function set_wrap_resistance(events):
+    unsafe:
+        call __lsl_qbe_call1(__lsl_symbol("luxcomp_set_wrap_resistance"), __lsl_unbox_int(events))
+    end
+    return 0
+end
+
+# Posun ukazatele; tazene okno jede s nim
+function cursor_warp(x, y):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("luxcomp_cursor_warp"), __lsl_unbox_int(x), __lsl_unbox_int(y))
+    end
+    return 0
+end
+
+# ms od posledniho stisku klavesy nebo tlacitka mysi (pohyb se nepocita)
+function input_idle_ms():
+    unsafe:
+        return __lsl_qbe_call0(__lsl_symbol("luxcomp_input_idle_ms"))
     end
 end
 

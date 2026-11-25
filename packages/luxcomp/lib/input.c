@@ -248,6 +248,9 @@ keyboard_key(struct wl_listener *listener, void *data)
 	struct wlr_keyboard_key_event *event = data;
 	uint32_t keycode = event->keycode + 8;
 	idle_activity();
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		input_pressed();
+	}
 
 	if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
 		if (kb->repeat_keycode == keycode)
@@ -610,6 +613,38 @@ keep_reachable(struct view *v, int *x, int *y)
 	}
 }
 
+/* Tazeni okna na vnejsi okraj rozlozeni (xfwm4 wrap_windows): ukazatel na okraji tlaci dal
+ * (pohyby, ktere uz kurzor neposunou) -> po wrap_resistance pohybech udalost pro politiku */
+static struct {
+	int resistance;		/* 0 = vypnuto */
+	int dir, count;
+} wrap = { 10, 0, 0 };
+
+static void
+wrap_check(struct view *v, double cx)
+{
+	struct wlr_box all;
+	wlr_output_layout_get_box(comp.layout, NULL, &all);
+	int dir = cx <= all.x ? -1 : cx >= all.x + all.width - 1 ? 1 : 0;
+	if (!dir || !wrap.resistance) {
+		wrap.dir = wrap.count = 0;
+		return;
+	}
+	wrap.count = dir == wrap.dir ? wrap.count + 1 : 1;
+	wrap.dir = dir;
+	if (wrap.count >= wrap.resistance) {
+		wrap.dir = wrap.count = 0;
+		emit(LUXCOMP_EV_MOVE_EDGE, v->id, dir, 0, 0);
+	}
+}
+
+void
+luxcomp_set_wrap_resistance(int64_t events)
+{
+	wrap.resistance = events > 0 ? events : 0;
+	wrap.dir = wrap.count = 0;
+}
+
 static void
 process_grab(void)
 {
@@ -619,6 +654,7 @@ process_grab(void)
 		int x = lround(cx - comp.grab_x), y = lround(cy - comp.grab_y);
 		keep_reachable(v, &x, &y);
 		luxcomp_view_move(v->id, x, y);
+		wrap_check(v, cx);
 		return;
 	}
 	struct wlr_box b = comp.grab_box;
@@ -728,6 +764,9 @@ cursor_button(struct wl_listener *listener, void *data)
 	struct wlr_pointer_button_event *e = data;
 	bool pressed = e->state == WL_POINTER_BUTTON_STATE_PRESSED;
 	idle_activity();
+	if (pressed) {
+		input_pressed();
+	}
 	struct view *v;
 	struct layer *l;
 	struct wlr_surface *surface;
@@ -962,6 +1001,20 @@ input_finish(void)
 }
 
 /* ---- API ---- */
+
+void
+luxcomp_cursor_warp(int64_t x, int64_t y)
+{
+	wlr_cursor_warp_closest(comp.cursor, NULL, x, y);
+	if (comp.grab == GRAB_MOVE && comp.grab_view) {
+		/* okno jede s ukazatelem; okraj se pocita znovu od nuly */
+		int vx = lround(comp.cursor->x - comp.grab_x), vy = lround(comp.cursor->y - comp.grab_y);
+		keep_reachable(comp.grab_view, &vx, &vy);
+		luxcomp_view_move(comp.grab_view->id, vx, vy);
+		wrap.dir = wrap.count = 0;
+	}
+	cursor_rebase();
+}
 
 int64_t
 luxcomp_cursor_x(void)

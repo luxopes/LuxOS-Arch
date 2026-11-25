@@ -167,6 +167,7 @@ end
 function load_config():
     global settings
     general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "yes",
+               "wrap_windows": "yes", "wrap_resistance": "10",
                "xwayland": "yes", "displays_command": "", "blur": "yes", "vrr": "fullscreen", "tearing": "yes",
                "night_light": "off", "night_light_temperature": "4000", "night_light_from": "21:00", "night_light_to": "07:00"}
     keys = {}
@@ -925,6 +926,19 @@ function place_area(out):
 end
 
 # Ram okna (obsah + zahlavi kompozitoru): [x, y, w, h]
+# Okno cele do pouzitelne plochy u: vetsi se zmensi (ne pod minimum), pak se posune dovnitr
+function keep_inside(v, u):
+    call fit_size(v, vget(v, lc.VIEW_W), vget(v, lc.VIEW_H), u)
+    f = frame(v)
+    x = max(u[0], min(f[0], u[0] + u[2] - f[2]))
+    y = max(u[1], min(f[1], u[1] + u[3] - f[3]))
+    if x != f[0] or y != f[1]:
+        call lc.view_move(v, x, y + vget(v, lc.VIEW_DECO_TOP))
+        call note("inside " + String(v) + " " + String(x) + "," + String(y))
+    end
+    return 0
+end
+
 function frame(v):
     top = vget(v, lc.VIEW_DECO_TOP)
     return [vget(v, lc.VIEW_X), vget(v, lc.VIEW_Y) - top, vget(v, lc.VIEW_W), vget(v, lc.VIEW_H) + top]
@@ -1312,12 +1326,20 @@ end
 sliding = {"on": False}
 
 function update_layers(active):
+    demoted = False
     o = lc.view_next(0)
     while o != 0:
         if o in full:
-            call lc.view_set_layer(o, lc.LAYER_FULLSCREEN if o == active and not sliding["on"] else lc.LAYER_NORMAL)
+            layer = lc.LAYER_FULLSCREEN if o == active and not sliding["on"] else lc.LAYER_NORMAL
+            demoted = demoted or (layer == lc.LAYER_NORMAL and vget(o, lc.VIEW_LAYER) == lc.LAYER_FULLSCREEN)
+            call lc.view_set_layer(o, layer)
         end
         o = lc.view_next(o)
+    end
+    # okno vracene z vrstvy cele obrazovky prijde do stromu plochy navrch: zamerene okno (Alt+Tab z Firefoxu
+    # na cele obrazovce na terminal) by zustalo pod nim
+    if demoted and active != 0 and not (active in full):
+        call lc.view_raise(active)
     end
 end
 
@@ -1370,6 +1392,9 @@ function show(v, remember):
         call lc.view_raise(child)
         target = child
     end
+    if vget(target, lc.VIEW_FOCUSED) == 0:
+        focus_change["at"] = glib.monotonic_time()
+    end
     call lc.view_focus(target)
     if remember:
         call to_front(v)
@@ -1383,6 +1408,7 @@ end
 
 function focus(v):
     if v == 0:
+        focus_change["at"] = glib.monotonic_time()
         call lc.view_focus(0)
         call update_layers(0)
         call note("focus 0")
@@ -1750,6 +1776,8 @@ end
 # pridani; jeji okna prejdou na posledni zbyvajici plochu
 function apply_workspaces():
     global cur
+    # tazene okno na okraji obrazovky prejde na vedlejsi plochu (xfwm4 wrap_windows, wrap_resistance)
+    call lc.set_wrap_resistance(setting_int("wrap_resistance", 1, 100) if settings.get("wrap_windows", "yes") == "yes" else 0)
     count = setting_int("workspaces", 1, 16)
     if count == len(ws):
         return
@@ -1790,6 +1818,46 @@ function step_index(delta):
         index = (index + len(ws)) % len(ws)
     end
     return index
+end
+
+# Tazene okno dojelo na levy/pravy okraj obrazovky a tlaci dal (luxcomp EV_MOVE_EDGE): jako xfwm4 wrap_windows
+# okno i uzivatel na vedlejsi plochu (s wrap_workspaces dokola), ukazatel na protejsi okraj 10 px od nej,
+# tah pokracuje
+WRAP_INSET = 10
+
+function move_wrap(v, dir):
+    if settings.get("wrap_windows", "yes") != "yes" or len(ws) < 2 or v == 0:
+        return
+    end
+    index = step_index(dir)
+    if index < 0 or index >= len(ws) or index == cur:
+        return
+    end
+    left = 0
+    right = 0
+    first = True
+    for out in outputs:
+        w = lc.output_get(out, lc.OUT_W)
+        if w <= 0:
+            continue
+        end
+        x = lc.output_get(out, lc.OUT_X)
+        if first or x < left:
+            left = x
+        end
+        if first or x + w > right:
+            right = x + w
+        end
+        first = False
+    end
+    if first:
+        return
+    end
+    call lc.view_set_workspace(v, ws[index])
+    call switch_to(index, dir)
+    x = left + WRAP_INSET if dir > 0 else right - 1 - WRAP_INSET
+    call lc.cursor_warp(x, lc.cursor_y())
+    call note("wrap " + String(v) + " workspace " + String(index + 1))
 end
 
 # Presun okna na jinou plochu (jako xfwm4 move_window_*: okno odejde, uzivatel zustava)
@@ -2057,8 +2125,15 @@ function forget(v):
 end
 
 # Lista nebo Dock zmenily pouzitelnou plochu (exkluzivni zony): prizpusobit okna na monitoru
+# Velikost monitoru pri posledni zmene pouzitelne plochy: zmena rozliseni (okno virtualniho stroje, Nastaveni >
+# Monitory) vrati okna cela na obrazovku jako xfwm4; zmena jen pouzitelne plochy (Dock, lista) okna nehybe
+output_size = {}
+
 function usable_changed(out):
     u = usable(out)
+    size = [lc.output_get(out, lc.OUT_W), lc.output_get(out, lc.OUT_H)]
+    resized = out in output_size and output_size[out] != size
+    output_size[out] = size
     o = lc.view_next(0)
     while o != 0:
         if output_of(o) == out:
@@ -2068,6 +2143,8 @@ function usable_changed(out):
                 call fit_maximized(o)
             elif o in tiled:
                 call fit_tiled(o)
+            elif resized and vget(o, lc.VIEW_MAPPED) == 1:
+                call keep_inside(o, u)
             else:
                 call keep_reachable(o)
             end
@@ -2126,6 +2203,19 @@ end
 # xdg-activation a Dock: okno jine aplikace se zameri jen s tokenem od zamerene aplikace nebo
 # od shellu (Dock, spoustec, luxwm), pak i s prepnutim plochy (xfwm4 activate_action=switch).
 # Okno ze sandboxu tedy aktivuje jen sandbox, ktery prave ma zamereni.
+ACTIVATE_AFTER_INPUT_MS = 4000
+# cas posledni zmeny zamereni (glib.monotonic_time, us)
+focus_change = {"at": 0}
+
+# Posledni stisk klavesy/tlacitka prisel do prave zamereneho okna (kratce, a az po posledni zmene zamereni):
+# klik na odkaz v terminalu ano; Alt+Tab nebo klik do jineho okna zamereni meni az po stisku, takze ne
+# (jinak by si fokus hned vzalo zpet okno, ktere ho prave ztratilo, napr. Firefox na cele obrazovce)
+function input_for_focused():
+    idle = lc.input_idle_ms()
+    focused_for = (glib.monotonic_time() - focus_change["at"]) // 1000
+    return idle < ACTIVATE_AFTER_INPUT_MS and focused_for > idle + 30
+end
+
 function activate(v, origin, source):
     current = focused()
     allowed = origin == lc.ORIGIN_SHELL or origin == lc.ORIGIN_TASKBAR
@@ -2135,6 +2225,13 @@ function activate(v, origin, source):
         # bez tokenu jen okna aplikace, ktera ma zamereni (zadne kradeze)
         allowed = (current != 0 and on_current(v) and sandbox_id(current) == sandbox_id(v)
                    and lc.view_app_id(current) == lc.view_app_id(v))
+    end
+    # ... nebo kratce po stisku klavesy/tlacitka: terminal a jine programy token spustenemu programu nepredaji, takze
+    # bezici prohlizec pozada s tokenem ze sveho okna (nebo bez nej) a odkaz z terminalu by ho jen tise oznacil
+    # (X11: xfwm4 podle casu udalosti povoli). Okno ze sandboxu smi jen, kdyz ma zamereni jeho sandbox.
+    if (not allowed and (origin == lc.ORIGIN_VIEW or origin == lc.ORIGIN_CLIENT) and current != 0 and v != current
+            and input_for_focused()):
+        allowed = sandbox_id(v) == "" or (current != 0 and sandbox_id(current) == sandbox_id(v))
     end
     if not allowed:
         call note("activate refused " + String(v) + " origin " + String(origin))
@@ -2303,6 +2400,8 @@ function handle(event, id, a, b, c):
         end
     elif event == lc.EV_MODS_RELEASED:
         call cycle_end(False)
+    elif event == lc.EV_MOVE_EDGE:
+        call move_wrap(id, a)
     elif event == lc.EV_SUPER_ALONE:
         call lc.spawn("luxos-launchpad")
     elif event == lc.EV_VIEW_REQUEST:
@@ -2935,6 +3034,13 @@ function stop():
     # odhlaseni a vypnuti spadnou na ztrate displeje a systemd je hlasi jako selhane
     if glib.getenv("XDG_SESSION_DESKTOP") == "luxos" and not session_stopped["done"]:
         session_stopped["done"] = True
+        # Aplikace spustene v relaci (Spoustec, Dock, terminal: jednotky v app.slice bez vazby na relaci) skonci
+        # s odhlasenim jako na X11: jinak hraje hudba z Firefoxu dal a pristi spusteni Firefoxu jen posle "otevri
+        # okno" jeho kopii bez displeje. 5 s na slusne ukonceni (Firefox ulozi relaci), co zbyde, natvrdo.
+        call log("stopping session apps")
+        apps = "'app-luxos-*.scope' 'luxos-terminal-tab-*.scope' luxos-terminal2.service"
+        call lglib.spawn_sync_quiet(["sh", "-c", "timeout 5 systemctl --user stop " + apps + "; " +
+                                     "systemctl --user kill --signal=SIGKILL " + apps + " 2>/dev/null"])
         call log("stopping the session shell")
         call lglib.spawn_sync_quiet(["timeout", "3", "systemctl", "--user", "stop", "luxos-session.target",
                                         "graphical-session.target"])

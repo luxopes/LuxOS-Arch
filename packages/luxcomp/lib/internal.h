@@ -167,6 +167,7 @@ struct comp {
 	size_t n_privileged;
 	struct wlr_security_context_manager_v1 *security;
 	struct wlr_xdg_activation_v1 *activation;
+	int64_t last_press_ms;		/* posledni stisk klavesy/tlacitka (CLOCK_MONOTONIC), luxcomp_input_idle_ms */
 	struct wlr_idle_notifier_v1 *idle;
 	struct wlr_idle_inhibit_manager_v1 *inhibit;
 	bool idle_inhibit;		/* luxcomp_idle_inhibit(): the policy keeps the screen on */
@@ -175,6 +176,8 @@ struct comp {
 	struct wlr_xwayland *xwayland;
 	struct wlr_compositor *compositor;
 	struct wlr_session *session;	/* NULL without DRM (headless, nested) */
+	struct wl_event_source *vm_resize_idle;
+	struct wl_listener new_surface;	/* frame callbacky viditelnych oken (core.c) */	/* kontrola rezimu virtualni grafiky po hotplugu */
 	struct wl_listener activate, new_token, new_inhibitor, toplevel_capture,
 		new_lock, lock_surface, lock_unlock, lock_destroy, xwayland_surface,
 		xwayland_ready;
@@ -308,6 +311,7 @@ void foreign_map(struct view *v);
 void foreign_unmap(struct view *v);
 void foreign_update(struct view *v);
 void foreign_capture_clip(struct view *v);
+void input_pressed(void);
 
 /* lock.c */
 void lock_init(void);
