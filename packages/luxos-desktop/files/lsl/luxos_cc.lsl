@@ -1160,7 +1160,7 @@ function toggle():
     # prvni vykresleni (Python je mel ve vlakne)
     call glib.idle_add(refresh_slow_once)
     if cc["timer"] == 0:
-        cc["timer"] = glib.timeout_add_seconds(3, periodic)
+        cc["timer"] = glib.timeout_add_seconds(1, periodic)
     end
     call log_test("shown")
     # test: tazeni posuvnikem (LUXOS_CC_TEST_SLIDE = pocet zmen po 5 ms; LUXOS_CC_TEST_SLIDER = s_bright, jinak Zvuk)
@@ -1726,6 +1726,7 @@ end
 # Obnova jen pri zobrazenem okne (skryte okno na pozadi se zbytecne nebudi)
 function periodic():
     if gtk.widget_get_visible(cc["win"]):
+        call refresh_fast()
         call refresh_slow()
         return True
     end

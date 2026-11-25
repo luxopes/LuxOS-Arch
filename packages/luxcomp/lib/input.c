@@ -39,11 +39,15 @@ struct keyboard {
 	uint32_t swallowed[8];		/* klavesy zkratek: jejich uvolneni klient nedostane */
 	bool own_keymap;		/* virtualni klavesnice s keymapou klienta */
 	bool resend_mods;		/* nova keymapa: klient si stav vynuloval, poslat ho s dalsi klavesou */
+	struct wl_event_source *repeat_timer;
+	int64_t repeat_id;
+	uint32_t repeat_keycode, repeat_mods;
 	struct wl_listener key, modifiers, keymap, destroy;
 };
 
 static bool syncing_group;
 static bool caps_lock;
+static uint32_t prev_mods;	/* predchozi stav modifikatoru pro detekci Super-alone */
 
 /* Mysi a touchpady z libinput: nastaveni podle druhu plati pro pripojena i pozdeji pripojena zarizeni */
 #define INPUT_PROPS (LUXCOMP_INPUT_SCROLL_METHOD + 1)
@@ -193,6 +197,31 @@ swallow(struct keyboard *kb, uint32_t keycode, bool add)
 	return false;
 }
 
+static void
+stop_binding_repeat(struct keyboard *kb)
+{
+	kb->repeat_id = 0;
+	kb->repeat_keycode = 0;
+	if (kb->repeat_timer)
+		wl_event_source_timer_update(kb->repeat_timer, -1);
+}
+
+static int
+repeat_binding(void *data)
+{
+	struct keyboard *kb = data;
+	if (!kb->repeat_id || comp.locked || comp.repeat_rate <= 0 ||
+		(wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK) != kb->repeat_mods) {
+		stop_binding_repeat(kb);
+		return 0;
+	}
+	emit(LUXCOMP_EV_KEYBIND, kb->repeat_id, 0, 0, 0);
+	/* Plochy se animuji; nejvyse ctyri kroky za sekundu zustanou citelne. */
+	int rate = comp.repeat_rate < 4 ? comp.repeat_rate : 4;
+	wl_event_source_timer_update(kb->repeat_timer, 1000 / rate);
+	return 0;
+}
+
 /* Ctrl+Alt+F1..F12 prepne konzoli (xkb to preklada na XF86Switch_VT_N); plati i pod zamkem,
  * zamek zustava a druha konzole ma vlastni prihlaseni */
 static bool
@@ -221,6 +250,8 @@ keyboard_key(struct wl_listener *listener, void *data)
 	idle_activity();
 
 	if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+		if (kb->repeat_keycode == keycode)
+			stop_binding_repeat(kb);
 		if (swallow(kb, keycode, false)) {
 			return;
 		}
@@ -237,11 +268,21 @@ keyboard_key(struct wl_listener *listener, void *data)
 		wl_list_for_each(b, &comp.keybinds, link) {
 			if (binding_matches(b, kb->wlr->xkb_state, keycode, mods)) {
 				swallow(kb, keycode, true);
+				if (b->repeat && comp.repeat_rate > 0 && kb->repeat_timer) {
+					kb->repeat_id = b->id;
+					kb->repeat_keycode = keycode;
+					kb->repeat_mods = mods;
+					wl_event_source_timer_update(kb->repeat_timer, comp.repeat_delay);
+				}
 				comp.binding_mods_held = mods != 0;
+				comp.super_alone = false;
 				emit(LUXCOMP_EV_KEYBIND, b->id, 0, 0, 0);
 				return;
 			}
 		}
+		/* ne-modifikatorova klavesa zrusi super-alone */
+		if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED)
+			comp.super_alone = false;
 	}
 	/* jina klavesnice: klient dostane jeji keymapu i stav (skupina rozlozeni), jinak by klavesy
 	 * vykladal se stavem predchozi klavesnice */
@@ -293,10 +334,24 @@ keyboard_modifiers(struct wl_listener *listener, void *data)
 	}
 	wlr_seat_set_keyboard(comp.seat, kb->wlr);
 	wlr_seat_keyboard_notify_modifiers(comp.seat, &kb->wlr->modifiers);
-	if (comp.binding_mods_held && !(wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK)) {
+	uint32_t cur_mods = wlr_keyboard_get_modifiers(kb->wlr) & MOD_MASK;
+	if (kb->repeat_id && cur_mods != kb->repeat_mods)
+		stop_binding_repeat(kb);
+	if (comp.binding_mods_held && !cur_mods) {
 		comp.binding_mods_held = false;
 		emit(LUXCOMP_EV_MODS_RELEASED, 0, 0, 0, 0);
 	}
+	/* Super-alone: stisk a uvolneni Super bez jine klavesy */
+	if ((cur_mods & LUXCOMP_MOD_SUPER) && !(prev_mods & LUXCOMP_MOD_SUPER))
+		comp.super_alone = true;
+	if (!(cur_mods & LUXCOMP_MOD_SUPER) && (prev_mods & LUXCOMP_MOD_SUPER)
+			&& comp.super_alone && !comp.locked) {
+		comp.super_alone = false;
+		emit(LUXCOMP_EV_SUPER_ALONE, 0, 0, 0, 0);
+	}
+	if (cur_mods != prev_mods)
+		emit(LUXCOMP_EV_MODIFIERS, 0, cur_mods, 0, 0);
+	prev_mods = cur_mods;
 	/* prepnuti volbou XKB grp:... na fyzicke klavesnici */
 	if (!kb->own_keymap) {
 		uint32_t group = xkb_state_serialize_layout(kb->wlr->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
@@ -328,6 +383,8 @@ static void
 keyboard_destroy(struct wl_listener *listener, void *data)
 {
 	struct keyboard *kb = wl_container_of(listener, kb, destroy);
+	if (kb->repeat_timer)
+		wl_event_source_remove(kb->repeat_timer);
 	wl_list_remove(&kb->key.link);
 	wl_list_remove(&kb->modifiers.link);
 	wl_list_remove(&kb->keymap.link);
@@ -342,6 +399,7 @@ new_keyboard(struct wlr_input_device *device, bool own_keymap)
 	struct keyboard *kb = calloc(1, sizeof(*kb));
 	kb->wlr = wlr_keyboard_from_input_device(device);
 	kb->own_keymap = own_keymap;
+	kb->repeat_timer = wl_event_loop_add_timer(wl_display_get_event_loop(comp.display), repeat_binding, kb);
 	if (!own_keymap) {
 		if (!comp.kb_keymap) {
 			comp.kb_keymap = make_keymap();
@@ -413,6 +471,7 @@ static struct {
 	struct wlr_surface *surface;
 	bool frozen;
 	int x, y;
+	double offset_x, offset_y;
 	struct wl_listener destroy;
 } held;
 
@@ -605,7 +664,8 @@ process_motion(uint32_t time)
 		if (!held.frozen) {
 			wlr_scene_node_coords(&held.buffer->node, &nx, &ny);
 		}
-		wlr_seat_pointer_notify_motion(comp.seat, time, comp.cursor->x - nx, comp.cursor->y - ny);
+		wlr_seat_pointer_notify_motion(comp.seat, time,
+			comp.cursor->x - nx + held.offset_x, comp.cursor->y - ny + held.offset_y);
 		return;
 	}
 	struct view *v;
@@ -706,11 +766,13 @@ cursor_button(struct wl_listener *listener, void *data)
 			== ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
 		comp.layer_focus = l->surface->surface;
 		seat_focus_surface(comp.layer_focus);
-	} else if (pressed && v && comp.layer_focus && layer_on_demand(comp.layer_focus)) {
-		/* klik do okna vraci klavesnici z vrstvy na pozadani; jine okno zameri politika */
+	} else if (pressed && comp.layer_focus && layer_on_demand(comp.layer_focus)) {
+		/* klik do okna nebo na tapetu vraci klavesnici z vrstvy na pozadani */
 		comp.layer_focus = NULL;
-		if (v == comp.focused) {
+		if (v && v == comp.focused) {
 			seat_focus_surface(view_surface(v));
+		} else if (!v) {
+			seat_focus_surface(NULL);
 		}
 	}
 	if (pressed && !held.buffer && surface && hit_buffer
@@ -720,6 +782,10 @@ cursor_button(struct wl_listener *listener, void *data)
 		struct wlr_layer_surface_v1 *ls = wlr_layer_surface_v1_try_from_wlr_surface(surface);
 		held.frozen = ls && ls->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
 		wlr_scene_node_coords(&hit_buffer->node, &held.x, &held.y);
+		/* scene buffer muze byt posunuty uvnitr wl_surface (napr. Firefox pri skalovani).
+		 * Zachovat rozdil mezi souradnici hit_test a polohou uzlu po cely tah. */
+		held.offset_x = sx - (comp.cursor->x - held.x);
+		held.offset_y = sy - (comp.cursor->y - held.y);
 		held.destroy.notify = held_destroy;
 		wl_signal_add(&hit_buffer->node.events.destroy, &held.destroy);
 	}
@@ -1019,13 +1085,13 @@ luxcomp_set_repeat(int64_t rate, int64_t delay_ms)
 	}
 }
 
-int64_t
-luxcomp_bind_key(int64_t mods, const char *key)
+static int64_t
+bind_key(int64_t mods, const char *key, bool repeat)
 {
 	if (!key) {
 		return 0;
 	}
-	struct keybind b = { .mods = mods & MOD_MASK };
+	struct keybind b = { .mods = mods & MOD_MASK, .repeat = repeat };
 	if (!strncmp(key, "code:", 5)) {
 		b.keycode = atoi(key + 5);
 		if (!b.keycode) {
@@ -1043,6 +1109,18 @@ luxcomp_bind_key(int64_t mods, const char *key)
 	nb->id = ++comp.next_id;
 	wl_list_insert(comp.keybinds.prev, &nb->link);
 	return nb->id;
+}
+
+int64_t
+luxcomp_bind_key(int64_t mods, const char *key)
+{
+	return bind_key(mods, key, false);
+}
+
+int64_t
+luxcomp_bind_key_repeat(int64_t mods, const char *key)
+{
+	return bind_key(mods, key, true);
 }
 
 void

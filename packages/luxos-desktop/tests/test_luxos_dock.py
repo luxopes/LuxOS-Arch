@@ -807,6 +807,30 @@ class DockLuxwm(DockBase):
         os.environ.pop("WLT_PRIVILEGED", None)
         super().tearDown()
 
+    def test_ctrl_click_opens_window_and_two_indicators(self):
+        self.conf(items=["test-alpha.desktop", "trash"])
+        self.start_dock()
+        x = self.centers[0]
+        self.input(f"move {x} {H - 30}", "click")
+        self.wait_line(self.dock, r" window (\d+) cz\.test\.alpha ")
+        n = len(self.dock.lines)
+        self.input("keydown ctrl", "sleep 0.1", "click", "keyup ctrl")
+        self.wait_line(self.dock, r" launch .*test-alpha.desktop", start=n)
+        self.wait_line(self.dock, r" window (\d+) cz\.test\.alpha ", start=n)
+        self.mouse(W // 2, 200)
+        time.sleep(0.5)
+        w, h, buf = self.shot(y0=H - 40)
+        def blue(dx):
+            color = px(buf, w, x + dx, h - MARGIN - 2)
+            return color[2] - max(color[0], color[1])
+        # Dve oddelene modre spicky pod stejnou ikonou, bez treti ve stredu.
+        left = max(blue(dx) for dx in range(-9, -4))
+        right = max(blue(dx) for dx in range(5, 10))
+        middle = blue(0)
+        self.assertGreater(left, 55, (left, middle, right))
+        self.assertGreater(right, 55, (left, middle, right))
+        self.assertLess(middle, min(left, right), (left, middle, right))
+
     def test_zone_placement_and_dodge_overlap(self):
         self.conf(hide="dodge")
         self.start_dock()

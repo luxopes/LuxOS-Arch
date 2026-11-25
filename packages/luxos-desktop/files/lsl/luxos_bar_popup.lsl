@@ -40,6 +40,7 @@ SYSTEM_ITEMS = [["About This Computer", "help-about-symbolic", ["luxos-about"]],
     ["Settings", "preferences-system-symbolic", ["luxos-settings"]],
     ["Launchpad", "view-app-grid-symbolic", ["luxos-launchpad"]]]
 SYSTEM_POWER = [["Lock Screen", "system-lock-screen-symbolic", ["sh", "-c", "exec loginctl lock-session \"${XDG_SESSION_ID:-auto}\""]],
+    ["Suspend", "weather-clear-night-symbolic", ["systemctl", "suspend"]],
     ["Sign Out", "system-log-out-symbolic", ["sh", "-c", "exec loginctl terminate-session \"${XDG_SESSION_ID:-auto}\""]],
     ["Restart", "system-reboot-symbolic", ["systemctl", "reboot"]],
     ["Shut Down", "system-shutdown-symbolic", ["systemctl", "poweroff"]]]
@@ -256,6 +257,7 @@ function toggle(kind, monitor, output, out_w, out_h, scale, center_x, button, ev
     elif kind == "wifi":
         P["wifi"]["loaded"] = False
         call wifi_refresh(True)
+        call wifi_tick_start()
     elif kind == "sound":
         call sound_refresh()
     else:
@@ -495,6 +497,9 @@ function wifi_refresh(scan):
     call lglib.spawn_capture(["nmcli", "-t", "-f", "WIFI", "general"], on_wifi_radio, 0)
     call lglib.spawn_capture(["nmcli", "-t", "-f", "DEVICE,TYPE", "device"], on_wifi_iface, 0)
     call lglib.spawn_capture(["nmcli", "-t", "-f", "CONNECTIVITY", "general"], on_wifi_connectivity, 0)
+    # stav z NetworkManageru je az 2 min stary (kontrola pripojeni, 30-luxos-connectivity.conf): pri otevreni
+    # nova kontrola, at je "Prihlasit se" videt hned po pripojeni k siti s portalem
+    call lglib.spawn_capture(["nmcli", "networking", "connectivity", "check"], on_wifi_connectivity, 0)
     call lglib.spawn_capture(["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "no"], on_wifi_list, 0)
     if scan and lglib.now() - P["wifi"]["scan"] > 10:
         P["wifi"]["scan"] = lglib.now()
@@ -515,14 +520,31 @@ function on_wifi_rescanned(bound, pid, status):
     return 0
 end
 
+# Portal hlasi NetworkManager, nebo ho nasel luxos-hub (luxos-portal-check: s Tailscale/VPN DNS NetworkManager
+# za portalem hlasi jen "omezene" pripojeni) - stejne jako ikona v liste (luxos_bar_status)
 function on_wifi_connectivity(unused, output, status):
-    P["wifi"]["portal"] = output.strip() == "portal"
+    value = output.strip()
+    if value == "":
+        return 0
+    end
+    runtime = glib.getenv("XDG_RUNTIME_DIR")
+    found = runtime != None and runtime != "" and len(lglib.stat(runtime + "/luxos-portal")) > 0
+    portal = value == "portal" or (value != "full" and found)
+    if portal == P["wifi"].get("portal", False):
+        return 0
+    end
+    P["wifi"]["portal"] = portal
     call wifi_render()
     return 0
 end
 
 function on_wifi_radio(unused, output, status):
-    P["wifi"]["enabled"] = output.strip() == "enabled"
+    enabled = output.strip() == "enabled"
+    if enabled == P["wifi"]["enabled"] and P["wifi"].get("radio_known", False):
+        return 0
+    end
+    P["wifi"]["radio_known"] = True
+    P["wifi"]["enabled"] = enabled
     sw = P["w"].get("wifi_switch", 0)
     if sw != 0:
         P["wifi"]["lock"] = True
@@ -546,6 +568,7 @@ end
 
 # Site: jedna polozka na SSID (nejsilnejsi), pripojena nahore, ostatni podle signalu
 function on_wifi_list(unused, output, status):
+    was_loaded = P["wifi"]["loaded"]
     P["wifi"]["loaded"] = True
     best = {}
     for line in output.split("\n"):
@@ -580,9 +603,51 @@ function on_wifi_list(unused, output, status):
     for k in sorted(keys):
         ordered.append(nets[k % 1000])
     end
+    # pravidelne obnoveni (wifi_tick): prekreslit jen pri zmene, at seznam neblika pod mysi
+    key = json.encode(ordered)
+    if was_loaded and P["wifi"].get("drawn_nets", "") == key:
+        return 0
+    end
     P["wifi"]["nets"] = ordered
+    P["wifi"]["drawn_nets"] = key
     call wifi_render()
     return 0
+end
+
+# Otevrena nabidka Wi-Fi se obnovuje sama jako v Androidu: seznam z mezipameti NetworkManageru kazde
+# WIFI_TICK s (vysledky hledani, ktere "nmcli device wifi rescan" jen spusti a hned skonci), nove hledani
+# kazdych WIFI_SCAN_EVERY s a kontrola pripojeni (portal) kazdych WIFI_CHECK_EVERY s. Behem psani hesla
+# a pripojovani se seznam nemeni.
+WIFI_TICK = 3
+WIFI_SCAN_EVERY = 20
+WIFI_CHECK_EVERY = 30
+
+function wifi_tick_start():
+    P["wifi"]["tick_gen"] = P["wifi"].get("tick_gen", 0) + 1
+    P["wifi"]["checked"] = lglib.now()
+    call lglib.timeout_add_seconds_data(WIFI_TICK, wifi_tick, P["wifi"]["tick_gen"])
+    return 0
+end
+
+function wifi_tick(gen):
+    if gen != P["wifi"].get("tick_gen", 0) or not is_visible("wifi"):
+        return False
+    end
+    if P["wifi"]["ask"] != "" or P["wifi"]["pending"] != "":
+        return True
+    end
+    now = lglib.now()
+    call lglib.spawn_capture(["nmcli", "-t", "-f", "WIFI", "general"], on_wifi_radio, 0)
+    call lglib.spawn_capture(["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "no"], on_wifi_list, 0)
+    if now - P["wifi"]["scan"] >= WIFI_SCAN_EVERY:
+        P["wifi"]["scan"] = now
+        call lglib.spawn_watched_data(["nmcli", "device", "wifi", "rescan"], on_wifi_rescanned, 0)
+    end
+    if now - P["wifi"].get("checked", 0) >= WIFI_CHECK_EVERY:
+        P["wifi"]["checked"] = now
+        call lglib.spawn_capture(["nmcli", "networking", "connectivity", "check"], on_wifi_connectivity, 0)
+    end
+    return True
 end
 
 function signal_icon(sig):

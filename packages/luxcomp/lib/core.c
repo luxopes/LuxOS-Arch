@@ -476,15 +476,16 @@ luxcomp_init(luxcomp_event_fn fn, void *user)
 	wlr_single_pixel_buffer_manager_v1_create(comp.display);
 	wlr_fractional_scale_manager_v1_create(comp.display, 1);
 	wlr_presentation_create(comp.display, comp.backend, 2);
-	/* zachyceni obrazovky a schranka pro shell (grim, Dock, historie schranky): jen allowlist */
+	/* Snimani obrazovky zustava v allowlistu. Data-control potrebuji i bezne CLI aplikace
+	 * bez okna (wl-paste, Claude Code, Codex); sandbox dostane jen standardni vyber. */
 	security_mark(wlr_screencopy_manager_v1_create(comp.display)->global, GLOBAL_PRIVILEGED);
 	security_mark(wlr_ext_image_copy_capture_manager_v1_create(comp.display, 1)->global,
 		GLOBAL_PRIVILEGED);
 	security_mark(wlr_ext_output_image_capture_source_manager_v1_create(comp.display, 1)->global,
 		GLOBAL_PRIVILEGED);
 	security_mark(wlr_ext_data_control_manager_v1_create(comp.display, 1)->global,
-		GLOBAL_PRIVILEGED);
-	security_mark(wlr_data_control_manager_v1_create(comp.display)->global, GLOBAL_PRIVILEGED);
+		GLOBAL_SANDBOX_DENIED);
+	security_mark(wlr_data_control_manager_v1_create(comp.display)->global, GLOBAL_SANDBOX_DENIED);
 
 	comp.layout = wlr_output_layout_create(comp.display);
 	wlr_xdg_output_manager_v1_create(comp.display, comp.layout);

@@ -174,6 +174,7 @@ view_commit(struct wl_listener *listener, void *data)
 	if (v->deco) {
 		deco_update(v->deco);
 	}
+	foreign_capture_clip(v);
 	gaming_view_commit(v);
 	view_size_changed(v);
 }
@@ -424,17 +425,31 @@ popup_commit(struct wl_listener *listener, void *data)
 	if (!p->popup->base->initial_commit) {
 		return;
 	}
-	/* popup nesmi vyjet z vystupu (menu u okraje obrazovky) */
-	struct wlr_scene_tree *tree = p->popup->base->data;
-	int lx, ly;
+	/* popup nesmi vyjet z vystupu (menu u okraje obrazovky). wlroots chce hranice v souradnicich
+	 * korenoveho povrchu (okno nebo plocha layer-shell), ne rodice: u podnabidky by jinak byly posunute
+	 * o polohu nadrazene nabidky a podnabidka by se zbytecne otocila na druhou stranu. */
+	struct wlr_scene_tree *tree = p->popup->base->data, *root_tree = NULL;
+	struct wlr_surface *root = p->popup->parent;
+	struct wlr_xdg_surface *xdg;
+	while ((xdg = root ? wlr_xdg_surface_try_from_wlr_surface(root) : NULL)
+			&& xdg->role == WLR_XDG_SURFACE_ROLE_POPUP && xdg->popup) {
+		root = xdg->popup->parent;
+	}
+	if (xdg) {
+		root_tree = xdg->data;
+	} else if (root) {
+		struct wlr_layer_surface_v1 *ls = wlr_layer_surface_v1_try_from_wlr_surface(root);
+		root_tree = ls ? ls->data : NULL;
+	}
+	int lx, ly, rx, ry;
 	struct wlr_box box = { 0 };
-	if (tree && wlr_scene_node_coords(tree->node.parent ? &tree->node.parent->node
-			: &tree->node, &lx, &ly)) {
+	if (tree && root_tree && wlr_scene_node_coords(tree->node.parent ? &tree->node.parent->node
+			: &tree->node, &lx, &ly) && wlr_scene_node_coords(&root_tree->node, &rx, &ry)) {
 		struct output *o = output_at(lx, ly);
 		if (o) {
 			wlr_output_layout_get_box(comp.layout, o->wlr_output, &box);
-			box.x -= lx;
-			box.y -= ly;
+			box.x -= rx;
+			box.y -= ry;
 			wlr_xdg_popup_unconstrain_from_box(p->popup, &box);
 		}
 	}

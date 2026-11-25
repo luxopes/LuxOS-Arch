@@ -38,6 +38,8 @@ WIDTH = 344
 GAP = 8
 ICON = 36
 MAX_ACTIONS = 3
+# Zavrena bublina odjede doprava za okraj obrazovky (jako xfce4-notifyd na X11, slideout); ostatni stoji
+SLIDE_MS = 260
 MAX_SUMMARY = 200
 MAX_BODY = 2000
 
@@ -85,7 +87,7 @@ LOG_XML = LOG_XML + "</interface></node>"
 S = {"bus": 0, "notes": {}, "shown": [], "waiting": [], "slots": [], "window": 0, "column": 0,
      "dnd": False, "hidden": False, "paused": False, "timer": 0, "timer_record": 0, "save_id": 0,
      "save_record": 0, "css": 0, "dark": False, "tz": "", "sound": False, "banner_ms": DEFAULT_TIMEOUT,
-     "sounds_on": True, "history_on": True, "muted": [], "known": []}
+     "sounds_on": True, "history_on": True, "muted": [], "known": [], "leaving": [], "slide_timer": 0}
 
 function now_us():
     return glib.monotonic_time()
@@ -484,7 +486,7 @@ end
 function close(nid, reason):
     note = S["notes"].pop(nid)
     if note["slot"] >= 0:
-        call release_slot(note)
+        call slide_out(note)
     elif nid in S["waiting"]:
         call S["waiting"].remove(nid)
     end
@@ -713,6 +715,73 @@ function show_waiting():
     return 0
 end
 
+# Bublina pryc s odjezdem doprava: oznameni uz neexistuje, karta (slot) se uvolni az po animaci. Skryte bubliny
+# (Nerusit, vyskakovaci okno listy) a vic nez jedna odjizdejici naraz funguji taky: kazda ma vlastni posun,
+# okno vrstvy se posune o nejvetsi a ostatni karty to vyrovnaji okrajem.
+function slide_out(note):
+    slot = S["slots"][note["slot"]]
+    if S["hidden"] or not gtk.widget_get_visible(S["window"]):
+        return release_slot(note)
+    end
+    slot["nid"] = -1
+    slot["leave_start"] = glib.monotonic_time()
+    note["slot"] = -1
+    call S["shown"].remove(note["id"])
+    call gtk.widget_hide(slot["close"])
+    S["leaving"].append(slot)
+    if len(S["shown"]) == 0:
+        S["paused"] = False
+    end
+    if S["slide_timer"] == 0:
+        S["slide_timer"] = glib.timeout_add(tokens.MOTION["frame"], slide_step)
+    end
+    call slide_step()
+    return 0
+end
+
+function set_margin_end(widget, px):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_widget_set_margin_end"), __lsl_unbox_int(widget), __lsl_unbox_int(px))
+    end
+    return 0
+end
+
+function slide_step():
+    now = glib.monotonic_time()
+    offsets = {}
+    most = 0
+    for slot in S["leaving"].copy():
+        p = min(1.0, Float(now - slot["leave_start"]) / (SLIDE_MS * 1000.0))
+        if p >= 1.0:
+            call S["leaving"].remove(slot)
+            call free_slot(slot)
+            continue
+        end
+        # zrychleni na odjezdu (ease-in), cela sirka bubliny i s mezerou
+        d = Int(p * p * Float(WIDTH + GAP))
+        offsets[slot["index"]] = d
+        most = max(most, d)
+    end
+    for slot in S["slots"]:
+        call set_margin_end(slot["card"], GAP // 2 + most - offsets.get(slot["index"], 0))
+    end
+    call layer.set_margin(S["window"], layer.EDGE_RIGHT, GAP // 2 - most)
+    if len(S["leaving"]) == 0:
+        S["slide_timer"] = 0
+        call update_window()
+        return False
+    end
+    return True
+end
+
+function free_slot(slot):
+    slot["nid"] = 0
+    call gtk.widget_hide(slot["card"])
+    call gtk.widget_hide(slot["close"])
+    call gtk.image_clear(slot["icon"])
+    return 0
+end
+
 function release_slot(note):
     slot = S["slots"][note["slot"]]
     slot["nid"] = 0
@@ -730,6 +799,9 @@ function release_slot(note):
 end
 
 function update_window():
+    if len(S["leaving"]) > 0:
+        return 0
+    end
     if len(S["shown"]) == 0 or S["hidden"]:
         call gtk.widget_hide(S["window"])
         return 0
@@ -845,7 +917,7 @@ end
 
 # Prechod mysi na vnoreny widget (tlacitko) neni odchod z bubliny
 function on_enter(slot, event, widget):
-    if slot["nid"] != 0 and not sys.crossing_inferior(event):
+    if slot["nid"] > 0 and not sys.crossing_inferior(event):
         call gtk.widget_show(slot["close"])
         call pause(True)
     end
@@ -862,7 +934,7 @@ end
 
 function on_press(slot, event, widget):
     nid = slot["nid"]
-    if nid == 0:
+    if nid <= 0:
         return True
     end
     note = S["notes"][nid]
@@ -895,14 +967,14 @@ end
 
 function on_action(bound, button):
     slot = S["slots"][bound[0]]
-    if slot["nid"] != 0:
+    if slot["nid"] > 0:
         call invoke(slot["nid"], slot["keys"][bound[1]])
     end
     return 0
 end
 
 function on_close_clicked(slot, button):
-    if slot["nid"] != 0:
+    if slot["nid"] > 0:
         call close(slot["nid"], DISMISSED)
     end
     return 0
@@ -930,6 +1002,8 @@ function new_slot(index):
     # GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK
     call gtk.widget_add_events(card, 4096 + 8192 + 256)
     call gtk.widget_set_margin(card, GAP // 2)
+    # u praveho okraje okna: pri odjezdu jine bubliny se okno posune doprava a tahle to vyrovna okrajem
+    call gtk.widget_set_halign(card, gtk.ALIGN_END)
     overlay = gtk.overlay_new()
     call gtk.container_add(card, overlay)
     box = gtk.box_new(gtk.VERTICAL, 8)
@@ -1040,6 +1114,11 @@ end
 # vlastni GdkWindow, jeji alokace je v souradnicich okna. Nastavuje se az po rozlozeni (GDK ji posle s dalsim
 # commitem plochy, proto i prekresleni).
 function on_column_allocated(unused, allocation, widget):
+    # pri odjezdu bubliny hned (material kompozitoru pod kartou jede ve stejnem snimku, ne o snimek pozdeji)
+    if len(S["leaving"]) > 0:
+        call update_input(0)
+        return 0
+    end
     if not S.get("input_pending", False):
         S["input_pending"] = True
         call lglib.idle_add_data(update_input, 0)

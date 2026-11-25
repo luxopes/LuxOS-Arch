@@ -14,9 +14,10 @@
 #                                     (svetly text = tmave sklo); box dostane tridu lg-panel (CSS: bez pozadi)
 #
 # Tapeta se nacte jednou pro vsechna okna procesu a pri zmene v xfconf se prekresli. Potrebuje LSL >= 0.10.9.
-load cairo, glib, gio, gtk
+load cairo, glib, gio, gtk, env
 load luxos_glib as lglib
 load luxos_gtk as lgtk
+load luxos_material as material
 
 RADIUS = 16.0
 EDGE = 8
@@ -32,7 +33,7 @@ CSS = ("button.lg-light { min-width: 12px; min-height: 12px; padding: 0; margin:
     + "button.lg-max { background-color: #28c840; }\n"
     + ".lg-window scrolledwindow, .lg-window viewport { background: transparent; border: none; }\n")
 
-state = {"surface": 0, "map": [], "dark": False, "loaded": False, "watch": 0, "wins": {}, "press": [], "cursor": {}, "resize": {},
+state = {"surface": 0, "map": [], "dark": False, "loaded": False, "watch": 0, "appearance": "", "wins": {}, "press": [], "cursor": {}, "resize": {},
          "panel": 0, "panel_map": [], "panels": {}}
 PANEL_SIZE = 96
 EDGE_CURSORS = {}
@@ -65,20 +66,27 @@ function wallpaper_path(bus):
     return best
 end
 
-# Zmenseninu rozmazat a mirne nasytit; mapa = [sirka, vyska, meritko, posun x, posun y] obrazku vuci monitoru
-function load_wallpaper():
-    if state["surface"] != 0:
-        call cairo.surface_destroy(state["surface"])
-        state["surface"] = 0
+function current_wallpaper():
+    if env.get("WAYLAND_DISPLAY", "") != "":
+        return material.wallpaper_path("")
     end
     bus = 0
     safe:
         bus = gio.session_bus()
     end
     if bus == 0:
-        return 0
+        return ""
     end
-    path = wallpaper_path(bus)
+    return wallpaper_path(bus)
+end
+
+# Zmenseninu rozmazat a mirne nasytit; mapa = [sirka, vyska, meritko, posun x, posun y] obrazku vuci monitoru
+function load_wallpaper():
+    if state["surface"] != 0:
+        call cairo.surface_destroy(state["surface"])
+        state["surface"] = 0
+    end
+    path = current_wallpaper()
     if path == "" or not exists(path):
         return 0
     end
@@ -124,6 +132,17 @@ function reload_once(unused):
     end
     call redraw_all()
     return False
+end
+
+function appearance_changed(unused):
+    folder = glib.user_config_dir() + "/luxos"
+    value = lglib.read_text(folder + "/appearance.conf") + "\n" + lglib.read_text(folder + "/appearance")
+    if value != state["appearance"]:
+        state["appearance"] = value
+        call material.reload()
+        call reload_once(0)
+    end
+    return True
 end
 
 # ---- material widgetu na plose (panely) -----------------------------------------------------
@@ -207,14 +226,7 @@ function load_panel_material():
         call cairo.surface_destroy(state["panel"])
         state["panel"] = 0
     end
-    bus = 0
-    safe:
-        bus = gio.session_bus()
-    end
-    if bus == 0:
-        return 0
-    end
-    path = wallpaper_path(bus)
+    path = current_wallpaper()
     if path == "" or not exists(path):
         return 0
     end
@@ -339,9 +351,15 @@ function ensure_loaded():
     end
     state["loaded"] = True
     call load_wallpaper()
-    safe:
-        bus = gio.session_bus()
-        state["watch"] = gio.subscribe_values(bus, "", "org.xfce.Xfconf", "PropertyChanged", "/org/xfce/Xfconf", on_xfconf_changed)
+    if env.get("WAYLAND_DISPLAY", "") != "":
+        folder = glib.user_config_dir() + "/luxos"
+        state["appearance"] = lglib.read_text(folder + "/appearance.conf") + "\n" + lglib.read_text(folder + "/appearance")
+        state["watch"] = lglib.timeout_add_seconds_data(2, appearance_changed, 0)
+    else:
+        safe:
+            bus = gio.session_bus()
+            state["watch"] = gio.subscribe_values(bus, "", "org.xfce.Xfconf", "PropertyChanged", "/org/xfce/Xfconf", on_xfconf_changed)
+        end
     end
     return 0
 end

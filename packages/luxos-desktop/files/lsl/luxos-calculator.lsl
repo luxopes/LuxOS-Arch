@@ -1,3 +1,4 @@
+# lsl: link libpango-1.0.so.0
 # LuxOS Calculator - kalkulacka v barvach LuxOS (GTK 3), zakladni a vedecky rezim (drive Python).
 #
 # Pocita v desitkove aritmetice (0,1 + 0,2 = 0,3, luxos_calc), respektuje prednost operatoru a zavorky.
@@ -22,14 +23,20 @@ DEC = "."
 GROUP = ","
 CONFIG = glib.user_config_dir() + "/luxos/calculator"
 OPS = {"+": "+", "-": "−", "*": "×", "/": "÷", "^": "^", "root": "ʸ√"}
+# nejmensi pismo displeje; delsi priklad se pak zalamuje, nejvys MAX_LINES radku (zbytek zleva "…")
+MIN_SIZE = 22
+MAX_LINES = 4
 
-CSS = "window.luxcalc { background-image: linear-gradient(165deg, @calc_bg_top, @calc_bg_bottom); }\n.calc-expr { color: @calc_dim; font-size: 15px; }\n.calc-value { color: @calc_fg; font-size: 46px; font-weight: 300; }\nbutton.key {\n    border: none; border-radius: 16px; box-shadow: none; text-shadow: none;\n    background-image: none; background-color: @calc_key; color: @calc_fg;\n    font-size: 21px; min-height: 56px; min-width: 56px; padding: 0;\n    transition: background-color 120ms ease, opacity 120ms ease;\n}\nbutton.key:hover { background-color: @calc_key_hover; }\nbutton.key:active { background-color: @calc_key_active; }\nbutton.key.fn { background-color: @calc_fn; }\nbutton.key.fn:hover { background-color: @calc_fn_hover; }\nbutton.key.op { background-image: linear-gradient(180deg, #4d8dff, #5b4bff); color: white; font-size: 25px; }\nbutton.key.op:hover { background-image: linear-gradient(180deg, #62a0ff, #6d5eff); }\nbutton.key.op.selected { background-image: none; background-color: white; color: #4d5bff; }\nbutton.key.eq { background-image: linear-gradient(180deg, #ffbf57, #ff7a3c); color: white; font-size: 25px; }\nbutton.key.eq:hover { background-image: linear-gradient(180deg, #ffcb73, #ff8c52); }\nbutton.key.sci { font-size: 15px; min-width: 62px; background-color: alpha(@calc_fn, 0.55); }\nbutton.key.sci:hover { background-color: @calc_fn_hover; }\nbutton.key.sci.active { background-color: #5b6bff; color: white; }\nbutton.mode { border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;\n              background-image: none; background-color: alpha(@calc_fg, 0.08); color: @calc_fg; border: none; box-shadow: none; }\nbutton.mode:checked { background-color: #5b6bff; color: white; }\nbutton.mode:hover:not(:checked) { background-color: alpha(@calc_fg, 0.14); }\n"
+CSS = "window.luxcalc { background-image: linear-gradient(165deg, @calc_bg_top, @calc_bg_bottom); }\n.calc-expr { color: @calc_dim; font-size: 15px; }\n.calc-value { color: @calc_fg; font-size: 46px; font-weight: 300; }\n.calc-preview { color: @calc_dim; font-size: 17px; }\nbutton.key {\n    border: none; border-radius: 16px; box-shadow: none; text-shadow: none;\n    background-image: none; background-color: @calc_key; color: @calc_fg;\n    font-size: 21px; min-height: 56px; min-width: 56px; padding: 0;\n    transition: background-color 120ms ease, opacity 120ms ease;\n}\nbutton.key:hover { background-color: @calc_key_hover; }\nbutton.key:active { background-color: @calc_key_active; }\nbutton.key.fn { background-color: @calc_fn; }\nbutton.key.fn:hover { background-color: @calc_fn_hover; }\nbutton.key.op { background-image: linear-gradient(180deg, #4d8dff, #5b4bff); color: white; font-size: 25px; }\nbutton.key.op:hover { background-image: linear-gradient(180deg, #62a0ff, #6d5eff); }\nbutton.key.op.selected { background-image: none; background-color: white; color: #4d5bff; }\nbutton.key.eq { background-image: linear-gradient(180deg, #ffbf57, #ff7a3c); color: white; font-size: 25px; }\nbutton.key.eq:hover { background-image: linear-gradient(180deg, #ffcb73, #ff8c52); }\nbutton.key.sci { font-size: 15px; min-width: 62px; background-color: alpha(@calc_fn, 0.55); }\nbutton.key.sci:hover { background-color: @calc_fn_hover; }\nbutton.key.sci.active { background-color: #5b6bff; color: white; }\nbutton.mode { border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600;\n              background-image: none; background-color: alpha(@calc_fg, 0.08); color: @calc_fg; border: none; box-shadow: none; }\nbutton.mode:checked { background-color: #5b6bff; color: white; }\nbutton.mode:hover:not(:checked) { background-color: alpha(@calc_fg, 0.14); }\n"
 DARK = "@define-color calc_bg_top #1d2145; @define-color calc_bg_bottom #0f1024;\n@define-color calc_fg #ffffff; @define-color calc_dim alpha(#ffffff, 0.5);\n@define-color calc_key alpha(#ffffff, 0.09); @define-color calc_key_hover alpha(#ffffff, 0.15);\n@define-color calc_key_active alpha(#ffffff, 0.24);\n@define-color calc_fn alpha(#a9b8ff, 0.22); @define-color calc_fn_hover alpha(#a9b8ff, 0.32);\n"
 LIGHT = "@define-color calc_bg_top #f4f6fd; @define-color calc_bg_bottom #e3e7f6;\n@define-color calc_fg #1d1d2b; @define-color calc_dim alpha(#1d1d2b, 0.5);\n@define-color calc_key #ffffff; @define-color calc_key_hover #f0f2fb;\n@define-color calc_key_active #dfe3f5;\n@define-color calc_fn #d5dbf3; @define-color calc_fn_hover #c8d0f0;\n"
 
 # tokens: cisla (luxos_calc), operatory, "(" a ")"; entry = prave psane cislo (bez formatovani, s teckou);
-# fresh = entry je vysledek funkce, dalsi cislice ho nahradi; result = vysledek posledniho "="
-S = {"tokens": [], "entry": "", "fresh": False, "result": None, "degrees": True, "op_buttons": {}}
+# fresh = entry je vysledek funkce, dalsi cislice ho nahradi; result = vysledek posledniho "=";
+# prev_tokens = vyraz pred poslednim "=" (Backspace hned po "=" ho vrati k uprave); shown = text displeje
+# (rozepsany priklad nebo vysledek), copy = co kopiruje Ctrl+C (cislo, ne cely priklad)
+S = {"tokens": [], "entry": "", "fresh": False, "result": None, "degrees": True, "op_buttons": {},
+     "prev_tokens": None, "shown": "0", "copy": "0", "fit_width": 0, "fit_pending": False}
 
 function ptr(value):
     unsafe:
@@ -43,6 +50,25 @@ function locale_decimal_point():
         point = glib.from_c(__lsl_qbe_load64(conv)) if conv != 0 else ""
     end
     return point if point != "" else "."
+end
+
+function cstr(text):
+    unsafe:
+        return __lsl_address(text) + 16
+    end
+end
+
+function label_max_width_chars(label, n):
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_label_set_max_width_chars"), ptr(label), ptr(n))
+    end
+end
+
+function label_justify_right(label):
+    unsafe:
+        # GTK_JUSTIFY_RIGHT
+        call __lsl_qbe_call2(__lsl_symbol("gtk_label_set_justify"), ptr(label), 1)
+    end
 end
 
 function key_button(label, classes, handler, bound):
@@ -82,18 +108,34 @@ function build():
     box = gtk.box_new(gtk.VERTICAL, 8)
     call gtk.widget_set_margins(box, 14, 14, 4, 14)
     call gtk.container_add(window, box)
+    # po "=" je tu priklad; dlouhy se zkrati zleva (konec u "=" zustane videt) a okno nerozsiri
     S["expr"] = gtk.label_new("")
     call gtk.label_set_xalign(S["expr"], 1.0)
-    # PANGO_ELLIPSIZE_END
-    call gtk.label_set_ellipsize(S["expr"], 3)
+    # PANGO_ELLIPSIZE_START
+    call gtk.label_set_ellipsize(S["expr"], 1)
+    call label_max_width_chars(S["expr"], 1)
     call gtk.widget_add_class(S["expr"], "calc-expr")
     call gtk.widget_set_name(S["expr"], "expr")
+    # rozepsany priklad je cely na tomto radku ("7 × 9"), po "=" tu je vysledek; dlouhy priklad se nejdriv
+    # zmensi a kdyz se ani tak nevejde, zalomi se na dalsi radky (radky lame fit_value sam; ellipsize +
+    # max_width_chars 1: okno se kvuli nemu nerozsiri, sirku dava klavesnice)
     S["value"] = gtk.label_new("")
     call gtk.label_set_xalign(S["value"], 1.0)
+    call gtk.label_set_ellipsize(S["value"], 1)
+    call label_max_width_chars(S["value"], 1)
+    call label_justify_right(S["value"])
     call gtk.widget_add_class(S["value"], "calc-value")
     call gtk.widget_set_name(S["value"], "value")
+    # sirka displeje se meni (vedecky panel): text znovu prizpusobit
+    call gtk.connect_data(S["value"], "size-allocate", 1, on_value_allocate, 0)
+    # prubezny vysledek pod prikladem (jako kalkulacka Samsung): "425 / 25" -> "= 17"
+    S["preview"] = gtk.label_new("")
+    call gtk.label_set_xalign(S["preview"], 1.0)
+    call gtk.widget_add_class(S["preview"], "calc-preview")
+    call gtk.widget_set_name(S["preview"], "preview")
     call gtk.box_pack_start(box, S["expr"], False, False, 0)
-    call gtk.box_pack_start(box, S["value"], False, False, 6)
+    call gtk.box_pack_start(box, S["value"], False, False, 0)
+    call gtk.box_pack_start(box, S["preview"], False, False, 2)
 
     keys = gtk.box_new(gtk.HORIZONTAL, 10)
     call gtk.box_pack_start(box, keys, True, True, 0)
@@ -381,7 +423,16 @@ function equals():
     end
     if S["entry"] != "":
         call push_entry()
-    elif is_op(last()):
+    end
+    # "2 × (" + "=": prazdna zavorka by byla chyba -> "2 × ="
+    while len(t) > 0 and last() == "(":
+        call t.pop()
+    end
+    if len(t) == 0:
+        call refresh()
+        return 0
+    end
+    if is_op(last()):
         if len(t) >= 2 and calc.is_number(t[len(t) - 2]):
             # 5 + = -> 5 + 5
             t.append(t[len(t) - 2])
@@ -392,7 +443,8 @@ function equals():
     for i in range(open_parens()):
         t.append(")")
     end
-    expr = expression_text() + " ="
+    expr = expression_text("") + " ="
+    S["prev_tokens"] = t.copy()
     value = None
     safe:
         value = calc.evaluate_tokens(t)
@@ -400,12 +452,14 @@ function equals():
     S["tokens"] = []
     S["entry"] = ""
     S["fresh"] = False
-    S["result"] = value
     if value == None:
-        call show(expr, i18n.T("Error"))
+        # chybny vyraz (deleni nulou) jde po Backspace opravit
+        S["result"] = calc.ZERO
+        call show(expr, i18n.T("Error"), None)
         return 0
     end
-    call show(expr, fmt(value))
+    S["result"] = value
+    call show(expr, fmt(value), None)
     call update_ops()
 end
 
@@ -418,7 +472,7 @@ function func(name):
     if r == None:
         S["entry"] = ""
         S["fresh"] = False
-        call show(expression_text(), i18n.T("Error"))
+        call show(expression_text(""), i18n.T("Error"), None)
         return 0
     end
     call set_current(r)
@@ -461,7 +515,7 @@ function negate():
             value = calc.negate(current())
         end
         if value == None:
-            call show(expression_text(), i18n.T("Error"))
+            call show(expression_text(""), i18n.T("Error"), None)
             return 0
         end
         call set_current(value)
@@ -513,26 +567,120 @@ function percent():
         value = None
     end
     if value == None:
-        call show(expression_text(), i18n.T("Error"))
+        call show(expression_text(""), i18n.T("Error"), None)
         return 0
     end
     call set_current(value)
     call refresh()
 end
 
+# Hotove cislo (operand pred operatorem, vysledek) zpet do rozpracovaneho, aby slo mazat po cislicich;
+# delsi nez displej (1/3) nebo s exponentem se smaze cele ("")
+function edit_value(value):
+    text = calc.exact_text(value)
+    if text.find("e") >= 0 or text.find("E") >= 0:
+        return ""
+    end
+    if text.find(".") >= 0:
+        text = text.rstrip("0").rstrip(".")
+    end
+    if text == "" or text == "-":
+        text = "0"
+    end
+    if len(bigint_strip(text.replace("-", "").replace(".", ""))) > MAX_DIGITS:
+        return ""
+    end
+    return text
+end
+
+function chop_entry(text):
+    text = text[:len(text) - 1]
+    if text == "-" or text == "-0":
+        return ""
+    end
+    return text
+end
+
 function backspace():
+    t = S["tokens"]
     if S["fresh"]:
         S["entry"] = ""
         S["fresh"] = False
     elif S["entry"] != "":
-        S["entry"] = S["entry"][:len(S["entry"]) - 1]
-        if S["entry"] == "-" or S["entry"] == "-0":
-            S["entry"] = ""
+        S["entry"] = chop_entry(S["entry"])
+    elif len(t) > 0:
+        if is_op(last()):
+            # "425 ×" + Backspace: zmizi operator a 425 jde dal mazat
+            call t.pop()
+            if len(t) > 0 and calc.is_number(last()):
+                S["entry"] = edit_value(last())
+                if S["entry"] != "":
+                    # jinak (1/3 ×) zustane cislo jako hotovy operand
+                    call t.pop()
+                end
+            end
+        elif last() == "(" or last() == ")":
+            call t.pop()
+        elif calc.is_number(last()):
+            S["entry"] = chop_entry(edit_value(t.pop()))
         end
-    elif last() == "(" or last() == ")":
-        call S["tokens"].pop()
+    elif S["result"] != None and S["prev_tokens"] != None and len(S["prev_tokens"]) > 0:
+        # hned po "=": vrati se cely priklad k uprave (425 / 25 = 17, Backspace -> 425 / 25)
+        S["tokens"] = S["prev_tokens"]
+        S["prev_tokens"] = None
+        S["result"] = None
+        if calc.is_number(last()):
+            S["entry"] = edit_value(last())
+            if S["entry"] != "":
+                call S["tokens"].pop()
+            end
+        end
+    elif S["result"] != None:
+        # samotny vysledek (5 =): maze se po cislicich jako psane cislo
+        S["entry"] = chop_entry(edit_value(S["result"]))
+        S["result"] = None
     end
     call refresh()
+end
+
+# Prubezny vysledek rozpracovaneho prikladu, None kdyz jeste neni co pocitat (jen cislo)
+function preview_value():
+    toks = S["tokens"].copy()
+    entry = S["entry"]
+    if entry != "" and entry != "-" and entry != ".":
+        n = calc.number(entry)
+        if n == None:
+            return None
+        end
+        toks.append(n)
+    end
+    while len(toks) > 0 and (toks[len(toks) - 1] == "(" or is_op(toks[len(toks) - 1])):
+        call toks.pop()
+    end
+    has_op = False
+    depth = 0
+    for t in toks:
+        if is_op(t):
+            has_op = True
+        elif not calc.is_number(t):
+            if t == "(":
+                depth += 1
+            elif t == ")":
+                depth -= 1
+            end
+        end
+    end
+    if not has_op:
+        return None
+    end
+    for i in range(depth):
+        toks.append(")")
+    end
+    value = None
+    safe:
+        value = calc.evaluate_tokens(toks)
+    end
+    return value
 end
 
 # ---- zobrazeni ---------------------------------------------------------------------------------------------------
@@ -541,7 +689,7 @@ function fmt(value):
     return calc.fmt(value, DEC, GROUP)
 end
 
-function expression_text():
+function expression_text(entry):
     parts = []
     for t in S["tokens"]:
         if calc.is_number(t):
@@ -549,6 +697,9 @@ function expression_text():
         else:
             parts.append(OPS.get(t, t))
         end
+    end
+    if entry != None and entry != "":
+        parts.append(entry)
     end
     return " ".join(parts).replace("( ", "(").replace(" )", ")")
 end
@@ -572,14 +723,148 @@ function entry_text():
     return text
 end
 
-function show(expr, value):
+# copy = co kopiruje Ctrl+C (None = zobrazeny text)
+function show(expr, value, copy):
+    S["copy"] = copy if copy != None else value
     call gtk.label_set_text(S["expr"], expr if expr != "" else " ")
-    size = 46
-    if len(value) > 9:
-        size = max(24, 46 - (len(value) - 9) * 3)
-    end
-    call gtk.label_set_markup(S["value"], "<span size=\"" + String(size * 1024) + "\">" + value.replace("&", "&amp;").replace("<", "&lt;") + "</span>")
+    # po "=" a pri chybe; refresh() ho pak doplni
+    call gtk.label_set_text(S["preview"], "")
+    S["shown"] = value
+    call render_value()
     call gtk.button_set_label(S["clear_btn"], "C" if S["entry"] != "" else "AC")
+end
+
+function markup(size, text):
+    return "<span size=\"" + String(size * 1024) + "\">" + text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") + "</span>"
+end
+
+# Pocet bajtu znaku v UTF-8 (Pango vraci zacatky radku v bajtech, LSL indexuje znaky)
+function utf8_len(ch):
+    c = ord(ch)
+    if c < 128:
+        return 1
+    elif c < 2048:
+        return 2
+    elif c < 65536:
+        return 3
+    end
+    return 4
+end
+
+# [velikost pisma, text]: nejvetsi pismo, se kterym se text vejde na jeden radek; kdyz ani nejmensi
+# nestaci, zalomi se na nejvys MAX_LINES radku a zacatek se nahradi "…"
+function fit_value(text, width):
+    unsafe:
+        layout = __lsl_qbe_call2(__lsl_symbol("gtk_widget_create_pango_layout"), ptr(S["value"]), 0)
+        # PANGO_WRAP_WORD_CHAR
+        call __lsl_qbe_call2(__lsl_symbol("pango_layout_set_wrap"), layout, 2)
+        cells = __lsl_byte_zeros(16)
+        base = __lsl_qbe_load64(__lsl_address(cells) + 24)
+        size = 46
+        while size >= MIN_SIZE:
+            m = markup(size, text)
+            call __lsl_qbe_call3(__lsl_symbol("pango_layout_set_markup"), layout, cstr(m), -1)
+            call __lsl_qbe_call2(__lsl_symbol("pango_layout_set_width"), layout, -1)
+            call __lsl_qbe_call3(__lsl_symbol("pango_layout_get_pixel_size"), layout, base, base + 8)
+            if __lsl_qbe_s32(__lsl_qbe_load32(base)) <= width:
+                call __lsl_qbe_call1(__lsl_symbol("g_object_unref"), layout)
+                return [size, text]
+            end
+            size -= 2
+        end
+        call __lsl_qbe_call2(__lsl_symbol("pango_layout_set_width"), layout, ptr(width * 1024))
+        m = markup(MIN_SIZE, text)
+        call __lsl_qbe_call3(__lsl_symbol("pango_layout_set_markup"), layout, cstr(m), -1)
+        if __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("pango_layout_get_line_count"), layout)) > MAX_LINES:
+            # nejmene znaku zepredu pryc, aby se veslo
+            lo = 1
+            hi = len(text) - 1
+            while lo < hi:
+                mid = (lo + hi) // 2
+                m = markup(MIN_SIZE, "…" + text[mid:])
+                call __lsl_qbe_call3(__lsl_symbol("pango_layout_set_markup"), layout, cstr(m), -1)
+                if __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("pango_layout_get_line_count"), layout)) <= MAX_LINES:
+                    hi = mid
+                else:
+                    lo = mid + 1
+                end
+            end
+            text = "…" + text[lo:]
+            m = markup(MIN_SIZE, text)
+            call __lsl_qbe_call3(__lsl_symbol("pango_layout_set_markup"), layout, cstr(m), -1)
+        end
+        # radky podle Pango (bajtove pozice v UTF-8) -> text s "\n"
+        count = __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("pango_layout_get_line_count"), layout))
+        starts = []
+        for i in range(count):
+            line = __lsl_qbe_call2(__lsl_symbol("pango_layout_get_line_readonly"), layout, ptr(i))
+            starts.append(__lsl_qbe_s32(__lsl_qbe_load32(line + 8)))
+        end
+        call __lsl_qbe_call1(__lsl_symbol("g_object_unref"), layout)
+    end
+    lines = []
+    current_line = ""
+    byte = 0
+    k = 1
+    for ch in text:
+        if k < len(starts) and byte >= starts[k]:
+            lines.append(current_line.strip())
+            current_line = ""
+            k += 1
+        end
+        current_line = current_line + ch
+        byte += utf8_len(ch)
+    end
+    lines.append(current_line.strip())
+    return [MIN_SIZE, "\n".join(lines)]
+end
+
+function label_markup(label):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("gtk_label_get_label"), ptr(label)))
+    end
+end
+
+function allocated_width(widget):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_widget_get_allocated_width"), ptr(widget)))
+    end
+end
+
+function render_value():
+    S["fit_pending"] = False
+    width = allocated_width(S["value"])
+    text = S["shown"]
+    size = 46
+    if width > 1:
+        S["fit_width"] = width
+        fit = fit_value(text, width)
+        size = fit[0]
+        text = fit[1]
+    elif len(text) > 9:
+        # jeste nerozmistene okno: odhad podle delky
+        size = max(MIN_SIZE, 46 - (len(text) - 9) * 3)
+    end
+    m = markup(size, text)
+    if m != label_markup(S["value"]):
+        call gtk.label_set_markup(S["value"], m)
+        # mene radku (napr. po "=") -> okno zase nizsi
+        call gtk.window_resize(S["window"], 1, 1)
+    end
+    return False
+end
+
+function on_value_idle(unused):
+    call render_value()
+    return False
+end
+
+function on_value_allocate(unused, allocation, label):
+    if allocated_width(S["value"]) != S["fit_width"] and not S["fit_pending"]:
+        S["fit_pending"] = True
+        call glib.idle_add_data(on_value_idle, 0)
+    end
+    return 0
 end
 
 function refresh():
@@ -596,7 +881,14 @@ function refresh():
             end
         end
     end
-    call show(expression_text(), text)
+    if len(S["tokens"]) > 0:
+        # rozepsany priklad na jednom radku: "7 × 9" (horni radek je prazdny)
+        call show("", expression_text(entry_text()), text)
+    else:
+        call show(expression_text(""), text, None)
+    end
+    value = preview_value()
+    call gtk.label_set_text(S["preview"], "= " + fmt(value) if value != None else "")
     call update_ops()
 end
 
@@ -679,7 +971,7 @@ function paste(text):
         # 1e999999999: mimo rozsah, zadna obri alokace (C-05)
         S["entry"] = ""
         S["fresh"] = False
-        call show(expression_text(), i18n.T("Error"))
+        call show(expression_text(""), i18n.T("Error"), None)
         return 0
     end
     # 1e5 -> 100000; delsi cislo nez displej se ukaze zaokrouhlene (jako vysledek funkce)
@@ -714,7 +1006,7 @@ function handle_key(key, ch, ctrl):
     if ctrl and (key == "1" or key == "2"):
         call set_scientific(key == "2")
     elif ctrl and lower == "c":
-        call gtk.selection_set_text(CLIPBOARD, gtk.label_get_text(S["value"]))
+        call gtk.selection_set_text(CLIPBOARD, S["copy"])
     elif ctrl and lower == "v":
         call gtk.selection_request_text(CLIPBOARD, on_paste_text, 0)
     elif is_digit(ch):
@@ -793,6 +1085,7 @@ function on_test(command, rest):
             end
         end
         print "state " + json.encode({"value": gtk.label_get_text(S["value"]), "expr": gtk.label_get_text(S["expr"]),
+            "preview": gtk.label_get_text(S["preview"]), "copy": S["copy"],
             "entry": S["entry"], "fresh": S["fresh"], "tokens": token_texts(),
             "result": calc.exact_text(S["result"]) if S["result"] != None else None, "degrees": S["degrees"],
             "scientific": gtk.widget_get_visible(S["sci_grid"]), "clear": button_label(S["clear_btn"]),
@@ -824,6 +1117,7 @@ function on_test(command, rest):
         S["entry"] = ""
         S["fresh"] = False
         S["result"] = None
+        S["prev_tokens"] = None
         S["degrees"] = True
         call gtk.button_set_label(S["angle_btn"], "Deg")
         call refresh()

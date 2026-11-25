@@ -14,7 +14,8 @@ cfg=${XDG_CONFIG_HOME:-$HOME/.config}/luxos
 # jinak by je dalsi prihlaseni do X11 nebo nova relace zdedily se starym socketem)
 VARS=(WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_ID
       GDK_BACKEND QT_QPA_PLATFORM MOZ_ENABLE_WAYLAND SDL_VIDEODRIVER ELECTRON_OZONE_PLATFORM_HINT
-      _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE)
+      _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE
+      GTK_IM_MODULE QT_IM_MODULE XMODIFIERS SDL_IM_MODULE)
 # z /etc/profile (jako prihlaseni do X11): vychozi nastaveni /etc/xdg/luxos, prekryti .desktop v /var/lib/luxos/apps,
 # Flatpak a PATH programu LuxOS; po relaci zustavaji (jsou stejne pro kazde prihlaseni)
 PROFILE_VARS=(PATH XDG_CONFIG_DIRS XDG_DATA_DIRS)
@@ -23,11 +24,14 @@ PROFILE_VARS=(PATH XDG_CONFIG_DIRS XDG_DATA_DIRS)
 # XDG_CONFIG_DIRS): Hidden, OnlyShowIn/NotShowIn proti LuxOS a TryExec. Kazda polozka jako docasna jednotka relace.
 autostart() {
     local dir f id seen=" " key value hidden only not try exec
+    # lista ma vlastni sit a zvuk; applety z X11 na Waylandu nefunguji nebo duplikuji
+    local skip=" nm-applet "
     local IFS=:
     for dir in "${XDG_CONFIG_HOME:-$HOME/.config}" ${XDG_CONFIG_DIRS:-/etc/xdg}; do
         for f in "$dir"/autostart/*.desktop; do
             [[ -f $f ]] || continue
             id=${f##*/}
+            [[ $skip == *" ${id%.desktop} "* ]] && continue
             [[ $seen == *" $id "* ]] && continue
             seen+="$id "
             hidden="" only="" not="" try="" exec=""
@@ -86,6 +90,14 @@ set -u
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=LuxOS XDG_SESSION_DESKTOP=luxos
 export GDK_BACKEND=wayland,x11 QT_QPA_PLATFORM='wayland;xcb' MOZ_ENABLE_WAYLAND=1 SDL_VIDEODRIVER=wayland,x11
 export ELECTRON_OZONE_PLATFORM_HINT=auto _JAVA_AWT_WM_NONREPARENTING=1
+# psani vietnamsky (fcitx5): stejne promenne jako na X11 (luxwm nema text-input-v3, GTK a Qt jdou pres D-Bus fcitx5);
+# fcitx5 samotny spusti xdg autostart (luxos-input-method autostart)
+im_env=/etc/X11/xinit/xinitrc.d/55-luxos-input-method.sh
+if [[ -r $im_env ]]; then
+    set +u
+    . "$im_env"
+    set -u
+fi
 mkdir -p "$cfg"
 # xfconfd (aktivuje ho D-Bus prvnim dotazem) musi videt /etc/xdg/luxos uz pri prvnim cteni (kurzor nize)
 dbus-update-activation-environment --systemd "${PROFILE_VARS[@]}" 2>/dev/null
@@ -99,8 +111,8 @@ systemctl --user reset-failed 2>/dev/null
 # Stare vyvojove kopie programu LuxOS v ~/.local (zakryly by systemove) stranou, jako v X11 (luxos-session)
 [[ -x /usr/lib/luxos/luxos-shadow-guard ]] && /usr/lib/luxos/luxos-shadow-guard >/dev/null 2>&1
 
-# Standardni slozky (Dokumenty, Stazene...) jako xdg-user-dirs na X11, pri kazdem prihlaseni
-xdg-user-dirs-update 2>/dev/null
+# Standardni slozky pri prvnim prihlaseni; dalsi relace respektuji uzivatelovo nastaveni.
+[[ -e ${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs ]] || xdg-user-dirs-update 2>/dev/null
 
 # Prvni prihlaseni: vychozi vzhled a nastaveni noveho uzivatele od spravce
 if [[ ! -e $cfg/initialized ]]; then

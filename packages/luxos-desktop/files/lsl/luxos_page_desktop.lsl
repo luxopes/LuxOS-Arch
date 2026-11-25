@@ -525,6 +525,62 @@ function leave(host):
     return 0
 end
 
+# ---- Horke rohy (X11: luxos-hub, luxos_hotcorners.lsl; Wayland: luxwm) -------------------------------
+HOT_CORNERS = [["tl", "Top left corner", "launchpad"], ["tr", "Top right corner", "none"],
+               ["bl", "Bottom left corner", "none"], ["br", "Bottom right corner", "none"]]
+HOT_ACTIONS = ["none", "launchpad", "desktop", "control-center", "lock", "screensaver"]
+
+function hot_corners_path():
+    return glib.user_config_dir() + "/luxos/hotcorners"
+end
+
+function read_hot_corners():
+    conf = {}
+    for item in HOT_CORNERS:
+        conf[item[0]] = item[2]
+    end
+    for line in glib.read_text(hot_corners_path()).split("\n"):
+        line = line.strip()
+        at = line.find("=")
+        if line.startswith("#") or at < 0:
+            continue
+        end
+        key = line[:at].strip()
+        value = line[at + 1:].strip()
+        if key in conf and value in HOT_ACTIONS:
+            conf[key] = value
+        end
+    end
+    return conf
+end
+
+function on_hot_corner(value, key):
+    conf = read_hot_corners()
+    conf[key] = value
+    out = ""
+    for item in HOT_CORNERS:
+        out = out + item[0] + "=" + conf[item[0]] + "\n"
+    end
+    call glib.mkdir_p(glib.user_config_dir() + "/luxos")
+    call glib.write_atomic(hot_corners_path(), out)
+    return 0
+end
+
+function build_hot_corners(page):
+    g = ui.group(page, i18n.T("Hot Corners"))
+    conf = read_hot_corners()
+    options = [["none", "—"], ["launchpad", i18n.T("Launchpad")], ["desktop", i18n.T("Show Desktop")],
+               ["control-center", i18n.T("Control Center")], ["lock", i18n.T("Lock Screen")],
+               ["screensaver", i18n.T("Start Screen Saver")]]
+    for item in HOT_CORNERS:
+        hint = ""
+        if item[0] == "br":
+            hint = i18n.T("Move the pointer into a corner of the screen and keep it there for a moment.")
+        end
+        call ui.row(g, i18n.T(item[1]), hint, ui.combo(options, conf[item[0]], "", on_hot_corner, item[0]))
+    end
+end
+
 function build(host):
     app["window"] = host["window"]
     prefs = read_prefs()
@@ -533,6 +589,7 @@ function build(host):
     call build_wallpaper(page, prefs)
     call build_widgets(page)
     call build_dock(page, prefs)
+    call build_hot_corners(page)
     call build_bar(page, prefs)
     if not wayland():
         # Xfce: jen v relaci X11

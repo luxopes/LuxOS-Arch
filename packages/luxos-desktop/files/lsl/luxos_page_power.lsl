@@ -498,6 +498,9 @@ function build_settings(page):
         end
         lid = [[1, i18n.T("Sleep")], [3, i18n.T("Lock screen")], [0, i18n.T("Turn off the screen")], [2, i18n.T("Hibernate")]]
         call ui.row(g, i18n.T("When the lid is closed"), "", pm_combo_x11("lid-action-on-battery", lid, ["lid-action-on-battery", "lid-action-on-ac"]))
+    else:
+        lid_wl = [["suspend", i18n.T("Sleep")], ["lock", i18n.T("Lock screen")], ["ignore", i18n.T("Do nothing")]]
+        call ui.row(g, i18n.T("When the lid is closed"), "", lid_combo_wl(lid_wl))
     end
     call ui.row(g, i18n.T("Stay awake while music or video is playing"), i18n.T("Music keeps playing even with the lid closed (the screen turns off). The computer goes to sleep when playback stops."), ui.switch(not exists(SLEEP_WHILE_PLAYING), on_playing, 0))
     if not wayland():
@@ -559,6 +562,35 @@ function write_override(vals):
         body = body + key + "=" + vals[key] + "\n"
     end
     return glib.write_atomic(SLEEP_OVERRIDE, body)
+end
+
+LID_CONF = "/etc/systemd/logind.conf.d/50-luxos-lid.conf"
+
+function read_lid_wl():
+    content = ""
+    safe:
+        content = readfile(LID_CONF)
+    end
+    for line in content.split("\n"):
+        if line.startswith("HandleLidSwitch="):
+            return line.split("=")[1].strip()
+        end
+    end
+    return "suspend"
+end
+
+function lid_combo_wl(options):
+    current = read_lid_wl()
+    return ui.combo(options, current, "", on_lid_wl, 0)
+end
+
+function on_lid_wl(unused, value):
+    body = "[Login]\nHandleLidSwitch=" + value + "\nHandleLidSwitchExternalPower=" + value + "\n"
+    tmp = glib.user_runtime_dir() + "/luxos-lid-conf"
+    call glib.write_atomic(tmp, body)
+    call glib.spawn_quiet(["pkexec", "/usr/bin/install", "-Dm644", tmp, LID_CONF])
+    call glib.spawn_quiet(["pkexec", "/usr/bin/systemctl", "kill", "-s", "HUP", "systemd-logind"])
+    return 0
 end
 
 function pm_combo_x11(prop, options, props_list):

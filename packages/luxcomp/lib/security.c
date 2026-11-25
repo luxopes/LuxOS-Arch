@@ -1,5 +1,5 @@
 /*
- * Kdo smi na privilegovane globaly (snimani obrazovky, data-control, sprava cizich oken,
+ * Kdo smi na privilegovane globaly (snimani obrazovky, sprava cizich oken,
  * virtualni vstup, sprava vystupu, zamek). Klient pres soket wp-security-context (sandbox,
  * WP-14) je nedostane nikdy; ostatni jen kdyz jejich program (/proc/PID/exe z povereni soketu)
  * je v allowlistu politiky (luxwm: /usr/share/luxwm/privileged.conf). Kompromisy popisuje

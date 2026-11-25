@@ -4,13 +4,13 @@
 #
 #   init(handler)          handler(event, id, a, b, c) pro vsechny udalosti; chyba v obsluze se jen
 #                          vypise ("LSL callback error"), kompozitor bezi dal (glib.dispatch)
-#   view_title(v), view_app_id(v), view_sandbox_app_id(v), view_sandbox_instance(v), output_name(o),
+#   view_title(v), view_app_id(v), view_sandbox_app_id(v), view_sandbox_instance(v), view_capture_id(v), output_name(o),
 #   socket(), layout_name(i), ipc_line(k), input_name(d)
 #                          kopie retezce ("" kdyz neni)
 # Ostatni funkce jen predavaji cisla, neplatne id je v jadru tichy no-op.
 load glib
 
-API_VERSION = 14
+API_VERSION = 15
 
 EV_OUTPUT_ADD = 1
 EV_OUTPUT_REMOVE = 2
@@ -36,6 +36,8 @@ EV_HOLD_END = 21
 EV_LAYER_MAP = 22
 EV_VIEW_CONTENT_TYPE = 23
 EV_CAPS_LOCK = 24
+EV_SUPER_ALONE = 25
+EV_MODIFIERS = 26
 
 REQ_MOVE = 1
 REQ_RESIZE = 2
@@ -377,6 +379,12 @@ function view_sandbox_instance(view):
     end
 end
 
+function view_capture_id(view):
+    unsafe:
+        return glib.from_c(__lsl_qbe_call1(__lsl_symbol("luxcomp_view_capture_id"), ptr(view)))
+    end
+end
+
 function view_next(view):
     unsafe:
         return __lsl_qbe_call1(__lsl_symbol("luxcomp_view_next"), ptr(view))
@@ -510,6 +518,12 @@ end
 function bind_key(mods, key):
     unsafe:
         return __lsl_qbe_call2(__lsl_symbol("luxcomp_bind_key"), ptr(mods), cstr(key))
+    end
+end
+
+function bind_key_repeat(mods, key):
+    unsafe:
+        return __lsl_qbe_call2(__lsl_symbol("luxcomp_bind_key_repeat"), ptr(mods), cstr(key))
     end
 end
 

@@ -1300,6 +1300,14 @@ static gboolean on_key(GtkWidget *win, GdkEventKey *ev, Win *w)
     }
     if (m == GDK_CONTROL_MASK) {
         switch (k) {
+        case GDK_KEY_v:
+            /* Text vlozit i bez Shiftu. U obrazku klavesu dostane terminalova aplikace
+             * (Codex/Claude Code), ktera si obrazek nacte primo ze schranky. */
+            if (gtk_clipboard_wait_is_text_available(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD))) {
+                vte_terminal_paste_clipboard(t->term);
+                return TRUE;
+            }
+            return FALSE;
         case GDK_KEY_plus: case GDK_KEY_equal: case GDK_KEY_KP_Add: zoom(w, 1); return TRUE;
         case GDK_KEY_minus: case GDK_KEY_KP_Subtract: zoom(w, -1); return TRUE;
         case GDK_KEY_0: case GDK_KEY_KP_0: zoom(w, 0); return TRUE;

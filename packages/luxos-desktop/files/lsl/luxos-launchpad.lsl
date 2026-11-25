@@ -1044,8 +1044,32 @@ function on_changed(widget):
     return 0
 end
 
+# vyska jednoho radku seznamu (tah o tolik posune o radek)
+function row_step():
+    if S["mode"] == "launchpad":
+        return TILE_H + GAP
+    end
+    return ROW_H
+end
+
 function on_motion(event, widget):
     xy = gtk.event_coords(event)
+    drag = S.get("drag", None)
+    if drag != None:
+        dy = xy[1] - drag["y"]
+        if not drag["moved"] and abs(dy) >= 12:
+            drag["moved"] = True
+        end
+        if drag["moved"]:
+            rows = Int(-dy / Float(row_step()))
+            top = max(0, min(max(0, last_row() - S["geo"]["rows"] + 1), drag["top"] + rows))
+            if top != S["top"]:
+                S["top"] = top
+                call panel_redraw()
+            end
+            return True
+        end
+    end
     i = item_at(xy[0], xy[1])
     if i >= 0 and i != S["sel"]:
         S["sel"] = i
@@ -1067,9 +1091,11 @@ function on_press(event, widget):
     end
     i = item_at(x, y)
     if i >= 0:
-        call activate(i)
+        # spusti se az pri uvolneni bez tahu: svisly tah prstem (i mysi) seznam posouva (jako rofi na X11)
+        S["drag"] = {"x": x, "y": y, "item": i, "moved": False, "top": S["top"]}
         return True
     end
+    S["drag"] = None
     if S["mode"] == "launchpad":
         cr = gdk_cairo()
         rects = sort_rects(cr)
@@ -1090,6 +1116,20 @@ function gdk_cairo():
     cr = cairo.create(surface)
     call cairo.surface_destroy(surface)
     return cr
+end
+
+function on_release(event, widget):
+    drag = S.get("drag", None)
+    S["drag"] = None
+    if drag == None or drag["moved"] or gtk.event_button(event) != 1:
+        return True
+    end
+    xy = gtk.event_coords(event)
+    i = item_at(xy[0], xy[1])
+    if i >= 0 and i == drag["item"]:
+        call activate(i)
+    end
+    return True
 end
 
 function on_scroll(event, widget):
@@ -1218,7 +1258,8 @@ call layer.set_anchors(window, [layer.EDGE_TOP, layer.EDGE_BOTTOM, layer.EDGE_LE
 # pres celou obrazovku vcetne listy a Docku
 call layer.set_exclusive_zone(window, -1)
 call layer.set_keyboard_mode(window, layer.KEYBOARD_EXCLUSIVE)
-call gtk.widget_add_events(window, gtk.POINTER_MOTION_MASK + gtk.BUTTON_PRESS_MASK + gtk.SCROLL_MASK + gtk.SMOOTH_SCROLL_MASK)
+# 512 = GDK_BUTTON_RELEASE_MASK (spusteni polozky az po uvolneni, tah posouva)
+call gtk.widget_add_events(window, gtk.POINTER_MOTION_MASK + gtk.BUTTON_PRESS_MASK + 512 + gtk.SCROLL_MASK + gtk.SMOOTH_SCROLL_MASK)
 fixed = gtk.fixed_new()
 call gtk.container_add(window, fixed)
 entry = gtk.entry_new()
@@ -1233,6 +1274,7 @@ call gtk.connect(window, "draw", on_draw)
 call gtk.connect(window, "key-press-event", on_key)
 call gtk.connect(window, "motion-notify-event", on_motion)
 call gtk.connect(window, "button-press-event", on_press)
+call gtk.connect(window, "button-release-event", on_release)
 call gtk.connect(window, "scroll-event", on_scroll)
 call gtk.connect(window, "realize", on_realize)
 call gtk.connect(window, "size-allocate", on_size)

@@ -389,6 +389,16 @@ class LuxwmIpc(unittest.TestCase):
 
     # ---- rozlozeni klavesnice ---------------------------------------------------------------------------
 
+    def test_both_shifts_switch_once_in_either_order(self):
+        s = self.session("xwayland = no\nxkb_layout = us,cz\nxkb_options = grp:shifts_toggle\n")
+        self.assertEqual(s.state()["keyboard"]["current"], 0)
+        for i in range(12):
+            first, second = ("Shift_L", "Shift_R") if i % 2 == 0 else ("Shift_R", "Shift_L")
+            s.input(f"keydown {first}", f"keydown {second}", f"keyup {second}", f"keyup {first}")
+            self.assertEqual(s.state()["keyboard"]["current"], (i + 1) % 2)
+        s.input("keydown ctrl", "keydown shift", "key c", "keyup shift", "keyup ctrl")
+        self.assertEqual(s.state()["keyboard"]["current"], 0)
+
     def test_layout_switch_changes_typed_keys(self):
         s = self.session("xwayland = no\nxkb_layout = us,cz\nxkb_options = grp:shifts_toggle\n")
         kb = s.state()["keyboard"]

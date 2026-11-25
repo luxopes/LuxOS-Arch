@@ -729,16 +729,54 @@ end
 
 # ---- velikost textu (xsettings Xft/DPI) -------------------------------------------------------------------
 
-# Index v TEXT_SIZES pro Xft/DPI (None/neplatne = vychozi, jinak nejblizsi)
+# Meritko obrazovky (jako 100-200 % ve Windows): 100-150 % = vetsi pismo (Xft/DPI), horni lista, Dock, kurzor
+# a ramecky oken; 175 a 200 % = GTK 2x (Gdk/WindowScalingFactor) a DPI dopocitane na presny pomer.
+# Velikost textu (TEXT_SIZES) se pocita relativne k meritku. Ulozene v ~/.config/luxos/display-scale.
+SCALES = [100, 125, 150, 175, 200]
+PANEL_SIZE = 28
+DOCK_ICONS = 48
+CURSOR_SIZE = 24
+
+function scale_factor(scale):
+    return 2 if scale >= 175 else 1
+end
+
+# Xft/DPI pro meritko pri vychozi velikosti textu (s WindowScalingFactor 2 se pismo jeste zdvojnasobi)
+function scale_dpi(scale):
+    return Int(Float(DEFAULT_DPI * scale) / 100.0 / Float(scale_factor(scale)) + 0.5)
+end
+
+function scale_path():
+    return glib.user_config_dir() + "/luxos/display-scale"
+end
+
+function read_scale():
+    value = 100
+    safe:
+        value = Int(glib.read_text(scale_path()).strip())
+    end
+    if not (value in SCALES):
+        value = 100
+    end
+    return value
+end
+
+# Index v TEXT_SIZES pro Xft/DPI pri danem meritku (None/neplatne = vychozi, jinak nejblizsi)
 function text_size_index(dpi):
-    if dpi == None or dpi <= 0 or dpi == DEFAULT_DPI:
+    scale = read_scale()
+    base = scale_dpi(scale)
+    if dpi == None or dpi <= 0:
+        dpi = base
+    end
+    rel = Float(dpi * DEFAULT_DPI) / Float(base)
+    if abs(rel - Float(DEFAULT_DPI)) < 1.0:
         return 1
     end
     best = 0
     for i in range(len(TEXT_SIZES)):
         v = TEXT_SIZES[i] if TEXT_SIZES[i] != None else DEFAULT_DPI
         b = TEXT_SIZES[best] if TEXT_SIZES[best] != None else DEFAULT_DPI
-        if abs(v - dpi) < abs(b - dpi):
+        if abs(Float(v) - rel) < abs(Float(b) - rel):
             best = i
         end
     end
@@ -754,13 +792,77 @@ function read_dpi():
     return value
 end
 
-# Vychozi krok vlastnost odstrani (navrat k vychozimu DPI)
+function dpi_for(index, scale):
+    size = TEXT_SIZES[index] if TEXT_SIZES[index] != None else DEFAULT_DPI
+    return Int(Float(scale_dpi(scale) * size) / Float(DEFAULT_DPI) + 0.5)
+end
+
+# Velikost textu relativne k meritku; vychozi krok pri 100 % vlastnost odstrani (navrat k vychozimu DPI)
 function set_text_size(index):
-    dpi = TEXT_SIZES[index]
-    if dpi == None:
+    scale = read_scale()
+    dpi = dpi_for(index, scale)
+    if dpi == DEFAULT_DPI and scale_factor(scale) == 1:
         return run_ok(["xfconf-query", "-c", "xsettings", "-p", "/Xft/DPI", "-r"])
     end
     return run_ok(["xfconf-query", "-c", "xsettings", "-p", "/Xft/DPI", "-n", "-t", "int", "-s", String(dpi)])
+end
+
+# Kolikrat vetsi kresli LuxOS prvky, ktere GTK samo nezvetsuje (lista, Dock): 125 % = 1.25, 200 % = 1.0
+function scale_effective(scale):
+    return Float(scale) / 100.0 / Float(scale_factor(scale))
+end
+
+# Nova velikost prvku pri zmene meritka; vlastni velikost uzivatele (prepoctena na 100 %) zustava
+function scaled_size(current, base, old_scale, new_scale, lo, hi):
+    unit = base
+    if current != None and current > 0:
+        unit = Int(Float(current) / scale_effective(old_scale) + 0.5)
+    end
+    return max(lo, min(hi, Int(Float(unit) * scale_effective(new_scale) + 0.5)))
+end
+
+function xfconf_int(channel, prop):
+    value = None
+    safe:
+        value = Int(run(["xfconf-query", "-c", channel, "-p", prop]).strip())
+    end
+    return value
+end
+
+PLANK = ["net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/", "icon-size"]
+
+# Nastavi meritko (100-200 %). Velikost textu, vlastni velikost listy a Docku zustanou.
+function set_scale(scale):
+    if not (scale in SCALES):
+        return False
+    end
+    old = read_scale()
+    text = text_size_index(read_dpi())
+    wsf = scale_factor(scale)
+    ok = run_ok(["xfconf-query", "-c", "xsettings", "-p", "/Gdk/WindowScalingFactor", "-n", "-t", "int", "-s", String(wsf)])
+    dpi = dpi_for(text, scale)
+    if dpi == DEFAULT_DPI and wsf == 1:
+        call run_ok(["xfconf-query", "-c", "xsettings", "-p", "/Xft/DPI", "-r"])
+    else:
+        ok = run_ok(["xfconf-query", "-c", "xsettings", "-p", "/Xft/DPI", "-n", "-t", "int", "-s", String(dpi)]) and ok
+    end
+    call run_ok(["xfconf-query", "-c", "xsettings", "-p", "/Gtk/CursorThemeSize", "-n", "-t", "int", "-s",
+                 String(Int(Float(CURSOR_SIZE) * scale_effective(scale) + 0.5))])
+    panel = xfconf_int("xfce4-panel", "/panels/panel-1/size")
+    call run_ok(["xfconf-query", "-c", "xfce4-panel", "-p", "/panels/panel-1/size", "-n", "-t", "uint", "-s",
+                 String(scaled_size(panel, PANEL_SIZE, old, scale, 16, 64))])
+    icons = None
+    safe:
+        icons = Int(run(["gsettings", "get", PLANK[0], PLANK[1]]).strip())
+    end
+    if program("gsettings") != "" and run(["gsettings", "get", PLANK[0], PLANK[1]]).strip() != "":
+        call run_ok(["gsettings", "set", PLANK[0], PLANK[1], String(scaled_size(icons, DOCK_ICONS, old, scale, 24, 128))])
+    end
+    call glib.mkdir_p(glib.user_config_dir() + "/luxos")
+    call glib.write_atomic(scale_path(), String(scale) + "\n")
+    # ramecky oken: hdpi (1,5x) pro 125-150 %, xhdpi pro 2x
+    call run_ok(["luxos-appearance", "wm-theme"])
+    return ok
 end
 
 # Profil "Default" z dialogu Xfce by xfsettingsd pouzil po prihlaseni pred LuxOS - smazat

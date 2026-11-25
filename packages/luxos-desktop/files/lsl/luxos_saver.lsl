@@ -15,6 +15,7 @@ load luxos_text
 SLIDE = 20.0      # sekund na tapetu
 FADE = 3.0        # delka prolinani
 FPS = 15
+FADE_FPS = 60     # prolinani tapet plynule (jen FADE sekund; jinak stoji a staci FPS)
 STYLES = ["desktop", "wallpapers", "analog", "clock", "aurora", "photos", "logo", "blank"]
 ANALOG_FPS = 20       # vterinova rucicka plynule; prekresluje se jen ctverec s hodinami
 ANALOG_SLIDE = 30.0   # rucickove hodiny: sekund na tapetu
@@ -374,9 +375,10 @@ function paint_wall(cr, path, w, h, alpha, t):
     if img == None:
         return 0
     end
-    # pomaly pohyb (Ken Burns) po zbyle plose obrazku
-    dx = (img[1] - w) * (0.5 + 0.5 * math.sin(t / 37))
-    dy = (img[2] - h) * (0.5 + 0.5 * math.cos(t / 53))
+    # pomaly pohyb (Ken Burns) po zbyle plose obrazku; cele pixely: posun o zlomek by cairo nutil filtrovat
+    # celou obrazovku (dva takove obrazky na snimek pri prolinani)
+    dx = math.round((img[1] - w) * (0.5 + 0.5 * math.sin(t / 37)))
+    dy = math.round((img[2] - h) * (0.5 + 0.5 * math.cos(t / 53)))
     call cairo.set_source_surface(cr, img[0], -dx, -dy)
     call cairo.paint_with_alpha(cr, alpha)
     return 0
@@ -510,6 +512,17 @@ function fps():
     return FPS
 end
 
+# Snimky za sekundu prave ted (zamek se pta kazdy snimek): prolinani tapet plynule, jinak fps()
+function fps_now():
+    if (S["style"] == "wallpapers" or S["style"] == "photos") and len(S["slides"]) > 1:
+        phase = (monotonic() - S["start"]) % SLIDE
+        if phase > SLIDE - FADE - 1.0 / FPS:
+            return FADE_FPS
+        end
+    end
+    return fps()
+end
+
 # Obsah okna nelze brat za platny (odkryti, navrat od dialogu s heslem, mezera v kresleni):
 # nekolik pristich snimku cele obrazovky
 function invalidate():
@@ -577,6 +590,10 @@ function draw(cr, w, h, full):
             call paint_wall(cr, slides[idx % len(slides)], w, h, 1.0, t)
             if phase > SLIDE - FADE:
                 call paint_wall(cr, slides[(idx + 1) % len(slides)], w, h, (phase - (SLIDE - FADE)) / FADE, t)
+            elif phase > 1.0:
+                # dalsi tapetu nacist uz ted, kdy obraz stoji (dekodovani trva desitky az stovky ms); az pri
+                # prolinani by se na nem animace zasekla
+                call slide_image(slides[(idx + 1) % len(slides)], w, h)
             end
         end
         # ztmaveni pro citelnost hodin

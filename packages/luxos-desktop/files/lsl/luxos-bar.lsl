@@ -21,7 +21,7 @@
 # SIGUSR2 nabidku LuxOS s napajenim (tlacitko napajeni v Ovladacim centru); PID je v $XDG_RUNTIME_DIR/luxos-bar.pid.
 #
 # Ladeni a testy: LUXOS_BAR_TRACE=1 vypisuje udalosti na stdout, LUXOS_BAR_NOW="YYYY-MM-DD HH:MM" zastavi hodiny.
-load env, cairo
+load env, cairo, math
 load glib, gtk, gio
 load luxos_glib as lglib
 load luxos_gtk
@@ -36,6 +36,7 @@ load luxos_bar_status as status
 load luxos_bar_popup as popup
 load luxos_hub_popup as hub_popup
 load luxos_sni as sni
+load luxos_luxwm as wm
 
 HEIGHT = tokens.BAR["height"]
 RADIUS = 10
@@ -64,6 +65,7 @@ ui = {"provider": 0, "app": "", "app_names": {}, "wm_classes": None, "clock": ""
       "dark": False, "trace": env.get("LUXOS_BAR_TRACE", "") == "1", "layout_menu": 0, "layout_items": [],
       "layout_names": [], "thumbs": {}, "flags": {}, "kb_press": 0, "kb_held": False, "kb_widget": 0,
       "last_bar": None}
+ws_state = {"current": 1, "count": 4}
 # Vlajky rozlozeni klavesnice jako panel xkb v X11 relaci (xfce4-xkb-plugin, display-type 0); bez vlajky kod
 FLAGS = env.get("LUXOS_XKB_FLAGS", "/usr/share/xfce4/xkb/flags")
 FLAG_W = 20
@@ -545,6 +547,310 @@ function icon_item(bar, kind, icon_name, tooltip, side):
     return b
 end
 
+# ---- OSD overlay (volume/brightness) -----------------------------------------------------------------
+
+OSD_W = 240
+OSD_H = 48
+OSD_R = 14.0
+OSD_BAR_W = 140.0
+OSD_BAR_H = 4.0
+OSD_ICON_SIZE = 20.0
+OSD_TIMEOUT = 1500
+
+osd = {"win": 0, "area": 0, "timer": 0, "value": 0, "kind": "", "muted": False, "bright_est": 50}
+
+function on_brightness_read(unused, output, status_code):
+    if status_code == 0:
+        fields = output.strip().split(",")
+        if len(fields) >= 4:
+            percent = fields[3].strip()
+            if percent.endswith("%") and text.is_digits(percent[:-1]):
+                osd["bright_est"] = max(0, min(100, Int(percent[:-1])))
+            end
+        end
+    end
+    return 0
+end
+
+function osd_create():
+    if osd["win"] != 0:
+        return 0
+    end
+    win = gtk.window_new("luxos-osd")
+    call layer.init_for_window(win)
+    call layer.set_namespace(win, "luxos-osd")
+    call layer.set_layer(win, layer.LAYER_OVERLAY)
+    call layer.set_anchors(win, [layer.EDGE_TOP])
+    call layer.set_margin(win, layer.EDGE_TOP, 80)
+    call layer.set_keyboard_mode(win, layer.KEYBOARD_NONE)
+    call gtk.widget_set_size_request(win, OSD_W, OSD_H)
+    call gtk.widget_set_app_paintable(win, True)
+    call gtk.widget_set_rgba_visual(win)
+    area = gtk.drawing_area_new()
+    call gtk.container_add(win, area)
+    call glib.signal_connect(area, "draw", on_osd_draw, 1)
+    osd["win"] = win
+    osd["area"] = area
+    return 0
+end
+
+function on_osd_draw(cr, area):
+    w = Float(gtk.widget_get_allocated_width(area))
+    h = Float(gtk.widget_get_allocated_height(area))
+    # pozadi
+    call cairo.rounded_rectangle(cr, 0.0, 0.0, w, h, OSD_R)
+    call cairo.set_source_rgba(cr, 0.1, 0.1, 0.14, 0.88)
+    call cairo.fill(cr)
+    # ikona
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9)
+    ix = 16.0
+    iy = (h - OSD_ICON_SIZE) / 2.0
+    if osd["kind"] == "volume":
+        if osd["muted"] or osd["value"] <= 0:
+            call draw_osd_speaker_muted(cr, ix, iy)
+        else:
+            call draw_osd_speaker(cr, ix, iy)
+        end
+    else:
+        call draw_osd_sun(cr, ix, iy)
+    end
+    # progress bar
+    bx = 44.0
+    by = (h - OSD_BAR_H) / 2.0
+    # pozadi baru
+    call cairo.rounded_rectangle(cr, bx, by, OSD_BAR_W, OSD_BAR_H, 2.0)
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.2)
+    call cairo.fill(cr)
+    # vyplneny progress
+    pct = Float(max(0, min(100, osd["value"]))) / 100.0
+    pw = OSD_BAR_W * pct
+    if pw > 0.5:
+        call cairo.rounded_rectangle(cr, bx, by, pw, OSD_BAR_H, 2.0)
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9)
+        call cairo.fill(cr)
+    end
+    # procenta
+    label = String(osd["value"]) + " %"
+    call cairo.select_font_face(cr, "Inter", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+    call cairo.set_font_size(cr, 12.0)
+    ext = cairo.text_extents(cr, label)
+    tx = bx + OSD_BAR_W + 8.0
+    ty = h / 2.0 - ext[1] / 2.0
+    call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.9)
+    call cairo.move_to(cr, tx, ty)
+    call cairo.show_text(cr, label)
+    return False
+end
+
+function draw_osd_speaker(cr, x, y):
+    s = OSD_ICON_SIZE
+    call cairo.move_to(cr, x + s * 0.1, y + s * 0.35)
+    call cairo.line_to(cr, x + s * 0.3, y + s * 0.35)
+    call cairo.line_to(cr, x + s * 0.55, y + s * 0.12)
+    call cairo.line_to(cr, x + s * 0.55, y + s * 0.88)
+    call cairo.line_to(cr, x + s * 0.3, y + s * 0.65)
+    call cairo.line_to(cr, x + s * 0.1, y + s * 0.65)
+    call cairo.close_path(cr)
+    call cairo.fill(cr)
+    # vlnky
+    call cairo.set_line_width(cr, 1.5)
+    call cairo.arc(cr, x + s * 0.6, y + s * 0.5, s * 0.18, -0.8, 0.8)
+    call cairo.stroke(cr)
+    call cairo.arc(cr, x + s * 0.6, y + s * 0.5, s * 0.32, -0.7, 0.7)
+    call cairo.stroke(cr)
+    return 0
+end
+
+function draw_osd_speaker_muted(cr, x, y):
+    s = OSD_ICON_SIZE
+    call cairo.move_to(cr, x + s * 0.1, y + s * 0.35)
+    call cairo.line_to(cr, x + s * 0.3, y + s * 0.35)
+    call cairo.line_to(cr, x + s * 0.55, y + s * 0.12)
+    call cairo.line_to(cr, x + s * 0.55, y + s * 0.88)
+    call cairo.line_to(cr, x + s * 0.3, y + s * 0.65)
+    call cairo.line_to(cr, x + s * 0.1, y + s * 0.65)
+    call cairo.close_path(cr)
+    call cairo.fill(cr)
+    # krizek
+    call cairo.set_line_width(cr, 2.0)
+    call cairo.move_to(cr, x + s * 0.65, y + s * 0.35)
+    call cairo.line_to(cr, x + s * 0.9, y + s * 0.65)
+    call cairo.stroke(cr)
+    call cairo.move_to(cr, x + s * 0.9, y + s * 0.35)
+    call cairo.line_to(cr, x + s * 0.65, y + s * 0.65)
+    call cairo.stroke(cr)
+    return 0
+end
+
+function draw_osd_sun(cr, x, y):
+    s = OSD_ICON_SIZE
+    cx = x + s / 2.0
+    cy = y + s / 2.0
+    # kruh
+    call cairo.arc(cr, cx, cy, s * 0.2, 0.0, 6.2832)
+    call cairo.fill(cr)
+    # paprsky
+    call cairo.set_line_width(cr, 1.5)
+    r1 = s * 0.3
+    r2 = s * 0.44
+    index = 0
+    while index < 8:
+        angle = Float(index) * 0.7854
+        call cairo.move_to(cr, cx + r1 * math.cos(angle), cy + r1 * math.sin(angle))
+        call cairo.line_to(cr, cx + r2 * math.cos(angle), cy + r2 * math.sin(angle))
+        call cairo.stroke(cr)
+        index += 1
+    end
+    return 0
+end
+
+function osd_hide_tick(unused):
+    osd["timer"] = 0
+    if osd["win"] != 0:
+        call gtk.widget_hide(osd["win"])
+    end
+    return False
+end
+
+function show_osd(kind, value, muted):
+    call osd_create()
+    osd["kind"] = kind
+    osd["value"] = value
+    osd["muted"] = muted
+    if osd["timer"] != 0:
+        call glib.source_remove(osd["timer"])
+    end
+    osd["timer"] = lglib.timeout_add_data(OSD_TIMEOUT, osd_hide_tick, 0)
+    if osd["win"] != 0:
+        call gtk.widget_show_all(osd["win"])
+        if osd["area"] != 0:
+            call gtk.widget_queue_draw(osd["area"])
+        end
+    end
+    return 0
+end
+
+# ---- workspace indikator (obdelniky jako X11 pager) ------------------------------------------------
+
+WS_BOX_W = 16
+WS_BOX_H = 10
+WS_GAP = 3
+WS_MARGIN = 6
+WS_R = 2.5
+
+function ws_width():
+    count = ws_state["count"]
+    if count <= 1:
+        return 0
+    end
+    return count * WS_BOX_W + (count - 1) * WS_GAP + WS_MARGIN * 2
+end
+
+function on_ws_draw(bar, cr, area):
+    count = ws_state["count"]
+    if count <= 1:
+        return False
+    end
+    w = Float(gtk.widget_get_allocated_width(area))
+    h = Float(gtk.widget_get_allocated_height(area))
+    total = Float(count * WS_BOX_W + (count - 1) * WS_GAP)
+    sx = (w - total) / 2.0
+    sy = (h - Float(WS_BOX_H)) / 2.0
+    index = 0
+    while index < count:
+        bx = sx + Float(index) * Float(WS_BOX_W + WS_GAP)
+        active = index == ws_state["current"] - 1
+        call cairo.rounded_rectangle(cr, bx, sy, Float(WS_BOX_W), Float(WS_BOX_H), WS_R)
+        if active:
+            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.85)
+            call cairo.fill(cr)
+        else:
+            call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.3)
+            call cairo.fill(cr)
+        end
+        index += 1
+    end
+    return False
+end
+
+function on_ws_press(bar, event, area):
+    if gtk.event_button(event) != 1:
+        return False
+    end
+    count = ws_state["count"]
+    if count <= 1:
+        return True
+    end
+    w = Float(gtk.widget_get_allocated_width(area))
+    total = Float(count * WS_BOX_W + (count - 1) * WS_GAP)
+    sx = (w - total) / 2.0
+    px = Float(Int(gtk.event_x(event)))
+    index = 0
+    while index < count:
+        bx = sx + Float(index) * Float(WS_BOX_W + WS_GAP)
+        if px >= bx and px < bx + Float(WS_BOX_W):
+            call wm.request({"cmd": "switch_workspace", "number": index + 1}, None)
+            return True
+        end
+        index += 1
+    end
+    return True
+end
+
+function on_wm_event(event):
+    if event.get("event", "") == "workspace":
+        ws_state["current"] = event.get("current", 1)
+        ws_state["count"] = event.get("count", 4)
+        for b in bars:
+            pager = b.get("pager", 0)
+            if pager != 0:
+                call gtk.widget_set_size_request(pager, ws_width(), -1)
+                call gtk.widget_set_visible(pager, ws_state["count"] > 1)
+                call gtk.widget_queue_draw(pager)
+            end
+        end
+    elif event.get("event", "") == "media":
+        call on_media_key(event.get("action", ""))
+    end
+    return 0
+end
+
+function on_media_key(action):
+    if action == "volume_up_key" or action == "volume_down_key":
+        delta = 5 if action == "volume_up_key" else -5
+        volume = status.state["sound"]["volume"]
+        if volume < 0:
+            return 0
+        end
+        if osd["kind"] == "volume" and osd["timer"] != 0:
+            volume = osd["value"]
+        end
+        target = max(0, min(100, volume + delta))
+        call status.set_volume(target)
+        call show_osd("volume", target, False)
+    elif action == "volume_mute_key":
+        muted = not status.state["sound"]["muted"]
+        call lglib.spawn_quiet(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"])
+        call show_osd("volume", max(0, status.state["sound"]["volume"]), muted)
+    elif action == "brightness_up_key" or action == "brightness_down_key":
+        delta = 5 if action == "brightness_up_key" else -5
+        call status.change_brightness(delta)
+        osd["bright_est"] = max(0, min(100, osd.get("bright_est", 50) + delta))
+        call show_osd("brightness", osd["bright_est"], False)
+    elif action == "mic_mute_key":
+        call lglib.spawn_quiet(["pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle"])
+    elif action == "media_play_key" or action == "media_next_key" or action == "media_previous_key":
+        cmd = "play-pause"
+        if action == "media_next_key":
+            cmd = "next"
+        elif action == "media_previous_key":
+            cmd = "previous"
+        end
+        call lglib.spawn_quiet(["playerctl", cmd])
+    end
+    return 0
+end
+
 function build_bar(bar):
     win = bar["win"]
     box = gtk.box_new(0, 0)
@@ -559,6 +865,14 @@ function build_bar(bar):
     call gtk.widget_set_margins(app, 0, 6, 0, 0)
     call gtk.box_pack_start(left, app, False, False, 0)
     bar["app"] = app
+    # workspace indikator (tecky)
+    pager = gtk.drawing_area_new()
+    call gtk.widget_set_size_request(pager, ws_width(), -1)
+    call gtk.widget_add_events(pager, 256)
+    call connect(bar, pager, "draw", 1, on_ws_draw, bar)
+    call connect(bar, pager, "button-press-event", 1, on_ws_press, bar)
+    call gtk.box_pack_start(left, pager, False, False, 0)
+    bar["pager"] = pager
     clock = gtk.label_new(ui["clock"])
     call gtk.widget_add_class(clock, "lb-clock")
     b = bar_button(bar, clock, ui["clock_tip"], on_item_press, "calendar")
@@ -601,13 +915,61 @@ function build_bar(bar):
     call icon_item(bar, "notifications", "notification-symbolic", i18n.T("Notifications"), right)
     call connect(bar, bar["items"]["sound"][0], "scroll-event", 1, on_sound_scroll, 0)
     call gtk.widget_add_events(bar["items"]["sound"][0], 2097152 + 8388608)
+    call connect(bar, bar["items"]["battery"][0], "scroll-event", 1, on_battery_scroll, 0)
+    call gtk.widget_add_events(bar["items"]["battery"][0], 2097152 + 8388608)
     call gtk.box_pack_start(box, left, False, False, 0)
     call gtk.box_pack_end(box, right, False, False, 0)
     bar["box"] = box
     bar["right"] = right
     bar["clock_center"] = None
     call place_clock(bar)
+    call gtk.widget_add_events(win, 256)
+    call lglib.connect_data(win, "button-press-event", 1, on_bar_right_click, bar)
     call gtk.container_add(win, box)
+    return 0
+end
+
+# ---- prave tlacitko na liste: kontextova nabidka ---------------------------------------------------
+# Prave tlacitko na prazdne casti listy (polozky si prave tlacitko berou samy): nastaveni listy (Plocha a Dock),
+# Monitor systemu a Nastaveni. Nabidka vznikne jednou a zustane (gtk_menu_popup_at_pointer s udalosti kliku).
+ctx_menu = {"menu": 0}
+
+function ctx_menu_get():
+    if ctx_menu["menu"] != 0:
+        return ctx_menu["menu"]
+    end
+    menu = luxos_gtk.menu_new()
+    call gtk.widget_add_class(menu, "lx-popup")
+    for entry in [[i18n.T("Desktop & Dock…"), ["luxos-settings", "desktop"]], [i18n.T("System Monitor"), ["luxos-monitor"]],
+                  None, [i18n.T("Open Settings"), ["luxos-settings"]]]:
+        if entry == None:
+            call luxos_gtk.menu_append(menu, luxos_gtk.separator_menu_item_new())
+            continue
+        end
+        item = luxos_gtk.menu_item_new(entry[0])
+        call lglib.connect_data(item, "activate", 0, on_ctx_activate, entry[1])
+        call luxos_gtk.menu_append(menu, item)
+    end
+    call gtk.widget_show_all(menu)
+    ctx_menu["menu"] = menu
+    return menu
+end
+
+function on_bar_right_click(bar, event, win):
+    if gtk.event_button(event) != 3:
+        return False
+    end
+    call popup.close_all()
+    menu = ctx_menu_get()
+    # rodic nabidky = okno udalosti (lista na monitoru, kde se kliklo)
+    unsafe:
+        call __lsl_qbe_call2(__lsl_symbol("gtk_menu_popup_at_pointer"), __lsl_unbox_int(menu), __lsl_unbox_int(event))
+    end
+    return True
+end
+
+function on_ctx_activate(argv, item):
+    call lglib.spawn_quiet(argv)
     return 0
 end
 
@@ -762,9 +1124,9 @@ function wm_class_index():
         for dir in apps_dirs():
             for name in lglib.list_dir(dir):
                 if name.endswith(".desktop"):
-                    wm = desktop_entry(dir + "/" + name).get("StartupWMClass", "")
-                    if wm != "" and wm.lower() not in index:
-                        index[wm.lower()] = dir + "/" + name
+                    wm_class = desktop_entry(dir + "/" + name).get("StartupWMClass", "")
+                    if wm_class != "" and wm_class.lower() not in index:
+                        index[wm_class.lower()] = dir + "/" + name
                     end
                 end
             end
@@ -1137,9 +1499,6 @@ function on_item_press(kind, event, widget):
     elif kind == "search":
         call popup.close_all()
         call glib.spawn_quiet(["luxos-search"])
-    elif kind == "network" and status.state["network"]["portal"]:
-        call popup.close_all()
-        call lglib.spawn_app(["luxos-network-login"])
     else:
         name = kind
         if kind == "network":
@@ -1231,6 +1590,33 @@ function on_sound_scroll(unused, event, widget):
             call status.change_volume(-5)
         end
     end
+    vol = status.state["sound"]["volume"]
+    muted = status.state["sound"]["muted"]
+    call show_osd("volume", max(0, min(100, vol)), muted)
+    return True
+end
+
+function on_battery_scroll(unused, event, widget):
+    d = gtk.event_scroll_direction(event)
+    delta = 0
+    if d == 0:
+        delta = 5
+        call status.change_brightness(5)
+    elif d == 1:
+        delta = -5
+        call status.change_brightness(-5)
+    elif d == 4:
+        deltas = gtk.event_scroll_deltas(event)
+        if deltas[1] < 0.0:
+            delta = 5
+            call status.change_brightness(5)
+        elif deltas[1] > 0.0:
+            delta = -5
+            call status.change_brightness(-5)
+        end
+    end
+    osd["bright_est"] = max(0, min(100, osd.get("bright_est", 50) + delta))
+    call show_osd("brightness", osd["bright_est"], False)
     return True
 end
 
@@ -1276,5 +1662,10 @@ call gio.file_monitor(config_dir() + "/appearance", on_conf_changed)
 call lglib.unix_signal_add(SIGUSR1, on_sigusr1)
 call lglib.unix_signal_add(SIGUSR2, on_sigusr2)
 call write_pid()
+# IPC luxwm: workspace indikator
+call wm.listen(on_wm_event)
+call wm.subscribe(["workspace"])
+call wm.subscribe(["media"])
+call lglib.spawn_capture(["brightnessctl", "-m"], on_brightness_read, 0)
 call trace("ready")
 call gtk.main()

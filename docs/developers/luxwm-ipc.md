@@ -116,11 +116,16 @@ a nepřihlásí se nic.
 |---|---|---|
 | `window` | `{"event": "window", "id": 7, "app_id": "org.gnome.Calculator", "title": "Kalkulačka", "frame": [340, 120, 600, 432]}` | zaměřené okno se změní (i jeho název, app_id, poloha nebo velikost: `frame` je rám se záhlavím v souřadnicích rozložení, při tažení až po uvolnění tlačítka); bez okna `id` 0, prázdné řetězce a `frame` `[]` |
 | `workspace` | `{"event": "workspace", "current": 2, "count": 4}` | přepnutí plochy (hned, ne až po animaci) |
-| `keyboard` | `{"event": "keyboard", "current": 1, "layouts": [{"code": "us", "variant": "", "name": "English (US)"}, {"code": "cz", "variant": "", "name": "Czech"}], "repeat": {"rate": 25, "delay": 600}, "caps": false}` | přepnutí rozložení (zkratka `grp:…`, příkaz, klik v liště), nový seznam po `reload`, zapnutí/vypnutí Caps Lock; `repeat` = použité opakování klávesy (viz níže), `caps` = Caps Lock zapnutý |
+| `keyboard` | `{"event": "keyboard", "current": 1, "layouts": [{"code": "us", "variant": "", "name": "English (US)"}, {"code": "cz", "variant": "", "name": "Czech"}], "repeat": {"rate": 25, "delay": 600}, "caps": false, "mods": 0}` | přepnutí rozložení (zkratka `grp:…`, příkaz, klik v liště), nový seznam po `reload`, zapnutí/vypnutí Caps Lock; `repeat` = použité opakování klávesy (viz níže), `caps` = Caps Lock zapnutý |
+| `modifiers` | `{"event": "modifiers", "mods": 1}` | změna stisknutých modifikátorů; samostatné téma, aby lišta nemusela překreslovat rozložení klávesnice při každém stisku Shiftu |
 | `output` | `{"event": "output", "primary": "HDMI-A-1", "outputs": [{"name": "HDMI-A-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 100, "refresh_mhz": 60000, "usable": [0, 30, 1920, 1050], "primary": true}]}` | monitor přidán nebo odebrán, změna použitelné plochy (lišta, Dock), změna hlavního monitoru; vypnutý monitor má `width` 0 a `usable` `[0, 0, 0, 0]` |
 | `theme` | `{"event": "theme", "theme": "dark"}` | `set_theme`, `reload`, `SIGUSR1` |
+| `cycle` | `{"event": "cycle", "action": "step", "items": [{"id": 7, "app_id": "org.gnome.Calculator", "title": "Kalkulačka", "capture": "4f0c…", "w": 600, "h": 400}], "pos": 0}` | Alt+Tab (luxos-switcher): `start` při prvním stisku, `step` při každém posunu výběru nebo když se vybrané okno zavře (zavřené okno ze seznamu vypadne a přepínání pokračuje), `end` při puštění modifikátoru nebo zrušení; při odběru `state`. `items` v pořadí MRU, `pos` = vybrané. `capture` = identifikátor okna pro `grim -T` (náhled; prázdný u minimalizovaného okna), `w`/`h` = velikost obsahu v logických pixelech. |
+| `media` | `{"event": "media", "action": "volume_up_key"}` | Klávesy XF86 pro hlasitost, jas, mikrofon a přehrávání; při odběru přijde `action: "state"`. Lišta změnu provede a zobrazí OSD. |
 
-Okno v `list_windows`: `{"id", "app_id", "title", "workspace" (od 1), "focused", "minimized", "fullscreen", "maximized", "sandbox"}`.
+Okno v `list_windows`: `{"id", "app_id", "title", "workspace" (od 1), "focused", "minimized", "fullscreen", "maximized", "sandbox", "frame": [x, y, width, height]}`.
+`frame` je rám včetně záhlaví v logických souřadnicích rozložení; slouží také k výběru okna ve Snímku obrazovky.
+U minimalizovaného okna nebo okna mimo aktuální plochu je `[]`, aby se nedalo vybrat neviditelné okno.
 `sandbox` je app_id z wp-security-context (aplikace v sandboxu, nastavuje spouštěč), jinak `""`.
 
 ## Hlavní monitor
@@ -143,9 +148,10 @@ luxwm skládá keymapu takto (pozdější přepisuje dřívější po položkác
 2. `xkb_layout`, `xkb_variant`, `xkb_options`, `xkb_model` v `~/.config/luxwm/luxwm.conf`
    (píše je `luxos-keyboard` na Waylandu, když uživatel zvolí vlastní rozložení jen pro sebe).
 
-Bez obojího platí `us`. Přepínání je volba XKB `grp:…` (výchozí v LuxOS `grp:shifts_toggle`, obě
-klávesy Shift), kterou vyhodnotí xkbcommon; luxwm jen pošle událost a srovná skupinu na všech
-klávesnicích. Rozložení je jedno pro celý systém (jako `group-policy=0` panelu xkb v X11 relaci),
+Bez obojího platí `us`. Přepínání určuje volba `grp:…`. Výchozí `grp:shifts_toggle` (obě klávesy
+Shift) obsluhuje přímo luxwm jedinou interní akcí v obou pořadích stisku; ostatní volby zpracovává
+XKB. Luxwm pošle událost a srovná skupinu na všech klávesnicích. Rozložení je jedno pro celý systém
+(jako `group-policy=0` panelu xkb v X11 relaci),
 paměť rozložení pro jednotlivá okna není.
 
 Opakování držené klávesy: `repeat_rate` (znaky za sekundu, 0–100, 0 = vypnuto, výchozí 25) a

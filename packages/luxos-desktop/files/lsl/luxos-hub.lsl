@@ -773,7 +773,9 @@ end
 function prebuild():
     call window_cc()
     call window_cal()
-    call window_shot()
+    if not wayland():
+        call window_shot()
+    end
     return False
 end
 
@@ -937,17 +939,22 @@ function main_hub():
     call glib.set_application_name("LuxOS")
     call gtk.init()
     call material.grayscale_text()
-    # Snimek obrazovky: pozadavky klienta luxos-screenshot (okna se postavi s ostatnimi, nebo pri prvnim pozadavku)
-    try:
-        call shot.start_server(False)
-    else:
-        call log("screenshot: " + String(last_error()))
-    end
-    # Emoji a symboly: pozadavky klienta luxos-emoji (okno se postavi s ostatnimi, nebo pri prvnim pozadavku)
-    try:
-        call emoji.start_server(False)
-    else:
-        call log("emoji: " + String(last_error()))
+    # Snimek obrazovky a Emoji: na Waylandu je obsluhuji samostatne procesy luxos-screenshot-ui a luxos-emoji-ui,
+    # ktere luxwm pusti k privilegovanym protokolum (snimek obrazovky, virtualni klavesnice pro vlozeni znaku);
+    # hub mezi nimi neni, klienti bez hubu spusti -ui sami
+    if not wayland():
+        # Snimek obrazovky: pozadavky klienta luxos-screenshot (okna se postavi s ostatnimi, nebo pri prvnim pozadavku)
+        try:
+            call shot.start_server(False)
+        else:
+            call log("screenshot: " + String(last_error()))
+        end
+        # Emoji a symboly: pozadavky klienta luxos-emoji (okno se postavi s ostatnimi, nebo pri prvnim pozadavku)
+        try:
+            call emoji.start_server(False)
+        else:
+            call log("emoji: " + String(last_error()))
+        end
     end
     safe:
         hub["session"] = gio.session_bus()

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=129
+pkgrel=143
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -54,23 +54,24 @@ depends=(
     gtk-layer-shell wayland libxkbcommon
     # relace na Waylandu (luxos-wayland-session): spravce oken, portaly snimku a sdileni obrazovky; relace X11
     # z greetd startuje Xorg pres startx (luxos-x11-session)
-    'luxwm>=0.1.0-21' xdg-desktop-portal xdg-desktop-portal-wlr xorg-xinit
+    'luxwm>=0.1.0-33' xdg-desktop-portal xdg-desktop-portal-wlr xorg-xinit
     # aplikace X11 na Waylandu (luxwm ho spousti az s prvni z nich) a okna aplikaci z jineho pocitace:
     # "ssh -X" mezi pocitaci s LuxOS jde pres waypipe na obou stranach (luxos-shell remote-apps.sh)
     xorg-xwayland waypipe
     xfce4-power-manager 'xfce4-screensaver>=4.20.2-1.3' ffmpeg xfce4-taskmanager
     # Terminal LuxOS misto xfce4-terminal (packages/luxos-terminal, VTE s obrazky SIXEL)
-    luxos-terminal
+    'luxos-terminal>=1.3.0-8'
     'xfce4-whiskermenu-plugin>=2.10.1-2.1' xfce4-genmon-plugin 'xfce4-pulseaudio-plugin>=0.5.1-1.1' xfce4-xkb-plugin
     xfce4-cpugraph-plugin  # graf vytizeni CPU (jde pridat do listy, ve vychozi liste neni)
     # psani vietnamsky (Rozlozeni klavesnice > Metody zadavani, luxos-input-method); fcitx5 bezi jen u toho,
     # kdo ho zapne (vlastni autostart v /etc/xdg/luxos), aplikace Qt potrebuji fcitx5-qt (volitelne)
-    fcitx5 fcitx5-gtk fcitx5-bamboo
+    fcitx5 fcitx5-gtk fcitx5-bamboo python
     # xorg-xauth: luxos-xauth-wildcard (pristup k obrazovce i po zmene nazvu pocitace)
     xorg-setxkbmap xorg-xprop xorg-xauth libxi libxtst libxrandr
     # moduly v Pythonu presunute z luxos-desktop (1.1.0-102): luxos_wm_icon.py do luxos-i18n, luxos_calendar_ics.py
     # do luxos-companion, fotka uctu primo v luxos-account - aktualizace je musi stahnout spolu s nim
     brightnessctl 'luxos-i18n>=1.0.0-102' luxos-store 'luxos-account>=1.0.0-13'
+    playerctl wl-clipboard
     # Lux Guard: kontrola stazenych programu a snimky /home (i u starsich instalaci pres lux update)
     luxos-guard
     # LuxOS Care: aktualizace, zalozni jadro a prechod na jadro LuxOS (starsi instalace ho nemely)
@@ -209,6 +210,8 @@ build() {
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-lock-session.lsl" luxos-lock-session
     # Launchpad a Hledani relace na Waylandu (misto rofi); luxos-launchpad a luxos-search ho volaji pres D-Bus
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-launchpad.lsl" luxos-launchpad-wayland
+    # Alt+Tab prepinac oken na Waylandu (overlay s ikonami aplikaci)
+    lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-switcher.lsl" luxos-switcher
     # Tapeta a nabidka plochy relace na Waylandu (vrstva BACKGROUND na kazdem monitoru); X11 relace dal xfdesktop
     lslc --target linux-x86_64-gnu --system-bindings "$startdir/files/lsl" "$startdir/files/lsl/luxos-backdrop.lsl" luxos-backdrop
     # Monitory: pomocnik (na Waylandu jediny s pravem na wlr-output-management, allowlist luxwm; na X11 xrandr
@@ -294,6 +297,8 @@ package() {
     install -Dm755 luxos-launchpad-wayland "$pkgdir/usr/lib/luxos/luxos-launchpad"
     install -Dm644 "$f/systemd-user/luxos-launchpad.service" "$pkgdir/usr/lib/systemd/user/luxos-launchpad.service"
     install -Dm644 "$f/dbus-services/cz.luxos.Launchpad.service" "$pkgdir/usr/share/dbus-1/services/cz.luxos.Launchpad.service"
+    install -Dm755 luxos-switcher "$pkgdir/usr/lib/luxos/luxos-switcher"
+    install -Dm644 "$f/systemd-user/luxos-switcher.service" "$pkgdir/usr/lib/systemd/user/luxos-switcher.service"
     install -Dm755 luxos-backdrop "$pkgdir/usr/bin/luxos-backdrop"
     # Stare programy nastaveni = stranky okna Nastaveni (luxos-settings vybere stranku podle jmena)
     local alias
@@ -313,7 +318,8 @@ package() {
     install -Dm644 "$f/systemd-user/luxos-polkit.service" "$pkgdir/usr/lib/systemd/user/luxos-polkit.service"
     # Relace na Waylandu: cil shellu, Dock a widgety jako jednotky, polozka pro greetd, portaly (bin/luxos-wayland-session)
     install -Dm644 -t "$pkgdir/usr/lib/systemd/user" "$f/systemd-user/luxos-session.target" \
-        "$f/systemd-user/luxos-dock.service" "$f/systemd-user/luxos-widgets.service"
+        "$f/systemd-user/luxos-dock.service" "$f/systemd-user/luxos-widgets.service" \
+        "$f/systemd-user/luxos-hub.service"
     install -Dm644 "$f/wayland-sessions/luxos.desktop" "$pkgdir/usr/share/wayland-sessions/luxos.desktop"
     install -Dm644 "$f/xdg-desktop-portal/luxos-portals.conf" "$pkgdir/usr/share/xdg-desktop-portal/luxos-portals.conf"
     # Relace X11 z greetd (LuxOS (X11)): startx s xinitrc.d misto Xsession LightDM
@@ -428,6 +434,8 @@ package() {
     install -Dm755 "$f/xinit/50-luxos-firefox-xinput2.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/50-luxos-firefox-xinput2.sh"
     # psani vietnamsky (fcitx5): promenne GTK_IM_MODULE a spol. jen pro uzivatele, ktery metodu ma
     install -Dm755 "$f/xinit/55-luxos-input-method.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/55-luxos-input-method.sh"
+    # pomocnik luxos-input-method (Python, jen standardni knihovna): zapina fcitx5 + Bamboo pro tento ucet
+    install -Dm644 "$f/python/luxos_input_method.py" "$pkgdir/usr/lib/luxos/python/luxos_input_method.py"
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
     install -Dm755 libluxos-desktop-menu.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-desktop-menu.so"

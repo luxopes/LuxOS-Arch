@@ -69,6 +69,25 @@ image/tiff=org.xfce.ristretto.desktop;
 image/svg+xml=org.xfce.ristretto.desktop;
 image/x-pixmap=org.xfce.ristretto.desktop;
 image/x-xpixmap=org.xfce.ristretto.desktop;
+# Kancelarske dokumenty (LibreOffice z repozitare nebo Flathubu, ONLYOFFICE). Bez nich vyhraje v mimeinfo.cache
+# archivator: .docx, .xlsx i .odt jsou technicky ZIP a xarchiver je uvadi.
+application/vnd.oasis.opendocument.text=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.oasis.opendocument.text-template=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.openxmlformats-officedocument.wordprocessingml.template=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/msword=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/rtf=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+text/rtf=libreoffice-writer.desktop;org.libreoffice.LibreOffice.writer.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.oasis.opendocument.spreadsheet=libreoffice-calc.desktop;org.libreoffice.LibreOffice.calc.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.oasis.opendocument.spreadsheet-template=libreoffice-calc.desktop;org.libreoffice.LibreOffice.calc.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=libreoffice-calc.desktop;org.libreoffice.LibreOffice.calc.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.openxmlformats-officedocument.spreadsheetml.template=libreoffice-calc.desktop;org.libreoffice.LibreOffice.calc.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.ms-excel=libreoffice-calc.desktop;org.libreoffice.LibreOffice.calc.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.oasis.opendocument.presentation=libreoffice-impress.desktop;org.libreoffice.LibreOffice.impress.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.oasis.opendocument.presentation-template=libreoffice-impress.desktop;org.libreoffice.LibreOffice.impress.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.openxmlformats-officedocument.presentationml.presentation=libreoffice-impress.desktop;org.libreoffice.LibreOffice.impress.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.openxmlformats-officedocument.presentationml.slideshow=libreoffice-impress.desktop;org.libreoffice.LibreOffice.impress.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
+application/vnd.ms-powerpoint=libreoffice-impress.desktop;org.libreoffice.LibreOffice.impress.desktop;onlyoffice-desktopeditors.desktop;org.onlyoffice.desktopeditors.desktop;
 # Archivy (xarchiver)
 application/zip=xarchiver.desktop;
 application/x-7z-compressed=xarchiver.desktop;

@@ -51,6 +51,10 @@
       <property name="&lt;Super&gt;Down" type="string" value="hide_window_key"/>
       <property name="&lt;Super&gt;Left" type="string" value="tile_left_key"/>
       <property name="&lt;Super&gt;Right" type="string" value="tile_right_key"/>
+      <!-- xfwm4 ma pro kazdou akci jen jednu klavesu: vychozi Super+KP_Left/KP_Right z Xfce by
+           prebily Super+sipky (Super+Right pak nedelalo nic) - numericke sipky bez akce -->
+      <property name="&lt;Super&gt;KP_Left" type="string" value=""/>
+      <property name="&lt;Super&gt;KP_Right" type="string" value=""/>
       <property name="&lt;Super&gt;d" type="string" value="show_desktop_key"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;Left" type="string" value="left_workspace_key"/>
       <property name="&lt;Primary&gt;&lt;Super&gt;Right" type="string" value="right_workspace_key"/>

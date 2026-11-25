@@ -80,7 +80,7 @@ struct view {
 	struct wlr_xdg_toplevel *toplevel;	/* exactly one of toplevel and xsurface is set */
 	struct wlr_xwayland_surface *xsurface;
 	struct wlr_scene_tree *tree;	/* at the content top-left */
-	struct wlr_scene_tree *body;	/* content + rounded bottom corners (deco.c), what a window capture shows */
+	struct wlr_scene_tree *body;	/* content + rounded bottom corners (deco.c) */
 	struct wlr_scene_tree *surface_tree;	/* NULL for an X11 window without a wl_surface */
 	struct workspace *workspace;
 	int layer;
@@ -108,6 +108,8 @@ struct view {
 	struct wlr_ext_foreign_toplevel_handle_v1 *ext;
 	struct wlr_output *ftl_output;
 	struct wlr_ext_image_capture_source_v1 *capture;
+	struct wlr_scene *capture_scene;	/* foreign.c: jen povrchy tohoto okna pro snimek */
+	struct wlr_scene_tree *capture_tree;
 	struct wlr_box icon_box;	/* Dock icon (foreign-toplevel set_rectangle), layout coordinates */
 	struct wl_listener ftl_activate, ftl_minimize, ftl_maximize, ftl_fullscreen,
 		ftl_close, ftl_rectangle, capture_destroy;
@@ -119,6 +121,7 @@ struct keybind {
 	uint32_t mods;
 	uint32_t keysym;	/* 0 when matched by keycode */
 	uint32_t keycode;
+	bool repeat;
 };
 
 struct comp {
@@ -196,6 +199,7 @@ struct comp {
 	struct view *focused;
 	struct wlr_surface *layer_focus;	/* keyboard-interactive layer surface */
 	bool binding_mods_held;		/* report modifier release after a binding */
+	bool super_alone;		/* Super pressed, no other key yet */
 
 	enum grab_mode grab;
 	struct view *grab_view;
@@ -303,6 +307,7 @@ void foreign_init(void);
 void foreign_map(struct view *v);
 void foreign_unmap(struct view *v);
 void foreign_update(struct view *v);
+void foreign_capture_clip(struct view *v);
 
 /* lock.c */
 void lock_init(void);

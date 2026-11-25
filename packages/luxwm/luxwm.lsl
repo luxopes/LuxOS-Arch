@@ -69,6 +69,7 @@ INTRO_DOCK_MS = 1500
 INTRO_SETTLE_MS = 100
 INTRO_MAX_MS = 10000
 intro = {"on": False, "backgrounds": [], "bar": False, "timer": 0}
+session_stopped = {"done": False}
 settings = {}
 binds = {}           # id zkratky -> akce
 outputs = []
@@ -82,6 +83,7 @@ maxed = {}
 # potvrzeni klientem, politika potrebuje stav hned
 full = {}
 tiled = {}           # okno -> "left" / "right"
+has_xdg_deco = {}    # okna, ktera pouzila xdg-decoration (CSD/SSD si ridi sama)
 hidden_desktop = []  # okna schovana "ukazat plochu"
 last_title_click = [0, 0]
 
@@ -89,7 +91,7 @@ last_title_click = [0, 0]
 cycle = {"on": False, "list": [], "pos": 0, "from": 0, "shown": [], "cancel": 0}
 
 LOCALE = "org.freedesktop.locale1"
-IPC_TOPICS = ["window", "workspace", "keyboard", "output", "theme"]
+IPC_TOPICS = ["window", "workspace", "keyboard", "modifiers", "output", "theme", "cycle", "media"]
 # informace o cizich oknech a jejich ovladani jen pro allowlist (jako wlr-foreign-toplevel)
 PRIVILEGED_TOPICS = ["window"]
 PRIVILEGED_COMMANDS = ["list_windows", "focus_window", "set_primary", "test_output", "dock_zone"]
@@ -164,7 +166,7 @@ end
 
 function load_config():
     global settings
-    general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "no",
+    general = {"workspaces": "4", "slide_ms": String(tokens.MOTION["workspace"]), "wrap_workspaces": "yes",
                "xwayland": "yes", "displays_command": "", "blur": "yes", "vrr": "fullscreen", "tearing": "yes",
                "night_light": "off", "night_light_temperature": "4000", "night_light_from": "21:00", "night_light_to": "07:00"}
     keys = {}
@@ -286,7 +288,9 @@ ACTIONS = ["close_window_key", "hide_window_key", "cycle_windows_key", "cycle_re
            "cycle_app_windows_key", "cycle_reverse_app_windows_key", "switch_window_key", "fullscreen_key",
            "maximize_window_key", "tile_left_key", "tile_right_key", "show_desktop_key",
            "left_workspace_key", "right_workspace_key", "move_window_left_workspace_key",
-           "move_window_right_workspace_key", "quit"]
+           "move_window_right_workspace_key", "next_layout_key", "volume_up_key", "volume_down_key",
+           "volume_mute_key", "brightness_up_key", "brightness_down_key", "mic_mute_key",
+           "media_play_key", "media_next_key", "media_previous_key", "quit"]
 
 function known_action(action):
     if action.startswith("exec ") or action in ACTIONS:
@@ -314,13 +318,27 @@ function bind_keys():
         parsed = parse_accel(accel)
         id = 0
         if len(parsed) == 2:
-            id = lc.bind_key(parsed[0], parsed[1])
+            if action == "left_workspace_key" or action == "right_workspace_key":
+                id = lc.bind_key_repeat(parsed[0], parsed[1])
+            else:
+                id = lc.bind_key(parsed[0], parsed[1])
+            end
         end
         if id == 0:
             call log("bad shortcut " + accel)
             continue
         end
         binds[id] = action
+    end
+    # Oba Shifty zpracuje primo luxwm. XKB pravidlo se v apply_keyboard vynecha,
+    # aby jedno gesto nemohlo prepnout rozlozeni dvakrat.
+    if "grp:shifts_toggle" in keyboard_names()[2].split(","):
+        for key in ["Shift_L", "Shift_R"]:
+            id = lc.bind_key(lc.MOD_SHIFT, key)
+            if id != 0:
+                binds[id] = "next_layout_key"
+            end
+        end
     end
 end
 
@@ -346,9 +364,65 @@ end
 # Zahlavi podle tokens.TITLEBAR (stejne jako zahlavi GTK v luxos-themes). Inkoust (nazev, neaktivni semafor)
 # je pro svetle i tmave zahlavi: jadro bere barvu zahlavi z obsahu okna, tmavy terminal ma tmave zahlavi
 # i ve svetlem rezimu.
+# Velikost tlacitek oken jako na X11 (Nastaveni > Monitory > Tlacitka oken, luxos-appearance wm-buttons):
+# WM_BUTTONS v ~/.config/luxos/appearance.conf - standard 1x, large 1,5x, larger 2x; auto = na dotykove
+# obrazovce (luxos-touch: touch-state "touchscreen=1") 1,5x, jinak 1x. Meritko vystupu resi jadro samo.
+function button_factor():
+    choice = "auto"
+    safe:
+        for raw in readfile(glib.user_config_dir() + "/luxos/appearance.conf").split(chr(10)):
+            line = raw.strip()
+            if line.startswith("WM_BUTTONS="):
+                choice = line[11:].strip().strip("\"'")
+            end
+        end
+    end
+    if choice == "larger":
+        return 2.0
+    elif choice == "large":
+        return 1.5
+    elif choice == "standard":
+        return 1.0
+    end
+    touch = ""
+    safe:
+        touch = readfile(glib.user_config_dir() + "/luxos/touch-state")
+    end
+    if touch.find("touchscreen=1") >= 0:
+        return 1.5
+    end
+    return 1.0
+end
+
+# Zahlavi s tlacitky zvetsenymi o factor: tlacitka, rozestup a odsazeni rostou, vyska zahlavi jen tolik,
+# aby kolem tlacitka zustal stejny okraj
+function titlebar_metrics(t, factor):
+    m = {}
+    for k in ["height", "height_compact", "light", "pitch", "inset", "inset_compact"]:
+        m[k] = t[k]
+    end
+    if factor <= 1.0:
+        return m
+    end
+    light = Int(Float(t["light"]) * factor + 0.5)
+    grow = light - t["light"]
+    m["light"] = light
+    m["pitch"] = Int(Float(t["pitch"]) * factor + 0.5)
+    m["inset"] = t["inset"] + grow
+    m["inset_compact"] = t["inset_compact"] + grow
+    m["height"] = t["height"] + grow
+    m["height_compact"] = t["height_compact"] + grow
+    return m
+end
+
 function apply_theme(dark):
     look["dark"] = dark
-    t = tokens.TITLEBAR
+    t = titlebar_metrics(tokens.TITLEBAR, button_factor())
+    for k in tokens.TITLEBAR:
+        if not (k in t):
+            t[k] = tokens.TITLEBAR[k]
+        end
+    end
     window = tokens.color("window", dark)
     call lc.theme_set(lc.THEME_TITLE_HEIGHT, t["height"])
     call lc.theme_set(lc.THEME_TITLE_HEIGHT_COMPACT, t["height_compact"])
@@ -465,7 +539,9 @@ end
 
 function apply_keyboard():
     names = keyboard_names()
-    call lc.set_keymap(names[0], names[1], names[2])
+    # Volbu obou Shiftu obsluhuji vazby vyse; ostatni XKB volby zustavaji aktivni.
+    xkb_options = ",".join([item for item in names[2].split(",") if item != "grp:shifts_toggle" and item != ""])
+    call lc.set_keymap(names[0], names[1], xkb_options)
     codes = names[0].split(",")
     variants = names[1].split(",")
     layouts = []
@@ -476,6 +552,16 @@ function apply_keyboard():
     keyboard["layouts"] = layouts
     call note("keyboard " + names[0] + " variant " + names[1] + " options " + names[2] + " layouts " + String(len(layouts)))
     call broadcast("keyboard", keyboard_event())
+    call bind_keys()
+    for client in ipc.keys():
+        if ipc[client].get("suspend", False):
+            for id in binds.keys():
+                call lc.unbind_key(id)
+            end
+            binds.clear()
+            break
+        end
+    end
 end
 
 # Opakovani drzene klavesy (Nastaveni > Klavesnice): znaky za sekundu (0 = vypnuto) a prodleva v ms,
@@ -992,7 +1078,30 @@ function place(v, want):
         want = [vget(v, lc.VIEW_W), vget(v, lc.VIEW_H)]
     end
     size = fit_size(v, want[0], want[1], u)
+    if lc.view_app_id(v) in AT_POINTER:
+        return place_at_pointer(v, size[0], size[1], u)
+    end
     return place_sized(v, size[0], size[1], u)
+end
+
+# Okna otevirana zkratkou nad prave psanym textem (Emoji a symboly, Super+.) jako na X11 u mysi: pod ni,
+# kdyz se nevejde, nad ni; cele v pouzitelne plose. Klient na Waylandu svou polohu urcit nemuze.
+AT_POINTER = ["luxos-emoji"]
+
+function place_at_pointer(v, w, content_h, u):
+    top = vget(v, lc.VIEW_DECO_TOP)
+    h = content_h + top
+    px = lc.cursor_x()
+    py = lc.cursor_y()
+    x = px - w // 2
+    y = py + 18
+    if y + h > u[1] + u[3]:
+        y = py - h - 18
+    end
+    x = max(u[0] + 8, min(x, u[0] + u[2] - w - 8))
+    y = max(u[1] + 8, min(y, u[1] + u[3] - h - 8))
+    call lc.view_move(v, x, y + top)
+    return [x, y]
 end
 
 # Okno vetsi nez plocha se zmensi, aby bylo cele videt (i tlacitka dole nad Dockem), jako v X11 relaci;
@@ -1197,12 +1306,16 @@ function to_front(v):
 end
 
 # Celoobrazovkove okno je nad listou jen zamerene (xfwm4 luxos-fullscreen-layer.patch); jinak
-# zustava ve stromu sve plochy, aby s ni odjelo a nezakryvalo jine plochy
+# zustava ve stromu sve plochy, aby s ni odjelo a nezakryvalo jine plochy. Behem prejezdu ploch zustava
+# ve strome plochy i zamerene: jinak by se objevilo hned nad vsim a s plochou neprijelo (EV_SLIDE_DONE
+# ho pak zvedne).
+sliding = {"on": False}
+
 function update_layers(active):
     o = lc.view_next(0)
     while o != 0:
         if o in full:
-            call lc.view_set_layer(o, lc.LAYER_FULLSCREEN if o == active else lc.LAYER_NORMAL)
+            call lc.view_set_layer(o, lc.LAYER_FULLSCREEN if o == active and not sliding["on"] else lc.LAYER_NORMAL)
         end
         o = lc.view_next(o)
     end
@@ -1481,23 +1594,154 @@ function show_desktop():
     call focus(0)
 end
 
+# ---- horke rohy -------------------------------------------------------------------------------
+# Jako na X11 (luxos_hotcorners.lsl v luxos-hubu, ktery na Waylandu polohu ukazatele mimo sva okna nezna):
+# ~/.config/luxos/hotcorners radky "tl=launchpad" (Nastaveni > Plocha a Dock), vychozi jen levy horni Launchpad.
+# Ukazatel musi v rohu zustat ~0,3 s (3 tiky po 100 ms), roh se znovu nabije az po odjeti dal nez 24 px.
+# Rohy cele plochy (pri vice monitorech vnejsi rohy). Ne v prihlasovaci obrazovce, pri zamcene obrazovce,
+# nad oknem na celou obrazovku (hry) ani na tabletu bez klavesnice (touch-state touchscreen=1 keyboard=0).
+HOT_DEFAULTS = {"tl": "launchpad", "tr": "none", "bl": "none", "br": "none"}
+HOT_ACTIONS = ["none", "launchpad", "desktop", "control-center", "lock", "screensaver"]
+hot = {"conf": {}, "ticks": 0, "corner": "", "dwell": 0, "armed": True, "disabled": False}
+
+function hot_reload():
+    conf = {}
+    for k in ["tl", "tr", "bl", "br"]:
+        conf[k] = HOT_DEFAULTS[k]
+    end
+    text = ""
+    touch = ""
+    safe:
+        text = readfile(glib.user_config_dir() + "/luxos/hotcorners")
+    end
+    safe:
+        touch = readfile(glib.user_config_dir() + "/luxos/touch-state")
+    end
+    for raw in text.split(chr(10)):
+        line = raw.strip()
+        at = line.find("=")
+        if line.startswith("#") or at < 0:
+            continue
+        end
+        key = line[:at].strip()
+        value = line[at + 1:].strip()
+        if key in conf and value in HOT_ACTIONS:
+            conf[key] = value
+        end
+    end
+    hot["conf"] = conf
+    hot["disabled"] = touch.find("touchscreen=1") >= 0 and touch.find("keyboard=0") >= 0
+end
+
+# [x0, y0, x1, y1] vsech vystupu (prazdne = zadny)
+function hot_bounds():
+    box = []
+    for out in outputs:
+        w = lc.output_get(out, lc.OUT_W)
+        h = lc.output_get(out, lc.OUT_H)
+        if w <= 0 or h <= 0:
+            continue
+        end
+        x = lc.output_get(out, lc.OUT_X)
+        y = lc.output_get(out, lc.OUT_Y)
+        if len(box) == 0:
+            box = [x, y, x + w, y + h]
+        else:
+            box = [min(box[0], x), min(box[1], y), max(box[2], x + w), max(box[3], y + h)]
+        end
+    end
+    return box
+end
+
+function hot_run(action):
+    if action == "launchpad":
+        call lc.spawn("luxos-launchpad")
+    elif action == "desktop":
+        call show_desktop()
+    elif action == "control-center":
+        call lc.spawn("luxos-cc-toggle")
+    elif action == "lock" or action == "screensaver":
+        call lc.spawn("loginctl lock-session")
+    end
+end
+
+function hot_tick():
+    hot["ticks"] += 1
+    if hot["ticks"] % 20 == 1:
+        call hot_reload()
+    end
+    if hot["disabled"] or lc.locked() != 0:
+        return True
+    end
+    box = hot_bounds()
+    if len(box) == 0:
+        return True
+    end
+    x = lc.cursor_x()
+    y = lc.cursor_y()
+    c = ""
+    if x <= box[0] and y <= box[1]:
+        c = "tl"
+    elif x >= box[2] - 1 and y <= box[1]:
+        c = "tr"
+    elif x <= box[0] and y >= box[3] - 1:
+        c = "bl"
+    elif x >= box[2] - 1 and y >= box[3] - 1:
+        c = "br"
+    end
+    if c == "":
+        near_x = x < box[0] + 24 or x > box[2] - 1 - 24
+        near_y = y < box[1] + 24 or y > box[3] - 1 - 24
+        if not (near_x and near_y):
+            hot["armed"] = True
+        end
+        hot["corner"] = ""
+        return True
+    end
+    action = hot["conf"].get(c, "none")
+    if action == "none" or not hot["armed"]:
+        return True
+    end
+    out = lc.output_at(x, y)
+    if out != 0 and lc.output_get(out, lc.OUT_FULLSCREEN) != 0:
+        return True
+    end
+    if hot["corner"] != c:
+        hot["corner"] = c
+        hot["dwell"] = 0
+        return True
+    end
+    hot["dwell"] += 1
+    if hot["dwell"] >= 3:
+        hot["armed"] = False
+        call hot_run(action)
+    end
+    return True
+end
+
 # ---- plochy ----------------------------------------------------------------------------------
 
-function switch_to(index):
+function switch_to(index, hint):
     global cur
     if index < 0 or index >= len(ws) or index == cur:
         return
     end
     old = cur
     cur = index
-    # zamereni hned (klavesnice patri nove plose uz behem prejezdu); celoobrazovkove okno stare
-    # plochy se tim vrati do jejiho stromu a odjede s ni
-    call focus(top_on_current(0))
     ms = setting_int("slide_ms", 0, 2000)
     if settings.get("reduce_motion", "no") == "yes":
         ms = 0
     end
-    call lc.workspace_slide(ws[old], ws[index], 1 if index > old else -1, ms)
+    # zamereni hned (klavesnice patri nove plose uz behem prejezdu); celoobrazovkove okno stare
+    # plochy se tim vrati do jejiho stromu a odjede s ni, okno nove plochy s ni prijede
+    sliding["on"] = ms > 0
+    call focus(top_on_current(0))
+    if hint != 0:
+        direction = hint
+    else:
+        direction = 1 if index > old else -1
+    end
+    call lc.workspace_slide(ws[old], ws[index], direction, ms)
     call note("workspace " + String(index + 1))
     call broadcast("workspace", workspace_event())
 end
@@ -1580,6 +1824,7 @@ function cycle_start(app_only):
     cycle["shown"] = []
     # Esc se drzenym Alt zrusi vyber; mimo prepinani ho dostava aplikace
     cycle["cancel"] = lc.bind_key(lc.MOD_ALT, "Escape")
+    call broadcast("cycle", cycle_event("start"))
     return True
 end
 
@@ -1590,18 +1835,36 @@ function cycle_step(delta, app_only):
     items = cycle["list"]
     cycle["pos"] = (cycle["pos"] + delta + len(items)) % len(items)
     v = items[cycle["pos"]]
-    # vybrane okno hned dopredu (cycle_raise); minimalizovane jen docasne, dokud je vybrane
-    for s in cycle["shown"]:
-        if s != v and vget(s, lc.VIEW_MAPPED) == 1:
-            call lc.view_set_visible(s, 0)
-        end
-    end
-    cycle["shown"] = []
-    if vget(v, lc.VIEW_VISIBLE) == 0:
-        cycle["shown"] = [v]
-    end
-    call show(v, False)
+    # jako xfwm4 na X11 (cycle_raise = false): okna se behem vyberu nehybou, vybrane se zameri az po
+    # pusteni modifikatoru (cycle_end); vyber ukazuje jen panel luxos-switcher
     call note("cycle " + String(v))
+    call broadcast("cycle", cycle_event("step"))
+end
+
+# Zavrene okno ze seznamu ven a prepinani pokracuje (jako tabwinRemoveClient v xfwm4); vybrane bylo-li
+# zavrene, vybere se nasledujici
+function cycle_drop(v):
+    items = cycle["list"]
+    index = 0
+    while index < len(items) and items[index] != v:
+        index += 1
+    end
+    call items.remove(v)
+    if v in cycle["shown"]:
+        call cycle["shown"].remove(v)
+    end
+    if cycle["from"] == v:
+        cycle["from"] = 0
+    end
+    if len(items) == 0:
+        call cycle_end(True)
+        return
+    end
+    if index < cycle["pos"]:
+        cycle["pos"] -= 1
+    end
+    cycle["pos"] = cycle["pos"] % len(items)
+    call cycle_step(0, False)
 end
 
 function cycle_end(cancel):
@@ -1610,6 +1873,7 @@ function cycle_end(cancel):
     end
     cycle["on"] = False
     call lc.unbind_key(cycle["cancel"])
+    call broadcast("cycle", cycle_event("end"))
     items = cycle["list"]
     v = items[cycle["pos"]] if len(items) > 0 else 0
     if cancel:
@@ -1640,11 +1904,11 @@ function run_action(action):
     elif action == "cycle_reverse_app_windows_key":
         call cycle_step(-1, True)
     elif action == "left_workspace_key":
-        call switch_to(step_index(-1))
+        call switch_to(step_index(-1), -1)
     elif action == "right_workspace_key":
-        call switch_to(step_index(1))
+        call switch_to(step_index(1), 1)
     elif action.startswith("workspace_"):
-        call switch_to(Int(action.split("_")[1]) - 1)
+        call switch_to(Int(action.split("_")[1]) - 1, 0)
     elif action == "move_window_left_workspace_key":
         call send_to(v, step_index(-1))
     elif action == "move_window_right_workspace_key":
@@ -1655,6 +1919,14 @@ function run_action(action):
         call show_desktop()
     elif action == "quit":
         call stop()
+    elif action == "next_layout_key":
+        count = lc.layout_count()
+        if count > 1:
+            call switch_layout((lc.layout() + 1) % count)
+        end
+    elif action in ["volume_up_key", "volume_down_key", "volume_mute_key", "brightness_up_key",
+                   "brightness_down_key", "mic_mute_key", "media_play_key", "media_next_key", "media_previous_key"]:
+        call broadcast("media", {"event": "media", "action": action})
     elif v == 0:
         return
     elif action == "close_window_key":
@@ -1688,6 +1960,9 @@ function view_mapped(v):
         space = vget(parent, lc.VIEW_WORKSPACE)
     end
     call lc.view_set_workspace(v, space)
+    if parent == 0 and v not in has_xdg_deco and vget(v, lc.VIEW_X11) == 0:
+        call lc.view_set_decorated(v, 1)
+    end
     call lc.view_set_compact(v, 1 if compact_window(v) else 0)
     spot = place(v, adopt_xroot(v))
     call note("place " + String(v) + " " + lc.view_app_id(v) + " " + String(spot[0]) + "," + String(spot[1])
@@ -1758,16 +2033,17 @@ function view_gone(v):
     if v in mru:
         call mru.remove(v)
     end
-    if cycle["on"] and v in cycle["list"]:
-        call cycle_end(True)
-    end
     if was:
         call focus_next(v, parent)
+    end
+    # az po focus_next: dalsi vybrane okno v Alt+Tab musi zustat vpredu a zamerene
+    if cycle["on"] and v in cycle["list"]:
+        call cycle_drop(v)
     end
 end
 
 function forget(v):
-    for table in [saved, maxed, tiled, full, xroots]:
+    for table in [saved, maxed, tiled, full, xroots, has_xdg_deco]:
         if v in table:
             call table.pop(v)
         end
@@ -1820,6 +2096,9 @@ function button(v, pressed, part):
         call focus(v)
     else:
         call lc.view_raise(v)
+        # klik do zamereneho okna mu klavesnici potvrdi znovu: kdyby ji mezitim drzelo neco jineho (vrstva,
+        # zavrena nabidka), psat by neslo az do Alt+Tab; okno, ktere klavesnici ma, to nezmeni
+        call lc.view_focus(v)
     end
     if part == lc.PART_TITLE:
         now = glib.monotonic_time()
@@ -1866,7 +2145,7 @@ function activate(v, origin, source):
     end
     space = vget(v, lc.VIEW_WORKSPACE)
     if space in ws and ws.index(space) != cur:
-        call switch_to(ws.index(space))
+        call switch_to(ws.index(space), 0)
     end
     if v in hidden_desktop:
         call hidden_desktop.remove(v)
@@ -1898,6 +2177,7 @@ function request(v, what, arg, origin):
     elif what == lc.REQ_ACTIVATE:
         call activate(v, arg, origin)
     elif what == lc.REQ_DECORATION:
+        has_xdg_deco[v] = True
         call lc.view_set_decorated(v, 1 if vget(v, lc.VIEW_SANDBOXED) == 1 else arg)
     elif what == lc.REQ_CLOSE:
         call lc.view_close(v)
@@ -2023,6 +2303,8 @@ function handle(event, id, a, b, c):
         end
     elif event == lc.EV_MODS_RELEASED:
         call cycle_end(False)
+    elif event == lc.EV_SUPER_ALONE:
+        call lc.spawn("luxos-launchpad")
     elif event == lc.EV_VIEW_REQUEST:
         call request(id, a, b, c)
     elif event == lc.EV_LOCK:
@@ -2052,6 +2334,8 @@ function handle(event, id, a, b, c):
         call broadcast("keyboard", keyboard_event())
     elif event == lc.EV_CAPS_LOCK:
         call broadcast("keyboard", keyboard_event())
+    elif event == lc.EV_MODIFIERS:
+        call broadcast("modifiers", modifiers_event())
     elif event == lc.EV_IPC_CONNECT:
         ipc[id] = {"privileged": b == 1, "topics": [], "pid": a}
         call note("ipc connect " + String(id) + " pid " + String(a) + (" privileged" if b == 1 else ""))
@@ -2070,8 +2354,11 @@ function handle(event, id, a, b, c):
         end
         return
     elif event == lc.EV_SLIDE_DONE:
+        sliding["on"] = False
         if focused() == 0:
             call focus(top_on_current(0))
+        else:
+            call update_layers(focused())
         end
     end
     call update_idle_inhibit()
@@ -2081,7 +2368,7 @@ end
 EVENT_NAMES = ["", "output-add", "output-remove", "output-usable", "view-new", "view-map", "view-unmap",
                "view-destroy", "view-title", "view-app-id", "view-request", "button", "keybind",
                "slide-done", "mods-released", "lock", "layout", "ipc-connect", "ipc-line", "ipc-close", "view-size",
-               "hold-end", "layer-map", "view-content-type"]
+               "hold-end", "layer-map", "view-content-type", "caps-lock", "super-alone", "modifiers"]
 
 # Chyba politiky nesmi shodit kompozitor: zapsat a pokracovat. Nove okno se aspon zameri,
 # aby nezustalo neovladatelne.
@@ -2106,7 +2393,11 @@ end
 
 function keyboard_event():
     return {"event": "keyboard", "current": lc.layout(), "layouts": keyboard["layouts"], "repeat": keyboard["repeat"],
-            "caps": lc.caps_lock()}
+            "caps": lc.caps_lock(), "mods": lc.modifiers()}
+end
+
+function modifiers_event():
+    return {"event": "modifiers", "mods": lc.modifiers()}
 end
 
 function output_event():
@@ -2134,6 +2425,20 @@ function window_event():
     return {"event": "window", "id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v), "frame": frame(v)}
 end
 
+function cycle_event(action):
+    items = []
+    if cycle["on"]:
+        # capture = identifikator pro grim -T (nahled okna); minimalizovana okna nahled nemaji (ani na X11)
+        for v in cycle["list"]:
+            hidden = v in cycle["shown"] or vget(v, lc.VIEW_VISIBLE) == 0
+            items.append({"id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v),
+                          "capture": "" if hidden else lc.view_capture_id(v),
+                          "w": vget(v, lc.VIEW_W), "h": vget(v, lc.VIEW_H)})
+        end
+    end
+    return {"event": "cycle", "action": action, "items": items, "pos": cycle["pos"]}
+end
+
 function topic_event(topic):
     if topic == "window":
         return window_event()
@@ -2141,8 +2446,14 @@ function topic_event(topic):
         return workspace_event()
     elif topic == "keyboard":
         return keyboard_event()
+    elif topic == "modifiers":
+        return modifiers_event()
     elif topic == "output":
         return output_event()
+    elif topic == "cycle":
+        return cycle_event("state")
+    elif topic == "media":
+        return {"event": "media", "action": "state"}
     end
     return theme_event()
 end
@@ -2227,6 +2538,7 @@ end
 function window_info(v):
     space = vget(v, lc.VIEW_WORKSPACE)
     return {"id": v, "app_id": lc.view_app_id(v), "title": lc.view_title(v),
+            "frame": frame(v) if on_current(v) and vget(v, lc.VIEW_VISIBLE) == 1 else [],
             "workspace": ws.index(space) + 1 if space in ws else 0, "focused": vget(v, lc.VIEW_FOCUSED) == 1,
             "minimized": vget(v, lc.VIEW_VISIBLE) == 0, "fullscreen": v in full, "maximized": v in maxed,
             "sandbox": lc.view_sandbox_app_id(v) if vget(v, lc.VIEW_SANDBOXED) == 1 else ""}
@@ -2396,9 +2708,9 @@ function ipc_command(client, request):
         number = request.get("number", None)
         delta = request.get("delta", None)
         if type(number) == "Int" and number >= 1 and number <= len(ws):
-            call switch_to(number - 1)
+            call switch_to(number - 1, 0)
         elif type(delta) == "Int":
-            call switch_to(step_index(delta))
+            call switch_to(step_index(delta), delta)
         else:
             return {"ok": False, "error": "bad workspace"}
         end
@@ -2446,6 +2758,16 @@ function ipc_command(client, request):
         return {"ok": True}
     elif cmd == "list_windows":
         return {"ok": True, "windows": list_windows()}
+    elif cmd == "cycle_pick":
+        # klik na okno v panelu Alt+Tab (luxos-switcher): vybrat ho a prepinani ukoncit, jako klik v tabwin
+        # na X11; jen okno z prave probihajiciho vyberu, takze prikaz nepotrebuje opravneni
+        v = request.get("window", 0)
+        if not cycle["on"] or not (v in cycle["list"]):
+            return {"ok": False, "error": "not cycling"}
+        end
+        cycle["pos"] = cycle["list"].index(v)
+        call cycle_end(False)
+        return {"ok": True}
     elif cmd == "focus_window":
         v = request.get("window", 0)
         if type(v) != "Int" or v <= 0 or vget(v, lc.VIEW_MAPPED) != 1:
@@ -2609,6 +2931,14 @@ end
 # ---- beh ---------------------------------------------------------------------------------------
 
 function stop():
+    # V relaci LuxOS nejdriv ukoncit shell (lista, Dock, zamek...) signalem, dokud kompozitor bezi: jinak pri
+    # odhlaseni a vypnuti spadnou na ztrate displeje a systemd je hlasi jako selhane
+    if glib.getenv("XDG_SESSION_DESKTOP") == "luxos" and not session_stopped["done"]:
+        session_stopped["done"] = True
+        call log("stopping the session shell")
+        call lglib.spawn_sync_quiet(["timeout", "3", "systemctl", "--user", "stop", "luxos-session.target",
+                                        "graphical-session.target"])
+    end
     call lc.quit()
     call glib.main_quit()
 end
@@ -2630,7 +2960,6 @@ end
 function on_reload():
     call load_config()
     call load_privileged()
-    call bind_keys()
     call apply_workspaces()
     call apply_cursor()
     call apply_input()
@@ -2735,7 +3064,6 @@ for i in range(ws_count):
     ws.append(lc.workspace_new())
 end
 call lc.workspace_show(ws[0], 1)
-call bind_keys()
 call apply_cursor()
 call apply_input()
 call read_locale()
@@ -2771,6 +3099,10 @@ call log("running on " + lc.socket() + (" (software rendering)" if lc.software_r
     + (", ipc " + sock if sock != "" else "")
     + (", xwayland " + xdisplay if xdisplay != "" else ""))
 call glib.fd_add(lc.fd(), glib.IO_IN, on_luxcomp)
+if not greeter:
+    call hot_reload()
+    call glib.timeout_add(100, hot_tick)
+end
 call glib.unix_signal_add(15, on_term)
 call glib.unix_signal_add(2, on_term)
 call glib.unix_signal_add(1, on_reload)

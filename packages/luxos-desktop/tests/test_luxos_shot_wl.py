@@ -12,6 +12,7 @@ kvuli `wlt input`). Privilegovane protokoly dostane jen prelozeny luxos-screensh
 Snimky se porovnavaji s grim ze stejne relace (pixel po pixelu). LUXWM_BUILD: vychozi out/luxwm-test/build.
 """
 import os
+import json
 from pathlib import Path
 import shutil
 import struct
@@ -181,9 +182,11 @@ class ShotWayland(unittest.TestCase):
         self.wlt("shot", str(self.session), str(path))
         return ppm_read(path)
 
-    def ui(self, *args, program=None, output=True):
+    def ui(self, *args, program=None, output=True, thumbnail=False):
         # --clipboard s --output uklada soubor (jako na X11): pro schranku bez slozky
-        cmd = [str(program or self.tmp / "luxos-screenshot-ui"), *args, "--no-thumbnail"]
+        cmd = [str(program or self.tmp / "luxos-screenshot-ui"), *args]
+        if not thumbnail:
+            cmd += ["--no-thumbnail"]
         if output:
             cmd += ["--output", str(self.saved)]
         p = subprocess.Popen(cmd, env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -261,8 +264,18 @@ class ShotWayland(unittest.TestCase):
     def test_window(self):
         self.client("Velke", "400x300")
         self.client("Male", "240x160", "20a040")
+        before = self.grim()
         p = self.ui("--window")
         self.wait_log("overlay window windows=2")
+        boxes = [json.loads(line.removeprefix("window-box ")) for line in self.tlog() if line.startswith("window-box ")]
+        if boxes:
+            rect = next(r for title, r in boxes if title == "Male")
+            x, y, w, h = rect
+            self.wlt("input", str(self.session), f"move {x + w // 2} {y + h // 2}", "click left")
+            code, out, err = self.finish(p)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(self.one_png(out), crop(before, x, y, w, h))
+            return
         rows = [line.split(" ", 2) for line in self.tlog() if line.startswith("row ")]
         index = [r[2] for r in rows].index("test.male|Male")
         keys = "".join("key Down\n" for _ in range(index)) + "key Return\n"
@@ -353,6 +366,55 @@ class ShotWayland(unittest.TestCase):
                               text=True, timeout=10).stdout
         self.assertIn("has ext_image_copy_capture_manager_v1 1", seen)
         self.assertIn("has ext_foreign_toplevel_image_capture_source_manager_v1 1", seen)
+
+    def configure(self, **values):
+        folder = Path(self.env["XDG_CONFIG_HOME"]) / "luxos"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "screenshot.json").write_text(json.dumps(dict(version=2, **values)))
+
+    def test_toolbar_screen_capture_omits_own_ui(self):
+        self.client("Okno", "400x300")
+        before = self.grim()
+        p = self.ui()
+        line = self.wait_log("toolbar ").split()
+        self.assertGreater(int(line[2]), H // 2, "lista ma byt dole jako na X11")
+        self.wlt("input", str(self.session), "key 1", "key Return")
+        code, out, err = self.finish(p)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.one_png(out), before)
+
+    def test_toolbar_drag_waits_for_confirmation(self):
+        self.configure(mode="portion", selection=[300, 200, 400, 300], remember=True)
+        p = self.ui()
+        self.wait_log("toolbar ")
+        self.wlt("input", str(self.session), "drag 500 350 550 400 250")
+        self.wait_log("selected 350 250 400 300")
+        self.assertIsNone(p.poll())
+        self.assertEqual(self.files(), [])
+        self.wlt("input", str(self.session), "key Return")
+        code, out, err = self.finish(p)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.one_png(out)[:2], (400, 300))
+
+    def test_timer_escape_cancels_without_file(self):
+        self.configure(mode="screen", timer=5)
+        p = self.ui()
+        self.wait_log("toolbar ")
+        self.wlt("input", str(self.session), "key Return")
+        self.wait_log("countdown 5")
+        self.wlt("input", str(self.session), "key Escape")
+        code, out, err = self.finish(p)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.files(), [])
+
+    def test_preview_second_run_closes(self):
+        p = self.ui("--screen", thumbnail=True)
+        self.wait_log("thumb copy,reveal,save_as,delete,close")
+        self.assertIsNone(p.poll())
+        code2, _, err2 = self.finish(self.ui("--portion"))
+        code, out, err = self.finish(p)
+        self.assertEqual((code, code2), (0, 0), err + err2)
+        self.assertEqual(self.one_png(out)[:2], (W, H))
 
     def test_recording_not_available(self):
         code, out, err = self.finish(self.ui("--record-screen"))

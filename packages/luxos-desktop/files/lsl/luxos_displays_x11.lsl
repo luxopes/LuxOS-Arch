@@ -22,7 +22,7 @@ job = {"pending": False, "timer": 0, "entries": {}, "layouts": {}, "mode": "", "
 
 function usage():
     call glib.report("usage: luxos-displays output-args | layout-args [extend] | mode-get | mode-set MODE"
-        + " | mirror-args | rate-cap | rate-restore OUTPUT MODE RATE | get | try [-s SECONDS] JSON" + chr(10))
+        + " | mirror-args | rate-cap | rate-restore OUTPUT MODE RATE | get | try [-s SECONDS] JSON | scale-get | scale-set 100|125|150|175|200" + chr(10))
     exit(2)
 end
 
@@ -143,7 +143,7 @@ function cmd_get():
     end
     print json.encode({"x11": True, "outputs": [window_output(o) for o in xr.connected(outputs)],
                        "primary": primary, "mode": read_mode(outputs), "set": xr.set_key(outputs),
-                       "text_size": xr.text_size_index(xr.read_dpi())})
+                       "text_size": xr.text_size_index(xr.read_dpi()), "scale": xr.read_scale()})
 end
 
 # ---- zkusebni pouziti ----------------------------------------------------------------------------------------
@@ -373,6 +373,19 @@ function main(argv):
         call xr.rate_restore(xr.query(), rest[0], rest[1], rest[2])
     elif cmd == "get" and len(rest) == 0:
         call cmd_get()
+    elif cmd == "scale-get" and len(rest) == 0:
+        print String(xr.read_scale())
+    elif cmd == "scale-set" and len(rest) == 1:
+        scale = 0
+        safe:
+            scale = Int(rest[0])
+        end
+        if not (scale in xr.SCALES):
+            call usage()
+        end
+        if not xr.set_scale(scale):
+            exit(1)
+        end
     elif cmd == "try":
         seconds = 15
         if len(rest) >= 2 and rest[0] == "-s":

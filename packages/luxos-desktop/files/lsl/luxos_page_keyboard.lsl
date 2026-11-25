@@ -26,6 +26,7 @@ load luxos_keyboard_model as kb
 load luxos_keyboard_x11 as x11
 load luxos_settings_ui as ui
 load luxos_sys as sys
+load luxos_input_method_ui as im
 
 MAX_LAYOUTS = kb.MAX_LAYOUTS
 XORG_CONF = kb.CONF
@@ -439,6 +440,9 @@ function build_layouts(page):
     call gtk.box_pack_start(tbox, test, True, True, 0)
     call gtk.box_pack_start(g["box"], tbox, False, False, 0)
 
+    # psani vietnamsky (fcitx5): jen tento ucet, plati hned
+    call im.build(page, None)
+
     bottom = gtk.box_new(gtk.HORIZONTAL, 8)
     call gtk.widget_set_margins(bottom, 0, 0, 16, 0)
     differs = ui_kb["own"] and (ui_kb["layouts"] != ui_kb["system"][0] or ui_kb["options"] != ui_kb["system"][1])
@@ -553,6 +557,16 @@ function add_dialog():
     call gtk.box_pack_start(area, scroll, True, True, 0)
     used = [k[0] + ":" + k[1] for k in ui_kb["layouts"]]
     rows = []
+    # Vietnamci pisou Telexem/VNI na bezne klavesnici (metoda zadavani), ne rozlozenim XKB "vn"
+    vi = im.dialog_item()
+    if vi != None:
+        b = gtk.button_new(vi[0])
+        call gtk.button_set_relief(b, gtk.RELIEF_NONE)
+        call gtk.label_set_xalign(gtk.bin_get_child(b), 0)
+        call lglib.connect_data(b, "clicked", 0, on_pick_im, None)
+        call gtk.box_pack_start(list_box, b, False, False, 0)
+        rows.append([b, vi[1]])
+    end
     for item in catalog():
         if (item[0][0] + ":" + item[0][1]) in used:
             continue
@@ -582,6 +596,14 @@ function on_search(entry):
         else:
             call gtk.widget_hide(item[0])
         end
+    end
+    return 0
+end
+
+function on_pick_im(unused, b):
+    call im.enable_from_dialog()
+    if ui_kb["dialog"] != 0:
+        call gtk.dialog_response(ui_kb["dialog"], 1)
     end
     return 0
 end

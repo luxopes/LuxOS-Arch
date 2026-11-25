@@ -422,7 +422,7 @@ labwc. `test_luxos_wl.py` je spouští proti oběma kompozitorům.
 | Protokol | V jádře |
 |---|---|
 | ext-foreign-toplevel-list-v1, wlr-foreign-toplevel-management-v1 | Handle existují, dokud je okno namapované. Stav (activated, minimized, maximized, fullscreen), název, app_id, výstup a rodiče hlásí jádro samo. Požadavky Docku jdou politice s původem `TASKBAR`. |
-| ext-image-capture-source-v1 (výstup i okno), ext-image-copy-capture-v1, wlr-screencopy | Snímek okna je jen obsah okna, bez zahlaví. Jeden zdroj na okno, zanikne s oknem. |
+| ext-image-capture-source-v1 (výstup i okno), ext-image-copy-capture-v1, wlr-screencopy | Snímek okna je jen obsah okna (jeho povrchy z vlastní scény, bez zahlaví a bez oken, která ho překrývají), oříznutý na geometrii okna. Jeden zdroj na okno, zanikne s odmapováním okna. `luxcomp_view_capture_id()` vrací identifikátor pro `grim -T`. |
 | ext-data-control-v1, wlr-data-control | Schránka pro historii schránky a testy. |
 | xdg-activation-v1 | Viz původ `ACTIVATE` výše. |
 | ext-session-lock-v1 | Při zamčení jádro hned zakryje celou scénu neprůhlednou plochou v barvě pozadí LuxOS (`luxcomp_set_background`). `locked` pošle až poté, co tu plochu vykreslily všechny výstupy. Zamykací plochy (jedna na výstup) leží nad ní. Klávesnici, ukazatel ani zkratky nedostane nic jiného. Když zamykač skončí bez `unlock_and_destroy` (pád, kill), zůstane zakryto a zamčeno, dokud nový zamykač neodemkne. Nová okna pod zámkem se namapují, ale nejsou vidět a nedostanou klávesnici. |
@@ -462,7 +462,8 @@ renderer Vulkan a image description výstupu; s gles2 by to byl jen protokol bez
 
 Privilegované globaly jsou:
 - snímání obrazovky: wlr-screencopy, ext-image-copy-capture a oba zdroje ext-image-capture-source;
-- schránka: ext- a wlr-data-control;
+- schránka: ext- a wlr-data-control jsou dostupné běžným místním klientům bez okna
+  (`wl-paste`, terminálové aplikace), ale ne klientům v security-context sandboxu;
 - správa cizích oken: wlr-foreign-toplevel-management a ext-foreign-toplevel-list;
 - virtuální klávesnice a ukazatel;
 - wlr-output-management;
@@ -474,7 +475,7 @@ Jádro je nabídne a dovolí bindnout (`wl_display_set_global_filter`) jen takto
    (flatpak, bwrap, WP-14) se připojují přes soket od svého správce. Nedostanou ani
    layer-shell (falešná zamykací obrazovka nebo lišta), ext-idle-notify (časování aktivity
    uživatele) a samotný security-context-manager (vnořené kontexty).
-2. **Ostatní klienti je dostanou, jen když je jejich program v allowlistu.** Program se zjistí
+2. **Ostatní privilegované protokoly dostanou klienti, jen když je jejich program v allowlistu.** Program se zjistí
    z `/proc/PID/exe`, PID z pověření soketu (`SO_PEERCRED`) při připojení. luxwm čte allowlist
    z `/usr/share/luxwm/privileged.conf` (absolutní cesty po řádcích), v testech z
    `LUXWM_PRIVILEGED`. Uživatelský soubor záměrně neexistuje.

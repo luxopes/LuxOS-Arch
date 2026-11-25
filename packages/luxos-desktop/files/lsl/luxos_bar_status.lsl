@@ -6,6 +6,7 @@
 #                              "resume" (zvonek: neprectena oznameni v historii luxos-notify, org.xfce.Notifyd.Log)
 #   status.state[druh]         {"icon", "tip", ...} pro listu; "" = polozku skryt
 #   status.change_volume(d)    hlasitost +-d % (kolecko nad ikonou zvuku)
+#   status.change_brightness(d)  jas +-d % (kolecko nad ikonou baterie)
 #   status.next_layout(), status.switch_layout(i)   prepnuti rozlozeni klavesnice pres IPC luxwm
 #                              (pod luxwm ukazuje aktivni rozlozeni z kompozitoru, jinak prvni z localed)
 #   status.summary(druh)       kratky popis stavu (ladeni, testy)
@@ -34,7 +35,9 @@ state = {
     "keyboard": {"short": "", "tip": "", "layouts": [], "names": [], "current": 0, "caps": False},
     "notifications": {"icon": "notification-symbolic", "unread": False}
 }
-st = {"changed": None, "system": 0, "session": 0, "ap_path": "", "ap_sub": 0, "pactl_started": 0,
+st = {"changed": None, "system": 0, "session": 0, "ap_path": "", "ap_sub": 0,
+      "active_path": "", "active_sub": 0, "active_props": {}, "device_path": "", "device_sub": 0,
+      "device_props": {}, "pactl_started": 0,
       "sound_armed": False, "sound_busy": False, "sound_again": False, "wm_keyboard": False}
 
 function emit(kind):
@@ -99,6 +102,11 @@ function on_props_changed(ctx, sender, path, interface, signal, values):
     for key in values[1].keys():
         ctx[1][key] = values[1][key]
     end
+    if len(values) > 2:
+        for key in values[2]:
+            call ctx[1].pop(key, None)
+        end
+    end
     call ctx[2](ctx[3])
     return 0
 end
@@ -122,7 +130,7 @@ function nm_vanished(unused, name):
         call gio.unsubscribe(st["system"], st["nm_sub"])
         st["nm_sub"] = 0
     end
-    call follow_ap("")
+    call follow_active("")
     call render_network()
     return 0
 end
@@ -133,29 +141,70 @@ function network_changed(unused):
     if primary != st.get("primary", ""):
         st["primary"] = primary
         state["network"]["id"] = ""
-        if primary != "/" and primary != "":
-            call lgio.call_async(st["system"], NM, primary, PROPS, "GetAll", [NM + ".Connection.Active"], "(s)", 5000,
-                                 on_active_connection, primary)
-        else:
-            call follow_ap("")
-        end
+        call follow_active(primary)
     end
     call render_network()
     return 0
 end
 
-function on_active_connection(path, values, error):
-    if values == None or path != st.get("primary", ""):
+function follow_active(path):
+    if path == st["active_path"]:
         return 0
     end
-    props = values[0]
-    state["network"]["id"] = props.get("Id", "")
-    ap = ""
-    if props.get("Type", "") == "802-11-wireless":
-        ap = props.get("SpecificObject", "")
+    if st["active_sub"] != 0:
+        call gio.unsubscribe(st["system"], st["active_sub"])
+        st["active_sub"] = 0
     end
-    call follow_ap(ap)
+    st["active_path"] = path
+    st["active_props"] = {}
+    call follow_device("")
+    if path != "" and path != "/":
+        st["active_sub"] = watch_props(st["system"], NM, path, NM + ".Connection.Active", st["active_props"], on_active_changed, path)
+    end
+    return 0
+end
+
+function on_active_changed(path):
+    if path != st["active_path"]:
+        return 0
+    end
+    props = st["active_props"]
+    state["network"]["id"] = props.get("Id", "")
+    if props.get("Type", "") == "802-11-wireless":
+        devices = props.get("Devices", [])
+        if len(devices) > 0:
+            call follow_device(devices[0])
+        else:
+            call follow_ap(props.get("SpecificObject", ""))
+        end
+    else:
+        call follow_device("")
+    end
     call render_network()
+    return 0
+end
+
+function follow_device(path):
+    if path == st["device_path"]:
+        return 0
+    end
+    if st["device_sub"] != 0:
+        call gio.unsubscribe(st["system"], st["device_sub"])
+        st["device_sub"] = 0
+    end
+    st["device_path"] = path
+    st["device_props"] = {}
+    call follow_ap("")
+    if path != "" and path != "/":
+        st["device_sub"] = watch_props(st["system"], NM, path, NM + ".Device.Wireless", st["device_props"], on_device_changed, path)
+    end
+    return 0
+end
+
+function on_device_changed(path):
+    if path == st["device_path"]:
+        call follow_ap(st["device_props"].get("ActiveAccessPoint", ""))
+    end
     return 0
 end
 
@@ -216,8 +265,12 @@ function render_network():
                 net["tip"] = i18n.T("Connected to the network, but the internet is not available")
             end
         elif nm_state >= NM_CONNECTED_SITE and wifi:
-            net["icon"] = signal_icon(net["ap"].get("Strength", 100))
+            strength = net["ap"].get("Strength", 0)
+            net["icon"] = signal_icon(strength)
             net["tip"] = i18n.T("Wi-Fi") + ": " + net["id"]
+            if strength > 0:
+                net["tip"] += " (" + String(strength) + "%)"
+            end
         elif nm_state >= NM_CONNECTED_SITE:
             net["icon"] = "network-wired-symbolic"
             net["tip"] = net["id"]
@@ -238,6 +291,11 @@ function render_network():
     if old != [net["icon"], net["tip"], net["portal"]]:
         call emit("network")
     end
+    return 0
+end
+
+function on_portal_file(path, event, other):
+    call render_network()
     return 0
 end
 
@@ -470,7 +528,22 @@ function change_volume(delta):
         return 0
     end
     target = max(0, min(100, v + delta))
+    call set_volume(target)
+    return 0
+end
+
+function set_volume(target):
+    call glib.spawn_quiet(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"])
     call glib.spawn_quiet(["pactl", "set-sink-volume", "@DEFAULT_SINK@", String(target) + "%"])
+    return 0
+end
+
+function change_brightness(delta):
+    if delta > 0:
+        call glib.spawn_quiet(["brightnessctl", "-q", "set", String(delta) + "%+"])
+    else:
+        call glib.spawn_quiet(["brightnessctl", "-q", "set", String(-delta) + "%-", "-n", "1"])
+    end
     return 0
 end
 
@@ -526,14 +599,31 @@ function on_wm(event):
     if event["event"] != "keyboard":
         return 0
     end
-    st["wm_keyboard"] = True
     codes = []
     names = []
     for item in event["layouts"]:
         codes.append(item["code"])
         names.append(item["name"])
     end
-    call show_keyboard(codes, names, event["current"], event.get("caps", False) == True)
+    current = event["current"]
+    caps = event.get("caps", False) == True
+    kb = state["keyboard"]
+    same = st["wm_keyboard"] and kb["current"] == current and kb["caps"] == caps and len(kb["layouts"]) == len(codes)
+    if same:
+        index = 0
+        while index < len(codes):
+            if kb["layouts"][index] != codes[index] or kb["names"][index] != names[index]:
+                same = False
+                break
+            end
+            index += 1
+        end
+    end
+    st["wm_keyboard"] = True
+    if same:
+        return 0
+    end
+    call show_keyboard(codes, names, current, caps)
     return 0
 end
 
@@ -636,6 +726,9 @@ function start(handler):
                                  lgio.SIGNAL_NONE, on_log_changed, 0)
     end
     call pactl_watch(0)
+    # portal nalezeny luxos-hub (NetworkManager pod Tailscale/VPN DNS hlasi jen "omezene"): ikona a klik hned,
+    # ne az pri dalsi zmene stavu NetworkManageru
+    st["portal_monitor"] = gio.file_monitor(runtime_dir() + "/luxos-portal", on_portal_file)
     call wm.on_state(on_wm_state)
     call wm.subscribe(["keyboard"])
     call wm.connect(on_wm)

@@ -75,7 +75,7 @@ entries = {}            # id .desktop -> LauncherEntry {"count", "count-visible"
 geo = {}
 output = {"name": "", "w": 0, "h": 0, "monitor": 0}
 view = {"blur": material.compositor_blur(), "hovered": False, "px": 0.0, "py": 0.0, "press": None, "dragging": False, "menu_open": False,
-    "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "seq": 0,
+    "menu_key": "", "zoom_on": True, "trash_full": False, "region": [], "seq": 0, "modifiers": 0,
     "strip": None, "light": True, "over_window": False}
 anims = {"zoom": [0.0, 0.0, 0.0, 0, 1], "hide": [0.0, 0.0, 0.0, 0, 1], "move": [1.0, 1.0, 1.0, 0, 1]}
 # posun ikon: kreslene polohy z posledniho snimku (klic -> [levy okraj od stredu okna, velikost], panel [x, w]),
@@ -445,7 +445,14 @@ function update_geometry():
     geo["panel_h"] = geo["top"] + size + geo["bottom"]
     geo["zoom_h"] = geo["zoom_size"] - size
     geo["base_w"] = model.panel_width(n, size, geo["gap"], geo["pad"])
-    geo["width"] = geo["base_w"] + model.max_zoom_extra(n, size, geo["gap"], geo["pad"], zoom) + 2 * SIDE
+    # panel roste z mista pod mysi: nad krajni ikonou skoro cele rozsireni na jednu stranu, proto rezerva pro cele
+    # rozsireni na obou stranach (s polovinou byl okraj panelu u prvnich a poslednich ikon useknuty oknem);
+    # sirsi nez monitor plocha byt nemusi
+    extra = model.max_zoom_extra(n, size, geo["gap"], geo["pad"], zoom)
+    geo["width"] = geo["base_w"] + 2 * extra + 2 * SIDE
+    if output["w"] > 0:
+        geo["width"] = min(geo["width"], max(output["w"], geo["base_w"] + 2 * SIDE))
+    end
     # behem posunu se plocha nezmensi (odebirana ikona by se orizla), az po nem (anims_done)
     if anims["move"][3] != 0:
         geo["width"] = max(geo["width"], geo.get("old_width", 0))
@@ -595,6 +602,9 @@ function on_tick(widget, clock):
             active = True
         end
     end
+    # oblast skla pred kreslenim snimku: GDK ji posle s timto snimkem (z kresleni by sla az s dalsim a sklo
+    # kompozitoru by pri zvetseni zaostavalo o snimek - na strane, kam se Dock roztahuje, useknute)
+    call update_region(current_layout())
     call queue_redraw()
     if not active:
         timers["tick"] = 0
@@ -980,7 +990,13 @@ function on_draw(cr, widget):
             if entry != None and entry.get("urgent", False):
                 color = INDICATOR_URGENT
             end
-            call draw_indicator(cr, x + z / 2.0, Float(py + geo["panel_h"]), Float(geo["size"]) / 4.0, color)
+            count = len(item["windows"])
+            spacing = min(Float(geo["size"]) * 0.28, z / Float(count))
+            radius = Float(geo["size"]) / 4.0 if count == 1 else min(Float(geo["size"]) / 5.0, spacing * 0.50)
+            first = x + z / 2.0 - Float(count - 1) * spacing / 2.0
+            for dot in range(count):
+                call draw_indicator(cr, first + Float(dot) * spacing, Float(py + geo["panel_h"]), radius, color)
+            end
         end
     end
     move["drawn"] = drawn
@@ -1098,6 +1114,7 @@ function on_motion(event, widget):
     if view["dragging"]:
         call drag_to(view["px"])
     end
+    call update_region(current_layout())
     call queue_redraw()
     return False
 end
@@ -1110,7 +1127,9 @@ function on_press(event, widget):
     end
     button = gtk.event_button(event)
     if button == 1:
-        view["press"] = [items[index]["key"], view["px"]]
+        modifiers = gtk.event_button_state(event) | view["modifiers"]
+        call debug("press modifiers " + String(modifiers))
+        view["press"] = [items[index]["key"], view["px"], (modifiers & gtk.CONTROL_MASK) != 0]
     elif button == 3:
         call open_menu(items[index])
     end
@@ -1161,7 +1180,11 @@ function on_release(event, widget):
         else:
             index = item_index(press[0])
             if index >= 0:
-                call click(items[index])
+                if press[2]:
+                    call launch(items[index])
+                else:
+                    call click(items[index])
+                end
             end
         end
     elif button == 2:
@@ -1451,6 +1474,8 @@ function on_wm_event(event):
         focus["frame"] = event.get("frame", [])
         call update_hide(True)
         call update_over_window()
+    elif event.get("event") == "keyboard" or event.get("event") == "modifiers":
+        view["modifiers"] = event.get("mods", 0)
     end
     return 0
 end
@@ -1631,7 +1656,7 @@ screens = layer.monitors()
 if len(screens) > 0:
     call layer.set_monitor(window, screens[0])
 end
-call wm.subscribe(["window"])
+call wm.subscribe(["window", "keyboard", "modifiers"])
 call wm.on_state(on_wm_state)
 call primary.also(on_wm_event)
 call primary.follow(on_primary)

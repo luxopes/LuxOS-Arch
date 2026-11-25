@@ -1,0 +1,19 @@
+# LuxOS - jeden proces relace na Waylandu (luxos-hub): Ovladaci centrum a Kalendar predem nactene, prihlaseni
+# do site s portalem (hotel, skola) a upozorneni "bez internetu", Bluetooth agent, prepnuti zvuku na novy
+# vystup, Trezor pri zamceni, automaticky svetly/tmavy vzhled, firewall, oznameni ovladacu a Novinek.
+# X11 ho spousti luxos-session. Bez teto jednotky na Waylandu bezelo jen samostatne Ovladaci centrum
+# (luxos-cc-toggle) a nic z ostatniho.
+[Unit]
+Description=LuxOS session hub
+PartOf=graphical-session.target
+After=graphical-session.target luxos-notify.service luxos-bar.service
+ConditionEnvironment=WAYLAND_DISPLAY
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/luxos-hub
+Restart=on-failure
+RestartSec=2
+Slice=session.slice

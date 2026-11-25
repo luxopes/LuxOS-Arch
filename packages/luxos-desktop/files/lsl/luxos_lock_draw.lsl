@@ -872,8 +872,18 @@ function draw_field(cr, ui, bd, sz, x, y):
     end
     ty = y + cdiv(ypos, 1024)
     tx = x + sz["pw_pad"]
+    # orez textove oblasti pole (tecky dlouheho hesla nesmí pretekat pres okraj)
+    avail = ew - sz["pw_pad"] - 4
+    text_w = ppix(raw[6])
+    scroll = 0
+    if text_w > avail:
+        scroll = text_w - avail
+    end
+    call cairo.save(cr)
+    call cairo.rectangle(cr, Float(tx), Float(y), Float(avail), Float(ph))
+    call cairo.clip(cr)
     if shown != "":
-        call cairo.move_to(cr, Float(tx), Float(ty))
+        call cairo.move_to(cr, Float(tx - scroll), Float(ty))
         call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0 if sens else 0.5)
         call sys.show_layout(cr, e["layout"])
     end
@@ -881,10 +891,11 @@ function draw_field(cr, ui, bd, sz, x, y):
         c = sys.cursor_x(e["layout"], byte_len(shown))
         hgt = ppix(c[3])
         stem = Int(Float(hgt) * 0.04 + 1.0)
-        call cairo.rectangle(cr, Float(tx + ppix(c[0]) - stem // 2), Float(ty + ppix(c[1])), Float(stem), Float(hgt))
+        call cairo.rectangle(cr, Float(tx - scroll + ppix(c[0]) - stem // 2), Float(ty + ppix(c[1])), Float(stem), Float(hgt))
         call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0)
         call cairo.fill(cr)
     end
+    call cairo.restore(cr)
     # sipka (go-area)
     gx = x + ew
     d = Float(ph - max(8, cround(Float(ph) * 0.26)))
@@ -1387,7 +1398,7 @@ function step(ui):
     # kurzor jako GtkEntry: sviti 800 ms, 400 ms ne, po 10 s bez vstupu uz jen sviti; ui["wake"] = ms do dalsi zmeny
     ui["wake"] = 0
     if saver_idle(ui) and state["saver"] == ui["saver"]:
-        ui["wake"] = 1000 // saver.fps()
+        ui["wake"] = 1000 // saver.fps_now()
     end
     if ui["input_at"] != 0 and ui["reveal"] > 0.0:
         ms = (now - ui["input_at"]) // 1000

@@ -211,9 +211,13 @@ function fill():
         end
     end
     if D["x11"]:
+        call build_x11_scale(page)
         call build_text_size(page)
     elif len(outs) > 0:
         call build_night(page)
+    end
+    if len(outs) > 0:
+        call build_wm_buttons(page)
     end
     call gtk.widget_show_all(page)
     if D["busy"]:
@@ -402,6 +406,69 @@ function on_night(reply):
     if changed and D["page"] != 0 and not D["busy"]:
         call fill()
     end
+    return 0
+end
+
+# Velikost tlacitek oken (luxos-appearance wm-buttons, WM_BUTTONS v appearance.conf): na X11 varianta tematu
+# xfwm4, na Waylandu zahlavi luxwm. Automaticky = vetsi na dotykove obrazovce.
+WM_BUTTONS = ["auto", "standard", "large", "larger"]
+
+function read_wm_buttons():
+    config = glib.user_config_dir() + "/luxos/appearance.conf"
+    value = "auto"
+    for line in glib.read_text(config).split("\n"):
+        line = line.strip()
+        if line.startswith("WM_BUTTONS="):
+            value = line[11:].strip().strip("\"'")
+        end
+    end
+    if not (value in WM_BUTTONS):
+        value = "auto"
+    end
+    return value
+end
+
+function build_wm_buttons(page):
+    g = ui.group(page, i18n.T("Window buttons"))
+    items = [["auto", i18n.T("Automatic")], ["standard", i18n.T("Standard")], ["large", i18n.T("Large")],
+             ["larger", i18n.T("Larger")]]
+    call ui.row(g, i18n.T("Window buttons"), i18n.T("Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens."),
+                named_combo("wm-buttons", items, read_wm_buttons(), on_wm_buttons, None))
+end
+
+function on_wm_buttons(value, unused):
+    # na pozadi: prepnuti tematu xfwm4 chvili trva, okno nema zamrznout
+    call glib.spawn_quiet(["luxos-appearance", "wm-buttons", value])
+    return 0
+end
+
+# Meritko obrazovky na X11 (100-200 %, jako ve Windows): pomocnik luxos-displays scale-set (xsettings, lista,
+# Dock, kurzor, ramecky oken). Na Waylandu ma kazdy monitor vlastni meritko (radek Meritko u monitoru).
+function build_x11_scale(page):
+    g = ui.group(page, i18n.T("Scale"))
+    items = []
+    for value in xr.SCALES:
+        label = String(value) + " %"
+        if value == 100:
+            label = label + " (" + i18n.T("Default") + ")"
+        end
+        items.append([String(value), label])
+    end
+    current = D["data"].get("scale", 100)
+    if type(current) != "Int":
+        current = 100
+    end
+    call ui.row(g, i18n.T("Size of everything on the screen"),
+                i18n.T("Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened."),
+                named_combo("scale", items, String(current), on_x11_scale, None))
+end
+
+function on_x11_scale(value, unused):
+    if D["building"]:
+        return 0
+    end
+    # na pozadi: xfconf, lista a tema ramecku chvili trvaji
+    call glib.spawn_quiet([HELPER, "scale-set", value])
     return 0
 end
 

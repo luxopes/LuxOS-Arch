@@ -345,6 +345,89 @@ class Window(unittest.TestCase):
             self.assertEqual(f.read(), "basic")
         self.assertTrue(self.app.wait(lambda: self.st()["size"] == basic), (self.st()["size"], basic))
 
+    # ---- displej a mazani (z luxos-desktop 1.1.0-108..111 na main) ----
+
+    def test_expression_on_one_line_with_running_result(self):
+        self.keys("7*9")
+        st = self.st()
+        self.assertEqual((st["value"], st["expr"].strip(), st["preview"]), ("7 × 9", "", "= 63"))
+        self.assertEqual(st["copy"], "9")           # Ctrl+C kopiruje cislo, ne cely priklad
+        self.keys("=")
+        st = self.st()
+        self.assertEqual((st["value"], st["expr"], st["preview"]), ("63", "7 × 9 =", ""))
+        self.act("clear")
+        self.keys("7")
+        self.assertEqual(self.st()["preview"], "")  # samotne cislo: neni co pocitat
+
+    def test_backspace_after_operator_edits_the_number(self):
+        self.keys("425*")
+        self.act("backspace")
+        st = self.st()
+        self.assertEqual((st["value"], st["entry"], st["tokens"]), ("425", "425", []))
+        self.act("backspace")
+        self.assertEqual(self.shown(), "42")
+        # operand delsi nez displej (1/3) zustane cely
+        self.app.ask("reset")
+        self.keys("1/3=*")
+        self.act("backspace")
+        self.assertEqual(self.st()["entry"], "")
+
+    def test_backspace_after_equals_returns_the_expression(self):
+        self.keys("425/25=")
+        self.assertEqual(self.shown(), "17")
+        self.act("backspace")
+        st = self.st()
+        self.assertEqual((st["value"], st["entry"]), ("425 ÷ 25", "25"))
+        self.act("backspace")
+        st = self.st()
+        self.assertEqual((st["value"], st["preview"]), ("425 ÷ 2", "= 212.5"))
+        self.keys("5=")
+        self.assertEqual(self.shown(), "17")
+        # samotny vysledek se maze po cislicich
+        self.app.ask("reset")
+        self.keys("123=")
+        self.act("backspace")
+        self.assertEqual(self.shown(), "12")
+
+    def test_error_can_be_corrected(self):
+        self.keys("5/0=")
+        self.assertEqual(self.shown(), "Error")
+        self.act("backspace")
+        st = self.st()
+        self.assertEqual((st["value"], st["entry"]), ("5 ÷ 0", "0"))
+        self.act("backspace")
+        self.keys("2=")
+        self.assertEqual(self.shown(), "2.5")
+
+    def test_equals_after_open_parenthesis(self):
+        self.keys("2*(=")
+        self.assertEqual(self.shown(), "4")          # "2 × (" = jako "2 × =" -> 2 × 2
+        self.app.ask("reset")
+        self.keys("(=")
+        self.assertNotEqual(self.shown(), "Error")
+        self.app.ask("reset")
+        self.keys("(2+3)*(=")
+        self.assertEqual(self.shown(), "5")          # "(2+3) ×" bez druheho cisla -> (2+3)
+
+    def test_long_expression_shrinks_then_wraps(self):
+        self.keys("1")
+        size0 = self.st()["size"]
+        self.keys("+2")
+        mid = self.st()
+        self.assertEqual(mid["value"], "1 + 2")
+        self.keys("/9" * 60)
+        st = self.st()
+        lines = st["value"].split("\n")
+        self.assertGreater(len(lines), 1, st["value"])
+        self.assertLessEqual(len(lines), 4, st["value"])
+        self.assertTrue(lines[0].startswith("…"), lines)
+        self.assertTrue(lines[-1].endswith("÷ 9"), lines)
+        self.assertEqual(st["size"][0], size0[0])    # sirka okna se nemeni
+        self.assertGreater(st["size"][1], size0[1])
+        self.keys("=")
+        self.assertTrue(self.app.wait(lambda: self.st()["size"][1] <= size0[1] + 2), (self.st()["size"], size0))
+        self.assertNotIn("\n", self.st()["value"])
+
     def test_window_title_and_close_button(self):
         d = self.app.dump()
         self.assertEqual([(w["title"], w["close_button"]) for w in d], [("Calculator", True)])

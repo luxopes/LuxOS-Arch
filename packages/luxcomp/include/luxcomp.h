@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#define LUXCOMP_API_VERSION 14
+#define LUXCOMP_API_VERSION 15
 
 #pragma GCC visibility push(default)
 
@@ -56,6 +56,8 @@ enum luxcomp_event {
 					 * zone; a layer-shell surface (wallpaper, bar, Dock) shows its first frame */
 	LUXCOMP_EV_VIEW_CONTENT_TYPE,	/* id=view a=LUXCOMP_CONTENT_* (wp-content-type-v1 changed) */
 	LUXCOMP_EV_CAPS_LOCK,		/* a=1 Caps Lock on, 0 off (keyboard that typed last) */
+	LUXCOMP_EV_SUPER_ALONE,		/* Super pressed and released without any other key */
+	LUXCOMP_EV_MODIFIERS,		/* a=LUXCOMP_MOD_* held by the active keyboard */
 };
 
 enum luxcomp_request {
@@ -264,6 +266,8 @@ void luxcomp_view_set_names(int64_t view, const char *app_id, const char *title)
 const char *luxcomp_view_sandbox_engine(int64_t view);
 const char *luxcomp_view_sandbox_app_id(int64_t view);
 const char *luxcomp_view_sandbox_instance(int64_t view);
+/* Identifikator okna v ext-foreign-toplevel-list (grim -T, nahled v Alt+Tab); "" dokud okno neni mapovane */
+const char *luxcomp_view_capture_id(int64_t view);
 void luxcomp_view_set_visible(int64_t view, int64_t on);	/* minimize = 0 */
 void luxcomp_view_close(int64_t view);
 void luxcomp_view_begin_move(int64_t view);		/* until the button is released */
@@ -283,6 +287,8 @@ void luxcomp_set_repeat(int64_t rate, int64_t delay_ms);
 /* @key is an xkb keysym name ("Tab", "Left", "grave"), matched in the current and the first
  * layout, or "code:N" for a physical key (xkb keycode, 49 = the key under Esc). 0 = bad name. */
 int64_t luxcomp_bind_key(int64_t mods, const char *key);
+/* Stejne jako bind_key, ale drzeny klavesovy vstup opakuje az do uvolneni klavesy. */
+int64_t luxcomp_bind_key_repeat(int64_t mods, const char *key);
 void luxcomp_unbind_key(int64_t binding);
 int64_t luxcomp_modifiers(void);			/* LUXCOMP_MOD_* currently held */
 /* Keyboard layouts of the keymap from luxcomp_set_keymap() ("us,cz" = 2 layouts) */

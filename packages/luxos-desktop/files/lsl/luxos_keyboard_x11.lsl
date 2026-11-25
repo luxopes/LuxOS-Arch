@@ -25,6 +25,7 @@ load luxos_sys as sys
 load luxos_apps as apps
 load luxos_keyboard_model as kb
 load luxos_shortcuts_model as ls
+load luxos_input_method_ui as im
 
 # jen vlastni tridy karet; karty a radky (.group, .row, .hint) kresli luxos_settings_ui
 CSS = ".badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; color: #ffffff; background-color: #3d7bff; }\n.flat-icon { padding: 2px; min-width: 24px; min-height: 24px; }\n.keycap { padding: 3px 10px; border-radius: 7px; border: 1px solid alpha(currentColor, 0.18); background-image: none; background-color: alpha(currentColor, 0.07); box-shadow: none; font-weight: 600; min-height: 0; }\n.keycap:hover { background-color: alpha(currentColor, 0.13); }\n.keycap.off { font-weight: 400; opacity: 0.55; }\n.keycap.fixed { opacity: 0.8; }\n.icon-btn { padding: 2px; min-height: 0; min-width: 0; }\n.capture-keys { font-size: 22px; font-weight: 700; margin: 14px 0 6px; }\n.capture-box { border-radius: 12px; border: 2px dashed alpha(@theme_selected_bg_color, 0.7); background-color: alpha(@theme_selected_bg_color, 0.07); padding: 6px 18px; }\n"
@@ -216,6 +217,9 @@ function layouts_build(page, window):
     call gtk.box_pack_start(tbox, test, True, True, 0)
     call gtk.box_pack_start(g["box"], tbox, False, False, 0)
 
+    # psani vietnamsky (fcitx5): jen tento ucet, plati hned
+    call im.build(page, None)
+
     note = hint_label("", 60)
     call gtk.widget_set_margins(note, 0, 0, 12, 0)
     call gtk.widget_set_no_show_all(note, True)
@@ -234,6 +238,8 @@ function layouts_build(page, window):
     status = ui.label("", "")
     call gtk.label_set_max_width_chars(status, 60)
     call gtk.widget_set_margins(status, 0, 0, 8, 0)
+    # prazdny stavovy radek nezabira misto (drive prazdna plocha dole): ukazuje ho jen set_status s textem
+    call gtk.widget_set_no_show_all(status, True)
     K["status"] = status
     call gtk.box_pack_start(page, status, False, False, 0)
 
@@ -323,7 +329,7 @@ function on_switch_changed(combo):
 end
 
 function changed(refill):
-    call gtk.label_set_text(K["status"], "")
+    call set_status("")
     call preview(K["layouts"], K["options"])
     if refill:
         call fill()
@@ -359,13 +365,13 @@ function on_apply():
     model = K["system"]["model"]
     error = kb.validate(layouts, options, model)
     if error != "":
-        call gtk.label_set_text(K["status"], error)
+        call set_status(error)
         return 0
     end
     K["busy"] = True
     call update()
     call gtk.spinner_set(K["spinner"], True)
-    call gtk.label_set_text(K["status"], T("Saving…"))
+    call set_status(T("Saving…"))
     # localectl ceka na overeni (polkit): asynchronne, stderr ("Access denied") do vystupu
     argv = ["sh", "-c", "exec \"$@\" 2>&1", "sh"] + kb.localectl_cmd(layouts, options, model)
     if lglib.spawn_capture(argv, on_applied, [layouts, options, model]) == 0:
@@ -390,13 +396,13 @@ function applied_done(saved, status, output):
         K["system"] = {"layouts": saved[0], "model": saved[2], "options": saved[1]}
         K["override"] = False
         K["applied"] = True
-        call gtk.label_set_text(K["status"], T("Saved for all users and the login screen."))
+        call set_status(T("Saved for all users and the login screen."))
     elif low.find("denied") >= 0 or low.find("not authorized") >= 0 or low.find("dismissed") >= 0:
-        call gtk.label_set_text(K["status"], T("Not saved: administrator authentication was cancelled."))
+        call set_status(T("Not saved: administrator authentication was cancelled."))
     else:
         lines = [line for line in output.strip().split("\n") if line != ""]
         last = lines[len(lines) - 1] if len(lines) > 0 else "?"
-        call gtk.label_set_text(K["status"], i18n.TF("Could not save the keyboard layouts: %s", [last]))
+        call set_status(i18n.TF("Could not save the keyboard layouts: %s", [last]))
     end
     call update()
 end
@@ -429,6 +435,17 @@ function add_dialog():
     call gtk.box_pack_start(area, entry, False, False, 0)
     lb = gtk.list_box_new()
     rows = []
+    # Vietnamci pisou Telexem/VNI na bezne klavesnici (metoda zadavani), ne rozlozenim XKB "vn"
+    vi = im.dialog_item()
+    if vi != None:
+        box = gtk.box_new(gtk.HORIZONTAL, 8)
+        call gtk.widget_set_margins(box, 6, 6, 6, 6)
+        l = gtk.label_new(vi[0])
+        call gtk.label_set_xalign(l, 0)
+        call gtk.box_pack_start(box, l, True, True, 0)
+        call gtk.list_box_insert(lb, box, -1)
+        rows.append({"key": ["@im", "vi"], "hay": vi[1], "row": gtk.widget_get_parent(box)})
+    end
     for item in K["catalog"]:
         key = item[0]
         if key in K["layouts"]:
@@ -464,7 +481,21 @@ function add_dialog():
     end
     call gtk.widget_destroy(dlg)
     K["dialog"] = None
+    if key != None and key[0] == "@im":
+        call im.enable_from_dialog()
+        return 0
+    end
     call add_layout(key)
+end
+
+function set_status(text):
+    call gtk.label_set_text(K["status"], text)
+    if text == "":
+        call gtk.widget_hide(K["status"])
+    else:
+        call gtk.widget_show(K["status"])
+    end
+    return 0
 end
 
 function add_visible(item):
@@ -544,7 +575,7 @@ function on_layouts_test(command, rest):
             hay = [item["hay"] for item in dlg["rows"] if add_visible(item)]
         end
         call sys.out("state " + json.encode({"layouts": K["layouts"], "options": K["options"], "dirty": dirty(),
-            "busy": K["busy"], "applied": K["applied"], "status": gtk.label_get_text(K["status"]),
+            "busy": K["busy"], "applied": K["applied"], "status": gtk.label_get_text(K["status"]), "status_shown": gtk.widget_get_visible(K["status"]),
             "apply": gtk.widget_get_sensitive(K["apply"]), "note": gtk.widget_get_visible(K["note"]),
             "switch": ui.combo_active_id(K["switch"]), "dialog": dlg != None, "visible": visible, "hay": hay,
             "system": K["system"]}) + "\n")

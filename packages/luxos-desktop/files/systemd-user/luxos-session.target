@@ -7,5 +7,5 @@ BindsTo=graphical-session.target
 Wants=graphical-session-pre.target
 After=graphical-session-pre.target
 Wants=luxos-notify.service luxos-bar.service luxos-dock.service luxos-backdrop.service luxos-widgets.service
-Wants=luxos-lock.service luxos-launchpad.service luxos-polkit.service
+Wants=luxos-lock.service luxos-launchpad.service luxos-polkit.service luxos-switcher.service luxos-hub.service
 # portaly (snimek obrazovky, sdileni obrazovky, vyber souboru) se spousti pres D-Bus az pri prvnim pouziti

@@ -1,7 +1,7 @@
 /*
  * Okna pro shell: wlr-foreign-toplevel-management (Dock: aktivace, minimalizace, obnoveni,
  * maximalizace, cela obrazovka, zavreni), ext-foreign-toplevel-list a snimek jednoho okna
- * (ext-foreign-toplevel-image-capture-source). Pozadavky z Docku jdou politice jako
+ * (ext-foreign-toplevel-image-capture-source, vlastni scena okna). Pozadavky z Docku jdou politice jako
  * VIEW_REQUEST s puvodem LUXCOMP_ORIGIN_TASKBAR, rozhoduje ona.
  */
 #include <stdlib.h>
@@ -13,6 +13,7 @@
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_scene.h>
+#include <wlr/types/wlr_xdg_shell.h>
 #include "internal.h"
 
 static void
@@ -133,6 +134,12 @@ foreign_unmap(struct view *v)
 		wlr_ext_foreign_toplevel_handle_v1_destroy(v->ext);
 		v->ext = NULL;
 	}
+	/* zanikne i zdroj snimku (posloucha zanik korene sceny) */
+	if (v->capture_scene) {
+		wlr_scene_node_destroy(&v->capture_scene->tree.node);
+		v->capture_scene = NULL;
+		v->capture_tree = NULL;
+	}
 }
 
 void
@@ -183,15 +190,56 @@ capture_destroy(struct wl_listener *listener, void *data)
 	v->capture = NULL;
 }
 
+/* Skryte uzly (podpovrch mimo orez nebo bez bufferu) presune na zacatek geometrie: wlroots je do velikosti
+ * snimku pocita i vypnute, a skryty pomocny podpovrch Firefoxu na -198,-198 tak snimek roztahl o cerny pruh
+ * vlevo a nahore. Jakmile podpovrch zasahne do orezu, wlroots mu polohu nastavi samo. */
+static void
+capture_park_hidden(struct wlr_scene_tree *tree, int x, int y, const struct wlr_box *g)
+{
+	struct wlr_scene_node *n;
+	wl_list_for_each(n, &tree->children, link) {
+		if (n->type == WLR_SCENE_NODE_TREE) {
+			capture_park_hidden(wlr_scene_tree_from_node(n), x + n->x, y + n->y, g);
+		} else if (n->type == WLR_SCENE_NODE_BUFFER && !n->enabled) {
+			wlr_scene_node_set_position(n, g->x - x, g->y - y);
+			wlr_scene_buffer_set_dest_size(wlr_scene_buffer_from_node(n), 1, 1);
+		}
+	}
+}
+
+/* Obsah okna bez stinu vlastniho zahlavi (CSD): orez na geometrii okna, meni se s kazdym commitem */
+void
+foreign_capture_clip(struct view *v)
+{
+	if (v->capture_tree && v->toplevel) {
+		struct wlr_box *g = &v->toplevel->base->geometry;
+		wlr_scene_subsurface_tree_set_clip(&v->capture_tree->node, g);
+		capture_park_hidden(v->capture_tree, v->capture_tree->node.x, v->capture_tree->node.y, g);
+	}
+}
+
 static void
 toplevel_capture(struct wl_listener *listener, void *data)
 {
 	struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request *req = data;
 	struct view *v = req->toplevel_handle->data;
-	/* zdroj zije s telem okna (obsah se zakulacenymi rohy, bez zahlavi a stinu), jeden na okno */
-	if (v && !v->capture && v->surface_tree) {
-		v->capture = wlr_ext_image_capture_source_v1_create_with_scene_node(
-			&v->body->node, comp.loop, comp.allocator, comp.renderer);
+	/* Zdroj nad uzlem hlavni sceny by wlroots vykreslil jako celou scenu v obdelniku okna, i s okny a panely,
+	 * ktere ho prekryvaji (sdileni jednoho okna by ukazalo i cizi obsah). Proto vlastni scena jen s povrchy
+	 * okna (podpovrchy, bez zahlavi a stinu), jedna na okno, dokud je namapovane. */
+	if (v && !v->capture && v->surface_tree && view_surface(v)) {
+		v->capture_scene = wlr_scene_create();
+		v->capture_tree = wlr_scene_subsurface_tree_create(&v->capture_scene->tree, view_surface(v));
+		if (v->capture_tree) {
+			tree_track(&v->capture_tree);
+			foreign_capture_clip(v);
+			v->capture = wlr_ext_image_capture_source_v1_create_with_scene_node(
+				&v->capture_scene->tree.node, comp.loop, comp.allocator, comp.renderer);
+		}
+		if (!v->capture) {
+			wlr_scene_node_destroy(&v->capture_scene->tree.node);
+			v->capture_scene = NULL;
+			v->capture_tree = NULL;
+		}
 		if (v->capture) {
 			v->capture_destroy.notify = capture_destroy;
 			wl_signal_add(&v->capture->events.destroy, &v->capture_destroy);
@@ -200,6 +248,13 @@ toplevel_capture(struct wl_listener *listener, void *data)
 	/* bez zdroje dostane klient neplatny (inert) objekt, nikdy nevisi */
 	wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request_accept(req,
 		v ? v->capture : NULL);
+}
+
+const char *
+luxcomp_view_capture_id(int64_t id)
+{
+	struct view *v = view_by_id(id);
+	return v && v->ext && v->ext->identifier ? v->ext->identifier : "";
 }
 
 void

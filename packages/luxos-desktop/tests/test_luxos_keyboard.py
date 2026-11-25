@@ -234,19 +234,18 @@ class App(unittest.TestCase):
             lsl_app.shot(self.x.display, os.path.join(d, name + ".png"))
 
     def test_status_lines_take_space_only_with_text(self):
-        # prazdne stavove radky nezabiraji misto; zprava se ukaze a okno se kvuli ni zvetsi
-        w = self.app.KeyboardSettings()
-        w.show_all()
-        self.pump(timeout=0.5)
-        self.assertFalse(w.status.get_visible())
-        self.assertFalse(w.im_status.get_visible())
-        h = w.get_size()[1]
-        w.status.set_text("Saved for all users and the login screen.")
-        self.assertTrue(self.pump(lambda: w.get_size()[1] > h, 3), (h, w.get_size()))
-        self.assertTrue(w.status.get_mapped())
-        w.status.set_text("")
-        self.assertFalse(w.status.get_visible())
-        w.destroy()
+        # prazdny stavovy radek nezabira misto, zprava (zamitnute overeni) se ukaze; skupina Metody zadavani
+        self.start(KBD_TEST_DENY="1")
+        s = self.state()
+        self.assertEqual(s["status"], "")
+        self.assertFalse(s["status_shown"])
+        texts = lsl_app.texts(self.app.dump())
+        for t in ("Input Methods", "Vietnamese", "Typing style"):
+            self.assertIn(t, texts)
+        self.app.ask("layout down 0")
+        self.app.send("click Apply to All Users and the Login Screen")
+        self.assertTrue(self.app.wait(lambda: "cancelled" in self.state()["status"]))
+        self.assertTrue(self.state()["status_shown"])
 
     def test_edit_and_apply(self):
         self.start()

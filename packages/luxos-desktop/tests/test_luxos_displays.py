@@ -278,6 +278,37 @@ class DisplaysScript(unittest.TestCase):
     def tearDown(self):
         self.f.cleanup()
 
+    def test_scale_set_x11(self):
+        # meritko 100-200 % (Monitory > Meritko na X11): xsettings, kurzor, lista, ulozena volba
+        env = dict(os.environ, **self.f.env, GSETTINGS_BACKEND="memory")
+
+        def helper(*args):
+            return subprocess.run([lx.helper(), *args], env=env, capture_output=True, text=True, timeout=30)
+
+        def xfconf():
+            with open(self.f.xfconf) as f:
+                return json.load(f)
+
+        self.assertEqual(helper("scale-get").stdout.strip(), "100")
+        r = helper("scale-set", "150")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        db = xfconf()
+        self.assertEqual(db["xsettings"]["/Gdk/WindowScalingFactor"], "1")
+        self.assertEqual(db["xsettings"]["/Xft/DPI"], "144")
+        self.assertEqual(db["xsettings"]["/Gtk/CursorThemeSize"], "36")
+        self.assertEqual(db["xfce4-panel"]["/panels/panel-1/size"], "42")
+        self.assertEqual(helper("scale-get").stdout.strip(), "150")
+        # 200 %: GTK 2x, DPI zpet na 96, lista podle 100 %
+        self.assertEqual(helper("scale-set", "200").returncode, 0)
+        db = xfconf()
+        self.assertEqual(db["xsettings"]["/Gdk/WindowScalingFactor"], "2")
+        self.assertEqual(db["xsettings"]["/Xft/DPI"], "96")
+        self.assertEqual(db["xfce4-panel"]["/panels/panel-1/size"], "28")
+        # zpet na 100 %: DPI vlastnost pryc
+        self.assertEqual(helper("scale-set", "100").returncode, 0)
+        self.assertNotIn("/Xft/DPI", xfconf()["xsettings"])
+        self.assertNotEqual(helper("scale-set", "130").returncode, 0)
+
     def test_auto_without_saved(self):
         r = self.f.run_displays("auto")
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -424,7 +455,9 @@ class App(unittest.TestCase):
         titles = lsl_app.texts(windows)
         for title in ("DELL U2419H", "Built-in Display", "Multiple Displays", "Text Size", "Arrangement"):
             self.assertIn(title, titles)
-        self.assertNotIn("Scale", titles)
+        # meritko 100-200 % na X11 (luxos-displays scale-set) a velikost tlacitek oken
+        for title in ("Scale", "Size of everything on the screen", "Window buttons"):
+            self.assertIn(title, titles)
         self.assertTrue(windows[0]["close_button"])
         print("\nPSS okna Monitory (X11, LSL): %d kB" % self.win.app.pss_kb())
 

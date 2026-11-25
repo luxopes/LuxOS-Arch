@@ -23,7 +23,8 @@ load luxos_displays as dw
 load luxos_displays_x11 as x11
 
 SETTINGS = "/usr/lib/luxos/luxos-displays-settings"
-X11_COMMANDS = ["output-args", "layout-args", "mode-get", "mode-set", "mirror-args", "rate-cap", "rate-restore"]
+X11_COMMANDS = ["output-args", "layout-args", "mode-get", "mode-set", "mirror-args", "rate-cap", "rate-restore",
+                "scale-get", "scale-set"]
 
 job = {"cmd": "", "store": None, "outs": [], "plan": None, "undo": None, "undo_primary": "", "hint": "",
        "retried": False, "after": None, "pending": False, "timer": 0}
