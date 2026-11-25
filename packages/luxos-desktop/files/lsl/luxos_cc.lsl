@@ -280,6 +280,12 @@ function flag_state(name):
     return exists(config_dir() + "/" + name)
 end
 
+# Dotykova obrazovka a senzor otoceni: luxos-touch session zapise ~/.config/luxos/touch-state
+# ("touchscreen=1 keyboard=0 accel=1"); bez souboru (pocitac bez dotyku) zadne dlazdice navic
+function touch_flag(name):
+    return glib.read_text(config_dir() + "/touch-state").find(name + "=1") >= 0
+end
+
 function dark_state():
     return glib.read_text(config_dir() + "/appearance").strip() == "dark"
 end
@@ -886,7 +892,12 @@ function create():
     call gtk.box_pack_start(pbox, ptext, True, True, 0)
     call gtk.box_pack_end(pbox, chevron(), False, False, 0)
     call gtk.container_add(prof, pbox)
-    call gtk.connect_data(prof, "clicked", 0, on_launch_clicked, "luxos-account")
+    # bez Uctu LuxAI (LuxOS Desktop na jine distribuci) otevre profilovou fotku
+    profile_app = "luxos-account"
+    if glib.find_program_in_path(profile_app) == "":
+        profile_app = "luxos-profile-picture"
+    end
+    call gtk.connect_data(prof, "clicked", 0, on_launch_clicked, profile_app)
     call gtk.box_pack_start(outer, prof, False, False, 0)
 
     grid = gtk.grid_new()
@@ -909,6 +920,16 @@ function create():
     # One UI: sporice dat a baterie spolu v jedne pilulce pod ctyrmi velkymi dlazdicemi
     if not cc["oneui"]:
         tiles = tiles + [cc["t_data"], cc["t_power"]]
+    end
+    # dotykova zarizeni na X11: klavesnice na obrazovce (onboard), zamek otaceni (jen se senzorem); na Waylandu
+    # zatim ne (onboard a xrandr tam nefunguji)
+    if touch_flag("touchscreen") and not wayland():
+        cc["t_osk"] = tile_new(["input-keyboard-symbolic", "keyboard"], i18n.T("Keyboard"), toggle_osk, None)
+        tiles.append(cc["t_osk"])
+        if touch_flag("accel"):
+            cc["t_rot"] = tile_new(["rotation-locked-symbolic", "rotation"], i18n.T("Rotation Lock"), toggle_rotation_lock, None)
+            tiles.append(cc["t_rot"])
+        end
     end
     index = 0
     while index < len(tiles):
@@ -1351,10 +1372,33 @@ function face_update():
     return 0
 end
 
+# Cele jmeno uzivatele z /etc/passwd (GECOS), jinak prihlasovaci jmeno
+function local_user_name():
+    login = env.get("USER", "")
+    if login == None:
+        login = ""
+    end
+    for line in glib.read_text("/etc/passwd").split("\n"):
+        parts = line.split(":")
+        if len(parts) >= 5 and parts[0] == login:
+            gecos = parts[4].split(",")[0].strip()
+            if gecos != "":
+                return gecos
+            end
+        end
+    end
+    return login
+end
+
 # Okamzite udaje (soubory v ~/.config a /sys) - bez spousteni programu
 function refresh_fast():
     user = account_user()
+    # LuxOS Desktop na jine distribuci: bez Uctu LuxAI jen jmeno uzivatele a profilova fotka
+    standalone = user == None and glib.find_program_in_path("luxos-account") == ""
     name = ""
+    if standalone:
+        name = local_user_name()
+    end
     if user != None:
         name = text_value(user.get("displayName"))
         if name == "":
@@ -1370,16 +1414,27 @@ function refresh_fast():
     if user != None:
         call gtk.label_set_text(cc["p_title"], name)
         call gtk.label_set_text(cc["p_sub"], i18n.T("LuxAI Account"))
+    elif standalone:
+        call gtk.label_set_text(cc["p_title"], name)
+        call gtk.label_set_text(cc["p_sub"], i18n.T("Profile Picture"))
     else:
         call gtk.label_set_text(cc["p_title"], i18n.T("Sign in to LuxAI"))
         call gtk.label_set_text(cc["p_sub"], i18n.T("AI in LuxAI, Lux Code and LSL IDE"))
     end
     dark = dark_state()
     call tile_set_state(cc["t_dark"], dark, on_off(dark))
-    data = flag_state("datasaver")
-    call tile_set_state(cc["t_data"], data, on_off(data))
-    power = flag_state("powersaver")
-    call tile_set_state(cc["t_power"], power, on_off(power))
+    if cc.get("t_rot", None) != None:
+        locked = flag_state("rotation-lock")
+        call tile_set_state(cc["t_rot"], locked, on_off(locked))
+    end
+    if cc.get("t_data", None) != None:
+        data = flag_state("datasaver")
+        call tile_set_state(cc["t_data"], data, on_off(data))
+    end
+    if cc.get("t_power", None) != None:
+        power = flag_state("powersaver")
+        call tile_set_state(cc["t_power"], power, on_off(power))
+    end
     b = brightness()
     if b != None:
         call slider_set_value(cc["s_bright"], b)
@@ -1855,6 +1910,20 @@ function toggle_dark():
     else:
         call close()
     end
+    return 0
+end
+
+# Klavesnice na obrazovce: okno se zavre, aby klavesnice psala do aplikace pod nim
+function toggle_osk():
+    call glib.spawn_quiet(["luxos-touch", "osk", "toggle"])
+    call close()
+    return 0
+end
+
+function toggle_rotation_lock():
+    locked = not flag_state("rotation-lock")
+    call tile_set_state(cc["t_rot"], locked, on_off(locked))
+    call glib.spawn_quiet(["luxos-touch", "rotation-lock", "toggle"])
     return 0
 end
 

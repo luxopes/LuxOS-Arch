@@ -60,11 +60,12 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
+gi.require_version("GdkX11", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Pango", "1.0")
 gi.require_version("PangoCairo", "1.0")
 gi.require_foreign("cairo")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, GdkX11, GLib, Gtk, Pango, PangoCairo  # noqa: E402,F401
 
 CONF = os.environ.get("LUXOS_GREETER_CONF", "/etc/lightdm/luxos-greeter.conf")
 KEYBOARD_CONF = os.environ.get("LUXOS_GREETER_KEYBOARD_CONF", "/etc/X11/xorg.conf.d/00-keyboard.conf")
@@ -902,6 +903,40 @@ def icon_session(cr, cx, cy, s):
     cr.fill()
 
 
+def icon_keyboard(cr, cx, cy, s):
+    # klavesnice: zaobleny obdelnik, tri rady klaves a mezernik
+    w, h, r = s * 0.78, s * 0.50, s * 0.08
+    x, y = cx - w / 2, cy - h / 2
+    cr.set_line_width(max(1.3, s * 0.07))
+    cr.new_path()
+    cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+    cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+    cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+    cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+    cr.close_path()
+    cr.stroke()
+    k = s * 0.075
+    for row, n in ((0, 5), (1, 4)):
+        for i in range(n):
+            kx = x + w * (0.17 + i * (0.66 / (n - 1))) - k / 2 + (w * 0.08 if row else 0) * (1 if n == 4 else 0)
+            cr.rectangle(kx, y + h * (0.22 + row * 0.24), k, k)
+    cr.rectangle(cx - w * 0.25, y + h * 0.70, w * 0.5, k)
+    cr.fill()
+
+
+def touch_state():
+    """{"touchscreen": bool, "keyboard": bool} z luxos-touch detect (luxos-desktop); bez nej bez dotyku."""
+    if os.environ.get("LUXOS_GREETER_TOUCH"):          # demo a testy: "1" = dotyk bez klavesnice
+        return {"touchscreen": True, "keyboard": os.environ["LUXOS_GREETER_TOUCH"] != "1"}
+    try:
+        r = subprocess.run(["luxos-touch", "detect"], stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=3)
+        kv = dict(p.split("=", 1) for p in r.stdout.split() if "=" in p)
+        return {"touchscreen": kv.get("touchscreen") == "1", "keyboard": kv.get("keyboard", "1") == "1"}
+    except (OSError, subprocess.SubprocessError) as e:
+        log("touch:", e)
+        return {"touchscreen": False, "keyboard": True}
+
+
 def icon_arrow(cr, cx, cy, s):
     cr.set_line_width(max(1.5, s * 0.11))
     cr.set_line_cap(cairo.LINE_CAP_ROUND)
@@ -1151,6 +1186,10 @@ class Greeter(Gtk.Window):
         self.set_login_visible(False)
         self.update_users()
         self.update_session_button()
+        # dotykove zarizeni bez fyzicke klavesnice (tablet): klavesnice na obrazovce hned
+        if self.touch_info["touchscreen"] and not self.touch_info["keyboard"]:
+            GLib.timeout_add(600, lambda: self.osk_running() or self.start_osk() or False)
+        self.connect("destroy", lambda *_a: self.osk_running() and self.osk_proc.terminate())
 
     # -- stav mezi spustenimi (domov uzivatele lightdm, ne domovy uzivatelu) --
     def _state_path(self):
@@ -1185,6 +1224,7 @@ class Greeter(Gtk.Window):
     # -- stavba widgetu --
     def build(self):
         ov = Gtk.Overlay()
+        self.ov = ov
         self.add(ov)
         self.bg = Gtk.DrawingArea()
         self.bg.connect("draw", self.draw_bg)
@@ -1301,6 +1341,11 @@ class Greeter(Gtk.Window):
         self.power.set_halign(Gtk.Align.CENTER)
         self.power_buttons = []
         self.session_btn = None
+        # dotykova obrazovka: klavesnice na obrazovce (Onboard vlozeny do okna, luxos-touch osk-embed)
+        self.touch_info = touch_state()
+        self.osk_proc, self.osk_h = None, 0
+        if self.touch_info["touchscreen"]:
+            self.round_button("keyboard", _("Keyboard"), icon_keyboard, self.toggle_osk)
         if len(self.sessions) > 1:
             self.session_btn = self.round_button("session", self.session_name(), icon_session, self.next_session)
         for what, label, icon in (("suspend", _("Sleep"), icon_sleep), ("restart", _("Restart"), icon_restart),
@@ -1313,6 +1358,61 @@ class Greeter(Gtk.Window):
                 continue
             self.round_button(what, label, icon, lambda w=what: self.do_power(w))
         ov.add_overlay(self.power)
+
+    # -- klavesnice na obrazovce --
+    # Onboard jako samostatne okno dole (luxos-touch osk-window), ne vlozene (GtkSocket): bez spravce oken
+    # by X posilal klavesy vlozenemu oknu klavesnice pod ukazatelem (podokno okna s fokusem), ne do pole hesla.
+    def osk_geometry(self):
+        """(x, y, sirka, vyska) klavesnice dole na hlavnim monitoru; sirka do 1400 px jako na zamku."""
+        m = self.mon
+        w = min(m.width, 1400)
+        h = 205 if m.height >= 610 else 205 - (610 - m.height) // 2
+        return m.x + (m.width - w) // 2, m.y + m.height - h, w, h
+
+    def osk_running(self):
+        return self.osk_proc is not None and self.osk_proc.poll() is None
+
+    def toggle_osk(self):
+        if self.osk_running():
+            self.stop_osk()
+        else:
+            self.start_osk()
+
+    def start_osk(self):
+        x, y, w, h = self.osk_geometry()
+        try:
+            self.osk_proc = subprocess.Popen(["luxos-touch", "osk-window", str(x), str(y), str(w), str(h)],
+                                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                             stderr=subprocess.DEVNULL)
+        except OSError as e:
+            log("osk:", e)
+            self.osk_proc = None
+            return
+        self.osk_h = h
+        self.relayout()
+        self.entry.grab_focus()
+        # fokus X zpet oknu prihlaseni, az se klavesnice objevi (klavesy Onboardu jdou oknu s fokusem)
+        for ms in (700, 1500, 3000):
+            GLib.timeout_add(ms, self.focus_self)
+
+    def focus_self(self):
+        win = self.get_window()
+        if win is not None and self.kbd.x and self.kbd.dpy:
+            try:
+                xid = win.get_xid()
+                self.kbd.x.XSetInputFocus(ctypes.c_void_p(self.kbd.dpy), ctypes.c_ulong(xid), 2, 0)   # RevertToParent, CurrentTime
+                self.kbd.x.XFlush(ctypes.c_void_p(self.kbd.dpy))
+            except (AttributeError, ctypes.ArgumentError) as e:
+                log("osk focus:", e)
+        self.entry.grab_focus()
+        return False
+
+    def stop_osk(self):
+        if self.osk_running():
+            self.osk_proc.terminate()
+        self.osk_proc = None
+        self.osk_h = 0
+        self.relayout()
 
     def flat_button(self, child, cls):
         b = Gtk.Button()
@@ -1370,7 +1470,7 @@ class Greeter(Gtk.Window):
         self.status.set_spacing(px(14, 8))
         self.login.set_margin_start(mx)
         self.login.set_margin_end(self.W - (mx + mw))
-        self.login.set_margin_bottom(self.H - (my + mh) + px(150, 110))
+        self.login.set_margin_bottom(self.H - (my + mh) + px(150, 110) + self.osk_h)
         self.login.set_spacing(px(14, 9))
         self.users_box.set_spacing(px(34, 20))
         for b in self.user_buttons:
@@ -1383,7 +1483,7 @@ class Greeter(Gtk.Window):
         self.kbd_row.set_spacing(px(14, 9))
         self.caps_box.set_spacing(px(6, 4))
         self.caps_icon.set_size_request(px(16, 12), px(16, 12))
-        self.power.set_margin_bottom(self.H - (my + mh) + px(42, 26))
+        self.power.set_margin_bottom(self.H - (my + mh) + px(42, 26) + self.osk_h)
         self.power.set_spacing(px(40, 26))
         for b in self.power_buttons:
             b.area.set_size_request(self.sz["round"] + px(8, 6), self.sz["round"] + px(8, 6))
@@ -1883,7 +1983,7 @@ class Greeter(Gtk.Window):
         self.power.set_opacity(e)
         # obsah prijizdi lehce zdola
         off = round((1 - e) * 24 * self.u)
-        self.login.set_margin_bottom(self.H - (self.mon.y + self.mon.height) + round(150 * self.u) - off)
+        self.login.set_margin_bottom(self.H - (self.mon.y + self.mon.height) + round(150 * self.u) - off + self.osk_h)
         self.bg.queue_draw()
 
     def touch(self):

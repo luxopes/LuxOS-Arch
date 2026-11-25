@@ -5549,3 +5549,32 @@ Menu bar without background	Панель меню без тла
 Shadow under the menu bar	Тінь під панеллю меню
 Like the lock screen: only the wallpaper and white icons.	Як на екрані блокування: лише шпалери та білі значки.
 Darkens the top edge so white icons stay readable on light wallpapers.	Затемнює верхній край, щоб білі значки було видно на світлих шпалерах.
+Rotation Lock	Блокування повороту
+Hot Corners	Активні кути
+Show Desktop	Показати стільницю
+Start Screen Saver	Запустити заставку
+Top left corner	Верхній лівий кут
+Top right corner	Верхній правий кут
+Bottom left corner	Нижній лівий кут
+Bottom right corner	Нижній правий кут
+Move the pointer into a corner of the screen and keep it there for a moment.	Наведіть вказівник у кут екрана й затримайте його там на мить.
+Size of everything on the screen	Розмір усього на екрані
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Збільшує текст, кнопки, заголовки вікон, верхню панель і Dock – корисно на сенсорних екранах і малих дисплеях із високою роздільністю. Деякі застосунки потрібно відкрити знову.
+Window buttons	Кнопки вікон
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Кнопки «закрити», «згорнути» і «розгорнути» в заголовку вікна. «Автоматично» збільшує їх на сенсорних екранах.
+Wi-Fi adapter did not start	Адаптер Wi-Fi не запустився
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Адаптер Wi-Fi завис після перезапуску з іншої системи. Вимкніть комп’ютер, утримуйте кнопку живлення 30 секунд, а потім увімкніть його знову. Перезапуску недостатньо.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Методи введення
+Vietnamese	В’єтнамська
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	метод введення
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Пишіть в’єтнамською на своїй клавіатурі, наприклад Vieejt Nam → Việt Nam. Вмикайте й вимикайте сполученням Ctrl+Пробіл або значком на панелі меню.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Не встановлено (пакунки fcitx5, fcitx5-gtk і fcitx5-bamboo).
+Typing style	Спосіб введення
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex ставить діакритику літерами (aa → â, s → ´), VNI — цифрами (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Ваш обліковий запис використовує власні налаштування fcitx5. Увімкнення додасть до них в’єтнамську.
+Could not change the input method: %s	Не вдалося змінити метод введення: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	В’єтнамську ввімкнено. Перемикайте сполученням Ctrl+Пробіл. Застосунки, що вже були відкриті, почнуть її використовувати після перезапуску.
+Vietnamese is off.	В’єтнамську вимкнено.
+Typing style: %s	Спосіб введення: %s

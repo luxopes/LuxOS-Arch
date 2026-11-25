@@ -3,7 +3,28 @@
 # (luxos-plymouth-finish.service, soubezne se startem site, LightDM ceka jen na jeho konec).
 # Samotne predani obrazu splash -> LightDM (bez cerne mezery) dela LightDM
 # (plymouth deactivate + quit --retain-splash), viz lightdm.service.d/luxos-plymouth.conf.
+#
+# Automaticke prihlaseni (live ISO, volba v instalatoru): prihlasovaci obrazovka neni, na obrazovce
+# zustane snimek splashe a prechod do plochy (luxos-session-cover --login) pokracuje primo v jeho baru.
+# Bar se proto nedotahuje do konce (plny bar a pak dalsi nacitani vypadalo jako dva bary) a znacka
+# /run/luxos/splash-handoff rekne zakryti, ze ma navazat na splash.
+#   LUXOS_LIGHTDM_CONF: seznam konfiguracnich souboru LightDM (testy), LUXOS_RUN_DIR: misto /run/luxos
+
+autologin() {
+    # poradi jako LightDM: konfiguracni slozky, nakonec lightdm.conf - posledni hodnota plati
+    v=$(cat ${LUXOS_LIGHTDM_CONF:-/usr/share/lightdm/lightdm.conf.d/*.conf /etc/xdg/lightdm/lightdm.conf.d/*.conf \
+        /etc/lightdm/lightdm.conf.d/*.conf /etc/lightdm/lightdm.conf} 2>/dev/null |
+        sed -n 's/^[[:space:]]*autologin-user[[:space:]]*=[[:space:]]*//p' | tail -n 1)
+    v=${v%%[[:space:]]*}
+    [ -n "$v" ]
+}
+
 plymouth --ping 2>/dev/null || exit 0
+if autologin; then
+    run=${LUXOS_RUN_DIR:-/run/luxos}
+    mkdir -p "$run" && : >"$run/splash-handoff"
+    exit 0
+fi
 plymouth update --status=luxos-finish
 sleep 0.3
 exit 0

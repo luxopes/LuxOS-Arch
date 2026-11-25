@@ -45,6 +45,10 @@ if [[ -e ${LUXOS_SCROLL_MODULE:-/usr/lib/gtk-3.0/modules/libluxos-scroll.so} ]] 
     unset mods
 fi
 
+# Dotykova obrazovka (tablet, notebook 2v1, dotykovy monitor): klavesnice na obrazovce, gesta, otaceni,
+# dotyk na vestavenem displeji. Bez dotykove obrazovky luxos-touch hned skonci.
+[[ -x /usr/bin/luxos-touch ]] && /usr/bin/luxos-touch session >/dev/null 2>&1 &
+
 # Lupa (Hledani) v horni liste i u profilu z drivejsich verzi: jednou, pred Ovladaci centrum. Restart
 # listy hned po prihlaseni zakryje prechod na plochu (luxos-session-cover --login).
 [[ -e $cfg/search-icon-added ]] || /usr/bin/luxos-search --add-to-panel &
@@ -288,7 +292,7 @@ unset _n
     if [[ -f $cfg/displays.json || -f $cfg/displays-mode ]]; then
         /usr/bin/luxos-displays auto
     fi
-    /usr/bin/luxos-powersaver reapply >/dev/null
+    [[ -x /usr/bin/luxos-powersaver ]] && /usr/bin/luxos-powersaver reapply >/dev/null
 ) &
 
 # Softwarovy jas monitoru (Ovladaci centrum, monitory bez podsviceni)
@@ -337,7 +341,8 @@ fi
 # (~/.local/share/luxos/freeze-reports, oprava z konzole: luxos-unfreeze)
 /usr/bin/luxos-unfreeze --watch &
 # Sporic dat: merene pripojeni plati jen do odpojeni, po prihlaseni znovu
-/usr/bin/luxos-datasaver reapply &
+# (sporice jen se systemovou casti LuxOS; LuxOS Desktop na jine distribuci je nema)
+[[ -x /usr/bin/luxos-datasaver ]] && /usr/bin/luxos-datasaver reapply &
 
 # Tapeta i pro nove pripojene monitory (xfdesktop musi uz bezet)
 for _ in 1 2 3 4 5 6 7 8 9 10; do
@@ -370,10 +375,10 @@ if [[ ! -d /run/archiso && ! -e $cfg/tour-done ]] && command -v luxos-tour >/dev
         /usr/bin/luxos-tour --first-run
         [[ -e $cfg/welcome-done ]] || /usr/bin/luxos-welcome
     ) &
-elif [[ ! -e $cfg/welcome-done ]]; then
+elif [[ ! -e $cfg/welcome-done && -x /usr/bin/luxos-welcome ]]; then
     # Plocha, lista a Dock uz bezi (cekani vyse na xfdesktop): kratka pauza staci - drive 3 s,
     # na live ISO se Uvitani ukazalo az ~10 s po startu X (luxos-session sam startuje az po ~6 s)
     (sleep 1; /usr/bin/luxos-welcome) &
-elif [[ ! -d /run/archiso ]]; then
+elif [[ ! -d /run/archiso && -x /usr/bin/luxos-whats-new ]]; then
     (sleep 3; /usr/bin/luxos-whats-new --auto) &
 fi

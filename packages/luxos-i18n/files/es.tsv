@@ -5548,3 +5548,32 @@ Menu bar without background	Barra de menús sin fondo
 Shadow under the menu bar	Sombra bajo la barra de menús
 Like the lock screen: only the wallpaper and white icons.	Como en la pantalla de bloqueo: solo el fondo de pantalla e iconos blancos.
 Darkens the top edge so white icons stay readable on light wallpapers.	Oscurece el borde superior para que los iconos blancos se lean bien sobre fondos claros.
+Rotation Lock	Bloqueo de rotación
+Hot Corners	Esquinas activas
+Show Desktop	Mostrar escritorio
+Start Screen Saver	Iniciar salvapantallas
+Top left corner	Esquina superior izquierda
+Top right corner	Esquina superior derecha
+Bottom left corner	Esquina inferior izquierda
+Bottom right corner	Esquina inferior derecha
+Move the pointer into a corner of the screen and keep it there for a moment.	Mueva el puntero a una esquina de la pantalla y déjelo allí un momento.
+Size of everything on the screen	Tamaño de todo en la pantalla
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Agranda el texto, los botones, las barras de título, la barra de menús y el Dock: útil en pantallas táctiles y pantallas pequeñas de alta resolución. Algunas apps deben volver a abrirse.
+Window buttons	Botones de ventana
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Botones de cerrar, minimizar y maximizar de la barra de título. «Automático» los agranda en pantallas táctiles.
+Wi-Fi adapter did not start	El adaptador Wi-Fi no se ha iniciado
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	El adaptador Wi-Fi se ha bloqueado tras reiniciar desde otro sistema. Apague el ordenador, mantenga pulsado el botón de encendido 30 segundos y vuelva a encenderlo. Reiniciar no es suficiente.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Métodos de entrada
+Vietnamese	Vietnamita
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	método de entrada
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Escriba en vietnamita con su teclado, por ejemplo Vieejt Nam → Việt Nam. Actívelo y desactívelo con Ctrl+Espacio o con el icono de la barra de menús.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	No instalado (paquetes fcitx5, fcitx5-gtk y fcitx5-bamboo).
+Typing style	Estilo de escritura
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex escribe los acentos con letras (aa → â, s → ´), VNI con números (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Su cuenta usa su propia configuración de fcitx5. Al activarlo, el vietnamita se añade a ella.
+Could not change the input method: %s	No se pudo cambiar el método de entrada: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	El vietnamita está activado. Cambie con Ctrl+Espacio. Las apps que ya estaban abiertas lo usarán tras reiniciarlas.
+Vietnamese is off.	El vietnamita está desactivado.
+Typing style: %s	Estilo de escritura: %s

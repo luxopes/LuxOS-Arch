@@ -1,0 +1,2 @@
+# LuxOS: demon gest Touchegg jen na zarizenich s dotykovou obrazovkou (luxos-touch spousti klienta v relaci)
+ACTION=="add", SUBSYSTEM=="input", ENV{ID_INPUT_TOUCHSCREEN}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="touchegg.service"

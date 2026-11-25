@@ -99,6 +99,8 @@ The full developer guide (repositories, signing, `lux` internals, project layout
 
 ## Contributing and support
 
+- How LuxOS is developed (AI-assisted, every change reviewed by the maintainer) and how to send
+  changes: [CONTRIBUTING.md](CONTRIBUTING.md).
 - Bugs and ideas: [GitHub issues](https://github.com/luxopes/LuxOS-Arch/issues), or the Feedback app
   in LuxOS.
 - Contact: Antonín Tomeček – <info@lux-ai.cz>

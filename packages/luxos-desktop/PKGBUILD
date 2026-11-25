@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=128
+pkgrel=129
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -43,6 +43,9 @@ depends=(
     gdk-pixbuf2 luxos-pixbuf-svg webp-pixbuf-loader
     # Graficky server a vstup
     xorg-server xorg-xrandr xorg-xinput xorg-xset xf86-input-libinput mesa
+    # Dotykove obrazovky (luxos-touch): klavesnice na obrazovce, gesta, otaceni podle senzoru
+    # unclutter: kurzor se pri dotyku schova (dotyk neni mys)
+    onboard touchegg iio-sensor-proxy unclutter
     # Xfce (jen potrebne casti); xfwm4 z [luxos]: umisteni oken a Alt+` (packages/xfwm4)
     xfce4-session 'xfwm4>=4.20.0-2.1' xfce4-panel xfdesktop xfce4-settings xfconf 'xfce4-notifyd>=0.9.7-3.3'
     # plugin horni listy luxos-bar (hodiny uprostred, neprusvitna lista pod okny)
@@ -60,6 +63,9 @@ depends=(
     luxos-terminal
     'xfce4-whiskermenu-plugin>=2.10.1-2.1' xfce4-genmon-plugin 'xfce4-pulseaudio-plugin>=0.5.1-1.1' xfce4-xkb-plugin
     xfce4-cpugraph-plugin  # graf vytizeni CPU (jde pridat do listy, ve vychozi liste neni)
+    # psani vietnamsky (Rozlozeni klavesnice > Metody zadavani, luxos-input-method); fcitx5 bezi jen u toho,
+    # kdo ho zapne (vlastni autostart v /etc/xdg/luxos), aplikace Qt potrebuji fcitx5-qt (volitelne)
+    fcitx5 fcitx5-gtk fcitx5-bamboo
     # xorg-xauth: luxos-xauth-wildcard (pristup k obrazovce i po zmene nazvu pocitace)
     xorg-setxkbmap xorg-xprop xorg-xauth libxi libxtst libxrandr
     # moduly v Pythonu presunute z luxos-desktop (1.1.0-102): luxos_wm_icon.py do luxos-i18n, luxos_calendar_ics.py
@@ -83,8 +89,8 @@ depends=(
     # startu tumblerd hlasi "Failed to load plugin"; dohromady ~5 MB (webkit2gtk-4.1 pro libgepub uz je nize)
     libgepub libgsf libopenraw
     # Dock, Hledani, prihlaseni
-    # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll a -custom-exit (packages/rofi)
-    plank 'rofi>=2.0.0-1.2' lightdm lightdm-gtk-greeter dconf yad
+    # rofi z [luxos]: Launchpad potrebuje -hover-no-scroll, -custom-exit a dotykove tahy/LUXOS_ROFI_KEEP_BELOW (packages/rofi)
+    plank 'rofi>=2.0.0-1.5' lightdm lightdm-gtk-greeter dconf yad
     # Zvuk, sit, bluetooth, tisk
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
     networkmanager network-manager-applet nm-connection-editor
@@ -118,7 +124,8 @@ depends=(
     lshw pciutils usbutils
 )
 # fprintd instaluje luxos-drivers jen pri nalezene ctecce (luxos-hwdetect)
-optdepends=('fprintd: log in with a fingerprint (Fingerprint settings)'
+optdepends=('fcitx5-qt: Vietnamese typing in Qt apps (fcitx5 input method)'
+            'fprintd: log in with a fingerprint (Fingerprint settings)'
             'thunderbird: default e-mail app (mailto: links open in it; installed with new systems)')
 
 build() {
@@ -409,12 +416,18 @@ package() {
 
     install -Dm644 "$f/dconf/user-profile" "$pkgdir/etc/dconf/profile/user"
     install -Dm644 "$f/dconf/10-luxos" "$pkgdir/etc/dconf/db/local.d/10-luxos"
+    # dotykove obrazovky: Onboard (dconf), gesta Touchegg (vychozi konfigurace), demon Touchegg pres udev
+    install -Dm644 "$f/dconf/20-luxos-touch" "$pkgdir/etc/dconf/db/local.d/20-luxos-touch"
+    install -Dm644 "$f/touch/touchegg.conf" "$pkgdir/usr/share/luxos/touch/touchegg.conf"
+    install -Dm644 "$f/udev/70-luxos-touch.rules" "$pkgdir/usr/lib/udev/rules.d/70-luxos-touch.rules"
 
     install -Dm644 "$f/lightdm/50-luxos.conf" "$pkgdir/etc/lightdm/lightdm.conf.d/50-luxos.conf"
     # Prechod po prihlaseni: posledni snimek prihlaseni zakryje skladani plochy (luxos-session-cover --login)
     install -Dm755 "$f/xinit/60-luxos-login-cover.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/60-luxos-login-cover.sh"
     # Firefox s XInput2: touchpad jako gesto posunu se setrvacnosti (MOZ_USE_XINPUT2=1 v relaci)
     install -Dm755 "$f/xinit/50-luxos-firefox-xinput2.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/50-luxos-firefox-xinput2.sh"
+    # psani vietnamsky (fcitx5): promenne GTK_IM_MODULE a spol. jen pro uzivatele, ktery metodu ma
+    install -Dm755 "$f/xinit/55-luxos-input-method.sh" "$pkgdir/etc/X11/xinit/xinitrc.d/55-luxos-input-method.sh"
     install -Dm755 libluxos-lock-fix.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-lock-fix.so"
     install -Dm755 libluxos-panel-menus.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-panel-menus.so"
     install -Dm755 libluxos-desktop-menu.so "$pkgdir/usr/lib/gtk-3.0/modules/libluxos-desktop-menu.so"

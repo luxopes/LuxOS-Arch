@@ -53,7 +53,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | Wallpaper, light/dark/auto, Dock, top bar, boot splash | Desktop & Dock (`luxos-settings`); `luxos-appearance light\|dark\|auto\|toggle\|wallpaper FILE\|bar-opacity N\|dock-opacity N` | |
 | Monitors, arrangement, main display, resolution, rotation, text size | Displays (`luxos-display-settings`); Screens in Control Center, `luxos-displays menu` (Super+P) | changes revert after 15 s unless kept |
 | Router admin page, network details, devices on the LAN, ping/DNS test | Router app (`luxos-router`), see [network-admin.md](network-admin.md) | router page opens only LAN addresses; never store router passwords |
-| Keyboard layouts | Keyboard Layouts (`luxos-keyboard`) | system-wide via `localectl`, needs polkit |
+| Keyboard layouts, Vietnamese | Keyboard Layouts (`luxos-keyboard`), `luxos-input-method` | system via `localectl` (polkit); Vietnamese per user |
 | Keyboard shortcuts | Keyboard Shortcuts (`luxos-shortcuts`) | xfconf channel `xfce4-keyboard-shortcuts` |
 | Battery, power mode, sleep, lid | Battery & Power (`luxos-power`) | |
 | Battery Saver / Data Saver | `luxos-powersaver on\|off\|toggle\|status`, `luxos-datasaver on\|off\|toggle\|status` | also Control Center tiles |
@@ -68,7 +68,7 @@ LuxOS computer. LuxOS is Arch-based, but several Arch habits are wrong here.
 | Encrypted folder | Safe (`luxos-safe`; `luxos-safe status`, `luxos-safe lock`) | user unlocks in the dialog |
 | Run untrusted software | Sandbox (`luxos-sandbox`) | see below |
 | Why a downloaded program does not start, restore deleted files | Lux Guard (`luxos-guard scan FILE`, `luxos-guard list`, `luxos-guard restore PATH`) | see below |
-| Back up to an external/network disk, restore an older version, restore everything on a new install | Backups (`luxos-backup status`, `luxos-backup list`, `luxos-backup restore [--from TIME] PATH`, `luxos-backup restore --all --source DISK`) | [backups.md](backups.md) |
+| Back up to an external/network disk, restore an older version, restore everything on a new install | Backups (`luxos-backup status\|list\|restore [--from TIME] PATH\|restore --all --source DISK`) | [backups.md](backups.md) |
 | LuxAI account | LuxAI Account (`luxos-account`), `luxos-account login\|status\|logout` | |
 | System info | About This Computer (`luxos-about`), `about os`, `fastfetch`, `cat /etc/os-release` | |
 | Processes, force quit | System Monitor (`luxos-monitor`, Super+Alt+Esc) | |

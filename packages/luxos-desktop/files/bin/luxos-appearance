@@ -21,6 +21,7 @@ BAR_STYLE=classic    # rounded = zaoblene spodni rohy listy
 BAR_CLOCK=right      # center = hodiny uprostred listy (plugin luxos-bar)
 BAR_TEXT=auto        # white = bile pismo listy i ve svetlem rezimu
 DOCK_OPACITY=
+WM_BUTTONS=auto      # tlacitka oken: auto (vetsi na dotyku) | standard | large | larger (Monitory > Meritko)
 APPEARANCE_AUTO=0
 LOGIN_WALLPAPER=1    # 0 = prihlasovaci obrazovka si necha vlastni tapetu
 DESKTOP_SCRIM=1      # 0 = bez ztmaveni velmi svetle tapety pod listou a widgety (plugin luxos-bar, luxos-widgets)
@@ -383,14 +384,37 @@ bar_layout() {
 # s dvojnasobnymi obrazky, jinak by byla lista okna polovicni a titulek oriznuty.
 # Zmenu meritka hlida luxos-hub (luxos-appearance wm-theme).
 themes_dir=${LUXOS_THEMES_DIR:-/usr/share/themes}
-wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light nebo WhiteSur-Light-xhdpi
-    local scale
+# Meritko obrazovky 125-150 % (Monitory > Meritko, ~/.config/luxos/display-scale): varianta -hdpi (1,5x),
+# vetsi tlacitka oken i pro dotyk.
+# Dotykova obrazovka (luxos-touch session zapise touch-state a zavola wm-theme): o stupen vetsi - tlacitka
+# zavrit/minimalizovat/maximalizovat musi jit trefit prstem (pri 100 % -hdpi, od 125 % -xhdpi).
+# Volba uzivatele WM_BUTTONS (Monitory > Meritko > Tlacitka oken, luxos-appearance wm-buttons) ma prednost:
+# standard = jen podle meritka (i na dotyku), large = aspon -hdpi, larger = -xhdpi; chybejici varianta -> mensi.
+wm_theme() {  # wm_theme WhiteSur-Light -> WhiteSur-Light, WhiteSur-Light-hdpi nebo WhiteSur-Light-xhdpi
+    local scale display=100 level=0 v
     scale=$(xfconf-query -c xsettings -p /Gdk/WindowScalingFactor 2>/dev/null)
-    if [[ $scale =~ ^[0-9]+$ ]] && (( scale >= 2 )) && [[ -r $themes_dir/$1-xhdpi/xfwm4/themerc ]]; then
-        echo "$1-xhdpi"
-    else
-        echo "$1"
+    [[ -r $state_dir/display-scale ]] && read -r display <"$state_dir/display-scale"
+    [[ $display =~ ^[0-9]+$ ]] || display=100
+    if [[ $scale =~ ^[0-9]+$ ]] && (( scale >= 2 )); then
+        level=2
+    elif (( display >= 125 && display < 175 )); then
+        level=1
     fi
+    case $WM_BUTTONS in
+        standard) ;;
+        large)    (( level < 1 )) && level=1 ;;
+        larger)   level=2 ;;
+        *)        if grep -qs 'touchscreen=1' "$state_dir/touch-state"; then
+                      (( display >= 125 )) && level=2 || { (( level < 1 )) && level=1; }
+                  fi ;;
+    esac
+    for v in "-xhdpi" "-hdpi" ""; do
+        case $v in -xhdpi) (( level >= 2 )) || continue ;; -hdpi) (( level >= 1 )) || continue ;; esac
+        if [[ -z $v || -r $themes_dir/$1$v/xfwm4/themerc ]]; then
+            echo "$1$v"
+            return
+        fi
+    done
 }
 
 # Restart panelu teto relace. pgrep -u vidi i panel jine relace stejneho uzivatele a panel, ktery se
@@ -518,7 +542,7 @@ apply() {
 usage() {  # usage [SYNTAXE] - napoveda/chyba pouziti; preklady az tady (bezne volani zustava rychle)
     . /usr/lib/luxos/i18n.sh 2>/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
     if [[ -n ${1-} ]]; then echo "$(T "Usage:") luxos-appearance $1" >&2; exit 2; fi
-    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE [OUTPUT]|greeter-sync|wm-theme|wallpaper-mode fill|fit|center|tile [OUTPUT]|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off|bar-cover wallpaper|clear|bar-shade N]"
+    echo "$(T "Usage:") luxos-appearance [dark|light|auto|toggle|status|mode|watch|wallpaper FILE [OUTPUT]|greeter-sync|wm-theme|wm-buttons [auto|standard|large|larger]|wallpaper-mode fill|fit|center|tile [OUTPUT]|bar-opacity N|dock-opacity N|bar-style classic|rounded|bar-clock right|center|bar-text auto|white|desktop-scrim on|off|bar-cover wallpaper|clear|bar-shade N]"
 }
 
 case ${1:-status} in
@@ -578,9 +602,19 @@ case ${1:-status} in
         done ;;
     reapply)    set_wallpaper "$(current)" 0 ;;
     # Po zmene meritka oken: jen tema ramecku (vlastni tema xfwm4 mimo WhiteSur zustava)
-    wm-theme)   wayland && exit 0
+    # Velikost tlacitek oken (Monitory): bez hodnoty vypise aktualni volbu
+    wm-buttons) if [[ -z ${2-} ]]; then echo "$WM_BUTTONS"; exit 0; fi
+                [[ $2 == @(auto|standard|large|larger) ]] || usage "wm-buttons auto|standard|large|larger"
+                WM_BUTTONS=$2
+                set_pref WM_BUTTONS "$2"
+                "$0" wm-theme ;;
+    # Na Waylandu kresli zahlavi luxwm: znovu nacte velikost tlacitek (WM_BUTTONS, touch-state) s motivem
+    wm-theme)   if wayland; then
+                    command -v luxwm-msg >/dev/null && luxwm-msg set-theme "$(current)" >/dev/null 2>&1
+                    exit 0
+                fi
                 cur=$(xfconf-query -c xfwm4 -p /general/theme 2>/dev/null)
-                if [[ -z $cur || $cur == WhiteSur-@(Light|Dark)?(-xhdpi) ]]; then
+                if [[ -z $cur || $cur == WhiteSur-@(Light|Dark)?(-hdpi|-xhdpi) ]]; then
                     m=$([[ $(current) == dark ]] && echo Dark || echo Light)
                     want=$(wm_theme "WhiteSur-$m")
                     [[ $cur == "$want" ]] || xfconf-query -c xfwm4 -p /general/theme -n -t string -s "$want"

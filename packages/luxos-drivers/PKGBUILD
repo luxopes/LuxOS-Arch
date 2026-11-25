@@ -10,6 +10,7 @@ license=(GPL-3.0-or-later)
 # hwdata: nazvy zarizeni (pci.ids); python-gobject/gtk3/polkit: aplikace Ovladace
 depends=(bash systemd hwdata python python-gobject gtk3 polkit luxos-i18n)
 optdepends=('lux: installs drivers through libalpm with progress'
+            'kmod: releases the Realtek RTL8723DE chip before a restart'
             'libnotify: notification server integration')
 makedepends=(python)
 install=luxos-drivers.install
@@ -21,6 +22,11 @@ package() {
     # Uspavani nepouzivane grafiky NVIDIA (hybridni notebooky: jednotky W z baterie)
     install -Dm644 "$startdir/luxos-nvidia-pm.conf" "$pkgdir/usr/lib/modprobe.d/luxos-nvidia-pm.conf"
     install -Dm644 "$startdir/80-luxos-nvidia-pm.rules" "$pkgdir/usr/lib/udev/rules.d/80-luxos-nvidia-pm.rules"
+    # Realtek RTL8723DE (notebooky HP): po restartu z jineho Linuxu se Wi-Fi nezapne - uvolneni cipu pred
+    # restartem a upozorneni po prihlaseni, co udelat
+    install -Dm755 "$startdir/luxos-wifi-quirk" "$pkgdir/usr/lib/luxos/drivers/luxos-wifi-quirk"
+    install -Dm755 "$startdir/luxos-wifi-quirk.shutdown" "$pkgdir/usr/lib/systemd/system-shutdown/luxos-wifi-quirk.shutdown"
+    install -Dm644 "$startdir/luxos-wifi-quirk.desktop" "$pkgdir/etc/xdg/autostart/luxos-wifi-quirk.desktop"
 
     # Aplikace Ovladace a pomocnik pro root (pkexec); kontrola po prihlaseni je v luxos-hub (luxos_drivers_hub.lsl)
     install -Dm755 "$startdir/luxos-drivers" "$pkgdir/usr/bin/luxos-drivers"

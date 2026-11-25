@@ -107,7 +107,13 @@ mkdir -p -m 700 "$run" || exit 1
 self=$0
 launchpad_apps
 
-base=(-theme-str "entry { placeholder: \"$(T "Search apps or ask LuxAI")\"; }")
+# Bez LuxAI (LuxOS Desktop na jine distribuci) jen hledani aplikaci
+if command -v luxos-luxai-rofi >/dev/null; then
+    combi="luxai:luxos-luxai-rofi,drun" placeholder=$(T "Search apps or ask LuxAI")
+else
+    combi="drun" placeholder=$(T "Search apps")
+fi
+base=(-theme-str "entry { placeholder: \"$placeholder\"; }")
 [[ $(luxos-appearance status) == light ]] && base+=(-theme-str '@import "luxos-light-colors"')
 labels=("$(T "Alphabetical")" "$(T "Recently used")" "$(T "Most used")" "$(T "Category")")
 for i in 0 1 2 3; do
@@ -118,8 +124,18 @@ done
 # (samostatne aplikace s kategorii Nastaveni dela launchpad_apps, viz LAUNCHPAD_APPS)
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}:X-LuxOS-Launchpad"
 
+# Dotykove zarizeni: klavesnice na obrazovce pro hledani (rofi ji sama nevyvola), Launchpad nad ni
+touch=()
+command -v luxos-touch >/dev/null && mapfile -t touch < <(luxos-touch rofi-begin 110 142 4)
+# LUXOS_ROFI_KEEP_BELOW (horni okraj klavesnice): klepnuti na ni rofi nezavre, klepnuti jinam ano
+for a in "${touch[@]}"; do
+    if [[ $a == LUXOS_ROFI_KEEP_BELOW=* ]]; then export "$a"; else base+=("$a"); fi
+done
+
 while :; do
     prepare_order
+    # tah prstem/mysi do strany prepne razeni (rofi z [luxos], luxos-swipe.patch): odkud zacit
+    for i in "${!modes[@]}"; do [[ ${modes[i]} == "$sort" ]] && export LUXOS_ROFI_SORT=$((i + 1)); done
     # -scroll-method 1: kolecko/touchpad posouva mrizku plynule po radcich (ne skok o celou stranu)
     # -hover-select -hover-no-scroll (rofi z [luxos]): zvyraznena je dlazdice pod mysi jako v macOS,
     # ale pohled se najetim nehne (puvodni rofi vyber vycentroval a mrizka sama ujizdela); kolecko
@@ -128,10 +144,12 @@ while :; do
     # -custom-resort (rofi z [luxos]): tlacitko razeni / Alt+1..4 spusti "luxos-launchpad --sort N"
     # a rofi preradi dlazdice na miste (okno se nezavre, hledany text zustane, vybrana prvni).
     # -custom-exit: zaloha pro starsi rofi bez -custom-resort - konec s kodem 10..13 a nove spusteni
-    rofi -show combi -modi combi -combi-modi "luxai:luxos-luxai-rofi,drun" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${base[@]}" \
+    # !MousePrimary: aplikace se spusti az pri puštěni (klepnuti), ne pri stisku - vodorovny tah pres
+    # dlazdice tak muze prepnout razeni (doleva dalsi, doprava predchozi) a nic nespusti
+    rofi -show combi -modi combi -combi-modi "$combi" -combi-hide-mode-prefix -theme luxos-launchpad -drun-exclude-categories 'X-XFCE-SettingsDialog,X-Xfce-Toplevel' "${base[@]}" \
         -theme-str "button-sort-$sort { background-color: @lux-accent; text-color: @lux-sel-fg; }" \
         -show-icons -drun-display-format '{name}' -matching fuzzy -sort -sorting-method fzf -scroll-method 1 \
-        -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry MousePrimary \
+        -hover-select -hover-no-scroll -me-select-entry '' -me-accept-entry '!MousePrimary' \
         -cache-dir "$run" -max-history-size 100000 -custom-exit -custom-resort "bash ${self@Q} --sort"
     rc=$?
     if (( rc >= 10 && rc <= 13 )); then
@@ -141,6 +159,7 @@ while :; do
     fi
     break
 done
+command -v luxos-touch >/dev/null && luxos-touch rofi-end
 # razeni mohlo byt zmeneno v okne (--sort)
 [[ -r $conf ]] && read -r sort <"$conf"
 # spustena aplikace -> pocty a pripravene poradi (az po zavreni okna, nic nezdrzi)

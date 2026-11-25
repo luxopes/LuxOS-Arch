@@ -1,0 +1,46 @@
+# Maintainer: LuxOS Team
+# Touchegg (gesta na dotykove obrazovce, luxos-touch) z Archu + opravy LuxOS (luxos-touch-gestures.patch):
+#   - tah vice prsty uz neni "sevreni": druh gesta se urcoval pri prekroceni prahu (2 % obrazovky), kdyz se
+#     pohyby prstu zpracovavaji jeden po druhem - prst, ktery se jeste nepohnul (posun pod 1 mm se navic
+#     zaokrouhlil na 0), udelal z tahu PINCH a prepnuti plochy, Launchpad ani plocha nefungovaly (tester na
+#     ASUS ROG Flow Z13); ted se ceka, az se pohne kazdy prst (1/4 prahu), nejdele do 3x prahu
+#   - souměrne sevreni se spusti: prumerny posun prstu je ~0, proto se gesto nikdy nezacalo; nove i podle
+#     zmeny rozevreni prstu kolem stredu (jen kdyz vyrazne prevazuje nad spolecnym posunem)
+#   - konec gesta s procentem posledni zmeny: pocital se az se zbyvajicim prstem, sevreni na 95 % tak
+#     skoncilo pod prahem akce a okno se nezavrelo
+# Overeno ve VM s virtio-multitouch (scripts/vmctl.py swipe, dalsi prsty ve scratch skriptech): 3/4 prsty
+# doleva/doprava/nahoru/dolu, 4 prsty nahoru, sevreni 3 prsty (zavreni okna), klepnuti 2 prsty.
+# Repozitar [luxos] je v /etc/lux/lux.conf pred [extra], takze ma tento balik prednost; pri nove
+# verzi v Archu zvysit pkgver/pkgrel podle Archu, LuxOS pkgrel nechat X.1.
+# Puvodni PKGBUILD Archu (udrzovatel Robin Candau) je v PKGBUILD.arch.
+
+pkgname=touchegg
+pkgver=2.0.18
+pkgrel=1.1
+pkgdesc="Linux multi-touch gesture recognizer (LuxOS: reliable touchscreen swipes and pinches)"
+url="https://github.com/JoseExposito/touchegg"
+arch=('x86_64')
+license=('GPL-3.0-or-later')
+depends=('libinput' 'cairo' 'systemd-libs' 'libx11' 'libxi' 'libxrandr' 'libxtst' 'pugixml' 'gtk3' 'glib2')
+makedepends=('cmake')
+source=("${url}/archive/${pkgver}/${pkgname}-${pkgver}.tar.gz"
+        'luxos-touch-gestures.patch')
+sha512sums=('79c806dc21305a6a1ebe5ad8db3c7b632876ca24627cef02e7cd89b0ea4ab34ddd9ccc9f631bba34f19fa25508b1193307f2a79fbc875e52f29be2356c84e4ec'
+            '579a1adfcd37bfea5983d679fd0834855ed59da0650ed719b3dbc6ded3bae1044719951f5adcac57db78526c96bbb391c0bfe821ba792f0eaa7de49c17df6a54')
+
+prepare() {
+	patch -d "${pkgname}-${pkgver}" -Np1 -i "${srcdir}/luxos-touch-gestures.patch"
+}
+
+build() {
+	cmake -B build -S "${pkgname}-${pkgver}" \
+	    -DCMAKE_BUILD_TYPE='None' \
+	    -DCMAKE_INSTALL_PREFIX='/usr' \
+	    -DCMAKE_POLICY_VERSION_MINIMUM='3.5' \
+	    -Wno-dev
+	cmake --build build
+}
+
+package() {
+	DESTDIR="${pkgdir}" cmake --install build
+}

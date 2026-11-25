@@ -48,8 +48,21 @@ Revert). Confirmed settings are saved to `~/.config/luxos/displays.json`. They a
 login (`luxos-session`) and whenever a monitor is connected (`luxos-menubar` runs
 `luxos-displays auto`).
 
-- **Text Size**: Smaller / Default / Large / Larger / Largest. Sets Xft DPI in the xfconf channel
-  `xsettings`, and apps pick it up immediately.
+- **Scale**: 100 % (default), 125 %, 150 %, 175 % or 200 % – the size of everything on the screen,
+  like the display scale in Windows; useful on touch screens and small high-resolution displays.
+  100–150 % make text bigger (Xft DPI 96/120/144) and enlarge the menu bar, the Dock icons, the
+  cursor and the window title bars (WhiteSur `-hdpi` frames, easier to hit with a finger); 175 % and
+  200 % switch GTK to 2× (`Gdk/WindowScalingFactor`) with `-xhdpi` frames. Your own menu bar height
+  and Dock size are kept relative to the scale. Stored in `~/.config/luxos/display-scale`; command
+  `python3 /usr/lib/luxos/python/luxos_displays.py scale-set 150`. Some apps need to be reopened.
+- **Window buttons**: Automatic (default) / Standard / Large / Larger – the size of the close, minimize
+  and maximize buttons (and the title bar) on their own, without changing anything else. Automatic
+  follows the scale and makes them one size bigger on a touch screen; Standard follows only the scale
+  (also on a touch screen); Large is at least the `-hdpi` frame (1.5×), Larger the `-xhdpi` frame (2×).
+  Stored as `WM_BUTTONS` in `~/.config/luxos/appearance.conf`; command
+  `luxos-appearance wm-buttons auto|standard|large|larger` (without a value it prints the current one).
+- **Text Size**: Smaller / Default / Large / Larger / Largest, relative to the scale. Sets Xft DPI in
+  the xfconf channel `xsettings`, and apps pick it up immediately.
 - **Multiple Displays › Use as**:
 
   | Choice | Command |

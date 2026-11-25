@@ -5548,3 +5548,32 @@ Menu bar without background	Menyrad utan bakgrund
 Shadow under the menu bar	Skugga under menyraden
 Like the lock screen: only the wallpaper and white icons.	Som på låsskärmen: bara bakgrundsbilden och vita ikoner.
 Darkens the top edge so white icons stay readable on light wallpapers.	Gör överkanten mörkare så att vita ikoner syns även på ljusa bakgrundsbilder.
+Rotation Lock	Rotationslås
+Hot Corners	Aktiva hörn
+Show Desktop	Visa skrivbordet
+Start Screen Saver	Starta skärmsläckare
+Top left corner	Övre vänstra hörnet
+Top right corner	Övre högra hörnet
+Bottom left corner	Nedre vänstra hörnet
+Bottom right corner	Nedre högra hörnet
+Move the pointer into a corner of the screen and keep it there for a moment.	Flytta pekaren till ett hörn av skärmen och håll den där en kort stund.
+Size of everything on the screen	Storlek på allt på skärmen
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Gör text, knappar, namnlister, menyraden och Dock större – bra på pekskärmar och små skärmar med hög upplösning. Vissa appar behöver öppnas igen.
+Window buttons	Fönsterknappar
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Knapparna stäng, minimera och maximera i namnlisten. ”Automatiskt” gör dem större på pekskärmar.
+Wi-Fi adapter did not start	Wi-Fi-adaptern startade inte
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Wi-Fi-adaptern hängde sig efter en omstart från ett annat system. Stäng av datorn, håll strömknappen intryckt i 30 sekunder och starta den sedan igen. Det räcker inte att starta om.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Inmatningsmetoder
+Vietnamese	Vietnamesiska
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	inmatningsmetod
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Skriv vietnamesiska på ditt tangentbord, till exempel Vieejt Nam → Việt Nam. Slå på och av med Ctrl+Blanksteg eller ikonen i menyraden.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Inte installerat (paketen fcitx5, fcitx5-gtk och fcitx5-bamboo).
+Typing style	Skrivsätt
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex skriver accenter med bokstäver (aa → â, s → ´), VNI med siffror (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Ditt konto använder egna fcitx5-inställningar. När du slår på läggs vietnamesiska till i dem.
+Could not change the input method: %s	Det gick inte att ändra inmatningsmetoden: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamesiska är på. Växla med Ctrl+Blanksteg. Appar som redan var öppna börjar använda det när du startar om dem.
+Vietnamese is off.	Vietnamesiska är av.
+Typing style: %s	Skrivsätt: %s

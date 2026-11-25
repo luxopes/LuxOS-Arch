@@ -5548,3 +5548,32 @@ Menu bar without background	Menüleiste ohne Hintergrund
 Shadow under the menu bar	Schatten unter der Menüleiste
 Like the lock screen: only the wallpaper and white icons.	Wie auf dem Sperrbildschirm: nur Hintergrundbild und weiße Symbole.
 Darkens the top edge so white icons stay readable on light wallpapers.	Dunkelt den oberen Rand ab, damit weiße Symbole auch auf hellen Hintergründen lesbar bleiben.
+Rotation Lock	Rotationssperre
+Hot Corners	Aktive Ecken
+Show Desktop	Schreibtisch anzeigen
+Start Screen Saver	Bildschirmschoner starten
+Top left corner	Ecke oben links
+Top right corner	Ecke oben rechts
+Bottom left corner	Ecke unten links
+Bottom right corner	Ecke unten rechts
+Move the pointer into a corner of the screen and keep it there for a moment.	Bewegen Sie den Zeiger in eine Bildschirmecke und lassen Sie ihn kurz dort.
+Size of everything on the screen	Größe von allem auf dem Bildschirm
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Vergrößert Text, Schaltflächen, Fenstertitelleisten, die Menüleiste und das Dock – nützlich für Touchscreens und kleine Displays mit hoher Auflösung. Manche Apps müssen neu geöffnet werden.
+Window buttons	Fensterschaltflächen
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Schaltflächen zum Schließen, Minimieren und Maximieren in der Titelleiste. „Automatisch“ macht sie auf Touchscreens größer.
+Wi-Fi adapter did not start	WLAN-Adapter wurde nicht gestartet
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Der WLAN-Adapter hängt nach einem Neustart aus einem anderen System. Fahren Sie den Computer herunter, halten Sie den Ein-/Ausschalter 30 Sekunden lang gedrückt und schalten Sie ihn dann wieder ein. Ein Neustart reicht nicht.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Eingabemethoden
+Vietnamese	Vietnamesisch
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	Eingabemethode
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Schreiben Sie Vietnamesisch auf Ihrer Tastatur, zum Beispiel Vieejt Nam → Việt Nam. Ein- und ausschalten mit Strg+Leertaste oder über das Symbol in der Menüleiste.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Nicht installiert (Pakete fcitx5, fcitx5-gtk und fcitx5-bamboo).
+Typing style	Eingabeart
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex setzt Akzente mit Buchstaben (aa → â, s → ´), VNI mit Ziffern (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Ihr Konto verwendet eigene fcitx5-Einstellungen. Beim Einschalten wird Vietnamesisch dort hinzugefügt.
+Could not change the input method: %s	Die Eingabemethode konnte nicht geändert werden: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamesisch ist eingeschaltet. Wechseln mit Strg+Leertaste. Bereits geöffnete Apps verwenden es nach einem Neustart.
+Vietnamese is off.	Vietnamesisch ist ausgeschaltet.
+Typing style: %s	Eingabeart: %s

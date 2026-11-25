@@ -1,0 +1,39 @@
+# LuxOS - klavesnice na obrazovce Onboard (dotykova zarizeni, luxos-touch): sama se ukaze pri psani do
+# textoveho pole, kdyz neni pripojena fyzicka klavesnice; plovouci tlacitko ji ukaze kdykoli; ukotvena dole,
+# okna se zmensi nad ni. Spousti ji jen luxos-touch na zarizenich s dotykovou obrazovkou.
+
+[org/onboard]
+layout='Compact'
+theme='Nightshade'
+system-theme-tracking-enabled=false
+start-minimized=true
+show-status-icon=false
+show-tooltips=false
+
+[org/onboard/auto-show]
+enabled=true
+# Ukazat se i kdyz system vidi klavesnici: u konvertibilnich notebooku zustava vestavena klavesnice pripojena
+# i ve slozenem rezimu (bez spinace "tablet mode" by se klavesnice sama neukazala nikdy). Psani na fyzicke
+# klavesnici klavesnici na obrazovce hned schova (hide-on-key-press).
+keyboard-device-detection-enabled=false
+hide-on-key-press=true
+# Ani podle spinace "tablet mode": odnimatelne tablety (ASUS ROG Flow Z13) s pripojenou klavesnici hlasi rezim
+# notebooku a Onboard se pak neukazal vubec - ani plovouci tlacitko (hlaseni testera)
+tablet-mode-detection-enabled=false
+
+[org/onboard/window]
+docking-enabled=true
+docking-shrink-workarea=true
+force-to-top=true
+
+[org/onboard/window/landscape]
+dock-expand=true
+
+[org/onboard/window/portrait]
+dock-expand=true
+
+[org/onboard/icon-palette]
+in-use=true
+
+[org/onboard/keyboard]
+touch-feedback-enabled=true

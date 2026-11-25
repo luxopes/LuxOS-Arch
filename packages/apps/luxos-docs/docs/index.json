@@ -8,7 +8,7 @@
         {
           "path": "luxos/overview.md",
           "title": "LuxOS overview",
-          "summary": "What LuxOS is, version 1.0.4 \"Sirius\" and codenames, release history, what differs from other distributions and where each component is documented.",
+          "summary": "What LuxOS is, version 1.0.5 \"Sirius\" and codenames, release history, what differs from other distributions and where each component is documented.",
           "keywords": [
             "LuxOS",
             "overview",
@@ -500,11 +500,12 @@
         {
           "path": "luxos/desktop.md",
           "title": "The LuxOS Desktop",
-          "summary": "Top bar, Control Center, Dock, Launchpad, Search, notifications, login screen, login transition, luxos-hub, multiple monitors and touchpad; appearance and wallpapers are in appearance.md.",
+          "summary": "Top bar, Control Center, Dock, hot corners, Launchpad, Search, notifications, login screen, login transition, luxos-hub, multiple monitors and touchpad; appearance and wallpapers are in appearance.md.",
           "keywords": [
             "desktop",
             "top bar",
             "menu bar",
+            "hot corners",
             "control center",
             "dock",
             "plank",
@@ -629,7 +630,7 @@
         {
           "path": "luxos/keyboard.md",
           "title": "Keyboard Layouts and Keyboard Shortcuts",
-          "summary": "Keyboard Layouts app (system-wide layouts, switching keys, localectl) and Keyboard Shortcuts app with the full list of default LuxOS shortcuts.",
+          "summary": "Keyboard Layouts app (system-wide layouts, switching keys, localectl), Vietnamese typing (fcitx5 + Bamboo, Telex/VNI, luxos-input-method) and Keyboard Shortcuts app with the full list of default LuxOS shortcuts.",
           "keywords": [
             "keyboard",
             "layout",
@@ -649,7 +650,54 @@
             "xfce4-keyboard-shortcuts",
             "default shortcuts",
             "screenshot shortcut",
-            "lock screen shortcut"
+            "lock screen shortcut",
+            "vietnamese",
+            "telex",
+            "vni",
+            "input method",
+            "fcitx5",
+            "bamboo",
+            "luxos-input-method"
+          ]
+        },
+        {
+          "path": "luxos/hot-corners.md",
+          "title": "Hot corners",
+          "summary": "Hot corners: moving the pointer into a screen corner opens Launchpad (top left) or shows the desktop (bottom right); set each corner in Desktop & Dock › Hot Corners or ~/.config/luxos/hotcorners.",
+          "keywords": [
+            "hot corners",
+            "hot corner",
+            "screen corner",
+            "corner",
+            "active corners",
+            "aktivni rohy"
+          ]
+        },
+        {
+          "path": "luxos/touch.md",
+          "title": "Touch screens and tablets",
+          "summary": "Touch screens, tablets and 2-in-1 laptops without a keyboard: on-screen keyboard (also at sign-in and on the lock screen), gestures, screen rotation and rotation lock, luxos-touch commands and troubleshooting.",
+          "keywords": [
+            "touch",
+            "touchscreen",
+            "touch screen",
+            "tablet",
+            "2-in-1",
+            "convertible",
+            "on-screen keyboard",
+            "onboard",
+            "virtual keyboard",
+            "osk",
+            "gestures",
+            "touchegg",
+            "three fingers",
+            "right click",
+            "rotation",
+            "auto-rotate",
+            "rotation lock",
+            "iio-sensor-proxy",
+            "luxos-touch",
+            "xinput map-to-output"
           ]
         },
         {

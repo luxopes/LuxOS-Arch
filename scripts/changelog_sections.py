@@ -15,6 +15,30 @@ EN_DIR = os.path.join(ROOT, "site", "content", "en", "changes")
 EN_INTRO = "_intro.md"
 UNRELEASED_CS = "Připravuje se"
 UNRELEASED_EN = "Coming soon"
+# Posledni verze ve stable (zvedne se az pri vydani do stable). Vydani v CHANGELOG.md s vyssi verzi
+# (pripravene, zatim jen ve staging) patri na stranku „Připravuje se“, ne mezi vydane verze.
+STABLE = os.path.join(ROOT, "site", "stable.json")
+
+
+def stable_version():
+    """Verze ve stable ze site/stable.json, nebo None (pak se za vydane berou vsechny verze)."""
+    import json
+    try:
+        with open(STABLE, encoding="utf-8") as f:
+            return json.load(f)["version"]
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def _vtuple(v):
+    return tuple(int(x) for x in v.split("."))
+
+
+def is_upcoming(heading):
+    """Vydani pripravene, ale zatim jen ve staging (verze vyssi nez stable)."""
+    ver, _date = version_date(heading)
+    stable = stable_version()
+    return bool(ver and stable and _vtuple(ver) > _vtuple(stable))
 
 
 def split_sections(text):
@@ -65,7 +89,7 @@ def en_text(unreleased=False):
     with open(os.path.join(EN_DIR, EN_INTRO), encoding="utf-8") as f:
         parts = [f.read().rstrip("\n")]
     for heading, _text in cs_releases():
-        if heading.startswith(UNRELEASED_CS) and not unreleased:
+        if (heading.startswith(UNRELEASED_CS) or is_upcoming(heading)) and not unreleased:
             continue
         with open(os.path.join(EN_DIR, slug(heading) + ".md"), encoding="utf-8") as f:
             parts.append(f.read().rstrip("\n"))
@@ -76,17 +100,26 @@ def cs_split():
     """-> (cesky CHANGELOG.md bez „Připravuje se“, sekce „Připravuje se“ nebo "") - vydani a staging zvlast."""
     with open(CHANGELOG, encoding="utf-8") as f:
         intro, sections = split_sections(f.read())
-    rest = "".join(t for h, t in sections if not h.startswith(UNRELEASED_CS))
+    rest = "".join(t for h, t in sections if not h.startswith(UNRELEASED_CS) and not is_upcoming(h))
     soon = "".join(t for h, t in sections if h.startswith(UNRELEASED_CS))
+    # pripravena vydani (jen ve staging) az za obecnou sekci „Připravuje se“
+    soon += "".join(t for h, t in sections if is_upcoming(h))
     return intro + rest, soon
 
 
 def en_unreleased():
-    """Anglicka sekce „Coming soon“ (unreleased.md) nebo "" kdyz v CHANGELOG.md neni."""
-    if not any(h.startswith(UNRELEASED_CS) for h, _t in cs_releases()):
-        return ""
-    with open(os.path.join(EN_DIR, "unreleased.md"), encoding="utf-8") as f:
-        return f.read()
+    """Anglicka stranka „Coming soon“: unreleased.md a pripravena vydani (jen ve staging), nebo ""."""
+    parts = []
+    for heading, _t in cs_releases():
+        if heading.startswith(UNRELEASED_CS):
+            name = "unreleased.md"
+        elif is_upcoming(heading):
+            name = slug(heading) + ".md"
+        else:
+            continue
+        with open(os.path.join(EN_DIR, name), encoding="utf-8") as f:
+            parts.append(f.read().rstrip("\n"))
+    return "\n\n".join(parts) + "\n" if parts else ""
 
 
 def verify():

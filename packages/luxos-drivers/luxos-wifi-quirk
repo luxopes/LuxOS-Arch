@@ -1,0 +1,75 @@
+#!/bin/bash
+# LuxOS - Realtek RTL8723DE (Wi-Fi + Bluetooth v jednom cipu, casto notebooky HP)
+#
+# Po restartu (ne po uplnem vypnuti) z Linuxu, ve kterem bezel ovladac Bluetooth (btusb), zustane cip
+# ve stavu, ze se Wi-Fi nezapne: rtw88_8723de "failed to poll offset=0x5 mask=0x1 value=0x0",
+# "mac power on failed", probe ... failed with error -16 - zadne Wi-Fi v systemu ani v horni liste.
+# Pomuze jen uplne vypnuti (pripadne podrzet tlacitko napajeni ~30 s). Hlaseni na linux-wireless
+# "[BUG] rtw88_8723de: Wi-Fi and Bluetooth fail after warm reboot" (2026-07, HP 15-da, 103c:8319;
+# https://ratatoskr.run/lkml/2026/07/17333611/t): uvolneni btusb (a rtw88_8723de) pred restartem chybe
+# predejde, reset PCI ani rtw88_pci disable_aspm=1 nepomohly. Overeno i na HP 15-rb (LuxOS 1.0.5).
+#
+#   luxos-wifi-quirk shutdown   pred restartem/vypnutim uvolnit btusb a rtw88_8723de (jen s timto cipem;
+#                               /usr/lib/systemd/system-shutdown/luxos-wifi-quirk.shutdown)
+#   luxos-wifi-quirk check      vypise PCI adresu zaseknuteho cipu (ovladac nacteny, karta bez ovladace), kod 0;
+#                               jinak kod 1
+#   luxos-wifi-quirk notify     po prihlaseni (xdg autostart): chvili pocka na start ovladace a pri zaseknutem
+#                               cipu ukaze upozorneni, co udelat
+#
+#   LUXOS_SYSFS: koren /sys (testy), LUXOS_WIFI_QUIRK_WAIT: jak dlouho cekat na ovladac (s, vychozi 40)
+set -uo pipefail
+# shellcheck source=/dev/null
+[[ -r /usr/lib/luxos/i18n.sh ]] && . /usr/lib/luxos/i18n.sh
+# shellcheck disable=SC2059
+declare -F T >/dev/null || T() { local f=$1; shift; printf -- "$f" "$@"; }
+
+SYS=${LUXOS_SYSFS:-/sys}
+
+# PCI adresy karet 10ec:d723
+devices() {
+    local d
+    for d in "$SYS"/bus/pci/devices/*; do
+        [[ $(cat "$d/vendor" 2>/dev/null) == 0x10ec && $(cat "$d/device" 2>/dev/null) == 0xd723 ]] && echo "${d##*/}"
+    done
+}
+
+# Zaseknuty: ovladac je v jadre nacteny (probe probehl), ale karta zadny nema
+stuck() {
+    local a found=1
+    [[ -d $SYS/module/rtw88_8723de ]] || return 1
+    for a in $(devices); do
+        [[ -L $SYS/bus/pci/devices/$a/driver ]] && continue   # sysfs: odkaz na ovladac
+        echo "$a"
+        found=0
+    done
+    return $found
+}
+
+case ${1-} in
+    shutdown)
+        [[ -n $(devices) ]] || exit 0
+        # nejdriv Bluetooth (ten cip zasekne), pak Wi-Fi; chvile, nez cip dokonci vypnuti
+        modprobe -r btusb 2>/dev/null
+        modprobe -r rtw88_8723de 2>/dev/null
+        sleep 2
+        exit 0 ;;
+    check)
+        stuck ;;
+    notify)
+        [[ -n $(devices) ]] || exit 0
+        wait=${LUXOS_WIFI_QUIRK_WAIT:-40}
+        # probe trva i nekolik sekund po startu (v hlaseni ~8 s): kartu s ovladacem hned pustit
+        for ((i = 0; i < wait; i += 2)); do
+            stuck >/dev/null || { [[ -d $SYS/module/rtw88_8723de ]] && exit 0; }
+            sleep 2
+        done
+        stuck >/dev/null || exit 0
+        notify-send -a "$(T "Wi-Fi")" -i network-wireless-disabled-symbolic -u critical \
+            "$(T "Wi-Fi adapter did not start")" \
+            "$(T "The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.")" \
+            2>/dev/null
+        exit 0 ;;
+    *)
+        echo "usage: luxos-wifi-quirk shutdown|check|notify" >&2
+        exit 2 ;;
+esac

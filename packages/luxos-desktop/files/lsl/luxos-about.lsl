@@ -272,6 +272,27 @@ function button(text, handler):
     return b
 end
 
+# LuxOS, nebo LuxOS Desktop na jine distribuci (Fedora, Arch...): tam nazev a logo distribuce a verze
+# desktopu, bez odkazu a aktualizace LuxOS (system aktualizuje jeho vlastni spravce baliku)
+function identity(rel):
+    who = {"standalone": rel.get("ID", "") != "luxos", "name": "LuxOS", "icon": "luxos-app",
+           "third": i18n.T("Rolling release · based on Arch Linux")}
+    if who["standalone"]:
+        who["name"] = rel.get("NAME", "Linux")
+        if rel.get("LOGO", "") != "":
+            who["icon"] = rel["LOGO"]
+        end
+        desk = ""
+        for line in glib.read_text(sys_path("/usr/lib/lux-desktop/version")).split("\n"):
+            if line.startswith("VERSION="):
+                desk = line[8:]
+            end
+        end
+        who["third"] = ("LuxOS Desktop " + desk).strip()
+    end
+    return who
+end
+
 function about():
     rel = os_release()
     version = rel.get("VERSION", "")
@@ -282,6 +303,11 @@ function about():
     if rel.get("BUILD_ID", "") != "":
         sub = sub + " · " + i18n.TF("build %s", [rel["BUILD_ID"]])
     end
+    who = identity(rel)
+    standalone = who["standalone"]
+    name = who["name"]
+    icon = who["icon"]
+    third = who["third"]
 
     call glib.set_prgname("luxos-about")
     call gtk.init()
@@ -298,15 +324,15 @@ function about():
     call gtk.widget_set_margins(page, 24, 24, 20, 20)
 
     head = gtk.box_new(gtk.HORIZONTAL, 18)
-    logo = gtk.image_new_from_icon_name("luxos-app", gtk.ICON_DIALOG)
+    logo = gtk.image_new_from_icon_name(icon, gtk.ICON_DIALOG)
     call gtk.image_set_pixel_size(logo, 88)
     call gtk.widget_set_valign(logo, gtk.ALIGN_CENTER)
     call gtk.box_pack_start(head, logo, False, False, 0)
     names = gtk.box_new(gtk.VERTICAL, 2)
     call gtk.widget_set_valign(names, gtk.ALIGN_CENTER)
-    call gtk.box_pack_start(names, label("LuxOS", "about-name"), False, False, 0)
+    call gtk.box_pack_start(names, label(name, "about-name"), False, False, 0)
     call gtk.box_pack_start(names, label(sub, "dim"), False, False, 0)
-    call gtk.box_pack_start(names, label(i18n.T("Rolling release · based on Arch Linux"), "dim"), False, False, 0)
+    call gtk.box_pack_start(names, label(third, "dim"), False, False, 0)
     call gtk.box_pack_start(head, names, True, True, 0)
     call gtk.box_pack_start(page, head, False, False, 0)
 
@@ -342,7 +368,9 @@ function about():
     call gtk.box_pack_start(links, button(i18n.T("What's New"), on_whats_new), True, True, 0)
     call gtk.box_pack_start(links, button(i18n.T("LuxOS Tour"), on_tour), True, True, 0)
     call gtk.box_pack_start(links, button(i18n.T("Send Feedback…"), on_feedback), True, True, 0)
-    call gtk.box_pack_start(page, links, False, False, 0)
+    if not standalone:
+        call gtk.box_pack_start(page, links, False, False, 0)
+    end
 
     bottom = gtk.box_new(gtk.HORIZONTAL, 8)
     call gtk.widget_set_margins(bottom, 0, 0, 12, 0)
@@ -350,7 +378,9 @@ function about():
     update = button(i18n.T("Software Update"), on_update)
     call gtk.widget_add_class(update, "suggested-action")
     call gtk.box_pack_end(bottom, close, False, False, 0)
-    call gtk.box_pack_end(bottom, update, False, False, 0)
+    if not standalone:
+        call gtk.box_pack_end(bottom, update, False, False, 0)
+    end
     call gtk.box_pack_start(page, bottom, False, False, 0)
 
     call gtk.container_add(window, page)
@@ -369,6 +399,16 @@ function print_info():
     return 0
 end
 
+# testy: nazev, treti radek, ikona a zda jsou odkazy LuxOS (1/0), po radcich
+if arg(1) == "--identity":
+    who = identity(os_release())
+    links = "1"
+    if who["standalone"]:
+        links = "0"
+    end
+    call sys.out(who["name"] + "\n" + who["third"] + "\n" + who["icon"] + "\n" + links + "\n")
+    call exit(0)
+end
 if arg(1) == "--print":
     call exit(print_info())
 end

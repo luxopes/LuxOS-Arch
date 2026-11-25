@@ -56,6 +56,7 @@ load luxos_safe_hub as safe
 load luxos_timechange as timechange
 load luxos_shot as shot
 load luxos_emoji as emoji
+load luxos_hotcorners as hotcorners
 load luxos_audio_hub as audio
 load luxos_gpu_hub as gpu
 
@@ -808,6 +809,15 @@ function window_cal():
     return ok
 end
 
+function hotcorner_control_center():
+    try:
+        call cc.toggle()
+    else:
+        call log("cc: " + String(last_error()))
+    end
+    return 0
+end
+
 # Na Waylandu az z necinne smycky. Zdroj signalu ma vyssi prioritu nez udalosti GDK: GLib v takovem kole
 # preskoci kontrolu zdroje GDK, ktery ma rozectene spojeni (wl_display_prepare_read), a kazde blokujici cekani
 # na kompozitor v obsluze (gtk_window_present ceka na aktivacni token, roundtrip) pak navzdy visi ve
@@ -1008,6 +1018,16 @@ function main_hub():
             call watch_wallpaper_x11()
         else:
             call log("wallpaper: " + String(last_error()))
+        end
+    end
+
+    # Horke rohy (Nastaveni > Plocha a Dock): vychozi jen levy horni Launchpad. Na Waylandu je hlida luxwm
+    # (klient polohu ukazatele mimo sva okna nezna), stejny soubor ~/.config/luxos/hotcorners.
+    if not wayland():
+        try:
+            call hotcorners.start(hotcorner_control_center)
+        else:
+            call log("hot corners: " + String(last_error()))
         end
     end
 

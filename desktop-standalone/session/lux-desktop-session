@@ -1,0 +1,71 @@
+#!/bin/bash
+# LuxOS Desktop - relace pro jine distribuce (Fedora, Arch...). Spousti ji polozka "LuxOS Desktop"
+# na prihlasovaci obrazovce (/usr/share/xsessions/lux-desktop.desktop).
+#
+# Vse plati jen pro tuto relaci: vychozi nastaveni LuxOS (/etc/xdg/luxos) a programy LuxOS maji
+# prednost pres promenne prostredi, ne pres /etc/profile.d - GNOME, KDE ani bezne Xfce stejneho
+# uzivatele se nemeni.
+#
+# Prvni prihlaseni: kdyz uz ma uzivatel vlastni nastaveni Xfce (horni lista, okna, klavesy...),
+# zkopiruje se do ~/.config/xfce4.before-luxos-desktop a kanaly, pro ktere ma LuxOS vlastni vychozi
+# nastaveni, se odlozi, aby se LuxOS Desktop ukazal tak, jak ma. Obnoveni: viz README (lux-desktop).
+PRIV=/usr/lib/lux-desktop
+cfg_home=${XDG_CONFIG_HOME:-$HOME/.config}
+state=$cfg_home/luxos
+mkdir -p "$state"
+
+export XDG_CONFIG_DIRS="/etc/xdg/luxos:${XDG_CONFIG_DIRS:-/etc/xdg}"
+export XDG_DATA_DIRS="/usr/lib/luxos/panel/share:/usr/share/luxos/xdg:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+# Aplikace z Flathubu v Launchpadu
+for d in "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share" /var/lib/flatpak/exports/share; do
+    case ":$XDG_DATA_DIRS:" in *":$d:"*) ;; *) XDG_DATA_DIRS="$XDG_DATA_DIRS:$d" ;; esac
+done
+# soukroma rofi (Launchpad) a programy LuxOS nahrazujici casti Xfce (napr. xfdesktop-settings)
+export PATH="$PRIV/bin:/usr/lib/luxos/override-bin:$PATH"
+export XDG_CURRENT_DESKTOP=XFCE XDG_SESSION_DESKTOP=lux-desktop DESKTOP_SESSION=lux-desktop
+export LUXOS_STANDALONE=1
+# Firefox: touchpad jako plynule posouvani (jako v LuxOS)
+[ -n "${MOZ_USE_XINPUT2:-}" ] || export MOZ_USE_XINPUT2=1
+
+if [[ ! -e $state/standalone-initialized ]]; then
+    pc=$cfg_home/xfce4/xfconf/xfce-perchannel-xml
+    if [[ -d $pc ]] && [[ -n $(ls -A "$pc" 2>/dev/null) ]]; then
+        backup=$cfg_home/xfce4.before-luxos-desktop
+        [[ -e $backup ]] || cp -a "$cfg_home/xfce4" "$backup"
+        for ch in xfce4-panel xfwm4 xsettings xfce4-desktop xfce4-keyboard-shortcuts xfce4-notifyd \
+                  xfce4-session xfce4-screensaver; do
+            [[ -e $pc/$ch.xml ]] && mv -f "$pc/$ch.xml" "$backup/xfconf-$ch.xml.moved"
+        done
+        rm -rf "$cfg_home/xfce4/panel"
+    fi
+    # Dock (Plank): vychozi polozky a nastaveni LuxOS jen pro tohoto uzivatele (dconf celeho systemu se
+    # nemeni); vlastni Dock uzivatele zustava
+    launchers=$cfg_home/plank/dock1/launchers
+    if [[ ! -d $launchers ]]; then
+        mkdir -p "$launchers" && cp "$PRIV"/plank-launchers/*.dockitem "$launchers/" 2>/dev/null
+        # aplikace, ktere se v distribuci jmenuji jinak (Fedora: org.mozilla.firefox.desktop); polozky bez
+        # aplikace odebrat (jinak by v Docku byla prazdna ikona)
+        for item in "$launchers"/*.dockitem; do
+            target=$(sed -n 's#^Launcher=file://##p' "$item")
+            [[ -z $target || -e $target ]] && continue
+            alt=""
+            case ${target##*/} in
+                firefox.desktop) alt=org.mozilla.firefox.desktop ;;
+                thunar.desktop) alt=org.xfce.thunar.desktop ;;
+            esac
+            if [[ -n $alt && -e /usr/share/applications/$alt ]]; then
+                sed -i "s#^Launcher=.*#Launcher=file:///usr/share/applications/$alt#" "$item"
+            else
+                rm -f "$item"
+            fi
+        done
+        if command -v dconf >/dev/null && [[ -r $PRIV/dconf-defaults ]]; then
+            awk '/^\[/{keep = ($0 ~ /^\[net\/launchpad\/plank/)} keep' "$PRIV/dconf-defaults" \
+                | sed -e 's#^\[net/launchpad/plank\]#[/]#' -e 's#^\[net/launchpad/plank/#[#' \
+                | dconf load /net/launchpad/plank/ 2>/dev/null
+        fi
+    fi
+    : >"$state/standalone-initialized"
+fi
+
+exec startxfce4 "$@"

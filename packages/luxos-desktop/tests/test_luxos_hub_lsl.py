@@ -272,6 +272,8 @@ class Hub(unittest.TestCase):
                "LUXOS_HUB_NO_AUTOHIDE": "1", "LUXOS_GPU": "/nonexistent", "LUXOS_GPU_DELAY": "1",
                "LUXOS_AUDIO_HELPER": os.path.join(self.home, "no-audio-helper"),
                "LUXOS_HUB_NEWS_DELAY": "600",   # kontrola Novinek jen v test_news_check_after_login
+               # horke rohy v testech jen zapisuji akce (pohyb mysi v jinych testech nic nespusti)
+               "LUXOS_HOTCORNERS_LOG": os.path.join(self.home, "corners.log"),
                "LUXOS_HUB_NO_WM_REPLACE": "1"}   # skutecny xfwm4 uzivatele se nikdy nevymeni (jen test_wm_replaced_after_update)   # zvuk jen v test_audio_*      # pod Xvfb bez spravce oken by se okno hned zavrelo ztratou fokusu
         if "XAUTHORITY" in os.environ:
             env["XAUTHORITY"] = os.environ["XAUTHORITY"]
@@ -285,6 +287,68 @@ class Hub(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: os.path.exists(os.path.join(self.runtime, "luxos-calendar.pid")), 10), "hub se nespustil")
         time.sleep(1.5)          # start GTK a predpripravena okna (LUXOS_HUB_PREBUILD_DELAY=1)
         return self.hub
+
+    def test_hot_corners(self):
+        """Horke rohy: vychozi jen levy horni Launchpad (pravy dolni nic), az po chvili v rohu, jednou za najeti;
+        nastaveni ~/.config/luxos/hotcorners plati bez restartu; na tabletu bez klavesnice vypnute."""
+        log = os.path.join(self.home, "corners.log")
+        self.start_hub(LUXOS_HOTCORNERS_DWELL="3")
+        xenv = {"DISPLAY": DISPLAY, "PATH": "/usr/bin:/bin"}
+        if "XAUTHORITY" in os.environ:
+            xenv["XAUTHORITY"] = os.environ["XAUTHORITY"]
+        w, h = (int(v) for v in subprocess.run(["xdotool", "getdisplaygeometry"], env=xenv, capture_output=True,
+                                                 text=True).stdout.split())
+
+        def move(x, y):
+            subprocess.run(["xdotool", "mousemove", str(x), str(y)], env=xenv)
+
+        def actions():
+            return open(log).read().split() if os.path.exists(log) else []
+
+        move(w // 2, h // 2)
+        time.sleep(0.5)
+        # rychly pruchod rohem (cestou k logu v liste) nic nespusti
+        move(0, 0)
+        time.sleep(0.12)
+        move(40, 12)
+        time.sleep(0.6)
+        self.assertEqual(actions(), [])
+        move(0, 0)
+        self.assertTrue(self.wait_for(lambda: actions() == ["launchpad"], 3), actions())
+        time.sleep(1.0)
+        self.assertEqual(actions(), ["launchpad"], "jednou za najeti, ne opakovane")
+        move(w // 2, h // 2)
+        time.sleep(0.4)
+        move(w - 1, h - 1)
+        time.sleep(1.2)
+        self.assertEqual(actions(), ["launchpad"], "pravy dolni roh ve vychozim stavu nic nespousti")
+        move(w // 2, h // 2)          # (ukazatel z rohu pryc, nez se roh zapne)
+        # vlastni nastaveni: pravy horni zamknout, pravy dolni plocha, levy horni nic
+        with open(os.path.join(self.cfg, "hotcorners"), "w") as f:
+            f.write("tl=none\ntr=lock\nbr=desktop\nbogus=launchpad\nbl=rm -rf\n")
+        time.sleep(2.5)
+        move(w // 2, h // 2)
+        time.sleep(0.4)
+        move(0, 0)
+        time.sleep(1.0)
+        move(w // 2, h // 2)
+        time.sleep(0.4)
+        move(w - 1, 0)
+        self.assertTrue(self.wait_for(lambda: actions()[-1:] == ["lock"], 3), actions())
+        move(w // 2, h // 2)
+        time.sleep(0.4)
+        move(w - 1, h - 1)
+        self.assertTrue(self.wait_for(lambda: actions()[-1:] == ["desktop"], 3), actions())
+        self.assertEqual(actions(), ["launchpad", "lock", "desktop"])
+        # tablet bez klavesnice (luxos-touch): rohy vypnute
+        with open(os.path.join(self.cfg, "touch-state"), "w") as f:
+            f.write("touchscreen=1 keyboard=0 accel=0\n")
+        time.sleep(2.5)
+        move(w // 2, h // 2)
+        time.sleep(0.4)
+        move(w - 1, 0)
+        time.sleep(1.2)
+        self.assertEqual(actions(), ["launchpad", "lock", "desktop"])
 
     def hub_err(self):
         with open(self.err_path) as f:

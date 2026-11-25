@@ -4,6 +4,8 @@
 #   LUXOS_VM_VGA=VGA: standardni graficka karta (virtio-vga se po uspani S3 zasekne)
 #   LUXOS_VM_VNC=N: cislo displeje VNC pro --headless (vychozi 7 = 127.0.0.1:5907)
 #   LUXOS_VM_SERIAL=SOUBOR: seriova konzole do souboru (zaznam startu, napr. hlasky shim/OVMF)
+#   LUXOS_VM_TOUCH=1: dotykova obrazovka (virtio-multitouch); =tablet navic bez klavesnice PS/2 (tablet bez
+#     fyzicke klavesnice). Dotyky z QMP: scripts/vmctl.py tap X Y / swipe X1 Y1 X2 Y2 [prstu]
 #
 #   scripts/test-vm.sh live      [--headless] [--bios] [--secureboot]   boot z ISO (+ prazdny disk 40G)
 #   scripts/test-vm.sh disk      [--headless] [--bios] [--secureboot]   boot z nainstalovaneho disku
@@ -46,6 +48,10 @@ args=(
     -device virtio-serial -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
     -qmp unix:"$T/qmp.sock",server=on,wait=off
 )
+if [[ -n ${LUXOS_VM_TOUCH:-} ]]; then
+    args+=(-device virtio-multitouch-pci)
+    [[ $LUXOS_VM_TOUCH == tablet ]] && args+=(-machine i8042=off)
+fi
 [[ -n ${LUXOS_VM_SERIAL-} ]] && args+=(-serial "file:$LUXOS_VM_SERIAL")
 # LUXOS_VM_MEMFILE=cesta: pamet VM v souboru na disku (MAP_SHARED) - host s malo RAM ji muze
 # odkladat do souboru misto swapu, earlyoom pak QEMU nezabije

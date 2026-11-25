@@ -129,8 +129,8 @@ T = {
         "changes_title": "LuxOS {version} – What's new: safer backups, more privacy",
         "changes_desc": ("Changelog of every LuxOS release. {version} “{codename}”: hundreds of fixes from a full audit, "
                          "safer backups, safe install next to Windows and more privacy."),
-        "home_title": "LuxOS – free, fast Linux with a macOS-like desktop",
-        "home_desc": "LuxOS is a free, lightweight Linux based on Arch with a macOS-like desktop, automatic drivers, undoable updates and the LuxAI assistant. Download the ISO.",
+        "home_title": "LuxOS – free Linux for PCs that can’t run Windows 11",
+        "home_desc": "The computer takes care of you, not the other way round: drivers, updates and backups run on their own. Free, no TPM or Microsoft account. Get the ISO.",
         "site_desc": ("LuxOS is a fast, lightweight Arch Linux based distribution with a macOS-like desktop, "
                       "the lux package manager, automatic drivers and the LuxAI assistant."),
         "landing_title": "LuxOS for you", "more_pages": "More about LuxOS", "compare_more": "More comparisons",
@@ -173,8 +173,8 @@ T = {
         "changes_title": "LuxOS {version} – novinky: bezpečnější zálohy a soukromí",
         "changes_desc": ("Seznam změn všech verzí LuxOS. {version} „{codename}“: stovky oprav z úplné kontroly, bezpečnější "
                          "zálohy, bezpečná instalace vedle Windows a víc soukromí."),
-        "home_title": "LuxOS – rychlý Linux zdarma s prostředím jako macOS",
-        "home_desc": "LuxOS je lehký systém zdarma na Arch Linuxu: prostředí jako macOS, ovladače se najdou samy, aktualizace jdou vrátit, pomůže asistent LuxAI. Stáhněte ISO.",
+        "home_title": "LuxOS – Linux zdarma pro PC, které nezvládnou Windows 11",
+        "home_desc": "Počítač se stará o vás, ne vy o něj: ovladače, aktualizace a zálohy běží samy. Zdarma, bez TPM a účtu Microsoft, i pro starší PC. Stáhněte si ISO.",
         "site_desc": ("LuxOS je rychlý a lehký systém na Arch Linuxu s prostředím ve stylu macOS, správcem balíků lux, "
                       "automatickými ovladači a asistentem LuxAI."),
         "landing_title": "LuxOS pro vás", "more_pages": "Další o LuxOS", "compare_more": "Další srovnání",
@@ -854,9 +854,11 @@ def llms_txt(ver, iso, cols):
     lines = [
         "# LuxOS",
         "",
-        "> LuxOS is a fast, lightweight desktop Linux distribution based on Arch Linux with a macOS-like desktop "
-        "(Xfce underneath), its own package manager `lux`, its own kernel build `linux-luxos`, automatic drivers, "
-        "updates with Btrfs snapshots and rollback, and the optional LuxAI assistant. It is free (GPL-3.0-or-later).",
+        "> LuxOS is a free, plug-and-play desktop Linux distribution for beginners, based on Arch Linux, with a "
+        "macOS-like desktop (Xfce underneath). Drivers set themselves up, touch screens work, updates install in "
+        "the background with Btrfs snapshots and can be undone, and apps come from Flathub and the Arch repositories "
+        "through the LuxOS Store or the `lux` command (which replaces `pacman`). No account, no telemetry. "
+        "The LuxAI assistant is optional. It is free (GPL-3.0-or-later).",
         "",
         "Key facts:",
         "",
@@ -864,7 +866,8 @@ def llms_txt(ver, iso, cols):
         "- Base: Arch Linux; rolling release (`lux update`); x86_64 PCs with UEFI or BIOS, at least 20 GB disk",
         "- Desktop: Xfce components (xfwm4, panel) arranged like macOS: top bar, Plank Dock, Launchpad, Search, Control Center",
         "- Package manager: `lux` (libalpm); Arch and signed LuxOS repositories, Flathub, AUR (checked, built in a sandbox), "
-        "own `.lux` apps; there is no `pacman` command",
+        "own `.lux` apps; there is no `pacman` command (the shell shows the matching `lux` command), but the packages "
+        "are Arch's, so Arch Wiki guides apply with `lux` instead of `pacman`",
         "- Kernel: `linux-luxos`, vanilla stable kernel.org Linux with Arch's configuration, built by GitHub Actions",
         "- Maintenance: LuxOS Care (background updates, snapshot before every update, `lux rollback`, read-only /usr)",
         "- Security: firewall on by default, Lux Guard (checks downloaded programs, sandbox), Safe (encrypted folder)",
@@ -876,14 +879,15 @@ def llms_txt(ver, iso, cols):
         "",
         "- Free, with no paid edition: The ISO is a free download. Most of LuxOS is open source (GPL-3.0-or-later); LuxAI, Lux Code and LSL IDE are free to use on LuxOS.",
         "- Fast on older computers: A light Xfce desktop with zram swap, earlyoom and its own `linux-luxos` kernel. A 64-bit PC and a 20 GB disk are enough; tested in virtual machines with 3 GB of RAM.",
+        "- Plug and play: Graphics (NVIDIA including older cards), Wi-Fi, cameras and sound are detected and installed automatically; printers and scanners work without drivers; a second monitor just works.",
+        "- Made for touch: Since 1.0.5 LuxOS works fully on tablets, 2-in-1 laptops and touch monitors – on-screen keyboard, gestures and touch scrolling turn on by themselves.",
         "- A familiar macOS-style desktop: Top bar, Dock, Launchpad, Search and Control Center – easy to learn whether you come from Windows or a Mac.",
-        "- Drivers without searching: Graphics (NVIDIA including older cards), Wi-Fi, cameras and sound are detected and installed automatically; printers and scanners work without drivers.",
+        "- Apps from Flathub and Arch: The LuxOS Store offers Flathub and the Arch Linux repositories; checked AUR packages are built in a sandbox. The `lux` command replaces `pacman` with plain words, and Arch Wiki guides still help.",
         "- Updates you can undo: LuxOS Care installs updates in the background, takes a Btrfs snapshot before every update (`lux rollback`) and keeps the previous kernel in the boot menu.",
         "- Secure by default: Signed LuxOS repositories, the firewall on, Secure Boot support, Lux Guard checks programs from the internet and runs risky ones only in the Sandbox, and Safe encrypts a folder.",
-        "- Privacy: The system needs no account. Firefox comes without telemetry and needless connections to Mozilla. The only statistic is an anonymous weekly count (version and channel, no ID) that you can turn off.",
-        "- Plenty of software: One package manager, `lux`, for the Arch Linux repositories, Flathub and checked AUR packages built in a sandbox, plus the LuxOS Store.",
+        "- Private, no account: The system needs no account. Firefox comes without telemetry and needless connections to Mozilla. The only statistic is an anonymous weekly count (version and channel, no ID) that you can turn off.",
         "- An AI assistant that knows your computer: LuxAI explains errors, changes settings and searches the web for you. It is optional; the free LuxAI account includes 20 000 credits a month.",
-        "- Safe next to Windows: The installer can put LuxOS into free space next to Windows and checks first that Windows can be shrunk safely (Fast Startup and hibernation off).",
+        "- Simple, safe install: A graphical installer – language, keyboard, disk, account – with no terminal. It can put LuxOS into free space next to Windows and checks first that Windows can be shrunk safely (Fast Startup and hibernation off).",
         "- Backups and undelete: Backups saves your home folder every hour to a USB or network disk, and Lux Guard keeps hourly snapshots of your files, so deleted files come back.",
         "- In your language: English and 12 more languages, including Czech, Slovak, Polish, German, Ukrainian and Hungarian; a new install gets Firefox and Thunderbird in the system language too.",
         "",
@@ -963,7 +967,12 @@ def main():
     os.makedirs(OUT)
     stamp = time.strftime("%Y%m%d%H%M")
     today = datetime.date.today().isoformat()
+    # Verze ve stable: site/stable.json (packages/luxos-branding/files/version se zvedne uz pri priprave
+    # vydani ve staging - release.json by pak hlasil nevydanou verzi a Discord bot by ji oznamil)
     ver = read_kv(os.path.join(ROOT, "packages", "luxos-branding", "files", "version"))
+    with open(os.path.join(SITE, "stable.json"), encoding="utf-8") as f:
+        stable = json.load(f)
+    ver.update(VERSION=stable["version"], CODENAME=stable["codename"])
     with open(os.path.join(SITE, "iso.json"), encoding="utf-8") as f:
         iso = json.load(f)
     release = {"version": ver["VERSION"], "codename": ver["CODENAME"], "channel": "stable",
@@ -1021,7 +1030,7 @@ def main():
             "GALLERY": "\n".join(gallery), "DOC_CARDS": "\n".join(cards),
             "HERO_SHOT": hero, "LOGO_HERO": logo_svg("hero", "logo hero-mark"),
             "DOCS": docs_index_url(lang), "CHANGES": changes_url(lang),
-            "DOWNLOAD": landing_url(lang, "download"),
+            "DOWNLOAD": landing_url(lang, "download"), "WIN10": landing_url(lang, "windows-10"),
             "LANDING_CARDS": landing_cards(lang, [k for k in LANDING_META["pages"] if k != "download"]),
             "COMPARE": landing_url(lang, "compare"),
         }

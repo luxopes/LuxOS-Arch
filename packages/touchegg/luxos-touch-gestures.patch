@@ -1,0 +1,162 @@
+diff -ru a/src/gesture-gatherer/libinput-touch-handler.cpp b/src/gesture-gatherer/libinput-touch-handler.cpp
+--- a/src/gesture-gatherer/libinput-touch-handler.cpp
++++ b/src/gesture-gatherer/libinput-touch-handler.cpp
+@@ -20,6 +20,7 @@
+ #include <libinput.h>
+ 
+ #include <algorithm>
++#include <cmath>
+ #include <memory>
+ #include <utility>
+ #include <vector>
+@@ -90,6 +91,10 @@
+             : LininputHandler::calculatePinchAnimationPercentage(
+                   this->state.direction, this->getPinchDelta());
+ 
++    if (this->state.lastPercentage >= 0) {
++      percentage = this->state.lastPercentage;
++    }
++
+     auto gesture = std::make_unique<Gesture>(
+         this->state.type, this->state.direction, percentage,
+         this->state.startFingers, DeviceType::TOUCHSCREEN, elapsedTime);
+@@ -117,13 +122,30 @@
+   double deltaY = deltaPair.second;
+ 
+   if (!this->state.started) {
+-    if (this->state.currentFingers >= 2 &&
+-        (std::abs(deltaX) > info.startThreshold ||
+-         std::abs(deltaY) > info.startThreshold)) {
++    // LuxOS: a pinch also starts when the fingers spread or close around
++    // their centre (symmetric pinch: average delta ~0)
++    bool moved = std::abs(deltaX) > info.startThreshold ||
++                 std::abs(deltaY) > info.startThreshold;
++    // (and only when the spread clearly dominates the common movement, so a
++    // swipe with one finger starting a bit earlier stays a swipe)
++    double spreadDelta =
++        (this->state.currentFingers >= 2) ? std::abs(this->getSpreadDelta()) : 0;
++    bool spread = spreadDelta > info.startThreshold &&
++                  spreadDelta > 2 * std::max(std::abs(deltaX), std::abs(deltaY));
++    if (this->state.currentFingers >= 2 && (moved || spread)) {
++      // LuxOS: wait until every finger has moved (a quarter of the start
++      // threshold) before deciding SWIPE vs PINCH; decide anyway at three
++      // times the threshold (pinch with one finger kept still)
++      if (!spread && !this->allFingersMoved(info.startThreshold / 4) &&
++          std::abs(deltaX) <= 3 * info.startThreshold &&
++          std::abs(deltaY) <= 3 * info.startThreshold) {
++        return;
++      }
+       this->state.started = true;
+       this->state.startFingers = this->state.currentFingers;
+       this->state.startTimestamp = LininputHandler::getTimestamp();
+-      this->state.type = this->getGestureType();
++      this->state.type =
++          (spread && !moved) ? GestureType::PINCH : this->getGestureType();
+       this->state.direction =
+           (this->state.type == GestureType::SWIPE)
+               ? LininputHandler::calculateSwipeDirection(deltaX, deltaY)
+@@ -149,6 +171,7 @@
+                   this->state.direction, this->getPinchDelta());
+     uint64_t elapsedTime =
+         LininputHandler::calculateElapsedTime(this->state.startTimestamp);
++    this->state.lastPercentage = percentage;
+ 
+     auto gesture = std::make_unique<Gesture>(
+         this->state.type, this->state.direction, percentage,
+@@ -177,6 +200,46 @@
+   return std::make_pair(deltaX, deltaY);
+ }
+ 
++double LibinputTouchHandler::getSpreadDelta() const {
++  if (this->state.startX.empty()) {
++    return 0;
++  }
++  double sx = 0, sy = 0, cx = 0, cy = 0;
++  for (const auto &pair : this->state.startX) {
++    int32_t slot = pair.first;
++    sx += this->state.startX.at(slot);
++    sy += this->state.startY.at(slot);
++    cx += this->state.currentX.at(slot);
++    cy += this->state.currentY.at(slot);
++  }
++  double n = static_cast<double>(this->state.startX.size());
++  sx /= n;
++  sy /= n;
++  cx /= n;
++  cy /= n;
++  double startDist = 0, currentDist = 0;
++  for (const auto &pair : this->state.startX) {
++    int32_t slot = pair.first;
++    startDist += std::hypot(this->state.startX.at(slot) - sx,
++                            this->state.startY.at(slot) - sy);
++    currentDist += std::hypot(this->state.currentX.at(slot) - cx,
++                              this->state.currentY.at(slot) - cy);
++  }
++  return (currentDist - startDist) / n;
++}
++
++bool LibinputTouchHandler::allFingersMoved(double minDelta) const {
++  for (const auto &pair : this->state.startX) {
++    int32_t slot = pair.first;
++    double diffX = this->state.currentX.at(slot) - this->state.startX.at(slot);
++    double diffY = this->state.currentY.at(slot) - this->state.startY.at(slot);
++    if (std::max(std::abs(diffX), std::abs(diffY)) < minDelta) {
++      return false;
++    }
++  }
++  return true;
++}
++
+ GestureType LibinputTouchHandler::getGestureType() const {
+   // Store every finger dominant axis (X = 1; Y = -1) and delta
+   std::vector<int> axis;
+@@ -206,8 +269,8 @@
+   }
+ 
+   bool sameDir =
+-      std::all_of(delta.cbegin(), delta.cend(), [](int i) { return i > 0; }) ||
+-      std::all_of(delta.cbegin(), delta.cend(), [](int i) { return i < 0; });
++      std::all_of(delta.cbegin(), delta.cend(), [](double d) { return d > 0; }) ||
++      std::all_of(delta.cbegin(), delta.cend(), [](double d) { return d < 0; });
+   if (!sameDir) {
+     return GestureType::PINCH;
+   }
+diff -ru a/src/gesture-gatherer/libinput-touch-handler.h b/src/gesture-gatherer/libinput-touch-handler.h
+--- a/src/gesture-gatherer/libinput-touch-handler.h
++++ b/src/gesture-gatherer/libinput-touch-handler.h
+@@ -40,8 +40,13 @@
+   std::unordered_map<int32_t, double> currentX;
+   std::unordered_map<int32_t, double> currentY;
+   int tapFingers = 0;
++  // LuxOS: percentage of the last update - the end of a gesture is computed
++  // when only one finger is left, from the remaining fingers, which made a
++  // pinch that reached 95 % end below the action threshold
++  double lastPercentage = -1;
+ 
+   void reset() {
++    lastPercentage = -1;
+     started = false;
+     type = GestureType::NOT_SUPPORTED;
+     direction = GestureDirection::UNKNOWN;
+@@ -76,6 +81,21 @@
+   std::pair<double, double> getAverageDelta() const;
+ 
+   /**
++   * LuxOS: true when every finger has moved at least minDelta on its dominant axis.
++   * The gesture type is decided at the start threshold; motion events of the
++   * fingers arrive one by one, so without this a finger that has not moved yet
++   * turned every touchscreen SWIPE into a PINCH.
++   */
++  bool allFingersMoved(double minDelta) const;
++
++  /**
++   * LuxOS: change of the average distance of the fingers from their centre
++   * (current - start). A symmetric pinch has an average delta of ~0, so the
++   * start threshold on the average delta alone never started it.
++   */
++  double getSpreadDelta() const;
++
++  /**
+    * @returns When the gestures starts, uses "this->state" to differentiate
+    * between SWIPE and PINCH gestures.
+    */

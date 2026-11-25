@@ -4,6 +4,8 @@
 #
 #   scripts/compose-stable-repo.sh [ZDROJ] [CIL]     vychozi out/repo -> out/repo-stable
 #   LUXOS_REPO_SRC=out/repo-stable LUXOS_REPO_CHANNEL=stable scripts/publish-repo.sh
+#   Po vydani do stable zvysit verzi v site/stable.json a zverejnit web (scripts/publish-site.sh) - web
+#   (release.json, Discord bot, stranka zmen) bere verzi stable odtud, ne z luxos-branding.
 #
 # Z kopie ZDROJE (reflink, zdroj se nemeni):
 #   - LUXOS_STABLE_EXCLUDE (vychozi "luxos-mail luxos-app-studio luxos-icon-studio luxos-sdk"): baliky se z databaze odeberou a jejich soubory
@@ -113,10 +115,11 @@ for r in "${REPOS[@]}"; do
             get "$STABLE_URL/$r/$ARCH/$r.db.tar.gz.sig" "$stable_db.sig"
             verify "$stable_db" || die "bad signature of the stable $r database ($STABLE_URL)"
         fi
-        # repo-add pise v kazdem desc %FILENAME% pred %NAME%
+        # repo-add pise v kazdem desc %FILENAME% pred %NAME%; awk cte az do konce (bez exit),
+        # jinak tar dostane SIGPIPE a pipefail skript ukonci (podle poradi baliku v databazi)
         file=$(tar -xzOf "$stable_db" --wildcards '*/desc' | awk -v n="$n" '
             /^%FILENAME%$/ {getline; fn=$0}
-            /^%NAME%$/ {getline; if ($0 == n) {print fn; exit}}')
+            /^%NAME%$/ {getline; if ($0 == n && !found) {print fn; found=1}}')
         if [[ -z $file ]]; then
             echo "==> [$r] $n is not in the stable channel - removing it"
             drop "$r" "$n"

@@ -5548,3 +5548,32 @@ Menu bar without background	Menubalk zonder achtergrond
 Shadow under the menu bar	Schaduw onder de menubalk
 Like the lock screen: only the wallpaper and white icons.	Zoals op het vergrendelscherm: alleen de achtergrond en witte pictogrammen.
 Darkens the top edge so white icons stay readable on light wallpapers.	Maakt de bovenrand donkerder zodat witte pictogrammen leesbaar blijven op lichte achtergronden.
+Rotation Lock	Rotatievergrendeling
+Hot Corners	Actieve hoeken
+Show Desktop	Bureaublad tonen
+Start Screen Saver	Schermbeveiliging starten
+Top left corner	Hoek linksboven
+Top right corner	Hoek rechtsboven
+Bottom left corner	Hoek linksonder
+Bottom right corner	Hoek rechtsonder
+Move the pointer into a corner of the screen and keep it there for a moment.	Beweeg de aanwijzer naar een hoek van het scherm en houd hem daar even.
+Size of everything on the screen	Grootte van alles op het scherm
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Maakt tekst, knoppen, titelbalken, de menubalk en het Dock groter – handig op touchscreens en kleine schermen met hoge resolutie. Sommige apps moeten opnieuw worden geopend.
+Window buttons	Vensterknoppen
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Knoppen voor sluiten, minimaliseren en maximaliseren in de titelbalk. ‘Automatisch’ maakt ze groter op aanraakschermen.
+Wi-Fi adapter did not start	Wifi-adapter is niet gestart
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	De wifi-adapter is vastgelopen na een herstart vanuit een ander systeem. Zet de computer uit, houd de aan/uit-knop 30 seconden ingedrukt en zet hem daarna weer aan. Opnieuw opstarten is niet genoeg.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Invoermethoden
+Vietnamese	Vietnamees
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	invoermethode
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Typ Vietnamees op je toetsenbord, bijvoorbeeld Vieejt Nam → Việt Nam. Zet het aan en uit met Ctrl+Spatie of het pictogram in de menubalk.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Niet geïnstalleerd (pakketten fcitx5, fcitx5-gtk en fcitx5-bamboo).
+Typing style	Typestijl
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex typt accenten met letters (aa → â, s → ´), VNI met cijfers (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Je account gebruikt eigen fcitx5-instellingen. Aanzetten voegt Vietnamees daaraan toe.
+Could not change the input method: %s	Kon de invoermethode niet wijzigen: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamees staat aan. Wissel met Ctrl+Spatie. Apps die al open waren gebruiken het na een herstart.
+Vietnamese is off.	Vietnamees staat uit.
+Typing style: %s	Typestijl: %s

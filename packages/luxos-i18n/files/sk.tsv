@@ -5548,3 +5548,32 @@ Menu bar without background	Lišta bez pozadia
 Shadow under the menu bar	Stmavenie pod lištou
 Like the lock screen: only the wallpaper and white icons.	Ako na uzamknutej obrazovke: len tapeta a biele ikony.
 Darkens the top edge so white icons stay readable on light wallpapers.	Stmaví horný okraj, aby boli biele ikony čitateľné aj na svetlej tapete.
+Rotation Lock	Zámok otáčania
+Hot Corners	Aktívne rohy
+Show Desktop	Zobraziť plochu
+Start Screen Saver	Spustiť šetrič obrazovky
+Top left corner	Ľavý horný roh
+Top right corner	Pravý horný roh
+Bottom left corner	Ľavý dolný roh
+Bottom right corner	Pravý dolný roh
+Move the pointer into a corner of the screen and keep it there for a moment.	Presuňte ukazovateľ do rohu obrazovky a chvíľu ho tam podržte.
+Size of everything on the screen	Veľkosť všetkého na obrazovke
+Makes text, buttons, window title bars, the menu bar and the Dock bigger – useful on touch screens and small high-resolution displays. Some apps need to be reopened.	Zväčší text, tlačidlá, záhlavia okien, hornú lištu a Dock – hodí sa na dotykové obrazovky a malé displeje s vysokým rozlíšením. Niektoré aplikácie treba znova otvoriť.
+Window buttons	Tlačidlá okien
+Close, minimize and maximize buttons in the title bar. Automatic makes them larger on touch screens.	Tlačidlá zavrieť, minimalizovať a maximalizovať v záhlaví okna. Automaticky ich na dotykových obrazovkách zväčší.
+Wi-Fi adapter did not start	Adaptér Wi-Fi sa nespustil
+The Wi-Fi adapter got stuck after restarting from another system. Shut down the computer, hold the power button for 30 seconds, then turn it on again. Restarting is not enough.	Adaptér Wi-Fi sa zasekol po reštarte z iného systému. Vypnite počítač, podržte tlačidlo napájania 30 sekúnd a potom ho znova zapnite. Reštart nestačí.
+# Rozlozeni klavesnice: metody zadavani (psani vietnamsky, fcitx5)
+Input Methods	Metódy zadávania
+Vietnamese	Vietnamčina
+%s (Telex, VNI)	%s (Telex, VNI)
+input method	metóda zadávania
+Type Vietnamese on your keyboard, for example Vieejt Nam → Việt Nam. Turn it on and off with Ctrl+Space or the icon in the menu bar.	Píšte vietnamsky na svojej klávesnici, napríklad Vieejt Nam → Việt Nam. Zapnete a vypnete ju skratkou Ctrl+Medzerník alebo ikonou v hornej lište.
+Not installed (packages fcitx5, fcitx5-gtk and fcitx5-bamboo).	Nie je nainštalované (balíky fcitx5, fcitx5-gtk a fcitx5-bamboo).
+Typing style	Spôsob písania
+Telex types accents with letters (aa → â, s → ´), VNI with numbers (a6 → â, 1 → ´).	Telex píše diakritiku písmenami (aa → â, s → ´), VNI číslicami (a6 → â, 1 → ´).
+Your account uses its own fcitx5 settings. Turning Vietnamese on adds it to them.	Váš účet používa vlastné nastavenia fcitx5. Zapnutím sa do nich vietnamčina pridá.
+Could not change the input method: %s	Metódu zadávania sa nepodarilo zmeniť: %s
+Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamčina je zapnutá. Prepínajte skratkou Ctrl+Medzerník. Aplikácie, ktoré už boli otvorené, ju začnú používať po novom spustení.
+Vietnamese is off.	Vietnamčina je vypnutá.
+Typing style: %s	Spôsob písania: %s
