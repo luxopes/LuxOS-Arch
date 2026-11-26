@@ -10,6 +10,7 @@
 #                             spustitelny soubor (viditelne aplikace pred skrytymi); 0
 #   reload()                  zmena v adresarich aplikaci: zahodit rejstrik pro match a nactene soubory
 #   all()                     vsechny .desktop aplikace (i NoDisplay; Launchpad si vybira sam)
+#   covered_by_luxos()        puvodni aplikace pod skryvacim prekrytim LuxOS (.../luxos/xdg, files/hide/apps)
 #   monitor()                 GAppInfoMonitor (signal "changed" po zmene .desktop souboru)
 #   id(a), name(a), path(a), wm_class(a), executable(a)
 #   generic_name(a), keywords(a) -> [..], categories(a) ("Network;WebBrowser;"), string(a, klic) (bez prekladu)
@@ -23,6 +24,7 @@
 #
 # Objekty aplikaci se drzi po celou dobu behu (rejstrik a find sdileji jeden objekt na soubor). Po reload() dostane
 # zmeneny soubor novy objekt; stare zustanou platne pro toho, kdo je drzi (zmena .desktop je vzacna).
+load env
 load glib
 load luxos_glib as lglib
 load luxos_text as text
@@ -318,6 +320,46 @@ end
 
 function all():
     return all_infos()
+end
+
+# luxos-desktop skryva technicke a nahrazene aplikace (files/hide/apps) souborem NoDisplay=true bez Exec v
+# .../luxos/xdg na zacatku XDG_DATA_DIRS. Launchpad ale musi ukazat vsechny aplikace (jinak se k nim uzivatel
+# nedostane): soubor se stejnym id z dalsich adresaru za prekrytim (o NoDisplay a OnlyShowIn rozhoduje on).
+function covered_by_luxos():
+    out = []
+    dirs = env.get("XDG_DATA_DIRS", "")
+    if dirs == "":
+        dirs = "/usr/local/share:/usr/share"
+    end
+    dirs = dirs.split(":")
+    start = -1
+    for i in range(len(dirs)):
+        if start < 0 and dirs[i].rstrip("/").endswith("/luxos/xdg"):
+            start = i
+        end
+    end
+    if start < 0:
+        return out
+    end
+    for name in lglib.list_dir(dirs[start] + "/applications"):
+        if not name.endswith(".desktop"):
+            continue
+        end
+        i = start + 1
+        while i < len(dirs):
+            info = 0
+            if dirs[i] != "":
+                # chybejici soubor: g_desktop_app_info_new_from_filename vrati NULL
+                info = find(dirs[i].rstrip("/") + "/applications/" + name)
+            end
+            if info != 0:
+                out.append(info)
+                break
+            end
+            i += 1
+        end
+    end
+    return out
 end
 
 function monitor():

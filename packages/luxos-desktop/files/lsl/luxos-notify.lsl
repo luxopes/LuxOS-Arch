@@ -896,12 +896,33 @@ function fill(slot, note):
     call set_expanded(slot, note["expanded"])
     call gtk.widget_set_class(slot["box"], "critical", note["urgency"] >= 2)
     # tlacitka akci s popisem (i "default": aplikace ho tak ukazuji, klik na bublinu ho vyvola take)
-    shown = 0
+    # hlavni akce modre a vpravo ("default", jinak prvni s popisem), ostatni sede pred ni
+    main_key = ""
     for a in note["actions"]:
+        if a[1] != "" and (main_key == "" or a[0] == "default"):
+            main_key = a[0]
+        end
+    end
+    # bez popisu se nezobrazuji; hlavni se vejde vzdy (nejvys MAX_ACTIONS tlacitek)
+    ordered = []
+    for a in note["actions"]:
+        if a[0] != main_key and a[1] != "" and len(ordered) < MAX_ACTIONS - 1:
+            ordered.append(a)
+        end
+    end
+    for a in note["actions"]:
+        if a[0] == main_key:
+            ordered.append(a)
+        end
+    end
+    shown = 0
+    for a in ordered:
         if a[1] != "" and shown < MAX_ACTIONS:
             button = slot["buttons"][shown]
             call gtk.button_set_label(button, a[1])
             slot["keys"][shown] = a[0]
+            call gtk.widget_set_class(button, "lx-accent", a[0] == main_key)
+            call gtk.widget_set_class(button, "lx-button", a[0] != main_key)
             call gtk.widget_show(button)
             shown += 1
         end
@@ -1059,7 +1080,8 @@ function new_slot(index):
 end
 
 CSS = ".lx-notification.critical { border-color: @lx_error; }\n"
-CSS = CSS + ".lx-notification button.lx-button { min-height: 26px; }\n"
+CSS = CSS + ".lx-notification button.lx-button, .lx-notification button.lx-accent { min-height: 28px; min-width: 64px; padding: 0 14px; }\n"
+CSS = CSS + ".lx-notification button.lx-accent label { font-weight: 600; }\n"
 CSS = CSS + "button.lx-close { margin: 4px; }\n"
 
 function load_css():

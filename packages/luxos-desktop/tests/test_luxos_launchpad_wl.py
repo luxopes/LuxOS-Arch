@@ -55,16 +55,25 @@ APPS = {
     "org.example.Calculator": "Name=Calculator\nName[cs]=Kalkulačka\nIcon=accessories-calculator\nCategories=Utility;\n",
     "org.example.Paint": "Name=Image Editor\nName[cs]=Editor obrázků\nIcon=applications-graphics\nCategories=Graphics;\n",
     "org.example.TestApp": "Name=Lux Test App\nIcon=applications-science\nCategories=Science;\n",
-    # panely Nastaveni Launchpad skryva, samostatne aplikace z LAUNCHPAD_APPS a kopie jen pro Launchpad ne
+    # Launchpad ukazuje vsechny aplikace, i panely Nastaveni a kopie jen pro Launchpad (X-LuxOS-Launchpad);
+    # ne NoDisplay souboru, OnlyShowIn jineho prostredi a kopii panelu, kdyz je videt puvodni panel.
+    # "Zzz": az za vyplni, at nove viditelne polozky neposunou prvni stranu (vzory snimku)
     "luxos-bluetooth": "Name=Bluetooth\nIcon=bluetooth\nCategories=Settings;X-XFCE-SettingsDialog;\n",
     "org.example.Printers": "Name=Printers\nIcon=printer\nOnlyShowIn=X-LuxOS-Launchpad;\nCategories=Settings;\n",
     "org.example.Hidden": "Name=Hidden Thing\nNoDisplay=true\nIcon=dialog-warning\n",
-    "org.example.Panel": "Name=Panel Dialog\nIcon=preferences-system\nCategories=Settings;X-XFCE-SettingsDialog;\n",
+    "org.example.Panel": "Name=Zzz Panel Dialog\nIcon=preferences-system\nCategories=Settings;X-XFCE-SettingsDialog;\n",
+    "org.example.Panel-launchpad": "Name=Zzz Panel Dialog\nIcon=preferences-system\nOnlyShowIn=X-LuxOS-Launchpad;\n"
+                                   "Categories=X-LuxOS-Launchpad;\n",
     "org.example.KdeOnly": "Name=Kde Only\nOnlyShowIn=KDE;\nIcon=preferences-system\n",
+    # skryta prekrytim LuxOS (COVERED: .../luxos/xdg, NoDisplay bez Exec), puvodni soubor je aplikace
+    "org.example.Covered": "Name=Zzz Covered Tool\nIcon=utilities-system-monitor\nCategories=System;\n",
+    "org.example.CoveredHelper": "Name=Covered Helper\nNoDisplay=true\nIcon=dialog-warning\n",
 }
+COVERED = ["org.example.Covered", "org.example.CoveredHelper", "org.example.NotInstalled"]
 for _n in range(1, 31):
     APPS[f"org.example.Filler{_n:02d}"] = f"Name=Zz Filler {_n:02d}\nIcon=application-x-executable\nCategories=Utility;\n"
-VISIBLE = [k for k in APPS if k not in ("org.example.Hidden", "org.example.Panel", "org.example.KdeOnly")]
+VISIBLE = [k for k in APPS if k not in ("org.example.Hidden", "org.example.Panel-launchpad", "org.example.KdeOnly",
+                                        "org.example.CoveredHelper")]
 FOLD = str.maketrans("áčďéěíňóřšťúůýž", "acdeeinorstuuyz")
 
 
@@ -175,6 +184,11 @@ class WaylandLaunchpad(unittest.TestCase):
         for d in ("icons", "glib-2.0", "mime"):
             if Path("/usr/share", d).exists():
                 (share / d).symlink_to(Path("/usr/share", d))
+        # skryvaci prekryti LuxOS jako v luxos-desktop (PKGBUILD, files/hide/apps)
+        cover = cls.tmp / "luxos/xdg/applications"
+        cover.mkdir(parents=True)
+        for k in COVERED:
+            (cover / f"{k}.desktop").write_text(f"[Desktop Entry]\nType=Application\nName={k}\nNoDisplay=true\n")
         # luxos-search spousti luxos-launchpad z PATH
         cls.bin = cls.tmp / "bin"
         cls.bin.mkdir()
@@ -255,7 +269,7 @@ class WaylandLaunchpad(unittest.TestCase):
                      if k not in ("DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS")}
         env.pop("LD_LIBRARY_PATH", None)
         env.update(GDK_BACKEND="wayland", NO_AT_BRIDGE="1", GTK_A11Y="none", LUXOS_LAUNCHPAD_TRACE="1",
-                   DBUS_SESSION_BUS_ADDRESS=f"unix:path={bus}", XDG_DATA_DIRS=str(self.tmp / "share"),
+                   DBUS_SESSION_BUS_ADDRESS=f"unix:path={bus}", XDG_DATA_DIRS=f"{self.tmp / 'luxos/xdg'}:{self.tmp / 'share'}",
                    LANG="cs_CZ.UTF-8", LANGUAGE="cs", LUXOS_I18N_DIR=str(REPO / "packages/luxos-i18n/files"),
                    LP_MARKER=str(self.session / "marker"), LP_KEYLOG=str(self.session / "key.log"),
                    LUXOS_LAUNCHPAD_WAYLAND=str(self.tmp / "luxos-launchpad"),
@@ -499,14 +513,17 @@ class WaylandLaunchpad(unittest.TestCase):
             ("lxtst", "org.example.TestApp.desktop"),          # fuzzy
             ("bluetooth", "luxos-bluetooth.desktop"),          # aplikace z LAUNCHPAD_APPS i s kategorii panelu
             ("printers", "org.example.Printers.desktop"),      # OnlyShowIn=X-LuxOS-Launchpad
+            ("panel dialog", "org.example.Panel.desktop"),     # panel Nastaveni; kopie jen pro Launchpad navic ne
+            ("covered", "org.example.Covered.desktop"),        # skryta v nabidce prekrytim LuxOS
         ]
         for query, first in cases:
             with self.subTest(query=query):
                 found = self.type_query(lp, query)
                 self.assertEqual(found[0], first, found)
-        for query in ("hidden thing", "panel dialog", "kde only"):
+        for query in ("hidden thing", "kde only", "covered helper"):
             with self.subTest(query=query):
                 self.assertEqual([f for f in self.type_query(lp, query) if f != "luxai"], [])
+        self.assertEqual([f for f in self.type_query(lp, "panel dialog") if f != "luxai"], ["org.example.Panel.desktop"])
         # bez shody jen LuxAI; Ctrl+Enter posle dotaz LuxAI i kdyz aplikace sedi
         self.assertEqual(self.type_query(lp, "jak se mas"), ["luxai"])
         self.assertEqual(self.type_query(lp, "terminal")[-1], "luxai")
@@ -522,6 +539,14 @@ class WaylandLaunchpad(unittest.TestCase):
         self.input.send("key Return")
         lp.wait(r" launch org.example.Text.desktop$", start=mark)
         self.assertEqual(self.marker(), ["org.example.Text"])
+        # aplikace pod prekrytim LuxOS se spusti z puvodniho souboru (prekryti nema Exec)
+        (self.session / "marker").unlink()
+        self.open_by_key(lp)
+        self.type_query(lp, "covered")
+        mark = lp.mark()
+        self.input.send("key Return")
+        lp.wait(r" launch org.example.Covered.desktop$", start=mark)
+        self.assertEqual(self.marker(), ["org.example.Covered"])
 
     def test_math_inline(self):
         self.start()

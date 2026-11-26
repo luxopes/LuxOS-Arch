@@ -34,11 +34,6 @@ BUS_NAME = "cz.luxos.Launchpad"
 BUS_PATH = "/cz/luxos/Launchpad"
 BUS_XML = "<node><interface name='cz.luxos.Launchpad'><method name='Toggle'><arg type='s' direction='in'/></method><method name='Show'><arg type='s' direction='in'/></method><method name='Hide'/></interface></node>"
 
-# Samostatne aplikace s kategorii Nastaveni, ktere Launchpad ukazuje, prestoze panely Nastaveni skryva
-# (bin/luxos-launchpad LAUNCHPAD_APPS); OnlyShowIn=X-LuxOS-Launchpad = kopie panelu jen pro Launchpad
-LAUNCHPAD_APPS = ["luxos-companion.desktop", "luxos-bluetooth.desktop", "luxos-update.desktop",
-    "luxos-firewall-settings.desktop", "luxos-account.desktop", "org.pulseaudio.pavucontrol.desktop"]
-HIDDEN_CATEGORIES = ["X-XFCE-SettingsDialog", "X-Xfce-Toplevel"]
 SELF_IDS = ["luxos-launchpad.desktop", "luxos-search.desktop"]
 SORT_LABELS = ["Alphabetical", "Recently used", "Most used", "Category"]
 
@@ -85,6 +80,9 @@ end
 
 # ---- aplikace ----
 
+# Launchpad je jediny seznam vsech aplikaci (jinak se k nim uzivatel nedostane): i panely Nastaveni a aplikace,
+# ktere LuxOS skryva v nabidce (apps.covered_by_luxos). Ne: NoDisplay samotneho souboru (pomocne programy),
+# aplikace jen pro jine prostredi (OnlyShowIn=XFCE) a kopie panelu jen pro Launchpad, kdyz je videt puvodni.
 function launchpad_visible(info):
     if apps.nodisplay(info):
         return False
@@ -93,14 +91,13 @@ function launchpad_visible(info):
     if desktop_id in SELF_IDS:
         return False
     end
-    if not apps.shown_here(info) and not ("X-LuxOS-Launchpad" in apps.string(info, "OnlyShowIn").split(";")):
+    launchpad_only = "X-LuxOS-Launchpad" in apps.string(info, "OnlyShowIn").split(";")
+    if not apps.shown_here(info) and not launchpad_only:
         return False
     end
-    if desktop_id in LAUNCHPAD_APPS:
-        return True
-    end
-    for cat in apps.categories(info).split(";"):
-        if cat in HIDDEN_CATEGORIES:
+    if launchpad_only and desktop_id.endswith("-launchpad.desktop"):
+        original = apps.find(desktop_id.replace("-launchpad.desktop", ".desktop"))
+        if original != 0 and not apps.nodisplay(original) and apps.shown_here(original):
             return False
         end
     end
@@ -122,7 +119,7 @@ function load_entries():
     call free_icons()
     entries = []
     seen = {}
-    for info in apps.all():
+    for info in apps.all() + apps.covered_by_luxos():
         desktop_id = apps.id(info)
         if desktop_id == "" or desktop_id in seen or not launchpad_visible(info):
             continue
