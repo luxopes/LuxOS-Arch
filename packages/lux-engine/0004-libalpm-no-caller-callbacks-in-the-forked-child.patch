@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antonin Tomecek <antonin@jupiter.localdomain>
+Date: Thu, 26 Nov 2026 09:01:11 +0100
+Subject: [PATCH] libalpm: no caller callbacks in the forked child of
+ _alpm_run_chroot
+
+_alpm_handle_free() in the child (before execv of a scriptlet or hook)
+logs through the caller's log callback. Callbacks of a language binding
+are not meant to run in a forked child: the LSL runtime of the LuxOS
+package manager aborts a callback from another thread id, so the child
+died and the scriptlet or hook did not run. Clear the callbacks first,
+like the download sandbox child does.
+---
+ lib/libalpm/util.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/lib/libalpm/util.c b/lib/libalpm/util.c
+index 6739161..9512ebb 100644
+--- a/lib/libalpm/util.c
++++ b/lib/libalpm/util.c
+@@ -694,6 +694,15 @@ int _alpm_run_chroot(alpm_handle_t *handle, const char *cmd, char *const argv[],
+ 		unsetenv("BASH_ENV");
+ 		umask(0022);
+ 		_alpm_reset_signals();
++		/* the callbacks belong to the parent process: a language binding may not
++		 * be able to run in the forked child (the LSL runtime aborts a callback
++		 * from another thread id), and _alpm_handle_free() logs */
++		alpm_option_set_logcb(handle, NULL, NULL);
++		alpm_option_set_dlcb(handle, NULL, NULL);
++		alpm_option_set_fetchcb(handle, NULL, NULL);
++		alpm_option_set_eventcb(handle, NULL, NULL);
++		alpm_option_set_questioncb(handle, NULL, NULL);
++		alpm_option_set_progresscb(handle, NULL, NULL);
+ 		_alpm_handle_free(handle);
+ 		execv(cmd, argv);
+ 		/* execv only returns if there was an error */
+-- 
+2.56.1
+

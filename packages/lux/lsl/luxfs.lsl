@@ -40,7 +40,8 @@ end
 # struct stat x86_64: st_mode +24 (u32), st_uid +28 (u32), st_size +48, st_atim +72, st_mtim +88
 function stat_fields(base):
     unsafe:
-        return {"mode": u32(__lsl_qbe_s32(__lsl_qbe_load32(base + 24))),
+        return {"dev": __lsl_qbe_load64(base), "ino": __lsl_qbe_load64(base + 8),
+                "mode": u32(__lsl_qbe_s32(__lsl_qbe_load32(base + 24))),
                 "uid": u32(__lsl_qbe_s32(__lsl_qbe_load32(base + 28))),
                 "size": __lsl_qbe_load64(base + 48),
                 "atime": [__lsl_qbe_load64(base + 72), __lsl_qbe_load64(base + 80)],
@@ -209,5 +210,101 @@ function machine():
             return ""
         end
         return glib.from_c(data(buffer) + 260)
+    end
+end
+
+O_EXCL = 128
+
+# Vytvori soubor jen kdyz neexistuje (O_CREAT|O_EXCL): True = vytvoren
+function create_excl(path, mode):
+    fd = open(path, O_WRONLY + O_CREAT + O_EXCL + O_CLOEXEC, mode)
+    if fd < 0:
+        return False
+    end
+    call close(fd)
+    return True
+end
+
+# Ceka na data na fd nejvys ms: True = da se cist
+function poll_readable(fd, ms):
+    unsafe:
+        pfd = __lsl_byte_zeros(8)
+        base = data(pfd)
+        call __lsl_qbe_store32(base, ptr(fd))
+        call __lsl_qbe_store32(base + 4, 1)
+        n = __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("poll"), base, 1, ptr(ms)))
+        return n > 0
+    end
+end
+
+# Jeden bajt z fd: -1 = konec nebo chyba
+function read_byte(fd):
+    unsafe:
+        b = __lsl_byte_zeros(1)
+        n = __lsl_qbe_call3(__lsl_symbol("read"), ptr(fd), data(b), 1)
+        if n != 1:
+            return -1
+        end
+        return __lsl_qbe_load8(data(b)) & 255
+    end
+end
+
+# Soubor jako seznam retezcu oddelenych NUL (/proc/PID/cmdline); [] pri chybe
+function read_nul_list(path, limit):
+    out = []
+    fd = open(path, O_RDONLY + O_CLOEXEC, 0)
+    if fd < 0:
+        return out
+    end
+    unsafe:
+        buf = __lsl_byte_zeros(limit + 1)
+        base = data(buf)
+        n = __lsl_qbe_call3(__lsl_symbol("read"), ptr(fd), base, ptr(limit))
+        i = 0
+        while n > 0 and i < n:
+            s = glib.from_c(base + i)
+            out.append(s)
+            i += __lsl_qbe_call1(__lsl_symbol("strlen"), base + i) + 1
+        end
+    end
+    call close(fd)
+    return out
+end
+
+# Sloupce terminalu na fd (ioctl TIOCGWINSZ), 0 = nezname
+function term_cols(fd):
+    unsafe:
+        ws = __lsl_byte_zeros(8)
+        if __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("ioctl"), ptr(fd), 21523, data(ws))) != 0:
+            return 0
+        end
+        return __lsl_qbe_load16(data(ws) + 2) & 65535
+    end
+end
+
+function getpid():
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call0(__lsl_symbol("getpid")))
+    end
+end
+
+function access_x(path):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("access"), cstr(path), 1)) == 0
+    end
+end
+
+function file_size(path):
+    st = stat(path)
+    if st == None:
+        return -1
+    end
+    return st["size"]
+end
+
+# Sdileny zamek s cekanim (LOCK_SH)
+function flock_sh(fd):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("flock"), ptr(fd), 1)) == 0
     end
 end

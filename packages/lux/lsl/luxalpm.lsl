@@ -292,7 +292,7 @@ function log_trampoline(level, fmt, args):
         message = text(base)
     end
     handler = log_state["handler"]
-    call handler(ptr(level), message)
+    call handler(s32(level), message)
     return 0
 end
 
@@ -316,7 +316,8 @@ function db_update(h, db, force):
         rc = __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("alpm_db_update"), ptr(h), ptr(dbs), ptr(flag)))
     end
     call list_free(dbs)
-    return rc
+    # 1 = databaze uz aktualni (_alpm_download), chyba je jen zaporna hodnota
+    return -1 if rc < 0 else 0
 end
 
 function db_pkgcache(db):
@@ -539,5 +540,327 @@ end
 function vercmp(a, b):
     unsafe:
         return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_pkg_vercmp"), cstr(a), cstr(b)))
+    end
+end
+
+# ---- dalsi volby handle (transakce) ----
+
+function set_usesyslog(h, value):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_option_set_usesyslog"), ptr(h), ptr(value)))
+    end
+end
+
+function set_disable_dl_timeout(h, value):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_option_set_disable_dl_timeout"), ptr(h), ptr(value)))
+    end
+end
+
+function set_sandboxuser(h, value):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_option_set_sandboxuser"), ptr(h), cstr(value)))
+    end
+end
+
+function option_dbpath(h):
+    unsafe:
+        return text(__lsl_qbe_call1(__lsl_symbol("alpm_option_get_dbpath"), ptr(h)))
+    end
+end
+
+function option_cachedirs(h):
+    unsafe:
+        return list_texts(__lsl_qbe_call1(__lsl_symbol("alpm_option_get_cachedirs"), ptr(h)))
+    end
+end
+
+# ---- transakce ----
+
+FLAG_NOSAVE = 4
+FLAG_CASCADE = 16
+FLAG_RECURSE = 32
+FLAG_ALLDEPS = 256
+FLAG_DOWNLOADONLY = 512
+FLAG_NEEDED = 8192
+
+ERR_DB_INVALID = 16
+ERR_DB_INVALID_SIG = 17
+ERR_PKG_INVALID = 35
+ERR_PKG_INVALID_CHECKSUM = 36
+ERR_PKG_INVALID_SIG = 37
+ERR_UNSATISFIED_DEPS = 45
+ERR_CONFLICTING_DEPS = 46
+ERR_FILE_CONFLICTS = 47
+
+function errno(h):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("alpm_errno"), ptr(h)))
+    end
+end
+
+function strerror(code):
+    unsafe:
+        return text(__lsl_qbe_call1(__lsl_symbol("alpm_strerror"), ptr(code)))
+    end
+end
+
+function trans_init(h, flags):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_trans_init"), ptr(h), ptr(flags)))
+    end
+end
+
+function trans_release(h):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("alpm_trans_release"), ptr(h)))
+    end
+end
+
+function trans_interrupt(h):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("alpm_trans_interrupt"), ptr(h)))
+    end
+end
+
+function add_pkg(h, pkg):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_add_pkg"), ptr(h), ptr(pkg)))
+    end
+end
+
+function remove_pkg(h, pkg):
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_remove_pkg"), ptr(h), ptr(pkg)))
+    end
+end
+
+function sync_sysupgrade(h, downgrade):
+    flag = 1 if downgrade else 0
+    unsafe:
+        return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_sync_sysupgrade"), ptr(h), ptr(flag)))
+    end
+end
+
+# [rc, data (alpm_list_t* podle errno, viz describe_data)]
+function trans_prepare(h):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        base = __lsl_qbe_load64(__lsl_address(cell) + 24)
+        rc = __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_trans_prepare"), ptr(h), base))
+        return [rc, __lsl_qbe_load64(base)]
+    end
+end
+
+function trans_commit(h):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        base = __lsl_qbe_load64(__lsl_address(cell) + 24)
+        rc = __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_trans_commit"), ptr(h), base))
+        return [rc, __lsl_qbe_load64(base)]
+    end
+end
+
+function trans_add(h):
+    unsafe:
+        return list_items(__lsl_qbe_call1(__lsl_symbol("alpm_trans_get_add"), ptr(h)))
+    end
+end
+
+function trans_remove(h):
+    unsafe:
+        return list_items(__lsl_qbe_call1(__lsl_symbol("alpm_trans_get_remove"), ptr(h)))
+    end
+end
+
+# Soubor balicku -> [rc, pkg]
+function pkg_load(h, path, level):
+    unsafe:
+        cell = __lsl_byte_zeros(8)
+        base = __lsl_qbe_load64(__lsl_address(cell) + 24)
+        rc = __lsl_qbe_s32(__lsl_qbe_call5(__lsl_symbol("alpm_pkg_load"), ptr(h), cstr(path), 1, ptr(level), base))
+        return [rc, __lsl_qbe_load64(base)]
+    end
+end
+
+function pkg_filename(pkg):
+    unsafe:
+        p = __lsl_qbe_call1(__lsl_symbol("alpm_pkg_get_filename"), ptr(pkg))
+        if p == 0:
+            return ""
+        end
+        return text(p)
+    end
+end
+
+function pkg_optionalfor(pkg):
+    unsafe:
+        l = __lsl_qbe_call1(__lsl_symbol("alpm_pkg_compute_optionalfor"), ptr(pkg))
+        out = list_texts(l)
+        call list_free_texts(l)
+        return out
+    end
+end
+
+function pkg_name_version(pkg):
+    return pkg_name(pkg) + "-" + pkg_version(pkg)
+end
+
+function dep_string(dep):
+    unsafe:
+        s = __lsl_qbe_call1(__lsl_symbol("alpm_dep_compute_string"), ptr(dep))
+        out = text(s)
+        call __lsl_qbe_call1(__lsl_symbol("free"), s)
+        return out
+    end
+end
+
+function cstr_or(p, fallback):
+    if p == 0:
+        return fallback
+    end
+    return text(p)
+end
+
+# Data k chybe prepare/commit jako radky ve stylu pacmanu
+function describe_data(code, data):
+    out = []
+    unsafe:
+        for item in list_items(data):
+            it = ptr(item)
+            if code == ERR_UNSATISFIED_DEPS:
+                # alpm_depmissing_t {target, depend, causingpkg}
+                out.append("unable to satisfy dependency '" + dep_string(__lsl_qbe_load64(it + 8)) + "' required by "
+                           + cstr_or(__lsl_qbe_load64(it), "?"))
+            elif code == ERR_CONFLICTING_DEPS:
+                # alpm_conflict_t {package1, package2, reason}
+                out.append(pkg_name_version(__lsl_qbe_load64(it)) + " and " + pkg_name_version(__lsl_qbe_load64(it + 8))
+                           + " are in conflict")
+            elif code == ERR_FILE_CONFLICTS:
+                # alpm_fileconflict_t {target, type, file, ctarget}
+                owner = cstr_or(__lsl_qbe_load64(it + 24), "")
+                line = cstr_or(__lsl_qbe_load64(it), "?") + ": " + cstr_or(__lsl_qbe_load64(it + 16), "?") + " exists in filesystem"
+                if owner != "":
+                    line = line + " (owned by " + owner + ")"
+                end
+                out.append(line)
+            else:
+                out.append(cstr_or(it, ""))
+            end
+        end
+    end
+    return [d for d in out if d != ""]
+end
+
+# ---- callbacky (dlcb, progresscb, eventcb, questioncb); handler dostane uz rozlozena data ----
+
+cb_state = {"dl": None, "progress": None, "event": None, "question": None, "records": {}}
+
+function s32(value):
+    unsafe:
+        return __lsl_qbe_s32(ptr(value))
+    end
+end
+
+# alpm_cb_download(ctx, filename, event, data): handler(soubor, udalost, a, b)
+#   INIT 0, PROGRESS 1 (stazeno, celkem), RETRY 2, COMPLETED 3 (celkem, vysledek)
+function dl_trampoline(filename, event, data):
+    ev = s32(event)
+    a = 0
+    b = 0
+    unsafe:
+        d = ptr(data)
+        if d != 0 and ev == 1:
+            a = __lsl_qbe_load64(d)
+            b = __lsl_qbe_load64(d + 8)
+        elif d != 0 and ev == 3:
+            a = __lsl_qbe_load64(d)
+            b = __lsl_qbe_s32(__lsl_qbe_load32(d + 8))
+        end
+    end
+    handler = cb_state["dl"]
+    call handler(cstr_or(ptr(filename), ""), ev, a, b)
+    return 0
+end
+
+# alpm_cb_progress(ctx, progress, pkg, percent, howmany, current)
+function progress_trampoline(progress, pkg, percent, howmany, current):
+    handler = cb_state["progress"]
+    call handler(s32(progress), cstr_or(ptr(pkg), ""), s32(percent), ptr(howmany), ptr(current))
+    return 0
+end
+
+# alpm_cb_event(ctx, event): handler(typ, text, pozice, celkem)
+#   SCRIPTLET_INFO 17 {line}; HOOK_RUN_START/DONE 36/37 {name, desc, position, total}
+function event_trampoline(event):
+    t = ""
+    pos = 0
+    total = 0
+    unsafe:
+        e = ptr(event)
+        ev = __lsl_qbe_s32(__lsl_qbe_load32(e))
+        if ev == 17:
+            t = cstr_or(__lsl_qbe_load64(e + 8), "")
+        elif ev == 36 or ev == 37:
+            t = cstr_or(__lsl_qbe_load64(e + 16), "")
+            if t == "":
+                t = cstr_or(__lsl_qbe_load64(e + 8), "")
+            end
+            pos = __lsl_qbe_load64(e + 24)
+            total = __lsl_qbe_load64(e + 32)
+        end
+    end
+    handler = cb_state["event"]
+    call handler(ev, t, pos, total)
+    return 0
+end
+
+# alpm_cb_question(ctx, question): handler(typ, text) -> odpoved (int na offsetu 4)
+#   CORRUPTED_PKG 8: text = cesta souboru; IMPORT_KEY 64: text = uid; REPLACE_PKG 2: "stary -> novy"
+function question_trampoline(question):
+    unsafe:
+        q = ptr(question)
+        qt = __lsl_qbe_s32(__lsl_qbe_load32(q))
+        t = ""
+        if qt == 8 or qt == 64:
+            t = cstr_or(__lsl_qbe_load64(q + 8), "")
+        elif qt == 2:
+            t = pkg_name(__lsl_qbe_load64(q + 8)) + " -> " + pkg_name(__lsl_qbe_load64(q + 16))
+        end
+        handler = cb_state["question"]
+        answer = handler(qt, t)
+        call __lsl_qbe_store32(q + 4, ptr(answer))
+    end
+    return 0
+end
+
+function set_callbacks(h, dl, progress, event, question):
+    cb_state["dl"] = dl
+    cb_state["progress"] = progress
+    cb_state["event"] = event
+    cb_state["question"] = question
+    recs = cb_state["records"]
+    if len(recs) == 0:
+        recs["dl"] = glib.record_new(dl_trampoline, 3)
+        recs["progress"] = glib.record_new(progress_trampoline, 5)
+        recs["event"] = glib.record_new(event_trampoline, 1)
+        recs["question"] = glib.record_new(question_trampoline, 1)
+    end
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("alpm_option_set_dlcb"), ptr(h), glib.callback_first(), ptr(recs["dl"]))
+        call __lsl_qbe_call3(__lsl_symbol("alpm_option_set_progresscb"), ptr(h), glib.callback_first(), ptr(recs["progress"]))
+        call __lsl_qbe_call3(__lsl_symbol("alpm_option_set_eventcb"), ptr(h), glib.callback_first(), ptr(recs["event"]))
+        call __lsl_qbe_call3(__lsl_symbol("alpm_option_set_questioncb"), ptr(h), glib.callback_first(), ptr(recs["question"]))
+    end
+    return 0
+end
+
+# Balicek ze seznamu, ktery splnuje zavislost (alpm_find_satisfier); 0 = zadny
+function find_satisfier_pkgs(pkgs, dep):
+    unsafe:
+        l = list_new(pkgs)
+        p = __lsl_qbe_call2(__lsl_symbol("alpm_find_satisfier"), ptr(l), cstr(dep))
+        call list_free(l)
+        return p
     end
 end
