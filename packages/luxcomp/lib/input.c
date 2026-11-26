@@ -555,6 +555,14 @@ hit_test(double x, double y, struct view **view_out, struct layer **layer_out,
 
 /* Posledni tvar kurzoru od klienta pod ukazatelem; NULL = klient ma vlastni obrazek (nebo zadny) */
 static const char *client_shape;
+static struct wlr_seat_client *cursor_surface_owner;
+
+static void
+set_theme_cursor(struct wlr_xcursor_manager *manager, const char *name)
+{
+	cursor_surface_owner = NULL;
+	wlr_cursor_set_xcursor(comp.cursor, manager, name);
+}
 
 /* Sipka behem spousteni aplikace = animovany "progress" (launch_busy) */
 static const char *
@@ -574,9 +582,9 @@ cursor_busy_update(void)
 		return;
 	}
 	if (!comp.seat->pointer_state.focused_surface) {
-		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name("default"));
+		set_theme_cursor(comp.cursor_mgr, pointer_name("default"));
 	} else if (client_shape) {
-		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name(client_shape));
+		set_theme_cursor(comp.cursor_mgr, pointer_name(client_shape));
 	}
 }
 
@@ -718,7 +726,7 @@ process_motion(uint32_t time)
 		wlr_seat_pointer_notify_enter(comp.seat, surface, sx, sy);
 		wlr_seat_pointer_notify_motion(comp.seat, time, sx, sy);
 	} else {
-		wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name("default"));
+		set_theme_cursor(comp.cursor_mgr, pointer_name("default"));
 		wlr_seat_pointer_clear_focus(comp.seat);
 	}
 	gaming_pointer_update();
@@ -860,6 +868,7 @@ request_cursor(struct wl_listener *listener, void *data)
 	struct wlr_seat_pointer_request_set_cursor_event *e = data;
 	if (comp.seat->pointer_state.focused_client == e->seat_client) {
 		client_shape = NULL;
+		cursor_surface_owner = e->seat_client;
 		wlr_cursor_set_surface(comp.cursor, e->surface, e->hotspot_x, e->hotspot_y);
 	}
 }
@@ -879,7 +888,7 @@ request_shape(struct wl_listener *listener, void *data)
 		name = "default";
 	}
 	client_shape = name;
-	wlr_cursor_set_xcursor(comp.cursor, comp.cursor_mgr, pointer_name(name));
+	set_theme_cursor(comp.cursor_mgr, pointer_name(name));
 }
 
 static void
@@ -1202,8 +1211,11 @@ luxcomp_set_cursor(const char *theme, int64_t size)
 	size = size > 0 ? size : 24;
 	struct wlr_xcursor_manager *mgr =
 		wlr_xcursor_manager_create(theme && *theme ? theme : NULL, size);
-	/* wlr_cursor muze drzet obrazek stareho manazeru, proto nejdriv prepnout */
-	wlr_cursor_set_xcursor(comp.cursor, mgr, "default");
+	/* Vlastni nebo skryty kurzor klienta nezavisi na manazeru tematu.
+	 * Obrazek ze stareho tematu se musi prepnout pred uvolnenim manazeru. */
+	if (!cursor_surface_owner || cursor_surface_owner != comp.seat->pointer_state.focused_client) {
+		set_theme_cursor(mgr, "default");
+	}
 	wlr_xcursor_manager_destroy(comp.cursor_mgr);
 	comp.cursor_mgr = mgr;
 	cursor_rebase();

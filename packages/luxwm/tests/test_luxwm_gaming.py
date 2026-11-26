@@ -381,6 +381,41 @@ class Gaming(unittest.TestCase):
         self.assertEqual(total, (70, -40), x.since(mark))
         print(f"\n  xwayland: locked, {len(deltas)} X motion events, sum {total}", file=sys.stderr)
 
+    @unittest.skipUnless(os.path.exists(XWAYLAND) and os.path.exists(os.path.join(SYSROOT, "usr/bin/grim"))
+                         and os.path.exists("/usr/include/X11/extensions/Xfixes.h"),
+                         "Xwayland, grim and libXfixes headers")
+    def test_xwayland_game_cursor_stays_hidden_on_reload(self):
+        wrapper = os.path.join(ROOT, "packages/luxcomp/xwayland-sw")
+        s = self.session(size="800x600", env=f"LUXCOMP_XWAYLAND_WRAPPER={wrapper}")
+        display = s.log().split("xwayland ")[1].split()[0]
+        x = Probe(self, s, "env", f"DISPLAY={display}", self.xprobe, "--fullscreen")
+        x.wait("mapped")
+        s.input("move 380 290", "move 410 315", wait=0.8)
+        x.wait("grab 0")
+        self.assertEqual(seat(s)["pointer"], 1)
+
+        def capture():
+            path = os.path.join(s.dir, "cursor.ppm")
+            grim = os.path.join(SYSROOT, "usr/bin/grim")
+            subprocess.run([WLT, "run", s.dir, grim, "-c", "-t", "ppm", path], check=True)
+            with open(path, "rb") as image:
+                return image.read()
+
+        # Testovaci hra kresli jednolitou cernou. Pixman muze softwarovy kurzor zachytit i bez grim -c.
+        deadline = time.monotonic() + 3
+        before = capture()
+        while any(before.split(b"\n", 3)[3]) and time.monotonic() < deadline:
+            time.sleep(0.1)
+            before = capture()
+        self.assertFalse(any(before.split(b"\n", 3)[3]), "the game starts with its cursor hidden")
+        os.kill(s.pid, signal.SIGHUP)
+        deadline = time.monotonic() + 5
+        while "configuration reloaded" not in s.log() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertIn("configuration reloaded", s.log())
+        self.assertEqual(seat(s)["pointer"], 1)
+        self.assertTrue(capture() == before, "reload must preserve the hidden cursor")
+
     def test_fullscreen_from_start(self):
         """Hra (SDL, mpv --fs) chce celou obrazovku uz pred prvnim commitem: prvni configure v plne velikosti"""
         s = self.session()
