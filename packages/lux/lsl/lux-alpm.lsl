@@ -2,8 +2,9 @@
 #
 # Stejne rozhrani jako lux_alpm.py (lux, Obchod a Aktualizace ho volaji primo):
 #   lux-alpm [-v] [--machine] [--color auto|always|never] [--lang JAZYK] [--datasaver] PRIKAZ ...
-# Faze 1 (tento soubor): prikazy jen pro cteni - search, info, list, files, owns, resolve. Vystup je znak
-# po znaku stejny jako u Python verze (tests/test_lux_alpm_lsl_parity.py ho porovnava na zivem systemu).
+# Hotovo: prikazy jen pro cteni (search, info, list, files, owns, resolve), available a check-updates
+# (obnova databazi do docasne kopie jako checkupdates). Vystup je znak po znaku stejny jako u Python
+# verze; parity.sh ho porovnava na zivem systemu. Transakce (install/remove/upgrade, sync, clean) chybi.
 # Konfiguraci jadra zatim bere z `lux-config dump` (syntaxe pacman.conf); lux_config.py prijde na radu
 # v dalsi fazi.
 load env
@@ -13,6 +14,7 @@ load luxos_i18n as i18n
 load luxos_sys as sys
 load luxos_glib as lglib
 load process
+load luxfs as fs
 
 EXIT_UNAVAILABLE = 3
 DEFAULT_DBPATH = "/var/lib/lux/"
@@ -23,13 +25,14 @@ ENGINE_DEFAULTS = [["RootDir", "/"], ["DBPath", DEFAULT_DBPATH], ["CacheDir", DE
 PKG_SUFFIXES = [".pkg.tar", ".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".pkg.tar.bz2", ".pkg.tar.lz4",
                 ".pkg.tar.lzo", ".pkg.tar.lrz", ".pkg.tar.Z"]
 
+DETAIL_LINES = 6
 ui = {"machine": False, "tty": False, "color": False, "verbose": False}
 lux = {"h": 0, "conf": None}
 
 # ---- chyby ----
 
-function LuxError(kind, message, rc=1):
-    return {"lux_error": True, "kind": kind, "message": message, "rc": rc}
+function LuxError(kind, message, rc=1, details=None):
+    return {"lux_error": True, "kind": kind, "message": message, "rc": rc, "details": details if details != None else []}
 end
 
 function _(text):
@@ -346,8 +349,7 @@ function parse_siglevel(tokens, base):
 end
 
 function machine_arch():
-    r = process_capture(["uname", "-m"])
-    return r[1].strip()
+    return fs.machine()
 end
 
 # Handle libalpm nastaveny jako jadro (build_handle v lux_alpm.py); jen to, co potrebuji cteci prikazy
@@ -939,9 +941,201 @@ function cmd_resolve(args):
     return 0
 end
 
+# ---- zpravy libalpm (Callbacks.log v lux_alpm.py) ----
+
+LOG_ERROR = 1
+LOG_WARNING = 2
+log_seen = {"hosts": []}
+
+function on_alpm_log(level, message):
+    msg = message.rstrip()
+    if msg == "":
+        return 0
+    end
+    if level == LOG_ERROR:
+        call compat("error: " + msg)
+        # "failed retrieving file 'x' from HOST : ..." - jednou na server
+        at = msg.find("failed retrieving file '")
+        if at >= 0 and not ui["machine"]:
+            rest = msg[at + 24:]
+            q = rest.find("' from ")
+            if q >= 0:
+                host = rest[q + 7:]
+                colon = host.find(":")
+                if colon >= 0:
+                    host = host[0:colon]
+                end
+                host = host.strip()
+                if host != "" and not (host in log_seen["hosts"]):
+                    log_seen["hosts"].append(host)
+                    call write(dim("  ↻ " + i18n.TF("Server %s is not responding, trying another one…", [host])), True)
+                end
+            end
+        end
+    elif level == LOG_WARNING:
+        call compat("warning: " + msg)
+        if ui["verbose"] and not ui["machine"]:
+            call write(yellow("! ") + msg, True)
+        end
+    end
+    return 0
+end
+
+# ---- kontrola aktualizaci ----
+
+CHECK_UPDATES_WAIT_MS = 300000   # jak dlouho check-updates ceka na jinou probihajici kontrolu
+check_lock = {"fd": -1}
+
+function check_updates_db(path):
+    if path != None:
+        return path
+    end
+    base = env.get("TMPDIR", "")
+    if base == "":
+        base = "/tmp"
+    end
+    return base + "/lux-checkupdates-" + String(fs.getuid())
+end
+
+# Kopie konfigurace s jinymi volbami (with_options v lux_config.py)
+function conf_with(conf, options, drop):
+    opts = {}
+    for k in conf["options"]:
+        if not (k in drop):
+            opts[k] = conf["options"][k]
+        end
+    end
+    for k in options:
+        opts[k] = [options[k]]
+    end
+    return {"options": opts, "repos": conf["repos"]}
+end
+
+# Jako checkupdates z pacman-contrib: databaze repozitaru se obnovi do docasne kopie (bez zamku a prav
+# roota), systemova databaze se nemeni. 0 = jsou aktualizace, 2 = nejsou, 1 = chyba.
+function cmd_check_updates(args):
+    conf = lux["conf"]
+    real = conf_get(conf, "DBPath", DEFAULT_DBPATH)
+    if not real.endswith("/"):
+        real = real + "/"
+    end
+    tmp = check_updates_db(args["db"])
+    # nejdriv overit slozku (v /tmp ji mohl predem zalozit nekdo jiny, i jako odkaz), az pak do ni zapisovat
+    call fs.mkdir(tmp, 448)
+    st = fs.lstat(tmp)
+    if st == None or st["uid"] != fs.getuid() or not fs.is_dir_mode(st):
+        return LuxError("permission", tmp + " does not belong to this user")
+    end
+    call fs.mkdir(tmp + "/sync", 448)
+    # Obchod, Pece a terminal kontroluji do stejne slozky: dalsi beh pocka na prvni. Kdo drzi flock,
+    # je jediny uzivatel slozky, takze db.lck je zbytek preruseneho behu.
+    fd = fs.open(tmp + "/.check-updates.lock", fs.O_WRONLY + fs.O_CREAT + fs.O_APPEND + fs.O_CLOEXEC, 420)
+    check_lock["fd"] = fd
+    deadline = fs.monotonic_ms() + CHECK_UPDATES_WAIT_MS
+    while not fs.flock_nb(fd):
+        if fs.monotonic_ms() > deadline:
+            return LuxError("locked", _("Another update check is still running. Try again later."))
+        end
+        call fs.sleep_ms(500)
+    end
+    call fs.unlink(tmp + "/db.lck")
+    local = tmp + "/local"
+    target = real + "local"
+    if is_link(local) and lglib.readlink(local) != target:
+        call fs.unlink(local)
+    end
+    if not sys.lexists(local):
+        call fs.symlink(target, local)
+    end
+    # posledni stazene databaze systemu jako zaklad (stahuje se jen to, co se zmenilo); databaze
+    # a jeji podpis vzdy spolu, stary podpis k novejsi databazi by neprosel overenim
+    for f in sys.list_dir(real + "sync"):
+        if not f.endswith(".db"):
+            continue
+        end
+        a = real + "sync/" + f
+        b = tmp + "/sync/" + f
+        if fs.is_file(a) and (not exists(b) or fs.mtime_ns(a) > fs.mtime_ns(b)):
+            call fs.copy2(a, b)
+            if fs.is_file(a + ".sig"):
+                call fs.copy2(a + ".sig", b + ".sig")
+            elif exists(b + ".sig"):
+                call fs.unlink(b + ".sig")
+            end
+        end
+    end
+    opts = {"DBPath": tmp + "/", "LogFile": "/dev/null"}
+    if fs.geteuid() != 0:
+        # gpgme potrebuje do slozky klicu zapisovat (zamky, trustdb); /etc/lux/keyring patri rootovi
+        gdir = conf_get(conf, "GPGDir", "/etc/lux/keyring/")
+        if not gdir.endswith("/"):
+            gdir = gdir + "/"
+        end
+        mine = tmp + "/gnupg"
+        call fs.mkdir(mine, 448)
+        for f in ["pubring.gpg", "pubring.kbx", "trustdb.gpg", "gpg.conf"]:
+            if fs.is_file(gdir + f) and (not exists(mine + "/" + f) or fs.mtime_ns(gdir + f) > fs.mtime_ns(mine + "/" + f)):
+                call fs.copy2(gdir + f, mine + "/" + f)
+            end
+        end
+        opts["GPGDir"] = mine + "/"
+    end
+    tconf = conf_with(conf, opts, ["DownloadUser"])
+    th = build_handle(tconf)
+    call alpm.set_logcb(th, on_alpm_log)
+    failed = []
+    for r in tconf["repos"]:
+        if not ("Sync" in usage_mask(r.get("Usage", []))):
+            continue
+        end
+        db = 0
+        for d in alpm.syncdbs(th):
+            if alpm.db_name(d) == r["name"]:
+                db = d
+            end
+        end
+        if alpm.db_update(th, db, False) != 0:
+            # kopie ze systemu nemusi sedet (databaze a podpis z ruznych chvil): zahodit a stahnout nacisto
+            call fs.unlink(tmp + "/sync/" + r["name"] + ".db")
+            call fs.unlink(tmp + "/sync/" + r["name"] + ".db.sig")
+            if alpm.db_update(th, db, True) != 0:
+                failed.append(r["name"] + ": unable to update database")
+            end
+        end
+    end
+    if len(failed) > 0:
+        return LuxError("refresh", _("The package lists could not be refreshed. Check your internet connection and try again."), 1, failed)
+    end
+    allowed = [r["name"] for r in tconf["repos"] if "Upgrade" in usage_mask(r.get("Usage", []))]
+    dbs = [d for d in alpm.syncdbs(th) if alpm.db_name(d) in allowed]
+    n = 0
+    for p in sort_by_name(alpm.db_pkgcache(alpm.localdb(th))):
+        new = alpm.sync_new_version(p, dbs)
+        if new == 0:
+            continue
+        end
+        n += 1
+        call write(alpm.pkg_name(p) + " " + alpm.pkg_version(p) + " -> " + alpm.pkg_version(new))
+    end
+    return 0 if n > 0 else 2
+end
+
+function cmd_available(args):
+    if args["verbose"]:
+        for k in ["RootDir", "DBPath", "GPGDir", "LogFile", "CacheDir", "HookDir", "Architecture", "IgnorePkg"]:
+            call write(k + ": " + ", ".join(conf_list(lux["conf"], k)))
+        end
+        for d in alpm.syncdbs(h()):
+            call write("[" + alpm.db_name(d) + "]")
+        end
+    end
+    call write("ok")
+    return 0
+end
+
 # ---- prikazova radka ----
 
-COMMANDS = ["search", "info", "list", "files", "owns", "resolve"]
+COMMANDS = ["search", "info", "list", "files", "owns", "resolve", "check-updates", "available"]
 LIST_MODES = ["explicit", "foreign", "orphans", "sync", "upgradable"]
 
 function usage_error(message):
@@ -990,15 +1184,27 @@ function parse_args(argv):
     if not (cmd in COMMANDS):
         return [None, "argument cmd: invalid choice: '" + cmd + "'"]
     end
-    args = {"cmd": cmd, "installed": False, "sync": False, "mode": None, "pattern": None}
+    args = {"cmd": cmd, "installed": False, "sync": False, "mode": None, "pattern": None, "db": None,
+            "verbose": opts["verbose"]}
     pos = []
-    for a in rest:
+    j = 0
+    while j < len(rest):
+        a = rest[j]
+        j += 1
         if cmd == "search" and a == "--installed":
             args["installed"] = True
         elif cmd == "info" and a == "--sync":
             args["sync"] = True
         elif cmd == "list" and a.startswith("--") and a[2:] in LIST_MODES:
             args["mode"] = a[2:]
+        elif cmd == "check-updates" and a == "--db":
+            if j >= len(rest):
+                return [None, "argument --db: expected one argument"]
+            end
+            args["db"] = rest[j]
+            j += 1
+        elif cmd == "check-updates" and a.startswith("--db="):
+            args["db"] = a[5:]
         elif a.startswith("-") and a != "-":
             return [None, "unrecognized arguments: " + a]
         else:
@@ -1027,6 +1233,8 @@ function parse_args(argv):
             return [None, "the following arguments are required: paths"]
         end
         args["paths"] = pos
+    elif (cmd == "check-updates" or cmd == "available") and len(pos) > 0:
+        return [None, "unrecognized arguments: " + " ".join(pos)]
     elif cmd == "resolve":
         if len(pos) == 0:
             return [None, "the following arguments are required: targets"]
@@ -1048,6 +1256,10 @@ function dispatch(args):
         return cmd_files(args)
     elif cmd == "owns":
         return cmd_owns(args)
+    elif cmd == "check-updates":
+        return cmd_check_updates(args)
+    elif cmd == "available":
+        return cmd_available(args)
     end
     return cmd_resolve(args)
 end
@@ -1088,6 +1300,26 @@ function main():
             rc = result["rc"]
             call emit(["ERROR", result["kind"], result["message"]])
             call fail(result["message"])
+            details = result.get("details", [])
+            if len(details) > 0 and (opts["verbose"] or ui["machine"]):
+                for d in details:
+                    call write(("" if ui["machine"] else "  ") + String(d), True)
+                end
+            elif len(details) > 0 and not (result["kind"] in ["cancelled", "notfound", "confirm"]):
+                shown = []
+                for d in details:
+                    t = String(d).strip()
+                    if t != "" and not (t in shown):
+                        shown.append(t)
+                    end
+                end
+                for d in shown[0:DETAIL_LINES]:
+                    call write(dim("  " + d), True)
+                end
+                if len(shown) > DETAIL_LINES:
+                    call write(dim("  " + _("More details: run the command again with --verbose")))
+                end
+            end
         else:
             rc = result
         end

@@ -13,6 +13,7 @@ cases=(
  "list" "list --explicit" "list --foreign" "list --orphans" "list --upgradable" "list --sync" "list lib" "list --sync qt6"
  "files glibc" "files neexistuje" "owns /usr/bin/bash" "owns bash" "owns /etc/" "owns /neni/takovy" "owns /usr/lib/libc.so.6 /usr/bin/ls"
  "resolve glibc base-devel sh neexistuje extra/vim"
+ "available" "check-updates"
 )
 for lng in en_US.UTF-8 cs_CZ.UTF-8; do for mode in "" "--color always" "--machine"; do for c in "${cases[@]}"; do
   n=$((n+1))
@@ -23,5 +24,12 @@ for lng in en_US.UTF-8 cs_CZ.UTF-8; do for mode in "" "--color always" "--machin
     diff <(echo "$a"; echo "--stderr--"; echo "$ae") <(echo "$b"; echo "--stderr--"; echo "$be") | head -8
   fi
 done; done; done
+# bez site (unshare -rn): chyby libalpm a hlaska o seznamech baliku; kazda strana ma vlastni cistou slozku
+for mode in "" "--machine" "-v"; do
+  n=$((n+1)); rm -rf "$t/np" "$t/nl"
+  a=$(unshare -rn $PY $mode check-updates --db "$t/np" 2>&1; echo "rc=$?")
+  b=$(unshare -rn $LSL $mode check-updates --db "$t/nl" 2>&1; echo "rc=$?")
+  [[ "$a" == "$b" ]] || { fails=$((fails+1)); echo "=== ROZDIL: bez site $mode check-updates"; diff <(echo "$a") <(echo "$b") | head -8; }
+done
 echo "shoda $((n-fails))/$n"
 [[ $fails == 0 ]]

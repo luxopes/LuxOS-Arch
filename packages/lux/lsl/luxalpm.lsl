@@ -153,7 +153,7 @@ function last_error(h):
         if ptr(h) != 0:
             code = __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("alpm_errno"), ptr(h)))
         end
-        return text(__lsl_qbe_call1(__lsl_symbol("alpm_strerror"), code))
+        return text(__lsl_qbe_call1(__lsl_symbol("alpm_strerror"), ptr(code)))
     end
 end
 
@@ -277,6 +277,46 @@ function db_set_usage(db, usage):
     unsafe:
         return __lsl_qbe_s32(__lsl_qbe_call2(__lsl_symbol("alpm_db_set_usage"), ptr(db), ptr(usage)))
     end
+end
+
+# ---- zpravy libalpm ----
+
+log_state = {"handler": None, "record": 0}
+
+# alpm_cb_log(ctx, level, fmt, va_list): text slozi vsnprintf, handler(level, text)
+function log_trampoline(level, fmt, args):
+    unsafe:
+        buffer = __lsl_byte_zeros(4096)
+        base = __lsl_qbe_load64(__lsl_address(buffer) + 24)
+        call __lsl_qbe_call4(__lsl_symbol("vsnprintf"), base, 4095, ptr(fmt), ptr(args))
+        message = text(base)
+    end
+    handler = log_state["handler"]
+    call handler(ptr(level), message)
+    return 0
+end
+
+function set_logcb(h, handler):
+    log_state["handler"] = handler
+    if log_state["record"] == 0:
+        log_state["record"] = glib.record_new(log_trampoline, 3)
+    end
+    unsafe:
+        call __lsl_qbe_call3(__lsl_symbol("alpm_option_set_logcb"), ptr(h), glib.callback_first(), ptr(log_state["record"]))
+    end
+    return 0
+end
+
+# Obnovi jednu databazi ze serveru (alpm_db_update se seznamem o jedne polozce); 0 = ok (i "aktualni"),
+# -1 = chyba (last_error)
+function db_update(h, db, force):
+    dbs = list_new([db])
+    flag = 1 if force else 0
+    unsafe:
+        rc = __lsl_qbe_s32(__lsl_qbe_call3(__lsl_symbol("alpm_db_update"), ptr(h), ptr(dbs), ptr(flag)))
+    end
+    call list_free(dbs)
+    return rc
 end
 
 function db_pkgcache(db):
