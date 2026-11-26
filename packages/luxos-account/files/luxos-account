@@ -217,7 +217,7 @@ def computer_name():
 
 
 class AccountWindow(Gtk.Window):
-    def __init__(self, login_mode, start_mode="password"):
+    def __init__(self, login_mode, start_mode="password", login_message=None):
         super().__init__(title=_("LuxAI Account"))
         self.login_mode = login_mode
         self.start_mode = start_mode
@@ -232,7 +232,10 @@ class AccountWindow(Gtk.Window):
         # fotka zmenena v Profilove fotce: po navratu do okna ukazat novou
         self.photos = []
         self.connect("focus-in-event", lambda *_a: [p.reload() for p in self.photos] and False)
-        self.show_page()
+        if login_mode:
+            self.show_login(login_message, mode=start_mode)
+        else:
+            self.show_page()
 
     def page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=24)
@@ -934,19 +937,30 @@ class AccountWindow(Gtk.Window):
 
 
 def main():
-    login_mode = len(sys.argv) > 1 and sys.argv[1] in ("login", "register")
-    if login_mode and acc.load():
-        return 0
+    command = sys.argv[1] if len(sys.argv) > 1 else ""
+    login_mode = command in ("login", "register")
+    message = None
+    cached = acc.load() if login_mode else None
+    if cached:
+        if command == "register":
+            return 0
+        # Existujici soubor muze obsahovat vyprselou relaci. Overeni pouze cte.
+        try:
+            acc.get_profile(cached, timeout=4, attempts=1)
+        except acc.AccountError as err:
+            message = human(err)
+        else:
+            return 0
     GLib.set_prgname("luxos-account")
     provider = Gtk.CssProvider()
     provider.load_from_data(CSS)
     Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-    win = AccountWindow(login_mode, "register" if sys.argv[1:2] == ["register"] else "password")
+    win = AccountWindow(login_mode, "register" if command == "register" else "password", message)
     win.connect("destroy", Gtk.main_quit)
     win.show_all()
     Gtk.main()
-    return 0 if (not login_mode or acc.load()) else 1
+    return 0 if (not login_mode or win.signed_in) else 1
 
 
 if __name__ == "__main__":

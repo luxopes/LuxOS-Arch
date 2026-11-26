@@ -19,6 +19,7 @@ import sys
 import tempfile
 import time
 from importlib.machinery import SourceFileLoader
+from pathlib import Path
 # Jen virtualni X z xvfb-run (nebo vyslovne LUXOS_TEST_X=1 ve VM) - nikdy skutecna obrazovka
 if "xvfb-run" not in os.environ.get("XAUTHORITY", "") and os.environ.get("LUXOS_TEST_X") != "1":
     sys.exit("Run under xvfb-run (or LUXOS_TEST_X=1 in a VM) - never on a real display.")
@@ -40,7 +41,7 @@ import luxai_account as acc  # noqa: E402
 import luxai_account_gtk as accgtk  # noqa: E402
 import luxos_i18n  # noqa: E402
 app = SourceFileLoader("luxos_account_app", os.path.join(FILES, "luxos-account")).load_module()
-from gi.repository import Gdk, Gtk  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 _ = luxos_i18n._
 FAILS = []
@@ -390,8 +391,66 @@ def focus_hint():
         win.destroy()
 
 
+def login_command():
+    """Příkaz, který LuxAI volá po kliknutí na „Sign in again“."""
+    set_lang("en")
+    email = "jan@example.cz"
+    SRV.accounts[email] = {"password": PW, "displayName": "Jan"}
+    active = SRV.session(email)
+    path = Path(acc.ACCOUNT_FILE)
+    acc.save(active["sessionToken"], active["user"])
+    saved = path.read_bytes()
+    sys.argv.append("login")
+    try:
+        def close_login():
+            win = next(w for w in Gtk.Window.list_toplevels() if isinstance(w, app.AccountWindow))
+            check("login: vypršelá relace zobrazí přihlášení",
+                  isinstance(getattr(win, "panel", None), accgtk.SignInPanel)
+                  and win.status.get_text() == _("Your session has expired. Please sign in again."))
+            win.destroy()
+            return False
+
+        idle = GLib.idle_add(close_login)
+        check("login: platná relace se ověří bez otevření okna", app.main() == 0
+              and GLib.MainContext.default().find_source_by_id(idle) is not None)
+        if GLib.MainContext.default().find_source_by_id(idle):
+            GLib.source_remove(idle)
+        check("login: ověření nemění uložený účet", path.read_bytes() == saved)
+
+        del SRV.sessions[active["sessionToken"]]
+        idle = GLib.idle_add(close_login)
+        check("login: zavření po vypršení vrátí neúspěch", app.main() == 1)
+        if GLib.MainContext.default().find_source_by_id(idle):
+            GLib.source_remove(idle)
+        check("login: zavření zachová uložený účet", path.read_bytes() == saved)
+
+        def sign_in():
+            win = next(w for w in Gtk.Window.list_toplevels() if isinstance(w, app.AccountWindow))
+            win.panel.pw_email.set_text(email)
+            win.panel.pw_pass.set_text(PW)
+            win.panel.password_login()
+            return False
+
+        def close_on_timeout():
+            for win in Gtk.Window.list_toplevels():
+                if isinstance(win, app.AccountWindow):
+                    win.destroy()
+            return False
+
+        idle = GLib.idle_add(sign_in)
+        timeout = GLib.timeout_add_seconds(5, close_on_timeout)
+        check("login: nové přihlášení nahradí vypršelou relaci", app.main() == 0
+              and acc.load()["sessionToken"] in SRV.sessions and path.read_bytes() != saved)
+        for source in (idle, timeout):
+            if GLib.MainContext.default().find_source_by_id(source):
+                GLib.source_remove(source)
+    finally:
+        sys.argv.pop()
+
+
 def main():
     focus_hint()
+    login_command()
     if SHOTS:
         os.makedirs(SHOTS, exist_ok=True)
     accgtk.open_url = lambda _w, url: OPENED.append(url)

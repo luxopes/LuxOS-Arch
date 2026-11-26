@@ -189,7 +189,11 @@ def forget():
 
 
 # ---- HTTP -----------------------------------------------------------------------
-def request(method, path, body=None, token=None, origin=ORIGIN, timeout=20):
+# Opakovani pozadavku, ktery se na server vubec nedostal.
+NET_RETRIES = 4
+
+
+def request(method, path, body=None, token=None, origin=ORIGIN, timeout=20, *, attempts=NET_RETRIES):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(origin + path, data=data, method=method)
     req.add_header("X-Lux-Client", CLIENT)
@@ -199,20 +203,15 @@ def request(method, path, body=None, token=None, origin=ORIGIN, timeout=20):
     if token:
         # jen pro tento pozadavek: urllib jinak cookie preda i na cil presmerovani (jiny server, http)
         req.add_unredirected_header("Cookie", f"{COOKIE}={token}")
-    for attempt in range(NET_RETRIES):
+    for attempt in range(attempts):
         try:
             return _send(req, timeout)
         except _NotSent:
             # spojeni vubec nevzniklo (DNS jeste nebezi po pripojeni k Wi-Fi, sit nahodi az za chvili):
             # pozadavek server nedostal, opakovani je bezpecne i u POST (zadny dvojity e-mail s kodem)
-            if attempt + 1 == NET_RETRIES:
+            if attempt + 1 == attempts:
                 raise AccountError("network") from None
             time.sleep(1.5 * (attempt + 1))
-
-
-# Opakovani pozadavku, ktery se na server vubec nedostal (prvni prihlaseni hned po pripojeni k siti
-# obcas skoncilo "LuxAI neni dostupne", i kdyz internet byl v poradku)
-NET_RETRIES = 4
 
 
 class _NotSent(Exception):
@@ -433,21 +432,27 @@ def fetch_terms(origin=ORIGIN, timeout=20):
     return text
 
 
-def me(account=None):
-    """Aktualni udaje o uctu ze serveru (a ulozi je); AccountError("signed_out") pri neplatne session."""
-    account = account or load()
+def get_profile(account, *, timeout=20, attempts=NET_RETRIES):
+    """Nacte profil ze serveru bez zmeny ulozene relace."""
     if not account:
         raise AccountError("signed_out")
     try:
-        r = request("GET", "/api/me", token=account["sessionToken"], origin=account.get("origin", ORIGIN))
+        r = request("GET", "/api/me", token=account["sessionToken"], origin=account.get("origin", ORIGIN),
+                    timeout=timeout, attempts=attempts)
     except AccountError as e:
         if e.status in (401, 403):
             raise AccountError("signed_out", e.status) from None
         raise
-    user = r.get("user")
-    if not user:
+    if not r.get("user"):
         raise AccountError("signed_out")
-    save(account["sessionToken"], user, account.get("origin", ORIGIN))
+    return r
+
+
+def me(account=None):
+    """Aktualni udaje o uctu ze serveru (a ulozi je); AccountError("signed_out") pri neplatne session."""
+    account = account or load()
+    r = get_profile(account)
+    save(account["sessionToken"], r["user"], account.get("origin", ORIGIN))
     return r
 
 
