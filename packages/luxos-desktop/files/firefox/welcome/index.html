@@ -19,8 +19,8 @@
     --text: #0e1430;
     --muted: #4a5373;
     --soft: #5d6685;
-    --glass: rgba(255, 255, 255, 0.64);
-    --glass-hover: rgba(255, 255, 255, 0.84);
+    --glass: rgba(255, 255, 255, 0.80);
+    --glass-hover: rgba(255, 255, 255, 0.90);
     --stroke: rgba(30, 40, 90, 0.09);
     --stroke-hover: rgba(70, 90, 220, 0.30);
     --hi: rgba(255, 255, 255, 0.95);
@@ -50,8 +50,8 @@
       --text: #f3f5ff;
       --muted: #aab1d6;
       --soft: #949cc4;
-      --glass: rgba(22, 27, 52, 0.52);
-      --glass-hover: rgba(32, 38, 72, 0.66);
+      --glass: rgba(22, 27, 52, 0.72);
+      --glass-hover: rgba(32, 38, 72, 0.82);
       --stroke: rgba(160, 175, 255, 0.12);
       --stroke-hover: rgba(150, 170, 255, 0.34);
       --hi: rgba(255, 255, 255, 0.07);
@@ -94,30 +94,25 @@
   a { color: inherit; }
   svg { display: block; }
 
-  /* ---- pozadi: polarni zare a obzor jako na tapetach LuxOS (jen transform -> levne, po case stoji) ---- */
+  /* ---- pozadi: polarni zare a obzor jako na tapetach LuxOS (staticke, nic se nepocita znovu) ---- */
   /* obal stranky orizne pozadi a obzor (zadny vodorovny posuvnik, stranka nekonci pod obsahem) */
   .page { position: relative; overflow: hidden; min-height: 100vh; isolation: isolate; }
-  .sky { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-  .sky span { position: absolute; border-radius: 50%; will-change: transform; }
-  .sky .a1 { width: 70vmax; height: 70vmax; left: -18vmax; top: -34vmax;
-             background: radial-gradient(closest-side, var(--a1), transparent); animation: drift1 26s ease-in-out 4 alternate; }
-  .sky .a2 { width: 64vmax; height: 64vmax; right: -20vmax; top: -26vmax;
-             background: radial-gradient(closest-side, var(--a2), transparent); animation: drift2 31s ease-in-out 4 alternate; }
-  .sky .a3 { width: 46vmax; height: 46vmax; left: 38%; top: -14vmax;
-             background: radial-gradient(closest-side, var(--a3), transparent); animation: drift3 23s ease-in-out 4 alternate; }
-  .sky .a4 { width: 56vmax; height: 56vmax; left: 10%; bottom: -36vmax;
-             background: radial-gradient(closest-side, var(--a4), transparent); animation: drift2 37s ease-in-out 4 alternate-reverse; }
+  /* jedna staticka vrstva (ctyri gradienty): drive ctyri obri animovane vrstvy (will-change, az 2 minuty), ktere
+     prohlizec skladal znovu pri kazdem snimku */
+  .sky { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+         background:
+           radial-gradient(closest-side, var(--a1), transparent) -18vmax -34vmax / 70vmax 70vmax no-repeat,
+           radial-gradient(closest-side, var(--a2), transparent) right -20vmax top -26vmax / 64vmax 64vmax no-repeat,
+           radial-gradient(closest-side, var(--a3), transparent) 38vw -14vmax / 46vmax 46vmax no-repeat,
+           radial-gradient(closest-side, var(--a4), transparent) left 10vw bottom -36vmax / 56vmax 56vmax no-repeat; }
   .horizon {
     position: absolute; z-index: -1; pointer-events: none;
     left: 50%; width: max(190vw, 1400px); height: 160vh; margin-left: calc(max(190vw, 1400px) / -2);
     top: calc(100% + clamp(0px, 3vh, 36px)); border-radius: 50%;
     border-top: 1px solid var(--horizon);
     background: var(--horizon-fill);
-    box-shadow: 0 -18px 70px -6px var(--horizon-glow), inset 0 26px 60px -30px var(--horizon-glow);
+    box-shadow: 0 -12px 40px -8px var(--horizon-glow);
   }
-  @keyframes drift1 { to { transform: translate(9vmax, 6vmax) scale(1.12); } }
-  @keyframes drift2 { to { transform: translate(-8vmax, 7vmax) scale(0.92); } }
-  @keyframes drift3 { to { transform: translate(-10vmax, 5vmax) scale(1.18); } }
 
   main {
     width: min(70rem, 100% - 2 * clamp(16px, 4vw, 48px));
@@ -138,7 +133,7 @@
     content: ""; position: absolute; inset: -60%; border-radius: 50%;
     background: radial-gradient(closest-side, var(--halo), transparent);
   }
-  .mark svg { position: relative; width: 100%; height: auto; filter: drop-shadow(0 10px 24px rgba(80, 110, 255, 0.35)); }
+  .mark svg { position: relative; width: 100%; height: auto; }
   h1 {
     margin: 0 auto;
     max-width: 16ch;
@@ -169,7 +164,8 @@
     border: 1px solid var(--stroke);
     border-radius: 24px;
     box-shadow: var(--shadow), inset 0 1px 0 var(--hi);
-    backdrop-filter: blur(28px) saturate(170%);
+    /* bez backdrop-filter: rozmazani pozadi pod kazdou kartou se pocitalo znovu pri kazdem snimku (sekalo se);
+       sklo je misto toho o neco nepruhlednejsi (--glass) */
   }
 
   /* ---- 2) import (hlavni akce) ---- */
@@ -194,7 +190,7 @@
   .art .t-bg { fill: var(--art-tile); stroke: var(--stroke); }
   .art .t-fg { stroke: var(--art-ink); }
   .art .t-dot { fill: var(--art-ink); }
-  .art .flow { stroke-dasharray: 1 9; animation: flow 1.2s linear 15; }
+  .art .flow { stroke-dasharray: 1 9; animation: flow 1.2s linear 6; }
   @keyframes flow { to { stroke-dashoffset: -20; } }
   h2 { margin: 0; letter-spacing: -0.02em; }
   .import h2 { font-size: clamp(1.4rem, 1.1rem + 1vw, 1.9rem); line-height: 1.2; font-weight: 700; text-wrap: balance; }
@@ -206,7 +202,7 @@
     background: var(--btn); color: #fff; text-decoration: none; font-weight: 650; font-size: 1.02rem;
     line-height: 1.25; text-align: center;
     box-shadow: var(--btn-shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    transition: transform 0.2s ease;
   }
   .button svg { width: 20px; height: 20px; flex: none; }
   .button:hover { transform: translateY(-1px); filter: brightness(1.08); }
@@ -251,7 +247,7 @@
   .tile {
     position: relative; flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 22px 22px 20px;
     border-radius: 20px; text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease;
   }
   .big .tile { flex-direction: row; align-items: center; gap: 18px; padding: 24px 26px; }
   .big .icon { width: 54px; height: 54px; border-radius: 16px; }
@@ -323,9 +319,7 @@
 </head>
 <body>
 <div class="page">
-<div class="sky" aria-hidden="true">
-  <span class="a1"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span>
-</div>
+<div class="sky" aria-hidden="true"></div>
 <main>
   <header class="hero">
     <div class="mark rise">
