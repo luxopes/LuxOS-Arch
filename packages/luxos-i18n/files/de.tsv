@@ -5577,3 +5577,10 @@ Could not change the input method: %s	Die Eingabemethode konnte nicht geändert 
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamesisch ist eingeschaltet. Wechseln mit Strg+Leertaste. Bereits geöffnete Apps verwenden es nach einem Neustart.
 Vietnamese is off.	Vietnamesisch ist ausgeschaltet.
 Typing style: %s	Eingabeart: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	App-Verknüpfung hinzufügen…
+Add to Desktop	Zur Arbeitsfläche hinzufügen
+Choose an app to add to the desktop	App für die Arbeitsfläche auswählen
+Could not add the app shortcut to the desktop.	Die App-Verknüpfung konnte nicht zur Arbeitsfläche hinzugefügt werden.
+A file with this name is already on your desktop.	Eine Datei mit diesem Namen befindet sich bereits auf der Arbeitsfläche.

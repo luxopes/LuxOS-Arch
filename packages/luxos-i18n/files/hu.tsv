@@ -5577,3 +5577,10 @@ Could not change the input method: %s	Nem sikerült módosítani a beviteli mód
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	A vietnami be van kapcsolva. Váltás a Ctrl+Szóköz billentyűkkel. A már megnyitott alkalmazások újraindítás után használják.
 Vietnamese is off.	A vietnami ki van kapcsolva.
 Typing style: %s	Írásmód: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	Alkalmazás-parancsikon hozzáadása…
+Add to Desktop	Hozzáadás az asztalhoz
+Choose an app to add to the desktop	Válaszd ki az asztalhoz hozzáadandó alkalmazást
+Could not add the app shortcut to the desktop.	Nem sikerült hozzáadni az alkalmazás parancsikonját az asztalhoz.
+A file with this name is already on your desktop.	Már van ilyen nevű fájl az asztalon.

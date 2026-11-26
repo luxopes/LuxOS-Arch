@@ -5577,3 +5577,10 @@ Could not change the input method: %s	Não foi possível alterar o método de en
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	O vietnamita está ativado. Alterne com Ctrl+Espaço. Os apps que já estavam abertos passam a usá-lo depois de reiniciados.
 Vietnamese is off.	O vietnamita está desativado.
 Typing style: %s	Estilo de digitação: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	Adicionar atalho de aplicação…
+Add to Desktop	Adicionar ao ambiente de trabalho
+Choose an app to add to the desktop	Escolhe uma aplicação para adicionar ao ambiente de trabalho
+Could not add the app shortcut to the desktop.	Não foi possível adicionar o atalho da aplicação ao ambiente de trabalho.
+A file with this name is already on your desktop.	Já existe um ficheiro com este nome no ambiente de trabalho.

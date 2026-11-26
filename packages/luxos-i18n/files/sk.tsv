@@ -5577,3 +5577,10 @@ Could not change the input method: %s	Metódu zadávania sa nepodarilo zmeniť: 
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamčina je zapnutá. Prepínajte skratkou Ctrl+Medzerník. Aplikácie, ktoré už boli otvorené, ju začnú používať po novom spustení.
 Vietnamese is off.	Vietnamčina je vypnutá.
 Typing style: %s	Spôsob písania: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	Pridať odkaz na aplikáciu…
+Add to Desktop	Pridať na plochu
+Choose an app to add to the desktop	Vyber aplikáciu, ktorú chceš pridať na plochu
+Could not add the app shortcut to the desktop.	Odkaz na aplikáciu sa nepodarilo pridať na plochu.
+A file with this name is already on your desktop.	Na ploche už je súbor s týmto názvom.

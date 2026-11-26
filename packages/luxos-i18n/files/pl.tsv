@@ -5578,3 +5578,10 @@ Could not change the input method: %s	Nie udało się zmienić metody wprowadzan
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Wietnamski jest włączony. Przełączaj skrótem Ctrl+Spacja. Aplikacje, które były już otwarte, zaczną go używać po ponownym uruchomieniu.
 Vietnamese is off.	Wietnamski jest wyłączony.
 Typing style: %s	Sposób pisania: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	Dodaj skrót do aplikacji…
+Add to Desktop	Dodaj do pulpitu
+Choose an app to add to the desktop	Wybierz aplikację, którą chcesz dodać do pulpitu
+Could not add the app shortcut to the desktop.	Nie udało się dodać skrótu do aplikacji na pulpit.
+A file with this name is already on your desktop.	Na pulpicie istnieje już plik o tej nazwie.

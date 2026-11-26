@@ -5578,3 +5578,10 @@ Could not change the input method: %s	Не вдалося змінити мет�
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	В’єтнамську ввімкнено. Перемикайте сполученням Ctrl+Пробіл. Застосунки, що вже були відкриті, почнуть її використовувати після перезапуску.
 Vietnamese is off.	В’єтнамську вимкнено.
 Typing style: %s	Спосіб введення: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	Додати ярлик програми…
+Add to Desktop	Додати на стільницю
+Choose an app to add to the desktop	Виберіть програму, яку потрібно додати на стільницю
+Could not add the app shortcut to the desktop.	Не вдалося додати ярлик програми на стільницю.
+A file with this name is already on your desktop.	На стільниці вже є файл із такою назвою.

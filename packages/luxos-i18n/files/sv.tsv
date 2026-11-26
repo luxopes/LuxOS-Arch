@@ -5577,3 +5577,10 @@ Could not change the input method: %s	Det gick inte att ändra inmatningsmetoden
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamesiska är på. Växla med Ctrl+Blanksteg. Appar som redan var öppna börjar använda det när du startar om dem.
 Vietnamese is off.	Vietnamesiska är av.
 Typing style: %s	Skrivsätt: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	Lägg till appgenväg…
+Add to Desktop	Lägg till på skrivbordet
+Choose an app to add to the desktop	Välj en app att lägga till på skrivbordet
+Could not add the app shortcut to the desktop.	Det gick inte att lägga till appgenvägen på skrivbordet.
+A file with this name is already on your desktop.	En fil med det här namnet finns redan på skrivbordet.

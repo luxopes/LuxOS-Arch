@@ -5577,3 +5577,10 @@ Could not change the input method: %s	Kon de invoermethode niet wijzigen: %s
 Vietnamese is on. Switch with Ctrl+Space. Apps that were already open start using it after you restart them.	Vietnamees staat aan. Wissel met Ctrl+Spatie. Apps die al open waren gebruiken het na een herstart.
 Vietnamese is off.	Vietnamees staat uit.
 Typing style: %s	Typestijl: %s
+
+# Desktop app shortcuts
+Add App Shortcut…	App-snelkoppeling toevoegen…
+Add to Desktop	Toevoegen aan bureaublad
+Choose an app to add to the desktop	Kies een app om aan het bureaublad toe te voegen
+Could not add the app shortcut to the desktop.	De app-snelkoppeling kon niet aan het bureaublad worden toegevoegd.
+A file with this name is already on your desktop.	Er staat al een bestand met deze naam op je bureaublad.
