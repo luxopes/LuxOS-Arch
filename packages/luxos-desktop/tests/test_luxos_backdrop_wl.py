@@ -46,7 +46,8 @@ LUXWM_BUILD = Path(os.environ.get("LUXWM_BUILD") or REPO / "out/luxwm-test/build
 USE_LUXWM = (LUXWM_BUILD / "luxwm").exists() and os.environ.get("LUXOS_BACKDROP_LABWC") != "1"
 TOOLS = all(shutil.which(t) for t in ("make", "gcc", "wayland-scanner", "pkg-config"))
 COLOR = "204060"
-FAKE_COMMANDS = ("luxos-settings", "luxos-display-settings", "luxos-widgets", "xdg-open", "gio", "luxos-clock-app")
+FAKE_COMMANDS = ("luxos-settings", "luxos-display-settings", "luxos-widgets", "xdg-open", "gio", "luxos-clock-app",
+                 "luxos-launchpad")
 DESKTOP_CHANNEL = """<?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-desktop" version="1.0">
   <property name="desktop-icons" type="empty">
@@ -155,7 +156,8 @@ def switches(pid):
     return counts
 
 
-@unittest.skipUnless(LSLC and HAVE_LABWC and TOOLS and WLT.exists(), "chybi lslc, labwc (WLT_SYSROOT) nebo nastroje sestaveni")
+@unittest.skipUnless(LSLC and (USE_LUXWM or HAVE_LABWC) and TOOLS and WLT.exists(),
+                     "chybi lslc, luxwm/labwc nebo nastroje sestaveni")
 class WaylandBackdrop(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -518,7 +520,7 @@ class WaylandBackdrop(unittest.TestCase):
         time.sleep(0.2)
 
     def test_menu_displays(self):
-        d, mark = self.menu_action(4)
+        d, mark = self.menu_action(5)
         d.wait(r"^run luxos-display-settings$", start=mark)
         for _ in range(50):
             if self.ran.exists():
@@ -527,14 +529,19 @@ class WaylandBackdrop(unittest.TestCase):
         self.assertEqual(self.ran.read_text().split("\n")[0], "luxos-display-settings ")
 
     def test_menu_change_wallpaper_and_edit_widgets(self):
-        d, mark = self.menu_action(2)
+        d, mark = self.menu_action(3)
         d.wait(r"^run luxos-settings desktop$", start=mark)
         mark = d.mark()
         self.open_menu(d, 300, 200)
-        self.keys("Down", "Down", "Down", "Return")
+        self.keys("Down", "Down", "Down", "Down", "Return")
         d.wait(r"^run luxos-widgets settings$", start=mark)
         time.sleep(0.3)
         self.assertEqual(self.ran.read_text().splitlines(), ["luxos-settings desktop", "luxos-widgets settings"])
+
+    def test_menu_add_app_shortcut(self):
+        d, mark = self.menu_action(2)
+        d.wait(r"^run luxos-launchpad --add-shortcut$", start=mark)
+        self.assertEqual(self.ran_lines(1), ["luxos-launchpad --add-shortcut"])
 
     def test_menu_new_folder(self):
         self.start()
@@ -660,6 +667,21 @@ class WaylandBackdrop(unittest.TestCase):
         mark = d.mark()
         (self.session / "home/Desktop/zprava.txt").unlink()
         d.wait(r"^icons 3 ", start=mark)
+
+    def test_icons_monitor_new_desktop_directory(self):
+        self.start()
+        (self.session / "config/user-dirs.dirs").write_text('XDG_DESKTOP_DIR="$HOME/Plocha test"\n')
+        d = self.backdrop()
+        desktop = self.session / "home/Plocha test"
+        self.assertFalse(desktop.exists())
+        mark = d.mark()
+        desktop.mkdir()
+        (desktop / "first.txt").touch()
+        d.wait(r"^icons 1 first.txt@0,0$", start=mark)
+        mark = d.mark()
+        (desktop / "second.txt").touch()
+        d.wait(r"^icons 2 ", start=mark)
+        self.assertEqual(self.icons(d, mark), {"first.txt": (0, 0), "second.txt": (0, 1)})
 
     def test_long_label_ellipsized(self):
         d = self.icon_backdrop("Velmi dlouhy nazev souboru, ktery se nevejde ani na dva radky popisku.txt")
@@ -890,6 +912,20 @@ class WaylandBackdrop(unittest.TestCase):
     def test_icons_golden_dark(self):
         self.icon_golden("dark")
 
+    def test_app_shortcut_visible_with_default_icon_style(self):
+        self.start()
+        channel = self.session / "config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
+        channel.write_text(DESKTOP_CHANNEL.replace('name="style" type="int" value="2"', 'name="style" type="empty"'))
+        desktop = self.desktop_files()
+        d = self.backdrop()
+        mark = d.mark()
+        draft = desktop / ".draft"
+        draft.write_text("[Desktop Entry]\nType=Application\nName=Test App\nExec=/usr/bin/true\n")
+        draft.chmod(0o700)
+        draft.rename(desktop / "test-app.desktop")
+        d.wait(r"^icons 1 test-app.desktop@0,0$", start=mark)
+        d.wait(r"^icons drawn$", start=mark)
+
     def test_icons_off_with_style_0(self):
         self.start()
         channel = self.session / "config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
@@ -900,7 +936,7 @@ class WaylandBackdrop(unittest.TestCase):
         self.assertEqual(self.icons(d), {})
         # zmena kanalu plati hned
         mark = d.mark()
-        channel.write_text(DESKTOP_CHANNEL)
+        channel.write_text(DESKTOP_CHANNEL.replace('name="style" type="int" value="2"', 'name="style" type="empty"'))
         d.wait(r"^icons 1 ", start=mark)
 
     # ---- widgety ----

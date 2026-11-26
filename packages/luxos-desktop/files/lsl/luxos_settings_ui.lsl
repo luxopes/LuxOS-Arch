@@ -205,6 +205,10 @@ function css(dark):
     out = out + ".thumb, .mode { border-radius: 10px; padding: 3px; border: 2px solid transparent; background: none; box-shadow: none; }\n"
     out = out + ".thumb.current, .mode.current { border-color: " + accent + "; }\n"
     out = out + ".mode.current label { font-weight: 600; }\n"
+    # Vybrana karta (checked) bral text z motivu tlacitka: bily/vyblednuty na svetlem pozadi. Ramecek
+    # kolem vyberu je jen jeden (.current), ne i ramecek zamereni.
+    out = out + ".thumb:checked, .mode:checked, .mode:hover, .mode:focus { color: " + c("fg", dark) + "; outline: none; }\n"
+    out = out + ".mode:checked label, .mode:hover label { color: " + c("fg", dark) + "; }\n"
     return out
 end
 

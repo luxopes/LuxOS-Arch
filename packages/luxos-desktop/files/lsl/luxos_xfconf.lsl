@@ -33,7 +33,10 @@ function read_into(path, into):
         if line.startswith("<property "):
             name = attr(line, "name")
             if line.endswith("/>"):
-                into["/" + text.join(stack + [name], "/")] = attr(line, "value")
+                # Prazdny uzel xfconf nema vlastni hodnotu; porad plati systemova nebo vychozi.
+                if attr(line, "type") != "empty":
+                    into["/" + text.join(stack + [name], "/")] = attr(line, "value")
+                end
             else:
                 stack.append(name)
             end

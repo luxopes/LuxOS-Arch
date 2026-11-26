@@ -381,6 +381,53 @@ function launch(info):
     return launch_command(scope + ["gio", "launch", file])
 end
 
+# Zkopiruje spoustec do Plochy. Docasna slozka skryje rozpracovany soubor pred spravcem plochy.
+# Bez prepisu: opakovane pridani ani soubezny zapis neprepise uzivateluv soubor.
+function add_desktop_shortcut(info):
+    desktop_id = id(info)
+    source = path(info)
+    dir = lglib.desktop_dir()
+    if not desktop_id.endswith(".desktop") or desktop_id.startswith(".") or desktop_id.find("/") >= 0 or source == "" or not lglib.mkdir_p(dir):
+        return "failed"
+    end
+    template = dir + "/.luxos-shortcut-XXXXXX"
+    unsafe:
+        buffer = __lsl_byte_zeros(__lsl_text_byte_length(template) + 1)
+        base = __lsl_qbe_load64(__lsl_address(buffer) + 24)
+        call __lsl_qbe_call3(__lsl_symbol("memcpy"), base, cstr(template), __lsl_text_byte_length(template))
+        if __lsl_qbe_call1(__lsl_symbol("g_mkdtemp"), base) == 0:
+            return "failed"
+        end
+        temporary = glib.from_c(base)
+        staged = temporary + "/" + desktop_id
+        original = __lsl_qbe_call1(__lsl_symbol("g_file_new_for_path"), cstr(source))
+        draft = __lsl_qbe_call1(__lsl_symbol("g_file_new_for_path"), cstr(staged))
+        result = "failed"
+        if __lsl_qbe_icall7(__lsl_symbol("g_file_copy"), original, draft, 0, 0, 0, 0, 0) != 0 and __lsl_qbe_icall2(__lsl_symbol("chmod"), cstr(staged), 448) == 0:
+            target = __lsl_qbe_call1(__lsl_symbol("g_file_new_for_path"), cstr(dir + "/" + desktop_id))
+            error_cell = __lsl_byte_zeros(8)
+            error_at = __lsl_qbe_load64(__lsl_address(error_cell) + 24)
+            if __lsl_qbe_icall7(__lsl_symbol("g_file_move"), draft, target, 0, 0, 0, 0, error_at) != 0:
+                result = "added"
+            end
+            error = __lsl_qbe_load64(error_at)
+            if error != 0:
+                # G_IO_ERROR_EXISTS = 2
+                if __lsl_qbe_icall3(__lsl_symbol("g_error_matches"), error, __lsl_qbe_icall0(__lsl_symbol("g_io_error_quark")), 2) != 0:
+                    result = "exists"
+                end
+                call __lsl_qbe_call1(__lsl_symbol("g_error_free"), error)
+            end
+            call unref(target)
+        end
+        call unref(draft)
+        call unref(original)
+        call lglib.unlink(staged)
+        call __lsl_qbe_icall1(__lsl_symbol("rmdir"), cstr(temporary))
+    end
+    return result
+end
+
 function launch_uri(uri):
     scope = lglib.app_scope("open")
     if scope != []:

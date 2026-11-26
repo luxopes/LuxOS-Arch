@@ -572,6 +572,11 @@ function user_special_dir(kind):
     end
 end
 
+function desktop_dir():
+    path = user_special_dir(0)
+    return glib.home_dir() + "/Desktop" if path == "" else path
+end
+
 # Do Kose (g_file_trash): "trash", "unsupported" (slozka Kos nepodporuje), jinak text chyby
 function trash_file(path):
     unsafe:

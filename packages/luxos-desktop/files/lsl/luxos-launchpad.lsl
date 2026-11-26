@@ -63,7 +63,7 @@ usage_path = glib.user_data_dir() + "/luxos/launchpad-usage.json"
 
 entries = []
 usage = {}
-S = {"shadow": None, "open": False, "mode": "launchpad", "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
+S = {"shadow": None, "open": False, "mode": "launchpad", "shortcut": False, "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
     "query": "", "light": True, "strip": None, "geo": {}, "size": [0, 0], "pending": False, "drawn": False,
     "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": []}
 window = 0
@@ -216,17 +216,19 @@ function refresh():
             found = model.order(entries, S["sort"], usage)
         end
     else:
-        value = calc.evaluate(query)
-        if value != None:
-            S["calc"] = value
-            items.append({"kind": "calc", "value": value})
+        if not S["shortcut"]:
+            value = calc.evaluate(query)
+            if value != None:
+                S["calc"] = value
+                items.append({"kind": "calc", "value": value})
+            end
         end
         found = model.search(entries, query, usage, wall_s())
     end
     for e in found:
         items.append(app_item(e))
     end
-    if query != "" and S["luxai"] != "":
+    if query != "" and S["luxai"] != "" and not S["shortcut"]:
         items.append({"kind": "luxai"})
     end
     S["items"] = items
@@ -531,6 +533,9 @@ function draw_field(cr):
         end
         if S["luxai"] == "":
             hint = "Search apps"
+        end
+        if S["shortcut"]:
+            hint = "Choose an app to add to the desktop"
         end
         layout = pango.cairo_create_layout(cr)
         call pango.layout_set_font(layout, tokens.FONT["family"] + " 13")
@@ -839,6 +844,7 @@ function on_realize(widget):
 end
 
 function show(mode):
+    S["shortcut"] = mode == "shortcut"
     if not (mode in ["launchpad", "search"]):
         mode = "launchpad"
     end
@@ -859,7 +865,7 @@ function show(mode):
         call gtk.widget_queue_draw(window)
     end
     call gtk.widget_grab_focus(entry)
-    call trace("show " + mode)
+    call trace("show " + ("shortcut" if S["shortcut"] else mode))
     return 0
 end
 
@@ -878,11 +884,60 @@ function hide():
 end
 
 function toggle(mode):
-    if S["open"] and S["mode"] == mode:
+    current = "shortcut" if S["shortcut"] else S["mode"]
+    if S["open"] and current == mode:
         call hide()
     else:
         call show(mode)
     end
+    return 0
+end
+
+function destroy_later(widget):
+    call gtk.widget_destroy(widget)
+    return False
+end
+
+function shortcut_error_closed(unused, response, dialog):
+    call gtk.widget_destroy(dialog)
+    return 0
+end
+
+function add_shortcut(info):
+    result = apps.add_desktop_shortcut(info)
+    call trace("shortcut " + result + " " + apps.id(info))
+    call hide()
+    if result != "added":
+        message = "Could not add the app shortcut to the desktop."
+        if result == "exists":
+            message = "A file with this name is already on your desktop."
+        end
+        dialog = gtk.message_dialog_new(0, gtk.MESSAGE_WARNING, gtk.BUTTONS_OK, i18n.T(message))
+        call glib.connect_data(dialog, "response", 1, shortcut_error_closed, 0)
+        call gtk.widget_show_all(dialog)
+    end
+    return 0
+end
+
+function shortcut_selected(info, item):
+    call glib.idle_add_data(add_shortcut, info)
+    return 0
+end
+
+function on_shortcut_menu_done(menu, widget):
+    call glib.idle_add_data(destroy_later, menu)
+    return 0
+end
+
+function shortcut_menu(info):
+    menu = gtk.menu_new()
+    call gtk.menu_attach(menu, window)
+    item = gtk.menu_item_new(i18n.T("Add to Desktop"))
+    call gtk.menu_append(menu, item)
+    call glib.connect_data(item, "activate", 0, shortcut_selected, info)
+    call glib.connect_data(menu, "selection-done", 0, on_shortcut_menu_done, menu)
+    call gtk.widget_show_all(menu)
+    call gtk.menu_popup_at_pointer(menu)
     return 0
 end
 
@@ -901,6 +956,9 @@ function activate(i):
         call glib.spawn_app([S["luxai"], "--agent", query])
     else:
         e = item["entry"]
+        if S["shortcut"]:
+            return add_shortcut(e["info"])
+        end
         call trace("launch " + e["id"])
         if apps.launch(e["info"]):
             call model.record(usage, e["id"], wall_s())
@@ -995,7 +1053,7 @@ function on_key(event, widget):
     if name == "Escape":
         call hide()
     elif name == "Return" or name == "KP_Enter":
-        if (state & MOD_CTRL) != 0 and S["luxai"] != "" and S["query"].strip() != "":
+        if (state & MOD_CTRL) != 0 and S["luxai"] != "" and S["query"].strip() != "" and not S["shortcut"]:
             call activate(len(S["items"]) - 1)
         else:
             call activate(S["sel"])
@@ -1079,17 +1137,27 @@ function on_motion(event, widget):
 end
 
 function on_press(event, widget):
-    if gtk.event_button(event) != 1:
+    button = gtk.event_button(event)
+    if button != 1 and button != 3:
         return True
     end
     xy = gtk.event_coords(event)
     x = xy[0]
     y = xy[1]
     if not in_panel(x, y):
-        call hide()
+        if button == 1:
+            call hide()
+        end
         return True
     end
     i = item_at(x, y)
+    if button == 3:
+        if not S["shortcut"] and i >= 0 and S["items"][i]["kind"] == "app":
+            call select(i)
+            call shortcut_menu(S["items"][i]["entry"]["info"])
+        end
+        return True
+    end
     if i >= 0:
         # spusti se az pri uvolneni bez tahu: svisly tah prstem (i mysi) seznam posouva (jako rofi na X11)
         S["drag"] = {"x": x, "y": y, "item": i, "moved": False, "top": S["top"]}

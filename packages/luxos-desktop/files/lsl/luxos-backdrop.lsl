@@ -37,8 +37,6 @@ load luxos_apps as apps
 load luxos_xfconf as xfconf
 load luxos_text as text
 
-# G_USER_DIRECTORY_DESKTOP
-DESKTOP_DIR = 0
 CAIRO_FILTER_GOOD = 1
 CAIRO_EXTEND_REPEAT = 1
 # M_MMAP_THRESHOLD: velke obrazky vzdy mmap, po uvolneni hned zpet systemu (jinak by prah rostl
@@ -71,7 +69,7 @@ ui = {"trace": env.get("LUXOS_BACKDROP_TRACE", "") == "1", "menu": 0, "menu_owne
 # icons = sdilene ikony podle GIcon, press/drag/band = rozpracovane tazeni, pending = misto puszteni souboru
 icons = {"owner": None, "conf": None, "items": [], "grid": None, "saved": {}, "selected": {}, "icons": {}, "layer": None,
          "dirty": True, "rescan": 0, "press": None, "drag": None, "band": None, "dark": False, "vm": 0, "dir": "",
-         "editor": 0, "renaming": None, "pending": {}}
+         "editor": 0, "renaming": None, "pending": {}, "watch": 0, "watch_dir": None}
 
 function trace(message):
     if ui["trace"]:
@@ -482,7 +480,12 @@ function menu_keyboard(b):
 end
 
 function menu_entries():
-    entries = [["New Folder", "new-folder"], "", ["Change Wallpaper…", ["luxos-settings", "desktop"]]]
+    entries = [["New Folder", "new-folder"]]
+    if glib.find_program_in_path("luxos-launchpad") != "":
+        entries.append(["Add App Shortcut…", ["luxos-launchpad", "--add-shortcut"]])
+    end
+    entries.append("")
+    entries.append(["Change Wallpaper…", ["luxos-settings", "desktop"]])
     if glib.find_program_in_path("luxos-widgets") != "":
         entries.append(["Edit Widgets…", ["luxos-widgets", "settings"]])
     end
@@ -525,7 +528,7 @@ end
 # Nova slozka na Plose ("Nova slozka", "Nova slozka 2", ...): s ikonami vybrana a hned k prejmenovani,
 # bez nich (styl ikon 0) Plocha ve spravci souboru
 function new_folder():
-    desktop = desktop_dir()
+    desktop = lglib.desktop_dir()
     call lglib.mkdir_p(desktop)
     base = desktop + "/" + i18n.T("New Folder")
     path = base
@@ -554,14 +557,6 @@ function new_folder():
 end
 
 # ---- ikony plochy ----------------------------------------------------------------------------------
-
-function desktop_dir():
-    path = lglib.user_special_dir(DESKTOP_DIR)
-    if path == "":
-        path = glib.home_dir() + "/Desktop"
-    end
-    return path
-end
 
 function is_dark():
     return lglib.read_text(config_dir() + "/appearance").strip() == "dark"
@@ -720,6 +715,7 @@ end
 
 function rescan(unused):
     icons["rescan"] = 0
+    call watch_desktop()
     found = mounts()
     items = desk.scan(icons["dir"], icons["conf"], found)
     for m in found:
@@ -774,6 +770,19 @@ function on_desktop_changed(path, event, other):
     return 0
 end
 
+# Pred vytvorenim slozky sleduje GIO jeji cestu jako soubor. Pak je potreba sledovat deti slozky.
+function watch_desktop():
+    is_dir = lglib.is_dir(icons["dir"])
+    if icons["watch_dir"] != is_dir:
+        if icons["watch"] != 0:
+            call gio.file_monitor_cancel(icons["watch"])
+        end
+        icons["watch"] = gio.file_monitor(icons["dir"], on_desktop_changed)
+        icons["watch_dir"] = is_dir
+    end
+    return 0
+end
+
 function on_mounts_changed(unused, mount):
     return schedule_rescan()
 end
@@ -790,7 +799,7 @@ end
 
 function icons_start():
     icons["conf"] = desk.settings()
-    icons["dir"] = desktop_dir()
+    icons["dir"] = lglib.desktop_dir()
     icons["saved"] = desk.load_positions()
     icons["dark"] = is_dark()
     unsafe:
@@ -799,7 +808,6 @@ function icons_start():
     for signal in ["mount-added", "mount-removed", "mount-changed"]:
         call lglib.connect_data(icons["vm"], signal, 1, on_mounts_changed, 0)
     end
-    call gio.file_monitor(icons["dir"], on_desktop_changed)
     call lglib.mkdir_p(glib.user_config_dir() + "/xfce4/xfconf/xfce-perchannel-xml")
     call gio.file_monitor(xfconf.user_path("xfce4-desktop"), on_settings_changed)
     call rescan(0)

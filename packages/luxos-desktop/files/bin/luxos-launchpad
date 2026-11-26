@@ -8,9 +8,11 @@
 # Nebezi-li a D-Bus ho nespusti (aktivace chybi), spusti se rovnou s oknem.
 lp=${LUXOS_LAUNCHPAD_WAYLAND:-/usr/lib/luxos/luxos-launchpad}
 if [[ -n $WAYLAND_DISPLAY && -x $lp ]]; then
+    mode=${LUXOS_LAUNCHPAD_MODE:-launchpad}
+    [[ ${1-} == --add-shortcut ]] && mode=shortcut
     gdbus call --session --dest cz.luxos.Launchpad --object-path /cz/luxos/Launchpad \
-        --method cz.luxos.Launchpad.Toggle "${LUXOS_LAUNCHPAD_MODE:-launchpad}" >/dev/null 2>&1 ||
-        exec "$lp" --show "${LUXOS_LAUNCHPAD_MODE:-launchpad}"
+        --method cz.luxos.Launchpad.Toggle "$mode" >/dev/null 2>&1 ||
+        exec "$lp" --show "$mode"
     exit 0
 fi
 
