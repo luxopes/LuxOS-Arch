@@ -5729,3 +5729,51 @@ restore	herstellen
 external drive	externe schijf
 copy	kopie
 Replaced versions of the files were moved to %s.	Vervangen versies van de bestanden zijn verplaatst naar %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	bedrijfsnetwerk
+tunnel	tunnel
+private	privé
+proxy server	proxyserver
+pac	pac
+socks	socks
+work	werk
+school	school
+Manual	Handmatig
+No VPN yet	Nog geen VPN
+Add the file you got from your VPN provider or your work.	Voeg het bestand toe dat je van je VPN-aanbieder of je werk hebt gekregen.
+Really Remove	Echt verwijderen
+This VPN needs a user name and password.	Deze VPN heeft een gebruikersnaam en wachtwoord nodig.
+Could not connect: %s	Kan geen verbinding maken: %s
+Sign in to %s	Aanmelden bij %s
+Enter the user name and password.	Voer de gebruikersnaam en het wachtwoord in.
+The user name cannot contain a comma, = or a backslash.	De gebruikersnaam mag geen komma, = of backslash bevatten.
+The password cannot contain a line break.	Het wachtwoord mag geen regeleinde bevatten.
+OpenVPN support is not installed (package networkmanager-openvpn).	OpenVPN-ondersteuning is niet geïnstalleerd (pakket networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Kies een WireGuard- (.conf) of OpenVPN-bestand (.ovpn).
+The file could not be added: %s	Het bestand kon niet worden toegevoegd: %s
+VPN added. Turn it on in the list.	VPN toegevoegd. Zet hem aan in de lijst.
+Add VPN	VPN toevoegen
+VPN settings	VPN-instellingen
+Used only for this connection, not saved.	Alleen voor deze verbinding, wordt niet bewaard.
+Add VPN…	VPN toevoegen…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	WireGuard- (.conf) of OpenVPN-bestand (.ovpn) van je aanbieder.
+From a file	Uit een bestand
+Saved. Apps use it right away; programs in the terminal after you log out.	Opgeslagen. Apps gebruiken het meteen, programma’s in de terminal na afmelden.
+Web proxy (HTTP)	Webproxy (HTTP)
+Secure web proxy (HTTPS)	Beveiligde webproxy (HTTPS)
+SOCKS proxy	SOCKS-proxy
+%s: enter server:port, for example proxy.example.com:8080.	%s: voer server:poort in, bijvoorbeeld proxy.example.com:8080.
+Enter at least one proxy server.	Voer minstens één proxyserver in.
+Exceptions: use names or addresses separated by commas.	Uitzonderingen: namen of adressen gescheiden door komma’s.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	Proxy-instellingen zijn niet beschikbaar (gsettings-desktop-schemas ontbreekt).
+Use a proxy server	Proxyserver gebruiken
+Only when your work or school network requires it.	Alleen als het netwerk op je werk of school het vereist.
+Setup script address	Adres van het configuratiescript
+Leave empty to find it on the network automatically.	Laat leeg om het automatisch op het netwerk te vinden.
+Same as HTTP	Zelfde als HTTP
+Optional.	Optioneel.
+Don't use the proxy for	Proxy niet gebruiken voor
+Names or addresses separated by commas, for example *.local.	Namen of adressen gescheiden door komma’s, bijvoorbeeld *.local.

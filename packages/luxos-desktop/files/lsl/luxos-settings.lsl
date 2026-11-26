@@ -675,6 +675,7 @@ function main():
         call wm.connect(on_wm_event)
     end
     call testctl.start(on_test)
+    ui.state["on_test"] = on_test
     call gtk.main()
 end
 

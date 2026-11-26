@@ -5728,3 +5728,51 @@ restore	obnovit
 external drive	externí disk
 copy	kopie
 Replaced versions of the files were moved to %s.	Nahrazené verze souborů byly přesunuty do %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	firemní síť
+tunnel	tunel
+private	soukromí
+proxy server	proxy server
+pac	pac
+socks	socks
+work	práce
+school	škola
+Manual	Ručně
+No VPN yet	Zatím žádná VPN
+Add the file you got from your VPN provider or your work.	Přidejte soubor, který jste dostali od poskytovatele VPN nebo v práci.
+Really Remove	Opravdu odebrat
+This VPN needs a user name and password.	Tato VPN vyžaduje uživatelské jméno a heslo.
+Could not connect: %s	Nepodařilo se připojit: %s
+Sign in to %s	Přihlášení k %s
+Enter the user name and password.	Zadejte uživatelské jméno a heslo.
+The user name cannot contain a comma, = or a backslash.	Uživatelské jméno nesmí obsahovat čárku, = ani zpětné lomítko.
+The password cannot contain a line break.	Heslo nesmí obsahovat zalomení řádku.
+OpenVPN support is not installed (package networkmanager-openvpn).	Podpora OpenVPN není nainstalovaná (balíček networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Vyberte soubor WireGuard (.conf) nebo OpenVPN (.ovpn).
+The file could not be added: %s	Soubor se nepodařilo přidat: %s
+VPN added. Turn it on in the list.	VPN přidána. Zapněte ji v seznamu.
+Add VPN	Přidat VPN
+VPN settings	Nastavení VPN
+Used only for this connection, not saved.	Použije se jen pro toto připojení, neukládá se.
+Add VPN…	Přidat VPN…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	Soubor WireGuard (.conf) nebo OpenVPN (.ovpn) od poskytovatele.
+From a file	Ze souboru
+Saved. Apps use it right away; programs in the terminal after you log out.	Uloženo. Aplikace to použijí hned, programy v terminálu po odhlášení.
+Web proxy (HTTP)	Webová proxy (HTTP)
+Secure web proxy (HTTPS)	Zabezpečená webová proxy (HTTPS)
+SOCKS proxy	Proxy SOCKS
+%s: enter server:port, for example proxy.example.com:8080.	%s: zadejte server:port, například proxy.example.com:8080.
+Enter at least one proxy server.	Zadejte alespoň jeden proxy server.
+Exceptions: use names or addresses separated by commas.	Výjimky: zadejte názvy nebo adresy oddělené čárkou.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	Nastavení proxy není k dispozici (chybí gsettings-desktop-schemas).
+Use a proxy server	Použít proxy server
+Only when your work or school network requires it.	Jen když to vyžaduje síť v práci nebo ve škole.
+Setup script address	Adresa konfiguračního skriptu
+Leave empty to find it on the network automatically.	Nechte prázdné, aby se našel v síti automaticky.
+Same as HTTP	Stejná jako HTTP
+Optional.	Nepovinné.
+Don't use the proxy for	Nepoužívat proxy pro
+Names or addresses separated by commas, for example *.local.	Názvy nebo adresy oddělené čárkou, například *.local.

@@ -3,7 +3,7 @@
 
 pkgname=luxos-desktop
 pkgver=1.1.0
-pkgrel=157
+pkgrel=158
 pkgdesc="LuxOS macOS-like desktop (Xfce, Plank dock, Search, Launchpad) and default apps"
 arch=(x86_64)
 # !strip: programy v LSL (dynamicky linkovane ELF cile linux-x86_64-gnu) po strip nejdou spustit
@@ -94,7 +94,7 @@ depends=(
     plank 'rofi>=2.0.0-1.5' lightdm lightdm-gtk-greeter dconf yad
     # Zvuk, sit, bluetooth, tisk
     pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber pavucontrol
-    networkmanager network-manager-applet nm-connection-editor
+    networkmanager network-manager-applet nm-connection-editor networkmanager-openvpn gsettings-desktop-schemas
     bluez bluez-utils blueman
     luxos-printing cups cups-pdf system-config-printer ipp-usb sane-airscan avahi nss-mdns
     # Integrace systemu

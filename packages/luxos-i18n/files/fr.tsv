@@ -5729,3 +5729,51 @@ restore	restaurer
 external drive	disque externe
 copy	copie
 Replaced versions of the files were moved to %s.	Les versions remplacées des fichiers ont été déplacées vers %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	réseau d’entreprise
+tunnel	tunnel
+private	privé
+proxy server	serveur proxy
+pac	pac
+socks	socks
+work	travail
+school	école
+Manual	Manuel
+No VPN yet	Aucun VPN pour l’instant
+Add the file you got from your VPN provider or your work.	Ajoutez le fichier fourni par votre fournisseur VPN ou votre entreprise.
+Really Remove	Vraiment supprimer
+This VPN needs a user name and password.	Ce VPN nécessite un nom d’utilisateur et un mot de passe.
+Could not connect: %s	Connexion impossible : %s
+Sign in to %s	Se connecter à %s
+Enter the user name and password.	Saisissez le nom d’utilisateur et le mot de passe.
+The user name cannot contain a comma, = or a backslash.	Le nom d’utilisateur ne peut pas contenir de virgule, de = ni de barre oblique inverse.
+The password cannot contain a line break.	Le mot de passe ne peut pas contenir de saut de ligne.
+OpenVPN support is not installed (package networkmanager-openvpn).	La prise en charge d’OpenVPN n’est pas installée (paquet networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Choisissez un fichier WireGuard (.conf) ou OpenVPN (.ovpn).
+The file could not be added: %s	Impossible d’ajouter le fichier : %s
+VPN added. Turn it on in the list.	VPN ajouté. Activez-le dans la liste.
+Add VPN	Ajouter un VPN
+VPN settings	Paramètres VPN
+Used only for this connection, not saved.	Utilisé uniquement pour cette connexion, non enregistré.
+Add VPN…	Ajouter un VPN…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	Fichier WireGuard (.conf) ou OpenVPN (.ovpn) de votre fournisseur.
+From a file	À partir d’un fichier
+Saved. Apps use it right away; programs in the terminal after you log out.	Enregistré. Les apps l’utilisent tout de suite, les programmes du terminal après déconnexion.
+Web proxy (HTTP)	Proxy web (HTTP)
+Secure web proxy (HTTPS)	Proxy web sécurisé (HTTPS)
+SOCKS proxy	Proxy SOCKS
+%s: enter server:port, for example proxy.example.com:8080.	%s : saisissez serveur:port, par exemple proxy.example.com:8080.
+Enter at least one proxy server.	Saisissez au moins un serveur proxy.
+Exceptions: use names or addresses separated by commas.	Exceptions : utilisez des noms ou adresses séparés par des virgules.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	Les paramètres de proxy ne sont pas disponibles (gsettings-desktop-schemas manquant).
+Use a proxy server	Utiliser un serveur proxy
+Only when your work or school network requires it.	Seulement si le réseau du travail ou de l’école l’exige.
+Setup script address	Adresse du script de configuration
+Leave empty to find it on the network automatically.	Laissez vide pour le trouver automatiquement sur le réseau.
+Same as HTTP	Comme HTTP
+Optional.	Facultatif.
+Don't use the proxy for	Ne pas utiliser le proxy pour
+Names or addresses separated by commas, for example *.local.	Noms ou adresses séparés par des virgules, par exemple *.local.

@@ -111,6 +111,24 @@ if [[ -r $im_env ]]; then
     . "$im_env"
     set -u
 fi
+# proxy pro programy v terminalu (Nastaveni > Proxy zapisuje ~/.config/luxos/proxy.env; aplikace GTK, Firefox
+# a Chromium ctou org.gnome.system.proxy samy); bez souboru se promenne z minule relace odstrani
+PROXY_VARS=(http_proxy https_proxy ftp_proxy all_proxy no_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY NO_PROXY)
+unset "${PROXY_VARS[@]}"
+proxy_env=${XDG_CONFIG_HOME:-$HOME/.config}/luxos/proxy.env
+proxy_re='^(http|https|ftp|all|no|HTTP|HTTPS|FTP|ALL|NO)_(proxy|PROXY)=[]A-Za-z0-9._:/@%*,[-]*$'
+if [[ -r $proxy_env ]]; then
+    while IFS= read -r line; do
+        [[ $line =~ $proxy_re ]] && export "$line"
+    done < "$proxy_env"
+fi
+for v in "${PROXY_VARS[@]}"; do
+    if [[ -v $v ]]; then
+        PROFILE_VARS+=("$v")
+    else
+        systemctl --user unset-environment "$v" 2>/dev/null
+    fi
+done
 mkdir -p "$cfg"
 # xfconfd (aktivuje ho D-Bus prvnim dotazem) musi videt /etc/xdg/luxos uz pri prvnim cteni (kurzor nize)
 dbus-update-activation-environment --systemd "${PROFILE_VARS[@]}" 2>/dev/null

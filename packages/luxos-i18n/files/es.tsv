@@ -5729,3 +5729,51 @@ restore	restaurar
 external drive	disco externo
 copy	copia
 Replaced versions of the files were moved to %s.	Las versiones reemplazadas de los archivos se movieron a %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	red del trabajo
+tunnel	túnel
+private	privado
+proxy server	servidor proxy
+pac	pac
+socks	socks
+work	trabajo
+school	escuela
+Manual	Manual
+No VPN yet	Aún no hay VPN
+Add the file you got from your VPN provider or your work.	Añade el archivo que te dio tu proveedor de VPN o tu trabajo.
+Really Remove	Eliminar de verdad
+This VPN needs a user name and password.	Esta VPN necesita usuario y contraseña.
+Could not connect: %s	No se pudo conectar: %s
+Sign in to %s	Iniciar sesión en %s
+Enter the user name and password.	Introduce el usuario y la contraseña.
+The user name cannot contain a comma, = or a backslash.	El usuario no puede contener comas, = ni barras invertidas.
+The password cannot contain a line break.	La contraseña no puede contener saltos de línea.
+OpenVPN support is not installed (package networkmanager-openvpn).	El soporte de OpenVPN no está instalado (paquete networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Elige un archivo WireGuard (.conf) u OpenVPN (.ovpn).
+The file could not be added: %s	No se pudo añadir el archivo: %s
+VPN added. Turn it on in the list.	VPN añadida. Actívala en la lista.
+Add VPN	Añadir VPN
+VPN settings	Configuración de VPN
+Used only for this connection, not saved.	Solo se usa para esta conexión, no se guarda.
+Add VPN…	Añadir VPN…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	Archivo WireGuard (.conf) u OpenVPN (.ovpn) de tu proveedor.
+From a file	Desde un archivo
+Saved. Apps use it right away; programs in the terminal after you log out.	Guardado. Las aplicaciones lo usan ya; los programas del terminal tras cerrar sesión.
+Web proxy (HTTP)	Proxy web (HTTP)
+Secure web proxy (HTTPS)	Proxy web seguro (HTTPS)
+SOCKS proxy	Proxy SOCKS
+%s: enter server:port, for example proxy.example.com:8080.	%s: introduce servidor:puerto, por ejemplo proxy.example.com:8080.
+Enter at least one proxy server.	Introduce al menos un servidor proxy.
+Exceptions: use names or addresses separated by commas.	Excepciones: usa nombres o direcciones separados por comas.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	La configuración de proxy no está disponible (falta gsettings-desktop-schemas).
+Use a proxy server	Usar un servidor proxy
+Only when your work or school network requires it.	Solo si la red del trabajo o de la escuela lo requiere.
+Setup script address	Dirección del script de configuración
+Leave empty to find it on the network automatically.	Déjalo vacío para buscarlo en la red automáticamente.
+Same as HTTP	Igual que HTTP
+Optional.	Opcional.
+Don't use the proxy for	No usar el proxy para
+Names or addresses separated by commas, for example *.local.	Nombres o direcciones separados por comas, por ejemplo *.local.

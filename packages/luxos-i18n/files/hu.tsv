@@ -5729,3 +5729,51 @@ restore	visszaállítás
 external drive	külső meghajtó
 copy	másolat
 Replaced versions of the files were moved to %s.	A lecserélt fájlváltozatok ide kerültek: %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	munkahelyi hálózat
+tunnel	alagút
+private	privát
+proxy server	proxykiszolgáló
+pac	pac
+socks	socks
+work	munka
+school	iskola
+Manual	Kézi
+No VPN yet	Még nincs VPN
+Add the file you got from your VPN provider or your work.	Adja hozzá a VPN-szolgáltatótól vagy a munkahelyétől kapott fájlt.
+Really Remove	Biztosan eltávolítja
+This VPN needs a user name and password.	Ehhez a VPN-hez felhasználónév és jelszó kell.
+Could not connect: %s	Nem sikerült csatlakozni: %s
+Sign in to %s	Bejelentkezés: %s
+Enter the user name and password.	Adja meg a felhasználónevet és a jelszót.
+The user name cannot contain a comma, = or a backslash.	A felhasználónév nem tartalmazhat vesszőt, = jelet vagy fordított perjelet.
+The password cannot contain a line break.	A jelszó nem tartalmazhat sortörést.
+OpenVPN support is not installed (package networkmanager-openvpn).	Az OpenVPN-támogatás nincs telepítve (networkmanager-openvpn csomag).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Válasszon WireGuard (.conf) vagy OpenVPN (.ovpn) fájlt.
+The file could not be added: %s	A fájlt nem sikerült hozzáadni: %s
+VPN added. Turn it on in the list.	VPN hozzáadva. Kapcsolja be a listában.
+Add VPN	VPN hozzáadása
+VPN settings	VPN-beállítások
+Used only for this connection, not saved.	Csak ehhez a kapcsolódáshoz, nem kerül mentésre.
+Add VPN…	VPN hozzáadása…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	WireGuard (.conf) vagy OpenVPN (.ovpn) fájl a szolgáltatótól.
+From a file	Fájlból
+Saved. Apps use it right away; programs in the terminal after you log out.	Mentve. Az alkalmazások azonnal, a terminálos programok kijelentkezés után használják.
+Web proxy (HTTP)	Webproxy (HTTP)
+Secure web proxy (HTTPS)	Biztonságos webproxy (HTTPS)
+SOCKS proxy	SOCKS-proxy
+%s: enter server:port, for example proxy.example.com:8080.	%s: adja meg szerver:port formában, például proxy.example.com:8080.
+Enter at least one proxy server.	Adjon meg legalább egy proxykiszolgálót.
+Exceptions: use names or addresses separated by commas.	Kivételek: vesszővel elválasztott nevek vagy címek.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	A proxybeállítások nem érhetők el (hiányzik a gsettings-desktop-schemas).
+Use a proxy server	Proxykiszolgáló használata
+Only when your work or school network requires it.	Csak ha a munkahelyi vagy iskolai hálózat megköveteli.
+Setup script address	Beállítószkript címe
+Leave empty to find it on the network automatically.	Hagyja üresen az automatikus kereséshez a hálózaton.
+Same as HTTP	Mint a HTTP
+Optional.	Nem kötelező.
+Don't use the proxy for	Proxy mellőzése ezeknél
+Names or addresses separated by commas, for example *.local.	Vesszővel elválasztott nevek vagy címek, például *.local.

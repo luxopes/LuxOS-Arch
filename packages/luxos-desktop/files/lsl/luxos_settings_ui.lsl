@@ -386,6 +386,32 @@ function choose_picture(parent, title, filter_name):
     end
 end
 
+# Vyber souboru podle pripon (patterns napr. ["*.conf", "*.ovpn"]); "" = zruseno
+function choose_file(parent, title, filter_name, patterns):
+    unsafe:
+        dlg = __lsl_qbe_call5(__lsl_symbol("gtk_file_chooser_native_new"), cstr(title), ptr(parent), 0, 0, 0)
+        filter = __lsl_qbe_call0(__lsl_symbol("gtk_file_filter_new"))
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_set_name"), filter, cstr(filter_name))
+        for p in patterns:
+            call __lsl_qbe_call2(__lsl_symbol("gtk_file_filter_add_pattern"), filter, cstr(p))
+        end
+        call __lsl_qbe_call2(__lsl_symbol("gtk_file_chooser_add_filter"), dlg, filter)
+        path = ""
+        if __lsl_qbe_s32(__lsl_qbe_call1(__lsl_symbol("gtk_native_dialog_run"), dlg)) == gtk.RESPONSE_ACCEPT:
+            path = gtk.file_chooser_get_filename(dlg)
+        end
+        call glib.object_unref(dlg)
+        return path
+    end
+end
+
+# Soubor jen pro vlastnika (0600; docasny soubor + prejmenovani), napr. heslo pro nmcli passwd-file
+function write_private(path, text):
+    unsafe:
+        return __lsl_qbe_call6(__lsl_symbol("g_file_set_contents_full"), cstr(path), cstr(text), ptr(0 - 1), 1, 384, 0) != 0
+    end
+end
+
 # ---- GSettings (Plank) -------------------------------------------------------------------------------------
 
 function gsettings(schema, path):
@@ -436,6 +462,44 @@ end
 function gs_set_bool(settings, key, value):
     unsafe:
         return __lsl_qbe_call3(__lsl_symbol("g_settings_set_boolean"), ptr(settings), cstr(key), gtk.flag(value))
+    end
+end
+
+# Seznam retezcu (as): pres textovy zapis GVariant; polozky s ' nebo \ se vynechaji
+function gs_get_strv(settings, key):
+    unsafe:
+        v = __lsl_qbe_call2(__lsl_symbol("g_settings_get_value"), ptr(settings), cstr(key))
+        printed = glib.take_c(__lsl_qbe_call2(__lsl_symbol("g_variant_print"), v, 0))
+        call __lsl_qbe_call1(__lsl_symbol("g_variant_unref"), v)
+    end
+    out = []
+    body = printed.strip()
+    if body.startswith("@as"):
+        body = body[3:].strip()
+    end
+    body = body.strip("[]")
+    for part in body.split(","):
+        item = part.strip().strip("'")
+        if item != "":
+            out.append(item)
+        end
+    end
+    return out
+end
+
+function gs_set_strv(settings, key, items):
+    quoted = []
+    for item in items:
+        if item.find("'") < 0 and item.find("\\") < 0:
+            quoted.append("'" + item + "'")
+        end
+    end
+    unsafe:
+        v = __lsl_qbe_call5(__lsl_symbol("g_variant_parse"), cstr("as"), cstr("[" + ", ".join(quoted) + "]"), 0, 0, 0)
+        if v == 0:
+            return 0
+        end
+        return __lsl_qbe_call3(__lsl_symbol("g_settings_set_value"), ptr(settings), cstr(key), v)
     end
 end
 
@@ -664,6 +728,9 @@ function test_step():
             if w != 0 and is_a(w, "GtkEntry"):
                 call gtk.entry_set_text(w, "=".join(kv[1:]))
             end
+        elif not (cmd in ["switch", "combo", "slider"]) and state.get("on_test", None) != None:
+            # ostatni prikazy (napr. vpn-import CESTA) zpracuje aplikace / stranka
+            call state["on_test"](cmd, arg)
         else:
             title = " ".join(parts[1:len(parts) - 1])
             value = parts[len(parts) - 1]

@@ -5730,3 +5730,51 @@ restore	відновити
 external drive	зовнішній диск
 copy	копія
 Replaced versions of the files were moved to %s.	Замінені версії файлів переміщено до %s.
+VPN	VPN
+Proxy	Проксі
+wireguard	wireguard
+openvpn	openvpn
+work network	робоча мережа
+tunnel	тунель
+private	приватність
+proxy server	проксі-сервер
+pac	pac
+socks	socks
+work	робота
+school	школа
+Manual	Вручну
+No VPN yet	Ще немає VPN
+Add the file you got from your VPN provider or your work.	Додайте файл, отриманий від постачальника VPN або на роботі.
+Really Remove	Справді видалити
+This VPN needs a user name and password.	Ця VPN потребує імені користувача та пароля.
+Could not connect: %s	Не вдалося підключитися: %s
+Sign in to %s	Вхід до %s
+Enter the user name and password.	Введіть ім’я користувача та пароль.
+The user name cannot contain a comma, = or a backslash.	Ім’я користувача не може містити кому, = або зворотну скісну риску.
+The password cannot contain a line break.	Пароль не може містити розрив рядка.
+OpenVPN support is not installed (package networkmanager-openvpn).	Підтримку OpenVPN не встановлено (пакет networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Виберіть файл WireGuard (.conf) або OpenVPN (.ovpn).
+The file could not be added: %s	Не вдалося додати файл: %s
+VPN added. Turn it on in the list.	VPN додано. Увімкніть її у списку.
+Add VPN	Додати VPN
+VPN settings	Налаштування VPN
+Used only for this connection, not saved.	Лише для цього підключення, не зберігається.
+Add VPN…	Додати VPN…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	Файл WireGuard (.conf) або OpenVPN (.ovpn) від постачальника.
+From a file	З файлу
+Saved. Apps use it right away; programs in the terminal after you log out.	Збережено. Застосунки використовують одразу, програми в терміналі — після виходу.
+Web proxy (HTTP)	Веб-проксі (HTTP)
+Secure web proxy (HTTPS)	Захищений веб-проксі (HTTPS)
+SOCKS proxy	Проксі SOCKS
+%s: enter server:port, for example proxy.example.com:8080.	%s: введіть сервер:порт, наприклад proxy.example.com:8080.
+Enter at least one proxy server.	Введіть принаймні один проксі-сервер.
+Exceptions: use names or addresses separated by commas.	Винятки: імена або адреси через кому.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	Налаштування проксі недоступні (немає gsettings-desktop-schemas).
+Use a proxy server	Використовувати проксі-сервер
+Only when your work or school network requires it.	Лише якщо цього вимагає мережа на роботі чи в школі.
+Setup script address	Адреса сценарію налаштування
+Leave empty to find it on the network automatically.	Залиште порожнім, щоб знайти його в мережі автоматично.
+Same as HTTP	Як HTTP
+Optional.	Необов’язково.
+Don't use the proxy for	Не використовувати проксі для
+Names or addresses separated by commas, for example *.local.	Імена або адреси через кому, наприклад *.local.

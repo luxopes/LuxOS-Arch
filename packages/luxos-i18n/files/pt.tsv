@@ -5729,3 +5729,51 @@ restore	restaurar
 external drive	disco externo
 copy	cópia
 Replaced versions of the files were moved to %s.	As versões substituídas dos ficheiros foram movidas para %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	rede do trabalho
+tunnel	túnel
+private	privado
+proxy server	servidor proxy
+pac	pac
+socks	socks
+work	trabalho
+school	escola
+Manual	Manual
+No VPN yet	Ainda sem VPN
+Add the file you got from your VPN provider or your work.	Adicione o ficheiro que recebeu do fornecedor de VPN ou do trabalho.
+Really Remove	Remover mesmo
+This VPN needs a user name and password.	Esta VPN precisa de nome de utilizador e palavra-passe.
+Could not connect: %s	Não foi possível ligar: %s
+Sign in to %s	Iniciar sessão em %s
+Enter the user name and password.	Introduza o nome de utilizador e a palavra-passe.
+The user name cannot contain a comma, = or a backslash.	O nome de utilizador não pode conter vírgulas, = ou barras invertidas.
+The password cannot contain a line break.	A palavra-passe não pode conter quebras de linha.
+OpenVPN support is not installed (package networkmanager-openvpn).	O suporte OpenVPN não está instalado (pacote networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Escolha um ficheiro WireGuard (.conf) ou OpenVPN (.ovpn).
+The file could not be added: %s	Não foi possível adicionar o ficheiro: %s
+VPN added. Turn it on in the list.	VPN adicionada. Ative-a na lista.
+Add VPN	Adicionar VPN
+VPN settings	Definições de VPN
+Used only for this connection, not saved.	Usada só para esta ligação, não é guardada.
+Add VPN…	Adicionar VPN…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	Ficheiro WireGuard (.conf) ou OpenVPN (.ovpn) do fornecedor.
+From a file	A partir de um ficheiro
+Saved. Apps use it right away; programs in the terminal after you log out.	Guardado. As aplicações usam-no já; os programas do terminal após terminar a sessão.
+Web proxy (HTTP)	Proxy web (HTTP)
+Secure web proxy (HTTPS)	Proxy web seguro (HTTPS)
+SOCKS proxy	Proxy SOCKS
+%s: enter server:port, for example proxy.example.com:8080.	%s: introduza servidor:porta, por exemplo proxy.example.com:8080.
+Enter at least one proxy server.	Introduza pelo menos um servidor proxy.
+Exceptions: use names or addresses separated by commas.	Exceções: use nomes ou endereços separados por vírgulas.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	As definições de proxy não estão disponíveis (falta gsettings-desktop-schemas).
+Use a proxy server	Usar um servidor proxy
+Only when your work or school network requires it.	Só se a rede do trabalho ou da escola o exigir.
+Setup script address	Endereço do script de configuração
+Leave empty to find it on the network automatically.	Deixe vazio para o encontrar automaticamente na rede.
+Same as HTTP	Igual a HTTP
+Optional.	Opcional.
+Don't use the proxy for	Não usar o proxy para
+Names or addresses separated by commas, for example *.local.	Nomes ou endereços separados por vírgulas, por exemplo *.local.

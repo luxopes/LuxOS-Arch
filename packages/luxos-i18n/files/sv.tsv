@@ -5729,3 +5729,51 @@ restore	återställ
 external drive	extern disk
 copy	kopia
 Replaced versions of the files were moved to %s.	Ersatta versioner av filerna flyttades till %s.
+VPN	VPN
+Proxy	Proxy
+wireguard	wireguard
+openvpn	openvpn
+work network	jobbnätverk
+tunnel	tunnel
+private	privat
+proxy server	proxyserver
+pac	pac
+socks	socks
+work	jobb
+school	skola
+Manual	Manuellt
+No VPN yet	Inget VPN än
+Add the file you got from your VPN provider or your work.	Lägg till filen du fått från din VPN-leverantör eller ditt jobb.
+Really Remove	Ja, ta bort
+This VPN needs a user name and password.	Detta VPN kräver användarnamn och lösenord.
+Could not connect: %s	Kunde inte ansluta: %s
+Sign in to %s	Logga in på %s
+Enter the user name and password.	Ange användarnamn och lösenord.
+The user name cannot contain a comma, = or a backslash.	Användarnamnet får inte innehålla kommatecken, = eller omvänt snedstreck.
+The password cannot contain a line break.	Lösenordet får inte innehålla radbrytningar.
+OpenVPN support is not installed (package networkmanager-openvpn).	OpenVPN-stöd är inte installerat (paketet networkmanager-openvpn).
+Choose a WireGuard (.conf) or OpenVPN (.ovpn) file.	Välj en WireGuard- (.conf) eller OpenVPN-fil (.ovpn).
+The file could not be added: %s	Filen kunde inte läggas till: %s
+VPN added. Turn it on in the list.	VPN tillagt. Slå på det i listan.
+Add VPN	Lägg till VPN
+VPN settings	VPN-inställningar
+Used only for this connection, not saved.	Används bara för den här anslutningen, sparas inte.
+Add VPN…	Lägg till VPN…
+WireGuard (.conf) or OpenVPN (.ovpn) file from your provider.	WireGuard- (.conf) eller OpenVPN-fil (.ovpn) från leverantören.
+From a file	Från en fil
+Saved. Apps use it right away; programs in the terminal after you log out.	Sparat. Appar använder det direkt, program i terminalen efter utloggning.
+Web proxy (HTTP)	Webbproxy (HTTP)
+Secure web proxy (HTTPS)	Säker webbproxy (HTTPS)
+SOCKS proxy	SOCKS-proxy
+%s: enter server:port, for example proxy.example.com:8080.	%s: ange server:port, till exempel proxy.example.com:8080.
+Enter at least one proxy server.	Ange minst en proxyserver.
+Exceptions: use names or addresses separated by commas.	Undantag: ange namn eller adresser åtskilda med kommatecken.
+Proxy settings are not available (gsettings-desktop-schemas is missing).	Proxyinställningar är inte tillgängliga (gsettings-desktop-schemas saknas).
+Use a proxy server	Använd proxyserver
+Only when your work or school network requires it.	Bara om nätverket på jobbet eller i skolan kräver det.
+Setup script address	Adress till konfigurationsskript
+Leave empty to find it on the network automatically.	Lämna tomt för att hitta det automatiskt i nätverket.
+Same as HTTP	Samma som HTTP
+Optional.	Valfritt.
+Don't use the proxy for	Använd inte proxy för
+Names or addresses separated by commas, for example *.local.	Namn eller adresser åtskilda med kommatecken, till exempel *.local.

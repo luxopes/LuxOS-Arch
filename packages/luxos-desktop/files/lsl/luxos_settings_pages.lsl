@@ -33,6 +33,8 @@ load luxos_page_datetime as datetime
 load luxos_page_language as language
 load luxos_page_users as users
 load luxos_page_security as security
+load luxos_page_vpn as vpn
+load luxos_page_proxy as proxy
 
 function page(id, title, icon, color, group, keywords, aliases, module_fns):
     item = {"id": id, "title": title, "icon": icon, "color": color, "group": group, "keywords": keywords,
@@ -54,6 +56,10 @@ function all():
     out.append(page("bluetooth", "Bluetooth", "bluetooth-active-symbolic", "#3d7bff", 0, ["devices", "pair", "headphones", "mouse"],
              ["luxos-bluetooth"], {"build": bluetooth.build, "leave": bluetooth.leave, "show": bluetooth.show, "test": bluetooth.test}))
     out.append(app("network", "Network", "network-workgroup-symbolic", "#3d7bff", 0, ["router", "ip address", "dns", "ping", "speed"], ["luxos-router"]))
+    out.append(page("vpn", "VPN", "network-vpn-symbolic", "#3d7bff", 0, ["wireguard", "openvpn", "work network", "tunnel", "private"],
+             [], {"build": vpn.build, "show": vpn.show, "leave": vpn.leave, "test": vpn.test}))
+    out.append(page("proxy", "Proxy", "preferences-system-network-proxy-symbolic", "#3d7bff", 0, ["proxy server", "pac", "socks", "work", "school"],
+             [], {"build": proxy.build, "test": proxy.test}))
     out.append(page("firewall", "Firewall", "security-high-symbolic", "#ff9500", 0, ["ports", "ssh", "block", "allow", "security"],
              ["luxos-firewall-settings"], {"build": firewall.build, "show": firewall.show, "test": firewall.test}))
     out.append(page("security", "Privacy & Security", "security-medium-symbolic", "#34c759", 0,
