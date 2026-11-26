@@ -15,6 +15,7 @@ load luxos_text
 SLIDE = 20.0      # sekund na tapetu
 FADE = 3.0        # delka prolinani
 FPS = 15
+IMAGE_CACHE = 3    # tapet v pameti (aktualni, dalsi, predchozi)
 FADE_FPS = 60     # prolinani tapet plynule (jen FADE sekund; jinak stoji a staci FPS)
 STYLES = ["desktop", "wallpapers", "analog", "clock", "aurora", "photos", "logo", "blank"]
 ANALOG_FPS = 20       # vterinova rucicka plynule; prekresluje se jen ctverec s hodinami
@@ -31,7 +32,7 @@ WEIGHT_LIGHT = 300
 WEIGHT_SEMIBOLD = 600
 
 S = {"style": "desktop", "start": 0.0, "slides": [], "phase": 0.0, "formats": None, "logo": None, "frame": None,
-     "images": [], "aurora": 0, "full_until": 0.0, "full_at": -FULL_EVERY}
+     "images": [], "decodes": 0, "loading": [], "aurora": 0, "full_until": 0.0, "full_at": -FULL_EVERY}
 # rucickove hodiny: tapety [klic, surface] (klic "index|w|h"), rozpracovane nacitani, predkresleny ciselnik
 A = {"slides": [], "offset": 0, "walls": [], "loading": [], "face": None, "dark": False, "dark_at": 0.0,
      "full": True, "drawn": ""}
@@ -329,15 +330,25 @@ function surface_new(format, w, h):
 end
 
 # Tapeta pro styl s pomalym pohybem: obrazek o kousek vetsi nez plocha jako [surface, sirka, vyska] nebo None.
-# Drzi se jen posledni tri (aktualni, dalsi a predchozi pri prolinani).
+# Cache drzi poslednich IMAGE_CACHE pouzitych (aktualni, dalsi a predchozi pri prolinani); vyhazuje se
+# nejdele nepouzity. Drive se vyhazovaly nejstarsi PRIDANE, takze od druheho prechodu se aktualni tapeta
+# vyhodila a pri kazdem snimku znovu dekodovala (~280 ms) - prolinani cukalo.
 function slide_image(path, w, h):
     key = path + "|" + String(w) + "|" + String(h)
-    for item in S["images"]:
+    i = 0
+    while i < len(S["images"]):
+        item = S["images"][i]
         if item[0] == key:
+            if i != len(S["images"]) - 1:
+                S["images"].pop(i)
+                S["images"].append(item)
+            end
             return item[1]
         end
+        i += 1
     end
     value = None
+    S["decodes"] += 1
     src = pixbuf_load(path)
     if src != 0:
         size = pixbuf_size(src)
@@ -356,18 +367,102 @@ function slide_image(path, w, h):
             value = [surf, sw, sh]
         end
     end
+    call cache_put(key, value, w, h)
+    call trim()
+    return value
+end
+
+# Vlozi obrazek do cache (jako nejnovejsi) a vyhodi nejdele nepouzite nad IMAGE_CACHE; obrazky jine
+# velikosti obrazovky (zmena rozliseni) se zahodi
+function cache_put(key, value, w, h):
+    S["images"].append([key, value])
     keep = []
     for item in S["images"]:
-        if item[0].endswith("|" + String(w) + "|" + String(h)) and len(keep) < 2:
+        if item[0].endswith("|" + String(w) + "|" + String(h)):
             keep.append(item)
         elif item[1] != None:
             call cairo.surface_destroy(item[1][0])
         end
     end
-    keep.append([key, value])
+    while len(keep) > IMAGE_CACHE:
+        old = keep.pop(0)
+        if old[1] != None:
+            call cairo.surface_destroy(old[1][0])
+        end
+    end
     S["images"] = keep
+    return 0
+end
+
+function image_cached(key):
+    for item in S["images"]:
+        if item[0] == key:
+            return True
+        end
+    end
+    return False
+end
+
+# Nacte tapetu na pozadi (dekodovani a zmenseni ve vlakne GIO, v hlavni smycce jen prevod na plochu), aby
+# prolinani nemuselo cekat na dekodovani (150-300 ms). Kdyz to nejde, nic: slide_image ji pak nacte hned.
+function prefetch(path, w, h):
+    key = path + "|" + String(w) + "|" + String(h)
+    if image_cached(key) or key in S["loading"] or path == "":
+        return 0
+    end
+    unsafe:
+        cells = __lsl_byte_zeros(16)
+        base = glib.array_data(cells)
+        if __lsl_qbe_call3(__lsl_symbol("gdk_pixbuf_get_file_info"), cstr(path), base, base + 4) == 0:
+            return 0
+        end
+        ow = __lsl_qbe_s32(__lsl_qbe_load32(base))
+        oh = __lsl_qbe_s32(__lsl_qbe_load32(base + 4))
+        if ow <= 0 or oh <= 0:
+            return 0
+        end
+        file = __lsl_qbe_call1(__lsl_symbol("g_file_new_for_path"), cstr(path))
+        stream = __lsl_qbe_call3(__lsl_symbol("g_file_read"), file, 0, 0)
+        call glib.object_unref(file)
+        if stream == 0:
+            return 0
+        end
+        scale = max(Float(w) / ow, Float(h) / oh)
+        sw = Int(ow * scale) + 1
+        sh = Int(oh * scale) + 1
+        job = [key, w, h, stream, 0]
+        tracked = glib.track(on_prefetched, 2, job)
+        job[4] = tracked[1]
+        S["loading"].append(key)
+        call __lsl_qbe_call7(__lsl_symbol("gdk_pixbuf_new_from_stream_at_scale_async"), stream, ptr(sw), ptr(sh), 0, 0, __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
+    end
+    return 0
+end
+
+function on_prefetched(job, source, result):
+    unsafe:
+        scaled = __lsl_qbe_call2(__lsl_symbol("gdk_pixbuf_new_from_stream_finish"), ptr(result), 0)
+    end
+    call glib.release(job[4])
+    call glib.object_unref(job[3])
+    if job[0] in S["loading"]:
+        call S["loading"].remove(job[0])
+    end
+    value = None
+    if scaled != 0:
+        sw = gtk.pixbuf_get_width(scaled) & 2147483647
+        sh = gtk.pixbuf_get_height(scaled) & 2147483647
+        surf = surface_new(cairo.FORMAT_RGB24, sw, sh)
+        c = cairo.create(surf)
+        call gtk.cairo_set_source_pixbuf(c, scaled, 0, 0)
+        call cairo.paint(c)
+        call cairo.destroy(c)
+        call glib.object_unref(scaled)
+        value = [surf, sw, sh]
+    end
+    call cache_put(job[0], value, job[1], job[2])
     call trim()
-    return value
+    return 0
 end
 
 function paint_wall(cr, path, w, h, alpha, t):
@@ -512,11 +607,17 @@ function fps():
     return FPS
 end
 
-# Snimky za sekundu prave ted (zamek se pta kazdy snimek): prolinani tapet plynule, jinak fps()
+# Snimky za sekundu prave ted (zamek a spořic se ptaji kazdy snimek): prolinani tapet plynule, jinak fps()
 function fps_now():
     if (S["style"] == "wallpapers" or S["style"] == "photos") and len(S["slides"]) > 1:
         phase = (monotonic() - S["start"]) % SLIDE
         if phase > SLIDE - FADE - 1.0 / FPS:
+            return FADE_FPS
+        end
+    end
+    if S["style"] == "analog" and len(A["slides"]) > 1:
+        phase = (monotonic() - S["start"]) % ANALOG_SLIDE
+        if phase > ANALOG_SLIDE - ANALOG_FADE - 1.0 / ANALOG_FPS:
             return FADE_FPS
         end
     end
@@ -593,7 +694,7 @@ function draw(cr, w, h, full):
             elif phase > 1.0:
                 # dalsi tapetu nacist uz ted, kdy obraz stoji (dekodovani trva desitky az stovky ms); az pri
                 # prolinani by se na nem animace zasekla
-                call slide_image(slides[(idx + 1) % len(slides)], w, h)
+                call prefetch(slides[(idx + 1) % len(slides)], w, h)
             end
         end
         # ztmaveni pro citelnost hodin

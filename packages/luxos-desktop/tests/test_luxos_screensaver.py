@@ -210,6 +210,21 @@ class Slides(Env, unittest.TestCase):
                 self.assertGreater(colors, 3, style)
 
 
+class Fade(Env, unittest.TestCase):
+    """Prolinani tapet: tapety se nesmi dekodovat znovu pri kazdem snimku (cukani) a prolinani jede plynule."""
+
+    def test_wallpapers_decoded_once_each_over_several_transitions(self):
+        # 130 s = ctyri prechody; kazda tapeta nejvys jednou (cache vyhazovala aktualni misto nejstarsi:
+        # od druheho prechodu desitky dekodovani, kazde ~280 ms)
+        out = self.run_saver("--cache-test", "wallpapers", "640", "360", "130").split()
+        slides, decodes = int(out[3]), int(out[5])
+        self.assertGreater(slides, 3)
+        self.assertLessEqual(decodes, 7, out)
+
+    def test_fade_runs_at_60_fps_and_otherwise_slow(self):
+        self.assertEqual(self.run_saver("--info", "wallpapers").split()[:2], ["wallpapers", "15"])
+
+
 class Analog(Env, unittest.TestCase):
     """Styl "analog": tapety LuxOS s prolinanim a rucickove hodiny; mimo prolinani jen ctverec s hodinami."""
 

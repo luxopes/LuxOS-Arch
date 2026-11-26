@@ -27,7 +27,7 @@ load luxos_i18n as i18n
 load luxos_text
 load luxos_saver as saver
 
-X = {"win": 0, "display": 0, "interval": 0.05, "tick": 0.0, "viewable": True, "dpms_at": -10.0, "dpms_on": True,
+X = {"win": 0, "display": 0, "period": 0, "interval": 0.05, "tick": 0.0, "viewable": True, "dpms_at": -10.0, "dpms_on": True,
      "dpms": -1, "area": 0}
 
 function ptr(value):
@@ -64,7 +64,25 @@ function screen_on():
     return X["dpms_on"]
 end
 
+# Snimky za sekundu prave ted: pri prolinani tapet 60, jinak fps() (viz saver.fps_now). Casovac se prenastavi
+# jen pri zmene - drive bezel porad 15 fps a prolinani tapet cukalo.
+function rearm(callback):
+    want = 1000 // saver.fps_now()
+    if want == X["period"]:
+        return True
+    end
+    X["period"] = want
+    X["interval"] = want / 1000.0
+    call glib.timeout_add_data(want, callback, 0)
+    return False
+end
+
 function tick(unused):
+    call tick_body(0)
+    return rearm(tick)
+end
+
+function tick_body(unused):
     now = monotonic()
     # mezera (xfce4-screensaver nas pri dialogu s heslem pozastavi) = obsah okna neplati
     if now - X["tick"] > 3 * X["interval"] + 0.2:
@@ -108,7 +126,7 @@ function tick(unused):
 end
 
 function tick_once(unused):
-    call tick(0)
+    call tick_body(0)
     return False
 end
 
@@ -154,10 +172,11 @@ function run_foreign(xid, style):
         call __lsl_qbe_call3(__lsl_symbol("gdk_window_add_filter"), win, __lsl_symbol("lsl_arch_callback_u3"), ptr(tracked[0]))
     end
     call saver.saver_init(style, monitor)
-    X["interval"] = 1.0 / saver.fps()
+    X["period"] = 1000 // saver.fps_now()
+    X["interval"] = X["period"] / 1000.0
     X["tick"] = monotonic()
-    call glib.timeout_add_data(1000 // saver.fps(), tick, 0)
-    call tick(0)
+    call glib.timeout_add_data(X["period"], tick, 0)
+    call tick_body(0)
     call glib.main()
     return 0
 end
@@ -171,7 +190,7 @@ end
 
 function on_redraw(unused):
     call gtk.widget_queue_draw(X["area"])
-    return True
+    return rearm(on_redraw)
 end
 
 function on_quit(event, widget):
@@ -199,7 +218,8 @@ function run_window(style, fullscreen):
         call gtk.connect(win, "button-press-event", on_quit)
     end
     call gtk.connect(win, "destroy", on_destroy)
-    call glib.timeout_add_data(1000 // saver.fps(), on_redraw, 0)
+    X["period"] = 1000 // saver.fps_now()
+    call glib.timeout_add_data(X["period"], on_redraw, 0)
     call gtk.widget_show_all(win)
     call gtk.main()
     return 0
@@ -216,6 +236,23 @@ function render(style, w, h, out, elapsed):
     call cairo.destroy(cr)
     call cairo.surface_flush(surf)
     call cairo.surface_write_to_png(surf, out)
+    return 0
+end
+
+# Prehraje behem spoustece (snimek kazdou sekundu) a vypise pocet dekodovani tapet v hlavnim vlakne. Cache
+# s opacnym poradim vyhazovani dekodovala tapetu pri kazdem snimku (~280 ms: prolinani cukalo).
+function cache_test(style, w, h, seconds):
+    call saver.saver_init(style, "")
+    surf = saver.surface_new(cairo.FORMAT_RGB24, w, h)
+    cr = cairo.create(surf)
+    t = 0
+    while t < seconds:
+        saver.S["start"] = monotonic() - Float(t)
+        call saver.draw(cr, w, h, True)
+        t += 1
+    end
+    call cairo.destroy(cr)
+    print "frames " + String(seconds) + " slides " + String(len(saver.S["slides"])) + " decodes " + String(saver.S["decodes"])
     return 0
 end
 
@@ -306,6 +343,8 @@ function main():
         print luxos_text.join(saver.STYLES, " ")
     elif command == "--render":
         call render(args[2], Int(args[3]), Int(args[4]), args[5], Float(arg_or(6, "0")))
+    elif command == "--cache-test":
+        call cache_test(args[2], Int(args[3]), Int(args[4]), Int(args[5]))
     elif command == "--analog-dirty":
         call analog_dirty_test(Int(args[2]), Int(args[3]))
     elif command == "--hands":
