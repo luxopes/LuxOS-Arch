@@ -88,10 +88,19 @@ static void xdg_surface_configure(void *data, struct xdg_surface *xs, uint32_t s
 
 static const struct xdg_surface_listener xdg_surface_listener = { xdg_surface_configure };
 
+/* --dblmax: dvojklik do klientske casti = zadost o (od)maximalizaci jako zahlavi GTK/Firefoxu s vlastni dekoraci */
+static int dblmax, is_maximized;
+static uint32_t last_down;
+
 static void tl_configure(void *data, struct xdg_toplevel *t, int32_t w, int32_t h, struct wl_array *states)
 {
 	pending_w = w;
 	pending_h = h;
+	is_maximized = 0;
+	uint32_t *st;
+	wl_array_for_each(st, states)
+		if (*st == XDG_TOPLEVEL_STATE_MAXIMIZED)
+			is_maximized = 1;
 }
 
 static void tl_close(void *data, struct xdg_toplevel *t)
@@ -120,6 +129,18 @@ static void p_motion(void *d, struct wl_pointer *p, uint32_t t, wl_fixed_t x, wl
 static void p_button(void *d, struct wl_pointer *p, uint32_t s, uint32_t t, uint32_t b, uint32_t st)
 {
 	say("button %u %s", b, st ? "down" : "up");
+	if (dblmax && st == WL_POINTER_BUTTON_STATE_PRESSED) {
+		if (last_down && t - last_down < 400) {
+			say("request %s", is_maximized ? "unmaximize" : "maximize");
+			if (is_maximized)
+				xdg_toplevel_unset_maximized(toplevel);
+			else
+				xdg_toplevel_set_maximized(toplevel);
+			last_down = 0;
+		} else {
+			last_down = t;
+		}
+	}
 }
 static void p_axis(void *d, struct wl_pointer *p, uint32_t t, uint32_t a, wl_fixed_t v) {}
 static void p_frame(void *d, struct wl_pointer *p) {}
@@ -218,6 +239,8 @@ int main(int argc, char **argv)
 			hstripes = 1;
 		else if (!strcmp(argv[i], "--solid"))
 			solid = 1;
+		else if (!strcmp(argv[i], "--dblmax"))
+			dblmax = 1;
 		else if (i + 1 < argc && !strcmp(argv[i], "--title"))
 			title = argv[++i];
 		else if (i + 1 < argc && !strcmp(argv[i], "--app-id"))

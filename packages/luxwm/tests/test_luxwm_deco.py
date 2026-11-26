@@ -216,6 +216,30 @@ class LuxwmDeco(unittest.TestCase):
         s.input("move %d %d" % (v["x"] + 200, v["y"] - TITLE // 2), "click", "sleep 0.6", "click", wait=0.6)
         self.assertEqual(s.state()["views"]["D"]["maximized"], 0)
 
+    def test_double_click_in_client_title_bar(self):
+        """Okno s vlastnim zahlavim (GTK headerbar, Firefox) vyridi dvojklik samo jako zadost o maximalizaci;
+        kompozitor ji vyridi podle double_click_action (Nastaveni > Okna a plochy)."""
+        for action, want in (("maximize", {"maximized": 1, "visible": 1}), ("hide", {"maximized": 0, "visible": 0}),
+                             ("none", {"maximized": 0, "visible": 1})):
+            with self.subTest(action=action):
+                conf = os.path.join(RESULTS, "dblclick-csd-" + action)
+                os.makedirs(os.path.join(conf, "luxwm"), exist_ok=True)
+                with open(os.path.join(conf, "luxwm", "luxwm.conf"), "w") as f:
+                    f.write("double_click_action = %s\n" % action)
+                s = self.start(env=f"XDG_CONFIG_HOME={conf}")
+                s.client("C", size="400x300", extra=["--dblmax"])
+                v = s.state()["views"]["C"]
+                # horni pas klientske casti (tam je zahlavi okna s vlastni dekoraci)
+                s.input("move %d %d" % (v["x"] + 200, v["y"] + 12), "click", "click", wait=0.7)
+                got = s.state()["views"]["C"]
+                self.assertEqual({k: got[k] for k in want}, want)
+        # dvojklik dole v okne (obsah aplikace) okno neovlivni, i kdyz ho klient povazuje za zadost
+        s = self.start()
+        s.client("C", size="400x300", extra=["--dblmax"])
+        v = s.state()["views"]["C"]
+        s.input("move %d %d" % (v["x"] + 200, v["y"] + 250), "click", "click", wait=0.7)
+        self.assertEqual(s.state()["views"]["C"]["maximized"], 1, "outside the title zone the request is not touched")
+
     def test_double_click_action(self):
         # double_click_action z uzivatelskeho luxwm.conf (Nastaveni > Okna a plochy), zmena pres reload
         conf = os.path.join(RESULTS, "dblclick-config")

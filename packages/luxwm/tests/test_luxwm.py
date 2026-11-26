@@ -80,10 +80,11 @@ class Session:
         with open(self.log_path, errors="replace") as f:
             return f.read()
 
-    def client(self, title, app="test", size="400x300", color=None, wait=0.6):
+    def client(self, title, app="test", size="400x300", color=None, wait=0.6, extra=()):
         args = ["run", self.dir, "--bg", "wlt-client", "--events", "--title", title, "--app-id", app, "--size", size]
         if color:
             args += ["--color", color]
+        args += list(extra)
         wlt(*args)
         time.sleep(wait)
 

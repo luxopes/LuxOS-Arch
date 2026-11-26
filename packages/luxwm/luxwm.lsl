@@ -86,6 +86,12 @@ tiled = {}           # okno -> "left" / "right"
 has_xdg_deco = {}    # okna, ktera pouzila xdg-decoration (CSD/SSD si ridi sama)
 hidden_desktop = []  # okna schovana "ukazat plochu"
 last_title_click = [0, 0]
+# Okno s vlastnim zahlavim (GTK headerbar, Firefox): dvojklik na jeho zahlavi klient vyridi sam jako zadost o
+# maximalizaci, kompozitor ho nevidi. Poznamenaji se proto stisky v klientske casti: [okno, cas, x, y, dvojklik do
+# zahlavi]; zadost o maximalizaci hned po takovem dvojkliku se vyridi podle double_click_action (viz request).
+client_press = {"view": 0, "at": 0, "x": 0, "y": 0, "double_at": 0, "double_view": 0}
+TITLE_ZONE = 64             # px od horniho okraje okna, kde dvojklik bere jako dvojklik do zahlavi
+TITLE_REQUEST_US = 300000   # zadost o maximalizaci do 0,3 s po dvojkliku je z nej
 
 # Alt+Tab: seznam, poloha, puvodni okno, docasne ukazana minimalizovana okna, zkratka Esc
 cycle = {"on": False, "list": [], "pos": 0, "from": 0, "shown": [], "cancel": 0}
@@ -2156,12 +2162,51 @@ function usable_changed(out):
     call note("usable " + String(out) + " " + String(u[0]) + "," + String(u[1]) + " " + String(u[2]) + "x" + String(u[3]))
 end
 
+# Stisk v klientske casti okna: druhy rychly stisk na stejnem miste v hornim pasu okna = dvojklik do zahlavi
+function note_client_press(v):
+    now = glib.monotonic_time()
+    x = lc.cursor_x()
+    y = lc.cursor_y()
+    if (client_press["view"] == v and now - client_press["at"] < DOUBLE_CLICK_US
+            and abs(x - client_press["x"]) < 8 and abs(y - client_press["y"]) < 8
+            and y - vget(v, lc.VIEW_Y) < TITLE_ZONE):
+        client_press["double_at"] = now
+        client_press["double_view"] = v
+        client_press["view"] = 0
+        return
+    end
+    client_press["view"] = v
+    client_press["at"] = now
+    client_press["x"] = x
+    client_press["y"] = y
+end
+
+# Zadost o (od)maximalizaci hned po dvojkliku do vlastniho zahlavi klienta: nastaveni Dvojklik na zahlavi
+# (Okna a plochy). True = vyrizeno tady
+function title_double_click(v):
+    if client_press["double_view"] != v or glib.monotonic_time() - client_press["double_at"] > TITLE_REQUEST_US:
+        return False
+    end
+    client_press["double_view"] = 0
+    action = settings.get("double_click_action", "maximize")
+    if action == "hide":
+        call minimize(v)
+        return True
+    elif action == "none":
+        return True
+    end
+    return False
+end
+
 function button(v, pressed, part):
     if not pressed or v == 0 or part == lc.PART_LAYER:
         return
     end
     if cycle["on"]:
         call cycle_end(False)
+    end
+    if part == lc.PART_CLIENT:
+        call note_client_press(v)
     end
     # semafor neaktivniho okna funguje bez jeho zamereni (jako v macOS)
     if part == lc.PART_CLOSE:
@@ -2236,7 +2281,8 @@ function activate(v, origin, source):
         allowed = sandbox_id(v) == "" or (current != 0 and sandbox_id(current) == sandbox_id(v))
     end
     if not allowed:
-        call note("activate refused " + String(v) + " origin " + String(origin))
+        # vzdy do luxwm.log: "klik v Docku / odkaz nic neudelal" je jinak bez stopy
+        print "luxwm: activate refused " + String(v) + " origin " + String(origin) + " app " + lc.view_app_id(v)
         return
     end
     if cycle["on"]:
@@ -2263,7 +2309,9 @@ function request(v, what, arg, origin):
             call lc.view_begin_resize(v, arg)
         end
     elif what == lc.REQ_MAXIMIZE:
-        call set_maximized(v, arg == 1)
+        if not title_double_click(v):
+            call set_maximized(v, arg == 1)
+        end
     elif what == lc.REQ_FULLSCREEN:
         call set_fullscreen(v, arg == 1)
     elif what == lc.REQ_MINIMIZE:
