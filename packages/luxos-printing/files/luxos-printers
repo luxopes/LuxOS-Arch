@@ -58,6 +58,7 @@ CSS = b"""
 .group row { padding: 8px 12px; }
 .empty { opacity: 0.6; padding: 16px; }
 .dot { font-size: 13px; }
+.dot.unknown { opacity: 0.45; }
 .dot.ok { color: #2fb350; }
 .dot.busy { color: #3d7bff; }
 .dot.warn { color: #f0a020; }
@@ -70,7 +71,7 @@ CSS = b"""
 .saved { border-radius: 10px; padding: 8px 12px; background-color: alpha(#2fb350, 0.14); }
 """
 
-STATUS_CLASS = ("ok", "busy", "warn", "err")
+STATUS_CLASS = ("unknown", "ok", "busy", "warn", "err")
 
 
 def esc(s):
@@ -296,7 +297,7 @@ def markers_of(attrs):
 
 
 def printer_info(p, live, jobs, usb_online=None):
-    """(text, trida, ukazat Obnovit, klic z lp.printer_condition) - trida: ok | busy | warn | err.
+    """(text, trida, ukazat Obnovit, klic z lp.printer_condition).
 
     usb_online: USB tiskarna je pripojena (True/False/None = nevime, viz Cups.snapshot)."""
     reasons = list(p.get("printer-state-reasons") or [])
@@ -319,11 +320,14 @@ def printer_info(p, live, jobs, usb_online=None):
     if key in gone:
         return gone[key], "warn", resume, key
     text, state = printer_status_text(p, text, serious, jobs)
+    if state == "ok" and online is None and (lp.uri_service_name(uri) or lp.probe_target(uri)):
+        text = _("Checking the connection…") if live is None else _("Unknown")
+        state = "unknown"
     return text, state, resume, key
 
 
 def printer_status(p, live, jobs, usb_online=None):
-    """(text, trida) - trida: ok | busy | warn | err."""
+    """(text, trida stavove tecky)."""
     return printer_info(p, live, jobs, usb_online)[:2]
 
 
@@ -1276,14 +1280,14 @@ class Window(Gtk.Window):
         self.want_scanner = select_scanner
         self.refreshing = False
         self.live_busy = self.live_again = False
+        self.network_generation = 0
+        self.net_timer = None
         self.cups_error = None
         self.refresh()
-        self.refresh_live()
         self.refresh_scanners()
         GLib.timeout_add_seconds(2, self.tick)
         # dostupnost sitovych tiskaren: pravidelne, dokud je okno otevrene, a hned po zmene site
         GLib.timeout_add_seconds(LIVE_INTERVAL, self.refresh_live)
-        self.net_timer = None
         try:
             self.netmon = Gio.NetworkMonitor.get_default()
             self.netmon.connect("network-changed", self.on_network_changed)
@@ -1305,39 +1309,55 @@ class Window(Gtk.Window):
 
         def done(res):
             self.refreshing = False
+            previous = self.data["printers"] if self.data else {}
             if isinstance(res, Exception):
                 self.cups_error = str(res)
                 self.data = {"printers": {}, "default": None, "jobs": {}, "markers": {}}
             else:
                 self.cups_error = None
                 self.data = res
+            current = self.data["printers"]
+            previous_uris = {n: p.get("device-uri") for n, p in previous.items()}
+            current_uris = {n: p.get("device-uri") for n, p in current.items()}
+            changed = previous_uris != current_uris
+            if changed:
+                self.live = {n: v for n, v in self.live.items()
+                             if n in current and current_uris[n] == previous_uris.get(n)}
             self.update()
+            if changed:
+                self.refresh_live()
         in_thread(Cups().snapshot, done)
 
     def refresh_live(self):
-        if not self.data or cups is None:
-            GLib.timeout_add_seconds(2, lambda: self.refresh_live() and False)
+        if not self.data or not self.data["printers"] or cups is None or self.net_timer:
             return True
         if self.live_busy:
             self.live_again = True      # zmena site behem zjistovani - hned po nem znovu
             return True
         self.live_busy, self.live_again = True, False
         printers = dict(self.data["printers"])
+        generation = self.network_generation
 
         def done(res):
             self.live_busy = False
-            if isinstance(res, Exception):
-                # nevime - stary vysledek "dostupna" by mohl lhat; jen odpojene zustanou odpojene
-                res = {n: v for n, v in self.live.items() if v.get("online") is False}
-            self.live = res
-            self.ppage.sig = None
-            self.update()
+            if generation == self.network_generation:
+                if isinstance(res, Exception):
+                    res = {n: self.live[n] if self.live.get(n, {}).get("online") is False else {} for n in printers}
+                current = self.data["printers"]
+                self.live = {n: v for n, v in res.items()
+                             if n in current and current[n].get("device-uri") == printers[n].get("device-uri")}
+                self.ppage.sig = None
+                self.update()
             if self.live_again:
                 self.refresh_live()
         in_thread(lambda: Cups.live(printers), done)
         return True
 
     def on_network_changed(self, _mon, _available):
+        # Po zmene site nejsou platne ani vysledky kontroly, ktera jeste bezi.
+        self.network_generation += 1
+        self.live.clear()
+        self.update()
         # NetworkManager pri prepnuti site posle vic zmen za sebou - zjistit az po 2 s klidu
         if self.net_timer:
             GLib.source_remove(self.net_timer)

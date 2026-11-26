@@ -87,10 +87,17 @@ a = u.module_from_spec(s); l.exec_module(a)
 cfg = json.loads(sys.argv[2])
 calls = {"probe": [], "browse": 0, "threads": set()}
 state = {"avahi": cfg.get("avahi", ""), "reach": set(map(tuple, cfg.get("reach", [])))}
+probe_started = threading.Event()
+allow_probe = threading.Event()
+if not cfg.get("hold_probe"):
+    allow_probe.set()
 
 def browse():
     calls["browse"] += 1
     calls["threads"].add(threading.current_thread() is threading.main_thread())
+    probe_started.set()
+    if not allow_probe.wait(10):
+        raise RuntimeError("Test did not release the network probe")
     return state["avahi"]
 
 def reach(host, port, timeout=3):
@@ -115,11 +122,15 @@ if cfg["mode"] == "live":
 
 # mode gui: okno otevrene, stav se meni "za behu"
 from gi.repository import GLib, Gtk
+from types import SimpleNamespace
+a.Gio = SimpleNamespace(NetworkMonitor=SimpleNamespace(
+    get_default=lambda: SimpleNamespace(connect=lambda *_: None)))
 data = {"printers": printers, "default": None, "jobs": {}, "markers": {}, "usb_online": {"Canon": False}}
 a.Cups.snapshot = lambda self: data
 a.list_scanners = lambda: []
 a.cups = a.cups or object()
 win = a.Window()
+win.select_key = "p:Kyocera"
 win.show_all()
 
 def subtitles():
@@ -141,7 +152,14 @@ for step in cfg["steps"]:
     state["avahi"] = step.get("avahi", state["avahi"])
     if step.get("network_changed"):
         win.on_network_changed(None, True)
-    ok = wait(lambda: step["expect"] in subtitles().get("p:Kyocera", ""), step.get("within", 10))
+    if step.get("release_probe"):
+        allow_probe.set()
+    def expected_status():
+        return (step["expect"] in subtitles().get("p:Kyocera", "")
+                and (not step.get("verify_detail") or step["expect"] == win.ppage.status.get_text()))
+    ok = wait(expected_status, step.get("within", 10))
+    if step.get("expect_probe"):
+        ok = wait(probe_started.is_set, 1) and ok
     steps.append([ok, subtitles().get("p:Kyocera"), subtitles().get("p:Canon")])
 print(json.dumps({"steps": steps, "main_thread": True in calls["threads"], "browse": calls["browse"]}))
 """
@@ -265,6 +283,15 @@ class AppReachability(unittest.TestCase):
         r = self.run_app(cfg, lang="cs_CZ.UTF-8")
         self.assertEqual(r["out"]["Kyocera"], ["Nepřipojeno", "warn"])
 
+    def test_startup_has_neutral_status_while_probe_is_pending(self):
+        """CUPS hlasi idle pred sitovou kontrolou. Seznam ani detail nesmi ukazat Ready."""
+        adv = avahi_line(KYO, "192.0.2.50")
+        steps = [{"expect": "Checking the connection…", "verify_detail": True, "expect_probe": True},
+                 {"expect": "Not connected", "verify_detail": True, "release_probe": True}]
+        r = self.run_app({"mode": "gui", "printers": self.printers(), "avahi": adv, "steps": steps,
+                          "interval": 60, "hold_probe": True})
+        self.assertTrue(all(s[0] for s in r["steps"]), r["steps"])
+
     def test_window_refreshes_while_open(self):
         """Okno otevrene: tiskarna dostupna -> mimo sit -> zpet; radek se meni sam, USB Canon zustava odpojeny."""
         adv = avahi_line(KYO, "192.0.2.50")
@@ -282,7 +309,8 @@ class AppReachability(unittest.TestCase):
         """Pravidelne obnoveni jednou za 60 s, zmena site (NetworkMonitor) ho spusti hned."""
         adv = avahi_line(KYO, "192.0.2.50")
         steps = [{"reach": [["192.0.2.50", 631]], "expect": "Ready", "within": 10},
-                 {"reach": [], "network_changed": True, "expect": "Not connected", "within": 8}]
+                 {"reach": [], "network_changed": True, "expect": "Checking the connection…", "within": 1},
+                 {"expect": "Not connected", "within": 8}]
         r = self.run_app({"mode": "gui", "printers": self.printers(), "avahi": adv, "steps": steps,
                           "interval": 60})
         self.assertTrue(all(s[0] for s in r["steps"]), r["steps"])
