@@ -7,8 +7,8 @@
 # stejny jako u Python verze; parity.sh (cteni, 189 pripadu) a txn-test.sh (transakce ve falesnych
 # korenech) ho porovnavaji. Rozdil: chyby libalpm nesou skutecny duvod (nesplnene zavislosti, konflikt
 # souboru, sit) misto "transaction failed" z pyalpm. Potrebuje lux-engine se zaplatou 0004 (log callback
-# v detskem procesu scriptletu). Slouceni konfigurace (*.luxnew) a countme zatim volaji Python
-# (lux_configmerge.py merge, lux_countme.py send); konfiguraci jadra dava `lux-config dump`.
+# v detskem procesu scriptletu). Slouceni konfigurace (*.luxnew) zatim vola Python (lux_configmerge.py
+# merge), countme lux-countme (LSL, jinak lux_countme.py); konfiguraci jadra dava `lux-config dump`.
 load env
 load glib
 load luxalpm as alpm
@@ -2062,9 +2062,14 @@ function countme_start():
             end
         end
     end
-    if found and fs.access_x("/usr/lib/lux/lux_countme.py"):
+    # LSL verze (lux-countme) vedle teto, jinak Python; rozhodnuti "jednou tydne" dela sam skript
+    tool = "/usr/lib/lux/lux-countme"
+    if not fs.access_x(tool):
+        tool = "/usr/lib/lux/lux_countme.py"
+    end
+    if found and fs.access_x(tool):
         safe:
-            call lglib.spawn_quiet(["/usr/lib/lux/lux_countme.py", "send"])
+            call lglib.spawn_quiet([tool, "send"])
         end
     end
     return 0
