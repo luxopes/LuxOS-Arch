@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+directory=$(dirname -- "$(readlink -f -- "$0")")
+exec /usr/lib/electron44/electron "$directory" "$@"

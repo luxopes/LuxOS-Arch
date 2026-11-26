@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Lux Vela
+GenericName=Web Browser
+GenericName[cs]=Webový prohlížeč
+Comment=Browse the web with privacy protection
+Comment[cs]=Procházejte web s ochranou soukromí
+Exec=/usr/local/bin/luxos-vela %U
+Icon=/opt/lux/luxos-vela/app/luxos-vela.png
+Terminal=false
+StartupNotify=true
+StartupWMClass=luxos-vela
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;

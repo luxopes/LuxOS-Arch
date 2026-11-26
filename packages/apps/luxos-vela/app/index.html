@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lux Vela</title>
+  <link rel="stylesheet" href="vela.css">
+  <script defer src="renderer.js"></script>
+</head>
+<body>
+  <header id="chrome">
+    <div class="titlebar">
+      <div class="traffic">
+        <button class="traffic-close" data-action="close" data-label="close"><span>×</span></button>
+        <button class="traffic-min" data-action="minimize" data-label="minimize"><span>−</span></button>
+        <button class="traffic-max" data-action="maximize" data-label="maximize"><span>+</span></button>
+      </div>
+      <div id="tabs" role="tablist" aria-label="Tabs"></div>
+      <button class="icon-button add-tab" data-action="new" data-label="newTab"><i class="icon plus"></i></button>
+      <div class="title-grip"></div>
+    </div>
+    <div class="toolbar">
+      <nav aria-label="Navigation">
+        <button class="icon-button" id="back" data-action="back" data-label="back"><i class="icon back"></i></button>
+        <button class="icon-button" id="forward" data-action="forward" data-label="forward"><i class="icon forward"></i></button>
+        <button class="icon-button" id="reload" data-action="reload" data-label="reload"><i class="icon reload"></i></button>
+      </nav>
+      <form id="address-form">
+        <i class="icon search" aria-hidden="true"></i>
+        <input id="address" type="text" spellcheck="false" autocomplete="off" role="combobox" aria-autocomplete="list"
+          aria-expanded="false" aria-controls="address-accessible-results" aria-label="Address" placeholder="Search or enter an address">
+        <div id="address-accessible-results" class="screen-reader" role="listbox" hidden></div>
+      </form>
+      <div class="tools">
+        <button class="icon-button" id="privacy-button" data-action="privacy" data-label="privacy" aria-expanded="false"><i class="icon shield"></i><span class="badge" hidden></span></button>
+        <button class="icon-button" id="downloads-button" data-action="downloads" data-label="downloads" aria-expanded="false"><i class="icon download"></i></button>
+        <button class="icon-button" id="settings-button" data-action="settings" data-label="settings" aria-expanded="false"><i class="icon settings"></i></button>
+      </div>
+    </div>
+  </header>
+  <div id="blocked-notice" role="status" hidden>
+    <span id="blocked-message"></span>
+    <button id="allow-page" data-action="allow-page"></button>
+  </div>
+
+  <main id="surface">
+    <section id="start">
+      <div class="welcome">
+        <img class="brand-mark" src="../luxos-vela.png" alt="">
+        <h1>Lux Vela</h1>
+        <form id="search-form">
+          <i class="icon search" aria-hidden="true"></i>
+          <input id="search" type="text" spellcheck="false" autocomplete="off" aria-label="Search" placeholder="Search with DuckDuckGo">
+          <button class="icon-button" type="submit" data-label="searchAction"><i class="icon forward"></i></button>
+        </form>
+      </div>
+    </section>
+    <div id="pending" role="status" hidden><span class="loading-spinner"></span><span id="pending-label"></span></div>
+    <section id="error" hidden>
+      <div>
+        <h1 id="error-title">This page could not load</h1>
+        <p id="error-code"></p>
+        <button class="primary" data-action="reload" id="try-again">Try again</button>
+      </div>
+    </section>
+    <section id="settings-page" aria-labelledby="settings-title" hidden>
+      <div class="settings-layout">
+        <div class="settings-sidebar">
+          <div class="settings-brand"><img src="../luxos-vela.png" alt="">Lux Vela</div>
+          <div class="settings-navigation" role="group" data-label="settings">
+            <button type="button" data-section="general" aria-pressed="true"><i class="icon settings"></i><span data-text="general"></span></button>
+            <button type="button" data-section="privacy" aria-pressed="false"><i class="icon shield"></i><span data-text="privacyShort"></span></button>
+            <button type="button" data-section="downloads" aria-pressed="false"><i class="icon download"></i><span data-text="downloads"></span></button>
+          </div>
+        </div>
+        <div class="settings-content">
+          <div class="settings-heading">
+            <h1 id="settings-title" tabindex="-1" data-text="settings"></h1>
+            <button type="button" class="icon-button" id="close-settings" data-action="settings" data-label="closeSettings"><i class="icon cross"></i></button>
+          </div>
+          <section class="settings-section" id="settings-general">
+            <h2 data-text="general"></h2>
+            <div class="settings-card">
+              <label class="setting-row">
+                <span data-text="theme"></span>
+                <select id="theme">
+                  <option value="system" data-text="themeSystem"></option>
+                  <option value="light" data-text="themeLight"></option>
+                  <option value="dark" data-text="themeDark"></option>
+                </select>
+              </label>
+              <label class="setting-row">
+                <span><span data-text="zoom"></span><small data-text="zoomDescription"></small></span>
+                <select id="page-zoom">
+                  <option value="0.8">80 %</option><option value="0.9">90 %</option>
+                  <option value="1">100 %</option><option value="1.1">110 %</option><option value="1.25">125 %</option>
+                  <option value="1.5">150 %</option><option value="1.75">175 %</option><option value="2">200 %</option>
+                </select>
+              </label>
+            </div>
+            <div class="settings-card">
+              <label class="setting-row">
+                <span data-text="startup"></span>
+                <select id="startup">
+                  <option value="restore" data-text="startupRestore"></option>
+                  <option value="new" data-text="startupNew"></option>
+                </select>
+              </label>
+              <label class="setting-row">
+                <span><span data-text="searchEngine"></span><small data-text="searchDescription"></small></span>
+                <select id="search-engine">
+                  <option value="duckduckgo">DuckDuckGo</option>
+                  <option value="google">Google</option>
+                  <option value="seznam">Seznam</option>
+                </select>
+              </label>
+            </div>
+          </section>
+          <section class="settings-section" id="settings-privacy" hidden>
+            <h2 data-text="privacyShort"></h2>
+            <div class="settings-card">
+              <label class="setting-row">
+                <span><span data-text="globalBlocking"></span><small>EasyList · EasyPrivacy</small></span>
+                <input class="settings-switch" type="checkbox" id="blocking" role="switch">
+              </label>
+              <div class="setting-row">
+                <span><span data-text="exceptions"></span><small data-text="exceptionsDescription"></small></span>
+              </div>
+              <form class="settings-inline" id="add-exception">
+                <input id="exception-site" type="text" autocomplete="off" spellcheck="false" placeholder="example.com" data-label="exceptionSite">
+                <button type="submit" class="setting-button" data-text="add"></button>
+              </form>
+              <div id="exceptions-list"></div>
+            </div>
+            <div class="settings-card">
+              <label class="setting-row">
+                <span><span data-text="historySuggestions"></span><small data-text="historyDescription"></small></span>
+                <input class="settings-switch" type="checkbox" id="history-suggestions" role="switch">
+              </label>
+              <div class="setting-row">
+                <span><span data-text="clearHistory"></span><small data-text="clearDescription"></small></span>
+                <button type="button" id="ask-clear-history" class="setting-button" data-text="clear"></button>
+              </div>
+              <div id="clear-history-confirmation" class="setting-row history-confirmation" hidden>
+                <span data-text="confirmClear"></span>
+                <div class="setting-buttons">
+                  <button type="button" id="cancel-clear-history" class="setting-button" data-text="cancel"></button>
+                  <button type="button" id="confirm-clear-history" class="setting-button danger" data-action="clear-history" data-text="clear"></button>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="settings-section" id="settings-downloads" hidden>
+            <h2 data-text="downloads"></h2>
+            <div class="settings-card">
+              <div class="setting-row">
+                <span><span data-text="downloadFolder"></span><small id="download-folder" dir="auto"></small></span>
+                <div class="setting-buttons">
+                  <button type="button" class="setting-button" id="choose-folder" data-action="choose-folder" data-text="choose"></button>
+                  <button type="button" class="setting-button" id="reset-folder" data-action="reset-folder" data-text="reset"></button>
+                </div>
+              </div>
+              <label class="setting-row">
+                <span data-text="askDownload"></span>
+                <input class="settings-switch" type="checkbox" id="ask-download" role="switch">
+              </label>
+            </div>
+          </section>
+          <p class="settings-feedback" id="settings-feedback" role="status" hidden></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="panel" hidden>
+    <div class="panel-heading">
+      <h2 id="panel-title"></h2>
+      <button class="icon-button" id="close-panel" data-label="closePanel"><i class="icon cross"></i></button>
+    </div>
+    <section id="privacy-panel">
+      <div class="privacy-summary">
+        <i class="icon shield"></i>
+        <div><strong id="blocked-count">0</strong><p id="blocked-label"></p></div>
+      </div>
+      <div id="site-settings" hidden>
+        <label class="site-option">
+          <span><strong id="protection-label"></strong><small id="site-name"></small></span>
+          <input type="checkbox" id="protection" role="switch">
+        </label>
+      </div>
+      <p class="panel-note">EasyList · EasyPrivacy</p>
+    </section>
+    <section id="downloads-panel" hidden></section>
+  </aside>
+</body>
+</html>

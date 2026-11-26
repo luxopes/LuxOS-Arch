@@ -1,0 +1,14 @@
+{
+  "name": "luxos-vela",
+  "version": "0.1.4",
+  "productName": "Lux Vela",
+  "private": true,
+  "description": "Chromium browser for LuxOS",
+  "main": "app/main.cjs",
+  "dependencies": {
+    "@ghostery/adblocker": "2.20.3"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1"
+  }
+}

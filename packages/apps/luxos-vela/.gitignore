@@ -1,0 +1,7 @@
+/node_modules/
+/rules/
+/pkg/
+/srcdir/
+/*.pkg.tar*
+/src/
+/luxos-vela.png

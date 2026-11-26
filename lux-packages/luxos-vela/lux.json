@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "name": "luxos-vela",
+  "title": "Lux Vela",
+  "version": "0.1.4",
+  "release": 1,
+  "arch": "x86_64",
+  "summary": "Chromium browser for LuxOS with ad and tracker blocking",
+  "description": "Lux Vela is a Chromium-based browser with WebGPU, local address suggestions and built-in ad and tracker blocking.",
+  "license": "GPL-3.0-or-later",
+  "url": "https://luxos.lux-ai.cz/",
+  "categories": ["Network", "WebBrowser"],
+  "depends": { "system": ["electron44"], "lux": [] },
+  "bin": { "luxos-vela": "luxos-vela" }
+}

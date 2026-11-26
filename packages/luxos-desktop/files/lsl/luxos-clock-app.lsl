@@ -108,7 +108,7 @@ LIGHT = ("@define-color c_fg #1d1d27; @define-color c_dim rgba(29, 29, 39, 0.58)
 
 data = {"alarms": [], "cities": []}
 ui = {"win": 0, "views": {}, "seg": {}, "tab": "alarms", "visible": False}
-live = {"region": [], "retry": 0, "material": "widget"}
+live = {"opening": False, "waiting": False, "timeout": 0, "material": "widget"}
 alarm_ui = {"list": 0, "form": 0}
 world_ui = {"list": 0, "results": 0, "entry": 0, "local": 0, "rows": []}
 stopwatch = {"running": False, "start": 0.0, "elapsed": 0.0, "laps": [], "label": 0, "laps_box": 0, "go": 0, "lap": 0, "timer": 0}
@@ -1217,65 +1217,50 @@ end
 
 # ---- okno ---------------------------------------------------------------------------------------
 
-# Kompozitor kresli skutecne rozmazane okna za Hodinami; klient kresli jen prusvitne tonovani.
-function send_live_material(unused):
-    win = ui["win"]
-    if win == 0 or not ui["visible"] or not wm.connected():
-        return False
+# Luxwm si zapamatuje material i pred namapovanim okna. Obdelnik orizne na skutecnou velikost okna.
+function request_live_material():
+    live["waiting"] = True
+    if not wm.request({"cmd": "set_window_material", "app_id": "luxos-clock-app", "material": live["material"],
+                       "x": 0, "y": 0, "w": 100000, "h": 100000}, on_live_material_reply):
+        live["waiting"] = False
+        call show_prepared_window(False)
     end
-    size = gtk.window_get_size(win)
-    region = [size[0], size[1]]
-    if region == live["region"] or size[0] <= 1 or size[1] <= 1:
-        return False
-    end
-    live["region"] = region
-    call wm.request({"cmd": "set_window_material", "app_id": "luxos-clock-app", "material": live["material"], "radius": 0,
-                     "x": 0, "y": 0, "w": size[0], "h": size[1]}, on_live_material_reply)
-    return False
-end
-
-function retry_live_material(unused):
-    live["region"] = []
-    call send_live_material(0)
-    return False
 end
 
 function on_live_material_reply(reply):
-    enabled = reply != None and reply.get("ok", False) == True
-    if not enabled and reply != None and reply.get("error", "") == "unknown material" and live["material"] == "widget":
+    live["waiting"] = False
+    if not live["opening"]:
+        return 0
+    end
+    error = reply.get("error", "") if reply != None else ""
+    if error == "unknown material" and live["material"] == "widget":
         # Po aktualizaci muze bezet jeste starsi luxwm.
         live["material"] = "popup"
-        return retry_live_material(0)
-    end
-    if not enabled and reply != None and reply.get("error", "") == "no such window" and live["retry"] < 10:
-        live["retry"] += 1
-        call lglib.timeout_add_data(300, retry_live_material, 0)
-    end
-    if enabled:
-        live["retry"] = 0
-    end
-    if ui["win"] != 0:
-        call glass.set_live(ui["win"], enabled)
+        call request_live_material()
+    else:
+        # "no such window" znamena, ze zadost je ulozena a pouzije se pri mapovani.
+        call show_prepared_window(error == "no such window" or (reply != None and reply.get("ok", False)))
     end
     return 0
 end
 
 function on_live_state(up):
-    live["region"] = []
-    live["retry"] = 0
     if up:
         live["material"] = "widget"
-        call lglib.idle_add_data(send_live_material, 0)
-    elif ui["win"] != 0:
-        call glass.set_live(ui["win"], False)
+    else:
+        live["waiting"] = False
+        if live["opening"]:
+            call show_prepared_window(False)
+        elif ui["win"] != 0:
+            call glass.set_live(ui["win"], False)
+        end
     end
     return 0
 end
 
-function on_live_configure(event, win):
-    if wm.connected():
-        call lglib.idle_add_data(send_live_material, 0)
-    end
+function on_live_timeout(unused):
+    live["timeout"] = 0
+    call show_prepared_window(False)
     return False
 end
 
@@ -1316,7 +1301,6 @@ function build_window():
     call gtk.window_set_icon_list(win, app_icon())   # ostra ikona 16-256 px (Dock, Alt+Tab)
     call gtk.window_set_wmclass(win, "luxos-clock-app", "Luxos-clock-app")
     call glass.setup(win, True)
-    call gtk.connect(win, "configure-event", on_live_configure)
     call gtk.connect(win, "delete-event", on_close)
     call gtk.connect(win, "key-press-event", on_key)
     root = gtk.box_new(gtk.VERTICAL, 14)
@@ -1360,15 +1344,36 @@ function build_window():
 end
 
 function show_window():
+    if ui["visible"]:
+        call gtk.window_present(ui["win"])
+    elif not live["opening"]:
+        live["opening"] = True
+        if wm.connected() and not live["waiting"]:
+            live["timeout"] = lglib.timeout_add_data(500, on_live_timeout, 0)
+            call request_live_material()
+        else:
+            call show_prepared_window(False)
+        end
+    end
+    return 0
+end
+
+function show_prepared_window(enabled):
+    if not live["opening"]:
+        return 0
+    end
+    live["opening"] = False
+    if live["timeout"] != 0:
+        call glib.source_remove(live["timeout"])
+        live["timeout"] = 0
+    end
     if ui["win"] == 0:
         call build_window()
     end
+    call glass.set_live(ui["win"], enabled)
     ui["visible"] = True
     call gtk.widget_show(ui["win"])
     call gtk.window_present(ui["win"])
-    if wm.connected():
-        call lglib.idle_add_data(send_live_material, 0)
-    end
     call world_tick()
     return 0
 end
@@ -1384,8 +1389,6 @@ function on_close(event, window):
     call stop_preview()
     call gtk.widget_hide(window)
     ui["visible"] = False
-    live["region"] = []
-    live["retry"] = 0
     call maybe_quit()
     return True
 end

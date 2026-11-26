@@ -29,8 +29,9 @@ PACKAGES=(lux-engine wlroots0.20 luxcomp luxwm gdk-pixbuf2 luxos-pixbuf-svg libf
 # instalace pro ovladace DKMS (nvidia-open-dkms, broadcom-wl-dkms) a [luxos] je v live systemu jen
 # mistni repozitar - bez nich instalace skoncila "target not found: linux-luxos-headers" (0.9.7-0.9.11).
 ISO_ONLINE_ONLY=('*nvidia-[0-9]*xx*')
-# Repozitar [luxos-apps]: aplikace ke stazeni (kazdy adresar v packages/apps)
-mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort)
+# Repozitar [luxos-apps]: aplikace s PKGBUILDem
+mapfile -t APPS < <(find "$ROOT/packages/apps" -mindepth 2 -maxdepth 2 -type f -name PKGBUILD -printf '%h\n' 2>/dev/null |
+    sed 's!.*/!!' | sort)
 ARCH=x86_64
 
 msg() { printf '\n\e[1;38;2;167;123;255m==> %s\e[0m\n' "$*"; }
@@ -258,7 +259,20 @@ make_lux_repo() {
     for d in "$ROOT"/lux-packages/*/; do
         [[ -f $d/lux.json ]] || continue
         msg "Packing ${d%/}"
-        bash "$ROOT/packages/lux/lux" pack "${d%/}" "$dir" >/dev/null || exit 1
+        if [[ -f $d/prepare.sh ]]; then
+            if ! command -v npm >/dev/null || ! command -v rsvg-convert >/dev/null; then
+                pacman -S --needed --noconfirm npm librsvg
+            fi
+            (
+                stage=$(mktemp -d "$BUILD/.lux-package.XXXXXX")
+                trap 'rm -rf -- "$stage"' EXIT
+                chown builder: "$stage"
+                sudo -H -u builder bash "$d/prepare.sh" "$stage"
+                bash "$ROOT/packages/lux/lux" pack "$stage" "$dir" >/dev/null
+            )
+        else
+            bash "$ROOT/packages/lux/lux" pack "${d%/}" "$dir" >/dev/null
+        fi
         # ikona pro Obchod: SVG, jinak nejvetsi PNG ze share/icons
         name=$(jq -r .name "$d/lux.json")
         # (bez "| head": s pipefail by chybejici share/icons nebo SIGPIPE ukoncily cele sestaveni)
