@@ -3,8 +3,31 @@
 **Lux Guard** (package `luxos-guard`, service `luxos-guard.service`, window **Lux Guard** =
 `luxos-guard-gui`, command `luxos-guard`) checks programs and scripts that came **from outside the
 computer** at the moment they are started, and keeps hourly read-only snapshots of `/home` so that
-deleted or encrypted files can be restored. It is not a classic antivirus: no signature database, no
-background scanning of all files, no cloud. Normal programs and files cost nothing.
+deleted or encrypted files can be restored. It is also an **antivirus**: every file from outside
+(downloads, attachments, USB) is checked with the ClamAV signature database, and a file with a virus
+is moved to quarantine. Normal programs and your own files cost nothing.
+
+## Antivirus
+
+- **What is checked:** every file that came from outside, not only programs – documents with macros,
+  archives, PDFs, Windows programs – right after it is written (downloads, attachments, removable
+  media, files with `user.xdg.origin.url`), and programs on removable media when started. Files up to
+  200 MB.
+- **On demand, light on old computers:** the ClamAV engine (`clamd`, about 1 GB of memory with the
+  database) is not running all the time. `luxos-guard.service` starts `luxos-guard-clamd.service`
+  for the first file to check (the first check takes 10–30 s while the database loads) and stops it
+  after 5 minutes without work. Files are passed to the engine as open file descriptors; it never
+  reads paths or folders by itself.
+- **Database:** `luxos-guard-freshclam.timer` updates the signatures once a day
+  (`/var/lib/clamav`, about 110 MB); the first download starts right after installation.
+- **Weekly check:** `luxos-guard-virus-scan.timer` checks Downloads, Desktop and Documents of all
+  users once a week, only on AC power, at the lowest priority.
+- **Quarantine:** a file with a virus is moved to `/var/lib/luxos-guard/quarantine` (root only, no
+  execute permission) and you get a notification. `luxos-guard quarantine` lists your files,
+  `luxos-guard quarantine restore ID` puts a file back (only if nothing else has its name, without
+  execute permission), `luxos-guard quarantine delete ID` deletes it.
+- **Check a file or folder yourself:** `luxos-guard scan FILE|FOLDER`.
+- **Turn off:** `ANTIVIRUS=no` in `/etc/luxos/guard.conf`, then `sudo systemctl restart luxos-guard`.
 
 ## What it watches
 

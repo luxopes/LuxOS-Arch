@@ -360,6 +360,12 @@ class Users:
                 return uid, home
         return None, None
 
+    def home_of(self, uid):
+        for home, u in self.homes().items():
+            if u == uid:
+                return home
+        return None
+
     def download_dirs(self, home):
         c = self._cache.get(home)
         if c and now() - c[0] < self.ttl:

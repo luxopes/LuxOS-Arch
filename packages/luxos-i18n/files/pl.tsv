@@ -5600,3 +5600,13 @@ Apps that play sound appear here.	Tutaj pojawią się aplikacje odtwarzające d�
 The sound server is not running.	Serwer dźwięku nie działa.
 Sound settings need PipeWire or PulseAudio.	Ustawienia dźwięku wymagają PipeWire lub PulseAudio.
 Unknown app	Nieznana aplikacja
+Lux Guard: virus removed	Lux Guard: usunięto wirusa
+The file was moved to quarantine.	Plik został przeniesiony do kwarantanny.
+Antivirus: on (ClamAV, starts only when needed)	Antywirus: włączony (ClamAV, uruchamia się tylko w razie potrzeby)
+Antivirus: off	Antywirus: wyłączony
+Quarantine: %d files (luxos-guard quarantine)	Kwarantanna: %d plików (luxos-guard quarantine)
+VIRUS: %s	WIRUS: %s
+Moved to quarantine.	Przeniesiono do kwarantanny.
+Antivirus: no virus found	Antywirus: nie znaleziono wirusa
+Quarantine is empty.	Kwarantanna jest pusta.
+Viruses found: %d	Znalezione wirusy: %d

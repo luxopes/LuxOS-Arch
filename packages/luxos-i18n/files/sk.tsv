@@ -5599,3 +5599,13 @@ Apps that play sound appear here.	Tu sa zobrazia aplikácie, ktoré prehrávajú
 The sound server is not running.	Zvukový server nebeží.
 Sound settings need PipeWire or PulseAudio.	Nastavenia zvuku vyžadujú PipeWire alebo PulseAudio.
 Unknown app	Neznáma aplikácia
+Lux Guard: virus removed	Lux Guard: vírus odstránený
+The file was moved to quarantine.	Súbor bol presunutý do karantény.
+Antivirus: on (ClamAV, starts only when needed)	Antivírus: zapnutý (ClamAV, spúšťa sa len pri potrebe)
+Antivirus: off	Antivírus: vypnutý
+Quarantine: %d files (luxos-guard quarantine)	Karanténa: %d súborov (luxos-guard quarantine)
+VIRUS: %s	VÍRUS: %s
+Moved to quarantine.	Presunuté do karantény.
+Antivirus: no virus found	Antivírus: žiadny vírus nenájdený
+Quarantine is empty.	Karanténa je prázdna.
+Viruses found: %d	Nájdené vírusy: %d

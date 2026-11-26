@@ -1,0 +1,10 @@
+[Unit]
+Description=Lux Guard - weekly antivirus check
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=6h
+Persistent=yes
+
+[Install]
+WantedBy=timers.target

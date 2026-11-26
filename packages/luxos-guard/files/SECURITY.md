@@ -6,7 +6,27 @@ Rizikové se před spuštěním zeptá, kritické (mazání disku nebo domova, r
 stažení a spuštění kódu jako správce) mimo sandbox nespustí vůbec. Jako záchranná síť dělá každou
 hodinu snímek btrfs složky `/home` jen pro čtení.
 
-Není to antivirus: žádná databáze signatur, žádné procházení disku, žádný cloud.
+Je to i antivirus: soubory zvenku (nejen programy) kontroluje databáze signatur ClamAV, nález jde
+do karantény. Engine `clamd` běží jen na vyžádání (viz níže), disk se neprochází (jen týdně Stažené,
+Plocha a Dokumenty), žádný cloud.
+
+### Antivirus (`luxos_guard_av.py`)
+
+| Část | Práva | Co dělá |
+|---|---|---|
+| `luxos-guard-clamd.service` | uživatel `clamav`, bez capabilities, `ProtectSystem=strict`, `ProtectHome`, `PrivateNetwork` | `clamd` s databází; soket `/run/luxos-guard-clamd/clamd.sock` (adresář 0700 `clamav`, soket 0600) – připojí se jen root (služba Guardu). Spouští a po 5 min nečinnosti zastavuje služba Guardu |
+| `luxos-guard-freshclam.timer` | root → `clamav` (DatabaseOwner) | denní aktualizace podepsané databáze ClamAV |
+| `luxos-guard-virus-scan.timer` | root | týdenní kontrola Stažených, Plochy a Dokumentů přes službu (jen na nabíječce) |
+
+- Soubor jde do `clamd` jen jako **otevřený popisovač** (příkaz `FILDES`, `SCM_RIGHTS`): `clamd` nemá
+  přístup do domovů a cestu nedostane, nic nemůže podvrhnout ani číst mimo předaný soubor.
+- Karanténa `/var/lib/luxos-guard/quarantine` (0700 root): obsah 0600, bez práv spuštění, údaje v JSON.
+  Původní soubor se smaže jen tehdy, když cesta pořád ukazuje na stejný inode. Obnova jen vlastníkem
+  (nebo rootem), jen do domova vlastníka nebo na výměnné médium, nikdy přes existující soubor
+  (`O_EXCL`, `O_NOFOLLOW`, rodičovská složka vlastníka), s právy bez spouštění.
+- `luxos-guard scan` posílá službě popisovač, který otevřel klient – kontrolovat jde jen to, co smí
+  číst; do karantény dá soubor jen jeho vlastník nebo root.
+- Nedostupný `clamd` (chybí databáze) = chyba kontroly, ne „čistý“; další pokus o spuštění až za 10 min.
 
 ## Architektura
 

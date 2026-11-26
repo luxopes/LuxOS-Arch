@@ -5600,3 +5600,13 @@ Apps that play sound appear here.	Тут з’являються програм�
 The sound server is not running.	Звуковий сервер не запущено.
 Sound settings need PipeWire or PulseAudio.	Налаштування звуку потребують PipeWire або PulseAudio.
 Unknown app	Невідома програма
+Lux Guard: virus removed	Lux Guard: вірус видалено
+The file was moved to quarantine.	Файл переміщено до карантину.
+Antivirus: on (ClamAV, starts only when needed)	Антивірус: увімкнено (ClamAV, запускається лише за потреби)
+Antivirus: off	Антивірус: вимкнено
+Quarantine: %d files (luxos-guard quarantine)	Карантин: файлів: %d (luxos-guard quarantine)
+VIRUS: %s	ВІРУС: %s
+Moved to quarantine.	Переміщено до карантину.
+Antivirus: no virus found	Антивірус: вірусів не знайдено
+Quarantine is empty.	Карантин порожній.
+Viruses found: %d	Знайдено вірусів: %d

@@ -21,7 +21,7 @@ MemoryHigh=160M
 # pripojeni a znacky fanotify na pripojeni (/home, /tmp, USB) by hlidaly jen jeho kopie,
 # ne pripojeni, ktera pouzivaji programy uzivatele.
 NoNewPrivileges=yes
-CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_SYS_PTRACE
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_SYS_PTRACE CAP_CHOWN
 RestrictAddressFamilies=AF_UNIX
 SystemCallArchitectures=native
 LockPersonality=yes

@@ -5599,3 +5599,13 @@ Apps that play sound appear here.	Apps die geluid afspelen verschijnen hier.
 The sound server is not running.	De geluidsserver draait niet.
 Sound settings need PipeWire or PulseAudio.	Geluidsinstellingen vereisen PipeWire of PulseAudio.
 Unknown app	Onbekende app
+Lux Guard: virus removed	Lux Guard: virus verwijderd
+The file was moved to quarantine.	Het bestand is in quarantaine geplaatst.
+Antivirus: on (ClamAV, starts only when needed)	Antivirus: aan (ClamAV, start alleen wanneer nodig)
+Antivirus: off	Antivirus: uit
+Quarantine: %d files (luxos-guard quarantine)	Quarantaine: %d bestanden (luxos-guard quarantine)
+VIRUS: %s	VIRUS: %s
+Moved to quarantine.	In quarantaine geplaatst.
+Antivirus: no virus found	Antivirus: geen virus gevonden
+Quarantine is empty.	De quarantaine is leeg.
+Viruses found: %d	Gevonden virussen: %d

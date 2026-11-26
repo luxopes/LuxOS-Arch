@@ -5598,3 +5598,13 @@ Apps that play sound appear here.	Zde se ukážou aplikace, které přehrávají
 The sound server is not running.	Zvukový server neběží.
 Sound settings need PipeWire or PulseAudio.	Nastavení zvuku potřebuje PipeWire nebo PulseAudio.
 Unknown app	Neznámá aplikace
+Lux Guard: virus removed	Lux Guard: virus odstraněn
+The file was moved to quarantine.	Soubor byl přesunut do karantény.
+Antivirus: on (ClamAV, starts only when needed)	Antivirus: zapnutý (ClamAV, spouští se jen při potřebě)
+Antivirus: off	Antivirus: vypnutý
+Quarantine: %d files (luxos-guard quarantine)	Karanténa: %d souborů (luxos-guard quarantine)
+VIRUS: %s	VIRUS: %s
+Moved to quarantine.	Přesunuto do karantény.
+Antivirus: no virus found	Antivirus: žádný virus nenalezen
+Quarantine is empty.	Karanténa je prázdná.
+Viruses found: %d	Nalezené viry: %d

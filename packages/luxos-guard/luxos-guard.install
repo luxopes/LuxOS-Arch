@@ -1,6 +1,7 @@
 # Lux Guard: sluzbu a casovac snimku zapnout hned pri instalaci (i v chrootu instalatoru)
 # a po aktualizaci restartovat (nova pravidla). Snimky se v live ISO nedelaji (Condition v jednotce).
-_units="luxos-guard.service luxos-guard-snapshot.timer"
+# Antivirus: denni aktualizace databaze a tydenni kontrola; clamd sam nebezi (spousti ho sluzba na vyzadani)
+_units="luxos-guard.service luxos-guard-snapshot.timer luxos-guard-freshclam.timer luxos-guard-virus-scan.timer"
 _agent=/usr/lib/luxos-guard/luxos-guard-agent
 
 # Pomocnik v sezeni je setgid skupina luxos-guard: sluzba podle ni pozna skutecny luxos-guard-agent
@@ -21,7 +22,14 @@ post_install() {
         systemctl daemon-reload >/dev/null 2>&1 || true
         # shellcheck disable=SC2086
         systemctl start $_units >/dev/null 2>&1 || true
+        _first_database
     fi
+}
+
+# Bez databaze signatur antivirus nefunguje: prvni stazeni hned na pozadi (~200 MB, jinak az casovac)
+_first_database() {
+    ls /var/lib/clamav/*.cvd /var/lib/clamav/*.cld >/dev/null 2>&1 ||
+        systemctl start --no-block luxos-guard-freshclam.service >/dev/null 2>&1 || true
 }
 
 post_upgrade() {
@@ -31,7 +39,9 @@ post_upgrade() {
     if [ -d /run/systemd/system ]; then
         systemctl daemon-reload >/dev/null 2>&1 || true
         systemctl try-restart luxos-guard.service >/dev/null 2>&1 || true
-        systemctl start luxos-guard.service luxos-guard-snapshot.timer >/dev/null 2>&1 || true
+        # shellcheck disable=SC2086
+        systemctl start $_units >/dev/null 2>&1 || true
+        _first_database
     fi
 }
 

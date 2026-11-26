@@ -29,6 +29,7 @@ import sys
 import threading
 import time
 
+import luxos_guard_av as av
 import luxos_guard_core as core
 import luxos_guard_rules as rules
 
@@ -335,7 +336,7 @@ class Guard:
     """Rozhodovani o udalostech. fan_perm/fan_notif jsou objekty s rozhranim Fanotify (v testech nahrady)."""
 
     def __init__(self, fan_perm, fan_notif=None, state=None, proc=None, users=None, clock=time.time,
-                 classify_limit=rules.MAX_READ, agent_check=None):
+                 classify_limit=rules.MAX_READ, agent_check=None, clamd=None, quarantine=None):
         self.perm = fan_perm
         self.notif = fan_notif
         self.state = state or core.State()
@@ -362,7 +363,13 @@ class Guard:
         self.wake_r, self.wake_w = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
         self.lock = threading.Lock()
         self.delayed = Delayed(self._queue)
-        self.stats = {"perm_events": 0, "notif_events": 0, "analyzed": 0, "flagged": 0, "overflows": 0}
+        self.stats = {"perm_events": 0, "notif_events": 0, "analyzed": 0, "flagged": 0, "overflows": 0,
+                      "virus_scanned": 0, "virus_found": 0}
+        # antivirus (ClamAV na vyzadani, luxos_guard_av): vlastni fronta a vlakno - spusteni clamd trva az
+        # minuty a nesmi zdrzet analyzu programu (spusteni ceka na jeji vysledek)
+        self.clamd = clamd
+        self.quarantine = quarantine or av.Quarantine()
+        self.av_jobs = queue.Queue(maxsize=4096)
 
     # ---- znacky
     def mark_inode(self, fd, kind, add=True, path=None):
@@ -631,11 +638,22 @@ class Guard:
             return {"op": "status", "active": True, "version": core.VERSION, "watched": len(items),
                     "critical": sum(1 for e in items if e.get("level") == core.CRITICAL),
                     "agent": bool(self.agents.get(client.uid)), "removable": sorted(self.removable),
+                    "antivirus": self.clamd is not None, "quarantine": len(self.quarantine.list(client.uid)),
                     "stats": dict(self.stats) if client.uid == 0 else None}
         if op == "list":
             items, lg = self.state.for_uid(client.uid)
             return {"op": "list", "entries": [{**self._public(e), "status": e.get("status"), "t": e.get("t")}
                                               for e in items], "log": lg}
+        if op in ("quarantine", "quarantine_restore", "quarantine_delete"):
+            return self._quarantine_op(client, msg)
+        if op == "virus_scan":
+            if not client.fds:
+                return {"op": "error", "error": "no file"}
+            fd = client.fds.pop(0)
+            try:
+                return self._virus_scan_op(client, fd)
+            finally:
+                close_fd(fd)
         if op in ("allow", "check"):
             if not client.fds:
                 return {"op": "error", "error": "no file"}
@@ -728,8 +746,33 @@ class Guard:
                 if self.delayed.add(3, {"fd": fd, "path": path, "pid": pid, "retry": 1, "info": None}):
                     return True
                 self.stats["overflows"] += 1
-            return False
+                return False
+            return self._virus_candidate(fd, path, pid)
         return self._candidate(fd, path, pid, kind)
+
+    def _from_outside(self, fd, path):
+        """Soubor zvenku (Stazene, prilohy, vymenna media, adresa puvodu od prohlizece) - pro antivirus."""
+        if core.location_origin(path, self.users):
+            return True
+        try:
+            os.getxattr(fd, "user.xdg.origin.url")
+            return True
+        except OSError:
+            return False
+
+    def _virus_candidate(self, fd, path, pid):
+        """Soubor bez spustitelneho obsahu (dokument, archiv, program pro Windows): jen antivirus."""
+        if self.clamd is None or not head_nonempty(fd) or not self._from_outside(fd, path):
+            return False
+        return self._queue_virus(fd, path)
+
+    def _queue_virus(self, fd, path, uid=None):
+        try:
+            self.av_jobs.put_nowait({"fd": fd, "path": path, "uid": uid})
+            return True
+        except queue.Full:
+            self.stats["overflows"] += 1
+            return False
 
     def _candidate(self, fd, path, pid, kind):
         try:
@@ -774,6 +817,8 @@ class Guard:
                 head = os.pread(fd, 64, 0)
                 kind = rules.detect_kind(head, os.path.basename(path))
                 if kind is None:
+                    if self.clamd is not None and head and self._from_outside(fd, path):
+                        self._queue_virus(os.dup(fd), path)
                     return
                 info = core.writer_info(self.proc, job["pid"])
                 st = os.fstat(fd)
@@ -818,6 +863,10 @@ class Guard:
             if job.get("premarked"):
                 self.unmark_inode(fd)
             return
+        if self.clamd is not None:
+            dup = os.dup(fd)
+            if not self._queue_virus(dup, path):
+                close_fd(dup)
         data = os.pread(fd, self.classify_limit, 0)
         verdict = rules.classify(data, os.path.basename(path))
         if verdict is None:
@@ -853,6 +902,77 @@ class Guard:
             self.state.add_log(path=path, level=entry["level"], action="found", uid=uid, reasons=verdict.reasons)
         if new_critical:
             self.post(("notify", uid, {"op": "found", **self._public(entry)}))
+
+    # ---- antivirus (vlakno antiviru) -------------------------------------------------------------
+    def virus_check(self, job):
+        """Kontrola souboru databazi ClamAV; nalez -> karantena a upozorneni. Vraci (stav, detail, zaznam)."""
+        fd = job["fd"]
+        try:
+            st = os.fstat(fd)
+            if not av.should_scan(st):
+                return av.CLEAN, "", None
+            path = fd_path(fd) or job["path"]
+            if path.endswith(" (deleted)"):
+                return av.CLEAN, "", None
+            self.stats["virus_scanned"] += 1
+            status, detail = self.clamd.scan_fd(fd)
+            if status == av.ERROR:
+                log(f"virus check of {path} failed: {detail}")
+                return status, detail, None
+            if status != av.INFECTED:
+                return status, detail, None
+            self.stats["virus_found"] += 1
+            uid = job.get("uid")
+            if uid is None:
+                uid, _home = self.users.owner_of(path)
+            if uid is None:
+                uid = st.st_uid
+            entry = self.quarantine.put(fd, path, detail, uid)
+            key = (st.st_dev, st.st_ino)
+            with self.lock:
+                self.state.remove(key)
+            log(f"virus {detail}: {path} moved to quarantine ({entry['id']})")
+            self.state.add_log(path=path, level=core.CRITICAL, action="quarantine", uid=uid, reasons=[detail])
+            self.post(("notify", uid, {"op": "found", "path": path, "name": os.path.basename(path), "virus": detail,
+                                       "quarantine": entry["id"], "level": core.CRITICAL, "reasons": [detail]}))
+            return status, detail, entry
+        finally:
+            close_fd(fd)
+
+    def _quarantine_op(self, client, msg):
+        op = msg.get("op")
+        if op == "quarantine":
+            return {"op": "quarantine", "entries": [{k: e.get(k) for k in ("id", "path", "signature", "size", "time",
+                                                                          "removed")}
+                                                    for e in self.quarantine.list(client.uid)]}
+        qid = msg.get("id")
+        if not isinstance(qid, str):
+            return {"op": "error", "error": "unknown item"}
+        if op == "quarantine_delete":
+            ok = self.quarantine.delete(qid, client.uid)
+            if ok:
+                self.state.add_log(path=qid, level=core.CRITICAL, action="deleted", uid=client.uid)
+            return {"op": op, "ok": ok}
+        path = self.quarantine.restore(qid, client.uid, home_of=self.users.home_of)
+        if path:
+            log(f"restored from quarantine: {path} (uid {client.uid})")
+            self.state.add_log(path=path, level=core.CRITICAL, action="restored", uid=client.uid)
+        return {"op": op, "ok": bool(path), "path": path}
+
+    def _virus_scan_op(self, client, fd):
+        """`luxos-guard scan --virus`: soubor od klienta (popisovac otevrel klient, tedy smi ho cist)."""
+        if self.clamd is None:
+            return {"op": "error", "error": "antivirus off"}
+        try:
+            st = os.fstat(fd)
+        except OSError:
+            return {"op": "error", "error": "bad file"}
+        if client.uid != 0 and st.st_uid != client.uid:
+            # cizi soubor jen zkontrolovat (do karanteny ho smi dat jen vlastnik nebo root)
+            status, detail = self.clamd.scan_fd(fd) if av.should_scan(st) else (av.CLEAN, "")
+            return {"op": "virus_scan", "status": status, "detail": detail, "quarantine": None}
+        status, detail, entry = self.virus_check({"fd": os.dup(fd), "path": fd_path(fd), "uid": client.uid})
+        return {"op": "virus_scan", "status": status, "detail": detail, "quarantine": entry and entry["id"]}
 
     def post(self, item):
         self.results.put(item)
@@ -1109,6 +1229,33 @@ def notif_reader(guard):
                 close_fd(fd)
 
 
+def head_nonempty(fd):
+    try:
+        return bool(os.pread(fd, 1, 0))
+    except OSError:
+        return False
+
+
+def av_worker(guard):
+    while True:
+        job = guard.av_jobs.get()
+        try:
+            guard.virus_check(job)
+        except Exception as e:  # noqa: BLE001
+            log(f"virus check error: {e}")
+            close_fd(job["fd"])
+
+
+def av_idle(guard):
+    while True:
+        time.sleep(5)
+        try:
+            if guard.clamd.tick():
+                log("antivirus engine stopped (idle)")
+        except Exception as e:  # noqa: BLE001
+            log(f"antivirus idle check: {e}")
+
+
 def worker(guard):
     while True:
         job = guard.jobs.get()
@@ -1131,7 +1278,10 @@ def run_service():
         return 1
     state = core.State()
     entries = state.load()
-    guard = Guard(perm, notif, state)
+    clamd = None
+    if av.enabled() and av.installed():
+        clamd = av.Clamd()
+    guard = Guard(perm, notif, state, clamd=clamd)
     n = guard.restore_marks(entries)
     mounts = read_mounts()
     for mp in watch_mounts(mounts):
@@ -1140,9 +1290,13 @@ def run_service():
         except OSError as e:
             log(f"cannot watch {mp}: {e}")
     guard.update_mounts(mounts)
-    log(f"Lux Guard {core.VERSION} active: {n} watched files, writes watched on {', '.join(watch_mounts(mounts))}")
+    log(f"Lux Guard {core.VERSION} active: {n} watched files, writes watched on {', '.join(watch_mounts(mounts))}"
+        f"; antivirus {'on (ClamAV on demand)' if clamd else 'off'}")
     threading.Thread(target=notif_reader, args=(guard,), daemon=True, name="reader").start()
     threading.Thread(target=worker, args=(guard,), daemon=True, name="analysis").start()
+    if clamd is not None:
+        threading.Thread(target=av_worker, args=(guard,), daemon=True, name="antivirus").start()
+        threading.Thread(target=av_idle, args=(guard,), daemon=True, name="antivirus-idle").start()
     threading.Thread(target=guard.delayed.run, daemon=True, name="delayed").start()
     threading.Thread(target=guard.initial_scan, daemon=True, name="scan").start()
     try:

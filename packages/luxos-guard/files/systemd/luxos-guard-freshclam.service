@@ -1,0 +1,16 @@
+[Unit]
+Description=Lux Guard - update the antivirus database (ClamAV)
+Documentation=file:///usr/share/luxos/docs/luxos/guard.md
+ConditionPathExists=!/run/archiso
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# freshclam se sam prepne na DatabaseOwner (clamav)
+ExecStart=/usr/bin/freshclam --quiet --foreground --stdout
+Nice=19
+IOSchedulingClass=idle
+# po aktualizaci bezici clamd (kontrola prave probiha) nacte novou databazi sam (SelfCheck)
+SuccessExitStatus=1
+TimeoutStartSec=30min

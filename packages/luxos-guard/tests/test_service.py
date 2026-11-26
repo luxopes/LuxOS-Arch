@@ -113,8 +113,9 @@ def close_write(guard, path, pid):
     """Udalost FAN_CLOSE_WRITE (ctecka) + analyza (vlakno analyzy) synchronne."""
     fd = os.open(path, os.O_RDONLY)
     if guard.on_close_write(fd, pid):
-        job = guard.jobs.get_nowait()
-        guard.analyze(job)
+        if not guard.jobs.empty():
+            guard.analyze(guard.jobs.get_nowait())
+        # jinak si fd vzal antivirus (guard.av_jobs, drain_av)
     else:
         os.close(fd)
     guard.on_results()
@@ -912,3 +913,84 @@ def test_big_single_reply_is_delivered(g, tmp_path):
         buf += chunk
     assert len(buf) > S.MAX_CLIENT_OUT and len(json.loads(buf)["entries"]) == 3000
     s.close()
+
+
+# ---- antivirus (ClamAV na vyzadani, falesny clamd z test_av) ----
+
+@pytest.fixture
+def gav(g, tmp_path):
+    from test_av import FakeClamd
+    import luxos_guard_av as AV
+    sock = str(tmp_path / "clamd.sock")
+    fake = FakeClamd(sock)
+    g.clamd = AV.Clamd(sock, start=lambda: True, stop=lambda: True)
+    g.quarantine = AV.Quarantine(str(tmp_path / "quarantine"))
+    g.users.home_of = lambda uid: str(g.home) if uid == 1000 else None
+    yield g
+    fake.close()
+
+
+def drain_av(guard):
+    while not guard.av_jobs.empty():
+        guard.virus_check(guard.av_jobs.get_nowait())
+    guard.on_results()
+
+
+def test_virus_in_downloaded_document_goes_to_quarantine(gav):
+    from test_av import EICAR
+    p = write(gav.home / "Downloads" / "faktura.pdf", b"%PDF-1.4\n" + EICAR, 0o644)
+    close_write(gav, p, 52)
+    drain_av(gav)
+    assert not os.path.exists(p)
+    q = gav.quarantine.list(1000)
+    assert len(q) == 1 and q[0]["signature"] == "Win.Test.EICAR_HDB-1" and q[0]["path"] == p
+    found = [m for m in gav.agent.sent if m["op"] == "found"]
+    assert found and found[-1]["virus"] == "Win.Test.EICAR_HDB-1" and found[-1]["quarantine"] == q[0]["id"]
+    assert gav.stats["virus_found"] == 1
+
+
+def test_clean_download_and_own_files_untouched(gav):
+    from test_av import EICAR
+    ok = write(gav.home / "Downloads" / "dopis.odt", b"PK\x03\x04 clean document", 0o644)
+    close_write(gav, ok, 52)
+    # vlastni soubor mimo Stazene (ne zvenku): automaticky se nekontroluje
+    own = write(gav.home / "notes.txt", EICAR, 0o644)
+    close_write(gav, own, 51)
+    drain_av(gav)
+    assert os.path.exists(ok) and os.path.exists(own)
+    assert gav.quarantine.list() == [] and not any(m["op"] == "found" for m in gav.agent.sent)
+    assert gav.stats["virus_scanned"] == 1
+
+
+def test_downloaded_script_gets_both_checks(gav):
+    from test_av import EICAR
+    p = write(gav.home / "Downloads" / "x.sh", b"#!/bin/sh\necho '" + EICAR + b"'\n")
+    close_write(gav, p, 52)
+    drain_av(gav)
+    assert not os.path.exists(p) and len(gav.quarantine.list(1000)) == 1
+
+
+def test_antivirus_off_queues_nothing(g):
+    from test_av import EICAR
+    p = write(g.home / "Downloads" / "a.pdf", EICAR, 0o644)
+    close_write(g, p, 52)
+    assert g.clamd is None and g.av_jobs.empty() and os.path.exists(p)
+
+
+def test_quarantine_commands(gav):
+    from test_av import EICAR
+    p = write(gav.home / "Downloads" / "setup.exe", b"MZ" + EICAR, 0o644)
+    me = FakeClient(1000)
+    other = FakeClient(1001)
+    fd = os.open(p, os.O_RDONLY)
+    me.fds = [fd]
+    r = gav.on_message(me, {"op": "virus_scan"})
+    assert r["status"] == "infected" and r["quarantine"] and not os.path.exists(p)
+    lst = gav.on_message(me, {"op": "quarantine"})["entries"]
+    assert [e["id"] for e in lst] == [r["quarantine"]]
+    assert gav.on_message(other, {"op": "quarantine"})["entries"] == []
+    assert gav.on_message(other, {"op": "quarantine_delete", "id": r["quarantine"]})["ok"] is False
+    assert gav.on_message(other, {"op": "quarantine_restore", "id": r["quarantine"]})["ok"] is False
+    back = gav.on_message(me, {"op": "quarantine_restore", "id": r["quarantine"]})
+    assert back["ok"] and back["path"] == p and os.path.exists(p)
+    assert gav.on_message(me, {"op": "quarantine"})["entries"] == []

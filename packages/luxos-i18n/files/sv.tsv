@@ -5599,3 +5599,13 @@ Apps that play sound appear here.	Appar som spelar ljud visas här.
 The sound server is not running.	Ljudservern körs inte.
 Sound settings need PipeWire or PulseAudio.	Ljudinställningar kräver PipeWire eller PulseAudio.
 Unknown app	Okänd app
+Lux Guard: virus removed	Lux Guard: virus borttaget
+The file was moved to quarantine.	Filen flyttades till karantän.
+Antivirus: on (ClamAV, starts only when needed)	Antivirus: på (ClamAV, startar bara vid behov)
+Antivirus: off	Antivirus: av
+Quarantine: %d files (luxos-guard quarantine)	Karantän: %d filer (luxos-guard quarantine)
+VIRUS: %s	VIRUS: %s
+Moved to quarantine.	Flyttad till karantän.
+Antivirus: no virus found	Antivirus: inget virus hittades
+Quarantine is empty.	Karantänen är tom.
+Viruses found: %d	Hittade virus: %d

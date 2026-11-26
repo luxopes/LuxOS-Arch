@@ -63,6 +63,12 @@ def act(choice, msg):
 
 
 def found(msg):
+    if msg.get("virus"):
+        # nalez antiviru: soubor uz je v karantene (obnova: luxos-guard quarantine)
+        notify(_("Lux Guard: virus removed"),
+               "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""), str(msg.get("virus"))[:120],
+                                _("The file was moved to quarantine.")), "critical")
+        return
     notify(_("Lux Guard: dangerous file"),
            "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""),
                             "; ".join(_(r) for r in msg.get("reasons") or []),

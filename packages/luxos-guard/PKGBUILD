@@ -1,17 +1,19 @@
 # Maintainer: LuxOS Team
 # Lux Guard: kontrola programu ze stazenych souboru, priloh a USB pred spustenim (fanotify v jadre),
 # rizikove = dotaz, kriticke (mazani disku/domova, ransomware ...) = jen v sandboxu; hodinove snimky
-# btrfs slozky /home jen pro cteni jako zachranna sit.
+# btrfs slozky /home jen pro cteni jako zachranna sit. Antivirus: soubory zvenku kontroluje databaze ClamAV
+# (clamd jen na vyzadani - na starem pocitaci nedrzi trvale ~1 GB pameti), nalez = karantena.
 
 pkgname=luxos-guard
 pkgver=1.0.0
-pkgrel=15
-pkgdesc="Lux Guard - checks programs from downloads, attachments and USB drives before they run; /home snapshots"
+pkgrel=17
+pkgdesc="Lux Guard - antivirus (ClamAV on demand) and checks of programs from downloads, attachments and USB drives; /home snapshots"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"
 license=(GPL-3.0-or-later)
-# btrfs-progs: snimky /home; libnotify: upozorneni; glib2: gio trash; luxos-sandbox: "Spustit v sandboxu"
-depends=(python python-gobject gtk3 glib2 libnotify btrfs-progs luxos-i18n luxos-sandbox)
+# btrfs-progs: snimky /home; libnotify: upozorneni; glib2: gio trash; luxos-sandbox: "Spustit v sandboxu";
+# clamav: antivirus (clamd, freshclam)
+depends=(python python-gobject gtk3 glib2 libnotify btrfs-progs luxos-i18n luxos-sandbox clamav)
 # lsl: prekladac lslc pro pomocnika v sezeni luxos-guard-agent (cil linux-x86_64-gnu, jen libc + GLib)
 makedepends=('lsl>=0.11.0')
 checkdepends=(python-pytest)
@@ -41,9 +43,10 @@ package() {
     install -Dm755 "$f/luxos-guard-agent-helper" "$pkgdir/usr/lib/luxos-guard/luxos-guard-agent-helper"
     install -Dm755 "$f/luxos-guard-agent" "$pkgdir/usr/bin/luxos-guard-agent"
     install -Dm755 "$f/luxos-guard-gui" "$pkgdir/usr/bin/luxos-guard-gui"
-    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/luxos_guard_{core,rules,service,session,snap}.py
+    install -Dm644 -t "$pkgdir/usr/lib/luxos/python" "$f"/luxos_guard_{av,core,rules,service,session,snap}.py
     python -m compileall -q --invalidation-mode checked-hash -s "$pkgdir" -p / "$pkgdir/usr/lib/luxos/python"
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$f"/systemd/*
+    install -Dm644 "$f/clamd.conf" "$pkgdir/usr/lib/luxos-guard/clamd.conf"
     install -Dm644 "$f/luxos-guard-agent.desktop" "$pkgdir/etc/xdg/autostart/luxos-guard-agent.desktop"
     install -Dm644 "$f/luxos-guard.desktop" "$pkgdir/usr/share/applications/luxos-guard.desktop"
     # dlouhy popis aplikace pro Obchod LuxOS (luxos_app_catalog.py -> apps.json)

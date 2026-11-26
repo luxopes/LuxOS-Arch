@@ -2,7 +2,10 @@
 """Lux Guard - ochrana pred skodlivymi programy ze stazenych souboru, prilohy a USB.
 
   luxos-guard status                     stav ochrany a snimku
-  luxos-guard scan SOUBOR...             zkontrolovat soubor (bez root prav)
+  luxos-guard scan SOUBOR|SLOZKA...      zkontrolovat soubory (chovani programu a antivirus ClamAV)
+  luxos-guard quarantine [restore|delete ID]
+                                         soubory s virem v karantene; obnovit nebo smazat
+  luxos-guard virus-scan                 Stazene, Plocha a Dokumenty vsech uzivatelu (root, tydenni casovac)
   luxos-guard allow SOUBOR               povolit rizikovy soubor (jako "Presto spustit")
   luxos-guard list                       hlidane soubory a posledni rozhodnuti
   luxos-guard snapshots                  casy snimku slozky /home
@@ -74,6 +77,12 @@ def cmd_status(args):
         print(_("Watched files: %d (critical: %d)") % (r.get("watched", 0), r.get("critical", 0)))
         if not r.get("agent") and os.getuid() != 0:
             print(_("Warning: the Lux Guard session helper is not running - risky programs are blocked without asking."))
+        if r.get("antivirus"):
+            print(_("Antivirus: on (ClamAV, starts only when needed)"))
+        else:
+            print(_("Antivirus: off"))
+        if r.get("quarantine"):
+            print(_("Quarantine: %d files (luxos-guard quarantine)") % r["quarantine"])
         if r.get("removable"):
             print(_("Removable media: %s") % ", ".join(r["removable"]))
         if r.get("stats"):
@@ -96,19 +105,74 @@ def open_file(path):
         die(f"{path}: {e.strerror}")
 
 
+VIRUS_TIMEOUT = 300     # s - prvni kontrola spousti ClamAV (nacteni databaze na starem pocitaci)
+SCAN_MAX_FILES = 100000
+
+
+def walk_files(paths):
+    """Soubory z argumentu; slozky do hloubky (bez odkazu, bez jinych souborovych systemu)."""
+    n = 0
+    for path in paths:
+        if os.path.isdir(path) and not os.path.islink(path):
+            dev = os.stat(path).st_dev
+            for root, dirs, files in os.walk(path):
+                dirs[:] = [d for d in dirs if not os.path.islink(os.path.join(root, d))
+                           and os.lstat(os.path.join(root, d)).st_dev == dev]
+                for f in sorted(files):
+                    full = os.path.join(root, f)
+                    if os.path.isfile(full) and not os.path.islink(full):
+                        n += 1
+                        if n > SCAN_MAX_FILES:
+                            return
+                        yield full, False
+        else:
+            yield path, True
+
+
+def virus_check(fd):
+    """Antivirus pres sluzbu: (stav, detail, id v karantene) nebo None (vypnuty / sluzba nebezi)."""
+    r = request({"op": "virus_scan"}, fd=fd, timeout=VIRUS_TIMEOUT)
+    if r is None or r.get("op") != "virus_scan":
+        return None
+    return r.get("status"), r.get("detail"), r.get("quarantine")
+
+
 def cmd_scan(args):
     if not args:
         die(_("Usage: luxos-guard scan FILE..."))
     worst = 0
-    for path in args:
-        fd = open_file(path)
+    infected = 0
+    for path, explicit in walk_files(args):
+        if explicit:
+            fd = open_file(path)
+        else:
+            try:
+                fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+            except OSError:
+                continue
         try:
             data = os.pread(fd, rules.MAX_READ, 0)
             verdict = rules.classify(data, os.path.basename(path))
-            r = request({"op": "check"}, fd=fd, timeout=3)
+            r = request({"op": "check"}, fd=fd, timeout=3) if verdict is not None else None
+            virus = virus_check(fd)
         finally:
             os.close(fd)
+        if virus and virus[0] == "infected":
+            worst = 2
+            infected += 1
+            print(path)
+            print("  " + _("VIRUS: %s") % virus[1])
+            print("  " + (_("Moved to quarantine.") if virus[2] else _("Not your file - tell the administrator.")))
+            continue
+        if not explicit:
+            continue            # obsah slozky: vypsat jen nalezy
         print(path)
+        if virus is None:
+            print("  " + _("Antivirus: not available"))
+        elif virus[0] == "clean":
+            print("  " + _("Antivirus: no virus found"))
+        else:
+            print("  " + _("Antivirus: could not check (%s)") % (virus[1] or ""))
         if verdict is None:
             print("  " + _("Not a program or script - Lux Guard does not check it."))
             continue
@@ -130,7 +194,70 @@ def cmd_scan(args):
             worst = max(worst, 1)
         elif r is not None:
             print("  " + _("Lux Guard: not from outside this computer, not watched"))
+    if any(os.path.isdir(a) for a in args):
+        print(_("Viruses found: %d") % infected)
     return worst
+
+
+def cmd_quarantine(args):
+    if args and args[0] in ("restore", "delete") and len(args) == 2:
+        r = request({"op": "quarantine_" + args[0], "id": args[1]})
+        if r is None or not r.get("ok"):
+            die(_("Not possible (unknown item, or a file with the same name exists)."))
+        print(_("Restored: %s") % r["path"] if args[0] == "restore" else _("Deleted."))
+        return 0
+    if args:
+        die(_("Usage: luxos-guard quarantine [restore|delete ID]"))
+    r = request({"op": "quarantine"})
+    if r is None or r.get("op") != "quarantine":
+        die(_("Lux Guard is not running."))
+    if not r["entries"]:
+        print(_("Quarantine is empty."))
+    for e in r["entries"]:
+        when = datetime.datetime.fromtimestamp(e.get("time") or 0).strftime("%Y-%m-%d %H:%M")
+        print(f"{e['id']}  {when}  {e.get('signature')}\n    {e.get('path')}")
+    return 0
+
+
+VIRUS_SCAN_DIRS = ("Downloads", "Desktop", "Documents")
+
+
+def cmd_virus_scan(args):
+    """Tydenni kontrola (luxos-guard-virus-scan.timer): slozky XDG Stazene, Plocha a Dokumenty."""
+    if os.geteuid() != 0:
+        die(_("The weekly check runs as the system (root); use: luxos-guard scan FOLDER"))
+    users = core.Users()
+    dirs = []
+    for home in users.homes():
+        names = set(VIRUS_SCAN_DIRS)
+        try:
+            with open(os.path.join(home, ".config/user-dirs.dirs"), encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    k, _sep, v = line.strip().partition("=")
+                    if k in ("XDG_DOWNLOAD_DIR", "XDG_DESKTOP_DIR", "XDG_DOCUMENTS_DIR"):
+                        v = v.strip('"').replace("$HOME", home)
+                        if v.startswith(home + "/"):
+                            names.add(os.path.relpath(v, home))
+        except OSError:
+            pass
+        dirs += [os.path.join(home, n) for n in sorted(names) if os.path.isdir(os.path.join(home, n))]
+    found = 0
+    for path, _explicit in walk_files(dirs):
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
+        except OSError:
+            continue
+        try:
+            v = virus_check(fd)
+        finally:
+            os.close(fd)
+        if v is None:
+            die(_("Antivirus is not available."))
+        if v[0] == "infected":
+            found += 1
+            print(f"{path}: {v[1]}")
+    print(_("Viruses found: %d") % found)
+    return 0
 
 
 def cmd_allow(args):
@@ -288,7 +415,8 @@ def usage():
     print("luxos-guard - " + _("protection against harmful programs from downloads, attachments and USB drives"))
     print()
     for c, d in (("status", _("protection and snapshot status")),
-                 ("scan FILE...", _("check a file")),
+                 ("scan FILE|FOLDER...", _("check files (behaviour of programs and antivirus)")),
+                 ("quarantine [restore|delete ID]", _("files with a virus in quarantine")),
                  ("allow FILE", _("allow a risky file (like Run Anyway)")),
                  ("list [--json]", _("watched files and recent decisions")),
                  ("snapshots", _("times of /home snapshots")),
@@ -303,7 +431,8 @@ def main():
         usage()
         return 0
     table = {"status": cmd_status, "scan": cmd_scan, "allow": cmd_allow, "list": cmd_list,
-             "snapshots": cmd_snapshots, "restore": cmd_restore, "snapshot": cmd_snapshot, "service": cmd_service}
+             "snapshots": cmd_snapshots, "restore": cmd_restore, "snapshot": cmd_snapshot, "service": cmd_service,
+             "quarantine": cmd_quarantine, "virus-scan": cmd_virus_scan}
     if argv[0] not in table:
         die(_("Unknown command: %s") % argv[0])
     return table[argv[0]](argv[1:]) or 0

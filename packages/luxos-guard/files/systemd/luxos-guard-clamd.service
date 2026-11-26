@@ -1,0 +1,30 @@
+[Unit]
+# Spousti a zastavuje jen luxos-guard.service (antivirus na vyzadani): databaze ClamAV zabere ~1 GB
+# pameti, proto clamd nebezi trvale (luxos_guard_av.py)
+Description=Lux Guard antivirus engine (ClamAV, runs only while checking files)
+Documentation=file:///usr/share/luxos/docs/luxos/guard.md
+ConditionPathExists=!/run/archiso
+StopWhenUnneeded=no
+
+[Service]
+Type=simple
+User=clamav
+Group=clamav
+RuntimeDirectory=luxos-guard-clamd
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/clamd --foreground --config-file=/usr/lib/luxos-guard/clamd.conf
+Nice=10
+IOSchedulingClass=idle
+OOMScoreAdjust=500
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+ReadOnlyPaths=/var/lib/clamav
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX
+SystemCallArchitectures=native
+LockPersonality=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes

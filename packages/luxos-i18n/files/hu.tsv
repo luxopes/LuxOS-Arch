@@ -5599,3 +5599,13 @@ Apps that play sound appear here.	Itt jelennek meg a hangot lejátszó alkalmaz�
 The sound server is not running.	A hangkiszolgáló nem fut.
 Sound settings need PipeWire or PulseAudio.	A hangbeállításokhoz PipeWire vagy PulseAudio szükséges.
 Unknown app	Ismeretlen alkalmazás
+Lux Guard: virus removed	Lux Guard: vírus eltávolítva
+The file was moved to quarantine.	A fájl karanténba került.
+Antivirus: on (ClamAV, starts only when needed)	Vírusvédelem: bekapcsolva (ClamAV, csak szükség esetén indul)
+Antivirus: off	Vírusvédelem: kikapcsolva
+Quarantine: %d files (luxos-guard quarantine)	Karantén: %d fájl (luxos-guard quarantine)
+VIRUS: %s	VÍRUS: %s
+Moved to quarantine.	Karanténba helyezve.
+Antivirus: no virus found	Vírusvédelem: nem található vírus
+Quarantine is empty.	A karantén üres.
+Viruses found: %d	Talált vírusok: %d

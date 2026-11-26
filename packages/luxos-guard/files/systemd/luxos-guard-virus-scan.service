@@ -1,0 +1,13 @@
+[Unit]
+Description=Lux Guard - weekly antivirus check of Downloads, Desktop and Documents
+Documentation=file:///usr/share/luxos/docs/luxos/guard.md
+ConditionPathExists=!/run/archiso
+ConditionACPower=true
+After=luxos-guard.service
+Requires=luxos-guard.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/luxos-guard virus-scan
+Nice=19
+IOSchedulingClass=idle
