@@ -18,6 +18,7 @@ _slim_hook() {
 post_install() {
     systemctl enable earlyoom.service >/dev/null 2>&1 || true
     systemctl enable luxos-scheduler.service >/dev/null 2>&1 || true
+    systemctl enable luxos-game-mode.service >/dev/null 2>&1 || true
     _boot_hook
     _slim_hook
     /usr/lib/luxos/luxos-faillock-setup || true
@@ -31,6 +32,11 @@ _tmp_on_disk() {
 }
 
 post_upgrade() {
+    # Herni rezim (od 1.0.0-20): zapnout jednou i u stavajicich instalaci
+    if [ "$(vercmp "$2" 1.0.0-20)" -lt 0 ]; then
+        systemctl enable --now luxos-game-mode.service >/dev/null 2>&1 || true
+    fi
+    systemctl try-restart luxos-game-mode.service >/dev/null 2>&1 || true
     _boot_hook
     _slim_hook
     /usr/lib/luxos/luxos-faillock-setup || true

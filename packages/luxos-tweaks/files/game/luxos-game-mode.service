@@ -1,0 +1,22 @@
+[Unit]
+Description=LuxOS Game Mode: background apps and system jobs step aside while a game runs
+Documentation=file:///usr/share/luxos/docs/luxos/power-and-performance.md
+After=systemd-user-sessions.service power-profiles-daemon.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/luxos/luxos-game-mode
+ExecReload=/bin/kill -HUP $MAINPID
+# Pri zastaveni sluzba vse vrati (SIGTERM); po padu to udela dalsi start ze stavu v /run/luxos
+Restart=on-failure
+RestartSec=5
+# sama skoro nic nestoji: kontrola /proc kazde 2 s
+Nice=-5
+CPUWeight=20
+MemoryMax=64M
+PrivateTmp=yes
+ProtectKernelModules=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

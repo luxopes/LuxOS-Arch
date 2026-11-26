@@ -1,0 +1,35 @@
+#!/bin/bash
+# LuxOS - Herni rezim pro uzivatele:
+#   luxos-game status          bezi herni rezim? (a ktera hra)
+#   luxos-game run PROGRAM ... spusti program jako hru (herni rezim se zapne i pro hry mimo Steam a Wine);
+#                              ve Steamu jako volba spusteni: luxos-game run %command%
+set -u
+state=/run/luxos/game-mode.json
+case ${1:-status} in
+    status)
+        if ! systemctl is-active --quiet luxos-game-mode.service; then
+            echo "Game Mode: service not running"; exit 1
+        fi
+        python3 -I - "$state" <<'PY'
+import json, sys, time
+try:
+    s = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    s = {}
+if not s.get("active"):
+    print("Game Mode: waiting for a game"); sys.exit(0)
+names = ", ".join(sorted({g["name"] for g in s.get("games", [])}))
+print(f"Game Mode: on for {names} ({int(time.time()) - s.get('since', 0)} s)")
+print(f"  background apps slowed: {len(s.get('lowered', {}))}, paused jobs: {', '.join(s.get('frozen', [])) or 'none'}")
+print(f"  compressed into zram: {s.get('reclaimed', 0) >> 20} MiB")
+PY
+        ;;
+    run)
+        shift
+        [[ $# -gt 0 ]] || { echo "usage: luxos-game run PROGRAM [ARGS...]" >&2; exit 2; }
+        export LUXOS_GAME=1
+        exec "$@"
+        ;;
+    *)
+        echo "usage: luxos-game status | run PROGRAM [ARGS...]" >&2; exit 2;;
+esac

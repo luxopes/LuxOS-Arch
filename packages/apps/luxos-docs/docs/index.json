@@ -1501,6 +1501,34 @@
           ]
         },
         {
+          "path": "luxos/game-mode.md",
+          "title": "Game Mode",
+          "summary": "Automatic Game Mode (luxos-game-mode): while a game runs, other apps use one CPU core with low priority, heavy jobs pause, background memory goes to zram, Performance profile, Do Not Disturb; game tweaks (ntsync, split lock, shader cache).",
+          "keywords": [
+            "game mode",
+            "games",
+            "gaming",
+            "FPS",
+            "Steam",
+            "Proton",
+            "Wine",
+            "gamescope",
+            "luxos-game",
+            "luxos-game-mode",
+            "performance",
+            "CPU affinity",
+            "zram",
+            "background apps",
+            "gamemode",
+            "gamemoderun",
+            "CachyOS",
+            "stutter",
+            "shader cache",
+            "ntsync",
+            "split lock"
+          ]
+        },
+        {
           "path": "luxos/shell.md",
           "title": "Shell: lsh (Lux Shell), aliases and fastfetch",
           "summary": "lsh bash fork: about builtin, LSL lines in the shell, ./script.lsl, pip warning, config files, aliases, pacman hint, fastfetch (Unicode logo, real logo image in Terminal)",

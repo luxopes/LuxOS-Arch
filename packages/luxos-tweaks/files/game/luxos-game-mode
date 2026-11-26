@@ -1,0 +1,630 @@
+#!/usr/bin/python3 -I
+# LuxOS - Herni rezim (luxos-game-mode.service, root): kdyz bezi hra, dostane skoro cely pocitac.
+#
+# Hra se pozna sama (jako Herni rezim ve Windows, bez gamemoderun):
+#   - proces hry ze Steamu (promenna SteamGameId/SteamAppId != 0; klient Steamu ji nema),
+#   - program Windows pod Wine/Proton (*.exe krome pomocnych programu Wine),
+#   - gamescope, programy z GAMES= v /etc/luxos/game-mode.conf, `luxos-game run PROGRAM` (LUXOS_GAME=1).
+# Hra = tyto procesy a vsichni jejich potomci.
+#
+# Behem hry (vse se po konci hry vrati, i po padu sluzby - stav v /run/luxos/game-mode.json):
+#   1. programy uzivatele na pozadi (app.slice, background.slice; ne hra, zvuk, kompozitor, portaly) bezi jen
+#      na poslednim fyzickem jadru (asi sestina procesoru, aspon 1 logicky procesor; affinita kazdeho vlakna)
+#      a maji nizsi prioritu: nice +10 a I/O tridu idle (jen kde je nice 0, normalni planovani a vsechny
+#      procesory). Affinitu dodrzi kazdy planovac; scx_lavd nice ani cpu.weight/cpu.max skoro nebere
+#      (mereni: zatez 12 vlaken na pozadi, "hra" 6 vlaken: 75 FPS, s affinitou 120, bez zateze 125),
+#   2. tezke ulohy systemu (aktualizace, kontrola viru, man-db, fstrim, zalohy, ...) se zmrazi
+#      (systemctl freeze) a rozmrazi po hre; nove spustene casovacem se zmrazi do 2 s,
+#   3. pamet programu na pozadi se jednou na zacatku zkomprimuje do zram (memory.reclaim jejich cgroup),
+#      dokud neni volnych RECLAIM_TARGET % RAM; pak kompakce pameti (velke stranky pro hru),
+#   4. profil napajeni Vykon (power-profiles-daemon; ne kdyz je zapnuty Sporic baterie),
+#   5. Nerusit v oznamenich (luxos-notify), pokud ho uzivatel nemel zapnuty sam.
+# Konec hry: 10 s bez procesu hry (nacitani mezi hrou a launcherem nevypne rezim).
+#
+# Nikdy se nezmrazi ani nezpomali: Lux Guard (kontroluje soubory, ktere hra otevira), sit, zvuk, D-Bus,
+# kompozitor (luxwm v session scope), planovac scx.
+# Testy: LUXOS_PROC, LUXOS_CGROUP, LUXOS_RUN, LUXOS_GAME_CONF, LUXOS_MEMINFO, LUXOS_SYSTEMCTL,
+# LUXOS_BUSCTL, LUXOS_POWERPROFILESCTL; --once = jedno kolo bez cekani (bez obnovy na konci).
+import ctypes
+import fnmatch
+import json
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
+
+PROC = os.environ.get("LUXOS_PROC", "/proc")
+CGROUP = os.environ.get("LUXOS_CGROUP", "/sys/fs/cgroup")
+RUN = os.environ.get("LUXOS_RUN", "/run/luxos")
+CONF = os.environ.get("LUXOS_GAME_CONF", "/etc/luxos/game-mode.conf")
+MEMINFO = os.environ.get("LUXOS_MEMINFO", "/proc/meminfo")
+SYSTEMCTL = os.environ.get("LUXOS_SYSTEMCTL", "systemctl")
+BUSCTL = os.environ.get("LUXOS_BUSCTL", "busctl")
+POWERPROFILESCTL = os.environ.get("LUXOS_POWERPROFILESCTL", "powerprofilesctl")
+STATE = os.path.join(RUN, "game-mode.json")
+
+INTERVAL = 2
+END_DELAY = 10
+BACKGROUND_NICE = 10
+
+# Pomocne programy Wine/Proton (nejsou hra, i kdyz koncí .exe)
+WINE_HELPERS = {"wineserver", "services.exe", "explorer.exe", "winedevice.exe", "plugplay.exe", "rpcss.exe",
+                "svchost.exe", "start.exe", "conhost.exe", "rundll32.exe", "winemenubuilder.exe", "tabtip.exe",
+                "steam.exe", "steamwebhelper.exe", "wineboot.exe", "mscorsvw.exe", "iexplore.exe",
+                "crashpad_handler.exe", "regsvr32.exe", "cmd.exe", "msiexec.exe", "setup.exe",
+                "unitycrashhandler64.exe", "unitycrashhandler32.exe"}
+# Launchery her: na pozadi zustavaji, zpomali se jako ostatni programy
+STEAM_CLIENT = {"steam", "steamwebhelper", "steam-runtime-launcher-service", "srt-logger"}
+# Nezpomalovat: zvuk, kompozitor a jeho pomocnici, D-Bus, portaly, vstup
+PROTECTED = {"pipewire", "pipewire-pulse", "wireplumber", "pulseaudio", "jackd", "luxwm", "Xwayland",
+             "dbus-daemon", "dbus-broker", "xdg-desktop-portal", "xdg-desktop-por", "fcitx5", "ibus-daemon",
+             "gamescope", "gamescope-wl", "systemd", "at-spi-bus-laun", "at-spi2-registr"}
+# Tezke ulohy systemu, ktere pockaji na konec hry
+FREEZE_UNITS = ["luxos-care-update.service", "luxos-care-check.service", "luxos-guard-virus-scan.service",
+                "luxos-guard-freshclam.service", "luxos-guard-snapshot.service", "luxos-backup*.service",
+                "man-db.service", "fstrim.service", "reflector.service", "archlinux-keyring-wkd-sync.service",
+                "shadow.service", "plocate-updatedb.service", "updatedb.service", "pacman-filesdb-refresh.service",
+                "snapper-timeline.service", "snapper-cleanup.service", "btrfs-scrub@*.service",
+                "btrfs-balance*.service", "logrotate.service", "flatpak-system-update*.service",
+                "packagekit.service", "lux-*.service"]
+
+HISTORY = ["org.freedesktop.Notifications", "/cz/luxos/NotificationHistory", "cz.luxos.NotificationHistory"]
+
+libc = ctypes.CDLL(None, use_errno=True)
+SYS_IOPRIO_SET = 251
+SYS_IOPRIO_GET = 252
+IOPRIO_WHO_PROCESS = 1
+IOPRIO_IDLE = 3 << 13
+
+
+def log(msg):
+    print(msg, flush=True)
+
+
+def read(path, default=""):
+    try:
+        with open(path, "rb") as f:
+            return f.read().decode("utf-8", "replace")
+    except OSError:
+        return default
+
+
+def write(path, text):
+    try:
+        with open(path, "w") as f:
+            f.write(text)
+        return True
+    except OSError:
+        return False
+
+
+def run(argv, timeout=10):
+    try:
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, r.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return 1, ""
+
+
+def load_conf():
+    conf = {"ENABLED": "yes", "RECLAIM": "yes", "RECLAIM_TARGET": "50", "QUIET": "yes", "PERFORMANCE": "yes",
+            "GAMES": "", "FREEZE": ""}
+    for line in read(CONF).splitlines():
+        line = line.strip()
+        if "=" in line and not line.startswith("#"):
+            key, value = line.split("=", 1)
+            conf[key.strip()] = value.strip().strip("\"'")
+    return conf
+
+
+def yes(value):
+    return value.lower() in ("yes", "1", "true", "on")
+
+
+# ---- procesy ------------------------------------------------------------------------------------------------
+
+class Proc:
+    __slots__ = ("pid", "ppid", "comm", "start", "uid", "cgroup", "env", "argv0", "policy")
+
+
+def read_proc(pid):
+    base = os.path.join(PROC, str(pid))
+    stat = read(base + "/stat")
+    if not stat:
+        return None
+    p = Proc()
+    p.pid = pid
+    # comm muze obsahovat mezery a zavorky: pole za posledni ")"
+    close = stat.rfind(")")
+    p.comm = stat[stat.find("(") + 1:close]
+    fields = stat[close + 2:].split()
+    if len(fields) < 20:
+        return None
+    p.ppid = int(fields[1])
+    p.start = fields[19]
+    p.policy = int(fields[38]) if len(fields) > 38 else 0
+    p.uid = -1
+    for line in read(base + "/status").splitlines():
+        if line.startswith("Uid:"):
+            p.uid = int(line.split()[1])
+            break
+    p.cgroup = ""
+    for line in read(base + "/cgroup").splitlines():
+        if line.startswith("0::"):
+            p.cgroup = line[3:]
+    p.env = None
+    p.argv0 = read(base + "/cmdline").split("\0")[0]
+    return p
+
+
+def environ(p):
+    if p.env is None:
+        p.env = {}
+        for item in read(os.path.join(PROC, str(p.pid), "environ")).split("\0"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                if k in ("SteamGameId", "SteamAppId", "LUXOS_GAME"):
+                    p.env[k] = v
+    return p.env
+
+
+def all_procs():
+    out = {}
+    try:
+        names = os.listdir(PROC)
+    except OSError:
+        return out
+    for name in names:
+        if name.isdigit():
+            p = read_proc(int(name))
+            # jen procesy uzivatelu (jadro a systemove sluzby hra nikdy nejsou)
+            if p is not None and p.uid >= 1000 and p.argv0 != "":
+                out[p.pid] = p
+    return out
+
+
+def exe_name(p):
+    name = p.argv0.replace("\\", "/").split("/")[-1]
+    return name.lower()
+
+
+def is_game(p, extra):
+    if p.comm in STEAM_CLIENT:
+        return False
+    env = environ(p)
+    if env.get("LUXOS_GAME") == "1":
+        return True
+    for key in ("SteamGameId", "SteamAppId"):
+        value = env.get(key, "")
+        if value not in ("", "0") and p.comm != "reaper":
+            return True
+    name = exe_name(p)
+    if name.endswith(".exe") and name not in WINE_HELPERS:
+        return True
+    if p.comm in ("gamescope", "gamescope-wl"):
+        return True
+    return p.comm in extra or name in extra
+
+
+def find_games(procs, extra):
+    roots = [pid for pid, p in procs.items() if is_game(p, extra)]
+    children = {}
+    for p in procs.values():
+        children.setdefault(p.ppid, []).append(p.pid)
+    games = set()
+    stack = list(roots)
+    while stack:
+        pid = stack.pop()
+        if pid in games:
+            continue
+        games.add(pid)
+        stack.extend(children.get(pid, []))
+    return roots, games
+
+
+def background(p):
+    # programy uzivatele (ne sezeni s kompozitorem, ne systemove sluzby)
+    return ("/app.slice/" in p.cgroup or "/background.slice/" in p.cgroup) and p.comm not in PROTECTED \
+        and not p.comm.startswith("xdg-desktop-por")
+
+
+# ---- priority vlaken ----------------------------------------------------------------------------------------
+
+def tids(pid):
+    try:
+        return [int(t) for t in os.listdir(os.path.join(PROC, str(pid), "task"))]
+    except OSError:
+        return []
+
+
+def get_nice(tid):
+    try:
+        return os.getpriority(os.PRIO_PROCESS, tid)
+    except OSError:
+        return None
+
+
+def set_nice(tid, value):
+    try:
+        os.setpriority(os.PRIO_PROCESS, tid, value)
+        return True
+    except OSError:
+        return False
+
+
+def get_affinity(tid):
+    try:
+        return sorted(os.sched_getaffinity(tid))
+    except OSError:
+        return None
+
+
+def set_affinity(tid, cpus):
+    try:
+        os.sched_setaffinity(tid, cpus)
+        return True
+    except OSError:
+        return False
+
+
+def online_cpus():
+    try:
+        return sorted(os.sched_getaffinity(0)) if os.getpid() != 1 else list(range(os.cpu_count() or 1))
+    except OSError:
+        return list(range(os.cpu_count() or 1))
+
+
+# Procesory pro programy na pozadi: cela posledni fyzicka jadra (sourozenci SMT), dokud jich neni ncpu/6
+def background_cpus(cpus=None, siblings=None):
+    cpus = cpus if cpus is not None else online_cpus()
+    if len(cpus) <= 1:
+        return list(cpus)
+    target = max(1, len(cpus) // 6)
+    taken = []
+    for cpu in reversed(cpus):
+        if cpu in taken:
+            continue
+        group = siblings(cpu) if siblings else core_siblings(cpu)
+        group = [c for c in group if c in cpus] or [cpu]
+        if len(taken) + len(group) > target:
+            if taken:
+                break
+            group = [cpu]                                    # cele jadro by bylo moc (malo procesoru)
+        taken.extend(c for c in group if c not in taken)
+        if len(taken) >= target:
+            break
+    return sorted(taken)
+
+
+def core_siblings(cpu):
+    text = read(f"/sys/devices/system/cpu/cpu{cpu}/topology/thread_siblings_list").strip()
+    out = []
+    for part in text.split(","):
+        if "-" in part:
+            a, b = part.split("-", 1)
+            if a.isdigit() and b.isdigit():
+                out.extend(range(int(a), int(b) + 1))
+        elif part.isdigit():
+            out.append(int(part))
+    return out or [cpu]
+
+
+def get_ioprio(tid):
+    r = libc.syscall(SYS_IOPRIO_GET, IOPRIO_WHO_PROCESS, tid)
+    return None if r < 0 else r
+
+
+def set_ioprio(tid, value):
+    return libc.syscall(SYS_IOPRIO_SET, IOPRIO_WHO_PROCESS, tid, value) == 0
+
+
+# ---- herni rezim --------------------------------------------------------------------------------------------
+
+class GameMode:
+    def __init__(self):
+        self.conf = load_conf()
+        self.active = False
+        self.last_seen = 0.0
+        self.games = []
+        self.since = 0
+        # pid -> {"start": .., "tids": {tid: [nice, ioprio]}}
+        self.lowered = {}
+        self.frozen = []
+        self.profile = ""
+        self.dnd_user = -1
+        self.reclaimed = 0
+        self.all_cpus = online_cpus()
+        self.bg_cpus = background_cpus(self.all_cpus)
+        self.lock = threading.Lock()
+
+    # -- stav na disku (obnova po padu sluzby) --
+    def save(self):
+        state = {"active": self.active, "since": self.since, "games": self.games,
+                 "lowered": {str(k): v for k, v in self.lowered.items()}, "frozen": self.frozen,
+                 "profile": self.profile, "dnd_user": self.dnd_user, "reclaimed": self.reclaimed,
+                 "background_cpus": self.bg_cpus}
+        os.makedirs(RUN, exist_ok=True)
+        tmp = STATE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(state, f)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, STATE)
+
+    def load_stale(self):
+        try:
+            with open(STATE) as f:
+                state = json.load(f)
+        except (OSError, ValueError):
+            return
+        self.lowered = {int(k): v for k, v in state.get("lowered", {}).items()}
+        self.frozen = state.get("frozen", [])
+        self.profile = state.get("profile", "")
+        self.dnd_user = state.get("dnd_user", -1)
+        if self.lowered or self.frozen or self.profile or self.dnd_user >= 0:
+            log("game mode: restoring state left by a previous run")
+            self.restore()
+
+    # -- 1. priority --
+    def lower(self, procs, games):
+        for pid, p in procs.items():
+            if pid in games or not background(p) or p.policy != 0:
+                continue
+            rec = self.lowered.get(pid)
+            if rec is not None and rec["start"] != p.start:
+                rec = None                                   # stejne PID, jiny proces
+            if rec is None:
+                rec = {"start": p.start, "tids": {}}
+            for tid in tids(pid):
+                key = str(tid)
+                if key in rec["tids"]:
+                    continue
+                nice = get_nice(tid)
+                if self.inherited(tid, nice):
+                    # vlakno nebo proces vznikl behem hry ze zpomaleneho: zdedil nice, I/O i procesory
+                    rec["tids"][key] = [0, 0, self.all_cpus if self.bg_cpus != self.all_cpus else None]
+                    continue
+                if nice != 0:
+                    continue                                 # nice nastaveny uzivatelem nechat
+                io = get_ioprio(tid)
+                cpus = get_affinity(tid)
+                if set_nice(tid, BACKGROUND_NICE):
+                    if io is not None:
+                        set_ioprio(tid, IOPRIO_IDLE)
+                    # jen vlakna, ktera smi na vsechny procesory (vlastni affinitu programu nechat)
+                    moved = None
+                    if cpus == self.all_cpus and len(self.bg_cpus) < len(self.all_cpus):
+                        if set_affinity(tid, self.bg_cpus):
+                            moved = cpus
+                    rec["tids"][key] = [0, io, moved]
+            if rec["tids"]:
+                self.lowered[pid] = rec
+
+    # Otisk herniho rezimu: nice +10, I/O idle a procesory pro pozadi (zdedene od zpomaleneho rodice)
+    def inherited(self, tid, nice):
+        if nice != BACKGROUND_NICE or get_ioprio(tid) != IOPRIO_IDLE:
+            return False
+        if self.bg_cpus == self.all_cpus:
+            return True
+        return get_affinity(tid) == self.bg_cpus
+
+    def restore_priorities(self):
+        for pid, rec in self.lowered.items():
+            p = read_proc(pid)
+            if p is None or p.start != rec["start"]:
+                continue
+            for key, values in rec["tids"].items():
+                nice, io = values[0], values[1]
+                moved = values[2] if len(values) > 2 else None
+                tid = int(key)
+                if get_nice(tid) == BACKGROUND_NICE:
+                    set_nice(tid, nice)
+                    if io is not None:
+                        set_ioprio(tid, io)
+                if moved and get_affinity(tid) == self.bg_cpus:
+                    set_affinity(tid, moved)
+        self.lowered = {}
+        # vlakna a procesy vznikle od posledni kontroly (zdedeny otisk, v zaznamu jeste nejsou)
+        for pid, p in all_procs().items():
+            if not background(p):
+                continue
+            for tid in tids(pid):
+                if self.inherited(tid, get_nice(tid)):
+                    set_nice(tid, 0)
+                    set_ioprio(tid, 0)
+                    if self.bg_cpus != self.all_cpus:
+                        set_affinity(tid, self.all_cpus)
+
+    # -- 2. tezke ulohy --
+    def freeze(self):
+        patterns = FREEZE_UNITS + [u for u in self.conf.get("FREEZE", "").split() if u]
+        rc, out = run([SYSTEMCTL, "list-units", "--type=service", "--state=active,activating,reloading",
+                       "--plain", "--no-legend", "--no-pager"] + patterns)
+        if rc != 0:
+            return
+        for line in out.splitlines():
+            unit = line.split()[0] if line.split() else ""
+            if not unit or unit in self.frozen or unit.startswith("luxos-guard.") or unit == "luxos-game-mode.service":
+                continue
+            if not any(fnmatch.fnmatch(unit, pat) for pat in patterns):
+                continue
+            if run([SYSTEMCTL, "freeze", unit])[0] == 0:
+                self.frozen.append(unit)
+                log(f"game mode: paused {unit}")
+
+    def thaw(self):
+        for unit in self.frozen:
+            run([SYSTEMCTL, "thaw", unit])
+        self.frozen = []
+
+    # -- 3. pamet --
+    def meminfo(self):
+        info = {}
+        for line in read(MEMINFO).splitlines():
+            parts = line.split()
+            if len(parts) >= 2:
+                info[parts[0].rstrip(":")] = int(parts[1]) * 1024
+        return info
+
+    def reclaim(self, games, procs):
+        info = self.meminfo()
+        total, avail = info.get("MemTotal", 0), info.get("MemAvailable", 0)
+        try:
+            target = total * max(0, min(90, int(self.conf.get("RECLAIM_TARGET", "50")))) // 100
+        except ValueError:
+            target = total // 2
+        need = target - avail
+        if total == 0 or need <= 0:
+            return 0
+        game_groups = {procs[pid].cgroup for pid in games if pid in procs}
+        candidates = []
+        for p in procs.values():
+            if background(p) and p.cgroup not in game_groups:
+                candidates.append(p.cgroup)
+        sizes = []
+        for cg in set(candidates):
+            cur = read(os.path.join(CGROUP, cg.lstrip("/"), "memory.current")).strip()
+            if cur.isdigit():
+                sizes.append((int(cur), cg))
+        sizes.sort(reverse=True)
+        done = 0
+        for size, cg in sizes:
+            if done >= need:
+                break
+            amount = min(need - done, size * 6 // 10)
+            if amount < 4 << 20:
+                continue
+            before = size
+            write(os.path.join(CGROUP, cg.lstrip("/"), "memory.reclaim"), str(amount))   # EAGAIN = mene, nevadi
+            after = read(os.path.join(CGROUP, cg.lstrip("/"), "memory.current")).strip()
+            freed = before - int(after) if after.isdigit() else 0
+            done += max(0, freed)
+        if done > 0:
+            write(os.path.join(PROC, "sys/vm/compact_memory"), "1")
+        return done
+
+    def reclaim_async(self, games, procs):
+        def work():
+            freed = self.reclaim(games, procs)
+            with self.lock:
+                self.reclaimed = freed
+                if self.active:
+                    self.save()
+            log(f"game mode: compressed {freed >> 20} MiB of background apps into zram")
+        threading.Thread(target=work, daemon=True).start()
+
+    # -- 4. napajeni --
+    def performance(self):
+        if run([SYSTEMCTL, "is-active", "--quiet", "luxos-powersaver.service"])[0] == 0:
+            return                                           # Sporic baterie ma prednost
+        rc, out = run([POWERPROFILESCTL, "get"])
+        current = out.strip()
+        if rc == 0 and current and current != "performance":
+            if run([POWERPROFILESCTL, "set", "performance"])[0] == 0:
+                self.profile = current
+
+    def restore_profile(self):
+        if self.profile:
+            rc, out = run([POWERPROFILESCTL, "get"])
+            if rc == 0 and out.strip() == "performance":     # uzivatel mezitim nezmenil
+                run([POWERPROFILESCTL, "set", self.profile])
+        self.profile = ""
+
+    # -- 5. nerusit --
+    def bus(self, uid, *args):
+        return run([BUSCTL, f"--machine={uid}@.host", "--user", "call"] + HISTORY + list(args), timeout=5)
+
+    def quiet(self, uid):
+        rc, out = self.bus(uid, "GetDoNotDisturb")
+        if rc == 0 and out.strip() == "b false":
+            if self.bus(uid, "SetDoNotDisturb", "b", "true")[0] == 0:
+                self.dnd_user = uid
+
+    def restore_quiet(self):
+        if self.dnd_user >= 0:
+            self.bus(self.dnd_user, "SetDoNotDisturb", "b", "false")
+        self.dnd_user = -1
+
+    # -- prubeh --
+    def start(self, roots, games, procs):
+        self.active = True
+        self.since = int(time.time())
+        self.games = [{"pid": pid, "name": procs[pid].comm} for pid in roots]
+        log("game mode: on (" + ", ".join(sorted({g["name"] for g in self.games})) + ")")
+        if yes(self.conf.get("PERFORMANCE", "yes")):
+            self.performance()
+        if yes(self.conf.get("QUIET", "yes")):
+            self.quiet(procs[roots[0]].uid)
+        if yes(self.conf.get("RECLAIM", "yes")):
+            self.reclaim_async(games, procs)
+
+    def restore(self):
+        self.restore_priorities()
+        self.thaw()
+        self.restore_profile()
+        self.restore_quiet()
+
+    def stop(self):
+        log("game mode: off")
+        self.restore()
+        self.active = False
+        self.games = []
+        self.reclaimed = 0
+
+    def tick(self):
+        if not yes(self.conf.get("ENABLED", "yes")):
+            if self.active:
+                self.stop()
+                self.save()
+            return
+        procs = all_procs()
+        extra = {g.lower() for g in self.conf.get("GAMES", "").split() if g}
+        roots, games = find_games(procs, extra)
+        now = time.monotonic()
+        with self.lock:
+            if roots:
+                self.last_seen = now
+                if not self.active:
+                    self.start(roots, games, procs)
+                else:
+                    self.games = [{"pid": pid, "name": procs[pid].comm} for pid in roots]
+                self.lower(procs, games)
+                self.freeze()
+                self.save()
+            elif self.active and now - self.last_seen >= END_DELAY:
+                self.stop()
+                self.save()
+
+
+def main():
+    once = "--once" in sys.argv
+    gm = GameMode()
+    gm.load_stale()
+    gm.save()
+
+    def finish(*_):
+        for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+            signal.signal(sig, signal.SIG_IGN)
+        with gm.lock:
+            if gm.active:
+                gm.stop()
+            gm.save()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, finish)
+    signal.signal(signal.SIGINT, finish)
+    signal.signal(signal.SIGHUP, lambda *_: setattr(gm, "conf", load_conf()))
+    while True:
+        gm.tick()
+        if once:
+            # pocka na kompresi pameti (testy)
+            for t in threading.enumerate():
+                if t is not threading.current_thread() and t.daemon:
+                    t.join(30)
+            return
+        time.sleep(INTERVAL)
+
+
+if __name__ == "__main__":
+    main()
