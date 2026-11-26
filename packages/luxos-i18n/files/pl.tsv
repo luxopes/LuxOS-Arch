@@ -5585,3 +5585,18 @@ Add to Desktop	Dodaj do pulpitu
 Choose an app to add to the desktop	Wybierz aplikację, którą chcesz dodać do pulpitu
 Could not add the app shortcut to the desktop.	Nie udało się dodać skrótu do aplikacji na pulpit.
 A file with this name is already on your desktop.	Na pulpicie istnieje już plik o tej nazwie.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Ustawienia Wi-Fi…
+Battery & Power Settings…	Ustawienia baterii i zasilania…
+Notification Settings…	Ustawienia powiadomień…
+Windows & Workspaces Settings…	Ustawienia okien i pulpitów…
+Output device	Urządzenie wyjściowe
+Input device	Urządzenie wejściowe
+Output volume	Głośność wyjścia
+Input volume	Głośność wejścia
+Mute microphone	Wycisz mikrofon
+Apps that play sound appear here.	Tutaj pojawią się aplikacje odtwarzające dźwięk.
+The sound server is not running.	Serwer dźwięku nie działa.
+Sound settings need PipeWire or PulseAudio.	Ustawienia dźwięku wymagają PipeWire lub PulseAudio.
+Unknown app	Nieznana aplikacja

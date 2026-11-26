@@ -5584,3 +5584,18 @@ Add to Desktop	Zur Arbeitsfläche hinzufügen
 Choose an app to add to the desktop	App für die Arbeitsfläche auswählen
 Could not add the app shortcut to the desktop.	Die App-Verknüpfung konnte nicht zur Arbeitsfläche hinzugefügt werden.
 A file with this name is already on your desktop.	Eine Datei mit diesem Namen befindet sich bereits auf der Arbeitsfläche.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	WLAN-Einstellungen…
+Battery & Power Settings…	Batterie- und Energieeinstellungen…
+Notification Settings…	Mitteilungseinstellungen…
+Windows & Workspaces Settings…	Fenster- und Arbeitsflächeneinstellungen…
+Output device	Ausgabegerät
+Input device	Eingabegerät
+Output volume	Ausgabelautstärke
+Input volume	Eingabelautstärke
+Mute microphone	Mikrofon stummschalten
+Apps that play sound appear here.	Hier erscheinen Apps, die Ton wiedergeben.
+The sound server is not running.	Der Audioserver läuft nicht.
+Sound settings need PipeWire or PulseAudio.	Die Toneinstellungen benötigen PipeWire oder PulseAudio.
+Unknown app	Unbekannte App

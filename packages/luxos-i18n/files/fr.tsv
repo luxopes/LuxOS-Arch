@@ -5584,3 +5584,18 @@ Add to Desktop	Ajouter au bureau
 Choose an app to add to the desktop	Choisir une application à ajouter au bureau
 Could not add the app shortcut to the desktop.	Impossible d’ajouter le raccourci de l’application au bureau.
 A file with this name is already on your desktop.	Un fichier portant ce nom existe déjà sur le bureau.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Réglages Wi-Fi…
+Battery & Power Settings…	Réglages de la batterie et de l’alimentation…
+Notification Settings…	Réglages des notifications…
+Windows & Workspaces Settings…	Réglages des fenêtres et espaces…
+Output device	Périphérique de sortie
+Input device	Périphérique d’entrée
+Output volume	Volume de sortie
+Input volume	Volume d’entrée
+Mute microphone	Couper le microphone
+Apps that play sound appear here.	Les apps qui jouent du son apparaissent ici.
+The sound server is not running.	Le serveur audio n’est pas lancé.
+Sound settings need PipeWire or PulseAudio.	Les réglages du son nécessitent PipeWire ou PulseAudio.
+Unknown app	App inconnue

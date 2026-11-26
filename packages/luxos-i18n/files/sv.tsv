@@ -5584,3 +5584,18 @@ Add to Desktop	Lägg till på skrivbordet
 Choose an app to add to the desktop	Välj en app att lägga till på skrivbordet
 Could not add the app shortcut to the desktop.	Det gick inte att lägga till appgenvägen på skrivbordet.
 A file with this name is already on your desktop.	En fil med det här namnet finns redan på skrivbordet.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Wi-Fi-inställningar…
+Battery & Power Settings…	Batteri- och ströminställningar…
+Notification Settings…	Aviseringsinställningar…
+Windows & Workspaces Settings…	Fönster- och arbetsytainställningar…
+Output device	Utgångsenhet
+Input device	Ingångsenhet
+Output volume	Utgångsvolym
+Input volume	Ingångsvolym
+Mute microphone	Stäng av mikrofonen
+Apps that play sound appear here.	Appar som spelar ljud visas här.
+The sound server is not running.	Ljudservern körs inte.
+Sound settings need PipeWire or PulseAudio.	Ljudinställningar kräver PipeWire eller PulseAudio.
+Unknown app	Okänd app

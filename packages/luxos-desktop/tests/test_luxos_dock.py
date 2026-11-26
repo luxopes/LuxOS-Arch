@@ -831,6 +831,28 @@ class DockLuxwm(DockBase):
         self.assertGreater(right, 55, (left, middle, right))
         self.assertLess(middle, min(left, right), (left, middle, right))
 
+    def test_click_opens_window_from_another_workspace(self):
+        """Aplikace otevrena na jine plose: klik na jeji ikonu v Docku prepne na tu plochu a okno zamerime
+        (neotevrelo se nic)."""
+        self.conf(items=["test-alpha.desktop", "trash"])
+        self.start_dock()
+        x = self.centers[0]
+        self.input(f"move {x} {H - 30}", "click")
+        self.wait_line(self.dock, r" window (\d+) cz\.test\.alpha ")
+        self.mouse(W // 2, 200)
+        time.sleep(0.5)
+        self.input("key ctrl+super+2")
+        time.sleep(1.2)
+        self.pump(self.dock, 0.3)
+        n = len(self.dock.lines)
+        self.input(f"move {x} {H - 30}", "sleep 0.3", "click")
+        self.pump(self.dock, 1.0)
+        out = "\n".join(self.dock.lines[n:])
+        self.assertNotIn("launch", out, "the click started another instance instead of showing the window")
+        self.assertIn("activate", out, out)
+        log = (self.s / "compositor.log").read_text() if (self.s / "compositor.log").exists() else ""
+        self.assertIn("workspace 1", log.split("workspace 2")[-1], "switched back to the workspace of the window")
+
     def test_zone_placement_and_dodge_overlap(self):
         self.conf(hide="dodge")
         self.start_dock()

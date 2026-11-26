@@ -115,7 +115,7 @@
     <property name="plugin-5" type="string" value="pulseaudio">
       <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
       <property name="show-notifications" type="bool" value="true"/>
-      <property name="mixer-command" type="string" value="pavucontrol"/>
+      <property name="mixer-command" type="string" value="luxos-settings sound"/>
     </property>
     <!-- Baterie s procenty (klik = Ovladaci centrum); bez baterie se nezobrazi -->
     <property name="plugin-10" type="string" value="genmon">

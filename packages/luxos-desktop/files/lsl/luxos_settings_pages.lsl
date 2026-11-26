@@ -15,6 +15,7 @@ load luxos_page_accessibility as accessibility
 load luxos_page_windows as windows
 load luxos_page_notifications as notifications
 load luxos_page_power as power
+load luxos_page_sound as sound
 load luxos_page_lock as lock
 load luxos_page_displays as displays
 load luxos_page_keyboard as keyboard
@@ -53,7 +54,9 @@ function all():
              ["luxos-firewall-settings"], {"build": firewall.build, "show": firewall.show, "test": firewall.test}))
     out.append(page("notifications", "Notifications", "preferences-system-notifications-symbolic", "#ff3b30", 1,
              ["do not disturb", "banners", "alerts", "sounds", "history"], [], {"build": notifications.build, "test": notifications.test}))
-    out.append(app("sound", "Sound", "audio-volume-high-symbolic", "#ff2d55", 1, ["volume", "speakers", "microphone", "output", "input"], ["pavucontrol"]))
+    out.append(page("sound", "Sound", "audio-volume-high-symbolic", "#ff2d55", 1,
+             ["volume", "speakers", "microphone", "output", "input", "headphones", "mute", "bluetooth audio"], [],
+             {"build": sound.build, "show": sound.show, "leave": sound.leave, "test": sound.test}))
     out.append(page("appearance", "Appearance", "dark-mode-symbolic", "#af52de", 2,
              ["dark mode", "light mode", "accent color", "theme", "icons", "fonts", "text size", "cursor"], [],
              {"build": appearance.build, "test": appearance.test}))

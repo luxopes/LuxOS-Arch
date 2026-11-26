@@ -5584,3 +5584,18 @@ Add to Desktop	Toevoegen aan bureaublad
 Choose an app to add to the desktop	Kies een app om aan het bureaublad toe te voegen
 Could not add the app shortcut to the desktop.	De app-snelkoppeling kon niet aan het bureaublad worden toegevoegd.
 A file with this name is already on your desktop.	Er staat al een bestand met deze naam op je bureaublad.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Wifi-instellingen…
+Battery & Power Settings…	Batterij- en energie-instellingen…
+Notification Settings…	Meldingsinstellingen…
+Windows & Workspaces Settings…	Instellingen voor vensters en werkruimtes…
+Output device	Uitvoerapparaat
+Input device	Invoerapparaat
+Output volume	Uitvoervolume
+Input volume	Invoervolume
+Mute microphone	Microfoon dempen
+Apps that play sound appear here.	Apps die geluid afspelen verschijnen hier.
+The sound server is not running.	De geluidsserver draait niet.
+Sound settings need PipeWire or PulseAudio.	Geluidsinstellingen vereisen PipeWire of PulseAudio.
+Unknown app	Onbekende app

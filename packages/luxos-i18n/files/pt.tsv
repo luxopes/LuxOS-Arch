@@ -5584,3 +5584,18 @@ Add to Desktop	Adicionar ao ambiente de trabalho
 Choose an app to add to the desktop	Escolhe uma aplicação para adicionar ao ambiente de trabalho
 Could not add the app shortcut to the desktop.	Não foi possível adicionar o atalho da aplicação ao ambiente de trabalho.
 A file with this name is already on your desktop.	Já existe um ficheiro com este nome no ambiente de trabalho.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Definições de Wi-Fi…
+Battery & Power Settings…	Definições de bateria e energia…
+Notification Settings…	Definições de notificações…
+Windows & Workspaces Settings…	Definições de janelas e áreas de trabalho…
+Output device	Dispositivo de saída
+Input device	Dispositivo de entrada
+Output volume	Volume de saída
+Input volume	Volume de entrada
+Mute microphone	Silenciar o microfone
+Apps that play sound appear here.	As aplicações que reproduzem som aparecem aqui.
+The sound server is not running.	O servidor de som não está em execução.
+Sound settings need PipeWire or PulseAudio.	As definições de som precisam de PipeWire ou PulseAudio.
+Unknown app	Aplicação desconhecida

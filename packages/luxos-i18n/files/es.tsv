@@ -5584,3 +5584,18 @@ Add to Desktop	Añadir al escritorio
 Choose an app to add to the desktop	Elige una aplicación para añadir al escritorio
 Could not add the app shortcut to the desktop.	No se pudo añadir el acceso directo al escritorio.
 A file with this name is already on your desktop.	Ya hay un archivo con este nombre en el escritorio.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Ajustes de Wi-Fi…
+Battery & Power Settings…	Ajustes de batería y energía…
+Notification Settings…	Ajustes de notificaciones…
+Windows & Workspaces Settings…	Ajustes de ventanas y espacios…
+Output device	Dispositivo de salida
+Input device	Dispositivo de entrada
+Output volume	Volumen de salida
+Input volume	Volumen de entrada
+Mute microphone	Silenciar el micrófono
+Apps that play sound appear here.	Aquí aparecen las apps que reproducen sonido.
+The sound server is not running.	El servidor de sonido no está en ejecución.
+Sound settings need PipeWire or PulseAudio.	Los ajustes de sonido necesitan PipeWire o PulseAudio.
+Unknown app	App desconocida

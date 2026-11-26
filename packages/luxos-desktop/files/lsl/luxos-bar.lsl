@@ -821,6 +821,9 @@ function on_ws_draw(bar, cr, area):
 end
 
 function on_ws_press(bar, event, area):
+    if gtk.event_button(event) == 3 and plain_press(event):
+        return show_ctx_menu("workspaces", event)
+    end
     if gtk.event_button(event) != 1:
         return False
     end
@@ -984,16 +987,39 @@ end
 # ---- prave tlacitko na liste: kontextova nabidka ---------------------------------------------------
 # Prave tlacitko na prazdne casti listy (klavesnice ma navic vlastni nabidku): nastaveni listy,
 # Monitor systemu a Nastaveni. Nabidka vznikne jednou a zustane (gtk_menu_popup_at_pointer s udalosti kliku).
-ctx_menu = {"menu": 0}
+ctx_menu = {}
 
-function ctx_menu_get():
-    if ctx_menu["menu"] != 0:
-        return ctx_menu["menu"]
+# Nastaveni polozky, na kterou se kliklo: [popisek, prikaz]. Polozky bez vlastniho nastaveni (Hledani, Ovladaci
+# centrum, hodiny, aplikace) maji jen obecnou nabidku listy.
+function item_settings(kind):
+    if kind == "sound":
+        return [i18n.T("Sound Settings…"), ["luxos-settings", "sound"]]
+    elif kind == "network":
+        return [i18n.T("Wi-Fi Settings…"), ["luxos-settings", "wifi"]]
+    elif kind == "battery":
+        return [i18n.T("Battery & Power Settings…"), ["luxos-settings", "power"]]
+    elif kind == "notifications":
+        return [i18n.T("Notification Settings…"), ["luxos-settings", "notifications"]]
+    elif kind == "workspaces":
+        return [i18n.T("Windows & Workspaces Settings…"), ["luxos-settings", "windows"]]
+    end
+    return None
+end
+
+# Nabidka pro polozku listy: jeji nastaveni nahore, pod nim obecne polozky listy; vznikne jednou pro kazdy druh
+function ctx_menu_get(kind):
+    if kind in ctx_menu:
+        return ctx_menu[kind]
     end
     menu = luxos_gtk.menu_new()
     call gtk.widget_add_class(menu, "lx-popup")
-    for entry in [[i18n.T("Menu Bar Items…"), ["luxos-settings", "menu-bar"]], [i18n.T("System Monitor"), ["luxos-monitor"]],
-                  None, [i18n.T("Open Settings"), ["luxos-settings"]]]:
+    entries = [[i18n.T("Menu Bar Items…"), ["luxos-settings", "menu-bar"]], [i18n.T("System Monitor"), ["luxos-monitor"]],
+               None, [i18n.T("Open Settings"), ["luxos-settings"]]]
+    own = item_settings(kind)
+    if own != None:
+        entries = [own, None] + entries
+    end
+    for entry in entries:
         if entry == None:
             call luxos_gtk.menu_append(menu, luxos_gtk.separator_menu_item_new())
             continue
@@ -1003,16 +1029,20 @@ function ctx_menu_get():
         call luxos_gtk.menu_append(menu, item)
     end
     call gtk.widget_show_all(menu)
-    ctx_menu["menu"] = menu
+    ctx_menu[kind] = menu
     return menu
 end
 
 function on_bar_right_click(bar, event, win):
+    return show_ctx_menu("", event)
+end
+
+function show_ctx_menu(kind, event):
     if gtk.event_button(event) != 3:
         return False
     end
     call popup.close_all()
-    menu = ctx_menu_get()
+    menu = ctx_menu_get(kind)
     # rodic nabidky = okno udalosti (lista na monitoru, kde se kliklo)
     unsafe:
         call __lsl_qbe_call2(__lsl_symbol("gtk_menu_popup_at_pointer"), __lsl_unbox_int(menu), __lsl_unbox_int(event))
@@ -1540,7 +1570,7 @@ function on_item_press(kind, event, widget):
     end
     # jen prvni stisk: rychly druhy klik posle navic GDK_2BUTTON_PRESS (prepnuti by se vratilo)
     if gtk.event_button(event) == 3 and plain_press(event):
-        return on_bar_right_click(bar_of(widget), event, widget)
+        return show_ctx_menu(kind, event)
     end
     if gtk.event_button(event) != 1 or plain_press(event) == False:
         return True

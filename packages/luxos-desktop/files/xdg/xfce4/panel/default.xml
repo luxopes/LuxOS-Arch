@@ -92,7 +92,7 @@
     <property name="plugin-5" type="string" value="pulseaudio">
       <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
       <property name="show-notifications" type="bool" value="true"/>
-      <property name="mixer-command" type="string" value="pavucontrol"/>
+      <property name="mixer-command" type="string" value="luxos-settings sound"/>
     </property>
     <property name="plugin-6" type="string" value="power-manager-plugin"/>
     <!-- Lupa: Hledani (jako Super+Mezernik) -->

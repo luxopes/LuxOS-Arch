@@ -5584,3 +5584,18 @@ Add to Desktop	Pridať na plochu
 Choose an app to add to the desktop	Vyber aplikáciu, ktorú chceš pridať na plochu
 Could not add the app shortcut to the desktop.	Odkaz na aplikáciu sa nepodarilo pridať na plochu.
 A file with this name is already on your desktop.	Na ploche už je súbor s týmto názvom.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Nastavenia Wi-Fi…
+Battery & Power Settings…	Nastavenia batérie a napájania…
+Notification Settings…	Nastavenia oznámení…
+Windows & Workspaces Settings…	Nastavenia okien a plôch…
+Output device	Výstupné zariadenie
+Input device	Vstupné zariadenie
+Output volume	Hlasitosť výstupu
+Input volume	Hlasitosť vstupu
+Mute microphone	Stlmiť mikrofón
+Apps that play sound appear here.	Tu sa zobrazia aplikácie, ktoré prehrávajú zvuk.
+The sound server is not running.	Zvukový server nebeží.
+Sound settings need PipeWire or PulseAudio.	Nastavenia zvuku vyžadujú PipeWire alebo PulseAudio.
+Unknown app	Neznáma aplikácia

@@ -5584,3 +5584,18 @@ Add to Desktop	Aggiungi alla scrivania
 Choose an app to add to the desktop	Scegli un’app da aggiungere alla scrivania
 Could not add the app shortcut to the desktop.	Impossibile aggiungere il collegamento dell’app alla scrivania.
 A file with this name is already on your desktop.	Sulla scrivania esiste già un file con questo nome.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Impostazioni Wi-Fi…
+Battery & Power Settings…	Impostazioni batteria ed energia…
+Notification Settings…	Impostazioni notifiche…
+Windows & Workspaces Settings…	Impostazioni finestre e spazi…
+Output device	Dispositivo di uscita
+Input device	Dispositivo di ingresso
+Output volume	Volume di uscita
+Input volume	Volume di ingresso
+Mute microphone	Disattiva il microfono
+Apps that play sound appear here.	Qui compaiono le app che riproducono audio.
+The sound server is not running.	Il server audio non è in esecuzione.
+Sound settings need PipeWire or PulseAudio.	Le impostazioni audio richiedono PipeWire o PulseAudio.
+Unknown app	App sconosciuta

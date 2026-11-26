@@ -5585,3 +5585,18 @@ Add to Desktop	Додати на стільницю
 Choose an app to add to the desktop	Виберіть програму, яку потрібно додати на стільницю
 Could not add the app shortcut to the desktop.	Не вдалося додати ярлик програми на стільницю.
 A file with this name is already on your desktop.	На стільниці вже є файл із такою назвою.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Налаштування Wi-Fi…
+Battery & Power Settings…	Налаштування батареї та живлення…
+Notification Settings…	Налаштування сповіщень…
+Windows & Workspaces Settings…	Налаштування вікон і робочих просторів…
+Output device	Пристрій виведення
+Input device	Пристрій введення
+Output volume	Гучність виведення
+Input volume	Гучність введення
+Mute microphone	Вимкнути мікрофон
+Apps that play sound appear here.	Тут з’являються програми, що відтворюють звук.
+The sound server is not running.	Звуковий сервер не запущено.
+Sound settings need PipeWire or PulseAudio.	Налаштування звуку потребують PipeWire або PulseAudio.
+Unknown app	Невідома програма

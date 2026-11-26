@@ -1249,15 +1249,28 @@ function send_rects():
     return 0
 end
 
+# Jeden radek na klik do zurnalu (journalctl --user -u luxos-dock): co Dock udelal a v jakem stavu byla okna.
+# Trvale, ne jen s LUXOS_DOCK_DEBUG - "klik nic neudelal" se jinak neda zpetne dohledat.
+function log_click(action, item):
+    parts = []
+    for handle in item["windows"]:
+        parts.append(String(handle) + ":" + String(windows[handle]["state"]))
+    end
+    print "click " + action + " " + item["key"] + " windows " + " ".join(parts)
+    return 0
+end
+
 function click(item):
     handles = item["windows"]
     if item["key"] == "trash" or len(handles) == 0:
+        call log_click("launch", item)
         call launch(item)
         return 0
     end
     for handle in handles:
         state = windows[handle]["state"]
         if (state & wl.STATE_ACTIVATED) != 0 and (state & wl.STATE_MINIMIZED) == 0:
+            call log_click("minimize", item)
             call debug("minimize " + item["key"])
             for h in handles:
                 call wl.minimize(h, True)
@@ -1267,6 +1280,7 @@ function click(item):
     end
     # posledni aktivni okno nakonec, aby skoncilo navrchu
     order = sorted([windows[h]["seq"] * 1000000 + h for h in handles])
+    call log_click("activate", item)
     call debug("activate " + item["key"])
     for value in order:
         call wl.activate(value % 1000000)

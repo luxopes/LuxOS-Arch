@@ -5584,3 +5584,18 @@ Add to Desktop	Hozzáadás az asztalhoz
 Choose an app to add to the desktop	Válaszd ki az asztalhoz hozzáadandó alkalmazást
 Could not add the app shortcut to the desktop.	Nem sikerült hozzáadni az alkalmazás parancsikonját az asztalhoz.
 A file with this name is already on your desktop.	Már van ilyen nevű fájl az asztalon.
+
+# Sound settings page, menu bar item menus
+Wi-Fi Settings…	Wi-Fi beállításai…
+Battery & Power Settings…	Akkumulátor és energiaellátás beállításai…
+Notification Settings…	Értesítések beállításai…
+Windows & Workspaces Settings…	Ablakok és munkaterületek beállításai…
+Output device	Kimeneti eszköz
+Input device	Bemeneti eszköz
+Output volume	Kimeneti hangerő
+Input volume	Bemeneti hangerő
+Mute microphone	Mikrofon némítása
+Apps that play sound appear here.	Itt jelennek meg a hangot lejátszó alkalmazások.
+The sound server is not running.	A hangkiszolgáló nem fut.
+Sound settings need PipeWire or PulseAudio.	A hangbeállításokhoz PipeWire vagy PulseAudio szükséges.
+Unknown app	Ismeretlen alkalmazás

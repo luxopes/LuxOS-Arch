@@ -944,7 +944,7 @@ function sound_build(box):
     W["in_list"] = gtk.box_new(gtk.VERTICAL, 2)
     call gtk.box_pack_start(box, W["in_list"], False, False, 0)
     foot = gtk.box_new(gtk.VERTICAL, 0)
-    call footer(foot, i18n.T("Sound Settings…"), ["pavucontrol"])
+    call footer(foot, i18n.T("Sound Settings…"), ["luxos-settings", "sound"])
     call gtk.box_pack_start(box, foot, False, False, 0)
     return 0
 end
