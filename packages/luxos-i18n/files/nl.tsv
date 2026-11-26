@@ -5609,3 +5609,123 @@ Moved to quarantine.	In quarantaine geplaatst.
 Antivirus: no virus found	Antivirus: geen virus gevonden
 Quarantine is empty.	De quarantaine is leeg.
 Viruses found: %d	Gevonden virussen: %d
+synchronized	gesynchroniseerd
+not synchronized yet	nog niet gesynchroniseerd
+The change was not made (cancelled or not allowed).	De wijziging is niet doorgevoerd (geannuleerd of niet toegestaan).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Voer de datum in als JJJJ-MM-DD en de tijd als UU:MM.
+Date & Time	Datum en tijd
+Set time automatically	Tijd automatisch instellen
+From time servers on the internet.	Van tijdservers op internet.
+Set Manually	Handmatig instellen
+Set	Instellen
+Date and time	Datum en tijd
+Turn off automatic time first.	Schakel eerst de automatische tijd uit.
+24-hour time	24-uursnotatie
+Clock in the menu bar and on the lock screen.	Klok in de menubalk en op het vergrendelscherm.
+Log out and back in to use the new language everywhere.	Meld je af en weer aan om de nieuwe taal overal te gebruiken.
+Some older programs will stay in English: the system does not have this language installed.	Sommige oudere programma’s blijven Engels: deze taal is niet in het systeem geïnstalleerd.
+The login screen and new users will use this language.	Het aanmeldscherm en nieuwe gebruikers gebruiken deze taal.
+Menus, apps and messages.	Menu’s, apps en meldingen.
+Same as language	Zelfde als taal
+Formats	Notaties
+Dates, times, numbers, currency and units.	Datums, tijden, getallen, valuta en eenheden.
+Login Screen	Aanmeldscherm
+Use My Language	Mijn taal gebruiken
+Login screen and new users	Aanmeldscherm en nieuwe gebruikers
+Needs an administrator password.	Vereist een beheerderswachtwoord.
+Keyboard Layouts…	Toetsenbordindelingen…
+Typing in other languages	Typen in andere talen
+Account type changed.	Accounttype gewijzigd.
+Remove with files?	Verwijderen met bestanden?
+The user was removed.	De gebruiker is verwijderd.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Voer een naam en gebruikersnaam in (kleine letters zonder accenten, cijfers, - en _).
+This user name is already taken.	Deze gebruikersnaam is al in gebruik.
+The passwords are empty, too short or do not match.	De wachtwoorden zijn leeg, te kort of komen niet overeen.
+The password could not be prepared.	Het wachtwoord kon niet worden voorbereid.
+The user was not added (cancelled or not allowed).	De gebruiker is niet toegevoegd (geannuleerd of niet toegestaan).
+The user was added, but the password was not set.	De gebruiker is toegevoegd, maar het wachtwoord is niet ingesteld.
+The user was added.	De gebruiker is toegevoegd.
+Your password was changed.	Je wachtwoord is gewijzigd.
+Your account was not found.	Je account is niet gevonden.
+The account service is not available.	De accountservice is niet beschikbaar.
+You	Jij
+Add User	Gebruiker toevoegen
+For signing in; small letters without accents.	Om aan te melden; kleine letters zonder accenten.
+Can install apps and change system settings.	Kan apps installeren en systeeminstellingen wijzigen.
+My Password	Mijn wachtwoord
+New password	Nieuw wachtwoord
+Confirm new password	Nieuw wachtwoord bevestigen
+No viruses found in Downloads.	Geen virussen gevonden in Downloads.
+Viruses found and moved to quarantine: %d	Gevonden en in quarantaine geplaatste virussen: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Downloads gecontroleerd. Sommige bestanden zijn riskante programma’s – Lux Guard vraagt het voordat ze starten.
+Checking… The first check starts the antivirus and can take up to a minute.	Controleren… De eerste controle start de antivirus en kan tot een minuut duren.
+Not possible (unknown item, or a file with the same name exists).	Niet mogelijk (onbekend item of er bestaat al een bestand met dezelfde naam).
+Files with a virus are moved here.	Bestanden met een virus worden hierheen verplaatst.
+%d snapshots, newest %s	%d momentopnamen, nieuwste %s
+No snapshots yet	Nog geen momentopnamen
+Virus & Threat Protection	Virus- en bedreigingsbescherming
+Checks files and programs from downloads, attachments and USB drives.	Controleert bestanden en programma’s uit downloads, bijlagen en USB-sticks.
+Antivirus	Antivirus
+ClamAV signatures; starts only when a file needs checking.	ClamAV-signaturen; start alleen als er een bestand gecontroleerd moet worden.
+Virus database updated	Virusdatabase bijgewerkt
+Updated automatically every day.	Wordt elke dag automatisch bijgewerkt.
+Check Downloads Now	Downloads nu controleren
+Check for viruses	Op virussen controleren
+Downloads, Desktop and Documents are also checked every week.	Downloads, Bureaublad en Documenten worden ook elke week gecontroleerd.
+Quarantine	Quarantaine
+File Recovery	Bestandsherstel
+Snapshots of your files	Momentopnamen van je bestanden
+Every hour - deleted or encrypted files can be restored.	Elk uur – verwijderde of versleutelde bestanden kunnen worden hersteld.
+Lux Guard window	Lux Guard-venster
+Restore files, watched programs and recent decisions.	Bestanden herstellen, bewaakte programma’s en recente beslissingen.
+System files are read-only and checked every week.	Systeembestanden zijn alleen-lezen en worden elke week gecontroleerd.
+Firewall…	Firewall…
+Blocks connections from the network you did not allow.	Blokkeert verbindingen uit het netwerk die je niet hebt toegestaan.
+Show Quarantine	Quarantaine tonen
+Only an administrator can change this.	Alleen een beheerder kan dit wijzigen.
+Not your file - tell the administrator.	Niet jouw bestand – laat het de beheerder weten.
+Antivirus: not available	Antivirus: niet beschikbaar
+Antivirus: could not check (%s)	Antivirus: controle mislukt (%s)
+Restored: %s	Hersteld: %s
+Deleted.	Verwijderd.
+Usage: luxos-guard quarantine [restore|delete ID]	Gebruik: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	De wekelijkse controle draait als systeem (root); gebruik: luxos-guard scan MAP
+Antivirus is not available.	De antivirus is niet beschikbaar.
+check files (behaviour of programs and antivirus)	bestanden controleren (gedrag van programma’s en antivirus)
+files with a virus in quarantine	bestanden met een virus in quarantaine
+Privacy & Security	Privacy en beveiliging
+Language & Region	Taal en regio
+antivirus	antivirus
+virus	virus
+quarantine	quarantaine
+lux guard	lux guard
+malware	malware
+ransomware	ransomware
+snapshots	momentopnamen
+protection	bescherming
+accounts	accounts
+add user	gebruiker toevoegen
+family	gezin
+child	kind
+administrator	beheerder
+password	wachtwoord
+remove user	gebruiker verwijderen
+clock	klok
+time zone	tijdzone
+timezone	tijdzone
+ntp	ntp
+24-hour	24 uur
+12-hour	12 uur
+calendar	kalender
+language	taal
+region	regio
+formats	notaties
+locale	landinstelling
+translation	vertaling
+date format	datumnotatie
+currency	valuta
+backup	back-up
+restore	herstellen
+external drive	externe schijf
+copy	kopie
+Replaced versions of the files were moved to %s.	Vervangen versies van de bestanden zijn verplaatst naar %s.

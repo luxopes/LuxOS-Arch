@@ -6,6 +6,8 @@
   luxos-guard quarantine [restore|delete ID]
                                          soubory s virem v karantene; obnovit nebo smazat
   luxos-guard virus-scan                 Stazene, Plocha a Dokumenty vsech uzivatelu (root, tydenni casovac)
+  luxos-guard set-antivirus yes|no       zapnout/vypnout antivirus (root; Nastaveni pres pkexec)
+  luxos-guard status --json, quarantine --json   strojovy vystup (Nastaveni > Soukromi a zabezpeceni)
   luxos-guard allow SOUBOR               povolit rizikovy soubor (jako "Presto spustit")
   luxos-guard list                       hlidane soubory a posledni rozhodnuti
   luxos-guard snapshots                  casy snimku slozky /home
@@ -67,7 +69,69 @@ def level_text(level):
             core.RISKY: _("RISKY - asks before running")}.get(level, level or "")
 
 
+def database_time():
+    """Cas posledni aktualizace databaze viru (nejnovejsi .cvd/.cld) nebo 0."""
+    best = 0
+    try:
+        for n in os.listdir("/var/lib/clamav"):
+            if n.endswith((".cvd", ".cld")):
+                best = max(best, int(os.stat(os.path.join("/var/lib/clamav", n)).st_mtime))
+    except OSError:
+        pass
+    return best
+
+
+def status_json():
+    r = request({"op": "status"})
+    active = r is not None and r.get("op") == "status"
+    snaps = snap.list_snapshots()
+    out = {"active": active, "antivirus": bool(active and r.get("antivirus")),
+           "antivirus_conf": av_enabled(), "quarantine": (r or {}).get("quarantine", 0) if active else 0,
+           "watched": (r or {}).get("watched", 0) if active else 0, "agent": bool(active and r.get("agent")),
+           "database": database_time(), "snapshots": len(snaps),
+           "newest_snapshot": int(snaps[-1][0].timestamp()) if snaps else 0}
+    print(json.dumps(out))
+    return 0 if active else 1
+
+
+def av_enabled():
+    try:
+        import luxos_guard_av
+        return luxos_guard_av.enabled()
+    except ImportError:
+        return False
+
+
+def cmd_set_antivirus(args):
+    if os.geteuid() != 0:
+        die(_("Only an administrator can change this."))
+    if len(args) != 1 or args[0] not in ("yes", "no"):
+        die("luxos-guard set-antivirus yes|no")
+    import luxos_guard_av
+    path = luxos_guard_av.CONF
+    lines = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = [ln.rstrip("\n") for ln in f if not ln.strip().startswith("ANTIVIRUS=")]
+    except OSError:
+        pass
+    lines.append("ANTIVIRUS=" + args[0])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, path)
+    import subprocess
+    subprocess.run(["systemctl", "restart", "luxos-guard.service"], check=False)
+    if args[0] == "no":
+        subprocess.run(["systemctl", "stop", luxos_guard_av.CLAMD_UNIT], check=False)
+    return 0
+
+
 def cmd_status(args):
+    if "--json" in args:
+        return status_json()
     r = request({"op": "status"})
     if r is None or r.get("op") != "status":
         print(_("Lux Guard: not running"))
@@ -206,11 +270,18 @@ def cmd_quarantine(args):
             die(_("Not possible (unknown item, or a file with the same name exists)."))
         print(_("Restored: %s") % r["path"] if args[0] == "restore" else _("Deleted."))
         return 0
-    if args:
+    as_json = args == ["--json"]
+    if args and not as_json:
         die(_("Usage: luxos-guard quarantine [restore|delete ID]"))
     r = request({"op": "quarantine"})
     if r is None or r.get("op") != "quarantine":
+        if as_json:
+            print("[]")
+            return 1
         die(_("Lux Guard is not running."))
+    if as_json:
+        print(json.dumps(r["entries"]))
+        return 0
     if not r["entries"]:
         print(_("Quarantine is empty."))
     for e in r["entries"]:
@@ -432,7 +503,7 @@ def main():
         return 0
     table = {"status": cmd_status, "scan": cmd_scan, "allow": cmd_allow, "list": cmd_list,
              "snapshots": cmd_snapshots, "restore": cmd_restore, "snapshot": cmd_snapshot, "service": cmd_service,
-             "quarantine": cmd_quarantine, "virus-scan": cmd_virus_scan}
+             "quarantine": cmd_quarantine, "virus-scan": cmd_virus_scan, "set-antivirus": cmd_set_antivirus}
     if argv[0] not in table:
         die(_("Unknown command: %s") % argv[0])
     return table[argv[0]](argv[1:]) or 0

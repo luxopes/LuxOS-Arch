@@ -64,10 +64,19 @@ def act(choice, msg):
 
 def found(msg):
     if msg.get("virus"):
-        # nalez antiviru: soubor uz je v karantene (obnova: luxos-guard quarantine)
-        notify(_("Lux Guard: virus removed"),
-               "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""), str(msg.get("virus"))[:120],
-                                _("The file was moved to quarantine.")), "critical")
+        # nalez antiviru: soubor uz je v karantene; tlacitko otevre Nastaveni > Soukromi a zabezpeceni (karantena:
+        # obnovit / smazat). notify-send -w ceka na klik nejvys do zavreni bubliny (pomocnik bezi jen do te doby).
+        body = "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""), str(msg.get("virus"))[:120],
+                                _("The file was moved to quarantine."))
+        try:
+            r = subprocess.run(["notify-send", "-a", "Lux Guard", "-i", "luxos-guard", "-t", "30000", "-w",
+                                "-A", "show=" + _("Show Quarantine"), "--", _("Lux Guard: virus removed"), body],
+                               capture_output=True, text=True, timeout=60)
+            if r.stdout.strip() == "show":
+                subprocess.Popen(["luxos-settings", "security"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                 start_new_session=True)
+        except (OSError, subprocess.TimeoutExpired):
+            notify(_("Lux Guard: virus removed"), body, "critical")
         return
     notify(_("Lux Guard: dangerous file"),
            "%s\n%s\n%s" % (os.path.basename(msg.get("path") or ""),

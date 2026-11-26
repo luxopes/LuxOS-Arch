@@ -60,7 +60,7 @@ entries = []
 usage = {}
 S = {"shadow": None, "open": False, "mode": "launchpad", "shortcut": False, "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
     "query": "", "light": True, "strip": None, "geo": {}, "size": [0, 0], "pending": False, "drawn": False,
-    "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": []}
+    "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": [], "folder": False}
 window = 0
 entry = 0
 fixed = 0
@@ -119,7 +119,14 @@ function load_entries():
     call free_icons()
     entries = []
     seen = {}
-    for info in apps.all() + apps.covered_by_luxos():
+    # Aplikace skryte v nabidce prekrytim LuxOS (technicke, nahrazene vlastni aplikaci LuxOS) jsou ve
+    # slozce Nastroje: dostupne (i hledanim), ale nepletou se novacci mezi beznymi aplikacemi
+    tools = {}
+    covered = apps.covered_by_luxos()
+    for info in covered:
+        tools[apps.id(info)] = True
+    end
+    for info in apps.all() + covered:
         desktop_id = apps.id(info)
         if desktop_id == "" or desktop_id in seen or not launchpad_visible(info):
             continue
@@ -131,6 +138,7 @@ function load_entries():
             "exec": apps.base_name(apps.executable(info)), "categories": apps.categories(info)})
         e["info"] = info
         e["icon"] = 0
+        e["tool"] = desktop_id in tools
         entries.append(e)
     end
     return 0
@@ -202,15 +210,40 @@ function app_item(e):
     return {"kind": "app", "entry": e}
 end
 
+# Mrizka bez dotazu: bezne aplikace a na konci slozka Nastroje; ve slozce jen nastroje a "Zpet"
+function grid_entries():
+    out = []
+    for e in entries:
+        if e["tool"] == S["folder"]:
+            out.append(e)
+        end
+    end
+    return out
+end
+
+function has_tools():
+    for e in entries:
+        if e["tool"]:
+            return True
+        end
+    end
+    return False
+end
+
 function refresh():
     query = S["query"].strip()
     items = []
     S["calc"] = None
+    folder_tile = False
     if query == "":
         if S["mode"] == "search":
             found = model.order(entries, "recent", usage)
         else:
-            found = model.order(entries, S["sort"], usage)
+            if S["folder"]:
+                items.append({"kind": "back"})
+            end
+            found = model.order(grid_entries(), S["sort"], usage)
+            folder_tile = not S["folder"] and not S["shortcut"] and has_tools()
         end
     else:
         if not S["shortcut"]:
@@ -225,12 +258,22 @@ function refresh():
     for e in found:
         items.append(app_item(e))
     end
+    if folder_tile:
+        items.append({"kind": "folder"})
+    end
     if query != "" and S["luxai"] != "" and not S["shortcut"]:
         items.append({"kind": "luxai"})
     end
     S["items"] = items
     S["sel"] = 0
     S["top"] = 0
+    if TRACE and query == "" and S["mode"] == "launchpad":
+        kinds = []
+        for item in items:
+            kinds.append(item["entry"]["id"] if item["kind"] == "app" else item["kind"])
+        end
+        call trace("grid " + " ".join(kinds))
+    end
     if TRACE and query != "":
         names = []
         for item in items[0:8]:
@@ -609,13 +652,32 @@ end
 function item_label(item):
     if item["kind"] == "app":
         return item["entry"]["name"]
+    elif item["kind"] == "folder":
+        return i18n.T("Utilities")
+    elif item["kind"] == "back":
+        return i18n.T("Back")
     end
     return i18n.T("Ask LuxAI")
+end
+
+function named_icon(key, names):
+    if S.get(key, 0) == 0:
+        for name in names:
+            if S.get(key, 0) == 0:
+                S[key] = apps.icon_named(name, ICON, gtk.widget_scale_factor(window))
+            end
+        end
+    end
+    return S[key]
 end
 
 function item_icon(item):
     if item["kind"] == "app":
         return icon_of(item["entry"])
+    elif item["kind"] == "folder":
+        return named_icon("folder_icon", ["folder-utilities", "applications-utilities", "folder"])
+    elif item["kind"] == "back":
+        return named_icon("back_icon", ["go-previous", "go-previous-symbolic"])
     end
     if S.get("luxai_icon", 0) == 0:
         S["luxai_icon"] = apps.icon_named("luxai", ICON, gtk.widget_scale_factor(window))
@@ -847,6 +909,7 @@ function show(mode):
     end
     S["mode"] = mode
     S["query"] = ""
+    S["folder"] = False
     call gtk.entry_set_text(entry, "")
     call load_sort()
     call refresh()
@@ -951,6 +1014,8 @@ function activate(i):
     elif item["kind"] == "luxai":
         call trace("luxai " + query)
         call glib.spawn_app([S["luxai"], "--agent", query])
+    elif item["kind"] == "folder" or item["kind"] == "back":
+        return open_folder(item["kind"] == "folder")
     else:
         e = item["entry"]
         if S["shortcut"]:
@@ -965,6 +1030,15 @@ function activate(i):
         end
     end
     call hide()
+    return 0
+end
+
+function open_folder(opened):
+    S["folder"] = opened
+    call trace("folder " + ("open" if opened else "close"))
+    call refresh()
+    call update_geometry()
+    call panel_redraw()
     return 0
 end
 
@@ -1047,7 +1121,11 @@ function on_key(event, widget):
     name = gtk.event_key_name(event)
     state = gtk.event_key_state(event)
     typing = S["query"] != ""
-    if name == "Escape":
+    if name == "Escape" and S["folder"] and S["query"] == "":
+        call open_folder(False)
+    elif (name == "BackSpace" or (name == "Left" and (state & MOD_ALT) != 0)) and S["folder"] and S["query"] == "":
+        call open_folder(False)
+    elif name == "Escape":
         call hide()
     elif name == "Return" or name == "KP_Enter":
         if (state & MOD_CTRL) != 0 and S["luxai"] != "" and S["query"].strip() != "" and not S["shortcut"]:
@@ -1249,6 +1327,8 @@ function on_config(file, event, other):
         # tmavy rezim muze mit jine tema ikon
         call free_icons()
         S["luxai_icon"] = 0
+        S["folder_icon"] = 0
+        S["back_icon"] = 0
         if S["open"]:
             call gtk.widget_queue_draw(window)
         else:

@@ -5608,3 +5608,123 @@ Moved to quarantine.	Přesunuto do karantény.
 Antivirus: no virus found	Antivirus: žádný virus nenalezen
 Quarantine is empty.	Karanténa je prázdná.
 Viruses found: %d	Nalezené viry: %d
+synchronized	synchronizováno
+not synchronized yet	zatím nesynchronizováno
+The change was not made (cancelled or not allowed).	Změna se neprovedla (zrušeno nebo nepovoleno).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Zadejte datum jako RRRR-MM-DD a čas jako HH:MM.
+Date & Time	Datum a čas
+Set time automatically	Nastavit čas automaticky
+From time servers on the internet.	Z časových serverů na internetu.
+Set Manually	Nastavit ručně
+Set	Nastavit
+Date and time	Datum a čas
+Turn off automatic time first.	Nejdřív vypněte automatický čas.
+24-hour time	24hodinový čas
+Clock in the menu bar and on the lock screen.	Hodiny na horní liště a na zamykací obrazovce.
+Log out and back in to use the new language everywhere.	Pro použití nového jazyka všude se odhlaste a znovu přihlaste.
+Some older programs will stay in English: the system does not have this language installed.	Některé starší programy zůstanou anglicky: systém nemá tento jazyk nainstalovaný.
+The login screen and new users will use this language.	Přihlašovací obrazovka a noví uživatelé budou používat tento jazyk.
+Menus, apps and messages.	Nabídky, aplikace a zprávy.
+Same as language	Stejné jako jazyk
+Formats	Formáty
+Dates, times, numbers, currency and units.	Data, časy, čísla, měna a jednotky.
+Login Screen	Přihlašovací obrazovka
+Use My Language	Použít můj jazyk
+Login screen and new users	Přihlašovací obrazovka a noví uživatelé
+Needs an administrator password.	Vyžaduje heslo správce.
+Keyboard Layouts…	Rozložení klávesnice…
+Typing in other languages	Psaní v jiných jazycích
+Account type changed.	Typ účtu byl změněn.
+Remove with files?	Odebrat i se soubory?
+The user was removed.	Uživatel byl odebrán.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Zadejte jméno a uživatelské jméno (malá písmena bez diakritiky, číslice, - a _).
+This user name is already taken.	Toto uživatelské jméno už existuje.
+The passwords are empty, too short or do not match.	Hesla jsou prázdná, příliš krátká nebo se neshodují.
+The password could not be prepared.	Heslo se nepodařilo připravit.
+The user was not added (cancelled or not allowed).	Uživatel nebyl přidán (zrušeno nebo nepovoleno).
+The user was added, but the password was not set.	Uživatel byl přidán, ale heslo se nenastavilo.
+The user was added.	Uživatel byl přidán.
+Your password was changed.	Vaše heslo bylo změněno.
+Your account was not found.	Váš účet nebyl nalezen.
+The account service is not available.	Služba účtů není dostupná.
+You	Vy
+Add User	Přidat uživatele
+For signing in; small letters without accents.	Pro přihlášení; malá písmena bez diakritiky.
+Can install apps and change system settings.	Může instalovat aplikace a měnit nastavení systému.
+My Password	Moje heslo
+New password	Nové heslo
+Confirm new password	Potvrzení nového hesla
+No viruses found in Downloads.	Ve Stažených nebyly nalezeny žádné viry.
+Viruses found and moved to quarantine: %d	Nalezené viry přesunuté do karantény: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Stažené zkontrolovány. Některé soubory jsou rizikové programy – Lux Guard se před jejich spuštěním zeptá.
+Checking… The first check starts the antivirus and can take up to a minute.	Kontroluji… První kontrola spouští antivirus a může trvat až minutu.
+Not possible (unknown item, or a file with the same name exists).	Nelze (neznámá položka nebo už existuje soubor se stejným názvem).
+Files with a virus are moved here.	Sem se přesouvají soubory s virem.
+%d snapshots, newest %s	Snímků: %d, nejnovější %s
+No snapshots yet	Zatím žádné snímky
+Virus & Threat Protection	Ochrana před viry a hrozbami
+Checks files and programs from downloads, attachments and USB drives.	Kontroluje soubory a programy ze stažených souborů, příloh a USB disků.
+Antivirus	Antivirus
+ClamAV signatures; starts only when a file needs checking.	Signatury ClamAV; spouští se jen tehdy, když je co kontrolovat.
+Virus database updated	Databáze virů aktualizována
+Updated automatically every day.	Aktualizuje se automaticky každý den.
+Check Downloads Now	Zkontrolovat Stažené
+Check for viruses	Kontrola virů
+Downloads, Desktop and Documents are also checked every week.	Stažené, Plocha a Dokumenty se navíc kontrolují každý týden.
+Quarantine	Karanténa
+File Recovery	Obnova souborů
+Snapshots of your files	Snímky vašich souborů
+Every hour - deleted or encrypted files can be restored.	Každou hodinu – smazané nebo zašifrované soubory jde obnovit.
+Lux Guard window	Okno Lux Guard
+Restore files, watched programs and recent decisions.	Obnova souborů, hlídané programy a poslední rozhodnutí.
+System files are read-only and checked every week.	Systémové soubory jsou jen pro čtení a každý týden se kontrolují.
+Firewall…	Firewall…
+Blocks connections from the network you did not allow.	Blokuje spojení ze sítě, která jste nepovolili.
+Show Quarantine	Zobrazit karanténu
+Only an administrator can change this.	Toto může změnit jen správce.
+Not your file - tell the administrator.	Není to váš soubor – řekněte to správci.
+Antivirus: not available	Antivirus: není dostupný
+Antivirus: could not check (%s)	Antivirus: nelze zkontrolovat (%s)
+Restored: %s	Obnoveno: %s
+Deleted.	Smazáno.
+Usage: luxos-guard quarantine [restore|delete ID]	Použití: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	Týdenní kontrolu spouští systém (root); použijte: luxos-guard scan SLOŽKA
+Antivirus is not available.	Antivirus není dostupný.
+check files (behaviour of programs and antivirus)	zkontrolovat soubory (chování programů a antivirus)
+files with a virus in quarantine	soubory s virem v karanténě
+Privacy & Security	Soukromí a zabezpečení
+Language & Region	Jazyk a oblast
+antivirus	antivirus
+virus	virus
+quarantine	karanténa
+lux guard	lux guard
+malware	malware
+ransomware	vyděračský software
+snapshots	snímky
+protection	ochrana
+accounts	účty
+add user	přidat uživatele
+family	rodina
+child	dítě
+administrator	správce
+password	heslo
+remove user	odebrat uživatele
+clock	hodiny
+time zone	časové pásmo
+timezone	pásmo
+ntp	ntp
+24-hour	24 hodin
+12-hour	12 hodin
+calendar	kalendář
+language	jazyk
+region	oblast
+formats	formáty
+locale	národní prostředí
+translation	překlad
+date format	formát data
+currency	měna
+backup	záloha
+restore	obnovit
+external drive	externí disk
+copy	kopie
+Replaced versions of the files were moved to %s.	Nahrazené verze souborů byly přesunuty do %s.

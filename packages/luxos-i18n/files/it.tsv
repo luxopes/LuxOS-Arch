@@ -5609,3 +5609,123 @@ Moved to quarantine.	Spostato in quarantena.
 Antivirus: no virus found	Antivirus: nessun virus trovato
 Quarantine is empty.	La quarantena è vuota.
 Viruses found: %d	Virus trovati: %d
+synchronized	sincronizzato
+not synchronized yet	non ancora sincronizzato
+The change was not made (cancelled or not allowed).	La modifica non è stata applicata (annullata o non consentita).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Inserisci la data come AAAA-MM-GG e l’ora come HH:MM.
+Date & Time	Data e ora
+Set time automatically	Imposta l’ora automaticamente
+From time servers on the internet.	Dai server orari su internet.
+Set Manually	Imposta manualmente
+Set	Imposta
+Date and time	Data e ora
+Turn off automatic time first.	Prima disattiva l’ora automatica.
+24-hour time	Formato 24 ore
+Clock in the menu bar and on the lock screen.	Orologio nella barra dei menu e nella schermata di blocco.
+Log out and back in to use the new language everywhere.	Esci e rientra per usare la nuova lingua ovunque.
+Some older programs will stay in English: the system does not have this language installed.	Alcuni programmi più vecchi resteranno in inglese: questa lingua non è installata nel sistema.
+The login screen and new users will use this language.	La schermata di accesso e i nuovi utenti useranno questa lingua.
+Menus, apps and messages.	Menu, app e messaggi.
+Same as language	Come la lingua
+Formats	Formati
+Dates, times, numbers, currency and units.	Date, ore, numeri, valuta e unità.
+Login Screen	Schermata di accesso
+Use My Language	Usa la mia lingua
+Login screen and new users	Schermata di accesso e nuovi utenti
+Needs an administrator password.	Richiede la password di amministratore.
+Keyboard Layouts…	Layout di tastiera…
+Typing in other languages	Scrivere in altre lingue
+Account type changed.	Tipo di account modificato.
+Remove with files?	Rimuovere con i file?
+The user was removed.	L’utente è stato rimosso.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Inserisci un nome e un nome utente (minuscole senza accenti, numeri, - e _).
+This user name is already taken.	Questo nome utente è già in uso.
+The passwords are empty, too short or do not match.	Le password sono vuote, troppo corte o non corrispondono.
+The password could not be prepared.	Impossibile preparare la password.
+The user was not added (cancelled or not allowed).	L’utente non è stato aggiunto (annullato o non consentito).
+The user was added, but the password was not set.	L’utente è stato aggiunto, ma la password non è stata impostata.
+The user was added.	L’utente è stato aggiunto.
+Your password was changed.	La tua password è stata cambiata.
+Your account was not found.	Il tuo account non è stato trovato.
+The account service is not available.	Il servizio account non è disponibile.
+You	Tu
+Add User	Aggiungi utente
+For signing in; small letters without accents.	Per accedere; minuscole senza accenti.
+Can install apps and change system settings.	Può installare app e modificare le impostazioni di sistema.
+My Password	La mia password
+New password	Nuova password
+Confirm new password	Conferma nuova password
+No viruses found in Downloads.	Nessun virus trovato in Download.
+Viruses found and moved to quarantine: %d	Virus trovati e spostati in quarantena: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Download controllati. Alcuni file sono programmi rischiosi: Lux Guard chiede prima di avviarli.
+Checking… The first check starts the antivirus and can take up to a minute.	Controllo… Il primo controllo avvia l’antivirus e può richiedere fino a un minuto.
+Not possible (unknown item, or a file with the same name exists).	Impossibile (elemento sconosciuto o esiste già un file con lo stesso nome).
+Files with a virus are moved here.	I file con virus vengono spostati qui.
+%d snapshots, newest %s	%d istantanee, la più recente %s
+No snapshots yet	Ancora nessuna istantanea
+Virus & Threat Protection	Protezione da virus e minacce
+Checks files and programs from downloads, attachments and USB drives.	Controlla file e programmi da download, allegati e unità USB.
+Antivirus	Antivirus
+ClamAV signatures; starts only when a file needs checking.	Firme ClamAV; si avvia solo quando c’è un file da controllare.
+Virus database updated	Database virus aggiornato
+Updated automatically every day.	Aggiornato automaticamente ogni giorno.
+Check Downloads Now	Controlla Download ora
+Check for viruses	Cerca virus
+Downloads, Desktop and Documents are also checked every week.	Download, Scrivania e Documenti vengono controllati anche ogni settimana.
+Quarantine	Quarantena
+File Recovery	Recupero file
+Snapshots of your files	Istantanee dei tuoi file
+Every hour - deleted or encrypted files can be restored.	Ogni ora: i file eliminati o cifrati si possono ripristinare.
+Lux Guard window	Finestra di Lux Guard
+Restore files, watched programs and recent decisions.	Ripristino file, programmi controllati e decisioni recenti.
+System files are read-only and checked every week.	I file di sistema sono di sola lettura e controllati ogni settimana.
+Firewall…	Firewall…
+Blocks connections from the network you did not allow.	Blocca le connessioni dalla rete che non hai consentito.
+Show Quarantine	Mostra quarantena
+Only an administrator can change this.	Solo un amministratore può modificarlo.
+Not your file - tell the administrator.	Non è un tuo file: avvisa l’amministratore.
+Antivirus: not available	Antivirus: non disponibile
+Antivirus: could not check (%s)	Antivirus: impossibile controllare (%s)
+Restored: %s	Ripristinato: %s
+Deleted.	Eliminato.
+Usage: luxos-guard quarantine [restore|delete ID]	Uso: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	Il controllo settimanale è eseguito dal sistema (root); usa: luxos-guard scan CARTELLA
+Antivirus is not available.	L’antivirus non è disponibile.
+check files (behaviour of programs and antivirus)	controlla file (comportamento dei programmi e antivirus)
+files with a virus in quarantine	file con virus in quarantena
+Privacy & Security	Privacy e sicurezza
+Language & Region	Lingua e area geografica
+antivirus	antivirus
+virus	virus
+quarantine	quarantena
+lux guard	lux guard
+malware	malware
+ransomware	ransomware
+snapshots	istantanee
+protection	protezione
+accounts	account
+add user	aggiungi utente
+family	famiglia
+child	bambino
+administrator	amministratore
+password	password
+remove user	rimuovi utente
+clock	orologio
+time zone	fuso orario
+timezone	fuso
+ntp	ntp
+24-hour	24 ore
+12-hour	12 ore
+calendar	calendario
+language	lingua
+region	regione
+formats	formati
+locale	impostazioni locali
+translation	traduzione
+date format	formato data
+currency	valuta
+backup	backup
+restore	ripristina
+external drive	disco esterno
+copy	copia
+Replaced versions of the files were moved to %s.	Le versioni sostituite dei file sono state spostate in %s.

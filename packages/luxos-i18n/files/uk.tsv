@@ -5610,3 +5610,123 @@ Moved to quarantine.	Переміщено до карантину.
 Antivirus: no virus found	Антивірус: вірусів не знайдено
 Quarantine is empty.	Карантин порожній.
 Viruses found: %d	Знайдено вірусів: %d
+synchronized	синхронізовано
+not synchronized yet	ще не синхронізовано
+The change was not made (cancelled or not allowed).	Зміну не внесено (скасовано або не дозволено).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Введіть дату як РРРР-ММ-ДД і час як ГГ:ХХ.
+Date & Time	Дата і час
+Set time automatically	Встановлювати час автоматично
+From time servers on the internet.	З серверів часу в інтернеті.
+Set Manually	Встановити вручну
+Set	Встановити
+Date and time	Дата і час
+Turn off automatic time first.	Спочатку вимкніть автоматичний час.
+24-hour time	24-годинний формат
+Clock in the menu bar and on the lock screen.	Годинник на панелі меню та на екрані блокування.
+Log out and back in to use the new language everywhere.	Вийдіть і знову увійдіть, щоб нова мова діяла всюди.
+Some older programs will stay in English: the system does not have this language installed.	Деякі старші програми залишаться англійською: у системі не встановлено цю мову.
+The login screen and new users will use this language.	Екран входу та нові користувачі використовуватимуть цю мову.
+Menus, apps and messages.	Меню, застосунки та повідомлення.
+Same as language	Як мова
+Formats	Формати
+Dates, times, numbers, currency and units.	Дати, час, числа, валюта та одиниці.
+Login Screen	Екран входу
+Use My Language	Використати мою мову
+Login screen and new users	Екран входу та нові користувачі
+Needs an administrator password.	Потрібен пароль адміністратора.
+Keyboard Layouts…	Розкладки клавіатури…
+Typing in other languages	Введення іншими мовами
+Account type changed.	Тип облікового запису змінено.
+Remove with files?	Видалити разом із файлами?
+The user was removed.	Користувача видалено.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Введіть ім’я та ім’я користувача (малі латинські літери, цифри, - і _).
+This user name is already taken.	Це ім’я користувача вже зайняте.
+The passwords are empty, too short or do not match.	Паролі порожні, закороткі або не збігаються.
+The password could not be prepared.	Не вдалося підготувати пароль.
+The user was not added (cancelled or not allowed).	Користувача не додано (скасовано або не дозволено).
+The user was added, but the password was not set.	Користувача додано, але пароль не встановлено.
+The user was added.	Користувача додано.
+Your password was changed.	Ваш пароль змінено.
+Your account was not found.	Ваш обліковий запис не знайдено.
+The account service is not available.	Служба облікових записів недоступна.
+You	Ви
+Add User	Додати користувача
+For signing in; small letters without accents.	Для входу; малі латинські літери.
+Can install apps and change system settings.	Може встановлювати застосунки та змінювати налаштування системи.
+My Password	Мій пароль
+New password	Новий пароль
+Confirm new password	Підтвердьте новий пароль
+No viruses found in Downloads.	У Завантаженнях вірусів не знайдено.
+Viruses found and moved to quarantine: %d	Знайдено й переміщено до карантину вірусів: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Завантаження перевірено. Деякі файли — ризиковані програми, Lux Guard запитає перед запуском.
+Checking… The first check starts the antivirus and can take up to a minute.	Перевірка… Перша перевірка запускає антивірус і може тривати до хвилини.
+Not possible (unknown item, or a file with the same name exists).	Неможливо (невідомий елемент або файл із такою назвою вже існує).
+Files with a virus are moved here.	Файли з вірусом переміщуються сюди.
+%d snapshots, newest %s	Знімків: %d, найновіший %s
+No snapshots yet	Знімків ще немає
+Virus & Threat Protection	Захист від вірусів і загроз
+Checks files and programs from downloads, attachments and USB drives.	Перевіряє файли та програми із завантажень, вкладень і USB-дисків.
+Antivirus	Антивірус
+ClamAV signatures; starts only when a file needs checking.	Сигнатури ClamAV; запускається лише коли треба перевірити файл.
+Virus database updated	Базу вірусів оновлено
+Updated automatically every day.	Оновлюється автоматично щодня.
+Check Downloads Now	Перевірити Завантаження
+Check for viruses	Перевірка на віруси
+Downloads, Desktop and Documents are also checked every week.	Завантаження, Стільниця й Документи також перевіряються щотижня.
+Quarantine	Карантин
+File Recovery	Відновлення файлів
+Snapshots of your files	Знімки ваших файлів
+Every hour - deleted or encrypted files can be restored.	Щогодини — видалені чи зашифровані файли можна відновити.
+Lux Guard window	Вікно Lux Guard
+Restore files, watched programs and recent decisions.	Відновлення файлів, відстежувані програми та останні рішення.
+System files are read-only and checked every week.	Системні файли лише для читання й перевіряються щотижня.
+Firewall…	Брандмауер…
+Blocks connections from the network you did not allow.	Блокує з’єднання з мережі, які ви не дозволили.
+Show Quarantine	Показати карантин
+Only an administrator can change this.	Змінити це може лише адміністратор.
+Not your file - tell the administrator.	Це не ваш файл — повідомте адміністратора.
+Antivirus: not available	Антивірус: недоступний
+Antivirus: could not check (%s)	Антивірус: не вдалося перевірити (%s)
+Restored: %s	Відновлено: %s
+Deleted.	Видалено.
+Usage: luxos-guard quarantine [restore|delete ID]	Використання: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	Щотижневу перевірку запускає система (root); використайте: luxos-guard scan ТЕКА
+Antivirus is not available.	Антивірус недоступний.
+check files (behaviour of programs and antivirus)	перевірити файли (поведінка програм і антивірус)
+files with a virus in quarantine	файли з вірусом у карантині
+Privacy & Security	Конфіденційність і безпека
+Language & Region	Мова і регіон
+antivirus	антивірус
+virus	вірус
+quarantine	карантин
+lux guard	lux guard
+malware	шкідливе пз
+ransomware	програма-вимагач
+snapshots	знімки
+protection	захист
+accounts	облікові записи
+add user	додати користувача
+family	сім’я
+child	дитина
+administrator	адміністратор
+password	пароль
+remove user	видалити користувача
+clock	годинник
+time zone	часовий пояс
+timezone	пояс
+ntp	ntp
+24-hour	24 години
+12-hour	12 годин
+calendar	календар
+language	мова
+region	регіон
+formats	формати
+locale	локаль
+translation	переклад
+date format	формат дати
+currency	валюта
+backup	резервна копія
+restore	відновити
+external drive	зовнішній диск
+copy	копія
+Replaced versions of the files were moved to %s.	Замінені версії файлів переміщено до %s.

@@ -701,6 +701,11 @@ function show_waiting():
                 break
             end
         end
+        if slot == None:
+            # vsechny karty jeste odjizdeji: oznameni pocka na konec animace (slide_step)
+            S["waiting"].insert(0, nid)
+            break
+        end
         slot["nid"] = nid
         note["slot"] = slot["index"]
         call fill(slot, note)
@@ -748,6 +753,7 @@ end
 
 function slide_step():
     now = glib.monotonic_time()
+    freed = False
     offsets = {}
     most = 0
     for slot in S["leaving"].copy():
@@ -755,6 +761,7 @@ function slide_step():
         if p >= 1.0:
             call S["leaving"].remove(slot)
             call free_slot(slot)
+            freed = True
             continue
         end
         # zrychleni na odjezdu (ease-in), cela sirka bubliny i s mezerou
@@ -766,6 +773,9 @@ function slide_step():
         call set_margin_end(slot["card"], GAP // 2 + most - offsets.get(slot["index"], 0))
     end
     call layer.set_margin(S["window"], layer.EDGE_RIGHT, GAP // 2 - most)
+    if freed and len(S["waiting"]) > 0:
+        call show_waiting()
+    end
     if len(S["leaving"]) == 0:
         S["slide_timer"] = 0
         call update_window()
@@ -1118,8 +1128,10 @@ function build_window():
     call gtk.container_add(window, column)
     S["window"] = window
     S["column"] = column
+    # karty pro viditelne bubliny a stejne tolik pro odjizdejici (zavrena bublina drzi kartu do konce
+    # animace; cekajici oznameni pak hned dostane volnou kartu - drive slot None a chyba zpetneho volani)
     index = 0
-    while index < MAX_VISIBLE:
+    while index < 2 * MAX_VISIBLE:
         slot = new_slot(index)
         S["slots"].append(slot)
         call gtk.box_pack_start(column, slot["card"], False, False, 0)

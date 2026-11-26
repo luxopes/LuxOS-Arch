@@ -82,6 +82,13 @@ function load_config():
             fmt = "%-I:%M"
         end
     end
+    # format uzivatele (Nastaveni > Datum a cas: CLOCK_24H v ~/.config/luxos/appearance.conf) ma prednost
+    user = text.parse_kv(lglib.read_text(glib.user_config_dir() + "/luxos/appearance.conf")).get("CLOCK_24H", "").strip()
+    if user == "yes":
+        fmt = "%-H:%M"
+    elif user == "no":
+        fmt = "%-I:%M"
+    end
     state["clock_fmt"] = fmt
     if conf.get("show-battery", "true").strip() == "false":
         state["no_battery"] = True

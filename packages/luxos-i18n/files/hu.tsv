@@ -5609,3 +5609,123 @@ Moved to quarantine.	Karanténba helyezve.
 Antivirus: no virus found	Vírusvédelem: nem található vírus
 Quarantine is empty.	A karantén üres.
 Viruses found: %d	Talált vírusok: %d
+synchronized	szinkronizálva
+not synchronized yet	még nincs szinkronizálva
+The change was not made (cancelled or not allowed).	A módosítás nem történt meg (megszakítva vagy nem engedélyezett).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Adja meg a dátumot ÉÉÉÉ-HH-NN, az időt ÓÓ:PP formában.
+Date & Time	Dátum és idő
+Set time automatically	Idő automatikus beállítása
+From time servers on the internet.	Internetes időszerverekről.
+Set Manually	Kézi beállítás
+Set	Beállítás
+Date and time	Dátum és idő
+Turn off automatic time first.	Előbb kapcsolja ki az automatikus időt.
+24-hour time	24 órás formátum
+Clock in the menu bar and on the lock screen.	Óra a menüsávon és a zárolási képernyőn.
+Log out and back in to use the new language everywhere.	Jelentkezzen ki és be, hogy mindenhol az új nyelv legyen.
+Some older programs will stay in English: the system does not have this language installed.	Néhány régebbi program angol marad: a rendszeren nincs telepítve ez a nyelv.
+The login screen and new users will use this language.	A bejelentkezési képernyő és az új felhasználók ezt a nyelvet használják.
+Menus, apps and messages.	Menük, alkalmazások és üzenetek.
+Same as language	A nyelvvel azonos
+Formats	Formátumok
+Dates, times, numbers, currency and units.	Dátumok, időpontok, számok, pénznem és mértékegységek.
+Login Screen	Bejelentkezési képernyő
+Use My Language	Saját nyelvem használata
+Login screen and new users	Bejelentkezési képernyő és új felhasználók
+Needs an administrator password.	Rendszergazdai jelszó szükséges.
+Keyboard Layouts…	Billentyűzetkiosztások…
+Typing in other languages	Gépelés más nyelveken
+Account type changed.	A fióktípus megváltozott.
+Remove with files?	Eltávolítás a fájlokkal együtt?
+The user was removed.	A felhasználó eltávolítva.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Adjon meg nevet és felhasználónevet (ékezet nélküli kisbetűk, számok, - és _).
+This user name is already taken.	Ez a felhasználónév már foglalt.
+The passwords are empty, too short or do not match.	A jelszavak üresek, túl rövidek vagy nem egyeznek.
+The password could not be prepared.	A jelszót nem sikerült előkészíteni.
+The user was not added (cancelled or not allowed).	A felhasználó nem lett hozzáadva (megszakítva vagy nem engedélyezett).
+The user was added, but the password was not set.	A felhasználó hozzáadva, de a jelszó nincs beállítva.
+The user was added.	A felhasználó hozzáadva.
+Your password was changed.	A jelszava megváltozott.
+Your account was not found.	A fiókja nem található.
+The account service is not available.	A fiókszolgáltatás nem érhető el.
+You	Ön
+Add User	Felhasználó hozzáadása
+For signing in; small letters without accents.	Bejelentkezéshez; ékezet nélküli kisbetűk.
+Can install apps and change system settings.	Telepíthet alkalmazásokat és módosíthatja a rendszerbeállításokat.
+My Password	Saját jelszó
+New password	Új jelszó
+Confirm new password	Új jelszó megerősítése
+No viruses found in Downloads.	A Letöltések mappában nincs vírus.
+Viruses found and moved to quarantine: %d	Talált és karanténba helyezett vírusok: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Letöltések ellenőrizve. Néhány fájl kockázatos program – a Lux Guard futtatás előtt rákérdez.
+Checking… The first check starts the antivirus and can take up to a minute.	Ellenőrzés… Az első ellenőrzés elindítja a vírusvédelmet, ez akár egy percig is tarthat.
+Not possible (unknown item, or a file with the same name exists).	Nem lehetséges (ismeretlen elem, vagy már van ilyen nevű fájl).
+Files with a virus are moved here.	A vírusos fájlok ide kerülnek.
+%d snapshots, newest %s	%d pillanatkép, legújabb: %s
+No snapshots yet	Még nincs pillanatkép
+Virus & Threat Protection	Vírus- és veszélyvédelem
+Checks files and programs from downloads, attachments and USB drives.	Ellenőrzi a letöltésekből, mellékletekből és USB-meghajtókról érkező fájlokat és programokat.
+Antivirus	Vírusvédelem
+ClamAV signatures; starts only when a file needs checking.	ClamAV-szignatúrák; csak akkor indul, ha fájlt kell ellenőrizni.
+Virus database updated	Vírusadatbázis frissítve
+Updated automatically every day.	Naponta automatikusan frissül.
+Check Downloads Now	Letöltések ellenőrzése most
+Check for viruses	Víruskeresés
+Downloads, Desktop and Documents are also checked every week.	A Letöltések, Asztal és Dokumentumok hetente is ellenőrzésre kerülnek.
+Quarantine	Karantén
+File Recovery	Fájl-helyreállítás
+Snapshots of your files	Fájljai pillanatképei
+Every hour - deleted or encrypted files can be restored.	Óránként – a törölt vagy titkosított fájlok visszaállíthatók.
+Lux Guard window	Lux Guard ablak
+Restore files, watched programs and recent decisions.	Fájlok visszaállítása, figyelt programok és legutóbbi döntések.
+System files are read-only and checked every week.	A rendszerfájlok csak olvashatók, és hetente ellenőrzésre kerülnek.
+Firewall…	Tűzfal…
+Blocks connections from the network you did not allow.	Letiltja azokat a hálózati kapcsolatokat, amelyeket nem engedélyezett.
+Show Quarantine	Karantén megnyitása
+Only an administrator can change this.	Ezt csak rendszergazda módosíthatja.
+Not your file - tell the administrator.	Nem az Ön fájlja – szóljon a rendszergazdának.
+Antivirus: not available	Vírusvédelem: nem érhető el
+Antivirus: could not check (%s)	Vírusvédelem: nem sikerült ellenőrizni (%s)
+Restored: %s	Visszaállítva: %s
+Deleted.	Törölve.
+Usage: luxos-guard quarantine [restore|delete ID]	Használat: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	A heti ellenőrzést a rendszer (root) futtatja; használja: luxos-guard scan MAPPA
+Antivirus is not available.	A vírusvédelem nem érhető el.
+check files (behaviour of programs and antivirus)	fájlok ellenőrzése (programok viselkedése és vírusvédelem)
+files with a virus in quarantine	vírusos fájlok a karanténban
+Privacy & Security	Adatvédelem és biztonság
+Language & Region	Nyelv és régió
+antivirus	vírusirtó
+virus	vírus
+quarantine	karantén
+lux guard	lux guard
+malware	kártevő
+ransomware	zsarolóvírus
+snapshots	pillanatképek
+protection	védelem
+accounts	fiókok
+add user	felhasználó hozzáadása
+family	család
+child	gyerek
+administrator	rendszergazda
+password	jelszó
+remove user	felhasználó eltávolítása
+clock	óra
+time zone	időzóna
+timezone	időzóna
+ntp	ntp
+24-hour	24 órás
+12-hour	12 órás
+calendar	naptár
+language	nyelv
+region	régió
+formats	formátumok
+locale	területi beállítás
+translation	fordítás
+date format	dátumformátum
+currency	pénznem
+backup	biztonsági mentés
+restore	visszaállítás
+external drive	külső meghajtó
+copy	másolat
+Replaced versions of the files were moved to %s.	A lecserélt fájlváltozatok ide kerültek: %s.

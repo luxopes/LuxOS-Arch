@@ -5609,3 +5609,123 @@ Moved to quarantine.	Flyttad till karantän.
 Antivirus: no virus found	Antivirus: inget virus hittades
 Quarantine is empty.	Karantänen är tom.
 Viruses found: %d	Hittade virus: %d
+synchronized	synkroniserad
+not synchronized yet	inte synkroniserad än
+The change was not made (cancelled or not allowed).	Ändringen gjordes inte (avbruten eller inte tillåten).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Ange datum som ÅÅÅÅ-MM-DD och tid som TT:MM.
+Date & Time	Datum och tid
+Set time automatically	Ställ in tiden automatiskt
+From time servers on the internet.	Från tidsservrar på internet.
+Set Manually	Ställ in manuellt
+Set	Ställ in
+Date and time	Datum och tid
+Turn off automatic time first.	Stäng först av automatisk tid.
+24-hour time	24-timmarsformat
+Clock in the menu bar and on the lock screen.	Klockan i menyraden och på låsskärmen.
+Log out and back in to use the new language everywhere.	Logga ut och in igen för att använda det nya språket överallt.
+Some older programs will stay in English: the system does not have this language installed.	Vissa äldre program förblir på engelska: språket är inte installerat i systemet.
+The login screen and new users will use this language.	Inloggningsskärmen och nya användare använder det här språket.
+Menus, apps and messages.	Menyer, appar och meddelanden.
+Same as language	Samma som språket
+Formats	Format
+Dates, times, numbers, currency and units.	Datum, tider, tal, valuta och enheter.
+Login Screen	Inloggningsskärm
+Use My Language	Använd mitt språk
+Login screen and new users	Inloggningsskärm och nya användare
+Needs an administrator password.	Kräver administratörslösenord.
+Keyboard Layouts…	Tangentbordslayouter…
+Typing in other languages	Skriva på andra språk
+Account type changed.	Kontotypen ändrades.
+Remove with files?	Ta bort med filer?
+The user was removed.	Användaren togs bort.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Ange ett namn och ett användarnamn (små bokstäver utan accenter, siffror, - och _).
+This user name is already taken.	Användarnamnet är redan upptaget.
+The passwords are empty, too short or do not match.	Lösenorden är tomma, för korta eller stämmer inte överens.
+The password could not be prepared.	Lösenordet kunde inte förberedas.
+The user was not added (cancelled or not allowed).	Användaren lades inte till (avbrutet eller inte tillåtet).
+The user was added, but the password was not set.	Användaren lades till, men lösenordet sattes inte.
+The user was added.	Användaren lades till.
+Your password was changed.	Ditt lösenord har ändrats.
+Your account was not found.	Ditt konto hittades inte.
+The account service is not available.	Kontotjänsten är inte tillgänglig.
+You	Du
+Add User	Lägg till användare
+For signing in; small letters without accents.	För inloggning; små bokstäver utan accenter.
+Can install apps and change system settings.	Kan installera appar och ändra systeminställningar.
+My Password	Mitt lösenord
+New password	Nytt lösenord
+Confirm new password	Bekräfta nytt lösenord
+No viruses found in Downloads.	Inga virus hittades i Hämtade filer.
+Viruses found and moved to quarantine: %d	Virus som hittades och flyttades till karantän: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Hämtade filer kontrollerade. Vissa filer är riskabla program – Lux Guard frågar innan de körs.
+Checking… The first check starts the antivirus and can take up to a minute.	Kontrollerar… Första kontrollen startar antivirus och kan ta upp till en minut.
+Not possible (unknown item, or a file with the same name exists).	Inte möjligt (okänt objekt eller så finns en fil med samma namn).
+Files with a virus are moved here.	Filer med virus flyttas hit.
+%d snapshots, newest %s	%d ögonblicksbilder, senaste %s
+No snapshots yet	Inga ögonblicksbilder än
+Virus & Threat Protection	Skydd mot virus och hot
+Checks files and programs from downloads, attachments and USB drives.	Kontrollerar filer och program från nedladdningar, bilagor och USB-enheter.
+Antivirus	Antivirus
+ClamAV signatures; starts only when a file needs checking.	ClamAV-signaturer; startar bara när en fil behöver kontrolleras.
+Virus database updated	Virusdatabasen uppdaterad
+Updated automatically every day.	Uppdateras automatiskt varje dag.
+Check Downloads Now	Kontrollera Hämtade filer nu
+Check for viruses	Sök efter virus
+Downloads, Desktop and Documents are also checked every week.	Hämtade filer, Skrivbord och Dokument kontrolleras också varje vecka.
+Quarantine	Karantän
+File Recovery	Filåterställning
+Snapshots of your files	Ögonblicksbilder av dina filer
+Every hour - deleted or encrypted files can be restored.	Varje timme – raderade eller krypterade filer kan återställas.
+Lux Guard window	Lux Guard-fönster
+Restore files, watched programs and recent decisions.	Återställ filer, övervakade program och senaste beslut.
+System files are read-only and checked every week.	Systemfiler är skrivskyddade och kontrolleras varje vecka.
+Firewall…	Brandvägg…
+Blocks connections from the network you did not allow.	Blockerar anslutningar från nätverket som du inte tillåtit.
+Show Quarantine	Visa karantän
+Only an administrator can change this.	Endast en administratör kan ändra detta.
+Not your file - tell the administrator.	Inte din fil – meddela administratören.
+Antivirus: not available	Antivirus: inte tillgängligt
+Antivirus: could not check (%s)	Antivirus: kunde inte kontrollera (%s)
+Restored: %s	Återställd: %s
+Deleted.	Raderad.
+Usage: luxos-guard quarantine [restore|delete ID]	Användning: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	Veckokontrollen körs av systemet (root); använd: luxos-guard scan MAPP
+Antivirus is not available.	Antivirus är inte tillgängligt.
+check files (behaviour of programs and antivirus)	kontrollera filer (programbeteende och antivirus)
+files with a virus in quarantine	filer med virus i karantän
+Privacy & Security	Integritet och säkerhet
+Language & Region	Språk och region
+antivirus	antivirus
+virus	virus
+quarantine	karantän
+lux guard	lux guard
+malware	skadlig kod
+ransomware	utpressningsprogram
+snapshots	ögonblicksbilder
+protection	skydd
+accounts	konton
+add user	lägg till användare
+family	familj
+child	barn
+administrator	administratör
+password	lösenord
+remove user	ta bort användare
+clock	klocka
+time zone	tidszon
+timezone	tidszon
+ntp	ntp
+24-hour	24 timmar
+12-hour	12 timmar
+calendar	kalender
+language	språk
+region	region
+formats	format
+locale	nationella inställningar
+translation	översättning
+date format	datumformat
+currency	valuta
+backup	säkerhetskopia
+restore	återställ
+external drive	extern disk
+copy	kopia
+Replaced versions of the files were moved to %s.	Ersatta versioner av filerna flyttades till %s.

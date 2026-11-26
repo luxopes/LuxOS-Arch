@@ -6,7 +6,7 @@
 
 pkgname=luxos-guard
 pkgver=1.0.0
-pkgrel=17
+pkgrel=18
 pkgdesc="Lux Guard - antivirus (ClamAV on demand) and checks of programs from downloads, attachments and USB drives; /home snapshots"
 arch=(x86_64)
 url="https://luxos.lux-ai.cz/"

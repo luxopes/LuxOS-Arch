@@ -24,7 +24,8 @@ VARS=(WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_D
       GTK_IM_MODULE QT_IM_MODULE XMODIFIERS SDL_IM_MODULE)
 # z /etc/profile (jako prihlaseni do X11): vychozi nastaveni /etc/xdg/luxos, prekryti .desktop v /var/lib/luxos/apps,
 # Flatpak a PATH programu LuxOS; po relaci zustavaji (jsou stejne pro kazde prihlaseni)
-PROFILE_VARS=(PATH XDG_CONFIG_DIRS XDG_DATA_DIRS)
+# jazyk a formaty (Nastaveni > Jazyk a oblast, ~/.config/locale.conf): i pro aplikace spoustene sluzbami relace
+PROFILE_VARS=(PATH XDG_CONFIG_DIRS XDG_DATA_DIRS LANG LANGUAGE LC_TIME LC_NUMERIC LC_MONETARY LC_PAPER LC_MEASUREMENT)
 
 # Automaticke spousteni podle specifikace XDG (/etc/xdg/autostart, ~/.config/autostart, prednost podle
 # XDG_CONFIG_DIRS): Hidden, OnlyShowIn/NotShowIn proti LuxOS a TryExec. Kazda polozka jako docasna jednotka relace.
@@ -91,6 +92,12 @@ fi
 
 # prostredi jako prihlaseni do X11 (LightDM nacita /etc/profile)
 set +u
+# jazyk uzivatele (Nastaveni > Jazyk a oblast): greetd/pam predava LANG z /etc/locale.conf a
+# /etc/profile.d/locale.sh nacita ~/.config/locale.conf jen bez LANG
+if [[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/locale.conf ]]; then
+    unset LANG LANGUAGE LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME \
+        LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION
+fi
 . /etc/profile
 set -u
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=LuxOS XDG_SESSION_DESKTOP=luxos

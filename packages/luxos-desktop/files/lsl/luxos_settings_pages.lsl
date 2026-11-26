@@ -29,6 +29,10 @@ load luxos_page_default_apps as default_apps
 load luxos_page_login_items as login_items
 load luxos_page_drives as drives
 load luxos_page_app_reset as app_reset
+load luxos_page_datetime as datetime
+load luxos_page_language as language
+load luxos_page_users as users
+load luxos_page_security as security
 
 function page(id, title, icon, color, group, keywords, aliases, module_fns):
     item = {"id": id, "title": title, "icon": icon, "color": color, "group": group, "keywords": keywords,
@@ -52,6 +56,9 @@ function all():
     out.append(app("network", "Network", "network-workgroup-symbolic", "#3d7bff", 0, ["router", "ip address", "dns", "ping", "speed"], ["luxos-router"]))
     out.append(page("firewall", "Firewall", "security-high-symbolic", "#ff9500", 0, ["ports", "ssh", "block", "allow", "security"],
              ["luxos-firewall-settings"], {"build": firewall.build, "show": firewall.show, "test": firewall.test}))
+    out.append(page("security", "Privacy & Security", "security-medium-symbolic", "#34c759", 0,
+             ["antivirus", "virus", "quarantine", "lux guard", "malware", "ransomware", "snapshots", "protection"],
+             ["luxos-guard-settings"], {"build": security.build, "show": security.show, "test": security.test}))
     out.append(page("notifications", "Notifications", "preferences-system-notifications-symbolic", "#ff3b30", 1,
              ["do not disturb", "banners", "alerts", "sounds", "history"], [], {"build": notifications.build, "test": notifications.test}))
     out.append(page("sound", "Sound", "audio-volume-high-symbolic", "#ff2d55", 1,
@@ -94,9 +101,18 @@ function all():
              ["luxos-fingerprint"], {"build": fingerprint.build, "leave": fingerprint.leave, "test": fingerprint.test}))
     out.append(page("profile", "Profile Picture", "avatar-default-symbolic", "#30b0c7", 4, ["account", "user", "photo", "avatar", "camera"],
              ["luxos-profile-picture"], {"build": profile.build, "cli": profile.cli, "show": profile.show, "leave": profile.leave, "test": profile.test}))
+    out.append(page("users", "Users", "system-users-symbolic", "#ff9500", 4,
+             ["accounts", "add user", "family", "child", "administrator", "password", "remove user"], [],
+             {"build": users.build, "show": users.show, "test": users.test}))
     out.append(app("account", "LuxAI Account", "system-users-symbolic", "#5856d6", 4, ["luxai", "sign in", "subscription"], ["luxos-account"]))
     out.append(app("domain", "Organization Network", "network-server-symbolic", "#3d7bff", 4, ["domain", "active directory", "company"],
             ["luxos-domain-settings"]))
+    out.append(page("datetime", "Date & Time", "preferences-system-time-symbolic", "#ff3b30", 5,
+             ["clock", "time zone", "timezone", "ntp", "24-hour", "12-hour", "calendar"], [],
+             {"build": datetime.build, "show": datetime.show, "leave": datetime.leave, "test": datetime.test}))
+    out.append(page("language", "Language & Region", "preferences-desktop-locale-symbolic", "#3d7bff", 5,
+             ["language", "region", "formats", "locale", "translation", "date format", "currency"], [],
+             {"build": language.build, "test": language.test}))
     out.append(page("default-apps", "Default Apps", "applications-system-symbolic", "#3d7bff", 5,
              ["browser", "email", "mail", "file manager", "terminal", "open with", "mime"], [],
              {"build": default_apps.build, "test": default_apps.test}))
@@ -106,6 +122,8 @@ function all():
              ["usb", "automount", "media", "cd", "camera", "autorun"], [], {"build": drives.build, "test": drives.test}))
     out.append(page("app-reset", "Reset App Settings", "edit-undo-symbolic", "#ff3b30", 5, ["reset", "defaults", "backup"],
              ["luxos-app-reset"], {"build": app_reset.build, "cli": app_reset.cli, "test": app_reset.test}))
+    out.append(app("backup", "Backups", "drive-harddisk-symbolic", "#5856d6", 5, ["backup", "restore", "external drive", "copy"],
+            ["luxos-backup-gui"]))
     out.append(app("update", "Software Update", "software-update-available-symbolic", "#34c759", 5, ["updates", "upgrade", "kernel"], ["luxos-update"]))
     out.append(app("drivers", "Drivers", "application-x-firmware-symbolic", "#af52de", 5, ["nvidia", "graphics", "firmware"], ["luxos-drivers"]))
     xfce = app("xfce", "Xfce Settings Manager", "preferences-system-symbolic", "#30b0c7", 5, ["xfce", "advanced"], ["/usr/bin/xfce4-settings-manager"])

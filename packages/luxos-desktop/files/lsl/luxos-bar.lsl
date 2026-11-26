@@ -195,6 +195,9 @@ function on_conf_changed(path, event, other):
         call refresh_look(bar)
         call apply_status(bar)
     end
+    # format hodin (CLOCK_24H) se mohl zmenit
+    ui["clock"] = ""
+    call update_clock()
     return 0
 end
 
@@ -1326,9 +1329,40 @@ function clock_parts():
     return [Int(p[0]), Int(p[1]), Int(p[2]), Int(p[3]) - 1, p[4]]
 end
 
+# 12/24 h: CLOCK_24H=yes|no v appearance.conf (Nastaveni > Datum a cas), jinak podle jazyka (en_US = 12 h)
+function clock_24h():
+    value = ui["conf"].get("CLOCK_24H", "").strip()
+    if value != "":
+        return value == "yes"
+    end
+    lang = env.get("LC_TIME", "")
+    if lang == "":
+        lang = env.get("LANG", "")
+    end
+    for prefix in ["en_US", "en_CA", "en_AU", "en_NZ", "en_PH", "en_IN"]:
+        if lang.startswith(prefix):
+            return False
+        end
+    end
+    return True
+end
+
+function clock_time(hhmm):
+    if clock_24h():
+        return hhmm
+    end
+    hour = Int(hhmm.split(":")[0])
+    suffix = "AM" if hour < 12 else "PM"
+    hour = hour % 12
+    if hour == 0:
+        hour = 12
+    end
+    return String(hour) + ":" + hhmm.split(":")[1] + " " + suffix
+end
+
 function update_clock():
     p = clock_parts()
-    now = i18n.weekday_short(p[3]) + " " + i18n.format_date(p[0], p[1], p[2], p[3], "short") + "  " + p[4]
+    now = i18n.weekday_short(p[3]) + " " + i18n.format_date(p[0], p[1], p[2], p[3], "short") + "  " + clock_time(p[4])
     tip = i18n.format_date(p[0], p[1], p[2], p[3], "year")
     if now == ui["clock"]:
         return 0

@@ -5610,3 +5610,123 @@ Moved to quarantine.	Przeniesiono do kwarantanny.
 Antivirus: no virus found	Antywirus: nie znaleziono wirusa
 Quarantine is empty.	Kwarantanna jest pusta.
 Viruses found: %d	Znalezione wirusy: %d
+synchronized	zsynchronizowano
+not synchronized yet	jeszcze nie zsynchronizowano
+The change was not made (cancelled or not allowed).	Zmiana nie została wprowadzona (anulowano lub brak uprawnień).
+Enter the date as YYYY-MM-DD and the time as HH:MM.	Wpisz datę jako RRRR-MM-DD i godzinę jako GG:MM.
+Date & Time	Data i godzina
+Set time automatically	Ustawiaj czas automatycznie
+From time servers on the internet.	Z serwerów czasu w internecie.
+Set Manually	Ustaw ręcznie
+Set	Ustaw
+Date and time	Data i godzina
+Turn off automatic time first.	Najpierw wyłącz automatyczny czas.
+24-hour time	Format 24-godzinny
+Clock in the menu bar and on the lock screen.	Zegar na pasku menu i na ekranie blokady.
+Log out and back in to use the new language everywhere.	Wyloguj się i zaloguj ponownie, aby wszędzie używać nowego języka.
+Some older programs will stay in English: the system does not have this language installed.	Niektóre starsze programy pozostaną po angielsku: ten język nie jest zainstalowany w systemie.
+The login screen and new users will use this language.	Ekran logowania i nowi użytkownicy będą używać tego języka.
+Menus, apps and messages.	Menu, aplikacje i komunikaty.
+Same as language	Jak język
+Formats	Formaty
+Dates, times, numbers, currency and units.	Daty, godziny, liczby, waluta i jednostki.
+Login Screen	Ekran logowania
+Use My Language	Użyj mojego języka
+Login screen and new users	Ekran logowania i nowi użytkownicy
+Needs an administrator password.	Wymaga hasła administratora.
+Keyboard Layouts…	Układy klawiatury…
+Typing in other languages	Pisanie w innych językach
+Account type changed.	Zmieniono typ konta.
+Remove with files?	Usunąć razem z plikami?
+The user was removed.	Użytkownik został usunięty.
+Enter a name and a user name (small letters without accents, numbers, - and _).	Wpisz imię i nazwę użytkownika (małe litery bez polskich znaków, cyfry, - i _).
+This user name is already taken.	Ta nazwa użytkownika jest już zajęta.
+The passwords are empty, too short or do not match.	Hasła są puste, za krótkie lub się nie zgadzają.
+The password could not be prepared.	Nie udało się przygotować hasła.
+The user was not added (cancelled or not allowed).	Nie dodano użytkownika (anulowano lub brak uprawnień).
+The user was added, but the password was not set.	Dodano użytkownika, ale nie ustawiono hasła.
+The user was added.	Dodano użytkownika.
+Your password was changed.	Twoje hasło zostało zmienione.
+Your account was not found.	Nie znaleziono Twojego konta.
+The account service is not available.	Usługa kont jest niedostępna.
+You	Ty
+Add User	Dodaj użytkownika
+For signing in; small letters without accents.	Do logowania; małe litery bez polskich znaków.
+Can install apps and change system settings.	Może instalować aplikacje i zmieniać ustawienia systemu.
+My Password	Moje hasło
+New password	Nowe hasło
+Confirm new password	Potwierdź nowe hasło
+No viruses found in Downloads.	Nie znaleziono wirusów w Pobranych.
+Viruses found and moved to quarantine: %d	Znalezione wirusy przeniesione do kwarantanny: %d
+Downloads checked. Some files are risky programs - Lux Guard asks before they run.	Sprawdzono Pobrane. Niektóre pliki to ryzykowne programy – Lux Guard zapyta przed ich uruchomieniem.
+Checking… The first check starts the antivirus and can take up to a minute.	Sprawdzanie… Pierwsze sprawdzenie uruchamia antywirusa i może potrwać do minuty.
+Not possible (unknown item, or a file with the same name exists).	Niemożliwe (nieznany element lub istnieje plik o tej samej nazwie).
+Files with a virus are moved here.	Pliki z wirusem są przenoszone tutaj.
+%d snapshots, newest %s	Migawek: %d, najnowsza %s
+No snapshots yet	Brak migawek
+Virus & Threat Protection	Ochrona przed wirusami i zagrożeniami
+Checks files and programs from downloads, attachments and USB drives.	Sprawdza pliki i programy z pobranych, załączników i dysków USB.
+Antivirus	Antywirus
+ClamAV signatures; starts only when a file needs checking.	Sygnatury ClamAV; uruchamia się tylko, gdy trzeba sprawdzić plik.
+Virus database updated	Baza wirusów zaktualizowana
+Updated automatically every day.	Aktualizowana automatycznie codziennie.
+Check Downloads Now	Sprawdź Pobrane teraz
+Check for viruses	Szukaj wirusów
+Downloads, Desktop and Documents are also checked every week.	Pobrane, Pulpit i Dokumenty są też sprawdzane co tydzień.
+Quarantine	Kwarantanna
+File Recovery	Odzyskiwanie plików
+Snapshots of your files	Migawki Twoich plików
+Every hour - deleted or encrypted files can be restored.	Co godzinę – usunięte lub zaszyfrowane pliki można odzyskać.
+Lux Guard window	Okno Lux Guard
+Restore files, watched programs and recent decisions.	Przywracanie plików, obserwowane programy i ostatnie decyzje.
+System files are read-only and checked every week.	Pliki systemowe są tylko do odczytu i sprawdzane co tydzień.
+Firewall…	Zapora…
+Blocks connections from the network you did not allow.	Blokuje połączenia z sieci, na które nie zezwolono.
+Show Quarantine	Pokaż kwarantannę
+Only an administrator can change this.	Tylko administrator może to zmienić.
+Not your file - tell the administrator.	To nie Twój plik – powiadom administratora.
+Antivirus: not available	Antywirus: niedostępny
+Antivirus: could not check (%s)	Antywirus: nie udało się sprawdzić (%s)
+Restored: %s	Przywrócono: %s
+Deleted.	Usunięto.
+Usage: luxos-guard quarantine [restore|delete ID]	Użycie: luxos-guard quarantine [restore|delete ID]
+The weekly check runs as the system (root); use: luxos-guard scan FOLDER	Cotygodniowe sprawdzenie uruchamia system (root); użyj: luxos-guard scan FOLDER
+Antivirus is not available.	Antywirus jest niedostępny.
+check files (behaviour of programs and antivirus)	sprawdź pliki (zachowanie programów i antywirus)
+files with a virus in quarantine	pliki z wirusem w kwarantannie
+Privacy & Security	Prywatność i bezpieczeństwo
+Language & Region	Język i region
+antivirus	antywirus
+virus	wirus
+quarantine	kwarantanna
+lux guard	lux guard
+malware	złośliwe oprogramowanie
+ransomware	ransomware
+snapshots	migawki
+protection	ochrona
+accounts	konta
+add user	dodaj użytkownika
+family	rodzina
+child	dziecko
+administrator	administrator
+password	hasło
+remove user	usuń użytkownika
+clock	zegar
+time zone	strefa czasowa
+timezone	strefa
+ntp	ntp
+24-hour	24 godziny
+12-hour	12 godzin
+calendar	kalendarz
+language	język
+region	region
+formats	formaty
+locale	ustawienia regionalne
+translation	tłumaczenie
+date format	format daty
+currency	waluta
+backup	kopia zapasowa
+restore	przywróć
+external drive	dysk zewnętrzny
+copy	kopia
+Replaced versions of the files were moved to %s.	Zastąpione wersje plików przeniesiono do %s.

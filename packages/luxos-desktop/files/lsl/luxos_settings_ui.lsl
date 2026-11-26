@@ -657,6 +657,13 @@ function test_step():
             if b != 0:
                 call gtk.button_clicked(b)
             end
+        elif cmd == "entry":
+            # "entry Titulek radku=text" (text i s mezerami)
+            kv = arg.split("=")
+            w = state["rows"].get(kv[0], 0)
+            if w != 0 and is_a(w, "GtkEntry"):
+                call gtk.entry_set_text(w, "=".join(kv[1:]))
+            end
         else:
             title = " ".join(parts[1:len(parts) - 1])
             value = parts[len(parts) - 1]

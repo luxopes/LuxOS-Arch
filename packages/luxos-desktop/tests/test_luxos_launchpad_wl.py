@@ -82,7 +82,8 @@ def alpha_order():
     def name(k):
         m = re.search(r"^Name\[cs\]=(.*)$", APPS[k], re.M) or re.search(r"^Name=(.*)$", APPS[k], re.M)
         return m.group(1).lower().translate(FOLD).encode()
-    return [k + ".desktop" for k in sorted(VISIBLE, key=name)]
+    # aplikace pod prekrytim LuxOS jsou ve slozce Nastroje (posledni dlazdice mrizky), ne v ni
+    return [k + ".desktop" for k in sorted(VISIBLE, key=name) if k not in COVERED] + ["folder"]
 
 
 class Input:
@@ -254,7 +255,10 @@ class WaylandLaunchpad(unittest.TestCase):
     def start(self, dark=False, wallpaper="light", sort="alpha"):
         name = f"lp{os.getpid()}-{sorted(n for n in dir(self) if n.startswith('test_')).index(self._testMethodName)}"
         bus = self.tmp / f"{name}.bus"
-        p = subprocess.Popen(["dbus-daemon", "--session", f"--address=unix:path={bus}", "--nofork", "--nopidfile"],
+        # bez adresaru sluzeb: nainstalovany LuxOS ma cz.luxos.Launchpad.service a sbernice by misto
+        # testovaneho programu spustila /usr/lib/luxos/luxos-launchpad (test "novy proces")
+        p = subprocess.Popen(["dbus-daemon", f"--config-file={HERE / 'dbus-private.conf'}", f"--address=unix:path={bus}",
+                              "--nofork", "--nopidfile"],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.procs.append(p)
         self.session = Path(self.wlt("start", "--mode", "headless", "--size", f"{W}x{H}", "--timeout", "900",
@@ -472,7 +476,7 @@ class WaylandLaunchpad(unittest.TestCase):
         self.assertGreater(int(m.group(2)), 0)
         mark = lp.mark()
         self.input.send("key End")
-        lp.wait(rf" sel {len(order) - 1} {re.escape(order[-1])} ", start=mark)
+        lp.wait(rf" sel {len(order) - 1} folder ", start=mark)
         mark = lp.mark()
         self.input.send("key Home")
         lp.wait(r" sel 0 .* top=0", start=mark)
@@ -547,6 +551,32 @@ class WaylandLaunchpad(unittest.TestCase):
         self.input.send("key Return")
         lp.wait(r" launch org.example.Covered.desktop$", start=mark)
         self.assertEqual(self.marker(), ["org.example.Covered"])
+
+    def test_utilities_folder(self):
+        """Aplikace skryte v nabidce prekrytim LuxOS jsou ve slozce Nastroje na konci mrizky (hledani je najde)."""
+        self.start()
+        lp = self.resident()
+        mark = lp.mark()
+        self.open_by_key(lp)
+        _, m = lp.wait(r" grid (.*)$", start=mark)
+        grid = m.group(1).split()
+        self.assertEqual(grid[-1], "folder")
+        self.assertNotIn("org.example.Covered.desktop", grid)
+        self.assertIn("org.example.Panel.desktop", grid)
+        mark = lp.mark()
+        self.input.send("key End", "key Return")
+        lp.wait(r" folder open$", start=mark)
+        _, m = lp.wait(r" grid (.*)$", start=mark)
+        self.assertEqual(m.group(1).split(), ["back", "org.example.Covered.desktop"])
+        mark = lp.mark()
+        self.input.send("key Escape")
+        lp.wait(r" folder close$", start=mark)
+        _, m = lp.wait(r" grid (.*)$", start=mark)
+        self.assertEqual(m.group(1).split()[-1], "folder")
+        # Escape mimo slozku zavira
+        mark = lp.mark()
+        self.input.send("key Escape")
+        lp.wait(r" hidden$", start=mark)
 
     def test_math_inline(self):
         self.start()
