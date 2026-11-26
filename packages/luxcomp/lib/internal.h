@@ -276,6 +276,7 @@ void shadow_update(struct shadow *shadow, struct wlr_box frame, int size, int of
 /* blur.c: material (rozmazane pozadi a stin) pod plochami layer-shell a jejich popupy */
 
 bool blur_parse_namespace(const char *ns, char material[16], int *radius);
+int blur_material_radius(const char *name);
 struct blur *blur_create(struct wlr_scene_tree *parent, const char *material, int radius);
 void blur_destroy(struct blur *blur);
 void blur_set_box(struct blur *blur, struct wlr_box box);	/* v souradnicich parent */

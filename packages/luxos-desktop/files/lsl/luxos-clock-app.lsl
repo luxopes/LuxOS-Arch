@@ -8,10 +8,11 @@
 # okna), jinak skonci. Po prihlaseni ho spusti "luxos-clock-app --background" (bez zapnuteho budiku
 # hned skonci). Jedna instance na uzivatele a displej: dalsi spusteni jen ukaze okno (abstraktni socket).
 # Data: ~/.local/share/luxos/clock/clock.json {"alarms": [...], "cities": ["Europe/London", ...]}.
-# Vzhled: okno z matneho skla nad rozostrenou tapetou se semaforem (luxos_glass); svetle nebo tmave
-# sklo podle motivu GTK.
+# Vzhled: matne sklo podle motivu GTK. Luxwm rozmazava obsah za oknem, jinak kreslime vyrez tapety.
 load env, json
 load luxos_glass as glass
+load luxos_luxwm as wm
+load luxos_glib as lglib
 load luxos_glib, glib as glib
 load luxos_gio, gio as gio
 load luxos_gtk, gtk as gtk
@@ -107,6 +108,7 @@ LIGHT = ("@define-color c_fg #1d1d27; @define-color c_dim rgba(29, 29, 39, 0.58)
 
 data = {"alarms": [], "cities": []}
 ui = {"win": 0, "views": {}, "seg": {}, "tab": "alarms", "visible": False}
+live = {"region": [], "retry": 0, "material": "widget"}
 alarm_ui = {"list": 0, "form": 0}
 world_ui = {"list": 0, "results": 0, "entry": 0, "local": 0, "rows": []}
 stopwatch = {"running": False, "start": 0.0, "elapsed": 0.0, "laps": [], "label": 0, "laps_box": 0, "go": 0, "lap": 0, "timer": 0}
@@ -722,6 +724,7 @@ function ring(title, big, tone):
     ringing["win"] = win
     call gtk.widget_add_class(win, "lca")
     call gtk.widget_add_class(win, "lca-ring")
+    call gtk.widget_add_class(win, "lg-widget-edge")
     call gtk.window_set_keep_above(win, True)
     call glass.setup(win, False)
     call gtk.window_set_position(win, gtk.WIN_POS_CENTER)
@@ -1214,6 +1217,68 @@ end
 
 # ---- okno ---------------------------------------------------------------------------------------
 
+# Kompozitor kresli skutecne rozmazane okna za Hodinami; klient kresli jen prusvitne tonovani.
+function send_live_material(unused):
+    win = ui["win"]
+    if win == 0 or not ui["visible"] or not wm.connected():
+        return False
+    end
+    size = gtk.window_get_size(win)
+    region = [size[0], size[1]]
+    if region == live["region"] or size[0] <= 1 or size[1] <= 1:
+        return False
+    end
+    live["region"] = region
+    call wm.request({"cmd": "set_window_material", "app_id": "luxos-clock-app", "material": live["material"], "radius": 0,
+                     "x": 0, "y": 0, "w": size[0], "h": size[1]}, on_live_material_reply)
+    return False
+end
+
+function retry_live_material(unused):
+    live["region"] = []
+    call send_live_material(0)
+    return False
+end
+
+function on_live_material_reply(reply):
+    enabled = reply != None and reply.get("ok", False) == True
+    if not enabled and reply != None and reply.get("error", "") == "unknown material" and live["material"] == "widget":
+        # Po aktualizaci muze bezet jeste starsi luxwm.
+        live["material"] = "popup"
+        return retry_live_material(0)
+    end
+    if not enabled and reply != None and reply.get("error", "") == "no such window" and live["retry"] < 10:
+        live["retry"] += 1
+        call lglib.timeout_add_data(300, retry_live_material, 0)
+    end
+    if enabled:
+        live["retry"] = 0
+    end
+    if ui["win"] != 0:
+        call glass.set_live(ui["win"], enabled)
+    end
+    return 0
+end
+
+function on_live_state(up):
+    live["region"] = []
+    live["retry"] = 0
+    if up:
+        live["material"] = "widget"
+        call lglib.idle_add_data(send_live_material, 0)
+    elif ui["win"] != 0:
+        call glass.set_live(ui["win"], False)
+    end
+    return 0
+end
+
+function on_live_configure(event, win):
+    if wm.connected():
+        call lglib.idle_add_data(send_live_material, 0)
+    end
+    return False
+end
+
 function on_seg(name, button):
     call show_tab(name)
     return 0
@@ -1246,10 +1311,12 @@ function build_window():
     win = gtk.window_new(i18n.T("Clock"))
     ui["win"] = win
     call gtk.widget_add_class(win, "lca")
+    call gtk.widget_add_class(win, "lg-widget-edge")
     call gtk.window_set_default_size(win, 470, 600)   # minutka i formular budiku se vejdou (i ukrajinsky)
     call gtk.window_set_icon_list(win, app_icon())   # ostra ikona 16-256 px (Dock, Alt+Tab)
     call gtk.window_set_wmclass(win, "luxos-clock-app", "Luxos-clock-app")
     call glass.setup(win, True)
+    call gtk.connect(win, "configure-event", on_live_configure)
     call gtk.connect(win, "delete-event", on_close)
     call gtk.connect(win, "key-press-event", on_key)
     root = gtk.box_new(gtk.VERTICAL, 14)
@@ -1299,6 +1366,9 @@ function show_window():
     ui["visible"] = True
     call gtk.widget_show(ui["win"])
     call gtk.window_present(ui["win"])
+    if wm.connected():
+        call lglib.idle_add_data(send_live_material, 0)
+    end
     call world_tick()
     return 0
 end
@@ -1314,6 +1384,8 @@ function on_close(event, window):
     call stop_preview()
     call gtk.widget_hide(window)
     ui["visible"] = False
+    live["region"] = []
+    live["retry"] = 0
     call maybe_quit()
     return True
 end
@@ -1384,6 +1456,10 @@ function main(background):
     d = glib.local_date()
     last_minute["key"] = String(d[0]) + "-" + String(d[1]) + "-" + String(d[2]) + " " + String(d[3]) + ":" + String(d[4])
     call glib.timeout_add(1000, second_tick)
+    if env.get("WAYLAND_DISPLAY", "") != "":
+        call wm.on_state(on_live_state)
+        call wm.connect(None)
+    end
     if not background:
         call show_window()
     end

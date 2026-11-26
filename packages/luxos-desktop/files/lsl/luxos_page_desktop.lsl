@@ -9,6 +9,7 @@ load gio
 load luxos_i18n as i18n
 load luxos_text as text
 load luxos_dock_model as dockmodel
+load luxos_bar_items as bar_items
 load luxos_settings_ui as ui
 
 WALL_DIRS = ["/usr/share/backgrounds/luxos", "~/Pictures/Wallpapers"]
@@ -517,6 +518,22 @@ function on_bar_cover(shade, on):
     return ui.launch(["luxos-appearance", "bar-cover", on_off(on, "clear", "wallpaper")])
 end
 
+function on_bar_item(key, visible):
+    return ui.write_kv(PREFS, key, "1" if visible else "0")
+end
+
+function build_menu_bar(host):
+    page = ui.page_box()
+    conf = ui.read_kv(PREFS)
+    items = ui.group(page, i18n.T("Menu Bar Items…"))
+    for item in bar_items.ITEMS:
+        toggle = ui.switch(bar_items.enabled(conf, item), on_bar_item, item[1])
+        call ui.row(items, i18n.T(item[2]), "", toggle)
+    end
+    call build_bar(page, read_prefs())
+    return page
+end
+
 # ---- stranka ----------------------------------------------------------------------------------------------
 
 # Odchod ze stranky: zapis Docku do dconf je asynchronni
@@ -590,8 +607,8 @@ function build(host):
     call build_widgets(page)
     call build_dock(page, prefs)
     call build_hot_corners(page)
-    call build_bar(page, prefs)
     if not wayland():
+        call build_bar(page, prefs)
         # Xfce: jen v relaci X11
         more = gtk.box_new(gtk.HORIZONTAL, 8)
         call gtk.widget_set_margins(more, 0, 0, 18, 0)

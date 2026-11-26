@@ -14,8 +14,7 @@
 # Pismo listy: v tmavem rezimu bile, ve svetlem podle tapety pod listou (kontrast WCAG s hysterezi,
 # tokens.want_dark_ink jako luxos-bar.c); BAR_TEXT=white|dark v appearance.conf ho pevne nastavi. Pod bilym
 # pismem na svetle tapete zavoj (scrim) - samostatna plocha na vrstve BOTTOM bez vstupu (DESKTOP_SCRIM=0 vypne).
-# Vse na udalosti: okna, monitory a stav systemu chodi signaly (Wayland, D-Bus, pactl subscribe), jediny
-# casovac jsou hodiny jednou za minutu.
+# Stav sleduji udalosti Waylandu a D-Busu. Casovace maji hodiny a volitelny ukazatel CPU.
 #
 # SIGUSR1 otevre okno Wi-Fi pod listou, kde se naposledy klikalo (zbytek dlazdice Wi-Fi v Ovladacim centru),
 # SIGUSR2 nabidku LuxOS s napajenim (tlacitko napajeni v Ovladacim centru); PID je v $XDG_RUNTIME_DIR/luxos-bar.pid.
@@ -33,6 +32,8 @@ load luxos_wl as wl
 load luxos_tokens as tokens
 load luxos_material as material
 load luxos_bar_status as status
+load luxos_bar_items as bar_items
+load luxos_monitor_model as monitor_model
 load luxos_bar_popup as popup
 load luxos_hub_popup as hub_popup
 load luxos_sni as sni
@@ -66,6 +67,7 @@ ui = {"provider": 0, "app": "", "app_names": {}, "wm_classes": None, "clock": ""
       "layout_names": [], "thumbs": {}, "flags": {}, "kb_press": 0, "kb_held": False, "kb_widget": 0,
       "last_bar": None}
 ws_state = {"current": 1, "count": 4}
+cpu = {"enabled": False, "timer": 0, "sample": [0, 0], "text": "CPU —"}
 # Vlajky rozlozeni klavesnice jako panel xkb v X11 relaci (xfce4-xkb-plugin, display-type 0); bez vlajky kod
 FLAGS = env.get("LUXOS_XKB_FLAGS", "/usr/share/xfce4/xkb/flags")
 FLAG_W = 20
@@ -107,7 +109,16 @@ function read_conf():
     ui["clear"] = conf("BAR_COVER", "") == "clear"
     shade = conf("BAR_SHADE", "35")
     ui["shade"] = min(100, Int(shade)) if text.is_digits(shade) else 35
+    visible = {}
+    for item in bar_items.ITEMS:
+        visible[item[0]] = bar_items.enabled(ui["conf"], item)
+    end
+    ui["items_visible"] = visible
     return 0
+end
+
+function item_enabled(kind):
+    return ui["items_visible"].get(kind, True)
 end
 
 function conf(key, fallback):
@@ -128,6 +139,7 @@ function bar_css():
         + ".luxos-bar label { font-size: " + String(tokens.TYPE["body"][0]) + "px; }\n"
         + ".luxos-bar .lb-app { " + tokens.type_css("body_strong") + " }\n"
         + ".luxos-bar .lb-clock { " + tokens.type_css("body_strong") + " font-feature-settings: \"tnum\"; }\n"
+        + ".luxos-bar .lb-cpu { min-width: 66px; font-feature-settings: \"tnum\"; }\n"
         + ".luxos-bar button.lb {" + plain + " padding: 0 5px; margin: 3px 1px; min-height: 0; min-width: 0; border-radius: "
         + String(tokens.RADIUS["xs"]) + "px; }\n"
         # rozlozeni klavesnice jako text verze 1.1.1 (luxos-xkb.c): tucny kod barvou pisma listy, bez ramecku
@@ -164,6 +176,7 @@ function on_conf_changed(path, event, other):
     end
     was_clear = ui.get("clear", False)
     call read_conf()
+    call update_cpu_timer()
     call material.reload()
     ui["thumbs"] = {}
     call apply_css()
@@ -547,6 +560,40 @@ function icon_item(bar, kind, icon_name, tooltip, side):
     return b
 end
 
+# Zatez ze dvou vzorku /proc/stat, spolecna pro vsechny monitory.
+function sample_cpu(unused):
+    next = monitor_model.read_cpu("/proc/stat")
+    total = next[0] - cpu["sample"][0]
+    idle = next[1] - cpu["sample"][1]
+    if cpu["sample"][0] > 0 and total > 0:
+        percent = min(100, max(0, (100 * (total - idle) + total // 2) // total))
+        cpu["text"] = "CPU " + String(percent) + "%"
+        for bar in bars:
+            call gtk.label_set_text(bar["items"]["cpu"][1], cpu["text"])
+        end
+        call trace("cpu " + String(percent))
+    end
+    cpu["sample"] = next
+    return True
+end
+
+function update_cpu_timer():
+    enabled = item_enabled("cpu")
+    if enabled == cpu["enabled"]:
+        return 0
+    end
+    cpu["enabled"] = enabled
+    if enabled:
+        cpu["sample"] = monitor_model.read_cpu("/proc/stat")
+        cpu["timer"] = lglib.timeout_add_seconds_data(2, sample_cpu, 0)
+    else:
+        call glib.source_remove(cpu["timer"])
+        cpu["timer"] = 0
+        cpu["text"] = "CPU —"
+    end
+    return 0
+end
+
 # ---- OSD overlay (volume/brightness) -----------------------------------------------------------------
 
 OSD_W = 240
@@ -805,7 +852,7 @@ function on_wm_event(event):
             pager = b.get("pager", 0)
             if pager != 0:
                 call gtk.widget_set_size_request(pager, ws_width(), -1)
-                call gtk.widget_set_visible(pager, ws_state["count"] > 1)
+                call gtk.widget_set_visible(pager, item_enabled("workspaces") and ws_state["count"] > 1)
                 call gtk.widget_queue_draw(pager)
             end
         end
@@ -881,6 +928,11 @@ function build_bar(bar):
     tray = gtk.box_new(0, 0)
     call gtk.box_pack_start(right, tray, False, False, 0)
     bar["tray"] = tray
+    meter = gtk.label_new(cpu["text"])
+    call gtk.widget_add_class(meter, "lb-cpu")
+    cb = bar_button(bar, meter, i18n.T("System Monitor"), on_item_press, "cpu")
+    bar["items"]["cpu"] = [cb, meter, 0]
+    call gtk.box_pack_start(right, cb, False, False, 0)
     badge = gtk.label_new("")
     call gtk.widget_add_class(badge, "lb-badge")
     # podtrzeni Caps Lock hned pod pismem, ne u spodniho okraje listy
@@ -930,7 +982,7 @@ function build_bar(bar):
 end
 
 # ---- prave tlacitko na liste: kontextova nabidka ---------------------------------------------------
-# Prave tlacitko na prazdne casti listy (polozky si prave tlacitko berou samy): nastaveni listy (Plocha a Dock),
+# Prave tlacitko na prazdne casti listy (klavesnice ma navic vlastni nabidku): nastaveni listy,
 # Monitor systemu a Nastaveni. Nabidka vznikne jednou a zustane (gtk_menu_popup_at_pointer s udalosti kliku).
 ctx_menu = {"menu": 0}
 
@@ -940,7 +992,7 @@ function ctx_menu_get():
     end
     menu = luxos_gtk.menu_new()
     call gtk.widget_add_class(menu, "lx-popup")
-    for entry in [[i18n.T("Desktop & Dock…"), ["luxos-settings", "desktop"]], [i18n.T("System Monitor"), ["luxos-monitor"]],
+    for entry in [[i18n.T("Menu Bar Items…"), ["luxos-settings", "menu-bar"]], [i18n.T("System Monitor"), ["luxos-monitor"]],
                   None, [i18n.T("Open Settings"), ["luxos-settings"]]]:
         if entry == None:
             call luxos_gtk.menu_append(menu, luxos_gtk.separator_menu_item_new())
@@ -1284,7 +1336,7 @@ end
 
 function set_item(bar, kind, icon_name, tooltip, visible):
     item = bar["items"][kind]
-    call gtk.widget_set_visible(item[0], visible)
+    call gtk.widget_set_visible(item[0], visible and item_enabled(kind))
     if icon_name != "":
         call gtk.image_set_from_icon_name(item[1], icon_name, 1)
     end
@@ -1303,6 +1355,13 @@ function apply_status(bar):
     call gtk.label_set_text(bar["items"]["battery"][2], bat["text"])
     notes = s["notifications"]
     call gtk.image_set_from_icon_name(bar["items"]["notifications"][1], notes["icon"], 1)
+    call gtk.widget_set_visible(bar["app"], item_enabled("app"))
+    call gtk.widget_set_visible(bar["pager"], item_enabled("workspaces") and ws_state["count"] > 1)
+    call gtk.widget_set_visible(bar["tray"], item_enabled("tray"))
+    for kind in ["cpu", "search", "control-center", "notifications"]:
+        call gtk.widget_set_visible(bar["items"][kind][0], item_enabled(kind))
+    end
+    call gtk.label_set_text(bar["items"]["cpu"][1], cpu["text"])
     kb = s["keyboard"]
     item = bar["items"]["keyboard"]
     call gtk.label_set_text(item[1], kb["short"])
@@ -1318,7 +1377,7 @@ function apply_status(bar):
     call gtk.widget_set_visible(item[2], pixbuf != 0)
     call gtk.widget_set_visible(item[1], pixbuf == 0)
     # jedno rozlozeni: neni co prepinat (jako luxos-xkb.c na X11), jen zapnuty Caps Lock je videt
-    call gtk.widget_set_visible(item[0], len(kb["layouts"]) > 1 or kb["caps"])
+    call gtk.widget_set_visible(item[0], item_enabled("keyboard") and (len(kb["layouts"]) > 1 or kb["caps"]))
     call gtk.widget_set_tooltip(item[0], kb["tip"])
     return 0
 end
@@ -1398,6 +1457,9 @@ function show_layouts(widget):
         settings = luxos_gtk.menu_item_new(i18n.T("Keyboard Settings…"))
         call lglib.connect_data(settings, "activate", 0, on_menu_item, ["luxos-keyboard"])
         call luxos_gtk.menu_append(menu, settings)
+        menu_bar = luxos_gtk.menu_item_new(i18n.T("Menu Bar Items…"))
+        call lglib.connect_data(menu_bar, "activate", 0, on_menu_item, ["luxos-settings", "menu-bar"])
+        call luxos_gtk.menu_append(menu, menu_bar)
         call gtk.widget_show_all(menu)
         ui["layout_menu"] = menu
         ui["layout_items"] = items
@@ -1477,6 +1539,9 @@ function on_item_press(kind, event, widget):
         return True
     end
     # jen prvni stisk: rychly druhy klik posle navic GDK_2BUTTON_PRESS (prepnuti by se vratilo)
+    if gtk.event_button(event) == 3 and plain_press(event):
+        return on_bar_right_click(bar_of(widget), event, widget)
+    end
     if gtk.event_button(event) != 1 or plain_press(event) == False:
         return True
     end
@@ -1487,6 +1552,9 @@ function on_item_press(kind, event, widget):
     ui["last_bar"] = bar
     if kind == "menu":
         call open_popup(bar, "system", widget, gtk.event_time(event))
+    elif kind == "cpu":
+        call popup.close_all()
+        call lglib.spawn_quiet(["luxos-monitor"])
     elif kind == "control-center" or kind == "battery":
         call popup.close_all()
         call open_hub(bar, widget, gtk.event_time(event), "luxos-cc-toggle")
@@ -1657,6 +1725,7 @@ call glib.signal_connect(display, "monitor-added", on_monitor_added, 1)
 call glib.signal_connect(display, "monitor-removed", on_monitor_removed, 1)
 call update_app()
 call schedule_clock()
+call update_cpu_timer()
 call gio.file_monitor(config_dir() + "/appearance.conf", on_conf_changed)
 call gio.file_monitor(config_dir() + "/appearance", on_conf_changed)
 call lglib.unix_signal_add(SIGUSR1, on_sigusr1)

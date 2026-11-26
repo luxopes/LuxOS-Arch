@@ -61,8 +61,12 @@ function all():
              ["reduce motion", "larger text", "contrast", "pointer size", "sticky keys", "zoom"], [],
              {"build": accessibility.build, "test": accessibility.test}))
     out.append(page("desktop", "Desktop & Dock", "user-desktop-symbolic", "#32ade6", 2,
-             ["wallpaper", "widgets", "dock", "menu bar", "boot screen", "magnification"], ["xfdesktop-settings"],
+             ["wallpaper", "widgets", "dock", "boot screen", "magnification"], ["xfdesktop-settings"],
              {"build": desktop.build, "leave": desktop.leave}))
+    menu_bar = page("menu-bar", "Menu Bar", "view-more-symbolic", "#32ade6", 2,
+             ["panel", "menu bar", "CPU", "items", "clock", "tray"], [], {"build": desktop.build_menu_bar})
+    menu_bar["only"] = "wayland"
+    out.append(menu_bar)
     out.append(page("windows", "Windows & Workspaces", "view-dual-symbolic", "#5856d6", 2,
              ["workspaces", "title bar", "double-click", "animation", "focus", "window manager"], [],
              {"build": windows.build, "test": windows.test}))

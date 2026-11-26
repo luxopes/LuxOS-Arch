@@ -64,12 +64,14 @@ class CsdWindows(unittest.TestCase):
         bg = self.s.pixel(20, 780)
         # uvnitr okna barva klienta
         self.assertEqual(self.s.pixel(x + w // 2, y + h // 2), GREEN)
-        # pod oknem a vedle nej stin kompozitoru (klient svuj stin nema)
+        # Pod oknem a vedle nej mekky stin kompozitoru, bez dalsi pevne linky u hrany.
         below = self.s.pixel(x + w // 2, y + h + 4)
         side = self.s.pixel(x - 3, y + h // 2)
+        edge = self.s.pixel(x - 1, y + h // 2)
         print(f"\n  pozadi {bg}, pod oknem {below}, vlevo {side}")
         self.assertLess(dark(below), dark(bg) - 6, "stin pod oknem")
         self.assertLess(dark(side), dark(bg), "stin vedle okna")
+        self.assertLess(dark(side) - dark(edge), 12, f"tmava linka kolem CSD: {edge} vs. {side}")
         # daleko od okna stin neni
         self.assertEqual(self.s.pixel(x + w // 2, y + h + 80), bg)
         # dolni roh zaobleny: krajni pixel uz neni barva okna, kousek dovnitr ano

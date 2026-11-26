@@ -492,6 +492,9 @@ function apply_material(dark):
         end
         call lc.material_set(surface, tokens.radius_of(surface), argb(fallback), argb([0, 0, 0, e[2]]), e[0], e[1])
     end
+    # Material pro cele okno s hranou widgetu. Stin kresli dekorace okna.
+    tint = tokens.material("popup", dark, True)
+    call lc.material_set("widget", tokens.WIDGET_RADIUS, argb([tint[0], tint[1], tint[2], 1.0]), 0, 0, 0)
     call lc.blur_set(tokens.BLUR["radius"], Int(tokens.BLUR["saturation"] * 100.0 + 0.5), 1 if settings.get("blur", "yes") != "no" else 0)
     return 0
 end
@@ -2047,11 +2050,10 @@ function view_mapped(v):
     elif vget(v, lc.VIEW_FULLSCREEN) == 1:
         call set_fullscreen(v, True)
     end
-    # Okno na jine plose (dialog schovane aplikace) nebo nove okno pod zamerenou celou obrazovkou
-    # zamereni nekrade: jen se zaradi pod aktualni okno
+    # Dialog na jine plose zustava na sve plose. Na aktualni plose ma nove okno fokus i nad fullscreenem:
+    # caste jsou spusteni Terminalu nebo nove okno prohlizece bez xdg-activation.
     current = focused()
-    background = space != current_ws() or (current != 0 and current in full and parent != current)
-    if background or cycle["on"]:
+    if space != current_ws() or cycle["on"]:
         mru.insert(1 if len(mru) > 0 else 0, v)
         if current != 0:
             call lc.view_raise(current)
@@ -2725,7 +2727,7 @@ function set_window_material(client, request):
         call apply_window_material(client, None)
         return {"ok": True}
     end
-    if name not in tokens.SURFACE or name == "dim":
+    if (name not in tokens.SURFACE and name != "widget") or name == "dim":
         return {"ok": False, "error": "unknown material"}
     end
     if settings.get("blur", "yes") == "no":

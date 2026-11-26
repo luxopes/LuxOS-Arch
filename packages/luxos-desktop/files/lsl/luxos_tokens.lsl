@@ -114,6 +114,8 @@ MATERIAL = {
 BLUR = {"radius": 32, "passes": 4, "saturation": 1.6, "fallback_opacity": 0.96}
 # Karta skla vyskakovacich oken, Ovladaciho centra a Kalendare jako verze 1.1.1 (luxos_glass.panel(okno, box, 18))
 CARD_RADIUS = 18
+# Hrana matneho skla widgetu a Hodin.
+WIDGET_RADIUS = 22
 # Plochy shellu: [material, uroven vysky, polomer]; jmeno = material v kompozitoru (luxwm luxcomp_material_set).
 # dim = zatemneni pod Launchpadem (rozmazana cela obrazovka, klient kresli cernou 0,28 a panel sheet).
 SURFACE = {

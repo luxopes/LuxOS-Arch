@@ -47,7 +47,9 @@ load luxos_text as text
 load luxos_x11 as x11
 load luxos_layer as layer
 load luxos_wl as wl
+load luxos_luxwm as wm
 load luxos_material as material
+load luxos_tokens as tokens
 
 WIDTH = 340
 PAD = 24
@@ -64,12 +66,13 @@ DEFAULT_WIDGETS = "today,system,music"
 ALL_WIDGETS = ["today", "system", "music", "calendar"]
 GRID = 8
 WEATHER_MAX_AGE = 10800
-GLASS_RADIUS = 22.0
+GLASS_RADIUS = Float(tokens.WIDGET_RADIUS)
 
 CSS = ("window.lw { background: transparent; }\n"
     + ".lw-col { padding: 0 24px 12px 24px; }\n"
     + ".lw-card { background: transparent;"
-    + " border: 1px solid rgba(255, 255, 255, 0.38); border-top-color: rgba(255, 255, 255, 0.62); border-bottom-color: rgba(255, 255, 255, 0.20); border-radius: 22px; padding: 16px 18px; color: white;"
+    + " border: 1px solid rgba(255, 255, 255, 0.38); border-top-color: rgba(255, 255, 255, 0.62); border-bottom-color: rgba(255, 255, 255, 0.20);"
+    + " border-radius: " + String(tokens.WIDGET_RADIUS) + "px; padding: 16px 18px; color: white;"
     + " box-shadow: 0 8px 16px -8px rgba(8, 12, 24, 0.16), inset 0 1px rgba(255, 255, 255, 0.18); }\n"
     + ".lw-card label { color: white; text-shadow: none; }\n"
     + ".lw-card label.dim { color: rgba(255, 255, 255, 0.90); }\n"
@@ -101,7 +104,7 @@ RING_COLORS = [[[0.65, 0.76, 1.0], [0.78, 0.85, 1.0]], [[0.52, 0.83, 0.77], [0.7
 conf = {"enabled": True, "widgets": [], "side": "right", "pos": {}}
 # wins: nazev -> okno karty; placed: nazev -> [x, y] na obrazovce; settings = galerie (nahledy)
 # at: nazev -> [x, y], kam okno karty na Waylandu prave posunulo (poloha okna se tam neda zjistit)
-ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}, "wayland": False, "at": {}}
+ui = {"wins": {}, "cards": {}, "placed": {}, "settings": False, "gallery": {}, "wayland": False, "at": {}, "outputs": []}
 theme = {"provider": 0, "wallpaper": "", "surface": 0, "raw": 0, "map": [], "geometry": [], "pool": True, "cache": {}}
 drag = {"name": "", "start": [], "origin": [], "base": [0, 0], "moved": False}
 cpu = {"busy": 0, "total": 0, "pct": 0, "recent": []}
@@ -710,9 +713,14 @@ function on_card_motion(event, widget):
         return True
     end
     drag["moved"] = True
-    win = ui["wins"].get(drag["name"], 0)
+    name = drag["name"]
+    win = ui["wins"].get(name, 0)
     if win != 0:
-        call window_move(win, drag["origin"][0] + Int(dx), drag["origin"][1] + Int(dy))
+        xy = [drag["origin"][0] + Int(dx), drag["origin"][1] + Int(dy)]
+        if name == "music":
+            xy = clamp_to_area(name, xy[0], xy[1], workarea())
+        end
+        call window_move(win, xy[0], xy[1])
         call gtk.widget_queue_draw(widget)
     end
     return True
@@ -733,12 +741,12 @@ function on_card_release(event, widget):
         return True
     end
     # misto upusteni: na mrizku, do pracovni plochy; pozice vuci pracovni plose
-    geo = gtk.primary_monitor_workarea()
+    geo = workarea()
     x = drag["origin"][0] + Int(xy[0] - drag["start"][0])
     y = drag["origin"][1] + Int(xy[1] - drag["start"][1])
     x = geo[0] + snap(x - geo[0])
     y = geo[1] + snap(y - geo[1])
-    xy = clamp_to_area(name, x, y)
+    xy = clamp_to_area(name, x, y, geo)
     call write_conf_value("POS_" + name, String(xy[0] - geo[0]) + "," + String(xy[1] - geo[1]))
     return True
 end
@@ -778,7 +786,7 @@ function window_move(win, x, y):
     if not ui["wayland"]:
         return gtk.window_move(win, x, y)
     end
-    geo = primary_geometry()
+    geo = workarea()
     ui["at"][window_name(win)] = [x, y]
     call layer.set_margin(win, layer.EDGE_LEFT, x - geo[0])
     call layer.set_margin(win, layer.EDGE_TOP, max(0, y - geo[1]))
@@ -1620,7 +1628,8 @@ function build_music():
     c["artist"] = label("", ["lw-small", "dim"])
     for l in [c["title"], c["artist"]]:
         call gtk.label_set_ellipsize(l, gtk.ELLIPSIZE_END)
-        call gtk.label_set_max_width_chars(l, 18)
+        # Na plose dostane text zbyle misto po ovladacich prvcich. Delka skladby nemeni sirku okna.
+        call gtk.label_set_max_width_chars(l, 18 if ui["settings"] else 1)
         call gtk.box_pack_start(col, l, False, False, 0)
     end
     call gtk.box_pack_start(c["box"], col, True, True, 0)
@@ -1704,8 +1713,10 @@ function update_music():
     if artist == "":
         artist = cur["app"]
     end
-    call gtk.label_set_text(c["title"], title)
-    call gtk.label_set_text(c["artist"], artist)
+    call gtk.label_set_text(c["title"], title.replace("\n", " ").replace("\r", " "))
+    call gtk.label_set_text(c["artist"], artist.replace("\n", " ").replace("\r", " "))
+    call gtk.widget_set_tooltip(c["title"], title)
+    call gtk.widget_set_tooltip(c["artist"], artist)
     icon = "media-playback-start-symbolic"
     if cur["playing"]:
         icon = "media-playback-pause-symbolic"
@@ -1714,12 +1725,9 @@ function update_music():
     call gtk.widget_set_sensitive(c["next"], cur["can_next"])
     call gtk.widget_show(c["ev"])
     if win != 0 and not gtk.widget_get_visible(win):
-        # GTK po skryti okna zapomene jeho pozici a spravce oken by ho pri novem namapovani umistil
-        # sam (kaskada LuxOS mimo okna): pozice az pred zobrazenim, kontrola po namapovani v place_all
-        xy = ui["placed"].get("music")
-        if xy != None:
-            call window_move(win, xy[0], xy[1])
-        end
+        call place_all()
+        xy = ui["placed"]["music"]
+        call window_move(win, xy[0], xy[1])
         call gtk.widget_show(win)
         call glib.timeout_add(300, place_once)
     end
@@ -1755,7 +1763,11 @@ function create_window(name):
     end
     box = gtk.box_new(gtk.VERTICAL, 0)
     call gtk.widget_add_class(box, "lw-col")
-    call gtk.widget_set_size_request(box, WIDTH, -1)
+    width = WIDTH
+    if name == "music":
+        width = music_width(workarea())
+    end
+    call gtk.widget_set_size_request(box, width, -1)
     call gtk.container_add(win, box)
     call gtk.connect(win, "delete-event", on_delete)
     call gtk.connect(win, "draw", on_window_draw)
@@ -1777,15 +1789,37 @@ function build_card(name):
     return build_music()
 end
 
+# GDK na Waylandu nezna rezervovane misto listy a Docku, luxwm ho posila v udalosti vystupu.
+function workarea():
+    if ui["wayland"] and len(ui["outputs"]) > 0:
+        geo = primary_geometry()
+        for output in ui["outputs"]:
+            if [output["x"], output["y"], output["width"], output["height"]] == geo:
+                return output["usable"]
+            end
+        end
+    end
+    return gtk.primary_monitor_workarea()
+end
+
+function music_width(geo):
+    return max(1, min(WIDTH, geo[2]))
+end
+
 # Pozice [x, y] karty na obrazovce, aby byla cela na pracovni plose hlavniho monitoru
-function clamp_to_area(name, x, y):
-    geo = gtk.primary_monitor_workarea()
+function clamp_to_area(name, x, y, geo):
+    w = WIDTH
     h = 120
     win = ui["wins"].get(name, 0)
     if win != 0:
         h = max(40, gtk.window_get_size(win)[1])
     end
-    x = max(geo[0] - PAD, min(x, geo[0] + geo[2] - WIDTH + PAD))
+    if name == "music":
+        frame = ui["cards"][name]["frame"]
+        w = gtk.widget_get_preferred_width(frame)[1]
+        h = gtk.widget_get_preferred_height(frame)[1]
+    end
+    x = max(geo[0] - PAD, min(x, geo[0] + geo[2] - w + PAD))
     y = max(geo[1], min(y, geo[1] + geo[3] - h))
     return [x, y]
 end
@@ -1814,7 +1848,7 @@ end
 # Karta, kterou presunul nekdo jiny (spravce oken pri namapovani, restart spravce oken), se vrati
 # na sve misto - karty stoji presne tam, kam je uzivatel dal.
 function place_all():
-    geo = gtk.primary_monitor_workarea()
+    geo = workarea()
     x_default = geo[0] + geo[2] - WIDTH
     if conf["side"] == "left":
         x_default = geo[0]
@@ -1826,17 +1860,32 @@ function place_all():
         if win == 0:
             continue
         end
+        x = x_default
+        if name == "music":
+            c = ui["cards"][name]
+            width = music_width(geo)
+            if c["width"] != width:
+                c["width"] = width
+                call gtk.widget_set_size_request(c["frame"], width, -1)
+            end
+            if conf["side"] == "right":
+                x = geo[0] + geo[2] - gtk.widget_get_preferred_width(c["frame"])[1]
+            end
+        end
         h = slot_height(name, win)
         if name in conf["pos"]:
-            xy = clamp_to_area(name, geo[0] + conf["pos"][name][0], geo[1] + conf["pos"][name][1])
+            xy = clamp_to_area(name, geo[0] + conf["pos"][name][0], geo[1] + conf["pos"][name][1], geo)
         else:
-            xy = [x_default, y_next]
+            xy = [x, y_next]
+            if name == "music":
+                xy = clamp_to_area(name, x, y_next, geo)
+            end
             y_next = y_next + h
         end
         if drag["name"] == name and drag["moved"]:
             continue
         end
-        moved = ui["placed"].get(name) != xy
+        moved = ui["placed"].get(name) != xy or (ui["wayland"] and name not in ui["at"])
         if not moved and gtk.widget_get_visible(win) and window_position(win) != xy:
             moved = True
         end
@@ -1894,6 +1943,8 @@ function rebuild():
         end
         pair = create_window(name)
         c = build_card(name)
+        c["frame"] = pair[1]
+        c["width"] = music_width(workarea())
         ui["cards"][name] = c
         ui["wins"][name] = pair[0]
         call gtk.connect(c["box"], "size-allocate", on_box_allocate)
@@ -1947,6 +1998,15 @@ function minute_tick():
     return False
 end
 
+function on_wm_event(event):
+    if event.get("event") == "output":
+        ui["outputs"] = event["outputs"]
+        ui["at"] = {}
+        call place_all()
+    end
+    return 0
+end
+
 function start_common():
     safe:
         bus["session"] = gio.session_bus()
@@ -1972,6 +2032,10 @@ function start_common():
         call gio.file_monitor(glib.user_config_dir() + "/luxos/appearance", on_appearance_event)
     end
     if ui["wayland"]:
+        if not ui["settings"]:
+            call wm.subscribe(["output"])
+            call wm.connect(on_wm_event)
+        end
         display = layer.default_display()
         call glib.signal_connect(display, "monitor-added", on_monitors_changed, 1)
         call glib.signal_connect(display, "monitor-removed", on_monitors_changed, 1)

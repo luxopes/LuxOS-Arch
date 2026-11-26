@@ -19,7 +19,7 @@ XML = """<node>
 <property name="CanGoNext" type="b" access="read"/>
 <property name="CanGoPrevious" type="b" access="read"/>
 </interface></node>"""
-state = {"status": "Playing", "owner": 0, "regs": []}
+state = {"status": "Playing", "title": "Song", "artist": "Artist", "owner": 0, "regs": []}
 conn = Gio.bus_get_sync(Gio.BusType.SESSION)
 info = Gio.DBusNodeInfo.new_for_xml(XML)
 
@@ -31,15 +31,15 @@ def log(s):
 
 def props():
     return {"PlaybackStatus": GLib.Variant("s", state["status"]),
-            "Metadata": GLib.Variant("a{sv}", {"xesam:title": GLib.Variant("s", "Song"),
-                                                "xesam:artist": GLib.Variant("as", ["Artist"])}),
+            "Metadata": GLib.Variant("a{sv}", {"xesam:title": GLib.Variant("s", state["title"]),
+                                                "xesam:artist": GLib.Variant("as", [state["artist"]])}),
             "CanGoNext": GLib.Variant("b", True), "CanGoPrevious": GLib.Variant("b", True)}
 
 
-def emit():
+def emit(*keys):
     conn.emit_signal(None, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties", "PropertiesChanged",
                      GLib.Variant("(sa{sv}as)", ("org.mpris.MediaPlayer2.Player",
-                                                 {"PlaybackStatus": GLib.Variant("s", state["status"])}, [])))
+                                                 {key: props()[key] for key in keys}, [])))
 
 
 def method(c, sender, path, iface, name, params, inv):
@@ -50,9 +50,12 @@ def method(c, sender, path, iface, name, params, inv):
         state["status"] = "Playing"
     elif name in ("Pause", "Stop"):
         state["status"] = "Paused" if name == "Pause" else "Stopped"
+    elif name == "Next":
+        state["title"] = "Cinema Paradiso · A very long title " * 12
+        state["artist"] = "Ennio Morricone · A very long artist name " * 12
     inv.return_value(None)
     if iface.endswith("Player"):
-        emit()
+        emit("Metadata" if name == "Next" else "PlaybackStatus")
 
 
 def get_prop(c, sender, path, iface, name):
@@ -79,7 +82,7 @@ def again(*a):
 
 def toggle(*a):
     state["status"] = "Paused" if state["status"] == "Playing" else "Playing"
-    emit()
+    emit("PlaybackStatus")
     return True
 
 

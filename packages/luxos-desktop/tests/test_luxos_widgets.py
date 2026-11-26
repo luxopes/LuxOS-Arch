@@ -287,9 +287,10 @@ class Widgets(unittest.TestCase):
         return [l.split(" call ", 1)[1] for l in self.read(self.log).splitlines() if " call " in l]
 
     def click_play(self):
-        x, y, _w, h = self.geometry(self.music_window())
+        x, y, w, h = self.geometry(self.music_window())
         # Prehrat/Pozastavit: druhe tlacitko zprava (okraj okna 24, karta 18, Dalsi 32, mezera 12)
-        subprocess.run(["xdotool", "mousemove", str(x + 238), str(y + (h - 26) // 2), "click", "1"])
+        subprocess.run(["xdotool", "mousemove", str(x + w - 103), str(y + (h - 26) // 2),
+                        "sleep", "0.1", "click", "1", "mousemove", "0", "0"], check=True)
 
     def test_music_card_appearing_never_moves_other_cards(self):
         pid = self.start_music()
@@ -335,6 +336,21 @@ class Widgets(unittest.TestCase):
         self.assertTrue(self.wait_for(lambda: len(self.calls()) == 3), self.calls())
         self.assertEqual(self.calls()[2], "Player Play")
         self.assertNotIn("Player PlayPause", self.calls())
+
+    def test_music_metadata_keeps_controls_at_right_edge(self):
+        self.start_music("music")
+        width, _height = map(int, subprocess.check_output(["xdotool", "getdisplaygeometry"], text=True).split())
+        self.conf("ENABLED=1\nWIDGETS=music\nPOS_music=%d,120\n" % (width - 340,))
+        win = self.music_window()
+        self.assertTrue(self.wait_for(lambda: self.geometry(win)[:2] == (width - 340, 120)))
+        x, y, w, h = self.geometry(win)
+        subprocess.run(["xdotool", "mousemove", str(x + w - 59), str(y + (h - 26) // 2),
+                        "sleep", "0.1", "click", "1", "mousemove", "0", "0"], check=True)
+        self.assertTrue(self.wait_for(lambda: self.calls() == ["Player Next"]), self.calls())
+        time.sleep(0.6)
+        self.assertEqual(self.geometry(win), (x, y, w, h))
+        self.click_play()
+        self.assertTrue(self.wait_for(lambda: self.calls() == ["Player Next", "Player Pause"]), self.calls())
 
     def test_card_moved_by_someone_else_returns(self):
         """Spravce oken (umisteni pri namapovani, restart) kartu presune - vrati se na sve misto."""

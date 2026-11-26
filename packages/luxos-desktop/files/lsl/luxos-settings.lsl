@@ -370,7 +370,8 @@ function sidebar_css():
         tint = [tint[0], tint[1], tint[2], 1.0]
     end
     out = ".sidebar, .sidebar-scroll, .side-list, .side-list row { background-color: transparent; }\n"
-    out = out + ".sidebar { background-color: " + tokens.css_color(tint) + "; color: " + ui.c("fg", dark) + "; border-right: 1px solid " + ui.c("border", dark) + "; }\n"
+    # Oddelovac lezi na souvislem sklu, CSS border by zabral pixel s nezatonavanym pozadim.
+    out = out + ".sidebar { background-color: " + tokens.css_color(tint) + "; color: " + ui.c("fg", dark) + "; box-shadow: inset -1px 0 " + ui.c("border", dark) + "; }\n"
     out = out + ".side-list row { min-height: 30px; padding: 0 8px; margin: 0 10px; border-radius: 6px; }\n"
     out = out + ".side-list row:hover { background-color: " + ui.c("tile", dark) + "; }\n"
     out = out + ".side-list row:selected { background-color: " + ui.c("accent", dark) + "; color: #ffffff; }\n"

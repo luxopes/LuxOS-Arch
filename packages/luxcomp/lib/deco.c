@@ -82,6 +82,7 @@ struct deco {
 	bool rounded;
 	int width, height, scale, hover;
 	bool active, square, compact;
+	int widget_radius;
 	bool ssd;		/* false = the client draws its title bar: only shadow and corners */
 	char *title;
 	/* barva klienta pod zahlavim (0 = neznama), cteni nejvys 5x za sekundu, posledni zmena casovacem */
@@ -568,7 +569,7 @@ corners_update(struct deco *d)
 	if (d->strip && d->strip_surface != s) {
 		wlr_scene_node_destroy(&d->strip->node);
 	}
-	if (d->square || !tex || r <= 0 || g.width < 2 * r || g.height < 2 * r
+	if (d->square || d->widget_radius > 0 || !tex || r <= 0 || g.width < 2 * r || g.height < 2 * r
 			|| s->current.transform != WL_OUTPUT_TRANSFORM_NORMAL) {
 		if (d->rounded) {
 			corners_off(d);
@@ -827,14 +828,27 @@ deco_update(struct deco *d)
 	int width = view_width(v), height = view_height(v), scale = output_scale();
 	bool active = comp.focused == v;
 	bool square = fullscreen || luxcomp_view_get(id, LUXCOMP_VIEW_MAXIMIZED);
+	/* Sklo pres cele okno s vlastni dekoraci ma roh podle materialu klienta. */
+	struct wlr_box box = v->material_box;
+	bool full_glass = !d->ssd && v->material_name[0] && box.x <= 0 && box.y <= 0
+		&& box.x + box.width >= width && box.y + box.height >= height;
+	int widget_radius = full_glass && !strcmp(v->material_name, "widget")
+		? blur_material_radius(v->material_name) : 0;
 	const char *title = luxcomp_view_title(id) ? luxcomp_view_title(id) : "";
 	bool same = width == d->width && height == d->height && active == d->active
-		&& square == d->square && scale == d->scale && v->compact == d->compact;
+		&& square == d->square && scale == d->scale && v->compact == d->compact
+		&& widget_radius == d->widget_radius;
 	d->square = square;
+	d->widget_radius = widget_radius;
 	corners_update(d);
 	/* material okna kopiruje tvar okna: dolni rohy jen kdyz je zaobluje kompozitor, horni zaobluje
 	 * klient s vlastnim zahlavim */
-	blur_view_update(v, theme.radius, (d->rounded ? 12 : 0) | (!d->ssd && !square ? 3 : 0));
+	int radius = widget_radius > 0 ? widget_radius : theme.radius;
+	int rounded = (d->rounded ? 12 : 0) | (!d->ssd && !square ? 3 : 0);
+	if (widget_radius > 0 && !square) {
+		rounded = 15; /* klient uz vykreslil vsechny ctyri rohy */
+	}
+	blur_view_update(v, radius, rounded);
 	if (d->ssd) {
 		sample_update(d, false);
 		same = same && d->width == width;
@@ -858,9 +872,10 @@ deco_update(struct deco *d)
 	}
 	struct wlr_box frame = { 0, -t, width, height + t };
 	int size = theme.shadow_size[active], offset = theme.shadow_offset[active];
-	shadow_update(d->shadow, frame, square ? 0 : size, offset < 0 ? size / 4 : offset, theme.radius,
+	shadow_update(d->shadow, frame, square ? 0 : size, offset < 0 ? size / 4 : offset, radius,
 		theme.shadow[active], scale, true);
-	shadow_update(d->outline, frame, square ? 0 : 1, 0, theme.radius, theme.border, scale, false);
+	/* Klient muze mit jiny polomer nebo pruhledne rohy. Pevny obrys patri jen k serverove dekoraci. */
+	shadow_update(d->outline, frame, d->ssd && !square ? 1 : 0, 0, theme.radius, theme.border, scale, false);
 }
 
 /* Pred snimkem: rohy oken, jejichz podpovrchy se zmenily bez commitu korene */

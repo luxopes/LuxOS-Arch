@@ -205,12 +205,17 @@ class LuxwmHeadless(unittest.TestCase):
         r, g, b = s.pixel(10, 10)
         self.assertTrue(g > 120 and r < 60, (r, g, b))
         s.shot("fullscreen-above-bar.png")
-        # jine okno zamerene => celoobrazovkove pod listu (NORMAL)
-        s.client("Other")
-        self.assertEqual(s.state()["views"]["V"]["layer"], 2, "new window must not steal focus from fullscreen")
-        s.input("key alt+Tab")
+        # Nove okno zustane nad fullscreenem, i kdyz klient nepozada o aktivaci.
+        # Stejne to plati pro druhe okno spustene z fullscreen aplikace.
+        s.client("Other", app="second-app")
         st = s.state()["views"]
         self.assertEqual(st["Other"]["focused"], 1)
+        self.assertEqual(st["V"]["layer"], 0)
+        s.input("key alt+Tab")
+        self.assertEqual(s.state()["views"]["V"]["layer"], 2)
+        s.client("New window", app="test")
+        st = s.state()["views"]
+        self.assertEqual(st["New_window"]["focused"], 1)
         self.assertEqual(st["V"]["layer"], 0)
         s.input("key alt+Tab")
         s.input("key F11", wait=0.6)
@@ -317,10 +322,10 @@ class LuxwmHeadless(unittest.TestCase):
         st = s.state()
         self.assertEqual(st["workspace"], 3)
         self.assertEqual(s.focused(), ["B"])
-        # krajni plocha bez prechodu dokola
+        # z krajni plochy dokola (wrap_workspaces = yes jako xfwm4 na X11)
         s.input("key ctrl+super+4", wait=0.8)
         s.input("key ctrl+super+Right", wait=0.8)
-        self.assertEqual(s.state()["workspace"], 4)
+        self.assertEqual(s.state()["workspace"], 1)
 
     def red_left_edge(self, path, y):
         """Levy okraj obsahu okna (cervene pruhy d03030 / 681818) v radku y, None kdyz neni videt"""

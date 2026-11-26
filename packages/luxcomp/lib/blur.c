@@ -65,6 +65,7 @@ static struct material materials[MAX_MATERIALS] = {
 	{ "dock", 24, 0xfff6f7fc, 0x2e000000, 24, 8 },
 	{ "menu", 12, 0xfff6f7fc, 0x38000000, 30, 10 },
 	{ "popup", 16, 0xfff6f7fc, 0x3d000000, 44, 16 },
+	{ "widget", 22, 0xfff6f7fc, 0x3d000000, 44, 16 },
 	{ "toast", 16, 0xfff6f7fc, 0x38000000, 32, 12 },
 	{ "sheet", 24, 0xfff6f7fc, 0x59000000, 80, 30 },
 	{ "dim", 0, 0xff3a3c48, 0, 0, 0 },
@@ -199,6 +200,13 @@ material_find(const char *name)
 	return NULL;
 }
 
+int
+blur_material_radius(const char *name)
+{
+	const struct material *m = material_find(name);
+	return m ? m->radius : 0;
+}
+
 void
 luxcomp_material_set(const char *name, int64_t radius, int64_t fallback, int64_t shadow,
 		int64_t shadow_size, int64_t shadow_y)
@@ -277,8 +285,7 @@ blur_parse_namespace(const char *ns, char material[16], int *radius)
 	}
 	memcpy(material, at + 1, n);
 	material[n] = '\0';
-	const struct material *m = material_find(material);
-	*radius = m ? m->radius : 0;
+	*radius = blur_material_radius(material);
 	if (at[1 + n] == ':') {
 		*radius = atoi(at + 2 + n);
 	}
@@ -1533,6 +1540,9 @@ luxcomp_view_set_material(int64_t id, const char *name, int64_t x, int64_t y, in
 		blur_destroy(v->material);
 		v->material = NULL;
 		v->material_name[0] = '\0';
+		if (v->deco) {
+			deco_update(v->deco);
+		}
 		return;
 	}
 	if (v->material && strcmp(v->material->material, name)) {

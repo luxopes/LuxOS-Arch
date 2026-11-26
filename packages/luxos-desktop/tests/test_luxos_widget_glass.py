@@ -148,7 +148,7 @@ class PoolAndWallpaper(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         source = SRC.read_text()
-        consts = "\n".join(line for line in source.splitlines() if line.startswith(("POOL_", "GLASS_RADIUS")))
+        consts = "\n".join(line for line in source.splitlines() if line.startswith("POOL_"))
         cls.tmp = tempfile.mkdtemp(prefix="widget-pool-")
         cls.walls = {}
         for name in ("a", "b", "c", "d"):

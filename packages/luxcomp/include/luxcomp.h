@@ -207,7 +207,7 @@ enum luxcomp_theme_prop {
 	LUXCOMP_THEME_DARK_BUTTON_INACTIVE,
 	LUXCOMP_THEME_DARK_BUTTON_RING,
 	LUXCOMP_THEME_ACCENT,			/* sandbox badge */
-	LUXCOMP_THEME_BORDER,			/* 1 px line around the window, 0 = none */
+	LUXCOMP_THEME_BORDER,			/* 1 px line for server-decorated windows, 0 = none */
 	LUXCOMP_THEME_SHADOW_ACTIVE_OFFSET,	/* px the shadow is moved down, -1 = size / 4 */
 	LUXCOMP_THEME_SHADOW_INACTIVE_OFFSET,
 };

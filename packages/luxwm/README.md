@@ -29,9 +29,9 @@ looks for modules next to the importing file.
   tiled and fullscreen windows are fitted again.
 - **Focus**: click to focus. When the focused window closes, focus goes to its parent, otherwise to
   the most recent window on the workspace. The traffic lights of an inactive window work without
-  focusing it. A new window does not take focus from a focused fullscreen window. A dialog of an app
-  on another workspace does not take focus either.
-- **Activation** (xdg-activation, Dock): a window of another app is focused only with a token from
+  focusing it. A new window on the current workspace takes focus, including over a fullscreen window.
+  A dialog of an app on another workspace stays on that workspace.
+- **Activation** (xdg-activation, Dock): an existing window of another app is focused with a token from
   the focused app, from the shell (layer-shell surface, a program started by luxwm) or from the
   Dock (foreign-toplevel). luxwm then switches to the window's workspace and restores it when it
   is minimised. Without a token, only windows of the focused app may activate themselves.

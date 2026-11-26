@@ -7,6 +7,8 @@
 #                                     (False = pevna velikost: bez tazeni okraju, dvojkliku a zeleneho tlacitka)
 #   glass.lights(okno, zavrit)        semafor zavrit / minimalizovat / maximalizovat; zavrit(tlacitko) dela aplikace
 #   call glass.set_dark(True|False)   tmave sklo se svetlym textem (podle motivu aplikace)
+#   call glass.set_live(okno, True)   kresli jen tonovani, pokud luxwm potvrdil zive rozmazani pod oknem
+#   trida lg-widget-edge              zaobleni a svetla hrana jako u widgetu plochy
 #   glass.CSS                         styly semaforu a tridy .lg-* (karta, pole, prepinac, tlacitko)
 #   glass.panel_png(cesta, x, y, w, h, polomer, svetle)  stejna karta do PNG pro okna mimo GTK (Hledani v rofi)
 #   call glass.panel(okno, box, polomer)  vyskakovaci panel (Ovladaci centrum) z materialu widgetu na plose:
@@ -18,6 +20,7 @@ load cairo, glib, gio, gtk, env
 load luxos_glib as lglib
 load luxos_gtk as lgtk
 load luxos_material as material
+load luxos_tokens as tokens
 
 RADIUS = 16.0
 EDGE = 8
@@ -33,7 +36,7 @@ CSS = ("button.lg-light { min-width: 12px; min-height: 12px; padding: 0; margin:
     + "button.lg-max { background-color: #28c840; }\n"
     + ".lg-window scrolledwindow, .lg-window viewport { background: transparent; border: none; }\n")
 
-state = {"surface": 0, "map": [], "dark": False, "loaded": False, "watch": 0, "appearance": "", "wins": {}, "press": [], "cursor": {}, "resize": {},
+state = {"surface": 0, "map": [], "dark": False, "loaded": False, "watch": 0, "appearance": "", "wins": {}, "live": {}, "press": [], "cursor": {}, "resize": {},
          "panel": 0, "panel_map": [], "panels": {}}
 PANEL_SIZE = 96
 EDGE_CURSORS = {}
@@ -379,6 +382,9 @@ function corner(win):
     if gtk.window_is_maximized(win):
         return 0.0
     end
+    if lgtk.widget_has_class(win, "lg-widget-edge"):
+        return Float(tokens.WIDGET_RADIUS)
+    end
     return RADIUS
 end
 
@@ -395,28 +401,31 @@ function on_draw(cr, win):
     call cairo.set_operator(cr, 2)
     call cairo.rounded_rectangle(cr, 0, 0, w, h, r)
     call cairo.clip(cr)
-    if dark:
-        call cairo.set_source_rgba(cr, 0.13, 0.14, 0.17, 0.94)
-    else:
-        call cairo.set_source_rgba(cr, 0.95, 0.95, 0.97, 0.94)
-    end
-    call cairo.paint(cr)
-    if state["surface"] != 0:
-        m = state["map"]
-        pos = gtk.window_get_position(win)
-        sx = clamp(m[3] + Float(pos[0]) * m[2], 0.5, Float(m[0]) - 0.5 - w * m[2])
-        sy = clamp(m[4] + Float(pos[1]) * m[2], 0.5, Float(m[1]) - 0.5 - h * m[2])
-        call cairo.save(cr)
-        call cairo.scale(cr, 1.0 / m[2], 1.0 / m[2])
-        call cairo.set_source_surface(cr, state["surface"], -sx, -sy)
+    live = state["live"].get(win, False)
+    if not live:
+        if dark:
+            call cairo.set_source_rgba(cr, 0.13, 0.14, 0.17, 0.94)
+        else:
+            call cairo.set_source_rgba(cr, 0.95, 0.95, 0.97, 0.94)
+        end
         call cairo.paint(cr)
-        call cairo.restore(cr)
+        if state["surface"] != 0:
+            m = state["map"]
+            pos = gtk.window_get_position(win)
+            sx = clamp(m[3] + Float(pos[0]) * m[2], 0.5, Float(m[0]) - 0.5 - w * m[2])
+            sy = clamp(m[4] + Float(pos[1]) * m[2], 0.5, Float(m[1]) - 0.5 - h * m[2])
+            call cairo.save(cr)
+            call cairo.scale(cr, 1.0 / m[2], 1.0 / m[2])
+            call cairo.set_source_surface(cr, state["surface"], -sx, -sy)
+            call cairo.paint(cr)
+            call cairo.restore(cr)
+        end
     end
-    # mlecny zavoj: svetly pro tmavy text, tmavy pro bily text
+    # Stejne odstiny na tapete i zive scene. Nad zivym pozadim je zavoj silnejsi kvuli kontrastu pisma.
     if dark:
-        call cairo.set_source_rgba(cr, 0.06, 0.07, 0.10, 0.52)
+        call cairo.set_source_rgba(cr, 0.06, 0.07, 0.10, 0.70 if live else 0.52)
     else:
-        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.42)
+        call cairo.set_source_rgba(cr, 1.0, 1.0, 1.0, 0.60 if live else 0.42)
     end
     call cairo.paint(cr)
     sheen = cairo.pattern_create_linear(0, 0, w * 0.45, h)
@@ -427,19 +436,26 @@ function on_draw(cr, win):
     call cairo.pattern_destroy(sheen)
     call cairo.restore(cr)
     if r > 0.0:
+        widget_edge = lgtk.widget_has_class(win, "lg-widget-edge")
         call cairo.set_line_width(cr, 1.0)
-        call cairo.rounded_rectangle(cr, 0.5, 0.5, w - 1.0, h - 1.0, r - 0.5)
-        call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.18)
-        call cairo.stroke(cr)
-        edge = cairo.pattern_create_linear(0, 0, 0, h)
-        top = 0.75
-        if dark:
-            top = 0.30
+        if not widget_edge:
+            call cairo.rounded_rectangle(cr, 0.5, 0.5, w - 1.0, h - 1.0, r - 0.5)
+            call cairo.set_source_rgba(cr, 0.0, 0.0, 0.0, 0.18)
+            call cairo.stroke(cr)
         end
-        call cairo.pattern_add_color_stop_rgba(edge, 0.0, 1.0, 1.0, 1.0, top)
-        call cairo.pattern_add_color_stop_rgba(edge, 0.25, 1.0, 1.0, 1.0, top * 0.3)
-        call cairo.pattern_add_color_stop_rgba(edge, 1.0, 1.0, 1.0, 1.0, top * 0.15)
-        call cairo.rounded_rectangle(cr, 1.5, 1.5, w - 3.0, h - 3.0, r - 1.5)
+        edge = cairo.pattern_create_linear(0, 0, 0, h)
+        if widget_edge:
+            call cairo.pattern_add_color_stop_rgba(edge, 0.0, 1.0, 1.0, 1.0, tokens.COLORS["card_edge_top"][3])
+            call cairo.pattern_add_color_stop_rgba(edge, 0.5, 1.0, 1.0, 1.0, tokens.COLORS["card_edge"][3])
+            call cairo.pattern_add_color_stop_rgba(edge, 1.0, 1.0, 1.0, 1.0, tokens.COLORS["card_edge_bottom"][3])
+        else:
+            top = 0.30 if dark else 0.75
+            call cairo.pattern_add_color_stop_rgba(edge, 0.0, 1.0, 1.0, 1.0, top)
+            call cairo.pattern_add_color_stop_rgba(edge, 0.25, 1.0, 1.0, 1.0, top * 0.3)
+            call cairo.pattern_add_color_stop_rgba(edge, 1.0, 1.0, 1.0, 1.0, top * 0.15)
+        end
+        inset = 0.5 if widget_edge else 1.5
+        call cairo.rounded_rectangle(cr, inset, inset, w - 2.0 * inset, h - 2.0 * inset, r - inset)
         call cairo.set_source(cr, edge)
         call cairo.stroke(cr)
         call cairo.pattern_destroy(edge)
@@ -483,7 +499,7 @@ function edge_at(win, x, y):
     right = x >= w - e
     top = y < e
     bottom = y >= h - e
-    cz = RADIUS + e
+    cz = corner(win) + e
     near_l = x < cz
     near_r = x >= w - cz
     near_t = y < cz
@@ -582,6 +598,7 @@ function setup(win, can_resize):
     end
     call ensure_loaded()
     state["wins"][win] = []
+    state["live"][win] = False
     state["resize"][win] = can_resize
     call gtk.window_set_resizable(win, can_resize)
     call gtk.widget_add_class(win, "lg-window")
@@ -597,9 +614,17 @@ function setup(win, can_resize):
     return 0
 end
 
+function set_live(win, enabled):
+    if state["live"].get(win, False) != enabled:
+        state["live"][win] = enabled
+        call gtk.widget_queue_draw(win)
+    end
+    return 0
+end
+
 # Okno zmizelo (widget_destroy): uz ho neprekreslovat
 function forget(win):
-    for d in [state["wins"], state["resize"], state["cursor"]]:
+    for d in [state["wins"], state["live"], state["resize"], state["cursor"]]:
         if win in d:
             call d.pop(win)
         end
