@@ -60,7 +60,7 @@ entries = []
 usage = {}
 S = {"shadow": None, "open": False, "mode": "launchpad", "shortcut": False, "sort": model.DEFAULT_MODE, "items": [], "sel": 0, "top": 0, "calc": None,
     "query": "", "light": True, "strip": None, "geo": {}, "size": [0, 0], "pending": False, "drawn": False,
-    "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": [], "folder": False}
+    "fade": 0, "tick": 0, "animate": True, "luxai": "", "labels": [], "folder": ""}
 window = 0
 entry = 0
 fixed = 0
@@ -104,6 +104,17 @@ function launchpad_visible(info):
     return True
 end
 
+FOLDERS = ["settings", "tools"]
+
+function folder_of(desktop_id, info, tools):
+    if "Settings" in String(apps.categories(info)).split(";"):
+        return "settings"
+    elif desktop_id in tools:
+        return "tools"
+    end
+    return ""
+end
+
 function free_icons():
     for e in entries:
         if e["icon"] != 0:
@@ -119,8 +130,9 @@ function load_entries():
     call free_icons()
     entries = []
     seen = {}
-    # Aplikace skryte v nabidce prekrytim LuxOS (technicke, nahrazene vlastni aplikaci LuxOS) jsou ve
-    # slozce Nastroje: dostupne (i hledanim), ale nepletou se novacci mezi beznymi aplikacemi
+    # Slozky na konci mrizky (hledani najde vse): Nastaveni = vsechny aplikace s kategorii Settings
+    # (panely Nastaveni, Bluetooth, tiskarny...), Nastroje = aplikace skryte v nabidce prekrytim LuxOS
+    # (technicke, nahrazene vlastni aplikaci LuxOS). Hlavni mrizka tak ma jen bezne aplikace.
     tools = {}
     covered = apps.covered_by_luxos()
     for info in covered:
@@ -138,7 +150,7 @@ function load_entries():
             "exec": apps.base_name(apps.executable(info)), "categories": apps.categories(info)})
         e["info"] = info
         e["icon"] = 0
-        e["tool"] = desktop_id in tools
+        e["group"] = folder_of(desktop_id, info, tools)
         entries.append(e)
     end
     return 0
@@ -210,20 +222,20 @@ function app_item(e):
     return {"kind": "app", "entry": e}
 end
 
-# Mrizka bez dotazu: bezne aplikace a na konci slozka Nastroje; ve slozce jen nastroje a "Zpet"
+# Mrizka bez dotazu: bezne aplikace a na konci slozky Nastaveni a Nastroje; ve slozce jen jeji aplikace a "Zpet"
 function grid_entries():
     out = []
     for e in entries:
-        if e["tool"] == S["folder"]:
+        if e["group"] == S["folder"]:
             out.append(e)
         end
     end
     return out
 end
 
-function has_tools():
+function has_group(group):
     for e in entries:
-        if e["tool"]:
+        if e["group"] == group:
             return True
         end
     end
@@ -234,16 +246,16 @@ function refresh():
     query = S["query"].strip()
     items = []
     S["calc"] = None
-    folder_tile = False
+    folder_tiles = False
     if query == "":
         if S["mode"] == "search":
             found = model.order(entries, "recent", usage)
         else:
-            if S["folder"]:
+            if S["folder"] != "":
                 items.append({"kind": "back"})
             end
             found = model.order(grid_entries(), S["sort"], usage)
-            folder_tile = not S["folder"] and not S["shortcut"] and has_tools()
+            folder_tiles = S["folder"] == "" and not S["shortcut"]
         end
     else:
         if not S["shortcut"]:
@@ -258,8 +270,12 @@ function refresh():
     for e in found:
         items.append(app_item(e))
     end
-    if folder_tile:
-        items.append({"kind": "folder"})
+    if folder_tiles:
+        for group in FOLDERS:
+            if has_group(group):
+                items.append({"kind": "folder", "group": group})
+            end
+        end
     end
     if query != "" and S["luxai"] != "" and not S["shortcut"]:
         items.append({"kind": "luxai"})
@@ -270,7 +286,7 @@ function refresh():
     if TRACE and query == "" and S["mode"] == "launchpad":
         kinds = []
         for item in items:
-            kinds.append(item["entry"]["id"] if item["kind"] == "app" else item["kind"])
+            kinds.append(item_trace(item))
         end
         call trace("grid " + " ".join(kinds))
     end
@@ -649,9 +665,20 @@ function draw_label(cr, value, font, x, y, width):
     return 0
 end
 
+function item_trace(item):
+    if item["kind"] == "app":
+        return item["entry"]["id"]
+    elif item["kind"] == "folder":
+        return "folder:" + item["group"]
+    end
+    return item["kind"]
+end
+
 function item_label(item):
     if item["kind"] == "app":
         return item["entry"]["name"]
+    elif item["kind"] == "folder" and item["group"] == "settings":
+        return i18n.T("Settings")
     elif item["kind"] == "folder":
         return i18n.T("Utilities")
     elif item["kind"] == "back":
@@ -674,6 +701,8 @@ end
 function item_icon(item):
     if item["kind"] == "app":
         return icon_of(item["entry"])
+    elif item["kind"] == "folder" and item["group"] == "settings":
+        return named_icon("settings_icon", ["preferences-system", "applications-system", "folder"])
     elif item["kind"] == "folder":
         return named_icon("folder_icon", ["folder-utilities", "applications-utilities", "folder"])
     elif item["kind"] == "back":
@@ -909,7 +938,7 @@ function show(mode):
     end
     S["mode"] = mode
     S["query"] = ""
-    S["folder"] = False
+    S["folder"] = ""
     call gtk.entry_set_text(entry, "")
     call load_sort()
     call refresh()
@@ -1014,8 +1043,10 @@ function activate(i):
     elif item["kind"] == "luxai":
         call trace("luxai " + query)
         call glib.spawn_app([S["luxai"], "--agent", query])
-    elif item["kind"] == "folder" or item["kind"] == "back":
-        return open_folder(item["kind"] == "folder")
+    elif item["kind"] == "folder":
+        return open_folder(item["group"])
+    elif item["kind"] == "back":
+        return open_folder("")
     else:
         e = item["entry"]
         if S["shortcut"]:
@@ -1033,9 +1064,9 @@ function activate(i):
     return 0
 end
 
-function open_folder(opened):
-    S["folder"] = opened
-    call trace("folder " + ("open" if opened else "close"))
+function open_folder(group):
+    S["folder"] = group
+    call trace("folder " + (group + " open" if group != "" else "close"))
     call refresh()
     call update_geometry()
     call panel_redraw()
@@ -1064,12 +1095,7 @@ function select(i):
     call ensure_visible()
     call panel_redraw()
     if TRACE:
-        item = S["items"][S["sel"]]
-        name = item["kind"]
-        if name == "app":
-            name = item["entry"]["id"]
-        end
-        call trace("sel " + String(S["sel"]) + " " + name + " top=" + String(S["top"]))
+        call trace("sel " + String(S["sel"]) + " " + item_trace(S["items"][S["sel"]]) + " top=" + String(S["top"]))
     end
     return 0
 end
@@ -1121,10 +1147,10 @@ function on_key(event, widget):
     name = gtk.event_key_name(event)
     state = gtk.event_key_state(event)
     typing = S["query"] != ""
-    if name == "Escape" and S["folder"] and S["query"] == "":
-        call open_folder(False)
-    elif (name == "BackSpace" or (name == "Left" and (state & MOD_ALT) != 0)) and S["folder"] and S["query"] == "":
-        call open_folder(False)
+    if name == "Escape" and S["folder"] != "" and S["query"] == "":
+        call open_folder("")
+    elif (name == "BackSpace" or (name == "Left" and (state & MOD_ALT) != 0)) and S["folder"] != "" and S["query"] == "":
+        call open_folder("")
     elif name == "Escape":
         call hide()
     elif name == "Return" or name == "KP_Enter":
@@ -1328,6 +1354,7 @@ function on_config(file, event, other):
         call free_icons()
         S["luxai_icon"] = 0
         S["folder_icon"] = 0
+        S["settings_icon"] = 0
         S["back_icon"] = 0
         if S["open"]:
             call gtk.widget_queue_draw(window)

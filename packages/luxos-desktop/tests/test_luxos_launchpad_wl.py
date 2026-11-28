@@ -70,6 +70,8 @@ APPS = {
     "org.example.CoveredHelper": "Name=Covered Helper\nNoDisplay=true\nIcon=dialog-warning\n",
 }
 COVERED = ["org.example.Covered", "org.example.CoveredHelper", "org.example.NotInstalled"]
+# aplikace s kategorii Settings jsou ve slozce Nastaveni (predposledni dlazdice), ne v hlavni mrizce
+SETTINGS = [k for k in APPS if re.search(r"^Categories=(.*;)?Settings;", APPS[k], re.M)]
 for _n in range(1, 31):
     APPS[f"org.example.Filler{_n:02d}"] = f"Name=Zz Filler {_n:02d}\nIcon=application-x-executable\nCategories=Utility;\n"
 VISIBLE = [k for k in APPS if k not in ("org.example.Hidden", "org.example.Panel-launchpad", "org.example.KdeOnly",
@@ -82,8 +84,10 @@ def alpha_order():
     def name(k):
         m = re.search(r"^Name\[cs\]=(.*)$", APPS[k], re.M) or re.search(r"^Name=(.*)$", APPS[k], re.M)
         return m.group(1).lower().translate(FOLD).encode()
-    # aplikace pod prekrytim LuxOS jsou ve slozce Nastroje (posledni dlazdice mrizky), ne v ni
-    return [k + ".desktop" for k in sorted(VISIBLE, key=name) if k not in COVERED] + ["folder"]
+    # aplikace pod prekrytim LuxOS jsou ve slozce Nastroje (posledni dlazdice mrizky), Settings ve slozce
+    # Nastaveni pred ni, ne v mrizce
+    return ([k + ".desktop" for k in sorted(VISIBLE, key=name) if k not in COVERED and k not in SETTINGS]
+            + ["folder:settings", "folder:tools"])
 
 
 class Input:
@@ -476,7 +480,7 @@ class WaylandLaunchpad(unittest.TestCase):
         self.assertGreater(int(m.group(2)), 0)
         mark = lp.mark()
         self.input.send("key End")
-        lp.wait(rf" sel {len(order) - 1} folder ", start=mark)
+        lp.wait(rf" sel {len(order) - 1} folder:tools ", start=mark)
         mark = lp.mark()
         self.input.send("key Home")
         lp.wait(r" sel 0 .* top=0", start=mark)
@@ -560,23 +564,46 @@ class WaylandLaunchpad(unittest.TestCase):
         self.open_by_key(lp)
         _, m = lp.wait(r" grid (.*)$", start=mark)
         grid = m.group(1).split()
-        self.assertEqual(grid[-1], "folder")
+        self.assertEqual(grid[-2:], ["folder:settings", "folder:tools"])
         self.assertNotIn("org.example.Covered.desktop", grid)
-        self.assertIn("org.example.Panel.desktop", grid)
         mark = lp.mark()
         self.input.send("key End", "key Return")
-        lp.wait(r" folder open$", start=mark)
+        lp.wait(r" folder tools open$", start=mark)
         _, m = lp.wait(r" grid (.*)$", start=mark)
         self.assertEqual(m.group(1).split(), ["back", "org.example.Covered.desktop"])
         mark = lp.mark()
         self.input.send("key Escape")
         lp.wait(r" folder close$", start=mark)
         _, m = lp.wait(r" grid (.*)$", start=mark)
-        self.assertEqual(m.group(1).split()[-1], "folder")
+        self.assertEqual(m.group(1).split()[-1], "folder:tools")
         # Escape mimo slozku zavira
         mark = lp.mark()
         self.input.send("key Escape")
         lp.wait(r" hidden$", start=mark)
+
+    def test_settings_folder(self):
+        """Vsechny aplikace s kategorii Settings jsou jen ve slozce Nastaveni (i Settings z Nastroju), hledani je najde."""
+        self.start()
+        lp = self.resident()
+        mark = lp.mark()
+        self.open_by_key(lp)
+        _, m = lp.wait(r" grid (.*)$", start=mark)
+        grid = m.group(1).split()
+        for k in SETTINGS:
+            self.assertNotIn(k + ".desktop", grid)
+        # predposledni dlazdice: End, Left, Enter
+        mark = lp.mark()
+        self.input.send("key End", "key Left", "key Return")
+        lp.wait(r" folder settings open$", start=mark)
+        _, m = lp.wait(r" grid (.*)$", start=mark)
+        inside = m.group(1).split()
+        self.assertEqual(inside[0], "back")
+        self.assertEqual(sorted(inside[1:]), sorted(k + ".desktop" for k in SETTINGS if k in VISIBLE))
+        # Backspace zpet do hlavni mrizky, hledani najde i aplikaci ze slozky
+        mark = lp.mark()
+        self.input.send("key BackSpace")
+        lp.wait(r" folder close$", start=mark)
+        self.assertIn("luxos-bluetooth.desktop", self.type_query(lp, "bluetooth"))
 
     def test_math_inline(self):
         self.start()

@@ -161,6 +161,10 @@ running.
   (`luxos-launchpad` gives rofi a copy without `X-XFCE-SettingsDialog` in
   `$XDG_RUNTIME_DIR/luxos-launchpad-$UID/share`, list `LAUNCHPAD_APPS`; same desktop id, so usage
   counts and sorting keep working; the menu and Search are unchanged).
+- On Wayland (LuxOS 1.1, `luxos-launchpad.lsl`) the grid ends with two folder tiles: **Settings**
+  (every app with the `Settings` category, including LuxOS Settings itself) and **Utilities**
+  (small tools). These apps are not in the main grid; typing in the search field still finds them.
+  `Esc`, `BackSpace` or the **Back** tile closes a folder.
 - **Sorting** (buttons under the Launchpad grid, or `Alt+1`..`Alt+4`): **Alphabetical**, **Recently
   used**, **Most used** (default) and **Category** (Internet, Office, Graphics, Multimedia,
   Development, Education, Games, Science, Accessories, Settings, System, then alphabetically). The
